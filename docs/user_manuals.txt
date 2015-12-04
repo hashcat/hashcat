@@ -1,0 +1,3 @@
+The user manuals are constantly updated. Thats why they are not part of the distribtion.
+
+For more detailed Informations and advanced hashcat usage visit our Wiki: http://hashcat.net/wiki

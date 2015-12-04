@@ -1,0 +1,175 @@
+#!/bin/bash
+# Programmable bash completion for oclHashcat / cudaHashcat
+# this script was tested under ubuntu, please verify if on your
+# distro /etc/bash_completion.d/ exists (otherwise it won't work)
+
+COMPGENSCRIPT=/etc/bash_completion
+COMPGENFOLDER=${COMPGENSCRIPT}.d
+COMPGENTARGET=${COMPGENFOLDER}/oclHashcat64.sh
+BASHRC=~/.bashrc
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+#############################################################################
+
+is_sourced ()
+{
+  if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+
+    SOURCED=0
+
+  else
+
+    SOURCED=1
+
+  fi
+
+  return ${SOURCED}
+}
+
+source_completion ()
+{
+  # load the completion into current shell
+
+  if [ "${is_child}" -eq 1 ]; then
+
+    if [ "${parent_sourced}" -eq 0 ]; then
+
+      return 1
+
+    fi
+
+  fi
+
+  if [ "${was_sourced}" -eq 0 ]; then
+
+    source "${COMPGENTARGET}"
+    # or
+    #source ${BASHRC}
+
+    return 1
+
+  fi
+
+  return 0
+}
+
+my_exit ()
+{
+  if [ "${was_sourced}" -eq 0 ]; then
+
+    return $1
+
+  else
+
+    exit $1
+
+  fi
+}
+
+is_root ()
+{
+  if [ "$(id -g)" -eq 0 ]; then
+
+    return 0
+
+  else
+
+    return 1
+
+  fi
+}
+
+
+#############################################################################
+
+is_sourced
+was_sourced=${?}
+
+ROOT_PARENT="$(cd ${ROOT}/.. && pwd)"
+
+# Check (install) permissions
+
+parent_sourced=0
+is_child=0
+
+if ! is_root; then
+
+   sudo ${BASH_SOURCE[0]} ${was_sourced}
+
+  ret=${?}
+
+  if [ "${ret}" -eq 0 ]; then
+
+    source_completion
+
+  fi
+
+  my_exit ${ret}
+  return ${?}
+
+fi
+
+if [ -n "${1}"  ]
+then
+
+  parent_sourced=${1}
+  is_child=1
+
+fi
+
+if [ -f "${COMPGENFOLDER}" ]
+then
+
+  echo "The bash completion script file (${COMPGENSCRIPT}) could not be found"
+  echo "Please make sure that the distro 'bash-completion' package is installed (apt-get install it otherwise). EXIT"
+  my_exit 1
+  return ${?}
+
+fi
+
+if [ -d "${COMPGENFOLDER}" ]; then
+
+  # copy the script to target folder
+
+  cp ${ROOT}/oclHashcat64.sh "${COMPGENTARGET}"
+
+  # adjust paths to the main binaries of oclHashcat
+
+  sed -ri "s!^(ROOT=).*!\1\"${ROOT_PARENT}\"!" "${COMPGENTARGET}"
+
+
+  # add the compgen to bashrc if not already there
+
+  if ! egrep -q "^[^#]*\. *${COMPGENSCRIPT}" "${BASHRC}"; then
+
+    cat >> "${BASHRC}" << EOF
+
+if [ -f "${COMPGENSCRIPT}" ]; then
+
+  . ${COMPGENSCRIPT}
+
+fi
+
+EOF
+
+  fi
+
+  if source_completion; then
+
+    echo "Bash completion scripts for oclHashcat were successfully installed, but since you didn't 'source' this file, you need to run:"
+    echo "source ${COMPGENTARGET} # or source ${BASHRC}"
+    echo
+    echo "in order to be able to use the tab completion within the current shell."
+
+  fi
+
+else
+
+  echo "The compgen script folder (${COMPGENFOLDER}) could NOT be found. EXIT"
+  my_exit 1
+  return ${?}
+
+fi
+
+my_exit 0
+return ${?}

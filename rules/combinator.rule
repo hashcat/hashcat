@@ -1,0 +1,59 @@
+## rule: case recovery
+## limits: capitalized rules only char positions 3 to 7
+## example: annalove ---> AnnaLove
+## extras: none
+
+:
+l
+c
+u
+
+c T3
+c T4
+c T5
+c T6
+c T7
+
+## rule: experienced effective
+## limits: none
+## example: FringeDevision ---> fringedevision2009
+## extras: lower case only
+
+l $1
+l $2
+l $1$2$3
+l $2$0$0$7
+l $2$0$0$8
+l $2$0$0$9
+
+## rule: hyphen variety
+## limits: insert at char positions 3 to 7
+## example: theobserver ---> the observer
+## extras: lower case only
+
+l i3 
+l i4 
+l i5 
+l i6 
+l i7 
+l i3&
+l i4&
+l i5&
+l i6&
+l i7&
+l i3+
+l i4+
+l i5+
+l i6+
+l i7+
+l i3-
+l i4-
+l i5-
+l i6-
+l i7-
+l i3.
+l i4.
+l i5.
+l i6.
+l i7.
+

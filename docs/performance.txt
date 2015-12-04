@@ -1,0 +1,5 @@
+Performance Notes:
+==================
+
+- Always Use the latest display driver
+- To significantly improve performance use -w 3

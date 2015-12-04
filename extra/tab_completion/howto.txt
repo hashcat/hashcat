@@ -1,0 +1,4 @@
+run:
+source ./install
+OR
+source ./oclHashcat64.sh # not working permanently (not working anymore after a reboot etc)

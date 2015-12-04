@@ -1,0 +1,102 @@
+## nothing, reverse, case... base stuff
+:
+r
+u
+T0
+
+## simple number append
+$0
+$1
+$2
+$3
+$4
+$5
+$6
+$7
+$8
+$9
+
+## special number append
+$0 $0
+$0 $1
+$0 $2
+$1 $1
+$1 $2
+$1 $3
+$2 $1
+$2 $2
+$2 $3
+$6 $9
+$7 $7
+$8 $8
+$9 $9
+$1 $2 $3
+
+## high frequency append
+$e
+$s
+
+## high frequency overwrite at end
+] $a
+] ] $s
+] ] $a
+] ] $e $r
+] ] $i $e
+] ] ] $o
+] ] ] $y
+] ] ] $1 $2 $3
+] ] ] $m $a $n
+] ] ] $d $o $g
+
+## high frequency prepend
+^1
+^e ^h ^t
+
+## high frequency overwrite at start
+o0d
+o0m o1a
+
+## leetify
+so0
+si1
+se3
+
+## simple extracts
+D2
+D2 D2
+D3
+D4
+
+## undouble word
+'5 D3
+'5 $1
+
+## removes suffixes from 'strongified' passwords in dict
+]
+] ]
+] ] ]
+] ] ] d
+] ] D1 ]
+
+## rotates
++5 ] } } } } '4
+x02 { { { { { {
+} ] ] {
+} } -0 x12
+} } }
+} } } } '4
+} } } } } '5
+} } } } } } Y4 '4 d
+
+## unknown
+*04 +0 '4
+*05 x03 d '3 p1
++0 +0 +0 +0 +0 +0 +0 +0
++0 +0 +0 x12
+Z4 '8 x42
+Z5 '6 x31 ] p1
+Z5 *75 '5 { x02
+d x28 Y4 '4 d
+f *A5 '8 x14
+p2 '7 p1 x58
+x14 d p2 '6

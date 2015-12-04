@@ -1,0 +1,29 @@
+## rule: leetspeak single
+## limits: none
+## example: john ---> j0hn
+## extras: case original, lower, upper
+
+sa4
+sa@
+sb6
+sc<
+sc{
+se3
+sg9
+si1
+si!
+so0
+sq9
+ss5
+ss$
+st7
+st+
+sx%
+
+## rule: leetspeak multi
+## limits: none
+## example: johnbox ---> j0hnbox
+## extras: all case variants
+
+sa@sc<se3si1so0ss$
+
