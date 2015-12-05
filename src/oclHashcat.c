@@ -15,8 +15,8 @@ const char *PROGNAME          = "cudaHashcat";
 const char *PROGNAME          = "oclHashcat";
 #endif
 
-const char *VERSION_TXT       = "2.00";
-const uint  VERSION_BIN       = 200;
+const char *VERSION_TXT       = "2.01";
+const uint  VERSION_BIN       = 201;
 const uint  RESTORE_MIN       = 200;
 
 #define INCR_RULES            10000
