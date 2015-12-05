@@ -1,3 +1,10 @@
+* changes v2.00 -> v2.01:
+
+Type.: Bug
+File.: Host
+Desc.: Fix for a cuMemsetD8() 1 error in attacks different from mask attacks
+Issue: 1
+
 * changes v1.37 -> v2.00:
 
 Type: Project
