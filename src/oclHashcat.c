@@ -2695,7 +2695,10 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
   // clear some leftovers from previous run (maskfiles, etc)
 
   #ifdef _CUDA
-  hc_cuMemsetD8 (device_param->c_bfs, 0, device_param->c_bytes);
+  if (device_param->c_bfs != 0) // should be only true in this specific case: if (data.attack_kern == ATTACK_KERN_BF)
+  {
+    hc_cuMemsetD8 (device_param->c_bfs, 0, device_param->c_bytes);
+  }
   #endif
 
   if (data.attack_kern == ATTACK_KERN_STRAIGHT)
