@@ -1,0 +1,11 @@
+*.exe
+*.bin
+*.app
+*.restore
+*.dictstat
+*.pot
+*.log
+lib/*.a
+obj/*.o
+kernels/4098/*.llvmir
+kernels/4318/*.cubin
