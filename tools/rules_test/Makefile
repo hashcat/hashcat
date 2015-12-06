@@ -3,7 +3,7 @@
 ## License.....: MIT
 ##
 
-GCC     := /usr/bin/x86_64-linux-gnu-gcc-4.6 
+GCC     := /usr/bin/x86_64-linux-gnu-gcc-4.6
 ROOT    := ../../
 CFLAGS  := -O2 -s -ansi -pipe -W -Wall -I$(ROOT)include/
 LIBS    :=

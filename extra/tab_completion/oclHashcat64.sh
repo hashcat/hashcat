@@ -70,7 +70,7 @@ _oclHashcat_get_permutations ()
             if [ "${next_num}" -lt ${max_device} -a "${next_num}" -le "${num_devices}" ]; then
 
               out_str=$(echo ${out_str} | sed "s/,${cur_num},/,${next_num},/;s/,${cur_num}\$/,${next_num}/")
-              
+
             else
 
               pos_changed=1
@@ -154,7 +154,7 @@ _oclHashcat_cpu_devices ()
 _oclHashcat_contains ()
 {
   local haystack=${1}
-  local needle="${2}" 
+  local needle="${2}"
 
   if   echo "${haystack}" | grep -q " ${needle} " 2> /dev/null; then
     return 0
@@ -429,7 +429,7 @@ _oclHashcat ()
 
   # check if first option out of (hash.txt and dictionary|mask|directory)
   # is first option iff: here
-  # is second option iff: COMP_CWORD > 2 and no switch before (-*) if no option afterwards (for mask -a 3, -a 6, -a 7 - but possible for dicts!) 
+  # is second option iff: COMP_CWORD > 2 and no switch before (-*) if no option afterwards (for mask -a 3, -a 6, -a 7 - but possible for dicts!)
 
   local h=1
   local no_opts=0
@@ -518,7 +518,7 @@ _oclHashcat ()
 
   done
 
-  case "${no_opts}" in 
+  case "${no_opts}" in
 
     0)
       return 0
