@@ -345,9 +345,9 @@ __device__ __constant__ u32 c_pbox[18] =
   BF_ROUND (R, L, 14);  \
   BF_ROUND (L, R, 15);  \
   BF_ROUND (R, L, 16);  \
-	tmp = R;              \
-	R = L;                \
-	L = tmp ^ P[17];      \
+  tmp = R;              \
+  R = L;                \
+  L = tmp ^ P[17];      \
 }
 
 __device__ static void sha1_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[5])

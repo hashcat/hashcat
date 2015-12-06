@@ -13891,7 +13891,7 @@ int racf_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   IP (salt->salt_buf_pc[0], salt->salt_buf_pc[1], tt);
 
   salt->salt_buf_pc[0] = ROTATE_LEFT (salt->salt_buf_pc[0], 3u);
-	salt->salt_buf_pc[1] = ROTATE_LEFT (salt->salt_buf_pc[1], 3u);
+  salt->salt_buf_pc[1] = ROTATE_LEFT (salt->salt_buf_pc[1], 3u);
 
   digest[0] = hex_to_uint (&digest_pos[ 0]);
   digest[1] = hex_to_uint (&digest_pos[ 8]);

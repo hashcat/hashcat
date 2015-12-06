@@ -389,7 +389,7 @@ static void _des_crypt_encrypt (u32x iv[2], u32x data[2], u32x Kc[16], u32x Kd[1
   IP (r, l, tt);
 
   r = rotl32 (r, 3u);
-	l = rotl32 (l, 3u);
+  l = rotl32 (l, 3u);
 
   #pragma unroll 16
   for (u32 i = 0; i < 16; i += 2)

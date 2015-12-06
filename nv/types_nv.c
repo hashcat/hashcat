@@ -924,8 +924,8 @@ typedef struct
 
 typedef struct
 {
-	u32 data_len;
-	u32 data_buf[512];
+  u32 data_len;
+  u32 data_buf[512];
 
 } cloudkey_t;
 

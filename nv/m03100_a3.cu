@@ -376,7 +376,7 @@ __device__ static void _des_crypt_encrypt (u32x iv[2], u32x data[2], u32x Kc[16]
   IP (r, l, tt);
 
   r = rotl32 (r, 3u);
-	l = rotl32 (l, 3u);
+  l = rotl32 (l, 3u);
 
   #pragma unroll 16
   for (int i = 0; i < 16; i++)

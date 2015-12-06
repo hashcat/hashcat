@@ -36,8 +36,8 @@ void hc_clEnqueueWriteBuffer (cl_command_queue command_queue, cl_mem buffer, cl_
 void hc_clEnqueueCopyBuffer (cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_buffer, size_t src_offset, size_t dst_offset, size_t cb, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
 void hc_clFlush (cl_command_queue command_queue);
 void hc_clFinish (cl_command_queue command_queue);
-void hc_clGetDeviceIDs (cl_platform_id platform, cl_device_type device_type, cl_uint num_entries,	cl_device_id *devices, cl_uint *num_devices);
-void hc_clGetDeviceInfo (cl_device_id device, cl_device_info param_name, size_t param_value_size, void *param_value,	size_t *param_value_size_ret);
+void hc_clGetDeviceIDs (cl_platform_id platform, cl_device_type device_type, cl_uint num_entries, cl_device_id *devices, cl_uint *num_devices);
+void hc_clGetDeviceInfo (cl_device_id device, cl_device_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
 void hc_clGetPlatformIDs (cl_uint num_entries, cl_platform_id *platforms, cl_uint *num_platforms);
 void hc_clGetPlatformInfo (cl_platform_id platform, cl_platform_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
 void hc_clReleaseCommandQueue (cl_command_queue command_queue);

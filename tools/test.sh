@@ -1773,9 +1773,8 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
       IS_SLOW=$?
 
       if [[ ${hash_type} -eq 400 ]]; then
-
-	# we use phpass as slow hash for testing the AMP kernel
-	IS_SLOW=0
+         # we use phpass as slow hash for testing the AMP kernel
+         IS_SLOW=0
       fi
 
       if [[ ${IS_SLOW} -eq 1 ]]; then

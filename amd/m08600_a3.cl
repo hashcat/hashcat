@@ -214,7 +214,7 @@ static void pad (u32 w[4], const u32 len)
 
 static void mdtransform_norecalc (u32x state[4], u32x block[4], __local u32 s_lotus_magic_table[256])
 {
-	u32x x[12];
+  u32x x[12];
 
   x[ 0] = state[0];
   x[ 1] = state[1];
@@ -246,14 +246,14 @@ static void mdtransform (u32x state[4], u32x checksum[4], u32x block[4], __local
 
 static void domino_big_md (const u32x saved_key[16], const u32 size, u32x state[4], __local u32 s_lotus_magic_table[256])
 {
-	u32x checksum[4];
+  u32x checksum[4];
 
   checksum[0] = 0;
   checksum[1] = 0;
   checksum[2] = 0;
   checksum[3] = 0;
 
-	u32x block[4];
+  u32x block[4];
 
   block[0] = saved_key[0];
   block[1] = saved_key[1];
@@ -262,7 +262,7 @@ static void domino_big_md (const u32x saved_key[16], const u32 size, u32x state[
 
   mdtransform (state, checksum, block, s_lotus_magic_table);
 
-	mdtransform_norecalc (state, checksum, s_lotus_magic_table);
+  mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
 static void m08600m (__local u32 s_lotus_magic_table[256], u32 w[16], const u32 pw_len, __global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset)

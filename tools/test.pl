@@ -5627,13 +5627,13 @@ sub gen_hash
 
     my @ress = split "", $res;
 
-		for (my $x = 1; $x <= 19; $x++)
+    for (my $x = 1; $x <= 19; $x++)
     {
       my @xor;
 
-			for (my $i = 0; $i < 16; $i++)
+      for (my $i = 0; $i < 16; $i++)
       {
-				$xor[$i] = chr (ord ($ress[$i]) ^ $x);
+        $xor[$i] = chr (ord ($ress[$i]) ^ $x);
       }
 
       my $s = join ("", @xor);
@@ -5641,7 +5641,7 @@ sub gen_hash
       my $m2 = Crypt::RC4->new ($s);
 
       $u = $m2->RC4 ($u);
-		}
+    }
 
     $u .= substr (pack ("H*", $u_save), 16, 16);
 
@@ -8180,7 +8180,7 @@ sub domino_big_md
     mdtransform (\@state, \@checksum, \@block);
   }
 
-	my $left = $size - $curpos;
+  my $left = $size - $curpos;
 
   my @block = splice (@{$saved_key_ref}, 0, 16);
 
@@ -8188,7 +8188,7 @@ sub domino_big_md
 
   mdtransform (\@state, \@checksum, \@block);
 
-	mdtransform_norecalc (\@state, \@checksum);
+  mdtransform_norecalc (\@state, \@checksum);
 
   return @state;
 }
