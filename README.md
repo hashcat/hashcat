@@ -24,11 +24,12 @@ Contributions are welcome and encouraged, provided your code is of sufficient qu
 
 1. Licensed under MIT license, or dedicated to public domain (BSD, GPL, etc. code is incompatible)
 2. Adheres to either C89, C90, or C99 standards
-2. Compiles cleanly with no warnings when compiled with `-W -Wall -std=c99`
-3. Uses [Allman-style](https://en.wikipedia.org/wiki/Indent_style#Allman_style) code blocks & indentation 
-4. Uses 2-character tabs and 2-character indentations
-5. Uses lower-case function and variable names 
-6. Avoids the use of `!` and uses positive conditionals wherever possible (e.g., `if (foo == 0)` instead of `if (!foo)`, and `if (foo)` instead of `if (foo !=0)`)
+3. Compiles cleanly with no warnings when compiled with `-W -Wall -std=c99`
+4. Uses [Allman-style](https://en.wikipedia.org/wiki/Indent_style#Allman_style) code blocks & indentation 
+5. Uses 2-spaces as indentation or a tab if it's required (for example: Makefiles)
+6. Uses lower-case function and variable names 
+7. Avoids the use of `!` and uses positive conditionals wherever possible (e.g., `if (foo == 0)` instead of `if (!foo)`, and `if (foo)` instead of `if (foo !=0)`)
+8. Use code like array[index + 0] if you also need to do array[index + 1], to keep it aligned
 
 You can use GNU Indent to help assist you with the style requirements:
 
