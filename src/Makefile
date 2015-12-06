@@ -4,16 +4,17 @@
 ##
 
 ##
-## Detect host OS
+## Detect number of processors
 ##
 
+NPROCS   := $(shell grep -c ^processor /proc/cpuinfo)
 OS       := $(shell uname)
 
 ##
 ## Makefile flags
 ##
 
-MAKEFLAGS += -l -j -rR --no-print-directory
+MAKEFLAGS += -l -j $(NPROCS) -rR --no-print-directory
 
 ifneq ($(findstring clean,$(MAKECMDGOALS)),)
 MAKEFLAGS += -j 1
