@@ -109,7 +109,7 @@ NV_DEVICES_ALL           := sm_20 sm_21 sm_30 sm_35 sm_37 sm_50 sm_52
 NV_BITNESS_ALL           := 32 64
 
 ##
-## Targets for script
+## Targets for scrypt
 ##
 
 SCRYPT_N_ALL             := 1024 16384
