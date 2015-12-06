@@ -707,7 +707,7 @@ __device__ static void aes256_ExpandKey (u32 *ks, const u32 *ukey)
   i = 0;
   j = 0;
 
-	while (1)
+  while (1)
   {
     u32 temp = ks[j +  7];
 
@@ -737,7 +737,7 @@ __device__ static void aes256_ExpandKey (u32 *ks, const u32 *ukey)
     ks[j + 15] = ks[j +  7] ^ ks[j + 14];
 
     j += 8;
- 	}
+  }
 }
 
 __device__ static void aes256_InvertKey (u32 *ks)

@@ -1334,17 +1334,17 @@ extern "C" __global__ void __launch_bounds__ (256, 1) m06600_comp (const pw_t *p
    * aes shared
    */
 
-	__shared__ u32 s_td0[256];
-	__shared__ u32 s_td1[256];
-	__shared__ u32 s_td2[256];
-	__shared__ u32 s_td3[256];
-	__shared__ u32 s_td4[256];
+  __shared__ u32 s_td0[256];
+  __shared__ u32 s_td1[256];
+  __shared__ u32 s_td2[256];
+  __shared__ u32 s_td3[256];
+  __shared__ u32 s_td4[256];
 
-	__shared__ u32 s_te0[256];
-	__shared__ u32 s_te1[256];
-	__shared__ u32 s_te2[256];
-	__shared__ u32 s_te3[256];
-	__shared__ u32 s_te4[256];
+  __shared__ u32 s_te0[256];
+  __shared__ u32 s_te1[256];
+  __shared__ u32 s_te2[256];
+  __shared__ u32 s_te3[256];
+  __shared__ u32 s_te4[256];
 
   s_td0[lid] = td0[lid];
   s_td1[lid] = td1[lid];

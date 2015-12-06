@@ -125,9 +125,9 @@ void hc_clGetPlatformInfo (cl_platform_id platform, cl_platform_info param_name,
   }
 }
 
-void hc_clGetDeviceIDs (cl_platform_id platform, cl_device_type device_type, cl_uint num_entries,	cl_device_id *devices, cl_uint *num_devices)
+void hc_clGetDeviceIDs (cl_platform_id platform, cl_device_type device_type, cl_uint num_entries, cl_device_id *devices, cl_uint *num_devices)
 {
-  cl_int CL_err = clGetDeviceIDs (platform, device_type, num_entries,	devices, num_devices);
+  cl_int CL_err = clGetDeviceIDs (platform, device_type, num_entries, devices, num_devices);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -137,9 +137,9 @@ void hc_clGetDeviceIDs (cl_platform_id platform, cl_device_type device_type, cl_
   }
 }
 
-void hc_clGetDeviceInfo (cl_device_id device, cl_device_info param_name, size_t param_value_size, void *param_value,	size_t *param_value_size_ret)
+void hc_clGetDeviceInfo (cl_device_id device, cl_device_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
 {
-  cl_int CL_err = clGetDeviceInfo (device, param_name, param_value_size, param_value,	param_value_size_ret);
+  cl_int CL_err = clGetDeviceInfo (device, param_name, param_value_size, param_value, param_value_size_ret);
 
   if (CL_err != CL_SUCCESS)
   {

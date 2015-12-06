@@ -1340,17 +1340,17 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06600_comp (__gl
 
   const u32 lid4 = lid * 4;
 
-	__local u32 s_td0[256];
-	__local u32 s_td1[256];
-	__local u32 s_td2[256];
-	__local u32 s_td3[256];
-	__local u32 s_td4[256];
+  __local u32 s_td0[256];
+  __local u32 s_td1[256];
+  __local u32 s_td2[256];
+  __local u32 s_td3[256];
+  __local u32 s_td4[256];
 
-	__local u32 s_te0[256];
-	__local u32 s_te1[256];
-	__local u32 s_te2[256];
-	__local u32 s_te3[256];
-	__local u32 s_te4[256];
+  __local u32 s_te0[256];
+  __local u32 s_te1[256];
+  __local u32 s_te2[256];
+  __local u32 s_te3[256];
+  __local u32 s_te4[256];
 
   s_td0[lid4 + 0] = td0[lid4 + 0];
   s_td0[lid4 + 1] = td0[lid4 + 1];

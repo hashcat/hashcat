@@ -168,8 +168,8 @@ typedef struct
 
 typedef struct
 {
-	uint data_len;
-	uint data_buf[512];
+  uint data_len;
+  uint data_buf[512];
 
 } cloudkey_t;
 

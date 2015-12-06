@@ -973,7 +973,7 @@ static void AES256_ExpandKey (const uint *userkey, uint *rek)
   i = 0;
   j = 0;
 
-	while (1)
+  while (1)
   {
     uint temp = rek[j +  7];
 
@@ -1003,7 +1003,7 @@ static void AES256_ExpandKey (const uint *userkey, uint *rek)
     rek[j + 15] = rek[j +  7] ^ rek[j + 14];
 
     j += 8;
- 	}
+  }
 }
 
 static void AES256_InvertKey (uint *rdk)

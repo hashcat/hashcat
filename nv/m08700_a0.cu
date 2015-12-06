@@ -213,7 +213,7 @@ __device__ static void pad (u32x w[4], const u32 len)
 
 __device__ static void mdtransform_norecalc (u32x state[4], u32x block[4], u32 s_lotus_magic_table[256])
 {
-	u32x x[12];
+  u32x x[12];
 
   x[ 0] = state[0];
   x[ 1] = state[1];
@@ -245,14 +245,14 @@ __device__ static void mdtransform (u32x state[4], u32x checksum[4], u32x block[
 
 __device__ static void domino_big_md (const u32x saved_key[16], const u32 size, u32x state[4], u32 s_lotus_magic_table[256])
 {
-	u32x checksum[4];
+  u32x checksum[4];
 
   checksum[0] = 0;
   checksum[1] = 0;
   checksum[2] = 0;
   checksum[3] = 0;
 
-	u32x block[4];
+  u32x block[4];
 
   block[0] = 0;
   block[1] = 0;
@@ -272,7 +272,7 @@ __device__ static void domino_big_md (const u32x saved_key[16], const u32 size, 
     mdtransform (state, checksum, block, s_lotus_magic_table);
   }
 
-	u32 left = size - curpos;
+  u32 left = size - curpos;
 
   block[0] = saved_key[idx + 0];
   block[1] = saved_key[idx + 1];
@@ -281,7 +281,7 @@ __device__ static void domino_big_md (const u32x saved_key[16], const u32 size, 
 
   mdtransform (state, checksum, block, s_lotus_magic_table);
 
-	mdtransform_norecalc (state, checksum, s_lotus_magic_table);
+  mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
 __device__ __constant__ gpu_rule_t c_rules[1024];
