@@ -8376,7 +8376,7 @@ void stop_at_checkpoint ()
 
     data.checkpoint_cur_words = get_lowest_words_done ();
 
-    log_info ("Stop at next checkpoint");
+    log_info ("Checkpoint enabled, will quit when Restore Point updates next time");
   }
   else
   {

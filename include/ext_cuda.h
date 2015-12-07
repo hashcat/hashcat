@@ -56,5 +56,9 @@ void hc_cuCtxSynchronize (void);
 void hc_cuCtxSetCacheConfig (CUfunc_cache config);
 void hc_cuDriverGetVersion (int *driverVersion);
 void hc_cuModuleLoadDataEx (CUmodule *module, const void *image, unsigned int numOptions, CUjit_option *options, void **optionValues);
+void hc_cuLinkAddFile (CUlinkState state, CUjitInputType type, const char *path, unsigned int numOptions, CUjit_option *options, void **optionValues);
+void hc_cuLinkComplete (CUlinkState state, void **cubinOut, size_t *sizeOut);
+void hc_cuLinkCreate (unsigned int numOptions, CUjit_option *options, void **optionValues, CUlinkState *stateOut);
+void hc_cuLinkDestroy (CUlinkState state);
 
 #endif

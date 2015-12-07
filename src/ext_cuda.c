@@ -556,3 +556,51 @@ void hc_cuModuleLoadDataEx (CUmodule *module, const void *image, unsigned int nu
     exit (-1);
   }
 }
+
+void hc_cuLinkAddFile (CUlinkState state, CUjitInputType type, const char *path, unsigned int numOptions, CUjit_option *options, void **optionValues)
+{
+  CUresult CU_err = cuLinkAddFile (state, type, path, numOptions, options, optionValues);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    log_error ("ERROR: %s %d\n", "cuLinkAddFile()", CU_err);
+
+    exit (-1);
+  }
+}
+
+void hc_cuLinkComplete (CUlinkState state, void **cubinOut, size_t *sizeOut)
+{
+  CUresult CU_err = cuLinkComplete (state, cubinOut, sizeOut);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    log_error ("ERROR: %s %d\n", "cuLinkComplete()", CU_err);
+
+    exit (-1);
+  }
+}
+
+void hc_cuLinkCreate (unsigned int numOptions, CUjit_option *options, void **optionValues, CUlinkState *stateOut)
+{
+  CUresult CU_err = cuLinkCreate (numOptions, options, optionValues, stateOut);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    log_error ("ERROR: %s %d\n", "cuLinkCreate()", CU_err);
+
+    exit (-1);
+  }
+}
+
+void hc_cuLinkDestroy (CUlinkState state)
+{
+  CUresult CU_err = cuLinkDestroy (state);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    log_error ("ERROR: %s %d\n", "cuLinkDestroy()", CU_err);
+
+    exit (-1);
+  }
+}

@@ -837,7 +837,11 @@ static void m01500m (__local u32 *s_S, __global pw_t *pws, __global gpu_rule_t *
    * salt
    */
 
+  #ifdef DESCRYPT_SALT
+  const u32 salt = DESCRYPT_SALT;
+  #else
   const u32 salt = salt_bufs[salt_pos].salt_buf[0];
+  #endif
 
   /**
    * keys
@@ -1199,7 +1203,11 @@ static void m01500s (__local u32 *s_S, __global pw_t *pws, __global gpu_rule_t *
    * salt
    */
 
+  #ifdef DESCRYPT_SALT
+  const u32 salt = DESCRYPT_SALT;
+  #else
   const u32 salt = salt_bufs[salt_pos].salt_buf[0];
+  #endif
 
   /**
    * digest

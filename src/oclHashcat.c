@@ -315,7 +315,7 @@ hc_thread_mutex_t mux_display;
 
 hc_global_data_t data;
 
-const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint stop [q]uit => ";
+const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
 
 const char *USAGE_MINI[] =
 {
@@ -1606,6 +1606,43 @@ static void status_benchmark ()
 /**
  * oclHashcat -only- functions
  */
+
+#ifdef _CUDA
+
+static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *install_dir, char *kernel_file)
+{
+  if (attack_exec == ATTACK_EXEC_ON_GPU)
+  {
+    if (attack_kern == ATTACK_KERN_STRAIGHT)
+      snprintf (kernel_file, 255, "%s/nv/m%05d_a0.cu", install_dir, (int) kern_type);
+    else if (attack_kern == ATTACK_KERN_COMBI)
+      snprintf (kernel_file, 255, "%s/nv/m%05d_a1.cu", install_dir, (int) kern_type);
+    else if (attack_kern == ATTACK_KERN_BF)
+      snprintf (kernel_file, 255, "%s/nv/m%05d_a3.cu", install_dir, (int) kern_type);
+  }
+  else
+    snprintf (kernel_file, 255, "%s/nv/m%05d.cu", install_dir, (int) kern_type);
+}
+
+#elif _OCL
+
+static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *install_dir, char *kernel_file)
+{
+  if (attack_exec == ATTACK_EXEC_ON_GPU)
+  {
+    if (attack_kern == ATTACK_KERN_STRAIGHT)
+      snprintf (kernel_file, 255, "%s/amd/m%05d_a0.cl", install_dir, (int) kern_type);
+    else if (attack_kern == ATTACK_KERN_COMBI)
+      snprintf (kernel_file, 255, "%s/amd/m%05d_a1.cl", install_dir, (int) kern_type);
+    else if (attack_kern == ATTACK_KERN_BF)
+      snprintf (kernel_file, 255, "%s/amd/m%05d_a3.cl", install_dir, (int) kern_type);
+  }
+  else
+    snprintf (kernel_file, 255, "%s/amd/m%05d.cl", install_dir, (int) kern_type);
+}
+
+#endif
+
 
 static uint convert_from_hex (char *line_buf, const uint line_len)
 {
@@ -12781,6 +12818,25 @@ int main (int argc, char **argv)
     }
 
     /**
+     * Some algorithm, like descrypt, can benefit from JIT compilation
+     */
+
+    uint force_jit_compilation = 0;
+
+    if (hash_mode == 8900)
+    {
+      force_jit_compilation = 8900;
+    }
+    else if (hash_mode == 9300)
+    {
+      force_jit_compilation = 8900;
+    }
+    else if (hash_mode == 1500 && attack_mode == ATTACK_MODE_BF && data.salts_cnt == 1)
+    {
+      force_jit_compilation = 1500;
+    }
+
+    /**
      * generate bitmap tables
      */
 
@@ -13848,51 +13904,90 @@ int main (int argc, char **argv)
       hc_cuStreamCreate (&device_param->stream, 0);
 
       /**
+       * In theory we'd need a real JIT solution as we have it with OpenCL, but CUDA does not provide such a feature, what a shame!
+       * There's NVRTC library which is able to compile sourcecode to PTX which we could use, but for some unknown reason this works only for 64 bit
+       * There's also the problem that the user needs to install the CUDA SDK to get this to work.
+       */
+
+      force_jit_compilation = 0;
+
+      /**
        * module find
        */
+
+      struct stat st;
 
       char module_file[256];
 
       memset (module_file, 0, sizeof (module_file));
 
-      #ifdef __x86_64__
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
+      #ifdef BINARY_KERNEL
+
+      if (force_jit_compilation == 0)
       {
-        if (attack_kern == ATTACK_KERN_STRAIGHT)
-          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a0.sm_%d%d.64.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-        else if (attack_kern == ATTACK_KERN_COMBI)
-          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a1.sm_%d%d.64.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-        else if (attack_kern == ATTACK_KERN_BF)
-          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a3.sm_%d%d.64.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
+        #ifdef __x86_64__
+        if (attack_exec == ATTACK_EXEC_ON_GPU)
+        {
+          if (attack_kern == ATTACK_KERN_STRAIGHT)
+            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a0.sm_%d%d.64.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
+          else if (attack_kern == ATTACK_KERN_COMBI)
+            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a1.sm_%d%d.64.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
+          else if (attack_kern == ATTACK_KERN_BF)
+            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a3.sm_%d%d.64.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
+        }
+        else
+        {
+          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d.sm_%d%d.64.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
+
+          if ((hash_mode == 8900) || (hash_mode == 9300))
+          {
+            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_%d_%d_%d_%d.sm_%d%d.64.cubin", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, sm_major, sm_minor);
+          }
+        }
+
+        #else
+        if (attack_exec == ATTACK_EXEC_ON_GPU)
+        {
+          if (attack_kern == ATTACK_KERN_STRAIGHT)
+            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a0.sm_%d%d.32.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
+          else if (attack_kern == ATTACK_KERN_COMBI)
+            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a1.sm_%d%d.32.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
+          else if (attack_kern == ATTACK_KERN_BF)
+            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a3.sm_%d%d.32.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
+        }
+        else
+        {
+          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d.sm_%d%d.32.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
+
+          if ((hash_mode == 8900) || (hash_mode == 9300))
+          {
+            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_%d_%d_%d_%d.sm_%d%d.32.cubin", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, sm_major, sm_minor);
+          }
+        }
+
+        #endif
       }
       else
       {
-        snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d.sm_%d%d.64.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
+        generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, module_file);
 
-        if ((hash_mode == 8900) || (hash_mode == 9300))
+        if (stat (module_file, &st) == -1)
         {
-          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_%d_%d_%d_%d.sm_%d%d.64.cubin", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, sm_major, sm_minor);
+          log_error ("ERROR: %s: %s", module_file, strerror (errno));
+
+          return -1;
         }
       }
 
       #else
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
-      {
-        if (attack_kern == ATTACK_KERN_STRAIGHT)
-          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a0.sm_%d%d.32.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-        else if (attack_kern == ATTACK_KERN_COMBI)
-          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a1.sm_%d%d.32.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-        else if (attack_kern == ATTACK_KERN_BF)
-          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a3.sm_%d%d.32.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-      }
-      else
-      {
-        snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d.sm_%d%d.32.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
 
-        if ((hash_mode == 8900) || (hash_mode == 9300))
-        {
-          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_%d_%d_%d_%d.sm_%d%d.32.cubin", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, sm_major, sm_minor);
-        }
+      generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, module_file);
+
+      if (stat (module_file, &st) == -1)
+      {
+        log_error ("ERROR: %s: %s", module_file, strerror (errno));
+
+        return -1;
       }
 
       #endif
@@ -14598,87 +14693,92 @@ int main (int argc, char **argv)
       const unsigned char **kernel_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
 
       #ifdef BINARY_KERNEL
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
+      if (force_jit_compilation == 0)
       {
-        if (attack_kern == ATTACK_KERN_STRAIGHT)
-          snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_a0.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
-        else if (attack_kern == ATTACK_KERN_COMBI)
-          snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_a1.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
-        else if (attack_kern == ATTACK_KERN_BF)
-          snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_a3.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
-      }
-      else
-      {
-        snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
-
-        if ((hash_mode == 8900) || (hash_mode == 9300))
-        {
-          snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_%d_%d_%d_%d.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, device_name, device_version, driver_version, COMPTIME);
-        }
-      }
-
-      if (stat (kernel_file, &st) == -1)
-      {
-        if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, kernel_file);
-
-        char module_file[256];
-
-        memset (module_file, 0, sizeof (module_file));
-
         if (attack_exec == ATTACK_EXEC_ON_GPU)
         {
           if (attack_kern == ATTACK_KERN_STRAIGHT)
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_a0.VLIW%d.llvmir", install_dir, (int) kern_type, vliw);
+            snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_a0.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
           else if (attack_kern == ATTACK_KERN_COMBI)
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_a1.VLIW%d.llvmir", install_dir, (int) kern_type, vliw);
+            snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_a1.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
           else if (attack_kern == ATTACK_KERN_BF)
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_a3.VLIW%d.llvmir", install_dir, (int) kern_type, vliw);
+            snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_a3.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
         }
         else
         {
-          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d.VLIW%d.llvmir", install_dir, (int) kern_type, vliw);
+          snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
 
           if ((hash_mode == 8900) || (hash_mode == 9300))
           {
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_%d_%d_%d_%d.VLIW%d.llvmir", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, vliw);
+            snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_%d_%d_%d_%d.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, device_name, device_version, driver_version, COMPTIME);
           }
         }
 
-        load_kernel (module_file, 1, kernel_lengths, kernel_sources);
+        if (stat (kernel_file, &st) == -1)
+        {
+          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, kernel_file);
 
-        cl_program program = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
+          char module_file[256];
 
-        local_free (kernel_sources[0]);
+          memset (module_file, 0, sizeof (module_file));
 
-        hc_clBuildProgram (program, 1, &device_param->device, "-cl-std=CL1.2", NULL, NULL);
+          if (attack_exec == ATTACK_EXEC_ON_GPU)
+          {
+            if (attack_kern == ATTACK_KERN_STRAIGHT)
+              snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_a0.VLIW%d.llvmir", install_dir, (int) kern_type, vliw);
+            else if (attack_kern == ATTACK_KERN_COMBI)
+              snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_a1.VLIW%d.llvmir", install_dir, (int) kern_type, vliw);
+            else if (attack_kern == ATTACK_KERN_BF)
+              snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_a3.VLIW%d.llvmir", install_dir, (int) kern_type, vliw);
+          }
+          else
+          {
+            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d.VLIW%d.llvmir", install_dir, (int) kern_type, vliw);
 
-        size_t binary_size;
+            if ((hash_mode == 8900) || (hash_mode == 9300))
+            {
+              snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_%d_%d_%d_%d.VLIW%d.llvmir", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, vliw);
+            }
+          }
 
-        clGetProgramInfo (program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+          load_kernel (module_file, 1, kernel_lengths, kernel_sources);
 
-        unsigned char *binary = (unsigned char *) mymalloc (binary_size);
+          cl_program program = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
 
-        clGetProgramInfo (program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+          local_free (kernel_sources[0]);
 
-        writeProgramBin (kernel_file, binary, binary_size);
+          hc_clBuildProgram (program, 1, &device_param->device, "-cl-std=CL1.2", NULL, NULL);
 
-        local_free (binary);
+          size_t binary_size;
 
-        stat (kernel_file, &st); // to reload filesize
+          clGetProgramInfo (program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+          unsigned char *binary = (unsigned char *) mymalloc (binary_size);
+
+          clGetProgramInfo (program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+
+          writeProgramBin (kernel_file, binary, binary_size);
+
+          local_free (binary);
+
+          stat (kernel_file, &st); // to reload filesize
+        }
+      }
+      else
+      {
+        generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, kernel_file);
+
+        if (stat (kernel_file, &st) == -1)
+        {
+          log_error ("ERROR: %s: %s", kernel_file, strerror (errno));
+
+          return -1;
+        }
       }
 
       #else
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
-      {
-        if (attack_kern == ATTACK_KERN_STRAIGHT)
-          snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/amd/m%05d_a0.cl", install_dir, (int) kern_type);
-        else if (attack_kern == ATTACK_KERN_COMBI)
-          snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/amd/m%05d_a1.cl", install_dir, (int) kern_type);
-        else if (attack_kern == ATTACK_KERN_BF)
-          snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/amd/m%05d_a3.cl", install_dir, (int) kern_type);
-      }
-      else
-        snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/amd/m%05d.cl", install_dir, (int) kern_type);
+
+      generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, kernel_file);
 
       if (stat (kernel_file, &st) == -1)
       {
@@ -14694,7 +14794,14 @@ int main (int argc, char **argv)
       if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, kernel_file, st.st_size);
 
       #ifdef BINARY_KERNEL
-      device_param->program = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
+      if (force_jit_compilation == 0)
+      {
+        device_param->program = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
+      }
+      else
+      {
+        device_param->program = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+      }
       #else
       device_param->program = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
       #endif
@@ -14892,15 +14999,31 @@ int main (int argc, char **argv)
 
       char *build_opts = NULL;
 
-      #ifndef BINARY_KERNEL
+      #ifdef BINARY_KERNEL
+
+      if (force_jit_compilation == 0)
+      {
+        // nothing to do
+      }
+      else if (force_jit_compilation == 1500)
+      {
+        build_opts = (char *) mymalloc (256);
+
+        sprintf (build_opts, "-I . -I amd/ -D VLIW%d -x clc++ -cl-std=CL1.2 -DDESCRYPT_SALT=%d", vliw, data.salts_buf[0].salt_buf[0]);
+      }
+      else if (force_jit_compilation == 8900)
+      {
+        build_opts = (char *) mymalloc (256);
+
+        sprintf (build_opts, "-I . -I amd/ -D VLIW%d -x clc++ -cl-std=CL1.2 -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", vliw, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto);
+      }
+
+      #else
+
       build_opts = (char *) mymalloc (256);
 
       sprintf (build_opts, "-I . -I amd/ -D VLIW%d -x clc++ -cl-std=CL1.2", vliw);
 
-      if ((hash_mode == 8900) || (hash_mode == 9300))
-      {
-        sprintf (build_opts, "-I . -I amd/ -D VLIW%d -x clc++ -cl-std=CL1.2 -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", vliw, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto);
-      }
       #endif
 
       clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);

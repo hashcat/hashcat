@@ -1204,7 +1204,11 @@ __device__ static void m01500m (const pw_t *pws, const gpu_rule_t *rules_buf, co
    * salt
    */
 
+  #ifdef DESCRYPT_SALT
+  const u32 salt = DESCRYPT_SALT;
+  #else
   const u32 salt = salt_bufs[salt_pos].salt_buf[0];
+  #endif
 
   /**
    * keys
@@ -1568,7 +1572,11 @@ __device__ static void m01500s (const pw_t *pws, const gpu_rule_t *rules_buf, co
    * salt
    */
 
+  #ifdef DESCRYPT_SALT
+  const u32 salt = DESCRYPT_SALT;
+  #else
   const u32 salt = salt_bufs[salt_pos].salt_buf[0];
+  #endif
 
   /**
    * digest
