@@ -5570,14 +5570,16 @@ char *strstatus (const uint devices_status)
 {
   switch (devices_status)
   {
-    case  STATUS_INIT:      return ((char *) ST_0000); break;
-    case  STATUS_STARTING:  return ((char *) ST_0001); break;
-    case  STATUS_RUNNING:   return ((char *) ST_0002); break;
-    case  STATUS_PAUSED:    return ((char *) ST_0003); break;
-    case  STATUS_EXHAUSTED: return ((char *) ST_0004); break;
-    case  STATUS_CRACKED:   return ((char *) ST_0005); break;
-    case  STATUS_ABORTED:   return ((char *) ST_0006); break;
-    case  STATUS_QUIT:      return ((char *) ST_0007); break;
+    case  STATUS_INIT:               return ((char *) ST_0000); break;
+    case  STATUS_STARTING:           return ((char *) ST_0001); break;
+    case  STATUS_RUNNING:            return ((char *) ST_0002); break;
+    case  STATUS_PAUSED:             return ((char *) ST_0003); break;
+    case  STATUS_EXHAUSTED:          return ((char *) ST_0004); break;
+    case  STATUS_CRACKED:            return ((char *) ST_0005); break;
+    case  STATUS_ABORTED:            return ((char *) ST_0006); break;
+    case  STATUS_QUIT:               return ((char *) ST_0007); break;
+    case  STATUS_BYPASS:             return ((char *) ST_0008); break;
+    case  STATUS_STOP_AT_CHECKPOINT: return ((char *) ST_0009); break;
   }
 
   return ((char *) "Unknown");
@@ -8360,6 +8362,28 @@ void bypass ()
   log_info ("Next dictionary / mask in queue selected, bypassing current one");
 }
 
+void stop_at_checkpoint ()
+{
+  if (data.devices_status != STATUS_RUNNING) return;
+
+  // this feature only makes sense if --restore-disable was not specified
+
+  if (data.restore_disable == 0)
+  {
+    data.devices_status = STATUS_STOP_AT_CHECKPOINT;
+
+    // save the current restore point value
+
+    data.checkpoint_cur_words = get_lowest_words_done ();
+
+    log_info ("Stop at next checkpoint");
+  }
+  else
+  {
+    log_info ("WARNING: this feature is disabled when --restore-disable was specified");
+  }
+}
+
 void myabort ()
 {
   if (data.devices_status == STATUS_INIT)     return;
@@ -8769,6 +8793,18 @@ void cycle_restore ()
   if (rename (new_restore_file, eff_restore_file))
   {
     log_info ("WARN: rename file '%s' to '%s': %s", new_restore_file, eff_restore_file, strerror (errno));
+  }
+}
+
+void check_checkpoint ()
+{
+  // if (data.restore_disable == 1) break;  (this is already implied by previous checks)
+
+  uint64_t words_cur = get_lowest_words_done ();
+
+  if (words_cur != data.checkpoint_cur_words)
+  {
+    myabort ();
   }
 }
 
@@ -18705,6 +18741,21 @@ void *thread_keypress (void *p)
         log_info ("");
 
         ResumeThreads ();
+
+        log_info ("");
+
+        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
+        if (quiet == 0) fflush (stdout);
+
+        break;
+
+      case 'c':
+
+        log_info ("");
+
+        if (benchmark == 1) break;
+
+        stop_at_checkpoint ();
 
         log_info ("");
 

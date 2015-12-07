@@ -315,7 +315,7 @@ hc_thread_mutex_t mux_display;
 
 hc_global_data_t data;
 
-const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [q]uit => ";
+const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint stop [q]uit => ";
 
 const char *USAGE_MINI[] =
 {
@@ -1482,7 +1482,7 @@ void status_display ()
 
       if (data.restore_disable == 0)
       {
-        log_info ("Restore point..: %llu/%llu (%.02f%%)", (uint64_t) 0, (uint64_t) 0, (float) 100);
+        log_info ("Restore.Point..: %llu/%llu (%.02f%%)", (uint64_t) 0, (uint64_t) 0, (float) 100);
       }
     }
     else
@@ -1494,7 +1494,7 @@ void status_display ()
 
       //if (data.restore_disable == 0)
       //{
-      //  log_info ("Restore point..: %llu", (unsigned long long int) restore_point);
+      //  log_info ("Restore.Point..: %llu", (unsigned long long int) restore_point);
       //}
     }
   }
@@ -2797,6 +2797,8 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
   {
     while (data.devices_status == STATUS_PAUSED) hc_sleep (1);
 
+    if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+
     if (data.devices_status == STATUS_CRACKED) break;
     if (data.devices_status == STATUS_ABORTED) break;
     if (data.devices_status == STATUS_QUIT)    break;
@@ -2822,6 +2824,8 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
     for (uint innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
     {
       while (data.devices_status == STATUS_PAUSED) hc_sleep (1);
+
+      if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
       if (data.devices_status == STATUS_CRACKED) break;
       if (data.devices_status == STATUS_ABORTED) break;
@@ -3080,6 +3084,8 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
           run_kernel (KERN_RUN_2, device_param, pws_cnt);
 
+          if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+
           if (data.devices_status == STATUS_CRACKED) break;
           if (data.devices_status == STATUS_ABORTED) break;
           if (data.devices_status == STATUS_QUIT)    break;
@@ -3115,6 +3121,8 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
         run_kernel (KERN_RUN_3, device_param, pws_cnt);
       }
+
+      if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
       if (data.devices_status == STATUS_CRACKED) break;
       if (data.devices_status == STATUS_ABORTED) break;
@@ -4954,6 +4962,8 @@ static void *thread_calc (void *p)
         device_param->pws_cnt = 0;
       }
 
+      if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+
       if (data.devices_status == STATUS_CRACKED) break;
       if (data.devices_status == STATUS_ABORTED) break;
       if (data.devices_status == STATUS_QUIT)    break;
@@ -5127,17 +5137,23 @@ static void *thread_calc (void *p)
 
           device_param->pw_add (device_param, (uint8_t *) line_buf, line_len);
 
+          if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+
           if (data.devices_status == STATUS_CRACKED) break;
           if (data.devices_status == STATUS_ABORTED) break;
           if (data.devices_status == STATUS_QUIT)    break;
           if (data.devices_status == STATUS_BYPASS)  break;
         }
 
+        if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+
         if (data.devices_status == STATUS_CRACKED) break;
         if (data.devices_status == STATUS_ABORTED) break;
         if (data.devices_status == STATUS_QUIT)    break;
         if (data.devices_status == STATUS_BYPASS)  break;
       }
+
+      if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
       if (data.devices_status == STATUS_CRACKED) break;
       if (data.devices_status == STATUS_ABORTED) break;
@@ -5197,6 +5213,8 @@ static void *thread_calc (void *p)
           device_param->pws_cnt = 0;
         }
 
+        if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+
         if (data.devices_status == STATUS_CRACKED) break;
         if (data.devices_status == STATUS_ABORTED) break;
         if (data.devices_status == STATUS_QUIT)    break;
@@ -5249,6 +5267,8 @@ static void *thread_calc (void *p)
           device_param->pw_cnt  = 0;
           device_param->pws_cnt = 0;
         }
+
+        if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
         if (data.devices_status == STATUS_CRACKED) break;
         if (data.devices_status == STATUS_ABORTED) break;
@@ -17369,6 +17389,7 @@ int main (int argc, char **argv)
 
         hc_thread_wait (devices_cnt, c_threads);
 
+
         local_free (c_threads);
 
         data.restore = 0;
@@ -17376,6 +17397,8 @@ int main (int argc, char **argv)
         // finalize task
 
         logfile_sub_var_uint ("status-after-work", data.devices_status);
+
+        if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
         if (data.devices_status == STATUS_CRACKED) break;
         if (data.devices_status == STATUS_ABORTED) break;
@@ -17453,6 +17476,8 @@ int main (int argc, char **argv)
 
         global_free (subid);
       }
+
+      if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
       if (data.devices_status == STATUS_CRACKED) break;
       if (data.devices_status == STATUS_ABORTED) break;
@@ -17952,10 +17977,11 @@ int main (int argc, char **argv)
   if (quiet == 0) log_info_nn ("Started: %s", ctime (&proc_start));
   if (quiet == 0) log_info_nn ("Stopped: %s", ctime (&proc_stop));
 
-  if (data.devices_status == STATUS_ABORTED)   return 2;
-  if (data.devices_status == STATUS_QUIT)      return 2;
-  if (data.devices_status == STATUS_EXHAUSTED) return 1;
-  if (data.devices_status == STATUS_CRACKED)   return 0;
+  if (data.devices_status == STATUS_ABORTED)            return 2;
+  if (data.devices_status == STATUS_QUIT)               return 2;
+  if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) return 2;
+  if (data.devices_status == STATUS_EXHAUSTED)          return 1;
+  if (data.devices_status == STATUS_CRACKED)            return 0;
 
   return -1;
 }
