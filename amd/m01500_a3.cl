@@ -614,6 +614,80 @@ s8(u32 a1, u32 a2, u32 a3, u32 a4, u32 a5, u32 a6,
 #define KEYSET07 { k00 = K31; k01 = K35; k02 = K52; k03 = K43; k04 = K08; k05 = K37; k06 = K51; k07 = K15; k08 = K49; k09 = K30; k10 = K07; k11 = K02; k12 = K50; k13 = K21; k14 = K45; k15 = K44; k16 = K29; k17 = K16; k18 = K42; k19 = K23; k20 = K22; k21 = K14; k22 = K38; k23 = K01; k24 = K10; k25 = K47; k26 = K53; k27 = K11; k28 = K27; k29 = K26; k30 = K05; k31 = K17; k32 = K54; k33 = K41; k34 = K39; k35 = K20; k36 = K48; k37 = K13; k38 = K24; k39 = K19; k40 = K32; k41 = K40; k42 = K34; k43 = K03; k44 = K06; k45 = K18; k46 = K12; k47 = K46; }
 #define KEYSET17 { k00 = K15; k01 = K51; k02 = K36; k03 = K02; k04 = K49; k05 = K21; k06 = K35; k07 = K31; k08 = K08; k09 = K14; k10 = K23; k11 = K43; k12 = K09; k13 = K37; k14 = K29; k15 = K28; k16 = K45; k17 = K00; k18 = K01; k19 = K07; k20 = K38; k21 = K30; k22 = K22; k23 = K42; k24 = K26; k25 = K04; k26 = K41; k27 = K54; k28 = K39; k29 = K10; k30 = K48; k31 = K33; k32 = K11; k33 = K53; k34 = K27; k35 = K32; k36 = K05; k37 = K25; k38 = K40; k39 = K03; k40 = K20; k41 = K24; k42 = K46; k43 = K19; k44 = K18; k45 = K06; k46 = K55; k47 = K34; }
 
+#ifdef DESCRYPT_SALT
+
+static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, u32 &D00, u32 &D01, u32 &D02, u32 &D03, u32 &D04, u32 &D05, u32 &D06, u32 &D07, u32 &D08, u32 &D09, u32 &D10, u32 &D11, u32 &D12, u32 &D13, u32 &D14, u32 &D15, u32 &D16, u32 &D17, u32 &D18, u32 &D19, u32 &D20, u32 &D21, u32 &D22, u32 &D23, u32 &D24, u32 &D25, u32 &D26, u32 &D27, u32 &D28, u32 &D29, u32 &D30, u32 &D31, u32 &D32, u32 &D33, u32 &D34, u32 &D35, u32 &D36, u32 &D37, u32 &D38, u32 &D39, u32 &D40, u32 &D41, u32 &D42, u32 &D43, u32 &D44, u32 &D45, u32 &D46, u32 &D47, u32 &D48, u32 &D49, u32 &D50, u32 &D51, u32 &D52, u32 &D53, u32 &D54, u32 &D55, u32 &D56, u32 &D57, u32 &D58, u32 &D59, u32 &D60, u32 &D61, u32 &D62, u32 &D63)
+{
+  #undef  myselx
+  #define myselx(a,b,c) ((c) ? (b) : (a))
+
+  sXXX_DECL u32 s001 = (0x001 & DESCRYPT_SALT) ? 0xffffffff : 0;
+  sXXX_DECL u32 s002 = (0x002 & DESCRYPT_SALT) ? 0xffffffff : 0;
+  sXXX_DECL u32 s004 = (0x004 & DESCRYPT_SALT) ? 0xffffffff : 0;
+  sXXX_DECL u32 s008 = (0x008 & DESCRYPT_SALT) ? 0xffffffff : 0;
+  sXXX_DECL u32 s010 = (0x010 & DESCRYPT_SALT) ? 0xffffffff : 0;
+  sXXX_DECL u32 s020 = (0x020 & DESCRYPT_SALT) ? 0xffffffff : 0;
+  sXXX_DECL u32 s040 = (0x040 & DESCRYPT_SALT) ? 0xffffffff : 0;
+  sXXX_DECL u32 s080 = (0x080 & DESCRYPT_SALT) ? 0xffffffff : 0;
+  sXXX_DECL u32 s100 = (0x100 & DESCRYPT_SALT) ? 0xffffffff : 0;
+  sXXX_DECL u32 s200 = (0x200 & DESCRYPT_SALT) ? 0xffffffff : 0;
+  sXXX_DECL u32 s400 = (0x400 & DESCRYPT_SALT) ? 0xffffffff : 0;
+  sXXX_DECL u32 s800 = (0x800 & DESCRYPT_SALT) ? 0xffffffff : 0;
+
+  KXX_DECL u32 k00, k01, k02, k03, k04, k05;
+  KXX_DECL u32 k06, k07, k08, k09, k10, k11;
+  KXX_DECL u32 k12, k13, k14, k15, k16, k17;
+  KXX_DECL u32 k18, k19, k20, k21, k22, k23;
+  KXX_DECL u32 k24, k25, k26, k27, k28, k29;
+  KXX_DECL u32 k30, k31, k32, k33, k34, k35;
+  KXX_DECL u32 k36, k37, k38, k39, k40, k41;
+  KXX_DECL u32 k42, k43, k44, k45, k46, k47;
+
+  for (u32 ii = 0; ii < 25; ii++)
+  {
+    #pragma unroll
+    for (u32 i = 0; i < 16; i++)
+    {
+      switch (i)
+      {
+        case  0: KEYSET00; break;
+        case  1: KEYSET01; break;
+        case  2: KEYSET02; break;
+        case  3: KEYSET03; break;
+        case  4: KEYSET04; break;
+        case  5: KEYSET05; break;
+        case  6: KEYSET06; break;
+        case  7: KEYSET07; break;
+        case  8: KEYSET10; break;
+        case  9: KEYSET11; break;
+        case 10: KEYSET12; break;
+        case 11: KEYSET13; break;
+        case 12: KEYSET14; break;
+        case 13: KEYSET15; break;
+        case 14: KEYSET16; break;
+        case 15: KEYSET17; break;
+      }
+
+      s1(myselx (D63, D47, s001) ^ k00, myselx (D32, D48, s002) ^ k01, myselx (D33, D49, s004) ^ k02, myselx (D34, D50, s008) ^ k03, myselx (D35, D51, s010) ^ k04, myselx (D36, D52, s020) ^ k05, &D08, &D16, &D22, &D30);
+      s2(myselx (D35, D51, s040) ^ k06, myselx (D36, D52, s080) ^ k07, myselx (D37, D53, s100) ^ k08, myselx (D38, D54, s200) ^ k09, myselx (D39, D55, s400) ^ k10, myselx (D40, D56, s800) ^ k11, &D12, &D27, &D01, &D17);
+      s3(             D39        ^ k12,              D40        ^ k13,              D41        ^ k14,              D42        ^ k15,              D43        ^ k16,              D44        ^ k17, &D23, &D15, &D29, &D05);
+      s4(             D43        ^ k18,              D44        ^ k19,              D45        ^ k20,              D46        ^ k21,              D47        ^ k22,              D48        ^ k23, &D25, &D19, &D09, &D00);
+      s5(myselx (D47, D63, s001) ^ k24, myselx (D48, D32, s002) ^ k25, myselx (D49, D33, s004) ^ k26, myselx (D50, D34, s008) ^ k27, myselx (D51, D35, s010) ^ k28, myselx (D52, D36, s020) ^ k29, &D07, &D13, &D24, &D02);
+      s6(myselx (D51, D35, s040) ^ k30, myselx (D52, D36, s080) ^ k31, myselx (D53, D37, s100) ^ k32, myselx (D54, D38, s200) ^ k33, myselx (D55, D39, s400) ^ k34, myselx (D56, D40, s800) ^ k35, &D03, &D28, &D10, &D18);
+      s7(             D55        ^ k36,              D56        ^ k37,              D57        ^ k38,              D58        ^ k39,              D59        ^ k40,              D60        ^ k41, &D31, &D11, &D21, &D06);
+      s8(             D59        ^ k42,              D60        ^ k43,              D61        ^ k44,              D62        ^ k45,              D63        ^ k46,              D32        ^ k47, &D04, &D26, &D14, &D20);
+
+      DATASWAP;
+    }
+
+    DATASWAP;
+  }
+
+  DATASWAP;
+}
+
+#else
+
 static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, u32 &D00, u32 &D01, u32 &D02, u32 &D03, u32 &D04, u32 &D05, u32 &D06, u32 &D07, u32 &D08, u32 &D09, u32 &D10, u32 &D11, u32 &D12, u32 &D13, u32 &D14, u32 &D15, u32 &D16, u32 &D17, u32 &D18, u32 &D19, u32 &D20, u32 &D21, u32 &D22, u32 &D23, u32 &D24, u32 &D25, u32 &D26, u32 &D27, u32 &D28, u32 &D29, u32 &D30, u32 &D31, u32 &D32, u32 &D33, u32 &D34, u32 &D35, u32 &D36, u32 &D37, u32 &D38, u32 &D39, u32 &D40, u32 &D41, u32 &D42, u32 &D43, u32 &D44, u32 &D45, u32 &D46, u32 &D47, u32 &D48, u32 &D49, u32 &D50, u32 &D51, u32 &D52, u32 &D53, u32 &D54, u32 &D55, u32 &D56, u32 &D57, u32 &D58, u32 &D59, u32 &D60, u32 &D61, u32 &D62, u32 &D63)
 {
   sXXX_DECL u32 s001 = (0x001 & SALT) ? 0xffffffff : 0;
@@ -733,6 +807,8 @@ static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K0
   DATASWAP;
 }
 
+#endif
+
 static void transpose32c (u32 data[32])
 {
   #define swap(x,y,j,m)               \
@@ -837,11 +913,7 @@ static void m01500m (__local u32 *s_S, __global pw_t *pws, __global gpu_rule_t *
    * salt
    */
 
-  #ifdef DESCRYPT_SALT
-  const u32 salt = DESCRYPT_SALT;
-  #else
   const u32 salt = salt_bufs[salt_pos].salt_buf[0];
-  #endif
 
   /**
    * keys
@@ -1203,11 +1275,7 @@ static void m01500s (__local u32 *s_S, __global pw_t *pws, __global gpu_rule_t *
    * salt
    */
 
-  #ifdef DESCRYPT_SALT
-  const u32 salt = DESCRYPT_SALT;
-  #else
   const u32 salt = salt_bufs[salt_pos].salt_buf[0];
-  #endif
 
   /**
    * digest
