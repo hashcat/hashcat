@@ -1,5 +1,10 @@
 * changes v2.01 -> not-known-yet:
 
+Type.: Feature
+File.: Host
+Desc.: Implemented a new feature that allows to quit at next restore point update (and disable it)
+Issue: 10
+
 * changes v2.00 -> v2.01:
 
 Type.: Bug
