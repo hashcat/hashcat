@@ -17512,7 +17512,6 @@ int main (int argc, char **argv)
 
         hc_thread_wait (devices_cnt, c_threads);
 
-
         local_free (c_threads);
 
         data.restore = 0;

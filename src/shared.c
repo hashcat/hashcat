@@ -8364,11 +8364,23 @@ void bypass ()
 
 void stop_at_checkpoint ()
 {
-  if (data.devices_status != STATUS_RUNNING) return;
+  if (data.devices_status != STATUS_STOP_AT_CHECKPOINT)
+  {
+    if (data.devices_status != STATUS_RUNNING) return;
+  }
 
   // this feature only makes sense if --restore-disable was not specified
 
-  if (data.restore_disable == 0)
+  if (data.restore_disable == 1)
+  {
+    log_info ("WARNING: this feature is disabled when --restore-disable was specified");
+
+    return;
+  }
+
+  // check if monitoring of Restore Point updates should be enabled or disabled
+
+  if (data.devices_status != STATUS_STOP_AT_CHECKPOINT)
   {
     data.devices_status = STATUS_STOP_AT_CHECKPOINT;
 
@@ -8376,11 +8388,17 @@ void stop_at_checkpoint ()
 
     data.checkpoint_cur_words = get_lowest_words_done ();
 
-    log_info ("Checkpoint enabled, will quit when Restore Point updates next time");
+    log_info ("Checkpoint enabled: will quit at next Restore Point update");
   }
   else
   {
-    log_info ("WARNING: this feature is disabled when --restore-disable was specified");
+    data.devices_status = STATUS_RUNNING;
+
+    // reset the global value for checkpoint checks
+
+    data.checkpoint_cur_words = 0;
+
+    log_info ("Checkpoint disabled: Restore Point updates will no longer be monitored");
   }
 }
 
