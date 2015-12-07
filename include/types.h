@@ -1206,6 +1206,8 @@ typedef struct
 
   restore_data_t *rd;
 
+  uint64_t checkpoint_cur_words;  // used for the "stop at next checkpoint" feature
+
   /**
    * status, timer
    */

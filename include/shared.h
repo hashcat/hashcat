@@ -1883,15 +1883,16 @@ extern hc_thread_mutex_t mux_display;
  * status
  */
 
-#define STATUS_STARTING       0
-#define STATUS_INIT           1
-#define STATUS_RUNNING        2
-#define STATUS_PAUSED         3
-#define STATUS_EXHAUSTED      4
-#define STATUS_CRACKED        5
-#define STATUS_ABORTED        6
-#define STATUS_QUIT           7
-#define STATUS_BYPASS         8
+#define STATUS_STARTING           0
+#define STATUS_INIT               1
+#define STATUS_RUNNING            2
+#define STATUS_PAUSED             3
+#define STATUS_EXHAUSTED          4
+#define STATUS_CRACKED            5
+#define STATUS_ABORTED            6
+#define STATUS_QUIT               7
+#define STATUS_BYPASS             8
+#define STATUS_STOP_AT_CHECKPOINT 9
 
 #define ST_0000 "Initializing"
 #define ST_0001 "Starting"
@@ -1902,6 +1903,7 @@ extern hc_thread_mutex_t mux_display;
 #define ST_0006 "Aborted"
 #define ST_0007 "Quit"
 #define ST_0008 "Bypass"
+#define ST_0009 "Running (stop at checkpoint)"
 
 /**
  * kernel types
@@ -2234,6 +2236,7 @@ restore_data_t *init_restore  (int argc, char **argv);
 void            read_restore  (const char *eff_restore_file, restore_data_t *rd);
 void            write_restore (const char *new_restore_file, restore_data_t *rd);
 void            cycle_restore ();
+void            check_checkpoint ();
 
 #ifdef WIN
 
