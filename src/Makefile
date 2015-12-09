@@ -24,18 +24,18 @@ endif
 ## Library Paths
 ##
 
-OCL                      := hashcat-deps/amd-app-sdk
+OCL                      := deps/amd-app-sdk
 OCLLIBPATH32             := $(OCL)/lib/x86
 OCLLIBPATH64             := $(OCL)/lib/x86_64
 
-CUDA                     := hashcat-deps/cuda-7.5
-CUDALIBPATH32            := hashcat-deps/NVIDIA-Linux-x86_64-352.21/32
-CUDALIBPATH64            := hashcat-deps/NVIDIA-Linux-x86_64-352.21
+CUDA                     := deps/cuda-7.5
+CUDALIBPATH32            := deps/NVIDIA-Linux-x86_64-352.21/32
+CUDALIBPATH64            := deps/NVIDIA-Linux-x86_64-352.21
 
-ADL                      := hashcat-deps/adl-sdk
+ADL                      := deps/adl-sdk
 
-GDK                      := hashcat-deps/nvidia-gdk
-NVAPI                    := hashcat-deps/R352-developer
+GDK                      := deps/nvidia-gdk
+NVAPI                    := deps/R352-developer
 
 NVMLINCPATH              := $(GDK)/usr/include/nvidia/gdk/
 NVMLLIBPATH32            := $(CUDALIBPATH32)
