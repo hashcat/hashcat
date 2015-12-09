@@ -3,7 +3,7 @@
 # Revision: 1.01
 
 ## global vars
-DEPS="make gcc-4.9 g++-4.9 gcc-4.9-multilib g++-4.9-multilib libc6-dev-i386 mingw-w64 build-essential unzip"
+DEPS="make gcc g++ gcc-multilib g++-multilib libc6-dev-i386 mingw-w64 build-essential unzip"
 DOWNLOAD_DEPS="ADL_SDK8.zip R352-developer.zip cuda_7.5.18_linux.run NVIDIA-Linux-x86_64-352.21.run gdk_linux_amd64_352_55_release.run AMD-APP-SDKInstaller-v3.0.130.135-GA-linux64.tar.bz2"
 
 ## enter the hashcat-deps directory
