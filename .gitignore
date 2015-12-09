@@ -5,6 +5,8 @@
 *.dictstat
 *.pot
 *.log
+deps/*
+deps/**
 lib/*.a
 obj/*.o
 kernels/4098/*.llvmir
