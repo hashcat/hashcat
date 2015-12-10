@@ -34,7 +34,7 @@ The following files are needed inside the *deps/tmp* directory:
     gdk_linux_amd64_352_55_release.run
     AMD-APP-SDKInstaller-v3.0.130.135-GA-linux64.tar.bz2
 
-Now just execute the following script to complete the installation of dependencies (check for an updated version in **docs/deps.sh**):
+Now just execute the following script to complete the installation of dependencies (check for an updated version in **tools/deps.sh**):
 
     #!/bin/bash
     # Author: Gabriele Gristina <matrix@hashcat.net>
