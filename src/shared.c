@@ -8747,6 +8747,14 @@ uint64_t get_lowest_words_done ()
     if (words_done < words_cur) words_cur = words_done;
   }
 
+  // It's possible that a GPU's workload isn't finished right after a restore-case.
+  // In that case, this function would return 0 and overwrite the real restore point
+  // There's also data.words_cur which is set to rd->words_cur but it changes while
+  // the attack is running therefore we should stick to rd->words_cur.
+  // Note that -s influences rd->words_cur we should keep a close look on that.
+
+  if (words_cur < data.rd->words_cur) words_cur = data.rd->words_cur;
+
   return words_cur;
 }
 
