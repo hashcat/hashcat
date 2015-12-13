@@ -7016,12 +7016,45 @@ int main (int argc, char **argv)
   data.scrypt_tmto       = scrypt_tmto;
 
   /**
-   * install_dir
+   * folders, as discussed on https://github.com/hashcat/oclHashcat/issues/20
    */
 
+  #ifdef LINUX
+
+  char *resolved_path = realpath (myargv[0], NULL);
+
+  char *install_dir = get_install_dir (resolved_path);
+  char *profile_dir = NULL;
+  char *session_dir = NULL;
+
+  if (strcmp (install_dir, INSTALL_FOLDER) == 0)
+  {
+    struct passwd *pw = getpwuid (getuid ());
+
+    const char *homedir = pw->pw_dir;
+
+    profile_dir = get_profile_dir (homedir);
+    session_dir = get_session_dir (profile_dir, session);
+  }
+  else
+  {
+    profile_dir = install_dir;
+    session_dir = install_dir;
+  }
+
+  myfree (resolved_path);
+
+  #else
+
   char *install_dir = get_install_dir (myargv[0]);
+  char *profile_dir = install_dir;
+  char *session_dir = install_dir;
+
+  #endif
 
   data.install_dir = install_dir;
+  data.profile_dir = profile_dir;
+  data.session_dir = session_dir;
 
   /**
    * cpu affinity

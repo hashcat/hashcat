@@ -4093,6 +4093,26 @@ char *get_install_dir (const char *progname)
   return (install_dir);
 }
 
+char *get_profile_dir (const char *homedir)
+{
+  #define DOT_HASHCAT ".hashcat"
+
+  char *profile_dir = (char *) mymalloc (strlen (homedir) + 1 + strlen (DOT_HASHCAT) + 1);
+
+  sprintf (profile_dir, "%s/%s", homedir, DOT_HASHCAT);
+
+  return profile_dir;
+}
+
+char *get_session_dir (const char *profile_dir, const char *session)
+{
+  char *session_dir = (char *) mymalloc (strlen (profile_dir) + 1 + strlen (session) + 1);
+
+  sprintf (session_dir, "%s/%s", profile_dir, session);
+
+  return session_dir;
+}
+
 void truecrypt_crc32 (char *file, unsigned char keytab[64])
 {
   uint crc = ~0;

@@ -21,7 +21,19 @@ MAKEFLAGS += -j 1
 endif
 
 ##
-## Library Paths
+## Installation paths (Linux only)
+##
+
+INSTALL_FOLDER           ?= /opt/test/usr/bin
+SHARED_FOLDER            ?= /opt/test/usr/share/oclHashcat
+DOCUMENT_FOLDER          ?= /opt/test/usr/share/doc/oclHashcat
+
+#INSTALL_FOLDER           ?= /usr/bin
+#SHARED_FOLDER            ?= /usr/share/oclHashcat
+#DOCUMENT_FOLDER          ?= /usr/share/doc/oclHashcat
+
+##
+## Library paths
 ##
 
 OCL                      := deps/amd-app-sdk
@@ -61,6 +73,9 @@ NVCC                     := $(CUDA)/bin/nvcc
 CLCOMPILE                := $(CLCOMPILE_PATH)/clcompile.bin
 
 BIN                      := .
+
+INSTALL                  := install
+CP                       := cp
 
 ##
 ## Misc stuff
@@ -174,6 +189,35 @@ nv_all:         $(foreach KERNEL,$(KERNELS_MODE_ALL),$(foreach DEVICE,$(NV_DEVIC
 		$(foreach DEVICE,$(NV_DEVICES_ALL),$(foreach BITNESS,$(NV_BITNESS_ALL),$(NV_OUT)/amp_a0_v1.$(DEVICE).$(BITNESS).cubin))    $(foreach DEVICE,$(NV_DEVICES_ALL),$(foreach BITNESS,$(NV_BITNESS_ALL),$(NV_OUT)/amp_a0_v2.$(DEVICE).$(BITNESS).cubin))    $(foreach DEVICE,$(NV_DEVICES_ALL),$(foreach BITNESS,$(NV_BITNESS_ALL),$(NV_OUT)/amp_a0_v4.$(DEVICE).$(BITNESS).cubin)) \
 		$(foreach DEVICE,$(NV_DEVICES_ALL),$(foreach BITNESS,$(NV_BITNESS_ALL),$(NV_OUT)/amp_a1_v1.$(DEVICE).$(BITNESS).cubin))    $(foreach DEVICE,$(NV_DEVICES_ALL),$(foreach BITNESS,$(NV_BITNESS_ALL),$(NV_OUT)/amp_a1_v2.$(DEVICE).$(BITNESS).cubin))    $(foreach DEVICE,$(NV_DEVICES_ALL),$(foreach BITNESS,$(NV_BITNESS_ALL),$(NV_OUT)/amp_a1_v4.$(DEVICE).$(BITNESS).cubin)) \
 		$(foreach DEVICE,$(NV_DEVICES_ALL),$(foreach BITNESS,$(NV_BITNESS_ALL),$(NV_OUT)/amp_a3_v1.$(DEVICE).$(BITNESS).cubin))    $(foreach DEVICE,$(NV_DEVICES_ALL),$(foreach BITNESS,$(NV_BITNESS_ALL),$(NV_OUT)/amp_a3_v2.$(DEVICE).$(BITNESS).cubin))    $(foreach DEVICE,$(NV_DEVICES_ALL),$(foreach BITNESS,$(NV_BITNESS_ALL),$(NV_OUT)/amp_a3_v4.$(DEVICE).$(BITNESS).cubin))
+
+##
+## Targets: Linux install
+## We need some better native compilation logic here, fixing it to 64 bit for now and AMD kernels
+## How to make /usr/bin/install doing recursive??
+##
+
+install: linux64 amd_all
+	$(INSTALL) -m 755 -d                     $(DOCUMENT_FOLDER)
+	$(CP) -a docs/*                          $(DOCUMENT_FOLDER)/
+	$(INSTALL) -m 755 -d                     $(DOCUMENT_FOLDER)/extra
+	$(CP) -a extra/*                         $(DOCUMENT_FOLDER)/extra/
+	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)
+	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)/charsets
+	$(CP) -a charsets/*                      $(SHARED_FOLDER)/charsets/
+	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)/kernels
+	$(CP) -a kernels/*                       $(SHARED_FOLDER)/kernels/
+	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)/masks
+	$(CP) -a masks/*                         $(SHARED_FOLDER)/masks/
+	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)/rules
+	$(CP) -a rules/*                         $(SHARED_FOLDER)/rules/
+	$(INSTALL) -m 755    -T hashcat.hcstat   $(SHARED_FOLDER)/hashcat.hcstat
+	$(INSTALL) -m 755 -s -T oclHashcat64.bin $(INSTALL_FOLDER)/oclHashcat
+
+
+uninstall:
+	$(RM) -f  $(INSTALL_FOLDER)/oclHashcat
+	$(RM) -rf $(SHARED_FOLDER)
+	$(RM) -rf $(DOCUMENT_FOLDER)
 
 ##
 ## Targets: AMD Kernel (oclHashcat)
@@ -382,10 +426,10 @@ obj/%.cudaHashcat.WIN.64.o:   src/%.c
 	$(CC_WIN_64)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_64) $(CFLAGS_CUDA_WIN)   -c -o $@ $<
 
 oclHashcat32.bin:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.LINUX.32.o obj/ext_ADL.oclHashcat.LINUX.32.o    obj/shared.oclHashcat.LINUX.32.o  obj/rp_gpu_on_cpu.oclHashcat.LINUX.32.o
-	$(CC_LINUX_32) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_32) $(CFLAGS_OCL_LINUX)  -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH32)  $(LFLAGS_OCL_LINUX)
+	$(CC_LINUX_32) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_32) $(CFLAGS_OCL_LINUX)  -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH32)  $(LFLAGS_OCL_LINUX) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 oclHashcat64.bin:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.LINUX.64.o obj/ext_ADL.oclHashcat.LINUX.64.o    obj/shared.oclHashcat.LINUX.64.o  obj/rp_gpu_on_cpu.oclHashcat.LINUX.64.o
-	$(CC_LINUX_64) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_64) $(CFLAGS_OCL_LINUX)  -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH64)  $(LFLAGS_OCL_LINUX)
+	$(CC_LINUX_64) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_64) $(CFLAGS_OCL_LINUX)  -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH64)  $(LFLAGS_OCL_LINUX) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 oclHashcat32.exe:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.WIN.32.o   obj/ext_ADL.oclHashcat.WIN.32.o      obj/shared.oclHashcat.WIN.32.o    obj/rp_gpu_on_cpu.oclHashcat.WIN.32.o      lib/libOpenCL.a   /usr/i686-w64-mingw32/lib/CRT_glob.o
 	$(CC_WIN_32)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_32) $(CFLAGS_OCL_WIN)    -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH32)  $(LFLAGS_OCL_WIN) -static-libgcc
@@ -394,10 +438,10 @@ oclHashcat64.exe:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.WIN.64.o   obj/ext
 	$(CC_WIN_64)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_64) $(CFLAGS_OCL_WIN)    -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH64)  $(LFLAGS_OCL_WIN) -static-libgcc
 
 cudaHashcat32.bin: src/oclHashcat.c obj/ext_cuda.cudaHashcat.LINUX.32.o  obj/ext_nvml.cudaHashcat.LINUX.32.o  obj/shared.cudaHashcat.LINUX.32.o obj/rp_gpu_on_cpu.cudaHashcat.LINUX.32.o
-	$(CC_LINUX_32) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_32) $(CFLAGS_CUDA_LINUX) -o $@ -DCOMPTIME=$(NOW) $^ -L$(CUDALIBPATH32) $(LFLAGS_CUDA_LINUX) -L$(NVMLLIBPATH32)
+	$(CC_LINUX_32) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_32) $(CFLAGS_CUDA_LINUX) -o $@ -DCOMPTIME=$(NOW) $^ -L$(CUDALIBPATH32) $(LFLAGS_CUDA_LINUX) -L$(NVMLLIBPATH32) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 cudaHashcat64.bin: src/oclHashcat.c obj/ext_cuda.cudaHashcat.LINUX.64.o  obj/ext_nvml.cudaHashcat.LINUX.64.o  obj/shared.cudaHashcat.LINUX.64.o obj/rp_gpu_on_cpu.cudaHashcat.LINUX.64.o
-	$(CC_LINUX_64) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_64) $(CFLAGS_CUDA_LINUX) -o $@ -DCOMPTIME=$(NOW) $^ -L$(CUDALIBPATH64) $(LFLAGS_CUDA_LINUX) -L$(NVMLLIBPATH64)
+	$(CC_LINUX_64) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_64) $(CFLAGS_CUDA_LINUX) -o $@ -DCOMPTIME=$(NOW) $^ -L$(CUDALIBPATH64) $(LFLAGS_CUDA_LINUX) -L$(NVMLLIBPATH64) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 cudaHashcat32.exe: src/oclHashcat.c obj/ext_cuda.cudaHashcat.WIN.32.o    obj/ext_nvapi.cudaHashcat.WIN.32.o    obj/shared.cudaHashcat.WIN.32.o  obj/rp_gpu_on_cpu.cudaHashcat.WIN.32.o   lib/libcuda.a   /usr/i686-w64-mingw32/lib/CRT_glob.o
 	$(CC_WIN_32)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_32) $(CFLAGS_CUDA_WIN)   -o $@ -DCOMPTIME=$(NOW) $^ -L$(CUDALIBPATH32) $(LFLAGS_CUDA_WIN) -static-libgcc $(NVAPI)/x86/nvapi.lib

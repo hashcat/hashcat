@@ -1134,7 +1134,10 @@ typedef struct
   char   *session;
   char    separator;
   char   *hashfile;
+  char   *homedir;
   char   *install_dir;
+  char   *profile_dir;
+  char   *session_dir;
   char   *outfile;
   uint    outfile_format;
   uint    outfile_autohex;

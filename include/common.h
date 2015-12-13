@@ -33,6 +33,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <dlfcn.h>
+#include <pwd.h>
 
 #ifdef LINUX
 #include <termio.h>
