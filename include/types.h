@@ -667,7 +667,7 @@ typedef struct
 
 typedef struct
 {
-  uint cmds[16];
+  uint cmds[15];
 
 } gpu_rule_t;
 
