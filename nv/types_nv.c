@@ -1322,7 +1322,7 @@ typedef struct
 
 typedef struct
 {
-  u32  key;
+  u32 key;
   u64 val;
 
 } hcstat_table_t;
@@ -1336,7 +1336,7 @@ typedef struct
 
 typedef struct
 {
-  u32 cmds[15];
+  u32 cmds[16];
 
 } gpu_rule_t;
 

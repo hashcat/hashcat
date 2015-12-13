@@ -2,17 +2,28 @@
 
 Type.: Feature
 File.: Host
+Desc.: Help integration for linux distributions; Rewrite paths to files so that it matches Linux FHS
+## NOT FINISHED ##
+Issue: 20
+
+Type.: Feature
+File.: Host
 Desc.: Implemented a new feature that allows to quit at next restore point update (and disable it)
 Issue: 10
+
+Type.: Change
+File.: Docs
+Desc.: Updated docs/readme.txt -- Starting with v2.01 OpenCL 2.00 is required; we need Catalyst 15.7 or higher
+
+Type.: Bug
+File.: Host
+Desc.: Fixed a bug where oclHashcat rejected to load a rule which calls 15 functions although it is supported
+Issue: 21
 
 Type.: Bug
 File.: Host
 Desc.: Fixed a bug in combination of --restore and a user immediately aborting the session after restart
 Trac.: 684
-
-Type.: Change
-File.: Docs
-Desc.: Updated docs/readme.txt -- Starting with v2.01 OpenCL 2.00 is required; we need Catalyst 15.7 or higher
 
 * changes v2.00 -> v2.01:
 
