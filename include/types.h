@@ -957,7 +957,10 @@ typedef struct __hc_device_param hc_device_param_t;
 
 typedef struct
 {
-//  HM_ADAPTER adapter_index;
+  union {
+    HM_ADAPTER_AMD amd;
+    HM_ADAPTER_NV  nv;
+  } adapter_index;
 
   int od_version;
 
