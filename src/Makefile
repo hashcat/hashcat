@@ -33,23 +33,30 @@ DOCUMENT_FOLDER          ?= /opt/test/usr/share/doc/oclHashcat
 #DOCUMENT_FOLDER          ?= /usr/share/doc/oclHashcat
 
 ##
-## Library paths
+## Main SDK
 ##
 
 CUDA                     := deps/cuda-7.5
 CUDALIBPATH32            := deps/NVIDIA-Linux-x86_64-352.21/32
 CUDALIBPATH64            := deps/NVIDIA-Linux-x86_64-352.21
 
-OCL                      := $(CUDA)
-OCLLIBPATH32             := $(CUDALIBPATH32)
-OCLLIBPATH64             := $(CUDALIBPATH64)
+AMDAPP			 := deps/amd-app-sdk
+AMDAPPLIBPATH32		 := $(OCL)/lib/x86
+AMDAPPLIBPATH64		 := $(OCL)/lib/x86_64
 
 ADL                      := deps/adl-sdk
-
 GDK                      := deps/nvidia-gdk
 NVAPI                    := deps/R352-developer
 
-NVMLINCPATH              := $(GDK)/usr/include/nvidia/gdk/
+##
+## Library paths
+##
+
+OCL                      := $(AMDAPP)
+OCLLIBPATH32             := $(AMDAPPLIBPATH32)
+OCLLIBPATH64             := $(AMDAPPLIBPATH64)
+
+NVML                     := $(GDK)/usr/include/nvidia/gdk/
 NVMLLIBPATH32            := $(CUDALIBPATH32)
 NVMLLIBPATH64            := $(CUDALIBPATH64)
 
@@ -95,7 +102,7 @@ CFLAGS_64                := -m64
 CFLAGS_LINUX             := -D_POSIX -DLINUX
 CFLAGS_WIN               := -D_WIN   -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
 
-CFLAGS_LINUX		 += -I$(OCL)/include/ -I$(ADL)/include/ -I$(GDK)/usr/include/nvidia/gdk/
+CFLAGS_LINUX		 += -I$(OCL)/include/ -I$(ADL)/include/ -I$(NVML)/
 CFLAGS_WIN		 += -I$(OCL)/include/ -I$(ADL)/include/ -I$(NVAPI)/
 
 LFLAGS_LINUX		 := -lpthread -lOpenCL -ldl
