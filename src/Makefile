@@ -40,9 +40,9 @@ CUDA                     := deps/cuda-7.5
 CUDALIBPATH32            := deps/NVIDIA-Linux-x86_64-352.21/32
 CUDALIBPATH64            := deps/NVIDIA-Linux-x86_64-352.21
 
-AMDAPP			 := deps/amd-app-sdk
-AMDAPPLIBPATH32		 := $(OCL)/lib/x86
-AMDAPPLIBPATH64		 := $(OCL)/lib/x86_64
+AMDAPP                   := deps/amd-app-sdk
+AMDAPPLIBPATH32          := $(AMDAPP)/lib/x86
+AMDAPPLIBPATH64          := $(AMDAPP)/lib/x86_64
 
 ADL                      := deps/adl-sdk
 GDK                      := deps/nvidia-gdk
@@ -56,7 +56,7 @@ OCL                      := $(AMDAPP)
 OCLLIBPATH32             := $(AMDAPPLIBPATH32)
 OCLLIBPATH64             := $(AMDAPPLIBPATH64)
 
-NVML                     := $(GDK)/usr/include/nvidia/gdk/
+NVML                     := $(GDK)/usr/include/nvidia/gdk
 NVMLLIBPATH32            := $(CUDALIBPATH32)
 NVMLLIBPATH64            := $(CUDALIBPATH64)
 
@@ -102,11 +102,11 @@ CFLAGS_64                := -m64
 CFLAGS_LINUX             := -D_POSIX -DLINUX
 CFLAGS_WIN               := -D_WIN   -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
 
-CFLAGS_LINUX		 += -I$(OCL)/include/ -I$(ADL)/include/ -I$(NVML)/
-CFLAGS_WIN		 += -I$(OCL)/include/ -I$(ADL)/include/ -I$(NVAPI)/
+CFLAGS_LINUX             += -I$(OCL)/include/ -I$(ADL)/include/ -I$(NVML)/
+CFLAGS_WIN               += -I$(OCL)/include/ -I$(ADL)/include/ -I$(NVAPI)/
 
-LFLAGS_LINUX		 := -lpthread -lOpenCL -ldl
-LFLAGS_WIN		 := -lpsapi -L./lib
+LFLAGS_LINUX             := -lpthread -lOpenCL -ldl
+LFLAGS_WIN               := -lpsapi
 
 ##
 ## Targets: Global
@@ -189,25 +189,25 @@ lib/libOpenCL64.a:
 ##
 
 obj/%.oclHashcat.LINUX.32.o:  src/%.c
-	$(CC_LINUX_32) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_32) $(CFLAGS_LINUX)  -c -o $@ $<
+	$(CC_LINUX_32) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_32) -c -o $@ $<
 
 obj/%.oclHashcat.LINUX.64.o:  src/%.c
-	$(CC_LINUX_64) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_64) $(CFLAGS_LINUX)  -c -o $@ $<
+	$(CC_LINUX_64) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_64) -c -o $@ $<
 
 obj/%.oclHashcat.WIN.32.o:    src/%.c
-	$(CC_WIN_32)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_32) $(CFLAGS_WIN)    -c -o $@ $<
+	$(CC_WIN_32)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_32) -c -o $@ $<
 
 obj/%.oclHashcat.WIN.64.o:    src/%.c
-	$(CC_WIN_64)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_64) $(CFLAGS_WIN)    -c -o $@ $<
+	$(CC_WIN_64)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_64) -c -o $@ $<
 
 oclHashcat32.bin:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.LINUX.32.o obj/ext_nvml.oclHashcat.LINUX.32.o obj/ext_ADL.oclHashcat.LINUX.32.o    obj/shared.oclHashcat.LINUX.32.o  obj/rp_gpu_on_cpu.oclHashcat.LINUX.32.o
-	$(CC_LINUX_32) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_32) $(CFLAGS_LINUX)  -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH32)  $(LFLAGS_LINUX) -L$(NVMLLIBPATH32) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+	$(CC_LINUX_32) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_32)    -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH32)  $(LFLAGS_LINUX) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 oclHashcat64.bin:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.LINUX.64.o obj/ext_nvml.oclHashcat.LINUX.64.o obj/ext_ADL.oclHashcat.LINUX.64.o    obj/shared.oclHashcat.LINUX.64.o  obj/rp_gpu_on_cpu.oclHashcat.LINUX.64.o
-	$(CC_LINUX_64) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_64) $(CFLAGS_LINUX)  -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH64)  $(LFLAGS_LINUX) -L$(NVMLLIBPATH64) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+	$(CC_LINUX_64) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_64)    -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH64)  $(LFLAGS_LINUX) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-oclHashcat32.exe:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.WIN.32.o   obj/ext_nvapi.oclHashcat.WIN.32.o  obj/ext_ADL.oclHashcat.WIN.32.o      obj/shared.oclHashcat.WIN.32.o    obj/rp_gpu_on_cpu.oclHashcat.WIN.32.o      lib/libOpenCL.a   /usr/i686-w64-mingw32/lib/CRT_glob.o
-	$(CC_WIN_32)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_32) $(CFLAGS_WIN)    -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH32)  $(LFLAGS_WIN) -static-libgcc $(NVAPI)/x86/nvapi.lib
+oclHashcat32.exe:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.WIN.32.o   obj/ext_nvapi.oclHashcat.WIN.32.o  obj/ext_ADL.oclHashcat.WIN.32.o      obj/shared.oclHashcat.WIN.32.o    obj/rp_gpu_on_cpu.oclHashcat.WIN.32.o      lib/libOpenCL.a   /usr/i686-w64-mingw32/lib/CRT_glob.o   $(NVAPI)/x86/nvapi.lib
+	$(CC_WIN_32)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_32)    -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH32)  $(LFLAGS_WIN) -static-libgcc
 
-oclHashcat64.exe:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.WIN.64.o   obj/ext_nvapi.oclHashcat.WIN.64.o  obj/ext_ADL.oclHashcat.WIN.64.o      obj/shared.oclHashcat.WIN.64.o    obj/rp_gpu_on_cpu.oclHashcat.WIN.64.o      lib/libOpenCL64.a /usr/x86_64-w64-mingw32/lib/CRT_glob.o
-	$(CC_WIN_64)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_64) $(CFLAGS_WIN)    -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH64)  $(LFLAGS_WIN) -static-libgcc $(NVAPI)/amd64/nvapi64.lib
+oclHashcat64.exe:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.WIN.64.o   obj/ext_nvapi.oclHashcat.WIN.64.o  obj/ext_ADL.oclHashcat.WIN.64.o      obj/shared.oclHashcat.WIN.64.o    obj/rp_gpu_on_cpu.oclHashcat.WIN.64.o      lib/libOpenCL64.a /usr/x86_64-w64-mingw32/lib/CRT_glob.o $(NVAPI)/amd64/nvapi64.lib
+	$(CC_WIN_64)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_64)    -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH64)  $(LFLAGS_WIN) -static-libgcc
