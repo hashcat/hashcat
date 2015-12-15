@@ -135,7 +135,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m04500_m04 (__glo
 
     const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
 
-    append_0x80_2 (w0, w1, out_len);
+    append_0x80_2x4 (w0, w1, out_len);
 
     /**
      * sha1
@@ -537,7 +537,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m04500_s04 (__glo
 
     const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
 
-    append_0x80_2 (w0, w1, out_len);
+    append_0x80_2x4 (w0, w1, out_len);
 
     /**
      * sha1

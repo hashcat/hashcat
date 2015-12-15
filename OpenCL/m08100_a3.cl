@@ -440,7 +440,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08100_m04 (__glo
   w0[2] = swap_workaround (w0[2]);
   w0[3] = swap_workaround (w0[3]);
 
-  append_0x80_2 (w0, w1, pw_len + 1);
+  append_0x80_2x4 (w0, w1, pw_len + 1);
 
   w0[0] = swap_workaround (w0[0]);
   w0[1] = swap_workaround (w0[1]);
@@ -508,7 +508,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08100_m08 (__glo
   w1[2] = swap_workaround (w1[2]);
   w1[3] = swap_workaround (w1[3]);
 
-  append_0x80_3 (w0, w1, w2, pw_len + 1);
+  append_0x80_3x4 (w0, w1, w2, pw_len + 1);
 
   w0[0] = swap_workaround (w0[0]);
   w0[1] = swap_workaround (w0[1]);
@@ -588,7 +588,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08100_m16 (__glo
   w3[2] = 0;
   w3[3] = 0;
 
-  append_0x80_4 (w0, w1, w2, w3, pw_len + 1);
+  append_0x80_4x4 (w0, w1, w2, w3, pw_len + 1);
 
   w0[0] = swap_workaround (w0[0]);
   w0[1] = swap_workaround (w0[1]);
@@ -663,7 +663,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08100_s04 (__glo
   w0[2] = swap_workaround (w0[2]);
   w0[3] = swap_workaround (w0[3]);
 
-  append_0x80_2 (w0, w1, pw_len + 1);
+  append_0x80_2x4 (w0, w1, pw_len + 1);
 
   w0[0] = swap_workaround (w0[0]);
   w0[1] = swap_workaround (w0[1]);
@@ -731,7 +731,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08100_s08 (__glo
   w1[2] = swap_workaround (w1[2]);
   w1[3] = swap_workaround (w1[3]);
 
-  append_0x80_3 (w0, w1, w2, pw_len + 1);
+  append_0x80_3x4 (w0, w1, w2, pw_len + 1);
 
   w0[0] = swap_workaround (w0[0]);
   w0[1] = swap_workaround (w0[1]);
@@ -811,7 +811,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08100_s16 (__glo
   w3[2] = 0;
   w3[3] = 0;
 
-  append_0x80_4 (w0, w1, w2, w3, pw_len + 1);
+  append_0x80_4x4 (w0, w1, w2, w3, pw_len + 1);
 
   w0[0] = swap_workaround (w0[0]);
   w0[1] = swap_workaround (w0[1]);

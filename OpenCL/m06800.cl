@@ -1312,8 +1312,8 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06800_init (__gl
   w3[2] = 0;
   w3[3] = 0;
 
-  append_0x01_3 (w0, w1, w2, salt_len + 3);
-  append_0x80_3 (w0, w1, w2, salt_len + 4);
+  append_0x01_3x4 (w0, w1, w2, salt_len + 3);
+  append_0x80_3x4 (w0, w1, w2, salt_len + 4);
 
   w0[0] = swap_workaround (w0[0]);
   w0[1] = swap_workaround (w0[1]);

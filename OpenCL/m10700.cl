@@ -1564,7 +1564,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m10700_init (__gl
 
   block_len += salt_len;
 
-  append_0x80_2 (block0, block1, block_len);
+  append_0x80_2x4 (block0, block1, block_len);
 
   block3[3] = swap_workaround (block_len * 8);
 

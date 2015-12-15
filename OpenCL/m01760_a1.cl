@@ -435,7 +435,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01760_m04 (__glo
     w3[2] = 0;
     w3[3] = 0;
 
-    append_0x80_4 (w0, w1, w2, w3, pw_len);
+    append_0x80_4x4 (w0, w1, w2, w3, pw_len);
 
     w0_t[0] = swap_workaround (w0[0]);
     w0_t[1] = swap_workaround (w0[1]);
@@ -665,7 +665,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01760_s04 (__glo
     w3[2] = 0;
     w3[3] = 0;
 
-    append_0x80_4 (w0, w1, w2, w3, pw_len);
+    append_0x80_4x4 (w0, w1, w2, w3, pw_len);
 
     w0_t[0] = swap_workaround (w0[0]);
     w0_t[1] = swap_workaround (w0[1]);

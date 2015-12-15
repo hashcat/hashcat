@@ -2386,7 +2386,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11800_m04 (__glo
 
     const u32 out_len = apply_rules (rules_buf[il_pos].cmds, &w[0], &w[1], pw_len);
 
-    append_0x01_2 (&w[0], &w[1], out_len);
+    append_0x01_2x4 (&w[0], &w[1], out_len);
 
     /**
      * reverse message block
@@ -2573,7 +2573,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11800_s04 (__glo
 
     const u32 out_len = apply_rules (rules_buf[il_pos].cmds, &w[0], &w[1], pw_len);
 
-    append_0x01_2 (&w[0], &w[1], out_len);
+    append_0x01_2x4 (&w[0], &w[1], out_len);
 
     /**
      * reverse message block

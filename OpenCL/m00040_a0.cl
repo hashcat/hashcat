@@ -135,7 +135,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m00040_m04 (__glo
     w1_t[2] |= salt_buf1[2];
     w1_t[3] |= salt_buf1[3];
 
-    append_0x80_4 (w0_t, w1_t, w2_t, w3_t, out_salt_len);
+    append_0x80_4x4 (w0_t, w1_t, w2_t, w3_t, out_salt_len);
 
     w3_t[2] = out_salt_len * 8;
 
@@ -359,7 +359,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m00040_s04 (__glo
     w1_t[2] |= salt_buf1[2];
     w1_t[3] |= salt_buf1[3];
 
-    append_0x80_4 (w0_t, w1_t, w2_t, w3_t, out_salt_len);
+    append_0x80_4x4 (w0_t, w1_t, w2_t, w3_t, out_salt_len);
 
     w3_t[2] = out_salt_len * 8;
 

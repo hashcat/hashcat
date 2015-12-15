@@ -184,7 +184,7 @@ static void m03800m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[2] |= s3[2];
     w3_t[3] |= s3[3];
 
-    append_0x80_4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len);
+    append_0x80_4x4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len);
 
     w3_t[2] = pw_salt_len * 8;
 
@@ -447,7 +447,7 @@ static void m03800s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[2] |= s3[2];
     w3_t[3] |= s3[3];
 
-    append_0x80_4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len);
+    append_0x80_4x4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len);
 
     w3_t[2] = pw_salt_len * 8;
 

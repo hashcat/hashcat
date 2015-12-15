@@ -167,7 +167,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01420_m04 (__glo
     w1[2] |= salt_buf1[2];
     w1[3] |= salt_buf1[3];
 
-    append_0x80_4 (w0, w1, w2, w3, pw_salt_len);
+    append_0x80_4x4 (w0, w1, w2, w3, pw_salt_len);
 
     /**
      * sha256
@@ -444,7 +444,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01420_s04 (__glo
     w1[2] |= salt_buf1[2];
     w1[3] |= salt_buf1[3];
 
-    append_0x80_4 (w0, w1, w2, w3, pw_salt_len);
+    append_0x80_4x4 (w0, w1, w2, w3, pw_salt_len);
 
     /**
      * sha256

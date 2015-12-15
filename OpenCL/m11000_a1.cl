@@ -162,7 +162,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11000_m04 (__glo
     w3[2] = wordl3[2] | wordr3[2];
     w3[3] = wordl3[3] | wordr3[3];
 
-    append_0x80_4 (w0, w1, w2, w3, pw_len);
+    append_0x80_4x4 (w0, w1, w2, w3, pw_len);
 
     const u32 pw_salt_len = pw_len + salt_len;
 
@@ -549,7 +549,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11000_s04 (__glo
     w3[2] = wordl3[2] | wordr3[2];
     w3[3] = wordl3[3] | wordr3[3];
 
-    append_0x80_4 (w0, w1, w2, w3, pw_len);
+    append_0x80_4x4 (w0, w1, w2, w3, pw_len);
 
     const u32 pw_salt_len = pw_len + salt_len;
 

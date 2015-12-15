@@ -211,7 +211,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01430_m04 (__glo
     w3_t2[2] |= s3[2];
     w3_t2[3] |= s3[3];
 
-    append_0x80_4 (w0_t2, w1_t2, w2_t2, w3_t2, pw_salt_len);
+    append_0x80_4x4 (w0_t2, w1_t2, w2_t2, w3_t2, pw_salt_len);
 
     /**
      * sha256
@@ -532,7 +532,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01430_s04 (__glo
     w3_t2[2] |= s3[2];
     w3_t2[3] |= s3[3];
 
-    append_0x80_4 (w0_t2, w1_t2, w2_t2, w3_t2, pw_salt_len);
+    append_0x80_4x4 (w0_t2, w1_t2, w2_t2, w3_t2, pw_salt_len);
 
     /**
      * sha256

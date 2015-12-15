@@ -171,7 +171,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m12200_init (__gl
 
   u32 pw_len = pws[gid].pw_len;
 
-  append_0x80_4 (w0, w1, w2, w3, pw_len);
+  append_0x80_4x4 (w0, w1, w2, w3, pw_len);
 
   w0[0] = swap_workaround (w0[0]);
   w0[1] = swap_workaround (w0[1]);

@@ -451,7 +451,7 @@ static void kerb_prepare (const u32 w0[4], const u32 w1[4], const u32 pw_len, co
 
   // K=MD4(Little_indian(UNICODE(pwd))
 
-  append_0x80_2 (w0_t, w1_t, pw_len);
+  append_0x80_2x4 (w0_t, w1_t, pw_len);
 
   make_unicode (w1_t, w2_t, w3_t);
   make_unicode (w0_t, w0_t, w1_t);

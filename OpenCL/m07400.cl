@@ -792,7 +792,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_init (__gl
 
   block_len = memcat16 (block, block_len, w0, pw_len);
 
-  append_0x80_4 (block, block_len);
+  append_0x80_4x4 (block, block_len);
 
   block[15] = swap_workaround (block_len * 8);
 
@@ -867,7 +867,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_init (__gl
     }
   }
 
-  append_0x80_4 (block, block_len);
+  append_0x80_4x4 (block, block_len);
 
   if (block_len >= 56)
   {
@@ -912,7 +912,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_init (__gl
 
   /* Finish the digest.  */
 
-  append_0x80_4 (block, block_len);
+  append_0x80_4x4 (block, block_len);
 
   if (block_len >= 56)
   {
@@ -955,7 +955,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_init (__gl
 
   /* Finish the digest.  */
 
-  append_0x80_4 (block, block_len);
+  append_0x80_4x4 (block, block_len);
 
   if (block_len >= 56)
   {
@@ -1008,7 +1008,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_loop (__gl
   p_bytes_x80[2] = tmps[gid].p_bytes[2];
   p_bytes_x80[3] = tmps[gid].p_bytes[3];
 
-  append_0x80_1 (p_bytes_x80, pw_len);
+  append_0x80_1x4 (p_bytes_x80, pw_len);
 
   u32 s_bytes[4];
 

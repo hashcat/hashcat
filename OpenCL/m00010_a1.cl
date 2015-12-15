@@ -198,7 +198,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m00010_m04 (__glo
     w3[2] = pw_salt_len * 8;
     w3[3] = 0;
 
-    append_0x80_4 (w0, w1, w2, w3, pw_salt_len);
+    append_0x80_4x4 (w0, w1, w2, w3, pw_salt_len);
 
     /**
      * md5
@@ -487,7 +487,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m00010_s04 (__glo
     w3[2] = pw_salt_len * 8;
     w3[3] = 0;
 
-    append_0x80_4 (w0, w1, w2, w3, pw_salt_len);
+    append_0x80_4x4 (w0, w1, w2, w3, pw_salt_len);
 
     /**
      * md5

@@ -312,9 +312,9 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06500_init (__gl
   salt_buf3[2] = 0;
   salt_buf3[3] = 0;
 
-  append_0x01_4 (salt_buf0, salt_buf1, salt_buf2, salt_buf3, salt_len + 3);
+  append_0x01_4x4 (salt_buf0, salt_buf1, salt_buf2, salt_buf3, salt_len + 3);
 
-  append_0x80_4 (salt_buf0, salt_buf1, salt_buf2, salt_buf3, salt_len + 4);
+  append_0x80_4x4 (salt_buf0, salt_buf1, salt_buf2, salt_buf3, salt_len + 4);
 
   /**
    * pads

@@ -1750,7 +1750,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01600_init (__gl
 
   block_len += pw_len;
 
-  append_0x80_4 (block0, block1, block2, block3, block_len);
+  append_0x80_4x4 (block0, block1, block2, block3, block_len);
 
   block3[2] = block_len * 8;
 
@@ -1821,7 +1821,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01600_init (__gl
     block_len++;
   }
 
-  append_0x80_4 (block0, block1, block2, block3, block_len);
+  append_0x80_4x4 (block0, block1, block2, block3, block_len);
 
   block3[2] = block_len * 8;
 
@@ -1864,7 +1864,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01600_loop (__gl
   w0_x80[2] = w0[2];
   w0_x80[3] = w0[3];
 
-  append_0x80_1 (w0_x80, pw_len);
+  append_0x80_1x4 (w0_x80, pw_len);
 
   /**
    * salt

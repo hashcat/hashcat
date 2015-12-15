@@ -119,7 +119,7 @@ static void m04900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   salt_buf3[2] |= salt_buf3_t[2];
   salt_buf3[3] |= salt_buf3_t[3];
 
-  append_0x80_4 (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_salt_len);
+  append_0x80_4x4 (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_salt_len);
 
   /**
    * loop
@@ -432,7 +432,7 @@ static void m04900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   salt_buf3[2] |= salt_buf3_t[2];
   salt_buf3[3] |= salt_buf3_t[3];
 
-  append_0x80_4 (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_salt_len);
+  append_0x80_4x4 (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_salt_len);
 
   /**
    * loop

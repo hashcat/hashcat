@@ -78,7 +78,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m12600_m04 (__glo
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    append_0x80_2 (wordl0, wordl1, pw_l_len);
+    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
 
     switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
@@ -173,7 +173,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m12600_m04 (__glo
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      append_0x80_2 (wordr0, wordr1, pw_r_len);
+      append_0x80_2x4 (wordr0, wordr1, pw_r_len);
 
       switch_buffer_by_offset (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
@@ -521,7 +521,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m12600_s04 (__glo
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    append_0x80_2 (wordl0, wordl1, pw_l_len);
+    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
 
     switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
@@ -628,7 +628,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m12600_s04 (__glo
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      append_0x80_2 (wordr0, wordr1, pw_r_len);
+      append_0x80_2x4 (wordr0, wordr1, pw_r_len);
 
       switch_buffer_by_offset (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }

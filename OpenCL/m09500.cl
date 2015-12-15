@@ -1098,7 +1098,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09500_init (__gl
 
   u32 pw_len = pws[gid].pw_len;
 
-  append_0x80_4 (w0, w1, w2, w3, pw_len);
+  append_0x80_4x4 (w0, w1, w2, w3, pw_len);
 
   make_unicode (w1, w2, w3);
   make_unicode (w0, w0, w1);

@@ -233,7 +233,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05200_init (__gl
 
   const u32 block_len = pw_len + salt_len;
 
-  append_0x80_4 (w0, w1, w2, w3, block_len);
+  append_0x80_4x4 (w0, w1, w2, w3, block_len);
 
   /**
    * init

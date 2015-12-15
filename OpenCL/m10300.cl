@@ -250,7 +250,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m10300_init (__gl
 
   const u32 pw_salt_len = pw_len + salt_len;
 
-  append_0x80_4 (w0, w1, w2, w3, pw_salt_len);
+  append_0x80_4x4 (w0, w1, w2, w3, pw_salt_len);
 
   // swaps needed
 

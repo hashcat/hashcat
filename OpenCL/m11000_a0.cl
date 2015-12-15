@@ -119,7 +119,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11000_m04 (__glo
 
     const u32 pw_salt_len = pw_len + salt_len;
 
-    append_0x80_4 (w0, w1, w2, w3, out_len);
+    append_0x80_4x4 (w0, w1, w2, w3, out_len);
 
     /**
      * prepend salt
@@ -459,7 +459,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11000_s04 (__glo
 
     const u32 pw_salt_len = pw_len + salt_len;
 
-    append_0x80_4 (w0, w1, w2, w3, out_len);
+    append_0x80_4x4 (w0, w1, w2, w3, out_len);
 
     /**
      * prepend salt

@@ -1385,7 +1385,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06100_m04 (__glo
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    append_0x80_2 (wordl0, wordl1, pw_l_len);
+    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
 
     switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
@@ -1589,7 +1589,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06100_s04 (__glo
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    append_0x80_2 (wordl0, wordl1, pw_l_len);
+    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
 
     switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }

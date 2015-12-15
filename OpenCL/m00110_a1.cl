@@ -198,7 +198,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m00110_m04 (__glo
     w3[2] = 0;
     w3[3] = 0;
 
-    append_0x80_4 (w0, w1, w2, w3, pw_salt_len);
+    append_0x80_4x4 (w0, w1, w2, w3, pw_salt_len);
 
     /**
      * sha1
@@ -537,7 +537,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m00110_s04 (__glo
     w3[2] = 0;
     w3[3] = 0;
 
-    append_0x80_4 (w0, w1, w2, w3, pw_salt_len);
+    append_0x80_4x4 (w0, w1, w2, w3, pw_salt_len);
 
     /**
      * sha1

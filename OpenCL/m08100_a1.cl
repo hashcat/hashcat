@@ -169,7 +169,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08100_m04 (__glo
     w3_t[2] = 0;
     w3_t[3] = (pw_salt_len + 1) * 8;
 
-    append_0x80_4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len + 1);
+    append_0x80_4x4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len + 1);
 
     /**
      * sha1
@@ -478,7 +478,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08100_s04 (__glo
     w3_t[2] = 0;
     w3_t[3] = (pw_salt_len + 1) * 8;
 
-    append_0x80_4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len + 1);
+    append_0x80_4x4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len + 1);
 
     /**
      * sha1

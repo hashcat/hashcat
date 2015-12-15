@@ -373,7 +373,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m02100_init (__gl
    * generate dcc
    */
 
-  append_0x80_1 (w0, pw_len);
+  append_0x80_1x4 (w0, pw_len);
 
   make_unicode (w0, w0, w1);
 
@@ -405,7 +405,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m02100_init (__gl
   w3[2] = (16 + salt_len) * 8;
   w3[3] = 0;
 
-  append_0x80_4 (w0, w1, w2, w3, 16 + salt_len);
+  append_0x80_4x4 (w0, w1, w2, w3, 16 + salt_len);
 
   digest_md4[0] = MD4M_A;
   digest_md4[1] = MD4M_B;
@@ -473,8 +473,8 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m02100_init (__gl
   w3[2] = 0;
   w3[3] = (64 + salt_len + 4) * 8;
 
-  append_0x01_4 (w0, w1, w2, w3, salt_len + 3);
-  append_0x80_4 (w0, w1, w2, w3, salt_len + 4);
+  append_0x01_4x4 (w0, w1, w2, w3, salt_len + 3);
+  append_0x80_4x4 (w0, w1, w2, w3, salt_len + 4);
 
   w0[0] = swap_workaround (w0[0]);
   w0[1] = swap_workaround (w0[1]);

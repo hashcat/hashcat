@@ -2374,7 +2374,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11800_m04 (__glo
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    append_0x80_2 (wordl0, wordl1, pw_l_len);
+    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
 
     switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
@@ -2441,7 +2441,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11800_m04 (__glo
     w[14] = wordl3[1] | wordr3[1];
     w[15] = wordl3[1] | wordr3[1];
 
-    append_0x01_4 (&w[0], &w[1], &w[2], &w[3], pw_len);
+    append_0x01_4x4 (&w[0], &w[1], &w[2], &w[3], pw_len);
 
     /**
      * reverse message block
@@ -2617,7 +2617,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11800_s04 (__glo
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    append_0x80_2 (wordl0, wordl1, pw_l_len);
+    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
 
     switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
@@ -2684,7 +2684,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11800_s04 (__glo
     w[14] = wordl3[1] | wordr3[1];
     w[15] = wordl3[1] | wordr3[1];
 
-    append_0x01_4 (&w[0], &w[1], &w[2], &w[3], pw_len);
+    append_0x01_4x4 (&w[0], &w[1], &w[2], &w[3], pw_len);
 
     /**
      * reverse message block

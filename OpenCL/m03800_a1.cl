@@ -313,7 +313,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m03800_m04 (__glo
 
     const u32 pw_salt_len = salt_len + pw_len + salt_len;
 
-    append_0x80_4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len);
+    append_0x80_4x4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len);
 
     w3_t[2] = pw_salt_len * 8;
 
@@ -717,7 +717,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m03800_s04 (__glo
 
     const u32 pw_salt_len = salt_len + pw_len + salt_len;
 
-    append_0x80_4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len);
+    append_0x80_4x4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len);
 
     w3_t[2] = pw_salt_len * 8;
 

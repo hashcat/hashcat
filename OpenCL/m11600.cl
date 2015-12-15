@@ -1770,7 +1770,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11600_comp (__gl
   u32 block_len = tmps[gid].block_len;
   u32 final_len = tmps[gid].final_len;
 
-  append_0x80_4 (block, block_len);
+  append_0x80_4x4 (block, block_len);
 
   if (block_len >= 56)
   {

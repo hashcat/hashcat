@@ -281,7 +281,7 @@ static void m00060m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     w0[0] = w0l | w0r;
 
-    append_0x80_4 (w0, w1, w2, w3, pw_len);
+    append_0x80_4x4 (w0, w1, w2, w3, pw_len);
 
     w0_t[0] = w0[0];
     w0_t[1] = w0[1];
@@ -401,7 +401,7 @@ static void m00060s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     w0[0] = w0l | w0r;
 
-    append_0x80_4 (w0, w1, w2, w3, pw_len);
+    append_0x80_4x4 (w0, w1, w2, w3, pw_len);
 
     w0_t[0] = w0[0];
     w0_t[1] = w0[1];
