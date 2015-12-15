@@ -54,7 +54,7 @@
 
 #include <nvapi.h>
 
-typedef NvPhysicalGpuHandle HM_ADAPTER;
+//typedef NvPhysicalGpuHandle HM_ADAPTER;
 
 int hc_NvAPI_EnumPhysicalGPUs (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
 int hc_NvAPI_GPU_GetThermalSettings (NvPhysicalGpuHandle hPhysicalGpu, NvU32 sensorIndex, NV_GPU_THERMAL_SETTINGS *pThermalSettings);

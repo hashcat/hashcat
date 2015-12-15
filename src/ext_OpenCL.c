@@ -165,7 +165,7 @@ cl_context hc_clCreateContext (cl_context_properties *properties, cl_uint num_de
   return (context);
 }
 
-/*
+
 cl_command_queue hc_clCreateCommandQueue (cl_context context, cl_device_id device, cl_command_queue_properties properties)
 {
   cl_int CL_err;
@@ -181,8 +181,8 @@ cl_command_queue hc_clCreateCommandQueue (cl_context context, cl_device_id devic
 
   return (command_queue);
 }
-*/
 
+/*
 cl_command_queue hc_clCreateCommandQueueWithProperties (cl_context context, cl_device_id device, const cl_queue_properties *properties)
 {
   cl_int CL_err;
@@ -198,6 +198,7 @@ cl_command_queue hc_clCreateCommandQueueWithProperties (cl_context context, cl_d
 
   return (command_queue);
 }
+*/
 
 cl_mem hc_clCreateBuffer (cl_context context, cl_mem_flags flags, size_t size, void *host_ptr)
 {

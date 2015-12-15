@@ -233,7 +233,7 @@
 
 #define SHA384_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                               \
-  u64x   temp0;                                 \
+  u64   temp0;                                 \
   temp0  = K;                                   \
   temp0 += x;                                   \
   temp0 += h;                                   \
@@ -273,7 +273,7 @@
 
 #define SHA512_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                               \
-  u64x   temp0;                                 \
+  u64   temp0;                                 \
   temp0  = K;                                   \
   temp0 += x;                                   \
   temp0 += h;                                   \

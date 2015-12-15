@@ -14,7 +14,7 @@ typedef int bool;
 
 #include <adl_sdk.h>
 
-typedef int HM_ADAPTER;
+//typedef int HM_ADAPTER;
 
 #ifdef _POSIX
 void *GetProcAddress (void *pLibrary, const char *name);

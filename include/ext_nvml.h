@@ -10,7 +10,7 @@
 
 #include <nvml.h>
 
-typedef nvmlDevice_t HM_ADAPTER;
+//typedef nvmlDevice_t HM_ADAPTER;
 
 nvmlReturn_t hc_NVML_nvmlInit (void);
 nvmlReturn_t hc_NVML_nvmlShutdown (void);

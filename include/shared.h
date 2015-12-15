@@ -54,38 +54,25 @@
 #define hc_sleep(x) sleep ((x));
 #endif
 
-#ifdef _CUDA
-#include <ext_cuda.h>
-#elif _OCL
 #include <ext_OpenCL.h>
-#endif
 
 /**
  * temperature management
  */
 
 #ifdef LINUX
-#ifdef _CUDA
 #include <ext_nvml.h>
-#elif _OCL
 #include <ext_ADL.h>
-#endif
 #endif
 
 #ifdef WIN
-#ifdef _CUDA
 #include <ext_nvapi.h>
-#elif _OCL
 #include <ext_ADL.h>
-#endif
 #endif
 
 #ifdef OSX
-#ifdef _CUDA
 #include <ext_smi.h>
-#elif _OCL
 #include <ext_dummy.h>
-#endif
 #endif
 
 /**
@@ -97,10 +84,15 @@
 #define DEVICES_MAX           128
 
 #define CL_PLATFORMS_MAX      16
+
 #define CL_VENDOR_NV          "NVIDIA Corporation"
 #define CL_VENDOR_AMD         "Advanced Micro Devices, Inc."
 #define CL_VENDOR_SDS         "Shiloh Distributed Solutions"
 #define CL_VENDOR_APPLE       "Apple"
+
+#define VENDOR_ID_AMD         4098
+#define VENDOR_ID_NV          4318
+#define VENDOR_ID_UNKNOWN     0
 
 #define BLOCK_SIZE            64
 
@@ -117,9 +109,6 @@
 #define OUTFILES_DIR          "outfiles"
 
 #define LOOPBACK_FILE         "loopback"
-
-#define VENDOR_ID_AMD         4098
-#define VENDOR_ID_NV          4318
 
 /**
  * types
@@ -1769,7 +1758,6 @@ extern hc_thread_mutex_t mux_display;
 #define OPTI_TYPE_SINGLE_HASH       (1 << 11)
 #define OPTI_TYPE_SINGLE_SALT       (1 << 12)
 #define OPTI_TYPE_BRUTE_FORCE       (1 << 13)
-#define OPTI_TYPE_SCALAR_MODE       (1 << 14)
 #define OPTI_TYPE_RAW_HASH          (1 << 15)
 
 #define OPTI_STR_ZERO_BYTE          "Zero-Byte"
@@ -1785,7 +1773,6 @@ extern hc_thread_mutex_t mux_display;
 #define OPTI_STR_SINGLE_HASH        "Single-Hash"
 #define OPTI_STR_SINGLE_SALT        "Single-Salt"
 #define OPTI_STR_BRUTE_FORCE        "Brute-Force"
-#define OPTI_STR_SCALAR_MODE        "Scalar-Mode"
 #define OPTI_STR_RAW_HASH           "Raw-Hash"
 
 /**
@@ -2022,11 +2009,9 @@ void logfile_append (const char *fmt, ...);
 void fsync (int fd);
 #endif
 
-#ifdef _CUDA
+/*
 int hm_get_adapter_index (HM_ADAPTER nvGPUHandle[DEVICES_MAX]);
-#endif
 
-#ifdef _OCL
 int get_adapters_num  (HM_LIB hm_dll, int *iNumberAdapters);
 
 int hm_get_device_num (HM_LIB hm_dll, HM_ADAPTER hm_adapter_index, int *hm_device_num);
@@ -2045,13 +2030,13 @@ int hm_check_fanspeed_control (HM_LIB hm_dll, hm_attrs_t *hm_device, uint32_t *v
 void hm_close (HM_LIB hm_dll);
 
 HM_LIB hm_init ();
-#endif
 
 int hm_get_temperature_with_device_id (const uint device_id);
 int hm_get_fanspeed_with_device_id    (const uint device_id);
 int hm_get_utilization_with_device_id (const uint device_id);
 
 int hm_set_fanspeed_with_device_id (const uint device_id, const int fanspeed);
+*/
 
 void myabort ();
 void myquit ();

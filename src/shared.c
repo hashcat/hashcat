@@ -13,13 +13,8 @@
  * tuning tools
  */
 
-#ifdef _CUDA
-#define GET_ACCEL(x) GPU_ACCEL_NV_ ## x
-#define GET_LOOPS(x) GPU_LOOPS_NV_ ## x
-#elif _OCL
 #define GET_ACCEL(x) GPU_ACCEL_AMD_ ## x
 #define GET_LOOPS(x) GPU_LOOPS_AMD_ ## x
-#endif
 
 /**
  * bit rotate
@@ -2638,7 +2633,7 @@ void fsync (int fd)
  * thermal
  */
 
-#ifdef _CUDA
+/*
 #ifdef _WIN
 int hm_get_adapter_index (HM_ADAPTER nvGPUHandle[DEVICES_MAX])
 {
@@ -2664,7 +2659,7 @@ int hm_get_adapter_index (HM_ADAPTER nvGPUHandle[DEVICES_MAX])
 
   for (uint i = 0; i < DEVICES_MAX; i++)
   {
-    /* do not use wrapper function to omit warning message */
+    // do not use wrapper function to omit warning message
     if (nvmlDeviceGetHandleByIndex (i, &nvGPUHandle[i]) != NVML_SUCCESS) break;
 
     //can be used to determine if the device by index matches the cuda device by index
@@ -2684,10 +2679,7 @@ int hm_get_adapter_index (HM_ADAPTER nvGPUHandle[DEVICES_MAX])
   return (pGpuCount);
 }
 #endif
-#endif
 
-#ifdef _OCL
-#ifndef OSX
 void hm_close (HM_LIB hm_dll)
 {
   #ifdef _POSIX
@@ -2774,9 +2766,9 @@ LPAdapterInfo hm_get_adapter_info (HM_LIB hm_dll, int iNumberAdapters)
   return lpAdapterInfo;
 }
 
-/*
- * does not help at all, since AMD does not assign different bus id, device id when we have multi GPU setups
- *
+//
+// does not help at all, since AMD does not assign different bus id, device id when we have multi GPU setups
+//
 
 int hm_get_opencl_device_index (hm_attrs_t *hm_device, uint num_adl_adapters, int bus_num, int dev_num)
 {
@@ -2812,7 +2804,6 @@ void hm_get_opencl_busid_devid (hm_attrs_t *hm_device, uint opencl_num_devices, 
     hm_device[i].devid = device_topology.pcie.device;
   }
 }
-*/
 
 void hm_sort_adl_adapters_by_busid_devid (uint32_t *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
@@ -3050,59 +3041,57 @@ int hm_get_adapter_index (hm_attrs_t *hm_device, uint32_t *valid_adl_device_list
 
   return num_adl_adapters;
 }
-#endif
-#endif
 
 int hm_get_temperature_with_device_id (const uint device_id)
 {
-  #ifdef _OCL
-  #ifndef OSX
-  if (data.hm_dll)
+  if (data.vendor_id == VENDOR_ID_AMD)
   {
-    if (data.hm_device[device_id].od_version == 5)
+    if (data.hm_dll)
     {
-      ADLTemperature Temperature;
+      if (data.hm_device[device_id].od_version == 5)
+      {
+        ADLTemperature Temperature;
 
-      Temperature.iSize = sizeof (ADLTemperature);
+        Temperature.iSize = sizeof (ADLTemperature);
 
-      if (hc_ADL_Overdrive5_Temperature_Get (data.hm_dll, data.hm_device[device_id].adapter_index, 0, &Temperature) != ADL_OK) return -1;
+        if (hc_ADL_Overdrive5_Temperature_Get (data.hm_dll, data.hm_device[device_id].adapter_index, 0, &Temperature) != ADL_OK) return -1;
 
-      return Temperature.iTemperature / 1000;
-    }
-    else if (data.hm_device[device_id].od_version == 6)
-    {
-      int Temperature = 0;
+        return Temperature.iTemperature / 1000;
+      }
+      else if (data.hm_device[device_id].od_version == 6)
+      {
+        int Temperature = 0;
 
-      if (hc_ADL_Overdrive6_Temperature_Get (data.hm_dll, data.hm_device[device_id].adapter_index, &Temperature) != ADL_OK) return -1;
+        if (hc_ADL_Overdrive6_Temperature_Get (data.hm_dll, data.hm_device[device_id].adapter_index, &Temperature) != ADL_OK) return -1;
 
-      return Temperature / 1000;
+        return Temperature / 1000;
+      }
     }
   }
-  #endif
-  #endif
 
-  #ifdef _CUDA
-  #ifdef LINUX
-  int temperature = 0;
+  if (data.vendor_id == VENDOR_ID_NV)
+  {
+    #ifdef LINUX
+    int temperature = 0;
 
-  hc_NVML_nvmlDeviceGetTemperature (data.hm_device[device_id].adapter_index, NVML_TEMPERATURE_GPU, (unsigned int *) &temperature);
+    hc_NVML_nvmlDeviceGetTemperature (data.hm_device[device_id].adapter_index, NVML_TEMPERATURE_GPU, (unsigned int *) &temperature);
 
-  return temperature;
-  #endif
+    return temperature;
+    #endif
 
-  #ifdef WIN
-  NV_GPU_THERMAL_SETTINGS pThermalSettings;
+    #ifdef WIN
+    NV_GPU_THERMAL_SETTINGS pThermalSettings;
 
-  pThermalSettings.version = NV_GPU_THERMAL_SETTINGS_VER;
-  pThermalSettings.count = NVAPI_MAX_THERMAL_SENSORS_PER_GPU;
-  pThermalSettings.sensor[0].controller = NVAPI_THERMAL_CONTROLLER_UNKNOWN;
-  pThermalSettings.sensor[0].target = NVAPI_THERMAL_TARGET_GPU;
+    pThermalSettings.version = NV_GPU_THERMAL_SETTINGS_VER;
+    pThermalSettings.count = NVAPI_MAX_THERMAL_SENSORS_PER_GPU;
+    pThermalSettings.sensor[0].controller = NVAPI_THERMAL_CONTROLLER_UNKNOWN;
+    pThermalSettings.sensor[0].target = NVAPI_THERMAL_TARGET_GPU;
 
-  if (hc_NvAPI_GPU_GetThermalSettings (data.hm_device[device_id].adapter_index, 0, &pThermalSettings) != NVAPI_OK) return -1;
+    if (hc_NvAPI_GPU_GetThermalSettings (data.hm_device[device_id].adapter_index, 0, &pThermalSettings) != NVAPI_OK) return -1;
 
-  return pThermalSettings.sensor[0].currentTemp;
-  #endif
-  #endif
+    return pThermalSettings.sensor[0].currentTemp;
+    #endif
+  }
 
   return -1;
 }
@@ -3111,55 +3100,55 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
 {
   if (data.hm_device[device_id].fan_supported == 1)
   {
-    #ifdef _OCL
-    #ifndef OSX
-    if (data.hm_dll)
+    if (data.vendor_id == VENDOR_ID_AMD)
     {
-      if (data.hm_device[device_id].od_version == 5)
+      if (data.hm_dll)
       {
-        ADLFanSpeedValue lpFanSpeedValue;
+        if (data.hm_device[device_id].od_version == 5)
+        {
+          ADLFanSpeedValue lpFanSpeedValue;
 
-        memset (&lpFanSpeedValue, 0, sizeof (lpFanSpeedValue));
+          memset (&lpFanSpeedValue, 0, sizeof (lpFanSpeedValue));
 
-        lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
-        lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
-        lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
+          lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
+          lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
+          lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
 
-        if (hc_ADL_Overdrive5_FanSpeed_Get (data.hm_dll, data.hm_device[device_id].adapter_index, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+          if (hc_ADL_Overdrive5_FanSpeed_Get (data.hm_dll, data.hm_device[device_id].adapter_index, 0, &lpFanSpeedValue) != ADL_OK) return -1;
 
-        return lpFanSpeedValue.iFanSpeed;
-      }
-      else // od_version == 6
-      {
-        ADLOD6FanSpeedInfo faninfo;
+          return lpFanSpeedValue.iFanSpeed;
+        }
+        else // od_version == 6
+        {
+          ADLOD6FanSpeedInfo faninfo;
 
-        memset (&faninfo, 0, sizeof (faninfo));
+          memset (&faninfo, 0, sizeof (faninfo));
 
-        if (hc_ADL_Overdrive6_FanSpeed_Get (data.hm_dll, data.hm_device[device_id].adapter_index, &faninfo) != ADL_OK) return -1;
+          if (hc_ADL_Overdrive6_FanSpeed_Get (data.hm_dll, data.hm_device[device_id].adapter_index, &faninfo) != ADL_OK) return -1;
 
-        return faninfo.iFanSpeedPercent;
+          return faninfo.iFanSpeedPercent;
+        }
       }
     }
-    #endif
-    #endif
 
-    #ifdef _CUDA
-    #ifdef LINUX
-    int speed = 0;
+    if (data.vendor_id == VENDOR_ID_NV)
+    {
+      #ifdef LINUX
+      int speed = 0;
 
-    hc_NVML_nvmlDeviceGetFanSpeed (data.hm_device[device_id].adapter_index, (unsigned int *) &speed);
+      hc_NVML_nvmlDeviceGetFanSpeed (data.hm_device[device_id].adapter_index, (unsigned int *) &speed);
 
-    return speed;
-    #endif
+      return speed;
+      #endif
 
-    #ifdef WIN
-    NvU32 speed = 0;
+      #ifdef WIN
+      NvU32 speed = 0;
 
-    hc_NvAPI_GPU_GetTachReading (data.hm_device[device_id].adapter_index, &speed);
+      hc_NvAPI_GPU_GetTachReading (data.hm_device[device_id].adapter_index, &speed);
 
-    return speed;
-    #endif
-    #endif
+      return speed;
+      #endif
+    }
   }
 
   return -1;
@@ -3167,46 +3156,44 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
 
 int hm_get_utilization_with_device_id (const uint device_id)
 {
-  #ifdef _OCL
-  #ifndef OSX
-  if (data.hm_dll)
+  if (data.vendor_id == VENDOR_ID_AMD)
   {
-    ADLPMActivity PMActivity;
+    if (data.hm_dll)
+    {
+      ADLPMActivity PMActivity;
 
-    PMActivity.iSize = sizeof (ADLPMActivity);
+      PMActivity.iSize = sizeof (ADLPMActivity);
 
-    if (hc_ADL_Overdrive_CurrentActivity_Get (data.hm_dll, data.hm_device[device_id].adapter_index, &PMActivity) != ADL_OK) return -1;
+      if (hc_ADL_Overdrive_CurrentActivity_Get (data.hm_dll, data.hm_device[device_id].adapter_index, &PMActivity) != ADL_OK) return -1;
 
-    return PMActivity.iActivityPercent;
+      return PMActivity.iActivityPercent;
+    }
   }
-  #endif
-  #endif
 
-  #ifdef _CUDA
-  #ifdef LINUX
-  nvmlUtilization_t utilization;
+  if (data.vendor_id == VENDOR_ID_AMD)
+  {
+    #ifdef LINUX
+    nvmlUtilization_t utilization;
 
-  hc_NVML_nvmlDeviceGetUtilizationRates (data.hm_device[device_id].adapter_index, &utilization);
+    hc_NVML_nvmlDeviceGetUtilizationRates (data.hm_device[device_id].adapter_index, &utilization);
 
-  return utilization.gpu;
-  #endif
+    return utilization.gpu;
+    #endif
 
-  #ifdef WIN
-  NV_GPU_DYNAMIC_PSTATES_INFO_EX pDynamicPstatesInfoEx;
+    #ifdef WIN
+    NV_GPU_DYNAMIC_PSTATES_INFO_EX pDynamicPstatesInfoEx;
 
-  pDynamicPstatesInfoEx.version = NV_GPU_DYNAMIC_PSTATES_INFO_EX_VER;
+    pDynamicPstatesInfoEx.version = NV_GPU_DYNAMIC_PSTATES_INFO_EX_VER;
 
-  if (hc_NvAPI_GPU_GetDynamicPstatesInfoEx (data.hm_device[device_id].adapter_index, &pDynamicPstatesInfoEx) != NVAPI_OK) return -1;
+    if (hc_NvAPI_GPU_GetDynamicPstatesInfoEx (data.hm_device[device_id].adapter_index, &pDynamicPstatesInfoEx) != NVAPI_OK) return -1;
 
-  return pDynamicPstatesInfoEx.utilization[0].percentage;
-  #endif
-  #endif
+    return pDynamicPstatesInfoEx.utilization[0].percentage;
+    #endif
+  }
 
   return -1;
 }
 
-#ifdef _OCL
-#ifndef OSX
 int hm_set_fanspeed_with_device_id (const uint device_id, const int fanspeed)
 {
   if (data.hm_device[device_id].fan_supported == 1)
@@ -3246,8 +3233,7 @@ int hm_set_fanspeed_with_device_id (const uint device_id, const int fanspeed)
 
   return -1;
 }
-#endif
-#endif
+*/
 
 /**
  * maskprocessor
@@ -5368,7 +5354,6 @@ char *stroptitype (const uint opti_type)
     case OPTI_TYPE_SINGLE_HASH:       return ((char *) OPTI_STR_SINGLE_HASH);       break;
     case OPTI_TYPE_SINGLE_SALT:       return ((char *) OPTI_STR_SINGLE_SALT);       break;
     case OPTI_TYPE_BRUTE_FORCE:       return ((char *) OPTI_STR_BRUTE_FORCE);       break;
-    case OPTI_TYPE_SCALAR_MODE:       return ((char *) OPTI_STR_SCALAR_MODE);       break;
     case OPTI_TYPE_RAW_HASH:          return ((char *) OPTI_STR_RAW_HASH);          break;
   }
 
@@ -8438,76 +8423,6 @@ void myquit ()
   data.devices_status = STATUS_QUIT;
 }
 
-#ifdef _OCL
-uint get_vliw_by_device_name (const char *device_name)
-{
-  uint vliw = 0;
-
-  if (strcmp  (device_name, "Capeverde"           ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Pitcairn"            ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Tahiti"              ) == 0) vliw = 1;
-  if (strcmp  (device_name, "ATI RV710"           ) == 0) vliw = 1;
-  if (strcmp  (device_name, "ATI RV730"           ) == 0) vliw = 1;
-  if (strcmp  (device_name, "ATI RV770"           ) == 0) vliw = 4;
-  if (strcmp  (device_name, "Cayman"              ) == 0) vliw = 4;
-  if (strcmp  (device_name, "Devastator"          ) == 0) vliw = 4;
-  if (strcmp  (device_name, "Scrapper"            ) == 0) vliw = 4;
-  if (strcmp  (device_name, "Barts"               ) == 0) vliw = 5;
-  if (strcmp  (device_name, "BeaverCreek"         ) == 0) vliw = 5;
-  if (strcmp  (device_name, "Caicos"              ) == 0) vliw = 5;
-  if (strcmp  (device_name, "Cedar"               ) == 0) vliw = 5;
-  if (strcmp  (device_name, "Cypress"             ) == 0) vliw = 5;
-  if (strcmp  (device_name, "Juniper"             ) == 0) vliw = 5;
-  if (strcmp  (device_name, "Loveland"            ) == 0) vliw = 5;
-  if (strcmp  (device_name, "Redwood"             ) == 0) vliw = 5;
-  if (strcmp  (device_name, "Turks"               ) == 0) vliw = 5;
-  if (strcmp  (device_name, "WinterPark"          ) == 0) vliw = 5;
-  if (strcmp  (device_name, "Oland"               ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Cats"                ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Raccoons"            ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Bonaire"             ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Hawaii"              ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Spectre"             ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Spooky"              ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Kalindi"             ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Hainan"              ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Iceland"             ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Tonga"               ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Mullins"             ) == 0) vliw = 1;
-  if (strcmp  (device_name, "Fiji"                ) == 0) vliw = 1;
-
-  if (strncmp (device_name, "ATI Radeon HD 4",  15) == 0) vliw = 1;
-  if (strncmp (device_name, "ATI Radeon HD 5",  15) == 0) vliw = 5;
-  if (strncmp (device_name, "ATI Radeon HD 6",  15) == 0) vliw = 4;
-  if (strncmp (device_name, "ATI Radeon HD 7",  15) == 0) vliw = 4;
-  if (strncmp (device_name, "ATI Radeon HD 79", 16) == 0) vliw = 1;
-  if (strncmp (device_name, "ATI Radeon HD 8",  15) == 0) vliw = 1;
-  if (strncmp (device_name, "AMD Radeon R9",    13) == 0) vliw = 1;
-
-  return vliw;
-}
-#else
-uint get_vliw_by_compute_capability (const uint major, const uint minor)
-{
-  uint vliw = 0;
-
-  if (major == 1 && minor == 0) vliw = 1;
-  if (major == 1 && minor == 1) vliw = 1;
-  if (major == 1 && minor == 2) vliw = 1;
-  if (major == 1 && minor == 3) vliw = 1;
-  if (major == 2 && minor == 0) vliw = 1;
-  if (major == 2 && minor == 1) vliw = 2;
-  if (major == 3 && minor == 0) vliw = 2;
-  if (major == 3 && minor == 5) vliw = 2;
-  if (major == 3 && minor == 7) vliw = 2;
-  if (major == 5 && minor == 0) vliw = 2;
-  if (major == 5 && minor == 2) vliw = 2;
-
-  return vliw;
-}
-#endif
-
-#ifdef _OCL
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const unsigned char **kernel_sources)
 {
   FILE *fp;
@@ -8561,7 +8476,6 @@ void writeProgramBin (char *dst, unsigned char *binary, size_t binary_size)
   fflush (fp);
   fclose (fp);
 }
-#endif
 
 /**
  * restore
