@@ -338,17 +338,7 @@ __constant u32 c_skb[8][64] =
   0x00002822, 0x04002822, 0x00042822, 0x04042822
 };
 
-#ifdef VECT_SIZE1
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i)])
-#endif
-
-#ifdef VECT_SIZE2
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
-#endif
-
-#ifdef VECT_SIZE4
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
-#endif
+#define BOX(i,n,S) (S)[(n)][(i)]
 
 static void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 s_skb[8][64])
 {

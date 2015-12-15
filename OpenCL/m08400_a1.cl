@@ -20,17 +20,7 @@
 #define COMPARE_S "check_single_comp4.c"
 #define COMPARE_M "check_multi_comp4.c"
 
-#ifdef VECT_SIZE1
 #define uint_to_hex_lower8_le(i) l_bin2asc[(i)]
-#endif
-
-#ifdef VECT_SIZE2
-#define uint_to_hex_lower8_le(i) u32 (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
-#endif
-
-#ifdef VECT_SIZE4
-#define uint_to_hex_lower8_le(i) u32 (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
-#endif
 
 static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {

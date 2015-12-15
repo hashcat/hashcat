@@ -58,17 +58,7 @@ __constant u32 lotus_magic_table[256] =
   0x29, 0x39, 0xb9, 0xe9, 0x4c, 0xff, 0x43, 0xab,
 };
 
-#ifdef VECT_SIZE1
-#define BOX(S,i) u32 ((S)[(i)])
-#endif
-
-#ifdef VECT_SIZE2
-#define BOX(S,i) u32 ((S)[(i).s0], (S)[(i).s1])
-#endif
-
-#ifdef VECT_SIZE4
-#define BOX(S,i) u32 ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
-#endif
+#define BOX(S,i) (S)[(i)]
 
 static void lotus_mix (u32 *in, __local u32 s_lotus_magic_table[256])
 {

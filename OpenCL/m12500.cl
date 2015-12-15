@@ -18,9 +18,8 @@
 #include "types_ocl.c"
 #include "common.c"
 
-#ifdef  VECT_SIZE1
-#define COMPARE_M "check_multi_vect1_comp4.c"
-#endif
+#define COMPARE_S "check_single_comp4.c"
+#define COMPARE_M "check_multi_comp4.c"
 
 #define ROUNDS 0x40000
 

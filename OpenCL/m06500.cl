@@ -333,14 +333,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06500_init (__gl
   u64 w2l[4];
   u64 w3l[4];
 
-  w0l[0] = (u64x) (w0[0]) << 32 | (u64x) (w0[1]);
-  w0l[1] = (u64x) (w0[2]) << 32 | (u64x) (w0[3]);
-  w0l[2] = (u64x) (w1[0]) << 32 | (u64x) (w1[1]);
-  w0l[3] = (u64x) (w1[2]) << 32 | (u64x) (w1[3]);
-  w1l[0] = (u64x) (w2[0]) << 32 | (u64x) (w2[1]);
-  w1l[1] = (u64x) (w2[2]) << 32 | (u64x) (w2[3]);
-  w1l[2] = (u64x) (w3[0]) << 32 | (u64x) (w3[1]);
-  w1l[3] = (u64x) (w3[2]) << 32 | (u64x) (w3[3]);
+  w0l[0] = (u64) (w0[0]) << 32 | (u64) (w0[1]);
+  w0l[1] = (u64) (w0[2]) << 32 | (u64) (w0[3]);
+  w0l[2] = (u64) (w1[0]) << 32 | (u64) (w1[1]);
+  w0l[3] = (u64) (w1[2]) << 32 | (u64) (w1[3]);
+  w1l[0] = (u64) (w2[0]) << 32 | (u64) (w2[1]);
+  w1l[1] = (u64) (w2[2]) << 32 | (u64) (w2[3]);
+  w1l[2] = (u64) (w3[0]) << 32 | (u64) (w3[1]);
+  w1l[3] = (u64) (w3[2]) << 32 | (u64) (w3[3]);
   w2l[0] = 0;
   w2l[1] = 0;
   w2l[2] = 0;
@@ -373,14 +373,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06500_init (__gl
   tmps[gid].opad[6] = opad[6];
   tmps[gid].opad[7] = opad[7];
 
-  w0l[0] = (u64x) salt_buf0[1] << 32 | (u64x) salt_buf0[0];
-  w0l[1] = (u64x) salt_buf0[3] << 32 | (u64x) salt_buf0[2];
-  w0l[2] = (u64x) salt_buf1[1] << 32 | (u64x) salt_buf1[0];
-  w0l[3] = (u64x) salt_buf1[3] << 32 | (u64x) salt_buf1[2];
-  w1l[0] = (u64x) salt_buf2[1] << 32 | (u64x) salt_buf2[0];
-  w1l[1] = (u64x) salt_buf2[3] << 32 | (u64x) salt_buf2[2];
-  w1l[2] = (u64x) salt_buf3[1] << 32 | (u64x) salt_buf3[0];
-  w1l[3] = (u64x) salt_buf3[3] << 32 | (u64x) salt_buf3[2];
+  w0l[0] = (u64) salt_buf0[1] << 32 | (u64) salt_buf0[0];
+  w0l[1] = (u64) salt_buf0[3] << 32 | (u64) salt_buf0[2];
+  w0l[2] = (u64) salt_buf1[1] << 32 | (u64) salt_buf1[0];
+  w0l[3] = (u64) salt_buf1[3] << 32 | (u64) salt_buf1[2];
+  w1l[0] = (u64) salt_buf2[1] << 32 | (u64) salt_buf2[0];
+  w1l[1] = (u64) salt_buf2[3] << 32 | (u64) salt_buf2[2];
+  w1l[2] = (u64) salt_buf3[1] << 32 | (u64) salt_buf3[0];
+  w1l[3] = (u64) salt_buf3[3] << 32 | (u64) salt_buf3[2];
   w2l[0] = 0;
   w2l[1] = 0;
   w2l[2] = 0;

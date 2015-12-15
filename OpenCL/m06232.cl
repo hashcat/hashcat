@@ -1089,9 +1089,7 @@ __constant u32 Cl[8][256] =
   },
 };
 
-#ifdef VECT_SIZE1
-#define BOX(S,n,i) (u32) ((S)[(n)][(i)])
-#endif
+#define BOX(S,n,i) (S)[(n)][(i)]
 
 static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 s_Ch[8][256], __local u32 s_Cl[8][256])
 {

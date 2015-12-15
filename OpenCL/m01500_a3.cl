@@ -18,20 +18,8 @@
 #include "types_ocl.c"
 #include "common.c"
 
-#ifdef  VECT_SIZE1
-#define COMPARE_S "check_single_vect1_comp4_bs.c"
-#define COMPARE_M "check_multi_vect1_comp4_bs.c"
-#endif
-
-#ifdef  VECT_SIZE2
-#define COMPARE_S "check_single_vect2_comp4_bs.c"
-#define COMPARE_M "check_multi_vect2_comp4_bs.c"
-#endif
-
-#ifdef  VECT_SIZE4
-#define COMPARE_S "check_single_vect4_comp4_bs.c"
-#define COMPARE_M "check_multi_vect4_comp4_bs.c"
-#endif
+#define COMPARE_S "check_single_comp4_bs.c"
+#define COMPARE_M "check_multi_comp4_bs.c"
 
 #define KXX_DECL  volatile
 #define sXXX_DECL volatile

@@ -703,8 +703,6 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07500_m04 (__glo
 
     u32 tmp[4];
 
-    #ifdef VECT_SIZE1
-
     tmp[0] = digest[0];
     tmp[1] = digest[1];
     tmp[2] = digest[2];
@@ -716,8 +714,6 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07500_m04 (__glo
 
       d_return_buf[lid] = 1;
     }
-
-    #endif
   }
 }
 
@@ -884,8 +880,6 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07500_s04 (__glo
 
     u32 tmp[4];
 
-    #ifdef VECT_SIZE1
-
     tmp[0] = digest[0];
     tmp[1] = digest[1];
     tmp[2] = digest[2];
@@ -897,8 +891,6 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07500_s04 (__glo
 
       d_return_buf[lid] = 1;
     }
-
-    #endif
   }
 }
 

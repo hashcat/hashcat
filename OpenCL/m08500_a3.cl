@@ -375,74 +375,14 @@ static void _des_crypt_encrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16], 
     u32 u = Kc[i] ^ r;
     u32 t = Kd[i] ^ rotl32 (r, 28u);
 
-    #ifdef VECT_SIZE1
-    l    ^= NBOX (((u    >>  2) & 0x3f), 0, s_SPtrans)
-          | NBOX (((u    >> 10) & 0x3f), 2, s_SPtrans)
-          | NBOX (((u    >> 18) & 0x3f), 4, s_SPtrans)
-          | NBOX (((u    >> 26) & 0x3f), 6, s_SPtrans)
-          | NBOX (((t    >>  2) & 0x3f), 1, s_SPtrans)
-          | NBOX (((t    >> 10) & 0x3f), 3, s_SPtrans)
-          | NBOX (((t    >> 18) & 0x3f), 5, s_SPtrans)
-          | NBOX (((t    >> 26) & 0x3f), 7, s_SPtrans);
-    #endif
-
-    #ifdef VECT_SIZE2
-    l.s0 ^= NBOX (((u.s0 >>  2) & 0x3f), 0, s_SPtrans)
-          | NBOX (((u.s0 >> 10) & 0x3f), 2, s_SPtrans)
-          | NBOX (((u.s0 >> 18) & 0x3f), 4, s_SPtrans)
-          | NBOX (((u.s0 >> 26) & 0x3f), 6, s_SPtrans)
-          | NBOX (((t.s0 >>  2) & 0x3f), 1, s_SPtrans)
-          | NBOX (((t.s0 >> 10) & 0x3f), 3, s_SPtrans)
-          | NBOX (((t.s0 >> 18) & 0x3f), 5, s_SPtrans)
-          | NBOX (((t.s0 >> 26) & 0x3f), 7, s_SPtrans);
-
-    l.s1 ^= NBOX (((u.s1 >>  2) & 0x3f), 0, s_SPtrans)
-          | NBOX (((u.s1 >> 10) & 0x3f), 2, s_SPtrans)
-          | NBOX (((u.s1 >> 18) & 0x3f), 4, s_SPtrans)
-          | NBOX (((u.s1 >> 26) & 0x3f), 6, s_SPtrans)
-          | NBOX (((t.s1 >>  2) & 0x3f), 1, s_SPtrans)
-          | NBOX (((t.s1 >> 10) & 0x3f), 3, s_SPtrans)
-          | NBOX (((t.s1 >> 18) & 0x3f), 5, s_SPtrans)
-          | NBOX (((t.s1 >> 26) & 0x3f), 7, s_SPtrans);
-    #endif
-
-    #ifdef VECT_SIZE4
-    l.s0 ^= NBOX (((u.s0 >>  2) & 0x3f), 0, s_SPtrans)
-          | NBOX (((u.s0 >> 10) & 0x3f), 2, s_SPtrans)
-          | NBOX (((u.s0 >> 18) & 0x3f), 4, s_SPtrans)
-          | NBOX (((u.s0 >> 26) & 0x3f), 6, s_SPtrans)
-          | NBOX (((t.s0 >>  2) & 0x3f), 1, s_SPtrans)
-          | NBOX (((t.s0 >> 10) & 0x3f), 3, s_SPtrans)
-          | NBOX (((t.s0 >> 18) & 0x3f), 5, s_SPtrans)
-          | NBOX (((t.s0 >> 26) & 0x3f), 7, s_SPtrans);
-
-    l.s1 ^= NBOX (((u.s1 >>  2) & 0x3f), 0, s_SPtrans)
-          | NBOX (((u.s1 >> 10) & 0x3f), 2, s_SPtrans)
-          | NBOX (((u.s1 >> 18) & 0x3f), 4, s_SPtrans)
-          | NBOX (((u.s1 >> 26) & 0x3f), 6, s_SPtrans)
-          | NBOX (((t.s1 >>  2) & 0x3f), 1, s_SPtrans)
-          | NBOX (((t.s1 >> 10) & 0x3f), 3, s_SPtrans)
-          | NBOX (((t.s1 >> 18) & 0x3f), 5, s_SPtrans)
-          | NBOX (((t.s1 >> 26) & 0x3f), 7, s_SPtrans);
-
-    l.s2 ^= NBOX (((u.s2 >>  2) & 0x3f), 0, s_SPtrans)
-          | NBOX (((u.s2 >> 10) & 0x3f), 2, s_SPtrans)
-          | NBOX (((u.s2 >> 18) & 0x3f), 4, s_SPtrans)
-          | NBOX (((u.s2 >> 26) & 0x3f), 6, s_SPtrans)
-          | NBOX (((t.s2 >>  2) & 0x3f), 1, s_SPtrans)
-          | NBOX (((t.s2 >> 10) & 0x3f), 3, s_SPtrans)
-          | NBOX (((t.s2 >> 18) & 0x3f), 5, s_SPtrans)
-          | NBOX (((t.s2 >> 26) & 0x3f), 7, s_SPtrans);
-
-    l.s3 ^= NBOX (((u.s3 >>  2) & 0x3f), 0, s_SPtrans)
-          | NBOX (((u.s3 >> 10) & 0x3f), 2, s_SPtrans)
-          | NBOX (((u.s3 >> 18) & 0x3f), 4, s_SPtrans)
-          | NBOX (((u.s3 >> 26) & 0x3f), 6, s_SPtrans)
-          | NBOX (((t.s3 >>  2) & 0x3f), 1, s_SPtrans)
-          | NBOX (((t.s3 >> 10) & 0x3f), 3, s_SPtrans)
-          | NBOX (((t.s3 >> 18) & 0x3f), 5, s_SPtrans)
-          | NBOX (((t.s3 >> 26) & 0x3f), 7, s_SPtrans);
-    #endif
+    l ^= NBOX (((u    >>  2) & 0x3f), 0, s_SPtrans)
+       | NBOX (((u    >> 10) & 0x3f), 2, s_SPtrans)
+       | NBOX (((u    >> 18) & 0x3f), 4, s_SPtrans)
+       | NBOX (((u    >> 26) & 0x3f), 6, s_SPtrans)
+       | NBOX (((t    >>  2) & 0x3f), 1, s_SPtrans)
+       | NBOX (((t    >> 10) & 0x3f), 3, s_SPtrans)
+       | NBOX (((t    >> 18) & 0x3f), 5, s_SPtrans)
+       | NBOX (((t    >> 26) & 0x3f), 7, s_SPtrans);
 
     tt = l;
     l  = r;
@@ -486,123 +426,21 @@ static void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u
     u32 s;
     u32 t;
 
-    #ifdef VECT_SIZE1
-    s     = NBOX ((( c    >>  0) & 0x3f),  0, s_skb)
-          | NBOX ((((c    >>  6) & 0x03)
-                 | ((c    >>  7) & 0x3c)), 1, s_skb)
-          | NBOX ((((c    >> 13) & 0x0f)
-                 | ((c    >> 14) & 0x30)), 2, s_skb)
-          | NBOX ((((c    >> 20) & 0x01)
-                 | ((c    >> 21) & 0x06)
-                 | ((c    >> 22) & 0x38)), 3, s_skb);
+    s = NBOX ((( c    >>  0) & 0x3f),  0, s_skb)
+      | NBOX ((((c    >>  6) & 0x03)
+             | ((c    >>  7) & 0x3c)), 1, s_skb)
+      | NBOX ((((c    >> 13) & 0x0f)
+             | ((c    >> 14) & 0x30)), 2, s_skb)
+      | NBOX ((((c    >> 20) & 0x01)
+             | ((c    >> 21) & 0x06)
+             | ((c    >> 22) & 0x38)), 3, s_skb);
 
-    t     = NBOX ((( d    >>  0) & 0x3f),  4, s_skb)
-          | NBOX ((((d    >>  7) & 0x03)
-                 | ((d    >>  8) & 0x3c)), 5, s_skb)
-          | NBOX ((((d    >> 15) & 0x3f)), 6, s_skb)
-          | NBOX ((((d    >> 21) & 0x0f)
-                 | ((d    >> 22) & 0x30)), 7, s_skb);
-    #endif
-
-    #ifdef VECT_SIZE2
-    s.s0  = NBOX ((( c.s0 >>  0) & 0x3f),  0, s_skb)
-          | NBOX ((((c.s0 >>  6) & 0x03)
-                 | ((c.s0 >>  7) & 0x3c)), 1, s_skb)
-          | NBOX ((((c.s0 >> 13) & 0x0f)
-                 | ((c.s0 >> 14) & 0x30)), 2, s_skb)
-          | NBOX ((((c.s0 >> 20) & 0x01)
-                 | ((c.s0 >> 21) & 0x06)
-                 | ((c.s0 >> 22) & 0x38)), 3, s_skb);
-
-    t.s0  = NBOX ((( d.s0 >>  0) & 0x3f),  4, s_skb)
-          | NBOX ((((d.s0 >>  7) & 0x03)
-                 | ((d.s0 >>  8) & 0x3c)), 5, s_skb)
-          | NBOX ((((d.s0 >> 15) & 0x3f)), 6, s_skb)
-          | NBOX ((((d.s0 >> 21) & 0x0f)
-                 | ((d.s0 >> 22) & 0x30)), 7, s_skb);
-
-    s.s1  = NBOX ((( c.s1 >>  0) & 0x3f),  0, s_skb)
-          | NBOX ((((c.s1 >>  6) & 0x03)
-                 | ((c.s1 >>  7) & 0x3c)), 1, s_skb)
-          | NBOX ((((c.s1 >> 13) & 0x0f)
-                 | ((c.s1 >> 14) & 0x30)), 2, s_skb)
-          | NBOX ((((c.s1 >> 20) & 0x01)
-                 | ((c.s1 >> 21) & 0x06)
-                 | ((c.s1 >> 22) & 0x38)), 3, s_skb);
-
-    t.s1  = NBOX ((( d.s1 >>  0) & 0x3f),  4, s_skb)
-          | NBOX ((((d.s1 >>  7) & 0x03)
-                 | ((d.s1 >>  8) & 0x3c)), 5, s_skb)
-          | NBOX ((((d.s1 >> 15) & 0x3f)), 6, s_skb)
-          | NBOX ((((d.s1 >> 21) & 0x0f)
-                 | ((d.s1 >> 22) & 0x30)), 7, s_skb);
-    #endif
-
-    #ifdef VECT_SIZE4
-    s.s0  = NBOX ((( c.s0 >>  0) & 0x3f),  0, s_skb)
-          | NBOX ((((c.s0 >>  6) & 0x03)
-                 | ((c.s0 >>  7) & 0x3c)), 1, s_skb)
-          | NBOX ((((c.s0 >> 13) & 0x0f)
-                 | ((c.s0 >> 14) & 0x30)), 2, s_skb)
-          | NBOX ((((c.s0 >> 20) & 0x01)
-                 | ((c.s0 >> 21) & 0x06)
-                 | ((c.s0 >> 22) & 0x38)), 3, s_skb);
-
-    t.s0  = NBOX ((( d.s0 >>  0) & 0x3f),  4, s_skb)
-          | NBOX ((((d.s0 >>  7) & 0x03)
-                 | ((d.s0 >>  8) & 0x3c)), 5, s_skb)
-          | NBOX ((((d.s0 >> 15) & 0x3f)), 6, s_skb)
-          | NBOX ((((d.s0 >> 21) & 0x0f)
-                 | ((d.s0 >> 22) & 0x30)), 7, s_skb);
-
-    s.s1  = NBOX ((( c.s1 >>  0) & 0x3f),  0, s_skb)
-          | NBOX ((((c.s1 >>  6) & 0x03)
-                 | ((c.s1 >>  7) & 0x3c)), 1, s_skb)
-          | NBOX ((((c.s1 >> 13) & 0x0f)
-                 | ((c.s1 >> 14) & 0x30)), 2, s_skb)
-          | NBOX ((((c.s1 >> 20) & 0x01)
-                 | ((c.s1 >> 21) & 0x06)
-                 | ((c.s1 >> 22) & 0x38)), 3, s_skb);
-
-    t.s1  = NBOX ((( d.s1 >>  0) & 0x3f),  4, s_skb)
-          | NBOX ((((d.s1 >>  7) & 0x03)
-                 | ((d.s1 >>  8) & 0x3c)), 5, s_skb)
-          | NBOX ((((d.s1 >> 15) & 0x3f)), 6, s_skb)
-          | NBOX ((((d.s1 >> 21) & 0x0f)
-                 | ((d.s1 >> 22) & 0x30)), 7, s_skb);
-
-    s.s2  = NBOX ((( c.s2 >>  0) & 0x3f),  0, s_skb)
-          | NBOX ((((c.s2 >>  6) & 0x03)
-                 | ((c.s2 >>  7) & 0x3c)), 1, s_skb)
-          | NBOX ((((c.s2 >> 13) & 0x0f)
-                 | ((c.s2 >> 14) & 0x30)), 2, s_skb)
-          | NBOX ((((c.s2 >> 20) & 0x01)
-                 | ((c.s2 >> 21) & 0x06)
-                 | ((c.s2 >> 22) & 0x38)), 3, s_skb);
-
-    t.s2  = NBOX ((( d.s2 >>  0) & 0x3f),  4, s_skb)
-          | NBOX ((((d.s2 >>  7) & 0x03)
-                 | ((d.s2 >>  8) & 0x3c)), 5, s_skb)
-          | NBOX ((((d.s2 >> 15) & 0x3f)), 6, s_skb)
-          | NBOX ((((d.s2 >> 21) & 0x0f)
-                 | ((d.s2 >> 22) & 0x30)), 7, s_skb);
-
-    s.s3  = NBOX ((( c.s3 >>  0) & 0x3f),  0, s_skb)
-          | NBOX ((((c.s3 >>  6) & 0x03)
-                 | ((c.s3 >>  7) & 0x3c)), 1, s_skb)
-          | NBOX ((((c.s3 >> 13) & 0x0f)
-                 | ((c.s3 >> 14) & 0x30)), 2, s_skb)
-          | NBOX ((((c.s3 >> 20) & 0x01)
-                 | ((c.s3 >> 21) & 0x06)
-                 | ((c.s3 >> 22) & 0x38)), 3, s_skb);
-
-    t.s3  = NBOX ((( d.s3 >>  0) & 0x3f),  4, s_skb)
-          | NBOX ((((d.s3 >>  7) & 0x03)
-                 | ((d.s3 >>  8) & 0x3c)), 5, s_skb)
-          | NBOX ((((d.s3 >> 15) & 0x3f)), 6, s_skb)
-          | NBOX ((((d.s3 >> 21) & 0x0f)
-                 | ((d.s3 >> 22) & 0x30)), 7, s_skb);
-    #endif
+    t = NBOX ((( d    >>  0) & 0x3f),  4, s_skb)
+      | NBOX ((((d    >>  7) & 0x03)
+             | ((d    >>  8) & 0x3c)), 5, s_skb)
+      | NBOX ((((d    >> 15) & 0x3f)), 6, s_skb)
+      | NBOX ((((d    >> 21) & 0x0f)
+             | ((d    >> 22) & 0x30)), 7, s_skb);
 
     #if defined cl_amd_media_ops
     Kc[i] = amd_bytealign (t, s << 16, 2);
@@ -619,83 +457,15 @@ static void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u
 
 static void transform_racf_key (const u32 w0, const u32 w1, u32 key[2])
 {
-  #ifdef VECT_SIZE1
+  key[0] = (ascii_to_ebcdic_pc[(w0 >>  0) & 0xff]) <<  0
+         | (ascii_to_ebcdic_pc[(w0 >>  8) & 0xff]) <<  8
+         | (ascii_to_ebcdic_pc[(w0 >> 16) & 0xff]) << 16
+         | (ascii_to_ebcdic_pc[(w0 >> 24) & 0xff]) << 24;
 
-  key[0]    = (ascii_to_ebcdic_pc[(w0    >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w0    >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w0    >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w0    >> 24) & 0xff]) << 24;
-
-  key[1]    = (ascii_to_ebcdic_pc[(w1    >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w1    >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w1    >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w1    >> 24) & 0xff]) << 24;
-  #endif
-
-  #ifdef VECT_SIZE2
-
-  key[0].s0 = (ascii_to_ebcdic_pc[(w0.s0 >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w0.s0 >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w0.s0 >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w0.s0 >> 24) & 0xff]) << 24;
-
-  key[0].s1 = (ascii_to_ebcdic_pc[(w0.s1 >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w0.s1 >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w0.s1 >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w0.s1 >> 24) & 0xff]) << 24;
-
-  key[1].s0 = (ascii_to_ebcdic_pc[(w1.s0 >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w1.s0 >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w1.s0 >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w1.s0 >> 24) & 0xff]) << 24;
-
-  key[1].s1 = (ascii_to_ebcdic_pc[(w1.s1 >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w1.s1 >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w1.s1 >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w1.s1 >> 24) & 0xff]) << 24;
-  #endif
-
-  #ifdef VECT_SIZE4
-  key[0].s0 = (ascii_to_ebcdic_pc[(w0.s0 >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w0.s0 >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w0.s0 >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w0.s0 >> 24) & 0xff]) << 24;
-
-  key[0].s1 = (ascii_to_ebcdic_pc[(w0.s1 >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w0.s1 >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w0.s1 >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w0.s1 >> 24) & 0xff]) << 24;
-
-  key[0].s2 = (ascii_to_ebcdic_pc[(w0.s2 >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w0.s2 >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w0.s2 >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w0.s2 >> 24) & 0xff]) << 24;
-
-  key[0].s3 = (ascii_to_ebcdic_pc[(w0.s3 >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w0.s3 >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w0.s3 >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w0.s3 >> 24) & 0xff]) << 24;
-
-  key[1].s0 = (ascii_to_ebcdic_pc[(w1.s0 >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w1.s0 >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w1.s0 >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w1.s0 >> 24) & 0xff]) << 24;
-
-  key[1].s1 = (ascii_to_ebcdic_pc[(w1.s1 >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w1.s1 >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w1.s1 >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w1.s1 >> 24) & 0xff]) << 24;
-
-  key[1].s2 = (ascii_to_ebcdic_pc[(w1.s2 >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w1.s2 >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w1.s2 >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w1.s2 >> 24) & 0xff]) << 24;
-
-  key[1].s3 = (ascii_to_ebcdic_pc[(w1.s3 >>  0) & 0xff]) <<  0
-            | (ascii_to_ebcdic_pc[(w1.s3 >>  8) & 0xff]) <<  8
-            | (ascii_to_ebcdic_pc[(w1.s3 >> 16) & 0xff]) << 16
-            | (ascii_to_ebcdic_pc[(w1.s3 >> 24) & 0xff]) << 24;
-  #endif
+  key[1] = (ascii_to_ebcdic_pc[(w1 >>  0) & 0xff]) <<  0
+         | (ascii_to_ebcdic_pc[(w1 >>  8) & 0xff]) <<  8
+         | (ascii_to_ebcdic_pc[(w1 >> 16) & 0xff]) << 16
+         | (ascii_to_ebcdic_pc[(w1 >> 24) & 0xff]) << 24;
 }
 
 static void m08500m (__local u32 s_SPtrans[8][64], __local u32 s_skb[8][64], u32 w[16], const u32 pw_len, __global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global u32 * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset)

@@ -288,17 +288,11 @@ __constant u32 c_tables[4][256] =
   }
 };
 
-#ifdef VECT_SIZE1
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i)])
-#endif
-
-#ifdef VECT_SIZE2
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
-#endif
+#define BOX(i,n,S) (S)[(n)][(i)]
 
 #define round(k1,k2,tbl)                  \
 {                                         \
-  u32 t;                                \
+  u32 t;                                  \
   t = (k1) + r;                           \
   l ^= BOX (amd_bfe (t,  0, 8), 0, tbl) ^ \
        BOX (amd_bfe (t,  8, 8), 1, tbl) ^ \
@@ -313,8 +307,8 @@ __constant u32 c_tables[4][256] =
 
 #define R(k,h,s,i,t)      \
 {                         \
-  u32 r;                \
-  u32 l;                \
+  u32 r;                  \
+  u32 l;                  \
   r = h[i + 0];           \
   l = h[i + 1];           \
   round (k[0], k[1], t);  \

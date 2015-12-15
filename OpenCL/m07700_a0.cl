@@ -66,12 +66,10 @@ static u32 sapb_trans (const u32 in)
 {
   u32 out = 0;
 
-  #ifdef VECT_SIZE1
   out |= (sapb_trans_tbl[(in >>  0) & 0xff]) <<  0;
   out |= (sapb_trans_tbl[(in >>  8) & 0xff]) <<  8;
   out |= (sapb_trans_tbl[(in >> 16) & 0xff]) << 16;
   out |= (sapb_trans_tbl[(in >> 24) & 0xff]) << 24;
-  #endif
 
   return out;
 }

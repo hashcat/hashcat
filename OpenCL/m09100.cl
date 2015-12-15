@@ -61,29 +61,9 @@ __constant u32 lotus_magic_table[256] =
   0x29, 0x39, 0xb9, 0xe9, 0x4c, 0xff, 0x43, 0xab,
 };
 
-#ifdef VECT_SIZE1
-#define BOX(S,i) u32 ((S)[(i)])
-#endif
+#define BOX(S,i) (S)[(i)]
 
-#ifdef VECT_SIZE2
-#define BOX(S,i) u32 ((S)[(i).s0], (S)[(i).s1])
-#endif
-
-#ifdef VECT_SIZE4
-#define BOX(S,i) u32 ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
-#endif
-
-#ifdef VECT_SIZE1
-#define uint_to_hex_upper8(i) u32 (l_bin2asc[(i)])
-#endif
-
-#ifdef VECT_SIZE2
-#define uint_to_hex_upper8(i) u32 (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
-#endif
-
-#ifdef VECT_SIZE4
-#define uint_to_hex_upper8(i) u32 (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
-#endif
+#define uint_to_hex_upper8(i) l_bin2asc[(i)]
 
 static void lotus_mix (u32 *in, __local u32 s_lotus_magic_table[256])
 {
@@ -523,7 +503,6 @@ static void lotus6_base64_encode (u8 base64_hash[24], const u32 salt0, const u32
   uchar4 salt0c = as_uchar4 (salt0);
   uchar4 salt1c = as_uchar4 (salt1);
 
-  #ifdef VECT_SIZE1
   uchar4 ac;
   uchar4 bc;
   uchar4 cc;
@@ -531,21 +510,6 @@ static void lotus6_base64_encode (u8 base64_hash[24], const u32 salt0, const u32
   ac = as_uchar4 (a);
   bc = as_uchar4 (b);
   cc = as_uchar4 (c);
-  #endif
-
-  #ifdef VECT_SIZE2
-  uchar4 ac[2];
-  uchar4 bc[2];
-  uchar4 cc[2];
-
-  ac[0] = as_uchar4 (a.s0);
-  bc[0] = as_uchar4 (b.s0);
-  cc[0] = as_uchar4 (c.s0);
-
-  ac[1] = as_uchar4 (a.s1);
-  bc[1] = as_uchar4 (b.s1);
-  cc[1] = as_uchar4 (c.s1);
-  #endif
 
   u8 tmp[24]; // size 22 (=pw_len) is needed but base64 needs size divisible by 4
 
@@ -561,8 +525,6 @@ static void lotus6_base64_encode (u8 base64_hash[24], const u32 salt0, const u32
   base64_plain[ 3] = salt0c.s3;
   base64_plain[ 3] -= -4; // dont ask!
   base64_plain[ 4] = salt1c.s0;
-
-  #ifdef VECT_SIZE1
   base64_plain[ 5] = ac.s0;
   base64_plain[ 6] = ac.s1;
   base64_plain[ 7] = ac.s2;
@@ -603,94 +565,7 @@ static void lotus6_base64_encode (u8 base64_hash[24], const u32 salt0, const u32
   base64_hash[19] = tmp[19];
   base64_hash[20] = tmp[20];
   base64_hash[21] = ')';
-  #endif
-
-  #ifdef VECT_SIZE2
-  base64_plain[ 5] = ac[0].s0;
-  base64_plain[ 6] = ac[0].s1;
-  base64_plain[ 7] = ac[0].s2;
-  base64_plain[ 8] = ac[0].s3;
-  base64_plain[ 9] = bc[0].s0;
-  base64_plain[10] = bc[0].s1;
-  base64_plain[11] = bc[0].s2;
-  base64_plain[12] = bc[0].s3;
-  base64_plain[13] = cc[0].s0;
-  base64_plain[14] = cc[0].s1;
-  base64_plain[15] = cc[0].s2;
-
-  /*
-   * base64 encode the $salt.$digest string
-   */
-
-  base64_encode (tmp + 2, 14, base64_plain);
-
-  base64_hash[ 0].s0 = '(';
-  base64_hash[ 1].s0 = 'G';
-  base64_hash[ 2].s0 = tmp[ 2];
-  base64_hash[ 3].s0 = tmp[ 3];
-  base64_hash[ 4].s0 = tmp[ 4];
-  base64_hash[ 5].s0 = tmp[ 5];
-  base64_hash[ 6].s0 = tmp[ 6];
-  base64_hash[ 7].s0 = tmp[ 7];
-  base64_hash[ 8].s0 = tmp[ 8];
-  base64_hash[ 9].s0 = tmp[ 9];
-  base64_hash[10].s0 = tmp[10];
-  base64_hash[11].s0 = tmp[11];
-  base64_hash[12].s0 = tmp[12];
-  base64_hash[13].s0 = tmp[13];
-  base64_hash[14].s0 = tmp[14];
-  base64_hash[15].s0 = tmp[15];
-  base64_hash[16].s0 = tmp[16];
-  base64_hash[17].s0 = tmp[17];
-  base64_hash[18].s0 = tmp[18];
-  base64_hash[19].s0 = tmp[19];
-  base64_hash[20].s0 = tmp[20];
-  base64_hash[21].s0 = ')';
-
-  base64_plain[ 5] = ac[1].s0;
-  base64_plain[ 6] = ac[1].s1;
-  base64_plain[ 7] = ac[1].s2;
-  base64_plain[ 8] = ac[1].s3;
-  base64_plain[ 9] = bc[1].s0;
-  base64_plain[10] = bc[1].s1;
-  base64_plain[11] = bc[1].s2;
-  base64_plain[12] = bc[1].s3;
-  base64_plain[13] = cc[1].s0;
-  base64_plain[14] = cc[1].s1;
-  base64_plain[15] = cc[1].s2;
-
-  /*
-   * base64 encode the $salt.$digest string
-   */
-
-  base64_encode (tmp + 2, 14, base64_plain);
-
-  base64_hash[ 0].s1 = '(';
-  base64_hash[ 1].s1 = 'G';
-  base64_hash[ 2].s1 = tmp[ 2];
-  base64_hash[ 3].s1 = tmp[ 3];
-  base64_hash[ 4].s1 = tmp[ 4];
-  base64_hash[ 5].s1 = tmp[ 5];
-  base64_hash[ 6].s1 = tmp[ 6];
-  base64_hash[ 7].s1 = tmp[ 7];
-  base64_hash[ 8].s1 = tmp[ 8];
-  base64_hash[ 9].s1 = tmp[ 9];
-  base64_hash[10].s1 = tmp[10];
-  base64_hash[11].s1 = tmp[11];
-  base64_hash[12].s1 = tmp[12];
-  base64_hash[13].s1 = tmp[13];
-  base64_hash[14].s1 = tmp[14];
-  base64_hash[15].s1 = tmp[15];
-  base64_hash[16].s1 = tmp[16];
-  base64_hash[17].s1 = tmp[17];
-  base64_hash[18].s1 = tmp[18];
-  base64_hash[19].s1 = tmp[19];
-  base64_hash[20].s1 = tmp[20];
-  base64_hash[21].s1 = ')';
-  #endif
-
 }
-
 
 __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09100_init (__global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global lotus8_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
@@ -919,62 +794,27 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09100_init (__gl
 
   lotus6_base64_encode (base64_hash, salt_buf0[0], salt_buf0[1], a, b, c);
 
-
   /**
    * PBKDF2 - HMACSHA1 - 1st iteration
    */
 
-  #ifdef VECT_SIZE1
   u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
   w0[0] = (base64_hash[ 0] << 24) | (base64_hash[ 1] << 16) | (base64_hash[ 2] << 8) | base64_hash[ 3];
   w0[1] = (base64_hash[ 4] << 24) | (base64_hash[ 5] << 16) | (base64_hash[ 6] << 8) | base64_hash[ 7];
   w0[2] = (base64_hash[ 8] << 24) | (base64_hash[ 9] << 16) | (base64_hash[10] << 8) | base64_hash[11];
   w0[3] = (base64_hash[12] << 24) | (base64_hash[13] << 16) | (base64_hash[14] << 8) | base64_hash[15];
-
-  u32 w1[4];
-
   w1[0] = (base64_hash[16] << 24) | (base64_hash[17] << 16) | (base64_hash[18] << 8) | base64_hash[19];
   w1[1] = (base64_hash[20] << 24) | (base64_hash[21] << 16);
   w1[2] = 0;
   w1[3] = 0;
-  #endif
-
-  #ifdef VECT_SIZE2
-  u32 w0[4];
-
-  w0[0].s0 = (base64_hash[ 0].s0 << 24) | (base64_hash[ 1].s0 << 16) | (base64_hash[ 2].s0 << 8) | base64_hash[ 3].s0;
-  w0[1].s0 = (base64_hash[ 4].s0 << 24) | (base64_hash[ 5].s0 << 16) | (base64_hash[ 6].s0 << 8) | base64_hash[ 7].s0;
-  w0[2].s0 = (base64_hash[ 8].s0 << 24) | (base64_hash[ 9].s0 << 16) | (base64_hash[10].s0 << 8) | base64_hash[11].s0;
-  w0[3].s0 = (base64_hash[12].s0 << 24) | (base64_hash[13].s0 << 16) | (base64_hash[14].s0 << 8) | base64_hash[15].s0;
-
-  w0[0].s1 = (base64_hash[ 0].s1 << 24) | (base64_hash[ 1].s1 << 16) | (base64_hash[ 2].s1 << 8) | base64_hash[ 3].s1;
-  w0[1].s1 = (base64_hash[ 4].s1 << 24) | (base64_hash[ 5].s1 << 16) | (base64_hash[ 6].s1 << 8) | base64_hash[ 7].s1;
-  w0[2].s1 = (base64_hash[ 8].s1 << 24) | (base64_hash[ 9].s1 << 16) | (base64_hash[10].s1 << 8) | base64_hash[11].s1;
-  w0[3].s1 = (base64_hash[12].s1 << 24) | (base64_hash[13].s1 << 16) | (base64_hash[14].s1 << 8) | base64_hash[15].s1;
-
-  u32 w1[4];
-
-  w1[0].s0 = (base64_hash[16].s0 << 24) | (base64_hash[17].s0 << 16) | (base64_hash[18].s0 << 8) | base64_hash[19].s0;
-  w1[1].s0 = (base64_hash[20].s0 << 24) | (base64_hash[21].s0 << 16);
-  w1[2].s0 = 0;
-  w1[3].s0 = 0;
-
-  w1[0].s1 = (base64_hash[16].s1 << 24) | (base64_hash[17].s1 << 16) | (base64_hash[18].s1 << 8) | base64_hash[19].s1;
-  w1[1].s1 = (base64_hash[20].s1 << 24) | (base64_hash[21].s1 << 16);
-  w1[2].s1 = 0;
-  w1[3].s1 = 0;
-  #endif
-
-  u32 w2[4];
-
   w2[0] = 0;
   w2[1] = 0;
   w2[2] = 0;
   w2[3] = 0;
-
-  u32 w3[4];
-
   w3[0] = 0;
   w3[1] = 0;
   w3[2] = 0;

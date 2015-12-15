@@ -96,21 +96,7 @@ static u32 round_crc32 (u32 a, const u32 v)
 
   const u32 s = a >> 8;
 
-  #ifdef VECT_SIZE1
-  a    = crc32tab[k];
-  #endif
-
-  #ifdef VECT_SIZE2
-  a.s0 = crc32tab[k.s0];
-  a.s1 = crc32tab[k.s1];
-  #endif
-
-  #ifdef VECT_SIZE4
-  a.s0 = crc32tab[k.s0];
-  a.s1 = crc32tab[k.s1];
-  a.s2 = crc32tab[k.s2];
-  a.s3 = crc32tab[k.s3];
-  #endif
+  a = crc32tab[k];
 
   a ^= s;
 

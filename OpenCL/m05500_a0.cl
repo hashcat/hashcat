@@ -325,17 +325,7 @@ __constant u32 c_skb[8][64] =
 __constant u32 shifts3s0[16] = {  1,  1,  2,  2,  2,  2,  2,  2,  1,  2,  2,  2,  2,  2,  2,  1 };
 __constant u32 shifts3s1[16] = { 27, 27, 26, 26, 26, 26, 26, 26, 27, 26, 26, 26, 26, 26, 26, 27 };
 
-#ifdef VECT_SIZE1
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i)])
-#endif
-
-#ifdef VECT_SIZE2
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
-#endif
-
-#ifdef VECT_SIZE4
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
-#endif
+#define BOX(i,n,S) (S)[(n)][(i)]
 
 static void _des_crypt_encrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16], __local u32 s_SPtrans[8][64])
 {
@@ -440,7 +430,6 @@ static void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u
 
 static void transform_netntlmv1_key (const u32 w0, const u32 w1, u32 out[2])
 {
-  #ifdef VECT_SIZE1
   const uchar4 t0 = as_uchar4 (w0);
   const uchar4 t1 = as_uchar4 (w1);
 
@@ -458,83 +447,6 @@ static void transform_netntlmv1_key (const u32 w0, const u32 w1, u32 out[2])
 
   out[0] = as_uint (k0);
   out[1] = as_uint (k1);
-  #endif
-
-  #ifdef VECT_SIZE2
-  const uchar8 t0 = as_uchar8 (w0);
-  const uchar8 t1 = as_uchar8 (w1);
-
-  uchar8 k0;
-  uchar8 k1;
-
-  k0.s0 =                (t0.s0 >> 0);
-  k0.s1 = (t0.s0 << 7) | (t0.s1 >> 1);
-  k0.s2 = (t0.s1 << 6) | (t0.s2 >> 2);
-  k0.s3 = (t0.s2 << 5) | (t0.s3 >> 3);
-  k1.s0 = (t0.s3 << 4) | (t1.s0 >> 4);
-  k1.s1 = (t1.s0 << 3) | (t1.s1 >> 5);
-  k1.s2 = (t1.s1 << 2) | (t1.s2 >> 6);
-  k1.s3 = (t1.s2 << 1);
-
-  k0.s4 =                (t0.s4 >> 0);
-  k0.s5 = (t0.s4 << 7) | (t0.s5 >> 1);
-  k0.s6 = (t0.s5 << 6) | (t0.s6 >> 2);
-  k0.s7 = (t0.s6 << 5) | (t0.s7 >> 3);
-  k1.s4 = (t0.s7 << 4) | (t1.s4 >> 4);
-  k1.s5 = (t1.s4 << 3) | (t1.s5 >> 5);
-  k1.s6 = (t1.s5 << 2) | (t1.s6 >> 6);
-  k1.s7 = (t1.s6 << 1);
-
-  out[0] = as_uint2 (k0);
-  out[1] = as_uint2 (k1);
-  #endif
-
-  #ifdef VECT_SIZE4
-  const uchar16 t0 = as_uchar16 (w0);
-  const uchar16 t1 = as_uchar16 (w1);
-
-  uchar16 k0;
-  uchar16 k1;
-
-  k0.s0 =                (t0.s0 >> 0);
-  k0.s1 = (t0.s0 << 7) | (t0.s1 >> 1);
-  k0.s2 = (t0.s1 << 6) | (t0.s2 >> 2);
-  k0.s3 = (t0.s2 << 5) | (t0.s3 >> 3);
-  k1.s0 = (t0.s3 << 4) | (t1.s0 >> 4);
-  k1.s1 = (t1.s0 << 3) | (t1.s1 >> 5);
-  k1.s2 = (t1.s1 << 2) | (t1.s2 >> 6);
-  k1.s3 = (t1.s2 << 1);
-
-  k0.s4 =                (t0.s4 >> 0);
-  k0.s5 = (t0.s4 << 7) | (t0.s5 >> 1);
-  k0.s6 = (t0.s5 << 6) | (t0.s6 >> 2);
-  k0.s7 = (t0.s6 << 5) | (t0.s7 >> 3);
-  k1.s4 = (t0.s7 << 4) | (t1.s4 >> 4);
-  k1.s5 = (t1.s4 << 3) | (t1.s5 >> 5);
-  k1.s6 = (t1.s5 << 2) | (t1.s6 >> 6);
-  k1.s7 = (t1.s6 << 1);
-
-  k0.s8 =                (t0.s8 >> 0);
-  k0.s9 = (t0.s8 << 7) | (t0.s9 >> 1);
-  k0.sa = (t0.s9 << 6) | (t0.sa >> 2);
-  k0.sb = (t0.sa << 5) | (t0.sb >> 3);
-  k1.s8 = (t0.sb << 4) | (t1.s8 >> 4);
-  k1.s9 = (t1.s8 << 3) | (t1.s9 >> 5);
-  k1.sa = (t1.s9 << 2) | (t1.sa >> 6);
-  k1.sb = (t1.sa << 1);
-
-  k0.sc =                (t0.sc >> 0);
-  k0.sd = (t0.sc << 7) | (t0.sd >> 1);
-  k0.se = (t0.sd << 6) | (t0.se >> 2);
-  k0.sf = (t0.se << 5) | (t0.sf >> 3);
-  k1.sc = (t0.sf << 4) | (t1.sc >> 4);
-  k1.sd = (t1.sc << 3) | (t1.sd >> 5);
-  k1.se = (t1.sd << 2) | (t1.se >> 6);
-  k1.sf = (t1.se << 1);
-
-  out[0] = as_uint4 (k0);
-  out[1] = as_uint4 (k1);
-  #endif
 }
 
 __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05500_m04 (__global pw_t *pws, __global gpu_rule_t *  rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)

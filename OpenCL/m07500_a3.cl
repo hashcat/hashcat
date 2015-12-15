@@ -597,8 +597,6 @@ static void m07500 (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[4
 
     u32 tmp[4];
 
-    #ifdef VECT_SIZE1
-
     tmp[0] = digest[0];
     tmp[1] = digest[1];
     tmp[2] = digest[2];
@@ -610,8 +608,6 @@ static void m07500 (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[4
 
       d_return_buf[lid] = 1;
     }
-
-    #endif
   }
 }
 

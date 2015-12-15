@@ -20,7 +20,6 @@
 #define COMPARE_S "check_single_comp4.c"
 #define COMPARE_M "check_multi_comp4.c"
 
-#ifdef VECT_SIZE1
 #define SIPROUND(v0,v1,v2,v3) \
   (v0) += (v1);               \
   (v1)  = rotl64 ((v1), 13);  \
@@ -36,23 +35,6 @@
   (v1)  = rotl64 ((v1), 17);  \
   (v1) ^= (v2);               \
   (v2)  = as_ulong (as_uint2 ((v2)).s10);
-#else
-#define SIPROUND(v0,v1,v2,v3) \
-  (v0) += (v1);               \
-  (v1)  = rotl64 ((v1), 13);  \
-  (v1) ^= (v0);               \
-  (v0)  = rotl64 ((v0), 32);  \
-  (v2) += (v3);               \
-  (v3)  = rotl64 ((v3), 16);  \
-  (v3) ^= (v2);               \
-  (v0) += (v3);               \
-  (v3)  = rotl64 ((v3), 21);  \
-  (v3) ^= (v0);               \
-  (v2) += (v1);               \
-  (v1)  = rotl64 ((v1), 17);  \
-  (v1) ^= (v2);               \
-  (v2)  = rotl64 ((v2), 32);
-#endif
 
 __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m10100_m04 (__global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 combs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {

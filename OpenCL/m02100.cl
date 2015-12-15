@@ -17,13 +17,8 @@
 #include "types_ocl.c"
 #include "common.c"
 
-#ifdef  VECT_SIZE1
-#define COMPARE_M "check_multi_vect1_comp4.c"
-#endif
-
-#ifdef  VECT_SIZE2
-#define COMPARE_M "check_multi_vect2_comp4.c"
-#endif
+#define COMPARE_S "check_single_comp4.c"
+#define COMPARE_M "check_multi_comp4.c"
 
 static void md4_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {

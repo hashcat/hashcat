@@ -63,8 +63,8 @@ __constant u32 keccakf_piln[24] =
 
 #define Rho_Pi(s)               \
 {                               \
-  u32 j = keccakf_piln[s];     \
-  u32 k = keccakf_rotc[s];     \
+  u32 j = keccakf_piln[s];      \
+  u32 k = keccakf_rotc[s];      \
   bc0 = st[j];                  \
   st[j] = rotl64 (t, k);        \
   t = bc0;                      \
@@ -166,20 +166,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05000_m04 (__glo
 
     u64 st[25];
 
-    #ifdef VECT_SIZE1
-    st[ 0] = (u64x) (w0[0])               | (u64x) (w0[1]) << 32;
-    st[ 1] = (u64x) (w0[2])               | (u64x) (w0[3]) << 32;
-    st[ 2] = (u64x) (w1[0])               | (u64x) (w1[1]) << 32;
-    st[ 3] = (u64x) (w1[2])               | (u64x) (w1[3]) << 32;
-    #endif
-
-    #ifdef VECT_SIZE2
-    st[ 0] = (u64x) (w0[0].s0, w0[0].s1)  | (u64x) (w0[1].s0, w0[1].s1) << 32;
-    st[ 1] = (u64x) (w0[2].s0, w0[2].s1)  | (u64x) (w0[3].s0, w0[3].s1) << 32;
-    st[ 2] = (u64x) (w1[0].s0, w1[0].s1)  | (u64x) (w1[1].s0, w1[1].s1) << 32;
-    st[ 3] = (u64x) (w1[2].s0, w1[2].s1)  | (u64x) (w1[3].s0, w1[3].s1) << 32;
-    #endif
-
+    st[ 0] = (u64) (w0[0]) | (u64) (w0[1]) << 32;
+    st[ 1] = (u64) (w0[2]) | (u64) (w0[3]) << 32;
+    st[ 2] = (u64) (w1[0]) | (u64) (w1[1]) << 32;
+    st[ 3] = (u64) (w1[2]) | (u64) (w1[3]) << 32;
     st[ 4] = 0;
     st[ 5] = 0;
     st[ 6] = 0;
@@ -377,20 +367,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05000_s04 (__glo
 
     u64 st[25];
 
-    #ifdef VECT_SIZE1
-    st[ 0] = (u64x) (w0[0])               | (u64x) (w0[1]) << 32;
-    st[ 1] = (u64x) (w0[2])               | (u64x) (w0[3]) << 32;
-    st[ 2] = (u64x) (w1[0])               | (u64x) (w1[1]) << 32;
-    st[ 3] = (u64x) (w1[2])               | (u64x) (w1[3]) << 32;
-    #endif
-
-    #ifdef VECT_SIZE2
-    st[ 0] = (u64x) (w0[0].s0, w0[0].s1)  | (u64x) (w0[1].s0, w0[1].s1) << 32;
-    st[ 1] = (u64x) (w0[2].s0, w0[2].s1)  | (u64x) (w0[3].s0, w0[3].s1) << 32;
-    st[ 2] = (u64x) (w1[0].s0, w1[0].s1)  | (u64x) (w1[1].s0, w1[1].s1) << 32;
-    st[ 3] = (u64x) (w1[2].s0, w1[2].s1)  | (u64x) (w1[3].s0, w1[3].s1) << 32;
-    #endif
-
+    st[ 0] = (u64) (w0[0]) | (u64) (w0[1]) << 32;
+    st[ 1] = (u64) (w0[2]) | (u64) (w0[3]) << 32;
+    st[ 2] = (u64) (w1[0]) | (u64) (w1[1]) << 32;
+    st[ 3] = (u64) (w1[2]) | (u64) (w1[3]) << 32;
     st[ 4] = 0;
     st[ 5] = 0;
     st[ 6] = 0;

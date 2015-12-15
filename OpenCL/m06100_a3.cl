@@ -22,13 +22,7 @@
 
 #define R 10
 
-#ifdef VECT_SIZE1
-#define BOX(S,n,i) u32 ((S)[(n)][(i)])
-#endif
-
-#ifdef VECT_SIZE2
-#define BOX(S,n,i) u32 ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
-#endif
+#define BOX(S,n,i) (S)[(n)][(i)]
 
 __constant u32 Ch[8][256] =
 {

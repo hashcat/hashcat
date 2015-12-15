@@ -325,17 +325,7 @@ __constant u32 c_skb[8][64] =
 __constant u32 shifts3s0[16] = {  1,  1,  2,  2,  2,  2,  2,  2,  1,  2,  2,  2,  2,  2,  2,  1 };
 __constant u32 shifts3s1[16] = { 27, 27, 26, 26, 26, 26, 26, 26, 27, 26, 26, 26, 26, 26, 26, 27 };
 
-#ifdef VECT_SIZE1
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i)])
-#endif
-
-#ifdef VECT_SIZE2
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
-#endif
-
-#ifdef VECT_SIZE4
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
-#endif
+#define BOX(i,n,S) (S)[(n)][(i)]
 
 static void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 s_skb[8][64])
 {
