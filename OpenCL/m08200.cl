@@ -501,9 +501,9 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08200_init (__gl
 
   u64 data_buf[16];
 
-  data_buf[ 0] = ((u64) swap_workaround (salt_buf0[ 0])) << 32 | (u64) swap_workaround (salt_buf0[ 1]);
-  data_buf[ 1] = ((u64) swap_workaround (salt_buf0[ 2])) << 32 | (u64) swap_workaround (salt_buf0[ 3]);
-  data_buf[ 2] = ((u64) swap_workaround (salt_buf1[ 0])) << 32 | (u64) swap_workaround (salt_buf1[ 1]);
+  data_buf[ 0] = ((u64) swap32 (salt_buf0[ 0])) << 32 | (u64) swap32 (salt_buf0[ 1]);
+  data_buf[ 1] = ((u64) swap32 (salt_buf0[ 2])) << 32 | (u64) swap32 (salt_buf0[ 3]);
+  data_buf[ 2] = ((u64) swap32 (salt_buf1[ 0])) << 32 | (u64) swap32 (salt_buf1[ 1]);
   data_buf[ 3] = 0;
   data_buf[ 4] = 0;
   data_buf[ 5] = 0;
@@ -520,14 +520,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08200_init (__gl
 
   u64 w[16];
 
-  w[ 0] = ((u64) swap_workaround (w0[0])) << 32 | (u64) swap_workaround (w0[1]);
-  w[ 1] = ((u64) swap_workaround (w0[2])) << 32 | (u64) swap_workaround (w0[3]);
-  w[ 2] = ((u64) swap_workaround (w1[0])) << 32 | (u64) swap_workaround (w1[1]);
-  w[ 3] = ((u64) swap_workaround (w1[2])) << 32 | (u64) swap_workaround (w1[3]);
-  w[ 4] = ((u64) swap_workaround (w2[0])) << 32 | (u64) swap_workaround (w2[1]);
-  w[ 5] = ((u64) swap_workaround (w2[2])) << 32 | (u64) swap_workaround (w2[3]);
-  w[ 6] = ((u64) swap_workaround (w3[0])) << 32 | (u64) swap_workaround (w3[1]);
-  w[ 7] = ((u64) swap_workaround (w3[2])) << 32 | (u64) swap_workaround (w3[3]);
+  w[ 0] = ((u64) swap32 (w0[0])) << 32 | (u64) swap32 (w0[1]);
+  w[ 1] = ((u64) swap32 (w0[2])) << 32 | (u64) swap32 (w0[3]);
+  w[ 2] = ((u64) swap32 (w1[0])) << 32 | (u64) swap32 (w1[1]);
+  w[ 3] = ((u64) swap32 (w1[2])) << 32 | (u64) swap32 (w1[3]);
+  w[ 4] = ((u64) swap32 (w2[0])) << 32 | (u64) swap32 (w2[1]);
+  w[ 5] = ((u64) swap32 (w2[2])) << 32 | (u64) swap32 (w2[3]);
+  w[ 6] = ((u64) swap32 (w3[0])) << 32 | (u64) swap32 (w3[1]);
+  w[ 7] = ((u64) swap32 (w3[2])) << 32 | (u64) swap32 (w3[3]);
   w[ 8] = 0;
   w[ 9] = 0;
   w[10] = 0;

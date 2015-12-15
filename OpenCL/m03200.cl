@@ -404,24 +404,24 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m03200_init (__glo
 
   expand_key (E, w, pw_len);
 
-  E[ 0] = swap_workaround (E[ 0]);
-  E[ 1] = swap_workaround (E[ 1]);
-  E[ 2] = swap_workaround (E[ 2]);
-  E[ 3] = swap_workaround (E[ 3]);
-  E[ 4] = swap_workaround (E[ 4]);
-  E[ 5] = swap_workaround (E[ 5]);
-  E[ 6] = swap_workaround (E[ 6]);
-  E[ 7] = swap_workaround (E[ 7]);
-  E[ 8] = swap_workaround (E[ 8]);
-  E[ 9] = swap_workaround (E[ 9]);
-  E[10] = swap_workaround (E[10]);
-  E[11] = swap_workaround (E[11]);
-  E[12] = swap_workaround (E[12]);
-  E[13] = swap_workaround (E[13]);
-  E[14] = swap_workaround (E[14]);
-  E[15] = swap_workaround (E[15]);
-  E[16] = swap_workaround (E[16]);
-  E[17] = swap_workaround (E[17]);
+  E[ 0] = swap32 (E[ 0]);
+  E[ 1] = swap32 (E[ 1]);
+  E[ 2] = swap32 (E[ 2]);
+  E[ 3] = swap32 (E[ 3]);
+  E[ 4] = swap32 (E[ 4]);
+  E[ 5] = swap32 (E[ 5]);
+  E[ 6] = swap32 (E[ 6]);
+  E[ 7] = swap32 (E[ 7]);
+  E[ 8] = swap32 (E[ 8]);
+  E[ 9] = swap32 (E[ 9]);
+  E[10] = swap32 (E[10]);
+  E[11] = swap32 (E[11]);
+  E[12] = swap32 (E[12]);
+  E[13] = swap32 (E[13]);
+  E[14] = swap32 (E[14]);
+  E[15] = swap32 (E[15]);
+  E[16] = swap32 (E[16]);
+  E[17] = swap32 (E[17]);
 
   /**
    * salt
@@ -615,24 +615,24 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m03200_loop (__glo
 
   expand_key (E, w, pw_len);
 
-  E[ 0] = swap_workaround (E[ 0]);
-  E[ 1] = swap_workaround (E[ 1]);
-  E[ 2] = swap_workaround (E[ 2]);
-  E[ 3] = swap_workaround (E[ 3]);
-  E[ 4] = swap_workaround (E[ 4]);
-  E[ 5] = swap_workaround (E[ 5]);
-  E[ 6] = swap_workaround (E[ 6]);
-  E[ 7] = swap_workaround (E[ 7]);
-  E[ 8] = swap_workaround (E[ 8]);
-  E[ 9] = swap_workaround (E[ 9]);
-  E[10] = swap_workaround (E[10]);
-  E[11] = swap_workaround (E[11]);
-  E[12] = swap_workaround (E[12]);
-  E[13] = swap_workaround (E[13]);
-  E[14] = swap_workaround (E[14]);
-  E[15] = swap_workaround (E[15]);
-  E[16] = swap_workaround (E[16]);
-  E[17] = swap_workaround (E[17]);
+  E[ 0] = swap32 (E[ 0]);
+  E[ 1] = swap32 (E[ 1]);
+  E[ 2] = swap32 (E[ 2]);
+  E[ 3] = swap32 (E[ 3]);
+  E[ 4] = swap32 (E[ 4]);
+  E[ 5] = swap32 (E[ 5]);
+  E[ 6] = swap32 (E[ 6]);
+  E[ 7] = swap32 (E[ 7]);
+  E[ 8] = swap32 (E[ 8]);
+  E[ 9] = swap32 (E[ 9]);
+  E[10] = swap32 (E[10]);
+  E[11] = swap32 (E[11]);
+  E[12] = swap32 (E[12]);
+  E[13] = swap32 (E[13]);
+  E[14] = swap32 (E[14]);
+  E[15] = swap32 (E[15]);
+  E[16] = swap32 (E[16]);
+  E[17] = swap32 (E[17]);
 
   // load
 

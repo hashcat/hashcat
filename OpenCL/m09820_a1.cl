@@ -301,16 +301,16 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09820_m04 (__glo
     w0_t[1] = salt_buf[1];
     w0_t[2] = salt_buf[2];
     w0_t[3] = salt_buf[3];
-    w1_t[0] = swap_workaround (w1_t[0]);
-    w1_t[1] = swap_workaround (w1_t[1]);
-    w1_t[2] = swap_workaround (w1_t[2]);
-    w1_t[3] = swap_workaround (w1_t[3]);
-    w2_t[0] = swap_workaround (w2_t[0]);
-    w2_t[1] = swap_workaround (w2_t[1]);
-    w2_t[2] = swap_workaround (w2_t[2]);
-    w2_t[3] = swap_workaround (w2_t[3]);
-    w3_t[0] = swap_workaround (w3_t[0]);
-    w3_t[1] = swap_workaround (w3_t[1]);
+    w1_t[0] = swap32 (w1_t[0]);
+    w1_t[1] = swap32 (w1_t[1]);
+    w1_t[2] = swap32 (w1_t[2]);
+    w1_t[3] = swap32 (w1_t[3]);
+    w2_t[0] = swap32 (w2_t[0]);
+    w2_t[1] = swap32 (w2_t[1]);
+    w2_t[2] = swap32 (w2_t[2]);
+    w2_t[3] = swap32 (w2_t[3]);
+    w3_t[0] = swap32 (w3_t[0]);
+    w3_t[1] = swap32 (w3_t[1]);
     w3_t[2] = 0;
     w3_t[3] = pw_salt_len * 8;
 
@@ -349,8 +349,8 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09820_m04 (__glo
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    u32 a = swap_workaround (digest[0]);
-    u32 b = swap_workaround (digest[1]) & 0xff;
+    u32 a = swap32 (digest[0]);
+    u32 b = swap32 (digest[1]) & 0xff;
 
     const u32 r0 = a;
     const u32 r1 = b;
@@ -534,16 +534,16 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09820_s04 (__glo
     w0_t[1] = salt_buf[1];
     w0_t[2] = salt_buf[2];
     w0_t[3] = salt_buf[3];
-    w1_t[0] = swap_workaround (w1_t[0]);
-    w1_t[1] = swap_workaround (w1_t[1]);
-    w1_t[2] = swap_workaround (w1_t[2]);
-    w1_t[3] = swap_workaround (w1_t[3]);
-    w2_t[0] = swap_workaround (w2_t[0]);
-    w2_t[1] = swap_workaround (w2_t[1]);
-    w2_t[2] = swap_workaround (w2_t[2]);
-    w2_t[3] = swap_workaround (w2_t[3]);
-    w3_t[0] = swap_workaround (w3_t[0]);
-    w3_t[1] = swap_workaround (w3_t[1]);
+    w1_t[0] = swap32 (w1_t[0]);
+    w1_t[1] = swap32 (w1_t[1]);
+    w1_t[2] = swap32 (w1_t[2]);
+    w1_t[3] = swap32 (w1_t[3]);
+    w2_t[0] = swap32 (w2_t[0]);
+    w2_t[1] = swap32 (w2_t[1]);
+    w2_t[2] = swap32 (w2_t[2]);
+    w2_t[3] = swap32 (w2_t[3]);
+    w3_t[0] = swap32 (w3_t[0]);
+    w3_t[1] = swap32 (w3_t[1]);
     w3_t[2] = 0;
     w3_t[3] = pw_salt_len * 8;
 
@@ -582,8 +582,8 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09820_s04 (__glo
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    u32 a = swap_workaround (digest[0]);
-    u32 b = swap_workaround (digest[1]) & 0xff;
+    u32 a = swap32 (digest[0]);
+    u32 b = swap32 (digest[1]) & 0xff;
 
     const u32 r0 = a;
     const u32 r1 = b;

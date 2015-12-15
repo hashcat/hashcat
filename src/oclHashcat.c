@@ -12936,7 +12936,7 @@ int main (int argc, char **argv)
        * kernel find
        */
 
-      char build_opts[100];
+      char build_opts[1024];
 
       // we don't have sm_* on AMD but it doesn't matter
 
@@ -13257,7 +13257,7 @@ int main (int argc, char **argv)
        * kernel compile
        */
 
-      #ifdef BINARY_KERNEL
+      //#ifdef BINARY_KERNEL
 
       if (force_jit_compilation == 0)
       {
@@ -13272,7 +13272,7 @@ int main (int argc, char **argv)
         sprintf (build_opts, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto);
       }
 
-      #endif
+      //#endif
 
       clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
 

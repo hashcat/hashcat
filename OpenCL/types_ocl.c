@@ -35,7 +35,8 @@ static u32 __byte_perm (const u32 a, const u32 b, const u32 c)
 
 static u32 swap32 (const u32 v)
 {
-  return __byte_perm (v, 0, 0x0123);
+  return (as_uint (as_uchar4 (v).s3210));
+  //  return __byte_perm (v, 0, 0x0123);
 }
 
 static u64 swap64 (const u64 v)

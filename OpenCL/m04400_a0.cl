@@ -141,20 +141,20 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m04400_m04 (__glo
      * sha1
      */
 
-    u32 w0_t = swap_workaround (w0[0]);
-    u32 w1_t = swap_workaround (w0[1]);
-    u32 w2_t = swap_workaround (w0[2]);
-    u32 w3_t = swap_workaround (w0[3]);
-    u32 w4_t = swap_workaround (w1[0]);
-    u32 w5_t = swap_workaround (w1[1]);
-    u32 w6_t = swap_workaround (w1[2]);
-    u32 w7_t = swap_workaround (w1[3]);
-    u32 w8_t = swap_workaround (w2[0]);
-    u32 w9_t = swap_workaround (w2[1]);
-    u32 wa_t = swap_workaround (w2[2]);
-    u32 wb_t = swap_workaround (w2[3]);
-    u32 wc_t = swap_workaround (w3[0]);
-    u32 wd_t = swap_workaround (w3[1]);
+    u32 w0_t = swap32 (w0[0]);
+    u32 w1_t = swap32 (w0[1]);
+    u32 w2_t = swap32 (w0[2]);
+    u32 w3_t = swap32 (w0[3]);
+    u32 w4_t = swap32 (w1[0]);
+    u32 w5_t = swap32 (w1[1]);
+    u32 w6_t = swap32 (w1[2]);
+    u32 w7_t = swap32 (w1[3]);
+    u32 w8_t = swap32 (w2[0]);
+    u32 w9_t = swap32 (w2[1]);
+    u32 wa_t = swap32 (w2[2]);
+    u32 wb_t = swap32 (w2[3]);
+    u32 wc_t = swap32 (w3[0]);
+    u32 wd_t = swap32 (w3[1]);
     u32 we_t = 0;
     u32 wf_t = out_len * 8;
 
@@ -507,20 +507,20 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m04400_s04 (__glo
      * sha1
      */
 
-    u32 w0_t = swap_workaround (w0[0]);
-    u32 w1_t = swap_workaround (w0[1]);
-    u32 w2_t = swap_workaround (w0[2]);
-    u32 w3_t = swap_workaround (w0[3]);
-    u32 w4_t = swap_workaround (w1[0]);
-    u32 w5_t = swap_workaround (w1[1]);
-    u32 w6_t = swap_workaround (w1[2]);
-    u32 w7_t = swap_workaround (w1[3]);
-    u32 w8_t = swap_workaround (w2[0]);
-    u32 w9_t = swap_workaround (w2[1]);
-    u32 wa_t = swap_workaround (w2[2]);
-    u32 wb_t = swap_workaround (w2[3]);
-    u32 wc_t = swap_workaround (w3[0]);
-    u32 wd_t = swap_workaround (w3[1]);
+    u32 w0_t = swap32 (w0[0]);
+    u32 w1_t = swap32 (w0[1]);
+    u32 w2_t = swap32 (w0[2]);
+    u32 w3_t = swap32 (w0[3]);
+    u32 w4_t = swap32 (w1[0]);
+    u32 w5_t = swap32 (w1[1]);
+    u32 w6_t = swap32 (w1[2]);
+    u32 w7_t = swap32 (w1[3]);
+    u32 w8_t = swap32 (w2[0]);
+    u32 w9_t = swap32 (w2[1]);
+    u32 wa_t = swap32 (w2[2]);
+    u32 wb_t = swap32 (w2[3]);
+    u32 wc_t = swap32 (w3[0]);
+    u32 wd_t = swap32 (w3[1]);
     u32 we_t = 0;
     u32 wf_t = out_len * 8;
 

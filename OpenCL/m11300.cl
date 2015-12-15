@@ -1102,22 +1102,22 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11300_init (__gl
    * init
    */
 
-  w0[0] = swap_workaround (w0[0]);
-  w0[1] = swap_workaround (w0[1]);
-  w0[2] = swap_workaround (w0[2]);
-  w0[3] = swap_workaround (w0[3]);
-  w1[0] = swap_workaround (w1[0]);
-  w1[1] = swap_workaround (w1[1]);
-  w1[2] = swap_workaround (w1[2]);
-  w1[3] = swap_workaround (w1[3]);
-  w2[0] = swap_workaround (w2[0]);
-  w2[1] = swap_workaround (w2[1]);
-  w2[2] = swap_workaround (w2[2]);
-  w2[3] = swap_workaround (w2[3]);
-  w3[0] = swap_workaround (w3[0]);
-  w3[1] = swap_workaround (w3[1]);
-  w3[2] = swap_workaround (w3[2]);
-  w3[3] = swap_workaround (w3[3]);
+  w0[0] = swap32 (w0[0]);
+  w0[1] = swap32 (w0[1]);
+  w0[2] = swap32 (w0[2]);
+  w0[3] = swap32 (w0[3]);
+  w1[0] = swap32 (w1[0]);
+  w1[1] = swap32 (w1[1]);
+  w1[2] = swap32 (w1[2]);
+  w1[3] = swap32 (w1[3]);
+  w2[0] = swap32 (w2[0]);
+  w2[1] = swap32 (w2[1]);
+  w2[2] = swap32 (w2[2]);
+  w2[3] = swap32 (w2[3]);
+  w3[0] = swap32 (w3[0]);
+  w3[1] = swap32 (w3[1]);
+  w3[2] = swap32 (w3[2]);
+  w3[3] = swap32 (w3[3]);
 
   u64 w[16];
 
@@ -1358,10 +1358,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11300_comp (__gl
   {
     u32 data[4];
 
-    data[0] = swap_workaround (esalt_bufs[salt_pos].cry_master_buf[(i / 4) + 0]);
-    data[1] = swap_workaround (esalt_bufs[salt_pos].cry_master_buf[(i / 4) + 1]);
-    data[2] = swap_workaround (esalt_bufs[salt_pos].cry_master_buf[(i / 4) + 2]);
-    data[3] = swap_workaround (esalt_bufs[salt_pos].cry_master_buf[(i / 4) + 3]);
+    data[0] = swap32 (esalt_bufs[salt_pos].cry_master_buf[(i / 4) + 0]);
+    data[1] = swap32 (esalt_bufs[salt_pos].cry_master_buf[(i / 4) + 1]);
+    data[2] = swap32 (esalt_bufs[salt_pos].cry_master_buf[(i / 4) + 2]);
+    data[3] = swap32 (esalt_bufs[salt_pos].cry_master_buf[(i / 4) + 3]);
 
     AES256_decrypt (data, out, rk, s_td0, s_td1, s_td2, s_td3, s_td4);
 

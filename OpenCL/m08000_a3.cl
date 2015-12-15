@@ -139,9 +139,9 @@ static void m08000m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global g
    * salt
    */
 
-  const u32 salt_buf0 = swap_workaround (salt_bufs[salt_pos].salt_buf[ 0]);
-  const u32 salt_buf1 = swap_workaround (salt_bufs[salt_pos].salt_buf[ 1]);
-  const u32 salt_buf2 = swap_workaround (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
+  const u32 salt_buf0 = swap32 (salt_bufs[salt_pos].salt_buf[ 0]);
+  const u32 salt_buf1 = swap32 (salt_bufs[salt_pos].salt_buf[ 1]);
+  const u32 salt_buf2 = swap32 (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
 
   /**
    * loop
@@ -256,9 +256,9 @@ static void m08000s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global g
    * salt
    */
 
-  const u32 salt_buf0 = swap_workaround (salt_bufs[salt_pos].salt_buf[ 0]);
-  const u32 salt_buf1 = swap_workaround (salt_bufs[salt_pos].salt_buf[ 1]);
-  const u32 salt_buf2 = swap_workaround (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
+  const u32 salt_buf0 = swap32 (salt_bufs[salt_pos].salt_buf[ 0]);
+  const u32 salt_buf1 = swap32 (salt_bufs[salt_pos].salt_buf[ 1]);
+  const u32 salt_buf2 = swap32 (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
 
   /**
    * loop

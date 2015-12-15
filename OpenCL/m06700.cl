@@ -17,17 +17,8 @@
 #include "types_ocl.c"
 #include "common.c"
 
-#ifdef  VECT_SIZE1
-#define COMPARE_M "check_multi_vect1_comp4.c"
-#endif
-
-#ifdef  VECT_SIZE2
-#define COMPARE_M "check_multi_vect2_comp4.c"
-#endif
-
-#ifdef  VECT_SIZE4
-#define COMPARE_M "check_multi_vect4_comp4.c"
-#endif
+#define COMPARE_S "check_single_comp4.c"
+#define COMPARE_M "check_multi_comp4.c"
 
 static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
@@ -326,22 +317,22 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06700_init (__gl
    * pads
    */
 
-  w0[0] = swap_workaround (w0[0]);
-  w0[1] = swap_workaround (w0[1]);
-  w0[2] = swap_workaround (w0[2]);
-  w0[3] = swap_workaround (w0[3]);
-  w1[0] = swap_workaround (w1[0]);
-  w1[1] = swap_workaround (w1[1]);
-  w1[2] = swap_workaround (w1[2]);
-  w1[3] = swap_workaround (w1[3]);
-  w2[0] = swap_workaround (w2[0]);
-  w2[1] = swap_workaround (w2[1]);
-  w2[2] = swap_workaround (w2[2]);
-  w2[3] = swap_workaround (w2[3]);
-  w3[0] = swap_workaround (w3[0]);
-  w3[1] = swap_workaround (w3[1]);
-  w3[2] = swap_workaround (w3[2]);
-  w3[3] = swap_workaround (w3[3]);
+  w0[0] = swap32 (w0[0]);
+  w0[1] = swap32 (w0[1]);
+  w0[2] = swap32 (w0[2]);
+  w0[3] = swap32 (w0[3]);
+  w1[0] = swap32 (w1[0]);
+  w1[1] = swap32 (w1[1]);
+  w1[2] = swap32 (w1[2]);
+  w1[3] = swap32 (w1[3]);
+  w2[0] = swap32 (w2[0]);
+  w2[1] = swap32 (w2[1]);
+  w2[2] = swap32 (w2[2]);
+  w2[3] = swap32 (w2[3]);
+  w3[0] = swap32 (w3[0]);
+  w3[1] = swap32 (w3[1]);
+  w3[2] = swap32 (w3[2]);
+  w3[3] = swap32 (w3[3]);
 
   u32 ipad[5];
   u32 opad[5];
@@ -377,21 +368,21 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06700_init (__gl
   w3[2] = salt_buf3[2];
   //w3[3] = salt_buf3[3];
 
-  w0[0] = swap_workaround (w0[0]);
-  w0[1] = swap_workaround (w0[1]);
-  w0[2] = swap_workaround (w0[2]);
-  w0[3] = swap_workaround (w0[3]);
-  w1[0] = swap_workaround (w1[0]);
-  w1[1] = swap_workaround (w1[1]);
-  w1[2] = swap_workaround (w1[2]);
-  w1[3] = swap_workaround (w1[3]);
-  w2[0] = swap_workaround (w2[0]);
-  w2[1] = swap_workaround (w2[1]);
-  w2[2] = swap_workaround (w2[2]);
-  w2[3] = swap_workaround (w2[3]);
-  w3[0] = swap_workaround (w3[0]);
-  w3[1] = swap_workaround (w3[1]);
-  w3[2] = swap_workaround (w3[2]);
+  w0[0] = swap32 (w0[0]);
+  w0[1] = swap32 (w0[1]);
+  w0[2] = swap32 (w0[2]);
+  w0[3] = swap32 (w0[3]);
+  w1[0] = swap32 (w1[0]);
+  w1[1] = swap32 (w1[1]);
+  w1[2] = swap32 (w1[2]);
+  w1[3] = swap32 (w1[3]);
+  w2[0] = swap32 (w2[0]);
+  w2[1] = swap32 (w2[1]);
+  w2[2] = swap32 (w2[2]);
+  w2[3] = swap32 (w2[3]);
+  w3[0] = swap32 (w3[0]);
+  w3[1] = swap32 (w3[1]);
+  w3[2] = swap32 (w3[2]);
   w3[3] = (64 + salt_len + 4) * 8;
 
   u32 dgst[5];

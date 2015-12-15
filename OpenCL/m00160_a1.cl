@@ -312,17 +312,17 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m00160_m04 (__glo
 
   u32 w0_t[4];
 
-  w0_t[0] = swap_workaround (salt_buf0[0]);
-  w0_t[1] = swap_workaround (salt_buf0[1]);
-  w0_t[2] = swap_workaround (salt_buf0[2]);
-  w0_t[3] = swap_workaround (salt_buf0[3]);
+  w0_t[0] = swap32 (salt_buf0[0]);
+  w0_t[1] = swap32 (salt_buf0[1]);
+  w0_t[2] = swap32 (salt_buf0[2]);
+  w0_t[3] = swap32 (salt_buf0[3]);
 
   u32 w1_t[4];
 
-  w1_t[0] = swap_workaround (salt_buf1[0]);
-  w1_t[1] = swap_workaround (salt_buf1[1]);
-  w1_t[2] = swap_workaround (salt_buf1[2]);
-  w1_t[3] = swap_workaround (salt_buf1[3]);
+  w1_t[0] = swap32 (salt_buf1[0]);
+  w1_t[1] = swap32 (salt_buf1[1]);
+  w1_t[2] = swap32 (salt_buf1[2]);
+  w1_t[3] = swap32 (salt_buf1[3]);
 
   u32 w2_t[4];
 
@@ -416,20 +416,20 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m00160_m04 (__glo
 
     append_0x80_4x4 (w0, w1, w2, w3, pw_len);
 
-    w0_t[0] = swap_workaround (w0[0]);
-    w0_t[1] = swap_workaround (w0[1]);
-    w0_t[2] = swap_workaround (w0[2]);
-    w0_t[3] = swap_workaround (w0[3]);
-    w1_t[0] = swap_workaround (w1[0]);
-    w1_t[1] = swap_workaround (w1[1]);
-    w1_t[2] = swap_workaround (w1[2]);
-    w1_t[3] = swap_workaround (w1[3]);
-    w2_t[0] = swap_workaround (w2[0]);
-    w2_t[1] = swap_workaround (w2[1]);
-    w2_t[2] = swap_workaround (w2[2]);
-    w2_t[3] = swap_workaround (w2[3]);
-    w3_t[0] = swap_workaround (w3[0]);
-    w3_t[1] = swap_workaround (w3[1]);
+    w0_t[0] = swap32 (w0[0]);
+    w0_t[1] = swap32 (w0[1]);
+    w0_t[2] = swap32 (w0[2]);
+    w0_t[3] = swap32 (w0[3]);
+    w1_t[0] = swap32 (w1[0]);
+    w1_t[1] = swap32 (w1[1]);
+    w1_t[2] = swap32 (w1[2]);
+    w1_t[3] = swap32 (w1[3]);
+    w2_t[0] = swap32 (w2[0]);
+    w2_t[1] = swap32 (w2[1]);
+    w2_t[2] = swap32 (w2[2]);
+    w2_t[3] = swap32 (w2[3]);
+    w3_t[0] = swap32 (w3[0]);
+    w3_t[1] = swap32 (w3[1]);
     w3_t[2] = 0;
     w3_t[3] = (64 + pw_len) * 8;
 
@@ -529,17 +529,17 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m00160_s04 (__glo
 
   u32 w0_t[4];
 
-  w0_t[0] = swap_workaround (salt_buf0[0]);
-  w0_t[1] = swap_workaround (salt_buf0[1]);
-  w0_t[2] = swap_workaround (salt_buf0[2]);
-  w0_t[3] = swap_workaround (salt_buf0[3]);
+  w0_t[0] = swap32 (salt_buf0[0]);
+  w0_t[1] = swap32 (salt_buf0[1]);
+  w0_t[2] = swap32 (salt_buf0[2]);
+  w0_t[3] = swap32 (salt_buf0[3]);
 
   u32 w1_t[4];
 
-  w1_t[0] = swap_workaround (salt_buf1[0]);
-  w1_t[1] = swap_workaround (salt_buf1[1]);
-  w1_t[2] = swap_workaround (salt_buf1[2]);
-  w1_t[3] = swap_workaround (salt_buf1[3]);
+  w1_t[0] = swap32 (salt_buf1[0]);
+  w1_t[1] = swap32 (salt_buf1[1]);
+  w1_t[2] = swap32 (salt_buf1[2]);
+  w1_t[3] = swap32 (salt_buf1[3]);
 
   u32 w2_t[4];
 
@@ -645,20 +645,20 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m00160_s04 (__glo
 
     append_0x80_4x4 (w0, w1, w2, w3, pw_len);
 
-    w0_t[0] = swap_workaround (w0[0]);
-    w0_t[1] = swap_workaround (w0[1]);
-    w0_t[2] = swap_workaround (w0[2]);
-    w0_t[3] = swap_workaround (w0[3]);
-    w1_t[0] = swap_workaround (w1[0]);
-    w1_t[1] = swap_workaround (w1[1]);
-    w1_t[2] = swap_workaround (w1[2]);
-    w1_t[3] = swap_workaround (w1[3]);
-    w2_t[0] = swap_workaround (w2[0]);
-    w2_t[1] = swap_workaround (w2[1]);
-    w2_t[2] = swap_workaround (w2[2]);
-    w2_t[3] = swap_workaround (w2[3]);
-    w3_t[0] = swap_workaround (w3[0]);
-    w3_t[1] = swap_workaround (w3[1]);
+    w0_t[0] = swap32 (w0[0]);
+    w0_t[1] = swap32 (w0[1]);
+    w0_t[2] = swap32 (w0[2]);
+    w0_t[3] = swap32 (w0[3]);
+    w1_t[0] = swap32 (w1[0]);
+    w1_t[1] = swap32 (w1[1]);
+    w1_t[2] = swap32 (w1[2]);
+    w1_t[3] = swap32 (w1[3]);
+    w2_t[0] = swap32 (w2[0]);
+    w2_t[1] = swap32 (w2[1]);
+    w2_t[2] = swap32 (w2[2]);
+    w2_t[3] = swap32 (w2[3]);
+    w3_t[0] = swap32 (w3[0]);
+    w3_t[1] = swap32 (w3[1]);
     w3_t[2] = 0;
     w3_t[3] = (64 + pw_len) * 8;
 

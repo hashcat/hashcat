@@ -315,14 +315,14 @@ static void m00150m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     hmac_sha1_pad (w0_t, w1_t, w2_t, w3_t, ipad, opad);
 
-    w0_t[0] = swap_workaround (salt_buf0[0]);
-    w0_t[1] = swap_workaround (salt_buf0[1]);
-    w0_t[2] = swap_workaround (salt_buf0[2]);
-    w0_t[3] = swap_workaround (salt_buf0[3]);
-    w1_t[0] = swap_workaround (salt_buf1[0]);
-    w1_t[1] = swap_workaround (salt_buf1[1]);
-    w1_t[2] = swap_workaround (salt_buf1[2]);
-    w1_t[3] = swap_workaround (salt_buf1[3]);
+    w0_t[0] = swap32 (salt_buf0[0]);
+    w0_t[1] = swap32 (salt_buf0[1]);
+    w0_t[2] = swap32 (salt_buf0[2]);
+    w0_t[3] = swap32 (salt_buf0[3]);
+    w1_t[0] = swap32 (salt_buf1[0]);
+    w1_t[1] = swap32 (salt_buf1[1]);
+    w1_t[2] = swap32 (salt_buf1[2]);
+    w1_t[3] = swap32 (salt_buf1[3]);
     w2_t[0] = 0;
     w2_t[1] = 0;
     w2_t[2] = 0;
@@ -435,14 +435,14 @@ static void m00150s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     hmac_sha1_pad (w0_t, w1_t, w2_t, w3_t, ipad, opad);
 
-    w0_t[0] = swap_workaround (salt_buf0[0]);
-    w0_t[1] = swap_workaround (salt_buf0[1]);
-    w0_t[2] = swap_workaround (salt_buf0[2]);
-    w0_t[3] = swap_workaround (salt_buf0[3]);
-    w1_t[0] = swap_workaround (salt_buf1[0]);
-    w1_t[1] = swap_workaround (salt_buf1[1]);
-    w1_t[2] = swap_workaround (salt_buf1[2]);
-    w1_t[3] = swap_workaround (salt_buf1[3]);
+    w0_t[0] = swap32 (salt_buf0[0]);
+    w0_t[1] = swap32 (salt_buf0[1]);
+    w0_t[2] = swap32 (salt_buf0[2]);
+    w0_t[3] = swap32 (salt_buf0[3]);
+    w1_t[0] = swap32 (salt_buf1[0]);
+    w1_t[1] = swap32 (salt_buf1[1]);
+    w1_t[2] = swap32 (salt_buf1[2]);
+    w1_t[3] = swap32 (salt_buf1[3]);
     w2_t[0] = 0;
     w2_t[1] = 0;
     w2_t[2] = 0;

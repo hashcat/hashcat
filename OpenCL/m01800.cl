@@ -330,13 +330,13 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01800_init (__gl
 
   u64 pw[2];
 
-  pw[0] = swap_workaround (hl32_to_64 (w0[1], w0[0]));
-  pw[1] = swap_workaround (hl32_to_64 (w0[3], w0[2]));
+  pw[0] = swap32 (hl32_to_64 (w0[1], w0[0]));
+  pw[1] = swap32 (hl32_to_64 (w0[3], w0[2]));
 
   u64 salt[2];
 
-  salt[0] = swap_workaround (hl32_to_64 (salt_buf[1], salt_buf[0]));
-  salt[1] = swap_workaround (hl32_to_64 (salt_buf[3], salt_buf[2]));
+  salt[0] = swap32 (hl32_to_64 (salt_buf[1], salt_buf[0]));
+  salt[1] = swap32 (hl32_to_64 (salt_buf[3], salt_buf[2]));
 
   /**
    * begin
@@ -609,8 +609,8 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01800_comp (__gl
 
   const u32 lid = get_local_id (0);
 
-  const u64 a = swap_workaround (tmps[gid].l_alt_result[0]);
-  const u64 b = swap_workaround (tmps[gid].l_alt_result[1]);
+  const u64 a = swap32 (tmps[gid].l_alt_result[0]);
+  const u64 b = swap32 (tmps[gid].l_alt_result[1]);
 
   const u32 r0 = l32_from_64 (a);
   const u32 r1 = h32_from_64 (a);

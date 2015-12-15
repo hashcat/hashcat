@@ -44,22 +44,22 @@ __constant u32 theMagicArray[64] =
 
 static void swap_buffer (u32 final[16])
 {
-  final[ 0] = swap_workaround (final[ 0]);
-  final[ 1] = swap_workaround (final[ 1]);
-  final[ 2] = swap_workaround (final[ 2]);
-  final[ 3] = swap_workaround (final[ 3]);
-  final[ 4] = swap_workaround (final[ 4]);
-  final[ 5] = swap_workaround (final[ 5]);
-  final[ 6] = swap_workaround (final[ 6]);
-  final[ 7] = swap_workaround (final[ 7]);
-  final[ 8] = swap_workaround (final[ 8]);
-  final[ 9] = swap_workaround (final[ 9]);
-  final[10] = swap_workaround (final[10]);
-  final[11] = swap_workaround (final[11]);
-  final[12] = swap_workaround (final[12]);
-  final[13] = swap_workaround (final[13]);
-  final[14] = swap_workaround (final[14]);
-  final[15] = swap_workaround (final[15]);
+  final[ 0] = swap32 (final[ 0]);
+  final[ 1] = swap32 (final[ 1]);
+  final[ 2] = swap32 (final[ 2]);
+  final[ 3] = swap32 (final[ 3]);
+  final[ 4] = swap32 (final[ 4]);
+  final[ 5] = swap32 (final[ 5]);
+  final[ 6] = swap32 (final[ 6]);
+  final[ 7] = swap32 (final[ 7]);
+  final[ 8] = swap32 (final[ 8]);
+  final[ 9] = swap32 (final[ 9]);
+  final[10] = swap32 (final[10]);
+  final[11] = swap32 (final[11]);
+  final[12] = swap32 (final[12]);
+  final[13] = swap32 (final[13]);
+  final[14] = swap32 (final[14]);
+  final[15] = swap32 (final[15]);
 }
 
 static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
@@ -371,20 +371,20 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07800_m04 (__glo
 
     u32 final[256];
 
-    final[ 0] = swap_workaround (w0[0] | s0[0]);
-    final[ 1] = swap_workaround (w0[1] | s0[1]);
-    final[ 2] = swap_workaround (w0[2] | s0[2]);
-    final[ 3] = swap_workaround (w0[3] | s0[3]);
-    final[ 4] = swap_workaround (w1[0] | s1[0]);
-    final[ 5] = swap_workaround (w1[1] | s1[1]);
-    final[ 6] = swap_workaround (w1[2] | s1[2]);
-    final[ 7] = swap_workaround (w1[3] | s1[3]);
-    final[ 8] = swap_workaround (w2[0] | s2[0]);
-    final[ 9] = swap_workaround (w2[1] | s2[1]);
-    final[10] = swap_workaround (w2[2] | s2[2]);
-    final[11] = swap_workaround (w2[3] | s2[3]);
-    final[12] = swap_workaround (w3[0] | s3[0]);
-    final[13] = swap_workaround (w3[1] | s3[1]);
+    final[ 0] = swap32 (w0[0] | s0[0]);
+    final[ 1] = swap32 (w0[1] | s0[1]);
+    final[ 2] = swap32 (w0[2] | s0[2]);
+    final[ 3] = swap32 (w0[3] | s0[3]);
+    final[ 4] = swap32 (w1[0] | s1[0]);
+    final[ 5] = swap32 (w1[1] | s1[1]);
+    final[ 6] = swap32 (w1[2] | s1[2]);
+    final[ 7] = swap32 (w1[3] | s1[3]);
+    final[ 8] = swap32 (w2[0] | s2[0]);
+    final[ 9] = swap32 (w2[1] | s2[1]);
+    final[10] = swap32 (w2[2] | s2[2]);
+    final[11] = swap32 (w2[3] | s2[3]);
+    final[12] = swap32 (w3[0] | s3[0]);
+    final[13] = swap32 (w3[1] | s3[1]);
     final[14] = 0;
     final[15] = pw_salt_len * 8;
 
@@ -701,20 +701,20 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07800_s04 (__glo
 
     u32 final[256];
 
-    final[ 0] = swap_workaround (w0[0] | s0[0]);
-    final[ 1] = swap_workaround (w0[1] | s0[1]);
-    final[ 2] = swap_workaround (w0[2] | s0[2]);
-    final[ 3] = swap_workaround (w0[3] | s0[3]);
-    final[ 4] = swap_workaround (w1[0] | s1[0]);
-    final[ 5] = swap_workaround (w1[1] | s1[1]);
-    final[ 6] = swap_workaround (w1[2] | s1[2]);
-    final[ 7] = swap_workaround (w1[3] | s1[3]);
-    final[ 8] = swap_workaround (w2[0] | s2[0]);
-    final[ 9] = swap_workaround (w2[1] | s2[1]);
-    final[10] = swap_workaround (w2[2] | s2[2]);
-    final[11] = swap_workaround (w2[3] | s2[3]);
-    final[12] = swap_workaround (w3[0] | s3[0]);
-    final[13] = swap_workaround (w3[1] | s3[1]);
+    final[ 0] = swap32 (w0[0] | s0[0]);
+    final[ 1] = swap32 (w0[1] | s0[1]);
+    final[ 2] = swap32 (w0[2] | s0[2]);
+    final[ 3] = swap32 (w0[3] | s0[3]);
+    final[ 4] = swap32 (w1[0] | s1[0]);
+    final[ 5] = swap32 (w1[1] | s1[1]);
+    final[ 6] = swap32 (w1[2] | s1[2]);
+    final[ 7] = swap32 (w1[3] | s1[3]);
+    final[ 8] = swap32 (w2[0] | s2[0]);
+    final[ 9] = swap32 (w2[1] | s2[1]);
+    final[10] = swap32 (w2[2] | s2[2]);
+    final[11] = swap32 (w2[3] | s2[3]);
+    final[12] = swap32 (w3[0] | s3[0]);
+    final[13] = swap32 (w3[1] | s3[1]);
     final[14] = 0;
     final[15] = pw_salt_len * 8;
 

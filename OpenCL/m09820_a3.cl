@@ -241,8 +241,8 @@ static void m09820m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    u32 a = swap_workaround (digest[0]);
-    u32 b = swap_workaround (digest[1]) & 0xff;
+    u32 a = swap32 (digest[0]);
+    u32 b = swap32 (digest[1]) & 0xff;
 
     const u32 r0 = a;
     const u32 r1 = b;
@@ -358,8 +358,8 @@ static void m09820s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    u32 a = swap_workaround (digest[0]);
-    u32 b = swap_workaround (digest[1]) & 0xff;
+    u32 a = swap32 (digest[0]);
+    u32 b = swap32 (digest[1]) & 0xff;
 
     const u32 r0 = a;
     const u32 r1 = b;

@@ -1227,10 +1227,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m12500_comp (__gl
 
   u32 ukeyx[4];
 
-  ukeyx[0] = swap_workaround (dgst[0]);
-  ukeyx[1] = swap_workaround (dgst[1]);
-  ukeyx[2] = swap_workaround (dgst[2]);
-  ukeyx[3] = swap_workaround (dgst[3]);
+  ukeyx[0] = swap32 (dgst[0]);
+  ukeyx[1] = swap32 (dgst[1]);
+  ukeyx[2] = swap32 (dgst[2]);
+  ukeyx[3] = swap32 (dgst[3]);
 
   AES128_ExpandKey (ukeyx, rk, s_te0, s_te1, s_te2, s_te3, s_te4);
 
@@ -1322,10 +1322,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m12500_comp (__gl
     PUTCHAR (iv, i, dgst[4] & 0xff);
   }
 
-  out[0] ^= swap_workaround (iv[0]);
-  out[1] ^= swap_workaround (iv[1]);
-  out[2] ^= swap_workaround (iv[2]);
-  out[3] ^= swap_workaround (iv[3]);
+  out[0] ^= swap32 (iv[0]);
+  out[1] ^= swap32 (iv[1]);
+  out[2] ^= swap32 (iv[2]);
+  out[3] ^= swap32 (iv[3]);
 
   const u32 r0 = out[0];
   const u32 r1 = out[1];

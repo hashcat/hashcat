@@ -20,28 +20,19 @@
 #define COMPARE_S "check_single_comp4.c"
 #define COMPARE_M "check_multi_comp4.c"
 
-#ifdef VECT_SIZE1
 #define uint_to_hex_lower8(i) l_bin2asc[(i)]
-#endif
-
-#ifdef VECT_SIZE2
-#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
-#endif
-
-#ifdef VECT_SIZE4
-#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
-#endif
 
 static u32 memcat32 (u32 block0[16], u32 block1[16], const u32 block_len, const u32 append0[4], const u32 append1[4], const u32 append2[4], const u32 append3[4], const u32 append_len)
 {
   const u32 mod = block_len & 3;
   const u32 div = block_len / 4;
 
+  #ifdef IS_AMD
   const int offset_minus_4 = 4 - mod;
 
   u32 append0_t[4];
 
-  append0_t[0] = amd_bytealign (append0[0],         0, offset_minus_4);
+  append0_t[0] = amd_bytealign (append0[0],          0, offset_minus_4);
   append0_t[1] = amd_bytealign (append0[1], append0[0], offset_minus_4);
   append0_t[2] = amd_bytealign (append0[2], append0[1], offset_minus_4);
   append0_t[3] = amd_bytealign (append0[3], append0[2], offset_minus_4);
@@ -101,6 +92,49 @@ static u32 memcat32 (u32 block0[16], u32 block1[16], const u32 block_len, const 
     append4_t[2] = 0;
     append4_t[3] = 0;
   }
+  #endif
+
+  #ifdef IS_NV
+
+  const int offset_minus_4 = 4 - mod;
+
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+
+  u32 append0_t[4];
+
+  append0_t[0] = __byte_perm (         0, append0[0], selector);
+  append0_t[1] = __byte_perm (append0[0], append0[1], selector);
+  append0_t[2] = __byte_perm (append0[1], append0[2], selector);
+  append0_t[3] = __byte_perm (append0[2], append0[3], selector);
+
+  u32 append1_t[4];
+
+  append1_t[0] = __byte_perm (append0[3], append1[0], selector);
+  append1_t[1] = __byte_perm (append1[0], append1[1], selector);
+  append1_t[2] = __byte_perm (append1[1], append1[2], selector);
+  append1_t[3] = __byte_perm (append1[2], append1[3], selector);
+
+  u32 append2_t[4];
+
+  append2_t[0] = __byte_perm (append1[3], append2[0], selector);
+  append2_t[1] = __byte_perm (append2[0], append2[1], selector);
+  append2_t[2] = __byte_perm (append2[1], append2[2], selector);
+  append2_t[3] = __byte_perm (append2[2], append2[3], selector);
+
+  u32 append3_t[4];
+
+  append3_t[0] = __byte_perm (append2[3], append3[0], selector);
+  append3_t[1] = __byte_perm (append3[0], append3[1], selector);
+  append3_t[2] = __byte_perm (append3[1], append3[2], selector);
+  append3_t[3] = __byte_perm (append3[2], append3[3], selector);
+
+  u32 append4_t[4];
+
+  append4_t[0] = __byte_perm (append3[3],          0, selector);
+  append4_t[1] = 0;
+  append4_t[2] = 0;
+  append4_t[3] = 0;
+  #endif
 
   switch (div)
   {

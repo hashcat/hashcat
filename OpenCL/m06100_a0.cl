@@ -1436,14 +1436,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06100_m04 (__glo
 
     u32 wl[16];
 
-    wl[ 0] = swap_workaround (w0[0]);
-    wl[ 1] = swap_workaround (w0[1]);
-    wl[ 2] = swap_workaround (w0[2]);
-    wl[ 3] = swap_workaround (w0[3]);
-    wl[ 4] = swap_workaround (w1[0]);
-    wl[ 5] = swap_workaround (w1[1]);
-    wl[ 6] = swap_workaround (w1[2]);
-    wl[ 7] = swap_workaround (w1[3]);
+    wl[ 0] = swap32 (w0[0]);
+    wl[ 1] = swap32 (w0[1]);
+    wl[ 2] = swap32 (w0[2]);
+    wl[ 3] = swap32 (w0[3]);
+    wl[ 4] = swap32 (w1[0]);
+    wl[ 5] = swap32 (w1[1]);
+    wl[ 6] = swap32 (w1[2]);
+    wl[ 7] = swap32 (w1[3]);
     wl[ 8] = 0;
     wl[ 9] = 0;
     wl[10] = 0;
@@ -1598,14 +1598,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06100_s04 (__glo
 
     u32 wl[16];
 
-    wl[ 0] = swap_workaround (w0[0]);
-    wl[ 1] = swap_workaround (w0[1]);
-    wl[ 2] = swap_workaround (w0[2]);
-    wl[ 3] = swap_workaround (w0[3]);
-    wl[ 4] = swap_workaround (w1[0]);
-    wl[ 5] = swap_workaround (w1[1]);
-    wl[ 6] = swap_workaround (w1[2]);
-    wl[ 7] = swap_workaround (w1[3]);
+    wl[ 0] = swap32 (w0[0]);
+    wl[ 1] = swap32 (w0[1]);
+    wl[ 2] = swap32 (w0[2]);
+    wl[ 3] = swap32 (w0[3]);
+    wl[ 4] = swap32 (w1[0]);
+    wl[ 5] = swap32 (w1[1]);
+    wl[ 6] = swap32 (w1[2]);
+    wl[ 7] = swap32 (w1[3]);
     wl[ 8] = 0;
     wl[ 9] = 0;
     wl[10] = 0;

@@ -35,11 +35,11 @@ static void m11200m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 salt_buf[5];
 
-  salt_buf[0] = swap_workaround (salt_bufs[salt_pos].salt_buf[0]);
-  salt_buf[1] = swap_workaround (salt_bufs[salt_pos].salt_buf[1]);
-  salt_buf[2] = swap_workaround (salt_bufs[salt_pos].salt_buf[2]);
-  salt_buf[3] = swap_workaround (salt_bufs[salt_pos].salt_buf[3]);
-  salt_buf[4] = swap_workaround (salt_bufs[salt_pos].salt_buf[4]);
+  salt_buf[0] = swap32 (salt_bufs[salt_pos].salt_buf[0]);
+  salt_buf[1] = swap32 (salt_bufs[salt_pos].salt_buf[1]);
+  salt_buf[2] = swap32 (salt_bufs[salt_pos].salt_buf[2]);
+  salt_buf[3] = swap32 (salt_bufs[salt_pos].salt_buf[3]);
+  salt_buf[4] = swap32 (salt_bufs[salt_pos].salt_buf[4]);
 
   /**
    * loop
@@ -483,11 +483,11 @@ static void m11200s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 salt_buf[5];
 
-  salt_buf[0] = swap_workaround (salt_bufs[salt_pos].salt_buf[0]);
-  salt_buf[1] = swap_workaround (salt_bufs[salt_pos].salt_buf[1]);
-  salt_buf[2] = swap_workaround (salt_bufs[salt_pos].salt_buf[2]);
-  salt_buf[3] = swap_workaround (salt_bufs[salt_pos].salt_buf[3]);
-  salt_buf[4] = swap_workaround (salt_bufs[salt_pos].salt_buf[4]);
+  salt_buf[0] = swap32 (salt_bufs[salt_pos].salt_buf[0]);
+  salt_buf[1] = swap32 (salt_bufs[salt_pos].salt_buf[1]);
+  salt_buf[2] = swap32 (salt_bufs[salt_pos].salt_buf[2]);
+  salt_buf[3] = swap32 (salt_bufs[salt_pos].salt_buf[3]);
+  salt_buf[4] = swap32 (salt_bufs[salt_pos].salt_buf[4]);
 
   /**
    * loop

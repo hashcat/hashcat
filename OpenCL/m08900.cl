@@ -17,17 +17,8 @@
 #include "types_ocl.c"
 #include "common.c"
 
-#ifdef  VECT_SIZE1
-#define COMPARE_M "check_multi_vect1_comp4.c"
-#endif
-
-#ifdef  VECT_SIZE2
-#define COMPARE_M "check_multi_vect2_comp4.c"
-#endif
-
-#ifdef  VECT_SIZE4
-#define COMPARE_M "check_multi_vect4_comp4.c"
-#endif
+#define COMPARE_S "check_single_comp4.c"
+#define COMPARE_M "check_multi_comp4.c"
 
 __constant u32 k_sha256[64] =
 {
@@ -569,7 +560,7 @@ static void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4],
   }
 }
 
-static uint4 swap_workaround (uint4 v)
+static uint4 swap32_4 (uint4 v)
 {
   return (rotate ((v & 0x00FF00FF), 24u) | rotate ((v & 0xFF00FF00),  8u));
 }
@@ -577,6 +568,11 @@ static uint4 swap_workaround (uint4 v)
 #define GET_SCRYPT_CNT(r,p) (2 * (r) * 16 * (p))
 #define GET_SMIX_CNT(r,N)   (2 * (r) * 16 * (N))
 #define GET_STATE_CNT(r)    (2 * (r) * 16)
+
+#define SCRYPT_CNT  GET_SCRYPT_CNT (SCRYPT_R, SCRYPT_P)
+#define SCRYPT_CNT4 (SCRYPT_CNT / 4)
+#define STATE_CNT   GET_STATE_CNT  (SCRYPT_R)
+#define STATE_CNT4  (STATE_CNT / 4)
 
 #define ADD_ROTATE_XOR(r,i1,i2,s) (r) ^= rotate ((i1) + (i2), (s));
 
@@ -624,18 +620,14 @@ static uint4 swap_workaround (uint4 v)
   R3 = R3 + X3;         \
 }
 
-static void salsa_r (uint4 *T, const u32 r)
+static void salsa_r (uint4 *T)
 {
-  const u32 state_cnt = GET_STATE_CNT (r);
+  uint4 R0 = T[STATE_CNT4 - 4];
+  uint4 R1 = T[STATE_CNT4 - 3];
+  uint4 R2 = T[STATE_CNT4 - 2];
+  uint4 R3 = T[STATE_CNT4 - 1];
 
-  const u32 state_cnt4 = state_cnt / 4;
-
-  uint4 R0 = T[state_cnt4 - 4];
-  uint4 R1 = T[state_cnt4 - 3];
-  uint4 R2 = T[state_cnt4 - 2];
-  uint4 R3 = T[state_cnt4 - 1];
-
-  for (u32 i = 0; i < state_cnt4; i += 8)
+  for (u32 i = 0; i < STATE_CNT4; i += 8)
   {
     uint4 Y0;
     uint4 Y1;
@@ -680,7 +672,7 @@ static void salsa_r (uint4 *T, const u32 r)
     exchg (x4 + 3, y4 + 3);   \
   }
 
-  for (u32 i = 1; i < r / 1; i++)
+  for (u32 i = 1; i < SCRYPT_R / 1; i++)
   {
     const u32 x = i * 1;
     const u32 y = i * 2;
@@ -688,37 +680,33 @@ static void salsa_r (uint4 *T, const u32 r)
     exchg4 (x, y);
   }
 
-  for (u32 i = 1; i < r / 2; i++)
+  for (u32 i = 1; i < SCRYPT_R / 2; i++)
   {
     const u32 x = i * 1;
     const u32 y = i * 2;
 
-    const u32 xr1 = (r * 2) - 1 - x;
-    const u32 yr1 = (r * 2) - 1 - y;
+    const u32 xr1 = (SCRYPT_R * 2) - 1 - x;
+    const u32 yr1 = (SCRYPT_R * 2) - 1 - y;
 
     exchg4 (xr1, yr1);
   }
 }
 
-static void scrypt_smix (uint4 *X, uint4 *T, const u32 N, const u32 r, const u32 tmto, const u32 phy, __global uint4 *V)
+static void scrypt_smix (uint4 *X, uint4 *T, const u32 phy, __global uint4 *V)
 {
-  const u32 state_cnt = GET_STATE_CNT (r);
-
-  const u32 state_cnt4 = state_cnt / 4;
-
   #define Coord(x,y,z) (((x) * zSIZE) + ((y) * zSIZE * xSIZE) + (z))
   #define CO Coord(x,y,z)
 
   const u32 xSIZE = phy;
-  const u32 ySIZE = N / tmto;
-  const u32 zSIZE = state_cnt4;
+  const u32 ySIZE = SCRYPT_N / SCRYPT_TMTO;
+  const u32 zSIZE = STATE_CNT4;
 
   const u32 gid = get_global_id (0);
 
   const u32 x = gid % xSIZE;
 
   #pragma unroll
-  for (u32 i = 0; i < state_cnt4; i += 4)
+  for (u32 i = 0; i < STATE_CNT4; i += 4)
   {
     T[0] = (uint4) (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
     T[1] = (uint4) (X[i + 1].x, X[i + 2].y, X[i + 3].z, X[i + 0].w);
@@ -735,28 +723,28 @@ static void scrypt_smix (uint4 *X, uint4 *T, const u32 N, const u32 r, const u32
   {
     for (u32 z = 0; z < zSIZE; z++) V[CO] = X[z];
 
-    for (u32 i = 0; i < tmto; i++) salsa_r (X, r);
+    for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r (X);
   }
 
-  for (u32 i = 0; i < N; i++)
+  for (u32 i = 0; i < SCRYPT_N; i++)
   {
-    const u32 k = X[zSIZE - 4].x & (N - 1);
+    const u32 k = X[zSIZE - 4].x & (SCRYPT_N - 1);
 
-    const u32 y = k / tmto;
+    const u32 y = k / SCRYPT_TMTO;
 
-    const u32 km = k - (y * tmto);
+    const u32 km = k - (y * SCRYPT_TMTO);
 
     for (u32 z = 0; z < zSIZE; z++) T[z] = V[CO];
 
-    for (u32 i = 0; i < km; i++) salsa_r (T, r);
+    for (u32 i = 0; i < km; i++) salsa_r (T);
 
     for (u32 z = 0; z < zSIZE; z++) X[z] ^= T[z];
 
-    salsa_r (X, r);
+    salsa_r (X);
   }
 
   #pragma unroll
-  for (u32 i = 0; i < state_cnt4; i += 4)
+  for (u32 i = 0; i < STATE_CNT4; i += 4)
   {
     T[0] = (uint4) (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
     T[1] = (uint4) (X[i + 1].x, X[i + 0].y, X[i + 3].z, X[i + 2].w);
@@ -829,44 +817,32 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08900_init (__gl
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   /**
-   * memory buffers
-   */
-
-  const u32 scrypt_r = SCRYPT_R;
-  const u32 scrypt_p = SCRYPT_P;
-  //const u32 scrypt_N = SCRYPT_N;
-
-  //const u32 state_cnt  = GET_STATE_CNT  (scrypt_r);
-  const u32 scrypt_cnt = GET_SCRYPT_CNT (scrypt_r, scrypt_p);
-  //const u32 smix_cnt   = GET_SMIX_CNT   (scrypt_r, scrypt_N);
-
-  /**
    * 1st pbkdf2, creates B
    */
 
-  w0[0] = swap_workaround (w0[0]);
-  w0[1] = swap_workaround (w0[1]);
-  w0[2] = swap_workaround (w0[2]);
-  w0[3] = swap_workaround (w0[3]);
-  w1[0] = swap_workaround (w1[0]);
-  w1[1] = swap_workaround (w1[1]);
-  w1[2] = swap_workaround (w1[2]);
-  w1[3] = swap_workaround (w1[3]);
-  w2[0] = swap_workaround (w2[0]);
-  w2[1] = swap_workaround (w2[1]);
-  w2[2] = swap_workaround (w2[2]);
-  w2[3] = swap_workaround (w2[3]);
-  w3[0] = swap_workaround (w3[0]);
-  w3[1] = swap_workaround (w3[1]);
-  w3[2] = swap_workaround (w3[2]);
-  w3[3] = swap_workaround (w3[3]);
+  w0[0] = swap32 (w0[0]);
+  w0[1] = swap32 (w0[1]);
+  w0[2] = swap32 (w0[2]);
+  w0[3] = swap32 (w0[3]);
+  w1[0] = swap32 (w1[0]);
+  w1[1] = swap32 (w1[1]);
+  w1[2] = swap32 (w1[2]);
+  w1[3] = swap32 (w1[3]);
+  w2[0] = swap32 (w2[0]);
+  w2[1] = swap32 (w2[1]);
+  w2[2] = swap32 (w2[2]);
+  w2[3] = swap32 (w2[3]);
+  w3[0] = swap32 (w3[0]);
+  w3[1] = swap32 (w3[1]);
+  w3[2] = swap32 (w3[2]);
+  w3[3] = swap32 (w3[3]);
 
   u32 ipad[8];
   u32 opad[8];
 
   hmac_sha256_pad (w0, w1, w2, w3, ipad, opad);
 
-  for (u32 i = 0, j = 0, k = 0; i < scrypt_cnt; i += 8, j += 1, k += 2)
+  for (u32 i = 0, j = 0, k = 0; i < SCRYPT_CNT; i += 8, j += 1, k += 2)
   {
     w0[0] = salt_buf0[0];
     w0[1] = salt_buf0[1];
@@ -887,25 +863,25 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08900_init (__gl
 
     u32 append[2];
 
-    append[0] = swap_workaround (j + 1);
+    append[0] = swap32 (j + 1);
     append[1] = 0x80;
 
     memcat8 (w0, w1, w2, w3, salt_len, append);
 
-    w0[0] = swap_workaround (w0[0]);
-    w0[1] = swap_workaround (w0[1]);
-    w0[2] = swap_workaround (w0[2]);
-    w0[3] = swap_workaround (w0[3]);
-    w1[0] = swap_workaround (w1[0]);
-    w1[1] = swap_workaround (w1[1]);
-    w1[2] = swap_workaround (w1[2]);
-    w1[3] = swap_workaround (w1[3]);
-    w2[0] = swap_workaround (w2[0]);
-    w2[1] = swap_workaround (w2[1]);
-    w2[2] = swap_workaround (w2[2]);
-    w2[3] = swap_workaround (w2[3]);
-    w3[0] = swap_workaround (w3[0]);
-    w3[1] = swap_workaround (w3[1]);
+    w0[0] = swap32 (w0[0]);
+    w0[1] = swap32 (w0[1]);
+    w0[2] = swap32 (w0[2]);
+    w0[3] = swap32 (w0[3]);
+    w1[0] = swap32 (w1[0]);
+    w1[1] = swap32 (w1[1]);
+    w1[2] = swap32 (w1[2]);
+    w1[3] = swap32 (w1[3]);
+    w2[0] = swap32 (w2[0]);
+    w2[1] = swap32 (w2[1]);
+    w2[2] = swap32 (w2[2]);
+    w2[3] = swap32 (w2[3]);
+    w3[0] = swap32 (w3[0]);
+    w3[1] = swap32 (w3[1]);
     w3[2] = 0;
     w3[3] = (64 + salt_len + 4) * 8;
 
@@ -929,33 +905,27 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08900_loop (__gl
 
   if (gid >= gid_max) return;
 
-  const u32 scrypt_phy   = salt_bufs[salt_pos].scrypt_phy;
+  const u32 scrypt_phy = salt_bufs[salt_pos].scrypt_phy;
 
-  const u32 state_cnt    = GET_STATE_CNT  (SCRYPT_R);
-  const u32 scrypt_cnt   = GET_SCRYPT_CNT (SCRYPT_R, SCRYPT_P);
-
-  const u32 state_cnt4   = state_cnt  / 4;
-  const u32 scrypt_cnt4  = scrypt_cnt / 4;
-
-  uint4 X[state_cnt4];
-  uint4 T[state_cnt4];
+  uint4 X[STATE_CNT4];
+  uint4 T[STATE_CNT4];
 
   #pragma unroll
-  for (int z = 0; z < state_cnt4; z++) X[z] = swap_workaround (tmps[gid].P[z]);
+  for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[z]);
 
-  scrypt_smix (X, T, SCRYPT_N, SCRYPT_R, SCRYPT_TMTO, scrypt_phy, d_scryptV_buf);
+  scrypt_smix (X, T, scrypt_phy, d_scryptV_buf);
 
   #pragma unroll
-  for (int z = 0; z < state_cnt4; z++) tmps[gid].P[z] = swap_workaround (X[z]);
+  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[z] = swap32_4 (X[z]);
 
   #if SCRYPT_P >= 1
-  for (int i = state_cnt4; i < scrypt_cnt4; i += state_cnt4)
+  for (int i = STATE_CNT4; i < SCRYPT_CNT4; i += STATE_CNT4)
   {
-    for (int z = 0; z < state_cnt4; z++) X[z] = swap_workaround (tmps[gid].P[i + z]);
+    for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[i + z]);
 
-    scrypt_smix (X, T, SCRYPT_N, SCRYPT_R, SCRYPT_TMTO, scrypt_phy, d_scryptV_buf);
+    scrypt_smix (X, T, scrypt_phy, d_scryptV_buf);
 
-    for (int z = 0; z < state_cnt4; z++) tmps[gid].P[i + z] = swap_workaround (X[z]);
+    for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[i + z] = swap32_4 (X[z]);
   }
   #endif
 }
@@ -1007,37 +977,34 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08900_comp (__gl
   const u32 scrypt_p = SCRYPT_P;
   //const u32 scrypt_N = SCRYPT_N;
 
-  const u32 scrypt_cnt = GET_SCRYPT_CNT (scrypt_r, scrypt_p);
-
-  const u32 scrypt_cnt4  = scrypt_cnt / 4;
 
   /**
    * 2nd pbkdf2, creates B
    */
 
-  w0[0] = swap_workaround (w0[0]);
-  w0[1] = swap_workaround (w0[1]);
-  w0[2] = swap_workaround (w0[2]);
-  w0[3] = swap_workaround (w0[3]);
-  w1[0] = swap_workaround (w1[0]);
-  w1[1] = swap_workaround (w1[1]);
-  w1[2] = swap_workaround (w1[2]);
-  w1[3] = swap_workaround (w1[3]);
-  w2[0] = swap_workaround (w2[0]);
-  w2[1] = swap_workaround (w2[1]);
-  w2[2] = swap_workaround (w2[2]);
-  w2[3] = swap_workaround (w2[3]);
-  w3[0] = swap_workaround (w3[0]);
-  w3[1] = swap_workaround (w3[1]);
-  w3[2] = swap_workaround (w3[2]);
-  w3[3] = swap_workaround (w3[3]);
+  w0[0] = swap32 (w0[0]);
+  w0[1] = swap32 (w0[1]);
+  w0[2] = swap32 (w0[2]);
+  w0[3] = swap32 (w0[3]);
+  w1[0] = swap32 (w1[0]);
+  w1[1] = swap32 (w1[1]);
+  w1[2] = swap32 (w1[2]);
+  w1[3] = swap32 (w1[3]);
+  w2[0] = swap32 (w2[0]);
+  w2[1] = swap32 (w2[1]);
+  w2[2] = swap32 (w2[2]);
+  w2[3] = swap32 (w2[3]);
+  w3[0] = swap32 (w3[0]);
+  w3[1] = swap32 (w3[1]);
+  w3[2] = swap32 (w3[2]);
+  w3[3] = swap32 (w3[3]);
 
   u32 ipad[8];
   u32 opad[8];
 
   hmac_sha256_pad (w0, w1, w2, w3, ipad, opad);
 
-  for (u32 l = 0; l < scrypt_cnt4; l += 4)
+  for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
   {
     barrier (CLK_GLOBAL_MEM_FENCE);
 
@@ -1089,16 +1056,16 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08900_comp (__gl
   w3[0] = 0;
   w3[1] = 0;
   w3[2] = 0;
-  w3[3] = (64 + (scrypt_cnt * 4) + 4) * 8;
+  w3[3] = (64 + (SCRYPT_CNT * 4) + 4) * 8;
 
   u32 digest[8];
 
   hmac_sha256_run (w0, w1, w2, w3, ipad, opad, digest);
 
-  const u32 r0 = swap_workaround (digest[DGST_R0]);
-  const u32 r1 = swap_workaround (digest[DGST_R1]);
-  const u32 r2 = swap_workaround (digest[DGST_R2]);
-  const u32 r3 = swap_workaround (digest[DGST_R3]);
+  const u32 r0 = swap32 (digest[DGST_R0]);
+  const u32 r1 = swap32 (digest[DGST_R1]);
+  const u32 r2 = swap32 (digest[DGST_R2]);
+  const u32 r3 = swap32 (digest[DGST_R3]);
 
   #define il_pos 0
 

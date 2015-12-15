@@ -17,9 +17,8 @@
 #include "types_ocl.c"
 #include "common.c"
 
-#ifdef  VECT_SIZE1
-#define COMPARE_M "check_multi_vect1_comp4.c"
-#endif
+#define COMPARE_S "check_single_comp4.c"
+#define COMPARE_M "check_multi_comp4.c"
 
 __constant u32 te0[256] =
 {
@@ -925,22 +924,22 @@ static void sha256_transform (const u32 w[16], u32 digest[8])
   u32 g = digest[6];
   u32 h = digest[7];
 
-  u32 w0_t = swap_workaround (w[ 0]);
-  u32 w1_t = swap_workaround (w[ 1]);
-  u32 w2_t = swap_workaround (w[ 2]);
-  u32 w3_t = swap_workaround (w[ 3]);
-  u32 w4_t = swap_workaround (w[ 4]);
-  u32 w5_t = swap_workaround (w[ 5]);
-  u32 w6_t = swap_workaround (w[ 6]);
-  u32 w7_t = swap_workaround (w[ 7]);
-  u32 w8_t = swap_workaround (w[ 8]);
-  u32 w9_t = swap_workaround (w[ 9]);
-  u32 wa_t = swap_workaround (w[10]);
-  u32 wb_t = swap_workaround (w[11]);
-  u32 wc_t = swap_workaround (w[12]);
-  u32 wd_t = swap_workaround (w[13]);
-  u32 we_t = swap_workaround (w[14]);
-  u32 wf_t = swap_workaround (w[15]);
+  u32 w0_t = swap32 (w[ 0]);
+  u32 w1_t = swap32 (w[ 1]);
+  u32 w2_t = swap32 (w[ 2]);
+  u32 w3_t = swap32 (w[ 3]);
+  u32 w4_t = swap32 (w[ 4]);
+  u32 w5_t = swap32 (w[ 5]);
+  u32 w6_t = swap32 (w[ 6]);
+  u32 w7_t = swap32 (w[ 7]);
+  u32 w8_t = swap32 (w[ 8]);
+  u32 w9_t = swap32 (w[ 9]);
+  u32 wa_t = swap32 (w[10]);
+  u32 wb_t = swap32 (w[11]);
+  u32 wc_t = swap32 (w[12]);
+  u32 wd_t = swap32 (w[13]);
+  u32 we_t = swap32 (w[14]);
+  u32 wf_t = swap32 (w[15]);
 
   #define ROUND_EXPAND()                            \
   {                                                 \
@@ -1144,6 +1143,17 @@ static u32 memcat8c (u32 block[16], const u32 block_len, const u32 append[2], co
   u32 tmp1;
   u32 tmp2;
 
+  #ifdef IS_NV
+  const int offset_minus_4 = 4 - (block_len & 3);
+
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+
+  tmp0 = __byte_perm (        0, append[0], selector);
+  tmp1 = __byte_perm (append[0], append[1], selector);
+  tmp2 = __byte_perm (append[1],         0, selector);
+  #endif
+
+  #ifdef IS_AMD
   const int offset_minus_4 = 4 - block_len;
 
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
@@ -1156,6 +1166,7 @@ static u32 memcat8c (u32 block[16], const u32 block_len, const u32 append[2], co
     tmp1 = tmp2;
     tmp2 = 0;
   }
+  #endif
 
   u32 carry[2] = { 0, 0 };
 
@@ -1259,6 +1270,23 @@ static u32 memcat32c (u32 block[16], const u32 block_len, const u32 append[8], c
   u32 tmp7;
   u32 tmp8;
 
+  #ifdef IS_NV
+  const int offset_minus_4 = 4 - (block_len & 3);
+
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+
+  tmp0 = __byte_perm (        0, append[0], selector);
+  tmp1 = __byte_perm (append[0], append[1], selector);
+  tmp2 = __byte_perm (append[1], append[2], selector);
+  tmp3 = __byte_perm (append[2], append[3], selector);
+  tmp4 = __byte_perm (append[3], append[4], selector);
+  tmp5 = __byte_perm (append[4], append[5], selector);
+  tmp6 = __byte_perm (append[5], append[6], selector);
+  tmp7 = __byte_perm (append[6], append[7], selector);
+  tmp8 = __byte_perm (append[7],         0, selector);
+  #endif
+
+  #ifdef IS_AMD
   const int offset_minus_4 = 4 - block_len;
 
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
@@ -1283,6 +1311,7 @@ static u32 memcat32c (u32 block[16], const u32 block_len, const u32 append[8], c
     tmp7 = tmp8;
     tmp8 = 0;
   }
+  #endif
 
   u32 carry[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -1770,7 +1799,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11600_comp (__gl
   u32 block_len = tmps[gid].block_len;
   u32 final_len = tmps[gid].final_len;
 
-  append_0x80_4x4 (block, block_len);
+  append_0x80_1x16 (block, block_len);
 
   if (block_len >= 56)
   {
@@ -1779,7 +1808,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11600_comp (__gl
     bzero16 (block);
   }
 
-  block[15] = swap_workaround (final_len * 8);
+  block[15] = swap32 (final_len * 8);
 
   sha256_transform (block, dgst);
 
@@ -1825,10 +1854,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11600_comp (__gl
   {
     u32 data[4];
 
-    data[0] = swap_workaround (esalt_bufs[salt_pos].data_buf[j + 0]);
-    data[1] = swap_workaround (esalt_bufs[salt_pos].data_buf[j + 1]);
-    data[2] = swap_workaround (esalt_bufs[salt_pos].data_buf[j + 2]);
-    data[3] = swap_workaround (esalt_bufs[salt_pos].data_buf[j + 3]);
+    data[0] = swap32 (esalt_bufs[salt_pos].data_buf[j + 0]);
+    data[1] = swap32 (esalt_bufs[salt_pos].data_buf[j + 1]);
+    data[2] = swap32 (esalt_bufs[salt_pos].data_buf[j + 2]);
+    data[3] = swap32 (esalt_bufs[salt_pos].data_buf[j + 3]);
 
     u32 out[4];
 
@@ -1844,20 +1873,20 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11600_comp (__gl
     iv[2] = data[2];
     iv[3] = data[3];
 
-    out[0] = swap_workaround (out[0]);
-    out[1] = swap_workaround (out[1]);
-    out[2] = swap_workaround (out[2]);
-    out[3] = swap_workaround (out[3]);
+    out[0] = swap32 (out[0]);
+    out[1] = swap32 (out[1]);
+    out[2] = swap32 (out[2]);
+    out[3] = swap32 (out[3]);
 
     crc = crc32 (out, 16, crc);
   }
 
   u32 data[4];
 
-  data[0] = swap_workaround (esalt_bufs[salt_pos].data_buf[j + 0]);
-  data[1] = swap_workaround (esalt_bufs[salt_pos].data_buf[j + 1]);
-  data[2] = swap_workaround (esalt_bufs[salt_pos].data_buf[j + 2]);
-  data[3] = swap_workaround (esalt_bufs[salt_pos].data_buf[j + 3]);
+  data[0] = swap32 (esalt_bufs[salt_pos].data_buf[j + 0]);
+  data[1] = swap32 (esalt_bufs[salt_pos].data_buf[j + 1]);
+  data[2] = swap32 (esalt_bufs[salt_pos].data_buf[j + 2]);
+  data[3] = swap32 (esalt_bufs[salt_pos].data_buf[j + 3]);
 
   u32 out[4];
 
@@ -1873,10 +1902,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11600_comp (__gl
   iv[2] = data[2];
   iv[3] = data[3];
 
-  out[0] = swap_workaround (out[0]);
-  out[1] = swap_workaround (out[1]);
-  out[2] = swap_workaround (out[2]);
-  out[3] = swap_workaround (out[3]);
+  out[0] = swap32 (out[0]);
+  out[1] = swap32 (out[1]);
+  out[2] = swap32 (out[2]);
+  out[3] = swap32 (out[3]);
 
   const u32 margin = data_len - unpack_size;
 

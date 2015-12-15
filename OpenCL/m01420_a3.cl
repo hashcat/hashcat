@@ -86,22 +86,22 @@ static void m01420m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     u32 w2_t2[4];
     u32 w3_t2[4];
 
-    w0_t2[0] = swap_workaround (w0[0]);
-    w0_t2[1] = swap_workaround (w0[1]);
-    w0_t2[2] = swap_workaround (w0[2]);
-    w0_t2[3] = swap_workaround (w0[3]);
-    w1_t2[0] = swap_workaround (w1[0]);
-    w1_t2[1] = swap_workaround (w1[1]);
-    w1_t2[2] = swap_workaround (w1[2]);
-    w1_t2[3] = swap_workaround (w1[3]);
-    w2_t2[0] = swap_workaround (w2[0]);
-    w2_t2[1] = swap_workaround (w2[1]);
-    w2_t2[2] = swap_workaround (w2[2]);
-    w2_t2[3] = swap_workaround (w2[3]);
-    w3_t2[0] = swap_workaround (w3[0]);
-    w3_t2[1] = swap_workaround (w3[1]);
-    w3_t2[2] = swap_workaround (w3[2]);
-    w3_t2[3] = swap_workaround (w3[3]);
+    w0_t2[0] = swap32 (w0[0]);
+    w0_t2[1] = swap32 (w0[1]);
+    w0_t2[2] = swap32 (w0[2]);
+    w0_t2[3] = swap32 (w0[3]);
+    w1_t2[0] = swap32 (w1[0]);
+    w1_t2[1] = swap32 (w1[1]);
+    w1_t2[2] = swap32 (w1[2]);
+    w1_t2[3] = swap32 (w1[3]);
+    w2_t2[0] = swap32 (w2[0]);
+    w2_t2[1] = swap32 (w2[1]);
+    w2_t2[2] = swap32 (w2[2]);
+    w2_t2[3] = swap32 (w2[3]);
+    w3_t2[0] = swap32 (w3[0]);
+    w3_t2[1] = swap32 (w3[1]);
+    w3_t2[2] = swap32 (w3[2]);
+    w3_t2[3] = swap32 (w3[3]);
 
     switch_buffer_by_offset (w0_t2, w1_t2, w2_t2, w3_t2, salt_len);
 
@@ -126,20 +126,20 @@ static void m01420m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
      * sha256
      */
 
-    u32 w0_t = swap_workaround (w0_t2[0]);
-    u32 w1_t = swap_workaround (w0_t2[1]);
-    u32 w2_t = swap_workaround (w0_t2[2]);
-    u32 w3_t = swap_workaround (w0_t2[3]);
-    u32 w4_t = swap_workaround (w1_t2[0]);
-    u32 w5_t = swap_workaround (w1_t2[1]);
-    u32 w6_t = swap_workaround (w1_t2[2]);
-    u32 w7_t = swap_workaround (w1_t2[3]);
-    u32 w8_t = swap_workaround (w2_t2[0]);
-    u32 w9_t = swap_workaround (w2_t2[1]);
-    u32 wa_t = swap_workaround (w2_t2[2]);
-    u32 wb_t = swap_workaround (w2_t2[3]);
-    u32 wc_t = swap_workaround (w3_t2[0]);
-    u32 wd_t = swap_workaround (w3_t2[1]);
+    u32 w0_t = swap32 (w0_t2[0]);
+    u32 w1_t = swap32 (w0_t2[1]);
+    u32 w2_t = swap32 (w0_t2[2]);
+    u32 w3_t = swap32 (w0_t2[3]);
+    u32 w4_t = swap32 (w1_t2[0]);
+    u32 w5_t = swap32 (w1_t2[1]);
+    u32 w6_t = swap32 (w1_t2[2]);
+    u32 w7_t = swap32 (w1_t2[3]);
+    u32 w8_t = swap32 (w2_t2[0]);
+    u32 w9_t = swap32 (w2_t2[1]);
+    u32 wa_t = swap32 (w2_t2[2]);
+    u32 wb_t = swap32 (w2_t2[3]);
+    u32 wc_t = swap32 (w3_t2[0]);
+    u32 wd_t = swap32 (w3_t2[1]);
     u32 we_t = 0;
     u32 wf_t = pw_salt_len * 8;
 
@@ -308,22 +308,22 @@ static void m01420s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     u32 w2_t2[4];
     u32 w3_t2[4];
 
-    w0_t2[0] = swap_workaround (w0[0]);
-    w0_t2[1] = swap_workaround (w0[1]);
-    w0_t2[2] = swap_workaround (w0[2]);
-    w0_t2[3] = swap_workaround (w0[3]);
-    w1_t2[0] = swap_workaround (w1[0]);
-    w1_t2[1] = swap_workaround (w1[1]);
-    w1_t2[2] = swap_workaround (w1[2]);
-    w1_t2[3] = swap_workaround (w1[3]);
-    w2_t2[0] = swap_workaround (w2[0]);
-    w2_t2[1] = swap_workaround (w2[1]);
-    w2_t2[2] = swap_workaround (w2[2]);
-    w2_t2[3] = swap_workaround (w2[3]);
-    w3_t2[0] = swap_workaround (w3[0]);
-    w3_t2[1] = swap_workaround (w3[1]);
-    w3_t2[2] = swap_workaround (w3[2]);
-    w3_t2[3] = swap_workaround (w3[3]);
+    w0_t2[0] = swap32 (w0[0]);
+    w0_t2[1] = swap32 (w0[1]);
+    w0_t2[2] = swap32 (w0[2]);
+    w0_t2[3] = swap32 (w0[3]);
+    w1_t2[0] = swap32 (w1[0]);
+    w1_t2[1] = swap32 (w1[1]);
+    w1_t2[2] = swap32 (w1[2]);
+    w1_t2[3] = swap32 (w1[3]);
+    w2_t2[0] = swap32 (w2[0]);
+    w2_t2[1] = swap32 (w2[1]);
+    w2_t2[2] = swap32 (w2[2]);
+    w2_t2[3] = swap32 (w2[3]);
+    w3_t2[0] = swap32 (w3[0]);
+    w3_t2[1] = swap32 (w3[1]);
+    w3_t2[2] = swap32 (w3[2]);
+    w3_t2[3] = swap32 (w3[3]);
 
     switch_buffer_by_offset (w0_t2, w1_t2, w2_t2, w3_t2, salt_len);
 
@@ -348,20 +348,20 @@ static void m01420s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
      * sha256
      */
 
-    u32 w0_t = swap_workaround (w0_t2[0]);
-    u32 w1_t = swap_workaround (w0_t2[1]);
-    u32 w2_t = swap_workaround (w0_t2[2]);
-    u32 w3_t = swap_workaround (w0_t2[3]);
-    u32 w4_t = swap_workaround (w1_t2[0]);
-    u32 w5_t = swap_workaround (w1_t2[1]);
-    u32 w6_t = swap_workaround (w1_t2[2]);
-    u32 w7_t = swap_workaround (w1_t2[3]);
-    u32 w8_t = swap_workaround (w2_t2[0]);
-    u32 w9_t = swap_workaround (w2_t2[1]);
-    u32 wa_t = swap_workaround (w2_t2[2]);
-    u32 wb_t = swap_workaround (w2_t2[3]);
-    u32 wc_t = swap_workaround (w3_t2[0]);
-    u32 wd_t = swap_workaround (w3_t2[1]);
+    u32 w0_t = swap32 (w0_t2[0]);
+    u32 w1_t = swap32 (w0_t2[1]);
+    u32 w2_t = swap32 (w0_t2[2]);
+    u32 w3_t = swap32 (w0_t2[3]);
+    u32 w4_t = swap32 (w1_t2[0]);
+    u32 w5_t = swap32 (w1_t2[1]);
+    u32 w6_t = swap32 (w1_t2[2]);
+    u32 w7_t = swap32 (w1_t2[3]);
+    u32 w8_t = swap32 (w2_t2[0]);
+    u32 w9_t = swap32 (w2_t2[1]);
+    u32 wa_t = swap32 (w2_t2[2]);
+    u32 wb_t = swap32 (w2_t2[3]);
+    u32 wc_t = swap32 (w3_t2[0]);
+    u32 wd_t = swap32 (w3_t2[1]);
     u32 we_t = 0;
     u32 wf_t = pw_salt_len * 8;
 

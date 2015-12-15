@@ -17,17 +17,8 @@
 #include "types_ocl.c"
 #include "common.c"
 
-#ifdef  VECT_SIZE1
-#define COMPARE_M "check_multi_vect1_comp4.c"
-#endif
-
-#ifdef  VECT_SIZE2
-#define COMPARE_M "check_multi_vect2_comp4.c"
-#endif
-
-#ifdef  VECT_SIZE4
-#define COMPARE_M "check_multi_vect4_comp4.c"
-#endif
+#define COMPARE_S "check_single_comp4.c"
+#define COMPARE_M "check_multi_comp4.c"
 
 __constant u64 k_sha512[80] =
 {
@@ -320,22 +311,22 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06500_init (__gl
    * pads
    */
 
-  w0[0] = swap_workaround (w0[0]);
-  w0[1] = swap_workaround (w0[1]);
-  w0[2] = swap_workaround (w0[2]);
-  w0[3] = swap_workaround (w0[3]);
-  w1[0] = swap_workaround (w1[0]);
-  w1[1] = swap_workaround (w1[1]);
-  w1[2] = swap_workaround (w1[2]);
-  w1[3] = swap_workaround (w1[3]);
-  w2[0] = swap_workaround (w2[0]);
-  w2[1] = swap_workaround (w2[1]);
-  w2[2] = swap_workaround (w2[2]);
-  w2[3] = swap_workaround (w2[3]);
-  w3[0] = swap_workaround (w3[0]);
-  w3[1] = swap_workaround (w3[1]);
-  w3[2] = swap_workaround (w3[2]);
-  w3[3] = swap_workaround (w3[3]);
+  w0[0] = swap32 (w0[0]);
+  w0[1] = swap32 (w0[1]);
+  w0[2] = swap32 (w0[2]);
+  w0[3] = swap32 (w0[3]);
+  w1[0] = swap32 (w1[0]);
+  w1[1] = swap32 (w1[1]);
+  w1[2] = swap32 (w1[2]);
+  w1[3] = swap32 (w1[3]);
+  w2[0] = swap32 (w2[0]);
+  w2[1] = swap32 (w2[1]);
+  w2[2] = swap32 (w2[2]);
+  w2[3] = swap32 (w2[3]);
+  w3[0] = swap32 (w3[0]);
+  w3[1] = swap32 (w3[1]);
+  w3[2] = swap32 (w3[2]);
+  w3[3] = swap32 (w3[3]);
 
   u64 w0l[4];
   u64 w1l[4];
@@ -399,14 +390,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06500_init (__gl
   w3l[2] = 0;
   w3l[3] = 0;
 
-  w0l[0] = swap_workaround (w0l[0]);
-  w0l[1] = swap_workaround (w0l[1]);
-  w0l[2] = swap_workaround (w0l[2]);
-  w0l[3] = swap_workaround (w0l[3]);
-  w1l[0] = swap_workaround (w1l[0]);
-  w1l[1] = swap_workaround (w1l[1]);
-  w1l[2] = swap_workaround (w1l[2]);
-  w1l[3] = swap_workaround (w1l[3]);
+  w0l[0] = swap32 (w0l[0]);
+  w0l[1] = swap32 (w0l[1]);
+  w0l[2] = swap32 (w0l[2]);
+  w0l[3] = swap32 (w0l[3]);
+  w1l[0] = swap32 (w1l[0]);
+  w1l[1] = swap32 (w1l[1]);
+  w1l[2] = swap32 (w1l[2]);
+  w1l[3] = swap32 (w1l[3]);
   w2l[0] = 0;
   w2l[1] = 0;
   w2l[2] = 0;

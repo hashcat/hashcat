@@ -373,10 +373,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09810_m04 (__glo
     u32 w2_t[4];
     u32 w3_t[4];
 
-    w0_t[0] = swap_workaround (out[0]);
-    w0_t[1] = swap_workaround (out[1]);
-    w0_t[2] = swap_workaround (out[2]);
-    w0_t[3] = swap_workaround (out[3]);
+    w0_t[0] = swap32 (out[0]);
+    w0_t[1] = swap32 (out[1]);
+    w0_t[2] = swap32 (out[2]);
+    w0_t[3] = swap32 (out[3]);
     w1_t[0] = 0x80000000;
     w1_t[1] = 0;
     w1_t[2] = 0;
@@ -400,10 +400,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09810_m04 (__glo
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    digest[0] = swap_workaround (digest[0]);
-    digest[1] = swap_workaround (digest[1]);
-    digest[2] = swap_workaround (digest[2]);
-    digest[3] = swap_workaround (digest[3]);
+    digest[0] = swap32 (digest[0]);
+    digest[1] = swap32 (digest[1]);
+    digest[2] = swap32 (digest[2]);
+    digest[3] = swap32 (digest[3]);
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 
@@ -539,10 +539,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09810_s04 (__glo
     u32 w2_t[4];
     u32 w3_t[4];
 
-    w0_t[0] = swap_workaround (out[0]);
-    w0_t[1] = swap_workaround (out[1]);
-    w0_t[2] = swap_workaround (out[2]);
-    w0_t[3] = swap_workaround (out[3]);
+    w0_t[0] = swap32 (out[0]);
+    w0_t[1] = swap32 (out[1]);
+    w0_t[2] = swap32 (out[2]);
+    w0_t[3] = swap32 (out[3]);
     w1_t[0] = 0x80000000;
     w1_t[1] = 0;
     w1_t[2] = 0;
@@ -566,10 +566,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09810_s04 (__glo
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    digest[0] = swap_workaround (digest[0]);
-    digest[1] = swap_workaround (digest[1]);
-    digest[2] = swap_workaround (digest[2]);
-    digest[3] = swap_workaround (digest[3]);
+    digest[0] = swap32 (digest[0]);
+    digest[1] = swap32 (digest[1]);
+    digest[2] = swap32 (digest[2]);
+    digest[3] = swap32 (digest[3]);
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 

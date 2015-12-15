@@ -17,9 +17,8 @@
 #include "types_ocl.c"
 #include "common.c"
 
-#ifdef  VECT_SIZE1
-#define COMPARE_M "check_multi_vect1_comp4.c"
-#endif
+#define COMPARE_S "check_single_comp4.c"
+#define COMPARE_M "check_multi_comp4.c"
 
 __constant u64 k_sha512[80] =
 {
@@ -246,31 +245,31 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07100_init (__gl
 
   u32 w0[4];
 
-  w0[0] = swap_workaround (pws[gid].i[ 0]);
-  w0[1] = swap_workaround (pws[gid].i[ 1]);
-  w0[2] = swap_workaround (pws[gid].i[ 2]);
-  w0[3] = swap_workaround (pws[gid].i[ 3]);
+  w0[0] = swap32 (pws[gid].i[ 0]);
+  w0[1] = swap32 (pws[gid].i[ 1]);
+  w0[2] = swap32 (pws[gid].i[ 2]);
+  w0[3] = swap32 (pws[gid].i[ 3]);
 
   u32 w1[4];
 
-  w1[0] = swap_workaround (pws[gid].i[ 4]);
-  w1[1] = swap_workaround (pws[gid].i[ 5]);
-  w1[2] = swap_workaround (pws[gid].i[ 6]);
-  w1[3] = swap_workaround (pws[gid].i[ 7]);
+  w1[0] = swap32 (pws[gid].i[ 4]);
+  w1[1] = swap32 (pws[gid].i[ 5]);
+  w1[2] = swap32 (pws[gid].i[ 6]);
+  w1[3] = swap32 (pws[gid].i[ 7]);
 
   u32 w2[4];
 
-  w2[0] = swap_workaround (pws[gid].i[ 8]);
-  w2[1] = swap_workaround (pws[gid].i[ 9]);
-  w2[2] = swap_workaround (pws[gid].i[10]);
-  w2[3] = swap_workaround (pws[gid].i[11]);
+  w2[0] = swap32 (pws[gid].i[ 8]);
+  w2[1] = swap32 (pws[gid].i[ 9]);
+  w2[2] = swap32 (pws[gid].i[10]);
+  w2[3] = swap32 (pws[gid].i[11]);
 
   u32 w3[4];
 
-  w3[0] = swap_workaround (pws[gid].i[12]);
-  w3[1] = swap_workaround (pws[gid].i[13]);
-  w3[2] = swap_workaround (pws[gid].i[14]);
-  w3[3] = swap_workaround (pws[gid].i[15]);
+  w3[0] = swap32 (pws[gid].i[12]);
+  w3[1] = swap32 (pws[gid].i[13]);
+  w3[2] = swap32 (pws[gid].i[14]);
+  w3[3] = swap32 (pws[gid].i[15]);
 
   /**
    * salt
@@ -280,20 +279,20 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07100_init (__gl
 
   u32 salt_len  = salt_bufs[salt_pos].salt_len;
 
-  esalt_buf[ 0] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[ 0]), swap_workaround (esalt_bufs[salt_pos].salt_buf[ 1]));
-  esalt_buf[ 1] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[ 2]), swap_workaround (esalt_bufs[salt_pos].salt_buf[ 3]));
-  esalt_buf[ 2] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[ 4]), swap_workaround (esalt_bufs[salt_pos].salt_buf[ 5]));
-  esalt_buf[ 3] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[ 6]), swap_workaround (esalt_bufs[salt_pos].salt_buf[ 7]));
-  esalt_buf[ 4] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[ 8]), swap_workaround (esalt_bufs[salt_pos].salt_buf[ 9]));
-  esalt_buf[ 5] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[10]), swap_workaround (esalt_bufs[salt_pos].salt_buf[11]));
-  esalt_buf[ 6] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[12]), swap_workaround (esalt_bufs[salt_pos].salt_buf[13]));
-  esalt_buf[ 7] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[14]), swap_workaround (esalt_bufs[salt_pos].salt_buf[15]));
-  esalt_buf[ 8] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[16]), swap_workaround (esalt_bufs[salt_pos].salt_buf[17]));
-  esalt_buf[ 9] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[18]), swap_workaround (esalt_bufs[salt_pos].salt_buf[19]));
-  esalt_buf[10] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[20]), swap_workaround (esalt_bufs[salt_pos].salt_buf[21]));
-  esalt_buf[11] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[22]), swap_workaround (esalt_bufs[salt_pos].salt_buf[23]));
-  esalt_buf[12] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[24]), swap_workaround (esalt_bufs[salt_pos].salt_buf[25]));
-  esalt_buf[13] = hl32_to_64 (swap_workaround (esalt_bufs[salt_pos].salt_buf[26]), swap_workaround (esalt_bufs[salt_pos].salt_buf[27]));
+  esalt_buf[ 0] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[ 0]), swap32 (esalt_bufs[salt_pos].salt_buf[ 1]));
+  esalt_buf[ 1] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[ 2]), swap32 (esalt_bufs[salt_pos].salt_buf[ 3]));
+  esalt_buf[ 2] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[ 4]), swap32 (esalt_bufs[salt_pos].salt_buf[ 5]));
+  esalt_buf[ 3] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[ 6]), swap32 (esalt_bufs[salt_pos].salt_buf[ 7]));
+  esalt_buf[ 4] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[ 8]), swap32 (esalt_bufs[salt_pos].salt_buf[ 9]));
+  esalt_buf[ 5] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[10]), swap32 (esalt_bufs[salt_pos].salt_buf[11]));
+  esalt_buf[ 6] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[12]), swap32 (esalt_bufs[salt_pos].salt_buf[13]));
+  esalt_buf[ 7] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[14]), swap32 (esalt_bufs[salt_pos].salt_buf[15]));
+  esalt_buf[ 8] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[16]), swap32 (esalt_bufs[salt_pos].salt_buf[17]));
+  esalt_buf[ 9] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[18]), swap32 (esalt_bufs[salt_pos].salt_buf[19]));
+  esalt_buf[10] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[20]), swap32 (esalt_bufs[salt_pos].salt_buf[21]));
+  esalt_buf[11] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[22]), swap32 (esalt_bufs[salt_pos].salt_buf[23]));
+  esalt_buf[12] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[24]), swap32 (esalt_bufs[salt_pos].salt_buf[25]));
+  esalt_buf[13] = hl32_to_64 (swap32 (esalt_bufs[salt_pos].salt_buf[26]), swap32 (esalt_bufs[salt_pos].salt_buf[27]));
   esalt_buf[14] = 0;
   esalt_buf[15] = (128 + salt_len + 4) * 8;
 

@@ -225,16 +225,16 @@ static void m12600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w9_t = uint_to_hex_upper8 ((e >>  8) & 255) <<  0
          | uint_to_hex_upper8 ((e >>  0) & 255) << 16;
 
-    w0_t = swap_workaround (w0_t);
-    w1_t = swap_workaround (w1_t);
-    w2_t = swap_workaround (w2_t);
-    w3_t = swap_workaround (w3_t);
-    w4_t = swap_workaround (w4_t);
-    w5_t = swap_workaround (w5_t);
-    w6_t = swap_workaround (w6_t);
-    w7_t = swap_workaround (w7_t);
-    w8_t = swap_workaround (w8_t);
-    w9_t = swap_workaround (w9_t);
+    w0_t = swap32 (w0_t);
+    w1_t = swap32 (w1_t);
+    w2_t = swap32 (w2_t);
+    w3_t = swap32 (w3_t);
+    w4_t = swap32 (w4_t);
+    w5_t = swap32 (w5_t);
+    w6_t = swap32 (w6_t);
+    w7_t = swap32 (w7_t);
+    w8_t = swap32 (w8_t);
+    w9_t = swap32 (w9_t);
     wa_t = 0x80000000;
     wb_t = 0;
     wc_t = 0;
@@ -533,16 +533,16 @@ static void m12600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w9_t = uint_to_hex_upper8 ((e >>  8) & 255) <<  0
          | uint_to_hex_upper8 ((e >>  0) & 255) << 16;
 
-    w0_t = swap_workaround (w0_t);
-    w1_t = swap_workaround (w1_t);
-    w2_t = swap_workaround (w2_t);
-    w3_t = swap_workaround (w3_t);
-    w4_t = swap_workaround (w4_t);
-    w5_t = swap_workaround (w5_t);
-    w6_t = swap_workaround (w6_t);
-    w7_t = swap_workaround (w7_t);
-    w8_t = swap_workaround (w8_t);
-    w9_t = swap_workaround (w9_t);
+    w0_t = swap32 (w0_t);
+    w1_t = swap32 (w1_t);
+    w2_t = swap32 (w2_t);
+    w3_t = swap32 (w3_t);
+    w4_t = swap32 (w4_t);
+    w5_t = swap32 (w5_t);
+    w6_t = swap32 (w6_t);
+    w7_t = swap32 (w7_t);
+    w8_t = swap32 (w8_t);
+    w9_t = swap32 (w9_t);
     wa_t = 0x80000000;
     wb_t = 0;
     wc_t = 0;

@@ -96,14 +96,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01400_m04 (__glo
      * SHA256
      */
 
-    u32 w0_t = swap_workaround (w0[0]);
-    u32 w1_t = swap_workaround (w0[1]);
-    u32 w2_t = swap_workaround (w0[2]);
-    u32 w3_t = swap_workaround (w0[3]);
-    u32 w4_t = swap_workaround (w1[0]);
-    u32 w5_t = swap_workaround (w1[1]);
-    u32 w6_t = swap_workaround (w1[2]);
-    u32 w7_t = swap_workaround (w1[3]);
+    u32 w0_t = swap32 (w0[0]);
+    u32 w1_t = swap32 (w0[1]);
+    u32 w2_t = swap32 (w0[2]);
+    u32 w3_t = swap32 (w0[3]);
+    u32 w4_t = swap32 (w1[0]);
+    u32 w5_t = swap32 (w1[1]);
+    u32 w6_t = swap32 (w1[2]);
+    u32 w7_t = swap32 (w1[3]);
     u32 w8_t = 0;
     u32 w9_t = 0;
     u32 wa_t = 0;
@@ -294,14 +294,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01400_s04 (__glo
      * SHA256
      */
 
-    u32 w0_t = swap_workaround (w0[0]);
-    u32 w1_t = swap_workaround (w0[1]);
-    u32 w2_t = swap_workaround (w0[2]);
-    u32 w3_t = swap_workaround (w0[3]);
-    u32 w4_t = swap_workaround (w1[0]);
-    u32 w5_t = swap_workaround (w1[1]);
-    u32 w6_t = swap_workaround (w1[2]);
-    u32 w7_t = swap_workaround (w1[3]);
+    u32 w0_t = swap32 (w0[0]);
+    u32 w1_t = swap32 (w0[1]);
+    u32 w2_t = swap32 (w0[2]);
+    u32 w3_t = swap32 (w0[3]);
+    u32 w4_t = swap32 (w1[0]);
+    u32 w5_t = swap32 (w1[1]);
+    u32 w6_t = swap32 (w1[2]);
+    u32 w7_t = swap32 (w1[3]);
     u32 w8_t = 0;
     u32 w9_t = 0;
     u32 wa_t = 0;

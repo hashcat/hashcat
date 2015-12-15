@@ -784,14 +784,14 @@ static void aes256_set_encrypt_key (u32 *ks, const u32 *ukey)
 {
   u32 ukey_s[8];
 
-  ukey_s[0] = swap_workaround (ukey[0]);
-  ukey_s[1] = swap_workaround (ukey[1]);
-  ukey_s[2] = swap_workaround (ukey[2]);
-  ukey_s[3] = swap_workaround (ukey[3]);
-  ukey_s[4] = swap_workaround (ukey[4]);
-  ukey_s[5] = swap_workaround (ukey[5]);
-  ukey_s[6] = swap_workaround (ukey[6]);
-  ukey_s[7] = swap_workaround (ukey[7]);
+  ukey_s[0] = swap32 (ukey[0]);
+  ukey_s[1] = swap32 (ukey[1]);
+  ukey_s[2] = swap32 (ukey[2]);
+  ukey_s[3] = swap32 (ukey[3]);
+  ukey_s[4] = swap32 (ukey[4]);
+  ukey_s[5] = swap32 (ukey[5]);
+  ukey_s[6] = swap32 (ukey[6]);
+  ukey_s[7] = swap32 (ukey[7]);
 
   aes256_ExpandKey (ks, ukey_s);
 }
@@ -800,14 +800,14 @@ static void aes256_set_decrypt_key (u32 *ks, const u32 *ukey)
 {
   u32 ukey_s[8];
 
-  ukey_s[0] = swap_workaround (ukey[0]);
-  ukey_s[1] = swap_workaround (ukey[1]);
-  ukey_s[2] = swap_workaround (ukey[2]);
-  ukey_s[3] = swap_workaround (ukey[3]);
-  ukey_s[4] = swap_workaround (ukey[4]);
-  ukey_s[5] = swap_workaround (ukey[5]);
-  ukey_s[6] = swap_workaround (ukey[6]);
-  ukey_s[7] = swap_workaround (ukey[7]);
+  ukey_s[0] = swap32 (ukey[0]);
+  ukey_s[1] = swap32 (ukey[1]);
+  ukey_s[2] = swap32 (ukey[2]);
+  ukey_s[3] = swap32 (ukey[3]);
+  ukey_s[4] = swap32 (ukey[4]);
+  ukey_s[5] = swap32 (ukey[5]);
+  ukey_s[6] = swap32 (ukey[6]);
+  ukey_s[7] = swap32 (ukey[7]);
 
   aes256_ExpandKey (ks, ukey_s);
 
@@ -818,10 +818,10 @@ static void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out)
 {
   u32 in_s[4];
 
-  in_s[0] = swap_workaround (in[0]);
-  in_s[1] = swap_workaround (in[1]);
-  in_s[2] = swap_workaround (in[2]);
-  in_s[3] = swap_workaround (in[3]);
+  in_s[0] = swap32 (in[0]);
+  in_s[1] = swap32 (in[1]);
+  in_s[2] = swap32 (in[2]);
+  in_s[3] = swap32 (in[3]);
 
   u32 s0 = in_s[0] ^ ks[0];
   u32 s1 = in_s[1] ^ ks[1];
@@ -910,20 +910,20 @@ static void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out)
          ^ (td4[(t0 >>  0) & 0xff] & 0x000000ff)
          ^ ks[59];
 
-  out[0] = swap_workaround (out[0]);
-  out[1] = swap_workaround (out[1]);
-  out[2] = swap_workaround (out[2]);
-  out[3] = swap_workaround (out[3]);
+  out[0] = swap32 (out[0]);
+  out[1] = swap32 (out[1]);
+  out[2] = swap32 (out[2]);
+  out[3] = swap32 (out[3]);
 }
 
 static void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out)
 {
   u32 in_s[4];
 
-  in_s[0] = swap_workaround (in[0]);
-  in_s[1] = swap_workaround (in[1]);
-  in_s[2] = swap_workaround (in[2]);
-  in_s[3] = swap_workaround (in[3]);
+  in_s[0] = swap32 (in[0]);
+  in_s[1] = swap32 (in[1]);
+  in_s[2] = swap32 (in[2]);
+  in_s[3] = swap32 (in[3]);
 
   u32 s0 = in_s[0] ^ ks[0];
   u32 s1 = in_s[1] ^ ks[1];
@@ -1012,10 +1012,10 @@ static void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out)
          ^ (te4[(t2 >>  0) & 0xff] & 0x000000ff)
          ^ ks[59];
 
-  out[0] = swap_workaround (out[0]);
-  out[1] = swap_workaround (out[1]);
-  out[2] = swap_workaround (out[2]);
-  out[3] = swap_workaround (out[3]);
+  out[0] = swap32 (out[0]);
+  out[1] = swap32 (out[1]);
+  out[2] = swap32 (out[2]);
+  out[3] = swap32 (out[3]);
 }
 
 static void aes256_decrypt_xts (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out)

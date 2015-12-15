@@ -17,19 +17,14 @@
 #include "types_ocl.c"
 #include "common.c"
 
-#ifdef  VECT_SIZE1
-#define COMPARE_M "check_multi_vect1_comp4.c"
-#endif
-
-#ifdef  VECT_SIZE4
-#define COMPARE_M "check_multi_vect4_comp4.c"
-#endif
+#define COMPARE_S "check_single_comp4.c"
+#define COMPARE_M "check_multi_comp4.c"
 
 typedef struct
 {
   union
   {
-    u32  dgst32[16];
+    u32 dgst32[16];
     u64 dgst64[8];
   };
 
@@ -37,7 +32,7 @@ typedef struct
 
   union
   {
-    u32  W32[32];
+    u32 W32[32];
     u64 W64[16];
   };
 
@@ -76,22 +71,22 @@ static void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4],
   u32 g = digest[6];
   u32 h = digest[7];
 
-  u32 w0_t = swap_workaround (w0[0]);
-  u32 w1_t = swap_workaround (w0[1]);
-  u32 w2_t = swap_workaround (w0[2]);
-  u32 w3_t = swap_workaround (w0[3]);
-  u32 w4_t = swap_workaround (w1[0]);
-  u32 w5_t = swap_workaround (w1[1]);
-  u32 w6_t = swap_workaround (w1[2]);
-  u32 w7_t = swap_workaround (w1[3]);
-  u32 w8_t = swap_workaround (w2[0]);
-  u32 w9_t = swap_workaround (w2[1]);
-  u32 wa_t = swap_workaround (w2[2]);
-  u32 wb_t = swap_workaround (w2[3]);
-  u32 wc_t = swap_workaround (w3[0]);
-  u32 wd_t = swap_workaround (w3[1]);
-  u32 we_t = swap_workaround (w3[2]);
-  u32 wf_t = swap_workaround (w3[3]);
+  u32 w0_t = swap32 (w0[0]);
+  u32 w1_t = swap32 (w0[1]);
+  u32 w2_t = swap32 (w0[2]);
+  u32 w3_t = swap32 (w0[3]);
+  u32 w4_t = swap32 (w1[0]);
+  u32 w5_t = swap32 (w1[1]);
+  u32 w6_t = swap32 (w1[2]);
+  u32 w7_t = swap32 (w1[3]);
+  u32 w8_t = swap32 (w2[0]);
+  u32 w9_t = swap32 (w2[1]);
+  u32 wa_t = swap32 (w2[2]);
+  u32 wb_t = swap32 (w2[3]);
+  u32 wc_t = swap32 (w3[0]);
+  u32 wd_t = swap32 (w3[1]);
+  u32 we_t = swap32 (w3[2]);
+  u32 wf_t = swap32 (w3[3]);
 
   #define ROUND256_EXPAND()                         \
   {                                                 \
@@ -186,22 +181,22 @@ static void sha384_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4],
   u64 g = digest[6];
   u64 h = digest[7];
 
-  u64 w0_t = swap_workaround (w0[0]);
-  u64 w1_t = swap_workaround (w0[1]);
-  u64 w2_t = swap_workaround (w0[2]);
-  u64 w3_t = swap_workaround (w0[3]);
-  u64 w4_t = swap_workaround (w1[0]);
-  u64 w5_t = swap_workaround (w1[1]);
-  u64 w6_t = swap_workaround (w1[2]);
-  u64 w7_t = swap_workaround (w1[3]);
-  u64 w8_t = swap_workaround (w2[0]);
-  u64 w9_t = swap_workaround (w2[1]);
-  u64 wa_t = swap_workaround (w2[2]);
-  u64 wb_t = swap_workaround (w2[3]);
-  u64 wc_t = swap_workaround (w3[0]);
-  u64 wd_t = swap_workaround (w3[1]);
-  u64 we_t = swap_workaround (w3[2]);
-  u64 wf_t = swap_workaround (w3[3]);
+  u64 w0_t = swap32 (w0[0]);
+  u64 w1_t = swap32 (w0[1]);
+  u64 w2_t = swap32 (w0[2]);
+  u64 w3_t = swap32 (w0[3]);
+  u64 w4_t = swap32 (w1[0]);
+  u64 w5_t = swap32 (w1[1]);
+  u64 w6_t = swap32 (w1[2]);
+  u64 w7_t = swap32 (w1[3]);
+  u64 w8_t = swap32 (w2[0]);
+  u64 w9_t = swap32 (w2[1]);
+  u64 wa_t = swap32 (w2[2]);
+  u64 wb_t = swap32 (w2[3]);
+  u64 wc_t = swap32 (w3[0]);
+  u64 wd_t = swap32 (w3[1]);
+  u64 we_t = swap32 (w3[2]);
+  u64 wf_t = swap32 (w3[3]);
 
   #define ROUND384_EXPAND()                         \
   {                                                 \
@@ -296,22 +291,22 @@ static void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4],
   u64 g = digest[6];
   u64 h = digest[7];
 
-  u64 w0_t = swap_workaround (w0[0]);
-  u64 w1_t = swap_workaround (w0[1]);
-  u64 w2_t = swap_workaround (w0[2]);
-  u64 w3_t = swap_workaround (w0[3]);
-  u64 w4_t = swap_workaround (w1[0]);
-  u64 w5_t = swap_workaround (w1[1]);
-  u64 w6_t = swap_workaround (w1[2]);
-  u64 w7_t = swap_workaround (w1[3]);
-  u64 w8_t = swap_workaround (w2[0]);
-  u64 w9_t = swap_workaround (w2[1]);
-  u64 wa_t = swap_workaround (w2[2]);
-  u64 wb_t = swap_workaround (w2[3]);
-  u64 wc_t = swap_workaround (w3[0]);
-  u64 wd_t = swap_workaround (w3[1]);
-  u64 we_t = swap_workaround (w3[2]);
-  u64 wf_t = swap_workaround (w3[3]);
+  u64 w0_t = swap32 (w0[0]);
+  u64 w1_t = swap32 (w0[1]);
+  u64 w2_t = swap32 (w0[2]);
+  u64 w3_t = swap32 (w0[3]);
+  u64 w4_t = swap32 (w1[0]);
+  u64 w5_t = swap32 (w1[1]);
+  u64 w6_t = swap32 (w1[2]);
+  u64 w7_t = swap32 (w1[3]);
+  u64 w8_t = swap32 (w2[0]);
+  u64 w9_t = swap32 (w2[1]);
+  u64 wa_t = swap32 (w2[2]);
+  u64 wb_t = swap32 (w2[3]);
+  u64 wc_t = swap32 (w3[0]);
+  u64 wd_t = swap32 (w3[1]);
+  u64 we_t = swap32 (w3[2]);
+  u64 wf_t = swap32 (w3[3]);
 
   #define ROUND512_EXPAND()                         \
   {                                                 \
@@ -720,10 +715,10 @@ __constant u32 rcon[] =
 
 static void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 s_te0[256], __local u32 s_te1[256], __local u32 s_te2[256], __local u32 s_te3[256], __local u32 s_te4[256])
 {
-  rek[0] = swap_workaround (userkey[0]);
-  rek[1] = swap_workaround (userkey[1]);
-  rek[2] = swap_workaround (userkey[2]);
-  rek[3] = swap_workaround (userkey[3]);
+  rek[0] = swap32 (userkey[0]);
+  rek[1] = swap32 (userkey[1]);
+  rek[2] = swap32 (userkey[2]);
+  rek[3] = swap32 (userkey[3]);
 
   for (u32 i = 0, j = 0; i < 10; i += 1, j += 4)
   {
@@ -748,10 +743,10 @@ static void AES128_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32
 {
   u32 in_swap[4];
 
-  in_swap[0] = swap_workaround (in[0]);
-  in_swap[1] = swap_workaround (in[1]);
-  in_swap[2] = swap_workaround (in[2]);
-  in_swap[3] = swap_workaround (in[3]);
+  in_swap[0] = swap32 (in[0]);
+  in_swap[1] = swap32 (in[1]);
+  in_swap[2] = swap32 (in[2]);
+  in_swap[3] = swap32 (in[3]);
 
   u32 s0 = in_swap[0] ^ rek[0];
   u32 s1 = in_swap[1] ^ rek[1];
@@ -824,10 +819,10 @@ static void AES128_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32
          ^ (s_te4[(t2 >>  0) & 0xff] & 0x000000ff)
          ^ rek[43];
 
-  out[0] = swap_workaround (out[0]);
-  out[1] = swap_workaround (out[1]);
-  out[2] = swap_workaround (out[2]);
-  out[3] = swap_workaround (out[3]);
+  out[0] = swap32 (out[0]);
+  out[1] = swap32 (out[1]);
+  out[2] = swap32 (out[2]);
+  out[3] = swap32 (out[3]);
 }
 
 static void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
@@ -1203,6 +1198,7 @@ static void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, co
 
     u32 i;
 
+    #ifdef IS_AMD
     for (i = 0; i < pd; i++) sc[idx++] = pw[i];
                              sc[idx++] = pw[i]
                                        | amd_bytealign (bl[0],         0, pm4);
@@ -1210,6 +1206,19 @@ static void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, co
                              sc[idx++] = amd_bytealign (sc[0], bl[i - 1], pm4);
     for (i = 1; i <  4; i++) sc[idx++] = amd_bytealign (sc[i], sc[i - 1], pm4);
                              sc[idx++] = amd_bytealign (    0, sc[i - 1], pm4);
+    #endif
+
+    #ifdef IS_NV
+    int selector = (0x76543210 >> (pm4 * 4)) & 0xffff;
+
+    for (i = 0; i < pd; i++) sc[idx++] = pw[i];
+                             sc[idx++] = pw[i]
+                                       | __byte_perm (        0, bl[0], selector);
+    for (i = 1; i < bd; i++) sc[idx++] = __byte_perm (bl[i - 1], bl[i], selector);
+                             sc[idx++] = __byte_perm (bl[i - 1], sc[0], selector);
+    for (i = 1; i <  4; i++) sc[idx++] = __byte_perm (sc[i - 1], sc[i], selector);
+                             sc[idx++] = __byte_perm (sc[i - 1],     0, selector);
+    #endif
   }
 }
 
@@ -1220,10 +1229,21 @@ static void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, const
   const u32 om = m % 4;
   const u32 od = m / 4;
 
+  #ifdef IS_AMD
   pt[0] = amd_bytealign (sc[od + 1], sc[od + 0], om);
   pt[1] = amd_bytealign (sc[od + 2], sc[od + 1], om);
   pt[2] = amd_bytealign (sc[od + 3], sc[od + 2], om);
   pt[3] = amd_bytealign (sc[od + 4], sc[od + 3], om);
+  #endif
+
+  #ifdef IS_NV
+  int selector = (0x76543210 >> (om * 4)) & 0xffff;
+
+  pt[0] = __byte_perm (sc[od + 0], sc[od + 1], selector);
+  pt[1] = __byte_perm (sc[od + 1], sc[od + 2], selector);
+  pt[2] = __byte_perm (sc[od + 2], sc[od + 3], selector);
+  pt[3] = __byte_perm (sc[od + 3], sc[od + 4], selector);
+  #endif
 }
 
 static void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, const u32 *sc, const u32 pwbl_len, u32 *iv, const u32 *rek, __local u32 s_te0[256], __local u32 s_te1[256], __local u32 s_te2[256], __local u32 s_te3[256], __local u32 s_te4[256])
@@ -1374,7 +1394,7 @@ static u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, __local u32 s_
                     ctx->W64[12] = 0;
                     ctx->W64[13] = 0;
                     ctx->W64[14] = 0;
-                    ctx->W64[15] = swap_workaround ((u64) (final_len * 8));
+                    ctx->W64[15] = swap32 ((u64) (final_len * 8));
                     ex = ctx->W64[7] >> 56;
                     break;
       case BLSZ512: make_w_with_offset (ctx, 64, offset, sc, pwbl_len, iv, rek, s_te0, s_te1, s_te2, s_te3, s_te4);
@@ -1385,7 +1405,7 @@ static u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, __local u32 s_
                     ctx->W64[12] = 0;
                     ctx->W64[13] = 0;
                     ctx->W64[14] = 0;
-                    ctx->W64[15] = swap_workaround ((u64) (final_len * 8));
+                    ctx->W64[15] = swap32 ((u64) (final_len * 8));
                     ex = ctx->W64[7] >> 56;
                     break;
     }
@@ -1410,7 +1430,7 @@ static u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, __local u32 s_
                     ctx->W32[12] = 0;
                     ctx->W32[13] = 0;
                     ctx->W32[14] = 0;
-                    ctx->W32[15] = swap_workaround (final_len * 8);
+                    ctx->W32[15] = swap32 (final_len * 8);
                     break;
       case BLSZ384: ex = ctx->W64[15] >> 56;
                     ctx->W64[ 0] = 0x80;
@@ -1428,7 +1448,7 @@ static u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, __local u32 s_
                     ctx->W64[12] = 0;
                     ctx->W64[13] = 0;
                     ctx->W64[14] = 0;
-                    ctx->W64[15] = swap_workaround ((u64) (final_len * 8));
+                    ctx->W64[15] = swap32 ((u64) (final_len * 8));
                     break;
       case BLSZ512: ex = ctx->W64[15] >> 56;
                     ctx->W64[ 0] = 0x80;
@@ -1446,7 +1466,7 @@ static u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, __local u32 s_
                     ctx->W64[12] = 0;
                     ctx->W64[13] = 0;
                     ctx->W64[14] = 0;
-                    ctx->W64[15] = swap_workaround ((u64) (final_len * 8));
+                    ctx->W64[15] = swap32 ((u64) (final_len * 8));
                     break;
     }
   }
@@ -1454,14 +1474,14 @@ static u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, __local u32 s_
   switch (ctx->dgst_len)
   {
     case BLSZ256: sha256_transform (&ctx->W32[ 0], &ctx->W32[ 4], &ctx->W32[ 8], &ctx->W32[12], ctx->dgst32);
-                  ctx->dgst32[ 0] = swap_workaround (ctx->dgst32[0]);
-                  ctx->dgst32[ 1] = swap_workaround (ctx->dgst32[1]);
-                  ctx->dgst32[ 2] = swap_workaround (ctx->dgst32[2]);
-                  ctx->dgst32[ 3] = swap_workaround (ctx->dgst32[3]);
-                  ctx->dgst32[ 4] = swap_workaround (ctx->dgst32[4]);
-                  ctx->dgst32[ 5] = swap_workaround (ctx->dgst32[5]);
-                  ctx->dgst32[ 6] = swap_workaround (ctx->dgst32[6]);
-                  ctx->dgst32[ 7] = swap_workaround (ctx->dgst32[7]);
+                  ctx->dgst32[ 0] = swap32 (ctx->dgst32[0]);
+                  ctx->dgst32[ 1] = swap32 (ctx->dgst32[1]);
+                  ctx->dgst32[ 2] = swap32 (ctx->dgst32[2]);
+                  ctx->dgst32[ 3] = swap32 (ctx->dgst32[3]);
+                  ctx->dgst32[ 4] = swap32 (ctx->dgst32[4]);
+                  ctx->dgst32[ 5] = swap32 (ctx->dgst32[5]);
+                  ctx->dgst32[ 6] = swap32 (ctx->dgst32[6]);
+                  ctx->dgst32[ 7] = swap32 (ctx->dgst32[7]);
                   ctx->dgst32[ 8] = 0;
                   ctx->dgst32[ 9] = 0;
                   ctx->dgst32[10] = 0;
@@ -1472,24 +1492,24 @@ static u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, __local u32 s_
                   ctx->dgst32[15] = 0;
                   break;
     case BLSZ384: sha384_transform (&ctx->W64[ 0], &ctx->W64[ 4], &ctx->W64[ 8], &ctx->W64[12], ctx->dgst64);
-                  ctx->dgst64[0] = swap_workaround (ctx->dgst64[0]);
-                  ctx->dgst64[1] = swap_workaround (ctx->dgst64[1]);
-                  ctx->dgst64[2] = swap_workaround (ctx->dgst64[2]);
-                  ctx->dgst64[3] = swap_workaround (ctx->dgst64[3]);
-                  ctx->dgst64[4] = swap_workaround (ctx->dgst64[4]);
-                  ctx->dgst64[5] = swap_workaround (ctx->dgst64[5]);
+                  ctx->dgst64[0] = swap32 (ctx->dgst64[0]);
+                  ctx->dgst64[1] = swap32 (ctx->dgst64[1]);
+                  ctx->dgst64[2] = swap32 (ctx->dgst64[2]);
+                  ctx->dgst64[3] = swap32 (ctx->dgst64[3]);
+                  ctx->dgst64[4] = swap32 (ctx->dgst64[4]);
+                  ctx->dgst64[5] = swap32 (ctx->dgst64[5]);
                   ctx->dgst64[6] = 0;
                   ctx->dgst64[7] = 0;
                   break;
     case BLSZ512: sha512_transform (&ctx->W64[ 0], &ctx->W64[ 4], &ctx->W64[ 8], &ctx->W64[12], ctx->dgst64);
-                  ctx->dgst64[0] = swap_workaround (ctx->dgst64[0]);
-                  ctx->dgst64[1] = swap_workaround (ctx->dgst64[1]);
-                  ctx->dgst64[2] = swap_workaround (ctx->dgst64[2]);
-                  ctx->dgst64[3] = swap_workaround (ctx->dgst64[3]);
-                  ctx->dgst64[4] = swap_workaround (ctx->dgst64[4]);
-                  ctx->dgst64[5] = swap_workaround (ctx->dgst64[5]);
-                  ctx->dgst64[6] = swap_workaround (ctx->dgst64[6]);
-                  ctx->dgst64[7] = swap_workaround (ctx->dgst64[7]);
+                  ctx->dgst64[0] = swap32 (ctx->dgst64[0]);
+                  ctx->dgst64[1] = swap32 (ctx->dgst64[1]);
+                  ctx->dgst64[2] = swap32 (ctx->dgst64[2]);
+                  ctx->dgst64[3] = swap32 (ctx->dgst64[3]);
+                  ctx->dgst64[4] = swap32 (ctx->dgst64[4]);
+                  ctx->dgst64[5] = swap32 (ctx->dgst64[5]);
+                  ctx->dgst64[6] = swap32 (ctx->dgst64[6]);
+                  ctx->dgst64[7] = swap32 (ctx->dgst64[7]);
                   break;
   }
 
@@ -1566,7 +1586,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m10700_init (__gl
 
   append_0x80_2x4 (block0, block1, block_len);
 
-  block3[3] = swap_workaround (block_len * 8);
+  block3[3] = swap32 (block_len * 8);
 
   u32 digest[8];
 
@@ -1581,14 +1601,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m10700_init (__gl
 
   sha256_transform (block0, block1, block2, block3, digest);
 
-  digest[0] = swap_workaround (digest[0]);
-  digest[1] = swap_workaround (digest[1]);
-  digest[2] = swap_workaround (digest[2]);
-  digest[3] = swap_workaround (digest[3]);
-  digest[4] = swap_workaround (digest[4]);
-  digest[5] = swap_workaround (digest[5]);
-  digest[6] = swap_workaround (digest[6]);
-  digest[7] = swap_workaround (digest[7]);
+  digest[0] = swap32 (digest[0]);
+  digest[1] = swap32 (digest[1]);
+  digest[2] = swap32 (digest[2]);
+  digest[3] = swap32 (digest[3]);
+  digest[4] = swap32 (digest[4]);
+  digest[5] = swap32 (digest[5]);
+  digest[6] = swap32 (digest[6]);
+  digest[7] = swap32 (digest[7]);
 
   tmps[gid].dgst32[0] = digest[0];
   tmps[gid].dgst32[1] = digest[1];
@@ -1721,10 +1741,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m10700_comp (__gl
    * digest
    */
 
-  const u32 r0 = swap_workaround (tmps[gid].dgst32[DGST_R0]);
-  const u32 r1 = swap_workaround (tmps[gid].dgst32[DGST_R1]);
-  const u32 r2 = swap_workaround (tmps[gid].dgst32[DGST_R2]);
-  const u32 r3 = swap_workaround (tmps[gid].dgst32[DGST_R3]);
+  const u32 r0 = swap32 (tmps[gid].dgst32[DGST_R0]);
+  const u32 r1 = swap32 (tmps[gid].dgst32[DGST_R1]);
+  const u32 r2 = swap32 (tmps[gid].dgst32[DGST_R2]);
+  const u32 r3 = swap32 (tmps[gid].dgst32[DGST_R3]);
 
   #define il_pos 0
 

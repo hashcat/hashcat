@@ -512,7 +512,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06212_init (__gl
 
   for (u32 i = 0, j = 1; i < (truecrypt_mdlen / 8 / 4); i += 5, j += 1)
   {
-    salt_buf2[0] = swap_workaround (j);
+    salt_buf2[0] = swap32 (j);
 
     u32 dgst[5];
 

@@ -386,16 +386,16 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09800_m04 (__glo
     w0_t[1] = salt_buf[1];
     w0_t[2] = salt_buf[2];
     w0_t[3] = salt_buf[3];
-    w1_t[0] = swap_workaround (w1_t[0]);
-    w1_t[1] = swap_workaround (w1_t[1]);
-    w1_t[2] = swap_workaround (w1_t[2]);
-    w1_t[3] = swap_workaround (w1_t[3]);
-    w2_t[0] = swap_workaround (w2_t[0]);
-    w2_t[1] = swap_workaround (w2_t[1]);
-    w2_t[2] = swap_workaround (w2_t[2]);
-    w2_t[3] = swap_workaround (w2_t[3]);
-    w3_t[0] = swap_workaround (w3_t[0]);
-    w3_t[1] = swap_workaround (w3_t[1]);
+    w1_t[0] = swap32 (w1_t[0]);
+    w1_t[1] = swap32 (w1_t[1]);
+    w1_t[2] = swap32 (w1_t[2]);
+    w1_t[3] = swap32 (w1_t[3]);
+    w2_t[0] = swap32 (w2_t[0]);
+    w2_t[1] = swap32 (w2_t[1]);
+    w2_t[2] = swap32 (w2_t[2]);
+    w2_t[3] = swap32 (w2_t[3]);
+    w3_t[0] = swap32 (w3_t[0]);
+    w3_t[1] = swap32 (w3_t[1]);
     w3_t[2] = 0;
     w3_t[3] = pw_salt_len * 8;
 
@@ -436,10 +436,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09800_m04 (__glo
 
     u32 key[4];
 
-    key[0] = swap_workaround (digest[0]);
-    key[1] = swap_workaround (digest[1]);
-    key[2] = swap_workaround (digest[2]);
-    key[3] = swap_workaround (digest[3]);
+    key[0] = swap32 (digest[0]);
+    key[1] = swap32 (digest[1]);
+    key[2] = swap32 (digest[2]);
+    key[3] = swap32 (digest[3]);
 
     if (version == 3)
     {
@@ -454,10 +454,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09800_m04 (__glo
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
-    w0_t[0] = swap_workaround (out[0]);
-    w0_t[1] = swap_workaround (out[1]);
-    w0_t[2] = swap_workaround (out[2]);
-    w0_t[3] = swap_workaround (out[3]);
+    w0_t[0] = swap32 (out[0]);
+    w0_t[1] = swap32 (out[1]);
+    w0_t[2] = swap32 (out[2]);
+    w0_t[3] = swap32 (out[3]);
     w1_t[0] = 0x80000000;
     w1_t[1] = 0;
     w1_t[2] = 0;
@@ -479,10 +479,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09800_m04 (__glo
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    digest[0] = swap_workaround (digest[0]);
-    digest[1] = swap_workaround (digest[1]);
-    digest[2] = swap_workaround (digest[2]);
-    digest[3] = swap_workaround (digest[3]);
+    digest[0] = swap32 (digest[0]);
+    digest[1] = swap32 (digest[1]);
+    digest[2] = swap32 (digest[2]);
+    digest[3] = swap32 (digest[3]);
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 
@@ -631,16 +631,16 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09800_s04 (__glo
     w0_t[1] = salt_buf[1];
     w0_t[2] = salt_buf[2];
     w0_t[3] = salt_buf[3];
-    w1_t[0] = swap_workaround (w1_t[0]);
-    w1_t[1] = swap_workaround (w1_t[1]);
-    w1_t[2] = swap_workaround (w1_t[2]);
-    w1_t[3] = swap_workaround (w1_t[3]);
-    w2_t[0] = swap_workaround (w2_t[0]);
-    w2_t[1] = swap_workaround (w2_t[1]);
-    w2_t[2] = swap_workaround (w2_t[2]);
-    w2_t[3] = swap_workaround (w2_t[3]);
-    w3_t[0] = swap_workaround (w3_t[0]);
-    w3_t[1] = swap_workaround (w3_t[1]);
+    w1_t[0] = swap32 (w1_t[0]);
+    w1_t[1] = swap32 (w1_t[1]);
+    w1_t[2] = swap32 (w1_t[2]);
+    w1_t[3] = swap32 (w1_t[3]);
+    w2_t[0] = swap32 (w2_t[0]);
+    w2_t[1] = swap32 (w2_t[1]);
+    w2_t[2] = swap32 (w2_t[2]);
+    w2_t[3] = swap32 (w2_t[3]);
+    w3_t[0] = swap32 (w3_t[0]);
+    w3_t[1] = swap32 (w3_t[1]);
     w3_t[2] = 0;
     w3_t[3] = pw_salt_len * 8;
 
@@ -681,10 +681,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09800_s04 (__glo
 
     u32 key[4];
 
-    key[0] = swap_workaround (digest[0]);
-    key[1] = swap_workaround (digest[1]);
-    key[2] = swap_workaround (digest[2]);
-    key[3] = swap_workaround (digest[3]);
+    key[0] = swap32 (digest[0]);
+    key[1] = swap32 (digest[1]);
+    key[2] = swap32 (digest[2]);
+    key[3] = swap32 (digest[3]);
 
     if (version == 3)
     {
@@ -699,10 +699,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09800_s04 (__glo
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
-    w0_t[0] = swap_workaround (out[0]);
-    w0_t[1] = swap_workaround (out[1]);
-    w0_t[2] = swap_workaround (out[2]);
-    w0_t[3] = swap_workaround (out[3]);
+    w0_t[0] = swap32 (out[0]);
+    w0_t[1] = swap32 (out[1]);
+    w0_t[2] = swap32 (out[2]);
+    w0_t[3] = swap32 (out[3]);
     w1_t[0] = 0x80000000;
     w1_t[1] = 0;
     w1_t[2] = 0;
@@ -724,10 +724,10 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09800_s04 (__glo
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    digest[0] = swap_workaround (digest[0]);
-    digest[1] = swap_workaround (digest[1]);
-    digest[2] = swap_workaround (digest[2]);
-    digest[3] = swap_workaround (digest[3]);
+    digest[0] = swap32 (digest[0]);
+    digest[1] = swap32 (digest[1]);
+    digest[2] = swap32 (digest[2]);
+    digest[3] = swap32 (digest[3]);
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 

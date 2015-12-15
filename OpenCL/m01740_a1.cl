@@ -302,20 +302,20 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01740_m04 (__glo
      * sha512
      */
 
-    w0_t[0] = swap_workaround (w0_t[0]);
-    w0_t[1] = swap_workaround (w0_t[1]);
-    w0_t[2] = swap_workaround (w0_t[2]);
-    w0_t[3] = swap_workaround (w0_t[3]);
-    w1_t[0] = swap_workaround (w1_t[0]);
-    w1_t[1] = swap_workaround (w1_t[1]);
-    w1_t[2] = swap_workaround (w1_t[2]);
-    w1_t[3] = swap_workaround (w1_t[3]);
-    w2_t[0] = swap_workaround (w2_t[0]);
-    w2_t[1] = swap_workaround (w2_t[1]);
-    w2_t[2] = swap_workaround (w2_t[2]);
-    w2_t[3] = swap_workaround (w2_t[3]);
-    w3_t[0] = swap_workaround (w3_t[0]);
-    w3_t[1] = swap_workaround (w3_t[1]);
+    w0_t[0] = swap32 (w0_t[0]);
+    w0_t[1] = swap32 (w0_t[1]);
+    w0_t[2] = swap32 (w0_t[2]);
+    w0_t[3] = swap32 (w0_t[3]);
+    w1_t[0] = swap32 (w1_t[0]);
+    w1_t[1] = swap32 (w1_t[1]);
+    w1_t[2] = swap32 (w1_t[2]);
+    w1_t[3] = swap32 (w1_t[3]);
+    w2_t[0] = swap32 (w2_t[0]);
+    w2_t[1] = swap32 (w2_t[1]);
+    w2_t[2] = swap32 (w2_t[2]);
+    w2_t[3] = swap32 (w2_t[3]);
+    w3_t[0] = swap32 (w3_t[0]);
+    w3_t[1] = swap32 (w3_t[1]);
     w3_t[2] = 0;
     w3_t[3] = pw_salt_len * 8;
 
@@ -523,20 +523,20 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01740_s04 (__glo
      * sha512
      */
 
-    w0_t[0] = swap_workaround (w0_t[0]);
-    w0_t[1] = swap_workaround (w0_t[1]);
-    w0_t[2] = swap_workaround (w0_t[2]);
-    w0_t[3] = swap_workaround (w0_t[3]);
-    w1_t[0] = swap_workaround (w1_t[0]);
-    w1_t[1] = swap_workaround (w1_t[1]);
-    w1_t[2] = swap_workaround (w1_t[2]);
-    w1_t[3] = swap_workaround (w1_t[3]);
-    w2_t[0] = swap_workaround (w2_t[0]);
-    w2_t[1] = swap_workaround (w2_t[1]);
-    w2_t[2] = swap_workaround (w2_t[2]);
-    w2_t[3] = swap_workaround (w2_t[3]);
-    w3_t[0] = swap_workaround (w3_t[0]);
-    w3_t[1] = swap_workaround (w3_t[1]);
+    w0_t[0] = swap32 (w0_t[0]);
+    w0_t[1] = swap32 (w0_t[1]);
+    w0_t[2] = swap32 (w0_t[2]);
+    w0_t[3] = swap32 (w0_t[3]);
+    w1_t[0] = swap32 (w1_t[0]);
+    w1_t[1] = swap32 (w1_t[1]);
+    w1_t[2] = swap32 (w1_t[2]);
+    w1_t[3] = swap32 (w1_t[3]);
+    w2_t[0] = swap32 (w2_t[0]);
+    w2_t[1] = swap32 (w2_t[1]);
+    w2_t[2] = swap32 (w2_t[2]);
+    w2_t[3] = swap32 (w2_t[3]);
+    w3_t[0] = swap32 (w3_t[0]);
+    w3_t[1] = swap32 (w3_t[1]);
     w3_t[2] = 0;
     w3_t[3] = pw_salt_len * 8;
 

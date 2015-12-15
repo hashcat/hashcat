@@ -17,17 +17,8 @@
 #include "types_ocl.c"
 #include "common.c"
 
-#ifdef  VECT_SIZE1
-#define COMPARE_M "check_multi_vect1_comp4.c"
-#endif
-
-#ifdef  VECT_SIZE2
-#define COMPARE_M "check_multi_vect2_comp4.c"
-#endif
-
-#ifdef  VECT_SIZE4
-#define COMPARE_M "check_multi_vect4_comp4.c"
-#endif
+#define COMPARE_S "check_single_comp4.c"
+#define COMPARE_M "check_multi_comp4.c"
 
 __constant u32 te0[256] =
 {
@@ -1399,22 +1390,22 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09400_init (__gl
 
   u32 t1[4];
 
-  t1[0] = swap_workaround (w0[0]);
-  t1[1] = swap_workaround (w0[1]);
-  t1[2] = swap_workaround (w0[2]);
-  t1[3] = swap_workaround (w0[3]);
+  t1[0] = swap32 (w0[0]);
+  t1[1] = swap32 (w0[1]);
+  t1[2] = swap32 (w0[2]);
+  t1[3] = swap32 (w0[3]);
 
   u32 t2[4];
 
-  t2[0] = swap_workaround (w1[0]);
-  t2[1] = swap_workaround (w1[1]);
-  t2[2] = swap_workaround (w1[2]);
-  t2[3] = swap_workaround (w1[3]);
+  t2[0] = swap32 (w1[0]);
+  t2[1] = swap32 (w1[1]);
+  t2[2] = swap32 (w1[2]);
+  t2[3] = swap32 (w1[3]);
 
   u32 t3[4];
 
-  t3[0] = swap_workaround (w2[0]);
-  t3[1] = swap_workaround (w2[1]);
+  t3[0] = swap32 (w2[0]);
+  t3[1] = swap32 (w2[1]);
   t3[2] = 0;
   t3[3] = (salt_len + (pw_len * 2)) * 8;
 
@@ -1471,7 +1462,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09400_loop (__gl
 
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
-    w0[0] = swap_workaround (j);
+    w0[0] = swap32 (j);
 
     u32 digest[5];
 

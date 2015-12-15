@@ -184,22 +184,22 @@ static void m01710m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global g
 
   switch_buffer_by_offset (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
 
-  w[ 0] |= swap_workaround (salt_buf0[0]);
-  w[ 1] |= swap_workaround (salt_buf0[1]);
-  w[ 2] |= swap_workaround (salt_buf0[2]);
-  w[ 3] |= swap_workaround (salt_buf0[3]);
-  w[ 4] |= swap_workaround (salt_buf1[0]);
-  w[ 5] |= swap_workaround (salt_buf1[1]);
-  w[ 6] |= swap_workaround (salt_buf1[2]);
-  w[ 7] |= swap_workaround (salt_buf1[3]);
-  w[ 8] |= swap_workaround (salt_buf2[0]);
-  w[ 9] |= swap_workaround (salt_buf2[1]);
-  w[10] |= swap_workaround (salt_buf2[2]);
-  w[11] |= swap_workaround (salt_buf2[3]);
-  w[12] |= swap_workaround (salt_buf3[0]);
-  w[13] |= swap_workaround (salt_buf3[1]);
-  w[14] |= swap_workaround (salt_buf3[2]);
-  w[15] |= swap_workaround (salt_buf3[3]);
+  w[ 0] |= swap32 (salt_buf0[0]);
+  w[ 1] |= swap32 (salt_buf0[1]);
+  w[ 2] |= swap32 (salt_buf0[2]);
+  w[ 3] |= swap32 (salt_buf0[3]);
+  w[ 4] |= swap32 (salt_buf1[0]);
+  w[ 5] |= swap32 (salt_buf1[1]);
+  w[ 6] |= swap32 (salt_buf1[2]);
+  w[ 7] |= swap32 (salt_buf1[3]);
+  w[ 8] |= swap32 (salt_buf2[0]);
+  w[ 9] |= swap32 (salt_buf2[1]);
+  w[10] |= swap32 (salt_buf2[2]);
+  w[11] |= swap32 (salt_buf2[3]);
+  w[12] |= swap32 (salt_buf3[0]);
+  w[13] |= swap32 (salt_buf3[1]);
+  w[14] |= swap32 (salt_buf3[2]);
+  w[15] |= swap32 (salt_buf3[3]);
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 

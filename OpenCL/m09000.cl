@@ -549,20 +549,20 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m09000_init (__glo
   w0[1] = salt_buf[1];
   w0[0] = salt_buf[0];
 
-  w0[0] = swap_workaround (w0[0]);
-  w0[1] = swap_workaround (w0[1]);
-  w0[2] = swap_workaround (w0[2]);
-  w0[3] = swap_workaround (w0[3]);
-  w1[0] = swap_workaround (w1[0]);
-  w1[1] = swap_workaround (w1[1]);
-  w1[2] = swap_workaround (w1[2]);
-  w1[3] = swap_workaround (w1[3]);
-  w2[0] = swap_workaround (w2[0]);
-  w2[1] = swap_workaround (w2[1]);
-  w2[2] = swap_workaround (w2[2]);
-  w2[3] = swap_workaround (w2[3]);
-  w3[0] = swap_workaround (w3[0]);
-  w3[1] = swap_workaround (w3[1]);
+  w0[0] = swap32 (w0[0]);
+  w0[1] = swap32 (w0[1]);
+  w0[2] = swap32 (w0[2]);
+  w0[3] = swap32 (w0[3]);
+  w1[0] = swap32 (w1[0]);
+  w1[1] = swap32 (w1[1]);
+  w1[2] = swap32 (w1[2]);
+  w1[3] = swap32 (w1[3]);
+  w2[0] = swap32 (w2[0]);
+  w2[1] = swap32 (w2[1]);
+  w2[2] = swap32 (w2[2]);
+  w2[3] = swap32 (w2[3]);
+  w3[0] = swap32 (w3[0]);
+  w3[1] = swap32 (w3[1]);
 
   const u32 block_len = salt_len + 2 + pw_len;
 
@@ -781,8 +781,8 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m09000_comp (__glo
   u32 w2[4];
   u32 w3[4];
 
-  w0[0] = swap_workaround (digest[0]);
-  w0[1] = swap_workaround (digest[1]);
+  w0[0] = swap32 (digest[0]);
+  w0[1] = swap32 (digest[1]);
   w0[2] = 0x00008000;
   w0[3] = 0;
   w1[0] = 0;

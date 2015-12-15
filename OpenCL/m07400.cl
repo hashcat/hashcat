@@ -17,9 +17,8 @@
 #include "types_ocl.c"
 #include "common.c"
 
-#ifdef  VECT_SIZE1
-#define COMPARE_M "check_multi_vect1_comp4.c"
-#endif
+#define COMPARE_S "check_single_comp4.c"
+#define COMPARE_M "check_multi_comp4.c"
 
 __constant u32 k_sha256[64] =
 {
@@ -52,22 +51,22 @@ static void sha256_transform (const u32 w[16], u32 digest[8])
   u32 g = digest[6];
   u32 h = digest[7];
 
-  u32 w0_t = swap_workaround (w[ 0]);
-  u32 w1_t = swap_workaround (w[ 1]);
-  u32 w2_t = swap_workaround (w[ 2]);
-  u32 w3_t = swap_workaround (w[ 3]);
-  u32 w4_t = swap_workaround (w[ 4]);
-  u32 w5_t = swap_workaround (w[ 5]);
-  u32 w6_t = swap_workaround (w[ 6]);
-  u32 w7_t = swap_workaround (w[ 7]);
-  u32 w8_t = swap_workaround (w[ 8]);
-  u32 w9_t = swap_workaround (w[ 9]);
-  u32 wa_t = swap_workaround (w[10]);
-  u32 wb_t = swap_workaround (w[11]);
-  u32 wc_t = swap_workaround (w[12]);
-  u32 wd_t = swap_workaround (w[13]);
-  u32 we_t = swap_workaround (w[14]);
-  u32 wf_t = swap_workaround (w[15]);
+  u32 w0_t = swap32 (w[ 0]);
+  u32 w1_t = swap32 (w[ 1]);
+  u32 w2_t = swap32 (w[ 2]);
+  u32 w3_t = swap32 (w[ 3]);
+  u32 w4_t = swap32 (w[ 4]);
+  u32 w5_t = swap32 (w[ 5]);
+  u32 w6_t = swap32 (w[ 6]);
+  u32 w7_t = swap32 (w[ 7]);
+  u32 w8_t = swap32 (w[ 8]);
+  u32 w9_t = swap32 (w[ 9]);
+  u32 wa_t = swap32 (w[10]);
+  u32 wb_t = swap32 (w[11]);
+  u32 wc_t = swap32 (w[12]);
+  u32 wd_t = swap32 (w[13]);
+  u32 we_t = swap32 (w[14]);
+  u32 wf_t = swap32 (w[15]);
 
   #define ROUND_EXPAND()                            \
   {                                                 \
@@ -185,14 +184,14 @@ static void bzero16 (u32 block[16])
 
 static void bswap8 (u32 block[16])
 {
-  block[ 0] = swap_workaround (block[ 0]);
-  block[ 1] = swap_workaround (block[ 1]);
-  block[ 2] = swap_workaround (block[ 2]);
-  block[ 3] = swap_workaround (block[ 3]);
-  block[ 4] = swap_workaround (block[ 4]);
-  block[ 5] = swap_workaround (block[ 5]);
-  block[ 6] = swap_workaround (block[ 6]);
-  block[ 7] = swap_workaround (block[ 7]);
+  block[ 0] = swap32 (block[ 0]);
+  block[ 1] = swap32 (block[ 1]);
+  block[ 2] = swap32 (block[ 2]);
+  block[ 3] = swap32 (block[ 3]);
+  block[ 4] = swap32 (block[ 4]);
+  block[ 5] = swap32 (block[ 5]);
+  block[ 6] = swap32 (block[ 6]);
+  block[ 7] = swap32 (block[ 7]);
 }
 
 static u32 memcat16 (u32 block[16], const u32 block_len, const u32 append[4], const u32 append_len)
@@ -206,6 +205,7 @@ static u32 memcat16 (u32 block[16], const u32 block_len, const u32 append[4], co
   u32 tmp3;
   u32 tmp4;
 
+  #ifdef IS_AMD
   const int offset_minus_4 = 4 - block_len;
 
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
@@ -222,6 +222,19 @@ static u32 memcat16 (u32 block[16], const u32 block_len, const u32 append[4], co
     tmp3 = tmp4;
     tmp4 = 0;
   }
+  #endif
+
+  #ifdef IS_NV
+  const int offset_minus_4 = 4 - (block_len & 3);
+
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+
+  tmp0 = __byte_perm (        0, append[0], selector);
+  tmp1 = __byte_perm (append[0], append[1], selector);
+  tmp2 = __byte_perm (append[1], append[2], selector);
+  tmp3 = __byte_perm (append[2], append[3], selector);
+  tmp4 = __byte_perm (append[3],         0, selector);
+  #endif
 
   switch (div)
   {
@@ -329,6 +342,7 @@ static u32 memcat16c (u32 block[16], const u32 block_len, const u32 append[4], c
   u32 tmp3;
   u32 tmp4;
 
+  #ifdef IS_AMD
   const int offset_minus_4 = 4 - block_len;
 
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
@@ -345,6 +359,19 @@ static u32 memcat16c (u32 block[16], const u32 block_len, const u32 append[4], c
     tmp3 = tmp4;
     tmp4 = 0;
   }
+  #endif
+
+  #ifdef IS_NV
+  const int offset_minus_4 = 4 - (block_len & 3);
+
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+
+  tmp0 = __byte_perm (        0, append[0], selector);
+  tmp1 = __byte_perm (append[0], append[1], selector);
+  tmp2 = __byte_perm (append[1], append[2], selector);
+  tmp3 = __byte_perm (append[2], append[3], selector);
+  tmp4 = __byte_perm (append[3],         0, selector);
+  #endif
 
   u32 carry[4] = { 0, 0, 0, 0 };
 
@@ -478,6 +505,7 @@ static u32 memcat20 (u32 block[20], const u32 block_len, const u32 append[4], co
   u32 tmp3;
   u32 tmp4;
 
+  #ifdef IS_AMD
   const int offset_minus_4 = 4 - block_len;
 
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
@@ -494,6 +522,19 @@ static u32 memcat20 (u32 block[20], const u32 block_len, const u32 append[4], co
     tmp3 = tmp4;
     tmp4 = 0;
   }
+  #endif
+
+  #ifdef IS_NV
+  const int offset_minus_4 = 4 - (block_len & 3);
+
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+
+  tmp0 = __byte_perm (        0, append[0], selector);
+  tmp1 = __byte_perm (append[0], append[1], selector);
+  tmp2 = __byte_perm (append[1], append[2], selector);
+  tmp3 = __byte_perm (append[2], append[3], selector);
+  tmp4 = __byte_perm (append[3],         0, selector);
+  #endif
 
   switch (div)
   {
@@ -609,6 +650,7 @@ static u32 memcat20_x80 (u32 block[20], const u32 block_len, const u32 append[4]
   u32 tmp3;
   u32 tmp4;
 
+  #ifdef IS_AMD
   const int offset_minus_4 = 4 - block_len;
 
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
@@ -625,6 +667,19 @@ static u32 memcat20_x80 (u32 block[20], const u32 block_len, const u32 append[4]
     tmp3 = tmp4;
     tmp4 = 0x80;
   }
+  #endif
+
+  #ifdef IS_NV
+  const int offset_minus_4 = 4 - (block_len & 3);
+
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+
+  tmp0 = __byte_perm (        0, append[0], selector);
+  tmp1 = __byte_perm (append[0], append[1], selector);
+  tmp2 = __byte_perm (append[1], append[2], selector);
+  tmp3 = __byte_perm (append[2], append[3], selector);
+  tmp4 = __byte_perm (append[3],      0x80, selector);
+  #endif
 
   switch (div)
   {
@@ -792,9 +847,9 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_init (__gl
 
   block_len = memcat16 (block, block_len, w0, pw_len);
 
-  append_0x80_4x4 (block, block_len);
+  append_0x80_1x16 (block, block_len);
 
-  block[15] = swap_workaround (block_len * 8);
+  block[15] = swap32 (block_len * 8);
 
   init_ctx (alt_result);
 
@@ -867,7 +922,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_init (__gl
     }
   }
 
-  append_0x80_4x4 (block, block_len);
+  append_0x80_1x16 (block, block_len);
 
   if (block_len >= 56)
   {
@@ -876,7 +931,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_init (__gl
     bzero16 (block);
   }
 
-  block[15] = swap_workaround (transform_len * 8);
+  block[15] = swap32 (transform_len * 8);
 
   sha256_transform (block, alt_result);
 
@@ -912,7 +967,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_init (__gl
 
   /* Finish the digest.  */
 
-  append_0x80_4x4 (block, block_len);
+  append_0x80_1x16 (block, block_len);
 
   if (block_len >= 56)
   {
@@ -921,7 +976,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_init (__gl
     bzero16 (block);
   }
 
-  block[15] = swap_workaround (transform_len * 8);
+  block[15] = swap32 (transform_len * 8);
 
   sha256_transform (block, p_bytes);
 
@@ -955,7 +1010,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_init (__gl
 
   /* Finish the digest.  */
 
-  append_0x80_4x4 (block, block_len);
+  append_0x80_1x16 (block, block_len);
 
   if (block_len >= 56)
   {
@@ -964,7 +1019,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_init (__gl
     bzero16 (block);
   }
 
-  block[15] = swap_workaround (transform_len * 8);
+  block[15] = swap32 (transform_len * 8);
 
   sha256_transform (block, s_bytes);
 
@@ -1115,7 +1170,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07400_loop (__gl
       block[15] = 0;
     }
 
-    block[15] = swap_workaround (block_len * 8);
+    block[15] = swap32 (block_len * 8);
 
     sha256_transform_no14 (block, tmp);
 

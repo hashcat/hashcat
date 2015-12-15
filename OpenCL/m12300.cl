@@ -246,31 +246,31 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m12300_init (__gl
 
   u32 w0[4];
 
-  w0[0] = swap_workaround (pws[gid].i[ 0]);
-  w0[1] = swap_workaround (pws[gid].i[ 1]);
-  w0[2] = swap_workaround (pws[gid].i[ 2]);
-  w0[3] = swap_workaround (pws[gid].i[ 3]);
+  w0[0] = swap32 (pws[gid].i[ 0]);
+  w0[1] = swap32 (pws[gid].i[ 1]);
+  w0[2] = swap32 (pws[gid].i[ 2]);
+  w0[3] = swap32 (pws[gid].i[ 3]);
 
   u32 w1[4];
 
-  w1[0] = swap_workaround (pws[gid].i[ 4]);
-  w1[1] = swap_workaround (pws[gid].i[ 5]);
-  w1[2] = swap_workaround (pws[gid].i[ 6]);
-  w1[3] = swap_workaround (pws[gid].i[ 7]);
+  w1[0] = swap32 (pws[gid].i[ 4]);
+  w1[1] = swap32 (pws[gid].i[ 5]);
+  w1[2] = swap32 (pws[gid].i[ 6]);
+  w1[3] = swap32 (pws[gid].i[ 7]);
 
   u32 w2[4];
 
-  w2[0] = swap_workaround (pws[gid].i[ 8]);
-  w2[1] = swap_workaround (pws[gid].i[ 9]);
-  w2[2] = swap_workaround (pws[gid].i[10]);
-  w2[3] = swap_workaround (pws[gid].i[11]);
+  w2[0] = swap32 (pws[gid].i[ 8]);
+  w2[1] = swap32 (pws[gid].i[ 9]);
+  w2[2] = swap32 (pws[gid].i[10]);
+  w2[3] = swap32 (pws[gid].i[11]);
 
   u32 w3[4];
 
-  w3[0] = swap_workaround (pws[gid].i[12]);
-  w3[1] = swap_workaround (pws[gid].i[13]);
-  w3[2] = swap_workaround (pws[gid].i[14]);
-  w3[3] = swap_workaround (pws[gid].i[15]);
+  w3[0] = swap32 (pws[gid].i[12]);
+  w3[1] = swap32 (pws[gid].i[13]);
+  w3[2] = swap32 (pws[gid].i[14]);
+  w3[3] = swap32 (pws[gid].i[15]);
 
   /**
    * salt

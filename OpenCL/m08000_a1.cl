@@ -181,9 +181,9 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08000_m04 (__glo
    * salt
    */
 
-  const u32 salt_buf0 = swap_workaround (salt_bufs[salt_pos].salt_buf[ 0]);
-  const u32 salt_buf1 = swap_workaround (salt_bufs[salt_pos].salt_buf[ 1]);
-  const u32 salt_buf2 = swap_workaround (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
+  const u32 salt_buf0 = swap32 (salt_bufs[salt_pos].salt_buf[ 0]);
+  const u32 salt_buf1 = swap32 (salt_bufs[salt_pos].salt_buf[ 1]);
+  const u32 salt_buf2 = swap32 (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
 
   /**
    * loop
@@ -251,22 +251,22 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08000_m04 (__glo
 
     u32 w_t[16];
 
-    w_t[ 0] = swap_workaround (w0_t[0]);
-    w_t[ 1] = swap_workaround (w0_t[1]);
-    w_t[ 2] = swap_workaround (w0_t[2]);
-    w_t[ 3] = swap_workaround (w0_t[3]);
-    w_t[ 4] = swap_workaround (w1_t[0]);
-    w_t[ 5] = swap_workaround (w1_t[1]);
-    w_t[ 6] = swap_workaround (w1_t[2]);
-    w_t[ 7] = swap_workaround (w1_t[3]);
-    w_t[ 8] = swap_workaround (w2_t[0]);
-    w_t[ 9] = swap_workaround (w2_t[1]);
-    w_t[10] = swap_workaround (w2_t[2]);
-    w_t[11] = swap_workaround (w2_t[3]);
-    w_t[12] = swap_workaround (w3_t[0]);
-    w_t[13] = swap_workaround (w3_t[1]);
-    w_t[14] = swap_workaround (w3_t[2]);
-    w_t[15] = swap_workaround (w3_t[3]);
+    w_t[ 0] = swap32 (w0_t[0]);
+    w_t[ 1] = swap32 (w0_t[1]);
+    w_t[ 2] = swap32 (w0_t[2]);
+    w_t[ 3] = swap32 (w0_t[3]);
+    w_t[ 4] = swap32 (w1_t[0]);
+    w_t[ 5] = swap32 (w1_t[1]);
+    w_t[ 6] = swap32 (w1_t[2]);
+    w_t[ 7] = swap32 (w1_t[3]);
+    w_t[ 8] = swap32 (w2_t[0]);
+    w_t[ 9] = swap32 (w2_t[1]);
+    w_t[10] = swap32 (w2_t[2]);
+    w_t[11] = swap32 (w2_t[3]);
+    w_t[12] = swap32 (w3_t[0]);
+    w_t[13] = swap32 (w3_t[1]);
+    w_t[14] = swap32 (w3_t[2]);
+    w_t[15] = swap32 (w3_t[3]);
 
     w_t[ 0] = w_t[ 0] >> 8;
     w_t[ 1] = w_t[ 1] >> 8;
@@ -405,9 +405,9 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08000_s04 (__glo
    * salt
    */
 
-  const u32 salt_buf0 = swap_workaround (salt_bufs[salt_pos].salt_buf[ 0]);
-  const u32 salt_buf1 = swap_workaround (salt_bufs[salt_pos].salt_buf[ 1]);
-  const u32 salt_buf2 = swap_workaround (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
+  const u32 salt_buf0 = swap32 (salt_bufs[salt_pos].salt_buf[ 0]);
+  const u32 salt_buf1 = swap32 (salt_bufs[salt_pos].salt_buf[ 1]);
+  const u32 salt_buf2 = swap32 (salt_bufs[salt_pos].salt_buf[ 2]); // 0x80
 
   /**
    * digest
@@ -487,22 +487,22 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08000_s04 (__glo
 
     u32 w_t[16];
 
-    w_t[ 0] = swap_workaround (w0_t[0]);
-    w_t[ 1] = swap_workaround (w0_t[1]);
-    w_t[ 2] = swap_workaround (w0_t[2]);
-    w_t[ 3] = swap_workaround (w0_t[3]);
-    w_t[ 4] = swap_workaround (w1_t[0]);
-    w_t[ 5] = swap_workaround (w1_t[1]);
-    w_t[ 6] = swap_workaround (w1_t[2]);
-    w_t[ 7] = swap_workaround (w1_t[3]);
-    w_t[ 8] = swap_workaround (w2_t[0]);
-    w_t[ 9] = swap_workaround (w2_t[1]);
-    w_t[10] = swap_workaround (w2_t[2]);
-    w_t[11] = swap_workaround (w2_t[3]);
-    w_t[12] = swap_workaround (w3_t[0]);
-    w_t[13] = swap_workaround (w3_t[1]);
-    w_t[14] = swap_workaround (w3_t[2]);
-    w_t[15] = swap_workaround (w3_t[3]);
+    w_t[ 0] = swap32 (w0_t[0]);
+    w_t[ 1] = swap32 (w0_t[1]);
+    w_t[ 2] = swap32 (w0_t[2]);
+    w_t[ 3] = swap32 (w0_t[3]);
+    w_t[ 4] = swap32 (w1_t[0]);
+    w_t[ 5] = swap32 (w1_t[1]);
+    w_t[ 6] = swap32 (w1_t[2]);
+    w_t[ 7] = swap32 (w1_t[3]);
+    w_t[ 8] = swap32 (w2_t[0]);
+    w_t[ 9] = swap32 (w2_t[1]);
+    w_t[10] = swap32 (w2_t[2]);
+    w_t[11] = swap32 (w2_t[3]);
+    w_t[12] = swap32 (w3_t[0]);
+    w_t[13] = swap32 (w3_t[1]);
+    w_t[14] = swap32 (w3_t[2]);
+    w_t[15] = swap32 (w3_t[3]);
 
     w_t[ 0] = w_t[ 0] >> 8;
     w_t[ 1] = w_t[ 1] >> 8;
