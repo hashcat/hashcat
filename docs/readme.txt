@@ -15,7 +15,7 @@ AMD users require Catalyst 14.9 or later
 - Multi-GPU (up to 128 GPUs)
 - Multi-Hash (up to 100 million hashes at once)
 - Multi-OS (Linux & Windows native binaries)
-- Multi-Platform (OpenCL & CUDA support)
+- Multi-Platform (OpenCL support)
 - Multi-Algorithm (see below)
 - Low resource utilization; you can still watch movies or play games while cracking
 - Focuses on highly iterated modern hashes

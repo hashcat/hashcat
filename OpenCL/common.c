@@ -2033,7 +2033,7 @@ static void append_0x02_4x4 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u
 }
 
 // before: append_0x02_8
-static void append_0x02_8 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+static void append_0x02_8x4 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
 {
   switch (offset)
   {

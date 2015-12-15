@@ -197,14 +197,6 @@ $ make linux
 ```sh
 $ make windows
 ```
-- build only *AMD kernel* binaries
-```sh
-$ make amd_all
-```
-- build only *NVIDIA kernel* binaries
-```sh
-$ make nv_all
-```
 
 =
 Enjoy your fresh **oclHashcat** binaries ;)

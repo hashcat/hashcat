@@ -1537,10 +1537,6 @@ OPTIONS:
         'all'    => all attack modes
         (int)    => attack mode integer code (default : 0)
 
-  -b    Select binary :
-        'amd'    => oclHashcat64.bin (default)
-        'nvidia' => cudaHashcat64.bin
-
   -x    Select cpu architecture :
         '32'     => 32 bit architecture
         '64'     => 64 bit architecture (default)
@@ -1607,18 +1603,6 @@ while getopts "t:m:a:b:hcpd:x:o:" opt; do
         ATTACK=6
       elif [ ${OPTARG} == "7" ]; then
         ATTACK=7
-      else
-        usage
-      fi
-      ;;
-
-    "b")
-      if [ ${OPTARG} == "amd" ]; then
-        BIN="oclHashcat64.bin"
-        BN="amd"
-      elif [ ${OPTARG} == "nvidia" ]; then
-        BIN="cudaHashcat64.bin"
-        BN="nvidia"
       else
         usage
       fi
