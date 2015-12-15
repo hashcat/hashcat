@@ -98,7 +98,7 @@ CFLAGS_WIN               := -D_WIN   -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO
 CFLAGS_LINUX		 += -I$(OCL)/include/ -I$(ADL)/include/ -I$(GDK)/usr/include/nvidia/gdk/
 CFLAGS_WIN		 += -I$(OCL)/include/ -I$(ADL)/include/ -I$(NVAPI)/
 
-LFLAGS_LINUX		 := -lpthread -lOpenCL -ldl -lnvidia-ml
+LFLAGS_LINUX		 := -lpthread -lOpenCL -ldl
 LFLAGS_WIN		 := -lpsapi -L./lib
 
 ##

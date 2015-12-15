@@ -2026,9 +2026,9 @@ uint32_t *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adap
 int hm_get_overdrive_version  (HM_LIB hm_dll, hm_attrs_t *hm_device, uint32_t *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 int hm_check_fanspeed_control (HM_LIB hm_dll, hm_attrs_t *hm_device, uint32_t *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 
-void hm_close_amd (HM_LIB hm_dll);
+void hm_close (HM_LIB hm_dll);
 
-HM_LIB hm_init_amd ();
+HM_LIB hm_init ();
 
 int hm_get_temperature_with_device_id (const uint device_id);
 int hm_get_fanspeed_with_device_id    (const uint device_id);
