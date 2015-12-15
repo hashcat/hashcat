@@ -12252,7 +12252,11 @@ int main (int argc, char **argv)
       if (vendor_id == VENDOR_ID_NV)
       {
         #ifdef LINUX
-        if (hc_NVML_nvmlInit () == NVML_SUCCESS)
+        HM_LIB hm_dll = hm_init ();
+
+        data.hm_dll = hm_dll;
+
+        if (hc_NVML_nvmlInit (hm_dll) == NVML_SUCCESS)
         {
           HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
 
@@ -12271,7 +12275,7 @@ int main (int argc, char **argv)
           {
             unsigned int speed;
 
-            if (nvmlDeviceGetFanSpeed (hm_adapter_all[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapter_all[i].fan_supported = 1;
+            if (hc_NVML_nvmlDeviceGetFanSpeed (hm_dll, 1, hm_adapter_all[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapter_all[i].fan_supported = 1;
           }
         }
         #endif
@@ -12304,7 +12308,7 @@ int main (int argc, char **argv)
 
       if (vendor_id == VENDOR_ID_AMD)
       {
-        HM_LIB hm_dll = hm_init_amd ();
+        HM_LIB hm_dll = hm_init ();
 
         data.hm_dll = hm_dll;
 
@@ -16048,7 +16052,7 @@ int main (int argc, char **argv)
       if (vendor_id == VENDOR_ID_NV)
       {
         #ifdef LINUX
-        hc_NVML_nvmlShutdown ();
+        hc_NVML_nvmlShutdown (data.hm_dll);
         #endif
 
         #ifdef WIN
@@ -16060,8 +16064,15 @@ int main (int argc, char **argv)
       {
         hc_ADL_Main_Control_Destroy (data.hm_dll);
 
-        hm_close_amd (data.hm_dll);
+        hm_close (data.hm_dll);
       }
+
+      #ifdef LINUX
+      if (vendor_id == VENDOR_ID_NV)
+      {
+        hm_close (data.hm_dll);
+      }
+      #endif
     }
 
     // free memory

@@ -2658,12 +2658,11 @@ int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 
   for (uint i = 0; i < DEVICES_MAX; i++)
   {
-    // do not use wrapper function to omit warning message
-    if (nvmlDeviceGetHandleByIndex (i, &nvGPUHandle[i]) != NVML_SUCCESS) break;
+    if (hc_NVML_nvmlDeviceGetHandleByIndex (data.hm_dll, 1, i, &nvGPUHandle[i]) != NVML_SUCCESS) break;
 
     //can be used to determine if the device by index matches the cuda device by index
     //char name[100]; memset (name, 0, sizeof (name));
-    //hc_NVML_nvmlDeviceGetName (nvGPUHandle[i], name, sizeof (name) - 1);
+    //hc_NVML_nvmlDeviceGetName (data.hm_dll, nvGPUHandle[i], name, sizeof (name) - 1);
 
     pGpuCount++;
   }
@@ -2679,7 +2678,7 @@ int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 }
 #endif
 
-void hm_close_amd (HM_LIB hm_dll)
+void hm_close (HM_LIB hm_dll)
 {
   #ifdef _POSIX
   dlclose (hm_dll);
@@ -2690,17 +2689,31 @@ void hm_close_amd (HM_LIB hm_dll)
   #endif
 }
 
-HM_LIB hm_init_amd ()
+HM_LIB hm_init ()
 {
-  #ifdef _POSIX
-  HM_LIB hm_dll = dlopen ("libatiadlxx.so", RTLD_LAZY | RTLD_GLOBAL);
+  HM_LIB hm_dll = NULL;
 
-  #elif _WIN
-  HM_LIB hm_dll = LoadLibrary ("atiadlxx.dll");
+  if (data.vendor_id == VENDOR_ID_AMD)
+  {
+    #ifdef _POSIX
+    hm_dll = dlopen ("libatiadlxx.so", RTLD_LAZY | RTLD_GLOBAL);
 
-  if (hm_dll == NULL)
+    #elif _WIN
+    hm_dll = LoadLibrary ("atiadlxx.dll");
+
+    if (hm_dll == NULL)
+    {
       hm_dll = LoadLibrary ("atiadlxy.dll");
+    }
 
+    #endif
+  }
+
+  #ifdef LINUX
+  if (data.vendor_id == VENDOR_ID_NV)
+  {
+    hm_dll = dlopen ("libnvidia-ml.so", RTLD_LAZY | RTLD_GLOBAL);
+  }
   #endif
 
   return hm_dll;
@@ -3077,7 +3090,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
     #ifdef LINUX
     int temperature = 0;
 
-    hc_NVML_nvmlDeviceGetTemperature (data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_GPU, (unsigned int *) &temperature);
+    hc_NVML_nvmlDeviceGetTemperature (data.hm_dll, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_GPU, (unsigned int *) &temperature);
 
     return temperature;
     #endif
@@ -3139,7 +3152,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
       #ifdef LINUX
       int speed = 0;
 
-      hc_NVML_nvmlDeviceGetFanSpeed (data.hm_device[device_id].adapter_index.nv, (unsigned int *) &speed);
+      hc_NVML_nvmlDeviceGetFanSpeed (data.hm_dll, 1, data.hm_device[device_id].adapter_index.nv, (unsigned int *) &speed);
 
       return speed;
       #endif
@@ -3178,7 +3191,7 @@ int hm_get_utilization_with_device_id (const uint device_id)
     #ifdef LINUX
     nvmlUtilization_t utilization;
 
-    hc_NVML_nvmlDeviceGetUtilizationRates (data.hm_device[device_id].adapter_index.nv, &utilization);
+    hc_NVML_nvmlDeviceGetUtilizationRates (data.hm_dll, data.hm_device[device_id].adapter_index.nv, &utilization);
 
     return utilization.gpu;
     #endif
