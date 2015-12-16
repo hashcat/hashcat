@@ -294,15 +294,15 @@ __constant u32 c_tables[4][256] =
 {                                         \
   u32 t;                                  \
   t = (k1) + r;                           \
-  l ^= BOX (amd_bfe (t,  0, 8), 0, tbl) ^ \
-       BOX (amd_bfe (t,  8, 8), 1, tbl) ^ \
-       BOX (amd_bfe (t, 16, 8), 2, tbl) ^ \
-       BOX (amd_bfe (t, 24, 8), 3, tbl);  \
+  l ^= BOX (((t >>  0) & 0xff), 0, tbl) ^ \
+       BOX (((t >>  8) & 0xff), 1, tbl) ^ \
+       BOX (((t >> 16) & 0xff), 2, tbl) ^ \
+       BOX (((t >> 24) & 0xff), 3, tbl);  \
   t = (k2) + l;                           \
-  r ^= BOX (amd_bfe (t,  0, 8), 0, tbl) ^ \
-       BOX (amd_bfe (t,  8, 8), 1, tbl) ^ \
-       BOX (amd_bfe (t, 16, 8), 2, tbl) ^ \
-       BOX (amd_bfe (t, 24, 8), 3, tbl);  \
+  r ^= BOX (((t >>  0) & 0xff), 0, tbl) ^ \
+       BOX (((t >>  8) & 0xff), 1, tbl) ^ \
+       BOX (((t >> 16) & 0xff), 2, tbl) ^ \
+       BOX (((t >> 24) & 0xff), 3, tbl);  \
 }
 
 #define R(k,h,s,i,t)      \
