@@ -31,6 +31,26 @@ static u32 __byte_perm (const u32 a, const u32 b, const u32 s)
   return r;
 }
 
+#if CUDA_ARCH >= 350
+
+static u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(b), "r"(a), "r"((c & 3) * 8));
+
+  return r;
+}
+
+#else
+
+static u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
+{
+  return __byte_perm (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
+}
+
+#endif
+
 static u32 lut3_2d (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
