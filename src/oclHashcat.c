@@ -13284,7 +13284,7 @@ int main (int argc, char **argv)
 
       clGetProgramBuildInfo (device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
 
-      if (ret_val_size > 1)
+      if (ret_val_size > 2)
       {
         char *build_log = (char *) malloc (ret_val_size + 1);
 
