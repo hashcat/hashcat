@@ -96,10 +96,14 @@ static u32 lut3_ca (const u32 a, const u32 b, const u32 c)
 
 #endif
 
-static bool allx (const u32 r)
+#define allx(r) r
+
+/*
+static u32 allx (const u32 r)
 {
   return r;
 }
+*/
 
 static u32 l32_from_64 (u64 a)
 {
