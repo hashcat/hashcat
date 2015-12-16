@@ -22,10 +22,9 @@
 #define COMPARE_S "check_single_comp4_bs.c"
 #define COMPARE_M "check_multi_comp4_bs.c"
 
-#ifdef IS_NV
+#define myselx(a,b,c) ((c) ? (b) : (a))
 
-#define KXX_DECL
-#define sXXX_DECL
+#ifdef IS_NV
 
 #if CUDA_ARCH >= 500
 
@@ -896,9 +895,6 @@ static void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
 
 #ifdef IS_AMD
 
-#define KXX_DECL  volatile
-#define sXXX_DECL volatile
-
 /*
  * Bitslice DES S-boxes making use of a vector conditional select operation
  * (e.g., vsel on PowerPC with AltiVec).
@@ -1461,12 +1457,20 @@ s8(u32 a1, u32 a2, u32 a3, u32 a4, u32 a5, u32 a6,
 #define KEYSET07 { k00 = K31; k01 = K35; k02 = K52; k03 = K43; k04 = K08; k05 = K37; k06 = K51; k07 = K15; k08 = K49; k09 = K30; k10 = K07; k11 = K02; k12 = K50; k13 = K21; k14 = K45; k15 = K44; k16 = K29; k17 = K16; k18 = K42; k19 = K23; k20 = K22; k21 = K14; k22 = K38; k23 = K01; k24 = K10; k25 = K47; k26 = K53; k27 = K11; k28 = K27; k29 = K26; k30 = K05; k31 = K17; k32 = K54; k33 = K41; k34 = K39; k35 = K20; k36 = K48; k37 = K13; k38 = K24; k39 = K19; k40 = K32; k41 = K40; k42 = K34; k43 = K03; k44 = K06; k45 = K18; k46 = K12; k47 = K46; }
 #define KEYSET17 { k00 = K15; k01 = K51; k02 = K36; k03 = K02; k04 = K49; k05 = K21; k06 = K35; k07 = K31; k08 = K08; k09 = K14; k10 = K23; k11 = K43; k12 = K09; k13 = K37; k14 = K29; k15 = K28; k16 = K45; k17 = K00; k18 = K01; k19 = K07; k20 = K38; k21 = K30; k22 = K22; k23 = K42; k24 = K26; k25 = K04; k26 = K41; k27 = K54; k28 = K39; k29 = K10; k30 = K48; k31 = K33; k32 = K11; k33 = K53; k34 = K27; k35 = K32; k36 = K05; k37 = K25; k38 = K40; k39 = K03; k40 = K20; k41 = K24; k42 = K46; k43 = K19; k44 = K18; k45 = K06; k46 = K55; k47 = K34; }
 
+#ifdef IS_NV
+#define KXX_DECL
+#define sXXX_DECL
+#endif
+
+#ifdef IS_AMD
+#define KXX_DECL  volatile
+#define sXXX_DECL volatile
+#endif
+
 #ifdef DESCRYPT_SALT
 
 static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, u32 *D00, u32 *D01, u32 *D02, u32 *D03, u32 *D04, u32 *D05, u32 *D06, u32 *D07, u32 *D08, u32 *D09, u32 *D10, u32 *D11, u32 *D12, u32 *D13, u32 *D14, u32 *D15, u32 *D16, u32 *D17, u32 *D18, u32 *D19, u32 *D20, u32 *D21, u32 *D22, u32 *D23, u32 *D24, u32 *D25, u32 *D26, u32 *D27, u32 *D28, u32 *D29, u32 *D30, u32 *D31, u32 *D32, u32 *D33, u32 *D34, u32 *D35, u32 *D36, u32 *D37, u32 *D38, u32 *D39, u32 *D40, u32 *D41, u32 *D42, u32 *D43, u32 *D44, u32 *D45, u32 *D46, u32 *D47, u32 *D48, u32 *D49, u32 *D50, u32 *D51, u32 *D52, u32 *D53, u32 *D54, u32 *D55, u32 *D56, u32 *D57, u32 *D58, u32 *D59, u32 *D60, u32 *D61, u32 *D62, u32 *D63)
 {
-  #define myselx(a,b,c) ((c) ? (b) : (a))
-
   sXXX_DECL u32 s001 = (0x001 & DESCRYPT_SALT) ? 0xffffffff : 0;
   sXXX_DECL u32 s002 = (0x002 & DESCRYPT_SALT) ? 0xffffffff : 0;
   sXXX_DECL u32 s004 = (0x004 & DESCRYPT_SALT) ? 0xffffffff : 0;
@@ -1491,9 +1495,14 @@ static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K0
 
   for (u32 ii = 0; ii < 25; ii++)
   {
+    #ifdef IS_NV
     #if CUDA_ARCH >= 500
-    #pragma unroll 1
     #else
+    #pragma unroll
+    #endif
+    #endif
+
+    #ifdef IS_AMD
     #pragma unroll
     #endif
 
@@ -1598,10 +1607,6 @@ static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K0
 
 static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, u32 *D00, u32 *D01, u32 *D02, u32 *D03, u32 *D04, u32 *D05, u32 *D06, u32 *D07, u32 *D08, u32 *D09, u32 *D10, u32 *D11, u32 *D12, u32 *D13, u32 *D14, u32 *D15, u32 *D16, u32 *D17, u32 *D18, u32 *D19, u32 *D20, u32 *D21, u32 *D22, u32 *D23, u32 *D24, u32 *D25, u32 *D26, u32 *D27, u32 *D28, u32 *D29, u32 *D30, u32 *D31, u32 *D32, u32 *D33, u32 *D34, u32 *D35, u32 *D36, u32 *D37, u32 *D38, u32 *D39, u32 *D40, u32 *D41, u32 *D42, u32 *D43, u32 *D44, u32 *D45, u32 *D46, u32 *D47, u32 *D48, u32 *D49, u32 *D50, u32 *D51, u32 *D52, u32 *D53, u32 *D54, u32 *D55, u32 *D56, u32 *D57, u32 *D58, u32 *D59, u32 *D60, u32 *D61, u32 *D62, u32 *D63)
 {
-  #define myselx(a,b,c) ((c) ? (b) : (a))
-  //#define myselx(a,b,c) ((b & c) | (a & ~c))
-  //#define myselx(a,b,c) bitselect ((a), (b), (c))
-
   sXXX_DECL u32 s001 = (0x001 & SALT) ? 0xffffffff : 0;
   sXXX_DECL u32 s002 = (0x002 & SALT) ? 0xffffffff : 0;
   sXXX_DECL u32 s004 = (0x004 & SALT) ? 0xffffffff : 0;
@@ -1626,9 +1631,14 @@ static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K0
 
   for (u32 ii = 0; ii < 25; ii++)
   {
+    #ifdef IS_NV
     #if CUDA_ARCH >= 500
-    #pragma unroll 1
     #else
+    #pragma unroll
+    #endif
+    #endif
+
+    #ifdef IS_AMD
     #pragma unroll
     #endif
 
