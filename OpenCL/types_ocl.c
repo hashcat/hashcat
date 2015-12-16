@@ -8,8 +8,6 @@ typedef ushort u16;
 typedef uint   u32;
 typedef ulong  u64;
 
-#ifdef IS_AMD
-
 static u32 swap32 (const u32 v)
 {
   return (as_uint (as_uchar4 (v).s3210));
@@ -20,10 +18,10 @@ static u64 swap64 (const u64 v)
   return (as_ulong (as_uchar8 (v).s76543210));
 }
 
+#ifdef IS_AMD
 #endif
 
 #ifdef IS_NV
-
 static u32 __byte_perm (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -33,15 +31,67 @@ static u32 __byte_perm (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-static u32 swap32 (const u32 v)
+static u32 lut3_2d (const u32 a, const u32 b, const u32 c)
 {
-  return (as_uint (as_uchar4 (v).s3210));
-  //  return __byte_perm (v, 0, 0x0123);
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
 }
 
-static u64 swap64 (const u64 v)
+static u32 lut3_39 (const u32 a, const u32 b, const u32 c)
 {
-  return (as_ulong (as_uchar8 (v).s76543210));
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static u32 lut3_59 (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static u32 lut3_96 (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static u32 lut3_e4 (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static u32 lut3_e8 (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static u32 lut3_ca (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
 }
 
 #endif
@@ -72,6 +122,8 @@ static u64 hl32_to_64 (const u32 a, const u32 b)
   return as_ulong ((uint2) (b, a));
 }
 
+#ifdef IS_AMD
+
 static u32 rotr32 (const u32 a, const u32 n)
 {
   return rotate (a, 32 - n);
@@ -81,8 +133,6 @@ static u32 rotl32 (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
-
-#ifdef IS_AMD
 
 static u64 rotr64 (const u64 a, const u32 n)
 {
@@ -98,11 +148,30 @@ static u64 rotr64 (const u64 a, const u32 n)
   return as_ulong (t);
 }
 
+static u64 rotl64 (const u64 a, const u32 n)
+{
+  return rotr64 (a, 64 - n);
+}
+
 #endif
 
 #ifdef IS_NV
 
 #if CUDA_ARCH >= 350
+
+static u32 rotr32 (const u32 a, const u32 n)
+{
+  u32 r;
+
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(a), "r"(n));
+
+  return r;
+}
+
+static u32 rotl32 (const u32 a, const u32 n)
+{
+  return rotr32 (a, 32 - n);
+}
 
 static u64 rotr64 (const u64 a, const u32 n)
 {
@@ -132,20 +201,34 @@ static u64 rotr64 (const u64 a, const u32 n)
   return r;
 }
 
+static u64 rotl64 (const u64 a, const u32 n)
+{
+  return rotr64 (a, 64 - n);
+}
+
 #else
+
+static u32 rotr32 (const u32 a, const u32 n)
+{
+  return (((a) >> (n)) | ((a) << (32 - (n))));
+}
+
+static u32 rotl32 (const u32 a, const u32 n)
+{
+  return rotr32 (a, 32 - n);
+}
 
 static u64 rotr64 (const u64 a, const u32 n)
 {
   return (((a) >> (n)) | ((a) << (64 - (n))));
 }
 
-#endif
-
 static u64 rotl64 (const u64 a, const u32 n)
 {
   return rotr64 (a, 64 - n);
 }
 
+#endif
 #endif
 
 typedef struct
