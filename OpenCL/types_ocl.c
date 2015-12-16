@@ -22,11 +22,11 @@ static u64 swap64 (const u64 v)
 #endif
 
 #ifdef IS_NV
-static u32 __byte_perm (const u32 a, const u32 b, const u32 c)
+static u32 __byte_perm (const u32 a, const u32 b, const u32 s)
 {
   u32 r;
 
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
+  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(s));
 
   return r;
 }
