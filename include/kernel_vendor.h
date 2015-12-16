@@ -9,7 +9,7 @@
  * vendor specific
  */
 
-#if VENDOR_ID == 4096
+#if VENDOR_ID == 4098
 #define IS_AMD
 #endif
 
