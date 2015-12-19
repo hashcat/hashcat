@@ -455,7 +455,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m01800_loop (__gl
   wpc_len[6] = 64     + salt_len + pw_len + pw_len;
   wpc_len[7] = pw_len + salt_len + pw_len + 64;
 
-  u64 wpc[8][16] = { 0 };
+  u64 wpc[8][16] = { { 0 } };
 
   for (u32 i = 0; i < 8; i++)
   {
