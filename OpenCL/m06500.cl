@@ -390,14 +390,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06500_init (__gl
   w3l[2] = 0;
   w3l[3] = 0;
 
-  w0l[0] = swap32 (w0l[0]);
-  w0l[1] = swap32 (w0l[1]);
-  w0l[2] = swap32 (w0l[2]);
-  w0l[3] = swap32 (w0l[3]);
-  w1l[0] = swap32 (w1l[0]);
-  w1l[1] = swap32 (w1l[1]);
-  w1l[2] = swap32 (w1l[2]);
-  w1l[3] = swap32 (w1l[3]);
+  w0l[0] = swap64 (w0l[0]);
+  w0l[1] = swap64 (w0l[1]);
+  w0l[2] = swap64 (w0l[2]);
+  w0l[3] = swap64 (w0l[3]);
+  w1l[0] = swap64 (w1l[0]);
+  w1l[1] = swap64 (w1l[1]);
+  w1l[2] = swap64 (w1l[2]);
+  w1l[3] = swap64 (w1l[3]);
   w2l[0] = 0;
   w2l[1] = 0;
   w2l[2] = 0;
