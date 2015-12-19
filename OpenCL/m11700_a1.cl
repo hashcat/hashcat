@@ -2457,14 +2457,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11700_m04 (__glo
     m[6] = hl32_to_64 (w[ 3], w[ 2]);
     m[7] = hl32_to_64 (w[ 1], w[ 0]);
 
-    m[0] = swap32 (m[0]);
-    m[1] = swap32 (m[1]);
-    m[2] = swap32 (m[2]);
-    m[3] = swap32 (m[3]);
-    m[4] = swap32 (m[4]);
-    m[5] = swap32 (m[5]);
-    m[6] = swap32 (m[6]);
-    m[7] = swap32 (m[7]);
+    m[0] = swap64 (m[0]);
+    m[1] = swap64 (m[1]);
+    m[2] = swap64 (m[2]);
+    m[3] = swap64 (m[3]);
+    m[4] = swap64 (m[4]);
+    m[5] = swap64 (m[5]);
+    m[6] = swap64 (m[6]);
+    m[7] = swap64 (m[7]);
 
     // state buffer (hash)
 
@@ -2490,7 +2490,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11700_m04 (__glo
     z[4] = 0;
     z[5] = 0;
     z[6] = 0;
-    z[7] = swap32 ((u64) (pw_len * 8));
+    z[7] = swap64 ((u64) (pw_len * 8));
 
     streebog_g (h, z, s_sbob_sl64);
     streebog_g (h, m, s_sbob_sl64);
@@ -2700,14 +2700,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11700_s04 (__glo
     m[6] = hl32_to_64 (w[ 3], w[ 2]);
     m[7] = hl32_to_64 (w[ 1], w[ 0]);
 
-    m[0] = swap32 (m[0]);
-    m[1] = swap32 (m[1]);
-    m[2] = swap32 (m[2]);
-    m[3] = swap32 (m[3]);
-    m[4] = swap32 (m[4]);
-    m[5] = swap32 (m[5]);
-    m[6] = swap32 (m[6]);
-    m[7] = swap32 (m[7]);
+    m[0] = swap64 (m[0]);
+    m[1] = swap64 (m[1]);
+    m[2] = swap64 (m[2]);
+    m[3] = swap64 (m[3]);
+    m[4] = swap64 (m[4]);
+    m[5] = swap64 (m[5]);
+    m[6] = swap64 (m[6]);
+    m[7] = swap64 (m[7]);
 
     // state buffer (hash)
 
@@ -2733,7 +2733,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m11700_s04 (__glo
     z[4] = 0;
     z[5] = 0;
     z[6] = 0;
-    z[7] = swap32 ((u64) (pw_len * 8));
+    z[7] = swap64 ((u64) (pw_len * 8));
 
     streebog_g (h, z, s_sbob_sl64);
     streebog_g (h, m, s_sbob_sl64);
