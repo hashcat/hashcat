@@ -970,15 +970,6 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m08900_comp (__gl
   w3[3] = pws[gid].i[15];
 
   /**
-   * memory buffers
-   */
-
-  const u32 scrypt_r = SCRYPT_R;
-  const u32 scrypt_p = SCRYPT_P;
-  //const u32 scrypt_N = SCRYPT_N;
-
-
-  /**
    * 2nd pbkdf2, creates B
    */
 
