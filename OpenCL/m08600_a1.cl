@@ -82,7 +82,7 @@ static void lotus_mix (u32 *in, __local u32 s_lotus_magic_table[256])
   }
 }
 
-static void lotus_transform_password (u32 *in, u32 *out, __local u32 s_lotus_magic_table[256])
+static void lotus_transform_password (u32 in[4], u32 out[4], __local u32 s_lotus_magic_table[256])
 {
   u32 t = out[3] >> 24;
 
