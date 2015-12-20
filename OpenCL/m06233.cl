@@ -23,8 +23,6 @@
 
 #define R 10
 
-#define BOX(S,n,i) (u32) ((S)[(n)][(i)])
-
 __constant u32 Ch[8][256] =
 {
   {
