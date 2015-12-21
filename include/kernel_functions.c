@@ -284,8 +284,8 @@
 
 #define SHA512_EXPAND(x,y,z,w) (SHA512_S3 (x) + y + SHA512_S2 (z) + w)
 
-#define SHA512_S2_WO(x) (rotr64 ((x),  1) ^ rotr64 ((x),  8) ^ SHIFT_RIGHT_64 ((x), 7))
-#define SHA512_S3_WO(x) (rotr64 ((x), 19) ^ rotr64 ((x), 61) ^ SHIFT_RIGHT_64 ((x), 6))
+#define SHA512_S2_WO(x) (rotate ((x), 64- 1ull) ^ rotate ((x), 64- 8ull) ^ SHIFT_RIGHT_64 ((x), 7))
+#define SHA512_S3_WO(x) (rotate ((x), 64-19ull) ^ rotate ((x), 64-61ull) ^ SHIFT_RIGHT_64 ((x), 6))
 
 #define SHA512_EXPAND_WO(x,y,z,w) (SHA512_S3_WO (x) + y + SHA512_S2_WO (z) + w)
 #endif

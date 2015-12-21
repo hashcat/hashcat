@@ -141,6 +141,7 @@ static void sha512_transform (const u64 w[16], u64 digest[8])
   digest[7] += h;
 }
 
+#ifdef IS_AMD
 static void sha512_transform_workaround (const u64 w[16], u64 digest[8])
 {
   u64 w0_t = w[ 0];
@@ -205,6 +206,7 @@ static void sha512_transform_workaround (const u64 w[16], u64 digest[8])
   digest[6] += g;
   digest[7] += h;
 }
+#endif
 
 static void sha512_init (sha512_ctx_t *sha512_ctx)
 {
@@ -243,7 +245,13 @@ static void sha512_update (sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
     PUTCHAR64_BE (sha512_ctx->buf, pos++, GETCHAR64_BE (buf, i));
   }
 
+  #ifdef IS_AMD
   sha512_transform_workaround (sha512_ctx->buf, sha512_ctx->state);
+  #endif
+
+  #ifdef IS_NV
+  sha512_transform (sha512_ctx->buf, sha512_ctx->state);
+  #endif
 
   len -= cnt;
 

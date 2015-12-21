@@ -1001,7 +1001,7 @@ __constant u64 k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-static void sha512_transform (volatile const u64 w0[4], volatile const u64 w1[4], volatile const u64 w2[4], volatile const u64 w3[4], volatile u64 dgst[8])
+static void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 dgst[8])
 {
   u64 a = dgst[0];
   u64 b = dgst[1];
@@ -1071,7 +1071,7 @@ static void sha512_transform (volatile const u64 w0[4], volatile const u64 w1[4]
 
   ROUND_STEP (0);
 
-  #pragma unroll
+  //#pragma unroll
   for (int i = 16; i < 80; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);

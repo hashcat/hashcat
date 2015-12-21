@@ -303,6 +303,7 @@ __constant u32 c_pbox[18] =
   0x9216d5d9, 0x8979fb1b
 };
 
+/*
 #define BF_ROUND(L,R,N)       \
 {                             \
   uchar4 c = as_uchar4 ((L)); \
@@ -313,6 +314,20 @@ __constant u32 c_pbox[18] =
   tmp += S1[c.s2];            \
   tmp ^= S2[c.s1];            \
   tmp += S3[c.s0];            \
+                              \
+  (R) ^= tmp ^ P[(N)];        \
+}
+*/
+
+
+#define BF_ROUND(L,R,N)       \
+{                             \
+  u32 tmp;                  \
+                              \
+  tmp  = S0[((L) >> 24) & 0xff];            \
+  tmp += S1[((L) >> 16) & 0xff];            \
+  tmp ^= S2[((L) >>  8) & 0xff];            \
+  tmp += S3[((L) >>  0) & 0xff];            \
                               \
   (R) ^= tmp ^ P[(N)];        \
 }

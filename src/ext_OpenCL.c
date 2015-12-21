@@ -256,7 +256,8 @@ void hc_clBuildProgram (cl_program program, cl_uint num_devices, const cl_device
   {
     log_error ("ERROR: %s %d\n", "clBuildProgram()", CL_err);
 
-    exit (-1);
+    // If we exit here we can't see the error message
+    // exit (-1);
   }
 }
 

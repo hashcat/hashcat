@@ -925,22 +925,22 @@ static void sha512_transform (const u64 w[16], u64 dgst[8])
   u64 g = dgst[6];
   u64 h = dgst[7];
 
-  volatile u64 w0_t = w[ 0];
-  volatile u64 w1_t = w[ 1];
-  volatile u64 w2_t = w[ 2];
-  volatile u64 w3_t = w[ 3];
-  volatile u64 w4_t = w[ 4];
-  volatile u64 w5_t = w[ 5];
-  volatile u64 w6_t = w[ 6];
-  volatile u64 w7_t = w[ 7];
-  volatile u64 w8_t = w[ 8];
-  volatile u64 w9_t = w[ 9];
-  volatile u64 wa_t = w[10];
-  volatile u64 wb_t = w[11];
-  volatile u64 wc_t = w[12];
-  volatile u64 wd_t = w[13];
-  volatile u64 we_t = w[14];
-  volatile u64 wf_t = w[15];
+  u64 w0_t = w[ 0];
+  u64 w1_t = w[ 1];
+  u64 w2_t = w[ 2];
+  u64 w3_t = w[ 3];
+  u64 w4_t = w[ 4];
+  u64 w5_t = w[ 5];
+  u64 w6_t = w[ 6];
+  u64 w7_t = w[ 7];
+  u64 w8_t = w[ 8];
+  u64 w9_t = w[ 9];
+  u64 wa_t = w[10];
+  u64 wb_t = w[11];
+  u64 wc_t = w[12];
+  u64 wd_t = w[13];
+  u64 we_t = w[14];
+  u64 wf_t = w[15];
 
   #define ROUND_EXPAND()                            \
   {                                                 \
@@ -984,7 +984,7 @@ static void sha512_transform (const u64 w[16], u64 dgst[8])
 
   ROUND_STEP (0);
 
-  #pragma unroll
+//  #pragma unroll
   for (int i = 16; i < 80; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
