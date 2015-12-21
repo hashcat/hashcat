@@ -19,6 +19,10 @@ static inline u64 swap64 (const u64 v)
 }
 
 #ifdef IS_AMD
+static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
+{
+  return amd_bfe (a, b, c);
+}
 #endif
 
 #ifdef IS_NV
@@ -39,7 +43,6 @@ static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
 
   return r;
 }
-
 
 #if CUDA_ARCH >= 350
 
