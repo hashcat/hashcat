@@ -2457,16 +2457,37 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
 
 static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const uint size)
 {
-  // not supported with Nvidia
-  // hc_clEnqueueFillBuffer (device_param->command_queue, buf, &zero, sizeof (cl_uchar), 0, size, 0, NULL, NULL);
+  if (data.vendor_id == VENDOR_ID_AMD)
+  {
+    const cl_uchar zero = 0;
 
-  char *tmp = (char *) mymalloc (size);
+    hc_clEnqueueFillBuffer (device_param->command_queue, buf, &zero, sizeof (cl_uchar), 0, size, 0, NULL, NULL);
+  }
 
-  memset (tmp, 0, size);
+  if (data.vendor_id == VENDOR_ID_NV)
+  {
+    // NOTE: clEnqueueFillBuffer () always fails with -59
+    //       IOW, it's not supported by Nvidia ForceWare <= 352.21,
+    //       How's that possible, OpenCL 1.2 support is advertised??
+    //       We need to workaround...
 
-  hc_clEnqueueWriteBuffer (device_param->command_queue, buf, CL_TRUE, 0, size, tmp, 0, NULL, NULL);
+    #define FILLSZ 0x100000
 
-  free (tmp);
+    char *tmp = (char *) mymalloc (FILLSZ);
+
+    memset (tmp, 0, FILLSZ);
+
+    for (uint i = 0; i < size; i += FILLSZ)
+    {
+      const int left = size - i;
+
+      const int fillsz = MIN (FILLSZ, left);
+
+      hc_clEnqueueWriteBuffer (device_param->command_queue, buf, CL_TRUE, i, fillsz, tmp, 0, NULL, NULL);
+    }
+
+    myfree (tmp);
+  }
 }
 
 static int run_rule_engine (const int rule_len, const char *rule_buf)
