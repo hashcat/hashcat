@@ -8,12 +8,12 @@ typedef ushort u16;
 typedef uint   u32;
 typedef ulong  u64;
 
-static u32 swap32 (const u32 v)
+static inline u32 swap32 (const u32 v)
 {
   return (as_uint (as_uchar4 (v).s3210));
 }
 
-static u64 swap64 (const u64 v)
+static inline u64 swap64 (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
 }
@@ -22,7 +22,7 @@ static u64 swap64 (const u64 v)
 #endif
 
 #ifdef IS_NV
-static u32 __byte_perm (const u32 a, const u32 b, const u32 s)
+static inline u32 __byte_perm (const u32 a, const u32 b, const u32 s)
 {
   u32 r;
 
@@ -33,7 +33,7 @@ static u32 __byte_perm (const u32 a, const u32 b, const u32 s)
 
 #if CUDA_ARCH >= 350
 
-static u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
+static inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -44,14 +44,14 @@ static u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
 
 #else
 
-static u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
+static inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
 {
   return __byte_perm (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
 }
 
 #endif
 
-static u32 lut3_2d (const u32 a, const u32 b, const u32 c)
+static inline u32 lut3_2d (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -60,7 +60,7 @@ static u32 lut3_2d (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-static u32 lut3_39 (const u32 a, const u32 b, const u32 c)
+static inline u32 lut3_39 (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -69,7 +69,7 @@ static u32 lut3_39 (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-static u32 lut3_59 (const u32 a, const u32 b, const u32 c)
+static inline u32 lut3_59 (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -78,7 +78,7 @@ static u32 lut3_59 (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-static u32 lut3_96 (const u32 a, const u32 b, const u32 c)
+static inline u32 lut3_96 (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -87,7 +87,7 @@ static u32 lut3_96 (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-static u32 lut3_e4 (const u32 a, const u32 b, const u32 c)
+static inline u32 lut3_e4 (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -96,7 +96,7 @@ static u32 lut3_e4 (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-static u32 lut3_e8 (const u32 a, const u32 b, const u32 c)
+static inline u32 lut3_e8 (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -105,7 +105,7 @@ static u32 lut3_e8 (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-static u32 lut3_ca (const u32 a, const u32 b, const u32 c)
+static inline u32 lut3_ca (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -125,14 +125,14 @@ static u32 allx (const u32 r)
 }
 */
 
-static u32 l32_from_64 (u64 a)
+static inline u32 l32_from_64 (u64 a)
 {
   const u32 r = (uint) (a);
 
   return r;
 }
 
-static u32 h32_from_64 (u64 a)
+static inline u32 h32_from_64 (u64 a)
 {
   a >>= 32;
 
@@ -141,24 +141,24 @@ static u32 h32_from_64 (u64 a)
   return r;
 }
 
-static u64 hl32_to_64 (const u32 a, const u32 b)
+static inline u64 hl32_to_64 (const u32 a, const u32 b)
 {
   return as_ulong ((uint2) (b, a));
 }
 
 #ifdef IS_AMD
 
-static u32 rotr32 (const u32 a, const u32 n)
+static inline u32 rotr32 (const u32 a, const u32 n)
 {
   return rotate (a, 32 - n);
 }
 
-static u32 rotl32 (const u32 a, const u32 n)
+static inline u32 rotl32 (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
-static u64 rotr64 (const u64 a, const u32 n)
+static inline u64 rotr64 (const u64 a, const u32 n)
 {
   uint2 a2 = as_uint2 (a);
 
@@ -172,7 +172,7 @@ static u64 rotr64 (const u64 a, const u32 n)
   return as_ulong (t);
 }
 
-static u64 rotl64 (const u64 a, const u32 n)
+static inline u64 rotl64 (const u64 a, const u32 n)
 {
   return rotr64 (a, 64 - n);
 }
@@ -181,22 +181,22 @@ static u64 rotl64 (const u64 a, const u32 n)
 
 #ifdef IS_NV
 
-static u32 rotr32 (const u32 a, const u32 n)
+static inline u32 rotr32 (const u32 a, const u32 n)
 {
   return rotate (a, 32 - n);
 }
 
-static u32 rotl32 (const u32 a, const u32 n)
+static inline u32 rotl32 (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
-static u64 rotr64 (const u64 a, const u64 n)
+static inline u64 rotr64 (const u64 a, const u64 n)
 {
   return rotate (a, 64 - n);
 }
 
-static u64 rotl64 (const u64 a, const u64 n)
+static inline u64 rotl64 (const u64 a, const u64 n)
 {
   return rotate (a, n);
 }
