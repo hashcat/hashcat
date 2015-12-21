@@ -22,14 +22,24 @@ static inline u64 swap64 (const u64 v)
 #endif
 
 #ifdef IS_NV
-static inline u32 __byte_perm (const u32 a, const u32 b, const u32 s)
+static inline u32 __byte_perm (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(s));
+  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
 
   return r;
 }
+
+static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
+
+  return r;
+}
+
 
 #if CUDA_ARCH >= 350
 

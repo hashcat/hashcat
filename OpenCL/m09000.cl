@@ -294,7 +294,6 @@ __constant u32 c_sbox3[256] =
   0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
 };
 
-
 #ifdef IS_AMD
 #define BF_ROUND(L,R,N)       \
 {                             \
@@ -316,10 +315,10 @@ __constant u32 c_sbox3[256] =
 {                                 \
   u32 tmp;                        \
                                   \
-  tmp  = S0[((L) >> 24) & 0xff];  \
-  tmp += S1[((L) >> 16) & 0xff];  \
-  tmp ^= S2[((L) >>  8) & 0xff];  \
-  tmp += S3[((L) >>  0) & 0xff];  \
+  tmp  = S0[__bfe ((L), 24, 8)];  \
+  tmp += S1[__bfe ((L), 16, 8)];  \
+  tmp ^= S2[__bfe ((L),  8, 8)];  \
+  tmp += S3[__bfe ((L),  0, 8)];  \
                                   \
   (R) ^= tmp ^ P[(N)];            \
 }

@@ -294,11 +294,12 @@ __constant u32 c_sbox3[256] =
   0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
 };
 
+#ifdef IS_AMD
 #define BF_ROUND(L,R,N)       \
 {                             \
   uchar4 c = as_uchar4 ((L)); \
                               \
-  u32 tmp;                  \
+  u32 tmp;                    \
                               \
   tmp  = S0[c.s3];            \
   tmp += S1[c.s2];            \
@@ -307,6 +308,21 @@ __constant u32 c_sbox3[256] =
                               \
   (R) ^= tmp ^ P[(N)];        \
 }
+#endif
+
+#ifdef IS_NV
+#define BF_ROUND(L,R,N)           \
+{                                 \
+  u32 tmp;                        \
+                                  \
+  tmp  = S0[__bfe ((L), 24, 8)];  \
+  tmp += S1[__bfe ((L), 16, 8)];  \
+  tmp ^= S2[__bfe ((L),  8, 8)];  \
+  tmp += S3[__bfe ((L),  0, 8)];  \
+                                  \
+  (R) ^= tmp ^ P[(N)];            \
+}
+#endif
 
 #define BF_ENCRYPT(L,R) \
 {                       \
