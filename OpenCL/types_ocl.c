@@ -194,6 +194,57 @@ static inline u64 rotl64 (const u64 a, const u32 n)
 
 #ifdef IS_NV
 
+#if CUDA_ARCH >= 350
+
+static u32 rotr32 (const u32 a, const u32 n)
+{
+  u32 r;
+
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(a), "r"(n));
+
+  return r;
+}
+
+static u32 rotl32 (const u32 a, const u32 n)
+{
+  return rotr32 (a, 32 - n);
+}
+
+static u64 rotr64 (const u64 a, const u32 n)
+{
+  u32 il;
+  u32 ir;
+
+  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a));
+
+  u32 tl;
+  u32 tr;
+
+  if (n >= 32)
+  {
+    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+  }
+  else
+  {
+    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+  }
+
+  u64 r;
+
+  asm ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tl), "r"(tr));
+
+  return r;
+}
+
+static u64 rotl64 (const u64 a, const u32 n)
+{
+  return rotr64 (a, 64 - n);
+}
+
+#else
+
 static inline u32 rotr32 (const u32 a, const u32 n)
 {
   return rotate (a, 32 - n);
@@ -214,6 +265,7 @@ static inline u64 rotl64 (const u64 a, const u64 n)
   return rotate (a, n);
 }
 
+#endif
 #endif
 
 typedef struct
