@@ -3,7 +3,7 @@
 Type.: Feature
 File.: Kernel
 Desc.: For NVidia, dropped CUDA support and switched to OpenCL
-Issue: 1
+Issue: 3
 
 Type.: Feature
 File.: Host

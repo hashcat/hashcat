@@ -4,7 +4,7 @@
 
 ## global vars
 DEPS="make gcc g++ gcc-multilib g++-multilib libc6-dev-i386 mingw-w64 build-essential unzip"
-DOWNLOAD_DEPS="ADL_SDK8.zip R352-developer.zip cuda_7.5.18_linux.run NVIDIA-Linux-x86_64-352.21.run gdk_linux_amd64_352_55_release.run AMD-APP-SDKInstaller-v3.0.130.135-GA-linux64.tar.bz2"
+DOWNLOAD_DEPS="ADL_SDK8.zip R352-developer.zip NVIDIA-Linux-x86_64-352.21.run gdk_linux_amd64_352_55_release.run AMD-APP-SDKInstaller-v3.0.130.135-GA-linux64.tar.bz2"
 
 ## enter the deps directory
 cur_directory=$(dirname ${0})
@@ -15,8 +15,8 @@ mkdir -p ${deps_dir} # but it should already exist (is part of the repository)
 cd ${deps_dir}
 
 ## cleanup the directories under the 'deps' folder
-rm -rf {adl-sdk,cuda-7.5,NVIDIA-Linux-x86_64-352.21,nvidia-gdk,amd-app-sdk} && \
-mkdir -p {tmp,adl-sdk,cuda-7.5,NVIDIA-Linux-x86_64-352.21,nvidia-gdk,amd-app-sdk} && \
+rm -rf {adl-sdk,NVIDIA-Linux-x86_64-352.21,nvidia-gdk,amd-app-sdk} && \
+mkdir -p {tmp,adl-sdk,NVIDIA-Linux-x86_64-352.21,nvidia-gdk,amd-app-sdk} && \
 cd tmp/
 
 if [ $? -ne 0 ]; then
@@ -83,25 +83,14 @@ if [[ ${ret} -ne 0 ]] && [[ ${ret} -ne 1 ]]; then
   exit 1
 fi
 
-## install CUDA SDK
-chmod +x cuda_7.5.18_linux.run && \
-./cuda_7.5.18_linux.run -toolkit -silent -override --toolkitpath=${deps_dir}/cuda-7.5
-
-if [ $? -ne 0 ]; then
-  echo "! failed to install CUDA SDK"
-  exit 1
-fi
-
 ## install NVIDIA Driver
 chmod +x NVIDIA-Linux-x86_64-352.21.run && \
 ./NVIDIA-Linux-x86_64-352.21.run -x && \
 mv NVIDIA-Linux-x86_64-352.21 ${deps_dir}/ && \
 cd ${deps_dir}/NVIDIA-Linux-x86_64-352.21 && \
 ln -s libnvidia-ml.so.352.21 libnvidia-ml.so && \
-ln -s libcuda.so.352.21 libcuda.so && \
 cd 32 && \
 ln -s libnvidia-ml.so.352.21 libnvidia-ml.so && \
-ln -s libcuda.so.352.21 libcuda.so && \
 cd ${deps_dir}/tmp
 
 if [ $? -ne 0 ]; then

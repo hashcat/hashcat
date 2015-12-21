@@ -1,5 +1,5 @@
 #!/bin/bash
-# Programmable bash completion for oclHashcat / cudaHashcat
+# Programmable bash completion for oclHashcat
 # this script was tested under ubuntu, please verify if on your
 # distro /etc/bash_completion.d/ exists (otherwise it won't work)
 
