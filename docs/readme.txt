@@ -1,7 +1,7 @@
-oclHashcat v2.00
+oclHashcat v2.xx
 ================
 
-NV users require ForceWare 346.59 or later
+NV users require ForceWare 346.59 or later (recommended 358.09 or later)
 AMD users require Catalyst 14.9 or later
 
 ##
