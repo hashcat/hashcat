@@ -268,7 +268,7 @@ cl_kernel hc_clCreateKernel (cl_program program, const char *kernel_name)
 
   if (CL_err != CL_SUCCESS)
   {
-    log_error ("ERROR: %s %d\n", "clCreateKernel()", CL_err);
+    log_error ("ERROR: %s %d - %s\n", "clCreateKernel()", CL_err, kernel_name);
 
     exit (-1);
   }

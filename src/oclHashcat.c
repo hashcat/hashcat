@@ -18,10 +18,6 @@ const uint  RESTORE_MIN       = 201;
 #define INCR_MASKS            1000
 #define INCR_POT              1000
 
-// comment-out for kernel source mode
-
-//#define BINARY_KERNEL
-
 #define USAGE                   0
 #define VERSION                 0
 #define QUIET                   0
@@ -1597,19 +1593,70 @@ static void status_benchmark ()
  * oclHashcat -only- functions
  */
 
-static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *install_dir, char *kernel_file)
+static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *install_dir, char *source_file)
 {
   if (attack_exec == ATTACK_EXEC_ON_GPU)
   {
     if (attack_kern == ATTACK_KERN_STRAIGHT)
-      snprintf (kernel_file, 255, "%s/OpenCL/m%05d_a0.cl", install_dir, (int) kern_type);
+      snprintf (source_file, 255, "%s/OpenCL/m%05d_a0.cl", install_dir, (int) kern_type);
     else if (attack_kern == ATTACK_KERN_COMBI)
-      snprintf (kernel_file, 255, "%s/OpenCL/m%05d_a1.cl", install_dir, (int) kern_type);
+      snprintf (source_file, 255, "%s/OpenCL/m%05d_a1.cl", install_dir, (int) kern_type);
     else if (attack_kern == ATTACK_KERN_BF)
-      snprintf (kernel_file, 255, "%s/OpenCL/m%05d_a3.cl", install_dir, (int) kern_type);
+      snprintf (source_file, 255, "%s/OpenCL/m%05d_a3.cl", install_dir, (int) kern_type);
   }
   else
-    snprintf (kernel_file, 255, "%s/OpenCL/m%05d.cl", install_dir, (int) kern_type);
+    snprintf (source_file, 255, "%s/OpenCL/m%05d.cl", install_dir, (int) kern_type);
+}
+
+static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *install_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
+{
+  if (attack_exec == ATTACK_EXEC_ON_GPU)
+  {
+    if (attack_kern == ATTACK_KERN_STRAIGHT)
+      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a0.%s_%s_%s_%d.kernel", install_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+    else if (attack_kern == ATTACK_KERN_COMBI)
+      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a1.%s_%s_%s_%d.kernel", install_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+    else if (attack_kern == ATTACK_KERN_BF)
+      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a3.%s_%s_%s_%d.kernel", install_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+  }
+  else
+  {
+    snprintf (cached_file, 255, "%s/kernels/%d/m%05d.%s_%s_%s_%d.kernel", install_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+  }
+}
+
+static void generate_source_kernel_mp_filename (const uint opti_type, const uint opts_type, char *install_dir, char *source_file)
+{
+  if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
+  {
+    snprintf (source_file, 255, "%s/OpenCL/markov_be.cl", install_dir);
+  }
+  else
+  {
+    snprintf (source_file, 255, "%s/OpenCL/markov_le.cl", install_dir);
+  }
+}
+
+static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *install_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
+{
+  if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
+  {
+    snprintf (cached_file, 255, "%s/kernels/%d/markov_be.%s_%s_%s_%d.kernel", install_dir, vendor_id, device_name, device_version, driver_version, COMPTIME);
+  }
+  else
+  {
+    snprintf (cached_file, 255, "%s/kernels/%d/markov_le.%s_%s_%s_%d.kernel", install_dir, vendor_id, device_name, device_version, driver_version, COMPTIME);
+  }
+}
+
+static void generate_source_kernel_amp_filename (const uint attack_kern, char *install_dir, char *source_file)
+{
+  snprintf (source_file, 255, "%s/OpenCL/amp_a%d.cl", install_dir, attack_kern);
+}
+
+static void generate_cached_kernel_amp_filename (const uint attack_kern, char *install_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
+{
+  snprintf (cached_file, 255, "%s/kernels/%d/amp_a%d.%s_%s_%s_%d.kernel", install_dir, vendor_id, attack_kern, device_name, device_version, driver_version, COMPTIME);
 }
 
 static uint convert_from_hex (char *line_buf, const uint line_len)
@@ -12958,7 +13005,7 @@ int main (int argc, char **argv)
       }
 
       /**
-       * kernel find
+       * default building options
        */
 
       char build_opts[1024];
@@ -12967,382 +13014,356 @@ int main (int argc, char **argv)
 
       sprintf (build_opts, "-I. -IOpenCL/ -DVENDOR_ID=%d -DCUDA_ARCH=%d", vendor_id, (device_param->sm_major * 100) + device_param->sm_minor);
 
-      struct stat st;
+      /**
+       * main kernel
+       */
 
-      char kernel_file[256];
-
-      memset (kernel_file, 0, sizeof (kernel_file));
-
-      size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
-
-      const unsigned char **kernel_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
-
-      #ifdef BINARY_KERNEL
-      if (force_jit_compilation == 0)
       {
-        if (attack_exec == ATTACK_EXEC_ON_GPU)
+        /**
+         * kernel source filename
+         */
+
+        char source_file[256];
+
+        memset (source_file, 0, sizeof (source_file));
+
+        generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, source_file);
+
+        struct stat sst;
+
+        if (stat (source_file, &sst) == -1)
         {
-          if (attack_kern == ATTACK_KERN_STRAIGHT)
-            snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_a0.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
-          else if (attack_kern == ATTACK_KERN_COMBI)
-            snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_a1.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
-          else if (attack_kern == ATTACK_KERN_BF)
-            snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_a3.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+          log_error ("ERROR: %s: %s", source_file, strerror (errno));
+
+          return -1;
         }
-        else
-        {
-          snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
 
-          if ((hash_mode == 8900) || (hash_mode == 9300))
-          {
-            snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_%d_%d_%d_%d.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, device_name, device_version, driver_version, COMPTIME);
-          }
+        /**
+         * kernel cached filename
+         */
+
+        char cached_file[256];
+
+        memset (cached_file, 0, sizeof (cached_file));
+
+        generate_cached_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, device_name, device_version, driver_version, vendor_id, cached_file);
+
+        int cached = 1;
+
+        struct stat cst;
+
+        if (stat (cached_file, &cst) == -1)
+        {
+          cached = 0;
         }
 
-        if (stat (kernel_file, &st) == -1)
+        /**
+         * kernel compile or load
+         */
+
+        size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
+
+        const unsigned char **kernel_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
+
+        if (force_jit_compilation == 0)
         {
-          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, kernel_file);
-
-          char module_file[256];
-
-          memset (module_file, 0, sizeof (module_file));
-
-          if (attack_exec == ATTACK_EXEC_ON_GPU)
+          if (cached == 0)
           {
-            if (attack_kern == ATTACK_KERN_STRAIGHT)
-              snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_a0.llvmir", install_dir, (int) kern_type);
-            else if (attack_kern == ATTACK_KERN_COMBI)
-              snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_a1.llvmir", install_dir, (int) kern_type);
-            else if (attack_kern == ATTACK_KERN_BF)
-              snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_a3.llvmir", install_dir, (int) kern_type);
+            if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+
+            load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+
+            device_param->program = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+
+            hc_clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+
+            size_t binary_size;
+
+            clGetProgramInfo (device_param->program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+            unsigned char *binary = (unsigned char *) mymalloc (binary_size);
+
+            clGetProgramInfo (device_param->program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+
+            writeProgramBin (cached_file, binary, binary_size);
+
+            local_free (binary);
           }
           else
           {
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d.llvmir", install_dir, (int) kern_type);
+            if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
 
-            if ((hash_mode == 8900) || (hash_mode == 9300))
-            {
-              snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_%d_%d_%d_%d.llvmir", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto);
-            }
+            load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
+
+            device_param->program = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
+
+            hc_clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+          }
+        }
+        else
+        {
+          if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
+
+          load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+
+          device_param->program = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+
+          if (force_jit_compilation == 1500)
+          {
+            sprintf (build_opts, "%s -DDESCRYPT_SALT=%d", build_opts, data.salts_buf[0].salt_buf[0]);
+          }
+          else if (force_jit_compilation == 8900)
+          {
+            sprintf (build_opts, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto);
           }
 
-          load_kernel (module_file, 1, kernel_lengths, kernel_sources);
+          hc_clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+        }
 
-          cl_program program = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
+        local_free (kernel_lengths);
+        local_free (kernel_sources[0]);
+        local_free (kernel_sources);
 
-          local_free (kernel_sources[0]);
+        // this is mostly for debug
 
-          hc_clBuildProgram (program, 1, &device_param->device, build_opts, NULL, NULL);
+        size_t ret_val_size = 0;
+
+        clGetProgramBuildInfo (device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+
+        if (ret_val_size > 2)
+        {
+          char *build_log = (char *) mymalloc (ret_val_size + 1);
+
+          memset (build_log, 0, ret_val_size + 1);
+
+          clGetProgramBuildInfo (device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
+
+          puts (build_log);
+
+          myfree (build_log);
+        }
+      }
+
+      /**
+       * word generator kernel
+       */
+
+      if (attack_mode != ATTACK_MODE_STRAIGHT)
+      {
+        /**
+         * kernel mp source filename
+         */
+
+        char source_file[256];
+
+        memset (source_file, 0, sizeof (source_file));
+
+        generate_source_kernel_mp_filename (opti_type, opts_type, install_dir, source_file);
+
+        struct stat sst;
+
+        if (stat (source_file, &sst) == -1)
+        {
+          log_error ("ERROR: %s: %s", source_file, strerror (errno));
+
+          return -1;
+        }
+
+        /**
+         * kernel mp cached filename
+         */
+
+        char cached_file[256];
+
+        memset (cached_file, 0, sizeof (cached_file));
+
+        generate_cached_kernel_mp_filename (opti_type, opts_type, install_dir, device_name, device_version, driver_version, vendor_id, cached_file);
+
+        int cached = 1;
+
+        struct stat cst;
+
+        if (stat (cached_file, &cst) == -1)
+        {
+          cached = 0;
+        }
+
+        /**
+         * kernel compile or load
+         */
+
+        size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
+
+        const unsigned char **kernel_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
+
+        if (cached == 0)
+        {
+          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+
+          load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+
+          device_param->program_mp = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+
+          hc_clBuildProgram (device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
 
           size_t binary_size;
 
-          clGetProgramInfo (program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+          clGetProgramInfo (device_param->program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
 
           unsigned char *binary = (unsigned char *) mymalloc (binary_size);
 
-          clGetProgramInfo (program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+          clGetProgramInfo (device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
-          writeProgramBin (kernel_file, binary, binary_size);
+          writeProgramBin (cached_file, binary, binary_size);
 
           local_free (binary);
-
-          stat (kernel_file, &st); // to reload filesize
-        }
-      }
-      else
-      {
-        generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, kernel_file);
-
-        if (stat (kernel_file, &st) == -1)
-        {
-          log_error ("ERROR: %s: %s", kernel_file, strerror (errno));
-
-          return -1;
-        }
-      }
-
-      #else
-
-      generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, kernel_file);
-
-      if (stat (kernel_file, &st) == -1)
-      {
-        log_error ("ERROR: %s: %s", kernel_file, strerror (errno));
-
-        return -1;
-      }
-
-      #endif
-
-      load_kernel (kernel_file, 1, kernel_lengths, kernel_sources);
-
-      if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, kernel_file, st.st_size);
-
-      #ifdef BINARY_KERNEL
-      if (force_jit_compilation == 0)
-      {
-        device_param->program = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
-      }
-      else
-      {
-        device_param->program = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
-      }
-      #else
-      device_param->program = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
-      #endif
-
-      local_free (kernel_lengths);
-
-      local_free (kernel_sources[0]);
-
-      local_free (kernel_sources)
-
-      /**
-       * kernel mp find
-       */
-
-      if (attack_mode != ATTACK_MODE_STRAIGHT)
-      {
-        char kernel_mp_file[256];
-
-        memset (kernel_mp_file, 0, sizeof (kernel_mp_file));
-
-        size_t *kernel_mp_lengths = (size_t *) mymalloc (sizeof (size_t));
-
-        const unsigned char **kernel_mp_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
-
-        #ifdef BINARY_KERNEL
-        if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
-        {
-          snprintf (kernel_mp_file, sizeof (kernel_mp_file) - 1, "%s/kernels/4098/markov_be.%s_%s_%s_%d.kernel", install_dir, device_name, device_version, driver_version, COMPTIME);
         }
         else
         {
-          snprintf (kernel_mp_file, sizeof (kernel_mp_file) - 1, "%s/kernels/4098/markov_le.%s_%s_%s_%d.kernel", install_dir, device_name, device_version, driver_version, COMPTIME);
+          if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+
+          load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
+
+          device_param->program_mp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
+
+          hc_clBuildProgram (device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
         }
 
-        if (stat (kernel_mp_file, &st) == -1)
+        local_free (kernel_lengths);
+        local_free (kernel_sources[0]);
+        local_free (kernel_sources);
+
+        // this is mostly for debug
+
+        size_t ret_val_size = 0;
+
+        clGetProgramBuildInfo (device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+
+        if (ret_val_size > 2)
         {
-          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, kernel_mp_file);
+          char *build_log = (char *) mymalloc (ret_val_size + 1);
 
-          char module_mp_file[256];
+          memset (build_log, 0, ret_val_size + 1);
 
-          memset (module_mp_file, 0, sizeof (module_mp_file));
+          clGetProgramBuildInfo (device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
 
-          if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
-          {
-            snprintf (module_mp_file, sizeof (module_mp_file) - 1, "%s/kernels/4098/markov_be.llvmir", install_dir);
-          }
-          else
-          {
-            snprintf (module_mp_file, sizeof (module_mp_file) - 1, "%s/kernels/4098/markov_le.llvmir", install_dir);
-          }
+          puts (build_log);
 
-          load_kernel (module_mp_file, 1, kernel_mp_lengths, kernel_mp_sources);
+          myfree (build_log);
+        }
+      }
 
-          cl_program program_mp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_mp_lengths, (const unsigned char **) kernel_mp_sources, NULL);
+      /**
+       * amplifier kernel
+       */
 
-          local_free (kernel_mp_sources[0]);
+      if (attack_exec == ATTACK_EXEC_ON_GPU)
+      {
 
-          hc_clBuildProgram (program_mp, 1, &device_param->device, build_opts, NULL, NULL);
+      }
+      else
+      {
+        /**
+         * kernel amp source filename
+         */
 
-          size_t binary_mp_size;
+        char source_file[256];
 
-          clGetProgramInfo (program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_mp_size, NULL);
+        memset (source_file, 0, sizeof (source_file));
 
-          unsigned char *binary_mp = (unsigned char *) mymalloc (binary_mp_size);
+        generate_source_kernel_amp_filename (attack_kern, install_dir, source_file);
 
-          clGetProgramInfo (program_mp, CL_PROGRAM_BINARIES, sizeof (binary_mp), &binary_mp, NULL);
+        struct stat sst;
 
-          writeProgramBin (kernel_mp_file, binary_mp, binary_mp_size);
+        if (stat (source_file, &sst) == -1)
+        {
+          log_error ("ERROR: %s: %s", source_file, strerror (errno));
 
-          local_free (binary_mp);
-
-          stat (kernel_mp_file, &st); // to reload filesize
+          return -1;
         }
 
-        #else
-        if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
+        /**
+         * kernel amp cached filename
+         */
+
+        char cached_file[256];
+
+        memset (cached_file, 0, sizeof (cached_file));
+
+        generate_cached_kernel_amp_filename (attack_kern, install_dir, device_name, device_version, driver_version, vendor_id, cached_file);
+
+        int cached = 1;
+
+        struct stat cst;
+
+        if (stat (cached_file, &cst) == -1)
         {
-          snprintf (kernel_mp_file, sizeof (kernel_mp_file) - 1, "%s/OpenCL/markov_be.cl", install_dir);
+          cached = 0;
+        }
+
+        /**
+         * kernel compile or load
+         */
+
+        size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
+
+        const unsigned char **kernel_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
+
+        if (cached == 0)
+        {
+          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+
+          load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+
+          device_param->program_amp = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+
+          hc_clBuildProgram (device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
+
+          size_t binary_size;
+
+          clGetProgramInfo (device_param->program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+          unsigned char *binary = (unsigned char *) mymalloc (binary_size);
+
+          clGetProgramInfo (device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+
+          writeProgramBin (cached_file, binary, binary_size);
+
+          local_free (binary);
         }
         else
         {
-          snprintf (kernel_mp_file, sizeof (kernel_mp_file) - 1, "%s/OpenCL/markov_le.cl", install_dir);
+          if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+
+          load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
+
+          device_param->program_amp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
+
+          hc_clBuildProgram (device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
         }
 
-        if (stat (kernel_mp_file, &st) == -1)
+        local_free (kernel_lengths);
+        local_free (kernel_sources[0]);
+        local_free (kernel_sources);
+
+        // this is mostly for debug
+
+        size_t ret_val_size = 0;
+
+        clGetProgramBuildInfo (device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+
+        if (ret_val_size > 2)
         {
-          log_error ("ERROR: %s: %s", kernel_mp_file, strerror (errno));
+          char *build_log = (char *) mymalloc (ret_val_size + 1);
 
-          return -1;
+          memset (build_log, 0, ret_val_size + 1);
+
+          clGetProgramBuildInfo (device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
+
+          puts (build_log);
+
+          myfree (build_log);
         }
-
-        #endif
-
-        load_kernel (kernel_mp_file, 1, kernel_mp_lengths, kernel_mp_sources);
-
-        if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, kernel_mp_file, st.st_size);
-
-        #ifdef BINARY_KERNEL
-        device_param->program_mp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_mp_lengths, (const unsigned char **) kernel_mp_sources, NULL);
-        #else
-        device_param->program_mp = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_mp_sources, NULL);
-        #endif
-
-        local_free (kernel_mp_lengths);
-
-        local_free (kernel_mp_sources[0]);
-
-        local_free (kernel_mp_sources);
-      }
-
-      /**
-       * kernel amp find
-       */
-
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
-      {
-        // nothing to do
-      }
-      else
-      {
-        char kernel_amp_file[256];
-
-        memset (kernel_amp_file, 0, sizeof (kernel_amp_file));
-
-        size_t *kernel_amp_lengths = (size_t *) mymalloc (sizeof (size_t));
-
-        const unsigned char **kernel_amp_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
-
-        #ifdef BINARY_KERNEL
-        snprintf (kernel_amp_file, sizeof (kernel_amp_file) - 1, "%s/kernels/4098/amp_a%d.%s_%s_%s_%d.kernel", install_dir, attack_kern, device_name, device_version, driver_version, COMPTIME);
-
-        if (stat (kernel_amp_file, &st) == -1)
-        {
-          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, kernel_amp_file);
-
-          char module_amp_file[256];
-
-          memset (module_amp_file, 0, sizeof (module_amp_file));
-
-          snprintf (module_amp_file, sizeof (module_amp_file) - 1, "%s/kernels/4098/amp_a%d.llvmir", install_dir, attack_kern);
-
-          load_kernel (module_amp_file, 1, kernel_amp_lengths, kernel_amp_sources);
-
-          cl_program program_amp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_amp_lengths, (const unsigned char **) kernel_amp_sources, NULL);
-
-          local_free (kernel_amp_sources[0]);
-
-          hc_clBuildProgram (program_amp, 1, &device_param->device, build_opts, NULL, NULL);
-
-          size_t binary_amp_size;
-
-          clGetProgramInfo (program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_amp_size, NULL);
-
-          unsigned char *binary_amp = (unsigned char *) mymalloc (binary_amp_size);
-
-          clGetProgramInfo (program_amp, CL_PROGRAM_BINARIES, sizeof (binary_amp), &binary_amp, NULL);
-
-          writeProgramBin (kernel_amp_file, binary_amp, binary_amp_size);
-
-          local_free (binary_amp);
-
-          stat (kernel_amp_file, &st); // to reload filesize
-        }
-        #else
-        snprintf (kernel_amp_file, sizeof (kernel_amp_file) - 1, "%s/OpenCL/amp_a%d.cl", install_dir, attack_kern);
-
-        if (stat (kernel_amp_file, &st) == -1)
-        {
-          log_error ("ERROR: %s: %s", kernel_amp_file, strerror (errno));
-
-          return -1;
-        }
-        #endif
-
-        load_kernel (kernel_amp_file, 1, kernel_amp_lengths, kernel_amp_sources);
-
-        if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, kernel_amp_file, st.st_size);
-
-        #ifdef BINARY_KERNEL
-        device_param->program_amp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_amp_lengths, (const unsigned char **) kernel_amp_sources, NULL);
-        #else
-        device_param->program_amp = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_amp_sources, NULL);
-        #endif
-
-        local_free (kernel_amp_lengths);
-
-        local_free (kernel_amp_sources[0]);
-
-        local_free (kernel_amp_sources);
-      }
-
-      /**
-       * kernel compile
-       */
-
-      //#ifdef BINARY_KERNEL
-
-      if (force_jit_compilation == 0)
-      {
-        // nothing to do
-      }
-      else if (force_jit_compilation == 1500)
-      {
-        sprintf (build_opts, "%s -DDESCRYPT_SALT=%d", build_opts, data.salts_buf[0].salt_buf[0]);
-      }
-      else if (force_jit_compilation == 8900)
-      {
-        sprintf (build_opts, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto);
-      }
-
-      //#endif
-
-      clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
-
-      size_t ret_val_size = 0;
-
-      clGetProgramBuildInfo (device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
-
-      if (ret_val_size > 2)
-      {
-        char *build_log = (char *) malloc (ret_val_size + 1);
-
-        memset (build_log, 0, ret_val_size + 1);
-
-        clGetProgramBuildInfo (device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
-
-        puts (build_log);
-
-        free (build_log);
-      }
-
-      if (attack_mode != ATTACK_MODE_STRAIGHT)
-      {
-        hc_clBuildProgram (device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
-      }
-
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
-      {
-        // nothing to do
-      }
-      else
-      {
-        hc_clBuildProgram (device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
-      }
-
-      /**
-       * amp is not independent
-       */
-
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
-      {
-        // nothing to do
-      }
-      else
-      {
-        device_param->kernel_amp = hc_clCreateKernel (device_param->program_amp, "amp");
       }
 
       /**
@@ -13713,6 +13734,15 @@ int main (int argc, char **argv)
       else if (attack_mode == ATTACK_MODE_HYBRID2)
       {
         device_param->kernel_mp = hc_clCreateKernel (device_param->program_mp, "C_markov");
+      }
+
+      if (attack_exec == ATTACK_EXEC_ON_GPU)
+      {
+        // nothing to do
+      }
+      else
+      {
+        device_param->kernel_amp = hc_clCreateKernel (device_param->program_amp, "amp");
       }
 
       if (attack_exec == ATTACK_EXEC_ON_GPU)
