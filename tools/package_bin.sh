@@ -11,7 +11,7 @@ export OUT=$HOME/xy/oclHashcat-2.01
 rm -rf $OUT
 rm -rf $OUT.7z
 
-mkdir -p $OUT $OUT/kernels $OUT/kernels/4098
+mkdir -p $OUT $OUT/kernels $OUT/kernels/4098 $OUT/kernels/4318
 
 cp    $IN/oclHashcat??.exe                      $OUT/
 cp    $IN/oclHashcat??.bin                      $OUT/
@@ -27,7 +27,6 @@ cp    $IN/example[0123456789]*.hash             $OUT/
 cp    $IN/example[0123456789]*.sh               $OUT/
 cp    $IN/example[0123456789]*.cmd              $OUT/
 
-cp -r $IN/kernels/4098/*.llvmir                 $OUT/kernels/4098/
 cp -r $IN/include                               $OUT/
 cp -r $IN/OpenCL                                $OUT/
 
@@ -45,7 +44,7 @@ unix2dos $OUT/example*.cmd
 chmod 700 $OUT
 chmod 700 $OUT/kernels
 chmod 700 $OUT/kernels/4098
-chmod 600 $OUT/kernels/4098/*
+chmod 700 $OUT/kernels/4318
 chmod 700 $OUT/rules
 chmod 600 $OUT/rules/*
 chmod 700 $OUT/docs
