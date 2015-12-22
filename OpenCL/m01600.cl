@@ -125,1216 +125,317 @@ static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], co
 
 static void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
 {
-  switch (block_len)
+  u32 tmp0;
+  u32 tmp1;
+  u32 tmp2;
+  u32 tmp3;
+  u32 tmp4;
+
+  #ifdef IS_AMD
+
+  const int offset_minus_4 = 4 - (block_len & 3);
+
+  tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
+  tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
+  tmp2 = amd_bytealign (append[2], append[1], offset_minus_4);
+  tmp3 = amd_bytealign (append[3], append[2], offset_minus_4);
+  tmp4 = amd_bytealign (        0, append[3], offset_minus_4);
+
+  const u32 mod = block_len & 3;
+
+  if (mod == 0)
   {
-    case 0:
-      block0[0] = append[0];
-      block0[1] = append[1];
-      block0[2] = append[2];
-      block0[3] = append[3];
-      break;
+    tmp0 = tmp1;
+    tmp1 = tmp2;
+    tmp2 = tmp3;
+    tmp3 = tmp4;
+    tmp4 = 0;
+  }
 
-    case 1:
-      block0[0] = block0[0]       | append[0] <<  8;
-      block0[1] = append[0] >> 24 | append[1] <<  8;
-      block0[2] = append[1] >> 24 | append[2] <<  8;
-      block0[3] = append[2] >> 24 | append[3] <<  8;
-      block1[0] = append[3] >> 24;
-      break;
+  #endif
 
-    case 2:
-      block0[0] = block0[0]       | append[0] << 16;
-      block0[1] = append[0] >> 16 | append[1] << 16;
-      block0[2] = append[1] >> 16 | append[2] << 16;
-      block0[3] = append[2] >> 16 | append[3] << 16;
-      block1[0] = append[3] >> 16;
-      break;
+  #ifdef IS_NV
 
-    case 3:
-      block0[0] = block0[0]       | append[0] << 24;
-      block0[1] = append[0] >>  8 | append[1] << 24;
-      block0[2] = append[1] >>  8 | append[2] << 24;
-      block0[3] = append[2] >>  8 | append[3] << 24;
-      block1[0] = append[3] >>  8;
-      break;
+  const int offset_minus_4 = 4 - (block_len & 3);
 
-    case 4:
-      block0[1] = append[0];
-      block0[2] = append[1];
-      block0[3] = append[2];
-      block1[0] = append[3];
-      break;
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
-    case 5:
-      block0[1] = block0[1]       | append[0] <<  8;
-      block0[2] = append[0] >> 24 | append[1] <<  8;
-      block0[3] = append[1] >> 24 | append[2] <<  8;
-      block1[0] = append[2] >> 24 | append[3] <<  8;
-      block1[1] = append[3] >> 24;
-      break;
+  tmp0 = __byte_perm (        0, append[0], selector);
+  tmp1 = __byte_perm (append[0], append[1], selector);
+  tmp2 = __byte_perm (append[1], append[2], selector);
+  tmp3 = __byte_perm (append[2], append[3], selector);
+  tmp4 = __byte_perm (append[3],         0, selector);
 
-    case 6:
-      block0[1] = block0[1]       | append[0] << 16;
-      block0[2] = append[0] >> 16 | append[1] << 16;
-      block0[3] = append[1] >> 16 | append[2] << 16;
-      block1[0] = append[2] >> 16 | append[3] << 16;
-      block1[1] = append[3] >> 16;
-      break;
+  #endif
 
-    case 7:
-      block0[1] = block0[1]       | append[0] << 24;
-      block0[2] = append[0] >>  8 | append[1] << 24;
-      block0[3] = append[1] >>  8 | append[2] << 24;
-      block1[0] = append[2] >>  8 | append[3] << 24;
-      block1[1] = append[3] >>  8;
-      break;
+  const u32 div = block_len / 4;
 
-    case 8:
-      block0[2] = append[0];
-      block0[3] = append[1];
-      block1[0] = append[2];
-      block1[1] = append[3];
-      break;
-
-    case 9:
-      block0[2] = block0[2]       | append[0] <<  8;
-      block0[3] = append[0] >> 24 | append[1] <<  8;
-      block1[0] = append[1] >> 24 | append[2] <<  8;
-      block1[1] = append[2] >> 24 | append[3] <<  8;
-      block1[2] = append[3] >> 24;
-      break;
-
-    case 10:
-      block0[2] = block0[2]       | append[0] << 16;
-      block0[3] = append[0] >> 16 | append[1] << 16;
-      block1[0] = append[1] >> 16 | append[2] << 16;
-      block1[1] = append[2] >> 16 | append[3] << 16;
-      block1[2] = append[3] >> 16;
-      break;
-
-    case 11:
-      block0[2] = block0[2]       | append[0] << 24;
-      block0[3] = append[0] >>  8 | append[1] << 24;
-      block1[0] = append[1] >>  8 | append[2] << 24;
-      block1[1] = append[2] >>  8 | append[3] << 24;
-      block1[2] = append[3] >>  8;
-      break;
-
-    case 12:
-      block0[3] = append[0];
-      block1[0] = append[1];
-      block1[1] = append[2];
-      block1[2] = append[3];
-      break;
-
-    case 13:
-      block0[3] = block0[3]       | append[0] <<  8;
-      block1[0] = append[0] >> 24 | append[1] <<  8;
-      block1[1] = append[1] >> 24 | append[2] <<  8;
-      block1[2] = append[2] >> 24 | append[3] <<  8;
-      block1[3] = append[3] >> 24;
-      break;
-
-    case 14:
-      block0[3] = block0[3]       | append[0] << 16;
-      block1[0] = append[0] >> 16 | append[1] << 16;
-      block1[1] = append[1] >> 16 | append[2] << 16;
-      block1[2] = append[2] >> 16 | append[3] << 16;
-      block1[3] = append[3] >> 16;
-      break;
-
-    case 15:
-      block0[3] = block0[3]       | append[0] << 24;
-      block1[0] = append[0] >>  8 | append[1] << 24;
-      block1[1] = append[1] >>  8 | append[2] << 24;
-      block1[2] = append[2] >>  8 | append[3] << 24;
-      block1[3] = append[3] >>  8;
-      break;
-
-    case 16:
-      block1[0] = append[0];
-      block1[1] = append[1];
-      block1[2] = append[2];
-      block1[3] = append[3];
-      break;
-
-    case 17:
-      block1[0] = block1[0]       | append[0] <<  8;
-      block1[1] = append[0] >> 24 | append[1] <<  8;
-      block1[2] = append[1] >> 24 | append[2] <<  8;
-      block1[3] = append[2] >> 24 | append[3] <<  8;
-      block2[0] = append[3] >> 24;
-      break;
-
-    case 18:
-      block1[0] = block1[0]       | append[0] << 16;
-      block1[1] = append[0] >> 16 | append[1] << 16;
-      block1[2] = append[1] >> 16 | append[2] << 16;
-      block1[3] = append[2] >> 16 | append[3] << 16;
-      block2[0] = append[3] >> 16;
-      break;
-
-    case 19:
-      block1[0] = block1[0]       | append[0] << 24;
-      block1[1] = append[0] >>  8 | append[1] << 24;
-      block1[2] = append[1] >>  8 | append[2] << 24;
-      block1[3] = append[2] >>  8 | append[3] << 24;
-      block2[0] = append[3] >>  8;
-      break;
-
-    case 20:
-      block1[1] = append[0];
-      block1[2] = append[1];
-      block1[3] = append[2];
-      block2[0] = append[3];
-      break;
-
-    case 21:
-      block1[1] = block1[1]       | append[0] <<  8;
-      block1[2] = append[0] >> 24 | append[1] <<  8;
-      block1[3] = append[1] >> 24 | append[2] <<  8;
-      block2[0] = append[2] >> 24 | append[3] <<  8;
-      block2[1] = append[3] >> 24;
-      break;
-
-    case 22:
-      block1[1] = block1[1]       | append[0] << 16;
-      block1[2] = append[0] >> 16 | append[1] << 16;
-      block1[3] = append[1] >> 16 | append[2] << 16;
-      block2[0] = append[2] >> 16 | append[3] << 16;
-      block2[1] = append[3] >> 16;
-      break;
-
-    case 23:
-      block1[1] = block1[1]       | append[0] << 24;
-      block1[2] = append[0] >>  8 | append[1] << 24;
-      block1[3] = append[1] >>  8 | append[2] << 24;
-      block2[0] = append[2] >>  8 | append[3] << 24;
-      block2[1] = append[3] >>  8;
-      break;
-
-    case 24:
-      block1[2] = append[0];
-      block1[3] = append[1];
-      block2[0] = append[2];
-      block2[1] = append[3];
-      break;
-
-    case 25:
-      block1[2] = block1[2]       | append[0] <<  8;
-      block1[3] = append[0] >> 24 | append[1] <<  8;
-      block2[0] = append[1] >> 24 | append[2] <<  8;
-      block2[1] = append[2] >> 24 | append[3] <<  8;
-      block2[2] = append[3] >> 24;
-      break;
-
-    case 26:
-      block1[2] = block1[2]       | append[0] << 16;
-      block1[3] = append[0] >> 16 | append[1] << 16;
-      block2[0] = append[1] >> 16 | append[2] << 16;
-      block2[1] = append[2] >> 16 | append[3] << 16;
-      block2[2] = append[3] >> 16;
-      break;
-
-    case 27:
-      block1[2] = block1[2]       | append[0] << 24;
-      block1[3] = append[0] >>  8 | append[1] << 24;
-      block2[0] = append[1] >>  8 | append[2] << 24;
-      block2[1] = append[2] >>  8 | append[3] << 24;
-      block2[2] = append[3] >>  8;
-      break;
-
-    case 28:
-      block1[3] = append[0];
-      block2[0] = append[1];
-      block2[1] = append[2];
-      block2[2] = append[3];
-      break;
-
-    case 29:
-      block1[3] = block1[3]       | append[0] <<  8;
-      block2[0] = append[0] >> 24 | append[1] <<  8;
-      block2[1] = append[1] >> 24 | append[2] <<  8;
-      block2[2] = append[2] >> 24 | append[3] <<  8;
-      block2[3] = append[3] >> 24;
-      break;
-
-    case 30:
-      block1[3] = block1[3]       | append[0] << 16;
-      block2[0] = append[0] >> 16 | append[1] << 16;
-      block2[1] = append[1] >> 16 | append[2] << 16;
-      block2[2] = append[2] >> 16 | append[3] << 16;
-      block2[3] = append[3] >> 16;
-      break;
-
-    case 31:
-      block1[3] = block1[3]       | append[0] << 24;
-      block2[0] = append[0] >>  8 | append[1] << 24;
-      block2[1] = append[1] >>  8 | append[2] << 24;
-      block2[2] = append[2] >>  8 | append[3] << 24;
-      block2[3] = append[3] >>  8;
-      break;
-
-    case 32:
-      block2[0] = append[0];
-      block2[1] = append[1];
-      block2[2] = append[2];
-      block2[3] = append[3];
-      break;
-
-    case 33:
-      block2[0] = block2[0]       | append[0] <<  8;
-      block2[1] = append[0] >> 24 | append[1] <<  8;
-      block2[2] = append[1] >> 24 | append[2] <<  8;
-      block2[3] = append[2] >> 24 | append[3] <<  8;
-      block3[0] = append[3] >> 24;
-      break;
-
-    case 34:
-      block2[0] = block2[0]       | append[0] << 16;
-      block2[1] = append[0] >> 16 | append[1] << 16;
-      block2[2] = append[1] >> 16 | append[2] << 16;
-      block2[3] = append[2] >> 16 | append[3] << 16;
-      block3[0] = append[3] >> 16;
-      break;
-
-    case 35:
-      block2[0] = block2[0]       | append[0] << 24;
-      block2[1] = append[0] >>  8 | append[1] << 24;
-      block2[2] = append[1] >>  8 | append[2] << 24;
-      block2[3] = append[2] >>  8 | append[3] << 24;
-      block3[0] = append[3] >>  8;
-      break;
-
-    case 36:
-      block2[1] = append[0];
-      block2[2] = append[1];
-      block2[3] = append[2];
-      block3[0] = append[3];
-      break;
-
-    case 37:
-      block2[1] = block2[1]       | append[0] <<  8;
-      block2[2] = append[0] >> 24 | append[1] <<  8;
-      block2[3] = append[1] >> 24 | append[2] <<  8;
-      block3[0] = append[2] >> 24 | append[3] <<  8;
-      block3[1] = append[3] >> 24;
-      break;
-
-    case 38:
-      block2[1] = block2[1]       | append[0] << 16;
-      block2[2] = append[0] >> 16 | append[1] << 16;
-      block2[3] = append[1] >> 16 | append[2] << 16;
-      block3[0] = append[2] >> 16 | append[3] << 16;
-      block3[1] = append[3] >> 16;
-      break;
-
-    case 39:
-      block2[1] = block2[1]       | append[0] << 24;
-      block2[2] = append[0] >>  8 | append[1] << 24;
-      block2[3] = append[1] >>  8 | append[2] << 24;
-      block3[0] = append[2] >>  8 | append[3] << 24;
-      block3[1] = append[3] >>  8;
-      break;
-
-    case 40:
-      block2[2] = append[0];
-      block2[3] = append[1];
-      block3[0] = append[2];
-      block3[1] = append[3];
-      break;
-
-    case 41:
-      block2[2] = block2[2]       | append[0] <<  8;
-      block2[3] = append[0] >> 24 | append[1] <<  8;
-      block3[0] = append[1] >> 24 | append[2] <<  8;
-      block3[1] = append[2] >> 24 | append[3] <<  8;
-      block3[2] = append[3] >> 24;
-      break;
-
-    case 42:
-      block2[2] = block2[2]       | append[0] << 16;
-      block2[3] = append[0] >> 16 | append[1] << 16;
-      block3[0] = append[1] >> 16 | append[2] << 16;
-      block3[1] = append[2] >> 16 | append[3] << 16;
-      block3[2] = append[3] >> 16;
-      break;
-
-    case 43:
-      block2[2] = block2[2]       | append[0] << 24;
-      block2[3] = append[0] >>  8 | append[1] << 24;
-      block3[0] = append[1] >>  8 | append[2] << 24;
-      block3[1] = append[2] >>  8 | append[3] << 24;
-      block3[2] = append[3] >>  8;
-      break;
-
-    case 44:
-      block2[3] = append[0];
-      block3[0] = append[1];
-      block3[1] = append[2];
-      block3[2] = append[3];
-      break;
-
-    case 45:
-      block2[3] = block2[3]       | append[0] <<  8;
-      block3[0] = append[0] >> 24 | append[1] <<  8;
-      block3[1] = append[1] >> 24 | append[2] <<  8;
-      block3[2] = append[2] >> 24 | append[3] <<  8;
-      block3[3] = append[3] >> 24;
-      break;
-
-    case 46:
-      block2[3] = block2[3]       | append[0] << 16;
-      block3[0] = append[0] >> 16 | append[1] << 16;
-      block3[1] = append[1] >> 16 | append[2] << 16;
-      block3[2] = append[2] >> 16 | append[3] << 16;
-      block3[3] = append[3] >> 16;
-      break;
-
-    case 47:
-      block2[3] = block2[3]       | append[0] << 24;
-      block3[0] = append[0] >>  8 | append[1] << 24;
-      block3[1] = append[1] >>  8 | append[2] << 24;
-      block3[2] = append[2] >>  8 | append[3] << 24;
-      block3[3] = append[3] >>  8;
-      break;
-
-    case 48:
-      block3[0] = append[0];
-      block3[1] = append[1];
-      block3[2] = append[2];
-      block3[3] = append[3];
-      break;
-
-    case 49:
-      block3[0] = block3[0]       | append[0] <<  8;
-      block3[1] = append[0] >> 24 | append[1] <<  8;
-      block3[2] = append[1] >> 24 | append[2] <<  8;
-      block3[3] = append[2] >> 24 | append[3] <<  8;
-      break;
-
-    case 50:
-      block3[0] = block3[0]       | append[0] << 16;
-      block3[1] = append[0] >> 16 | append[1] << 16;
-      block3[2] = append[1] >> 16 | append[2] << 16;
-      block3[3] = append[2] >> 16 | append[3] << 16;
-      break;
-
-    case 51:
-      block3[0] = block3[0]       | append[0] << 24;
-      block3[1] = append[0] >>  8 | append[1] << 24;
-      block3[2] = append[1] >>  8 | append[2] << 24;
-      block3[3] = append[2] >>  8 | append[3] << 24;
-      break;
-
-    case 52:
-      block3[1] = append[0];
-      block3[2] = append[1];
-      block3[3] = append[2];
-      break;
-
-    case 53:
-      block3[1] = block3[1]       | append[0] <<  8;
-      block3[2] = append[0] >> 24 | append[1] <<  8;
-      block3[3] = append[1] >> 24 | append[2] <<  8;
-      break;
-
-    case 54:
-      block3[1] = block3[1]       | append[0] << 16;
-      block3[2] = append[0] >> 16 | append[1] << 16;
-      block3[3] = append[1] >> 16 | append[2] << 16;
-      break;
-
-    case 55:
-      block3[1] = block3[1]       | append[0] << 24;
-      block3[2] = append[0] >>  8 | append[1] << 24;
-      block3[3] = append[1] >>  8 | append[2] << 24;
-      break;
-
-    case 56:
-      block3[2] = append[0];
-      block3[3] = append[1];
-      break;
+  switch (div)
+  {
+    case  0:  block0[0] |= tmp0;
+              block0[1]  = tmp1;
+              block0[2]  = tmp2;
+              block0[3]  = tmp3;
+              block1[0]  = tmp4;
+              break;
+    case  1:  block0[1] |= tmp0;
+              block0[2]  = tmp1;
+              block0[3]  = tmp2;
+              block1[0]  = tmp3;
+              block1[1]  = tmp4;
+              break;
+    case  2:  block0[2] |= tmp0;
+              block0[3]  = tmp1;
+              block1[0]  = tmp2;
+              block1[1]  = tmp3;
+              block1[2]  = tmp4;
+              break;
+    case  3:  block0[3] |= tmp0;
+              block1[0]  = tmp1;
+              block1[1]  = tmp2;
+              block1[2]  = tmp3;
+              block1[3]  = tmp4;
+              break;
+    case  4:  block1[0] |= tmp0;
+              block1[1]  = tmp1;
+              block1[2]  = tmp2;
+              block1[3]  = tmp3;
+              block2[0]  = tmp4;
+              break;
+    case  5:  block1[1] |= tmp0;
+              block1[2]  = tmp1;
+              block1[3]  = tmp2;
+              block2[0]  = tmp3;
+              block2[1]  = tmp4;
+              break;
+    case  6:  block1[2] |= tmp0;
+              block1[3]  = tmp1;
+              block2[0]  = tmp2;
+              block2[1]  = tmp3;
+              block2[2]  = tmp4;
+              break;
+    case  7:  block1[3] |= tmp0;
+              block2[0]  = tmp1;
+              block2[1]  = tmp2;
+              block2[2]  = tmp3;
+              block2[3]  = tmp4;
+              break;
+    case  8:  block2[0] |= tmp0;
+              block2[1]  = tmp1;
+              block2[2]  = tmp2;
+              block2[3]  = tmp3;
+              block3[0]  = tmp4;
+              break;
+    case  9:  block2[1] |= tmp0;
+              block2[2]  = tmp1;
+              block2[3]  = tmp2;
+              block3[0]  = tmp3;
+              block3[1]  = tmp4;
+              break;
   }
 }
 
 static void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
 {
-  switch (block_len)
+  u32 tmp0;
+  u32 tmp1;
+  u32 tmp2;
+  u32 tmp3;
+  u32 tmp4;
+
+  #ifdef IS_AMD
+
+  const int offset_minus_4 = 4 - (block_len & 3);
+
+  tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
+  tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
+  tmp2 = amd_bytealign (append[2], append[1], offset_minus_4);
+  tmp3 = amd_bytealign (append[3], append[2], offset_minus_4);
+  tmp4 = amd_bytealign (     0x80, append[3], offset_minus_4);
+
+  const u32 mod = block_len & 3;
+
+  if (mod == 0)
   {
-    case 0:
-      block0[0] = append[0];
-      block0[1] = append[1];
-      block0[2] = append[2];
-      block0[3] = append[3];
-      block1[0] = 0x80;
-      break;
+    tmp0 = tmp1;
+    tmp1 = tmp2;
+    tmp2 = tmp3;
+    tmp3 = tmp4;
+    tmp4 = 0x80;
+  }
 
-    case 1:
-      block0[0] = block0[0]       | append[0] <<  8;
-      block0[1] = append[0] >> 24 | append[1] <<  8;
-      block0[2] = append[1] >> 24 | append[2] <<  8;
-      block0[3] = append[2] >> 24 | append[3] <<  8;
-      block1[0] = append[3] >> 24 | 0x80u     <<  8;
-      break;
+  #endif
 
-    case 2:
-      block0[0] = block0[0]       | append[0] << 16;
-      block0[1] = append[0] >> 16 | append[1] << 16;
-      block0[2] = append[1] >> 16 | append[2] << 16;
-      block0[3] = append[2] >> 16 | append[3] << 16;
-      block1[0] = append[3] >> 16 | 0x80u     << 16;
-      break;
+  #ifdef IS_NV
 
-    case 3:
-      block0[0] = block0[0]       | append[0] << 24;
-      block0[1] = append[0] >>  8 | append[1] << 24;
-      block0[2] = append[1] >>  8 | append[2] << 24;
-      block0[3] = append[2] >>  8 | append[3] << 24;
-      block1[0] = append[3] >>  8 | 0x80u     << 24;
-      break;
+  const int offset_minus_4 = 4 - (block_len & 3);
 
-    case 4:
-      block0[1] = append[0];
-      block0[2] = append[1];
-      block0[3] = append[2];
-      block1[0] = append[3];
-      block1[1] = 0x80;
-      break;
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
-    case 5:
-      block0[1] = block0[1]       | append[0] <<  8;
-      block0[2] = append[0] >> 24 | append[1] <<  8;
-      block0[3] = append[1] >> 24 | append[2] <<  8;
-      block1[0] = append[2] >> 24 | append[3] <<  8;
-      block1[1] = append[3] >> 24 | 0x80u     <<  8;
-      break;
+  tmp0 = __byte_perm (        0, append[0], selector);
+  tmp1 = __byte_perm (append[0], append[1], selector);
+  tmp2 = __byte_perm (append[1], append[2], selector);
+  tmp3 = __byte_perm (append[2], append[3], selector);
+  tmp4 = __byte_perm (append[3],      0x80, selector);
 
-    case 6:
-      block0[1] = block0[1]       | append[0] << 16;
-      block0[2] = append[0] >> 16 | append[1] << 16;
-      block0[3] = append[1] >> 16 | append[2] << 16;
-      block1[0] = append[2] >> 16 | append[3] << 16;
-      block1[1] = append[3] >> 16 | 0x80u     << 16;
-      break;
+  #endif
 
-    case 7:
-      block0[1] = block0[1]       | append[0] << 24;
-      block0[2] = append[0] >>  8 | append[1] << 24;
-      block0[3] = append[1] >>  8 | append[2] << 24;
-      block1[0] = append[2] >>  8 | append[3] << 24;
-      block1[1] = append[3] >>  8 | 0x80u     << 24;
-      break;
+  const u32 div = block_len / 4;
 
-    case 8:
-      block0[2] = append[0];
-      block0[3] = append[1];
-      block1[0] = append[2];
-      block1[1] = append[3];
-      block1[2] = 0x80;
-      break;
-
-    case 9:
-      block0[2] = block0[2]       | append[0] <<  8;
-      block0[3] = append[0] >> 24 | append[1] <<  8;
-      block1[0] = append[1] >> 24 | append[2] <<  8;
-      block1[1] = append[2] >> 24 | append[3] <<  8;
-      block1[2] = append[3] >> 24 | 0x80u     <<  8;
-      break;
-
-    case 10:
-      block0[2] = block0[2]       | append[0] << 16;
-      block0[3] = append[0] >> 16 | append[1] << 16;
-      block1[0] = append[1] >> 16 | append[2] << 16;
-      block1[1] = append[2] >> 16 | append[3] << 16;
-      block1[2] = append[3] >> 16 | 0x80u     << 16;
-      break;
-
-    case 11:
-      block0[2] = block0[2]       | append[0] << 24;
-      block0[3] = append[0] >>  8 | append[1] << 24;
-      block1[0] = append[1] >>  8 | append[2] << 24;
-      block1[1] = append[2] >>  8 | append[3] << 24;
-      block1[2] = append[3] >>  8 | 0x80u     << 24;
-      break;
-
-    case 12:
-      block0[3] = append[0];
-      block1[0] = append[1];
-      block1[1] = append[2];
-      block1[2] = append[3];
-      block1[3] = 0x80;
-      break;
-
-    case 13:
-      block0[3] = block0[3]       | append[0] <<  8;
-      block1[0] = append[0] >> 24 | append[1] <<  8;
-      block1[1] = append[1] >> 24 | append[2] <<  8;
-      block1[2] = append[2] >> 24 | append[3] <<  8;
-      block1[3] = append[3] >> 24 | 0x80u     <<  8;
-      break;
-
-    case 14:
-      block0[3] = block0[3]       | append[0] << 16;
-      block1[0] = append[0] >> 16 | append[1] << 16;
-      block1[1] = append[1] >> 16 | append[2] << 16;
-      block1[2] = append[2] >> 16 | append[3] << 16;
-      block1[3] = append[3] >> 16 | 0x80u     << 16;
-      break;
-
-    case 15:
-      block0[3] = block0[3]       | append[0] << 24;
-      block1[0] = append[0] >>  8 | append[1] << 24;
-      block1[1] = append[1] >>  8 | append[2] << 24;
-      block1[2] = append[2] >>  8 | append[3] << 24;
-      block1[3] = append[3] >>  8 | 0x80u     << 24;
-      break;
-
-    case 16:
-      block1[0] = append[0];
-      block1[1] = append[1];
-      block1[2] = append[2];
-      block1[3] = append[3];
-      block2[0] = 0x80;
-      break;
-
-    case 17:
-      block1[0] = block1[0]       | append[0] <<  8;
-      block1[1] = append[0] >> 24 | append[1] <<  8;
-      block1[2] = append[1] >> 24 | append[2] <<  8;
-      block1[3] = append[2] >> 24 | append[3] <<  8;
-      block2[0] = append[3] >> 24 | 0x80u     <<  8;
-      break;
-
-    case 18:
-      block1[0] = block1[0]       | append[0] << 16;
-      block1[1] = append[0] >> 16 | append[1] << 16;
-      block1[2] = append[1] >> 16 | append[2] << 16;
-      block1[3] = append[2] >> 16 | append[3] << 16;
-      block2[0] = append[3] >> 16 | 0x80u     << 16;
-      break;
-
-    case 19:
-      block1[0] = block1[0]       | append[0] << 24;
-      block1[1] = append[0] >>  8 | append[1] << 24;
-      block1[2] = append[1] >>  8 | append[2] << 24;
-      block1[3] = append[2] >>  8 | append[3] << 24;
-      block2[0] = append[3] >>  8 | 0x80u     << 24;
-      break;
-
-    case 20:
-      block1[1] = append[0];
-      block1[2] = append[1];
-      block1[3] = append[2];
-      block2[0] = append[3];
-      block2[1] = 0x80;
-      break;
-
-    case 21:
-      block1[1] = block1[1]       | append[0] <<  8;
-      block1[2] = append[0] >> 24 | append[1] <<  8;
-      block1[3] = append[1] >> 24 | append[2] <<  8;
-      block2[0] = append[2] >> 24 | append[3] <<  8;
-      block2[1] = append[3] >> 24 | 0x80u     <<  8;
-      break;
-
-    case 22:
-      block1[1] = block1[1]       | append[0] << 16;
-      block1[2] = append[0] >> 16 | append[1] << 16;
-      block1[3] = append[1] >> 16 | append[2] << 16;
-      block2[0] = append[2] >> 16 | append[3] << 16;
-      block2[1] = append[3] >> 16 | 0x80u     << 16;
-      break;
-
-    case 23:
-      block1[1] = block1[1]       | append[0] << 24;
-      block1[2] = append[0] >>  8 | append[1] << 24;
-      block1[3] = append[1] >>  8 | append[2] << 24;
-      block2[0] = append[2] >>  8 | append[3] << 24;
-      block2[1] = append[3] >>  8 | 0x80u     << 24;
-      break;
-
-    case 24:
-      block1[2] = append[0];
-      block1[3] = append[1];
-      block2[0] = append[2];
-      block2[1] = append[3];
-      block2[2] = 0x80;
-      break;
-
-    case 25:
-      block1[2] = block1[2]       | append[0] <<  8;
-      block1[3] = append[0] >> 24 | append[1] <<  8;
-      block2[0] = append[1] >> 24 | append[2] <<  8;
-      block2[1] = append[2] >> 24 | append[3] <<  8;
-      block2[2] = append[3] >> 24 | 0x80u     <<  8;
-      break;
-
-    case 26:
-      block1[2] = block1[2]       | append[0] << 16;
-      block1[3] = append[0] >> 16 | append[1] << 16;
-      block2[0] = append[1] >> 16 | append[2] << 16;
-      block2[1] = append[2] >> 16 | append[3] << 16;
-      block2[2] = append[3] >> 16 | 0x80u     << 16;
-      break;
-
-    case 27:
-      block1[2] = block1[2]       | append[0] << 24;
-      block1[3] = append[0] >>  8 | append[1] << 24;
-      block2[0] = append[1] >>  8 | append[2] << 24;
-      block2[1] = append[2] >>  8 | append[3] << 24;
-      block2[2] = append[3] >>  8 | 0x80u     << 24;
-      break;
-
-    case 28:
-      block1[3] = append[0];
-      block2[0] = append[1];
-      block2[1] = append[2];
-      block2[2] = append[3];
-      block2[3] = 0x80;
-      break;
-
-    case 29:
-      block1[3] = block1[3]       | append[0] <<  8;
-      block2[0] = append[0] >> 24 | append[1] <<  8;
-      block2[1] = append[1] >> 24 | append[2] <<  8;
-      block2[2] = append[2] >> 24 | append[3] <<  8;
-      block2[3] = append[3] >> 24 | 0x80u     <<  8;
-      break;
-
-    case 30:
-      block1[3] = block1[3]       | append[0] << 16;
-      block2[0] = append[0] >> 16 | append[1] << 16;
-      block2[1] = append[1] >> 16 | append[2] << 16;
-      block2[2] = append[2] >> 16 | append[3] << 16;
-      block2[3] = append[3] >> 16 | 0x80u     << 16;
-      break;
-
-    case 31:
-      block1[3] = block1[3]       | append[0] << 24;
-      block2[0] = append[0] >>  8 | append[1] << 24;
-      block2[1] = append[1] >>  8 | append[2] << 24;
-      block2[2] = append[2] >>  8 | append[3] << 24;
-      block2[3] = append[3] >>  8 | 0x80u     << 24;
-      break;
-
-    case 32:
-      block2[0] = append[0];
-      block2[1] = append[1];
-      block2[2] = append[2];
-      block2[3] = append[3];
-      block3[0] = 0x80;
-      break;
-
-    case 33:
-      block2[0] = block2[0]       | append[0] <<  8;
-      block2[1] = append[0] >> 24 | append[1] <<  8;
-      block2[2] = append[1] >> 24 | append[2] <<  8;
-      block2[3] = append[2] >> 24 | append[3] <<  8;
-      block3[0] = append[3] >> 24 | 0x80u     <<  8;
-      break;
-
-    case 34:
-      block2[0] = block2[0]       | append[0] << 16;
-      block2[1] = append[0] >> 16 | append[1] << 16;
-      block2[2] = append[1] >> 16 | append[2] << 16;
-      block2[3] = append[2] >> 16 | append[3] << 16;
-      block3[0] = append[3] >> 16 | 0x80u     << 16;
-      break;
-
-    case 35:
-      block2[0] = block2[0]       | append[0] << 24;
-      block2[1] = append[0] >>  8 | append[1] << 24;
-      block2[2] = append[1] >>  8 | append[2] << 24;
-      block2[3] = append[2] >>  8 | append[3] << 24;
-      block3[0] = append[3] >>  8 | 0x80u     << 24;
-      break;
-
-    case 36:
-      block2[1] = append[0];
-      block2[2] = append[1];
-      block2[3] = append[2];
-      block3[0] = append[3];
-      block3[1] = 0x80;
-      break;
-
-    case 37:
-      block2[1] = block2[1]       | append[0] <<  8;
-      block2[2] = append[0] >> 24 | append[1] <<  8;
-      block2[3] = append[1] >> 24 | append[2] <<  8;
-      block3[0] = append[2] >> 24 | append[3] <<  8;
-      block3[1] = append[3] >> 24 | 0x80u     <<  8;
-      break;
-
-    case 38:
-      block2[1] = block2[1]       | append[0] << 16;
-      block2[2] = append[0] >> 16 | append[1] << 16;
-      block2[3] = append[1] >> 16 | append[2] << 16;
-      block3[0] = append[2] >> 16 | append[3] << 16;
-      block3[1] = append[3] >> 16 | 0x80u     << 16;
-      break;
-
-    case 39:
-      block2[1] = block2[1]       | append[0] << 24;
-      block2[2] = append[0] >>  8 | append[1] << 24;
-      block2[3] = append[1] >>  8 | append[2] << 24;
-      block3[0] = append[2] >>  8 | append[3] << 24;
-      block3[1] = append[3] >>  8 | 0x80u     << 24;
-      break;
-
-    case 40:
-      block2[2] = append[0];
-      block2[3] = append[1];
-      block3[0] = append[2];
-      block3[1] = append[3];
-      block3[2] = 0x80;
-      break;
-
-    case 41:
-      block2[2] = block2[2]       | append[0] <<  8;
-      block2[3] = append[0] >> 24 | append[1] <<  8;
-      block3[0] = append[1] >> 24 | append[2] <<  8;
-      block3[1] = append[2] >> 24 | append[3] <<  8;
-      block3[2] = append[3] >> 24 | 0x80u     <<  8;
-      break;
-
-    case 42:
-      block2[2] = block2[2]       | append[0] << 16;
-      block2[3] = append[0] >> 16 | append[1] << 16;
-      block3[0] = append[1] >> 16 | append[2] << 16;
-      block3[1] = append[2] >> 16 | append[3] << 16;
-      block3[2] = append[3] >> 16 | 0x80u     << 16;
-      break;
-
-    case 43:
-      block2[2] = block2[2]       | append[0] << 24;
-      block2[3] = append[0] >>  8 | append[1] << 24;
-      block3[0] = append[1] >>  8 | append[2] << 24;
-      block3[1] = append[2] >>  8 | append[3] << 24;
-      block3[2] = append[3] >>  8 | 0x80u     << 24;
-      break;
-
-    case 44:
-      block2[3] = append[0];
-      block3[0] = append[1];
-      block3[1] = append[2];
-      block3[2] = append[3];
-      block3[3] = 0x80;
-      break;
-
-    case 45:
-      block2[3] = block2[3]       | append[0] <<  8;
-      block3[0] = append[0] >> 24 | append[1] <<  8;
-      block3[1] = append[1] >> 24 | append[2] <<  8;
-      block3[2] = append[2] >> 24 | append[3] <<  8;
-      block3[3] = append[3] >> 24 | 0x80u     <<  8;
-      break;
-
-    case 46:
-      block2[3] = block2[3]       | append[0] << 16;
-      block3[0] = append[0] >> 16 | append[1] << 16;
-      block3[1] = append[1] >> 16 | append[2] << 16;
-      block3[2] = append[2] >> 16 | append[3] << 16;
-      block3[3] = append[3] >> 16 | 0x80u     << 16;
-      break;
-
-    case 47:
-      block2[3] = block2[3]       | append[0] << 24;
-      block3[0] = append[0] >>  8 | append[1] << 24;
-      block3[1] = append[1] >>  8 | append[2] << 24;
-      block3[2] = append[2] >>  8 | append[3] << 24;
-      block3[3] = append[3] >>  8 | 0x80u     << 24;
-      break;
-
-    case 48:
-      block3[0] = append[0];
-      block3[1] = append[1];
-      block3[2] = append[2];
-      block3[3] = append[3];
-      break;
-
-    case 49:
-      block3[0] = block3[0]       | append[0] <<  8;
-      block3[1] = append[0] >> 24 | append[1] <<  8;
-      block3[2] = append[1] >> 24 | append[2] <<  8;
-      block3[3] = append[2] >> 24 | append[3] <<  8;
-      break;
-
-    case 50:
-      block3[0] = block3[0]       | append[0] << 16;
-      block3[1] = append[0] >> 16 | append[1] << 16;
-      block3[2] = append[1] >> 16 | append[2] << 16;
-      block3[3] = append[2] >> 16 | append[3] << 16;
-      break;
-
-    case 51:
-      block3[0] = block3[0]       | append[0] << 24;
-      block3[1] = append[0] >>  8 | append[1] << 24;
-      block3[2] = append[1] >>  8 | append[2] << 24;
-      block3[3] = append[2] >>  8 | append[3] << 24;
-      break;
-
-    case 52:
-      block3[1] = append[0];
-      block3[2] = append[1];
-      block3[3] = append[2];
-      break;
-
-    case 53:
-      block3[1] = block3[1]       | append[0] <<  8;
-      block3[2] = append[0] >> 24 | append[1] <<  8;
-      block3[3] = append[1] >> 24 | append[2] <<  8;
-      break;
-
-    case 54:
-      block3[1] = block3[1]       | append[0] << 16;
-      block3[2] = append[0] >> 16 | append[1] << 16;
-      block3[3] = append[1] >> 16 | append[2] << 16;
-      break;
-
-    case 55:
-      block3[1] = block3[1]       | append[0] << 24;
-      block3[2] = append[0] >>  8 | append[1] << 24;
-      block3[3] = append[1] >>  8 | append[2] << 24;
-      break;
-
-    case 56:
-      block3[2] = append[0];
-      block3[3] = append[1];
-      break;
+  switch (div)
+  {
+    case  0:  block0[0] |= tmp0;
+              block0[1]  = tmp1;
+              block0[2]  = tmp2;
+              block0[3]  = tmp3;
+              block1[0]  = tmp4;
+              break;
+    case  1:  block0[1] |= tmp0;
+              block0[2]  = tmp1;
+              block0[3]  = tmp2;
+              block1[0]  = tmp3;
+              block1[1]  = tmp4;
+              break;
+    case  2:  block0[2] |= tmp0;
+              block0[3]  = tmp1;
+              block1[0]  = tmp2;
+              block1[1]  = tmp3;
+              block1[2]  = tmp4;
+              break;
+    case  3:  block0[3] |= tmp0;
+              block1[0]  = tmp1;
+              block1[1]  = tmp2;
+              block1[2]  = tmp3;
+              block1[3]  = tmp4;
+              break;
+    case  4:  block1[0] |= tmp0;
+              block1[1]  = tmp1;
+              block1[2]  = tmp2;
+              block1[3]  = tmp3;
+              block2[0]  = tmp4;
+              break;
+    case  5:  block1[1] |= tmp0;
+              block1[2]  = tmp1;
+              block1[3]  = tmp2;
+              block2[0]  = tmp3;
+              block2[1]  = tmp4;
+              break;
+    case  6:  block1[2] |= tmp0;
+              block1[3]  = tmp1;
+              block2[0]  = tmp2;
+              block2[1]  = tmp3;
+              block2[2]  = tmp4;
+              break;
+    case  7:  block1[3] |= tmp0;
+              block2[0]  = tmp1;
+              block2[1]  = tmp2;
+              block2[2]  = tmp3;
+              block2[3]  = tmp4;
+              break;
+    case  8:  block2[0] |= tmp0;
+              block2[1]  = tmp1;
+              block2[2]  = tmp2;
+              block2[3]  = tmp3;
+              block3[0]  = tmp4;
+              break;
+    case  9:  block2[1] |= tmp0;
+              block2[2]  = tmp1;
+              block2[3]  = tmp2;
+              block3[0]  = tmp3;
+              block3[1]  = tmp4;
+              break;
   }
 }
 
 static void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
 {
-  switch (block_len)
+  u32 tmp0;
+  u32 tmp1;
+  u32 tmp2;
+
+  #ifdef IS_AMD
+
+  const int offset_minus_4 = 4 - (block_len & 3);
+
+  tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
+  tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
+  tmp2 = amd_bytealign (        0, append[1], offset_minus_4);
+
+  const u32 mod = block_len & 3;
+
+  if (mod == 0)
   {
-    case 0:
-      block0[0] = append[0];
-      block0[1] = append[1];
-      break;
+    tmp0 = tmp1;
+    tmp1 = tmp2;
+    tmp2 = 0;
+  }
 
-    case 1:
-      block0[0] = block0[0]       | append[0] <<  8;
-      block0[1] = append[0] >> 24 | append[1] <<  8;
-      block0[2] = append[1] >> 24;
-      break;
+  #endif
 
-    case 2:
-      block0[0] = block0[0]       | append[0] << 16;
-      block0[1] = append[0] >> 16 | append[1] << 16;
-      block0[2] = append[1] >> 16;
-      break;
+  #ifdef IS_NV
 
-    case 3:
-      block0[0] = block0[0]       | append[0] << 24;
-      block0[1] = append[0] >>  8 | append[1] << 24;
-      block0[2] = append[1] >>  8;
-      break;
+  const int offset_minus_4 = 4 - (block_len & 3);
 
-    case 4:
-      block0[1] = append[0];
-      block0[2] = append[1];
-      break;
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
-    case 5:
-      block0[1] = block0[1]       | append[0] <<  8;
-      block0[2] = append[0] >> 24 | append[1] <<  8;
-      block0[3] = append[1] >> 24;
-      break;
+  tmp0 = __byte_perm (        0, append[0], selector);
+  tmp1 = __byte_perm (append[0], append[1], selector);
+  tmp2 = __byte_perm (append[1],         0, selector);
 
-    case 6:
-      block0[1] = block0[1]       | append[0] << 16;
-      block0[2] = append[0] >> 16 | append[1] << 16;
-      block0[3] = append[1] >> 16;
-      break;
+  #endif
 
-    case 7:
-      block0[1] = block0[1]       | append[0] << 24;
-      block0[2] = append[0] >>  8 | append[1] << 24;
-      block0[3] = append[1] >>  8;
-      break;
+  const u32 div = block_len / 4;
 
-    case 8:
-      block0[2] = append[0];
-      block0[3] = append[1];
-      break;
-
-    case 9:
-      block0[2] = block0[2]       | append[0] <<  8;
-      block0[3] = append[0] >> 24 | append[1] <<  8;
-      block1[0] = append[1] >> 24;
-      break;
-
-    case 10:
-      block0[2] = block0[2]       | append[0] << 16;
-      block0[3] = append[0] >> 16 | append[1] << 16;
-      block1[0] = append[1] >> 16;
-      break;
-
-    case 11:
-      block0[2] = block0[2]       | append[0] << 24;
-      block0[3] = append[0] >>  8 | append[1] << 24;
-      block1[0] = append[1] >>  8;
-      break;
-
-    case 12:
-      block0[3] = append[0];
-      block1[0] = append[1];
-      break;
-
-    case 13:
-      block0[3] = block0[3]       | append[0] <<  8;
-      block1[0] = append[0] >> 24 | append[1] <<  8;
-      block1[1] = append[1] >> 24;
-      break;
-
-    case 14:
-      block0[3] = block0[3]       | append[0] << 16;
-      block1[0] = append[0] >> 16 | append[1] << 16;
-      block1[1] = append[1] >> 16;
-      break;
-
-    case 15:
-      block0[3] = block0[3]       | append[0] << 24;
-      block1[0] = append[0] >>  8 | append[1] << 24;
-      block1[1] = append[1] >>  8;
-      break;
-
-    case 16:
-      block1[0] = append[0];
-      block1[1] = append[1];
-      break;
-
-    case 17:
-      block1[0] = block1[0]       | append[0] <<  8;
-      block1[1] = append[0] >> 24 | append[1] <<  8;
-      block1[2] = append[1] >> 24;
-      break;
-
-    case 18:
-      block1[0] = block1[0]       | append[0] << 16;
-      block1[1] = append[0] >> 16 | append[1] << 16;
-      block1[2] = append[1] >> 16;
-      break;
-
-    case 19:
-      block1[0] = block1[0]       | append[0] << 24;
-      block1[1] = append[0] >>  8 | append[1] << 24;
-      block1[2] = append[1] >>  8;
-      break;
-
-    case 20:
-      block1[1] = append[0];
-      block1[2] = append[1];
-      break;
-
-    case 21:
-      block1[1] = block1[1]       | append[0] <<  8;
-      block1[2] = append[0] >> 24 | append[1] <<  8;
-      block1[3] = append[1] >> 24;
-      break;
-
-    case 22:
-      block1[1] = block1[1]       | append[0] << 16;
-      block1[2] = append[0] >> 16 | append[1] << 16;
-      block1[3] = append[1] >> 16;
-      break;
-
-    case 23:
-      block1[1] = block1[1]       | append[0] << 24;
-      block1[2] = append[0] >>  8 | append[1] << 24;
-      block1[3] = append[1] >>  8;
-      break;
-
-    case 24:
-      block1[2] = append[0];
-      block1[3] = append[1];
-      break;
-
-    case 25:
-      block1[2] = block1[2]       | append[0] <<  8;
-      block1[3] = append[0] >> 24 | append[1] <<  8;
-      block2[0] = append[1] >> 24;
-      break;
-
-    case 26:
-      block1[2] = block1[2]       | append[0] << 16;
-      block1[3] = append[0] >> 16 | append[1] << 16;
-      block2[0] = append[1] >> 16;
-      break;
-
-    case 27:
-      block1[2] = block1[2]       | append[0] << 24;
-      block1[3] = append[0] >>  8 | append[1] << 24;
-      block2[0] = append[1] >>  8;
-      break;
-
-    case 28:
-      block1[3] = append[0];
-      block2[0] = append[1];
-      break;
-
-    case 29:
-      block1[3] = block1[3]       | append[0] <<  8;
-      block2[0] = append[0] >> 24 | append[1] <<  8;
-      block2[1] = append[1] >> 24;
-      break;
-
-    case 30:
-      block1[3] = block1[3]       | append[0] << 16;
-      block2[0] = append[0] >> 16 | append[1] << 16;
-      block2[1] = append[1] >> 16;
-      break;
-
-    case 31:
-      block1[3] = block1[3]       | append[0] << 24;
-      block2[0] = append[0] >>  8 | append[1] << 24;
-      block2[1] = append[1] >>  8;
-      break;
-
-    case 32:
-      block2[0] = append[0];
-      block2[1] = append[1];
-      break;
-
-    case 33:
-      block2[0] = block2[0]       | append[0] <<  8;
-      block2[1] = append[0] >> 24 | append[1] <<  8;
-      block2[2] = append[1] >> 24;
-      break;
-
-    case 34:
-      block2[0] = block2[0]       | append[0] << 16;
-      block2[1] = append[0] >> 16 | append[1] << 16;
-      block2[2] = append[1] >> 16;
-      break;
-
-    case 35:
-      block2[0] = block2[0]       | append[0] << 24;
-      block2[1] = append[0] >>  8 | append[1] << 24;
-      block2[2] = append[1] >>  8;
-      break;
-
-    case 36:
-      block2[1] = append[0];
-      block2[2] = append[1];
-      break;
-
-    case 37:
-      block2[1] = block2[1]       | append[0] <<  8;
-      block2[2] = append[0] >> 24 | append[1] <<  8;
-      block2[3] = append[1] >> 24;
-      break;
-
-    case 38:
-      block2[1] = block2[1]       | append[0] << 16;
-      block2[2] = append[0] >> 16 | append[1] << 16;
-      block2[3] = append[1] >> 16;
-      break;
-
-    case 39:
-      block2[1] = block2[1]       | append[0] << 24;
-      block2[2] = append[0] >>  8 | append[1] << 24;
-      block2[3] = append[1] >>  8;
-      break;
-
-    case 40:
-      block2[2] = append[0];
-      block2[3] = append[1];
-      break;
-
-    case 41:
-      block2[2] = block2[2]       | append[0] <<  8;
-      block2[3] = append[0] >> 24 | append[1] <<  8;
-      block3[0] = append[1] >> 24;
-      break;
-
-    case 42:
-      block2[2] = block2[2]       | append[0] << 16;
-      block2[3] = append[0] >> 16 | append[1] << 16;
-      block3[0] = append[1] >> 16;
-      break;
-
-    case 43:
-      block2[2] = block2[2]       | append[0] << 24;
-      block2[3] = append[0] >>  8 | append[1] << 24;
-      block3[0] = append[1] >>  8;
-      break;
-
-    case 44:
-      block2[3] = append[0];
-      block3[0] = append[1];
-      break;
-
-    case 45:
-      block2[3] = block2[3]       | append[0] <<  8;
-      block3[0] = append[0] >> 24 | append[1] <<  8;
-      block3[1] = append[1] >> 24;
-      break;
-
-    case 46:
-      block2[3] = block2[3]       | append[0] << 16;
-      block3[0] = append[0] >> 16 | append[1] << 16;
-      block3[1] = append[1] >> 16;
-      break;
-
-    case 47:
-      block2[3] = block2[3]       | append[0] << 24;
-      block3[0] = append[0] >>  8 | append[1] << 24;
-      block3[1] = append[1] >>  8;
-      break;
-
-    case 48:
-      block3[0] = append[0];
-      block3[1] = append[1];
-      break;
-
-    case 49:
-      block3[0] = block3[0]       | append[0] <<  8;
-      block3[1] = append[0] >> 24 | append[1] <<  8;
-      block3[2] = append[1] >> 24;
-      break;
-
-    case 50:
-      block3[0] = block3[0]       | append[0] << 16;
-      block3[1] = append[0] >> 16 | append[1] << 16;
-      block3[2] = append[1] >> 16;
-      break;
-
-    case 51:
-      block3[0] = block3[0]       | append[0] << 24;
-      block3[1] = append[0] >>  8 | append[1] << 24;
-      block3[2] = append[1] >>  8;
-      break;
-
-    case 52:
-      block3[1] = append[0];
-      block3[2] = append[1];
-      break;
-
-    case 53:
-      block3[1] = block3[1]       | append[0] <<  8;
-      block3[2] = append[0] >> 24 | append[1] <<  8;
-      block3[3] = append[1] >> 24;
-      break;
-
-    case 54:
-      block3[1] = block3[1]       | append[0] << 16;
-      block3[2] = append[0] >> 16 | append[1] << 16;
-      block3[3] = append[1] >> 16;
-      break;
-
-    case 55:
-      block3[1] = block3[1]       | append[0] << 24;
-      block3[2] = append[0] >>  8 | append[1] << 24;
-      block3[3] = append[1] >>  8;
-      break;
-
-    case 56:
-      block3[2] = append[0];
-      block3[3] = append[1];
-      break;
+  switch (div)
+  {
+    case  0:  block0[0] |= tmp0;
+              block0[1]  = tmp1;
+              block0[2]  = tmp2;
+              break;
+    case  1:  block0[1] |= tmp0;
+              block0[2]  = tmp1;
+              block0[3]  = tmp2;
+              break;
+    case  2:  block0[2] |= tmp0;
+              block0[3]  = tmp1;
+              block1[0]  = tmp2;
+              break;
+    case  3:  block0[3] |= tmp0;
+              block1[0]  = tmp1;
+              block1[1]  = tmp2;
+              break;
+    case  4:  block1[0] |= tmp0;
+              block1[1]  = tmp1;
+              block1[2]  = tmp2;
+              break;
+    case  5:  block1[1] |= tmp0;
+              block1[2]  = tmp1;
+              block1[3]  = tmp2;
+              break;
+    case  6:  block1[2] |= tmp0;
+              block1[3]  = tmp1;
+              block2[0]  = tmp2;
+              break;
+    case  7:  block1[3] |= tmp0;
+              block2[0]  = tmp1;
+              block2[1]  = tmp2;
+              break;
+    case  8:  block2[0] |= tmp0;
+              block2[1]  = tmp1;
+              block2[2]  = tmp2;
+              break;
+    case  9:  block2[1] |= tmp0;
+              block2[2]  = tmp1;
+              block2[3]  = tmp2;
+              break;
+    case 10:  block2[2] |= tmp0;
+              block2[3]  = tmp1;
+              block3[0]  = tmp2;
+              break;
+    case 11:  block2[3] |= tmp0;
+              block3[0]  = tmp1;
+              block3[1]  = tmp2;
+              break;
   }
 }
 
