@@ -15998,6 +15998,7 @@ int main (int argc, char **argv)
       if (device_param->d_scryptV_buf)      hc_clReleaseMemObject     (device_param->d_scryptV_buf);
       if (device_param->d_root_css_buf)     hc_clReleaseMemObject     (device_param->d_root_css_buf);
       if (device_param->d_markov_css_buf)   hc_clReleaseMemObject     (device_param->d_markov_css_buf);
+      if (device_param->d_tm_c)             hc_clReleaseMemObject     (device_param->d_tm_c);
 
       if (device_param->kernel1)            hc_clReleaseKernel        (device_param->kernel1);
       if (device_param->kernel12)           hc_clReleaseKernel        (device_param->kernel12);
@@ -16007,9 +16008,13 @@ int main (int argc, char **argv)
       if (device_param->kernel_mp)          hc_clReleaseKernel        (device_param->kernel_mp);
       if (device_param->kernel_mp_l)        hc_clReleaseKernel        (device_param->kernel_mp_l);
       if (device_param->kernel_mp_r)        hc_clReleaseKernel        (device_param->kernel_mp_r);
+      if (device_param->kernel_tb)          hc_clReleaseKernel        (device_param->kernel_tb);
+      if (device_param->kernel_tm)          hc_clReleaseKernel        (device_param->kernel_tm);
+      if (device_param->kernel_amp)         hc_clReleaseKernel        (device_param->kernel_amp);
 
       if (device_param->program)            hc_clReleaseProgram       (device_param->program);
       if (device_param->program_mp)         hc_clReleaseProgram       (device_param->program_mp);
+      if (device_param->program_amp)        hc_clReleaseProgram       (device_param->program_amp);
       if (device_param->command_queue)      hc_clReleaseCommandQueue  (device_param->command_queue);
       if (device_param->context)            hc_clReleaseContext       (device_param->context);
     }
