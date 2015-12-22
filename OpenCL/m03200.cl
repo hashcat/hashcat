@@ -603,32 +603,10 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m03200_loop (__glo
 
   const u32 lid = get_local_id (0);
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32 w[16];
-
-  w[ 0] = pws[gid].i[ 0];
-  w[ 1] = pws[gid].i[ 1];
-  w[ 2] = pws[gid].i[ 2];
-  w[ 3] = pws[gid].i[ 3];
-  w[ 4] = pws[gid].i[ 4];
-  w[ 5] = pws[gid].i[ 5];
-  w[ 6] = pws[gid].i[ 6];
-  w[ 7] = pws[gid].i[ 7];
-  w[ 8] = pws[gid].i[ 8];
-  w[ 9] = pws[gid].i[ 9];
-  w[10] = pws[gid].i[10];
-  w[11] = pws[gid].i[11];
-  w[12] = pws[gid].i[12];
-  w[13] = pws[gid].i[13];
-  w[14] = pws[gid].i[14];
-  w[15] = pws[gid].i[15];
-
   // load
 
   u32 E[18];
 
-  #pragma unroll
   for (u32 i = 0; i < 18; i++)
   {
     E[i] = tmps[gid].E[i];
@@ -636,7 +614,6 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m03200_loop (__glo
 
   u32 P[18];
 
-  #pragma unroll
   for (u32 i = 0; i < 18; i++)
   {
     P[i] = tmps[gid].P[i];
