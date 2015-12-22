@@ -321,7 +321,7 @@ static void sha512_transform (const u64 w[16], u64 dgst[8])
 
   ROUND512_STEP (0);
 
-  //#pragma unroll // kernel fails if used
+  //#pragma unroll
   for (int i = 16; i < 80; i += 16)
   {
     ROUND512_EXPAND (); ROUND512_STEP (i);
