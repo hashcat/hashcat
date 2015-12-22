@@ -298,6 +298,8 @@ typedef struct
 
 typedef struct
 {
+  uint E[18];
+
   uint P[18];
 
   uint S0[256];

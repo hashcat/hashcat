@@ -652,6 +652,8 @@ typedef struct
 
 typedef struct
 {
+  u32 E[18];
+
   u32 P[18];
 
   u32 S0[256];

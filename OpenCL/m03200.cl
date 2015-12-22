@@ -354,7 +354,7 @@ __constant u32 c_sbox3[256] =
   L ^= P[17];           \
 }
 
-static void expand_key (u32 E[34], const u32 W[16], const u32 len)
+static void expand_key (u32 E[18], const u32 W[16], const u32 len)
 {
   u8 *E_cur  = (u8 *) E;
   u8 *E_stop = E_cur + 72;
@@ -406,7 +406,7 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m03200_init (__glo
   w[14] = pws[gid].i[14];
   w[15] = pws[gid].i[15];
 
-  u32 E[34];
+  u32 E[18];
 
   expand_key (E, w, pw_len);
 
@@ -428,6 +428,11 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m03200_init (__glo
   E[15] = swap32 (E[15]);
   E[16] = swap32 (E[16]);
   E[17] = swap32 (E[17]);
+
+  for (u32 i = 0; i < 18; i++)
+  {
+    tmps[gid].E[i] = E[i];
+  }
 
   /**
    * salt
@@ -619,33 +624,19 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m03200_loop (__glo
   w[14] = pws[gid].i[14];
   w[15] = pws[gid].i[15];
 
-  u32 E[34];
-
-  expand_key (E, w, pw_len);
-
-  E[ 0] = swap32 (E[ 0]);
-  E[ 1] = swap32 (E[ 1]);
-  E[ 2] = swap32 (E[ 2]);
-  E[ 3] = swap32 (E[ 3]);
-  E[ 4] = swap32 (E[ 4]);
-  E[ 5] = swap32 (E[ 5]);
-  E[ 6] = swap32 (E[ 6]);
-  E[ 7] = swap32 (E[ 7]);
-  E[ 8] = swap32 (E[ 8]);
-  E[ 9] = swap32 (E[ 9]);
-  E[10] = swap32 (E[10]);
-  E[11] = swap32 (E[11]);
-  E[12] = swap32 (E[12]);
-  E[13] = swap32 (E[13]);
-  E[14] = swap32 (E[14]);
-  E[15] = swap32 (E[15]);
-  E[16] = swap32 (E[16]);
-  E[17] = swap32 (E[17]);
-
   // load
+
+  u32 E[18];
+
+  #pragma unroll
+  for (u32 i = 0; i < 18; i++)
+  {
+    E[i] = tmps[gid].E[i];
+  }
 
   u32 P[18];
 
+  #pragma unroll
   for (u32 i = 0; i < 18; i++)
   {
     P[i] = tmps[gid].P[i];
