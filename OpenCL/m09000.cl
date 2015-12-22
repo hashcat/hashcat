@@ -311,16 +311,16 @@ __constant u32 c_sbox3[256] =
 #endif
 
 #ifdef IS_NV
-#define BF_ROUND(L,R,N)       \
-{                             \
-  u32 tmp;                    \
-                              \
-  tmp  = S0[(u8) (L) >> 24];  \
-  tmp += S1[(u8) (L) >> 16];  \
-  tmp ^= S2[(u8) (L) >>  8];  \
-  tmp += S3[(u8) (L) >>  0];  \
-                              \
-  (R) ^= tmp ^ P[(N)];        \
+#define BF_ROUND(L,R,N)           \
+{                                 \
+  u32 tmp;                        \
+                                  \
+  tmp  = S0[__bfe ((L), 24, 8)];  \
+  tmp += S1[__bfe ((L), 16, 8)];  \
+  tmp ^= S2[__bfe ((L),  8, 8)];  \
+  tmp += S3[__bfe ((L),  0, 8)];  \
+                                  \
+  (R) ^= tmp ^ P[(N)];            \
 }
 #endif
 
