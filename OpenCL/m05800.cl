@@ -1091,165 +1091,92 @@ static void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 of
 
 static void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u32 offset)
 {
-  switch (offset)
+  u32 tmp0;
+  u32 tmp1;
+  u32 tmp2;
+  u32 tmp3;
+  u32 tmp4;
+  u32 tmp5;
+
+  #ifdef IS_AMD
+
+  const int offset_minus_4 = 4 - (offset & 3);
+
+  tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
+  tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
+  tmp2 = amd_bytealign (append[2], append[1], offset_minus_4);
+  tmp3 = amd_bytealign (append[3], append[2], offset_minus_4);
+  tmp4 = amd_bytealign (append[4], append[3], offset_minus_4);
+  tmp5 = amd_bytealign (        0, append[4], offset_minus_4);
+
+  const u32 mod = offset & 3;
+
+  if (mod == 0)
   {
-    case 2:
-      w0[0] = w0[0]           | append[0] << 16;
-      w0[1] = append[0] >> 16 | append[1] << 16;
-      w0[2] = append[1] >> 16 | append[2] << 16;
-      w0[3] = append[2] >> 16 | append[3] << 16;
-      w1[0] = append[3] >> 16 | append[4] << 16;
-      w1[1] = append[4] >> 16;
-      break;
+    tmp0 = tmp1;
+    tmp1 = tmp2;
+    tmp2 = tmp3;
+    tmp3 = tmp4;
+    tmp4 = tmp5;
+    tmp5 = 0;
+  }
 
-    case 3:
-      w0[0] = w0[0]           | append[0] << 24;
-      w0[1] = append[0] >>  8 | append[1] << 24;
-      w0[2] = append[1] >>  8 | append[2] << 24;
-      w0[3] = append[2] >>  8 | append[3] << 24;
-      w1[0] = append[3] >>  8 | append[4] << 24;
-      w1[1] = append[4] >>  8;
-      break;
+  #endif
 
-    case 4:
-      w0[1] = append[0];
-      w0[2] = append[1];
-      w0[3] = append[2];
-      w1[0] = append[3];
-      w1[1] = append[4];
-      break;
+  #ifdef IS_NV
 
-    case 5:
-      w0[1] = w0[1]           | append[0] <<  8;
-      w0[2] = append[0] >> 24 | append[1] <<  8;
-      w0[3] = append[1] >> 24 | append[2] <<  8;
-      w1[0] = append[2] >> 24 | append[3] <<  8;
-      w1[1] = append[3] >> 24 | append[4] <<  8;
-      w1[2] = append[4] >> 24;
-      break;
+  const int offset_minus_4 = 4 - (offset & 3);
 
-    case 6:
-      w0[1] = w0[1]           | append[0] << 16;
-      w0[2] = append[0] >> 16 | append[1] << 16;
-      w0[3] = append[1] >> 16 | append[2] << 16;
-      w1[0] = append[2] >> 16 | append[3] << 16;
-      w1[1] = append[3] >> 16 | append[4] << 16;
-      w1[2] = append[4] >> 16;
-      break;
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
-    case 7:
-      w0[1] = w0[1]           | append[0] << 24;
-      w0[2] = append[0] >>  8 | append[1] << 24;
-      w0[3] = append[1] >>  8 | append[2] << 24;
-      w1[0] = append[2] >>  8 | append[3] << 24;
-      w1[1] = append[3] >>  8 | append[4] << 24;
-      w1[2] = append[4] >>  8;
-      break;
+  tmp0 = __byte_perm (        0, append[0], selector);
+  tmp1 = __byte_perm (append[0], append[1], selector);
+  tmp2 = __byte_perm (append[1], append[2], selector);
+  tmp3 = __byte_perm (append[2], append[3], selector);
+  tmp4 = __byte_perm (append[3], append[4], selector);
+  tmp5 = __byte_perm (append[4],         0, selector);
 
-    case 8:
-      w0[2] = append[0];
-      w0[3] = append[1];
-      w1[0] = append[2];
-      w1[1] = append[3];
-      w1[2] = append[4];
-      break;
+  #endif
 
-    case 9:
-      w0[2] = w0[2]           | append[0] <<  8;
-      w0[3] = append[0] >> 24 | append[1] <<  8;
-      w1[0] = append[1] >> 24 | append[2] <<  8;
-      w1[1] = append[2] >> 24 | append[3] <<  8;
-      w1[2] = append[3] >> 24 | append[4] <<  8;
-      w1[3] = append[4] >> 24;
-      break;
+  const u32 div = offset / 4;
 
-    case 10:
-      w0[2] = w0[2]           | append[0] << 16;
-      w0[3] = append[0] >> 16 | append[1] << 16;
-      w1[0] = append[1] >> 16 | append[2] << 16;
-      w1[1] = append[2] >> 16 | append[3] << 16;
-      w1[2] = append[3] >> 16 | append[4] << 16;
-      w1[3] = append[4] >> 16;
-      break;
-
-    case 11:
-      w0[2] = w0[2]           | append[0] << 24;
-      w0[3] = append[0] >>  8 | append[1] << 24;
-      w1[0] = append[1] >>  8 | append[2] << 24;
-      w1[1] = append[2] >>  8 | append[3] << 24;
-      w1[2] = append[3] >>  8 | append[4] << 24;
-      w1[3] = append[4] >>  8;
-      break;
-
-    case 12:
-      w0[3] = append[0];
-      w1[0] = append[1];
-      w1[1] = append[2];
-      w1[2] = append[3];
-      w1[3] = append[4];
-      break;
-
-    case 13:
-      w0[3] = w0[3]           | append[0] <<  8;
-      w1[0] = append[0] >> 24 | append[1] <<  8;
-      w1[1] = append[1] >> 24 | append[2] <<  8;
-      w1[2] = append[2] >> 24 | append[3] <<  8;
-      w1[3] = append[3] >> 24 | append[4] <<  8;
-      w2[0] = append[4] >> 24;
-      break;
-
-    case 14:
-      w0[3] = w0[3]           | append[0] << 16;
-      w1[0] = append[0] >> 16 | append[1] << 16;
-      w1[1] = append[1] >> 16 | append[2] << 16;
-      w1[2] = append[2] >> 16 | append[3] << 16;
-      w1[3] = append[3] >> 16 | append[4] << 16;
-      w2[0] = append[4] >> 16;
-      break;
-
-    case 15:
-      w0[3] = w0[3]           | append[0] << 24;
-      w1[0] = append[0] >>  8 | append[1] << 24;
-      w1[1] = append[1] >>  8 | append[2] << 24;
-      w1[2] = append[2] >>  8 | append[3] << 24;
-      w1[3] = append[3] >>  8 | append[4] << 24;
-      w2[0] = append[4] >>  8;
-      break;
-
-    case 16:
-      w1[0] = append[0];
-      w1[1] = append[1];
-      w1[2] = append[2];
-      w1[3] = append[3];
-      w2[0] = append[4];
-      break;
-
-    case 17:
-      w1[0] = w1[0]           | append[0] <<  8;
-      w1[1] = append[0] >> 24 | append[1] <<  8;
-      w1[2] = append[1] >> 24 | append[2] <<  8;
-      w1[3] = append[2] >> 24 | append[3] <<  8;
-      w2[0] = append[3] >> 24 | append[4] <<  8;
-      w2[1] = append[4] >> 24;
-      break;
-
-    case 18:
-      w1[0] = w1[0]           | append[0] << 16;
-      w1[1] = append[0] >> 16 | append[1] << 16;
-      w1[2] = append[1] >> 16 | append[2] << 16;
-      w1[3] = append[2] >> 16 | append[3] << 16;
-      w2[0] = append[3] >> 16 | append[4] << 16;
-      w2[1] = append[4] >> 16;
-      break;
-
-    case 19:
-      w1[0] = w1[0]           | append[0] << 24;
-      w1[1] = append[0] >>  8 | append[1] << 24;
-      w1[2] = append[1] >>  8 | append[2] << 24;
-      w1[3] = append[2] >>  8 | append[3] << 24;
-      w2[0] = append[3] >>  8 | append[4] << 24;
-      w2[1] = append[4] >>  8;
-      break;
+  switch (div)
+  {
+    case  0:  w0[0] |= tmp0;
+              w0[1]  = tmp1;
+              w0[2]  = tmp2;
+              w0[3]  = tmp3;
+              w1[0]  = tmp4;
+              w1[1]  = tmp5;
+              break;
+    case  1:  w0[1] |= tmp0;
+              w0[2]  = tmp1;
+              w0[3]  = tmp2;
+              w1[0]  = tmp3;
+              w1[1]  = tmp4;
+              w1[2]  = tmp5;
+              break;
+    case  2:  w0[2] |= tmp0;
+              w0[3]  = tmp1;
+              w1[0]  = tmp2;
+              w1[1]  = tmp3;
+              w1[2]  = tmp4;
+              w1[3]  = tmp5;
+              break;
+    case  3:  w0[3] |= tmp0;
+              w1[0]  = tmp1;
+              w1[1]  = tmp2;
+              w1[2]  = tmp3;
+              w1[3]  = tmp4;
+              w2[0]  = tmp5;
+              break;
+    case  4:  w1[0] |= tmp0;
+              w1[1]  = tmp1;
+              w1[2]  = tmp2;
+              w1[3]  = tmp3;
+              w2[0]  = tmp4;
+              w2[1]  = tmp5;
+              break;
   }
 }
 
