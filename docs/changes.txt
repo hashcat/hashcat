@@ -10,6 +10,10 @@ File.: Host
 Desc.: Implemented a new feature that allows to quit at next restore point update (and disable it)
 Issue: 10
 
+Type.: Feature
+File.: Host
+Desc.: Added option --gpu-platform to select a single OpenCL platform in case multiple OpenCL platforms are present 
+
 Type.: Bug
 File.: Host
 Desc.: Fixed a bug in combination of --restore and a user immediately aborting the session after restart

@@ -383,7 +383,8 @@ const char *USAGE_BIG[] =
   "       --bitmap-min=NUM              Minimum number of bits allowed for bitmaps",
   "       --bitmap-max=NUM              Maximum number of bits allowed for bitmaps",
   "       --cpu-affinity=STR            Locks to CPU devices, seperate with comma",
-  "  -d,  --gpu-devices=STR             Devices to use, separate with comma",
+  "  -d,  --gpu-devices=STR             OpenCL devices to use, separate with comma",
+  "       --gpu-platform=STR            OpenCL platform to use, in case multiple OpenCL platforms are present",
   "  -w,  --workload-profile=NUM        Enable a specific workload profile, see references below",
   "  -n,  --gpu-accel=NUM               Workload tuning: 1, 8, 40, 80, 160",
   "  -u,  --gpu-loops=NUM               Workload fine-tuning: 8 - 1024",
@@ -5070,6 +5071,7 @@ int main (int argc, char **argv)
   uint  increment_max     = INCREMENT_MAX;
   char *cpu_affinity      = NULL;
   char *gpu_devices       = NULL;
+  char *gpu_platform      = NULL;
   char *truecrypt_keyfiles = NULL;
   uint  workload_profile  = WORKLOAD_PROFILE;
   uint  gpu_accel         = GPU_ACCEL;
@@ -5143,6 +5145,7 @@ int main (int argc, char **argv)
   #define IDX_MARKOV_HCSTAT     0xff24
   #define IDX_CPU_AFFINITY      0xff25
   #define IDX_GPU_DEVICES       'd'
+  #define IDX_GPU_PLATFORM      0xff72
   #define IDX_WORKLOAD_PROFILE  'w'
   #define IDX_GPU_ACCEL         'n'
   #define IDX_GPU_LOOPS         'u'
@@ -5222,6 +5225,7 @@ int main (int argc, char **argv)
     {"markov-hcstat",     required_argument, 0, IDX_MARKOV_HCSTAT},
     {"cpu-affinity",      required_argument, 0, IDX_CPU_AFFINITY},
     {"gpu-devices",       required_argument, 0, IDX_GPU_DEVICES},
+    {"gpu-platform",      required_argument, 0, IDX_GPU_PLATFORM},
     {"workload-profile",  required_argument, 0, IDX_WORKLOAD_PROFILE},
     {"gpu-accel",         required_argument, 0, IDX_GPU_ACCEL},
     {"gpu-loops",         required_argument, 0, IDX_GPU_LOOPS},
@@ -5450,6 +5454,7 @@ int main (int argc, char **argv)
       case IDX_HEX_WORDLIST:      hex_wordlist      = 1;               break;
       case IDX_CPU_AFFINITY:      cpu_affinity      = optarg;          break;
       case IDX_GPU_DEVICES:       gpu_devices       = optarg;          break;
+      case IDX_GPU_PLATFORM:      gpu_platform      = optarg;          break;
       case IDX_WORKLOAD_PROFILE:  workload_profile  = atoi (optarg);   break;
       case IDX_GPU_ACCEL:         gpu_accel         = atoi (optarg);
                                   gpu_accel_chgd    = 1;               break;
@@ -6331,6 +6336,7 @@ int main (int argc, char **argv)
   logfile_top_string (custom_charset_4);
   logfile_top_string (debug_file);
   logfile_top_string (gpu_devices);
+  logfile_top_string (gpu_platform);
   logfile_top_string (induction_dir);
   logfile_top_string (markov_hcstat);
   logfile_top_string (outfile);
@@ -12254,14 +12260,37 @@ int main (int argc, char **argv)
       return (-1);
     }
 
+    uint CL_platform_sel = 0;
+
     if (CL_platforms_cnt > 1)
     {
-      log_error ("ERROR: Too many OpenCL compatible platforms found");
+      if (gpu_platform == NULL)
+      {
+        log_error ("ERROR: Too many OpenCL compatible platforms found");
+        log_error ("       Please select a single platform using the --gpu-platform option");
+        log_error ("");
+        log_error ("Available OpenCL platforms:");
+
+        for (uint i = 0; i < CL_platforms_cnt; i++)
+        {
+          char CL_platform_vendor[INFOSZ];
+
+          memset (CL_platform_vendor, 0, sizeof (CL_platform_vendor));
+
+          hc_clGetPlatformInfo (CL_platforms[i], CL_PLATFORM_VENDOR, sizeof (CL_platform_vendor), CL_platform_vendor, NULL);
+
+          printf ("* %d = %s\n", i + 1, CL_platform_vendor);
+        }
+      }
+      else
+      {
+        CL_platform_sel = atoi (gpu_platform);
+      }
 
       return (-1);
     }
 
-    cl_platform_id CL_platform = CL_platforms[0];
+    cl_platform_id CL_platform = CL_platforms[CL_platform_sel];
 
     char CL_platform_vendor[INFOSZ];
 
