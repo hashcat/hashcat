@@ -12960,8 +12960,23 @@ int main (int argc, char **argv)
 
       if ((hash_mode == 8900) || (hash_mode == 9300))
       {
-        #define SHADER_PER_MP 8
-        #define WAVEFRONTS    64
+        uint m = 0;
+
+        if (vendor_id == VENDOR_ID_NV)
+        {
+          #define NV_SHADER_PER_MP 32
+          #define NV_WARPS         32
+
+          m = NV_SHADER_PER_MP * NV_WARPS;
+        }
+
+        else if (vendor_id == VENDOR_ID_AMD)
+        {
+          #define AMD_SHADER_PER_MP 8
+          #define AMD_WAVEFRONTS    64
+
+          m = AMD_SHADER_PER_MP * AMD_WAVEFRONTS;
+        }
 
         uint tmto_start = 2;
         uint tmto_stop  = 1024;
@@ -12980,14 +12995,15 @@ int main (int argc, char **argv)
 
           size_scryptV /= tmto;
 
-          size_scryptV *= gpu_processors * WAVEFRONTS * SHADER_PER_MP;
+          size_scryptV *= gpu_processors * m;
 
-          if (size_scryptV > (device_param->gpu_maxmem_alloc / 2)) continue;
+//          if (size_scryptV > (device_param->gpu_maxmem_alloc / 2)) continue;
+          if (size_scryptV > device_param->gpu_maxmem_alloc) continue;
 
           for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
           {
             data.salts_buf[salts_pos].scrypt_tmto = tmto;
-            data.salts_buf[salts_pos].scrypt_phy  = gpu_processors * WAVEFRONTS * SHADER_PER_MP;
+            data.salts_buf[salts_pos].scrypt_phy  = gpu_processors * m;
           }
 
           break;
