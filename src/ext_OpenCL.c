@@ -376,3 +376,15 @@ void hc_clEnqueueFillBuffer (cl_command_queue command_queue, cl_mem buffer, cons
     exit (-1);
   }
 }
+
+void hc_clGetKernelWorkGroupInfo (cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
+{
+  cl_int CL_err = clGetKernelWorkGroupInfo (kernel, device, param_name, param_value_size, param_value, param_value_size_ret);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: %s %d\n", "clGetKernelWorkGroupInfo()", CL_err);
+
+    exit (-1);
+  }
+}

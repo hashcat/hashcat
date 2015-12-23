@@ -816,8 +816,10 @@ struct __hc_device_param
 
   uint              sm_major;
   uint              sm_minor;
+  uint              kernel_exec_timeout;
 
   uint              gpu_processors;
+  uint              gpu_processor_cores;
   uint              gpu_threads;
   uint              gpu_accel;
   uint64_t          gpu_maxmem_alloc;

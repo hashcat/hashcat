@@ -12636,8 +12636,35 @@ int main (int argc, char **argv)
 
       device_param->driver_version = mystrdup (tmp);
 
+      if (vendor_id == VENDOR_ID_AMD)
+      {
+        cl_uint gpu_processor_cores = 0;
+
+        #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
+
+        hc_clGetDeviceInfo (device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (gpu_processor_cores), &gpu_processor_cores, NULL);
+
+        device_param->gpu_processor_cores = gpu_processor_cores;
+      }
+
       if (vendor_id == VENDOR_ID_NV)
       {
+        cl_uint kernel_exec_timeout = 0;
+
+        #define CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV            0x4005
+
+        hc_clGetDeviceInfo (device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
+
+        device_param->kernel_exec_timeout = kernel_exec_timeout;
+
+        cl_uint gpu_processor_cores = 0;
+
+        #define CL_DEVICE_WARP_SIZE_NV                      0x4003
+
+        hc_clGetDeviceInfo (device, CL_DEVICE_WARP_SIZE_NV, sizeof (gpu_processor_cores), &gpu_processor_cores, NULL);
+
+        device_param->gpu_processor_cores = gpu_processor_cores;
+
         cl_uint sm_minor = 0;
         cl_uint sm_major = 0;
 
@@ -12652,8 +12679,20 @@ int main (int argc, char **argv)
       }
 
       /**
-       * catalyst driver check
+       * common driver check
        */
+
+      if (vendor_id == VENDOR_ID_NV)
+      {
+        if (device_param->kernel_exec_timeout != 0)
+        {
+          if (data.quiet == 0) log_info ("Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
+
+          #if _WIN
+          if (data.quiet == 0) log_info ("           You can disable it with a regpatch, see here: http://hashcat.net/wiki/doku.php?id=timeout_patch");
+          #endif
+        }
+      }
 
       if (vendor_id == VENDOR_ID_AMD)
       {
@@ -12673,43 +12712,6 @@ int main (int argc, char **argv)
           {
             catalyst_warn = 0;
           }
-
-          /*
-          // v14.9
-          if ((strstr (device_param->device_version, "1573.") != NULL)
-           && (strstr (device_param->driver_version, "1573.") != NULL))
-          {
-            catalyst_warn = 0;
-          }
-
-          // v14.12 -- version overlaps with v15.4 beta
-          if ((strstr (device_param->device_version, "1642.") != NULL)
-           && (strstr (device_param->driver_version, "1642.") != NULL))
-          {
-            catalyst_broken = 1;
-          }
-
-          // v15.4 (Beta, Windows only release)
-          if ((strstr (device_param->device_version, "1642.") != NULL)
-           && (strstr (device_param->driver_version, "1642.") != NULL))
-          {
-            catalyst_warn = 0;
-          }
-
-          // v15.5 (Release, Linux)
-          if ((strstr (device_param->device_version, "1702.") != NULL)
-           && (strstr (device_param->driver_version, "1702.") != NULL))
-          {
-            catalyst_warn = 0;
-          }
-
-          // v15.3 (Beta, Ubuntu repository release)
-          if ((strstr (device_param->device_version, "1729.") != NULL)
-           && (strstr (device_param->driver_version, "1729.") != NULL))
-          {
-            catalyst_warn = 0;
-          }
-          */
 
           catalyst_check = 0;
         }
@@ -12818,6 +12820,8 @@ int main (int argc, char **argv)
 
       uint gpu_processors   = device_param->gpu_processors;
 
+      uint gpu_processor_cores = device_param->gpu_processor_cores;
+
       /**
        * create context for each device
        */
@@ -12839,6 +12843,7 @@ int main (int argc, char **argv)
 
       uint gpu_threads = GPU_THREADS;
 
+      // bcrypt
       if (hash_mode == 3200) gpu_threads = 8;
       if (hash_mode == 9000) gpu_threads = 8;
 
@@ -12960,24 +12965,6 @@ int main (int argc, char **argv)
 
       if ((hash_mode == 8900) || (hash_mode == 9300))
       {
-        uint m = 0;
-
-        if (vendor_id == VENDOR_ID_NV)
-        {
-          #define NV_SHADER_PER_MP 32
-          #define NV_WARPS         32
-
-          m = NV_SHADER_PER_MP * NV_WARPS;
-        }
-
-        else if (vendor_id == VENDOR_ID_AMD)
-        {
-          #define AMD_SHADER_PER_MP 8
-          #define AMD_WAVEFRONTS    64
-
-          m = AMD_SHADER_PER_MP * AMD_WAVEFRONTS;
-        }
-
         uint tmto_start = 2;
         uint tmto_stop  = 1024;
 
@@ -12995,15 +12982,14 @@ int main (int argc, char **argv)
 
           size_scryptV /= tmto;
 
-          size_scryptV *= gpu_processors * m;
+          size_scryptV *= gpu_processors * gpu_processor_cores * gpu_threads;
 
-//          if (size_scryptV > (device_param->gpu_maxmem_alloc / 2)) continue;
           if (size_scryptV > device_param->gpu_maxmem_alloc) continue;
 
           for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
           {
             data.salts_buf[salts_pos].scrypt_tmto = tmto;
-            data.salts_buf[salts_pos].scrypt_phy  = gpu_processors * m;
+            data.salts_buf[salts_pos].scrypt_phy  = gpu_processors * gpu_processor_cores * gpu_threads;
           }
 
           break;
