@@ -12716,10 +12716,7 @@ int main (int argc, char **argv)
         if (device_param->kernel_exec_timeout != 0)
         {
           if (data.quiet == 0) log_info ("Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
-
-          #if _WIN
-          if (data.quiet == 0) log_info ("           You can disable it with a regpatch, see here: http://hashcat.net/wiki/doku.php?id=timeout_patch");
-          #endif
+          if (data.quiet == 0) log_info ("           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
         }
       }
 
