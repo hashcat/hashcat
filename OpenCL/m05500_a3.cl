@@ -602,7 +602,6 @@ static void m05500m (__local u32 s_SPtrans[8][64], __local u32 s_skb[8][64], u32
      * DES2
      */
 
-    /*
     transform_netntlmv1_key (((b >> 24) | (c << 8)), ((c >> 24) | (d << 8)), key);
 
     _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
@@ -610,12 +609,6 @@ static void m05500m (__local u32 s_SPtrans[8][64], __local u32 s_skb[8][64], u32
     u32 iv2[2];
 
     _des_crypt_encrypt (iv2, data, Kc, Kd, s_SPtrans);
-    */
-
-    u32 iv2[2];
-
-    iv2[0] = search[2];
-    iv2[1] = search[3];
 
     /**
      * compare
@@ -778,16 +771,20 @@ static void m05500s (__local u32 s_SPtrans[8][64], __local u32 s_skb[8][64], u32
      * DES2
      */
 
-    volatile const u32 bc = (b >> 24) | (c << 8);
-    volatile const u32 cd = (c >> 24) | (d << 8);
-
-    transform_netntlmv1_key (bc, cd, key);
+    /*
+    transform_netntlmv1_key (((b >> 24) | (c << 8)), ((c >> 24) | (d << 8)), key);
 
     _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
     u32 iv2[2];
 
     _des_crypt_encrypt (iv2, data, Kc, Kd, s_SPtrans);
+    */
+
+    u32 iv2[2];
+
+    iv2[0] = search[2];
+    iv2[1] = search[3];
 
     /**
      * compare
