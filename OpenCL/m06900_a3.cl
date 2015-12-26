@@ -775,14 +775,17 @@ static void m06900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     u32 tmp[8];
 
-    PASS0 (state, tmp, state_m, data_m, s_tables);
-    PASS2 (state, tmp, state_m, data_m, s_tables);
-    PASS4 (state, tmp, state_m, data_m, s_tables);
-    PASS6 (state, tmp, state_m, data_m, s_tables);
+    if (pw_len > 0)
+    {
+      PASS0 (state, tmp, state_m, data_m, s_tables);
+      PASS2 (state, tmp, state_m, data_m, s_tables);
+      PASS4 (state, tmp, state_m, data_m, s_tables);
+      PASS6 (state, tmp, state_m, data_m, s_tables);
 
-    SHIFT12 (state_m, data, tmp);
-    SHIFT16 (state, data_m, state_m);
-    SHIFT61 (state, data_m);
+      SHIFT12 (state_m, data, tmp);
+      SHIFT16 (state, data_m, state_m);
+      SHIFT61 (state, data_m);
+    }
 
     data[0] = w14;
     data[1] = 0;
@@ -964,14 +967,17 @@ static void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     u32 tmp[8];
 
-    PASS0 (state, tmp, state_m, data_m, s_tables);
-    PASS2 (state, tmp, state_m, data_m, s_tables);
-    PASS4 (state, tmp, state_m, data_m, s_tables);
-    PASS6 (state, tmp, state_m, data_m, s_tables);
+    if (pw_len > 0)
+    {
+      PASS0 (state, tmp, state_m, data_m, s_tables);
+      PASS2 (state, tmp, state_m, data_m, s_tables);
+      PASS4 (state, tmp, state_m, data_m, s_tables);
+      PASS6 (state, tmp, state_m, data_m, s_tables);
 
-    SHIFT12 (state_m, data, tmp);
-    SHIFT16 (state, data_m, state_m);
-    SHIFT61 (state, data_m);
+      SHIFT12 (state_m, data, tmp);
+      SHIFT16 (state, data_m, state_m);
+      SHIFT61 (state, data_m);
+    }
 
     data[0] = w14;
     data[1] = 0;

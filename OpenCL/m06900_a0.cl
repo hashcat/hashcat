@@ -850,14 +850,17 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06900_m04 (__glo
 
     u32 tmp[8];
 
-    PASS0 (state, tmp, state_m, data_m, s_tables);
-    PASS2 (state, tmp, state_m, data_m, s_tables);
-    PASS4 (state, tmp, state_m, data_m, s_tables);
-    PASS6 (state, tmp, state_m, data_m, s_tables);
+    if (pw_len > 0)
+    {
+      PASS0 (state, tmp, state_m, data_m, s_tables);
+      PASS2 (state, tmp, state_m, data_m, s_tables);
+      PASS4 (state, tmp, state_m, data_m, s_tables);
+      PASS6 (state, tmp, state_m, data_m, s_tables);
 
-    SHIFT12 (state_m, data, tmp);
-    SHIFT16 (state, data_m, state_m);
-    SHIFT61 (state, data_m);
+      SHIFT12 (state_m, data, tmp);
+      SHIFT16 (state, data_m, state_m);
+      SHIFT61 (state, data_m);
+    }
 
     data[0] = w14;
     data[1] = 0;
@@ -1121,14 +1124,17 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06900_s04 (__glo
 
     u32 tmp[8];
 
-    PASS0 (state, tmp, state_m, data_m, s_tables);
-    PASS2 (state, tmp, state_m, data_m, s_tables);
-    PASS4 (state, tmp, state_m, data_m, s_tables);
-    PASS6 (state, tmp, state_m, data_m, s_tables);
+    if (pw_len > 0)
+    {
+      PASS0 (state, tmp, state_m, data_m, s_tables);
+      PASS2 (state, tmp, state_m, data_m, s_tables);
+      PASS4 (state, tmp, state_m, data_m, s_tables);
+      PASS6 (state, tmp, state_m, data_m, s_tables);
 
-    SHIFT12 (state_m, data, tmp);
-    SHIFT16 (state, data_m, state_m);
-    SHIFT61 (state, data_m);
+      SHIFT12 (state_m, data, tmp);
+      SHIFT16 (state, data_m, state_m);
+      SHIFT61 (state, data_m);
+    }
 
     data[0] = w14;
     data[1] = 0;
