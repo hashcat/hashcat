@@ -929,9 +929,11 @@ sub verify
     # $salt$$hash
     elsif ($mode == 7700 || $mode == 7800)
     {
-      my @split1 = split (":", $line);
+      my $index1 = index ($line, ":");
 
-      next unless scalar @split1 == 2;
+      next if $index1 < 1;
+
+      my @split1 = split (":", $line);
 
       my @split2 = split ('\$', $split1[0]);
 
@@ -939,7 +941,14 @@ sub verify
 
       $hash_in = $split1[0];
 
-      $word = $split1[1];
+      if (scalar @split1 > 1)
+      {
+        $word = $split1[1];
+      }
+      else
+      {
+        $word = "";
+      }
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
 
