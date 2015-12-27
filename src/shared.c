@@ -9622,7 +9622,8 @@ int netscreen_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len);
 
-  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+  // max. salt length: salt_buf[32] => 32 - 22 (":Administration Tools:") = 10
+  if (salt_len > 10) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
 
