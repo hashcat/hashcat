@@ -159,8 +159,6 @@ static inline u64 hl32_to_64 (const u32 a, const u32 b)
   return as_ulong ((uint2) (b, a));
 }
 
-#ifdef IS_AMD
-
 static inline u32 rotr32 (const u32 a, const u32 n)
 {
   return rotate (a, 32 - n);
@@ -170,6 +168,8 @@ static inline u32 rotl32 (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
+
+#ifdef IS_AMD
 
 static inline u64 rotr64 (const u64 a, const u32 n)
 {
@@ -196,21 +196,7 @@ static inline u64 rotl64 (const u64 a, const u32 n)
 
 #if CUDA_ARCH >= 350
 
-static u32 rotr32 (const u32 a, const u32 n)
-{
-  u32 r;
-
-  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(a), "r"(n));
-
-  return r;
-}
-
-static u32 rotl32 (const u32 a, const u32 n)
-{
-  return rotr32 (a, 32 - n);
-}
-
-static u64 rotr64 (const u64 a, const u32 n)
+static inline u64 rotr64 (const u64 a, const u32 n)
 {
   u32 il;
   u32 ir;
@@ -238,22 +224,12 @@ static u64 rotr64 (const u64 a, const u32 n)
   return r;
 }
 
-static u64 rotl64 (const u64 a, const u32 n)
+static inline u64 rotl64 (const u64 a, const u32 n)
 {
   return rotr64 (a, 64 - n);
 }
 
 #else
-
-static inline u32 rotr32 (const u32 a, const u32 n)
-{
-  return rotate (a, 32 - n);
-}
-
-static inline u32 rotl32 (const u32 a, const u32 n)
-{
-  return rotate (a, n);
-}
 
 static inline u64 rotr64 (const u64 a, const u64 n)
 {
