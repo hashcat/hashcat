@@ -765,25 +765,12 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05400_m16 (__glo
 
   __local u32 w_s[16];
 
-  if (lid < 1)
+  if (lid < 16)
   {
-    w_s[ 0] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 0]);
-    w_s[ 1] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 1]);
-    w_s[ 2] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 2]);
-    w_s[ 3] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 3]);
-    w_s[ 4] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 4]);
-    w_s[ 5] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 5]);
-    w_s[ 6] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 6]);
-    w_s[ 7] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 7]);
-    w_s[ 8] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 8]);
-    w_s[ 9] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 9]);
-    w_s[10] = swap32 (ikepsk_bufs[salt_pos].nr_buf[10]);
-    w_s[11] = swap32 (ikepsk_bufs[salt_pos].nr_buf[11]);
-    w_s[12] = swap32 (ikepsk_bufs[salt_pos].nr_buf[12]);
-    w_s[13] = swap32 (ikepsk_bufs[salt_pos].nr_buf[13]);
-    w_s[14] = 0;
-    w_s[15] = 0;
+    w_s[lid] = swap32 (ikepsk_bufs[salt_pos].nr_buf[lid]);
   }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
 
   __local u32 s_msg_buf[128];
 
@@ -853,25 +840,12 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05400_s04 (__glo
 
   __local u32 w_s[16];
 
-  if (lid < 1)
+  if (lid < 16)
   {
-    w_s[ 0] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 0]);
-    w_s[ 1] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 1]);
-    w_s[ 2] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 2]);
-    w_s[ 3] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 3]);
-    w_s[ 4] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 4]);
-    w_s[ 5] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 5]);
-    w_s[ 6] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 6]);
-    w_s[ 7] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 7]);
-    w_s[ 8] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 8]);
-    w_s[ 9] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 9]);
-    w_s[10] = swap32 (ikepsk_bufs[salt_pos].nr_buf[10]);
-    w_s[11] = swap32 (ikepsk_bufs[salt_pos].nr_buf[11]);
-    w_s[12] = swap32 (ikepsk_bufs[salt_pos].nr_buf[12]);
-    w_s[13] = swap32 (ikepsk_bufs[salt_pos].nr_buf[13]);
-    w_s[14] = 0;
-    w_s[15] = 0;
+    w_s[lid] = swap32 (ikepsk_bufs[salt_pos].nr_buf[lid]);
   }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
 
   __local u32 s_msg_buf[128];
 
@@ -941,25 +915,12 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05400_s08 (__glo
 
   __local u32 w_s[16];
 
-  if (lid < 1)
+  if (lid < 16)
   {
-    w_s[ 0] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 0]);
-    w_s[ 1] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 1]);
-    w_s[ 2] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 2]);
-    w_s[ 3] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 3]);
-    w_s[ 4] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 4]);
-    w_s[ 5] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 5]);
-    w_s[ 6] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 6]);
-    w_s[ 7] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 7]);
-    w_s[ 8] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 8]);
-    w_s[ 9] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 9]);
-    w_s[10] = swap32 (ikepsk_bufs[salt_pos].nr_buf[10]);
-    w_s[11] = swap32 (ikepsk_bufs[salt_pos].nr_buf[11]);
-    w_s[12] = swap32 (ikepsk_bufs[salt_pos].nr_buf[12]);
-    w_s[13] = swap32 (ikepsk_bufs[salt_pos].nr_buf[13]);
-    w_s[14] = 0;
-    w_s[15] = 0;
+    w_s[lid] = swap32 (ikepsk_bufs[salt_pos].nr_buf[lid]);
   }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
 
   __local u32 s_msg_buf[128];
 
@@ -1029,25 +990,12 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05400_s16 (__glo
 
   __local u32 w_s[16];
 
-  if (lid < 1)
+  if (lid < 16)
   {
-    w_s[ 0] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 0]);
-    w_s[ 1] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 1]);
-    w_s[ 2] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 2]);
-    w_s[ 3] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 3]);
-    w_s[ 4] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 4]);
-    w_s[ 5] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 5]);
-    w_s[ 6] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 6]);
-    w_s[ 7] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 7]);
-    w_s[ 8] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 8]);
-    w_s[ 9] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 9]);
-    w_s[10] = swap32 (ikepsk_bufs[salt_pos].nr_buf[10]);
-    w_s[11] = swap32 (ikepsk_bufs[salt_pos].nr_buf[11]);
-    w_s[12] = swap32 (ikepsk_bufs[salt_pos].nr_buf[12]);
-    w_s[13] = swap32 (ikepsk_bufs[salt_pos].nr_buf[13]);
-    w_s[14] = 0;
-    w_s[15] = 0;
+    w_s[lid] = swap32 (ikepsk_bufs[salt_pos].nr_buf[lid]);
   }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
 
   __local u32 s_msg_buf[128];
 

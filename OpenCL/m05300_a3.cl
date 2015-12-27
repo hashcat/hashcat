@@ -203,7 +203,7 @@ static void hmac_md5_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[4
   md5_transform (w0, w1, w2, w3, digest);
 }
 
-static void m05300m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 s_msg_buf[128])
+static void m05300m (__local u32 w_s[16], u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 s_msg_buf[128])
 {
   /**
    * modifier
@@ -218,34 +218,6 @@ static void m05300m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   const u32 nr_len  = ikepsk_bufs[salt_pos].nr_len;
   const u32 msg_len = ikepsk_bufs[salt_pos].msg_len;
-
-  u32 salt_buf0[4];
-
-  salt_buf0[0] = ikepsk_bufs[salt_pos].nr_buf[ 0];
-  salt_buf0[1] = ikepsk_bufs[salt_pos].nr_buf[ 1];
-  salt_buf0[2] = ikepsk_bufs[salt_pos].nr_buf[ 2];
-  salt_buf0[3] = ikepsk_bufs[salt_pos].nr_buf[ 3];
-
-  u32 salt_buf1[4];
-
-  salt_buf1[0] = ikepsk_bufs[salt_pos].nr_buf[ 4];
-  salt_buf1[1] = ikepsk_bufs[salt_pos].nr_buf[ 5];
-  salt_buf1[2] = ikepsk_bufs[salt_pos].nr_buf[ 6];
-  salt_buf1[3] = ikepsk_bufs[salt_pos].nr_buf[ 7];
-
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = ikepsk_bufs[salt_pos].nr_buf[ 8];
-  salt_buf2[1] = ikepsk_bufs[salt_pos].nr_buf[ 9];
-  salt_buf2[2] = ikepsk_bufs[salt_pos].nr_buf[10];
-  salt_buf2[3] = ikepsk_bufs[salt_pos].nr_buf[11];
-
-  u32 salt_buf3[4];
-
-  salt_buf3[0] = ikepsk_bufs[salt_pos].nr_buf[12];
-  salt_buf3[1] = ikepsk_bufs[salt_pos].nr_buf[13];
-  salt_buf3[2] = 0;
-  salt_buf3[3] = 0;
 
   /**
    * loop
@@ -296,20 +268,20 @@ static void m05300m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     hmac_md5_pad (w0_t, w1_t, w2_t, w3_t, ipad, opad);
 
-    w0_t[0] = salt_buf0[0];
-    w0_t[1] = salt_buf0[1];
-    w0_t[2] = salt_buf0[2];
-    w0_t[3] = salt_buf0[3];
-    w1_t[0] = salt_buf1[0];
-    w1_t[1] = salt_buf1[1];
-    w1_t[2] = salt_buf1[2];
-    w1_t[3] = salt_buf1[3];
-    w2_t[0] = salt_buf2[0];
-    w2_t[1] = salt_buf2[1];
-    w2_t[2] = salt_buf2[2];
-    w2_t[3] = salt_buf2[3];
-    w3_t[0] = salt_buf3[0];
-    w3_t[1] = salt_buf3[1];
+    w0_t[0] = w_s[ 0];
+    w0_t[1] = w_s[ 1];
+    w0_t[2] = w_s[ 2];
+    w0_t[3] = w_s[ 3];
+    w1_t[0] = w_s[ 4];
+    w1_t[1] = w_s[ 5];
+    w1_t[2] = w_s[ 6];
+    w1_t[3] = w_s[ 7];
+    w2_t[0] = w_s[ 8];
+    w2_t[1] = w_s[ 9];
+    w2_t[2] = w_s[10];
+    w2_t[3] = w_s[11];
+    w3_t[0] = w_s[12];
+    w3_t[1] = w_s[13];
     w3_t[2] = (64 + nr_len) * 8;
     w3_t[3] = 0;
 
@@ -389,7 +361,7 @@ static void m05300m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   }
 }
 
-static void m05300s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 s_msg_buf[128])
+static void m05300s (__local u32 w_s[16], u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 s_msg_buf[128])
 {
   /**
    * modifier
@@ -404,34 +376,6 @@ static void m05300s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   const u32 nr_len  = ikepsk_bufs[salt_pos].nr_len;
   const u32 msg_len = ikepsk_bufs[salt_pos].msg_len;
-
-  u32 salt_buf0[4];
-
-  salt_buf0[0] = ikepsk_bufs[salt_pos].nr_buf[ 0];
-  salt_buf0[1] = ikepsk_bufs[salt_pos].nr_buf[ 1];
-  salt_buf0[2] = ikepsk_bufs[salt_pos].nr_buf[ 2];
-  salt_buf0[3] = ikepsk_bufs[salt_pos].nr_buf[ 3];
-
-  u32 salt_buf1[4];
-
-  salt_buf1[0] = ikepsk_bufs[salt_pos].nr_buf[ 4];
-  salt_buf1[1] = ikepsk_bufs[salt_pos].nr_buf[ 5];
-  salt_buf1[2] = ikepsk_bufs[salt_pos].nr_buf[ 6];
-  salt_buf1[3] = ikepsk_bufs[salt_pos].nr_buf[ 7];
-
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = ikepsk_bufs[salt_pos].nr_buf[ 8];
-  salt_buf2[1] = ikepsk_bufs[salt_pos].nr_buf[ 9];
-  salt_buf2[2] = ikepsk_bufs[salt_pos].nr_buf[10];
-  salt_buf2[3] = ikepsk_bufs[salt_pos].nr_buf[11];
-
-  u32 salt_buf3[4];
-
-  salt_buf3[0] = ikepsk_bufs[salt_pos].nr_buf[12];
-  salt_buf3[1] = ikepsk_bufs[salt_pos].nr_buf[13];
-  salt_buf3[2] = 0;
-  salt_buf3[3] = 0;
 
   /**
    * digest
@@ -494,20 +438,20 @@ static void m05300s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     hmac_md5_pad (w0_t, w1_t, w2_t, w3_t, ipad, opad);
 
-    w0_t[0] = salt_buf0[0];
-    w0_t[1] = salt_buf0[1];
-    w0_t[2] = salt_buf0[2];
-    w0_t[3] = salt_buf0[3];
-    w1_t[0] = salt_buf1[0];
-    w1_t[1] = salt_buf1[1];
-    w1_t[2] = salt_buf1[2];
-    w1_t[3] = salt_buf1[3];
-    w2_t[0] = salt_buf2[0];
-    w2_t[1] = salt_buf2[1];
-    w2_t[2] = salt_buf2[2];
-    w2_t[3] = salt_buf2[3];
-    w3_t[0] = salt_buf3[0];
-    w3_t[1] = salt_buf3[1];
+    w0_t[0] = w_s[ 0];
+    w0_t[1] = w_s[ 1];
+    w0_t[2] = w_s[ 2];
+    w0_t[3] = w_s[ 3];
+    w1_t[0] = w_s[ 4];
+    w1_t[1] = w_s[ 5];
+    w1_t[2] = w_s[ 6];
+    w1_t[3] = w_s[ 7];
+    w2_t[0] = w_s[ 8];
+    w2_t[1] = w_s[ 9];
+    w2_t[2] = w_s[10];
+    w2_t[3] = w_s[11];
+    w3_t[0] = w_s[12];
+    w3_t[1] = w_s[13];
     w3_t[2] = (64 + nr_len) * 8;
     w3_t[3] = 0;
 
@@ -635,6 +579,15 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_m04 (__glo
    * s_msg
    */
 
+  __local u32 w_s[16];
+
+  if (lid < 16)
+  {
+    w_s[lid] = ikepsk_bufs[salt_pos].nr_buf[lid];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
   __local u32 s_msg_buf[128];
 
   const u32 lid2 = lid * 2;
@@ -650,7 +603,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_m04 (__glo
    * main
    */
 
-  m05300m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, ikepsk_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset, s_msg_buf);
+  m05300m (w_s, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, ikepsk_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset, s_msg_buf);
 }
 
 __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_m08 (__global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -701,6 +654,15 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_m08 (__glo
    * s_msg
    */
 
+  __local u32 w_s[16];
+
+  if (lid < 16)
+  {
+    w_s[lid] = ikepsk_bufs[salt_pos].nr_buf[lid];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
   __local u32 s_msg_buf[128];
 
   const u32 lid2 = lid * 2;
@@ -716,7 +678,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_m08 (__glo
    * main
    */
 
-  m05300m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, ikepsk_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset, s_msg_buf);
+  m05300m (w_s, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, ikepsk_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset, s_msg_buf);
 }
 
 __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_m16 (__global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -767,6 +729,15 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_m16 (__glo
    * s_msg
    */
 
+  __local u32 w_s[16];
+
+  if (lid < 16)
+  {
+    w_s[lid] = ikepsk_bufs[salt_pos].nr_buf[lid];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
   __local u32 s_msg_buf[128];
 
   const u32 lid2 = lid * 2;
@@ -782,7 +753,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_m16 (__glo
    * main
    */
 
-  m05300m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, ikepsk_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset, s_msg_buf);
+  m05300m (w_s, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, ikepsk_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset, s_msg_buf);
 }
 
 __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_s04 (__global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -833,6 +804,15 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_s04 (__glo
    * s_msg
    */
 
+  __local u32 w_s[16];
+
+  if (lid < 16)
+  {
+    w_s[lid] = ikepsk_bufs[salt_pos].nr_buf[lid];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
   __local u32 s_msg_buf[128];
 
   const u32 lid2 = lid * 2;
@@ -848,7 +828,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_s04 (__glo
    * main
    */
 
-  m05300s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, ikepsk_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset, s_msg_buf);
+  m05300s (w_s, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, ikepsk_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset, s_msg_buf);
 }
 
 __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_s08 (__global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -899,6 +879,15 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_s08 (__glo
    * s_msg
    */
 
+  __local u32 w_s[16];
+
+  if (lid < 16)
+  {
+    w_s[lid] = ikepsk_bufs[salt_pos].nr_buf[lid];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
   __local u32 s_msg_buf[128];
 
   const u32 lid2 = lid * 2;
@@ -914,7 +903,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_s08 (__glo
    * main
    */
 
-  m05300s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, ikepsk_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset, s_msg_buf);
+  m05300s (w_s, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, ikepsk_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset, s_msg_buf);
 }
 
 __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_s16 (__global pw_t *pws, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -965,6 +954,15 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_s16 (__glo
    * s_msg
    */
 
+  __local u32 w_s[16];
+
+  if (lid < 16)
+  {
+    w_s[lid] = ikepsk_bufs[salt_pos].nr_buf[lid];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
   __local u32 s_msg_buf[128];
 
   const u32 lid2 = lid * 2;
@@ -980,5 +978,5 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05300_s16 (__glo
    * main
    */
 
-  m05300s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, ikepsk_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset, s_msg_buf);
+  m05300s (w_s, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, ikepsk_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset, s_msg_buf);
 }
