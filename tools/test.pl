@@ -2525,7 +2525,7 @@ sub passthrough
     }
     elsif ($mode == 22)
     {
-      my $salt_len = get_random_num (1, 15);
+      my $salt_len = get_random_num (1, 11);
 
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, $salt_len));
     }
