@@ -293,33 +293,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05400_m04 (__glo
   const u32 nr_len  = ikepsk_bufs[salt_pos].nr_len;
   const u32 msg_len = ikepsk_bufs[salt_pos].msg_len;
 
-  u32 salt_buf0[4];
+  __local u32 w_s[16];
 
-  salt_buf0[0] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 0]);
-  salt_buf0[1] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 1]);
-  salt_buf0[2] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 2]);
-  salt_buf0[3] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 3]);
+  if (lid < 16)
+  {
+    w_s[lid] = swap32 (ikepsk_bufs[salt_pos].nr_buf[lid]);
+  }
 
-  u32 salt_buf1[4];
-
-  salt_buf1[0] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 4]);
-  salt_buf1[1] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 5]);
-  salt_buf1[2] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 6]);
-  salt_buf1[3] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 7]);
-
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 8]);
-  salt_buf2[1] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 9]);
-  salt_buf2[2] = swap32 (ikepsk_bufs[salt_pos].nr_buf[10]);
-  salt_buf2[3] = swap32 (ikepsk_bufs[salt_pos].nr_buf[11]);
-
-  u32 salt_buf3[4];
-
-  salt_buf3[0] = swap32 (ikepsk_bufs[salt_pos].nr_buf[12]);
-  salt_buf3[1] = swap32 (ikepsk_bufs[salt_pos].nr_buf[13]);
-  salt_buf3[2] = 0;
-  salt_buf3[3] = 0;
+  barrier (CLK_LOCAL_MEM_FENCE);
 
   __local u32 s_msg_buf[128];
 
@@ -440,20 +421,20 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05400_m04 (__glo
 
     hmac_sha1_pad (w0_t, w1_t, w2_t, w3_t, ipad, opad);
 
-    w0_t[0] = salt_buf0[0];
-    w0_t[1] = salt_buf0[1];
-    w0_t[2] = salt_buf0[2];
-    w0_t[3] = salt_buf0[3];
-    w1_t[0] = salt_buf1[0];
-    w1_t[1] = salt_buf1[1];
-    w1_t[2] = salt_buf1[2];
-    w1_t[3] = salt_buf1[3];
-    w2_t[0] = salt_buf2[0];
-    w2_t[1] = salt_buf2[1];
-    w2_t[2] = salt_buf2[2];
-    w2_t[3] = salt_buf2[3];
-    w3_t[0] = salt_buf3[0];
-    w3_t[1] = salt_buf3[1];
+    w0_t[0] = w_s[ 0];
+    w0_t[1] = w_s[ 1];
+    w0_t[2] = w_s[ 2];
+    w0_t[3] = w_s[ 3];
+    w1_t[0] = w_s[ 4];
+    w1_t[1] = w_s[ 5];
+    w1_t[2] = w_s[ 6];
+    w1_t[3] = w_s[ 7];
+    w2_t[0] = w_s[ 8];
+    w2_t[1] = w_s[ 9];
+    w2_t[2] = w_s[10];
+    w2_t[3] = w_s[11];
+    w3_t[0] = w_s[12];
+    w3_t[1] = w_s[13];
     w3_t[2] = 0;
     w3_t[3] = (64 + nr_len) * 8;
 
@@ -597,33 +578,14 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05400_s04 (__glo
   const u32 nr_len  = ikepsk_bufs[salt_pos].nr_len;
   const u32 msg_len = ikepsk_bufs[salt_pos].msg_len;
 
-  u32 salt_buf0[4];
+  __local u32 w_s[16];
 
-  salt_buf0[0] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 0]);
-  salt_buf0[1] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 1]);
-  salt_buf0[2] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 2]);
-  salt_buf0[3] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 3]);
+  if (lid < 16)
+  {
+    w_s[lid] = swap32 (ikepsk_bufs[salt_pos].nr_buf[lid]);
+  }
 
-  u32 salt_buf1[4];
-
-  salt_buf1[0] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 4]);
-  salt_buf1[1] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 5]);
-  salt_buf1[2] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 6]);
-  salt_buf1[3] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 7]);
-
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 8]);
-  salt_buf2[1] = swap32 (ikepsk_bufs[salt_pos].nr_buf[ 9]);
-  salt_buf2[2] = swap32 (ikepsk_bufs[salt_pos].nr_buf[10]);
-  salt_buf2[3] = swap32 (ikepsk_bufs[salt_pos].nr_buf[11]);
-
-  u32 salt_buf3[4];
-
-  salt_buf3[0] = swap32 (ikepsk_bufs[salt_pos].nr_buf[12]);
-  salt_buf3[1] = swap32 (ikepsk_bufs[salt_pos].nr_buf[13]);
-  salt_buf3[2] = 0;
-  salt_buf3[3] = 0;
+  barrier (CLK_LOCAL_MEM_FENCE);
 
   __local u32 s_msg_buf[128];
 
@@ -756,20 +718,20 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05400_s04 (__glo
 
     hmac_sha1_pad (w0_t, w1_t, w2_t, w3_t, ipad, opad);
 
-    w0_t[0] = salt_buf0[0];
-    w0_t[1] = salt_buf0[1];
-    w0_t[2] = salt_buf0[2];
-    w0_t[3] = salt_buf0[3];
-    w1_t[0] = salt_buf1[0];
-    w1_t[1] = salt_buf1[1];
-    w1_t[2] = salt_buf1[2];
-    w1_t[3] = salt_buf1[3];
-    w2_t[0] = salt_buf2[0];
-    w2_t[1] = salt_buf2[1];
-    w2_t[2] = salt_buf2[2];
-    w2_t[3] = salt_buf2[3];
-    w3_t[0] = salt_buf3[0];
-    w3_t[1] = salt_buf3[1];
+    w0_t[0] = w_s[ 0];
+    w0_t[1] = w_s[ 1];
+    w0_t[2] = w_s[ 2];
+    w0_t[3] = w_s[ 3];
+    w1_t[0] = w_s[ 4];
+    w1_t[1] = w_s[ 5];
+    w1_t[2] = w_s[ 6];
+    w1_t[3] = w_s[ 7];
+    w2_t[0] = w_s[ 8];
+    w2_t[1] = w_s[ 9];
+    w2_t[2] = w_s[10];
+    w2_t[3] = w_s[11];
+    w3_t[0] = w_s[12];
+    w3_t[1] = w_s[13];
     w3_t[2] = 0;
     w3_t[3] = (64 + nr_len) * 8;
 
