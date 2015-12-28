@@ -12506,20 +12506,23 @@ int main (int argc, char **argv)
       memset (device_name, 0, sizeof (device_name));
 
       cl_ulong  global_mem_size;
+      cl_ulong  max_mem_alloc_size;
       cl_uint   max_clock_frequency;
       cl_uint   max_compute_units;
 
-      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_NAME,                sizeof (device_name),         &device_name,         NULL);
-      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_GLOBAL_MEM_SIZE,     sizeof (global_mem_size),     &global_mem_size,     NULL);
-      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof (max_clock_frequency), &max_clock_frequency, NULL);
-      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_COMPUTE_UNITS,   sizeof (max_compute_units),   &max_compute_units,   NULL);
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_NAME,                 sizeof (device_name),         &device_name,         NULL);
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_GLOBAL_MEM_SIZE,      sizeof (global_mem_size),     &global_mem_size,     NULL);
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE,   sizeof (max_mem_alloc_size),  &max_mem_alloc_size,  NULL);
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_CLOCK_FREQUENCY,  sizeof (max_clock_frequency), &max_clock_frequency, NULL);
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_COMPUTE_UNITS,    sizeof (max_compute_units),   &max_compute_units,   NULL);
 
       if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
       {
-        log_info ("Device #%u: %s, %luMB, %dMhz, %uMCU",
+        log_info ("Device #%u: %s, %lu/%lu MB allocatable, %dMhz, %uMCU",
                   device_all_id + 1,
                   device_name,
-                  (unsigned int) (global_mem_size / 1024 / 1024),
+                  (unsigned int) (max_mem_alloc_size / 1024 / 1024),
+                  (unsigned int) (global_mem_size    / 1024 / 1024),
                   (unsigned int) (max_clock_frequency),
                   (unsigned int) max_compute_units);
       }
