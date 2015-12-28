@@ -1089,6 +1089,203 @@ __constant u32 Cl[8][256] =
 
 #define BOX(S,n,i) (S)[(n)][(i)]
 
+static void whirlpool_transform_last (u32 dgst[16], __local u32 s_Ch[8][256], __local u32 s_Cl[8][256])
+{
+  const u32 rch[R + 1] =
+  {
+    0x00000000,
+    0x1823c6e8,
+    0x36a6d2f5,
+    0x60bc9b8e,
+    0x1de0d7c2,
+    0x157737e5,
+    0x58c9290a,
+    0xbd5d10f4,
+    0xe427418b,
+    0xfbee7c66,
+    0xca2dbf07,
+  };
+
+  const u32 rcl[R + 1] =
+  {
+    0x00000000,
+    0x87b8014f,
+    0x796f9152,
+    0xa30c7b35,
+    0x2e4bfe57,
+    0x9ff04ada,
+    0xb1a06b85,
+    0xcb3e0567,
+    0xa77d95d8,
+    0xdd17479e,
+    0xad5a8333,
+  };
+
+  u32 Kh[8];
+  u32 Kl[8];
+
+  Kh[0] = dgst[ 0];
+  Kl[0] = dgst[ 1];
+  Kh[1] = dgst[ 2];
+  Kl[1] = dgst[ 3];
+  Kh[2] = dgst[ 4];
+  Kl[2] = dgst[ 5];
+  Kh[3] = dgst[ 6];
+  Kl[3] = dgst[ 7];
+  Kh[4] = dgst[ 8];
+  Kl[4] = dgst[ 9];
+  Kh[5] = dgst[10];
+  Kl[5] = dgst[11];
+  Kh[6] = dgst[12];
+  Kl[6] = dgst[13];
+  Kh[7] = dgst[14];
+  Kl[7] = dgst[15];
+
+  u32 stateh[8];
+  u32 statel[8];
+
+  #define LAST_W00 0x80000000
+  #define LAST_W15 ((64 + 64) * 8)
+
+  stateh[0] = Kh[0] ^ LAST_W00;
+  statel[0] = Kl[0];
+  stateh[1] = Kh[1];
+  statel[1] = Kl[1];
+  stateh[2] = Kh[2];
+  statel[2] = Kl[2];
+  stateh[3] = Kh[3];
+  statel[3] = Kl[3];
+  stateh[4] = Kh[4];
+  statel[4] = Kl[4];
+  stateh[5] = Kh[5];
+  statel[5] = Kl[5];
+  stateh[6] = Kh[6];
+  statel[6] = Kl[6];
+  stateh[7] = Kh[7];
+  statel[7] = Kl[7] ^ LAST_W15;
+
+  u32 r;
+
+  for (r = 1; r <= R; r++)
+  {
+    u32 Lh[8];
+    u32 Ll[8];
+
+    u32 i;
+
+    for (i = 0; i < 8; i++)
+    {
+      const u32 Lp0 = Kh[(i + 8) & 7] >> 24;
+      const u32 Lp1 = Kh[(i + 7) & 7] >> 16;
+      const u32 Lp2 = Kh[(i + 6) & 7] >>  8;
+      const u32 Lp3 = Kh[(i + 5) & 7] >>  0;
+      const u32 Lp4 = Kl[(i + 4) & 7] >> 24;
+      const u32 Lp5 = Kl[(i + 3) & 7] >> 16;
+      const u32 Lp6 = Kl[(i + 2) & 7] >>  8;
+      const u32 Lp7 = Kl[(i + 1) & 7] >>  0;
+
+      Lh[i] = BOX (s_Ch, 0, Lp0 & 0xff)
+            ^ BOX (s_Ch, 1, Lp1 & 0xff)
+            ^ BOX (s_Ch, 2, Lp2 & 0xff)
+            ^ BOX (s_Ch, 3, Lp3 & 0xff)
+            ^ BOX (s_Ch, 4, Lp4 & 0xff)
+            ^ BOX (s_Ch, 5, Lp5 & 0xff)
+            ^ BOX (s_Ch, 6, Lp6 & 0xff)
+            ^ BOX (s_Ch, 7, Lp7 & 0xff);
+
+      Ll[i] = BOX (s_Cl, 0, Lp0 & 0xff)
+            ^ BOX (s_Cl, 1, Lp1 & 0xff)
+            ^ BOX (s_Cl, 2, Lp2 & 0xff)
+            ^ BOX (s_Cl, 3, Lp3 & 0xff)
+            ^ BOX (s_Cl, 4, Lp4 & 0xff)
+            ^ BOX (s_Cl, 5, Lp5 & 0xff)
+            ^ BOX (s_Cl, 6, Lp6 & 0xff)
+            ^ BOX (s_Cl, 7, Lp7 & 0xff);
+    }
+
+    Kh[0] = Lh[0] ^ rch[r];
+    Kl[0] = Ll[0] ^ rcl[r];
+    Kh[1] = Lh[1];
+    Kl[1] = Ll[1];
+    Kh[2] = Lh[2];
+    Kl[2] = Ll[2];
+    Kh[3] = Lh[3];
+    Kl[3] = Ll[3];
+    Kh[4] = Lh[4];
+    Kl[4] = Ll[4];
+    Kh[5] = Lh[5];
+    Kl[5] = Ll[5];
+    Kh[6] = Lh[6];
+    Kl[6] = Ll[6];
+    Kh[7] = Lh[7];
+    Kl[7] = Ll[7];
+
+    for (i = 0; i < 8; i++)
+    {
+      const u32 Lp0 = stateh[(i + 8) & 7] >> 24;
+      const u32 Lp1 = stateh[(i + 7) & 7] >> 16;
+      const u32 Lp2 = stateh[(i + 6) & 7] >>  8;
+      const u32 Lp3 = stateh[(i + 5) & 7] >>  0;
+      const u32 Lp4 = statel[(i + 4) & 7] >> 24;
+      const u32 Lp5 = statel[(i + 3) & 7] >> 16;
+      const u32 Lp6 = statel[(i + 2) & 7] >>  8;
+      const u32 Lp7 = statel[(i + 1) & 7] >>  0;
+
+      Lh[i] = BOX (s_Ch, 0, Lp0 & 0xff)
+            ^ BOX (s_Ch, 1, Lp1 & 0xff)
+            ^ BOX (s_Ch, 2, Lp2 & 0xff)
+            ^ BOX (s_Ch, 3, Lp3 & 0xff)
+            ^ BOX (s_Ch, 4, Lp4 & 0xff)
+            ^ BOX (s_Ch, 5, Lp5 & 0xff)
+            ^ BOX (s_Ch, 6, Lp6 & 0xff)
+            ^ BOX (s_Ch, 7, Lp7 & 0xff);
+
+      Ll[i] = BOX (s_Cl, 0, Lp0 & 0xff)
+            ^ BOX (s_Cl, 1, Lp1 & 0xff)
+            ^ BOX (s_Cl, 2, Lp2 & 0xff)
+            ^ BOX (s_Cl, 3, Lp3 & 0xff)
+            ^ BOX (s_Cl, 4, Lp4 & 0xff)
+            ^ BOX (s_Cl, 5, Lp5 & 0xff)
+            ^ BOX (s_Cl, 6, Lp6 & 0xff)
+            ^ BOX (s_Cl, 7, Lp7 & 0xff);
+    }
+
+    stateh[0] = Lh[0] ^ Kh[0];
+    statel[0] = Ll[0] ^ Kl[0];
+    stateh[1] = Lh[1] ^ Kh[1];
+    statel[1] = Ll[1] ^ Kl[1];
+    stateh[2] = Lh[2] ^ Kh[2];
+    statel[2] = Ll[2] ^ Kl[2];
+    stateh[3] = Lh[3] ^ Kh[3];
+    statel[3] = Ll[3] ^ Kl[3];
+    stateh[4] = Lh[4] ^ Kh[4];
+    statel[4] = Ll[4] ^ Kl[4];
+    stateh[5] = Lh[5] ^ Kh[5];
+    statel[5] = Ll[5] ^ Kl[5];
+    stateh[6] = Lh[6] ^ Kh[6];
+    statel[6] = Ll[6] ^ Kl[6];
+    stateh[7] = Lh[7] ^ Kh[7];
+    statel[7] = Ll[7] ^ Kl[7];
+  }
+
+  dgst[ 0] ^= stateh[0] ^ LAST_W00;
+  dgst[ 1] ^= statel[0];
+  dgst[ 2] ^= stateh[1];
+  dgst[ 3] ^= statel[1];
+  dgst[ 4] ^= stateh[2];
+  dgst[ 5] ^= statel[2];
+  dgst[ 6] ^= stateh[3];
+  dgst[ 7] ^= statel[3];
+  dgst[ 8] ^= stateh[4];
+  dgst[ 9] ^= statel[4];
+  dgst[10] ^= stateh[5];
+  dgst[11] ^= statel[5];
+  dgst[12] ^= stateh[6];
+  dgst[13] ^= statel[6];
+  dgst[14] ^= stateh[7];
+  dgst[15] ^= statel[7] ^ LAST_W15;
+}
+
 static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 s_Ch[8][256], __local u32 s_Cl[8][256])
 {
   const u32 rch[R + 1] =
@@ -1170,17 +1367,16 @@ static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 s_Ch
 
     u32 i;
 
-    #pragma unroll 8
     for (i = 0; i < 8; i++)
     {
-      const u8 Lp0 = Kh[(i + 8) & 7] >> 24;
-      const u8 Lp1 = Kh[(i + 7) & 7] >> 16;
-      const u8 Lp2 = Kh[(i + 6) & 7] >>  8;
-      const u8 Lp3 = Kh[(i + 5) & 7] >>  0;
-      const u8 Lp4 = Kl[(i + 4) & 7] >> 24;
-      const u8 Lp5 = Kl[(i + 3) & 7] >> 16;
-      const u8 Lp6 = Kl[(i + 2) & 7] >>  8;
-      const u8 Lp7 = Kl[(i + 1) & 7] >>  0;
+      const u32 Lp0 = Kh[(i + 8) & 7] >> 24;
+      const u32 Lp1 = Kh[(i + 7) & 7] >> 16;
+      const u32 Lp2 = Kh[(i + 6) & 7] >>  8;
+      const u32 Lp3 = Kh[(i + 5) & 7] >>  0;
+      const u32 Lp4 = Kl[(i + 4) & 7] >> 24;
+      const u32 Lp5 = Kl[(i + 3) & 7] >> 16;
+      const u32 Lp6 = Kl[(i + 2) & 7] >>  8;
+      const u32 Lp7 = Kl[(i + 1) & 7] >>  0;
 
       Lh[i] = BOX (s_Ch, 0, Lp0 & 0xff)
             ^ BOX (s_Ch, 1, Lp1 & 0xff)
@@ -1218,17 +1414,16 @@ static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 s_Ch
     Kh[7] = Lh[7];
     Kl[7] = Ll[7];
 
-    #pragma unroll 8
     for (i = 0; i < 8; i++)
     {
-      const u8 Lp0 = stateh[(i + 8) & 7] >> 24;
-      const u8 Lp1 = stateh[(i + 7) & 7] >> 16;
-      const u8 Lp2 = stateh[(i + 6) & 7] >>  8;
-      const u8 Lp3 = stateh[(i + 5) & 7] >>  0;
-      const u8 Lp4 = statel[(i + 4) & 7] >> 24;
-      const u8 Lp5 = statel[(i + 3) & 7] >> 16;
-      const u8 Lp6 = statel[(i + 2) & 7] >>  8;
-      const u8 Lp7 = statel[(i + 1) & 7] >>  0;
+      const u32 Lp0 = stateh[(i + 8) & 7] >> 24;
+      const u32 Lp1 = stateh[(i + 7) & 7] >> 16;
+      const u32 Lp2 = stateh[(i + 6) & 7] >>  8;
+      const u32 Lp3 = stateh[(i + 5) & 7] >>  0;
+      const u32 Lp4 = statel[(i + 4) & 7] >> 24;
+      const u32 Lp5 = statel[(i + 3) & 7] >> 16;
+      const u32 Lp6 = statel[(i + 2) & 7] >>  8;
+      const u32 Lp7 = statel[(i + 1) & 7] >>  0;
 
       Lh[i] = BOX (s_Ch, 0, Lp0 & 0xff)
             ^ BOX (s_Ch, 1, Lp1 & 0xff)
@@ -1285,7 +1480,7 @@ static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 s_Ch
   dgst[15] ^= statel[7] ^ w[15];
 }
 
-static void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[16], const u32 opad[16], u32 dgst[16], __local u32 s_Ch[8][256], __local u32 s_Cl[8][256])
+static void hmac_run2a (const u32 w1[16], const u32 w2[16], const u32 ipad[16], const u32 opad[16], u32 dgst[16], __local u32 s_Ch[8][256], __local u32 s_Cl[8][256])
 {
   dgst[ 0] = ipad[ 0];
   dgst[ 1] = ipad[ 1];
@@ -1345,24 +1540,71 @@ static void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[16], c
 
   whirlpool_transform (w, dgst, s_Ch, s_Cl);
 
-  w[ 0] = 0x80000000;
-  w[ 1] = 0;
-  w[ 2] = 0;
-  w[ 3] = 0;
-  w[ 4] = 0;
-  w[ 5] = 0;
-  w[ 6] = 0;
-  w[ 7] = 0;
-  w[ 8] = 0;
-  w[ 9] = 0;
-  w[10] = 0;
-  w[11] = 0;
-  w[12] = 0;
-  w[13] = 0;
-  w[14] = 0;
-  w[15] = (64 + 64) * 8;
+  whirlpool_transform_last (dgst, s_Ch, s_Cl);
+}
+
+static void hmac_run2b (const u32 w1[16], const u32 ipad[16], const u32 opad[16], u32 dgst[16], __local u32 s_Ch[8][256], __local u32 s_Cl[8][256])
+{
+  dgst[ 0] = ipad[ 0];
+  dgst[ 1] = ipad[ 1];
+  dgst[ 2] = ipad[ 2];
+  dgst[ 3] = ipad[ 3];
+  dgst[ 4] = ipad[ 4];
+  dgst[ 5] = ipad[ 5];
+  dgst[ 6] = ipad[ 6];
+  dgst[ 7] = ipad[ 7];
+  dgst[ 8] = ipad[ 8];
+  dgst[ 9] = ipad[ 9];
+  dgst[10] = ipad[10];
+  dgst[11] = ipad[11];
+  dgst[12] = ipad[12];
+  dgst[13] = ipad[13];
+  dgst[14] = ipad[14];
+  dgst[15] = ipad[15];
+
+  whirlpool_transform (w1, dgst, s_Ch, s_Cl);
+
+  whirlpool_transform_last (dgst, s_Ch, s_Cl);
+
+  u32 w[16];
+
+  w[ 0] = dgst[ 0];
+  w[ 1] = dgst[ 1];
+  w[ 2] = dgst[ 2];
+  w[ 3] = dgst[ 3];
+  w[ 4] = dgst[ 4];
+  w[ 5] = dgst[ 5];
+  w[ 6] = dgst[ 6];
+  w[ 7] = dgst[ 7];
+  w[ 8] = dgst[ 8];
+  w[ 9] = dgst[ 9];
+  w[10] = dgst[10];
+  w[11] = dgst[11];
+  w[12] = dgst[12];
+  w[13] = dgst[13];
+  w[14] = dgst[14];
+  w[15] = dgst[15];
+
+  dgst[ 0] = opad[ 0];
+  dgst[ 1] = opad[ 1];
+  dgst[ 2] = opad[ 2];
+  dgst[ 3] = opad[ 3];
+  dgst[ 4] = opad[ 4];
+  dgst[ 5] = opad[ 5];
+  dgst[ 6] = opad[ 6];
+  dgst[ 7] = opad[ 7];
+  dgst[ 8] = opad[ 8];
+  dgst[ 9] = opad[ 9];
+  dgst[10] = opad[10];
+  dgst[11] = opad[11];
+  dgst[12] = opad[12];
+  dgst[13] = opad[13];
+  dgst[14] = opad[14];
+  dgst[15] = opad[15];
 
   whirlpool_transform (w, dgst, s_Ch, s_Cl);
+
+  whirlpool_transform_last (dgst, s_Ch, s_Cl);
 }
 
 static void hmac_init (u32 w[16], u32 ipad[16], u32 opad[16], __local u32 s_Ch[8][256], __local u32 s_Cl[8][256])
@@ -1657,7 +1899,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06231_init (__gl
 
     u32 dgst[16];
 
-    hmac_run2 (salt_buf1, salt_buf2, ipad, opad, dgst, s_Ch, s_Cl);
+    hmac_run2a (salt_buf1, salt_buf2, ipad, opad, dgst, s_Ch, s_Cl);
 
     tmps[gid].dgst[i +  0] = dgst[ 0];
     tmps[gid].dgst[i +  1] = dgst[ 1];
@@ -1822,26 +2064,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m06231_loop (__gl
       w1[14] = dgst[14];
       w1[15] = dgst[15];
 
-      u32 w2[16];
-
-      w2[ 0] = 0x80000000;
-      w2[ 1] = 0;
-      w2[ 2] = 0;
-      w2[ 3] = 0;
-      w2[ 4] = 0;
-      w2[ 5] = 0;
-      w2[ 6] = 0;
-      w2[ 7] = 0;
-      w2[ 8] = 0;
-      w2[ 9] = 0;
-      w2[10] = 0;
-      w2[11] = 0;
-      w2[12] = 0;
-      w2[13] = 0;
-      w2[14] = 0;
-      w2[15] = (64 + 64) * 8;
-
-      hmac_run2 (w1, w2, ipad, opad, dgst, s_Ch, s_Cl);
+      hmac_run2b (w1, ipad, opad, dgst, s_Ch, s_Cl);
 
       out[ 0] ^= dgst[ 0];
       out[ 1] ^= dgst[ 1];
