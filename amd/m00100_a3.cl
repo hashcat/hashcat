@@ -172,7 +172,9 @@ static void m00100m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global g
 
     const u32x w0s04___w0s06 = w0s04 ^ w0s06;
     const u32x w0s04___w0s08 = w0s04 ^ w0s08;
+    const u32x w0s07___w0s12 = w0s07 ^ w0s12;
     const u32x w0s08___w0s12 = w0s08 ^ w0s12;
+    const u32x w0s12___w0s16 = w0s12 ^ w0s16;
     const u32x w0s04___w0s06___w0s07 = w0s04___w0s06 ^ w0s07;
 
     u32x a = SHA1M_A;
@@ -247,7 +249,7 @@ static void m00100m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global g
     SHA1_STEP (SHA1_F2o, e, a, b, c, d, (c_51s ^ w0s04___w0s06));
     SHA1_STEP (SHA1_F2o, d, e, a, b, c, (c_52s ^ w0s04___w0s08 ^ w0s13));
     SHA1_STEPX(SHA1_F2o, c, d, e, a, b, (c_53sK));
-    SHA1_STEP (SHA1_F2o, b, c, d, e, a, (c_54s ^ w0s07 ^ w0s10 ^ w0s12));
+    SHA1_STEP (SHA1_F2o, b, c, d, e, a, (c_54s ^ w0s07___w0s12 ^ w0s10));
     SHA1_STEP (SHA1_F2o, a, b, c, d, e, (c_55s ^ w0s14));
     SHA1_STEP (SHA1_F2o, e, a, b, c, d, (c_56s ^ w0s04___w0s06___w0s07 ^ w0s10 ^ w0s11));
     SHA1_STEP (SHA1_F2o, d, e, a, b, c, (c_57s ^ w0s08));
@@ -257,7 +259,7 @@ static void m00100m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global g
     #undef K
     #define K SHA1C03
 
-    SHA1_STEP (SHA1_F1 , a, b, c, d, e, (c_60s ^ w0s04 ^ w0s08___w0s12 ^ w0s07 ^ w0s14));
+    SHA1_STEP (SHA1_F1 , a, b, c, d, e, (c_60s ^ w0s04___w0s08 ^ w0s07___w0s12 ^ w0s14));
     SHA1_STEP (SHA1_F1 , e, a, b, c, d, (c_61s ^ w0s16));
     SHA1_STEP (SHA1_F1 , d, e, a, b, c, (c_62s ^ w0s04___w0s06 ^ w0s08___w0s12));
     SHA1_STEP (SHA1_F1 , c, d, e, a, b, (c_63s ^ w0s08));
@@ -268,8 +270,8 @@ static void m00100m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global g
     SHA1_STEP (SHA1_F1 , c, d, e, a, b, (c_68s ^ w0s11 ^ w0s14 ^ w0s15));
     SHA1_STEPX(SHA1_F1 , b, c, d, e, a, (c_69sK));
     SHA1_STEP (SHA1_F1 , a, b, c, d, e, (c_70s ^ w0s12 ^ w0s19));
-    SHA1_STEP (SHA1_F1 , e, a, b, c, d, (c_71s ^ w0s12 ^ w0s16));
-    SHA1_STEP (SHA1_F1 , d, e, a, b, c, (c_72s ^ w0s05 ^ w0s11 ^ w0s12 ^ w0s13 ^ w0s16 ^ w0s18));
+    SHA1_STEP (SHA1_F1 , e, a, b, c, d, (c_71s ^ w0s12___w0s16));
+    SHA1_STEP (SHA1_F1 , d, e, a, b, c, (c_72s ^ w0s05 ^ w0s11 ^ w0s12___w0s16 ^ w0s13 ^ w0s18));
     SHA1_STEP (SHA1_F1 , c, d, e, a, b, (c_73s ^ w0s20));
     SHA1_STEP (SHA1_F1 , b, c, d, e, a, (c_74s ^ w0s08 ^ w0s16));
     SHA1_STEP (SHA1_F1 , a, b, c, d, e, (c_75s ^ w0s06 ^ w0s12 ^ w0s14));
@@ -442,7 +444,9 @@ static void m00100s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global g
 
     const u32x w0s04___w0s06 = w0s04 ^ w0s06;
     const u32x w0s04___w0s08 = w0s04 ^ w0s08;
+    const u32x w0s07___w0s12 = w0s07 ^ w0s12;
     const u32x w0s08___w0s12 = w0s08 ^ w0s12;
+    const u32x w0s12___w0s16 = w0s12 ^ w0s16;
     const u32x w0s04___w0s06___w0s07 = w0s04___w0s06 ^ w0s07;
 
     u32x a = SHA1M_A;
@@ -517,7 +521,7 @@ static void m00100s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global g
     SHA1_STEP (SHA1_F2o, e, a, b, c, d, (c_51s ^ w0s04___w0s06));
     SHA1_STEP (SHA1_F2o, d, e, a, b, c, (c_52s ^ w0s04___w0s08 ^ w0s13));
     SHA1_STEPX(SHA1_F2o, c, d, e, a, b, (c_53sK));
-    SHA1_STEP (SHA1_F2o, b, c, d, e, a, (c_54s ^ w0s07 ^ w0s10 ^ w0s12));
+    SHA1_STEP (SHA1_F2o, b, c, d, e, a, (c_54s ^ w0s07___w0s12 ^ w0s10));
     SHA1_STEP (SHA1_F2o, a, b, c, d, e, (c_55s ^ w0s14));
     SHA1_STEP (SHA1_F2o, e, a, b, c, d, (c_56s ^ w0s04___w0s06___w0s07 ^ w0s10 ^ w0s11));
     SHA1_STEP (SHA1_F2o, d, e, a, b, c, (c_57s ^ w0s08));
@@ -527,7 +531,7 @@ static void m00100s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global g
     #undef K
     #define K SHA1C03
 
-    SHA1_STEP (SHA1_F1 , a, b, c, d, e, (c_60s ^ w0s04 ^ w0s08___w0s12 ^ w0s07 ^ w0s14));
+    SHA1_STEP (SHA1_F1 , a, b, c, d, e, (c_60s ^ w0s04___w0s08 ^ w0s07___w0s12 ^ w0s14));
     SHA1_STEP (SHA1_F1 , e, a, b, c, d, (c_61s ^ w0s16));
     SHA1_STEP (SHA1_F1 , d, e, a, b, c, (c_62s ^ w0s04___w0s06 ^ w0s08___w0s12));
     SHA1_STEP (SHA1_F1 , c, d, e, a, b, (c_63s ^ w0s08));
@@ -538,8 +542,8 @@ static void m00100s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global g
     SHA1_STEP (SHA1_F1 , c, d, e, a, b, (c_68s ^ w0s11 ^ w0s14 ^ w0s15));
     SHA1_STEPX(SHA1_F1 , b, c, d, e, a, (c_69sK));
     SHA1_STEP (SHA1_F1 , a, b, c, d, e, (c_70s ^ w0s12 ^ w0s19));
-    SHA1_STEP (SHA1_F1 , e, a, b, c, d, (c_71s ^ w0s12 ^ w0s16));
-    SHA1_STEP (SHA1_F1 , d, e, a, b, c, (c_72s ^ w0s05 ^ w0s11 ^ w0s12 ^ w0s13 ^ w0s16 ^ w0s18));
+    SHA1_STEP (SHA1_F1 , e, a, b, c, d, (c_71s ^ w0s12___w0s16));
+    SHA1_STEP (SHA1_F1 , d, e, a, b, c, (c_72s ^ w0s05 ^ w0s11 ^ w0s12___w0s16 ^ w0s13 ^ w0s18));
     SHA1_STEP (SHA1_F1 , c, d, e, a, b, (c_73s ^ w0s20));
     SHA1_STEP (SHA1_F1 , b, c, d, e, a, (c_74s ^ w0s08 ^ w0s16));
 
