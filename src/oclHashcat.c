@@ -12991,26 +12991,62 @@ int main (int argc, char **argv)
 
       if ((hash_mode == 8900) || (hash_mode == 9300))
       {
-        uint tmto_start = 2;
-        uint tmto_stop  = 1024;
+        uint tmto_start = 0;
+        uint tmto_stop  = 10;
 
         if (scrypt_tmto)
         {
-          tmto_start = 1 << scrypt_tmto;
-          tmto_stop  = tmto_start + 1;
+          tmto_start = scrypt_tmto;
+        }
+        else
+        {
+          // in case the user did not specify the tmto manually
+          // use some values known to run best (tested on 290x for AMD and 980ti for NV)
+          // but set the lower end only in case the user has a gpu with too less memory
+
+          if (hash_mode == 8900)
+          {
+            if (vendor_id == VENDOR_ID_AMD)
+            {
+
+            }
+            else if (vendor_id == VENDOR_ID_NV)
+            {
+
+            }
+          }
+          else if (hash_mode == 9300)
+          {
+            if (vendor_id == VENDOR_ID_AMD)
+            {
+
+            }
+            else if (vendor_id == VENDOR_ID_NV)
+            {
+
+            }
+          }
         }
 
-        for (uint tmto = tmto_start; tmto < tmto_stop; tmto <<= 1)
+        if (quiet == 0) log_info ("");
+
+        for (uint tmto = tmto_start; tmto < tmto_stop; tmto++)
         {
-          // todo -- make sure all salts get the new tmto value
+          // TODO: in theory the following calculation needs to be done per salt, not global
+          //       we assume all hashes have the same scrypt settings
 
           size_scryptV = (128 * data.salts_buf[0].scrypt_r) * data.salts_buf[0].scrypt_N;
 
-          size_scryptV /= tmto;
+          size_scryptV /= 1 << tmto;
 
           size_scryptV *= gpu_processors * gpu_processor_cores * gpu_threads;
 
-          if (size_scryptV > device_param->gpu_maxmem_alloc) continue;
+          if (size_scryptV > device_param->gpu_maxmem_alloc)
+          {
+            if (quiet == 0) log_info ("WARNING: not enough GPU memory free for allocation to use --scrypt-tmto %d, increasing...", tmto);
+
+            continue;
+          }
 
           for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
           {
@@ -13142,7 +13178,7 @@ int main (int argc, char **argv)
           }
           else if (force_jit_compilation == 8900)
           {
-            sprintf (build_opts, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto);
+            sprintf (build_opts, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.salts_buf[0].scrypt_tmto);
           }
 
           hc_clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
