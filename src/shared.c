@@ -13296,6 +13296,10 @@ int sapg_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   }
 
   // SAP user names cannot be longer than 12 characters
+  // this is kinda buggy. if the username is in utf the length can be up to length 12*3
+  // so far nobody complained so we stay with this because it helps in optimization
+  // final string can have a max size of 32 (password) + (10 * 5) = lengthMagicArray + 12 (max salt) + 1 (the 0x80)
+
   if (user_len > 12) return (PARSER_SALT_LENGTH);
 
   // SAP user name cannot start with ! or ?

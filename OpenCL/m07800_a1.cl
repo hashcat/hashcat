@@ -369,7 +369,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07800_m04 (__glo
      * sha1
      */
 
-    u32 final[256];
+    u32 final[32];
 
     final[ 0] = swap32 (w0[0] | s0[0]);
     final[ 1] = swap32 (w0[1] | s0[1]);
@@ -432,8 +432,8 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07800_m04 (__glo
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    #pragma unroll 64
-    for (int i = 0; i < 64; i++) final[i] = 0;
+    #pragma unroll 32
+    for (int i = 0; i < 32; i++) final[i] = 0;
 
     final[0] = w0[0];
     final[1] = w0[1];
@@ -699,7 +699,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07800_s04 (__glo
      * sha1
      */
 
-    u32 final[256];
+    u32 final[32];
 
     final[ 0] = swap32 (w0[0] | s0[0]);
     final[ 1] = swap32 (w0[1] | s0[1]);
@@ -762,8 +762,8 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m07800_s04 (__glo
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    #pragma unroll 64
-    for (int i = 0; i < 64; i++) final[i] = 0;
+    #pragma unroll 32
+    for (int i = 0; i < 32; i++) final[i] = 0;
 
     final[0] = w0[0];
     final[1] = w0[1];
