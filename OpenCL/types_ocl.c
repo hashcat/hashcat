@@ -8,6 +8,7 @@ typedef ushort u16;
 typedef uint   u32;
 typedef ulong  u64;
 
+#ifdef IS_AMD
 static inline u32 swap32 (const u32 v)
 {
   return (as_uint (as_uchar4 (v).s3210));
@@ -17,6 +18,40 @@ static inline u64 swap64 (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
 }
+
+#endif
+
+#ifdef IS_NV
+static inline u32 swap32 (const u32 v)
+{
+  u32 r;
+
+  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
+
+  return r;
+}
+
+static inline u64 swap64 (const u64 v)
+{
+  u32 il;
+  u32 ir;
+
+  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
+
+  u32 tl;
+  u32 tr;
+
+  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
+  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
+
+  u64 r;
+
+  asm ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
+
+  return r;
+}
+
+#endif
 
 #ifdef IS_AMD
 static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
