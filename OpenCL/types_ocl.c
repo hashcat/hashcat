@@ -231,6 +231,52 @@ static inline u64 rotl64 (const u64 a, const u32 n)
 
 #if CUDA_ARCH >= 350
 
+/*
+this version reduced the number of registers but for some unknown reason the whole kernel become slower.. instruction cache monster?
+static inline u32 rotr32 (const u32 a, const u32 n)
+{
+  u32 r;
+
+  switch (n & 31)
+  {
+    case  0: asm ("shf.r.wrap.b32 %0, %1, %1,  0;" : "=r"(r) : "r"(a)); break;
+    case  1: asm ("shf.r.wrap.b32 %0, %1, %1,  1;" : "=r"(r) : "r"(a)); break;
+    case  2: asm ("shf.r.wrap.b32 %0, %1, %1,  2;" : "=r"(r) : "r"(a)); break;
+    case  3: asm ("shf.r.wrap.b32 %0, %1, %1,  3;" : "=r"(r) : "r"(a)); break;
+    case  4: asm ("shf.r.wrap.b32 %0, %1, %1,  4;" : "=r"(r) : "r"(a)); break;
+    case  5: asm ("shf.r.wrap.b32 %0, %1, %1,  5;" : "=r"(r) : "r"(a)); break;
+    case  6: asm ("shf.r.wrap.b32 %0, %1, %1,  6;" : "=r"(r) : "r"(a)); break;
+    case  7: asm ("shf.r.wrap.b32 %0, %1, %1,  7;" : "=r"(r) : "r"(a)); break;
+    case  8: asm ("shf.r.wrap.b32 %0, %1, %1,  8;" : "=r"(r) : "r"(a)); break;
+    case  9: asm ("shf.r.wrap.b32 %0, %1, %1,  9;" : "=r"(r) : "r"(a)); break;
+    case 10: asm ("shf.r.wrap.b32 %0, %1, %1, 10;" : "=r"(r) : "r"(a)); break;
+    case 11: asm ("shf.r.wrap.b32 %0, %1, %1, 11;" : "=r"(r) : "r"(a)); break;
+    case 12: asm ("shf.r.wrap.b32 %0, %1, %1, 12;" : "=r"(r) : "r"(a)); break;
+    case 13: asm ("shf.r.wrap.b32 %0, %1, %1, 13;" : "=r"(r) : "r"(a)); break;
+    case 14: asm ("shf.r.wrap.b32 %0, %1, %1, 14;" : "=r"(r) : "r"(a)); break;
+    case 15: asm ("shf.r.wrap.b32 %0, %1, %1, 15;" : "=r"(r) : "r"(a)); break;
+    case 16: asm ("shf.r.wrap.b32 %0, %1, %1, 16;" : "=r"(r) : "r"(a)); break;
+    case 17: asm ("shf.r.wrap.b32 %0, %1, %1, 17;" : "=r"(r) : "r"(a)); break;
+    case 18: asm ("shf.r.wrap.b32 %0, %1, %1, 18;" : "=r"(r) : "r"(a)); break;
+    case 19: asm ("shf.r.wrap.b32 %0, %1, %1, 19;" : "=r"(r) : "r"(a)); break;
+    case 20: asm ("shf.r.wrap.b32 %0, %1, %1, 20;" : "=r"(r) : "r"(a)); break;
+    case 21: asm ("shf.r.wrap.b32 %0, %1, %1, 21;" : "=r"(r) : "r"(a)); break;
+    case 22: asm ("shf.r.wrap.b32 %0, %1, %1, 22;" : "=r"(r) : "r"(a)); break;
+    case 23: asm ("shf.r.wrap.b32 %0, %1, %1, 23;" : "=r"(r) : "r"(a)); break;
+    case 24: asm ("shf.r.wrap.b32 %0, %1, %1, 24;" : "=r"(r) : "r"(a)); break;
+    case 25: asm ("shf.r.wrap.b32 %0, %1, %1, 25;" : "=r"(r) : "r"(a)); break;
+    case 26: asm ("shf.r.wrap.b32 %0, %1, %1, 26;" : "=r"(r) : "r"(a)); break;
+    case 27: asm ("shf.r.wrap.b32 %0, %1, %1, 27;" : "=r"(r) : "r"(a)); break;
+    case 28: asm ("shf.r.wrap.b32 %0, %1, %1, 28;" : "=r"(r) : "r"(a)); break;
+    case 29: asm ("shf.r.wrap.b32 %0, %1, %1, 29;" : "=r"(r) : "r"(a)); break;
+    case 30: asm ("shf.r.wrap.b32 %0, %1, %1, 30;" : "=r"(r) : "r"(a)); break;
+    case 31: asm ("shf.r.wrap.b32 %0, %1, %1, 31;" : "=r"(r) : "r"(a)); break;
+  }
+
+  return r;
+}
+*/
+
 static inline u32 rotr32 (const u32 a, const u32 n)
 {
   u32 r;
