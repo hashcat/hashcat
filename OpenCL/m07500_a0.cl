@@ -23,8 +23,7 @@ typedef struct
 {
   u8 S[256];
 
-  u8 i;
-  u8 j;
+  u32 wtf_its_faster;
 
 } RC4_KEY;
 
@@ -39,137 +38,132 @@ static void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
 
 static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 {
-  u32 i;
+  u32 v = 0x03020100;
+  u32 a = 0x04040404;
 
-  #pragma unroll 256
-  for (i = 0; i < 256; i +=  1) rc4_key->S[i] = i;
+  __local u32 *ptr = (__local u32 *) rc4_key->S;
 
-  u8 j = 0;
-
-  #pragma unroll 16
-  for (i = 0; i < 256; i += 16)
+  #pragma unroll
+  for (u32 i = 0; i < 64; i++)
   {
-    u32 idx = i;
+    *ptr++ = v; v += a;
+  }
+
+  u32 j = 0;
+
+  for (u32 i = 0; i < 16; i++)
+  {
+    u32 idx = i * 16;
 
     u32 v;
 
     v = data[0];
 
-    j += rc4_key->S[idx] + (v >>  0);  swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >>  8);  swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 16);  swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 24);  swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >>  0); swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >>  8); swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >> 16); swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >> 24); swap (rc4_key, idx, j); idx++;
 
     v = data[1];
 
-    j += rc4_key->S[idx] + (v >>  0);  swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >>  8);  swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 16);  swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 24);  swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >>  0); swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >>  8); swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >> 16); swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >> 24); swap (rc4_key, idx, j); idx++;
 
     v = data[2];
 
-    j += rc4_key->S[idx] + (v >>  0);  swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >>  8);  swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 16);  swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 24);  swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >>  0); swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >>  8); swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >> 16); swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >> 24); swap (rc4_key, idx, j); idx++;
 
     v = data[3];
 
-    j += rc4_key->S[idx] + (v >>  0);  swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >>  8);  swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 16);  swap (rc4_key, idx, j); idx++;
-    j += rc4_key->S[idx] + (v >> 24);  swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >>  0); swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >>  8); swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >> 16); swap (rc4_key, idx, j); idx++;
+    j += rc4_key->S[idx] + (v >> 24); swap (rc4_key, idx, j); idx++;
   }
-
-  rc4_key->i = 0;
-  rc4_key->j = 0;
 }
 
-static u32 rc4_next_4 (__local RC4_KEY *rc4_key, const u32 ct)
+static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 in[4], u32 out[4])
 {
-  u8 idx;
+  #pragma unroll
+  for (u32 k = 0; k < 4; k++)
+  {
+    u32 xor4 = 0;
 
-  u32 xor4 = 0;
+    u8 idx;
 
-  u8 i = rc4_key->i;
-  u8 j = rc4_key->j;
+    i += 1;
+    j += rc4_key->S[i];
 
-  i += 1;
-  j += rc4_key->S[i];
+    swap (rc4_key, i, j);
 
-  swap (rc4_key, i, j);
+    idx = rc4_key->S[i] + rc4_key->S[j];
 
-  idx = rc4_key->S[i] + rc4_key->S[j];
+    xor4 |= rc4_key->S[idx] <<  0;
 
-  xor4 |= rc4_key->S[idx] <<  0;
+    i += 1;
+    j += rc4_key->S[i];
 
-  i += 1;
-  j += rc4_key->S[i];
+    swap (rc4_key, i, j);
 
-  swap (rc4_key, i, j);
+    idx = rc4_key->S[i] + rc4_key->S[j];
 
-  idx = rc4_key->S[i] + rc4_key->S[j];
+    xor4 |= rc4_key->S[idx] <<  8;
 
-  xor4 |= rc4_key->S[idx] <<  8;
+    i += 1;
+    j += rc4_key->S[i];
 
-  i += 1;
-  j += rc4_key->S[i];
+    swap (rc4_key, i, j);
 
-  swap (rc4_key, i, j);
+    idx = rc4_key->S[i] + rc4_key->S[j];
 
-  idx = rc4_key->S[i] + rc4_key->S[j];
+    xor4 |= rc4_key->S[idx] << 16;
 
-  xor4 |= rc4_key->S[idx] << 16;
+    i += 1;
+    j += rc4_key->S[i];
 
-  i += 1;
-  j += rc4_key->S[i];
+    swap (rc4_key, i, j);
 
-  swap (rc4_key, i, j);
+    idx = rc4_key->S[i] + rc4_key->S[j];
 
-  idx = rc4_key->S[i] + rc4_key->S[j];
+    xor4 |= rc4_key->S[idx] << 24;
 
-  xor4 |= rc4_key->S[idx] << 24;
+    out[k] = in[k] ^ xor4;
+  }
 
-  rc4_key->i = i;
-  rc4_key->j = j;
-
-  return ct ^ xor4;
+  return j;
 }
 
 static int decrypt_and_check (__local RC4_KEY *rc4_key, u32 data[4], u32 timestamp_ct[8])
 {
-  u32 pt;
-
   rc4_init_16 (rc4_key, data);
 
-  pt = rc4_next_4 (rc4_key, timestamp_ct[0]);
-  pt = rc4_next_4 (rc4_key, timestamp_ct[1]);
-  pt = rc4_next_4 (rc4_key, timestamp_ct[2]);
-  pt = rc4_next_4 (rc4_key, timestamp_ct[3]);
+  u32 out[4];
 
-  if ((pt & 0xffff0000) != 0x30320000) return 0;
+  u8 j = 0;
 
-  pt = rc4_next_4 (rc4_key, timestamp_ct[4]);
+  j = rc4_next_16 (rc4_key,  0, j, timestamp_ct + 0, out);
 
-  if (((pt & 0xff) < '0') || ((pt & 0xff) > '9')) return 0; pt >>= 8;
-  if (((pt & 0xff) < '0') || ((pt & 0xff) > '9')) return 0; pt >>= 8;
-  if (((pt & 0xff) < '0') || ((pt & 0xff) > '9')) return 0; pt >>= 8;
-  if (((pt & 0xff) < '0') || ((pt & 0xff) > '9')) return 0;
+  if ((out[3] & 0xffff0000) != 0x30320000) return 0;
 
-  pt = rc4_next_4 (rc4_key, timestamp_ct[5]);
+  j = rc4_next_16 (rc4_key, 16, j, timestamp_ct + 4, out);
 
-  if (((pt & 0xff) < '0') || ((pt & 0xff) > '9')) return 0; pt >>= 8;
-  if (((pt & 0xff) < '0') || ((pt & 0xff) > '9')) return 0; pt >>= 8;
-  if (((pt & 0xff) < '0') || ((pt & 0xff) > '9')) return 0; pt >>= 8;
-  if (((pt & 0xff) < '0') || ((pt & 0xff) > '9')) return 0;
-
-  pt = rc4_next_4 (rc4_key, timestamp_ct[6]);
-
-  if (((pt & 0xff) < '0') || ((pt & 0xff) > '9')) return 0; pt >>= 8;
-  if (((pt & 0xff) < '0') || ((pt & 0xff) > '9')) return 0; pt >>= 8;
-  if (((pt & 0xff) < '0') || ((pt & 0xff) > '9')) return 0; pt >>= 8;
-  if (((pt & 0xff) < '0') || ((pt & 0xff) > '9')) return 0;
+  if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return 0; out[0] >>= 8;
+  if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return 0; out[0] >>= 8;
+  if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return 0; out[0] >>= 8;
+  if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return 0;
+  if (((out[1] & 0xff) < '0') || ((out[1] & 0xff) > '9')) return 0; out[1] >>= 8;
+  if (((out[1] & 0xff) < '0') || ((out[1] & 0xff) > '9')) return 0; out[1] >>= 8;
+  if (((out[1] & 0xff) < '0') || ((out[1] & 0xff) > '9')) return 0; out[1] >>= 8;
+  if (((out[1] & 0xff) < '0') || ((out[1] & 0xff) > '9')) return 0;
+  if (((out[2] & 0xff) < '0') || ((out[2] & 0xff) > '9')) return 0; out[2] >>= 8;
+  if (((out[2] & 0xff) < '0') || ((out[2] & 0xff) > '9')) return 0; out[2] >>= 8;
+  if (((out[2] & 0xff) < '0') || ((out[2] & 0xff) > '9')) return 0; out[2] >>= 8;
+  if (((out[2] & 0xff) < '0') || ((out[2] & 0xff) > '9')) return 0;
 
   return 1;
 }
