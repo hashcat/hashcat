@@ -11238,7 +11238,7 @@ int main (int argc, char **argv)
                        gpu_accel = 8;
                        break;
           case  9300:  gpu_loops = 1;
-                       gpu_accel = 8;
+                       gpu_accel = 4;
                        break;
           case  9400:  gpu_loops = ROUNDS_OFFICE2007;
                        gpu_accel = 32;
@@ -13011,27 +13011,39 @@ int main (int argc, char **argv)
           {
             if (vendor_id == VENDOR_ID_AMD)
             {
-
+              tmto_start = 1;
             }
             else if (vendor_id == VENDOR_ID_NV)
             {
-
+              tmto_start = 3;
             }
           }
           else if (hash_mode == 9300)
           {
             if (vendor_id == VENDOR_ID_AMD)
             {
-
+              tmto_start = 3;
             }
             else if (vendor_id == VENDOR_ID_NV)
             {
-
+              tmto_start = 4;
             }
           }
         }
 
         if (quiet == 0) log_info ("");
+
+        uint shader_per_mp = 1;
+
+        if (vendor_id == VENDOR_ID_AMD)
+        {
+          shader_per_mp = 8;
+        }
+
+        if (vendor_id == VENDOR_ID_NV)
+        {
+          shader_per_mp = 32;
+        }
 
         for (uint tmto = tmto_start; tmto < tmto_stop; tmto++)
         {
@@ -13042,11 +13054,11 @@ int main (int argc, char **argv)
 
           size_scryptV /= 1 << tmto;
 
-          size_scryptV *= gpu_processors * gpu_processor_cores * gpu_threads;
+          size_scryptV *= gpu_processors * gpu_processor_cores * shader_per_mp;
 
           if (size_scryptV > device_param->gpu_maxmem_alloc)
           {
-            if (quiet == 0) log_info ("WARNING: not enough GPU memory free for allocation to use --scrypt-tmto %d, increasing...", tmto);
+            if (quiet == 0) log_info ("WARNING: not enough GPU memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
 
             continue;
           }
@@ -13054,13 +13066,13 @@ int main (int argc, char **argv)
           for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
           {
             data.salts_buf[salts_pos].scrypt_tmto = tmto;
-            data.salts_buf[salts_pos].scrypt_phy  = gpu_processors * gpu_processor_cores * gpu_threads;
+            data.salts_buf[salts_pos].scrypt_phy  = gpu_processors * gpu_processor_cores * shader_per_mp;
           }
 
           break;
         }
 
-        if (data.salts_buf[0].scrypt_tmto == 0)
+        if (data.salts_buf[0].scrypt_phy == 0)
         {
           log_error ("ERROR: can't allocate enough GPU memory");
 
@@ -13068,7 +13080,7 @@ int main (int argc, char **argv)
         }
 
         if (quiet == 0) log_info ("");
-        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u\n", data.salts_buf[0].scrypt_tmto);
+        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %u\n", data.salts_buf[0].scrypt_tmto, size_scryptV);
       }
 
       /**

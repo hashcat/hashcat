@@ -306,11 +306,11 @@ extern hc_thread_mutex_t mux_display;
 #define GPU_ACCEL_NV_8600     8
 #define GPU_ACCEL_NV_8700     8
 #define GPU_ACCEL_NV_8800     8
-#define GPU_ACCEL_NV_8900     4
+#define GPU_ACCEL_NV_8900     16
 #define GPU_ACCEL_NV_9000     2
 #define GPU_ACCEL_NV_9100     8
 #define GPU_ACCEL_NV_9200     2
-#define GPU_ACCEL_NV_9300     4
+#define GPU_ACCEL_NV_9300     2
 #define GPU_ACCEL_NV_9400     8
 #define GPU_ACCEL_NV_9500     8
 #define GPU_ACCEL_NV_9600     2
@@ -483,11 +483,11 @@ extern hc_thread_mutex_t mux_display;
 #define GPU_ACCEL_AMD_8600    8
 #define GPU_ACCEL_AMD_8700    8
 #define GPU_ACCEL_AMD_8800    8
-#define GPU_ACCEL_AMD_8900    4
+#define GPU_ACCEL_AMD_8900    16
 #define GPU_ACCEL_AMD_9000    2
 #define GPU_ACCEL_AMD_9100    8
 #define GPU_ACCEL_AMD_9200    2
-#define GPU_ACCEL_AMD_9300    4
+#define GPU_ACCEL_AMD_9300    2
 #define GPU_ACCEL_AMD_9400    8
 #define GPU_ACCEL_AMD_9500    8
 #define GPU_ACCEL_AMD_9600    2
