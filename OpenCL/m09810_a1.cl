@@ -52,7 +52,6 @@ static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 
   u32 j = 0;
 
-  #pragma unroll
   for (u32 i = 0; i < 16; i++)
   {
     u32 idx = i * 16;
