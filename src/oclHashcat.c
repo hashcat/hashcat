@@ -12294,10 +12294,14 @@ int main (int argc, char **argv)
 
           return (-1);
         }
+
+        // user does not count with zero
+
+        CL_platform_sel -= 1;
       }
     }
 
-    cl_platform_id CL_platform = CL_platforms[CL_platform_sel - 1];
+    cl_platform_id CL_platform = CL_platforms[CL_platform_sel];
 
     char CL_platform_vendor[INFOSZ];
 
