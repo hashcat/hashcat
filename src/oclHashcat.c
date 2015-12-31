@@ -12281,16 +12281,23 @@ int main (int argc, char **argv)
 
           printf ("* %d = %s\n", i + 1, CL_platform_vendor);
         }
+
+        return (-1);
       }
       else
       {
         CL_platform_sel = atoi (gpu_platform);
-      }
 
-      return (-1);
+        if (CL_platform_sel > CL_platforms_cnt)
+        {
+          log_error ("ERROR: invalid OpenCL platforms selected");
+
+          return (-1);
+        }
+      }
     }
 
-    cl_platform_id CL_platform = CL_platforms[CL_platform_sel];
+    cl_platform_id CL_platform = CL_platforms[CL_platform_sel - 1];
 
     char CL_platform_vendor[INFOSZ];
 
