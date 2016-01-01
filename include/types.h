@@ -298,6 +298,8 @@ typedef struct
 
 typedef struct
 {
+  uint E[18];
+
   uint P[18];
 
   uint S0[256];
@@ -812,10 +814,14 @@ struct __hc_device_param
 {
   uint              device_id;
 
+  uint              sm_major;
+  uint              sm_minor;
+  uint              kernel_exec_timeout;
+
   uint              gpu_processors;
+  uint              gpu_processor_cores;
   uint              gpu_threads;
   uint              gpu_accel;
-  uint              gpu_vector_width;
   uint64_t          gpu_maxmem_alloc;
   uint              gpu_power;          // these both are based on their _user counterpart
   uint              gpu_blocks;         // but are modified by autotuner and used inside crack loops
@@ -832,8 +838,6 @@ struct __hc_device_param
   uint              size_shown;
   uint              size_results;
   uint              size_plains;
-
-  uint              vect_size;
 
   uint (*pw_add)    (struct __hc_device_param *, const uint8_t *, const uint);
 
@@ -869,68 +873,6 @@ struct __hc_device_param
   hc_timer_t        timer_speed;
 
   // device specific attributes starting
-
-  #ifdef _CUDA
-
-  int               sm_major;
-  int               sm_minor;
-
-  CUdevice          device;
-
-  CUfunction        function1;
-  CUfunction        function12;
-  CUfunction        function2;
-  CUfunction        function23;
-  CUfunction        function3;
-  CUfunction        function_mp;
-  CUfunction        function_mp_l;
-  CUfunction        function_mp_r;
-  CUfunction        function_amp;
-  CUfunction        function_tb;
-  CUfunction        function_tm;
-
-  CUcontext         context;
-  CUmodule          module;
-  CUmodule          module_mp;
-  CUmodule          module_amp;
-  CUstream          stream;
-
-  CUdeviceptr       d_pws_buf;
-  CUdeviceptr       d_pws_amp_buf;
-  CUdeviceptr       d_words_buf_l;
-  CUdeviceptr       d_words_buf_r;
-  CUdeviceptr       c_words_buf_r;
-  CUdeviceptr       d_rules;
-  CUdeviceptr       c_rules;
-  CUdeviceptr       d_combs;
-  CUdeviceptr       c_combs;
-  CUdeviceptr       d_bfs;
-  CUdeviceptr       c_bfs;
-  CUdeviceptr       d_tm;
-  CUdeviceptr       c_tm;
-  size_t            c_bytes;
-  CUdeviceptr       d_bitmap_s1_a;
-  CUdeviceptr       d_bitmap_s1_b;
-  CUdeviceptr       d_bitmap_s1_c;
-  CUdeviceptr       d_bitmap_s1_d;
-  CUdeviceptr       d_bitmap_s2_a;
-  CUdeviceptr       d_bitmap_s2_b;
-  CUdeviceptr       d_bitmap_s2_c;
-  CUdeviceptr       d_bitmap_s2_d;
-  CUdeviceptr       d_plain_bufs;
-  CUdeviceptr       d_digests_buf;
-  CUdeviceptr       d_digests_shown;
-  CUdeviceptr       d_salt_bufs;
-  CUdeviceptr       d_esalt_bufs;
-  CUdeviceptr       d_bcrypt_bufs;
-  CUdeviceptr       d_tmps;
-  CUdeviceptr       d_hooks;
-  CUdeviceptr       d_result;
-  CUdeviceptr       d_scryptV_buf;
-  CUdeviceptr       d_root_css_buf;
-  CUdeviceptr       d_markov_css_buf;
-
-  #elif _OCL
 
   char             *device_name;
   char             *device_version;
@@ -990,8 +932,6 @@ struct __hc_device_param
   cl_mem            d_root_css_buf;
   cl_mem            d_markov_css_buf;
 
-  #endif
-
   #define PARAMCNT 32
 
   void             *kernel_params[PARAMCNT];
@@ -1021,11 +961,12 @@ typedef struct __hc_device_param hc_device_param_t;
 
 typedef struct
 {
-  HM_ADAPTER adapter_index;
+  union {
+    HM_ADAPTER_AMD amd;
+    HM_ADAPTER_NV  nv;
+  } adapter_index;
 
-  #ifdef _OCL
   int od_version;
-  #endif
 
   int fan_supported;
 
@@ -1039,6 +980,8 @@ typedef struct
   /**
    * threads
    */
+
+  uint                vendor_id;
 
   uint                devices_status;
   uint                devices_cnt;

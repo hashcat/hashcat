@@ -165,7 +165,7 @@ cl_context hc_clCreateContext (cl_context_properties *properties, cl_uint num_de
   return (context);
 }
 
-/*
+
 cl_command_queue hc_clCreateCommandQueue (cl_context context, cl_device_id device, cl_command_queue_properties properties)
 {
   cl_int CL_err;
@@ -181,8 +181,8 @@ cl_command_queue hc_clCreateCommandQueue (cl_context context, cl_device_id devic
 
   return (command_queue);
 }
-*/
 
+/*
 cl_command_queue hc_clCreateCommandQueueWithProperties (cl_context context, cl_device_id device, const cl_queue_properties *properties)
 {
   cl_int CL_err;
@@ -198,6 +198,7 @@ cl_command_queue hc_clCreateCommandQueueWithProperties (cl_context context, cl_d
 
   return (command_queue);
 }
+*/
 
 cl_mem hc_clCreateBuffer (cl_context context, cl_mem_flags flags, size_t size, void *host_ptr)
 {
@@ -255,7 +256,8 @@ void hc_clBuildProgram (cl_program program, cl_uint num_devices, const cl_device
   {
     log_error ("ERROR: %s %d\n", "clBuildProgram()", CL_err);
 
-    exit (-1);
+    // If we exit here we can't see the error message
+    // exit (-1);
   }
 }
 
@@ -267,7 +269,7 @@ cl_kernel hc_clCreateKernel (cl_program program, const char *kernel_name)
 
   if (CL_err != CL_SUCCESS)
   {
-    log_error ("ERROR: %s %d\n", "clCreateKernel()", CL_err);
+    log_error ("ERROR: %s %d - %s\n", "clCreateKernel()", CL_err, kernel_name);
 
     exit (-1);
   }
@@ -370,6 +372,18 @@ void hc_clEnqueueFillBuffer (cl_command_queue command_queue, cl_mem buffer, cons
   if (CL_err != CL_SUCCESS)
   {
     log_error ("ERROR: %s %d\n", "clEnqueueFillBuffer()", CL_err);
+
+    exit (-1);
+  }
+}
+
+void hc_clGetKernelWorkGroupInfo (cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
+{
+  cl_int CL_err = clGetKernelWorkGroupInfo (kernel, device, param_name, param_value_size, param_value, param_value_size_ret);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: %s %d\n", "clGetKernelWorkGroupInfo()", CL_err);
 
     exit (-1);
   }

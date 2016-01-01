@@ -1,18 +1,27 @@
 * changes v2.01 -> not-known-yet:
 
 Type.: Feature
+File.: Kernel
+Desc.: For NVidia, dropped CUDA support and switched to OpenCL
+Issue: 3
+
+Type.: Feature
 File.: Host
 Desc.: Implemented a new feature that allows to quit at next restore point update (and disable it)
 Issue: 10
+
+Type.: Feature
+File.: Host
+Desc.: Added option --gpu-platform to select a single OpenCL platform in case multiple OpenCL platforms are present 
 
 Type.: Bug
 File.: Host
 Desc.: Fixed a bug in combination of --restore and a user immediately aborting the session after restart
 Trac.: 684
 
-Type.: Change
-File.: Docs
-Desc.: Updated docs/readme.txt -- Starting with v2.01 OpenCL 2.00 is required; we need Catalyst 15.7 or higher
+Type.: Bug
+File.: Kernel
+Desc.: Fix a bug in the implementation of GOST R 34.11-94, zero length passwords were not cracked
 
 * changes v2.00 -> v2.01:
 

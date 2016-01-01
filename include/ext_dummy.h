@@ -8,6 +8,4 @@
 
 #include <common.h>
 
-typedef int HM_ADAPTER;
-
 #endif

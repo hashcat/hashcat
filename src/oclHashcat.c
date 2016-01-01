@@ -6,27 +6,17 @@
 #include <common.h>
 #include <shared.h>
 #include <rp_gpu_on_cpu.h>
-
 #include <getopt.h>
 
-#ifdef _CUDA
-const char *PROGNAME          = "cudaHashcat";
-#elif _OCL
 const char *PROGNAME          = "oclHashcat";
-#endif
-
 const char *VERSION_TXT       = "2.01";
 const uint  VERSION_BIN       = 201;
-const uint  RESTORE_MIN       = 200;
+const uint  RESTORE_MIN       = 201;
 
 #define INCR_RULES            10000
 #define INCR_SALTS            100000
 #define INCR_MASKS            1000
 #define INCR_POT              1000
-
-// comment-out for kernel source mode
-
-#define BINARY_KERNEL
 
 #define USAGE                   0
 #define VERSION                 0
@@ -77,7 +67,6 @@ const uint  RESTORE_MIN       = 200;
 #define SEPARATOR               ':'
 #define BITMAP_MIN              16
 #define BITMAP_MAX              24
-#define GPU_ASYNC               0
 #define GPU_TEMP_DISABLE        0
 #define GPU_TEMP_ABORT          90
 #define GPU_TEMP_RETAIN         80
@@ -87,16 +76,10 @@ const uint  RESTORE_MIN       = 200;
 #define GPU_RULES               1024
 #define GPU_COMBS               1024
 #define GPU_BFS                 1024
-#define GPU_THREADS_AMD         64
-#define GPU_THREADS_NV          256
+#define GPU_THREADS             64
 #define POWERTUNE_ENABLE        0
 #define LOGFILE_DISABLE         0
 #define SCRYPT_TMTO             0
-
-#define VECT_SIZE_1             1
-#define VECT_SIZE_2             2
-#define VECT_SIZE_4             4
-#define VECT_SIZE_8             8
 
 #define WL_MODE_STDIN           1
 #define WL_MODE_FILE            2
@@ -400,8 +383,8 @@ const char *USAGE_BIG[] =
   "       --bitmap-min=NUM              Minimum number of bits allowed for bitmaps",
   "       --bitmap-max=NUM              Maximum number of bits allowed for bitmaps",
   "       --cpu-affinity=STR            Locks to CPU devices, seperate with comma",
-  "       --gpu-async                   Use non-blocking async calls (NV only)",
-  "  -d,  --gpu-devices=STR             Devices to use, separate with comma",
+  "  -d,  --gpu-devices=STR             OpenCL devices to use, separate with comma",
+  "       --gpu-platform=STR            OpenCL platform to use, in case multiple OpenCL platforms are present",
   "  -w,  --workload-profile=NUM        Enable a specific workload profile, see references below",
   "  -n,  --gpu-accel=NUM               Workload tuning: 1, 8, 40, 80, 160",
   "  -u,  --gpu-loops=NUM               Workload fine-tuning: 8 - 1024",
@@ -1509,17 +1492,21 @@ void status_display ()
       {
         const int temperature = hm_get_temperature_with_device_id (i);
         const int utilization = hm_get_utilization_with_device_id (i);
-        const int fanspeed    = hm_get_fanspeed_with_device_id (i);
+        const int fanspeed    = hm_get_fanspeed_with_device_id    (i);
 
-        #ifdef _OCL
-        log_info ("HWMon.GPU.#%d...: %2d%% Util, %2dc Temp, %2d%% Fan", i + 1, utilization, temperature, fanspeed);
-        #else
-        #ifdef LINUX
-        log_info ("HWMon.GPU.#%d...: %2d%% Util, %2dc Temp, %2d%% Fan", i + 1, utilization, temperature, fanspeed);
-        #else
-        log_info ("HWMon.GPU.#%d...: %2d%% Util, %2dc Temp, %2drpm Fan", i + 1, utilization, temperature, fanspeed);
-        #endif
-        #endif
+        if (data.vendor_id == VENDOR_ID_AMD)
+        {
+          log_info ("HWMon.GPU.#%d...: %2d%% Util, %2dc Temp, %2d%% Fan", i + 1, utilization, temperature, fanspeed);
+        }
+
+        if (data.vendor_id == VENDOR_ID_NV)
+        {
+          #ifdef LINUX
+          log_info ("HWMon.GPU.#%d...: %2d%% Util, %2dc Temp, %2d%% Fan", i + 1, utilization, temperature, fanspeed);
+          #else
+          log_info ("HWMon.GPU.#%d...: %2d%% Util, %2dc Temp, %2drpm Fan", i + 1, utilization, temperature, fanspeed);
+          #endif
+        }
       }
       else
       {
@@ -1607,42 +1594,71 @@ static void status_benchmark ()
  * oclHashcat -only- functions
  */
 
-#ifdef _CUDA
-
-static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *install_dir, char *kernel_file)
+static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *install_dir, char *source_file)
 {
   if (attack_exec == ATTACK_EXEC_ON_GPU)
   {
     if (attack_kern == ATTACK_KERN_STRAIGHT)
-      snprintf (kernel_file, 255, "%s/nv/m%05d_a0.cu", install_dir, (int) kern_type);
+      snprintf (source_file, 255, "%s/OpenCL/m%05d_a0.cl", install_dir, (int) kern_type);
     else if (attack_kern == ATTACK_KERN_COMBI)
-      snprintf (kernel_file, 255, "%s/nv/m%05d_a1.cu", install_dir, (int) kern_type);
+      snprintf (source_file, 255, "%s/OpenCL/m%05d_a1.cl", install_dir, (int) kern_type);
     else if (attack_kern == ATTACK_KERN_BF)
-      snprintf (kernel_file, 255, "%s/nv/m%05d_a3.cu", install_dir, (int) kern_type);
+      snprintf (source_file, 255, "%s/OpenCL/m%05d_a3.cl", install_dir, (int) kern_type);
   }
   else
-    snprintf (kernel_file, 255, "%s/nv/m%05d.cu", install_dir, (int) kern_type);
+    snprintf (source_file, 255, "%s/OpenCL/m%05d.cl", install_dir, (int) kern_type);
 }
 
-#elif _OCL
-
-static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *install_dir, char *kernel_file)
+static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *install_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
 {
   if (attack_exec == ATTACK_EXEC_ON_GPU)
   {
     if (attack_kern == ATTACK_KERN_STRAIGHT)
-      snprintf (kernel_file, 255, "%s/amd/m%05d_a0.cl", install_dir, (int) kern_type);
+      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a0.%s_%s_%s_%d.kernel", install_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
     else if (attack_kern == ATTACK_KERN_COMBI)
-      snprintf (kernel_file, 255, "%s/amd/m%05d_a1.cl", install_dir, (int) kern_type);
+      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a1.%s_%s_%s_%d.kernel", install_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
     else if (attack_kern == ATTACK_KERN_BF)
-      snprintf (kernel_file, 255, "%s/amd/m%05d_a3.cl", install_dir, (int) kern_type);
+      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a3.%s_%s_%s_%d.kernel", install_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
   }
   else
-    snprintf (kernel_file, 255, "%s/amd/m%05d.cl", install_dir, (int) kern_type);
+  {
+    snprintf (cached_file, 255, "%s/kernels/%d/m%05d.%s_%s_%s_%d.kernel", install_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+  }
 }
 
-#endif
+static void generate_source_kernel_mp_filename (const uint opti_type, const uint opts_type, char *install_dir, char *source_file)
+{
+  if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
+  {
+    snprintf (source_file, 255, "%s/OpenCL/markov_be.cl", install_dir);
+  }
+  else
+  {
+    snprintf (source_file, 255, "%s/OpenCL/markov_le.cl", install_dir);
+  }
+}
 
+static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *install_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
+{
+  if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
+  {
+    snprintf (cached_file, 255, "%s/kernels/%d/markov_be.%s_%s_%s_%d.kernel", install_dir, vendor_id, device_name, device_version, driver_version, COMPTIME);
+  }
+  else
+  {
+    snprintf (cached_file, 255, "%s/kernels/%d/markov_le.%s_%s_%s_%d.kernel", install_dir, vendor_id, device_name, device_version, driver_version, COMPTIME);
+  }
+}
+
+static void generate_source_kernel_amp_filename (const uint attack_kern, char *install_dir, char *source_file)
+{
+  snprintf (source_file, 255, "%s/OpenCL/amp_a%d.cl", install_dir, attack_kern);
+}
+
+static void generate_cached_kernel_amp_filename (const uint attack_kern, char *install_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
+{
+  snprintf (cached_file, 255, "%s/kernels/%d/amp_a%d.%s_%s_%s_%d.kernel", install_dir, vendor_id, attack_kern, device_name, device_version, driver_version, COMPTIME);
+}
 
 static uint convert_from_hex (char *line_buf, const uint line_len)
 {
@@ -1751,17 +1767,7 @@ static void clear_prompt ()
 
 static void gidd_to_pw_t (hc_device_param_t *device_param, const uint64_t gidd, pw_t *pw)
 {
-  #ifdef _CUDA
-  hc_cuCtxPushCurrent (device_param->context);
-
-  hc_cuMemcpyDtoH (pw, device_param->d_pws_buf + (gidd * sizeof (pw_t)), sizeof (pw_t));
-
-  hc_cuCtxPopCurrent (&device_param->context);
-
-  #elif _OCL
   hc_clEnqueueReadBuffer (device_param->command_queue, device_param->d_pws_buf, CL_TRUE, gidd * sizeof (pw_t), sizeof (pw_t), pw, 0, NULL, NULL);
-
-  #endif
 }
 
 static void check_hash (hc_device_param_t *device_param, const uint salt_pos, const uint digest_pos)
@@ -1791,15 +1797,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
   plain_t plain;
 
-  #ifdef _CUDA
-  hc_cuCtxPushCurrent (device_param->context);
-
-  hc_cuMemcpyDtoH (&plain, device_param->d_plain_bufs + (idx * sizeof (plain_t)), sizeof (plain_t));
-
-  hc_cuCtxPopCurrent (&device_param->context);
-  #elif _OCL
   hc_clEnqueueReadBuffer (device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, idx * sizeof (plain_t), sizeof (plain_t), &plain, 0, NULL, NULL);
-  #endif
 
   uint gidvid = plain.gidvid;
   uint il_pos = plain.il_pos;
@@ -1813,14 +1811,14 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
   if (data.attack_mode == ATTACK_MODE_STRAIGHT)
   {
-    uint64_t gidd = gidvid / device_param->gpu_vector_width;
-    uint64_t gidm = gidvid % device_param->gpu_vector_width;
+    uint64_t gidd = gidvid;
+    uint64_t gidm = 0;
 
     pw_t pw;
 
     gidd_to_pw_t (device_param, gidd, &pw);
 
-    for (int i = 0, j = gidm; i < 16; i++, j += device_param->gpu_vector_width)
+    for (int i = 0, j = gidm; i < 16; i++, j++)
     {
       plain_buf[i] = pw.hi1[0][j];
     }
@@ -1862,14 +1860,14 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_COMBI)
   {
-    uint64_t gidd = gidvid / device_param->gpu_vector_width;
-    uint64_t gidm = gidvid % device_param->gpu_vector_width;
+    uint64_t gidd = gidvid;
+    uint64_t gidm = 0;
 
     pw_t pw;
 
     gidd_to_pw_t (device_param, gidd, &pw);
 
-    for (int i = 0, j = gidm; i < 16; i++, j += device_param->gpu_vector_width)
+    for (int i = 0, j = gidm; i < 16; i++, j++)
     {
       plain_buf[i] = pw.hi1[0][j];
     }
@@ -1923,14 +1921,14 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID1)
   {
-    uint64_t gidd = gidvid / device_param->gpu_vector_width;
-    uint64_t gidm = gidvid % device_param->gpu_vector_width;
+    uint64_t gidd = gidvid;
+    uint64_t gidm = 0;
 
     pw_t pw;
 
     gidd_to_pw_t (device_param, gidd, &pw);
 
-    for (int i = 0, j = gidm; i < 16; i++, j += device_param->gpu_vector_width)
+    for (int i = 0, j = gidm; i < 16; i++, j++)
     {
       plain_buf[i] = pw.hi1[0][j];
     }
@@ -1957,14 +1955,14 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID2)
   {
-    uint64_t gidd = gidvid / device_param->gpu_vector_width;
-    uint64_t gidm = gidvid % device_param->gpu_vector_width;
+    uint64_t gidd = gidvid;
+    uint64_t gidm = 0;
 
     pw_t pw;
 
     gidd_to_pw_t (device_param, gidd, &pw);
 
-    for (int i = 0, j = gidm; i < 16; i++, j += device_param->gpu_vector_width)
+    for (int i = 0, j = gidm; i < 16; i++, j++)
     {
       plain_buf[i] = pw.hi1[0][j];
     }
@@ -2113,23 +2111,9 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
   int found = 0;
 
-  #ifdef _CUDA
-
-  hc_cuCtxPushCurrent (device_param->context);
-
-  hc_cuMemcpyDtoH (device_param->result, device_param->d_result, device_param->size_results);
-
-  hc_cuCtxPopCurrent (&device_param->context);
-
-  for (uint i = 0; i < GPU_THREADS_NV; i++) if (device_param->result[i] == 1) found = 1;
-
-  #elif _OCL
-
   hc_clEnqueueReadBuffer (device_param->command_queue, device_param->d_result, CL_TRUE, 0, device_param->size_results, device_param->result, 0, NULL, NULL);
 
-  for (uint i = 0; i < GPU_THREADS_AMD; i++) if (device_param->result[i] == 1) found = 1;
-
-  #endif
+  for (uint i = 0; i < GPU_THREADS; i++) if (device_param->result[i] == 1) found = 1;
 
   if (found == 1)
   {
@@ -2137,19 +2121,7 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
     log_info_nn ("");
 
-    #ifdef _CUDA
-
-    hc_cuCtxPushCurrent (device_param->context);
-
-    hc_cuMemcpyDtoH (&data.digests_shown_tmp[salt_buf->digests_offset], device_param->d_digests_shown + (salt_buf->digests_offset * sizeof (uint)), salt_buf->digests_cnt * sizeof (uint));
-
-    hc_cuCtxPopCurrent (&device_param->context);
-
-    #elif _OCL
-
     hc_clEnqueueReadBuffer (device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
-
-    #endif
 
     uint cpt_cracked = 0;
 
@@ -2204,36 +2176,12 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
       memset (data.digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (uint));
 
-      #ifdef _CUDA
-
-      hc_cuCtxPushCurrent (device_param->context);
-
-      hc_cuMemsetD8 (device_param->d_digests_shown + (salt_buf->digests_offset * sizeof (uint)), 0, salt_buf->digests_cnt * sizeof (uint));
-
-      hc_cuCtxPopCurrent (&device_param->context);
-
-      #elif _OCL
-
       hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
-
-      #endif
     }
-
-    #ifdef _CUDA
-
-    hc_cuCtxPushCurrent (device_param->context);
-
-    hc_cuMemsetD8 (device_param->d_result, 0, device_param->size_results);
-
-    hc_cuCtxPopCurrent (&device_param->context);
-
-    #elif _OCL
 
     memset (device_param->result, 0, device_param->size_results);
 
     hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_result, CL_TRUE, 0, device_param->size_results, device_param->result, 0, NULL, NULL);
-
-    #endif
   }
 }
 
@@ -2373,10 +2321,6 @@ static float find_gpu_blocks_div (const uint64_t total_left, const uint gpu_bloc
 
 static void run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num)
 {
-  // uint gpu_vector_width = device_param->gpu_vector_width;
-
-  // uint num_elements = mydivc32 (num, gpu_vector_width);
-
   uint num_elements = num;
 
   device_param->kernel_params_buf32[30] = data.combs_mode;
@@ -2385,30 +2329,6 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
   uint gpu_threads = device_param->gpu_threads;
 
   while (num_elements % gpu_threads) num_elements++;
-
-  #ifdef _CUDA
-  CUfunction function = NULL;
-
-  switch (kern_run)
-  {
-    case KERN_RUN_1:    function = device_param->function1;     break;
-    case KERN_RUN_12:   function = device_param->function12;    break;
-    case KERN_RUN_2:    function = device_param->function2;     break;
-    case KERN_RUN_23:   function = device_param->function23;    break;
-    case KERN_RUN_3:    function = device_param->function3;     break;
-  }
-
-  num_elements /= gpu_threads;
-
-  hc_cuCtxPushCurrent (device_param->context);
-
-  hc_cuLaunchKernel (function, num_elements, 1, 1, gpu_threads, 1, 1, 0, device_param->stream, device_param->kernel_params, NULL);
-
-  hc_cuStreamSynchronize (device_param->stream);
-
-  hc_cuCtxPopCurrent (&device_param->context);
-
-  #elif _OCL
 
   cl_kernel kernel = NULL;
 
@@ -2451,16 +2371,10 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
   hc_clFlush (device_param->command_queue);
 
   hc_clFinish (device_param->command_queue);
-
-  #endif
 }
 
 static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param, const uint num)
 {
-  // uint gpu_vector_width = device_param->gpu_vector_width;
-
-  // uint num_elements = mydivc32 (num, gpu_vector_width);
-
   uint num_elements = num;
 
   switch (kern_run)
@@ -2473,43 +2387,7 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
   // causes problems with special threads like in bcrypt
   // const uint gpu_threads = device_param->gpu_threads;
 
-  #ifdef _CUDA
-
-  const uint gpu_threads = GPU_THREADS_NV;
-
-  while (num_elements % gpu_threads) num_elements++;
-
-  CUfunction function = NULL;
-
-  switch (kern_run)
-  {
-    case KERN_RUN_MP:    function = device_param->function_mp;    break;
-    case KERN_RUN_MP_R:  function = device_param->function_mp_r;  break;
-    case KERN_RUN_MP_L:  function = device_param->function_mp_l;  break;
-  }
-
-  void **kernel_params = NULL;
-
-  switch (kern_run)
-  {
-    case KERN_RUN_MP:    kernel_params = device_param->kernel_params_mp;   break;
-    case KERN_RUN_MP_R:  kernel_params = device_param->kernel_params_mp_r; break;
-    case KERN_RUN_MP_L:  kernel_params = device_param->kernel_params_mp_l; break;
-  }
-
-  num_elements /= gpu_threads;
-
-  hc_cuCtxPushCurrent (device_param->context);
-
-  hc_cuLaunchKernel (function, num_elements, 1, 1, gpu_threads, 1, 1, 0, device_param->stream, kernel_params, NULL);
-
-  hc_cuStreamSynchronize (device_param->stream);
-
-  hc_cuCtxPopCurrent (&device_param->context);
-
-  #elif _OCL
-
-  const uint gpu_threads = GPU_THREADS_AMD;
+  const uint gpu_threads = GPU_THREADS;
 
   while (num_elements % gpu_threads) num_elements++;
 
@@ -2556,8 +2434,6 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
   hc_clFlush (device_param->command_queue);
 
   hc_clFinish (device_param->command_queue);
-
-  #endif
 }
 
 static void run_kernel_tb (hc_device_param_t *device_param, const uint num)
@@ -2567,22 +2443,6 @@ static void run_kernel_tb (hc_device_param_t *device_param, const uint num)
   uint gpu_threads = device_param->gpu_threads;
 
   while (num_elements % gpu_threads) num_elements++;
-
-  #ifdef _CUDA
-
-  CUfunction function = device_param->function_tb;
-
-  void **kernel_params = device_param->kernel_params_tb;
-
-  hc_cuCtxPushCurrent (device_param->context);
-
-  hc_cuLaunchKernel (function, num_elements / gpu_threads, 1, 1, gpu_threads, 1, 1, 0, device_param->stream, kernel_params, NULL);
-
-  hc_cuStreamSynchronize (device_param->stream);
-
-  hc_cuCtxPopCurrent (&device_param->context);
-
-  #elif _OCL
 
   cl_kernel kernel = device_param->kernel_tb;
 
@@ -2594,8 +2454,6 @@ static void run_kernel_tb (hc_device_param_t *device_param, const uint num)
   hc_clFlush (device_param->command_queue);
 
   hc_clFinish (device_param->command_queue);
-
-  #endif
 }
 
 static void run_kernel_tm (hc_device_param_t *device_param)
@@ -2603,22 +2461,6 @@ static void run_kernel_tm (hc_device_param_t *device_param)
   const uint num_elements = 1024; // fixed
 
   const uint gpu_threads = 32;
-
-  #ifdef _CUDA
-
-  CUfunction function = device_param->function_tm;
-
-  void **kernel_params = device_param->kernel_params_tm;
-
-  hc_cuCtxPushCurrent (device_param->context);
-
-  hc_cuLaunchKernel (function, num_elements / gpu_threads, 1, 1, gpu_threads, 1, 1, 0, device_param->stream, kernel_params, NULL);
-
-  hc_cuStreamSynchronize (device_param->stream);
-
-  hc_cuCtxPopCurrent (&device_param->context);
-
-  #elif _OCL
 
   cl_kernel kernel = device_param->kernel_tm;
 
@@ -2630,16 +2472,10 @@ static void run_kernel_tm (hc_device_param_t *device_param)
   hc_clFlush (device_param->command_queue);
 
   hc_clFinish (device_param->command_queue);
-
-  #endif
 }
 
 static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
 {
-  // uint gpu_vector_width = device_param->gpu_vector_width;
-
-  // uint num_elements = mydivc32 (num, gpu_vector_width);
-
   uint num_elements = num;
 
   device_param->kernel_params_amp_buf32[5] = data.combs_mode;
@@ -2648,29 +2484,7 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   // causes problems with special threads like in bcrypt
   // const uint gpu_threads = device_param->gpu_threads;
 
-  #ifdef _CUDA
-
-  const uint gpu_threads = GPU_THREADS_NV;
-
-  while (num_elements % gpu_threads) num_elements++;
-
-  CUfunction function = device_param->function_amp;
-
-  void **kernel_params = device_param->kernel_params_amp;
-
-  num_elements /= gpu_threads;
-
-  hc_cuCtxPushCurrent (device_param->context);
-
-  hc_cuLaunchKernel (function, num_elements, 1, 1, gpu_threads, 1, 1, 0, device_param->stream, kernel_params, NULL);
-
-  hc_cuStreamSynchronize (device_param->stream);
-
-  hc_cuCtxPopCurrent (&device_param->context);
-
-  #elif _OCL
-
-  const uint gpu_threads = GPU_THREADS_AMD;
+  const uint gpu_threads = GPU_THREADS;
 
   while (num_elements % gpu_threads) num_elements++;
 
@@ -2687,27 +2501,42 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   hc_clFlush (device_param->command_queue);
 
   hc_clFinish (device_param->command_queue);
-
-  #endif
 }
 
-#ifdef _OCL
 static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const uint size)
 {
-  const cl_uchar zero = 0;
+  if (data.vendor_id == VENDOR_ID_AMD)
+  {
+    const cl_uchar zero = 0;
 
-  hc_clEnqueueFillBuffer (device_param->command_queue, buf, &zero, sizeof (cl_uchar), 0, size, 0, NULL, NULL);
+    hc_clEnqueueFillBuffer (device_param->command_queue, buf, &zero, sizeof (cl_uchar), 0, size, 0, NULL, NULL);
+  }
+
+  if (data.vendor_id == VENDOR_ID_NV)
+  {
+    // NOTE: clEnqueueFillBuffer () always fails with -59
+    //       IOW, it's not supported by Nvidia ForceWare <= 352.21,
+    //       How's that possible, OpenCL 1.2 support is advertised??
+    //       We need to workaround...
+
+    #define FILLSZ 0x100000
+
+    char *tmp = (char *) mymalloc (FILLSZ);
+
+    memset (tmp, 0, FILLSZ);
+
+    for (uint i = 0; i < size; i += FILLSZ)
+    {
+      const int left = size - i;
+
+      const int fillsz = MIN (FILLSZ, left);
+
+      hc_clEnqueueWriteBuffer (device_param->command_queue, buf, CL_TRUE, i, fillsz, tmp, 0, NULL, NULL);
+    }
+
+    myfree (tmp);
+  }
 }
-#elif _CUDA
-static void run_kernel_bzero (hc_device_param_t *device_param, CUdeviceptr buf, const uint size)
-{
-  hc_cuCtxPushCurrent (device_param->context);
-
-  hc_cuMemsetD8 (buf, 0, size);
-
-  hc_cuCtxPopCurrent (&device_param->context);
-}
-#endif
 
 static int run_rule_engine (const int rule_len, const char *rule_buf)
 {
@@ -2725,34 +2554,13 @@ static int run_rule_engine (const int rule_len, const char *rule_buf)
 
 static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
 {
-  #ifdef _CUDA
-  hc_cuCtxPushCurrent (device_param->context);
-  #endif
-
-  // clear some leftovers from previous run (maskfiles, etc)
-
-  #ifdef _CUDA
-  if (device_param->c_bfs != 0) // should be only true in this specific case: if (data.attack_kern == ATTACK_KERN_BF)
-  {
-    hc_cuMemsetD8 (device_param->c_bfs, 0, device_param->c_bytes);
-  }
-  #endif
-
   if (data.attack_kern == ATTACK_KERN_STRAIGHT)
   {
-    #ifdef _CUDA
-    hc_cuMemcpyHtoD (device_param->d_pws_buf, device_param->pws_buf, pws_cnt * sizeof (pw_t));
-    #elif _OCL
     hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-    #endif
   }
   else if (data.attack_kern == ATTACK_KERN_COMBI)
   {
-    #ifdef _CUDA
-    hc_cuMemcpyHtoD (device_param->d_pws_buf, device_param->pws_buf, pws_cnt * sizeof (pw_t));
-    #elif _OCL
     hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-    #endif
   }
   else if (data.attack_kern == ATTACK_KERN_BF)
   {
@@ -2762,10 +2570,6 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
 
     run_kernel_mp (KERN_RUN_MP_L, device_param, pws_cnt);
   }
-
-  #ifdef _CUDA
-  hc_cuCtxPopCurrent (&device_param->context);
-  #endif
 }
 
 static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, const uint pws_cnt)
@@ -2973,11 +2777,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
         device_param->kernel_params_mp_r_buf64[3] = off;
 
-        const uint gpu_vector_width = device_param->gpu_vector_width;
-
-        const uint innerloop_left_d = mydivc32 (innerloop_left, gpu_vector_width);
-
-        run_kernel_mp (KERN_RUN_MP_R, device_param, innerloop_left_d);
+        run_kernel_mp (KERN_RUN_MP_R, device_param, innerloop_left);
       }
       else if (data.attack_mode == ATTACK_MODE_HYBRID1)
       {
@@ -2985,11 +2785,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
         device_param->kernel_params_mp_buf64[3] = off;
 
-        const uint gpu_vector_width = device_param->gpu_vector_width;
-
-        const uint innerloop_left_d = mydivc32 (innerloop_left, gpu_vector_width);
-
-        run_kernel_mp (KERN_RUN_MP, device_param, innerloop_left_d);
+        run_kernel_mp (KERN_RUN_MP, device_param, innerloop_left);
       }
       else if (data.attack_mode == ATTACK_MODE_HYBRID2)
       {
@@ -2997,42 +2793,11 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
         device_param->kernel_params_mp_buf64[3] = off;
 
-        const uint gpu_vector_width = device_param->gpu_vector_width;
-
-        const uint innerloop_left_d = mydivc32 (innerloop_left, gpu_vector_width);
-
-        run_kernel_mp (KERN_RUN_MP, device_param, innerloop_left_d);
+        run_kernel_mp (KERN_RUN_MP, device_param, innerloop_left);
       }
 
       // copy amplifiers
 
-      #ifdef _CUDA
-      hc_cuCtxPushCurrent (device_param->context);
-
-      if (data.attack_mode == ATTACK_MODE_STRAIGHT)
-      {
-        hc_cuMemcpyDtoD (device_param->c_rules, device_param->d_rules + (innerloop_pos * sizeof (gpu_rule_t)), innerloop_left * sizeof (gpu_rule_t));
-      }
-      else if (data.attack_mode == ATTACK_MODE_COMBI)
-      {
-        hc_cuMemcpyHtoD (device_param->c_combs, device_param->combs_buf, innerloop_left * sizeof (comb_t));
-      }
-      else if (data.attack_mode == ATTACK_MODE_BF)
-      {
-        hc_cuMemcpyDtoD (device_param->c_bfs, device_param->d_bfs, innerloop_left * sizeof (bf_t));
-      }
-      else if (data.attack_mode == ATTACK_MODE_HYBRID1)
-      {
-        hc_cuMemcpyDtoD (device_param->c_combs, device_param->d_combs, innerloop_left * sizeof (comb_t));
-      }
-      else if (data.attack_mode == ATTACK_MODE_HYBRID2)
-      {
-        hc_cuMemcpyDtoD (device_param->c_combs, device_param->d_combs, innerloop_left * sizeof (comb_t));
-      }
-
-      hc_cuCtxPopCurrent (&device_param->context);
-
-      #elif _OCL
       if (data.attack_mode == ATTACK_MODE_STRAIGHT)
       {
         hc_clEnqueueCopyBuffer (device_param->command_queue, device_param->d_rules, device_param->d_rules_c, innerloop_pos * sizeof (gpu_rule_t), 0, innerloop_left * sizeof (gpu_rule_t), 0, NULL, NULL);
@@ -3054,8 +2819,6 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
         hc_clEnqueueCopyBuffer (device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
       }
 
-      #endif
-
       if (data.attack_exec == ATTACK_EXEC_ON_GPU)
       {
         if (data.attack_mode == ATTACK_MODE_BF)
@@ -3064,23 +2827,11 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
           {
             const uint size_tm = 32 * sizeof (bs_word_t);
 
-            #ifdef _CUDA
-            run_kernel_bzero (device_param, device_param->d_tm, size_tm);
-            #elif _OCL
             run_kernel_bzero (device_param, device_param->d_tm_c, size_tm);
-            #endif
 
             run_kernel_tm (device_param);
 
-            #ifdef _CUDA
-            hc_cuCtxPushCurrent (device_param->context);
-
-            hc_cuMemcpyDtoD (device_param->c_tm, device_param->d_tm, size_tm);
-
-            hc_cuCtxPopCurrent (&device_param->context);
-            #elif _OCL
             hc_clEnqueueCopyBuffer (device_param->command_queue, device_param->d_tm_c, device_param->d_bfs_c, 0, 0, size_tm, 0, NULL, NULL);
-            #endif
           }
         }
 
@@ -3132,28 +2883,11 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
         {
           run_kernel (KERN_RUN_23, device_param, pws_cnt);
 
-          #ifdef _CUDA
-          hc_cuCtxPushCurrent (device_param->context);
-
-          hc_cuMemcpyDtoH (device_param->hooks_buf, device_param->d_hooks, device_param->size_hooks);
-
-          hc_cuCtxPopCurrent (&device_param->context);
-          #elif _OCL
           hc_clEnqueueReadBuffer (device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
-          #endif
 
           // do something with data
 
-
-          #ifdef _CUDA
-          hc_cuCtxPushCurrent (device_param->context);
-
-          hc_cuMemcpyHtoD (device_param->d_hooks, device_param->hooks_buf, device_param->size_hooks);
-
-          hc_cuCtxPopCurrent (&device_param->context);
-          #elif _OCL
           hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
-          #endif
         }
 
         run_kernel (KERN_RUN_3, device_param, pws_cnt);
@@ -3551,476 +3285,9 @@ static uint64_t count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dicts
   return (cnt);
 }
 
-static uint get_gpu_vector_width (const uint hash_mode, const uint attack_mode, const uint attack_exec, const uint opti_type, const uint vliw)
-{
-  uint gpu_vector_width = 0;
-
-  if ((attack_mode == ATTACK_MODE_BF) && (attack_exec == ATTACK_EXEC_ON_GPU) && (opti_type & OPTI_TYPE_SCALAR_MODE))
-  {
-    return VECT_SIZE_1;
-  }
-
-  #ifdef _CUDA
-  if ((attack_mode == ATTACK_MODE_STRAIGHT) && (attack_exec == ATTACK_EXEC_ON_GPU))
-  {
-    return VECT_SIZE_1;
-  }
-
-  if (vliw == 1)
-  {
-    switch (hash_mode)
-    {
-      default:    gpu_vector_width = VECT_SIZE_1; break;
-    }
-  }
-  else if (vliw == 2)
-  {
-    switch (hash_mode)
-    {
-      case     0: gpu_vector_width = VECT_SIZE_4; break;
-      case    10: gpu_vector_width = VECT_SIZE_4; break;
-      case    11: gpu_vector_width = VECT_SIZE_4; break;
-      case    12: gpu_vector_width = VECT_SIZE_4; break;
-      case    20: gpu_vector_width = VECT_SIZE_4; break;
-      case    21: gpu_vector_width = VECT_SIZE_4; break;
-      case    22: gpu_vector_width = VECT_SIZE_4; break;
-      case    23: gpu_vector_width = VECT_SIZE_4; break;
-      case    30: gpu_vector_width = VECT_SIZE_4; break;
-      case    40: gpu_vector_width = VECT_SIZE_4; break;
-      case    50: gpu_vector_width = VECT_SIZE_4; break;
-      case    60: gpu_vector_width = VECT_SIZE_4; break;
-      case   100: gpu_vector_width = VECT_SIZE_4; break;
-      case   101: gpu_vector_width = VECT_SIZE_4; break;
-      case   110: gpu_vector_width = VECT_SIZE_4; break;
-      case   111: gpu_vector_width = VECT_SIZE_4; break;
-      case   112: gpu_vector_width = VECT_SIZE_4; break;
-      case   120: gpu_vector_width = VECT_SIZE_4; break;
-      case   121: gpu_vector_width = VECT_SIZE_4; break;
-      case   122: gpu_vector_width = VECT_SIZE_4; break;
-      case   124: gpu_vector_width = VECT_SIZE_4; break;
-      case   130: gpu_vector_width = VECT_SIZE_4; break;
-      case   131: gpu_vector_width = VECT_SIZE_4; break;
-      case   132: gpu_vector_width = VECT_SIZE_4; break;
-      case   133: gpu_vector_width = VECT_SIZE_4; break;
-      case   140: gpu_vector_width = VECT_SIZE_4; break;
-      case   141: gpu_vector_width = VECT_SIZE_4; break;
-      case   150: gpu_vector_width = VECT_SIZE_4; break;
-      case   160: gpu_vector_width = VECT_SIZE_4; break;
-      case   190: gpu_vector_width = VECT_SIZE_4; break;
-      case   200: gpu_vector_width = VECT_SIZE_4; break;
-      case   400: gpu_vector_width = VECT_SIZE_2; break;
-      case   500: gpu_vector_width = VECT_SIZE_2; break;
-      case   501: gpu_vector_width = VECT_SIZE_2; break;
-      case   900: gpu_vector_width = VECT_SIZE_4; break;
-      case  1000: gpu_vector_width = VECT_SIZE_4; break;
-      case  1100: gpu_vector_width = VECT_SIZE_4; break;
-      case  2400: gpu_vector_width = VECT_SIZE_4; break;
-      case  2410: gpu_vector_width = VECT_SIZE_4; break;
-      case  2600: gpu_vector_width = VECT_SIZE_4; break;
-      case  2611: gpu_vector_width = VECT_SIZE_4; break;
-      case  2612: gpu_vector_width = VECT_SIZE_4; break;
-      case  2711: gpu_vector_width = VECT_SIZE_4; break;
-      case  2811: gpu_vector_width = VECT_SIZE_4; break;
-      case  3710: gpu_vector_width = VECT_SIZE_4; break;
-      case  3800: gpu_vector_width = VECT_SIZE_4; break;
-      case  3711: gpu_vector_width = VECT_SIZE_4; break;
-      case  4300: gpu_vector_width = VECT_SIZE_4; break;
-      case  4800: gpu_vector_width = VECT_SIZE_4; break;
-      case  4900: gpu_vector_width = VECT_SIZE_4; break;
-      case  5100: gpu_vector_width = VECT_SIZE_4; break;
-      case  9900: gpu_vector_width = VECT_SIZE_4; break;
-      case 10200: gpu_vector_width = VECT_SIZE_4; break;
-      case 11000: gpu_vector_width = VECT_SIZE_4; break;
-      case 11500: gpu_vector_width = VECT_SIZE_4; break;
-
-      default:    gpu_vector_width = VECT_SIZE_1; break;
-    }
-  }
-  #endif
-
-  #ifdef _OCL
-  if (vliw == 1)
-  {
-    switch (hash_mode)
-    {
-      default:    gpu_vector_width = VECT_SIZE_1; break;
-    }
-  }
-  else if (vliw == 4)
-  {
-    switch (hash_mode)
-    {
-      case   150: gpu_vector_width = VECT_SIZE_2; break;
-      case   160: gpu_vector_width = VECT_SIZE_2; break;
-      case   300: gpu_vector_width = VECT_SIZE_2; break;
-      case  1400: gpu_vector_width = VECT_SIZE_2; break;
-      case  1410: gpu_vector_width = VECT_SIZE_2; break;
-      case  1420: gpu_vector_width = VECT_SIZE_2; break;
-      case  1421: gpu_vector_width = VECT_SIZE_2; break;
-      case  1430: gpu_vector_width = VECT_SIZE_2; break;
-      case  1440: gpu_vector_width = VECT_SIZE_2; break;
-      case  1441: gpu_vector_width = VECT_SIZE_2; break;
-      case  1450: gpu_vector_width = VECT_SIZE_1; break;
-      case  1460: gpu_vector_width = VECT_SIZE_2; break;
-      case  1500: gpu_vector_width = VECT_SIZE_1; break;
-      case  1700: gpu_vector_width = VECT_SIZE_1; break;
-      case  1710: gpu_vector_width = VECT_SIZE_1; break;
-      case  1711: gpu_vector_width = VECT_SIZE_1; break;
-      case  1720: gpu_vector_width = VECT_SIZE_1; break;
-      case  1722: gpu_vector_width = VECT_SIZE_1; break;
-      case  1730: gpu_vector_width = VECT_SIZE_1; break;
-      case  1731: gpu_vector_width = VECT_SIZE_1; break;
-      case  1740: gpu_vector_width = VECT_SIZE_1; break;
-      case  1750: gpu_vector_width = VECT_SIZE_1; break;
-      case  1760: gpu_vector_width = VECT_SIZE_1; break;
-      case  1800: gpu_vector_width = VECT_SIZE_1; break;
-      case  2100: gpu_vector_width = VECT_SIZE_2; break;
-      case  2500: gpu_vector_width = VECT_SIZE_2; break;
-      case  3000: gpu_vector_width = VECT_SIZE_1; break;
-      case  3100: gpu_vector_width = VECT_SIZE_2; break;
-      case  3200: gpu_vector_width = VECT_SIZE_1; break;
-      case  5000: gpu_vector_width = VECT_SIZE_1; break;
-      case  5200: gpu_vector_width = VECT_SIZE_2; break;
-      case  5600: gpu_vector_width = VECT_SIZE_2; break;
-      case  5700: gpu_vector_width = VECT_SIZE_2; break;
-      case  6100: gpu_vector_width = VECT_SIZE_2; break;
-      case  6211:
-      case  6212:
-      case  6213:
-      case  6221:
-      case  6222:
-      case  6223:
-      case  6231:
-      case  6232:
-      case  6233:
-      case  6241:
-      case  6242:
-      case  6243: gpu_vector_width = VECT_SIZE_1; break;
-      case  6400: gpu_vector_width = VECT_SIZE_1; break;
-      case  6500: gpu_vector_width = VECT_SIZE_1; break;
-      case  6600: gpu_vector_width = VECT_SIZE_1; break;
-      case  6700: gpu_vector_width = VECT_SIZE_2; break;
-      case  6800: gpu_vector_width = VECT_SIZE_1; break;
-      case  6900: gpu_vector_width = VECT_SIZE_1; break;
-      case  7100: gpu_vector_width = VECT_SIZE_1; break;
-      case  7200: gpu_vector_width = VECT_SIZE_1; break;
-      case  7300: gpu_vector_width = VECT_SIZE_1; break;
-      case  7400: gpu_vector_width = VECT_SIZE_1; break;
-      case  7500: gpu_vector_width = VECT_SIZE_1; break;
-      case  7700: gpu_vector_width = VECT_SIZE_1; break;
-      case  7800: gpu_vector_width = VECT_SIZE_1; break;
-      case  7900: gpu_vector_width = VECT_SIZE_1; break;
-      case  8000: gpu_vector_width = VECT_SIZE_2; break;
-      case  8200: gpu_vector_width = VECT_SIZE_1; break;
-      case  8500: gpu_vector_width = VECT_SIZE_2; break;
-      case  8700: gpu_vector_width = VECT_SIZE_2; break;
-      case  8800: gpu_vector_width = VECT_SIZE_1; break;
-      case  8900: gpu_vector_width = VECT_SIZE_1; break;
-      case  9000: gpu_vector_width = VECT_SIZE_1; break;
-      case  9100: gpu_vector_width = VECT_SIZE_1; break;
-      case  9200: gpu_vector_width = VECT_SIZE_1; break;
-      case  9300: gpu_vector_width = VECT_SIZE_1; break;
-      case  9400: gpu_vector_width = VECT_SIZE_1; break;
-      case  9500: gpu_vector_width = VECT_SIZE_1; break;
-      case  9600: gpu_vector_width = VECT_SIZE_1; break;
-      case  9700: gpu_vector_width = VECT_SIZE_1; break;
-      case  9710: gpu_vector_width = VECT_SIZE_1; break;
-      case  9720: gpu_vector_width = VECT_SIZE_2; break;
-      case  9800: gpu_vector_width = VECT_SIZE_1; break;
-      case  9810: gpu_vector_width = VECT_SIZE_1; break;
-      case  9820: gpu_vector_width = VECT_SIZE_2; break;
-      case 10000: gpu_vector_width = VECT_SIZE_1; break;
-      case 10100: gpu_vector_width = VECT_SIZE_1; break;
-      case 10400: gpu_vector_width = VECT_SIZE_1; break;
-      case 10410: gpu_vector_width = VECT_SIZE_1; break;
-      case 10420: gpu_vector_width = VECT_SIZE_2; break;
-      case 10500: gpu_vector_width = VECT_SIZE_1; break;
-      case 10600: gpu_vector_width = VECT_SIZE_2; break;
-      case 10700: gpu_vector_width = VECT_SIZE_1; break;
-      case 10800: gpu_vector_width = VECT_SIZE_1; break;
-      case 10900: gpu_vector_width = VECT_SIZE_1; break;
-      case 11100: gpu_vector_width = VECT_SIZE_2; break;
-      case 11200: gpu_vector_width = VECT_SIZE_2; break;
-      case 11300: gpu_vector_width = VECT_SIZE_1; break;
-      case 11400: gpu_vector_width = VECT_SIZE_1; break;
-      case 11600: gpu_vector_width = VECT_SIZE_1; break;
-      case 11700: gpu_vector_width = VECT_SIZE_1; break;
-      case 11800: gpu_vector_width = VECT_SIZE_1; break;
-      case 11900: gpu_vector_width = VECT_SIZE_1; break;
-      case 12000: gpu_vector_width = VECT_SIZE_1; break;
-      case 12100: gpu_vector_width = VECT_SIZE_1; break;
-      case 12200: gpu_vector_width = VECT_SIZE_1; break;
-      case 12300: gpu_vector_width = VECT_SIZE_1; break;
-      case 12500: gpu_vector_width = VECT_SIZE_1; break;
-      case 12700: gpu_vector_width = VECT_SIZE_1; break;
-      case 12800: gpu_vector_width = VECT_SIZE_1; break;
-
-      default:    gpu_vector_width = VECT_SIZE_4; break;
-    }
-  }
-  else if (vliw == 5)
-  {
-    switch (hash_mode)
-    {
-      case   150: gpu_vector_width = VECT_SIZE_2; break;
-      case   160: gpu_vector_width = VECT_SIZE_2; break;
-      case   300: gpu_vector_width = VECT_SIZE_2; break;
-      case  1400: gpu_vector_width = VECT_SIZE_2; break;
-      case  1410: gpu_vector_width = VECT_SIZE_2; break;
-      case  1420: gpu_vector_width = VECT_SIZE_2; break;
-      case  1421: gpu_vector_width = VECT_SIZE_2; break;
-      case  1430: gpu_vector_width = VECT_SIZE_2; break;
-      case  1440: gpu_vector_width = VECT_SIZE_2; break;
-      case  1441: gpu_vector_width = VECT_SIZE_2; break;
-      case  1450: gpu_vector_width = VECT_SIZE_1; break;
-      case  1460: gpu_vector_width = VECT_SIZE_2; break;
-      case  1500: gpu_vector_width = VECT_SIZE_1; break;
-      case  1700: gpu_vector_width = VECT_SIZE_1; break;
-      case  1710: gpu_vector_width = VECT_SIZE_1; break;
-      case  1711: gpu_vector_width = VECT_SIZE_1; break;
-      case  1720: gpu_vector_width = VECT_SIZE_1; break;
-      case  1722: gpu_vector_width = VECT_SIZE_1; break;
-      case  1730: gpu_vector_width = VECT_SIZE_1; break;
-      case  1731: gpu_vector_width = VECT_SIZE_1; break;
-      case  1740: gpu_vector_width = VECT_SIZE_1; break;
-      case  1750: gpu_vector_width = VECT_SIZE_1; break;
-      case  1760: gpu_vector_width = VECT_SIZE_1; break;
-      case  1800: gpu_vector_width = VECT_SIZE_1; break;
-      case  2100: gpu_vector_width = VECT_SIZE_2; break;
-      case  2500: gpu_vector_width = VECT_SIZE_2; break;
-      case  3000: gpu_vector_width = VECT_SIZE_1; break;
-      case  3100: gpu_vector_width = VECT_SIZE_2; break;
-      case  3200: gpu_vector_width = VECT_SIZE_1; break;
-      case  5000: gpu_vector_width = VECT_SIZE_1; break;
-      case  5200: gpu_vector_width = VECT_SIZE_2; break;
-      case  5400: gpu_vector_width = VECT_SIZE_2; break;
-      case  5600: gpu_vector_width = VECT_SIZE_2; break;
-      case  5700: gpu_vector_width = VECT_SIZE_2; break;
-      case  6100: gpu_vector_width = VECT_SIZE_2; break;
-      case  6211:
-      case  6212:
-      case  6213:
-      case  6221:
-      case  6222:
-      case  6223:
-      case  6231:
-      case  6232:
-      case  6233:
-      case  6241:
-      case  6242:
-      case  6243: gpu_vector_width = VECT_SIZE_1; break;
-      case  6400: gpu_vector_width = VECT_SIZE_1; break;
-      case  6500: gpu_vector_width = VECT_SIZE_1; break;
-      case  6600: gpu_vector_width = VECT_SIZE_1; break;
-      case  6700: gpu_vector_width = VECT_SIZE_2; break;
-      case  6800: gpu_vector_width = VECT_SIZE_1; break;
-      case  6900: gpu_vector_width = VECT_SIZE_1; break;
-      case  7100: gpu_vector_width = VECT_SIZE_1; break;
-      case  7200: gpu_vector_width = VECT_SIZE_1; break;
-      case  7300: gpu_vector_width = VECT_SIZE_1; break;
-      case  7400: gpu_vector_width = VECT_SIZE_1; break;
-      case  7500: gpu_vector_width = VECT_SIZE_1; break;
-      case  7700: gpu_vector_width = VECT_SIZE_1; break;
-      case  7800: gpu_vector_width = VECT_SIZE_1; break;
-      case  7900: gpu_vector_width = VECT_SIZE_1; break;
-      case  8000: gpu_vector_width = VECT_SIZE_2; break;
-      case  8200: gpu_vector_width = VECT_SIZE_1; break;
-      case  8300: gpu_vector_width = VECT_SIZE_2; break;
-      case  8400: gpu_vector_width = VECT_SIZE_2; break;
-      case  8500: gpu_vector_width = VECT_SIZE_2; break;
-      case  8700: gpu_vector_width = VECT_SIZE_2; break;
-      case  8800: gpu_vector_width = VECT_SIZE_1; break;
-      case  8900: gpu_vector_width = VECT_SIZE_1; break;
-      case  9000: gpu_vector_width = VECT_SIZE_1; break;
-      case  9100: gpu_vector_width = VECT_SIZE_1; break;
-      case  9200: gpu_vector_width = VECT_SIZE_1; break;
-      case  9300: gpu_vector_width = VECT_SIZE_1; break;
-      case  9400: gpu_vector_width = VECT_SIZE_1; break;
-      case  9500: gpu_vector_width = VECT_SIZE_1; break;
-      case  9600: gpu_vector_width = VECT_SIZE_1; break;
-      case  9700: gpu_vector_width = VECT_SIZE_1; break;
-      case  9710: gpu_vector_width = VECT_SIZE_1; break;
-      case  9720: gpu_vector_width = VECT_SIZE_2; break;
-      case  9800: gpu_vector_width = VECT_SIZE_1; break;
-      case  9810: gpu_vector_width = VECT_SIZE_1; break;
-      case  9820: gpu_vector_width = VECT_SIZE_2; break;
-      case 10000: gpu_vector_width = VECT_SIZE_1; break;
-      case 10100: gpu_vector_width = VECT_SIZE_1; break;
-      case 10400: gpu_vector_width = VECT_SIZE_1; break;
-      case 10410: gpu_vector_width = VECT_SIZE_1; break;
-      case 10420: gpu_vector_width = VECT_SIZE_2; break;
-      case 10500: gpu_vector_width = VECT_SIZE_1; break;
-      case 10600: gpu_vector_width = VECT_SIZE_2; break;
-      case 10700: gpu_vector_width = VECT_SIZE_1; break;
-      case 10800: gpu_vector_width = VECT_SIZE_1; break;
-      case 10900: gpu_vector_width = VECT_SIZE_1; break;
-      case 11100: gpu_vector_width = VECT_SIZE_2; break;
-      case 11200: gpu_vector_width = VECT_SIZE_2; break;
-      case 11300: gpu_vector_width = VECT_SIZE_1; break;
-      case 11400: gpu_vector_width = VECT_SIZE_1; break;
-      case 11600: gpu_vector_width = VECT_SIZE_1; break;
-      case 11700: gpu_vector_width = VECT_SIZE_1; break;
-      case 11800: gpu_vector_width = VECT_SIZE_1; break;
-      case 11900: gpu_vector_width = VECT_SIZE_1; break;
-      case 12000: gpu_vector_width = VECT_SIZE_1; break;
-      case 12100: gpu_vector_width = VECT_SIZE_1; break;
-      case 12200: gpu_vector_width = VECT_SIZE_1; break;
-      case 12300: gpu_vector_width = VECT_SIZE_1; break;
-      case 12500: gpu_vector_width = VECT_SIZE_1; break;
-      case 12700: gpu_vector_width = VECT_SIZE_1; break;
-      case 12800: gpu_vector_width = VECT_SIZE_1; break;
-
-      default:    gpu_vector_width = VECT_SIZE_4; break;
-    }
-  }
-  #endif
-
-  return gpu_vector_width;
-}
-
 static void pw_transpose_to_hi1 (const pw_t *p1, pw_t *p2)
 {
   memcpy (p2->hi1, p1->hi1, 64 * sizeof (uint));
-}
-
-static void pw_transpose_to_hi2 (const pw_t *p1, pw_t *p2)
-{
-  p2->hi2[0][ 0] = p1->hi2[0][ 0];
-  p2->hi2[0][ 2] = p1->hi2[0][ 1];
-  p2->hi2[0][ 4] = p1->hi2[0][ 2];
-  p2->hi2[0][ 6] = p1->hi2[0][ 3];
-  p2->hi2[0][ 8] = p1->hi2[0][ 4];
-  p2->hi2[0][10] = p1->hi2[0][ 5];
-  p2->hi2[0][12] = p1->hi2[0][ 6];
-  p2->hi2[0][14] = p1->hi2[0][ 7];
-  p2->hi2[0][16] = p1->hi2[0][ 8];
-  p2->hi2[0][18] = p1->hi2[0][ 9];
-  p2->hi2[0][20] = p1->hi2[0][10];
-  p2->hi2[0][22] = p1->hi2[0][11];
-  p2->hi2[0][24] = p1->hi2[0][12];
-  p2->hi2[0][26] = p1->hi2[0][13];
-  p2->hi2[0][28] = p1->hi2[0][14];
-  p2->hi2[0][30] = p1->hi2[0][15];
-  p2->hi2[1][ 0] = p1->hi2[0][16];
-  p2->hi2[1][ 2] = p1->hi2[0][17];
-  p2->hi2[1][ 4] = p1->hi2[0][18];
-  p2->hi2[1][ 6] = p1->hi2[0][19];
-  p2->hi2[1][ 8] = p1->hi2[0][20];
-  p2->hi2[1][10] = p1->hi2[0][21];
-  p2->hi2[1][12] = p1->hi2[0][22];
-  p2->hi2[1][14] = p1->hi2[0][23];
-  p2->hi2[1][16] = p1->hi2[0][24];
-  p2->hi2[1][18] = p1->hi2[0][25];
-  p2->hi2[1][20] = p1->hi2[0][26];
-  p2->hi2[1][22] = p1->hi2[0][27];
-  p2->hi2[1][24] = p1->hi2[0][28];
-  p2->hi2[1][26] = p1->hi2[0][29];
-  p2->hi2[1][28] = p1->hi2[0][30];
-  p2->hi2[1][30] = p1->hi2[0][31];
-
-  p2->hi2[0][ 1] = p1->hi2[1][ 0];
-  p2->hi2[0][ 3] = p1->hi2[1][ 1];
-  p2->hi2[0][ 5] = p1->hi2[1][ 2];
-  p2->hi2[0][ 7] = p1->hi2[1][ 3];
-  p2->hi2[0][ 9] = p1->hi2[1][ 4];
-  p2->hi2[0][11] = p1->hi2[1][ 5];
-  p2->hi2[0][13] = p1->hi2[1][ 6];
-  p2->hi2[0][15] = p1->hi2[1][ 7];
-  p2->hi2[0][17] = p1->hi2[1][ 8];
-  p2->hi2[0][19] = p1->hi2[1][ 9];
-  p2->hi2[0][21] = p1->hi2[1][10];
-  p2->hi2[0][23] = p1->hi2[1][11];
-  p2->hi2[0][25] = p1->hi2[1][12];
-  p2->hi2[0][27] = p1->hi2[1][13];
-  p2->hi2[0][29] = p1->hi2[1][14];
-  p2->hi2[0][31] = p1->hi2[1][15];
-  p2->hi2[1][ 1] = p1->hi2[1][16];
-  p2->hi2[1][ 3] = p1->hi2[1][17];
-  p2->hi2[1][ 5] = p1->hi2[1][18];
-  p2->hi2[1][ 7] = p1->hi2[1][19];
-  p2->hi2[1][ 9] = p1->hi2[1][20];
-  p2->hi2[1][11] = p1->hi2[1][21];
-  p2->hi2[1][13] = p1->hi2[1][22];
-  p2->hi2[1][15] = p1->hi2[1][23];
-  p2->hi2[1][17] = p1->hi2[1][24];
-  p2->hi2[1][19] = p1->hi2[1][25];
-  p2->hi2[1][21] = p1->hi2[1][26];
-  p2->hi2[1][23] = p1->hi2[1][27];
-  p2->hi2[1][25] = p1->hi2[1][28];
-  p2->hi2[1][27] = p1->hi2[1][29];
-  p2->hi2[1][29] = p1->hi2[1][30];
-  p2->hi2[1][31] = p1->hi2[1][31];
-}
-
-static void pw_transpose_to_hi4 (const pw_t *p1, pw_t *p2)
-{
-  p2->hi4[0][ 0] = p1->hi4[0][ 0];
-  p2->hi4[0][ 4] = p1->hi4[0][ 1];
-  p2->hi4[0][ 8] = p1->hi4[0][ 2];
-  p2->hi4[0][12] = p1->hi4[0][ 3];
-  p2->hi4[1][ 0] = p1->hi4[0][ 4];
-  p2->hi4[1][ 4] = p1->hi4[0][ 5];
-  p2->hi4[1][ 8] = p1->hi4[0][ 6];
-  p2->hi4[1][12] = p1->hi4[0][ 7];
-  p2->hi4[2][ 0] = p1->hi4[0][ 8];
-  p2->hi4[2][ 4] = p1->hi4[0][ 9];
-  p2->hi4[2][ 8] = p1->hi4[0][10];
-  p2->hi4[2][12] = p1->hi4[0][11];
-  p2->hi4[3][ 0] = p1->hi4[0][12];
-  p2->hi4[3][ 4] = p1->hi4[0][13];
-  p2->hi4[3][ 8] = p1->hi4[0][14];
-  p2->hi4[3][12] = p1->hi4[0][15];
-
-  p2->hi4[0][ 1] = p1->hi4[1][ 0];
-  p2->hi4[0][ 5] = p1->hi4[1][ 1];
-  p2->hi4[0][ 9] = p1->hi4[1][ 2];
-  p2->hi4[0][13] = p1->hi4[1][ 3];
-  p2->hi4[1][ 1] = p1->hi4[1][ 4];
-  p2->hi4[1][ 5] = p1->hi4[1][ 5];
-  p2->hi4[1][ 9] = p1->hi4[1][ 6];
-  p2->hi4[1][13] = p1->hi4[1][ 7];
-  p2->hi4[2][ 1] = p1->hi4[1][ 8];
-  p2->hi4[2][ 5] = p1->hi4[1][ 9];
-  p2->hi4[2][ 9] = p1->hi4[1][10];
-  p2->hi4[2][13] = p1->hi4[1][11];
-  p2->hi4[3][ 1] = p1->hi4[1][12];
-  p2->hi4[3][ 5] = p1->hi4[1][13];
-  p2->hi4[3][ 9] = p1->hi4[1][14];
-  p2->hi4[3][13] = p1->hi4[1][15];
-
-  p2->hi4[0][ 2] = p1->hi4[2][ 0];
-  p2->hi4[0][ 6] = p1->hi4[2][ 1];
-  p2->hi4[0][10] = p1->hi4[2][ 2];
-  p2->hi4[0][14] = p1->hi4[2][ 3];
-  p2->hi4[1][ 2] = p1->hi4[2][ 4];
-  p2->hi4[1][ 6] = p1->hi4[2][ 5];
-  p2->hi4[1][10] = p1->hi4[2][ 6];
-  p2->hi4[1][14] = p1->hi4[2][ 7];
-  p2->hi4[2][ 2] = p1->hi4[2][ 8];
-  p2->hi4[2][ 6] = p1->hi4[2][ 9];
-  p2->hi4[2][10] = p1->hi4[2][10];
-  p2->hi4[2][14] = p1->hi4[2][11];
-  p2->hi4[3][ 2] = p1->hi4[2][12];
-  p2->hi4[3][ 6] = p1->hi4[2][13];
-  p2->hi4[3][10] = p1->hi4[2][14];
-  p2->hi4[3][14] = p1->hi4[2][15];
-
-  p2->hi4[0][ 3] = p1->hi4[3][ 0];
-  p2->hi4[0][ 7] = p1->hi4[3][ 1];
-  p2->hi4[0][11] = p1->hi4[3][ 2];
-  p2->hi4[0][15] = p1->hi4[3][ 3];
-  p2->hi4[1][ 3] = p1->hi4[3][ 4];
-  p2->hi4[1][ 7] = p1->hi4[3][ 5];
-  p2->hi4[1][11] = p1->hi4[3][ 6];
-  p2->hi4[1][15] = p1->hi4[3][ 7];
-  p2->hi4[2][ 3] = p1->hi4[3][ 8];
-  p2->hi4[2][ 7] = p1->hi4[3][ 9];
-  p2->hi4[2][11] = p1->hi4[3][10];
-  p2->hi4[2][15] = p1->hi4[3][11];
-  p2->hi4[3][ 3] = p1->hi4[3][12];
-  p2->hi4[3][ 7] = p1->hi4[3][13];
-  p2->hi4[3][11] = p1->hi4[3][14];
-  p2->hi4[3][15] = p1->hi4[3][15];
 }
 
 static uint pw_add_to_hc1 (hc_device_param_t *device_param, const uint8_t *pw_buf, const uint pw_len)
@@ -4041,99 +3308,18 @@ static uint pw_add_to_hc1 (hc_device_param_t *device_param, const uint8_t *pw_bu
 
   cache_cnt++;
 
-  if (cache_cnt == VECT_SIZE_1)
-  {
-    pw_t *pw = device_param->pws_buf + pws_cnt;
+  pw_t *pw = device_param->pws_buf + pws_cnt;
 
-    device_param->pw_transpose (&pw_cache->pw_buf, pw);
+  device_param->pw_transpose (&pw_cache->pw_buf, pw);
 
-    pw->pw_len = pw_len;
+  pw->pw_len = pw_len;
 
-    pws_cnt++;
+  pws_cnt++;
 
-    device_param->pws_cnt = pws_cnt;
-    device_param->pw_cnt  = pws_cnt * 1;
+  device_param->pws_cnt = pws_cnt;
+  device_param->pw_cnt  = pws_cnt * 1;
 
-    cache_cnt = 0;
-  }
-
-  pw_cache->cnt = cache_cnt;
-
-  return pws_cnt;
-}
-
-static uint pw_add_to_hc2 (hc_device_param_t *device_param, const uint8_t *pw_buf, const uint pw_len)
-{
-  if (data.devices_status == STATUS_BYPASS) return 0;
-
-  pw_cache_t *pw_cache = device_param->pw_caches + pw_len;
-
-  uint cache_cnt = pw_cache->cnt;
-
-  uint8_t *pw_hc2 = pw_cache->pw_buf.hc2[cache_cnt];
-
-  memcpy (pw_hc2, pw_buf, pw_len);
-
-  memset (pw_hc2 + pw_len, 0, 128 - pw_len);
-
-  uint pws_cnt = device_param->pws_cnt;
-
-  cache_cnt++;
-
-  if (cache_cnt == VECT_SIZE_2)
-  {
-    pw_t *pw = device_param->pws_buf + pws_cnt;
-
-    device_param->pw_transpose (&pw_cache->pw_buf, pw);
-
-    pw->pw_len = pw_len;
-
-    pws_cnt++;
-
-    device_param->pws_cnt = pws_cnt;
-    device_param->pw_cnt  = pws_cnt * 2;
-
-    cache_cnt = 0;
-  }
-
-  pw_cache->cnt = cache_cnt;
-
-  return pws_cnt;
-}
-
-static uint pw_add_to_hc4 (hc_device_param_t *device_param, const uint8_t *pw_buf, const uint pw_len)
-{
-  if (data.devices_status == STATUS_BYPASS) return 0;
-
-  pw_cache_t *pw_cache = device_param->pw_caches + pw_len;
-
-  uint cache_cnt = pw_cache->cnt;
-
-  uint8_t *pw_hc4 = pw_cache->pw_buf.hc4[cache_cnt];
-
-  memcpy (pw_hc4, pw_buf, pw_len);
-
-  memset (pw_hc4 + pw_len, 0, 64 - pw_len);
-
-  uint pws_cnt = device_param->pws_cnt;
-
-  cache_cnt++;
-
-  if (cache_cnt == VECT_SIZE_4)
-  {
-    pw_t *pw = device_param->pws_buf + pws_cnt;
-
-    device_param->pw_transpose (&pw_cache->pw_buf, pw);
-
-    pw->pw_len = pw_len;
-
-    pws_cnt++;
-
-    device_param->pws_cnt = pws_cnt;
-    device_param->pw_cnt  = pws_cnt * 4;
-
-    cache_cnt = 0;
-  }
+  cache_cnt = 0;
 
   pw_cache->cnt = cache_cnt;
 
@@ -4152,8 +3338,7 @@ static void *thread_monitor (void *p)
   uint remove_left  = data.remove_timer;
   uint status_left  = data.status_timer;
 
-  #ifdef _OCL
-  #ifndef OSX
+  // these variables are mainly used for fan control (AMD only)
 
   int *fan_speed_chgd = (int *) mycalloc (data.devices_cnt, sizeof (int));
 
@@ -4169,30 +3354,31 @@ static void *thread_monitor (void *p)
 
   time_t last_temp_check_time;
 
-  #endif
-  #endif
-
   uint sleep_time = 1;
 
   if (data.runtime)
+  {
     runtime_check = 1;
+  }
 
   if (data.restore_timer)
+  {
     restore_check = 1;
+  }
 
   if ((data.remove == 1) && (data.hashlist_mode == HL_MODE_FILE))
+  {
     remove_check = 1;
+  }
 
   if (data.status == 1)
+  {
     status_check = 1;
+  }
 
   if (data.gpu_temp_disable == 0)
   {
-    #ifdef _OCL
-    #ifndef OSX
     time (&last_temp_check_time);
-    #endif
-    #endif
 
     hwmon_check = 1;
   }
@@ -4212,9 +3398,6 @@ static void *thread_monitor (void *p)
     {
       hc_thread_mutex_lock (mux_adl);
 
-      #ifdef _OCL
-      #ifndef OSX
-
       time_t temp_check_time;
 
       time (&temp_check_time);
@@ -4222,9 +3405,6 @@ static void *thread_monitor (void *p)
       uint Ta = temp_check_time - last_temp_check_time; // set Ta = sleep_time; is not good enough (see --remove etc)
 
       if (Ta == 0) Ta = 1;
-
-      #endif
-      #endif
 
       for (uint i = 0; i < data.devices_cnt; i++)
       {
@@ -4239,12 +3419,9 @@ static void *thread_monitor (void *p)
           break;
         }
 
-        #ifdef _OCL
-        #ifndef OSX
-
         const int gpu_temp_retain = data.gpu_temp_retain;
 
-        if (gpu_temp_retain)
+        if (gpu_temp_retain) // VENDOR_ID_AMD implied
         {
           if (data.hm_device[i].fan_supported == 1)
           {
@@ -4286,7 +3463,7 @@ static void *thread_monitor (void *p)
 
                 if ((freely_change_fan_speed == 1) || (fan_speed_must_change == 1))
                 {
-                  hm_set_fanspeed_with_device_id (i, fan_speed_new);
+                  hm_set_fanspeed_with_device_id_amd (i, fan_speed_new);
 
                   fan_speed_chgd[i] = 1;
                 }
@@ -4296,9 +3473,6 @@ static void *thread_monitor (void *p)
             }
           }
         }
-
-        #endif
-        #endif
       }
 
       hc_thread_mutex_unlock (mux_adl);
@@ -4375,14 +3549,10 @@ static void *thread_monitor (void *p)
     }
   }
 
-  #ifdef _OCL
-  #ifndef OSX
   myfree (fan_speed_chgd);
 
   myfree (temp_diff_old);
   myfree (temp_diff_sum);
-  #endif
-  #endif
 
   p = NULL;
 
@@ -4726,7 +3896,7 @@ static uint get_work (hc_device_param_t *device_param, const uint64_t max)
     if (device_param->gpu_blocks == device_param->gpu_blocks_user)
     {
       const uint32_t gpu_blocks_new = (float) device_param->gpu_blocks * data.gpu_blocks_div;
-      const uint32_t gpu_power_new  = gpu_blocks_new / device_param->gpu_vector_width;
+      const uint32_t gpu_power_new  = gpu_blocks_new;
 
       if (gpu_blocks_new < device_param->gpu_blocks)
       {
@@ -4981,10 +4151,8 @@ static void *thread_calc (void *p)
       const uint64_t words_off = device_param->words_off;
       const uint64_t words_fin = words_off + work;
 
-      const uint gpu_vector_width = device_param->gpu_vector_width;
-
       const uint pw_cnt  = work;
-      const uint pws_cnt = mydivc32 (work, gpu_vector_width);
+      const uint pws_cnt = work;
 
       device_param->pw_cnt  = pw_cnt;
       device_param->pws_cnt = pws_cnt;
@@ -5334,10 +4502,6 @@ static void *thread_calc (void *p)
 
 static void weak_hash_check (hc_device_param_t *device_param, const uint salt_pos, const uint gpu_loops)
 {
-  #ifdef _CUDA
-  hc_cuCtxPushCurrent (device_param->context);
-  #endif
-
   salt_t *salt_buf = &data.salts_buf[salt_pos];
 
   device_param->kernel_params_buf32[24] = salt_pos;
@@ -5408,10 +4572,6 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
   data.dictfile  = dictfile_old;
   data.dictfile2 = dictfile2_old;
   data.mask      = mask_old;
-
-  #ifdef _CUDA
-  hc_cuCtxPopCurrent (&device_param->context);
-  #endif
 }
 
 // hlfmt hashcat
@@ -5744,15 +4904,15 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 }
 
 /**
- * main
+ * some further helper function
  */
 
-#ifdef _OCL
+// wrapper around mymalloc for ADL
+
 void *__stdcall ADL_Main_Memory_Alloc (const int iSize)
 {
   return mymalloc (iSize);
 }
-#endif
 
 static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, const uint dgst_shifts, char *digests_buf_ptr, const uint bitmap_mask, const uint bitmap_size, uint *bitmap_a, uint *bitmap_b, uint *bitmap_c, uint *bitmap_d, const uint64_t collisions_max)
 {
@@ -5799,6 +4959,10 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
 
   return collisions;
 }
+
+/**
+ * main
+ */
 
 int main (int argc, char **argv)
 {
@@ -5906,8 +5070,8 @@ int main (int argc, char **argv)
   uint  increment_min     = INCREMENT_MIN;
   uint  increment_max     = INCREMENT_MAX;
   char *cpu_affinity      = NULL;
-  uint  gpu_async         = GPU_ASYNC;
   char *gpu_devices       = NULL;
+  char *gpu_platform      = NULL;
   char *truecrypt_keyfiles = NULL;
   uint  workload_profile  = WORKLOAD_PROFILE;
   uint  gpu_accel         = GPU_ACCEL;
@@ -5980,8 +5144,8 @@ int main (int argc, char **argv)
   #define IDX_MARKOV_THRESHOLD  't'
   #define IDX_MARKOV_HCSTAT     0xff24
   #define IDX_CPU_AFFINITY      0xff25
-  #define IDX_GPU_ASYNC         0xff26
   #define IDX_GPU_DEVICES       'd'
+  #define IDX_GPU_PLATFORM      0xff72
   #define IDX_WORKLOAD_PROFILE  'w'
   #define IDX_GPU_ACCEL         'n'
   #define IDX_GPU_LOOPS         'u'
@@ -6060,8 +5224,8 @@ int main (int argc, char **argv)
     {"markov-threshold",  required_argument, 0, IDX_MARKOV_THRESHOLD},
     {"markov-hcstat",     required_argument, 0, IDX_MARKOV_HCSTAT},
     {"cpu-affinity",      required_argument, 0, IDX_CPU_AFFINITY},
-    {"gpu-async",         no_argument,       0, IDX_GPU_ASYNC},
     {"gpu-devices",       required_argument, 0, IDX_GPU_DEVICES},
+    {"gpu-platform",      required_argument, 0, IDX_GPU_PLATFORM},
     {"workload-profile",  required_argument, 0, IDX_WORKLOAD_PROFILE},
     {"gpu-accel",         required_argument, 0, IDX_GPU_ACCEL},
     {"gpu-loops",         required_argument, 0, IDX_GPU_LOOPS},
@@ -6216,11 +5380,8 @@ int main (int argc, char **argv)
   uint remove_timer_chgd    = 0;
   uint increment_min_chgd   = 0;
   uint increment_max_chgd   = 0;
-
-  #if _OCL
   uint gpu_temp_abort_chgd  = 0;
   uint gpu_temp_retain_chgd = 0;
-  #endif
 
   optind = 1;
   optopt = 0;
@@ -6292,23 +5453,17 @@ int main (int argc, char **argv)
       case IDX_HEX_SALT:          hex_salt          = 1;               break;
       case IDX_HEX_WORDLIST:      hex_wordlist      = 1;               break;
       case IDX_CPU_AFFINITY:      cpu_affinity      = optarg;          break;
-      case IDX_GPU_ASYNC:         gpu_async         = 1;               break;
       case IDX_GPU_DEVICES:       gpu_devices       = optarg;          break;
+      case IDX_GPU_PLATFORM:      gpu_platform      = optarg;          break;
       case IDX_WORKLOAD_PROFILE:  workload_profile  = atoi (optarg);   break;
       case IDX_GPU_ACCEL:         gpu_accel         = atoi (optarg);
                                   gpu_accel_chgd    = 1;               break;
       case IDX_GPU_LOOPS:         gpu_loops         = atoi (optarg);
                                   gpu_loops_chgd    = 1;               break;
       case IDX_GPU_TEMP_DISABLE:  gpu_temp_disable  = 1;               break;
-      case IDX_GPU_TEMP_ABORT:
-                                  #if _OCL
-                                  gpu_temp_abort_chgd = 1;
-                                  #endif
+      case IDX_GPU_TEMP_ABORT:    gpu_temp_abort_chgd = 1;
                                   gpu_temp_abort    = atoi (optarg);   break;
-      case IDX_GPU_TEMP_RETAIN:
-                                  #if _OCL
-                                  gpu_temp_retain_chgd = 1;
-                                  #endif
+      case IDX_GPU_TEMP_RETAIN:   gpu_temp_retain_chgd = 1;
                                   gpu_temp_retain   = atoi (optarg);   break;
       case IDX_POWERTUNE_ENABLE:  powertune_enable  = 1;               break;
       case IDX_LOGFILE_DISABLE:   logfile_disable   = 1;               break;
@@ -7126,7 +6281,6 @@ int main (int argc, char **argv)
   logfile_top_uint   (debug_mode);
   logfile_top_uint   (force);
   logfile_top_uint   (gpu_accel);
-  logfile_top_uint   (gpu_async);
   logfile_top_uint   (gpu_loops);
   logfile_top_uint   (gpu_temp_abort);
   logfile_top_uint   (gpu_temp_disable);
@@ -7182,6 +6336,7 @@ int main (int argc, char **argv)
   logfile_top_string (custom_charset_4);
   logfile_top_string (debug_file);
   logfile_top_string (gpu_devices);
+  logfile_top_string (gpu_platform);
   logfile_top_string (induction_dir);
   logfile_top_string (markov_hcstat);
   logfile_top_string (outfile);
@@ -7315,7 +6470,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
@@ -7340,7 +6494,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
@@ -7365,7 +6518,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
@@ -7390,7 +6542,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
@@ -7508,7 +6659,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
@@ -7593,7 +6743,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
@@ -7617,7 +6766,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
@@ -7641,7 +6789,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -7665,7 +6812,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -7690,7 +6836,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -7809,7 +6954,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -7836,7 +6980,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -7862,7 +7005,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -7887,7 +7029,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -7995,7 +7136,6 @@ int main (int argc, char **argv)
                    sort_by_digest = sort_by_digest_4_5;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED;
@@ -8013,8 +7153,7 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = mysql323_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SCALAR_MODE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8034,7 +7173,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED;
@@ -8103,7 +7241,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
@@ -8129,7 +7266,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
@@ -8158,7 +7294,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED;
                    dgst_pos0   = 0;
@@ -8180,7 +7315,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
@@ -8204,7 +7338,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -8275,7 +7408,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -8380,7 +7512,6 @@ int main (int argc, char **argv)
                    parse_func  = descrypt_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
                    opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_PRECOMPUTE_PERMUT;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
@@ -8416,7 +7547,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
@@ -8440,7 +7570,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -8464,7 +7593,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -8536,7 +7664,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -8562,7 +7689,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -8675,7 +7801,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED;
@@ -8696,7 +7821,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED;
                    dgst_pos0   = 0;
@@ -8834,7 +7958,6 @@ int main (int argc, char **argv)
                    parse_func  = lm_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
                    opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_PRECOMPUTE_PERMUT;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
@@ -8852,8 +7975,7 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = oracleh_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SCALAR_MODE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9161,7 +8283,6 @@ int main (int argc, char **argv)
                    parse_func  = netntlmv1_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_PRECOMPUTE_PERMUT;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
@@ -9200,7 +8321,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
@@ -9710,7 +8830,6 @@ int main (int argc, char **argv)
                    sort_by_digest = sort_by_digest_4_8;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_RAW_HASH;
@@ -9802,7 +8921,6 @@ int main (int argc, char **argv)
                    parse_func  = racf_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
                    opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_PRECOMPUTE_PERMUT;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
@@ -9818,8 +8936,7 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = lotus5_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_SCALAR_MODE
-                               | OPTI_TYPE_EARLY_SKIP
+                   opti_type   = OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
                                | OPTI_TYPE_RAW_HASH;
@@ -9837,8 +8954,7 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = lotus6_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_SCALAR_MODE
-                               | OPTI_TYPE_EARLY_SKIP
+                   opti_type   = OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_RAW_HASH;
                    dgst_pos0   = 0;
@@ -10106,7 +9222,6 @@ int main (int argc, char **argv)
                    sort_by_digest = sort_by_digest_4_4;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED;
@@ -10140,7 +9255,6 @@ int main (int argc, char **argv)
                    parse_func  = siphash_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
                    opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_RAW_HASH;
                    dgst_pos0   = 0;
@@ -10260,7 +9374,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
@@ -10301,7 +9414,6 @@ int main (int argc, char **argv)
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_SCALAR_MODE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
@@ -10429,8 +9541,7 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = crc32_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SCALAR_MODE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -12025,7 +11136,7 @@ int main (int argc, char **argv)
                        gpu_accel = 32;
                        break;
           case  1800:  gpu_loops = ROUNDS_SHA512CRYPT;
-                       gpu_accel = 8;
+                       gpu_accel = 16;
                        break;
           case  2100:  gpu_loops = ROUNDS_DCC2;
                        gpu_accel = 16;
@@ -12034,7 +11145,7 @@ int main (int argc, char **argv)
                        gpu_accel = 32;
                        break;
           case  3200:  gpu_loops = ROUNDS_BCRYPT;
-                       gpu_accel = 2;
+                       gpu_accel = 8;
                        break;
           case  5200:  gpu_loops = ROUNDS_PSAFE3;
                        gpu_accel = 16;
@@ -12097,19 +11208,19 @@ int main (int argc, char **argv)
                        gpu_accel = 64;
                        break;
           case  7100:  gpu_loops = ROUNDS_SHA512OSX;
-                       gpu_accel = 2;
+                       gpu_accel = 8;
                        break;
           case  7200:  gpu_loops = ROUNDS_GRUB;
-                       gpu_accel = 2;
+                       gpu_accel = 16;
                        break;
           case  7400:  gpu_loops = ROUNDS_SHA256CRYPT;
-                       gpu_accel = 4;
+                       gpu_accel = 8;
                        break;
           case  7900:  gpu_loops = ROUNDS_DRUPAL7;
                        gpu_accel = 8;
                        break;
           case  8200:  gpu_loops = ROUNDS_CLOUDKEY;
-                       gpu_accel = 2;
+                       gpu_accel = 8;
                        break;
           case  8800:  gpu_loops = ROUNDS_ANDROIDFDE;
                        gpu_accel = 32;
@@ -12136,7 +11247,7 @@ int main (int argc, char **argv)
                        gpu_accel = 32;
                        break;
           case  9600:  gpu_loops = ROUNDS_OFFICE2013;
-                       gpu_accel = 4;
+                       gpu_accel = 8;
                        break;
           case 10000:  gpu_loops = ROUNDS_DJANGOPBKDF2;
                        gpu_accel = 8;
@@ -12154,10 +11265,10 @@ int main (int argc, char **argv)
                        gpu_accel = 8;
                        break;
           case 11300:  gpu_loops = ROUNDS_BITCOIN_WALLET;
-                       gpu_accel = 2;
+                       gpu_accel = 8;
                        break;
           case 11600:  gpu_loops = ROUNDS_SEVEN_ZIP;
-                       gpu_accel = 4;
+                       gpu_accel = 8;
                        break;
           case 11900:  gpu_loops = ROUNDS_PBKDF2_MD5;
                        gpu_accel = 8;
@@ -13136,71 +12247,107 @@ int main (int argc, char **argv)
      * platform
      */
 
-    #ifdef _CUDA
-    if (cuInit (0) != CUDA_SUCCESS)
-    {
-      log_error ("ERROR: No NVidia compatible platform found");
-
-      return (-1);
-    }
-    #endif
-
-    /**
-     * devices get
-     */
-
-    uint devices_all_cnt = 0;
-
-    #ifdef _CUDA
-    CUdevice devices_all[DEVICES_MAX];
-    CUdevice devices[DEVICES_MAX];
-
-    hc_cuDeviceGetCount ((int *) &devices_all_cnt);
-
-    for (uint i = 0; i < devices_all_cnt; i++)
-    {
-      hc_cuDeviceGet (&devices_all[i], i);
-    }
-
-    #elif _OCL
-    cl_platform_id CL_platform = NULL;
-
     cl_platform_id CL_platforms[CL_PLATFORMS_MAX];
 
     uint CL_platforms_cnt = 0;
 
     hc_clGetPlatformIDs (CL_PLATFORMS_MAX, CL_platforms, &CL_platforms_cnt);
 
-    for (uint i = 0; i < CL_platforms_cnt; i++)
+    if (CL_platforms_cnt == 0)
     {
-      char CL_platform_vendor[INFOSZ];
-
-      memset (CL_platform_vendor, 0, sizeof (CL_platform_vendor));
-
-      hc_clGetPlatformInfo (CL_platforms[i], CL_PLATFORM_VENDOR, sizeof (CL_platform_vendor), CL_platform_vendor, NULL);
-
-      if ((strcmp (CL_platform_vendor, CL_VENDOR_AMD)   != 0)
-       && (strcmp (CL_platform_vendor, CL_VENDOR_SDS)   != 0)
-       && (strcmp (CL_platform_vendor, CL_VENDOR_APPLE) != 0)) continue;
-
-      if (strcmp (CL_platform_vendor, CL_VENDOR_SDS) == 0) gpu_temp_disable = 1;
-
-      CL_platform = CL_platforms[i];
-    }
-
-    if (CL_platform == NULL)
-    {
-      log_error ("ERROR: No AMD/SDS compatible platform found");
+      log_error ("ERROR: No OpenCL compatible platform found");
 
       return (-1);
     }
 
+    uint CL_platform_sel = 0;
+
+    if (CL_platforms_cnt > 1)
+    {
+      if (gpu_platform == NULL)
+      {
+        log_error ("ERROR: Too many OpenCL compatible platforms found");
+        log_error ("       Please select a single platform using the --gpu-platform option");
+        log_error ("");
+        log_error ("Available OpenCL platforms:");
+
+        for (uint i = 0; i < CL_platforms_cnt; i++)
+        {
+          char CL_platform_vendor[INFOSZ];
+
+          memset (CL_platform_vendor, 0, sizeof (CL_platform_vendor));
+
+          hc_clGetPlatformInfo (CL_platforms[i], CL_PLATFORM_VENDOR, sizeof (CL_platform_vendor), CL_platform_vendor, NULL);
+
+          printf ("* %d = %s\n", i + 1, CL_platform_vendor);
+        }
+
+        return (-1);
+      }
+      else
+      {
+        CL_platform_sel = atoi (gpu_platform);
+
+        if (CL_platform_sel > CL_platforms_cnt)
+        {
+          log_error ("ERROR: invalid OpenCL platforms selected");
+
+          return (-1);
+        }
+
+        // user does not count with zero
+
+        CL_platform_sel -= 1;
+      }
+    }
+
+    cl_platform_id CL_platform = CL_platforms[CL_platform_sel];
+
+    char CL_platform_vendor[INFOSZ];
+
+    memset (CL_platform_vendor, 0, sizeof (CL_platform_vendor));
+
+    hc_clGetPlatformInfo (CL_platform, CL_PLATFORM_VENDOR, sizeof (CL_platform_vendor), CL_platform_vendor, NULL);
+
+    uint vendor_id;
+
+    if (strcmp (CL_platform_vendor, CL_VENDOR_AMD) == 0)
+    {
+      vendor_id = VENDOR_ID_AMD;
+    }
+    else if (strcmp (CL_platform_vendor, CL_VENDOR_NV) == 0)
+    {
+      vendor_id = VENDOR_ID_NV;
+
+      // make sure that we do not directly control the fan for NVidia
+
+      gpu_temp_retain = 0;
+      data.gpu_temp_retain = gpu_temp_retain;
+    }
+    else
+    {
+      vendor_id = VENDOR_ID_UNKNOWN;
+    }
+
+    if (vendor_id == VENDOR_ID_UNKNOWN)
+    {
+      log_error ("Warning: unknown OpenCL vendor '%s' detected", CL_platform_vendor);
+
+      gpu_temp_disable = 1;
+    }
+
+    data.vendor_id = vendor_id;
+
+    /**
+     * devices
+     */
+
     cl_device_id devices_all[DEVICES_MAX];
     cl_device_id devices[DEVICES_MAX];
 
-    hc_clGetDeviceIDs (CL_platform, CL_DEVICE_TYPE_GPU, DEVICES_MAX, devices_all, (uint *) &devices_all_cnt);
+    uint devices_all_cnt = 0;
 
-    #endif
+    hc_clGetDeviceIDs (CL_platform, CL_DEVICE_TYPE_GPU, DEVICES_MAX, devices_all, (uint *) &devices_all_cnt);
 
     int hm_adapters_all = devices_all_cnt;
 
@@ -13210,105 +12357,109 @@ int main (int argc, char **argv)
 
     if (gpu_temp_disable == 0)
     {
-      #ifdef _CUDA
-      #ifdef LINUX
-      if (hc_NVML_nvmlInit () == NVML_SUCCESS)
+      if (vendor_id == VENDOR_ID_NV)
       {
-        HM_ADAPTER nvGPUHandle[DEVICES_MAX];
+        #ifdef LINUX
+        HM_LIB hm_dll = hm_init ();
 
-        int tmp_in = hm_get_adapter_index (nvGPUHandle);
+        data.hm_dll = hm_dll;
 
-        int tmp_out = 0;
-
-        for (int i = 0; i < tmp_in; i++)
+        if (hc_NVML_nvmlInit (hm_dll) == NVML_SUCCESS)
         {
-          hm_adapter_all[tmp_out++].adapter_index = nvGPUHandle[i];
+          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
+
+          int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
+
+          int tmp_out = 0;
+
+          for (int i = 0; i < tmp_in; i++)
+          {
+            hm_adapter_all[tmp_out++].adapter_index.nv = nvGPUHandle[i];
+          }
+
+          hm_adapters_all = tmp_out;
+
+          for (int i = 0; i < tmp_out; i++)
+          {
+            unsigned int speed;
+
+            if (hc_NVML_nvmlDeviceGetFanSpeed (hm_dll, 1, hm_adapter_all[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapter_all[i].fan_supported = 1;
+          }
         }
+        #endif
 
-        hm_adapters_all = tmp_out;
-
-        for (int i = 0; i < tmp_out; i++)
+        #ifdef WIN
+        if (NvAPI_Initialize () == NVAPI_OK)
         {
-          unsigned int speed;
+          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
 
-          if (nvmlDeviceGetFanSpeed (hm_adapter_all[i].adapter_index, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapter_all[i].fan_supported = 1;
+          int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
+
+          int tmp_out = 0;
+
+          for (int i = 0; i < tmp_in; i++)
+          {
+            hm_adapter_all[tmp_out++].adapter_index.nv = nvGPUHandle[i];
+          }
+
+          hm_adapters_all = tmp_out;
+
+          for (int i = 0; i < tmp_out; i++)
+          {
+            NvU32 speed;
+
+            if (NvAPI_GPU_GetTachReading (hm_adapter_all[i].adapter_index.nv, &speed) != NVAPI_NOT_SUPPORTED) hm_adapter_all[i].fan_supported = 1;
+          }
+        }
+        #endif
+      }
+
+      if (vendor_id == VENDOR_ID_AMD)
+      {
+        HM_LIB hm_dll = hm_init ();
+
+        data.hm_dll = hm_dll;
+
+        if (hc_ADL_Main_Control_Create (hm_dll, ADL_Main_Memory_Alloc, 0) == ADL_OK)
+        {
+          // total number of adapters
+
+          int hm_adapters_num;
+
+          if (get_adapters_num_amd (hm_dll, &hm_adapters_num) != 0) return (-1);
+
+          // adapter info
+
+          LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_amd (hm_dll, hm_adapters_num);
+
+          if (lpAdapterInfo == NULL) return (-1);
+
+          // get a list (of ids of) valid/usable adapters
+
+          int num_adl_adapters = 0;
+
+          uint32_t *valid_adl_device_list = hm_get_list_valid_adl_adapters (hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
+
+          if (num_adl_adapters > 0)
+          {
+            hc_thread_mutex_lock (mux_adl);
+
+            // hm_get_opencl_busid_devid (hm_adapter_all, devices_all_cnt, devices_all);
+
+            hm_get_adapter_index_amd (hm_adapter_all, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+
+            hm_get_overdrive_version  (hm_dll, hm_adapter_all, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+            hm_check_fanspeed_control (hm_dll, hm_adapter_all, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+
+            hc_thread_mutex_unlock (mux_adl);
+          }
+
+          hm_adapters_all = num_adl_adapters;
+
+          myfree (valid_adl_device_list);
+          myfree (lpAdapterInfo);
         }
       }
-      #endif
-
-      #ifdef WIN
-      if (NvAPI_Initialize () == NVAPI_OK)
-      {
-        HM_ADAPTER nvGPUHandle[DEVICES_MAX];
-
-        int tmp_in = hm_get_adapter_index (nvGPUHandle);
-
-        int tmp_out = 0;
-
-        for (int i = 0; i < tmp_in; i++)
-        {
-          hm_adapter_all[tmp_out++].adapter_index = nvGPUHandle[i];
-        }
-
-        hm_adapters_all = tmp_out;
-
-        for (int i = 0; i < tmp_out; i++)
-        {
-          NvU32 speed;
-
-          if (NvAPI_GPU_GetTachReading (hm_adapter_all[i].adapter_index, &speed) != NVAPI_NOT_SUPPORTED) hm_adapter_all[i].fan_supported = 1;
-        }
-      }
-      #endif
-      #endif
-
-      #ifdef _OCL
-      #ifndef OSX
-      HM_LIB hm_dll = hm_init ();
-
-      data.hm_dll = hm_dll;
-
-      if (hc_ADL_Main_Control_Create (hm_dll, ADL_Main_Memory_Alloc, 0) == ADL_OK)
-      {
-        // total number of adapters
-
-        int hm_adapters_num;
-
-        if (get_adapters_num (hm_dll, &hm_adapters_num) != 0) return (-1);
-
-        // adapter info
-
-        LPAdapterInfo lpAdapterInfo = hm_get_adapter_info (hm_dll, hm_adapters_num);
-
-        if (lpAdapterInfo == NULL) return (-1);
-
-        // get a list (of ids of) valid/usable adapters
-
-        int num_adl_adapters = 0;
-
-        uint32_t *valid_adl_device_list = hm_get_list_valid_adl_adapters (hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
-
-        if (num_adl_adapters > 0)
-        {
-          hc_thread_mutex_lock (mux_adl);
-
-          // hm_get_opencl_busid_devid (hm_adapter_all, devices_all_cnt, devices_all);
-
-          hm_get_adapter_index (hm_adapter_all, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-
-          hm_get_overdrive_version  (hm_dll, hm_adapter_all, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-          hm_check_fanspeed_control (hm_dll, hm_adapter_all, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-
-          hc_thread_mutex_unlock (mux_adl);
-        }
-
-        hm_adapters_all = num_adl_adapters;
-
-        myfree (valid_adl_device_list);
-        myfree (lpAdapterInfo);
-      }
-      #endif
-      #endif
     }
 
     if (hm_adapters_all == 0)
@@ -13365,49 +12516,27 @@ int main (int argc, char **argv)
 
       memset (device_name, 0, sizeof (device_name));
 
-      #ifdef _CUDA
-      size_t    global_mem_size;
-      int       max_clock_frequency;
-      int       max_compute_units;
-      int       kernel_exec_timeout;
-
-      hc_cuDeviceGetName (device_name, sizeof (device_name), devices[device_id]);
-      hc_cuDeviceTotalMem (&global_mem_size, devices[device_id]);
-      hc_cuDeviceGetAttribute (&max_clock_frequency, CU_DEVICE_ATTRIBUTE_CLOCK_RATE, devices[device_id]); max_clock_frequency /= 1000;
-      hc_cuDeviceGetAttribute (&max_compute_units, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, devices[device_id]);
-      hc_cuDeviceGetAttribute (&kernel_exec_timeout, CU_DEVICE_ATTRIBUTE_KERNEL_EXEC_TIMEOUT, devices[device_id]);
-
-      #elif _OCL
       cl_ulong  global_mem_size;
+      cl_ulong  max_mem_alloc_size;
       cl_uint   max_clock_frequency;
       cl_uint   max_compute_units;
 
-      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_NAME,                sizeof (device_name),         &device_name,         NULL);
-      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_GLOBAL_MEM_SIZE,     sizeof (global_mem_size),     &global_mem_size,     NULL);
-      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof (max_clock_frequency), &max_clock_frequency, NULL);
-      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_COMPUTE_UNITS,   sizeof (max_compute_units),   &max_compute_units,   NULL);
-
-      #endif
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_NAME,                 sizeof (device_name),         &device_name,         NULL);
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_GLOBAL_MEM_SIZE,      sizeof (global_mem_size),     &global_mem_size,     NULL);
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE,   sizeof (max_mem_alloc_size),  &max_mem_alloc_size,  NULL);
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_CLOCK_FREQUENCY,  sizeof (max_clock_frequency), &max_clock_frequency, NULL);
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_COMPUTE_UNITS,    sizeof (max_compute_units),   &max_compute_units,   NULL);
 
       if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
       {
-        log_info ("Device #%u: %s, %luMB, %dMhz, %uMCU",
+        log_info ("Device #%u: %s, %lu/%lu MB allocatable, %dMhz, %uMCU",
                   device_all_id + 1,
                   device_name,
-                  (unsigned int) (global_mem_size / 1024 / 1024),
+                  (unsigned int) (max_mem_alloc_size / 1024 / 1024),
+                  (unsigned int) (global_mem_size    / 1024 / 1024),
                   (unsigned int) (max_clock_frequency),
                   (unsigned int) max_compute_units);
       }
-
-      #ifdef _CUDA
-      if (quiet == 0 && kernel_exec_timeout != 0 && algorithm_pos == 0)
-      {
-        log_info ("Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
-        #if _WIN
-        log_info ("           You can disable it with a regpatch, see here: http://hashcat.net/wiki/doku.php?id=timeout_patch");
-        #endif
-      }
-      #endif
 
       devices_cnt++;
     }
@@ -13418,6 +12547,8 @@ int main (int argc, char **argv)
 
       return (-1);
     }
+
+    data.devices_cnt = devices_cnt;
 
     if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
     {
@@ -13439,6 +12570,10 @@ int main (int argc, char **argv)
         return (-1);
       }
     }
+
+    data.gpu_temp_disable = gpu_temp_disable;
+    data.gpu_temp_abort   = gpu_temp_abort;
+    data.gpu_temp_retain  = gpu_temp_retain;
 
     if (data.quiet == 0)
     {
@@ -13487,42 +12622,14 @@ int main (int argc, char **argv)
     }
 
     /**
-     * store all the preparation, not hash_mode dependant
-     */
-
-    data.gpu_temp_disable = gpu_temp_disable;
-    data.gpu_temp_abort   = gpu_temp_abort;
-    data.gpu_temp_retain  = gpu_temp_retain;
-
-    data.devices_cnt = devices_cnt;
-
-    #ifdef _OCL
-    /**
-     * catalyst driver check
-     */
-
-    int catalyst_check = (force == 1) ? 0 : 1;
-
-    int catalyst_warn = 0;
-
-    int catalyst_broken = 0;
-    #endif
-
-    /**
      * devices init
      */
-
-    #ifdef _OCL
-    #ifndef OSX
-    int gpu_temp_retain_set = 0;
 
     int *temp_retain_fanspeed_value = (int *) mycalloc (devices_cnt, sizeof (int));
 
     ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (devices_cnt, sizeof (ADLOD6MemClockState));
 
     int *od_power_control_status = (int *) mycalloc (devices_cnt, sizeof (int));
-    #endif
-    #endif
 
     hc_device_param_t *devices_param = (hc_device_param_t *) mycalloc (devices_cnt, sizeof (hc_device_param_t));
 
@@ -13532,56 +12639,6 @@ int main (int argc, char **argv)
     {
       hc_device_param_t *device_param = &data.devices_param[device_id];
 
-      #ifdef _CUDA
-      CUdevice device = devices[device_id];
-
-      device_param->device = device;
-
-      size_t bytes;
-
-      hc_cuDeviceTotalMem (&bytes, device);
-
-      device_param->gpu_maxmem_alloc = bytes;
-
-      int sm_major = 0;
-      int sm_minor = 0;
-      int max_compute_units = 0;
-
-      hc_cuDeviceComputeCapability (&sm_major, &sm_minor, device);
-
-      if (sm_major == 1)
-      {
-        log_error ("ERROR: Shader Model 1.0 - 1.3 based GPU detected. Support for CUDA was dropped by NVidia.");
-        log_error ("       Remove it from your system or use -d and select only supported cards.");
-
-        return (-1);
-      }
-
-      device_param->sm_major = sm_major;
-      device_param->sm_minor = sm_minor;
-
-      hc_cuDeviceGetAttribute (&max_compute_units, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, device);
-
-      if (sm_major >= 5)
-      {
-        // those maxwell and newer are so good compared to older chipsets we need to equalize
-        // their power to older chipsets, otherwise workload distribution which is based on the compute_units
-        // gets out of control
-
-        max_compute_units *= 3;
-      }
-
-      device_param->gpu_processors = max_compute_units;
-
-      /**
-       * calculate vector size
-       */
-
-      uint vliw = get_vliw_by_compute_capability (sm_major, sm_minor);
-
-      device_param->gpu_vector_width = get_gpu_vector_width (hash_mode, attack_kern, attack_exec, opti_type, vliw);
-
-      #elif _OCL
       cl_device_id device = devices[device_id];
 
       device_param->device = device;
@@ -13622,890 +12679,169 @@ int main (int argc, char **argv)
 
       device_param->driver_version = mystrdup (tmp);
 
-      /**
-       * calculate vector size
-       */
-
-      uint vliw = get_vliw_by_device_name (device_param->device_name);
-
-      device_param->gpu_vector_width = get_gpu_vector_width (hash_mode, attack_kern, attack_exec, opti_type, vliw);
-
-      /**
-       * catalyst driver check
-       */
-
-      if (catalyst_check == 1)
+      if (vendor_id == VENDOR_ID_AMD)
       {
-        catalyst_warn = 1;
+        cl_uint gpu_processor_cores = 0;
 
-        // v14.9 and higher
-        if ((atoi (device_param->device_version) >= 1573)
-         && (atoi (device_param->driver_version) >= 1573))
-        {
-          catalyst_warn = 0;
-        }
+        #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
 
-        /*
-        // v14.9
-        if ((strstr (device_param->device_version, "1573.") != NULL)
-         && (strstr (device_param->driver_version, "1573.") != NULL))
-        {
-          catalyst_warn = 0;
-        }
+        hc_clGetDeviceInfo (device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (gpu_processor_cores), &gpu_processor_cores, NULL);
 
-        // v14.12 -- version overlaps with v15.4 beta
-        if ((strstr (device_param->device_version, "1642.") != NULL)
-         && (strstr (device_param->driver_version, "1642.") != NULL))
-        {
-          catalyst_broken = 1;
-        }
-
-        // v15.4 (Beta, Windows only release)
-        if ((strstr (device_param->device_version, "1642.") != NULL)
-         && (strstr (device_param->driver_version, "1642.") != NULL))
-        {
-          catalyst_warn = 0;
-        }
-
-        // v15.5 (Release, Linux)
-        if ((strstr (device_param->device_version, "1702.") != NULL)
-         && (strstr (device_param->driver_version, "1702.") != NULL))
-        {
-          catalyst_warn = 0;
-        }
-
-        // v15.3 (Beta, Ubuntu repository release)
-        if ((strstr (device_param->device_version, "1729.") != NULL)
-         && (strstr (device_param->driver_version, "1729.") != NULL))
-        {
-          catalyst_warn = 0;
-        }
-        */
-
-        catalyst_check = 0;
+        device_param->gpu_processor_cores = gpu_processor_cores;
       }
-      #endif
+
+      if (vendor_id == VENDOR_ID_NV)
+      {
+        cl_uint kernel_exec_timeout = 0;
+
+        #define CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV            0x4005
+
+        hc_clGetDeviceInfo (device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
+
+        device_param->kernel_exec_timeout = kernel_exec_timeout;
+
+        cl_uint gpu_processor_cores = 0;
+
+        #define CL_DEVICE_WARP_SIZE_NV                      0x4003
+
+        hc_clGetDeviceInfo (device, CL_DEVICE_WARP_SIZE_NV, sizeof (gpu_processor_cores), &gpu_processor_cores, NULL);
+
+        device_param->gpu_processor_cores = gpu_processor_cores;
+
+        cl_uint sm_minor = 0;
+        cl_uint sm_major = 0;
+
+        #define CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV       0x4000
+        #define CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV       0x4001
+
+        hc_clGetDeviceInfo (device, CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV, sizeof (sm_minor), &sm_minor, NULL);
+        hc_clGetDeviceInfo (device, CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV, sizeof (sm_major), &sm_major, NULL);
+
+        device_param->sm_minor = sm_minor;
+        device_param->sm_major = sm_major;
+      }
+
+      /**
+       * common driver check
+       */
+
+      if (vendor_id == VENDOR_ID_NV)
+      {
+        if (device_param->kernel_exec_timeout != 0)
+        {
+          if (data.quiet == 0) log_info ("Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
+          if (data.quiet == 0) log_info ("           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
+        }
+      }
+
+      if (vendor_id == VENDOR_ID_AMD)
+      {
+        int catalyst_check = (force == 1) ? 0 : 1;
+
+        int catalyst_warn = 0;
+
+        int catalyst_broken = 0;
+
+        if (catalyst_check == 1)
+        {
+          catalyst_warn = 1;
+
+          // v14.9 and higher
+          if ((atoi (device_param->device_version) >= 1573)
+           && (atoi (device_param->driver_version) >= 1573))
+          {
+            catalyst_warn = 0;
+          }
+
+          catalyst_check = 0;
+        }
+
+        if (catalyst_broken == 1)
+        {
+          log_error ("");
+          log_error ("ATTENTION! The installed GPU driver in your system is known to be broken!");
+          log_error ("It will pass over cracked hashes and does not report them as cracked");
+          log_error ("You are STRONGLY encouraged not to use it");
+          log_error ("You can use --force to override this but do not post error reports if you do so");
+
+          return (-1);
+        }
+
+        if (catalyst_warn == 1)
+        {
+          log_error ("");
+          log_error ("ATTENTION! Unsupported or incorrect installed GPU driver detected!");
+          log_error ("You are STRONGLY encouraged to use the official supported GPU driver for good reasons");
+          log_error ("See oclHashcat's homepage for official supported GPU drivers");
+          #ifdef _WIN
+          log_error ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
+          #endif
+          log_error ("You can use --force to override this but do not post error reports if you do so");
+
+          return (-1);
+        }
+      }
     }
 
-    #ifdef _OCL
-    if (catalyst_broken == 1)
+   /*
+    * Temporary fix:
+    * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
+    * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
+    * were not working @ full speed (setting hc_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
+    * Driver / ADL bug?
+    */
+
+    if (vendor_id == VENDOR_ID_AMD)
     {
-      log_error ("");
-      log_error ("ATTENTION! The installed GPU driver in your system is known to be broken!");
-      log_error ("It will pass over cracked hashes and does not report them as cracked");
-      log_error ("You are STRONGLY encouraged not to use it");
-      log_error ("You can use --force to override this but do not post error reports if you do so");
+      if (powertune_enable == 1)
+      {
+        hc_thread_mutex_lock (mux_adl);
 
-      return (-1);
+        for (uint i = 0; i < devices_cnt; i++)
+        {
+          if (data.hm_device[i].od_version == 6)
+          {
+            // set powertune value only
+
+            int powertune_supported = 0;
+
+            int ADL_rc = 0;
+
+            if ((ADL_rc = hc_ADL_Overdrive6_PowerControl_Caps (data.hm_dll, data.hm_device[i].adapter_index.amd, &powertune_supported)) != ADL_OK)
+            {
+              log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
+
+              return (-1);
+            }
+
+            if (powertune_supported != 0)
+            {
+              // powertune set
+              ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
+
+              if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (data.hm_dll, data.hm_device[i].adapter_index.amd, &powertune)) != ADL_OK)
+              {
+                log_error ("ERROR: Failed to get current ADL PowerControl settings");
+
+                return (-1);
+              }
+
+              if ((ADL_rc = hc_ADL_Overdrive_PowerControl_Set (data.hm_dll, data.hm_device[i].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
+              {
+                log_error ("ERROR: Failed to set new ADL PowerControl values");
+
+                return (-1);
+              }
+            }
+          }
+        }
+
+        hc_thread_mutex_unlock (mux_adl);
+      }
     }
-
-    if (catalyst_warn == 1)
-    {
-      log_error ("");
-      log_error ("ATTENTION! Unsupported or incorrect installed GPU driver detected!");
-      log_error ("You are STRONGLY encouraged to use the official supported GPU driver for good reasons");
-      log_error ("See oclHashcat's homepage for official supported GPU drivers");
-      #ifdef _WIN
-      log_error ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
-      #endif
-      log_error ("You can use --force to override this but do not post error reports if you do so");
-
-      return (-1);
-    }
-    #endif
 
     uint gpu_blocks_all = 0;
 
-    #ifdef _CUDA
-    for (uint device_id = 0; device_id < devices_cnt; device_id++)
-    {
-      /**
-       * host buffer
-       */
-
-      hc_device_param_t *device_param = &data.devices_param[device_id];
-
-      /**
-       * device properties
-       */
-
-      int  sm_minor         = device_param->sm_minor;
-      int  sm_major         = device_param->sm_major;
-
-      uint gpu_processors   = device_param->gpu_processors;
-      uint gpu_vector_width = device_param->gpu_vector_width;
-
-      /**
-       * create context for each device
-       */
-
-      uint flags = 0;
-
-      if (gpu_async == 0) flags |= CU_CTX_SCHED_BLOCKING_SYNC;
-      else                flags |= CU_CTX_SCHED_SPIN;
-
-      hc_cuCtxCreate (&device_param->context, flags, device_param->device);
-
-      // does bad things hc_cuCtxSetCacheConfig (CU_FUNC_CACHE_PREFER_L1);
-
-      /**
-       * create input buffers on device
-       */
-
-      uint gpu_threads = GPU_THREADS_NV;
-
-      if (hash_mode == 1500)  gpu_threads = 64;
-      if (hash_mode == 3000)  gpu_threads = 64;
-      if (hash_mode == 3200)  gpu_threads = 8;
-      if (hash_mode == 7500)  gpu_threads = 64;
-      if (hash_mode == 8900)  gpu_threads = 64;
-      if (hash_mode == 9000)  gpu_threads = 8;
-      if (hash_mode == 9300)  gpu_threads = 64;
-      if (hash_mode == 9700)  gpu_threads = 64;
-      if (hash_mode == 9710)  gpu_threads = 64;
-      if (hash_mode == 9800)  gpu_threads = 64;
-      if (hash_mode == 9810)  gpu_threads = 64;
-      if (hash_mode == 10400) gpu_threads = 64;
-      if (hash_mode == 10410) gpu_threads = 64;
-      if (hash_mode == 10500) gpu_threads = 64;
-
-      uint gpu_power  = gpu_processors * gpu_threads * gpu_accel;
-      uint gpu_blocks = gpu_power * gpu_vector_width;
-
-      device_param->gpu_threads      = gpu_threads;
-      device_param->gpu_power_user   = gpu_power;
-      device_param->gpu_blocks_user  = gpu_blocks;
-
-      gpu_blocks_all += gpu_blocks;
-
-      uint size_pws = gpu_power * sizeof (pw_t);
-
-      uint size_tmps = 4;
-
-      switch (hash_mode)
-      {
-        case   400: size_tmps = gpu_blocks * sizeof (phpass_tmp_t);        break;
-        case   500: size_tmps = gpu_blocks * sizeof (md5crypt_tmp_t);      break;
-        case   501: size_tmps = gpu_blocks * sizeof (md5crypt_tmp_t);      break;
-        case  1600: size_tmps = gpu_blocks * sizeof (md5crypt_tmp_t);      break;
-        case  1800: size_tmps = gpu_blocks * sizeof (sha512crypt_tmp_t);   break;
-        case  2100: size_tmps = gpu_blocks * sizeof (dcc2_tmp_t);          break;
-        case  2500: size_tmps = gpu_blocks * sizeof (wpa_tmp_t);           break;
-        case  3200: size_tmps = gpu_blocks * sizeof (bcrypt_tmp_t);        break;
-        case  5200: size_tmps = gpu_blocks * sizeof (pwsafe3_tmp_t);       break;
-        case  5800: size_tmps = gpu_blocks * sizeof (androidpin_tmp_t);    break;
-        case  6211:
-        case  6212:
-        case  6213: size_tmps = gpu_blocks * sizeof (tc_tmp_t);            break;
-        case  6221:
-        case  6222:
-        case  6223: size_tmps = gpu_blocks * sizeof (tc64_tmp_t);          break;
-        case  6231:
-        case  6232:
-        case  6233: size_tmps = gpu_blocks * sizeof (tc_tmp_t);            break;
-        case  6241:
-        case  6242:
-        case  6243: size_tmps = gpu_blocks * sizeof (tc_tmp_t);            break;
-        case  6300: size_tmps = gpu_blocks * sizeof (md5crypt_tmp_t);      break;
-        case  6400: size_tmps = gpu_blocks * sizeof (sha256aix_tmp_t);     break;
-        case  6500: size_tmps = gpu_blocks * sizeof (sha512aix_tmp_t);     break;
-        case  6600: size_tmps = gpu_blocks * sizeof (agilekey_tmp_t);      break;
-        case  6700: size_tmps = gpu_blocks * sizeof (sha1aix_tmp_t);       break;
-        case  6800: size_tmps = gpu_blocks * sizeof (lastpass_tmp_t);      break;
-        case  7100: size_tmps = gpu_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-        case  7200: size_tmps = gpu_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-        case  7400: size_tmps = gpu_blocks * sizeof (sha256crypt_tmp_t);   break;
-        case  7900: size_tmps = gpu_blocks * sizeof (drupal7_tmp_t);       break;
-        case  8200: size_tmps = gpu_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-        case  8800: size_tmps = gpu_blocks * sizeof (androidfde_tmp_t);    break;
-        case  8900: size_tmps = gpu_blocks * sizeof (scrypt_tmp_t);        break;
-        case  9000: size_tmps = gpu_blocks * sizeof (pwsafe2_tmp_t);       break;
-        case  9100: size_tmps = gpu_blocks * sizeof (lotus8_tmp_t);        break;
-        case  9200: size_tmps = gpu_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-        case  9300: size_tmps = gpu_blocks * sizeof (scrypt_tmp_t);        break;
-        case  9400: size_tmps = gpu_blocks * sizeof (office2007_tmp_t);    break;
-        case  9500: size_tmps = gpu_blocks * sizeof (office2010_tmp_t);    break;
-        case  9600: size_tmps = gpu_blocks * sizeof (office2013_tmp_t);    break;
-        case 10000: size_tmps = gpu_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-        case 10200: size_tmps = gpu_blocks * sizeof (cram_md5_t);          break;
-        case 10300: size_tmps = gpu_blocks * sizeof (saph_sha1_tmp_t);     break;
-        case 10500: size_tmps = gpu_blocks * sizeof (pdf14_tmp_t);         break;
-        case 10700: size_tmps = gpu_blocks * sizeof (pdf17l8_tmp_t);       break;
-        case 10900: size_tmps = gpu_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-        case 11300: size_tmps = gpu_blocks * sizeof (bitcoin_wallet_tmp_t); break;
-        case 11600: size_tmps = gpu_blocks * sizeof (seven_zip_tmp_t);     break;
-        case 11900: size_tmps = gpu_blocks * sizeof (pbkdf2_md5_tmp_t);    break;
-        case 12000: size_tmps = gpu_blocks * sizeof (pbkdf2_sha1_tmp_t);   break;
-        case 12100: size_tmps = gpu_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-        case 12200: size_tmps = gpu_blocks * sizeof (ecryptfs_tmp_t);      break;
-        case 12300: size_tmps = gpu_blocks * sizeof (oraclet_tmp_t);       break;
-        case 12400: size_tmps = gpu_blocks * sizeof (bsdicrypt_tmp_t);     break;
-        case 12500: size_tmps = gpu_blocks * sizeof (rar3_tmp_t);          break;
-        case 12700: size_tmps = gpu_blocks * sizeof (mywallet_tmp_t);      break;
-        case 12800: size_tmps = gpu_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-      };
-
-      uint size_hooks = 4;
-
-      if ((opts_type & OPTS_TYPE_HOOK12) || (opts_type & OPTS_TYPE_HOOK23))
-      {
-        // fill size_hook with correct size
-      }
-
-      // we can optimize some stuff here...
-
-      device_param->size_pws   = size_pws;
-      device_param->size_tmps  = size_tmps;
-      device_param->size_hooks = size_hooks;
-
-      uint size_root_css   = SP_PW_MAX *           sizeof (cs_t);
-      uint size_markov_css = SP_PW_MAX * CHARSIZ * sizeof (cs_t);
-
-      device_param->size_root_css   = size_root_css;
-      device_param->size_markov_css = size_markov_css;
-
-      uint size_results = GPU_THREADS_NV * sizeof (uint);
-
-      device_param->size_results = size_results;
-
-      uint size_rules  = gpu_rules_cnt * sizeof (gpu_rule_t);
-      uint size_plains = digests_cnt * sizeof (plain_t);
-      uint size_salts  = salts_cnt * sizeof (salt_t);
-      uint size_esalts = salts_cnt * esalt_size;
-
-      device_param->size_plains   = size_plains;
-      device_param->size_digests  = size_digests;
-      device_param->size_shown    = size_shown;
-      device_param->size_salts    = size_salts;
-
-      uint size_combs = GPU_COMBS * sizeof (comb_t);
-      uint size_bfs   = GPU_BFS   * sizeof (bf_t);
-      uint size_tm    = 32        * sizeof (bs_word_t);
-
-      uint64_t size_scryptV = 1;
-
-      if ((hash_mode == 8900) || (hash_mode == 9300))
-      {
-        #define SHADER_PER_MP 32
-        #define WARPS         32
-
-        uint tmto_start = 2;
-        uint tmto_stop  = 1024;
-
-        if (scrypt_tmto)
-        {
-          tmto_start = 1 << scrypt_tmto;
-          tmto_stop  = tmto_start + 1;
-        }
-
-        for (uint tmto = tmto_start; tmto < tmto_stop; tmto <<= 1)
-        {
-          // todo -- make sure all salts get the new tmto value
-
-          size_scryptV = (128 * data.salts_buf[0].scrypt_r) * data.salts_buf[0].scrypt_N;
-
-          size_scryptV /= tmto;
-
-          size_scryptV *= gpu_processors * WARPS * SHADER_PER_MP;
-
-          if (size_scryptV > (device_param->gpu_maxmem_alloc / 2)) continue;
-
-          for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
-          {
-            data.salts_buf[salts_pos].scrypt_tmto = tmto;
-            data.salts_buf[salts_pos].scrypt_phy  = gpu_processors * WARPS * SHADER_PER_MP;
-          }
-
-          break;
-        }
-
-        if (data.salts_buf[0].scrypt_tmto == 0)
-        {
-          log_error ("ERROR: can't allocate enough GPU memory");
-
-          return -1;
-        }
-
-        if (quiet == 0) log_info ("");
-        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u\n", data.salts_buf[0].scrypt_tmto);
-      }
-
-      /**
-       * stream
-       */
-
-      hc_cuStreamCreate (&device_param->stream, 0);
-
-      /**
-       * In theory we'd need a real JIT solution as we have it with OpenCL, but CUDA does not provide such a feature, what a shame!
-       * There's NVRTC library which is able to compile sourcecode to PTX which we could use, but for some unknown reason this works only for 64 bit
-       * There's also the problem that the user needs to install the CUDA SDK to get this to work.
-       */
-
-      force_jit_compilation = 0;
-
-      /**
-       * module find
-       */
-
-      struct stat st;
-
-      char module_file[256];
-
-      memset (module_file, 0, sizeof (module_file));
-
-      #ifdef BINARY_KERNEL
-
-      if (force_jit_compilation == 0)
-      {
-        #ifdef __x86_64__
-        if (attack_exec == ATTACK_EXEC_ON_GPU)
-        {
-          if (attack_kern == ATTACK_KERN_STRAIGHT)
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a0.sm_%d%d.64.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-          else if (attack_kern == ATTACK_KERN_COMBI)
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a1.sm_%d%d.64.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-          else if (attack_kern == ATTACK_KERN_BF)
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a3.sm_%d%d.64.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-        }
-        else
-        {
-          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d.sm_%d%d.64.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-
-          if ((hash_mode == 8900) || (hash_mode == 9300))
-          {
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_%d_%d_%d_%d.sm_%d%d.64.cubin", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, sm_major, sm_minor);
-          }
-        }
-
-        #else
-        if (attack_exec == ATTACK_EXEC_ON_GPU)
-        {
-          if (attack_kern == ATTACK_KERN_STRAIGHT)
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a0.sm_%d%d.32.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-          else if (attack_kern == ATTACK_KERN_COMBI)
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a1.sm_%d%d.32.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-          else if (attack_kern == ATTACK_KERN_BF)
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_a3.sm_%d%d.32.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-        }
-        else
-        {
-          snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d.sm_%d%d.32.cubin", install_dir, (int) kern_type, sm_major, sm_minor);
-
-          if ((hash_mode == 8900) || (hash_mode == 9300))
-          {
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4318/m%05d_%d_%d_%d_%d.sm_%d%d.32.cubin", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, sm_major, sm_minor);
-          }
-        }
-
-        #endif
-      }
-      else
-      {
-        generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, module_file);
-
-        if (stat (module_file, &st) == -1)
-        {
-          log_error ("ERROR: %s: %s", module_file, strerror (errno));
-
-          return -1;
-        }
-      }
-
-      #else
-
-      generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, module_file);
-
-      if (stat (module_file, &st) == -1)
-      {
-        log_error ("ERROR: %s: %s", module_file, strerror (errno));
-
-        return -1;
-      }
-
-      #endif
-
-      char module_mp_file[256];
-
-      memset (module_mp_file, 0, sizeof (module_mp_file));
-
-      if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
-      {
-        #ifdef __x86_64__
-        snprintf (module_mp_file, sizeof (module_mp_file) - 1, "%s/kernels/4318/markov_be_v%d.sm_%d%d.64.cubin", install_dir, gpu_vector_width, sm_major, sm_minor);
-        #else
-        snprintf (module_mp_file, sizeof (module_mp_file) - 1, "%s/kernels/4318/markov_be_v%d.sm_%d%d.32.cubin", install_dir, gpu_vector_width, sm_major, sm_minor);
-        #endif
-      }
-      else
-      {
-        #ifdef __x86_64__
-        snprintf (module_mp_file, sizeof (module_mp_file) - 1, "%s/kernels/4318/markov_le_v%d.sm_%d%d.64.cubin", install_dir, gpu_vector_width, sm_major, sm_minor);
-        #else
-        snprintf (module_mp_file, sizeof (module_mp_file) - 1, "%s/kernels/4318/markov_le_v%d.sm_%d%d.32.cubin", install_dir, gpu_vector_width, sm_major, sm_minor);
-        #endif
-      }
-
-      char module_amp_file[256];
-
-      memset (module_amp_file, 0, sizeof (module_amp_file));
-
-      #ifdef __x86_64__
-      snprintf (module_amp_file, sizeof (module_amp_file) - 1, "%s/kernels/4318/amp_a%d_v%d.sm_%d%d.64.cubin", install_dir, attack_kern, gpu_vector_width, sm_major, sm_minor);
-      #else
-      snprintf (module_amp_file, sizeof (module_amp_file) - 1, "%s/kernels/4318/amp_a%d_v%d.sm_%d%d.32.cubin", install_dir, attack_kern, gpu_vector_width, sm_major, sm_minor);
-      #endif
-
-      /**
-       * module load
-       */
-
-      hc_cuModuleLoad (&device_param->module, module_file);
-
-      if (quiet == 0) log_info ("Device #%u: Kernel %s", device_id + 1, module_file);
-
-      if (attack_mode != ATTACK_MODE_STRAIGHT)
-      {
-        hc_cuModuleLoad (&device_param->module_mp, module_mp_file);
-
-        if (quiet == 0) log_info ("Device #%u: Kernel %s", device_id + 1, module_mp_file);
-      }
-
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
-      {
-        // nothing to do
-      }
-      else
-      {
-        hc_cuModuleLoad (&device_param->module_amp, module_amp_file);
-
-        if (quiet == 0) log_info ("Device #%u: Kernel %s", device_id + 1, module_amp_file);
-      }
-
-      /**
-       * module functions
-       */
-
-      char module_name[64];
-
-      memset (module_name, 0, sizeof (module_name));
-
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
-      {
-        if (opti_type & OPTI_TYPE_SINGLE_HASH)
-        {
-          snprintf (module_name, sizeof (module_name) - 1, "m%05d_s%02d", kern_type, 4);
-
-          hc_cuModuleGetFunction (&device_param->function1, device_param->module, module_name);
-
-          snprintf (module_name, sizeof (module_name) - 1, "m%05d_s%02d", kern_type, 8);
-
-          hc_cuModuleGetFunction (&device_param->function2, device_param->module, module_name);
-
-          snprintf (module_name, sizeof (module_name) - 1, "m%05d_s%02d", kern_type, 16);
-
-          hc_cuModuleGetFunction (&device_param->function3, device_param->module, module_name);
-        }
-        else
-        {
-          snprintf (module_name, sizeof (module_name) - 1, "m%05d_m%02d",  kern_type, 4);
-
-          hc_cuModuleGetFunction (&device_param->function1, device_param->module, module_name);
-
-          snprintf (module_name, sizeof (module_name) - 1, "m%05d_m%02d",  kern_type, 8);
-
-          hc_cuModuleGetFunction (&device_param->function2, device_param->module, module_name);
-
-          snprintf (module_name, sizeof (module_name) - 1, "m%05d_m%02d",  kern_type, 16);
-
-          hc_cuModuleGetFunction (&device_param->function3, device_param->module, module_name);
-        }
-
-        if (attack_mode == ATTACK_MODE_BF)
-        {
-          if (opts_type & OPTS_TYPE_PT_BITSLICE)
-          {
-            snprintf (module_name, sizeof (module_name) - 1, "m%05d_tb", kern_type);
-
-            hc_cuModuleGetFunction (&device_param->function_tb, device_param->module, module_name);
-
-            snprintf (module_name, sizeof (module_name) - 1, "m%05d_tm", kern_type);
-
-            hc_cuModuleGetFunction (&device_param->function_tm, device_param->module, module_name);
-          }
-        }
-      }
-      else
-      {
-        snprintf (module_name, sizeof (module_name) - 1, "m%05d_init", kern_type);
-
-        hc_cuModuleGetFunction (&device_param->function1, device_param->module, module_name);
-
-        snprintf (module_name, sizeof (module_name) - 1, "m%05d_loop", kern_type);
-
-        hc_cuModuleGetFunction (&device_param->function2, device_param->module, module_name);
-
-        snprintf (module_name, sizeof (module_name) - 1, "m%05d_comp", kern_type);
-
-        hc_cuModuleGetFunction (&device_param->function3, device_param->module, module_name);
-
-        if (opts_type & OPTS_TYPE_HOOK12)
-        {
-          snprintf (module_name, sizeof (module_name) - 1, "m%05d_hook12", kern_type);
-
-          hc_cuModuleGetFunction (&device_param->function12, device_param->module, module_name);
-        }
-
-        if (opts_type & OPTS_TYPE_HOOK23)
-        {
-          snprintf (module_name, sizeof (module_name) - 1, "m%05d_hook23", kern_type);
-
-          hc_cuModuleGetFunction (&device_param->function23, device_param->module, module_name);
-        }
-      }
-
-      if (attack_mode == ATTACK_MODE_BF)
-      {
-        hc_cuModuleGetFunction (&device_param->function_mp_l, device_param->module_mp, "l_markov");
-        hc_cuModuleGetFunction (&device_param->function_mp_r, device_param->module_mp, "r_markov");
-      }
-      else if (attack_mode == ATTACK_MODE_HYBRID1)
-      {
-        hc_cuModuleGetFunction (&device_param->function_mp, device_param->module_mp, "C_markov");
-      }
-      else if (attack_mode == ATTACK_MODE_HYBRID2)
-      {
-        hc_cuModuleGetFunction (&device_param->function_mp, device_param->module_mp, "C_markov");
-      }
-
-      /**
-       * amplifiers are not independant
-       */
-
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
-      {
-        // nothing to do
-      }
-      else
-      {
-        hc_cuModuleGetFunction (&device_param->function_amp, device_param->module_amp, "amp");
-      }
-
-      /**
-       * global buffers
-       */
-
-      hc_cuMemAlloc (&device_param->d_pws_buf,          size_pws);
-      hc_cuMemAlloc (&device_param->d_pws_amp_buf,      size_pws);
-      hc_cuMemAlloc (&device_param->d_tmps,             size_tmps);
-      hc_cuMemAlloc (&device_param->d_hooks,            size_hooks);
-      hc_cuMemAlloc (&device_param->d_bitmap_s1_a,      bitmap_size);
-      hc_cuMemAlloc (&device_param->d_bitmap_s1_b,      bitmap_size);
-      hc_cuMemAlloc (&device_param->d_bitmap_s1_c,      bitmap_size);
-      hc_cuMemAlloc (&device_param->d_bitmap_s1_d,      bitmap_size);
-      hc_cuMemAlloc (&device_param->d_bitmap_s2_a,      bitmap_size);
-      hc_cuMemAlloc (&device_param->d_bitmap_s2_b,      bitmap_size);
-      hc_cuMemAlloc (&device_param->d_bitmap_s2_c,      bitmap_size);
-      hc_cuMemAlloc (&device_param->d_bitmap_s2_d,      bitmap_size);
-      hc_cuMemAlloc (&device_param->d_plain_bufs,       size_plains);
-      hc_cuMemAlloc (&device_param->d_digests_buf,      size_digests);
-      hc_cuMemAlloc (&device_param->d_digests_shown,    size_shown);
-      hc_cuMemAlloc (&device_param->d_salt_bufs,        size_salts);
-      hc_cuMemAlloc (&device_param->d_result,           size_results);
-      hc_cuMemAlloc (&device_param->d_scryptV_buf,      size_scryptV);
-
-      hc_cuMemcpyHtoD (device_param->d_bitmap_s1_a,     bitmap_s1_a,        bitmap_size);
-      hc_cuMemcpyHtoD (device_param->d_bitmap_s1_b,     bitmap_s1_b,        bitmap_size);
-      hc_cuMemcpyHtoD (device_param->d_bitmap_s1_c,     bitmap_s1_c,        bitmap_size);
-      hc_cuMemcpyHtoD (device_param->d_bitmap_s1_d,     bitmap_s1_d,        bitmap_size);
-      hc_cuMemcpyHtoD (device_param->d_bitmap_s2_a,     bitmap_s2_a,        bitmap_size);
-      hc_cuMemcpyHtoD (device_param->d_bitmap_s2_b,     bitmap_s2_b,        bitmap_size);
-      hc_cuMemcpyHtoD (device_param->d_bitmap_s2_c,     bitmap_s2_c,        bitmap_size);
-      hc_cuMemcpyHtoD (device_param->d_bitmap_s2_d,     bitmap_s2_d,        bitmap_size);
-      hc_cuMemcpyHtoD (device_param->d_digests_buf,     data.digests_buf,   size_digests);
-      hc_cuMemcpyHtoD (device_param->d_digests_shown,   data.digests_shown, size_shown);
-      hc_cuMemcpyHtoD (device_param->d_salt_bufs,       data.salts_buf,     size_salts);
-
-      run_kernel_bzero (device_param, device_param->d_pws_buf,        size_pws);
-      run_kernel_bzero (device_param, device_param->d_pws_amp_buf,    size_pws);
-      run_kernel_bzero (device_param, device_param->d_tmps,           size_tmps);
-      run_kernel_bzero (device_param, device_param->d_hooks,          size_hooks);
-      run_kernel_bzero (device_param, device_param->d_plain_bufs,     size_plains);
-      run_kernel_bzero (device_param, device_param->d_result,         size_results);
-
-      /**
-       * special buffers
-       */
-
-      if (attack_kern == ATTACK_KERN_STRAIGHT)
-      {
-        hc_cuMemAlloc  (&device_param->d_rules, size_rules);
-
-        hc_cuMemcpyHtoD (device_param->d_rules, gpu_rules_buf, size_rules);
-      }
-      else if (attack_kern == ATTACK_KERN_COMBI)
-      {
-        hc_cuMemAlloc (&device_param->d_combs,          size_combs);
-        hc_cuMemAlloc (&device_param->d_root_css_buf,   size_root_css);
-        hc_cuMemAlloc (&device_param->d_markov_css_buf, size_markov_css);
-
-        run_kernel_bzero (device_param, device_param->d_combs,          size_combs);
-        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
-        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
-      }
-      else if (attack_kern == ATTACK_KERN_BF)
-      {
-        hc_cuMemAlloc (&device_param->d_bfs,            size_bfs);
-        hc_cuMemAlloc (&device_param->d_tm,             size_tm);
-        hc_cuMemAlloc (&device_param->d_root_css_buf,   size_root_css);
-        hc_cuMemAlloc (&device_param->d_markov_css_buf, size_markov_css);
-
-        run_kernel_bzero (device_param, device_param->d_bfs,            size_bfs);
-        run_kernel_bzero (device_param, device_param->d_tm,             size_tm);
-        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
-        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
-      }
-
-      if (size_esalts)
-      {
-        hc_cuMemAlloc (&device_param->d_esalt_bufs, size_esalts);
-
-        hc_cuMemcpyHtoD (device_param->d_esalt_bufs, data.esalts_buf, size_esalts);
-      }
-
-      /**
-       * main host data
-       */
-
-      uint *result = (uint *) mymalloc (size_results);
-
-      memset (result, 0, size_results);
-
-      device_param->result = result;
-
-      pw_t *pws_buf = (pw_t *) mymalloc (size_pws);
-
-      memset (pws_buf, 0, size_pws);
-
-      device_param->pws_buf = pws_buf;
-
-      pw_cache_t *pw_caches = (pw_cache_t *) mycalloc (64, sizeof (pw_cache_t));
-
-      for (int i = 0; i < 64; i++)
-      {
-        pw_caches[i].pw_buf.pw_len = i;
-        pw_caches[i].cnt = 0;
-      }
-
-      device_param->pw_caches = pw_caches;
-
-      comb_t *combs_buf = (comb_t *) mycalloc (GPU_COMBS, sizeof (comb_t));
-
-      device_param->combs_buf = combs_buf;
-
-      void *hooks_buf = mymalloc (size_hooks);
-
-      device_param->hooks_buf = hooks_buf;
-
-      switch (device_param->gpu_vector_width)
-      {
-        case 1: device_param->pw_transpose  = pw_transpose_to_hi1;
-                device_param->pw_add        = pw_add_to_hc1;
-                break;
-        case 2: device_param->pw_transpose  = pw_transpose_to_hi2;
-                device_param->pw_add        = pw_add_to_hc2;
-                break;
-        case 4: device_param->pw_transpose  = pw_transpose_to_hi4;
-                device_param->pw_add        = pw_add_to_hc4;
-                break;
-      }
-
-      /**
-       * module args
-       */
-
-      device_param->kernel_params_buf32[21] = bitmap_mask;
-      device_param->kernel_params_buf32[22] = bitmap_shift1;
-      device_param->kernel_params_buf32[23] = bitmap_shift2;
-      device_param->kernel_params_buf32[24] = 0; // salt_pos
-      device_param->kernel_params_buf32[25] = 0; // loop_pos
-      device_param->kernel_params_buf32[26] = 0; // loop_cnt
-      device_param->kernel_params_buf32[27] = 0; // gpu_rules_cnt
-      device_param->kernel_params_buf32[28] = 0; // digests_cnt
-      device_param->kernel_params_buf32[29] = 0; // digests_offset
-      device_param->kernel_params_buf32[30] = 0; // combs_mode
-      device_param->kernel_params_buf32[31] = 0; // gid_max
-
-      device_param->kernel_params[ 0] = (attack_exec == ATTACK_EXEC_ON_GPU)
-                                      ? &device_param->d_pws_buf
-                                      : &device_param->d_pws_amp_buf;
-      device_param->kernel_params[ 1] = &device_param->d_rules;
-      device_param->kernel_params[ 2] = &device_param->d_combs;
-      device_param->kernel_params[ 3] = &device_param->d_bfs;
-      device_param->kernel_params[ 4] = &device_param->d_tmps;
-      device_param->kernel_params[ 5] = &device_param->d_hooks;
-      device_param->kernel_params[ 6] = &device_param->d_bitmap_s1_a;
-      device_param->kernel_params[ 7] = &device_param->d_bitmap_s1_b;
-      device_param->kernel_params[ 8] = &device_param->d_bitmap_s1_c;
-      device_param->kernel_params[ 9] = &device_param->d_bitmap_s1_d;
-      device_param->kernel_params[10] = &device_param->d_bitmap_s2_a;
-      device_param->kernel_params[11] = &device_param->d_bitmap_s2_b;
-      device_param->kernel_params[12] = &device_param->d_bitmap_s2_c;
-      device_param->kernel_params[13] = &device_param->d_bitmap_s2_d;
-      device_param->kernel_params[14] = &device_param->d_plain_bufs;
-      device_param->kernel_params[15] = &device_param->d_digests_buf;
-      device_param->kernel_params[16] = &device_param->d_digests_shown;
-      device_param->kernel_params[17] = &device_param->d_salt_bufs;
-      device_param->kernel_params[18] = &device_param->d_esalt_bufs;
-      device_param->kernel_params[19] = &device_param->d_result;
-      device_param->kernel_params[20] = &device_param->d_scryptV_buf;
-      device_param->kernel_params[21] = &device_param->kernel_params_buf32[21];
-      device_param->kernel_params[22] = &device_param->kernel_params_buf32[22];
-      device_param->kernel_params[23] = &device_param->kernel_params_buf32[23];
-      device_param->kernel_params[24] = &device_param->kernel_params_buf32[24];
-      device_param->kernel_params[25] = &device_param->kernel_params_buf32[25];
-      device_param->kernel_params[26] = &device_param->kernel_params_buf32[26];
-      device_param->kernel_params[27] = &device_param->kernel_params_buf32[27];
-      device_param->kernel_params[28] = &device_param->kernel_params_buf32[28];
-      device_param->kernel_params[29] = &device_param->kernel_params_buf32[29];
-      device_param->kernel_params[30] = &device_param->kernel_params_buf32[30];
-      device_param->kernel_params[31] = &device_param->kernel_params_buf32[31];
-
-      device_param->kernel_params_mp_buf64[3] = 0;
-      device_param->kernel_params_mp_buf32[4] = 0;
-      device_param->kernel_params_mp_buf32[5] = 0;
-      device_param->kernel_params_mp_buf32[6] = 0;
-      device_param->kernel_params_mp_buf32[7] = 0;
-      device_param->kernel_params_mp_buf32[8] = 0;
-
-      device_param->kernel_params_mp[0] = NULL;
-      device_param->kernel_params_mp[1] = NULL;
-      device_param->kernel_params_mp[2] = NULL;
-      device_param->kernel_params_mp[3] = &device_param->kernel_params_mp_buf64[3];
-      device_param->kernel_params_mp[4] = &device_param->kernel_params_mp_buf32[4];
-      device_param->kernel_params_mp[5] = &device_param->kernel_params_mp_buf32[5];
-      device_param->kernel_params_mp[6] = &device_param->kernel_params_mp_buf32[6];
-      device_param->kernel_params_mp[7] = &device_param->kernel_params_mp_buf32[7];
-      device_param->kernel_params_mp[8] = &device_param->kernel_params_mp_buf32[8];
-
-      device_param->kernel_params_mp_l_buf64[3] = 0;
-      device_param->kernel_params_mp_l_buf32[4] = 0;
-      device_param->kernel_params_mp_l_buf32[5] = 0;
-      device_param->kernel_params_mp_l_buf32[6] = 0;
-      device_param->kernel_params_mp_l_buf32[7] = 0;
-      device_param->kernel_params_mp_l_buf32[8] = 0;
-      device_param->kernel_params_mp_l_buf32[9] = 0;
-
-      device_param->kernel_params_mp_l[0] = NULL;
-      device_param->kernel_params_mp_l[1] = NULL;
-      device_param->kernel_params_mp_l[2] = NULL;
-      device_param->kernel_params_mp_l[3] = &device_param->kernel_params_mp_l_buf64[3];
-      device_param->kernel_params_mp_l[4] = &device_param->kernel_params_mp_l_buf32[4];
-      device_param->kernel_params_mp_l[5] = &device_param->kernel_params_mp_l_buf32[5];
-      device_param->kernel_params_mp_l[6] = &device_param->kernel_params_mp_l_buf32[6];
-      device_param->kernel_params_mp_l[7] = &device_param->kernel_params_mp_l_buf32[7];
-      device_param->kernel_params_mp_l[8] = &device_param->kernel_params_mp_l_buf32[8];
-      device_param->kernel_params_mp_l[9] = &device_param->kernel_params_mp_l_buf32[9];
-
-      device_param->kernel_params_mp_r_buf64[3] = 0;
-      device_param->kernel_params_mp_r_buf32[4] = 0;
-      device_param->kernel_params_mp_r_buf32[5] = 0;
-      device_param->kernel_params_mp_r_buf32[6] = 0;
-      device_param->kernel_params_mp_r_buf32[7] = 0;
-      device_param->kernel_params_mp_r_buf32[8] = 0;
-
-      device_param->kernel_params_mp_r[0] = NULL;
-      device_param->kernel_params_mp_r[1] = NULL;
-      device_param->kernel_params_mp_r[2] = NULL;
-      device_param->kernel_params_mp_r[3] = &device_param->kernel_params_mp_r_buf64[3];
-      device_param->kernel_params_mp_r[4] = &device_param->kernel_params_mp_r_buf32[4];
-      device_param->kernel_params_mp_r[5] = &device_param->kernel_params_mp_r_buf32[5];
-      device_param->kernel_params_mp_r[6] = &device_param->kernel_params_mp_r_buf32[6];
-      device_param->kernel_params_mp_r[7] = &device_param->kernel_params_mp_r_buf32[7];
-      device_param->kernel_params_mp_r[8] = &device_param->kernel_params_mp_r_buf32[8];
-
-      device_param->kernel_params_amp_buf32[5] = 0; // combs_mode
-      device_param->kernel_params_amp_buf32[6] = 0; // gid_max
-
-      device_param->kernel_params_amp[0] = &device_param->d_pws_buf;
-      device_param->kernel_params_amp[1] = &device_param->d_pws_amp_buf;
-      device_param->kernel_params_amp[2] = &device_param->d_rules;
-      device_param->kernel_params_amp[3] = &device_param->d_combs;
-      device_param->kernel_params_amp[4] = &device_param->d_bfs;
-      device_param->kernel_params_amp[5] = &device_param->kernel_params_amp_buf32[5];
-      device_param->kernel_params_amp[6] = &device_param->kernel_params_amp_buf32[6];
-
-      device_param->kernel_params_tb[0] = &device_param->d_pws_buf;
-
-      device_param->kernel_params_tm[0] = &device_param->d_bfs;
-      device_param->kernel_params_tm[1] = &device_param->d_tm;
-
-      /* constant memory init */
-
-      CUmodule c_module;
-
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
-      {
-        c_module = device_param->module;
-      }
-      else
-      {
-        c_module = device_param->module_amp;
-      }
-
-      size_t c_bytes;
-
-      if (attack_kern == ATTACK_KERN_STRAIGHT)
-      {
-        CUdeviceptr c_rules;
-
-        hc_cuModuleGetGlobal (&c_rules, &c_bytes, c_module, "c_rules");
-
-        device_param->c_rules = c_rules;
-        device_param->c_bytes = c_bytes;
-
-        hc_cuMemsetD8 (c_rules, 0, c_bytes);
-      }
-      else if (attack_kern == ATTACK_KERN_COMBI)
-      {
-        CUdeviceptr c_combs;
-
-        hc_cuModuleGetGlobal (&c_combs, &c_bytes, c_module, "c_combs");
-
-        device_param->c_combs = c_combs;
-        device_param->c_bytes = c_bytes;
-
-        hc_cuMemsetD8 (c_combs, 0, c_bytes);
-      }
-      else if (attack_kern == ATTACK_KERN_BF)
-      {
-        CUdeviceptr c_bfs;
-
-        hc_cuModuleGetGlobal (&c_bfs, &c_bytes, c_module, "c_bfs");
-
-        device_param->c_bfs   = c_bfs;
-        device_param->c_bytes = c_bytes;
-
-        hc_cuMemsetD8 (c_bfs, 0, c_bytes);
-
-        if (data.opts_type & OPTS_TYPE_PT_BITSLICE)
-        {
-          size_t bytes;
-
-          CUdeviceptr c_tm;
-
-          hc_cuModuleGetGlobal (&c_tm, &bytes, c_module, "c_tm");
-
-          device_param->c_tm = c_tm;
-
-          hc_cuMemsetD8 (c_tm, 0, bytes);
-        }
-      }
-
-      hc_cuCtxPopCurrent (NULL);
-    }
-
-    #elif _OCL
     for (uint device_id = 0; device_id < devices_cnt; device_id++)
     {
       /**
@@ -14523,7 +12859,8 @@ int main (int argc, char **argv)
       char *driver_version = device_param->driver_version;
 
       uint gpu_processors   = device_param->gpu_processors;
-      uint gpu_vector_width = device_param->gpu_vector_width;
+
+      uint gpu_processor_cores = device_param->gpu_processor_cores;
 
       /**
        * create context for each device
@@ -14535,20 +12872,23 @@ int main (int argc, char **argv)
        * create command-queue
        */
 
-      device_param->command_queue = hc_clCreateCommandQueueWithProperties (device_param->context, device_param->device, NULL);
+      // not support with NV
+      // device_param->command_queue = hc_clCreateCommandQueueWithProperties (device_param->context, device_param->device, NULL);
+
+      device_param->command_queue = hc_clCreateCommandQueue (device_param->context, device_param->device, 0);
 
       /**
        * create input buffers on device
        */
 
-      uint gpu_threads = GPU_THREADS_AMD;
+      uint gpu_threads = GPU_THREADS;
 
+      // bcrypt
       if (hash_mode == 3200) gpu_threads = 8;
       if (hash_mode == 9000) gpu_threads = 8;
 
       uint gpu_power  = gpu_processors * gpu_threads * gpu_accel;
-
-      uint gpu_blocks = gpu_power * gpu_vector_width;
+      uint gpu_blocks = gpu_power;
 
       device_param->gpu_threads      = gpu_threads;
       device_param->gpu_power_user   = gpu_power;
@@ -14642,7 +12982,7 @@ int main (int argc, char **argv)
       device_param->size_root_css   = size_root_css;
       device_param->size_markov_css = size_markov_css;
 
-      uint size_results = GPU_THREADS_AMD * sizeof (uint);
+      uint size_results = GPU_THREADS * sizeof (uint);
 
       device_param->size_results  = size_results;
 
@@ -14665,40 +13005,85 @@ int main (int argc, char **argv)
 
       if ((hash_mode == 8900) || (hash_mode == 9300))
       {
-        #define SHADER_PER_MP 8
-        #define WAVEFRONTS    64
-
-        uint tmto_start = 2;
-        uint tmto_stop  = 1024;
+        uint tmto_start = 0;
+        uint tmto_stop  = 10;
 
         if (scrypt_tmto)
         {
-          tmto_start = 1 << scrypt_tmto;
-          tmto_stop  = tmto_start + 1;
+          tmto_start = scrypt_tmto;
+        }
+        else
+        {
+          // in case the user did not specify the tmto manually
+          // use some values known to run best (tested on 290x for AMD and 980ti for NV)
+          // but set the lower end only in case the user has a gpu with too less memory
+
+          if (hash_mode == 8900)
+          {
+            if (vendor_id == VENDOR_ID_AMD)
+            {
+              tmto_start = 1;
+            }
+            else if (vendor_id == VENDOR_ID_NV)
+            {
+              tmto_start = 3;
+            }
+          }
+          else if (hash_mode == 9300)
+          {
+            if (vendor_id == VENDOR_ID_AMD)
+            {
+              tmto_start = 3;
+            }
+            else if (vendor_id == VENDOR_ID_NV)
+            {
+              tmto_start = 5;
+            }
+          }
         }
 
-        for (uint tmto = tmto_start; tmto < tmto_stop; tmto <<= 1)
+        if (quiet == 0) log_info ("");
+
+        uint shader_per_mp = 1;
+
+        if (vendor_id == VENDOR_ID_AMD)
         {
-          // todo -- make sure all salts get the new tmto value
+          shader_per_mp = 8;
+        }
+
+        if (vendor_id == VENDOR_ID_NV)
+        {
+          shader_per_mp = 32;
+        }
+
+        for (uint tmto = tmto_start; tmto < tmto_stop; tmto++)
+        {
+          // TODO: in theory the following calculation needs to be done per salt, not global
+          //       we assume all hashes have the same scrypt settings
 
           size_scryptV = (128 * data.salts_buf[0].scrypt_r) * data.salts_buf[0].scrypt_N;
 
-          size_scryptV /= tmto;
+          size_scryptV /= 1 << tmto;
 
-          size_scryptV *= gpu_processors * WAVEFRONTS * SHADER_PER_MP;
+          size_scryptV *= gpu_processors * gpu_processor_cores * shader_per_mp;
 
-          if (size_scryptV > (device_param->gpu_maxmem_alloc / 2)) continue;
+          if (size_scryptV > device_param->gpu_maxmem_alloc)
+          {
+            if (quiet == 0) log_info ("WARNING: not enough GPU memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+
+            continue;
+          }
 
           for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
           {
             data.salts_buf[salts_pos].scrypt_tmto = tmto;
-            data.salts_buf[salts_pos].scrypt_phy  = gpu_processors * WAVEFRONTS * SHADER_PER_MP;
+            data.salts_buf[salts_pos].scrypt_phy  = gpu_processors * gpu_processor_cores * shader_per_mp;
           }
 
           break;
         }
 
-        if (data.salts_buf[0].scrypt_tmto == 0)
+        if (data.salts_buf[0].scrypt_phy == 0)
         {
           log_error ("ERROR: can't allocate enough GPU memory");
 
@@ -14706,403 +13091,369 @@ int main (int argc, char **argv)
         }
 
         if (quiet == 0) log_info ("");
-        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u\n", data.salts_buf[0].scrypt_tmto);
+        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %u\n", data.salts_buf[0].scrypt_tmto, size_scryptV);
       }
 
       /**
-       * kernel find
+       * default building options
        */
 
-      uint vliw = get_vliw_by_device_name (device_name);
+      char build_opts[1024];
 
-      struct stat st;
+      // we don't have sm_* on AMD but it doesn't matter
 
-      char kernel_file[256];
+      sprintf (build_opts, "-I. -IOpenCL/ -DVENDOR_ID=%d -DCUDA_ARCH=%d", vendor_id, (device_param->sm_major * 100) + device_param->sm_minor);
 
-      memset (kernel_file, 0, sizeof (kernel_file));
+      /**
+       * main kernel
+       */
 
-      size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
-
-      const unsigned char **kernel_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
-
-      #ifdef BINARY_KERNEL
-      if (force_jit_compilation == 0)
       {
-        if (attack_exec == ATTACK_EXEC_ON_GPU)
+        /**
+         * kernel source filename
+         */
+
+        char source_file[256];
+
+        memset (source_file, 0, sizeof (source_file));
+
+        generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, source_file);
+
+        struct stat sst;
+
+        if (stat (source_file, &sst) == -1)
         {
-          if (attack_kern == ATTACK_KERN_STRAIGHT)
-            snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_a0.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
-          else if (attack_kern == ATTACK_KERN_COMBI)
-            snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_a1.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
-          else if (attack_kern == ATTACK_KERN_BF)
-            snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_a3.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+          log_error ("ERROR: %s: %s", source_file, strerror (errno));
+
+          return -1;
         }
-        else
-        {
-          snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
 
-          if ((hash_mode == 8900) || (hash_mode == 9300))
-          {
-            snprintf (kernel_file, sizeof (kernel_file) - 1, "%s/kernels/4098/m%05d_%d_%d_%d_%d.%s_%s_%s_%d.kernel", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, device_name, device_version, driver_version, COMPTIME);
-          }
+        /**
+         * kernel cached filename
+         */
+
+        char cached_file[256];
+
+        memset (cached_file, 0, sizeof (cached_file));
+
+        generate_cached_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, device_name, device_version, driver_version, vendor_id, cached_file);
+
+        int cached = 1;
+
+        struct stat cst;
+
+        if (stat (cached_file, &cst) == -1)
+        {
+          cached = 0;
         }
 
-        if (stat (kernel_file, &st) == -1)
+        /**
+         * kernel compile or load
+         */
+
+        size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
+
+        const unsigned char **kernel_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
+
+        if (force_jit_compilation == 0)
         {
-          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, kernel_file);
-
-          char module_file[256];
-
-          memset (module_file, 0, sizeof (module_file));
-
-          if (attack_exec == ATTACK_EXEC_ON_GPU)
+          if (cached == 0)
           {
-            if (attack_kern == ATTACK_KERN_STRAIGHT)
-              snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_a0.VLIW%d.llvmir", install_dir, (int) kern_type, vliw);
-            else if (attack_kern == ATTACK_KERN_COMBI)
-              snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_a1.VLIW%d.llvmir", install_dir, (int) kern_type, vliw);
-            else if (attack_kern == ATTACK_KERN_BF)
-              snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_a3.VLIW%d.llvmir", install_dir, (int) kern_type, vliw);
+            if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+
+            load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+
+            device_param->program = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+
+            hc_clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+
+            size_t binary_size;
+
+            clGetProgramInfo (device_param->program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+            unsigned char *binary = (unsigned char *) mymalloc (binary_size);
+
+            clGetProgramInfo (device_param->program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+
+            writeProgramBin (cached_file, binary, binary_size);
+
+            local_free (binary);
           }
           else
           {
-            snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d.VLIW%d.llvmir", install_dir, (int) kern_type, vliw);
+            if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
 
-            if ((hash_mode == 8900) || (hash_mode == 9300))
-            {
-              snprintf (module_file, sizeof (module_file) - 1, "%s/kernels/4098/m%05d_%d_%d_%d_%d.VLIW%d.llvmir", install_dir, (int) kern_type, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto, vliw);
-            }
+            load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
+
+            device_param->program = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
+
+            hc_clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+          }
+        }
+        else
+        {
+          if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
+
+          load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+
+          device_param->program = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+
+          if (force_jit_compilation == 1500)
+          {
+            sprintf (build_opts, "%s -DDESCRYPT_SALT=%d", build_opts, data.salts_buf[0].salt_buf[0]);
+          }
+          else if (force_jit_compilation == 8900)
+          {
+            sprintf (build_opts, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.salts_buf[0].scrypt_tmto);
           }
 
-          load_kernel (module_file, 1, kernel_lengths, kernel_sources);
+          hc_clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+        }
 
-          cl_program program = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
+        local_free (kernel_lengths);
+        local_free (kernel_sources[0]);
+        local_free (kernel_sources);
 
-          local_free (kernel_sources[0]);
+        // this is mostly for debug
 
-          hc_clBuildProgram (program, 1, &device_param->device, "-cl-std=CL1.2", NULL, NULL);
+        size_t ret_val_size = 0;
+
+        clGetProgramBuildInfo (device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+
+        if (ret_val_size > 2)
+        {
+          char *build_log = (char *) mymalloc (ret_val_size + 1);
+
+          memset (build_log, 0, ret_val_size + 1);
+
+          clGetProgramBuildInfo (device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
+
+          puts (build_log);
+
+          myfree (build_log);
+        }
+      }
+
+      /**
+       * word generator kernel
+       */
+
+      if (attack_mode != ATTACK_MODE_STRAIGHT)
+      {
+        /**
+         * kernel mp source filename
+         */
+
+        char source_file[256];
+
+        memset (source_file, 0, sizeof (source_file));
+
+        generate_source_kernel_mp_filename (opti_type, opts_type, install_dir, source_file);
+
+        struct stat sst;
+
+        if (stat (source_file, &sst) == -1)
+        {
+          log_error ("ERROR: %s: %s", source_file, strerror (errno));
+
+          return -1;
+        }
+
+        /**
+         * kernel mp cached filename
+         */
+
+        char cached_file[256];
+
+        memset (cached_file, 0, sizeof (cached_file));
+
+        generate_cached_kernel_mp_filename (opti_type, opts_type, install_dir, device_name, device_version, driver_version, vendor_id, cached_file);
+
+        int cached = 1;
+
+        struct stat cst;
+
+        if (stat (cached_file, &cst) == -1)
+        {
+          cached = 0;
+        }
+
+        /**
+         * kernel compile or load
+         */
+
+        size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
+
+        const unsigned char **kernel_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
+
+        if (cached == 0)
+        {
+          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+
+          load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+
+          device_param->program_mp = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+
+          hc_clBuildProgram (device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
 
           size_t binary_size;
 
-          clGetProgramInfo (program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+          clGetProgramInfo (device_param->program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
 
           unsigned char *binary = (unsigned char *) mymalloc (binary_size);
 
-          clGetProgramInfo (program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+          clGetProgramInfo (device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
-          writeProgramBin (kernel_file, binary, binary_size);
+          writeProgramBin (cached_file, binary, binary_size);
 
           local_free (binary);
-
-          stat (kernel_file, &st); // to reload filesize
-        }
-      }
-      else
-      {
-        generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, kernel_file);
-
-        if (stat (kernel_file, &st) == -1)
-        {
-          log_error ("ERROR: %s: %s", kernel_file, strerror (errno));
-
-          return -1;
-        }
-      }
-
-      #else
-
-      generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, kernel_file);
-
-      if (stat (kernel_file, &st) == -1)
-      {
-        log_error ("ERROR: %s: %s", kernel_file, strerror (errno));
-
-        return -1;
-      }
-
-      #endif
-
-      load_kernel (kernel_file, 1, kernel_lengths, kernel_sources);
-
-      if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, kernel_file, st.st_size);
-
-      #ifdef BINARY_KERNEL
-      if (force_jit_compilation == 0)
-      {
-        device_param->program = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
-      }
-      else
-      {
-        device_param->program = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
-      }
-      #else
-      device_param->program = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
-      #endif
-
-      local_free (kernel_lengths);
-
-      local_free (kernel_sources[0]);
-
-      local_free (kernel_sources)
-
-      /**
-       * kernel mp find
-       */
-
-      if (attack_mode != ATTACK_MODE_STRAIGHT)
-      {
-        char kernel_mp_file[256];
-
-        memset (kernel_mp_file, 0, sizeof (kernel_mp_file));
-
-        size_t *kernel_mp_lengths = (size_t *) mymalloc (sizeof (size_t));
-
-        const unsigned char **kernel_mp_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
-
-        #ifdef BINARY_KERNEL
-        if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
-        {
-          snprintf (kernel_mp_file, sizeof (kernel_mp_file) - 1, "%s/kernels/4098/markov_be_v%d.%s_%s_%s_%d.kernel", install_dir, gpu_vector_width, device_name, device_version, driver_version, COMPTIME);
         }
         else
         {
-          snprintf (kernel_mp_file, sizeof (kernel_mp_file) - 1, "%s/kernels/4098/markov_le_v%d.%s_%s_%s_%d.kernel", install_dir, gpu_vector_width, device_name, device_version, driver_version, COMPTIME);
+          if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+
+          load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
+
+          device_param->program_mp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
+
+          hc_clBuildProgram (device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
         }
 
-        if (stat (kernel_mp_file, &st) == -1)
+        local_free (kernel_lengths);
+        local_free (kernel_sources[0]);
+        local_free (kernel_sources);
+
+        // this is mostly for debug
+
+        size_t ret_val_size = 0;
+
+        clGetProgramBuildInfo (device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+
+        if (ret_val_size > 2)
         {
-          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, kernel_mp_file);
+          char *build_log = (char *) mymalloc (ret_val_size + 1);
 
-          char module_mp_file[256];
+          memset (build_log, 0, ret_val_size + 1);
 
-          memset (module_mp_file, 0, sizeof (module_mp_file));
+          clGetProgramBuildInfo (device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
 
-          if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
-          {
-            snprintf (module_mp_file, sizeof (module_mp_file) - 1, "%s/kernels/4098/markov_be_v%d.llvmir", install_dir, gpu_vector_width);
-          }
-          else
-          {
-            snprintf (module_mp_file, sizeof (module_mp_file) - 1, "%s/kernels/4098/markov_le_v%d.llvmir", install_dir, gpu_vector_width);
-          }
+          puts (build_log);
 
-          load_kernel (module_mp_file, 1, kernel_mp_lengths, kernel_mp_sources);
+          myfree (build_log);
+        }
+      }
 
-          cl_program program_mp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_mp_lengths, (const unsigned char **) kernel_mp_sources, NULL);
+      /**
+       * amplifier kernel
+       */
 
-          local_free (kernel_mp_sources[0]);
+      if (attack_exec == ATTACK_EXEC_ON_GPU)
+      {
 
-          hc_clBuildProgram (program_mp, 1, &device_param->device, "-cl-std=CL1.2", NULL, NULL);
+      }
+      else
+      {
+        /**
+         * kernel amp source filename
+         */
 
-          size_t binary_mp_size;
+        char source_file[256];
 
-          clGetProgramInfo (program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_mp_size, NULL);
+        memset (source_file, 0, sizeof (source_file));
 
-          unsigned char *binary_mp = (unsigned char *) mymalloc (binary_mp_size);
+        generate_source_kernel_amp_filename (attack_kern, install_dir, source_file);
 
-          clGetProgramInfo (program_mp, CL_PROGRAM_BINARIES, sizeof (binary_mp), &binary_mp, NULL);
+        struct stat sst;
 
-          writeProgramBin (kernel_mp_file, binary_mp, binary_mp_size);
+        if (stat (source_file, &sst) == -1)
+        {
+          log_error ("ERROR: %s: %s", source_file, strerror (errno));
 
-          local_free (binary_mp);
-
-          stat (kernel_mp_file, &st); // to reload filesize
+          return -1;
         }
 
-        #else
-        if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
+        /**
+         * kernel amp cached filename
+         */
+
+        char cached_file[256];
+
+        memset (cached_file, 0, sizeof (cached_file));
+
+        generate_cached_kernel_amp_filename (attack_kern, install_dir, device_name, device_version, driver_version, vendor_id, cached_file);
+
+        int cached = 1;
+
+        struct stat cst;
+
+        if (stat (cached_file, &cst) == -1)
         {
-          snprintf (kernel_mp_file, sizeof (kernel_mp_file) - 1, "%s/amd/markov_be_v%d.cl", install_dir, gpu_vector_width);
+          cached = 0;
+        }
+
+        /**
+         * kernel compile or load
+         */
+
+        size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
+
+        const unsigned char **kernel_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
+
+        if (cached == 0)
+        {
+          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+
+          load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+
+          device_param->program_amp = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+
+          hc_clBuildProgram (device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
+
+          size_t binary_size;
+
+          clGetProgramInfo (device_param->program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+          unsigned char *binary = (unsigned char *) mymalloc (binary_size);
+
+          clGetProgramInfo (device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+
+          writeProgramBin (cached_file, binary, binary_size);
+
+          local_free (binary);
         }
         else
         {
-          snprintf (kernel_mp_file, sizeof (kernel_mp_file) - 1, "%s/amd/markov_le_v%d.cl", install_dir, gpu_vector_width);
+          if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+
+          load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
+
+          device_param->program_amp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
+
+          hc_clBuildProgram (device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
         }
 
-        if (stat (kernel_mp_file, &st) == -1)
+        local_free (kernel_lengths);
+        local_free (kernel_sources[0]);
+        local_free (kernel_sources);
+
+        // this is mostly for debug
+
+        size_t ret_val_size = 0;
+
+        clGetProgramBuildInfo (device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+
+        if (ret_val_size > 2)
         {
-          log_error ("ERROR: %s: %s", kernel_mp_file, strerror (errno));
+          char *build_log = (char *) mymalloc (ret_val_size + 1);
 
-          return -1;
+          memset (build_log, 0, ret_val_size + 1);
+
+          clGetProgramBuildInfo (device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
+
+          puts (build_log);
+
+          myfree (build_log);
         }
-
-        #endif
-
-        load_kernel (kernel_mp_file, 1, kernel_mp_lengths, kernel_mp_sources);
-
-        if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, kernel_mp_file, st.st_size);
-
-        #ifdef BINARY_KERNEL
-        device_param->program_mp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_mp_lengths, (const unsigned char **) kernel_mp_sources, NULL);
-        #else
-        device_param->program_mp = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_mp_sources, NULL);
-        #endif
-
-        local_free (kernel_mp_lengths);
-
-        local_free (kernel_mp_sources[0]);
-
-        local_free (kernel_mp_sources);
-      }
-
-      /**
-       * kernel amp find
-       */
-
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
-      {
-        // nothing to do
-      }
-      else
-      {
-        char kernel_amp_file[256];
-
-        memset (kernel_amp_file, 0, sizeof (kernel_amp_file));
-
-        size_t *kernel_amp_lengths = (size_t *) mymalloc (sizeof (size_t));
-
-        const unsigned char **kernel_amp_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
-
-        #ifdef BINARY_KERNEL
-        snprintf (kernel_amp_file, sizeof (kernel_amp_file) - 1, "%s/kernels/4098/amp_a%d_v%d.%s_%s_%s_%d.kernel", install_dir, attack_kern, gpu_vector_width, device_name, device_version, driver_version, COMPTIME);
-
-        if (stat (kernel_amp_file, &st) == -1)
-        {
-          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, kernel_amp_file);
-
-          char module_amp_file[256];
-
-          memset (module_amp_file, 0, sizeof (module_amp_file));
-
-          snprintf (module_amp_file, sizeof (module_amp_file) - 1, "%s/kernels/4098/amp_a%d_v%d.llvmir", install_dir, attack_kern, gpu_vector_width);
-
-          load_kernel (module_amp_file, 1, kernel_amp_lengths, kernel_amp_sources);
-
-          cl_program program_amp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_amp_lengths, (const unsigned char **) kernel_amp_sources, NULL);
-
-          local_free (kernel_amp_sources[0]);
-
-          hc_clBuildProgram (program_amp, 1, &device_param->device, "-cl-std=CL1.2", NULL, NULL);
-
-          size_t binary_amp_size;
-
-          clGetProgramInfo (program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_amp_size, NULL);
-
-          unsigned char *binary_amp = (unsigned char *) mymalloc (binary_amp_size);
-
-          clGetProgramInfo (program_amp, CL_PROGRAM_BINARIES, sizeof (binary_amp), &binary_amp, NULL);
-
-          writeProgramBin (kernel_amp_file, binary_amp, binary_amp_size);
-
-          local_free (binary_amp);
-
-          stat (kernel_amp_file, &st); // to reload filesize
-        }
-        #else
-        snprintf (kernel_amp_file, sizeof (kernel_amp_file) - 1, "%s/amd/amp_a%d_v%d.cl", install_dir, attack_kern, gpu_vector_width);
-
-        if (stat (kernel_amp_file, &st) == -1)
-        {
-          log_error ("ERROR: %s: %s", kernel_amp_file, strerror (errno));
-
-          return -1;
-        }
-        #endif
-
-        load_kernel (kernel_amp_file, 1, kernel_amp_lengths, kernel_amp_sources);
-
-        if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, kernel_amp_file, st.st_size);
-
-        #ifdef BINARY_KERNEL
-        device_param->program_amp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_amp_lengths, (const unsigned char **) kernel_amp_sources, NULL);
-        #else
-        device_param->program_amp = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_amp_sources, NULL);
-        #endif
-
-        local_free (kernel_amp_lengths);
-
-        local_free (kernel_amp_sources[0]);
-
-        local_free (kernel_amp_sources);
-      }
-
-      /**
-       * kernel compile
-       */
-
-      char *build_opts = NULL;
-
-      #ifdef BINARY_KERNEL
-
-      if (force_jit_compilation == 0)
-      {
-        // nothing to do
-      }
-      else if (force_jit_compilation == 1500)
-      {
-        build_opts = (char *) mymalloc (256);
-
-        sprintf (build_opts, "-I . -I amd/ -D VLIW%d -x clc++ -cl-std=CL1.2 -DDESCRYPT_SALT=%d", vliw, data.salts_buf[0].salt_buf[0]);
-      }
-      else if (force_jit_compilation == 8900)
-      {
-        build_opts = (char *) mymalloc (256);
-
-        sprintf (build_opts, "-I . -I amd/ -D VLIW%d -x clc++ -cl-std=CL1.2 -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", vliw, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, data.salts_buf[0].scrypt_tmto);
-      }
-
-      #else
-
-      build_opts = (char *) mymalloc (256);
-
-      sprintf (build_opts, "-I . -I amd/ -D VLIW%d -x clc++ -cl-std=CL1.2", vliw);
-
-      #endif
-
-      clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
-
-      size_t ret_val_size = 0;
-
-      clGetProgramBuildInfo (device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
-
-      if (ret_val_size > 1)
-      {
-        char *build_log = (char *) malloc (ret_val_size + 1);
-
-        memset (build_log, 0, ret_val_size + 1);
-
-        clGetProgramBuildInfo (device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
-
-        puts (build_log);
-
-        free (build_log);
-      }
-
-      if (attack_mode != ATTACK_MODE_STRAIGHT)
-      {
-        hc_clBuildProgram (device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
-      }
-
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
-      {
-        // nothing to do
-      }
-      else
-      {
-        hc_clBuildProgram (device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
-      }
-
-      /**
-       * amp is not independent
-       */
-
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
-      {
-        // nothing to do
-      }
-      else
-      {
-        device_param->kernel_amp = hc_clCreateKernel (device_param->program_amp, "amp");
       }
 
       /**
@@ -15228,18 +13579,8 @@ int main (int argc, char **argv)
 
       device_param->hooks_buf = hooks_buf;
 
-      switch (device_param->gpu_vector_width)
-      {
-        case 1: device_param->pw_transpose  = pw_transpose_to_hi1;
-                device_param->pw_add        = pw_add_to_hc1;
-                break;
-        case 2: device_param->pw_transpose  = pw_transpose_to_hi2;
-                device_param->pw_add        = pw_add_to_hc2;
-                break;
-        case 4: device_param->pw_transpose  = pw_transpose_to_hi4;
-                device_param->pw_add        = pw_add_to_hc4;
-                break;
-      }
+      device_param->pw_transpose  = pw_transpose_to_hi1;
+      device_param->pw_add        = pw_add_to_hc1;
 
       /**
        * kernel args
@@ -15491,6 +13832,15 @@ int main (int argc, char **argv)
       }
       else
       {
+        device_param->kernel_amp = hc_clCreateKernel (device_param->program_amp, "amp");
+      }
+
+      if (attack_exec == ATTACK_EXEC_ON_GPU)
+      {
+        // nothing to do
+      }
+      else
+      {
         for (uint i = 0; i < 5; i++)
         {
           hc_clSetKernelArg (device_param->kernel_amp, i, sizeof (cl_mem), device_param->kernel_params_amp[i]);
@@ -15506,9 +13856,11 @@ int main (int argc, char **argv)
        * Store initial fanspeed if gpu_temp_retain is enabled
        */
 
+      int gpu_temp_retain_set = 0;
+
       if (gpu_temp_disable == 0)
       {
-        if (gpu_temp_retain != 0)
+        if (gpu_temp_retain != 0) // VENDOR_ID_AMD implied
         {
           hc_thread_mutex_lock (mux_adl);
 
@@ -15519,7 +13871,7 @@ int main (int argc, char **argv)
               uint cur_temp = 0;
               uint default_temp = 0;
 
-              int ADL_rc = hc_ADL_Overdrive6_TargetTemperatureData_Get (data.hm_dll, data.hm_device[device_id].adapter_index, (int *) &cur_temp, (int *) &default_temp);
+              int ADL_rc = hc_ADL_Overdrive6_TargetTemperatureData_Get (data.hm_dll, data.hm_device[device_id].adapter_index.amd, (int *) &cur_temp, (int *) &default_temp);
 
               if (ADL_rc == ADL_OK)
               {
@@ -15563,7 +13915,7 @@ int main (int argc, char **argv)
        * Store original powercontrol/clocks settings, set overdrive 6 performance tuning settings
        */
 
-      if (powertune_enable == 1)
+      if (powertune_enable == 1) // VENDOR_ID_AMD implied
       {
         hc_thread_mutex_lock (mux_adl);
 
@@ -15575,7 +13927,7 @@ int main (int argc, char **argv)
 
           int powertune_supported = 0;
 
-          if ((ADL_rc = hc_ADL_Overdrive6_PowerControl_Caps (data.hm_dll, data.hm_device[device_id].adapter_index, &powertune_supported)) != ADL_OK)
+          if ((ADL_rc = hc_ADL_Overdrive6_PowerControl_Caps (data.hm_dll, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
           {
             log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
@@ -15588,9 +13940,9 @@ int main (int argc, char **argv)
 
             ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
 
-            if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (data.hm_dll, data.hm_device[device_id].adapter_index, &powertune)) == ADL_OK)
+            if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (data.hm_dll, data.hm_device[device_id].adapter_index.amd, &powertune)) == ADL_OK)
             {
-              ADL_rc = hc_ADL_Overdrive_PowerControl_Get (data.hm_dll, data.hm_device[device_id].adapter_index, &od_power_control_status[device_id]);
+              ADL_rc = hc_ADL_Overdrive_PowerControl_Get (data.hm_dll, data.hm_device[device_id].adapter_index.amd, &od_power_control_status[device_id]);
             }
 
             if (ADL_rc != ADL_OK)
@@ -15600,7 +13952,7 @@ int main (int argc, char **argv)
               return (-1);
             }
 
-            if ((ADL_rc = hc_ADL_Overdrive_PowerControl_Set (data.hm_dll, data.hm_device[device_id].adapter_index, powertune.iMaxValue)) != ADL_OK)
+            if ((ADL_rc = hc_ADL_Overdrive_PowerControl_Set (data.hm_dll, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
             {
               log_error ("ERROR: Failed to set new ADL PowerControl values");
 
@@ -15613,7 +13965,7 @@ int main (int argc, char **argv)
 
             od_clock_mem_status[device_id].state.iNumberOfPerformanceLevels = 2;
 
-            if ((ADL_rc = hc_ADL_Overdrive_StateInfo_Get (data.hm_dll, data.hm_device[device_id].adapter_index, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
+            if ((ADL_rc = hc_ADL_Overdrive_StateInfo_Get (data.hm_dll, data.hm_device[device_id].adapter_index.amd, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
             {
               log_error ("ERROR: Failed to get ADL memory and engine clock frequency");
 
@@ -15624,7 +13976,7 @@ int main (int argc, char **argv)
 
             ADLOD6Capabilities caps = {0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0, 0};
 
-            if ((ADL_rc = hc_ADL_Overdrive_Capabilities_Get (data.hm_dll, data.hm_device[device_id].adapter_index, &caps)) != ADL_OK)
+            if ((ADL_rc = hc_ADL_Overdrive_Capabilities_Get (data.hm_dll, data.hm_device[device_id].adapter_index.amd, &caps)) != ADL_OK)
             {
               log_error ("ERROR: Failed to get ADL device capabilities");
 
@@ -15661,7 +14013,7 @@ int main (int argc, char **argv)
             performance_state->aLevels[0].iMemoryClock = memory_clock_profile_max;
             performance_state->aLevels[1].iMemoryClock = memory_clock_profile_max;
 
-            if ((ADL_rc = hc_ADL_Overdrive_State_Set (data.hm_dll, data.hm_device[device_id].adapter_index, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+            if ((ADL_rc = hc_ADL_Overdrive_State_Set (data.hm_dll, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
             {
               log_info ("ERROR: Failed to set ADL performance state");
 
@@ -15676,65 +14028,7 @@ int main (int argc, char **argv)
       }
     }
 
-    /* Temporary fix:
-     * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
-     * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
-     * were not working @ full speed (setting hc_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
-     * Driver / ADL bug?
-     */
-
-    if (powertune_enable == 1)
-    {
-      hc_thread_mutex_lock (mux_adl);
-
-      for (uint i = 0; i < devices_cnt; i++)
-      {
-        if (data.hm_device[i].od_version == 6)
-        {
-          // set powertune value only
-
-          int powertune_supported = 0;
-
-          int ADL_rc = 0;
-
-          if ((ADL_rc = hc_ADL_Overdrive6_PowerControl_Caps (data.hm_dll, data.hm_device[i].adapter_index, &powertune_supported)) != ADL_OK)
-          {
-            log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
-
-            return (-1);
-          }
-
-          if (powertune_supported != 0)
-          {
-            // powertune set
-            ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
-
-            if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (data.hm_dll, data.hm_device[i].adapter_index, &powertune)) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to get current ADL PowerControl settings");
-
-              return (-1);
-            }
-
-            if ((ADL_rc = hc_ADL_Overdrive_PowerControl_Set (data.hm_dll, data.hm_device[i].adapter_index, powertune.iMaxValue)) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to set new ADL PowerControl values");
-
-              return (-1);
-            }
-          }
-        }
-      }
-
-      hc_thread_mutex_unlock (mux_adl);
-    }
-    #endif
-
     data.gpu_blocks_all = gpu_blocks_all;
-
-    #ifdef _OCL
-    if (gpu_async == 0) gpu_async = 1; // get rid of the warning
-    #endif
 
     if (data.quiet == 0) log_info ("");
 
@@ -16829,21 +15123,12 @@ int main (int argc, char **argv)
               device_param->kernel_params_mp_buf32[7] = 0;
             }
 
-            #ifdef _CUDA
-            hc_cuCtxPushCurrent (device_param->context);
-
-            hc_cuMemcpyHtoD (device_param->d_root_css_buf,   root_css_buf,   device_param->size_root_css);
-            hc_cuMemcpyHtoD (device_param->d_markov_css_buf, markov_css_buf, device_param->size_markov_css);
-
-            hc_cuCtxPopCurrent (&device_param->context);
-            #elif _OCL
             for (uint i = 0; i < 3; i++) hc_clSetKernelArg (device_param->kernel_mp, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp[i]);
             for (uint i = 3; i < 4; i++) hc_clSetKernelArg (device_param->kernel_mp, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp[i]);
             for (uint i = 4; i < 8; i++) hc_clSetKernelArg (device_param->kernel_mp, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp[i]);
 
             hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   root_css_buf,   0, NULL, NULL);
             hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, markov_css_buf, 0, NULL, NULL);
-            #endif
           }
         }
         else if (attack_mode == ATTACK_MODE_BF)
@@ -17347,14 +15632,6 @@ int main (int argc, char **argv)
             device_param->kernel_params_mp_r_buf32[6] = 0;
             device_param->kernel_params_mp_r_buf32[7] = 0;
 
-            #ifdef _CUDA
-            hc_cuCtxPushCurrent (device_param->context);
-
-            hc_cuMemcpyHtoD (device_param->d_root_css_buf,   root_css_buf,   device_param->size_root_css);
-            hc_cuMemcpyHtoD (device_param->d_markov_css_buf, markov_css_buf, device_param->size_markov_css);
-
-            hc_cuCtxPopCurrent (&device_param->context);
-            #elif _OCL
             for (uint i = 0; i < 3; i++) hc_clSetKernelArg (device_param->kernel_mp_l, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_l[i]);
             for (uint i = 3; i < 4; i++) hc_clSetKernelArg (device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
             for (uint i = 4; i < 9; i++) hc_clSetKernelArg (device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
@@ -17365,7 +15642,6 @@ int main (int argc, char **argv)
 
             hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   root_css_buf,   0, NULL, NULL);
             hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, markov_css_buf, 0, NULL, NULL);
-            #endif
           }
         }
 
@@ -17778,43 +16054,6 @@ int main (int argc, char **argv)
 
       local_free (device_param->hooks_buf);
 
-      #ifdef _CUDA
-      hc_cuCtxPushCurrent (device_param->context);
-
-      if (device_param->pws_buf)            myfree                    (device_param->pws_buf);
-      if (device_param->d_pws_buf)          hc_cuMemFree              (device_param->d_pws_buf);
-      if (device_param->d_pws_amp_buf)      hc_cuMemFree              (device_param->d_pws_amp_buf);
-      if (device_param->d_rules)            hc_cuMemFree              (device_param->d_rules);
-      if (device_param->d_combs)            hc_cuMemFree              (device_param->d_combs);
-      if (device_param->d_bfs)              hc_cuMemFree              (device_param->d_bfs);
-      if (device_param->d_bitmap_s1_a)      hc_cuMemFree              (device_param->d_bitmap_s1_a);
-      if (device_param->d_bitmap_s1_b)      hc_cuMemFree              (device_param->d_bitmap_s1_b);
-      if (device_param->d_bitmap_s1_c)      hc_cuMemFree              (device_param->d_bitmap_s1_c);
-      if (device_param->d_bitmap_s1_d)      hc_cuMemFree              (device_param->d_bitmap_s1_d);
-      if (device_param->d_bitmap_s2_a)      hc_cuMemFree              (device_param->d_bitmap_s2_a);
-      if (device_param->d_bitmap_s2_b)      hc_cuMemFree              (device_param->d_bitmap_s2_b);
-      if (device_param->d_bitmap_s2_c)      hc_cuMemFree              (device_param->d_bitmap_s2_c);
-      if (device_param->d_bitmap_s2_d)      hc_cuMemFree              (device_param->d_bitmap_s2_d);
-      if (device_param->d_plain_bufs)       hc_cuMemFree              (device_param->d_plain_bufs);
-      if (device_param->d_digests_buf)      hc_cuMemFree              (device_param->d_digests_buf);
-      if (device_param->d_digests_shown)    hc_cuMemFree              (device_param->d_digests_shown);
-      if (device_param->d_salt_bufs)        hc_cuMemFree              (device_param->d_salt_bufs);
-      if (device_param->d_esalt_bufs)       hc_cuMemFree              (device_param->d_esalt_bufs);
-      if (device_param->d_tmps)             hc_cuMemFree              (device_param->d_tmps);
-      if (device_param->d_hooks)            hc_cuMemFree              (device_param->d_hooks);
-      if (device_param->d_result)           hc_cuMemFree              (device_param->d_result);
-      if (device_param->d_scryptV_buf)      hc_cuMemFree              (device_param->d_scryptV_buf);
-      if (device_param->d_root_css_buf)     hc_cuMemFree              (device_param->d_root_css_buf);
-      if (device_param->d_markov_css_buf)   hc_cuMemFree              (device_param->d_markov_css_buf);
-
-      if (device_param->stream)             hc_cuStreamDestroy        (device_param->stream);
-      if (device_param->module)             hc_cuModuleUnload         (device_param->module);
-
-      hc_cuCtxPopCurrent (&device_param->context);
-
-      if (device_param->context)            hc_cuCtxDestroy           (device_param->context);
-
-      #elif _OCL
       local_free (device_param->device_name);
 
       local_free (device_param->device_version);
@@ -17849,6 +16088,7 @@ int main (int argc, char **argv)
       if (device_param->d_scryptV_buf)      hc_clReleaseMemObject     (device_param->d_scryptV_buf);
       if (device_param->d_root_css_buf)     hc_clReleaseMemObject     (device_param->d_root_css_buf);
       if (device_param->d_markov_css_buf)   hc_clReleaseMemObject     (device_param->d_markov_css_buf);
+      if (device_param->d_tm_c)             hc_clReleaseMemObject     (device_param->d_tm_c);
 
       if (device_param->kernel1)            hc_clReleaseKernel        (device_param->kernel1);
       if (device_param->kernel12)           hc_clReleaseKernel        (device_param->kernel12);
@@ -17858,22 +16098,22 @@ int main (int argc, char **argv)
       if (device_param->kernel_mp)          hc_clReleaseKernel        (device_param->kernel_mp);
       if (device_param->kernel_mp_l)        hc_clReleaseKernel        (device_param->kernel_mp_l);
       if (device_param->kernel_mp_r)        hc_clReleaseKernel        (device_param->kernel_mp_r);
+      if (device_param->kernel_tb)          hc_clReleaseKernel        (device_param->kernel_tb);
+      if (device_param->kernel_tm)          hc_clReleaseKernel        (device_param->kernel_tm);
+      if (device_param->kernel_amp)         hc_clReleaseKernel        (device_param->kernel_amp);
 
       if (device_param->program)            hc_clReleaseProgram       (device_param->program);
       if (device_param->program_mp)         hc_clReleaseProgram       (device_param->program_mp);
+      if (device_param->program_amp)        hc_clReleaseProgram       (device_param->program_amp);
       if (device_param->command_queue)      hc_clReleaseCommandQueue  (device_param->command_queue);
       if (device_param->context)            hc_clReleaseContext       (device_param->context);
-      #endif
     }
-
-    #ifdef _OCL
-    #ifndef OSX
 
     // reset default fan speed
 
     if (gpu_temp_disable == 0)
     {
-      if (gpu_temp_retain != 0)
+      if (gpu_temp_retain != 0) // VENDOR_ID_AMD is implied here
       {
         hc_thread_mutex_lock (mux_adl);
 
@@ -17885,7 +16125,7 @@ int main (int argc, char **argv)
 
             if (fanspeed == -1) continue;
 
-            int rc = hm_set_fanspeed_with_device_id (i, fanspeed);
+            int rc = hm_set_fanspeed_with_device_id_amd (i, fanspeed);
 
             if (rc == -1) log_info ("WARNING: Failed to restore default fan speed for gpu number: %i:", i);
           }
@@ -17897,7 +16137,7 @@ int main (int argc, char **argv)
 
     // reset power tuning
 
-    if (powertune_enable == 1)
+    if (powertune_enable == 1) // VENDOR_ID_AMD is implied here
     {
       hc_thread_mutex_lock (mux_adl);
 
@@ -17909,7 +16149,7 @@ int main (int argc, char **argv)
 
           int powertune_supported = 0;
 
-          if ((hc_ADL_Overdrive6_PowerControl_Caps (data.hm_dll, data.hm_device[i].adapter_index, &powertune_supported)) != ADL_OK)
+          if ((hc_ADL_Overdrive6_PowerControl_Caps (data.hm_dll, data.hm_device[i].adapter_index.amd, &powertune_supported)) != ADL_OK)
           {
             log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
@@ -17920,7 +16160,7 @@ int main (int argc, char **argv)
           {
             // powercontrol settings
 
-            if ((hc_ADL_Overdrive_PowerControl_Set (data.hm_dll, data.hm_device[i].adapter_index, od_power_control_status[i])) != ADL_OK)
+            if ((hc_ADL_Overdrive_PowerControl_Set (data.hm_dll, data.hm_device[i].adapter_index.amd, od_power_control_status[i])) != ADL_OK)
             {
               log_info ("ERROR: Failed to restore the ADL PowerControl values");
 
@@ -17938,7 +16178,7 @@ int main (int argc, char **argv)
             performance_state->aLevels[0].iMemoryClock = od_clock_mem_status[i].state.aLevels[0].iMemoryClock;
             performance_state->aLevels[1].iMemoryClock = od_clock_mem_status[i].state.aLevels[1].iMemoryClock;
 
-            if ((hc_ADL_Overdrive_State_Set (data.hm_dll, data.hm_device[i].adapter_index, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+            if ((hc_ADL_Overdrive_State_Set (data.hm_dll, data.hm_device[i].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
             {
               log_info ("ERROR: Failed to restore ADL performance state");
 
@@ -17953,27 +16193,31 @@ int main (int argc, char **argv)
       hc_thread_mutex_unlock (mux_adl);
     }
 
-    #endif
-    #endif
-
     if (gpu_temp_disable == 0)
     {
-      #ifdef _CUDA
+      if (vendor_id == VENDOR_ID_NV)
+      {
+        #ifdef LINUX
+        hc_NVML_nvmlShutdown (data.hm_dll);
+        #endif
+
+        #ifdef WIN
+        NvAPI_Unload ();
+        #endif
+      }
+
+      if (vendor_id == VENDOR_ID_AMD)
+      {
+        hc_ADL_Main_Control_Destroy (data.hm_dll);
+
+        hm_close (data.hm_dll);
+      }
+
       #ifdef LINUX
-      hc_NVML_nvmlShutdown ();
-      #endif
-
-      #ifdef WIN
-      NvAPI_Unload ();
-      #endif
-      #endif
-
-      #ifdef _OCL
-      #ifndef OSX
-      hc_ADL_Main_Control_Destroy (data.hm_dll);
-
-      hm_close (data.hm_dll);
-      #endif
+      if (vendor_id == VENDOR_ID_NV)
+      {
+        hm_close (data.hm_dll);
+      }
       #endif
     }
 
@@ -18014,13 +16258,9 @@ int main (int argc, char **argv)
     local_free (bitmap_s2_c);
     local_free (bitmap_s2_d);
 
-    #ifdef _OCL
-    #ifndef OSX
     local_free (temp_retain_fanspeed_value);
     local_free (od_clock_mem_status);
     local_free (od_power_control_status);
-    #endif
-    #endif
 
     global_free (devices_param);
 
