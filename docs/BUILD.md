@@ -16,11 +16,6 @@ To compile **oclHashcat** the following third party libraries are required:
 - NVAPI R352 ( https://developer.nvidia.com/nvapi )
 - GDK v352_55 ( https://developer.nvidia.com/gpu-deployment-kit )
 
-To be able to compile the ocl binaries, it is required to have the latest stable driver from AMD installed.
-(fglxr must be installed and initialized)
-
-    http://support.amd.com/
-
 The next thing to do is download all the third party libraries listed above and put these files into the *deps/tmp* directory.
 
 The following files are needed inside the *deps/tmp* directory:
