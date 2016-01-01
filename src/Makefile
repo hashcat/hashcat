@@ -36,9 +36,6 @@ DOCUMENT_FOLDER          ?= /opt/test/usr/share/doc/oclHashcat
 ## Main SDK
 ##
 
-FORCEWARELIBPATH32       := deps/NVIDIA-Linux-x86_64-352.21/32
-FORCEWARELIBPATH64       := deps/NVIDIA-Linux-x86_64-352.21
-
 AMDAPP                   := deps/amd-app-sdk
 AMDAPPLIBPATH32          := $(AMDAPP)/lib/x86
 AMDAPPLIBPATH64          := $(AMDAPP)/lib/x86_64
@@ -56,8 +53,6 @@ OCLLIBPATH32             := $(AMDAPPLIBPATH32)
 OCLLIBPATH64             := $(AMDAPPLIBPATH64)
 
 NVML                     := $(GDK)/usr/include/nvidia/gdk
-NVMLLIBPATH32            := $(FORCEWARELIBPATH32)
-NVMLLIBPATH64            := $(FORCEWARELIBPATH64)
 
 CLCOMPILE_PATH           := tools/clcompile
 RULES_OPTIMIZE_PATH      := tools/rules_optimize
