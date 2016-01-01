@@ -600,7 +600,7 @@ const char *USAGE_BIG[] =
   "  12300 = Oracle T: Type (Oracle 12+)",
   "   8000 = Sybase ASE",
   "",
-  "[[ HTTP, SMTP, LDAP Server]]",
+  "[[ HTTP, SMTP, LDAP Server ]]",
   "",
   "    141 = EPiServer 6.x < v4",
   "   1441 = EPiServer 6.x > v4",
