@@ -11,11 +11,10 @@ oclHashcat build documentation
 
 To compile **oclHashcat** the following third party libraries are required:
 
-- ADL_SDK v8.0 ( http://developer.amd.com/tools-and-sdks/graphics-development/display-library-adl-sdk/ )
-- GDK v352_55 ( https://developer.nvidia.com/gpu-deployment-kit )
-- NVIDIA Driver v352.21 ( https://www.nvidia.com/download/driverResults.aspx/86390/en-us )
-- NVAPI R352 ( https://developer.nvidia.com/nvapi )
 - AMD-APP-SDK v3.0 ( http://developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/ )
+- ADL_SDK v8.0 ( http://developer.amd.com/tools-and-sdks/graphics-development/display-library-adl-sdk/ )
+- NVAPI R352 ( https://developer.nvidia.com/nvapi )
+- GDK v352_55 ( https://developer.nvidia.com/gpu-deployment-kit )
 
 To be able to compile the ocl binaries, it is required to have the latest stable driver from AMD installed.
 (fglxr must be installed and initialized)
@@ -28,7 +27,6 @@ The following files are needed inside the *deps/tmp* directory:
     
     ADL_SDK8.zip
     R352-developer.zip
-    NVIDIA-Linux-x86_64-352.21.run
     gdk_linux_amd64_352_55_release.run
     AMD-APP-SDKInstaller-v3.0.130.135-GA-linux64.tar.bz2
     

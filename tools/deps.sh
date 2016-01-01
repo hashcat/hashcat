@@ -1,10 +1,10 @@
 #!/bin/bash
 # Author: Gabriele Gristina <matrix@hashcat.net>
-# Revision: 1.02
+# Revision: 1.03
 
 ## global vars
 DEPS="make gcc g++ gcc-multilib g++-multilib libc6-dev-i386 mingw-w64 build-essential unzip"
-DOWNLOAD_DEPS="ADL_SDK8.zip R352-developer.zip NVIDIA-Linux-x86_64-352.21.run gdk_linux_amd64_352_55_release.run AMD-APP-SDKInstaller-v3.0.130.135-GA-linux64.tar.bz2"
+DOWNLOAD_DEPS="ADL_SDK8.zip R352-developer.zip gdk_linux_amd64_352_55_release.run AMD-APP-SDKInstaller-v3.0.130.135-GA-linux64.tar.bz2"
 
 ## enter the deps directory
 cur_directory=$(dirname ${0})
@@ -15,8 +15,8 @@ mkdir -p ${deps_dir} # but it should already exist (is part of the repository)
 cd ${deps_dir}
 
 ## cleanup the directories under the 'deps' folder
-rm -rf {adl-sdk,NVIDIA-Linux-x86_64-352.21,nvidia-gdk,amd-app-sdk} && \
-mkdir -p {tmp,adl-sdk,NVIDIA-Linux-x86_64-352.21,nvidia-gdk,amd-app-sdk} && \
+rm -rf {adl-sdk,nvidia-gdk,amd-app-sdk} && \
+mkdir -p {tmp,adl-sdk,nvidia-gdk,amd-app-sdk} && \
 cd tmp/
 
 if [ $? -ne 0 ]; then
@@ -83,21 +83,6 @@ if [[ ${ret} -ne 0 ]] && [[ ${ret} -ne 1 ]]; then
   exit 1
 fi
 
-## install NVIDIA Driver
-chmod +x NVIDIA-Linux-x86_64-352.21.run && \
-./NVIDIA-Linux-x86_64-352.21.run -x && \
-mv NVIDIA-Linux-x86_64-352.21 ${deps_dir}/ && \
-cd ${deps_dir}/NVIDIA-Linux-x86_64-352.21 && \
-ln -s libnvidia-ml.so.352.21 libnvidia-ml.so && \
-cd 32 && \
-ln -s libnvidia-ml.so.352.21 libnvidia-ml.so && \
-cd ${deps_dir}/tmp
-
-if [ $? -ne 0 ]; then
-  echo "! failed to install NVIDIA Driver"
-  exit 1
-fi
-
 ## install NVIDIA GPU Deployment Kit
 chmod +x gdk_linux_amd64_352_55_release.run && \
 ./gdk_linux_amd64_352_55_release.run --silent --installdir=${deps_dir}/nvidia-gdk
@@ -117,6 +102,7 @@ if [ $? -ne 0 ]; then
 fi
 
 rm -rf ${deps_dir}/amd-app-sdk && ln -s ${deps_dir}/amd-app-sdk-v3.0.130.135 ${deps_dir}/amd-app-sdk
+rm -rf ${deps_dir}/tmp/AMD-APP-SDK-v3.0.130.135-GA-linux64.sh
 
 if [ $? -ne 0 ]; then
   echo "! failed to setup ADL SDK link"
