@@ -12,7 +12,15 @@ Issue: 10
 
 Type.: Feature
 File.: Host
+Desc.: Added a Makefile target for native compilation
+
+Type.: Feature
+File.: Host
 Desc.: Added option --gpu-platform to select a single OpenCL platform in case multiple OpenCL platforms are present 
+
+Type.: Feature
+File.: Host
+Desc.: Moved rules_optimize to hashcat-utils
 
 Type.: Bug
 File.: Host

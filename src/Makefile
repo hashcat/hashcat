@@ -54,11 +54,16 @@ OCLLIBPATH64             := $(AMDAPPLIBPATH64)
 
 NVML                     := $(GDK)/usr/include/nvidia/gdk
 
-CLCOMPILE_PATH           := tools/clcompile
-RULES_OPTIMIZE_PATH      := tools/rules_optimize
+##
+## Native compiler paths
+##
+
+INSTALL                  := install
+CP                       := cp
+CC_NATIVE                := gcc
 
 ##
-## Compiler paths
+## Cross compiler paths
 ##
 
 CC_LINUX_32              := gcc
@@ -69,13 +74,6 @@ CC_WIN_64                := x86_64-w64-mingw32-gcc
 
 DLL_WIN_32               := i686-w64-mingw32-dlltool
 DLL_WIN_64               := x86_64-w64-mingw32-dlltool
-
-CLCOMPILE                := $(CLCOMPILE_PATH)/clcompile.bin
-
-BIN                      := .
-
-INSTALL                  := install
-CP                       := cp
 
 ##
 ## Misc stuff
@@ -102,38 +100,21 @@ CFLAGS_WIN               += -I$(OCL)/include/ -I$(ADL)/include/ -I$(NVAPI)/
 LFLAGS_LINUX             := -lpthread -lOpenCL -ldl
 LFLAGS_WIN               := -lpsapi
 
+CFLAGS_NATIVE            := $(CFLAGS_LINUX)
+LFLAGS_NATIVE            := $(LFLAGS_LINUX)
+
 ##
 ## Targets: Global
 ##
 
-all: binaries_all
+native: oclHashcat
 
-binaries_all: linux32 linux64 win32 win64 rules_optimize
+binaries: linux32 linux64 win32 win64
 
-release: binaries
-
-linux: linux32 linux64 rules_optimize
-
-windows: win32 win64 rules_optimize
-
-clean: clean_bin
-
-clean_all: clean_bin clean_clcompile
-
-clean_bin:
-	rm -f obj/*.o lib/*.a $(BIN)/*.bin $(BIN)/*.exe $(BIN)/*.app *.restore *.out *.pot *.dictstat *.log
-	rm -rf *Hashcat.induct
-	rm -rf *Hashcat.outfiles
-	$(MAKE) -C $(RULES_OPTIMIZE_PATH) clean
-
-clean_clcompile:
-	rm -f ${CLCOMPILE_PATH}/clcompile.bin
-
-${CLCOMPILE}: ${CLCOMPILE_PATH}/clcompile.c
-	$(CC_LINUX_64) $(CFLAGS) -o $@ -I$(CFLAGS_LINUX) $< -L$(OCLLIBPATH64) $(LFLAGS_LINUX)
-
-rules_optimize:
-	$(MAKE) -C $(RULES_OPTIMIZE_PATH)
+clean:
+	rm -f obj/*.o lib/*.a ./*.bin ./*.exe ./*.app *.restore *.out *.pot *.dictstat *.log oclHashcat
+	rm -rf *.induct
+	rm -rf *.outfiles
 
 linux32:        oclHashcat32.bin
 linux64:        oclHashcat64.bin
@@ -143,11 +124,10 @@ win64:          oclHashcat64.exe
 
 ##
 ## Targets: Linux install
-## We need some better native compilation logic here, fixing it to 64 bit for now and AMD kernels
 ## How to make /usr/bin/install doing recursive??
 ##
 
-install: linux64 amd_all
+install: native
 	$(INSTALL) -m 755 -d                     $(DOCUMENT_FOLDER)
 	$(CP) -a docs/*                          $(DOCUMENT_FOLDER)/
 	$(INSTALL) -m 755 -d                     $(DOCUMENT_FOLDER)/extra
@@ -161,7 +141,6 @@ install: linux64 amd_all
 	$(CP) -a rules/*                         $(SHARED_FOLDER)/rules/
 	$(INSTALL) -m 755    -T hashcat.hcstat   $(SHARED_FOLDER)/hashcat.hcstat
 	$(INSTALL) -m 755 -s -T oclHashcat64.bin $(INSTALL_FOLDER)/oclHashcat
-
 
 uninstall:
 	$(RM) -f  $(INSTALL_FOLDER)/oclHashcat
@@ -179,29 +158,39 @@ lib/libOpenCL64.a:
 	${DLL_WIN_64} -A -k -l lib/libOpenCL64.a -d lib/OpenCL64.def
 
 ##
-## oclHashcat
+## native compiled oclHashcat
 ##
 
-obj/%.oclHashcat.LINUX.32.o:  src/%.c
+obj/%.oclHashcat.NATIVE.o: src/%.c
+	$(CC_NATIVE) $(CFLAGS) $(CFLAGS_NATIVE) -c -o $@ $<
+
+oclHashcat: src/oclHashcat.c obj/ext_OpenCL.oclHashcat.NATIVE.o obj/ext_nvml.oclHashcat.NATIVE.o obj/ext_ADL.oclHashcat.NATIVE.o obj/shared.oclHashcat.NATIVE.o obj/rp_gpu_on_cpu.oclHashcat.NATIVE.o
+	$(CC_NATIVE) $(CFLAGS) $(CFLAGS_NATIVE)    -o $@ $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(NOW) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+
+##
+## cross compiled oclHashcat for release
+##
+
+obj/%.oclHashcat.LINUX.32.o: src/%.c
 	$(CC_LINUX_32) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_32) -c -o $@ $<
 
-obj/%.oclHashcat.LINUX.64.o:  src/%.c
+obj/%.oclHashcat.LINUX.64.o: src/%.c
 	$(CC_LINUX_64) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_64) -c -o $@ $<
 
-obj/%.oclHashcat.WIN.32.o:    src/%.c
+obj/%.oclHashcat.WIN.32.o: src/%.c
 	$(CC_WIN_32)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_32) -c -o $@ $<
 
-obj/%.oclHashcat.WIN.64.o:    src/%.c
+obj/%.oclHashcat.WIN.64.o: src/%.c
 	$(CC_WIN_64)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_64) -c -o $@ $<
 
-oclHashcat32.bin:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.LINUX.32.o obj/ext_nvml.oclHashcat.LINUX.32.o obj/ext_ADL.oclHashcat.LINUX.32.o    obj/shared.oclHashcat.LINUX.32.o  obj/rp_gpu_on_cpu.oclHashcat.LINUX.32.o
-	$(CC_LINUX_32) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_32)    -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH32)  $(LFLAGS_LINUX) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+oclHashcat32.bin: src/oclHashcat.c obj/ext_OpenCL.oclHashcat.LINUX.32.o obj/ext_nvml.oclHashcat.LINUX.32.o obj/ext_ADL.oclHashcat.LINUX.32.o    obj/shared.oclHashcat.LINUX.32.o  obj/rp_gpu_on_cpu.oclHashcat.LINUX.32.o
+	$(CC_LINUX_32) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_32)    -o $@ $^ -L$(OCLLIBPATH32)  $(LFLAGS_LINUX) -DCOMPTIME=$(NOW) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-oclHashcat64.bin:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.LINUX.64.o obj/ext_nvml.oclHashcat.LINUX.64.o obj/ext_ADL.oclHashcat.LINUX.64.o    obj/shared.oclHashcat.LINUX.64.o  obj/rp_gpu_on_cpu.oclHashcat.LINUX.64.o
-	$(CC_LINUX_64) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_64)    -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH64)  $(LFLAGS_LINUX) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+oclHashcat64.bin: src/oclHashcat.c obj/ext_OpenCL.oclHashcat.LINUX.64.o obj/ext_nvml.oclHashcat.LINUX.64.o obj/ext_ADL.oclHashcat.LINUX.64.o    obj/shared.oclHashcat.LINUX.64.o  obj/rp_gpu_on_cpu.oclHashcat.LINUX.64.o
+	$(CC_LINUX_64) $(CFLAGS) $(CFLAGS_LINUX) $(CFLAGS_64)    -o $@ $^ -L$(OCLLIBPATH64)  $(LFLAGS_LINUX) -DCOMPTIME=$(NOW) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-oclHashcat32.exe:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.WIN.32.o   obj/ext_nvapi.oclHashcat.WIN.32.o  obj/ext_ADL.oclHashcat.WIN.32.o      obj/shared.oclHashcat.WIN.32.o    obj/rp_gpu_on_cpu.oclHashcat.WIN.32.o      lib/libOpenCL.a   /usr/i686-w64-mingw32/lib/CRT_glob.o   $(NVAPI)/x86/nvapi.lib
-	$(CC_WIN_32)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_32)    -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH32)  $(LFLAGS_WIN) -static-libgcc
+oclHashcat32.exe: src/oclHashcat.c obj/ext_OpenCL.oclHashcat.WIN.32.o   obj/ext_nvapi.oclHashcat.WIN.32.o  obj/ext_ADL.oclHashcat.WIN.32.o      obj/shared.oclHashcat.WIN.32.o    obj/rp_gpu_on_cpu.oclHashcat.WIN.32.o      lib/libOpenCL.a   /usr/i686-w64-mingw32/lib/CRT_glob.o   $(NVAPI)/x86/nvapi.lib
+	$(CC_WIN_32)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_32)    -o $@ $^ -L$(OCLLIBPATH32)  $(LFLAGS_WIN)   -DCOMPTIME=$(NOW) -static-libgcc
 
-oclHashcat64.exe:  src/oclHashcat.c obj/ext_OpenCL.oclHashcat.WIN.64.o   obj/ext_nvapi.oclHashcat.WIN.64.o  obj/ext_ADL.oclHashcat.WIN.64.o      obj/shared.oclHashcat.WIN.64.o    obj/rp_gpu_on_cpu.oclHashcat.WIN.64.o      lib/libOpenCL64.a /usr/x86_64-w64-mingw32/lib/CRT_glob.o $(NVAPI)/amd64/nvapi64.lib
-	$(CC_WIN_64)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_64)    -o $@ -DCOMPTIME=$(NOW) $^ -L$(OCLLIBPATH64)  $(LFLAGS_WIN) -static-libgcc
+oclHashcat64.exe: src/oclHashcat.c obj/ext_OpenCL.oclHashcat.WIN.64.o   obj/ext_nvapi.oclHashcat.WIN.64.o  obj/ext_ADL.oclHashcat.WIN.64.o      obj/shared.oclHashcat.WIN.64.o    obj/rp_gpu_on_cpu.oclHashcat.WIN.64.o      lib/libOpenCL64.a /usr/x86_64-w64-mingw32/lib/CRT_glob.o $(NVAPI)/amd64/nvapi64.lib
+	$(CC_WIN_64)   $(CFLAGS) $(CFLAGS_WIN)   $(CFLAGS_64)    -o $@ $^ -L$(OCLLIBPATH64)  $(LFLAGS_WIN)   -DCOMPTIME=$(NOW) -static-libgcc

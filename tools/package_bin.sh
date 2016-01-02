@@ -58,8 +58,6 @@ chmod 700 $OUT/example*.sh
 chmod 700 $OUT/extra
 chmod 700 $OUT/extra/tab_completion/*.sh
 chmod 700 $OUT/extra/tab_completion/install
-chmod 600 $OUT/extra/rules_optimize/*.exe
-chmod 700 $OUT/extra/rules_optimize/*.bin
 chmod 700 $OUT/include
 chmod 600 $OUT/include/*
 chmod 700 $OUT/OpenCL
