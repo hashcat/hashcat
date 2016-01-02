@@ -108,7 +108,7 @@
 #define INDUCT_DIR            "induct"
 #define OUTFILES_DIR          "outfiles"
 
-#define LOOPBACK_FILE         "loopback"
+#define LOOPBACK_FILE         "hashcat.loopback"
 
 /**
  * types
@@ -1922,6 +1922,7 @@ void dump_hex (const char *s, size_t size);
 
 void truecrypt_crc32 (char *file, unsigned char keytab[64]);
 
+char *get_exec_path   ();
 char *get_install_dir (const char *progname);
 char *get_profile_dir (const char *homedir);
 char *get_session_dir (const char *profile_dir, const char *session);

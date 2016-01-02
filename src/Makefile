@@ -4,17 +4,10 @@
 ##
 
 ##
-## Detect number of processors
-##
-
-NPROCS   := $(shell grep -c ^processor /proc/cpuinfo)
-OS       := $(shell uname)
-
-##
 ## Makefile flags
 ##
 
-MAKEFLAGS += -l -j $(NPROCS) -rR --no-print-directory
+MAKEFLAGS += -l -j -rR --no-print-directory
 
 ifneq ($(findstring clean,$(MAKECMDGOALS)),)
 MAKEFLAGS += -j 1
@@ -24,13 +17,11 @@ endif
 ## Installation paths (Linux only)
 ##
 
-INSTALL_FOLDER           ?= /opt/test/usr/bin
-SHARED_FOLDER            ?= /opt/test/usr/share/oclHashcat
-DOCUMENT_FOLDER          ?= /opt/test/usr/share/doc/oclHashcat
+PREFIX                   ?= /usr/local
 
-#INSTALL_FOLDER           ?= /usr/bin
-#SHARED_FOLDER            ?= /usr/share/oclHashcat
-#DOCUMENT_FOLDER          ?= /usr/share/doc/oclHashcat
+INSTALL_FOLDER           ?= $(PREFIX)/bin
+SHARED_FOLDER            ?= $(PREFIX)/share/oclHashcat
+DOCUMENT_FOLDER          ?= $(PREFIX)/share/doc/oclHashcat
 
 ##
 ## Main SDK
@@ -58,8 +49,10 @@ NVML                     := $(GDK)/usr/include/nvidia/gdk
 ## Native compiler paths
 ##
 
-INSTALL                  := install
 CP                       := cp
+RM                       := rm
+INSTALL                  := install
+
 CC_NATIVE                := gcc
 
 ##
@@ -112,9 +105,9 @@ native: oclHashcat
 binaries: linux32 linux64 win32 win64
 
 clean:
-	rm -f obj/*.o lib/*.a ./*.bin ./*.exe ./*.app *.restore *.out *.pot *.dictstat *.log oclHashcat
-	rm -rf *.induct
-	rm -rf *.outfiles
+	$(RM) -f obj/*.o lib/*.a ./*.bin ./*.exe ./*.app *.restore *.out *.pot *.dictstat *.log oclHashcat core
+	$(RM) -rf *.induct
+	$(RM) -rf *.outfiles
 
 linux32:        oclHashcat32.bin
 linux64:        oclHashcat64.bin
@@ -137,10 +130,12 @@ install: native
 	$(CP) -a charsets/*                      $(SHARED_FOLDER)/charsets/
 	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)/masks
 	$(CP) -a masks/*                         $(SHARED_FOLDER)/masks/
+	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)/OpenCL
+	$(CP) -a OpenCL/*                        $(SHARED_FOLDER)/OpenCL/
 	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)/rules
 	$(CP) -a rules/*                         $(SHARED_FOLDER)/rules/
-	$(INSTALL) -m 755    -T hashcat.hcstat   $(SHARED_FOLDER)/hashcat.hcstat
-	$(INSTALL) -m 755 -s -T oclHashcat64.bin $(INSTALL_FOLDER)/oclHashcat
+	$(INSTALL) -m 755 -T hashcat.hcstat      $(SHARED_FOLDER)/hashcat.hcstat
+	$(INSTALL) -m 755 -T oclHashcat          $(INSTALL_FOLDER)/oclHashcat
 
 uninstall:
 	$(RM) -f  $(INSTALL_FOLDER)/oclHashcat

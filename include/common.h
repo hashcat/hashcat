@@ -70,6 +70,9 @@ typedef UINT32 uint;
 typedef UINT64 uint64_t;
 
 typedef HINSTANCE HM_LIB;
+
+#define mkdir(name,mode) mkdir (name)
+
 #endif
 
 #define SPEED_CACHE  128

@@ -3730,7 +3730,7 @@ int sp_comp_val (const void *p1, const void *p2)
   return b2->val - b1->val;
 }
 
-void sp_setup_tbl (const char *install_dir, char *hcstat, uint disable, uint classic, hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf)
+void sp_setup_tbl (const char *shared_dir, char *hcstat, uint disable, uint classic, hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf)
 {
   uint i;
   uint j;
@@ -3779,7 +3779,7 @@ void sp_setup_tbl (const char *install_dir, char *hcstat, uint disable, uint cla
 
     memset (hcstat_tmp, 0, sizeof (hcstat_tmp));
 
-    snprintf (hcstat_tmp, sizeof (hcstat_tmp) - 1, "%s/%s", install_dir, SP_HCSTAT);
+    snprintf (hcstat_tmp, sizeof (hcstat_tmp) - 1, "%s/%s", shared_dir, SP_HCSTAT);
 
     hcstat = hcstat_tmp;
   }
@@ -4070,6 +4070,33 @@ void usage_mini_print (const char *progname)
 void usage_big_print (const char *progname)
 {
   for (uint i = 0; USAGE_BIG[i] != NULL; i++) log_info (USAGE_BIG[i], progname);
+}
+
+char *get_exec_path ()
+{
+  int exec_path_len = 1024;
+
+  char *exec_path = (char *) mymalloc (exec_path_len);
+
+  #ifdef LINUX
+
+  char tmp[32];
+
+  sprintf (tmp, "/proc/%d/exe", getpid ());
+
+  const int len = readlink (tmp, exec_path, exec_path_len - 1);
+
+  #endif
+
+  #ifdef WIN
+
+  const int len = GetModuleFileName (NULL, exec_path, exec_path_len - 1);
+
+  #endif
+
+  exec_path[len] = 0;
+
+  return exec_path;
 }
 
 char *get_install_dir (const char *progname)

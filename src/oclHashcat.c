@@ -345,7 +345,7 @@ const char *USAGE_BIG[] =
   "",
   "* Markov:",
   "",
-  "       --markov-hcstat=FILE          Specify hcstat file to use, default is hashcat.hcstat",
+  "       --markov-hcstat=FILE          Specify hcstat file to use, default is hcstat",
   "       --markov-disable              Disables markov-chains, emulates classic brute-force",
   "       --markov-classic              Enables classic markov-chains, no per-position enhancement",
   "  -t,  --markov-threshold=NUM        Threshold when to stop accepting new markov-chains",
@@ -1594,70 +1594,70 @@ static void status_benchmark ()
  * oclHashcat -only- functions
  */
 
-static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *install_dir, char *source_file)
+static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *shared_dir, char *source_file)
 {
   if (attack_exec == ATTACK_EXEC_ON_GPU)
   {
     if (attack_kern == ATTACK_KERN_STRAIGHT)
-      snprintf (source_file, 255, "%s/OpenCL/m%05d_a0.cl", install_dir, (int) kern_type);
+      snprintf (source_file, 255, "%s/OpenCL/m%05d_a0.cl", shared_dir, (int) kern_type);
     else if (attack_kern == ATTACK_KERN_COMBI)
-      snprintf (source_file, 255, "%s/OpenCL/m%05d_a1.cl", install_dir, (int) kern_type);
+      snprintf (source_file, 255, "%s/OpenCL/m%05d_a1.cl", shared_dir, (int) kern_type);
     else if (attack_kern == ATTACK_KERN_BF)
-      snprintf (source_file, 255, "%s/OpenCL/m%05d_a3.cl", install_dir, (int) kern_type);
+      snprintf (source_file, 255, "%s/OpenCL/m%05d_a3.cl", shared_dir, (int) kern_type);
   }
   else
-    snprintf (source_file, 255, "%s/OpenCL/m%05d.cl", install_dir, (int) kern_type);
+    snprintf (source_file, 255, "%s/OpenCL/m%05d.cl", shared_dir, (int) kern_type);
 }
 
-static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *install_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
+static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *profile_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
 {
   if (attack_exec == ATTACK_EXEC_ON_GPU)
   {
     if (attack_kern == ATTACK_KERN_STRAIGHT)
-      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a0.%s_%s_%s_%d.kernel", install_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a0.%s_%s_%s_%d.kernel", profile_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
     else if (attack_kern == ATTACK_KERN_COMBI)
-      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a1.%s_%s_%s_%d.kernel", install_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a1.%s_%s_%s_%d.kernel", profile_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
     else if (attack_kern == ATTACK_KERN_BF)
-      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a3.%s_%s_%s_%d.kernel", install_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a3.%s_%s_%s_%d.kernel", profile_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
   }
   else
   {
-    snprintf (cached_file, 255, "%s/kernels/%d/m%05d.%s_%s_%s_%d.kernel", install_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+    snprintf (cached_file, 255, "%s/kernels/%d/m%05d.%s_%s_%s_%d.kernel", profile_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
   }
 }
 
-static void generate_source_kernel_mp_filename (const uint opti_type, const uint opts_type, char *install_dir, char *source_file)
+static void generate_source_kernel_mp_filename (const uint opti_type, const uint opts_type, char *shared_dir, char *source_file)
 {
   if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
   {
-    snprintf (source_file, 255, "%s/OpenCL/markov_be.cl", install_dir);
+    snprintf (source_file, 255, "%s/OpenCL/markov_be.cl", shared_dir);
   }
   else
   {
-    snprintf (source_file, 255, "%s/OpenCL/markov_le.cl", install_dir);
+    snprintf (source_file, 255, "%s/OpenCL/markov_le.cl", shared_dir);
   }
 }
 
-static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *install_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
+static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *profile_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
 {
   if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
   {
-    snprintf (cached_file, 255, "%s/kernels/%d/markov_be.%s_%s_%s_%d.kernel", install_dir, vendor_id, device_name, device_version, driver_version, COMPTIME);
+    snprintf (cached_file, 255, "%s/kernels/%d/markov_be.%s_%s_%s_%d.kernel", profile_dir, vendor_id, device_name, device_version, driver_version, COMPTIME);
   }
   else
   {
-    snprintf (cached_file, 255, "%s/kernels/%d/markov_le.%s_%s_%s_%d.kernel", install_dir, vendor_id, device_name, device_version, driver_version, COMPTIME);
+    snprintf (cached_file, 255, "%s/kernels/%d/markov_le.%s_%s_%s_%d.kernel", profile_dir, vendor_id, device_name, device_version, driver_version, COMPTIME);
   }
 }
 
-static void generate_source_kernel_amp_filename (const uint attack_kern, char *install_dir, char *source_file)
+static void generate_source_kernel_amp_filename (const uint attack_kern, char *shared_dir, char *source_file)
 {
-  snprintf (source_file, 255, "%s/OpenCL/amp_a%d.cl", install_dir, attack_kern);
+  snprintf (source_file, 255, "%s/OpenCL/amp_a%d.cl", shared_dir, attack_kern);
 }
 
-static void generate_cached_kernel_amp_filename (const uint attack_kern, char *install_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
+static void generate_cached_kernel_amp_filename (const uint attack_kern, char *profile_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
 {
-  snprintf (cached_file, 255, "%s/kernels/%d/amp_a%d.%s_%s_%s_%d.kernel", install_dir, vendor_id, attack_kern, device_name, device_version, driver_version, COMPTIME);
+  snprintf (cached_file, 255, "%s/kernels/%d/amp_a%d.%s_%s_%s_%d.kernel", profile_dir, vendor_id, attack_kern, device_name, device_version, driver_version, COMPTIME);
 }
 
 static uint convert_from_hex (char *line_buf, const uint line_len)
@@ -5305,20 +5305,79 @@ int main (int argc, char **argv)
   }
 
   /**
-   * session
+   * session needs to be set, always!
    */
 
   if (session == NULL) session = (char *) PROGNAME;
 
-  size_t session_size = strlen (session) + 32;
+  /**
+   * folders, as discussed on https://github.com/hashcat/oclHashcat/issues/20
+   */
+
+  char *exec_path = get_exec_path ();
+
+  #ifdef LINUX
+
+  char *resolved_install_folder = realpath (INSTALL_FOLDER, NULL);
+  char *resolved_exec_path      = realpath (exec_path, NULL);
+
+  char *install_dir = get_install_dir (resolved_exec_path);
+  char *profile_dir = NULL;
+  char *session_dir = NULL;
+  char *shared_dir  = NULL;
+
+  if (strcmp (install_dir, resolved_install_folder) == 0)
+  {
+    struct passwd *pw = getpwuid (getuid ());
+
+    const char *homedir = pw->pw_dir;
+
+    profile_dir = get_profile_dir (homedir);
+    session_dir = get_session_dir (profile_dir, session);
+    shared_dir  = strdup (SHARED_FOLDER);
+
+    mkdir (profile_dir, 0700);
+    mkdir (session_dir, 0700);
+  }
+  else
+  {
+    profile_dir = install_dir;
+    session_dir = install_dir;
+    shared_dir  = install_dir;
+  }
+
+  myfree (resolved_install_folder);
+  myfree (resolved_exec_path);
+
+  #else
+
+  char *install_dir = get_install_dir (exec_path);
+  char *profile_dir = install_dir;
+  char *session_dir = install_dir;
+  char *shared_dir  = shared_dir;
+
+  #endif
+
+  data.install_dir = install_dir;
+  data.profile_dir = profile_dir;
+  data.session_dir = session_dir;
+  data.shared_dir  = shared_dir;
+
+  myfree (exec_path);
+
+  /**
+   * session
+   */
+
+  size_t session_size = strlen (session_dir) + 1 + strlen (session) + 32;
 
   data.session = session;
 
   char *eff_restore_file = (char *) mymalloc (session_size);
   char *new_restore_file = (char *) mymalloc (session_size);
 
-  snprintf (eff_restore_file, session_size - 1, "%s.restore", session);
-  snprintf (new_restore_file, session_size - 1, "%s.restore.new", session);
+  snprintf (eff_restore_file, session_size - 1, "%s/%s.restore",     data.session_dir, session);
+  snprintf (new_restore_file, session_size - 1, "%s/%s.restore.new", data.session_dir, session);
 
   data.eff_restore_file = eff_restore_file;
   data.new_restore_file = new_restore_file;
@@ -5999,7 +6058,7 @@ int main (int argc, char **argv)
     {
       induction_directory = (char *) mymalloc (session_size);
 
-      snprintf (induction_directory, session_size - 1, "%s.%s", session, INDUCT_DIR);
+      snprintf (induction_directory, session_size - 1, "%s/%s.%s", session_dir, session, INDUCT_DIR);
 
       // create induction folder if it does not already exist
 
@@ -6015,7 +6074,7 @@ int main (int argc, char **argv)
           {
             char *induction_directory_mv = (char *) mymalloc (session_size);
 
-            snprintf (induction_directory_mv, session_size - 1, "%s.induct.%d", session, (int) proc_start);
+            snprintf (induction_directory_mv, session_size - 1, "%s/%s.induct.%d", session_dir, session, (int) proc_start);
 
             if (rename (induction_directory, induction_directory_mv) != 0)
             {
@@ -6031,10 +6090,6 @@ int main (int argc, char **argv)
             return (-1);
           }
         }
-
-        #ifdef _WIN
-        #define mkdir(name,mode) mkdir (name)
-        #endif
 
         if (mkdir (induction_directory, 0700) == -1)
         {
@@ -6056,7 +6111,7 @@ int main (int argc, char **argv)
    * loopback
    */
 
-  size_t loopback_size = session_size + strlen (LOOPBACK_FILE) + 12;
+  size_t loopback_size = strlen (session_dir) + 1 + session_size + strlen (LOOPBACK_FILE) + 12;
 
   char *loopback_file = (char *) mymalloc (loopback_size);
 
@@ -6070,7 +6125,7 @@ int main (int argc, char **argv)
   {
     outfile_check_directory = (char *) mymalloc (session_size);
 
-    snprintf (outfile_check_directory, session_size - 1, "%s.%s", session, OUTFILES_DIR);
+    snprintf (outfile_check_directory, session_size - 1, "%s/%s.%s", session_dir, session, OUTFILES_DIR);
   }
   else
   {
@@ -6096,10 +6151,6 @@ int main (int argc, char **argv)
     }
     else if (outfile_check_dir == NULL)
     {
-      #ifdef _WIN
-      #define mkdir(name,mode) mkdir (name)
-      #endif
-
       if (mkdir (outfile_check_directory, 0700) == -1)
       {
         log_error ("ERROR: %s: %s", outfile_check_directory, strerror (errno));
@@ -6171,47 +6222,6 @@ int main (int argc, char **argv)
   data.scrypt_tmto       = scrypt_tmto;
 
   /**
-   * folders, as discussed on https://github.com/hashcat/oclHashcat/issues/20
-   */
-
-  #ifdef LINUX
-
-  char *resolved_path = realpath (myargv[0], NULL);
-
-  char *install_dir = get_install_dir (resolved_path);
-  char *profile_dir = NULL;
-  char *session_dir = NULL;
-
-  if (strcmp (install_dir, INSTALL_FOLDER) == 0)
-  {
-    struct passwd *pw = getpwuid (getuid ());
-
-    const char *homedir = pw->pw_dir;
-
-    profile_dir = get_profile_dir (homedir);
-    session_dir = get_session_dir (profile_dir, session);
-  }
-  else
-  {
-    profile_dir = install_dir;
-    session_dir = install_dir;
-  }
-
-  myfree (resolved_path);
-
-  #else
-
-  char *install_dir = get_install_dir (myargv[0]);
-  char *profile_dir = install_dir;
-  char *session_dir = install_dir;
-
-  #endif
-
-  data.install_dir = install_dir;
-  data.profile_dir = profile_dir;
-  data.session_dir = session_dir;
-
-  /**
    * cpu affinity
    */
 
@@ -6239,7 +6249,7 @@ int main (int argc, char **argv)
 
     char *logfile = (char *) mymalloc (logfile_size);
 
-    snprintf (logfile, logfile_size - 1, "%s.log", session);
+    snprintf (logfile, logfile_size - 1, "%s/%s.log", session_dir, session);
 
     data.logfile = logfile;
 
@@ -9903,7 +9913,7 @@ int main (int argc, char **argv)
     {
       memset (dictstat, 0, sizeof (dictstat));
 
-      snprintf (dictstat, sizeof (dictstat) - 1, "%s/%s.dictstat", install_dir, PROGNAME);
+      snprintf (dictstat, sizeof (dictstat) - 1, "%s/hashcat.dictstat", profile_dir);
 
       dictstat_fp = fopen (dictstat, "rb");
 
@@ -9961,7 +9971,7 @@ int main (int argc, char **argv)
 
     memset (potfile, 0, sizeof (potfile));
 
-    snprintf (potfile, sizeof (potfile) - 1, "%s.pot", session);
+    snprintf (potfile, sizeof (potfile) - 1, "%s/%s.pot", session_dir, session);
 
     data.pot_fp = NULL;
 
@@ -12339,6 +12349,27 @@ int main (int argc, char **argv)
     data.vendor_id = vendor_id;
 
     /**
+     * cached kernel path depends on vendor_id which we don't know, so create it here
+     */
+
+    if (profile_dir != install_dir) // not a bug
+    {
+      int vendor_id_folder_size = strlen (profile_dir) + 1 + 7 + 1 + 10 + 1;
+
+      char *vendor_id_folder = (char *) mymalloc (vendor_id_folder_size);
+
+      snprintf (vendor_id_folder, vendor_id_folder_size - 1, "%s/kernels", profile_dir);
+
+      mkdir (vendor_id_folder, 0700);
+
+      snprintf (vendor_id_folder, vendor_id_folder_size - 1, "%s/kernels/%d", profile_dir, vendor_id);
+
+      mkdir (vendor_id_folder, 0700);
+
+      myfree (vendor_id_folder);
+    }
+
+    /**
      * devices
      */
 
@@ -13117,7 +13148,7 @@ int main (int argc, char **argv)
 
         memset (source_file, 0, sizeof (source_file));
 
-        generate_source_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, source_file);
+        generate_source_kernel_filename (attack_exec, attack_kern, kern_type, shared_dir, source_file);
 
         struct stat sst;
 
@@ -13136,7 +13167,7 @@ int main (int argc, char **argv)
 
         memset (cached_file, 0, sizeof (cached_file));
 
-        generate_cached_kernel_filename (attack_exec, attack_kern, kern_type, install_dir, device_name, device_version, driver_version, vendor_id, cached_file);
+        generate_cached_kernel_filename (attack_exec, attack_kern, kern_type, profile_dir, device_name, device_version, driver_version, vendor_id, cached_file);
 
         int cached = 1;
 
@@ -13248,7 +13279,7 @@ int main (int argc, char **argv)
 
         memset (source_file, 0, sizeof (source_file));
 
-        generate_source_kernel_mp_filename (opti_type, opts_type, install_dir, source_file);
+        generate_source_kernel_mp_filename (opti_type, opts_type, shared_dir, source_file);
 
         struct stat sst;
 
@@ -13267,7 +13298,7 @@ int main (int argc, char **argv)
 
         memset (cached_file, 0, sizeof (cached_file));
 
-        generate_cached_kernel_mp_filename (opti_type, opts_type, install_dir, device_name, device_version, driver_version, vendor_id, cached_file);
+        generate_cached_kernel_mp_filename (opti_type, opts_type, profile_dir, device_name, device_version, driver_version, vendor_id, cached_file);
 
         int cached = 1;
 
@@ -13361,7 +13392,7 @@ int main (int argc, char **argv)
 
         memset (source_file, 0, sizeof (source_file));
 
-        generate_source_kernel_amp_filename (attack_kern, install_dir, source_file);
+        generate_source_kernel_amp_filename (attack_kern, shared_dir, source_file);
 
         struct stat sst;
 
@@ -13380,7 +13411,7 @@ int main (int argc, char **argv)
 
         memset (cached_file, 0, sizeof (cached_file));
 
-        generate_cached_kernel_amp_filename (attack_kern, install_dir, device_name, device_version, driver_version, vendor_id, cached_file);
+        generate_cached_kernel_amp_filename (attack_kern, profile_dir, device_name, device_version, driver_version, vendor_id, cached_file);
 
         int cached = 1;
 
@@ -15076,7 +15107,7 @@ int main (int argc, char **argv)
           if (root_table_buf   == NULL) root_table_buf   = (hcstat_table_t *) mycalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
           if (markov_table_buf == NULL) markov_table_buf = (hcstat_table_t *) mycalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
 
-          sp_setup_tbl (install_dir, markov_hcstat, markov_disable, markov_classic, root_table_buf, markov_table_buf);
+          sp_setup_tbl (shared_dir, markov_hcstat, markov_disable, markov_classic, root_table_buf, markov_table_buf);
 
           markov_threshold = (markov_threshold != 0) ? markov_threshold : CHARSIZ;
 
@@ -15522,7 +15553,7 @@ int main (int argc, char **argv)
           if (root_table_buf   == NULL) root_table_buf   = (hcstat_table_t *) mycalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
           if (markov_table_buf == NULL) markov_table_buf = (hcstat_table_t *) mycalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
 
-          sp_setup_tbl (install_dir, markov_hcstat, markov_disable, markov_classic, root_table_buf, markov_table_buf);
+          sp_setup_tbl (shared_dir, markov_hcstat, markov_disable, markov_classic, root_table_buf, markov_table_buf);
 
           markov_threshold = (markov_threshold != 0) ? markov_threshold : CHARSIZ;
 

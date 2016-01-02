@@ -1081,6 +1081,7 @@ typedef struct
   char   *install_dir;
   char   *profile_dir;
   char   *session_dir;
+  char   *shared_dir;
   char   *outfile;
   uint    outfile_format;
   uint    outfile_autohex;
