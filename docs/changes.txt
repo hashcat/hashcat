@@ -5,29 +5,38 @@ File.: Kernel
 Desc.: Dropped CUDA support and switched to OpenCL for NVidia
 
 Type.: Feature
+File.: Kernel
+Desc.: Extended support from 14 to 255 functions calls per rule on GPU
+
+Type.: Feature
+File.: Host
+Desc.: Added a Makefile target for native compilation
+Issue: 2
+
+Type.: Feature
+File.: Host
+Desc.: Switched to Khronos OSS OpenCL reference implementation for building
+Issue: 2
+
+Type.: Feature
+File.: Host
+Desc.: No longer need NVidia-CUDA-SDK, AMD-APP-SDK and NVidia-ForceWare driver in depencies
+Issue: 2
+
+Type.: Feature
+File.: Host
+Desc.: Added option --gpu-platform to select a single OpenCL platform in case multiple OpenCL platforms are present 
+Issue: 2
+
+Type.: Feature
 File.: Host
 Desc.: Implemented a new feature that allows to quit at next restore point update (and disable it)
 Issue: 10
 
 Type.: Feature
 File.: Host
-Desc.: Added a Makefile target for native compilation
-
-Type.: Feature
-File.: Host
-Desc.: Switched to Khronos OSS OpenCL reference implementation for building
-
-Type.: Feature
-File.: Host
-Desc.: No longer need NVidia-CUDA-SDK, AMD-APP-SDK and NVidia-ForceWare driver in depencies
-
-Type.: Feature
-File.: Host
-Desc.: Added option --gpu-platform to select a single OpenCL platform in case multiple OpenCL platforms are present 
-
-Type.: Feature
-File.: Host
 Desc.: Moved rules_optimize to hashcat-utils
+Issue: 2
 
 Type.: Bug
 File.: Host

@@ -11,6 +11,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include "rp_cpu.h"
+
 #define BLOCK_SIZE               64
 #define RULE_RC_REJECT_ERROR     -2
 #define RP_RULE_BUFSIZ        0x100
@@ -20,7 +21,7 @@ typedef unsigned int uint;
 
 typedef struct
 {
-  uint cmds[15];
+  uint cmds[256];
 
 } gpu_rule_t;
 

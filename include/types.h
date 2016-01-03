@@ -669,7 +669,7 @@ typedef struct
 
 typedef struct
 {
-  uint cmds[15];
+  uint cmds[0x100];
 
 } gpu_rule_t;
 
@@ -803,7 +803,7 @@ typedef struct
 
 } wordr_t;
 
-#define RULES_MAX   16
+#define RULES_MAX   256
 #define PW_MIN      0
 #define PW_MAX      54
 #define PW_MAX1     (PW_MAX + 1)
