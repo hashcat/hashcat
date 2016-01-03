@@ -1559,8 +1559,7 @@ EOF
   exit 1
 }
 
-BN="amd"
-BIN="oclHashcat64.bin"
+BIN="oclHashcat"
 MARKOV="enabled"
 ATTACK=0
 MODE=0
@@ -1795,7 +1794,7 @@ fi
 # fix logfile
 if [ "${PACKAGE}" -eq 0 ]; then
 
-  cat -A ${OUTD}/logfull.txt | sed -e 's/\^M                                             \^M//g' | sed -e 's/\$$//g' > ${OUTD}/test_report_${BN}.log
+  cat -A ${OUTD}/logfull.txt | sed -e 's/\^M                                             \^M//g' | sed -e 's/\$$//g' > ${OUTD}/test_report.log
 
 fi
 
