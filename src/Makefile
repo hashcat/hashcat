@@ -46,6 +46,12 @@ OCLLIBPATH64             := $(AMDAPPLIBPATH64)
 NVML                     := $(GDK)/usr/include/nvidia/gdk
 
 ##
+## Detect 64-bit systems
+##
+
+LBITS := $(shell getconf LONG_BIT)
+
+##
 ## Native compiler paths
 ##
 
@@ -54,6 +60,12 @@ RM                       := rm
 INSTALL                  := install
 
 CC_NATIVE                := gcc
+
+ifeq ($(LBITS),64)
+OCLLIBPATH_NATIVE        := $(OCLLIBPATH64)
+else
+OCLLIBPATH_NATIVE        := $(OCLLIBPATH32)
+endif
 
 ##
 ## Cross compiler paths
@@ -165,7 +177,7 @@ obj/%.oclHashcat.NATIVE.o: src/%.c
 	$(CC_NATIVE) $(CFLAGS) $(CFLAGS_NATIVE) -c -o $@ $<
 
 oclHashcat: src/oclHashcat.c obj/ext_OpenCL.oclHashcat.NATIVE.o obj/ext_nvml.oclHashcat.NATIVE.o obj/ext_ADL.oclHashcat.NATIVE.o obj/shared.oclHashcat.NATIVE.o obj/rp_gpu_on_cpu.oclHashcat.NATIVE.o
-	$(CC_NATIVE) $(CFLAGS) $(CFLAGS_NATIVE)    -o $@ $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(NOW) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+	$(CC_NATIVE) $(CFLAGS) $(CFLAGS_NATIVE)    -o $@ $^ -L$(OCLLIBPATH_NATIVE) $(LFLAGS_NATIVE) -DCOMPTIME=$(NOW) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 ##
 ## cross compiled oclHashcat for release
