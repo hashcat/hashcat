@@ -40,7 +40,7 @@ use Net::DNS::RR::NSEC3;
 use Convert::EBCDIC qw (ascii2ebcdic);
 use Digest::SipHash qw/siphash/;
 
-my $hashcat = "./oclHashcat64.bin";
+my $hashcat = "./oclHashcat";
 
 my $MAX_LEN = 55;
 
