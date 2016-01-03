@@ -24,11 +24,19 @@ cp -r $IN/rules                                 $OUT/
 cp -r $IN/extra                                 $OUT/
 cp    $IN/example.dict                          $OUT/
 cp    $IN/example[0123456789]*.hash             $OUT/
-cp    $IN/example[0123456789]*.sh               $OUT/
 cp    $IN/example[0123456789]*.cmd              $OUT/
 
 cp -r $IN/include                               $OUT/
 cp -r $IN/OpenCL                                $OUT/
+
+# since for the binary distribution we still use .bin, we need to rewrite the commands
+# within the example*.sh files
+
+for example in example[0123456789]*.sh; do
+
+  sed 's!./oclHashcat !./oclHashcat64.bin !' $IN/${example} > $OUT/${example}
+
+done
 
 dos2unix $OUT/rules/*.rule
 dos2unix $OUT/rules/hybrid/*.rule
