@@ -1009,7 +1009,7 @@ typedef struct
 
 typedef struct
 {
-  u32  key;
+  u32 key;
   u64 val;
 
 } hcstat_table_t;
@@ -1023,18 +1023,9 @@ typedef struct
 
 typedef struct
 {
-  u32 cmds[15];
+  u32 cmds[0x100];
 
 } gpu_rule_t;
-
-/*
-typedef struct
-{
-  u32 plain_buf[16];
-  u32 plailen;
-
-} plain_t;
-*/
 
 typedef struct
 {
