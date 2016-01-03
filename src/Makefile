@@ -140,6 +140,8 @@ install: native
 	$(INSTALL) -m 755 -d                            $(DOCUMENT_FOLDER)
 	$(CP) -a docs/*                                 $(DOCUMENT_FOLDER)/
 	$(CP) -a example*.sh                            $(DOCUMENT_FOLDER)/
+	$(CP) -a example*.hash                          $(DOCUMENT_FOLDER)/
+	$(INSTALL) -m 644 example.dict                  $(DOCUMENT_FOLDER)/
 	$(INSTALL) -m 755 -d                            $(DOCUMENT_FOLDER)/extra
 	$(CP) -a extra/*                                $(DOCUMENT_FOLDER)/extra/
 	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)
