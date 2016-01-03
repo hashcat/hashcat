@@ -70,7 +70,7 @@ DLL_WIN_64               := x86_64-w64-mingw32-dlltool
 ## Misc stuff
 ##
 
-NOW                      := $(shell perl -e 'print time')
+NOW                      := $(shell date +%s)
 
 ##
 ## Compiler flags
@@ -79,27 +79,35 @@ NOW                      := $(shell perl -e 'print time')
 CFLAGS                   := -O2 -s -pipe -W -Wall -std=c99 -Iinclude/
 #CFLAGS                   := -g -pipe -W -Wall -std=c99 -Iinclude/
 
+##
+## Native compilation target
+##
+
 CFLAGS_NATIVE            := -D_POSIX -DLINUX
 CFLAGS_NATIVE            += $(CFLAGS)
 CFLAGS_NATIVE            += -I$(ADL)/include/
 CFLAGS_NATIVE            += -I$(NVML)/
 
+LFLAGS_NATIVE            := -lpthread -lOpenCL -ldl
+
+##
+## Cross compilation target
+##
+
 CFLAGS_CROSS_LINUX       := -D_POSIX -DLINUX
 CFLAGS_CROSS_LINUX       += $(CFLAGS)
+CFLAGS_CROSS_LINUX       += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_LINUX       += -I$(ADL)/include/
 CFLAGS_CROSS_LINUX       += -I$(NVML)/
-CFLAGS_CROSS_WIN         += -I$(OPENCL_HEADERS_KHRONOS)/
 
 CFLAGS_CROSS_WIN         := -D_WIN   -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
 CFLAGS_CROSS_WIN         += $(CFLAGS)
+CFLAGS_CROSS_WIN         += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_WIN         += -I$(ADL)/include/
 CFLAGS_CROSS_WIN         += -I$(NVAPI)/
-CFLAGS_CROSS_WIN         += -I$(OPENCL_HEADERS_KHRONOS)/
 
 CFLAGS_CROSS_32          := -m32
 CFLAGS_CROSS_64          := -m64
-
-LFLAGS_NATIVE            := -lpthread -lOpenCL -ldl
 
 LFLAGS_CROSS_LINUX       := -lpthread -lOpenCL -ldl
 LFLAGS_CROSS_WIN         := -lpsapi
