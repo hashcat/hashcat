@@ -5,7 +5,7 @@
 
 COMPGENSCRIPT=/etc/bash_completion
 COMPGENFOLDER=${COMPGENSCRIPT}.d
-COMPGENTARGET=${COMPGENFOLDER}/oclHashcat64.sh
+COMPGENTARGET=${COMPGENFOLDER}/oclHashcat.sh
 BASHRC=~/.bashrc
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -131,7 +131,7 @@ if [ -d "${COMPGENFOLDER}" ]; then
 
   # copy the script to target folder
 
-  cp ${ROOT}/oclHashcat64.sh "${COMPGENTARGET}"
+  cp ${ROOT}/oclHashcat.sh "${COMPGENTARGET}"
 
   # adjust paths to the main binaries of oclHashcat
 
