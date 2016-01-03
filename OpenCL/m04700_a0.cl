@@ -18,7 +18,7 @@
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
 #include "include/rp_gpu.h"
-#include "rp.c"
+#include "OpenCL/rp.c"
 
 #define COMPARE_S "OpenCL/check_single_comp4.c"
 #define COMPARE_M "OpenCL/check_multi_comp4.c"

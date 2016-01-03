@@ -8,7 +8,7 @@
 #include "OpenCL/types_ocl.c"
 
 #include "include/rp_gpu.h"
-#include "rp.c"
+#include "OpenCL/rp.c"
 
 __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) amp (__global pw_t *pws, __global pw_t *pws_amp, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, const u32 combs_mode, const u32 gid_max)
 {

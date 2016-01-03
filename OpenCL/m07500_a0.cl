@@ -17,7 +17,7 @@
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
 #include "include/rp_gpu.h"
-#include "rp.c"
+#include "OpenCL/rp.c"
 
 typedef struct
 {

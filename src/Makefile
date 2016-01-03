@@ -134,6 +134,7 @@ install: native
 	$(INSTALL) -m 644 include/constants.h           $(SHARED_FOLDER)/include/
 	$(INSTALL) -m 644 include/kernel_functions.c    $(SHARED_FOLDER)/include/
 	$(INSTALL) -m 644 include/kernel_vendor.h       $(SHARED_FOLDER)/include/
+	$(INSTALL) -m 644 include/rp_gpu.h              $(SHARED_FOLDER)/include/
 	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/OpenCL
 	$(CP) -a OpenCL/*                               $(SHARED_FOLDER)/OpenCL/
 	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/rules
