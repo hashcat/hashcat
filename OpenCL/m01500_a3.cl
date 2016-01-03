@@ -16,11 +16,11 @@
 #define DGST_R3 3
 
 #include "include/kernel_functions.c"
-#include "types_ocl.c"
-#include "common.c"
+#include "OpenCL/types_ocl.c"
+#include "OpenCL/common.c"
 
-#define COMPARE_S "check_single_comp4_bs.c"
-#define COMPARE_M "check_multi_comp4_bs.c"
+#define COMPARE_S "OpenCL/check_single_comp4_bs.c"
+#define COMPARE_M "OpenCL/check_multi_comp4_bs.c"
 
 #define myselx(a,b,c) ((c) ? (b) : (a))
 

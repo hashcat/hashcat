@@ -345,7 +345,7 @@ const char *USAGE_BIG[] =
   "",
   "* Markov:",
   "",
-  "       --markov-hcstat=FILE          Specify hcstat file to use, default is hcstat",
+  "       --markov-hcstat=FILE          Specify hcstat file to use, default is hashcat.hcstat",
   "       --markov-disable              Disables markov-chains, emulates classic brute-force",
   "       --markov-classic              Enables classic markov-chains, no per-position enhancement",
   "  -t,  --markov-threshold=NUM        Threshold when to stop accepting new markov-chains",
@@ -13133,7 +13133,7 @@ int main (int argc, char **argv)
 
       // we don't have sm_* on AMD but it doesn't matter
 
-      sprintf (build_opts, "-I. -IOpenCL/ -DVENDOR_ID=%d -DCUDA_ARCH=%d", vendor_id, (device_param->sm_major * 100) + device_param->sm_minor);
+      sprintf (build_opts, "-I%s/ -DVENDOR_ID=%d -DCUDA_ARCH=%d", shared_dir, vendor_id, (device_param->sm_major * 100) + device_param->sm_minor);
 
       /**
        * main kernel

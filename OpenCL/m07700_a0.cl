@@ -14,13 +14,13 @@
 #define DGST_R3 3
 
 #include "include/kernel_functions.c"
-#include "types_ocl.c"
-#include "common.c"
+#include "OpenCL/types_ocl.c"
+#include "OpenCL/common.c"
 #include "include/rp_gpu.h"
 #include "rp.c"
 
-#define COMPARE_S "check_single_comp4.c"
-#define COMPARE_M "check_multi_comp4.c"
+#define COMPARE_S "OpenCL/check_single_comp4.c"
+#define COMPARE_M "OpenCL/check_multi_comp4.c"
 
 #define GETCHAR(a,p)  (((a)[(p) / 4] >> (((p) & 3) * 8)) & 0xff)
 #define PUTCHAR(a,p,c) ((a)[(p) / 4] = (((a)[(p) / 4] & ~(0xff << (((p) & 3) * 8))) | ((c) << (((p) & 3) * 8))))

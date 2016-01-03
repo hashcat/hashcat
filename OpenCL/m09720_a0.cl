@@ -14,13 +14,13 @@
 #define DGST_R3 3
 
 #include "include/kernel_functions.c"
-#include "types_ocl.c"
-#include "common.c"
+#include "OpenCL/types_ocl.c"
+#include "OpenCL/common.c"
 #include "include/rp_gpu.h"
 #include "rp.c"
 
-#define COMPARE_S "check_single_comp4.c"
-#define COMPARE_M "check_multi_comp4.c"
+#define COMPARE_S "OpenCL/check_single_comp4.c"
+#define COMPARE_M "OpenCL/check_multi_comp4.c"
 
 static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {

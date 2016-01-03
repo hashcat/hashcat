@@ -14,11 +14,11 @@
 #define DGST_R3 3
 
 #include "include/kernel_functions.c"
-#include "types_ocl.c"
-#include "common.c"
+#include "OpenCL/types_ocl.c"
+#include "OpenCL/common.c"
 
-#define COMPARE_S "check_single_comp4.c"
-#define COMPARE_M "check_multi_comp4.c"
+#define COMPARE_S "OpenCL/check_single_comp4.c"
+#define COMPARE_M "OpenCL/check_multi_comp4.c"
 
 #define md5apr1_magic0 0x72706124
 #define md5apr1_magic1 0x00002431

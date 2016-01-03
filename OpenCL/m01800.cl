@@ -14,11 +14,11 @@
 #define DGST_R3 3
 
 #include "include/kernel_functions.c"
-#include "types_ocl.c"
-#include "common.c"
+#include "OpenCL/types_ocl.c"
+#include "OpenCL/common.c"
 
-#define COMPARE_S "check_single_comp4.c"
-#define COMPARE_M "check_multi_comp4.c"
+#define COMPARE_S "OpenCL/check_single_comp4.c"
+#define COMPARE_M "OpenCL/check_multi_comp4.c"
 
 #define PUTCHAR64_BE(a,p,c) ((u8 *)(a))[(p) ^ 7] = (u8) (c)
 #define GETCHAR64_BE(a,p)   ((u8 *)(a))[(p) ^ 7]

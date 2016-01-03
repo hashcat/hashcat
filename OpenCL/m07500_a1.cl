@@ -14,8 +14,8 @@
 #define DGST_R3 6
 
 #include "include/kernel_functions.c"
-#include "types_ocl.c"
-#include "common.c"
+#include "OpenCL/types_ocl.c"
+#include "OpenCL/common.c"
 
 typedef struct
 {

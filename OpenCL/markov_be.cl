@@ -7,7 +7,7 @@
 
 #define CHARSIZ 256
 
-#include "types_ocl.c"
+#include "OpenCL/types_ocl.c"
 
 static void generate_pw (u32 pw_buf[16], __global cs_t *root_css_buf, __global cs_t *markov_css_buf, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, u64 val)
 {

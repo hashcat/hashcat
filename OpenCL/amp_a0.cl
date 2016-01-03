@@ -5,7 +5,7 @@
 
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
-#include "types_ocl.c"
+#include "OpenCL/types_ocl.c"
 
 #include "include/rp_gpu.h"
 #include "rp.c"

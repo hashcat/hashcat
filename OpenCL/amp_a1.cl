@@ -5,7 +5,7 @@
 
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
-#include "types_ocl.c"
+#include "OpenCL/types_ocl.c"
 
 static void switch_buffer_by_offset (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {

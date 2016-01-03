@@ -121,21 +121,25 @@ win64:          oclHashcat64.exe
 ##
 
 install: native
-	$(INSTALL) -m 755 -d                     $(DOCUMENT_FOLDER)
-	$(CP) -a docs/*                          $(DOCUMENT_FOLDER)/
-	$(INSTALL) -m 755 -d                     $(DOCUMENT_FOLDER)/extra
-	$(CP) -a extra/*                         $(DOCUMENT_FOLDER)/extra/
-	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)
-	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)/charsets
-	$(CP) -a charsets/*                      $(SHARED_FOLDER)/charsets/
-	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)/masks
-	$(CP) -a masks/*                         $(SHARED_FOLDER)/masks/
-	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)/OpenCL
-	$(CP) -a OpenCL/*                        $(SHARED_FOLDER)/OpenCL/
-	$(INSTALL) -m 755 -d                     $(SHARED_FOLDER)/rules
-	$(CP) -a rules/*                         $(SHARED_FOLDER)/rules/
-	$(INSTALL) -m 755 -T hashcat.hcstat      $(SHARED_FOLDER)/hashcat.hcstat
-	$(INSTALL) -m 755 -T oclHashcat          $(INSTALL_FOLDER)/oclHashcat
+	$(INSTALL) -m 755 -d                            $(DOCUMENT_FOLDER)
+	$(CP) -a docs/*                                 $(DOCUMENT_FOLDER)/
+	$(INSTALL) -m 755 -d                            $(DOCUMENT_FOLDER)/extra
+	$(CP) -a extra/*                                $(DOCUMENT_FOLDER)/extra/
+	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)
+	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/charsets
+	$(CP) -a charsets/*                             $(SHARED_FOLDER)/charsets/
+	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/masks
+	$(CP) -a masks/*                                $(SHARED_FOLDER)/masks/
+	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/include
+	$(INSTALL) -m 644 include/constants.h           $(SHARED_FOLDER)/include/
+	$(INSTALL) -m 644 include/kernel_functions.c    $(SHARED_FOLDER)/include/
+	$(INSTALL) -m 644 include/kernel_vendor.h       $(SHARED_FOLDER)/include/
+	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/OpenCL
+	$(CP) -a OpenCL/*                               $(SHARED_FOLDER)/OpenCL/
+	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/rules
+	$(CP) -a rules/*                                $(SHARED_FOLDER)/rules/
+	$(INSTALL) -m 644 hashcat.hcstat                $(SHARED_FOLDER)/
+	$(INSTALL) -m 755 oclHashcat                    $(INSTALL_FOLDER)/
 
 uninstall:
 	$(RM) -f  $(INSTALL_FOLDER)/oclHashcat
