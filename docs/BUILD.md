@@ -36,21 +36,31 @@ $ cd oclHashcat
 $ sudo ./tools/deps.sh
 ```
 
-Run "make all"
+Run "make"
 
 ```sh
-$ make all
+$ make
+```
+
+to install it run "make install"
+
+```sh
+$ make install
 ```
 
 Useful tricks:
-- build only *Linux* binaries
+- build all binaries (see Note1):
 ```sh
-$ make linux
+$ make binaries
 ```
-- build only *Windows* binaries
+
+Note1: to install all binaries ("make binaries") you need to first clone the OpenCL-Headers within the main folder:
+
 ```sh
-$ make windows
+$ git clone https://github.com/KhronosGroup/OpenCL-Headers deps/OpenCL-Headers/CL
 ```
+
+the tools/deps.sh script does not clone this repo automatically since for native compilation it is not needed.
 
 =
 Enjoy your fresh **oclHashcat** binaries ;)
