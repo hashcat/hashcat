@@ -6245,7 +6245,7 @@ int main (int argc, char **argv)
 
   if (logfile_disable == 0)
   {
-    size_t logfile_size = strlen (session) + 32;
+    size_t logfile_size = strlen (session_dir) + 1 + strlen (session) + 32;
 
     char *logfile = (char *) mymalloc (logfile_size);
 
