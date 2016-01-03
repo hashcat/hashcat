@@ -17,9 +17,9 @@
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
 
-#include "gpu_aes256_amd.c"
-#include "gpu_twofish256_amd.c"
-#include "gpu_serpent256_amd.c"
+#include "OpenCL/gpu_aes256_amd.c"
+#include "OpenCL/gpu_twofish256_amd.c"
+#include "OpenCL/gpu_serpent256_amd.c"
 
 static void ripemd160_transform (const u32 w[16], u32 dgst[5])
 {
