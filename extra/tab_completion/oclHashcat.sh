@@ -742,4 +742,4 @@ _oclHashcat ()
     esac
 }
 
-complete -F _oclHashcat -o filenames "${OCLHASHCAT_ROOT}"/oclHashcat64.bin "${OCLHASHCAT_ROOT}"/oclHashcat32.bin
+complete -F _oclHashcat -o filenames "${OCLHASHCAT_ROOT}"/oclHashcat64.bin "${OCLHASHCAT_ROOT}"/oclHashcat32.bin oclHashcat
