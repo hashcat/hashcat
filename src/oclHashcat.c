@@ -5333,7 +5333,7 @@ int main (int argc, char **argv)
     const char *homedir = pw->pw_dir;
 
     profile_dir = get_profile_dir (homedir);
-    session_dir = get_session_dir (profile_dir, session);
+    session_dir = get_session_dir (profile_dir);
     shared_dir  = strdup (SHARED_FOLDER);
 
     mkdir (profile_dir, 0700);

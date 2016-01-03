@@ -4132,11 +4132,13 @@ char *get_profile_dir (const char *homedir)
   return profile_dir;
 }
 
-char *get_session_dir (const char *profile_dir, const char *session)
+char *get_session_dir (const char *profile_dir)
 {
-  char *session_dir = (char *) mymalloc (strlen (profile_dir) + 1 + strlen (session) + 1);
+  #define SESSIONS_FOLDER "sessions"
 
-  sprintf (session_dir, "%s/%s", profile_dir, session);
+  char *session_dir = (char *) mymalloc (strlen (profile_dir) + 1 + strlen (SESSIONS_FOLDER) + 1);
+
+  sprintf (session_dir, "%s/%s", profile_dir, SESSIONS_FOLDER);
 
   return session_dir;
 }
