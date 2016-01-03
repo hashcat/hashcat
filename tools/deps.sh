@@ -17,7 +17,7 @@ cd ${deps_dir}
 
 ## cleanup the directories under the 'deps' folder
 rm -rf {adl-sdk*,nvidia-gdk,R352-developer} && \
-mkdir -p {tmp,adl-sdk*,nvidia-gdk,R352-developer} && \
+mkdir -p {tmp,adl-sdk,nvidia-gdk,R352-developer} && \
 cd tmp/
 
 if [ $? -ne 0 ]; then
