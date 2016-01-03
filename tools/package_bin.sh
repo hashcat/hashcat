@@ -11,7 +11,7 @@ export OUT=$HOME/xy/oclHashcat-2.01
 rm -rf $OUT
 rm -rf $OUT.7z
 
-mkdir -p $OUT $OUT/kernels $OUT/kernels/4098 $OUT/kernels/4318
+mkdir -p $OUT
 
 cp    $IN/oclHashcat??.exe                      $OUT/
 cp    $IN/oclHashcat??.bin                      $OUT/
@@ -42,9 +42,6 @@ unix2dos $OUT/docs/*
 unix2dos $OUT/example*.cmd
 
 chmod 700 $OUT
-chmod 700 $OUT/kernels
-chmod 700 $OUT/kernels/4098
-chmod 700 $OUT/kernels/4318
 chmod 700 $OUT/rules
 chmod 600 $OUT/rules/*
 chmod 700 $OUT/docs

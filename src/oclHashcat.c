@@ -12352,22 +12352,19 @@ int main (int argc, char **argv)
      * cached kernel path depends on vendor_id which we don't know, so create it here
      */
 
-    if (profile_dir != install_dir) // not a bug
-    {
-      int vendor_id_folder_size = strlen (profile_dir) + 1 + 7 + 1 + 10 + 1;
+    int vendor_id_folder_size = strlen (profile_dir) + 1 + 7 + 1 + 10 + 1;
 
-      char *vendor_id_folder = (char *) mymalloc (vendor_id_folder_size);
+    char *vendor_id_folder = (char *) mymalloc (vendor_id_folder_size);
 
-      snprintf (vendor_id_folder, vendor_id_folder_size - 1, "%s/kernels", profile_dir);
+    snprintf (vendor_id_folder, vendor_id_folder_size - 1, "%s/kernels", profile_dir);
 
-      mkdir (vendor_id_folder, 0700);
+    mkdir (vendor_id_folder, 0700);
 
-      snprintf (vendor_id_folder, vendor_id_folder_size - 1, "%s/kernels/%d", profile_dir, vendor_id);
+    snprintf (vendor_id_folder, vendor_id_folder_size - 1, "%s/kernels/%d", profile_dir, vendor_id);
 
-      mkdir (vendor_id_folder, 0700);
+    mkdir (vendor_id_folder, 0700);
 
-      myfree (vendor_id_folder);
-    }
+    myfree (vendor_id_folder);
 
     /**
      * devices
