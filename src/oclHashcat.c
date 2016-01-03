@@ -5354,7 +5354,7 @@ int main (int argc, char **argv)
   char *install_dir = get_install_dir (exec_path);
   char *profile_dir = install_dir;
   char *session_dir = install_dir;
-  char *shared_dir  = shared_dir;
+  char *shared_dir  = install_dir;
 
   #endif
 
