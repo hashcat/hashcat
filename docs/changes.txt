@@ -2,8 +2,7 @@
 
 Type.: Feature
 File.: Kernel
-Desc.: For NVidia, dropped CUDA support and switched to OpenCL
-Issue: 3
+Desc.: Dropped CUDA support and switched to OpenCL for NVidia
 
 Type.: Feature
 File.: Host
@@ -13,6 +12,14 @@ Issue: 10
 Type.: Feature
 File.: Host
 Desc.: Added a Makefile target for native compilation
+
+Type.: Feature
+File.: Host
+Desc.: Switched to Khronos OSS OpenCL reference implementation for building
+
+Type.: Feature
+File.: Host
+Desc.: No longer need NVidia-CUDA-SDK, AMD-APP-SDK and NVidia-ForceWare driver in depencies
 
 Type.: Feature
 File.: Host

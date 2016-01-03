@@ -3,8 +3,9 @@
 # Revision: 1.03
 
 ## global vars
-DEPS="make gcc g++ gcc-multilib g++-multilib libc6-dev-i386 mingw-w64 build-essential unzip"
-DOWNLOAD_DEPS="ADL_SDK8.zip R352-developer.zip gdk_linux_amd64_352_55_release.run AMD-APP-SDKInstaller-v3.0.130.135-GA-linux64.tar.bz2"
+DEPS="make gcc g++ gcc-multilib g++-multilib libc6-dev-i386 mingw-w64 build-essential unzip opencl-headers ocl-icd-libopencl1"
+DEPS_AMD_DEV="ocl-icd-opencl-dev"
+DOWNLOAD_DEPS="ADL_SDK8.zip R352-developer.zip gdk_linux_amd64_352_55_release.run"
 
 ## enter the deps directory
 cur_directory=$(dirname ${0})
@@ -15,8 +16,8 @@ mkdir -p ${deps_dir} # but it should already exist (is part of the repository)
 cd ${deps_dir}
 
 ## cleanup the directories under the 'deps' folder
-rm -rf {adl-sdk,nvidia-gdk,amd-app-sdk} && \
-mkdir -p {tmp,adl-sdk,nvidia-gdk,amd-app-sdk} && \
+rm -rf {adl-sdk*,nvidia-gdk,R352-developer} && \
+mkdir -p {tmp,adl-sdk*,nvidia-gdk,R352-developer} && \
 cd tmp/
 
 if [ $? -ne 0 ]; then
@@ -92,21 +93,22 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-## extract AMD APP SDK
-tar xjf AMD-APP-SDKInstaller-v3.0.130.135-GA-linux64.tar.bz2 && \
-./AMD-APP-SDK-v3.0.130.135-GA-linux64.sh --noexec --target ${deps_dir}/amd-app-sdk-v3.0.130.135
+## check if libOpenCL.so is available (and if not install DEPS_AMD_DEV)
+
+ls /usr/lib/*/libOpenCL.so &> /dev/null
 
 if [ $? -ne 0 ]; then
-  echo "! failed to extract AMD APP SDK"
-  exit 1
-fi
+  ## root check
+  if [ $(id -u) -ne 0 ]; then
+    echo "! Must be root to install '${DEPS_AMD_DEV}'"
+    exit 1
+  fi
 
-rm -rf ${deps_dir}/amd-app-sdk && ln -s ${deps_dir}/amd-app-sdk-v3.0.130.135 ${deps_dir}/amd-app-sdk
-rm -rf ${deps_dir}/tmp/AMD-APP-SDK-v3.0.130.135-GA-linux64.sh
-
-if [ $? -ne 0 ]; then
-  echo "! failed to setup ADL SDK link"
-  exit 1
+  apt-get -y install ${DEPS_AMD_DEV}
+  if [ $? -ne 0 ]; then
+    echo "! failed to install ${DEPS_AMD_DEV}"
+    exit 1
+  fi
 fi
 
 echo "> oclHashcat dependencies have been resolved."
