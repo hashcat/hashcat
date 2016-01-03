@@ -1,11 +1,12 @@
 *.exe
 *.bin
 *.app
+oclHashcat
 *.restore
 *.dictstat
 *.pot
 *.log
-deps/*
 deps/**
+kernels/**
 lib/*.a
 obj/*.o
