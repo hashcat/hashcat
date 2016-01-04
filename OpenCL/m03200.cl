@@ -324,6 +324,22 @@ __constant u32 c_sbox3[256] =
 }
 #endif
 
+#ifdef IS_UNKNOWN
+#define BF_ROUND(L,R,N)       \
+{                             \
+  uchar4 c = as_uchar4 ((L)); \
+                              \
+  u32 tmp;                    \
+                              \
+  tmp  = S0[c.s3];            \
+  tmp += S1[c.s2];            \
+  tmp ^= S2[c.s1];            \
+  tmp += S3[c.s0];            \
+                              \
+  (R) ^= tmp ^ P[(N)];        \
+}
+#endif
+
 #define BF_ENCRYPT(L,R) \
 {                       \
   L ^= P[0];            \
