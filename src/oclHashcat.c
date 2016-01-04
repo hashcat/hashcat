@@ -2536,6 +2536,13 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
 
     myfree (tmp);
   }
+
+  if (data.vendor_id == VENDOR_ID_UNKNOWN)
+  {
+    const cl_uchar zero = 0;
+
+    hc_clEnqueueFillBuffer (device_param->command_queue, buf, &zero, sizeof (cl_uchar), 0, size, 0, NULL, NULL);
+  }
 }
 
 static int run_rule_engine (const int rule_len, const char *rule_buf)

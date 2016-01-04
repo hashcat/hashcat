@@ -346,14 +346,14 @@ static inline u32 rotl32 (const u32 a, const u32 n)
   return rotate (a, n);
 }
 
-static inline u64 rotr64 (const u64 a, const u64 n)
+static inline u64 rotr64 (const u64 a, const u32 n)
 {
-  return rotate (a, 64 - n);
+  return rotate (a, (u64) 64 - n);
 }
 
-static inline u64 rotl64 (const u64 a, const u64 n)
+static inline u64 rotl64 (const u64 a, const u32 n)
 {
-  return rotate (a, n);
+  return rotr64 (a, (u64) 64 - n);
 }
 
 #endif
@@ -368,7 +368,8 @@ static inline u32 rotr32 (const u32 a, const u32 n)
 
 static inline u32 rotl32 (const u32 a, const u32 n)
 {
-  return rotate (a, n);
+//  return rotate (a, n);
+  return (a << n) | (a >> (32 - n));
 }
 
 static inline u64 rotr64 (const u64 a, const u32 n)
@@ -378,7 +379,7 @@ static inline u64 rotr64 (const u64 a, const u32 n)
 
 static inline u64 rotl64 (const u64 a, const u32 n)
 {
-  return rotr64 (a, 64 - n);
+  return rotr64 (a, (u64) 64 - n);
 }
 
 #endif
