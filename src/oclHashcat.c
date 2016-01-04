@@ -2537,6 +2537,29 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
     myfree (tmp);
   }
 
+  if (data.vendor_id == VENDOR_ID_POCL)
+  {
+    // NOTE: clEnqueueFillBuffer () segfaults with Ubuntu 15.04 pocl
+    //       We need to workaround...
+
+    #define FILLSZ 0x100000
+
+    char *tmp = (char *) mymalloc (FILLSZ);
+
+    memset (tmp, 0, FILLSZ);
+
+    for (uint i = 0; i < size; i += FILLSZ)
+    {
+      const int left = size - i;
+
+      const int fillsz = MIN (FILLSZ, left);
+
+      hc_clEnqueueWriteBuffer (device_param->command_queue, buf, CL_TRUE, i, fillsz, tmp, 0, NULL, NULL);
+    }
+
+    myfree (tmp);
+  }
+
   if (data.vendor_id == VENDOR_ID_UNKNOWN)
   {
     const cl_uchar zero = 0;
@@ -12775,6 +12798,20 @@ int main (int argc, char **argv)
 
         device_param->sm_minor = sm_minor;
         device_param->sm_major = sm_major;
+      }
+
+      if (vendor_id == VENDOR_ID_POCL)
+      {
+        cl_uint gpu_processor_cores = 1;
+
+        device_param->gpu_processor_cores = gpu_processor_cores;
+      }
+
+      if (vendor_id == VENDOR_ID_UNKNOWN)
+      {
+        cl_uint gpu_processor_cores = 1;
+
+        device_param->gpu_processor_cores = gpu_processor_cores;
       }
 
       /**

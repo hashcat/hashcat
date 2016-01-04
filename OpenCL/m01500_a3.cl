@@ -893,7 +893,7 @@ static void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
 #endif
 #endif
 
-#ifdef IS_AMD
+#if defined IS_AMD || IS_UNKNOWN
 
 /*
  * Bitslice DES S-boxes making use of a vector conditional select operation
@@ -1465,6 +1465,11 @@ s8(u32 a1, u32 a2, u32 a3, u32 a4, u32 a5, u32 a6,
 #ifdef IS_AMD
 #define KXX_DECL  volatile
 #define sXXX_DECL volatile
+#endif
+
+#ifdef IS_UNKNOWN
+#define KXX_DECL
+#define sXXX_DECL
 #endif
 
 #ifdef DESCRYPT_SALT
