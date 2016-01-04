@@ -875,6 +875,7 @@ struct __hc_device_param
   // device specific attributes starting
 
   char             *device_name;
+  char             *device_name_chksum;
   char             *device_version;
   char             *driver_version;
 

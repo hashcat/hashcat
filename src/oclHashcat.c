@@ -1609,20 +1609,20 @@ static void generate_source_kernel_filename (const uint attack_exec, const uint 
     snprintf (source_file, 255, "%s/OpenCL/m%05d.cl", shared_dir, (int) kern_type);
 }
 
-static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *profile_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
+static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *profile_dir, char *device_name_chksum, int vendor_id, char *cached_file)
 {
   if (attack_exec == ATTACK_EXEC_ON_GPU)
   {
     if (attack_kern == ATTACK_KERN_STRAIGHT)
-      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a0.%s_%s_%s_%d.kernel", profile_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a0.%s.kernel", profile_dir, vendor_id, (int) kern_type, device_name_chksum);
     else if (attack_kern == ATTACK_KERN_COMBI)
-      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a1.%s_%s_%s_%d.kernel", profile_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a1.%s.kernel", profile_dir, vendor_id, (int) kern_type, device_name_chksum);
     else if (attack_kern == ATTACK_KERN_BF)
-      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a3.%s_%s_%s_%d.kernel", profile_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a3.%s.kernel", profile_dir, vendor_id, (int) kern_type, device_name_chksum);
   }
   else
   {
-    snprintf (cached_file, 255, "%s/kernels/%d/m%05d.%s_%s_%s_%d.kernel", profile_dir, vendor_id, (int) kern_type, device_name, device_version, driver_version, COMPTIME);
+    snprintf (cached_file, 255, "%s/kernels/%d/m%05d.%s.kernel", profile_dir, vendor_id, (int) kern_type, device_name_chksum);
   }
 }
 
@@ -1638,15 +1638,15 @@ static void generate_source_kernel_mp_filename (const uint opti_type, const uint
   }
 }
 
-static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *profile_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
+static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *profile_dir, char *device_name_chksum, int vendor_id, char *cached_file)
 {
   if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
   {
-    snprintf (cached_file, 255, "%s/kernels/%d/markov_be.%s_%s_%s_%d.kernel", profile_dir, vendor_id, device_name, device_version, driver_version, COMPTIME);
+    snprintf (cached_file, 255, "%s/kernels/%d/markov_be.%s.kernel", profile_dir, vendor_id, device_name_chksum);
   }
   else
   {
-    snprintf (cached_file, 255, "%s/kernels/%d/markov_le.%s_%s_%s_%d.kernel", profile_dir, vendor_id, device_name, device_version, driver_version, COMPTIME);
+    snprintf (cached_file, 255, "%s/kernels/%d/markov_le.%s.kernel", profile_dir, vendor_id, device_name_chksum);
   }
 }
 
@@ -1655,9 +1655,9 @@ static void generate_source_kernel_amp_filename (const uint attack_kern, char *s
   snprintf (source_file, 255, "%s/OpenCL/amp_a%d.cl", shared_dir, attack_kern);
 }
 
-static void generate_cached_kernel_amp_filename (const uint attack_kern, char *profile_dir, char *device_name, char *device_version, char *driver_version, int vendor_id, char *cached_file)
+static void generate_cached_kernel_amp_filename (const uint attack_kern, char *profile_dir, char *device_name_chksum, int vendor_id, char *cached_file)
 {
-  snprintf (cached_file, 255, "%s/kernels/%d/amp_a%d.%s_%s_%s_%d.kernel", profile_dir, vendor_id, attack_kern, device_name, device_version, driver_version, COMPTIME);
+  snprintf (cached_file, 255, "%s/kernels/%d/amp_a%d.%s.kernel", profile_dir, vendor_id, attack_kern, device_name_chksum);
 }
 
 static uint convert_from_hex (char *line_buf, const uint line_len)
@@ -12764,6 +12764,23 @@ int main (int argc, char **argv)
 
       device_param->driver_version = mystrdup (tmp);
 
+      // create some filename that is easier to read on cached folder
+
+      snprintf (tmp, sizeof (tmp) - 1, "%s-%s-%s-%d", device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+
+      uint device_name_digest[4];
+
+      device_name_digest[0] = 0;
+      device_name_digest[1] = 0;
+      device_name_digest[2] = 0;
+      device_name_digest[3] = 0;
+
+      md5_64 ((uint *) tmp, device_name_digest);
+
+      sprintf (tmp, "%08x", device_name_digest[0]);
+
+      device_param->device_name_chksum = mystrdup (tmp);
+
       if (device_type == CL_DEVICE_TYPE_CPU)
       {
         cl_uint gpu_processor_cores = 1;
@@ -12952,11 +12969,9 @@ int main (int argc, char **argv)
        * device properties
        */
 
-      char *device_name    = device_param->device_name;
-      char *device_version = device_param->device_version;
-      char *driver_version = device_param->driver_version;
+      char *device_name_chksum = device_param->device_name_chksum;
 
-      uint gpu_processors   = device_param->gpu_processors;
+      uint gpu_processors = device_param->gpu_processors;
 
       uint gpu_processor_cores = device_param->gpu_processor_cores;
 
@@ -13234,7 +13249,7 @@ int main (int argc, char **argv)
 
         memset (cached_file, 0, sizeof (cached_file));
 
-        generate_cached_kernel_filename (attack_exec, attack_kern, kern_type, profile_dir, device_name, device_version, driver_version, vendor_id, cached_file);
+        generate_cached_kernel_filename (attack_exec, attack_kern, kern_type, profile_dir, device_name_chksum, vendor_id, cached_file);
 
         int cached = 1;
 
@@ -13365,7 +13380,7 @@ int main (int argc, char **argv)
 
         memset (cached_file, 0, sizeof (cached_file));
 
-        generate_cached_kernel_mp_filename (opti_type, opts_type, profile_dir, device_name, device_version, driver_version, vendor_id, cached_file);
+        generate_cached_kernel_mp_filename (opti_type, opts_type, profile_dir, device_name_chksum, vendor_id, cached_file);
 
         int cached = 1;
 
@@ -13478,7 +13493,7 @@ int main (int argc, char **argv)
 
         memset (cached_file, 0, sizeof (cached_file));
 
-        generate_cached_kernel_amp_filename (attack_kern, profile_dir, device_name, device_version, driver_version, vendor_id, cached_file);
+        generate_cached_kernel_amp_filename (attack_kern, profile_dir, device_name_chksum, vendor_id, cached_file);
 
         int cached = 1;
 

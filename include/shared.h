@@ -2293,6 +2293,7 @@ void *thread_runtime   (void *p);
  */
 
 #include "cpu-crc32.h"
+#include "cpu-md5.h"
 
 /**
  * ciphers for use on cpu
