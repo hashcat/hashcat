@@ -5120,6 +5120,7 @@ int main (int argc, char **argv)
   char *custom_charset_2  = NULL;
   char *custom_charset_3  = NULL;
   char *custom_charset_4  = NULL;
+  char *arg_session_dir   = NULL;
 
   #define IDX_HELP              'h'
   #define IDX_VERSION           'V'
@@ -5194,8 +5195,9 @@ int main (int argc, char **argv)
   #define IDX_CUSTOM_CHARSET_2  '2'
   #define IDX_CUSTOM_CHARSET_3  '3'
   #define IDX_CUSTOM_CHARSET_4  '4'
+  #define IDX_SESSION_DIR       'S'
 
-  char short_options[] = "hVvm:a:r:j:k:g:o:t:d:n:u:c:p:s:l:1:2:3:4:ibw:";
+  char short_options[] = "hVvm:a:r:j:k:g:o:t:d:n:u:c:p:s:l:1:2:3:4:ibw:S:";
 
   struct option long_options[] =
   {
@@ -5279,6 +5281,7 @@ int main (int argc, char **argv)
     {"custom-charset2",   required_argument, 0, IDX_CUSTOM_CHARSET_2},
     {"custom-charset3",   required_argument, 0, IDX_CUSTOM_CHARSET_3},
     {"custom-charset4",   required_argument, 0, IDX_CUSTOM_CHARSET_4},
+    {"session-dir",       required_argument, 0, IDX_SESSION_DIR},
 
     {0, 0, 0, 0}
   };
@@ -5305,6 +5308,7 @@ int main (int argc, char **argv)
       case IDX_SESSION:       session = optarg; break;
       case IDX_SHOW:          show    = 1;      break;
       case IDX_LEFT:          left    = 1;      break;
+      case IDX_SESSION_DIR:   arg_session_dir = optarg;          break;
       case '?':               return (-1);
     }
   }
@@ -5387,6 +5391,7 @@ int main (int argc, char **argv)
   char *shared_dir  = install_dir;
 
   #endif
+  if (arg_session_dir) session_dir = arg_session_dir;
 
   data.install_dir = install_dir;
   data.profile_dir = profile_dir;
@@ -6385,6 +6390,7 @@ int main (int argc, char **argv)
   logfile_top_string (rule_buf_r);
   logfile_top_string (session);
   logfile_top_string (truecrypt_keyfiles);
+  logfile_top_string (arg_session_dir);
 
   /**
    * devices
