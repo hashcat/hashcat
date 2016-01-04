@@ -879,6 +879,7 @@ struct __hc_device_param
   char             *driver_version;
 
   cl_device_id      device;
+  cl_device_type    device_type;
 
   cl_kernel         kernel1;
   cl_kernel         kernel12;

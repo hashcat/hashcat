@@ -12722,6 +12722,12 @@ int main (int argc, char **argv)
 
       device_param->device = device;
 
+      cl_device_type device_type = 0;
+
+      hc_clGetDeviceInfo (device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+
+      device_param->device_type = device_type;
+
       cl_uint max_compute_units = 0;
 
       hc_clGetDeviceInfo (device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof (max_compute_units), &max_compute_units, NULL);
@@ -12758,120 +12764,119 @@ int main (int argc, char **argv)
 
       device_param->driver_version = mystrdup (tmp);
 
-      if (vendor_id == VENDOR_ID_AMD)
-      {
-        cl_uint gpu_processor_cores = 0;
-
-        #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
-
-        hc_clGetDeviceInfo (device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (gpu_processor_cores), &gpu_processor_cores, NULL);
-
-        device_param->gpu_processor_cores = gpu_processor_cores;
-      }
-
-      if (vendor_id == VENDOR_ID_NV)
-      {
-        cl_uint kernel_exec_timeout = 0;
-
-        #define CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV            0x4005
-
-        hc_clGetDeviceInfo (device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
-
-        device_param->kernel_exec_timeout = kernel_exec_timeout;
-
-        cl_uint gpu_processor_cores = 0;
-
-        #define CL_DEVICE_WARP_SIZE_NV                      0x4003
-
-        hc_clGetDeviceInfo (device, CL_DEVICE_WARP_SIZE_NV, sizeof (gpu_processor_cores), &gpu_processor_cores, NULL);
-
-        device_param->gpu_processor_cores = gpu_processor_cores;
-
-        cl_uint sm_minor = 0;
-        cl_uint sm_major = 0;
-
-        #define CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV       0x4000
-        #define CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV       0x4001
-
-        hc_clGetDeviceInfo (device, CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV, sizeof (sm_minor), &sm_minor, NULL);
-        hc_clGetDeviceInfo (device, CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV, sizeof (sm_major), &sm_major, NULL);
-
-        device_param->sm_minor = sm_minor;
-        device_param->sm_major = sm_major;
-      }
-
-      if (vendor_id == VENDOR_ID_POCL)
+      if (device_type == CL_DEVICE_TYPE_CPU)
       {
         cl_uint gpu_processor_cores = 1;
 
         device_param->gpu_processor_cores = gpu_processor_cores;
       }
 
-      if (vendor_id == VENDOR_ID_UNKNOWN)
+      if (device_type == CL_DEVICE_TYPE_GPU)
       {
-        cl_uint gpu_processor_cores = 1;
+        if (vendor_id == VENDOR_ID_AMD)
+        {
+          cl_uint gpu_processor_cores = 0;
 
-        device_param->gpu_processor_cores = gpu_processor_cores;
+          #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
+
+          hc_clGetDeviceInfo (device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (gpu_processor_cores), &gpu_processor_cores, NULL);
+
+          device_param->gpu_processor_cores = gpu_processor_cores;
+        }
+
+        if (vendor_id == VENDOR_ID_NV)
+        {
+          cl_uint kernel_exec_timeout = 0;
+
+          #define CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV            0x4005
+
+          hc_clGetDeviceInfo (device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
+
+          device_param->kernel_exec_timeout = kernel_exec_timeout;
+
+          cl_uint gpu_processor_cores = 0;
+
+          #define CL_DEVICE_WARP_SIZE_NV                      0x4003
+
+          hc_clGetDeviceInfo (device, CL_DEVICE_WARP_SIZE_NV, sizeof (gpu_processor_cores), &gpu_processor_cores, NULL);
+
+          device_param->gpu_processor_cores = gpu_processor_cores;
+
+          cl_uint sm_minor = 0;
+          cl_uint sm_major = 0;
+
+          #define CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV       0x4000
+          #define CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV       0x4001
+
+          hc_clGetDeviceInfo (device, CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV, sizeof (sm_minor), &sm_minor, NULL);
+          hc_clGetDeviceInfo (device, CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV, sizeof (sm_major), &sm_major, NULL);
+
+          device_param->sm_minor = sm_minor;
+          device_param->sm_major = sm_major;
+        }
       }
 
       /**
        * common driver check
        */
 
-      if (vendor_id == VENDOR_ID_NV)
+      if (device_type == CL_DEVICE_TYPE_GPU)
       {
-        if (device_param->kernel_exec_timeout != 0)
+        if (vendor_id == VENDOR_ID_NV)
         {
-          if (data.quiet == 0) log_info ("Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
-          if (data.quiet == 0) log_info ("           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
-        }
-      }
-
-      if (vendor_id == VENDOR_ID_AMD)
-      {
-        int catalyst_check = (force == 1) ? 0 : 1;
-
-        int catalyst_warn = 0;
-
-        int catalyst_broken = 0;
-
-        if (catalyst_check == 1)
-        {
-          catalyst_warn = 1;
-
-          // v14.9 and higher
-          if ((atoi (device_param->device_version) >= 1573)
-           && (atoi (device_param->driver_version) >= 1573))
+          if (device_param->kernel_exec_timeout != 0)
           {
-            catalyst_warn = 0;
+            if (data.quiet == 0) log_info ("Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
+            if (data.quiet == 0) log_info ("           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
+          }
+        }
+
+        if (vendor_id == VENDOR_ID_AMD)
+        {
+          int catalyst_check = (force == 1) ? 0 : 1;
+
+          int catalyst_warn = 0;
+
+          int catalyst_broken = 0;
+
+          if (catalyst_check == 1)
+          {
+            catalyst_warn = 1;
+
+            // v14.9 and higher
+            if ((atoi (device_param->device_version) >= 1573)
+             && (atoi (device_param->driver_version) >= 1573))
+            {
+              catalyst_warn = 0;
+            }
+
+            catalyst_check = 0;
           }
 
-          catalyst_check = 0;
-        }
+          if (catalyst_broken == 1)
+          {
+            log_error ("");
+            log_error ("ATTENTION! The installed GPU driver in your system is known to be broken!");
+            log_error ("It will pass over cracked hashes and does not report them as cracked");
+            log_error ("You are STRONGLY encouraged not to use it");
+            log_error ("You can use --force to override this but do not post error reports if you do so");
 
-        if (catalyst_broken == 1)
-        {
-          log_error ("");
-          log_error ("ATTENTION! The installed GPU driver in your system is known to be broken!");
-          log_error ("It will pass over cracked hashes and does not report them as cracked");
-          log_error ("You are STRONGLY encouraged not to use it");
-          log_error ("You can use --force to override this but do not post error reports if you do so");
+            return (-1);
+          }
 
-          return (-1);
-        }
+          if (catalyst_warn == 1)
+          {
+            log_error ("");
+            log_error ("ATTENTION! Unsupported or incorrect installed GPU driver detected!");
+            log_error ("You are STRONGLY encouraged to use the official supported GPU driver for good reasons");
+            log_error ("See oclHashcat's homepage for official supported GPU drivers");
+            #ifdef _WIN
+            log_error ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
+            #endif
+            log_error ("You can use --force to override this but do not post error reports if you do so");
 
-        if (catalyst_warn == 1)
-        {
-          log_error ("");
-          log_error ("ATTENTION! Unsupported or incorrect installed GPU driver detected!");
-          log_error ("You are STRONGLY encouraged to use the official supported GPU driver for good reasons");
-          log_error ("See oclHashcat's homepage for official supported GPU drivers");
-          #ifdef _WIN
-          log_error ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
-          #endif
-          log_error ("You can use --force to override this but do not post error reports if you do so");
-
-          return (-1);
+            return (-1);
+          }
         }
       }
     }
