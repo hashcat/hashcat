@@ -18,7 +18,6 @@ static inline u64 swap64 (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
 }
-
 #endif
 
 #ifdef IS_NV
@@ -50,7 +49,18 @@ static inline u64 swap64 (const u64 v)
 
   return r;
 }
+#endif
 
+#ifdef IS_UNKNOWN
+static inline u32 swap32 (const u32 v)
+{
+  return (as_uint (as_uchar4 (v).s3210));
+}
+
+static inline u64 swap64 (const u64 v)
+{
+  return (as_ulong (as_uchar8 (v).s76543210));
+}
 #endif
 
 #ifdef IS_AMD
@@ -347,6 +357,30 @@ static inline u64 rotl64 (const u64 a, const u64 n)
 }
 
 #endif
+#endif
+
+#ifdef IS_UNKNOWN
+
+static inline u32 rotr32 (const u32 a, const u32 n)
+{
+  return rotate (a, 32 - n);
+}
+
+static inline u32 rotl32 (const u32 a, const u32 n)
+{
+  return rotate (a, n);
+}
+
+static inline u64 rotr64 (const u64 a, const u32 n)
+{
+  return rotate (a, (u64) 64 - n);
+}
+
+static inline u64 rotl64 (const u64 a, const u32 n)
+{
+  return rotr64 (a, 64 - n);
+}
+
 #endif
 
 typedef struct

@@ -33,6 +33,16 @@
 #define MD4_Go(x,y,z)   (bitselect ((x), (y), ((x) ^ (z))))
 #endif
 
+#ifdef IS_UNKNOWN
+#define MD4_F(x,y,z)    (((x) & (y)) | ((~(x)) & (z)))
+#define MD4_G(x,y,z)    (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
+#define MD4_H(x,y,z)    ((x) ^ (y) ^ (z))
+#define MD4_H1(x,y,z)   ((tmp2 = (x) ^ (y)) ^ (z))
+#define MD4_H2(x,y,z)   ((x) ^ tmp2)
+#define MD4_Fo(x,y,z)   (MD4_F((x), (y), (z)))
+#define MD4_Go(x,y,z)   (MD4_G((x), (y), (z)))
+#endif
+
 #define MD4_STEP(f,a,b,c,d,x,K,s)   \
 {                                   \
   a += K;                           \
@@ -83,6 +93,17 @@
 #define MD5_Go(x,y,z)   (bitselect ((y), (x), (z)))
 #endif
 
+#ifdef IS_UNKNOWN
+#define MD5_F(x,y,z)    ((z) ^ ((x) & ((y) ^ (z))))
+#define MD5_G(x,y,z)    ((y) ^ ((z) & ((x) ^ (y))))
+#define MD5_H(x,y,z)    ((x) ^ (y) ^ (z))
+#define MD5_H1(x,y,z)   ((tmp2 = (x) ^ (y)) ^ (z))
+#define MD5_H2(x,y,z)   ((x) ^ tmp2)
+#define MD5_I(x,y,z)    ((y) ^ ((x) | ~(z)))
+#define MD5_Fo(x,y,z)   (MD5_F((x), (y), (z)))
+#define MD5_Go(x,y,z)   (MD5_G((x), (y), (z)))
+#endif
+
 #define MD5_STEP(f,a,b,c,d,x,K,s)   \
 {                                   \
   a += K;                           \
@@ -123,6 +144,14 @@
 #define SHA1_F2(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
 #define SHA1_F0o(x,y,z) (bitselect ((z), (y), (x)))
 #define SHA1_F2o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
+#endif
+
+#ifdef IS_UNKNOWN
+#define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
+#define SHA1_F1(x,y,z)  ((x) ^ (y) ^ (z))
+#define SHA1_F2(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
+#define SHA1_F0o(x,y,z) (SHA1_F0 ((x), (y), (z)))
+#define SHA1_F2o(x,y,z) (SHA1_F2 ((x), (y), (z)))
 #endif
 
 #define SHA1_STEP(f,a,b,c,d,e,x)    \
@@ -192,6 +221,13 @@
 #define SHA256_F1o(x,y,z) (bitselect ((z), (y), (x)))
 #endif
 
+#ifdef IS_UNKNOWN
+#define SHA256_F0(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
+#define SHA256_F1(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
+#define SHA256_F0o(x,y,z) (SHA256_F0 ((x), (y), (z)))
+#define SHA256_F1o(x,y,z) (SHA256_F1 ((x), (y), (z)))
+#endif
+
 #define SHA256_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                               \
   h += K;                                       \
@@ -227,6 +263,11 @@
 #ifdef IS_AMD
 #define SHA384_F0o(x,y,z) (bitselect ((z), (y), (x)))
 #define SHA384_F1o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
+#endif
+
+#ifdef IS_UNKNOWN
+#define SHA384_F0o(x,y,z) (SHA384_F0 ((x), (y), (z)))
+#define SHA384_F1o(x,y,z) (SHA384_F1 ((x), (y), (z)))
 #endif
 
 #define SHA384_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
@@ -266,6 +307,11 @@
 #ifdef IS_AMD
 #define SHA512_F0o(x,y,z) (bitselect ((z), (y), (x)))
 #define SHA512_F1o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
+#endif
+
+#ifdef IS_UNKNOWN
+#define SHA512_F0o(x,y,z) (SHA512_F0 ((x), (y), (z)))
+#define SHA512_F1o(x,y,z) (SHA512_F1 ((x), (y), (z)))
 #endif
 
 #define SHA512_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
@@ -318,6 +364,16 @@
 #define RIPEMD160_J(x,y,z)    ((x) ^ ((y) | ~(z)))
 #define RIPEMD160_Go(x,y,z)   (bitselect ((z), (y), (x)))
 #define RIPEMD160_Io(x,y,z)   (bitselect ((y), (x), (z)))
+#endif
+
+#ifdef IS_UNKNOWN
+#define RIPEMD160_F(x,y,z)    ((x) ^ (y) ^ (z))
+#define RIPEMD160_G(x,y,z)    ((z) ^ ((x) & ((y) ^ (z)))) /* x ? y : z */
+#define RIPEMD160_H(x,y,z)    (((x) | ~(y)) ^ (z))
+#define RIPEMD160_I(x,y,z)    ((y) ^ ((z) & ((x) ^ (y)))) /* z ? x : y */
+#define RIPEMD160_J(x,y,z)    ((x) ^ ((y) | ~(z)))
+#define RIPEMD160_Go(x,y,z)   (RIPEMD160_G ((x), (y), (z)))
+#define RIPEMD160_Io(x,y,z)   (RIPEMD160_I ((x), (y), (z)))
 #endif
 
 #define RIPEMD160_STEP(f,a,b,c,d,e,x,K,s) \

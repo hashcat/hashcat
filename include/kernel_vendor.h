@@ -17,12 +17,20 @@
 #define IS_NV
 #endif
 
+#if VENDOR_ID == 9998 // temporary for dev
+#define IS_UNKNOWN
+#endif
+
+#if VENDOR_ID == 9999
+#define IS_UNKNOWN
+#endif
+
 /**
  * AMD specific
  */
 
 #ifdef IS_AMD
-#pragma OPENCL EXTENSION cl_amd_media_ops : enable
+#pragma OPENCL EXTENSION cl_amd_media_ops  : enable
 #pragma OPENCL EXTENSION cl_amd_media_ops2 : enable
 #endif
 

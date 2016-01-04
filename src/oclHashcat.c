@@ -12277,9 +12277,11 @@ int main (int argc, char **argv)
       if (gpu_platform == NULL)
       {
         log_error ("ERROR: Too many OpenCL compatible platforms found");
-        log_error ("       Please select a single platform using the --gpu-platform option");
-        log_error ("");
-        log_error ("Available OpenCL platforms:");
+
+        log_info ("Please select a single platform using the --gpu-platform option");
+        log_info ("");
+        log_info ("Available OpenCL platforms:");
+        log_info ("");
 
         for (uint i = 0; i < CL_platforms_cnt; i++)
         {
@@ -12289,8 +12291,10 @@ int main (int argc, char **argv)
 
           hc_clGetPlatformInfo (CL_platforms[i], CL_PLATFORM_VENDOR, sizeof (CL_platform_vendor), CL_platform_vendor, NULL);
 
-          printf ("* %d = %s\n", i + 1, CL_platform_vendor);
+          log_info ("* %d = %s", i + 1, CL_platform_vendor);
         }
+
+        log_info ("");
 
         return (-1);
       }
@@ -12319,24 +12323,41 @@ int main (int argc, char **argv)
 
     hc_clGetPlatformInfo (CL_platform, CL_PLATFORM_VENDOR, sizeof (CL_platform_vendor), CL_platform_vendor, NULL);
 
+  	cl_device_type device_type;
+
     uint vendor_id;
 
     if (strcmp (CL_platform_vendor, CL_VENDOR_AMD) == 0)
     {
       vendor_id = VENDOR_ID_AMD;
+
+      device_type = CL_DEVICE_TYPE_GPU;
     }
     else if (strcmp (CL_platform_vendor, CL_VENDOR_NV) == 0)
     {
       vendor_id = VENDOR_ID_NV;
 
+      device_type = CL_DEVICE_TYPE_GPU;
+
       // make sure that we do not directly control the fan for NVidia
 
       gpu_temp_retain = 0;
+
       data.gpu_temp_retain = gpu_temp_retain;
+    }
+    else if (strcmp (CL_platform_vendor, CL_VENDOR_POCL) == 0)
+    {
+      vendor_id = VENDOR_ID_POCL;
+
+      device_type = CL_DEVICE_TYPE_CPU;
+
+      gpu_temp_disable = 1;
     }
     else
     {
       vendor_id = VENDOR_ID_UNKNOWN;
+
+      device_type = CL_DEVICE_TYPE_DEFAULT;
     }
 
     if (vendor_id == VENDOR_ID_UNKNOWN)
@@ -12375,7 +12396,7 @@ int main (int argc, char **argv)
 
     uint devices_all_cnt = 0;
 
-    hc_clGetDeviceIDs (CL_platform, CL_DEVICE_TYPE_GPU, DEVICES_MAX, devices_all, (uint *) &devices_all_cnt);
+    hc_clGetDeviceIDs (CL_platform, device_type, DEVICES_MAX, devices_all, (uint *) &devices_all_cnt);
 
     int hm_adapters_all = devices_all_cnt;
 
