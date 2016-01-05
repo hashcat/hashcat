@@ -13000,6 +13000,13 @@ int main (int argc, char **argv)
       if (hash_mode == 3200) kernel_threads = 8;
       if (hash_mode == 9000) kernel_threads = 8;
 
+      if (device_type == CL_DEVICE_TYPE_CPU)
+      {
+        // CPU still need lots of workitems, don't know why...
+
+        kernel_accel = (kernel_accel >= 8) ? kernel_accel / 8 : 1;
+      }
+
       uint kernel_power  = device_processors * kernel_threads * kernel_accel;
       uint kernel_blocks = kernel_power;
 
