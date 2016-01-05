@@ -205,7 +205,7 @@ static u32 memcat16 (u32 block[16], const u32 block_len, const u32 append[4], co
   u32 tmp3;
   u32 tmp4;
 
-  #ifdef IS_AMD
+  #if defined IS_AMD || defined IS_UNKNOWN
   const int offset_minus_4 = 4 - block_len;
 
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
@@ -342,7 +342,7 @@ static u32 memcat16c (u32 block[16], const u32 block_len, const u32 append[4], c
   u32 tmp3;
   u32 tmp4;
 
-  #ifdef IS_AMD
+  #if defined IS_AMD || defined IS_UNKNOWN
   const int offset_minus_4 = 4 - block_len;
 
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
@@ -505,7 +505,7 @@ static u32 memcat20 (u32 block[20], const u32 block_len, const u32 append[4], co
   u32 tmp3;
   u32 tmp4;
 
-  #ifdef IS_AMD
+  #if defined IS_AMD || defined IS_UNKNOWN
   const int offset_minus_4 = 4 - block_len;
 
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
@@ -650,7 +650,7 @@ static u32 memcat20_x80 (u32 block[20], const u32 block_len, const u32 append[4]
   u32 tmp3;
   u32 tmp4;
 
-  #ifdef IS_AMD
+  #if defined IS_AMD || defined IS_UNKNOWN
   const int offset_minus_4 = 4 - block_len;
 
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);

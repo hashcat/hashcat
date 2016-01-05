@@ -1139,7 +1139,7 @@ static u32 memcat8c (u32 block[16], const u32 block_len, const u32 append[2], co
   tmp2 = __byte_perm (append[1],         0, selector);
   #endif
 
-  #ifdef IS_AMD
+  #if defined IS_AMD || defined IS_UNKNOWN
   const int offset_minus_4 = 4 - block_len;
 
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
@@ -1272,7 +1272,7 @@ static u32 memcat32c (u32 block[16], const u32 block_len, const u32 append[8], c
   tmp8 = __byte_perm (append[7],         0, selector);
   #endif
 
-  #ifdef IS_AMD
+  #if defined IS_AMD || defined IS_UNKNOWN
   const int offset_minus_4 = 4 - block_len;
 
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
