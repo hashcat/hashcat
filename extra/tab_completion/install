@@ -94,7 +94,9 @@ is_child=0
 
 if ! is_root; then
 
-   sudo ${BASH_SOURCE[0]} ${was_sourced}
+  echo "Warning: root permissions are required to install the tab completion script into the protected '${COMPGENFOLDER}' folder"
+
+  sudo ${BASH_SOURCE[0]} ${was_sourced}
 
   ret=${?}
 
@@ -128,6 +130,10 @@ then
 fi
 
 if [ -d "${COMPGENFOLDER}" ]; then
+
+  # remove the old version of oclHashcat64.sh (was renamed to just oclHashcat.sh)
+
+  rm -f "${COMPGENTARGET}"/oclHashcat64.sh
 
   # copy the script to target folder
 
