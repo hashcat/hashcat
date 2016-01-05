@@ -27,7 +27,7 @@ typedef struct
 {
   u64 state[8];
   u64 buf[16];
-  int    len;
+  int len;
 
 } sha512_ctx_t;
 
@@ -250,6 +250,10 @@ static void sha512_update (sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
   #endif
 
   #ifdef IS_NV
+  sha512_transform (sha512_ctx->buf, sha512_ctx->state);
+  #endif
+
+  #ifdef IS_UNKNOWN
   sha512_transform (sha512_ctx->buf, sha512_ctx->state);
   #endif
 
