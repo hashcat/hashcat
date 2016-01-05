@@ -8,7 +8,7 @@
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #pragma GCC diagnostic ignored "-Wunused-function"
 
-#include <rp_gpu_on_cpu.h>
+#include <rp_kernel_on_cpu.h>
 
 static uint32_t generate_cmask (uint32_t buf)
 {

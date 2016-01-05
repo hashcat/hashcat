@@ -25,7 +25,7 @@ Issue: 2
 
 Type.: Feature
 File.: Host
-Desc.: Added option --gpu-platform to select a single OpenCL platform in case multiple OpenCL platforms are present 
+Desc.: Added option --opencl-platform to select a single OpenCL platform in case multiple OpenCL platforms are present 
 Issue: 2
 
 Type.: Feature
@@ -36,6 +36,21 @@ Issue: 10
 Type.: Feature
 File.: Host
 Desc.: Moved rules_optimize to hashcat-utils
+Issue: 2
+
+Type.: Change
+File.: Host
+Desc.: Renamed option --gpu-devices to --opencl-devices
+Issue: 2
+
+Type.: Change
+File.: Host
+Desc.: Renamed option --gpu-accel to --kernel-accel
+Issue: 2
+
+Type.: Change
+File.: Host
+Desc.: Renamed option --gpu-loops to --kernel-loops
 Issue: 2
 
 Type.: Bug

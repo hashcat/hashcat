@@ -5,7 +5,7 @@
 
 #include <common.h>
 #include <shared.h>
-#include <rp_gpu_on_cpu.h>
+#include <rp_kernel_on_cpu.h>
 #include <getopt.h>
 
 const char *PROGNAME          = "oclHashcat";
@@ -71,12 +71,12 @@ const uint  RESTORE_MIN       = 201;
 #define GPU_TEMP_ABORT          90
 #define GPU_TEMP_RETAIN         80
 #define WORKLOAD_PROFILE        2
-#define GPU_ACCEL               0
-#define GPU_LOOPS               0
-#define GPU_RULES               1024
-#define GPU_COMBS               1024
-#define GPU_BFS                 1024
-#define GPU_THREADS             64
+#define KERNEL_ACCEL            0
+#define KERNEL_LOOPS            0
+#define KERNEL_RULES            1024
+#define KERNEL_COMBS            1024
+#define KERNEL_BFS              1024
+#define KERNEL_THREADS          64
 #define POWERTUNE_ENABLE        0
 #define LOGFILE_DISABLE         0
 #define SCRYPT_TMTO             0
@@ -115,11 +115,11 @@ const uint  RESTORE_MIN       = 201;
 #define ATTACK_KERN_BF          3
 #define ATTACK_KERN_NONE        100
 
-#define ATTACK_EXEC_ON_CPU      10
-#define ATTACK_EXEC_ON_GPU      11
+#define ATTACK_EXEC_OUTSIDE_KERNEL  10
+#define ATTACK_EXEC_INSIDE_KERNEL   11
 
-#define COMBINATOR_MODE_BASE_LEFT  10001
-#define COMBINATOR_MODE_BASE_RIGHT 10002
+#define COMBINATOR_MODE_BASE_LEFT   10001
+#define COMBINATOR_MODE_BASE_RIGHT  10002
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -383,11 +383,11 @@ const char *USAGE_BIG[] =
   "       --bitmap-min=NUM              Minimum number of bits allowed for bitmaps",
   "       --bitmap-max=NUM              Maximum number of bits allowed for bitmaps",
   "       --cpu-affinity=STR            Locks to CPU devices, seperate with comma",
-  "  -d,  --gpu-devices=STR             OpenCL devices to use, separate with comma",
-  "       --gpu-platform=STR            OpenCL platform to use, in case multiple OpenCL platforms are present",
+  "  -d,  --opencl-devices=STR          OpenCL devices to use, separate with comma",
+  "       --opencl-platform=STR         OpenCL platform to use, in case multiple OpenCL platforms are present",
   "  -w,  --workload-profile=NUM        Enable a specific workload profile, see references below",
-  "  -n,  --gpu-accel=NUM               Workload tuning: 1, 8, 40, 80, 160",
-  "  -u,  --gpu-loops=NUM               Workload fine-tuning: 8 - 1024",
+  "  -n,  --kernel-accel=NUM            Workload tuning: 1, 8, 40, 80, 160",
+  "  -u,  --kernel-loops=NUM            Workload fine-tuning: 8 - 1024",
   "       --gpu-temp-disable            Disable temperature and fanspeed readings and triggers",
   "       --gpu-temp-abort=NUM          Abort session if GPU temperature reaches NUM degrees celsius",
   "       --gpu-temp-retain=NUM         Try to retain GPU temperature at NUM degrees celsius (AMD only)",
@@ -798,7 +798,7 @@ void status_display_automat ()
   {
     progress_skip = MIN (data.skip, data.words_base) * salts_left;
 
-    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.gpu_rules_cnt;
+    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
     else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
     else if (data.attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
   }
@@ -807,7 +807,7 @@ void status_display_automat ()
   {
     progress_end = MIN (data.limit, data.words_base) * salts_left;
 
-    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.gpu_rules_cnt;
+    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
     else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
     else if (data.attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
   }
@@ -1078,7 +1078,7 @@ void status_display ()
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
-    // we need to clear values (set to 0) because in case the gpu does
+    // we need to clear values (set to 0) because in case the device does
     // not get new candidates it idles around but speed display would
     // show it as working.
     // if we instantly set it to 0 after reading it happens that the
@@ -1226,7 +1226,7 @@ void status_display ()
   {
     progress_skip = MIN (data.skip, data.words_base) * salts_left;
 
-    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.gpu_rules_cnt;
+    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
     else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
     else if (data.attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
   }
@@ -1235,7 +1235,7 @@ void status_display ()
   {
     progress_end = MIN (data.limit, data.words_base) * salts_left;
 
-    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.gpu_rules_cnt;
+    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
     else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
     else if (data.attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
   }
@@ -1333,7 +1333,7 @@ void status_display ()
 
     format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
-    log_info ("Speed.GPU.#%d...: %9sH/s", device_id + 1, display_dev_cur);
+    log_info ("Speed.Dev.#%d...: %9sH/s", device_id + 1, display_dev_cur);
   }
 
   char display_all_cur[16];
@@ -1344,7 +1344,7 @@ void status_display ()
 
   format_speed_display (hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
-  if (data.devices_cnt > 1) log_info ("Speed.GPU.#*...: %9sH/s", display_all_cur);
+  if (data.devices_cnt > 1) log_info ("Speed.Dev.#*...: %9sH/s", display_all_cur);
 
   const float digests_percent = (float) data.digests_done / data.digests_cnt;
   const float salts_percent   = (float) data.salts_done   / data.salts_cnt;
@@ -1576,7 +1576,7 @@ static void status_benchmark ()
 
     format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
-    log_info ("Speed.GPU.#%d.: %9sH/s", device_id + 1, display_dev_cur);
+    log_info ("Speed.Dev.#%d.: %9sH/s", device_id + 1, display_dev_cur);
   }
 
   char display_all_cur[16];
@@ -1587,7 +1587,7 @@ static void status_benchmark ()
 
   format_speed_display (hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
-  if (data.devices_cnt > 1) log_info ("Speed.GPU.#*.: %9sH/s", display_all_cur);
+  if (data.devices_cnt > 1) log_info ("Speed.Dev.#*.: %9sH/s", display_all_cur);
 }
 
 /**
@@ -1596,7 +1596,7 @@ static void status_benchmark ()
 
 static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *shared_dir, char *source_file)
 {
-  if (attack_exec == ATTACK_EXEC_ON_GPU)
+  if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
     if (attack_kern == ATTACK_KERN_STRAIGHT)
       snprintf (source_file, 255, "%s/OpenCL/m%05d_a0.cl", shared_dir, (int) kern_type);
@@ -1611,7 +1611,7 @@ static void generate_source_kernel_filename (const uint attack_exec, const uint 
 
 static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *profile_dir, char *device_name_chksum, int vendor_id, char *cached_file)
 {
-  if (attack_exec == ATTACK_EXEC_ON_GPU)
+  if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
     if (attack_kern == ATTACK_KERN_STRAIGHT)
       snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a0.%s.kernel", profile_dir, vendor_id, (int) kern_type, device_name_chksum);
@@ -1836,7 +1836,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
       {
         memset (debug_rule_buf, 0, sizeof (debug_rule_buf));
 
-        debug_rule_len = gpu_rule_to_cpu_rule (debug_rule_buf, &data.gpu_rules_buf[off]);
+        debug_rule_len = kernel_rule_to_cpu_rule (debug_rule_buf, &data.kernel_rules_buf[off]);
       }
 
       // save plain
@@ -1850,10 +1850,10 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
       }
     }
 
-    plain_len = apply_rules (data.gpu_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], plain_len);
+    plain_len = apply_rules (data.kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], plain_len);
 
     crackpos += gidvid;
-    crackpos *= data.gpu_rules_cnt;
+    crackpos *= data.kernel_rules_cnt;
     crackpos += device_param->innerloop_pos + il_pos;
 
     if (plain_len > data.pw_max) plain_len = data.pw_max;
@@ -2113,7 +2113,7 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
   hc_clEnqueueReadBuffer (device_param->command_queue, device_param->d_result, CL_TRUE, 0, device_param->size_results, device_param->result, 0, NULL, NULL);
 
-  for (uint i = 0; i < GPU_THREADS; i++) if (device_param->result[i] == 1) found = 1;
+  for (uint i = 0; i < KERNEL_THREADS; i++) if (device_param->result[i] == 1) found = 1;
 
   if (found == 1)
   {
@@ -2170,7 +2170,7 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
     if (data.opts_type & OPTS_TYPE_PT_NEVERCRACK)
     {
-      // we need to reset cracked state on the gpu
+      // we need to reset cracked state on the device
       // otherwise host thinks again and again the hash was cracked
       // and returns invalid password each time
 
@@ -2282,21 +2282,21 @@ static void save_hash ()
   unlink (old_hashfile);
 }
 
-static float find_gpu_blocks_div (const uint64_t total_left, const uint gpu_blocks_all)
+static float find_kernel_blocks_div (const uint64_t total_left, const uint kernel_blocks_all)
 {
-  // function called only in case gpu_blocks_all > words_left)
+  // function called only in case kernel_blocks_all > words_left)
 
-  float gpu_blocks_div = (float) (total_left) / gpu_blocks_all;
+  float kernel_blocks_div = (float) (total_left) / kernel_blocks_all;
 
-  gpu_blocks_div += gpu_blocks_div / 100;
+  kernel_blocks_div += kernel_blocks_div / 100;
 
-  uint32_t gpu_blocks_new = (uint32_t) (gpu_blocks_all * gpu_blocks_div);
+  uint32_t kernel_blocks_new = (uint32_t) (kernel_blocks_all * kernel_blocks_div);
 
-  while (gpu_blocks_new < total_left)
+  while (kernel_blocks_new < total_left)
   {
-    gpu_blocks_div += gpu_blocks_div / 100;
+    kernel_blocks_div += kernel_blocks_div / 100;
 
-    gpu_blocks_new = (uint32_t) (gpu_blocks_all * gpu_blocks_div);
+    kernel_blocks_new = (uint32_t) (kernel_blocks_all * kernel_blocks_div);
   }
 
   if (data.quiet == 0)
@@ -2314,9 +2314,9 @@ static float find_gpu_blocks_div (const uint64_t total_left, const uint gpu_bloc
     fflush (stdout);
   }
 
-  if ((gpu_blocks_all * gpu_blocks_div) < 8) return 1;
+  if ((kernel_blocks_all * kernel_blocks_div) < 8) return 1;
 
-  return gpu_blocks_div;
+  return kernel_blocks_div;
 }
 
 static void run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num)
@@ -2326,9 +2326,9 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
   device_param->kernel_params_buf32[30] = data.combs_mode;
   device_param->kernel_params_buf32[31] = num;
 
-  uint gpu_threads = device_param->gpu_threads;
+  uint kernel_threads = device_param->kernel_threads;
 
-  while (num_elements % gpu_threads) num_elements++;
+  while (num_elements % kernel_threads) num_elements++;
 
   cl_kernel kernel = NULL;
 
@@ -2356,14 +2356,14 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
   if ((data.opts_type & OPTS_TYPE_PT_BITSLICE) && (data.attack_mode == ATTACK_MODE_BF))
   {
     const size_t global_work_size[3] = { num_elements,      32, 1 };
-    const size_t local_work_size[3]  = { gpu_threads / 32,  32, 1 };
+    const size_t local_work_size[3]  = { kernel_threads / 32,  32, 1 };
 
     hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL);
   }
   else
   {
     const size_t global_work_size[3] = { num_elements, 1, 1 };
-    const size_t local_work_size[3]  = { gpu_threads,  1, 1 };
+    const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
     hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
   }
@@ -2385,11 +2385,11 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
   }
 
   // causes problems with special threads like in bcrypt
-  // const uint gpu_threads = device_param->gpu_threads;
+  // const uint kernel_threads = device_param->kernel_threads;
 
-  const uint gpu_threads = GPU_THREADS;
+  const uint kernel_threads = KERNEL_THREADS;
 
-  while (num_elements % gpu_threads) num_elements++;
+  while (num_elements % kernel_threads) num_elements++;
 
   cl_kernel kernel = NULL;
 
@@ -2427,7 +2427,7 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
   }
 
   const size_t global_work_size[3] = { num_elements, 1, 1 };
-  const size_t local_work_size[3]  = { gpu_threads,  1, 1 };
+  const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
   hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
@@ -2440,14 +2440,14 @@ static void run_kernel_tb (hc_device_param_t *device_param, const uint num)
 {
   uint num_elements = num;
 
-  uint gpu_threads = device_param->gpu_threads;
+  uint kernel_threads = device_param->kernel_threads;
 
-  while (num_elements % gpu_threads) num_elements++;
+  while (num_elements % kernel_threads) num_elements++;
 
   cl_kernel kernel = device_param->kernel_tb;
 
   const size_t global_work_size[3] = { num_elements, 1, 1 };
-  const size_t local_work_size[3]  = { gpu_threads,  1, 1 };
+  const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
   hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
@@ -2460,12 +2460,12 @@ static void run_kernel_tm (hc_device_param_t *device_param)
 {
   const uint num_elements = 1024; // fixed
 
-  const uint gpu_threads = 32;
+  const uint kernel_threads = 32;
 
   cl_kernel kernel = device_param->kernel_tm;
 
   const size_t global_work_size[3] = { num_elements, 1, 1 };
-  const size_t local_work_size[3]  = { gpu_threads,  1, 1 };
+  const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
   hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
@@ -2482,11 +2482,11 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   device_param->kernel_params_amp_buf32[6] = num_elements;
 
   // causes problems with special threads like in bcrypt
-  // const uint gpu_threads = device_param->gpu_threads;
+  // const uint kernel_threads = device_param->kernel_threads;
 
-  const uint gpu_threads = GPU_THREADS;
+  const uint kernel_threads = KERNEL_THREADS;
 
-  while (num_elements % gpu_threads) num_elements++;
+  while (num_elements % kernel_threads) num_elements++;
 
   cl_kernel kernel = device_param->kernel_amp;
 
@@ -2494,7 +2494,7 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   hc_clSetKernelArg (kernel, 6, sizeof (cl_uint), device_param->kernel_params_amp[6]);
 
   const size_t global_work_size[3] = { num_elements, 1, 1 };
-  const size_t local_work_size[3]  = { gpu_threads,  1, 1 };
+  const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
   hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
@@ -2604,7 +2604,7 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
 
 static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, const uint pws_cnt)
 {
-  const uint gpu_loops = data.gpu_loops;
+  const uint kernel_loops = data.kernel_loops;
 
   // init speed timer
 
@@ -2655,10 +2655,10 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
   uint innerloop_step = 0;
   uint innerloop_cnt  = 0;
 
-  if      (data.attack_exec == ATTACK_EXEC_ON_GPU)   innerloop_step = gpu_loops;
+  if      (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)   innerloop_step = kernel_loops;
   else                                               innerloop_step = 1;
 
-  if      (data.attack_kern == ATTACK_KERN_STRAIGHT) innerloop_cnt  = data.gpu_rules_cnt;
+  if      (data.attack_kern == ATTACK_KERN_STRAIGHT) innerloop_cnt  = data.kernel_rules_cnt;
   else if (data.attack_kern == ATTACK_KERN_COMBI)    innerloop_cnt  = data.combs_cnt;
   else if (data.attack_kern == ATTACK_KERN_BF)       innerloop_cnt  = data.bfs_cnt;
 
@@ -2830,7 +2830,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
       if (data.attack_mode == ATTACK_MODE_STRAIGHT)
       {
-        hc_clEnqueueCopyBuffer (device_param->command_queue, device_param->d_rules, device_param->d_rules_c, innerloop_pos * sizeof (gpu_rule_t), 0, innerloop_left * sizeof (gpu_rule_t), 0, NULL, NULL);
+        hc_clEnqueueCopyBuffer (device_param->command_queue, device_param->d_rules, device_param->d_rules_c, innerloop_pos * sizeof (kernel_rule_t), 0, innerloop_left * sizeof (kernel_rule_t), 0, NULL, NULL);
       }
       else if (data.attack_mode == ATTACK_MODE_COMBI)
       {
@@ -2849,7 +2849,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
         hc_clEnqueueCopyBuffer (device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
       }
 
-      if (data.attack_exec == ATTACK_EXEC_ON_GPU)
+      if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       {
         if (data.attack_mode == ATTACK_MODE_BF)
         {
@@ -2891,11 +2891,11 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
         uint iter = salt_buf->salt_iter;
 
-        for (uint loop_pos = 0; loop_pos < iter; loop_pos += gpu_loops)
+        for (uint loop_pos = 0; loop_pos < iter; loop_pos += kernel_loops)
         {
           uint loop_left = iter - loop_pos;
 
-          loop_left = MIN (loop_left, gpu_loops);
+          loop_left = MIN (loop_left, kernel_loops);
 
           device_param->kernel_params_buf32[25] = loop_pos;
           device_param->kernel_params_buf32[26] = loop_left;
@@ -3214,7 +3214,7 @@ static uint64_t count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dicts
 
       if (data.attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        keyspace *= data.gpu_rules_cnt;
+        keyspace *= data.kernel_rules_cnt;
       }
       else if (data.attack_kern == ATTACK_KERN_COMBI)
       {
@@ -3279,7 +3279,7 @@ static uint64_t count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dicts
       {
         if (data.attack_kern == ATTACK_KERN_STRAIGHT)
         {
-          cnt += data.gpu_rules_cnt;
+          cnt += data.kernel_rules_cnt;
         }
         else if (data.attack_kern == ATTACK_KERN_COMBI)
         {
@@ -3913,32 +3913,32 @@ static uint get_work (hc_device_param_t *device_param, const uint64_t max)
 
   const uint64_t words_left = words_base - words_cur;
 
-  if (data.gpu_blocks_all > words_left)
+  if (data.kernel_blocks_all > words_left)
   {
-    if (data.gpu_blocks_div == 0)
+    if (data.kernel_blocks_div == 0)
     {
-      data.gpu_blocks_div = find_gpu_blocks_div (words_left, data.gpu_blocks_all);
+      data.kernel_blocks_div = find_kernel_blocks_div (words_left, data.kernel_blocks_all);
     }
   }
 
-  if (data.gpu_blocks_div)
+  if (data.kernel_blocks_div)
   {
-    if (device_param->gpu_blocks == device_param->gpu_blocks_user)
+    if (device_param->kernel_blocks == device_param->kernel_blocks_user)
     {
-      const uint32_t gpu_blocks_new = (float) device_param->gpu_blocks * data.gpu_blocks_div;
-      const uint32_t gpu_power_new  = gpu_blocks_new;
+      const uint32_t kernel_blocks_new = (float) device_param->kernel_blocks * data.kernel_blocks_div;
+      const uint32_t kernel_power_new  = kernel_blocks_new;
 
-      if (gpu_blocks_new < device_param->gpu_blocks)
+      if (kernel_blocks_new < device_param->kernel_blocks)
       {
-        device_param->gpu_blocks  = gpu_blocks_new;
-        device_param->gpu_power   = gpu_power_new;
+        device_param->kernel_blocks  = kernel_blocks_new;
+        device_param->kernel_power   = kernel_power_new;
       }
     }
   }
 
-  const uint gpu_blocks = device_param->gpu_blocks;
+  const uint kernel_blocks = device_param->kernel_blocks;
 
-  uint work = MIN (words_left, gpu_blocks);
+  uint work = MIN (words_left, kernel_blocks);
 
   work = MIN (work, max);
 
@@ -3955,7 +3955,7 @@ static void *thread_calc_stdin (void *p)
 
   const uint attack_kern = data.attack_kern;
 
-  const uint gpu_blocks = device_param->gpu_blocks;
+  const uint kernel_blocks = device_param->kernel_blocks;
 
   while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
   {
@@ -3970,7 +3970,7 @@ static void *thread_calc_stdin (void *p)
 
     uint words_cur = 0;
 
-    while (words_cur < gpu_blocks)
+    while (words_cur < kernel_blocks)
     {
       char buf[BUFSIZ];
 
@@ -4016,7 +4016,7 @@ static void *thread_calc_stdin (void *p)
 
           for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
           {
-            data.words_progress_rejected[salt_pos] += data.gpu_rules_cnt;
+            data.words_progress_rejected[salt_pos] += data.kernel_rules_cnt;
           }
 
           hc_thread_mutex_unlock (mux_counter);
@@ -4096,7 +4096,7 @@ static void *thread_calc_stdin (void *p)
 
         device_param->pws_cnt = pws_cnt;
 
-        if (pws_cnt == device_param->gpu_power_user) break;
+        if (pws_cnt == device_param->kernel_power_user) break;
       }
 
       const uint pw_cnt  = device_param->pw_cnt;
@@ -4340,7 +4340,7 @@ static void *thread_calc (void *p)
 
               for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
               {
-                data.words_progress_rejected[salt_pos] += data.gpu_rules_cnt;
+                data.words_progress_rejected[salt_pos] += data.kernel_rules_cnt;
               }
 
               hc_thread_mutex_unlock (mux_counter);
@@ -4432,7 +4432,7 @@ static void *thread_calc (void *p)
 
           device_param->pws_cnt = pws_cnt;
 
-          if (pws_cnt == device_param->gpu_power_user) break;
+          if (pws_cnt == device_param->kernel_power_user) break;
         }
 
         const uint pw_cnt  = device_param->pw_cnt;
@@ -4530,7 +4530,7 @@ static void *thread_calc (void *p)
   return NULL;
 }
 
-static void weak_hash_check (hc_device_param_t *device_param, const uint salt_pos, const uint gpu_loops)
+static void weak_hash_check (hc_device_param_t *device_param, const uint salt_pos, const uint kernel_loops)
 {
   salt_t *salt_buf = &data.salts_buf[salt_pos];
 
@@ -4555,7 +4555,7 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
    * run the kernel
    */
 
-  if (data.attack_exec == ATTACK_EXEC_ON_GPU)
+  if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
     run_kernel (KERN_RUN_1, device_param, 1);
   }
@@ -4565,11 +4565,11 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
 
     const uint iter = salt_buf->salt_iter;
 
-    for (uint loop_pos = 0; loop_pos < iter; loop_pos += gpu_loops)
+    for (uint loop_pos = 0; loop_pos < iter; loop_pos += kernel_loops)
     {
       uint loop_left = iter - loop_pos;
 
-      loop_left = MIN (loop_left, gpu_loops);
+      loop_left = MIN (loop_left, kernel_loops);
 
       device_param->kernel_params_buf32[25] = loop_pos;
       device_param->kernel_params_buf32[26] = loop_left;
@@ -5100,12 +5100,12 @@ int main (int argc, char **argv)
   uint  increment_min     = INCREMENT_MIN;
   uint  increment_max     = INCREMENT_MAX;
   char *cpu_affinity      = NULL;
-  char *gpu_devices       = NULL;
-  char *gpu_platform      = NULL;
+  char *opencl_devices    = NULL;
+  char *opencl_platform   = NULL;
   char *truecrypt_keyfiles = NULL;
   uint  workload_profile  = WORKLOAD_PROFILE;
-  uint  gpu_accel         = GPU_ACCEL;
-  uint  gpu_loops         = GPU_LOOPS;
+  uint  kernel_accel      = KERNEL_ACCEL;
+  uint  kernel_loops      = KERNEL_LOOPS;
   uint  gpu_temp_disable  = GPU_TEMP_DISABLE;
   uint  gpu_temp_abort    = GPU_TEMP_ABORT;
   uint  gpu_temp_retain   = GPU_TEMP_RETAIN;
@@ -5174,11 +5174,11 @@ int main (int argc, char **argv)
   #define IDX_MARKOV_THRESHOLD  't'
   #define IDX_MARKOV_HCSTAT     0xff24
   #define IDX_CPU_AFFINITY      0xff25
-  #define IDX_GPU_DEVICES       'd'
-  #define IDX_GPU_PLATFORM      0xff72
+  #define IDX_OPENCL_DEVICES    'd'
+  #define IDX_OPENCL_PLATFORM   0xff72
   #define IDX_WORKLOAD_PROFILE  'w'
-  #define IDX_GPU_ACCEL         'n'
-  #define IDX_GPU_LOOPS         'u'
+  #define IDX_KERNEL_ACCEL      'n'
+  #define IDX_KERNEL_LOOPS      'u'
   #define IDX_GPU_TEMP_DISABLE  0xff29
   #define IDX_GPU_TEMP_ABORT    0xff30
   #define IDX_GPU_TEMP_RETAIN   0xff31
@@ -5254,11 +5254,11 @@ int main (int argc, char **argv)
     {"markov-threshold",  required_argument, 0, IDX_MARKOV_THRESHOLD},
     {"markov-hcstat",     required_argument, 0, IDX_MARKOV_HCSTAT},
     {"cpu-affinity",      required_argument, 0, IDX_CPU_AFFINITY},
-    {"gpu-devices",       required_argument, 0, IDX_GPU_DEVICES},
-    {"gpu-platform",      required_argument, 0, IDX_GPU_PLATFORM},
+    {"opencl-devices",    required_argument, 0, IDX_OPENCL_DEVICES},
+    {"opencl-platform",   required_argument, 0, IDX_OPENCL_PLATFORM},
     {"workload-profile",  required_argument, 0, IDX_WORKLOAD_PROFILE},
-    {"gpu-accel",         required_argument, 0, IDX_GPU_ACCEL},
-    {"gpu-loops",         required_argument, 0, IDX_GPU_LOOPS},
+    {"kernel-accel",      required_argument, 0, IDX_KERNEL_ACCEL},
+    {"kernel-loops",      required_argument, 0, IDX_KERNEL_LOOPS},
     {"gpu-temp-disable",  no_argument,       0, IDX_GPU_TEMP_DISABLE},
     {"gpu-temp-abort",    required_argument, 0, IDX_GPU_TEMP_ABORT},
     {"gpu-temp-retain",   required_argument, 0, IDX_GPU_TEMP_RETAIN},
@@ -5461,8 +5461,8 @@ int main (int argc, char **argv)
 
   uint hash_mode_chgd       = 0;
   uint runtime_chgd         = 0;
-  uint gpu_loops_chgd       = 0;
-  uint gpu_accel_chgd       = 0;
+  uint kernel_loops_chgd    = 0;
+  uint kernel_accel_chgd    = 0;
   uint attack_mode_chgd     = 0;
   uint outfile_format_chgd  = 0;
   uint rp_gen_seed_chgd     = 0;
@@ -5542,13 +5542,13 @@ int main (int argc, char **argv)
       case IDX_HEX_SALT:          hex_salt          = 1;               break;
       case IDX_HEX_WORDLIST:      hex_wordlist      = 1;               break;
       case IDX_CPU_AFFINITY:      cpu_affinity      = optarg;          break;
-      case IDX_GPU_DEVICES:       gpu_devices       = optarg;          break;
-      case IDX_GPU_PLATFORM:      gpu_platform      = optarg;          break;
+      case IDX_OPENCL_DEVICES:    opencl_devices    = optarg;          break;
+      case IDX_OPENCL_PLATFORM:   opencl_platform   = optarg;          break;
       case IDX_WORKLOAD_PROFILE:  workload_profile  = atoi (optarg);   break;
-      case IDX_GPU_ACCEL:         gpu_accel         = atoi (optarg);
-                                  gpu_accel_chgd    = 1;               break;
-      case IDX_GPU_LOOPS:         gpu_loops         = atoi (optarg);
-                                  gpu_loops_chgd    = 1;               break;
+      case IDX_KERNEL_ACCEL:      kernel_accel      = atoi (optarg);
+                                  kernel_accel_chgd = 1;               break;
+      case IDX_KERNEL_LOOPS:      kernel_loops      = atoi (optarg);
+                                  kernel_loops_chgd = 1;               break;
       case IDX_GPU_TEMP_DISABLE:  gpu_temp_disable  = 1;               break;
       case IDX_GPU_TEMP_ABORT:    gpu_temp_abort_chgd = 1;
                                   gpu_temp_abort    = atoi (optarg);   break;
@@ -5771,49 +5771,49 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  if (gpu_accel_chgd == 1)
+  if (kernel_accel_chgd == 1)
   {
     if (workload_profile != WORKLOAD_PROFILE)
     {
-      log_error ("ERROR: gpu-accel parameter can only be set when workload-profile %i is used", WORKLOAD_PROFILE);
+      log_error ("ERROR: kernel-accel parameter can only be set when workload-profile %i is used", WORKLOAD_PROFILE);
 
       return (-1);
     }
 
-    if (gpu_accel < 1)
+    if (kernel_accel < 1)
     {
-      log_error ("ERROR: Invalid gpu-accel specified");
+      log_error ("ERROR: Invalid kernel-accel specified");
 
       return (-1);
     }
 
-    if (gpu_accel > 800)
+    if (kernel_accel > 800)
     {
-      log_error ("ERROR: Invalid gpu-accel specified");
+      log_error ("ERROR: Invalid kernel-accel specified");
 
       return (-1);
     }
   }
 
-  if (gpu_loops_chgd == 1)
+  if (kernel_loops_chgd == 1)
   {
     if (workload_profile != WORKLOAD_PROFILE)
     {
-      log_error ("ERROR: gpu-loops parameter can only be set when workload-profile %i is used", WORKLOAD_PROFILE);
+      log_error ("ERROR: kernel-loops parameter can only be set when workload-profile %i is used", WORKLOAD_PROFILE);
 
       return (-1);
     }
 
-    if (gpu_loops < 1)
+    if (kernel_loops < 1)
     {
-      log_error ("ERROR: Invalid gpu-loops specified");
+      log_error ("ERROR: Invalid kernel-loops specified");
 
       return (-1);
     }
 
-    if (gpu_loops > 1024)
+    if (kernel_loops > 1024)
     {
-      log_error ("ERROR: Invalid gpu-loops specified");
+      log_error ("ERROR: Invalid kernel-loops specified");
 
       return (-1);
     }
@@ -5950,9 +5950,9 @@ int main (int argc, char **argv)
     }
     else if (benchmark_mode == 1)
     {
-      if (gpu_accel_chgd == 1 || gpu_loops_chgd == 1)
+      if (kernel_accel_chgd == 1 || kernel_loops_chgd == 1)
       {
-        log_error ("ERROR: Benchmark-mode 1 does not allow gpu-accel or gpu-loops changed");
+        log_error ("ERROR: Benchmark-mode 1 does not allow kernel-accel or kernel-loops changed");
 
         return (-1);
       }
@@ -6320,8 +6320,8 @@ int main (int argc, char **argv)
   logfile_top_uint   (bitmap_max);
   logfile_top_uint   (debug_mode);
   logfile_top_uint   (force);
-  logfile_top_uint   (gpu_accel);
-  logfile_top_uint   (gpu_loops);
+  logfile_top_uint   (kernel_accel);
+  logfile_top_uint   (kernel_loops);
   logfile_top_uint   (gpu_temp_abort);
   logfile_top_uint   (gpu_temp_disable);
   logfile_top_uint   (gpu_temp_retain);
@@ -6375,8 +6375,8 @@ int main (int argc, char **argv)
   logfile_top_string (custom_charset_3);
   logfile_top_string (custom_charset_4);
   logfile_top_string (debug_file);
-  logfile_top_string (gpu_devices);
-  logfile_top_string (gpu_platform);
+  logfile_top_string (opencl_devices);
+  logfile_top_string (opencl_platform);
   logfile_top_string (induction_dir);
   logfile_top_string (markov_hcstat);
   logfile_top_string (outfile);
@@ -6390,7 +6390,7 @@ int main (int argc, char **argv)
    * devices
    */
 
-  uint gpu_devicemask = devices_to_devicemask (gpu_devices);
+  uint opencl_devicemask = devices_to_devicemask (opencl_devices);
 
   /**
    * benchmark
@@ -6499,7 +6499,7 @@ int main (int argc, char **argv)
     {
       case     0:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14;
@@ -6523,7 +6523,7 @@ int main (int argc, char **argv)
 
       case    10:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS14;
@@ -6547,7 +6547,7 @@ int main (int argc, char **argv)
 
       case    11:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS14;
@@ -6571,7 +6571,7 @@ int main (int argc, char **argv)
 
       case    12:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS14;
@@ -6595,7 +6595,7 @@ int main (int argc, char **argv)
 
       case    20:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14;
@@ -6618,7 +6618,7 @@ int main (int argc, char **argv)
 
       case    21:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14;
@@ -6641,7 +6641,7 @@ int main (int argc, char **argv)
 
       case    22:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14;
@@ -6664,7 +6664,7 @@ int main (int argc, char **argv)
 
       case    23:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14;
@@ -6687,7 +6687,7 @@ int main (int argc, char **argv)
 
       case    30:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
@@ -6712,7 +6712,7 @@ int main (int argc, char **argv)
 
       case    40:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
@@ -6736,7 +6736,7 @@ int main (int argc, char **argv)
 
       case    50:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS14;
@@ -6754,7 +6754,7 @@ int main (int argc, char **argv)
 
       case    60:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14;
@@ -6772,7 +6772,7 @@ int main (int argc, char **argv)
 
       case   100:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -6795,7 +6795,7 @@ int main (int argc, char **argv)
 
       case   101:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -6818,7 +6818,7 @@ int main (int argc, char **argv)
 
       case   110:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15;
@@ -6841,7 +6841,7 @@ int main (int argc, char **argv)
 
       case   111:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15;
@@ -6864,7 +6864,7 @@ int main (int argc, char **argv)
 
       case   112:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15
@@ -6888,7 +6888,7 @@ int main (int argc, char **argv)
 
       case   120:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -6911,7 +6911,7 @@ int main (int argc, char **argv)
 
       case   121:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
@@ -6935,7 +6935,7 @@ int main (int argc, char **argv)
 
       case   122:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
@@ -6959,7 +6959,7 @@ int main (int argc, char **argv)
 
       case   124:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -6982,7 +6982,7 @@ int main (int argc, char **argv)
 
       case   130:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
@@ -7006,7 +7006,7 @@ int main (int argc, char **argv)
 
       case   131:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_PT_UPPER
@@ -7032,7 +7032,7 @@ int main (int argc, char **argv)
 
       case   132:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
@@ -7057,7 +7057,7 @@ int main (int argc, char **argv)
 
       case   133:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
@@ -7081,7 +7081,7 @@ int main (int argc, char **argv)
 
       case   140:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
@@ -7105,7 +7105,7 @@ int main (int argc, char **argv)
 
       case   141:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
@@ -7130,7 +7130,7 @@ int main (int argc, char **argv)
 
       case   150:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15;
@@ -7148,7 +7148,7 @@ int main (int argc, char **argv)
 
       case   160:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -7166,7 +7166,7 @@ int main (int argc, char **argv)
 
       case   190:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -7187,7 +7187,7 @@ int main (int argc, char **argv)
 
       case   200:  hash_type   = HASH_TYPE_MYSQL;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = 0;
                    kern_type   = KERN_TYPE_MYSQL;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
@@ -7202,7 +7202,7 @@ int main (int argc, char **argv)
 
       case   300:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -7224,7 +7224,7 @@ int main (int argc, char **argv)
 
       case   400:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_PHPASS;
                    dgst_size   = DGST_SIZE_4_4;
@@ -7239,7 +7239,7 @@ int main (int argc, char **argv)
 
       case   500:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_MD5CRYPT;
                    dgst_size   = DGST_SIZE_4_4;
@@ -7254,7 +7254,7 @@ int main (int argc, char **argv)
 
       case   501:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_HASH_COPY;
                    kern_type   = KERN_TYPE_MD5CRYPT;
@@ -7270,7 +7270,7 @@ int main (int argc, char **argv)
 
       case   900:  hash_type   = HASH_TYPE_MD4;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14;
@@ -7294,7 +7294,7 @@ int main (int argc, char **argv)
 
       case  1000:  hash_type   = HASH_TYPE_MD4;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
@@ -7319,7 +7319,7 @@ int main (int argc, char **argv)
 
       case  1100:  hash_type   = HASH_TYPE_MD4;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
@@ -7344,7 +7344,7 @@ int main (int argc, char **argv)
 
       case  1400:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -7367,7 +7367,7 @@ int main (int argc, char **argv)
 
       case  1410:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15;
@@ -7390,7 +7390,7 @@ int main (int argc, char **argv)
 
       case  1420:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -7413,7 +7413,7 @@ int main (int argc, char **argv)
 
       case  1421:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -7436,7 +7436,7 @@ int main (int argc, char **argv)
 
       case  1430:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
@@ -7460,7 +7460,7 @@ int main (int argc, char **argv)
 
       case  1440:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
@@ -7484,7 +7484,7 @@ int main (int argc, char **argv)
 
       case  1441:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
@@ -7509,7 +7509,7 @@ int main (int argc, char **argv)
 
       case  1450:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80;
                    kern_type   = KERN_TYPE_HMACSHA256_PW;
@@ -7526,7 +7526,7 @@ int main (int argc, char **argv)
 
       case  1460:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -7544,7 +7544,7 @@ int main (int argc, char **argv)
 
       case  1500:  hash_type   = HASH_TYPE_DESCRYPT;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_BITSLICE;
                    kern_type   = KERN_TYPE_DESCRYPT;
@@ -7561,7 +7561,7 @@ int main (int argc, char **argv)
 
       case  1600:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_APR1CRYPT;
                    dgst_size   = DGST_SIZE_4_4;
@@ -7576,7 +7576,7 @@ int main (int argc, char **argv)
 
       case  1700:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -7599,7 +7599,7 @@ int main (int argc, char **argv)
 
       case  1710:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15;
@@ -7622,7 +7622,7 @@ int main (int argc, char **argv)
 
       case  1711:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15;
@@ -7645,7 +7645,7 @@ int main (int argc, char **argv)
 
       case  1720:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -7668,7 +7668,7 @@ int main (int argc, char **argv)
 
       case  1722:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
@@ -7692,7 +7692,7 @@ int main (int argc, char **argv)
 
       case  1730:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
@@ -7716,7 +7716,7 @@ int main (int argc, char **argv)
 
       case  1731:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
@@ -7741,7 +7741,7 @@ int main (int argc, char **argv)
 
       case  1740:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
@@ -7765,7 +7765,7 @@ int main (int argc, char **argv)
 
       case  1750:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80;
                    kern_type   = KERN_TYPE_HMACSHA512_PW;
@@ -7782,7 +7782,7 @@ int main (int argc, char **argv)
 
       case  1760:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -7800,7 +7800,7 @@ int main (int argc, char **argv)
 
       case  1800:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_SHA512CRYPT;
                    dgst_size   = DGST_SIZE_8_8;
@@ -7815,7 +7815,7 @@ int main (int argc, char **argv)
 
       case  2100:  hash_type   = HASH_TYPE_DCC2;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE  // should be OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_LOWER
                                | OPTS_TYPE_ST_UNICODE;
@@ -7832,7 +7832,7 @@ int main (int argc, char **argv)
 
       case  2400:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_MD5PIX;
                    dgst_size   = DGST_SIZE_4_4;
@@ -7852,7 +7852,7 @@ int main (int argc, char **argv)
 
       case  2410:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_MD5ASA;
                    dgst_size   = DGST_SIZE_4_4;
@@ -7871,7 +7871,7 @@ int main (int argc, char **argv)
 
       case  2500:  hash_type   = HASH_TYPE_WPA;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_WPA;
                    dgst_size   = DGST_SIZE_4_4;
@@ -7886,7 +7886,7 @@ int main (int argc, char **argv)
 
       case  2600:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_VIRTUAL;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
@@ -7907,7 +7907,7 @@ int main (int argc, char **argv)
 
       case  2611:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
@@ -7928,7 +7928,7 @@ int main (int argc, char **argv)
 
       case  2612:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
@@ -7950,7 +7950,7 @@ int main (int argc, char **argv)
 
       case  2711:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
@@ -7970,7 +7970,7 @@ int main (int argc, char **argv)
 
       case  2811:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14;
@@ -7989,7 +7989,7 @@ int main (int argc, char **argv)
 
       case  3000:  hash_type   = HASH_TYPE_LM;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_UPPER
                                | OPTS_TYPE_PT_BITSLICE;
@@ -8007,7 +8007,7 @@ int main (int argc, char **argv)
 
       case  3100:  hash_type   = HASH_TYPE_ORACLEH;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_UPPER
                                | OPTS_TYPE_ST_UPPER;
@@ -8024,7 +8024,7 @@ int main (int argc, char **argv)
 
       case  3200:  hash_type   = HASH_TYPE_BCRYPT;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_GENERATE_LE;
                    kern_type   = KERN_TYPE_BCRYPT;
@@ -8040,7 +8040,7 @@ int main (int argc, char **argv)
 
       case  3710:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14;
@@ -8060,7 +8060,7 @@ int main (int argc, char **argv)
 
       case  3711:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14;
@@ -8080,7 +8080,7 @@ int main (int argc, char **argv)
 
       case  3800:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADDBITS14;
                    kern_type   = KERN_TYPE_MD5_SLT_PW_SLT;
@@ -8101,7 +8101,7 @@ int main (int argc, char **argv)
 
       case  4300:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_VIRTUAL;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
@@ -8123,7 +8123,7 @@ int main (int argc, char **argv)
 
       case  4400:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -8146,7 +8146,7 @@ int main (int argc, char **argv)
 
       case  4500:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -8167,7 +8167,7 @@ int main (int argc, char **argv)
 
       case  4700:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14;
@@ -8190,7 +8190,7 @@ int main (int argc, char **argv)
 
       case  4800:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADDBITS14;
                    kern_type   = KERN_TYPE_MD5_CHAP;
@@ -8212,7 +8212,7 @@ int main (int argc, char **argv)
 
       case  4900:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_SHA1_SLT_PW_SLT;
                    dgst_size   = DGST_SIZE_4_5;
@@ -8230,7 +8230,7 @@ int main (int argc, char **argv)
 
       case  5000:  hash_type   = HASH_TYPE_KECCAK;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD01;
                    kern_type   = KERN_TYPE_KECCAK;
@@ -8247,7 +8247,7 @@ int main (int argc, char **argv)
 
       case  5100:  hash_type   = HASH_TYPE_MD5H;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14;
@@ -8265,7 +8265,7 @@ int main (int argc, char **argv)
 
       case  5200:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_PSAFE3;
                    dgst_size   = DGST_SIZE_4_8;
@@ -8280,7 +8280,7 @@ int main (int argc, char **argv)
 
       case  5300:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADD80;
                    kern_type   = KERN_TYPE_IKEPSK_MD5;
@@ -8296,7 +8296,7 @@ int main (int argc, char **argv)
 
       case  5400:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80;
                    kern_type   = KERN_TYPE_IKEPSK_SHA1;
@@ -8312,7 +8312,7 @@ int main (int argc, char **argv)
 
       case  5500:  hash_type   = HASH_TYPE_NETNTLM;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
@@ -8332,7 +8332,7 @@ int main (int argc, char **argv)
 
       case  5600:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
@@ -8350,7 +8350,7 @@ int main (int argc, char **argv)
 
       case  5700:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -8373,7 +8373,7 @@ int main (int argc, char **argv)
 
       case  5800:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE  // should be OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80;
                    kern_type   = KERN_TYPE_ANDROIDPIN;
@@ -8389,7 +8389,7 @@ int main (int argc, char **argv)
 
       case  6000:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80;
                    kern_type   = KERN_TYPE_RIPEMD160;
@@ -8405,7 +8405,7 @@ int main (int argc, char **argv)
 
       case  6100:  hash_type   = HASH_TYPE_WHIRLPOOL;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80;
                    kern_type   = KERN_TYPE_WHIRLPOOL;
@@ -8421,7 +8421,7 @@ int main (int argc, char **argv)
 
       case  6211:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS512;
                    dgst_size   = DGST_SIZE_4_5;
@@ -8436,7 +8436,7 @@ int main (int argc, char **argv)
 
       case  6212:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS1024;
                    dgst_size   = DGST_SIZE_4_5;
@@ -8451,7 +8451,7 @@ int main (int argc, char **argv)
 
       case  6213:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS1536;
                    dgst_size   = DGST_SIZE_4_5;
@@ -8466,7 +8466,7 @@ int main (int argc, char **argv)
 
       case  6221:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_TCSHA512_XTS512;
                    dgst_size   = DGST_SIZE_8_8;
@@ -8481,7 +8481,7 @@ int main (int argc, char **argv)
 
       case  6222:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_TCSHA512_XTS1024;
                    dgst_size   = DGST_SIZE_8_8;
@@ -8496,7 +8496,7 @@ int main (int argc, char **argv)
 
       case  6223:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_TCSHA512_XTS1536;
                    dgst_size   = DGST_SIZE_8_8;
@@ -8511,7 +8511,7 @@ int main (int argc, char **argv)
 
       case  6231:  hash_type   = HASH_TYPE_WHIRLPOOL;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS512;
                    dgst_size   = DGST_SIZE_4_8;
@@ -8526,7 +8526,7 @@ int main (int argc, char **argv)
 
       case  6232:  hash_type   = HASH_TYPE_WHIRLPOOL;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS1024;
                    dgst_size   = DGST_SIZE_4_8;
@@ -8541,7 +8541,7 @@ int main (int argc, char **argv)
 
       case  6233:  hash_type   = HASH_TYPE_WHIRLPOOL;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS1536;
                    dgst_size   = DGST_SIZE_4_8;
@@ -8556,7 +8556,7 @@ int main (int argc, char **argv)
 
       case  6241:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS512;
                    dgst_size   = DGST_SIZE_4_5;
@@ -8571,7 +8571,7 @@ int main (int argc, char **argv)
 
       case  6242:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS1024;
                    dgst_size   = DGST_SIZE_4_5;
@@ -8586,7 +8586,7 @@ int main (int argc, char **argv)
 
       case  6243:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS1536;
                    dgst_size   = DGST_SIZE_4_5;
@@ -8601,7 +8601,7 @@ int main (int argc, char **argv)
 
       case  6300:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_MD5AIX;
                    dgst_size   = DGST_SIZE_4_4;
@@ -8616,7 +8616,7 @@ int main (int argc, char **argv)
 
       case  6400:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_SHA256AIX;
                    dgst_size   = DGST_SIZE_4_8;
@@ -8631,7 +8631,7 @@ int main (int argc, char **argv)
 
       case  6500:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_SHA512AIX;
                    dgst_size   = DGST_SIZE_8_8;
@@ -8646,7 +8646,7 @@ int main (int argc, char **argv)
 
       case  6600:  hash_type   = HASH_TYPE_AES;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_AGILEKEY;
                    dgst_size   = DGST_SIZE_4_5; // because kernel uses _SHA1_
@@ -8661,7 +8661,7 @@ int main (int argc, char **argv)
 
       case  6700:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_SHA1AIX;
                    dgst_size   = DGST_SIZE_4_5;
@@ -8676,7 +8676,7 @@ int main (int argc, char **argv)
 
       case  6800:  hash_type   = HASH_TYPE_AES;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_LASTPASS;
                    dgst_size   = DGST_SIZE_4_8; // because kernel uses _SHA256_
@@ -8691,7 +8691,7 @@ int main (int argc, char **argv)
 
       case  6900:  hash_type   = HASH_TYPE_GOST;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_GOST;
                    dgst_size   = DGST_SIZE_4_8;
@@ -8706,7 +8706,7 @@ int main (int argc, char **argv)
 
       case  7100:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_PBKDF2_SHA512;
                    dgst_size   = DGST_SIZE_8_16;
@@ -8721,7 +8721,7 @@ int main (int argc, char **argv)
 
       case  7200:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_PBKDF2_SHA512;
                    dgst_size   = DGST_SIZE_8_16;
@@ -8736,7 +8736,7 @@ int main (int argc, char **argv)
 
       case  7300:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15;
@@ -8754,7 +8754,7 @@ int main (int argc, char **argv)
 
       case  7400:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_SHA256CRYPT;
                    dgst_size   = DGST_SIZE_4_8;
@@ -8769,7 +8769,7 @@ int main (int argc, char **argv)
 
       case  7500:  hash_type   = HASH_TYPE_KRB5PA;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_KRB5PA;
                    dgst_size   = DGST_SIZE_4_4;
@@ -8785,7 +8785,7 @@ int main (int argc, char **argv)
 
       case  7600:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -8806,7 +8806,7 @@ int main (int argc, char **argv)
 
       case  7700:  hash_type   = HASH_TYPE_SAPB;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_UPPER
                                | OPTS_TYPE_ST_UPPER;
@@ -8825,7 +8825,7 @@ int main (int argc, char **argv)
 
       case  7800:  hash_type   = HASH_TYPE_SAPG;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_UPPER;
@@ -8844,7 +8844,7 @@ int main (int argc, char **argv)
 
       case  7900:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_DRUPAL7;
                    dgst_size   = DGST_SIZE_8_8;
@@ -8859,7 +8859,7 @@ int main (int argc, char **argv)
 
       case  8000:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
@@ -8881,7 +8881,7 @@ int main (int argc, char **argv)
 
       case  8100:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE;
                    kern_type   = KERN_TYPE_NETSCALER;
                    dgst_size   = DGST_SIZE_4_5;
@@ -8902,7 +8902,7 @@ int main (int argc, char **argv)
 
       case  8200:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_CLOUDKEY;
                    dgst_size   = DGST_SIZE_4_8;
@@ -8917,7 +8917,7 @@ int main (int argc, char **argv)
 
       case  8300:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_HEX
                                | OPTS_TYPE_ST_ADD80;
@@ -8934,7 +8934,7 @@ int main (int argc, char **argv)
 
       case  8400:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -8953,7 +8953,7 @@ int main (int argc, char **argv)
 
       case  8500:  hash_type   = HASH_TYPE_DESRACF;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_UPPER;
                    kern_type   = KERN_TYPE_RACF;
@@ -8970,7 +8970,7 @@ int main (int argc, char **argv)
 
       case  8600:  hash_type   = HASH_TYPE_LOTUS5;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_LOTUS5;
                    dgst_size   = DGST_SIZE_4_4;
@@ -8988,7 +8988,7 @@ int main (int argc, char **argv)
 
       case  8700:  hash_type   = HASH_TYPE_LOTUS6;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_LOTUS6;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9005,7 +9005,7 @@ int main (int argc, char **argv)
 
       case  8800:  hash_type   = HASH_TYPE_ANDROIDFDE;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_ANDROIDFDE;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9020,7 +9020,7 @@ int main (int argc, char **argv)
 
       case  8900:  hash_type   = HASH_TYPE_SCRYPT;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_SCRYPT;
                    dgst_size   = DGST_SIZE_4_8;
@@ -9035,7 +9035,7 @@ int main (int argc, char **argv)
 
       case  9000:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_GENERATE_LE;
                    kern_type   = KERN_TYPE_PSAFE2;
@@ -9051,7 +9051,7 @@ int main (int argc, char **argv)
 
       case  9100:  hash_type   = HASH_TYPE_LOTUS8;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_LOTUS8;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
@@ -9066,7 +9066,7 @@ int main (int argc, char **argv)
 
       case  9200:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_PBKDF2_SHA256;
                    dgst_size   = DGST_SIZE_4_32;
@@ -9081,7 +9081,7 @@ int main (int argc, char **argv)
 
       case  9300:  hash_type   = HASH_TYPE_SCRYPT;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_SCRYPT;
                    dgst_size   = DGST_SIZE_4_8;
@@ -9096,7 +9096,7 @@ int main (int argc, char **argv)
 
       case  9400:  hash_type   = HASH_TYPE_OFFICE2007;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_OFFICE2007;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9111,7 +9111,7 @@ int main (int argc, char **argv)
 
       case  9500:  hash_type   = HASH_TYPE_OFFICE2010;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_OFFICE2010;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9126,7 +9126,7 @@ int main (int argc, char **argv)
 
       case  9600:  hash_type   = HASH_TYPE_OFFICE2013;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_OFFICE2013;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9141,7 +9141,7 @@ int main (int argc, char **argv)
 
       case  9700:  hash_type   = HASH_TYPE_OLDOFFICE01;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_UNICODE;
@@ -9160,7 +9160,7 @@ int main (int argc, char **argv)
 
       case  9710:  hash_type   = HASH_TYPE_OLDOFFICE01;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80;
                    kern_type   = KERN_TYPE_OLDOFFICE01CM1;
@@ -9178,7 +9178,7 @@ int main (int argc, char **argv)
 
       case  9720:  hash_type   = HASH_TYPE_OLDOFFICE01;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_UNICODE
@@ -9198,7 +9198,7 @@ int main (int argc, char **argv)
 
       case  9800:  hash_type   = HASH_TYPE_OLDOFFICE34;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_UNICODE;
@@ -9217,7 +9217,7 @@ int main (int argc, char **argv)
 
       case  9810:  hash_type   = HASH_TYPE_OLDOFFICE34;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_OLDOFFICE34CM1;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9234,7 +9234,7 @@ int main (int argc, char **argv)
 
       case  9820:  hash_type   = HASH_TYPE_OLDOFFICE34;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_UNICODE
@@ -9254,7 +9254,7 @@ int main (int argc, char **argv)
 
       case  9900:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_RADMIN2;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9273,7 +9273,7 @@ int main (int argc, char **argv)
 
       case 10000:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_PBKDF2_SHA256;
                    dgst_size   = DGST_SIZE_4_32;
@@ -9288,7 +9288,7 @@ int main (int argc, char **argv)
 
       case 10100:  hash_type   = HASH_TYPE_SIPHASH;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_SIPHASH;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
@@ -9305,7 +9305,7 @@ int main (int argc, char **argv)
 
       case 10200:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS14;
@@ -9323,7 +9323,7 @@ int main (int argc, char **argv)
 
       case 10300:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_SAPH_SHA1;
                    dgst_size   = DGST_SIZE_4_5;
@@ -9338,7 +9338,7 @@ int main (int argc, char **argv)
 
       case 10400:  hash_type   = HASH_TYPE_PDFU16;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_PDF11;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9354,7 +9354,7 @@ int main (int argc, char **argv)
 
       case 10410:  hash_type   = HASH_TYPE_PDFU16;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_PDF11CM1;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9370,7 +9370,7 @@ int main (int argc, char **argv)
 
       case 10420:  hash_type   = HASH_TYPE_PDFU16;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_PDF11CM2;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9386,7 +9386,7 @@ int main (int argc, char **argv)
 
       case 10500:  hash_type   = HASH_TYPE_PDFU16;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_PDF14;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9402,7 +9402,7 @@ int main (int argc, char **argv)
 
       case 10600:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15
@@ -9426,7 +9426,7 @@ int main (int argc, char **argv)
 
       case 10700:  hash_type   = HASH_TYPE_PDFU32;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_HASH_COPY;
                    kern_type   = KERN_TYPE_PDF17L8;
@@ -9443,7 +9443,7 @@ int main (int argc, char **argv)
 
       case 10800:  hash_type   = HASH_TYPE_SHA384;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15;
@@ -9466,7 +9466,7 @@ int main (int argc, char **argv)
 
       case 10900:  hash_type   = HASH_TYPE_PBKDF2_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_BASE64
                                | OPTS_TYPE_HASH_COPY;
@@ -9483,7 +9483,7 @@ int main (int argc, char **argv)
 
       case 11000:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80;
                    kern_type   = KERN_TYPE_PRESTASHOP;
@@ -9502,7 +9502,7 @@ int main (int argc, char **argv)
 
       case 11100:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADD80;
                    kern_type   = KERN_TYPE_POSTGRESQL_AUTH;
@@ -9521,7 +9521,7 @@ int main (int argc, char **argv)
 
       case 11200:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_ST_HEX;
@@ -9539,7 +9539,7 @@ int main (int argc, char **argv)
 
       case 11300:  hash_type   = HASH_TYPE_BITCOIN_WALLET;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_HEX
                                | OPTS_TYPE_ST_ADD80;
@@ -9556,7 +9556,7 @@ int main (int argc, char **argv)
 
       case 11400:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_HASH_COPY;
@@ -9573,7 +9573,7 @@ int main (int argc, char **argv)
 
       case 11500:  hash_type   = HASH_TYPE_CRC32;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_GENERATE_LE
                                | OPTS_TYPE_ST_HEX;
@@ -9590,7 +9590,7 @@ int main (int argc, char **argv)
 
       case 11600:  hash_type   = HASH_TYPE_AES;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_NEVERCRACK;
                    kern_type   = KERN_TYPE_SEVEN_ZIP;
@@ -9606,7 +9606,7 @@ int main (int argc, char **argv)
 
       case 11700:  hash_type   = HASH_TYPE_GOST_2012SBOG_256;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD01;
                    kern_type   = KERN_TYPE_GOST_2012SBOG_256;
@@ -9622,7 +9622,7 @@ int main (int argc, char **argv)
 
       case 11800:  hash_type   = HASH_TYPE_GOST_2012SBOG_512;
                    salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD01;
                    kern_type   = KERN_TYPE_GOST_2012SBOG_512;
@@ -9638,7 +9638,7 @@ int main (int argc, char **argv)
 
       case 11900:  hash_type   = HASH_TYPE_PBKDF2_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_BASE64
                                | OPTS_TYPE_HASH_COPY;
@@ -9655,7 +9655,7 @@ int main (int argc, char **argv)
 
       case 12000:  hash_type   = HASH_TYPE_PBKDF2_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_BASE64
                                | OPTS_TYPE_HASH_COPY;
@@ -9672,7 +9672,7 @@ int main (int argc, char **argv)
 
       case 12100:  hash_type   = HASH_TYPE_PBKDF2_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_BASE64
                                | OPTS_TYPE_HASH_COPY;
@@ -9689,7 +9689,7 @@ int main (int argc, char **argv)
 
       case 12200:  hash_type   = HASH_TYPE_ECRYPTFS;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_ECRYPTFS;
                    dgst_size   = DGST_SIZE_8_8;
@@ -9704,7 +9704,7 @@ int main (int argc, char **argv)
 
       case 12300:  hash_type   = HASH_TYPE_ORACLET;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_ORACLET;
                    dgst_size   = DGST_SIZE_8_16;
@@ -9719,7 +9719,7 @@ int main (int argc, char **argv)
 
       case 12400:  hash_type   = HASH_TYPE_BSDICRYPT;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_BSDICRYPT;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9735,7 +9735,7 @@ int main (int argc, char **argv)
 
       case 12500:  hash_type   = HASH_TYPE_RAR3HP;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_RAR3;
                    dgst_size   = DGST_SIZE_4_4;
@@ -9750,7 +9750,7 @@ int main (int argc, char **argv)
 
       case 12600:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
-                   attack_exec = ATTACK_EXEC_ON_GPU;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80;
                    kern_type   = KERN_TYPE_CF10;
@@ -9769,7 +9769,7 @@ int main (int argc, char **argv)
 
       case 12700:  hash_type   = HASH_TYPE_AES;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_HASH_COPY;
                    kern_type   = KERN_TYPE_MYWALLET;
@@ -9785,7 +9785,7 @@ int main (int argc, char **argv)
 
       case 12800:  hash_type   = HASH_TYPE_PBKDF2_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
-                   attack_exec = ATTACK_EXEC_ON_CPU;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_MS_DRSR;
                    dgst_size   = DGST_SIZE_4_8;
@@ -10192,43 +10192,43 @@ int main (int argc, char **argv)
     }
 
     /**
-     * gpu accel and loops auto adjustment
+     * kernel accel and loops auto adjustment
      */
 
-    if (gpu_accel_chgd == 0) gpu_accel = set_gpu_accel (hash_mode);
-    if (gpu_loops_chgd == 0) gpu_loops = set_gpu_loops (hash_mode);
+    if (kernel_accel_chgd == 0) kernel_accel = set_kernel_accel (hash_mode);
+    if (kernel_loops_chgd == 0) kernel_loops = set_kernel_loops (hash_mode);
 
     if (workload_profile == 1)
     {
-      gpu_loops /= 8;
-      gpu_accel /= 4;
+      kernel_loops /= 8;
+      kernel_accel /= 4;
 
-      if (gpu_loops == 0) gpu_loops = 8;
-      if (gpu_accel == 0) gpu_accel = 2;
+      if (kernel_loops == 0) kernel_loops = 8;
+      if (kernel_accel == 0) kernel_accel = 2;
     }
     else if (workload_profile == 3)
     {
-      gpu_loops *= 8;
-      gpu_accel *= 4;
+      kernel_loops *= 8;
+      kernel_accel *= 4;
 
-      if (gpu_loops > 1024) gpu_loops = 1024;
-      if (gpu_accel >  256) gpu_accel =  256; // causes memory problems otherwise
+      if (kernel_loops > 1024) kernel_loops = 1024;
+      if (kernel_accel >  256) kernel_accel =  256; // causes memory problems otherwise
     }
 
-    // those hashes *must* run at a specific gpu_loops count because of some optimization inside the kernel
+    // those hashes *must* run at a specific kernel_loops count because of some optimization inside the kernel
 
     if ((opts_type & OPTS_TYPE_PT_BITSLICE) && (attack_mode == ATTACK_MODE_BF))
     {
-      gpu_loops = 1024;
+      kernel_loops = 1024;
     }
 
     if (hash_mode == 12500)
     {
-      gpu_loops = ROUNDS_RAR3 / 16;
+      kernel_loops = ROUNDS_RAR3 / 16;
     }
 
-    data.gpu_accel = gpu_accel;
-    data.gpu_loops = gpu_loops;
+    data.kernel_accel = kernel_accel;
+    data.kernel_loops = kernel_loops;
 
     /**
      * word len
@@ -10294,7 +10294,7 @@ int main (int argc, char **argv)
                   break;
     }
 
-    if (attack_exec == ATTACK_EXEC_ON_GPU)
+    if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
     {
       switch (attack_kern)
       {
@@ -11158,181 +11158,181 @@ int main (int argc, char **argv)
 
       if (benchmark_mode == 1)
       {
-        gpu_loops *= 8;
-        gpu_accel *= 4;
+        kernel_loops *= 8;
+        kernel_accel *= 4;
 
         switch (hash_mode)
         {
-          case   400:  gpu_loops = ROUNDS_PHPASS;
-                       gpu_accel = 32;
+          case   400:  kernel_loops = ROUNDS_PHPASS;
+                       kernel_accel = 32;
                        break;
-          case   500:  gpu_loops = ROUNDS_MD5CRYPT;
-                       gpu_accel = 32;
+          case   500:  kernel_loops = ROUNDS_MD5CRYPT;
+                       kernel_accel = 32;
                        break;
-          case   501:  gpu_loops = ROUNDS_MD5CRYPT;
-                       gpu_accel = 32;
+          case   501:  kernel_loops = ROUNDS_MD5CRYPT;
+                       kernel_accel = 32;
                        break;
-          case  1600:  gpu_loops = ROUNDS_MD5CRYPT;
-                       gpu_accel = 32;
+          case  1600:  kernel_loops = ROUNDS_MD5CRYPT;
+                       kernel_accel = 32;
                        break;
-          case  1800:  gpu_loops = ROUNDS_SHA512CRYPT;
-                       gpu_accel = 16;
+          case  1800:  kernel_loops = ROUNDS_SHA512CRYPT;
+                       kernel_accel = 16;
                        break;
-          case  2100:  gpu_loops = ROUNDS_DCC2;
-                       gpu_accel = 16;
+          case  2100:  kernel_loops = ROUNDS_DCC2;
+                       kernel_accel = 16;
                        break;
-          case  2500:  gpu_loops = ROUNDS_WPA2;
-                       gpu_accel = 32;
+          case  2500:  kernel_loops = ROUNDS_WPA2;
+                       kernel_accel = 32;
                        break;
-          case  3200:  gpu_loops = ROUNDS_BCRYPT;
-                       gpu_accel = 8;
+          case  3200:  kernel_loops = ROUNDS_BCRYPT;
+                       kernel_accel = 8;
                        break;
-          case  5200:  gpu_loops = ROUNDS_PSAFE3;
-                       gpu_accel = 16;
+          case  5200:  kernel_loops = ROUNDS_PSAFE3;
+                       kernel_accel = 16;
                        break;
-          case  5800:  gpu_loops = ROUNDS_ANDROIDPIN;
-                       gpu_accel = 16;
+          case  5800:  kernel_loops = ROUNDS_ANDROIDPIN;
+                       kernel_accel = 16;
                        break;
-          case  6211:  gpu_loops = ROUNDS_TRUECRYPT_2K;
-                       gpu_accel = 64;
+          case  6211:  kernel_loops = ROUNDS_TRUECRYPT_2K;
+                       kernel_accel = 64;
                        break;
-          case  6212:  gpu_loops = ROUNDS_TRUECRYPT_2K;
-                       gpu_accel = 32;
+          case  6212:  kernel_loops = ROUNDS_TRUECRYPT_2K;
+                       kernel_accel = 32;
                        break;
-          case  6213:  gpu_loops = ROUNDS_TRUECRYPT_2K;
-                       gpu_accel = 32;
+          case  6213:  kernel_loops = ROUNDS_TRUECRYPT_2K;
+                       kernel_accel = 32;
                        break;
-          case  6221:  gpu_loops = ROUNDS_TRUECRYPT_1K;
-                       gpu_accel = 8;
+          case  6221:  kernel_loops = ROUNDS_TRUECRYPT_1K;
+                       kernel_accel = 8;
                        break;
-          case  6222:  gpu_loops = ROUNDS_TRUECRYPT_1K;
-                       gpu_accel = 8;
+          case  6222:  kernel_loops = ROUNDS_TRUECRYPT_1K;
+                       kernel_accel = 8;
                        break;
-          case  6223:  gpu_loops = ROUNDS_TRUECRYPT_1K;
-                       gpu_accel = 8;
+          case  6223:  kernel_loops = ROUNDS_TRUECRYPT_1K;
+                       kernel_accel = 8;
                        break;
-          case  6231:  gpu_loops = ROUNDS_TRUECRYPT_1K;
-                       gpu_accel = 8;
+          case  6231:  kernel_loops = ROUNDS_TRUECRYPT_1K;
+                       kernel_accel = 8;
                        break;
-          case  6232:  gpu_loops = ROUNDS_TRUECRYPT_1K;
-                       gpu_accel = 8;
+          case  6232:  kernel_loops = ROUNDS_TRUECRYPT_1K;
+                       kernel_accel = 8;
                        break;
-          case  6233:  gpu_loops = ROUNDS_TRUECRYPT_1K;
-                       gpu_accel = 8;
+          case  6233:  kernel_loops = ROUNDS_TRUECRYPT_1K;
+                       kernel_accel = 8;
                        break;
-          case  6241:  gpu_loops = ROUNDS_TRUECRYPT_1K;
-                       gpu_accel = 128;
+          case  6241:  kernel_loops = ROUNDS_TRUECRYPT_1K;
+                       kernel_accel = 128;
                        break;
-          case  6242:  gpu_loops = ROUNDS_TRUECRYPT_1K;
-                       gpu_accel = 64;
+          case  6242:  kernel_loops = ROUNDS_TRUECRYPT_1K;
+                       kernel_accel = 64;
                        break;
-          case  6243:  gpu_loops = ROUNDS_TRUECRYPT_1K;
-                       gpu_accel = 64;
+          case  6243:  kernel_loops = ROUNDS_TRUECRYPT_1K;
+                       kernel_accel = 64;
                        break;
-          case  6300:  gpu_loops = ROUNDS_MD5CRYPT;
-                       gpu_accel = 32;
+          case  6300:  kernel_loops = ROUNDS_MD5CRYPT;
+                       kernel_accel = 32;
                        break;
-          case  6700:  gpu_loops = ROUNDS_SHA1AIX;
-                       gpu_accel = 128;
+          case  6700:  kernel_loops = ROUNDS_SHA1AIX;
+                       kernel_accel = 128;
                        break;
-          case  6400:  gpu_loops = ROUNDS_SHA256AIX;
-                       gpu_accel = 128;
+          case  6400:  kernel_loops = ROUNDS_SHA256AIX;
+                       kernel_accel = 128;
                        break;
-          case  6500:  gpu_loops = ROUNDS_SHA512AIX;
-                       gpu_accel = 32;
+          case  6500:  kernel_loops = ROUNDS_SHA512AIX;
+                       kernel_accel = 32;
                        break;
-          case  6600:  gpu_loops = ROUNDS_AGILEKEY;
-                       gpu_accel = 64;
+          case  6600:  kernel_loops = ROUNDS_AGILEKEY;
+                       kernel_accel = 64;
                        break;
-          case  6800:  gpu_loops = ROUNDS_LASTPASS;
-                       gpu_accel = 64;
+          case  6800:  kernel_loops = ROUNDS_LASTPASS;
+                       kernel_accel = 64;
                        break;
-          case  7100:  gpu_loops = ROUNDS_SHA512OSX;
-                       gpu_accel = 8;
+          case  7100:  kernel_loops = ROUNDS_SHA512OSX;
+                       kernel_accel = 8;
                        break;
-          case  7200:  gpu_loops = ROUNDS_GRUB;
-                       gpu_accel = 16;
+          case  7200:  kernel_loops = ROUNDS_GRUB;
+                       kernel_accel = 16;
                        break;
-          case  7400:  gpu_loops = ROUNDS_SHA256CRYPT;
-                       gpu_accel = 8;
+          case  7400:  kernel_loops = ROUNDS_SHA256CRYPT;
+                       kernel_accel = 8;
                        break;
-          case  7900:  gpu_loops = ROUNDS_DRUPAL7;
-                       gpu_accel = 8;
+          case  7900:  kernel_loops = ROUNDS_DRUPAL7;
+                       kernel_accel = 8;
                        break;
-          case  8200:  gpu_loops = ROUNDS_CLOUDKEY;
-                       gpu_accel = 8;
+          case  8200:  kernel_loops = ROUNDS_CLOUDKEY;
+                       kernel_accel = 8;
                        break;
-          case  8800:  gpu_loops = ROUNDS_ANDROIDFDE;
-                       gpu_accel = 32;
+          case  8800:  kernel_loops = ROUNDS_ANDROIDFDE;
+                       kernel_accel = 32;
                        break;
-          case  8900:  gpu_loops = 1;
-                       gpu_accel = 64;
+          case  8900:  kernel_loops = 1;
+                       kernel_accel = 64;
                        break;
-          case  9000:  gpu_loops = ROUNDS_PSAFE2;
-                       gpu_accel = 16;
+          case  9000:  kernel_loops = ROUNDS_PSAFE2;
+                       kernel_accel = 16;
                        break;
-          case  9100:  gpu_loops = ROUNDS_LOTUS8;
-                       gpu_accel = 64;
+          case  9100:  kernel_loops = ROUNDS_LOTUS8;
+                       kernel_accel = 64;
                        break;
-          case  9200:  gpu_loops = ROUNDS_CISCO8;
-                       gpu_accel = 8;
+          case  9200:  kernel_loops = ROUNDS_CISCO8;
+                       kernel_accel = 8;
                        break;
-          case  9300:  gpu_loops = 1;
-                       gpu_accel = 4;
+          case  9300:  kernel_loops = 1;
+                       kernel_accel = 4;
                        break;
-          case  9400:  gpu_loops = ROUNDS_OFFICE2007;
-                       gpu_accel = 32;
+          case  9400:  kernel_loops = ROUNDS_OFFICE2007;
+                       kernel_accel = 32;
                        break;
-          case  9500:  gpu_loops = ROUNDS_OFFICE2010;
-                       gpu_accel = 32;
+          case  9500:  kernel_loops = ROUNDS_OFFICE2010;
+                       kernel_accel = 32;
                        break;
-          case  9600:  gpu_loops = ROUNDS_OFFICE2013;
-                       gpu_accel = 8;
+          case  9600:  kernel_loops = ROUNDS_OFFICE2013;
+                       kernel_accel = 8;
                        break;
-          case 10000:  gpu_loops = ROUNDS_DJANGOPBKDF2;
-                       gpu_accel = 8;
+          case 10000:  kernel_loops = ROUNDS_DJANGOPBKDF2;
+                       kernel_accel = 8;
                        break;
-          case 10300:  gpu_loops = ROUNDS_SAPH_SHA1;
-                       gpu_accel = 16;
+          case 10300:  kernel_loops = ROUNDS_SAPH_SHA1;
+                       kernel_accel = 16;
                        break;
-          case 10500:  gpu_loops = ROUNDS_PDF14;
-                       gpu_accel = 256;
+          case 10500:  kernel_loops = ROUNDS_PDF14;
+                       kernel_accel = 256;
                        break;
-          case 10700:  gpu_loops = ROUNDS_PDF17L8;
-                       gpu_accel = 8;
+          case 10700:  kernel_loops = ROUNDS_PDF17L8;
+                       kernel_accel = 8;
                        break;
-          case 10900:  gpu_loops = ROUNDS_PBKDF2_SHA256;
-                       gpu_accel = 8;
+          case 10900:  kernel_loops = ROUNDS_PBKDF2_SHA256;
+                       kernel_accel = 8;
                        break;
-          case 11300:  gpu_loops = ROUNDS_BITCOIN_WALLET;
-                       gpu_accel = 8;
+          case 11300:  kernel_loops = ROUNDS_BITCOIN_WALLET;
+                       kernel_accel = 8;
                        break;
-          case 11600:  gpu_loops = ROUNDS_SEVEN_ZIP;
-                       gpu_accel = 8;
+          case 11600:  kernel_loops = ROUNDS_SEVEN_ZIP;
+                       kernel_accel = 8;
                        break;
-          case 11900:  gpu_loops = ROUNDS_PBKDF2_MD5;
-                       gpu_accel = 8;
+          case 11900:  kernel_loops = ROUNDS_PBKDF2_MD5;
+                       kernel_accel = 8;
                        break;
-          case 12000:  gpu_loops = ROUNDS_PBKDF2_SHA1;
-                       gpu_accel = 8;
+          case 12000:  kernel_loops = ROUNDS_PBKDF2_SHA1;
+                       kernel_accel = 8;
                        break;
-          case 12100:  gpu_loops = ROUNDS_PBKDF2_SHA512;
-                       gpu_accel = 8;
+          case 12100:  kernel_loops = ROUNDS_PBKDF2_SHA512;
+                       kernel_accel = 8;
                        break;
-          case 12200:  gpu_loops = ROUNDS_ECRYPTFS;
-                       gpu_accel = 8;
+          case 12200:  kernel_loops = ROUNDS_ECRYPTFS;
+                       kernel_accel = 8;
                        break;
-          case 12300:  gpu_loops = ROUNDS_ORACLET;
-                       gpu_accel = 8;
+          case 12300:  kernel_loops = ROUNDS_ORACLET;
+                       kernel_accel = 8;
                        break;
-          case 12500:  gpu_loops = ROUNDS_RAR3;
-                       gpu_accel = 32;
+          case 12500:  kernel_loops = ROUNDS_RAR3;
+                       kernel_accel = 32;
                        break;
-          case 12700:  gpu_loops = ROUNDS_MYWALLET;
-                       gpu_accel = 512;
+          case 12700:  kernel_loops = ROUNDS_MYWALLET;
+                       kernel_accel = 512;
                        break;
-          case 12800:  gpu_loops = ROUNDS_MS_DRSR;
-                       gpu_accel = 512;
+          case 12800:  kernel_loops = ROUNDS_MS_DRSR;
+                       kernel_accel = 512;
                        break;
         }
 
@@ -11344,22 +11344,22 @@ int main (int argc, char **argv)
                        break;
         }
 
-        if (gpu_loops > 1024) gpu_loops = 1024;
-        if (gpu_accel >  256) gpu_accel =  256; // causes memory problems otherwise
+        if (kernel_loops > 1024) kernel_loops = 1024;
+        if (kernel_accel >  256) kernel_accel =  256; // causes memory problems otherwise
       }
 
       if ((opts_type & OPTS_TYPE_PT_BITSLICE) && (attack_mode == ATTACK_MODE_BF))
       {
-        gpu_loops = 1024;
+        kernel_loops = 1024;
       }
 
       if (hash_mode == 12500)
       {
-        gpu_loops = ROUNDS_RAR3 / 16;
+        kernel_loops = ROUNDS_RAR3 / 16;
       }
 
-      data.gpu_accel = gpu_accel;
-      data.gpu_loops = gpu_loops;
+      data.kernel_accel = kernel_accel;
+      data.kernel_loops = kernel_loops;
 
       hashes_cnt = 1;
     }
@@ -11966,7 +11966,7 @@ int main (int argc, char **argv)
     if (digests_cnt == 1)
       opti_type |= OPTI_TYPE_SINGLE_HASH;
 
-    if (attack_exec == ATTACK_EXEC_ON_GPU)
+    if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       opti_type |= OPTI_TYPE_NOT_ITERATED;
 
     if (attack_mode == ATTACK_MODE_BF)
@@ -12087,15 +12087,15 @@ int main (int argc, char **argv)
      * load rules
      */
 
-    uint *all_gpu_rules_cnt = NULL;
+    uint *all_kernel_rules_cnt = NULL;
 
-    gpu_rule_t **all_gpu_rules_buf = NULL;
+    kernel_rule_t **all_kernel_rules_buf = NULL;
 
     if (rp_files_cnt)
     {
-      all_gpu_rules_cnt = (uint *) mycalloc (rp_files_cnt, sizeof (uint));
+      all_kernel_rules_cnt = (uint *) mycalloc (rp_files_cnt, sizeof (uint));
 
-      all_gpu_rules_buf = (gpu_rule_t **) mycalloc (rp_files_cnt, sizeof (gpu_rule_t *));
+      all_kernel_rules_buf = (kernel_rule_t **) mycalloc (rp_files_cnt, sizeof (kernel_rule_t *));
     }
 
     char rule_buf[BUFSIZ];
@@ -12104,11 +12104,11 @@ int main (int argc, char **argv)
 
     for (uint i = 0; i < rp_files_cnt; i++)
     {
-      uint gpu_rules_avail = 0;
+      uint kernel_rules_avail = 0;
 
-      uint gpu_rules_cnt = 0;
+      uint kernel_rules_cnt = 0;
 
-      gpu_rule_t *gpu_rules_buf = NULL;
+      kernel_rule_t *kernel_rules_buf = NULL;
 
       char *rp_file = rp_files[i];
 
@@ -12138,11 +12138,11 @@ int main (int argc, char **argv)
 
         if (rule_buf[0] == '#') continue;
 
-        if (gpu_rules_avail == gpu_rules_cnt)
+        if (kernel_rules_avail == kernel_rules_cnt)
         {
-          gpu_rules_buf = (gpu_rule_t *) myrealloc (gpu_rules_buf, gpu_rules_avail * sizeof (gpu_rule_t), INCR_RULES * sizeof (gpu_rule_t));
+          kernel_rules_buf = (kernel_rule_t *) myrealloc (kernel_rules_buf, kernel_rules_avail * sizeof (kernel_rule_t), INCR_RULES * sizeof (kernel_rule_t));
 
-          gpu_rules_avail += INCR_RULES;
+          kernel_rules_avail += INCR_RULES;
         }
 
         memset (in,  0, BLOCK_SIZE);
@@ -12157,75 +12157,75 @@ int main (int argc, char **argv)
           continue;
         }
 
-        if (cpu_rule_to_gpu_rule (rule_buf, rule_len, &gpu_rules_buf[gpu_rules_cnt]) == -1)
+        if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1)
         {
-          log_info ("WARNING: Cannot convert rule for use on GPU in file %s in line %u: %s", rp_file, rule_line, rule_buf);
+          log_info ("WARNING: Cannot convert rule for use on device in file %s in line %u: %s", rp_file, rule_line, rule_buf);
 
-          memset (&gpu_rules_buf[gpu_rules_cnt], 0, sizeof (gpu_rule_t)); // needs to be cleared otherwise we could have some remaining data
+          memset (&kernel_rules_buf[kernel_rules_cnt], 0, sizeof (kernel_rule_t)); // needs to be cleared otherwise we could have some remaining data
 
           continue;
         }
 
         /* its so slow
-        if (rulefind (&gpu_rules_buf[gpu_rules_cnt], gpu_rules_buf, gpu_rules_cnt, sizeof (gpu_rule_t), sort_by_gpu_rule))
+        if (rulefind (&kernel_rules_buf[kernel_rules_cnt], kernel_rules_buf, kernel_rules_cnt, sizeof (kernel_rule_t), sort_by_kernel_rule))
         {
-          log_info ("Duplicate rule for use on GPU in file %s in line %u: %s", rp_file, rule_line, rule_buf);
+          log_info ("Duplicate rule for use on device in file %s in line %u: %s", rp_file, rule_line, rule_buf);
 
           continue;
         }
         */
 
-        gpu_rules_cnt++;
+        kernel_rules_cnt++;
       }
 
       fclose (fp);
 
-      all_gpu_rules_cnt[i] = gpu_rules_cnt;
+      all_kernel_rules_cnt[i] = kernel_rules_cnt;
 
-      all_gpu_rules_buf[i] = gpu_rules_buf;
+      all_kernel_rules_buf[i] = kernel_rules_buf;
     }
 
     /**
      * merge rules or automatic rule generator
      */
 
-    uint gpu_rules_cnt = 0;
+    uint kernel_rules_cnt = 0;
 
-    gpu_rule_t *gpu_rules_buf = NULL;
+    kernel_rule_t *kernel_rules_buf = NULL;
 
     if (attack_mode == ATTACK_MODE_STRAIGHT)
     {
       if (rp_files_cnt)
       {
-        gpu_rules_cnt = 1;
+        kernel_rules_cnt = 1;
 
         uint *repeats = (uint *) mycalloc (rp_files_cnt + 1, sizeof (uint));
 
-        repeats[0] = gpu_rules_cnt;
+        repeats[0] = kernel_rules_cnt;
 
         for (uint i = 0; i < rp_files_cnt; i++)
         {
-          gpu_rules_cnt *= all_gpu_rules_cnt[i];
+          kernel_rules_cnt *= all_kernel_rules_cnt[i];
 
-          repeats[i + 1] = gpu_rules_cnt;
+          repeats[i + 1] = kernel_rules_cnt;
         }
 
-        gpu_rules_buf = (gpu_rule_t *) mycalloc (gpu_rules_cnt, sizeof (gpu_rule_t));
+        kernel_rules_buf = (kernel_rule_t *) mycalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
 
-        memset (gpu_rules_buf, 0, gpu_rules_cnt * sizeof (gpu_rule_t));
+        memset (kernel_rules_buf, 0, kernel_rules_cnt * sizeof (kernel_rule_t));
 
-        for (uint i = 0; i < gpu_rules_cnt; i++)
+        for (uint i = 0; i < kernel_rules_cnt; i++)
         {
           uint out_pos = 0;
 
-          gpu_rule_t *out = &gpu_rules_buf[i];
+          kernel_rule_t *out = &kernel_rules_buf[i];
 
           for (uint j = 0; j < rp_files_cnt; j++)
           {
-            uint in_off = (i / repeats[j]) % all_gpu_rules_cnt[j];
+            uint in_off = (i / repeats[j]) % all_kernel_rules_cnt[j];
             uint in_pos;
 
-            gpu_rule_t *in = &all_gpu_rules_buf[j][in_off];
+            kernel_rule_t *in = &all_kernel_rules_buf[j][in_off];
 
             for (in_pos = 0; in->cmds[in_pos]; in_pos++, out_pos++)
             {
@@ -12245,24 +12245,24 @@ int main (int argc, char **argv)
       }
       else if (rp_gen)
       {
-        uint gpu_rules_avail = 0;
+        uint kernel_rules_avail = 0;
 
-        while (gpu_rules_cnt < rp_gen)
+        while (kernel_rules_cnt < rp_gen)
         {
-          if (gpu_rules_avail == gpu_rules_cnt)
+          if (kernel_rules_avail == kernel_rules_cnt)
           {
-            gpu_rules_buf = (gpu_rule_t *) myrealloc (gpu_rules_buf, gpu_rules_avail * sizeof (gpu_rule_t), INCR_RULES * sizeof (gpu_rule_t));
+            kernel_rules_buf = (kernel_rule_t *) myrealloc (kernel_rules_buf, kernel_rules_avail * sizeof (kernel_rule_t), INCR_RULES * sizeof (kernel_rule_t));
 
-            gpu_rules_avail += INCR_RULES;
+            kernel_rules_avail += INCR_RULES;
           }
 
           memset (rule_buf, 0, BLOCK_SIZE);
 
           rule_len = (int) generate_random_rule (rule_buf, rp_gen_func_min, rp_gen_func_max);
 
-          if (cpu_rule_to_gpu_rule (rule_buf, rule_len, &gpu_rules_buf[gpu_rules_cnt]) == -1) continue;
+          if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1) continue;
 
-          gpu_rules_cnt++;
+          kernel_rules_cnt++;
         }
       }
     }
@@ -12271,17 +12271,17 @@ int main (int argc, char **argv)
      * generate NOP rules
      */
 
-    if (gpu_rules_cnt == 0)
+    if (kernel_rules_cnt == 0)
     {
-      gpu_rules_buf = (gpu_rule_t *) mymalloc (sizeof (gpu_rule_t));
+      kernel_rules_buf = (kernel_rule_t *) mymalloc (sizeof (kernel_rule_t));
 
-      gpu_rules_buf[gpu_rules_cnt].cmds[0] = RULE_OP_MANGLE_NOOP;
+      kernel_rules_buf[kernel_rules_cnt].cmds[0] = RULE_OP_MANGLE_NOOP;
 
-      gpu_rules_cnt++;
+      kernel_rules_cnt++;
     }
 
-    data.gpu_rules_cnt = gpu_rules_cnt;
-    data.gpu_rules_buf = gpu_rules_buf;
+    data.kernel_rules_cnt = kernel_rules_cnt;
+    data.kernel_rules_buf = kernel_rules_buf;
 
     /**
      * platform
@@ -12304,11 +12304,11 @@ int main (int argc, char **argv)
 
     if (CL_platforms_cnt > 1)
     {
-      if (gpu_platform == NULL)
+      if (opencl_platform == NULL)
       {
         log_error ("ERROR: Too many OpenCL compatible platforms found");
 
-        log_info ("Please select a single platform using the --gpu-platform option");
+        log_info ("Please select a single platform using the --opencl-platform option");
         log_info ("");
         log_info ("Available OpenCL platforms:");
         log_info ("");
@@ -12330,7 +12330,7 @@ int main (int argc, char **argv)
       }
       else
       {
-        CL_platform_sel = atoi (gpu_platform);
+        CL_platform_sel = atoi (opencl_platform);
 
         if (CL_platform_sel > CL_platforms_cnt)
         {
@@ -12573,11 +12573,11 @@ int main (int argc, char **argv)
 
     for (uint device_all_id = 0; device_all_id < devices_all_cnt; device_all_id++)
     {
-      if (gpu_devicemask)
+      if (opencl_devicemask)
       {
         uint device_all_id_mask = 1 << device_all_id;
 
-        if ((device_all_id_mask & gpu_devicemask) != device_all_id_mask)
+        if ((device_all_id_mask & opencl_devicemask) != device_all_id_mask)
         {
           if (quiet == 0 && algorithm_pos == 0) log_info ("Device #%d: skipped by user", device_all_id_mask + 1);
 
@@ -12662,7 +12662,7 @@ int main (int argc, char **argv)
 
       if (attack_mode == ATTACK_MODE_STRAIGHT)
       {
-        log_info ("Rules: %u", gpu_rules_cnt);
+        log_info ("Rules: %u", kernel_rules_cnt);
       }
 
       if (opti_type)
@@ -12732,13 +12732,13 @@ int main (int argc, char **argv)
 
       hc_clGetDeviceInfo (device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof (max_compute_units), &max_compute_units, NULL);
 
-      device_param->gpu_processors = max_compute_units;
+      device_param->device_processors = max_compute_units;
 
       cl_ulong max_mem_alloc_size = 0;
 
       hc_clGetDeviceInfo (device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (max_mem_alloc_size), &max_mem_alloc_size, NULL);
 
-      device_param->gpu_maxmem_alloc = max_mem_alloc_size;
+      device_param->device_maxmem_alloc = max_mem_alloc_size;
 
       char tmp[INFOSZ], t1[64];
 
@@ -12783,22 +12783,22 @@ int main (int argc, char **argv)
 
       if (device_type == CL_DEVICE_TYPE_CPU)
       {
-        cl_uint gpu_processor_cores = 1;
+        cl_uint device_processor_cores = 1;
 
-        device_param->gpu_processor_cores = gpu_processor_cores;
+        device_param->device_processor_cores = device_processor_cores;
       }
 
       if (device_type == CL_DEVICE_TYPE_GPU)
       {
         if (vendor_id == VENDOR_ID_AMD)
         {
-          cl_uint gpu_processor_cores = 0;
+          cl_uint device_processor_cores = 0;
 
           #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
 
-          hc_clGetDeviceInfo (device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (gpu_processor_cores), &gpu_processor_cores, NULL);
+          hc_clGetDeviceInfo (device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (device_processor_cores), &device_processor_cores, NULL);
 
-          device_param->gpu_processor_cores = gpu_processor_cores;
+          device_param->device_processor_cores = device_processor_cores;
         }
 
         if (vendor_id == VENDOR_ID_NV)
@@ -12811,13 +12811,13 @@ int main (int argc, char **argv)
 
           device_param->kernel_exec_timeout = kernel_exec_timeout;
 
-          cl_uint gpu_processor_cores = 0;
+          cl_uint device_processor_cores = 0;
 
           #define CL_DEVICE_WARP_SIZE_NV                      0x4003
 
-          hc_clGetDeviceInfo (device, CL_DEVICE_WARP_SIZE_NV, sizeof (gpu_processor_cores), &gpu_processor_cores, NULL);
+          hc_clGetDeviceInfo (device, CL_DEVICE_WARP_SIZE_NV, sizeof (device_processor_cores), &device_processor_cores, NULL);
 
-          device_param->gpu_processor_cores = gpu_processor_cores;
+          device_param->device_processor_cores = device_processor_cores;
 
           cl_uint sm_minor = 0;
           cl_uint sm_major = 0;
@@ -12873,7 +12873,7 @@ int main (int argc, char **argv)
           if (catalyst_broken == 1)
           {
             log_error ("");
-            log_error ("ATTENTION! The installed GPU driver in your system is known to be broken!");
+            log_error ("ATTENTION! The installed catalyst driver in your system is known to be broken!");
             log_error ("It will pass over cracked hashes and does not report them as cracked");
             log_error ("You are STRONGLY encouraged not to use it");
             log_error ("You can use --force to override this but do not post error reports if you do so");
@@ -12884,9 +12884,9 @@ int main (int argc, char **argv)
           if (catalyst_warn == 1)
           {
             log_error ("");
-            log_error ("ATTENTION! Unsupported or incorrect installed GPU driver detected!");
-            log_error ("You are STRONGLY encouraged to use the official supported GPU driver for good reasons");
-            log_error ("See oclHashcat's homepage for official supported GPU drivers");
+            log_error ("ATTENTION! Unsupported or incorrect installed catalyst driver detected!");
+            log_error ("You are STRONGLY encouraged to use the official supported catalyst driver for good reasons");
+            log_error ("See oclHashcat's homepage for official supported catalyst drivers");
             #ifdef _WIN
             log_error ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
             #endif
@@ -12955,7 +12955,7 @@ int main (int argc, char **argv)
       }
     }
 
-    uint gpu_blocks_all = 0;
+    uint kernel_blocks_all = 0;
 
     for (uint device_id = 0; device_id < devices_cnt; device_id++)
     {
@@ -12971,9 +12971,9 @@ int main (int argc, char **argv)
 
       char *device_name_chksum = device_param->device_name_chksum;
 
-      uint gpu_processors = device_param->gpu_processors;
+      uint device_processors = device_param->device_processors;
 
-      uint gpu_processor_cores = device_param->gpu_processor_cores;
+      uint device_processor_cores = device_param->device_processor_cores;
 
       /**
        * create context for each device
@@ -12994,86 +12994,86 @@ int main (int argc, char **argv)
        * create input buffers on device
        */
 
-      uint gpu_threads = GPU_THREADS;
+      uint kernel_threads = KERNEL_THREADS;
 
       // bcrypt
-      if (hash_mode == 3200) gpu_threads = 8;
-      if (hash_mode == 9000) gpu_threads = 8;
+      if (hash_mode == 3200) kernel_threads = 8;
+      if (hash_mode == 9000) kernel_threads = 8;
 
-      uint gpu_power  = gpu_processors * gpu_threads * gpu_accel;
-      uint gpu_blocks = gpu_power;
+      uint kernel_power  = device_processors * kernel_threads * kernel_accel;
+      uint kernel_blocks = kernel_power;
 
-      device_param->gpu_threads      = gpu_threads;
-      device_param->gpu_power_user   = gpu_power;
-      device_param->gpu_blocks_user  = gpu_blocks;
+      device_param->kernel_threads      = kernel_threads;
+      device_param->kernel_power_user   = kernel_power;
+      device_param->kernel_blocks_user  = kernel_blocks;
 
-      gpu_blocks_all += gpu_blocks;
+      kernel_blocks_all += kernel_blocks;
 
-      uint size_pws = gpu_power * sizeof (pw_t);
+      uint size_pws = kernel_power * sizeof (pw_t);
 
       uint size_tmps = 4;
 
       switch (hash_mode)
       {
-        case   400: size_tmps = gpu_blocks * sizeof (phpass_tmp_t);        break;
-        case   500: size_tmps = gpu_blocks * sizeof (md5crypt_tmp_t);      break;
-        case   501: size_tmps = gpu_blocks * sizeof (md5crypt_tmp_t);      break;
-        case  1600: size_tmps = gpu_blocks * sizeof (md5crypt_tmp_t);      break;
-        case  1800: size_tmps = gpu_blocks * sizeof (sha512crypt_tmp_t);   break;
-        case  2100: size_tmps = gpu_blocks * sizeof (dcc2_tmp_t);          break;
-        case  2500: size_tmps = gpu_blocks * sizeof (wpa_tmp_t);           break;
-        case  3200: size_tmps = gpu_blocks * sizeof (bcrypt_tmp_t);        break;
-        case  5200: size_tmps = gpu_blocks * sizeof (pwsafe3_tmp_t);       break;
-        case  5800: size_tmps = gpu_blocks * sizeof (androidpin_tmp_t);    break;
+        case   400: size_tmps = kernel_blocks * sizeof (phpass_tmp_t);        break;
+        case   500: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
+        case   501: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
+        case  1600: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
+        case  1800: size_tmps = kernel_blocks * sizeof (sha512crypt_tmp_t);   break;
+        case  2100: size_tmps = kernel_blocks * sizeof (dcc2_tmp_t);          break;
+        case  2500: size_tmps = kernel_blocks * sizeof (wpa_tmp_t);           break;
+        case  3200: size_tmps = kernel_blocks * sizeof (bcrypt_tmp_t);        break;
+        case  5200: size_tmps = kernel_blocks * sizeof (pwsafe3_tmp_t);       break;
+        case  5800: size_tmps = kernel_blocks * sizeof (androidpin_tmp_t);    break;
         case  6211:
         case  6212:
-        case  6213: size_tmps = gpu_blocks * sizeof (tc_tmp_t);            break;
+        case  6213: size_tmps = kernel_blocks * sizeof (tc_tmp_t);            break;
         case  6221:
         case  6222:
-        case  6223: size_tmps = gpu_blocks * sizeof (tc64_tmp_t);          break;
+        case  6223: size_tmps = kernel_blocks * sizeof (tc64_tmp_t);          break;
         case  6231:
         case  6232:
-        case  6233: size_tmps = gpu_blocks * sizeof (tc_tmp_t);            break;
+        case  6233: size_tmps = kernel_blocks * sizeof (tc_tmp_t);            break;
         case  6241:
         case  6242:
-        case  6243: size_tmps = gpu_blocks * sizeof (tc_tmp_t);            break;
-        case  6300: size_tmps = gpu_blocks * sizeof (md5crypt_tmp_t);      break;
-        case  6400: size_tmps = gpu_blocks * sizeof (sha256aix_tmp_t);     break;
-        case  6500: size_tmps = gpu_blocks * sizeof (sha512aix_tmp_t);     break;
-        case  6600: size_tmps = gpu_blocks * sizeof (agilekey_tmp_t);      break;
-        case  6700: size_tmps = gpu_blocks * sizeof (sha1aix_tmp_t);       break;
-        case  6800: size_tmps = gpu_blocks * sizeof (lastpass_tmp_t);      break;
-        case  7100: size_tmps = gpu_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-        case  7200: size_tmps = gpu_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-        case  7400: size_tmps = gpu_blocks * sizeof (sha256crypt_tmp_t);   break;
-        case  7900: size_tmps = gpu_blocks * sizeof (drupal7_tmp_t);       break;
-        case  8200: size_tmps = gpu_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-        case  8800: size_tmps = gpu_blocks * sizeof (androidfde_tmp_t);    break;
-        case  8900: size_tmps = gpu_blocks * sizeof (scrypt_tmp_t);        break;
-        case  9000: size_tmps = gpu_blocks * sizeof (pwsafe2_tmp_t);       break;
-        case  9100: size_tmps = gpu_blocks * sizeof (lotus8_tmp_t);        break;
-        case  9200: size_tmps = gpu_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-        case  9300: size_tmps = gpu_blocks * sizeof (scrypt_tmp_t);        break;
-        case  9400: size_tmps = gpu_blocks * sizeof (office2007_tmp_t);    break;
-        case  9500: size_tmps = gpu_blocks * sizeof (office2010_tmp_t);    break;
-        case  9600: size_tmps = gpu_blocks * sizeof (office2013_tmp_t);    break;
-        case 10000: size_tmps = gpu_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-        case 10200: size_tmps = gpu_blocks * sizeof (cram_md5_t);          break;
-        case 10300: size_tmps = gpu_blocks * sizeof (saph_sha1_tmp_t);     break;
-        case 10500: size_tmps = gpu_blocks * sizeof (pdf14_tmp_t);         break;
-        case 10700: size_tmps = gpu_blocks * sizeof (pdf17l8_tmp_t);       break;
-        case 10900: size_tmps = gpu_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-        case 11300: size_tmps = gpu_blocks * sizeof (bitcoin_wallet_tmp_t); break;
-        case 11600: size_tmps = gpu_blocks * sizeof (seven_zip_tmp_t);     break;
-        case 11900: size_tmps = gpu_blocks * sizeof (pbkdf2_md5_tmp_t);    break;
-        case 12000: size_tmps = gpu_blocks * sizeof (pbkdf2_sha1_tmp_t);   break;
-        case 12100: size_tmps = gpu_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-        case 12200: size_tmps = gpu_blocks * sizeof (ecryptfs_tmp_t);      break;
-        case 12300: size_tmps = gpu_blocks * sizeof (oraclet_tmp_t);       break;
-        case 12400: size_tmps = gpu_blocks * sizeof (bsdicrypt_tmp_t);     break;
-        case 12500: size_tmps = gpu_blocks * sizeof (rar3_tmp_t);          break;
-        case 12700: size_tmps = gpu_blocks * sizeof (mywallet_tmp_t);      break;
-        case 12800: size_tmps = gpu_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
+        case  6243: size_tmps = kernel_blocks * sizeof (tc_tmp_t);            break;
+        case  6300: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
+        case  6400: size_tmps = kernel_blocks * sizeof (sha256aix_tmp_t);     break;
+        case  6500: size_tmps = kernel_blocks * sizeof (sha512aix_tmp_t);     break;
+        case  6600: size_tmps = kernel_blocks * sizeof (agilekey_tmp_t);      break;
+        case  6700: size_tmps = kernel_blocks * sizeof (sha1aix_tmp_t);       break;
+        case  6800: size_tmps = kernel_blocks * sizeof (lastpass_tmp_t);      break;
+        case  7100: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
+        case  7200: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
+        case  7400: size_tmps = kernel_blocks * sizeof (sha256crypt_tmp_t);   break;
+        case  7900: size_tmps = kernel_blocks * sizeof (drupal7_tmp_t);       break;
+        case  8200: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
+        case  8800: size_tmps = kernel_blocks * sizeof (androidfde_tmp_t);    break;
+        case  8900: size_tmps = kernel_blocks * sizeof (scrypt_tmp_t);        break;
+        case  9000: size_tmps = kernel_blocks * sizeof (pwsafe2_tmp_t);       break;
+        case  9100: size_tmps = kernel_blocks * sizeof (lotus8_tmp_t);        break;
+        case  9200: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
+        case  9300: size_tmps = kernel_blocks * sizeof (scrypt_tmp_t);        break;
+        case  9400: size_tmps = kernel_blocks * sizeof (office2007_tmp_t);    break;
+        case  9500: size_tmps = kernel_blocks * sizeof (office2010_tmp_t);    break;
+        case  9600: size_tmps = kernel_blocks * sizeof (office2013_tmp_t);    break;
+        case 10000: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
+        case 10200: size_tmps = kernel_blocks * sizeof (cram_md5_t);          break;
+        case 10300: size_tmps = kernel_blocks * sizeof (saph_sha1_tmp_t);     break;
+        case 10500: size_tmps = kernel_blocks * sizeof (pdf14_tmp_t);         break;
+        case 10700: size_tmps = kernel_blocks * sizeof (pdf17l8_tmp_t);       break;
+        case 10900: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
+        case 11300: size_tmps = kernel_blocks * sizeof (bitcoin_wallet_tmp_t); break;
+        case 11600: size_tmps = kernel_blocks * sizeof (seven_zip_tmp_t);     break;
+        case 11900: size_tmps = kernel_blocks * sizeof (pbkdf2_md5_tmp_t);    break;
+        case 12000: size_tmps = kernel_blocks * sizeof (pbkdf2_sha1_tmp_t);   break;
+        case 12100: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
+        case 12200: size_tmps = kernel_blocks * sizeof (ecryptfs_tmp_t);      break;
+        case 12300: size_tmps = kernel_blocks * sizeof (oraclet_tmp_t);       break;
+        case 12400: size_tmps = kernel_blocks * sizeof (bsdicrypt_tmp_t);     break;
+        case 12500: size_tmps = kernel_blocks * sizeof (rar3_tmp_t);          break;
+        case 12700: size_tmps = kernel_blocks * sizeof (mywallet_tmp_t);      break;
+        case 12800: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
       };
 
       uint size_hooks = 4;
@@ -13095,12 +13095,13 @@ int main (int argc, char **argv)
       device_param->size_root_css   = size_root_css;
       device_param->size_markov_css = size_markov_css;
 
-      uint size_results = GPU_THREADS * sizeof (uint);
+      uint size_results = KERNEL_THREADS * sizeof (uint);
 
       device_param->size_results  = size_results;
 
-      uint size_rules   = gpu_rules_cnt * sizeof (gpu_rule_t);
-      uint size_rules_c = GPU_RULES * sizeof (gpu_rule_t);
+      uint size_rules   = kernel_rules_cnt * sizeof (kernel_rule_t);
+      uint size_rules_c = KERNEL_RULES     * sizeof (kernel_rule_t);
+
       uint size_plains  = digests_cnt * sizeof (plain_t);
       uint size_salts   = salts_cnt * sizeof (salt_t);
       uint size_esalts  = salts_cnt * esalt_size;
@@ -13110,8 +13111,8 @@ int main (int argc, char **argv)
       device_param->size_shown    = size_shown;
       device_param->size_salts    = size_salts;
 
-      uint size_combs = GPU_COMBS * sizeof (comb_t);
-      uint size_bfs   = GPU_BFS   * sizeof (bf_t);
+      uint size_combs = KERNEL_COMBS * sizeof (comb_t);
+      uint size_bfs   = KERNEL_BFS   * sizeof (bf_t);
       uint size_tm    = 32        * sizeof (bs_word_t);
 
       uint64_t size_scryptV = 1;
@@ -13129,7 +13130,7 @@ int main (int argc, char **argv)
         {
           // in case the user did not specify the tmto manually
           // use some values known to run best (tested on 290x for AMD and 980ti for NV)
-          // but set the lower end only in case the user has a gpu with too less memory
+          // but set the lower end only in case the user has a device with too less memory
 
           if (hash_mode == 8900)
           {
@@ -13178,11 +13179,11 @@ int main (int argc, char **argv)
 
           size_scryptV /= 1 << tmto;
 
-          size_scryptV *= gpu_processors * gpu_processor_cores * shader_per_mp;
+          size_scryptV *= device_processors * device_processor_cores * shader_per_mp;
 
-          if (size_scryptV > device_param->gpu_maxmem_alloc)
+          if (size_scryptV > device_param->device_maxmem_alloc)
           {
-            if (quiet == 0) log_info ("WARNING: not enough GPU memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+            if (quiet == 0) log_info ("WARNING: not enough device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
 
             continue;
           }
@@ -13190,7 +13191,7 @@ int main (int argc, char **argv)
           for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
           {
             data.salts_buf[salts_pos].scrypt_tmto = tmto;
-            data.salts_buf[salts_pos].scrypt_phy  = gpu_processors * gpu_processor_cores * shader_per_mp;
+            data.salts_buf[salts_pos].scrypt_phy  = device_processors * device_processor_cores * shader_per_mp;
           }
 
           break;
@@ -13198,7 +13199,7 @@ int main (int argc, char **argv)
 
         if (data.salts_buf[0].scrypt_phy == 0)
         {
-          log_error ("ERROR: can't allocate enough GPU memory");
+          log_error ("ERROR: can't allocate enough device memory");
 
           return -1;
         }
@@ -13460,7 +13461,7 @@ int main (int argc, char **argv)
        * amplifier kernel
        */
 
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
+      if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       {
 
       }
@@ -13620,7 +13621,7 @@ int main (int argc, char **argv)
         device_param->d_rules   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_rules,   NULL);
         device_param->d_rules_c = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_rules_c, NULL);
 
-        hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_rules, CL_TRUE, 0, size_rules, gpu_rules_buf, 0, NULL, NULL);
+        hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_rules, CL_TRUE, 0, size_rules, kernel_rules_buf, 0, NULL, NULL);
 
         run_kernel_bzero (device_param, device_param->d_rules_c,     size_rules_c);
       }
@@ -13684,7 +13685,7 @@ int main (int argc, char **argv)
 
       device_param->pw_caches = pw_caches;
 
-      comb_t *combs_buf = (comb_t *) mycalloc (GPU_COMBS, sizeof (comb_t));
+      comb_t *combs_buf = (comb_t *) mycalloc (KERNEL_COMBS, sizeof (comb_t));
 
       device_param->combs_buf = combs_buf;
 
@@ -13705,13 +13706,13 @@ int main (int argc, char **argv)
       device_param->kernel_params_buf32[24] = 0; // salt_pos
       device_param->kernel_params_buf32[25] = 0; // loop_pos
       device_param->kernel_params_buf32[26] = 0; // loop_cnt
-      device_param->kernel_params_buf32[27] = 0; // gpu_rules_cnt
+      device_param->kernel_params_buf32[27] = 0; // kernel_rules_cnt
       device_param->kernel_params_buf32[28] = 0; // digests_cnt
       device_param->kernel_params_buf32[29] = 0; // digests_offset
       device_param->kernel_params_buf32[30] = 0; // combs_mode
       device_param->kernel_params_buf32[31] = 0; // gid_max
 
-      device_param->kernel_params[ 0] = (attack_exec == ATTACK_EXEC_ON_GPU)
+      device_param->kernel_params[ 0] = (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
                                       ? &device_param->d_pws_buf
                                       : &device_param->d_pws_amp_buf;
       device_param->kernel_params[ 1] = &device_param->d_rules_c;
@@ -13823,7 +13824,7 @@ int main (int argc, char **argv)
 
       memset (kernel_name, 0, sizeof (kernel_name));
 
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
+      if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       {
         if (opti_type & OPTI_TYPE_SINGLE_HASH)
         {
@@ -13939,7 +13940,7 @@ int main (int argc, char **argv)
         device_param->kernel_mp = hc_clCreateKernel (device_param->program_mp, "C_markov");
       }
 
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
+      if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       {
         // nothing to do
       }
@@ -13948,7 +13949,7 @@ int main (int argc, char **argv)
         device_param->kernel_amp = hc_clCreateKernel (device_param->program_amp, "amp");
       }
 
-      if (attack_exec == ATTACK_EXEC_ON_GPU)
+      if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       {
         // nothing to do
       }
@@ -14141,7 +14142,7 @@ int main (int argc, char **argv)
       }
     }
 
-    data.gpu_blocks_all = gpu_blocks_all;
+    data.kernel_blocks_all = kernel_blocks_all;
 
     if (data.quiet == 0) log_info ("");
 
@@ -14158,7 +14159,7 @@ int main (int argc, char **argv)
       char *hash_type = strhashtype (data.hash_mode); // not a bug
 
       log_info ("Hashtype: %s", hash_type);
-      log_info ("Workload: %u loops, %u accel", gpu_loops, gpu_accel);
+      log_info ("Workload: %u loops, %u accel", kernel_loops, kernel_accel);
       log_info ("");
     }
 
@@ -14980,7 +14981,7 @@ int main (int argc, char **argv)
 
       for (uint salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
       {
-        weak_hash_check (&data.devices_param[0], salt_pos, gpu_loops);
+        weak_hash_check (&data.devices_param[0], salt_pos, kernel_loops);
       }
     }
 
@@ -15359,8 +15360,8 @@ int main (int argc, char **argv)
           memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (float));
           memset (device_param->speed_rec, 0, SPEED_CACHE * sizeof (hc_timer_t));
 
-          device_param->gpu_power  = device_param->gpu_power_user;
-          device_param->gpu_blocks = device_param->gpu_blocks_user;
+          device_param->kernel_power  = device_param->kernel_power_user;
+          device_param->kernel_blocks = device_param->kernel_blocks_user;
 
           device_param->outerloop_pos  = 0;
           device_param->outerloop_left = 0;
@@ -15380,7 +15381,7 @@ int main (int argc, char **argv)
           device_param->words_done = 0;
         }
 
-        data.gpu_blocks_div = 0;
+        data.kernel_blocks_div = 0;
 
         // figure out some workload
 
@@ -15657,7 +15658,7 @@ int main (int argc, char **argv)
           uint css_cnt_l = css_cnt;
           uint css_cnt_r;
 
-          if (attack_exec == ATTACK_EXEC_ON_GPU)
+          if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
           {
             if (save_css_cnt < 6)
             {
@@ -15762,9 +15763,9 @@ int main (int argc, char **argv)
 
         if (data.attack_kern == ATTACK_KERN_STRAIGHT)
         {
-          if (data.gpu_rules_cnt)
+          if (data.kernel_rules_cnt)
           {
-            words_base /= data.gpu_rules_cnt;
+            words_base /= data.kernel_rules_cnt;
           }
         }
         else if (data.attack_kern == ATTACK_KERN_COMBI)
@@ -15804,7 +15805,7 @@ int main (int argc, char **argv)
           {
             for (uint i = 0; i < data.salts_cnt; i++)
             {
-              data.words_progress_restored[i] = data.words_cur * data.gpu_rules_cnt;
+              data.words_progress_restored[i] = data.words_cur * data.kernel_rules_cnt;
             }
           }
           else if (data.attack_kern == ATTACK_KERN_COMBI)
@@ -15829,14 +15830,14 @@ int main (int argc, char **argv)
 
         if ((wordlist_mode == WL_MODE_FILE) || (wordlist_mode == WL_MODE_MASK))
         {
-          if (data.words_base < gpu_blocks_all)
+          if (data.words_base < kernel_blocks_all)
           {
             if (quiet == 0)
             {
               log_info ("");
               log_info ("ATTENTION!");
               log_info ("  The wordlist or mask you are using is too small.");
-              log_info ("  Therefore, oclHashcat is unable to utilize the full parallelization power of your GPU(s).");
+              log_info ("  Therefore, oclHashcat is unable to utilize the full parallelization power of your device(s).");
               log_info ("  The cracking speed will drop.");
               log_info ("  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
               log_info ("");
@@ -16169,6 +16170,8 @@ int main (int argc, char **argv)
 
       local_free (device_param->device_name);
 
+      local_free (device_param->device_name_chksum);
+
       local_free (device_param->device_version);
 
       local_free (device_param->driver_version);
@@ -16356,8 +16359,8 @@ int main (int argc, char **argv)
 
     local_free (pot);
 
-    local_free (all_gpu_rules_cnt);
-    local_free (all_gpu_rules_buf);
+    local_free (all_kernel_rules_cnt);
+    local_free (all_kernel_rules_buf);
 
     local_free (wl_data->buf);
     local_free (wl_data);
@@ -16377,7 +16380,7 @@ int main (int argc, char **argv)
 
     global_free (devices_param);
 
-    global_free (gpu_rules_buf);
+    global_free (kernel_rules_buf);
 
     global_free (root_css_buf);
     global_free (markov_css_buf);

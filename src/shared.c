@@ -13,8 +13,8 @@
  * tuning tools
  */
 
-#define GET_ACCEL(x) GPU_ACCEL_AMD_ ## x
-#define GET_LOOPS(x) GPU_LOOPS_AMD_ ## x
+#define GET_ACCEL(x) KERNEL_ACCEL_ ## x
+#define GET_LOOPS(x) KERNEL_LOOPS_ ## x
 
 /**
  * bit rotate
@@ -4432,12 +4432,12 @@ int sort_by_cpu_rule (const void *p1, const void *p2)
   return memcmp (r1, r2, sizeof (cpu_rule_t));
 }
 
-int sort_by_gpu_rule (const void *p1, const void *p2)
+int sort_by_kernel_rule (const void *p1, const void *p2)
 {
-  const gpu_rule_t *r1 = (const gpu_rule_t *) p1;
-  const gpu_rule_t *r2 = (const gpu_rule_t *) p2;
+  const kernel_rule_t *r1 = (const kernel_rule_t *) p1;
+  const kernel_rule_t *r2 = (const kernel_rule_t *) p2;
 
-  return memcmp (r1, r2, sizeof (gpu_rule_t));
+  return memcmp (r1, r2, sizeof (kernel_rule_t));
 }
 
 int sort_by_stringptr (const void *p1, const void *p2)
@@ -5083,35 +5083,35 @@ void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int inpu
   if (weak_hash_found == 1) myfree (pot_right_ptr);
 }
 
-uint devices_to_devicemask (char *gpu_devices)
+uint devices_to_devicemask (char *opencl_devices)
 {
-  uint gpu_devicemask = 0;
+  uint opencl_devicemask = 0;
 
-  if (gpu_devices)
+  if (opencl_devices)
   {
-    char *devices = strdup (gpu_devices);
+    char *devices = strdup (opencl_devices);
 
     char *next = strtok (devices, ",");
 
     do
     {
-      uint gpu_id = atoi (next);
+      uint device_id = atoi (next);
 
-      if (gpu_id < 1 || gpu_id > 8)
+      if (device_id < 1 || device_id > 8)
       {
-        log_error ("ERROR: invalid gpu_id %u specified", gpu_id);
+        log_error ("ERROR: invalid device_id %u specified", device_id);
 
         exit (-1);
       }
 
-      gpu_devicemask |= 1 << (gpu_id - 1);
+      opencl_devicemask |= 1 << (device_id - 1);
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
     free (devices);
   }
 
-  return gpu_devicemask;
+  return opencl_devicemask;
 }
 
 uint get_random_num (uint min, uint max)
@@ -8725,7 +8725,7 @@ uint64_t get_lowest_words_done ()
     if (words_done < words_cur) words_cur = words_done;
   }
 
-  // It's possible that a GPU's workload isn't finished right after a restore-case.
+  // It's possible that a device's workload isn't finished right after a restore-case.
   // In that case, this function would return 0 and overwrite the real restore point
   // There's also data.words_cur which is set to rd->words_cur but it changes while
   // the attack is running therefore we should stick to rd->words_cur.
@@ -8816,7 +8816,7 @@ void check_checkpoint ()
  * adjustments
  */
 
-uint set_gpu_accel (uint hash_mode)
+uint set_kernel_accel (uint hash_mode)
 {
   switch (hash_mode)
   {
@@ -9001,7 +9001,7 @@ uint set_gpu_accel (uint hash_mode)
   return 0;
 }
 
-uint set_gpu_loops (uint hash_mode)
+uint set_kernel_loops (uint hash_mode)
 {
   switch (hash_mode)
   {
@@ -18850,14 +18850,14 @@ char conv_itoc (char c)
 }
 
 /**
- * GPU rules
+ * device rules
  */
 
 #define INCR_POS           if (++rule_pos == rule_len) return (-1)
 #define SET_NAME(rule,val) (rule)->cmds[rule_cnt]  = ((val) & 0xff) <<  0
 #define SET_P0(rule,val)   INCR_POS; (rule)->cmds[rule_cnt] |= ((val) & 0xff) <<  8
 #define SET_P1(rule,val)   INCR_POS; (rule)->cmds[rule_cnt] |= ((val) & 0xff) << 16
-#define MAX_GPU_RULES      255
+#define MAX_KERNEL_RULES   255
 #define GET_NAME(rule)     rule_cmd = (((rule)->cmds[rule_cnt] >>  0) & 0xff)
 #define GET_P0(rule)       INCR_POS; rule_buf[rule_pos] = (((rule)->cmds[rule_cnt] >>  8) & 0xff)
 #define GET_P1(rule)       INCR_POS; rule_buf[rule_pos] = (((rule)->cmds[rule_cnt] >> 16) & 0xff)
@@ -18867,12 +18867,12 @@ char conv_itoc (char c)
 #define GET_P0_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >>  8) & 0xff)
 #define GET_P1_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >> 16) & 0xff)
 
-int cpu_rule_to_gpu_rule (char rule_buf[BUFSIZ], uint rule_len, gpu_rule_t *rule)
+int cpu_rule_to_kernel_rule (char rule_buf[BUFSIZ], uint rule_len, kernel_rule_t *rule)
 {
   uint rule_pos;
   uint rule_cnt;
 
-  for (rule_pos = 0, rule_cnt = 0; rule_pos < rule_len && rule_cnt < MAX_GPU_RULES; rule_pos++, rule_cnt++)
+  for (rule_pos = 0, rule_cnt = 0; rule_pos < rule_len && rule_cnt < MAX_KERNEL_RULES; rule_pos++, rule_cnt++)
   {
     switch (rule_buf[rule_pos])
     {
@@ -19083,7 +19083,7 @@ int cpu_rule_to_gpu_rule (char rule_buf[BUFSIZ], uint rule_len, gpu_rule_t *rule
   return (0);
 }
 
-int gpu_rule_to_cpu_rule (char rule_buf[BUFSIZ], gpu_rule_t *rule)
+int kernel_rule_to_cpu_rule (char rule_buf[BUFSIZ], kernel_rule_t *rule)
 {
   uint rule_cnt;
   uint rule_pos;
@@ -19091,7 +19091,7 @@ int gpu_rule_to_cpu_rule (char rule_buf[BUFSIZ], gpu_rule_t *rule)
 
   char rule_cmd;
 
-  for (rule_cnt = 0, rule_pos = 0; rule_pos < rule_len && rule_cnt < MAX_GPU_RULES; rule_pos++, rule_cnt++)
+  for (rule_cnt = 0, rule_pos = 0; rule_pos < rule_len && rule_cnt < MAX_KERNEL_RULES; rule_pos++, rule_cnt++)
   {
     GET_NAME (rule);
 

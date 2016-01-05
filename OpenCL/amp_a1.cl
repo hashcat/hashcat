@@ -721,7 +721,7 @@ static void switch_buffer_by_offset (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4],
   #endif
 }
 
-__kernel void __attribute__((reqd_work_group_size (64, 1, 1))) amp (__global pw_t *pws, __global pw_t *pws_amp, __global gpu_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, const u32 combs_mode, const u32 gid_max)
+__kernel void __attribute__((reqd_work_group_size (64, 1, 1))) amp (__global pw_t *pws, __global pw_t *pws_amp, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, const u32 combs_mode, const u32 gid_max)
 {
   const u32 gid = get_global_id (0);
 

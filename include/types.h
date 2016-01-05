@@ -671,7 +671,7 @@ typedef struct
 {
   uint cmds[0x100];
 
-} gpu_rule_t;
+} kernel_rule_t;
 
 typedef struct
 {
@@ -818,15 +818,16 @@ struct __hc_device_param
   uint              sm_minor;
   uint              kernel_exec_timeout;
 
-  uint              gpu_processors;
-  uint              gpu_processor_cores;
-  uint              gpu_threads;
-  uint              gpu_accel;
-  uint64_t          gpu_maxmem_alloc;
-  uint              gpu_power;          // these both are based on their _user counterpart
-  uint              gpu_blocks;         // but are modified by autotuner and used inside crack loops
-  uint              gpu_power_user;
-  uint              gpu_blocks_user;
+  uint              device_processors;
+  uint              device_processor_cores;
+  uint64_t          device_maxmem_alloc;
+
+  uint              kernel_threads;
+  uint              kernel_accel;
+  uint              kernel_power;          // these both are based on their _user counterpart
+  uint              kernel_blocks;         // but are modified by autotuner and used inside crack loops
+  uint              kernel_power_user;
+  uint              kernel_blocks_user;
 
   uint              size_pws;
   uint              size_tmps;
@@ -989,7 +990,7 @@ typedef struct
   uint                devices_cnt;
   hc_device_param_t  *devices_param;
 
-  uint                gpu_blocks_all;
+  uint                kernel_blocks_all;
 
   /**
    * attack specific
@@ -1003,8 +1004,8 @@ typedef struct
   uint                attack_kern;
   uint                attack_exec;
 
-  uint                gpu_rules_cnt;
-  gpu_rule_t         *gpu_rules_buf;
+  uint                kernel_rules_cnt;
+  kernel_rule_t         *kernel_rules_buf;
 
   uint                combs_mode;
   uint                combs_cnt;
@@ -1113,9 +1114,9 @@ typedef struct
   uint    hex_wordlist;
   uint    pw_min;
   uint    pw_max;
-  float   gpu_blocks_div;
-  uint    gpu_accel;
-  uint    gpu_loops;
+  float   kernel_blocks_div;
+  uint    kernel_accel;
+  uint    kernel_loops;
   uint    powertune_enable;
   uint    scrypt_tmto;
   uint    segment_size;

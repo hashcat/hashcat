@@ -1060,7 +1060,7 @@ typedef struct
 {
   u32 cmds[0x100];
 
-} gpu_rule_t;
+} kernel_rule_t;
 
 typedef struct
 {

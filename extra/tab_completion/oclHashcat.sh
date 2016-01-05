@@ -121,13 +121,13 @@ _oclHashcat_get_permutations ()
   fi
 }
 
-_oclHashcat_gpu_devices ()
+_oclHashcat_opencl_devices ()
 {
   local num_devices=0
 
   if which clinfo &> /dev/null; then
 
-    num_devices=$(clinfo 2>/dev/null |  grep -c CL_DEVICE_TYPE_GPU 2> /dev/null)
+    num_devices=$(clinfo 2>/dev/null 2> /dev/null)
 
   elif which nvidia-smi &> /dev/null; then
 
@@ -177,15 +177,15 @@ _oclHashcat ()
   local BENCHMARK_MODE="0 1"
   local DEBUG_MODE="1 2 3 4"
   local WORKLOAD_PROFILE="1 2 3"
-  local GPU_ACCEL="1 8 16 24 32 40 48 56 64 62 80 88 96 104 112 120 128 136 144 152 160"
-  local GPU_LOOPS="8 16 32 64 128 256 512 1024"
+  local KERNEL_ACCEL="1 8 16 24 32 40 48 56 64 62 80 88 96 104 112 120 128 136 144 152 160"
+  local KERNEL_LOOPS="8 16 32 64 128 256 512 1024"
   local HIDDEN_FILES="exe|bin|pot|hcstat|dictstat|accepted|sh|cmd|bat|restore"
   local HIDDEN_FILES_AGGRESIVE="exe|bin|pot|hcstat|dictstat|hcmask|hcchr|accepted|sh|cmd|restore"
   local BUILD_IN_CHARSETS='?l ?u ?d ?a ?b ?s'
 
   local SHORT_OPTS="-m -a -V -v -h -b -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -i -s -l"
-  local LONG_OPTS="--hash-type --attack-mode --version --help --eula --quiet --benchmark --benchmark-mode --hex-salt --hex-wordlist --hex-charset --force --status --status-timer --status-automat --loopback --weak-hash-threshold --markov-hcstat --markov-disable --markov-classic --markov-threshold --runtime --session --restore --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --separator --show --left --username --remove --remove-timer --potfile-disable --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --gpu-async --gpu-devices --gpu-platform --workload-profile --gpu-accel --gpu-loops --gpu-temp-disable --gpu-temp-abort --gpu-temp-retain --powertune-enable --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --rules-cleanup --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --truecrypt-keyfiles"
-  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --benchmark-mode --status-timer --weak-hash-threshold --markov-hcstat --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --gpu-devices --gpu-platform --workload-profile --gpu-accel --gpu-loops --gpu-temp-abort --gpu-temp-retain -disable --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --truecrypt-keyfiles"
+  local LONG_OPTS="--hash-type --attack-mode --version --help --eula --quiet --benchmark --benchmark-mode --hex-salt --hex-wordlist --hex-charset --force --status --status-timer --status-automat --loopback --weak-hash-threshold --markov-hcstat --markov-disable --markov-classic --markov-threshold --runtime --session --restore --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --separator --show --left --username --remove --remove-timer --potfile-disable --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platform --workload-profile --kernel-accel --kernel-loops --gpu-temp-disable --gpu-temp-abort --gpu-temp-retain --powertune-enable --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --rules-cleanup --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --truecrypt-keyfiles"
+  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --benchmark-mode --status-timer --weak-hash-threshold --markov-hcstat --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platform --workload-profile --kernel-accel --kernel-loops --gpu-temp-abort --gpu-temp-retain -disable --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --truecrypt-keyfiles"
 
   COMPREPLY=()
   local cur="${COMP_WORDS[COMP_CWORD]}"
@@ -233,13 +233,13 @@ _oclHashcat ()
       return 0
       ;;
 
-    -n|--gpu-accel)
-      COMPREPLY=($(compgen -W "${GPU_ACCEL}" -- ${cur}))
+    -n|--kernel-accel)
+      COMPREPLY=($(compgen -W "${KERNEL_ACCEL}" -- ${cur}))
       return 0
       ;;
 
-    -u|--gpu-loops)
-      COMPREPLY=($(compgen -W "${GPU_LOOPS}" -- ${cur}))
+    -u|--kernel-loops)
+      COMPREPLY=($(compgen -W "${KERNEL_LOOPS}" -- ${cur}))
       return 0
       ;;
 
@@ -255,8 +255,8 @@ _oclHashcat ()
       return 0
       ;;
 
-     -d|--gpu-devices)
-      _oclHashcat_gpu_devices
+     -d|--opencl-devices)
+      _oclHashcat_opencl_devices
       local num_devices=${?}
 
       _oclHashcat_get_permutations ${num_devices}
@@ -380,14 +380,14 @@ _oclHashcat ()
       ;;
 
     -n*)
-      local gpu_accel_var="$(echo -n "-n ${GPU_ACCEL}" | sed 's/ / -n/g')"
-      COMPREPLY=($(compgen -W "${gpu_accel_var}" -- ${cur}))
+      local kernel_accel_var="$(echo -n "-n ${KERNEL_ACCEL}" | sed 's/ / -n/g')"
+      COMPREPLY=($(compgen -W "${kernel_accel_var}" -- ${cur}))
       return 0
       ;;
 
     -u*)
-      local gpu_loops_var="$(echo -n "-u ${GPU_LOOPS}" | sed 's/ / -u/g')"
-      COMPREPLY=($(compgen -W "${gpu_loops_var}" -- ${cur}))
+      local kernel_loops_var="$(echo -n "-u ${KERNEL_LOOPS}" | sed 's/ / -u/g')"
+      COMPREPLY=($(compgen -W "${kernel_loops_var}" -- ${cur}))
       return 0
       ;;
 
@@ -406,13 +406,13 @@ _oclHashcat ()
       ;;
 
     -d*)
-      _oclHashcat_gpu_devices
+      _oclHashcat_opencl_devices
       local num_devices=${?}
 
       _oclHashcat_get_permutations ${num_devices}
 
-      local gpu_devices_var="$(echo "  "${oclHashcat_devices_permutation} | sed 's/ / -d/g')"
-      COMPREPLY=($(compgen -W "${gpu_devices_var}" -- ${cur}))
+      local opencl_devices_var="$(echo "  "${oclHashcat_devices_permutation} | sed 's/ / -d/g')"
+      COMPREPLY=($(compgen -W "${opencl_devices_var}" -- ${cur}))
       return 0
       ;;
   esac
