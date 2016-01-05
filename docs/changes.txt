@@ -1,4 +1,4 @@
-* changes v2.01 -> not-known-yet:
+* changes v2.01 -> v2.10:
 
 Type.: Feature
 File.: Kernel

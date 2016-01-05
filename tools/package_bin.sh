@@ -6,7 +6,7 @@
 ##
 
 export IN=$HOME/oclHashcat
-export OUT=$HOME/xy/oclHashcat-2.01
+export OUT=$HOME/xy/oclHashcat-2.10
 
 rm -rf $OUT
 rm -rf $OUT.7z

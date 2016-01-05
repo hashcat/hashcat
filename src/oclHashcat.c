@@ -9,9 +9,9 @@
 #include <getopt.h>
 
 const char *PROGNAME          = "oclHashcat";
-const char *VERSION_TXT       = "2.01";
-const uint  VERSION_BIN       = 201;
-const uint  RESTORE_MIN       = 201;
+const char *VERSION_TXT       = "2.10";
+const uint  VERSION_BIN       = 210;
+const uint  RESTORE_MIN       = 210;
 
 #define INCR_RULES            10000
 #define INCR_SALTS            100000
