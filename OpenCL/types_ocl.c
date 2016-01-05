@@ -8,6 +8,36 @@ typedef ushort u16;
 typedef uint   u32;
 typedef ulong  u64;
 
+#define allx(r) r
+
+/*
+static u32 allx (const u32 r)
+{
+  return r;
+}
+*/
+
+static inline u32 l32_from_64 (u64 a)
+{
+  const u32 r = (uint) (a);
+
+  return r;
+}
+
+static inline u32 h32_from_64 (u64 a)
+{
+  a >>= 32;
+
+  const u32 r = (uint) (a);
+
+  return r;
+}
+
+static inline u64 hl32_to_64 (const u32 a, const u32 b)
+{
+  return as_ulong ((uint2) (b, a));
+}
+
 #ifdef IS_AMD
 static inline u32 swap32 (const u32 v)
 {
@@ -88,9 +118,7 @@ static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
 
   return r;
 }
-
 #if CUDA_ARCH >= 350
-
 static inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -99,113 +127,31 @@ static inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
 
   return r;
 }
-
 #else
-
 static inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
 {
   return __byte_perm (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
 }
-
+#endif
 #endif
 
-static inline u32 lut3_2d (const u32 a, const u32 b, const u32 c)
+#ifdef IS_UNKNOWN
+static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
 {
-  u32 r;
+  #define BIT(x)      (1 << (x))
+  #define BIT_MASK(x) (BIT (x) - 1)
+  #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
 
-  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
-
-  return r;
+  return BFE (a, b, c);
 }
 
-static inline u32 lut3_39 (const u32 a, const u32 b, const u32 c)
+static inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
 {
-  u32 r;
-
-  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
-
-  return r;
+  return (u32) (((((u64) a) << 32) | (u64) b) >> ((c & 3) * 8));
 }
-
-static inline u32 lut3_59 (const u32 a, const u32 b, const u32 c)
-{
-  u32 r;
-
-  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
-
-  return r;
-}
-
-static inline u32 lut3_96 (const u32 a, const u32 b, const u32 c)
-{
-  u32 r;
-
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
-
-  return r;
-}
-
-static inline u32 lut3_e4 (const u32 a, const u32 b, const u32 c)
-{
-  u32 r;
-
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
-
-  return r;
-}
-
-static inline u32 lut3_e8 (const u32 a, const u32 b, const u32 c)
-{
-  u32 r;
-
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
-
-  return r;
-}
-
-static inline u32 lut3_ca (const u32 a, const u32 b, const u32 c)
-{
-  u32 r;
-
-  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
-
-  return r;
-}
-
 #endif
-
-#define allx(r) r
-
-/*
-static u32 allx (const u32 r)
-{
-  return r;
-}
-*/
-
-static inline u32 l32_from_64 (u64 a)
-{
-  const u32 r = (uint) (a);
-
-  return r;
-}
-
-static inline u32 h32_from_64 (u64 a)
-{
-  a >>= 32;
-
-  const u32 r = (uint) (a);
-
-  return r;
-}
-
-static inline u64 hl32_to_64 (const u32 a, const u32 b)
-{
-  return as_ulong ((uint2) (b, a));
-}
 
 #ifdef IS_AMD
-
 static inline u32 rotr32 (const u32 a, const u32 n)
 {
   return rotate (a, 32 - n);
@@ -234,13 +180,10 @@ static inline u64 rotl64 (const u64 a, const u32 n)
 {
   return rotr64 (a, 64 - n);
 }
-
 #endif
 
 #ifdef IS_NV
-
 #if CUDA_ARCH >= 350
-
 /*
 this version reduced the number of registers but for some unknown reason the whole kernel become slower.. instruction cache monster?
 static inline u32 rotr32 (const u32 a, const u32 n)
@@ -333,9 +276,7 @@ static inline u64 rotl64 (const u64 a, const u32 n)
 {
   return rotr64 (a, 64 - n);
 }
-
 #else
-
 static inline u32 rotr32 (const u32 a, const u32 n)
 {
   return rotate (a, 32 - n);
@@ -353,14 +294,12 @@ static inline u64 rotr64 (const u64 a, const u32 n)
 
 static inline u64 rotl64 (const u64 a, const u32 n)
 {
-  return rotr64 (a, (u64) 64 - n);
+  return rotate (a, (u64) n);
 }
-
 #endif
 #endif
 
 #ifdef IS_UNKNOWN
-
 static inline u32 rotr32 (const u32 a, const u32 n)
 {
   return rotate (a, 32 - n);
@@ -368,8 +307,7 @@ static inline u32 rotr32 (const u32 a, const u32 n)
 
 static inline u32 rotl32 (const u32 a, const u32 n)
 {
-//  return rotate (a, n);
-  return (a << n) | (a >> (32 - n));
+  return rotate (a, n);
 }
 
 static inline u64 rotr64 (const u64 a, const u32 n)
@@ -379,9 +317,75 @@ static inline u64 rotr64 (const u64 a, const u32 n)
 
 static inline u64 rotl64 (const u64 a, const u32 n)
 {
-  return rotr64 (a, (u64) 64 - n);
+  return rotate (a, (u64) n);
+}
+#endif
+
+#ifdef IS_NV
+#if CUDA_ARCH >= 500
+static inline u32 lut3_2d (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
 }
 
+static inline u32 lut3_39 (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static inline u32 lut3_59 (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static inline u32 lut3_96 (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static inline u32 lut3_e4 (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static inline u32 lut3_e8 (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static inline u32 lut3_ca (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+#endif
 #endif
 
 typedef struct
