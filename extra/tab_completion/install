@@ -133,7 +133,7 @@ if [ -d "${COMPGENFOLDER}" ]; then
 
   # remove the old version of oclHashcat64.sh (was renamed to just oclHashcat.sh)
 
-  rm -rf "${COMPGENTARGET}"/oclHashcat64.sh
+  rm -f "${COMPGENTARGET}"/oclHashcat64.sh
 
   # copy the script to target folder
 
