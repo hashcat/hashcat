@@ -150,8 +150,12 @@
 #define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
 #define SHA1_F1(x,y,z)  ((x) ^ (y) ^ (z))
 #define SHA1_F2(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
-#define SHA1_F0o(x,y,z) (SHA1_F0 ((x), (y), (z)))
-#define SHA1_F2o(x,y,z) (SHA1_F2 ((x), (y), (z)))
+// either pocl or llvm fails and produces invalid optimized code
+//#define SHA1_F0o(x,y,z) (SHA1_F0 ((x), (y), (z)))
+//#define SHA1_F2o(x,y,z) (SHA1_F2 ((x), (y), (z)))
+// luckily we can use bitselect as a workaround
+#define SHA1_F0o(x,y,z) (bitselect ((z), (y), (x)))
+#define SHA1_F2o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
 #endif
 
 #define SHA1_STEP(f,a,b,c,d,e,x)    \
