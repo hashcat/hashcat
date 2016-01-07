@@ -12300,7 +12300,12 @@ int main (int argc, char **argv)
       return (-1);
     }
 
-    uint CL_platform_sel = 0;
+    uint CL_platform_sel = 1;
+
+    if (opencl_platform != NULL)
+    {
+      CL_platform_sel = atoi (opencl_platform);
+    }
 
     if (CL_platforms_cnt > 1)
     {
@@ -12330,7 +12335,12 @@ int main (int argc, char **argv)
       }
       else
       {
-        CL_platform_sel = atoi (opencl_platform);
+        if (CL_platform_sel < 1)
+        {
+          log_error ("ERROR: --opencl-platform < 1");
+
+          return (-1);
+        }
 
         if (CL_platform_sel > CL_platforms_cnt)
         {
@@ -12338,12 +12348,22 @@ int main (int argc, char **argv)
 
           return (-1);
         }
-
-        // user does not count with zero
-
-        CL_platform_sel -= 1;
       }
     }
+    else
+    {
+      if (CL_platform_sel != 1)
+      {
+        log_error ("ERROR: OpenCL platform number %d is not available", CL_platform_sel);
+
+        return (-1);
+      }
+    }
+
+    // zero-indexed: not starting to count at 1, as user does
+
+    CL_platform_sel -= 1;
+
 
     cl_platform_id CL_platform = CL_platforms[CL_platform_sel];
 
