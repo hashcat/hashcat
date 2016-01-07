@@ -87,14 +87,11 @@
 
 #define CL_VENDOR_NV          "NVIDIA Corporation"
 #define CL_VENDOR_AMD         "Advanced Micro Devices, Inc."
-#define CL_VENDOR_SDS         "Shiloh Distributed Solutions"
-#define CL_VENDOR_APPLE       "Apple"
 #define CL_VENDOR_POCL        "The pocl project"
 
 #define VENDOR_ID_AMD         4098
 #define VENDOR_ID_NV          4318
-#define VENDOR_ID_POCL        9998
-#define VENDOR_ID_UNKNOWN     9999
+#define VENDOR_ID_GENERIC     9999
 
 #define BLOCK_SIZE            64
 

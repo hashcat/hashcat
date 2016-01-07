@@ -705,7 +705,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09100_init (__gl
   salt_buf3[3] = 0;
 
   const u32 salt0 = salt_buf0[0];
-  const u32 salt1 = salt_buf0[1] & 0xff | '(' << 8;
+  const u32 salt1 = (salt_buf0[1] & 0xff) | ('(' << 8);
 
   /**
    * Lotus 6 hash - SEC_pwddigest_V2

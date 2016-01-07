@@ -29,7 +29,7 @@ static u32 memcat32 (u32 block0[16], u32 block1[16], const u32 block_len, const 
   const u32 mod = block_len & 3;
   const u32 div = block_len / 4;
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   const int offset_minus_4 = 4 - mod;
 
   u32 append0_t[4];

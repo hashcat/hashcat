@@ -131,7 +131,7 @@ static void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4]
   u32 tmp3;
   u32 tmp4;
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
 
   const int offset_minus_4 = 4 - (block_len & 3);
 
@@ -243,7 +243,7 @@ static void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block
   u32 tmp3;
   u32 tmp4;
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
 
   const int offset_minus_4 = 4 - (block_len & 3);
 
@@ -353,7 +353,7 @@ static void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4],
   u32 tmp1;
   u32 tmp2;
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
 
   const int offset_minus_4 = 4 - (block_len & 3);
 

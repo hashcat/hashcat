@@ -324,7 +324,7 @@ __constant u32 c_sbox3[256] =
 }
 #endif
 
-#ifdef IS_UNKNOWN
+#ifdef IS_GENERIC
 #define BF_ROUND(L,R,N)       \
 {                             \
   uchar4 c = as_uchar4 ((L)); \

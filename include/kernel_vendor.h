@@ -18,11 +18,11 @@
 #endif
 
 #if VENDOR_ID == 9998 // temporary for dev
-#define IS_UNKNOWN
+#define IS_GENERIC
 #endif
 
 #if VENDOR_ID == 9999
-#define IS_UNKNOWN
+#define IS_GENERIC
 #endif
 
 /**

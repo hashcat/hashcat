@@ -33,12 +33,12 @@
 #define MD4_Go(x,y,z)   (bitselect ((x), (y), ((x) ^ (z))))
 #endif
 
-#ifdef IS_UNKNOWN
+#ifdef IS_GENERIC
 #define MD4_F(x,y,z)    (((x) & (y)) | ((~(x)) & (z)))
 #define MD4_G(x,y,z)    (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
 #define MD4_H(x,y,z)    ((x) ^ (y) ^ (z))
-#define MD5_H1(x,y,z)   (MD4_H((x), (y), (z)))
-#define MD5_H2(x,y,z)   (MD4_H((x), (y), (z)))
+#define MD4_H1(x,y,z)   (MD4_H((x), (y), (z)))
+#define MD4_H2(x,y,z)   (MD4_H((x), (y), (z)))
 #define MD4_Fo(x,y,z)   (MD4_F((x), (y), (z)))
 #define MD4_Go(x,y,z)   (MD4_G((x), (y), (z)))
 #endif
@@ -93,7 +93,7 @@
 #define MD5_Go(x,y,z)   (bitselect ((y), (x), (z)))
 #endif
 
-#ifdef IS_UNKNOWN
+#ifdef IS_GENERIC
 #define MD5_F(x,y,z)    ((z) ^ ((x) & ((y) ^ (z))))
 #define MD5_G(x,y,z)    ((y) ^ ((z) & ((x) ^ (y))))
 #define MD5_H(x,y,z)    ((x) ^ (y) ^ (z))
@@ -146,16 +146,12 @@
 #define SHA1_F2o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
 #endif
 
-#ifdef IS_UNKNOWN
+#ifdef IS_GENERIC
 #define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
 #define SHA1_F1(x,y,z)  ((x) ^ (y) ^ (z))
 #define SHA1_F2(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
-// either pocl or llvm fails and produces invalid optimized code
-//#define SHA1_F0o(x,y,z) (SHA1_F0 ((x), (y), (z)))
-//#define SHA1_F2o(x,y,z) (SHA1_F2 ((x), (y), (z)))
-// luckily we can use bitselect as a workaround
-#define SHA1_F0o(x,y,z) (bitselect ((z), (y), (x)))
-#define SHA1_F2o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
+#define SHA1_F0o(x,y,z) (SHA1_F0 ((x), (y), (z)))
+#define SHA1_F2o(x,y,z) (SHA1_F2 ((x), (y), (z)))
 #endif
 
 #define SHA1_STEP(f,a,b,c,d,e,x)    \
@@ -225,7 +221,7 @@
 #define SHA256_F1o(x,y,z) (bitselect ((z), (y), (x)))
 #endif
 
-#ifdef IS_UNKNOWN
+#ifdef IS_GENERIC
 #define SHA256_F0(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
 #define SHA256_F1(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
 #define SHA256_F0o(x,y,z) (SHA256_F0 ((x), (y), (z)))
@@ -269,7 +265,7 @@
 #define SHA384_F1o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
 #endif
 
-#ifdef IS_UNKNOWN
+#ifdef IS_GENERIC
 #define SHA384_F0o(x,y,z) (SHA384_F0 ((x), (y), (z)))
 #define SHA384_F1o(x,y,z) (SHA384_F1 ((x), (y), (z)))
 #endif
@@ -313,7 +309,7 @@
 #define SHA512_F1o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
 #endif
 
-#ifdef IS_UNKNOWN
+#ifdef IS_GENERIC
 #define SHA512_F0o(x,y,z) (SHA512_F0 ((x), (y), (z)))
 #define SHA512_F1o(x,y,z) (SHA512_F1 ((x), (y), (z)))
 #endif
@@ -370,7 +366,7 @@
 #define RIPEMD160_Io(x,y,z)   (bitselect ((y), (x), (z)))
 #endif
 
-#ifdef IS_UNKNOWN
+#ifdef IS_GENERIC
 #define RIPEMD160_F(x,y,z)    ((x) ^ (y) ^ (z))
 #define RIPEMD160_G(x,y,z)    ((z) ^ ((x) & ((y) ^ (z)))) /* x ? y : z */
 #define RIPEMD160_H(x,y,z)    (((x) | ~(y)) ^ (z))

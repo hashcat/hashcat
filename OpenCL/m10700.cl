@@ -1198,7 +1198,7 @@ static void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, co
 
     u32 i;
 
-    #if defined IS_AMD || defined IS_UNKNOWN
+    #if defined IS_AMD || defined IS_GENERIC
     for (i = 0; i < pd; i++) sc[idx++] = pw[i];
                              sc[idx++] = pw[i]
                                        | amd_bytealign (bl[0],         0, pm4);
@@ -1229,7 +1229,7 @@ static void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, const
   const u32 om = m % 4;
   const u32 od = m / 4;
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   pt[0] = amd_bytealign (sc[od + 1], sc[od + 0], om);
   pt[1] = amd_bytealign (sc[od + 2], sc[od + 1], om);
   pt[2] = amd_bytealign (sc[od + 3], sc[od + 2], om);

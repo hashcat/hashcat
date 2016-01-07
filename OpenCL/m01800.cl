@@ -253,7 +253,7 @@ static void sha512_update (sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
   sha512_transform (sha512_ctx->buf, sha512_ctx->state);
   #endif
 
-  #ifdef IS_UNKNOWN
+  #ifdef IS_GENERIC
   sha512_transform (sha512_ctx->buf, sha512_ctx->state);
   #endif
 

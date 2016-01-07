@@ -2537,30 +2537,7 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
     myfree (tmp);
   }
 
-  if (data.vendor_id == VENDOR_ID_POCL)
-  {
-    // NOTE: clEnqueueFillBuffer () segfaults with Ubuntu 15.04 pocl
-    //       We need to workaround...
-
-    #define FILLSZ 0x100000
-
-    char *tmp = (char *) mymalloc (FILLSZ);
-
-    memset (tmp, 0, FILLSZ);
-
-    for (uint i = 0; i < size; i += FILLSZ)
-    {
-      const int left = size - i;
-
-      const int fillsz = MIN (FILLSZ, left);
-
-      hc_clEnqueueWriteBuffer (device_param->command_queue, buf, CL_TRUE, i, fillsz, tmp, 0, NULL, NULL);
-    }
-
-    myfree (tmp);
-  }
-
-  if (data.vendor_id == VENDOR_ID_UNKNOWN)
+  if (data.vendor_id == VENDOR_ID_GENERIC)
   {
     const cl_uchar zero = 0;
 
@@ -12300,7 +12277,7 @@ int main (int argc, char **argv)
       return (-1);
     }
 
-    uint CL_platform_sel = 1;
+    int CL_platform_sel = 1;
 
     if (opencl_platform != NULL)
     {
@@ -12342,7 +12319,7 @@ int main (int argc, char **argv)
           return (-1);
         }
 
-        if (CL_platform_sel > CL_platforms_cnt)
+        if (CL_platform_sel > (int) CL_platforms_cnt)
         {
           log_error ("ERROR: invalid OpenCL platforms selected");
 
@@ -12373,7 +12350,7 @@ int main (int argc, char **argv)
 
     hc_clGetPlatformInfo (CL_platform, CL_PLATFORM_VENDOR, sizeof (CL_platform_vendor), CL_platform_vendor, NULL);
 
-  	cl_device_type device_type;
+    cl_device_type device_type_filter;
 
     uint vendor_id;
 
@@ -12381,13 +12358,13 @@ int main (int argc, char **argv)
     {
       vendor_id = VENDOR_ID_AMD;
 
-      device_type = CL_DEVICE_TYPE_GPU;
+      device_type_filter = CL_DEVICE_TYPE_GPU;
     }
     else if (strcmp (CL_platform_vendor, CL_VENDOR_NV) == 0)
     {
       vendor_id = VENDOR_ID_NV;
 
-      device_type = CL_DEVICE_TYPE_GPU;
+      device_type_filter = CL_DEVICE_TYPE_GPU;
 
       // make sure that we do not directly control the fan for NVidia
 
@@ -12397,20 +12374,28 @@ int main (int argc, char **argv)
     }
     else if (strcmp (CL_platform_vendor, CL_VENDOR_POCL) == 0)
     {
-      vendor_id = VENDOR_ID_POCL;
+      if (force == 0)
+      {
+        log_error ("");
+        log_error ("ATTENTION! All pocl drivers are known to be broken due to broken LLVM <= 3.7");
+        log_error ("You are STRONGLY encouraged not to use it");
+        log_error ("You can use --force to override this but do not post error reports if you do so");
 
-      device_type = CL_DEVICE_TYPE_CPU;
+        return (-1);
+      }
 
-      gpu_temp_disable = 1;
+      vendor_id = VENDOR_ID_GENERIC;
+
+      device_type_filter = CL_DEVICE_TYPE_DEFAULT;
     }
     else
     {
-      vendor_id = VENDOR_ID_UNKNOWN;
+      vendor_id = VENDOR_ID_GENERIC;
 
-      device_type = CL_DEVICE_TYPE_DEFAULT;
+      device_type_filter = CL_DEVICE_TYPE_DEFAULT;
     }
 
-    if (vendor_id == VENDOR_ID_UNKNOWN)
+    if (vendor_id == VENDOR_ID_GENERIC)
     {
       log_error ("Warning: unknown OpenCL vendor '%s' detected", CL_platform_vendor);
 
@@ -12446,7 +12431,7 @@ int main (int argc, char **argv)
 
     uint devices_all_cnt = 0;
 
-    hc_clGetDeviceIDs (CL_platform, device_type, DEVICES_MAX, devices_all, (uint *) &devices_all_cnt);
+    hc_clGetDeviceIDs (CL_platform, device_type_filter, DEVICES_MAX, devices_all, (uint *) &devices_all_cnt);
 
     int hm_adapters_all = devices_all_cnt;
 
@@ -12801,14 +12786,14 @@ int main (int argc, char **argv)
 
       device_param->device_name_chksum = mystrdup (tmp);
 
-      if (device_type == CL_DEVICE_TYPE_CPU)
+      if (device_type & CL_DEVICE_TYPE_CPU)
       {
         cl_uint device_processor_cores = 1;
 
         device_param->device_processor_cores = device_processor_cores;
       }
 
-      if (device_type == CL_DEVICE_TYPE_GPU)
+      if (device_type & CL_DEVICE_TYPE_GPU)
       {
         if (vendor_id == VENDOR_ID_AMD)
         {
@@ -12857,7 +12842,7 @@ int main (int argc, char **argv)
        * common driver check
        */
 
-      if (device_type == CL_DEVICE_TYPE_GPU)
+      if (device_type & CL_DEVICE_TYPE_GPU)
       {
         if (vendor_id == VENDOR_ID_NV)
         {
@@ -12995,6 +12980,8 @@ int main (int argc, char **argv)
 
       uint device_processor_cores = device_param->device_processor_cores;
 
+      cl_device_type device_type = device_param->device_type;
+
       /**
        * create context for each device
        */
@@ -13020,11 +13007,12 @@ int main (int argc, char **argv)
       if (hash_mode == 3200) kernel_threads = 8;
       if (hash_mode == 9000) kernel_threads = 8;
 
-      if (device_type == CL_DEVICE_TYPE_CPU)
+      if (device_type & CL_DEVICE_TYPE_CPU)
       {
         // CPU still need lots of workitems, don't know why...
+        // for testing phase, lets start with this
 
-        kernel_accel = (kernel_accel >= 8) ? kernel_accel / 8 : 1;
+        kernel_accel = 1;
       }
 
       uint kernel_power  = device_processors * kernel_threads * kernel_accel;

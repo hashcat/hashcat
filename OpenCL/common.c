@@ -144,7 +144,7 @@ static void make_unicode (const u32 in[4], u32 out1[4], u32 out2[4])
   out1[0] = __byte_perm (in[0], 0, 0x7170);
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   out2[3]  = ((in[3] >> 8) & 0x00FF0000) | ((in[3] >> 16) & 0x000000FF);
   out2[2]  = ((in[3] << 8) & 0x00FF0000) | ((in[3] >>  0) & 0x000000FF);
   out2[1]  = ((in[2] >> 8) & 0x00FF0000) | ((in[2] >> 16) & 0x000000FF);
@@ -165,7 +165,7 @@ static void undo_unicode (const u32 in1[4], const u32 in2[4], u32 out[4])
   out[3] = __byte_perm (in2[2], in2[3], 0x6420);
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   out[0] = ((in1[0] & 0x000000ff) >>  0) | ((in1[0] & 0x00ff0000) >>  8)
          | ((in1[1] & 0x000000ff) << 16) | ((in1[1] & 0x00ff0000) <<  8);
   out[1] = ((in1[2] & 0x000000ff) >>  0) | ((in1[2] & 0x00ff0000) >>  8)
@@ -3987,7 +3987,7 @@ static void append_0x80_1x16 (u32 w[16], const u32 offset)
 
 static void switch_buffer_by_offset (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset;
@@ -4701,7 +4701,7 @@ static void switch_buffer_by_offset (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4],
 
 static void switch_buffer_by_offset_be (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
   {
     case 0:

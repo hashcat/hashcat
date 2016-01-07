@@ -81,7 +81,7 @@ static inline u64 swap64 (const u64 v)
 }
 #endif
 
-#ifdef IS_UNKNOWN
+#ifdef IS_GENERIC
 static inline u32 swap32 (const u32 v)
 {
   return (as_uint (as_uchar4 (v).s3210));
@@ -135,7 +135,7 @@ static inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
 #endif
 #endif
 
-#ifdef IS_UNKNOWN
+#ifdef IS_GENERIC
 static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
 {
   #define BIT(x)      (1 << (x))
@@ -299,7 +299,7 @@ static inline u64 rotl64 (const u64 a, const u32 n)
 #endif
 #endif
 
-#ifdef IS_UNKNOWN
+#ifdef IS_GENERIC
 static inline u32 rotr32 (const u32 a, const u32 n)
 {
   return rotate (a, 32 - n);

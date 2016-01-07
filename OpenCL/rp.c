@@ -133,7 +133,7 @@ static void lshift_block (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 o
   out1[3] = __byte_perm (in1[3],      0, 0x4321);
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   out0[0] = amd_bytealign (in0[1], in0[0], 1);
   out0[1] = amd_bytealign (in0[2], in0[1], 1);
   out0[2] = amd_bytealign (in0[3], in0[2], 1);
@@ -158,7 +158,7 @@ static void rshift_block (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 o
   out0[0] = __byte_perm (     0, in0[0], 0x6543);
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   out1[3] = amd_bytealign (in1[3], in1[2], 3);
   out1[2] = amd_bytealign (in1[2], in1[1], 3);
   out1[1] = amd_bytealign (in1[1], in1[0], 3);
@@ -466,7 +466,7 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
   }
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   switch (num)
   {
     case  0:  out0[0] = in0[0];
@@ -1058,7 +1058,7 @@ static void rshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
   }
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   switch (num)
   {
     case  0:  out1[3] = in1[3];
@@ -1648,7 +1648,7 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
   }
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   switch (offset)
   {
     case 0:
@@ -2578,7 +2578,7 @@ static u32 rule_op_mangle_replace (const u32 p0, const u32 p1, u32 buf0[4], u32 
   }
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   const uchar4 tmp0 = (uchar4) (p0);
   const uchar4 tmp1 = (uchar4) (p1);
 
@@ -2793,7 +2793,7 @@ static u32 rule_op_mangle_dupechar_first (const u32 p0, const u32 p1, u32 buf0[4
   }
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   switch (p0)
   {
     case  1:  buf0[0] |= tmp <<  0;
@@ -3036,7 +3036,7 @@ static u32 rule_op_mangle_dupechar_all (const u32 p0, const u32 p1, u32 buf0[4],
   buf1[3] = tib41[3];
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   tib40[0] = ((buf0[0] & 0x000000FF) <<  0) | ((buf0[0] & 0x0000FF00) <<  8);
   tib40[1] = ((buf0[0] & 0x00FF0000) >> 16) | ((buf0[0] & 0xFF000000) >>  8);
   tib40[2] = ((buf0[1] & 0x000000FF) <<  0) | ((buf0[1] & 0x0000FF00) <<  8);
@@ -3069,7 +3069,7 @@ static u32 rule_op_mangle_switch_first (const u32 p0, const u32 p1, u32 buf0[4],
   buf0[0] = __byte_perm (buf0[0], 0, 0x3201);
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   buf0[0] = (buf0[0] & 0xFFFF0000) | ((buf0[0] << 8) & 0x0000FF00) | ((buf0[0] >> 8) & 0x000000FF);
   #endif
 
@@ -3160,7 +3160,7 @@ static u32 rule_op_mangle_switch_last (const u32 p0, const u32 p1, u32 buf0[4], 
   }
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   switch (in_len)
   {
     case  2:  buf0[0] = ((buf0[0] << 8) & 0x0000FF00) | ((buf0[0] >> 8) & 0x000000FF);
@@ -3489,7 +3489,7 @@ static u32 rule_op_mangle_switch_at (const u32 p0, const u32 p1, u32 buf0[4], u3
   }
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   switch (p0)
   {
     case  0:  tmp0 = (buf0[0] >>  0) & 0xFF;
@@ -4065,7 +4065,7 @@ static u32 rule_op_mangle_title (const u32 p0, const u32 p1, u32 buf0[4], u32 bu
   }
   #endif
 
-  #if defined IS_AMD || defined IS_UNKNOWN
+  #if defined IS_AMD || defined IS_GENERIC
   u32 tib40[4];
   u32 tib41[4];
 
