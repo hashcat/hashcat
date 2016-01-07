@@ -12335,6 +12335,13 @@ int main (int argc, char **argv)
       }
       else
       {
+        if (CL_platform_sel < 1)
+        {
+          log_error ("ERROR: --opencl-platform < 1");
+
+          return (-1);
+        }
+
         if (CL_platform_sel > CL_platforms_cnt)
         {
           log_error ("ERROR: invalid OpenCL platforms selected");
@@ -12347,7 +12354,7 @@ int main (int argc, char **argv)
     {
       if (CL_platform_sel != 1)
       {
-        log_error ("ERROR: OpenCL platform number %d not available", CL_platform_sel);
+        log_error ("ERROR: OpenCL platform number %d is not available", CL_platform_sel);
 
         return (-1);
       }
