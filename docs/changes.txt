@@ -9,6 +9,11 @@ File.: Kernel
 Desc.: Extended support from 14 to 255 functions calls per rule on GPU
 
 Type.: Feature
+File.: Kernel
+Desc.: Added new hash mode -m 12900 = Android FDE (Samsung DEK)
+Issue: 86
+
+Type.: Feature
 File.: Host
 Desc.: Added a Makefile target for native compilation
 Issue: 2

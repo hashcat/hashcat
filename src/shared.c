@@ -5610,6 +5610,7 @@ char *strhashtype (const uint hash_mode)
     case 12600: return ((char *) HT_12600); break;
     case 12700: return ((char *) HT_12700); break;
     case 12800: return ((char *) HT_12800); break;
+    case 12900: return ((char *) HT_12900); break;
   }
 
   return ((char *) "Unknown");
@@ -8042,6 +8043,31 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
       byte_swap_32 (digest_buf[7])
     );
   }
+  else if (hash_mode == 12900)
+  {
+    snprintf (out_buf, len-1, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
+      salt.salt_buf[ 4],
+      salt.salt_buf[ 5],
+      salt.salt_buf[ 6],
+      salt.salt_buf[ 7],
+      salt.salt_buf[ 8],
+      salt.salt_buf[ 9],
+      salt.salt_buf[10],
+      salt.salt_buf[11],
+      byte_swap_32 (digest_buf[0]),
+      byte_swap_32 (digest_buf[1]),
+      byte_swap_32 (digest_buf[2]),
+      byte_swap_32 (digest_buf[3]),
+      byte_swap_32 (digest_buf[4]),
+      byte_swap_32 (digest_buf[5]),
+      byte_swap_32 (digest_buf[6]),
+      byte_swap_32 (digest_buf[7]),
+      salt.salt_buf[ 0],
+      salt.salt_buf[ 1],
+      salt.salt_buf[ 2],
+      salt.salt_buf[ 3]
+    );
+  }
   else
   {
     if (hash_type == HASH_TYPE_MD4)
@@ -8996,6 +9022,7 @@ uint set_kernel_accel (uint hash_mode)
     case 12600: return GET_ACCEL (12600);
     case 12700: return GET_ACCEL (12700);
     case 12800: return GET_ACCEL (12800);
+    case 12900: return GET_ACCEL (12900);
   }
 
   return 0;
@@ -9181,6 +9208,7 @@ uint set_kernel_loops (uint hash_mode)
     case 12600: return GET_LOOPS (12600);
     case 12700: return GET_LOOPS (12700);
     case 12800: return GET_LOOPS (12800);
+    case 12900: return GET_LOOPS (12900);
   }
 
   return 0;
@@ -18553,6 +18581,61 @@ int ms_drsr_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   salt->salt_len = salt_len / 2;
 
   salt->salt_iter = atoi (iter_pos) - 1;
+
+  /**
+   * digest buf
+   */
+
+  digest[0] = hex_to_uint (&hash_pos[ 0]);
+  digest[1] = hex_to_uint (&hash_pos[ 8]);
+  digest[2] = hex_to_uint (&hash_pos[16]);
+  digest[3] = hex_to_uint (&hash_pos[24]);
+  digest[4] = hex_to_uint (&hash_pos[32]);
+  digest[5] = hex_to_uint (&hash_pos[40]);
+  digest[6] = hex_to_uint (&hash_pos[48]);
+  digest[7] = hex_to_uint (&hash_pos[56]);
+
+  return (PARSER_OK);
+}
+
+int androidfde_samsung_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_12900) || (input_len > DISPLAY_LEN_MAX_12900)) return (PARSER_GLOBAL_LENGTH);
+
+  uint32_t *digest = (uint32_t *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  /**
+   * parse line
+   */
+
+  char *hash_pos  = input_buf + 64;
+  char *salt1_pos = input_buf + 128;
+  char *salt2_pos = input_buf;
+
+  /**
+   * salt
+   */
+
+  salt->salt_buf[ 0] = hex_to_uint (&salt1_pos[ 0]);
+  salt->salt_buf[ 1] = hex_to_uint (&salt1_pos[ 8]);
+  salt->salt_buf[ 2] = hex_to_uint (&salt1_pos[16]);
+  salt->salt_buf[ 3] = hex_to_uint (&salt1_pos[24]);
+
+  salt->salt_buf[ 4] = hex_to_uint (&salt2_pos[ 0]);
+  salt->salt_buf[ 5] = hex_to_uint (&salt2_pos[ 8]);
+  salt->salt_buf[ 6] = hex_to_uint (&salt2_pos[16]);
+  salt->salt_buf[ 7] = hex_to_uint (&salt2_pos[24]);
+
+  salt->salt_buf[ 8] = hex_to_uint (&salt2_pos[32]);
+  salt->salt_buf[ 9] = hex_to_uint (&salt2_pos[40]);
+  salt->salt_buf[10] = hex_to_uint (&salt2_pos[48]);
+  salt->salt_buf[11] = hex_to_uint (&salt2_pos[56]);
+
+  salt->salt_len = 48;
+
+  salt->salt_iter = ROUNDS_ANDROIDFDE_SAMSUNG - 1;
 
   /**
    * digest buf

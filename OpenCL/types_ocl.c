@@ -488,6 +488,8 @@ typedef struct
   u32  digest_buf[8];
   #elif defined _MS_DRSR_
   u32  digest_buf[8];
+  #elif defined _ANDROIDFDE_SAMSUNG_
+  u32  digest_buf[8];
   #endif
 
 } digest_t;

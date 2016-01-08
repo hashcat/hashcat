@@ -128,7 +128,7 @@ const uint  RESTORE_MIN       = 210;
 
 #define MAX_DICTSTAT            10000
 
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 128
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 129
 
 #define global_free(attr)       \
 {                               \
@@ -254,6 +254,7 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   6231,
   6241,
   8800,
+  12900,
   12200,
   9700,
   9710,
@@ -679,6 +680,7 @@ const char *USAGE_BIG[] =
   "      Y = 2 = XTS 1024 bit (Ciphers: AES or Serpent or Twofish or AES-Twofish or Serpent-AES or Twofish-Serpent)",
   "      Y = 3 = XTS 1536 bit (Ciphers: All)",
   "   8800 = Android FDE < v4.3",
+  "  12900 = Android FDE (Samsung DEK)",
   "  12200 = eCryptfs",
   "",
   "[[ Documents ]]",
@@ -5608,7 +5610,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  if (hash_mode_chgd && hash_mode > 12800) // just added to remove compiler warnings for hash_mode_chgd
+  if (hash_mode_chgd && hash_mode > 12900) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
@@ -9775,6 +9777,21 @@ int main (int argc, char **argv)
                    dgst_pos3   = 3;
                    break;
 
+      case 12900:  hash_type   = HASH_TYPE_PBKDF2_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_ANDROIDFDE_SAMSUNG;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = androidfde_samsung_parse_hash;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
       default:     usage_mini_print (PROGNAME); return (-1);
     }
 
@@ -11129,6 +11146,8 @@ int main (int argc, char **argv)
                      break;
         case 12800:  hashes_buf[0].salt->salt_iter = ROUNDS_MS_DRSR - 1;
                      break;
+        case 12900:  hashes_buf[0].salt->salt_iter = ROUNDS_ANDROIDFDE_SAMSUNG - 1;
+                     break;
       }
 
       // set special tuning for benchmark-mode 1
@@ -11310,6 +11329,9 @@ int main (int argc, char **argv)
                        break;
           case 12800:  kernel_loops = ROUNDS_MS_DRSR;
                        kernel_accel = 512;
+                       break;
+          case 12900:  kernel_loops = ROUNDS_ANDROIDFDE_SAMSUNG;
+                       kernel_accel = 8;
                        break;
         }
 
@@ -13089,6 +13111,7 @@ int main (int argc, char **argv)
         case 12500: size_tmps = kernel_blocks * sizeof (rar3_tmp_t);          break;
         case 12700: size_tmps = kernel_blocks * sizeof (mywallet_tmp_t);      break;
         case 12800: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
+        case 12900: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
       };
 
       uint size_hooks = 4;

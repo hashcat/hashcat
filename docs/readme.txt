@@ -204,6 +204,7 @@ AMD users require Catalyst 14.9 or later (recommended 15.9 or later)
 - Password Safe v3
 - eCryptfs
 - Android FDE <= 4.3
+- Android FDE (Samsung DEK)
 - TrueCrypt 5.0+
 
 ##
