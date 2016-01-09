@@ -490,6 +490,8 @@ typedef struct
   u32  digest_buf[8];
   #elif defined _ANDROIDFDE_SAMSUNG_
   u32  digest_buf[8];
+  #elif defined _RAR5_
+  u32  digest_buf[4];
   #endif
 
 } digest_t;

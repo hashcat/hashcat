@@ -14,6 +14,11 @@ Desc.: Added new hash mode -m 12900 = Android FDE (Samsung DEK)
 Issue: 86
 
 Type.: Feature
+File.: Kernel
+Desc.: Added new hash mode -m 13000 = RAR5
+Issue: 68
+
+Type.: Feature
 File.: Host
 Desc.: Added a Makefile target for native compilation
 Issue: 2

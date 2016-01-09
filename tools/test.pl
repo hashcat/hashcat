@@ -44,7 +44,7 @@ my $hashcat = "./oclHashcat";
 
 my $MAX_LEN = 55;
 
-my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 130, 131, 132, 140, 141, 150, 160, 190, 200, 300, 400, 500, 900, 1000, 1100, 1400, 1410, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7100, 7200, 7300, 7400, 7500, 7600, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900);
+my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 130, 131, 132, 140, 141, 150, 160, 190, 200, 300, 400, 500, 900, 1000, 1100, 1400, 1410, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7100, 7200, 7300, 7400, 7500, 7600, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000);
 
 my %is_unicode      = map { $_ => 1 } qw(30 40 130 131 132 140 141 1000 1100 1430 1440 1441 1730 1740 1731 5500 5600 8000 9400 9500 9600 9700 9800);
 my %less_fifteen    = map { $_ => 1 } qw(500 1600 1800 2400 2410 3200 6300 7400 10500 10700);
@@ -2175,6 +2175,40 @@ sub verify
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
+    elsif ($mode == 13000)
+    {
+      my $hash_line;
+
+      ($hash_line, $word) = split ":", $line;
+
+      next unless defined $hash_line;
+      next unless defined $word;
+
+      my @data = split ('\$', $hash_line);
+
+      next unless scalar @data == 8;
+
+      shift @data;
+
+      my $signature    = shift @data;
+      my $salt_len     = shift @data;
+      my $salt_buf     = shift @data;
+      my $iterations   = shift @data;
+      my $iv           = shift @data;
+      my $pswcheck_len = shift @data;
+      my $pswcheck     = shift @data;
+
+      next unless ($signature eq "rar5");
+      next unless ($salt_len == 16);
+      next unless ($pswcheck_len == 8);
+
+      $salt    = $salt_buf;
+      $iter    = $iterations;
+      $hash_in = $pswcheck;
+      $param   = $iv;
+
+      next unless (exists ($db->{$hash_line}) and (! defined ($db->{$hash_line})));
+    }
     else
     {
       print "ERROR: hash mode is not supported\n";
@@ -2442,6 +2476,14 @@ sub verify
       $hash_out = $hash_in;
     }
     elsif ($mode == 12900)
+    {
+      $hash_out = gen_hash ($mode, $word, $salt, $iter, $param);
+
+      $len = length $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
+    elsif ($mode == 13000)
     {
       $hash_out = gen_hash ($mode, $word, $salt, $iter, $param);
 
@@ -2862,6 +2904,10 @@ sub passthrough
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 20));
     }
     elsif ($mode == 12900)
+    {
+      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
+    }
+    elsif ($mode == 13000)
     {
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
     }
@@ -3565,6 +3611,20 @@ sub single
       }
     }
     elsif ($mode == 12900)
+    {
+      for (my $i = 1; $i < 32; $i++)
+      {
+        if ($len != 0)
+        {
+          rnd ($mode, $len, 32);
+        }
+        else
+        {
+          rnd ($mode, $i, 32);
+        }
+      }
+    }
+    elsif ($mode == 13000)
     {
       for (my $i = 1; $i < 32; $i++)
       {
@@ -6517,6 +6577,42 @@ END_CODE
     my $hash_hmac = hmac_hex ($salt2_bin, $hash, \&sha256, 64);
 
     $tmp_hash = sprintf ("%s%s%s", $salt2, $hash_hmac, $salt_buf);
+  }
+  elsif ($mode == 13000)
+  {
+    my $iterations = 15;
+
+    if (length ($iter))
+    {
+      $iterations = int ($iter);
+    }
+
+    my $iv = "0" x 32;
+
+    if (defined $additional_param)
+    {
+      $iv = $additional_param;
+    }
+
+    my $pbkdf2 = Crypt::PBKDF2->new
+    (
+      hasher     => Crypt::PBKDF2->hasher_from_algorithm ('HMACSHA2', 256),
+      iterations => (1 << $iterations) + 32,
+      output_len => 32
+    );
+
+    my $salt_buf_bin = pack ("H*", $salt_buf);
+
+    my $hash = $pbkdf2->PBKDF2 ($salt_buf_bin, $word_buf);
+
+printf ("%s\n", unpack ("H*", $hash));
+
+    my $hash_final = substr ($hash,  0, 8)
+                   ^ substr ($hash,  8, 8)
+                   ^ substr ($hash, 16, 8)
+                   ^ substr ($hash, 24, 8);
+
+    $tmp_hash = sprintf ('$rar5$16$%s$%d$%s$8$%s', $salt_buf, $iterations, $iv, unpack ("H*", $hash_final));
   }
 
   return ($tmp_hash);

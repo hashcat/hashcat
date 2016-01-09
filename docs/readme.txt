@@ -183,6 +183,7 @@ AMD users require Catalyst 14.9 or later (recommended 15.9 or later)
 - Skype
 - 7-Zip
 - RAR3-hp
+- RAR5
 - PDF 1.1 - 1.3 (Acrobat 2 - 4)
 - PDF 1.4 - 1.6 (Acrobat 5 - 8)
 - PDF 1.7 Level 3 (Acrobat 9)

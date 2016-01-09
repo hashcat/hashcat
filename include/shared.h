@@ -352,6 +352,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_12700   64
 #define KERNEL_ACCEL_12800   64
 #define KERNEL_ACCEL_12900   8
+#define KERNEL_ACCEL_13000   8
 
 #define KERNEL_LOOPS_0       256
 #define KERNEL_LOOPS_10      256
@@ -530,6 +531,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_12700   10
 #define KERNEL_LOOPS_12800   100
 #define KERNEL_LOOPS_12900   64
+#define KERNEL_LOOPS_13000   64
 
 /**
  * Strings
@@ -676,6 +678,7 @@ extern hc_thread_mutex_t mux_display;
 #define HT_12700  "Blockchain, My Wallet"
 #define HT_12800  "MS-AzureSync PBKDF2-HMAC-SHA256"
 #define HT_12900  "Android FDE (Samsung DEK)"
+#define HT_13000  "RAR5"
 
 #define HT_00011  "Joomla < 2.5.18"
 #define HT_00012  "PostgreSQL"
@@ -1007,6 +1010,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_12800 11 + 1 + 20 + 1 + 5 + 1 + 64
 #define DISPLAY_LEN_MIN_12900 64 + 64 + 32
 #define DISPLAY_LEN_MAX_12900 64 + 64 + 32
+#define DISPLAY_LEN_MIN_13000 1 + 4 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 32 + 1 + 1 + 1 + 16
+#define DISPLAY_LEN_MAX_13000 1 + 4 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 32 + 1 + 1 + 1 + 16
 
 #define DISPLAY_LEN_MIN_11    32 + 1 + 16
 #define DISPLAY_LEN_MAX_11    32 + 1 + 32
@@ -1264,6 +1269,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_MYWALLET        12700
 #define KERN_TYPE_MS_DRSR         12800
 #define KERN_TYPE_ANDROIDFDE_SAMSUNG  12900
+#define KERN_TYPE_RAR5            13000
 
 /**
  * signatures
@@ -1332,6 +1338,7 @@ extern hc_thread_mutex_t mux_display;
 #define SIGNATURE_RAR3            "$RAR3$"
 #define SIGNATURE_MYWALLET        "$blockchain$"
 #define SIGNATURE_MS_DRSR         "v1;PPH1_MD4"
+#define SIGNATURE_RAR5            "$rar5$"
 
 /**
  * Default iteration numbers
@@ -1382,6 +1389,7 @@ extern hc_thread_mutex_t mux_display;
 #define ROUNDS_MYWALLET       10
 #define ROUNDS_MS_DRSR        100
 #define ROUNDS_ANDROIDFDE_SAMSUNG 4096
+#define ROUNDS_RAR5           (1 << 15)
 
 /**
  * salt types
@@ -1861,6 +1869,7 @@ int pbkdf2_sha512_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 int ecryptfs_parse_hash     (char *input_buf, uint input_len, hash_t *hash_buf);
 int bsdicrypt_parse_hash    (char *input_buf, uint input_len, hash_t *hash_buf);
 int rar3hp_parse_hash       (char *input_buf, uint input_len, hash_t *hash_buf);
+int rar5_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf);
 int cf10_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf);
 int mywallet_parse_hash     (char *input_buf, uint input_len, hash_t *hash_buf);
 int ms_drsr_parse_hash      (char *input_buf, uint input_len, hash_t *hash_buf);

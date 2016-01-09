@@ -5611,6 +5611,7 @@ char *strhashtype (const uint hash_mode)
     case 12700: return ((char *) HT_12700); break;
     case 12800: return ((char *) HT_12800); break;
     case 12900: return ((char *) HT_12900); break;
+    case 13000: return ((char *) HT_13000); break;
   }
 
   return ((char *) "Unknown");
@@ -8068,6 +8069,22 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
       salt.salt_buf[ 3]
     );
   }
+  else if (hash_mode == 13000)
+  {
+    snprintf (out_buf, len-1, "$rar5$16$%08x%08x%08x%08x$%u$%08x%08x%08x%08x$8$%08x%08x",
+      salt.salt_buf[0],
+      salt.salt_buf[1],
+      salt.salt_buf[2],
+      salt.salt_buf[3],
+      salt.salt_sign[0],
+      salt.salt_buf[4],
+      salt.salt_buf[5],
+      salt.salt_buf[6],
+      salt.salt_buf[7],
+      byte_swap_32 (digest_buf[0]),
+      byte_swap_32 (digest_buf[1])
+    );
+  }
   else
   {
     if (hash_type == HASH_TYPE_MD4)
@@ -9023,6 +9040,7 @@ uint set_kernel_accel (uint hash_mode)
     case 12700: return GET_ACCEL (12700);
     case 12800: return GET_ACCEL (12800);
     case 12900: return GET_ACCEL (12900);
+    case 13000: return GET_ACCEL (13000);
   }
 
   return 0;
@@ -9209,6 +9227,7 @@ uint set_kernel_loops (uint hash_mode)
     case 12700: return GET_LOOPS (12700);
     case 12800: return GET_LOOPS (12800);
     case 12900: return GET_LOOPS (12900);
+    case 13000: return GET_LOOPS (13000);
   }
 
   return 0;
@@ -18359,6 +18378,116 @@ int rar3hp_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   digest[0] = 0xc43d7b00;
   digest[1] = 0x40070000;
+  digest[2] = 0;
+  digest[3] = 0;
+
+  return (PARSER_OK);
+}
+
+int rar5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_13000) || (input_len > DISPLAY_LEN_MAX_13000)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_RAR5, input_buf, 1 + 4 + 1)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  uint32_t *digest = (uint32_t *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  /**
+   * parse line
+   */
+
+  char *param0_pos = input_buf + 1 + 4 + 1;
+
+  char *param1_pos = strchr (param0_pos, '$');
+
+  if (param1_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint32_t param0_len = param1_pos - param0_pos;
+
+  param1_pos++;
+
+  char *param2_pos = strchr (param1_pos, '$');
+
+  if (param2_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint32_t param1_len = param2_pos - param1_pos;
+
+  param2_pos++;
+
+  char *param3_pos = strchr (param2_pos, '$');
+
+  if (param3_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint32_t param2_len = param3_pos - param2_pos;
+
+  param3_pos++;
+
+  char *param4_pos = strchr (param3_pos, '$');
+
+  if (param4_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint32_t param3_len = param4_pos - param3_pos;
+
+  param4_pos++;
+
+  char *param5_pos = strchr (param4_pos, '$');
+
+  if (param5_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint32_t param4_len = param5_pos - param4_pos;
+
+  param5_pos++;
+
+  uint32_t param5_len = input_len - 1 - 4 - 1 - param0_len - 1 - param1_len - 1 - param2_len - 1 - param3_len - 1 - param4_len - 1;
+
+  char *salt_buf = param1_pos;
+  char *iv       = param3_pos;
+  char *pswcheck = param5_pos;
+
+  const uint salt_len     = atoi (param0_pos);
+  const uint iterations   = atoi (param2_pos);
+  const uint pswcheck_len = atoi (param4_pos);
+
+  /**
+   * verify some data
+   */
+
+  if (param1_len   != 32) return (PARSER_SALT_VALUE);
+  if (param3_len   != 32) return (PARSER_SALT_VALUE);
+  if (param5_len   != 16) return (PARSER_SALT_VALUE);
+
+  if (salt_len     != 16) return (PARSER_SALT_VALUE);
+  if (iterations   ==  0) return (PARSER_SALT_VALUE);
+  if (pswcheck_len !=  8) return (PARSER_SALT_VALUE);
+
+  /**
+   * store data
+   */
+
+  salt->salt_buf[0] = hex_to_uint (&salt_buf[ 0]);
+  salt->salt_buf[1] = hex_to_uint (&salt_buf[ 8]);
+  salt->salt_buf[2] = hex_to_uint (&salt_buf[16]);
+  salt->salt_buf[3] = hex_to_uint (&salt_buf[24]);
+
+  salt->salt_buf[4] = hex_to_uint (&iv[ 0]);
+  salt->salt_buf[5] = hex_to_uint (&iv[ 8]);
+  salt->salt_buf[6] = hex_to_uint (&iv[16]);
+  salt->salt_buf[7] = hex_to_uint (&iv[24]);
+
+  salt->salt_len = 16 + 16;
+
+  salt->salt_sign[0] = iterations;
+
+  salt->salt_iter = ((1 << iterations) + 32) - 1;
+
+  /**
+   * digest buf
+   */
+
+  digest[0] = hex_to_uint (&pswcheck[ 0]);
+  digest[1] = hex_to_uint (&pswcheck[ 8]);
   digest[2] = 0;
   digest[3] = 0;
 
