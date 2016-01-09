@@ -6605,8 +6605,6 @@ END_CODE
 
     my $hash = $pbkdf2->PBKDF2 ($salt_buf_bin, $word_buf);
 
-printf ("%s\n", unpack ("H*", $hash));
-
     my $hash_final = substr ($hash,  0, 8)
                    ^ substr ($hash,  8, 8)
                    ^ substr ($hash, 16, 8)

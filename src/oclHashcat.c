@@ -9911,6 +9911,7 @@ int main (int argc, char **argv)
       case 11900:  esalt_size = sizeof (pbkdf2_md5_t);    break;
       case 12000:  esalt_size = sizeof (pbkdf2_sha1_t);   break;
       case 12100:  esalt_size = sizeof (pbkdf2_sha512_t); break;
+      case 13000:  esalt_size = sizeof (rar5_t);          break;
     }
 
     data.esalt_size = esalt_size;

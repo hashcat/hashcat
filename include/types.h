@@ -33,6 +33,12 @@ typedef struct
 
 typedef struct
 {
+  uint iv[4];
+
+} rar5_t;
+
+typedef struct
+{
   int   V;
   int   R;
   int   P;

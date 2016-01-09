@@ -8071,16 +8071,20 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
   }
   else if (hash_mode == 13000)
   {
+    rar5_t *rar5s = (rar5_t *) data.esalts_buf;
+
+    rar5_t *rar5 = &rar5s[salt_pos];
+
     snprintf (out_buf, len-1, "$rar5$16$%08x%08x%08x%08x$%u$%08x%08x%08x%08x$8$%08x%08x",
       salt.salt_buf[0],
       salt.salt_buf[1],
       salt.salt_buf[2],
       salt.salt_buf[3],
       salt.salt_sign[0],
-      salt.salt_buf[4],
-      salt.salt_buf[5],
-      salt.salt_buf[6],
-      salt.salt_buf[7],
+      rar5->iv[0],
+      rar5->iv[1],
+      rar5->iv[2],
+      rar5->iv[3],
       byte_swap_32 (digest_buf[0]),
       byte_swap_32 (digest_buf[1])
     );
@@ -18394,6 +18398,8 @@ int rar5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt_t *salt = hash_buf->salt;
 
+  rar5_t *rar5 = (rar5_t *) hash_buf->esalt;
+
   /**
    * parse line
    */
@@ -18471,12 +18477,12 @@ int rar5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   salt->salt_buf[2] = hex_to_uint (&salt_buf[16]);
   salt->salt_buf[3] = hex_to_uint (&salt_buf[24]);
 
-  salt->salt_buf[4] = hex_to_uint (&iv[ 0]);
-  salt->salt_buf[5] = hex_to_uint (&iv[ 8]);
-  salt->salt_buf[6] = hex_to_uint (&iv[16]);
-  salt->salt_buf[7] = hex_to_uint (&iv[24]);
+  rar5->iv[0] = hex_to_uint (&iv[ 0]);
+  rar5->iv[1] = hex_to_uint (&iv[ 8]);
+  rar5->iv[2] = hex_to_uint (&iv[16]);
+  rar5->iv[3] = hex_to_uint (&iv[24]);
 
-  salt->salt_len = 16 + 16;
+  salt->salt_len = 16;
 
   salt->salt_sign[0] = iterations;
 
