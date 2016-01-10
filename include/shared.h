@@ -1565,6 +1565,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_RUN_2           2000
 #define KERN_RUN_23          2500
 #define KERN_RUN_3           3000
+#define KERN_RUN_WEAK        9000
 
 /*
  * functions

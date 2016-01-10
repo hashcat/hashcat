@@ -2343,6 +2343,7 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     case KERN_RUN_2:    kernel = device_param->kernel2;     break;
     case KERN_RUN_23:   kernel = device_param->kernel23;    break;
     case KERN_RUN_3:    kernel = device_param->kernel3;     break;
+    case KERN_RUN_WEAK: kernel = device_param->kernel_weak; break;
   }
 
   hc_clSetKernelArg (kernel, 21, sizeof (cl_uint), device_param->kernel_params[21]);
@@ -2359,15 +2360,15 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 
   if ((data.opts_type & OPTS_TYPE_PT_BITSLICE) && (data.attack_mode == ATTACK_MODE_BF))
   {
-    const size_t global_work_size[3] = { num_elements,      32, 1 };
-    const size_t local_work_size[3]  = { kernel_threads / 32,  32, 1 };
+    const size_t global_work_size[3] = { num_elements,        32, 1 };
+    const size_t local_work_size[3]  = { kernel_threads / 32, 32, 1 };
 
     hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL);
   }
   else
   {
-    const size_t global_work_size[3] = { num_elements, 1, 1 };
-    const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
+    const size_t global_work_size[3] = { num_elements,   1, 1 };
+    const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
     hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
   }
@@ -4538,7 +4539,7 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
 
   if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    run_kernel (KERN_RUN_1, device_param, 1);
+    run_kernel (KERN_RUN_WEAK, device_param, 1);
   }
   else
   {
@@ -13281,6 +13282,148 @@ int main (int argc, char **argv)
       sprintf (build_opts, "-I%s/ -DVENDOR_ID=%d -DCUDA_ARCH=%d", shared_dir, vendor_id, (device_param->sm_major * 100) + device_param->sm_minor);
 
       /**
+       * a0 kernel, required for some fast hashes to make weak_hash_check work
+       */
+
+      const uint add_flag = OPTS_TYPE_PT_ADD01
+                          | OPTS_TYPE_PT_ADD02
+                          | OPTS_TYPE_PT_ADD80
+                          | OPTS_TYPE_PT_ADDBITS14
+                          | OPTS_TYPE_PT_ADDBITS15
+                          | OPTS_TYPE_ST_ADD01
+                          | OPTS_TYPE_ST_ADD02
+                          | OPTS_TYPE_ST_ADD80
+                          | OPTS_TYPE_ST_ADDBITS14
+                          | OPTS_TYPE_ST_ADDBITS15;
+
+      if ((weak_hash_threshold) && (attack_exec == ATTACK_EXEC_INSIDE_KERNEL) && (opts_type & add_flag))
+      {
+        /**
+         * kernel source filename
+         */
+
+        char source_file[256];
+
+        memset (source_file, 0, sizeof (source_file));
+
+        generate_source_kernel_filename (attack_exec, ATTACK_KERN_STRAIGHT, kern_type, shared_dir, source_file);
+
+        struct stat sst;
+
+        if (stat (source_file, &sst) == -1)
+        {
+          log_error ("ERROR: %s: %s", source_file, strerror (errno));
+
+          return -1;
+        }
+
+        /**
+         * kernel cached filename
+         */
+
+        char cached_file[256];
+
+        memset (cached_file, 0, sizeof (cached_file));
+
+        generate_cached_kernel_filename (attack_exec, ATTACK_KERN_STRAIGHT, kern_type, profile_dir, device_name_chksum, vendor_id, cached_file);
+
+        int cached = 1;
+
+        struct stat cst;
+
+        if (stat (cached_file, &cst) == -1)
+        {
+          cached = 0;
+        }
+
+        /**
+         * kernel compile or load
+         */
+
+        size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
+
+        const unsigned char **kernel_sources = (const unsigned char **) mymalloc (sizeof (unsigned char *));
+
+        if (force_jit_compilation == 0)
+        {
+          if (cached == 0)
+          {
+            if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+
+            load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+
+            device_param->program_weak = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+
+            hc_clBuildProgram (device_param->program_weak, 1, &device_param->device, build_opts, NULL, NULL);
+
+            size_t binary_size;
+
+            clGetProgramInfo (device_param->program_weak, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+            unsigned char *binary = (unsigned char *) mymalloc (binary_size);
+
+            clGetProgramInfo (device_param->program_weak, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+
+            writeProgramBin (cached_file, binary, binary_size);
+
+            local_free (binary);
+          }
+          else
+          {
+            if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+
+            load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
+
+            device_param->program_weak = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL);
+
+            hc_clBuildProgram (device_param->program_weak, 1, &device_param->device, build_opts, NULL, NULL);
+          }
+        }
+        else
+        {
+          if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
+
+          load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+
+          device_param->program_weak = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+
+          if (force_jit_compilation == 1500)
+          {
+            sprintf (build_opts, "%s -DDESCRYPT_SALT=%d", build_opts, data.salts_buf[0].salt_buf[0]);
+          }
+          else if (force_jit_compilation == 8900)
+          {
+            sprintf (build_opts, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.salts_buf[0].scrypt_tmto);
+          }
+
+          hc_clBuildProgram (device_param->program_weak, 1, &device_param->device, build_opts, NULL, NULL);
+        }
+
+        local_free (kernel_lengths);
+        local_free (kernel_sources[0]);
+        local_free (kernel_sources);
+
+        // this is mostly for debug
+
+        size_t ret_val_size = 0;
+
+        clGetProgramBuildInfo (device_param->program_weak, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+
+        if (ret_val_size > 2)
+        {
+          char *build_log = (char *) mymalloc (ret_val_size + 1);
+
+          memset (build_log, 0, ret_val_size + 1);
+
+          clGetProgramBuildInfo (device_param->program_weak, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
+
+          puts (build_log);
+
+          myfree (build_log);
+        }
+      }
+
+      /**
        * main kernel
        */
 
@@ -13904,17 +14047,51 @@ int main (int argc, char **argv)
         }
         else
         {
-          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d",  kern_type, 4);
+          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d", kern_type, 4);
 
           device_param->kernel1 = hc_clCreateKernel (device_param->program, kernel_name);
 
-          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d",  kern_type, 8);
+          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d", kern_type, 8);
 
           device_param->kernel2 = hc_clCreateKernel (device_param->program, kernel_name);
 
-          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d",  kern_type, 16);
+          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d", kern_type, 16);
 
           device_param->kernel3 = hc_clCreateKernel (device_param->program, kernel_name);
+        }
+
+        if (weak_hash_threshold)
+        {
+          if (opts_type & add_flag)
+          {
+            if (opti_type & OPTI_TYPE_SINGLE_HASH)
+            {
+              snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_s%02d", kern_type, 4);
+
+              device_param->kernel_weak = hc_clCreateKernel (device_param->program_weak, kernel_name);
+            }
+            else
+            {
+              snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d", kern_type, 4);
+
+              device_param->kernel_weak = hc_clCreateKernel (device_param->program_weak, kernel_name);
+            }
+          }
+          else
+          {
+            if (opti_type & OPTI_TYPE_SINGLE_HASH)
+            {
+              snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_s%02d", kern_type, 4);
+
+              device_param->kernel_weak = hc_clCreateKernel (device_param->program, kernel_name);
+            }
+            else
+            {
+              snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d", kern_type, 4);
+
+              device_param->kernel_weak = hc_clCreateKernel (device_param->program, kernel_name);
+            }
+          }
         }
 
         if (data.attack_mode == ATTACK_MODE_BF)
@@ -13968,6 +14145,11 @@ int main (int argc, char **argv)
 
         if (opts_type & OPTS_TYPE_HOOK12) hc_clSetKernelArg (device_param->kernel12, i, sizeof (cl_mem), device_param->kernel_params[i]);
         if (opts_type & OPTS_TYPE_HOOK23) hc_clSetKernelArg (device_param->kernel23, i, sizeof (cl_mem), device_param->kernel_params[i]);
+
+        if (weak_hash_threshold)
+        {
+          hc_clSetKernelArg (device_param->kernel_weak, i, sizeof (cl_mem), device_param->kernel_params[i]);
+        }
       }
 
       for (uint i = 21; i <= 31; i++)
@@ -13978,6 +14160,11 @@ int main (int argc, char **argv)
 
         if (opts_type & OPTS_TYPE_HOOK12) hc_clSetKernelArg (device_param->kernel12, i, sizeof (cl_uint), device_param->kernel_params[i]);
         if (opts_type & OPTS_TYPE_HOOK23) hc_clSetKernelArg (device_param->kernel23, i, sizeof (cl_uint), device_param->kernel_params[i]);
+
+        if (weak_hash_threshold)
+        {
+          hc_clSetKernelArg (device_param->kernel_weak, i, sizeof (cl_uint), device_param->kernel_params[i]);
+        }
       }
 
       if (attack_mode == ATTACK_MODE_BF)

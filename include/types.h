@@ -900,12 +900,14 @@ struct __hc_device_param
   cl_kernel         kernel_amp;
   cl_kernel         kernel_tb;
   cl_kernel         kernel_tm;
+  cl_kernel         kernel_weak;
 
   cl_context        context;
 
   cl_program        program;
   cl_program        program_mp;
   cl_program        program_amp;
+  cl_program        program_weak;
 
   cl_command_queue  command_queue;
 
@@ -963,7 +965,6 @@ struct __hc_device_param
   uint64_t          kernel_params_mp_l_buf64[PARAMCNT];
 
   uint32_t          kernel_params_amp_buf32[PARAMCNT];
-
 };
 
 typedef struct __hc_device_param hc_device_param_t;
@@ -1011,7 +1012,7 @@ typedef struct
   uint                attack_exec;
 
   uint                kernel_rules_cnt;
-  kernel_rule_t         *kernel_rules_buf;
+  kernel_rule_t      *kernel_rules_buf;
 
   uint                combs_mode;
   uint                combs_cnt;
