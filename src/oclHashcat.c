@@ -1994,24 +1994,27 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
     }
   }
 
-  if (data.opti_type & OPTI_TYPE_BRUTE_FORCE) // lots of optimizations can happen here
+  if (data.attack_mode == ATTACK_MODE_BF)
   {
-    if (data.opti_type & OPTI_TYPE_SINGLE_HASH)
+    if (data.opti_type & OPTI_TYPE_BRUTE_FORCE) // lots of optimizations can happen here
     {
-      if (data.opti_type & OPTI_TYPE_APPENDED_SALT)
+      if (data.opti_type & OPTI_TYPE_SINGLE_HASH)
       {
-        plain_len = plain_len - data.salts_buf[0].salt_len;
-      }
-    }
-
-    if (data.opts_type & OPTS_TYPE_PT_UNICODE)
-    {
-      for (uint i = 0, j = 0; i < plain_len; i += 2, j += 1)
-      {
-        plain_ptr[j] = plain_ptr[i];
+        if (data.opti_type & OPTI_TYPE_APPENDED_SALT)
+        {
+          plain_len = plain_len - data.salts_buf[0].salt_len;
+        }
       }
 
-      plain_len = plain_len / 2;
+      if (data.opts_type & OPTS_TYPE_PT_UNICODE)
+      {
+        for (uint i = 0, j = 0; i < plain_len; i += 2, j += 1)
+        {
+          plain_ptr[j] = plain_ptr[i];
+        }
+
+        plain_len = plain_len / 2;
+      }
     }
   }
 
@@ -4523,15 +4526,17 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
   device_param->kernel_params_buf32[30] = 0;
   device_param->kernel_params_buf32[31] = 1;
 
-  char *dictfile_old  = data.dictfile;
-  char *dictfile2_old = data.dictfile2;
-  char *mask_old      = data.mask;
+  char *dictfile_old    = data.dictfile;
+  char *dictfile2_old   = data.dictfile2;
+  char *mask_old        = data.mask;
+  int   attack_mode_old = data.attack_mode;
 
   const char *weak_hash_check = "weak-hash-check";
 
-  data.dictfile  = (char *) weak_hash_check;
-  data.dictfile2 = (char *) weak_hash_check;
-  data.mask      = (char *) weak_hash_check;
+  data.dictfile    = (char *) weak_hash_check;
+  data.dictfile2   = (char *) weak_hash_check;
+  data.mask        = (char *) weak_hash_check;
+  data.attack_mode = ATTACK_MODE_STRAIGHT;
 
   /**
    * run the kernel
@@ -4581,9 +4586,10 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
   device_param->kernel_params_buf32[30] = 0;
   device_param->kernel_params_buf32[31] = 0;
 
-  data.dictfile  = dictfile_old;
-  data.dictfile2 = dictfile2_old;
-  data.mask      = mask_old;
+  data.dictfile    = dictfile_old;
+  data.dictfile2   = dictfile2_old;
+  data.mask        = mask_old;
+  data.attack_mode = attack_mode_old;
 }
 
 // hlfmt hashcat
@@ -16466,10 +16472,13 @@ int main (int argc, char **argv)
       if (device_param->kernel_tb)          hc_clReleaseKernel        (device_param->kernel_tb);
       if (device_param->kernel_tm)          hc_clReleaseKernel        (device_param->kernel_tm);
       if (device_param->kernel_amp)         hc_clReleaseKernel        (device_param->kernel_amp);
+      if (device_param->kernel_weak)        hc_clReleaseKernel        (device_param->kernel_weak);
 
       if (device_param->program)            hc_clReleaseProgram       (device_param->program);
       if (device_param->program_mp)         hc_clReleaseProgram       (device_param->program_mp);
       if (device_param->program_amp)        hc_clReleaseProgram       (device_param->program_amp);
+      if (device_param->program_weak)       hc_clReleaseProgram       (device_param->program_weak);
+
       if (device_param->command_queue)      hc_clReleaseCommandQueue  (device_param->command_queue);
       if (device_param->context)            hc_clReleaseContext       (device_param->context);
     }
