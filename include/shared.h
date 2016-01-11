@@ -1636,6 +1636,7 @@ void handle_show_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int inpu
 void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp);
 
 uint devices_to_devicemask (char *opencl_devices);
+cl_device_type setup_device_types_filter (char *opencl_device_types);
 uint get_random_num (uint min, uint max);
 uint32_t mydivc32 (const uint32_t dividend, const uint32_t divisor);
 uint64_t mydivc64 (const uint64_t dividend, const uint64_t divisor);

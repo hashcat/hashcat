@@ -386,6 +386,7 @@ const char *USAGE_BIG[] =
   "       --bitmap-max=NUM              Maximum number of bits allowed for bitmaps",
   "       --cpu-affinity=STR            Locks to CPU devices, separate with comma",
   "  -d,  --opencl-devices=STR          OpenCL devices to use, separate with comma",
+  "       --opencl-device-types=STR     OpenCL device-types to use, separate with comma, see references below",
   "       --opencl-platform=NUM         OpenCL platform to use, in case multiple platforms are present",
   "  -w,  --workload-profile=NUM        Enable a specific workload profile, see references below",
   "  -n,  --kernel-accel=NUM            Workload tuning: 1, 8, 40, 80, 160",
@@ -439,6 +440,12 @@ const char *USAGE_BIG[] =
   "",
   "    0 = Manual Tuning",
   "    1 = Performance Tuning, default",
+  "",
+  "* OpenCL device-types:",
+  "",
+  "    1 = CPU devices",
+  "    2 = GPU devices",
+  "    3 = Accelerator devices (FPGA, CELL Blade, etc.)",
   "",
   "* Outfile Formats:",
   "",
@@ -5102,6 +5109,7 @@ int main (int argc, char **argv)
   char *cpu_affinity      = NULL;
   char *opencl_devices    = NULL;
   char *opencl_platform   = NULL;
+  char *opencl_device_types = NULL;
   char *truecrypt_keyfiles = NULL;
   uint  workload_profile  = WORKLOAD_PROFILE;
   uint  kernel_accel      = KERNEL_ACCEL;
@@ -5176,6 +5184,7 @@ int main (int argc, char **argv)
   #define IDX_CPU_AFFINITY      0xff25
   #define IDX_OPENCL_DEVICES    'd'
   #define IDX_OPENCL_PLATFORM   0xff72
+  #define IDX_OPENCL_DEVICE_TYPES 0xff73
   #define IDX_WORKLOAD_PROFILE  'w'
   #define IDX_KERNEL_ACCEL      'n'
   #define IDX_KERNEL_LOOPS      'u'
@@ -5256,6 +5265,7 @@ int main (int argc, char **argv)
     {"cpu-affinity",      required_argument, 0, IDX_CPU_AFFINITY},
     {"opencl-devices",    required_argument, 0, IDX_OPENCL_DEVICES},
     {"opencl-platform",   required_argument, 0, IDX_OPENCL_PLATFORM},
+    {"opencl-device-types", required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
     {"workload-profile",  required_argument, 0, IDX_WORKLOAD_PROFILE},
     {"kernel-accel",      required_argument, 0, IDX_KERNEL_ACCEL},
     {"kernel-loops",      required_argument, 0, IDX_KERNEL_LOOPS},
@@ -5544,6 +5554,8 @@ int main (int argc, char **argv)
       case IDX_CPU_AFFINITY:      cpu_affinity      = optarg;          break;
       case IDX_OPENCL_DEVICES:    opencl_devices    = optarg;          break;
       case IDX_OPENCL_PLATFORM:   opencl_platform   = optarg;          break;
+      case IDX_OPENCL_DEVICE_TYPES:
+                                  opencl_device_types = optarg;        break;
       case IDX_WORKLOAD_PROFILE:  workload_profile  = atoi (optarg);   break;
       case IDX_KERNEL_ACCEL:      kernel_accel      = atoi (optarg);
                                   kernel_accel_chgd = 1;               break;
@@ -6377,6 +6389,7 @@ int main (int argc, char **argv)
   logfile_top_string (debug_file);
   logfile_top_string (opencl_devices);
   logfile_top_string (opencl_platform);
+  logfile_top_string (opencl_device_types);
   logfile_top_string (induction_dir);
   logfile_top_string (markov_hcstat);
   logfile_top_string (outfile);
@@ -6385,6 +6398,12 @@ int main (int argc, char **argv)
   logfile_top_string (rule_buf_r);
   logfile_top_string (session);
   logfile_top_string (truecrypt_keyfiles);
+
+  /**
+   * device types filter
+   */
+
+  cl_device_type device_types_filter = setup_device_types_filter (opencl_device_types);
 
   /**
    * devices
@@ -12405,7 +12424,6 @@ int main (int argc, char **argv)
 
     CL_platform_sel -= 1;
 
-
     cl_platform_id CL_platform = CL_platforms[CL_platform_sel];
 
     char CL_platform_vendor[INFOSZ];
@@ -12414,21 +12432,15 @@ int main (int argc, char **argv)
 
     hc_clGetPlatformInfo (CL_platform, CL_PLATFORM_VENDOR, sizeof (CL_platform_vendor), CL_platform_vendor, NULL);
 
-    cl_device_type device_type_filter;
-
     uint vendor_id;
 
     if (strcmp (CL_platform_vendor, CL_VENDOR_AMD) == 0)
     {
       vendor_id = VENDOR_ID_AMD;
-
-      device_type_filter = CL_DEVICE_TYPE_GPU;
     }
     else if (strcmp (CL_platform_vendor, CL_VENDOR_NV) == 0)
     {
       vendor_id = VENDOR_ID_NV;
-
-      device_type_filter = CL_DEVICE_TYPE_GPU;
 
       // make sure that we do not directly control the fan for NVidia
 
@@ -12449,14 +12461,10 @@ int main (int argc, char **argv)
       }
 
       vendor_id = VENDOR_ID_GENERIC;
-
-      device_type_filter = CL_DEVICE_TYPE_DEFAULT;
     }
     else
     {
       vendor_id = VENDOR_ID_GENERIC;
-
-      device_type_filter = CL_DEVICE_TYPE_DEFAULT;
     }
 
     if (vendor_id == VENDOR_ID_GENERIC)
@@ -12495,7 +12503,7 @@ int main (int argc, char **argv)
 
     uint devices_all_cnt = 0;
 
-    hc_clGetDeviceIDs (CL_platform, device_type_filter, DEVICES_MAX, devices_all, (uint *) &devices_all_cnt);
+    hc_clGetDeviceIDs (CL_platform, device_types_filter, DEVICES_MAX, devices_all, (uint *) &devices_all_cnt);
 
     int hm_adapters_all = devices_all_cnt;
 

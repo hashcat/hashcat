@@ -5106,6 +5106,41 @@ void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int inpu
   if (weak_hash_found == 1) myfree (pot_right_ptr);
 }
 
+cl_device_type setup_device_types_filter (char *opencl_device_types)
+{
+  cl_device_type device_types_filter = 0;
+
+  if (opencl_device_types)
+  {
+    char *device_types = strdup (opencl_device_types);
+
+    char *next = strtok (device_types, ",");
+
+    do
+    {
+      int device_type = atoi (next);
+
+      if (device_type < 1 || device_type > 3)
+      {
+        log_error ("ERROR: invalid device_type %u specified", device_type);
+
+        exit (-1);
+      }
+
+      device_types_filter |= 1 << device_type;
+
+    } while ((next = strtok (NULL, ",")) != NULL);
+
+    free (device_types);
+  }
+  else
+  {
+    device_types_filter = CL_DEVICE_TYPE_ALL;
+  }
+
+  return device_types_filter;
+}
+
 uint devices_to_devicemask (char *opencl_devices)
 {
   uint opencl_devicemask = 0;
