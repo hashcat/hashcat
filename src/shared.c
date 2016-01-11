@@ -3060,6 +3060,8 @@ int hm_get_adapter_index_amd (hm_attrs_t *hm_device, uint32_t *valid_adl_device_
 
 int hm_get_temperature_with_device_id (const uint device_id)
 {
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
   if (data.vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_dll)
@@ -3114,6 +3116,9 @@ int hm_get_temperature_with_device_id (const uint device_id)
 
 int hm_get_fanspeed_with_device_id (const uint device_id)
 {
+  // we shouldn't really need this extra CL_DEVICE_TYPE_GPU check, because fan_supported should not be set w/ CPUs
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
   if (data.hm_device[device_id].fan_supported == 1)
   {
     if (data.vendor_id == VENDOR_ID_AMD)
@@ -3172,6 +3177,8 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
 
 int hm_get_utilization_with_device_id (const uint device_id)
 {
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
   if (data.vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_dll)
@@ -3248,6 +3255,22 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
   }
 
   return -1;
+}
+
+// helper function for status display
+
+void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value)
+{
+  #define VALUE_NOT_AVAILABLE "N/A"
+
+  if (value == -1)
+  {
+    snprintf (target_buf, max_buf_size, VALUE_NOT_AVAILABLE);
+  }
+  else
+  {
+    snprintf (target_buf, max_buf_size, "%2d%s", value, suffix);
+  }
 }
 
 /**

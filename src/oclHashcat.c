@@ -1492,32 +1492,42 @@ void status_display ()
 
     for (uint i = 0; i < data.devices_cnt; i++)
     {
+      #define HM_STR_BUF_SIZE 255
+
       if (data.hm_device[i].fan_supported == 1)
       {
-        const int temperature = hm_get_temperature_with_device_id (i);
-        const int utilization = hm_get_utilization_with_device_id (i);
-        const int fanspeed    = hm_get_fanspeed_with_device_id    (i);
+        char temperature[HM_STR_BUF_SIZE];
+        char utilization[HM_STR_BUF_SIZE];
+        char fanspeed[HM_STR_BUF_SIZE];
+
+        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "%", hm_get_temperature_with_device_id (i));
+        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "c", hm_get_utilization_with_device_id (i));
 
         if (data.vendor_id == VENDOR_ID_AMD)
         {
-          log_info ("HWMon.GPU.#%d...: %2d%% Util, %2dc Temp, %2d%% Fan", i + 1, utilization, temperature, fanspeed);
+          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (i));
         }
 
         if (data.vendor_id == VENDOR_ID_NV)
         {
           #ifdef LINUX
-          log_info ("HWMon.GPU.#%d...: %2d%% Util, %2dc Temp, %2d%% Fan", i + 1, utilization, temperature, fanspeed);
+          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (i));
           #else
-          log_info ("HWMon.GPU.#%d...: %2d%% Util, %2dc Temp, %2drpm Fan", i + 1, utilization, temperature, fanspeed);
+          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "rpm", hm_get_fanspeed_with_device_id (i));
           #endif
         }
+
+        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan", i + 1, utilization, temperature, fanspeed);
       }
       else
       {
-        const int temperature = hm_get_temperature_with_device_id (i);
-        const int utilization = hm_get_utilization_with_device_id (i);
+        char temperature[HM_STR_BUF_SIZE];
+        char utilization[HM_STR_BUF_SIZE];
 
-        log_info ("HWMon.GPU.#%d...: %2d%% Util, %2dc Temp, N/A Fan", i + 1, utilization, temperature);
+        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "%", hm_get_temperature_with_device_id (i));
+        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "c", hm_get_utilization_with_device_id (i));
+
+        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, N/A Fan", i + 1, utilization, temperature);
       }
     }
 
@@ -3423,6 +3433,8 @@ static void *thread_monitor (void *p)
 
       for (uint i = 0; i < data.devices_cnt; i++)
       {
+        if ((data.devices_param[i].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
         const int temperature = hm_get_temperature_with_device_id (i);
 
         if (temperature > (int) data.gpu_temp_abort)
@@ -12626,10 +12638,22 @@ int main (int argc, char **argv)
      * devices mask and properties
      */
 
+    uint hm_adapter_index = 0;
+
     uint devices_cnt = 0;
 
     for (uint device_all_id = 0; device_all_id < devices_all_cnt; device_all_id++)
     {
+      const uint device_id = devices_cnt;
+
+      devices[device_id] = devices_all[device_all_id];
+
+      cl_device_type device_type;
+
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+
+      // skip the device, if the user did specify a list of GPUs to skip
+
       if (opencl_devicemask)
       {
         uint device_all_id_mask = 1 << device_all_id;
@@ -12638,30 +12662,26 @@ int main (int argc, char **argv)
         {
           if (quiet == 0 && algorithm_pos == 0) log_info ("Device #%d: skipped by user", device_all_id_mask + 1);
 
+          if (device_type & CL_DEVICE_TYPE_GPU) hm_adapter_index++;
+
           continue;
         }
       }
-
-      const uint device_id = devices_cnt;
-
-      devices[device_id] = devices_all[device_all_id];
 
       char device_name[INFOSZ];
 
       memset (device_name, 0, sizeof (device_name));
 
-      cl_ulong        global_mem_size;
-      cl_ulong        max_mem_alloc_size;
-      cl_uint         max_clock_frequency;
-      cl_uint         max_compute_units;
-      cl_device_type  device_type;
+      cl_ulong global_mem_size;
+      cl_ulong max_mem_alloc_size;
+      cl_uint  max_clock_frequency;
+      cl_uint  max_compute_units;
 
       hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_NAME,                 sizeof (device_name),         &device_name,         NULL);
       hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_GLOBAL_MEM_SIZE,      sizeof (global_mem_size),     &global_mem_size,     NULL);
       hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE,   sizeof (max_mem_alloc_size),  &max_mem_alloc_size,  NULL);
       hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_CLOCK_FREQUENCY,  sizeof (max_clock_frequency), &max_clock_frequency, NULL);
       hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_COMPUTE_UNITS,    sizeof (max_compute_units),   &max_compute_units,   NULL);
-      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_TYPE,                 sizeof (device_type),         &device_type,         NULL);
 
       if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
       {
@@ -12674,9 +12694,23 @@ int main (int argc, char **argv)
                   (unsigned int) max_compute_units);
       }
 
-      // do something with device_type
+      // copy hm_adapter info to data.hm_device[]
 
-      memcpy (&data.hm_device[device_id], &hm_adapter_all[device_all_id], sizeof (hm_attrs_t));
+      uint hm_adapter_cur = hm_adapter_index;
+
+      if ((device_type & CL_DEVICE_TYPE_GPU) == 0)
+      {
+        // assign a CPU adapter (i.e. not initialized hm_adapter_all[] entry)
+
+        hm_adapter_cur = devices_all_cnt - 1;
+      }
+
+      memcpy (&data.hm_device[device_id], &hm_adapter_all[hm_adapter_cur], sizeof (hm_attrs_t));
+
+      if (device_type & CL_DEVICE_TYPE_GPU)
+      {
+        hm_adapter_index++;
+      }
 
       devices_cnt++;
     }

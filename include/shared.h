@@ -1698,6 +1698,8 @@ int hm_get_utilization_with_device_id (const uint device_id);
 
 int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed);
 
+void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value);
+
 void myabort ();
 void myquit ();
 
