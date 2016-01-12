@@ -12704,21 +12704,14 @@ int main (int argc, char **argv)
 
       // copy hm_adapter info to data.hm_device[]
 
-      uint hm_adapter_cur = hm_adapter_index;
-
-      if ((device_type & CL_DEVICE_TYPE_GPU) == 0)
-      {
-        // assign a CPU adapter (i.e. not initialized hm_adapter_all[] entry)
-
-        hm_adapter_cur = devices_all_cnt - 1;
-      }
-
-      memcpy (&data.hm_device[device_id], &hm_adapter_all[hm_adapter_cur], sizeof (hm_attrs_t));
-
       if (device_type & CL_DEVICE_TYPE_GPU)
       {
+        memcpy (&data.hm_device[device_id], &hm_adapter_all[hm_adapter_index], sizeof (hm_attrs_t));
+
         hm_adapter_index++;
       }
+      // this would be the CPU case (but it should be zeroed out already):
+      // else memset (&data.hm_device[device_id], 0, sizeof (hm_attrs_t));
 
       devices_cnt++;
     }
