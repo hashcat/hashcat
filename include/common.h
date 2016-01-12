@@ -93,6 +93,8 @@ void log_out (FILE *fp, const char *fmt, ...);
 void log_info (const char *fmt, ...);
 void log_error (const char *fmt, ...);
 
+typedef int bool; // this is ugly but ADL requires the bool datatype
+
 typedef uint32_t uint; // we should rename to u32, sooner or later, for consistency
 typedef uint64_t u64;
 

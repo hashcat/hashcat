@@ -1904,8 +1904,6 @@ void hc_signal (void c (int));
 
 #endif
 
-typedef int bool;
-
 bool class_num   (char c);
 bool class_lower (char c);
 bool class_upper (char c);

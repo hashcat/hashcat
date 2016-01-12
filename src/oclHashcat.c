@@ -2658,7 +2658,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
   uint innerloop_cnt  = 0;
 
   if      (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)   innerloop_step = kernel_loops;
-  else                                               innerloop_step = 1;
+  else                                                      innerloop_step = 1;
 
   if      (data.attack_kern == ATTACK_KERN_STRAIGHT) innerloop_cnt  = data.kernel_rules_cnt;
   else if (data.attack_kern == ATTACK_KERN_COMBI)    innerloop_cnt  = data.combs_cnt;
@@ -13826,6 +13826,7 @@ int main (int argc, char **argv)
 
       device_param->d_pws_buf       = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   size_pws,     NULL);
       device_param->d_pws_amp_buf   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   size_pws,     NULL);
+      device_param->d_rules_c       = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   size_rules_c, NULL); // we need this for weak-hash-check even if the user has choosen for ex: -a 3
       device_param->d_tmps          = hc_clCreateBuffer (device_param->context, CL_MEM_READ_WRITE,  size_tmps,    NULL);
       device_param->d_hooks         = hc_clCreateBuffer (device_param->context, CL_MEM_READ_WRITE,  size_hooks,   NULL);
       device_param->d_bitmap_s1_a   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
@@ -13857,6 +13858,7 @@ int main (int argc, char **argv)
 
       run_kernel_bzero (device_param, device_param->d_pws_buf,        size_pws);
       run_kernel_bzero (device_param, device_param->d_pws_amp_buf,    size_pws);
+      run_kernel_bzero (device_param, device_param->d_rules_c,        size_rules_c);
       run_kernel_bzero (device_param, device_param->d_tmps,           size_tmps);
       run_kernel_bzero (device_param, device_param->d_hooks,          size_hooks);
       run_kernel_bzero (device_param, device_param->d_plain_bufs,     size_plains);
@@ -13868,12 +13870,9 @@ int main (int argc, char **argv)
 
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        device_param->d_rules   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_rules,   NULL);
-        device_param->d_rules_c = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_rules_c, NULL);
+        device_param->d_rules = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_rules,   NULL);
 
         hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_rules, CL_TRUE, 0, size_rules, kernel_rules_buf, 0, NULL, NULL);
-
-        run_kernel_bzero (device_param, device_param->d_rules_c,     size_rules_c);
       }
       else if (attack_kern == ATTACK_KERN_COMBI)
       {
