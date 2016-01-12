@@ -1503,12 +1503,12 @@ void status_display ()
 
       if (data.hm_device[i].fan_supported == 1)
       {
-        char temperature[HM_STR_BUF_SIZE];
         char utilization[HM_STR_BUF_SIZE];
+        char temperature[HM_STR_BUF_SIZE];
         char fanspeed[HM_STR_BUF_SIZE];
 
-        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "%", hm_get_temperature_with_device_id (i));
-        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "c", hm_get_utilization_with_device_id (i));
+        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (i));
+        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (i));
 
         if (data.vendor_id == VENDOR_ID_AMD)
         {
@@ -1528,11 +1528,11 @@ void status_display ()
       }
       else
       {
-        char temperature[HM_STR_BUF_SIZE];
         char utilization[HM_STR_BUF_SIZE];
+        char temperature[HM_STR_BUF_SIZE];
 
-        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "%", hm_get_temperature_with_device_id (i));
-        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "c", hm_get_utilization_with_device_id (i));
+        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (i));
+        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (i));
 
         log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, N/A Fan", i + 1, utilization, temperature);
       }
