@@ -5128,6 +5128,7 @@ int main (int argc, char **argv)
   char *custom_charset_2  = NULL;
   char *custom_charset_3  = NULL;
   char *custom_charset_4  = NULL;
+  char *arg_session_dir   = NULL;
 
   #define IDX_HELP              'h'
   #define IDX_VERSION           'V'
@@ -5203,8 +5204,9 @@ int main (int argc, char **argv)
   #define IDX_CUSTOM_CHARSET_2  '2'
   #define IDX_CUSTOM_CHARSET_3  '3'
   #define IDX_CUSTOM_CHARSET_4  '4'
+  #define IDX_SESSION_DIR       'S'
 
-  char short_options[] = "hVvm:a:r:j:k:g:o:t:d:n:u:c:p:s:l:1:2:3:4:ibw:";
+  char short_options[] = "hVvm:a:r:j:k:g:o:t:d:n:u:c:p:s:l:1:2:3:4:ibw:S:";
 
   struct option long_options[] =
   {
@@ -5289,6 +5291,7 @@ int main (int argc, char **argv)
     {"custom-charset2",   required_argument, 0, IDX_CUSTOM_CHARSET_2},
     {"custom-charset3",   required_argument, 0, IDX_CUSTOM_CHARSET_3},
     {"custom-charset4",   required_argument, 0, IDX_CUSTOM_CHARSET_4},
+    {"session-dir",       required_argument, 0, IDX_SESSION_DIR},
 
     {0, 0, 0, 0}
   };
@@ -5315,6 +5318,7 @@ int main (int argc, char **argv)
       case IDX_SESSION:       session = optarg; break;
       case IDX_SHOW:          show    = 1;      break;
       case IDX_LEFT:          left    = 1;      break;
+      case IDX_SESSION_DIR:   arg_session_dir = optarg;          break;
       case '?':               return (-1);
     }
   }
@@ -5397,6 +5401,7 @@ int main (int argc, char **argv)
   char *shared_dir  = install_dir;
 
   #endif
+  if (arg_session_dir) session_dir = arg_session_dir;
 
   data.install_dir = install_dir;
   data.profile_dir = profile_dir;
@@ -6127,7 +6132,7 @@ int main (int argc, char **argv)
           }
           else
           {
-            log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
+            log_error ("ERROR: (induction_directory) %s: %s", induction_directory, strerror (errno));
 
             return (-1);
           }
@@ -6135,7 +6140,7 @@ int main (int argc, char **argv)
 
         if (mkdir (induction_directory, 0700) == -1)
         {
-          log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
+          log_error ("ERROR: (induction_directory) %s: %s", induction_directory, strerror (errno));
 
           return (-1);
         }
@@ -6195,7 +6200,7 @@ int main (int argc, char **argv)
     {
       if (mkdir (outfile_check_directory, 0700) == -1)
       {
-        log_error ("ERROR: %s: %s", outfile_check_directory, strerror (errno));
+        log_error ("ERROR: (outfile_check_directory) %s: %s", outfile_check_directory, strerror (errno));
 
         return (-1);
       }
@@ -6398,6 +6403,7 @@ int main (int argc, char **argv)
   logfile_top_string (rule_buf_r);
   logfile_top_string (session);
   logfile_top_string (truecrypt_keyfiles);
+  logfile_top_string (arg_session_dir);
 
   /**
    * device types filter
@@ -10064,7 +10070,7 @@ int main (int argc, char **argv)
 
       if (pot_fp == NULL)
       {
-        log_error ("ERROR: %s: %s", potfile, strerror (errno));
+        log_error ("ERROR: (potfile 1) %s: %s", potfile, strerror (errno));
 
         return (-1);
       }
@@ -10073,7 +10079,7 @@ int main (int argc, char **argv)
       {
         if ((out_fp = fopen (outfile, "ab")) == NULL)
         {
-          log_error ("ERROR: %s: %s", outfile, strerror (errno));
+          log_error ("ERROR: (outfile) %s: %s", outfile, strerror (errno));
 
           fclose (pot_fp);
 
@@ -10093,7 +10099,7 @@ int main (int argc, char **argv)
 
         if (pot_fp == NULL)
         {
-          log_error ("ERROR: %s: %s", potfile, strerror (errno));
+          log_error ("ERROR: (potfile 2) %s: %s", potfile, strerror (errno));
 
           return (-1);
         }
@@ -10409,7 +10415,7 @@ int main (int argc, char **argv)
 
           if (stat (data.hashfile, &st) == -1)
           {
-            log_error ("ERROR: %s: %s", data.hashfile, strerror (errno));
+            log_error ("ERROR: (data.hashfile) %s: %s", data.hashfile, strerror (errno));
 
             return (-1);
           }
@@ -10433,7 +10439,7 @@ int main (int argc, char **argv)
 
         if ((fp = fopen (hashfile, "rb")) == NULL)
         {
-          log_error ("ERROR: %s: %s", hashfile, strerror (errno));
+          log_error ("ERROR: (hashfile) %s: %s", hashfile, strerror (errno));
 
           return (-1);
         }
@@ -10611,7 +10617,7 @@ int main (int argc, char **argv)
 
             if (fp == NULL)
             {
-              log_error ("ERROR: %s: %s", hash_buf, strerror (errno));
+              log_error ("ERROR: (hash_buf) %s: %s", hash_buf, strerror (errno));
 
               return (-1);
             }
@@ -10783,7 +10789,7 @@ int main (int argc, char **argv)
 
         if ((fp = fopen (hashfile, "rb")) == NULL)
         {
-          log_error ("ERROR: %s: %s", hashfile, strerror (errno));
+          log_error ("ERROR: (hashfile) %s: %s", hashfile, strerror (errno));
 
           return (-1);
         }
@@ -12181,7 +12187,7 @@ int main (int argc, char **argv)
 
       if ((fp = fopen (rp_file, "rb")) == NULL)
       {
-        log_error ("ERROR: %s: %s", rp_file, strerror (errno));
+        log_error ("ERROR: (rp_file) %s: %s", rp_file, strerror (errno));
 
         return (-1);
       }
@@ -13487,7 +13493,7 @@ int main (int argc, char **argv)
 
         if (stat (source_file, &sst) == -1)
         {
-          log_error ("ERROR: %s: %s", source_file, strerror (errno));
+          log_error ("ERROR: (source_file 1) %s: %s", source_file, strerror (errno));
 
           return -1;
         }
@@ -13618,7 +13624,7 @@ int main (int argc, char **argv)
 
         if (stat (source_file, &sst) == -1)
         {
-          log_error ("ERROR: %s: %s", source_file, strerror (errno));
+          log_error ("ERROR: (source_file 2) %s: %s", source_file, strerror (errno));
 
           return -1;
         }
@@ -13731,7 +13737,7 @@ int main (int argc, char **argv)
 
         if (stat (source_file, &sst) == -1)
         {
-          log_error ("ERROR: %s: %s", source_file, strerror (errno));
+          log_error ("ERROR: (source_file 3) %s: %s", source_file, strerror (errno));
 
           return -1;
         }
@@ -14535,7 +14541,7 @@ int main (int argc, char **argv)
 
           if (stat (l0_filename, &l0_stat) == -1)
           {
-            log_error ("ERROR: %s: %s", l0_filename, strerror (errno));
+            log_error ("ERROR: (l0_filename) %s: %s", l0_filename, strerror (errno));
 
             return (-1);
           }
@@ -14577,7 +14583,7 @@ int main (int argc, char **argv)
 
                 if (stat (l1_filename, &l1_stat) == -1)
                 {
-                  log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
+                  log_error ("ERROR: (l1_filename) %s: %s", l1_filename, strerror (errno));
 
                   return (-1);
                 }
@@ -14625,14 +14631,14 @@ int main (int argc, char **argv)
 
       if ((fp1 = fopen (dictfile1, "rb")) == NULL)
       {
-        log_error ("ERROR: %s: %s", dictfile1, strerror (errno));
+        log_error ("ERROR: (dictfile1) %s: %s", dictfile1, strerror (errno));
 
         return (-1);
       }
 
       if (stat (dictfile1, &tmp_stat) == -1)
       {
-        log_error ("ERROR: %s: %s", dictfile1, strerror (errno));
+        log_error ("ERROR: (dictfile1) %s: %s", dictfile1, strerror (errno));
 
         fclose (fp1);
 
@@ -14650,7 +14656,7 @@ int main (int argc, char **argv)
 
       if ((fp2 = fopen (dictfile2, "rb")) == NULL)
       {
-        log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
+        log_error ("ERROR: (dictfile2) %s: %s", dictfile2, strerror (errno));
 
         fclose (fp1);
 
@@ -14659,7 +14665,7 @@ int main (int argc, char **argv)
 
       if (stat (dictfile2, &tmp_stat) == -1)
       {
-        log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
+        log_error ("ERROR: (dictfile2) %s: %s", dictfile2, strerror (errno));
 
         fclose (fp1);
         fclose (fp2);
@@ -14786,7 +14792,7 @@ int main (int argc, char **argv)
 
                 if (stat (mask, &file_stat) == -1)
                 {
-                  log_error ("ERROR: %s: %s", mask, strerror (errno));
+                  log_error ("ERROR: (mask) %s: %s", mask, strerror (errno));
 
                   return (-1);
                 }
@@ -14800,7 +14806,7 @@ int main (int argc, char **argv)
 
                 if ((mask_fp = fopen (mask, "r")) == NULL)
                 {
-                  log_error ("ERROR: %s: %s", mask, strerror (errno));
+                  log_error ("ERROR: (mask) %s: %s", mask, strerror (errno));
 
                   return (-1);
                 }
@@ -14833,7 +14839,7 @@ int main (int argc, char **argv)
               }
               else
               {
-                log_error ("ERROR: %s: unsupported file-type", mask);
+                log_error ("ERROR: (mask) %s: unsupported file-type", mask);
 
                 return (-1);
               }
@@ -14939,7 +14945,7 @@ int main (int argc, char **argv)
 
           if ((mask_fp = fopen (mask, "r")) == NULL)
           {
-            log_error ("ERROR: %s: %s", mask, strerror (errno));
+            log_error ("ERROR: (mask) %s: %s", mask, strerror (errno));
 
             return (-1);
           }
@@ -15036,7 +15042,7 @@ int main (int argc, char **argv)
 
               if (stat (l1_filename, &l1_stat) == -1)
               {
-                log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
+                log_error ("ERROR: (l1_filename 2) %s: %s", l1_filename, strerror (errno));
 
                 return (-1);
               }
@@ -15116,7 +15122,7 @@ int main (int argc, char **argv)
 
           if ((mask_fp = fopen (mask, "r")) == NULL)
           {
-            log_error ("ERROR: %s: %s", mask, strerror (errno));
+            log_error ("ERROR: (mask) %s: %s", mask, strerror (errno));
 
             return (-1);
           }
@@ -15213,7 +15219,7 @@ int main (int argc, char **argv)
 
               if (stat (l1_filename, &l1_stat) == -1)
               {
-                log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
+                log_error ("ERROR: (l1_filename 3) %s: %s", l1_filename, strerror (errno));
 
                 return (-1);
               }
@@ -15707,7 +15713,7 @@ int main (int argc, char **argv)
 
             if (fd2 == NULL)
             {
-              log_error ("ERROR: %s: %s", dictfile, strerror (errno));
+              log_error ("ERROR: (dictfile) %s: %s", dictfile, strerror (errno));
 
               return (-1);
             }
@@ -15741,7 +15747,7 @@ int main (int argc, char **argv)
 
             if (fd2 == NULL)
             {
-              log_error ("ERROR: %s: %s", dictfile, strerror (errno));
+              log_error ("ERROR: (dictfile) %s: %s", dictfile, strerror (errno));
 
               return (-1);
             }
@@ -15756,7 +15762,7 @@ int main (int argc, char **argv)
 
             if (fd2 == NULL)
             {
-              log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
+              log_error ("ERROR: (dictfile2) %s: %s", dictfile2, strerror (errno));
 
               return (-1);
             }
@@ -15800,7 +15806,7 @@ int main (int argc, char **argv)
 
           if (fd2 == NULL)
           {
-            log_error ("ERROR: %s: %s", dictfile, strerror (errno));
+            log_error ("ERROR: (dictfile) %s: %s", dictfile, strerror (errno));
 
             return (-1);
           }
@@ -16738,7 +16744,7 @@ int main (int argc, char **argv)
         }
         else
         {
-          log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
+          log_error ("ERROR: (induction_directory) %s: %s", induction_directory, strerror (errno));
 
           return (-1);
         }
@@ -16764,7 +16770,7 @@ int main (int argc, char **argv)
       }
       else
       {
-        log_error ("ERROR: %s: %s", outfile_check_directory, strerror (errno));
+        log_error ("ERROR: (outfile_check_directory) %s: %s", outfile_check_directory, strerror (errno));
 
         return (-1);
       }

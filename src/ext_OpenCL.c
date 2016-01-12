@@ -5,6 +5,25 @@
 
 #include <ext_OpenCL.h>
 
+const char *
+val2cstr_cl (cl_int CL_err)
+{
+#define CLERR(a) case a: return #a
+    switch (CL_err) {
+    CLERR(CL_INVALID_PROGRAM);
+    CLERR(CL_INVALID_VALUE);
+    CLERR(CL_INVALID_DEVICE);
+    CLERR(CL_INVALID_BINARY);
+    CLERR(CL_INVALID_BUILD_OPTIONS);
+    CLERR(CL_INVALID_OPERATION);
+    CLERR(CL_COMPILER_NOT_AVAILABLE);
+    CLERR(CL_BUILD_PROGRAM_FAILURE);
+    CLERR(CL_OUT_OF_RESOURCES);
+    CLERR(CL_OUT_OF_HOST_MEMORY);
+    }
+    return "(unknown CL error)";
+}
+
 void hc_clEnqueueNDRangeKernel (cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim, const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
   cl_int CL_err = clEnqueueNDRangeKernel (command_queue, kernel, work_dim, global_work_offset, global_work_size, local_work_size, num_events_in_wait_list, event_wait_list, event);
@@ -254,7 +273,7 @@ void hc_clBuildProgram (cl_program program, cl_uint num_devices, const cl_device
 
   if (CL_err != CL_SUCCESS)
   {
-    log_error ("ERROR: %s %d\n", "clBuildProgram()", CL_err);
+    log_error ("ERROR: %s (%d)%s\n", "clBuildProgram()", CL_err, val2cstr_cl(CL_err));
 
     // If we exit here we can't see the error message
     // exit (-1);
