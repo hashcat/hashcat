@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
@@ -92,8 +93,6 @@ void log_error_nn (const char *fmt, ...);
 void log_out (FILE *fp, const char *fmt, ...);
 void log_info (const char *fmt, ...);
 void log_error (const char *fmt, ...);
-
-typedef int bool; // this is ugly but ADL requires the bool datatype
 
 typedef uint32_t uint; // we should rename to u32, sooner or later, for consistency
 typedef uint64_t u64;
