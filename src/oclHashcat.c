@@ -13322,7 +13322,8 @@ int main (int argc, char **argv)
                           | OPTS_TYPE_ST_ADD02
                           | OPTS_TYPE_ST_ADD80
                           | OPTS_TYPE_ST_ADDBITS14
-                          | OPTS_TYPE_ST_ADDBITS15;
+                          | OPTS_TYPE_ST_ADDBITS15
+                          | OPTS_TYPE_PT_BITSLICE;
 
       if ((weak_hash_threshold) && (attack_exec == ATTACK_EXEC_INSIDE_KERNEL) && (opts_type & add_flag))
       {
