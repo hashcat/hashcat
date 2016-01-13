@@ -5167,7 +5167,10 @@ cl_device_type setup_device_types_filter (char *opencl_device_types)
   }
   else
   {
-    device_types_filter = CL_DEVICE_TYPE_ALL;
+    // Do not use CPU by default, this often reduces GPU performance because
+    // the CPU is to busy to handle GPU synchronization
+
+    device_types_filter = CL_DEVICE_TYPE_ALL & ~CL_DEVICE_TYPE_CPU;
   }
 
   return device_types_filter;

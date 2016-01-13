@@ -12376,7 +12376,7 @@ int main (int argc, char **argv)
     }
 
     /**
-     * OpenCL platforms: For each platform check if broken or unset features that we can not use, eg: temp_retain
+     * OpenCL platforms: For each platform check if we need to unset features that we can not use, eg: temp_retain
      */
 
     for (uint i = 0; i < CL_platforms_cnt; i++)
@@ -12396,19 +12396,6 @@ int main (int argc, char **argv)
         gpu_temp_retain = 0;
 
         data.gpu_temp_retain = gpu_temp_retain;
-      }
-      else if (strcmp (CL_platform_vendor, CL_VENDOR_POCL) == 0)
-      {
-        if (force == 0)
-        {
-          log_info ("");
-          log_info ("ATTENTION! All pocl drivers are known to be broken due to broken LLVM <= 3.7");
-          log_info ("You are STRONGLY encouraged not to use it");
-          log_info ("You can use --force to override this but do not post error reports if you do so");
-          log_info ("");
-
-          return (-1);
-        }
       }
     }
 
@@ -12434,7 +12421,7 @@ int main (int argc, char **argv)
 
       cl_uint devices_platform_cnt = 0;
 
-      hc_clGetDeviceIDs (CL_platform, device_types_filter, DEVICES_MAX, devices_platform, &devices_platform_cnt);
+      hc_clGetDeviceIDs (CL_platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, devices_platform, &devices_platform_cnt);
 
       for (uint j = 0; j < devices_platform_cnt; j++)
       {
@@ -12462,6 +12449,10 @@ int main (int argc, char **argv)
      * devices mask and properties
      */
 
+    uint quiet_sav = quiet;
+
+    quiet = 0;
+
     for (uint device_all_id = 0; device_all_id < devices_all_cnt; device_all_id++)
     {
       // skip the device, if the user did specify a list of GPUs to skip
@@ -12472,7 +12463,7 @@ int main (int argc, char **argv)
 
         if ((device_all_id_mask & opencl_devicemask) != device_all_id_mask)
         {
-          if (quiet == 0 && algorithm_pos == 0) log_info ("Device #%d: skipped by user", device_all_id + 1);
+          if (quiet == 0 && algorithm_pos == 0) log_info ("Device #%d: skipped", device_all_id + 1);
 
           continue;
         }
@@ -12484,9 +12475,24 @@ int main (int argc, char **argv)
 
       devices_plf[device_id] = devices_plf[device_all_id];
 
-      char device_name[INFOSZ];
+      cl_device_type device_type = 0;
 
-      memset (device_name, 0, sizeof (device_name));
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+
+      device_type &= ~CL_DEVICE_TYPE_DEFAULT;
+
+      if ((device_type & device_types_filter) == 0)
+      {
+        if (quiet == 0 && algorithm_pos == 0) log_info ("Device #%d: skipped", device_all_id + 1);
+
+        continue;
+      }
+
+      char device_name[INFOSZ];
+      char device_version[INFOSZ];
+
+      memset (device_name,    0, sizeof (device_name));
+      memset (device_version, 0, sizeof (device_version));
 
       cl_ulong global_mem_size;
       cl_ulong max_mem_alloc_size;
@@ -12498,6 +12504,7 @@ int main (int argc, char **argv)
       hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE,   sizeof (max_mem_alloc_size),  &max_mem_alloc_size,  NULL);
       hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_CLOCK_FREQUENCY,  sizeof (max_clock_frequency), &max_clock_frequency, NULL);
       hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_MAX_COMPUTE_UNITS,    sizeof (max_compute_units),   &max_compute_units,   NULL);
+      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_VERSION,              sizeof (device_version),      &device_version,      NULL);
 
       if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
       {
@@ -12510,8 +12517,24 @@ int main (int argc, char **argv)
                   (unsigned int) max_compute_units);
       }
 
+      if (strstr (device_version, "pocl"))
+      {
+        if (force == 0)
+        {
+          log_info ("");
+          log_info ("ATTENTION! All pocl drivers are known to be broken due to broken LLVM <= 3.7");
+          log_info ("You are STRONGLY encouraged not to use it");
+          log_info ("You can use --force to override this but do not post error reports if you do so");
+          log_info ("");
+
+          return (-1);
+        }
+      }
+
       devices_cnt++;
     }
+
+    quiet = quiet_sav;
 
     if (devices_cnt == 0)
     {
