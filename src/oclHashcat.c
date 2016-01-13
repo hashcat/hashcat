@@ -12451,10 +12451,6 @@ int main (int argc, char **argv)
      * devices mask and properties
      */
 
-    uint quiet_sav = quiet;
-
-    quiet = 0;
-
     for (uint device_all_id = 0; device_all_id < devices_all_cnt; device_all_id++)
     {
       // skip the device, if the user did specify a list of GPUs to skip
@@ -12535,8 +12531,6 @@ int main (int argc, char **argv)
 
       devices_cnt++;
     }
-
-    quiet = quiet_sav;
 
     if (devices_cnt == 0)
     {
