@@ -12856,13 +12856,36 @@ int main (int argc, char **argv)
 
     if (gpu_temp_disable == 0)
     {
+      #ifdef WIN
+      if (NvAPI_Initialize () == NVAPI_OK)
+      {
+        HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
+
+        int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
+
+        int tmp_out = 0;
+
+        for (int i = 0; i < tmp_in; i++)
+        {
+          hm_adapters_nv[tmp_out++].adapter_index.nv = nvGPUHandle[i];
+        }
+
+        for (int i = 0; i < tmp_out; i++)
+        {
+          NvU32 speed;
+
+          if (NvAPI_GPU_GetTachReading (hm_adapters_nv[i].adapter_index.nv, &speed) != NVAPI_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
+        }
+      }
+      #endif
+
+      #ifdef LINUX
       HM_LIB hm_dll_nv = hm_init (VENDOR_ID_NV);
 
       data.hm_dll_nv = hm_dll_nv;
 
       if (hm_dll_nv)
       {
-        #ifdef LINUX
         if (hc_NVML_nvmlInit (hm_dll_nv) == NVML_SUCCESS)
         {
           HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
@@ -12883,31 +12906,8 @@ int main (int argc, char **argv)
             if (hc_NVML_nvmlDeviceGetFanSpeed (hm_dll_nv, 1, hm_adapters_nv[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
           }
         }
-        #endif
-
-        #ifdef WIN
-        if (NvAPI_Initialize () == NVAPI_OK)
-        {
-          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
-
-          int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
-
-          int tmp_out = 0;
-
-          for (int i = 0; i < tmp_in; i++)
-          {
-            hm_adapters_nv[tmp_out++].adapter_index.nv = nvGPUHandle[i];
-          }
-
-          for (int i = 0; i < tmp_out; i++)
-          {
-            NvU32 speed;
-
-            if (NvAPI_GPU_GetTachReading (hm_adapters_nv[i].adapter_index.nv, &speed) != NVAPI_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
-          }
-        }
-        #endif
       }
+      #endif
 
       HM_LIB hm_dll_amd = hm_init (VENDOR_ID_AMD);
 
