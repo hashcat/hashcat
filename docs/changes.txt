@@ -67,6 +67,10 @@ Type.: Feature
 File.: Host
 Desc.: Moved rules_optimize to hashcat-utils
 
+Type.: Feature
+File.: Host
+Desc.: Run weak-hash checks only in straight-attack mode, this greatly reduces code complexity
+
 Type.: Change
 File.: Host
 Desc.: Renamed option --gpu-accel to --kernel-accel
