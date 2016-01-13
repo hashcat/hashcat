@@ -1635,9 +1635,12 @@ void handle_left_request (pot_t *pot, uint pot_cnt, char *input_buf, int input_l
 void handle_show_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp);
 void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp);
 
+uint setup_opencl_platforms_filter (char *opencl_platforms);
 uint devices_to_devicemask (char *opencl_devices);
 cl_device_type setup_device_types_filter (char *opencl_device_types);
+
 uint get_random_num (uint min, uint max);
+
 uint32_t mydivc32 (const uint32_t dividend, const uint32_t divisor);
 uint64_t mydivc64 (const uint64_t dividend, const uint64_t divisor);
 
@@ -1674,24 +1677,24 @@ void fsync (int fd);
 
 int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX]);
 
-int get_adapters_num_amd (HM_LIB hm_dll, int *iNumberAdapters);
+int get_adapters_num_amd (HM_LIB hm_dll_amd, int *iNumberAdapters);
 
-int hm_get_device_num (HM_LIB hm_dll, HM_ADAPTER_AMD hm_adapter_index, int *hm_device_num);
+int hm_get_device_num (HM_LIB hm_dll_amd, HM_ADAPTER_AMD hm_adapter_index, int *hm_device_num);
 
 // void hm_get_opencl_busid_devid (hm_attrs_t *hm_device, uint opencl_num_devices, cl_device_id *devices);
 
 int hm_get_adapter_index_amd (hm_attrs_t *hm_device, uint32_t *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 
-LPAdapterInfo hm_get_adapter_info_amd (HM_LIB hm_dll, int iNumberAdapters);
+LPAdapterInfo hm_get_adapter_info_amd (HM_LIB hm_dll_amd, int iNumberAdapters);
 
 uint32_t *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 
-int hm_get_overdrive_version  (HM_LIB hm_dll, hm_attrs_t *hm_device, uint32_t *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
-int hm_check_fanspeed_control (HM_LIB hm_dll, hm_attrs_t *hm_device, uint32_t *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
+int hm_get_overdrive_version  (HM_LIB hm_dll_amd, hm_attrs_t *hm_device, uint32_t *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
+int hm_check_fanspeed_control (HM_LIB hm_dll_amd, hm_attrs_t *hm_device, uint32_t *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 
 void hm_close (HM_LIB hm_dll);
 
-HM_LIB hm_init ();
+HM_LIB hm_init (const cl_uint vendor_id);
 
 int hm_get_temperature_with_device_id (const uint device_id);
 int hm_get_fanspeed_with_device_id    (const uint device_id);

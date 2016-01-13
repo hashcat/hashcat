@@ -385,9 +385,9 @@ const char *USAGE_BIG[] =
   "       --bitmap-min=NUM              Minimum number of bits allowed for bitmaps",
   "       --bitmap-max=NUM              Maximum number of bits allowed for bitmaps",
   "       --cpu-affinity=STR            Locks to CPU devices, separate with comma",
+  "       --opencl-platforms=STR        OpenCL platforms to use, separate with comma",
   "  -d,  --opencl-devices=STR          OpenCL devices to use, separate with comma",
   "       --opencl-device-types=STR     OpenCL device-types to use, separate with comma, see references below",
-  "       --opencl-platform=NUM         OpenCL platform to use, in case multiple platforms are present",
   "  -w,  --workload-profile=NUM        Enable a specific workload profile, see references below",
   "  -n,  --kernel-accel=NUM            Workload tuning: 1, 8, 40, 80, 160",
   "  -u,  --kernel-loops=NUM            Workload fine-tuning: 8 - 1024",
@@ -1497,44 +1497,45 @@ void status_display ()
   {
     hc_thread_mutex_lock (mux_adl);
 
-    for (uint i = 0; i < data.devices_cnt; i++)
+    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
     {
+      hc_device_param_t *device_param = &data.devices_param[device_id];
+
       #define HM_STR_BUF_SIZE 255
 
-      if (data.hm_device[i].fan_supported == 1)
+      if (data.hm_device[device_id].fan_supported == 1)
       {
         char utilization[HM_STR_BUF_SIZE];
         char temperature[HM_STR_BUF_SIZE];
         char fanspeed[HM_STR_BUF_SIZE];
 
-        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (i));
-        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (i));
+        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
+        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
 
-        if (data.vendor_id == VENDOR_ID_AMD)
+        if (device_param->vendor_id == VENDOR_ID_AMD)
         {
-          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (i));
+          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
         }
-
-        if (data.vendor_id == VENDOR_ID_NV)
+        else if (device_param->vendor_id == VENDOR_ID_NV)
         {
           #ifdef LINUX
-          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (i));
+          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
           #else
-          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "rpm", hm_get_fanspeed_with_device_id (i));
+          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "rpm", hm_get_fanspeed_with_device_id (device_id));
           #endif
         }
 
-        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan", i + 1, utilization, temperature, fanspeed);
+        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan", device_id + 1, utilization, temperature, fanspeed);
       }
       else
       {
         char utilization[HM_STR_BUF_SIZE];
         char temperature[HM_STR_BUF_SIZE];
 
-        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (i));
-        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (i));
+        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
+        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
 
-        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, N/A Fan", i + 1, utilization, temperature);
+        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, N/A Fan", device_id + 1, utilization, temperature);
       }
     }
 
@@ -1630,20 +1631,20 @@ static void generate_source_kernel_filename (const uint attack_exec, const uint 
     snprintf (source_file, 255, "%s/OpenCL/m%05d.cl", shared_dir, (int) kern_type);
 }
 
-static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *profile_dir, char *device_name_chksum, int vendor_id, char *cached_file)
+static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *profile_dir, char *device_name_chksum, char *cached_file)
 {
   if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
     if (attack_kern == ATTACK_KERN_STRAIGHT)
-      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a0.%s.kernel", profile_dir, vendor_id, (int) kern_type, device_name_chksum);
+      snprintf (cached_file, 255, "%s/kernels/m%05d_a0.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
     else if (attack_kern == ATTACK_KERN_COMBI)
-      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a1.%s.kernel", profile_dir, vendor_id, (int) kern_type, device_name_chksum);
+      snprintf (cached_file, 255, "%s/kernels/m%05d_a1.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
     else if (attack_kern == ATTACK_KERN_BF)
-      snprintf (cached_file, 255, "%s/kernels/%d/m%05d_a3.%s.kernel", profile_dir, vendor_id, (int) kern_type, device_name_chksum);
+      snprintf (cached_file, 255, "%s/kernels/m%05d_a3.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
   }
   else
   {
-    snprintf (cached_file, 255, "%s/kernels/%d/m%05d.%s.kernel", profile_dir, vendor_id, (int) kern_type, device_name_chksum);
+    snprintf (cached_file, 255, "%s/kernels/m%05d.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
   }
 }
 
@@ -1659,15 +1660,15 @@ static void generate_source_kernel_mp_filename (const uint opti_type, const uint
   }
 }
 
-static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *profile_dir, char *device_name_chksum, int vendor_id, char *cached_file)
+static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *profile_dir, char *device_name_chksum, char *cached_file)
 {
   if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
   {
-    snprintf (cached_file, 255, "%s/kernels/%d/markov_be.%s.kernel", profile_dir, vendor_id, device_name_chksum);
+    snprintf (cached_file, 255, "%s/kernels/markov_be.%s.kernel", profile_dir, device_name_chksum);
   }
   else
   {
-    snprintf (cached_file, 255, "%s/kernels/%d/markov_le.%s.kernel", profile_dir, vendor_id, device_name_chksum);
+    snprintf (cached_file, 255, "%s/kernels/markov_le.%s.kernel", profile_dir, device_name_chksum);
   }
 }
 
@@ -1676,9 +1677,9 @@ static void generate_source_kernel_amp_filename (const uint attack_kern, char *s
   snprintf (source_file, 255, "%s/OpenCL/amp_a%d.cl", shared_dir, attack_kern);
 }
 
-static void generate_cached_kernel_amp_filename (const uint attack_kern, char *profile_dir, char *device_name_chksum, int vendor_id, char *cached_file)
+static void generate_cached_kernel_amp_filename (const uint attack_kern, char *profile_dir, char *device_name_chksum, char *cached_file)
 {
-  snprintf (cached_file, 255, "%s/kernels/%d/amp_a%d.%s.kernel", profile_dir, vendor_id, attack_kern, device_name_chksum);
+  snprintf (cached_file, 255, "%s/kernels/amp_a%d.%s.kernel", profile_dir, attack_kern, device_name_chksum);
 }
 
 static uint convert_from_hex (char *line_buf, const uint line_len)
@@ -2530,17 +2531,18 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
 
 static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const uint size)
 {
-  if (data.vendor_id == VENDOR_ID_AMD)
+  if (device_param->vendor_id == VENDOR_ID_AMD)
   {
+    // So far tested, amd is the only supporting this OpenCL 1.2 function without segfaulting
+
     const cl_uchar zero = 0;
 
     hc_clEnqueueFillBuffer (device_param->command_queue, buf, &zero, sizeof (cl_uchar), 0, size, 0, NULL, NULL);
   }
-
-  if (data.vendor_id == VENDOR_ID_NV)
+  else
   {
     // NOTE: clEnqueueFillBuffer () always fails with -59
-    //       IOW, it's not supported by Nvidia ForceWare <= 352.21,
+    //       IOW, it's not supported by Nvidia ForceWare <= 352.21, also pocl segfaults
     //       How's that possible, OpenCL 1.2 support is advertised??
     //       We need to workaround...
 
@@ -2560,13 +2562,6 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
     }
 
     myfree (tmp);
-  }
-
-  if (data.vendor_id == VENDOR_ID_GENERIC)
-  {
-    const cl_uchar zero = 0;
-
-    hc_clEnqueueFillBuffer (device_param->command_queue, buf, &zero, sizeof (cl_uchar), 0, size, 0, NULL, NULL);
   }
 }
 
@@ -5108,7 +5103,7 @@ int main (int argc, char **argv)
   uint  increment_max     = INCREMENT_MAX;
   char *cpu_affinity      = NULL;
   char *opencl_devices    = NULL;
-  char *opencl_platform   = NULL;
+  char *opencl_platforms  = NULL;
   char *opencl_device_types = NULL;
   char *truecrypt_keyfiles = NULL;
   uint  workload_profile  = WORKLOAD_PROFILE;
@@ -5183,7 +5178,7 @@ int main (int argc, char **argv)
   #define IDX_MARKOV_HCSTAT     0xff24
   #define IDX_CPU_AFFINITY      0xff25
   #define IDX_OPENCL_DEVICES    'd'
-  #define IDX_OPENCL_PLATFORM   0xff72
+  #define IDX_OPENCL_PLATFORMS  0xff72
   #define IDX_OPENCL_DEVICE_TYPES 0xff73
   #define IDX_WORKLOAD_PROFILE  'w'
   #define IDX_KERNEL_ACCEL      'n'
@@ -5264,7 +5259,7 @@ int main (int argc, char **argv)
     {"markov-hcstat",     required_argument, 0, IDX_MARKOV_HCSTAT},
     {"cpu-affinity",      required_argument, 0, IDX_CPU_AFFINITY},
     {"opencl-devices",    required_argument, 0, IDX_OPENCL_DEVICES},
-    {"opencl-platform",   required_argument, 0, IDX_OPENCL_PLATFORM},
+    {"opencl-platforms",  required_argument, 0, IDX_OPENCL_PLATFORMS},
     {"opencl-device-types", required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
     {"workload-profile",  required_argument, 0, IDX_WORKLOAD_PROFILE},
     {"kernel-accel",      required_argument, 0, IDX_KERNEL_ACCEL},
@@ -5404,6 +5399,20 @@ int main (int argc, char **argv)
   data.shared_dir  = shared_dir;
 
   myfree (exec_path);
+
+  /**
+   * kernel cache, we need to make sure folder exist
+   */
+
+  int kernels_folder_size = strlen (profile_dir) + 1 + 7 + 1 + 1;
+
+  char *kernels_folder = (char *) mymalloc (kernels_folder_size);
+
+  snprintf (kernels_folder, kernels_folder_size - 1, "%s/kernels", profile_dir);
+
+  mkdir (kernels_folder, 0700);
+
+  myfree (kernels_folder);
 
   /**
    * session
@@ -5553,7 +5562,7 @@ int main (int argc, char **argv)
       case IDX_HEX_WORDLIST:      hex_wordlist      = 1;               break;
       case IDX_CPU_AFFINITY:      cpu_affinity      = optarg;          break;
       case IDX_OPENCL_DEVICES:    opencl_devices    = optarg;          break;
-      case IDX_OPENCL_PLATFORM:   opencl_platform   = optarg;          break;
+      case IDX_OPENCL_PLATFORMS:  opencl_platforms  = optarg;          break;
       case IDX_OPENCL_DEVICE_TYPES:
                                   opencl_device_types = optarg;        break;
       case IDX_WORKLOAD_PROFILE:  workload_profile  = atoi (optarg);   break;
@@ -6388,7 +6397,7 @@ int main (int argc, char **argv)
   logfile_top_string (custom_charset_4);
   logfile_top_string (debug_file);
   logfile_top_string (opencl_devices);
-  logfile_top_string (opencl_platform);
+  logfile_top_string (opencl_platforms);
   logfile_top_string (opencl_device_types);
   logfile_top_string (induction_dir);
   logfile_top_string (markov_hcstat);
@@ -6400,16 +6409,22 @@ int main (int argc, char **argv)
   logfile_top_string (truecrypt_keyfiles);
 
   /**
-   * device types filter
+   * OpenCL platform selection
    */
 
-  cl_device_type device_types_filter = setup_device_types_filter (opencl_device_types);
+  uint opencl_platforms_filter = setup_opencl_platforms_filter (opencl_platforms);
 
   /**
-   * devices
+   * OpenCL device selection
    */
 
   uint opencl_devicemask = devices_to_devicemask (opencl_devices);
+
+  /**
+   * OpenCL device type selection
+   */
+
+  cl_device_type device_types_filter = setup_device_types_filter (opencl_device_types);
 
   /**
    * benchmark
@@ -12344,7 +12359,7 @@ int main (int argc, char **argv)
     data.kernel_rules_buf = kernel_rules_buf;
 
     /**
-     * platform
+     * OpenCL platforms: detect
      */
 
     cl_platform_id CL_platforms[CL_PLATFORMS_MAX];
@@ -12360,273 +12375,74 @@ int main (int argc, char **argv)
       return (-1);
     }
 
-    int CL_platform_sel = 1;
+    /**
+     * OpenCL platforms: For each platform check if broken or unset features that we can not use, eg: temp_retain
+     */
 
-    if (opencl_platform != NULL)
+    for (uint i = 0; i < CL_platforms_cnt; i++)
     {
-      CL_platform_sel = atoi (opencl_platform);
-    }
+      cl_platform_id CL_platform = CL_platforms[i];
 
-    if (CL_platforms_cnt > 1)
-    {
-      if (opencl_platform == NULL)
+      char CL_platform_vendor[INFOSZ];
+
+      memset (CL_platform_vendor, 0, sizeof (CL_platform_vendor));
+
+      hc_clGetPlatformInfo (CL_platform, CL_PLATFORM_VENDOR, sizeof (CL_platform_vendor), CL_platform_vendor, NULL);
+
+      if (strcmp (CL_platform_vendor, CL_VENDOR_NV) == 0)
       {
-        log_error ("ERROR: Too many OpenCL compatible platforms found");
+        // make sure that we do not directly control the fan for NVidia
 
-        log_info ("Please select a single platform using the --opencl-platform option");
-        log_info ("");
-        log_info ("Available OpenCL platforms:");
-        log_info ("");
+        gpu_temp_retain = 0;
 
-        for (uint i = 0; i < CL_platforms_cnt; i++)
-        {
-          char CL_platform_vendor[INFOSZ];
-
-          memset (CL_platform_vendor, 0, sizeof (CL_platform_vendor));
-
-          hc_clGetPlatformInfo (CL_platforms[i], CL_PLATFORM_VENDOR, sizeof (CL_platform_vendor), CL_platform_vendor, NULL);
-
-          log_info ("* %d = %s", i + 1, CL_platform_vendor);
-        }
-
-        log_info ("");
-
-        return (-1);
+        data.gpu_temp_retain = gpu_temp_retain;
       }
-      else
+      else if (strcmp (CL_platform_vendor, CL_VENDOR_POCL) == 0)
       {
-        if (CL_platform_sel < 1)
+        if (force == 0)
         {
-          log_error ("ERROR: --opencl-platform < 1");
-
-          return (-1);
-        }
-
-        if (CL_platform_sel > (int) CL_platforms_cnt)
-        {
-          log_error ("ERROR: invalid OpenCL platforms selected");
+          log_info ("");
+          log_info ("ATTENTION! All pocl drivers are known to be broken due to broken LLVM <= 3.7");
+          log_info ("You are STRONGLY encouraged not to use it");
+          log_info ("You can use --force to override this but do not post error reports if you do so");
+          log_info ("");
 
           return (-1);
         }
       }
     }
-    else
-    {
-      if (CL_platform_sel != 1)
-      {
-        log_error ("ERROR: OpenCL platform number %d is not available", CL_platform_sel);
-
-        return (-1);
-      }
-    }
-
-    // zero-indexed: not starting to count at 1, as user does
-
-    CL_platform_sel -= 1;
-
-    cl_platform_id CL_platform = CL_platforms[CL_platform_sel];
-
-    char CL_platform_vendor[INFOSZ];
-
-    memset (CL_platform_vendor, 0, sizeof (CL_platform_vendor));
-
-    hc_clGetPlatformInfo (CL_platform, CL_PLATFORM_VENDOR, sizeof (CL_platform_vendor), CL_platform_vendor, NULL);
-
-    uint vendor_id;
-
-    if (strcmp (CL_platform_vendor, CL_VENDOR_AMD) == 0)
-    {
-      vendor_id = VENDOR_ID_AMD;
-    }
-    else if (strcmp (CL_platform_vendor, CL_VENDOR_NV) == 0)
-    {
-      vendor_id = VENDOR_ID_NV;
-
-      // make sure that we do not directly control the fan for NVidia
-
-      gpu_temp_retain = 0;
-
-      data.gpu_temp_retain = gpu_temp_retain;
-    }
-    else if (strcmp (CL_platform_vendor, CL_VENDOR_POCL) == 0)
-    {
-      if (force == 0)
-      {
-        log_error ("");
-        log_error ("ATTENTION! All pocl drivers are known to be broken due to broken LLVM <= 3.7");
-        log_error ("You are STRONGLY encouraged not to use it");
-        log_error ("You can use --force to override this but do not post error reports if you do so");
-
-        return (-1);
-      }
-
-      vendor_id = VENDOR_ID_GENERIC;
-    }
-    else
-    {
-      vendor_id = VENDOR_ID_GENERIC;
-    }
-
-    if (vendor_id == VENDOR_ID_GENERIC)
-    {
-      log_error ("Warning: unknown OpenCL vendor '%s' detected", CL_platform_vendor);
-
-      gpu_temp_disable = 1;
-    }
-
-    data.vendor_id = vendor_id;
 
     /**
-     * cached kernel path depends on vendor_id which we don't know, so create it here
+     * OpenCL devices: push all devices from all platforms into the same device array
      */
 
-    int vendor_id_folder_size = strlen (profile_dir) + 1 + 7 + 1 + 10 + 1;
-
-    char *vendor_id_folder = (char *) mymalloc (vendor_id_folder_size);
-
-    snprintf (vendor_id_folder, vendor_id_folder_size - 1, "%s/kernels", profile_dir);
-
-    mkdir (vendor_id_folder, 0700);
-
-    snprintf (vendor_id_folder, vendor_id_folder_size - 1, "%s/kernels/%d", profile_dir, vendor_id);
-
-    mkdir (vendor_id_folder, 0700);
-
-    myfree (vendor_id_folder);
-
-    /**
-     * devices
-     */
+    uint devices_plf[DEVICES_MAX]; // device number on platform, required for hardware-management mapping
 
     cl_device_id devices_all[DEVICES_MAX];
     cl_device_id devices[DEVICES_MAX];
 
     uint devices_all_cnt = 0;
+    uint devices_cnt = 0;
 
-    hc_clGetDeviceIDs (CL_platform, device_types_filter, DEVICES_MAX, devices_all, (uint *) &devices_all_cnt);
-
-    int hm_adapters_all = devices_all_cnt;
-
-    hm_attrs_t hm_adapter_all[DEVICES_MAX];
-
-    memset (hm_adapter_all, 0, sizeof (hm_adapter_all));
-
-    if (gpu_temp_disable == 0)
+    for (uint i = 0; i < CL_platforms_cnt; i++)
     {
-      if (vendor_id == VENDOR_ID_NV)
+      if ((opencl_platforms_filter & (1 << i)) == 0) continue;
+
+      cl_platform_id CL_platform = CL_platforms[i];
+
+      cl_device_id devices_platform[DEVICES_MAX];
+
+  		cl_uint devices_platform_cnt = 0;
+
+      hc_clGetDeviceIDs (CL_platform, device_types_filter, DEVICES_MAX, devices_platform, &devices_platform_cnt);
+
+      for (uint j = 0; j < devices_platform_cnt; j++)
       {
-        #ifdef LINUX
-        HM_LIB hm_dll = hm_init ();
+        devices_all[devices_all_cnt] = devices_platform[j];
+        devices_plf[devices_all_cnt] = j;
 
-        data.hm_dll = hm_dll;
-
-        if (hc_NVML_nvmlInit (hm_dll) == NVML_SUCCESS)
-        {
-          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
-
-          int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
-
-          int tmp_out = 0;
-
-          for (int i = 0; i < tmp_in; i++)
-          {
-            hm_adapter_all[tmp_out++].adapter_index.nv = nvGPUHandle[i];
-          }
-
-          hm_adapters_all = tmp_out;
-
-          for (int i = 0; i < tmp_out; i++)
-          {
-            unsigned int speed;
-
-            if (hc_NVML_nvmlDeviceGetFanSpeed (hm_dll, 1, hm_adapter_all[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapter_all[i].fan_supported = 1;
-          }
-        }
-        #endif
-
-        #ifdef WIN
-        if (NvAPI_Initialize () == NVAPI_OK)
-        {
-          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
-
-          int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
-
-          int tmp_out = 0;
-
-          for (int i = 0; i < tmp_in; i++)
-          {
-            hm_adapter_all[tmp_out++].adapter_index.nv = nvGPUHandle[i];
-          }
-
-          hm_adapters_all = tmp_out;
-
-          for (int i = 0; i < tmp_out; i++)
-          {
-            NvU32 speed;
-
-            if (NvAPI_GPU_GetTachReading (hm_adapter_all[i].adapter_index.nv, &speed) != NVAPI_NOT_SUPPORTED) hm_adapter_all[i].fan_supported = 1;
-          }
-        }
-        #endif
+        devices_all_cnt++;
       }
-
-      if (vendor_id == VENDOR_ID_AMD)
-      {
-        HM_LIB hm_dll = hm_init ();
-
-        data.hm_dll = hm_dll;
-
-        if (hc_ADL_Main_Control_Create (hm_dll, ADL_Main_Memory_Alloc, 0) == ADL_OK)
-        {
-          // total number of adapters
-
-          int hm_adapters_num;
-
-          if (get_adapters_num_amd (hm_dll, &hm_adapters_num) != 0) return (-1);
-
-          // adapter info
-
-          LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_amd (hm_dll, hm_adapters_num);
-
-          if (lpAdapterInfo == NULL) return (-1);
-
-          // get a list (of ids of) valid/usable adapters
-
-          int num_adl_adapters = 0;
-
-          uint32_t *valid_adl_device_list = hm_get_list_valid_adl_adapters (hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
-
-          if (num_adl_adapters > 0)
-          {
-            hc_thread_mutex_lock (mux_adl);
-
-            // hm_get_opencl_busid_devid (hm_adapter_all, devices_all_cnt, devices_all);
-
-            hm_get_adapter_index_amd (hm_adapter_all, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-
-            hm_get_overdrive_version  (hm_dll, hm_adapter_all, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-            hm_check_fanspeed_control (hm_dll, hm_adapter_all, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-
-            hc_thread_mutex_unlock (mux_adl);
-          }
-
-          hm_adapters_all = num_adl_adapters;
-
-          myfree (valid_adl_device_list);
-          myfree (lpAdapterInfo);
-        }
-      }
-    }
-
-    if (hm_adapters_all == 0)
-    {
-      gpu_temp_disable = 1;
-    }
-
-    if (gpu_temp_disable == 1)
-    {
-      gpu_temp_abort  = 0;
-      gpu_temp_retain = 0;
     }
 
     /**
@@ -12646,20 +12462,8 @@ int main (int argc, char **argv)
      * devices mask and properties
      */
 
-    uint hm_adapter_index = 0;
-
-    uint devices_cnt = 0;
-
     for (uint device_all_id = 0; device_all_id < devices_all_cnt; device_all_id++)
     {
-      const uint device_id = devices_cnt;
-
-      devices[device_id] = devices_all[device_all_id];
-
-      cl_device_type device_type;
-
-      hc_clGetDeviceInfo (devices[device_id], CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
-
       // skip the device, if the user did specify a list of GPUs to skip
 
       if (opencl_devicemask)
@@ -12668,13 +12472,17 @@ int main (int argc, char **argv)
 
         if ((device_all_id_mask & opencl_devicemask) != device_all_id_mask)
         {
-          if (quiet == 0 && algorithm_pos == 0) log_info ("Device #%d: skipped by user", device_all_id_mask + 1);
-
-          if (device_type & CL_DEVICE_TYPE_GPU) hm_adapter_index++;
+          if (quiet == 0 && algorithm_pos == 0) log_info ("Device #%d: skipped by user", device_all_id + 1);
 
           continue;
         }
       }
+
+      const uint device_id = devices_cnt;
+
+      devices[device_id] = devices_all[device_all_id];
+
+      devices_plf[device_id] = devices_plf[device_all_id];
 
       char device_name[INFOSZ];
 
@@ -12702,17 +12510,6 @@ int main (int argc, char **argv)
                   (unsigned int) max_compute_units);
       }
 
-      // copy hm_adapter info to data.hm_device[]
-
-      if (device_type & CL_DEVICE_TYPE_GPU)
-      {
-        memcpy (&data.hm_device[device_id], &hm_adapter_all[hm_adapter_index], sizeof (hm_attrs_t));
-
-        hm_adapter_index++;
-      }
-      // this would be the CPU case (but it should be zeroed out already):
-      // else memset (&data.hm_device[device_id], 0, sizeof (hm_attrs_t));
-
       devices_cnt++;
     }
 
@@ -12731,10 +12528,14 @@ int main (int argc, char **argv)
     }
 
     /**
-     * inform the user
+     * User-defined GPU temp handling
      */
 
-    // gpu temp sanity check
+    if (gpu_temp_disable == 1)
+    {
+      gpu_temp_abort  = 0;
+      gpu_temp_retain = 0;
+    }
 
     if ((gpu_temp_abort != 0) && (gpu_temp_retain != 0))
     {
@@ -12749,6 +12550,10 @@ int main (int argc, char **argv)
     data.gpu_temp_disable = gpu_temp_disable;
     data.gpu_temp_abort   = gpu_temp_abort;
     data.gpu_temp_retain  = gpu_temp_retain;
+
+    /**
+     * inform the user
+     */
 
     if (data.quiet == 0)
     {
@@ -12796,6 +12601,8 @@ int main (int argc, char **argv)
       }
     }
 
+    if (data.quiet == 0) log_info ("");
+
     /**
      * devices init
      */
@@ -12836,6 +12643,12 @@ int main (int argc, char **argv)
 
       device_param->device_maxmem_alloc = max_mem_alloc_size;
 
+      cl_uint vendor_id = 0;
+
+      hc_clGetDeviceInfo (device, CL_DEVICE_VENDOR_ID, sizeof (vendor_id), &vendor_id, NULL);
+
+      device_param->vendor_id = vendor_id;
+
       char tmp[INFOSZ], t1[64];
 
       memset (tmp, 0, sizeof (tmp));
@@ -12847,6 +12660,16 @@ int main (int argc, char **argv)
       memset (tmp, 0, sizeof (tmp));
 
       hc_clGetDeviceInfo (device, CL_DEVICE_VERSION, sizeof (tmp), &tmp, NULL);
+
+      if (strstr (tmp, "pocl"))
+      {
+        // pocl returns the real AMD vendor_id id in CL_DEVICE_VENDOR_ID which causes many problems because of hms and missing amd_bfe () etc
+        // we need to overwrite vendor_id to avoid this. maybe open pocl issue?
+
+        cl_uint vendor_id = 0xffff;
+
+        device_param->vendor_id = vendor_id;
+      }
 
       memset (t1, 0, sizeof (t1));
 
@@ -12862,7 +12685,7 @@ int main (int argc, char **argv)
 
       // create some filename that is easier to read on cached folder
 
-      snprintf (tmp, sizeof (tmp) - 1, "%s-%s-%s-%d", device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+      snprintf (tmp, sizeof (tmp) - 1, "%u-%s-%s-%s-%d", device_param->vendor_id, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
 
       uint device_name_digest[4];
 
@@ -12896,8 +12719,7 @@ int main (int argc, char **argv)
 
           device_param->device_processor_cores = device_processor_cores;
         }
-
-        if (vendor_id == VENDOR_ID_NV)
+        else if (vendor_id == VENDOR_ID_NV)
         {
           cl_uint kernel_exec_timeout = 0;
 
@@ -12927,6 +12749,12 @@ int main (int argc, char **argv)
           device_param->sm_minor = sm_minor;
           device_param->sm_major = sm_major;
         }
+        else
+        {
+          cl_uint device_processor_cores = 1;
+
+          device_param->device_processor_cores = device_processor_cores;
+        }
       }
 
       /**
@@ -12943,8 +12771,7 @@ int main (int argc, char **argv)
             if (data.quiet == 0) log_info ("           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
           }
         }
-
-        if (vendor_id == VENDOR_ID_AMD)
+        else if (vendor_id == VENDOR_ID_AMD)
         {
           int catalyst_check = (force == 1) ? 0 : 1;
 
@@ -12994,6 +12821,143 @@ int main (int argc, char **argv)
       }
     }
 
+    /**
+     * HM devices: init
+     */
+
+    hm_attrs_t hm_adapters_nv[DEVICES_MAX];
+    hm_attrs_t hm_adapters_amd[DEVICES_MAX];
+
+    memset (hm_adapters_nv,  0, sizeof (hm_adapters_nv));
+    memset (hm_adapters_amd, 0, sizeof (hm_adapters_amd));
+
+    if (gpu_temp_disable == 0)
+    {
+      HM_LIB hm_dll_nv = hm_init (VENDOR_ID_NV);
+
+      data.hm_dll_nv = hm_dll_nv;
+
+      if (hm_dll_nv)
+      {
+        #ifdef LINUX
+        if (hc_NVML_nvmlInit (hm_dll_nv) == NVML_SUCCESS)
+        {
+          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
+
+          int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
+
+          int tmp_out = 0;
+
+          for (int i = 0; i < tmp_in; i++)
+          {
+            hm_adapters_nv[tmp_out++].adapter_index.nv = nvGPUHandle[i];
+          }
+
+          for (int i = 0; i < tmp_out; i++)
+          {
+            unsigned int speed;
+
+            if (hc_NVML_nvmlDeviceGetFanSpeed (hm_dll_nv, 1, hm_adapters_nv[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
+          }
+        }
+        #endif
+
+        #ifdef WIN
+        if (NvAPI_Initialize () == NVAPI_OK)
+        {
+          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
+
+          int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
+
+          int tmp_out = 0;
+
+          for (int i = 0; i < tmp_in; i++)
+          {
+            hm_adapters_nv[tmp_out++].adapter_index.nv = nvGPUHandle[i];
+          }
+
+          for (int i = 0; i < tmp_out; i++)
+          {
+            NvU32 speed;
+
+            if (NvAPI_GPU_GetTachReading (hm_adapters_nv[i].adapter_index.nv, &speed) != NVAPI_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
+          }
+        }
+        #endif
+      }
+
+      HM_LIB hm_dll_amd = hm_init (VENDOR_ID_AMD);
+
+      data.hm_dll_amd = hm_dll_amd;
+
+      if (hm_dll_amd)
+      {
+        if (hc_ADL_Main_Control_Create (hm_dll_amd, ADL_Main_Memory_Alloc, 0) == ADL_OK)
+        {
+          // total number of adapters
+
+          int hm_adapters_num;
+
+          if (get_adapters_num_amd (hm_dll_amd, &hm_adapters_num) != 0) return (-1);
+
+          // adapter info
+
+          LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_amd (hm_dll_amd, hm_adapters_num);
+
+          if (lpAdapterInfo == NULL) return (-1);
+
+          // get a list (of ids of) valid/usable adapters
+
+          int num_adl_adapters = 0;
+
+          uint32_t *valid_adl_device_list = hm_get_list_valid_adl_adapters (hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
+
+          if (num_adl_adapters > 0)
+          {
+            hc_thread_mutex_lock (mux_adl);
+
+            // hm_get_opencl_busid_devid (hm_adapters_amd, devices_all_cnt, devices_all);
+
+            hm_get_adapter_index_amd (hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+
+            hm_get_overdrive_version  (hm_dll_amd, hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+            hm_check_fanspeed_control (hm_dll_amd, hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+
+            hc_thread_mutex_unlock (mux_adl);
+          }
+
+          myfree (valid_adl_device_list);
+          myfree (lpAdapterInfo);
+        }
+      }
+    }
+
+    /**
+     * HM devices: copy
+     */
+
+    if (gpu_temp_disable == 0)
+    {
+      for (uint device_id = 0; device_id < devices_cnt; device_id++)
+      {
+        hc_device_param_t *device_param = &data.devices_param[device_id];
+
+        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
+        cl_uint device_id_on_platform = devices_plf[device_id];
+
+        if (device_param->vendor_id == VENDOR_ID_NV)
+        {
+          memcpy (&data.hm_device[device_id], &hm_adapters_nv[device_id_on_platform], sizeof (hm_attrs_t));
+        }
+
+        if (device_param->vendor_id == VENDOR_ID_AMD)
+        {
+          memcpy (&data.hm_device[device_id], &hm_adapters_amd[device_id_on_platform], sizeof (hm_attrs_t));
+        }
+      }
+    }
+
    /*
     * Temporary fix:
     * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
@@ -13002,53 +12966,50 @@ int main (int argc, char **argv)
     * Driver / ADL bug?
     */
 
-    if (vendor_id == VENDOR_ID_AMD)
+    if (powertune_enable == 1)
     {
-      if (powertune_enable == 1)
+      hc_thread_mutex_lock (mux_adl);
+
+      for (uint device_id = 0; device_id < devices_cnt; device_id++)
       {
-        hc_thread_mutex_lock (mux_adl);
-
-        for (uint i = 0; i < devices_cnt; i++)
+        if (data.hm_device[device_id].od_version == 6)
         {
-          if (data.hm_device[i].od_version == 6)
+          // set powertune value only
+
+          int powertune_supported = 0;
+
+          int ADL_rc = 0;
+
+          if ((ADL_rc = hc_ADL_Overdrive6_PowerControl_Caps (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
           {
-            // set powertune value only
+            log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
-            int powertune_supported = 0;
+            return (-1);
+          }
 
-            int ADL_rc = 0;
+          if (powertune_supported != 0)
+          {
+            // powertune set
+            ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
 
-            if ((ADL_rc = hc_ADL_Overdrive6_PowerControl_Caps (data.hm_dll, data.hm_device[i].adapter_index.amd, &powertune_supported)) != ADL_OK)
+            if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, &powertune)) != ADL_OK)
             {
-              log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
+              log_error ("ERROR: Failed to get current ADL PowerControl settings");
 
               return (-1);
             }
 
-            if (powertune_supported != 0)
+            if ((ADL_rc = hc_ADL_Overdrive_PowerControl_Set (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
             {
-              // powertune set
-              ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
+              log_error ("ERROR: Failed to set new ADL PowerControl values");
 
-              if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (data.hm_dll, data.hm_device[i].adapter_index.amd, &powertune)) != ADL_OK)
-              {
-                log_error ("ERROR: Failed to get current ADL PowerControl settings");
-
-                return (-1);
-              }
-
-              if ((ADL_rc = hc_ADL_Overdrive_PowerControl_Set (data.hm_dll, data.hm_device[i].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
-              {
-                log_error ("ERROR: Failed to set new ADL PowerControl values");
-
-                return (-1);
-              }
+              return (-1);
             }
           }
         }
-
-        hc_thread_mutex_unlock (mux_adl);
       }
+
+      hc_thread_mutex_unlock (mux_adl);
     }
 
     uint kernel_blocks_all = 0;
@@ -13242,22 +13203,22 @@ int main (int argc, char **argv)
 
           if (hash_mode == 8900)
           {
-            if (vendor_id == VENDOR_ID_AMD)
+            if (device_param->vendor_id == VENDOR_ID_AMD)
             {
               tmto_start = 1;
             }
-            else if (vendor_id == VENDOR_ID_NV)
+            else if (device_param->vendor_id == VENDOR_ID_NV)
             {
               tmto_start = 3;
             }
           }
           else if (hash_mode == 9300)
           {
-            if (vendor_id == VENDOR_ID_AMD)
+            if (device_param->vendor_id == VENDOR_ID_AMD)
             {
               tmto_start = 3;
             }
-            else if (vendor_id == VENDOR_ID_NV)
+            else if (device_param->vendor_id == VENDOR_ID_NV)
             {
               tmto_start = 5;
             }
@@ -13268,12 +13229,11 @@ int main (int argc, char **argv)
 
         uint shader_per_mp = 1;
 
-        if (vendor_id == VENDOR_ID_AMD)
+        if (device_param->vendor_id == VENDOR_ID_AMD)
         {
           shader_per_mp = 8;
         }
-
-        if (vendor_id == VENDOR_ID_NV)
+        else if (device_param->vendor_id == VENDOR_ID_NV)
         {
           shader_per_mp = 32;
         }
@@ -13322,9 +13282,9 @@ int main (int argc, char **argv)
 
       char build_opts[1024];
 
-      // we don't have sm_* on AMD but it doesn't matter
+      // we don't have sm_* on vendors not NV but it doesn't matter
 
-      sprintf (build_opts, "-I%s/ -DVENDOR_ID=%d -DCUDA_ARCH=%d", shared_dir, vendor_id, (device_param->sm_major * 100) + device_param->sm_minor);
+      sprintf (build_opts, "-I%s/ -DVENDOR_ID=%d -DCUDA_ARCH=%d", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor);
 
       /**
        * a0 kernel, required for some fast hashes to make weak_hash_check work
@@ -13370,7 +13330,7 @@ int main (int argc, char **argv)
 
         memset (cached_file, 0, sizeof (cached_file));
 
-        generate_cached_kernel_filename (attack_exec, ATTACK_KERN_STRAIGHT, kern_type, profile_dir, device_name_chksum, vendor_id, cached_file);
+        generate_cached_kernel_filename (attack_exec, ATTACK_KERN_STRAIGHT, kern_type, profile_dir, device_name_chksum, cached_file);
 
         int cached = 1;
 
@@ -13500,7 +13460,7 @@ int main (int argc, char **argv)
 
         memset (cached_file, 0, sizeof (cached_file));
 
-        generate_cached_kernel_filename (attack_exec, attack_kern, kern_type, profile_dir, device_name_chksum, vendor_id, cached_file);
+        generate_cached_kernel_filename (attack_exec, attack_kern, kern_type, profile_dir, device_name_chksum, cached_file);
 
         int cached = 1;
 
@@ -13631,7 +13591,7 @@ int main (int argc, char **argv)
 
         memset (cached_file, 0, sizeof (cached_file));
 
-        generate_cached_kernel_mp_filename (opti_type, opts_type, profile_dir, device_name_chksum, vendor_id, cached_file);
+        generate_cached_kernel_mp_filename (opti_type, opts_type, profile_dir, device_name_chksum, cached_file);
 
         int cached = 1;
 
@@ -13744,7 +13704,7 @@ int main (int argc, char **argv)
 
         memset (cached_file, 0, sizeof (cached_file));
 
-        generate_cached_kernel_amp_filename (attack_kern, profile_dir, device_name_chksum, vendor_id, cached_file);
+        generate_cached_kernel_amp_filename (attack_kern, profile_dir, device_name_chksum, cached_file);
 
         int cached = 1;
 
@@ -14278,7 +14238,7 @@ int main (int argc, char **argv)
               uint cur_temp = 0;
               uint default_temp = 0;
 
-              int ADL_rc = hc_ADL_Overdrive6_TargetTemperatureData_Get (data.hm_dll, data.hm_device[device_id].adapter_index.amd, (int *) &cur_temp, (int *) &default_temp);
+              int ADL_rc = hc_ADL_Overdrive6_TargetTemperatureData_Get (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, (int *) &cur_temp, (int *) &default_temp);
 
               if (ADL_rc == ADL_OK)
               {
@@ -14334,7 +14294,7 @@ int main (int argc, char **argv)
 
           int powertune_supported = 0;
 
-          if ((ADL_rc = hc_ADL_Overdrive6_PowerControl_Caps (data.hm_dll, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
+          if ((ADL_rc = hc_ADL_Overdrive6_PowerControl_Caps (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
           {
             log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
@@ -14347,9 +14307,9 @@ int main (int argc, char **argv)
 
             ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
 
-            if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (data.hm_dll, data.hm_device[device_id].adapter_index.amd, &powertune)) == ADL_OK)
+            if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, &powertune)) == ADL_OK)
             {
-              ADL_rc = hc_ADL_Overdrive_PowerControl_Get (data.hm_dll, data.hm_device[device_id].adapter_index.amd, &od_power_control_status[device_id]);
+              ADL_rc = hc_ADL_Overdrive_PowerControl_Get (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, &od_power_control_status[device_id]);
             }
 
             if (ADL_rc != ADL_OK)
@@ -14359,7 +14319,7 @@ int main (int argc, char **argv)
               return (-1);
             }
 
-            if ((ADL_rc = hc_ADL_Overdrive_PowerControl_Set (data.hm_dll, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
+            if ((ADL_rc = hc_ADL_Overdrive_PowerControl_Set (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
             {
               log_error ("ERROR: Failed to set new ADL PowerControl values");
 
@@ -14372,7 +14332,7 @@ int main (int argc, char **argv)
 
             od_clock_mem_status[device_id].state.iNumberOfPerformanceLevels = 2;
 
-            if ((ADL_rc = hc_ADL_Overdrive_StateInfo_Get (data.hm_dll, data.hm_device[device_id].adapter_index.amd, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
+            if ((ADL_rc = hc_ADL_Overdrive_StateInfo_Get (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
             {
               log_error ("ERROR: Failed to get ADL memory and engine clock frequency");
 
@@ -14383,7 +14343,7 @@ int main (int argc, char **argv)
 
             ADLOD6Capabilities caps = {0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0, 0};
 
-            if ((ADL_rc = hc_ADL_Overdrive_Capabilities_Get (data.hm_dll, data.hm_device[device_id].adapter_index.amd, &caps)) != ADL_OK)
+            if ((ADL_rc = hc_ADL_Overdrive_Capabilities_Get (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, &caps)) != ADL_OK)
             {
               log_error ("ERROR: Failed to get ADL device capabilities");
 
@@ -14420,7 +14380,7 @@ int main (int argc, char **argv)
             performance_state->aLevels[0].iMemoryClock = memory_clock_profile_max;
             performance_state->aLevels[1].iMemoryClock = memory_clock_profile_max;
 
-            if ((ADL_rc = hc_ADL_Overdrive_State_Set (data.hm_dll, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+            if ((ADL_rc = hc_ADL_Overdrive_State_Set (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
             {
               log_info ("ERROR: Failed to set ADL performance state");
 
@@ -16561,7 +16521,7 @@ int main (int argc, char **argv)
 
           int powertune_supported = 0;
 
-          if ((hc_ADL_Overdrive6_PowerControl_Caps (data.hm_dll, data.hm_device[i].adapter_index.amd, &powertune_supported)) != ADL_OK)
+          if ((hc_ADL_Overdrive6_PowerControl_Caps (data.hm_dll_amd, data.hm_device[i].adapter_index.amd, &powertune_supported)) != ADL_OK)
           {
             log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
@@ -16572,7 +16532,7 @@ int main (int argc, char **argv)
           {
             // powercontrol settings
 
-            if ((hc_ADL_Overdrive_PowerControl_Set (data.hm_dll, data.hm_device[i].adapter_index.amd, od_power_control_status[i])) != ADL_OK)
+            if ((hc_ADL_Overdrive_PowerControl_Set (data.hm_dll_amd, data.hm_device[i].adapter_index.amd, od_power_control_status[i])) != ADL_OK)
             {
               log_info ("ERROR: Failed to restore the ADL PowerControl values");
 
@@ -16590,7 +16550,7 @@ int main (int argc, char **argv)
             performance_state->aLevels[0].iMemoryClock = od_clock_mem_status[i].state.aLevels[0].iMemoryClock;
             performance_state->aLevels[1].iMemoryClock = od_clock_mem_status[i].state.aLevels[1].iMemoryClock;
 
-            if ((hc_ADL_Overdrive_State_Set (data.hm_dll, data.hm_device[i].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+            if ((hc_ADL_Overdrive_State_Set (data.hm_dll_amd, data.hm_device[i].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
             {
               log_info ("ERROR: Failed to restore ADL performance state");
 
@@ -16607,30 +16567,25 @@ int main (int argc, char **argv)
 
     if (gpu_temp_disable == 0)
     {
-      if (vendor_id == VENDOR_ID_NV)
-      {
-        #ifdef LINUX
-        hc_NVML_nvmlShutdown (data.hm_dll);
-        #endif
-
-        #ifdef WIN
-        NvAPI_Unload ();
-        #endif
-      }
-
-      if (vendor_id == VENDOR_ID_AMD)
-      {
-        hc_ADL_Main_Control_Destroy (data.hm_dll);
-
-        hm_close (data.hm_dll);
-      }
-
       #ifdef LINUX
-      if (vendor_id == VENDOR_ID_NV)
+      if (data.hm_dll_nv)
       {
-        hm_close (data.hm_dll);
+        hc_NVML_nvmlShutdown (data.hm_dll_nv);
+
+        hm_close (data.hm_dll_nv);
       }
       #endif
+
+      #ifdef WIN
+      NvAPI_Unload ();
+      #endif
+
+      if (data.hm_dll_amd)
+      {
+        hc_ADL_Main_Control_Destroy (data.hm_dll_amd);
+
+        hm_close (data.hm_dll_amd);
+      }
     }
 
     // free memory

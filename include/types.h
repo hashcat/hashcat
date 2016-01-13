@@ -886,6 +886,8 @@ struct __hc_device_param
   char             *device_version;
   char             *driver_version;
 
+  cl_uint           vendor_id;
+
   cl_device_id      device;
   cl_device_type    device_type;
 
@@ -971,9 +973,11 @@ typedef struct __hc_device_param hc_device_param_t;
 
 typedef struct
 {
-  union {
+  union
+  {
     HM_ADAPTER_AMD amd;
     HM_ADAPTER_NV  nv;
+
   } adapter_index;
 
   int od_version;
@@ -990,8 +994,6 @@ typedef struct
   /**
    * threads
    */
-
-  uint                vendor_id;
 
   uint                devices_status;
   uint                devices_cnt;
@@ -1034,7 +1036,8 @@ typedef struct
    * hardware watchdog
    */
 
-  HM_LIB              hm_dll;
+  HM_LIB              hm_dll_nv;
+  HM_LIB              hm_dll_amd;
   hm_attrs_t          hm_device[DEVICES_MAX];
 
   /**

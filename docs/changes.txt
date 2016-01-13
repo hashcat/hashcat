@@ -30,17 +30,32 @@ Issue: 2
 
 Type.: Feature
 File.: Host
-Desc.: No longer need NVidia-CUDA-SDK, AMD-APP-SDK and NVidia-ForceWare driver in depencies
+Desc.: No longer requires NV CUDA-SDK, NV ForceWare or AMD APP-SDK in depencies
 Issue: 2
 
 Type.: Feature
 File.: Host
-Desc.: Added option --opencl-platform to select a single OpenCL platform in case multiple OpenCL platforms are present 
+Desc.: Added support to utilize multiple different OpenCL platforms in parallel, ex: AMD + NV
 Issue: 2
 
 Type.: Feature
 File.: Host
-Desc.: Added option --opencl-device-types to filter for specific OpenCL device types
+Desc.: Added support to utilize OpenCL devices-types other than GPU, ex: CPU or FPGA
+Issue: 2
+
+Type.: Feature
+File.: Host
+Desc.: Added support to utilize multiple different OpenCL devices-types in parallel, ex: GPU + CPU
+Issue: 2
+
+Type.: Feature
+File.: Host
+Desc.: Added option --opencl-platform to select specific OpenCL platforms
+Issue: 2
+
+Type.: Feature
+File.: Host
+Desc.: Added option --opencl-device-types to select specific OpenCL device types
 Issue: 2
 
 Type.: Feature
@@ -51,12 +66,6 @@ Issue: 10
 Type.: Feature
 File.: Host
 Desc.: Moved rules_optimize to hashcat-utils
-Issue: 2
-
-Type.: Change
-File.: Host
-Desc.: Renamed option --gpu-devices to --opencl-devices
-Issue: 2
 
 Type.: Change
 File.: Host
@@ -66,6 +75,11 @@ Issue: 2
 Type.: Change
 File.: Host
 Desc.: Renamed option --gpu-loops to --kernel-loops
+Issue: 2
+
+Type.: Change
+File.: Host
+Desc.: Renamed option --gpu-devices to --opencl-devices
 Issue: 2
 
 Type.: Bug
