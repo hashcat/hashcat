@@ -124,6 +124,7 @@ clean:
 	$(RM) -f obj/*.o lib/*.a ./*.bin ./*.exe ./*.app *.restore *.out *.pot *.dictstat *.log oclHashcat core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
+	$(RM) -rf kernels
 
 linux32:        oclHashcat32.bin
 linux64:        oclHashcat64.bin
