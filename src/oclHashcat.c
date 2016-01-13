@@ -12432,7 +12432,7 @@ int main (int argc, char **argv)
 
       cl_device_id devices_platform[DEVICES_MAX];
 
-  		cl_uint devices_platform_cnt = 0;
+      cl_uint devices_platform_cnt = 0;
 
       hc_clGetDeviceIDs (CL_platform, device_types_filter, DEVICES_MAX, devices_platform, &devices_platform_cnt);
 
