@@ -9868,7 +9868,14 @@ int dcc2_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt_t *salt = hash_buf->salt;
 
-  salt->salt_iter = atoi (iter_pos) - 1;
+  uint iter = atoi (iter_pos);
+
+  if (iter < 1)
+  {
+    iter = ROUNDS_DCC2;
+  }
+
+  salt->salt_iter = iter - 1;
 
   char *salt_pos = strchr (iter_pos, '#');
 
