@@ -4956,10 +4956,10 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
 
     digests_buf_ptr += dgst_size;
 
-    const uint val0 = 1 << (digest_ptr[dgst_pos0] & 0x1f);
-    const uint val1 = 1 << (digest_ptr[dgst_pos1] & 0x1f);
-    const uint val2 = 1 << (digest_ptr[dgst_pos2] & 0x1f);
-    const uint val3 = 1 << (digest_ptr[dgst_pos3] & 0x1f);
+    const uint val0 = 1u << (digest_ptr[dgst_pos0] & 0x1f);
+    const uint val1 = 1u << (digest_ptr[dgst_pos1] & 0x1f);
+    const uint val2 = 1u << (digest_ptr[dgst_pos2] & 0x1f);
+    const uint val3 = 1u << (digest_ptr[dgst_pos3] & 0x1f);
 
     const uint idx0 = (digest_ptr[dgst_pos0] >> dgst_shifts) & bitmap_mask;
     const uint idx1 = (digest_ptr[dgst_pos1] >> dgst_shifts) & bitmap_mask;
