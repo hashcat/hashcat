@@ -12600,7 +12600,7 @@ int main (int argc, char **argv)
 
         for (uint i = 0; i < 32; i++)
         {
-          const uint opti_bit = 1 << i;
+          const uint opti_bit = 1u << i;
 
           if (opti_type & opti_bit) log_info ("* %s", stroptitype (opti_bit));
         }

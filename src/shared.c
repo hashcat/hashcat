@@ -2883,7 +2883,7 @@ uint32_t *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adap
   {
     AdapterInfo info = lpAdapterInfo[i];
 
-    if ((info.strUDID == NULL) || (strlen (info.strUDID) < 1)) continue;
+    if (strlen (info.strUDID) < 1) continue;
 
     #ifdef WIN
     if (info.iVendorID !=   1002) continue;
