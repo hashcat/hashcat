@@ -4545,6 +4545,10 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
 
   data.dictfile = (char *) weak_hash_check;
 
+  uint cmd0_rule_old = data.kernel_rules_buf[0].cmds[0];
+
+  data.kernel_rules_buf[0].cmds[0] = 0;
+
   /**
    * run the kernel
    */
@@ -4594,6 +4598,8 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
   device_param->kernel_params_buf32[31] = 0;
 
   data.dictfile = dictfile_old;
+
+  data.kernel_rules_buf[0].cmds[0] = cmd0_rule_old;
 }
 
 // hlfmt hashcat
