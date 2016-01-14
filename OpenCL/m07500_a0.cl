@@ -8,10 +8,10 @@
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
-#define DGST_R0 3
-#define DGST_R1 7
+#define DGST_R0 0
+#define DGST_R1 1
 #define DGST_R2 2
-#define DGST_R3 6
+#define DGST_R3 3
 
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"

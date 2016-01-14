@@ -8813,10 +8813,10 @@ int main (int argc, char **argv)
                    sort_by_digest = sort_by_digest_4_4;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_NOT_ITERATED;
-                   dgst_pos0   = 3;
-                   dgst_pos1   = 7;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
                    dgst_pos2   = 2;
-                   dgst_pos3   = 6;
+                   dgst_pos3   = 3;
                    break;
 
       case  7600:  hash_type   = HASH_TYPE_SHA1;
