@@ -635,14 +635,14 @@ uint hex_to_uint (const char hex[8])
 {
   uint v = 0;
 
-  v |= hex_convert (hex[7]) <<  0;
-  v |= hex_convert (hex[6]) <<  4;
-  v |= hex_convert (hex[5]) <<  8;
-  v |= hex_convert (hex[4]) << 12;
-  v |= hex_convert (hex[3]) << 16;
-  v |= hex_convert (hex[2]) << 20;
-  v |= hex_convert (hex[1]) << 24;
-  v |= hex_convert (hex[0]) << 28;
+  v |= ((uint) hex_convert (hex[7])) <<  0;
+  v |= ((uint) hex_convert (hex[6])) <<  4;
+  v |= ((uint) hex_convert (hex[5])) <<  8;
+  v |= ((uint) hex_convert (hex[4])) << 12;
+  v |= ((uint) hex_convert (hex[3])) << 16;
+  v |= ((uint) hex_convert (hex[2])) << 20;
+  v |= ((uint) hex_convert (hex[1])) << 24;
+  v |= ((uint) hex_convert (hex[0])) << 28;
 
   return (v);
 }
