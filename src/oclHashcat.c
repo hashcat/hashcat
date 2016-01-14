@@ -6089,7 +6089,7 @@ int main (int argc, char **argv)
 
   if (attack_mode != ATTACK_MODE_STRAIGHT)
   {
-    if (weak_hash_threshold != WEAK_HASH_THRESHOLD)
+    if ((weak_hash_threshold != WEAK_HASH_THRESHOLD) && (weak_hash_threshold != 0))
     {
       log_error ("ERROR: setting --weak-hash-threshold allowed only in straight-attack mode");
 

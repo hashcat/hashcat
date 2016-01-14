@@ -673,8 +673,8 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05500_m04 (__glo
      * DES2
      */
 
-    volatile const u32 bc = (b >> 24) | (c << 8);
-    volatile const u32 cd = (c >> 24) | (d << 8);
+    const u32 bc = (b >> 24) | (c << 8);
+    const u32 cd = (c >> 24) | (d << 8);
 
     transform_netntlmv1_key (bc, cd, key);
 
