@@ -1729,7 +1729,7 @@ static uint count_lines (FILE *fd)
 {
   uint cnt = 0;
 
-  char *buf = (char *) mymalloc (BUFSIZ);
+  char *buf = (char *) mymalloc (BUFSIZ + 1);
 
   size_t nread_tmp = 0;
 
