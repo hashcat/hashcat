@@ -12570,7 +12570,11 @@ int main (int argc, char **argv)
 
         char *device_name_chksum = (char *) mymalloc (INFOSZ);
 
-        snprintf (device_name_chksum, INFOSZ - 1, "%u-%s-%s-%s-%d", device_param->vendor_id, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+        #if __x86_64__
+        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%s-%s-%s-%u", 64, device_param->vendor_id, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+        #else
+        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%s-%s-%s-%u", 32, device_param->vendor_id, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+        #endif
 
         uint device_name_digest[4];
 
