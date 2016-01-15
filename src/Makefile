@@ -76,8 +76,8 @@ NOW                      := $(shell date +%s)
 ## Compiler flags
 ##
 
-#CFLAGS                   := -O2 -s -pipe -W -Wall -std=c99 -Iinclude/
-CFLAGS                   := -g -ggdb -pipe -W -Wall -std=c99 -Iinclude/ -fsanitize=undefined -fno-omit-frame-pointer
+CFLAGS                   := -O2 -s -pipe -W -Wall -std=c99 -Iinclude/
+#CFLAGS                   := -g -ggdb -pipe -W -Wall -std=c99 -Iinclude/ -fsanitize=undefined -fno-omit-frame-pointer
 
 ##
 ## Native compilation target
