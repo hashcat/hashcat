@@ -17374,21 +17374,21 @@ int bitcoin_wallet_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf
   if (ckey_buf_len       != ckey_len)       return (PARSER_SALT_VALUE);
   if (public_key_buf_len != public_key_len) return (PARSER_SALT_VALUE);
 
-  for (uint i = 0, j = 0; i < cry_master_len; i += 1, j += 8)
+  for (uint i = 0, j = 0; j < cry_master_len; i += 1, j += 8)
   {
     bitcoin_wallet->cry_master_buf[i] = hex_to_u32 ((const u8 *) &cry_master_buf_pos[j]);
 
     bitcoin_wallet->cry_master_buf[i] = byte_swap_32 (bitcoin_wallet->cry_master_buf[i]);
   }
 
-  for (uint i = 0, j = 0; i < ckey_len; i += 1, j += 8)
+  for (uint i = 0, j = 0; j < ckey_len; i += 1, j += 8)
   {
     bitcoin_wallet->ckey_buf[i] = hex_to_u32 ((const u8 *) &ckey_buf_pos[j]);
 
     bitcoin_wallet->ckey_buf[i] = byte_swap_32 (bitcoin_wallet->ckey_buf[i]);
   }
 
-  for (uint i = 0, j = 0; i < public_key_len; i += 1, j += 8)
+  for (uint i = 0, j = 0; j < public_key_len; i += 1, j += 8)
   {
     bitcoin_wallet->public_key_buf[i] = hex_to_u32 ((const u8 *) &public_key_buf_pos[j]);
 
