@@ -818,7 +818,13 @@ typedef struct
 
 struct __hc_device_param
 {
+  cl_device_id      device;
+  cl_device_type    device_type;
+
   uint              device_id;
+  uint              platform_devices_id;    // for mapping with hms devices
+
+  uint              skipped;
 
   uint              sm_major;
   uint              sm_minor;
@@ -826,7 +832,9 @@ struct __hc_device_param
 
   uint              device_processors;
   uint              device_processor_cores;
-  u64          device_maxmem_alloc;
+  u64               device_maxmem_alloc;
+  u64               device_global_mem;
+  u32               device_maxclock_frequency;
 
   uint              kernel_threads;
   uint              kernel_accel;
@@ -859,10 +867,10 @@ struct __hc_device_param
 
   pw_t             *pws_buf;
   uint              pws_cnt;
-  u64          pw_cnt;
+  u64               pw_cnt;
 
-  u64          words_off;
-  u64          words_done;
+  u64               words_off;
+  u64               words_done;
 
   uint             *result;
 
@@ -873,7 +881,7 @@ struct __hc_device_param
   uint              innerloop_left;
 
   uint              speed_pos;
-  u64          speed_cnt[SPEED_CACHE];
+  u64               speed_cnt[SPEED_CACHE];
   float             speed_ms[SPEED_CACHE];
   hc_timer_t        speed_rec[SPEED_CACHE];
 
@@ -887,9 +895,6 @@ struct __hc_device_param
   char             *driver_version;
 
   cl_uint           vendor_id;
-
-  cl_device_id      device;
-  cl_device_type    device_type;
 
   cl_kernel         kernel1;
   cl_kernel         kernel12;
@@ -997,6 +1002,7 @@ typedef struct
 
   uint                devices_status;
   uint                devices_cnt;
+  uint                devices_active;
   hc_device_param_t  *devices_param;
 
   uint                kernel_blocks_all;

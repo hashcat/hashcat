@@ -5116,7 +5116,7 @@ uint setup_opencl_platforms_filter (char *opencl_platforms)
     {
       int platform = atoi (next);
 
-      if (platform < 1 || platform > 31)
+      if (platform < 1 || platform > 32)
       {
         log_error ("ERROR: invalid OpenCL platform %u specified", platform);
 
@@ -5135,6 +5135,41 @@ uint setup_opencl_platforms_filter (char *opencl_platforms)
   }
 
   return opencl_platforms_filter;
+}
+
+u32 setup_devices_filter (char *opencl_devices)
+{
+  u32 devices_filter = 0;
+
+  if (opencl_devices)
+  {
+    char *devices = strdup (opencl_devices);
+
+    char *next = strtok (devices, ",");
+
+    do
+    {
+      int device_id = atoi (next);
+
+      if (device_id < 1 || device_id > 32)
+      {
+        log_error ("ERROR: invalid device_id %u specified", device_id);
+
+        exit (-1);
+      }
+
+      devices_filter |= 1 << (device_id - 1);
+
+    } while ((next = strtok (NULL, ",")) != NULL);
+
+    free (devices);
+  }
+  else
+  {
+    devices_filter = -1;
+  }
+
+  return devices_filter;
 }
 
 cl_device_type setup_device_types_filter (char *opencl_device_types)
@@ -5173,37 +5208,6 @@ cl_device_type setup_device_types_filter (char *opencl_device_types)
   }
 
   return device_types_filter;
-}
-
-uint devices_to_devicemask (char *opencl_devices)
-{
-  uint opencl_devicemask = 0;
-
-  if (opencl_devices)
-  {
-    char *devices = strdup (opencl_devices);
-
-    char *next = strtok (devices, ",");
-
-    do
-    {
-      uint device_id = atoi (next);
-
-      if (device_id < 1 || device_id > 8)
-      {
-        log_error ("ERROR: invalid device_id %u specified", device_id);
-
-        exit (-1);
-      }
-
-      opencl_devicemask |= 1 << (device_id - 1);
-
-    } while ((next = strtok (NULL, ",")) != NULL);
-
-    free (devices);
-  }
-
-  return opencl_devicemask;
 }
 
 u32 get_random_num (const u32 min, const u32 max)
@@ -8858,6 +8862,8 @@ u64 get_lowest_words_done ()
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
 
     const u64 words_done = device_param->words_done;
 
