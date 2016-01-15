@@ -12564,11 +12564,6 @@ int main (int argc, char **argv)
 
         hc_clGetDeviceInfo (device_param->device, CL_DRIVER_VERSION, INFOSZ, driver_version, NULL);
 
-        if (vendor_id == VENDOR_ID_AMD)
-        {
-          sscanf (driver_version, "%*16s %*16s %*16s (%[^)]16s)", driver_version);
-        }
-
         device_param->driver_version = driver_version;
 
         // device_name_chksum
@@ -13415,7 +13410,7 @@ int main (int argc, char **argv)
 
             u8 *binary = (u8 *) mymalloc (binary_size);
 
-            clGetProgramInfo (device_param->program, CL_PROGRAM_BINARIES, binary_size, &binary, NULL);
+            clGetProgramInfo (device_param->program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
             writeProgramBin (cached_file, binary, binary_size);
 
@@ -13544,7 +13539,7 @@ int main (int argc, char **argv)
 
           u8 *binary = (u8 *) mymalloc (binary_size);
 
-          clGetProgramInfo (device_param->program_mp, CL_PROGRAM_BINARIES, binary_size, &binary, NULL);
+          clGetProgramInfo (device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
           writeProgramBin (cached_file, binary, binary_size);
 
@@ -13657,7 +13652,7 @@ int main (int argc, char **argv)
 
           u8 *binary = (u8 *) mymalloc (binary_size);
 
-          clGetProgramInfo (device_param->program_amp, CL_PROGRAM_BINARIES, binary_size, &binary, NULL);
+          clGetProgramInfo (device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
           writeProgramBin (cached_file, binary, binary_size);
 
