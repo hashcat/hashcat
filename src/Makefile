@@ -51,7 +51,7 @@ CP                       := cp
 RM                       := rm
 INSTALL                  := install
 
-CC_NATIVE                := clang
+CC_NATIVE                := gcc
 
 ##
 ## Cross compiler paths
