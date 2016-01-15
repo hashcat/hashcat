@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-static const uint te0[256] =
+static const u32 te0[256] =
 {
   0xc66363a5, 0xf87c7c84, 0xee777799, 0xf67b7b8d,
   0xfff2f20d, 0xd66b6bbd, 0xde6f6fb1, 0x91c5c554,
@@ -71,7 +71,7 @@ static const uint te0[256] =
   0x7bb0b0cb, 0xa85454fc, 0x6dbbbbd6, 0x2c16163a,
 };
 
-static const uint te1[256] =
+static const u32 te1[256] =
 {
   0xa5c66363, 0x84f87c7c, 0x99ee7777, 0x8df67b7b,
   0x0dfff2f2, 0xbdd66b6b, 0xb1de6f6f, 0x5491c5c5,
@@ -139,7 +139,7 @@ static const uint te1[256] =
   0xcb7bb0b0, 0xfca85454, 0xd66dbbbb, 0x3a2c1616,
 };
 
-static const uint te2[256] =
+static const u32 te2[256] =
 {
   0x63a5c663, 0x7c84f87c, 0x7799ee77, 0x7b8df67b,
   0xf20dfff2, 0x6bbdd66b, 0x6fb1de6f, 0xc55491c5,
@@ -207,7 +207,7 @@ static const uint te2[256] =
   0xb0cb7bb0, 0x54fca854, 0xbbd66dbb, 0x163a2c16,
 };
 
-static const uint te3[256] =
+static const u32 te3[256] =
 {
   0x6363a5c6, 0x7c7c84f8, 0x777799ee, 0x7b7b8df6,
   0xf2f20dff, 0x6b6bbdd6, 0x6f6fb1de, 0xc5c55491,
@@ -275,7 +275,7 @@ static const uint te3[256] =
   0xb0b0cb7b, 0x5454fca8, 0xbbbbd66d, 0x16163a2c,
 };
 
-static const uint te4[256] =
+static const u32 te4[256] =
 {
   0x63636363, 0x7c7c7c7c, 0x77777777, 0x7b7b7b7b,
   0xf2f2f2f2, 0x6b6b6b6b, 0x6f6f6f6f, 0xc5c5c5c5,
@@ -343,7 +343,7 @@ static const uint te4[256] =
   0xb0b0b0b0, 0x54545454, 0xbbbbbbbb, 0x16161616,
 };
 
-static const uint td0[256] =
+static const u32 td0[256] =
 {
   0x51f4a750, 0x7e416553, 0x1a17a4c3, 0x3a275e96,
   0x3bab6bcb, 0x1f9d45f1, 0xacfa58ab, 0x4be30393,
@@ -411,7 +411,7 @@ static const uint td0[256] =
   0x7bcb8461, 0xd532b670, 0x486c5c74, 0xd0b85742,
 };
 
-static const uint td1[256] =
+static const u32 td1[256] =
 {
   0x5051f4a7, 0x537e4165, 0xc31a17a4, 0x963a275e,
   0xcb3bab6b, 0xf11f9d45, 0xabacfa58, 0x934be303,
@@ -479,7 +479,7 @@ static const uint td1[256] =
   0x617bcb84, 0x70d532b6, 0x74486c5c, 0x42d0b857,
 };
 
-static const uint td2[256] =
+static const u32 td2[256] =
 {
   0xa75051f4, 0x65537e41, 0xa4c31a17, 0x5e963a27,
   0x6bcb3bab, 0x45f11f9d, 0x58abacfa, 0x03934be3,
@@ -547,7 +547,7 @@ static const uint td2[256] =
   0x84617bcb, 0xb670d532, 0x5c74486c, 0x5742d0b8,
 };
 
-static const uint td3[256] =
+static const u32 td3[256] =
 {
   0xf4a75051, 0x4165537e, 0x17a4c31a, 0x275e963a,
   0xab6bcb3b, 0x9d45f11f, 0xfa58abac, 0xe303934b,
@@ -615,7 +615,7 @@ static const uint td3[256] =
   0xcb84617b, 0x32b670d5, 0x6c5c7448, 0xb85742d0,
 };
 
-static const uint td4[256] =
+static const u32 td4[256] =
 {
   0x52525252, 0x09090909, 0x6a6a6a6a, 0xd5d5d5d5,
   0x30303030, 0x36363636, 0xa5a5a5a5, 0x38383838,
@@ -683,7 +683,7 @@ static const uint td4[256] =
   0x55555555, 0x21212121, 0x0c0c0c0c, 0x7d7d7d7d,
 };
 
-static const uint rcon[] =
+static const u32 rcon[] =
 {
   0x01000000, 0x02000000, 0x04000000, 0x08000000,
   0x10000000, 0x20000000, 0x40000000, 0x80000000,
@@ -692,9 +692,9 @@ static const uint rcon[] =
 
 // 128 bit
 
-static void AES128_ExpandKey (const uint *userkey, uint *rek)
+static void AES128_ExpandKey (const u32 *userkey, u32 *rek)
 {
-  uint userkey_s[4];
+  u32 userkey_s[4];
 
   userkey_s[0] = byte_swap_32 (userkey[0]);
   userkey_s[1] = byte_swap_32 (userkey[1]);
@@ -711,7 +711,7 @@ static void AES128_ExpandKey (const uint *userkey, uint *rek)
 
   for (i = 0, j = 0; i < 10; i += 1, j += 4)
   {
-    uint temp = rek[j + 3];
+    u32 temp = rek[j + 3];
 
     temp = (te2[(temp >> 16) & 0xff] & 0xff000000)
          ^ (te3[(temp >>  8) & 0xff] & 0x00ff0000)
@@ -728,14 +728,14 @@ static void AES128_ExpandKey (const uint *userkey, uint *rek)
   }
 }
 
-static void AES128_InvertKey (uint *rdk)
+static void AES128_InvertKey (u32 *rdk)
 {
   int i;
   int j;
 
   for (i = 0, j = 40; i < j; i += 4, j -= 4)
   {
-    uint temp;
+    u32 temp;
 
     temp = rdk[i + 0]; rdk[i + 0] = rdk[j + 0]; rdk[j + 0] = temp;
     temp = rdk[i + 1]; rdk[i + 1] = rdk[j + 1]; rdk[j + 1] = temp;
@@ -771,24 +771,24 @@ static void AES128_InvertKey (uint *rdk)
   }
 }
 
-static void AES128_encrypt (const uint *in, uint *out, const uint *rek)
+static void AES128_encrypt (const u32 *in, u32 *out, const u32 *rek)
 {
-  uint in_s[4];
+  u32 in_s[4];
 
   in_s[0] = byte_swap_32 (in[0]);
   in_s[1] = byte_swap_32 (in[1]);
   in_s[2] = byte_swap_32 (in[2]);
   in_s[3] = byte_swap_32 (in[3]);
 
-  uint s0 = in_s[0] ^ rek[0];
-  uint s1 = in_s[1] ^ rek[1];
-  uint s2 = in_s[2] ^ rek[2];
-  uint s3 = in_s[3] ^ rek[3];
+  u32 s0 = in_s[0] ^ rek[0];
+  u32 s1 = in_s[1] ^ rek[1];
+  u32 s2 = in_s[2] ^ rek[2];
+  u32 s3 = in_s[3] ^ rek[3];
 
-  uint t0;
-  uint t1;
-  uint t2;
-  uint t3;
+  u32 t0;
+  u32 t1;
+  u32 t2;
+  u32 t3;
 
   t0 = te0[s0 >> 24] ^ te1[(s1 >> 16) & 0xff] ^ te2[(s2 >>  8) & 0xff] ^ te3[s3 & 0xff] ^ rek[ 4];
   t1 = te0[s1 >> 24] ^ te1[(s2 >> 16) & 0xff] ^ te2[(s3 >>  8) & 0xff] ^ te3[s0 & 0xff] ^ rek[ 5];
@@ -857,24 +857,24 @@ static void AES128_encrypt (const uint *in, uint *out, const uint *rek)
   out[3] = byte_swap_32 (out[3]);
 }
 
-static void AES128_decrypt (const uint *in, uint *out, const uint *rdk)
+static void AES128_decrypt (const u32 *in, u32 *out, const u32 *rdk)
 {
-  uint in_s[4];
+  u32 in_s[4];
 
   in_s[0] = byte_swap_32 (in[0]);
   in_s[1] = byte_swap_32 (in[1]);
   in_s[2] = byte_swap_32 (in[2]);
   in_s[3] = byte_swap_32 (in[3]);
 
-  uint s0 = in_s[0] ^ rdk[0];
-  uint s1 = in_s[1] ^ rdk[1];
-  uint s2 = in_s[2] ^ rdk[2];
-  uint s3 = in_s[3] ^ rdk[3];
+  u32 s0 = in_s[0] ^ rdk[0];
+  u32 s1 = in_s[1] ^ rdk[1];
+  u32 s2 = in_s[2] ^ rdk[2];
+  u32 s3 = in_s[3] ^ rdk[3];
 
-  uint t0;
-  uint t1;
-  uint t2;
-  uint t3;
+  u32 t0;
+  u32 t1;
+  u32 t2;
+  u32 t3;
 
   t0 = td0[s0 >> 24] ^ td1[(s3 >> 16) & 0xff] ^ td2[(s2 >>  8) & 0xff] ^ td3[s1 & 0xff] ^ rdk[ 4];
   t1 = td0[s1 >> 24] ^ td1[(s0 >> 16) & 0xff] ^ td2[(s3 >>  8) & 0xff] ^ td3[s2 & 0xff] ^ rdk[ 5];
@@ -945,9 +945,9 @@ static void AES128_decrypt (const uint *in, uint *out, const uint *rdk)
 
 // 256 bit
 
-static void AES256_ExpandKey (const uint *userkey, uint *rek)
+static void AES256_ExpandKey (const u32 *userkey, u32 *rek)
 {
-  uint userkey_s[8];
+  u32 userkey_s[8];
 
   userkey_s[0] = byte_swap_32 (userkey[0]);
   userkey_s[1] = byte_swap_32 (userkey[1]);
@@ -975,7 +975,7 @@ static void AES256_ExpandKey (const uint *userkey, uint *rek)
 
   while (1)
   {
-    uint temp = rek[j +  7];
+    u32 temp = rek[j +  7];
 
     rek[j +  8] = rek[j +  0]
            ^ (te2[(temp >> 16) & 0xff] & 0xff000000)
@@ -1006,11 +1006,11 @@ static void AES256_ExpandKey (const uint *userkey, uint *rek)
   }
 }
 
-static void AES256_InvertKey (uint *rdk)
+static void AES256_InvertKey (u32 *rdk)
 {
-  for (uint i = 0, j = 56; i < j; i += 4, j -= 4)
+  for (u32 i = 0, j = 56; i < j; i += 4, j -= 4)
   {
-    uint temp;
+    u32 temp;
 
     temp = rdk[i + 0]; rdk[i + 0] = rdk[j + 0]; rdk[j + 0] = temp;
     temp = rdk[i + 1]; rdk[i + 1] = rdk[j + 1]; rdk[j + 1] = temp;
@@ -1018,7 +1018,7 @@ static void AES256_InvertKey (uint *rdk)
     temp = rdk[i + 3]; rdk[i + 3] = rdk[j + 3]; rdk[j + 3] = temp;
   }
 
-  for (uint i = 1, j = 4; i < 14; i += 1, j += 4)
+  for (u32 i = 1, j = 4; i < 14; i += 1, j += 4)
   {
     rdk[j + 0] =
       td0[te1[(rdk[j + 0] >> 24) & 0xff] & 0xff] ^
@@ -1046,24 +1046,24 @@ static void AES256_InvertKey (uint *rdk)
   }
 }
 
-static void AES256_encrypt (const uint *in, uint *out, const uint *rek)
+static void AES256_encrypt (const u32 *in, u32 *out, const u32 *rek)
 {
-  uint in_s[4];
+  u32 in_s[4];
 
   in_s[0] = byte_swap_32 (in[0]);
   in_s[1] = byte_swap_32 (in[1]);
   in_s[2] = byte_swap_32 (in[2]);
   in_s[3] = byte_swap_32 (in[3]);
 
-  uint s0 = in_s[0] ^ rek[0];
-  uint s1 = in_s[1] ^ rek[1];
-  uint s2 = in_s[2] ^ rek[2];
-  uint s3 = in_s[3] ^ rek[3];
+  u32 s0 = in_s[0] ^ rek[0];
+  u32 s1 = in_s[1] ^ rek[1];
+  u32 s2 = in_s[2] ^ rek[2];
+  u32 s3 = in_s[3] ^ rek[3];
 
-  uint t0;
-  uint t1;
-  uint t2;
-  uint t3;
+  u32 t0;
+  u32 t1;
+  u32 t2;
+  u32 t3;
 
   t0 = te0[s0 >> 24] ^ te1[(s1 >> 16) & 0xff] ^ te2[(s2 >>  8) & 0xff] ^ te3[s3 & 0xff] ^ rek[ 4];
   t1 = te0[s1 >> 24] ^ te1[(s2 >> 16) & 0xff] ^ te2[(s3 >>  8) & 0xff] ^ te3[s0 & 0xff] ^ rek[ 5];
@@ -1148,24 +1148,24 @@ static void AES256_encrypt (const uint *in, uint *out, const uint *rek)
   out[3] = byte_swap_32 (out[3]);
 }
 
-static void AES256_decrypt (const uint *in, uint *out, const uint *rdk)
+static void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk)
 {
-  uint in_s[4];
+  u32 in_s[4];
 
   in_s[0] = byte_swap_32 (in[0]);
   in_s[1] = byte_swap_32 (in[1]);
   in_s[2] = byte_swap_32 (in[2]);
   in_s[3] = byte_swap_32 (in[3]);
 
-  uint s0 = in_s[0] ^ rdk[0];
-  uint s1 = in_s[1] ^ rdk[1];
-  uint s2 = in_s[2] ^ rdk[2];
-  uint s3 = in_s[3] ^ rdk[3];
+  u32 s0 = in_s[0] ^ rdk[0];
+  u32 s1 = in_s[1] ^ rdk[1];
+  u32 s2 = in_s[2] ^ rdk[2];
+  u32 s3 = in_s[3] ^ rdk[3];
 
-  uint t0;
-  uint t1;
-  uint t2;
-  uint t3;
+  u32 t0;
+  u32 t1;
+  u32 t2;
+  u32 t3;
 
   t0 = td0[s0 >> 24] ^ td1[(s3 >> 16) & 0xff] ^ td2[(s2 >>  8) & 0xff] ^ td3[s1 & 0xff] ^ rdk[ 4];
   t1 = td0[s1 >> 24] ^ td1[(s0 >> 16) & 0xff] ^ td2[(s3 >>  8) & 0xff] ^ td3[s2 & 0xff] ^ rdk[ 5];
@@ -1252,58 +1252,58 @@ static void AES256_decrypt (const uint *in, uint *out, const uint *rdk)
 
 // wrappers
 
-void AES_set_encrypt_key (unsigned char *key, int keysize, AES_KEY *aes_key)
+void AES_set_encrypt_key (const u8 *key, int keysize, AES_KEY *aes_key)
 {
   aes_key->bits = keysize;
 
   if (aes_key->bits == 128)
   {
-    AES128_ExpandKey ((const uint *) key, aes_key->rek);
+    AES128_ExpandKey ((const u32 *) key, aes_key->rek);
   }
   else if (aes_key->bits == 256)
   {
-    AES256_ExpandKey ((const uint *) key, aes_key->rek);
+    AES256_ExpandKey ((const u32 *) key, aes_key->rek);
   }
 }
 
-void AES_set_decrypt_key (unsigned char *key, int keysize, AES_KEY *aes_key)
+void AES_set_decrypt_key (const u8 *key, int keysize, AES_KEY *aes_key)
 {
   aes_key->bits = keysize;
 
   if (aes_key->bits == 128)
   {
-    AES128_ExpandKey ((const uint *) key, aes_key->rdk);
+    AES128_ExpandKey ((const u32 *) key, aes_key->rdk);
 
     AES128_InvertKey (aes_key->rdk);
   }
   else if (aes_key->bits == 256)
   {
-    AES256_ExpandKey ((const uint *) key, aes_key->rdk);
+    AES256_ExpandKey ((const u32 *) key, aes_key->rdk);
 
     AES256_InvertKey (aes_key->rdk);
   }
 }
 
-void AES_encrypt (AES_KEY *aes_key, char *input, char *output)
+void AES_encrypt (AES_KEY *aes_key, const u8 *input, u8 *output)
 {
   if (aes_key->bits == 128)
   {
-    AES128_encrypt ((const uint *) input, (uint *) output, aes_key->rek);
+    AES128_encrypt ((const u32 *) input, (u32 *) output, aes_key->rek);
   }
   else if (aes_key->bits == 256)
   {
-    AES256_encrypt ((const uint *) input, (uint *) output, aes_key->rek);
+    AES256_encrypt ((const u32 *) input, (u32 *) output, aes_key->rek);
   }
 }
 
-void AES_decrypt (AES_KEY *aes_key, char *input, char *output)
+void AES_decrypt (AES_KEY *aes_key, const u8 *input, u8 *output)
 {
   if (aes_key->bits == 128)
   {
-    AES128_decrypt ((const uint *) input, (uint *) output, aes_key->rdk);
+    AES128_decrypt ((const u32 *) input, (u32 *) output, aes_key->rdk);
   }
   else if (aes_key->bits == 256)
   {
-    AES256_decrypt ((const uint *) input, (uint *) output, aes_key->rdk);
+    AES256_decrypt ((const u32 *) input, (u32 *) output, aes_key->rdk);
   }
 }

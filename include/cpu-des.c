@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-static const uint c_SPtrans[8][64] =
+static const u32 c_SPtrans[8][64] =
 {
   {
     /* nibble 0 */
@@ -159,7 +159,7 @@ static const uint c_SPtrans[8][64] =
   },
 };
 
-static const uint c_skb[8][64] =
+static const u32 c_skb[8][64] =
 {
   {
     /* for C bits (numbered as per FIPS 46) 1 2 3 4 5 6 */
@@ -353,12 +353,12 @@ static const uint c_skb[8][64] =
   PERM_OP (l, r, tt,  4, 0x0f0f0f0f);  \
 }
 
-void _des_keysetup (uint data[2], uint Kc[16], uint Kd[16], const uint s_skb[8][64])
+void _des_keysetup (u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_skb[8][64])
 {
-  uint c = data[0];
-  uint d = data[1];
+  u32 c = data[0];
+  u32 d = data[1];
 
-  uint tt;
+  u32 tt;
 
   PERM_OP  (d, c, tt, 4, 0x0f0f0f0f);
   HPERM_OP (c,    tt, 2, 0xcccc0000);
@@ -378,8 +378,8 @@ void _des_keysetup (uint data[2], uint Kc[16], uint Kd[16], const uint s_skb[8][
 
   for (i = 0; i < 16; i++)
   {
-    const uint shifts3s0[16] = {  1,  1,  2,  2,  2,  2,  2,  2,  1,  2,  2,  2,  2,  2,  2,  1 };
-    const uint shifts3s1[16] = { 27, 27, 26, 26, 26, 26, 26, 26, 27, 26, 26, 26, 26, 26, 26, 27 };
+    const u32 shifts3s0[16] = {  1,  1,  2,  2,  2,  2,  2,  2,  1,  2,  2,  2,  2,  2,  2,  1 };
+    const u32 shifts3s1[16] = { 27, 27, 26, 26, 26, 26, 26, 26, 27, 26, 26, 26, 26, 26, 26, 27 };
 
     c = c >> shifts3s0[i] | c << shifts3s1[i];
     d = d >> shifts3s0[i] | d << shifts3s1[i];
@@ -389,48 +389,48 @@ void _des_keysetup (uint data[2], uint Kc[16], uint Kd[16], const uint s_skb[8][
 
     #define BOX(v,i,S) (S)[(i)][(v)]
 
-    uint s = BOX ((( c >>  0) & 0x3f),  0, s_skb)
-           | BOX ((((c >>  6) & 0x03)
-                 | ((c >>  7) & 0x3c)), 1, s_skb)
-           | BOX ((((c >> 13) & 0x0f)
-                 | ((c >> 14) & 0x30)), 2, s_skb)
-           | BOX ((((c >> 20) & 0x01)
-                 | ((c >> 21) & 0x06)
-                 | ((c >> 22) & 0x38)), 3, s_skb);
+    u32 s = BOX ((( c >>  0) & 0x3f),  0, s_skb)
+          | BOX ((((c >>  6) & 0x03)
+                | ((c >>  7) & 0x3c)), 1, s_skb)
+          | BOX ((((c >> 13) & 0x0f)
+                | ((c >> 14) & 0x30)), 2, s_skb)
+          | BOX ((((c >> 20) & 0x01)
+                | ((c >> 21) & 0x06)
+                | ((c >> 22) & 0x38)), 3, s_skb);
 
-    uint t = BOX ((( d >>  0) & 0x3f),  4, s_skb)
-           | BOX ((((d >>  7) & 0x03)
-                 | ((d >>  8) & 0x3c)), 5, s_skb)
-           | BOX ((((d >> 15) & 0x3f)), 6, s_skb)
-           | BOX ((((d >> 21) & 0x0f)
-                 | ((d >> 22) & 0x30)), 7, s_skb);
+    u32 t = BOX ((( d >>  0) & 0x3f),  4, s_skb)
+          | BOX ((((d >>  7) & 0x03)
+                | ((d >>  8) & 0x3c)), 5, s_skb)
+          | BOX ((((d >> 15) & 0x3f)), 6, s_skb)
+          | BOX ((((d >> 21) & 0x0f)
+                | ((d >> 22) & 0x30)), 7, s_skb);
 
     Kc[i] = ((t << 16) | (s & 0x0000ffff));
     Kd[i] = ((s >> 16) | (t & 0xffff0000));
 
-    Kc[i] = ROTATE_LEFT (Kc[i], 2u);
-    Kd[i] = ROTATE_LEFT (Kd[i], 2u);
+    Kc[i] = rotl32 (Kc[i], 2u);
+    Kd[i] = rotl32 (Kd[i], 2u);
   }
 }
 
-void _des_encrypt (uint data[2], uint Kc[16], uint Kd[16], const uint s_SPtrans[8][64])
+void _des_encrypt (u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_SPtrans[8][64])
 {
-  uint r = data[0];
-  uint l = data[1];
+  u32 r = data[0];
+  u32 l = data[1];
 
-  uint tt;
+  u32 tt;
 
   IP (r, l, tt);
 
-  r = ROTATE_LEFT (r, 3u);
-  l = ROTATE_LEFT (l, 3u);
+  r = rotl32 (r, 3u);
+  l = rotl32 (l, 3u);
 
   int i;
 
   for (i = 0; i < 16; i++)
   {
-    uint u = Kc[i] ^ r;
-    uint t = Kd[i] ^ ROTATE_LEFT (r, 28u);
+    u32 u = Kc[i] ^ r;
+    u32 t = Kd[i] ^ rotl32 (r, 28u);
 
     l ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -446,8 +446,8 @@ void _des_encrypt (uint data[2], uint Kc[16], uint Kd[16], const uint s_SPtrans[
     r  = tt;
   }
 
-  l = ROTATE_LEFT (l, 29u);
-  r = ROTATE_LEFT (r, 29u);
+  l = rotl32 (l, 29u);
+  r = rotl32 (r, 29u);
 
   FP (r, l, tt);
 

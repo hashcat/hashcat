@@ -282,7 +282,7 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
  * types
  */
 
-static void (*get_next_word_func) (char *, uint32_t, uint32_t *, uint32_t *);
+static void (*get_next_word_func) (char *, u32, u32 *, u32 *);
 
 /**
  * globals
@@ -743,8 +743,8 @@ void status_display_automat ()
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
-    uint64_t  speed_cnt  = 0;
-    float     speed_ms   = 0;
+    u64   speed_cnt  = 0;
+    float speed_ms   = 0;
 
     for (int i = 0; i < SPEED_CACHE; i++)
     {
@@ -768,7 +768,7 @@ void status_display_automat ()
    * words_cur
    */
 
-  uint64_t words_cur = get_lowest_words_done ();
+  u64 words_cur = get_lowest_words_done ();
 
   fprintf (out, "CURKU\t%llu\t", (unsigned long long int) words_cur);
 
@@ -780,11 +780,11 @@ void status_display_automat ()
 
   if (salts_left == 0) salts_left = 1;
 
-  uint64_t progress_total = data.words_cnt * salts_left;
+  u64 progress_total = data.words_cnt * salts_left;
 
-  uint64_t all_done     = 0;
-  uint64_t all_rejected = 0;
-  uint64_t all_restored = 0;
+  u64 all_done     = 0;
+  u64 all_rejected = 0;
+  u64 all_restored = 0;
 
   for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
   {
@@ -800,10 +800,10 @@ void status_display_automat ()
     all_restored += data.words_progress_restored[salt_pos];
   }
 
-  uint64_t progress_cur = all_restored + all_done + all_rejected;
-  uint64_t progress_end = progress_total;
+  u64 progress_cur = all_restored + all_done + all_rejected;
+  u64 progress_end = progress_total;
 
-  uint64_t progress_skip = 0;
+  u64 progress_skip = 0;
 
   if (data.skip)
   {
@@ -823,8 +823,8 @@ void status_display_automat ()
     else if (data.attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
   }
 
-  uint64_t progress_cur_relative_skip = progress_cur - progress_skip;
-  uint64_t progress_end_relative_skip = progress_end - progress_skip;
+  u64 progress_cur_relative_skip = progress_cur - progress_skip;
+  u64 progress_end_relative_skip = progress_end - progress_skip;
 
   fprintf (out, "PROGRESS\t%llu\t%llu\t", (unsigned long long int) progress_cur_relative_skip, (unsigned long long int) progress_end_relative_skip);
 
@@ -1082,8 +1082,8 @@ void status_display ()
    * speed new
    */
 
-  uint64_t speed_cnt[DEVICES_MAX];
-  float    speed_ms[DEVICES_MAX];
+  u64   speed_cnt[DEVICES_MAX];
+  float speed_ms[DEVICES_MAX];
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1208,11 +1208,11 @@ void status_display ()
 
   if (salts_left == 0) salts_left = 1;
 
-  uint64_t progress_total = data.words_cnt * salts_left;
+  u64 progress_total = data.words_cnt * salts_left;
 
-  uint64_t all_done     = 0;
-  uint64_t all_rejected = 0;
-  uint64_t all_restored = 0;
+  u64 all_done     = 0;
+  u64 all_rejected = 0;
+  u64 all_restored = 0;
 
   for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
   {
@@ -1228,10 +1228,10 @@ void status_display ()
     all_restored += data.words_progress_restored[salt_pos];
   }
 
-  uint64_t progress_cur = all_restored + all_done + all_rejected;
-  uint64_t progress_end = progress_total;
+  u64 progress_cur = all_restored + all_done + all_rejected;
+  u64 progress_end = progress_total;
 
-  uint64_t progress_skip = 0;
+  u64 progress_skip = 0;
 
   if (data.skip)
   {
@@ -1251,17 +1251,17 @@ void status_display ()
     else if (data.attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
   }
 
-  uint64_t progress_cur_relative_skip = progress_cur - progress_skip;
-  uint64_t progress_end_relative_skip = progress_end - progress_skip;
+  u64 progress_cur_relative_skip = progress_cur - progress_skip;
+  u64 progress_end_relative_skip = progress_end - progress_skip;
 
-  float    speed_ms_real     = ms_running - ms_paused;
-  uint64_t speed_plains_real = all_done;
+  float speed_ms_real     = ms_running - ms_paused;
+  u64   speed_plains_real = all_done;
 
   if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
   {
     if (data.devices_status != STATUS_CRACKED)
     {
-      uint64_t words_per_ms = 0;
+      u64 words_per_ms = 0;
 
       if (speed_plains_real && speed_ms_real)
       {
@@ -1276,9 +1276,9 @@ void status_display ()
 
       if (words_per_ms)
       {
-        uint64_t progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
+        u64 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
 
-        uint64_t ms_left = progress_left_relative_skip / words_per_ms;
+        u64 ms_left = progress_left_relative_skip / words_per_ms;
 
         sec_etc = ms_left / 1000;
       }
@@ -1287,7 +1287,7 @@ void status_display ()
       {
         log_info ("Time.Estimated.: 0 secs");
       }
-      else if ((uint64_t) sec_etc > ETC_MAX)
+      else if ((u64) sec_etc > ETC_MAX)
       {
         log_info ("Time.Estimated.: > 10 Years");
       }
@@ -1435,9 +1435,9 @@ void status_display ()
 
   // Restore point
 
-  uint64_t restore_point = get_lowest_words_done ();
+  u64 restore_point = get_lowest_words_done ();
 
-  uint64_t restore_total = data.words_base;
+  u64 restore_total = data.words_base;
 
   float percent_restore = 0;
 
@@ -1471,12 +1471,12 @@ void status_display ()
   {
     if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
     {
-      log_info ("Progress.......: %llu/%llu (%.02f%%)", (uint64_t) 0, (uint64_t) 0, (float) 100);
-      log_info ("Rejected.......: %llu/%llu (%.02f%%)", (uint64_t) 0, (uint64_t) 0, (float) 100);
+      log_info ("Progress.......: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
+      log_info ("Rejected.......: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
 
       if (data.restore_disable == 0)
       {
-        log_info ("Restore.Point..: %llu/%llu (%.02f%%)", (uint64_t) 0, (uint64_t) 0, (float) 100);
+        log_info ("Restore.Point..: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
       }
     }
     else
@@ -1550,8 +1550,8 @@ static void status_benchmark ()
 
   if (data.words_cnt == 0) return;
 
-  uint64_t speed_cnt[DEVICES_MAX];
-  float    speed_ms[DEVICES_MAX];
+  u64   speed_cnt[DEVICES_MAX];
+  float speed_ms[DEVICES_MAX];
 
   uint device_id;
 
@@ -1693,7 +1693,7 @@ static uint convert_from_hex (char *line_buf, const uint line_len)
 
     for (i = 0, j = 0; j < line_len; i += 1, j += 2)
     {
-      line_buf[i] = hex_to_char (&line_buf[j]);
+      line_buf[i] = hex_to_u8 ((const u8 *) &line_buf[j]);
     }
 
     memset (line_buf + i, 0, line_len - i);
@@ -1714,7 +1714,7 @@ static uint convert_from_hex (char *line_buf, const uint line_len)
 
     for (i = 0, j = 5; j < line_len - 1; i += 1, j += 2)
     {
-      line_buf[i] = hex_to_char (&line_buf[j]);
+      line_buf[i] = hex_to_u8 ((const u8 *) &line_buf[j]);
     }
 
     memset (line_buf + i, 0, line_len - i);
@@ -1787,7 +1787,7 @@ static void clear_prompt ()
   fflush (stdout);
 }
 
-static void gidd_to_pw_t (hc_device_param_t *device_param, const uint64_t gidd, pw_t *pw)
+static void gidd_to_pw_t (hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
 {
   hc_clEnqueueReadBuffer (device_param->command_queue, device_param->d_pws_buf, CL_TRUE, gidd * sizeof (pw_t), sizeof (pw_t), pw, 0, NULL, NULL);
 }
@@ -1824,7 +1824,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   uint gidvid = plain.gidvid;
   uint il_pos = plain.il_pos;
 
-  uint64_t crackpos = device_param->words_off;
+  u64 crackpos = device_param->words_off;
 
   uint plain_buf[16];
 
@@ -1833,8 +1833,8 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
   if (data.attack_mode == ATTACK_MODE_STRAIGHT)
   {
-    uint64_t gidd = gidvid;
-    uint64_t gidm = 0;
+    u64 gidd = gidvid;
+    u64 gidm = 0;
 
     pw_t pw;
 
@@ -1882,8 +1882,8 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_COMBI)
   {
-    uint64_t gidd = gidvid;
-    uint64_t gidm = 0;
+    u64 gidd = gidvid;
+    u64 gidm = 0;
 
     pw_t pw;
 
@@ -1923,8 +1923,8 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_BF)
   {
-    uint64_t l_off = device_param->kernel_params_mp_l_buf64[3] + gidvid;
-    uint64_t r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
+    u64 l_off = device_param->kernel_params_mp_l_buf64[3] + gidvid;
+    u64 r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
 
     uint l_start = device_param->kernel_params_mp_l_buf32[5];
     uint r_start = device_param->kernel_params_mp_r_buf32[5];
@@ -1943,8 +1943,8 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID1)
   {
-    uint64_t gidd = gidvid;
-    uint64_t gidm = 0;
+    u64 gidd = gidvid;
+    u64 gidm = 0;
 
     pw_t pw;
 
@@ -1957,7 +1957,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
     plain_len = pw.pw_len;
 
-    uint64_t off = device_param->kernel_params_mp_buf64[3] + il_pos;
+    u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
 
     uint start = 0;
     uint stop  = device_param->kernel_params_mp_buf32[4];
@@ -1977,8 +1977,8 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID2)
   {
-    uint64_t gidd = gidvid;
-    uint64_t gidm = 0;
+    u64 gidd = gidvid;
+    u64 gidm = 0;
 
     pw_t pw;
 
@@ -1991,7 +1991,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
     plain_len = pw.pw_len;
 
-    uint64_t off = device_param->kernel_params_mp_buf64[3] + il_pos;
+    u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
 
     uint start = 0;
     uint stop  = device_param->kernel_params_mp_buf32[4];
@@ -2307,7 +2307,7 @@ static void save_hash ()
   unlink (old_hashfile);
 }
 
-static float find_kernel_blocks_div (const uint64_t total_left, const uint kernel_blocks_all)
+static float find_kernel_blocks_div (const u64 total_left, const uint kernel_blocks_all)
 {
   // function called only in case kernel_blocks_all > words_left)
 
@@ -2315,13 +2315,13 @@ static float find_kernel_blocks_div (const uint64_t total_left, const uint kerne
 
   kernel_blocks_div += kernel_blocks_div / 100;
 
-  uint32_t kernel_blocks_new = (uint32_t) (kernel_blocks_all * kernel_blocks_div);
+  u32 kernel_blocks_new = (u32) (kernel_blocks_all * kernel_blocks_div);
 
   while (kernel_blocks_new < total_left)
   {
     kernel_blocks_div += kernel_blocks_div / 100;
 
-    kernel_blocks_new = (uint32_t) (kernel_blocks_all * kernel_blocks_div);
+    kernel_blocks_new = (u32) (kernel_blocks_all * kernel_blocks_div);
   }
 
   if (data.quiet == 0)
@@ -2590,7 +2590,7 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
   }
   else if (data.attack_kern == ATTACK_KERN_BF)
   {
-    const uint64_t off = device_param->words_off;
+    const u64 off = device_param->words_off;
 
     device_param->kernel_params_mp_l_buf64[3] = off;
 
@@ -2752,7 +2752,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
           line_len = MIN (line_len, PW_DICTMAX);
 
-          char *ptr = (char *) device_param->combs_buf[i].i;
+          u8 *ptr = (u8 *) device_param->combs_buf[i].i;
 
           memcpy (ptr, line_buf_new, line_len);
 
@@ -2799,7 +2799,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
       }
       else if (data.attack_mode == ATTACK_MODE_BF)
       {
-        uint64_t off = innerloop_pos;
+        u64 off = innerloop_pos;
 
         device_param->kernel_params_mp_r_buf64[3] = off;
 
@@ -2807,7 +2807,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
       }
       else if (data.attack_mode == ATTACK_MODE_HYBRID1)
       {
-        uint64_t off = innerloop_pos;
+        u64 off = innerloop_pos;
 
         device_param->kernel_params_mp_buf64[3] = off;
 
@@ -2815,7 +2815,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
       }
       else if (data.attack_mode == ATTACK_MODE_HYBRID2)
       {
-        uint64_t off = innerloop_pos;
+        u64 off = innerloop_pos;
 
         device_param->kernel_params_mp_buf64[3] = off;
 
@@ -2939,7 +2939,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
        * progress
        */
 
-      uint64_t perf_sum_all = (uint64_t) pw_cnt * (uint64_t) innerloop_left;
+      u64 perf_sum_all = (u64) pw_cnt * (u64) innerloop_left;
 
       hc_thread_mutex_lock (mux_counter);
 
@@ -3025,11 +3025,11 @@ static void load_segment (wl_data_t *wl_data, FILE *fd)
   return;
 }
 
-static void get_next_word_lm (char *buf, uint32_t sz, uint32_t *len, uint32_t *off)
+static void get_next_word_lm (char *buf, u32 sz, u32 *len, u32 *off)
 {
   char *ptr = buf;
 
-  for (uint32_t i = 0; i < sz; i++, ptr++)
+  for (u32 i = 0; i < sz; i++, ptr++)
   {
     if (*ptr >= 'a' && *ptr <= 'z') *ptr -= 0x20;
 
@@ -3056,11 +3056,11 @@ static void get_next_word_lm (char *buf, uint32_t sz, uint32_t *len, uint32_t *o
   *len = sz;
 }
 
-static void get_next_word_uc (char *buf, uint32_t sz, uint32_t *len, uint32_t *off)
+static void get_next_word_uc (char *buf, u32 sz, u32 *len, u32 *off)
 {
   char *ptr = buf;
 
-  for (uint32_t i = 0; i < sz; i++, ptr++)
+  for (u32 i = 0; i < sz; i++, ptr++)
   {
     if (*ptr >= 'a' && *ptr <= 'z') *ptr -= 0x20;
 
@@ -3079,11 +3079,11 @@ static void get_next_word_uc (char *buf, uint32_t sz, uint32_t *len, uint32_t *o
   *len = sz;
 }
 
-static void get_next_word_std (char *buf, uint32_t sz, uint32_t *len, uint32_t *off)
+static void get_next_word_std (char *buf, u32 sz, u32 *len, u32 *off)
 {
   char *ptr = buf;
 
-  for (uint32_t i = 0; i < sz; i++, ptr++)
+  for (u32 i = 0; i < sz; i++, ptr++)
   {
     if (*ptr != '\n') continue;
 
@@ -3163,11 +3163,11 @@ static void get_next_word (wl_data_t *wl_data, FILE *fd, char **out_buf, uint *o
 }
 
 #ifdef _POSIX
-static uint64_t count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t *dictstat_base, size_t *dictstat_nmemb)
+static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t *dictstat_base, size_t *dictstat_nmemb)
 #endif
 
 #ifdef _WIN
-static uint64_t count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t *dictstat_base, uint *dictstat_nmemb)
+static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t *dictstat_base, uint *dictstat_nmemb)
 #endif
 {
   hc_signal (NULL);
@@ -3204,9 +3204,9 @@ static uint64_t count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dicts
   {
     if (d_cache)
     {
-      uint64_t cnt = d_cache->cnt;
+      u64 cnt = d_cache->cnt;
 
-      uint64_t keyspace = cnt;
+      u64 keyspace = cnt;
 
       if (data.attack_kern == ATTACK_KERN_STRAIGHT)
       {
@@ -3229,9 +3229,9 @@ static uint64_t count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dicts
   time_t now  = 0;
   time_t prev = 0;
 
-  uint64_t comp = 0;
-  uint64_t cnt  = 0;
-  uint64_t cnt2 = 0;
+  u64 comp = 0;
+  u64 cnt  = 0;
+  u64 cnt2 = 0;
 
   while (!feof (fd))
   {
@@ -3239,12 +3239,12 @@ static uint64_t count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dicts
 
     comp += wl_data->cnt;
 
-    uint32_t i = 0;
+    u32 i = 0;
 
     while (i < wl_data->cnt)
     {
-      uint32_t len;
-      uint32_t off;
+      u32 len;
+      u32 off;
 
       get_next_word_func (wl_data->buf + i, wl_data->cnt - i, &len, &off);
 
@@ -3316,7 +3316,7 @@ static void pw_transpose_to_hi1 (const pw_t *p1, pw_t *p2)
   memcpy (p2->hi1, p1->hi1, 64 * sizeof (uint));
 }
 
-static uint pw_add_to_hc1 (hc_device_param_t *device_param, const uint8_t *pw_buf, const uint pw_len)
+static uint pw_add_to_hc1 (hc_device_param_t *device_param, const u8 *pw_buf, const uint pw_len)
 {
   if (data.devices_status == STATUS_BYPASS) return 0;
 
@@ -3324,7 +3324,7 @@ static uint pw_add_to_hc1 (hc_device_param_t *device_param, const uint8_t *pw_bu
 
   uint cache_cnt = pw_cache->cnt;
 
-  uint8_t *pw_hc1 = pw_cache->pw_buf.hc1[cache_cnt];
+  u8 *pw_hc1 = pw_cache->pw_buf.hc1[cache_cnt];
 
   memcpy (pw_hc1, pw_buf, pw_len);
 
@@ -3807,7 +3807,7 @@ static void *thread_outfile_remove (void *p)
 
                             for (uint i = 0, j = 0; i < 6; i++, j += 2)
                             {
-                              if (mac1[i] != (unsigned char) hex_to_char (&mac1_pos[j]))
+                              if (mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
                               {
                                 cracked = 0;
                                 break;
@@ -3819,7 +3819,7 @@ static void *thread_outfile_remove (void *p)
 
                             for (uint i = 0, j = 0; i < 6; i++, j += 2)
                             {
-                              if (mac2[i] != (unsigned char) hex_to_char (&mac2_pos[j]))
+                              if (mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
                               {
                                 cracked = 0;
                                 break;
@@ -3900,16 +3900,16 @@ static void *thread_outfile_remove (void *p)
   return (p);
 }
 
-static uint get_work (hc_device_param_t *device_param, const uint64_t max)
+static uint get_work (hc_device_param_t *device_param, const u64 max)
 {
   hc_thread_mutex_lock (mux_dispatcher);
 
-  const uint64_t words_cur  = data.words_cur;
-  const uint64_t words_base = (data.limit == 0) ? data.words_base : data.limit;
+  const u64 words_cur  = data.words_cur;
+  const u64 words_base = (data.limit == 0) ? data.words_base : data.limit;
 
   device_param->words_off = words_cur;
 
-  const uint64_t words_left = words_base - words_cur;
+  const u64 words_left = words_base - words_cur;
 
   if (data.kernel_blocks_all > words_left)
   {
@@ -3923,8 +3923,8 @@ static uint get_work (hc_device_param_t *device_param, const uint64_t max)
   {
     if (device_param->kernel_blocks == device_param->kernel_blocks_user)
     {
-      const uint32_t kernel_blocks_new = (float) device_param->kernel_blocks * data.kernel_blocks_div;
-      const uint32_t kernel_power_new  = kernel_blocks_new;
+      const u32 kernel_blocks_new = (float) device_param->kernel_blocks * data.kernel_blocks_div;
+      const u32 kernel_power_new  = kernel_blocks_new;
 
       if (kernel_blocks_new < device_param->kernel_blocks)
       {
@@ -4042,7 +4042,7 @@ static void *thread_calc_stdin (void *p)
         }
       }
 
-      device_param->pw_add (device_param, (uint8_t *) line_buf, line_len);
+      device_param->pw_add (device_param, (u8 *) line_buf, line_len);
 
       words_cur++;
 
@@ -4176,8 +4176,8 @@ static void *thread_calc (void *p)
 
       if (work == 0) break;
 
-      const uint64_t words_off = device_param->words_off;
-      const uint64_t words_fin = words_off + work;
+      const u64 words_off = device_param->words_off;
+      const u64 words_fin = words_off + work;
 
       const uint pw_cnt  = work;
       const uint pws_cnt = work;
@@ -4276,14 +4276,14 @@ static void *thread_calc (void *p)
     wl_data->cnt   = 0;
     wl_data->pos   = 0;
 
-    uint64_t words_cur = 0;
+    u64 words_cur = 0;
 
     while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
     {
-      uint64_t words_off = 0;
-      uint64_t words_fin = 0;
+      u64 words_off = 0;
+      u64 words_fin = 0;
 
-      uint64_t max = -1;
+      u64 max = -1;
 
       while (max)
       {
@@ -4368,7 +4368,7 @@ static void *thread_calc (void *p)
             }
           }
 
-          device_param->pw_add (device_param, (uint8_t *) line_buf, line_len);
+          device_param->pw_add (device_param, (u8 *) line_buf, line_len);
 
           if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
@@ -4942,9 +4942,9 @@ void *__stdcall ADL_Main_Memory_Alloc (const int iSize)
   return mymalloc (iSize);
 }
 
-static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, const uint dgst_shifts, char *digests_buf_ptr, const uint bitmap_mask, const uint bitmap_size, uint *bitmap_a, uint *bitmap_b, uint *bitmap_c, uint *bitmap_d, const uint64_t collisions_max)
+static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, const uint dgst_shifts, char *digests_buf_ptr, const uint bitmap_mask, const uint bitmap_size, uint *bitmap_a, uint *bitmap_b, uint *bitmap_c, uint *bitmap_d, const u64 collisions_max)
 {
-  uint64_t collisions = 0;
+  u64 collisions = 0;
 
   const uint dgst_pos0 = data.dgst_pos0;
   const uint dgst_pos1 = data.dgst_pos1;
@@ -5056,8 +5056,8 @@ int main (int argc, char **argv)
   uint  username          = USERNAME;
   uint  remove            = REMOVE;
   uint  remove_timer      = REMOVE_TIMER;
-  uint64_t  skip          = SKIP;
-  uint64_t  limit         = LIMIT;
+  u64   skip              = SKIP;
+  u64   limit             = LIMIT;
   uint  keyspace          = KEYSPACE;
   uint  potfile_disable   = POTFILE_DISABLE;
   uint  debug_mode        = DEBUG_MODE;
@@ -10520,7 +10520,7 @@ int main (int argc, char **argv)
 
     if ((username && (remove || show)) || (opts_type & OPTS_TYPE_HASH_COPY))
     {
-      uint32_t hash_pos;
+      u32 hash_pos;
 
       for (hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
       {
@@ -11756,7 +11756,7 @@ int main (int argc, char **argv)
 
                     for (uint i = 0, j = 0; i < 6; i++, j += 2)
                     {
-                      if (mac1[i] != (unsigned char) hex_to_char (&mac1_pos[j]))
+                      if (mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
                       {
                         found = NULL;
                         break;
@@ -11768,7 +11768,7 @@ int main (int argc, char **argv)
 
                     for (uint i = 0, j = 0; i < 6; i++, j += 2)
                     {
-                      if (mac2[i] != (unsigned char) hex_to_char (&mac2_pos[j]))
+                      if (mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
                       {
                         found = NULL;
                         break;
@@ -12944,7 +12944,7 @@ int main (int argc, char **argv)
 
           int num_adl_adapters = 0;
 
-          uint32_t *valid_adl_device_list = hm_get_list_valid_adl_adapters (hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
+          u32 *valid_adl_device_list = hm_get_list_valid_adl_adapters (hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
 
           if (num_adl_adapters > 0)
           {
@@ -13218,7 +13218,7 @@ int main (int argc, char **argv)
       uint size_bfs   = KERNEL_BFS   * sizeof (bf_t);
       uint size_tm    = 32        * sizeof (bs_word_t);
 
-      uint64_t size_scryptV = 1;
+      u64 size_scryptV = 1;
 
       if ((hash_mode == 8900) || (hash_mode == 9300))
       {
@@ -14269,9 +14269,9 @@ int main (int argc, char **argv)
      * keep track of the progress
      */
 
-    data.words_progress_done     = (uint64_t *) mycalloc (data.salts_cnt, sizeof (uint64_t));
-    data.words_progress_rejected = (uint64_t *) mycalloc (data.salts_cnt, sizeof (uint64_t));
-    data.words_progress_restored = (uint64_t *) mycalloc (data.salts_cnt, sizeof (uint64_t));
+    data.words_progress_done     = (u64 *) mycalloc (data.salts_cnt, sizeof (u64));
+    data.words_progress_rejected = (u64 *) mycalloc (data.salts_cnt, sizeof (u64));
+    data.words_progress_restored = (u64 *) mycalloc (data.salts_cnt, sizeof (u64));
 
     /**
      * open filehandles
@@ -14489,7 +14489,7 @@ int main (int argc, char **argv)
 
       data.quiet = 1;
 
-      const uint64_t words1_cnt = count_words (wl_data, fp1, dictfile1, dictstat_base, &dictstat_nmemb);
+      const u64 words1_cnt = count_words (wl_data, fp1, dictfile1, dictstat_base, &dictstat_nmemb);
 
       data.quiet = quiet;
 
@@ -14507,7 +14507,7 @@ int main (int argc, char **argv)
 
       data.quiet = 1;
 
-      const uint64_t words2_cnt = count_words (wl_data, fp2, dictfile2, dictstat_base, &dictstat_nmemb);
+      const u64 words2_cnt = count_words (wl_data, fp2, dictfile2, dictstat_base, &dictstat_nmemb);
 
       data.quiet = quiet;
 
@@ -15427,9 +15427,9 @@ int main (int argc, char **argv)
 
         data.devices_status = STATUS_INIT;
 
-        memset (data.words_progress_done,     0, data.salts_cnt * sizeof (uint64_t));
-        memset (data.words_progress_rejected, 0, data.salts_cnt * sizeof (uint64_t));
-        memset (data.words_progress_restored, 0, data.salts_cnt * sizeof (uint64_t));
+        memset (data.words_progress_done,     0, data.salts_cnt * sizeof (u64));
+        memset (data.words_progress_rejected, 0, data.salts_cnt * sizeof (u64));
+        memset (data.words_progress_restored, 0, data.salts_cnt * sizeof (u64));
 
         memset (data.cpt_buf, 0, CPT_BUF * sizeof (cpt_t));
 
@@ -15458,7 +15458,7 @@ int main (int argc, char **argv)
 
           device_param->speed_pos = 0;
 
-          memset (device_param->speed_cnt, 0, SPEED_CACHE * sizeof (uint64_t));
+          memset (device_param->speed_cnt, 0, SPEED_CACHE * sizeof (u64));
           memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (float));
           memset (device_param->speed_rec, 0, SPEED_CACHE * sizeof (hc_timer_t));
 
@@ -15861,7 +15861,7 @@ int main (int argc, char **argv)
           }
         }
 
-        uint64_t words_base = data.words_cnt;
+        u64 words_base = data.words_cnt;
 
         if (data.attack_kern == ATTACK_KERN_STRAIGHT)
         {

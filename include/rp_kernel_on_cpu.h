@@ -11,7 +11,7 @@
 #include "common.h"
 #include "rp_kernel.h"
 
-uint apply_rule (const uint name, const uint p0, const uint p1, uint32_t buf0[4], uint32_t buf1[4], const uint in_len);
-uint apply_rules (uint *cmds, uint32_t buf0[4], uint32_t buf1[4], const uint len);
+u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len);
+u32 apply_rules (u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len);
 
 #endif

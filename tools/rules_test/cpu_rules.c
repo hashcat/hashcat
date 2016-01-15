@@ -25,7 +25,7 @@ extern int max_len;
 #define GET_P0_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >>  8) & 0xff)
 #define GET_P1_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >> 16) & 0xff)
 
-void gen_cmask (const uint8_t *word, uint8_t *cmask, const uint len)
+void gen_cmask (const u8 *word, u8 *cmask, const uint len)
 {
   uint i;
 
@@ -420,7 +420,7 @@ int mangle_switch_at (char arr[BLOCK_SIZE], int arr_len, int upos, int upos2)
   return (arr_len);
 }
 
-int mangle_chr_shiftl (uint8_t arr[BLOCK_SIZE], int arr_len, int upos)
+int mangle_chr_shiftl (u8 arr[BLOCK_SIZE], int arr_len, int upos)
 {
   if (upos >= arr_len) return (arr_len);
 
@@ -429,7 +429,7 @@ int mangle_chr_shiftl (uint8_t arr[BLOCK_SIZE], int arr_len, int upos)
   return (arr_len);
 }
 
-int mangle_chr_shiftr (uint8_t arr[BLOCK_SIZE], int arr_len, int upos)
+int mangle_chr_shiftr (u8 arr[BLOCK_SIZE], int arr_len, int upos)
 {
   if (upos >= arr_len) return (arr_len);
 
@@ -438,7 +438,7 @@ int mangle_chr_shiftr (uint8_t arr[BLOCK_SIZE], int arr_len, int upos)
   return (arr_len);
 }
 
-int mangle_chr_incr (uint8_t arr[BLOCK_SIZE], int arr_len, int upos)
+int mangle_chr_incr (u8 arr[BLOCK_SIZE], int arr_len, int upos)
 {
   if (upos >= arr_len) return (arr_len);
 
@@ -447,7 +447,7 @@ int mangle_chr_incr (uint8_t arr[BLOCK_SIZE], int arr_len, int upos)
   return (arr_len);
 }
 
-int mangle_chr_decr (uint8_t arr[BLOCK_SIZE], int arr_len, int upos)
+int mangle_chr_decr (u8 arr[BLOCK_SIZE], int arr_len, int upos)
 {
   if (upos >= arr_len) return (arr_len);
 
@@ -486,20 +486,20 @@ int mangle_title (char arr[BLOCK_SIZE], int arr_len)
   return (arr_len);
 }
 
-int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], uint32_t rp_gen_func_min, uint32_t rp_gen_func_max)
+int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], u32 rp_gen_func_min, u32 rp_gen_func_max)
 {
-  uint32_t rp_gen_num = get_random_num (rp_gen_func_min, rp_gen_func_max);
+  u32 rp_gen_num = get_random_num (rp_gen_func_min, rp_gen_func_max);
 
-  uint32_t j;
+  u32 j;
 
-  uint32_t rule_pos = 0;
+  u32 rule_pos = 0;
 
   for (j = 0; j < rp_gen_num; j++)
   {
-    uint32_t r  = 0;
-    uint32_t p1 = 0;
-    uint32_t p2 = 0;
-    uint32_t p3 = 0;
+    u32 r  = 0;
+    u32 p1 = 0;
+    u32 p2 = 0;
+    u32 p3 = 0;
 
     switch ((char) get_random_num (0, 9))
     {
@@ -795,25 +795,25 @@ int apply_rule_cpu (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, c
       case RULE_OP_MANGLE_CHR_SHIFTL:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule, rule_pos, upos);
-        mangle_chr_shiftl ((uint8_t *) out, out_len, upos);
+        mangle_chr_shiftl ((u8 *) out, out_len, upos);
         break;
 
       case RULE_OP_MANGLE_CHR_SHIFTR:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule, rule_pos, upos);
-        mangle_chr_shiftr ((uint8_t *) out, out_len, upos);
+        mangle_chr_shiftr ((u8 *) out, out_len, upos);
         break;
 
       case RULE_OP_MANGLE_CHR_INCR:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule, rule_pos, upos);
-        mangle_chr_incr ((uint8_t *) out, out_len, upos);
+        mangle_chr_incr ((u8 *) out, out_len, upos);
         break;
 
       case RULE_OP_MANGLE_CHR_DECR:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule, rule_pos, upos);
-        mangle_chr_decr ((uint8_t *) out, out_len, upos);
+        mangle_chr_decr ((u8 *) out, out_len, upos);
         break;
 
       case RULE_OP_MANGLE_REPLACE_NP1:
@@ -929,7 +929,7 @@ int apply_rule_cpu (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, c
   return (out_len);
 }
 
-int cpu_rule_to_gpu_rule (char rule_buf[BUFSIZ], uint rule_len, gpu_rule_t *rule)
+int cpu_rule_to_kernel_rule (char rule_buf[BUFSIZ], uint rule_len, kernel_rule_t *rule)
 {
   uint rule_pos;
   uint rule_cnt;

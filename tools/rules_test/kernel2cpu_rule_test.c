@@ -3,10 +3,7 @@
  * License.....: MIT
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
+#include <common.h>
 
 #define RULES_PER_PLAIN_MIN  1
 #define RULES_PER_PLAIN_MAX 99
@@ -18,13 +15,13 @@
 int max_len = 0;
 
 #include "cpu_rules.h"
-#include "rp_gpu_on_cpu.h"
+#include "rp_kernel_on_cpu.h"
 
 void print_plain (char *plain, int plain_len)
 {
   int need_hexifly = 0;
 
-  unsigned char *plain_ptr = (unsigned char*) plain;
+  u8 *plain_ptr = (u8*) plain;
 
   int k;
 
@@ -124,11 +121,11 @@ int main (int argc, char **argv)
         rule_len = strlen (rule_buf);
       }
 
-      gpu_rule_t gpu_rule_buf;
+      kernel_rule_t kernel_rule_buf;
 
-      memset (&gpu_rule_buf, 0, sizeof (gpu_rule_t));
+      memset (&kernel_rule_buf, 0, sizeof (kernel_rule_t));
 
-      if (cpu_rule_to_gpu_rule (rule_buf, rule_len, &gpu_rule_buf) == -1) continue;
+      if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rule_buf) == -1) continue;
 
       // cpu
       char rule_buf_cpu[BLOCK_SIZE];
@@ -142,15 +139,15 @@ int main (int argc, char **argv)
       if (max_len >= 32) continue;
 
       // gpu
-      char rule_buf_gpu[BLOCK_SIZE];
+      char rule_buf_kernel[BLOCK_SIZE];
 
-      memset (rule_buf_gpu, 0, sizeof (rule_buf_gpu));
+      memset (rule_buf_kernel, 0, sizeof (rule_buf_kernel));
 
-      memcpy (rule_buf_gpu, line_buf, line_len);
+      memcpy (rule_buf_kernel, line_buf, line_len);
 
-      uint32_t *plain_ptr = (uint32_t *) rule_buf_gpu;
+      u32 *plain_ptr = (u32 *) rule_buf_kernel;
 
-      int out_len_gpu = apply_rules (gpu_rule_buf.cmds, &plain_ptr[0], &plain_ptr[4], line_len);
+      int out_len_kernel = apply_rules (kernel_rule_buf.cmds, &plain_ptr[0], &plain_ptr[4], line_len);
 
       /*
        * compare
@@ -160,9 +157,9 @@ int main (int argc, char **argv)
       {
         int failed = 1;
 
-        if (out_len_gpu == out_len_cpu)
+        if (out_len_kernel == out_len_cpu)
         {
-          if (memcmp (rule_buf_gpu, rule_buf_cpu, out_len_gpu) == 0)
+          if (memcmp (rule_buf_kernel, rule_buf_cpu, out_len_kernel) == 0)
           {
             failed = 0;
           }
@@ -197,9 +194,9 @@ int main (int argc, char **argv)
           printf (" %i vs ", out_len_cpu);
 
           // modified by gpu
-          print_plain (rule_buf_gpu, out_len_gpu);
+          print_plain (rule_buf_kernel, out_len_kernel);
 
-          printf (" %i\n", out_len_gpu);
+          printf (" %i\n", out_len_kernel);
         }
       }
     }

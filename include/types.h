@@ -161,7 +161,7 @@ typedef struct
 
 typedef struct
 {
-  uint8_t cipher[1040];
+  u8 cipher[1040];
 
 } agilekey_t;
 
@@ -260,10 +260,10 @@ typedef struct
 
 typedef struct
 {
-  uint64_t l_alt_result[8];
+  u64 l_alt_result[8];
 
-  uint64_t l_p_bytes[2];
-  uint64_t l_s_bytes[2];
+  u64 l_p_bytes[2];
+  u64 l_s_bytes[2];
 
 } sha512crypt_tmp_t;
 
@@ -288,7 +288,7 @@ typedef struct
 
 typedef struct
 {
-  uint64_t dgst[8];
+  u64 dgst[8];
 
 } bitcoin_wallet_tmp_t;
 
@@ -362,11 +362,11 @@ typedef struct
 
 typedef struct
 {
-  uint64_t ipad[8];
-  uint64_t opad[8];
+  u64 ipad[8];
+  u64 opad[8];
 
-  uint64_t dgst[32];
-  uint64_t out[32];
+  u64 dgst[32];
+  u64 out[32];
 
 } tc64_tmp_t;
 
@@ -415,11 +415,11 @@ typedef struct
 
 typedef struct
 {
-  uint64_t ipad[8];
-  uint64_t opad[8];
+  u64 ipad[8];
+  u64 opad[8];
 
-  uint64_t dgst[8];
-  uint64_t out[8];
+  u64 dgst[8];
+  u64 out[8];
 
 } sha512aix_tmp_t;
 
@@ -435,7 +435,7 @@ typedef struct
 
 typedef struct
 {
-  uint64_t digest_buf[8];
+  u64 digest_buf[8];
 
 } drupal7_tmp_t;
 
@@ -463,7 +463,7 @@ typedef struct
 
 typedef struct
 {
-  uint64_t out[8];
+  u64 out[8];
 
 } office2013_tmp_t;
 
@@ -475,57 +475,57 @@ typedef struct
 
 typedef struct
 {
-  uint32_t ipad[4];
-  uint32_t opad[4];
+  u32 ipad[4];
+  u32 opad[4];
 
-  uint32_t dgst[32];
-  uint32_t out[32];
+  u32 dgst[32];
+  u32 out[32];
 
 } pbkdf2_md5_tmp_t;
 
 typedef struct
 {
-  uint32_t ipad[5];
-  uint32_t opad[5];
+  u32 ipad[5];
+  u32 opad[5];
 
-  uint32_t dgst[32];
-  uint32_t out[32];
+  u32 dgst[32];
+  u32 out[32];
 
 } pbkdf2_sha1_tmp_t;
 
 typedef struct
 {
-  uint32_t ipad[8];
-  uint32_t opad[8];
+  u32 ipad[8];
+  u32 opad[8];
 
-  uint32_t dgst[32];
-  uint32_t out[32];
+  u32 dgst[32];
+  u32 out[32];
 
 } pbkdf2_sha256_tmp_t;
 
 typedef struct
 {
-  uint64_t ipad[8];
-  uint64_t opad[8];
+  u64 ipad[8];
+  u64 opad[8];
 
-  uint64_t dgst[16];
-  uint64_t out[16];
+  u64 dgst[16];
+  u64 out[16];
 
 } pbkdf2_sha512_tmp_t;
 
 typedef struct
 {
-  uint64_t out[8];
+  u64 out[8];
 
 } ecryptfs_tmp_t;
 
 typedef struct
 {
-  uint64_t ipad[8];
-  uint64_t opad[8];
+  u64 ipad[8];
+  u64 opad[8];
 
-  uint64_t dgst[16];
-  uint64_t out[16];
+  u64 dgst[16];
+  u64 out[16];
 
 } oraclet_tmp_t;
 
@@ -605,7 +605,7 @@ typedef struct
 typedef struct
 {
   uint     key;
-  uint64_t val;
+  u64 val;
 
 } hcstat_table_t;
 
@@ -636,9 +636,9 @@ typedef struct
 typedef struct
 {
   char     signature[4];
-  uint32_t salt_buf[8];
-  uint32_t iterations;
-  uint32_t hash_buf[8];
+  u32 salt_buf[8];
+  u32 iterations;
+  u32 hash_buf[8];
 
 } psafe3_t;
 
@@ -653,7 +653,7 @@ typedef struct
 
 typedef struct
 {
-  uint64_t cnt;
+  u64 cnt;
 
   #ifdef _POSIX
   struct stat stat;
@@ -683,17 +683,17 @@ typedef struct
 {
   union
   {
-    uint8_t   hc4[4][ 64];
-    uint32_t  hi4[4][ 16];
-    uint64_t  hl4[4][  8];
+    u8   hc4[4][ 64];
+    u32  hi4[4][ 16];
+    u64  hl4[4][  8];
 
-    uint8_t   hc2[2][128];
-    uint32_t  hi2[2][ 32];
-    uint64_t  hl2[2][ 16];
+    u8   hc2[2][128];
+    u32  hi2[2][ 32];
+    u64  hl2[2][ 16];
 
-    uint8_t   hc1[1][256];
-    uint32_t  hi1[1][ 64];
-    uint64_t  hl1[1][ 32];
+    u8   hc1[1][256];
+    u32  hi1[1][ 64];
+    u64  hl1[1][ 32];
   };
 
   uint pw_len;
@@ -733,16 +733,16 @@ typedef struct
 
 typedef struct
 {
-  uint32_t    version_bin;
+  u32    version_bin;
   char        cwd[256];
-  uint32_t    pid;
+  u32    pid;
 
-  uint32_t    dictpos;
-  uint32_t    maskpos;
+  u32    dictpos;
+  u32    maskpos;
 
-  uint64_t    words_cur;
+  u64    words_cur;
 
-  uint32_t    argc;
+  u32    argc;
   char      **argv;
 
 } restore_data_t;
@@ -758,10 +758,10 @@ typedef struct
 typedef struct
 {
   char     *buf;
-  uint32_t  incr;
-  uint32_t  avail;
-  uint32_t  cnt;
-  uint32_t  pos;
+  u32  incr;
+  u32  avail;
+  u32  cnt;
+  u32  pos;
 
 } wl_data_t;
 
@@ -826,7 +826,7 @@ struct __hc_device_param
 
   uint              device_processors;
   uint              device_processor_cores;
-  uint64_t          device_maxmem_alloc;
+  u64          device_maxmem_alloc;
 
   uint              kernel_threads;
   uint              kernel_accel;
@@ -846,7 +846,7 @@ struct __hc_device_param
   uint              size_results;
   uint              size_plains;
 
-  uint (*pw_add)    (struct __hc_device_param *, const uint8_t *, const uint);
+  uint (*pw_add)    (struct __hc_device_param *, const u8 *, const uint);
 
   void (*pw_transpose) (const pw_t *, pw_t *);
 
@@ -859,10 +859,10 @@ struct __hc_device_param
 
   pw_t             *pws_buf;
   uint              pws_cnt;
-  uint64_t          pw_cnt;
+  u64          pw_cnt;
 
-  uint64_t          words_off;
-  uint64_t          words_done;
+  u64          words_off;
+  u64          words_done;
 
   uint             *result;
 
@@ -873,7 +873,7 @@ struct __hc_device_param
   uint              innerloop_left;
 
   uint              speed_pos;
-  uint64_t          speed_cnt[SPEED_CACHE];
+  u64          speed_cnt[SPEED_CACHE];
   float             speed_ms[SPEED_CACHE];
   hc_timer_t        speed_rec[SPEED_CACHE];
 
@@ -955,18 +955,18 @@ struct __hc_device_param
   void             *kernel_params_tb[PARAMCNT];
   void             *kernel_params_tm[PARAMCNT];
 
-  uint32_t          kernel_params_buf32[PARAMCNT];
+  u32          kernel_params_buf32[PARAMCNT];
 
-  uint32_t          kernel_params_mp_buf32[PARAMCNT];
-  uint64_t          kernel_params_mp_buf64[PARAMCNT];
+  u32          kernel_params_mp_buf32[PARAMCNT];
+  u64          kernel_params_mp_buf64[PARAMCNT];
 
-  uint32_t          kernel_params_mp_r_buf32[PARAMCNT];
-  uint64_t          kernel_params_mp_r_buf64[PARAMCNT];
+  u32          kernel_params_mp_r_buf32[PARAMCNT];
+  u64          kernel_params_mp_r_buf64[PARAMCNT];
 
-  uint32_t          kernel_params_mp_l_buf32[PARAMCNT];
-  uint64_t          kernel_params_mp_l_buf64[PARAMCNT];
+  u32          kernel_params_mp_l_buf32[PARAMCNT];
+  u64          kernel_params_mp_l_buf64[PARAMCNT];
 
-  uint32_t          kernel_params_amp_buf32[PARAMCNT];
+  u32          kernel_params_amp_buf32[PARAMCNT];
 };
 
 typedef struct __hc_device_param hc_device_param_t;
@@ -1076,7 +1076,7 @@ typedef struct
   cpt_t  cpt_buf[CPT_BUF];
   int    cpt_pos;
   time_t cpt_start;
-  uint64_t cpt_total;
+  u64 cpt_total;
 
   /**
    * user
@@ -1161,12 +1161,12 @@ typedef struct
    * used for restore
    */
 
-  uint64_t skip;
-  uint64_t limit;
+  u64 skip;
+  u64 limit;
 
   restore_data_t *rd;
 
-  uint64_t checkpoint_cur_words;  // used for the "stop at next checkpoint" feature
+  u64 checkpoint_cur_words;  // used for the "stop at next checkpoint" feature
 
   /**
    * status, timer
@@ -1178,13 +1178,13 @@ typedef struct
   time_t     proc_start;
   time_t     proc_stop;
 
-  uint64_t   words_cnt;
-  uint64_t   words_cur;
-  uint64_t   words_base;
+  u64   words_cnt;
+  u64   words_cur;
+  u64   words_base;
 
-  uint64_t  *words_progress_done;      // progress number of words done     per salt
-  uint64_t  *words_progress_rejected;  // progress number of words rejected per salt
-  uint64_t  *words_progress_restored;  // progress number of words restored per salt
+  u64  *words_progress_done;      // progress number of words done     per salt
+  u64  *words_progress_rejected;  // progress number of words rejected per salt
+  u64  *words_progress_restored;  // progress number of words restored per salt
 
   hc_timer_t timer_running;         // timer on current dict
   hc_timer_t timer_paused;          // timer on current dict
