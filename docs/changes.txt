@@ -96,6 +96,10 @@ File.: Kernel
 Desc.: Fix a bug in the implementation of GOST R 34.11-94, zero length passwords were not cracked
 
 Type.: Bug
+File.: Kernel
+Desc.: Fix a bug in rule-engine for NVidia devices, the code for left- and right-shift were switched
+
+Type.: Bug
 File.: Host
 Desc.: Forced default iteration count for -m 2100 = DCC2 hashes to 10240
 

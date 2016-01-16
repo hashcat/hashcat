@@ -1567,9 +1567,7 @@ static void status_benchmark ()
   u64   speed_cnt[DEVICES_MAX];
   float speed_ms[DEVICES_MAX];
 
-  uint device_id;
-
-  for (device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -3962,6 +3960,8 @@ static void *thread_calc_stdin (void *p)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) p;
 
+  if (device_param->skipped) return NULL;
+
   const uint attack_kern = data.attack_kern;
 
   const uint kernel_blocks = device_param->kernel_blocks;
@@ -4173,6 +4173,8 @@ static void *thread_calc_stdin (void *p)
 static void *thread_calc (void *p)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) p;
+
+  if (device_param->skipped) return NULL;
 
   const uint attack_mode = data.attack_mode;
   const uint attack_kern = data.attack_kern;
@@ -16011,8 +16013,6 @@ int main (int argc, char **argv)
         for (uint device_id = 0; device_id < devices_cnt; device_id++)
         {
           hc_device_param_t *device_param = &devices_param[device_id];
-
-          if (device_param->skipped) continue;
 
           if (wordlist_mode == WL_MODE_STDIN)
           {
