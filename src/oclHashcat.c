@@ -12090,7 +12090,7 @@ int main (int argc, char **argv)
      * Some algorithm, like descrypt, can benefit from JIT compilation
      */
 
-    uint force_jit_compilation = 0;
+    int force_jit_compilation = -1;
 
     if (hash_mode == 8900)
     {
@@ -13357,7 +13357,7 @@ int main (int argc, char **argv)
 
         const u8 **kernel_sources = (const u8 **) mymalloc (sizeof (u8 *));
 
-        if (force_jit_compilation == 0)
+        if (force_jit_compilation == -1)
         {
           if (cached == 0)
           {
