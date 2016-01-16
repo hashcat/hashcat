@@ -15055,11 +15055,24 @@ int main (int argc, char **argv)
 
     if (weak_hash_threshold >= salts_cnt)
     {
+      uint first_device_id = 0;
+
+      for (uint device_id = 0; device_id < devices_cnt; device_id++)
+      {
+        hc_device_param_t *device_param = &data.devices_param[device_id];
+
+        if (device_param->skipped) continue;
+
+        first_device_id = device_id;
+
+        break;
+      }
+
       if (data.quiet == 0) log_info_nn ("Checking for weak hashes...");
 
       for (uint salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
       {
-        weak_hash_check (&data.devices_param[0], salt_pos, kernel_loops);
+        weak_hash_check (&data.devices_param[first_device_id], salt_pos, kernel_loops);
       }
     }
 
