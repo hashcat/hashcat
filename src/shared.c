@@ -7109,9 +7109,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
   }
   else if (hash_mode == 8300)
   {
-    // todo
-
-    char digest_buf_c[33];
+    char digest_buf_c[56] = { 0 };
 
     base32_encode (int_to_itoa32, (const u8 *) digest_buf, 32, (u8 *) digest_buf_c);
 
@@ -7121,7 +7119,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
 
     const uint salt_pc_len = salt.salt_buf_pc[7]; // what a hack
 
-    char domain_buf_c[33];
+    char domain_buf_c[33] = { 0 };
 
     memcpy (domain_buf_c, (char *) salt.salt_buf_pc, salt_pc_len);
 
