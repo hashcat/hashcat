@@ -10257,6 +10257,8 @@ int main (int argc, char **argv)
           continue;
         }
 
+        if (plain_len >= 255) continue;
+
         memcpy (pot_ptr->plain_buf, plain_buf, plain_len);
 
         pot_ptr->plain_len = plain_len;
