@@ -7109,9 +7109,9 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
   }
   else if (hash_mode == 8300)
   {
-    char digest_buf_c[56] = { 0 };
+    char digest_buf_c[34] = { 0 };
 
-    base32_encode (int_to_itoa32, (const u8 *) digest_buf, 32, (u8 *) digest_buf_c);
+    base32_encode (int_to_itoa32, (const u8 *) digest_buf, 20, (u8 *) digest_buf_c);
 
     digest_buf_c[32] = 0;
 
