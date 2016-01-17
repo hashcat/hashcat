@@ -117,6 +117,12 @@ static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
 {
   return amd_bfe (a, b, c);
 }
+
+static inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
+{
+  return amd_bytealign (a, b, c);
+}
+
 #endif
 
 #ifdef IS_NV
