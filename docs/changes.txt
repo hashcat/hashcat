@@ -60,6 +60,11 @@ Issue: 2
 
 Type.: Feature
 File.: Host
+Desc.: Added option --opencl-vector-width to override automatically selected vector-width size
+Issue: 2
+
+Type.: Feature
+File.: Host
 Desc.: Implemented a new feature that allows to quit at next restore point update (and disable it)
 Issue: 10
 

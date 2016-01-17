@@ -80,6 +80,7 @@ const uint  RESTORE_MIN       = 210;
 #define POWERTUNE_ENABLE        0
 #define LOGFILE_DISABLE         0
 #define SCRYPT_TMTO             0
+#define OPENCL_VECTOR_WIDTH     0
 
 #define WL_MODE_STDIN           1
 #define WL_MODE_FILE            2
@@ -388,6 +389,7 @@ const char *USAGE_BIG[] =
   "       --opencl-platforms=STR        OpenCL platforms to use, separate with comma",
   "  -d,  --opencl-devices=STR          OpenCL devices to use, separate with comma",
   "       --opencl-device-types=STR     OpenCL device-types to use, separate with comma, see references below",
+  "       --opencl-vector-width=NUM     OpenCL vector-width (either 1, 2, 4 or 8), overrides value from device query",
   "  -w,  --workload-profile=NUM        Enable a specific workload profile, see references below",
   "  -n,  --kernel-accel=NUM            Workload tuning: 1, 8, 40, 80, 160",
   "  -u,  --kernel-loops=NUM            Workload fine-tuning: 8 - 1024",
@@ -5110,6 +5112,7 @@ int main (int argc, char **argv)
   char *opencl_devices    = NULL;
   char *opencl_platforms  = NULL;
   char *opencl_device_types = NULL;
+  uint  opencl_vector_width = OPENCL_VECTOR_WIDTH;
   char *truecrypt_keyfiles = NULL;
   uint  workload_profile  = WORKLOAD_PROFILE;
   uint  kernel_accel      = KERNEL_ACCEL;
@@ -5185,6 +5188,7 @@ int main (int argc, char **argv)
   #define IDX_OPENCL_DEVICES    'd'
   #define IDX_OPENCL_PLATFORMS  0xff72
   #define IDX_OPENCL_DEVICE_TYPES 0xff73
+  #define IDX_OPENCL_VECTOR_WIDTH 0xff74
   #define IDX_WORKLOAD_PROFILE  'w'
   #define IDX_KERNEL_ACCEL      'n'
   #define IDX_KERNEL_LOOPS      'u'
@@ -5266,6 +5270,7 @@ int main (int argc, char **argv)
     {"opencl-devices",    required_argument, 0, IDX_OPENCL_DEVICES},
     {"opencl-platforms",  required_argument, 0, IDX_OPENCL_PLATFORMS},
     {"opencl-device-types", required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
+    {"opencl-vector-width", required_argument, 0, IDX_OPENCL_VECTOR_WIDTH},
     {"workload-profile",  required_argument, 0, IDX_WORKLOAD_PROFILE},
     {"kernel-accel",      required_argument, 0, IDX_KERNEL_ACCEL},
     {"kernel-loops",      required_argument, 0, IDX_KERNEL_LOOPS},
@@ -5570,6 +5575,8 @@ int main (int argc, char **argv)
       case IDX_OPENCL_PLATFORMS:  opencl_platforms  = optarg;          break;
       case IDX_OPENCL_DEVICE_TYPES:
                                   opencl_device_types = optarg;        break;
+      case IDX_OPENCL_VECTOR_WIDTH:
+                                  opencl_vector_width = atoi (optarg); break;
       case IDX_WORKLOAD_PROFILE:  workload_profile  = atoi (optarg);   break;
       case IDX_KERNEL_ACCEL:      kernel_accel      = atoi (optarg);
                                   kernel_accel_chgd = 1;               break;
@@ -5858,6 +5865,13 @@ int main (int argc, char **argv)
   if ((workload_profile < 1) || (workload_profile > 3))
   {
     log_error ("ERROR: workload-profile %i not available", workload_profile);
+
+    return (-1);
+  }
+
+  if ((opencl_vector_width != 0) && (opencl_vector_width != 1) && (opencl_vector_width != 2) && (opencl_vector_width != 4) && (opencl_vector_width != 8))
+  {
+    log_error ("ERROR: opencl-vector-width %i not allowed", opencl_vector_width);
 
     return (-1);
   }
@@ -6416,6 +6430,7 @@ int main (int argc, char **argv)
   logfile_top_string (opencl_devices);
   logfile_top_string (opencl_platforms);
   logfile_top_string (opencl_device_types);
+  logfile_top_uint   (opencl_vector_width);
   logfile_top_string (induction_dir);
   logfile_top_string (markov_hcstat);
   logfile_top_string (outfile);
@@ -10257,6 +10272,8 @@ int main (int argc, char **argv)
           continue;
         }
 
+        if (plain_len >= 255) continue;
+
         memcpy (pot_ptr->plain_buf, plain_buf, plain_len);
 
         pot_ptr->plain_len = plain_len;
@@ -12491,6 +12508,30 @@ int main (int argc, char **argv)
 
         // max_compute_units
 
+        cl_uint vector_width;
+
+        if (attack_mode == ATTACK_MODE_BF)
+        {
+          if (opencl_vector_width == OPENCL_VECTOR_WIDTH)
+          {
+            hc_clGetDeviceInfo (device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, sizeof (vector_width), &vector_width, NULL);
+          }
+          else
+          {
+            vector_width = opencl_vector_width;
+          }
+        }
+        else
+        {
+          vector_width = 1;
+        }
+
+        if (vector_width > 8) vector_width = 8;
+
+        device_param->vector_width = vector_width;
+
+        // max_compute_units
+
         cl_uint device_processors;
 
         hc_clGetDeviceInfo (device_param->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof (device_processors), &device_processors, NULL);
@@ -12541,9 +12582,9 @@ int main (int argc, char **argv)
         char *device_name_chksum = (char *) mymalloc (INFOSZ);
 
         #if __x86_64__
-        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%s-%s-%s-%u", 64, device_param->vendor_id, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
         #else
-        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%s-%s-%s-%u", 32, device_param->vendor_id, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
         #endif
 
         uint device_name_digest[4];
@@ -13090,7 +13131,7 @@ int main (int argc, char **argv)
         // CPU still need lots of workitems, don't know why...
         // for testing phase, lets start with this
 
-        kernel_accel = 1;
+//        kernel_accel = 1;
       }
 
       uint kernel_power  = device_processors * kernel_threads * kernel_accel;
@@ -13310,7 +13351,7 @@ int main (int argc, char **argv)
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
-      sprintf (build_opts, "-I%s/ -DVENDOR_ID=%d -DCUDA_ARCH=%d", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor);
+      sprintf (build_opts, "-I%s/ -DVENDOR_ID=%d -DCUDA_ARCH=%d -DVECT_SIZE=%u", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width);
 
       /**
        * main kernel

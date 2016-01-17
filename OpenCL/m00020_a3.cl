@@ -5,6 +5,8 @@
 
 #define _MD5_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,9 +18,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 static void m00020m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
@@ -71,22 +71,30 @@ static void m00020m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    #if   VECT_SIZE == 1
+    const u32x w0r = (u32x) (bfs_buf[il_pos + 0].i);
+    #elif VECT_SIZE == 2
+    const u32x w0r = (u32x) (bfs_buf[il_pos + 0].i, bfs_buf[il_pos + 1].i);
+    #elif VECT_SIZE == 4
+    const u32x w0r = (u32x) (bfs_buf[il_pos + 0].i, bfs_buf[il_pos + 1].i, bfs_buf[il_pos + 2].i, bfs_buf[il_pos + 3].i);
+    #elif VECT_SIZE == 8
+    const u32x w0r = (u32x) (bfs_buf[il_pos + 0].i, bfs_buf[il_pos + 1].i, bfs_buf[il_pos + 2].i, bfs_buf[il_pos + 3].i, bfs_buf[il_pos + 4].i, bfs_buf[il_pos + 5].i, bfs_buf[il_pos + 6].i, bfs_buf[il_pos + 7].i);
+    #endif
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /**
      * prepend salt
      */
 
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    w0_t[0] = w0[0];
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
@@ -128,12 +136,12 @@ static void m00020m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
      * md5
      */
 
-    u32 tmp2;
+    u32x tmp2;
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0_t[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0_t[1], MD5C01, MD5S01);
@@ -203,13 +211,7 @@ static void m00020m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     MD5_STEP (MD5_I , c, d, a, b, w0_t[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2_t[1], MD5C3f, MD5S33);
 
-
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (a, d, c, b);
   }
 }
 
@@ -276,22 +278,30 @@ static void m00020s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    #if   VECT_SIZE == 1
+    const u32x w0r = (u32x) (bfs_buf[il_pos + 0].i);
+    #elif VECT_SIZE == 2
+    const u32x w0r = (u32x) (bfs_buf[il_pos + 0].i, bfs_buf[il_pos + 1].i);
+    #elif VECT_SIZE == 4
+    const u32x w0r = (u32x) (bfs_buf[il_pos + 0].i, bfs_buf[il_pos + 1].i, bfs_buf[il_pos + 2].i, bfs_buf[il_pos + 3].i);
+    #elif VECT_SIZE == 8
+    const u32x w0r = (u32x) (bfs_buf[il_pos + 0].i, bfs_buf[il_pos + 1].i, bfs_buf[il_pos + 2].i, bfs_buf[il_pos + 3].i, bfs_buf[il_pos + 4].i, bfs_buf[il_pos + 5].i, bfs_buf[il_pos + 6].i, bfs_buf[il_pos + 7].i);
+    #endif
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /**
      * prepend salt
      */
 
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    w0_t[0] = w0[0];
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
@@ -333,12 +343,12 @@ static void m00020s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
      * md5
      */
 
-    u32 tmp2;
+    u32x tmp2;
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0_t[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0_t[1], MD5C01, MD5S01);
@@ -405,21 +415,13 @@ static void m00020s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     MD5_STEP (MD5_I , b, c, d, a, w3_t[1], MD5C3b, MD5S33);
     MD5_STEP (MD5_I , a, b, c, d, w1_t[0], MD5C3c, MD5S30);
 
-    bool q_cond = allx (search[0] != a);
-
-    if (q_cond) continue;
+    if (MATCHES_NONE_VS (a, search[0])) continue;
 
     MD5_STEP (MD5_I , d, a, b, c, w2_t[3], MD5C3d, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w0_t[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2_t[1], MD5C3f, MD5S33);
 
-
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, d, c, b);
   }
 }
 

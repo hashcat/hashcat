@@ -131,7 +131,32 @@ static void truncate_block (u32 w[4], const u32 len)
   }
 }
 
-static void make_unicode (const u32 in[4], u32 out1[4], u32 out2[4])
+static void make_unicode_S (const u32 in[4], u32 out1[4], u32 out2[4])
+{
+  #ifdef IS_NV
+  out2[3] = __byte_perm_S (in[3], 0, 0x7372);
+  out2[2] = __byte_perm_S (in[3], 0, 0x7170);
+  out2[1] = __byte_perm_S (in[2], 0, 0x7372);
+  out2[0] = __byte_perm_S (in[2], 0, 0x7170);
+  out1[3] = __byte_perm_S (in[1], 0, 0x7372);
+  out1[2] = __byte_perm_S (in[1], 0, 0x7170);
+  out1[1] = __byte_perm_S (in[0], 0, 0x7372);
+  out1[0] = __byte_perm_S (in[0], 0, 0x7170);
+  #endif
+
+  #if defined IS_AMD || defined IS_GENERIC
+  out2[3]  = ((in[3] >> 8) & 0x00FF0000) | ((in[3] >> 16) & 0x000000FF);
+  out2[2]  = ((in[3] << 8) & 0x00FF0000) | ((in[3] >>  0) & 0x000000FF);
+  out2[1]  = ((in[2] >> 8) & 0x00FF0000) | ((in[2] >> 16) & 0x000000FF);
+  out2[0]  = ((in[2] << 8) & 0x00FF0000) | ((in[2] >>  0) & 0x000000FF);
+  out1[3]  = ((in[1] >> 8) & 0x00FF0000) | ((in[1] >> 16) & 0x000000FF);
+  out1[2]  = ((in[1] << 8) & 0x00FF0000) | ((in[1] >>  0) & 0x000000FF);
+  out1[1]  = ((in[0] >> 8) & 0x00FF0000) | ((in[0] >> 16) & 0x000000FF);
+  out1[0]  = ((in[0] << 8) & 0x00FF0000) | ((in[0] >>  0) & 0x000000FF);
+  #endif
+}
+
+static void make_unicode (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm (in[3], 0, 0x7372);
@@ -156,7 +181,28 @@ static void make_unicode (const u32 in[4], u32 out1[4], u32 out2[4])
   #endif
 }
 
-static void undo_unicode (const u32 in1[4], const u32 in2[4], u32 out[4])
+static void undo_unicode_S (const u32 in1[4], const u32 in2[4], u32 out[4])
+{
+  #ifdef IS_NV
+  out[0] = __byte_perm_S (in1[0], in1[1], 0x6420);
+  out[1] = __byte_perm_S (in1[2], in1[3], 0x6420);
+  out[2] = __byte_perm_S (in2[0], in2[1], 0x6420);
+  out[3] = __byte_perm_S (in2[2], in2[3], 0x6420);
+  #endif
+
+  #if defined IS_AMD || defined IS_GENERIC
+  out[0] = ((in1[0] & 0x000000ff) >>  0) | ((in1[0] & 0x00ff0000) >>  8)
+         | ((in1[1] & 0x000000ff) << 16) | ((in1[1] & 0x00ff0000) <<  8);
+  out[1] = ((in1[2] & 0x000000ff) >>  0) | ((in1[2] & 0x00ff0000) >>  8)
+         | ((in1[3] & 0x000000ff) << 16) | ((in1[3] & 0x00ff0000) <<  8);
+  out[2] = ((in2[0] & 0x000000ff) >>  0) | ((in2[0] & 0x00ff0000) >>  8)
+         | ((in2[1] & 0x000000ff) << 16) | ((in2[1] & 0x00ff0000) <<  8);
+  out[3] = ((in2[2] & 0x000000ff) >>  0) | ((in2[2] & 0x00ff0000) >>  8)
+         | ((in2[3] & 0x000000ff) << 16) | ((in2[3] & 0x00ff0000) <<  8);
+  #endif
+}
+
+static void undo_unicode (const u32x in1[4], const u32x in2[4], u32x out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm (in1[0], in1[1], 0x6420);
@@ -3985,7 +4031,1226 @@ static void append_0x80_1x16 (u32 w[16], const u32 offset)
   }
 }
 
-static void switch_buffer_by_offset (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+static void switch_buffer_by_offset_S    (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+{
+  #if defined IS_AMD || defined IS_GENERIC
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset;
+
+  switch (offset / 4)
+  {
+    case 0:
+      w3[2] = amd_bytealign_S (    0, w3[1], offset_minus_4);
+      w3[1] = amd_bytealign_S (w3[1], w3[0], offset_minus_4);
+      w3[0] = amd_bytealign_S (w3[0], w2[3], offset_minus_4);
+      w2[3] = amd_bytealign_S (w2[3], w2[2], offset_minus_4);
+      w2[2] = amd_bytealign_S (w2[2], w2[1], offset_minus_4);
+      w2[1] = amd_bytealign_S (w2[1], w2[0], offset_minus_4);
+      w2[0] = amd_bytealign_S (w2[0], w1[3], offset_minus_4);
+      w1[3] = amd_bytealign_S (w1[3], w1[2], offset_minus_4);
+      w1[2] = amd_bytealign_S (w1[2], w1[1], offset_minus_4);
+      w1[1] = amd_bytealign_S (w1[1], w1[0], offset_minus_4);
+      w1[0] = amd_bytealign_S (w1[0], w0[3], offset_minus_4);
+      w0[3] = amd_bytealign_S (w0[3], w0[2], offset_minus_4);
+      w0[2] = amd_bytealign_S (w0[2], w0[1], offset_minus_4);
+      w0[1] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w0[0] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+
+      if (offset_mod_4 == 0)
+      {
+        w0[0] = w0[1];
+        w0[1] = w0[2];
+        w0[2] = w0[3];
+        w0[3] = w1[0];
+        w1[0] = w1[1];
+        w1[1] = w1[2];
+        w1[2] = w1[3];
+        w1[3] = w2[0];
+        w2[0] = w2[1];
+        w2[1] = w2[2];
+        w2[2] = w2[3];
+        w2[3] = w3[0];
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 1:
+      w3[2] = amd_bytealign_S (    0, w3[0], offset_minus_4);
+      w3[1] = amd_bytealign_S (w3[0], w2[3], offset_minus_4);
+      w3[0] = amd_bytealign_S (w2[3], w2[2], offset_minus_4);
+      w2[3] = amd_bytealign_S (w2[2], w2[1], offset_minus_4);
+      w2[2] = amd_bytealign_S (w2[1], w2[0], offset_minus_4);
+      w2[1] = amd_bytealign_S (w2[0], w1[3], offset_minus_4);
+      w2[0] = amd_bytealign_S (w1[3], w1[2], offset_minus_4);
+      w1[3] = amd_bytealign_S (w1[2], w1[1], offset_minus_4);
+      w1[2] = amd_bytealign_S (w1[1], w1[0], offset_minus_4);
+      w1[1] = amd_bytealign_S (w1[0], w0[3], offset_minus_4);
+      w1[0] = amd_bytealign_S (w0[3], w0[2], offset_minus_4);
+      w0[3] = amd_bytealign_S (w0[2], w0[1], offset_minus_4);
+      w0[2] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w0[1] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w0[1] = w0[2];
+        w0[2] = w0[3];
+        w0[3] = w1[0];
+        w1[0] = w1[1];
+        w1[1] = w1[2];
+        w1[2] = w1[3];
+        w1[3] = w2[0];
+        w2[0] = w2[1];
+        w2[1] = w2[2];
+        w2[2] = w2[3];
+        w2[3] = w3[0];
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 2:
+      w3[2] = amd_bytealign_S (    0, w2[3], offset_minus_4);
+      w3[1] = amd_bytealign_S (w2[3], w2[2], offset_minus_4);
+      w3[0] = amd_bytealign_S (w2[2], w2[1], offset_minus_4);
+      w2[3] = amd_bytealign_S (w2[1], w2[0], offset_minus_4);
+      w2[2] = amd_bytealign_S (w2[0], w1[3], offset_minus_4);
+      w2[1] = amd_bytealign_S (w1[3], w1[2], offset_minus_4);
+      w2[0] = amd_bytealign_S (w1[2], w1[1], offset_minus_4);
+      w1[3] = amd_bytealign_S (w1[1], w1[0], offset_minus_4);
+      w1[2] = amd_bytealign_S (w1[0], w0[3], offset_minus_4);
+      w1[1] = amd_bytealign_S (w0[3], w0[2], offset_minus_4);
+      w1[0] = amd_bytealign_S (w0[2], w0[1], offset_minus_4);
+      w0[3] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w0[2] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w0[1] = 0;
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w0[2] = w0[3];
+        w0[3] = w1[0];
+        w1[0] = w1[1];
+        w1[1] = w1[2];
+        w1[2] = w1[3];
+        w1[3] = w2[0];
+        w2[0] = w2[1];
+        w2[1] = w2[2];
+        w2[2] = w2[3];
+        w2[3] = w3[0];
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 3:
+      w3[2] = amd_bytealign_S (    0, w2[2], offset_minus_4);
+      w3[1] = amd_bytealign_S (w2[2], w2[1], offset_minus_4);
+      w3[0] = amd_bytealign_S (w2[1], w2[0], offset_minus_4);
+      w2[3] = amd_bytealign_S (w2[0], w1[3], offset_minus_4);
+      w2[2] = amd_bytealign_S (w1[3], w1[2], offset_minus_4);
+      w2[1] = amd_bytealign_S (w1[2], w1[1], offset_minus_4);
+      w2[0] = amd_bytealign_S (w1[1], w1[0], offset_minus_4);
+      w1[3] = amd_bytealign_S (w1[0], w0[3], offset_minus_4);
+      w1[2] = amd_bytealign_S (w0[3], w0[2], offset_minus_4);
+      w1[1] = amd_bytealign_S (w0[2], w0[1], offset_minus_4);
+      w1[0] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w0[3] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w0[3] = w1[0];
+        w1[0] = w1[1];
+        w1[1] = w1[2];
+        w1[2] = w1[3];
+        w1[3] = w2[0];
+        w2[0] = w2[1];
+        w2[1] = w2[2];
+        w2[2] = w2[3];
+        w2[3] = w3[0];
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 4:
+      w3[2] = amd_bytealign_S (    0, w2[1], offset_minus_4);
+      w3[1] = amd_bytealign_S (w2[1], w2[0], offset_minus_4);
+      w3[0] = amd_bytealign_S (w2[0], w1[3], offset_minus_4);
+      w2[3] = amd_bytealign_S (w1[3], w1[2], offset_minus_4);
+      w2[2] = amd_bytealign_S (w1[2], w1[1], offset_minus_4);
+      w2[1] = amd_bytealign_S (w1[1], w1[0], offset_minus_4);
+      w2[0] = amd_bytealign_S (w1[0], w0[3], offset_minus_4);
+      w1[3] = amd_bytealign_S (w0[3], w0[2], offset_minus_4);
+      w1[2] = amd_bytealign_S (w0[2], w0[1], offset_minus_4);
+      w1[1] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w1[0] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w1[0] = w1[1];
+        w1[1] = w1[2];
+        w1[2] = w1[3];
+        w1[3] = w2[0];
+        w2[0] = w2[1];
+        w2[1] = w2[2];
+        w2[2] = w2[3];
+        w2[3] = w3[0];
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 5:
+      w3[2] = amd_bytealign_S (    0, w2[0], offset_minus_4);
+      w3[1] = amd_bytealign_S (w2[0], w1[3], offset_minus_4);
+      w3[0] = amd_bytealign_S (w1[3], w1[2], offset_minus_4);
+      w2[3] = amd_bytealign_S (w1[2], w1[1], offset_minus_4);
+      w2[2] = amd_bytealign_S (w1[1], w1[0], offset_minus_4);
+      w2[1] = amd_bytealign_S (w1[0], w0[3], offset_minus_4);
+      w2[0] = amd_bytealign_S (w0[3], w0[2], offset_minus_4);
+      w1[3] = amd_bytealign_S (w0[2], w0[1], offset_minus_4);
+      w1[2] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w1[1] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w1[1] = w1[2];
+        w1[2] = w1[3];
+        w1[3] = w2[0];
+        w2[0] = w2[1];
+        w2[1] = w2[2];
+        w2[2] = w2[3];
+        w2[3] = w3[0];
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 6:
+      w3[2] = amd_bytealign_S (    0, w1[3], offset_minus_4);
+      w3[1] = amd_bytealign_S (w1[3], w1[2], offset_minus_4);
+      w3[0] = amd_bytealign_S (w1[2], w1[1], offset_minus_4);
+      w2[3] = amd_bytealign_S (w1[1], w1[0], offset_minus_4);
+      w2[2] = amd_bytealign_S (w1[0], w0[3], offset_minus_4);
+      w2[1] = amd_bytealign_S (w0[3], w0[2], offset_minus_4);
+      w2[0] = amd_bytealign_S (w0[2], w0[1], offset_minus_4);
+      w1[3] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w1[2] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w1[2] = w1[3];
+        w1[3] = w2[0];
+        w2[0] = w2[1];
+        w2[1] = w2[2];
+        w2[2] = w2[3];
+        w2[3] = w3[0];
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 7:
+      w3[2] = amd_bytealign_S (    0, w1[2], offset_minus_4);
+      w3[1] = amd_bytealign_S (w1[2], w1[1], offset_minus_4);
+      w3[0] = amd_bytealign_S (w1[1], w1[0], offset_minus_4);
+      w2[3] = amd_bytealign_S (w1[0], w0[3], offset_minus_4);
+      w2[2] = amd_bytealign_S (w0[3], w0[2], offset_minus_4);
+      w2[1] = amd_bytealign_S (w0[2], w0[1], offset_minus_4);
+      w2[0] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w1[3] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w1[3] = w2[0];
+        w2[0] = w2[1];
+        w2[1] = w2[2];
+        w2[2] = w2[3];
+        w2[3] = w3[0];
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 8:
+      w3[2] = amd_bytealign_S (    0, w1[1], offset_minus_4);
+      w3[1] = amd_bytealign_S (w1[1], w1[0], offset_minus_4);
+      w3[0] = amd_bytealign_S (w1[0], w0[3], offset_minus_4);
+      w2[3] = amd_bytealign_S (w0[3], w0[2], offset_minus_4);
+      w2[2] = amd_bytealign_S (w0[2], w0[1], offset_minus_4);
+      w2[1] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w2[0] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w2[0] = w2[1];
+        w2[1] = w2[2];
+        w2[2] = w2[3];
+        w2[3] = w3[0];
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 9:
+      w3[2] = amd_bytealign_S (    0, w1[0], offset_minus_4);
+      w3[1] = amd_bytealign_S (w1[0], w0[3], offset_minus_4);
+      w3[0] = amd_bytealign_S (w0[3], w0[2], offset_minus_4);
+      w2[3] = amd_bytealign_S (w0[2], w0[1], offset_minus_4);
+      w2[2] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w2[1] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w2[1] = w2[2];
+        w2[2] = w2[3];
+        w2[3] = w3[0];
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 10:
+      w3[2] = amd_bytealign_S (    0, w0[3], offset_minus_4);
+      w3[1] = amd_bytealign_S (w0[3], w0[2], offset_minus_4);
+      w3[0] = amd_bytealign_S (w0[2], w0[1], offset_minus_4);
+      w2[3] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w2[2] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w2[2] = w2[3];
+        w2[3] = w3[0];
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 11:
+      w3[2] = amd_bytealign_S (    0, w0[2], offset_minus_4);
+      w3[1] = amd_bytealign_S (w0[2], w0[1], offset_minus_4);
+      w3[0] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w2[3] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w2[3] = w3[0];
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 12:
+      w3[2] = amd_bytealign_S (    0, w0[1], offset_minus_4);
+      w3[1] = amd_bytealign_S (w0[1], w0[0], offset_minus_4);
+      w3[0] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w2[3] = 0;
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w3[0] = w3[1];
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+
+    case 13:
+      w3[2] = amd_bytealign_S (    0, w0[0], offset_minus_4);
+      w3[1] = amd_bytealign_S (w0[0],     0, offset_minus_4);
+      w3[0] = 0;
+      w2[3] = 0;
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      if (offset_mod_4 == 0)
+      {
+        w3[1] = w3[2];
+        w3[2] = 0;
+      }
+
+      break;
+  }
+  #endif
+
+  #ifdef IS_NV
+  const int offset_minus_4 = 4 - (offset % 4);
+
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+
+  switch (offset / 4)
+  {
+    case 0:
+      w3[1] = __byte_perm_S (w3[0], w3[1], selector);
+      w3[0] = __byte_perm_S (w2[3], w3[0], selector);
+      w2[3] = __byte_perm_S (w2[2], w2[3], selector);
+      w2[2] = __byte_perm_S (w2[1], w2[2], selector);
+      w2[1] = __byte_perm_S (w2[0], w2[1], selector);
+      w2[0] = __byte_perm_S (w1[3], w2[0], selector);
+      w1[3] = __byte_perm_S (w1[2], w1[3], selector);
+      w1[2] = __byte_perm_S (w1[1], w1[2], selector);
+      w1[1] = __byte_perm_S (w1[0], w1[1], selector);
+      w1[0] = __byte_perm_S (w0[3], w1[0], selector);
+      w0[3] = __byte_perm_S (w0[2], w0[3], selector);
+      w0[2] = __byte_perm_S (w0[1], w0[2], selector);
+      w0[1] = __byte_perm_S (w0[0], w0[1], selector);
+      w0[0] = __byte_perm_S (    0, w0[0], selector);
+
+      break;
+
+    case 1:
+      w3[1] = __byte_perm_S (w2[3], w3[0], selector);
+      w3[0] = __byte_perm_S (w2[2], w2[3], selector);
+      w2[3] = __byte_perm_S (w2[1], w2[2], selector);
+      w2[2] = __byte_perm_S (w2[0], w2[1], selector);
+      w2[1] = __byte_perm_S (w1[3], w2[0], selector);
+      w2[0] = __byte_perm_S (w1[2], w1[3], selector);
+      w1[3] = __byte_perm_S (w1[1], w1[2], selector);
+      w1[2] = __byte_perm_S (w1[0], w1[1], selector);
+      w1[1] = __byte_perm_S (w0[3], w1[0], selector);
+      w1[0] = __byte_perm_S (w0[2], w0[3], selector);
+      w0[3] = __byte_perm_S (w0[1], w0[2], selector);
+      w0[2] = __byte_perm_S (w0[0], w0[1], selector);
+      w0[1] = __byte_perm_S (    0, w0[0], selector);
+      w0[0] = 0;
+
+      break;
+
+    case 2:
+      w3[1] = __byte_perm_S (w2[2], w2[3], selector);
+      w3[0] = __byte_perm_S (w2[1], w2[2], selector);
+      w2[3] = __byte_perm_S (w2[0], w2[1], selector);
+      w2[2] = __byte_perm_S (w1[3], w2[0], selector);
+      w2[1] = __byte_perm_S (w1[2], w1[3], selector);
+      w2[0] = __byte_perm_S (w1[1], w1[2], selector);
+      w1[3] = __byte_perm_S (w1[0], w1[1], selector);
+      w1[2] = __byte_perm_S (w0[3], w1[0], selector);
+      w1[1] = __byte_perm_S (w0[2], w0[3], selector);
+      w1[0] = __byte_perm_S (w0[1], w0[2], selector);
+      w0[3] = __byte_perm_S (w0[0], w0[1], selector);
+      w0[2] = __byte_perm_S (    0, w0[0], selector);
+      w0[1] = 0;
+      w0[0] = 0;
+
+      break;
+
+    case 3:
+      w3[1] = __byte_perm_S (w2[1], w2[2], selector);
+      w3[0] = __byte_perm_S (w2[0], w2[1], selector);
+      w2[3] = __byte_perm_S (w1[3], w2[0], selector);
+      w2[2] = __byte_perm_S (w1[2], w1[3], selector);
+      w2[1] = __byte_perm_S (w1[1], w1[2], selector);
+      w2[0] = __byte_perm_S (w1[0], w1[1], selector);
+      w1[3] = __byte_perm_S (w0[3], w1[0], selector);
+      w1[2] = __byte_perm_S (w0[2], w0[3], selector);
+      w1[1] = __byte_perm_S (w0[1], w0[2], selector);
+      w1[0] = __byte_perm_S (w0[0], w0[1], selector);
+      w0[3] = __byte_perm_S (    0, w0[0], selector);
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      break;
+
+    case 4:
+      w3[1] = __byte_perm_S (w2[0], w2[1], selector);
+      w3[0] = __byte_perm_S (w1[3], w2[0], selector);
+      w2[3] = __byte_perm_S (w1[2], w1[3], selector);
+      w2[2] = __byte_perm_S (w1[1], w1[2], selector);
+      w2[1] = __byte_perm_S (w1[0], w1[1], selector);
+      w2[0] = __byte_perm_S (w0[3], w1[0], selector);
+      w1[3] = __byte_perm_S (w0[2], w0[3], selector);
+      w1[2] = __byte_perm_S (w0[1], w0[2], selector);
+      w1[1] = __byte_perm_S (w0[0], w0[1], selector);
+      w1[0] = __byte_perm_S (    0, w0[0], selector);
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      break;
+
+    case 5:
+      w3[1] = __byte_perm_S (w1[3], w2[0], selector);
+      w3[0] = __byte_perm_S (w1[2], w1[3], selector);
+      w2[3] = __byte_perm_S (w1[1], w1[2], selector);
+      w2[2] = __byte_perm_S (w1[0], w1[1], selector);
+      w2[1] = __byte_perm_S (w0[3], w1[0], selector);
+      w2[0] = __byte_perm_S (w0[2], w0[3], selector);
+      w1[3] = __byte_perm_S (w0[1], w0[2], selector);
+      w1[2] = __byte_perm_S (w0[0], w0[1], selector);
+      w1[1] = __byte_perm_S (    0, w0[0], selector);
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      break;
+
+    case 6:
+      w3[1] = __byte_perm_S (w1[2], w1[3], selector);
+      w3[0] = __byte_perm_S (w1[1], w1[2], selector);
+      w2[3] = __byte_perm_S (w1[0], w1[1], selector);
+      w2[2] = __byte_perm_S (w0[3], w1[0], selector);
+      w2[1] = __byte_perm_S (w0[2], w0[3], selector);
+      w2[0] = __byte_perm_S (w0[1], w0[2], selector);
+      w1[3] = __byte_perm_S (w0[0], w0[1], selector);
+      w1[2] = __byte_perm_S (    0, w0[0], selector);
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      break;
+
+    case 7:
+      w3[1] = __byte_perm_S (w1[1], w1[2], selector);
+      w3[0] = __byte_perm_S (w1[0], w1[1], selector);
+      w2[3] = __byte_perm_S (w0[3], w1[0], selector);
+      w2[2] = __byte_perm_S (w0[2], w0[3], selector);
+      w2[1] = __byte_perm_S (w0[1], w0[2], selector);
+      w2[0] = __byte_perm_S (w0[0], w0[1], selector);
+      w1[3] = __byte_perm_S (    0, w0[0], selector);
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      break;
+
+    case 8:
+      w3[1] = __byte_perm_S (w1[0], w1[1], selector);
+      w3[0] = __byte_perm_S (w0[3], w1[0], selector);
+      w2[3] = __byte_perm_S (w0[2], w0[3], selector);
+      w2[2] = __byte_perm_S (w0[1], w0[2], selector);
+      w2[1] = __byte_perm_S (w0[0], w0[1], selector);
+      w2[0] = __byte_perm_S (    0, w0[0], selector);
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      break;
+
+    case 9:
+      w3[1] = __byte_perm_S (w0[3], w1[0], selector);
+      w3[0] = __byte_perm_S (w0[2], w0[3], selector);
+      w2[3] = __byte_perm_S (w0[1], w0[2], selector);
+      w2[2] = __byte_perm_S (w0[0], w0[1], selector);
+      w2[1] = __byte_perm_S (    0, w0[0], selector);
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      break;
+
+    case 10:
+      w3[1] = __byte_perm_S (w0[2], w0[3], selector);
+      w3[0] = __byte_perm_S (w0[1], w0[2], selector);
+      w2[3] = __byte_perm_S (w0[0], w0[1], selector);
+      w2[2] = __byte_perm_S (    0, w0[0], selector);
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      break;
+
+    case 11:
+      w3[1] = __byte_perm_S (w0[1], w0[2], selector);
+      w3[0] = __byte_perm_S (w0[0], w0[1], selector);
+      w2[3] = __byte_perm_S (    0, w0[0], selector);
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      break;
+
+    case 12:
+      w3[1] = __byte_perm_S (w0[0], w0[1], selector);
+      w3[0] = __byte_perm_S (    0, w0[0], selector);
+      w2[3] = 0;
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      break;
+
+    case 13:
+      w3[1] = __byte_perm_S (    0, w0[0], selector);
+      w3[0] = 0;
+      w2[3] = 0;
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+
+      break;
+  }
+  #endif
+}
+
+static void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+{
+  #if defined IS_AMD || defined IS_GENERIC
+  switch (offset / 4)
+  {
+    case 0:
+      w3[2] = amd_bytealign_S (w3[1],     0, offset);
+      w3[1] = amd_bytealign_S (w3[0], w3[1], offset);
+      w3[0] = amd_bytealign_S (w2[3], w3[0], offset);
+      w2[3] = amd_bytealign_S (w2[2], w2[3], offset);
+      w2[2] = amd_bytealign_S (w2[1], w2[2], offset);
+      w2[1] = amd_bytealign_S (w2[0], w2[1], offset);
+      w2[0] = amd_bytealign_S (w1[3], w2[0], offset);
+      w1[3] = amd_bytealign_S (w1[2], w1[3], offset);
+      w1[2] = amd_bytealign_S (w1[1], w1[2], offset);
+      w1[1] = amd_bytealign_S (w1[0], w1[1], offset);
+      w1[0] = amd_bytealign_S (w0[3], w1[0], offset);
+      w0[3] = amd_bytealign_S (w0[2], w0[3], offset);
+      w0[2] = amd_bytealign_S (w0[1], w0[2], offset);
+      w0[1] = amd_bytealign_S (w0[0], w0[1], offset);
+      w0[0] = amd_bytealign_S (    0, w0[0], offset);
+      break;
+
+    case 1:
+      w3[2] = amd_bytealign_S (w3[0],     0, offset);
+      w3[1] = amd_bytealign_S (w2[3], w3[0], offset);
+      w3[0] = amd_bytealign_S (w2[2], w2[3], offset);
+      w2[3] = amd_bytealign_S (w2[1], w2[2], offset);
+      w2[2] = amd_bytealign_S (w2[0], w2[1], offset);
+      w2[1] = amd_bytealign_S (w1[3], w2[0], offset);
+      w2[0] = amd_bytealign_S (w1[2], w1[3], offset);
+      w1[3] = amd_bytealign_S (w1[1], w1[2], offset);
+      w1[2] = amd_bytealign_S (w1[0], w1[1], offset);
+      w1[1] = amd_bytealign_S (w0[3], w1[0], offset);
+      w1[0] = amd_bytealign_S (w0[2], w0[3], offset);
+      w0[3] = amd_bytealign_S (w0[1], w0[2], offset);
+      w0[2] = amd_bytealign_S (w0[0], w0[1], offset);
+      w0[1] = amd_bytealign_S (    0, w0[0], offset);
+      w0[0] = 0;
+      break;
+
+    case 2:
+      w3[2] = amd_bytealign_S (w2[3],     0, offset);
+      w3[1] = amd_bytealign_S (w2[2], w2[3], offset);
+      w3[0] = amd_bytealign_S (w2[1], w2[2], offset);
+      w2[3] = amd_bytealign_S (w2[0], w2[1], offset);
+      w2[2] = amd_bytealign_S (w1[3], w2[0], offset);
+      w2[1] = amd_bytealign_S (w1[2], w1[3], offset);
+      w2[0] = amd_bytealign_S (w1[1], w1[2], offset);
+      w1[3] = amd_bytealign_S (w1[0], w1[1], offset);
+      w1[2] = amd_bytealign_S (w0[3], w1[0], offset);
+      w1[1] = amd_bytealign_S (w0[2], w0[3], offset);
+      w1[0] = amd_bytealign_S (w0[1], w0[2], offset);
+      w0[3] = amd_bytealign_S (w0[0], w0[1], offset);
+      w0[2] = amd_bytealign_S (    0, w0[0], offset);
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 3:
+      w3[2] = amd_bytealign_S (w2[2],     0, offset);
+      w3[1] = amd_bytealign_S (w2[1], w2[2], offset);
+      w3[0] = amd_bytealign_S (w2[0], w2[1], offset);
+      w2[3] = amd_bytealign_S (w1[3], w2[0], offset);
+      w2[2] = amd_bytealign_S (w1[2], w1[3], offset);
+      w2[1] = amd_bytealign_S (w1[1], w1[2], offset);
+      w2[0] = amd_bytealign_S (w1[0], w1[1], offset);
+      w1[3] = amd_bytealign_S (w0[3], w1[0], offset);
+      w1[2] = amd_bytealign_S (w0[2], w0[3], offset);
+      w1[1] = amd_bytealign_S (w0[1], w0[2], offset);
+      w1[0] = amd_bytealign_S (w0[0], w0[1], offset);
+      w0[3] = amd_bytealign_S (    0, w0[0], offset);
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 4:
+      w3[2] = amd_bytealign_S (w2[1],     0, offset);
+      w3[1] = amd_bytealign_S (w2[0], w2[1], offset);
+      w3[0] = amd_bytealign_S (w1[3], w2[0], offset);
+      w2[3] = amd_bytealign_S (w1[2], w1[3], offset);
+      w2[2] = amd_bytealign_S (w1[1], w1[2], offset);
+      w2[1] = amd_bytealign_S (w1[0], w1[1], offset);
+      w2[0] = amd_bytealign_S (w0[3], w1[0], offset);
+      w1[3] = amd_bytealign_S (w0[2], w0[3], offset);
+      w1[2] = amd_bytealign_S (w0[1], w0[2], offset);
+      w1[1] = amd_bytealign_S (w0[0], w0[1], offset);
+      w1[0] = amd_bytealign_S (    0, w0[0], offset);
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 5:
+      w3[2] = amd_bytealign_S (w2[0],     0, offset);
+      w3[1] = amd_bytealign_S (w1[3], w2[0], offset);
+      w3[0] = amd_bytealign_S (w1[2], w1[3], offset);
+      w2[3] = amd_bytealign_S (w1[1], w1[2], offset);
+      w2[2] = amd_bytealign_S (w1[0], w1[1], offset);
+      w2[1] = amd_bytealign_S (w0[3], w1[0], offset);
+      w2[0] = amd_bytealign_S (w0[2], w0[3], offset);
+      w1[3] = amd_bytealign_S (w0[1], w0[2], offset);
+      w1[2] = amd_bytealign_S (w0[0], w0[1], offset);
+      w1[1] = amd_bytealign_S (    0, w0[0], offset);
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 6:
+      w3[2] = amd_bytealign_S (w1[3],     0, offset);
+      w3[1] = amd_bytealign_S (w1[2], w1[3], offset);
+      w3[0] = amd_bytealign_S (w1[1], w1[2], offset);
+      w2[3] = amd_bytealign_S (w1[0], w1[1], offset);
+      w2[2] = amd_bytealign_S (w0[3], w1[0], offset);
+      w2[1] = amd_bytealign_S (w0[2], w0[3], offset);
+      w2[0] = amd_bytealign_S (w0[1], w0[2], offset);
+      w1[3] = amd_bytealign_S (w0[0], w0[1], offset);
+      w1[2] = amd_bytealign_S (    0, w0[0], offset);
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 7:
+      w3[2] = amd_bytealign_S (w1[2],     0, offset);
+      w3[1] = amd_bytealign_S (w1[1], w1[2], offset);
+      w3[0] = amd_bytealign_S (w1[0], w1[1], offset);
+      w2[3] = amd_bytealign_S (w0[3], w1[0], offset);
+      w2[2] = amd_bytealign_S (w0[2], w0[3], offset);
+      w2[1] = amd_bytealign_S (w0[1], w0[2], offset);
+      w2[0] = amd_bytealign_S (w0[0], w0[1], offset);
+      w1[3] = amd_bytealign_S (    0, w0[0], offset);
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 8:
+      w3[2] = amd_bytealign_S (w1[1],     0, offset);
+      w3[1] = amd_bytealign_S (w1[0], w1[1], offset);
+      w3[0] = amd_bytealign_S (w0[3], w1[0], offset);
+      w2[3] = amd_bytealign_S (w0[2], w0[3], offset);
+      w2[2] = amd_bytealign_S (w0[1], w0[2], offset);
+      w2[1] = amd_bytealign_S (w0[0], w0[1], offset);
+      w2[0] = amd_bytealign_S (    0, w0[0], offset);
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 9:
+      w3[2] = amd_bytealign_S (w1[0],     0, offset);
+      w3[1] = amd_bytealign_S (w0[3], w1[0], offset);
+      w3[0] = amd_bytealign_S (w0[2], w0[3], offset);
+      w2[3] = amd_bytealign_S (w0[1], w0[2], offset);
+      w2[2] = amd_bytealign_S (w0[0], w0[1], offset);
+      w2[1] = amd_bytealign_S (    0, w0[0], offset);
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 10:
+      w3[2] = amd_bytealign_S (w0[3],     0, offset);
+      w3[1] = amd_bytealign_S (w0[2], w0[3], offset);
+      w3[0] = amd_bytealign_S (w0[1], w0[2], offset);
+      w2[3] = amd_bytealign_S (w0[0], w0[1], offset);
+      w2[2] = amd_bytealign_S (    0, w0[0], offset);
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 11:
+      w3[2] = amd_bytealign_S (w0[2],     0, offset);
+      w3[1] = amd_bytealign_S (w0[1], w0[2], offset);
+      w3[0] = amd_bytealign_S (w0[0], w0[1], offset);
+      w2[3] = amd_bytealign_S (    0, w0[0], offset);
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 12:
+      w3[2] = amd_bytealign_S (w0[1],     0, offset);
+      w3[1] = amd_bytealign_S (w0[0], w0[1], offset);
+      w3[0] = amd_bytealign_S (    0, w0[0], offset);
+      w2[3] = 0;
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 13:
+      w3[2] = amd_bytealign_S (w0[0],     0, offset);
+      w3[1] = amd_bytealign_S (    0, w0[0], offset);
+      w3[0] = 0;
+      w2[3] = 0;
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+  }
+  #endif
+
+  #ifdef IS_NV
+  const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;
+
+  switch (offset / 4)
+  {
+    case 0:
+      w3[1] = __byte_perm_S (w3[1], w3[0], selector);
+      w3[0] = __byte_perm_S (w3[0], w2[3], selector);
+      w2[3] = __byte_perm_S (w2[3], w2[2], selector);
+      w2[2] = __byte_perm_S (w2[2], w2[1], selector);
+      w2[1] = __byte_perm_S (w2[1], w2[0], selector);
+      w2[0] = __byte_perm_S (w2[0], w1[3], selector);
+      w1[3] = __byte_perm_S (w1[3], w1[2], selector);
+      w1[2] = __byte_perm_S (w1[2], w1[1], selector);
+      w1[1] = __byte_perm_S (w1[1], w1[0], selector);
+      w1[0] = __byte_perm_S (w1[0], w0[3], selector);
+      w0[3] = __byte_perm_S (w0[3], w0[2], selector);
+      w0[2] = __byte_perm_S (w0[2], w0[1], selector);
+      w0[1] = __byte_perm_S (w0[1], w0[0], selector);
+      w0[0] = __byte_perm_S (w0[0],     0, selector);
+      break;
+
+    case 1:
+      w3[1] = __byte_perm_S (w3[0], w2[3], selector);
+      w3[0] = __byte_perm_S (w2[3], w2[2], selector);
+      w2[3] = __byte_perm_S (w2[2], w2[1], selector);
+      w2[2] = __byte_perm_S (w2[1], w2[0], selector);
+      w2[1] = __byte_perm_S (w2[0], w1[3], selector);
+      w2[0] = __byte_perm_S (w1[3], w1[2], selector);
+      w1[3] = __byte_perm_S (w1[2], w1[1], selector);
+      w1[2] = __byte_perm_S (w1[1], w1[0], selector);
+      w1[1] = __byte_perm_S (w1[0], w0[3], selector);
+      w1[0] = __byte_perm_S (w0[3], w0[2], selector);
+      w0[3] = __byte_perm_S (w0[2], w0[1], selector);
+      w0[2] = __byte_perm_S (w0[1], w0[0], selector);
+      w0[1] = __byte_perm_S (w0[0],     0, selector);
+      w0[0] = 0;
+      break;
+
+    case 2:
+      w3[1] = __byte_perm_S (w2[3], w2[2], selector);
+      w3[0] = __byte_perm_S (w2[2], w2[1], selector);
+      w2[3] = __byte_perm_S (w2[1], w2[0], selector);
+      w2[2] = __byte_perm_S (w2[0], w1[3], selector);
+      w2[1] = __byte_perm_S (w1[3], w1[2], selector);
+      w2[0] = __byte_perm_S (w1[2], w1[1], selector);
+      w1[3] = __byte_perm_S (w1[1], w1[0], selector);
+      w1[2] = __byte_perm_S (w1[0], w0[3], selector);
+      w1[1] = __byte_perm_S (w0[3], w0[2], selector);
+      w1[0] = __byte_perm_S (w0[2], w0[1], selector);
+      w0[3] = __byte_perm_S (w0[1], w0[0], selector);
+      w0[2] = __byte_perm_S (w0[0],     0, selector);
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 3:
+      w3[1] = __byte_perm_S (w2[2], w2[1], selector);
+      w3[0] = __byte_perm_S (w2[1], w2[0], selector);
+      w2[3] = __byte_perm_S (w2[0], w1[3], selector);
+      w2[2] = __byte_perm_S (w1[3], w1[2], selector);
+      w2[1] = __byte_perm_S (w1[2], w1[1], selector);
+      w2[0] = __byte_perm_S (w1[1], w1[0], selector);
+      w1[3] = __byte_perm_S (w1[0], w0[3], selector);
+      w1[2] = __byte_perm_S (w0[3], w0[2], selector);
+      w1[1] = __byte_perm_S (w0[2], w0[1], selector);
+      w1[0] = __byte_perm_S (w0[1], w0[0], selector);
+      w0[3] = __byte_perm_S (w0[0],     0, selector);
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 4:
+      w3[1] = __byte_perm_S (w2[1], w2[0], selector);
+      w3[0] = __byte_perm_S (w2[0], w1[3], selector);
+      w2[3] = __byte_perm_S (w1[3], w1[2], selector);
+      w2[2] = __byte_perm_S (w1[2], w1[1], selector);
+      w2[1] = __byte_perm_S (w1[1], w1[0], selector);
+      w2[0] = __byte_perm_S (w1[0], w0[3], selector);
+      w1[3] = __byte_perm_S (w0[3], w0[2], selector);
+      w1[2] = __byte_perm_S (w0[2], w0[1], selector);
+      w1[1] = __byte_perm_S (w0[1], w0[0], selector);
+      w1[0] = __byte_perm_S (w0[0],     0, selector);
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 5:
+      w3[1] = __byte_perm_S (w2[0], w1[3], selector);
+      w3[0] = __byte_perm_S (w1[3], w1[2], selector);
+      w2[3] = __byte_perm_S (w1[2], w1[1], selector);
+      w2[2] = __byte_perm_S (w1[1], w1[0], selector);
+      w2[1] = __byte_perm_S (w1[0], w0[3], selector);
+      w2[0] = __byte_perm_S (w0[3], w0[2], selector);
+      w1[3] = __byte_perm_S (w0[2], w0[1], selector);
+      w1[2] = __byte_perm_S (w0[1], w0[0], selector);
+      w1[1] = __byte_perm_S (w0[0],     0, selector);
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 6:
+      w3[1] = __byte_perm_S (w1[3], w1[2], selector);
+      w3[0] = __byte_perm_S (w1[2], w1[1], selector);
+      w2[3] = __byte_perm_S (w1[1], w1[0], selector);
+      w2[2] = __byte_perm_S (w1[0], w0[3], selector);
+      w2[1] = __byte_perm_S (w0[3], w0[2], selector);
+      w2[0] = __byte_perm_S (w0[2], w0[1], selector);
+      w1[3] = __byte_perm_S (w0[1], w0[0], selector);
+      w1[2] = __byte_perm_S (w0[0],     0, selector);
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 7:
+      w3[1] = __byte_perm_S (w1[2], w1[1], selector);
+      w3[0] = __byte_perm_S (w1[1], w1[0], selector);
+      w2[3] = __byte_perm_S (w1[0], w0[3], selector);
+      w2[2] = __byte_perm_S (w0[3], w0[2], selector);
+      w2[1] = __byte_perm_S (w0[2], w0[1], selector);
+      w2[0] = __byte_perm_S (w0[1], w0[0], selector);
+      w1[3] = __byte_perm_S (w0[0],     0, selector);
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 8:
+      w3[1] = __byte_perm_S (w1[1], w1[0], selector);
+      w3[0] = __byte_perm_S (w1[0], w0[3], selector);
+      w2[3] = __byte_perm_S (w0[3], w0[2], selector);
+      w2[2] = __byte_perm_S (w0[2], w0[1], selector);
+      w2[1] = __byte_perm_S (w0[1], w0[0], selector);
+      w2[0] = __byte_perm_S (w0[0],     0, selector);
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 9:
+      w3[1] = __byte_perm_S (w1[0], w0[3], selector);
+      w3[0] = __byte_perm_S (w0[3], w0[2], selector);
+      w2[3] = __byte_perm_S (w0[2], w0[1], selector);
+      w2[2] = __byte_perm_S (w0[1], w0[0], selector);
+      w2[1] = __byte_perm_S (w0[0],     0, selector);
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 10:
+      w3[1] = __byte_perm_S (w0[3], w0[2], selector);
+      w3[0] = __byte_perm_S (w0[2], w0[1], selector);
+      w2[3] = __byte_perm_S (w0[1], w0[0], selector);
+      w2[2] = __byte_perm_S (w0[0],     0, selector);
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 11:
+      w3[1] = __byte_perm_S (w0[2], w0[1], selector);
+      w3[0] = __byte_perm_S (w0[1], w0[0], selector);
+      w2[3] = __byte_perm_S (w0[0],     0, selector);
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 12:
+      w3[1] = __byte_perm_S (w0[1], w0[0], selector);
+      w3[0] = __byte_perm_S (w0[0],     0, selector);
+      w2[3] = 0;
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 13:
+      w3[1] = __byte_perm_S (w0[0],     0, selector);
+      w3[0] = 0;
+      w2[3] = 0;
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+  }
+  #endif
+}
+
+static void switch_buffer_by_offset    (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
@@ -4699,7 +5964,7 @@ static void switch_buffer_by_offset (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4],
   #endif
 }
 
-static void switch_buffer_by_offset_be (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+static void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)

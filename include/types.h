@@ -836,6 +836,8 @@ struct __hc_device_param
   u64               device_global_mem;
   u32               device_maxclock_frequency;
 
+  uint              vector_width;
+
   uint              kernel_threads;
   uint              kernel_accel;
   uint              kernel_power;          // these both are based on their _user counterpart
