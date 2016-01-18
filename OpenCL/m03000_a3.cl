@@ -1746,6 +1746,361 @@ static void transpose32c (u32 data[32])
 
 static void m03000m (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant bs_word_t * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
+  /**
+   * base
+   */
+
+  const u32 gid = get_global_id (0);
+  const u32 lid = get_local_id (0);
+
+  /**
+   * keys
+   */
+
+  const u32 K00 = pws[gid].i[ 0];
+  const u32 K01 = pws[gid].i[ 1];
+  const u32 K02 = pws[gid].i[ 2];
+  const u32 K03 = pws[gid].i[ 3];
+  const u32 K04 = pws[gid].i[ 4];
+  const u32 K05 = pws[gid].i[ 5];
+  const u32 K06 = pws[gid].i[ 6];
+  const u32 K07 = pws[gid].i[ 7];
+  const u32 K08 = pws[gid].i[ 8];
+  const u32 K09 = pws[gid].i[ 9];
+  const u32 K10 = pws[gid].i[10];
+  const u32 K11 = pws[gid].i[11];
+  const u32 K12 = pws[gid].i[12];
+  const u32 K13 = pws[gid].i[13];
+  const u32 K14 = pws[gid].i[14];
+  const u32 K15 = pws[gid].i[15];
+  const u32 K16 = pws[gid].i[16];
+  const u32 K17 = pws[gid].i[17];
+  const u32 K18 = pws[gid].i[18];
+  const u32 K19 = pws[gid].i[19];
+  const u32 K20 = pws[gid].i[20];
+  const u32 K21 = pws[gid].i[21];
+  const u32 K22 = pws[gid].i[22];
+  const u32 K23 = pws[gid].i[23];
+  const u32 K24 = pws[gid].i[24];
+  const u32 K25 = pws[gid].i[25];
+  const u32 K26 = pws[gid].i[26];
+  const u32 K27 = pws[gid].i[27];
+  const u32 K28 = pws[gid].i[28];
+  const u32 K29 = pws[gid].i[29];
+  const u32 K30 = pws[gid].i[30];
+  const u32 K31 = pws[gid].i[31];
+  const u32 K32 = pws[gid].i[32];
+  const u32 K33 = pws[gid].i[33];
+  const u32 K34 = pws[gid].i[34];
+  const u32 K35 = pws[gid].i[35];
+  const u32 K36 = pws[gid].i[36];
+  const u32 K37 = pws[gid].i[37];
+  const u32 K38 = pws[gid].i[38];
+  const u32 K39 = pws[gid].i[39];
+  const u32 K40 = pws[gid].i[40];
+  const u32 K41 = pws[gid].i[41];
+  const u32 K42 = pws[gid].i[42];
+  const u32 K43 = pws[gid].i[43];
+  const u32 K44 = pws[gid].i[44];
+  const u32 K45 = pws[gid].i[45];
+  const u32 K46 = pws[gid].i[46];
+  const u32 K47 = pws[gid].i[47];
+  const u32 K48 = pws[gid].i[48];
+  const u32 K49 = pws[gid].i[49];
+  const u32 K50 = pws[gid].i[50];
+  const u32 K51 = pws[gid].i[51];
+  const u32 K52 = pws[gid].i[52];
+  const u32 K53 = pws[gid].i[53];
+  const u32 K54 = pws[gid].i[54];
+  const u32 K55 = pws[gid].i[55];
+
+  const u32 pc_pos = get_local_id (1);
+
+  const u32 il_pos = pc_pos * 32;
+
+  u32 k00 = K00;
+  u32 k01 = K01;
+  u32 k02 = K02;
+  u32 k03 = K03;
+  u32 k04 = K04;
+  u32 k05 = K05;
+  u32 k06 = K06;
+  u32 k07 = K07;
+  u32 k08 = K08;
+  u32 k09 = K09;
+  u32 k10 = K10;
+  u32 k11 = K11;
+  u32 k12 = K12;
+  u32 k13 = K13;
+  u32 k14 = K14;
+  u32 k15 = K15;
+  u32 k16 = K16;
+  u32 k17 = K17;
+  u32 k18 = K18;
+  u32 k19 = K19;
+  u32 k20 = K20;
+  u32 k21 = K21;
+  u32 k22 = K22;
+  u32 k23 = K23;
+  u32 k24 = K24;
+  u32 k25 = K25;
+  u32 k26 = K26;
+  u32 k27 = K27;
+  u32 k28 = K28;
+  u32 k29 = K29;
+  u32 k30 = K30;
+  u32 k31 = K31;
+
+  k00 |= words_buf_r[pc_pos].b[ 0];
+  k01 |= words_buf_r[pc_pos].b[ 1];
+  k02 |= words_buf_r[pc_pos].b[ 2];
+  k03 |= words_buf_r[pc_pos].b[ 3];
+  k04 |= words_buf_r[pc_pos].b[ 4];
+  k05 |= words_buf_r[pc_pos].b[ 5];
+  k06 |= words_buf_r[pc_pos].b[ 6];
+  k07 |= words_buf_r[pc_pos].b[ 7];
+  k08 |= words_buf_r[pc_pos].b[ 8];
+  k09 |= words_buf_r[pc_pos].b[ 9];
+  k10 |= words_buf_r[pc_pos].b[10];
+  k11 |= words_buf_r[pc_pos].b[11];
+  k12 |= words_buf_r[pc_pos].b[12];
+  k13 |= words_buf_r[pc_pos].b[13];
+  k14 |= words_buf_r[pc_pos].b[14];
+  k15 |= words_buf_r[pc_pos].b[15];
+  k16 |= words_buf_r[pc_pos].b[16];
+  k17 |= words_buf_r[pc_pos].b[17];
+  k18 |= words_buf_r[pc_pos].b[18];
+  k19 |= words_buf_r[pc_pos].b[19];
+  k20 |= words_buf_r[pc_pos].b[20];
+  k21 |= words_buf_r[pc_pos].b[21];
+  k22 |= words_buf_r[pc_pos].b[22];
+  k23 |= words_buf_r[pc_pos].b[23];
+  k24 |= words_buf_r[pc_pos].b[24];
+  k25 |= words_buf_r[pc_pos].b[25];
+  k26 |= words_buf_r[pc_pos].b[26];
+  k27 |= words_buf_r[pc_pos].b[27];
+  k28 |= words_buf_r[pc_pos].b[28];
+  k29 |= words_buf_r[pc_pos].b[29];
+  k30 |= words_buf_r[pc_pos].b[30];
+  k31 |= words_buf_r[pc_pos].b[31];
+
+  // KGS!@#$% including IP
+
+  u32 D00 = 0;
+  u32 D01 = 0;
+  u32 D02 = 0;
+  u32 D03 = 0xffffffff;
+  u32 D04 = 0;
+  u32 D05 = 0xffffffff;
+  u32 D06 = 0xffffffff;
+  u32 D07 = 0xffffffff;
+  u32 D08 = 0;
+  u32 D09 = 0;
+  u32 D10 = 0;
+  u32 D11 = 0;
+  u32 D12 = 0;
+  u32 D13 = 0xffffffff;
+  u32 D14 = 0;
+  u32 D15 = 0;
+  u32 D16 = 0xffffffff;
+  u32 D17 = 0xffffffff;
+  u32 D18 = 0;
+  u32 D19 = 0;
+  u32 D20 = 0;
+  u32 D21 = 0;
+  u32 D22 = 0xffffffff;
+  u32 D23 = 0;
+  u32 D24 = 0xffffffff;
+  u32 D25 = 0;
+  u32 D26 = 0xffffffff;
+  u32 D27 = 0;
+  u32 D28 = 0xffffffff;
+  u32 D29 = 0xffffffff;
+  u32 D30 = 0xffffffff;
+  u32 D31 = 0xffffffff;
+  u32 D32 = 0;
+  u32 D33 = 0;
+  u32 D34 = 0;
+  u32 D35 = 0;
+  u32 D36 = 0;
+  u32 D37 = 0;
+  u32 D38 = 0;
+  u32 D39 = 0;
+  u32 D40 = 0xffffffff;
+  u32 D41 = 0xffffffff;
+  u32 D42 = 0xffffffff;
+  u32 D43 = 0;
+  u32 D44 = 0xffffffff;
+  u32 D45 = 0;
+  u32 D46 = 0;
+  u32 D47 = 0;
+  u32 D48 = 0;
+  u32 D49 = 0;
+  u32 D50 = 0;
+  u32 D51 = 0;
+  u32 D52 = 0;
+  u32 D53 = 0;
+  u32 D54 = 0;
+  u32 D55 = 0xffffffff;
+  u32 D56 = 0;
+  u32 D57 = 0;
+  u32 D58 = 0xffffffff;
+  u32 D59 = 0;
+  u32 D60 = 0;
+  u32 D61 = 0xffffffff;
+  u32 D62 = 0xffffffff;
+  u32 D63 = 0xffffffff;
+
+  DES
+  (
+    k00, k01, k02, k03, k04, k05, k06,
+    k07, k08, k09, k10, k11, k12, k13,
+    k14, k15, k16, k17, k18, k19, k20,
+    k21, k22, k23, k24, k25, k26, k27,
+    k28, k29, k30, k31, K32, K33, K34,
+    K35, K36, K37, K38, K39, K40, K41,
+    K42, K43, K44, K45, K46, K47, K48,
+    K49, K50, K51, K52, K53, K54, K55,
+    &D00, &D01, &D02, &D03, &D04, &D05, &D06, &D07,
+    &D08, &D09, &D10, &D11, &D12, &D13, &D14, &D15,
+    &D16, &D17, &D18, &D19, &D20, &D21, &D22, &D23,
+    &D24, &D25, &D26, &D27, &D28, &D29, &D30, &D31,
+    &D32, &D33, &D34, &D35, &D36, &D37, &D38, &D39,
+    &D40, &D41, &D42, &D43, &D44, &D45, &D46, &D47,
+    &D48, &D49, &D50, &D51, &D52, &D53, &D54, &D55,
+    &D56, &D57, &D58, &D59, &D60, &D61, &D62, &D63
+  );
+
+  u32 out[64];
+
+  out[ 0] = D00;
+  out[ 1] = D01;
+  out[ 2] = D02;
+  out[ 3] = D03;
+  out[ 4] = D04;
+  out[ 5] = D05;
+  out[ 6] = D06;
+  out[ 7] = D07;
+  out[ 8] = D08;
+  out[ 9] = D09;
+  out[10] = D10;
+  out[11] = D11;
+  out[12] = D12;
+  out[13] = D13;
+  out[14] = D14;
+  out[15] = D15;
+  out[16] = D16;
+  out[17] = D17;
+  out[18] = D18;
+  out[19] = D19;
+  out[20] = D20;
+  out[21] = D21;
+  out[22] = D22;
+  out[23] = D23;
+  out[24] = D24;
+  out[25] = D25;
+  out[26] = D26;
+  out[27] = D27;
+  out[28] = D28;
+  out[29] = D29;
+  out[30] = D30;
+  out[31] = D31;
+  out[32] = D32;
+  out[33] = D33;
+  out[34] = D34;
+  out[35] = D35;
+  out[36] = D36;
+  out[37] = D37;
+  out[38] = D38;
+  out[39] = D39;
+  out[40] = D40;
+  out[41] = D41;
+  out[42] = D42;
+  out[43] = D43;
+  out[44] = D44;
+  out[45] = D45;
+  out[46] = D46;
+  out[47] = D47;
+  out[48] = D48;
+  out[49] = D49;
+  out[50] = D50;
+  out[51] = D51;
+  out[52] = D52;
+  out[53] = D53;
+  out[54] = D54;
+  out[55] = D55;
+  out[56] = D56;
+  out[57] = D57;
+  out[58] = D58;
+  out[59] = D59;
+  out[60] = D60;
+  out[61] = D61;
+  out[62] = D62;
+  out[63] = D63;
+
+  if (digests_cnt < 16)
+  {
+    for (u32 d = 0; d < digests_cnt; d++)
+    {
+      const u32 final_hash_pos = digests_offset + d;
+
+      if (hashes_shown[final_hash_pos]) continue;
+
+      u32 search[2];
+
+      search[0] = digests_buf[final_hash_pos].digest_buf[DGST_R0];
+      search[1] = digests_buf[final_hash_pos].digest_buf[DGST_R1];
+
+      u32 tmpResult = 0;
+
+      #pragma unroll
+      for (int i = 0; i < 32; i++)
+      {
+        const u32 b0 = -((search[0] >> i) & 1);
+        const u32 b1 = -((search[1] >> i) & 1);
+
+        tmpResult |= out[ 0 + i] ^ b0;
+        tmpResult |= out[32 + i] ^ b1;
+      }
+
+      if (tmpResult == 0xffffffff) continue;
+
+      const u32 slice = 31 - clz (~tmpResult);
+
+      const u32 r0 = search[0];
+      const u32 r1 = search[1];
+      const u32 r2 = 0;
+      const u32 r3 = 0;
+
+      #include COMPARE_M
+    }
+  }
+  else
+  {
+    u32 out0[32];
+    u32 out1[32];
+
+    #pragma unroll
+    for (int i = 0; i < 32; i++)
+    {
+      out0[i] = out[ 0 + 31 - i];
+      out1[i] = out[32 + 31 - i];
+    }
+
+    transpose32c (out0);
+    transpose32c (out1);
+
+    #pragma unroll
+    for (int slice = 0; slice < 32; slice++)
+    {
+      const u32 r0 = out0[31 - slice];
+      const u32 r1 = out1[31 - slice];
+      const u32 r2 = 0;
+      const u32 r3 = 0;
+
+      #include COMPARE_M
+    }
+  }
 }
 
 static void m03000s (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant bs_word_t * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset)
