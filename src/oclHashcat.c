@@ -5025,13 +5025,14 @@ int main (int argc, char **argv)
       putenv ((char *) "DISPLAY=:0");
   }
 
-  /*
   if (getenv ("GPU_MAX_ALLOC_PERCENT") == NULL)
     putenv ((char *) "GPU_MAX_ALLOC_PERCENT=100");
 
+  if (getenv ("CPU_MAX_ALLOC_PERCENT") == NULL)
+    putenv ((char *) "CPU_MAX_ALLOC_PERCENT=100");
+
   if (getenv ("GPU_USE_SYNC_OBJECTS") == NULL)
     putenv ((char *) "GPU_USE_SYNC_OBJECTS=1");
-  */
 
   /**
    * Real init
