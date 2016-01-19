@@ -2661,9 +2661,9 @@ int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
   {
     if (hc_NVML_nvmlDeviceGetHandleByIndex (data.hm_dll_nv, 1, i, &nvGPUHandle[i]) != NVML_SUCCESS) break;
 
-    //can be used to determine if the device by index matches the cuda device by index
-    //char name[100]; memset (name, 0, sizeof (name));
-    //hc_NVML_nvmlDeviceGetName (data.hm_dll_nv, nvGPUHandle[i], name, sizeof (name) - 1);
+    // can be used to determine if the device by index matches the cuda device by index
+    // char name[100]; memset (name, 0, sizeof (name));
+    // hc_NVML_nvmlDeviceGetName (data.hm_dll_nv, nvGPUHandle[i], name, sizeof (name) - 1);
 
     pGpuCount++;
   }
@@ -5202,7 +5202,7 @@ cl_device_type setup_device_types_filter (char *opencl_device_types)
   else
   {
     // Do not use CPU by default, this often reduces GPU performance because
-    // the CPU is to busy to handle GPU synchronization
+    // the CPU is too busy to handle GPU synchronization
 
     device_types_filter = CL_DEVICE_TYPE_ALL & ~CL_DEVICE_TYPE_CPU;
   }
@@ -6064,7 +6064,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
   }
   else if (hash_mode == 101)
   {
-    // the encoder is a bit to intelligent, it expects the input data in the wrong BOM
+    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
     digest_buf[0] = byte_swap_32 (digest_buf[0]);
     digest_buf[1] = byte_swap_32 (digest_buf[1]);
@@ -6080,7 +6080,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
   }
   else if (hash_mode == 111)
   {
-    // the encoder is a bit to intelligent, it expects the input data in the wrong BOM
+    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
     digest_buf[0] = byte_swap_32 (digest_buf[0]);
     digest_buf[1] = byte_swap_32 (digest_buf[1]);
@@ -6138,7 +6138,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
   }
   else if (hash_mode == 133)
   {
-    // the encoder is a bit to intelligent, it expects the input data in the wrong BOM
+    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
     digest_buf[0] = byte_swap_32 (digest_buf[0]);
     digest_buf[1] = byte_swap_32 (digest_buf[1]);
@@ -6160,7 +6160,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
 
     memset (tmp_buf, 0, sizeof (tmp_buf));
 
-    // the encoder is a bit to intelligent, it expects the input data in the wrong BOM
+    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
     digest_buf[0] = byte_swap_32 (digest_buf[0]);
     digest_buf[1] = byte_swap_32 (digest_buf[1]);
@@ -6178,7 +6178,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
   }
   else if (hash_mode == 400)
   {
-    // the encoder is a bit to intelligent, it expects the input data in the wrong BOM
+    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
     digest_buf[0] = byte_swap_32 (digest_buf[0]);
     digest_buf[1] = byte_swap_32 (digest_buf[1]);
@@ -6191,7 +6191,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
   }
   else if (hash_mode == 500)
   {
-    // the encoder is a bit to intelligent, it expects the input data in the wrong BOM
+    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
     digest_buf[0] = byte_swap_32 (digest_buf[0]);
     digest_buf[1] = byte_swap_32 (digest_buf[1]);
@@ -6246,7 +6246,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
 
     memset (tmp_buf, 0, sizeof (tmp_buf));
 
-    // the encoder is a bit to intelligent, it expects the input data in the wrong BOM
+    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
     digest_buf[0] = byte_swap_32 (digest_buf[0]);
     digest_buf[1] = byte_swap_32 (digest_buf[1]);
@@ -6275,7 +6275,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
 
     memset (tmp_buf, 0, sizeof (tmp_buf));
 
-    // the encoder is a bit to intelligent, it expects the input data in the wrong BOM
+    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
     digest_buf[0] = byte_swap_32 (digest_buf[0]);
     digest_buf[1] = byte_swap_32 (digest_buf[1]);
@@ -6290,7 +6290,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
   }
   else if (hash_mode == 1600)
   {
-    // the encoder is a bit to intelligent, it expects the input data in the wrong BOM
+    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
     digest_buf[0] = byte_swap_32 (digest_buf[0]);
     digest_buf[1] = byte_swap_32 (digest_buf[1]);
@@ -6809,7 +6809,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
   }
   else if (hash_mode == 6300)
   {
-    // the encoder is a bit to intelligent, it expects the input data in the wrong BOM
+    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
     digest_buf[0] = byte_swap_32 (digest_buf[0]);
     digest_buf[1] = byte_swap_32 (digest_buf[1]);
@@ -9931,7 +9931,7 @@ int wpa_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   /*
     http://www.one-net.eu/jsw/j_sec/m_ptype.html
     The phrase "Pairwise key expansion"
-    Access Point Address (Referred to as Authenticator Address AA)
+    Access Point Address (referred to as Authenticator Address AA)
     Supplicant Address (referred to as Supplicant Address SA)
     Access Point Nonce (referred to as Authenticator Anonce)
     Wireless Device Nonce (referred to as Supplicant Nonce Snonce)
@@ -18912,7 +18912,7 @@ BOOL WINAPI sigHandler_default (DWORD sig)
       /*
        * special case see: https://stackoverflow.com/questions/3640633/c-setconsolectrlhandler-routine-issue/5610042#5610042
        * if the user interacts w/ the user-interface (GUI/cmd), we need to do the finalization job within this signal handler
-       * function otherwise it is to late (e.g. after returning from this function)
+       * function otherwise it is too late (e.g. after returning from this function)
        */
 
       myabort ();
