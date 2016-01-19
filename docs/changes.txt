@@ -91,6 +91,10 @@ File.: Host
 Desc.: Renamed option --gpu-devices to --opencl-devices
 Issue: 2
 
+Type.: Change
+File.: Host
+Desc.: Stick to older libOpenCL to avoid errors like this: version `OPENCL_2.0' not found
+
 Type.: Bug
 File.: Host
 Desc.: Fixed a bug in combination of --restore and a user immediately aborting the session after restart

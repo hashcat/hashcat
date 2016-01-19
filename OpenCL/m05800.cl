@@ -1308,7 +1308,7 @@ static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], c
   digest[4] += E;
 }
 
-__kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05800_init (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global androidpin_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m05800_init (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global androidpin_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
    * base
@@ -1397,13 +1397,34 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05800_init (__gl
   tmps[gid].digest_buf[4] = digest[4];
 }
 
-__kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05800_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global androidpin_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m05800_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global androidpin_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
    * base
    */
 
   const u32 gid = get_global_id (0);
+  const u32 lid = get_local_id (0);
+  const u32 lsz = get_local_size (0);
+
+  /**
+   * cache precomputed conversion table in shared memory
+   */
+
+  __local entry_t s_pc[1024];
+
+  for (u32 i = lid; i < 1024; i += lsz)
+  {
+    s_pc[i] = pc[i];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
+  if (gid >= gid_max) return;
+
+  /**
+   * base
+   */
 
   u32 word_buf[4];
 
@@ -1414,8 +1435,6 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05800_loop (__gl
 
   const u32 pw_len = pws[gid].pw_len;
 
-  const u32 lid = get_local_id (0);
-
   u32 digest[5];
 
   digest[0] = tmps[gid].digest_buf[0];
@@ -1423,35 +1442,6 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05800_loop (__gl
   digest[2] = tmps[gid].digest_buf[2];
   digest[3] = tmps[gid].digest_buf[3];
   digest[4] = tmps[gid].digest_buf[4];
-
-  /**
-   * cache precomputed conversion table in shared memory
-   */
-
-  __local entry_t s_pc[1024];
-
-  const u32 lid16 = lid * 16;
-
-  s_pc[lid16 +  0] = pc[lid16 +  0];
-  s_pc[lid16 +  1] = pc[lid16 +  1];
-  s_pc[lid16 +  2] = pc[lid16 +  2];
-  s_pc[lid16 +  3] = pc[lid16 +  3];
-  s_pc[lid16 +  4] = pc[lid16 +  4];
-  s_pc[lid16 +  5] = pc[lid16 +  5];
-  s_pc[lid16 +  6] = pc[lid16 +  6];
-  s_pc[lid16 +  7] = pc[lid16 +  7];
-  s_pc[lid16 +  8] = pc[lid16 +  8];
-  s_pc[lid16 +  9] = pc[lid16 +  9];
-  s_pc[lid16 + 10] = pc[lid16 + 10];
-  s_pc[lid16 + 11] = pc[lid16 + 11];
-  s_pc[lid16 + 12] = pc[lid16 + 12];
-  s_pc[lid16 + 13] = pc[lid16 + 13];
-  s_pc[lid16 + 14] = pc[lid16 + 14];
-  s_pc[lid16 + 15] = pc[lid16 + 15];
-
-  barrier (CLK_LOCAL_MEM_FENCE);
-
-  if (gid >= gid_max) return;
 
   /**
    * salt
@@ -1524,7 +1514,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05800_loop (__gl
   tmps[gid].digest_buf[4] = digest[4];
 }
 
-__kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m05800_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global androidpin_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m05800_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global androidpin_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
    * modifier

@@ -567,7 +567,7 @@ static void lotus6_base64_encode (u8 base64_hash[24], const u32 salt0, const u32
   base64_hash[21] = ')';
 }
 
-__kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09100_init (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global lotus8_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m09100_init (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global lotus8_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
    * base
@@ -575,39 +575,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09100_init (__gl
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
-
-  /**
-   * bin2asc table
-   */
-
-  __local u32 l_bin2asc[256];
-
-  const u32 lid4 = lid * 4;
-
-  const u32 lid40 = lid4 + 0;
-  const u32 lid41 = lid4 + 1;
-  const u32 lid42 = lid4 + 2;
-  const u32 lid43 = lid4 + 3;
-
-  const u32 v400 = (lid40 >> 0) & 15;
-  const u32 v401 = (lid40 >> 4) & 15;
-  const u32 v410 = (lid41 >> 0) & 15;
-  const u32 v411 = (lid41 >> 4) & 15;
-  const u32 v420 = (lid42 >> 0) & 15;
-  const u32 v421 = (lid42 >> 4) & 15;
-  const u32 v430 = (lid43 >> 0) & 15;
-  const u32 v431 = (lid43 >> 4) & 15;
-
-  l_bin2asc[lid40] = ((v400 < 10) ? '0' + v400 : 'A' - 10 + v400) << 8
-                   | ((v401 < 10) ? '0' + v401 : 'A' - 10 + v401) << 0;
-  l_bin2asc[lid41] = ((v410 < 10) ? '0' + v410 : 'A' - 10 + v410) << 8
-                   | ((v411 < 10) ? '0' + v411 : 'A' - 10 + v411) << 0;
-  l_bin2asc[lid42] = ((v420 < 10) ? '0' + v420 : 'A' - 10 + v420) << 8
-                   | ((v421 < 10) ? '0' + v421 : 'A' - 10 + v421) << 0;
-  l_bin2asc[lid43] = ((v430 < 10) ? '0' + v430 : 'A' - 10 + v430) << 8
-                   | ((v431 < 10) ? '0' + v431 : 'A' - 10 + v431) << 0;
-
-  barrier (CLK_LOCAL_MEM_FENCE);
+  const u32 lsz = get_local_size (0);
 
   /**
    * sbox
@@ -615,15 +583,29 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09100_init (__gl
 
   __local u32 s_lotus_magic_table[256];
 
-  s_lotus_magic_table[lid4 + 0] = lotus_magic_table[lid4 + 0];
-  s_lotus_magic_table[lid4 + 1] = lotus_magic_table[lid4 + 1];
-  s_lotus_magic_table[lid4 + 2] = lotus_magic_table[lid4 + 2];
-  s_lotus_magic_table[lid4 + 3] = lotus_magic_table[lid4 + 3];
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_lotus_magic_table[i] = lotus_magic_table[i];
+  }
+
+  __local u32 l_bin2asc[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    const u32 i0 = (i >> 0) & 15;
+    const u32 i1 = (i >> 4) & 15;
+
+    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'A' - 10 + i0) << 8
+                 | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
+  }
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
   if (gid >= gid_max) return;
 
+  /**
+   * base
+   */
 
   u32 w[16];
 
@@ -892,7 +874,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09100_init (__gl
   tmps[gid].out[4] = dgst[4];
 }
 
-__kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09100_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global lotus8_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m09100_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global lotus8_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   const u32 gid = get_global_id (0);
 
@@ -974,7 +956,7 @@ __kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09100_loop (__gl
   tmps[gid].out[4] = out[4];
 }
 
-__kernel void __attribute__((reqd_work_group_size (64, 1, 1))) m09100_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global lotus8_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m09100_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global lotus8_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
    * base
