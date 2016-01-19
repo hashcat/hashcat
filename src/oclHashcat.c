@@ -1103,9 +1103,9 @@ void status_display ()
     // not get new candidates it idles around but speed display would
     // show it as working.
     // if we instantly set it to 0 after reading it happens that the
-    // speed can be shown as zero if the users refreshs to fast.
+    // speed can be shown as zero if the users refreshes too fast.
     // therefore, we add a timestamp when a stat was recorded and if its
-    // to old we will not use it
+    // too old we will not use it
 
     speed_cnt[device_id] = 0;
     speed_ms[device_id]  = 0;
@@ -14228,7 +14228,7 @@ int main (int argc, char **argv)
             int engine_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
             int memory_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
 
-            // warning if profile has to low max values
+            // warning if profile has too low max values
 
             if ((engine_clock_max - engine_clock_profile_max) > warning_trigger_engine)
             {
