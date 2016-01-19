@@ -14586,7 +14586,7 @@ int scrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   // base64 decode
 
-  u8 tmp_buf[32];
+  u8 tmp_buf[33];
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
