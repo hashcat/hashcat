@@ -282,6 +282,7 @@ static inline u32x rotl32 (const u32x a, const u32 n)
   return rotate (a, n);
 }
 
+#if CUDA_ARCH >= 350
 static inline u64 rotr64 (const u64 a, const u32 n)
 {
   u32 il;
@@ -309,6 +310,12 @@ static inline u64 rotr64 (const u64 a, const u32 n)
 
   return r;
 }
+#else
+static inline u64 rotr64 (const u64 a, const u32 n)
+{
+  return rotate (a, (u64) 64 - n);
+}
+#endif
 
 static inline u64 rotl64 (const u64 a, const u32 n)
 {
