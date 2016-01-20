@@ -448,13 +448,13 @@ int base32_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
     out_ptr += 8;
   }
 
-  int out_len = (in_len * 8) / 5;
+  int out_len = (int) (((0.5 + (float) in_len) * 8) / 5); // ceil (in_len * 8 / 5)
 
-  for (int i = 0; i < (7 - (in_len % 7)); i++)
+  while (out_len % 8)
   {
-    out_len++;
-
     out_buf[out_len] = '=';
+
+    out_len++;
   }
 
   return out_len;
@@ -515,13 +515,13 @@ int base64_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
     out_ptr += 4;
   }
 
-  int out_len = (in_len * 8) / 6;
+  int out_len = (int) (((0.5 + (float) in_len) * 8) / 6); // ceil (in_len * 8 / 6)
 
-  for (int i = 0; i < (3 - (in_len % 3)); i++)
+  while (out_len % 4)
   {
-    out_len++;
-
     out_buf[out_len] = '=';
+
+    out_len++;
   }
 
   return out_len;
