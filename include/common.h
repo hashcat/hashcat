@@ -43,10 +43,14 @@
 #ifdef OSX
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <mach-o/dyld.h>
 #endif
 
+#ifdef HAVE_HWMON
 typedef void *HM_LIB;
 #endif
+
+#endif // _POSIX
 
 #ifdef _WIN
 #define WIN32_LEAN_AND_MEAN
@@ -70,11 +74,13 @@ typedef INT64  int64_t;
 typedef UINT32 uint;
 typedef UINT64 uint64_t;
 
+#ifdef HAVE_HWMON
 typedef HINSTANCE HM_LIB;
+#endif
 
 #define mkdir(name,mode) mkdir (name)
 
-#endif
+#endif // _WIN
 
 typedef uint8_t  u8;
 typedef uint16_t u16;
@@ -104,4 +110,4 @@ void log_error (const char *fmt, ...);
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
-#endif
+#endif // COMMON_H

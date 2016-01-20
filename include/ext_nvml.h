@@ -6,6 +6,8 @@
 #ifndef EXT_NVML_H
 #define EXT_NVML_H
 
+#if defined(HAVE_HWMON) && defined(HAVE_NVML)
+
 #include <common.h>
 
 #include <nvml.h>
@@ -30,5 +32,7 @@ nvmlReturn_t hc_NVML_nvmlDeviceGetTemperature (HM_LIB hDLL, nvmlDevice_t device,
 nvmlReturn_t hc_NVML_nvmlDeviceGetFanSpeed (HM_LIB hDLL, int, nvmlDevice_t device, unsigned int *speed);
 nvmlReturn_t hc_NVML_nvmlDeviceGetPowerUsage (HM_LIB hDLL, nvmlDevice_t device, unsigned int *power);
 nvmlReturn_t hc_NVML_nvmlDeviceGetUtilizationRates (HM_LIB hDLL, nvmlDevice_t device, nvmlUtilization_t *utilization);
+
+#endif // HAVE_HWMON && HAVE_NVML
 
 #endif

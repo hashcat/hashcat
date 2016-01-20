@@ -6,6 +6,8 @@
 #ifndef EXT_NVAPI_H
 #define EXT_NVAPI_H
 
+#if defined(HAVE_HWMON) && defined(HAVE_NVAPI)
+
 #include <common.h>
 
 // Just annotations (they do nothing special)
@@ -60,5 +62,7 @@ int hc_NvAPI_EnumPhysicalGPUs (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICA
 int hc_NvAPI_GPU_GetThermalSettings (NvPhysicalGpuHandle hPhysicalGpu, NvU32 sensorIndex, NV_GPU_THERMAL_SETTINGS *pThermalSettings);
 int hc_NvAPI_GPU_GetTachReading (NvPhysicalGpuHandle hPhysicalGPU, NvU32 *pValue);
 int hc_NvAPI_GPU_GetDynamicPstatesInfoEx (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
+
+#endif // HAVE_HWMON && HAVE_NVAPI
 
 #endif

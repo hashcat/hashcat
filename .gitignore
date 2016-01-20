@@ -6,6 +6,7 @@ oclHashcat
 *.dictstat
 *.pot
 *.log
+*.dSYM
 deps/**
 kernels/**
 lib/*.a
