@@ -5108,9 +5108,7 @@ void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int inpu
 
   uint user_len = input_len - 32;
 
-  char hash_output[user_len + 33];
-
-  memset (hash_output, 0, sizeof (hash_output));
+  char *hash_output = (char *) mymalloc (33);
 
   memcpy (hash_output, input_buf, input_len);
 
@@ -5133,6 +5131,8 @@ void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int inpu
   }
 
   format_output (out_fp, hash_output, NULL, 0, 0, NULL, 0);
+
+  myfree (hash_output);
 
   if (weak_hash_found == 1) myfree (pot_right_ptr);
 }
@@ -10096,16 +10096,9 @@ int psafe2_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
     exit (-1);
   }
 
-  typedef struct
-  {
-    u32 random[2];
-    u32 hash[5];
-    u32 salt[5];   // unused, but makes better valid check
-    u32 iv[2];     // unused, but makes better valid check
-
-  } psafe2_hdr;
-
   psafe2_hdr buf;
+
+  memset (&buf, 0, sizeof (psafe2_hdr));
 
   int n = fread (&buf, sizeof (psafe2_hdr), 1, fp);
 
@@ -17491,9 +17484,8 @@ int sip_auth_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   // work with a temporary copy of input_buf (s.t. we can manipulate it directly)
 
-  char temp_input_buf[input_len + 1];
+  char *temp_input_buf = (char *) mymalloc (input_len + 1);
 
-  memset (temp_input_buf, 0, sizeof (temp_input_buf));
   memcpy (temp_input_buf, input_buf, input_len);
 
   // URI_server:
@@ -17502,176 +17494,306 @@ int sip_auth_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *URI_client_pos = strchr (URI_server_pos, '*');
 
-  if (URI_client_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (URI_client_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   URI_client_pos[0] = 0;
   URI_client_pos++;
 
   uint URI_server_len = strlen (URI_server_pos);
 
-  if (URI_server_len > 512) return (PARSER_SALT_LENGTH);
+  if (URI_server_len > 512)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   // URI_client:
 
   char *user_pos = strchr (URI_client_pos, '*');
 
-  if (user_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (user_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   user_pos[0] = 0;
   user_pos++;
 
   uint URI_client_len = strlen (URI_client_pos);
 
-  if (URI_client_len > 512) return (PARSER_SALT_LENGTH);
+  if (URI_client_len > 512)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   // user:
 
   char *realm_pos = strchr (user_pos, '*');
 
-  if (realm_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (realm_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   realm_pos[0] = 0;
   realm_pos++;
 
   uint user_len = strlen (user_pos);
 
-  if (user_len > 116) return (PARSER_SALT_LENGTH);
+  if (user_len > 116)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   // realm:
 
   char *method_pos = strchr (realm_pos, '*');
 
-  if (method_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (method_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   method_pos[0] = 0;
   method_pos++;
 
   uint realm_len = strlen (realm_pos);
 
-  if (realm_len > 116) return (PARSER_SALT_LENGTH);
+  if (realm_len > 116)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   // method:
 
   char *URI_prefix_pos = strchr (method_pos, '*');
 
-  if (URI_prefix_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (URI_prefix_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   URI_prefix_pos[0] = 0;
   URI_prefix_pos++;
 
   uint method_len = strlen (method_pos);
 
-  if (method_len > 246) return (PARSER_SALT_LENGTH);
+  if (method_len > 246)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   // URI_prefix:
 
   char *URI_resource_pos = strchr (URI_prefix_pos, '*');
 
-  if (URI_resource_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (URI_resource_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   URI_resource_pos[0] = 0;
   URI_resource_pos++;
 
   uint URI_prefix_len = strlen (URI_prefix_pos);
 
-  if (URI_prefix_len > 245) return (PARSER_SALT_LENGTH);
+  if (URI_prefix_len > 245)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   // URI_resource:
 
   char *URI_suffix_pos = strchr (URI_resource_pos, '*');
 
-  if (URI_suffix_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (URI_suffix_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   URI_suffix_pos[0] = 0;
   URI_suffix_pos++;
 
   uint URI_resource_len = strlen (URI_resource_pos);
 
-  if (URI_resource_len <   1) return (PARSER_SALT_LENGTH);
-  if (URI_resource_len > 246) return (PARSER_SALT_LENGTH);
+  if (URI_resource_len < 1 || URI_resource_len > 246)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   // URI_suffix:
 
   char *nonce_pos = strchr (URI_suffix_pos, '*');
 
-  if (nonce_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (nonce_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   nonce_pos[0] = 0;
   nonce_pos++;
 
   uint URI_suffix_len = strlen (URI_suffix_pos);
 
-  if (URI_suffix_len > 245) return (PARSER_SALT_LENGTH);
+  if (URI_suffix_len > 245)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   // nonce:
 
   char *nonce_client_pos = strchr (nonce_pos, '*');
 
-  if (nonce_client_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (nonce_client_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   nonce_client_pos[0] = 0;
   nonce_client_pos++;
 
   uint nonce_len = strlen (nonce_pos);
 
-  if (nonce_len <  1) return (PARSER_SALT_LENGTH);
-  if (nonce_len > 50) return (PARSER_SALT_LENGTH);
+  if (nonce_len < 1 || nonce_len > 50)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   // nonce_client:
 
   char *nonce_count_pos = strchr (nonce_client_pos, '*');
 
-  if (nonce_count_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (nonce_count_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   nonce_count_pos[0] = 0;
   nonce_count_pos++;
 
   uint nonce_client_len = strlen (nonce_client_pos);
 
-  if (nonce_client_len > 50) return (PARSER_SALT_LENGTH);
+  if (nonce_client_len > 50)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   // nonce_count:
 
   char *qop_pos = strchr (nonce_count_pos, '*');
 
-  if (qop_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (qop_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   qop_pos[0] = 0;
   qop_pos++;
 
   uint nonce_count_len = strlen (nonce_count_pos);
 
-  if (nonce_count_len > 50) return (PARSER_SALT_LENGTH);
+  if (nonce_count_len > 50)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   // qop:
 
   char *directive_pos = strchr (qop_pos, '*');
 
-  if (directive_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (directive_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   directive_pos[0] = 0;
   directive_pos++;
 
   uint qop_len = strlen (qop_pos);
 
-  if (qop_len > 50) return (PARSER_SALT_LENGTH);
+  if (qop_len > 50)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   // directive
 
   char *digest_pos = strchr (directive_pos, '*');
 
-  if (digest_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (digest_pos == NULL)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SEPARATOR_UNMATCHED);
+  }
 
   digest_pos[0] = 0;
   digest_pos++;
 
   uint directive_len = strlen (directive_pos);
 
-  if (directive_len != 3) return (PARSER_SALT_LENGTH);
+  if (directive_len != 3)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   if (memcmp (directive_pos, "MD5", 3))
   {
     log_info ("ERROR: only the MD5 directive is currently supported\n");
+
+    myfree (temp_input_buf);
 
     return (PARSER_SIP_AUTH_DIRECTIVE);
   }
@@ -17686,9 +17808,7 @@ int sip_auth_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint md5_remaining_len = md5_max_len;
 
-  uint tmp_md5_buf[md5_max_len / 4];
-
-  memset (tmp_md5_buf, 0, sizeof (tmp_md5_buf));
+  uint tmp_md5_buf[64] = { 0 };
 
   char *tmp_md5_ptr = (char *) tmp_md5_buf;
 
@@ -17723,7 +17843,7 @@ int sip_auth_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
     md5_len += 1 + URI_suffix_len;
   }
 
-  uint tmp_digest[4];
+  uint tmp_digest[4] = { 0 };
 
   md5_complete_no_limit (tmp_digest, tmp_md5_buf, md5_len);
 
@@ -17748,7 +17868,12 @@ int sip_auth_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   {
     esalt_len = 1 + nonce_len + 1 + nonce_count_len + 1 + nonce_client_len + 1 + qop_len + 1 + 32;
 
-    if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
+    if (esalt_len > max_esalt_len)
+    {
+      myfree (temp_input_buf);
+
+      return (PARSER_SALT_LENGTH);
+    }
 
     snprintf (esalt_buf_ptr, max_esalt_len, ":%s:%s:%s:%s:%08x%08x%08x%08x",
       nonce_pos,
@@ -17764,7 +17889,12 @@ int sip_auth_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   {
     esalt_len = 1 + nonce_len + 1 + 32;
 
-    if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
+    if (esalt_len > max_esalt_len)
+    {
+      myfree (temp_input_buf);
+
+      return (PARSER_SALT_LENGTH);
+    }
 
     snprintf (esalt_buf_ptr, max_esalt_len, ":%s:%08x%08x%08x%08x",
       nonce_pos,
@@ -17790,7 +17920,12 @@ int sip_auth_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint max_salt_len = 119;
 
-  if (salt_len > max_salt_len) return (PARSER_SALT_LENGTH);
+  if (salt_len > max_salt_len)
+  {
+    myfree (temp_input_buf);
+
+    return (PARSER_SALT_LENGTH);
+  }
 
   snprintf (sip_salt_ptr, max_salt_len + 1, "%s:%s:", user_pos, realm_pos);
 
@@ -17828,6 +17963,8 @@ int sip_auth_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[1] = byte_swap_32 (digest[1]);
   digest[2] = byte_swap_32 (digest[2]);
   digest[3] = byte_swap_32 (digest[3]);
+
+  myfree (temp_input_buf);
 
   return (PARSER_OK);
 }

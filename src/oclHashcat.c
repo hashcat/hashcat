@@ -10740,11 +10740,11 @@ int main (int argc, char **argv)
 
             uint hccap_size = sizeof (hccap_t);
 
-            char in[hccap_size];
+            char *in = (char *) mymalloc (hccap_size);
 
             while (!feof (fp))
             {
-              int n = fread (&in, hccap_size, 1, fp);
+              int n = fread (in, hccap_size, 1, fp);
 
               if (n != 1)
               {
@@ -10803,6 +10803,8 @@ int main (int argc, char **argv)
             }
 
             fclose (fp);
+
+            myfree (in);
           }
           else if (hash_mode == 3000)
           {

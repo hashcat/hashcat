@@ -580,6 +580,15 @@ typedef struct
 
 typedef struct
 {
+  u32  random[2];
+  u32  hash[5];
+  u32  salt[5];   // unused, but makes better valid check
+  u32  iv[2];     // unused, but makes better valid check
+
+} psafe2_hdr;
+
+typedef struct
+{
   char *user_name;
   uint  user_len;
 
@@ -618,27 +627,27 @@ typedef struct
 
 typedef struct
 {
-  char          essid[36];
+  char essid[36];
 
-  unsigned char mac1[6];
-  unsigned char mac2[6];
-  unsigned char nonce1[32];
-  unsigned char nonce2[32];
+  u8   mac1[6];
+  u8   mac2[6];
+  u8   nonce1[32];
+  u8   nonce2[32];
 
-  unsigned char eapol[256];
-  int           eapol_size;
+  u8   eapol[256];
+  int  eapol_size;
 
-  int           keyver;
-  unsigned char keymic[16];
+  int  keyver;
+  u8   keymic[16];
 
 } hccap_t;
 
 typedef struct
 {
-  char     signature[4];
-  u32 salt_buf[8];
-  u32 iterations;
-  u32 hash_buf[8];
+  char signature[4];
+  u32  salt_buf[8];
+  u32  iterations;
+  u32  hash_buf[8];
 
 } psafe3_t;
 
