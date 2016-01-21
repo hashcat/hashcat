@@ -978,12 +978,18 @@ struct __hc_device_param
 
 typedef struct __hc_device_param hc_device_param_t;
 
+#ifdef HAVE_HWMON
 typedef struct
 {
   union
   {
+    #ifdef HAVE_ADL
     HM_ADAPTER_AMD amd;
+    #endif
+
+    #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
     HM_ADAPTER_NV  nv;
+    #endif
 
   } adapter_index;
 
@@ -995,6 +1001,7 @@ typedef struct
   // int devid; // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPUs
 
 } hm_attrs_t;
+#endif // HAVE_HWMON
 
 typedef struct
 {
@@ -1044,9 +1051,11 @@ typedef struct
    * hardware watchdog
    */
 
+  #ifdef HAVE_HWMON
   HM_LIB              hm_dll_nv;
   HM_LIB              hm_dll_amd;
   hm_attrs_t          hm_device[DEVICES_MAX];
+  #endif
 
   /**
    * hashes
@@ -1154,9 +1163,11 @@ typedef struct
   uint    dgst_pos2;
   uint    dgst_pos3;
 
+  #ifdef HAVE_HWMON
   uint    gpu_temp_disable;
   uint    gpu_temp_abort;
   uint    gpu_temp_retain;
+  #endif
 
   char  **rp_files;
   uint    rp_files_cnt;

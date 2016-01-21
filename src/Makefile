@@ -1,16 +1,34 @@
 ##
-## Author......: Jens Steube <jens.steube@gmail.com>
+## Authors.....: Jens Steube <jens.steube@gmail.com>
+##               Gabriele Gristina <matrix@hashcat.net>
+##
 ## License.....: MIT
 ##
+
+PROG_NAME                := oclHashcat
+
+##
+## Detect Operating System
+##
+
+UNAME                    := $(shell uname -s)
+
+ifeq (,$(filter $(UNAME),Linux Darwin))
+$(error "! Your Operating System ($(UNAME)) is not supported by $(PROG_NAME) Makefile")
+endif
+
+ifeq ($(DEBUG),1)
+$(warning "## Detected Operating System : $(UNAME)")
+endif
 
 ##
 ## Makefile flags
 ##
 
-MAKEFLAGS += -l -j -rR --no-print-directory
+MAKEFLAGS                += -l -j -rR --no-print-directory
 
 ifneq ($(findstring clean,$(MAKECMDGOALS)),)
-MAKEFLAGS += -j 1
+MAKEFLAGS                += -j 1
 endif
 
 ##
@@ -20,11 +38,11 @@ endif
 PREFIX                   ?= /usr/local
 
 INSTALL_FOLDER           ?= $(PREFIX)/bin
-SHARED_FOLDER            ?= $(PREFIX)/share/oclHashcat
-DOCUMENT_FOLDER          ?= $(PREFIX)/share/doc/oclHashcat
+SHARED_FOLDER            ?= $(PREFIX)/share/$(PROG_NAME)
+DOCUMENT_FOLDER          ?= $(PREFIX)/share/doc/$(PROG_NAME)
 
 ##
-## Depencies
+## Dependencies
 ##
 
 ADL                      := deps/adl-sdk
@@ -32,7 +50,7 @@ GDK                      := deps/nvidia-gdk
 NVAPI                    := deps/R352-developer
 
 ##
-## Depencies, cross compilation only
+## Dependencies, cross compilation only
 ##
 
 OPENCL_HEADERS_KHRONOS   := deps/OpenCL-Headers
@@ -42,6 +60,32 @@ OPENCL_HEADERS_KHRONOS   := deps/OpenCL-Headers
 ##
 
 NVML                     := $(GDK)/usr/include/nvidia/gdk
+
+##
+## Check dependencies
+##
+
+FOUND_ADL                := 0
+FOUND_NVML               := 0
+FOUND_NVAPI              := 0
+
+ifneq ($(wildcard $(ADL)/include/adl_sdk.h),)
+FOUND_ADL                := 1
+endif
+
+ifneq ($(wildcard $(NVML)/nvml.h),)
+FOUND_NVML               := 1
+endif
+
+ifneq ($(wildcard $(NVAPI)/nvapi.h),)
+FOUND_NVAPI              := 1
+endif
+
+ifeq ($(DEBUG),1)
+$(warning "## ADL is found ? $(FOUND_ADL)")
+$(warning "## NVML is found ? $(FOUND_NVML)")
+$(warning "## NVAPI is found ? $(FOUND_NVAPI)")
+endif
 
 ##
 ## Native compiler paths
@@ -76,41 +120,132 @@ NOW                      := $(shell date +%s)
 ## Compiler flags
 ##
 
-CFLAGS                   := -O2 -s -pipe -W -Wall -std=c99 -Iinclude/
-#CFLAGS                   := -g -ggdb -pipe -W -Wall -std=c99 -Iinclude/ -fsanitize=undefined -fno-omit-frame-pointer
+CFLAGS                   := -O2 -pipe -W -Wall -std=c99 -Iinclude/
+
+ifeq ($(DEBUG),1)
+CFLAGS                   += -g -ggdb -fsanitize=address -fno-omit-frame-pointer
+endif
 
 ##
 ## Native compilation target
 ##
 
-CFLAGS_NATIVE            := -D_POSIX -DLINUX
-CFLAGS_NATIVE            += $(CFLAGS)
-CFLAGS_NATIVE            += -I$(ADL)/include/
-CFLAGS_NATIVE            += -I$(NVML)/
+BINARY_NATIVE            := $(PROG_NAME)
 
-LFLAGS_NATIVE            := -lpthread -lOpenCL -ldl
+ifeq ($(UNAME),Darwin)
+export MACOSX_DEPLOYMENT_TARGET=10.9
+
+BINARY_NATIVE            := $(PROG_NAME).app
+
+CFLAGS_NATIVE            := -D_POSIX -DOSX
+CFLAGS_NATIVE            += $(CFLAGS)
+
+LFLAGS_NATIVE            := -framework OpenCL -lpthread
+
+FOUND_ADL                := 0
+FOUND_NVML               := 0
+endif
+
+ifeq ($(UNAME),Linux)
+CFLAGS_NATIVE            := -D_POSIX -DLINUX
+CFLAGS_NATIVE            += -s $(CFLAGS)
+
+LFLAGS_NATIVE            := -lOpenCL -lpthread
+
+ifneq (,$(filter 1,$(FOUND_ADL) $(FOUND_NVML)))
+LFLAGS_NATIVE            += -ldl
+CFLAGS_NATIVE            += -DHAVE_HWMON
+ifeq ($(FOUND_ADL),1)
+CFLAGS_NATIVE            += -DHAVE_ADL -I$(ADL)/include/
+endif
+ifeq ($(FOUND_NVML),1)
+CFLAGS_NATIVE            += -DHAVE_NVML -I$(NVML)/
+endif
+endif
+
+endif
 
 ##
 ## Cross compilation target
 ##
 
 CFLAGS_CROSS_LINUX       := -D_POSIX -DLINUX
-CFLAGS_CROSS_LINUX       += $(CFLAGS)
+CFLAGS_CROSS_LINUX       += -s $(CFLAGS)
 CFLAGS_CROSS_LINUX       += -I$(OPENCL_HEADERS_KHRONOS)/
-CFLAGS_CROSS_LINUX       += -I$(ADL)/include/
-CFLAGS_CROSS_LINUX       += -I$(NVML)/
+
+ifneq (,$(filter 1,$(FOUND_ADL) $(FOUND_NVML)))
+CFLAGS_CROSS_LINUX       += -DHAVE_HWMON
+
+ifeq ($(FOUND_ADL),1)
+CFLAGS_CROSS_LINUX       += -DHAVE_ADL -I$(ADL)/include/
+endif
+
+ifeq ($(FOUND_NVML),1)
+CFLAGS_CROSS_LINUX       += -DHAVE_NVML -I$(NVML)/
+endif
+endif
 
 CFLAGS_CROSS_WIN         := -D_WIN   -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
-CFLAGS_CROSS_WIN         += $(CFLAGS)
+CFLAGS_CROSS_WIN         += -s $(filter-out -fsanitize=address,$(CFLAGS))
 CFLAGS_CROSS_WIN         += -I$(OPENCL_HEADERS_KHRONOS)/
-CFLAGS_CROSS_WIN         += -I$(ADL)/include/
-CFLAGS_CROSS_WIN         += -I$(NVAPI)/
+
+ifneq (,$(filter 1,$(FOUND_ADL) $(FOUND_NVAPI)))
+CFLAGS_CROSS_WIN         += -DHAVE_HWMON
+
+ifeq ($(FOUND_ADL),1)
+CFLAGS_CROSS_WIN         += -DHAVE_ADL -I$(ADL)/include/
+endif
+
+ifeq ($(FOUND_NVAPI),1)
+CFLAGS_CROSS_WIN         += -DHAVE_NVAPI -I$(NVAPI)/
+endif
+endif
 
 CFLAGS_CROSS_32          := -m32
 CFLAGS_CROSS_64          := -m64
 
 LFLAGS_CROSS_LINUX       := -lpthread -lOpenCL -ldl
 LFLAGS_CROSS_WIN         := -lpsapi
+
+##
+## Objects
+##
+
+NATIVE_OBJS              := obj/ext_OpenCL.NATIVE.o obj/shared.NATIVE.o obj/rp_kernel_on_cpu.NATIVE.o
+
+ifneq (,$(filter 1,$(FOUND_ADL) $(FOUND_NVML)))
+ifeq ($(FOUND_ADL),1)
+NATIVE_OBJS              += obj/ext_ADL.NATIVE.o
+endif
+
+ifeq ($(FOUND_NVML),1)
+NATIVE_OBJS              += obj/ext_nvml.NATIVE.o
+endif
+endif
+
+LINUX_32_OBJS            := obj/ext_OpenCL.LINUX.32.o obj/shared.LINUX.32.o obj/rp_kernel_on_cpu.LINUX.32.o
+LINUX_64_OBJS            := obj/ext_OpenCL.LINUX.64.o obj/shared.LINUX.64.o obj/rp_kernel_on_cpu.LINUX.64.o
+
+WIN_32_OBJS              := obj/ext_OpenCL.WIN.32.o obj/shared.WIN.32.o obj/rp_kernel_on_cpu.WIN.32.o
+WIN_64_OBJS              := obj/ext_OpenCL.WIN.64.o obj/shared.WIN.64.o obj/rp_kernel_on_cpu.WIN.64.o
+
+ifeq ($(FOUND_ADL),1)
+LINUX_32_OBJS            += obj/ext_ADL.LINUX.32.o
+LINUX_64_OBJS            += obj/ext_ADL.LINUX.64.o
+
+WIN_32_OBJS              += obj/ext_ADL.WIN.32.o
+WIN_64_OBJS              += obj/ext_ADL.WIN.64.o
+endif
+
+ifeq ($(FOUND_NVML),1)
+LINUX_32_OBJS            += obj/ext_nvml.LINUX.32.o
+LINUX_64_OBJS            += obj/ext_nvml.LINUX.64.o
+endif
+
+ifeq ($(FOUND_NVAPI),1)
+WIN_32_OBJS              += obj/ext_nvapi.WIN.32.o $(NVAPI)/x86/nvapi.lib
+WIN_64_OBJS              += obj/ext_nvapi.WIN.64.o $(NVAPI)/amd64/nvapi64.lib
+endif
 
 ##
 ## Targets: Global
@@ -121,16 +256,17 @@ native: oclHashcat
 binaries: linux32 linux64 win32 win64
 
 clean:
-	$(RM) -f obj/*.o lib/*.a ./*.bin ./*.exe ./*.app *.restore *.out *.pot *.dictstat *.log oclHashcat core
+	$(RM) -f obj/*.o lib/*.a *.bin *.exe *.app *.restore *.out *.pot *.dictstat *.log oclHashcat core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
+	$(RM) -rf *.dSYM
 	$(RM) -rf kernels
 
-linux32:        oclHashcat32.bin
-linux64:        oclHashcat64.bin
+linux32: oclHashcat32.bin
+linux64: oclHashcat64.bin
 
-win32:          oclHashcat32.exe
-win64:          oclHashcat64.exe
+win32: oclHashcat32.exe
+win64: oclHashcat64.exe
 
 ##
 ## Targets: Linux install
@@ -154,16 +290,16 @@ install: native
 	$(INSTALL) -m 644 include/constants.h           $(SHARED_FOLDER)/include/
 	$(INSTALL) -m 644 include/kernel_functions.c    $(SHARED_FOLDER)/include/
 	$(INSTALL) -m 644 include/kernel_vendor.h       $(SHARED_FOLDER)/include/
-	$(INSTALL) -m 644 include/rp_kernel.h              $(SHARED_FOLDER)/include/
+	$(INSTALL) -m 644 include/rp_kernel.h           $(SHARED_FOLDER)/include/
 	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/OpenCL
 	$(CP) -a OpenCL/*                               $(SHARED_FOLDER)/OpenCL/
 	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/rules
 	$(CP) -a rules/*                                $(SHARED_FOLDER)/rules/
 	$(INSTALL) -m 644 hashcat.hcstat                $(SHARED_FOLDER)/
-	$(INSTALL) -m 755 oclHashcat                    $(INSTALL_FOLDER)/
+	$(INSTALL) -m 755 $(BINARY_NATIVE)              $(INSTALL_FOLDER)/
 
 uninstall:
-	$(RM) -f  $(INSTALL_FOLDER)/oclHashcat
+	$(RM) -f  $(INSTALL_FOLDER)/$(BINARY_NATIVE)
 	$(RM) -rf $(SHARED_FOLDER)
 	$(RM) -rf $(DOCUMENT_FOLDER)
 
@@ -172,45 +308,45 @@ uninstall:
 ##
 
 lib/libOpenCL.a:
-	${DLL_WIN_32} -A -k -l lib/libOpenCL.a   -d lib/OpenCL.def
+	$(DLL_WIN_32) -A -k -l lib/libOpenCL.a   -d lib/OpenCL.def
 
 lib/libOpenCL64.a:
-	${DLL_WIN_64} -A -k -l lib/libOpenCL64.a -d lib/OpenCL64.def
+	$(DLL_WIN_64) -A -k -l lib/libOpenCL64.a -d lib/OpenCL64.def
 
 ##
 ## native compiled oclHashcat
 ##
 
-obj/%.oclHashcat.NATIVE.o: src/%.c
+obj/%.NATIVE.o:   src/%.c
 	$(CC_NATIVE) $(CFLAGS_NATIVE) -c -o $@ $<
 
-oclHashcat: src/oclHashcat.c obj/ext_OpenCL.oclHashcat.NATIVE.o obj/ext_nvml.oclHashcat.NATIVE.o obj/ext_ADL.oclHashcat.NATIVE.o obj/shared.oclHashcat.NATIVE.o obj/rp_kernel_on_cpu.oclHashcat.NATIVE.o
-	$(CC_NATIVE) $(CFLAGS_NATIVE)    -o $@ $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(NOW) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+oclHashcat:       src/oclHashcat.c $(NATIVE_OBJS)
+	$(CC_NATIVE) $(CFLAGS_NATIVE)    -o $(BINARY_NATIVE) $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(NOW) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 ##
 ## cross compiled oclHashcat for binary release version
 ##
 
-obj/%.oclHashcat.LINUX.32.o: src/%.c
-	$(CC_LINUX_32) $(CFLAGS_CROSS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32) -c -o $@ $<
+obj/%.LINUX.32.o: src/%.c
+	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32) -c -o $@ $<
 
-obj/%.oclHashcat.LINUX.64.o: src/%.c
-	$(CC_LINUX_64) $(CFLAGS_CROSS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64) -c -o $@ $<
+obj/%.LINUX.64.o: src/%.c
+	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64) -c -o $@ $<
 
-obj/%.oclHashcat.WIN.32.o: src/%.c
-	$(CC_WIN_32)   $(CFLAGS_CROSS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32) -c -o $@ $<
+obj/%.WIN.32.o:   src/%.c
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32) -c -o $@ $<
 
-obj/%.oclHashcat.WIN.64.o: src/%.c
-	$(CC_WIN_64)   $(CFLAGS_CROSS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) -c -o $@ $<
+obj/%.WIN.64.o:   src/%.c
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) -c -o $@ $<
 
-oclHashcat32.bin: src/oclHashcat.c obj/ext_OpenCL.oclHashcat.LINUX.32.o obj/ext_nvml.oclHashcat.LINUX.32.o obj/ext_ADL.oclHashcat.LINUX.32.o    obj/shared.oclHashcat.LINUX.32.o  obj/rp_kernel_on_cpu.oclHashcat.LINUX.32.o
-	$(CC_LINUX_32) $(CFLAGS_CROSS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(NOW) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+oclHashcat32.bin: src/oclHashcat.c $(LINUX_32_OBJS)
+	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(NOW) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-oclHashcat64.bin: src/oclHashcat.c obj/ext_OpenCL.oclHashcat.LINUX.64.o obj/ext_nvml.oclHashcat.LINUX.64.o obj/ext_ADL.oclHashcat.LINUX.64.o    obj/shared.oclHashcat.LINUX.64.o  obj/rp_kernel_on_cpu.oclHashcat.LINUX.64.o
-	$(CC_LINUX_64) $(CFLAGS_CROSS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(NOW) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+oclHashcat64.bin: src/oclHashcat.c $(LINUX_64_OBJS)
+	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(NOW) -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-oclHashcat32.exe: src/oclHashcat.c obj/ext_OpenCL.oclHashcat.WIN.32.o   obj/ext_nvapi.oclHashcat.WIN.32.o  obj/ext_ADL.oclHashcat.WIN.32.o      obj/shared.oclHashcat.WIN.32.o    obj/rp_kernel_on_cpu.oclHashcat.WIN.32.o      lib/libOpenCL.a   /usr/i686-w64-mingw32/lib/CRT_glob.o   $(NVAPI)/x86/nvapi.lib
-	$(CC_WIN_32)   $(CFLAGS_CROSS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(NOW) -static-libgcc
+oclHashcat32.exe: src/oclHashcat.c $(WIN_32_OBJS) lib/libOpenCL.a
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(NOW) -static-libgcc
 
-oclHashcat64.exe: src/oclHashcat.c obj/ext_OpenCL.oclHashcat.WIN.64.o   obj/ext_nvapi.oclHashcat.WIN.64.o  obj/ext_ADL.oclHashcat.WIN.64.o      obj/shared.oclHashcat.WIN.64.o    obj/rp_kernel_on_cpu.oclHashcat.WIN.64.o      lib/libOpenCL64.a /usr/x86_64-w64-mingw32/lib/CRT_glob.o $(NVAPI)/amd64/nvapi64.lib
-	$(CC_WIN_64)   $(CFLAGS_CROSS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(NOW) -static-libgcc
+oclHashcat64.exe: src/oclHashcat.c $(WIN_64_OBJS) lib/libOpenCL64.a
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(NOW) -static-libgcc

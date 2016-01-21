@@ -3,6 +3,10 @@
  * License.....: MIT
  */
 
+#ifdef OSX
+#include <stdio.h>
+#endif
+
 #include <common.h>
 #include <shared.h>
 #include <rp_kernel_on_cpu.h>
@@ -215,7 +219,7 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   1000,
   1100,
   2100,
- 12800,
+  12800,
   1500,
   12400,
   500,
@@ -385,7 +389,11 @@ const char *USAGE_BIG[] =
   "  -c,  --segment-size=NUM            Size in MB to cache from the wordfile",
   "       --bitmap-min=NUM              Minimum number of bits allowed for bitmaps",
   "       --bitmap-max=NUM              Maximum number of bits allowed for bitmaps",
+  #ifndef OSX
   "       --cpu-affinity=STR            Locks to CPU devices, separate with comma",
+  #else
+  "       --cpu-affinity=STR            Locks to CPU devices, separate with comma (disabled on OSX)",
+  #endif
   "       --opencl-platforms=STR        OpenCL platforms to use, separate with comma",
   "  -d,  --opencl-devices=STR          OpenCL devices to use, separate with comma",
   "       --opencl-device-types=STR     OpenCL device-types to use, separate with comma, see references below",
@@ -393,10 +401,14 @@ const char *USAGE_BIG[] =
   "  -w,  --workload-profile=NUM        Enable a specific workload profile, see references below",
   "  -n,  --kernel-accel=NUM            Workload tuning: 1, 8, 40, 80, 160",
   "  -u,  --kernel-loops=NUM            Workload fine-tuning: 8 - 1024",
+  #ifdef HAVE_HWMON
   "       --gpu-temp-disable            Disable temperature and fanspeed readings and triggers",
   "       --gpu-temp-abort=NUM          Abort session if GPU temperature reaches NUM degrees celsius",
   "       --gpu-temp-retain=NUM         Try to retain GPU temperature at NUM degrees celsius (AMD only)",
+  #ifdef HAVE_ADL
   "       --powertune-enable            Enable automatic power tuning option (AMD OverDrive 6 only)",
+  #endif
+  #endif
   "       --scrypt-tmto=NUM             Manually override automatically calculated TMTO value for scrypt",
   "",
   "* Distributed:",
@@ -843,6 +855,7 @@ void status_display_automat ()
    * temperature
    */
 
+  #ifdef HAVE_HWMON
   if (data.gpu_temp_disable == 0)
   {
     fprintf (out, "TEMP\t");
@@ -862,6 +875,7 @@ void status_display_automat ()
 
     hc_thread_mutex_unlock (mux_adl);
   }
+  #endif // HAVE_HWMON
 
   #ifdef _WIN
   fputc ('\r', out);
@@ -1507,6 +1521,7 @@ void status_display ()
     }
   }
 
+  #ifdef HAVE_HWMON
   if (data.gpu_temp_disable == 0)
   {
     hc_thread_mutex_lock (mux_adl);
@@ -1557,6 +1572,7 @@ void status_display ()
 
     hc_thread_mutex_unlock (mux_adl);
   }
+  #endif // HAVE_HWMON
 }
 
 static void status_benchmark ()
@@ -3366,12 +3382,14 @@ static void *thread_monitor (void *p)
   uint runtime_check = 0;
   uint remove_check  = 0;
   uint status_check  = 0;
-  uint hwmon_check   = 0;
   uint restore_check = 0;
 
   uint restore_left = data.restore_timer;
   uint remove_left  = data.remove_timer;
   uint status_left  = data.status_timer;
+
+  #ifdef HAVE_HWMON
+  uint hwmon_check   = 0;
 
   // these variables are mainly used for fan control (AMD only)
 
@@ -3382,12 +3400,15 @@ static void *thread_monitor (void *p)
   int *temp_diff_old = (int *) mycalloc (data.devices_cnt, sizeof (int));
   int *temp_diff_sum = (int *) mycalloc (data.devices_cnt, sizeof (int));
 
+  #ifdef HAVE_ADL
   int temp_threshold = 1; // degrees celcius
 
   int fan_speed_min =  15; // in percentage
   int fan_speed_max = 100;
+  #endif // HAVE_ADL
 
   time_t last_temp_check_time;
+  #endif // HAVE_HWMON
 
   uint sleep_time = 1;
 
@@ -3411,15 +3432,20 @@ static void *thread_monitor (void *p)
     status_check = 1;
   }
 
+  #ifdef HAVE_HWMON
   if (data.gpu_temp_disable == 0)
   {
     time (&last_temp_check_time);
 
     hwmon_check = 1;
   }
+  #endif
 
-  if ((runtime_check == 0) && (remove_check == 0) && (status_check == 0) && (hwmon_check == 0) && (restore_check == 0))
+  if ((runtime_check == 0) && (remove_check == 0) && (status_check == 0) && (restore_check == 0))
   {
+    #ifdef HAVE_HWMON
+    if (hwmon_check == 0)
+    #endif
     return (p);
   }
 
@@ -3429,6 +3455,7 @@ static void *thread_monitor (void *p)
 
     if (data.devices_status != STATUS_RUNNING) continue;
 
+    #ifdef HAVE_HWMON
     if (hwmon_check == 1)
     {
       hc_thread_mutex_lock (mux_adl);
@@ -3460,6 +3487,7 @@ static void *thread_monitor (void *p)
           break;
         }
 
+        #ifdef HAVE_ADL
         const int gpu_temp_retain = data.gpu_temp_retain;
 
         if (gpu_temp_retain) // VENDOR_ID_AMD implied
@@ -3514,10 +3542,12 @@ static void *thread_monitor (void *p)
             }
           }
         }
+        #endif // HAVE_ADL
       }
 
       hc_thread_mutex_unlock (mux_adl);
     }
+    #endif // HAVE_HWMON
 
     if (restore_check == 1)
     {
@@ -3590,10 +3620,12 @@ static void *thread_monitor (void *p)
     }
   }
 
+  #ifdef HAVE_HWMON
   myfree (fan_speed_chgd);
 
   myfree (temp_diff_old);
   myfree (temp_diff_sum);
+  #endif
 
   p = NULL;
 
@@ -4948,10 +4980,12 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 
 // wrapper around mymalloc for ADL
 
+#if defined(HAVE_HWMON) && defined(HAVE_ADL)
 void *__stdcall ADL_Main_Memory_Alloc (const int iSize)
 {
   return mymalloc (iSize);
 }
+#endif
 
 static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, const uint dgst_shifts, char *digests_buf_ptr, const uint bitmap_mask, const uint bitmap_size, uint *bitmap_a, uint *bitmap_b, uint *bitmap_c, uint *bitmap_d, const u64 collisions_max)
 {
@@ -5109,7 +5143,9 @@ int main (int argc, char **argv)
   uint  increment         = INCREMENT;
   uint  increment_min     = INCREMENT_MIN;
   uint  increment_max     = INCREMENT_MAX;
+  #ifndef OSX
   char *cpu_affinity      = NULL;
+  #endif
   char *opencl_devices    = NULL;
   char *opencl_platforms  = NULL;
   char *opencl_device_types = NULL;
@@ -5118,10 +5154,14 @@ int main (int argc, char **argv)
   uint  workload_profile  = WORKLOAD_PROFILE;
   uint  kernel_accel      = KERNEL_ACCEL;
   uint  kernel_loops      = KERNEL_LOOPS;
+  #ifdef HAVE_HWMON
   uint  gpu_temp_disable  = GPU_TEMP_DISABLE;
   uint  gpu_temp_abort    = GPU_TEMP_ABORT;
   uint  gpu_temp_retain   = GPU_TEMP_RETAIN;
+  #ifdef HAVE_ADL
   uint  powertune_enable  = POWERTUNE_ENABLE;
+  #endif
+  #endif
   uint  logfile_disable   = LOGFILE_DISABLE;
   uint  segment_size      = SEGMENT_SIZE;
   uint  scrypt_tmto       = SCRYPT_TMTO;
@@ -5267,7 +5307,9 @@ int main (int argc, char **argv)
     {"markov-classic",    no_argument,       0, IDX_MARKOV_CLASSIC},
     {"markov-threshold",  required_argument, 0, IDX_MARKOV_THRESHOLD},
     {"markov-hcstat",     required_argument, 0, IDX_MARKOV_HCSTAT},
+    #ifndef OSX
     {"cpu-affinity",      required_argument, 0, IDX_CPU_AFFINITY},
+    #endif
     {"opencl-devices",    required_argument, 0, IDX_OPENCL_DEVICES},
     {"opencl-platforms",  required_argument, 0, IDX_OPENCL_PLATFORMS},
     {"opencl-device-types", required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
@@ -5275,10 +5317,14 @@ int main (int argc, char **argv)
     {"workload-profile",  required_argument, 0, IDX_WORKLOAD_PROFILE},
     {"kernel-accel",      required_argument, 0, IDX_KERNEL_ACCEL},
     {"kernel-loops",      required_argument, 0, IDX_KERNEL_LOOPS},
+    #ifdef HAVE_HWMON
     {"gpu-temp-disable",  no_argument,       0, IDX_GPU_TEMP_DISABLE},
     {"gpu-temp-abort",    required_argument, 0, IDX_GPU_TEMP_ABORT},
     {"gpu-temp-retain",   required_argument, 0, IDX_GPU_TEMP_RETAIN},
+    #ifdef HAVE_ADL
     {"powertune-enable",  no_argument,       0, IDX_POWERTUNE_ENABLE},
+    #endif
+    #endif // HAVE_HWMON
     {"logfile-disable",   no_argument,       0, IDX_LOGFILE_DISABLE},
     {"truecrypt-keyfiles", required_argument, 0, IDX_TRUECRYPT_KEYFILES},
     {"segment-size",      required_argument, 0, IDX_SEGMENT_SIZE},
@@ -5303,12 +5349,11 @@ int main (int argc, char **argv)
 
   char **rp_files = (char **) mycalloc (argc, sizeof (char *));
 
-  int option_index;
-  int c;
+  int option_index = 0;
+  int c = -1;
 
   optind = 1;
   optopt = 0;
-  option_index = 0;
 
   while (((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1) && optopt == 0)
   {
@@ -5499,8 +5544,10 @@ int main (int argc, char **argv)
   uint remove_timer_chgd    = 0;
   uint increment_min_chgd   = 0;
   uint increment_max_chgd   = 0;
-  uint gpu_temp_abort_chgd  = 0;
+  #if defined(HAVE_HWMON) && defined(HAVE_ADL)
   uint gpu_temp_retain_chgd = 0;
+  uint gpu_temp_abort_chgd  = 0;
+  #endif
 
   optind = 1;
   optopt = 0;
@@ -5571,7 +5618,9 @@ int main (int argc, char **argv)
       case IDX_HEX_CHARSET:       hex_charset       = 1;               break;
       case IDX_HEX_SALT:          hex_salt          = 1;               break;
       case IDX_HEX_WORDLIST:      hex_wordlist      = 1;               break;
+      #ifndef OSX
       case IDX_CPU_AFFINITY:      cpu_affinity      = optarg;          break;
+      #endif
       case IDX_OPENCL_DEVICES:    opencl_devices    = optarg;          break;
       case IDX_OPENCL_PLATFORMS:  opencl_platforms  = optarg;          break;
       case IDX_OPENCL_DEVICE_TYPES:
@@ -5583,12 +5632,22 @@ int main (int argc, char **argv)
                                   kernel_accel_chgd = 1;               break;
       case IDX_KERNEL_LOOPS:      kernel_loops      = atoi (optarg);
                                   kernel_loops_chgd = 1;               break;
+      #ifdef HAVE_HWMON
       case IDX_GPU_TEMP_DISABLE:  gpu_temp_disable  = 1;               break;
-      case IDX_GPU_TEMP_ABORT:    gpu_temp_abort_chgd = 1;
-                                  gpu_temp_abort    = atoi (optarg);   break;
-      case IDX_GPU_TEMP_RETAIN:   gpu_temp_retain_chgd = 1;
-                                  gpu_temp_retain   = atoi (optarg);   break;
+      case IDX_GPU_TEMP_ABORT:    gpu_temp_abort    = atoi (optarg);
+                                  #ifdef HAVE_ADL
+                                  gpu_temp_abort_chgd = 1;
+                                  #endif
+                                  break;
+      case IDX_GPU_TEMP_RETAIN:   gpu_temp_retain   = atoi (optarg);
+                                  #ifdef HAVE_ADL
+                                  gpu_temp_retain_chgd = 1;
+                                  #endif
+                                  break;
+      #ifdef HAVE_ADL
       case IDX_POWERTUNE_ENABLE:  powertune_enable  = 1;               break;
+      #endif
+      #endif // HAVE_HWMON
       case IDX_LOGFILE_DISABLE:   logfile_disable   = 1;               break;
       case IDX_TRUECRYPT_KEYFILES: truecrypt_keyfiles = optarg;        break;
       case IDX_SEGMENT_SIZE:      segment_size      = atoi (optarg);   break;
@@ -6299,7 +6358,9 @@ int main (int argc, char **argv)
   data.benchmark         = benchmark;
   data.skip              = skip;
   data.limit             = limit;
+  #if defined(HAVE_HWMON) && defined(HAVE_ADL)
   data.powertune_enable  = powertune_enable;
+  #endif
   data.logfile_disable   = logfile_disable;
   data.truecrypt_keyfiles = truecrypt_keyfiles;
   data.scrypt_tmto       = scrypt_tmto;
@@ -6308,10 +6369,12 @@ int main (int argc, char **argv)
    * cpu affinity
    */
 
+  #ifndef OSX
   if (cpu_affinity)
   {
     set_cpu_affinity (cpu_affinity);
   }
+  #endif
 
   if (rp_gen_seed_chgd == 0)
   {
@@ -6375,9 +6438,11 @@ int main (int argc, char **argv)
   logfile_top_uint   (force);
   logfile_top_uint   (kernel_accel);
   logfile_top_uint   (kernel_loops);
+  #ifdef HAVE_HWMON
   logfile_top_uint   (gpu_temp_abort);
   logfile_top_uint   (gpu_temp_disable);
   logfile_top_uint   (gpu_temp_retain);
+  #endif
   logfile_top_uint   (hash_mode);
   logfile_top_uint   (hex_charset);
   logfile_top_uint   (hex_salt);
@@ -6396,7 +6461,9 @@ int main (int argc, char **argv)
   logfile_top_uint   (outfile_check_timer);
   logfile_top_uint   (outfile_format);
   logfile_top_uint   (potfile_disable);
+  #if defined(HAVE_HWMON) && defined(HAVE_ADL)
   logfile_top_uint   (powertune_enable);
+  #endif
   logfile_top_uint   (scrypt_tmto);
   logfile_top_uint   (quiet);
   logfile_top_uint   (remove);
@@ -6422,7 +6489,9 @@ int main (int argc, char **argv)
   logfile_top_uint64 (limit);
   logfile_top_uint64 (skip);
   logfile_top_char   (separator);
+  #ifndef OSX
   logfile_top_string (cpu_affinity);
+  #endif
   logfile_top_string (custom_charset_1);
   logfile_top_string (custom_charset_2);
   logfile_top_string (custom_charset_3);
@@ -12421,6 +12490,8 @@ int main (int argc, char **argv)
 
       hc_clGetPlatformInfo (platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
 
+      #ifdef HAVE_HWMON
+      #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
       if (strcmp (platform_vendor, CL_VENDOR_NV) == 0)
       {
         // make sure that we do not directly control the fan for NVidia
@@ -12429,6 +12500,8 @@ int main (int argc, char **argv)
 
         data.gpu_temp_retain = gpu_temp_retain;
       }
+      #endif // HAVE_NVML || HAVE_NVAPI
+      #endif
     }
 
     /**
@@ -12789,11 +12862,15 @@ int main (int argc, char **argv)
      * OpenCL devices: allocate buffer for device specific information
      */
 
+    #ifdef HAVE_HWMON
     int *temp_retain_fanspeed_value = (int *) mycalloc (devices_cnt, sizeof (int));
 
+    #ifdef HAVE_ADL
     ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (devices_cnt, sizeof (ADLOD6MemClockState));
 
     int *od_power_control_status = (int *) mycalloc (devices_cnt, sizeof (int));
+    #endif // ADL
+    #endif
 
     /**
      * enable custom signal handler(s)
@@ -12812,6 +12889,7 @@ int main (int argc, char **argv)
      * User-defined GPU temp handling
      */
 
+    #ifdef HAVE_HWMON
     if (gpu_temp_disable == 1)
     {
       gpu_temp_abort  = 0;
@@ -12831,6 +12909,7 @@ int main (int argc, char **argv)
     data.gpu_temp_disable = gpu_temp_disable;
     data.gpu_temp_abort   = gpu_temp_abort;
     data.gpu_temp_retain  = gpu_temp_retain;
+    #endif
 
     /**
      * inform the user
@@ -12863,6 +12942,7 @@ int main (int argc, char **argv)
        * Watchdog and Temperature balance
        */
 
+      #ifdef HAVE_HWMON
       if (gpu_temp_abort == 0)
       {
         log_info ("Watchdog: Temperature abort trigger disabled");
@@ -12880,6 +12960,7 @@ int main (int argc, char **argv)
       {
         log_info ("Watchdog: Temperature retain trigger set to %uc", gpu_temp_retain);
       }
+      #endif
     }
 
     if (data.quiet == 0) log_info ("");
@@ -12888,12 +12969,18 @@ int main (int argc, char **argv)
      * HM devices: init
      */
 
+    #ifdef HAVE_HWMON
+    #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
     hm_attrs_t hm_adapters_nv[DEVICES_MAX]  = { { { 0 }, 0, 0 } };
+    #endif
+
+    #ifdef HAVE_ADL
     hm_attrs_t hm_adapters_amd[DEVICES_MAX] = { { { 0 }, 0, 0 } };
+    #endif
 
     if (gpu_temp_disable == 0)
     {
-      #ifdef WIN
+      #if defined(WIN) && defined(HAVE_NVAPI)
       if (NvAPI_Initialize () == NVAPI_OK)
       {
         HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
@@ -12914,9 +13001,9 @@ int main (int argc, char **argv)
           if (NvAPI_GPU_GetTachReading (hm_adapters_nv[i].adapter_index.nv, &speed) != NVAPI_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
         }
       }
-      #endif
+      #endif // WIN && HAVE_NVAPI
 
-      #ifdef LINUX
+      #if defined(LINUX) && defined(HAVE_NVML)
       HM_LIB hm_dll_nv = hm_init (VENDOR_ID_NV);
 
       data.hm_dll_nv = hm_dll_nv;
@@ -12944,8 +13031,9 @@ int main (int argc, char **argv)
           }
         }
       }
-      #endif
+      #endif // LINUX && HAVE_NVML
 
+      #ifdef HAVE_ADL
       HM_LIB hm_dll_amd = hm_init (VENDOR_ID_AMD);
 
       data.hm_dll_amd = hm_dll_amd;
@@ -12990,6 +13078,7 @@ int main (int argc, char **argv)
           myfree (lpAdapterInfo);
         }
       }
+      #endif // HAVE_ADL
     }
 
     /**
@@ -13008,15 +13097,19 @@ int main (int argc, char **argv)
 
         const uint platform_devices_id = device_param->platform_devices_id;
 
+        #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
         if (device_param->vendor_id == VENDOR_ID_NV)
         {
           memcpy (&data.hm_device[device_id], &hm_adapters_nv[platform_devices_id], sizeof (hm_attrs_t));
         }
+        #endif
 
+        #ifdef HAVE_ADL
         if (device_param->vendor_id == VENDOR_ID_AMD)
         {
           memcpy (&data.hm_device[device_id], &hm_adapters_amd[platform_devices_id], sizeof (hm_attrs_t));
         }
+        #endif
       }
     }
 
@@ -13028,6 +13121,7 @@ int main (int argc, char **argv)
     * Driver / ADL bug?
     */
 
+    #ifdef HAVE_ADL
     if (powertune_enable == 1)
     {
       hc_thread_mutex_lock (mux_adl);
@@ -13077,6 +13171,8 @@ int main (int argc, char **argv)
 
       hc_thread_mutex_unlock (mux_adl);
     }
+    #endif // HAVE_ADK
+    #endif // HAVE_HWMON
 
     uint kernel_blocks_all = 0;
 
@@ -14092,6 +14188,7 @@ int main (int argc, char **argv)
        * Store initial fanspeed if gpu_temp_retain is enabled
        */
 
+      #if defined(HAVE_HWMON) && defined(HAVE_ADL)
       int gpu_temp_retain_set = 0;
 
       if (gpu_temp_disable == 0)
@@ -14262,6 +14359,7 @@ int main (int argc, char **argv)
 
         hc_thread_mutex_unlock (mux_adl);
       }
+      #endif // HAVE_HWMON && HAVE_ADL
     }
 
     data.kernel_blocks_all = kernel_blocks_all;
@@ -16365,8 +16463,10 @@ int main (int argc, char **argv)
 
     // reset default fan speed
 
+    #ifdef HAVE_HWMON
     if (gpu_temp_disable == 0)
     {
+      #ifdef HAVE_ADL
       if (gpu_temp_retain != 0) // VENDOR_ID_AMD is implied here
       {
         hc_thread_mutex_lock (mux_adl);
@@ -16391,10 +16491,12 @@ int main (int argc, char **argv)
 
         hc_thread_mutex_unlock (mux_adl);
       }
+      #endif // HAVE_ADL
     }
 
     // reset power tuning
 
+    #ifdef HAVE_ADL
     if (powertune_enable == 1) // VENDOR_ID_AMD is implied here
     {
       hc_thread_mutex_lock (mux_adl);
@@ -16454,10 +16556,11 @@ int main (int argc, char **argv)
 
       hc_thread_mutex_unlock (mux_adl);
     }
+    #endif // HAVE_ADL
 
     if (gpu_temp_disable == 0)
     {
-      #ifdef LINUX
+      #if defined(LINUX) && defined(HAVE_NVML)
       if (data.hm_dll_nv)
       {
         hc_NVML_nvmlShutdown (data.hm_dll_nv);
@@ -16466,17 +16569,20 @@ int main (int argc, char **argv)
       }
       #endif
 
-      #ifdef WIN
+      #if defined(WIN) && (HAVE_NVAPI)
       NvAPI_Unload ();
       #endif
 
+      #ifdef HAVE_ADL
       if (data.hm_dll_amd)
       {
         hc_ADL_Main_Control_Destroy (data.hm_dll_amd);
 
         hm_close (data.hm_dll_amd);
       }
+      #endif
     }
+    #endif // HAVE_HWMON
 
     // free memory
 
@@ -16515,9 +16621,13 @@ int main (int argc, char **argv)
     local_free (bitmap_s2_c);
     local_free (bitmap_s2_d);
 
+    #ifdef HAVE_HWMON
     local_free (temp_retain_fanspeed_value);
+    #ifdef HAVE_ADL
     local_free (od_clock_mem_status);
     local_free (od_power_control_status);
+    #endif // ADL
+    #endif
 
     global_free (devices_param);
 

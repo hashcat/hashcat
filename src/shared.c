@@ -1,7 +1,13 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
+
+#ifdef OSX
+#include <stdio.h>
+#endif
 
 #include <shared.h>
 #include <limits.h>
@@ -2634,7 +2640,8 @@ void fsync (int fd)
  * thermal
  */
 
-#ifdef _WIN
+#ifdef HAVE_HWMON
+#if defined(_WIN) && defined(HAVE_NVAPI)
 int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 {
   NvU32 pGpuCount;
@@ -2650,9 +2657,9 @@ int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 
   return (pGpuCount);
 }
-#endif
+#endif // _WIN && HAVE_NVAPI
 
-#ifdef LINUX
+#if defined(LINUX) && defined(HAVE_NVML)
 int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 {
   int pGpuCount = 0;
@@ -2677,8 +2684,9 @@ int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 
   return (pGpuCount);
 }
-#endif
+#endif // LINUX && HAVE_NVML
 
+#if defined(HAVE_ADL) || defined(HAVE_NVML)
 void hm_close (HM_LIB hm_dll)
 {
   #ifdef _POSIX
@@ -2694,6 +2702,7 @@ HM_LIB hm_init (const cl_uint vendor_id)
 {
   HM_LIB hm_dll = NULL;
 
+  #ifdef HAVE_ADL
   if (vendor_id == VENDOR_ID_AMD)
   {
     #ifdef _POSIX
@@ -2709,8 +2718,9 @@ HM_LIB hm_init (const cl_uint vendor_id)
 
     #endif
   }
+  #endif
 
-  #ifdef LINUX
+  #if defined(LINUX) && defined(HAVE_NVML)
   if (vendor_id == VENDOR_ID_NV)
   {
     hm_dll = dlopen ("libnvidia-ml.so", RTLD_LAZY | RTLD_GLOBAL);
@@ -2719,7 +2729,9 @@ HM_LIB hm_init (const cl_uint vendor_id)
 
   return hm_dll;
 }
+#endif // HAVE_ADL || HAVE_NVML
 
+#ifdef HAVE_ADL
 int get_adapters_num_amd (HM_LIB hm_dll_amd, int *iNumberAdapters)
 {
   if (hc_ADL_Adapter_NumberOfAdapters_Get (hm_dll_amd, iNumberAdapters) != ADL_OK) return -1;
@@ -3058,11 +3070,13 @@ int hm_get_adapter_index_amd (hm_attrs_t *hm_device, u32 *valid_adl_device_list,
 
   return num_adl_adapters;
 }
+#endif // HAVE_ADL
 
 int hm_get_temperature_with_device_id (const uint device_id)
 {
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
+  #ifdef HAVE_ADL
   if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_dll_amd)
@@ -3087,9 +3101,12 @@ int hm_get_temperature_with_device_id (const uint device_id)
       }
     }
   }
-  else if (data.devices_param[device_id].vendor_id == VENDOR_ID_NV)
+  #endif
+
+  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
+  if (data.devices_param[device_id].vendor_id == VENDOR_ID_NV)
   {
-    #ifdef LINUX
+    #if defined(LINUX) && defined(HAVE_NVML)
     int temperature = 0;
 
     hc_NVML_nvmlDeviceGetTemperature (data.hm_dll_nv, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_GPU, (unsigned int *) &temperature);
@@ -3097,7 +3114,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
     return temperature;
     #endif
 
-    #ifdef WIN
+    #if defined(WIN) && defined(HAVE_NVAPI)
     NV_GPU_THERMAL_SETTINGS pThermalSettings;
 
     pThermalSettings.version = NV_GPU_THERMAL_SETTINGS_VER;
@@ -3108,8 +3125,9 @@ int hm_get_temperature_with_device_id (const uint device_id)
     if (hc_NvAPI_GPU_GetThermalSettings (data.hm_device[device_id].adapter_index.nv, 0, &pThermalSettings) != NVAPI_OK) return -1;
 
     return pThermalSettings.sensor[0].currentTemp;
-    #endif
+    #endif // WIN && HAVE_NVAPI
   }
+  #endif // HAVE_NVML || HAVE_NVAPI
 
   return -1;
 }
@@ -3121,6 +3139,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
 
   if (data.hm_device[device_id].fan_supported == 1)
   {
+    #ifdef HAVE_ADL
     if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
     {
       if (data.hm_dll_amd)
@@ -3151,9 +3170,12 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
         }
       }
     }
-    else if (data.devices_param[device_id].vendor_id == VENDOR_ID_NV)
+    #endif // HAVE_ADL
+
+    #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
+    if (data.devices_param[device_id].vendor_id == VENDOR_ID_NV)
     {
-      #ifdef LINUX
+      #if defined(LINUX) && defined(HAVE_NVML)
       int speed = 0;
 
       hc_NVML_nvmlDeviceGetFanSpeed (data.hm_dll_nv, 1, data.hm_device[device_id].adapter_index.nv, (unsigned int *) &speed);
@@ -3161,7 +3183,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
       return speed;
       #endif
 
-      #ifdef WIN
+      #if defined(WIN) && defined(HAVE_NVAPI)
       NvU32 speed = 0;
 
       hc_NvAPI_GPU_GetTachReading (data.hm_device[device_id].adapter_index.nv, &speed);
@@ -3169,6 +3191,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
       return speed;
       #endif
     }
+    #endif // HAVE_NVML || HAVE_NVAPI
   }
 
   return -1;
@@ -3178,6 +3201,7 @@ int hm_get_utilization_with_device_id (const uint device_id)
 {
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
+  #ifdef HAVE_ADL
   if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_dll_amd)
@@ -3191,9 +3215,12 @@ int hm_get_utilization_with_device_id (const uint device_id)
       return PMActivity.iActivityPercent;
     }
   }
-  else if (data.devices_param[device_id].vendor_id == VENDOR_ID_NV)
+  #endif // HAVE_ADL
+
+  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
+  if (data.devices_param[device_id].vendor_id == VENDOR_ID_NV)
   {
-    #ifdef LINUX
+    #if defined(LINUX) && defined(HAVE_NVML)
     nvmlUtilization_t utilization;
 
     hc_NVML_nvmlDeviceGetUtilizationRates (data.hm_dll_nv, data.hm_device[device_id].adapter_index.nv, &utilization);
@@ -3201,7 +3228,7 @@ int hm_get_utilization_with_device_id (const uint device_id)
     return utilization.gpu;
     #endif
 
-    #ifdef WIN
+    #if defined(WIN) && defined(HAVE_NVAPI)
     NV_GPU_DYNAMIC_PSTATES_INFO_EX pDynamicPstatesInfoEx;
 
     pDynamicPstatesInfoEx.version = NV_GPU_DYNAMIC_PSTATES_INFO_EX_VER;
@@ -3211,10 +3238,12 @@ int hm_get_utilization_with_device_id (const uint device_id)
     return pDynamicPstatesInfoEx.utilization[0].percentage;
     #endif
   }
+  #endif // HAVE_NVML || HAVE_NVAPI
 
   return -1;
 }
 
+#ifdef HAVE_ADL
 int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed)
 {
   if (data.hm_device[device_id].fan_supported == 1)
@@ -3254,6 +3283,7 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
 
   return -1;
 }
+#endif
 
 // helper function for status display
 
@@ -3270,6 +3300,7 @@ void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int
     snprintf (target_buf, max_buf_size, "%2d%s", value, suffix);
   }
 }
+#endif // HAVE_HWMON
 
 /**
  * maskprocessor
@@ -4105,12 +4136,25 @@ char *get_exec_path ()
 
   const int len = readlink (tmp, exec_path, exec_path_len - 1);
 
-  #endif
-
-  #ifdef WIN
+  #elif WIN
 
   const int len = GetModuleFileName (NULL, exec_path, exec_path_len - 1);
 
+  #elif OSX
+
+  uint size = exec_path_len;
+
+  if (_NSGetExecutablePath (exec_path, &size) != 0)
+  {
+    log_error("! executable path buffer too small\n");
+
+    exit (-1);
+  }
+
+  const int len = strlen (exec_path);
+
+  #else
+  #error Your Operating System is not supported or detected
   #endif
 
   exec_path[len] = 0;
@@ -4204,11 +4248,8 @@ void set_cpu_affinity (char *cpu_affinity)
 {
   #ifdef WIN
   DWORD_PTR aff_mask = 0;
-  #endif
-
-  #ifdef LINUX
+  #elif LINUX
   cpu_set_t cpuset;
-
   CPU_ZERO (&cpuset);
   #endif
 
@@ -4226,9 +4267,7 @@ void set_cpu_affinity (char *cpu_affinity)
       {
         #ifdef WIN
         aff_mask = 0;
-        #endif
-
-        #ifdef LINUX
+        #elif LINUX
         CPU_ZERO (&cpuset);
         #endif
 
@@ -4244,9 +4283,7 @@ void set_cpu_affinity (char *cpu_affinity)
 
       #ifdef WIN
       aff_mask |= 1 << (cpu_id - 1);
-      #endif
-
-      #ifdef LINUX
+      #elif LINUX
       CPU_SET ((cpu_id - 1), &cpuset);
       #endif
 
@@ -4258,9 +4295,7 @@ void set_cpu_affinity (char *cpu_affinity)
   #ifdef WIN
   SetProcessAffinityMask (GetCurrentProcess (), aff_mask);
   SetThreadAffinityMask (GetCurrentThread (), aff_mask);
-  #endif
-
-  #ifdef LINUX
+  #elif LINUX
   pthread_t thread = pthread_self ();
   pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset);
   #endif
@@ -4472,7 +4507,7 @@ int sort_by_dictstat (const void *s1, const void *s2)
   dictstat_t *d1 = (dictstat_t *) s1;
   dictstat_t *d2 = (dictstat_t *) s2;
 
-  #ifdef _POSIX
+  #ifdef LINUX
   d2->stat.st_atim = d1->stat.st_atim;
   #else
   d2->stat.st_atime = d1->stat.st_atime;
@@ -4835,7 +4870,7 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
 
     #ifdef _POSIX
     #ifdef __x86_64__
-    fprintf (out_fp, "%lu", crackpos);
+    fprintf (out_fp, "%lu", (unsigned long) crackpos);
     #else
     fprintf (out_fp, "%llu", crackpos);
     #endif
@@ -5405,14 +5440,31 @@ char **scan_directory (const char *path)
 
   int num_files = 0;
 
-  DIR *d;
+  DIR *d = NULL;
 
   if ((d = opendir (tmp_path)) != NULL)
   {
+    #ifdef OSX
+    struct dirent e;
+
+    for (;;) {
+      memset (&e, 0, sizeof (e));
+      struct dirent *de = NULL;
+
+      if (readdir_r (d, &e, &de) != 0)
+      {
+        log_error ("ERROR: readdir_r() failed");
+
+        break;
+      }
+
+      if (de == NULL) break;
+    #else
     struct dirent *de;
 
     while ((de = readdir (d)) != NULL)
     {
+    #endif
       if ((strcmp (de->d_name, ".") == 0) || (strcmp (de->d_name, "..") == 0)) continue;
 
       int path_size = strlen (tmp_path) + 1 + strlen (de->d_name);

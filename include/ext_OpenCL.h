@@ -8,6 +8,9 @@
 
 #include <common.h>
 
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
+#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
+
 #ifdef OSX
 #include <OpenCL/cl.h>
 #endif
