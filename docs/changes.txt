@@ -93,6 +93,11 @@ Issue: 2
 
 Type.: Change
 File.: Host
+Desc.: Expanded version information
+Issue: 138
+
+Type.: Change
+File.: Host
 Desc.: Stick to older libOpenCL to avoid errors like this: version `OPENCL_2.0' not found
 
 Type.: Bug

@@ -131,9 +131,6 @@ typedef pthread_mutex_t       hc_thread_mutex_t;
  * valid project specific global stuff
  */
 
-extern const char *PROGNAME;
-extern const char *VERSION_TXT;
-
 extern const uint  VERSION_BIN;
 extern const uint  RESTORE_MIN;
 
@@ -144,9 +141,6 @@ extern const char *PROMPT;
 
 extern int SUPPRESS_OUTPUT;
 
-extern hc_thread_mutex_t mux_adl;
-extern hc_thread_mutex_t mux_counter;
-extern hc_thread_mutex_t mux_dispatcher;
 extern hc_thread_mutex_t mux_display;
 
 /**

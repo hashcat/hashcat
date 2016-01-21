@@ -13,7 +13,6 @@
 #include <getopt.h>
 
 const char *PROGNAME          = "oclHashcat";
-const char *VERSION_TXT       = "2.10";
 const uint  VERSION_BIN       = 210;
 const uint  RESTORE_MIN       = 210;
 
@@ -5383,7 +5382,7 @@ int main (int argc, char **argv)
 
   if (version)
   {
-    log_info (VERSION_TXT);
+    log_info ("%s (%s)", VERSION_TAG, VERSION_SUM);
 
     return (0);
   }
@@ -5688,19 +5687,19 @@ int main (int argc, char **argv)
   {
     if (benchmark == 1)
     {
-      log_info ("%s v%.2f starting in benchmark-mode...", PROGNAME, (float) VERSION_BIN / 100);
+      log_info ("%s %s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG, VERSION_SUM);
 
       log_info ("");
     }
     else if (restore == 1)
     {
-      log_info ("%s v%.2f starting in restore-mode...", PROGNAME, (float) VERSION_BIN / 100);
+      log_info ("%s %s (%s) starting in restore-mode...", PROGNAME, VERSION_TAG, VERSION_SUM);
 
       log_info ("");
     }
     else
     {
-      log_info ("%s v%.2f starting...", PROGNAME, (float) VERSION_BIN / 100);
+      log_info ("%s %s (%s) starting...", PROGNAME, VERSION_TAG, VERSION_SUM);
 
       log_info ("");
     }
