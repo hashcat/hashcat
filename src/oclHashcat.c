@@ -12583,7 +12583,7 @@ int main (int argc, char **argv)
 
         cl_uint vector_width;
 
-        if (attack_mode == ATTACK_MODE_BF)
+        if (1) // can be removed as soon as all kernel are migrated; if (attack_mode == ATTACK_MODE_BF)
         {
           if (opencl_vector_width == OPENCL_VECTOR_WIDTH)
           {

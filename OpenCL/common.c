@@ -2657,7 +2657,7 @@ static void append_0x80_1x4 (u32 w0[4], const u32 offset)
   }
 }
 
-static void append_0x80_2x4 (u32 w0[4], u32 w1[4], const u32 offset)
+static void append_0x80_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
 {
   switch (offset)
   {

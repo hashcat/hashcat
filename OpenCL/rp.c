@@ -4083,7 +4083,7 @@ u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], u32 buf
   return out_len;
 }
 
-u32 apply_rules (__global u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len)
+u32 apply_rules (const __global u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len)
 {
   u32 out_len = len;
 
@@ -4099,4 +4099,145 @@ u32 apply_rules (__global u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len)
   }
 
   return out_len;
+}
+
+u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, const __global kernel_rule_t *rules_buf, const u32 il_pos, u32x w0[4], u32x w1[4])
+{
+  #if VECT_SIZE == 1
+
+  w0[0] = pw_buf0[0];
+  w0[1] = pw_buf0[1];
+  w0[2] = pw_buf0[2];
+  w0[3] = pw_buf0[3];
+  w1[0] = pw_buf1[0];
+  w1[1] = pw_buf1[1];
+  w1[2] = pw_buf1[2];
+  w1[3] = pw_buf1[3];
+
+  return apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
+
+  #else
+
+  u32 out_len = 0;
+
+  #pragma unroll
+  for (int i = 0; i < VECT_SIZE; i++)
+  {
+    u32 tmp0[4];
+    u32 tmp1[4];
+
+    tmp0[0] = pw_buf0[0];
+    tmp0[1] = pw_buf0[1];
+    tmp0[2] = pw_buf0[2];
+    tmp0[3] = pw_buf0[3];
+    tmp1[0] = pw_buf1[0];
+    tmp1[1] = pw_buf1[1];
+    tmp1[2] = pw_buf1[2];
+    tmp1[3] = pw_buf1[3];
+
+    out_len = apply_rules (rules_buf[il_pos + i].cmds, tmp0, tmp1, pw_len);
+
+    // it's guaranteed to have out_len always the same for each call in the loop
+
+    switch (i)
+    {
+      #if VECT_SIZE >= 2
+      case 0:
+        w0[0].s0 = tmp0[0];
+        w0[1].s0 = tmp0[1];
+        w0[2].s0 = tmp0[2];
+        w0[3].s0 = tmp0[3];
+        w1[0].s0 = tmp1[0];
+        w1[1].s0 = tmp1[1];
+        w1[2].s0 = tmp1[2];
+        w1[3].s0 = tmp1[3];
+        break;
+
+      case 1:
+        w0[0].s1 = tmp0[0];
+        w0[1].s1 = tmp0[1];
+        w0[2].s1 = tmp0[2];
+        w0[3].s1 = tmp0[3];
+        w1[0].s1 = tmp1[0];
+        w1[1].s1 = tmp1[1];
+        w1[2].s1 = tmp1[2];
+        w1[3].s1 = tmp1[3];
+        break;
+      #endif
+
+      #if VECT_SIZE >= 4
+      case 2:
+        w0[0].s2 = tmp0[0];
+        w0[1].s2 = tmp0[1];
+        w0[2].s2 = tmp0[2];
+        w0[3].s2 = tmp0[3];
+        w1[0].s2 = tmp1[0];
+        w1[1].s2 = tmp1[1];
+        w1[2].s2 = tmp1[2];
+        w1[3].s2 = tmp1[3];
+        break;
+
+      case 3:
+        w0[0].s3 = tmp0[0];
+        w0[1].s3 = tmp0[1];
+        w0[2].s3 = tmp0[2];
+        w0[3].s3 = tmp0[3];
+        w1[0].s3 = tmp1[0];
+        w1[1].s3 = tmp1[1];
+        w1[2].s3 = tmp1[2];
+        w1[3].s3 = tmp1[3];
+        break;
+      #endif
+
+      #if VECT_SIZE >= 8
+      case 4:
+        w0[0].s4 = tmp0[0];
+        w0[1].s4 = tmp0[1];
+        w0[2].s4 = tmp0[2];
+        w0[3].s4 = tmp0[3];
+        w1[0].s4 = tmp1[0];
+        w1[1].s4 = tmp1[1];
+        w1[2].s4 = tmp1[2];
+        w1[3].s4 = tmp1[3];
+        break;
+
+      case 5:
+        w0[0].s5 = tmp0[0];
+        w0[1].s5 = tmp0[1];
+        w0[2].s5 = tmp0[2];
+        w0[3].s5 = tmp0[3];
+        w1[0].s5 = tmp1[0];
+        w1[1].s5 = tmp1[1];
+        w1[2].s5 = tmp1[2];
+        w1[3].s5 = tmp1[3];
+        break;
+
+      case 6:
+        w0[0].s6 = tmp0[0];
+        w0[1].s6 = tmp0[1];
+        w0[2].s6 = tmp0[2];
+        w0[3].s6 = tmp0[3];
+        w1[0].s6 = tmp1[0];
+        w1[1].s6 = tmp1[1];
+        w1[2].s6 = tmp1[2];
+        w1[3].s6 = tmp1[3];
+        break;
+
+      case 7:
+        w0[0].s7 = tmp0[0];
+        w0[1].s7 = tmp0[1];
+        w0[2].s7 = tmp0[2];
+        w0[3].s7 = tmp0[3];
+        w1[0].s7 = tmp1[0];
+        w1[1].s7 = tmp1[1];
+        w1[2].s7 = tmp1[2];
+        w1[3].s7 = tmp1[3];
+        break;
+      #endif
+    }
+  }
+
+  return out_len;
+
+  #endif
 }
