@@ -5,6 +5,8 @@
 
 #define _MD5_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,35 +18,33 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
+#include "OpenCL/simd.c"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
-
-static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
+static void md5_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[4])
 {
-  u32 a = digest[0];
-  u32 b = digest[1];
-  u32 c = digest[2];
-  u32 d = digest[3];
+  u32x a = digest[0];
+  u32x b = digest[1];
+  u32x c = digest[2];
+  u32x d = digest[3];
 
-  u32 w0_t = w0[0];
-  u32 w1_t = w0[1];
-  u32 w2_t = w0[2];
-  u32 w3_t = w0[3];
-  u32 w4_t = w1[0];
-  u32 w5_t = w1[1];
-  u32 w6_t = w1[2];
-  u32 w7_t = w1[3];
-  u32 w8_t = w2[0];
-  u32 w9_t = w2[1];
-  u32 wa_t = w2[2];
-  u32 wb_t = w2[3];
-  u32 wc_t = w3[0];
-  u32 wd_t = w3[1];
-  u32 we_t = w3[2];
-  u32 wf_t = w3[3];
+  u32x w0_t = w0[0];
+  u32x w1_t = w0[1];
+  u32x w2_t = w0[2];
+  u32x w3_t = w0[3];
+  u32x w4_t = w1[0];
+  u32x w5_t = w1[1];
+  u32x w6_t = w1[2];
+  u32x w7_t = w1[3];
+  u32x w8_t = w2[0];
+  u32x w9_t = w2[1];
+  u32x wa_t = w2[2];
+  u32x wb_t = w2[3];
+  u32x wc_t = w3[0];
+  u32x wd_t = w3[1];
+  u32x we_t = w3[2];
+  u32x wf_t = w3[3];
 
-  u32 tmp2;
+  u32x tmp2;
 
   MD5_STEP (MD5_Fo, a, b, c, d, w0_t, MD5C00, MD5S00);
   MD5_STEP (MD5_Fo, d, a, b, c, w1_t, MD5C01, MD5S01);
@@ -120,7 +120,7 @@ static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], co
   digest[3] += d;
 }
 
-static void hmac_md5_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[4], u32 opad[4])
+static void hmac_md5_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[4], u32x opad[4])
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -171,7 +171,7 @@ static void hmac_md5_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[4
   md5_transform (w0, w1, w2, w3, opad);
 }
 
-static void hmac_md5_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[4], u32 opad[4], u32 digest[4])
+static void hmac_md5_run (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[4], u32x opad[4], u32x digest[4])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -254,46 +254,46 @@ static void m00050m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /**
      * pads
      */
 
-    u32 w0_t[4];
+    u32x w0_t[4];
 
-    w0_t[0] = w0[0];
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
 
-    u32 w1_t[4];
+    u32x w1_t[4];
 
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
 
-    u32 w2_t[4];
+    u32x w2_t[4];
 
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
 
-    u32 w3_t[4];
+    u32x w3_t[4];
 
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = 0;
     w3_t[3] = 0;
 
-    u32 ipad[4];
-    u32 opad[4];
+    u32x ipad[4];
+    u32x opad[4];
 
     hmac_md5_pad (w0_t, w1_t, w2_t, w3_t, ipad, opad);
 
@@ -314,16 +314,11 @@ static void m00050m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[2] = (64 + salt_len) * 8;
     w3_t[3] = 0;
 
-    u32 digest[4];
+    u32x digest[4];
 
     hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 
-    const u32 r0 = digest[0];
-    const u32 r1 = digest[3];
-    const u32 r2 = digest[2];
-    const u32 r3 = digest[1];
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (digest[0], digest[3], digest[2], digest[1]);
   }
 }
 
@@ -388,46 +383,46 @@ static void m00050s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /**
      * pads
      */
 
-    u32 w0_t[4];
+    u32x w0_t[4];
 
-    w0_t[0] = w0[0];
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
 
-    u32 w1_t[4];
+    u32x w1_t[4];
 
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
 
-    u32 w2_t[4];
+    u32x w2_t[4];
 
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
 
-    u32 w3_t[4];
+    u32x w3_t[4];
 
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = 0;
     w3_t[3] = 0;
 
-    u32 ipad[4];
-    u32 opad[4];
+    u32x ipad[4];
+    u32x opad[4];
 
     hmac_md5_pad (w0_t, w1_t, w2_t, w3_t, ipad, opad);
 
@@ -448,16 +443,11 @@ static void m00050s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[2] = (64 + salt_len) * 8;
     w3_t[3] = 0;
 
-    u32 digest[4];
+    u32x digest[4];
 
     hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 
-    const u32 r0 = digest[0];
-    const u32 r1 = digest[3];
-    const u32 r2 = digest[2];
-    const u32 r3 = digest[1];
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (digest[0], digest[3], digest[2], digest[1]);
   }
 }
 

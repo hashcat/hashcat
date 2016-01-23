@@ -632,7 +632,7 @@ __kernel void m03100_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     w3_t[2] = w3[2];
     w3_t[3] = w3[3];
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
 
     w0_t[0] |= salt_buf0[0];
     w0_t[1] |= salt_buf0[1];
@@ -934,7 +934,7 @@ __kernel void m03100_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     w3_t[2] = w3[2];
     w3_t[3] = w3[3];
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
 
     w0_t[0] |= salt_buf0[0];
     w0_t[1] |= salt_buf0[1];

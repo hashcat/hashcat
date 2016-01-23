@@ -5,6 +5,8 @@
 
 #define _SHA1_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,11 +18,17 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
+#include "OpenCL/simd.c"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
-
-#define uint_to_hex_lower8(i) l_bin2asc[(i)]
+#if   VECT_SIZE == 1
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i)])
+#elif VECT_SIZE == 2
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
+#elif VECT_SIZE == 4
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
+#elif VECT_SIZE == 8
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#endif
 
 static void m07600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 l_bin2asc[256])
 {
@@ -71,38 +79,38 @@ static void m07600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /**
      * sha1
      */
 
-    u32 w0_t = w0[0];
-    u32 w1_t = w0[1];
-    u32 w2_t = w0[2];
-    u32 w3_t = w0[3];
-    u32 w4_t = w1[0];
-    u32 w5_t = w1[1];
-    u32 w6_t = w1[2];
-    u32 w7_t = w1[3];
-    u32 w8_t = w2[0];
-    u32 w9_t = w2[1];
-    u32 wa_t = w2[2];
-    u32 wb_t = w2[3];
-    u32 wc_t = w3[0];
-    u32 wd_t = w3[1];
-    u32 we_t = 0;
-    u32 wf_t = pw_len * 8;
+    u32x w0_t = w0lr;
+    u32x w1_t = w0[1];
+    u32x w2_t = w0[2];
+    u32x w3_t = w0[3];
+    u32x w4_t = w1[0];
+    u32x w5_t = w1[1];
+    u32x w6_t = w1[2];
+    u32x w7_t = w1[3];
+    u32x w8_t = w2[0];
+    u32x w9_t = w2[1];
+    u32x wa_t = w2[2];
+    u32x wb_t = w2[3];
+    u32x wc_t = w3[0];
+    u32x wd_t = w3[1];
+    u32x we_t = 0;
+    u32x wf_t = pw_len * 8;
 
-    u32 a = SHA1M_A;
-    u32 b = SHA1M_B;
-    u32 c = SHA1M_C;
-    u32 d = SHA1M_D;
-    u32 e = SHA1M_E;
+    u32x a = SHA1M_A;
+    u32x b = SHA1M_B;
+    u32x c = SHA1M_C;
+    u32x d = SHA1M_D;
+    u32x e = SHA1M_E;
 
     #undef K
     #define K SHA1C00
@@ -210,7 +218,7 @@ static void m07600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
      * Prepend salt
      */
 
-    u32 w0t[4];
+    u32x w0t[4];
 
     w0t[0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
            | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
@@ -221,7 +229,7 @@ static void m07600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w0t[3] = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
            | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
 
-    u32 w1t[4];
+    u32x w1t[4];
 
     w1t[0] = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
            | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
@@ -232,7 +240,7 @@ static void m07600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w1t[3] = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
            | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
 
-    u32 w2t[2];
+    u32x w2t[2];
 
     w2t[0] = uint_to_hex_lower8 ((e >> 24) & 255) <<  0
            | uint_to_hex_lower8 ((e >> 16) & 255) << 16;
@@ -387,11 +395,11 @@ static void m07600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     d += SHA1M_D;
     e += SHA1M_E;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
-    u32 r_e = e;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
+    u32x r_e = e;
 
     // 2nd transform
 
@@ -514,12 +522,7 @@ static void m07600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     d += r_d;
     e += r_e;
 
-    const u32 r0 = d;
-    const u32 r1 = e;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (d, e, c, b);
   }
 }
 
@@ -584,38 +587,38 @@ static void m07600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /**
      * sha1
      */
 
-    u32 w0_t = w0[0];
-    u32 w1_t = w0[1];
-    u32 w2_t = w0[2];
-    u32 w3_t = w0[3];
-    u32 w4_t = w1[0];
-    u32 w5_t = w1[1];
-    u32 w6_t = w1[2];
-    u32 w7_t = w1[3];
-    u32 w8_t = w2[0];
-    u32 w9_t = w2[1];
-    u32 wa_t = w2[2];
-    u32 wb_t = w2[3];
-    u32 wc_t = w3[0];
-    u32 wd_t = w3[1];
-    u32 we_t = 0;
-    u32 wf_t = pw_len * 8;
+    u32x w0_t = w0lr;
+    u32x w1_t = w0[1];
+    u32x w2_t = w0[2];
+    u32x w3_t = w0[3];
+    u32x w4_t = w1[0];
+    u32x w5_t = w1[1];
+    u32x w6_t = w1[2];
+    u32x w7_t = w1[3];
+    u32x w8_t = w2[0];
+    u32x w9_t = w2[1];
+    u32x wa_t = w2[2];
+    u32x wb_t = w2[3];
+    u32x wc_t = w3[0];
+    u32x wd_t = w3[1];
+    u32x we_t = 0;
+    u32x wf_t = pw_len * 8;
 
-    u32 a = SHA1M_A;
-    u32 b = SHA1M_B;
-    u32 c = SHA1M_C;
-    u32 d = SHA1M_D;
-    u32 e = SHA1M_E;
+    u32x a = SHA1M_A;
+    u32x b = SHA1M_B;
+    u32x c = SHA1M_C;
+    u32x d = SHA1M_D;
+    u32x e = SHA1M_E;
 
     #undef K
     #define K SHA1C00
@@ -723,7 +726,7 @@ static void m07600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
      * Prepend salt
      */
 
-    u32 w0t[4];
+    u32x w0t[4];
 
     w0t[0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
            | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
@@ -734,7 +737,7 @@ static void m07600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w0t[3] = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
            | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
 
-    u32 w1t[4];
+    u32x w1t[4];
 
     w1t[0] = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
            | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
@@ -745,7 +748,7 @@ static void m07600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w1t[3] = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
            | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
 
-    u32 w2t[2];
+    u32x w2t[2];
 
     w2t[0] = uint_to_hex_lower8 ((e >> 24) & 255) <<  0
            | uint_to_hex_lower8 ((e >> 16) & 255) << 16;
@@ -900,11 +903,11 @@ static void m07600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     d += SHA1M_D;
     e += SHA1M_E;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
-    u32 r_e = e;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
+    u32x r_e = e;
 
     // 2nd transform
 
@@ -1027,12 +1030,7 @@ static void m07600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     d += r_d;
     e += r_e;
 
-    const u32 r0 = d;
-    const u32 r1 = e;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (d, e, c, b);
   }
 }
 

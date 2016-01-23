@@ -68,7 +68,7 @@ __kernel void m04900_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
+    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
 
   /**
@@ -145,7 +145,7 @@ __kernel void m04900_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
 
     u32 w0_t[4];
@@ -180,7 +180,7 @@ __kernel void m04900_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * prepend salt
      */
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
 
     w0_t[0] |= salt_buf0[0];
     w0_t[1] |= salt_buf0[1];
@@ -231,7 +231,7 @@ __kernel void m04900_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     s3[2] = 0;
     s3[3] = 0;
 
-    switch_buffer_by_offset (s0, s1, s2, s3, salt_len + pw_len);
+    switch_buffer_by_offset_le (s0, s1, s2, s3, salt_len + pw_len);
 
     w0_t[0] |= s0[0];
     w0_t[1] |= s0[1];
@@ -442,7 +442,7 @@ __kernel void m04900_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
+    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
 
   /**
@@ -537,7 +537,7 @@ __kernel void m04900_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
 
     u32 w0_t[4];
@@ -572,7 +572,7 @@ __kernel void m04900_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * prepend salt
      */
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
 
     w0_t[0] |= salt_buf0[0];
     w0_t[1] |= salt_buf0[1];
@@ -623,7 +623,7 @@ __kernel void m04900_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     s3[2] = 0;
     s3[3] = 0;
 
-    switch_buffer_by_offset (s0, s1, s2, s3, salt_len + pw_len);
+    switch_buffer_by_offset_le (s0, s1, s2, s3, salt_len + pw_len);
 
     w0_t[0] |= s0[0];
     w0_t[1] |= s0[1];

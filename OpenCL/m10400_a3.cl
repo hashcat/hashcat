@@ -303,7 +303,7 @@ static void m10400m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
     w3_t[2] = 0;
     w3_t[3] = 0;
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, pw_len);
+    switch_buffer_by_offset_le_S (w0_t, w1_t, w2_t, w3_t, pw_len);
 
     // add password
     // truncate at 32 is wanted, not a bug!
@@ -461,7 +461,7 @@ static void m10400s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
     w3_t[2] = 0;
     w3_t[3] = 0;
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, pw_len);
+    switch_buffer_by_offset_le_S (w0_t, w1_t, w2_t, w3_t, pw_len);
 
     // add password
     // truncate at 32 is wanted, not a bug!

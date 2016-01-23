@@ -5,6 +5,8 @@
 
 #define _SHA1_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,9 +18,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 static void m04900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
@@ -67,7 +67,7 @@ static void m04900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   // first we need to switch the right-hand salt to the correct position (2nd salt)
 
-  switch_buffer_by_offset (salt_buf0_t, salt_buf1_t, salt_buf2_t, salt_buf3_t, salt_len + pw_len);
+  switch_buffer_by_offset_le_S (salt_buf0_t, salt_buf1_t, salt_buf2_t, salt_buf3_t, salt_len + pw_len);
 
   u32 salt_buf0[4];
 
@@ -119,7 +119,7 @@ static void m04900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   salt_buf3[2] |= salt_buf3_t[2];
   salt_buf3[3] |= salt_buf3_t[3];
 
-  append_0x80_4x4 (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_salt_len);
+  append_0x80_4x4_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_salt_len);
 
   /**
    * loop
@@ -127,34 +127,34 @@ static void m04900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 w0_t[4];
+    u32x w0_t[4];
 
-    w0_t[0] = w0[0];
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
 
-    u32 w1_t[4];
+    u32x w1_t[4];
 
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
 
-    u32 w2_t[4];
+    u32x w2_t[4];
 
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
 
-    u32 w3_t[4];
+    u32x w3_t[4];
 
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
@@ -165,7 +165,7 @@ static void m04900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
      * put the password after the first salt but before the second salt
      */
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
 
     w0_t[0] |= salt_buf0[0];
     w0_t[1] |= salt_buf0[1];
@@ -183,32 +183,32 @@ static void m04900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[1] |= salt_buf3[1];
     w3_t[2] |= salt_buf3[2];
 
-    u32 w0 = swap32 (w0_t[0]);
-    u32 w1 = swap32 (w0_t[1]);
-    u32 w2 = swap32 (w0_t[2]);
-    u32 w3 = swap32 (w0_t[3]);
-    u32 w4 = swap32 (w1_t[0]);
-    u32 w5 = swap32 (w1_t[1]);
-    u32 w6 = swap32 (w1_t[2]);
-    u32 w7 = swap32 (w1_t[3]);
-    u32 w8 = swap32 (w2_t[0]);
-    u32 w9 = swap32 (w2_t[1]);
-    u32 wa = swap32 (w2_t[2]);
-    u32 wb = swap32 (w2_t[3]);
-    u32 wc = swap32 (w3_t[0]);
-    u32 wd = swap32 (w3_t[1]);
-    u32 we = swap32 (w3_t[2]);
-    u32 wf = pw_salt_len * 8;
+    u32x w0 = swap32 (w0_t[0]);
+    u32x w1 = swap32 (w0_t[1]);
+    u32x w2 = swap32 (w0_t[2]);
+    u32x w3 = swap32 (w0_t[3]);
+    u32x w4 = swap32 (w1_t[0]);
+    u32x w5 = swap32 (w1_t[1]);
+    u32x w6 = swap32 (w1_t[2]);
+    u32x w7 = swap32 (w1_t[3]);
+    u32x w8 = swap32 (w2_t[0]);
+    u32x w9 = swap32 (w2_t[1]);
+    u32x wa = swap32 (w2_t[2]);
+    u32x wb = swap32 (w2_t[3]);
+    u32x wc = swap32 (w3_t[0]);
+    u32x wd = swap32 (w3_t[1]);
+    u32x we = swap32 (w3_t[2]);
+    u32x wf = pw_salt_len * 8;
 
     /**
      * sha1
      */
 
-    u32 a = SHA1M_A;
-    u32 b = SHA1M_B;
-    u32 c = SHA1M_C;
-    u32 d = SHA1M_D;
-    u32 e = SHA1M_E;
+    u32x a = SHA1M_A;
+    u32x b = SHA1M_B;
+    u32x c = SHA1M_C;
+    u32x d = SHA1M_D;
+    u32x e = SHA1M_E;
 
     #undef K
     #define K SHA1C00
@@ -306,12 +306,7 @@ static void m04900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     we = rotl32 ((wb ^ w6 ^ w0 ^ we), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we);
     wf = rotl32 ((wc ^ w7 ^ w1 ^ wf), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf);
 
-    const u32 r0 = d;
-    const u32 r1 = e;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (d, e, c, b);
   }
 }
 
@@ -340,7 +335,7 @@ static void m04900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    * reverse
    */
 
-  const u32 e_rev = rotl32 (search[1], 2u);
+  const u32 e_rev = rotl32_S (search[1], 2u);
 
   /**
    * salt
@@ -380,7 +375,7 @@ static void m04900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   // first we need to switch the right-hand salt to the correct position (2nd salt)
 
-  switch_buffer_by_offset (salt_buf0_t, salt_buf1_t, salt_buf2_t, salt_buf3_t, salt_len + pw_len);
+  switch_buffer_by_offset_le_S (salt_buf0_t, salt_buf1_t, salt_buf2_t, salt_buf3_t, salt_len + pw_len);
 
   u32 salt_buf0[4];
 
@@ -432,7 +427,7 @@ static void m04900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   salt_buf3[2] |= salt_buf3_t[2];
   salt_buf3[3] |= salt_buf3_t[3];
 
-  append_0x80_4x4 (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_salt_len);
+  append_0x80_4x4_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_salt_len);
 
   /**
    * loop
@@ -440,34 +435,34 @@ static void m04900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 w0_t[4];
+    u32x w0_t[4];
 
-    w0_t[0] = w0[0];
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
 
-    u32 w1_t[4];
+    u32x w1_t[4];
 
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
 
-    u32 w2_t[4];
+    u32x w2_t[4];
 
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
 
-    u32 w3_t[4];
+    u32x w3_t[4];
 
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
@@ -478,7 +473,7 @@ static void m04900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
      * put the password after the first salt but before the second salt
      */
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
 
     w0_t[0] |= salt_buf0[0];
     w0_t[1] |= salt_buf0[1];
@@ -496,32 +491,32 @@ static void m04900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[1] |= salt_buf3[1];
     w3_t[2] |= salt_buf3[2];
 
-    u32 w0 = swap32 (w0_t[0]);
-    u32 w1 = swap32 (w0_t[1]);
-    u32 w2 = swap32 (w0_t[2]);
-    u32 w3 = swap32 (w0_t[3]);
-    u32 w4 = swap32 (w1_t[0]);
-    u32 w5 = swap32 (w1_t[1]);
-    u32 w6 = swap32 (w1_t[2]);
-    u32 w7 = swap32 (w1_t[3]);
-    u32 w8 = swap32 (w2_t[0]);
-    u32 w9 = swap32 (w2_t[1]);
-    u32 wa = swap32 (w2_t[2]);
-    u32 wb = swap32 (w2_t[3]);
-    u32 wc = swap32 (w3_t[0]);
-    u32 wd = swap32 (w3_t[1]);
-    u32 we = swap32 (w3_t[2]);
-    u32 wf = pw_salt_len * 8;
+    u32x w0 = swap32 (w0_t[0]);
+    u32x w1 = swap32 (w0_t[1]);
+    u32x w2 = swap32 (w0_t[2]);
+    u32x w3 = swap32 (w0_t[3]);
+    u32x w4 = swap32 (w1_t[0]);
+    u32x w5 = swap32 (w1_t[1]);
+    u32x w6 = swap32 (w1_t[2]);
+    u32x w7 = swap32 (w1_t[3]);
+    u32x w8 = swap32 (w2_t[0]);
+    u32x w9 = swap32 (w2_t[1]);
+    u32x wa = swap32 (w2_t[2]);
+    u32x wb = swap32 (w2_t[3]);
+    u32x wc = swap32 (w3_t[0]);
+    u32x wd = swap32 (w3_t[1]);
+    u32x we = swap32 (w3_t[2]);
+    u32x wf = pw_salt_len * 8;
 
     /**
      * sha1
      */
 
-    u32 a = SHA1M_A;
-    u32 b = SHA1M_B;
-    u32 c = SHA1M_C;
-    u32 d = SHA1M_D;
-    u32 e = SHA1M_E;
+    u32x a = SHA1M_A;
+    u32x b = SHA1M_B;
+    u32x c = SHA1M_C;
+    u32x d = SHA1M_D;
+    u32x e = SHA1M_E;
 
     #undef K
     #define K SHA1C00
@@ -615,19 +610,14 @@ static void m04900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     wa = rotl32 ((w7 ^ w2 ^ wc ^ wa), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wa);
     wb = rotl32 ((w8 ^ w3 ^ wd ^ wb), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wb);
 
-    if (allx (e != e_rev)) continue;
+    if (MATCHES_NONE_VS (e, e_rev)) continue;
 
     wc = rotl32 ((w9 ^ w4 ^ we ^ wc), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wc);
     wd = rotl32 ((wa ^ w5 ^ wf ^ wd), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wd);
     we = rotl32 ((wb ^ w6 ^ w0 ^ we), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we);
     wf = rotl32 ((wc ^ w7 ^ w1 ^ wf), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf);
 
-    const u32 r0 = d;
-    const u32 r1 = e;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (d, e, c, b);
   }
 }
 

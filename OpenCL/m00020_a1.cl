@@ -68,7 +68,7 @@ __kernel void m00020_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
+    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
 
   /**
@@ -125,7 +125,7 @@ __kernel void m00020_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
 
     u32 w0[4];
@@ -178,7 +178,7 @@ __kernel void m00020_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w3_t[2] = w3[2];
     w3_t[3] = w3[3];
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
 
     w0_t[0] |= salt_buf0[0];
     w0_t[1] |= salt_buf0[1];
@@ -338,7 +338,7 @@ __kernel void m00020_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
+    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
 
   /**
@@ -407,7 +407,7 @@ __kernel void m00020_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
 
     u32 w0[4];
@@ -460,7 +460,7 @@ __kernel void m00020_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w3_t[2] = w3[2];
     w3_t[3] = w3[3];
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
 
     w3_t[2] = pw_salt_len * 8;
 

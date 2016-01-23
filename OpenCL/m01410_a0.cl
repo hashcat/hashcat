@@ -142,7 +142,7 @@ __kernel void m01410_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     s3[2] = 0;
     s3[3] = 0;
 
-    switch_buffer_by_offset (s0, s1, s2, s3, out_len);
+    switch_buffer_by_offset_le (s0, s1, s2, s3, out_len);
 
     const u32 out_salt_len = out_len + salt_len;
 
@@ -416,7 +416,7 @@ __kernel void m01410_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     s3[2] = 0;
     s3[3] = 0;
 
-    switch_buffer_by_offset (s0, s1, s2, s3, out_len);
+    switch_buffer_by_offset_le (s0, s1, s2, s3, out_len);
 
     const u32 out_salt_len = out_len + salt_len;
 

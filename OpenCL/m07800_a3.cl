@@ -254,7 +254,7 @@ static void m07800m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   s3[2] = 0;
   s3[3] = 0;
 
-  switch_buffer_by_offset (s0, s1, s2, s3, pw_len);
+  switch_buffer_by_offset_le (s0, s1, s2, s3, pw_len);
 
   const u32 pw_salt_len = pw_len + salt_len;
 
@@ -473,7 +473,7 @@ static void m07800s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   s3[2] = 0;
   s3[3] = 0;
 
-  switch_buffer_by_offset (s0, s1, s2, s3, pw_len);
+  switch_buffer_by_offset_le (s0, s1, s2, s3, pw_len);
 
   const u32 pw_salt_len = pw_len + salt_len;
 

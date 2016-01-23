@@ -358,7 +358,7 @@ __kernel void m10400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w3_t[2] = 0;
     w3_t[3] = 0;
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, pw_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, pw_len);
 
     // add password
     // truncate at 32 is wanted, not a bug!
@@ -577,7 +577,7 @@ __kernel void m10400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w3_t[2] = 0;
     w3_t[3] = 0;
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, pw_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, pw_len);
 
     // add password
     // truncate at 32 is wanted, not a bug!

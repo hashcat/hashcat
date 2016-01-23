@@ -5,6 +5,8 @@
 
 #define _GOST_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,9 +18,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 __constant u32 c_tables[4][256] =
 {
@@ -288,11 +288,19 @@ __constant u32 c_tables[4][256] =
   }
 };
 
+#if   VECT_SIZE == 1
 #define BOX(i,n,S) (S)[(n)][(i)]
+#elif VECT_SIZE == 2
+#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
+#elif VECT_SIZE == 4
+#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
+#elif VECT_SIZE == 8
+#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7])
+#endif
 
 #define round(k1,k2,tbl)                  \
 {                                         \
-  u32 t;                                  \
+  u32x t;                                 \
   t = (k1) + r;                           \
   l ^= BOX (((t >>  0) & 0xff), 0, tbl) ^ \
        BOX (((t >>  8) & 0xff), 1, tbl) ^ \
@@ -307,8 +315,8 @@ __constant u32 c_tables[4][256] =
 
 #define R(k,h,s,i,t)      \
 {                         \
-  u32 r;                  \
-  u32 l;                  \
+  u32x r;                 \
+  u32x l;                 \
   r = h[i + 0];           \
   l = h[i + 1];           \
   round (k[0], k[1], t);  \
@@ -377,8 +385,8 @@ __constant u32 c_tables[4][256] =
 
 #define A(x)        \
 {                   \
-  u32 l;          \
-  u32 r;          \
+  u32x l;           \
+  u32x r;           \
   l = x[0] ^ x[2];  \
   r = x[1] ^ x[3];  \
   x[0] = x[2];      \
@@ -393,8 +401,8 @@ __constant u32 c_tables[4][256] =
 
 #define AA(x)       \
 {                   \
-  u32 l;          \
-  u32 r;          \
+  u32x l;           \
+  u32x r;           \
   l    = x[0];      \
   r    = x[2];      \
   x[0] = x[4];      \
@@ -652,8 +660,8 @@ __constant u32 c_tables[4][256] =
 
 #define PASS0(h,s,u,v,t)  \
 {                         \
-  u32 k[8];             \
-  u32 w[8];             \
+  u32x k[8];              \
+  u32x w[8];              \
   X (w, u, v);            \
   P (k, w);               \
   R (k, h, s, 0, t);      \
@@ -663,8 +671,8 @@ __constant u32 c_tables[4][256] =
 
 #define PASS2(h,s,u,v,t)  \
 {                         \
-  u32 k[8];             \
-  u32 w[8];             \
+  u32x k[8];              \
+  u32x w[8];              \
   X (w, u, v);            \
   P (k, w);               \
   R (k, h, s, 2, t);      \
@@ -675,8 +683,8 @@ __constant u32 c_tables[4][256] =
 
 #define PASS4(h,s,u,v,t)  \
 {                         \
-  u32 k[8];             \
-  u32 w[8];             \
+  u32x k[8];              \
+  u32x w[8];              \
   X (w, u, v);            \
   P (k, w);               \
   R (k, h, s, 4, t);      \
@@ -686,8 +694,8 @@ __constant u32 c_tables[4][256] =
 
 #define PASS6(h,s,u,v,t)  \
 {                         \
-  u32 k[8];             \
-  u32 w[8];             \
+  u32x k[8];              \
+  u32x w[8];              \
   X (w, u, v);            \
   P (k, w);               \
   R (k, h, s, 6, t);      \
@@ -714,15 +722,15 @@ static void m06900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 data[8];
+    u32x data[8];
 
-    data[0] = w0[0];
+    data[0] = w0lr;
     data[1] = w0[1];
     data[2] = w0[2];
     data[3] = w0[3];
@@ -731,7 +739,7 @@ static void m06900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     data[6] = w1[2];
     data[7] = w1[3];
 
-    u32 state[16];
+    u32x state[16];
 
     state[ 0] = 0;
     state[ 1] = 0;
@@ -750,8 +758,8 @@ static void m06900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     state[14] = data[6];
     state[15] = data[7];
 
-    u32 state_m[8];
-    u32 data_m[8];
+    u32x state_m[8];
+    u32x data_m[8];
 
     /* gost1 */
 
@@ -773,7 +781,7 @@ static void m06900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     data_m[6] = data[6];
     data_m[7] = data[7];
 
-    u32 tmp[8];
+    u32x tmp[8];
 
     if (pw_len > 0)
     {
@@ -865,14 +873,10 @@ static void m06900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     /* store */
 
-    const u32 r0 = state[0];
-    const u32 r1 = state[1];
-    const u32 r2 = state[2];
-    const u32 r3 = state[3];
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (state[0], state[1], state[2], state[3]);
   }
 }
+
 static void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 s_tables[4][256])
 {
   /**
@@ -906,15 +910,15 @@ static void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 data[8];
+    u32x data[8];
 
-    data[0] = w0[0];
+    data[0] = w0lr;
     data[1] = w0[1];
     data[2] = w0[2];
     data[3] = w0[3];
@@ -923,7 +927,7 @@ static void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     data[6] = w1[2];
     data[7] = w1[3];
 
-    u32 state[16];
+    u32x state[16];
 
     state[ 0] = 0;
     state[ 1] = 0;
@@ -942,8 +946,8 @@ static void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     state[14] = data[6];
     state[15] = data[7];
 
-    u32 state_m[8];
-    u32 data_m[8];
+    u32x state_m[8];
+    u32x data_m[8];
 
     /* gost1 */
 
@@ -965,7 +969,7 @@ static void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     data_m[6] = data[6];
     data_m[7] = data[7];
 
-    u32 tmp[8];
+    u32x tmp[8];
 
     if (pw_len > 0)
     {
@@ -1057,12 +1061,7 @@ static void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     /* store */
 
-    const u32 r0 = state[0];
-    const u32 r1 = state[1];
-    const u32 r2 = state[2];
-    const u32 r3 = state[3];
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (state[0], state[1], state[2], state[3]);
   }
 }
 

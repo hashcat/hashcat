@@ -128,7 +128,7 @@ __kernel void m02410_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     s3[2] = 0;
     s3[3] = 0;
 
-    switch_buffer_by_offset (s0, s1, s2, s3, out_len);
+    switch_buffer_by_offset_le (s0, s1, s2, s3, out_len);
 
     w0[0] |= s0[0];
     w0[1] |= s0[1];
@@ -357,7 +357,7 @@ __kernel void m02410_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     s3[2] = 0;
     s3[3] = 0;
 
-    switch_buffer_by_offset (s0, s1, s2, s3, out_len);
+    switch_buffer_by_offset_le (s0, s1, s2, s3, out_len);
 
     w0[0] |= s0[0];
     w0[1] |= s0[1];

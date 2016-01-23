@@ -5,6 +5,8 @@
 
 #define _MD5_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,13 +18,19 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
+#include "OpenCL/simd.c"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#if   VECT_SIZE == 1
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i)])
+#elif VECT_SIZE == 2
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
+#elif VECT_SIZE == 4
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
+#elif VECT_SIZE == 8
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#endif
 
-#define uint_to_hex_lower8(i) l_bin2asc[(i)]
-
-static u32 memcat32 (u32 block0[16], u32 block1[16], const u32 block_len, const u32 append0[4], const u32 append1[4], const u32 append2[4], const u32 append3[4], const u32 append_len)
+static u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x append0[4], const u32x append1[4], const u32x append2[4], const u32x append3[4], const u32 append_len)
 {
   const u32 mod = block_len & 3;
   const u32 div = block_len / 4;
@@ -30,35 +38,35 @@ static u32 memcat32 (u32 block0[16], u32 block1[16], const u32 block_len, const 
   #if defined IS_AMD || defined IS_GENERIC
   const int offset_minus_4 = 4 - mod;
 
-  u32 append0_t[4];
+  u32x append0_t[4];
 
   append0_t[0] = amd_bytealign (append0[0],          0, offset_minus_4);
   append0_t[1] = amd_bytealign (append0[1], append0[0], offset_minus_4);
   append0_t[2] = amd_bytealign (append0[2], append0[1], offset_minus_4);
   append0_t[3] = amd_bytealign (append0[3], append0[2], offset_minus_4);
 
-  u32 append1_t[4];
+  u32x append1_t[4];
 
   append1_t[0] = amd_bytealign (append1[0], append0[3], offset_minus_4);
   append1_t[1] = amd_bytealign (append1[1], append1[0], offset_minus_4);
   append1_t[2] = amd_bytealign (append1[2], append1[1], offset_minus_4);
   append1_t[3] = amd_bytealign (append1[3], append1[2], offset_minus_4);
 
-  u32 append2_t[4];
+  u32x append2_t[4];
 
   append2_t[0] = amd_bytealign (append2[0], append1[3], offset_minus_4);
   append2_t[1] = amd_bytealign (append2[1], append2[0], offset_minus_4);
   append2_t[2] = amd_bytealign (append2[2], append2[1], offset_minus_4);
   append2_t[3] = amd_bytealign (append2[3], append2[2], offset_minus_4);
 
-  u32 append3_t[4];
+  u32x append3_t[4];
 
   append3_t[0] = amd_bytealign (append3[0], append2[3], offset_minus_4);
   append3_t[1] = amd_bytealign (append3[1], append3[0], offset_minus_4);
   append3_t[2] = amd_bytealign (append3[2], append3[1], offset_minus_4);
   append3_t[3] = amd_bytealign (append3[3], append3[2], offset_minus_4);
 
-  u32 append4_t[4];
+  u32x append4_t[4];
 
   append4_t[0] = amd_bytealign (         0, append3[3], offset_minus_4);
   append4_t[1] = 0;
@@ -100,35 +108,35 @@ static u32 memcat32 (u32 block0[16], u32 block1[16], const u32 block_len, const 
 
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
-  u32 append0_t[4];
+  u32x append0_t[4];
 
   append0_t[0] = __byte_perm (         0, append0[0], selector);
   append0_t[1] = __byte_perm (append0[0], append0[1], selector);
   append0_t[2] = __byte_perm (append0[1], append0[2], selector);
   append0_t[3] = __byte_perm (append0[2], append0[3], selector);
 
-  u32 append1_t[4];
+  u32x append1_t[4];
 
   append1_t[0] = __byte_perm (append0[3], append1[0], selector);
   append1_t[1] = __byte_perm (append1[0], append1[1], selector);
   append1_t[2] = __byte_perm (append1[1], append1[2], selector);
   append1_t[3] = __byte_perm (append1[2], append1[3], selector);
 
-  u32 append2_t[4];
+  u32x append2_t[4];
 
   append2_t[0] = __byte_perm (append1[3], append2[0], selector);
   append2_t[1] = __byte_perm (append2[0], append2[1], selector);
   append2_t[2] = __byte_perm (append2[1], append2[2], selector);
   append2_t[3] = __byte_perm (append2[2], append2[3], selector);
 
-  u32 append3_t[4];
+  u32x append3_t[4];
 
   append3_t[0] = __byte_perm (append2[3], append3[0], selector);
   append3_t[1] = __byte_perm (append3[0], append3[1], selector);
   append3_t[2] = __byte_perm (append3[1], append3[2], selector);
   append3_t[3] = __byte_perm (append3[2], append3[3], selector);
 
-  u32 append4_t[4];
+  u32x append4_t[4];
 
   append4_t[0] = __byte_perm (append3[3],          0, selector);
   append4_t[1] = 0;
@@ -862,11 +870,11 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /*
      * HA1 = md5 ($salt . $pass)
@@ -874,7 +882,7 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // append the pass to the salt
 
-    u32 block0[16];
+    u32x block0[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -893,7 +901,7 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
 
-    u32 block1[16];
+    u32x block1[16];
 
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
@@ -912,30 +920,47 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block1[14] = salt_buf1[14];
     block1[15] = salt_buf1[15];
 
-    memcat32 (block0, block1, salt_len, w0, w1, w2, w3, pw_len);
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    u32 w0_t[4];
+    w0_t[0] = w0lr;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
+
+    memcat32 (block0, block1, salt_len, w0_t, w1_t, w2_t, w3_t, pw_len);
 
     w0_t[0] = block0[ 0];
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
 
-    u32 w1_t[4];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
 
-    u32 w2_t[4];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
-    u32 w3_t[4];
 
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
@@ -944,12 +969,12 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // md5
 
-    u32 tmp2;
+    u32x tmp2;
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0_t[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0_t[1], MD5C01, MD5S01);
@@ -1137,10 +1162,10 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += MD5M_C;
     d += MD5M_D;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
 
     // 2nd transform
 
@@ -1237,12 +1262,7 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += r_c;
     d += r_d;
 
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, d, c, b);
   }
 }
 
@@ -1384,11 +1404,11 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /*
      * HA1 = md5 ($salt . $pass)
@@ -1396,7 +1416,7 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // append the pass to the salt
 
-    u32 block0[16];
+    u32x block0[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -1415,7 +1435,7 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
 
-    u32 block1[16];
+    u32x block1[16];
 
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
@@ -1434,30 +1454,47 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block1[14] = salt_buf1[14];
     block1[15] = salt_buf1[15];
 
-    memcat32 (block0, block1, salt_len, w0, w1, w2, w3, pw_len);
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    u32 w0_t[4];
+    w0_t[0] = w0lr;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
+
+    memcat32 (block0, block1, salt_len, w0_t, w1_t, w2_t, w3_t, pw_len);
 
     w0_t[0] = block0[ 0];
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
 
-    u32 w1_t[4];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
 
-    u32 w2_t[4];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
-    u32 w3_t[4];
 
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
@@ -1466,12 +1503,12 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // md5
 
-    u32 tmp2;
+    u32x tmp2;
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0_t[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0_t[1], MD5C01, MD5S01);
@@ -1659,10 +1696,10 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += MD5M_C;
     d += MD5M_D;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
 
     // 2nd transform
 
@@ -1859,12 +1896,7 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += r_c;
     d += r_d;
 
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, d, c, b);
   }
 }
 
@@ -1987,11 +2019,11 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /*
      * HA1 = md5 ($salt . $pass)
@@ -1999,7 +2031,7 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // append the pass to the salt
 
-    u32 block0[16];
+    u32x block0[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -2018,7 +2050,7 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
 
-    u32 block1[16];
+    u32x block1[16];
 
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
@@ -2037,30 +2069,47 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block1[14] = salt_buf1[14];
     block1[15] = salt_buf1[15];
 
-    memcat32 (block0, block1, salt_len, w0, w1, w2, w3, pw_len);
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    u32 w0_t[4];
+    w0_t[0] = w0lr;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
+
+    memcat32 (block0, block1, salt_len, w0_t, w1_t, w2_t, w3_t, pw_len);
 
     w0_t[0] = block0[ 0];
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
 
-    u32 w1_t[4];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
 
-    u32 w2_t[4];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
-    u32 w3_t[4];
 
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
@@ -2069,12 +2118,12 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // md5
 
-    u32 tmp2;
+    u32x tmp2;
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0_t[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0_t[1], MD5C01, MD5S01);
@@ -2149,10 +2198,10 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += MD5M_C;
     d += MD5M_D;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
 
     w0_t[0] = block1[ 0];
     w0_t[1] = block1[ 1];
@@ -2460,12 +2509,7 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += r_c;
     d += r_d;
 
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, d, c, b);
   }
 }
 
@@ -2607,11 +2651,11 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /*
      * HA1 = md5 ($salt . $pass)
@@ -2619,7 +2663,7 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // append the pass to the salt
 
-    u32 block0[16];
+    u32x block0[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -2657,30 +2701,47 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block1[14] = salt_buf1[14];
     block1[15] = salt_buf1[15];
 
-    memcat32 (block0, block1, salt_len, w0, w1, w2, w3, pw_len);
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    u32 w0_t[4];
+    w0_t[0] = w0lr;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
+
+    memcat32 (block0, block1, salt_len, w0_t, w1_t, w2_t, w3_t, pw_len);
 
     w0_t[0] = block0[ 0];
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
 
-    u32 w1_t[4];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
 
-    u32 w2_t[4];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
-    u32 w3_t[4];
 
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
@@ -2689,12 +2750,12 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // md5
 
-    u32 tmp2;
+    u32x tmp2;
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0_t[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0_t[1], MD5C01, MD5S01);
@@ -2769,10 +2830,10 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += MD5M_C;
     d += MD5M_D;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
 
     w0_t[0] = block1[ 0];
     w0_t[1] = block1[ 1];
@@ -3180,12 +3241,7 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += r_c;
     d += r_d;
 
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, d, c, b);
   }
 }
 
@@ -3308,11 +3364,11 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /*
      * HA1 = md5 ($salt . $pass)
@@ -3320,7 +3376,7 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // append the pass to the salt
 
-    u32 block0[16];
+    u32x block0[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -3339,7 +3395,7 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
 
-    u32 block1[16];
+    u32x block1[16];
 
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
@@ -3358,30 +3414,47 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block1[14] = salt_buf1[14];
     block1[15] = salt_buf1[15];
 
-    memcat32 (block0, block1, salt_len, w0, w1, w2, w3, pw_len);
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    u32 w0_t[4];
+    w0_t[0] = w0lr;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
+
+    memcat32 (block0, block1, salt_len, w0_t, w1_t, w2_t, w3_t, pw_len);
 
     w0_t[0] = block0[ 0];
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
 
-    u32 w1_t[4];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
 
-    u32 w2_t[4];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
-    u32 w3_t[4];
 
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
@@ -3390,12 +3463,12 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // md5
 
-    u32 tmp2;
+    u32x tmp2;
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0_t[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0_t[1], MD5C01, MD5S01);
@@ -3583,10 +3656,10 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += MD5M_C;
     d += MD5M_D;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
 
     // 2nd transform
 
@@ -3683,12 +3756,7 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += r_c;
     d += r_d;
 
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, d, c, b);
   }
 }
 
@@ -3830,11 +3898,11 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /*
      * HA1 = md5 ($salt . $pass)
@@ -3842,7 +3910,7 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // append the pass to the salt
 
-    u32 block0[16];
+    u32x block0[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -3861,7 +3929,7 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
 
-    u32 block1[16];
+    u32x block1[16];
 
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
@@ -3880,30 +3948,47 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block1[14] = salt_buf1[14];
     block1[15] = salt_buf1[15];
 
-    memcat32 (block0, block1, salt_len, w0, w1, w2, w3, pw_len);
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    u32 w0_t[4];
+    w0_t[0] = w0lr;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
+
+    memcat32 (block0, block1, salt_len, w0_t, w1_t, w2_t, w3_t, pw_len);
 
     w0_t[0] = block0[ 0];
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
 
-    u32 w1_t[4];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
 
-    u32 w2_t[4];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
-    u32 w3_t[4];
 
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
@@ -3912,12 +3997,12 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // md5
 
-    u32 tmp2;
+    u32x tmp2;
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0_t[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0_t[1], MD5C01, MD5S01);
@@ -4105,10 +4190,10 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += MD5M_C;
     d += MD5M_D;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
 
     // 2nd transform
 
@@ -4305,12 +4390,7 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += r_c;
     d += r_d;
 
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, d, c, b);
   }
 }
 
@@ -4433,11 +4513,11 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /*
      * HA1 = md5 ($salt . $pass)
@@ -4445,7 +4525,7 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // append the pass to the salt
 
-    u32 block0[16];
+    u32x block0[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -4464,7 +4544,7 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
 
-    u32 block1[16];
+    u32x block1[16];
 
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
@@ -4483,30 +4563,47 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block1[14] = salt_buf1[14];
     block1[15] = salt_buf1[15];
 
-    memcat32 (block0, block1, salt_len, w0, w1, w2, w3, pw_len);
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    u32 w0_t[4];
+    w0_t[0] = w0lr;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
+
+    memcat32 (block0, block1, salt_len, w0_t, w1_t, w2_t, w3_t, pw_len);
 
     w0_t[0] = block0[ 0];
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
 
-    u32 w1_t[4];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
 
-    u32 w2_t[4];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
-    u32 w3_t[4];
 
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
@@ -4515,12 +4612,12 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // md5
 
-    u32 tmp2;
+    u32x tmp2;
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0_t[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0_t[1], MD5C01, MD5S01);
@@ -4595,10 +4692,10 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += MD5M_C;
     d += MD5M_D;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
 
     w0_t[0] = block1[ 0];
     w0_t[1] = block1[ 1];
@@ -4906,12 +5003,7 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += r_c;
     d += r_d;
 
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, d, c, b);
   }
 }
 
@@ -5053,11 +5145,11 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     /*
      * HA1 = md5 ($salt . $pass)
@@ -5065,7 +5157,7 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // append the pass to the salt
 
-    u32 block0[16];
+    u32x block0[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -5084,7 +5176,7 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
 
-    u32 block1[16];
+    u32x block1[16];
 
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
@@ -5103,30 +5195,47 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block1[14] = salt_buf1[14];
     block1[15] = salt_buf1[15];
 
-    memcat32 (block0, block1, salt_len, w0, w1, w2, w3, pw_len);
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    u32 w0_t[4];
+    w0_t[0] = w0lr;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
+
+    memcat32 (block0, block1, salt_len, w0_t, w1_t, w2_t, w3_t, pw_len);
 
     w0_t[0] = block0[ 0];
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
 
-    u32 w1_t[4];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
 
-    u32 w2_t[4];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
-    u32 w3_t[4];
 
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
@@ -5135,12 +5244,12 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
 
     // md5
 
-    u32 tmp2;
+    u32x tmp2;
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0_t[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0_t[1], MD5C01, MD5S01);
@@ -5215,10 +5324,10 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += MD5M_C;
     d += MD5M_D;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
 
     w0_t[0] = block1[ 0];
     w0_t[1] = block1[ 1];
@@ -5626,12 +5735,7 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += r_c;
     d += r_d;
 
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, d, c, b);
   }
 }
 

@@ -5,6 +5,8 @@
 
 #define _SHA512_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,9 +18,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 __constant u64 k_sha512[80] =
 {
@@ -44,33 +44,33 @@ __constant u64 k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-static void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
+static void sha512_transform (const u64x w0[4], const u64x w1[4], const u64x w2[4], const u64x w3[4], u64x digest[8])
 {
-  u64 w0_t = w0[0];
-  u64 w1_t = w0[1];
-  u64 w2_t = w0[2];
-  u64 w3_t = w0[3];
-  u64 w4_t = w1[0];
-  u64 w5_t = w1[1];
-  u64 w6_t = w1[2];
-  u64 w7_t = w1[3];
-  u64 w8_t = w2[0];
-  u64 w9_t = w2[1];
-  u64 wa_t = w2[2];
-  u64 wb_t = w2[3];
-  u64 wc_t = w3[0];
-  u64 wd_t = w3[1];
-  u64 we_t = w3[2];
-  u64 wf_t = w3[3];
+  u64x w0_t = w0[0];
+  u64x w1_t = w0[1];
+  u64x w2_t = w0[2];
+  u64x w3_t = w0[3];
+  u64x w4_t = w1[0];
+  u64x w5_t = w1[1];
+  u64x w6_t = w1[2];
+  u64x w7_t = w1[3];
+  u64x w8_t = w2[0];
+  u64x w9_t = w2[1];
+  u64x wa_t = w2[2];
+  u64x wb_t = w2[3];
+  u64x wc_t = w3[0];
+  u64x wd_t = w3[1];
+  u64x we_t = w3[2];
+  u64x wf_t = w3[3];
 
-  u64 a = digest[0];
-  u64 b = digest[1];
-  u64 c = digest[2];
-  u64 d = digest[3];
-  u64 e = digest[4];
-  u64 f = digest[5];
-  u64 g = digest[6];
-  u64 h = digest[7];
+  u64x a = digest[0];
+  u64x b = digest[1];
+  u64x c = digest[2];
+  u64x d = digest[3];
+  u64x e = digest[4];
+  u64x f = digest[5];
+  u64x g = digest[6];
+  u64x h = digest[7];
 
   #define ROUND_EXPAND()                            \
   {                                                 \
@@ -130,12 +130,12 @@ static void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4],
   digest[7] += h;
 }
 
-static void hmac_sha512_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u64 ipad[8], u64 opad[8])
+static void hmac_sha512_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u64x ipad[8], u64x opad[8])
 {
-  u64 w0_t[4];
-  u64 w1_t[4];
-  u64 w2_t[4];
-  u64 w3_t[4];
+  u64x w0_t[4];
+  u64x w1_t[4];
+  u64x w2_t[4];
+  u64x w3_t[4];
 
   w0_t[0] = hl32_to_64 (w0[0], w0[1]) ^ 0x3636363636363636;
   w0_t[1] = hl32_to_64 (w0[2], w0[3]) ^ 0x3636363636363636;
@@ -145,14 +145,14 @@ static void hmac_sha512_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u64 ipa
   w1_t[1] = hl32_to_64 (w2[2], w2[3]) ^ 0x3636363636363636;
   w1_t[2] = hl32_to_64 (w3[0], w3[1]) ^ 0x3636363636363636;
   w1_t[3] = hl32_to_64 (w3[2], w3[3]) ^ 0x3636363636363636;
-  w2_t[0] =                                 0 ^ 0x3636363636363636;
-  w2_t[1] =                                 0 ^ 0x3636363636363636;
-  w2_t[2] =                                 0 ^ 0x3636363636363636;
-  w2_t[3] =                                 0 ^ 0x3636363636363636;
-  w3_t[0] =                                 0 ^ 0x3636363636363636;
-  w3_t[1] =                                 0 ^ 0x3636363636363636;
-  w3_t[2] =                                 0 ^ 0x3636363636363636;
-  w3_t[3] =                                 0 ^ 0x3636363636363636;
+  w2_t[0] =                             0x3636363636363636;
+  w2_t[1] =                             0x3636363636363636;
+  w2_t[2] =                             0x3636363636363636;
+  w2_t[3] =                             0x3636363636363636;
+  w3_t[0] =                             0x3636363636363636;
+  w3_t[1] =                             0x3636363636363636;
+  w3_t[2] =                             0x3636363636363636;
+  w3_t[3] =                             0x3636363636363636;
 
   ipad[0] = SHA512M_A;
   ipad[1] = SHA512M_B;
@@ -173,14 +173,14 @@ static void hmac_sha512_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u64 ipa
   w1_t[1] = hl32_to_64 (w2[2], w2[3]) ^ 0x5c5c5c5c5c5c5c5c;
   w1_t[2] = hl32_to_64 (w3[0], w3[1]) ^ 0x5c5c5c5c5c5c5c5c;
   w1_t[3] = hl32_to_64 (w3[2], w3[3]) ^ 0x5c5c5c5c5c5c5c5c;
-  w2_t[0] =                                 0 ^ 0x5c5c5c5c5c5c5c5c;
-  w2_t[1] =                                 0 ^ 0x5c5c5c5c5c5c5c5c;
-  w2_t[2] =                                 0 ^ 0x5c5c5c5c5c5c5c5c;
-  w2_t[3] =                                 0 ^ 0x5c5c5c5c5c5c5c5c;
-  w3_t[0] =                                 0 ^ 0x5c5c5c5c5c5c5c5c;
-  w3_t[1] =                                 0 ^ 0x5c5c5c5c5c5c5c5c;
-  w3_t[2] =                                 0 ^ 0x5c5c5c5c5c5c5c5c;
-  w3_t[3] =                                 0 ^ 0x5c5c5c5c5c5c5c5c;
+  w2_t[0] =                             0x5c5c5c5c5c5c5c5c;
+  w2_t[1] =                             0x5c5c5c5c5c5c5c5c;
+  w2_t[2] =                             0x5c5c5c5c5c5c5c5c;
+  w2_t[3] =                             0x5c5c5c5c5c5c5c5c;
+  w3_t[0] =                             0x5c5c5c5c5c5c5c5c;
+  w3_t[1] =                             0x5c5c5c5c5c5c5c5c;
+  w3_t[2] =                             0x5c5c5c5c5c5c5c5c;
+  w3_t[3] =                             0x5c5c5c5c5c5c5c5c;
 
   opad[0] = SHA512M_A;
   opad[1] = SHA512M_B;
@@ -194,12 +194,12 @@ static void hmac_sha512_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u64 ipa
   sha512_transform (w0_t, w1_t, w2_t, w3_t, opad);
 }
 
-static void hmac_sha512_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u64 ipad[8], u64 opad[8], u64 digest[8])
+static void hmac_sha512_run (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u64x ipad[8], u64x opad[8], u64x digest[8])
 {
-  u64 w0_t[4];
-  u64 w1_t[4];
-  u64 w2_t[4];
-  u64 w3_t[4];
+  u64x w0_t[4];
+  u64x w1_t[4];
+  u64x w2_t[4];
+  u64x w3_t[4];
 
   w0_t[0] = hl32_to_64 (w0[0], w0[1]);
   w0_t[1] = hl32_to_64 (w0[2], w0[3]);
@@ -289,36 +289,36 @@ static void m01760m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    * pads
    */
 
-  u32 w0_t[4];
+  u32x w0_t[4];
 
   w0_t[0] = swap32 (salt_buf0[0]);
   w0_t[1] = swap32 (salt_buf0[1]);
   w0_t[2] = swap32 (salt_buf0[2]);
   w0_t[3] = swap32 (salt_buf0[3]);
 
-  u32 w1_t[4];
+  u32x w1_t[4];
 
   w1_t[0] = swap32 (salt_buf1[0]);
   w1_t[1] = swap32 (salt_buf1[1]);
   w1_t[2] = swap32 (salt_buf1[2]);
   w1_t[3] = swap32 (salt_buf1[3]);
 
-  u32 w2_t[4];
+  u32x w2_t[4];
 
   w2_t[0] = 0;
   w2_t[1] = 0;
   w2_t[2] = 0;
   w2_t[3] = 0;
 
-  u32 w3_t[4];
+  u32x w3_t[4];
 
   w3_t[0] = 0;
   w3_t[1] = 0;
   w3_t[2] = 0;
   w3_t[3] = 0;
 
-  u64 ipad[8];
-  u64 opad[8];
+  u64x ipad[8];
+  u64x opad[8];
 
   hmac_sha512_pad (w0_t, w1_t, w2_t, w3_t, ipad, opad);
 
@@ -328,13 +328,13 @@ static void m01760m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    w0_t[0] = w0[0];
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
@@ -351,17 +351,16 @@ static void m01760m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[2] = 0;
     w3_t[3] = (128 + pw_len) * 8;
 
-    u64 digest[8];
+    u64x digest[8];
 
     hmac_sha512_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 
+    const u32x r0 = l32_from_64 (digest[7]);
+    const u32x r1 = h32_from_64 (digest[7]);
+    const u32x r2 = l32_from_64 (digest[3]);
+    const u32x r3 = h32_from_64 (digest[3]);
 
-    const u32 r0 = l32_from_64 (digest[7]);
-    const u32 r1 = h32_from_64 (digest[7]);
-    const u32 r2 = l32_from_64 (digest[3]);
-    const u32 r3 = h32_from_64 (digest[3]);
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
@@ -396,36 +395,36 @@ static void m01760s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    * pads
    */
 
-  u32 w0_t[4];
+  u32x w0_t[4];
 
   w0_t[0] = swap32 (salt_buf0[0]);
   w0_t[1] = swap32 (salt_buf0[1]);
   w0_t[2] = swap32 (salt_buf0[2]);
   w0_t[3] = swap32 (salt_buf0[3]);
 
-  u32 w1_t[4];
+  u32x w1_t[4];
 
   w1_t[0] = swap32 (salt_buf1[0]);
   w1_t[1] = swap32 (salt_buf1[1]);
   w1_t[2] = swap32 (salt_buf1[2]);
   w1_t[3] = swap32 (salt_buf1[3]);
 
-  u32 w2_t[4];
+  u32x w2_t[4];
 
   w2_t[0] = 0;
   w2_t[1] = 0;
   w2_t[2] = 0;
   w2_t[3] = 0;
 
-  u32 w3_t[4];
+  u32x w3_t[4];
 
   w3_t[0] = 0;
   w3_t[1] = 0;
   w3_t[2] = 0;
   w3_t[3] = 0;
 
-  u64 ipad[8];
-  u64 opad[8];
+  u64x ipad[8];
+  u64x opad[8];
 
   hmac_sha512_pad (w0_t, w1_t, w2_t, w3_t, ipad, opad);
 
@@ -447,13 +446,13 @@ static void m01760s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    w0_t[0] = w0[0];
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
@@ -470,17 +469,16 @@ static void m01760s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[2] = 0;
     w3_t[3] = (128 + pw_len) * 8;
 
-    u64 digest[8];
+    u64x digest[8];
 
     hmac_sha512_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 
+    const u32x r0 = l32_from_64 (digest[7]);
+    const u32x r1 = h32_from_64 (digest[7]);
+    const u32x r2 = l32_from_64 (digest[3]);
+    const u32x r3 = h32_from_64 (digest[3]);
 
-    const u32 r0 = l32_from_64 (digest[7]);
-    const u32 r1 = h32_from_64 (digest[7]);
-    const u32 r2 = l32_from_64 (digest[3]);
-    const u32 r3 = h32_from_64 (digest[3]);
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }
 

@@ -588,3 +588,20 @@
 
 #define MATCHES_NONE_VV(a,b) !(MATCHES_ONE_VV ((a), (b)))
 #define MATCHES_NONE_VS(a,b) !(MATCHES_ONE_VS ((a), (b)))
+
+// attack-mode 0
+
+static inline u32x w0r_create_bft (__global bf_t *bfs_buf, const u32 il_pos)
+{
+  #if   VECT_SIZE == 1
+  const u32x w0r = (u32x) (bfs_buf[il_pos + 0].i);
+  #elif VECT_SIZE == 2
+  const u32x w0r = (u32x) (bfs_buf[il_pos + 0].i, bfs_buf[il_pos + 1].i);
+  #elif VECT_SIZE == 4
+  const u32x w0r = (u32x) (bfs_buf[il_pos + 0].i, bfs_buf[il_pos + 1].i, bfs_buf[il_pos + 2].i, bfs_buf[il_pos + 3].i);
+  #elif VECT_SIZE == 8
+  const u32x w0r = (u32x) (bfs_buf[il_pos + 0].i, bfs_buf[il_pos + 1].i, bfs_buf[il_pos + 2].i, bfs_buf[il_pos + 3].i, bfs_buf[il_pos + 4].i, bfs_buf[il_pos + 5].i, bfs_buf[il_pos + 6].i, bfs_buf[il_pos + 7].i);
+  #endif
+
+  return w0r;
+}

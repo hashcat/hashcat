@@ -196,7 +196,7 @@ __kernel void m08300_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
+    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
 
   /**
@@ -271,7 +271,7 @@ __kernel void m08300_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
 
     u32 w0[4];
@@ -324,7 +324,7 @@ __kernel void m08300_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w3_t[2] = w3[2];
     w3_t[3] = w3[3];
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, 1);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, 1);
 
     w0_t[0] |= pw_len & 0xff;
 
@@ -360,7 +360,7 @@ __kernel void m08300_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     s3[2] = 0;
     s3[3] = 0;
 
-    switch_buffer_by_offset (s0, s1, s2, s3, 1 + pw_len + domain_len + 1);
+    switch_buffer_by_offset_le (s0, s1, s2, s3, 1 + pw_len + domain_len + 1);
 
     u32 d0[4];
 
@@ -390,7 +390,7 @@ __kernel void m08300_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     d3[2] = 0;
     d3[3] = 0;
 
-    switch_buffer_by_offset (d0, d1, d2, d3, 1 + pw_len);
+    switch_buffer_by_offset_le (d0, d1, d2, d3, 1 + pw_len);
 
     /**
      * sha1
@@ -540,7 +540,7 @@ __kernel void m08300_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
+    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
 
   /**
@@ -627,7 +627,7 @@ __kernel void m08300_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
 
     u32 w0[4];
@@ -680,7 +680,7 @@ __kernel void m08300_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w3_t[2] = w3[2];
     w3_t[3] = w3[3];
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, 1);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, 1);
 
     w0_t[0] |= pw_len & 0xff;
 
@@ -716,7 +716,7 @@ __kernel void m08300_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     s3[2] = 0;
     s3[3] = 0;
 
-    switch_buffer_by_offset (s0, s1, s2, s3, 1 + pw_len + domain_len + 1);
+    switch_buffer_by_offset_le (s0, s1, s2, s3, 1 + pw_len + domain_len + 1);
 
     u32 d0[4];
 
@@ -746,7 +746,7 @@ __kernel void m08300_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     d3[2] = 0;
     d3[3] = 0;
 
-    switch_buffer_by_offset (d0, d1, d2, d3, 1 + pw_len);
+    switch_buffer_by_offset_le (d0, d1, d2, d3, 1 + pw_len);
 
     /**
      * sha1

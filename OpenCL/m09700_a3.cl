@@ -5,6 +5,8 @@
 
 #define _OLDOFFICE01_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,9 +18,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 typedef struct
 {
@@ -37,10 +37,10 @@ static void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
+static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32x data[4])
 {
-  u32 v = 0x03020100;
-  u32 a = 0x04040404;
+  u32x v = 0x03020100;
+  u32x a = 0x04040404;
 
   __local u32 *ptr = (__local u32 *) rc4_key->S;
 
@@ -88,7 +88,7 @@ static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
   }
 }
 
-static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 in[4], u32 out[4])
+static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32x in[4], u32x out[4])
 {
   #pragma unroll
   for (u32 k = 0; k < 4; k++)
@@ -139,29 +139,29 @@ static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 in[4], u3
   return j;
 }
 
-static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
+static void md5_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[4])
 {
-  u32 a = digest[0];
-  u32 b = digest[1];
-  u32 c = digest[2];
-  u32 d = digest[3];
+  u32x a = digest[0];
+  u32x b = digest[1];
+  u32x c = digest[2];
+  u32x d = digest[3];
 
-  u32 w0_t = w0[0];
-  u32 w1_t = w0[1];
-  u32 w2_t = w0[2];
-  u32 w3_t = w0[3];
-  u32 w4_t = w1[0];
-  u32 w5_t = w1[1];
-  u32 w6_t = w1[2];
-  u32 w7_t = w1[3];
-  u32 w8_t = w2[0];
-  u32 w9_t = w2[1];
-  u32 wa_t = w2[2];
-  u32 wb_t = w2[3];
-  u32 wc_t = w3[0];
-  u32 wd_t = w3[1];
-  u32 we_t = w3[2];
-  u32 wf_t = w3[3];
+  u32x w0_t = w0[0];
+  u32x w1_t = w0[1];
+  u32x w2_t = w0[2];
+  u32x w3_t = w0[3];
+  u32x w4_t = w1[0];
+  u32x w5_t = w1[1];
+  u32x w6_t = w1[2];
+  u32x w7_t = w1[3];
+  u32x w8_t = w2[0];
+  u32x w9_t = w2[1];
+  u32x wa_t = w2[2];
+  u32x wb_t = w2[3];
+  u32x wc_t = w3[0];
+  u32x wd_t = w3[1];
+  u32x we_t = w3[2];
+  u32x wf_t = w3[3];
 
   MD5_STEP (MD5_Fo, a, b, c, d, w0_t, MD5C00, MD5S00);
   MD5_STEP (MD5_Fo, d, a, b, c, w1_t, MD5C01, MD5S01);
@@ -301,18 +301,18 @@ static void m09700m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    w0_t[0] = w0[0];
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
@@ -329,10 +329,10 @@ static void m09700m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
     w3_t[2] = pw_len * 8;
     w3_t[3] = 0;
 
-    u32 digest_t0[4];
-    u32 digest_t1[2]; // need only first 5 byte
-    u32 digest_t2[2];
-    u32 digest_t3[2];
+    u32x digest_t0[4];
+    u32x digest_t1[2]; // need only first 5 byte
+    u32x digest_t2[2];
+    u32x digest_t3[2];
 
     digest_t0[0] = MD5M_A;
     digest_t0[1] = MD5M_B;
@@ -343,7 +343,7 @@ static void m09700m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     // prepare 16 * 21 buffer stuff
 
-    u32 digest[4];
+    u32x digest[4];
 
     digest[0] = MD5M_A;
     digest[1] = MD5M_B;
@@ -685,7 +685,7 @@ static void m09700m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     // now the RC4 part
 
-    u32 key[4];
+    u32x key[4];
 
     key[0] = digest[0];
     key[1] = digest[1];
@@ -694,7 +694,7 @@ static void m09700m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     rc4_init_16 (rc4_key, key);
 
-    u32 out[4];
+    u32x out[4];
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
@@ -724,12 +724,7 @@ static void m09700m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 
-    const u32 r0 = out[0];
-    const u32 r1 = out[1];
-    const u32 r2 = out[2];
-    const u32 r3 = out[3];
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
@@ -809,18 +804,18 @@ static void m09700s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
-    w0_t[0] = w0[0];
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
@@ -837,10 +832,10 @@ static void m09700s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
     w3_t[2] = pw_len * 8;
     w3_t[3] = 0;
 
-    u32 digest_t0[4];
-    u32 digest_t1[2]; // need only first 5 byte
-    u32 digest_t2[2];
-    u32 digest_t3[2];
+    u32x digest_t0[4];
+    u32x digest_t1[2]; // need only first 5 byte
+    u32x digest_t2[2];
+    u32x digest_t3[2];
 
     digest_t0[0] = MD5M_A;
     digest_t0[1] = MD5M_B;
@@ -1193,7 +1188,7 @@ static void m09700s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     // now the RC4 part
 
-    u32 key[4];
+    u32x key[4];
 
     key[0] = digest[0];
     key[1] = digest[1];
@@ -1202,7 +1197,7 @@ static void m09700s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     rc4_init_16 (rc4_key, key);
 
-    u32 out[4];
+    u32x out[4];
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
@@ -1232,12 +1227,7 @@ static void m09700s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 
-    const u32 r0 = out[0];
-    const u32 r1 = out[1];
-    const u32 r2 = out[2];
-    const u32 r3 = out[3];
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 

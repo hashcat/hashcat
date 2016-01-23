@@ -200,7 +200,7 @@ __kernel void m05200_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   u32 salt_len = salt_bufs[salt_pos].salt_len;
 
-  switch_buffer_by_offset (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
+  switch_buffer_by_offset_le (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
 
   w0[0] |= salt_buf0[0];
   w0[1] |= salt_buf0[1];

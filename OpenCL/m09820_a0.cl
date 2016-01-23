@@ -245,7 +245,7 @@ __kernel void m09820_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     make_unicode (w0, w0_t, w1_t);
     make_unicode (w1, w2_t, w3_t);
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
 
     w0_t[0] = salt_buf[0];
     w0_t[1] = salt_buf[1];
@@ -426,7 +426,7 @@ __kernel void m09820_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     make_unicode (w0, w0_t, w1_t);
     make_unicode (w1, w2_t, w3_t);
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
 
     w0_t[0] = salt_buf[0];
     w0_t[1] = salt_buf[1];

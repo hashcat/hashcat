@@ -23,7 +23,7 @@
 #define MD5_STEP_REV(f,a,b,c,d,x,t,s)   \
 {                                       \
   a -= b;                               \
-  a  = rotr32 (a, s);                   \
+  a  = rotr32_S (a, s);                 \
   a -= f (b, c, d);                     \
   a -= x;                               \
   a -= t;                               \
@@ -32,7 +32,7 @@
 #define MD5_STEP_REV1(f,a,b,c,d,x,t,s)  \
 {                                       \
   a -= b;                               \
-  a  = rotr32 (a, s);                   \
+  a  = rotr32_S (a, s);                 \
   a -= x;                               \
   a -= t;                               \
 }
@@ -78,7 +78,7 @@ static void m00010m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
   salt_buf3[2] = 0;
   salt_buf3[3] = 0;
 
-  switch_buffer_by_offset_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
+  switch_buffer_by_offset_le_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
 
   w[ 0] |= salt_buf0[0];
   w[ 1] |= salt_buf0[1];
@@ -363,32 +363,32 @@ static void m00010s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
    * reverse
    */
 
-  u32x a_rev = digests_buf[digests_offset].digest_buf[0];
-  u32x b_rev = digests_buf[digests_offset].digest_buf[1];
-  u32x c_rev = digests_buf[digests_offset].digest_buf[2];
-  u32x d_rev = digests_buf[digests_offset].digest_buf[3];
+  u32 a_rev = digests_buf[digests_offset].digest_buf[0];
+  u32 b_rev = digests_buf[digests_offset].digest_buf[1];
+  u32 c_rev = digests_buf[digests_offset].digest_buf[2];
+  u32 d_rev = digests_buf[digests_offset].digest_buf[3];
 
-  MD5_STEP_REV (MD5_I, b_rev, c_rev, d_rev, a_rev, w[ 9], MD5C3f, MD5S33);
-  MD5_STEP_REV (MD5_I, c_rev, d_rev, a_rev, b_rev, w[ 2], MD5C3e, MD5S32);
-  MD5_STEP_REV (MD5_I, d_rev, a_rev, b_rev, c_rev, w[11], MD5C3d, MD5S31);
-  MD5_STEP_REV (MD5_I, a_rev, b_rev, c_rev, d_rev, w[ 4], MD5C3c, MD5S30);
-  MD5_STEP_REV (MD5_I, b_rev, c_rev, d_rev, a_rev, w[13], MD5C3b, MD5S33);
-  MD5_STEP_REV (MD5_I, c_rev, d_rev, a_rev, b_rev, w[ 6], MD5C3a, MD5S32);
-  MD5_STEP_REV (MD5_I, d_rev, a_rev, b_rev, c_rev, w[15], MD5C39, MD5S31);
-  MD5_STEP_REV (MD5_I, a_rev, b_rev, c_rev, d_rev, w[ 8], MD5C38, MD5S30);
-  MD5_STEP_REV (MD5_I, b_rev, c_rev, d_rev, a_rev, w[ 1], MD5C37, MD5S33);
-  MD5_STEP_REV (MD5_I, c_rev, d_rev, a_rev, b_rev, w[10], MD5C36, MD5S32);
-  MD5_STEP_REV (MD5_I, d_rev, a_rev, b_rev, c_rev, w[ 3], MD5C35, MD5S31);
-  MD5_STEP_REV (MD5_I, a_rev, b_rev, c_rev, d_rev, w[12], MD5C34, MD5S30);
-  MD5_STEP_REV (MD5_I, b_rev, c_rev, d_rev, a_rev, w[ 5], MD5C33, MD5S33);
-  MD5_STEP_REV (MD5_I, c_rev, d_rev, a_rev, b_rev, w[14], MD5C32, MD5S32);
-  MD5_STEP_REV (MD5_I, d_rev, a_rev, b_rev, c_rev, w[ 7], MD5C31, MD5S31);
-  MD5_STEP_REV (MD5_I, a_rev, b_rev, c_rev, d_rev,     0, MD5C30, MD5S30);
+  MD5_STEP_REV (MD5_I_S, b_rev, c_rev, d_rev, a_rev, w[ 9], MD5C3f, MD5S33);
+  MD5_STEP_REV (MD5_I_S, c_rev, d_rev, a_rev, b_rev, w[ 2], MD5C3e, MD5S32);
+  MD5_STEP_REV (MD5_I_S, d_rev, a_rev, b_rev, c_rev, w[11], MD5C3d, MD5S31);
+  MD5_STEP_REV (MD5_I_S, a_rev, b_rev, c_rev, d_rev, w[ 4], MD5C3c, MD5S30);
+  MD5_STEP_REV (MD5_I_S, b_rev, c_rev, d_rev, a_rev, w[13], MD5C3b, MD5S33);
+  MD5_STEP_REV (MD5_I_S, c_rev, d_rev, a_rev, b_rev, w[ 6], MD5C3a, MD5S32);
+  MD5_STEP_REV (MD5_I_S, d_rev, a_rev, b_rev, c_rev, w[15], MD5C39, MD5S31);
+  MD5_STEP_REV (MD5_I_S, a_rev, b_rev, c_rev, d_rev, w[ 8], MD5C38, MD5S30);
+  MD5_STEP_REV (MD5_I_S, b_rev, c_rev, d_rev, a_rev, w[ 1], MD5C37, MD5S33);
+  MD5_STEP_REV (MD5_I_S, c_rev, d_rev, a_rev, b_rev, w[10], MD5C36, MD5S32);
+  MD5_STEP_REV (MD5_I_S, d_rev, a_rev, b_rev, c_rev, w[ 3], MD5C35, MD5S31);
+  MD5_STEP_REV (MD5_I_S, a_rev, b_rev, c_rev, d_rev, w[12], MD5C34, MD5S30);
+  MD5_STEP_REV (MD5_I_S, b_rev, c_rev, d_rev, a_rev, w[ 5], MD5C33, MD5S33);
+  MD5_STEP_REV (MD5_I_S, c_rev, d_rev, a_rev, b_rev, w[14], MD5C32, MD5S32);
+  MD5_STEP_REV (MD5_I_S, d_rev, a_rev, b_rev, c_rev, w[ 7], MD5C31, MD5S31);
+  MD5_STEP_REV (MD5_I_S, a_rev, b_rev, c_rev, d_rev,     0, MD5C30, MD5S30);
 
-  const u32x pre_cd = c_rev ^ d_rev;
+  const u32 pre_cd = c_rev ^ d_rev;
 
-  MD5_STEP_REV1(MD5_H, b_rev, c_rev, d_rev, a_rev, w[ 2], MD5C2f, MD5S23);
-  MD5_STEP_REV1(MD5_H, c_rev, d_rev, a_rev, b_rev, w[15], MD5C2e, MD5S22);
+  MD5_STEP_REV1(MD5_H_S, b_rev, c_rev, d_rev, a_rev, w[ 2], MD5C2f, MD5S23);
+  MD5_STEP_REV1(MD5_H_S, c_rev, d_rev, a_rev, b_rev, w[15], MD5C2e, MD5S22);
 
   /**
    * loop

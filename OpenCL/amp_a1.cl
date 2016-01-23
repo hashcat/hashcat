@@ -7,7 +7,7 @@
 #include "include/kernel_vendor.h"
 #include "OpenCL/types_ocl.c"
 
-static void switch_buffer_by_offset (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+static void switch_buffer_by_offset_le (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
@@ -789,12 +789,12 @@ __kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global kernel_r
 
   if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
   {
-    switch_buffer_by_offset (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
   }
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, pw_r_len);
   }
 
   u32 w0[4];

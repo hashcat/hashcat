@@ -3,6 +3,9 @@
  * License.....: MIT
  */
 
+#define DEVICE_TYPE_CPU 2
+#define DEVICE_TYPE_GPU 4
+
 typedef uchar  u8;
 typedef ushort u16;
 typedef uint   u32;
@@ -14,63 +17,403 @@ typedef ulong  u64;
 #endif
 
 #if VECT_SIZE == 1
-typedef uint   u32x;
-typedef ulong  u64x;
+typedef uchar   u8x;
+typedef ushort  u16x;
+typedef uint    u32x;
+typedef ulong   u64x;
 #endif
 
 #if VECT_SIZE == 2
-typedef uint2  u32x;
-typedef ulong2 u64x;
+typedef uchar2  u8x;
+typedef ushort2 u16x;
+typedef uint2   u32x;
+typedef ulong2  u64x;
 #endif
 
 #if VECT_SIZE == 4
-typedef uint4  u32x;
-typedef ulong4 u64x;
+typedef uchar4  u8x;
+typedef ushort4 u16x;
+typedef uint4   u32x;
+typedef ulong4  u64x;
 #endif
 
 #if VECT_SIZE == 8
-typedef uint8  u32x;
-typedef ulong8 u64x;
+typedef uchar8  u8x;
+typedef ushort8 u16x;
+typedef uint8   u32x;
+typedef ulong8  u64x;
 #endif
 
 // this one needs to die
 #define allx(r) r
 
-static inline u32 l32_from_64 (u64 a)
+static inline u32 l32_from_64_S (u64 a)
 {
-  const u32 r = (uint) (a);
+  const u32 r = (u32) (a);
 
   return r;
 }
 
-static inline u32 h32_from_64 (u64 a)
+static inline u32 h32_from_64_S (u64 a)
 {
   a >>= 32;
 
-  const u32 r = (uint) (a);
+  const u32 r = (u32) (a);
 
   return r;
 }
 
-static inline u64 hl32_to_64 (const u32 a, const u32 b)
+static inline u64 hl32_to_64_S (const u32 a, const u32 b)
 {
   return as_ulong ((uint2) (b, a));
 }
 
+static inline u32x l32_from_64 (u64x a)
+{
+  u32x r;
+
+  #if VECT_SIZE == 1
+  r    = (u32) a;
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = (u32) a.s0;
+  r.s1 = (u32) a.s1;
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = (u32) a.s2;
+  r.s3 = (u32) a.s3;
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = (u32) a.s4;
+  r.s5 = (u32) a.s5;
+  r.s6 = (u32) a.s6;
+  r.s7 = (u32) a.s7;
+  #endif
+
+  return r;
+}
+
+static inline u32x h32_from_64 (u64x a)
+{
+  a >>= 32;
+
+  u32x r;
+
+  #if VECT_SIZE == 1
+  r    = (u32) a;
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = (u32) a.s0;
+  r.s1 = (u32) a.s1;
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = (u32) a.s2;
+  r.s3 = (u32) a.s3;
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = (u32) a.s4;
+  r.s5 = (u32) a.s5;
+  r.s6 = (u32) a.s6;
+  r.s7 = (u32) a.s7;
+  #endif
+
+  return r;
+}
+
+static inline u64x hl32_to_64 (const u32x a, const u32x b)
+{
+  u64x r;
+
+  #if VECT_SIZE == 1
+  r    = as_ulong ((uint2) (b,    a));
+  #endif
+
+  #if VECT_SIZE >= 2
+  r.s0 = as_ulong ((uint2) (b.s0, a.s0));
+  r.s1 = as_ulong ((uint2) (b.s1, a.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  r.s2 = as_ulong ((uint2) (b.s2, a.s2));
+  r.s3 = as_ulong ((uint2) (b.s3, a.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  r.s4 = as_ulong ((uint2) (b.s4, a.s4));
+  r.s5 = as_ulong ((uint2) (b.s5, a.s5));
+  r.s6 = as_ulong ((uint2) (b.s6, a.s6));
+  r.s7 = as_ulong ((uint2) (b.s7, a.s7));
+  #endif
+
+  return r;
+}
+
 #ifdef IS_AMD
-static inline u32 swap32 (const u32 v)
+static inline u32 swap32_S (const u32 v)
 {
   return (as_uint (as_uchar4 (v).s3210));
 }
 
-static inline u64 swap64 (const u64 v)
+static inline u64 swap64_S (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
+}
+
+static inline u32 rotr32_S (const u32 a, const u32 n)
+{
+  return rotate (a, 32 - n);
+}
+
+static inline u32 rotl32_S (const u32 a, const u32 n)
+{
+  return rotate (a, n);
+}
+
+static inline u64 rotr64_S (const u64 a, const u32 n)
+{
+  u64 r;
+
+  #if DEVICE_TYPE == DEVICE_TYPE_CPU
+
+  r = rotate (a, (u64) 64 - n);
+
+  #else
+
+  uint2 a2 = as_uint2 (a);
+
+  uint2 t;
+
+  t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32)
+                   : amd_bitalign (a2.s1, a2.s0, n);
+  t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32)
+                   : amd_bitalign (a2.s0, a2.s1, n);
+
+  r = as_ulong (t);
+
+  #endif
+
+  return r;
+}
+
+static inline u64 rotl64_S (const u64 a, const u32 n)
+{
+  return rotr64_S (a, 64 - n);
+}
+
+static inline u32x swap32 (const u32x v)
+{
+  return ((v >> 24) & 0x000000ff)
+       | ((v >>  8) & 0x0000ff00)
+       | ((v <<  8) & 0x00ff0000)
+       | ((v << 24) & 0xff000000);
+}
+
+static inline u64x swap64 (const u64x v)
+{
+  return ((v >> 56) & 0x00000000000000ff)
+       | ((v >> 40) & 0x000000000000ff00)
+       | ((v >> 24) & 0x0000000000ff0000)
+       | ((v >>  8) & 0x00000000ff000000)
+       | ((v <<  8) & 0x000000ff00000000)
+       | ((v << 24) & 0x0000ff0000000000)
+       | ((v << 40) & 0x00ff000000000000)
+       | ((v << 56) & 0xff00000000000000);
+}
+
+static inline u32x rotr32 (const u32x a, const u32 n)
+{
+  return rotate (a, 32 - n);
+}
+
+static inline u32x rotl32 (const u32x a, const u32 n)
+{
+  return rotate (a, n);
+}
+
+static inline u64x rotr64 (const u64x a, const u32 n)
+{
+  u64x r;
+
+  #if DEVICE_TYPE == DEVICE_TYPE_CPU
+
+  r = rotate (a, (u64) 64 - n);
+
+  #else
+
+  uint2 a2;
+  uint2 t;
+
+  #if   VECT_SIZE == 1
+
+  a2 = as_uint2 (a);
+
+  t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+  t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+  r = as_ulong (t);
+
+  #elif VECT_SIZE == 2
+
+  {
+    a2 = as_uint2 (a.s0);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s0 = as_ulong (t);
+  }
+
+  {
+    a2 = as_uint2 (a.s1);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s1 = as_ulong (t);
+  }
+
+  #elif VECT_SIZE == 4
+
+  {
+    a2 = as_uint2 (a.s0);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s0 = as_ulong (t);
+  }
+
+  {
+    a2 = as_uint2 (a.s1);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s1 = as_ulong (t);
+  }
+
+  {
+    a2 = as_uint2 (a.s2);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s2 = as_ulong (t);
+  }
+
+  {
+    a2 = as_uint2 (a.s3);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s3 = as_ulong (t);
+  }
+
+  #elif VECT_SIZE == 8
+
+  {
+    a2 = as_uint2 (a.s0);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s0 = as_ulong (t);
+  }
+
+  {
+    a2 = as_uint2 (a.s1);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s1 = as_ulong (t);
+  }
+
+  {
+    a2 = as_uint2 (a.s2);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s2 = as_ulong (t);
+  }
+
+  {
+    a2 = as_uint2 (a.s3);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s3 = as_ulong (t);
+  }
+
+  {
+    a2 = as_uint2 (a.s4);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s4 = as_ulong (t);
+  }
+
+  {
+    a2 = as_uint2 (a.s5);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s5 = as_ulong (t);
+  }
+
+  {
+    a2 = as_uint2 (a.s6);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s6 = as_ulong (t);
+  }
+
+  {
+    a2 = as_uint2 (a.s7);
+
+    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
+    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
+
+    r.s7 = as_ulong (t);
+  }
+
+  #endif
+  #endif
+
+  return r;
+}
+
+static inline u64x rotl64 (const u64x a, const u32 n)
+{
+  return rotr64 (a, 64 - n);
+}
+
+static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
+{
+  return amd_bfe (a, b, c);
+}
+
+static inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
+{
+  return amd_bytealign (a, b, c);
 }
 #endif
 
 #ifdef IS_NV
-static inline u32 swap32 (const u32 v)
+static inline u32 swap32_S (const u32 v)
 {
   u32 r;
 
@@ -79,7 +422,7 @@ static inline u32 swap32 (const u32 v)
   return r;
 }
 
-static inline u64 swap64 (const u64 v)
+static inline u64 swap64_S (const u64 v)
 {
   u32 il;
   u32 ir;
@@ -98,34 +441,122 @@ static inline u64 swap64 (const u64 v)
 
   return r;
 }
+
+static inline u32 rotr32_S (const u32 a, const u32 n)
+{
+  return rotate (a, 32 - n);
+}
+
+static inline u32 rotl32_S (const u32 a, const u32 n)
+{
+  return rotate (a, n);
+}
+
+#if CUDA_ARCH >= 350
+static inline u64 rotr64_S (const u64 a, const u32 n)
+{
+  u32 il;
+  u32 ir;
+
+  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a));
+
+  u32 tl;
+  u32 tr;
+
+  if (n >= 32)
+  {
+    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+  }
+  else
+  {
+    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+  }
+
+  u64 r;
+
+  asm ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tl), "r"(tr));
+
+  return r;
+}
+#else
+static inline u64 rotr64_S (const u64 a, const u32 n)
+{
+  return rotate (a, (u64) 64 - n);
+}
 #endif
 
-#ifdef IS_GENERIC
-static inline u32 swap32 (const u32 v)
+static inline u64 rotl64_S (const u64 a, const u32 n)
 {
-  return (as_uint (as_uchar4 (v).s3210));
+  return rotr64_S (a, 64 - n);
 }
 
-static inline u64 swap64 (const u64 v)
+#if CUDA_ARCH >= 500
+static inline u32 lut3_2d_S (const u32 a, const u32 b, const u32 c)
 {
-  return (as_ulong (as_uchar8 (v).s76543210));
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static inline u32 lut3_39_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static inline u32 lut3_59_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static inline u32 lut3_96_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static inline u32 lut3_e4_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static inline u32 lut3_e8_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
+}
+
+static inline u32 lut3_ca_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
+
+  return r;
 }
 #endif
 
-#ifdef IS_AMD
-static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
-{
-  return amd_bfe (a, b, c);
-}
-
-static inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
-{
-  return amd_bytealign (a, b, c);
-}
-
-#endif
-
-#ifdef IS_NV
 static inline u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -133,6 +564,46 @@ static inline u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
   asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
 
   return r;
+}
+
+static inline u32x swap32 (const u32x v)
+{
+  return ((v >> 24) & 0x000000ff)
+       | ((v >>  8) & 0x0000ff00)
+       | ((v <<  8) & 0x00ff0000)
+       | ((v << 24) & 0xff000000);
+}
+
+static inline u64x swap64 (const u64x v)
+{
+  return ((v >> 56) & 0x00000000000000ff)
+       | ((v >> 40) & 0x000000000000ff00)
+       | ((v >> 24) & 0x0000000000ff0000)
+       | ((v >>  8) & 0x00000000ff000000)
+       | ((v <<  8) & 0x000000ff00000000)
+       | ((v << 24) & 0x0000ff0000000000)
+       | ((v << 40) & 0x00ff000000000000)
+       | ((v << 56) & 0xff00000000000000);
+}
+
+static inline u32x rotr32 (const u32x a, const u32 n)
+{
+  return rotate (a, 32 - n);
+}
+
+static inline u32x rotl32 (const u32x a, const u32 n)
+{
+  return rotate (a, n);
+}
+
+static inline u64x rotr64 (const u64x a, const u32 n)
+{
+  return rotate (a, (u64) 64 - n);
+}
+
+static inline u64x rotl64 (const u64x a, const u32 n)
+{
+  return rotate (a, (u64) n);
 }
 
 static inline u32x __byte_perm (const u32x a, const u32x b, const u32x c)
@@ -143,23 +614,17 @@ static inline u32x __byte_perm (const u32x a, const u32x b, const u32x c)
   asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c)   );
   #endif
 
-  #if VECT_SIZE == 2
+  #if VECT_SIZE >= 2
   asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c.s0));
   asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c.s1));
   #endif
 
-  #if VECT_SIZE == 4
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c.s0));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c.s1));
+  #if VECT_SIZE >= 4
   asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(a.s2), "r"(b.s2), "r"(c.s2));
   asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(a.s3), "r"(b.s3), "r"(c.s3));
   #endif
 
-  #if VECT_SIZE == 8
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c.s0));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c.s1));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(a.s2), "r"(b.s2), "r"(c.s2));
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(a.s3), "r"(b.s3), "r"(c.s3));
+  #if VECT_SIZE >= 8
   asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(a.s4), "r"(b.s4), "r"(c.s4));
   asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(a.s5), "r"(b.s5), "r"(c.s5));
   asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(a.s6), "r"(b.s6), "r"(c.s6));
@@ -193,160 +658,7 @@ static inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
   return __byte_perm_S (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
 }
 #endif
-#endif
 
-#ifdef IS_GENERIC
-static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
-{
-  #define BIT(x)      (1 << (x))
-  #define BIT_MASK(x) (BIT (x) - 1)
-  #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
-
-  return BFE (a, b, c);
-}
-
-static inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
-{
-  const u64 tmp = ((((u64) a) << 32) | ((u64) b)) >> ((c & 3) * 8);
-
-  return (u32) (tmp);
-}
-
-static inline u32x amd_bytealign (const u32x a, const u32x b, const u32 c)
-{
-  #if VECT_SIZE == 1
-  const u64x tmp = ((((u64x) (a)) << 32) | ((u64x) (b))) >> ((c & 3) * 8);
-
-  return (u32x) (tmp);
-  #endif
-
-  #if VECT_SIZE == 2
-  const u64x tmp = ((((u64x) (a.s0, a.s1)) << 32) | ((u64x) (b.s0, b.s1))) >> ((c & 3) * 8);
-
-  return (u32x) (tmp.s0, tmp.s1);
-  #endif
-
-  #if VECT_SIZE == 4
-  const u64x tmp = ((((u64x) (a.s0, a.s1, a.s2, a.s3)) << 32) | ((u64x) (b.s0, b.s1, b.s2, b.s3))) >> ((c & 3) * 8);
-
-  return (u32x) (tmp.s0, tmp.s1, tmp.s2, tmp.s3);
-  #endif
-
-  #if VECT_SIZE == 8
-  const u64x tmp = ((((u64x) (a.s0, a.s1, a.s2, a.s3, a.s4, a.s5, a.s6, a.s7)) << 32) | ((u64x) (b.s0, b.s1, b.s2, b.s3, b.s4, b.s5, b.s6, b.s7))) >> ((c & 3) * 8);
-
-  return (u32x) (tmp.s0, tmp.s1, tmp.s2, tmp.s3, tmp.s4, tmp.s5, tmp.s6, tmp.s7);
-  #endif
-}
-#endif
-
-#ifdef IS_AMD
-static inline u32x rotr32 (const u32x a, const u32 n)
-{
-  return rotate (a, 32 - n);
-}
-
-static inline u32x rotl32 (const u32x a, const u32 n)
-{
-  return rotate (a, n);
-}
-
-static inline u64 rotr64 (const u64 a, const u32 n)
-{
-  uint2 a2 = as_uint2 (a);
-
-  uint2 t;
-
-  t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32)
-                   : amd_bitalign (a2.s1, a2.s0, n);
-  t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32)
-                   : amd_bitalign (a2.s0, a2.s1, n);
-
-  return as_ulong (t);
-}
-
-static inline u64 rotl64 (const u64 a, const u32 n)
-{
-  return rotr64 (a, 64 - n);
-}
-#endif
-
-#ifdef IS_NV
-static inline u32x rotr32 (const u32x a, const u32 n)
-{
-  return rotate (a, 32 - n);
-}
-
-static inline u32x rotl32 (const u32x a, const u32 n)
-{
-  return rotate (a, n);
-}
-
-#if CUDA_ARCH >= 350
-static inline u64 rotr64 (const u64 a, const u32 n)
-{
-  u32 il;
-  u32 ir;
-
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a));
-
-  u32 tl;
-  u32 tr;
-
-  if (n >= 32)
-  {
-    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
-    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
-  }
-  else
-  {
-    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
-    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
-  }
-
-  u64 r;
-
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tl), "r"(tr));
-
-  return r;
-}
-#else
-static inline u64 rotr64 (const u64 a, const u32 n)
-{
-  return rotate (a, (u64) 64 - n);
-}
-#endif
-
-static inline u64 rotl64 (const u64 a, const u32 n)
-{
-  return rotr64 (a, 64 - n);
-}
-#endif
-
-#ifdef IS_GENERIC
-
-static inline u32x rotr32 (const u32x a, const u32x n)
-{
-  return rotate (a, 32 - n);
-}
-
-static inline u32x rotl32 (const u32x a, const u32x n)
-{
-  return rotate (a, n);
-}
-
-static inline u64 rotr64 (const u64 a, const u32 n)
-{
-  return rotate (a, (u64) 64 - n);
-}
-
-static inline u64 rotl64 (const u64 a, const u32 n)
-{
-  return rotate (a, (u64) n);
-}
-#endif
-
-#ifdef IS_NV
 #if CUDA_ARCH >= 500
 static inline u32x lut3_2d (const u32x a, const u32x b, const u32x c)
 {
@@ -356,23 +668,17 @@ static inline u32x lut3_2d (const u32x a, const u32x b, const u32x c)
   asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
   #endif
 
-  #if VECT_SIZE == 2
+  #if VECT_SIZE >= 2
   asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
   asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
   #endif
 
-  #if VECT_SIZE == 4
-  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
+  #if VECT_SIZE >= 4
   asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
   asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
   #endif
 
-  #if VECT_SIZE == 8
-  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
+  #if VECT_SIZE >= 8
   asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s4) : "r" (a.s4), "r" (b.s4), "r" (c.s4));
   asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s5) : "r" (a.s5), "r" (b.s5), "r" (c.s5));
   asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s6) : "r" (a.s6), "r" (b.s6), "r" (c.s6));
@@ -587,6 +893,121 @@ static inline u32x lut3_ca (const u32x a, const u32x b, const u32x c)
 }
 
 #endif
+#endif
+
+#ifdef IS_GENERIC
+static inline u32 swap32_S (const u32 v)
+{
+  return (as_uint (as_uchar4 (v).s3210));
+}
+
+static inline u64 swap64_S (const u64 v)
+{
+  return (as_ulong (as_uchar8 (v).s76543210));
+}
+
+static inline u32 rotr32_S (const u32 a, const u32 n)
+{
+  return rotate (a, 32 - n);
+}
+
+static inline u32 rotl32_S (const u32 a, const u32 n)
+{
+  return rotate (a, n);
+}
+
+static inline u64 rotr64_S (const u64 a, const u32 n)
+{
+  return rotate (a, (u64) 64 - n);
+}
+
+static inline u64 rotl64_S (const u64 a, const u32 n)
+{
+  return rotate (a, (u64) n);
+}
+
+static inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
+{
+  const u64 tmp = ((((u64) a) << 32) | ((u64) b)) >> ((c & 3) * 8);
+
+  return (u32) (tmp);
+}
+
+static inline u32x swap32 (const u32x v)
+{
+  return ((v >> 24) & 0x000000ff)
+       | ((v >>  8) & 0x0000ff00)
+       | ((v <<  8) & 0x00ff0000)
+       | ((v << 24) & 0xff000000);
+}
+
+static inline u64x swap64 (const u64x v)
+{
+  return ((v >> 56) & 0x00000000000000ff)
+       | ((v >> 40) & 0x000000000000ff00)
+       | ((v >> 24) & 0x0000000000ff0000)
+       | ((v >>  8) & 0x00000000ff000000)
+       | ((v <<  8) & 0x000000ff00000000)
+       | ((v << 24) & 0x0000ff0000000000)
+       | ((v << 40) & 0x00ff000000000000)
+       | ((v << 56) & 0xff00000000000000);
+}
+
+static inline u32x rotr32 (const u32x a, const u32 n)
+{
+  return rotate (a, 32 - n);
+}
+
+static inline u32x rotl32 (const u32x a, const u32 n)
+{
+  return rotate (a, n);
+}
+
+static inline u64x rotr64 (const u64x a, const u32 n)
+{
+  return rotate (a, (u64) 64 - n);
+}
+
+static inline u64x rotl64 (const u64x a, const u32 n)
+{
+  return rotate (a, (u64) n);
+}
+
+static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
+{
+  #define BIT(x)      (1 << (x))
+  #define BIT_MASK(x) (BIT (x) - 1)
+  #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
+
+  return BFE (a, b, c);
+}
+
+static inline u32x amd_bytealign (const u32x a, const u32x b, const u32 c)
+{
+  #if VECT_SIZE == 1
+  const u64x tmp = ((((u64x) (a)) << 32) | ((u64x) (b))) >> ((c & 3) * 8);
+
+  return (u32x) (tmp);
+  #endif
+
+  #if VECT_SIZE == 2
+  const u64x tmp = ((((u64x) (a.s0, a.s1)) << 32) | ((u64x) (b.s0, b.s1))) >> ((c & 3) * 8);
+
+  return (u32x) (tmp.s0, tmp.s1);
+  #endif
+
+  #if VECT_SIZE == 4
+  const u64x tmp = ((((u64x) (a.s0, a.s1, a.s2, a.s3)) << 32) | ((u64x) (b.s0, b.s1, b.s2, b.s3))) >> ((c & 3) * 8);
+
+  return (u32x) (tmp.s0, tmp.s1, tmp.s2, tmp.s3);
+  #endif
+
+  #if VECT_SIZE == 8
+  const u64x tmp = ((((u64x) (a.s0, a.s1, a.s2, a.s3, a.s4, a.s5, a.s6, a.s7)) << 32) | ((u64x) (b.s0, b.s1, b.s2, b.s3, b.s4, b.s5, b.s6, b.s7))) >> ((c & 3) * 8);
+
+  return (u32x) (tmp.s0, tmp.s1, tmp.s2, tmp.s3, tmp.s4, tmp.s5, tmp.s6, tmp.s7);
+  #endif
+}
 #endif
 
 typedef struct

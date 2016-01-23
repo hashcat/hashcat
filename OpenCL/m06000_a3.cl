@@ -5,6 +5,8 @@
 
 #define _RIPEMD160_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,17 +18,15 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
+#include "OpenCL/simd.c"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
-
-static void ripemd160_transform (const u32 w[16], u32 dgst[5])
+static void ripemd160_transform (const u32x w[16], u32x dgst[5])
 {
-  u32 a1 = dgst[0];
-  u32 b1 = dgst[1];
-  u32 c1 = dgst[2];
-  u32 d1 = dgst[3];
-  u32 e1 = dgst[4];
+  u32x a1 = dgst[0];
+  u32x b1 = dgst[1];
+  u32x c1 = dgst[2];
+  u32x d1 = dgst[3];
+  u32x e1 = dgst[4];
 
   RIPEMD160_STEP (RIPEMD160_F , a1, b1, c1, d1, e1, w[ 0], RIPEMD160C00, RIPEMD160S00);
   RIPEMD160_STEP (RIPEMD160_F , e1, a1, b1, c1, d1, w[ 1], RIPEMD160C00, RIPEMD160S01);
@@ -113,11 +113,11 @@ static void ripemd160_transform (const u32 w[16], u32 dgst[5])
   RIPEMD160_STEP (RIPEMD160_J , c1, d1, e1, a1, b1, w[15], RIPEMD160C40, RIPEMD160S4E);
   RIPEMD160_STEP (RIPEMD160_J , b1, c1, d1, e1, a1, w[13], RIPEMD160C40, RIPEMD160S4F);
 
-  u32 a2 = dgst[0];
-  u32 b2 = dgst[1];
-  u32 c2 = dgst[2];
-  u32 d2 = dgst[3];
-  u32 e2 = dgst[4];
+  u32x a2 = dgst[0];
+  u32x b2 = dgst[1];
+  u32x c2 = dgst[2];
+  u32x d2 = dgst[3];
+  u32x e2 = dgst[4];
 
   RIPEMD160_STEP_WORKAROUND_BUG (RIPEMD160_J , a2, b2, c2, d2, e2, w[ 5], RIPEMD160C50, RIPEMD160S50);
   RIPEMD160_STEP (RIPEMD160_J , e2, a2, b2, c2, d2, w[14], RIPEMD160C50, RIPEMD160S51);
@@ -204,11 +204,11 @@ static void ripemd160_transform (const u32 w[16], u32 dgst[5])
   RIPEMD160_STEP (RIPEMD160_F , c2, d2, e2, a2, b2, w[ 9], RIPEMD160C90, RIPEMD160S9E);
   RIPEMD160_STEP (RIPEMD160_F , b2, c2, d2, e2, a2, w[11], RIPEMD160C90, RIPEMD160S9F);
 
-  const u32 a = dgst[1] + c1 + d2;
-  const u32 b = dgst[2] + d1 + e2;
-  const u32 c = dgst[3] + e1 + a2;
-  const u32 d = dgst[4] + a1 + b2;
-  const u32 e = dgst[0] + b1 + c2;
+  const u32x a = dgst[1] + c1 + d2;
+  const u32x b = dgst[2] + d1 + e2;
+  const u32x c = dgst[3] + e1 + a2;
+  const u32x d = dgst[4] + a1 + b2;
+  const u32x e = dgst[0] + b1 + c2;
 
   dgst[0] = a;
   dgst[1] = b;
@@ -238,15 +238,15 @@ static void m06000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 wl[16];
+    u32x wl[16];
 
-    wl[ 0] = w0[0];
+    wl[ 0] = w0lr;
     wl[ 1] = w0[1];
     wl[ 2] = w0[2];
     wl[ 3] = w0[3];
@@ -263,7 +263,7 @@ static void m06000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     wl[14] = w14;
     wl[15] = 0;
 
-    u32 dgst[5];
+    u32x dgst[5];
 
     dgst[0] = RIPEMD160M_A;
     dgst[1] = RIPEMD160M_B;
@@ -273,12 +273,7 @@ static void m06000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     ripemd160_transform (wl, dgst);
 
-    const u32 r0 = dgst[0];
-    const u32 r1 = dgst[1];
-    const u32 r2 = dgst[2];
-    const u32 r3 = dgst[3];
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
 }
 
@@ -315,15 +310,15 @@ static void m06000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 wl[16];
+    u32x wl[16];
 
-    wl[ 0] = w0[0];
+    wl[ 0] = w0lr;
     wl[ 1] = w0[1];
     wl[ 2] = w0[2];
     wl[ 3] = w0[3];
@@ -340,7 +335,7 @@ static void m06000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     wl[14] = w14;
     wl[15] = 0;
 
-    u32 dgst[5];
+    u32x dgst[5];
 
     dgst[0] = RIPEMD160M_A;
     dgst[1] = RIPEMD160M_B;
@@ -350,12 +345,7 @@ static void m06000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     ripemd160_transform (wl, dgst);
 
-    const u32 r0 = dgst[0];
-    const u32 r1 = dgst[1];
-    const u32 r2 = dgst[2];
-    const u32 r3 = dgst[3];
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
 }
 

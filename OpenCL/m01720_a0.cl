@@ -237,7 +237,7 @@ __kernel void m01720_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     const u32 out_salt_len = out_len + salt_len;
 
-    switch_buffer_by_offset (w0, w1, w2, w3, salt_len);
+    switch_buffer_by_offset_le (w0, w1, w2, w3, salt_len);
 
     w0[0] |= salt_buf0[0];
     w0[1] |= salt_buf0[1];
@@ -413,7 +413,7 @@ __kernel void m01720_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     const u32 out_salt_len = out_len + salt_len;
 
-    switch_buffer_by_offset (w0, w1, w2, w3, salt_len);
+    switch_buffer_by_offset_le (w0, w1, w2, w3, salt_len);
 
     w0[0] |= salt_buf0[0];
     w0[1] |= salt_buf0[1];

@@ -5,6 +5,8 @@
 
 #define _WHIRLPOOL_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,13 +18,19 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 #define R 10
 
+#if   VECT_SIZE == 1
 #define BOX(S,n,i) (S)[(n)][(i)]
+#elif VECT_SIZE == 2
+#define BOX(S,n,i) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
+#elif VECT_SIZE == 4
+#define BOX(S,n,i) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
+#elif VECT_SIZE == 8
+#define BOX(S,n,i) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7])
+#endif
 
 __constant u32 Ch[8][256] =
 {
@@ -1120,10 +1128,10 @@ __constant u32 rcl[R + 1] =
 
 // this is a highly optimized that assumes dgst[16] = { 0 }; only reuse of no 2nd transform is needed
 
-static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 s_Ch[8][256], __local u32 s_Cl[8][256])
+static void whirlpool_transform (const u32x w[16], u32x dgst[16], __local u32 s_Ch[8][256], __local u32 s_Cl[8][256])
 {
-  u32 Kh[8];
-  u32 Kl[8];
+  u32x Kh[8];
+  u32x Kl[8];
 
   Kh[0] = 0x300beec0;
   Kl[0] = 0xaf902967;
@@ -1142,8 +1150,8 @@ static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 s_Ch
   Kh[7] = 0x28282828;
   Kl[7] = 0x28282828;
 
-  u32 stateh[8];
-  u32 statel[8];
+  u32x stateh[8];
+  u32x statel[8];
 
   stateh[0] = w[ 0];
   statel[0] = w[ 1];
@@ -1162,20 +1170,20 @@ static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 s_Ch
   stateh[7] = w[14];
   statel[7] = w[15];
 
-  u32 Lh[8];
-  u32 Ll[8];
+  u32x Lh[8];
+  u32x Ll[8];
 
   #pragma unroll
   for (int i = 0; i < 8; i++)
   {
-    const u32 Lp0 = stateh[(i + 8) & 7] >> 24;
-    const u32 Lp1 = stateh[(i + 7) & 7] >> 16;
-    const u32 Lp2 = stateh[(i + 6) & 7] >>  8;
-    const u32 Lp3 = stateh[(i + 5) & 7] >>  0;
-    const u32 Lp4 = statel[(i + 4) & 7] >> 24;
-    const u32 Lp5 = statel[(i + 3) & 7] >> 16;
-    const u32 Lp6 = statel[(i + 2) & 7] >>  8;
-    const u32 Lp7 = statel[(i + 1) & 7] >>  0;
+    const u32x Lp0 = stateh[(i + 8) & 7] >> 24;
+    const u32x Lp1 = stateh[(i + 7) & 7] >> 16;
+    const u32x Lp2 = stateh[(i + 6) & 7] >>  8;
+    const u32x Lp3 = stateh[(i + 5) & 7] >>  0;
+    const u32x Lp4 = statel[(i + 4) & 7] >> 24;
+    const u32x Lp5 = statel[(i + 3) & 7] >> 16;
+    const u32x Lp6 = statel[(i + 2) & 7] >>  8;
+    const u32x Lp7 = statel[(i + 1) & 7] >>  0;
 
     Lh[i] = BOX (s_Ch, 0, Lp0 & 0xff)
           ^ BOX (s_Ch, 1, Lp1 & 0xff)
@@ -1215,20 +1223,20 @@ static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 s_Ch
 
   for (int r = 2; r <= R; r++)
   {
-    u32 Lh[8];
-    u32 Ll[8];
+    u32x Lh[8];
+    u32x Ll[8];
 
     #pragma unroll
     for (int i = 0; i < 8; i++)
     {
-      const u32 Lp0 = Kh[(i + 8) & 7] >> 24;
-      const u32 Lp1 = Kh[(i + 7) & 7] >> 16;
-      const u32 Lp2 = Kh[(i + 6) & 7] >>  8;
-      const u32 Lp3 = Kh[(i + 5) & 7] >>  0;
-      const u32 Lp4 = Kl[(i + 4) & 7] >> 24;
-      const u32 Lp5 = Kl[(i + 3) & 7] >> 16;
-      const u32 Lp6 = Kl[(i + 2) & 7] >>  8;
-      const u32 Lp7 = Kl[(i + 1) & 7] >>  0;
+      const u32x Lp0 = Kh[(i + 8) & 7] >> 24;
+      const u32x Lp1 = Kh[(i + 7) & 7] >> 16;
+      const u32x Lp2 = Kh[(i + 6) & 7] >>  8;
+      const u32x Lp3 = Kh[(i + 5) & 7] >>  0;
+      const u32x Lp4 = Kl[(i + 4) & 7] >> 24;
+      const u32x Lp5 = Kl[(i + 3) & 7] >> 16;
+      const u32x Lp6 = Kl[(i + 2) & 7] >>  8;
+      const u32x Lp7 = Kl[(i + 1) & 7] >>  0;
 
       Lh[i] = BOX (s_Ch, 0, Lp0 & 0xff)
             ^ BOX (s_Ch, 1, Lp1 & 0xff)
@@ -1269,14 +1277,14 @@ static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 s_Ch
     #pragma unroll 8
     for (int i = 0; i < 8; i++)
     {
-      const u32 Lp0 = stateh[(i + 8) & 7] >> 24;
-      const u32 Lp1 = stateh[(i + 7) & 7] >> 16;
-      const u32 Lp2 = stateh[(i + 6) & 7] >>  8;
-      const u32 Lp3 = stateh[(i + 5) & 7] >>  0;
-      const u32 Lp4 = statel[(i + 4) & 7] >> 24;
-      const u32 Lp5 = statel[(i + 3) & 7] >> 16;
-      const u32 Lp6 = statel[(i + 2) & 7] >>  8;
-      const u32 Lp7 = statel[(i + 1) & 7] >>  0;
+      const u32x Lp0 = stateh[(i + 8) & 7] >> 24;
+      const u32x Lp1 = stateh[(i + 7) & 7] >> 16;
+      const u32x Lp2 = stateh[(i + 6) & 7] >>  8;
+      const u32x Lp3 = stateh[(i + 5) & 7] >>  0;
+      const u32x Lp4 = statel[(i + 4) & 7] >> 24;
+      const u32x Lp5 = statel[(i + 3) & 7] >> 16;
+      const u32x Lp6 = statel[(i + 2) & 7] >>  8;
+      const u32x Lp7 = statel[(i + 1) & 7] >>  0;
 
       Lh[i] = BOX (s_Ch, 0, Lp0 & 0xff)
             ^ BOX (s_Ch, 1, Lp1 & 0xff)
@@ -1348,15 +1356,15 @@ static void m06100m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 wl[16];
+    u32x wl[16];
 
-    wl[ 0] = w0[0];
+    wl[ 0] = w0lr;
     wl[ 1] = w0[1];
     wl[ 2] = w0[2];
     wl[ 3] = w0[3];
@@ -1373,16 +1381,11 @@ static void m06100m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     wl[14] = 0;
     wl[15] = pw_len * 8;
 
-    u32 dgst[16];
+    u32x dgst[16];
 
     whirlpool_transform (wl, dgst, s_Ch, s_Cl);
 
-    const u32 r0 = dgst[0];
-    const u32 r1 = dgst[1];
-    const u32 r2 = dgst[2];
-    const u32 r3 = dgst[3];
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
 }
 
@@ -1413,15 +1416,15 @@ static void m06100s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 wl[16];
+    u32x wl[16];
 
-    wl[ 0] = w0[0];
+    wl[ 0] = w0lr;
     wl[ 1] = w0[1];
     wl[ 2] = w0[2];
     wl[ 3] = w0[3];
@@ -1438,16 +1441,11 @@ static void m06100s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     wl[14] = 0;
     wl[15] = pw_len * 8;
 
-    u32 dgst[16];
+    u32x dgst[16];
 
     whirlpool_transform (wl, dgst, s_Ch, s_Cl);
 
-    const u32 r0 = dgst[0];
-    const u32 r1 = dgst[1];
-    const u32 r2 = dgst[2];
-    const u32 r3 = dgst[3];
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
 }
 

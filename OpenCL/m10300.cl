@@ -224,7 +224,7 @@ __kernel void m10300_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
   w3[2] = 0;
   w3[3] = 0;
 
-  switch_buffer_by_offset (w0, w1, w2, w3, pw_len);
+  switch_buffer_by_offset_le (w0, w1, w2, w3, pw_len);
 
   w0[0] |= word_buf0[0];
   w0[1] |= word_buf0[1];

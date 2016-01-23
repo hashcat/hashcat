@@ -5,6 +5,8 @@
 
 #define _KECCAK_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,9 +18,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 __constant u64 keccakf_rndc[24] =
 {
@@ -49,8 +49,8 @@ __constant u64 keccakf_rndc[24] =
 
 #define Rho_Pi(s)               \
 {                               \
-  u32 j = keccakf_piln[s];     \
-  u32 k = keccakf_rotc[s];     \
+  u32 j = keccakf_piln[s];      \
+  u32 k = keccakf_rotc[s];      \
   bc0 = st[j];                  \
   st[j] = rotl64 (t, k);        \
   t = bc0;                      \
@@ -83,13 +83,13 @@ static void m05000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    * const
    */
 
-  const u8 keccakf_rotc[24] =
+  const u32 keccakf_rotc[24] =
   {
      1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
     27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
   };
 
-  const u8 keccakf_piln[24] =
+  const u32 keccakf_piln[24] =
   {
     10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
     15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
@@ -111,22 +111,22 @@ static void m05000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u64 st[25];
+    u64x st[25];
 
-    st[ 0] = (u64) (w0[0]) | (u64) (w0[1]) << 32;
-    st[ 1] = (u64) (w0[2]) | (u64) (w0[3]) << 32;
-    st[ 2] = (u64) (w1[0]) | (u64) (w1[1]) << 32;
-    st[ 3] = (u64) (w1[2]) | (u64) (w1[3]) << 32;
-    st[ 4] = (u64) (w2[0]) | (u64) (w2[1]) << 32;
-    st[ 5] = (u64) (w2[2]) | (u64) (w2[3]) << 32;
-    st[ 6] = (u64) (w3[0]) | (u64) (w3[1]) << 32;
-    st[ 7] = (u64) (w3[2]) | (u64) (w3[3]) << 32;
+    st[ 0] = hl32_to_64 (w0[1], w0lr);
+    st[ 1] = hl32_to_64 (w0[3], w0[2]);
+    st[ 2] = hl32_to_64 (w1[1], w1[0]);
+    st[ 3] = hl32_to_64 (w1[3], w1[2]);
+    st[ 4] = hl32_to_64 (w2[1], w2[0]);
+    st[ 5] = hl32_to_64 (w2[3], w2[2]);
+    st[ 6] = hl32_to_64 (w3[1], w3[0]);
+    st[ 7] = hl32_to_64 (w3[3], w3[2]);
     st[ 8] = 0;
     st[ 9] = 0;
     st[10] = 0;
@@ -153,13 +153,13 @@ static void m05000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     {
       // Theta
 
-      u64 bc0 = Theta1 (0);
-      u64 bc1 = Theta1 (1);
-      u64 bc2 = Theta1 (2);
-      u64 bc3 = Theta1 (3);
-      u64 bc4 = Theta1 (4);
+      u64x bc0 = Theta1 (0);
+      u64x bc1 = Theta1 (1);
+      u64x bc2 = Theta1 (2);
+      u64x bc3 = Theta1 (3);
+      u64x bc4 = Theta1 (4);
 
-      u64 t;
+      u64x t;
 
       t = bc4 ^ rotl64 (bc1, 1); Theta2 (0);
       t = bc0 ^ rotl64 (bc2, 1); Theta2 (1);
@@ -209,12 +209,12 @@ static void m05000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
       st[0] ^= keccakf_rndc[round];
     }
 
-    const u32 r0 = l32_from_64 (st[1]);
-    const u32 r1 = h32_from_64 (st[1]);
-    const u32 r2 = l32_from_64 (st[2]);
-    const u32 r3 = h32_from_64 (st[2]);
+    const u32x r0 = l32_from_64 (st[1]);
+    const u32x r1 = h32_from_64 (st[1]);
+    const u32x r2 = l32_from_64 (st[2]);
+    const u32x r3 = h32_from_64 (st[2]);
 
-    #include COMPARE_M
+    COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
@@ -231,13 +231,13 @@ static void m05000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    * const
    */
 
-  const u8 keccakf_rotc[24] =
+  const u32 keccakf_rotc[24] =
   {
      1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
     27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
   };
 
-  const u8 keccakf_piln[24] =
+  const u32 keccakf_piln[24] =
   {
     10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
     15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
@@ -271,22 +271,22 @@ static void m05000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u64 st[25];
+    u64x st[25];
 
-    st[ 0] = (u64) (w0[0]) | (u64) (w0[1]) << 32;
-    st[ 1] = (u64) (w0[2]) | (u64) (w0[3]) << 32;
-    st[ 2] = (u64) (w1[0]) | (u64) (w1[1]) << 32;
-    st[ 3] = (u64) (w1[2]) | (u64) (w1[3]) << 32;
-    st[ 4] = (u64) (w2[0]) | (u64) (w2[1]) << 32;
-    st[ 5] = (u64) (w2[2]) | (u64) (w2[3]) << 32;
-    st[ 6] = (u64) (w3[0]) | (u64) (w3[1]) << 32;
-    st[ 7] = (u64) (w3[2]) | (u64) (w3[3]) << 32;
+    st[ 0] = hl32_to_64 (w0[1], w0lr);
+    st[ 1] = hl32_to_64 (w0[3], w0[2]);
+    st[ 2] = hl32_to_64 (w1[1], w1[0]);
+    st[ 3] = hl32_to_64 (w1[3], w1[2]);
+    st[ 4] = hl32_to_64 (w2[1], w2[0]);
+    st[ 5] = hl32_to_64 (w2[3], w2[2]);
+    st[ 6] = hl32_to_64 (w3[1], w3[0]);
+    st[ 7] = hl32_to_64 (w3[3], w3[2]);
     st[ 8] = 0;
     st[ 9] = 0;
     st[10] = 0;
@@ -313,13 +313,13 @@ static void m05000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     {
       // Theta
 
-      u64 bc0 = Theta1 (0);
-      u64 bc1 = Theta1 (1);
-      u64 bc2 = Theta1 (2);
-      u64 bc3 = Theta1 (3);
-      u64 bc4 = Theta1 (4);
+      u64x bc0 = Theta1 (0);
+      u64x bc1 = Theta1 (1);
+      u64x bc2 = Theta1 (2);
+      u64x bc3 = Theta1 (3);
+      u64x bc4 = Theta1 (4);
 
-      u64 t;
+      u64x t;
 
       t = bc4 ^ rotl64 (bc1, 1); Theta2 (0);
       t = bc0 ^ rotl64 (bc2, 1); Theta2 (1);
@@ -369,12 +369,12 @@ static void m05000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
       st[0] ^= keccakf_rndc[round];
     }
 
-    const u32 r0 = l32_from_64 (st[1]);
-    const u32 r1 = h32_from_64 (st[1]);
-    const u32 r2 = l32_from_64 (st[2]);
-    const u32 r3 = h32_from_64 (st[2]);
+    const u32x r0 = l32_from_64 (st[1]);
+    const u32x r1 = h32_from_64 (st[1]);
+    const u32x r2 = l32_from_64 (st[2]);
+    const u32x r3 = h32_from_64 (st[2]);
 
-    #include COMPARE_S
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }
 

@@ -138,7 +138,7 @@ __kernel void m04800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     s3[2] = 0;
     s3[3] = 0;
 
-    switch_buffer_by_offset (s0, s1, s2, s3, out_len);
+    switch_buffer_by_offset_le (s0, s1, s2, s3, out_len);
 
     w0[0] |= s0[0];
     w0[1] |= s0[1];
@@ -164,7 +164,7 @@ __kernel void m04800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * add id byte
      */
 
-    switch_buffer_by_offset (w0, w1, w2, w3, 1);
+    switch_buffer_by_offset_le (w0, w1, w2, w3, 1);
 
     w0[0] |= salt_buf[4];
 
@@ -392,7 +392,7 @@ __kernel void m04800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     s3[2] = 0;
     s3[3] = 0;
 
-    switch_buffer_by_offset (s0, s1, s2, s3, out_len);
+    switch_buffer_by_offset_le (s0, s1, s2, s3, out_len);
 
     w0[0] |= s0[0];
     w0[1] |= s0[1];
@@ -418,7 +418,7 @@ __kernel void m04800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * add id byte
      */
 
-    switch_buffer_by_offset (w0, w1, w2, w3, 1);
+    switch_buffer_by_offset_le (w0, w1, w2, w3, 1);
 
     w0[0] |= salt_buf[4];
 

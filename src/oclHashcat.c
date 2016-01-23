@@ -7725,6 +7725,7 @@ int main (int argc, char **argv)
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
+                               | OPTI_TYPE_USES_BITS_64
                                | OPTI_TYPE_RAW_HASH;
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
@@ -7748,6 +7749,7 @@ int main (int argc, char **argv)
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
+                               | OPTI_TYPE_USES_BITS_64
                                | OPTI_TYPE_RAW_HASH;
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
@@ -7771,6 +7773,7 @@ int main (int argc, char **argv)
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
+                               | OPTI_TYPE_USES_BITS_64
                                | OPTI_TYPE_RAW_HASH;
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
@@ -7794,6 +7797,7 @@ int main (int argc, char **argv)
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
+                               | OPTI_TYPE_USES_BITS_64
                                | OPTI_TYPE_RAW_HASH;
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
@@ -7818,6 +7822,7 @@ int main (int argc, char **argv)
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
+                               | OPTI_TYPE_USES_BITS_64
                                | OPTI_TYPE_RAW_HASH;
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
@@ -7842,6 +7847,7 @@ int main (int argc, char **argv)
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
+                               | OPTI_TYPE_USES_BITS_64
                                | OPTI_TYPE_RAW_HASH;
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
@@ -7867,6 +7873,7 @@ int main (int argc, char **argv)
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
+                               | OPTI_TYPE_USES_BITS_64
                                | OPTI_TYPE_RAW_HASH;
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
@@ -7891,6 +7898,7 @@ int main (int argc, char **argv)
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
+                               | OPTI_TYPE_USES_BITS_64
                                | OPTI_TYPE_RAW_HASH;
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
@@ -7908,6 +7916,7 @@ int main (int argc, char **argv)
                    parse_func  = hmacsha512_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64
                                | OPTI_TYPE_NOT_ITERATED;
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
@@ -7926,6 +7935,7 @@ int main (int argc, char **argv)
                    parse_func  = hmacsha512_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64
                                | OPTI_TYPE_NOT_ITERATED;
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
@@ -7941,7 +7951,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = sha512crypt_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8373,6 +8384,7 @@ int main (int argc, char **argv)
                    parse_func  = keccak_parse_hash;
                    sort_by_digest = sort_by_digest_8_25;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64
                                | OPTI_TYPE_RAW_HASH;
                    dgst_pos0   = 2;
                    dgst_pos1   = 3;
@@ -8607,7 +8619,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = truecrypt_parse_hash_1k;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8622,7 +8635,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = truecrypt_parse_hash_1k;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8637,7 +8651,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = truecrypt_parse_hash_1k;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8772,7 +8787,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = sha512aix_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8847,7 +8863,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_8_16;
                    parse_func  = sha512osx_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8862,7 +8879,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_8_16;
                    parse_func  = sha512grub_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8985,7 +9003,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = drupal7_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9592,6 +9611,7 @@ int main (int argc, char **argv)
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
+                               | OPTI_TYPE_USES_BITS_64
                                | OPTI_TYPE_RAW_HASH;
                    dgst_pos0   = 6;
                    dgst_pos1   = 7;
@@ -9815,7 +9835,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_8_16;
                    parse_func  = pbkdf2_sha512_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9830,7 +9851,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = ecryptfs_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9845,7 +9867,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_8_16;
                    parse_func  = oraclet_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -12535,14 +12558,6 @@ int main (int argc, char **argv)
 
         device_param->platform_devices_id = platform_devices_id;
 
-        // vendor_id
-
-        cl_uint vendor_id = 0;
-
-        hc_clGetDeviceInfo (device_param->device, CL_DEVICE_VENDOR_ID, sizeof (vendor_id), &vendor_id, NULL);
-
-        device_param->vendor_id = vendor_id;
-
         // device_type
 
         cl_device_type device_type;
@@ -12552,6 +12567,14 @@ int main (int argc, char **argv)
         device_type &= ~CL_DEVICE_TYPE_DEFAULT;
 
         device_param->device_type = device_type;
+
+        // vendor_id
+
+        cl_uint vendor_id = 0;
+
+        hc_clGetDeviceInfo (device_param->device, CL_DEVICE_VENDOR_ID, sizeof (vendor_id), &vendor_id, NULL);
+
+        device_param->vendor_id = vendor_id;
 
         // device_name
 
@@ -12574,7 +12597,7 @@ int main (int argc, char **argv)
           // pocl returns the real vendor_id in CL_DEVICE_VENDOR_ID which causes many problems because of hms and missing amd_bfe () etc
           // we need to overwrite vendor_id to avoid this. maybe open pocl issue?
 
-          cl_uint vendor_id = 0xffff;
+          cl_uint vendor_id = VENDOR_ID_GENERIC;
 
           device_param->vendor_id = vendor_id;
         }
@@ -12583,20 +12606,25 @@ int main (int argc, char **argv)
 
         cl_uint vector_width;
 
-        if (1) // can be removed as soon as all kernel are migrated; if (attack_mode == ATTACK_MODE_BF)
+        if (opencl_vector_width == OPENCL_VECTOR_WIDTH)
         {
-          if (opencl_vector_width == OPENCL_VECTOR_WIDTH)
+          hc_clGetDeviceInfo (device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, sizeof (vector_width), &vector_width, NULL);
+
+          if ((vendor_id == VENDOR_ID_NV) && (strstr (device_name, " Ti") || strstr (device_name, " TI")))
           {
-            hc_clGetDeviceInfo (device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, sizeof (vector_width), &vector_width, NULL);
+            // Yeah that's a super bad hack, but there's no other attribute we could use
+
+            if (vector_width < 2) vector_width *= 2;
           }
-          else
+
+          if (opti_type & OPTI_TYPE_USES_BITS_64)
           {
-            vector_width = opencl_vector_width;
+            if (vector_width > 1) vector_width /= 2;
           }
         }
         else
         {
-          vector_width = 1;
+          vector_width = opencl_vector_width;
         }
 
         if (vector_width > 8) vector_width = 8;
@@ -13207,7 +13235,7 @@ int main (int argc, char **argv)
        * create command-queue
        */
 
-      // not support with NV
+      // not supported with NV
       // device_param->command_queue = hc_clCreateCommandQueueWithProperties (device_param->context, device_param->device, NULL);
 
       device_param->command_queue = hc_clCreateCommandQueue (device_param->context, device_param->device, 0);
@@ -13224,10 +13252,20 @@ int main (int argc, char **argv)
 
       if (device_type & CL_DEVICE_TYPE_CPU)
       {
-        // CPU still need lots of workitems, don't know why...
-        // for testing phase, lets start with this
-
-//        kernel_accel = 1;
+        if (benchmark_mode == 0)
+        {
+          if (kernel_accel > 16)
+          {
+            kernel_accel = 16;
+          }
+        }
+        else
+        {
+          if (kernel_accel > 64)
+          {
+            kernel_accel = 64;
+          }
+        }
       }
 
       uint kernel_power  = device_processors * kernel_threads * kernel_accel;
@@ -13447,7 +13485,7 @@ int main (int argc, char **argv)
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
-      sprintf (build_opts, "-I%s/ -DVENDOR_ID=%d -DCUDA_ARCH=%d -DVECT_SIZE=%u", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width);
+      sprintf (build_opts, "-I%s/ -DVENDOR_ID=%d -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type);
 
       /**
        * main kernel

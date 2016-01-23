@@ -263,7 +263,7 @@ __kernel void m03710_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * prepend salt
      */
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
 
     w3_t[2] = pw_salt_len * 8;
 
@@ -629,7 +629,7 @@ __kernel void m03710_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * prepend salt
      */
 
-    switch_buffer_by_offset (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
 
     w3_t[2] = pw_salt_len * 8;
 

@@ -5,6 +5,10 @@
 
 #if defined _MD4_ || defined _DCC2_ || defined _NETNTLMV2_ || defined _KRB5PA_ || defined _MS_DRSR_
 
+#define MD4_F_S(x,y,z)  (((x) & (y)) | ((~(x)) & (z)))
+#define MD4_G_S(x,y,z)  (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
+#define MD4_H_S(x,y,z)  ((x) ^ (y) ^ (z))
+
 #ifdef IS_NV
 #if CUDA_ARCH >= 500
 #define MD4_F(x,y,z)    lut3_ca ((x), (y), (z))
@@ -61,6 +65,11 @@
 #endif
 
 #if defined _MD5_ || defined _MD5H_ || defined _SAPB_ || defined _OLDOFFICE01_ || defined _WPA_ || defined _MD5_SHA1_ || defined _SHA1_MD5_ || defined _NETNTLMV2_ || defined _KRB5PA_ || defined _PBKDF2_MD5_
+
+#define MD5_F_S(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
+#define MD5_G_S(x,y,z)  ((y) ^ ((z) & ((x) ^ (y))))
+#define MD5_H_S(x,y,z)  ((x) ^ (y) ^ (z))
+#define MD5_I_S(x,y,z)  ((y) ^ ((x) | ~(z)))
 
 #ifdef IS_NV
 #if CUDA_ARCH >= 500
@@ -272,7 +281,7 @@
 
 #define SHA384_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                               \
-  u64   temp0;                                  \
+  u64x  temp0;                                  \
   temp0  = K;                                   \
   temp0 += x;                                   \
   temp0 += h;                                   \
@@ -316,7 +325,7 @@
 
 #define SHA512_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                               \
-  u64   temp0;                                  \
+  u64x  temp0;                                  \
   temp0  = K;                                   \
   temp0 += x;                                   \
   temp0 += h;                                   \

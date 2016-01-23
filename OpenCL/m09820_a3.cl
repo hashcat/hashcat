@@ -5,6 +5,8 @@
 
 #define _OLDOFFICE34_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,34 +18,32 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
+#include "OpenCL/simd.c"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
-
-static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+static void sha1_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[5])
 {
-  u32 A = digest[0];
-  u32 B = digest[1];
-  u32 C = digest[2];
-  u32 D = digest[3];
-  u32 E = digest[4];
+  u32x A = digest[0];
+  u32x B = digest[1];
+  u32x C = digest[2];
+  u32x D = digest[3];
+  u32x E = digest[4];
 
-  u32 w0_t = w0[0];
-  u32 w1_t = w0[1];
-  u32 w2_t = w0[2];
-  u32 w3_t = w0[3];
-  u32 w4_t = w1[0];
-  u32 w5_t = w1[1];
-  u32 w6_t = w1[2];
-  u32 w7_t = w1[3];
-  u32 w8_t = w2[0];
-  u32 w9_t = w2[1];
-  u32 wa_t = w2[2];
-  u32 wb_t = w2[3];
-  u32 wc_t = w3[0];
-  u32 wd_t = w3[1];
-  u32 we_t = w3[2];
-  u32 wf_t = w3[3];
+  u32x w0_t = w0[0];
+  u32x w1_t = w0[1];
+  u32x w2_t = w0[2];
+  u32x w3_t = w0[3];
+  u32x w4_t = w1[0];
+  u32x w5_t = w1[1];
+  u32x w6_t = w1[2];
+  u32x w7_t = w1[3];
+  u32x w8_t = w2[0];
+  u32x w9_t = w2[1];
+  u32x wa_t = w2[2];
+  u32x wb_t = w2[3];
+  u32x wc_t = w3[0];
+  u32x wd_t = w3[1];
+  u32x we_t = w3[2];
+  u32x wf_t = w3[3];
 
   #undef K
   #define K SHA1C00
@@ -178,22 +178,22 @@ static void m09820m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
     w0_t[0] = salt_buf[0];
     w0_t[1] = salt_buf[1];
     w0_t[2] = salt_buf[2];
     w0_t[3] = salt_buf[3];
-    w1_t[0] = w0[0];
+    w1_t[0] = w0lr;
     w1_t[1] = w0[1];
     w1_t[2] = w0[2];
     w1_t[3] = w0[3];
@@ -206,7 +206,7 @@ static void m09820m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[2] = 0;
     w3_t[3] = pw_salt_len * 8;
 
-    u32 digest[5];
+    u32x digest[5];
 
     digest[0] = SHA1M_A;
     digest[1] = SHA1M_B;
@@ -241,15 +241,12 @@ static void m09820m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    u32 a = swap32 (digest[0]);
-    u32 b = swap32 (digest[1]) & 0xff;
+    u32x a = swap32 (digest[0]);
+    u32x b = swap32 (digest[1]) & 0xff;
+    u32x c = 0;
+    u32x d = 0;
 
-    const u32 r0 = a;
-    const u32 r1 = b;
-    const u32 r2 = 0;
-    const u32 r3 = 0;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (a, b, c, d);
   }
 }
 
@@ -295,22 +292,22 @@ static void m09820s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
     w0_t[0] = salt_buf[0];
     w0_t[1] = salt_buf[1];
     w0_t[2] = salt_buf[2];
     w0_t[3] = salt_buf[3];
-    w1_t[0] = w0[0];
+    w1_t[0] = w0lr;
     w1_t[1] = w0[1];
     w1_t[2] = w0[2];
     w1_t[3] = w0[3];
@@ -323,7 +320,7 @@ static void m09820s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[2] = 0;
     w3_t[3] = pw_salt_len * 8;
 
-    u32 digest[5];
+    u32x digest[5];
 
     digest[0] = SHA1M_A;
     digest[1] = SHA1M_B;
@@ -358,15 +355,12 @@ static void m09820s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    u32 a = swap32 (digest[0]);
-    u32 b = swap32 (digest[1]) & 0xff;
+    u32x a = swap32 (digest[0]);
+    u32x b = swap32 (digest[1]) & 0xff;
+    u32x c = 0;
+    u32x d = 0;
 
-    const u32 r0 = a;
-    const u32 r1 = b;
-    const u32 r2 = 0;
-    const u32 r3 = 0;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, b, c, d);
   }
 }
 

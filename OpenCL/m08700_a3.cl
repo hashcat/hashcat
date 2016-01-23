@@ -5,6 +5,8 @@
 
 #define _LOTUS6_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,9 +18,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 __constant u32 lotus_magic_table[256] =
 {
@@ -58,45 +58,63 @@ __constant u32 lotus_magic_table[256] =
 
 #define BOX(S,i) (S)[(i)]
 
-#define uint_to_hex_upper8(i) l_bin2asc[(i)]
+#if   VECT_SIZE == 1
+#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i)])
+#elif VECT_SIZE == 2
+#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
+#elif VECT_SIZE == 4
+#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
+#elif VECT_SIZE == 8
+#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#endif
 
-static void lotus_mix (u32 *in, __local u32 s_lotus_magic_table[256])
+#if   VECT_SIZE == 1
+#define BOX1(S,i) (S)[(i)]
+#elif VECT_SIZE == 2
+#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1])
+#elif VECT_SIZE == 4
+#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
+#elif VECT_SIZE == 8
+#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
+#endif
+
+static void lotus_mix (u32x *in, __local u32 s_lotus_magic_table[256])
 {
-  u32 p = 0;
+  u32x p = 0;
 
   for (int i = 0; i < 18; i++)
   {
     u32 s = 48;
 
-    #pragma unroll
+    #pragma unroll 12
     for (int j = 0; j < 12; j++)
     {
-      u32 tmp_in = in[j];
-      u32 tmp_out = 0;
+      u32x tmp_in = in[j];
+      u32x tmp_out = 0;
 
-      p = (p + s--) & 0xff; p = ((tmp_in >>  0) & 0xff) ^ BOX (s_lotus_magic_table, p); tmp_out |= p <<  0;
-      p = (p + s--) & 0xff; p = ((tmp_in >>  8) & 0xff) ^ BOX (s_lotus_magic_table, p); tmp_out |= p <<  8;
-      p = (p + s--) & 0xff; p = ((tmp_in >> 16) & 0xff) ^ BOX (s_lotus_magic_table, p); tmp_out |= p << 16;
-      p = (p + s--) & 0xff; p = ((tmp_in >> 24) & 0xff) ^ BOX (s_lotus_magic_table, p); tmp_out |= p << 24;
+      p = (p + s--) & 0xff; p = ((tmp_in >>  0) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p <<  0;
+      p = (p + s--) & 0xff; p = ((tmp_in >>  8) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p <<  8;
+      p = (p + s--) & 0xff; p = ((tmp_in >> 16) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p << 16;
+      p = (p + s--) & 0xff; p = ((tmp_in >> 24) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p << 24;
 
       in[j] = tmp_out;
     }
   }
 }
 
-static void lotus_transform_password (u32 in[4], u32 out[4], __local u32 s_lotus_magic_table[256])
+static void lotus_transform_password (u32x in[4], u32x out[4], __local u32 s_lotus_magic_table[256])
 {
-  u32 t = out[3] >> 24;
+  u32x t = out[3] >> 24;
 
-  u32 c;
+  u32x c;
 
-  //#pragma unroll // kernel fails if used
+  #pragma unroll 4
   for (int i = 0; i < 4; i++)
   {
-    t ^= (in[i] >>  0) & 0xff; c = BOX (s_lotus_magic_table, t); out[i] ^= c <<  0; t = ((out[i] >>  0) & 0xff);
-    t ^= (in[i] >>  8) & 0xff; c = BOX (s_lotus_magic_table, t); out[i] ^= c <<  8; t = ((out[i] >>  8) & 0xff);
-    t ^= (in[i] >> 16) & 0xff; c = BOX (s_lotus_magic_table, t); out[i] ^= c << 16; t = ((out[i] >> 16) & 0xff);
-    t ^= (in[i] >> 24) & 0xff; c = BOX (s_lotus_magic_table, t); out[i] ^= c << 24; t = ((out[i] >> 24) & 0xff);
+    t ^= (in[i] >>  0) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  0; t = ((out[i] >>  0) & 0xff);
+    t ^= (in[i] >>  8) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  8; t = ((out[i] >>  8) & 0xff);
+    t ^= (in[i] >> 16) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c << 16; t = ((out[i] >> 16) & 0xff);
+    t ^= (in[i] >> 24) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c << 24; t = ((out[i] >> 24) & 0xff);
   }
 }
 
@@ -179,9 +197,9 @@ static void pad (u32 w[4], const u32 len)
   }
 }
 
-static void mdtransform_norecalc (u32 state[4], u32 block[4], __local u32 s_lotus_magic_table[256])
+static void mdtransform_norecalc (u32x state[4], u32x block[4], __local u32 s_lotus_magic_table[256])
 {
-  u32 x[12];
+  u32x x[12];
 
   x[ 0] = state[0];
   x[ 1] = state[1];
@@ -204,23 +222,23 @@ static void mdtransform_norecalc (u32 state[4], u32 block[4], __local u32 s_lotu
   state[3] = x[3];
 }
 
-static void mdtransform (u32 state[4], u32 checksum[4], u32 block[4], __local u32 s_lotus_magic_table[256])
+static void mdtransform (u32x state[4], u32x checksum[4], u32x block[4], __local u32 s_lotus_magic_table[256])
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-static void domino_big_md (const u32 saved_key[16], const u32 size, u32 state[4], __local u32 s_lotus_magic_table[256])
+static void domino_big_md (const u32x saved_key[16], const u32 size, u32x state[4], __local u32 s_lotus_magic_table[256])
 {
-  u32 checksum[4];
+  u32x checksum[4];
 
   checksum[0] = 0;
   checksum[1] = 0;
   checksum[2] = 0;
   checksum[3] = 0;
 
-  u32 block[4];
+  u32x block[4];
 
   block[0] = 0;
   block[1] = 0;
@@ -250,7 +268,7 @@ static void domino_big_md (const u32 saved_key[16], const u32 size, u32 state[4]
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-static void m08700m (__local u32 s_lotus_magic_table[256], __local u32 l_bin2asc[256], u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32 * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset)
+static void m08700m (__local u32 s_lotus_magic_table[256], __local u32 l_bin2asc[256], u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
@@ -293,13 +311,13 @@ static void m08700m (__local u32 s_lotus_magic_table[256], __local u32 l_bin2asc
 
   u32 w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = words_buf_r[il_pos];
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    const u32 w0 = w0l | w0r;
+    const u32x w0 = w0l | w0r;
 
-    u32 w_tmp[16];
+    u32x w_tmp[16];
 
     w_tmp[ 0] = w0;
     w_tmp[ 1] = w[ 1];
@@ -318,7 +336,7 @@ static void m08700m (__local u32 s_lotus_magic_table[256], __local u32 l_bin2asc
     w_tmp[14] = w[14];
     w_tmp[15] = w[15];
 
-    u32 state[4];
+    u32x state[4];
 
     state[0] = 0;
     state[1] = 0;
@@ -327,24 +345,24 @@ static void m08700m (__local u32 s_lotus_magic_table[256], __local u32 l_bin2asc
 
     domino_big_md (w_tmp, pw_len, state, s_lotus_magic_table);
 
-    const u32 w0_t = uint_to_hex_upper8 ((state[0] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[0] >>  8) & 255) << 16;
-    const u32 w1_t = uint_to_hex_upper8 ((state[0] >> 16) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[0] >> 24) & 255) << 16;
-    const u32 w2_t = uint_to_hex_upper8 ((state[1] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[1] >>  8) & 255) << 16;
-    const u32 w3_t = uint_to_hex_upper8 ((state[1] >> 16) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[1] >> 24) & 255) << 16;
-    const u32 w4_t = uint_to_hex_upper8 ((state[2] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[2] >>  8) & 255) << 16;
-    const u32 w5_t = uint_to_hex_upper8 ((state[2] >> 16) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[2] >> 24) & 255) << 16;
-    const u32 w6_t = uint_to_hex_upper8 ((state[3] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[3] >>  8) & 255) << 16;
-    //const u32 w7_t = uint_to_hex_upper8 ((state[3] >> 16) & 255) <<  0
-    //                 | uint_to_hex_upper8 ((state[3] >> 24) & 255) << 16;
+    const u32x w0_t = uint_to_hex_upper8 ((state[0] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[0] >>  8) & 255) << 16;
+    const u32x w1_t = uint_to_hex_upper8 ((state[0] >> 16) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[0] >> 24) & 255) << 16;
+    const u32x w2_t = uint_to_hex_upper8 ((state[1] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[1] >>  8) & 255) << 16;
+    const u32x w3_t = uint_to_hex_upper8 ((state[1] >> 16) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[1] >> 24) & 255) << 16;
+    const u32x w4_t = uint_to_hex_upper8 ((state[2] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[2] >>  8) & 255) << 16;
+    const u32x w5_t = uint_to_hex_upper8 ((state[2] >> 16) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[2] >> 24) & 255) << 16;
+    const u32x w6_t = uint_to_hex_upper8 ((state[3] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[3] >>  8) & 255) << 16;
+    //const u32x w7_t = uint_to_hex_upper8 ((state[3] >> 16) & 255) <<  0
+    //                | uint_to_hex_upper8 ((state[3] >> 24) & 255) << 16;
 
-    const u32 pade = 0x0e0e0e0e;
+    const u32x pade = 0x0e0e0e0e;
 
     w_tmp[ 0] = salt0;
     w_tmp[ 1] = salt1      | w0_t << 16;
@@ -370,21 +388,16 @@ static void m08700m (__local u32 s_lotus_magic_table[256], __local u32 l_bin2asc
 
     domino_big_md (w_tmp, 34, state, s_lotus_magic_table);
 
-    u32 a = state[0] & 0xffffffff;
-    u32 b = state[1] & 0xffffffff;
-    u32 c = state[2] & 0x000000ff;
-    u32 d = state[3] & 0x00000000;
+    u32x a = state[0] & 0xffffffff;
+    u32x b = state[1] & 0xffffffff;
+    u32x c = state[2] & 0x000000ff;
+    u32x d = state[3] & 0x00000000;
 
-    const u32 r0 = a;
-    const u32 r1 = b;
-    const u32 r2 = c;
-    const u32 r3 = d;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (a, b, c, d);
   }
 }
 
-static void m08700s (__local u32 s_lotus_magic_table[256], __local u32 l_bin2asc[256], u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32 * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset)
+static void m08700s (__local u32 s_lotus_magic_table[256], __local u32 l_bin2asc[256], u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
@@ -439,13 +452,13 @@ static void m08700s (__local u32 s_lotus_magic_table[256], __local u32 l_bin2asc
 
   u32 w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = words_buf_r[il_pos];
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    const u32 w0 = w0l | w0r;
+    const u32x w0 = w0l | w0r;
 
-    u32 w_tmp[16];
+    u32x w_tmp[16];
 
     w_tmp[ 0] = w0;
     w_tmp[ 1] = w[ 1];
@@ -464,7 +477,7 @@ static void m08700s (__local u32 s_lotus_magic_table[256], __local u32 l_bin2asc
     w_tmp[14] = w[14];
     w_tmp[15] = w[15];
 
-    u32 state[4];
+    u32x state[4];
 
     state[0] = 0;
     state[1] = 0;
@@ -473,24 +486,24 @@ static void m08700s (__local u32 s_lotus_magic_table[256], __local u32 l_bin2asc
 
     domino_big_md (w_tmp, pw_len, state, s_lotus_magic_table);
 
-    const u32 w0_t = uint_to_hex_upper8 ((state[0] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[0] >>  8) & 255) << 16;
-    const u32 w1_t = uint_to_hex_upper8 ((state[0] >> 16) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[0] >> 24) & 255) << 16;
-    const u32 w2_t = uint_to_hex_upper8 ((state[1] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[1] >>  8) & 255) << 16;
-    const u32 w3_t = uint_to_hex_upper8 ((state[1] >> 16) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[1] >> 24) & 255) << 16;
-    const u32 w4_t = uint_to_hex_upper8 ((state[2] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[2] >>  8) & 255) << 16;
-    const u32 w5_t = uint_to_hex_upper8 ((state[2] >> 16) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[2] >> 24) & 255) << 16;
-    const u32 w6_t = uint_to_hex_upper8 ((state[3] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[3] >>  8) & 255) << 16;
-    //const u32 w7_t = uint_to_hex_upper8 ((state[3] >> 16) & 255) <<  0
-    //                 | uint_to_hex_upper8 ((state[3] >> 24) & 255) << 16;
+    const u32x w0_t = uint_to_hex_upper8 ((state[0] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[0] >>  8) & 255) << 16;
+    const u32x w1_t = uint_to_hex_upper8 ((state[0] >> 16) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[0] >> 24) & 255) << 16;
+    const u32x w2_t = uint_to_hex_upper8 ((state[1] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[1] >>  8) & 255) << 16;
+    const u32x w3_t = uint_to_hex_upper8 ((state[1] >> 16) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[1] >> 24) & 255) << 16;
+    const u32x w4_t = uint_to_hex_upper8 ((state[2] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[2] >>  8) & 255) << 16;
+    const u32x w5_t = uint_to_hex_upper8 ((state[2] >> 16) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[2] >> 24) & 255) << 16;
+    const u32x w6_t = uint_to_hex_upper8 ((state[3] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[3] >>  8) & 255) << 16;
+    //const u32x w7_t = uint_to_hex_upper8 ((state[3] >> 16) & 255) <<  0
+    //                | uint_to_hex_upper8 ((state[3] >> 24) & 255) << 16;
 
-    const u32 pade = 0x0e0e0e0e;
+    const u32x pade = 0x0e0e0e0e;
 
     w_tmp[ 0] = salt0;
     w_tmp[ 1] = salt1      | w0_t << 16;
@@ -516,21 +529,16 @@ static void m08700s (__local u32 s_lotus_magic_table[256], __local u32 l_bin2asc
 
     domino_big_md (w_tmp, 34, state, s_lotus_magic_table);
 
-    u32 a = state[0] & 0xffffffff;
-    u32 b = state[1] & 0xffffffff;
-    u32 c = state[2] & 0x000000ff;
-    u32 d = state[3] & 0x00000000;
+    u32x a = state[0] & 0xffffffff;
+    u32x b = state[1] & 0xffffffff;
+    u32x c = state[2] & 0x000000ff;
+    u32x d = state[3] & 0x00000000;
 
-    const u32 r0 = a;
-    const u32 r1 = b;
-    const u32 r2 = c;
-    const u32 r3 = d;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, b, c, d);
   }
 }
 
-__kernel void m08700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32 * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m08700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
    * base
@@ -598,7 +606,7 @@ __kernel void m08700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   m08700m (s_lotus_magic_table, l_bin2asc, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m08700_m08 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32 * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m08700_m08 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
    * base
@@ -666,7 +674,7 @@ __kernel void m08700_m08 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   m08700m (s_lotus_magic_table, l_bin2asc, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m08700_m16 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32 * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m08700_m16 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
    * base
@@ -734,7 +742,7 @@ __kernel void m08700_m16 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   m08700m (s_lotus_magic_table, l_bin2asc, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m08700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32 * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m08700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
    * base
@@ -802,7 +810,7 @@ __kernel void m08700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   m08700s (s_lotus_magic_table, l_bin2asc, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m08700_s08 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32 * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m08700_s08 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
    * base
@@ -870,7 +878,7 @@ __kernel void m08700_s08 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   m08700s (s_lotus_magic_table, l_bin2asc, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, bfs_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m08700_s16 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32 * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m08700_s16 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
    * base

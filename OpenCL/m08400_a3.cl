@@ -5,6 +5,8 @@
 
 #define _SHA1_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,36 +18,42 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
+#include "OpenCL/simd.c"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#if   VECT_SIZE == 1
+#define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i)])
+#elif VECT_SIZE == 2
+#define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
+#elif VECT_SIZE == 4
+#define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
+#elif VECT_SIZE == 8
+#define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#endif
 
-#define uint_to_hex_lower8_le(i) l_bin2asc[(i)]
-
-static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+static void sha1_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[5])
 {
-  u32 A = digest[0];
-  u32 B = digest[1];
-  u32 C = digest[2];
-  u32 D = digest[3];
-  u32 E = digest[4];
+  u32x A = digest[0];
+  u32x B = digest[1];
+  u32x C = digest[2];
+  u32x D = digest[3];
+  u32x E = digest[4];
 
-  u32 w0_t = w0[0];
-  u32 w1_t = w0[1];
-  u32 w2_t = w0[2];
-  u32 w3_t = w0[3];
-  u32 w4_t = w1[0];
-  u32 w5_t = w1[1];
-  u32 w6_t = w1[2];
-  u32 w7_t = w1[3];
-  u32 w8_t = w2[0];
-  u32 w9_t = w2[1];
-  u32 wa_t = w2[2];
-  u32 wb_t = w2[3];
-  u32 wc_t = w3[0];
-  u32 wd_t = w3[1];
-  u32 we_t = w3[2];
-  u32 wf_t = w3[3];
+  u32x w0_t = w0[0];
+  u32x w1_t = w0[1];
+  u32x w2_t = w0[2];
+  u32x w3_t = w0[3];
+  u32x w4_t = w1[0];
+  u32x w5_t = w1[1];
+  u32x w6_t = w1[2];
+  u32x w7_t = w1[3];
+  u32x w8_t = w2[0];
+  u32x w9_t = w2[1];
+  u32x wa_t = w2[2];
+  u32x wb_t = w2[3];
+  u32x wc_t = w3[0];
+  u32x wd_t = w3[1];
+  u32x we_t = w3[2];
+  u32x wf_t = w3[3];
 
   #undef K
   #define K SHA1C00
@@ -165,22 +173,22 @@ static void m08400m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 salt_buf0[4];
 
-  salt_buf0[0] = swap32 (salt_bufs[salt_pos].salt_buf[ 0]);
-  salt_buf0[1] = swap32 (salt_bufs[salt_pos].salt_buf[ 1]);
-  salt_buf0[2] = swap32 (salt_bufs[salt_pos].salt_buf[ 2]);
-  salt_buf0[3] = swap32 (salt_bufs[salt_pos].salt_buf[ 3]);
+  salt_buf0[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
+  salt_buf0[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
+  salt_buf0[2] = swap32_S (salt_bufs[salt_pos].salt_buf[ 2]);
+  salt_buf0[3] = swap32_S (salt_bufs[salt_pos].salt_buf[ 3]);
 
   u32 salt_buf1[4];
 
-  salt_buf1[0] = swap32 (salt_bufs[salt_pos].salt_buf[ 4]);
-  salt_buf1[1] = swap32 (salt_bufs[salt_pos].salt_buf[ 5]);
-  salt_buf1[2] = swap32 (salt_bufs[salt_pos].salt_buf[ 6]);
-  salt_buf1[3] = swap32 (salt_bufs[salt_pos].salt_buf[ 7]);
+  salt_buf1[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 4]);
+  salt_buf1[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 5]);
+  salt_buf1[2] = swap32_S (salt_bufs[salt_pos].salt_buf[ 6]);
+  salt_buf1[3] = swap32_S (salt_bufs[salt_pos].salt_buf[ 7]);
 
   u32 salt_buf2[4];
 
-  salt_buf2[0] = swap32 (salt_bufs[salt_pos].salt_buf[ 8]);
-  salt_buf2[1] = swap32 (salt_bufs[salt_pos].salt_buf[ 9]);
+  salt_buf2[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 8]);
+  salt_buf2[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 9]);
   salt_buf2[2] = 0;
   salt_buf2[3] = 0;
 
@@ -192,41 +200,41 @@ static void m08400m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 w0_t[4];
+    u32x w0_t[4];
 
-    w0_t[0] = w0[0];
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
 
-    u32 w1_t[4];
+    u32x w1_t[4];
 
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
 
-    u32 w2_t[4];
+    u32x w2_t[4];
 
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
 
-    u32 w3_t[4];
+    u32x w3_t[4];
 
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = 0;
     w3_t[3] = pw_len * 8;
 
-    u32 digest[5];
+    u32x digest[5];
 
     digest[0] = SHA1M_A;
     digest[1] = SHA1M_B;
@@ -236,11 +244,11 @@ static void m08400m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    u32 a;
-    u32 b;
-    u32 c;
-    u32 d;
-    u32 e;
+    u32x a;
+    u32x b;
+    u32x c;
+    u32x d;
+    u32x e;
 
     a = digest[0];
     b = digest[1];
@@ -362,12 +370,7 @@ static void m08400m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    const u32 r0 = digest[3];
-    const u32 r1 = digest[4];
-    const u32 r2 = digest[2];
-    const u32 r3 = digest[1];
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (digest[3], digest[4], digest[2], digest[1]);
   }
 }
 
@@ -398,22 +401,22 @@ static void m08400s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 salt_buf0[4];
 
-  salt_buf0[0] = swap32 (salt_bufs[salt_pos].salt_buf[ 0]);
-  salt_buf0[1] = swap32 (salt_bufs[salt_pos].salt_buf[ 1]);
-  salt_buf0[2] = swap32 (salt_bufs[salt_pos].salt_buf[ 2]);
-  salt_buf0[3] = swap32 (salt_bufs[salt_pos].salt_buf[ 3]);
+  salt_buf0[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 0]);
+  salt_buf0[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 1]);
+  salt_buf0[2] = swap32_S (salt_bufs[salt_pos].salt_buf[ 2]);
+  salt_buf0[3] = swap32_S (salt_bufs[salt_pos].salt_buf[ 3]);
 
   u32 salt_buf1[4];
 
-  salt_buf1[0] = swap32 (salt_bufs[salt_pos].salt_buf[ 4]);
-  salt_buf1[1] = swap32 (salt_bufs[salt_pos].salt_buf[ 5]);
-  salt_buf1[2] = swap32 (salt_bufs[salt_pos].salt_buf[ 6]);
-  salt_buf1[3] = swap32 (salt_bufs[salt_pos].salt_buf[ 7]);
+  salt_buf1[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 4]);
+  salt_buf1[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 5]);
+  salt_buf1[2] = swap32_S (salt_bufs[salt_pos].salt_buf[ 6]);
+  salt_buf1[3] = swap32_S (salt_bufs[salt_pos].salt_buf[ 7]);
 
   u32 salt_buf2[4];
 
-  salt_buf2[0] = swap32 (salt_bufs[salt_pos].salt_buf[ 8]);
-  salt_buf2[1] = swap32 (salt_bufs[salt_pos].salt_buf[ 9]);
+  salt_buf2[0] = swap32_S (salt_bufs[salt_pos].salt_buf[ 8]);
+  salt_buf2[1] = swap32_S (salt_bufs[salt_pos].salt_buf[ 9]);
   salt_buf2[2] = 0;
   salt_buf2[3] = 0;
 
@@ -425,41 +428,41 @@ static void m08400s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32 w0_t[4];
+    u32x w0_t[4];
 
-    w0_t[0] = w0[0];
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
 
-    u32 w1_t[4];
+    u32x w1_t[4];
 
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
 
-    u32 w2_t[4];
+    u32x w2_t[4];
 
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
 
-    u32 w3_t[4];
+    u32x w3_t[4];
 
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = 0;
     w3_t[3] = pw_len * 8;
 
-    u32 digest[5];
+    u32x digest[5];
 
     digest[0] = SHA1M_A;
     digest[1] = SHA1M_B;
@@ -469,11 +472,11 @@ static void m08400s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    u32 a;
-    u32 b;
-    u32 c;
-    u32 d;
-    u32 e;
+    u32x a;
+    u32x b;
+    u32x c;
+    u32x d;
+    u32x e;
 
     a = digest[0];
     b = digest[1];
@@ -595,12 +598,7 @@ static void m08400s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    const u32 r0 = digest[3];
-    const u32 r1 = digest[4];
-    const u32 r2 = digest[2];
-    const u32 r3 = digest[1];
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (digest[3], digest[4], digest[2], digest[1]);
   }
 }
 

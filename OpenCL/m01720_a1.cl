@@ -189,7 +189,7 @@ __kernel void m01720_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
+    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
 
   /**
@@ -246,7 +246,7 @@ __kernel void m01720_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
 
     u32 w0[4];
@@ -277,7 +277,7 @@ __kernel void m01720_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     const u32 pw_salt_len = pw_len + salt_len;
 
-    switch_buffer_by_offset (w0, w1, w2, w3, salt_len);
+    switch_buffer_by_offset_le (w0, w1, w2, w3, salt_len);
 
     w0[0] |= salt_buf0[0];
     w0[1] |= salt_buf0[1];
@@ -395,7 +395,7 @@ __kernel void m01720_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    switch_buffer_by_offset (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
+    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
   }
 
   /**
@@ -464,7 +464,7 @@ __kernel void m01720_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
 
     u32 w0[4];
@@ -495,7 +495,7 @@ __kernel void m01720_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     const u32 pw_salt_len = pw_len + salt_len;
 
-    switch_buffer_by_offset (w0, w1, w2, w3, salt_len);
+    switch_buffer_by_offset_le (w0, w1, w2, w3, salt_len);
 
     w0[0] |= salt_buf0[0];
     w0[1] |= salt_buf0[1];
