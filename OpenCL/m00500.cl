@@ -20,7 +20,7 @@
 #define COMPARE_S "OpenCL/check_single_comp4.c"
 #define COMPARE_M "OpenCL/check_multi_comp4.c"
 
-#define md5crypt_magic 0x00243124
+#define md5crypt_magic 0x00243124u
 
 static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {
@@ -447,18 +447,18 @@ static void append_sign (u32 block0[4], u32 block1[4], const u32 block_len)
       break;
 
     case 1:
-      block0[0] = block0[0]            | md5crypt_magic <<  8;
-      block0[1] = md5crypt_magic >> 24;
+      block0[0] = block0[0]            | md5crypt_magic <<  8u;
+      block0[1] = md5crypt_magic >> 24u;
       break;
 
     case 2:
-      block0[0] = block0[0]            | md5crypt_magic << 16;
-      block0[1] = md5crypt_magic >> 16;
+      block0[0] = block0[0]            | md5crypt_magic << 16u;
+      block0[1] = md5crypt_magic >> 16u;
       break;
 
     case 3:
-      block0[0] = block0[0]            | md5crypt_magic << 24;
-      block0[1] = md5crypt_magic >>  8;
+      block0[0] = block0[0]            | md5crypt_magic << 24u;
+      block0[1] = md5crypt_magic >>  8u;
       break;
 
     case 4:
@@ -466,18 +466,18 @@ static void append_sign (u32 block0[4], u32 block1[4], const u32 block_len)
       break;
 
     case 5:
-      block0[1] = block0[1]            | md5crypt_magic <<  8;
-      block0[2] = md5crypt_magic >> 24;
+      block0[1] = block0[1]            | md5crypt_magic <<  8u;
+      block0[2] = md5crypt_magic >> 24u;
       break;
 
     case 6:
-      block0[1] = block0[1]            | md5crypt_magic << 16;
-      block0[2] = md5crypt_magic >> 16;
+      block0[1] = block0[1]            | md5crypt_magic << 16u;
+      block0[2] = md5crypt_magic >> 16u;
       break;
 
     case 7:
-      block0[1] = block0[1]            | md5crypt_magic << 24;
-      block0[2] = md5crypt_magic >>  8;
+      block0[1] = block0[1]            | md5crypt_magic << 24u;
+      block0[2] = md5crypt_magic >>  8u;
       break;
 
     case 8:
@@ -485,18 +485,18 @@ static void append_sign (u32 block0[4], u32 block1[4], const u32 block_len)
       break;
 
     case 9:
-      block0[2] = block0[2]            | md5crypt_magic <<  8;
-      block0[3] = md5crypt_magic >> 24;
+      block0[2] = block0[2]            | md5crypt_magic <<  8u;
+      block0[3] = md5crypt_magic >> 24u;
       break;
 
     case 10:
-      block0[2] = block0[2]            | md5crypt_magic << 16;
-      block0[3] = md5crypt_magic >> 16;
+      block0[2] = block0[2]            | md5crypt_magic << 16u;
+      block0[3] = md5crypt_magic >> 16u;
       break;
 
     case 11:
-      block0[2] = block0[2]            | md5crypt_magic << 24;
-      block0[3] = md5crypt_magic >>  8;
+      block0[2] = block0[2]            | md5crypt_magic << 24u;
+      block0[3] = md5crypt_magic >>  8u;
       break;
 
     case 12:
@@ -504,18 +504,18 @@ static void append_sign (u32 block0[4], u32 block1[4], const u32 block_len)
       break;
 
     case 13:
-      block0[3] = block0[3]            | md5crypt_magic <<  8;
-      block1[0] = md5crypt_magic >> 24;
+      block0[3] = block0[3]            | md5crypt_magic <<  8u;
+      block1[0] = md5crypt_magic >> 24u;
       break;
 
     case 14:
-      block0[3] = block0[3]            | md5crypt_magic << 16;
-      block1[0] = md5crypt_magic >> 16;
+      block0[3] = block0[3]            | md5crypt_magic << 16u;
+      block1[0] = md5crypt_magic >> 16u;
       break;
 
     case 15:
-      block0[3] = block0[3]            | md5crypt_magic << 24;
-      block1[0] = md5crypt_magic >>  8;
+      block0[3] = block0[3]            | md5crypt_magic << 24u;
+      block1[0] = md5crypt_magic >>  8u;
       break;
   }
 }
