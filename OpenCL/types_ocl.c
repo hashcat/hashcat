@@ -596,14 +596,195 @@ static inline u32x rotl32 (const u32x a, const u32 n)
   return rotate (a, n);
 }
 
+#if CUDA_ARCH >= 350
+static inline u64x rotr64 (const u64x a, const u32 n)
+{
+  u64x r;
+
+  u32 il;
+  u32 ir;
+  u32 tl;
+  u32 tr;
+
+  #if VECT_SIZE == 1
+
+  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a));
+
+  if (n >= 32)
+  {
+    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+  }
+  else
+  {
+    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+    asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+  }
+
+  asm ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tl), "r"(tr));
+
+  #endif
+
+  #if VECT_SIZE >= 2
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.s0));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s0) : "r"(tl), "r"(tr));
+  }
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.s1));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s1) : "r"(tl), "r"(tr));
+  }
+
+  #endif
+
+  #if VECT_SIZE >= 4
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.s2));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s2) : "r"(tl), "r"(tr));
+  }
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.s3));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s3) : "r"(tl), "r"(tr));
+  }
+
+  #endif
+
+  #if VECT_SIZE >= 8
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.s4));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s4) : "r"(tl), "r"(tr));
+  }
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.s5));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s5) : "r"(tl), "r"(tr));
+  }
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.s6));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s6) : "r"(tl), "r"(tr));
+  }
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.s7));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s7) : "r"(tl), "r"(tr));
+  }
+
+  #endif
+
+  return r;
+}
+#else
 static inline u64x rotr64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64) 64 - n);
 }
+#endif
 
 static inline u64x rotl64 (const u64x a, const u32 n)
 {
-  return rotate (a, (u64) n);
+  return rotr64 (a, (u64) 64 - n);
 }
 
 static inline u32x __byte_perm (const u32x a, const u32x b, const u32x c)
