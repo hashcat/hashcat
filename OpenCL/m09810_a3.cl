@@ -5,8 +5,6 @@
 
 #define _OLDOFFICE34_
 
-#define NEW_SIMD_CODE
-
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -37,10 +35,10 @@ static void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32x data[4])
+static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 {
-  u32x v = 0x03020100;
-  u32x a = 0x04040404;
+  u32 v = 0x03020100;
+  u32 a = 0x04040404;
 
   __local u32 *ptr = (__local u32 *) rc4_key->S;
 
@@ -56,7 +54,7 @@ static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32x data[4])
   {
     u32 idx = i * 16;
 
-    u32x v;
+    u32 v;
 
     v = data[0];
 
@@ -88,12 +86,12 @@ static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32x data[4])
   }
 }
 
-static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32x in[4], u32x out[4])
+static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 in[4], u32 out[4])
 {
   #pragma unroll
   for (u32 k = 0; k < 4; k++)
   {
-    u32x xor4 = 0;
+    u32 xor4 = 0;
 
     u8 idx;
 
@@ -139,30 +137,30 @@ static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32x in[4], u
   return j;
 }
 
-static void sha1_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[5])
+static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
-  u32x A = digest[0];
-  u32x B = digest[1];
-  u32x C = digest[2];
-  u32x D = digest[3];
-  u32x E = digest[4];
+  u32 A = digest[0];
+  u32 B = digest[1];
+  u32 C = digest[2];
+  u32 D = digest[3];
+  u32 E = digest[4];
 
-  u32x w0_t = w0[0];
-  u32x w1_t = w0[1];
-  u32x w2_t = w0[2];
-  u32x w3_t = w0[3];
-  u32x w4_t = w1[0];
-  u32x w5_t = w1[1];
-  u32x w6_t = w1[2];
-  u32x w7_t = w1[3];
-  u32x w8_t = w2[0];
-  u32x w9_t = w2[1];
-  u32x wa_t = w2[2];
-  u32x wb_t = w2[3];
-  u32x wc_t = w3[0];
-  u32x wd_t = w3[1];
-  u32x we_t = w3[2];
-  u32x wf_t = w3[3];
+  u32 w0_t = w0[0];
+  u32 w1_t = w0[1];
+  u32 w2_t = w0[2];
+  u32 w3_t = w0[3];
+  u32 w4_t = w1[0];
+  u32 w5_t = w1[1];
+  u32 w6_t = w1[2];
+  u32 w7_t = w1[3];
+  u32 w8_t = w2[0];
+  u32 w9_t = w2[1];
+  u32 wa_t = w2[2];
+  u32 wb_t = w2[3];
+  u32 wc_t = w3[0];
+  u32 wd_t = w3[1];
+  u32 we_t = w3[2];
+  u32 wf_t = w3[3];
 
   #undef K
   #define K SHA1C00
@@ -299,11 +297,11 @@ static void m09810m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32 w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    const u32x w0lr = w0l | w0r;
+    const u32 w0lr = w0l | w0r;
 
-    u32x key[4];
+    u32 key[4];
 
     key[0] = w0lr;
     key[1] = w0[1] & 0xff;
@@ -312,14 +310,14 @@ static void m09810m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     rc4_init_16 (rc4_key, key);
 
-    u32x out[4];
+    u32 out[4];
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
-    u32x w0_t[4];
-    u32x w1_t[4];
-    u32x w2_t[4];
-    u32x w3_t[4];
+    u32 w0_t[4];
+    u32 w1_t[4];
+    u32 w2_t[4];
+    u32 w3_t[4];
 
     w0_t[0] = swap32 (out[0]);
     w0_t[1] = swap32 (out[1]);
@@ -338,7 +336,7 @@ static void m09810m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
     w3_t[2] = 0;
     w3_t[3] = 16 * 8;
 
-    u32x digest[5];
+    u32 digest[5];
 
     digest[0] = SHA1M_A;
     digest[1] = SHA1M_B;
@@ -403,11 +401,11 @@ static void m09810s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32 w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    const u32x w0lr = w0l | w0r;
+    const u32 w0lr = w0l | w0r;
 
-    u32x key[4];
+    u32 key[4];
 
     key[0] = w0lr;
     key[1] = w0[1] & 0xff;
@@ -416,14 +414,14 @@ static void m09810s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     rc4_init_16 (rc4_key, key);
 
-    u32x out[4];
+    u32 out[4];
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
-    u32x w0_t[4];
-    u32x w1_t[4];
-    u32x w2_t[4];
-    u32x w3_t[4];
+    u32 w0_t[4];
+    u32 w1_t[4];
+    u32 w2_t[4];
+    u32 w3_t[4];
 
     w0_t[0] = swap32 (out[0]);
     w0_t[1] = swap32 (out[1]);
@@ -442,7 +440,7 @@ static void m09810s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
     w3_t[2] = 0;
     w3_t[3] = 16 * 8;
 
-    u32x digest[5];
+    u32 digest[5];
 
     digest[0] = SHA1M_A;
     digest[1] = SHA1M_B;

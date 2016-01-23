@@ -5,8 +5,6 @@
 
 #define _MD5_
 
-#define NEW_SIMD_CODE
-
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -49,10 +47,10 @@ static void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32x data[4])
+static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 {
-  u32x v = 0x03020100;
-  u32x a = 0x04040404;
+  u32 v = 0x03020100;
+  u32 a = 0x04040404;
 
   __local u32 *ptr = (__local u32 *) rc4_key->S;
 
@@ -62,11 +60,11 @@ static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32x data[4])
     ptr[i] = v; v += a;
   }
 
-  const u32x d0 = data[0] >>  0;
-  const u32x d1 = data[0] >>  8;
-  const u32x d2 = data[0] >> 16;
-  const u32x d3 = data[0] >> 24;
-  const u32x d4 = data[1] >>  0;
+  const u32 d0 = data[0] >>  0;
+  const u32 d1 = data[0] >>  8;
+  const u32 d2 = data[0] >> 16;
+  const u32 d3 = data[0] >> 24;
+  const u32 d4 = data[1] >>  0;
 
   u32 j = 0;
 
@@ -83,11 +81,11 @@ static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32x data[4])
   j += rc4_key->S[255] + d0; swap (rc4_key, 255, j);
 }
 
-static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __constant u32x in[4], u32x out[4])
+static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __constant u32 in[4], u32 out[4])
 {
   for (u32 k = 0; k < 4; k++)
   {
-    u32x xor4 = 0;
+    u32 xor4 = 0;
 
     u8 idx;
 
@@ -152,13 +150,13 @@ static void m10410m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32 w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    const u32x w0lr = w0l | w0r;
+    const u32 w0lr = w0l | w0r;
 
     // now the RC4 part
 
-    u32x key[4];
+    u32 key[4];
 
     key[0] = w0lr;
     key[1] = w0[1];
@@ -167,7 +165,7 @@ static void m10410m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     rc4_init_16 (rc4_key, key);
 
-    u32x out[4];
+    u32 out[4];
 
     rc4_next_16 (rc4_key, 0, 0, padding, out);
 
@@ -206,13 +204,13 @@ static void m10410s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32 w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    const u32x w0lr = w0l | w0r;
+    const u32 w0lr = w0l | w0r;
 
     // now the RC4 part
 
-    u32x key[4];
+    u32 key[4];
 
     key[0] = w0lr;
     key[1] = w0[1];
@@ -221,7 +219,7 @@ static void m10410s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     rc4_init_16 (rc4_key, key);
 
-    u32x out[4];
+    u32 out[4];
 
     rc4_next_16 (rc4_key, 0, 0, padding, out);
 

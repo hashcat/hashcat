@@ -16,9 +16,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 __constant u32 padding[8] =
 {
@@ -275,7 +273,7 @@ static void m10400m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32 w0r = w0r_create_bft (bfs_buf, il_pos);
 
     w0[0] = w0l | w0r;
 
@@ -369,12 +367,7 @@ static void m10400m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     rc4_next_16 (rc4_key, 0, 0, padding, out);
 
-    const u32 r0 = out[0];
-    const u32 r1 = out[1];
-    const u32 r2 = out[2];
-    const u32 r3 = out[3];
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
@@ -433,7 +426,7 @@ static void m10400s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32 w0r = w0r_create_bft (bfs_buf, il_pos);
 
     w0[0] = w0l | w0r;
 
@@ -527,12 +520,7 @@ static void m10400s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     rc4_next_16 (rc4_key, 0, 0, padding, out);
 
-    const u32 r0 = out[0];
-    const u32 r1 = out[1];
-    const u32 r2 = out[2];
-    const u32 r3 = out[3];
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 

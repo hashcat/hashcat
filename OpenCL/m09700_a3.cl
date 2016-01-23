@@ -5,8 +5,6 @@
 
 #define _OLDOFFICE01_
 
-#define NEW_SIMD_CODE
-
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -37,10 +35,10 @@ static void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32x data[4])
+static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 {
-  u32x v = 0x03020100;
-  u32x a = 0x04040404;
+  u32 v = 0x03020100;
+  u32 a = 0x04040404;
 
   __local u32 *ptr = (__local u32 *) rc4_key->S;
 
@@ -88,7 +86,7 @@ static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32x data[4])
   }
 }
 
-static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32x in[4], u32x out[4])
+static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 in[4], u32 out[4])
 {
   #pragma unroll
   for (u32 k = 0; k < 4; k++)
@@ -139,29 +137,29 @@ static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32x in[4], u
   return j;
 }
 
-static void md5_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[4])
+static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {
-  u32x a = digest[0];
-  u32x b = digest[1];
-  u32x c = digest[2];
-  u32x d = digest[3];
+  u32 a = digest[0];
+  u32 b = digest[1];
+  u32 c = digest[2];
+  u32 d = digest[3];
 
-  u32x w0_t = w0[0];
-  u32x w1_t = w0[1];
-  u32x w2_t = w0[2];
-  u32x w3_t = w0[3];
-  u32x w4_t = w1[0];
-  u32x w5_t = w1[1];
-  u32x w6_t = w1[2];
-  u32x w7_t = w1[3];
-  u32x w8_t = w2[0];
-  u32x w9_t = w2[1];
-  u32x wa_t = w2[2];
-  u32x wb_t = w2[3];
-  u32x wc_t = w3[0];
-  u32x wd_t = w3[1];
-  u32x we_t = w3[2];
-  u32x wf_t = w3[3];
+  u32 w0_t = w0[0];
+  u32 w1_t = w0[1];
+  u32 w2_t = w0[2];
+  u32 w3_t = w0[3];
+  u32 w4_t = w1[0];
+  u32 w5_t = w1[1];
+  u32 w6_t = w1[2];
+  u32 w7_t = w1[3];
+  u32 w8_t = w2[0];
+  u32 w9_t = w2[1];
+  u32 wa_t = w2[2];
+  u32 wb_t = w2[3];
+  u32 wc_t = w3[0];
+  u32 wd_t = w3[1];
+  u32 we_t = w3[2];
+  u32 wf_t = w3[3];
 
   MD5_STEP (MD5_Fo, a, b, c, d, w0_t, MD5C00, MD5S00);
   MD5_STEP (MD5_Fo, d, a, b, c, w1_t, MD5C01, MD5S01);
@@ -303,14 +301,14 @@ static void m09700m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32 w0r = w0r_create_bft (bfs_buf, il_pos);
 
-    const u32x w0lr = w0l | w0r;
+    const u32 w0lr = w0l | w0r;
 
-    u32x w0_t[4];
-    u32x w1_t[4];
-    u32x w2_t[4];
-    u32x w3_t[4];
+    u32 w0_t[4];
+    u32 w1_t[4];
+    u32 w2_t[4];
+    u32 w3_t[4];
 
     w0_t[0] = w0lr;
     w0_t[1] = w0[1];
@@ -329,513 +327,10 @@ static void m09700m (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
     w3_t[2] = pw_len * 8;
     w3_t[3] = 0;
 
-    u32x digest_t0[4];
-    u32x digest_t1[2]; // need only first 5 byte
-    u32x digest_t2[2];
-    u32x digest_t3[2];
-
-    digest_t0[0] = MD5M_A;
-    digest_t0[1] = MD5M_B;
-    digest_t0[2] = MD5M_C;
-    digest_t0[3] = MD5M_D;
-
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest_t0);
-
-    // prepare 16 * 21 buffer stuff
-
-    u32x digest[4];
-
-    digest[0] = MD5M_A;
-    digest[1] = MD5M_B;
-    digest[2] = MD5M_C;
-    digest[3] = MD5M_D;
-
-    // offsets
-
-    digest_t0[0] &= 0xffffffff;
-    digest_t0[1] &= 0x000000ff;
-    digest_t0[2] &= 0x00000000;
-    digest_t0[3] &= 0x00000000;
-
-    digest_t1[0] =                      digest_t0[0] <<  8;
-    digest_t1[1] = digest_t0[0] >> 24 | digest_t0[1] <<  8;
-
-    digest_t2[0] =                      digest_t0[0] << 16;
-    digest_t2[1] = digest_t0[0] >> 16 | digest_t0[1] << 16;
-
-    digest_t3[0] =                      digest_t0[0] << 24;
-    digest_t3[1] = digest_t0[0] >>  8 | digest_t0[1] << 24;
-
-    // generate the 16 * 21 buffer
-
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
-    // 0..5
-    w0_t[0]  = digest_t0[0];
-    w0_t[1]  = digest_t0[1];
-
-    // 5..21
-    w0_t[1] |= salt_buf_t1[0];
-    w0_t[2]  = salt_buf_t1[1];
-    w0_t[3]  = salt_buf_t1[2];
-    w1_t[0]  = salt_buf_t1[3];
-    w1_t[1]  = salt_buf_t1[4];
-
-    // 21..26
-    w1_t[1] |= digest_t1[0];
-    w1_t[2]  = digest_t1[1];
-
-    // 26..42
-    w1_t[2] |= salt_buf_t2[0];
-    w1_t[3]  = salt_buf_t2[1];
-    w2_t[0]  = salt_buf_t2[2];
-    w2_t[1]  = salt_buf_t2[3];
-    w2_t[2]  = salt_buf_t2[4];
-
-    // 42..47
-    w2_t[2] |= digest_t2[0];
-    w2_t[3]  = digest_t2[1];
-
-    // 47..63
-    w2_t[3] |= salt_buf_t3[0];
-    w3_t[0]  = salt_buf_t3[1];
-    w3_t[1]  = salt_buf_t3[2];
-    w3_t[2]  = salt_buf_t3[3];
-    w3_t[3]  = salt_buf_t3[4];
-
-    // 63..
-
-    w3_t[3] |= digest_t3[0];
-
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
-
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
-    // 0..4
-    w0_t[0]  = digest_t3[1];
-
-    // 4..20
-    w0_t[1]  = salt_buf_t0[0];
-    w0_t[2]  = salt_buf_t0[1];
-    w0_t[3]  = salt_buf_t0[2];
-    w1_t[0]  = salt_buf_t0[3];
-
-    // 20..25
-    w1_t[1]  = digest_t0[0];
-    w1_t[2]  = digest_t0[1];
-
-    // 25..41
-    w1_t[2] |= salt_buf_t1[0];
-    w1_t[3]  = salt_buf_t1[1];
-    w2_t[0]  = salt_buf_t1[2];
-    w2_t[1]  = salt_buf_t1[3];
-    w2_t[2]  = salt_buf_t1[4];
-
-    // 41..46
-    w2_t[2] |= digest_t1[0];
-    w2_t[3]  = digest_t1[1];
-
-    // 46..62
-    w2_t[3] |= salt_buf_t2[0];
-    w3_t[0]  = salt_buf_t2[1];
-    w3_t[1]  = salt_buf_t2[2];
-    w3_t[2]  = salt_buf_t2[3];
-    w3_t[3]  = salt_buf_t2[4];
-
-    // 62..
-    w3_t[3] |= digest_t2[0];
-
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
-
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
-    // 0..3
-    w0_t[0]  = digest_t2[1];
-
-    // 3..19
-    w0_t[0] |= salt_buf_t3[0];
-    w0_t[1]  = salt_buf_t3[1];
-    w0_t[2]  = salt_buf_t3[2];
-    w0_t[3]  = salt_buf_t3[3];
-    w1_t[0]  = salt_buf_t3[4];
-
-    // 19..24
-    w1_t[0] |= digest_t3[0];
-    w1_t[1]  = digest_t3[1];
-
-    // 24..40
-    w1_t[2]  = salt_buf_t0[0];
-    w1_t[3]  = salt_buf_t0[1];
-    w2_t[0]  = salt_buf_t0[2];
-    w2_t[1]  = salt_buf_t0[3];
-
-    // 40..45
-    w2_t[2]  = digest_t0[0];
-    w2_t[3]  = digest_t0[1];
-
-    // 45..61
-    w2_t[3] |= salt_buf_t1[0];
-    w3_t[0]  = salt_buf_t1[1];
-    w3_t[1]  = salt_buf_t1[2];
-    w3_t[2]  = salt_buf_t1[3];
-    w3_t[3]  = salt_buf_t1[4];
-
-    // 61..
-    w3_t[3] |= digest_t1[0];
-
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
-
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
-    // 0..2
-    w0_t[0]  = digest_t1[1];
-
-    // 2..18
-    w0_t[0] |= salt_buf_t2[0];
-    w0_t[1]  = salt_buf_t2[1];
-    w0_t[2]  = salt_buf_t2[2];
-    w0_t[3]  = salt_buf_t2[3];
-    w1_t[0]  = salt_buf_t2[4];
-
-    // 18..23
-    w1_t[0] |= digest_t2[0];
-    w1_t[1]  = digest_t2[1];
-
-    // 23..39
-    w1_t[1] |= salt_buf_t3[0];
-    w1_t[2]  = salt_buf_t3[1];
-    w1_t[3]  = salt_buf_t3[2];
-    w2_t[0]  = salt_buf_t3[3];
-    w2_t[1]  = salt_buf_t3[4];
-
-    // 39..44
-    w2_t[1] |= digest_t3[0];
-    w2_t[2]  = digest_t3[1];
-
-    // 44..60
-    w2_t[3]  = salt_buf_t0[0];
-    w3_t[0]  = salt_buf_t0[1];
-    w3_t[1]  = salt_buf_t0[2];
-    w3_t[2]  = salt_buf_t0[3];
-
-    // 60..
-    w3_t[3]  = digest_t0[0];
-
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
-
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
-    // 0..1
-    w0_t[0]  = digest_t0[1];
-
-    // 1..17
-    w0_t[0] |= salt_buf_t1[0];
-    w0_t[1]  = salt_buf_t1[1];
-    w0_t[2]  = salt_buf_t1[2];
-    w0_t[3]  = salt_buf_t1[3];
-    w1_t[0]  = salt_buf_t1[4];
-
-    // 17..22
-    w1_t[0] |= digest_t1[0];
-    w1_t[1]  = digest_t1[1];
-
-    // 22..38
-    w1_t[1] |= salt_buf_t2[0];
-    w1_t[2]  = salt_buf_t2[1];
-    w1_t[3]  = salt_buf_t2[2];
-    w2_t[0]  = salt_buf_t2[3];
-    w2_t[1]  = salt_buf_t2[4];
-
-    // 38..43
-    w2_t[1] |= digest_t2[0];
-    w2_t[2]  = digest_t2[1];
-
-    // 43..59
-    w2_t[2] |= salt_buf_t3[0];
-    w2_t[3]  = salt_buf_t3[1];
-    w3_t[0]  = salt_buf_t3[2];
-    w3_t[1]  = salt_buf_t3[3];
-    w3_t[2]  = salt_buf_t3[4];
-
-    // 59..
-    w3_t[2] |= digest_t3[0];
-    w3_t[3]  = digest_t3[1];
-
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
-
-    w0_t[0]  = salt_buf_t0[0];
-    w0_t[1]  = salt_buf_t0[1];
-    w0_t[2]  = salt_buf_t0[2];
-    w0_t[3]  = salt_buf_t0[3];
-    w1_t[0]  = 0x80;
-    w1_t[1]  = 0;
-    w1_t[2]  = 0;
-    w1_t[3]  = 0;
-    w2_t[0]  = 0;
-    w2_t[1]  = 0;
-    w2_t[2]  = 0;
-    w2_t[3]  = 0;
-    w3_t[0]  = 0;
-    w3_t[1]  = 0;
-    w3_t[2]  = 21 * 16 * 8;
-    w3_t[3]  = 0;
-
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
-
-    // now the 40 bit input for the MD5 which then will generate the RC4 key, so it's precomputable!
-
-    w0_t[0]  = digest[0];
-    w0_t[1]  = digest[1] & 0xff;
-    w0_t[2]  = 0x8000;
-    w0_t[3]  = 0;
-    w1_t[0]  = 0;
-    w1_t[1]  = 0;
-    w1_t[2]  = 0;
-    w1_t[3]  = 0;
-    w2_t[0]  = 0;
-    w2_t[1]  = 0;
-    w2_t[2]  = 0;
-    w2_t[3]  = 0;
-    w3_t[0]  = 0;
-    w3_t[1]  = 0;
-    w3_t[2]  = 9 * 8;
-    w3_t[3]  = 0;
-
-    digest[0] = MD5M_A;
-    digest[1] = MD5M_B;
-    digest[2] = MD5M_C;
-    digest[3] = MD5M_D;
-
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
-
-    // now the RC4 part
-
-    u32x key[4];
-
-    key[0] = digest[0];
-    key[1] = digest[1];
-    key[2] = digest[2];
-    key[3] = digest[3];
-
-    rc4_init_16 (rc4_key, key);
-
-    u32x out[4];
-
-    u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
-
-    w0_t[0] = out[0];
-    w0_t[1] = out[1];
-    w0_t[2] = out[2];
-    w0_t[3] = out[3];
-    w1_t[0] = 0x80;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 16 * 8;
-    w3_t[3] = 0;
-
-    digest[0] = MD5M_A;
-    digest[1] = MD5M_B;
-    digest[2] = MD5M_C;
-    digest[3] = MD5M_D;
-
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
-
-    rc4_next_16 (rc4_key, 16, j, digest, out);
-
-    COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
-  }
-}
-
-static void m09700s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global oldoffice01_t *oldoffice01_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset)
-{
-  /**
-   * modifier
-   */
-
-  const u32 gid = get_global_id (0);
-  const u32 lid = get_local_id (0);
-
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
-  /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
-   * salt
-   */
-
-  u32 salt_buf_t0[4];
-  u32 salt_buf_t1[5];
-  u32 salt_buf_t2[5];
-  u32 salt_buf_t3[5];
-
-  salt_buf_t0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf_t0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf_t0[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf_t0[3] = salt_bufs[salt_pos].salt_buf[3];
-
-  salt_buf_t1[0] =                        salt_buf_t0[0] <<  8;
-  salt_buf_t1[1] = salt_buf_t0[0] >> 24 | salt_buf_t0[1] <<  8;
-  salt_buf_t1[2] = salt_buf_t0[1] >> 24 | salt_buf_t0[2] <<  8;
-  salt_buf_t1[3] = salt_buf_t0[2] >> 24 | salt_buf_t0[3] <<  8;
-  salt_buf_t1[4] = salt_buf_t0[3] >> 24;
-
-  salt_buf_t2[0] =                        salt_buf_t0[0] << 16;
-  salt_buf_t2[1] = salt_buf_t0[0] >> 16 | salt_buf_t0[1] << 16;
-  salt_buf_t2[2] = salt_buf_t0[1] >> 16 | salt_buf_t0[2] << 16;
-  salt_buf_t2[3] = salt_buf_t0[2] >> 16 | salt_buf_t0[3] << 16;
-  salt_buf_t2[4] = salt_buf_t0[3] >> 16;
-
-  salt_buf_t3[0] =                        salt_buf_t0[0] << 24;
-  salt_buf_t3[1] = salt_buf_t0[0] >>  8 | salt_buf_t0[1] << 24;
-  salt_buf_t3[2] = salt_buf_t0[1] >>  8 | salt_buf_t0[2] << 24;
-  salt_buf_t3[3] = salt_buf_t0[2] >>  8 | salt_buf_t0[3] << 24;
-  salt_buf_t3[4] = salt_buf_t0[3] >>  8;
-
-  const u32 salt_len = 16;
-
-  /**
-   * esalt
-   */
-
-  const u32 version = oldoffice01_bufs[salt_pos].version;
-
-  u32 encryptedVerifier[4];
-
-  encryptedVerifier[0] = oldoffice01_bufs[salt_pos].encryptedVerifier[0];
-  encryptedVerifier[1] = oldoffice01_bufs[salt_pos].encryptedVerifier[1];
-  encryptedVerifier[2] = oldoffice01_bufs[salt_pos].encryptedVerifier[2];
-  encryptedVerifier[3] = oldoffice01_bufs[salt_pos].encryptedVerifier[3];
-
-  /**
-   * loop
-   */
-
-  u32 w0l = w0[0];
-
-  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
-  {
-    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
-
-    const u32x w0lr = w0l | w0r;
-
-    u32x w0_t[4];
-    u32x w1_t[4];
-    u32x w2_t[4];
-    u32x w3_t[4];
-
-    w0_t[0] = w0lr;
-    w0_t[1] = w0[1];
-    w0_t[2] = w0[2];
-    w0_t[3] = w0[3];
-    w1_t[0] = w1[0];
-    w1_t[1] = w1[1];
-    w1_t[2] = w1[2];
-    w1_t[3] = w1[3];
-    w2_t[0] = w2[0];
-    w2_t[1] = w2[1];
-    w2_t[2] = w2[2];
-    w2_t[3] = w2[3];
-    w3_t[0] = w3[0];
-    w3_t[1] = w3[1];
-    w3_t[2] = pw_len * 8;
-    w3_t[3] = 0;
-
-    u32x digest_t0[4];
-    u32x digest_t1[2]; // need only first 5 byte
-    u32x digest_t2[2];
-    u32x digest_t3[2];
+    u32 digest_t0[4];
+    u32 digest_t1[2]; // need only first 5 byte
+    u32 digest_t2[2];
+    u32 digest_t3[2];
 
     digest_t0[0] = MD5M_A;
     digest_t0[1] = MD5M_B;
@@ -1188,7 +683,7 @@ static void m09700s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     // now the RC4 part
 
-    u32x key[4];
+    u32 key[4];
 
     key[0] = digest[0];
     key[1] = digest[1];
@@ -1197,7 +692,510 @@ static void m09700s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[
 
     rc4_init_16 (rc4_key, key);
 
-    u32x out[4];
+    u32 out[4];
+
+    u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
+
+    w0_t[0] = out[0];
+    w0_t[1] = out[1];
+    w0_t[2] = out[2];
+    w0_t[3] = out[3];
+    w1_t[0] = 0x80;
+    w1_t[1] = 0;
+    w1_t[2] = 0;
+    w1_t[3] = 0;
+    w2_t[0] = 0;
+    w2_t[1] = 0;
+    w2_t[2] = 0;
+    w2_t[3] = 0;
+    w3_t[0] = 0;
+    w3_t[1] = 0;
+    w3_t[2] = 16 * 8;
+    w3_t[3] = 0;
+
+    digest[0] = MD5M_A;
+    digest[1] = MD5M_B;
+    digest[2] = MD5M_C;
+    digest[3] = MD5M_D;
+
+    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+
+    rc4_next_16 (rc4_key, 16, j, digest, out);
+
+    COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
+  }
+}
+
+static void m09700s (__local RC4_KEY rc4_keys[64], u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global oldoffice01_t *oldoffice01_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 bfs_cnt, const u32 digests_cnt, const u32 digests_offset)
+{
+  /**
+   * modifier
+   */
+
+  const u32 gid = get_global_id (0);
+  const u32 lid = get_local_id (0);
+
+  __local RC4_KEY *rc4_key = &rc4_keys[lid];
+
+  /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
+
+  /**
+   * salt
+   */
+
+  u32 salt_buf_t0[4];
+  u32 salt_buf_t1[5];
+  u32 salt_buf_t2[5];
+  u32 salt_buf_t3[5];
+
+  salt_buf_t0[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf_t0[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf_t0[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf_t0[3] = salt_bufs[salt_pos].salt_buf[3];
+
+  salt_buf_t1[0] =                        salt_buf_t0[0] <<  8;
+  salt_buf_t1[1] = salt_buf_t0[0] >> 24 | salt_buf_t0[1] <<  8;
+  salt_buf_t1[2] = salt_buf_t0[1] >> 24 | salt_buf_t0[2] <<  8;
+  salt_buf_t1[3] = salt_buf_t0[2] >> 24 | salt_buf_t0[3] <<  8;
+  salt_buf_t1[4] = salt_buf_t0[3] >> 24;
+
+  salt_buf_t2[0] =                        salt_buf_t0[0] << 16;
+  salt_buf_t2[1] = salt_buf_t0[0] >> 16 | salt_buf_t0[1] << 16;
+  salt_buf_t2[2] = salt_buf_t0[1] >> 16 | salt_buf_t0[2] << 16;
+  salt_buf_t2[3] = salt_buf_t0[2] >> 16 | salt_buf_t0[3] << 16;
+  salt_buf_t2[4] = salt_buf_t0[3] >> 16;
+
+  salt_buf_t3[0] =                        salt_buf_t0[0] << 24;
+  salt_buf_t3[1] = salt_buf_t0[0] >>  8 | salt_buf_t0[1] << 24;
+  salt_buf_t3[2] = salt_buf_t0[1] >>  8 | salt_buf_t0[2] << 24;
+  salt_buf_t3[3] = salt_buf_t0[2] >>  8 | salt_buf_t0[3] << 24;
+  salt_buf_t3[4] = salt_buf_t0[3] >>  8;
+
+  const u32 salt_len = 16;
+
+  /**
+   * esalt
+   */
+
+  const u32 version = oldoffice01_bufs[salt_pos].version;
+
+  u32 encryptedVerifier[4];
+
+  encryptedVerifier[0] = oldoffice01_bufs[salt_pos].encryptedVerifier[0];
+  encryptedVerifier[1] = oldoffice01_bufs[salt_pos].encryptedVerifier[1];
+  encryptedVerifier[2] = oldoffice01_bufs[salt_pos].encryptedVerifier[2];
+  encryptedVerifier[3] = oldoffice01_bufs[salt_pos].encryptedVerifier[3];
+
+  /**
+   * loop
+   */
+
+  u32 w0l = w0[0];
+
+  for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
+  {
+    const u32 w0r = w0r_create_bft (bfs_buf, il_pos);
+
+    const u32 w0lr = w0l | w0r;
+
+    u32 w0_t[4];
+    u32 w1_t[4];
+    u32 w2_t[4];
+    u32 w3_t[4];
+
+    w0_t[0] = w0lr;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = pw_len * 8;
+    w3_t[3] = 0;
+
+    u32 digest_t0[4];
+    u32 digest_t1[2]; // need only first 5 byte
+    u32 digest_t2[2];
+    u32 digest_t3[2];
+
+    digest_t0[0] = MD5M_A;
+    digest_t0[1] = MD5M_B;
+    digest_t0[2] = MD5M_C;
+    digest_t0[3] = MD5M_D;
+
+    md5_transform (w0_t, w1_t, w2_t, w3_t, digest_t0);
+
+    // prepare 16 * 21 buffer stuff
+
+    u32 digest[4];
+
+    digest[0] = MD5M_A;
+    digest[1] = MD5M_B;
+    digest[2] = MD5M_C;
+    digest[3] = MD5M_D;
+
+    // offsets
+
+    digest_t0[0] &= 0xffffffff;
+    digest_t0[1] &= 0x000000ff;
+    digest_t0[2] &= 0x00000000;
+    digest_t0[3] &= 0x00000000;
+
+    digest_t1[0] =                      digest_t0[0] <<  8;
+    digest_t1[1] = digest_t0[0] >> 24 | digest_t0[1] <<  8;
+
+    digest_t2[0] =                      digest_t0[0] << 16;
+    digest_t2[1] = digest_t0[0] >> 16 | digest_t0[1] << 16;
+
+    digest_t3[0] =                      digest_t0[0] << 24;
+    digest_t3[1] = digest_t0[0] >>  8 | digest_t0[1] << 24;
+
+    // generate the 16 * 21 buffer
+
+    w0_t[0] = 0;
+    w0_t[1] = 0;
+    w0_t[2] = 0;
+    w0_t[3] = 0;
+    w1_t[0] = 0;
+    w1_t[1] = 0;
+    w1_t[2] = 0;
+    w1_t[3] = 0;
+    w2_t[0] = 0;
+    w2_t[1] = 0;
+    w2_t[2] = 0;
+    w2_t[3] = 0;
+    w3_t[0] = 0;
+    w3_t[1] = 0;
+    w3_t[2] = 0;
+    w3_t[3] = 0;
+
+    // 0..5
+    w0_t[0]  = digest_t0[0];
+    w0_t[1]  = digest_t0[1];
+
+    // 5..21
+    w0_t[1] |= salt_buf_t1[0];
+    w0_t[2]  = salt_buf_t1[1];
+    w0_t[3]  = salt_buf_t1[2];
+    w1_t[0]  = salt_buf_t1[3];
+    w1_t[1]  = salt_buf_t1[4];
+
+    // 21..26
+    w1_t[1] |= digest_t1[0];
+    w1_t[2]  = digest_t1[1];
+
+    // 26..42
+    w1_t[2] |= salt_buf_t2[0];
+    w1_t[3]  = salt_buf_t2[1];
+    w2_t[0]  = salt_buf_t2[2];
+    w2_t[1]  = salt_buf_t2[3];
+    w2_t[2]  = salt_buf_t2[4];
+
+    // 42..47
+    w2_t[2] |= digest_t2[0];
+    w2_t[3]  = digest_t2[1];
+
+    // 47..63
+    w2_t[3] |= salt_buf_t3[0];
+    w3_t[0]  = salt_buf_t3[1];
+    w3_t[1]  = salt_buf_t3[2];
+    w3_t[2]  = salt_buf_t3[3];
+    w3_t[3]  = salt_buf_t3[4];
+
+    // 63..
+
+    w3_t[3] |= digest_t3[0];
+
+    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+
+    w0_t[0] = 0;
+    w0_t[1] = 0;
+    w0_t[2] = 0;
+    w0_t[3] = 0;
+    w1_t[0] = 0;
+    w1_t[1] = 0;
+    w1_t[2] = 0;
+    w1_t[3] = 0;
+    w2_t[0] = 0;
+    w2_t[1] = 0;
+    w2_t[2] = 0;
+    w2_t[3] = 0;
+    w3_t[0] = 0;
+    w3_t[1] = 0;
+    w3_t[2] = 0;
+    w3_t[3] = 0;
+
+    // 0..4
+    w0_t[0]  = digest_t3[1];
+
+    // 4..20
+    w0_t[1]  = salt_buf_t0[0];
+    w0_t[2]  = salt_buf_t0[1];
+    w0_t[3]  = salt_buf_t0[2];
+    w1_t[0]  = salt_buf_t0[3];
+
+    // 20..25
+    w1_t[1]  = digest_t0[0];
+    w1_t[2]  = digest_t0[1];
+
+    // 25..41
+    w1_t[2] |= salt_buf_t1[0];
+    w1_t[3]  = salt_buf_t1[1];
+    w2_t[0]  = salt_buf_t1[2];
+    w2_t[1]  = salt_buf_t1[3];
+    w2_t[2]  = salt_buf_t1[4];
+
+    // 41..46
+    w2_t[2] |= digest_t1[0];
+    w2_t[3]  = digest_t1[1];
+
+    // 46..62
+    w2_t[3] |= salt_buf_t2[0];
+    w3_t[0]  = salt_buf_t2[1];
+    w3_t[1]  = salt_buf_t2[2];
+    w3_t[2]  = salt_buf_t2[3];
+    w3_t[3]  = salt_buf_t2[4];
+
+    // 62..
+    w3_t[3] |= digest_t2[0];
+
+    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+
+    w0_t[0] = 0;
+    w0_t[1] = 0;
+    w0_t[2] = 0;
+    w0_t[3] = 0;
+    w1_t[0] = 0;
+    w1_t[1] = 0;
+    w1_t[2] = 0;
+    w1_t[3] = 0;
+    w2_t[0] = 0;
+    w2_t[1] = 0;
+    w2_t[2] = 0;
+    w2_t[3] = 0;
+    w3_t[0] = 0;
+    w3_t[1] = 0;
+    w3_t[2] = 0;
+    w3_t[3] = 0;
+
+    // 0..3
+    w0_t[0]  = digest_t2[1];
+
+    // 3..19
+    w0_t[0] |= salt_buf_t3[0];
+    w0_t[1]  = salt_buf_t3[1];
+    w0_t[2]  = salt_buf_t3[2];
+    w0_t[3]  = salt_buf_t3[3];
+    w1_t[0]  = salt_buf_t3[4];
+
+    // 19..24
+    w1_t[0] |= digest_t3[0];
+    w1_t[1]  = digest_t3[1];
+
+    // 24..40
+    w1_t[2]  = salt_buf_t0[0];
+    w1_t[3]  = salt_buf_t0[1];
+    w2_t[0]  = salt_buf_t0[2];
+    w2_t[1]  = salt_buf_t0[3];
+
+    // 40..45
+    w2_t[2]  = digest_t0[0];
+    w2_t[3]  = digest_t0[1];
+
+    // 45..61
+    w2_t[3] |= salt_buf_t1[0];
+    w3_t[0]  = salt_buf_t1[1];
+    w3_t[1]  = salt_buf_t1[2];
+    w3_t[2]  = salt_buf_t1[3];
+    w3_t[3]  = salt_buf_t1[4];
+
+    // 61..
+    w3_t[3] |= digest_t1[0];
+
+    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+
+    w0_t[0] = 0;
+    w0_t[1] = 0;
+    w0_t[2] = 0;
+    w0_t[3] = 0;
+    w1_t[0] = 0;
+    w1_t[1] = 0;
+    w1_t[2] = 0;
+    w1_t[3] = 0;
+    w2_t[0] = 0;
+    w2_t[1] = 0;
+    w2_t[2] = 0;
+    w2_t[3] = 0;
+    w3_t[0] = 0;
+    w3_t[1] = 0;
+    w3_t[2] = 0;
+    w3_t[3] = 0;
+
+    // 0..2
+    w0_t[0]  = digest_t1[1];
+
+    // 2..18
+    w0_t[0] |= salt_buf_t2[0];
+    w0_t[1]  = salt_buf_t2[1];
+    w0_t[2]  = salt_buf_t2[2];
+    w0_t[3]  = salt_buf_t2[3];
+    w1_t[0]  = salt_buf_t2[4];
+
+    // 18..23
+    w1_t[0] |= digest_t2[0];
+    w1_t[1]  = digest_t2[1];
+
+    // 23..39
+    w1_t[1] |= salt_buf_t3[0];
+    w1_t[2]  = salt_buf_t3[1];
+    w1_t[3]  = salt_buf_t3[2];
+    w2_t[0]  = salt_buf_t3[3];
+    w2_t[1]  = salt_buf_t3[4];
+
+    // 39..44
+    w2_t[1] |= digest_t3[0];
+    w2_t[2]  = digest_t3[1];
+
+    // 44..60
+    w2_t[3]  = salt_buf_t0[0];
+    w3_t[0]  = salt_buf_t0[1];
+    w3_t[1]  = salt_buf_t0[2];
+    w3_t[2]  = salt_buf_t0[3];
+
+    // 60..
+    w3_t[3]  = digest_t0[0];
+
+    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+
+    w0_t[0] = 0;
+    w0_t[1] = 0;
+    w0_t[2] = 0;
+    w0_t[3] = 0;
+    w1_t[0] = 0;
+    w1_t[1] = 0;
+    w1_t[2] = 0;
+    w1_t[3] = 0;
+    w2_t[0] = 0;
+    w2_t[1] = 0;
+    w2_t[2] = 0;
+    w2_t[3] = 0;
+    w3_t[0] = 0;
+    w3_t[1] = 0;
+    w3_t[2] = 0;
+    w3_t[3] = 0;
+
+    // 0..1
+    w0_t[0]  = digest_t0[1];
+
+    // 1..17
+    w0_t[0] |= salt_buf_t1[0];
+    w0_t[1]  = salt_buf_t1[1];
+    w0_t[2]  = salt_buf_t1[2];
+    w0_t[3]  = salt_buf_t1[3];
+    w1_t[0]  = salt_buf_t1[4];
+
+    // 17..22
+    w1_t[0] |= digest_t1[0];
+    w1_t[1]  = digest_t1[1];
+
+    // 22..38
+    w1_t[1] |= salt_buf_t2[0];
+    w1_t[2]  = salt_buf_t2[1];
+    w1_t[3]  = salt_buf_t2[2];
+    w2_t[0]  = salt_buf_t2[3];
+    w2_t[1]  = salt_buf_t2[4];
+
+    // 38..43
+    w2_t[1] |= digest_t2[0];
+    w2_t[2]  = digest_t2[1];
+
+    // 43..59
+    w2_t[2] |= salt_buf_t3[0];
+    w2_t[3]  = salt_buf_t3[1];
+    w3_t[0]  = salt_buf_t3[2];
+    w3_t[1]  = salt_buf_t3[3];
+    w3_t[2]  = salt_buf_t3[4];
+
+    // 59..
+    w3_t[2] |= digest_t3[0];
+    w3_t[3]  = digest_t3[1];
+
+    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+
+    w0_t[0]  = salt_buf_t0[0];
+    w0_t[1]  = salt_buf_t0[1];
+    w0_t[2]  = salt_buf_t0[2];
+    w0_t[3]  = salt_buf_t0[3];
+    w1_t[0]  = 0x80;
+    w1_t[1]  = 0;
+    w1_t[2]  = 0;
+    w1_t[3]  = 0;
+    w2_t[0]  = 0;
+    w2_t[1]  = 0;
+    w2_t[2]  = 0;
+    w2_t[3]  = 0;
+    w3_t[0]  = 0;
+    w3_t[1]  = 0;
+    w3_t[2]  = 21 * 16 * 8;
+    w3_t[3]  = 0;
+
+    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+
+    // now the 40 bit input for the MD5 which then will generate the RC4 key, so it's precomputable!
+
+    w0_t[0]  = digest[0];
+    w0_t[1]  = digest[1] & 0xff;
+    w0_t[2]  = 0x8000;
+    w0_t[3]  = 0;
+    w1_t[0]  = 0;
+    w1_t[1]  = 0;
+    w1_t[2]  = 0;
+    w1_t[3]  = 0;
+    w2_t[0]  = 0;
+    w2_t[1]  = 0;
+    w2_t[2]  = 0;
+    w2_t[3]  = 0;
+    w3_t[0]  = 0;
+    w3_t[1]  = 0;
+    w3_t[2]  = 9 * 8;
+    w3_t[3]  = 0;
+
+    digest[0] = MD5M_A;
+    digest[1] = MD5M_B;
+    digest[2] = MD5M_C;
+    digest[3] = MD5M_D;
+
+    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+
+    // now the RC4 part
+
+    u32 key[4];
+
+    key[0] = digest[0];
+    key[1] = digest[1];
+    key[2] = digest[2];
+    key[3] = digest[3];
+
+    rc4_init_16 (rc4_key, key);
+
+    u32 out[4];
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
