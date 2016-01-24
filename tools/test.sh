@@ -294,7 +294,7 @@ function status()
 
         ;;
       *)
-        echo "! unhandled return code ${RET}, cmdline : ${CMD}" $>> ${OUTD}/logfull.txt
+        echo "! unhandled return code ${RET}, cmdline : ${CMD}" &>> ${OUTD}/logfull.txt
         echo "! unhandled return code, see ${OUTD}/logfull.txt for details."
         ((e_nf++))
         ;;
@@ -1544,6 +1544,7 @@ OPTIONS:
   -o    Select operating system :
         'win'    => windows operating system (use .exe file extension etc)
         'linux'  => *nix based operating systems (.bin for binaries)
+        'osx'    => mac osx operating systems (.app for binaries)
 
   -c    Disables markov-chains
 
@@ -1635,6 +1636,8 @@ while getopts "t:m:a:b:hcpd:x:o:" opt; do
         EXTENSION="exe"
       elif [ ${OPTARG} == "linux" ]; then
         EXTENSION="bin"
+      elif [ ${OPTARG} == "osx" ]; then
+        EXTENSION="app"
       else
         usage
       fi
@@ -1653,13 +1656,13 @@ done
 
 if [ -n "${ARCHITECTURE}" ]; then
 
-  BIN=$( echo ${BIN} | sed "s!64!${ARCHITECTURE}!" )
+  BIN="${BIN}${ARCHITECTURE}"
 
 fi
 
 if [ -n "${EXTENSION}" ]; then
 
-  BIN=$( echo ${BIN} | sed "s!\.bin!\.${EXTENSION}!" )
+  BIN="${BIN}.${EXTENSION}"
 
 fi
 
