@@ -125,7 +125,7 @@ VERSION_SUM              := $(shell git describe --tags --dirty=+ | cut -d- -f3)
 CFLAGS                   := -O2 -pipe -W -Wall -std=c99 -Iinclude/
 
 ifeq ($(DEBUG),1)
-CFLAGS                   += -g -ggdb -fsanitize=address -fno-omit-frame-pointer
+CFLAGS                   += -DDEBUG -g -ggdb -fsanitize=address -fno-omit-frame-pointer
 endif
 
 ##
