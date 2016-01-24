@@ -1,7 +1,9 @@
 #!/bin/bash
 
 ##
-## Authors.....: Gabriele Gristina <matrix@hashcat.net> / Jens Steube <jens.steube@gmail.com>
+## Authors.....: Gabriele Gristina <matrix@hashcat.net>
+##               Jens Steube <jens.steube@gmail.com>
+##
 ## License.....: MIT
 ##
 
