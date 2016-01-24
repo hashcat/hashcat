@@ -901,7 +901,7 @@ void status_display ()
     return;
   }
 
-  char tmp_buf[1000];
+  char tmp_buf[1000] = { 0 };
 
   uint tmp_len = 0;
 
@@ -1019,7 +1019,7 @@ void status_display ()
     {
       wpa_t *wpa = (wpa_t *) data.esalts_buf;
 
-      uint pke[25];
+      uint pke[25] = { 0 };
 
       char *pke_ptr = (char *) pke;
 
@@ -1028,8 +1028,8 @@ void status_display ()
         pke[i] = byte_swap_32 (wpa->pke[i]);
       }
 
-      char mac1[6];
-      char mac2[6];
+      char mac1[6] = { 0 };
+      char mac2[6] = { 0 };
 
       memcpy (mac1, pke_ptr + 23, 6);
       memcpy (mac2, pke_ptr + 29, 6);
@@ -1063,7 +1063,7 @@ void status_display ()
     }
     else
     {
-      char out_buf[4096];
+      char out_buf[4096] = { 0 };
 
       ascii_digest (out_buf, 0, 0);
 
@@ -1083,8 +1083,8 @@ void status_display ()
   {
     if (data.hash_mode == 3000)
     {
-      char out_buf1[4096];
-      char out_buf2[4096];
+      char out_buf1[4096] = { 0 };
+      char out_buf2[4096] = { 0 };
 
       ascii_digest (out_buf1, 0, 0);
       ascii_digest (out_buf2, 0, 1);
@@ -1103,8 +1103,8 @@ void status_display ()
    * speed new
    */
 
-  u64   speed_cnt[DEVICES_MAX];
-  float speed_ms[DEVICES_MAX];
+  u64   speed_cnt[DEVICES_MAX] = { 0 };
+  float speed_ms[DEVICES_MAX]  = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1141,7 +1141,7 @@ void status_display ()
 
   float hashes_all_ms = 0;
 
-  float hashes_dev_ms[DEVICES_MAX];
+  float hashes_dev_ms[DEVICES_MAX] = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1190,11 +1190,11 @@ void status_display ()
 
   if (sec_run)
   {
-    char display_run[32];
+    char display_run[32] = { 0 };
 
     struct tm tm_run;
 
-    struct tm *tmp;
+    struct tm *tmp = NULL;
 
     #ifdef WIN
 
@@ -1208,7 +1208,9 @@ void status_display ()
 
     if (tmp != NULL)
     {
-      memcpy (&tm_run, tmp, sizeof (struct tm));
+      memset (&tm_run, 0, sizeof (tm_run));
+
+      memcpy (&tm_run, tmp, sizeof (tm_run));
 
       format_timer_display (&tm_run, display_run, sizeof (tm_run));
 
@@ -1320,11 +1322,11 @@ void status_display ()
       }
       else
       {
-        char display_etc[32];
+        char display_etc[32] = { 0 };
 
         struct tm tm_etc;
 
-        struct tm *tmp;
+        struct tm *tmp = NULL;
 
         #ifdef WIN
 
@@ -1338,6 +1340,8 @@ void status_display ()
 
         if (tmp != NULL)
         {
+          memset (&tm_etc, 0, sizeof (tm_etc));
+
           memcpy (&tm_etc, tmp, sizeof (tm_etc));
 
           format_timer_display (&tm_etc, display_etc, sizeof (display_etc));
@@ -1535,9 +1539,9 @@ void status_display ()
 
       if (data.hm_device[device_id].fan_supported == 1)
       {
-        char utilization[HM_STR_BUF_SIZE];
-        char temperature[HM_STR_BUF_SIZE];
-        char fanspeed[HM_STR_BUF_SIZE];
+        char utilization[HM_STR_BUF_SIZE] = { 0 };
+        char temperature[HM_STR_BUF_SIZE] = { 0 };
+        char fanspeed[HM_STR_BUF_SIZE] = { 0 };
 
         hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
         hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
@@ -1559,8 +1563,8 @@ void status_display ()
       }
       else
       {
-        char utilization[HM_STR_BUF_SIZE];
-        char temperature[HM_STR_BUF_SIZE];
+        char utilization[HM_STR_BUF_SIZE] = { 0 };
+        char temperature[HM_STR_BUF_SIZE] = { 0 };
 
         hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
         hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
@@ -1581,8 +1585,8 @@ static void status_benchmark ()
 
   if (data.words_cnt == 0) return;
 
-  u64   speed_cnt[DEVICES_MAX];
-  float speed_ms[DEVICES_MAX];
+  u64   speed_cnt[DEVICES_MAX] = { 0 };
+  float speed_ms[DEVICES_MAX]  = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1605,7 +1609,7 @@ static void status_benchmark ()
 
   float hashes_all_ms = 0;
 
-  float hashes_dev_ms[DEVICES_MAX];
+  float hashes_dev_ms[DEVICES_MAX] = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1836,11 +1840,11 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   uint  debug_mode = data.debug_mode;
   char *debug_file = data.debug_file;
 
-  char debug_rule_buf[BLOCK_SIZE];
+  char debug_rule_buf[BLOCK_SIZE] = { 0 };
   int  debug_rule_len  = 0; // -1 error
   uint debug_plain_len = 0;
 
-  u8 debug_plain_ptr[BLOCK_SIZE];
+  u8 debug_plain_ptr[BLOCK_SIZE] = { 0 };
 
   // hash
 
@@ -1861,10 +1865,10 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
   u64 crackpos = device_param->words_off;
 
-  uint plain_buf[16];
+  uint plain_buf[16] = { 0 };
 
   u8 *plain_ptr = (u8 *) plain_buf;
-  unsigned int   plain_len = 0;
+  unsigned int plain_len = 0;
 
   if (data.attack_mode == ATTACK_MODE_STRAIGHT)
   {
@@ -2579,8 +2583,6 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
 
     char *tmp = (char *) mymalloc (FILLSZ);
 
-    memset (tmp, 0, FILLSZ);
-
     for (uint i = 0; i < size; i += FILLSZ)
     {
       const int left = size - i;
@@ -2744,7 +2746,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
       if (data.attack_mode == ATTACK_MODE_COMBI)
       {
-        char line_buf[BUFSIZ];
+        char line_buf[BUFSIZ] = { 0 };
 
         uint i = 0;
 
@@ -3657,7 +3659,7 @@ static void *thread_outfile_remove (void *p)
 
   if (esalt_size) hash_buf.esalt = (void   *) mymalloc (esalt_size);
 
-  uint digest_buf[64];
+  uint digest_buf[64] = { 0 };
 
   outfile_data_t *out_info = NULL;
 
@@ -3764,9 +3766,7 @@ static void *thread_outfile_remove (void *p)
 
               while (!feof (fp))
               {
-                char line_buf[BUFSIZ];
-
-                memset (line_buf, 0, BUFSIZ);
+                char line_buf[BUFSIZ] = { 0 };
 
                 char *ptr = fgets (line_buf, BUFSIZ - 1, fp);
 
@@ -3830,7 +3830,7 @@ static void *thread_outfile_remove (void *p)
                             wpa_t *wpas = (wpa_t *) data.esalts_buf;
                             wpa_t *wpa  = &wpas[salt_pos];
 
-                            uint pke[25];
+                            uint pke[25] = { 0 };
 
                             char *pke_ptr = (char *) pke;
 
@@ -3839,8 +3839,8 @@ static void *thread_outfile_remove (void *p)
                               pke[i] = byte_swap_32 (wpa->pke[i]);
                             }
 
-                            u8 mac1[6];
-                            u8 mac2[6];
+                            u8 mac1[6] = { 0 };
+                            u8 mac2[6] = { 0 };
 
                             memcpy (mac1, pke_ptr + 23, 6);
                             memcpy (mac2, pke_ptr + 29, 6);
@@ -4014,7 +4014,7 @@ static void *thread_calc_stdin (void *p)
 
     while (words_cur < kernel_blocks)
     {
-      char buf[BUFSIZ];
+      char buf[BUFSIZ] = { 0 };
 
       char *line_buf = fgets (buf, sizeof (buf), stdin);
 
@@ -4944,7 +4944,7 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 
   while (!feof (fp))
   {
-    char line_buf[BUFSIZ];
+    char line_buf[BUFSIZ] = { 0 };
 
     int line_len = fgetl (fp, line_buf);
 
@@ -5046,7 +5046,7 @@ int main (int argc, char **argv)
 
   if (compute)
   {
-    char display[100];
+    char display[100] = { 0 };
 
     snprintf (display, sizeof (display) - 1, "DISPLAY=%s", compute);
 
@@ -10124,14 +10124,12 @@ int main (int argc, char **argv)
     uint   dictstat_nmemb = 0;
     #endif
 
-    char dictstat[256];
+    char dictstat[256] = { 0 };
 
     FILE *dictstat_fp = NULL;
 
     if (keyspace == 0)
     {
-      memset (dictstat, 0, sizeof (dictstat));
-
       snprintf (dictstat, sizeof (dictstat) - 1, "%s/hashcat.dictstat", profile_dir);
 
       dictstat_fp = fopen (dictstat, "rb");
@@ -10262,7 +10260,7 @@ int main (int argc, char **argv)
       {
         line_num++;
 
-        char line_buf[BUFSIZ];
+        char line_buf[BUFSIZ] = { 0 };
 
         int line_len = fgetl (pot_fp, line_buf);
 
@@ -10848,7 +10846,6 @@ int main (int argc, char **argv)
                 log_info ("WARNING: Hash '%s': %s", input_buf, strparser (parser_status));
               }
 
-
               parser_status = parse_func (hash_buf + 16, 16, &hashes_buf[hashes_cnt]);
 
               hash_t *lm_hash_right = NULL;
@@ -10932,7 +10929,7 @@ int main (int argc, char **argv)
         {
           line_num++;
 
-          char line_buf[BUFSIZ];
+          char line_buf[BUFSIZ] = { 0 };
 
           int line_len = fgetl (fp, line_buf);
 
@@ -11768,9 +11765,7 @@ int main (int argc, char **argv)
         {
           while (!feof (fp))
           {
-            char line_buf[BUFSIZ];
-
-            memset (line_buf, 0, BUFSIZ);
+            char line_buf[BUFSIZ] =  { 0 };
 
             char *ptr = fgets (line_buf, BUFSIZ - 1, fp);
 
@@ -11814,10 +11809,7 @@ int main (int argc, char **argv)
 
                   // to be safe work with a copy (because of line_len loop, i etc)
 
-                  char line_buf_cpy[BUFSIZ];
-                  memset (line_buf_cpy, 0, BUFSIZ);
-
-                  memset (line_buf_cpy, 0, sizeof (line_buf_cpy));
+                  char line_buf_cpy[BUFSIZ] = { 0 };
 
                   memcpy (line_buf_cpy, line_buf, i);
 
@@ -11852,7 +11844,7 @@ int main (int argc, char **argv)
                   {
                     wpa_t *wpa = (wpa_t *) found->esalt;
 
-                    uint pke[25];
+                    uint pke[25] = { 0 };
 
                     char *pke_ptr = (char *) pke;
 
@@ -11861,8 +11853,8 @@ int main (int argc, char **argv)
                       pke[i] = byte_swap_32 (wpa->pke[i]);
                     }
 
-                    u8 mac1[6];
-                    u8 mac2[6];
+                    u8 mac1[6] = { 0 };
+                    u8 mac2[6] = { 0 };
 
                     memcpy (mac1, pke_ptr + 23, 6);
                     memcpy (mac2, pke_ptr + 29, 6);
@@ -12296,7 +12288,7 @@ int main (int argc, char **argv)
       all_kernel_rules_buf = (kernel_rule_t **) mycalloc (rp_files_cnt, sizeof (kernel_rule_t *));
     }
 
-    char rule_buf[BUFSIZ];
+    char rule_buf[BUFSIZ] = { 0 };
 
     int rule_len = 0;
 
@@ -12310,8 +12302,8 @@ int main (int argc, char **argv)
 
       char *rp_file = rp_files[i];
 
-      char in[BLOCK_SIZE];
-      char out[BLOCK_SIZE];
+      char in[BLOCK_SIZE]  = { 0 };
+      char out[BLOCK_SIZE] = { 0 };
 
       FILE *fp = NULL;
 
@@ -12485,11 +12477,11 @@ int main (int argc, char **argv)
      * OpenCL platforms: detect
      */
 
-    cl_platform_id platforms[CL_PLATFORMS_MAX];
+    cl_platform_id platforms[CL_PLATFORMS_MAX] = { 0 };
 
     cl_uint platforms_cnt = 0;
 
-    cl_device_id platform_devices[DEVICES_MAX];
+    cl_device_id platform_devices[DEVICES_MAX] = { 0 };
 
     cl_uint platform_devices_cnt;
 
@@ -13012,7 +13004,7 @@ int main (int argc, char **argv)
       #if defined(WIN) && defined(HAVE_NVAPI)
       if (NvAPI_Initialize () == NVAPI_OK)
       {
-        HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
+        HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX] = { 0 };
 
         int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
 
@@ -13041,7 +13033,7 @@ int main (int argc, char **argv)
       {
         if (hc_NVML_nvmlInit (hm_dll_nv) == NVML_SUCCESS)
         {
-          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX];
+          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX] = { 0 };
 
           int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
 
@@ -13605,8 +13597,6 @@ int main (int argc, char **argv)
         {
           char *build_log = (char *) mymalloc (ret_val_size + 1);
 
-          memset (build_log, 0, ret_val_size + 1);
-
           clGetProgramBuildInfo (device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
 
           puts (build_log);
@@ -13709,8 +13699,6 @@ int main (int argc, char **argv)
         if (ret_val_size > 2)
         {
           char *build_log = (char *) mymalloc (ret_val_size + 1);
-
-          memset (build_log, 0, ret_val_size + 1);
 
           clGetProgramBuildInfo (device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
 
@@ -13819,8 +13807,6 @@ int main (int argc, char **argv)
         {
           char *build_log = (char *) mymalloc (ret_val_size + 1);
 
-          memset (build_log, 0, ret_val_size + 1);
-
           clGetProgramBuildInfo (device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
 
           puts (build_log);
@@ -13924,13 +13910,9 @@ int main (int argc, char **argv)
 
       uint *result = (uint *) mymalloc (size_results);
 
-      memset (result, 0, size_results);
-
       device_param->result = result;
 
       pw_t *pws_buf = (pw_t *) mymalloc (size_pws);
-
-      memset (pws_buf, 0, size_pws);
 
       device_param->pws_buf = pws_buf;
 
@@ -14583,8 +14565,8 @@ int main (int argc, char **argv)
 
       // find the bigger dictionary and use as base
 
-      FILE *fp1;
-      FILE *fp2;
+      FILE *fp1 = NULL;
+      FILE *fp2 = NULL;
 
       struct stat tmp_stat;
 
@@ -14770,7 +14752,7 @@ int main (int argc, char **argv)
                   return (-1);
                 }
 
-                char line_buf[BUFSIZ];
+                char line_buf[BUFSIZ] = { 0 };
 
                 while (!feof (mask_fp))
                 {
@@ -14909,7 +14891,7 @@ int main (int argc, char **argv)
             return (-1);
           }
 
-          char line_buf[BUFSIZ];
+          char line_buf[BUFSIZ] = { 0 };
 
           uint masks_avail = 1;
 
@@ -15086,7 +15068,7 @@ int main (int argc, char **argv)
             return (-1);
           }
 
-          char line_buf[BUFSIZ];
+          char line_buf[BUFSIZ] = { 0 };
 
           uint masks_avail = 1;
 

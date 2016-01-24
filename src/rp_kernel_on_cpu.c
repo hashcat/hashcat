@@ -742,7 +742,7 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
 
 static void append_block1 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32 src_r0)
 {
-  u32 tmp[2];
+  u32 tmp[2] = { 0 };
 
   switch (offset & 3)
   {
