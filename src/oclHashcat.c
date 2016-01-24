@@ -12690,16 +12690,11 @@ int main (int argc, char **argv)
         snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
         #endif
 
-        uint device_name_digest[4];
-
-        device_name_digest[0] = 0;
-        device_name_digest[1] = 0;
-        device_name_digest[2] = 0;
-        device_name_digest[3] = 0;
+        uint device_name_digest[4] = { 0 };
 
         md5_64 ((uint *) device_name_chksum, device_name_digest);
 
-        sprintf (device_name_chksum, "%08x", device_name_digest[0]);
+        snprintf (device_name_chksum, INFOSZ - 1, "%08x", device_name_digest[0]);
 
         device_param->device_name_chksum = device_name_chksum;
 
@@ -13483,11 +13478,11 @@ int main (int argc, char **argv)
        * default building options
        */
 
-      char build_opts[1024];
+      char build_opts[1024] = { 0 };
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
-      sprintf (build_opts, "-I%s/ -DVENDOR_ID=%d -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type);
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I%s/ -DVENDOR_ID=%d -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type);
 
       /**
        * main kernel
@@ -13581,11 +13576,11 @@ int main (int argc, char **argv)
 
           if (force_jit_compilation == 1500)
           {
-            sprintf (build_opts, "%s -DDESCRYPT_SALT=%d", build_opts, data.salts_buf[0].salt_buf[0]);
+            snprintf (build_opts, sizeof (build_opts) - 1, "%s -DDESCRYPT_SALT=%d", build_opts, data.salts_buf[0].salt_buf[0]);
           }
           else if (force_jit_compilation == 8900)
           {
-            sprintf (build_opts, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.salts_buf[0].scrypt_tmto);
+            snprintf (build_opts, sizeof (build_opts) - 1, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.salts_buf[0].scrypt_tmto);
           }
 
           hc_clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);

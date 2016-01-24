@@ -2607,7 +2607,7 @@ char *logfile_generate_topid ()
 
   char *topid = (char *) mymalloc (1 + 16 + 1);
 
-  sprintf (topid, "TOP%08x", id);
+  snprintf (topid, 1 + 16, "TOP%08x", id);
 
   return topid;
 }
@@ -2618,7 +2618,7 @@ char *logfile_generate_subid ()
 
   char *subid = (char *) mymalloc (1 + 16 + 1);
 
-  sprintf (subid, "SUB%08x", id);
+  snprintf (subid, 1 + 16, "SUB%08x", id);
 
   return subid;
 }
@@ -4130,9 +4130,9 @@ char *get_exec_path ()
 
   #ifdef LINUX
 
-  char tmp[32];
+  char tmp[32] = { 0 };
 
-  sprintf (tmp, "/proc/%d/exe", getpid ());
+  snprintf (tmp, sizeof (tmp) - 1, "/proc/%d/exe", getpid ());
 
   const int len = readlink (tmp, exec_path, exec_path_len - 1);
 
@@ -4188,9 +4188,11 @@ char *get_profile_dir (const char *homedir)
 {
   #define DOT_HASHCAT ".hashcat"
 
-  char *profile_dir = (char *) mymalloc (strlen (homedir) + 1 + strlen (DOT_HASHCAT) + 1);
+  size_t len = strlen (homedir) + 1 + strlen (DOT_HASHCAT);
 
-  sprintf (profile_dir, "%s/%s", homedir, DOT_HASHCAT);
+  char *profile_dir = (char *) mymalloc (len + 1);
+
+  snprintf (profile_dir, len, "%s/%s", homedir, DOT_HASHCAT);
 
   return profile_dir;
 }
@@ -4199,9 +4201,11 @@ char *get_session_dir (const char *profile_dir)
 {
   #define SESSIONS_FOLDER "sessions"
 
-  char *session_dir = (char *) mymalloc (strlen (profile_dir) + 1 + strlen (SESSIONS_FOLDER) + 1);
+  size_t len = strlen (profile_dir) + 1 + strlen (SESSIONS_FOLDER);
 
-  sprintf (session_dir, "%s/%s", profile_dir, SESSIONS_FOLDER);
+  char *session_dir = (char *) mymalloc (len + 1);
+
+  snprintf (session_dir, len, "%s/%s", profile_dir, SESSIONS_FOLDER);
 
   return session_dir;
 }
