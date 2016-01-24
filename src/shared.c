@@ -2446,9 +2446,11 @@ int tty_getchar()
   // Then it wants to read with getche () a keyboard input
   // which has never been made.
 
-  INPUT_RECORD buf[100] = { 0 };
+  INPUT_RECORD buf[100];
 
   DWORD num = 0;
+
+  memset (buf, 0, sizeof (buf));
 
   ReadConsoleInput (stdinHandle, buf, 100, &num);
 
