@@ -7,9 +7,9 @@
 
 int hc_nvidia_smi (int dev, int *temperature, int *gpu)
 {
-  char cmd[256]; memset (cmd, 0, sizeof (cmd));
+  char cmd[256] = { 0 };
 
-  sprintf (cmd, "nvidia-smi -q -g %d", dev);
+  snprintf (cmd, sizeof (cmd) - 1, "nvidia-smi -q -g %d", dev);
 
   FILE *fp = popen (cmd, "r");
 
