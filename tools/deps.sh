@@ -3,9 +3,9 @@
 # Revision: 1.03
 
 ## global vars
-DEPS="make gcc g++ gcc-multilib g++-multilib libc6-dev-i386 mingw-w64 build-essential unzip opencl-headers ocl-icd-libopencl1"
+DEPS="make gcc g++ gcc-multilib g++-multilib libc6-dev-i386 mingw-w64 build-essential unzip opencl-headers ocl-icd-libopencl1 dos2unix"
 DEPS_AMD_DEV="ocl-icd-opencl-dev"
-DOWNLOAD_DEPS="ADL_SDK8.zip R352-developer.zip gdk_linux_amd64_352_55_release.run"
+DOWNLOAD_DEPS="ADL_SDK9.zip R352-developer.zip gdk_linux_amd64_352_55_release.run"
 
 ## enter the deps directory
 cur_directory=$(dirname ${0})
@@ -45,13 +45,7 @@ for pkg in ${DEPS}; do
   # check if the package is already installed
   dpkg -s ${pkg} &>/dev/null
   if [ $? -ne 0 ]; then
-    ## root check
-    if [ $(id -u) -ne 0 ]; then
-      echo "! Must be root to install the required package '${pkg}' with apt-get"
-      exit 1
-    fi
-
-    apt-get -y install ${pkg}
+    sudo apt-get -y install ${pkg}
     if [ $? -ne 0 ]; then
       echo "! failed to install ${pkg}"
       exit 1
@@ -60,7 +54,7 @@ for pkg in ${DEPS}; do
 done
 
 ## extract ADL SDK
-unzip ADL_SDK8.zip -d ${deps_dir}/adl-sdk-8
+unzip ADL_SDK9.zip -d ${deps_dir}/adl-sdk-9
 ret=$?
 
 if [[ ${ret} -ne 0 ]] && [[ ${ret} -ne 1 ]]; then
@@ -68,7 +62,7 @@ if [[ ${ret} -ne 0 ]] && [[ ${ret} -ne 1 ]]; then
   exit 1
 fi
 
-rm -rf ${deps_dir}/adl-sdk && ln -s ${deps_dir}/adl-sdk-8 ${deps_dir}/adl-sdk
+rm -rf ${deps_dir}/adl-sdk && ln -s ${deps_dir}/adl-sdk-9 ${deps_dir}/adl-sdk
 
 if [ $? -ne 0 ]; then
   echo "! failed to setup ADL SDK link"
@@ -98,13 +92,7 @@ fi
 ls /usr/lib/*/libOpenCL.so &> /dev/null
 
 if [ $? -ne 0 ]; then
-  ## root check
-  if [ $(id -u) -ne 0 ]; then
-    echo "! Must be root to install '${DEPS_AMD_DEV}'"
-    exit 1
-  fi
-
-  apt-get -y install ${DEPS_AMD_DEV}
+  sudo apt-get -y install ${DEPS_AMD_DEV}
   if [ $? -ne 0 ]; then
     echo "! failed to install ${DEPS_AMD_DEV}"
     exit 1
