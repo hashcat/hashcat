@@ -20372,13 +20372,13 @@ int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], u32 rp_gen_func_min, u3
 
 int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, char out[BLOCK_SIZE])
 {
-  char mem[BLOCK_SIZE];
+  char mem[BLOCK_SIZE] = { 0 };
 
   if (in == NULL) return (RULE_RC_REJECT_ERROR);
 
   if (out == NULL) return (RULE_RC_REJECT_ERROR);
 
-  if (in_len < 1) return (RULE_RC_REJECT_ERROR);
+  if (in_len < 1 || in_len > BLOCK_SIZE) return (RULE_RC_REJECT_ERROR);
 
   if (rule_len < 1) return (RULE_RC_REJECT_ERROR);
 
