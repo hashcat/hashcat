@@ -84,7 +84,7 @@ endif
 ifeq ($(DEBUG),1)
 $(warning "## ADL is found ? $(FOUND_ADL)")
 $(warning "## NVML is found ? $(FOUND_NVML)")
-$(warning "## NVAPI is found ? $(FOUND_NVAPI)")
+$(warning "## NVAPI is found ? $(FOUND_NVAPI)")
 endif
 
 ##

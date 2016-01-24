@@ -8741,7 +8741,7 @@ restore_data_t *init_restore (int argc, char **argv)
         #elif _WIN
         HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, rd->pid);
 
-        char pidbin2[BUFSIZ] = { 0 };
+        char pidbin2[BUFSIZ] = { 0 };
 
         int pidbin2_len = -1;
 

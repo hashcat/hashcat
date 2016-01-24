@@ -1541,7 +1541,7 @@ void status_display ()
       {
         char utilization[HM_STR_BUF_SIZE] = { 0 };
         char temperature[HM_STR_BUF_SIZE] = { 0 };
-        char fanspeed[HM_STR_BUF_SIZE] = { 0 };
+        char fanspeed[HM_STR_BUF_SIZE] = { 0 };
 
         hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
         hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
@@ -1563,7 +1563,7 @@ void status_display ()
       }
       else
       {
-        char utilization[HM_STR_BUF_SIZE] = { 0 };
+        char utilization[HM_STR_BUF_SIZE] = { 0 };
         char temperature[HM_STR_BUF_SIZE] = { 0 };
 
         hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
