@@ -10951,7 +10951,7 @@ int main (int argc, char **argv)
             {
               user_t **user = &hashes_buf[hashes_cnt].hash_info->user;
 
-              *user = (user_t *) malloc (sizeof (user_t));
+              *user = (user_t *) mymalloc (sizeof (user_t));
 
               user_t *user_ptr = *user;
 
