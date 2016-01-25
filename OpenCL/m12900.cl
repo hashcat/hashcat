@@ -235,7 +235,7 @@ __kernel void m12900_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
    */
 
   const u32 gid = get_global_id (0);
-  const u32 lid = get_local_id (0);
+  //const u32 lid = get_local_id (0);
 
   if (gid >= gid_max) return;
 
@@ -271,7 +271,7 @@ __kernel void m12900_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
   w3[2] = pws[gid].i[14];
   w3[3] = pws[gid].i[15];
 
-  const u32 pw_len = pws[gid].pw_len;
+  //const u32 pw_len = pws[gid].pw_len;
 
   w0[0] = swap32 (w0[0]);
   w0[1] = swap32 (w0[1]);

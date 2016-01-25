@@ -176,7 +176,7 @@ static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], co
   u32 we_t = w3[2];
   u32 wf_t = w3[3];
 
-  u32 tmp2;
+  //u32 tmp2;
 
   MD5_STEP (MD5_Fo, a, b, c, d, w0_t, MD5C00, MD5S00);
   MD5_STEP (MD5_Fo, d, a, b, c, w1_t, MD5C01, MD5S01);
@@ -259,7 +259,7 @@ __kernel void m10500_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
    */
 
   const u32 gid = get_global_id (0);
-  const u32 lid = get_local_id (0);
+  //const u32 lid = get_local_id (0);
 
   if (gid >= gid_max) return;
 
@@ -290,9 +290,8 @@ __kernel void m10500_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
    * shared
    */
 
-  __local RC4_KEY rc4_keys[64];
-
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
+  //__local RC4_KEY rc4_keys[64];
+  //__local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * U_buf
