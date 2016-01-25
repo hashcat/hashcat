@@ -12485,13 +12485,16 @@ int main (int argc, char **argv)
 
     cl_uint platform_devices_cnt;
 
-    hc_clGetPlatformIDs (CL_PLATFORMS_MAX, platforms, &platforms_cnt);
-
-    if (platforms_cnt == 0)
+    if (keyspace == 0) // matrix
     {
-      log_error ("ERROR: No OpenCL compatible platform found");
+      hc_clGetPlatformIDs (CL_PLATFORMS_MAX, platforms, &platforms_cnt);
 
-      return (-1);
+      if (platforms_cnt == 0)
+      {
+        log_error ("ERROR: No OpenCL compatible platform found");
+
+        return (-1);
+      }
     }
 
     /**
@@ -12858,7 +12861,7 @@ int main (int argc, char **argv)
       }
     }
 
-    if (devices_active == 0)
+    if (keyspace == 0 && devices_active == 0)
     {
       log_error ("ERROR: No devices found/left");
 
