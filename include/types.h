@@ -39,22 +39,22 @@ typedef struct
 
 typedef struct
 {
-  int   V;
-  int   R;
-  int   P;
+  int  V;
+  int  R;
+  int  P;
 
-  int   enc_md;
+  int  enc_md;
 
-  uint  id_buf[8];
-  uint  u_buf[32];
-  uint  o_buf[32];
+  uint id_buf[8];
+  uint u_buf[32];
+  uint o_buf[32];
 
-  int   id_len;
-  int   o_len;
-  int   u_len;
+  int  id_len;
+  int  o_len;
+  int  u_len;
 
-  uint  rc4key[2];
-  uint  rc4data[2];
+  uint rc4key[2];
+  uint rc4data[2];
 
 } pdf_t;
 
@@ -161,7 +161,7 @@ typedef struct
 
 typedef struct
 {
-  u8 cipher[1040];
+  u8   cipher[1040];
 
 } agilekey_t;
 
@@ -241,8 +241,8 @@ typedef struct
     u64  dgst64[8];
   };
 
-  uint  dgst_len;
-  uint  W_len;
+  uint dgst_len;
+  uint W_len;
 
 } pdf17l8_tmp_t;
 
@@ -260,10 +260,10 @@ typedef struct
 
 typedef struct
 {
-  u64 l_alt_result[8];
+  u64  l_alt_result[8];
 
-  u64 l_p_bytes[2];
-  u64 l_s_bytes[2];
+  u64  l_p_bytes[2];
+  u64  l_s_bytes[2];
 
 } sha512crypt_tmp_t;
 
@@ -288,7 +288,7 @@ typedef struct
 
 typedef struct
 {
-  u64 dgst[8];
+  u64  dgst[8];
 
 } bitcoin_wallet_tmp_t;
 
@@ -362,11 +362,11 @@ typedef struct
 
 typedef struct
 {
-  u64 ipad[8];
-  u64 opad[8];
+  u64  ipad[8];
+  u64  opad[8];
 
-  u64 dgst[32];
-  u64 out[32];
+  u64  dgst[32];
+  u64  out[32];
 
 } tc64_tmp_t;
 
@@ -415,11 +415,11 @@ typedef struct
 
 typedef struct
 {
-  u64 ipad[8];
-  u64 opad[8];
+  u64  ipad[8];
+  u64  opad[8];
 
-  u64 dgst[8];
-  u64 out[8];
+  u64  dgst[8];
+  u64  out[8];
 
 } sha512aix_tmp_t;
 
@@ -435,7 +435,7 @@ typedef struct
 
 typedef struct
 {
-  u64 digest_buf[8];
+  u64  digest_buf[8];
 
 } drupal7_tmp_t;
 
@@ -463,7 +463,7 @@ typedef struct
 
 typedef struct
 {
-  u64 out[8];
+  u64  out[8];
 
 } office2013_tmp_t;
 
@@ -475,57 +475,57 @@ typedef struct
 
 typedef struct
 {
-  u32 ipad[4];
-  u32 opad[4];
+  u32  ipad[4];
+  u32  opad[4];
 
-  u32 dgst[32];
-  u32 out[32];
+  u32  dgst[32];
+  u32  out[32];
 
 } pbkdf2_md5_tmp_t;
 
 typedef struct
 {
-  u32 ipad[5];
-  u32 opad[5];
+  u32  ipad[5];
+  u32  opad[5];
 
-  u32 dgst[32];
-  u32 out[32];
+  u32  dgst[32];
+  u32  out[32];
 
 } pbkdf2_sha1_tmp_t;
 
 typedef struct
 {
-  u32 ipad[8];
-  u32 opad[8];
+  u32  ipad[8];
+  u32  opad[8];
 
-  u32 dgst[32];
-  u32 out[32];
+  u32  dgst[32];
+  u32  out[32];
 
 } pbkdf2_sha256_tmp_t;
 
 typedef struct
 {
-  u64 ipad[8];
-  u64 opad[8];
+  u64  ipad[8];
+  u64  opad[8];
 
-  u64 dgst[16];
-  u64 out[16];
+  u64  dgst[16];
+  u64  out[16];
 
 } pbkdf2_sha512_tmp_t;
 
 typedef struct
 {
-  u64 out[8];
+  u64  out[8];
 
 } ecryptfs_tmp_t;
 
 typedef struct
 {
-  u64 ipad[8];
-  u64 opad[8];
+  u64  ipad[8];
+  u64  opad[8];
 
-  u64 dgst[16];
-  u64 out[16];
+  u64  dgst[16];
+  u64  out[16];
 
 } oraclet_tmp_t;
 
@@ -613,8 +613,8 @@ typedef struct
 
 typedef struct
 {
-  uint     key;
-  u64 val;
+  uint key;
+  u64  val;
 
 } hcstat_table_t;
 
@@ -662,7 +662,7 @@ typedef struct
 
 typedef struct
 {
-  u64 cnt;
+  u64    cnt;
 
   #ifdef _POSIX
   struct stat stat;
@@ -742,31 +742,31 @@ typedef struct
 
 typedef struct
 {
-  u32    version_bin;
-  char        cwd[256];
-  u32    pid;
+  u32  version_bin;
+  char cwd[1024];
+  u32  pid;
 
-  u32    dictpos;
-  u32    maskpos;
+  u32  dictpos;
+  u32  maskpos;
 
-  u64    words_cur;
+  u64  words_cur;
 
-  u32    argc;
-  char      **argv;
+  u32  argc;
+  char **argv;
 
 } restore_data_t;
 
 typedef struct
 {
-  char     *file_name;
-  long      seek;
-  time_t    ctime;
+  char   *file_name;
+  long   seek;
+  time_t ctime;
 
 } outfile_data_t;
 
 typedef struct
 {
-  char     *buf;
+  char *buf;
   u32  incr;
   u32  avail;
   u32  cnt;
@@ -824,165 +824,165 @@ typedef struct
 #define PW_MAX1     (PW_MAX + 1)
 #define PW_DICTMAX  31
 #define PW_DICTMAX1 (PW_DICTMAX + 1)
+#define PARAMCNT    32
 
 struct __hc_device_param
 {
   cl_device_id      device;
   cl_device_type    device_type;
 
-  uint              device_id;
-  uint              platform_devices_id;    // for mapping with hms devices
+  uint    device_id;
+  uint    platform_devices_id;   // for mapping with hms devices
 
-  uint              skipped;
+  uint    skipped;
 
-  uint              sm_major;
-  uint              sm_minor;
-  uint              kernel_exec_timeout;
+  uint    sm_major;
+  uint    sm_minor;
+  uint    kernel_exec_timeout;
 
-  uint              device_processors;
-  uint              device_processor_cores;
-  u64               device_maxmem_alloc;
-  u64               device_global_mem;
-  u32               device_maxclock_frequency;
+  uint    device_processors;
+  uint    device_processor_cores;
+  u64     device_maxmem_alloc;
+  u64     device_global_mem;
+  u32     device_maxclock_frequency;
 
-  uint              vector_width;
+  uint    vector_width;
 
-  uint              kernel_threads;
-  uint              kernel_accel;
-  uint              kernel_power;          // these both are based on their _user counterpart
-  uint              kernel_blocks;         // but are modified by autotuner and used inside crack loops
-  uint              kernel_power_user;
-  uint              kernel_blocks_user;
+  uint    kernel_threads;
+  uint    kernel_accel;
+  uint    kernel_power;          // these both are based on their _user counterpart
+  uint    kernel_blocks;         // but are modified by autotuner and used inside crack loops
+  uint    kernel_power_user;
+  uint    kernel_blocks_user;
 
-  uint              size_pws;
-  uint              size_tmps;
-  uint              size_hooks;
-  uint              size_root_css;
-  uint              size_markov_css;
-  uint              size_digests;
-  uint              size_salts;
-  uint              size_shown;
-  uint              size_results;
-  uint              size_plains;
+  uint    size_pws;
+  uint    size_tmps;
+  uint    size_hooks;
+  uint    size_root_css;
+  uint    size_markov_css;
+  uint    size_digests;
+  uint    size_salts;
+  uint    size_shown;
+  uint    size_results;
+  uint    size_plains;
 
-  uint (*pw_add)    (struct __hc_device_param *, const u8 *, const uint);
+  uint  (*pw_add)       (struct __hc_device_param *, const u8 *, const uint);
 
-  void (*pw_transpose) (const pw_t *, pw_t *);
+  void  (*pw_transpose) (const pw_t *, pw_t *);
 
-  FILE             *combs_fp;
-  comb_t           *combs_buf;
+  FILE   *combs_fp;
+  comb_t *combs_buf;
 
-  void             *hooks_buf;
+  void   *hooks_buf;
 
-  pw_cache_t       *pw_caches;
+  pw_cache_t *pw_caches;
 
-  pw_t             *pws_buf;
-  uint              pws_cnt;
-  u64               pw_cnt;
+  pw_t   *pws_buf;
+  uint    pws_cnt;
+  u64     pw_cnt;
 
-  u64               words_off;
-  u64               words_done;
+  u64     words_off;
+  u64     words_done;
 
-  uint             *result;
+  uint   *result;
 
-  uint              outerloop_pos;
-  uint              outerloop_left;
+  uint    outerloop_pos;
+  uint    outerloop_left;
 
-  uint              innerloop_pos;
-  uint              innerloop_left;
+  uint    innerloop_pos;
+  uint    innerloop_left;
 
-  uint              speed_pos;
-  u64               speed_cnt[SPEED_CACHE];
-  float             speed_ms[SPEED_CACHE];
-  hc_timer_t        speed_rec[SPEED_CACHE];
+  uint    speed_pos;
+  u64     speed_cnt[SPEED_CACHE];
+  float   speed_ms[SPEED_CACHE];
 
-  hc_timer_t        timer_speed;
+  hc_timer_t speed_rec[SPEED_CACHE];
+
+  hc_timer_t timer_speed;
 
   // device specific attributes starting
 
-  char             *device_name;
-  char             *device_name_chksum;
-  char             *device_version;
-  char             *driver_version;
+  char   *device_name;
+  char   *device_name_chksum;
+  char   *device_version;
+  char   *driver_version;
 
-  cl_uint           vendor_id;
+  cl_uint vendor_id;
 
-  cl_kernel         kernel1;
-  cl_kernel         kernel12;
-  cl_kernel         kernel2;
-  cl_kernel         kernel23;
-  cl_kernel         kernel3;
-  cl_kernel         kernel_mp;
-  cl_kernel         kernel_mp_l;
-  cl_kernel         kernel_mp_r;
-  cl_kernel         kernel_amp;
-  cl_kernel         kernel_tb;
-  cl_kernel         kernel_tm;
-  cl_kernel         kernel_weak;
+  cl_kernel  kernel1;
+  cl_kernel  kernel12;
+  cl_kernel  kernel2;
+  cl_kernel  kernel23;
+  cl_kernel  kernel3;
+  cl_kernel  kernel_mp;
+  cl_kernel  kernel_mp_l;
+  cl_kernel  kernel_mp_r;
+  cl_kernel  kernel_amp;
+  cl_kernel  kernel_tb;
+  cl_kernel  kernel_tm;
+  cl_kernel  kernel_weak;
 
-  cl_context        context;
+  cl_context context;
 
-  cl_program        program;
-  cl_program        program_mp;
-  cl_program        program_amp;
-  cl_program        program_weak;
+  cl_program program;
+  cl_program program_mp;
+  cl_program program_amp;
+  cl_program program_weak;
 
-  cl_command_queue  command_queue;
+  cl_command_queue command_queue;
 
-  cl_mem            d_pws_buf;
-  cl_mem            d_pws_amp_buf;
-  cl_mem            d_words_buf_l;
-  cl_mem            d_words_buf_r;
-  cl_mem            d_rules;
-  cl_mem            d_rules_c;
-  cl_mem            d_combs;
-  cl_mem            d_combs_c;
-  cl_mem            d_bfs;
-  cl_mem            d_bfs_c;
-  cl_mem            d_tm_c;
-  cl_mem            d_bitmap_s1_a;
-  cl_mem            d_bitmap_s1_b;
-  cl_mem            d_bitmap_s1_c;
-  cl_mem            d_bitmap_s1_d;
-  cl_mem            d_bitmap_s2_a;
-  cl_mem            d_bitmap_s2_b;
-  cl_mem            d_bitmap_s2_c;
-  cl_mem            d_bitmap_s2_d;
-  cl_mem            d_plain_bufs;
-  cl_mem            d_digests_buf;
-  cl_mem            d_digests_shown;
-  cl_mem            d_salt_bufs;
-  cl_mem            d_esalt_bufs;
-  cl_mem            d_bcrypt_bufs;
-  cl_mem            d_tmps;
-  cl_mem            d_hooks;
-  cl_mem            d_result;
-  cl_mem            d_scryptV_buf;
-  cl_mem            d_root_css_buf;
-  cl_mem            d_markov_css_buf;
+  cl_mem  d_pws_buf;
+  cl_mem  d_pws_amp_buf;
+  cl_mem  d_words_buf_l;
+  cl_mem  d_words_buf_r;
+  cl_mem  d_rules;
+  cl_mem  d_rules_c;
+  cl_mem  d_combs;
+  cl_mem  d_combs_c;
+  cl_mem  d_bfs;
+  cl_mem  d_bfs_c;
+  cl_mem  d_tm_c;
+  cl_mem  d_bitmap_s1_a;
+  cl_mem  d_bitmap_s1_b;
+  cl_mem  d_bitmap_s1_c;
+  cl_mem  d_bitmap_s1_d;
+  cl_mem  d_bitmap_s2_a;
+  cl_mem  d_bitmap_s2_b;
+  cl_mem  d_bitmap_s2_c;
+  cl_mem  d_bitmap_s2_d;
+  cl_mem  d_plain_bufs;
+  cl_mem  d_digests_buf;
+  cl_mem  d_digests_shown;
+  cl_mem  d_salt_bufs;
+  cl_mem  d_esalt_bufs;
+  cl_mem  d_bcrypt_bufs;
+  cl_mem  d_tmps;
+  cl_mem  d_hooks;
+  cl_mem  d_result;
+  cl_mem  d_scryptV_buf;
+  cl_mem  d_root_css_buf;
+  cl_mem  d_markov_css_buf;
 
-  #define PARAMCNT 32
+  void   *kernel_params[PARAMCNT];
+  void   *kernel_params_mp[PARAMCNT];
+  void   *kernel_params_mp_r[PARAMCNT];
+  void   *kernel_params_mp_l[PARAMCNT];
+  void   *kernel_params_amp[PARAMCNT];
+  void   *kernel_params_tb[PARAMCNT];
+  void   *kernel_params_tm[PARAMCNT];
 
-  void             *kernel_params[PARAMCNT];
-  void             *kernel_params_mp[PARAMCNT];
-  void             *kernel_params_mp_r[PARAMCNT];
-  void             *kernel_params_mp_l[PARAMCNT];
-  void             *kernel_params_amp[PARAMCNT];
-  void             *kernel_params_tb[PARAMCNT];
-  void             *kernel_params_tm[PARAMCNT];
+  u32     kernel_params_buf32[PARAMCNT];
 
-  u32          kernel_params_buf32[PARAMCNT];
+  u32     kernel_params_mp_buf32[PARAMCNT];
+  u64     kernel_params_mp_buf64[PARAMCNT];
 
-  u32          kernel_params_mp_buf32[PARAMCNT];
-  u64          kernel_params_mp_buf64[PARAMCNT];
+  u32     kernel_params_mp_r_buf32[PARAMCNT];
+  u64     kernel_params_mp_r_buf64[PARAMCNT];
 
-  u32          kernel_params_mp_r_buf32[PARAMCNT];
-  u64          kernel_params_mp_r_buf64[PARAMCNT];
+  u32     kernel_params_mp_l_buf32[PARAMCNT];
+  u64     kernel_params_mp_l_buf64[PARAMCNT];
 
-  u32          kernel_params_mp_l_buf32[PARAMCNT];
-  u64          kernel_params_mp_l_buf64[PARAMCNT];
-
-  u32          kernel_params_amp_buf32[PARAMCNT];
+  u32     kernel_params_amp_buf32[PARAMCNT];
 };
 
 typedef struct __hc_device_param hc_device_param_t;
@@ -1002,12 +1002,11 @@ typedef struct
 
   } adapter_index;
 
-  int od_version;
+  int     od_version;
+  int     fan_supported;
 
-  int fan_supported;
-
-  // int busid; // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPUs
-  // int devid; // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPUs
+  // int     busid; // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPUs
+  // int     devid; // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPUs
 
 } hm_attrs_t;
 #endif // HAVE_HWMON
@@ -1018,73 +1017,75 @@ typedef struct
    * threads
    */
 
-  uint                devices_status;
-  uint                devices_cnt;
-  uint                devices_active;
-  hc_device_param_t  *devices_param;
+  uint    devices_status;
+  uint    devices_cnt;
+  uint    devices_active;
 
-  uint                kernel_blocks_all;
+  hc_device_param_t *devices_param;
+
+  uint    kernel_blocks_all;
 
   /**
    * attack specific
    */
 
-  uint                wordlist_mode;
-  uint                hashlist_mode;
-  uint                hashlist_format;
+  uint    wordlist_mode;
+  uint    hashlist_mode;
+  uint    hashlist_format;
 
-  uint                attack_mode;
-  uint                attack_kern;
-  uint                attack_exec;
+  uint    attack_mode;
+  uint    attack_kern;
+  uint    attack_exec;
 
-  uint                kernel_rules_cnt;
-  kernel_rule_t      *kernel_rules_buf;
+  uint    kernel_rules_cnt;
 
-  uint                combs_mode;
-  uint                combs_cnt;
+  kernel_rule_t *kernel_rules_buf;
 
-  uint                bfs_cnt;
+  uint    combs_mode;
+  uint    combs_cnt;
 
-  uint                css_cnt;
-  cs_t               *css_buf;
+  uint    bfs_cnt;
 
-  cs_t               *root_css_buf;
-  cs_t               *markov_css_buf;
+  uint    css_cnt;
+  cs_t   *css_buf;
 
-  char               *rule_buf_l;
-  char               *rule_buf_r;
-  int                 rule_len_l;
-  int                 rule_len_r;
+  cs_t   *root_css_buf;
+  cs_t   *markov_css_buf;
+
+  char   *rule_buf_l;
+  char   *rule_buf_r;
+  int     rule_len_l;
+  int     rule_len_r;
 
   /**
    * hardware watchdog
    */
 
   #ifdef HAVE_HWMON
-  HM_LIB              hm_dll_nv;
-  HM_LIB              hm_dll_amd;
-  hm_attrs_t          hm_device[DEVICES_MAX];
+  HM_LIB  hm_dll_nv;
+  HM_LIB  hm_dll_amd;
+  hm_attrs_t hm_device[DEVICES_MAX];
   #endif
 
   /**
    * hashes
    */
 
-  uint                digests_cnt;
-  uint                digests_done;
-  uint                digests_saved;
+  uint    digests_cnt;
+  uint    digests_done;
+  uint    digests_saved;
 
-  void               *digests_buf;
-  uint               *digests_shown;
-  uint               *digests_shown_tmp;
+  void   *digests_buf;
+  uint   *digests_shown;
+  uint   *digests_shown_tmp;
 
-  uint                salts_cnt;
-  uint                salts_done;
+  uint    salts_cnt;
+  uint    salts_done;
 
-  salt_t             *salts_buf;
-  uint               *salts_shown;
+  salt_t *salts_buf;
+  uint   *salts_shown;
 
-  void               *esalts_buf;
+  void   *esalts_buf;
 
   /**
    * logging
@@ -1099,10 +1100,10 @@ typedef struct
    * crack-per-time
    */
 
-  cpt_t  cpt_buf[CPT_BUF];
-  int    cpt_pos;
-  time_t cpt_start;
-  u64 cpt_total;
+  cpt_t   cpt_buf[CPT_BUF];
+  int     cpt_pos;
+  time_t  cpt_start;
+  u64     cpt_total;
 
   /**
    * user
@@ -1189,42 +1190,42 @@ typedef struct
    * used for restore
    */
 
-  u64 skip;
-  u64 limit;
+  u64     skip;
+  u64     limit;
 
   restore_data_t *rd;
 
-  u64 checkpoint_cur_words;  // used for the "stop at next checkpoint" feature
+  u64     checkpoint_cur_words;     // used for the "stop at next checkpoint" feature
 
   /**
    * status, timer
    */
 
-  time_t     runtime_start;
-  time_t     runtime_stop;
+  time_t  runtime_start;
+  time_t  runtime_stop;
 
-  time_t     proc_start;
-  time_t     proc_stop;
+  time_t  proc_start;
+  time_t  proc_stop;
 
-  u64   words_cnt;
-  u64   words_cur;
-  u64   words_base;
+  u64     words_cnt;
+  u64     words_cur;
+  u64     words_base;
 
-  u64  *words_progress_done;      // progress number of words done     per salt
-  u64  *words_progress_rejected;  // progress number of words rejected per salt
-  u64  *words_progress_restored;  // progress number of words restored per salt
+  u64    *words_progress_done;      // progress number of words done     per salt
+  u64    *words_progress_rejected;  // progress number of words rejected per salt
+  u64    *words_progress_restored;  // progress number of words restored per salt
 
   hc_timer_t timer_running;         // timer on current dict
   hc_timer_t timer_paused;          // timer on current dict
 
-  float      ms_paused;             // timer on current dict
+  float   ms_paused;                // timer on current dict
 
   /**
     * hash_info and username
     */
 
   hashinfo_t **hash_info;
-  uint         username;
+  uint    username;
 
   int (*sort_by_digest) (const void *, const void *);
 
