@@ -351,7 +351,7 @@ static void m07800m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     u32 final_len = pw_len;
 
-    int i;
+    u32 i;
 
     // append MagicArray
 
@@ -582,7 +582,7 @@ static void m07800s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     u32 final_len = pw_len;
 
-    int i;
+    u32 i;
 
     // append MagicArray
 
