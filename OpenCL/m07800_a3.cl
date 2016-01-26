@@ -654,7 +654,7 @@ __kernel void m07800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * modifier
    */
 
-  const u32 lid = get_local_id (0);
+  //const u32 lid = get_local_id (0);
 
   u32 w0[4];
 
@@ -707,7 +707,7 @@ __kernel void m07800_m08 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * modifier
    */
 
-  const u32 lid = get_local_id (0);
+  //const u32 lid = get_local_id (0);
 
   u32 w0[4];
 
@@ -764,7 +764,7 @@ __kernel void m07800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * modifier
    */
 
-  const u32 lid = get_local_id (0);
+  //const u32 lid = get_local_id (0);
 
   u32 w0[4];
 
@@ -817,7 +817,7 @@ __kernel void m07800_s08 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * modifier
    */
 
-  const u32 lid = get_local_id (0);
+  //const u32 lid = get_local_id (0);
 
   u32 w0[4];
 

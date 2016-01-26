@@ -46,7 +46,7 @@ static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], co
   u32 we_t = w3[2];
   u32 wf_t = 0;
 
-  u32 tmp2;
+  //u32 tmp2;
 
   MD5_STEP (MD5_Fo, a, b, c, d, w0_t, MD5C00, MD5S00);
   MD5_STEP (MD5_Fo, d, a, b, c, w1_t, MD5C01, MD5S01);
