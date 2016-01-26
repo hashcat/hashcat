@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -12,14 +14,14 @@
 #include <rp_kernel_on_cpu.h>
 #include <getopt.h>
 
-const char *PROGNAME          = "oclHashcat";
-const uint  VERSION_BIN       = 210;
-const uint  RESTORE_MIN       = 210;
+const char *PROGNAME            = "oclHashcat";
+const uint  VERSION_BIN         = 210;
+const uint  RESTORE_MIN         = 210;
 
-#define INCR_RULES            10000
-#define INCR_SALTS            100000
-#define INCR_MASKS            1000
-#define INCR_POT              1000
+#define INCR_RULES              10000
+#define INCR_SALTS              100000
+#define INCR_MASKS              1000
+#define INCR_POT                1000
 
 #define USAGE                   0
 #define VERSION                 0
@@ -1828,7 +1830,7 @@ static void clear_prompt ()
 
 static void gidd_to_pw_t (hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
 {
-  hc_clEnqueueReadBuffer (device_param->command_queue, device_param->d_pws_buf, CL_TRUE, gidd * sizeof (pw_t), sizeof (pw_t), pw, 0, NULL, NULL);
+  hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, gidd * sizeof (pw_t), sizeof (pw_t), pw, 0, NULL, NULL);
 }
 
 static void check_hash (hc_device_param_t *device_param, const uint salt_pos, const uint digest_pos)
@@ -1858,7 +1860,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
   plain_t plain;
 
-  hc_clEnqueueReadBuffer (device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, idx * sizeof (plain_t), sizeof (plain_t), &plain, 0, NULL, NULL);
+  hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, idx * sizeof (plain_t), sizeof (plain_t), &plain, 0, NULL, NULL);
 
   uint gidvid = plain.gidvid;
   uint il_pos = plain.il_pos;
@@ -2175,7 +2177,7 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
   int found = 0;
 
-  hc_clEnqueueReadBuffer (device_param->command_queue, device_param->d_result, CL_TRUE, 0, device_param->size_results, device_param->result, 0, NULL, NULL);
+  hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, device_param->size_results, device_param->result, 0, NULL, NULL);
 
   for (uint i = 0; i < KERNEL_THREADS; i++) if (device_param->result[i] == 1) found = 1;
 
@@ -2185,7 +2187,7 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
     log_info_nn ("");
 
-    hc_clEnqueueReadBuffer (device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
+    hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
 
     uint cpt_cracked = 0;
 
@@ -2240,12 +2242,12 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
       memset (data.digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (uint));
 
-      hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
     }
 
     memset (device_param->result, 0, device_param->size_results);
 
-    hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_result, CL_TRUE, 0, device_param->size_results, device_param->result, 0, NULL, NULL);
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, device_param->size_results, device_param->result, 0, NULL, NULL);
   }
 }
 
@@ -2400,36 +2402,36 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     case KERN_RUN_3:    kernel = device_param->kernel3;     break;
   }
 
-  hc_clSetKernelArg (kernel, 21, sizeof (cl_uint), device_param->kernel_params[21]);
-  hc_clSetKernelArg (kernel, 22, sizeof (cl_uint), device_param->kernel_params[22]);
-  hc_clSetKernelArg (kernel, 23, sizeof (cl_uint), device_param->kernel_params[23]);
-  hc_clSetKernelArg (kernel, 24, sizeof (cl_uint), device_param->kernel_params[24]);
-  hc_clSetKernelArg (kernel, 25, sizeof (cl_uint), device_param->kernel_params[25]);
-  hc_clSetKernelArg (kernel, 26, sizeof (cl_uint), device_param->kernel_params[26]);
-  hc_clSetKernelArg (kernel, 27, sizeof (cl_uint), device_param->kernel_params[27]);
-  hc_clSetKernelArg (kernel, 28, sizeof (cl_uint), device_param->kernel_params[28]);
-  hc_clSetKernelArg (kernel, 29, sizeof (cl_uint), device_param->kernel_params[29]);
-  hc_clSetKernelArg (kernel, 30, sizeof (cl_uint), device_param->kernel_params[30]);
-  hc_clSetKernelArg (kernel, 31, sizeof (cl_uint), device_param->kernel_params[31]);
+  hc_clSetKernelArg (data.ocl, kernel, 21, sizeof (cl_uint), device_param->kernel_params[21]);
+  hc_clSetKernelArg (data.ocl, kernel, 22, sizeof (cl_uint), device_param->kernel_params[22]);
+  hc_clSetKernelArg (data.ocl, kernel, 23, sizeof (cl_uint), device_param->kernel_params[23]);
+  hc_clSetKernelArg (data.ocl, kernel, 24, sizeof (cl_uint), device_param->kernel_params[24]);
+  hc_clSetKernelArg (data.ocl, kernel, 25, sizeof (cl_uint), device_param->kernel_params[25]);
+  hc_clSetKernelArg (data.ocl, kernel, 26, sizeof (cl_uint), device_param->kernel_params[26]);
+  hc_clSetKernelArg (data.ocl, kernel, 27, sizeof (cl_uint), device_param->kernel_params[27]);
+  hc_clSetKernelArg (data.ocl, kernel, 28, sizeof (cl_uint), device_param->kernel_params[28]);
+  hc_clSetKernelArg (data.ocl, kernel, 29, sizeof (cl_uint), device_param->kernel_params[29]);
+  hc_clSetKernelArg (data.ocl, kernel, 30, sizeof (cl_uint), device_param->kernel_params[30]);
+  hc_clSetKernelArg (data.ocl, kernel, 31, sizeof (cl_uint), device_param->kernel_params[31]);
 
   if ((data.opts_type & OPTS_TYPE_PT_BITSLICE) && (data.attack_mode == ATTACK_MODE_BF))
   {
     const size_t global_work_size[3] = { num_elements,        32, 1 };
     const size_t local_work_size[3]  = { kernel_threads / 32, 32, 1 };
 
-    hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL);
   }
   else
   {
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
   }
 
-  hc_clFlush (device_param->command_queue);
+  hc_clFlush (data.ocl, device_param->command_queue);
 
-  hc_clFinish (device_param->command_queue);
+  hc_clFinish (data.ocl, device_param->command_queue);
 }
 
 static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param, const uint num)
@@ -2461,38 +2463,38 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
 
   switch (kern_run)
   {
-    case KERN_RUN_MP:   hc_clSetKernelArg (kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp[3]);
-                        hc_clSetKernelArg (kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp[4]);
-                        hc_clSetKernelArg (kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp[5]);
-                        hc_clSetKernelArg (kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp[6]);
-                        hc_clSetKernelArg (kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp[7]);
-                        hc_clSetKernelArg (kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp[8]);
+    case KERN_RUN_MP:   hc_clSetKernelArg (data.ocl, kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp[3]);
+                        hc_clSetKernelArg (data.ocl, kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp[4]);
+                        hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp[5]);
+                        hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp[6]);
+                        hc_clSetKernelArg (data.ocl, kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp[7]);
+                        hc_clSetKernelArg (data.ocl, kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp[8]);
                         break;
-    case KERN_RUN_MP_R: hc_clSetKernelArg (kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp_r[3]);
-                        hc_clSetKernelArg (kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp_r[4]);
-                        hc_clSetKernelArg (kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp_r[5]);
-                        hc_clSetKernelArg (kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp_r[6]);
-                        hc_clSetKernelArg (kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp_r[7]);
-                        hc_clSetKernelArg (kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp_r[8]);
+    case KERN_RUN_MP_R: hc_clSetKernelArg (data.ocl, kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp_r[3]);
+                        hc_clSetKernelArg (data.ocl, kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp_r[4]);
+                        hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp_r[5]);
+                        hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp_r[6]);
+                        hc_clSetKernelArg (data.ocl, kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp_r[7]);
+                        hc_clSetKernelArg (data.ocl, kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp_r[8]);
                         break;
-    case KERN_RUN_MP_L: hc_clSetKernelArg (kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp_l[3]);
-                        hc_clSetKernelArg (kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp_l[4]);
-                        hc_clSetKernelArg (kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp_l[5]);
-                        hc_clSetKernelArg (kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp_l[6]);
-                        hc_clSetKernelArg (kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp_l[7]);
-                        hc_clSetKernelArg (kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp_l[8]);
-                        hc_clSetKernelArg (kernel, 9, sizeof (cl_uint),  device_param->kernel_params_mp_l[9]);
+    case KERN_RUN_MP_L: hc_clSetKernelArg (data.ocl, kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp_l[3]);
+                        hc_clSetKernelArg (data.ocl, kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp_l[4]);
+                        hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp_l[5]);
+                        hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp_l[6]);
+                        hc_clSetKernelArg (data.ocl, kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp_l[7]);
+                        hc_clSetKernelArg (data.ocl, kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp_l[8]);
+                        hc_clSetKernelArg (data.ocl, kernel, 9, sizeof (cl_uint),  device_param->kernel_params_mp_l[9]);
                         break;
   }
 
   const size_t global_work_size[3] = { num_elements, 1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
-  hc_clFlush (device_param->command_queue);
+  hc_clFlush (data.ocl, device_param->command_queue);
 
-  hc_clFinish (device_param->command_queue);
+  hc_clFinish (data.ocl, device_param->command_queue);
 }
 
 static void run_kernel_tb (hc_device_param_t *device_param, const uint num)
@@ -2508,11 +2510,11 @@ static void run_kernel_tb (hc_device_param_t *device_param, const uint num)
   const size_t global_work_size[3] = { num_elements, 1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
-  hc_clFlush (device_param->command_queue);
+  hc_clFlush (data.ocl, device_param->command_queue);
 
-  hc_clFinish (device_param->command_queue);
+  hc_clFinish (data.ocl, device_param->command_queue);
 }
 
 static void run_kernel_tm (hc_device_param_t *device_param)
@@ -2526,11 +2528,11 @@ static void run_kernel_tm (hc_device_param_t *device_param)
   const size_t global_work_size[3] = { num_elements, 1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
-  hc_clFlush (device_param->command_queue);
+  hc_clFlush (data.ocl, device_param->command_queue);
 
-  hc_clFinish (device_param->command_queue);
+  hc_clFinish (data.ocl, device_param->command_queue);
 }
 
 static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
@@ -2549,17 +2551,17 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
 
   cl_kernel kernel = device_param->kernel_amp;
 
-  hc_clSetKernelArg (kernel, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
-  hc_clSetKernelArg (kernel, 6, sizeof (cl_uint), device_param->kernel_params_amp[6]);
+  hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
+  hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint), device_param->kernel_params_amp[6]);
 
   const size_t global_work_size[3] = { num_elements, 1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  hc_clEnqueueNDRangeKernel (device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
-  hc_clFlush (device_param->command_queue);
+  hc_clFlush (data.ocl, device_param->command_queue);
 
-  hc_clFinish (device_param->command_queue);
+  hc_clFinish (data.ocl, device_param->command_queue);
 }
 
 static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const uint size)
@@ -2570,7 +2572,7 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
 
     const cl_uchar zero = 0;
 
-    hc_clEnqueueFillBuffer (device_param->command_queue, buf, &zero, sizeof (cl_uchar), 0, size, 0, NULL, NULL);
+    hc_clEnqueueFillBuffer (data.ocl, device_param->command_queue, buf, &zero, sizeof (cl_uchar), 0, size, 0, NULL, NULL);
   }
   else
   {
@@ -2589,7 +2591,7 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
 
       const int fillsz = MIN (FILLSZ, left);
 
-      hc_clEnqueueWriteBuffer (device_param->command_queue, buf, CL_TRUE, i, fillsz, tmp, 0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, buf, CL_TRUE, i, fillsz, tmp, 0, NULL, NULL);
     }
 
     myfree (tmp);
@@ -2614,11 +2616,11 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
 {
   if (data.attack_kern == ATTACK_KERN_STRAIGHT)
   {
-    hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
   }
   else if (data.attack_kern == ATTACK_KERN_COMBI)
   {
-    hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
   }
   else if (data.attack_kern == ATTACK_KERN_BF)
   {
@@ -2856,23 +2858,23 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
       if (data.attack_mode == ATTACK_MODE_STRAIGHT)
       {
-        hc_clEnqueueCopyBuffer (device_param->command_queue, device_param->d_rules, device_param->d_rules_c, innerloop_pos * sizeof (kernel_rule_t), 0, innerloop_left * sizeof (kernel_rule_t), 0, NULL, NULL);
+        hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, innerloop_pos * sizeof (kernel_rule_t), 0, innerloop_left * sizeof (kernel_rule_t), 0, NULL, NULL);
       }
       else if (data.attack_mode == ATTACK_MODE_COMBI)
       {
-        hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (comb_t), device_param->combs_buf, 0, NULL, NULL);
+        hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (comb_t), device_param->combs_buf, 0, NULL, NULL);
       }
       else if (data.attack_mode == ATTACK_MODE_BF)
       {
-        hc_clEnqueueCopyBuffer (device_param->command_queue, device_param->d_bfs, device_param->d_bfs_c, 0, 0, innerloop_left * sizeof (bf_t), 0, NULL, NULL);
+        hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_bfs, device_param->d_bfs_c, 0, 0, innerloop_left * sizeof (bf_t), 0, NULL, NULL);
       }
       else if (data.attack_mode == ATTACK_MODE_HYBRID1)
       {
-        hc_clEnqueueCopyBuffer (device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
+        hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
       }
       else if (data.attack_mode == ATTACK_MODE_HYBRID2)
       {
-        hc_clEnqueueCopyBuffer (device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
+        hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
       }
 
       if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -2887,7 +2889,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
             run_kernel_tm (device_param);
 
-            hc_clEnqueueCopyBuffer (device_param->command_queue, device_param->d_tm_c, device_param->d_bfs_c, 0, 0, size_tm, 0, NULL, NULL);
+            hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_tm_c, device_param->d_bfs_c, 0, 0, size_tm, 0, NULL, NULL);
           }
         }
 
@@ -2939,11 +2941,11 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
         {
           run_kernel (KERN_RUN_23, device_param, pws_cnt);
 
-          hc_clEnqueueReadBuffer (device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+          hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
           // do something with data
 
-          hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+          hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
         }
 
         run_kernel (KERN_RUN_3, device_param, pws_cnt);
@@ -5145,6 +5147,7 @@ int main (int argc, char **argv)
   #ifndef OSX
   char *cpu_affinity      = NULL;
   #endif
+  OCL_PTR *ocl            = NULL;
   char *opencl_devices    = NULL;
   char *opencl_platforms  = NULL;
   char *opencl_device_types = NULL;
@@ -6508,6 +6511,19 @@ int main (int argc, char **argv)
   logfile_top_string (rule_buf_r);
   logfile_top_string (session);
   logfile_top_string (truecrypt_keyfiles);
+
+  /**
+   * Init OpenCL library loader
+   */
+
+  if (keyspace == 0)
+  {
+    ocl = (OCL_PTR *) mymalloc (sizeof (OCL_PTR));
+
+    ocl_init(ocl);
+
+    data.ocl = ocl;
+  }
 
   /**
    * OpenCL platform selection
@@ -12485,9 +12501,9 @@ int main (int argc, char **argv)
 
     cl_uint platform_devices_cnt;
 
-    if (keyspace == 0) // matrix
+    if (keyspace == 0)
     {
-      hc_clGetPlatformIDs (CL_PLATFORMS_MAX, platforms, &platforms_cnt);
+      hc_clGetPlatformIDs (data.ocl, CL_PLATFORMS_MAX, platforms, &platforms_cnt);
 
       if (platforms_cnt == 0)
       {
@@ -12507,7 +12523,7 @@ int main (int argc, char **argv)
 
       char platform_vendor[INFOSZ] = { 0 };
 
-      hc_clGetPlatformInfo (platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
+      hc_clGetPlatformInfo (data.ocl, platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
 
       #ifdef HAVE_HWMON
       #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
@@ -12541,7 +12557,7 @@ int main (int argc, char **argv)
 
       cl_platform_id platform = platforms[platform_id];
 
-      hc_clGetDeviceIDs (platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
+      hc_clGetDeviceIDs (data.ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
 
       for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
       {
@@ -12559,7 +12575,7 @@ int main (int argc, char **argv)
 
         cl_device_type device_type;
 
-        hc_clGetDeviceInfo (device_param->device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
 
         device_type &= ~CL_DEVICE_TYPE_DEFAULT;
 
@@ -12569,7 +12585,7 @@ int main (int argc, char **argv)
 
         cl_uint vendor_id = 0;
 
-        hc_clGetDeviceInfo (device_param->device, CL_DEVICE_VENDOR_ID, sizeof (vendor_id), &vendor_id, NULL);
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VENDOR_ID, sizeof (vendor_id), &vendor_id, NULL);
 
         device_param->vendor_id = vendor_id;
 
@@ -12577,7 +12593,7 @@ int main (int argc, char **argv)
 
         char *device_name = (char *) mymalloc (INFOSZ);
 
-        hc_clGetDeviceInfo (device_param->device, CL_DEVICE_NAME, INFOSZ, device_name, NULL);
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NAME, INFOSZ, device_name, NULL);
 
         device_param->device_name = device_name;
 
@@ -12585,7 +12601,7 @@ int main (int argc, char **argv)
 
         char *device_version = (char *) mymalloc (INFOSZ);
 
-        hc_clGetDeviceInfo (device_param->device, CL_DEVICE_VERSION, INFOSZ, device_version, NULL);
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VERSION, INFOSZ, device_version, NULL);
 
         device_param->device_version = device_version;
 
@@ -12605,7 +12621,7 @@ int main (int argc, char **argv)
 
         if (opencl_vector_width == OPENCL_VECTOR_WIDTH)
         {
-          hc_clGetDeviceInfo (device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, sizeof (vector_width), &vector_width, NULL);
+          hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, sizeof (vector_width), &vector_width, NULL);
 
           if ((vendor_id == VENDOR_ID_NV) && (strstr (device_name, " Ti") || strstr (device_name, " TI")))
           {
@@ -12632,7 +12648,7 @@ int main (int argc, char **argv)
 
         cl_uint device_processors;
 
-        hc_clGetDeviceInfo (device_param->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof (device_processors), &device_processors, NULL);
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof (device_processors), &device_processors, NULL);
 
         device_param->device_processors = device_processors;
 
@@ -12640,7 +12656,7 @@ int main (int argc, char **argv)
 
         cl_ulong device_maxmem_alloc;
 
-        hc_clGetDeviceInfo (device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
 
         device_param->device_maxmem_alloc = device_maxmem_alloc;
 
@@ -12648,7 +12664,7 @@ int main (int argc, char **argv)
 
         cl_ulong device_global_mem;
 
-        hc_clGetDeviceInfo (device_param->device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof (device_global_mem), &device_global_mem, NULL);
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof (device_global_mem), &device_global_mem, NULL);
 
         device_param->device_global_mem = device_global_mem;
 
@@ -12656,7 +12672,7 @@ int main (int argc, char **argv)
 
         cl_uint device_maxclock_frequency;
 
-        hc_clGetDeviceInfo (device_param->device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof (device_maxclock_frequency), &device_maxclock_frequency, NULL);
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof (device_maxclock_frequency), &device_maxclock_frequency, NULL);
 
         device_param->device_maxclock_frequency = device_maxclock_frequency;
 
@@ -12671,7 +12687,7 @@ int main (int argc, char **argv)
 
         char *driver_version = (char *) mymalloc (INFOSZ);
 
-        hc_clGetDeviceInfo (device_param->device, CL_DRIVER_VERSION, INFOSZ, driver_version, NULL);
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DRIVER_VERSION, INFOSZ, driver_version, NULL);
 
         device_param->driver_version = driver_version;
 
@@ -12710,7 +12726,7 @@ int main (int argc, char **argv)
 
             #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
 
-            hc_clGetDeviceInfo (device_param->device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (device_processor_cores), &device_processor_cores, NULL);
+            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (device_processor_cores), &device_processor_cores, NULL);
 
             device_param->device_processor_cores = device_processor_cores;
           }
@@ -12720,7 +12736,7 @@ int main (int argc, char **argv)
 
             #define CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV            0x4005
 
-            hc_clGetDeviceInfo (device_param->device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
+            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
 
             device_param->kernel_exec_timeout = kernel_exec_timeout;
 
@@ -12728,7 +12744,7 @@ int main (int argc, char **argv)
 
             #define CL_DEVICE_WARP_SIZE_NV                      0x4003
 
-            hc_clGetDeviceInfo (device_param->device, CL_DEVICE_WARP_SIZE_NV, sizeof (device_processor_cores), &device_processor_cores, NULL);
+            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_WARP_SIZE_NV, sizeof (device_processor_cores), &device_processor_cores, NULL);
 
             device_param->device_processor_cores = device_processor_cores;
 
@@ -12738,8 +12754,8 @@ int main (int argc, char **argv)
             #define CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV       0x4000
             #define CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV       0x4001
 
-            hc_clGetDeviceInfo (device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV, sizeof (sm_minor), &sm_minor, NULL);
-            hc_clGetDeviceInfo (device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV, sizeof (sm_major), &sm_major, NULL);
+            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV, sizeof (sm_minor), &sm_minor, NULL);
+            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV, sizeof (sm_major), &sm_major, NULL);
 
             device_param->sm_minor = sm_minor;
             device_param->sm_major = sm_major;
@@ -13221,7 +13237,7 @@ int main (int argc, char **argv)
        * create context for each device
        */
 
-      device_param->context = hc_clCreateContext (NULL, 1, &device_param->device, NULL, NULL);
+      device_param->context = hc_clCreateContext (data.ocl, NULL, 1, &device_param->device, NULL, NULL);
 
       /**
        * create command-queue
@@ -13230,7 +13246,7 @@ int main (int argc, char **argv)
       // not supported with NV
       // device_param->command_queue = hc_clCreateCommandQueueWithProperties (device_param->context, device_param->device, NULL);
 
-      device_param->command_queue = hc_clCreateCommandQueue (device_param->context, device_param->device, 0);
+      device_param->command_queue = hc_clCreateCommandQueue (data.ocl, device_param->context, device_param->device, 0);
 
       /**
        * create input buffers on device
@@ -13534,17 +13550,17 @@ int main (int argc, char **argv)
 
             load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
-            device_param->program = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+            device_param->program = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL);
 
-            hc_clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+            hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
 
             size_t binary_size;
 
-            clGetProgramInfo (device_param->program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+            hc_clGetProgramInfo (data.ocl, device_param->program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
 
             u8 *binary = (u8 *) mymalloc (binary_size);
 
-            clGetProgramInfo (device_param->program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+            hc_clGetProgramInfo (data.ocl, device_param->program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
             writeProgramBin (cached_file, binary, binary_size);
 
@@ -13556,9 +13572,9 @@ int main (int argc, char **argv)
 
             load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
-            device_param->program = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL);
+            device_param->program = hc_clCreateProgramWithBinary (data.ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL);
 
-            hc_clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+            hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
           }
         }
         else
@@ -13567,7 +13583,7 @@ int main (int argc, char **argv)
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
-          device_param->program = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+          device_param->program = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL);
 
           if (force_jit_compilation == 1500)
           {
@@ -13578,7 +13594,7 @@ int main (int argc, char **argv)
             snprintf (build_opts, sizeof (build_opts) - 1, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.salts_buf[0].scrypt_tmto);
           }
 
-          hc_clBuildProgram (device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+          hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
         }
 
         local_free (kernel_lengths);
@@ -13589,13 +13605,13 @@ int main (int argc, char **argv)
 
         size_t ret_val_size = 0;
 
-        clGetProgramBuildInfo (device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+        hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
 
         if (ret_val_size > 2)
         {
           char *build_log = (char *) mymalloc (ret_val_size + 1);
 
-          clGetProgramBuildInfo (device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
+          hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
 
           puts (build_log);
 
@@ -13657,17 +13673,17 @@ int main (int argc, char **argv)
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
-          device_param->program_mp = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+          device_param->program_mp = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL);
 
-          hc_clBuildProgram (device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
+          hc_clBuildProgram (data.ocl, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
 
           size_t binary_size;
 
-          clGetProgramInfo (device_param->program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+          hc_clGetProgramInfo (data.ocl, device_param->program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
 
           u8 *binary = (u8 *) mymalloc (binary_size);
 
-          clGetProgramInfo (device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+          hc_clGetProgramInfo (data.ocl, device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
           writeProgramBin (cached_file, binary, binary_size);
 
@@ -13679,9 +13695,9 @@ int main (int argc, char **argv)
 
           load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
-          device_param->program_mp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL);
+          device_param->program_mp = hc_clCreateProgramWithBinary (data.ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL);
 
-          hc_clBuildProgram (device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
+          hc_clBuildProgram (data.ocl, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
         }
 
         local_free (kernel_lengths);
@@ -13692,13 +13708,13 @@ int main (int argc, char **argv)
 
         size_t ret_val_size = 0;
 
-        clGetProgramBuildInfo (device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+        hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
 
         if (ret_val_size > 2)
         {
           char *build_log = (char *) mymalloc (ret_val_size + 1);
 
-          clGetProgramBuildInfo (device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
+          hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
 
           puts (build_log);
 
@@ -13764,17 +13780,17 @@ int main (int argc, char **argv)
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
-          device_param->program_amp = hc_clCreateProgramWithSource (device_param->context, 1, (const char **) kernel_sources, NULL);
+          device_param->program_amp = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL);
 
-          hc_clBuildProgram (device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
+          hc_clBuildProgram (data.ocl, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
 
           size_t binary_size;
 
-          clGetProgramInfo (device_param->program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+          hc_clGetProgramInfo (data.ocl, device_param->program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
 
           u8 *binary = (u8 *) mymalloc (binary_size);
 
-          clGetProgramInfo (device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+          hc_clGetProgramInfo (data.ocl, device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
           writeProgramBin (cached_file, binary, binary_size);
 
@@ -13786,9 +13802,9 @@ int main (int argc, char **argv)
 
           load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
-          device_param->program_amp = hc_clCreateProgramWithBinary (device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL);
+          device_param->program_amp = hc_clCreateProgramWithBinary (data.ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL);
 
-          hc_clBuildProgram (device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
+          hc_clBuildProgram (data.ocl, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
         }
 
         local_free (kernel_lengths);
@@ -13799,13 +13815,13 @@ int main (int argc, char **argv)
 
         size_t ret_val_size = 0;
 
-        clGetProgramBuildInfo (device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+        hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
 
         if (ret_val_size > 2)
         {
           char *build_log = (char *) mymalloc (ret_val_size + 1);
 
-          clGetProgramBuildInfo (device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
+          hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
 
           puts (build_log);
 
@@ -13817,36 +13833,36 @@ int main (int argc, char **argv)
        * global buffers
        */
 
-      device_param->d_pws_buf       = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   size_pws,     NULL);
-      device_param->d_pws_amp_buf   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   size_pws,     NULL);
-      device_param->d_tmps          = hc_clCreateBuffer (device_param->context, CL_MEM_READ_WRITE,  size_tmps,    NULL);
-      device_param->d_hooks         = hc_clCreateBuffer (device_param->context, CL_MEM_READ_WRITE,  size_hooks,   NULL);
-      device_param->d_bitmap_s1_a   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s1_b   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s1_c   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s1_d   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s2_a   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s2_b   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s2_c   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s2_d   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_plain_bufs    = hc_clCreateBuffer (device_param->context, CL_MEM_READ_WRITE,  size_plains,  NULL);
-      device_param->d_digests_buf   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   size_digests, NULL);
-      device_param->d_digests_shown = hc_clCreateBuffer (device_param->context, CL_MEM_READ_WRITE,  size_shown,   NULL);
-      device_param->d_salt_bufs     = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY,   size_salts,   NULL);
-      device_param->d_result        = hc_clCreateBuffer (device_param->context, CL_MEM_READ_WRITE,  size_results, NULL);
-      device_param->d_scryptV_buf   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_WRITE,  size_scryptV, NULL);
+      device_param->d_pws_buf       = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_pws,     NULL);
+      device_param->d_pws_amp_buf   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_pws,     NULL);
+      device_param->d_tmps          = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_tmps,    NULL);
+      device_param->d_hooks         = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_hooks,   NULL);
+      device_param->d_bitmap_s1_a   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
+      device_param->d_bitmap_s1_b   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
+      device_param->d_bitmap_s1_c   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
+      device_param->d_bitmap_s1_d   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
+      device_param->d_bitmap_s2_a   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
+      device_param->d_bitmap_s2_b   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
+      device_param->d_bitmap_s2_c   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
+      device_param->d_bitmap_s2_d   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
+      device_param->d_plain_bufs    = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_plains,  NULL);
+      device_param->d_digests_buf   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_digests, NULL);
+      device_param->d_digests_shown = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_shown,   NULL);
+      device_param->d_salt_bufs     = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_salts,   NULL);
+      device_param->d_result        = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_results, NULL);
+      device_param->d_scryptV_buf   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scryptV, NULL);
 
-      hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_bitmap_s1_a,    CL_TRUE, 0, bitmap_size,  bitmap_s1_a,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_bitmap_s1_b,    CL_TRUE, 0, bitmap_size,  bitmap_s1_b,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_bitmap_s1_c,    CL_TRUE, 0, bitmap_size,  bitmap_s1_c,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_bitmap_s1_d,    CL_TRUE, 0, bitmap_size,  bitmap_s1_d,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_bitmap_s2_a,    CL_TRUE, 0, bitmap_size,  bitmap_s2_a,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_bitmap_s2_b,    CL_TRUE, 0, bitmap_size,  bitmap_s2_b,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_bitmap_s2_c,    CL_TRUE, 0, bitmap_size,  bitmap_s2_c,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_bitmap_s2_d,    CL_TRUE, 0, bitmap_size,  bitmap_s2_d,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_digests_buf,    CL_TRUE, 0, size_digests, data.digests_buf,   0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_digests_shown,  CL_TRUE, 0, size_shown,   data.digests_shown, 0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_salt_bufs,      CL_TRUE, 0, size_salts,   data.salts_buf,     0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_a,    CL_TRUE, 0, bitmap_size,  bitmap_s1_a,        0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_b,    CL_TRUE, 0, bitmap_size,  bitmap_s1_b,        0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_c,    CL_TRUE, 0, bitmap_size,  bitmap_s1_c,        0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_d,    CL_TRUE, 0, bitmap_size,  bitmap_s1_d,        0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s2_a,    CL_TRUE, 0, bitmap_size,  bitmap_s2_a,        0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s2_b,    CL_TRUE, 0, bitmap_size,  bitmap_s2_b,        0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s2_c,    CL_TRUE, 0, bitmap_size,  bitmap_s2_c,        0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s2_d,    CL_TRUE, 0, bitmap_size,  bitmap_s2_d,        0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_buf,    CL_TRUE, 0, size_digests, data.digests_buf,   0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown,  CL_TRUE, 0, size_shown,   data.digests_shown, 0, NULL, NULL);
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_salt_bufs,      CL_TRUE, 0, size_salts,   data.salts_buf,     0, NULL, NULL);
 
       run_kernel_bzero (device_param, device_param->d_pws_buf,        size_pws);
       run_kernel_bzero (device_param, device_param->d_pws_amp_buf,    size_pws);
@@ -13861,19 +13877,19 @@ int main (int argc, char **argv)
 
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        device_param->d_rules   = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_rules,   NULL);
-        device_param->d_rules_c = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_rules_c, NULL);
+        device_param->d_rules   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_rules,   NULL);
+        device_param->d_rules_c = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_rules_c, NULL);
 
-        hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_rules, CL_TRUE, 0, size_rules, kernel_rules_buf, 0, NULL, NULL);
+        hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_rules, CL_TRUE, 0, size_rules, kernel_rules_buf, 0, NULL, NULL);
 
         run_kernel_bzero (device_param, device_param->d_rules_c, size_rules_c);
       }
       else if (attack_kern == ATTACK_KERN_COMBI)
       {
-        device_param->d_combs           = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_combs,      NULL);
-        device_param->d_combs_c         = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_combs,      NULL);
-        device_param->d_root_css_buf    = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL);
-        device_param->d_markov_css_buf  = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL);
+        device_param->d_combs           = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_combs,      NULL);
+        device_param->d_combs_c         = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_combs,      NULL);
+        device_param->d_root_css_buf    = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL);
+        device_param->d_markov_css_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL);
 
         run_kernel_bzero (device_param, device_param->d_combs,          size_combs);
         run_kernel_bzero (device_param, device_param->d_combs_c,        size_combs);
@@ -13882,11 +13898,11 @@ int main (int argc, char **argv)
       }
       else if (attack_kern == ATTACK_KERN_BF)
       {
-        device_param->d_bfs             = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_bfs,        NULL);
-        device_param->d_bfs_c           = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_bfs,        NULL);
-        device_param->d_tm_c            = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_tm,         NULL);
-        device_param->d_root_css_buf    = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL);
-        device_param->d_markov_css_buf  = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL);
+        device_param->d_bfs             = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_bfs,        NULL);
+        device_param->d_bfs_c           = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_bfs,        NULL);
+        device_param->d_tm_c            = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_tm,         NULL);
+        device_param->d_root_css_buf    = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL);
+        device_param->d_markov_css_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL);
 
         run_kernel_bzero (device_param, device_param->d_bfs,            size_bfs);
         run_kernel_bzero (device_param, device_param->d_bfs_c,          size_bfs);
@@ -13897,9 +13913,9 @@ int main (int argc, char **argv)
 
       if (size_esalts)
       {
-        device_param->d_esalt_bufs = hc_clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, size_esalts, NULL);
+        device_param->d_esalt_bufs = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_esalts, NULL);
 
-        hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_esalt_bufs, CL_TRUE, 0, size_esalts, data.esalts_buf, 0, NULL, NULL);
+        hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_esalt_bufs, CL_TRUE, 0, size_esalts, data.esalts_buf, 0, NULL, NULL);
       }
 
       /**
@@ -14067,29 +14083,29 @@ int main (int argc, char **argv)
         {
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_s%02d", kern_type, 4);
 
-          device_param->kernel1 = hc_clCreateKernel (device_param->program, kernel_name);
+          device_param->kernel1 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
 
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_s%02d", kern_type, 8);
 
-          device_param->kernel2 = hc_clCreateKernel (device_param->program, kernel_name);
+          device_param->kernel2 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
 
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_s%02d", kern_type, 16);
 
-          device_param->kernel3 = hc_clCreateKernel (device_param->program, kernel_name);
+          device_param->kernel3 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
         }
         else
         {
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d", kern_type, 4);
 
-          device_param->kernel1 = hc_clCreateKernel (device_param->program, kernel_name);
+          device_param->kernel1 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
 
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d", kern_type, 8);
 
-          device_param->kernel2 = hc_clCreateKernel (device_param->program, kernel_name);
+          device_param->kernel2 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
 
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d", kern_type, 16);
 
-          device_param->kernel3 = hc_clCreateKernel (device_param->program, kernel_name);
+          device_param->kernel3 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
         }
 
         if (data.attack_mode == ATTACK_MODE_BF)
@@ -14098,11 +14114,11 @@ int main (int argc, char **argv)
           {
             snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_tb", kern_type);
 
-            device_param->kernel_tb = hc_clCreateKernel (device_param->program, kernel_name);
+            device_param->kernel_tb = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
 
             snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_tm", kern_type);
 
-            device_param->kernel_tm = hc_clCreateKernel (device_param->program, kernel_name);
+            device_param->kernel_tm = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
           }
         }
       }
@@ -14110,71 +14126,71 @@ int main (int argc, char **argv)
       {
         snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_init", kern_type);
 
-        device_param->kernel1 = hc_clCreateKernel (device_param->program, kernel_name);
+        device_param->kernel1 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
 
         snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_loop", kern_type);
 
-        device_param->kernel2 = hc_clCreateKernel (device_param->program, kernel_name);
+        device_param->kernel2 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
 
         snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_comp", kern_type);
 
-        device_param->kernel3 = hc_clCreateKernel (device_param->program, kernel_name);
+        device_param->kernel3 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
 
         if (opts_type & OPTS_TYPE_HOOK12)
         {
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_hook12", kern_type);
 
-          device_param->kernel12 = hc_clCreateKernel (device_param->program, kernel_name);
+          device_param->kernel12 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
         }
 
         if (opts_type & OPTS_TYPE_HOOK23)
         {
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_hook23", kern_type);
 
-          device_param->kernel23 = hc_clCreateKernel (device_param->program, kernel_name);
+          device_param->kernel23 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
         }
       }
 
       for (uint i = 0; i <= 20; i++)
       {
-        hc_clSetKernelArg (device_param->kernel1, i, sizeof (cl_mem), device_param->kernel_params[i]);
-        hc_clSetKernelArg (device_param->kernel2, i, sizeof (cl_mem), device_param->kernel_params[i]);
-        hc_clSetKernelArg (device_param->kernel3, i, sizeof (cl_mem), device_param->kernel_params[i]);
+        hc_clSetKernelArg (data.ocl, device_param->kernel1, i, sizeof (cl_mem), device_param->kernel_params[i]);
+        hc_clSetKernelArg (data.ocl, device_param->kernel2, i, sizeof (cl_mem), device_param->kernel_params[i]);
+        hc_clSetKernelArg (data.ocl, device_param->kernel3, i, sizeof (cl_mem), device_param->kernel_params[i]);
 
-        if (opts_type & OPTS_TYPE_HOOK12) hc_clSetKernelArg (device_param->kernel12, i, sizeof (cl_mem), device_param->kernel_params[i]);
-        if (opts_type & OPTS_TYPE_HOOK23) hc_clSetKernelArg (device_param->kernel23, i, sizeof (cl_mem), device_param->kernel_params[i]);
+        if (opts_type & OPTS_TYPE_HOOK12) hc_clSetKernelArg (data.ocl, device_param->kernel12, i, sizeof (cl_mem), device_param->kernel_params[i]);
+        if (opts_type & OPTS_TYPE_HOOK23) hc_clSetKernelArg (data.ocl, device_param->kernel23, i, sizeof (cl_mem), device_param->kernel_params[i]);
       }
 
       for (uint i = 21; i <= 31; i++)
       {
-        hc_clSetKernelArg (device_param->kernel1, i, sizeof (cl_uint), device_param->kernel_params[i]);
-        hc_clSetKernelArg (device_param->kernel2, i, sizeof (cl_uint), device_param->kernel_params[i]);
-        hc_clSetKernelArg (device_param->kernel3, i, sizeof (cl_uint), device_param->kernel_params[i]);
+        hc_clSetKernelArg (data.ocl, device_param->kernel1, i, sizeof (cl_uint), device_param->kernel_params[i]);
+        hc_clSetKernelArg (data.ocl, device_param->kernel2, i, sizeof (cl_uint), device_param->kernel_params[i]);
+        hc_clSetKernelArg (data.ocl, device_param->kernel3, i, sizeof (cl_uint), device_param->kernel_params[i]);
 
-        if (opts_type & OPTS_TYPE_HOOK12) hc_clSetKernelArg (device_param->kernel12, i, sizeof (cl_uint), device_param->kernel_params[i]);
-        if (opts_type & OPTS_TYPE_HOOK23) hc_clSetKernelArg (device_param->kernel23, i, sizeof (cl_uint), device_param->kernel_params[i]);
+        if (opts_type & OPTS_TYPE_HOOK12) hc_clSetKernelArg (data.ocl, device_param->kernel12, i, sizeof (cl_uint), device_param->kernel_params[i]);
+        if (opts_type & OPTS_TYPE_HOOK23) hc_clSetKernelArg (data.ocl, device_param->kernel23, i, sizeof (cl_uint), device_param->kernel_params[i]);
       }
 
       if (attack_mode == ATTACK_MODE_BF)
       {
-        device_param->kernel_mp_l = hc_clCreateKernel (device_param->program_mp, "l_markov");
-        device_param->kernel_mp_r = hc_clCreateKernel (device_param->program_mp, "r_markov");
+        device_param->kernel_mp_l = hc_clCreateKernel (data.ocl, device_param->program_mp, "l_markov");
+        device_param->kernel_mp_r = hc_clCreateKernel (data.ocl, device_param->program_mp, "r_markov");
 
         if (opts_type & OPTS_TYPE_PT_BITSLICE)
         {
-          hc_clSetKernelArg (device_param->kernel_tb, 0, sizeof (cl_mem), device_param->kernel_params_tb[0]);
+          hc_clSetKernelArg (data.ocl, device_param->kernel_tb, 0, sizeof (cl_mem), device_param->kernel_params_tb[0]);
 
-          hc_clSetKernelArg (device_param->kernel_tm, 0, sizeof (cl_mem), device_param->kernel_params_tm[0]);
-          hc_clSetKernelArg (device_param->kernel_tm, 1, sizeof (cl_mem), device_param->kernel_params_tm[1]);
+          hc_clSetKernelArg (data.ocl, device_param->kernel_tm, 0, sizeof (cl_mem), device_param->kernel_params_tm[0]);
+          hc_clSetKernelArg (data.ocl, device_param->kernel_tm, 1, sizeof (cl_mem), device_param->kernel_params_tm[1]);
         }
       }
       else if (attack_mode == ATTACK_MODE_HYBRID1)
       {
-        device_param->kernel_mp = hc_clCreateKernel (device_param->program_mp, "C_markov");
+        device_param->kernel_mp = hc_clCreateKernel (data.ocl, device_param->program_mp, "C_markov");
       }
       else if (attack_mode == ATTACK_MODE_HYBRID2)
       {
-        device_param->kernel_mp = hc_clCreateKernel (device_param->program_mp, "C_markov");
+        device_param->kernel_mp = hc_clCreateKernel (data.ocl, device_param->program_mp, "C_markov");
       }
 
       if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -14183,7 +14199,7 @@ int main (int argc, char **argv)
       }
       else
       {
-        device_param->kernel_amp = hc_clCreateKernel (device_param->program_amp, "amp");
+        device_param->kernel_amp = hc_clCreateKernel (data.ocl, device_param->program_amp, "amp");
       }
 
       if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -14194,12 +14210,12 @@ int main (int argc, char **argv)
       {
         for (uint i = 0; i < 5; i++)
         {
-          hc_clSetKernelArg (device_param->kernel_amp, i, sizeof (cl_mem), device_param->kernel_params_amp[i]);
+          hc_clSetKernelArg (data.ocl, device_param->kernel_amp, i, sizeof (cl_mem), device_param->kernel_params_amp[i]);
         }
 
         for (uint i = 5; i < 7; i++)
         {
-          hc_clSetKernelArg (device_param->kernel_amp, i, sizeof (cl_uint), device_param->kernel_params_amp[i]);
+          hc_clSetKernelArg (data.ocl, device_param->kernel_amp, i, sizeof (cl_uint), device_param->kernel_params_amp[i]);
         }
       }
 
@@ -15489,12 +15505,12 @@ int main (int argc, char **argv)
               device_param->kernel_params_mp_buf32[7] = 0;
             }
 
-            for (uint i = 0; i < 3; i++) hc_clSetKernelArg (device_param->kernel_mp, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp[i]);
-            for (uint i = 3; i < 4; i++) hc_clSetKernelArg (device_param->kernel_mp, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp[i]);
-            for (uint i = 4; i < 8; i++) hc_clSetKernelArg (device_param->kernel_mp, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp[i]);
+            for (uint i = 0; i < 3; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp[i]);
+            for (uint i = 3; i < 4; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp[i]);
+            for (uint i = 4; i < 8; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp[i]);
 
-            hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   root_css_buf,   0, NULL, NULL);
-            hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, markov_css_buf, 0, NULL, NULL);
+            hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   root_css_buf,   0, NULL, NULL);
+            hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, markov_css_buf, 0, NULL, NULL);
           }
         }
         else if (attack_mode == ATTACK_MODE_BF)
@@ -16000,16 +16016,16 @@ int main (int argc, char **argv)
             device_param->kernel_params_mp_r_buf32[6] = 0;
             device_param->kernel_params_mp_r_buf32[7] = 0;
 
-            for (uint i = 0; i < 3; i++) hc_clSetKernelArg (device_param->kernel_mp_l, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_l[i]);
-            for (uint i = 3; i < 4; i++) hc_clSetKernelArg (device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
-            for (uint i = 4; i < 9; i++) hc_clSetKernelArg (device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
+            for (uint i = 0; i < 3; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp_l, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_l[i]);
+            for (uint i = 3; i < 4; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
+            for (uint i = 4; i < 9; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
 
-            for (uint i = 0; i < 3; i++) hc_clSetKernelArg (device_param->kernel_mp_r, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_r[i]);
-            for (uint i = 3; i < 4; i++) hc_clSetKernelArg (device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]);
-            for (uint i = 4; i < 8; i++) hc_clSetKernelArg (device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]);
+            for (uint i = 0; i < 3; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp_r, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_r[i]);
+            for (uint i = 3; i < 4; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]);
+            for (uint i = 4; i < 8; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]);
 
-            hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   root_css_buf,   0, NULL, NULL);
-            hc_clEnqueueWriteBuffer (device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, markov_css_buf, 0, NULL, NULL);
+            hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   root_css_buf,   0, NULL, NULL);
+            hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, markov_css_buf, 0, NULL, NULL);
           }
         }
 
@@ -16431,53 +16447,53 @@ int main (int argc, char **argv)
       local_free (device_param->driver_version);
 
       if (device_param->pws_buf)            myfree                    (device_param->pws_buf);
-      if (device_param->d_pws_buf)          hc_clReleaseMemObject     (device_param->d_pws_buf);
-      if (device_param->d_pws_amp_buf)      hc_clReleaseMemObject     (device_param->d_pws_amp_buf);
-      if (device_param->d_rules)            hc_clReleaseMemObject     (device_param->d_rules);
-      if (device_param->d_rules_c)          hc_clReleaseMemObject     (device_param->d_rules_c);
-      if (device_param->d_combs)            hc_clReleaseMemObject     (device_param->d_combs);
-      if (device_param->d_combs_c)          hc_clReleaseMemObject     (device_param->d_combs_c);
-      if (device_param->d_bfs)              hc_clReleaseMemObject     (device_param->d_bfs);
-      if (device_param->d_bfs_c)            hc_clReleaseMemObject     (device_param->d_bfs_c);
-      if (device_param->d_bitmap_s1_a)      hc_clReleaseMemObject     (device_param->d_bitmap_s1_a);
-      if (device_param->d_bitmap_s1_b)      hc_clReleaseMemObject     (device_param->d_bitmap_s1_b);
-      if (device_param->d_bitmap_s1_c)      hc_clReleaseMemObject     (device_param->d_bitmap_s1_c);
-      if (device_param->d_bitmap_s1_d)      hc_clReleaseMemObject     (device_param->d_bitmap_s1_d);
-      if (device_param->d_bitmap_s2_a)      hc_clReleaseMemObject     (device_param->d_bitmap_s2_a);
-      if (device_param->d_bitmap_s2_b)      hc_clReleaseMemObject     (device_param->d_bitmap_s2_b);
-      if (device_param->d_bitmap_s2_c)      hc_clReleaseMemObject     (device_param->d_bitmap_s2_c);
-      if (device_param->d_bitmap_s2_d)      hc_clReleaseMemObject     (device_param->d_bitmap_s2_d);
-      if (device_param->d_plain_bufs)       hc_clReleaseMemObject     (device_param->d_plain_bufs);
-      if (device_param->d_digests_buf)      hc_clReleaseMemObject     (device_param->d_digests_buf);
-      if (device_param->d_digests_shown)    hc_clReleaseMemObject     (device_param->d_digests_shown);
-      if (device_param->d_salt_bufs)        hc_clReleaseMemObject     (device_param->d_salt_bufs);
-      if (device_param->d_esalt_bufs)       hc_clReleaseMemObject     (device_param->d_esalt_bufs);
-      if (device_param->d_tmps)             hc_clReleaseMemObject     (device_param->d_tmps);
-      if (device_param->d_hooks)            hc_clReleaseMemObject     (device_param->d_hooks);
-      if (device_param->d_result)           hc_clReleaseMemObject     (device_param->d_result);
-      if (device_param->d_scryptV_buf)      hc_clReleaseMemObject     (device_param->d_scryptV_buf);
-      if (device_param->d_root_css_buf)     hc_clReleaseMemObject     (device_param->d_root_css_buf);
-      if (device_param->d_markov_css_buf)   hc_clReleaseMemObject     (device_param->d_markov_css_buf);
-      if (device_param->d_tm_c)             hc_clReleaseMemObject     (device_param->d_tm_c);
+      if (device_param->d_pws_buf)          hc_clReleaseMemObject     (data.ocl, device_param->d_pws_buf);
+      if (device_param->d_pws_amp_buf)      hc_clReleaseMemObject     (data.ocl, device_param->d_pws_amp_buf);
+      if (device_param->d_rules)            hc_clReleaseMemObject     (data.ocl, device_param->d_rules);
+      if (device_param->d_rules_c)          hc_clReleaseMemObject     (data.ocl, device_param->d_rules_c);
+      if (device_param->d_combs)            hc_clReleaseMemObject     (data.ocl, device_param->d_combs);
+      if (device_param->d_combs_c)          hc_clReleaseMemObject     (data.ocl, device_param->d_combs_c);
+      if (device_param->d_bfs)              hc_clReleaseMemObject     (data.ocl, device_param->d_bfs);
+      if (device_param->d_bfs_c)            hc_clReleaseMemObject     (data.ocl, device_param->d_bfs_c);
+      if (device_param->d_bitmap_s1_a)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s1_a);
+      if (device_param->d_bitmap_s1_b)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s1_b);
+      if (device_param->d_bitmap_s1_c)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s1_c);
+      if (device_param->d_bitmap_s1_d)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s1_d);
+      if (device_param->d_bitmap_s2_a)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s2_a);
+      if (device_param->d_bitmap_s2_b)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s2_b);
+      if (device_param->d_bitmap_s2_c)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s2_c);
+      if (device_param->d_bitmap_s2_d)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s2_d);
+      if (device_param->d_plain_bufs)       hc_clReleaseMemObject     (data.ocl, device_param->d_plain_bufs);
+      if (device_param->d_digests_buf)      hc_clReleaseMemObject     (data.ocl, device_param->d_digests_buf);
+      if (device_param->d_digests_shown)    hc_clReleaseMemObject     (data.ocl, device_param->d_digests_shown);
+      if (device_param->d_salt_bufs)        hc_clReleaseMemObject     (data.ocl, device_param->d_salt_bufs);
+      if (device_param->d_esalt_bufs)       hc_clReleaseMemObject     (data.ocl, device_param->d_esalt_bufs);
+      if (device_param->d_tmps)             hc_clReleaseMemObject     (data.ocl, device_param->d_tmps);
+      if (device_param->d_hooks)            hc_clReleaseMemObject     (data.ocl, device_param->d_hooks);
+      if (device_param->d_result)           hc_clReleaseMemObject     (data.ocl, device_param->d_result);
+      if (device_param->d_scryptV_buf)      hc_clReleaseMemObject     (data.ocl, device_param->d_scryptV_buf);
+      if (device_param->d_root_css_buf)     hc_clReleaseMemObject     (data.ocl, device_param->d_root_css_buf);
+      if (device_param->d_markov_css_buf)   hc_clReleaseMemObject     (data.ocl, device_param->d_markov_css_buf);
+      if (device_param->d_tm_c)             hc_clReleaseMemObject     (data.ocl, device_param->d_tm_c);
 
-      if (device_param->kernel1)            hc_clReleaseKernel        (device_param->kernel1);
-      if (device_param->kernel12)           hc_clReleaseKernel        (device_param->kernel12);
-      if (device_param->kernel2)            hc_clReleaseKernel        (device_param->kernel2);
-      if (device_param->kernel23)           hc_clReleaseKernel        (device_param->kernel23);
-      if (device_param->kernel3)            hc_clReleaseKernel        (device_param->kernel3);
-      if (device_param->kernel_mp)          hc_clReleaseKernel        (device_param->kernel_mp);
-      if (device_param->kernel_mp_l)        hc_clReleaseKernel        (device_param->kernel_mp_l);
-      if (device_param->kernel_mp_r)        hc_clReleaseKernel        (device_param->kernel_mp_r);
-      if (device_param->kernel_tb)          hc_clReleaseKernel        (device_param->kernel_tb);
-      if (device_param->kernel_tm)          hc_clReleaseKernel        (device_param->kernel_tm);
-      if (device_param->kernel_amp)         hc_clReleaseKernel        (device_param->kernel_amp);
+      if (device_param->kernel1)            hc_clReleaseKernel        (data.ocl, device_param->kernel1);
+      if (device_param->kernel12)           hc_clReleaseKernel        (data.ocl, device_param->kernel12);
+      if (device_param->kernel2)            hc_clReleaseKernel        (data.ocl, device_param->kernel2);
+      if (device_param->kernel23)           hc_clReleaseKernel        (data.ocl, device_param->kernel23);
+      if (device_param->kernel3)            hc_clReleaseKernel        (data.ocl, device_param->kernel3);
+      if (device_param->kernel_mp)          hc_clReleaseKernel        (data.ocl, device_param->kernel_mp);
+      if (device_param->kernel_mp_l)        hc_clReleaseKernel        (data.ocl, device_param->kernel_mp_l);
+      if (device_param->kernel_mp_r)        hc_clReleaseKernel        (data.ocl, device_param->kernel_mp_r);
+      if (device_param->kernel_tb)          hc_clReleaseKernel        (data.ocl, device_param->kernel_tb);
+      if (device_param->kernel_tm)          hc_clReleaseKernel        (data.ocl, device_param->kernel_tm);
+      if (device_param->kernel_amp)         hc_clReleaseKernel        (data.ocl, device_param->kernel_amp);
 
-      if (device_param->program)            hc_clReleaseProgram       (device_param->program);
-      if (device_param->program_mp)         hc_clReleaseProgram       (device_param->program_mp);
-      if (device_param->program_amp)        hc_clReleaseProgram       (device_param->program_amp);
+      if (device_param->program)            hc_clReleaseProgram       (data.ocl, device_param->program);
+      if (device_param->program_mp)         hc_clReleaseProgram       (data.ocl, device_param->program_mp);
+      if (device_param->program_amp)        hc_clReleaseProgram       (data.ocl, device_param->program_amp);
 
-      if (device_param->command_queue)      hc_clReleaseCommandQueue  (device_param->command_queue);
-      if (device_param->context)            hc_clReleaseContext       (device_param->context);
+      if (device_param->command_queue)      hc_clReleaseCommandQueue  (data.ocl, device_param->command_queue);
+      if (device_param->context)            hc_clReleaseContext       (data.ocl, device_param->context);
     }
 
     // reset default fan speed
@@ -16757,6 +16773,8 @@ int main (int argc, char **argv)
 
   if (quiet == 0) log_info_nn ("Started: %s", ctime (&proc_start));
   if (quiet == 0) log_info_nn ("Stopped: %s", ctime (&proc_stop));
+
+  if (data.ocl) ocl_close (data.ocl);
 
   if (data.devices_status == STATUS_ABORTED)            return 2;
   if (data.devices_status == STATUS_QUIT)               return 2;

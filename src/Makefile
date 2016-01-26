@@ -142,7 +142,7 @@ BINARY_NATIVE            := $(PROG_NAME).app
 CFLAGS_NATIVE            := -D_POSIX -DOSX
 CFLAGS_NATIVE            += $(CFLAGS)
 
-LFLAGS_NATIVE            := -framework OpenCL -lpthread
+LFLAGS_NATIVE            := -lpthread
 
 FOUND_ADL                := 0
 FOUND_NVML               := 0
@@ -152,10 +152,9 @@ ifeq ($(UNAME),Linux)
 CFLAGS_NATIVE            := -D_POSIX -DLINUX
 CFLAGS_NATIVE            += -s $(CFLAGS)
 
-LFLAGS_NATIVE            := -lOpenCL -lpthread
+LFLAGS_NATIVE            := -lpthread -ldl
 
 ifneq (,$(filter 1,$(FOUND_ADL) $(FOUND_NVML)))
-LFLAGS_NATIVE            += -ldl
 CFLAGS_NATIVE            += -DHAVE_HWMON
 ifeq ($(FOUND_ADL),1)
 CFLAGS_NATIVE            += -DHAVE_ADL -I$(ADL)/include/
@@ -206,7 +205,7 @@ endif
 CFLAGS_CROSS_32          := -m32
 CFLAGS_CROSS_64          := -m64
 
-LFLAGS_CROSS_LINUX       := -lpthread -lOpenCL -ldl
+LFLAGS_CROSS_LINUX       := -lpthread -ldl
 LFLAGS_CROSS_WIN         := -lpsapi
 
 ##
@@ -347,8 +346,8 @@ oclHashcat32.bin: src/oclHashcat.c $(LINUX_32_OBJS)
 oclHashcat64.bin: src/oclHashcat.c $(LINUX_64_OBJS)
 	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-oclHashcat32.exe: src/oclHashcat.c $(WIN_32_OBJS) lib/libOpenCL.a
+oclHashcat32.exe: src/oclHashcat.c $(WIN_32_OBJS)
 	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -static-libgcc
 
-oclHashcat64.exe: src/oclHashcat.c $(WIN_64_OBJS) lib/libOpenCL64.a
+oclHashcat64.exe: src/oclHashcat.c $(WIN_64_OBJS)
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -static-libgcc
