@@ -402,8 +402,8 @@ const char *USAGE_BIG[] =
   "  -w,  --workload-profile=NUM        Enable a specific workload profile, see references below",
   "  -n,  --kernel-accel=NUM            Workload tuning: 1, 8, 40, 80, 160",
   "  -u,  --kernel-loops=NUM            Workload fine-tuning: 8 - 1024",
-  #ifdef HAVE_HWMON
   "       --gpu-temp-disable            Disable temperature and fanspeed readings and triggers",
+  #ifdef HAVE_HWMON
   "       --gpu-temp-abort=NUM          Abort session if GPU temperature reaches NUM degrees celsius",
   "       --gpu-temp-retain=NUM         Try to retain GPU temperature at NUM degrees celsius (AMD only)",
   #ifdef HAVE_ADL
@@ -5156,8 +5156,8 @@ int main (int argc, char **argv)
   uint  workload_profile  = WORKLOAD_PROFILE;
   uint  kernel_accel      = KERNEL_ACCEL;
   uint  kernel_loops      = KERNEL_LOOPS;
-  #ifdef HAVE_HWMON
   uint  gpu_temp_disable  = GPU_TEMP_DISABLE;
+  #ifdef HAVE_HWMON
   uint  gpu_temp_abort    = GPU_TEMP_ABORT;
   uint  gpu_temp_retain   = GPU_TEMP_RETAIN;
   #ifdef HAVE_ADL
@@ -5319,8 +5319,8 @@ int main (int argc, char **argv)
     {"workload-profile",  required_argument, 0, IDX_WORKLOAD_PROFILE},
     {"kernel-accel",      required_argument, 0, IDX_KERNEL_ACCEL},
     {"kernel-loops",      required_argument, 0, IDX_KERNEL_LOOPS},
-    #ifdef HAVE_HWMON
     {"gpu-temp-disable",  no_argument,       0, IDX_GPU_TEMP_DISABLE},
+    #ifdef HAVE_HWMON
     {"gpu-temp-abort",    required_argument, 0, IDX_GPU_TEMP_ABORT},
     {"gpu-temp-retain",   required_argument, 0, IDX_GPU_TEMP_RETAIN},
     #ifdef HAVE_ADL
@@ -5634,8 +5634,8 @@ int main (int argc, char **argv)
                                   kernel_accel_chgd = 1;               break;
       case IDX_KERNEL_LOOPS:      kernel_loops      = atoi (optarg);
                                   kernel_loops_chgd = 1;               break;
-      #ifdef HAVE_HWMON
       case IDX_GPU_TEMP_DISABLE:  gpu_temp_disable  = 1;               break;
+      #ifdef HAVE_HWMON
       case IDX_GPU_TEMP_ABORT:    gpu_temp_abort    = atoi (optarg);
                                   #ifdef HAVE_ADL
                                   gpu_temp_abort_chgd = 1;
@@ -6440,9 +6440,9 @@ int main (int argc, char **argv)
   logfile_top_uint   (force);
   logfile_top_uint   (kernel_accel);
   logfile_top_uint   (kernel_loops);
+  logfile_top_uint   (gpu_temp_disable);
   #ifdef HAVE_HWMON
   logfile_top_uint   (gpu_temp_abort);
-  logfile_top_uint   (gpu_temp_disable);
   logfile_top_uint   (gpu_temp_retain);
   #endif
   logfile_top_uint   (hash_mode);
