@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -87,10 +89,12 @@
 
 #define CL_VENDOR_NV          "NVIDIA Corporation"
 #define CL_VENDOR_AMD         "Advanced Micro Devices, Inc."
+#define CL_VENDOR_APPLE       "Apple"
 #define CL_VENDOR_POCL        "The pocl project"
 
 #define VENDOR_ID_AMD         4098
 #define VENDOR_ID_NV          4318
+#define VENDOR_ID_APPLE       16925952
 #define VENDOR_ID_GENERIC     9999
 
 #define BLOCK_SIZE            64
@@ -165,8 +169,48 @@ extern hc_thread_mutex_t mux_display;
 #define PW_LENGTH_MAX_7400    15
 
 /**
- * device accel / loops macro
+ * device accel macro
  */
+
+#ifdef OSX
+#define KERNEL_ACCEL_5000    16
+#define KERNEL_ACCEL_6100    1
+#define KERNEL_ACCEL_6211    4
+#define KERNEL_ACCEL_6231    1
+#define KERNEL_ACCEL_6241    4
+#define KERNEL_ACCEL_8200    1
+#define KERNEL_ACCEL_8700    2
+#define KERNEL_ACCEL_9500    1
+#define KERNEL_ACCEL_9600    1
+#define KERNEL_ACCEL_10500   4
+#define KERNEL_ACCEL_11300   1
+#define KERNEL_ACCEL_11600   1
+#define KERNEL_ACCEL_11700   1
+#define KERNEL_ACCEL_11800   1
+#define KERNEL_ACCEL_12200   1
+#define KERNEL_ACCEL_12400   1
+#define KERNEL_ACCEL_12500   1
+#define KERNEL_ACCEL_13000   1
+#else
+#define KERNEL_ACCEL_5000    64
+#define KERNEL_ACCEL_6100    8
+#define KERNEL_ACCEL_6211    16
+#define KERNEL_ACCEL_6231    4
+#define KERNEL_ACCEL_6241    32
+#define KERNEL_ACCEL_8200    2
+#define KERNEL_ACCEL_8700    8
+#define KERNEL_ACCEL_9500    8
+#define KERNEL_ACCEL_9600    2
+#define KERNEL_ACCEL_10500   64
+#define KERNEL_ACCEL_11300   2
+#define KERNEL_ACCEL_11600   2
+#define KERNEL_ACCEL_11700   4
+#define KERNEL_ACCEL_11800   4
+#define KERNEL_ACCEL_12200   2
+#define KERNEL_ACCEL_12400   64
+#define KERNEL_ACCEL_12500   8
+#define KERNEL_ACCEL_13000   8
+#endif // OSX
 
 #define KERNEL_ACCEL_0       128
 #define KERNEL_ACCEL_10      128
@@ -250,7 +294,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_4700    64
 #define KERNEL_ACCEL_4800    128
 #define KERNEL_ACCEL_4900    64
-#define KERNEL_ACCEL_5000    64
 #define KERNEL_ACCEL_5100    64
 #define KERNEL_ACCEL_5200    8
 #define KERNEL_ACCEL_5300    32
@@ -260,17 +303,13 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_5700    64
 #define KERNEL_ACCEL_5800    8
 #define KERNEL_ACCEL_6000    64
-#define KERNEL_ACCEL_6100    8
-#define KERNEL_ACCEL_6211    16
 #define KERNEL_ACCEL_6212    8
 #define KERNEL_ACCEL_6213    8
 #define KERNEL_ACCEL_6221    4
 #define KERNEL_ACCEL_6222    4
 #define KERNEL_ACCEL_6223    4
-#define KERNEL_ACCEL_6231    4
 #define KERNEL_ACCEL_6232    4
 #define KERNEL_ACCEL_6233    4
-#define KERNEL_ACCEL_6241    32
 #define KERNEL_ACCEL_6242    16
 #define KERNEL_ACCEL_6243    16
 #define KERNEL_ACCEL_6300    8
@@ -291,12 +330,10 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_7900    2
 #define KERNEL_ACCEL_8000    8
 #define KERNEL_ACCEL_8100    64
-#define KERNEL_ACCEL_8200    2
 #define KERNEL_ACCEL_8300    64
 #define KERNEL_ACCEL_8400    64
 #define KERNEL_ACCEL_8500    64
 #define KERNEL_ACCEL_8600    8
-#define KERNEL_ACCEL_8700    8
 #define KERNEL_ACCEL_8800    8
 #define KERNEL_ACCEL_8900    16
 #define KERNEL_ACCEL_9000    2
@@ -304,8 +341,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_9200    2
 #define KERNEL_ACCEL_9300    2
 #define KERNEL_ACCEL_9400    8
-#define KERNEL_ACCEL_9500    8
-#define KERNEL_ACCEL_9600    2
 #define KERNEL_ACCEL_9700    8
 #define KERNEL_ACCEL_9710    8
 #define KERNEL_ACCEL_9720    8
@@ -320,7 +355,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_10400   8
 #define KERNEL_ACCEL_10410   8
 #define KERNEL_ACCEL_10420   8
-#define KERNEL_ACCEL_10500   64
 #define KERNEL_ACCEL_10600   64
 #define KERNEL_ACCEL_10700   1
 #define KERNEL_ACCEL_10800   64
@@ -328,25 +362,143 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_11000   64
 #define KERNEL_ACCEL_11100   64
 #define KERNEL_ACCEL_11200   64
-#define KERNEL_ACCEL_11300   2
 #define KERNEL_ACCEL_11400   8
 #define KERNEL_ACCEL_11500   128
-#define KERNEL_ACCEL_11600   2
-#define KERNEL_ACCEL_11700   4
-#define KERNEL_ACCEL_11800   4
 #define KERNEL_ACCEL_11900   2
 #define KERNEL_ACCEL_12000   2
 #define KERNEL_ACCEL_12100   2
-#define KERNEL_ACCEL_12200   2
 #define KERNEL_ACCEL_12300   2
-#define KERNEL_ACCEL_12400   64
-#define KERNEL_ACCEL_12500   8
 #define KERNEL_ACCEL_12600   32
 #define KERNEL_ACCEL_12700   64
 #define KERNEL_ACCEL_12800   64
 #define KERNEL_ACCEL_12900   8
-#define KERNEL_ACCEL_13000   8
 
+/**
+ * device loops macro
+ */
+
+#ifdef OSX
+#define KERNEL_LOOPS_0       2
+#define KERNEL_LOOPS_10      2
+#define KERNEL_LOOPS_11      2
+#define KERNEL_LOOPS_12      2
+#define KERNEL_LOOPS_20      2
+#define KERNEL_LOOPS_21      2
+#define KERNEL_LOOPS_22      2
+#define KERNEL_LOOPS_23      2
+#define KERNEL_LOOPS_30      2
+#define KERNEL_LOOPS_40      2
+#define KERNEL_LOOPS_50      2
+#define KERNEL_LOOPS_60      2
+#define KERNEL_LOOPS_100     2
+#define KERNEL_LOOPS_101     2
+#define KERNEL_LOOPS_110     2
+#define KERNEL_LOOPS_111     2
+#define KERNEL_LOOPS_112     2
+#define KERNEL_LOOPS_120     2
+#define KERNEL_LOOPS_121     2
+#define KERNEL_LOOPS_122     2
+#define KERNEL_LOOPS_124     2
+#define KERNEL_LOOPS_130     2
+#define KERNEL_LOOPS_131     2
+#define KERNEL_LOOPS_132     2
+#define KERNEL_LOOPS_133     2
+#define KERNEL_LOOPS_140     2
+#define KERNEL_LOOPS_141     2
+#define KERNEL_LOOPS_150     2
+#define KERNEL_LOOPS_160     2
+#define KERNEL_LOOPS_190     2
+#define KERNEL_LOOPS_200     2
+#define KERNEL_LOOPS_300     2
+#define KERNEL_LOOPS_900     2
+#define KERNEL_LOOPS_1000    2
+#define KERNEL_LOOPS_1100    2
+#define KERNEL_LOOPS_1400    2
+#define KERNEL_LOOPS_1410    2
+#define KERNEL_LOOPS_1420    2
+#define KERNEL_LOOPS_1421    2
+#define KERNEL_LOOPS_1430    2
+#define KERNEL_LOOPS_1440    2
+#define KERNEL_LOOPS_1441    2
+#define KERNEL_LOOPS_1450    2
+#define KERNEL_LOOPS_1460    2
+#define KERNEL_LOOPS_1700    2
+#define KERNEL_LOOPS_1710    2
+#define KERNEL_LOOPS_1711    2
+#define KERNEL_LOOPS_1720    2
+#define KERNEL_LOOPS_1722    2
+#define KERNEL_LOOPS_1730    2
+#define KERNEL_LOOPS_1731    2
+#define KERNEL_LOOPS_1740    2
+#define KERNEL_LOOPS_1750    2
+#define KERNEL_LOOPS_1760    2
+#define KERNEL_LOOPS_2400    2
+#define KERNEL_LOOPS_2410    2
+#define KERNEL_LOOPS_2600    2
+#define KERNEL_LOOPS_2611    2
+#define KERNEL_LOOPS_2612    2
+#define KERNEL_LOOPS_2711    2
+#define KERNEL_LOOPS_2811    2
+#define KERNEL_LOOPS_3100    2
+#define KERNEL_LOOPS_3200    4
+#define KERNEL_LOOPS_3710    2
+#define KERNEL_LOOPS_3711    2
+#define KERNEL_LOOPS_3800    2
+#define KERNEL_LOOPS_4300    2
+#define KERNEL_LOOPS_4400    2
+#define KERNEL_LOOPS_4500    2
+#define KERNEL_LOOPS_4700    2
+#define KERNEL_LOOPS_4800    2
+#define KERNEL_LOOPS_4900    2
+#define KERNEL_LOOPS_5000    2
+#define KERNEL_LOOPS_5100    2
+#define KERNEL_LOOPS_5300    2
+#define KERNEL_LOOPS_5400    2
+#define KERNEL_LOOPS_5500    2
+#define KERNEL_LOOPS_5600    2
+#define KERNEL_LOOPS_5700    2
+#define KERNEL_LOOPS_6000    2
+#define KERNEL_LOOPS_6100    2
+#define KERNEL_LOOPS_6231    2
+#define KERNEL_LOOPS_6232    2
+#define KERNEL_LOOPS_6233    2
+#define KERNEL_LOOPS_6900    2
+#define KERNEL_LOOPS_7300    2
+#define KERNEL_LOOPS_7500    2
+#define KERNEL_LOOPS_7600    2
+#define KERNEL_LOOPS_7700    2
+#define KERNEL_LOOPS_7800    2
+#define KERNEL_LOOPS_8000    2
+#define KERNEL_LOOPS_8100    2
+#define KERNEL_LOOPS_8300    2
+#define KERNEL_LOOPS_8400    2
+#define KERNEL_LOOPS_8500    2
+#define KERNEL_LOOPS_8600    2
+#define KERNEL_LOOPS_8700    4
+#define KERNEL_LOOPS_9700    2
+#define KERNEL_LOOPS_9710    8
+#define KERNEL_LOOPS_9720    8
+#define KERNEL_LOOPS_9800    2
+#define KERNEL_LOOPS_9810    2
+#define KERNEL_LOOPS_9820    2
+#define KERNEL_LOOPS_9900    2
+#define KERNEL_LOOPS_10100   2
+#define KERNEL_LOOPS_10200   2
+#define KERNEL_LOOPS_10400   2
+#define KERNEL_LOOPS_10410   2
+#define KERNEL_LOOPS_10420   2
+#define KERNEL_LOOPS_10600   2
+#define KERNEL_LOOPS_10700   2
+#define KERNEL_LOOPS_10800   2
+#define KERNEL_LOOPS_11000   2
+#define KERNEL_LOOPS_11100   2
+#define KERNEL_LOOPS_11200   2
+#define KERNEL_LOOPS_11400   2
+#define KERNEL_LOOPS_11500   2
+#define KERNEL_LOOPS_11700   8
+#define KERNEL_LOOPS_11800   8
+#define KERNEL_LOOPS_12600   2
+#else
 #define KERNEL_LOOPS_0       256
 #define KERNEL_LOOPS_10      256
 #define KERNEL_LOOPS_11      256
@@ -379,11 +531,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_190     128
 #define KERNEL_LOOPS_200     128
 #define KERNEL_LOOPS_300     64
-#define KERNEL_LOOPS_400     256
-#define KERNEL_LOOPS_500     256
-#define KERNEL_LOOPS_501     256
 #define KERNEL_LOOPS_900     256
-#define KERNEL_LOOPS_910     256
 #define KERNEL_LOOPS_1000    256
 #define KERNEL_LOOPS_1100    128
 #define KERNEL_LOOPS_1400    64
@@ -395,8 +543,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_1441    64
 #define KERNEL_LOOPS_1450    32
 #define KERNEL_LOOPS_1460    32
-#define KERNEL_LOOPS_1500    256
-#define KERNEL_LOOPS_1600    256
 #define KERNEL_LOOPS_1700    32
 #define KERNEL_LOOPS_1710    32
 #define KERNEL_LOOPS_1711    32
@@ -407,17 +553,13 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_1740    32
 #define KERNEL_LOOPS_1750    16
 #define KERNEL_LOOPS_1760    16
-#define KERNEL_LOOPS_1800    16
-#define KERNEL_LOOPS_2100    256
 #define KERNEL_LOOPS_2400    256
 #define KERNEL_LOOPS_2410    256
-#define KERNEL_LOOPS_2500    256
 #define KERNEL_LOOPS_2600    128
 #define KERNEL_LOOPS_2611    128
 #define KERNEL_LOOPS_2612    128
 #define KERNEL_LOOPS_2711    64
 #define KERNEL_LOOPS_2811    64
-#define KERNEL_LOOPS_3000    256
 #define KERNEL_LOOPS_3100    16
 #define KERNEL_LOOPS_3200    16
 #define KERNEL_LOOPS_3710    128
@@ -431,24 +573,72 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_4900    128
 #define KERNEL_LOOPS_5000    64
 #define KERNEL_LOOPS_5100    256
-#define KERNEL_LOOPS_5200    256
 #define KERNEL_LOOPS_5300    32
 #define KERNEL_LOOPS_5400    32
 #define KERNEL_LOOPS_5500    128
 #define KERNEL_LOOPS_5600    64
 #define KERNEL_LOOPS_5700    64
-#define KERNEL_LOOPS_5800    256
 #define KERNEL_LOOPS_6000    64
 #define KERNEL_LOOPS_6100    64
+#define KERNEL_LOOPS_6231    200
+#define KERNEL_LOOPS_6232    200
+#define KERNEL_LOOPS_6233    200
+#define KERNEL_LOOPS_6900    64
+#define KERNEL_LOOPS_7300    64
+#define KERNEL_LOOPS_7500    16
+#define KERNEL_LOOPS_7600    128
+#define KERNEL_LOOPS_7700    128
+#define KERNEL_LOOPS_7800    64
+#define KERNEL_LOOPS_8000    64
+#define KERNEL_LOOPS_8100    128
+#define KERNEL_LOOPS_8300    64
+#define KERNEL_LOOPS_8400    64
+#define KERNEL_LOOPS_8500    16
+#define KERNEL_LOOPS_8600    16
+#define KERNEL_LOOPS_8700    16
+#define KERNEL_LOOPS_9700    200
+#define KERNEL_LOOPS_9710    200
+#define KERNEL_LOOPS_9720    200
+#define KERNEL_LOOPS_9800    200
+#define KERNEL_LOOPS_9820    200
+#define KERNEL_LOOPS_9810    200
+#define KERNEL_LOOPS_9900    256
+#define KERNEL_LOOPS_10100   512
+#define KERNEL_LOOPS_10200   64
+#define KERNEL_LOOPS_10400   256
+#define KERNEL_LOOPS_10410   256
+#define KERNEL_LOOPS_10420   256
+#define KERNEL_LOOPS_10600   64
+#define KERNEL_LOOPS_10700   64
+#define KERNEL_LOOPS_10800   32
+#define KERNEL_LOOPS_11000   256
+#define KERNEL_LOOPS_11100   128
+#define KERNEL_LOOPS_11200   128
+#define KERNEL_LOOPS_11400   128
+#define KERNEL_LOOPS_11500   256
+#define KERNEL_LOOPS_11700   64
+#define KERNEL_LOOPS_11800   64
+#define KERNEL_LOOPS_12600   32
+#endif // OSX
+
+#define KERNEL_LOOPS_400     256
+#define KERNEL_LOOPS_500     256
+#define KERNEL_LOOPS_501     256
+#define KERNEL_LOOPS_910     256
+#define KERNEL_LOOPS_1500    256
+#define KERNEL_LOOPS_1600    256
+#define KERNEL_LOOPS_1800    16
+#define KERNEL_LOOPS_2100    256
+#define KERNEL_LOOPS_2500    256
+#define KERNEL_LOOPS_3000    256
+#define KERNEL_LOOPS_5200    256
+#define KERNEL_LOOPS_5800    256
 #define KERNEL_LOOPS_6211    200
 #define KERNEL_LOOPS_6212    200
 #define KERNEL_LOOPS_6213    200
 #define KERNEL_LOOPS_6221    200
 #define KERNEL_LOOPS_6222    200
 #define KERNEL_LOOPS_6223    200
-#define KERNEL_LOOPS_6231    200
-#define KERNEL_LOOPS_6232    200
-#define KERNEL_LOOPS_6233    200
 #define KERNEL_LOOPS_6241    200
 #define KERNEL_LOOPS_6242    200
 #define KERNEL_LOOPS_6243    200
@@ -458,24 +648,11 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_6600    200
 #define KERNEL_LOOPS_6700    256
 #define KERNEL_LOOPS_6800    200
-#define KERNEL_LOOPS_6900    64
 #define KERNEL_LOOPS_7100    256
 #define KERNEL_LOOPS_7200    200
-#define KERNEL_LOOPS_7300    64
 #define KERNEL_LOOPS_7400    200
-#define KERNEL_LOOPS_7500    16
-#define KERNEL_LOOPS_7600    128
-#define KERNEL_LOOPS_7700    128
-#define KERNEL_LOOPS_7800    64
 #define KERNEL_LOOPS_7900    256
-#define KERNEL_LOOPS_8000    64
-#define KERNEL_LOOPS_8100    128
 #define KERNEL_LOOPS_8200    200
-#define KERNEL_LOOPS_8300    64
-#define KERNEL_LOOPS_8400    64
-#define KERNEL_LOOPS_8500    16
-#define KERNEL_LOOPS_8600    16
-#define KERNEL_LOOPS_8700    16
 #define KERNEL_LOOPS_8800    256
 #define KERNEL_LOOPS_8900    1
 #define KERNEL_LOOPS_9000    16
@@ -485,34 +662,12 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_9400    200
 #define KERNEL_LOOPS_9500    200
 #define KERNEL_LOOPS_9600    200
-#define KERNEL_LOOPS_9700    200
-#define KERNEL_LOOPS_9710    200
-#define KERNEL_LOOPS_9720    200
-#define KERNEL_LOOPS_9800    200
-#define KERNEL_LOOPS_9810    200
-#define KERNEL_LOOPS_9820    200
-#define KERNEL_LOOPS_9900    256
 #define KERNEL_LOOPS_10000   200
-#define KERNEL_LOOPS_10100   512
-#define KERNEL_LOOPS_10200   64
 #define KERNEL_LOOPS_10300   128
-#define KERNEL_LOOPS_10400   256
-#define KERNEL_LOOPS_10410   256
-#define KERNEL_LOOPS_10420   256
 #define KERNEL_LOOPS_10500   64
-#define KERNEL_LOOPS_10600   64
-#define KERNEL_LOOPS_10700   64
-#define KERNEL_LOOPS_10800   32
 #define KERNEL_LOOPS_10900   200
-#define KERNEL_LOOPS_11000   256
-#define KERNEL_LOOPS_11100   128
-#define KERNEL_LOOPS_11200   128
 #define KERNEL_LOOPS_11300   256
-#define KERNEL_LOOPS_11400   128
-#define KERNEL_LOOPS_11500   256
 #define KERNEL_LOOPS_11600   512
-#define KERNEL_LOOPS_11700   64
-#define KERNEL_LOOPS_11800   64
 #define KERNEL_LOOPS_11900   200
 #define KERNEL_LOOPS_12000   200
 #define KERNEL_LOOPS_12100   200
@@ -520,7 +675,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_12300   256
 #define KERNEL_LOOPS_12400   256
 #define KERNEL_LOOPS_12500   256
-#define KERNEL_LOOPS_12600   32
 #define KERNEL_LOOPS_12700   10
 #define KERNEL_LOOPS_12800   100
 #define KERNEL_LOOPS_12900   64
@@ -1469,14 +1623,14 @@ extern hc_thread_mutex_t mux_display;
  */
 
 #define DGST_SIZE_0                 0
-#define DGST_SIZE_4_2               (2  * sizeof (uint))        // 8
-#define DGST_SIZE_4_4               (4  * sizeof (uint))        // 16
-#define DGST_SIZE_4_5               (5  * sizeof (uint))        // 20
-#define DGST_SIZE_4_6               (6  * sizeof (uint))        // 24
-#define DGST_SIZE_4_8               (8  * sizeof (uint))        // 32
-#define DGST_SIZE_4_16              (16 * sizeof (uint))        // 64 !!!
-#define DGST_SIZE_4_32              (32 * sizeof (uint))        // 128 !!!
-#define DGST_SIZE_4_64              (64 * sizeof (uint))        // 256
+#define DGST_SIZE_4_2               (2  * sizeof (uint))   // 8
+#define DGST_SIZE_4_4               (4  * sizeof (uint))   // 16
+#define DGST_SIZE_4_5               (5  * sizeof (uint))   // 20
+#define DGST_SIZE_4_6               (6  * sizeof (uint))   // 24
+#define DGST_SIZE_4_8               (8  * sizeof (uint))   // 32
+#define DGST_SIZE_4_16              (16 * sizeof (uint))   // 64 !!!
+#define DGST_SIZE_4_32              (32 * sizeof (uint))   // 128 !!!
+#define DGST_SIZE_4_64              (64 * sizeof (uint))   // 256
 #define DGST_SIZE_8_8               (8  * sizeof (u64))    // 64 !!!
 #define DGST_SIZE_8_16              (16 * sizeof (u64))    // 128 !!!
 #define DGST_SIZE_8_25              (25 * sizeof (u64))    // 200

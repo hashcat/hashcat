@@ -8628,9 +8628,9 @@ void myquit ()
 
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources)
 {
-  FILE *fp;
+  FILE *fp = fopen (kernel_file, "rb");
 
-  if ((fp = fopen (kernel_file, "rb")) != NULL)
+  if (fp != NULL)
   {
     struct stat st;
 
