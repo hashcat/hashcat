@@ -5,7 +5,8 @@
 ## global vars
 DEPS="make gcc g++ gcc-multilib g++-multilib libc6-dev-i386 mingw-w64 build-essential unzip opencl-headers ocl-icd-libopencl1 dos2unix"
 DEPS_AMD_DEV="ocl-icd-opencl-dev"
-DOWNLOAD_DEPS="ADL_SDK9.zip R352-developer.zip gdk_linux_amd64_352_55_release.run"
+## Now suppressed: ADL_SDK9.zip gdk_linux_amd64_352_55_release.run
+DOWNLOAD_DEPS="R352-developer.zip"
 
 ## enter the deps directory
 cur_directory=$(dirname ${0})
@@ -17,7 +18,8 @@ cd ${deps_dir}
 
 ## cleanup the directories under the 'deps' folder
 rm -rf {adl-sdk*,nvidia-gdk,R352-developer} && \
-mkdir -p {tmp,adl-sdk,nvidia-gdk,R352-developer} && \
+#mkdir -p {tmp,adl-sdk,nvidia-gdk,R352-developer} && \
+mkdir -p {tmp,R352-developer} && \
 cd tmp/
 
 if [ $? -ne 0 ]; then
@@ -54,20 +56,20 @@ for pkg in ${DEPS}; do
 done
 
 ## extract ADL SDK
-unzip ADL_SDK9.zip -d ${deps_dir}/adl-sdk-9
-ret=$?
-
-if [[ ${ret} -ne 0 ]] && [[ ${ret} -ne 1 ]]; then
-  echo "! failed to extract ADL SDK"
-  exit 1
-fi
-
-rm -rf ${deps_dir}/adl-sdk && ln -s ${deps_dir}/adl-sdk-9 ${deps_dir}/adl-sdk
-
-if [ $? -ne 0 ]; then
-  echo "! failed to setup ADL SDK link"
-  exit 1
-fi
+#unzip ADL_SDK9.zip -d ${deps_dir}/adl-sdk-9
+#ret=$?
+#
+#if [[ ${ret} -ne 0 ]] && [[ ${ret} -ne 1 ]]; then
+#  echo "! failed to extract ADL SDK"
+#  exit 1
+#fi
+#
+#rm -rf ${deps_dir}/adl-sdk && ln -s ${deps_dir}/adl-sdk-9 ${deps_dir}/adl-sdk
+#
+#if [ $? -ne 0 ]; then
+#  echo "! failed to setup ADL SDK link"
+#  exit 1
+#fi
 
 ## extract NVAPI
 unzip R352-developer.zip -d ${deps_dir}
@@ -79,13 +81,13 @@ if [[ ${ret} -ne 0 ]] && [[ ${ret} -ne 1 ]]; then
 fi
 
 ## install NVIDIA GPU Deployment Kit
-chmod +x gdk_linux_amd64_352_55_release.run && \
-./gdk_linux_amd64_352_55_release.run --silent --installdir=${deps_dir}/nvidia-gdk
-
-if [ $? -ne 0 ]; then
-  echo "! failed to install NVIDIA GPU Deployment Kit"
-  exit 1
-fi
+#chmod +x gdk_linux_amd64_352_55_release.run && \
+#./gdk_linux_amd64_352_55_release.run --silent --installdir=${deps_dir}/nvidia-gdk
+#
+#if [ $? -ne 0 ]; then
+#  echo "! failed to install NVIDIA GPU Deployment Kit"
+#  exit 1
+#fi
 
 ## check if libOpenCL.so is available (and if not install DEPS_AMD_DEV)
 
