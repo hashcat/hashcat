@@ -239,7 +239,7 @@ typedef struct
   {
     uint dgst32[16];
     u64  dgst64[8];
-  };
+  } d;
 
   uint dgst_len;
   uint W_len;
@@ -703,7 +703,7 @@ typedef struct
     u8   hc1[1][256];
     u32  hi1[1][ 64];
     u64  hl1[1][ 32];
-  };
+  } h;
 
   uint pw_len;
   uint alignment_placeholder_1;

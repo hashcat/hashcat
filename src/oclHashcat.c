@@ -1881,7 +1881,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
     for (int i = 0, j = gidm; i < 16; i++, j++)
     {
-      plain_buf[i] = pw.hi1[0][j];
+      plain_buf[i] = pw.h.hi1[0][j];
     }
 
     plain_len = pw.pw_len;
@@ -1930,7 +1930,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
     for (int i = 0, j = gidm; i < 16; i++, j++)
     {
-      plain_buf[i] = pw.hi1[0][j];
+      plain_buf[i] = pw.h.hi1[0][j];
     }
 
     plain_len = pw.pw_len;
@@ -1991,7 +1991,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
     for (int i = 0, j = gidm; i < 16; i++, j++)
     {
-      plain_buf[i] = pw.hi1[0][j];
+      plain_buf[i] = pw.h.hi1[0][j];
     }
 
     plain_len = pw.pw_len;
@@ -2025,7 +2025,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
     for (int i = 0, j = gidm; i < 16; i++, j++)
     {
-      plain_buf[i] = pw.hi1[0][j];
+      plain_buf[i] = pw.h.hi1[0][j];
     }
 
     plain_len = pw.pw_len;
@@ -3339,7 +3339,7 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
 
 static void pw_transpose_to_hi1 (const pw_t *p1, pw_t *p2)
 {
-  memcpy (p2->hi1, p1->hi1, 64 * sizeof (uint));
+  memcpy (p2->h.hi1, p1->h.hi1, 64 * sizeof (uint));
 }
 
 static uint pw_add_to_hc1 (hc_device_param_t *device_param, const u8 *pw_buf, const uint pw_len)
@@ -3350,7 +3350,7 @@ static uint pw_add_to_hc1 (hc_device_param_t *device_param, const u8 *pw_buf, co
 
   uint cache_cnt = pw_cache->cnt;
 
-  u8 *pw_hc1 = pw_cache->pw_buf.hc1[cache_cnt];
+  u8 *pw_hc1 = pw_cache->pw_buf.h.hc1[cache_cnt];
 
   memcpy (pw_hc1, pw_buf, pw_len);
 

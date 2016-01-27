@@ -1663,6 +1663,7 @@ static u32 rule_op_mangle_replace (const u32 p0, const u32 p1, u32 buf0[4], u32 
   return in_len;
 }
 
+/*
 static u32 rule_op_mangle_purgechar (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   // TODO
@@ -1674,6 +1675,7 @@ static u32 rule_op_mangle_togglecase_rec (const u32 p0, const u32 p1, u32 buf0[4
   // TODO
   return in_len;
 }
+*/
 
 static u32 rule_op_mangle_dupechar_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
