@@ -9,7 +9,7 @@ oclHashcat build documentation
 
 # Building oclHashcat for Linux and OSX
 
-First get a copy of the **oclHashcat** repository
+Get a copy of the **oclHashcat** repository
 
 ```sh
 $ git clone https://github.com/hashcat/oclHashcat.git
@@ -21,11 +21,15 @@ Run "make"
 $ make
 ```
 
-to install it run "make install"
+# Install oclHashcat for Linux
+
+The linux target is FHS compatible and can be installed like this:
 
 ```sh
 $ make install
 ```
+
+If you install it, cached kernels, session files, restore- and pot-files etc will go to $HOME/.hashcat/
 
 # Building oclHashcat for Windows
 
@@ -39,7 +43,14 @@ Download the third party library listed above and put the .zip file into the *de
 
 Install the dependencies (root permission needed for apt-get install command)
 
+Get a copy of the **oclHashcat** repository
+
 ```sh
+$ git clone https://github.com/hashcat/oclHashcat.git
+```
+
+```sh
+$ cd oclHashcat
 $ ./tools/deps.sh
 ```
 
