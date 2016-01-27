@@ -47,6 +47,20 @@
 #endif
 
 /**
+ * libraries stuff
+ */
+
+#ifdef _WIN
+#define hc_dlopen LoadLibrary
+#define hc_dlclose FreeLibrary
+#define hc_dlsym GetProcAddress
+#else
+#define hc_dlopen dlopen
+#define hc_dlclose dlclose
+#define hc_dlsym dlsym
+#endif
+
+/**
  * system stuff
  */
 
