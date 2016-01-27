@@ -18,11 +18,9 @@ To compile **oclHashcat** the following third party libraries are required:
 The next thing to do is download all the third party libraries listed above and put these files into the *deps/tmp* directory.
 
 The following files are needed inside the *deps/tmp* directory:
-    
-    ADL_SDK9.zip
-    R352-developer.zip
-    gdk_linux_amd64_352_55_release.run
-    
+
+    R352-developer.zip  (only needed when cross-compiling for Windows)
+
 # Building oclHashcat
 First get a copy of the **oclHashcat** repository
 

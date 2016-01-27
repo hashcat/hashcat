@@ -10,7 +10,240 @@
 
 #include <common.h>
 
-#include <adl_sdk.h>
+/**
+ * Declarations from adl_sdk.h and subheaders
+ */
+
+#define ADL_OK                                  0
+#define ADL_ERR                                 -1
+#define ADL_ERR_NOT_SUPPORTED                   -8
+
+#define ADL_MAX_PATH                            256
+
+#define ADL_DL_FANCTRL_SUPPORTS_PERCENT_READ    1
+#define ADL_DL_FANCTRL_SUPPORTS_PERCENT_WRITE   2
+#define ADL_DL_FANCTRL_SPEED_TYPE_PERCENT       1
+#define ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED  1
+
+#define ADL_OD6_SETSTATE_PERFORMANCE            0x00000001
+#define ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE 0x00000004
+#define ADL_OD6_FANSPEED_TYPE_PERCENT           0x00000001
+
+typedef struct AdapterInfo
+{
+  int  iSize;
+  int  iAdapterIndex;
+  char strUDID[ADL_MAX_PATH];
+  int  iBusNumber;
+  int  iDeviceNumber;
+  int  iFunctionNumber;
+  int  iVendorID;
+  char strAdapterName[ADL_MAX_PATH];
+  char strDisplayName[ADL_MAX_PATH];
+  int  iPresent;
+
+#if defined (_WIN32) || defined (_WIN64)
+  int  iExist;
+  char strDriverPath[ADL_MAX_PATH];
+  char strDriverPathExt[ADL_MAX_PATH];
+  char strPNPString[ADL_MAX_PATH];
+  int  iOSDisplayIndex;
+#endif /* (_WIN32) || (_WIN64) */
+
+#if defined (__linux__)
+  int  iXScreenNum;
+  int  iDrvIndex;
+  char strXScreenConfigName[ADL_MAX_PATH];
+#endif /* (__linux__) */
+} AdapterInfo, *LPAdapterInfo;
+
+typedef struct ADLThermalControllerInfo
+{
+  int iSize;
+  int iThermalDomain;
+  int iDomainIndex;
+  int iFlags;
+} ADLThermalControllerInfo;
+
+typedef struct ADLTemperature
+{
+  int iSize;
+  int iTemperature;
+} ADLTemperature;
+
+typedef struct ADLFanSpeedInfo
+{
+  int iSize;
+  int iFlags;
+  int iMinPercent;
+  int iMaxPercent;
+  int iMinRPM;
+  int iMaxRPM;
+} ADLFanSpeedInfo;
+
+typedef struct ADLFanSpeedValue
+{
+  int iSize;
+  int iSpeedType;
+  int iFanSpeed;
+  int iFlags;
+} ADLFanSpeedValue;
+
+typedef struct ADLDisplayID
+{
+  int iDisplayLogicalIndex;
+  int iDisplayPhysicalIndex;
+  int iDisplayLogicalAdapterIndex;
+  int iDisplayPhysicalAdapterIndex;
+} ADLDisplayID, *LPADLDisplayID;
+
+typedef struct ADLDisplayInfo
+{
+  ADLDisplayID displayID;
+  int  iDisplayControllerIndex;
+  char strDisplayName[ADL_MAX_PATH];
+  char strDisplayManufacturerName[ADL_MAX_PATH];
+  int  iDisplayType;
+  int  iDisplayOutputType;
+  int  iDisplayConnector;
+  int  iDisplayInfoMask;
+  int  iDisplayInfoValue;
+} ADLDisplayInfo, *LPADLDisplayInfo;
+
+typedef struct ADLBiosInfo
+{
+  char strPartNumber[ADL_MAX_PATH];
+  char strVersion[ADL_MAX_PATH];
+  char strDate[ADL_MAX_PATH];
+} ADLBiosInfo, *LPADLBiosInfo;
+
+typedef struct ADLPMActivity
+{
+  int iSize;
+  int iEngineClock;
+  int iMemoryClock;
+  int iVddc;
+  int iActivityPercent;
+  int iCurrentPerformanceLevel;
+  int iCurrentBusSpeed;
+  int iCurrentBusLanes;
+  int iMaximumBusLanes;
+  int iReserved;
+} ADLPMActivity;
+
+typedef struct ADLODParameterRange
+{
+  int iMin;
+  int iMax;
+  int iStep;
+} ADLODParameterRange;
+
+typedef struct ADLODParameters
+{
+  int iSize;
+  int iNumberOfPerformanceLevels;
+  int iActivityReportingSupported;
+  int iDiscretePerformanceLevels;
+  int iReserved;
+  ADLODParameterRange sEngineClock;
+  ADLODParameterRange sMemoryClock;
+  ADLODParameterRange sVddc;
+} ADLODParameters;
+
+typedef struct ADLODPerformanceLevel
+{
+  int iEngineClock;
+  int iMemoryClock;
+  int iVddc;
+} ADLODPerformanceLevel;
+
+typedef struct ADLODPerformanceLevels
+{
+  int iSize;
+  int iReserved;
+  ADLODPerformanceLevel aLevels [1];
+} ADLODPerformanceLevels;
+
+typedef struct ADLOD6FanSpeedInfo
+{
+  int iSpeedType;
+  int iFanSpeedPercent;
+  int iFanSpeedRPM;
+  int iExtValue;
+  int iExtMask;
+} ADLOD6FanSpeedInfo;
+
+typedef struct ADLOD6FanSpeedValue
+{
+  int iSpeedType;
+  int iFanSpeed;
+  int iExtValue;
+  int iExtMask;
+} ADLOD6FanSpeedValue;
+
+typedef struct ADLOD6CurrentStatus
+{
+  int iEngineClock;
+  int iMemoryClock;
+  int iActivityPercent;
+  int iCurrentPerformanceLevel;
+  int iCurrentBusSpeed;
+  int iCurrentBusLanes;
+  int iMaximumBusLanes;
+  int iExtValue;
+  int iExtMask;
+} ADLOD6CurrentStatus;
+
+typedef struct ADLOD6ParameterRange
+{
+  int iMin;
+  int iMax;
+  int iStep;
+} ADLOD6ParameterRange;
+
+typedef struct ADLOD6Capabilities
+{
+  int iCapabilities;
+  int iSupportedStates;
+  int iNumberOfPerformanceLevels;
+  ADLOD6ParameterRange sEngineClockRange;
+  ADLOD6ParameterRange sMemoryClockRange;
+  int iExtValue;
+  int iExtMask;
+} ADLOD6Capabilities;
+
+typedef struct ADLOD6PerformanceLevel
+{
+  int iEngineClock;
+  int iMemoryClock;
+} ADLOD6PerformanceLevel;
+
+typedef struct ADLOD6StateInfo
+{
+  int iNumberOfPerformanceLevels;
+  int iExtValue;
+  int iExtMask;
+  ADLOD6PerformanceLevel aLevels [1];
+} ADLOD6StateInfo;
+
+typedef struct ADLOD6PowerControlInfo
+{
+  int iMinValue;
+  int iMaxValue;
+  int iStepValue;
+  int iExtValue;
+  int iExtMask;
+} ADLOD6PowerControlInfo;
+
+#if !(defined (_WIN32) || defined (_WIN64))
+#define __stdcall
+#endif
+
+typedef void* (__stdcall *ADL_MAIN_MALLOC_CALLBACK )( int );
+
+/*
+ * End of declarations from adl_sdk.h and subheaders
+ **/
 
 typedef int HM_ADAPTER_AMD;
 

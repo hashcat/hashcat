@@ -45,8 +45,6 @@ DOCUMENT_FOLDER          ?= $(PREFIX)/share/doc/$(PROG_NAME)
 ## Dependencies
 ##
 
-ADL                      := deps/adl-sdk
-GDK                      := deps/nvidia-gdk
 NVAPI                    := deps/R352-developer
 
 ##
@@ -65,25 +63,15 @@ NVML                     := $(GDK)/usr/include/nvidia/gdk
 ## Check dependencies
 ##
 
-FOUND_ADL                := 0
-FOUND_NVML               := 0
+WITH_ADL                 := 1
+WITH_NVML                := 1
 FOUND_NVAPI              := 0
-
-ifneq ($(wildcard $(ADL)/include/adl_sdk.h),)
-FOUND_ADL                := 1
-endif
-
-ifneq ($(wildcard $(NVML)/nvml.h),)
-FOUND_NVML               := 1
-endif
 
 ifneq ($(wildcard $(NVAPI)/nvapi.h),)
 FOUND_NVAPI              := 1
 endif
 
 ifeq ($(DEBUG),1)
-$(warning "## ADL is found ? $(FOUND_ADL)")
-$(warning "## NVML is found ? $(FOUND_NVML)")
 $(warning "## NVAPI is found ? $(FOUND_NVAPI)")
 endif
 
@@ -144,8 +132,8 @@ CFLAGS_NATIVE            += $(CFLAGS)
 
 LFLAGS_NATIVE            := -lpthread
 
-FOUND_ADL                := 0
-FOUND_NVML               := 0
+WITH_ADL                 := 0
+WITH_NVML                := 0
 endif
 
 ifeq ($(UNAME),Linux)
@@ -154,13 +142,13 @@ CFLAGS_NATIVE            += -s $(CFLAGS)
 
 LFLAGS_NATIVE            := -lpthread -ldl
 
-ifneq (,$(filter 1,$(FOUND_ADL) $(FOUND_NVML)))
+ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
 CFLAGS_NATIVE            += -DHAVE_HWMON
-ifeq ($(FOUND_ADL),1)
-CFLAGS_NATIVE            += -DHAVE_ADL -I$(ADL)/include/
+ifeq ($(WITH_ADL),1)
+CFLAGS_NATIVE            += -DHAVE_ADL
 endif
-ifeq ($(FOUND_NVML),1)
-CFLAGS_NATIVE            += -DHAVE_NVML -I$(NVML)/
+ifeq ($(WITH_NVML),1)
+CFLAGS_NATIVE            += -DHAVE_NVML
 endif
 endif
 
@@ -174,15 +162,15 @@ CFLAGS_CROSS_LINUX       := -D_POSIX -DLINUX
 CFLAGS_CROSS_LINUX       += -s $(CFLAGS)
 CFLAGS_CROSS_LINUX       += -I$(OPENCL_HEADERS_KHRONOS)/
 
-ifneq (,$(filter 1,$(FOUND_ADL) $(FOUND_NVML)))
+ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
 CFLAGS_CROSS_LINUX       += -DHAVE_HWMON
 
-ifeq ($(FOUND_ADL),1)
-CFLAGS_CROSS_LINUX       += -DHAVE_ADL -I$(ADL)/include/
+ifeq ($(WITH_ADL),1)
+CFLAGS_CROSS_LINUX       += -DHAVE_ADL
 endif
 
-ifeq ($(FOUND_NVML),1)
-CFLAGS_CROSS_LINUX       += -DHAVE_NVML -I$(NVML)/
+ifeq ($(WITH_NVML),1)
+CFLAGS_CROSS_LINUX       += -DHAVE_NVML
 endif
 endif
 
@@ -190,15 +178,15 @@ CFLAGS_CROSS_WIN         := -D_WIN   -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO
 CFLAGS_CROSS_WIN         += -s $(filter-out -fsanitize=address,$(CFLAGS))
 CFLAGS_CROSS_WIN         += -I$(OPENCL_HEADERS_KHRONOS)/
 
-ifneq (,$(filter 1,$(FOUND_ADL) $(FOUND_NVAPI)))
+ifneq (,$(filter 1,$(WITH_ADL) $(FOUND_NVAPI)))
 CFLAGS_CROSS_WIN         += -DHAVE_HWMON
 
-ifeq ($(FOUND_ADL),1)
-CFLAGS_CROSS_WIN         += -DHAVE_ADL -I$(ADL)/include/
+ifeq ($(WITH_ADL),1)
+CFLAGS_CROSS_WIN         += -DHAVE_ADL
 endif
 
 ifeq ($(FOUND_NVAPI),1)
-CFLAGS_CROSS_WIN         += -DHAVE_NVAPI -I$(NVAPI)/
+CFLAGS_CROSS_WIN         += -DHAVE_NVAPI
 endif
 endif
 
@@ -214,12 +202,12 @@ LFLAGS_CROSS_WIN         := -lpsapi
 
 NATIVE_OBJS              := obj/ext_OpenCL.NATIVE.o obj/shared.NATIVE.o obj/rp_kernel_on_cpu.NATIVE.o
 
-ifneq (,$(filter 1,$(FOUND_ADL) $(FOUND_NVML)))
-ifeq ($(FOUND_ADL),1)
+ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
+ifeq ($(WITH_ADL),1)
 NATIVE_OBJS              += obj/ext_ADL.NATIVE.o
 endif
 
-ifeq ($(FOUND_NVML),1)
+ifeq ($(WITH_NVML),1)
 NATIVE_OBJS              += obj/ext_nvml.NATIVE.o
 endif
 endif
@@ -230,7 +218,7 @@ LINUX_64_OBJS            := obj/ext_OpenCL.LINUX.64.o obj/shared.LINUX.64.o obj/
 WIN_32_OBJS              := obj/ext_OpenCL.WIN.32.o obj/shared.WIN.32.o obj/rp_kernel_on_cpu.WIN.32.o
 WIN_64_OBJS              := obj/ext_OpenCL.WIN.64.o obj/shared.WIN.64.o obj/rp_kernel_on_cpu.WIN.64.o
 
-ifeq ($(FOUND_ADL),1)
+ifeq ($(WITH_ADL),1)
 LINUX_32_OBJS            += obj/ext_ADL.LINUX.32.o
 LINUX_64_OBJS            += obj/ext_ADL.LINUX.64.o
 
@@ -238,7 +226,7 @@ WIN_32_OBJS              += obj/ext_ADL.WIN.32.o
 WIN_64_OBJS              += obj/ext_ADL.WIN.64.o
 endif
 
-ifeq ($(FOUND_NVML),1)
+ifeq ($(WITH_NVML),1)
 LINUX_32_OBJS            += obj/ext_nvml.LINUX.32.o
 LINUX_64_OBJS            += obj/ext_nvml.LINUX.64.o
 endif
