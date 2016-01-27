@@ -8672,12 +8672,15 @@ void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengt
 
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size)
 {
-  FILE *fp = fopen (dst, "wb");
+  if (binary_size > 0)
+  {
+    FILE *fp = fopen (dst, "wb");
 
-  fwrite (binary, sizeof (u8), binary_size, fp);
+    fwrite (binary, sizeof (u8), binary_size, fp);
 
-  fflush (fp);
-  fclose (fp);
+    fflush (fp);
+    fclose (fp);
+  }
 }
 
 /**
