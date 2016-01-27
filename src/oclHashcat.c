@@ -13547,7 +13547,7 @@ int main (int argc, char **argv)
 
         struct stat cst;
 
-        if (stat (cached_file, &cst) == -1)
+        if ((stat (cached_file, &cst) == -1) || cst.st_size == 0)
         {
           cached = 0;
         }
