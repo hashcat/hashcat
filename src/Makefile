@@ -186,7 +186,7 @@ CFLAGS_CROSS_WIN         += -DHAVE_ADL
 endif
 
 ifeq ($(FOUND_NVAPI),1)
-CFLAGS_CROSS_WIN         += -DHAVE_NVAPI
+CFLAGS_CROSS_WIN         += -DHAVE_NVAPI -I$(NVAPI)/
 endif
 endif
 
