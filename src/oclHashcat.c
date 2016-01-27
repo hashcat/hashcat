@@ -6577,7 +6577,7 @@ int main (int argc, char **argv)
 
     if (runtime_chgd == 0)
     {
-      runtime =  4;
+      runtime =  8;
 
       if (benchmark_mode == 1) runtime = 17;
 

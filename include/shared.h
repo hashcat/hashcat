@@ -189,7 +189,7 @@ extern hc_thread_mutex_t mux_display;
 #ifdef OSX
 #define KERNEL_ACCEL_5000    16
 #define KERNEL_ACCEL_6100    1
-#define KERNEL_ACCEL_6211    4
+#define KERNEL_ACCEL_6211    2
 #define KERNEL_ACCEL_6231    1
 #define KERNEL_ACCEL_6241    4
 #define KERNEL_ACCEL_8200    1
