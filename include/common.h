@@ -46,6 +46,8 @@
 #include <mach-o/dyld.h>
 #endif
 
+typedef void *OCL_LIB;
+
 #ifdef HAVE_HWMON
 typedef void *HM_LIB;
 #endif
@@ -77,6 +79,8 @@ typedef UINT64 uint64_t;
 #ifdef HAVE_HWMON
 typedef HINSTANCE HM_LIB;
 #endif
+
+typedef HINSTANCE OCL_LIB;
 
 #define mkdir(name,mode) mkdir (name)
 

@@ -1058,6 +1058,12 @@ typedef struct
   int     rule_len_r;
 
   /**
+   * opencl
+   */
+
+  void               *ocl;
+
+  /**
    * hardware watchdog
    */
 
