@@ -2627,6 +2627,32 @@ char *logfile_generate_subid ()
  * system
  */
 
+#if F_SETLKW
+void lock_file (FILE *fp)
+{
+  struct flock lock = { 0 };
+
+  lock.l_type = F_WRLCK;
+  while (fcntl(fileno(fp), F_SETLKW, &lock))
+  {
+    if (errno != EINTR)
+    {
+      log_error ("ERROR: failed acquiring write lock: %s", strerror (errno));
+
+      exit (-1);
+    }
+  }
+}
+
+void unlock_file (FILE *fp)
+{
+  struct flock lock = { 0 };
+
+  lock.l_type = F_UNLCK;
+  fcntl(fileno(fp), F_SETLK, &lock);
+}
+#endif /* F_SETLKW */
+
 #ifdef _WIN
 void fsync (int fd)
 {
@@ -4733,6 +4759,8 @@ void format_debug (char *debug_file, uint debug_mode, unsigned char *orig_plain_
   if (debug_file != NULL)
   {
     debug_fp = fopen (debug_file, "ab");
+
+    lock_file (debug_fp);
   }
   else
   {
@@ -8676,6 +8704,7 @@ void writeProgramBin (char *dst, u8 *binary, size_t binary_size)
   {
     FILE *fp = fopen (dst, "wb");
 
+    lock_file (fp);
     fwrite (binary, sizeof (u8), binary_size, fp);
 
     fflush (fp);
