@@ -154,8 +154,6 @@ __kernel void m01000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     w3_t[2] = pw_len * 8 * 2;
 
-    u32 tmp2;
-
     u32 a = MD4M_A;
     u32 b = MD4M_B;
     u32 c = MD4M_C;
@@ -195,22 +193,22 @@ __kernel void m01000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     MD4_STEP (MD4_Go, c, d, a, b, w2_t[3], MD4C01, MD4S12);
     MD4_STEP (MD4_Go, b, c, d, a, w3_t[3], MD4C01, MD4S13);
 
-    MD4_STEP (MD4_H1, a, b, c, d, w0_t[0], MD4C02, MD4S20);
-    MD4_STEP (MD4_H2, d, a, b, c, w2_t[0], MD4C02, MD4S21);
-    MD4_STEP (MD4_H1, c, d, a, b, w1_t[0], MD4C02, MD4S22);
-    MD4_STEP (MD4_H2, b, c, d, a, w3_t[0], MD4C02, MD4S23);
-    MD4_STEP (MD4_H1, a, b, c, d, w0_t[2], MD4C02, MD4S20);
-    MD4_STEP (MD4_H2, d, a, b, c, w2_t[2], MD4C02, MD4S21);
-    MD4_STEP (MD4_H1, c, d, a, b, w1_t[2], MD4C02, MD4S22);
-    MD4_STEP (MD4_H2, b, c, d, a, w3_t[2], MD4C02, MD4S23);
-    MD4_STEP (MD4_H1, a, b, c, d, w0_t[1], MD4C02, MD4S20);
-    MD4_STEP (MD4_H2, d, a, b, c, w2_t[1], MD4C02, MD4S21);
-    MD4_STEP (MD4_H1, c, d, a, b, w1_t[1], MD4C02, MD4S22);
-    MD4_STEP (MD4_H2, b, c, d, a, w3_t[1], MD4C02, MD4S23);
-    MD4_STEP (MD4_H1, a, b, c, d, w0_t[3], MD4C02, MD4S20);
-    MD4_STEP (MD4_H2, d, a, b, c, w2_t[3], MD4C02, MD4S21);
-    MD4_STEP (MD4_H1, c, d, a, b, w1_t[3], MD4C02, MD4S22);
-    MD4_STEP (MD4_H2, b, c, d, a, w3_t[3], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[0], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[0], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[0], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[0], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[2], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[2], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[2], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[2], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[1], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[1], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[1], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[1], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[3], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[3], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[3], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[3], MD4C02, MD4S23);
 
     const u32 r0 = a;
     const u32 r1 = d;
@@ -375,8 +373,6 @@ __kernel void m01000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     w3_t[2] = pw_len * 8 * 2;
 
-    u32 tmp2;
-
     u32 a = MD4M_A;
     u32 b = MD4M_B;
     u32 c = MD4M_C;
@@ -416,22 +412,22 @@ __kernel void m01000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     MD4_STEP (MD4_Go, c, d, a, b, w2_t[3], MD4C01, MD4S12);
     MD4_STEP (MD4_Go, b, c, d, a, w3_t[3], MD4C01, MD4S13);
 
-    MD4_STEP (MD4_H1, a, b, c, d, w0_t[0], MD4C02, MD4S20);
-    MD4_STEP (MD4_H2, d, a, b, c, w2_t[0], MD4C02, MD4S21);
-    MD4_STEP (MD4_H1, c, d, a, b, w1_t[0], MD4C02, MD4S22);
-    MD4_STEP (MD4_H2, b, c, d, a, w3_t[0], MD4C02, MD4S23);
-    MD4_STEP (MD4_H1, a, b, c, d, w0_t[2], MD4C02, MD4S20);
-    MD4_STEP (MD4_H2, d, a, b, c, w2_t[2], MD4C02, MD4S21);
-    MD4_STEP (MD4_H1, c, d, a, b, w1_t[2], MD4C02, MD4S22);
-    MD4_STEP (MD4_H2, b, c, d, a, w3_t[2], MD4C02, MD4S23);
-    MD4_STEP (MD4_H1, a, b, c, d, w0_t[1], MD4C02, MD4S20);
-    MD4_STEP (MD4_H2, d, a, b, c, w2_t[1], MD4C02, MD4S21);
-    MD4_STEP (MD4_H1, c, d, a, b, w1_t[1], MD4C02, MD4S22);
-    MD4_STEP (MD4_H2, b, c, d, a, w3_t[1], MD4C02, MD4S23);
-    MD4_STEP (MD4_H1, a, b, c, d, w0_t[3], MD4C02, MD4S20);
-    MD4_STEP (MD4_H2, d, a, b, c, w2_t[3], MD4C02, MD4S21);
-    MD4_STEP (MD4_H1, c, d, a, b, w1_t[3], MD4C02, MD4S22);
-    MD4_STEP (MD4_H2, b, c, d, a, w3_t[3], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[0], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[0], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[0], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[0], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[2], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[2], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[2], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[2], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[1], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[1], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[1], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[1], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[3], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[3], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[3], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[3], MD4C02, MD4S23);
 
     const u32 r0 = a;
     const u32 r1 = d;
