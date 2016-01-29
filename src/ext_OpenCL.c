@@ -375,8 +375,33 @@ void hc_clBuildProgram (OCL_PTR *ocl, cl_program program, cl_uint num_devices, c
   {
     log_error ("ERROR: %s : %d : %s\n", "clBuildProgram()", CL_err, val2cstr_cl (CL_err));
 
-    // If we exit here we can't see the error message
-    // exit (-1);
+    char *buf = NULL;
+    size_t len = 0;
+
+    if (ocl->clGetProgramBuildInfo (program, *device_list, CL_PROGRAM_BUILD_LOG, 0, NULL, &len) != CL_SUCCESS)
+    {
+      log_error ("ERROR: %s : %d : %s\n", "clGetProgramBuildInfo()", CL_err, val2cstr_cl (CL_err));
+
+      exit (-1);
+    }
+
+    if (len > 0)
+    {
+      buf = (char *) mymalloc (len + 1);
+
+      if (ocl->clGetProgramBuildInfo (program, *device_list, CL_PROGRAM_BUILD_LOG, len, buf, NULL) != CL_SUCCESS)
+      {
+        log_error ("ERROR: %s : %d : %s\n", "clGetProgramBuildInfo()", CL_err, val2cstr_cl (CL_err));
+      }
+      else
+      {
+        log_error ("Build log:\n%s\n", buf);
+      }
+
+      myfree (buf);
+    }
+
+    exit (-1);
   }
 }
 
@@ -520,7 +545,7 @@ void hc_clGetProgramBuildInfo (OCL_PTR *ocl, cl_program program, cl_device_id de
   }
 }
 
-void hc_clGetProgramInfo (OCL_PTR *ocl, cl_program program, cl_program_info param_name, size_t param_value_size, void *param_value, size_t * param_value_size_ret)
+void hc_clGetProgramInfo (OCL_PTR *ocl, cl_program program, cl_program_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
 {
   cl_int CL_err = ocl->clGetProgramInfo (program, param_name, param_value_size, param_value, param_value_size_ret);
 
