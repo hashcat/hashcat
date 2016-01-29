@@ -13629,16 +13629,18 @@ int main (int argc, char **argv)
 
           device_param->program = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL);
 
+          char build_opts_update[1024] = { 0 };
+
           if (force_jit_compilation == 1500)
           {
-            snprintf (build_opts, sizeof (build_opts) - 1, "%s -DDESCRYPT_SALT=%d", build_opts, data.salts_buf[0].salt_buf[0]);
+            snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DDESCRYPT_SALT=%d", build_opts, data.salts_buf[0].salt_buf[0]);
           }
           else if (force_jit_compilation == 8900)
           {
-            snprintf (build_opts, sizeof (build_opts) - 1, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.salts_buf[0].scrypt_tmto);
+            snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.salts_buf[0].scrypt_tmto);
           }
 
-          hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+          hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts_update, NULL, NULL);
         }
 
         local_free (kernel_lengths);
