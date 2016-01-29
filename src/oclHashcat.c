@@ -2081,6 +2081,8 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
   if (pot_fp)
   {
+    lock_file (pot_fp);
+
     fprintf (pot_fp, "%s:", out_buf);
 
     format_plain (pot_fp, plain_ptr, plain_len, 1);
@@ -2088,6 +2090,8 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
     fputc ('\n', pot_fp);
 
     fflush (pot_fp);
+
+    unlock_file (pot_fp);
   }
 
   // outfile
@@ -2102,6 +2106,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
       out_fp = stdout;
     }
+    lock_file (out_fp);
   }
   else
   {
@@ -2141,6 +2146,8 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
     if ((fb_fp = fopen (loopback_file, "ab")) != NULL)
     {
+      lock_file (fb_fp);
+
       format_plain (fb_fp, plain_ptr, plain_len, 1);
 
       fputc ('\n', fb_fp);
@@ -16179,6 +16186,8 @@ int main (int argc, char **argv)
 
           if (dictstat_fp)
           {
+            lock_file (dictstat_fp);
+
             fwrite (dictstat_base, sizeof (dictstat_t), dictstat_nmemb, dictstat_fp);
 
             fclose (dictstat_fp);
