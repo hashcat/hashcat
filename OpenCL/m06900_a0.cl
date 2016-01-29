@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -292,7 +294,7 @@ __constant u32 c_tables[4][256] =
 
 #define BOX(i,n,S) (S)[(n)][(i)]
 
-#define round(k1,k2,tbl)                  \
+#define _round(k1,k2,tbl)                 \
 {                                         \
   u32 t;                                  \
   t = (k1) + r;                           \
@@ -313,22 +315,22 @@ __constant u32 c_tables[4][256] =
   u32 l;                  \
   r = h[i + 0];           \
   l = h[i + 1];           \
-  round (k[0], k[1], t);  \
-  round (k[2], k[3], t);  \
-  round (k[4], k[5], t);  \
-  round (k[6], k[7], t);  \
-  round (k[0], k[1], t);  \
-  round (k[2], k[3], t);  \
-  round (k[4], k[5], t);  \
-  round (k[6], k[7], t);  \
-  round (k[0], k[1], t);  \
-  round (k[2], k[3], t);  \
-  round (k[4], k[5], t);  \
-  round (k[6], k[7], t);  \
-  round (k[7], k[6], t);  \
-  round (k[5], k[4], t);  \
-  round (k[3], k[2], t);  \
-  round (k[1], k[0], t);  \
+  _round (k[0], k[1], t);  \
+  _round (k[2], k[3], t);  \
+  _round (k[4], k[5], t);  \
+  _round (k[6], k[7], t);  \
+  _round (k[0], k[1], t);  \
+  _round (k[2], k[3], t);  \
+  _round (k[4], k[5], t);  \
+  _round (k[6], k[7], t);  \
+  _round (k[0], k[1], t);  \
+  _round (k[2], k[3], t);  \
+  _round (k[4], k[5], t);  \
+  _round (k[6], k[7], t);  \
+  _round (k[7], k[6], t);  \
+  _round (k[5], k[4], t);  \
+  _round (k[3], k[2], t);  \
+  _round (k[1], k[0], t);  \
   s[i + 0] = l;           \
   s[i + 1] = r;           \
 }
