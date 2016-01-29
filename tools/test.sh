@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ##
 ## Authors.....: Gabriele Gristina <matrix@hashcat.net>
