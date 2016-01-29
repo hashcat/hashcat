@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <search.h>
+#include <fcntl.h>
 
 #ifdef _POSIX
 #include <sys/time.h>
@@ -62,7 +63,6 @@ typedef void *HM_LIB;
 #include <tchar.h>
 #include <psapi.h>
 #include <io.h>
-#include <fcntl.h>
 
 typedef UINT8  uint8_t;
 typedef UINT16 uint16_t;
