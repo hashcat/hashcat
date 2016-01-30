@@ -13646,23 +13646,6 @@ int main (int argc, char **argv)
         local_free (kernel_lengths);
         local_free (kernel_sources[0]);
         local_free (kernel_sources);
-
-        // this is mostly for debug
-
-        size_t ret_val_size = 0;
-
-        hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
-
-        if (ret_val_size > 2)
-        {
-          char *build_log = (char *) mymalloc (ret_val_size + 1);
-
-          hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
-
-          puts (build_log);
-
-          myfree (build_log);
-        }
       }
 
       /**
@@ -13749,23 +13732,6 @@ int main (int argc, char **argv)
         local_free (kernel_lengths);
         local_free (kernel_sources[0]);
         local_free (kernel_sources);
-
-        // this is mostly for debug
-
-        size_t ret_val_size = 0;
-
-        hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
-
-        if (ret_val_size > 2)
-        {
-          char *build_log = (char *) mymalloc (ret_val_size + 1);
-
-          hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
-
-          puts (build_log);
-
-          myfree (build_log);
-        }
       }
 
       /**
@@ -13856,23 +13822,6 @@ int main (int argc, char **argv)
         local_free (kernel_lengths);
         local_free (kernel_sources[0]);
         local_free (kernel_sources);
-
-        // this is mostly for debug
-
-        size_t ret_val_size = 0;
-
-        hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
-
-        if (ret_val_size > 2)
-        {
-          char *build_log = (char *) mymalloc (ret_val_size + 1);
-
-          hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
-
-          puts (build_log);
-
-          myfree (build_log);
-        }
       }
 
       /**

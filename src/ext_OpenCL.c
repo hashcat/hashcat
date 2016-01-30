@@ -378,24 +378,15 @@ void hc_clBuildProgram (OCL_PTR *ocl, cl_program program, cl_uint num_devices, c
     char *buf = NULL;
     size_t len = 0;
 
-    if (ocl->clGetProgramBuildInfo (program, *device_list, CL_PROGRAM_BUILD_LOG, 0, NULL, &len) != CL_SUCCESS)
-    {
-      log_error ("ERROR: %s : %d : %s\n", "clGetProgramBuildInfo()", CL_err, val2cstr_cl (CL_err));
+    cl_int err = hc_clGetProgramBuildInfo (ocl, program, *device_list, CL_PROGRAM_BUILD_LOG, 0, NULL, &len);
 
-      exit (-1);
-    }
-
-    if (len > 0)
+    if (err == CL_SUCCESS && len > 0)
     {
       buf = (char *) mymalloc (len + 1);
 
-      if (ocl->clGetProgramBuildInfo (program, *device_list, CL_PROGRAM_BUILD_LOG, len, buf, NULL) != CL_SUCCESS)
+      if (hc_clGetProgramBuildInfo (ocl, program, *device_list, CL_PROGRAM_BUILD_LOG, len, buf, NULL) == CL_SUCCESS)
       {
-        log_error ("ERROR: %s : %d : %s\n", "clGetProgramBuildInfo()", CL_err, val2cstr_cl (CL_err));
-      }
-      else
-      {
-        log_error ("Build log:\n%s\n", buf);
+        fprintf (stderr, "\n=== Build Log (start) ===\n%s\n=== Build Log (end) ===\n", buf);
       }
 
       myfree (buf);
@@ -533,7 +524,7 @@ void hc_clGetKernelWorkGroupInfo (OCL_PTR *ocl, cl_kernel kernel, cl_device_id d
   }
 }
 
-void hc_clGetProgramBuildInfo (OCL_PTR *ocl, cl_program program, cl_device_id device, cl_program_build_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
+cl_int hc_clGetProgramBuildInfo (OCL_PTR *ocl, cl_program program, cl_device_id device, cl_program_build_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
 {
   cl_int CL_err = ocl->clGetProgramBuildInfo (program, device, param_name, param_value_size, param_value, param_value_size_ret);
 
@@ -541,8 +532,10 @@ void hc_clGetProgramBuildInfo (OCL_PTR *ocl, cl_program program, cl_device_id de
   {
     log_error ("ERROR: %s : %d : %s\n", "clGetProgramBuildInfo()", CL_err, val2cstr_cl (CL_err));
 
-    exit (-1);
+    return (-1);
   }
+
+  return CL_err;
 }
 
 void hc_clGetProgramInfo (OCL_PTR *ocl, cl_program program, cl_program_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
