@@ -2430,10 +2430,12 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
   }
   else
   {
-    const size_t global_work_size[3] = { num_elements, 1, 1 };
+    const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    if (hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, false) != CL_SUCCESS)
+    const cl_int rc = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, false);
+
+    if (rc != CL_SUCCESS)
     {
       const size_t local_work_size_fallback[3]  = { 1, 1, 1 };
 
@@ -2502,7 +2504,9 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
   const size_t global_work_size[3] = { num_elements, 1, 1 };
   const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-  if (hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, false) != CL_SUCCESS)
+  const cl_int rc = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, false);
+
+  if (rc != CL_SUCCESS)
   {
     const size_t local_work_size_fallback[3]  = { 1, 1, 1 };
 
