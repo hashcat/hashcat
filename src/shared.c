@@ -2630,7 +2630,9 @@ char *logfile_generate_subid ()
 #if F_SETLKW
 void lock_file (FILE *fp)
 {
-  struct flock lock = { 0 };
+  struct flock lock;
+
+  memset (&lock, 0, sizeof (struct flock));
 
   lock.l_type = F_WRLCK;
   while (fcntl(fileno(fp), F_SETLKW, &lock))
@@ -2646,7 +2648,9 @@ void lock_file (FILE *fp)
 
 void unlock_file (FILE *fp)
 {
-  struct flock lock = { 0 };
+  struct flock lock;
+
+  memset (&lock, 0, sizeof (struct flock));
 
   lock.l_type = F_UNLCK;
   fcntl(fileno(fp), F_SETLK, &lock);
