@@ -125,16 +125,23 @@ void ocl_close (OCL_PTR *ocl)
   }
 }
 
-void hc_clEnqueueNDRangeKernel (OCL_PTR *ocl, cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim, const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+cl_int hc_clEnqueueNDRangeKernel (OCL_PTR *ocl, cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim, const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event, bool exitOnFail)
 {
   cl_int CL_err = ocl->clEnqueueNDRangeKernel (command_queue, kernel, work_dim, global_work_offset, global_work_size, local_work_size, num_events_in_wait_list, event_wait_list, event);
 
   if (CL_err != CL_SUCCESS)
   {
-    log_error ("ERROR: %s : %d : %s\n", "clEnqueueNDRangeKernel()", CL_err, val2cstr_cl (CL_err));
+    if (exitOnFail)
+    {
+      log_error ("ERROR: %s : %d : %s\n", "clEnqueueNDRangeKernel()", CL_err, val2cstr_cl (CL_err));
 
-    exit (-1);
+      exit (-1);
+    }
+
+    return (-1);
   }
+
+  return 0;
 }
 
 void hc_clGetEventInfo (OCL_PTR *ocl, cl_event event, cl_event_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
