@@ -2426,14 +2426,19 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     const size_t global_work_size[3] = { num_elements,        32, 1 };
     const size_t local_work_size[3]  = { kernel_threads / 32, 32, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL, true);
   }
   else
   {
-    const size_t global_work_size[3] = { num_elements,   1, 1 };
+    const size_t global_work_size[3] = { num_elements, 1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+    if (hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, false) != CL_SUCCESS)
+    {
+      const size_t local_work_size_fallback[3]  = { 1, 1, 1 };
+
+      hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size_fallback, 0, NULL, NULL, true);
+    }
   }
 
   hc_clFlush (data.ocl, device_param->command_queue);
@@ -2495,9 +2500,14 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
   }
 
   const size_t global_work_size[3] = { num_elements, 1, 1 };
-  const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
+  const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+  if (hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, false) != CL_SUCCESS)
+  {
+    const size_t local_work_size_fallback[3]  = { 1, 1, 1 };
+
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size_fallback, 0, NULL, NULL, true);
+  }
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
@@ -2517,7 +2527,7 @@ static void run_kernel_tb (hc_device_param_t *device_param, const uint num)
   const size_t global_work_size[3] = { num_elements, 1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, true);
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
@@ -2535,7 +2545,7 @@ static void run_kernel_tm (hc_device_param_t *device_param)
   const size_t global_work_size[3] = { num_elements, 1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, true);
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
@@ -2564,7 +2574,7 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   const size_t global_work_size[3] = { num_elements, 1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, true);
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
