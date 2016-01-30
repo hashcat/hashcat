@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -177,7 +179,7 @@ static void sha256_transform_z (u32 digest[8])
   digest[7] += h;
 }
 
-static void sha256_transform_s (u32 digest[8], __local u32 w[64])
+static void sha256_transform_s (u32 digest[8], __local u32 *w)
 {
   u32 a = digest[0];
   u32 b = digest[1];

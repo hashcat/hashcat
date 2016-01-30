@@ -162,10 +162,10 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   5000,
   10100,
   6000,
-  6100, // broken in osx
-  6900, // broken in osx
-  11700, // broken in osx
-  11800, // broken in osx
+  6100,
+  6900,
+  11700,
+  11800,
   400,
   8900,
   11900,
@@ -174,44 +174,44 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   12100,
   23,
   2500,
-  5300, // broken in osx
-  5400, // broken in osx
-  5500, // broken in osx
-  5600, // broken in osx
+  5300,
+  5400,
+  5500,
+  5600,
   7300,
-  7500, // broken in osx
+  7500,
   8300,
-  11100, // broken in osx
+  11100,
   11200,
-  11400, // broken in osx
+  11400,
   121,
-  2611, // broken in osx
-  2711, // broken in osx
-  2811, // broken in osx
-  8400, // broken in osx
+  2611,
+  2711,
+  2811,
+  8400,
   11,
-  2612, // broken in osx
+  2612,
   7900,
   21,
   11000,
   124,
   10000,
-  3711, // broken in osx
-  7600, // broken in osx
+  3711,
+  7600,
   12,
   131,
   132,
   1731,
   200,
   300,
-  3100, // broken in osx
+  3100,
   112,
   12300,
-  8000, // broken in osx
+  8000,
   141,
   1441,
   1600,
-  12600, // broken in osx
+  12600,
   1421,
   101,
   111,
@@ -222,7 +222,7 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   2100,
   12800,
   1500, // broken in osx
-  12400, // broken in osx
+  12400,
   500,
   3200,
   7400,
@@ -243,45 +243,45 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   501,
   5800,
   8100,
-  8500, // broken in osx
+  8500,
   7200,
   9900,
   7700,
   7800,
   10300,
-  8600, // broken in osx
-  8700, // broken in osx
-  9100, // broken in osx
+  8600,
+  8700,
+  9100,
   133,
-  11600, // broken in osx
-  12500, // broken in osx
+  11600,
+  12500,
   13000,
   6211,
   6221,
-  6231, // broken in osx
+  6231,
   6241,
-  8800, // broken in osx
+  8800,
   12900,
   12200,
-  9700, // broken in osx
-  9710, // broken in osx
-  9800, // broken in osx
-  9810, // broken in osx
-  9400, // broken in osx
-  9500, // broken in osx
-  9600, // broken in osx
-  10400, // broken in osx
-  10410, // broken in osx
+  9700,
+  9710,
+  9800,
+  9810,
+  9400,
+  9500,
+  9600,
+  10400,
+  10410,
   10500,
   10600,
   10700, // broken in osx
   9000,
   5200,
-  6800, // broken in osx
-  6600, // broken in osx
+  6800,
+  6600,
   8200,
-  11300, // broken in osx
-  12700 // broken in osx
+  11300,
+  12700
 };
 
 /**
@@ -2598,7 +2598,7 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
   else
   {
     // NOTE: clEnqueueFillBuffer () always fails with -59
-    //       IOW, it's not supported by Nvidia ForceWare <= 352.21, also pocl segfaults
+    //       IOW, it's not supported by Nvidia ForceWare <= 352.21, also pocl segfaults, also on apple
     //       How's that possible, OpenCL 1.2 support is advertised??
     //       We need to workaround...
 
@@ -13237,24 +13237,12 @@ int main (int argc, char **argv)
     #endif // HAVE_HWMON
 
     #ifdef OSX
-    /*
-     * List of OSX kernel to fix
-     */
-    if ((hash_mode == 6100)  || (hash_mode == 6900)  || (hash_mode == 11700) || (hash_mode == 11800) || (hash_mode == 5300)  || \
-        (hash_mode == 5400)  || (hash_mode == 5500)  || (hash_mode == 5600)  || (hash_mode == 7500)  || (hash_mode == 11100) || \
-        (hash_mode == 11400) || (hash_mode == 2611)  || (hash_mode == 2711)  || (hash_mode == 2811)  || (hash_mode == 8400)  || \
-        (hash_mode == 2612)  || (hash_mode == 3711)  || (hash_mode == 7600)  || (hash_mode == 3100)  || (hash_mode == 8000)  || \
-        (hash_mode == 12600) || (hash_mode == 3000)  || (hash_mode == 1500)  || (hash_mode == 12400) || (hash_mode == 8500)  || \
-        (hash_mode == 8600)  || (hash_mode == 8700)  || (hash_mode == 9100)  || (hash_mode == 11600) || (hash_mode == 12500) || \
-        (hash_mode == 6231)  || (hash_mode == 8800)  || (hash_mode == 9700)  || (hash_mode == 9710)  || (hash_mode == 9800)  || \
-        (hash_mode == 9810)  || (hash_mode == 9400)  || (hash_mode == 9500)  || (hash_mode == 9600)  || (hash_mode == 10400) || \
-        (hash_mode == 10410) || (hash_mode == 10700) || (hash_mode == 6800)  || (hash_mode == 6600)  || (hash_mode == 11300) || \
-        (hash_mode == 12700))
+    if (hash_mode == 3000 || hash_mode == 1500 || hash_mode == 10700)
     {
       if (force == 0)
       {
         log_info ("");
-        log_info ("Warning: Hash mode %d is not stable in OSX.", hash_mode);
+        log_info ("Warning: Hash mode %d is not stable with OSX.", hash_mode);
         log_info ("You can use --force to override this but do not post error reports if you do so");
         log_info ("");
 

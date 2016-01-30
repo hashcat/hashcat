@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -713,7 +715,7 @@ __constant u32 rcon[] =
   0x1b000000, 0x36000000,
 };
 
-static void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 s_te0[256], __local u32 s_te1[256], __local u32 s_te2[256], __local u32 s_te3[256], __local u32 s_te4[256])
+static void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   rek[0] = swap32 (userkey[0]);
   rek[1] = swap32 (userkey[1]);
@@ -739,7 +741,7 @@ static void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 s_te0[256], __
   }
 }
 
-static void AES128_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32 s_te0[256], __local u32 s_te1[256], __local u32 s_te2[256], __local u32 s_te3[256], __local u32 s_te4[256])
+static void AES128_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   u32 in_swap[4];
 
@@ -1246,7 +1248,7 @@ static void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, const
   #endif
 }
 
-static void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, const u32 *sc, const u32 pwbl_len, u32 *iv, const u32 *rek, __local u32 s_te0[256], __local u32 s_te1[256], __local u32 s_te2[256], __local u32 s_te3[256], __local u32 s_te4[256])
+static void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, const u32 *sc, const u32 pwbl_len, u32 *iv, const u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   for (u32 k = 0, wk = 0; k < W_len; k += AESSZ, wk += AESSZ4)
   {
@@ -1268,7 +1270,7 @@ static void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, c
   }
 }
 
-static u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, __local u32 s_te0[256], __local u32 s_te1[256], __local u32 s_te2[256], __local u32 s_te3[256], __local u32 s_te4[256])
+static u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   // make scratch buffer
 

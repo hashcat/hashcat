@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -704,7 +706,7 @@ __constant u32 rcon[] =
   0x1b000000, 0x36000000,
 };
 
-static void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 s_te0[256], __local u32 s_te1[256], __local u32 s_te2[256], __local u32 s_te3[256], __local u32 s_te4[256])
+static void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   rek[0] = userkey[0];
   rek[1] = userkey[1];
@@ -730,7 +732,7 @@ static void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 s_te0[256], __
   }
 }
 
-static void AES128_InvertKey (u32 *rdk, __local u32 s_td0[256], __local u32 s_td1[256], __local u32 s_td2[256], __local u32 s_td3[256], __local u32 s_td4[256], __local u32 s_te0[256], __local u32 s_te1[256], __local u32 s_te2[256], __local u32 s_te3[256], __local u32 s_te4[256])
+static void AES128_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   for (u32 i = 0, j = 40; i < j; i += 4, j -= 4)
   {
@@ -770,7 +772,7 @@ static void AES128_InvertKey (u32 *rdk, __local u32 s_td0[256], __local u32 s_td
   }
 }
 
-static void AES128_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 s_td0[256], __local u32 s_td1[256], __local u32 s_td2[256], __local u32 s_td3[256], __local u32 s_td4[256])
+static void AES128_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
 {
   u32 s0 = in[0] ^ rdk[0];
   u32 s1 = in[1] ^ rdk[1];
@@ -844,7 +846,7 @@ static void AES128_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32
          ^ rdk[43];
 }
 
-static void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 s_te0[256], __local u32 s_te1[256], __local u32 s_te2[256], __local u32 s_te3[256], __local u32 s_te4[256])
+static void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   rek[0] = userkey[0];
   rek[1] = userkey[1];
@@ -900,7 +902,7 @@ static void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 s_te0[256], __
   }
 }
 
-static void AES256_InvertKey (u32 *rdk, __local u32 s_td0[256], __local u32 s_td1[256], __local u32 s_td2[256], __local u32 s_td3[256], __local u32 s_td4[256], __local u32 s_te0[256], __local u32 s_te1[256], __local u32 s_te2[256], __local u32 s_te3[256], __local u32 s_te4[256])
+static void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   for (u32 i = 0, j = 56; i < j; i += 4, j -= 4)
   {
@@ -940,7 +942,7 @@ static void AES256_InvertKey (u32 *rdk, __local u32 s_td0[256], __local u32 s_td
   }
 }
 
-static void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 s_td0[256], __local u32 s_td1[256], __local u32 s_td2[256], __local u32 s_td3[256], __local u32 s_td4[256])
+static void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
 {
   u32 s0 = in[0] ^ rdk[0];
   u32 s1 = in[1] ^ rdk[1];
@@ -1030,7 +1032,7 @@ static void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32
          ^ rdk[59];
 }
 
-static void AES256_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32 s_te0[256], __local u32 s_te1[256], __local u32 s_te2[256], __local u32 s_te3[256], __local u32 s_te4[256])
+static void AES256_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   u32 s0 = in[0] ^ rek[0];
   u32 s1 = in[1] ^ rek[1];
