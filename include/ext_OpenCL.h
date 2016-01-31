@@ -99,7 +99,7 @@ typedef struct
 
 #define OCL_PTR hc_opencl_lib_t
 
-void ocl_init (OCL_PTR *ocl);
+int ocl_init (OCL_PTR *ocl);
 void ocl_close (OCL_PTR *ocl);
 
 cl_mem hc_clCreateBuffer (OCL_PTR *ocl, cl_context context, cl_mem_flags flags, size_t size, void *host_ptr);

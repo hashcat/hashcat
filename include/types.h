@@ -1058,10 +1058,10 @@ typedef struct
   int     rule_len_r;
 
   /**
-   * opencl
+   * opencl library stuff
    */
 
-  void               *ocl;
+  void   *ocl;
 
   /**
    * hardware watchdog
@@ -1069,7 +1069,7 @@ typedef struct
 
   #ifdef HAVE_HWMON
   HM_LIB  hm_dll_nv;
-  HM_LIB  hm_dll_amd;
+  void   *adl;
   hm_attrs_t hm_device[DEVICES_MAX];
   #endif
 

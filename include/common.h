@@ -51,6 +51,10 @@ typedef void *OCL_LIB;
 
 #ifdef HAVE_HWMON
 typedef void *HM_LIB;
+typedef void *ADL_LIB;
+#ifdef OSX
+#define __stdcall
+#endif
 #endif
 
 #endif // _POSIX
@@ -78,6 +82,7 @@ typedef UINT64 uint64_t;
 
 #ifdef HAVE_HWMON
 typedef HINSTANCE HM_LIB;
+typedef HINSTANCE ADL_LIB;
 #endif
 
 typedef HINSTANCE OCL_LIB;

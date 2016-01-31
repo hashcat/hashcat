@@ -5,25 +5,81 @@
 
 #include <ext_ADL.h>
 
-#ifdef _POSIX
-void *GetProcAddress (void *pLibrary, const char *name)
+int adl_init (ADL_PTR *adl)
 {
-  return dlsym (pLibrary, name);
-}
-#endif
+  if (!adl) return (-1);
 
-int hc_ADL_Main_Control_Destroy (HM_LIB hDLL)
-{
-  ADL_MAIN_CONTROL_DESTROY ADL_Main_Control_Destroy = (ADL_MAIN_CONTROL_DESTROY) GetProcAddress (hDLL, "ADL_Main_Control_Destroy");
+  memset (adl, 0, sizeof (ADL_PTR));
 
-  if (ADL_Main_Control_Destroy == NULL)
+  #ifdef _WIN
+  if (!(adl->lib = hc_dlopen ("atiadlxx.dll")))
   {
-    log_error ("ERROR: %s\n", "ADL_Main_Control_Destroy() is missing");
+    adl->lib = hc_dlopen ("atiadlxy.dll");
+  }
+  #elif _POSIX
+  adl->lib = hc_dlopen ("libatiadlxx.so", RTLD_NOW);
+  #endif
 
-    exit (-1);
+  if (!adl->lib)
+  {
+    if (data.quiet == 0)
+      log_info ("WARNING: load ADL library failed, proceed without ADL HWMon enabled.");
+
+    return (-1);
   }
 
-  int ADL_rc = ADL_Main_Control_Destroy ();
+  HC_LOAD_FUNC(adl, ADL_Main_Control_Destroy, ADL_MAIN_CONTROL_DESTROY, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Main_Control_Create, ADL_MAIN_CONTROL_CREATE, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Adapter_NumberOfAdapters_Get, ADL_ADAPTER_NUMBEROFADAPTERS_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Adapter_AdapterInfo_Get, ADL_ADAPTER_ADAPTERINFO_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Display_DisplayInfo_Get, ADL_DISPLAY_DISPLAYINFO_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Adapter_ID_Get, ADL_ADAPTER_ID_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Adapter_VideoBiosInfo_Get, ADL_ADAPTER_VIDEOBIOSINFO_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive5_ThermalDevices_Enum, ADL_OVERDRIVE5_THERMALDEVICES_ENUM, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive5_Temperature_Get, ADL_OVERDRIVE5_TEMPERATURE_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_Temperature_Get, ADL_OVERDRIVE6_TEMPERATURE_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive5_CurrentActivity_Get, ADL_OVERDRIVE5_CURRENTACTIVITY_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive5_FanSpeedInfo_Get, ADL_OVERDRIVE5_FANSPEEDINFO_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive5_FanSpeed_Get, ADL_OVERDRIVE5_FANSPEED_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_FanSpeed_Get, ADL_OVERDRIVE6_FANSPEED_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive5_FanSpeed_Set, ADL_OVERDRIVE5_FANSPEED_SET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_FanSpeed_Set, ADL_OVERDRIVE6_FANSPEED_SET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive5_FanSpeedToDefault_Set, ADL_OVERDRIVE5_FANSPEEDTODEFAULT_SET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive5_ODParameters_Get, ADL_OVERDRIVE5_ODPARAMETERS_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive5_ODPerformanceLevels_Get, ADL_OVERDRIVE5_ODPERFORMANCELEVELS_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive5_ODPerformanceLevels_Set, ADL_OVERDRIVE5_ODPERFORMANCELEVELS_SET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_PowerControlInfo_Get, ADL_OVERDRIVE6_POWERCONTROLINFO_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_PowerControl_Get, ADL_OVERDRIVE6_POWERCONTROL_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_PowerControl_Set, ADL_OVERDRIVE6_POWERCONTROL_SET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Adapter_Active_Get, ADL_ADAPTER_ACTIVE_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_DisplayEnable_Set, ADL_DISPLAYENABLE_SET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive_Caps, ADL_OVERDRIVE_CAPS, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_PowerControl_Caps, ADL_OVERDRIVE6_POWERCONTROL_CAPS, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_Capabilities_Get, ADL_OVERDRIVE6_CAPABILITIES_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_StateInfo_Get, ADL_OVERDRIVE6_STATEINFO_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_CurrentStatus_Get, ADL_OVERDRIVE6_CURRENTSTATUS_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_State_Set, ADL_OVERDRIVE6_STATE_SET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_TargetTemperatureData_Get, ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET, ADL, 0)
+
+  return 0;
+}
+
+void adl_close (ADL_PTR *adl)
+{
+  if (adl)
+  {
+    if (adl->lib)
+      hc_dlclose (adl->lib);
+
+    myfree (adl);
+  }
+}
+
+int hc_ADL_Main_Control_Destroy (ADL_PTR *adl)
+{
+  if (!adl) return (-1);
+
+  int ADL_rc = adl->ADL_Main_Control_Destroy ();
 
   if (ADL_rc != ADL_OK)
   {
@@ -33,18 +89,11 @@ int hc_ADL_Main_Control_Destroy (HM_LIB hDLL)
   return (ADL_rc);
 }
 
-int hc_ADL_Main_Control_Create (HM_LIB hDLL, ADL_MAIN_MALLOC_CALLBACK callback, int iEnumConnectedAdapters)
+int hc_ADL_Main_Control_Create (ADL_PTR *adl, ADL_MAIN_MALLOC_CALLBACK callback, int iEnumConnectedAdapters)
 {
-  ADL_MAIN_CONTROL_CREATE ADL_Main_Control_Create = (ADL_MAIN_CONTROL_CREATE) GetProcAddress (hDLL, "ADL_Main_Control_Create");
+  if (!adl) return (-1);
 
-  if (ADL_Main_Control_Create == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Main_Control_Create() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Main_Control_Create (callback, iEnumConnectedAdapters);
+  int ADL_rc = adl->ADL_Main_Control_Create (callback, iEnumConnectedAdapters);
 
   if (ADL_rc != ADL_OK)
   {
@@ -54,18 +103,11 @@ int hc_ADL_Main_Control_Create (HM_LIB hDLL, ADL_MAIN_MALLOC_CALLBACK callback, 
   return (ADL_rc);
 }
 
-int hc_ADL_Adapter_NumberOfAdapters_Get (HM_LIB hDLL, int *lpNumAdapters)
+int hc_ADL_Adapter_NumberOfAdapters_Get (ADL_PTR *adl, int *lpNumAdapters)
 {
-  ADL_ADAPTER_NUMBEROFADAPTERS_GET ADL_Adapter_NumberOfAdapters_Get = (ADL_ADAPTER_NUMBEROFADAPTERS_GET) GetProcAddress (hDLL, "ADL_Adapter_NumberOfAdapters_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Adapter_NumberOfAdapters_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Adapter_NumberOfAdapters_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Adapter_NumberOfAdapters_Get (lpNumAdapters);
+  int ADL_rc = adl->ADL_Adapter_NumberOfAdapters_Get (lpNumAdapters);
 
   if (ADL_rc != ADL_OK)
   {
@@ -75,18 +117,11 @@ int hc_ADL_Adapter_NumberOfAdapters_Get (HM_LIB hDLL, int *lpNumAdapters)
   return (ADL_rc);
 }
 
-int hc_ADL_Adapter_AdapterInfo_Get (HM_LIB hDLL, LPAdapterInfo lpInfo, int iInputSize)
+int hc_ADL_Adapter_AdapterInfo_Get (ADL_PTR *adl, LPAdapterInfo lpInfo, int iInputSize)
 {
-  ADL_ADAPTER_ADAPTERINFO_GET ADL_Adapter_AdapterInfo_Get = (ADL_ADAPTER_ADAPTERINFO_GET) GetProcAddress (hDLL, "ADL_Adapter_AdapterInfo_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Adapter_AdapterInfo_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Adapter_AdapterInfo_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Adapter_AdapterInfo_Get (lpInfo, iInputSize);
+  int ADL_rc = adl->ADL_Adapter_AdapterInfo_Get (lpInfo, iInputSize);
 
   if (ADL_rc != ADL_OK)
   {
@@ -96,18 +131,11 @@ int hc_ADL_Adapter_AdapterInfo_Get (HM_LIB hDLL, LPAdapterInfo lpInfo, int iInpu
   return (ADL_rc);
 }
 
-int hc_ADL_Display_DisplayInfo_Get (HM_LIB hDLL, int iAdapterIndex, int *iNumDisplays, ADLDisplayInfo **lppInfo, int iForceDetect)
+int hc_ADL_Display_DisplayInfo_Get (ADL_PTR *adl, int iAdapterIndex, int *iNumDisplays, ADLDisplayInfo **lppInfo, int iForceDetect)
 {
-  ADL_DISPLAY_DISPLAYINFO_GET ADL_Display_DisplayInfo_Get = (ADL_DISPLAY_DISPLAYINFO_GET) GetProcAddress (hDLL, "ADL_Display_DisplayInfo_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Display_DisplayInfo_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Display_DisplayInfo_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Display_DisplayInfo_Get (iAdapterIndex, iNumDisplays, lppInfo, iForceDetect);
+  int ADL_rc = adl->ADL_Display_DisplayInfo_Get (iAdapterIndex, iNumDisplays, lppInfo, iForceDetect);
 
   if (ADL_rc != ADL_OK)
   {
@@ -117,18 +145,11 @@ int hc_ADL_Display_DisplayInfo_Get (HM_LIB hDLL, int iAdapterIndex, int *iNumDis
   return (ADL_rc);
 }
 
-int hc_ADL_Adapter_ID_Get (HM_LIB hDLL, int iAdapterIndex, int *lpAdapterID)
+int hc_ADL_Adapter_ID_Get (ADL_PTR *adl, int iAdapterIndex, int *lpAdapterID)
 {
-  HC_ADL_ADAPTER_ID_GET ADL_Adapter_ID_Get = (HC_ADL_ADAPTER_ID_GET) GetProcAddress (hDLL, "ADL_Adapter_ID_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Adapter_ID_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Adapter_ID_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Adapter_ID_Get (iAdapterIndex, lpAdapterID);
+  int ADL_rc = adl->ADL_Adapter_ID_Get (iAdapterIndex, lpAdapterID);
 
   if (ADL_rc != ADL_OK)
   {
@@ -138,18 +159,11 @@ int hc_ADL_Adapter_ID_Get (HM_LIB hDLL, int iAdapterIndex, int *lpAdapterID)
   return ADL_rc;
 }
 
-int hc_ADL_Adapter_VideoBiosInfo_Get (HM_LIB hDLL, int iAdapterIndex, ADLBiosInfo *lpBiosInfo)
+int hc_ADL_Adapter_VideoBiosInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLBiosInfo *lpBiosInfo)
 {
-  HC_ADL_ADAPTER_VIDEOBIOSINFO_GET ADL_Adapter_VideoBiosInfo_Get = (HC_ADL_ADAPTER_VIDEOBIOSINFO_GET) GetProcAddress (hDLL, "ADL_Adapter_VideoBiosInfo_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Adapter_VideoBiosInfo_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Adapter_VideoBiosInfo_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Adapter_VideoBiosInfo_Get (iAdapterIndex, lpBiosInfo);
+  int ADL_rc = adl->ADL_Adapter_VideoBiosInfo_Get (iAdapterIndex, lpBiosInfo);
 
   if (ADL_rc != ADL_OK)
   {
@@ -159,18 +173,11 @@ int hc_ADL_Adapter_VideoBiosInfo_Get (HM_LIB hDLL, int iAdapterIndex, ADLBiosInf
   return ADL_rc;
 }
 
-int hc_ADL_Overdrive_ThermalDevices_Enum (HM_LIB hDLL, int iAdapterIndex, int iThermalControllerIndex, ADLThermalControllerInfo *lpThermalControllerInfo)
+int hc_ADL_Overdrive_ThermalDevices_Enum (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLThermalControllerInfo *lpThermalControllerInfo)
 {
-  HC_ADL_OVERDRIVE5_THERMALDEVICES_ENUM ADL_Overdrive5_ThermalDevices_Enum = (HC_ADL_OVERDRIVE5_THERMALDEVICES_ENUM) GetProcAddress (hDLL, "ADL_Overdrive5_ThermalDevices_Enum");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive5_ThermalDevices_Enum == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive5_ThermalDevices_Enum() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive5_ThermalDevices_Enum (iAdapterIndex, iThermalControllerIndex, lpThermalControllerInfo);
+  int ADL_rc = adl->ADL_Overdrive5_ThermalDevices_Enum (iAdapterIndex, iThermalControllerIndex, lpThermalControllerInfo);
 
   if (ADL_rc != ADL_OK)
   {
@@ -180,18 +187,11 @@ int hc_ADL_Overdrive_ThermalDevices_Enum (HM_LIB hDLL, int iAdapterIndex, int iT
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive5_Temperature_Get (HM_LIB hDLL, int iAdapterIndex, int iThermalControllerIndex, ADLTemperature *lpTemperature)
+int hc_ADL_Overdrive5_Temperature_Get (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLTemperature *lpTemperature)
 {
-  ADL_OVERDRIVE5_TEMPERATURE_GET ADL_Overdrive5_Temperature_Get = (ADL_OVERDRIVE5_TEMPERATURE_GET) GetProcAddress (hDLL, "ADL_Overdrive5_Temperature_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive5_Temperature_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive5_Temperature_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive5_Temperature_Get (iAdapterIndex, iThermalControllerIndex, lpTemperature);
+  int ADL_rc = adl->ADL_Overdrive5_Temperature_Get (iAdapterIndex, iThermalControllerIndex, lpTemperature);
 
   if (ADL_rc != ADL_OK)
   {
@@ -201,18 +201,11 @@ int hc_ADL_Overdrive5_Temperature_Get (HM_LIB hDLL, int iAdapterIndex, int iTher
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive6_Temperature_Get (HM_LIB hDLL, int iAdapterIndex, int *iTemperature)
+int hc_ADL_Overdrive6_Temperature_Get (ADL_PTR *adl, int iAdapterIndex, int *iTemperature)
 {
-  ADL_OVERDRIVE6_TEMPERATURE_GET ADL_Overdrive6_Temperature_Get = (ADL_OVERDRIVE6_TEMPERATURE_GET) GetProcAddress (hDLL, "ADL_Overdrive6_Temperature_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive6_Temperature_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive6_Temperature_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive6_Temperature_Get (iAdapterIndex, iTemperature);
+  int ADL_rc = adl->ADL_Overdrive6_Temperature_Get (iAdapterIndex, iTemperature);
 
   if (ADL_rc != ADL_OK)
   {
@@ -222,18 +215,11 @@ int hc_ADL_Overdrive6_Temperature_Get (HM_LIB hDLL, int iAdapterIndex, int *iTem
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_CurrentActivity_Get (HM_LIB hDLL, int iAdapterIndex, ADLPMActivity *lpActivity)
+int hc_ADL_Overdrive_CurrentActivity_Get (ADL_PTR *adl, int iAdapterIndex, ADLPMActivity *lpActivity)
 {
-  HC_ADL_OVERDRIVE5_CURRENTACTIVITY_GET ADL_Overdrive5_CurrentActivity_Get = (HC_ADL_OVERDRIVE5_CURRENTACTIVITY_GET) GetProcAddress (hDLL, "ADL_Overdrive5_CurrentActivity_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive5_CurrentActivity_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive5_CurrentActivity_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive5_CurrentActivity_Get (iAdapterIndex, lpActivity);
+  int ADL_rc = adl->ADL_Overdrive5_CurrentActivity_Get (iAdapterIndex, lpActivity);
 
   if (ADL_rc != ADL_OK)
   {
@@ -243,18 +229,11 @@ int hc_ADL_Overdrive_CurrentActivity_Get (HM_LIB hDLL, int iAdapterIndex, ADLPMA
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive5_FanSpeedInfo_Get (HM_LIB hDLL, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedInfo *lpFanSpeedInfo)
+int hc_ADL_Overdrive5_FanSpeedInfo_Get (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedInfo *lpFanSpeedInfo)
 {
-  HC_ADL_OVERDRIVE5_FANSPEEDINFO_GET ADL_Overdrive5_FanSpeedInfo_Get = (HC_ADL_OVERDRIVE5_FANSPEEDINFO_GET) GetProcAddress (hDLL, "ADL_Overdrive5_FanSpeedInfo_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive5_FanSpeedInfo_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive5_FanSpeedInfo_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive5_FanSpeedInfo_Get (iAdapterIndex, iThermalControllerIndex, lpFanSpeedInfo);
+  int ADL_rc = adl->ADL_Overdrive5_FanSpeedInfo_Get (iAdapterIndex, iThermalControllerIndex, lpFanSpeedInfo);
 
   if (ADL_rc != ADL_OK)
   {
@@ -264,18 +243,11 @@ int hc_ADL_Overdrive5_FanSpeedInfo_Get (HM_LIB hDLL, int iAdapterIndex, int iThe
   return ADL_rc;
 }
 
-int hc_ADL_Overdrive5_FanSpeed_Get (HM_LIB hDLL, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
+int hc_ADL_Overdrive5_FanSpeed_Get (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
 {
-  ADL_OVERDRIVE5_FANSPEED_GET ADL_Overdrive5_FanSpeed_Get = (ADL_OVERDRIVE5_FANSPEED_GET) GetProcAddress (hDLL, "ADL_Overdrive5_FanSpeed_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive5_FanSpeed_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive5_FanSpeed_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive5_FanSpeed_Get (iAdapterIndex, iThermalControllerIndex, lpFanSpeedValue);
+  int ADL_rc = adl->ADL_Overdrive5_FanSpeed_Get (iAdapterIndex, iThermalControllerIndex, lpFanSpeedValue);
 
   if ((ADL_rc != ADL_OK) && (ADL_rc != ADL_ERR_NOT_SUPPORTED)) // exception allowed only here
   {
@@ -285,18 +257,11 @@ int hc_ADL_Overdrive5_FanSpeed_Get (HM_LIB hDLL, int iAdapterIndex, int iThermal
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive6_FanSpeed_Get (HM_LIB hDLL, int iAdapterIndex, ADLOD6FanSpeedInfo *lpFanSpeedInfo)
+int hc_ADL_Overdrive6_FanSpeed_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6FanSpeedInfo *lpFanSpeedInfo)
 {
-  ADL_OVERDRIVE6_FANSPEED_GET ADL_Overdrive6_FanSpeed_Get = (ADL_OVERDRIVE6_FANSPEED_GET) GetProcAddress (hDLL, "ADL_Overdrive6_FanSpeed_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive6_FanSpeed_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive6_FanSpeed_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive6_FanSpeed_Get (iAdapterIndex, lpFanSpeedInfo);
+  int ADL_rc = adl->ADL_Overdrive6_FanSpeed_Get (iAdapterIndex, lpFanSpeedInfo);
 
   if ((ADL_rc != ADL_OK) && (ADL_rc != ADL_ERR_NOT_SUPPORTED)) // exception allowed only here
   {
@@ -306,18 +271,11 @@ int hc_ADL_Overdrive6_FanSpeed_Get (HM_LIB hDLL, int iAdapterIndex, ADLOD6FanSpe
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive5_FanSpeed_Set (HM_LIB hDLL, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
+int hc_ADL_Overdrive5_FanSpeed_Set (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
 {
-  ADL_OVERDRIVE5_FANSPEED_SET ADL_Overdrive5_FanSpeed_Set = (ADL_OVERDRIVE5_FANSPEED_SET) GetProcAddress (hDLL, "ADL_Overdrive5_FanSpeed_Set");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive5_FanSpeed_Set == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive5_FanSpeed_Set() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive5_FanSpeed_Set (iAdapterIndex, iThermalControllerIndex, lpFanSpeedValue);
+  int ADL_rc = adl->ADL_Overdrive5_FanSpeed_Set (iAdapterIndex, iThermalControllerIndex, lpFanSpeedValue);
 
   if ((ADL_rc != ADL_OK) && (ADL_rc != ADL_ERR_NOT_SUPPORTED)) // exception allowed only here
   {
@@ -327,18 +285,11 @@ int hc_ADL_Overdrive5_FanSpeed_Set (HM_LIB hDLL, int iAdapterIndex, int iThermal
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive6_FanSpeed_Set (HM_LIB hDLL, int iAdapterIndex, ADLOD6FanSpeedValue *lpFanSpeedValue)
+int hc_ADL_Overdrive6_FanSpeed_Set (ADL_PTR *adl, int iAdapterIndex, ADLOD6FanSpeedValue *lpFanSpeedValue)
 {
-  ADL_OVERDRIVE6_FANSPEED_SET ADL_Overdrive6_FanSpeed_Set = (ADL_OVERDRIVE6_FANSPEED_SET) GetProcAddress (hDLL, "ADL_Overdrive6_FanSpeed_Set");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive6_FanSpeed_Set == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive6_FanSpeed_Set() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive6_FanSpeed_Set (iAdapterIndex, lpFanSpeedValue);
+  int ADL_rc = adl->ADL_Overdrive6_FanSpeed_Set (iAdapterIndex, lpFanSpeedValue);
 
   if ((ADL_rc != ADL_OK) && (ADL_rc != ADL_ERR_NOT_SUPPORTED)) // exception allowed only here
   {
@@ -348,18 +299,11 @@ int hc_ADL_Overdrive6_FanSpeed_Set (HM_LIB hDLL, int iAdapterIndex, ADLOD6FanSpe
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive5_FanSpeedToDefault_Set (HM_LIB hDLL, int iAdapterIndex, int iThermalControllerIndex)
+int hc_ADL_Overdrive5_FanSpeedToDefault_Set (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex)
 {
-  ADL_OVERDRIVE5_FANSPEEDTODEFAULT_SET ADL_Overdrive5_FanSpeedToDefault_Set = (ADL_OVERDRIVE5_FANSPEEDTODEFAULT_SET) GetProcAddress (hDLL, "ADL_Overdrive5_FanSpeedToDefault_Set");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive5_FanSpeedToDefault_Set == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive5_FanSpeedToDefault_Set() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive5_FanSpeedToDefault_Set (iAdapterIndex, iThermalControllerIndex);
+  int ADL_rc = adl->ADL_Overdrive5_FanSpeedToDefault_Set (iAdapterIndex, iThermalControllerIndex);
 
   if ((ADL_rc != ADL_OK) && (ADL_rc != ADL_ERR_NOT_SUPPORTED)) // exception allowed only here
   {
@@ -369,18 +313,11 @@ int hc_ADL_Overdrive5_FanSpeedToDefault_Set (HM_LIB hDLL, int iAdapterIndex, int
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_ODParameters_Get (HM_LIB hDLL, int iAdapterIndex, ADLODParameters *lpOdParameters)
+int hc_ADL_Overdrive_ODParameters_Get (ADL_PTR *adl, int iAdapterIndex, ADLODParameters *lpOdParameters)
 {
-  HC_ADL_OVERDRIVE5_ODPARAMETERS_GET ADL_Overdrive5_ODParameters_Get = (HC_ADL_OVERDRIVE5_ODPARAMETERS_GET) GetProcAddress (hDLL, "ADL_Overdrive5_ODParameters_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive5_ODParameters_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive5_ODParameters_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive5_ODParameters_Get (iAdapterIndex, lpOdParameters);
+  int ADL_rc = adl->ADL_Overdrive5_ODParameters_Get (iAdapterIndex, lpOdParameters);
 
   if (ADL_rc != ADL_OK)
   {
@@ -390,18 +327,11 @@ int hc_ADL_Overdrive_ODParameters_Get (HM_LIB hDLL, int iAdapterIndex, ADLODPara
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_ODPerformanceLevels_Get (HM_LIB hDLL, int iAdapterIndex, int iDefault, ADLODPerformanceLevels *lpOdPerformanceLevels)
+int hc_ADL_Overdrive_ODPerformanceLevels_Get (ADL_PTR *adl, int iAdapterIndex, int iDefault, ADLODPerformanceLevels *lpOdPerformanceLevels)
 {
-  HC_ADL_OVERDRIVE5_ODPERFORMANCELEVELS_GET ADL_Overdrive5_ODPerformanceLevels_Get = (HC_ADL_OVERDRIVE5_ODPERFORMANCELEVELS_GET) GetProcAddress (hDLL, "ADL_Overdrive5_ODPerformanceLevels_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive5_ODPerformanceLevels_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive5_ODPerformanceLevels_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive5_ODPerformanceLevels_Get (iAdapterIndex, iDefault, lpOdPerformanceLevels);
+  int ADL_rc = adl->ADL_Overdrive5_ODPerformanceLevels_Get (iAdapterIndex, iDefault, lpOdPerformanceLevels);
 
   if (ADL_rc != ADL_OK)
   {
@@ -411,18 +341,11 @@ int hc_ADL_Overdrive_ODPerformanceLevels_Get (HM_LIB hDLL, int iAdapterIndex, in
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_ODPerformanceLevels_Set (HM_LIB hDLL, int iAdapterIndex, ADLODPerformanceLevels *lpOdPerformanceLevels)
+int hc_ADL_Overdrive_ODPerformanceLevels_Set (ADL_PTR *adl, int iAdapterIndex, ADLODPerformanceLevels *lpOdPerformanceLevels)
 {
-  HC_ADL_OVERDRIVE5_ODPERFORMANCELEVELS_SET ADL_Overdrive5_ODPerformanceLevels_Set = (HC_ADL_OVERDRIVE5_ODPERFORMANCELEVELS_SET) GetProcAddress (hDLL, "ADL_Overdrive5_ODPerformanceLevels_Set");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive5_ODPerformanceLevels_Set == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive5_ODPerformanceLevels_Set() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive5_ODPerformanceLevels_Set (iAdapterIndex, lpOdPerformanceLevels);
+  int ADL_rc = adl->ADL_Overdrive5_ODPerformanceLevels_Set (iAdapterIndex, lpOdPerformanceLevels);
 
   if (ADL_rc != ADL_OK)
   {
@@ -432,49 +355,35 @@ int hc_ADL_Overdrive_ODPerformanceLevels_Set (HM_LIB hDLL, int iAdapterIndex, AD
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_PowerControlInfo_Get (HM_LIB hDLL, int iAdapterIndex, ADLOD6PowerControlInfo *powertune)
+int hc_ADL_Overdrive_PowerControlInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6PowerControlInfo *powertune)
 {
-  HC_ADL_OVERDRIVE6_POWERCONTROLINFO_GET ADL_Overdrive6_PowerControlInfo_Get = (HC_ADL_OVERDRIVE6_POWERCONTROLINFO_GET) GetProcAddress (hDLL, "ADL_Overdrive6_PowerControlInfo_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive6_PowerControlInfo_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive6_PowerControlInfo_Get is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive6_PowerControlInfo_Get (iAdapterIndex, powertune);
+  int ADL_rc = adl->ADL_Overdrive6_PowerControlInfo_Get (iAdapterIndex, powertune);
 
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_PowerControl_Get (HM_LIB hDLL, int iAdapterIndex, int *iCurrentValue)
+int hc_ADL_Overdrive_PowerControl_Get (ADL_PTR *adl, int iAdapterIndex, int *iCurrentValue)
 {
-  HC_ADL_OVERDRIVE6_POWERCONTROL_GET ADL_Overdrive6_PowerControl_Get = (HC_ADL_OVERDRIVE6_POWERCONTROL_GET) GetProcAddress (hDLL, "ADL_Overdrive6_PowerControl_Get");
-
-  if (ADL_Overdrive6_PowerControl_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive6_PowerControl_Get is missing");
-
-    exit (-1);
-  }
+  if (!adl) return (-1);
 
   int default_value = 0;
 
-  int ADL_rc = ADL_Overdrive6_PowerControl_Get (iAdapterIndex, iCurrentValue, &default_value);
+  int ADL_rc = adl->ADL_Overdrive6_PowerControl_Get (iAdapterIndex, iCurrentValue, &default_value);
 
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_PowerControl_Set (HM_LIB hDLL, int iAdapterIndex, int level)
+int hc_ADL_Overdrive_PowerControl_Set (ADL_PTR *adl, int iAdapterIndex, int level)
 {
-  HC_ADL_OVERDRIVE6_POWERCONTROL_SET ADL_Overdrive6_PowerControl_Set = (HC_ADL_OVERDRIVE6_POWERCONTROL_SET) GetProcAddress (hDLL, "ADL_Overdrive6_PowerControl_Set");
+  if (!adl) return (-1);
 
   int ADL_rc = ADL_ERR;
 
   ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
 
-  if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (hDLL, iAdapterIndex, &powertune)) != ADL_OK)
+  if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (adl, iAdapterIndex, &powertune)) != ADL_OK)
   {
     log_info ("WARN: %s\n", "ADL_Overdrive6_PowerControl_Get", ADL_rc);
   }
@@ -497,24 +406,17 @@ int hc_ADL_Overdrive_PowerControl_Set (HM_LIB hDLL, int iAdapterIndex, int level
       return ADL_ERR;
     }
 
-    ADL_rc = ADL_Overdrive6_PowerControl_Set (iAdapterIndex, level);
+    ADL_rc = adl->ADL_Overdrive6_PowerControl_Set (iAdapterIndex, level);
   }
 
   return (ADL_rc);
 }
 
-int hc_ADL_Adapter_Active_Get (HM_LIB hDLL, int iAdapterIndex, int *lpStatus)
+int hc_ADL_Adapter_Active_Get (ADL_PTR *adl, int iAdapterIndex, int *lpStatus)
 {
-  ADL_ADAPTER_ACTIVE_GET ADL_Adapter_Active_Get = (ADL_ADAPTER_ACTIVE_GET) GetProcAddress (hDLL, "ADL_Adapter_Active_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Adapter_Active_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Adapter_Active_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Adapter_Active_Get (iAdapterIndex, lpStatus);
+  int ADL_rc = adl->ADL_Adapter_Active_Get (iAdapterIndex, lpStatus);
 
   if (ADL_rc != ADL_OK)
   {
@@ -524,18 +426,11 @@ int hc_ADL_Adapter_Active_Get (HM_LIB hDLL, int iAdapterIndex, int *lpStatus)
   return (ADL_rc);
 }
 
-int hc_ADL_DisplayEnable_Set (HM_LIB hDLL, int iAdapterIndex, int *lpDisplayIndexList, int iDisplayListSize, int bPersistOnly)
+int hc_ADL_DisplayEnable_Set (ADL_PTR *adl, int iAdapterIndex, int *lpDisplayIndexList, int iDisplayListSize, int bPersistOnly)
 {
-  ADL_DISPLAYENABLE_SET ADL_DisplayEnable_Set = (ADL_DISPLAYENABLE_SET) GetProcAddress (hDLL, "ADL_DisplayEnable_Set");
+  if (!adl) return (-1);
 
-  if (ADL_DisplayEnable_Set == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_DisplayEnable_Set() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_DisplayEnable_Set (iAdapterIndex, lpDisplayIndexList, iDisplayListSize, bPersistOnly);
+  int ADL_rc = adl->ADL_DisplayEnable_Set (iAdapterIndex, lpDisplayIndexList, iDisplayListSize, bPersistOnly);
 
   if (ADL_rc != ADL_OK)
   {
@@ -545,66 +440,38 @@ int hc_ADL_DisplayEnable_Set (HM_LIB hDLL, int iAdapterIndex, int *lpDisplayInde
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_Caps (HM_LIB hDLL, int iAdapterIndex, int *od_supported, int *od_enabled, int *od_version)
+int hc_ADL_Overdrive_Caps (ADL_PTR *adl, int iAdapterIndex, int *od_supported, int *od_enabled, int *od_version)
 {
-  ADL_OVERDRIVE_CAPS ADL_Overdrive_Caps = (ADL_OVERDRIVE_CAPS) GetProcAddress (hDLL, "ADL_Overdrive_Caps");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive_Caps == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive_Caps() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive_Caps (iAdapterIndex, od_supported, od_enabled, od_version);
-
-  return (ADL_rc) ;
-}
-
-int hc_ADL_Overdrive6_PowerControl_Caps (HM_LIB hDLL, int iAdapterIndex, int *lpSupported)
-{
-  ADL_OVERDRIVE6_POWERCONTROL_CAPS ADL_Overdrive6_PowerControl_Caps = (ADL_OVERDRIVE6_POWERCONTROL_CAPS) GetProcAddress (hDLL, "ADL_Overdrive6_PowerControl_Caps");
-
-  if (ADL_Overdrive6_PowerControl_Caps == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive6_PowerControl_Caps() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive6_PowerControl_Caps (iAdapterIndex, lpSupported);
-
-  return (ADL_rc) ;
-}
-
-int hc_ADL_Overdrive_Capabilities_Get (HM_LIB hDLL, int iAdapterIndex, ADLOD6Capabilities *caps)
-{
-  ADL_OVERDRIVE6_CAPABILITIES_GET ADL_Overdrive6_Capabilities_Get = (ADL_OVERDRIVE6_CAPABILITIES_GET) GetProcAddress (hDLL, "ADL_Overdrive6_Capabilities_Get");
-
-  if (ADL_Overdrive6_Capabilities_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive6_Capabilities_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive6_Capabilities_Get (iAdapterIndex, caps);
+  int ADL_rc = adl->ADL_Overdrive_Caps (iAdapterIndex, od_supported, od_enabled, od_version);
 
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_StateInfo_Get (HM_LIB hDLL, int iAdapterIndex, int type, ADLOD6MemClockState *state)
+int hc_ADL_Overdrive6_PowerControl_Caps (ADL_PTR *adl, int iAdapterIndex, int *lpSupported)
 {
-  ADL_OVERDRIVE6_STATEINFO_GET  ADL_Overdrive6_StateInfo_Get = (ADL_OVERDRIVE6_STATEINFO_GET) GetProcAddress (hDLL, "ADL_Overdrive6_StateInfo_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive6_StateInfo_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive6_StateInfo_Get() is missing");
+  int ADL_rc = adl->ADL_Overdrive6_PowerControl_Caps (iAdapterIndex, lpSupported);
 
-    exit (-1);
-  }
+  return (ADL_rc);
+}
 
-  int ADL_rc = ADL_Overdrive6_StateInfo_Get (iAdapterIndex, type, state);
+int hc_ADL_Overdrive_Capabilities_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6Capabilities *caps)
+{
+  if (!adl) return (-1);
+
+  int ADL_rc = adl->ADL_Overdrive6_Capabilities_Get (iAdapterIndex, caps);
+
+  return (ADL_rc);
+}
+
+int hc_ADL_Overdrive_StateInfo_Get (ADL_PTR *adl, int iAdapterIndex, int type, ADLOD6MemClockState *state)
+{
+  if (!adl) return (-1);
+
+  int ADL_rc = adl->ADL_Overdrive6_StateInfo_Get (iAdapterIndex, type, state);
 
   if (ADL_rc == ADL_OK)
   {
@@ -613,7 +480,7 @@ int hc_ADL_Overdrive_StateInfo_Get (HM_LIB hDLL, int iAdapterIndex, int type, AD
 
     ADLOD6Capabilities caps;
 
-    if ((hc_ADL_Overdrive_Capabilities_Get (hDLL, iAdapterIndex, &caps)) != ADL_OK)
+    if ((hc_ADL_Overdrive_Capabilities_Get (adl, iAdapterIndex, &caps)) != ADL_OK)
     {
       log_info ("ERROR: failed to get ADL device capabilities");
 
@@ -648,38 +515,24 @@ int hc_ADL_Overdrive_StateInfo_Get (HM_LIB hDLL, int iAdapterIndex, int type, AD
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_CurrentStatus_Get (HM_LIB hDLL, int iAdapterIndex, ADLOD6CurrentStatus *status)
+int hc_ADL_Overdrive_CurrentStatus_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6CurrentStatus *status)
 {
-  ADL_OVERDRIVE6_CURRENTSTATUS_GET ADL_Overdrive6_CurrentStatus_Get = (ADL_OVERDRIVE6_CURRENTSTATUS_GET) GetProcAddress (hDLL, "ADL_Overdrive6_CurrentStatus_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive6_CurrentStatus_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive6_CurrentStatus_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive6_CurrentStatus_Get (iAdapterIndex, status);
+  int ADL_rc = adl->ADL_Overdrive6_CurrentStatus_Get (iAdapterIndex, status);
 
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_State_Set (HM_LIB hDLL, int iAdapterIndex, int type, ADLOD6StateInfo *state)
+int hc_ADL_Overdrive_State_Set (ADL_PTR *adl, int iAdapterIndex, int type, ADLOD6StateInfo *state)
 {
-  ADL_OVERDRIVE6_STATE_SET ADL_Overdrive6_State_Set = (ADL_OVERDRIVE6_STATE_SET) GetProcAddress (hDLL, "ADL_Overdrive6_State_Set");
-
-  if (ADL_Overdrive6_State_Set == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive6_State_Set() is missing");
-
-    exit (- 1);
-  }
+  if (!adl) return (-1);
 
   // sanity checks
 
   ADLOD6Capabilities caps;
 
-  if ((hc_ADL_Overdrive_Capabilities_Get (hDLL, iAdapterIndex, &caps)) != ADL_OK)
+  if ((hc_ADL_Overdrive_Capabilities_Get (adl, iAdapterIndex, &caps)) != ADL_OK)
   {
     log_info ("ERROR: failed to get ADL device capabilities");
 
@@ -714,23 +567,16 @@ int hc_ADL_Overdrive_State_Set (HM_LIB hDLL, int iAdapterIndex, int type, ADLOD6
     return ADL_ERR;
   }
 
-  int ADL_rc = ADL_Overdrive6_State_Set (iAdapterIndex, type, state);
+  int ADL_rc = adl->ADL_Overdrive6_State_Set (iAdapterIndex, type, state);
 
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive6_TargetTemperatureData_Get (HM_LIB hDLL, int iAdapterIndex, int *cur_temp, int *default_temp)
+int hc_ADL_Overdrive6_TargetTemperatureData_Get (ADL_PTR *adl, int iAdapterIndex, int *cur_temp, int *default_temp)
 {
-  ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET ADL_Overdrive6_TargetTemperatureData_Get = (ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET) GetProcAddress (hDLL, "ADL_Overdrive6_TargetTemperatureData_Get");
+  if (!adl) return (-1);
 
-  if (ADL_Overdrive6_TargetTemperatureData_Get == NULL)
-  {
-    log_error ("ERROR: %s\n", "ADL_Overdrive6_TargetTemperatureData_Get() is missing");
-
-    exit (-1);
-  }
-
-  int ADL_rc = ADL_Overdrive6_TargetTemperatureData_Get (iAdapterIndex, cur_temp, default_temp);
+  int ADL_rc = adl->ADL_Overdrive6_TargetTemperatureData_Get (iAdapterIndex, cur_temp, default_temp);
 
   return (ADL_rc);
 }
