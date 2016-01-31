@@ -95,9 +95,6 @@ CC_LINUX_64              := gcc
 CC_WIN_32                := i686-w64-mingw32-gcc
 CC_WIN_64                := x86_64-w64-mingw32-gcc
 
-DLL_WIN_32               := i686-w64-mingw32-dlltool
-DLL_WIN_64               := x86_64-w64-mingw32-dlltool
-
 ##
 ## Misc stuff
 ##
@@ -245,7 +242,7 @@ native: oclHashcat
 binaries: linux32 linux64 win32 win64
 
 clean:
-	$(RM) -f obj/*.o lib/*.a *.bin *.exe *.app *.restore *.out *.pot *.dictstat *.log oclHashcat core
+	$(RM) -f obj/*.o *.bin *.exe *.app *.restore *.out *.pot *.dictstat *.log oclHashcat core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
 	$(RM) -rf *.dSYM
