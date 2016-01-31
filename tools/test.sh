@@ -13,6 +13,8 @@ HASH_TYPES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 1
 
 ATTACK_MODES="0 1 3 6 7"
 
+VECTOR_WIDTHS="1 2 4 8"
+
 MATCH_PASS_ONLY="2500 5300 5400 6600 6800 8200"
 
 HASHFILE_ONLY="2500"
@@ -490,7 +492,7 @@ function attack_0()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode multi, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode multi,  Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -688,7 +690,7 @@ function attack_1()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode multi, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode multi,  Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -1017,7 +1019,7 @@ function attack_3()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode multi, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode multi,  Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -1243,7 +1245,7 @@ function attack_6()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode multi, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode multi,  Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -1514,7 +1516,7 @@ function attack_7()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode multi, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode multi,  Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -1598,6 +1600,8 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
       elif [ ${OPTARG} == "8" ]; then
         OPTS="${OPTS} --opencl-vector-width 8"
         VECTOR=8
+      elif [ ${OPTARG} == "all" ]; then
+        VECTOR="all"
       else
         usage
       fi
@@ -1702,7 +1706,7 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
 
 done
 
-if [ ${VECTOR} -eq 0 ]; then
+if [ "${VECTOR}" == "0" ]; then
    VECTOR=2
    OPTS="${OPTS} --opencl-vector-width 2"
 fi
@@ -1821,34 +1825,46 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
          IS_SLOW=0
       fi
 
-      if [[ ${IS_SLOW} -eq 1 ]]; then
+      OPTS_OLD=${OPTS}
+      VECTOR_OLD=${VECTOR}
+      for CUR_WIDTH in $(echo $VECTOR_WIDTHS); do
 
-        # run attack mode 0 (stdin)
-        if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 0 ]]; then attack_0; fi
+        if [ "${VECTOR_OLD}" == "all" ] || [ "${VECTOR_OLD}" == "${CUR_WIDTH}" ]; then
 
-      else
-        # run attack mode 0 (stdin)
-        if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 0 ]]; then attack_0; fi
+          VECTOR=${CUR_WIDTH}
+          OPTS="${OPTS_OLD} --opencl-vector-width ${VECTOR}"
 
-        # run attack mode 1 (combinator)
-        if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 1 ]]; then attack_1; fi
+          if [[ ${IS_SLOW} -eq 1 ]]; then
 
-        # run attack mode 3 (bruteforce)
-        if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 3 ]]; then attack_3; fi
+            # run attack mode 0 (stdin)
+            if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 0 ]]; then attack_0; fi
 
-        # run attack mode 6 (dict+mask)
-        if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 6 ]]; then attack_6; fi
+          else
 
-        # run attack mode 7 (mask+dict)
-        if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 7 ]]; then attack_7; fi
-      fi
+            # run attack mode 0 (stdin)
+            if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 0 ]]; then attack_0; fi
+
+            # run attack mode 1 (combinator)
+            if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 1 ]]; then attack_1; fi
+
+            # run attack mode 3 (bruteforce)
+            if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 3 ]]; then attack_3; fi
+
+            # run attack mode 6 (dict+mask)
+            if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 6 ]]; then attack_6; fi
+
+            # run attack mode 7 (mask+dict)
+            if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 7 ]]; then attack_7; fi
+
+          fi
+        fi
+      done
     fi
-
   done
 
 else
 
-    OUTD=${PACKAGE_FOLDER}
+  OUTD=${PACKAGE_FOLDER}
 
 fi
 
