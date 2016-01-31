@@ -58,7 +58,7 @@ __kernel void m00000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };
@@ -71,10 +71,10 @@ __kernel void m00000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     w3[2] = out_len * 8;
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0[1], MD5C01, MD5S01);
@@ -204,7 +204,7 @@ __kernel void m00000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };
@@ -217,10 +217,10 @@ __kernel void m00000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     w3[2] = out_len * 8;
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0[1], MD5C01, MD5S01);
