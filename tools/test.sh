@@ -21,7 +21,7 @@ NEVER_CRACK="11600"
 
 SLOW_ALGOS="400 500 501 1600 1800 2100 2500 3200 5200 5800 6211 6221 6231 6241 6251 6261 6271 6281 6300 6400 6500 6600 6700 6800 7100 7200 7400 7900 8200 8800 8900 9000 9100 9200 9300 9400 9500 9600 10000 10300 10500 10700 10900 11300 11600 11900 12000 12100 12200 12300 12400 12500 12800 12900 13000"
 
-OPTS="--quiet --force --potfile-disable --runtime 200 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 2"
+OPTS="--quiet --force --potfile-disable --runtime 200 --gpu-temp-disable --weak-hash-threshold=0"
 
 OUTD="test_$(date +%s)"
 
@@ -322,7 +322,7 @@ function attack_0()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, single hash." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, single hash, device-type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
     max=32
 
@@ -405,7 +405,7 @@ function attack_0()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 
@@ -417,7 +417,7 @@ function attack_0()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, multi hash." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
     hash_file=${OUTD}/${hash_type}_hashes.txt
 
@@ -490,7 +490,7 @@ function attack_0()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode multi  ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode multi, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -513,7 +513,7 @@ function attack_1()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, single hash." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
     i=1
     while read -u 9 hash; do
 
@@ -580,7 +580,7 @@ function attack_1()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode single ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 
@@ -633,7 +633,7 @@ function attack_1()
 
     CMD="./${BIN} ${OPTS} -a 1 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2"
 
-    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, multi hash." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
     output=$(./${BIN} ${OPTS} -a 1 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2 2>&1)
 
@@ -688,7 +688,7 @@ function attack_1()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode multi  ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 1, Mode multi, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -711,7 +711,7 @@ function attack_3()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, single hash." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
     max=8
     mask_offset=0
@@ -823,7 +823,7 @@ function attack_3()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 
@@ -965,7 +965,7 @@ function attack_3()
 
     CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} --increment --increment-min ${increment_min} --increment-max ${increment_max} ${custom_charsets} ${hash_file} ${mask} "
 
-    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, multi hash." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
     output=$(./${BIN} ${OPTS} -a 3 -m ${hash_type} --increment --increment-min ${increment_min} --increment-max ${increment_max} ${custom_charsets} ${hash_file} ${mask} 2>&1)
 
@@ -1017,7 +1017,7 @@ function attack_3()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode multi  ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode multi, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -1040,7 +1040,7 @@ function attack_6()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, single hash." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
     i=1
 
@@ -1129,7 +1129,7 @@ function attack_6()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode single ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 
@@ -1243,7 +1243,7 @@ function attack_6()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode multi  ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode multi, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -1266,7 +1266,7 @@ function attack_7()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, single hash." &>> ${OUTD}/logfull.txt
+    echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
     max=8
 
@@ -1371,7 +1371,7 @@ function attack_7()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode single ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 
@@ -1514,7 +1514,7 @@ function attack_7()
 
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode multi  ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode multi, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
   fi
 }
@@ -1525,6 +1525,17 @@ cat << EOF
 > Usage : ${0} <options>
 
 OPTIONS:
+
+  -V    OpenCL vector-width (either 1, 2, 4 or 8), overrides value from device query :
+        '1'      => vector-width 1
+        '2'      => vector-width 2 (default)
+        '4'      => vector-width 4
+        '8'      => vector-width 8
+
+  -T    OpenCL device-types to use :
+        'gpu'    => gpu devices (default)
+        'cpu'    => cpu devices
+        'all'    => gpu and cpu devices
 
   -t    Select test mode :
         'single' => single hash (default)
@@ -1566,12 +1577,47 @@ BIN="oclHashcat"
 MARKOV="enabled"
 ATTACK=0
 MODE=0
+TYPE="null"
+VECTOR=0
 HT=0
 PACKAGE=0
 
-while getopts "t:m:a:b:hcpd:x:o:" opt; do
+while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
 
   case ${opt} in
+    "V")
+      if [ ${OPTARG} == "1" ]; then
+        OPTS="${OPTS} --opencl-vector-width 1"
+        VECTOR=1
+      elif [ ${OPTARG} == "2" ]; then
+        OPTS="${OPTS} --opencl-vector-width 2"
+        VECTOR=2
+      elif [ ${OPTARG} == "4" ]; then
+        OPTS="${OPTS} --opencl-vector-width 4"
+        VECTOR=4
+      elif [ ${OPTARG} == "8" ]; then
+        OPTS="${OPTS} --opencl-vector-width 8"
+        VECTOR=8
+      else
+        usage
+      fi
+      ;;
+
+    "T")
+      if [ ${OPTARG} == "gpu" ]; then
+        OPTS="${OPTS} --opencl-device-types 2"
+        TYPE="Gpu"
+      elif [ ${OPTARG} == "cpu" ]; then
+        OPTS="${OPTS} --opencl-device-types 1"
+        TYPE="Cpu"
+      elif [ ${OPTARG} == "all" ]; then
+        OPTS="${OPTS} --opencl-device-types 1,2"
+        TYPE="Cpu + Gpu"
+      else
+        usage
+      fi
+      ;;
+
     "t")
       if [ ${OPTARG} == "single" ]; then
         MODE=0
@@ -1655,6 +1701,16 @@ while getopts "t:m:a:b:hcpd:x:o:" opt; do
   esac
 
 done
+
+if [ ${VECTOR} -eq 0 ]; then
+   VECTOR=2
+   OPTS="${OPTS} --opencl-vector-width 2"
+fi
+
+if [ "${TYPE}" == "null" ]; then
+   TYPE="Gpu"
+   OPTS="${OPTS} --opencl-device-types 2"
+fi
 
 if [ -n "${ARCHITECTURE}" ]; then
 
