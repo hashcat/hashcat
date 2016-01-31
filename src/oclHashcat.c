@@ -11402,16 +11402,25 @@ int main (int argc, char **argv)
                        kernel_accel = 32;
                        break;
           case  1800:  kernel_loops = ROUNDS_SHA512CRYPT;
+                       #ifndef OSX
                        kernel_accel = 16;
+                       #endif
                        break;
           case  2100:  kernel_loops = ROUNDS_DCC2;
                        kernel_accel = 16;
                        break;
           case  2500:  kernel_loops = ROUNDS_WPA2;
+                       #ifndef OSX
                        kernel_accel = 32;
+                       #endif
                        break;
-          case  3200:  kernel_loops = ROUNDS_BCRYPT;
+          case  3200:
+                       #ifndef OSX
+                       kernel_loops = ROUNDS_BCRYPT;
                        kernel_accel = 8;
+                       #else
+                       kernel_loops = ROUNDS_BCRYPT / 2;
+                       #endif
                        break;
           case  5200:  kernel_loops = ROUNDS_PSAFE3;
                        kernel_accel = 16;
@@ -11439,8 +11448,14 @@ int main (int argc, char **argv)
           case  6223:  kernel_loops = ROUNDS_TRUECRYPT_1K;
                        kernel_accel = 8;
                        break;
-          case  6231:  kernel_loops = ROUNDS_TRUECRYPT_1K;
+          case  6231:
+                       #ifndef OSX
+                       kernel_loops = ROUNDS_TRUECRYPT_1K;
                        kernel_accel = 8;
+                       #else
+                       kernel_loops = ROUNDS_TRUECRYPT_1K / 4;
+                       kernel_accel = 1;
+                       #endif
                        break;
           case  6232:  kernel_loops = ROUNDS_TRUECRYPT_1K;
                        kernel_accel = 8;
@@ -11448,9 +11463,13 @@ int main (int argc, char **argv)
           case  6233:  kernel_loops = ROUNDS_TRUECRYPT_1K;
                        kernel_accel = 8;
                        break;
-          case  6241:  kernel_loops = ROUNDS_TRUECRYPT_1K;
+          case  6241:
                        #ifndef OSX
+                       kernel_loops = ROUNDS_TRUECRYPT_1K;
                        kernel_accel = 128;
+                       #else
+                       kernel_loops = ROUNDS_TRUECRYPT_1K / 4;
+                       kernel_accel = 1;
                        #endif
                        break;
           case  6242:  kernel_loops = ROUNDS_TRUECRYPT_1K;
@@ -11478,21 +11497,34 @@ int main (int argc, char **argv)
                        kernel_accel = 64;
                        break;
           case  7100:  kernel_loops = ROUNDS_SHA512OSX;
+                       #ifndef OSX
                        kernel_accel = 8;
+                       #else
+                       kernel_accel = 1;
+                       #endif
                        break;
           case  7200:  kernel_loops = ROUNDS_GRUB;
                        #ifndef OSX
                        kernel_accel = 16;
+                       #else
+                       kernel_accel = 2;
                        #endif
                        break;
           case  7400:  kernel_loops = ROUNDS_SHA256CRYPT;
                        kernel_accel = 8;
                        break;
           case  7900:  kernel_loops = ROUNDS_DRUPAL7;
+                       #ifndef OSX
                        kernel_accel = 8;
+                       #endif
                        break;
-          case  8200:  kernel_loops = ROUNDS_CLOUDKEY;
+          case  8200:
+                       #ifndef OSX
+                       kernel_loops = ROUNDS_CLOUDKEY;
                        kernel_accel = 8;
+                       #else
+                       kernel_accel = 1;
+                       #endif
                        break;
           case  8800:  kernel_loops = ROUNDS_ANDROIDFDE;
                        kernel_accel = 32;
@@ -11504,25 +11536,43 @@ int main (int argc, char **argv)
                        kernel_accel = 16;
                        break;
           case  9100:  kernel_loops = ROUNDS_LOTUS8;
+                       #ifndef OSX
                        kernel_accel = 64;
+                       #endif
                        break;
           case  9200:  kernel_loops = ROUNDS_CISCO8;
+                       #ifndef OSX
                        kernel_accel = 8;
+                       #endif
                        break;
           case  9300:  kernel_loops = 1;
+                       #ifndef OSX
                        kernel_accel = 4;
+                       #else
+                       kernel_accel = 2;
+                       #endif
                        break;
           case  9400:  kernel_loops = ROUNDS_OFFICE2007;
+                       #ifndef OSX
                        kernel_accel = 32;
+                       #endif
                        break;
           case  9500:  kernel_loops = ROUNDS_OFFICE2010;
+                       #ifndef OSX
                        kernel_accel = 32;
+                       #endif
                        break;
           case  9600:  kernel_loops = ROUNDS_OFFICE2013;
+                       #ifndef OSX
                        kernel_accel = 8;
+                       #else
+                       kernel_accel = 1;
+                       #endif
                        break;
           case 10000:  kernel_loops = ROUNDS_DJANGOPBKDF2;
+                       #ifndef OSX
                        kernel_accel = 8;
+                       #endif
                        break;
           case 10300:  kernel_loops = ROUNDS_SAPH_SHA1;
                        kernel_accel = 16;
@@ -11536,11 +11586,15 @@ int main (int argc, char **argv)
           case 10900:  kernel_loops = ROUNDS_PBKDF2_SHA256;
                        kernel_accel = 8;
                        break;
+          #ifndef OSX
           case 11300:  kernel_loops = ROUNDS_BITCOIN_WALLET;
                        kernel_accel = 8;
                        break;
+          #endif
           case 11600:  kernel_loops = ROUNDS_SEVEN_ZIP;
+                       #ifndef OSX
                        kernel_accel = 8;
+                       #endif
                        break;
           case 11900:  kernel_loops = ROUNDS_PBKDF2_MD5;
                        kernel_accel = 8;
@@ -11552,13 +11606,19 @@ int main (int argc, char **argv)
                        kernel_accel = 8;
                        break;
           case 12200:  kernel_loops = ROUNDS_ECRYPTFS;
+                       #ifndef OSX
                        kernel_accel = 8;
+                       #else
+                       kernel_accel = 1;
+                       #endif
                        break;
           case 12300:  kernel_loops = ROUNDS_ORACLET;
                        kernel_accel = 8;
                        break;
           case 12500:  kernel_loops = ROUNDS_RAR3;
+                       #ifndef OSX
                        kernel_accel = 32;
+                       #endif
                        break;
           case 12700:  kernel_loops = ROUNDS_MYWALLET;
                        kernel_accel = 512;
@@ -11570,7 +11630,11 @@ int main (int argc, char **argv)
                        kernel_accel = 8;
                        break;
           case 13000:  kernel_loops = ROUNDS_RAR5;
+                       #ifndef OSX
                        kernel_accel = 8;
+                       #else
+                       kernel_accel = 2;
+                       #endif
                        break;
         }
 
