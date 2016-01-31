@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -2228,7 +2230,7 @@ __constant u64 sbob_rc64[12][8] =
   },
 };
 
-static void streebog_g (u64 h[8], const u64 m[8], __local u64 s_sbob_sl64[8][256])
+static void streebog_g (u64 h[8], const u64 m[8], __local u64 (*s_sbob_sl64)[256])
 {
   u64 k[8];
   u64 s[8];

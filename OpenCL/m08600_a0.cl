@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -60,7 +62,7 @@ __constant u32 lotus_magic_table[256] =
 
 #define BOX(S,i) (S)[(i)]
 
-static void lotus_mix (u32 *in, __local u32 s_lotus_magic_table[256])
+static void lotus_mix (u32 *in, __local u32 *s_lotus_magic_table)
 {
   u32 p = 0;
 
@@ -84,7 +86,7 @@ static void lotus_mix (u32 *in, __local u32 s_lotus_magic_table[256])
   }
 }
 
-static void lotus_transform_password (u32 in[4], u32 out[4], __local u32 s_lotus_magic_table[256])
+static void lotus_transform_password (u32 in[4], u32 out[4], __local u32 *s_lotus_magic_table)
 {
   u32 t = out[3] >> 24;
 
@@ -179,7 +181,7 @@ static void pad (u32 w[4], const u32 len)
   }
 }
 
-static void mdtransform_norecalc (u32 state[4], u32 block[4], __local u32 s_lotus_magic_table[256])
+static void mdtransform_norecalc (u32 state[4], u32 block[4], __local u32 *s_lotus_magic_table)
 {
   u32 x[12];
 
@@ -204,14 +206,14 @@ static void mdtransform_norecalc (u32 state[4], u32 block[4], __local u32 s_lotu
   state[3] = x[3];
 }
 
-static void mdtransform (u32 state[4], u32 checksum[4], u32 block[4], __local u32 s_lotus_magic_table[256])
+static void mdtransform (u32 state[4], u32 checksum[4], u32 block[4], __local u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-static void domino_big_md (const u32 saved_key[16], const u32 size, u32 state[4], __local u32 s_lotus_magic_table[256])
+static void domino_big_md (const u32 saved_key[16], const u32 size, u32 state[4], __local u32 *s_lotus_magic_table)
 {
   u32 checksum[4];
 
