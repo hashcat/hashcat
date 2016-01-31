@@ -20,6 +20,14 @@
 #define COMPARE_S "OpenCL/check_single_comp4.c"
 #define COMPARE_M "OpenCL/check_multi_comp4.c"
 
+// Buggy drivers...
+
+#ifdef IS_AMD
+#define STATE_DECL volatile
+#else
+#define STATE_DECL
+#endif
+
 #define PUTCHAR64_BE(a,p,c) ((u8 *)(a))[(p) ^ 7] = (u8) (c)
 #define GETCHAR64_BE(a,p)   ((u8 *)(a))[(p) ^ 7]
 
@@ -74,14 +82,14 @@ static void sha512_transform (const u64 w[16], u64 digest[8])
   u64 we_t = w[14];
   u64 wf_t = w[15];
 
-  u64 a = digest[0];
-  u64 b = digest[1];
-  u64 c = digest[2];
-  u64 d = digest[3];
-  u64 e = digest[4];
-  u64 f = digest[5];
-  u64 g = digest[6];
-  u64 h = digest[7];
+  STATE_DECL u64 a = digest[0];
+  STATE_DECL u64 b = digest[1];
+  STATE_DECL u64 c = digest[2];
+  STATE_DECL u64 d = digest[3];
+  STATE_DECL u64 e = digest[4];
+  STATE_DECL u64 f = digest[5];
+  STATE_DECL u64 g = digest[6];
+  STATE_DECL u64 h = digest[7];
 
   #define ROUND_EXPAND()                            \
   {                                                 \
@@ -141,73 +149,6 @@ static void sha512_transform (const u64 w[16], u64 digest[8])
   digest[7] += h;
 }
 
-#ifdef IS_AMD
-static void sha512_transform_workaround (const u64 w[16], u64 digest[8])
-{
-  u64 w0_t = w[ 0];
-  u64 w1_t = w[ 1];
-  u64 w2_t = w[ 2];
-  u64 w3_t = w[ 3];
-  u64 w4_t = w[ 4];
-  u64 w5_t = w[ 5];
-  u64 w6_t = w[ 6];
-  u64 w7_t = w[ 7];
-  u64 w8_t = w[ 8];
-  u64 w9_t = w[ 9];
-  u64 wa_t = w[10];
-  u64 wb_t = w[11];
-  u64 wc_t = w[12];
-  u64 wd_t = w[13];
-  u64 we_t = w[14];
-  u64 wf_t = w[15];
-
-  u64 a = digest[0];
-  u64 b = digest[1];
-  u64 c = digest[2];
-  u64 d = digest[3];
-  u64 e = digest[4];
-  u64 f = digest[5];
-  u64 g = digest[6];
-  u64 h = digest[7];
-
-  #define ROUND_EXPAND_WO()                            \
-  {                                                    \
-    w0_t = SHA512_EXPAND_WO (we_t, w9_t, w1_t, w0_t);  \
-    w1_t = SHA512_EXPAND_WO (wf_t, wa_t, w2_t, w1_t);  \
-    w2_t = SHA512_EXPAND_WO (w0_t, wb_t, w3_t, w2_t);  \
-    w3_t = SHA512_EXPAND_WO (w1_t, wc_t, w4_t, w3_t);  \
-    w4_t = SHA512_EXPAND_WO (w2_t, wd_t, w5_t, w4_t);  \
-    w5_t = SHA512_EXPAND_WO (w3_t, we_t, w6_t, w5_t);  \
-    w6_t = SHA512_EXPAND_WO (w4_t, wf_t, w7_t, w6_t);  \
-    w7_t = SHA512_EXPAND_WO (w5_t, w0_t, w8_t, w7_t);  \
-    w8_t = SHA512_EXPAND_WO (w6_t, w1_t, w9_t, w8_t);  \
-    w9_t = SHA512_EXPAND_WO (w7_t, w2_t, wa_t, w9_t);  \
-    wa_t = SHA512_EXPAND_WO (w8_t, w3_t, wb_t, wa_t);  \
-    wb_t = SHA512_EXPAND_WO (w9_t, w4_t, wc_t, wb_t);  \
-    wc_t = SHA512_EXPAND_WO (wa_t, w5_t, wd_t, wc_t);  \
-    wd_t = SHA512_EXPAND_WO (wb_t, w6_t, we_t, wd_t);  \
-    we_t = SHA512_EXPAND_WO (wc_t, w7_t, wf_t, we_t);  \
-    wf_t = SHA512_EXPAND_WO (wd_t, w8_t, w0_t, wf_t);  \
-  }
-
-  ROUND_STEP (0);
-
-  for (int i = 16; i < 80; i += 16)
-  {
-    ROUND_EXPAND_WO (); ROUND_STEP (i);
-  }
-
-  digest[0] += a;
-  digest[1] += b;
-  digest[2] += c;
-  digest[3] += d;
-  digest[4] += e;
-  digest[5] += f;
-  digest[6] += g;
-  digest[7] += h;
-}
-#endif
-
 static void sha512_init (sha512_ctx_t *sha512_ctx)
 {
   sha512_ctx->state[0] = SHA512M_A;
@@ -245,17 +186,7 @@ static void sha512_update (sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
     PUTCHAR64_BE (sha512_ctx->buf, pos++, GETCHAR64_BE (buf, i));
   }
 
-  #ifdef IS_AMD
-  sha512_transform_workaround (sha512_ctx->buf, sha512_ctx->state);
-  #endif
-
-  #ifdef IS_NV
   sha512_transform (sha512_ctx->buf, sha512_ctx->state);
-  #endif
-
-  #ifdef IS_GENERIC
-  sha512_transform (sha512_ctx->buf, sha512_ctx->state);
-  #endif
 
   len -= cnt;
 

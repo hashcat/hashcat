@@ -177,24 +177,19 @@ static inline u32 rotl32_S (const u32 a, const u32 n)
 
 static inline u64 rotr64_S (const u64 a, const u32 n)
 {
-  u64 r;
-
   #if DEVICE_TYPE == DEVICE_TYPE_CPU
 
-  r = rotate (a, (u64) 64 - n);
+  const u64 r = rotate (a, (u64) 64 - n);
 
   #else
 
-  uint2 a2 = as_uint2 (a);
+  const u32 a0 = h32_from_64_S (a);
+  const u32 a1 = l32_from_64_S (a);
 
-  uint2 t;
+  const u32 t0 = (n >= 32) ? amd_bitalign (a0, a1, n - 32) : amd_bitalign (a1, a0, n);
+  const u32 t1 = (n >= 32) ? amd_bitalign (a1, a0, n - 32) : amd_bitalign (a0, a1, n);
 
-  t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32)
-                   : amd_bitalign (a2.s1, a2.s0, n);
-  t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32)
-                   : amd_bitalign (a2.s0, a2.s1, n);
-
-  r = as_ulong (t);
+  const u64 r = hl32_to_64_S (t0, t1);
 
   #endif
 
@@ -238,159 +233,20 @@ static inline u32x rotl32 (const u32x a, const u32 n)
 
 static inline u64x rotr64 (const u64x a, const u32 n)
 {
-  u64x r;
-
   #if DEVICE_TYPE == DEVICE_TYPE_CPU
 
-  r = rotate (a, (u64) 64 - n);
+  const u64x r = rotate (a, (u64) 64 - n);
 
   #else
 
-  uint2 a2;
-  uint2 t;
+  const u32x a0 = h32_from_64 (a);
+  const u32x a1 = l32_from_64 (a);
 
-  #if   VECT_SIZE == 1
+  const u32x t0 = (n >= 32) ? amd_bitalign (a0, a1, n - 32) : amd_bitalign (a1, a0, n);
+  const u32x t1 = (n >= 32) ? amd_bitalign (a1, a0, n - 32) : amd_bitalign (a0, a1, n);
 
-  a2 = as_uint2 (a);
+  const u64x r = hl32_to_64 (t0, t1);
 
-  t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-  t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-  r = as_ulong (t);
-
-  #elif VECT_SIZE == 2
-
-  {
-    a2 = as_uint2 (a.s0);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s0 = as_ulong (t);
-  }
-
-  {
-    a2 = as_uint2 (a.s1);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s1 = as_ulong (t);
-  }
-
-  #elif VECT_SIZE == 4
-
-  {
-    a2 = as_uint2 (a.s0);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s0 = as_ulong (t);
-  }
-
-  {
-    a2 = as_uint2 (a.s1);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s1 = as_ulong (t);
-  }
-
-  {
-    a2 = as_uint2 (a.s2);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s2 = as_ulong (t);
-  }
-
-  {
-    a2 = as_uint2 (a.s3);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s3 = as_ulong (t);
-  }
-
-  #elif VECT_SIZE == 8
-
-  {
-    a2 = as_uint2 (a.s0);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s0 = as_ulong (t);
-  }
-
-  {
-    a2 = as_uint2 (a.s1);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s1 = as_ulong (t);
-  }
-
-  {
-    a2 = as_uint2 (a.s2);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s2 = as_ulong (t);
-  }
-
-  {
-    a2 = as_uint2 (a.s3);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s3 = as_ulong (t);
-  }
-
-  {
-    a2 = as_uint2 (a.s4);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s4 = as_ulong (t);
-  }
-
-  {
-    a2 = as_uint2 (a.s5);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s5 = as_ulong (t);
-  }
-
-  {
-    a2 = as_uint2 (a.s6);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s6 = as_ulong (t);
-  }
-
-  {
-    a2 = as_uint2 (a.s7);
-
-    t.s0 = (n >= 32) ? amd_bitalign (a2.s0, a2.s1, n - 32) : amd_bitalign (a2.s1, a2.s0, n);
-    t.s1 = (n >= 32) ? amd_bitalign (a2.s1, a2.s0, n - 32) : amd_bitalign (a2.s0, a2.s1, n);
-
-    r.s7 = as_ulong (t);
-  }
-
-  #endif
   #endif
 
   return r;

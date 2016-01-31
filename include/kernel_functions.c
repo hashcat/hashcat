@@ -265,16 +265,13 @@
 
 #define SHA384_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                               \
-  u64x  temp0;                                  \
-  temp0  = K;                                   \
-  temp0 += x;                                   \
-  temp0 += h;                                   \
-  temp0 += SHA384_S1 (e);                       \
-  temp0 += F0 (e, f, g);                        \
-  d     += temp0;                               \
-  h      = SHA384_S0 (a);                       \
-  h     += F1 (a, b, c);                        \
-  h     += temp0;                               \
+  h += K;                                       \
+  h += x;                                       \
+  h += SHA384_S1 (e);                           \
+  h += F0 (e, f, g);                            \
+  d += h;                                       \
+  h += SHA384_S0 (a);                           \
+  h += F1 (a, b, c);                            \
 }
 
 #define SHA384_EXPAND(x,y,z,w) (SHA384_S3 (x) + y + SHA384_S2 (z) + w)
@@ -309,24 +306,16 @@
 
 #define SHA512_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                               \
-  u64x  temp0;                                  \
-  temp0  = K;                                   \
-  temp0 += x;                                   \
-  temp0 += h;                                   \
-  temp0 += SHA512_S1 (e);                       \
-  temp0 += F0 (e, f, g);                        \
-  d     += temp0;                               \
-  h      = SHA512_S0 (a);                       \
-  h     += F1 (a, b, c);                        \
-  h     += temp0;                               \
+  h += K;                                       \
+  h += x;                                       \
+  h += SHA512_S1 (e);                           \
+  h += F0 (e, f, g);                            \
+  d += h;                                       \
+  h += SHA512_S0 (a);                           \
+  h += F1 (a, b, c);                            \
 }
 
 #define SHA512_EXPAND(x,y,z,w) (SHA512_S3 (x) + y + SHA512_S2 (z) + w)
-
-#define SHA512_S2_WO(x) (rotate ((x), 64- 1ull) ^ rotate ((x), 64- 8ull) ^ SHIFT_RIGHT_64 ((x), 7))
-#define SHA512_S3_WO(x) (rotate ((x), 64-19ull) ^ rotate ((x), 64-61ull) ^ SHIFT_RIGHT_64 ((x), 6))
-
-#define SHA512_EXPAND_WO(x,y,z,w) (SHA512_S3_WO (x) + y + SHA512_S2_WO (z) + w)
 #endif
 
 #ifdef _RIPEMD160_
