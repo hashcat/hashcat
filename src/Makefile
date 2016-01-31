@@ -293,16 +293,6 @@ uninstall:
 	$(RM) -rf $(DOCUMENT_FOLDER)
 
 ##
-## Targets: Libraries
-##
-
-lib/libOpenCL.a:
-	$(DLL_WIN_32) -A -k -l lib/libOpenCL.a   -d lib/OpenCL.def
-
-lib/libOpenCL64.a:
-	$(DLL_WIN_64) -A -k -l lib/libOpenCL64.a -d lib/OpenCL64.def
-
-##
 ## native compiled oclHashcat
 ##
 
