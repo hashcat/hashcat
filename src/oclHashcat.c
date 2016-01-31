@@ -12714,7 +12714,16 @@ int main (int argc, char **argv)
         {
           hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, sizeof (vector_width), &vector_width, NULL);
 
-          if ((vendor_id == VENDOR_ID_NV) && (strstr (device_name, " Ti") || strstr (device_name, " TI")))
+          int is_ti = 0;
+
+          const int device_name_len = strlen (device_name);
+
+          if (device_name[device_name_len - 2] == 't') is_ti++;
+          if (device_name[device_name_len - 2] == 'T') is_ti++;
+          if (device_name[device_name_len - 1] == 'i') is_ti++;
+          if (device_name[device_name_len - 1] == 'I') is_ti++;
+
+          if ((vendor_id == VENDOR_ID_NV) && (is_ti == 2))
           {
             // Yeah that's a super bad hack, but there's no other attribute we could use
 
