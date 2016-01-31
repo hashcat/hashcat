@@ -492,7 +492,7 @@ const char *USAGE_BIG[] =
   "   ?l = abcdefghijklmnopqrstuvwxyz",
   "   ?u = ABCDEFGHIJKLMNOPQRSTUVWXYZ",
   "   ?d = 0123456789",
-  "   ?s =  !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
+  "   ?s =  !\"#$%%&'()*+,-./:;<=>?@[\\]^_`{|}~",
   "   ?a = ?l?u?d?s",
   "   ?b = 0x00 - 0xff",
   "",
