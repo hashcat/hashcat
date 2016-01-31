@@ -187,15 +187,25 @@ extern hc_thread_mutex_t mux_display;
  */
 
 #ifdef OSX
+#define KERNEL_ACCEL_1800    1
+#define KERNEL_ACCEL_2500    2
 #define KERNEL_ACCEL_5000    16
 #define KERNEL_ACCEL_6100    1
 #define KERNEL_ACCEL_6211    2
 #define KERNEL_ACCEL_6231    1
 #define KERNEL_ACCEL_6241    4
+#define KERNEL_ACCEL_7100    1
+#define KERNEL_ACCEL_7200    1
+#define KERNEL_ACCEL_7900    1
 #define KERNEL_ACCEL_8200    1
 #define KERNEL_ACCEL_8700    2
+#define KERNEL_ACCEL_9100    4
+#define KERNEL_ACCEL_9200    1
+#define KERNEL_ACCEL_9300    1
+#define KERNEL_ACCEL_9400    1
 #define KERNEL_ACCEL_9500    1
 #define KERNEL_ACCEL_9600    1
+#define KERNEL_ACCEL_10000   1
 #define KERNEL_ACCEL_10500   4
 #define KERNEL_ACCEL_11300   1
 #define KERNEL_ACCEL_11600   1
@@ -206,15 +216,25 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_12500   1
 #define KERNEL_ACCEL_13000   1
 #else
+#define KERNEL_ACCEL_1800    2
+#define KERNEL_ACCEL_2500    8
 #define KERNEL_ACCEL_5000    64
 #define KERNEL_ACCEL_6100    8
 #define KERNEL_ACCEL_6211    16
 #define KERNEL_ACCEL_6231    4
 #define KERNEL_ACCEL_6241    32
+#define KERNEL_ACCEL_7100    2
+#define KERNEL_ACCEL_7200    2
+#define KERNEL_ACCEL_7900    2
 #define KERNEL_ACCEL_8200    2
 #define KERNEL_ACCEL_8700    8
+#define KERNEL_ACCEL_9100    8
+#define KERNEL_ACCEL_9200    2
+#define KERNEL_ACCEL_9300    2
+#define KERNEL_ACCEL_9400    8
 #define KERNEL_ACCEL_9500    8
 #define KERNEL_ACCEL_9600    2
+#define KERNEL_ACCEL_10000   2
 #define KERNEL_ACCEL_10500   64
 #define KERNEL_ACCEL_11300   2
 #define KERNEL_ACCEL_11600   2
@@ -286,11 +306,9 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_1740    64
 #define KERNEL_ACCEL_1750    32
 #define KERNEL_ACCEL_1760    32
-#define KERNEL_ACCEL_1800    2
 #define KERNEL_ACCEL_2100    8
 #define KERNEL_ACCEL_2400    64
 #define KERNEL_ACCEL_2410    64
-#define KERNEL_ACCEL_2500    8
 #define KERNEL_ACCEL_2600    64
 #define KERNEL_ACCEL_2611    64
 #define KERNEL_ACCEL_2612    64
@@ -333,15 +351,12 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_6700    8
 #define KERNEL_ACCEL_6800    8
 #define KERNEL_ACCEL_6900    16
-#define KERNEL_ACCEL_7100    2
-#define KERNEL_ACCEL_7200    2
 #define KERNEL_ACCEL_7300    64
 #define KERNEL_ACCEL_7400    2
 #define KERNEL_ACCEL_7500    8
 #define KERNEL_ACCEL_7600    64
 #define KERNEL_ACCEL_7700    16
 #define KERNEL_ACCEL_7800    8
-#define KERNEL_ACCEL_7900    2
 #define KERNEL_ACCEL_8000    8
 #define KERNEL_ACCEL_8100    64
 #define KERNEL_ACCEL_8300    64
@@ -351,10 +366,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_8800    8
 #define KERNEL_ACCEL_8900    16
 #define KERNEL_ACCEL_9000    2
-#define KERNEL_ACCEL_9100    8
-#define KERNEL_ACCEL_9200    2
-#define KERNEL_ACCEL_9300    2
-#define KERNEL_ACCEL_9400    8
 #define KERNEL_ACCEL_9700    8
 #define KERNEL_ACCEL_9710    8
 #define KERNEL_ACCEL_9720    8
@@ -362,7 +373,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_9810    8
 #define KERNEL_ACCEL_9820    8
 #define KERNEL_ACCEL_9900    64
-#define KERNEL_ACCEL_10000   2
 #define KERNEL_ACCEL_10100   128
 #define KERNEL_ACCEL_10200   64
 #define KERNEL_ACCEL_10300   8
@@ -454,7 +464,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_2711    2
 #define KERNEL_LOOPS_2811    2
 #define KERNEL_LOOPS_3100    2
-#define KERNEL_LOOPS_3200    4
+#define KERNEL_LOOPS_3200    2
 #define KERNEL_LOOPS_3710    2
 #define KERNEL_LOOPS_3711    2
 #define KERNEL_LOOPS_3800    2
@@ -484,13 +494,14 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_7800    2
 #define KERNEL_LOOPS_8000    2
 #define KERNEL_LOOPS_8100    2
+#define KERNEL_LOOPS_8200    1
 #define KERNEL_LOOPS_8300    2
 #define KERNEL_LOOPS_8400    2
 #define KERNEL_LOOPS_8500    2
 #define KERNEL_LOOPS_8600    2
-#define KERNEL_LOOPS_8700    4
+#define KERNEL_LOOPS_8700    2
 #define KERNEL_LOOPS_9700    2
-#define KERNEL_LOOPS_9710    8
+#define KERNEL_LOOPS_9710    2
 #define KERNEL_LOOPS_9720    8
 #define KERNEL_LOOPS_9800    2
 #define KERNEL_LOOPS_9810    2
@@ -507,10 +518,11 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_11000   2
 #define KERNEL_LOOPS_11100   2
 #define KERNEL_LOOPS_11200   2
+#define KERNEL_LOOPS_11300   1
 #define KERNEL_LOOPS_11400   2
 #define KERNEL_LOOPS_11500   2
-#define KERNEL_LOOPS_11700   8
-#define KERNEL_LOOPS_11800   8
+#define KERNEL_LOOPS_11700   2
+#define KERNEL_LOOPS_11800   2
 #define KERNEL_LOOPS_12600   2
 #else
 #define KERNEL_LOOPS_0       256
@@ -605,6 +617,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_7800    64
 #define KERNEL_LOOPS_8000    64
 #define KERNEL_LOOPS_8100    128
+#define KERNEL_LOOPS_8200    200
 #define KERNEL_LOOPS_8300    64
 #define KERNEL_LOOPS_8400    64
 #define KERNEL_LOOPS_8500    16
@@ -628,6 +641,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_11000   256
 #define KERNEL_LOOPS_11100   128
 #define KERNEL_LOOPS_11200   128
+#define KERNEL_LOOPS_11300   256
 #define KERNEL_LOOPS_11400   128
 #define KERNEL_LOOPS_11500   256
 #define KERNEL_LOOPS_11700   64
@@ -666,7 +680,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_7200    200
 #define KERNEL_LOOPS_7400    200
 #define KERNEL_LOOPS_7900    256
-#define KERNEL_LOOPS_8200    200
 #define KERNEL_LOOPS_8800    256
 #define KERNEL_LOOPS_8900    1
 #define KERNEL_LOOPS_9000    16
@@ -680,7 +693,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_10300   128
 #define KERNEL_LOOPS_10500   64
 #define KERNEL_LOOPS_10900   200
-#define KERNEL_LOOPS_11300   256
 #define KERNEL_LOOPS_11600   512
 #define KERNEL_LOOPS_11900   200
 #define KERNEL_LOOPS_12000   200
