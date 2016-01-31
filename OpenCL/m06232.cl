@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -1089,7 +1091,7 @@ __constant u32 Cl[8][256] =
 
 #define BOX(S,n,i) (S)[(n)][(i)]
 
-static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 s_Ch[8][256], __local u32 s_Cl[8][256])
+static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   const u32 rch[R + 1] =
   {
@@ -1285,7 +1287,7 @@ static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 s_Ch
   dgst[15] ^= statel[7] ^ w[15];
 }
 
-static void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[16], const u32 opad[16], u32 dgst[16], __local u32 s_Ch[8][256], __local u32 s_Cl[8][256])
+static void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[16], const u32 opad[16], u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   dgst[ 0] = ipad[ 0];
   dgst[ 1] = ipad[ 1];
@@ -1365,7 +1367,7 @@ static void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[16], c
   whirlpool_transform (w, dgst, s_Ch, s_Cl);
 }
 
-static void hmac_init (u32 w[16], u32 ipad[16], u32 opad[16], __local u32 s_Ch[8][256], __local u32 s_Cl[8][256])
+static void hmac_init (u32 w[16], u32 ipad[16], u32 opad[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   w[ 0] ^= 0x36363636;
   w[ 1] ^= 0x36363636;
