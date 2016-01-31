@@ -447,25 +447,39 @@ static void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u
   }
 }
 
-static void transform_netntlmv1_key (const u32 w0, const u32 w1, u32 out[2])
+static void transform_netntlmv1_key (const u32x w0, const u32x w1, u32x out[2])
 {
-  const uchar4 t0 = as_uchar4 (w0);
-  const uchar4 t1 = as_uchar4 (w1);
+  u32x t[8];
 
-  uchar4 k0;
-  uchar4 k1;
+  t[0] = (w0 >>  0) & 0xff;
+  t[1] = (w0 >>  8) & 0xff;
+  t[2] = (w0 >> 16) & 0xff;
+  t[3] = (w0 >> 24) & 0xff;
+  t[4] = (w1 >>  0) & 0xff;
+  t[5] = (w1 >>  8) & 0xff;
+  t[6] = (w1 >> 16) & 0xff;
+  t[7] = (w1 >> 24) & 0xff;
 
-  k0.s0 =                (t0.s0 >> 0);
-  k0.s1 = (t0.s0 << 7) | (t0.s1 >> 1);
-  k0.s2 = (t0.s1 << 6) | (t0.s2 >> 2);
-  k0.s3 = (t0.s2 << 5) | (t0.s3 >> 3);
-  k1.s0 = (t0.s3 << 4) | (t1.s0 >> 4);
-  k1.s1 = (t1.s0 << 3) | (t1.s1 >> 5);
-  k1.s2 = (t1.s1 << 2) | (t1.s2 >> 6);
-  k1.s3 = (t1.s2 << 1);
+  u32x k[8];
 
-  out[0] = as_uint (k0);
-  out[1] = as_uint (k1);
+  k[0] =               (t[0] >> 0);
+  k[1] = (t[0] << 7) | (t[1] >> 1);
+  k[2] = (t[1] << 6) | (t[2] >> 2);
+  k[3] = (t[2] << 5) | (t[3] >> 3);
+  k[4] = (t[3] << 4) | (t[4] >> 4);
+  k[5] = (t[4] << 3) | (t[5] >> 5);
+  k[6] = (t[5] << 2) | (t[6] >> 6);
+  k[7] = (t[6] << 1);
+
+  out[0] = ((k[0] & 0xff) <<  0)
+         | ((k[1] & 0xff) <<  8)
+         | ((k[2] & 0xff) << 16)
+         | ((k[3] & 0xff) << 24);
+
+  out[1] = ((k[4] & 0xff) <<  0)
+         | ((k[5] & 0xff) <<  8)
+         | ((k[6] & 0xff) << 16)
+         | ((k[7] & 0xff) << 24);
 }
 
 __kernel void m05500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 combs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
