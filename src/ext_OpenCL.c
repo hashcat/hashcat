@@ -56,15 +56,15 @@ const char *val2cstr_cl (cl_int CL_err)
   return "CL_UNKNOWN_ERROR";
 }
 
-#define LOAD_FUNC(ptr,name,type) \
-    ptr->name = (type) hc_dlsym (ptr->lib, #name); \
-    if (!ptr->name) { \
-      log_error ("ERROR: #name is missing from opencl shared library"); \
-      exit (-1); \
-    }
-
-void ocl_init (OCL_PTR *ocl)
+int ocl_init (OCL_PTR *ocl)
 {
+  if (!ocl)
+  {
+    log_error ("ERROR: opencl library ptr is null");
+
+    exit (-1);
+  }
+
   memset (ocl, 0, sizeof (hc_opencl_lib_t));
 
   #ifdef _WIN
@@ -82,36 +82,38 @@ void ocl_init (OCL_PTR *ocl)
     exit (-1);
   }
 
-  LOAD_FUNC(ocl, clBuildProgram, OCL_CLBUILDPROGRAM)
-  LOAD_FUNC(ocl, clCreateBuffer, OCL_CLCREATEBUFFER)
-  LOAD_FUNC(ocl, clCreateCommandQueue, OCL_CLCREATECOMMANDQUEUE)
-  LOAD_FUNC(ocl, clCreateContext, OCL_CLCREATECONTEXT)
-  LOAD_FUNC(ocl, clCreateKernel, OCL_CLCREATEKERNEL)
-  LOAD_FUNC(ocl, clCreateProgramWithBinary, OCL_CLCREATEPROGRAMWITHBINARY)
-  LOAD_FUNC(ocl, clCreateProgramWithSource, OCL_CLCREATEPROGRAMWITHSOURCE)
-  LOAD_FUNC(ocl, clEnqueueCopyBuffer, OCL_CLENQUEUECOPYBUFFER)
-  LOAD_FUNC(ocl, clEnqueueFillBuffer, OCL_CLENQUEUEFILLBUFFER)
-  LOAD_FUNC(ocl, clEnqueueMapBuffer, OCL_CLENQUEUEMAPBUFFER)
-  LOAD_FUNC(ocl, clEnqueueNDRangeKernel, OCL_CLENQUEUENDRANGEKERNEL)
-  LOAD_FUNC(ocl, clEnqueueReadBuffer, OCL_CLENQUEUEREADBUFFER)
-  LOAD_FUNC(ocl, clEnqueueUnmapMemObject, OCL_CLENQUEUEUNMAPMEMOBJECT)
-  LOAD_FUNC(ocl, clEnqueueWriteBuffer, OCL_CLENQUEUEWRITEBUFFER)
-  LOAD_FUNC(ocl, clFinish, OCL_CLFINISH)
-  LOAD_FUNC(ocl, clFlush, OCL_CLFLUSH)
-  LOAD_FUNC(ocl, clGetDeviceIDs, OCL_CLGETDEVICEIDS)
-  LOAD_FUNC(ocl, clGetDeviceInfo, OCL_CLGETDEVICEINFO)
-  LOAD_FUNC(ocl, clGetEventInfo, OCL_CLGETEVENTINFO)
-  LOAD_FUNC(ocl, clGetKernelWorkGroupInfo, OCL_CLGETKERNELWORKGROUPINFO)
-  LOAD_FUNC(ocl, clGetPlatformIDs, OCL_CLGETPLATFORMIDS)
-  LOAD_FUNC(ocl, clGetPlatformInfo, OCL_CLGETPLATFORMINFO)
-  LOAD_FUNC(ocl, clGetProgramBuildInfo, OCL_CLGETPROGRAMBUILDINFO)
-  LOAD_FUNC(ocl, clGetProgramInfo, OCL_CLGETPROGRAMINFO)
-  LOAD_FUNC(ocl, clReleaseCommandQueue, OCL_CLRELEASECOMMANDQUEUE)
-  LOAD_FUNC(ocl, clReleaseContext, OCL_CLRELEASECONTEXT)
-  LOAD_FUNC(ocl, clReleaseKernel, OCL_CLRELEASEKERNEL)
-  LOAD_FUNC(ocl, clReleaseMemObject, OCL_CLRELEASEMEMOBJECT)
-  LOAD_FUNC(ocl, clReleaseProgram, OCL_CLRELEASEPROGRAM)
-  LOAD_FUNC(ocl, clSetKernelArg, OCL_CLSETKERNELARG)
+  HC_LOAD_FUNC(ocl, clBuildProgram, OCL_CLBUILDPROGRAM, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clCreateBuffer, OCL_CLCREATEBUFFER, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clCreateCommandQueue, OCL_CLCREATECOMMANDQUEUE, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clCreateContext, OCL_CLCREATECONTEXT, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clCreateKernel, OCL_CLCREATEKERNEL, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clCreateProgramWithBinary, OCL_CLCREATEPROGRAMWITHBINARY, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clCreateProgramWithSource, OCL_CLCREATEPROGRAMWITHSOURCE, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clEnqueueCopyBuffer, OCL_CLENQUEUECOPYBUFFER, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clEnqueueFillBuffer, OCL_CLENQUEUEFILLBUFFER, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clEnqueueMapBuffer, OCL_CLENQUEUEMAPBUFFER, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clEnqueueNDRangeKernel, OCL_CLENQUEUENDRANGEKERNEL, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clEnqueueReadBuffer, OCL_CLENQUEUEREADBUFFER, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clEnqueueUnmapMemObject, OCL_CLENQUEUEUNMAPMEMOBJECT, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clEnqueueWriteBuffer, OCL_CLENQUEUEWRITEBUFFER, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clFinish, OCL_CLFINISH, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clFlush, OCL_CLFLUSH, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clGetDeviceIDs, OCL_CLGETDEVICEIDS, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clGetDeviceInfo, OCL_CLGETDEVICEINFO, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clGetEventInfo, OCL_CLGETEVENTINFO, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clGetKernelWorkGroupInfo, OCL_CLGETKERNELWORKGROUPINFO, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clGetPlatformIDs, OCL_CLGETPLATFORMIDS, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clGetPlatformInfo, OCL_CLGETPLATFORMINFO, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clGetProgramBuildInfo, OCL_CLGETPROGRAMBUILDINFO, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clGetProgramInfo, OCL_CLGETPROGRAMINFO, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clReleaseCommandQueue, OCL_CLRELEASECOMMANDQUEUE, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clReleaseContext, OCL_CLRELEASECONTEXT, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clReleaseKernel, OCL_CLRELEASEKERNEL, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clReleaseMemObject, OCL_CLRELEASEMEMOBJECT, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clReleaseProgram, OCL_CLRELEASEPROGRAM, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clSetKernelArg, OCL_CLSETKERNELARG, OpenCL, 1)
+
+  return 0;
 }
 
 void ocl_close (OCL_PTR *ocl)

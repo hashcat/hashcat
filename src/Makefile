@@ -129,7 +129,13 @@ CFLAGS_NATIVE            += $(CFLAGS)
 
 LFLAGS_NATIVE            := -lpthread
 
-WITH_ADL                 := 0
+ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
+CFLAGS_NATIVE            += -DHAVE_HWMON
+ifeq ($(WITH_ADL),1)
+CFLAGS_NATIVE            += -DHAVE_ADL
+endif
+endif
+
 WITH_NVML                := 0
 endif
 

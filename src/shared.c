@@ -2762,9 +2762,9 @@ HM_LIB hm_init (const cl_uint vendor_id)
 #endif // HAVE_ADL || HAVE_NVML
 
 #ifdef HAVE_ADL
-int get_adapters_num_amd (HM_LIB hm_dll_amd, int *iNumberAdapters)
+int get_adapters_num_amd (void *adl, int *iNumberAdapters)
 {
-  if (hc_ADL_Adapter_NumberOfAdapters_Get (hm_dll_amd, iNumberAdapters) != ADL_OK) return -1;
+  if (hc_ADL_Adapter_NumberOfAdapters_Get ((ADL_PTR *) adl, iNumberAdapters) != ADL_OK) return -1;
 
   if (iNumberAdapters == 0)
   {
@@ -2812,13 +2812,13 @@ int hm_show_performance_level (HM_LIB hm_dll, int iAdapterIndex)
 }
 */
 
-LPAdapterInfo hm_get_adapter_info_amd (HM_LIB hm_dll_amd, int iNumberAdapters)
+LPAdapterInfo hm_get_adapter_info_amd (void *adl, int iNumberAdapters)
 {
   size_t AdapterInfoSize = iNumberAdapters * sizeof (AdapterInfo);
 
   LPAdapterInfo lpAdapterInfo = (LPAdapterInfo) mymalloc (AdapterInfoSize);
 
-  if (hc_ADL_Adapter_AdapterInfo_Get (hm_dll_amd, lpAdapterInfo, AdapterInfoSize) != ADL_OK) return NULL;
+  if (hc_ADL_Adapter_AdapterInfo_Get ((ADL_PTR *) adl, lpAdapterInfo, AdapterInfoSize) != ADL_OK) return NULL;
 
   return lpAdapterInfo;
 }
@@ -2977,7 +2977,7 @@ u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adapters,
   return adl_adapters;
 }
 
-int hm_check_fanspeed_control (HM_LIB hm_dll_amd, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
+int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
   // loop through all valid devices
 
@@ -2995,7 +2995,7 @@ int hm_check_fanspeed_control (HM_LIB hm_dll_amd, hm_attrs_t *hm_device, u32 *va
 
     int opencl_device_index = i;
 
-    // if (hm_show_performance_level (hm_dll_amd, info.iAdapterIndex) != 0) return -1;
+    // if (hm_show_performance_level (adl, info.iAdapterIndex) != 0) return -1;
 
     // get fanspeed info
 
@@ -3007,7 +3007,7 @@ int hm_check_fanspeed_control (HM_LIB hm_dll_amd, hm_attrs_t *hm_device, u32 *va
 
       FanSpeedInfo.iSize = sizeof (ADLFanSpeedInfo);
 
-      if (hc_ADL_Overdrive5_FanSpeedInfo_Get (hm_dll_amd, info.iAdapterIndex, 0, &FanSpeedInfo) != ADL_OK) return -1;
+      if (hc_ADL_Overdrive5_FanSpeedInfo_Get (adl, info.iAdapterIndex, 0, &FanSpeedInfo) != ADL_OK) return -1;
 
       // check read and write capability in fanspeedinfo
 
@@ -3027,7 +3027,7 @@ int hm_check_fanspeed_control (HM_LIB hm_dll_amd, hm_attrs_t *hm_device, u32 *va
 
       memset (&faninfo, 0, sizeof (faninfo));
 
-      if (hc_ADL_Overdrive6_FanSpeed_Get (hm_dll_amd, info.iAdapterIndex, &faninfo) != ADL_OK) return -1;
+      if (hc_ADL_Overdrive6_FanSpeed_Get (adl, info.iAdapterIndex, &faninfo) != ADL_OK) return -1;
 
       // check read capability in fanspeedinfo
 
@@ -3045,7 +3045,7 @@ int hm_check_fanspeed_control (HM_LIB hm_dll_amd, hm_attrs_t *hm_device, u32 *va
   return 0;
 }
 
-int hm_get_overdrive_version (HM_LIB hm_dll_amd, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
+int hm_get_overdrive_version (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
   for (int i = 0; i < num_adl_adapters; i++)
   {
@@ -3061,7 +3061,7 @@ int hm_get_overdrive_version (HM_LIB hm_dll_amd, hm_attrs_t *hm_device, u32 *val
     int od_enabled   = 0;
     int od_version   = 0;
 
-    if (hc_ADL_Overdrive_Caps (hm_dll_amd, info.iAdapterIndex, &od_supported, &od_enabled, &od_version) != ADL_OK) return -1;
+    if (hc_ADL_Overdrive_Caps (adl, info.iAdapterIndex, &od_supported, &od_enabled, &od_version) != ADL_OK) return -1;
 
     // store the overdrive version in hm_device
 
@@ -3109,7 +3109,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
   #ifdef HAVE_ADL
   if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
   {
-    if (data.hm_dll_amd)
+    if (data.adl)
     {
       if (data.hm_device[device_id].od_version == 5)
       {
@@ -3117,7 +3117,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
 
         Temperature.iSize = sizeof (ADLTemperature);
 
-        if (hc_ADL_Overdrive5_Temperature_Get (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, 0, &Temperature) != ADL_OK) return -1;
+        if (hc_ADL_Overdrive5_Temperature_Get (data.adl, data.hm_device[device_id].adapter_index.amd, 0, &Temperature) != ADL_OK) return -1;
 
         return Temperature.iTemperature / 1000;
       }
@@ -3125,7 +3125,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
       {
         int Temperature = 0;
 
-        if (hc_ADL_Overdrive6_Temperature_Get (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, &Temperature) != ADL_OK) return -1;
+        if (hc_ADL_Overdrive6_Temperature_Get (data.adl, data.hm_device[device_id].adapter_index.amd, &Temperature) != ADL_OK) return -1;
 
         return Temperature / 1000;
       }
@@ -3172,7 +3172,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
     #ifdef HAVE_ADL
     if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
     {
-      if (data.hm_dll_amd)
+      if (data.adl)
       {
         if (data.hm_device[device_id].od_version == 5)
         {
@@ -3184,7 +3184,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
           lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
           lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
 
-          if (hc_ADL_Overdrive5_FanSpeed_Get (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+          if (hc_ADL_Overdrive5_FanSpeed_Get (data.adl, data.hm_device[device_id].adapter_index.amd, 0, &lpFanSpeedValue) != ADL_OK) return -1;
 
           return lpFanSpeedValue.iFanSpeed;
         }
@@ -3194,7 +3194,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
 
           memset (&faninfo, 0, sizeof (faninfo));
 
-          if (hc_ADL_Overdrive6_FanSpeed_Get (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, &faninfo) != ADL_OK) return -1;
+          if (hc_ADL_Overdrive6_FanSpeed_Get (data.adl, data.hm_device[device_id].adapter_index.amd, &faninfo) != ADL_OK) return -1;
 
           return faninfo.iFanSpeedPercent;
         }
@@ -3234,13 +3234,13 @@ int hm_get_utilization_with_device_id (const uint device_id)
   #ifdef HAVE_ADL
   if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
   {
-    if (data.hm_dll_amd)
+    if (data.adl)
     {
       ADLPMActivity PMActivity;
 
       PMActivity.iSize = sizeof (ADLPMActivity);
 
-      if (hc_ADL_Overdrive_CurrentActivity_Get (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, &PMActivity) != ADL_OK) return -1;
+      if (hc_ADL_Overdrive_CurrentActivity_Get (data.adl, data.hm_device[device_id].adapter_index.amd, &PMActivity) != ADL_OK) return -1;
 
       return PMActivity.iActivityPercent;
     }
@@ -3278,7 +3278,7 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
 {
   if (data.hm_device[device_id].fan_supported == 1)
   {
-    if (data.hm_dll_amd)
+    if (data.adl)
     {
       if (data.hm_device[device_id].od_version == 5)
       {
@@ -3291,7 +3291,7 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
         lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
         lpFanSpeedValue.iFanSpeed  = fanspeed;
 
-        if (hc_ADL_Overdrive5_FanSpeed_Set (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+        if (hc_ADL_Overdrive5_FanSpeed_Set (data.adl, data.hm_device[device_id].adapter_index.amd, 0, &lpFanSpeedValue) != ADL_OK) return -1;
 
         return 0;
       }
@@ -3304,7 +3304,7 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
         fan_speed_value.iSpeedType = ADL_OD6_FANSPEED_TYPE_PERCENT;
         fan_speed_value.iFanSpeed  = fanspeed;
 
-        if (hc_ADL_Overdrive6_FanSpeed_Set (data.hm_dll_amd, data.hm_device[device_id].adapter_index.amd, &fan_speed_value) != ADL_OK) return -1;
+        if (hc_ADL_Overdrive6_FanSpeed_Set (data.adl, data.hm_device[device_id].adapter_index.amd, &fan_speed_value) != ADL_OK) return -1;
 
         return 0;
       }

@@ -60,6 +60,18 @@
 #define hc_dlsym dlsym
 #endif
 
+#define HC_LOAD_FUNC(ptr,name,type,libname,noerr) \
+  ptr->name = (type) hc_dlsym (ptr->lib, #name); \
+  if (!ptr->name) { \
+    if (noerr == 1) { \
+      log_error ("ERROR: #name is missing from #libname shared library."); \
+      exit (-1); \
+    } else { \
+      log_info ("WARNING: #name is missing from #libname shared library."); \
+      return (-1); \
+    } \
+  }
+
 /**
  * system stuff
  */
@@ -76,14 +88,14 @@
  * temperature management
  */
 
-#ifdef LINUX
-#include <ext_nvml.h>
+#ifdef _POSIX
 #include <ext_ADL.h>
 #endif
 
-#ifdef WIN
+#ifdef LINUX
+#include <ext_nvml.h>
+#elif WIN
 #include <ext_nvapi.h>
-#include <ext_ADL.h>
 #endif
 
 #ifdef OSX
@@ -1867,16 +1879,16 @@ int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX]);
 // void hm_get_opencl_busid_devid (hm_attrs_t *hm_device, uint opencl_num_devices, cl_device_id *devices);
 
 #ifdef HAVE_ADL
-int get_adapters_num_amd (HM_LIB hm_dll_amd, int *iNumberAdapters);
+int get_adapters_num_amd (void *adl, int *iNumberAdapters);
 
 int hm_get_adapter_index_amd (hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 
-LPAdapterInfo hm_get_adapter_info_amd (HM_LIB hm_dll_amd, int iNumberAdapters);
+LPAdapterInfo hm_get_adapter_info_amd (void *adl, int iNumberAdapters);
 
 u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 
-int hm_get_overdrive_version  (HM_LIB hm_dll_amd, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
-int hm_check_fanspeed_control (HM_LIB hm_dll_amd, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
+int hm_get_overdrive_version  (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
+int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 #endif // HAVE_ADL
 
 #if defined(HAVE_ADL) || defined(HAVE_NVML)
