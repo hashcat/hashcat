@@ -7,6 +7,8 @@
 
 #define _GOST2012_512_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -20,9 +22,7 @@
 #include "OpenCL/common.c"
 #include "include/rp_kernel.h"
 #include "OpenCL/rp.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 #define INITVAL 0
 
@@ -2240,11 +2240,11 @@ __constant u64 sbob_rc64[12][8] =
   },
 };
 
-static void streebog_g (u64 h[8], const u64 m[8], __local u64 (*s_sbob_sl64)[256])
+static void streebog_g (u64x h[8], const u64x m[8], __local u64 (*s_sbob_sl64)[256])
 {
-  u64 k[8];
-  u64 s[8];
-  u64 t[8];
+  u64x k[8];
+  u64x s[8];
+  u64x t[8];
 
   #pragma unroll
   for (int i = 0; i < 8; i++)
@@ -2352,18 +2352,27 @@ __kernel void m11800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
-    u32 w[16];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w[ 0] = pw_buf0[0];
-    w[ 1] = pw_buf0[1];
-    w[ 2] = pw_buf0[2];
-    w[ 3] = pw_buf0[3];
-    w[ 4] = pw_buf1[0];
-    w[ 5] = pw_buf1[1];
-    w[ 6] = pw_buf1[2];
-    w[ 7] = pw_buf1[3];
+    const u32 out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+
+    append_0x01_2x4 (w0, w1, out_len);
+
+    u32x w[16];
+
+    w[ 0] = w0[0];
+    w[ 1] = w0[1];
+    w[ 2] = w0[2];
+    w[ 3] = w0[3];
+    w[ 4] = w1[0];
+    w[ 5] = w1[1];
+    w[ 6] = w1[2];
+    w[ 7] = w1[3];
     w[ 8] = 0;
     w[ 9] = 0;
     w[10] = 0;
@@ -2373,15 +2382,11 @@ __kernel void m11800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[14] = 0;
     w[15] = 0;
 
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, &w[0], &w[1], pw_len);
-
-    append_0x01_2x4 (&w[0], &w[1], out_len);
-
     /**
      * reverse message block
      */
 
-    u64 m[8];
+    u64x m[8];
 
     m[0] = hl32_to_64 (w[15], w[14]);
     m[1] = hl32_to_64 (w[13], w[12]);
@@ -2403,7 +2408,7 @@ __kernel void m11800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     // state buffer (hash)
 
-    u64 h[8];
+    u64x h[8];
 
     h[0] = INITVAL;
     h[1] = INITVAL;
@@ -2416,7 +2421,7 @@ __kernel void m11800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     streebog_g (h, m, s_sbob_sl64);
 
-    u64 z[8];
+    u64x z[8];
 
     z[0] = 0;
     z[1] = 0;
@@ -2430,12 +2435,12 @@ __kernel void m11800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     streebog_g (h, z, s_sbob_sl64);
     streebog_g (h, m, s_sbob_sl64);
 
-    const u32 r0 = l32_from_64 (h[0]);
-    const u32 r1 = h32_from_64 (h[0]);
-    const u32 r2 = l32_from_64 (h[1]);
-    const u32 r3 = h32_from_64 (h[1]);
+    const u32x r0 = l32_from_64 (h[0]);
+    const u32x r1 = h32_from_64 (h[0]);
+    const u32x r2 = l32_from_64 (h[1]);
+    const u32x r3 = h32_from_64 (h[1]);
 
-    #include COMPARE_M
+    COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
@@ -2515,18 +2520,27 @@ __kernel void m11800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
-    u32 w[16];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w[ 0] = pw_buf0[0];
-    w[ 1] = pw_buf0[1];
-    w[ 2] = pw_buf0[2];
-    w[ 3] = pw_buf0[3];
-    w[ 4] = pw_buf1[0];
-    w[ 5] = pw_buf1[1];
-    w[ 6] = pw_buf1[2];
-    w[ 7] = pw_buf1[3];
+    const u32 out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+
+    append_0x01_2x4 (w0, w1, out_len);
+
+    u32x w[16];
+
+    w[ 0] = w0[0];
+    w[ 1] = w0[1];
+    w[ 2] = w0[2];
+    w[ 3] = w0[3];
+    w[ 4] = w1[0];
+    w[ 5] = w1[1];
+    w[ 6] = w1[2];
+    w[ 7] = w1[3];
     w[ 8] = 0;
     w[ 9] = 0;
     w[10] = 0;
@@ -2536,15 +2550,11 @@ __kernel void m11800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[14] = 0;
     w[15] = 0;
 
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, &w[0], &w[1], pw_len);
-
-    append_0x01_2x4 (&w[0], &w[1], out_len);
-
     /**
      * reverse message block
      */
 
-    u64 m[8];
+    u64x m[8];
 
     m[0] = hl32_to_64 (w[15], w[14]);
     m[1] = hl32_to_64 (w[13], w[12]);
@@ -2566,7 +2576,7 @@ __kernel void m11800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     // state buffer (hash)
 
-    u64 h[8];
+    u64x h[8];
 
     h[0] = INITVAL;
     h[1] = INITVAL;
@@ -2579,7 +2589,7 @@ __kernel void m11800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     streebog_g (h, m, s_sbob_sl64);
 
-    u64 z[8];
+    u64x z[8];
 
     z[0] = 0;
     z[1] = 0;
@@ -2593,12 +2603,12 @@ __kernel void m11800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     streebog_g (h, z, s_sbob_sl64);
     streebog_g (h, m, s_sbob_sl64);
 
-    const u32 r0 = l32_from_64 (h[0]);
-    const u32 r1 = h32_from_64 (h[0]);
-    const u32 r2 = l32_from_64 (h[1]);
-    const u32 r3 = h32_from_64 (h[1]);
+    const u32x r0 = l32_from_64 (h[0]);
+    const u32x r1 = h32_from_64 (h[0]);
+    const u32x r2 = l32_from_64 (h[1]);
+    const u32x r3 = h32_from_64 (h[1]);
 
-    #include COMPARE_S
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }
 
