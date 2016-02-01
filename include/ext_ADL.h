@@ -282,7 +282,7 @@ typedef int (*ADL_OVERDRIVE6_POWERCONTROL_SET) (int, int);
 typedef int (*ADL_OVERDRIVE6_POWERCONTROL_GET) (int, int *, int *);
 typedef int (*ADL_OVERDRIVE6_POWERCONTROLINFO_GET) (int, ADLOD6PowerControlInfo *);
 typedef int (*ADL_ADAPTER_ACTIVE_GET) (int, int *);
-typedef int (*ADL_DISPLAYENABLE_SET) (int, int *, int, int);
+//typedef int (*ADL_DISPLAYENABLE_SET) (int, int *, int, int);
 typedef int (*ADL_OVERDRIVE_CAPS) (int, int *, int *, int *);
 typedef int (*ADL_OVERDRIVE6_CURRENTSTATUS_GET) (int, ADLOD6CurrentStatus *);
 typedef int (*ADL_OVERDRIVE6_STATEINFO_GET) (int, int, ADLOD6MemClockState *);
@@ -319,7 +319,7 @@ typedef struct
   ADL_OVERDRIVE6_POWERCONTROL_GET ADL_Overdrive6_PowerControl_Get;
   ADL_OVERDRIVE6_POWERCONTROL_SET ADL_Overdrive6_PowerControl_Set;
   ADL_ADAPTER_ACTIVE_GET ADL_Adapter_Active_Get;
-  ADL_DISPLAYENABLE_SET ADL_DisplayEnable_Set;
+  //ADL_DISPLAYENABLE_SET ADL_DisplayEnable_Set;
   ADL_OVERDRIVE_CAPS ADL_Overdrive_Caps;
   ADL_OVERDRIVE6_POWERCONTROL_CAPS ADL_Overdrive6_PowerControl_Caps;
   ADL_OVERDRIVE6_CAPABILITIES_GET ADL_Overdrive6_Capabilities_Get;
