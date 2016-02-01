@@ -359,7 +359,7 @@ int hc_ADL_Overdrive_PowerControlInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLO
 int hc_ADL_Overdrive_PowerControl_Get (ADL_PTR *adl, int iAdapterIndex, int *level);
 int hc_ADL_Overdrive_PowerControl_Set (ADL_PTR *adl, int iAdapterIndex, int level);
 int hc_ADL_Adapter_Active_Get (ADL_PTR *adl, int iAdapterIndex, int *lpStatus);
-int hc_ADL_DisplayEnable_Set (ADL_PTR *adl, int iAdapterIndex, int *lpDisplayIndexList, int iDisplayListSize, int bPersistOnly);
+//int hc_ADL_DisplayEnable_Set (ADL_PTR *adl, int iAdapterIndex, int *lpDisplayIndexList, int iDisplayListSize, int bPersistOnly);
 int hc_ADL_Overdrive_Caps (ADL_PTR *adl, int iAdapterIndex, int *od_supported, int *od_enabled, int *od_version);
 int hc_ADL_Overdrive_CurrentStatus_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6CurrentStatus *status);
 int hc_ADL_Overdrive_StateInfo_Get (ADL_PTR *adl, int iAdapterIndex, int type, ADLOD6MemClockState *state);
