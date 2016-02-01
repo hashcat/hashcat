@@ -92,6 +92,10 @@
 #include <ext_ADL.h>
 #endif
 
+#ifdef _WIN
+#include <ext_ADL.h>
+#endif
+
 #ifdef LINUX
 #include <ext_nvml.h>
 #elif WIN
