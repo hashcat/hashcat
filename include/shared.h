@@ -64,10 +64,10 @@
   ptr->name = (type) hc_dlsym (ptr->lib, #name); \
   if (!ptr->name) { \
     if (noerr == 1) { \
-      log_error ("ERROR: #name is missing from #libname shared library."); \
+      log_error ("ERROR: %s is missing from %s shared library.", #name, #libname); \
       exit (-1); \
     } else { \
-      log_info ("WARNING: #name is missing from #libname shared library."); \
+      log_info ("WARNING: %s is missing from %s shared library.", #name, #libname); \
       return (-1); \
     } \
   }
