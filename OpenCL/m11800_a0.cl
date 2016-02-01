@@ -26,15 +26,25 @@
 
 #define INITVAL 0
 
-#define SBOG_LPSti64                         \
-  s_sbob_sl64[0][(t[0] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[1][(t[1] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[2][(t[2] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[3][(t[3] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[4][(t[4] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[5][(t[5] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[6][(t[6] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[7][(t[7] >> (i * 8)) & 0xff]
+#if   VECT_SIZE == 1
+#define BOX(S,n,i) (S)[(n)][(i)]
+#elif VECT_SIZE == 2
+#define BOX(S,n,i) (u64x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
+#elif VECT_SIZE == 4
+#define BOX(S,n,i) (u64x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
+#elif VECT_SIZE == 8
+#define BOX(S,n,i) (u64x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7])
+#endif
+
+#define SBOG_LPSti64                                  \
+  BOX (s_sbob_sl64, 0, ((t[0] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 1, ((t[1] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 2, ((t[2] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 3, ((t[3] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 4, ((t[4] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 5, ((t[5] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 6, ((t[6] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 7, ((t[7] >> (i * 8)) & 0xff))
 
 // constants
 

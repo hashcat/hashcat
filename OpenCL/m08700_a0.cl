@@ -62,7 +62,25 @@ __constant u32 lotus_magic_table[256] =
 
 #define BOX(S,i) (S)[(i)]
 
-#define uint_to_hex_upper8(i) l_bin2asc[(i)]
+#if   VECT_SIZE == 1
+#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i)])
+#elif VECT_SIZE == 2
+#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
+#elif VECT_SIZE == 4
+#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
+#elif VECT_SIZE == 8
+#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#endif
+
+#if   VECT_SIZE == 1
+#define BOX1(S,i) (S)[(i)]
+#elif VECT_SIZE == 2
+#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1])
+#elif VECT_SIZE == 4
+#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
+#elif VECT_SIZE == 8
+#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
+#endif
 
 static void lotus_mix (u32 *in, __local u32 *s_lotus_magic_table)
 {

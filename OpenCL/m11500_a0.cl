@@ -96,7 +96,15 @@ static u32 round_crc32 (u32 a, const u32 v)
 
   const u32 s = a >> 8;
 
-  a = crc32tab[k];
+  #if   VECT_SIZE == 1
+  a = (u32x) crc32tab[k];
+  #elif VECT_SIZE == 2
+  a = (u32x) (crc32tab[k.s0], crc32tab[k.s1]);
+  #elif VECT_SIZE == 4
+  a = (u32x) (crc32tab[k.s0], crc32tab[k.s1], crc32tab[k.s2], crc32tab[k.s3]);
+  #elif VECT_SIZE == 8
+  a = (u32x) (crc32tab[k.s0], crc32tab[k.s1], crc32tab[k.s2], crc32tab[k.s3], crc32tab[k.s4], crc32tab[k.s5], crc32tab[k.s6], crc32tab[k.s7]);
+  #endif
 
   a ^= s;
 
