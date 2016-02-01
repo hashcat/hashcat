@@ -206,6 +206,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_6211    2
 #define KERNEL_ACCEL_6231    1
 #define KERNEL_ACCEL_6241    4
+#define KERNEL_ACCEL_6800    2
 #define KERNEL_ACCEL_7100    1
 #define KERNEL_ACCEL_7200    1
 #define KERNEL_ACCEL_7900    1
@@ -235,6 +236,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_6211    16
 #define KERNEL_ACCEL_6231    4
 #define KERNEL_ACCEL_6241    32
+#define KERNEL_ACCEL_6800    8
 #define KERNEL_ACCEL_7100    2
 #define KERNEL_ACCEL_7200    2
 #define KERNEL_ACCEL_7900    2
@@ -361,7 +363,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_6500    8
 #define KERNEL_ACCEL_6600    8
 #define KERNEL_ACCEL_6700    8
-#define KERNEL_ACCEL_6800    8
 #define KERNEL_ACCEL_6900    16
 #define KERNEL_ACCEL_7300    64
 #define KERNEL_ACCEL_7400    2
