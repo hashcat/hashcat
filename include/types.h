@@ -1068,8 +1068,8 @@ typedef struct
    */
 
   #ifdef HAVE_HWMON
-  HM_LIB  hm_dll_nv;
-  void   *adl;
+  void   *hm_nv;
+  void   *hm_amd;
   hm_attrs_t hm_device[DEVICES_MAX];
   #endif
 

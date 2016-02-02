@@ -1,47 +1,68 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
 #include <ext_nvml.h>
 
-//#ifdef _POSIX // implied
-
-void *GetLibFunction (void *pLibrary, const char *name)
+int nvml_init (NVML_PTR *nvml)
 {
-  return dlsym (pLibrary, name);
-}
+  if (!nvml) return (-1);
 
-const char * hc_NVML_nvmlErrorString (HM_LIB hDLL, nvmlReturn_t nvml_rc)
-{
-  NVML_ERROR_STRING nvmlErrorString = (NVML_ERROR_STRING) GetLibFunction (hDLL, "nvmlErrorString");
+  memset (nvml, 0, sizeof (NVML_PTR));
 
-  if (nvmlErrorString == NULL)
+  nvml->lib = hc_dlopen ("libnvidia-ml.so", RTLD_NOW);
+
+  if (!nvml->lib)
   {
-    log_error ("ERROR: %s\n", "nvmlErrorString() is missing");
+    if (data.quiet == 0)
+      log_info ("WARNING: load NVML library failed, proceed without NVML HWMon enabled.");
 
-    exit (-1);
+    return (-1);
   }
 
-  return nvmlErrorString (nvml_rc);
+  HC_LOAD_FUNC(nvml, nvmlErrorString, NVML_ERROR_STRING, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlInit, NVML_INIT, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlShutdown, NVML_SHUTDOWN, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetName, NVML_DEVICE_GET_NAME, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetHandleByIndex, NVML_DEVICE_GET_HANDLE_BY_INDEX, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetTemperature, NVML_DEVICE_GET_TEMPERATURE, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetFanSpeed, NVML_DEVICE_GET_FAN_SPEED, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetPowerUsage, NVML_DEVICE_GET_POWER_USAGE, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetUtilizationRates, NVML_DEVICE_GET_UTILIZATION_RATES, NVML, 0)
+
+  return 0;
 }
 
-nvmlReturn_t hc_NVML_nvmlInit (HM_LIB hDLL)
+void nvml_close (NVML_PTR *nvml)
 {
-  NVML_INIT nvmlInit = (NVML_INIT) GetLibFunction (hDLL, "nvmlInit");
-
-  if (nvmlInit == NULL)
+  if (nvml)
   {
-    log_error ("ERROR: %s\n", "nvmlInit() is missing");
+    if (nvml->lib)
+      hc_dlclose (nvml->lib);
 
-    exit (-1);
+    myfree (nvml);
   }
+}
 
-  nvmlReturn_t nvml_rc = nvmlInit ();
+const char *hm_NVML_nvmlErrorString (NVML_PTR *nvml, nvmlReturn_t nvml_rc)
+{
+  if (!nvml) return NULL;
+
+  return nvml->nvmlErrorString (nvml_rc);
+}
+
+nvmlReturn_t hm_NVML_nvmlInit (NVML_PTR *nvml)
+{
+  if (!nvml) return -1;
+
+  nvmlReturn_t nvml_rc = nvml->nvmlInit ();
 
   if (nvml_rc != NVML_SUCCESS)
   {
-    const char *string = hc_NVML_nvmlErrorString (hDLL, nvml_rc);
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
     log_info ("WARN: %s %d %s\n", "nvmlInit()", nvml_rc, string);
   }
@@ -49,22 +70,15 @@ nvmlReturn_t hc_NVML_nvmlInit (HM_LIB hDLL)
   return nvml_rc;
 }
 
-nvmlReturn_t hc_NVML_nvmlShutdown (HM_LIB hDLL)
+nvmlReturn_t hm_NVML_nvmlShutdown (NVML_PTR *nvml)
 {
-  NVML_SHUTDOWN nvmlShutdown = (NVML_SHUTDOWN) GetLibFunction (hDLL, "nvmlShutdown");
+  if (!nvml) return -1;
 
-  if (nvmlShutdown == NULL)
-  {
-    log_error ("ERROR: %s\n", "nvmlShutdown() is missing");
-
-    exit (-1);
-  }
-
-  nvmlReturn_t nvml_rc = nvmlShutdown ();
+  nvmlReturn_t nvml_rc = nvml->nvmlShutdown ();
 
   if (nvml_rc != NVML_SUCCESS)
   {
-    const char *string = hc_NVML_nvmlErrorString (hDLL, nvml_rc);
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
     log_info ("WARN: %s %d %s\n", "nvmlShutdown()", nvml_rc, string);
   }
@@ -72,22 +86,15 @@ nvmlReturn_t hc_NVML_nvmlShutdown (HM_LIB hDLL)
   return nvml_rc;
 }
 
-nvmlReturn_t hc_NVML_nvmlDeviceGetName (HM_LIB hDLL, nvmlDevice_t device, char *name, unsigned int length)
+nvmlReturn_t hm_NVML_nvmlDeviceGetName (NVML_PTR *nvml, nvmlDevice_t device, char *name, unsigned int length)
 {
-  NVML_DEVICE_GET_NAME nvmlDeviceGetName = (NVML_DEVICE_GET_NAME) GetLibFunction (hDLL, "nvmlDeviceGetName");
+  if (!nvml) return -1;
 
-  if (nvmlDeviceGetName == NULL)
-  {
-    log_error ("ERROR: %s\n", "nvmlDeviceGetName() is missing");
-
-    exit (-1);
-  }
-
-  nvmlReturn_t nvml_rc = nvmlDeviceGetName (device, name, length);
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetName (device, name, length);
 
   if (nvml_rc != NVML_SUCCESS)
   {
-    const char *string = hc_NVML_nvmlErrorString (hDLL, nvml_rc);
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
     log_info ("WARN: %s %d %s\n", "nvmlDeviceGetName()", nvml_rc, string);
   }
@@ -95,24 +102,17 @@ nvmlReturn_t hc_NVML_nvmlDeviceGetName (HM_LIB hDLL, nvmlDevice_t device, char *
   return nvml_rc;
 }
 
-nvmlReturn_t hc_NVML_nvmlDeviceGetHandleByIndex (HM_LIB hDLL, int skip_warnings, unsigned int index, nvmlDevice_t *device)
+nvmlReturn_t hm_NVML_nvmlDeviceGetHandleByIndex (NVML_PTR *nvml, int skip_warnings, unsigned int index, nvmlDevice_t *device)
 {
-  NVML_DEVICE_GET_HANDLE_BY_INDEX nvmlDeviceGetHandleByIndex = (NVML_DEVICE_GET_HANDLE_BY_INDEX) GetLibFunction (hDLL, "nvmlDeviceGetHandleByIndex");
+  if (!nvml) return -1;
 
-  if (nvmlDeviceGetHandleByIndex == NULL)
-  {
-    log_error ("ERROR: %s\n", "nvmlDeviceGetHandleByIndex() is missing");
-
-    exit (-1);
-  }
-
-  nvmlReturn_t nvml_rc = nvmlDeviceGetHandleByIndex (index, device);
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetHandleByIndex (index, device);
 
   if (nvml_rc != NVML_SUCCESS)
   {
     if (skip_warnings == 0)
     {
-      const char *string = hc_NVML_nvmlErrorString (hDLL, nvml_rc);
+      const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
       log_info ("WARN: %s %d %s\n", "nvmlDeviceGetHandleByIndex()", nvml_rc, string);
     }
@@ -121,24 +121,17 @@ nvmlReturn_t hc_NVML_nvmlDeviceGetHandleByIndex (HM_LIB hDLL, int skip_warnings,
   return nvml_rc;
 }
 
-nvmlReturn_t hc_NVML_nvmlDeviceGetTemperature (HM_LIB hDLL, nvmlDevice_t device, nvmlTemperatureSensors_t sensorType, unsigned int *temp)
+nvmlReturn_t hm_NVML_nvmlDeviceGetTemperature (NVML_PTR *nvml, nvmlDevice_t device, nvmlTemperatureSensors_t sensorType, unsigned int *temp)
 {
-  NVML_DEVICE_GET_TEMPERATURE nvmlDeviceGetTemperature = (NVML_DEVICE_GET_TEMPERATURE) GetLibFunction (hDLL, "nvmlDeviceGetTemperature");
+  if (!nvml) return -1;
 
-  if (nvmlDeviceGetTemperature == NULL)
-  {
-    log_error ("ERROR: %s\n", "nvmlDeviceGetTemperature() is missing");
-
-    exit (-1);
-  }
-
-  nvmlReturn_t nvml_rc = nvmlDeviceGetTemperature (device, sensorType, temp);
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetTemperature (device, sensorType, temp);
 
   if (nvml_rc != NVML_SUCCESS)
   {
     *temp = -1;
 
-    //const char *string = hc_NVML_nvmlErrorString (hDLL, nvml_rc);
+    //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
     //log_info ("WARN: %s %d %s\n", "nvmlDeviceGetTemperature()", nvml_rc, string);
   }
@@ -146,18 +139,11 @@ nvmlReturn_t hc_NVML_nvmlDeviceGetTemperature (HM_LIB hDLL, nvmlDevice_t device,
   return nvml_rc;
 }
 
-nvmlReturn_t hc_NVML_nvmlDeviceGetFanSpeed (HM_LIB hDLL, int skip_warnings, nvmlDevice_t device, unsigned int *speed)
+nvmlReturn_t hm_NVML_nvmlDeviceGetFanSpeed (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int *speed)
 {
-  NVML_DEVICE_GET_FAN_SPEED nvmlDeviceGetFanSpeed = (NVML_DEVICE_GET_FAN_SPEED) GetLibFunction (hDLL, "nvmlDeviceGetFanSpeed");
+  if (!nvml) return -1;
 
-  if (nvmlDeviceGetFanSpeed == NULL)
-  {
-    log_error ("ERROR: %s\n", "nvmlDeviceGetFanSpeed() is missing");
-
-    exit (-1);
-  }
-
-  nvmlReturn_t nvml_rc = nvmlDeviceGetFanSpeed (device, speed);
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetFanSpeed (device, speed);
 
   if (nvml_rc != NVML_SUCCESS)
   {
@@ -165,7 +151,7 @@ nvmlReturn_t hc_NVML_nvmlDeviceGetFanSpeed (HM_LIB hDLL, int skip_warnings, nvml
 
     if (skip_warnings == 0)
     {
-      const char *string = hc_NVML_nvmlErrorString (hDLL, nvml_rc);
+      const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
       log_info ("WARN: %s %d %s\n", "nvmlDeviceGetFanSpeed()", nvml_rc, string);
     }
@@ -176,24 +162,17 @@ nvmlReturn_t hc_NVML_nvmlDeviceGetFanSpeed (HM_LIB hDLL, int skip_warnings, nvml
 
 /* only tesla following */
 
-nvmlReturn_t hc_NVML_nvmlDeviceGetPowerUsage (HM_LIB hDLL, nvmlDevice_t device, unsigned int *power)
+nvmlReturn_t hm_NVML_nvmlDeviceGetPowerUsage (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *power)
 {
-  NVML_DEVICE_GET_POWER_USAGE nvmlDeviceGetPowerUsage = (NVML_DEVICE_GET_POWER_USAGE) GetLibFunction (hDLL, "nvmlDeviceGetPowerUsage");
+  if (!nvml) return -1;
 
-  if (nvmlDeviceGetPowerUsage == NULL)
-  {
-    log_error ("ERROR: %s\n", "nvmlDeviceGetPowerUsage() is missing");
-
-    exit (-1);
-  }
-
-  nvmlReturn_t nvml_rc = nvmlDeviceGetPowerUsage (device, power);
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetPowerUsage (device, power);
 
   if (nvml_rc != NVML_SUCCESS)
   {
     *power = -1;
 
-    //const char *string = hc_NVML_nvmlErrorString (hDLL, nvml_rc);
+    //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
     //log_info ("WARN: %s %d %s\n", "nvmlDeviceGetPowerUsage()", nvml_rc, string);
   }
@@ -201,30 +180,21 @@ nvmlReturn_t hc_NVML_nvmlDeviceGetPowerUsage (HM_LIB hDLL, nvmlDevice_t device, 
   return nvml_rc;
 }
 
-nvmlReturn_t hc_NVML_nvmlDeviceGetUtilizationRates (HM_LIB hDLL, nvmlDevice_t device, nvmlUtilization_t *utilization)
+nvmlReturn_t hm_NVML_nvmlDeviceGetUtilizationRates (NVML_PTR *nvml, nvmlDevice_t device, nvmlUtilization_t *utilization)
 {
-  NVML_DEVICE_GET_UTILIZATION_RATES nvmlDeviceGetUtilizationRates = (NVML_DEVICE_GET_UTILIZATION_RATES) GetLibFunction (hDLL, "nvmlDeviceGetUtilizationRates");
+  if (!nvml) return -1;
 
-  if (nvmlDeviceGetUtilizationRates == NULL)
-  {
-    log_error ("ERROR: %s\n", "nvmlDeviceGetUtilizationRates() is missing");
-
-    exit (-1);
-  }
-
-  nvmlReturn_t nvml_rc = nvmlDeviceGetUtilizationRates (device, utilization);
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetUtilizationRates (device, utilization);
 
   if (nvml_rc != NVML_SUCCESS)
   {
     utilization->gpu    = -1;
     utilization->memory = -1;
 
-    //const char *string = hc_NVML_nvmlErrorString (hDLL, nvml_rc);
+    //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
     //log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
   }
 
   return nvml_rc;
 }
-
-//#endif

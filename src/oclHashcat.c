@@ -13123,36 +13123,45 @@ int main (int argc, char **argv)
     if (gpu_temp_disable == 0)
     {
       #if defined(WIN) && defined(HAVE_NVAPI)
-      if (NvAPI_Initialize () == NVAPI_OK)
+      NVAPI_PTR *nvapi = (NVAPI_PTR *) mymalloc (sizeof (NVAPI_PTR));
+
+      if (nvapi_init (nvapi) == 0)
+        data.hm_nv = nvapi;
+
+      if (data.hm_nv)
       {
-        HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX] = { 0 };
-
-        int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
-
-        int tmp_out = 0;
-
-        for (int i = 0; i < tmp_in; i++)
+        if (hm_NvAPI_Initialize (data.hm_nv) == NVAPI_OK)
         {
-          hm_adapters_nv[tmp_out++].adapter_index.nv = nvGPUHandle[i];
-        }
+          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX] = { 0 };
 
-        for (int i = 0; i < tmp_out; i++)
-        {
-          NvU32 speed;
+          int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
 
-          if (NvAPI_GPU_GetTachReading (hm_adapters_nv[i].adapter_index.nv, &speed) != NVAPI_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
+          int tmp_out = 0;
+
+          for (int i = 0; i < tmp_in; i++)
+          {
+            hm_adapters_nv[tmp_out++].adapter_index.nv = nvGPUHandle[i];
+          }
+
+          for (int i = 0; i < tmp_out; i++)
+          {
+            NvU32 speed;
+
+            if (hm_NvAPI_GPU_GetTachReading (data.hm_nv, hm_adapters_nv[i].adapter_index.nv, &speed) != NVAPI_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
+          }
         }
       }
       #endif // WIN && HAVE_NVAPI
 
       #if defined(LINUX) && defined(HAVE_NVML)
-      HM_LIB hm_dll_nv = hm_init (VENDOR_ID_NV);
+      NVML_PTR *nvml = (NVML_PTR *) mymalloc (sizeof (NVML_PTR));
 
-      data.hm_dll_nv = hm_dll_nv;
+      if (nvml_init (nvml) == 0)
+        data.hm_nv = nvml;
 
-      if (hm_dll_nv)
+      if (data.hm_nv)
       {
-        if (hc_NVML_nvmlInit (hm_dll_nv) == NVML_SUCCESS)
+        if (hm_NVML_nvmlInit (data.hm_nv) == NVML_SUCCESS)
         {
           HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX] = { 0 };
 
@@ -13169,33 +13178,33 @@ int main (int argc, char **argv)
           {
             unsigned int speed;
 
-            if (hc_NVML_nvmlDeviceGetFanSpeed (hm_dll_nv, 1, hm_adapters_nv[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
+            if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
           }
         }
       }
       #endif // LINUX && HAVE_NVML
 
-      data.adl = NULL;
+      data.hm_amd = NULL;
 
       #ifdef HAVE_ADL
       ADL_PTR *adl = (ADL_PTR *) mymalloc (sizeof (ADL_PTR));
 
       if (adl_init (adl) == 0)
-        data.adl = adl;
+        data.hm_amd = adl;
 
-      if (data.adl)
+      if (data.hm_amd)
       {
-        if (hc_ADL_Main_Control_Create (data.adl, ADL_Main_Memory_Alloc, 0) == ADL_OK)
+        if (hm_ADL_Main_Control_Create (data.hm_amd, ADL_Main_Memory_Alloc, 0) == ADL_OK)
         {
           // total number of adapters
 
           int hm_adapters_num;
 
-          if (get_adapters_num_amd (data.adl, &hm_adapters_num) != 0) return (-1);
+          if (get_adapters_num_amd (data.hm_amd, &hm_adapters_num) != 0) return (-1);
 
           // adapter info
 
-          LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_amd (data.adl, hm_adapters_num);
+          LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_amd (data.hm_amd, hm_adapters_num);
 
           if (lpAdapterInfo == NULL) return (-1);
 
@@ -13213,8 +13222,8 @@ int main (int argc, char **argv)
 
             hm_get_adapter_index_amd (hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
 
-            hm_get_overdrive_version  (data.adl, hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-            hm_check_fanspeed_control (data.adl, hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+            hm_get_overdrive_version  (data.hm_amd, hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+            hm_check_fanspeed_control (data.hm_amd, hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
 
             hc_thread_mutex_unlock (mux_adl);
           }
@@ -13262,7 +13271,7 @@ int main (int argc, char **argv)
     * Temporary fix:
     * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
     * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
-    * were not working @ full speed (setting hc_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
+    * were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
     * Driver / ADL bug?
     */
 
@@ -13285,7 +13294,7 @@ int main (int argc, char **argv)
 
           int ADL_rc = 0;
 
-          if ((ADL_rc = hc_ADL_Overdrive6_PowerControl_Caps (data.adl, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
+          if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
           {
             log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
@@ -13297,14 +13306,14 @@ int main (int argc, char **argv)
             // powertune set
             ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
 
-            if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (data.adl, data.hm_device[device_id].adapter_index.amd, &powertune)) != ADL_OK)
+            if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune)) != ADL_OK)
             {
               log_error ("ERROR: Failed to get current ADL PowerControl settings");
 
               return (-1);
             }
 
-            if ((ADL_rc = hc_ADL_Overdrive_PowerControl_Set (data.adl, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
+            if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
             {
               log_error ("ERROR: Failed to set new ADL PowerControl values");
 
@@ -14319,7 +14328,7 @@ int main (int argc, char **argv)
               uint cur_temp = 0;
               uint default_temp = 0;
 
-              int ADL_rc = hc_ADL_Overdrive6_TargetTemperatureData_Get (data.adl, data.hm_device[device_id].adapter_index.amd, (int *) &cur_temp, (int *) &default_temp);
+              int ADL_rc = hm_ADL_Overdrive6_TargetTemperatureData_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, (int *) &cur_temp, (int *) &default_temp);
 
               if (ADL_rc == ADL_OK)
               {
@@ -14375,7 +14384,7 @@ int main (int argc, char **argv)
 
           int powertune_supported = 0;
 
-          if ((ADL_rc = hc_ADL_Overdrive6_PowerControl_Caps (data.adl, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
+          if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
           {
             log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
@@ -14388,9 +14397,9 @@ int main (int argc, char **argv)
 
             ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
 
-            if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (data.adl, data.hm_device[device_id].adapter_index.amd, &powertune)) == ADL_OK)
+            if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune)) == ADL_OK)
             {
-              ADL_rc = hc_ADL_Overdrive_PowerControl_Get (data.adl, data.hm_device[device_id].adapter_index.amd, &od_power_control_status[device_id]);
+              ADL_rc = hm_ADL_Overdrive_PowerControl_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &od_power_control_status[device_id]);
             }
 
             if (ADL_rc != ADL_OK)
@@ -14400,7 +14409,7 @@ int main (int argc, char **argv)
               return (-1);
             }
 
-            if ((ADL_rc = hc_ADL_Overdrive_PowerControl_Set (data.adl, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
+            if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
             {
               log_error ("ERROR: Failed to set new ADL PowerControl values");
 
@@ -14413,7 +14422,7 @@ int main (int argc, char **argv)
 
             od_clock_mem_status[device_id].state.iNumberOfPerformanceLevels = 2;
 
-            if ((ADL_rc = hc_ADL_Overdrive_StateInfo_Get (data.adl, data.hm_device[device_id].adapter_index.amd, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
+            if ((ADL_rc = hm_ADL_Overdrive_StateInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
             {
               log_error ("ERROR: Failed to get ADL memory and engine clock frequency");
 
@@ -14424,7 +14433,7 @@ int main (int argc, char **argv)
 
             ADLOD6Capabilities caps = {0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0, 0};
 
-            if ((ADL_rc = hc_ADL_Overdrive_Capabilities_Get (data.adl, data.hm_device[device_id].adapter_index.amd, &caps)) != ADL_OK)
+            if ((ADL_rc = hm_ADL_Overdrive_Capabilities_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &caps)) != ADL_OK)
             {
               log_error ("ERROR: Failed to get ADL device capabilities");
 
@@ -14461,7 +14470,7 @@ int main (int argc, char **argv)
             performance_state->aLevels[0].iMemoryClock = memory_clock_profile_max;
             performance_state->aLevels[1].iMemoryClock = memory_clock_profile_max;
 
-            if ((ADL_rc = hc_ADL_Overdrive_State_Set (data.adl, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+            if ((ADL_rc = hm_ADL_Overdrive_State_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
             {
               log_info ("ERROR: Failed to set ADL performance state");
 
@@ -16611,9 +16620,9 @@ int main (int argc, char **argv)
       #endif // HAVE_ADL
     }
 
+    #ifdef HAVE_ADL
     // reset power tuning
 
-    #ifdef HAVE_ADL
     if (powertune_enable == 1) // VENDOR_ID_AMD is implied here
     {
       hc_thread_mutex_lock (mux_adl);
@@ -16630,7 +16639,7 @@ int main (int argc, char **argv)
 
           int powertune_supported = 0;
 
-          if ((hc_ADL_Overdrive6_PowerControl_Caps (data.adl, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
+          if ((hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
           {
             log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
@@ -16641,7 +16650,7 @@ int main (int argc, char **argv)
           {
             // powercontrol settings
 
-            if ((hc_ADL_Overdrive_PowerControl_Set (data.adl, data.hm_device[device_id].adapter_index.amd, od_power_control_status[device_id])) != ADL_OK)
+            if ((hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, od_power_control_status[device_id])) != ADL_OK)
             {
               log_info ("ERROR: Failed to restore the ADL PowerControl values");
 
@@ -16659,7 +16668,7 @@ int main (int argc, char **argv)
             performance_state->aLevels[0].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[0].iMemoryClock;
             performance_state->aLevels[1].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
 
-            if ((hc_ADL_Overdrive_State_Set (data.adl, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+            if ((hm_ADL_Overdrive_State_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
             {
               log_info ("ERROR: Failed to restore ADL performance state");
 
@@ -16677,26 +16686,34 @@ int main (int argc, char **argv)
 
     if (gpu_temp_disable == 0)
     {
-      #if defined(LINUX) && defined(HAVE_NVML)
-      if (data.hm_dll_nv)
+      #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
+      if (data.hm_nv)
       {
-        hc_NVML_nvmlShutdown (data.hm_dll_nv);
+        #if defined(LINUX) && defined(HAVE_NVML)
 
-        hm_close (data.hm_dll_nv);
+        hm_NVML_nvmlShutdown (data.hm_nv);
+
+        nvml_close (data.hm_nv);
+
+        #elif defined(WIN) && (HAVE_NVAPI)
+
+        hm_NvAPI_Unload (data.hm_nv);
+
+        nvapi_close (data.hm_nv);
+
+        #endif
+
+        data.hm_nv = NULL;
       }
       #endif
 
-      #if defined(WIN) && (HAVE_NVAPI)
-      NvAPI_Unload ();
-      #endif
-
       #ifdef HAVE_ADL
-      if (data.adl)
+      if (data.hm_amd)
       {
-        hc_ADL_Main_Control_Destroy (data.adl);
+        hm_ADL_Main_Control_Destroy (data.hm_amd);
 
-        adl_close (data.adl);
-        data.adl = NULL;
+        adl_close (data.hm_amd);
+        data.hm_amd = NULL;
       }
       #endif
     }
