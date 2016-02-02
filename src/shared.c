@@ -2655,7 +2655,7 @@ void unlock_file (FILE *fp)
   lock.l_type = F_UNLCK;
   fcntl(fileno(fp), F_SETLK, &lock);
 }
-#endif /* F_SETLKW */
+#endif // F_SETLKW
 
 #ifdef _WIN
 void fsync (int fd)
@@ -2676,7 +2676,7 @@ int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 {
   NvU32 pGpuCount;
 
-  if (hc_NvAPI_EnumPhysicalGPUs (nvGPUHandle, &pGpuCount) != NVAPI_OK) return (0);
+  if (hm_NvAPI_EnumPhysicalGPUs (data.hm_nv, nvGPUHandle, &pGpuCount) != NVAPI_OK) return (0);
 
   if (pGpuCount == 0)
   {
@@ -2696,11 +2696,11 @@ int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 
   for (uint i = 0; i < DEVICES_MAX; i++)
   {
-    if (hc_NVML_nvmlDeviceGetHandleByIndex (data.hm_dll_nv, 1, i, &nvGPUHandle[i]) != NVML_SUCCESS) break;
+    if (hm_NVML_nvmlDeviceGetHandleByIndex (data.hm_nv, 1, i, &nvGPUHandle[i]) != NVML_SUCCESS) break;
 
     // can be used to determine if the device by index matches the cuda device by index
     // char name[100]; memset (name, 0, sizeof (name));
-    // hc_NVML_nvmlDeviceGetName (data.hm_dll_nv, nvGPUHandle[i], name, sizeof (name) - 1);
+    // hm_NVML_nvmlDeviceGetName (data.hm_nv, nvGPUHandle[i], name, sizeof (name) - 1);
 
     pGpuCount++;
   }
@@ -2716,55 +2716,10 @@ int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 }
 #endif // LINUX && HAVE_NVML
 
-#if defined(HAVE_ADL) || defined(HAVE_NVML)
-void hm_close (HM_LIB hm_dll)
-{
-  #ifdef _POSIX
-  dlclose (hm_dll);
-
-  #elif _WIN
-  FreeLibrary (hm_dll);
-
-  #endif
-}
-
-HM_LIB hm_init (const cl_uint vendor_id)
-{
-  HM_LIB hm_dll = NULL;
-
-  #ifdef HAVE_ADL
-  if (vendor_id == VENDOR_ID_AMD)
-  {
-    #ifdef _POSIX
-    hm_dll = dlopen ("libatiadlxx.so", RTLD_LAZY | RTLD_GLOBAL);
-
-    #elif _WIN
-    hm_dll = LoadLibrary ("atiadlxx.dll");
-
-    if (hm_dll == NULL)
-    {
-      hm_dll = LoadLibrary ("atiadlxy.dll");
-    }
-
-    #endif
-  }
-  #endif
-
-  #if defined(LINUX) && defined(HAVE_NVML)
-  if (vendor_id == VENDOR_ID_NV)
-  {
-    hm_dll = dlopen ("libnvidia-ml.so", RTLD_LAZY | RTLD_GLOBAL);
-  }
-  #endif
-
-  return hm_dll;
-}
-#endif // HAVE_ADL || HAVE_NVML
-
 #ifdef HAVE_ADL
 int get_adapters_num_amd (void *adl, int *iNumberAdapters)
 {
-  if (hc_ADL_Adapter_NumberOfAdapters_Get ((ADL_PTR *) adl, iNumberAdapters) != ADL_OK) return -1;
+  if (hm_ADL_Adapter_NumberOfAdapters_Get ((ADL_PTR *) adl, iNumberAdapters) != ADL_OK) return -1;
 
   if (iNumberAdapters == 0)
   {
@@ -2785,7 +2740,7 @@ int hm_show_performance_level (HM_LIB hm_dll, int iAdapterIndex)
   lpOdParameters.iSize = sizeof (ADLODParameters);
   size_t plevels_size = 0;
 
-  if (hc_ADL_Overdrive_ODParameters_Get (hm_dll, iAdapterIndex, &lpOdParameters) != ADL_OK) return -1;
+  if (hm_ADL_Overdrive_ODParameters_Get (hm_dll, iAdapterIndex, &lpOdParameters) != ADL_OK) return -1;
 
   log_info ("[DEBUG] %s, adapter %d performance level (%d) : %s %s",
           __func__, iAdapterIndex,
@@ -2799,7 +2754,7 @@ int hm_show_performance_level (HM_LIB hm_dll, int iAdapterIndex)
 
   lpOdPerformanceLevels->iSize = sizeof (ADLODPerformanceLevels) + sizeof (ADLODPerformanceLevel) * (lpOdParameters.iNumberOfPerformanceLevels - 1);
 
-  if (hc_ADL_Overdrive_ODPerformanceLevels_Get (hm_dll, iAdapterIndex, 0, lpOdPerformanceLevels) != ADL_OK) return -1;
+  if (hm_ADL_Overdrive_ODPerformanceLevels_Get (hm_dll, iAdapterIndex, 0, lpOdPerformanceLevels) != ADL_OK) return -1;
 
   for (int j = 0; j < lpOdParameters.iNumberOfPerformanceLevels; j++)
     log_info ("[DEBUG] %s, adapter %d, level %d : engine %d, memory %d, voltage: %d",
@@ -2818,7 +2773,7 @@ LPAdapterInfo hm_get_adapter_info_amd (void *adl, int iNumberAdapters)
 
   LPAdapterInfo lpAdapterInfo = (LPAdapterInfo) mymalloc (AdapterInfoSize);
 
-  if (hc_ADL_Adapter_AdapterInfo_Get ((ADL_PTR *) adl, lpAdapterInfo, AdapterInfoSize) != ADL_OK) return NULL;
+  if (hm_ADL_Adapter_AdapterInfo_Get ((ADL_PTR *) adl, lpAdapterInfo, AdapterInfoSize) != ADL_OK) return NULL;
 
   return lpAdapterInfo;
 }
@@ -3007,7 +2962,7 @@ int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_
 
       FanSpeedInfo.iSize = sizeof (ADLFanSpeedInfo);
 
-      if (hc_ADL_Overdrive5_FanSpeedInfo_Get (adl, info.iAdapterIndex, 0, &FanSpeedInfo) != ADL_OK) return -1;
+      if (hm_ADL_Overdrive5_FanSpeedInfo_Get (adl, info.iAdapterIndex, 0, &FanSpeedInfo) != ADL_OK) return -1;
 
       // check read and write capability in fanspeedinfo
 
@@ -3027,7 +2982,7 @@ int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_
 
       memset (&faninfo, 0, sizeof (faninfo));
 
-      if (hc_ADL_Overdrive6_FanSpeed_Get (adl, info.iAdapterIndex, &faninfo) != ADL_OK) return -1;
+      if (hm_ADL_Overdrive6_FanSpeed_Get (adl, info.iAdapterIndex, &faninfo) != ADL_OK) return -1;
 
       // check read capability in fanspeedinfo
 
@@ -3061,7 +3016,7 @@ int hm_get_overdrive_version (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_d
     int od_enabled   = 0;
     int od_version   = 0;
 
-    if (hc_ADL_Overdrive_Caps (adl, info.iAdapterIndex, &od_supported, &od_enabled, &od_version) != ADL_OK) return -1;
+    if (hm_ADL_Overdrive_Caps (adl, info.iAdapterIndex, &od_supported, &od_enabled, &od_version) != ADL_OK) return -1;
 
     // store the overdrive version in hm_device
 
@@ -3109,7 +3064,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
   #ifdef HAVE_ADL
   if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
   {
-    if (data.adl)
+    if (data.hm_amd)
     {
       if (data.hm_device[device_id].od_version == 5)
       {
@@ -3117,7 +3072,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
 
         Temperature.iSize = sizeof (ADLTemperature);
 
-        if (hc_ADL_Overdrive5_Temperature_Get (data.adl, data.hm_device[device_id].adapter_index.amd, 0, &Temperature) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive5_Temperature_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, 0, &Temperature) != ADL_OK) return -1;
 
         return Temperature.iTemperature / 1000;
       }
@@ -3125,7 +3080,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
       {
         int Temperature = 0;
 
-        if (hc_ADL_Overdrive6_Temperature_Get (data.adl, data.hm_device[device_id].adapter_index.amd, &Temperature) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive6_Temperature_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &Temperature) != ADL_OK) return -1;
 
         return Temperature / 1000;
       }
@@ -3139,7 +3094,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
     #if defined(LINUX) && defined(HAVE_NVML)
     int temperature = 0;
 
-    hc_NVML_nvmlDeviceGetTemperature (data.hm_dll_nv, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_GPU, (unsigned int *) &temperature);
+    hm_NVML_nvmlDeviceGetTemperature (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_GPU, (unsigned int *) &temperature);
 
     return temperature;
     #endif
@@ -3152,7 +3107,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
     pThermalSettings.sensor[0].controller = NVAPI_THERMAL_CONTROLLER_UNKNOWN;
     pThermalSettings.sensor[0].target = NVAPI_THERMAL_TARGET_GPU;
 
-    if (hc_NvAPI_GPU_GetThermalSettings (data.hm_device[device_id].adapter_index.nv, 0, &pThermalSettings) != NVAPI_OK) return -1;
+    if (hm_NvAPI_GPU_GetThermalSettings (data.hm_nv, data.hm_device[device_id].adapter_index.nv, 0, &pThermalSettings) != NVAPI_OK) return -1;
 
     return pThermalSettings.sensor[0].currentTemp;
     #endif // WIN && HAVE_NVAPI
@@ -3172,7 +3127,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
     #ifdef HAVE_ADL
     if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
     {
-      if (data.adl)
+      if (data.hm_amd)
       {
         if (data.hm_device[device_id].od_version == 5)
         {
@@ -3184,7 +3139,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
           lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
           lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
 
-          if (hc_ADL_Overdrive5_FanSpeed_Get (data.adl, data.hm_device[device_id].adapter_index.amd, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+          if (hm_ADL_Overdrive5_FanSpeed_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, 0, &lpFanSpeedValue) != ADL_OK) return -1;
 
           return lpFanSpeedValue.iFanSpeed;
         }
@@ -3194,7 +3149,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
 
           memset (&faninfo, 0, sizeof (faninfo));
 
-          if (hc_ADL_Overdrive6_FanSpeed_Get (data.adl, data.hm_device[device_id].adapter_index.amd, &faninfo) != ADL_OK) return -1;
+          if (hm_ADL_Overdrive6_FanSpeed_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &faninfo) != ADL_OK) return -1;
 
           return faninfo.iFanSpeedPercent;
         }
@@ -3208,7 +3163,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
       #if defined(LINUX) && defined(HAVE_NVML)
       int speed = 0;
 
-      hc_NVML_nvmlDeviceGetFanSpeed (data.hm_dll_nv, 1, data.hm_device[device_id].adapter_index.nv, (unsigned int *) &speed);
+      hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, (unsigned int *) &speed);
 
       return speed;
       #endif
@@ -3216,7 +3171,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
       #if defined(WIN) && defined(HAVE_NVAPI)
       NvU32 speed = 0;
 
-      hc_NvAPI_GPU_GetTachReading (data.hm_device[device_id].adapter_index.nv, &speed);
+      hm_NvAPI_GPU_GetTachReading (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &speed);
 
       return speed;
       #endif
@@ -3234,13 +3189,13 @@ int hm_get_utilization_with_device_id (const uint device_id)
   #ifdef HAVE_ADL
   if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
   {
-    if (data.adl)
+    if (data.hm_amd)
     {
       ADLPMActivity PMActivity;
 
       PMActivity.iSize = sizeof (ADLPMActivity);
 
-      if (hc_ADL_Overdrive_CurrentActivity_Get (data.adl, data.hm_device[device_id].adapter_index.amd, &PMActivity) != ADL_OK) return -1;
+      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &PMActivity) != ADL_OK) return -1;
 
       return PMActivity.iActivityPercent;
     }
@@ -3253,7 +3208,7 @@ int hm_get_utilization_with_device_id (const uint device_id)
     #if defined(LINUX) && defined(HAVE_NVML)
     nvmlUtilization_t utilization;
 
-    hc_NVML_nvmlDeviceGetUtilizationRates (data.hm_dll_nv, data.hm_device[device_id].adapter_index.nv, &utilization);
+    hm_NVML_nvmlDeviceGetUtilizationRates (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &utilization);
 
     return utilization.gpu;
     #endif
@@ -3263,7 +3218,7 @@ int hm_get_utilization_with_device_id (const uint device_id)
 
     pDynamicPstatesInfoEx.version = NV_GPU_DYNAMIC_PSTATES_INFO_EX_VER;
 
-    if (hc_NvAPI_GPU_GetDynamicPstatesInfoEx (data.hm_device[device_id].adapter_index.nv, &pDynamicPstatesInfoEx) != NVAPI_OK) return -1;
+    if (hm_NvAPI_GPU_GetDynamicPstatesInfoEx (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &pDynamicPstatesInfoEx) != NVAPI_OK) return -1;
 
     return pDynamicPstatesInfoEx.utilization[0].percentage;
     #endif
@@ -3278,7 +3233,7 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
 {
   if (data.hm_device[device_id].fan_supported == 1)
   {
-    if (data.adl)
+    if (data.hm_amd)
     {
       if (data.hm_device[device_id].od_version == 5)
       {
@@ -3291,7 +3246,7 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
         lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
         lpFanSpeedValue.iFanSpeed  = fanspeed;
 
-        if (hc_ADL_Overdrive5_FanSpeed_Set (data.adl, data.hm_device[device_id].adapter_index.amd, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive5_FanSpeed_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, 0, &lpFanSpeedValue) != ADL_OK) return -1;
 
         return 0;
       }
@@ -3304,7 +3259,7 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
         fan_speed_value.iSpeedType = ADL_OD6_FANSPEED_TYPE_PERCENT;
         fan_speed_value.iFanSpeed  = fanspeed;
 
-        if (hc_ADL_Overdrive6_FanSpeed_Set (data.adl, data.hm_device[device_id].adapter_index.amd, &fan_speed_value) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive6_FanSpeed_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &fan_speed_value) != ADL_OK) return -1;
 
         return 0;
       }

@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -55,9 +57,11 @@ typedef enum nvmlReturn_enum {
 
 typedef nvmlDevice_t HM_ADAPTER_NV;
 
+#include <shared.h>
+
 typedef const char * (*NVML_ERROR_STRING) (nvmlReturn_t);
-typedef int (*NVML_INIT) ();
-typedef int (*NVML_SHUTDOWN) ();
+typedef int (*NVML_INIT) (void);
+typedef int (*NVML_SHUTDOWN) (void);
 typedef nvmlReturn_t (*NVML_DEVICE_GET_NAME) (nvmlDevice_t, char *, unsigned int);
 typedef nvmlReturn_t (*NVML_DEVICE_GET_HANDLE_BY_INDEX) (unsigned int, nvmlDevice_t *);
 typedef nvmlReturn_t (*NVML_DEVICE_GET_TEMPERATURE) (nvmlDevice_t, nvmlTemperatureSensors_t, unsigned int *);
@@ -65,15 +69,37 @@ typedef nvmlReturn_t (*NVML_DEVICE_GET_FAN_SPEED) (nvmlDevice_t, unsigned int *)
 typedef nvmlReturn_t (*NVML_DEVICE_GET_POWER_USAGE) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_DEVICE_GET_UTILIZATION_RATES) (nvmlDevice_t, nvmlUtilization_t *);
 
-nvmlReturn_t hc_NVML_nvmlInit (HM_LIB hDLL);
-nvmlReturn_t hc_NVML_nvmlShutdown (HM_LIB hDLL);
-nvmlReturn_t hc_NVML_nvmlDeviceGetName (HM_LIB hDLL, nvmlDevice_t device, char *name, unsigned int length);
-nvmlReturn_t hc_NVML_nvmlDeviceGetHandleByIndex (HM_LIB hDLL, int, unsigned int index, nvmlDevice_t *device);
-nvmlReturn_t hc_NVML_nvmlDeviceGetTemperature (HM_LIB hDLL, nvmlDevice_t device, nvmlTemperatureSensors_t sensorType, unsigned int *temp);
-nvmlReturn_t hc_NVML_nvmlDeviceGetFanSpeed (HM_LIB hDLL, int, nvmlDevice_t device, unsigned int *speed);
-nvmlReturn_t hc_NVML_nvmlDeviceGetPowerUsage (HM_LIB hDLL, nvmlDevice_t device, unsigned int *power);
-nvmlReturn_t hc_NVML_nvmlDeviceGetUtilizationRates (HM_LIB hDLL, nvmlDevice_t device, nvmlUtilization_t *utilization);
+typedef struct
+{
+  NV_LIB lib;
+
+  NVML_ERROR_STRING nvmlErrorString;
+  NVML_INIT nvmlInit;
+  NVML_SHUTDOWN nvmlShutdown;
+  NVML_DEVICE_GET_NAME nvmlDeviceGetName;
+  NVML_DEVICE_GET_HANDLE_BY_INDEX nvmlDeviceGetHandleByIndex;
+  NVML_DEVICE_GET_TEMPERATURE nvmlDeviceGetTemperature;
+  NVML_DEVICE_GET_FAN_SPEED nvmlDeviceGetFanSpeed;
+  NVML_DEVICE_GET_POWER_USAGE nvmlDeviceGetPowerUsage;
+  NVML_DEVICE_GET_UTILIZATION_RATES nvmlDeviceGetUtilizationRates;
+
+} hm_nvml_lib_t;
+
+#define NVML_PTR hm_nvml_lib_t
+
+int nvml_init (NVML_PTR *lib);
+void nvml_close (NVML_PTR *lib);
+
+const char * hm_NVML_nvmlErrorString (NVML_PTR *nvml, nvmlReturn_t nvml_rc);
+nvmlReturn_t hm_NVML_nvmlInit (NVML_PTR *nvml);
+nvmlReturn_t hm_NVML_nvmlShutdown (NVML_PTR *nvml);
+nvmlReturn_t hm_NVML_nvmlDeviceGetName (NVML_PTR *nvml, nvmlDevice_t device, char *name, unsigned int length);
+nvmlReturn_t hm_NVML_nvmlDeviceGetHandleByIndex (NVML_PTR *nvml, int, unsigned int index, nvmlDevice_t *device);
+nvmlReturn_t hm_NVML_nvmlDeviceGetTemperature (NVML_PTR *nvml, nvmlDevice_t device, nvmlTemperatureSensors_t sensorType, unsigned int *temp);
+nvmlReturn_t hm_NVML_nvmlDeviceGetFanSpeed (NVML_PTR *nvml, int, nvmlDevice_t device, unsigned int *speed);
+nvmlReturn_t hm_NVML_nvmlDeviceGetPowerUsage (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *power);
+nvmlReturn_t hm_NVML_nvmlDeviceGetUtilizationRates (NVML_PTR *nvml, nvmlDevice_t device, nvmlUtilization_t *utilization);
 
 #endif // HAVE_HWMON && HAVE_NVML
 
-#endif
+#endif // EXT_NVML_H

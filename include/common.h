@@ -50,8 +50,8 @@
 typedef void *OCL_LIB;
 
 #ifdef HAVE_HWMON
-typedef void *HM_LIB;
-typedef void *ADL_LIB;
+typedef void *NV_LIB;
+typedef void *AMD_LIB;
 #ifdef OSX
 #define __stdcall
 #endif
@@ -80,12 +80,12 @@ typedef INT64  int64_t;
 typedef UINT32 uint;
 typedef UINT64 uint64_t;
 
-#ifdef HAVE_HWMON
-typedef HINSTANCE HM_LIB;
-typedef HINSTANCE ADL_LIB;
-#endif
-
 typedef HINSTANCE OCL_LIB;
+
+#ifdef HAVE_HWMON
+typedef HINSTANCE NV_LIB;
+typedef HINSTANCE AMD_LIB;
+#endif
 
 #define mkdir(name,mode) mkdir (name)
 

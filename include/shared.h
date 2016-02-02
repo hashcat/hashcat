@@ -88,23 +88,15 @@
  * temperature management
  */
 
-#ifdef _POSIX
-#include <ext_ADL.h>
-#endif
-
-#ifdef _WIN
-#include <ext_ADL.h>
-#endif
-
-#ifdef LINUX
-#include <ext_nvml.h>
-#elif WIN
-#include <ext_nvapi.h>
-#endif
-
 #ifdef OSX
 #include <ext_smi.h>
 #include <ext_dummy.h>
+#elif _WIN
+#include <ext_ADL.h>
+#include <ext_nvapi.h>
+#else
+#include <ext_ADL.h>
+#include <ext_nvml.h>
 #endif
 
 /**
@@ -181,22 +173,22 @@ extern hc_thread_mutex_t mux_display;
  * password lengths supported
  */
 
-#define PW_LENGTH_MIN_0       0
-#define PW_LENGTH_MAX_0       55
-#define PW_LENGTH_MIN_400     0
-#define PW_LENGTH_MAX_400     40
-#define PW_LENGTH_MIN_500     0
-#define PW_LENGTH_MAX_500     15
-#define PW_LENGTH_MIN_1600    0
-#define PW_LENGTH_MAX_1600    15
-#define PW_LENGTH_MIN_1800    0
-#define PW_LENGTH_MAX_1800    15
-#define PW_LENGTH_MIN_2500    0
-#define PW_LENGTH_MAX_2500    64
-#define PW_LENGTH_MIN_6300    0
-#define PW_LENGTH_MAX_6300    15
-#define PW_LENGTH_MIN_7400    0
-#define PW_LENGTH_MAX_7400    15
+#define PW_LENGTH_MIN_0      0
+#define PW_LENGTH_MAX_0      55
+#define PW_LENGTH_MIN_400    0
+#define PW_LENGTH_MAX_400    40
+#define PW_LENGTH_MIN_500    0
+#define PW_LENGTH_MAX_500    15
+#define PW_LENGTH_MIN_1600   0
+#define PW_LENGTH_MAX_1600   15
+#define PW_LENGTH_MIN_1800   0
+#define PW_LENGTH_MAX_1800   15
+#define PW_LENGTH_MIN_2500   0
+#define PW_LENGTH_MAX_2500   64
+#define PW_LENGTH_MIN_6300   0
+#define PW_LENGTH_MAX_6300   15
+#define PW_LENGTH_MIN_7400   0
+#define PW_LENGTH_MAX_7400   15
 
 /**
  * device accel macro
@@ -1879,10 +1871,6 @@ void fsync (int fd);
 int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX]);
 #endif
 
-// int hm_get_device_num (HM_LIB hm_dll_amd, HM_ADAPTER_AMD hm_adapter_index, int *hm_device_num);
-
-// void hm_get_opencl_busid_devid (hm_attrs_t *hm_device, uint opencl_num_devices, cl_device_id *devices);
-
 #ifdef HAVE_ADL
 int get_adapters_num_amd (void *adl, int *iNumberAdapters);
 
@@ -1894,13 +1882,10 @@ u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adapters,
 
 int hm_get_overdrive_version  (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
+
+// int hm_get_device_num (void *adl, HM_ADAPTER_AMD hm_adapter_index, int *hm_device_num);
+// void hm_get_opencl_busid_devid (hm_attrs_t *hm_device, uint opencl_num_devices, cl_device_id *devices);
 #endif // HAVE_ADL
-
-#if defined(HAVE_ADL) || defined(HAVE_NVML)
-void hm_close (HM_LIB hm_dll);
-
-HM_LIB hm_init (const cl_uint vendor_id);
-#endif
 
 int hm_get_temperature_with_device_id (const uint device_id);
 int hm_get_fanspeed_with_device_id    (const uint device_id);

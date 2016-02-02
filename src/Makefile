@@ -42,38 +42,22 @@ SHARED_FOLDER            ?= $(PREFIX)/share/$(PROG_NAME)
 DOCUMENT_FOLDER          ?= $(PREFIX)/share/doc/$(PROG_NAME)
 
 ##
-## Dependencies
-##
-
-NVAPI                    := deps/R352-developer
-
-##
 ## Dependencies, cross compilation only
 ##
 
 OPENCL_HEADERS_KHRONOS   := deps/OpenCL-Headers
 
 ##
-## Library paths
+## Dependencies
 ##
 
-NVML                     := $(GDK)/usr/include/nvidia/gdk
+NVAPI                    := deps/R352-developer
 
-##
-## Check dependencies
 ##
 
 WITH_ADL                 := 1
 WITH_NVML                := 1
-FOUND_NVAPI              := 0
-
-ifneq ($(wildcard $(NVAPI)/nvapi.h),)
-FOUND_NVAPI              := 1
-endif
-
-ifeq ($(DEBUG),1)
-$(warning "## NVAPI is found ? $(FOUND_NVAPI)")
-endif
+WITH_NVAPI               := 1
 
 ##
 ## Native compiler paths
@@ -129,15 +113,9 @@ CFLAGS_NATIVE            += $(CFLAGS)
 
 LFLAGS_NATIVE            := -lpthread
 
-ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
-CFLAGS_NATIVE            += -DHAVE_HWMON
-ifeq ($(WITH_ADL),1)
-CFLAGS_NATIVE            += -DHAVE_ADL
-endif
-endif
-
+WITH_ADL                 := 0
 WITH_NVML                := 0
-endif
+endif # darwin
 
 ifeq ($(UNAME),Linux)
 CFLAGS_NATIVE            := -D_POSIX -DLINUX
@@ -147,15 +125,17 @@ LFLAGS_NATIVE            := -lpthread -ldl
 
 ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
 CFLAGS_NATIVE            += -DHAVE_HWMON
+
 ifeq ($(WITH_ADL),1)
 CFLAGS_NATIVE            += -DHAVE_ADL
 endif
+
 ifeq ($(WITH_NVML),1)
 CFLAGS_NATIVE            += -DHAVE_NVML
 endif
 endif
 
-endif
+endif # linux
 
 ##
 ## Cross compilation target
@@ -181,15 +161,15 @@ CFLAGS_CROSS_WIN         := -D_WIN   -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO
 CFLAGS_CROSS_WIN         += -s $(filter-out -fsanitize=address,$(CFLAGS))
 CFLAGS_CROSS_WIN         += -I$(OPENCL_HEADERS_KHRONOS)/
 
-ifneq (,$(filter 1,$(WITH_ADL) $(FOUND_NVAPI)))
+ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVAPI)))
 CFLAGS_CROSS_WIN         += -DHAVE_HWMON
 
 ifeq ($(WITH_ADL),1)
 CFLAGS_CROSS_WIN         += -DHAVE_ADL
 endif
 
-ifeq ($(FOUND_NVAPI),1)
-CFLAGS_CROSS_WIN         += -DHAVE_NVAPI -I$(NVAPI)/
+ifeq ($(WITH_NVAPI),1)
+CFLAGS_CROSS_WIN         += -DHAVE_NVAPI
 endif
 endif
 
@@ -234,9 +214,9 @@ LINUX_32_OBJS            += obj/ext_nvml.LINUX.32.o
 LINUX_64_OBJS            += obj/ext_nvml.LINUX.64.o
 endif
 
-ifeq ($(FOUND_NVAPI),1)
-WIN_32_OBJS              += obj/ext_nvapi.WIN.32.o $(NVAPI)/x86/nvapi.lib
-WIN_64_OBJS              += obj/ext_nvapi.WIN.64.o $(NVAPI)/amd64/nvapi64.lib
+ifeq ($(WITH_NVAPI),1)
+WIN_32_OBJS              += obj/ext_nvapi.WIN.32.o
+WIN_64_OBJS              += obj/ext_nvapi.WIN.64.o
 endif
 
 ##

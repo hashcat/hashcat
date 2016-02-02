@@ -75,7 +75,7 @@ void adl_close (ADL_PTR *adl)
   }
 }
 
-int hc_ADL_Main_Control_Destroy (ADL_PTR *adl)
+int hm_ADL_Main_Control_Destroy (ADL_PTR *adl)
 {
   if (!adl) return (-1);
 
@@ -89,7 +89,7 @@ int hc_ADL_Main_Control_Destroy (ADL_PTR *adl)
   return (ADL_rc);
 }
 
-int hc_ADL_Main_Control_Create (ADL_PTR *adl, ADL_MAIN_MALLOC_CALLBACK callback, int iEnumConnectedAdapters)
+int hm_ADL_Main_Control_Create (ADL_PTR *adl, ADL_MAIN_MALLOC_CALLBACK callback, int iEnumConnectedAdapters)
 {
   if (!adl) return (-1);
 
@@ -103,7 +103,7 @@ int hc_ADL_Main_Control_Create (ADL_PTR *adl, ADL_MAIN_MALLOC_CALLBACK callback,
   return (ADL_rc);
 }
 
-int hc_ADL_Adapter_NumberOfAdapters_Get (ADL_PTR *adl, int *lpNumAdapters)
+int hm_ADL_Adapter_NumberOfAdapters_Get (ADL_PTR *adl, int *lpNumAdapters)
 {
   if (!adl) return (-1);
 
@@ -117,7 +117,7 @@ int hc_ADL_Adapter_NumberOfAdapters_Get (ADL_PTR *adl, int *lpNumAdapters)
   return (ADL_rc);
 }
 
-int hc_ADL_Adapter_AdapterInfo_Get (ADL_PTR *adl, LPAdapterInfo lpInfo, int iInputSize)
+int hm_ADL_Adapter_AdapterInfo_Get (ADL_PTR *adl, LPAdapterInfo lpInfo, int iInputSize)
 {
   if (!adl) return (-1);
 
@@ -131,7 +131,7 @@ int hc_ADL_Adapter_AdapterInfo_Get (ADL_PTR *adl, LPAdapterInfo lpInfo, int iInp
   return (ADL_rc);
 }
 
-int hc_ADL_Display_DisplayInfo_Get (ADL_PTR *adl, int iAdapterIndex, int *iNumDisplays, ADLDisplayInfo **lppInfo, int iForceDetect)
+int hm_ADL_Display_DisplayInfo_Get (ADL_PTR *adl, int iAdapterIndex, int *iNumDisplays, ADLDisplayInfo **lppInfo, int iForceDetect)
 {
   if (!adl) return (-1);
 
@@ -145,7 +145,7 @@ int hc_ADL_Display_DisplayInfo_Get (ADL_PTR *adl, int iAdapterIndex, int *iNumDi
   return (ADL_rc);
 }
 
-int hc_ADL_Adapter_ID_Get (ADL_PTR *adl, int iAdapterIndex, int *lpAdapterID)
+int hm_ADL_Adapter_ID_Get (ADL_PTR *adl, int iAdapterIndex, int *lpAdapterID)
 {
   if (!adl) return (-1);
 
@@ -159,7 +159,7 @@ int hc_ADL_Adapter_ID_Get (ADL_PTR *adl, int iAdapterIndex, int *lpAdapterID)
   return ADL_rc;
 }
 
-int hc_ADL_Adapter_VideoBiosInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLBiosInfo *lpBiosInfo)
+int hm_ADL_Adapter_VideoBiosInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLBiosInfo *lpBiosInfo)
 {
   if (!adl) return (-1);
 
@@ -173,7 +173,7 @@ int hc_ADL_Adapter_VideoBiosInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLBiosIn
   return ADL_rc;
 }
 
-int hc_ADL_Overdrive_ThermalDevices_Enum (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLThermalControllerInfo *lpThermalControllerInfo)
+int hm_ADL_Overdrive_ThermalDevices_Enum (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLThermalControllerInfo *lpThermalControllerInfo)
 {
   if (!adl) return (-1);
 
@@ -187,7 +187,7 @@ int hc_ADL_Overdrive_ThermalDevices_Enum (ADL_PTR *adl, int iAdapterIndex, int i
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive5_Temperature_Get (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLTemperature *lpTemperature)
+int hm_ADL_Overdrive5_Temperature_Get (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLTemperature *lpTemperature)
 {
   if (!adl) return (-1);
 
@@ -201,7 +201,7 @@ int hc_ADL_Overdrive5_Temperature_Get (ADL_PTR *adl, int iAdapterIndex, int iThe
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive6_Temperature_Get (ADL_PTR *adl, int iAdapterIndex, int *iTemperature)
+int hm_ADL_Overdrive6_Temperature_Get (ADL_PTR *adl, int iAdapterIndex, int *iTemperature)
 {
   if (!adl) return (-1);
 
@@ -215,7 +215,7 @@ int hc_ADL_Overdrive6_Temperature_Get (ADL_PTR *adl, int iAdapterIndex, int *iTe
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_CurrentActivity_Get (ADL_PTR *adl, int iAdapterIndex, ADLPMActivity *lpActivity)
+int hm_ADL_Overdrive_CurrentActivity_Get (ADL_PTR *adl, int iAdapterIndex, ADLPMActivity *lpActivity)
 {
   if (!adl) return (-1);
 
@@ -229,7 +229,7 @@ int hc_ADL_Overdrive_CurrentActivity_Get (ADL_PTR *adl, int iAdapterIndex, ADLPM
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive5_FanSpeedInfo_Get (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedInfo *lpFanSpeedInfo)
+int hm_ADL_Overdrive5_FanSpeedInfo_Get (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedInfo *lpFanSpeedInfo)
 {
   if (!adl) return (-1);
 
@@ -243,7 +243,7 @@ int hc_ADL_Overdrive5_FanSpeedInfo_Get (ADL_PTR *adl, int iAdapterIndex, int iTh
   return ADL_rc;
 }
 
-int hc_ADL_Overdrive5_FanSpeed_Get (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
+int hm_ADL_Overdrive5_FanSpeed_Get (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
 {
   if (!adl) return (-1);
 
@@ -257,7 +257,7 @@ int hc_ADL_Overdrive5_FanSpeed_Get (ADL_PTR *adl, int iAdapterIndex, int iTherma
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive6_FanSpeed_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6FanSpeedInfo *lpFanSpeedInfo)
+int hm_ADL_Overdrive6_FanSpeed_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6FanSpeedInfo *lpFanSpeedInfo)
 {
   if (!adl) return (-1);
 
@@ -271,7 +271,7 @@ int hc_ADL_Overdrive6_FanSpeed_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6FanSp
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive5_FanSpeed_Set (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
+int hm_ADL_Overdrive5_FanSpeed_Set (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
 {
   if (!adl) return (-1);
 
@@ -285,7 +285,7 @@ int hc_ADL_Overdrive5_FanSpeed_Set (ADL_PTR *adl, int iAdapterIndex, int iTherma
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive6_FanSpeed_Set (ADL_PTR *adl, int iAdapterIndex, ADLOD6FanSpeedValue *lpFanSpeedValue)
+int hm_ADL_Overdrive6_FanSpeed_Set (ADL_PTR *adl, int iAdapterIndex, ADLOD6FanSpeedValue *lpFanSpeedValue)
 {
   if (!adl) return (-1);
 
@@ -299,7 +299,7 @@ int hc_ADL_Overdrive6_FanSpeed_Set (ADL_PTR *adl, int iAdapterIndex, ADLOD6FanSp
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive5_FanSpeedToDefault_Set (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex)
+int hm_ADL_Overdrive5_FanSpeedToDefault_Set (ADL_PTR *adl, int iAdapterIndex, int iThermalControllerIndex)
 {
   if (!adl) return (-1);
 
@@ -313,7 +313,7 @@ int hc_ADL_Overdrive5_FanSpeedToDefault_Set (ADL_PTR *adl, int iAdapterIndex, in
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_ODParameters_Get (ADL_PTR *adl, int iAdapterIndex, ADLODParameters *lpOdParameters)
+int hm_ADL_Overdrive_ODParameters_Get (ADL_PTR *adl, int iAdapterIndex, ADLODParameters *lpOdParameters)
 {
   if (!adl) return (-1);
 
@@ -327,7 +327,7 @@ int hc_ADL_Overdrive_ODParameters_Get (ADL_PTR *adl, int iAdapterIndex, ADLODPar
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_ODPerformanceLevels_Get (ADL_PTR *adl, int iAdapterIndex, int iDefault, ADLODPerformanceLevels *lpOdPerformanceLevels)
+int hm_ADL_Overdrive_ODPerformanceLevels_Get (ADL_PTR *adl, int iAdapterIndex, int iDefault, ADLODPerformanceLevels *lpOdPerformanceLevels)
 {
   if (!adl) return (-1);
 
@@ -341,7 +341,7 @@ int hc_ADL_Overdrive_ODPerformanceLevels_Get (ADL_PTR *adl, int iAdapterIndex, i
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_ODPerformanceLevels_Set (ADL_PTR *adl, int iAdapterIndex, ADLODPerformanceLevels *lpOdPerformanceLevels)
+int hm_ADL_Overdrive_ODPerformanceLevels_Set (ADL_PTR *adl, int iAdapterIndex, ADLODPerformanceLevels *lpOdPerformanceLevels)
 {
   if (!adl) return (-1);
 
@@ -355,7 +355,7 @@ int hc_ADL_Overdrive_ODPerformanceLevels_Set (ADL_PTR *adl, int iAdapterIndex, A
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_PowerControlInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6PowerControlInfo *powertune)
+int hm_ADL_Overdrive_PowerControlInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6PowerControlInfo *powertune)
 {
   if (!adl) return (-1);
 
@@ -364,7 +364,7 @@ int hc_ADL_Overdrive_PowerControlInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLO
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_PowerControl_Get (ADL_PTR *adl, int iAdapterIndex, int *iCurrentValue)
+int hm_ADL_Overdrive_PowerControl_Get (ADL_PTR *adl, int iAdapterIndex, int *iCurrentValue)
 {
   if (!adl) return (-1);
 
@@ -375,7 +375,7 @@ int hc_ADL_Overdrive_PowerControl_Get (ADL_PTR *adl, int iAdapterIndex, int *iCu
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_PowerControl_Set (ADL_PTR *adl, int iAdapterIndex, int level)
+int hm_ADL_Overdrive_PowerControl_Set (ADL_PTR *adl, int iAdapterIndex, int level)
 {
   if (!adl) return (-1);
 
@@ -383,7 +383,7 @@ int hc_ADL_Overdrive_PowerControl_Set (ADL_PTR *adl, int iAdapterIndex, int leve
 
   ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
 
-  if ((ADL_rc = hc_ADL_Overdrive_PowerControlInfo_Get (adl, iAdapterIndex, &powertune)) != ADL_OK)
+  if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (adl, iAdapterIndex, &powertune)) != ADL_OK)
   {
     log_info ("WARN: %s\n", "ADL_Overdrive6_PowerControl_Get", ADL_rc);
   }
@@ -412,7 +412,7 @@ int hc_ADL_Overdrive_PowerControl_Set (ADL_PTR *adl, int iAdapterIndex, int leve
   return (ADL_rc);
 }
 
-int hc_ADL_Adapter_Active_Get (ADL_PTR *adl, int iAdapterIndex, int *lpStatus)
+int hm_ADL_Adapter_Active_Get (ADL_PTR *adl, int iAdapterIndex, int *lpStatus)
 {
   if (!adl) return (-1);
 
@@ -427,7 +427,7 @@ int hc_ADL_Adapter_Active_Get (ADL_PTR *adl, int iAdapterIndex, int *lpStatus)
 }
 
 /*
-int hc_ADL_DisplayEnable_Set (ADL_PTR *adl, int iAdapterIndex, int *lpDisplayIndexList, int iDisplayListSize, int bPersistOnly)
+int hm_ADL_DisplayEnable_Set (ADL_PTR *adl, int iAdapterIndex, int *lpDisplayIndexList, int iDisplayListSize, int bPersistOnly)
 {
   if (!adl) return (-1);
 
@@ -442,7 +442,7 @@ int hc_ADL_DisplayEnable_Set (ADL_PTR *adl, int iAdapterIndex, int *lpDisplayInd
 }
 */
 
-int hc_ADL_Overdrive_Caps (ADL_PTR *adl, int iAdapterIndex, int *od_supported, int *od_enabled, int *od_version)
+int hm_ADL_Overdrive_Caps (ADL_PTR *adl, int iAdapterIndex, int *od_supported, int *od_enabled, int *od_version)
 {
   if (!adl) return (-1);
 
@@ -451,7 +451,7 @@ int hc_ADL_Overdrive_Caps (ADL_PTR *adl, int iAdapterIndex, int *od_supported, i
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive6_PowerControl_Caps (ADL_PTR *adl, int iAdapterIndex, int *lpSupported)
+int hm_ADL_Overdrive6_PowerControl_Caps (ADL_PTR *adl, int iAdapterIndex, int *lpSupported)
 {
   if (!adl) return (-1);
 
@@ -460,7 +460,7 @@ int hc_ADL_Overdrive6_PowerControl_Caps (ADL_PTR *adl, int iAdapterIndex, int *l
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_Capabilities_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6Capabilities *caps)
+int hm_ADL_Overdrive_Capabilities_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6Capabilities *caps)
 {
   if (!adl) return (-1);
 
@@ -469,7 +469,7 @@ int hc_ADL_Overdrive_Capabilities_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6Ca
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_StateInfo_Get (ADL_PTR *adl, int iAdapterIndex, int type, ADLOD6MemClockState *state)
+int hm_ADL_Overdrive_StateInfo_Get (ADL_PTR *adl, int iAdapterIndex, int type, ADLOD6MemClockState *state)
 {
   if (!adl) return (-1);
 
@@ -482,7 +482,7 @@ int hc_ADL_Overdrive_StateInfo_Get (ADL_PTR *adl, int iAdapterIndex, int type, A
 
     ADLOD6Capabilities caps;
 
-    if ((hc_ADL_Overdrive_Capabilities_Get (adl, iAdapterIndex, &caps)) != ADL_OK)
+    if ((hm_ADL_Overdrive_Capabilities_Get (adl, iAdapterIndex, &caps)) != ADL_OK)
     {
       log_info ("ERROR: failed to get ADL device capabilities");
 
@@ -517,7 +517,7 @@ int hc_ADL_Overdrive_StateInfo_Get (ADL_PTR *adl, int iAdapterIndex, int type, A
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_CurrentStatus_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6CurrentStatus *status)
+int hm_ADL_Overdrive_CurrentStatus_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6CurrentStatus *status)
 {
   if (!adl) return (-1);
 
@@ -526,7 +526,7 @@ int hc_ADL_Overdrive_CurrentStatus_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6C
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive_State_Set (ADL_PTR *adl, int iAdapterIndex, int type, ADLOD6StateInfo *state)
+int hm_ADL_Overdrive_State_Set (ADL_PTR *adl, int iAdapterIndex, int type, ADLOD6StateInfo *state)
 {
   if (!adl) return (-1);
 
@@ -534,7 +534,7 @@ int hc_ADL_Overdrive_State_Set (ADL_PTR *adl, int iAdapterIndex, int type, ADLOD
 
   ADLOD6Capabilities caps;
 
-  if ((hc_ADL_Overdrive_Capabilities_Get (adl, iAdapterIndex, &caps)) != ADL_OK)
+  if ((hm_ADL_Overdrive_Capabilities_Get (adl, iAdapterIndex, &caps)) != ADL_OK)
   {
     log_info ("ERROR: failed to get ADL device capabilities");
 
@@ -574,7 +574,7 @@ int hc_ADL_Overdrive_State_Set (ADL_PTR *adl, int iAdapterIndex, int type, ADLOD
   return (ADL_rc);
 }
 
-int hc_ADL_Overdrive6_TargetTemperatureData_Get (ADL_PTR *adl, int iAdapterIndex, int *cur_temp, int *default_temp)
+int hm_ADL_Overdrive6_TargetTemperatureData_Get (ADL_PTR *adl, int iAdapterIndex, int *cur_temp, int *default_temp)
 {
   if (!adl) return (-1);
 
