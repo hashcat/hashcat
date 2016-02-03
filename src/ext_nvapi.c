@@ -12,9 +12,9 @@ int nvapi_init (NVAPI_PTR *nvapi)
   memset (nvapi, 0, sizeof (NVAPI_PTR));
 
   #if __x86_64__
-  nvapi->lib = hc_dlopen ("nvapi64.lib");
+  nvapi->lib = hc_dlopen ("nvapi64.dll");
   #elif __x86__
-  nvapi->lib = hc_dlopen ("nvapi.lib");
+  nvapi->lib = hc_dlopen ("nvapi.dll");
   #endif
 
   if (!nvapi->lib)
@@ -25,13 +25,14 @@ int nvapi_init (NVAPI_PTR *nvapi)
     return (-1);
   }
 
-  HC_LOAD_FUNC(nvapi, NvAPI_Initialize, NVAPI_INITIALIZE, NVAPI, 0)
-  HC_LOAD_FUNC(nvapi, NvAPI_Unload, NVAPI_UNLOAD, NVAPI, 0)
-  HC_LOAD_FUNC(nvapi, NvAPI_GetErrorMessage, NVAPI_GETERRORMESSAGE, NVAPI, 0)
-  HC_LOAD_FUNC(nvapi, NvAPI_EnumPhysicalGPUs, NVAPI_ENUMPHYSICALGPUS, NVAPI, 0)
-  HC_LOAD_FUNC(nvapi, NvAPI_GPU_GetThermalSettings, NVAPI_GPU_GETTHERMALSETTINGS, NVAPI, 0)
-  HC_LOAD_FUNC(nvapi, NvAPI_GPU_GetTachReading, NVAPI_GPU_GETTACHREADING, NVAPI, 0)
-  HC_LOAD_FUNC(nvapi, NvAPI_GPU_GetDynamicPstatesInfoEx, NVAPI_GPU_GETDYNAMICPSTATESINFOEX, NVAPI, 0)
+  HC_LOAD_FUNC(nvapi, nvapi_QueryInterface, NVAPI_QUERYINTERFACE, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_Initialize, NVAPI_INITIALIZE, nvapi_QueryInterface, 0x0150E828, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_Unload, NVAPI_UNLOAD, nvapi_QueryInterface, 0x0D22BDD7E, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GetErrorMessage, NVAPI_GETERRORMESSAGE, nvapi_QueryInterface, 0x6C2D048C, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetDynamicPstatesInfoEx, NVAPI_GPU_GETDYNAMICPSTATESINFOEX, nvapi_QueryInterface, 0x60DED2ED, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_EnumPhysicalGPUs, NVAPI_ENUMPHYSICALGPUS, nvapi_QueryInterface, 0xE5AC921F, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetThermalSettings, NVAPI_GPU_GETTHERMALSETTINGS, nvapi_QueryInterface, 0xE3640A56, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetTachReading, NVAPI_GPU_GETTACHREADING, nvapi_QueryInterface, 0x5F608315, NVAPI, 0)
 
   return 0;
 }
@@ -52,6 +53,8 @@ int hm_NvAPI_Initialize (NVAPI_PTR *nvapi)
   if (!nvapi) return (-1);
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_Initialize ();
+
+  if (NvAPI_rc == NVAPI_LIBRARY_NOT_FOUND) NvAPI_rc = NVAPI_OK; // not a bug
 
   if (NvAPI_rc != NVAPI_OK)
   {
