@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -58,7 +60,7 @@ int hm_NvAPI_Initialize (NVAPI_PTR *nvapi)
 
   if (NvAPI_rc != NVAPI_OK)
   {
-    NvAPI_ShortString string;
+    NvAPI_ShortString string = { 0 };
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
@@ -76,7 +78,7 @@ int hm_NvAPI_Unload (NVAPI_PTR *nvapi)
 
   if (NvAPI_rc != NVAPI_OK)
   {
-    NvAPI_ShortString string;
+    NvAPI_ShortString string = { 0 };
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
@@ -101,7 +103,7 @@ int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle
 
   if (NvAPI_rc != NVAPI_OK)
   {
-    NvAPI_ShortString string;
+    NvAPI_ShortString string = { 0 };
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
@@ -119,7 +121,7 @@ int hm_NvAPI_GPU_GetThermalSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhys
 
   if (NvAPI_rc != NVAPI_OK)
   {
-    NvAPI_ShortString string;
+    NvAPI_ShortString string = { 0 };
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
@@ -137,7 +139,7 @@ int hm_NvAPI_GPU_GetTachReading (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysical
 
   if (NvAPI_rc != NVAPI_OK)
   {
-    NvAPI_ShortString string;
+    NvAPI_ShortString string = { 0 };
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
@@ -155,7 +157,7 @@ int hm_NvAPI_GPU_GetDynamicPstatesInfoEx (NVAPI_PTR *nvapi, NvPhysicalGpuHandle 
 
   if (NvAPI_rc != NVAPI_OK)
   {
-    NvAPI_ShortString string;
+    NvAPI_ShortString string = { 0 };
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
