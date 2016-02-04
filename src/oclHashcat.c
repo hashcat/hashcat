@@ -5940,9 +5940,12 @@ int main (int argc, char **argv)
 
   if (benchmark == 1)
   {
-    log_error ("ERROR: Using the workload-profile in benchmark mode is not allowed");
+    if (workload_profile != WORKLOAD_PROFILE)
+    {
+      log_error ("ERROR: Using the workload-profile in benchmark mode is not allowed");
 
-    return (-1);
+      return (-1);
+    }
   }
 
   if ((workload_profile < 1) || (workload_profile > 3))
