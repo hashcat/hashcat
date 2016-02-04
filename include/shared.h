@@ -72,6 +72,18 @@
     } \
   }
 
+#define HC_LOAD_ADDR(ptr,name,type,func,addr,libname,noerr) \
+  ptr->name = (type) (*ptr->func) (addr); \
+  if (!ptr->name) { \
+    if (noerr == 1) { \
+      log_error ("ERROR: %s at address %08x is missing from %s shared library.", #name, addr, #libname); \
+      exit (-1); \
+    } else { \
+      log_error ("WARNING: %s at address %08x is missing from %s shared library.", #name, addr, #libname); \
+      return (-1); \
+    } \
+  }
+
 /**
  * system stuff
  */

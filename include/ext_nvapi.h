@@ -295,6 +295,7 @@ typedef struct
 // Macro for constructing the version field of NV_GPU_DYNAMIC_PSTATES_INFO_EX
 #define NV_GPU_DYNAMIC_PSTATES_INFO_EX_VER MAKE_NVAPI_VERSION(NV_GPU_DYNAMIC_PSTATES_INFO_EX,1)
 
+NVAPI_INTERFACE NvAPI_QueryInterface(uint offset);
 NVAPI_INTERFACE NvAPI_Initialize();
 NVAPI_INTERFACE NvAPI_Unload();
 NVAPI_INTERFACE NvAPI_GetErrorMessage(NvAPI_Status nr,NvAPI_ShortString szDesc);
@@ -361,18 +362,20 @@ typedef NvPhysicalGpuHandle HM_ADAPTER_NV;
 
 #include <shared.h>
 
-typedef NvAPI_Status (*NVAPI_INITIALIZE) (void);
-typedef NvAPI_Status (*NVAPI_UNLOAD) (void);
-typedef NvAPI_Status (*NVAPI_GETERRORMESSAGE) (NvAPI_Status, NvAPI_ShortString);
-typedef NvAPI_Status (*NVAPI_ENUMPHYSICALGPUS) (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *);
-typedef NvAPI_Status (*NVAPI_GPU_GETTHERMALSETTINGS) (NvPhysicalGpuHandle, NvU32, NV_GPU_THERMAL_SETTINGS *);
-typedef NvAPI_Status (*NVAPI_GPU_GETTACHREADING) (NvPhysicalGpuHandle, NvU32 *);
-typedef NvAPI_Status (*NVAPI_GPU_GETDYNAMICPSTATESINFOEX) (NvPhysicalGpuHandle, NV_GPU_DYNAMIC_PSTATES_INFO_EX *);
+typedef int *(*NVAPI_QUERYINTERFACE) (uint);
+typedef int (*NVAPI_INITIALIZE) (void);
+typedef int (*NVAPI_UNLOAD) (void);
+typedef int (*NVAPI_GETERRORMESSAGE) (NvAPI_Status, NvAPI_ShortString);
+typedef int (*NVAPI_ENUMPHYSICALGPUS) (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *);
+typedef int (*NVAPI_GPU_GETTHERMALSETTINGS) (NvPhysicalGpuHandle, NvU32, NV_GPU_THERMAL_SETTINGS *);
+typedef int (*NVAPI_GPU_GETTACHREADING) (NvPhysicalGpuHandle, NvU32 *);
+typedef int (*NVAPI_GPU_GETDYNAMICPSTATESINFOEX) (NvPhysicalGpuHandle, NV_GPU_DYNAMIC_PSTATES_INFO_EX *);
 
 typedef struct
 {
   NV_LIB lib;
 
+  NVAPI_QUERYINTERFACE nvapi_QueryInterface;
   NVAPI_INITIALIZE NvAPI_Initialize;
   NVAPI_UNLOAD NvAPI_Unload;
   NVAPI_GETERRORMESSAGE NvAPI_GetErrorMessage;
@@ -388,6 +391,7 @@ typedef struct
 int nvapi_init (NVAPI_PTR *nvapi);
 void nvapi_close (NVAPI_PTR *nvapi);
 
+int hm_NvAPI_QueryInterface (NVAPI_PTR *nvapi, uint offset);
 int hm_NvAPI_Initialize (NVAPI_PTR *nvapi);
 int hm_NvAPI_Unload (NVAPI_PTR *nvapi);
 int hm_NvAPI_GetErrorMessage (NVAPI_PTR *nvapi, NvAPI_Status nr, NvAPI_ShortString szDesc);
