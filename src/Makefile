@@ -48,12 +48,6 @@ DOCUMENT_FOLDER          ?= $(PREFIX)/share/doc/$(PROG_NAME)
 OPENCL_HEADERS_KHRONOS   := deps/OpenCL-Headers
 
 ##
-## Dependencies
-##
-
-NVAPI                    := deps/R352-developer
-
-##
 
 WITH_ADL                 := 1
 WITH_NVML                := 1

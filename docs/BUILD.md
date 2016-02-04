@@ -1,7 +1,7 @@
 oclHashcat build documentation
 =
 # Revision:
-* 1.2
+* 1.3
 
 # Authors:
 * Gabriele Gristina <<matrix@hashcat.net>>
@@ -23,25 +23,15 @@ $ make
 
 # Install oclHashcat for Linux
 
-The linux target is FHS compatible and can be installed like this:
+The install target is linux FHS compatible and can be used like this:
 
 ```sh
 $ make install
 ```
 
-If you install it, cached kernels, session files, restore- and pot-files etc will go to $HOME/.hashcat/
+If you install it, cached kernels, session files, restore- and pot-files etc. will go to $HOME/.hashcat/
 
 # Building oclHashcat for Windows
-
-The following third party library is required:
-
-- NVAPI R352 ( https://developer.nvidia.com/nvapi )
-
-Download the third party library listed above and put the .zip file into the *deps/tmp* directory.
-
-- R352-developer.zip 
-
-Install the dependencies (root permission needed for apt-get install command)
 
 Get a copy of the **oclHashcat** repository
 
@@ -49,24 +39,17 @@ Get a copy of the **oclHashcat** repository
 $ git clone https://github.com/hashcat/oclHashcat.git
 ```
 
-```sh
-$ cd oclHashcat
-$ ./tools/deps.sh
-```
+Basically all you need is the OpenCL Headers. 
 
-- build all binaries:
+Simply clone into the reference Implementation:
+
+```sh
+$ mkdir -p deps/OpenCL-Headers
+$ git clone https://github.com/KhronosGroup/OpenCL-Headers deps/OpenCL-Headers/CL
+```
 
 ```sh
 $ make win32 win64
 ```
-
-# To build all binaries ("make binaries") you need to first clone the OpenCL-Headers within the main folder:
-
-```sh
-$ git clone https://github.com/KhronosGroup/OpenCL-Headers deps/OpenCL-Headers/CL
-```
-
-the tools/deps.sh script does not clone this repo automatically since for native compilation it is not needed.
-
 =
 Enjoy your fresh **oclHashcat** binaries ;)
