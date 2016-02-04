@@ -17,9 +17,9 @@
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
 
-#include "OpenCL/kernel_aes256_amd.c"
-#include "OpenCL/kernel_twofish256_amd.c"
-#include "OpenCL/kernel_serpent256_amd.c"
+#include "OpenCL/kernel_aes256.c"
+#include "OpenCL/kernel_twofish256.c"
+#include "OpenCL/kernel_serpent256.c"
 
 __constant u64 k_sha512[80] =
 {

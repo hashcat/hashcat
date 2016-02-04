@@ -100,10 +100,7 @@
  * temperature management
  */
 
-#ifdef OSX
-#include <ext_smi.h>
-#include <ext_dummy.h>
-#elif _WIN
+#if _WIN
 #include <ext_ADL.h>
 #include <ext_nvapi.h>
 #else

@@ -12,6 +12,7 @@ rm -rf $OUT
 rm -rf $OUT.7z
 
 mkdir -p $OUT
+mkdir -p $OUT/include
 
 cp    $IN/oclHashcat??.exe                      $OUT/
 cp    $IN/oclHashcat??.bin                      $OUT/
@@ -26,7 +27,10 @@ cp    $IN/example.dict                          $OUT/
 cp    $IN/example[0123456789]*.hash             $OUT/
 cp    $IN/example[0123456789]*.cmd              $OUT/
 
-cp -r $IN/include                               $OUT/
+cp -r $IN/include/constants.h                   $OUT/include
+cp -r $IN/include/kernel_functions.c            $OUT/include
+cp -r $IN/include/kernel_vendor.h               $OUT/include
+cp -r $IN/include/rp_kernel.h                   $OUT/include
 cp -r $IN/OpenCL                                $OUT/
 
 # since for the binary distribution we still use .bin, we need to rewrite the commands

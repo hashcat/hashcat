@@ -17,9 +17,9 @@
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
 
-#include "OpenCL/kernel_aes256_amd.c"
-#include "OpenCL/kernel_twofish256_amd.c"
-#include "OpenCL/kernel_serpent256_amd.c"
+#include "OpenCL/kernel_aes256.c"
+#include "OpenCL/kernel_twofish256.c"
+#include "OpenCL/kernel_serpent256.c"
 
 static void ripemd160_transform (const u32 w[16], u32 dgst[5])
 {
