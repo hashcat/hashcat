@@ -300,7 +300,7 @@ __kernel void m08400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w3_t[0] = swap32 (w3[0]);
     w3_t[1] = swap32 (w3[1]);
     w3_t[2] = 0;
-    w3_t[3] = pw_len * 8;
+    w3_t[3] = out_len * 8;
 
     u32 digest[5];
 
@@ -607,7 +607,7 @@ __kernel void m08400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w3_t[0] = swap32 (w3[0]);
     w3_t[1] = swap32 (w3[1]);
     w3_t[2] = 0;
-    w3_t[3] = pw_len * 8;
+    w3_t[3] = out_len * 8;
 
     u32 digest[5];
 

@@ -345,24 +345,24 @@ __kernel void m08600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * padding
      */
 
-    if (pw_len < 16)
+    if (out_len < 16)
     {
-      pad (&w[ 0], pw_len & 0xf);
+      pad (&w[ 0], out_len & 0xf);
     }
-    else if (pw_len < 32)
+    else if (out_len < 32)
     {
-      pad (&w[ 4], pw_len & 0xf);
+      pad (&w[ 4], out_len & 0xf);
     }
-    else if (pw_len < 48)
+    else if (out_len < 48)
     {
-      pad (&w[ 8], pw_len & 0xf);
+      pad (&w[ 8], out_len & 0xf);
     }
-    else if (pw_len < 64)
+    else if (out_len < 64)
     {
-      pad (&w[12], pw_len & 0xf);
+      pad (&w[12], out_len & 0xf);
     }
 
-    domino_big_md (w, pw_len, state, s_lotus_magic_table);
+    domino_big_md (w, out_len, state, s_lotus_magic_table);
 
     const u32 r0 = state[0];
     const u32 r1 = state[1];
@@ -504,24 +504,24 @@ __kernel void m08600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * padding
      */
 
-    if (pw_len < 16)
+    if (out_len < 16)
     {
-      pad (&w[ 0], pw_len & 0xf);
+      pad (&w[ 0], out_len & 0xf);
     }
-    else if (pw_len < 32)
+    else if (out_len < 32)
     {
-      pad (&w[ 4], pw_len & 0xf);
+      pad (&w[ 4], out_len & 0xf);
     }
-    else if (pw_len < 48)
+    else if (out_len < 48)
     {
-      pad (&w[ 8], pw_len & 0xf);
+      pad (&w[ 8], out_len & 0xf);
     }
-    else if (pw_len < 64)
+    else if (out_len < 64)
     {
-      pad (&w[12], pw_len & 0xf);
+      pad (&w[12], out_len & 0xf);
     }
 
-    domino_big_md (w, pw_len, state, s_lotus_magic_table);
+    domino_big_md (w, out_len, state, s_lotus_magic_table);
 
     const u32 r0 = state[0];
     const u32 r1 = state[1];

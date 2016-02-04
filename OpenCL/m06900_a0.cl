@@ -846,7 +846,7 @@ __kernel void m06900_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     u32 tmp[8];
 
-    if (pw_len > 0)
+    if (out_len > 0)
     {
       PASS0 (state, tmp, state_m, data_m, s_tables);
       PASS2 (state, tmp, state_m, data_m, s_tables);
@@ -1106,7 +1106,7 @@ __kernel void m06900_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     u32 tmp[8];
 
-    if (pw_len > 0)
+    if (out_len > 0)
     {
       PASS0 (state, tmp, state_m, data_m, s_tables);
       PASS2 (state, tmp, state_m, data_m, s_tables);

@@ -113,12 +113,14 @@ __kernel void m04700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     w3[0] = 0;
     w3[1] = 0;
-    w3[2] = pw_len * 8;
+    w3[2] = 0;
     w3[3] = 0;
 
     const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
 
     append_0x80_2x4 (w0, w1, out_len);
+
+    w3[2] = out_len * 8;
 
     /**
      * md5
@@ -451,12 +453,14 @@ __kernel void m04700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     w3[0] = 0;
     w3[1] = 0;
-    w3[2] = pw_len * 8;
+    w3[2] = 0;
     w3[3] = 0;
 
     const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
 
     append_0x80_2x4 (w0, w1, out_len);
+
+    w3[2] = out_len * 8;
 
     /**
      * md5

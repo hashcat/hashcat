@@ -280,7 +280,7 @@ __kernel void m08300_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, 1);
 
-    w0_t[0] |= pw_len & 0xff;
+    w0_t[0] |= out_len & 0xff;
 
     /**
      * salt
@@ -588,7 +588,7 @@ __kernel void m08300_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, 1);
 
-    w0_t[0] |= pw_len & 0xff;
+    w0_t[0] |= out_len & 0xff;
 
     /**
      * salt

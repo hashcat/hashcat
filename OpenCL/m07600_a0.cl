@@ -174,7 +174,7 @@ __kernel void m07600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     u32 wc_t = swap32 (w3[0]);
     u32 wd_t = swap32 (w3[1]);
     u32 we_t = 0;
-    u32 wf_t = pw_len * 8;
+    u32 wf_t = out_len * 8;
 
     u32 a = SHA1M_A;
     u32 b = SHA1M_B;
@@ -769,7 +769,7 @@ __kernel void m07600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     u32 wc_t = swap32 (w3[0]);
     u32 wd_t = swap32 (w3[1]);
     u32 we_t = 0;
-    u32 wf_t = pw_len * 8;
+    u32 wf_t = out_len * 8;
 
     u32 a = SHA1M_A;
     u32 b = SHA1M_B;
