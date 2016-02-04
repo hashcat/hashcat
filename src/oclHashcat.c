@@ -2587,15 +2587,18 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
 
 static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const uint size)
 {
-  if (device_param->vendor_id == VENDOR_ID_AMD)
+  int rc = -1;
+
+  if (device_param->opencl_v12 && device_param->vendor_id == VENDOR_ID_AMD)
   {
     // So far tested, amd is the only supporting this OpenCL 1.2 function without segfaulting
 
     const cl_uchar zero = 0;
 
-    hc_clEnqueueFillBuffer (data.ocl, device_param->command_queue, buf, &zero, sizeof (cl_uchar), 0, size, 0, NULL, NULL);
+    rc = hc_clEnqueueFillBuffer (data.ocl, device_param->command_queue, buf, &zero, sizeof (cl_uchar), 0, size, 0, NULL, NULL);
   }
-  else
+
+  if (rc != 0)
   {
     // NOTE: clEnqueueFillBuffer () always fails with -59
     //       IOW, it's not supported by Nvidia ForceWare <= 352.21, also pocl segfaults, also on apple
@@ -12659,6 +12662,8 @@ int main (int argc, char **argv)
 
       for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
       {
+        size_t param_value_size = 0;
+
         const uint device_id = devices_cnt;
 
         hc_device_param_t *device_param = &data.devices_param[device_id];
@@ -12689,19 +12694,35 @@ int main (int argc, char **argv)
 
         // device_name
 
-        char *device_name = (char *) mymalloc (INFOSZ);
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NAME, 0, NULL, &param_value_size);
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NAME, INFOSZ, device_name, NULL);
+        char *device_name = (char *) mymalloc (param_value_size);
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NAME, param_value_size, device_name, NULL);
 
         device_param->device_name = device_name;
 
         // device_version
 
-        char *device_version = (char *) mymalloc (INFOSZ);
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VERSION, 0, NULL, &param_value_size);
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VERSION, INFOSZ, device_version, NULL);
+        char *device_version = (char *) mymalloc (param_value_size);
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VERSION, param_value_size, device_version, NULL);
 
         device_param->device_version = device_version;
+
+        // device_opencl_version
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &param_value_size);
+
+        char *device_opencl_version = (char *) mymalloc (param_value_size);
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_OPENCL_C_VERSION, param_value_size, device_opencl_version, NULL);
+
+        device_param->opencl_v12 = device_opencl_version[9] > '1' || device_opencl_version[11] >= '2';
+
+        myfree (device_opencl_version);
 
         if (strstr (device_version, "pocl"))
         {
@@ -12791,10 +12812,11 @@ int main (int argc, char **argv)
         device_param->skipped = (skipped1 || skipped2);
 
         // driver_version
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DRIVER_VERSION, 0, NULL, &param_value_size);
 
-        char *driver_version = (char *) mymalloc (INFOSZ);
+        char *driver_version = (char *) mymalloc (param_value_size);
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DRIVER_VERSION, INFOSZ, driver_version, NULL);
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DRIVER_VERSION, param_value_size, driver_version, NULL);
 
         device_param->driver_version = driver_version;
 

@@ -90,7 +90,7 @@ int ocl_init (OCL_PTR *ocl)
   HC_LOAD_FUNC(ocl, clCreateProgramWithBinary, OCL_CLCREATEPROGRAMWITHBINARY, OpenCL, 1)
   HC_LOAD_FUNC(ocl, clCreateProgramWithSource, OCL_CLCREATEPROGRAMWITHSOURCE, OpenCL, 1)
   HC_LOAD_FUNC(ocl, clEnqueueCopyBuffer, OCL_CLENQUEUECOPYBUFFER, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clEnqueueFillBuffer, OCL_CLENQUEUEFILLBUFFER, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clEnqueueFillBuffer, OCL_CLENQUEUEFILLBUFFER, OpenCL, -1)
   HC_LOAD_FUNC(ocl, clEnqueueMapBuffer, OCL_CLENQUEUEMAPBUFFER, OpenCL, 1)
   HC_LOAD_FUNC(ocl, clEnqueueNDRangeKernel, OCL_CLENQUEUENDRANGEKERNEL, OpenCL, 1)
   HC_LOAD_FUNC(ocl, clEnqueueReadBuffer, OCL_CLENQUEUEREADBUFFER, OpenCL, 1)
@@ -509,16 +509,19 @@ void hc_clEnqueueUnmapMemObject (OCL_PTR *ocl, cl_command_queue command_queue, c
   }
 }
 
-void hc_clEnqueueFillBuffer (OCL_PTR *ocl, cl_command_queue command_queue, cl_mem buffer, const void *pattern, size_t pattern_size, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+cl_int hc_clEnqueueFillBuffer (OCL_PTR *ocl, cl_command_queue command_queue, cl_mem buffer, const void *pattern, size_t pattern_size, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
 {
-  cl_int CL_err = ocl->clEnqueueFillBuffer (command_queue, buffer, pattern, pattern_size, offset, size, num_events_in_wait_list, event_wait_list, event);
+  cl_int CL_err = -1;
 
-  if (CL_err != CL_SUCCESS)
+  if (ocl->clEnqueueFillBuffer)
   {
-    log_error ("ERROR: %s : %d : %s\n", "clEnqueueFillBuffer()", CL_err, val2cstr_cl (CL_err));
+    CL_err = ocl->clEnqueueFillBuffer (command_queue, buffer, pattern, pattern_size, offset, size, num_events_in_wait_list, event_wait_list, event);
 
-    exit (-1);
+    if (CL_err != CL_SUCCESS && data.quiet == 0)
+      log_error ("WARNING: %s : %d : %s\n", "clEnqueueFillBuffer()", CL_err, val2cstr_cl (CL_err));
   }
+
+  return CL_err;
 }
 
 void hc_clGetKernelWorkGroupInfo (OCL_PTR *ocl, cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
