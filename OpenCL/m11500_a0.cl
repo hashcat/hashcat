@@ -182,8 +182,6 @@ __kernel void m11500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     const u32 out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    append_0x01_2x4 (w0, w1, out_len);
-
     u32x w[16];
 
     w[ 0] = w0[0];
@@ -278,8 +276,6 @@ __kernel void m11500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     u32x w3[4] = { 0 };
 
     const u32 out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
-
-    append_0x01_2x4 (w0, w1, out_len);
 
     u32x w[16];
 
