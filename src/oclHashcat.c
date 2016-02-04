@@ -5072,7 +5072,7 @@ int main (int argc, char **argv)
 
   if (compute)
   {
-    char display[100] = { 0 };
+    static char display[100];
 
     snprintf (display, sizeof (display) - 1, "DISPLAY=%s", compute);
 
