@@ -13001,113 +13001,6 @@ int main (int argc, char **argv)
     }
 
     /**
-     * OpenCL devices: allocate buffer for device specific information
-     */
-
-    #ifdef HAVE_HWMON
-    int *temp_retain_fanspeed_value = (int *) mycalloc (devices_cnt, sizeof (int));
-
-    #ifdef HAVE_ADL
-    ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (devices_cnt, sizeof (ADLOD6MemClockState));
-
-    int *od_power_control_status = (int *) mycalloc (devices_cnt, sizeof (int));
-    #endif // ADL
-    #endif
-
-    /**
-     * enable custom signal handler(s)
-     */
-
-    if (benchmark == 0)
-    {
-      hc_signal (sigHandler_default);
-    }
-    else
-    {
-      hc_signal (sigHandler_benchmark);
-    }
-
-    /**
-     * User-defined GPU temp handling
-     */
-
-    #ifdef HAVE_HWMON
-    if (gpu_temp_disable == 1)
-    {
-      gpu_temp_abort  = 0;
-      gpu_temp_retain = 0;
-    }
-
-    if ((gpu_temp_abort != 0) && (gpu_temp_retain != 0))
-    {
-      if (gpu_temp_abort < gpu_temp_retain)
-      {
-        log_error ("ERROR: invalid values for gpu-temp-abort. Parameter gpu-temp-abort is less than gpu-temp-retain.");
-
-        return (-1);
-      }
-    }
-
-    data.gpu_temp_disable = gpu_temp_disable;
-    data.gpu_temp_abort   = gpu_temp_abort;
-    data.gpu_temp_retain  = gpu_temp_retain;
-    #endif
-
-    /**
-     * inform the user
-     */
-
-    if (data.quiet == 0)
-    {
-      log_info ("Hashes: %u hashes; %u unique digests, %u unique salts", hashes_cnt_orig, digests_cnt, salts_cnt);
-
-      log_info ("Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_bits, bitmap_nums, bitmap_mask, bitmap_size, bitmap_shift1, bitmap_shift2);
-
-      if (attack_mode == ATTACK_MODE_STRAIGHT)
-      {
-        log_info ("Rules: %u", kernel_rules_cnt);
-      }
-
-      if (opti_type)
-      {
-        log_info ("Applicable Optimizers:");
-
-        for (uint i = 0; i < 32; i++)
-        {
-          const uint opti_bit = 1u << i;
-
-          if (opti_type & opti_bit) log_info ("* %s", stroptitype (opti_bit));
-        }
-      }
-
-      /**
-       * Watchdog and Temperature balance
-       */
-
-      #ifdef HAVE_HWMON
-      if (gpu_temp_abort == 0)
-      {
-        log_info ("Watchdog: Temperature abort trigger disabled");
-      }
-      else
-      {
-        log_info ("Watchdog: Temperature abort trigger set to %uc", gpu_temp_abort);
-      }
-
-      if (gpu_temp_retain == 0)
-      {
-        log_info ("Watchdog: Temperature retain trigger disabled");
-      }
-      else
-      {
-        log_info ("Watchdog: Temperature retain trigger set to %uc", gpu_temp_retain);
-      }
-      #endif
-    }
-
-    if (data.quiet == 0) log_info ("");
-
-    /**
      * HM devices: init
      */
 
@@ -13233,7 +13126,124 @@ int main (int argc, char **argv)
         }
       }
       #endif // HAVE_ADL
+
+      if (data.hm_amd == NULL && data.hm_nv == NULL)
+      {
+        gpu_temp_disable = 1;
+      }
     }
+
+    /**
+     * OpenCL devices: allocate buffer for device specific information
+     */
+
+    #ifdef HAVE_HWMON
+    int *temp_retain_fanspeed_value = (int *) mycalloc (devices_cnt, sizeof (int));
+
+    #ifdef HAVE_ADL
+    ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (devices_cnt, sizeof (ADLOD6MemClockState));
+
+    int *od_power_control_status = (int *) mycalloc (devices_cnt, sizeof (int));
+    #endif // ADL
+    #endif
+
+    /**
+     * enable custom signal handler(s)
+     */
+
+    if (benchmark == 0)
+    {
+      hc_signal (sigHandler_default);
+    }
+    else
+    {
+      hc_signal (sigHandler_benchmark);
+    }
+
+    /**
+     * User-defined GPU temp handling
+     */
+
+    #ifdef HAVE_HWMON
+    if (gpu_temp_disable == 1)
+    {
+      gpu_temp_abort  = 0;
+      gpu_temp_retain = 0;
+    }
+
+    if ((gpu_temp_abort != 0) && (gpu_temp_retain != 0))
+    {
+      if (gpu_temp_abort < gpu_temp_retain)
+      {
+        log_error ("ERROR: invalid values for gpu-temp-abort. Parameter gpu-temp-abort is less than gpu-temp-retain.");
+
+        return (-1);
+      }
+    }
+
+    data.gpu_temp_disable = gpu_temp_disable;
+    data.gpu_temp_abort   = gpu_temp_abort;
+    data.gpu_temp_retain  = gpu_temp_retain;
+    #endif
+
+    /**
+     * inform the user
+     */
+
+    if (data.quiet == 0)
+    {
+      log_info ("Hashes: %u hashes; %u unique digests, %u unique salts", hashes_cnt_orig, digests_cnt, salts_cnt);
+
+      log_info ("Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_bits, bitmap_nums, bitmap_mask, bitmap_size, bitmap_shift1, bitmap_shift2);
+
+      if (attack_mode == ATTACK_MODE_STRAIGHT)
+      {
+        log_info ("Rules: %u", kernel_rules_cnt);
+      }
+
+      if (opti_type)
+      {
+        log_info ("Applicable Optimizers:");
+
+        for (uint i = 0; i < 32; i++)
+        {
+          const uint opti_bit = 1u << i;
+
+          if (opti_type & opti_bit) log_info ("* %s", stroptitype (opti_bit));
+        }
+      }
+
+      /**
+       * Watchdog and Temperature balance
+       */
+
+      #ifdef HAVE_HWMON
+      if (gpu_temp_disable == 0 && data.hm_amd == NULL && data.hm_nv == NULL)
+      {
+        log_info ("Watchdog: Hardware Monitoring Interface not found on your system");
+      }
+
+      if (gpu_temp_abort == 0)
+      {
+        log_info ("Watchdog: Temperature abort trigger disabled");
+      }
+      else
+      {
+        log_info ("Watchdog: Temperature abort trigger set to %uc", gpu_temp_abort);
+      }
+
+      if (gpu_temp_retain == 0)
+      {
+        log_info ("Watchdog: Temperature retain trigger disabled");
+      }
+      else
+      {
+        log_info ("Watchdog: Temperature retain trigger set to %uc", gpu_temp_retain);
+      }
+      #endif
+    }
+
+    if (data.quiet == 0) log_info ("");
 
     /**
      * HM devices: copy
