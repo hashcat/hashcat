@@ -1,8 +1,9 @@
 oclHashcat v2.10
 ================
 
-NV users require ForceWare 346.59 or later (recommended 358.09 or later)
 AMD users require Catalyst 14.9 or later (recommended 15.12 or later)
+Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)
+NVidia users require ForceWare 346.59 or later (recommended 358.09 or later)
 
 ##
 ## Features
@@ -11,21 +12,20 @@ AMD users require Catalyst 14.9 or later (recommended 15.12 or later)
 - World's fastest password cracker
 - World's first and only GPGPU-based rule engine
 - Free
-- Open-Source
-- Multi-GPU (up to 128 GPUs)
-- Multi-Hash (up to 100 million hashes at once)
-- Multi-OS (Linux & Windows native binaries)
-- Multi-Platform (OpenCL support)
-- Multi-Algorithm (see below)
-- Low resource utilization; you can still watch movies or play games while cracking
-- Focuses on highly iterated modern hashes
-- Focuses on dictionary-based attacks
-- Supports distributed cracking
-- Supports pause / resume while cracking
+- Open-Source (MIT License)
+- Multi-OS (Linux, Windows and OSX)
+- Multi-Platform (CPU, GPU, FPGA, etc., everything that comes with an OpenCL runtime)
+- Multi-Hash (Cracking multiple hashes at the same time)
+- Multi-Devices (Utilizing multiple devices in same system)
+- Multi-Device-Types (Utilizing mixed device types in same system)
+- Supports distributed cracking networks (using overlay)
+- Supports interactive pause / resume
 - Supports sessions
 - Supports restore
 - Supports reading words from file and stdin
 - Supports hex-salt and hex-charset
+- Supports user-defined workload and vector-width settings
+- Supports automatic keyspace ordering markov-chains 
 - Built-in benchmarking system
 - Integrated thermal watchdog
 - 150+ Hash-types implemented with performance in mind
@@ -209,16 +209,25 @@ AMD users require Catalyst 14.9 or later (recommended 15.12 or later)
 - TrueCrypt 5.0+
 
 ##
-## Tested OS's
-##
-
-- All Windows and Linux versions should work on both 32 and 64 bit
-
-##
 ## Tested GPU's
 ##
 
-- All NVidia CUDA enabled cards >= sm_20
-- All AMD OpenCL enabled cards >= HD 5000
+- AMD OpenCL enabled GPU using AMD Catalyst driver
+- Intel OpenCL enabled GPU using Intel OpenCL driver
+- NVidia OpenCL enabled GPU using NVidia ForceWare driver
+
+##
+## Tested CPU's
+##
+
+- AMD CPU using AMD Catalyst driver
+- Intel CPU using Intel OpenCL driver
+- Generic CPU using pocl driver or Catalyst driver
+
+##
+## Tested Accelerators's
+##
+
+- Intel Xeon Phi coprocessors using Intel OpenCL driver
 
 To get started, run the example scripts or check out docs/user_manuals.txt

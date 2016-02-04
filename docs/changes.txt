@@ -20,21 +20,6 @@ Issue: 68
 
 Type.: Feature
 File.: Host
-Desc.: Added a Makefile target for native compilation
-Issue: 2
-
-Type.: Feature
-File.: Host
-Desc.: Switched to Khronos OSS OpenCL reference implementation for building
-Issue: 2
-
-Type.: Feature
-File.: Host
-Desc.: No longer requires NV CUDA-SDK, NV ForceWare or AMD APP-SDK in depencies
-Issue: 2
-
-Type.: Feature
-File.: Host
 Desc.: Added support to utilize multiple different OpenCL platforms in parallel, ex: AMD + NV
 Issue: 2
 
@@ -46,6 +31,21 @@ Issue: 2
 Type.: Feature
 File.: Host
 Desc.: Added support to utilize multiple different OpenCL devices-types in parallel, ex: GPU + CPU
+Issue: 2
+
+Type.: Feature
+File.: Host
+Desc.: Added a Makefile target for native compilation
+Issue: 2
+
+Type.: Feature
+File.: Host
+Desc.: Switched to Khronos OSS OpenCL reference implementation for building
+Issue: 2
+
+Type.: Feature
+File.: Host
+Desc.: No longer requires NV CUDA-SDK, NV ForceWare, NVML, NVAPI, AMD APP-SDK and AMD ADL in depencies
 Issue: 2
 
 Type.: Feature
