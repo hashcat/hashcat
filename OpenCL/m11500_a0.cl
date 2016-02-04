@@ -201,7 +201,7 @@ __kernel void m11500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[14] = 0;
     w[15] = 0;
 
-    u32x a = crc32 (w, pw_len, iv);
+    u32x a = crc32 (w, out_len, iv);
     u32x b = 0;
     u32x c = 0;
     u32x d = 0;
@@ -296,7 +296,7 @@ __kernel void m11500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[14] = 0;
     w[15] = 0;
 
-    u32x a = crc32 (w, pw_len, iv);
+    u32x a = crc32 (w, out_len, iv);
     u32x b = 0;
     u32x c = 0;
     u32x d = 0;
