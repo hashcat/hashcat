@@ -62,13 +62,15 @@
 
 #define HC_LOAD_FUNC(ptr,name,type,libname,noerr) \
   ptr->name = (type) hc_dlsym (ptr->lib, #name); \
-  if (!ptr->name) { \
-    if (noerr == 1) { \
-      log_error ("ERROR: %s is missing from %s shared library.", #name, #libname); \
-      exit (-1); \
-    } else { \
-      log_info ("WARNING: %s is missing from %s shared library.", #name, #libname); \
-      return (-1); \
+  if (noerr != -1) { \
+    if (!ptr->name) { \
+      if (noerr == 1) { \
+        log_error ("ERROR: %s is missing from %s shared library.", #name, #libname); \
+        exit (-1); \
+      } else { \
+        log_info ("WARNING: %s is missing from %s shared library.", #name, #libname); \
+        return (-1); \
+      } \
     } \
   }
 

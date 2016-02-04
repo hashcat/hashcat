@@ -907,6 +907,8 @@ struct __hc_device_param
   char   *device_version;
   char   *driver_version;
 
+  bool    opencl_v12;
+
   cl_uint vendor_id;
 
   cl_kernel  kernel1;
