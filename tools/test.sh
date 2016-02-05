@@ -1710,7 +1710,7 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
 done
 
 if [ "${VECTOR}" == "0" ]; then
-   VECTOR=custom
+   VECTOR="default"
    OPTS="${OPTS} --opencl-vector-width 1,4"
 fi
 
@@ -1832,7 +1832,14 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
       VECTOR_OLD=${VECTOR}
       for CUR_WIDTH in $(echo $VECTOR_WIDTHS); do
 
-        if [ "${VECTOR_OLD}" == "all" ] || [ "${VECTOR_OLD}" == "${CUR_WIDTH}" ]; then
+        if [ "${VECTOR_OLD}" == "all" ] || [ "${VECTOR_OLD}" == "default" ] || [ "${VECTOR_OLD}" == "${CUR_WIDTH}" ]; then
+
+          if [ "${VECTOR_OLD}" == "default" ] && \
+             [ "${CUR_WIDTH}" != "1" ] && \
+             [ "${CUR_WIDTH}" != "4" ]; then
+
+             continue
+          fi
 
           VECTOR=${CUR_WIDTH}
           OPTS="${OPTS_OLD} --opencl-vector-width ${VECTOR}"
