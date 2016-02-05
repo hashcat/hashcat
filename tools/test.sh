@@ -14,8 +14,7 @@ HASH_TYPES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 1
 #ATTACK_MODES="0 1 3 6 7"
 ATTACK_MODES="0 1 3 7"
 
-#VECTOR_WIDTHS="1 2 4 8"
-VECTOR_WIDTHS="1 4"
+VECTOR_WIDTHS="1 2 4 8"
 
 MATCH_PASS_ONLY="2500 5300 5400 6600 6800 8200"
 
@@ -1535,6 +1534,7 @@ OPTIONS:
         '2'      => vector-width 2 (default)
         '4'      => vector-width 4
         '8'      => vector-width 8
+        'all'    => test sequentially vector-width ${VECTOR_WIDTHS}
 
   -T    OpenCL device-types to use :
         'gpu'    => gpu devices (default)
@@ -1603,6 +1603,7 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
         OPTS="${OPTS} --opencl-vector-width 8"
         VECTOR=8
       elif [ ${OPTARG} == "all" ]; then
+        OPTS="${OPTS} --opencl-vector-width 1,2,4,8"
         VECTOR="all"
       else
         usage
@@ -1709,8 +1710,8 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
 done
 
 if [ "${VECTOR}" == "0" ]; then
-   VECTOR=2
-   OPTS="${OPTS} --opencl-vector-width 2"
+   VECTOR=custom
+   OPTS="${OPTS} --opencl-vector-width 1,4"
 fi
 
 if [ "${TYPE}" == "null" ]; then
