@@ -295,6 +295,36 @@ typedef struct
 // Macro for constructing the version field of NV_GPU_DYNAMIC_PSTATES_INFO_EX
 #define NV_GPU_DYNAMIC_PSTATES_INFO_EX_VER MAKE_NVAPI_VERSION(NV_GPU_DYNAMIC_PSTATES_INFO_EX,1)
 
+#define NVAPI_MAX_COOLER_PER_GPU 20
+#define GPU_COOLER_SETTINGS_VER  0x20000
+
+// Used in NV_GPU_COOLER_SETTINGS
+typedef struct
+{
+  NvS32 Type;
+  NvS32 Controller;
+  NvS32 DefaultMin;
+  NvS32 DefaultMax;
+  NvS32 CurrentMin;
+  NvS32 CurrentMax;
+  NvS32 CurrentLevel;
+  NvS32 DefaultPolicy;
+  NvS32 CurrentPolicy;
+  NvS32 Target;
+  NvS32 ControlType;
+  NvS32 Active;
+
+} NvCooler;
+
+// Used in NvAPI_GPU_GetCoolerSettings().
+typedef struct
+{
+  NvU32    Version;
+  NvU32    Count;
+  NvCooler Cooler[NVAPI_MAX_COOLER_PER_GPU];
+
+} NV_GPU_COOLER_SETTINGS;
+
 NVAPI_INTERFACE NvAPI_QueryInterface(uint offset);
 NVAPI_INTERFACE NvAPI_Initialize();
 NVAPI_INTERFACE NvAPI_Unload();
@@ -302,6 +332,7 @@ NVAPI_INTERFACE NvAPI_GetErrorMessage(NvAPI_Status nr,NvAPI_ShortString szDesc);
 NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs(NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
 NVAPI_INTERFACE NvAPI_GPU_GetThermalSettings(NvPhysicalGpuHandle hPhysicalGpu, NvU32 sensorIndex, NV_GPU_THERMAL_SETTINGS *pThermalSettings);
 NVAPI_INTERFACE NvAPI_GPU_GetTachReading(NvPhysicalGpuHandle hPhysicalGPU, NvU32 *pValue);
+NVAPI_INTERFACE NvAPI_GPU_GetCoolerSettings(NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_SETTINGS *pCoolerSettings);
 NVAPI_INTERFACE NvAPI_GPU_GetDynamicPstatesInfoEx(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
 
 #ifdef __nvapi_success
@@ -369,6 +400,7 @@ typedef int (*NVAPI_GETERRORMESSAGE) (NvAPI_Status, NvAPI_ShortString);
 typedef int (*NVAPI_ENUMPHYSICALGPUS) (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *);
 typedef int (*NVAPI_GPU_GETTHERMALSETTINGS) (NvPhysicalGpuHandle, NvU32, NV_GPU_THERMAL_SETTINGS *);
 typedef int (*NVAPI_GPU_GETTACHREADING) (NvPhysicalGpuHandle, NvU32 *);
+typedef int (*NVAPI_GPU_GETCOOLERSETTINGS) (NvPhysicalGpuHandle, NvU32, NV_GPU_COOLER_SETTINGS *);
 typedef int (*NVAPI_GPU_GETDYNAMICPSTATESINFOEX) (NvPhysicalGpuHandle, NV_GPU_DYNAMIC_PSTATES_INFO_EX *);
 
 typedef struct
@@ -382,6 +414,7 @@ typedef struct
   NVAPI_ENUMPHYSICALGPUS NvAPI_EnumPhysicalGPUs;
   NVAPI_GPU_GETTHERMALSETTINGS NvAPI_GPU_GetThermalSettings;
   NVAPI_GPU_GETTACHREADING NvAPI_GPU_GetTachReading;
+  NVAPI_GPU_GETCOOLERSETTINGS NvAPI_GPU_GetCoolerSettings;
   NVAPI_GPU_GETDYNAMICPSTATESINFOEX NvAPI_GPU_GetDynamicPstatesInfoEx;
 
 } hm_nvapi_lib_t;
@@ -398,6 +431,7 @@ int hm_NvAPI_GetErrorMessage (NVAPI_PTR *nvapi, NvAPI_Status nr, NvAPI_ShortStri
 int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
 int hm_NvAPI_GPU_GetThermalSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 sensorIndex, NV_GPU_THERMAL_SETTINGS *pThermalSettings);
 int hm_NvAPI_GPU_GetTachReading (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGPU, NvU32 *pValue);
+int hm_NvAPI_GPU_GetCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_SETTINGS *pCoolerSettings);
 int hm_NvAPI_GPU_GetDynamicPstatesInfoEx (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
 
 #endif // HAVE_HWMON && HAVE_NVAPI

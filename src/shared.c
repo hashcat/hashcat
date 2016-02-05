@@ -3169,11 +3169,14 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
       #endif
 
       #if defined(WIN) && defined(HAVE_NVAPI)
-      NvU32 speed = 0;
 
-      hm_NvAPI_GPU_GetTachReading (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &speed);
+      NV_GPU_COOLER_SETTINGS pCoolerSettings;
 
-      return speed;
+      pCoolerSettings.Version = GPU_COOLER_SETTINGS_VER | sizeof (NV_GPU_COOLER_SETTINGS);
+
+      hm_NvAPI_GPU_GetCoolerSettings (data.hm_nv, data.hm_device[device_id].adapter_index.nv, 0, &pCoolerSettings);
+
+      return pCoolerSettings.Cooler[0].CurrentLevel;
       #endif
     }
     #endif // HAVE_NVML || HAVE_NVAPI

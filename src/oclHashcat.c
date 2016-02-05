@@ -1554,11 +1554,7 @@ void status_display ()
         }
         else if (device_param->vendor_id == VENDOR_ID_NV)
         {
-          #ifdef LINUX
           hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
-          #else
-          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "rpm", hm_get_fanspeed_with_device_id (device_id));
-          #endif
         }
 
         log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan", device_id + 1, utilization, temperature, fanspeed);
@@ -13060,9 +13056,11 @@ int main (int argc, char **argv)
 
           for (int i = 0; i < tmp_out; i++)
           {
-            NvU32 speed;
+            NV_GPU_COOLER_SETTINGS pCoolerSettings;
 
-            if (hm_NvAPI_GPU_GetTachReading (data.hm_nv, hm_adapters_nv[i].adapter_index.nv, &speed) != NVAPI_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
+            pCoolerSettings.Version = GPU_COOLER_SETTINGS_VER | sizeof (NV_GPU_COOLER_SETTINGS);
+
+            if (hm_NvAPI_GPU_GetCoolerSettings (data.hm_nv, hm_adapters_nv[i].adapter_index.nv, 0, &pCoolerSettings) != NVAPI_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
           }
         }
       }
