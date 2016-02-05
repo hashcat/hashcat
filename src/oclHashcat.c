@@ -2656,8 +2656,9 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 {
   const uint kernel_loops = device_param->kernel_loops;
 
-  if (data.quiet == 0)
-    log_info ("Workload.Dev#%u : loops %u, accel %u", device_param->device_id + 1, device_param->kernel_loops, device_param->kernel_accel);
+  //only useful in debug
+  //if (data.quiet == 0)
+  //  log_info ("Workload.Dev#%u : loops %u, accel %u", device_param->device_id + 1, device_param->kernel_loops, device_param->kernel_accel);
 
   // init speed timer
 
@@ -15398,8 +15399,6 @@ int main (int argc, char **argv)
 
     if (weak_hash_threshold >= salts_cnt)
     {
-      uint first_device_id = 0;
-
       hc_device_param_t *device_param = NULL;
 
       for (uint device_id = 0; device_id < devices_cnt; device_id++)
@@ -15407,8 +15406,6 @@ int main (int argc, char **argv)
         device_param = &data.devices_param[device_id];
 
         if (device_param->skipped) continue;
-
-        first_device_id = device_id;
 
         break;
       }
