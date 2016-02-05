@@ -849,6 +849,7 @@ struct __hc_device_param
   uint    vector_width;
 
   uint    kernel_threads;
+  uint    kernel_loops;
   uint    kernel_accel;
   uint    kernel_power;          // these both are based on their _user counterpart
   uint    kernel_blocks;         // but are modified by autotuner and used inside crack loops
@@ -1160,8 +1161,6 @@ typedef struct
   uint    pw_min;
   uint    pw_max;
   float   kernel_blocks_div;
-  uint    kernel_accel;
-  uint    kernel_loops;
   uint    powertune_enable;
   uint    scrypt_tmto;
   uint    segment_size;

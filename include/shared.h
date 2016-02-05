@@ -127,7 +127,8 @@
 
 #define VENDOR_ID_AMD         4098
 #define VENDOR_ID_NV          4318
-#define VENDOR_ID_APPLE       16925952
+#define VENDOR_ID_APPLE_INTEL 4294967295
+#define VENDOR_ID_APPLE_IRIS  16925952
 #define VENDOR_ID_GENERIC     9999
 
 #define BLOCK_SIZE            64
@@ -205,37 +206,36 @@ extern hc_thread_mutex_t mux_display;
  * device accel macro
  */
 
-#ifdef OSX
-#define KERNEL_ACCEL_1800    1
-#define KERNEL_ACCEL_2500    2
-#define KERNEL_ACCEL_5000    16
-#define KERNEL_ACCEL_6100    1
-#define KERNEL_ACCEL_6211    2
-#define KERNEL_ACCEL_6231    1
-#define KERNEL_ACCEL_6241    4
-#define KERNEL_ACCEL_6800    2
-#define KERNEL_ACCEL_7100    1
-#define KERNEL_ACCEL_7200    1
-#define KERNEL_ACCEL_7900    1
-#define KERNEL_ACCEL_8200    1
-#define KERNEL_ACCEL_8700    2
-#define KERNEL_ACCEL_9100    4
-#define KERNEL_ACCEL_9200    1
-#define KERNEL_ACCEL_9300    1
-#define KERNEL_ACCEL_9400    1
-#define KERNEL_ACCEL_9500    1
-#define KERNEL_ACCEL_9600    1
-#define KERNEL_ACCEL_10000   1
-#define KERNEL_ACCEL_10500   4
-#define KERNEL_ACCEL_11300   1
-#define KERNEL_ACCEL_11600   1
-#define KERNEL_ACCEL_11700   1
-#define KERNEL_ACCEL_11800   1
-#define KERNEL_ACCEL_12200   1
-#define KERNEL_ACCEL_12400   1
-#define KERNEL_ACCEL_12500   1
-#define KERNEL_ACCEL_13000   1
-#else
+#define KERNEL_ACCEL_OSX_1800    1
+#define KERNEL_ACCEL_OSX_2500    2
+#define KERNEL_ACCEL_OSX_5000    16
+#define KERNEL_ACCEL_OSX_6100    1
+#define KERNEL_ACCEL_OSX_6211    2
+#define KERNEL_ACCEL_OSX_6231    1
+#define KERNEL_ACCEL_OSX_6241    4
+#define KERNEL_ACCEL_OSX_6800    2
+#define KERNEL_ACCEL_OSX_7100    1
+#define KERNEL_ACCEL_OSX_7200    1
+#define KERNEL_ACCEL_OSX_7900    1
+#define KERNEL_ACCEL_OSX_8200    1
+#define KERNEL_ACCEL_OSX_8700    2
+#define KERNEL_ACCEL_OSX_9100    4
+#define KERNEL_ACCEL_OSX_9200    1
+#define KERNEL_ACCEL_OSX_9300    1
+#define KERNEL_ACCEL_OSX_9400    1
+#define KERNEL_ACCEL_OSX_9500    1
+#define KERNEL_ACCEL_OSX_9600    1
+#define KERNEL_ACCEL_OSX_10000   1
+#define KERNEL_ACCEL_OSX_10500   4
+#define KERNEL_ACCEL_OSX_11300   1
+#define KERNEL_ACCEL_OSX_11600   1
+#define KERNEL_ACCEL_OSX_11700   1
+#define KERNEL_ACCEL_OSX_11800   1
+#define KERNEL_ACCEL_OSX_12200   1
+#define KERNEL_ACCEL_OSX_12400   1
+#define KERNEL_ACCEL_OSX_12500   1
+#define KERNEL_ACCEL_OSX_13000   1
+
 #define KERNEL_ACCEL_1800    2
 #define KERNEL_ACCEL_2500    8
 #define KERNEL_ACCEL_5000    64
@@ -265,7 +265,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_ACCEL_12400   64
 #define KERNEL_ACCEL_12500   8
 #define KERNEL_ACCEL_13000   8
-#endif // OSX
 
 #define KERNEL_ACCEL_0       128
 #define KERNEL_ACCEL_10      128
@@ -421,130 +420,129 @@ extern hc_thread_mutex_t mux_display;
  * device loops macro
  */
 
-#ifdef OSX
-#define KERNEL_LOOPS_0       2
-#define KERNEL_LOOPS_10      2
-#define KERNEL_LOOPS_11      2
-#define KERNEL_LOOPS_12      2
-#define KERNEL_LOOPS_20      2
-#define KERNEL_LOOPS_21      2
-#define KERNEL_LOOPS_22      2
-#define KERNEL_LOOPS_23      2
-#define KERNEL_LOOPS_30      2
-#define KERNEL_LOOPS_40      2
-#define KERNEL_LOOPS_50      2
-#define KERNEL_LOOPS_60      2
-#define KERNEL_LOOPS_100     2
-#define KERNEL_LOOPS_101     2
-#define KERNEL_LOOPS_110     2
-#define KERNEL_LOOPS_111     2
-#define KERNEL_LOOPS_112     2
-#define KERNEL_LOOPS_120     2
-#define KERNEL_LOOPS_121     2
-#define KERNEL_LOOPS_122     2
-#define KERNEL_LOOPS_124     2
-#define KERNEL_LOOPS_130     2
-#define KERNEL_LOOPS_131     2
-#define KERNEL_LOOPS_132     2
-#define KERNEL_LOOPS_133     2
-#define KERNEL_LOOPS_140     2
-#define KERNEL_LOOPS_141     2
-#define KERNEL_LOOPS_150     2
-#define KERNEL_LOOPS_160     2
-#define KERNEL_LOOPS_190     2
-#define KERNEL_LOOPS_200     2
-#define KERNEL_LOOPS_300     2
-#define KERNEL_LOOPS_900     2
-#define KERNEL_LOOPS_1000    2
-#define KERNEL_LOOPS_1100    2
-#define KERNEL_LOOPS_1400    2
-#define KERNEL_LOOPS_1410    2
-#define KERNEL_LOOPS_1420    2
-#define KERNEL_LOOPS_1421    2
-#define KERNEL_LOOPS_1430    2
-#define KERNEL_LOOPS_1440    2
-#define KERNEL_LOOPS_1441    2
-#define KERNEL_LOOPS_1450    2
-#define KERNEL_LOOPS_1460    2
-#define KERNEL_LOOPS_1700    2
-#define KERNEL_LOOPS_1710    2
-#define KERNEL_LOOPS_1711    2
-#define KERNEL_LOOPS_1720    2
-#define KERNEL_LOOPS_1722    2
-#define KERNEL_LOOPS_1730    2
-#define KERNEL_LOOPS_1731    2
-#define KERNEL_LOOPS_1740    2
-#define KERNEL_LOOPS_1750    2
-#define KERNEL_LOOPS_1760    2
-#define KERNEL_LOOPS_2400    2
-#define KERNEL_LOOPS_2410    2
-#define KERNEL_LOOPS_2600    2
-#define KERNEL_LOOPS_2611    2
-#define KERNEL_LOOPS_2612    2
-#define KERNEL_LOOPS_2711    2
-#define KERNEL_LOOPS_2811    2
-#define KERNEL_LOOPS_3100    2
-#define KERNEL_LOOPS_3200    2
-#define KERNEL_LOOPS_3710    2
-#define KERNEL_LOOPS_3711    2
-#define KERNEL_LOOPS_3800    2
-#define KERNEL_LOOPS_4300    2
-#define KERNEL_LOOPS_4400    2
-#define KERNEL_LOOPS_4500    2
-#define KERNEL_LOOPS_4700    2
-#define KERNEL_LOOPS_4800    2
-#define KERNEL_LOOPS_4900    2
-#define KERNEL_LOOPS_5000    2
-#define KERNEL_LOOPS_5100    2
-#define KERNEL_LOOPS_5300    2
-#define KERNEL_LOOPS_5400    2
-#define KERNEL_LOOPS_5500    2
-#define KERNEL_LOOPS_5600    2
-#define KERNEL_LOOPS_5700    2
-#define KERNEL_LOOPS_6000    2
-#define KERNEL_LOOPS_6100    2
-#define KERNEL_LOOPS_6231    2
-#define KERNEL_LOOPS_6232    2
-#define KERNEL_LOOPS_6233    2
-#define KERNEL_LOOPS_6900    2
-#define KERNEL_LOOPS_7300    2
-#define KERNEL_LOOPS_7500    2
-#define KERNEL_LOOPS_7600    2
-#define KERNEL_LOOPS_7700    2
-#define KERNEL_LOOPS_7800    2
-#define KERNEL_LOOPS_8000    2
-#define KERNEL_LOOPS_8100    2
-#define KERNEL_LOOPS_8200    1
-#define KERNEL_LOOPS_8300    2
-#define KERNEL_LOOPS_8400    2
-#define KERNEL_LOOPS_8500    2
-#define KERNEL_LOOPS_8600    2
-#define KERNEL_LOOPS_8700    2
-#define KERNEL_LOOPS_9700    2
-#define KERNEL_LOOPS_9710    2
-#define KERNEL_LOOPS_9720    8
-#define KERNEL_LOOPS_9800    2
-#define KERNEL_LOOPS_9810    2
-#define KERNEL_LOOPS_9820    2
-#define KERNEL_LOOPS_9900    2
-#define KERNEL_LOOPS_10100   2
-#define KERNEL_LOOPS_10200   2
-#define KERNEL_LOOPS_10400   2
-#define KERNEL_LOOPS_10410   2
-#define KERNEL_LOOPS_10420   2
-#define KERNEL_LOOPS_10600   2
-#define KERNEL_LOOPS_10700   2
-#define KERNEL_LOOPS_10800   2
-#define KERNEL_LOOPS_11000   2
-#define KERNEL_LOOPS_11100   2
-#define KERNEL_LOOPS_11200   2
-#define KERNEL_LOOPS_11300   1
-#define KERNEL_LOOPS_11400   2
-#define KERNEL_LOOPS_11500   2
-#define KERNEL_LOOPS_11700   2
-#define KERNEL_LOOPS_11800   2
-#define KERNEL_LOOPS_12600   2
-#else
+#define KERNEL_LOOPS_OSX_0       2
+#define KERNEL_LOOPS_OSX_10      2
+#define KERNEL_LOOPS_OSX_11      2
+#define KERNEL_LOOPS_OSX_12      2
+#define KERNEL_LOOPS_OSX_20      2
+#define KERNEL_LOOPS_OSX_21      2
+#define KERNEL_LOOPS_OSX_22      2
+#define KERNEL_LOOPS_OSX_23      2
+#define KERNEL_LOOPS_OSX_30      2
+#define KERNEL_LOOPS_OSX_40      2
+#define KERNEL_LOOPS_OSX_50      2
+#define KERNEL_LOOPS_OSX_60      2
+#define KERNEL_LOOPS_OSX_100     2
+#define KERNEL_LOOPS_OSX_101     2
+#define KERNEL_LOOPS_OSX_110     2
+#define KERNEL_LOOPS_OSX_111     2
+#define KERNEL_LOOPS_OSX_112     2
+#define KERNEL_LOOPS_OSX_120     2
+#define KERNEL_LOOPS_OSX_121     2
+#define KERNEL_LOOPS_OSX_122     2
+#define KERNEL_LOOPS_OSX_124     2
+#define KERNEL_LOOPS_OSX_130     2
+#define KERNEL_LOOPS_OSX_131     2
+#define KERNEL_LOOPS_OSX_132     2
+#define KERNEL_LOOPS_OSX_133     2
+#define KERNEL_LOOPS_OSX_140     2
+#define KERNEL_LOOPS_OSX_141     2
+#define KERNEL_LOOPS_OSX_150     2
+#define KERNEL_LOOPS_OSX_160     2
+#define KERNEL_LOOPS_OSX_190     2
+#define KERNEL_LOOPS_OSX_200     2
+#define KERNEL_LOOPS_OSX_300     2
+#define KERNEL_LOOPS_OSX_900     2
+#define KERNEL_LOOPS_OSX_1000    2
+#define KERNEL_LOOPS_OSX_1100    2
+#define KERNEL_LOOPS_OSX_1400    2
+#define KERNEL_LOOPS_OSX_1410    2
+#define KERNEL_LOOPS_OSX_1420    2
+#define KERNEL_LOOPS_OSX_1421    2
+#define KERNEL_LOOPS_OSX_1430    2
+#define KERNEL_LOOPS_OSX_1440    2
+#define KERNEL_LOOPS_OSX_1441    2
+#define KERNEL_LOOPS_OSX_1450    2
+#define KERNEL_LOOPS_OSX_1460    2
+#define KERNEL_LOOPS_OSX_1700    2
+#define KERNEL_LOOPS_OSX_1710    2
+#define KERNEL_LOOPS_OSX_1711    2
+#define KERNEL_LOOPS_OSX_1720    2
+#define KERNEL_LOOPS_OSX_1722    2
+#define KERNEL_LOOPS_OSX_1730    2
+#define KERNEL_LOOPS_OSX_1731    2
+#define KERNEL_LOOPS_OSX_1740    2
+#define KERNEL_LOOPS_OSX_1750    2
+#define KERNEL_LOOPS_OSX_1760    2
+#define KERNEL_LOOPS_OSX_2400    2
+#define KERNEL_LOOPS_OSX_2410    2
+#define KERNEL_LOOPS_OSX_2600    2
+#define KERNEL_LOOPS_OSX_2611    2
+#define KERNEL_LOOPS_OSX_2612    2
+#define KERNEL_LOOPS_OSX_2711    2
+#define KERNEL_LOOPS_OSX_2811    2
+#define KERNEL_LOOPS_OSX_3100    2
+#define KERNEL_LOOPS_OSX_3200    2
+#define KERNEL_LOOPS_OSX_3710    2
+#define KERNEL_LOOPS_OSX_3711    2
+#define KERNEL_LOOPS_OSX_3800    2
+#define KERNEL_LOOPS_OSX_4300    2
+#define KERNEL_LOOPS_OSX_4400    2
+#define KERNEL_LOOPS_OSX_4500    2
+#define KERNEL_LOOPS_OSX_4700    2
+#define KERNEL_LOOPS_OSX_4800    2
+#define KERNEL_LOOPS_OSX_4900    2
+#define KERNEL_LOOPS_OSX_5000    2
+#define KERNEL_LOOPS_OSX_5100    2
+#define KERNEL_LOOPS_OSX_5300    2
+#define KERNEL_LOOPS_OSX_5400    2
+#define KERNEL_LOOPS_OSX_5500    2
+#define KERNEL_LOOPS_OSX_5600    2
+#define KERNEL_LOOPS_OSX_5700    2
+#define KERNEL_LOOPS_OSX_6000    2
+#define KERNEL_LOOPS_OSX_6100    2
+#define KERNEL_LOOPS_OSX_6231    2
+#define KERNEL_LOOPS_OSX_6232    2
+#define KERNEL_LOOPS_OSX_6233    2
+#define KERNEL_LOOPS_OSX_6900    2
+#define KERNEL_LOOPS_OSX_7300    2
+#define KERNEL_LOOPS_OSX_7500    2
+#define KERNEL_LOOPS_OSX_7600    2
+#define KERNEL_LOOPS_OSX_7700    2
+#define KERNEL_LOOPS_OSX_7800    2
+#define KERNEL_LOOPS_OSX_8000    2
+#define KERNEL_LOOPS_OSX_8100    2
+#define KERNEL_LOOPS_OSX_8200    1
+#define KERNEL_LOOPS_OSX_8300    2
+#define KERNEL_LOOPS_OSX_8400    2
+#define KERNEL_LOOPS_OSX_8500    2
+#define KERNEL_LOOPS_OSX_8600    2
+#define KERNEL_LOOPS_OSX_8700    2
+#define KERNEL_LOOPS_OSX_9700    2
+#define KERNEL_LOOPS_OSX_9710    2
+#define KERNEL_LOOPS_OSX_9720    8
+#define KERNEL_LOOPS_OSX_9800    2
+#define KERNEL_LOOPS_OSX_9810    2
+#define KERNEL_LOOPS_OSX_9820    2
+#define KERNEL_LOOPS_OSX_9900    2
+#define KERNEL_LOOPS_OSX_10100   2
+#define KERNEL_LOOPS_OSX_10200   2
+#define KERNEL_LOOPS_OSX_10400   2
+#define KERNEL_LOOPS_OSX_10410   2
+#define KERNEL_LOOPS_OSX_10420   2
+#define KERNEL_LOOPS_OSX_10600   2
+#define KERNEL_LOOPS_OSX_10700   2
+#define KERNEL_LOOPS_OSX_10800   2
+#define KERNEL_LOOPS_OSX_11000   2
+#define KERNEL_LOOPS_OSX_11100   2
+#define KERNEL_LOOPS_OSX_11200   2
+#define KERNEL_LOOPS_OSX_11300   1
+#define KERNEL_LOOPS_OSX_11400   2
+#define KERNEL_LOOPS_OSX_11500   2
+#define KERNEL_LOOPS_OSX_11700   2
+#define KERNEL_LOOPS_OSX_11800   2
+#define KERNEL_LOOPS_OSX_12600   2
+
 #define KERNEL_LOOPS_0       256
 #define KERNEL_LOOPS_10      256
 #define KERNEL_LOOPS_11      256
@@ -667,7 +665,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERNEL_LOOPS_11700   64
 #define KERNEL_LOOPS_11800   64
 #define KERNEL_LOOPS_12600   32
-#endif // OSX
 
 #define KERNEL_LOOPS_400     256
 #define KERNEL_LOOPS_500     256
@@ -1910,8 +1907,17 @@ void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int
 void myabort ();
 void myquit ();
 
+#ifdef OSX
+uint set_kernel_loops_osx (uint hash_mode);
+uint set_kernel_accel_osx (uint hash_mode);
+
+uint set_kernel_accel (uint hash_mode, bool isGpu);
+uint set_kernel_loops (uint hash_mode, bool isGpu);
+#else
 uint set_kernel_accel (uint hash_mode);
 uint set_kernel_loops (uint hash_mode);
+#endif
+
 void set_cpu_affinity (char *cpu_affinity);
 
 void usage_mini_print (const char *progname);
