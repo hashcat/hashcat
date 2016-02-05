@@ -19,6 +19,9 @@
 #define GET_ACCEL(x) KERNEL_ACCEL_ ## x
 #define GET_LOOPS(x) KERNEL_LOOPS_ ## x
 
+#define GET_LOOPS_OSX(x) KERNEL_LOOPS_OSX_ ## x
+#define GET_ACCEL_OSX(x) KERNEL_ACCEL_OSX_ ## x
+
 /**
  * basic bit handling
  */
@@ -8966,8 +8969,61 @@ void check_checkpoint ()
  * adjustments
  */
 
+#ifdef OSX
+uint set_kernel_accel_osx (uint hash_mode)
+{
+  switch (hash_mode)
+  {
+    case 1800: return GET_ACCEL_OSX (1800);
+    case 2500: return GET_ACCEL_OSX (2500);
+    case 5000: return GET_ACCEL_OSX (5000);
+    case 6100: return GET_ACCEL_OSX (6100);
+    case 6211: return GET_ACCEL_OSX (6211);
+    case 6231: return GET_ACCEL_OSX (6231);
+    case 6241: return GET_ACCEL_OSX (6241);
+    case 6800: return GET_ACCEL_OSX (6800);
+    case 7100: return GET_ACCEL_OSX (7100);
+    case 7200: return GET_ACCEL_OSX (7200);
+    case 7900: return GET_ACCEL_OSX (7900);
+    case 8200: return GET_ACCEL_OSX (8200);
+    case 8700: return GET_ACCEL_OSX (8700);
+    case 9100: return GET_ACCEL_OSX (9100);
+    case 9200: return GET_ACCEL_OSX (9200);
+    case 9300: return GET_ACCEL_OSX (9300);
+    case 9400: return GET_ACCEL_OSX (9400);
+    case 9500: return GET_ACCEL_OSX (9500);
+    case 9600: return GET_ACCEL_OSX (9600);
+    case 10000: return GET_ACCEL_OSX (10000);
+    case 10500: return GET_ACCEL_OSX (10500);
+    case 11300: return GET_ACCEL_OSX (11300);
+    case 11600: return GET_ACCEL_OSX (11600);
+    case 11700: return GET_ACCEL_OSX (11700);
+    case 11800: return GET_ACCEL_OSX (11800);
+    case 12200: return GET_ACCEL_OSX (12200);
+    case 12400: return GET_ACCEL_OSX (12400);
+    case 12500: return GET_ACCEL_OSX (12500);
+    case 13000: return GET_ACCEL_OSX (13000);
+  }
+
+  return (-1);
+}
+
+uint set_kernel_accel (uint hash_mode, bool isGpu)
+{
+  int accel = -1;
+
+  if (isGpu)
+    accel = set_kernel_accel_osx (hash_mode);
+
+  if (accel != -1)
+    return accel;
+#else
+
 uint set_kernel_accel (uint hash_mode)
 {
+
+#endif
+
   switch (hash_mode)
   {
     case     0: return GET_ACCEL (0);
@@ -9153,8 +9209,154 @@ uint set_kernel_accel (uint hash_mode)
   return 0;
 }
 
+#ifdef OSX
+uint set_kernel_loops_osx (uint hash_mode)
+{
+  switch (hash_mode)
+  {
+    case 0: return GET_LOOPS_OSX (0);
+    case 10: return GET_LOOPS_OSX (10);
+    case 11: return GET_LOOPS_OSX (11);
+    case 12: return GET_LOOPS_OSX (12);
+    case 20: return GET_LOOPS_OSX (20);
+    case 21: return GET_LOOPS_OSX (21);
+    case 22: return GET_LOOPS_OSX (22);
+    case 23: return GET_LOOPS_OSX (23);
+    case 30: return GET_LOOPS_OSX (30);
+    case 40: return GET_LOOPS_OSX (40);
+    case 50: return GET_LOOPS_OSX (50);
+    case 60: return GET_LOOPS_OSX (60);
+    case 100: return GET_LOOPS_OSX (100);
+    case 101: return GET_LOOPS_OSX (101);
+    case 110: return GET_LOOPS_OSX (110);
+    case 111: return GET_LOOPS_OSX (111);
+    case 112: return GET_LOOPS_OSX (112);
+    case 120: return GET_LOOPS_OSX (120);
+    case 121: return GET_LOOPS_OSX (121);
+    case 122: return GET_LOOPS_OSX (122);
+    case 124: return GET_LOOPS_OSX (124);
+    case 130: return GET_LOOPS_OSX (130);
+    case 131: return GET_LOOPS_OSX (131);
+    case 132: return GET_LOOPS_OSX (132);
+    case 133: return GET_LOOPS_OSX (133);
+    case 140: return GET_LOOPS_OSX (140);
+    case 141: return GET_LOOPS_OSX (141);
+    case 150: return GET_LOOPS_OSX (150);
+    case 160: return GET_LOOPS_OSX (160);
+    case 190: return GET_LOOPS_OSX (190);
+    case 200: return GET_LOOPS_OSX (200);
+    case 300: return GET_LOOPS_OSX (300);
+    case 900: return GET_LOOPS_OSX (900);
+    case 1000: return GET_LOOPS_OSX (1000);
+    case 1100: return GET_LOOPS_OSX (1100);
+    case 1400: return GET_LOOPS_OSX (1400);
+    case 1410: return GET_LOOPS_OSX (1410);
+    case 1420: return GET_LOOPS_OSX (1420);
+    case 1421: return GET_LOOPS_OSX (1421);
+    case 1430: return GET_LOOPS_OSX (1430);
+    case 1440: return GET_LOOPS_OSX (1440);
+    case 1441: return GET_LOOPS_OSX (1441);
+    case 1450: return GET_LOOPS_OSX (1450);
+    case 1460: return GET_LOOPS_OSX (1460);
+    case 1700: return GET_LOOPS_OSX (1700);
+    case 1710: return GET_LOOPS_OSX (1710);
+    case 1711: return GET_LOOPS_OSX (1711);
+    case 1720: return GET_LOOPS_OSX (1720);
+    case 1722: return GET_LOOPS_OSX (1722);
+    case 1730: return GET_LOOPS_OSX (1730);
+    case 1731: return GET_LOOPS_OSX (1731);
+    case 1740: return GET_LOOPS_OSX (1740);
+    case 1750: return GET_LOOPS_OSX (1750);
+    case 1760: return GET_LOOPS_OSX (1760);
+    case 2400: return GET_LOOPS_OSX (2400);
+    case 2410: return GET_LOOPS_OSX (2410);
+    case 2600: return GET_LOOPS_OSX (2600);
+    case 2611: return GET_LOOPS_OSX (2611);
+    case 2612: return GET_LOOPS_OSX (2612);
+    case 2711: return GET_LOOPS_OSX (2711);
+    case 2811: return GET_LOOPS_OSX (2811);
+    case 3100: return GET_LOOPS_OSX (3100);
+    case 3200: return GET_LOOPS_OSX (3200);
+    case 3710: return GET_LOOPS_OSX (3710);
+    case 3711: return GET_LOOPS_OSX (3711);
+    case 3800: return GET_LOOPS_OSX (3800);
+    case 4300: return GET_LOOPS_OSX (4300);
+    case 4400: return GET_LOOPS_OSX (4400);
+    case 4500: return GET_LOOPS_OSX (4500);
+    case 4700: return GET_LOOPS_OSX (4700);
+    case 4800: return GET_LOOPS_OSX (4800);
+    case 4900: return GET_LOOPS_OSX (4900);
+    case 5000: return GET_LOOPS_OSX (5000);
+    case 5100: return GET_LOOPS_OSX (5100);
+    case 5300: return GET_LOOPS_OSX (5300);
+    case 5400: return GET_LOOPS_OSX (5400);
+    case 5500: return GET_LOOPS_OSX (5500);
+    case 5600: return GET_LOOPS_OSX (5600);
+    case 5700: return GET_LOOPS_OSX (5700);
+    case 6000: return GET_LOOPS_OSX (6000);
+    case 6100: return GET_LOOPS_OSX (6100);
+    case 6231: return GET_LOOPS_OSX (6231);
+    case 6232: return GET_LOOPS_OSX (6232);
+    case 6233: return GET_LOOPS_OSX (6233);
+    case 6900: return GET_LOOPS_OSX (6900);
+    case 7300: return GET_LOOPS_OSX (7300);
+    case 7500: return GET_LOOPS_OSX (7500);
+    case 7600: return GET_LOOPS_OSX (7600);
+    case 7700: return GET_LOOPS_OSX (7700);
+    case 7800: return GET_LOOPS_OSX (7800);
+    case 8000: return GET_LOOPS_OSX (8000);
+    case 8100: return GET_LOOPS_OSX (8100);
+    case 8200: return GET_LOOPS_OSX (8200);
+    case 8300: return GET_LOOPS_OSX (8300);
+    case 8400: return GET_LOOPS_OSX (8400);
+    case 8500: return GET_LOOPS_OSX (8500);
+    case 8600: return GET_LOOPS_OSX (8600);
+    case 8700: return GET_LOOPS_OSX (8700);
+    case 9700: return GET_LOOPS_OSX (9700);
+    case 9710: return GET_LOOPS_OSX (9710);
+    case 9720: return GET_LOOPS_OSX (9720);
+    case 9800: return GET_LOOPS_OSX (9800);
+    case 9810: return GET_LOOPS_OSX (9810);
+    case 9820: return GET_LOOPS_OSX (9820);
+    case 9900: return GET_LOOPS_OSX (9900);
+    case 10100: return GET_LOOPS_OSX (10100);
+    case 10200: return GET_LOOPS_OSX (10200);
+    case 10400: return GET_LOOPS_OSX (10400);
+    case 10410: return GET_LOOPS_OSX (10410);
+    case 10420: return GET_LOOPS_OSX (10420);
+    case 10600: return GET_LOOPS_OSX (10600);
+    case 10700: return GET_LOOPS_OSX (10700);
+    case 10800: return GET_LOOPS_OSX (10800);
+    case 11000: return GET_LOOPS_OSX (11000);
+    case 11100: return GET_LOOPS_OSX (11100);
+    case 11200: return GET_LOOPS_OSX (11200);
+    case 11300: return GET_LOOPS_OSX (11300);
+    case 11400: return GET_LOOPS_OSX (11400);
+    case 11500: return GET_LOOPS_OSX (11500);
+    case 11700: return GET_LOOPS_OSX (11700);
+    case 11800: return GET_LOOPS_OSX (11800);
+    case 12600: return GET_LOOPS_OSX (12600);
+  }
+
+  return (-1);
+}
+
+uint set_kernel_loops (uint hash_mode, bool isGpu)
+{
+  int loops = -1;
+  if (isGpu)
+    loops = set_kernel_loops_osx (hash_mode);
+
+  if (loops != -1)
+    return loops;
+
+#else
+
 uint set_kernel_loops (uint hash_mode)
 {
+
+#endif // OSX
+
   switch (hash_mode)
   {
     case     0: return GET_LOOPS (0);
