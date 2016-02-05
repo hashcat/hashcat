@@ -1535,6 +1535,7 @@ OPTIONS:
         '2'      => vector-width 2 (default)
         '4'      => vector-width 4
         '8'      => vector-width 8
+        'all'    => test sequentially vector-width ${VECTOR_WIDTHS}
 
   -T    OpenCL device-types to use :
         'gpu'    => gpu devices (default)
@@ -1709,8 +1710,8 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
 done
 
 if [ "${VECTOR}" == "0" ]; then
-   VECTOR=2
-   OPTS="${OPTS} --opencl-vector-width 2"
+   VECTOR=all
+   OPTS="${OPTS} --opencl-vector-width 1,4"
 fi
 
 if [ "${TYPE}" == "null" ]; then
