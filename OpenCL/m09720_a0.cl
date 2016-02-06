@@ -5,6 +5,8 @@
 
 #define _OLDOFFICE01_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -18,33 +20,31 @@
 #include "OpenCL/common.c"
 #include "include/rp_kernel.h"
 #include "OpenCL/rp.c"
+#include "OpenCL/simd.c"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
-
-static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
+static void md5_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[4])
 {
-  u32 a = digest[0];
-  u32 b = digest[1];
-  u32 c = digest[2];
-  u32 d = digest[3];
+  u32x a = digest[0];
+  u32x b = digest[1];
+  u32x c = digest[2];
+  u32x d = digest[3];
 
-  u32 w0_t = w0[0];
-  u32 w1_t = w0[1];
-  u32 w2_t = w0[2];
-  u32 w3_t = w0[3];
-  u32 w4_t = w1[0];
-  u32 w5_t = w1[1];
-  u32 w6_t = w1[2];
-  u32 w7_t = w1[3];
-  u32 w8_t = w2[0];
-  u32 w9_t = w2[1];
-  u32 wa_t = w2[2];
-  u32 wb_t = w2[3];
-  u32 wc_t = w3[0];
-  u32 wd_t = w3[1];
-  u32 we_t = w3[2];
-  u32 wf_t = w3[3];
+  u32x w0_t = w0[0];
+  u32x w1_t = w0[1];
+  u32x w2_t = w0[2];
+  u32x w3_t = w0[3];
+  u32x w4_t = w1[0];
+  u32x w5_t = w1[1];
+  u32x w6_t = w1[2];
+  u32x w7_t = w1[3];
+  u32x w8_t = w2[0];
+  u32x w9_t = w2[1];
+  u32x wa_t = w2[2];
+  u32x wb_t = w2[3];
+  u32x wc_t = w3[0];
+  u32x wd_t = w3[1];
+  u32x we_t = w3[2];
+  u32x wf_t = w3[3];
 
   MD5_STEP (MD5_Fo, a, b, c, d, w0_t, MD5C00, MD5S00);
   MD5_STEP (MD5_Fo, d, a, b, c, w1_t, MD5C01, MD5S01);
@@ -120,12 +120,12 @@ static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], co
   digest[3] += d;
 }
 
-static void gen336 (u32 digest_pre[4], u32 salt_buf[4], u32 digest[4])
+static void gen336 (u32x digest_pre[4], u32 salt_buf[4], u32x digest[4])
 {
-  u32 digest_t0[2];
-  u32 digest_t1[2];
-  u32 digest_t2[2];
-  u32 digest_t3[2];
+  u32x digest_t0[2];
+  u32x digest_t1[2];
+  u32x digest_t2[2];
+  u32x digest_t3[2];
 
   digest_t0[0] = digest_pre[0];
   digest_t0[1] = digest_pre[1] & 0xff;
@@ -139,10 +139,10 @@ static void gen336 (u32 digest_pre[4], u32 salt_buf[4], u32 digest[4])
   digest_t3[0] =                       digest_pre[0] << 24;
   digest_t3[1] = digest_pre[0] >>  8 | digest_pre[1] << 24;
 
-  u32 salt_buf_t0[4];
-  u32 salt_buf_t1[5];
-  u32 salt_buf_t2[5];
-  u32 salt_buf_t3[5];
+  u32x salt_buf_t0[4];
+  u32x salt_buf_t1[5];
+  u32x salt_buf_t2[5];
+  u32x salt_buf_t3[5];
 
   salt_buf_t0[0] = salt_buf[0];
   salt_buf_t0[1] = salt_buf[1];
@@ -167,10 +167,10 @@ static void gen336 (u32 digest_pre[4], u32 salt_buf[4], u32 digest[4])
   salt_buf_t3[3] = salt_buf[2] >>  8 | salt_buf[3] << 24;
   salt_buf_t3[4] = salt_buf[3] >>  8;
 
-  u32 w0_t[4];
-  u32 w1_t[4];
-  u32 w2_t[4];
-  u32 w3_t[4];
+  u32x w0_t[4];
+  u32x w1_t[4];
+  u32x w2_t[4];
+  u32x w3_t[4];
 
   // generate the 16 * 21 buffer
 
@@ -511,51 +511,28 @@ __kernel void m09720_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
-
-    u32 w1[4];
-
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
+    const u32 out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x80_2x4 (w0, w1, out_len);
 
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
     make_unicode (w0, w0_t, w1_t);
     make_unicode (w1, w2_t, w3_t);
 
     w3_t[2] = out_len * 8 * 2;
 
-    u32 digest_pre[4];
+    u32x digest_pre[4];
 
     digest_pre[0] = MD5M_A;
     digest_pre[1] = MD5M_B;
@@ -569,7 +546,7 @@ __kernel void m09720_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digest_pre[2] &= 0x00000000;
     digest_pre[3] &= 0x00000000;
 
-    u32 digest[4];
+    u32x digest[4];
 
     digest[0] = MD5M_A;
     digest[1] = MD5M_B;
@@ -578,15 +555,10 @@ __kernel void m09720_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     gen336 (digest_pre, salt_buf, digest);
 
-    u32 a = digest[0];
-    u32 b = digest[1] & 0xff;
+    u32x a = digest[0];
+    u32x b = digest[1] & 0xff;
 
-    const u32 r0 = a;
-    const u32 r1 = b;
-    const u32 r2 = 0;
-    const u32 r3 = 0;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (a, b, c, d);
   }
 }
 
@@ -657,51 +629,28 @@ __kernel void m09720_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
-
-    u32 w1[4];
-
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
+    const u32 out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x80_2x4 (w0, w1, out_len);
 
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
     make_unicode (w0, w0_t, w1_t);
     make_unicode (w1, w2_t, w3_t);
 
     w3_t[2] = out_len * 8 * 2;
 
-    u32 digest_pre[4];
+    u32x digest_pre[4];
 
     digest_pre[0] = MD5M_A;
     digest_pre[1] = MD5M_B;
@@ -715,7 +664,7 @@ __kernel void m09720_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digest_pre[2] &= 0x00000000;
     digest_pre[3] &= 0x00000000;
 
-    u32 digest[4];
+    u32x digest[4];
 
     digest[0] = MD5M_A;
     digest[1] = MD5M_B;
@@ -724,15 +673,10 @@ __kernel void m09720_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     gen336 (digest_pre, salt_buf, digest);
 
-    u32 a = digest[0];
-    u32 b = digest[1] & 0xff;
+    u32x a = digest[0];
+    u32x b = digest[1] & 0xff;
 
-    const u32 r0 = a;
-    const u32 r1 = b;
-    const u32 r2 = 0;
-    const u32 r3 = 0;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, b, c, d);
   }
 }
 
