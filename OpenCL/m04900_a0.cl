@@ -5,6 +5,8 @@
 
 #define _SHA1_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -18,9 +20,7 @@
 #include "OpenCL/common.c"
 #include "include/rp_kernel.h"
 #include "OpenCL/rp.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 __kernel void m04900_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
@@ -92,30 +92,30 @@ __kernel void m04900_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0_t[4];
+    u32x w0_t[4];
 
     w0_t[0] = pw_buf0[0];
     w0_t[1] = pw_buf0[1];
     w0_t[2] = pw_buf0[2];
     w0_t[3] = pw_buf0[3];
 
-    u32 w1_t[4];
+    u32x w1_t[4];
 
     w1_t[0] = pw_buf1[0];
     w1_t[1] = pw_buf1[1];
     w1_t[2] = pw_buf1[2];
     w1_t[3] = pw_buf1[3];
 
-    u32 w2_t[4];
+    u32x w2_t[4];
 
     w2_t[0] = 0;
     w2_t[1] = 0;
     w2_t[2] = 0;
     w2_t[3] = 0;
 
-    u32 w3_t[4];
+    u32x w3_t[4];
 
     w3_t[0] = 0;
     w3_t[1] = 0;
@@ -151,28 +151,28 @@ __kernel void m04900_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * append salt
      */
 
-    u32 s0[4];
+    u32x s0[4];
 
     s0[0] = salt_buf0[0];
     s0[1] = salt_buf0[1];
     s0[2] = salt_buf0[2];
     s0[3] = salt_buf0[3];
 
-    u32 s1[4];
+    u32x s1[4];
 
     s1[0] = salt_buf1[0];
     s1[1] = salt_buf1[1];
     s1[2] = salt_buf1[2];
     s1[3] = salt_buf1[3];
 
-    u32 s2[4];
+    u32x s2[4];
 
     s2[0] = 0;
     s2[1] = 0;
     s2[2] = 0;
     s2[3] = 0;
 
-    u32 s3[4];
+    u32x s3[4];
 
     s3[0] = 0;
     s3[1] = 0;
@@ -202,32 +202,32 @@ __kernel void m04900_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     append_0x80_4x4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len);
 
-    u32 w0 = swap32 (w0_t[0]);
-    u32 w1 = swap32 (w0_t[1]);
-    u32 w2 = swap32 (w0_t[2]);
-    u32 w3 = swap32 (w0_t[3]);
-    u32 w4 = swap32 (w1_t[0]);
-    u32 w5 = swap32 (w1_t[1]);
-    u32 w6 = swap32 (w1_t[2]);
-    u32 w7 = swap32 (w1_t[3]);
-    u32 w8 = swap32 (w2_t[0]);
-    u32 w9 = swap32 (w2_t[1]);
-    u32 wa = swap32 (w2_t[2]);
-    u32 wb = swap32 (w2_t[3]);
-    u32 wc = swap32 (w3_t[0]);
-    u32 wd = swap32 (w3_t[1]);
-    u32 we = 0;
-    u32 wf = pw_salt_len * 8;
+    u32x w0 = swap32 (w0_t[0]);
+    u32x w1 = swap32 (w0_t[1]);
+    u32x w2 = swap32 (w0_t[2]);
+    u32x w3 = swap32 (w0_t[3]);
+    u32x w4 = swap32 (w1_t[0]);
+    u32x w5 = swap32 (w1_t[1]);
+    u32x w6 = swap32 (w1_t[2]);
+    u32x w7 = swap32 (w1_t[3]);
+    u32x w8 = swap32 (w2_t[0]);
+    u32x w9 = swap32 (w2_t[1]);
+    u32x wa = swap32 (w2_t[2]);
+    u32x wb = swap32 (w2_t[3]);
+    u32x wc = swap32 (w3_t[0]);
+    u32x wd = swap32 (w3_t[1]);
+    u32x we = 0;
+    u32x wf = pw_salt_len * 8;
 
     /**
      * sha1
      */
 
-    u32 a = SHA1M_A;
-    u32 b = SHA1M_B;
-    u32 c = SHA1M_C;
-    u32 d = SHA1M_D;
-    u32 e = SHA1M_E;
+    u32x a = SHA1M_A;
+    u32x b = SHA1M_B;
+    u32x c = SHA1M_C;
+    u32x d = SHA1M_D;
+    u32x e = SHA1M_E;
 
     #undef K
     #define K SHA1C00
@@ -325,12 +325,7 @@ __kernel void m04900_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     we = rotl32 ((wb ^ w6 ^ w0 ^ we), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we);
     wf = rotl32 ((wc ^ w7 ^ w1 ^ wf), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf);
 
-    const u32 r0 = d;
-    const u32 r1 = e;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (d, e, c, b);
   }
 }
 
@@ -424,36 +419,36 @@ __kernel void m04900_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * reverse
    */
 
-  const u32 e_rev = rotl32 (search[1], 2u);
+  const u32 e_rev = rotl32_S (search[1], 2u);
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0_t[4];
+    u32x w0_t[4];
 
     w0_t[0] = pw_buf0[0];
     w0_t[1] = pw_buf0[1];
     w0_t[2] = pw_buf0[2];
     w0_t[3] = pw_buf0[3];
 
-    u32 w1_t[4];
+    u32x w1_t[4];
 
     w1_t[0] = pw_buf1[0];
     w1_t[1] = pw_buf1[1];
     w1_t[2] = pw_buf1[2];
     w1_t[3] = pw_buf1[3];
 
-    u32 w2_t[4];
+    u32x w2_t[4];
 
     w2_t[0] = 0;
     w2_t[1] = 0;
     w2_t[2] = 0;
     w2_t[3] = 0;
 
-    u32 w3_t[4];
+    u32x w3_t[4];
 
     w3_t[0] = 0;
     w3_t[1] = 0;
@@ -489,28 +484,28 @@ __kernel void m04900_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * append salt
      */
 
-    u32 s0[4];
+    u32x s0[4];
 
     s0[0] = salt_buf0[0];
     s0[1] = salt_buf0[1];
     s0[2] = salt_buf0[2];
     s0[3] = salt_buf0[3];
 
-    u32 s1[4];
+    u32x s1[4];
 
     s1[0] = salt_buf1[0];
     s1[1] = salt_buf1[1];
     s1[2] = salt_buf1[2];
     s1[3] = salt_buf1[3];
 
-    u32 s2[4];
+    u32x s2[4];
 
     s2[0] = 0;
     s2[1] = 0;
     s2[2] = 0;
     s2[3] = 0;
 
-    u32 s3[4];
+    u32x s3[4];
 
     s3[0] = 0;
     s3[1] = 0;
@@ -540,32 +535,32 @@ __kernel void m04900_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     append_0x80_4x4 (w0_t, w1_t, w2_t, w3_t, pw_salt_len);
 
-    u32 w0 = swap32 (w0_t[0]);
-    u32 w1 = swap32 (w0_t[1]);
-    u32 w2 = swap32 (w0_t[2]);
-    u32 w3 = swap32 (w0_t[3]);
-    u32 w4 = swap32 (w1_t[0]);
-    u32 w5 = swap32 (w1_t[1]);
-    u32 w6 = swap32 (w1_t[2]);
-    u32 w7 = swap32 (w1_t[3]);
-    u32 w8 = swap32 (w2_t[0]);
-    u32 w9 = swap32 (w2_t[1]);
-    u32 wa = swap32 (w2_t[2]);
-    u32 wb = swap32 (w2_t[3]);
-    u32 wc = swap32 (w3_t[0]);
-    u32 wd = swap32 (w3_t[1]);
-    u32 we = 0;
-    u32 wf = pw_salt_len * 8;
+    u32x w0 = swap32 (w0_t[0]);
+    u32x w1 = swap32 (w0_t[1]);
+    u32x w2 = swap32 (w0_t[2]);
+    u32x w3 = swap32 (w0_t[3]);
+    u32x w4 = swap32 (w1_t[0]);
+    u32x w5 = swap32 (w1_t[1]);
+    u32x w6 = swap32 (w1_t[2]);
+    u32x w7 = swap32 (w1_t[3]);
+    u32x w8 = swap32 (w2_t[0]);
+    u32x w9 = swap32 (w2_t[1]);
+    u32x wa = swap32 (w2_t[2]);
+    u32x wb = swap32 (w2_t[3]);
+    u32x wc = swap32 (w3_t[0]);
+    u32x wd = swap32 (w3_t[1]);
+    u32x we = 0;
+    u32x wf = pw_salt_len * 8;
 
     /**
      * sha1
      */
 
-    u32 a = SHA1M_A;
-    u32 b = SHA1M_B;
-    u32 c = SHA1M_C;
-    u32 d = SHA1M_D;
-    u32 e = SHA1M_E;
+    u32x a = SHA1M_A;
+    u32x b = SHA1M_B;
+    u32x c = SHA1M_C;
+    u32x d = SHA1M_D;
+    u32x e = SHA1M_E;
 
     #undef K
     #define K SHA1C00
@@ -659,19 +654,14 @@ __kernel void m04900_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     wa = rotl32 ((w7 ^ w2 ^ wc ^ wa), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wa);
     wb = rotl32 ((w8 ^ w3 ^ wd ^ wb), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wb);
 
-    if (allx (e != e_rev)) continue;
+    if (MATCHES_NONE_VS (e, e_rev)) continue;
 
     wc = rotl32 ((w9 ^ w4 ^ we ^ wc), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wc);
     wd = rotl32 ((wa ^ w5 ^ wf ^ wd), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wd);
     we = rotl32 ((wb ^ w6 ^ w0 ^ we), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we);
     wf = rotl32 ((wc ^ w7 ^ w1 ^ wf), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf);
 
-    const u32 r0 = d;
-    const u32 r1 = e;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (d, e, c, b);
   }
 }
 
