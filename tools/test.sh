@@ -1582,7 +1582,7 @@ MARKOV="enabled"
 ATTACK=0
 MODE=0
 TYPE="null"
-VECTOR=0
+VECTOR="default"
 HT=0
 PACKAGE=0
 
@@ -1591,19 +1591,14 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
   case ${opt} in
     "V")
       if [ ${OPTARG} == "1" ]; then
-        OPTS="${OPTS} --opencl-vector-width 1"
         VECTOR=1
       elif [ ${OPTARG} == "2" ]; then
-        OPTS="${OPTS} --opencl-vector-width 2"
         VECTOR=2
       elif [ ${OPTARG} == "4" ]; then
-        OPTS="${OPTS} --opencl-vector-width 4"
         VECTOR=4
       elif [ ${OPTARG} == "8" ]; then
-        OPTS="${OPTS} --opencl-vector-width 8"
         VECTOR=8
       elif [ ${OPTARG} == "all" ]; then
-        OPTS="${OPTS} --opencl-vector-width 1,2,4,8"
         VECTOR="all"
       else
         usage
@@ -1708,11 +1703,6 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
   esac
 
 done
-
-if [ "${VECTOR}" == "0" ]; then
-   VECTOR="default"
-   OPTS="${OPTS} --opencl-vector-width 1,4"
-fi
 
 if [ "${TYPE}" == "null" ]; then
    TYPE="Gpu"
@@ -1869,6 +1859,8 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
           fi
         fi
       done
+      OPTS="${OPTS_OLD}"
+      VECTOR="${VECTOR_OLD}"
     fi
   done
 
