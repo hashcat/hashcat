@@ -390,11 +390,7 @@ const char *USAGE_BIG[] =
   "  -c,  --segment-size=NUM            Size in MB to cache from the wordfile",
   "       --bitmap-min=NUM              Minimum number of bits allowed for bitmaps",
   "       --bitmap-max=NUM              Maximum number of bits allowed for bitmaps",
-  #ifndef OSX
   "       --cpu-affinity=STR            Locks to CPU devices, separate with comma",
-  #else
-  "       --cpu-affinity=STR            Locks to CPU devices, separate with comma (disabled on OSX)",
-  #endif
   "       --opencl-platforms=STR        OpenCL platforms to use, separate with comma",
   "  -d,  --opencl-devices=STR          OpenCL devices to use, separate with comma",
   "       --opencl-device-types=STR     OpenCL device-types to use, separate with comma, see references below",
@@ -5196,9 +5192,7 @@ int main (int argc, char **argv)
   uint  increment         = INCREMENT;
   uint  increment_min     = INCREMENT_MIN;
   uint  increment_max     = INCREMENT_MAX;
-  #ifndef OSX
   char *cpu_affinity      = NULL;
-  #endif
   OCL_PTR *ocl            = NULL;
   char *opencl_devices    = NULL;
   char *opencl_platforms  = NULL;
@@ -5361,9 +5355,7 @@ int main (int argc, char **argv)
     {"markov-classic",    no_argument,       0, IDX_MARKOV_CLASSIC},
     {"markov-threshold",  required_argument, 0, IDX_MARKOV_THRESHOLD},
     {"markov-hcstat",     required_argument, 0, IDX_MARKOV_HCSTAT},
-    #ifndef OSX
     {"cpu-affinity",      required_argument, 0, IDX_CPU_AFFINITY},
-    #endif
     {"opencl-devices",    required_argument, 0, IDX_OPENCL_DEVICES},
     {"opencl-platforms",  required_argument, 0, IDX_OPENCL_PLATFORMS},
     {"opencl-device-types", required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
@@ -5672,9 +5664,7 @@ int main (int argc, char **argv)
       case IDX_HEX_CHARSET:       hex_charset       = 1;               break;
       case IDX_HEX_SALT:          hex_salt          = 1;               break;
       case IDX_HEX_WORDLIST:      hex_wordlist      = 1;               break;
-      #ifndef OSX
       case IDX_CPU_AFFINITY:      cpu_affinity      = optarg;          break;
-      #endif
       case IDX_OPENCL_DEVICES:    opencl_devices    = optarg;          break;
       case IDX_OPENCL_PLATFORMS:  opencl_platforms  = optarg;          break;
       case IDX_OPENCL_DEVICE_TYPES:
@@ -6423,12 +6413,10 @@ int main (int argc, char **argv)
    * cpu affinity
    */
 
-  #ifndef OSX
   if (cpu_affinity)
   {
     set_cpu_affinity (cpu_affinity);
   }
-  #endif
 
   if (rp_gen_seed_chgd == 0)
   {
@@ -6543,9 +6531,7 @@ int main (int argc, char **argv)
   logfile_top_uint64 (limit);
   logfile_top_uint64 (skip);
   logfile_top_char   (separator);
-  #ifndef OSX
   logfile_top_string (cpu_affinity);
-  #endif
   logfile_top_string (custom_charset_1);
   logfile_top_string (custom_charset_2);
   logfile_top_string (custom_charset_3);
