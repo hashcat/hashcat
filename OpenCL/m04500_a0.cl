@@ -5,6 +5,8 @@
 
 #define _SHA1_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -18,9 +20,7 @@
 #include "OpenCL/common.c"
 #include "include/rp_kernel.h"
 #include "OpenCL/rp.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 #if   VECT_SIZE == 1
 #define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i)])
@@ -85,37 +85,14 @@ __kernel void m04500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
-
-    u32 w1[4];
-
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
+    const u32 out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x80_2x4 (w0, w1, out_len);
 
@@ -123,28 +100,28 @@ __kernel void m04500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * sha1
      */
 
-    u32 w0_t = swap32 (w0[0]);
-    u32 w1_t = swap32 (w0[1]);
-    u32 w2_t = swap32 (w0[2]);
-    u32 w3_t = swap32 (w0[3]);
-    u32 w4_t = swap32 (w1[0]);
-    u32 w5_t = swap32 (w1[1]);
-    u32 w6_t = swap32 (w1[2]);
-    u32 w7_t = swap32 (w1[3]);
-    u32 w8_t = swap32 (w2[0]);
-    u32 w9_t = swap32 (w2[1]);
-    u32 wa_t = swap32 (w2[2]);
-    u32 wb_t = swap32 (w2[3]);
-    u32 wc_t = swap32 (w3[0]);
-    u32 wd_t = swap32 (w3[1]);
-    u32 we_t = 0;
-    u32 wf_t = out_len * 8;
+    u32x w0_t = swap32 (w0[0]);
+    u32x w1_t = swap32 (w0[1]);
+    u32x w2_t = swap32 (w0[2]);
+    u32x w3_t = swap32 (w0[3]);
+    u32x w4_t = swap32 (w1[0]);
+    u32x w5_t = swap32 (w1[1]);
+    u32x w6_t = swap32 (w1[2]);
+    u32x w7_t = swap32 (w1[3]);
+    u32x w8_t = swap32 (w2[0]);
+    u32x w9_t = swap32 (w2[1]);
+    u32x wa_t = swap32 (w2[2]);
+    u32x wb_t = swap32 (w2[3]);
+    u32x wc_t = swap32 (w3[0]);
+    u32x wd_t = swap32 (w3[1]);
+    u32x we_t = 0;
+    u32x wf_t = out_len * 8;
 
-    u32 a = SHA1M_A;
-    u32 b = SHA1M_B;
-    u32 c = SHA1M_C;
-    u32 d = SHA1M_D;
-    u32 e = SHA1M_E;
+    u32x a = SHA1M_A;
+    u32x b = SHA1M_B;
+    u32x c = SHA1M_C;
+    u32x d = SHA1M_D;
+    u32x e = SHA1M_E;
 
     #undef K
     #define K SHA1C00
@@ -377,18 +354,12 @@ __kernel void m04500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w9_t);
     wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wa_t);
     wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wb_t);
-
     wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wc_t);
     wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wd_t);
     we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    const u32 r0 = d;
-    const u32 r1 = e;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (d, e, c, b);
   }
 }
 
@@ -465,43 +436,20 @@ __kernel void m04500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * reverse
    */
 
-  const u32 e_rev = rotl32 (search[1], 2u);
+  const u32 e_rev = rotl32_S (search[1], 2u);
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
-
-    u32 w1[4];
-
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
+    const u32 out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x80_2x4 (w0, w1, out_len);
 
@@ -509,28 +457,28 @@ __kernel void m04500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * sha1
      */
 
-    u32 w0_t = swap32 (w0[0]);
-    u32 w1_t = swap32 (w0[1]);
-    u32 w2_t = swap32 (w0[2]);
-    u32 w3_t = swap32 (w0[3]);
-    u32 w4_t = swap32 (w1[0]);
-    u32 w5_t = swap32 (w1[1]);
-    u32 w6_t = swap32 (w1[2]);
-    u32 w7_t = swap32 (w1[3]);
-    u32 w8_t = swap32 (w2[0]);
-    u32 w9_t = swap32 (w2[1]);
-    u32 wa_t = swap32 (w2[2]);
-    u32 wb_t = swap32 (w2[3]);
-    u32 wc_t = swap32 (w3[0]);
-    u32 wd_t = swap32 (w3[1]);
-    u32 we_t = 0;
-    u32 wf_t = out_len * 8;
+    u32x w0_t = swap32 (w0[0]);
+    u32x w1_t = swap32 (w0[1]);
+    u32x w2_t = swap32 (w0[2]);
+    u32x w3_t = swap32 (w0[3]);
+    u32x w4_t = swap32 (w1[0]);
+    u32x w5_t = swap32 (w1[1]);
+    u32x w6_t = swap32 (w1[2]);
+    u32x w7_t = swap32 (w1[3]);
+    u32x w8_t = swap32 (w2[0]);
+    u32x w9_t = swap32 (w2[1]);
+    u32x wa_t = swap32 (w2[2]);
+    u32x wb_t = swap32 (w2[3]);
+    u32x wc_t = swap32 (w3[0]);
+    u32x wd_t = swap32 (w3[1]);
+    u32x we_t = 0;
+    u32x wf_t = out_len * 8;
 
-    u32 a = SHA1M_A;
-    u32 b = SHA1M_B;
-    u32 c = SHA1M_C;
-    u32 d = SHA1M_D;
-    u32 e = SHA1M_E;
+    u32x a = SHA1M_A;
+    u32x b = SHA1M_B;
+    u32x c = SHA1M_C;
+    u32x d = SHA1M_D;
+    u32x e = SHA1M_E;
 
     #undef K
     #define K SHA1C00
@@ -764,19 +712,14 @@ __kernel void m04500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wa_t);
     wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wb_t);
 
-    if (allx (e != e_rev)) continue;
+    if (MATCHES_NONE_VS (e, e_rev)) continue;
 
     wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wc_t);
     wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wd_t);
     we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    const u32 r0 = d;
-    const u32 r1 = e;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (d, e, c, b);
   }
 }
 
