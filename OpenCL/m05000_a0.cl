@@ -5,6 +5,8 @@
 
 #define _KECCAK_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -18,9 +20,7 @@
 #include "OpenCL/common.c"
 #include "include/rp_kernel.h"
 #include "OpenCL/rp.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 __constant u64 keccakf_rndc[24] =
 {
@@ -134,46 +134,23 @@ __kernel void m05000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
-
-    u32 w1[4];
-
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
+    const u32 out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x01_2x4 (w0, w1, out_len);
 
-    u64 st[25];
+    u64x st[25];
 
-    st[ 0] = (u64) (w0[0]) | (u64) (w0[1]) << 32;
-    st[ 1] = (u64) (w0[2]) | (u64) (w0[3]) << 32;
-    st[ 2] = (u64) (w1[0]) | (u64) (w1[1]) << 32;
-    st[ 3] = (u64) (w1[2]) | (u64) (w1[3]) << 32;
+    st[ 0] = hl32_to_64 (w0[1], w0[0]);
+    st[ 1] = hl32_to_64 (w0[3], w0[2]);
+    st[ 2] = hl32_to_64 (w1[1], w1[0]);
+    st[ 3] = hl32_to_64 (w1[3], w1[2]);
     st[ 4] = 0;
     st[ 5] = 0;
     st[ 6] = 0;
@@ -204,13 +181,13 @@ __kernel void m05000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     {
       // Theta
 
-      u64 bc0 = Theta1 (0);
-      u64 bc1 = Theta1 (1);
-      u64 bc2 = Theta1 (2);
-      u64 bc3 = Theta1 (3);
-      u64 bc4 = Theta1 (4);
+      u64x bc0 = Theta1 (0);
+      u64x bc1 = Theta1 (1);
+      u64x bc2 = Theta1 (2);
+      u64x bc3 = Theta1 (3);
+      u64x bc4 = Theta1 (4);
 
-      u64 t;
+      u64x t;
 
       t = bc4 ^ rotl64 (bc1, 1); Theta2 (0);
       t = bc0 ^ rotl64 (bc2, 1); Theta2 (1);
@@ -260,12 +237,12 @@ __kernel void m05000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
       st[0] ^= keccakf_rndc[round];
     }
 
-    const u32 r0 = l32_from_64 (st[1]);
-    const u32 r1 = h32_from_64 (st[1]);
-    const u32 r2 = l32_from_64 (st[2]);
-    const u32 r3 = h32_from_64 (st[2]);
+    const u32x r0 = l32_from_64 (st[1]);
+    const u32x r1 = h32_from_64 (st[1]);
+    const u32x r2 = l32_from_64 (st[2]);
+    const u32x r3 = h32_from_64 (st[2]);
 
-    #include COMPARE_M
+    COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
@@ -351,46 +328,23 @@ __kernel void m05000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
-
-    u32 w1[4];
-
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
+    const u32 out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x01_2x4 (w0, w1, out_len);
 
-    u64 st[25];
+    u64x st[25];
 
-    st[ 0] = (u64) (w0[0]) | (u64) (w0[1]) << 32;
-    st[ 1] = (u64) (w0[2]) | (u64) (w0[3]) << 32;
-    st[ 2] = (u64) (w1[0]) | (u64) (w1[1]) << 32;
-    st[ 3] = (u64) (w1[2]) | (u64) (w1[3]) << 32;
+    st[ 0] = hl32_to_64 (w0[1], w0[0]);
+    st[ 1] = hl32_to_64 (w0[3], w0[2]);
+    st[ 2] = hl32_to_64 (w1[1], w1[0]);
+    st[ 3] = hl32_to_64 (w1[3], w1[2]);
     st[ 4] = 0;
     st[ 5] = 0;
     st[ 6] = 0;
@@ -421,13 +375,13 @@ __kernel void m05000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     {
       // Theta
 
-      u64 bc0 = Theta1 (0);
-      u64 bc1 = Theta1 (1);
-      u64 bc2 = Theta1 (2);
-      u64 bc3 = Theta1 (3);
-      u64 bc4 = Theta1 (4);
+      u64x bc0 = Theta1 (0);
+      u64x bc1 = Theta1 (1);
+      u64x bc2 = Theta1 (2);
+      u64x bc3 = Theta1 (3);
+      u64x bc4 = Theta1 (4);
 
-      u64 t;
+      u64x t;
 
       t = bc4 ^ rotl64 (bc1, 1); Theta2 (0);
       t = bc0 ^ rotl64 (bc2, 1); Theta2 (1);
@@ -477,12 +431,12 @@ __kernel void m05000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
       st[0] ^= keccakf_rndc[round];
     }
 
-    const u32 r0 = l32_from_64 (st[1]);
-    const u32 r1 = h32_from_64 (st[1]);
-    const u32 r2 = l32_from_64 (st[2]);
-    const u32 r3 = h32_from_64 (st[2]);
+    const u32x r0 = l32_from_64 (st[1]);
+    const u32x r1 = h32_from_64 (st[1]);
+    const u32x r2 = l32_from_64 (st[2]);
+    const u32x r3 = h32_from_64 (st[2]);
 
-    #include COMPARE_S
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }
 
