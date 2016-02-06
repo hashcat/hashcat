@@ -13227,12 +13227,12 @@ int main (int argc, char **argv)
      */
 
     #ifdef HAVE_HWMON
-    int *temp_retain_fanspeed_value = (int *) mycalloc (devices_cnt, sizeof (int));
+    int *temp_retain_fanspeed_value = (int *) mycalloc (data.devices_cnt, sizeof (int));
 
     #ifdef HAVE_ADL
-    ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (devices_cnt, sizeof (ADLOD6MemClockState));
+    ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (data.devices_cnt, sizeof (ADLOD6MemClockState));
 
-    int *od_power_control_status = (int *) mycalloc (devices_cnt, sizeof (int));
+    int *od_power_control_status = (int *) mycalloc (data.devices_cnt, sizeof (int));
     #endif // ADL
     #endif
 
@@ -13340,7 +13340,7 @@ int main (int argc, char **argv)
 
     if (gpu_temp_disable == 0)
     {
-      for (uint device_id = 0; device_id < devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
       {
         hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -13379,7 +13379,7 @@ int main (int argc, char **argv)
     {
       hc_thread_mutex_lock (mux_adl);
 
-      for (uint device_id = 0; device_id < devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
       {
         hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -13448,7 +13448,7 @@ int main (int argc, char **argv)
 
     uint kernel_blocks_all = 0;
 
-    for (uint device_id = 0; device_id < devices_cnt; device_id++)
+    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
     {
       /**
        * host buffer
@@ -13730,7 +13730,7 @@ int main (int argc, char **argv)
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
-      snprintf (build_opts, sizeof (build_opts) - 1, "-I%s/ -DVENDOR_ID=%d -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type);
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I%s/ -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type);
 
       /**
        * main kernel
@@ -15422,7 +15422,7 @@ int main (int argc, char **argv)
     {
       hc_device_param_t *device_param = NULL;
 
-      for (uint device_id = 0; device_id < devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
       {
         device_param = &data.devices_param[device_id];
 
@@ -15661,7 +15661,7 @@ int main (int argc, char **argv)
 
           // args
 
-          for (uint device_id = 0; device_id < devices_cnt; device_id++)
+          for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
           {
             hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -16170,7 +16170,7 @@ int main (int argc, char **argv)
 
           data.bfs_cnt = sp_get_sum (0, css_cnt_r, root_css_buf);
 
-          for (uint device_id = 0; device_id < devices_cnt; device_id++)
+          for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
           {
             hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -16371,9 +16371,9 @@ int main (int argc, char **argv)
          * create cracker threads
          */
 
-        hc_thread_t *c_threads = (hc_thread_t *) mycalloc (devices_cnt, sizeof (hc_thread_t));
+        hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
 
-        for (uint device_id = 0; device_id < devices_cnt; device_id++)
+        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
         {
           hc_device_param_t *device_param = &devices_param[device_id];
 
@@ -16389,7 +16389,7 @@ int main (int argc, char **argv)
 
         // wait for crack threads to exit
 
-        hc_thread_wait (devices_cnt, c_threads);
+        hc_thread_wait (data.devices_cnt, c_threads);
 
         local_free (c_threads);
 
@@ -16612,7 +16612,7 @@ int main (int argc, char **argv)
       if (quiet == 0) log_info ("");
     }
 
-    for (uint device_id = 0; device_id < devices_cnt; device_id++)
+    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
     {
       hc_device_param_t *device_param = &data.devices_param[device_id];
 
