@@ -11606,7 +11606,7 @@ int main (int argc, char **argv)
 
               if (hash_mode == 6800)
               {
-                if (i < 48) // 48 = 12 * uint in salt_buf[]
+                if (i < 64) // 64 = 16 * uint in salt_buf[]
                 {
                   // manipulate salt_buf
                   memcpy (hash_buf.salt->salt_buf, line_buf, i);
@@ -11618,7 +11618,7 @@ int main (int argc, char **argv)
               }
               else if (hash_mode == 2500)
               {
-                if (i < 48) // 48 = 12 * uint in salt_buf[]
+                if (i < 64) // 64 = 16 * uint in salt_buf[]
                 {
                   // here we have in line_buf: ESSID:MAC1:MAC2   (without the plain)
                   // manipulate salt_buf

@@ -1628,6 +1628,10 @@ extern hc_thread_mutex_t mux_display;
 #define OPTI_STR_SINGLE_SALT        "Single-Salt"
 #define OPTI_STR_BRUTE_FORCE        "Brute-Force"
 #define OPTI_STR_RAW_HASH           "Raw-Hash"
+#define OPTI_STR_USES_BITS_8        "Uses-8-Bit"
+#define OPTI_STR_USES_BITS_16       "Uses-16-Bit"
+#define OPTI_STR_USES_BITS_32       "Uses-32-Bit"
+#define OPTI_STR_USES_BITS_64       "Uses-64-Bit"
 
 /**
  * hash options

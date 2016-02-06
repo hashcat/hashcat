@@ -4320,7 +4320,7 @@ int sort_by_salt (const void *v1, const void *v2)
 
   uint n;
 
-  n = 12;
+  n = 16;
 
   while (n--)
   {
@@ -4350,7 +4350,7 @@ int sort_by_salt_buf (const void *v1, const void *v2)
   const salt_t *s1 = h1->salt;
   const salt_t *s2 = h2->salt;
 
-  uint n = 12;
+  uint n = 16;
 
   while (n--)
   {
@@ -4370,7 +4370,7 @@ int sort_by_hash_t_salt (const void *v1, const void *v2)
   const salt_t *s2 = h2->salt;
 
   // testphase: this should work
-  uint n = 12;
+  uint n = 16;
 
   while (n--)
   {
@@ -4403,8 +4403,8 @@ int sort_by_hash_t_salt_hccap (const void *v1, const void *v2)
   const salt_t *s1 = h1->salt;
   const salt_t *s2 = h2->salt;
 
-  // 12 - 2 (since last 2 uints contain the digest)
-  uint n = 10;
+  // 16 - 2 (since last 2 uints contain the digest)
+  uint n = 14;
 
   while (n--)
   {
@@ -5540,6 +5540,10 @@ char *stroptitype (const uint opti_type)
     case OPTI_TYPE_SINGLE_SALT:       return ((char *) OPTI_STR_SINGLE_SALT);       break;
     case OPTI_TYPE_BRUTE_FORCE:       return ((char *) OPTI_STR_BRUTE_FORCE);       break;
     case OPTI_TYPE_RAW_HASH:          return ((char *) OPTI_STR_RAW_HASH);          break;
+    case OPTI_TYPE_USES_BITS_8:       return ((char *) OPTI_STR_USES_BITS_8);       break;
+    case OPTI_TYPE_USES_BITS_16:      return ((char *) OPTI_STR_USES_BITS_16);      break;
+    case OPTI_TYPE_USES_BITS_32:      return ((char *) OPTI_STR_USES_BITS_32);      break;
+    case OPTI_TYPE_USES_BITS_64:      return ((char *) OPTI_STR_USES_BITS_64);      break;
   }
 
   return (NULL);
