@@ -7,6 +7,8 @@
 
 #define _LOTUS6_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -20,9 +22,7 @@
 #include "OpenCL/common.c"
 #include "include/rp_kernel.h"
 #include "OpenCL/rp.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 __constant u32 lotus_magic_table[256] =
 {
@@ -60,8 +60,6 @@ __constant u32 lotus_magic_table[256] =
   0x29, 0x39, 0xb9, 0xe9, 0x4c, 0xff, 0x43, 0xab,
 };
 
-#define BOX(S,i) (S)[(i)]
-
 #if   VECT_SIZE == 1
 #define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i)])
 #elif VECT_SIZE == 2
@@ -82,60 +80,60 @@ __constant u32 lotus_magic_table[256] =
 #define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
 #endif
 
-static void lotus_mix (u32 *in, __local u32 *s_lotus_magic_table)
+static void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
 {
-  u32 p = 0;
+  u32x p = 0;
 
   for (int i = 0; i < 18; i++)
   {
     u32 s = 48;
 
-    #pragma unroll
+    #pragma unroll 12
     for (int j = 0; j < 12; j++)
     {
-      u32 tmp_in = in[j];
-      u32 tmp_out = 0;
+      u32x tmp_in = in[j];
+      u32x tmp_out = 0;
 
-      p = (p + s--) & 0xff; p = ((tmp_in >>  0) & 0xff) ^ BOX (s_lotus_magic_table, p); tmp_out |= p <<  0;
-      p = (p + s--) & 0xff; p = ((tmp_in >>  8) & 0xff) ^ BOX (s_lotus_magic_table, p); tmp_out |= p <<  8;
-      p = (p + s--) & 0xff; p = ((tmp_in >> 16) & 0xff) ^ BOX (s_lotus_magic_table, p); tmp_out |= p << 16;
-      p = (p + s--) & 0xff; p = ((tmp_in >> 24) & 0xff) ^ BOX (s_lotus_magic_table, p); tmp_out |= p << 24;
+      p = (p + s--) & 0xff; p = ((tmp_in >>  0) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p <<  0;
+      p = (p + s--) & 0xff; p = ((tmp_in >>  8) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p <<  8;
+      p = (p + s--) & 0xff; p = ((tmp_in >> 16) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p << 16;
+      p = (p + s--) & 0xff; p = ((tmp_in >> 24) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p << 24;
 
       in[j] = tmp_out;
     }
   }
 }
 
-static void lotus_transform_password (u32 in[4], u32 out[4], __local u32 *s_lotus_magic_table)
+static void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lotus_magic_table)
 {
-  u32 t = out[3] >> 24;
+  u32x t = out[3] >> 24;
 
-  u32 c;
+  u32x c;
 
-  //#pragma unroll // kernel fails if used
+  #pragma unroll 4
   for (int i = 0; i < 4; i++)
   {
-    t ^= (in[i] >>  0) & 0xff; c = BOX (s_lotus_magic_table, t); out[i] ^= c <<  0; t = ((out[i] >>  0) & 0xff);
-    t ^= (in[i] >>  8) & 0xff; c = BOX (s_lotus_magic_table, t); out[i] ^= c <<  8; t = ((out[i] >>  8) & 0xff);
-    t ^= (in[i] >> 16) & 0xff; c = BOX (s_lotus_magic_table, t); out[i] ^= c << 16; t = ((out[i] >> 16) & 0xff);
-    t ^= (in[i] >> 24) & 0xff; c = BOX (s_lotus_magic_table, t); out[i] ^= c << 24; t = ((out[i] >> 24) & 0xff);
+    t ^= (in[i] >>  0) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  0; t = ((out[i] >>  0) & 0xff);
+    t ^= (in[i] >>  8) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  8; t = ((out[i] >>  8) & 0xff);
+    t ^= (in[i] >> 16) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c << 16; t = ((out[i] >> 16) & 0xff);
+    t ^= (in[i] >> 24) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c << 24; t = ((out[i] >> 24) & 0xff);
   }
 }
 
-static void pad (u32 w[4], const u32 len)
+static void pad (u32x w[4], const u32 len)
 {
   const u32 val = 16 - len;
 
-  const u32 mask1 = val << 24;
+  const u32x mask1 = val << 24;
 
-  const u32 mask2 = val << 16
+  const u32x mask2 = val << 16
                    | val << 24;
 
-  const u32 mask3 = val <<  8
+  const u32x mask3 = val <<  8
                    | val << 16
                    | val << 24;
 
-  const u32 mask4 = val <<  0
+  const u32x mask4 = val <<  0
                    | val <<  8
                    | val << 16
                    | val << 24;
@@ -201,9 +199,9 @@ static void pad (u32 w[4], const u32 len)
   }
 }
 
-static void mdtransform_norecalc (u32 state[4], u32 block[4], __local u32 *s_lotus_magic_table)
+static void mdtransform_norecalc (u32x state[4], u32x block[4], __local u32 *s_lotus_magic_table)
 {
-  u32 x[12];
+  u32x x[12];
 
   x[ 0] = state[0];
   x[ 1] = state[1];
@@ -226,23 +224,23 @@ static void mdtransform_norecalc (u32 state[4], u32 block[4], __local u32 *s_lot
   state[3] = x[3];
 }
 
-static void mdtransform (u32 state[4], u32 checksum[4], u32 block[4], __local u32 *s_lotus_magic_table)
+static void mdtransform (u32x state[4], u32x checksum[4], u32x block[4], __local u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-static void domino_big_md (const u32 saved_key[16], const u32 size, u32 state[4], __local u32 *s_lotus_magic_table)
+static void domino_big_md (const u32x saved_key[16], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
 {
-  u32 checksum[4];
+  u32x checksum[4];
 
   checksum[0] = 0;
   checksum[1] = 0;
   checksum[2] = 0;
   checksum[3] = 0;
 
-  u32 block[4];
+  u32x block[4];
 
   block[0] = 0;
   block[1] = 0;
@@ -339,39 +337,16 @@ __kernel void m08700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
+    const u32 out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    u32 w1[4];
-
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
-
-    u32 w[16];
+    u32x w[16];
 
     w[ 0] = w0[0];
     w[ 1] = w0[1];
@@ -390,7 +365,7 @@ __kernel void m08700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[14] = w3[2];
     w[15] = w3[3];
 
-    u32 state[4];
+    u32x state[4];
 
     state[0] = 0;
     state[1] = 0;
@@ -420,22 +395,22 @@ __kernel void m08700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     domino_big_md (w, out_len, state, s_lotus_magic_table);
 
-    const u32 w0_t = uint_to_hex_upper8 ((state[0] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[0] >>  8) & 255) << 16;
-    const u32 w1_t = uint_to_hex_upper8 ((state[0] >> 16) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[0] >> 24) & 255) << 16;
-    const u32 w2_t = uint_to_hex_upper8 ((state[1] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[1] >>  8) & 255) << 16;
-    const u32 w3_t = uint_to_hex_upper8 ((state[1] >> 16) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[1] >> 24) & 255) << 16;
-    const u32 w4_t = uint_to_hex_upper8 ((state[2] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[2] >>  8) & 255) << 16;
-    const u32 w5_t = uint_to_hex_upper8 ((state[2] >> 16) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[2] >> 24) & 255) << 16;
-    const u32 w6_t = uint_to_hex_upper8 ((state[3] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[3] >>  8) & 255) << 16;
-    //const u32 w7_t = uint_to_hex_upper8 ((state[3] >> 16) & 255) <<  0
-    //                 | uint_to_hex_upper8 ((state[3] >> 24) & 255) << 16;
+    const u32x w0_t = uint_to_hex_upper8 ((state[0] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[0] >>  8) & 255) << 16;
+    const u32x w1_t = uint_to_hex_upper8 ((state[0] >> 16) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[0] >> 24) & 255) << 16;
+    const u32x w2_t = uint_to_hex_upper8 ((state[1] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[1] >>  8) & 255) << 16;
+    const u32x w3_t = uint_to_hex_upper8 ((state[1] >> 16) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[1] >> 24) & 255) << 16;
+    const u32x w4_t = uint_to_hex_upper8 ((state[2] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[2] >>  8) & 255) << 16;
+    const u32x w5_t = uint_to_hex_upper8 ((state[2] >> 16) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[2] >> 24) & 255) << 16;
+    const u32x w6_t = uint_to_hex_upper8 ((state[3] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[3] >>  8) & 255) << 16;
+    //const u32x w7_t = uint_to_hex_upper8 ((state[3] >> 16) & 255) <<  0
+    //                | uint_to_hex_upper8 ((state[3] >> 24) & 255) << 16;
 
     const u32 pade = 0x0e0e0e0e;
 
@@ -463,17 +438,12 @@ __kernel void m08700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     domino_big_md (w, 34, state, s_lotus_magic_table);
 
-    u32 a = state[0] & 0xffffffff;
-    u32 b = state[1] & 0xffffffff;
-    u32 c = state[2] & 0x000000ff;
-    u32 d = state[3] & 0x00000000;
+    u32x a = state[0] & 0xffffffff;
+    u32x b = state[1] & 0xffffffff;
+    u32x c = state[2] & 0x000000ff;
+    u32x d = state[3] & 0x00000000;
 
-    const u32 r0 = a;
-    const u32 r1 = b;
-    const u32 r2 = c;
-    const u32 r3 = d;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (a, b, c, d);
   }
 }
 
@@ -564,39 +534,16 @@ __kernel void m08700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < rules_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
+    const u32 out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    u32 w1[4];
-
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
-
-    u32 w[16];
+    u32x w[16];
 
     w[ 0] = w0[0];
     w[ 1] = w0[1];
@@ -615,7 +562,7 @@ __kernel void m08700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[14] = w3[2];
     w[15] = w3[3];
 
-    u32 state[4];
+    u32x state[4];
 
     state[0] = 0;
     state[1] = 0;
@@ -645,22 +592,22 @@ __kernel void m08700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     domino_big_md (w, out_len, state, s_lotus_magic_table);
 
-    const u32 w0_t = uint_to_hex_upper8 ((state[0] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[0] >>  8) & 255) << 16;
-    const u32 w1_t = uint_to_hex_upper8 ((state[0] >> 16) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[0] >> 24) & 255) << 16;
-    const u32 w2_t = uint_to_hex_upper8 ((state[1] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[1] >>  8) & 255) << 16;
-    const u32 w3_t = uint_to_hex_upper8 ((state[1] >> 16) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[1] >> 24) & 255) << 16;
-    const u32 w4_t = uint_to_hex_upper8 ((state[2] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[2] >>  8) & 255) << 16;
-    const u32 w5_t = uint_to_hex_upper8 ((state[2] >> 16) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[2] >> 24) & 255) << 16;
-    const u32 w6_t = uint_to_hex_upper8 ((state[3] >>  0) & 255) <<  0
-                     | uint_to_hex_upper8 ((state[3] >>  8) & 255) << 16;
-    //const u32 w7_t = uint_to_hex_upper8 ((state[3] >> 16) & 255) <<  0
-    //                 | uint_to_hex_upper8 ((state[3] >> 24) & 255) << 16;
+    const u32x w0_t = uint_to_hex_upper8 ((state[0] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[0] >>  8) & 255) << 16;
+    const u32x w1_t = uint_to_hex_upper8 ((state[0] >> 16) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[0] >> 24) & 255) << 16;
+    const u32x w2_t = uint_to_hex_upper8 ((state[1] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[1] >>  8) & 255) << 16;
+    const u32x w3_t = uint_to_hex_upper8 ((state[1] >> 16) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[1] >> 24) & 255) << 16;
+    const u32x w4_t = uint_to_hex_upper8 ((state[2] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[2] >>  8) & 255) << 16;
+    const u32x w5_t = uint_to_hex_upper8 ((state[2] >> 16) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[2] >> 24) & 255) << 16;
+    const u32x w6_t = uint_to_hex_upper8 ((state[3] >>  0) & 255) <<  0
+                    | uint_to_hex_upper8 ((state[3] >>  8) & 255) << 16;
+    //const u32x w7_t = uint_to_hex_upper8 ((state[3] >> 16) & 255) <<  0
+    //                | uint_to_hex_upper8 ((state[3] >> 24) & 255) << 16;
 
     const u32 pade = 0x0e0e0e0e;
 
@@ -688,17 +635,12 @@ __kernel void m08700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     domino_big_md (w, 34, state, s_lotus_magic_table);
 
-    u32 a = state[0] & 0xffffffff;
-    u32 b = state[1] & 0xffffffff;
-    u32 c = state[2] & 0x000000ff;
-    u32 d = state[3] & 0x00000000;
+    u32x a = state[0] & 0xffffffff;
+    u32x b = state[1] & 0xffffffff;
+    u32x c = state[2] & 0x000000ff;
+    u32x d = state[3] & 0x00000000;
 
-    const u32 r0 = a;
-    const u32 r1 = b;
-    const u32 r2 = c;
-    const u32 r3 = d;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, b, c, d);
   }
 }
 
