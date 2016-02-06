@@ -4235,11 +4235,35 @@ void truecrypt_crc32 (const char *filename, u8 keytab[64])
   myfree (buf);
 }
 
+#ifdef OSX
+int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t *cpu_set)
+{
+  int core;
+
+  for (core = 0; core < (8 * (int)cpu_size); core++)
+    if (CPU_ISSET(core, cpu_set)) break;
+
+  thread_affinity_policy_data_t policy = { core };
+
+  const int rc = thread_policy_set (pthread_mach_thread_np (thread), THREAD_AFFINITY_POLICY, (thread_policy_t) &policy, 1);
+
+  if (data.quiet == 0)
+  {
+    if (rc != KERN_SUCCESS)
+    {
+      log_error ("ERROR: %s : %d", "thread_policy_set()", rc);
+    }
+  }
+
+  return rc;
+}
+#endif
+
 void set_cpu_affinity (char *cpu_affinity)
 {
   #ifdef WIN
   DWORD_PTR aff_mask = 0;
-  #elif LINUX
+  #elif _POSIX
   cpu_set_t cpuset;
   CPU_ZERO (&cpuset);
   #endif
@@ -4258,7 +4282,7 @@ void set_cpu_affinity (char *cpu_affinity)
       {
         #ifdef WIN
         aff_mask = 0;
-        #elif LINUX
+        #elif _POSIX
         CPU_ZERO (&cpuset);
         #endif
 
@@ -4274,7 +4298,7 @@ void set_cpu_affinity (char *cpu_affinity)
 
       #ifdef WIN
       aff_mask |= 1 << (cpu_id - 1);
-      #elif LINUX
+      #elif _POSIX
       CPU_SET ((cpu_id - 1), &cpuset);
       #endif
 
@@ -4286,7 +4310,7 @@ void set_cpu_affinity (char *cpu_affinity)
   #ifdef WIN
   SetProcessAffinityMask (GetCurrentProcess (), aff_mask);
   SetThreadAffinityMask (GetCurrentThread (), aff_mask);
-  #elif LINUX
+  #elif _POSIX
   pthread_t thread = pthread_self ();
   pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset);
   #endif

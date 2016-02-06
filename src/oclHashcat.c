@@ -390,11 +390,7 @@ const char *USAGE_BIG[] =
   "  -c,  --segment-size=NUM            Size in MB to cache from the wordfile",
   "       --bitmap-min=NUM              Minimum number of bits allowed for bitmaps",
   "       --bitmap-max=NUM              Maximum number of bits allowed for bitmaps",
-  #ifndef OSX
   "       --cpu-affinity=STR            Locks to CPU devices, separate with comma",
-  #else
-  "       --cpu-affinity=STR            Locks to CPU devices, separate with comma (disabled on OSX)",
-  #endif
   "       --opencl-platforms=STR        OpenCL platforms to use, separate with comma",
   "  -d,  --opencl-devices=STR          OpenCL devices to use, separate with comma",
   "       --opencl-device-types=STR     OpenCL device-types to use, separate with comma, see references below",
@@ -5196,9 +5192,7 @@ int main (int argc, char **argv)
   uint  increment         = INCREMENT;
   uint  increment_min     = INCREMENT_MIN;
   uint  increment_max     = INCREMENT_MAX;
-  #ifndef OSX
   char *cpu_affinity      = NULL;
-  #endif
   OCL_PTR *ocl            = NULL;
   char *opencl_devices    = NULL;
   char *opencl_platforms  = NULL;
@@ -5361,9 +5355,7 @@ int main (int argc, char **argv)
     {"markov-classic",    no_argument,       0, IDX_MARKOV_CLASSIC},
     {"markov-threshold",  required_argument, 0, IDX_MARKOV_THRESHOLD},
     {"markov-hcstat",     required_argument, 0, IDX_MARKOV_HCSTAT},
-    #ifndef OSX
     {"cpu-affinity",      required_argument, 0, IDX_CPU_AFFINITY},
-    #endif
     {"opencl-devices",    required_argument, 0, IDX_OPENCL_DEVICES},
     {"opencl-platforms",  required_argument, 0, IDX_OPENCL_PLATFORMS},
     {"opencl-device-types", required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
@@ -5672,9 +5664,7 @@ int main (int argc, char **argv)
       case IDX_HEX_CHARSET:       hex_charset       = 1;               break;
       case IDX_HEX_SALT:          hex_salt          = 1;               break;
       case IDX_HEX_WORDLIST:      hex_wordlist      = 1;               break;
-      #ifndef OSX
       case IDX_CPU_AFFINITY:      cpu_affinity      = optarg;          break;
-      #endif
       case IDX_OPENCL_DEVICES:    opencl_devices    = optarg;          break;
       case IDX_OPENCL_PLATFORMS:  opencl_platforms  = optarg;          break;
       case IDX_OPENCL_DEVICE_TYPES:
@@ -6423,12 +6413,10 @@ int main (int argc, char **argv)
    * cpu affinity
    */
 
-  #ifndef OSX
   if (cpu_affinity)
   {
     set_cpu_affinity (cpu_affinity);
   }
-  #endif
 
   if (rp_gen_seed_chgd == 0)
   {
@@ -6543,9 +6531,7 @@ int main (int argc, char **argv)
   logfile_top_uint64 (limit);
   logfile_top_uint64 (skip);
   logfile_top_char   (separator);
-  #ifndef OSX
   logfile_top_string (cpu_affinity);
-  #endif
   logfile_top_string (custom_charset_1);
   logfile_top_string (custom_charset_2);
   logfile_top_string (custom_charset_3);
@@ -13227,12 +13213,12 @@ int main (int argc, char **argv)
      */
 
     #ifdef HAVE_HWMON
-    int *temp_retain_fanspeed_value = (int *) mycalloc (devices_cnt, sizeof (int));
+    int *temp_retain_fanspeed_value = (int *) mycalloc (data.devices_cnt, sizeof (int));
 
     #ifdef HAVE_ADL
-    ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (devices_cnt, sizeof (ADLOD6MemClockState));
+    ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (data.devices_cnt, sizeof (ADLOD6MemClockState));
 
-    int *od_power_control_status = (int *) mycalloc (devices_cnt, sizeof (int));
+    int *od_power_control_status = (int *) mycalloc (data.devices_cnt, sizeof (int));
     #endif // ADL
     #endif
 
@@ -13340,7 +13326,7 @@ int main (int argc, char **argv)
 
     if (gpu_temp_disable == 0)
     {
-      for (uint device_id = 0; device_id < devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
       {
         hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -13379,7 +13365,7 @@ int main (int argc, char **argv)
     {
       hc_thread_mutex_lock (mux_adl);
 
-      for (uint device_id = 0; device_id < devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
       {
         hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -13448,7 +13434,7 @@ int main (int argc, char **argv)
 
     uint kernel_blocks_all = 0;
 
-    for (uint device_id = 0; device_id < devices_cnt; device_id++)
+    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
     {
       /**
        * host buffer
@@ -13730,7 +13716,7 @@ int main (int argc, char **argv)
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
-      snprintf (build_opts, sizeof (build_opts) - 1, "-I%s/ -DVENDOR_ID=%d -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type);
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I%s/ -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type);
 
       /**
        * main kernel
@@ -15422,7 +15408,7 @@ int main (int argc, char **argv)
     {
       hc_device_param_t *device_param = NULL;
 
-      for (uint device_id = 0; device_id < devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
       {
         device_param = &data.devices_param[device_id];
 
@@ -15661,7 +15647,7 @@ int main (int argc, char **argv)
 
           // args
 
-          for (uint device_id = 0; device_id < devices_cnt; device_id++)
+          for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
           {
             hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -16170,7 +16156,7 @@ int main (int argc, char **argv)
 
           data.bfs_cnt = sp_get_sum (0, css_cnt_r, root_css_buf);
 
-          for (uint device_id = 0; device_id < devices_cnt; device_id++)
+          for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
           {
             hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -16371,9 +16357,9 @@ int main (int argc, char **argv)
          * create cracker threads
          */
 
-        hc_thread_t *c_threads = (hc_thread_t *) mycalloc (devices_cnt, sizeof (hc_thread_t));
+        hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
 
-        for (uint device_id = 0; device_id < devices_cnt; device_id++)
+        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
         {
           hc_device_param_t *device_param = &devices_param[device_id];
 
@@ -16389,7 +16375,7 @@ int main (int argc, char **argv)
 
         // wait for crack threads to exit
 
-        hc_thread_wait (devices_cnt, c_threads);
+        hc_thread_wait (data.devices_cnt, c_threads);
 
         local_free (c_threads);
 
@@ -16612,7 +16598,7 @@ int main (int argc, char **argv)
       if (quiet == 0) log_info ("");
     }
 
-    for (uint device_id = 0; device_id < devices_cnt; device_id++)
+    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
     {
       hc_device_param_t *device_param = &data.devices_param[device_id];
 

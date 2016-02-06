@@ -45,6 +45,7 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <mach-o/dyld.h>
+#include <mach/mach.h>
 #endif
 
 typedef void *OCL_LIB;
