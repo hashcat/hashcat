@@ -43,7 +43,18 @@
 #define hc_thread_mutex_unlock(m)   pthread_mutex_unlock   (&m)
 #define hc_thread_mutex_init(m)     pthread_mutex_init     (&m, NULL)
 #define hc_thread_mutex_delete(m)   pthread_mutex_destroy  (&m)
+#endif
 
+#ifdef OSX
+typedef struct cpu_set
+{
+  uint32_t count;
+
+} cpu_set_t;
+
+static inline void CPU_ZERO  (cpu_set_t *cs)          { cs->count = 0; }
+static inline void CPU_SET   (int num, cpu_set_t *cs) { cs->count |= (1 << num); }
+static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 << num)); }
 #endif
 
 /**
