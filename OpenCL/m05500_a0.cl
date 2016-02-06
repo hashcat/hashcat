@@ -669,6 +669,11 @@ __kernel void m05500_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
+    u32x data[2];
+
+    data[0] = s0;
+    data[1] = s1;
+
     u32x iv1[2];
 
     _des_crypt_encrypt (iv1, data, Kc, Kd, s_SPtrans);
@@ -893,6 +898,11 @@ __kernel void m05500_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
+    u32x data[2];
+
+    data[0] = s0;
+    data[1] = s1;
+
     u32x iv1[2];
 
     _des_crypt_encrypt (iv1, data, Kc, Kd, s_SPtrans);
@@ -906,7 +916,7 @@ __kernel void m05500_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
-    u32 iv2[2];
+    u32x iv2[2];
 
     _des_crypt_encrypt (iv2, data, Kc, Kd, s_SPtrans);
     */
