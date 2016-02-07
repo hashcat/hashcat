@@ -376,33 +376,54 @@ cl_program hc_clCreateProgramWithBinary (OCL_PTR *ocl, cl_context context, cl_ui
   return (program);
 }
 
-void hc_clBuildProgram (OCL_PTR *ocl, cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data)
+cl_int hc_clBuildProgram (OCL_PTR *ocl, cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data, bool exitOnFail)
 {
   cl_int CL_err = ocl->clBuildProgram (program, num_devices, device_list, options, pfn_notify, user_data);
 
   if (CL_err != CL_SUCCESS)
   {
-    log_error ("ERROR: %s : %d : %s\n", "clBuildProgram()", CL_err, val2cstr_cl (CL_err));
+    size_t len = strlen (options) + 1 + 15;
 
-    char *buf = NULL;
-    size_t len = 0;
+    char *options_update = (char *) mymalloc (len + 1);
 
-    cl_int err = hc_clGetProgramBuildInfo (ocl, program, *device_list, CL_PROGRAM_BUILD_LOG, 0, NULL, &len);
+    options_update = strncat (options_update, options, len - 1 - 15);
+    options_update = strncat (options_update, " -cl-opt-disable", 1 + 15);
 
-    if (err == CL_SUCCESS && len > 0)
+    if (data.quiet == 0) log_error ("\n=== Build failed, retry with optimization disabled ===\n");
+
+    CL_err = ocl->clBuildProgram (program, num_devices, device_list, options_update, pfn_notify, user_data);
+
+    myfree (options_update);
+
+    if (CL_err != CL_SUCCESS)
     {
-      buf = (char *) mymalloc (len + 1);
+      log_error ("ERROR: %s : %d : %s\n", "clBuildProgram()", CL_err, val2cstr_cl (CL_err));
 
-      if (hc_clGetProgramBuildInfo (ocl, program, *device_list, CL_PROGRAM_BUILD_LOG, len, buf, NULL) == CL_SUCCESS)
+      log_error ("\n=== Build Options : %s ===\n", options);
+
+      size_t len = 0;
+
+      cl_int err = hc_clGetProgramBuildInfo (ocl, program, *device_list, CL_PROGRAM_BUILD_LOG, 0, NULL, &len);
+
+      if (err == CL_SUCCESS && len > 0)
       {
-        fprintf (stderr, "\n=== Build Log (start) ===\n%s\n=== Build Log (end) ===\n", buf);
+        char *buf = (char *) mymalloc (len + 1);
+
+        if (hc_clGetProgramBuildInfo (ocl, program, *device_list, CL_PROGRAM_BUILD_LOG, len, buf, NULL) == CL_SUCCESS)
+        {
+          fprintf (stderr, "\n=== Build Log (start) ===\n%s\n=== Build Log (end) ===\n", buf);
+        }
+
+        myfree (buf);
       }
 
-      myfree (buf);
-    }
+      if (exitOnFail) exit (-1);
 
-    exit (-1);
+      return (-1);
+    }
   }
+
+  return 0;
 }
 
 cl_kernel hc_clCreateKernel (OCL_PTR *ocl, cl_program program, const char *kernel_name)
