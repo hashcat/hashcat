@@ -13775,7 +13775,14 @@ int main (int argc, char **argv)
 
             device_param->program = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL);
 
-            hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+            int rc = hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL, false);
+
+            if (rc != 0)
+            {
+              device_param->skipped = true;
+              log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+              continue;
+            }
 
             size_t binary_size;
 
@@ -13797,7 +13804,7 @@ int main (int argc, char **argv)
 
             device_param->program = hc_clCreateProgramWithBinary (data.ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL);
 
-            hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+            hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL, true);
           }
         }
         else
@@ -13819,7 +13826,13 @@ int main (int argc, char **argv)
             snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.salts_buf[0].scrypt_tmto);
           }
 
-          hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts_update, NULL, NULL);
+          int rc = hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts_update, NULL, NULL, false);
+
+          if (rc != 0)
+          {
+            device_param->skipped = true;
+            log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+          }
         }
 
         local_free (kernel_lengths);
@@ -13883,7 +13896,14 @@ int main (int argc, char **argv)
 
           device_param->program_mp = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL);
 
-          hc_clBuildProgram (data.ocl, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
+          int rc = hc_clBuildProgram (data.ocl, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL, false);
+
+          if (rc != 0)
+          {
+            device_param->skipped = true;
+            log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+            continue;
+          }
 
           size_t binary_size;
 
@@ -13905,7 +13925,7 @@ int main (int argc, char **argv)
 
           device_param->program_mp = hc_clCreateProgramWithBinary (data.ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL);
 
-          hc_clBuildProgram (data.ocl, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
+          hc_clBuildProgram (data.ocl, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL, true);
         }
 
         local_free (kernel_lengths);
@@ -13973,7 +13993,14 @@ int main (int argc, char **argv)
 
           device_param->program_amp = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL);
 
-          hc_clBuildProgram (data.ocl, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
+          int rc = hc_clBuildProgram (data.ocl, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL, false);
+
+          if (rc != 0)
+          {
+            device_param->skipped = true;
+            log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+            continue;
+          }
 
           size_t binary_size;
 
@@ -13995,7 +14022,7 @@ int main (int argc, char **argv)
 
           device_param->program_amp = hc_clCreateProgramWithBinary (data.ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL);
 
-          hc_clBuildProgram (data.ocl, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
+          hc_clBuildProgram (data.ocl, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL, true);
         }
 
         local_free (kernel_lengths);

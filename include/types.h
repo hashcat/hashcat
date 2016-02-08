@@ -834,7 +834,7 @@ struct __hc_device_param
   uint    device_id;
   uint    platform_devices_id;   // for mapping with hms devices
 
-  uint    skipped;
+  bool    skipped;
 
   uint    sm_major;
   uint    sm_minor;
