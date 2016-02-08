@@ -605,3 +605,24 @@ static inline u32x w0r_create_bft (__global bf_t *bfs_buf, const u32 il_pos)
 
   return w0r;
 }
+
+#if   VECT_SIZE == 1
+#define packv(arr,var,gid,idx) (u32x) ((arr)[((gid) * 1) + 0].var[(idx)])
+#elif VECT_SIZE == 2
+#define packv(arr,var,gid,idx) (u32x) ((arr)[((gid) * 2) + 0].var[(idx)], (arr)[((gid) * 2) + 1].var[(idx)])
+#elif VECT_SIZE == 4
+#define packv(arr,var,gid,idx) (u32x) ((arr)[((gid) * 4) + 0].var[(idx)], (arr)[((gid) * 4) + 1].var[(idx)], (arr)[((gid) * 4) + 2].var[(idx)], (arr)[((gid) * 4) + 3].var[(idx)])
+#elif VECT_SIZE == 8
+#define packv(arr,var,gid,idx) (u32x) ((arr)[((gid) * 8) + 0].var[(idx)], (arr)[((gid) * 8) + 1].var[(idx)], (arr)[((gid) * 8) + 2].var[(idx)], (arr)[((gid) * 8) + 3].var[(idx)], (arr)[((gid) * 8) + 4].var[(idx)], (arr)[((gid) * 8) + 5].var[(idx)], (arr)[((gid) * 8) + 6].var[(idx)], (arr)[((gid) * 8) + 7].var[(idx)])
+#endif
+
+#if   VECT_SIZE == 1
+#define unpackv(arr,var,gid,idx,val) (arr)[((gid) * 1) + 0].var[(idx)] = val;
+#elif VECT_SIZE == 2
+#define unpackv(arr,var,gid,idx,val) (arr)[((gid) * 2) + 0].var[(idx)] = val.s0; (arr)[((gid) * 2) + 1].var[(idx)] = val.s1;
+#elif VECT_SIZE == 4
+#define unpackv(arr,var,gid,idx,val) (arr)[((gid) * 4) + 0].var[(idx)] = val.s0; (arr)[((gid) * 4) + 1].var[(idx)] = val.s1; (arr)[((gid) * 4) + 2].var[(idx)] = val.s2; (arr)[((gid) * 4) + 3].var[(idx)] = val.s3;
+#elif VECT_SIZE == 8
+#define unpackv(arr,var,gid,idx,val) (arr)[((gid) * 8) + 0].var[(idx)] = val.s0; (arr)[((gid) * 8) + 1].var[(idx)] = val.s1; (arr)[((gid) * 8) + 2].var[(idx)] = val.s2; (arr)[((gid) * 8) + 3].var[(idx)] = val.s3; (arr)[((gid) * 8) + 4].var[(idx)] = val.s4; (arr)[((gid) * 8) + 5].var[(idx)] = val.s5; (arr)[((gid) * 8) + 6].var[(idx)] = val.s6; (arr)[((gid) * 8) + 7].var[(idx)] = val.s7;
+#endif
+
