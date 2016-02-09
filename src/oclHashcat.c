@@ -797,7 +797,7 @@ void status_display_automat ()
     hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
     hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
 
-    const double total_time = (time_end - time_start) / 1000000.0;
+    const double total_time = ((double)(time_end - time_start) * (double)(device_param->device_timer_resolution)) / 1000000.0;
 
     fprintf (out, "%f\t", total_time);
   }
@@ -12578,6 +12578,14 @@ int main (int argc, char **argv)
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof (device_maxclock_frequency), &device_maxclock_frequency, NULL);
 
         device_param->device_maxclock_frequency = device_maxclock_frequency;
+
+        // device_timer_resolution
+
+        cl_ulong device_timer_resolution;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PROFILING_TIMER_RESOLUTION, sizeof (device_timer_resolution), &device_timer_resolution, NULL);
+
+        device_param->device_timer_resolution = device_timer_resolution;
 
         // skipped
 
