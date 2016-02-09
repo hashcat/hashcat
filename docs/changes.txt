@@ -70,6 +70,10 @@ Issue: 10
 
 Type.: Feature
 File.: Host
+Desc.: Added the execution time of the running kernel to the status display
+
+Type.: Feature
+File.: Host
 Desc.: Moved rules_optimize to hashcat-utils
 
 Type.: Feature

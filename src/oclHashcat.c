@@ -778,6 +778,31 @@ void status_display_automat ()
   }
 
   /**
+   * exec time
+   */
+
+  fprintf (out, "EXEC_RUNTIME\t");
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    if (device_param->event == NULL) continue;
+
+    cl_ulong time_start;
+    cl_ulong time_end;
+
+    hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
+    hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
+
+    const double total_time = (time_end - time_start) / 1000000.0;
+
+    fprintf (out, "%f\t", total_time);
+  }
+
+  /**
    * words_cur
    */
 
@@ -873,6 +898,10 @@ void status_display_automat ()
     hc_thread_mutex_unlock (mux_adl);
   }
   #endif // HAVE_HWMON
+
+  /**
+   * flush
+   */
 
   #ifdef _WIN
   fputc ('\r', out);
@@ -1158,6 +1187,31 @@ void status_display ()
   }
 
   /**
+   * exec time
+   */
+
+  double exec_runtime_ms[DEVICES_MAX] = { 0 };
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    if (device_param->event == NULL) continue;
+
+    cl_ulong time_start;
+    cl_ulong time_end;
+
+    hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
+    hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
+
+    const double total_time = (time_end - time_start) / 1000000.0;
+
+    exec_runtime_ms[device_id] = total_time;
+  }
+
+  /**
    * timers
    */
 
@@ -1375,7 +1429,7 @@ void status_display ()
 
     format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
-    log_info ("Speed.Dev.#%d...: %9sH/s", device_id + 1, display_dev_cur);
+    log_info ("Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_runtime_ms[device_id]);
   }
 
   char display_all_cur[16] = { 0 };
@@ -1621,6 +1675,31 @@ static void status_benchmark ()
     }
   }
 
+  /**
+   * exec time
+   */
+
+  double exec_runtime_ms[DEVICES_MAX] = { 0 };
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    if (device_param->event == NULL) continue;
+
+    cl_ulong time_start;
+    cl_ulong time_end;
+
+    hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
+    hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
+
+    const double total_time = (time_end - time_start) / 1000000.0;
+
+    exec_runtime_ms[device_id] = total_time;
+  }
+
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
@@ -1633,7 +1712,7 @@ static void status_benchmark ()
 
     format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
-    log_info ("Speed.Dev.#%d.: %9sH/s", device_id + 1, display_dev_cur);
+    log_info ("Speed.Dev.#%d.: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_runtime_ms[device_id]);
   }
 
   char display_all_cur[16] = { 0 };
@@ -2379,7 +2458,7 @@ static float find_kernel_blocks_div (const u64 total_left, const uint kernel_blo
   return kernel_blocks_div;
 }
 
-static void run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num)
+static void run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num, const uint event_update)
 {
   uint num_elements = num;
 
@@ -2413,31 +2492,37 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
   hc_clSetKernelArg (data.ocl, kernel, 30, sizeof (cl_uint), device_param->kernel_params[30]);
   hc_clSetKernelArg (data.ocl, kernel, 31, sizeof (cl_uint), device_param->kernel_params[31]);
 
+  cl_event event;
+
   if ((data.opts_type & OPTS_TYPE_PT_BITSLICE) && (data.attack_mode == ATTACK_MODE_BF))
   {
     const size_t global_work_size[3] = { num_elements,        32, 1 };
     const size_t local_work_size[3]  = { kernel_threads / 32, 32, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL, true);
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, &event, true);
   }
   else
   {
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    const cl_int rc = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, false);
+    const cl_int rc = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event, false);
 
     if (rc != CL_SUCCESS)
     {
       const size_t local_work_size_fallback[3]  = { 1, 1, 1 };
 
-      hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size_fallback, 0, NULL, NULL, true);
+      hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size_fallback, 0, NULL, &event, true);
     }
   }
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
-  hc_clFinish (data.ocl, device_param->command_queue);
+  //hc_clFinish (data.ocl, device_param->command_queue);
+
+  hc_clWaitForEvents (data.ocl, 1, &event);
+
+  if (event_update) device_param->event = event;
 }
 
 static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param, const uint num)
@@ -2936,26 +3021,26 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
         if (highest_pw_len < 16)
         {
-          run_kernel (KERN_RUN_1, device_param, pws_cnt);
+          run_kernel (KERN_RUN_1, device_param, pws_cnt, true);
         }
         else if (highest_pw_len < 32)
         {
-          run_kernel (KERN_RUN_2, device_param, pws_cnt);
+          run_kernel (KERN_RUN_2, device_param, pws_cnt, true);
         }
         else
         {
-          run_kernel (KERN_RUN_3, device_param, pws_cnt);
+          run_kernel (KERN_RUN_3, device_param, pws_cnt, true);
         }
       }
       else
       {
         run_kernel_amp (device_param, pws_cnt);
 
-        run_kernel (KERN_RUN_1, device_param, pws_cnt);
+        run_kernel (KERN_RUN_1, device_param, pws_cnt, false);
 
         if (data.opts_type & OPTS_TYPE_HOOK12)
         {
-          run_kernel (KERN_RUN_12, device_param, pws_cnt);
+          run_kernel (KERN_RUN_12, device_param, pws_cnt, false);
         }
 
         uint iter = salt_buf->salt_iter;
@@ -2969,7 +3054,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
           device_param->kernel_params_buf32[25] = loop_pos;
           device_param->kernel_params_buf32[26] = loop_left;
 
-          run_kernel (KERN_RUN_2, device_param, pws_cnt);
+          run_kernel (KERN_RUN_2, device_param, pws_cnt, true);
 
           if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
@@ -2980,7 +3065,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
         if (data.opts_type & OPTS_TYPE_HOOK23)
         {
-          run_kernel (KERN_RUN_23, device_param, pws_cnt);
+          run_kernel (KERN_RUN_23, device_param, pws_cnt, false);
 
           hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -2989,7 +3074,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
           hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
         }
 
-        run_kernel (KERN_RUN_3, device_param, pws_cnt);
+        run_kernel (KERN_RUN_3, device_param, pws_cnt, false);
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
@@ -4647,11 +4732,11 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
 
   if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    run_kernel (KERN_RUN_1, device_param, 1);
+    run_kernel (KERN_RUN_1, device_param, 1, false);
   }
   else
   {
-    run_kernel (KERN_RUN_1, device_param, 1);
+    run_kernel (KERN_RUN_1, device_param, 1, false);
 
     const uint iter = salt_buf->salt_iter;
 
@@ -4664,10 +4749,10 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
       device_param->kernel_params_buf32[25] = loop_pos;
       device_param->kernel_params_buf32[26] = loop_left;
 
-      run_kernel (KERN_RUN_2, device_param, 1);
+      run_kernel (KERN_RUN_2, device_param, 1, false);
     }
 
-    run_kernel (KERN_RUN_3, device_param, 1);
+    run_kernel (KERN_RUN_3, device_param, 1, false);
   }
 
   /**
@@ -5924,7 +6009,7 @@ int main (int argc, char **argv)
       return (-1);
     }
 
-    if (kernel_accel > 800)
+    if (kernel_accel > 1024)
     {
       log_error ("ERROR: Invalid kernel-accel specified");
 
@@ -13469,7 +13554,7 @@ int main (int argc, char **argv)
       // not supported with NV
       // device_param->command_queue = hc_clCreateCommandQueueWithProperties (device_param->context, device_param->device, NULL);
 
-      device_param->command_queue = hc_clCreateCommandQueue (data.ocl, device_param->context, device_param->device, 0);
+      device_param->command_queue = hc_clCreateCommandQueue (data.ocl, device_param->context, device_param->device, CL_QUEUE_PROFILING_ENABLE);
 
       /**
        * create input buffers on device

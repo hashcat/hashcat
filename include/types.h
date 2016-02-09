@@ -831,6 +831,8 @@ struct __hc_device_param
   cl_device_id      device;
   cl_device_type    device_type;
 
+  cl_event          event;
+
   uint    device_id;
   uint    platform_devices_id;   // for mapping with hms devices
 

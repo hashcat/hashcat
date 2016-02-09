@@ -112,6 +112,8 @@ int ocl_init (OCL_PTR *ocl)
   HC_LOAD_FUNC(ocl, clReleaseMemObject, OCL_CLRELEASEMEMOBJECT, OpenCL, 1)
   HC_LOAD_FUNC(ocl, clReleaseProgram, OCL_CLRELEASEPROGRAM, OpenCL, 1)
   HC_LOAD_FUNC(ocl, clSetKernelArg, OCL_CLSETKERNELARG, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clWaitForEvents, OCL_CLWAITFOREVENTS, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clGetEventProfilingInfo, OCL_CLGETEVENTPROFILINGINFO, OpenCL, 1)
 
   return 0;
 }
@@ -578,6 +580,30 @@ void hc_clGetProgramInfo (OCL_PTR *ocl, cl_program program, cl_program_info para
   if (CL_err != CL_SUCCESS)
   {
     log_error ("ERROR: %s : %d : %s\n", "clGetProgramInfo()", CL_err, val2cstr_cl (CL_err));
+
+    exit (-1);
+  }
+}
+
+void hc_clWaitForEvents (OCL_PTR *ocl, cl_uint num_events, const cl_event *event_list)
+{
+  cl_int CL_err = ocl->clWaitForEvents (num_events, event_list);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: %s : %d : %s\n", "clWaitForEvents()", CL_err, val2cstr_cl (CL_err));
+
+    exit (-1);
+  }
+}
+
+void hc_clGetEventProfilingInfo (OCL_PTR *ocl, cl_event event, cl_profiling_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
+{
+  cl_int CL_err = ocl->clGetEventProfilingInfo (event, param_name, param_value_size, param_value, param_value_size_ret);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: %s : %d : %s\n", "clGetEventProfilingInfo()", CL_err, val2cstr_cl (CL_err));
 
     exit (-1);
   }

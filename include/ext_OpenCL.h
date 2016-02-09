@@ -59,6 +59,8 @@ typedef cl_int (*OCL_CLGETKERNELWORKGROUPINFO)       (cl_kernel, cl_device_id, c
 typedef cl_int (*OCL_CLGETPROGRAMBUILDINFO)          (cl_program, cl_device_id, cl_program_build_info, size_t, void *, size_t *);
 typedef cl_int (*OCL_CLGETPROGRAMINFO)               (cl_program, cl_program_info, size_t, void *, size_t *);
 typedef cl_int (*OCL_CLGETEVENTINFO)                 (cl_event, cl_event_info, size_t, void *, size_t *);
+typedef cl_int (*OCL_CLWAITFOREVENTS)                (cl_uint, const cl_event *);
+typedef cl_int (*OCL_CLGETEVENTPROFILINGINFO)        (cl_event, cl_profiling_info, size_t, void *, size_t *);
 
 typedef struct
 {
@@ -94,6 +96,8 @@ typedef struct
   OCL_CLRELEASEMEMOBJECT clReleaseMemObject;
   OCL_CLRELEASEPROGRAM clReleaseProgram;
   OCL_CLSETKERNELARG clSetKernelArg;
+  OCL_CLWAITFOREVENTS clWaitForEvents;
+  OCL_CLGETEVENTPROFILINGINFO clGetEventProfilingInfo;
 
 } hc_opencl_lib_t;
 
@@ -133,4 +137,7 @@ void hc_clGetKernelWorkGroupInfo (OCL_PTR *ocl, cl_kernel kernel, cl_device_id d
 cl_int hc_clGetProgramBuildInfo (OCL_PTR *ocl, cl_program program, cl_device_id device, cl_program_build_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
 void hc_clGetProgramInfo (OCL_PTR *ocl, cl_program program, cl_program_info param_name, size_t param_value_size, void *param_value, size_t * param_value_size_ret);
 void hc_clGetEventInfo (OCL_PTR *ocl, cl_event event, cl_event_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
+void hc_clWaitForEvents (OCL_PTR *ocl, cl_uint num_events, const cl_event *event_list);
+void hc_clGetEventProfilingInfo (OCL_PTR *ocl, cl_event event, cl_profiling_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
+
 #endif
