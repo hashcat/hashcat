@@ -12478,11 +12478,11 @@ int main (int argc, char **argv)
         {
           if (tuningdb_entry->vector_width == -1)
           {
-            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, sizeof (vector_width), &vector_width, NULL);
-
             if (opti_type & OPTI_TYPE_USES_BITS_64)
             {
-              if (vector_width > 1) vector_width /= 2;
+              hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
+            } else {
+              hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT, sizeof (vector_width), &vector_width, NULL);
             }
           }
           else
