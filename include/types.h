@@ -876,7 +876,6 @@ struct __hc_device_param
   u64     device_maxmem_alloc;
   u64     device_global_mem;
   u32     device_maxclock_frequency;
-  u64     device_timer_resolution;
 
   uint    vector_width;
 
