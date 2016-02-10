@@ -111,15 +111,19 @@ Trac.: 684
 
 Type.: Bug
 File.: Kernel
-Desc.: Fix a bug in the implementation of GOST R 34.11-94, zero length passwords were not cracked
+Desc.: Fixed a bug in the implementation of GOST R 34.11-94: Zero length passwords were not cracked
 
 Type.: Bug
 File.: Kernel
-Desc.: Fix a bug in rule-engine for NVidia devices, the code for left- and right-shift were switched
+Desc.: Fixed a bug in rule-engine for NVidia devices: Code for left- and right-shift were switched
 
 Type.: Bug
 File.: Host
-Desc.: Forced default iteration count for -m 2100 = DCC2 hashes to 10240
+Desc.: Fixed a bug in -m 2100 = DCC2: Forced default iteration count for hashes to 10240
+
+Type.: Bug
+File.: Host
+Desc.: Fixed a bug in line counter: Conditional jump or move depends on uninitialised value
 
 * changes v2.00 -> v2.01:
 

@@ -1843,40 +1843,21 @@ static uint count_lines (FILE *fd)
 
   char *buf = (char *) mymalloc (BUFSIZ + 1);
 
-  size_t nread_tmp = 0;
-
-  char *ptr = buf;
+  char prev = '\n';
 
   while (!feof (fd))
   {
     size_t nread = fread (buf, sizeof (char), BUFSIZ, fd);
-    nread_tmp    = nread;
 
     if (nread < 1) continue;
 
-    ptr = buf;
+    size_t i;
 
-    do
+    for (i = 0; i < nread; i++)
     {
-      if (*ptr++ == '\n') cnt++;
+      if (prev == '\n') cnt++;
 
-    } while (nread--);
-  }
-
-  // special case (if last line did not contain a newline char ... at the very end of the file)
-
-  if (nread_tmp > 3)
-  {
-    ptr -= 2;
-
-    if (*ptr != '\n')
-    {
-      ptr--;
-
-      if (*ptr != '\n') // needed ? different on windows systems?
-      {
-        cnt++;
-      }
+      prev = buf[i];
     }
   }
 
