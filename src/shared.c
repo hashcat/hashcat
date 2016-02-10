@@ -13,16 +13,6 @@
 #include <limits.h>
 
 /**
- * tuning tools
- */
-
-#define GET_ACCEL(x) KERNEL_ACCEL_ ## x
-#define GET_LOOPS(x) KERNEL_LOOPS_ ## x
-
-#define GET_LOOPS_OSX(x) KERNEL_LOOPS_OSX_ ## x
-#define GET_ACCEL_OSX(x) KERNEL_ACCEL_OSX_ ## x
-
-/**
  * basic bit handling
  */
 
@@ -4197,6 +4187,35 @@ char *get_session_dir (const char *profile_dir)
   return session_dir;
 }
 
+uint count_lines (FILE *fd)
+{
+  uint cnt = 0;
+
+  char *buf = (char *) mymalloc (BUFSIZ + 1);
+
+  char prev = '\n';
+
+  while (!feof (fd))
+  {
+    size_t nread = fread (buf, sizeof (char), BUFSIZ, fd);
+
+    if (nread < 1) continue;
+
+    size_t i;
+
+    for (i = 0; i < nread; i++)
+    {
+      if (prev == '\n') cnt++;
+
+      prev = buf[i];
+    }
+  }
+
+  myfree (buf);
+
+  return cnt;
+}
+
 void truecrypt_crc32 (const char *filename, u8 keytab[64])
 {
   uint crc = ~0;
@@ -4735,6 +4754,45 @@ int sort_by_digest_p0p1 (const void *v1, const void *v2)
   if (d1[dgst_pos0] < d2[dgst_pos0]) return (-1);
 
   return (0);
+}
+
+int sort_by_tuning_db_alias (const void *v1, const void *v2)
+{
+  const tuning_db_alias_t *t1 = (const tuning_db_alias_t *) v1;
+  const tuning_db_alias_t *t2 = (const tuning_db_alias_t *) v2;
+
+  const int res1 = strcmp (t1->device_name, t2->device_name);
+
+  if (res1 != 0) return (res1);
+
+  return 0;
+}
+
+int sort_by_tuning_db_entry (const void *v1, const void *v2)
+{
+  const tuning_db_entry_t *t1 = (const tuning_db_entry_t *) v1;
+  const tuning_db_entry_t *t2 = (const tuning_db_entry_t *) v2;
+
+  const int res1 = strcmp (t1->device_name, t2->device_name);
+
+  if (res1 != 0) return (res1);
+
+  const int res2 = t1->attack_mode
+                 - t2->attack_mode;
+
+  if (res2 != 0) return (res2);
+
+  const int res3 = t1->hash_type
+                 - t2->hash_type;
+
+  if (res3 != 0) return (res3);
+
+  const int res4 = t1->workload_profile
+                 - t2->workload_profile;
+
+  if (res4 != 0) return (res4);
+
+  return 0;
 }
 
 void format_debug (char *debug_file, uint debug_mode, unsigned char *orig_plain_ptr, uint orig_plain_len, unsigned char *mod_plain_ptr, uint mod_plain_len, char *rule_buf, int rule_len)
@@ -8994,580 +9052,294 @@ void check_checkpoint ()
 }
 
 /**
- * adjustments
+ * tuning db
  */
 
-#ifdef OSX
-uint set_kernel_accel_osx (uint hash_mode)
+void tuning_db_destroy (tuning_db_t *tuning_db)
 {
-  switch (hash_mode)
+  int i;
+
+  for (i = 0; i < tuning_db->alias_cnt; i++)
   {
-    case 1800: return GET_ACCEL_OSX (1800);
-    case 2500: return GET_ACCEL_OSX (2500);
-    case 5000: return GET_ACCEL_OSX (5000);
-    case 6100: return GET_ACCEL_OSX (6100);
-    case 6211: return GET_ACCEL_OSX (6211);
-    case 6231: return GET_ACCEL_OSX (6231);
-    case 6241: return GET_ACCEL_OSX (6241);
-    case 6800: return GET_ACCEL_OSX (6800);
-    case 7100: return GET_ACCEL_OSX (7100);
-    case 7200: return GET_ACCEL_OSX (7200);
-    case 7900: return GET_ACCEL_OSX (7900);
-    case 8200: return GET_ACCEL_OSX (8200);
-    case 8700: return GET_ACCEL_OSX (8700);
-    case 9100: return GET_ACCEL_OSX (9100);
-    case 9200: return GET_ACCEL_OSX (9200);
-    case 9300: return GET_ACCEL_OSX (9300);
-    case 9400: return GET_ACCEL_OSX (9400);
-    case 9500: return GET_ACCEL_OSX (9500);
-    case 9600: return GET_ACCEL_OSX (9600);
-    case 10000: return GET_ACCEL_OSX (10000);
-    case 10500: return GET_ACCEL_OSX (10500);
-    case 11300: return GET_ACCEL_OSX (11300);
-    case 11600: return GET_ACCEL_OSX (11600);
-    case 11700: return GET_ACCEL_OSX (11700);
-    case 11800: return GET_ACCEL_OSX (11800);
-    case 12200: return GET_ACCEL_OSX (12200);
-    case 12400: return GET_ACCEL_OSX (12400);
-    case 12500: return GET_ACCEL_OSX (12500);
-    case 13000: return GET_ACCEL_OSX (13000);
+    tuning_db_alias_t *alias = &tuning_db->alias_buf[i];
+
+    myfree (alias->device_name);
+    myfree (alias->alias_name);
   }
 
-  return (-1);
+  for (i = 0; i < tuning_db->entry_cnt; i++)
+  {
+    tuning_db_entry_t *entry = &tuning_db->entry_buf[i];
+
+    myfree (entry->device_name);
+  }
+
+  myfree (tuning_db->alias_buf);
+  myfree (tuning_db->entry_buf);
+
+  myfree (tuning_db);
 }
 
-uint set_kernel_accel (uint hash_mode, bool isGpu)
+tuning_db_t *tuning_db_alloc (FILE *fp)
 {
-  int accel = -1;
+  tuning_db_t *tuning_db = (tuning_db_t *) mymalloc (sizeof (tuning_db_t));
 
-  if (isGpu)
-    accel = set_kernel_accel_osx (hash_mode);
+  int num_lines = count_lines (fp);
 
-  if (accel != -1)
-    return accel;
-#else
+  // a bit over-allocated
 
-uint set_kernel_accel (uint hash_mode)
-{
+  tuning_db->alias_buf = (tuning_db_alias_t *) mycalloc (num_lines + 1, sizeof (tuning_db_alias_t));
+  tuning_db->alias_cnt = 0;
 
-#endif
+  tuning_db->entry_buf = (tuning_db_entry_t *) mycalloc (num_lines + 1, sizeof (tuning_db_entry_t));
+  tuning_db->entry_cnt = 0;
 
-  switch (hash_mode)
-  {
-    case     0: return GET_ACCEL (0);
-    case    10: return GET_ACCEL (10);
-    case    11: return GET_ACCEL (11);
-    case    12: return GET_ACCEL (12);
-    case    20: return GET_ACCEL (20);
-    case    21: return GET_ACCEL (21);
-    case    22: return GET_ACCEL (22);
-    case    23: return GET_ACCEL (23);
-    case    30: return GET_ACCEL (30);
-    case    40: return GET_ACCEL (40);
-    case    50: return GET_ACCEL (50);
-    case    60: return GET_ACCEL (60);
-    case   100: return GET_ACCEL (100);
-    case   101: return GET_ACCEL (101);
-    case   110: return GET_ACCEL (110);
-    case   111: return GET_ACCEL (111);
-    case   112: return GET_ACCEL (112);
-    case   120: return GET_ACCEL (120);
-    case   121: return GET_ACCEL (121);
-    case   122: return GET_ACCEL (122);
-    case   124: return GET_ACCEL (124);
-    case   130: return GET_ACCEL (130);
-    case   131: return GET_ACCEL (131);
-    case   132: return GET_ACCEL (132);
-    case   133: return GET_ACCEL (133);
-    case   140: return GET_ACCEL (140);
-    case   141: return GET_ACCEL (141);
-    case   150: return GET_ACCEL (150);
-    case   160: return GET_ACCEL (160);
-    case   190: return GET_ACCEL (190);
-    case   200: return GET_ACCEL (200);
-    case   300: return GET_ACCEL (300);
-    case   400: return GET_ACCEL (400);
-    case   500: return GET_ACCEL (500);
-    case   501: return GET_ACCEL (501);
-    case   900: return GET_ACCEL (900);
-    case   910: return GET_ACCEL (910);
-    case  1000: return GET_ACCEL (1000);
-    case  1100: return GET_ACCEL (1100);
-    case  1400: return GET_ACCEL (1400);
-    case  1410: return GET_ACCEL (1410);
-    case  1420: return GET_ACCEL (1420);
-    case  1421: return GET_ACCEL (1421);
-    case  1430: return GET_ACCEL (1430);
-    case  1440: return GET_ACCEL (1440);
-    case  1441: return GET_ACCEL (1441);
-    case  1450: return GET_ACCEL (1450);
-    case  1460: return GET_ACCEL (1460);
-    case  1500: return GET_ACCEL (1500);
-    case  1600: return GET_ACCEL (1600);
-    case  1700: return GET_ACCEL (1700);
-    case  1710: return GET_ACCEL (1710);
-    case  1711: return GET_ACCEL (1711);
-    case  1720: return GET_ACCEL (1720);
-    case  1722: return GET_ACCEL (1722);
-    case  1730: return GET_ACCEL (1730);
-    case  1731: return GET_ACCEL (1731);
-    case  1740: return GET_ACCEL (1740);
-    case  1750: return GET_ACCEL (1750);
-    case  1760: return GET_ACCEL (1760);
-    case  1800: return GET_ACCEL (1800);
-    case  2100: return GET_ACCEL (2100);
-    case  2400: return GET_ACCEL (2400);
-    case  2410: return GET_ACCEL (2410);
-    case  2500: return GET_ACCEL (2500);
-    case  2600: return GET_ACCEL (2600);
-    case  2611: return GET_ACCEL (2611);
-    case  2612: return GET_ACCEL (2612);
-    case  2711: return GET_ACCEL (2711);
-    case  2811: return GET_ACCEL (2811);
-    case  3000: return GET_ACCEL (3000);
-    case  3100: return GET_ACCEL (3100);
-    case  3200: return GET_ACCEL (3200);
-    case  3710: return GET_ACCEL (3710);
-    case  3711: return GET_ACCEL (3711);
-    case  3800: return GET_ACCEL (3800);
-    case  4300: return GET_ACCEL (4300);
-    case  4400: return GET_ACCEL (4400);
-    case  4500: return GET_ACCEL (4500);
-    case  4700: return GET_ACCEL (4700);
-    case  4800: return GET_ACCEL (4800);
-    case  4900: return GET_ACCEL (4900);
-    case  5000: return GET_ACCEL (5000);
-    case  5100: return GET_ACCEL (5100);
-    case  5200: return GET_ACCEL (5200);
-    case  5300: return GET_ACCEL (5300);
-    case  5400: return GET_ACCEL (5400);
-    case  5500: return GET_ACCEL (5500);
-    case  5600: return GET_ACCEL (5600);
-    case  5700: return GET_ACCEL (5700);
-    case  5800: return GET_ACCEL (5800);
-    case  6000: return GET_ACCEL (6000);
-    case  6100: return GET_ACCEL (6100);
-    case  6211: return GET_ACCEL (6211);
-    case  6212: return GET_ACCEL (6212);
-    case  6213: return GET_ACCEL (6213);
-    case  6221: return GET_ACCEL (6221);
-    case  6222: return GET_ACCEL (6222);
-    case  6223: return GET_ACCEL (6223);
-    case  6231: return GET_ACCEL (6231);
-    case  6232: return GET_ACCEL (6232);
-    case  6233: return GET_ACCEL (6233);
-    case  6241: return GET_ACCEL (6241);
-    case  6242: return GET_ACCEL (6242);
-    case  6243: return GET_ACCEL (6243);
-    case  6300: return GET_ACCEL (6300);
-    case  6400: return GET_ACCEL (6400);
-    case  6500: return GET_ACCEL (6500);
-    case  6600: return GET_ACCEL (6600);
-    case  6700: return GET_ACCEL (6700);
-    case  6800: return GET_ACCEL (6800);
-    case  6900: return GET_ACCEL (6900);
-    case  7100: return GET_ACCEL (7100);
-    case  7200: return GET_ACCEL (7200);
-    case  7300: return GET_ACCEL (7300);
-    case  7400: return GET_ACCEL (7400);
-    case  7500: return GET_ACCEL (7500);
-    case  7600: return GET_ACCEL (7600);
-    case  7700: return GET_ACCEL (7700);
-    case  7800: return GET_ACCEL (7800);
-    case  7900: return GET_ACCEL (7900);
-    case  8000: return GET_ACCEL (8000);
-    case  8100: return GET_ACCEL (8100);
-    case  8200: return GET_ACCEL (8200);
-    case  8300: return GET_ACCEL (8300);
-    case  8400: return GET_ACCEL (8400);
-    case  8500: return GET_ACCEL (8500);
-    case  8600: return GET_ACCEL (8600);
-    case  8700: return GET_ACCEL (8700);
-    case  8800: return GET_ACCEL (8800);
-    case  8900: return GET_ACCEL (8900);
-    case  9000: return GET_ACCEL (9000);
-    case  9100: return GET_ACCEL (9100);
-    case  9200: return GET_ACCEL (9200);
-    case  9300: return GET_ACCEL (9300);
-    case  9400: return GET_ACCEL (9400);
-    case  9500: return GET_ACCEL (9500);
-    case  9600: return GET_ACCEL (9600);
-    case  9700: return GET_ACCEL (9700);
-    case  9710: return GET_ACCEL (9710);
-    case  9720: return GET_ACCEL (9720);
-    case  9800: return GET_ACCEL (9800);
-    case  9810: return GET_ACCEL (9810);
-    case  9820: return GET_ACCEL (9820);
-    case  9900: return GET_ACCEL (9900);
-    case 10000: return GET_ACCEL (10000);
-    case 10100: return GET_ACCEL (10100);
-    case 10200: return GET_ACCEL (10200);
-    case 10300: return GET_ACCEL (10300);
-    case 10400: return GET_ACCEL (10400);
-    case 10410: return GET_ACCEL (10410);
-    case 10420: return GET_ACCEL (10420);
-    case 10500: return GET_ACCEL (10500);
-    case 10600: return GET_ACCEL (10600);
-    case 10700: return GET_ACCEL (10700);
-    case 10800: return GET_ACCEL (10800);
-    case 10900: return GET_ACCEL (10900);
-    case 11000: return GET_ACCEL (11000);
-    case 11100: return GET_ACCEL (11100);
-    case 11200: return GET_ACCEL (11200);
-    case 11300: return GET_ACCEL (11300);
-    case 11400: return GET_ACCEL (11400);
-    case 11500: return GET_ACCEL (11500);
-    case 11600: return GET_ACCEL (11600);
-    case 11700: return GET_ACCEL (11700);
-    case 11800: return GET_ACCEL (11800);
-    case 11900: return GET_ACCEL (11900);
-    case 12000: return GET_ACCEL (12000);
-    case 12100: return GET_ACCEL (12100);
-    case 12200: return GET_ACCEL (12200);
-    case 12300: return GET_ACCEL (12300);
-    case 12400: return GET_ACCEL (12400);
-    case 12500: return GET_ACCEL (12500);
-    case 12600: return GET_ACCEL (12600);
-    case 12700: return GET_ACCEL (12700);
-    case 12800: return GET_ACCEL (12800);
-    case 12900: return GET_ACCEL (12900);
-    case 13000: return GET_ACCEL (13000);
-  }
-
-  return 0;
+  return tuning_db;
 }
 
-#ifdef OSX
-uint set_kernel_loops_osx (uint hash_mode)
+tuning_db_t *tuning_db_init (const char *tuning_db_file)
 {
-  switch (hash_mode)
+  FILE *fp = fopen (tuning_db_file, "rb");
+
+  if (fp == NULL)
   {
-    case 0: return GET_LOOPS_OSX (0);
-    case 10: return GET_LOOPS_OSX (10);
-    case 11: return GET_LOOPS_OSX (11);
-    case 12: return GET_LOOPS_OSX (12);
-    case 20: return GET_LOOPS_OSX (20);
-    case 21: return GET_LOOPS_OSX (21);
-    case 22: return GET_LOOPS_OSX (22);
-    case 23: return GET_LOOPS_OSX (23);
-    case 30: return GET_LOOPS_OSX (30);
-    case 40: return GET_LOOPS_OSX (40);
-    case 50: return GET_LOOPS_OSX (50);
-    case 60: return GET_LOOPS_OSX (60);
-    case 100: return GET_LOOPS_OSX (100);
-    case 101: return GET_LOOPS_OSX (101);
-    case 110: return GET_LOOPS_OSX (110);
-    case 111: return GET_LOOPS_OSX (111);
-    case 112: return GET_LOOPS_OSX (112);
-    case 120: return GET_LOOPS_OSX (120);
-    case 121: return GET_LOOPS_OSX (121);
-    case 122: return GET_LOOPS_OSX (122);
-    case 124: return GET_LOOPS_OSX (124);
-    case 130: return GET_LOOPS_OSX (130);
-    case 131: return GET_LOOPS_OSX (131);
-    case 132: return GET_LOOPS_OSX (132);
-    case 133: return GET_LOOPS_OSX (133);
-    case 140: return GET_LOOPS_OSX (140);
-    case 141: return GET_LOOPS_OSX (141);
-    case 150: return GET_LOOPS_OSX (150);
-    case 160: return GET_LOOPS_OSX (160);
-    case 190: return GET_LOOPS_OSX (190);
-    case 200: return GET_LOOPS_OSX (200);
-    case 300: return GET_LOOPS_OSX (300);
-    case 900: return GET_LOOPS_OSX (900);
-    case 1000: return GET_LOOPS_OSX (1000);
-    case 1100: return GET_LOOPS_OSX (1100);
-    case 1400: return GET_LOOPS_OSX (1400);
-    case 1410: return GET_LOOPS_OSX (1410);
-    case 1420: return GET_LOOPS_OSX (1420);
-    case 1421: return GET_LOOPS_OSX (1421);
-    case 1430: return GET_LOOPS_OSX (1430);
-    case 1440: return GET_LOOPS_OSX (1440);
-    case 1441: return GET_LOOPS_OSX (1441);
-    case 1450: return GET_LOOPS_OSX (1450);
-    case 1460: return GET_LOOPS_OSX (1460);
-    case 1700: return GET_LOOPS_OSX (1700);
-    case 1710: return GET_LOOPS_OSX (1710);
-    case 1711: return GET_LOOPS_OSX (1711);
-    case 1720: return GET_LOOPS_OSX (1720);
-    case 1722: return GET_LOOPS_OSX (1722);
-    case 1730: return GET_LOOPS_OSX (1730);
-    case 1731: return GET_LOOPS_OSX (1731);
-    case 1740: return GET_LOOPS_OSX (1740);
-    case 1750: return GET_LOOPS_OSX (1750);
-    case 1760: return GET_LOOPS_OSX (1760);
-    case 2400: return GET_LOOPS_OSX (2400);
-    case 2410: return GET_LOOPS_OSX (2410);
-    case 2600: return GET_LOOPS_OSX (2600);
-    case 2611: return GET_LOOPS_OSX (2611);
-    case 2612: return GET_LOOPS_OSX (2612);
-    case 2711: return GET_LOOPS_OSX (2711);
-    case 2811: return GET_LOOPS_OSX (2811);
-    case 3100: return GET_LOOPS_OSX (3100);
-    case 3200: return GET_LOOPS_OSX (3200);
-    case 3710: return GET_LOOPS_OSX (3710);
-    case 3711: return GET_LOOPS_OSX (3711);
-    case 3800: return GET_LOOPS_OSX (3800);
-    case 4300: return GET_LOOPS_OSX (4300);
-    case 4400: return GET_LOOPS_OSX (4400);
-    case 4500: return GET_LOOPS_OSX (4500);
-    case 4700: return GET_LOOPS_OSX (4700);
-    case 4800: return GET_LOOPS_OSX (4800);
-    case 4900: return GET_LOOPS_OSX (4900);
-    case 5000: return GET_LOOPS_OSX (5000);
-    case 5100: return GET_LOOPS_OSX (5100);
-    case 5300: return GET_LOOPS_OSX (5300);
-    case 5400: return GET_LOOPS_OSX (5400);
-    case 5500: return GET_LOOPS_OSX (5500);
-    case 5600: return GET_LOOPS_OSX (5600);
-    case 5700: return GET_LOOPS_OSX (5700);
-    case 6000: return GET_LOOPS_OSX (6000);
-    case 6100: return GET_LOOPS_OSX (6100);
-    case 6231: return GET_LOOPS_OSX (6231);
-    case 6232: return GET_LOOPS_OSX (6232);
-    case 6233: return GET_LOOPS_OSX (6233);
-    case 6900: return GET_LOOPS_OSX (6900);
-    case 7300: return GET_LOOPS_OSX (7300);
-    case 7500: return GET_LOOPS_OSX (7500);
-    case 7600: return GET_LOOPS_OSX (7600);
-    case 7700: return GET_LOOPS_OSX (7700);
-    case 7800: return GET_LOOPS_OSX (7800);
-    case 8000: return GET_LOOPS_OSX (8000);
-    case 8100: return GET_LOOPS_OSX (8100);
-    case 8200: return GET_LOOPS_OSX (8200);
-    case 8300: return GET_LOOPS_OSX (8300);
-    case 8400: return GET_LOOPS_OSX (8400);
-    case 8500: return GET_LOOPS_OSX (8500);
-    case 8600: return GET_LOOPS_OSX (8600);
-    case 8700: return GET_LOOPS_OSX (8700);
-    case 9700: return GET_LOOPS_OSX (9700);
-    case 9710: return GET_LOOPS_OSX (9710);
-    case 9720: return GET_LOOPS_OSX (9720);
-    case 9800: return GET_LOOPS_OSX (9800);
-    case 9810: return GET_LOOPS_OSX (9810);
-    case 9820: return GET_LOOPS_OSX (9820);
-    case 9900: return GET_LOOPS_OSX (9900);
-    case 10100: return GET_LOOPS_OSX (10100);
-    case 10200: return GET_LOOPS_OSX (10200);
-    case 10400: return GET_LOOPS_OSX (10400);
-    case 10410: return GET_LOOPS_OSX (10410);
-    case 10420: return GET_LOOPS_OSX (10420);
-    case 10600: return GET_LOOPS_OSX (10600);
-    case 10700: return GET_LOOPS_OSX (10700);
-    case 10800: return GET_LOOPS_OSX (10800);
-    case 11000: return GET_LOOPS_OSX (11000);
-    case 11100: return GET_LOOPS_OSX (11100);
-    case 11200: return GET_LOOPS_OSX (11200);
-    case 11300: return GET_LOOPS_OSX (11300);
-    case 11400: return GET_LOOPS_OSX (11400);
-    case 11500: return GET_LOOPS_OSX (11500);
-    case 11700: return GET_LOOPS_OSX (11700);
-    case 11800: return GET_LOOPS_OSX (11800);
-    case 12600: return GET_LOOPS_OSX (12600);
+    log_error ("%s: %s", tuning_db_file, strerror (errno));
+
+    exit (-1);
   }
 
-  return (-1);
+  tuning_db_t *tuning_db = tuning_db_alloc (fp);
+
+  rewind (fp);
+
+  int line_num = 0;
+
+  while (!feof (fp))
+  {
+    char buf[BUFSIZ];
+
+    char *line_buf = fgets (buf, sizeof (buf) - 1, fp);
+
+    if (line_buf == NULL) break;
+
+    line_num++;
+
+    const int line_len = in_superchop (line_buf);
+
+    if (line_len == 0) continue;
+
+    if (line_buf[0] == '#') continue;
+
+    // start processing
+
+    char *token_ptr[7] = { NULL };
+
+    int token_cnt = 0;
+
+    char *next = strtok (line_buf, "\t ");
+
+    token_ptr[token_cnt] = next;
+
+    token_cnt++;
+
+    while ((next = strtok (NULL, "\t ")) != NULL)
+    {
+      token_ptr[token_cnt] = next;
+
+      token_cnt++;
+    }
+
+    if (token_cnt == 2)
+    {
+      char *device_name = token_ptr[0];
+      char *alias_name  = token_ptr[1];
+
+      tuning_db_alias_t *alias = &tuning_db->alias_buf[tuning_db->alias_cnt];
+
+      alias->device_name = mystrdup (device_name);
+      alias->alias_name  = mystrdup (alias_name);
+
+      tuning_db->alias_cnt++;
+    }
+    else if (token_cnt == 7)
+    {
+      if ((token_ptr[1][0] != '0') &&
+          (token_ptr[1][0] != '1') &&
+          (token_ptr[1][0] != '3') &&
+          (token_ptr[1][0] != '*'))
+      {
+        log_info ("WARNING: Tuning-db: Invalid attack_mode '%c' in Line '%u'", token_ptr[1][0], line_num);
+
+        continue;
+      }
+
+      if ((token_ptr[3][0] != '1') &&
+          (token_ptr[3][0] != '2') &&
+          (token_ptr[3][0] != '3') &&
+          (token_ptr[3][0] != '*'))
+      {
+        log_info ("WARNING: Tuning-db: Invalid workload_profile '%c' in Line '%u'", token_ptr[3][0], line_num);
+
+        continue;
+      }
+
+      if ((token_ptr[4][0] != '1') &&
+          (token_ptr[4][0] != '2') &&
+          (token_ptr[4][0] != '4') &&
+          (token_ptr[4][0] != '8') &&
+          (token_ptr[4][0] != 'N'))
+      {
+        log_info ("WARNING: Tuning-db: Invalid vector_width '%c' in Line '%u'", token_ptr[4][0], line_num);
+
+        continue;
+      }
+
+      char *device_name = token_ptr[0];
+
+      int attack_mode      = -1;
+      int hash_type        = -1;
+      int workload_profile = -1;
+      int vector_width     = -1;
+      int kernel_accel     = -1;
+      int kernel_loops     = -1;
+
+      if (token_ptr[1][0] != '*') attack_mode      = atoi (token_ptr[1]);
+      if (token_ptr[2][0] != '*') hash_type        = atoi (token_ptr[2]);
+      if (token_ptr[3][0] != '*') workload_profile = atoi (token_ptr[3]);
+      if (token_ptr[4][0] != 'N') vector_width     = atoi (token_ptr[4]);
+
+      kernel_accel = atoi (token_ptr[5]);
+
+      if ((kernel_accel < 1) || (kernel_accel > 1024))
+      {
+        log_info ("WARNING: Tuning-db: Invalid kernel_accel '%d' in Line '%u'", kernel_accel, line_num);
+
+        continue;
+      }
+
+      kernel_loops = atoi (token_ptr[6]);
+
+      if ((kernel_loops < 1) || (kernel_loops > 1024))
+      {
+        log_info ("WARNING: Tuning-db: Invalid kernel_loops '%d' in Line '%u'", kernel_loops, line_num);
+
+        continue;
+      }
+
+      tuning_db_entry_t *entry = &tuning_db->entry_buf[tuning_db->entry_cnt];
+
+      entry->device_name      = mystrdup (device_name);
+      entry->attack_mode      = attack_mode;
+      entry->hash_type        = hash_type;
+      entry->workload_profile = workload_profile;
+      entry->vector_width     = vector_width;
+      entry->kernel_accel     = kernel_accel;
+      entry->kernel_loops     = kernel_loops;
+
+      tuning_db->entry_cnt++;
+    }
+    else
+    {
+      // todo: some warning message
+
+      continue;
+    }
+  }
+
+  fclose (fp);
+
+  // todo: print loaded 'cnt' message
+
+  // sort the database
+
+  qsort (tuning_db->alias_buf, tuning_db->alias_cnt, sizeof (tuning_db_alias_t), sort_by_tuning_db_alias);
+  qsort (tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
+
+  return tuning_db;
 }
 
-uint set_kernel_loops (uint hash_mode, bool isGpu)
+tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, char *device_name, int attack_mode, int hash_type, int workload_profile)
 {
-  int loops = -1;
-  if (isGpu)
-    loops = set_kernel_loops_osx (hash_mode);
+  static tuning_db_entry_t s;
 
-  if (loops != -1)
-    return loops;
+  // first we need to convert all spaces in the device_name to underscore
 
-#else
+  char *device_name_nospace = strdup (device_name);
 
-uint set_kernel_loops (uint hash_mode)
-{
+  int device_name_length = strlen (device_name_nospace);
 
-#endif // OSX
+  int i;
 
-  switch (hash_mode)
+  for (i = 0; i < device_name_length; i++)
   {
-    case     0: return GET_LOOPS (0);
-    case    10: return GET_LOOPS (10);
-    case    11: return GET_LOOPS (11);
-    case    12: return GET_LOOPS (12);
-    case    20: return GET_LOOPS (20);
-    case    21: return GET_LOOPS (21);
-    case    22: return GET_LOOPS (22);
-    case    23: return GET_LOOPS (23);
-    case    30: return GET_LOOPS (30);
-    case    40: return GET_LOOPS (40);
-    case    50: return GET_LOOPS (50);
-    case    60: return GET_LOOPS (60);
-    case   100: return GET_LOOPS (100);
-    case   101: return GET_LOOPS (101);
-    case   110: return GET_LOOPS (110);
-    case   111: return GET_LOOPS (111);
-    case   112: return GET_LOOPS (112);
-    case   120: return GET_LOOPS (120);
-    case   121: return GET_LOOPS (121);
-    case   122: return GET_LOOPS (122);
-    case   124: return GET_LOOPS (124);
-    case   130: return GET_LOOPS (130);
-    case   131: return GET_LOOPS (131);
-    case   132: return GET_LOOPS (132);
-    case   133: return GET_LOOPS (133);
-    case   140: return GET_LOOPS (140);
-    case   141: return GET_LOOPS (141);
-    case   150: return GET_LOOPS (150);
-    case   160: return GET_LOOPS (160);
-    case   190: return GET_LOOPS (190);
-    case   200: return GET_LOOPS (200);
-    case   300: return GET_LOOPS (300);
-    case   400: return GET_LOOPS (400);
-    case   500: return GET_LOOPS (500);
-    case   501: return GET_LOOPS (501);
-    case   900: return GET_LOOPS (900);
-    case   910: return GET_LOOPS (910);
-    case  1000: return GET_LOOPS (1000);
-    case  1100: return GET_LOOPS (1100);
-    case  1400: return GET_LOOPS (1400);
-    case  1410: return GET_LOOPS (1410);
-    case  1420: return GET_LOOPS (1420);
-    case  1421: return GET_LOOPS (1421);
-    case  1430: return GET_LOOPS (1430);
-    case  1440: return GET_LOOPS (1440);
-    case  1441: return GET_LOOPS (1441);
-    case  1450: return GET_LOOPS (1450);
-    case  1460: return GET_LOOPS (1460);
-    case  1500: return GET_LOOPS (1500);
-    case  1600: return GET_LOOPS (1600);
-    case  1700: return GET_LOOPS (1700);
-    case  1710: return GET_LOOPS (1710);
-    case  1711: return GET_LOOPS (1711);
-    case  1720: return GET_LOOPS (1720);
-    case  1722: return GET_LOOPS (1722);
-    case  1730: return GET_LOOPS (1730);
-    case  1731: return GET_LOOPS (1731);
-    case  1740: return GET_LOOPS (1740);
-    case  1750: return GET_LOOPS (1750);
-    case  1760: return GET_LOOPS (1760);
-    case  1800: return GET_LOOPS (1800);
-    case  2100: return GET_LOOPS (2100);
-    case  2400: return GET_LOOPS (2400);
-    case  2410: return GET_LOOPS (2410);
-    case  2500: return GET_LOOPS (2500);
-    case  2600: return GET_LOOPS (2600);
-    case  2611: return GET_LOOPS (2611);
-    case  2612: return GET_LOOPS (2612);
-    case  2711: return GET_LOOPS (2711);
-    case  2811: return GET_LOOPS (2811);
-    case  3000: return GET_LOOPS (3000);
-    case  3100: return GET_LOOPS (3100);
-    case  3200: return GET_LOOPS (3200);
-    case  3710: return GET_LOOPS (3710);
-    case  3711: return GET_LOOPS (3711);
-    case  3800: return GET_LOOPS (3800);
-    case  4300: return GET_LOOPS (4300);
-    case  4400: return GET_LOOPS (4400);
-    case  4500: return GET_LOOPS (4500);
-    case  4700: return GET_LOOPS (4700);
-    case  4800: return GET_LOOPS (4800);
-    case  4900: return GET_LOOPS (4900);
-    case  5000: return GET_LOOPS (5000);
-    case  5100: return GET_LOOPS (5100);
-    case  5200: return GET_LOOPS (5200);
-    case  5300: return GET_LOOPS (5300);
-    case  5400: return GET_LOOPS (5400);
-    case  5500: return GET_LOOPS (5500);
-    case  5600: return GET_LOOPS (5600);
-    case  5700: return GET_LOOPS (5700);
-    case  5800: return GET_LOOPS (5800);
-    case  6000: return GET_LOOPS (6000);
-    case  6100: return GET_LOOPS (6100);
-    case  6211: return GET_LOOPS (6211);
-    case  6212: return GET_LOOPS (6212);
-    case  6213: return GET_LOOPS (6213);
-    case  6221: return GET_LOOPS (6221);
-    case  6222: return GET_LOOPS (6222);
-    case  6223: return GET_LOOPS (6223);
-    case  6231: return GET_LOOPS (6231);
-    case  6232: return GET_LOOPS (6232);
-    case  6233: return GET_LOOPS (6233);
-    case  6241: return GET_LOOPS (6241);
-    case  6242: return GET_LOOPS (6242);
-    case  6243: return GET_LOOPS (6243);
-    case  6300: return GET_LOOPS (6300);
-    case  6400: return GET_LOOPS (6400);
-    case  6500: return GET_LOOPS (6500);
-    case  6600: return GET_LOOPS (6600);
-    case  6700: return GET_LOOPS (6700);
-    case  6800: return GET_LOOPS (6800);
-    case  6900: return GET_LOOPS (6900);
-    case  7100: return GET_LOOPS (7100);
-    case  7200: return GET_LOOPS (7200);
-    case  7300: return GET_LOOPS (7300);
-    case  7400: return GET_LOOPS (7400);
-    case  7500: return GET_LOOPS (7500);
-    case  7600: return GET_LOOPS (7600);
-    case  7700: return GET_LOOPS (7700);
-    case  7800: return GET_LOOPS (7800);
-    case  7900: return GET_LOOPS (7900);
-    case  8000: return GET_LOOPS (8000);
-    case  8100: return GET_LOOPS (8100);
-    case  8200: return GET_LOOPS (8200);
-    case  8300: return GET_LOOPS (8300);
-    case  8400: return GET_LOOPS (8400);
-    case  8500: return GET_LOOPS (8500);
-    case  8600: return GET_LOOPS (8600);
-    case  8700: return GET_LOOPS (8700);
-    case  8800: return GET_LOOPS (8800);
-    case  8900: return GET_LOOPS (8900);
-    case  9000: return GET_LOOPS (9000);
-    case  9100: return GET_LOOPS (9100);
-    case  9200: return GET_LOOPS (9200);
-    case  9300: return GET_LOOPS (9300);
-    case  9400: return GET_LOOPS (9400);
-    case  9500: return GET_LOOPS (9500);
-    case  9600: return GET_LOOPS (9600);
-    case  9700: return GET_LOOPS (9700);
-    case  9710: return GET_LOOPS (9710);
-    case  9720: return GET_LOOPS (9720);
-    case  9800: return GET_LOOPS (9800);
-    case  9810: return GET_LOOPS (9810);
-    case  9820: return GET_LOOPS (9820);
-    case  9900: return GET_LOOPS (9900);
-    case 10000: return GET_LOOPS (10000);
-    case 10100: return GET_LOOPS (10100);
-    case 10200: return GET_LOOPS (10200);
-    case 10300: return GET_LOOPS (10300);
-    case 10400: return GET_LOOPS (10400);
-    case 10410: return GET_LOOPS (10410);
-    case 10420: return GET_LOOPS (10420);
-    case 10500: return GET_LOOPS (10500);
-    case 10600: return GET_LOOPS (10600);
-    case 10700: return GET_LOOPS (10700);
-    case 10800: return GET_LOOPS (10800);
-    case 10900: return GET_LOOPS (10900);
-    case 11000: return GET_LOOPS (11000);
-    case 11100: return GET_LOOPS (11100);
-    case 11200: return GET_LOOPS (11200);
-    case 11300: return GET_LOOPS (11300);
-    case 11400: return GET_LOOPS (11400);
-    case 11500: return GET_LOOPS (11500);
-    case 11600: return GET_LOOPS (11600);
-    case 11700: return GET_LOOPS (11700);
-    case 11800: return GET_LOOPS (11800);
-    case 11900: return GET_LOOPS (11900);
-    case 12000: return GET_LOOPS (12000);
-    case 12100: return GET_LOOPS (12100);
-    case 12200: return GET_LOOPS (12200);
-    case 12300: return GET_LOOPS (12300);
-    case 12400: return GET_LOOPS (12400);
-    case 12500: return GET_LOOPS (12500);
-    case 12600: return GET_LOOPS (12600);
-    case 12700: return GET_LOOPS (12700);
-    case 12800: return GET_LOOPS (12800);
-    case 12900: return GET_LOOPS (12900);
-    case 13000: return GET_LOOPS (13000);
+    if (device_name_nospace[i] == ' ') device_name_nospace[i] = '_';
   }
 
-  return 0;
+  // find out if there's an alias configured
+
+  tuning_db_alias_t a;
+
+  a.device_name = device_name_nospace;
+
+  tuning_db_alias_t *alias = bsearch (&a, tuning_db->alias_buf, tuning_db->alias_cnt, sizeof (tuning_db_alias_t), sort_by_tuning_db_alias);
+
+  char *alias_name = (alias == NULL) ? NULL : alias->alias_name;
+
+  // attack-mode 6 and 7 are attack-mode 1 basically
+
+  if (attack_mode == 6) attack_mode = 1;
+  if (attack_mode == 7) attack_mode = 1;
+
+  // bsearch is not ideal but fast enough
+
+  s.device_name       = device_name_nospace;
+  s.attack_mode       = attack_mode;
+  s.hash_type         = hash_type;
+  s.workload_profile  = workload_profile;
+
+  tuning_db_entry_t *entry = NULL;
+
+  // this will produce all 2^4 combinations required
+
+  for (i = 0; i < 16; i++)
+  {
+    s.device_name       = (i & 1) ? "*" : device_name_nospace;
+    s.attack_mode       = (i & 2) ?  -1 : attack_mode;
+    s.hash_type         = (i & 4) ?  -1 : hash_type;
+    s.workload_profile  = (i & 8) ?  -1 : workload_profile;
+
+    entry = bsearch (&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
+
+    if (entry != NULL) break;
+
+    // in non-wildcard mode also check the alias_name
+
+    if (((i & 1) == 0) && (alias_name != NULL))
+    {
+      s.device_name = alias_name;
+
+      entry = bsearch (&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
+
+      if (entry != NULL) break;
+    }
+  }
+
+  // if still not found use some defaults
+
+  if (entry == NULL)
+  {
+    s.vector_width = TUNING_DB_DEFAULT_VECTOR_WIDTH;
+    s.kernel_accel = TUNING_DB_DEFAULT_KERNEL_ACCEL;
+    s.kernel_loops = TUNING_DB_DEFAULT_KERNEL_LOOPS;
+
+    return &s;
+  }
+
+  // free converted device_name
+
+  myfree (device_name_nospace);
+
+  return entry;
 }
 
 /**

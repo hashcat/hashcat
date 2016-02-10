@@ -17,6 +17,7 @@ mkdir -p $OUT/include
 cp    $IN/oclHashcat??.exe                      $OUT/
 cp    $IN/oclHashcat??.bin                      $OUT/
 cp    $IN/hashcat.hcstat                        $OUT/
+cp    $IN/hashcat_tuning.hctab                  $OUT/
 
 cp -r $IN/docs                                  $OUT/
 cp -r $IN/charsets                              $OUT/
@@ -74,5 +75,6 @@ chmod 600 $OUT/OpenCL/*
 chmod 600 $OUT/*.exe
 chmod 700 $OUT/*.bin
 chmod 600 $OUT/hashcat.hcstat
+chmod 600 $OUT/hashcat_tuning.hctab
 
 time 7z a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $OUT.7z $OUT

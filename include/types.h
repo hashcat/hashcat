@@ -818,6 +818,35 @@ typedef struct
 
 } wordr_t;
 
+typedef struct
+{
+  char *device_name;
+  char *alias_name;
+
+} tuning_db_alias_t;
+
+typedef struct
+{
+  char *device_name;
+  int   attack_mode;
+  int   hash_type;
+  int   workload_profile;
+  int   vector_width;
+  int   kernel_accel;
+  int   kernel_loops;
+
+} tuning_db_entry_t;
+
+typedef struct
+{
+  tuning_db_alias_t *alias_buf;
+  int                alias_cnt;
+
+  tuning_db_entry_t *entry_buf;
+  int                entry_cnt;
+
+} tuning_db_t;
+
 #define RULES_MAX   256
 #define PW_MIN      0
 #define PW_MAX      54

@@ -1837,35 +1837,6 @@ static uint convert_from_hex (char *line_buf, const uint line_len)
   return (line_len);
 }
 
-static uint count_lines (FILE *fd)
-{
-  uint cnt = 0;
-
-  char *buf = (char *) mymalloc (BUFSIZ + 1);
-
-  char prev = '\n';
-
-  while (!feof (fd))
-  {
-    size_t nread = fread (buf, sizeof (char), BUFSIZ, fd);
-
-    if (nread < 1) continue;
-
-    size_t i;
-
-    for (i = 0; i < nread; i++)
-    {
-      if (prev == '\n') cnt++;
-
-      prev = buf[i];
-    }
-  }
-
-  myfree (buf);
-
-  return cnt;
-}
-
 static void clear_prompt ()
 {
   fputc ('\r', stdout);
@@ -6368,6 +6339,16 @@ int main (int argc, char **argv)
   char *loopback_file = (char *) mymalloc (loopback_size);
 
   /**
+   * tuning db
+   */
+
+  char tuning_db_file[256] = { 0 };
+
+  snprintf (tuning_db_file, sizeof (tuning_db_file) - 1, "%s/%s", shared_dir, TUNING_DB_FILE);
+
+  tuning_db_t *tuning_db = tuning_db_init (tuning_db_file);
+
+  /**
    * outfile-check directory
    */
 
@@ -6669,7 +6650,9 @@ int main (int argc, char **argv)
 
     if (benchmark_mode == 1)
     {
-      markov_disable   = 1;
+      markov_disable = 1;
+
+      workload_profile = 3;
     }
 
     /**
@@ -6681,7 +6664,7 @@ int main (int argc, char **argv)
 
     if (runtime_chgd == 0)
     {
-      runtime =  8;
+      runtime = 8;
 
       if (benchmark_mode == 1) runtime = 17;
 
@@ -12451,6 +12434,10 @@ int main (int argc, char **argv)
 
         device_param->device_name = device_name;
 
+        // tuning db
+
+        tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, attack_mode, hash_mode, workload_profile);
+
         // device_version
 
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VERSION, 0, NULL, &param_value_size);
@@ -12483,40 +12470,24 @@ int main (int argc, char **argv)
           device_param->vendor_id = vendor_id;
         }
 
-        // max_compute_units
+        // vector_width
 
         cl_uint vector_width;
 
         if (opencl_vector_width == OPENCL_VECTOR_WIDTH)
         {
-          #ifndef OSX
-          hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, sizeof (vector_width), &vector_width, NULL);
-          #else
-          if (device_param->device_type & CL_DEVICE_TYPE_GPU)
-            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT, sizeof (vector_width), &vector_width, NULL);
-          else
+          if (tuningdb_entry->vector_width == -1)
+          {
             hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, sizeof (vector_width), &vector_width, NULL);
-          #endif
 
-          int is_ti = 0;
-
-          const int device_name_len = strlen (device_name);
-
-          if (device_name[device_name_len - 2] == 't') is_ti++;
-          if (device_name[device_name_len - 2] == 'T') is_ti++;
-          if (device_name[device_name_len - 1] == 'i') is_ti++;
-          if (device_name[device_name_len - 1] == 'I') is_ti++;
-
-          if ((vendor_id == VENDOR_ID_NV) && (is_ti == 2))
-          {
-            // Yeah that's a super bad hack, but there's no other attribute we could use
-
-            if (vector_width < 2) vector_width *= 2;
+            if (opti_type & OPTI_TYPE_USES_BITS_64)
+            {
+              if (vector_width > 1) vector_width /= 2;
+            }
           }
-
-          if (opti_type & OPTI_TYPE_USES_BITS_64)
+          else
           {
-            if (vector_width > 1) vector_width /= 2;
+            vector_width = (cl_uint) tuningdb_entry->vector_width;
           }
         }
         else
@@ -12768,345 +12739,16 @@ int main (int argc, char **argv)
           uint _kernel_accel = kernel_accel;
           uint _kernel_loops = kernel_loops;
 
-          #ifndef OSX
-          if (kernel_accel_chgd == 0) _kernel_accel = set_kernel_accel (hash_mode);
-          if (kernel_loops_chgd == 0) _kernel_loops = set_kernel_loops (hash_mode);
-          #else
-          if (kernel_accel_chgd == 0) _kernel_accel = set_kernel_accel (hash_mode, device_param->device_type & CL_DEVICE_TYPE_GPU);
-          if (kernel_loops_chgd == 0) _kernel_loops = set_kernel_loops (hash_mode, device_param->device_type & CL_DEVICE_TYPE_GPU);
-          #endif
+          tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, attack_mode, hash_mode, workload_profile);
 
-          if (workload_profile == 1)
+          if (kernel_accel_chgd == 0)
           {
-            _kernel_loops /= 8;
-            _kernel_accel /= 4;
-
-            if (_kernel_loops == 0) _kernel_loops = 8;
-            if (_kernel_accel == 0) _kernel_accel = 2;
-          }
-          else if (workload_profile == 3)
-          {
-            _kernel_loops *= 8;
-            _kernel_accel *= 4;
-
-            if (_kernel_loops > 1024) _kernel_loops = 1024;
-            if (_kernel_accel >  256) _kernel_accel =  256; // causes memory problems otherwise
+            _kernel_accel = tuningdb_entry->kernel_accel;
           }
 
-          // those hashes *must* run at a specific kernel_loops count because of some optimization inside the kernel
-
-          if (benchmark == 1 && benchmark_mode == 1)
+          if (kernel_loops_chgd == 0)
           {
-            _kernel_loops *= 8;
-            _kernel_accel *= 4;
-
-            #ifdef OSX
-            bool isCpu = device_param->device_type & CL_DEVICE_TYPE_CPU;
-
-            if (!isCpu)
-            {
-              if (hash_mode == 7100 || hash_mode == 8200 || hash_mode == 9600 || \
-                  hash_mode == 11300 || hash_mode == 11600 || hash_mode == 12200)
-              {
-                _kernel_accel = 1;
-              }
-              else if (hash_mode == 7200 || hash_mode == 9300 || hash_mode == 13000)
-              {
-                _kernel_accel = 2;
-              }
-              else if (hash_mode == 3200)
-              {
-                _kernel_loops = ROUNDS_BCRYPT / 2;
-              }
-              else if (hash_mode == 6231)
-              {
-                _kernel_loops = ROUNDS_TRUECRYPT_1K / 4;
-                _kernel_accel = 1;
-              }
-              else if (hash_mode == 6241)
-              {
-                _kernel_loops = ROUNDS_TRUECRYPT_1K / 4;
-                _kernel_accel = 1;
-              }
-            }
-            else
-            {
-              if (hash_mode == 3200)
-              {
-                _kernel_loops = ROUNDS_BCRYPT;
-              }
-              else if (hash_mode == 6231)
-              {
-                _kernel_loops = ROUNDS_TRUECRYPT_1K;
-                _kernel_accel = 8;
-              }
-              else if (hash_mode == 6241)
-              {
-                _kernel_loops = ROUNDS_TRUECRYPT_1K;
-                _kernel_accel = 128;
-              }
-            }
-            #endif
-
-            switch (hash_mode)
-            {
-              case   400:  _kernel_loops = ROUNDS_PHPASS;
-                           _kernel_accel = 32;
-                           break;
-              case   500:  _kernel_loops = ROUNDS_MD5CRYPT;
-                           _kernel_accel = 32;
-                           break;
-              case   501:  _kernel_loops = ROUNDS_MD5CRYPT;
-                           _kernel_accel = 32;
-                           break;
-              case  1600:  _kernel_loops = ROUNDS_MD5CRYPT;
-                           _kernel_accel = 32;
-                           break;
-              case  1800:  _kernel_loops = ROUNDS_SHA512CRYPT;
-                           #ifndef OSX
-                           _kernel_accel = 16;
-                           #else
-                           if (isCpu) _kernel_accel = 16;
-                           #endif
-                           break;
-              case  2100:  _kernel_loops = ROUNDS_DCC2;
-                           _kernel_accel = 16;
-                           break;
-              case  2500:  _kernel_loops = ROUNDS_WPA2;
-                           #ifndef OSX
-                           _kernel_accel = 32;
-                           #else
-                           if (isCpu) _kernel_accel = 32;
-                           #endif
-                           break;
-              case  3200:  _kernel_accel = 8;
-                           #ifndef OSX
-                           _kernel_loops = ROUNDS_BCRYPT;
-                           #endif
-                           break;
-              case  5200:  _kernel_loops = ROUNDS_PSAFE3;
-                           _kernel_accel = 16;
-                           break;
-              case  5800:  _kernel_loops = ROUNDS_ANDROIDPIN;
-                           _kernel_accel = 16;
-                           break;
-              case  6211:  _kernel_loops = ROUNDS_TRUECRYPT_2K;
-                           #ifndef OSX
-                           _kernel_accel = 64;
-                           #else
-                           if (isCpu) _kernel_accel = 64;
-                           #endif
-                           break;
-              case  6212:  _kernel_loops = ROUNDS_TRUECRYPT_2K;
-                           _kernel_accel = 32;
-                           break;
-              case  6213:  _kernel_loops = ROUNDS_TRUECRYPT_2K;
-                           _kernel_accel = 32;
-                           break;
-              case  6221:  _kernel_loops = ROUNDS_TRUECRYPT_1K;
-                           _kernel_accel = 8;
-                           break;
-              case  6222:  _kernel_loops = ROUNDS_TRUECRYPT_1K;
-                           _kernel_accel = 8;
-                           break;
-              case  6223:  _kernel_loops = ROUNDS_TRUECRYPT_1K;
-                           _kernel_accel = 8;
-                           break;
-              #ifndef OSX
-              case  6231:  _kernel_loops = ROUNDS_TRUECRYPT_1K;
-                           _kernel_accel = 8;
-                           break;
-              #endif
-              case  6232:  _kernel_loops = ROUNDS_TRUECRYPT_1K;
-                           _kernel_accel = 8;
-                           break;
-              case  6233:  _kernel_loops = ROUNDS_TRUECRYPT_1K;
-                           _kernel_accel = 8;
-                           break;
-              #ifndef OSX
-              case  6241:  _kernel_loops = ROUNDS_TRUECRYPT_1K;
-                           _kernel_accel = 128;
-                           break;
-              #endif
-              case  6242:  _kernel_loops = ROUNDS_TRUECRYPT_1K;
-                           _kernel_accel = 64;
-                           break;
-              case  6243:  _kernel_loops = ROUNDS_TRUECRYPT_1K;
-                           _kernel_accel = 64;
-                           break;
-              case  6300:  _kernel_loops = ROUNDS_MD5CRYPT;
-                           _kernel_accel = 32;
-                           break;
-              case  6700:  _kernel_loops = ROUNDS_SHA1AIX;
-                           _kernel_accel = 128;
-                           break;
-              case  6400:  _kernel_loops = ROUNDS_SHA256AIX;
-                           _kernel_accel = 128;
-                           break;
-              case  6500:  _kernel_loops = ROUNDS_SHA512AIX;
-                           _kernel_accel = 32;
-                           break;
-              case  6600:  _kernel_loops = ROUNDS_AGILEKEY;
-                           _kernel_accel = 64;
-                           break;
-              case  6800:  _kernel_loops = ROUNDS_LASTPASS;
-                           #ifndef OSX
-                           _kernel_accel = 64;
-                           #else
-                           if (isCpu) _kernel_accel = 64;
-                           #endif
-                           break;
-              case  7100:  _kernel_loops = ROUNDS_SHA512OSX;
-                           #ifndef OSX
-                           _kernel_accel = 8;
-                           #endif
-                           break;
-              case  7200:  _kernel_loops = ROUNDS_GRUB;
-                           #ifndef OSX
-                           _kernel_accel = 16;
-                           #endif
-                           break;
-              case  7400:  _kernel_loops = ROUNDS_SHA256CRYPT;
-                           _kernel_accel = 8;
-                           break;
-              case  7900:  _kernel_loops = ROUNDS_DRUPAL7;
-                           #ifndef OSX
-                           _kernel_accel = 8;
-                           #else
-                           if (isCpu) _kernel_accel = 8;
-                           #endif
-                           break;
-              case  8200:  _kernel_loops = ROUNDS_CLOUDKEY;
-                           #ifndef OSX
-                           _kernel_accel = 8;
-                           #endif
-                           break;
-              case  8800:  _kernel_loops = ROUNDS_ANDROIDFDE;
-                           _kernel_accel = 32;
-                           break;
-              case  8900:  _kernel_loops = 1;
-                           _kernel_accel = 64;
-                           break;
-              case  9000:  _kernel_loops = ROUNDS_PSAFE2;
-                           _kernel_accel = 16;
-                           break;
-              case  9100:  _kernel_loops = ROUNDS_LOTUS8;
-                           #ifndef OSX
-                           _kernel_accel = 64;
-                           #else
-                           if (isCpu) _kernel_accel = 64;
-                           #endif
-                           break;
-              case  9200:  _kernel_loops = ROUNDS_CISCO8;
-                           #ifndef OSX
-                           _kernel_accel = 8;
-                           #else
-                           if (isCpu) _kernel_accel = 8;
-                           #endif
-                           break;
-              case  9300:  _kernel_loops = 1;
-                           #ifndef OSX
-                           _kernel_accel = 4;
-                           #endif
-                           break;
-              case  9400:  _kernel_loops = ROUNDS_OFFICE2007;
-                           #ifndef OSX
-                           _kernel_accel = 32;
-                           #else
-                           if (isCpu) _kernel_accel = 32;
-                           #endif
-                           break;
-              case  9500:  _kernel_loops = ROUNDS_OFFICE2010;
-                           #ifndef OSX
-                           _kernel_accel = 32;
-                           #else
-                           if (isCpu) _kernel_accel = 32;
-                           #endif
-                           break;
-              case  9600:  _kernel_loops = ROUNDS_OFFICE2013;
-                           #ifndef OSX
-                           _kernel_accel = 8;
-                           #endif
-                           break;
-              case 10000:  _kernel_loops = ROUNDS_DJANGOPBKDF2;
-                           #ifndef OSX
-                           _kernel_accel = 8;
-                           #else
-                           if (isCpu) _kernel_accel = 8;
-                           #endif
-                           break;
-              case 10300:  _kernel_loops = ROUNDS_SAPH_SHA1;
-                           _kernel_accel = 16;
-                           break;
-              case 10500:  _kernel_loops = ROUNDS_PDF14;
-                           _kernel_accel = 256;
-                           break;
-              case 10700:  _kernel_loops = ROUNDS_PDF17L8;
-                           _kernel_accel = 8;
-                           break;
-              case 10900:  _kernel_loops = ROUNDS_PBKDF2_SHA256;
-                           _kernel_accel = 8;
-                           break;
-              case 11300:  _kernel_loops = ROUNDS_BITCOIN_WALLET;
-                           #ifndef OSX
-                           _kernel_accel = 8;
-                           #endif
-                           break;
-              case 11600:  _kernel_loops = ROUNDS_SEVEN_ZIP;
-                           #ifndef OSX
-                           _kernel_accel = 8;
-                           #endif
-                           break;
-              case 11900:  _kernel_loops = ROUNDS_PBKDF2_MD5;
-                           _kernel_accel = 8;
-                           break;
-              case 12000:  _kernel_loops = ROUNDS_PBKDF2_SHA1;
-                           _kernel_accel = 8;
-                           break;
-              case 12100:  _kernel_loops = ROUNDS_PBKDF2_SHA512;
-                           _kernel_accel = 8;
-                           break;
-              case 12200:  _kernel_loops = ROUNDS_ECRYPTFS;
-                           #ifndef OSX
-                           _kernel_accel = 8;
-                           #endif
-                           break;
-              case 12300:  _kernel_loops = ROUNDS_ORACLET;
-                           _kernel_accel = 8;
-                           break;
-              case 12500:  _kernel_loops = ROUNDS_RAR3;
-                           #ifndef OSX
-                           _kernel_accel = 32;
-                           #else
-                           if (isCpu) _kernel_accel = 32;
-                           #endif
-                           break;
-              case 12700:  _kernel_loops = ROUNDS_MYWALLET;
-                           _kernel_accel = 512;
-                           break;
-              case 12800:  _kernel_loops = ROUNDS_MS_DRSR;
-                           _kernel_accel = 512;
-                           break;
-              case 12900:  _kernel_loops = ROUNDS_ANDROIDFDE_SAMSUNG;
-                           _kernel_accel = 8;
-                           break;
-              case 13000:  _kernel_loops = ROUNDS_RAR5;
-                           #ifndef OSX
-                           _kernel_accel = 8;
-                           #endif
-                           break;
-            }
-
-            // some algorithm collide too fast, make that impossible
-
-            switch (hash_mode)
-            {
-              case 11500:  ((uint *) digests_buf)[1] = 1;
-                           break;
-            }
-
-            if (_kernel_loops > 1024) _kernel_loops = 1024;
-            if (_kernel_accel >  256) _kernel_accel =  256; // causes memory problems otherwise
+            _kernel_loops = tuningdb_entry->kernel_loops;
           }
 
           if ((opts_type & OPTS_TYPE_PT_BITSLICE) && (attack_mode == ATTACK_MODE_BF))
@@ -13530,8 +13172,6 @@ int main (int argc, char **argv)
 
       uint kernel_accel = device_param->kernel_accel;
 
-      cl_device_type device_type = device_param->device_type;
-
       /**
        * create context for each device
        */
@@ -13556,25 +13196,6 @@ int main (int argc, char **argv)
       // bcrypt
       if (hash_mode == 3200) kernel_threads = 8;
       if (hash_mode == 9000) kernel_threads = 8;
-
-      // we need to get rid of this
-      if (device_type & CL_DEVICE_TYPE_CPU)
-      {
-        if (benchmark_mode == 0)
-        {
-          if (device_param->kernel_accel > 16)
-          {
-            device_param->kernel_accel = 16;
-          }
-        }
-        else
-        {
-          if (device_param->kernel_accel > 64)
-          {
-            device_param->kernel_accel = 64;
-          }
-        }
-      }
 
       uint kernel_power  = 1;
       uint kernel_blocks = 1;
@@ -14161,6 +13782,16 @@ int main (int argc, char **argv)
         local_free (kernel_lengths);
         local_free (kernel_sources[0]);
         local_free (kernel_sources);
+      }
+
+      // some algorithm collide too fast, make that impossible
+
+      if (benchmark == 1)
+      {
+        ((uint *) digests_buf)[0] = -1;
+        ((uint *) digests_buf)[1] = -1;
+        ((uint *) digests_buf)[2] = -1;
+        ((uint *) digests_buf)[3] = -1;
       }
 
       /**
@@ -17045,6 +16676,10 @@ int main (int argc, char **argv)
   local_free (new_restore_file);
 
   local_free (rd);
+
+  // tuning db
+
+  tuning_db_destroy (tuning_db);
 
   // loopback
 
