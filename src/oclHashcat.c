@@ -13547,6 +13547,8 @@ int main (int argc, char **argv)
 
       uint device_processor_cores = device_param->device_processor_cores;
 
+      uint kernel_accel = device_param->kernel_accel;
+
       cl_device_type device_type = device_param->device_type;
 
       /**
@@ -13574,6 +13576,7 @@ int main (int argc, char **argv)
       if (hash_mode == 3200) kernel_threads = 8;
       if (hash_mode == 9000) kernel_threads = 8;
 
+      // we need to get rid of this
       if (device_type & CL_DEVICE_TYPE_CPU)
       {
         if (benchmark_mode == 0)
@@ -13592,8 +13595,138 @@ int main (int argc, char **argv)
         }
       }
 
-      uint kernel_power  = device_processors * kernel_threads * device_param->kernel_accel;
-      uint kernel_blocks = kernel_power;
+      uint kernel_power  = 1;
+      uint kernel_blocks = 1;
+
+      uint size_pws   = 4;
+      uint size_tmps  = 4;
+      uint size_hooks = 4;
+
+      // find out if we would request too much memory on memory blocks which are based on kernel_accel
+
+      while (kernel_accel)
+      {
+        kernel_power  = device_processors * kernel_threads * kernel_accel;
+        kernel_blocks = kernel_power;
+
+        // size_pws
+
+        size_pws = kernel_blocks * sizeof (pw_t);
+
+        // size_tmps
+
+        switch (hash_mode)
+        {
+          case   400: size_tmps = kernel_blocks * sizeof (phpass_tmp_t);        break;
+          case   500: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
+          case   501: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
+          case  1600: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
+          case  1800: size_tmps = kernel_blocks * sizeof (sha512crypt_tmp_t);   break;
+          case  2100: size_tmps = kernel_blocks * sizeof (dcc2_tmp_t);          break;
+          case  2500: size_tmps = kernel_blocks * sizeof (wpa_tmp_t);           break;
+          case  3200: size_tmps = kernel_blocks * sizeof (bcrypt_tmp_t);        break;
+          case  5200: size_tmps = kernel_blocks * sizeof (pwsafe3_tmp_t);       break;
+          case  5800: size_tmps = kernel_blocks * sizeof (androidpin_tmp_t);    break;
+          case  6211:
+          case  6212:
+          case  6213: size_tmps = kernel_blocks * sizeof (tc_tmp_t);            break;
+          case  6221:
+          case  6222:
+          case  6223: size_tmps = kernel_blocks * sizeof (tc64_tmp_t);          break;
+          case  6231:
+          case  6232:
+          case  6233: size_tmps = kernel_blocks * sizeof (tc_tmp_t);            break;
+          case  6241:
+          case  6242:
+          case  6243: size_tmps = kernel_blocks * sizeof (tc_tmp_t);            break;
+          case  6300: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
+          case  6400: size_tmps = kernel_blocks * sizeof (sha256aix_tmp_t);     break;
+          case  6500: size_tmps = kernel_blocks * sizeof (sha512aix_tmp_t);     break;
+          case  6600: size_tmps = kernel_blocks * sizeof (agilekey_tmp_t);      break;
+          case  6700: size_tmps = kernel_blocks * sizeof (sha1aix_tmp_t);       break;
+          case  6800: size_tmps = kernel_blocks * sizeof (lastpass_tmp_t);      break;
+          case  7100: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
+          case  7200: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
+          case  7400: size_tmps = kernel_blocks * sizeof (sha256crypt_tmp_t);   break;
+          case  7900: size_tmps = kernel_blocks * sizeof (drupal7_tmp_t);       break;
+          case  8200: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
+          case  8800: size_tmps = kernel_blocks * sizeof (androidfde_tmp_t);    break;
+          case  8900: size_tmps = kernel_blocks * sizeof (scrypt_tmp_t);        break;
+          case  9000: size_tmps = kernel_blocks * sizeof (pwsafe2_tmp_t);       break;
+          case  9100: size_tmps = kernel_blocks * sizeof (lotus8_tmp_t);        break;
+          case  9200: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
+          case  9300: size_tmps = kernel_blocks * sizeof (scrypt_tmp_t);        break;
+          case  9400: size_tmps = kernel_blocks * sizeof (office2007_tmp_t);    break;
+          case  9500: size_tmps = kernel_blocks * sizeof (office2010_tmp_t);    break;
+          case  9600: size_tmps = kernel_blocks * sizeof (office2013_tmp_t);    break;
+          case 10000: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
+          case 10200: size_tmps = kernel_blocks * sizeof (cram_md5_t);          break;
+          case 10300: size_tmps = kernel_blocks * sizeof (saph_sha1_tmp_t);     break;
+          case 10500: size_tmps = kernel_blocks * sizeof (pdf14_tmp_t);         break;
+          case 10700: size_tmps = kernel_blocks * sizeof (pdf17l8_tmp_t);       break;
+          case 10900: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
+          case 11300: size_tmps = kernel_blocks * sizeof (bitcoin_wallet_tmp_t); break;
+          case 11600: size_tmps = kernel_blocks * sizeof (seven_zip_tmp_t);     break;
+          case 11900: size_tmps = kernel_blocks * sizeof (pbkdf2_md5_tmp_t);    break;
+          case 12000: size_tmps = kernel_blocks * sizeof (pbkdf2_sha1_tmp_t);   break;
+          case 12100: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
+          case 12200: size_tmps = kernel_blocks * sizeof (ecryptfs_tmp_t);      break;
+          case 12300: size_tmps = kernel_blocks * sizeof (oraclet_tmp_t);       break;
+          case 12400: size_tmps = kernel_blocks * sizeof (bsdicrypt_tmp_t);     break;
+          case 12500: size_tmps = kernel_blocks * sizeof (rar3_tmp_t);          break;
+          case 12700: size_tmps = kernel_blocks * sizeof (mywallet_tmp_t);      break;
+          case 12800: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
+          case 12900: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
+          case 13000: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
+        };
+
+        // size_hooks
+
+        if ((opts_type & OPTS_TYPE_HOOK12) || (opts_type & OPTS_TYPE_HOOK23))
+        {
+          // none yet
+        }
+
+        // now check if all device-memory sizes which depend on the kernel_accel amplifier are within its boundaries
+        // if not, decrease amplifier and try again
+
+        if (size_pws > device_param->device_maxmem_alloc)
+        {
+          kernel_accel--;
+
+          continue;
+        }
+
+        if (size_tmps > device_param->device_maxmem_alloc)
+        {
+          kernel_accel--;
+
+          continue;
+        }
+
+        if (size_hooks > device_param->device_maxmem_alloc)
+        {
+          kernel_accel--;
+
+          continue;
+        }
+
+        if ((size_pws + size_tmps + size_hooks) > device_param->device_global_mem)
+        {
+          kernel_accel--;
+
+          continue;
+        }
+
+        break;
+      }
+
+      if (kernel_accel == 0)
+      {
+        log_error ("ERROR: Device #%u does not provide enough allocatable device-memory to handle hash-type %u", device_id + 1, data.hash_mode);
+
+        return -1;
+      }
 
       device_param->kernel_threads      = kernel_threads;
       device_param->kernel_power_user   = kernel_power;
@@ -13601,87 +13734,11 @@ int main (int argc, char **argv)
 
       kernel_blocks_all += kernel_blocks;
 
-      uint size_pws = kernel_power * sizeof (pw_t);
-
-      uint size_tmps = 4;
-
-      switch (hash_mode)
-      {
-        case   400: size_tmps = kernel_blocks * sizeof (phpass_tmp_t);        break;
-        case   500: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
-        case   501: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
-        case  1600: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
-        case  1800: size_tmps = kernel_blocks * sizeof (sha512crypt_tmp_t);   break;
-        case  2100: size_tmps = kernel_blocks * sizeof (dcc2_tmp_t);          break;
-        case  2500: size_tmps = kernel_blocks * sizeof (wpa_tmp_t);           break;
-        case  3200: size_tmps = kernel_blocks * sizeof (bcrypt_tmp_t);        break;
-        case  5200: size_tmps = kernel_blocks * sizeof (pwsafe3_tmp_t);       break;
-        case  5800: size_tmps = kernel_blocks * sizeof (androidpin_tmp_t);    break;
-        case  6211:
-        case  6212:
-        case  6213: size_tmps = kernel_blocks * sizeof (tc_tmp_t);            break;
-        case  6221:
-        case  6222:
-        case  6223: size_tmps = kernel_blocks * sizeof (tc64_tmp_t);          break;
-        case  6231:
-        case  6232:
-        case  6233: size_tmps = kernel_blocks * sizeof (tc_tmp_t);            break;
-        case  6241:
-        case  6242:
-        case  6243: size_tmps = kernel_blocks * sizeof (tc_tmp_t);            break;
-        case  6300: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
-        case  6400: size_tmps = kernel_blocks * sizeof (sha256aix_tmp_t);     break;
-        case  6500: size_tmps = kernel_blocks * sizeof (sha512aix_tmp_t);     break;
-        case  6600: size_tmps = kernel_blocks * sizeof (agilekey_tmp_t);      break;
-        case  6700: size_tmps = kernel_blocks * sizeof (sha1aix_tmp_t);       break;
-        case  6800: size_tmps = kernel_blocks * sizeof (lastpass_tmp_t);      break;
-        case  7100: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-        case  7200: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-        case  7400: size_tmps = kernel_blocks * sizeof (sha256crypt_tmp_t);   break;
-        case  7900: size_tmps = kernel_blocks * sizeof (drupal7_tmp_t);       break;
-        case  8200: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-        case  8800: size_tmps = kernel_blocks * sizeof (androidfde_tmp_t);    break;
-        case  8900: size_tmps = kernel_blocks * sizeof (scrypt_tmp_t);        break;
-        case  9000: size_tmps = kernel_blocks * sizeof (pwsafe2_tmp_t);       break;
-        case  9100: size_tmps = kernel_blocks * sizeof (lotus8_tmp_t);        break;
-        case  9200: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-        case  9300: size_tmps = kernel_blocks * sizeof (scrypt_tmp_t);        break;
-        case  9400: size_tmps = kernel_blocks * sizeof (office2007_tmp_t);    break;
-        case  9500: size_tmps = kernel_blocks * sizeof (office2010_tmp_t);    break;
-        case  9600: size_tmps = kernel_blocks * sizeof (office2013_tmp_t);    break;
-        case 10000: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-        case 10200: size_tmps = kernel_blocks * sizeof (cram_md5_t);          break;
-        case 10300: size_tmps = kernel_blocks * sizeof (saph_sha1_tmp_t);     break;
-        case 10500: size_tmps = kernel_blocks * sizeof (pdf14_tmp_t);         break;
-        case 10700: size_tmps = kernel_blocks * sizeof (pdf17l8_tmp_t);       break;
-        case 10900: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-        case 11300: size_tmps = kernel_blocks * sizeof (bitcoin_wallet_tmp_t); break;
-        case 11600: size_tmps = kernel_blocks * sizeof (seven_zip_tmp_t);     break;
-        case 11900: size_tmps = kernel_blocks * sizeof (pbkdf2_md5_tmp_t);    break;
-        case 12000: size_tmps = kernel_blocks * sizeof (pbkdf2_sha1_tmp_t);   break;
-        case 12100: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-        case 12200: size_tmps = kernel_blocks * sizeof (ecryptfs_tmp_t);      break;
-        case 12300: size_tmps = kernel_blocks * sizeof (oraclet_tmp_t);       break;
-        case 12400: size_tmps = kernel_blocks * sizeof (bsdicrypt_tmp_t);     break;
-        case 12500: size_tmps = kernel_blocks * sizeof (rar3_tmp_t);          break;
-        case 12700: size_tmps = kernel_blocks * sizeof (mywallet_tmp_t);      break;
-        case 12800: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-        case 12900: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-        case 13000: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-      };
-
-      uint size_hooks = 4;
-
-      if ((opts_type & OPTS_TYPE_HOOK12) || (opts_type & OPTS_TYPE_HOOK23))
-      {
-        // insert correct hook size
-      }
-
-      // we can optimize some stuff here...
-
       device_param->size_pws   = size_pws;
       device_param->size_tmps  = size_tmps;
       device_param->size_hooks = size_hooks;
+
+      // we can optimize some stuff here...
 
       uint size_root_css   = SP_PW_MAX *           sizeof (cs_t);
       uint size_markov_css = SP_PW_MAX * CHARSIZ * sizeof (cs_t);
@@ -13697,8 +13754,8 @@ int main (int argc, char **argv)
       uint size_rules_c = KERNEL_RULES     * sizeof (kernel_rule_t);
 
       uint size_plains  = digests_cnt * sizeof (plain_t);
-      uint size_salts   = salts_cnt * sizeof (salt_t);
-      uint size_esalts  = salts_cnt * esalt_size;
+      uint size_salts   = salts_cnt   * sizeof (salt_t);
+      uint size_esalts  = salts_cnt   * esalt_size;
 
       device_param->size_plains   = size_plains;
       device_param->size_digests  = size_digests;
@@ -13707,7 +13764,9 @@ int main (int argc, char **argv)
 
       uint size_combs = KERNEL_COMBS * sizeof (comb_t);
       uint size_bfs   = KERNEL_BFS   * sizeof (bf_t);
-      uint size_tm    = 32        * sizeof (bs_word_t);
+      uint size_tm    = 32           * sizeof (bs_word_t);
+
+      // scrypt stuff
 
       u64 size_scryptV = 1;
 
