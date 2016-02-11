@@ -114,6 +114,7 @@ int ocl_init (OCL_PTR *ocl)
   HC_LOAD_FUNC(ocl, clSetKernelArg, OCL_CLSETKERNELARG, OpenCL, 1)
   HC_LOAD_FUNC(ocl, clWaitForEvents, OCL_CLWAITFOREVENTS, OpenCL, 1)
   HC_LOAD_FUNC(ocl, clGetEventProfilingInfo, OCL_CLGETEVENTPROFILINGINFO, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clReleaseEvent, CLRELEASEEVENT, OpenCL, 1)
 
   return 0;
 }
@@ -604,6 +605,18 @@ void hc_clGetEventProfilingInfo (OCL_PTR *ocl, cl_event event, cl_profiling_info
   if (CL_err != CL_SUCCESS)
   {
     log_error ("ERROR: %s : %d : %s\n", "clGetEventProfilingInfo()", CL_err, val2cstr_cl (CL_err));
+
+    exit (-1);
+  }
+}
+
+void hc_clReleaseEvent (OCL_PTR *ocl, cl_event event)
+{
+  cl_int CL_err = ocl->clReleaseEvent (event);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: %s : %d : %s\n", "clReleaseEvent()", CL_err, val2cstr_cl (CL_err));
 
     exit (-1);
   }

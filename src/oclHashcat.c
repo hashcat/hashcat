@@ -789,17 +789,25 @@ void status_display_automat ()
 
     if (device_param->skipped) continue;
 
-    if (device_param->event == NULL) continue;
+    double exec_ms_total = 0;
 
-    cl_ulong time_start;
-    cl_ulong time_end;
+    int exec_ms_cnt = 0;
 
-    hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
-    hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
+    for (int i = 0; i < EXEC_CACHE; i++)
+    {
+      double exec_ms = device_param->exec_ms[i];
 
-    const double total_time = (time_end - time_start) / 1000000.0;
+      if (exec_ms)
+      {
+        exec_ms_total += exec_ms;
 
-    fprintf (out, "%f\t", total_time);
+        exec_ms_cnt++;
+      }
+    }
+
+    exec_ms_total /= exec_ms_cnt;
+
+    fprintf (out, "%f\t", exec_ms_total);
   }
 
   /**
@@ -1190,7 +1198,7 @@ void status_display ()
    * exec time
    */
 
-  double exec_runtime_ms[DEVICES_MAX] = { 0 };
+  double exec_all_ms[DEVICES_MAX] = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1198,17 +1206,25 @@ void status_display ()
 
     if (device_param->skipped) continue;
 
-    if (device_param->event == NULL) continue;
+    double exec_ms_total = 0;
 
-    cl_ulong time_start;
-    cl_ulong time_end;
+    int exec_ms_cnt = 0;
 
-    hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
-    hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
+    for (int i = 0; i < EXEC_CACHE; i++)
+    {
+      double exec_ms = device_param->exec_ms[i];
 
-    const double total_time = (time_end - time_start) / 1000000.0;
+      if (exec_ms)
+      {
+        exec_ms_total += exec_ms;
 
-    exec_runtime_ms[device_id] = total_time;
+        exec_ms_cnt++;
+      }
+    }
+
+    exec_ms_total /= exec_ms_cnt;
+
+    exec_all_ms[device_id] = exec_ms_total;
   }
 
   /**
@@ -1429,7 +1445,7 @@ void status_display ()
 
     format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
-    log_info ("Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_runtime_ms[device_id]);
+    log_info ("Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
   }
 
   char display_all_cur[16] = { 0 };
@@ -1679,7 +1695,7 @@ static void status_benchmark ()
    * exec time
    */
 
-  double exec_runtime_ms[DEVICES_MAX] = { 0 };
+  double exec_all_ms[DEVICES_MAX] = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1687,17 +1703,25 @@ static void status_benchmark ()
 
     if (device_param->skipped) continue;
 
-    if (device_param->event == NULL) continue;
+    double exec_ms_total = 0;
 
-    cl_ulong time_start;
-    cl_ulong time_end;
+    int exec_ms_cnt = 0;
 
-    hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
-    hc_clGetEventProfilingInfo (data.ocl, device_param->event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
+    for (int i = 0; i < EXEC_CACHE; i++)
+    {
+      double exec_ms = device_param->exec_ms[i];
 
-    const double total_time = (time_end - time_start) / 1000000.0;
+      if (exec_ms)
+      {
+        exec_ms_total += exec_ms;
 
-    exec_runtime_ms[device_id] = total_time;
+        exec_ms_cnt++;
+      }
+    }
+
+    exec_ms_total /= exec_ms_cnt;
+
+    exec_all_ms[device_id] = exec_ms_total;
   }
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
@@ -1712,7 +1736,7 @@ static void status_benchmark ()
 
     format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
-    log_info ("Speed.Dev.#%d.: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_runtime_ms[device_id]);
+    log_info ("Speed.Dev.#%d.: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
   }
 
   char display_all_cur[16] = { 0 };
@@ -2470,11 +2494,35 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
-  //hc_clFinish (data.ocl, device_param->command_queue);
-
   hc_clWaitForEvents (data.ocl, 1, &event);
 
-  if (event_update) device_param->event = event;
+  if (event_update)
+  {
+    cl_ulong time_start;
+    cl_ulong time_end;
+
+    hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
+    hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
+
+    const double exec_time = (time_end - time_start) / 1000000.0;
+
+    uint exec_pos = device_param->exec_pos;
+
+    device_param->exec_ms[exec_pos] = exec_time;
+
+    exec_pos++;
+
+    if (exec_pos == EXEC_CACHE)
+    {
+      exec_pos = 0;
+    }
+
+    device_param->exec_pos = exec_pos;
+  }
+
+  hc_clReleaseEvent (data.ocl, event);
+
+  hc_clFinish (data.ocl, device_param->command_queue);
 }
 
 static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param, const uint num)
@@ -15584,6 +15632,10 @@ int main (int argc, char **argv)
           memset (device_param->speed_cnt, 0, SPEED_CACHE * sizeof (u64));
           memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (float));
           memset (device_param->speed_rec, 0, SPEED_CACHE * sizeof (hc_timer_t));
+
+          device_param->exec_pos = 0;
+
+          memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
 
           device_param->kernel_power  = device_param->kernel_power_user;
           device_param->kernel_blocks = device_param->kernel_blocks_user;

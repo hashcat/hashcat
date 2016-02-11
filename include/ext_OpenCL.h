@@ -61,6 +61,7 @@ typedef cl_int (*OCL_CLGETPROGRAMINFO)               (cl_program, cl_program_inf
 typedef cl_int (*OCL_CLGETEVENTINFO)                 (cl_event, cl_event_info, size_t, void *, size_t *);
 typedef cl_int (*OCL_CLWAITFOREVENTS)                (cl_uint, const cl_event *);
 typedef cl_int (*OCL_CLGETEVENTPROFILINGINFO)        (cl_event, cl_profiling_info, size_t, void *, size_t *);
+typedef cl_int (*CLRELEASEEVENT)                     (cl_event);
 
 typedef struct
 {
@@ -98,6 +99,7 @@ typedef struct
   OCL_CLSETKERNELARG clSetKernelArg;
   OCL_CLWAITFOREVENTS clWaitForEvents;
   OCL_CLGETEVENTPROFILINGINFO clGetEventProfilingInfo;
+  CLRELEASEEVENT clReleaseEvent;
 
 } hc_opencl_lib_t;
 
@@ -139,5 +141,6 @@ void hc_clGetProgramInfo (OCL_PTR *ocl, cl_program program, cl_program_info para
 void hc_clGetEventInfo (OCL_PTR *ocl, cl_event event, cl_event_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
 void hc_clWaitForEvents (OCL_PTR *ocl, cl_uint num_events, const cl_event *event_list);
 void hc_clGetEventProfilingInfo (OCL_PTR *ocl, cl_event event, cl_profiling_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
+void hc_clReleaseEvent (OCL_PTR *ocl, cl_event event);
 
 #endif

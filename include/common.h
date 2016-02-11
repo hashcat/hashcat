@@ -99,6 +99,8 @@ typedef uint64_t u64;
 
 typedef uint32_t uint; // we need to get rid of this sooner or later, for consistency
 
+#define EXEC_CACHE   1024
+
 #define SPEED_CACHE  128
 #define SPEED_MAXAGE 4096
 
