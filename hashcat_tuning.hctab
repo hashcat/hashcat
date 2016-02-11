@@ -52,7 +52,6 @@
 # - set your core clock to stock settings
 # - set your memory clock to stock settings
 # - for every run, give it time to settle down, that is when it seems to have reached a speed that doesn't increase anymore
-# - when increase the values, use numbers power-of-2: 1,2,4,8,16, but not higher than 16
 # - use a single hash for testing, if you need an example hash for the different algorithms, see the wiki pages example hashes
 # - if you run -a0 attacks, choose your favourite wordlist (should have > 10m words)
 # - if you run -a0 attacks, choose your favourite ruleset (should have > 2000 rules)
@@ -64,30 +63,31 @@
 # - always use the following parameters: --markov-disable --outfile-autohex-disable --potfile-disable --logfile-disable --gpu-retain-disable
 # - if you face 0H/s you have set some value ways too high
 #
-# Workload 1 strategy;
+# Workload 3 strategy
 #
 # - find kernel accel:
-#   - set kernel loops to 1
 #   - set vector width to 1
-#   - increase kernel accel to the highest value which causes your gpu utilization to stay below 95%
+#   - set kernel accel to 1024
+#   - set kernel loops to 1
+#   - decrease kernel accel by dividing by two until gpu utilization settles down below 95%
 # - find vector width:
 #   - set kernel accel to the previous value
 #   - set vector width to 1
-#   - try the 4 different vector width and find the one with the lowest exec runtime
+#   - try the 4 different vector width 1, 2, 4 and 8 and use the one with the lowest exec runtime
 # - find kernel loops:
 #   - set kernel accel to the previous value
 #   - set vector width to the previous value
-#   - increase kernel loops to the highest value which causes your gpu to stay around 8ms execution time (in status screen)
+#   - increase kernel loops in steps of 8 until execution time is closest to 64ms (in status screen)
 #
 # Workload 2 strategy
+# 
+# - Use the same results from Workload 3 strategy, but
+# - Divide the kernel loops value by 4
 #
-# - same as Workload 1
-# - increase kernel loops to the highest value which causes your gpu to stay around 16ms execution time (in status screen)
+# Workload 1 strategy;
 #
-# Workload 3 strategy
-#
-# - same as Workload 1
-# - increase kernel loops to the highest value which causes your gpu to stay around 64ms execution time (in status screen)
+# - Use the same results from Workload 3 strategy, but
+# - Divide the kernel loops value by 8
 #
 
 #############
@@ -148,6 +148,16 @@ Hawaii                                  1       0       3       1       1024    
 Hawaii                                  3       0       1       4       1024    32
 Hawaii                                  3       0       2       4       1024    64
 Hawaii                                  3       0       3       4       1024    256
+
+Hawaii                                  0       900     1       1       1024    32
+Hawaii                                  0       900     2       1       1024    64
+Hawaii                                  0       900     3       1       1024    128
+Hawaii                                  1       900     1       1       1024    40
+Hawaii                                  1       900     2       1       1024    80
+Hawaii                                  1       900     3       1       1024    160
+Hawaii                                  3       900     1       4       1024    64
+Hawaii                                  3       900     2       4       1024    128
+Hawaii                                  3       900     3       4       1024    512
 
 #
 # Following is some default we set for all not matching requests
