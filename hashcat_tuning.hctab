@@ -63,12 +63,9 @@
 #   ex: oclHashcat64.exe --markov-disable --outfile-autohex-disable --potfile-disable --logfile-disable --gpu-temp-disable -m 0 -a 3 hash.txt ?b?b?b?b?b?b?b -u xxx -n xxx --opencl-vector-width xxx
 # - always use the following parameters: --markov-disable --outfile-autohex-disable --potfile-disable --logfile-disable --gpu-retain-disable
 # - if you face 0H/s you have set some value ways too high
-# - most important: to hit the sweet spot, regardless of the parameter that you adjust, that is when there's almost no more increase in speed, choose the lowest number, it will help you in usability afterwards
 #
 # Workload 1 strategy;
 #
-# - run msi kombuster burn-in in gl2 mode in fullscreen mode with your native resolution, apply post-fx
-#   - alternative use any other gpu utilizating creating tool, try to have the gpu running at 50% utilization
 # - find kernel accel:
 #   - set kernel loops to 1
 #   - set vector width to 1
@@ -76,21 +73,21 @@
 # - find vector width:
 #   - set kernel accel to the previous value
 #   - set vector width to 1
-#   - increase vector width to hit the sweet spot (see above)
+#   - try the 4 different vector width and find the one with the lowest exec runtime
 # - find kernel loops:
 #   - set kernel accel to the previous value
 #   - set vector width to the previous value
-#   - increase kernel loops to the highest value which causes your gpu to stay below 10ms execution time (in status screen)
+#   - increase kernel loops to the highest value which causes your gpu to stay around 8ms execution time (in status screen)
 #
 # Workload 2 strategy
 #
-# - same as Workload 1 but stop kombuster or any other gpu utilizating creating tool, have the gpu running as low as possible
-# - increase kernel loops to the highest value which causes your gpu to stay below 15ms execution time (in status screen)
+# - same as Workload 1
+# - increase kernel loops to the highest value which causes your gpu to stay around 16ms execution time (in status screen)
 #
 # Workload 3 strategy
 #
-# - same as Workload 1 but stop kombuster or any other gpu utilizating creating tool, have the gpu running as low as possible
-# - increase kernel loops to the highest value which causes your gpu to stay below 30ms execution time (in status screen)
+# - same as Workload 1
+# - increase kernel loops to the highest value which causes your gpu to stay around 64ms execution time (in status screen)
 #
 
 #############
