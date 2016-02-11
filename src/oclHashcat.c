@@ -12484,7 +12484,7 @@ int main (int argc, char **argv)
 
         // tuning db
 
-        tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, attack_mode, hash_mode, workload_profile);
+        tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, attack_mode, hash_mode);
 
         // device_version
 
@@ -12529,8 +12529,10 @@ int main (int argc, char **argv)
             if (opti_type & OPTI_TYPE_USES_BITS_64)
             {
               hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
-            } else {
-              hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT, sizeof (vector_width), &vector_width, NULL);
+            }
+            else
+            {
+              hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
             }
           }
           else
@@ -12779,7 +12781,7 @@ int main (int argc, char **argv)
           uint _kernel_accel = kernel_accel;
           uint _kernel_loops = kernel_loops;
 
-          tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, attack_mode, hash_mode, workload_profile);
+          tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, attack_mode, hash_mode);
 
           if (kernel_accel_chgd == 0)
           {
@@ -12790,6 +12792,19 @@ int main (int argc, char **argv)
           {
             _kernel_loops = tuningdb_entry->kernel_loops;
           }
+
+          if (workload_profile == 1)
+          {
+            _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
+          }
+          else if (workload_profile == 2)
+          {
+            _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
+          }
+
+          /**
+           * there's a few algorithm that force a fixed kernel_loop count
+           */
 
           if ((opts_type & OPTS_TYPE_PT_BITSLICE) && (attack_mode == ATTACK_MODE_BF))
           {

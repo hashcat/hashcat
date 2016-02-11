@@ -4787,11 +4787,6 @@ int sort_by_tuning_db_entry (const void *v1, const void *v2)
 
   if (res3 != 0) return (res3);
 
-  const int res4 = t1->workload_profile
-                 - t2->workload_profile;
-
-  if (res4 != 0) return (res4);
-
   return 0;
 }
 
@@ -9161,7 +9156,7 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
 
       tuning_db->alias_cnt++;
     }
-    else if (token_cnt == 7)
+    else if (token_cnt == 6)
     {
       if ((token_ptr[1][0] != '0') &&
           (token_ptr[1][0] != '1') &&
@@ -9175,21 +9170,11 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
 
       if ((token_ptr[3][0] != '1') &&
           (token_ptr[3][0] != '2') &&
-          (token_ptr[3][0] != '3') &&
-          (token_ptr[3][0] != '*'))
+          (token_ptr[3][0] != '4') &&
+          (token_ptr[3][0] != '8') &&
+          (token_ptr[3][0] != 'N'))
       {
-        log_info ("WARNING: Tuning-db: Invalid workload_profile '%c' in Line '%u'", token_ptr[3][0], line_num);
-
-        continue;
-      }
-
-      if ((token_ptr[4][0] != '1') &&
-          (token_ptr[4][0] != '2') &&
-          (token_ptr[4][0] != '4') &&
-          (token_ptr[4][0] != '8') &&
-          (token_ptr[4][0] != 'N'))
-      {
-        log_info ("WARNING: Tuning-db: Invalid vector_width '%c' in Line '%u'", token_ptr[4][0], line_num);
+        log_info ("WARNING: Tuning-db: Invalid vector_width '%c' in Line '%u'", token_ptr[3][0], line_num);
 
         continue;
       }
@@ -9198,17 +9183,15 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
 
       int attack_mode      = -1;
       int hash_type        = -1;
-      int workload_profile = -1;
       int vector_width     = -1;
       int kernel_accel     = -1;
       int kernel_loops     = -1;
 
       if (token_ptr[1][0] != '*') attack_mode      = atoi (token_ptr[1]);
       if (token_ptr[2][0] != '*') hash_type        = atoi (token_ptr[2]);
-      if (token_ptr[3][0] != '*') workload_profile = atoi (token_ptr[3]);
-      if (token_ptr[4][0] != 'N') vector_width     = atoi (token_ptr[4]);
+      if (token_ptr[3][0] != 'N') vector_width     = atoi (token_ptr[3]);
 
-      kernel_accel = atoi (token_ptr[5]);
+      kernel_accel = atoi (token_ptr[4]);
 
       if ((kernel_accel < 1) || (kernel_accel > 1024))
       {
@@ -9217,7 +9200,7 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
         continue;
       }
 
-      kernel_loops = atoi (token_ptr[6]);
+      kernel_loops = atoi (token_ptr[5]);
 
       if ((kernel_loops < 1) || (kernel_loops > 1024))
       {
@@ -9231,7 +9214,6 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
       entry->device_name      = mystrdup (device_name);
       entry->attack_mode      = attack_mode;
       entry->hash_type        = hash_type;
-      entry->workload_profile = workload_profile;
       entry->vector_width     = vector_width;
       entry->kernel_accel     = kernel_accel;
       entry->kernel_loops     = kernel_loops;
@@ -9258,7 +9240,7 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
   return tuning_db;
 }
 
-tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, char *device_name, int attack_mode, int hash_type, int workload_profile)
+tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, char *device_name, int attack_mode, int hash_type)
 {
   static tuning_db_entry_t s;
 
@@ -9292,21 +9274,19 @@ tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, char *device_name, 
 
   // bsearch is not ideal but fast enough
 
-  s.device_name       = device_name_nospace;
-  s.attack_mode       = attack_mode;
-  s.hash_type         = hash_type;
-  s.workload_profile  = workload_profile;
+  s.device_name = device_name_nospace;
+  s.attack_mode = attack_mode;
+  s.hash_type   = hash_type;
 
   tuning_db_entry_t *entry = NULL;
 
-  // this will produce all 2^4 combinations required
+  // this will produce all 2^3 combinations required
 
-  for (i = 0; i < 16; i++)
+  for (i = 0; i < 8; i++)
   {
-    s.device_name       = (i & 1) ? "*" : device_name_nospace;
-    s.attack_mode       = (i & 2) ?  -1 : attack_mode;
-    s.hash_type         = (i & 4) ?  -1 : hash_type;
-    s.workload_profile  = (i & 8) ?  -1 : workload_profile;
+    s.device_name = (i & 1) ? "*" : device_name_nospace;
+    s.attack_mode = (i & 2) ?  -1 : attack_mode;
+    s.hash_type   = (i & 4) ?  -1 : hash_type;
 
     entry = bsearch (&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
 
