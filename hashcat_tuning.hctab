@@ -99,6 +99,8 @@
 
 GeForce_GTX_980                         ALIAS_maxwell
 GeForce_GTX_750_Ti                      ALIAS_maxwell
+Iris                                    ALIAS_OSX_GPU
+Intel(R)_Core(TM)_i7-4578U_CPU_@_3.00GHz ALIAS_OSX_CPU
 
 #############
 ## ENTRIES ##
