@@ -1,5 +1,5 @@
 
-# This file is used to preset the Vector-Width, the Kernel-Accept and the Kernel-Loops Value per Device, Workload-Profile, Hash-Type and Attack-Mode
+# This file is used to preset the Vector-Width, the Kernel-Accept and the Kernel-Loops Value per Device, Attack-Mode and Hash-Type
 #
 # - A valid line consists of the following fields (in that order):
 #   - Device-Name
@@ -50,13 +50,17 @@
 #
 #   - if you run -a0 attacks, choose your favourite wordlist (should have > 10m words)
 #   - if you run -a0 attacks, choose your favourite ruleset (should have > 2000 rules)
-#   ex: oclHashcat64.exe --markov-disable --outfile-autohex-disable --potfile-disable --logfile-disable --gpu-temp-disable -m 0 -a 0 hash.txt wordlist.txt -r rules\rockyou-30000.rule -u xxx -n xxx --opencl-vector-width xxx
 #
-#   - if you run -a1 attacks, ideally measure with -a6 while using ?a?a?a as mask and your favourite wordlist (should have > 10m words)
-#   ex: oclHashcat64.exe --markov-disable --outfile-autohex-disable --potfile-disable --logfile-disable --gpu-temp-disable -m 0 -a 6 hash.txt wordlist.txt ?a?a?a -u xxx -n xxx --opencl-vector-width xxx
+#   ex: oclHashcat64.exe -a 0 hash.txt wordlist.txt -r rules\rockyou-30000.rule -m xxx -u xxx -n xxx --opencl-vector-width xxx
 #
-#   - if you run -a3 attacks, use the mask ?b?b?b?b?b?b?b
-#   ex: oclHashcat64.exe --markov-disable --outfile-autohex-disable --potfile-disable --logfile-disable --gpu-temp-disable -m 0 -a 3 hash.txt ?b?b?b?b?b?b?b -u xxx -n xxx --opencl-vector-width xxx
+#   - if you run -a1/6/7 attacks, choose your favourite wordlist (should have > 10m words)
+#   - if you run -a1/6/7 attacks, choose ?a?a?a as mask
+#
+#   ex: oclHashcat64.exe -a 6 hash.txt wordlist.txt ?a?a?a -m xxx -u xxx -n xxx --opencl-vector-width xxx
+#
+#   - if you run -a3 attacks, choose ?b?b?b?b?b?b?b as mask
+#
+#   ex: oclHashcat64.exe -a 3 hash.txt ?b?b?b?b?b?b?b -m xxx -u xxx -n xxx --opencl-vector-width xxx
 #
 # How to find ideal settings for your device
 #
