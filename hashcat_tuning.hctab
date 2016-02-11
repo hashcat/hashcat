@@ -71,12 +71,14 @@
 #   - set kernel loops to 1
 #   - decrease kernel accel by dividing by two until gpu utilization settles down below 95%
 # - find vector width:
-#   - set kernel accel to the previous value
 #   - set vector width to 1
+#   - set kernel accel to the previous value
+#   - set kernel loops to 1
 #   - try the 4 different vector width 1, 2, 4 and 8 and use the one with the lowest exec runtime
 # - find kernel loops:
-#   - set kernel accel to the previous value
 #   - set vector width to the previous value
+#   - set kernel accel to the previous value
+#   - set kernel loops to 1
 #   - increase kernel loops in steps of 8 until execution time is closest to 64ms (in status screen)
 #
 # Workload 2 strategy
