@@ -1606,9 +1606,9 @@ ALIAS_OSX_GPU                                   3       8700    N       8       
 ALIAS_OSX_GPU                                   0       8800    N       8       256
 ALIAS_OSX_GPU                                   1       8800    N       16      256
 ALIAS_OSX_GPU                                   3       8800    N       32      256
-ALIAS_OSX_GPU                                   0       8900    N       16      1
-ALIAS_OSX_GPU                                   1       8900    N       32      1
-ALIAS_OSX_GPU                                   3       8900    N       64      1
+ALIAS_OSX_GPU                                   0       8900    N       1       1
+ALIAS_OSX_GPU                                   1       8900    N       1       1
+ALIAS_OSX_GPU                                   3       8900    N       1       1
 ALIAS_OSX_GPU                                   0       9000    N       2       16
 ALIAS_OSX_GPU                                   1       9000    N       4       16
 ALIAS_OSX_GPU                                   3       9000    N       8       16
