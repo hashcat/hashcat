@@ -4698,7 +4698,7 @@ static void *thread_calc (void *p)
   return NULL;
 }
 
-static void weak_hash_check (hc_device_param_t *device_param, const uint salt_pos, const uint kernel_loops)
+static void weak_hash_check (hc_device_param_t *device_param, const uint salt_pos)
 {
   if (!device_param)
   {
@@ -4706,6 +4706,8 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
 
     exit (-1);
   }
+
+  const uint kernel_loops = device_param->kernel_loops;
 
   salt_t *salt_buf = &data.salts_buf[salt_pos];
 
@@ -15267,7 +15269,7 @@ int main (int argc, char **argv)
 
       for (uint salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
       {
-        weak_hash_check (device_param, salt_pos, devices_param->kernel_loops);
+        weak_hash_check (device_param, salt_pos);
       }
     }
 
