@@ -18,6 +18,8 @@ const char *PROGNAME            = "oclHashcat";
 const uint  VERSION_BIN         = 210;
 const uint  RESTORE_MIN         = 210;
 
+double TARGET_MS_PROFILE[3]     = { 8, 24, 72 };
+
 #define INCR_RULES              10000
 #define INCR_SALTS              100000
 #define INCR_MASKS              1000
@@ -30,7 +32,6 @@ const uint  RESTORE_MIN         = 210;
 #define MARKOV_DISABLE          0
 #define MARKOV_CLASSIC          0
 #define BENCHMARK               0
-#define BENCHMARK_MODE          1
 #define RESTORE                 0
 #define RESTORE_TIMER           60
 #define RESTORE_DISABLE         0
@@ -334,11 +335,6 @@ const char *USAGE_BIG[] =
   "  -h,  --help                        Print help",
   "       --quiet                       Suppress output",
   "",
-  "* Benchmark:",
-  "",
-  "  -b,  --benchmark                   Run benchmark",
-  "       --benchmark-mode=NUM          Benchmark-mode, see references below",
-  "",
   "* Misc:",
   "",
   "       --hex-charset                 Assume charset is given in hex",
@@ -387,6 +383,7 @@ const char *USAGE_BIG[] =
   "",
   "* Resources:",
   "",
+  "  -b,  --benchmark                   Run benchmark",
   "  -c,  --segment-size=NUM            Size in MB to cache from the wordfile",
   "       --bitmap-min=NUM              Minimum number of bits allowed for bitmaps",
   "       --bitmap-max=NUM              Maximum number of bits allowed for bitmaps",
@@ -396,8 +393,8 @@ const char *USAGE_BIG[] =
   "       --opencl-device-types=STR     OpenCL device-types to use, separate with comma, see references below",
   "       --opencl-vector-width=NUM     OpenCL vector-width (either 1, 2, 4 or 8), overrides value from device query",
   "  -w,  --workload-profile=NUM        Enable a specific workload profile, see references below",
-  "  -n,  --kernel-accel=NUM            Workload tuning: 1, 8, 40, 80, 160",
-  "  -u,  --kernel-loops=NUM            Workload fine-tuning: 8 - 1024",
+  "  -n,  --kernel-accel=NUM            Workload tuning, increase the outer-loop step size",
+  "  -u,  --kernel-loops=NUM            Workload tuning, increase the inner-loop step size",
   "       --gpu-temp-disable            Disable temperature and fanspeed readings and triggers",
   #ifdef HAVE_HWMON
   "       --gpu-temp-abort=NUM          Abort session if GPU temperature reaches NUM degrees celsius",
@@ -443,14 +440,9 @@ const char *USAGE_BIG[] =
   "",
   "* Workload Profile:",
   "",
-  "    1 = Reduced performance profile (low latency desktop)",
-  "    2 = Default performance profile",
-  "    3 = Tuned   performance profile (high latency desktop)",
-  "",
-  "* Benchmark Settings:",
-  "",
-  "    0 = Manual Tuning",
-  "    1 = Performance Tuning, default",
+  "    1 = Interactive performance profile, kernel execution runtime to  8ms, lower latency desktop, lower speed",
+  "    2 = Default     performance profile, kernel execution runtime to 24ms, economic setting",
+  "    3 = Headless    performance profile, kernel execution runtime to 72ms, higher latency desktop, higher speed",
   "",
   "* OpenCL device-types:",
   "",
@@ -738,6 +730,31 @@ const char *USAGE_BIG[] =
  * oclHashcat specific functions
  */
 
+static double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
+{
+  int exec_pos = (int) device_param->exec_pos - 1 - last_num_entries;
+
+  if (exec_pos < 0) exec_pos += EXEC_CACHE;
+
+  double exec_ms_total = 0;
+
+  int exec_ms_cnt = 0;
+
+  for (int i = 0; i < last_num_entries; i++)
+  {
+    double exec_ms = device_param->exec_ms[(exec_pos + i) % EXEC_CACHE];
+
+    if (exec_ms)
+    {
+      exec_ms_total += exec_ms;
+
+      exec_ms_cnt++;
+    }
+  }
+
+  return exec_ms_total / exec_ms_cnt;
+}
+
 void status_display_automat ()
 {
   FILE *out = stdout;
@@ -789,23 +806,7 @@ void status_display_automat ()
 
     if (device_param->skipped) continue;
 
-    double exec_ms_total = 0;
-
-    int exec_ms_cnt = 0;
-
-    for (int i = 0; i < EXEC_CACHE; i++)
-    {
-      double exec_ms = device_param->exec_ms[i];
-
-      if (exec_ms)
-      {
-        exec_ms_total += exec_ms;
-
-        exec_ms_cnt++;
-      }
-    }
-
-    exec_ms_total /= exec_ms_cnt;
+    double exec_ms_total = get_avg_exec_time (device_param, EXEC_CACHE);
 
     fprintf (out, "%f\t", exec_ms_total);
   }
@@ -1206,23 +1207,7 @@ void status_display ()
 
     if (device_param->skipped) continue;
 
-    double exec_ms_total = 0;
-
-    int exec_ms_cnt = 0;
-
-    for (int i = 0; i < EXEC_CACHE; i++)
-    {
-      double exec_ms = device_param->exec_ms[i];
-
-      if (exec_ms)
-      {
-        exec_ms_total += exec_ms;
-
-        exec_ms_cnt++;
-      }
-    }
-
-    exec_ms_total /= exec_ms_cnt;
+    double exec_ms_total = get_avg_exec_time (device_param, EXEC_CACHE);
 
     exec_all_ms[device_id] = exec_ms_total;
   }
@@ -1703,23 +1688,7 @@ static void status_benchmark ()
 
     if (device_param->skipped) continue;
 
-    double exec_ms_total = 0;
-
-    int exec_ms_cnt = 0;
-
-    for (int i = 0; i < EXEC_CACHE; i++)
-    {
-      double exec_ms = device_param->exec_ms[i];
-
-      if (exec_ms)
-      {
-        exec_ms_total += exec_ms;
-
-        exec_ms_cnt++;
-      }
-    }
-
-    exec_ms_total /= exec_ms_cnt;
+    double exec_ms_total = get_avg_exec_time (device_param, EXEC_CACHE);
 
     exec_all_ms[device_id] = exec_ms_total;
   }
@@ -1767,7 +1736,7 @@ static void generate_source_kernel_filename (const uint attack_exec, const uint 
     snprintf (source_file, 255, "%s/OpenCL/m%05d.cl", shared_dir, (int) kern_type);
 }
 
-static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *profile_dir, char *device_name_chksum, char *cached_file)
+static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
 {
   if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
@@ -1796,7 +1765,7 @@ static void generate_source_kernel_mp_filename (const uint opti_type, const uint
   }
 }
 
-static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *profile_dir, char *device_name_chksum, char *cached_file)
+static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
 {
   if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
   {
@@ -1813,7 +1782,7 @@ static void generate_source_kernel_amp_filename (const uint attack_kern, char *s
   snprintf (source_file, 255, "%s/OpenCL/amp_a%d.cl", shared_dir, attack_kern);
 }
 
-static void generate_cached_kernel_amp_filename (const uint attack_kern, char *profile_dir, char *device_name_chksum, char *cached_file)
+static void generate_cached_kernel_amp_filename (const uint attack_kern, char *profile_dir, const char *device_name_chksum, char *cached_file)
 {
   snprintf (cached_file, 255, "%s/kernels/amp_a%d.%s.kernel", profile_dir, attack_kern, device_name_chksum);
 }
@@ -2397,21 +2366,21 @@ static void save_hash ()
   unlink (old_hashfile);
 }
 
-static float find_kernel_blocks_div (const u64 total_left, const uint kernel_blocks_all)
+static float find_kernel_power_div (const u64 total_left, const uint kernel_power_all)
 {
-  // function called only in case kernel_blocks_all > words_left)
+  // function called only in case kernel_power_all > words_left
 
-  float kernel_blocks_div = (float) (total_left) / kernel_blocks_all;
+  float kernel_power_div = (float) (total_left) / kernel_power_all;
 
-  kernel_blocks_div += kernel_blocks_div / 100;
+  kernel_power_div += kernel_power_div / 100;
 
-  u32 kernel_blocks_new = (u32) (kernel_blocks_all * kernel_blocks_div);
+  u32 kernel_power_new = (u32) (kernel_power_all * kernel_power_div);
 
-  while (kernel_blocks_new < total_left)
+  while (kernel_power_new < total_left)
   {
-    kernel_blocks_div += kernel_blocks_div / 100;
+    kernel_power_div += kernel_power_div / 100;
 
-    kernel_blocks_new = (u32) (kernel_blocks_all * kernel_blocks_div);
+    kernel_power_new = (u32) (kernel_power_all * kernel_power_div);
   }
 
   if (data.quiet == 0)
@@ -2429,9 +2398,9 @@ static float find_kernel_blocks_div (const u64 total_left, const uint kernel_blo
     fflush (stdout);
   }
 
-  if ((kernel_blocks_all * kernel_blocks_div) < 8) return 1;
+  if ((kernel_power_all * kernel_power_div) < 8) return 1;
 
-  return kernel_blocks_div;
+  return kernel_power_div;
 }
 
 static void run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num, const uint event_update)
@@ -2518,6 +2487,39 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     }
 
     device_param->exec_pos = exec_pos;
+
+    // autotune, first get the current avarage time exec_ms_total, this is our base for all
+
+    const double exec_ms_total = get_avg_exec_time (device_param, 4);
+
+    // now adjust kernel_loops
+
+    #define MIN_LOOPS device_param->kernel_loops_min
+    #define MAX_LOOPS device_param->kernel_loops_max
+
+    const double target_ms = TARGET_MS_PROFILE[data.workload_profile - 1];
+
+    if (exec_ms_total > target_ms)
+    {
+      u32 adj = 1;
+
+      if (device_param->kernel_loops >= (MIN_LOOPS + adj))
+      {
+        device_param->kernel_loops -= adj;
+      }
+    }
+
+    if (exec_ms_total < target_ms)
+    {
+      u32 adj = 1;
+
+      if (device_param->kernel_loops <= (MAX_LOOPS - adj))
+      {
+        device_param->kernel_loops += adj;
+      }
+    }
+
+    //printf ("%d %d %f\n", device_param->kernel_accel, device_param->kernel_loops, exec_ms_total);
   }
 
   hc_clReleaseEvent (data.ocl, event);
@@ -2756,12 +2758,6 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
 
 static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, const uint pws_cnt)
 {
-  const uint kernel_loops = device_param->kernel_loops;
-
-  //only useful in debug
-  //if (data.quiet == 0)
-  //  log_info ("Workload.Dev#%u : loops %u, accel %u", device_param->device_id + 1, device_param->kernel_loops, device_param->kernel_accel);
-
   // init speed timer
 
   uint speed_pos = device_param->speed_pos;
@@ -2811,7 +2807,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
   uint innerloop_step = 0;
   uint innerloop_cnt  = 0;
 
-  if      (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)   innerloop_step = kernel_loops;
+  if      (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)   innerloop_step = device_param->kernel_loops;
   else                                                      innerloop_step = 1;
 
   if      (data.attack_kern == ATTACK_KERN_STRAIGHT) innerloop_cnt  = data.kernel_rules_cnt;
@@ -2859,6 +2855,12 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
       if (data.devices_status == STATUS_QUIT)    break;
       if (data.devices_status == STATUS_BYPASS)  break;
 
+      // autotune start
+
+      if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL) innerloop_step = device_param->kernel_loops;
+
+      // autotune stop
+
       uint innerloop_left = innerloop_cnt - innerloop_pos;
 
       if (innerloop_left > innerloop_step) innerloop_left = innerloop_step;
@@ -2868,7 +2870,13 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
       device_param->kernel_params_buf32[27] = innerloop_left;
 
-      if (innerloop_left == 0) continue;
+      // i think we can get rid of this
+      if (innerloop_left == 0)
+      {
+        puts ("bug, how should this happen????\n");
+
+        continue;
+      }
 
       // initialize amplifiers
 
@@ -3045,18 +3053,24 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
         uint iter = salt_buf->salt_iter;
 
-        for (uint loop_pos = 0; loop_pos < iter; loop_pos += kernel_loops)
+        uint loop_step = device_param->kernel_loops;
+
+        for (uint loop_pos = 0; loop_pos < iter; loop_pos += loop_step)
         {
+          // autotune start
+
+          if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) loop_step = device_param->kernel_loops;
+
+          // autotune stop
+
           uint loop_left = iter - loop_pos;
 
-          loop_left = MIN (loop_left, kernel_loops);
+          loop_left = MIN (loop_left, loop_step);
 
           device_param->kernel_params_buf32[25] = loop_pos;
           device_param->kernel_params_buf32[26] = loop_left;
 
           run_kernel (KERN_RUN_2, device_param, pws_cnt, true);
-
-          if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
           if (data.devices_status == STATUS_CRACKED) break;
           if (data.devices_status == STATUS_ABORTED) break;
@@ -4081,32 +4095,30 @@ static uint get_work (hc_device_param_t *device_param, const u64 max)
 
   const u64 words_left = words_base - words_cur;
 
-  if (data.kernel_blocks_all > words_left)
+  if (data.kernel_power_all > words_left)
   {
-    if (data.kernel_blocks_div == 0)
+    if (data.kernel_power_div == 0)
     {
-      data.kernel_blocks_div = find_kernel_blocks_div (words_left, data.kernel_blocks_all);
+      data.kernel_power_div = find_kernel_power_div (words_left, data.kernel_power_all);
     }
   }
 
-  if (data.kernel_blocks_div)
+  if (data.kernel_power_div)
   {
-    if (device_param->kernel_blocks == device_param->kernel_blocks_user)
+    if (device_param->kernel_power == device_param->kernel_power_user)
     {
-      const u32 kernel_blocks_new = (float) device_param->kernel_blocks * data.kernel_blocks_div;
-      const u32 kernel_power_new  = kernel_blocks_new;
+      const u32 kernel_power_new = (float) device_param->kernel_power * data.kernel_power_div;
 
-      if (kernel_blocks_new < device_param->kernel_blocks)
+      if (kernel_power_new < device_param->kernel_power)
       {
-        device_param->kernel_blocks  = kernel_blocks_new;
-        device_param->kernel_power   = kernel_power_new;
+        device_param->kernel_power = kernel_power_new;
       }
     }
   }
 
-  const uint kernel_blocks = device_param->kernel_blocks;
+  const uint kernel_power = device_param->kernel_power;
 
-  uint work = MIN (words_left, kernel_blocks);
+  uint work = MIN (words_left, kernel_power);
 
   work = MIN (work, max);
 
@@ -4125,7 +4137,7 @@ static void *thread_calc_stdin (void *p)
 
   const uint attack_kern = data.attack_kern;
 
-  const uint kernel_blocks = device_param->kernel_blocks;
+  const uint kernel_power = device_param->kernel_power;
 
   while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
   {
@@ -4140,7 +4152,7 @@ static void *thread_calc_stdin (void *p)
 
     uint words_cur = 0;
 
-    while (words_cur < kernel_blocks)
+    while (words_cur < kernel_power)
     {
       char buf[BUFSIZ] = { 0 };
 
@@ -4375,6 +4387,40 @@ static void *thread_calc (void *p)
       if (data.devices_status == STATUS_BYPASS)  break;
 
       device_param->words_done = words_fin;
+
+      // first adjust kernel_accel
+
+/*
+      if (data.kernel_power_div) continue;
+
+      double exec_ms_total = get_avg_exec_time (device_param);
+
+      #define WL1_MS_ACCEL 8
+      #define WL2_MS_ACCEL 24
+      #define WL3_MS_ACCEL 72
+
+      if ((data.workload_profile == 3) || (data.benchmark == 1))
+      {
+        #define MIN_ACCEL 0
+        #define MAX_ACCEL device_param->kernel_accel_max
+
+        if (exec_ms_total < WL3_MS_ACCEL)
+        {
+          u32 adj = device_param->kernel_accel * (WL3_MS_ACCEL / exec_ms_total);
+
+          if (device_param->kernel_accel <= (MAX_ACCEL - adj))
+          {
+            device_param->kernel_accel += adj;
+
+            uint kernel_power = device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel;
+
+            device_param->kernel_power = kernel_power;
+          }
+
+          clean_from_pos (device_param, 1);
+        }
+      }
+*/
     }
   }
   else
@@ -4707,8 +4753,6 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
     exit (-1);
   }
 
-  const uint kernel_loops = device_param->kernel_loops;
-
   salt_t *salt_buf = &data.salts_buf[salt_pos];
 
   device_param->kernel_params_buf32[24] = salt_pos;
@@ -4740,13 +4784,21 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
   {
     run_kernel (KERN_RUN_1, device_param, 1, false);
 
+    uint loop_step = device_param->kernel_loops;
+
     const uint iter = salt_buf->salt_iter;
 
-    for (uint loop_pos = 0; loop_pos < iter; loop_pos += kernel_loops)
+    for (uint loop_pos = 0; loop_pos < iter; loop_pos += loop_step)
     {
+      // autotune start
+
+      if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) loop_step = device_param->kernel_loops;
+
+      // autotune stop
+
       uint loop_left = iter - loop_pos;
 
-      loop_left = MIN (loop_left, kernel_loops);
+      loop_left = MIN (loop_left, loop_step);
 
       device_param->kernel_params_buf32[25] = loop_pos;
       device_param->kernel_params_buf32[26] = loop_left;
@@ -5232,7 +5284,6 @@ int main (int argc, char **argv)
   uint  version           = VERSION;
   uint  quiet             = QUIET;
   uint  benchmark         = BENCHMARK;
-  uint  benchmark_mode    = BENCHMARK_MODE;
   uint  show              = SHOW;
   uint  left              = LEFT;
   uint  username          = USERNAME;
@@ -5328,7 +5379,6 @@ int main (int argc, char **argv)
   #define IDX_FORCE             0xff08
   #define IDX_RUNTIME           0xff09
   #define IDX_BENCHMARK         'b'
-  #define IDX_BENCHMARK_MODE    0xff32
   #define IDX_HASH_MODE         'm'
   #define IDX_ATTACK_MODE       'a'
   #define IDX_RP_FILE           'r'
@@ -5406,7 +5456,6 @@ int main (int argc, char **argv)
     {"outfile-check-dir", required_argument, 0, IDX_OUTFILE_CHECK_DIR},
     {"force",             no_argument,       0, IDX_FORCE},
     {"benchmark",         no_argument,       0, IDX_BENCHMARK},
-    {"benchmark-mode",    required_argument, 0, IDX_BENCHMARK_MODE},
     {"restore",           no_argument,       0, IDX_RESTORE},
     {"restore-disable",   no_argument,       0, IDX_RESTORE_DISABLE},
     {"status",            no_argument,       0, IDX_STATUS},
@@ -5667,19 +5716,21 @@ int main (int argc, char **argv)
     #endif
   }
 
-  uint hash_mode_chgd       = 0;
-  uint runtime_chgd         = 0;
-  uint kernel_loops_chgd    = 0;
-  uint kernel_accel_chgd    = 0;
-  uint attack_mode_chgd     = 0;
-  uint outfile_format_chgd  = 0;
-  uint rp_gen_seed_chgd     = 0;
-  uint remove_timer_chgd    = 0;
-  uint increment_min_chgd   = 0;
-  uint increment_max_chgd   = 0;
+  uint hash_mode_chgd         = 0;
+  uint runtime_chgd           = 0;
+  uint kernel_loops_chgd      = 0;
+  uint kernel_accel_chgd      = 0;
+  uint attack_mode_chgd       = 0;
+  uint outfile_format_chgd    = 0;
+  uint rp_gen_seed_chgd       = 0;
+  uint remove_timer_chgd      = 0;
+  uint increment_min_chgd     = 0;
+  uint increment_max_chgd     = 0;
+  uint workload_profile_chgd  = 0;
+
   #if defined(HAVE_HWMON) && defined(HAVE_ADL)
-  uint gpu_temp_retain_chgd = 0;
-  uint gpu_temp_abort_chgd  = 0;
+  uint gpu_temp_retain_chgd   = 0;
+  uint gpu_temp_abort_chgd    = 0;
   #endif
 
   optind = 1;
@@ -5712,7 +5763,6 @@ int main (int argc, char **argv)
       case IDX_LIMIT:             limit             = atoll (optarg);  break;
       case IDX_KEYSPACE:          keyspace          = 1;               break;
       case IDX_BENCHMARK:         benchmark         = 1;               break;
-      case IDX_BENCHMARK_MODE:    benchmark_mode    = atoi (optarg);   break;
       case IDX_RESTORE:                                                break;
       case IDX_RESTORE_DISABLE:   restore_disable   = 1;               break;
       case IDX_STATUS:            status            = 1;               break;
@@ -5758,7 +5808,8 @@ int main (int argc, char **argv)
                                   opencl_device_types = optarg;        break;
       case IDX_OPENCL_VECTOR_WIDTH:
                                   opencl_vector_width = atoi (optarg); break;
-      case IDX_WORKLOAD_PROFILE:  workload_profile  = atoi (optarg);   break;
+      case IDX_WORKLOAD_PROFILE:  workload_profile  = atoi (optarg);
+                                  workload_profile_chgd = 1;           break;
       case IDX_KERNEL_ACCEL:      kernel_accel      = atoi (optarg);
                                   kernel_accel_chgd = 1;               break;
       case IDX_KERNEL_LOOPS:      kernel_loops      = atoi (optarg);
@@ -5997,13 +6048,6 @@ int main (int argc, char **argv)
 
   if (kernel_accel_chgd == 1)
   {
-    if (workload_profile != WORKLOAD_PROFILE)
-    {
-      log_error ("ERROR: kernel-accel parameter can only be set when workload-profile %i is used", WORKLOAD_PROFILE);
-
-      return (-1);
-    }
-
     if (kernel_accel < 1)
     {
       log_error ("ERROR: Invalid kernel-accel specified");
@@ -6021,13 +6065,6 @@ int main (int argc, char **argv)
 
   if (kernel_loops_chgd == 1)
   {
-    if (workload_profile != WORKLOAD_PROFILE)
-    {
-      log_error ("ERROR: kernel-loops parameter can only be set when workload-profile %i is used", WORKLOAD_PROFILE);
-
-      return (-1);
-    }
-
     if (kernel_loops < 1)
     {
       log_error ("ERROR: Invalid kernel-loops specified");
@@ -6038,16 +6075,6 @@ int main (int argc, char **argv)
     if (kernel_loops > 1024)
     {
       log_error ("ERROR: Invalid kernel-loops specified");
-
-      return (-1);
-    }
-  }
-
-  if (benchmark == 1)
-  {
-    if (workload_profile != WORKLOAD_PROFILE)
-    {
-      log_error ("ERROR: Using the workload-profile in benchmark mode is not allowed");
 
       return (-1);
     }
@@ -6173,26 +6200,6 @@ int main (int argc, char **argv)
 
         return (-1);
       }
-    }
-
-    if (benchmark_mode == 0)
-    {
-      // nothing to do
-    }
-    else if (benchmark_mode == 1)
-    {
-      if (kernel_accel_chgd == 1 || kernel_loops_chgd == 1)
-      {
-        log_error ("ERROR: Benchmark-mode 1 does not allow kernel-accel or kernel-loops changed");
-
-        return (-1);
-      }
-    }
-    else
-    {
-      log_error ("ERROR: Benchmark-mode must be 0 or 1");
-
-      return (-1);
     }
   }
 
@@ -6505,6 +6512,7 @@ int main (int argc, char **argv)
   data.logfile_disable   = logfile_disable;
   data.truecrypt_keyfiles = truecrypt_keyfiles;
   data.scrypt_tmto       = scrypt_tmto;
+  data.workload_profile  = workload_profile;
 
   /**
    * cpu affinity
@@ -6570,7 +6578,6 @@ int main (int argc, char **argv)
   logfile_top_uint   (attack_mode);
   logfile_top_uint   (attack_kern);
   logfile_top_uint   (benchmark);
-  logfile_top_uint   (benchmark_mode);
   logfile_top_uint   (bitmap_min);
   logfile_top_uint   (bitmap_max);
   logfile_top_uint   (debug_mode);
@@ -6688,22 +6695,15 @@ int main (int argc, char **argv)
      * disable useless stuff for benchmark
      */
 
-    restore_timer    = 0;
-    status_timer     = 0;
-    restore_disable  = 1;
-    potfile_disable  = 1;
-    weak_hash_threshold = 0;
+    status_timer          = 0;
+    restore_timer         = 0;
+    restore_disable       = 1;
+    potfile_disable       = 1;
+    weak_hash_threshold   = 0;
 
-    data.restore_timer   = restore_timer;
-    data.status_timer    = status_timer;
-    data.restore_disable = restore_disable;
-
-    if (benchmark_mode == 1)
-    {
-      markov_disable = 1;
-
-      workload_profile = 3;
-    }
+    data.status_timer     = status_timer;
+    data.restore_timer    = restore_timer;
+    data.restore_disable  = restore_disable;
 
     /**
      * force attack mode to be bruteforce
@@ -6712,11 +6712,16 @@ int main (int argc, char **argv)
     attack_mode = ATTACK_MODE_BF;
     attack_kern = ATTACK_KERN_BF;
 
+    if (workload_profile_chgd == 0)
+    {
+      workload_profile = 3;
+
+      data.workload_profile = workload_profile;
+    }
+
     if (runtime_chgd == 0)
     {
-      runtime = 8;
-
-      if (benchmark_mode == 1) runtime = 17;
+      runtime = 17;
 
       data.runtime = runtime;
     }
@@ -10197,17 +10202,17 @@ int main (int argc, char **argv)
       case  5400:  esalt_size = sizeof (ikepsk_t);        break;
       case  5500:  esalt_size = sizeof (netntlm_t);       break;
       case  5600:  esalt_size = sizeof (netntlm_t);       break;
-      case  6211:
-      case  6212:
-      case  6213:
-      case  6221:
-      case  6222:
-      case  6223:
-      case  6231:
-      case  6232:
-      case  6233:
-      case  6241:
-      case  6242:
+      case  6211:  esalt_size = sizeof (tc_t);            break;
+      case  6212:  esalt_size = sizeof (tc_t);            break;
+      case  6213:  esalt_size = sizeof (tc_t);            break;
+      case  6221:  esalt_size = sizeof (tc_t);            break;
+      case  6222:  esalt_size = sizeof (tc_t);            break;
+      case  6223:  esalt_size = sizeof (tc_t);            break;
+      case  6231:  esalt_size = sizeof (tc_t);            break;
+      case  6232:  esalt_size = sizeof (tc_t);            break;
+      case  6233:  esalt_size = sizeof (tc_t);            break;
+      case  6241:  esalt_size = sizeof (tc_t);            break;
+      case  6242:  esalt_size = sizeof (tc_t);            break;
       case  6243:  esalt_size = sizeof (tc_t);            break;
       case  6600:  esalt_size = sizeof (agilekey_t);      break;
       case  7100:  esalt_size = sizeof (pbkdf2_sha512_t); break;
@@ -11316,17 +11321,28 @@ int main (int argc, char **argv)
                     break;
         case 5400:  data.hashfile = mystrdup ("hashcat.ikesha1");
                     break;
-        case 6211:
-        case 6212:
-        case 6213:
-        case 6221:
-        case 6222:
-        case 6223:
-        case 6231:
-        case 6232:
-        case 6233:
-        case 6241:
-        case 6242:
+        case 6211:  data.hashfile = mystrdup ("hashcat.tc");
+                    break;
+        case 6212:  data.hashfile = mystrdup ("hashcat.tc");
+                    break;
+        case 6213:  data.hashfile = mystrdup ("hashcat.tc");
+                    break;
+        case 6221:  data.hashfile = mystrdup ("hashcat.tc");
+                    break;
+        case 6222:  data.hashfile = mystrdup ("hashcat.tc");
+                    break;
+        case 6223:  data.hashfile = mystrdup ("hashcat.tc");
+                    break;
+        case 6231:  data.hashfile = mystrdup ("hashcat.tc");
+                    break;
+        case 6232:  data.hashfile = mystrdup ("hashcat.tc");
+                    break;
+        case 6233:  data.hashfile = mystrdup ("hashcat.tc");
+                    break;
+        case 6241:  data.hashfile = mystrdup ("hashcat.tc");
+                    break;
+        case 6242:  data.hashfile = mystrdup ("hashcat.tc");
+                    break;
         case 6243:  data.hashfile = mystrdup ("hashcat.tc");
                     break;
         case 6600:  data.hashfile = mystrdup ("hashcat.agilekey");
@@ -11361,20 +11377,28 @@ int main (int argc, char **argv)
                      break;
         case  5800:  hashes_buf[0].salt->salt_iter = ROUNDS_ANDROIDPIN - 1;
                      break;
-        case  6211:
-        case  6212:
+        case  6211:  hashes_buf[0].salt->salt_iter = ROUNDS_TRUECRYPT_2K;
+                     break;
+        case  6212:  hashes_buf[0].salt->salt_iter = ROUNDS_TRUECRYPT_2K;
+                     break;
         case  6213:  hashes_buf[0].salt->salt_iter = ROUNDS_TRUECRYPT_2K;
                      break;
-        case  6221:
-        case  6222:
+        case  6221:  hashes_buf[0].salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                     break;
+        case  6222:  hashes_buf[0].salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                     break;
         case  6223:  hashes_buf[0].salt->salt_iter = ROUNDS_TRUECRYPT_1K;
                      break;
-        case  6231:
-        case  6232:
+        case  6231:  hashes_buf[0].salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                     break;
+        case  6232:  hashes_buf[0].salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                     break;
         case  6233:  hashes_buf[0].salt->salt_iter = ROUNDS_TRUECRYPT_1K;
                      break;
-        case  6241:
-        case  6242:
+        case  6241:  hashes_buf[0].salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                     break;
+        case  6242:  hashes_buf[0].salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                     break;
         case  6243:  hashes_buf[0].salt->salt_iter = ROUNDS_TRUECRYPT_1K;
                      break;
         case  6300:  hashes_buf[0].salt->salt_iter = ROUNDS_MD5CRYPT;
@@ -12777,7 +12801,7 @@ int main (int argc, char **argv)
           }
 
           /**
-           * kernel accel and loops auto adjustment
+           * kernel accel and loops tuning db adjustment
            */
 
           uint _kernel_accel = kernel_accel;
@@ -12793,29 +12817,15 @@ int main (int argc, char **argv)
           if (kernel_loops_chgd == 0)
           {
             _kernel_loops = tuningdb_entry->kernel_loops;
-          }
 
-          if (workload_profile == 1)
-          {
-            _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
-          }
-          else if (workload_profile == 2)
-          {
-            _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
-          }
-
-          /**
-           * there's a few algorithm that force a fixed kernel_loop count
-           */
-
-          if ((opts_type & OPTS_TYPE_PT_BITSLICE) && (attack_mode == ATTACK_MODE_BF))
-          {
-            _kernel_loops = 1024;
-          }
-
-          if (hash_mode == 12500)
-          {
-            _kernel_loops = ROUNDS_RAR3 / 16;
+            if (workload_profile == 1)
+            {
+              _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
+            }
+            else if (workload_profile == 2)
+            {
+              _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
+            }
           }
 
           device_param->kernel_accel = _kernel_accel;
@@ -13205,7 +13215,7 @@ int main (int argc, char **argv)
     if (benchmark == 1) log_info ("Hashmode: %d", data.hash_mode);
     #endif
 
-    uint kernel_blocks_all = 0;
+    uint kernel_power_all = 0;
 
     for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
     {
@@ -13221,13 +13231,9 @@ int main (int argc, char **argv)
        * device properties
        */
 
-      char *device_name_chksum = device_param->device_name_chksum;
-
-      uint device_processors = device_param->device_processors;
-
-      uint device_processor_cores = device_param->device_processor_cores;
-
-      uint kernel_accel = device_param->kernel_accel;
+      const char *device_name_chksum      = device_param->device_name_chksum;
+      const u32   device_processors       = device_param->device_processors;
+      const u32   device_processor_cores  = device_param->device_processor_cores;
 
       /**
        * create context for each device
@@ -13245,159 +13251,8 @@ int main (int argc, char **argv)
       device_param->command_queue = hc_clCreateCommandQueue (data.ocl, device_param->context, device_param->device, CL_QUEUE_PROFILING_ENABLE);
 
       /**
-       * create input buffers on device
+       * create input buffers on device : calculate size of fixed memory buffers
        */
-
-      uint kernel_threads = KERNEL_THREADS;
-
-      // bcrypt
-      if (hash_mode == 3200) kernel_threads = 8;
-      if (hash_mode == 9000) kernel_threads = 8;
-
-      uint kernel_power  = 1;
-      uint kernel_blocks = 1;
-
-      uint size_pws   = 4;
-      uint size_tmps  = 4;
-      uint size_hooks = 4;
-
-      // find out if we would request too much memory on memory blocks which are based on kernel_accel
-
-      while (kernel_accel)
-      {
-        kernel_power  = device_processors * kernel_threads * kernel_accel;
-        kernel_blocks = kernel_power;
-
-        // size_pws
-
-        size_pws = kernel_blocks * sizeof (pw_t);
-
-        // size_tmps
-
-        switch (hash_mode)
-        {
-          case   400: size_tmps = kernel_blocks * sizeof (phpass_tmp_t);        break;
-          case   500: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
-          case   501: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
-          case  1600: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
-          case  1800: size_tmps = kernel_blocks * sizeof (sha512crypt_tmp_t);   break;
-          case  2100: size_tmps = kernel_blocks * sizeof (dcc2_tmp_t);          break;
-          case  2500: size_tmps = kernel_blocks * sizeof (wpa_tmp_t);           break;
-          case  3200: size_tmps = kernel_blocks * sizeof (bcrypt_tmp_t);        break;
-          case  5200: size_tmps = kernel_blocks * sizeof (pwsafe3_tmp_t);       break;
-          case  5800: size_tmps = kernel_blocks * sizeof (androidpin_tmp_t);    break;
-          case  6211:
-          case  6212:
-          case  6213: size_tmps = kernel_blocks * sizeof (tc_tmp_t);            break;
-          case  6221:
-          case  6222:
-          case  6223: size_tmps = kernel_blocks * sizeof (tc64_tmp_t);          break;
-          case  6231:
-          case  6232:
-          case  6233: size_tmps = kernel_blocks * sizeof (tc_tmp_t);            break;
-          case  6241:
-          case  6242:
-          case  6243: size_tmps = kernel_blocks * sizeof (tc_tmp_t);            break;
-          case  6300: size_tmps = kernel_blocks * sizeof (md5crypt_tmp_t);      break;
-          case  6400: size_tmps = kernel_blocks * sizeof (sha256aix_tmp_t);     break;
-          case  6500: size_tmps = kernel_blocks * sizeof (sha512aix_tmp_t);     break;
-          case  6600: size_tmps = kernel_blocks * sizeof (agilekey_tmp_t);      break;
-          case  6700: size_tmps = kernel_blocks * sizeof (sha1aix_tmp_t);       break;
-          case  6800: size_tmps = kernel_blocks * sizeof (lastpass_tmp_t);      break;
-          case  7100: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-          case  7200: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-          case  7400: size_tmps = kernel_blocks * sizeof (sha256crypt_tmp_t);   break;
-          case  7900: size_tmps = kernel_blocks * sizeof (drupal7_tmp_t);       break;
-          case  8200: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-          case  8800: size_tmps = kernel_blocks * sizeof (androidfde_tmp_t);    break;
-          case  8900: size_tmps = kernel_blocks * sizeof (scrypt_tmp_t);        break;
-          case  9000: size_tmps = kernel_blocks * sizeof (pwsafe2_tmp_t);       break;
-          case  9100: size_tmps = kernel_blocks * sizeof (lotus8_tmp_t);        break;
-          case  9200: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-          case  9300: size_tmps = kernel_blocks * sizeof (scrypt_tmp_t);        break;
-          case  9400: size_tmps = kernel_blocks * sizeof (office2007_tmp_t);    break;
-          case  9500: size_tmps = kernel_blocks * sizeof (office2010_tmp_t);    break;
-          case  9600: size_tmps = kernel_blocks * sizeof (office2013_tmp_t);    break;
-          case 10000: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-          case 10200: size_tmps = kernel_blocks * sizeof (cram_md5_t);          break;
-          case 10300: size_tmps = kernel_blocks * sizeof (saph_sha1_tmp_t);     break;
-          case 10500: size_tmps = kernel_blocks * sizeof (pdf14_tmp_t);         break;
-          case 10700: size_tmps = kernel_blocks * sizeof (pdf17l8_tmp_t);       break;
-          case 10900: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-          case 11300: size_tmps = kernel_blocks * sizeof (bitcoin_wallet_tmp_t); break;
-          case 11600: size_tmps = kernel_blocks * sizeof (seven_zip_tmp_t);     break;
-          case 11900: size_tmps = kernel_blocks * sizeof (pbkdf2_md5_tmp_t);    break;
-          case 12000: size_tmps = kernel_blocks * sizeof (pbkdf2_sha1_tmp_t);   break;
-          case 12100: size_tmps = kernel_blocks * sizeof (pbkdf2_sha512_tmp_t); break;
-          case 12200: size_tmps = kernel_blocks * sizeof (ecryptfs_tmp_t);      break;
-          case 12300: size_tmps = kernel_blocks * sizeof (oraclet_tmp_t);       break;
-          case 12400: size_tmps = kernel_blocks * sizeof (bsdicrypt_tmp_t);     break;
-          case 12500: size_tmps = kernel_blocks * sizeof (rar3_tmp_t);          break;
-          case 12700: size_tmps = kernel_blocks * sizeof (mywallet_tmp_t);      break;
-          case 12800: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-          case 12900: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-          case 13000: size_tmps = kernel_blocks * sizeof (pbkdf2_sha256_tmp_t); break;
-        };
-
-        // size_hooks
-
-        if ((opts_type & OPTS_TYPE_HOOK12) || (opts_type & OPTS_TYPE_HOOK23))
-        {
-          // none yet
-        }
-
-        // now check if all device-memory sizes which depend on the kernel_accel amplifier are within its boundaries
-        // if not, decrease amplifier and try again
-
-        if (size_pws > device_param->device_maxmem_alloc)
-        {
-          kernel_accel--;
-
-          continue;
-        }
-
-        if (size_tmps > device_param->device_maxmem_alloc)
-        {
-          kernel_accel--;
-
-          continue;
-        }
-
-        if (size_hooks > device_param->device_maxmem_alloc)
-        {
-          kernel_accel--;
-
-          continue;
-        }
-
-        if ((size_pws + size_tmps + size_hooks) > device_param->device_global_mem)
-        {
-          kernel_accel--;
-
-          continue;
-        }
-
-        break;
-      }
-
-      if (kernel_accel == 0)
-      {
-        log_error ("ERROR: Device #%u does not provide enough allocatable device-memory to handle hash-type %u", device_id + 1, data.hash_mode);
-
-        return -1;
-      }
-
-      device_param->kernel_threads      = kernel_threads;
-      device_param->kernel_power_user   = kernel_power;
-      device_param->kernel_blocks_user  = kernel_blocks;
-
-      kernel_blocks_all += kernel_blocks;
-
-      device_param->size_pws   = size_pws;
-      device_param->size_tmps  = size_tmps;
-      device_param->size_hooks = size_hooks;
-
-      // we can optimize some stuff here...
 
       uint size_root_css   = SP_PW_MAX *           sizeof (cs_t);
       uint size_markov_css = SP_PW_MAX * CHARSIZ * sizeof (cs_t);
@@ -13407,7 +13262,7 @@ int main (int argc, char **argv)
 
       uint size_results = KERNEL_THREADS * sizeof (uint);
 
-      device_param->size_results  = size_results;
+      device_param->size_results = size_results;
 
       uint size_rules   = kernel_rules_cnt * sizeof (kernel_rule_t);
       uint size_rules_c = KERNEL_RULES     * sizeof (kernel_rule_t);
@@ -13425,7 +13280,7 @@ int main (int argc, char **argv)
       uint size_bfs   = KERNEL_BFS   * sizeof (bf_t);
       uint size_tm    = 32           * sizeof (bs_word_t);
 
-      // scrypt stuff
+      // scryptV stuff
 
       u64 size_scryptV = 1;
 
@@ -13518,6 +13373,235 @@ int main (int argc, char **argv)
         if (quiet == 0) log_info ("");
         if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %u\n", data.salts_buf[0].scrypt_tmto, size_scryptV);
       }
+
+      /**
+       * create input buffers on device : calculate size of dynamic size memory buffers
+       */
+
+      uint kernel_threads = KERNEL_THREADS;
+
+      // some algorithms need a fixed kernel-threads count (mostly because of shared memory usage)
+
+      if (hash_mode == 3200) kernel_threads = 8;
+      if (hash_mode == 9000) kernel_threads = 8;
+
+      /**
+       * some algorithms need a fixed kernel-loops count
+       */
+
+      u32 kernel_loops_min = 1;
+      u32 kernel_loops_max = 1024;
+
+      if ((opts_type & OPTS_TYPE_PT_BITSLICE) && (attack_mode == ATTACK_MODE_BF))
+      {
+        const u32 kernel_loops_fixed = 1024;
+
+        device_param->kernel_loops = kernel_loops_fixed;
+
+        kernel_loops_min = kernel_loops_fixed;
+        kernel_loops_max = kernel_loops_fixed;
+      }
+
+      if (hash_mode == 8900)
+      {
+        const u32 kernel_loops_fixed = 1;
+
+        device_param->kernel_loops = kernel_loops_fixed;
+
+        kernel_loops_min = kernel_loops_fixed;
+        kernel_loops_max = kernel_loops_fixed;
+      }
+
+      if (hash_mode == 9300)
+      {
+        const u32 kernel_loops_fixed = 1;
+
+        device_param->kernel_loops = kernel_loops_fixed;
+
+        kernel_loops_min = kernel_loops_fixed;
+        kernel_loops_max = kernel_loops_fixed;
+      }
+
+      if (hash_mode == 12500)
+      {
+        const u32 kernel_loops_fixed = ROUNDS_RAR3 / 16;
+
+        device_param->kernel_loops = kernel_loops_fixed;
+
+        kernel_loops_min = kernel_loops_fixed;
+        kernel_loops_max = kernel_loops_fixed;
+      }
+
+      device_param->kernel_loops_min = kernel_loops_min;
+      device_param->kernel_loops_max = kernel_loops_max;
+
+      // find out if we would request too much memory on memory blocks which are based on kernel_accel
+
+      uint size_pws   = 4;
+      uint size_tmps  = 4;
+      uint size_hooks = 4;
+
+      uint kernel_accel_min = 1;
+      uint kernel_accel_max = device_param->kernel_accel;
+
+      while (kernel_accel_max)
+      {
+        uint kernel_power_max = device_processors * kernel_threads * kernel_accel_max;
+
+        // size_pws
+
+        size_pws = kernel_power_max * sizeof (pw_t);
+
+        // size_tmps
+
+        switch (hash_mode)
+        {
+          case   400: size_tmps = kernel_power_max * sizeof (phpass_tmp_t);          break;
+          case   500: size_tmps = kernel_power_max * sizeof (md5crypt_tmp_t);        break;
+          case   501: size_tmps = kernel_power_max * sizeof (md5crypt_tmp_t);        break;
+          case  1600: size_tmps = kernel_power_max * sizeof (md5crypt_tmp_t);        break;
+          case  1800: size_tmps = kernel_power_max * sizeof (sha512crypt_tmp_t);     break;
+          case  2100: size_tmps = kernel_power_max * sizeof (dcc2_tmp_t);            break;
+          case  2500: size_tmps = kernel_power_max * sizeof (wpa_tmp_t);             break;
+          case  3200: size_tmps = kernel_power_max * sizeof (bcrypt_tmp_t);          break;
+          case  5200: size_tmps = kernel_power_max * sizeof (pwsafe3_tmp_t);         break;
+          case  5800: size_tmps = kernel_power_max * sizeof (androidpin_tmp_t);      break;
+          case  6211: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case  6212: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case  6213: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case  6221: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
+          case  6222: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
+          case  6223: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
+          case  6231: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case  6232: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case  6233: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case  6241: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case  6242: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case  6243: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case  6300: size_tmps = kernel_power_max * sizeof (md5crypt_tmp_t);        break;
+          case  6400: size_tmps = kernel_power_max * sizeof (sha256aix_tmp_t);       break;
+          case  6500: size_tmps = kernel_power_max * sizeof (sha512aix_tmp_t);       break;
+          case  6600: size_tmps = kernel_power_max * sizeof (agilekey_tmp_t);        break;
+          case  6700: size_tmps = kernel_power_max * sizeof (sha1aix_tmp_t);         break;
+          case  6800: size_tmps = kernel_power_max * sizeof (lastpass_tmp_t);        break;
+          case  7100: size_tmps = kernel_power_max * sizeof (pbkdf2_sha512_tmp_t);   break;
+          case  7200: size_tmps = kernel_power_max * sizeof (pbkdf2_sha512_tmp_t);   break;
+          case  7400: size_tmps = kernel_power_max * sizeof (sha256crypt_tmp_t);     break;
+          case  7900: size_tmps = kernel_power_max * sizeof (drupal7_tmp_t);         break;
+          case  8200: size_tmps = kernel_power_max * sizeof (pbkdf2_sha512_tmp_t);   break;
+          case  8800: size_tmps = kernel_power_max * sizeof (androidfde_tmp_t);      break;
+          case  8900: size_tmps = kernel_power_max * sizeof (scrypt_tmp_t);          break;
+          case  9000: size_tmps = kernel_power_max * sizeof (pwsafe2_tmp_t);         break;
+          case  9100: size_tmps = kernel_power_max * sizeof (lotus8_tmp_t);          break;
+          case  9200: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
+          case  9300: size_tmps = kernel_power_max * sizeof (scrypt_tmp_t);          break;
+          case  9400: size_tmps = kernel_power_max * sizeof (office2007_tmp_t);      break;
+          case  9500: size_tmps = kernel_power_max * sizeof (office2010_tmp_t);      break;
+          case  9600: size_tmps = kernel_power_max * sizeof (office2013_tmp_t);      break;
+          case 10000: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
+          case 10200: size_tmps = kernel_power_max * sizeof (cram_md5_t);            break;
+          case 10300: size_tmps = kernel_power_max * sizeof (saph_sha1_tmp_t);       break;
+          case 10500: size_tmps = kernel_power_max * sizeof (pdf14_tmp_t);           break;
+          case 10700: size_tmps = kernel_power_max * sizeof (pdf17l8_tmp_t);         break;
+          case 10900: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
+          case 11300: size_tmps = kernel_power_max * sizeof (bitcoin_wallet_tmp_t);  break;
+          case 11600: size_tmps = kernel_power_max * sizeof (seven_zip_tmp_t);       break;
+          case 11900: size_tmps = kernel_power_max * sizeof (pbkdf2_md5_tmp_t);      break;
+          case 12000: size_tmps = kernel_power_max * sizeof (pbkdf2_sha1_tmp_t);     break;
+          case 12100: size_tmps = kernel_power_max * sizeof (pbkdf2_sha512_tmp_t);   break;
+          case 12200: size_tmps = kernel_power_max * sizeof (ecryptfs_tmp_t);        break;
+          case 12300: size_tmps = kernel_power_max * sizeof (oraclet_tmp_t);         break;
+          case 12400: size_tmps = kernel_power_max * sizeof (bsdicrypt_tmp_t);       break;
+          case 12500: size_tmps = kernel_power_max * sizeof (rar3_tmp_t);            break;
+          case 12700: size_tmps = kernel_power_max * sizeof (mywallet_tmp_t);        break;
+          case 12800: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
+          case 12900: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
+          case 13000: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
+        };
+
+        // size_hooks
+
+        if ((opts_type & OPTS_TYPE_HOOK12) || (opts_type & OPTS_TYPE_HOOK23))
+        {
+          // none yet
+        }
+
+        // now check if all device-memory sizes which depend on the kernel_accel_max amplifier are within its boundaries
+        // if not, decrease amplifier and try again
+
+        int skip = 0;
+
+        if (size_pws   > device_param->device_maxmem_alloc) skip = 1;
+        if (size_tmps  > device_param->device_maxmem_alloc) skip = 1;
+        if (size_hooks > device_param->device_maxmem_alloc) skip = 1;
+
+        if (( bitmap_size
+            + bitmap_size
+            + bitmap_size
+            + bitmap_size
+            + bitmap_size
+            + bitmap_size
+            + bitmap_size
+            + bitmap_size
+            + size_bfs
+            + size_combs
+            + size_digests
+            + size_esalts
+            + size_hooks
+            + size_markov_css
+            + size_plains
+            + size_pws
+            + size_results
+            + size_root_css
+            + size_rules
+            + size_rules_c
+            + size_salts
+            + size_scryptV
+            + size_shown
+            + size_tm
+            + size_tmps) > device_param->device_global_mem) skip = 1;
+
+        if (skip == 1)
+        {
+          kernel_accel_max--;
+
+          continue;
+        }
+
+        break;
+      }
+
+      if (kernel_accel_max == 0)
+      {
+        log_error ("Device #%u: Device does not provide enough allocatable device-memory to handle hash-type %u", device_id + 1, data.hash_mode);
+
+        return -1;
+      }
+
+      device_param->kernel_accel_min = kernel_accel_min;
+      device_param->kernel_accel_max = kernel_accel_max;
+
+      if (kernel_accel_max < kernel_accel)
+      {
+        if (quiet == 0) log_info ("Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
+
+        device_param->kernel_accel = kernel_accel_max;
+      }
+
+      const u32 kernel_accel = device_param->kernel_accel;
+
+      device_param->size_pws   = size_pws;
+      device_param->size_tmps  = size_tmps;
+      device_param->size_hooks = size_hooks;
+
+      // do not confuse kernel_accel_max with kernel_accel here
+
+      const u32 kernel_power = device_processors * kernel_threads * kernel_accel;
+
+      device_param->kernel_threads    = kernel_threads;
+      device_param->kernel_power_user = kernel_power;
+
+      kernel_power_all += kernel_power;
 
       /**
        * default building options
@@ -14419,7 +14503,7 @@ int main (int argc, char **argv)
       #endif // HAVE_HWMON && HAVE_ADL
     }
 
-    data.kernel_blocks_all = kernel_blocks_all;
+    data.kernel_power_all = kernel_power_all;
 
     if (data.quiet == 0) log_info ("");
 
@@ -15654,8 +15738,7 @@ int main (int argc, char **argv)
 
           memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
 
-          device_param->kernel_power  = device_param->kernel_power_user;
-          device_param->kernel_blocks = device_param->kernel_blocks_user;
+          device_param->kernel_power = device_param->kernel_power_user;
 
           device_param->outerloop_pos  = 0;
           device_param->outerloop_left = 0;
@@ -15675,7 +15758,7 @@ int main (int argc, char **argv)
           device_param->words_done = 0;
         }
 
-        data.kernel_blocks_div = 0;
+        data.kernel_power_div = 0;
 
         // figure out some workload
 
@@ -16124,7 +16207,7 @@ int main (int argc, char **argv)
 
         if ((wordlist_mode == WL_MODE_FILE) || (wordlist_mode == WL_MODE_MASK))
         {
-          if (data.words_base < kernel_blocks_all)
+          if (data.words_base < kernel_power_all)
           {
             if (quiet == 0)
             {

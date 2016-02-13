@@ -880,10 +880,12 @@ struct __hc_device_param
   uint    kernel_threads;
   uint    kernel_loops;
   uint    kernel_accel;
-  uint    kernel_power;          // these both are based on their _user counterpart
-  uint    kernel_blocks;         // but are modified by autotuner and used inside crack loops
+  uint    kernel_loops_min;
+  uint    kernel_loops_max;
+  uint    kernel_accel_min;
+  uint    kernel_accel_max;
+  uint    kernel_power;
   uint    kernel_power_user;
-  uint    kernel_blocks_user;
 
   uint    size_pws;
   uint    size_tmps;
@@ -1058,7 +1060,12 @@ typedef struct
 
   hc_device_param_t *devices_param;
 
-  uint    kernel_blocks_all;
+  /**
+   * workload specific
+   */
+
+  uint    kernel_power_all;
+  float   kernel_power_div;
 
   /**
    * attack specific
@@ -1192,11 +1199,11 @@ typedef struct
   uint    hex_wordlist;
   uint    pw_min;
   uint    pw_max;
-  float   kernel_blocks_div;
   uint    powertune_enable;
   uint    scrypt_tmto;
   uint    segment_size;
   char   *truecrypt_keyfiles;
+  uint    workload_profile;
 
   uint    hash_mode;
   uint    hash_type;

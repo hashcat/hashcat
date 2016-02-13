@@ -97,6 +97,10 @@ Issue: 2
 
 Type.: Change
 File.: Host
+Desc.: Removed option --benchmark-mode, you can now use --benchmark in combination with --workload-profile
+
+Type.: Change
+File.: Host
 Desc.: Expanded version information
 Issue: 138
 
