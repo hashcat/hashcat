@@ -6840,6 +6840,7 @@ int main (int argc, char **argv)
     restore_disable       = 1;
     potfile_disable       = 1;
     weak_hash_threshold   = 0;
+    gpu_temp_disable      = 1;
 
     data.status_timer     = status_timer;
     data.restore_timer    = restore_timer;
