@@ -13587,9 +13587,12 @@ int main (int argc, char **argv)
         kernel_loops_max = kernel_loops_fixed;
       }
 
-      if (data.salts_buf[0].salt_iter < kernel_loops_max)
+      if (attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
       {
-        kernel_loops_max = data.salts_buf[0].salt_iter;
+        if (data.salts_buf[0].salt_iter < kernel_loops_max)
+        {
+          kernel_loops_max = data.salts_buf[0].salt_iter;
+        }
       }
 
       device_param->kernel_loops_min = kernel_loops_min;
