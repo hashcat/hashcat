@@ -2833,11 +2833,11 @@ static void autotune (hc_device_param_t *device_param)
 
   u32 kernel_loops_tmp;
 
-  for (kernel_loops_tmp = kernel_loops_max; kernel_loops_tmp >= kernel_loops_min; kernel_loops_tmp >>= 1)
+  for (kernel_loops_tmp = MIN (kernel_loops_max, 200); kernel_loops_tmp >= kernel_loops_min; kernel_loops_tmp >>= 1)
   {
     const double exec_ms = try_run (device_param, kernel_accel_min, kernel_loops_tmp, 1);
 
-    if ((exec_ms * 3) < target_ms) break;
+    if (exec_ms < target_ms) break;
 
     if (kernel_loops_tmp == kernel_loops_min) break;
   }
