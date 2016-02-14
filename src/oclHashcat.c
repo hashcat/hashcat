@@ -18,7 +18,7 @@ const char *PROGNAME            = "oclHashcat";
 const uint  VERSION_BIN         = 210;
 const uint  RESTORE_MIN         = 210;
 
-double TARGET_MS_PROFILE[3]     = { 8, 24, 72 };
+double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 
 #define INCR_RULES              10000
 #define INCR_SALTS              100000
@@ -441,8 +441,8 @@ const char *USAGE_BIG[] =
   "* Workload Profile:",
   "",
   "    1 = Interactive performance profile, kernel execution runtime to  8ms, lower latency desktop, lower speed",
-  "    2 = Default     performance profile, kernel execution runtime to 24ms, economic setting",
-  "    3 = Headless    performance profile, kernel execution runtime to 72ms, higher latency desktop, higher speed",
+  "    2 = Default     performance profile, kernel execution runtime to 16ms, economic setting",
+  "    3 = Headless    performance profile, kernel execution runtime to 96ms, higher latency desktop, higher speed",
   "",
   "* OpenCL device-types:",
   "",
@@ -732,11 +732,11 @@ const char *USAGE_BIG[] =
 
 static double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
 {
-  int exec_pos = (int) device_param->exec_pos - 1 - last_num_entries;
+  int exec_pos = (int) device_param->exec_pos - last_num_entries;
 
   if (exec_pos < 0) exec_pos += EXEC_CACHE;
 
-  double exec_ms_total = 0;
+  double exec_ms_sum = 0;
 
   int exec_ms_cnt = 0;
 
@@ -746,13 +746,15 @@ static double get_avg_exec_time (hc_device_param_t *device_param, const int last
 
     if (exec_ms)
     {
-      exec_ms_total += exec_ms;
+      exec_ms_sum += exec_ms;
 
       exec_ms_cnt++;
     }
   }
 
-  return exec_ms_total / exec_ms_cnt;
+  if (exec_ms_cnt == 0) return 0;
+
+  return exec_ms_sum / exec_ms_cnt;
 }
 
 void status_display_automat ()
@@ -806,9 +808,9 @@ void status_display_automat ()
 
     if (device_param->skipped) continue;
 
-    double exec_ms_total = get_avg_exec_time (device_param, EXEC_CACHE);
+    double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
 
-    fprintf (out, "%f\t", exec_ms_total);
+    fprintf (out, "%f\t", exec_ms_avg);
   }
 
   /**
@@ -1207,9 +1209,9 @@ void status_display ()
 
     if (device_param->skipped) continue;
 
-    double exec_ms_total = get_avg_exec_time (device_param, EXEC_CACHE);
+    double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
 
-    exec_all_ms[device_id] = exec_ms_total;
+    exec_all_ms[device_id] = exec_ms_avg;
   }
 
   /**
@@ -1688,9 +1690,9 @@ static void status_benchmark ()
 
     if (device_param->skipped) continue;
 
-    double exec_ms_total = get_avg_exec_time (device_param, EXEC_CACHE);
+    double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
 
-    exec_all_ms[device_id] = exec_ms_total;
+    exec_all_ms[device_id] = exec_ms_avg;
   }
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
@@ -2487,39 +2489,6 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     }
 
     device_param->exec_pos = exec_pos;
-
-    // autotune, first get the current avarage time exec_ms_total, this is our base for all
-
-    const double exec_ms_total = get_avg_exec_time (device_param, 4);
-
-    // now adjust kernel_loops
-
-    #define MIN_LOOPS device_param->kernel_loops_min
-    #define MAX_LOOPS device_param->kernel_loops_max
-
-    const double target_ms = TARGET_MS_PROFILE[data.workload_profile - 1];
-
-    if (exec_ms_total > target_ms)
-    {
-      u32 adj = 1;
-
-      if (device_param->kernel_loops >= (MIN_LOOPS + adj))
-      {
-        device_param->kernel_loops -= adj;
-      }
-    }
-
-    if (exec_ms_total < target_ms)
-    {
-      u32 adj = 1;
-
-      if (device_param->kernel_loops <= (MAX_LOOPS - adj))
-      {
-        device_param->kernel_loops += adj;
-      }
-    }
-
-    //printf ("%d %d %f\n", device_param->kernel_accel, device_param->kernel_loops, exec_ms_total);
   }
 
   hc_clReleaseEvent (data.ocl, event);
@@ -2756,6 +2725,198 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
   }
 }
 
+static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops, const int repeat)
+{
+  const u32 kernel_power = device_param->device_processors * device_param->kernel_threads * kernel_accel;
+
+  device_param->kernel_params_buf32[26] = kernel_loops;
+  device_param->kernel_params_buf32[27] = kernel_loops;
+
+  // caching run
+
+  if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  {
+    run_kernel (KERN_RUN_1, device_param, kernel_power, false);
+  }
+  else
+  {
+    run_kernel (KERN_RUN_2, device_param, kernel_power, false);
+  }
+
+  // now user repeats
+
+  for (int i = 0; i < repeat; i++)
+  {
+    if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      run_kernel (KERN_RUN_1, device_param, kernel_power, true);
+    }
+    else
+    {
+      run_kernel (KERN_RUN_2, device_param, kernel_power, true);
+    }
+  }
+
+  const double exec_ms_prev = get_avg_exec_time (device_param, repeat);
+
+  return exec_ms_prev;
+}
+
+static void autotune (hc_device_param_t *device_param)
+{
+  const double target_ms = TARGET_MS_PROFILE[data.workload_profile - 1];
+
+  u32 kernel_loops_min = device_param->kernel_loops_min;
+  u32 kernel_loops_max = device_param->kernel_loops_max;
+
+  u32 kernel_accel_min = device_param->kernel_accel_min;
+  u32 kernel_accel_max = device_param->kernel_accel_max;
+
+  u32 kernel_loops = kernel_loops_min;
+  u32 kernel_accel = kernel_accel_min;
+
+  // init some fake words
+
+  const u32 kernel_power_max = device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel_max;
+
+  for (u32 i = 0; i < kernel_power_max; i++)
+  {
+    device_param->pws_buf[i].pw_len = 8;
+  }
+
+  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, device_param->size_pws, device_param->pws_buf, 0, NULL, NULL);
+  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, device_param->size_pws, device_param->pws_buf, 0, NULL, NULL);
+
+  // good increase steps
+
+  u32 steps[32];
+
+  steps[ 0] = 1;
+  steps[ 1] = 2;
+  steps[ 2] = 3;
+  steps[ 3] = 4;
+  steps[ 4] = 8;
+  steps[ 5] = 12;
+  steps[ 6] = 16;
+  steps[ 7] = 24;
+  steps[ 8] = 28;
+  steps[ 9] = 32;
+  steps[10] = 40;
+  steps[11] = 48;
+  steps[12] = 56;
+  steps[13] = 64;
+  steps[14] = 80;
+  steps[15] = 96;
+  steps[16] = 100;
+  steps[17] = 112;
+  steps[18] = 128;
+  steps[19] = 160;
+  steps[20] = 200;
+  steps[21] = 250;
+  steps[22] = 256;
+  steps[23] = 384;
+  steps[24] = 400;
+  steps[25] = 500;
+  steps[26] = 512;
+  steps[27] = 640;
+  steps[28] = 768;
+  steps[29] = 800;
+  steps[30] = 1000;
+  steps[31] = 1024;
+
+  // find out highest kernel-loops that stays below target_ms, we can use it later for multiplication as this is a linear function
+
+  u32 kernel_loops_tmp;
+
+  for (kernel_loops_tmp = kernel_loops_max; kernel_loops_tmp >= kernel_loops_min; kernel_loops_tmp >>= 1)
+  {
+    const double exec_ms = try_run (device_param, kernel_accel_min, kernel_loops_tmp, 1);
+
+    if (exec_ms < target_ms) break;
+
+    if (kernel_loops_tmp == kernel_loops_min) break;
+  }
+
+  // kernel-accel
+
+  double e_best = 0;
+
+  for (int i = 0; i < 32; i++)
+  {
+    const u32 kernel_accel_try = steps[i];
+
+    if (kernel_accel_try < kernel_accel_min) continue;
+    if (kernel_accel_try > kernel_accel_max) break;
+
+    const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_tmp, 1);
+
+    if (exec_ms > target_ms) break;
+
+    const double e = kernel_accel_try / exec_ms;
+
+    if (e > e_best)
+    {
+      kernel_accel = kernel_accel_try;
+
+      e_best = e;
+    }
+  }
+
+  // kernel-loops final
+
+  e_best = 0;
+
+  for (int i = 0; i < 32; i++)
+  {
+    const u32 kernel_loops_try = steps[i];
+
+    if (kernel_loops_try < kernel_loops_min) continue;
+    if (kernel_loops_try > kernel_loops_max) break;
+
+    const double exec_ms = try_run (device_param, kernel_accel, kernel_loops_try, 1);
+
+    if (exec_ms > target_ms) break;
+
+    const double e = kernel_loops_try / exec_ms;
+
+    if (e > e_best)
+    {
+      kernel_loops = kernel_loops_try;
+
+      e_best = e;
+    }
+  }
+
+  // reset timer
+
+  device_param->exec_pos = 0;
+
+  memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
+
+  // reset fake words
+
+  for (u32 i = 0; i < kernel_power_max; i++)
+  {
+    device_param->pws_buf[i].pw_len = 0;
+  }
+
+  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, device_param->size_pws, device_param->pws_buf, 0, NULL, NULL);
+  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, device_param->size_pws, device_param->pws_buf, 0, NULL, NULL);
+
+  // store
+
+  device_param->kernel_loops = kernel_loops;
+  device_param->kernel_accel = kernel_accel;
+
+  const u32 kernel_power = device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel;
+
+  device_param->kernel_power = kernel_power;
+
+  log_info ("Device #%u: autotuned kernel-accel to %u", device_param->device_id + 1, kernel_accel);
+  log_info ("Device #%u: autotuned kernel-loops to %u", device_param->device_id + 1, kernel_loops);
+  log_info ("");
+}
+
 static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, const uint pws_cnt)
 {
   // init speed timer
@@ -2854,12 +3015,6 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
       if (data.devices_status == STATUS_ABORTED) break;
       if (data.devices_status == STATUS_QUIT)    break;
       if (data.devices_status == STATUS_BYPASS)  break;
-
-      // autotune start
-
-      if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL) innerloop_step = device_param->kernel_loops;
-
-      // autotune stop
 
       uint innerloop_left = innerloop_cnt - innerloop_pos;
 
@@ -3057,12 +3212,6 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
         for (uint loop_pos = 0; loop_pos < iter; loop_pos += loop_step)
         {
-          // autotune start
-
-          if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) loop_step = device_param->kernel_loops;
-
-          // autotune stop
-
           uint loop_left = iter - loop_pos;
 
           loop_left = MIN (loop_left, loop_step);
@@ -4135,6 +4284,11 @@ static void *thread_calc_stdin (void *p)
 
   if (device_param->skipped) return NULL;
 
+  if ((device_param->kernel_accel == 0) && (device_param->kernel_loops == 0))
+  {
+    autotune (device_param);
+  }
+
   const uint attack_kern = data.attack_kern;
 
   const uint kernel_power = device_param->kernel_power;
@@ -4349,6 +4503,11 @@ static void *thread_calc (void *p)
 
   if (device_param->skipped) return NULL;
 
+  if ((device_param->kernel_accel == 0) && (device_param->kernel_loops == 0))
+  {
+    autotune (device_param);
+  }
+
   const uint attack_mode = data.attack_mode;
   const uint attack_kern = data.attack_kern;
 
@@ -4387,40 +4546,6 @@ static void *thread_calc (void *p)
       if (data.devices_status == STATUS_BYPASS)  break;
 
       device_param->words_done = words_fin;
-
-      // first adjust kernel_accel
-
-/*
-      if (data.kernel_power_div) continue;
-
-      double exec_ms_total = get_avg_exec_time (device_param);
-
-      #define WL1_MS_ACCEL 8
-      #define WL2_MS_ACCEL 24
-      #define WL3_MS_ACCEL 72
-
-      if ((data.workload_profile == 3) || (data.benchmark == 1))
-      {
-        #define MIN_ACCEL 0
-        #define MAX_ACCEL device_param->kernel_accel_max
-
-        if (exec_ms_total < WL3_MS_ACCEL)
-        {
-          u32 adj = device_param->kernel_accel * (WL3_MS_ACCEL / exec_ms_total);
-
-          if (device_param->kernel_accel <= (MAX_ACCEL - adj))
-          {
-            device_param->kernel_accel += adj;
-
-            uint kernel_power = device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel;
-
-            device_param->kernel_power = kernel_power;
-          }
-
-          clean_from_pos (device_param, 1);
-        }
-      }
-*/
     }
   }
   else
@@ -4784,18 +4909,12 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
   {
     run_kernel (KERN_RUN_1, device_param, 1, false);
 
-    uint loop_step = device_param->kernel_loops;
+    uint loop_step = 16;
 
     const uint iter = salt_buf->salt_iter;
 
     for (uint loop_pos = 0; loop_pos < iter; loop_pos += loop_step)
     {
-      // autotune start
-
-      if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) loop_step = device_param->kernel_loops;
-
-      // autotune stop
-
       uint loop_left = iter - loop_pos;
 
       loop_left = MIN (loop_left, loop_step);
@@ -5716,17 +5835,18 @@ int main (int argc, char **argv)
     #endif
   }
 
-  uint hash_mode_chgd         = 0;
-  uint runtime_chgd           = 0;
-  uint kernel_loops_chgd      = 0;
-  uint kernel_accel_chgd      = 0;
-  uint attack_mode_chgd       = 0;
-  uint outfile_format_chgd    = 0;
-  uint rp_gen_seed_chgd       = 0;
-  uint remove_timer_chgd      = 0;
-  uint increment_min_chgd     = 0;
-  uint increment_max_chgd     = 0;
-  uint workload_profile_chgd  = 0;
+  uint hash_mode_chgd           = 0;
+  uint runtime_chgd             = 0;
+  uint kernel_loops_chgd        = 0;
+  uint kernel_accel_chgd        = 0;
+  uint attack_mode_chgd         = 0;
+  uint outfile_format_chgd      = 0;
+  uint rp_gen_seed_chgd         = 0;
+  uint remove_timer_chgd        = 0;
+  uint increment_min_chgd       = 0;
+  uint increment_max_chgd       = 0;
+  uint workload_profile_chgd    = 0;
+  uint opencl_vector_width_chgd = 0;
 
   #if defined(HAVE_HWMON) && defined(HAVE_ADL)
   uint gpu_temp_retain_chgd   = 0;
@@ -5807,13 +5927,14 @@ int main (int argc, char **argv)
       case IDX_OPENCL_DEVICE_TYPES:
                                   opencl_device_types = optarg;        break;
       case IDX_OPENCL_VECTOR_WIDTH:
-                                  opencl_vector_width = atoi (optarg); break;
-      case IDX_WORKLOAD_PROFILE:  workload_profile  = atoi (optarg);
-                                  workload_profile_chgd = 1;           break;
-      case IDX_KERNEL_ACCEL:      kernel_accel      = atoi (optarg);
-                                  kernel_accel_chgd = 1;               break;
-      case IDX_KERNEL_LOOPS:      kernel_loops      = atoi (optarg);
-                                  kernel_loops_chgd = 1;               break;
+                                  opencl_vector_width      = atoi (optarg);
+                                  opencl_vector_width_chgd = 1;        break;
+      case IDX_WORKLOAD_PROFILE:  workload_profile         = atoi (optarg);
+                                  workload_profile_chgd    = 1;        break;
+      case IDX_KERNEL_ACCEL:      kernel_accel             = atoi (optarg);
+                                  kernel_accel_chgd        = 1;        break;
+      case IDX_KERNEL_LOOPS:      kernel_loops             = atoi (optarg);
+                                  kernel_loops_chgd        = 1;        break;
       case IDX_GPU_TEMP_DISABLE:  gpu_temp_disable  = 1;               break;
       #ifdef HAVE_HWMON
       case IDX_GPU_TEMP_ABORT:    gpu_temp_abort    = atoi (optarg);
@@ -6042,6 +6163,20 @@ int main (int argc, char **argv)
   if (rp_gen_func_min > rp_gen_func_max)
   {
     log_error ("ERROR: Invalid rp-gen-func-min specified");
+
+    return (-1);
+  }
+
+  if (kernel_accel_chgd == 1 && kernel_loops_chgd == 0)
+  {
+    log_error ("ERROR: If kernel-accel is specified, kernel-loops need to be specified as well");
+
+    return (-1);
+  }
+
+  if (kernel_loops_chgd == 1 && kernel_accel_chgd == 0)
+  {
+    log_error ("ERROR: If kernel-loops is specified, kernel-accel need to be specified as well");
 
     return (-1);
   }
@@ -12548,9 +12683,9 @@ int main (int argc, char **argv)
 
         cl_uint vector_width;
 
-        if (opencl_vector_width == OPENCL_VECTOR_WIDTH)
+        if (opencl_vector_width_chgd == 0)
         {
-          if (tuningdb_entry->vector_width == -1)
+          if (tuningdb_entry == NULL)
           {
             if (opti_type & OPTI_TYPE_USES_BITS_64)
             {
@@ -12563,7 +12698,21 @@ int main (int argc, char **argv)
           }
           else
           {
-            vector_width = (cl_uint) tuningdb_entry->vector_width;
+            if (tuningdb_entry->vector_width == -1)
+            {
+              if (opti_type & OPTI_TYPE_USES_BITS_64)
+              {
+                hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
+              }
+              else
+              {
+                hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
+              }
+            }
+            else
+            {
+              vector_width = (cl_uint) tuningdb_entry->vector_width;
+            }
           }
         }
         else
@@ -12811,20 +12960,26 @@ int main (int argc, char **argv)
 
           if (kernel_accel_chgd == 0)
           {
-            _kernel_accel = tuningdb_entry->kernel_accel;
+            if (tuningdb_entry)
+            {
+              _kernel_accel = tuningdb_entry->kernel_accel;
+            }
           }
 
           if (kernel_loops_chgd == 0)
           {
-            _kernel_loops = tuningdb_entry->kernel_loops;
+            if (tuningdb_entry)
+            {
+              _kernel_loops = tuningdb_entry->kernel_loops;
 
-            if (workload_profile == 1)
-            {
-              _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
-            }
-            else if (workload_profile == 2)
-            {
-              _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
+              if (workload_profile == 1)
+              {
+                _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
+              }
+              else if (workload_profile == 2)
+              {
+                _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
+              }
             }
           }
 
@@ -13392,11 +13547,17 @@ int main (int argc, char **argv)
       u32 kernel_loops_min = 1;
       u32 kernel_loops_max = 1024;
 
-      if ((opts_type & OPTS_TYPE_PT_BITSLICE) && (attack_mode == ATTACK_MODE_BF))
+      if (hash_mode == 1500)
       {
         const u32 kernel_loops_fixed = 1024;
 
-        device_param->kernel_loops = kernel_loops_fixed;
+        kernel_loops_min = kernel_loops_fixed;
+        kernel_loops_max = kernel_loops_fixed;
+      }
+
+      if (hash_mode == 3000)
+      {
+        const u32 kernel_loops_fixed = 1024;
 
         kernel_loops_min = kernel_loops_fixed;
         kernel_loops_max = kernel_loops_fixed;
@@ -13406,8 +13567,6 @@ int main (int argc, char **argv)
       {
         const u32 kernel_loops_fixed = 1;
 
-        device_param->kernel_loops = kernel_loops_fixed;
-
         kernel_loops_min = kernel_loops_fixed;
         kernel_loops_max = kernel_loops_fixed;
       }
@@ -13415,8 +13574,6 @@ int main (int argc, char **argv)
       if (hash_mode == 9300)
       {
         const u32 kernel_loops_fixed = 1;
-
-        device_param->kernel_loops = kernel_loops_fixed;
 
         kernel_loops_min = kernel_loops_fixed;
         kernel_loops_max = kernel_loops_fixed;
@@ -13426,10 +13583,13 @@ int main (int argc, char **argv)
       {
         const u32 kernel_loops_fixed = ROUNDS_RAR3 / 16;
 
-        device_param->kernel_loops = kernel_loops_fixed;
-
         kernel_loops_min = kernel_loops_fixed;
         kernel_loops_max = kernel_loops_fixed;
+      }
+
+      if (data.salts_buf[0].salt_iter < kernel_loops_max)
+      {
+        kernel_loops_max = data.salts_buf[0].salt_iter;
       }
 
       device_param->kernel_loops_min = kernel_loops_min;
@@ -13442,7 +13602,21 @@ int main (int argc, char **argv)
       uint size_hooks = 4;
 
       uint kernel_accel_min = 1;
-      uint kernel_accel_max = device_param->kernel_accel;
+      uint kernel_accel_max = 1024;
+
+      /**
+       * some algorithms need a special kernel-accel
+       */
+
+      if (hash_mode == 8900)
+      {
+        kernel_accel_max = 64;
+      }
+
+      if (hash_mode == 9300)
+      {
+        kernel_accel_max = 64;
+      }
 
       while (kernel_accel_max)
       {
@@ -14520,7 +14694,6 @@ int main (int argc, char **argv)
       char *hash_type = strhashtype (data.hash_mode); // not a bug
 
       log_info ("Hashtype: %s", hash_type);
-      //log_info ("Workload: %u loops, %u accel", kernel_loops, kernel_accel);
       log_info ("");
     }
 

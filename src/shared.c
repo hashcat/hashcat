@@ -5853,6 +5853,7 @@ char *strstatus (const uint devices_status)
     case  STATUS_QUIT:               return ((char *) ST_0007); break;
     case  STATUS_BYPASS:             return ((char *) ST_0008); break;
     case  STATUS_STOP_AT_CHECKPOINT: return ((char *) ST_0009); break;
+    case  STATUS_AUTOTUNE:           return ((char *) ST_0010); break;
   }
 
   return ((char *) "Unknown");
@@ -9191,38 +9192,52 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
       if (token_ptr[2][0] != '*') hash_type        = atoi (token_ptr[2]);
       if (token_ptr[3][0] != 'N') vector_width     = atoi (token_ptr[3]);
 
-      kernel_accel = atoi (token_ptr[4]);
-
-      if ((kernel_accel < 1) || (kernel_accel > 1024))
+      if (token_ptr[4][0] != 'A')
       {
-        log_info ("WARNING: Tuning-db: Invalid kernel_accel '%d' in Line '%u'", kernel_accel, line_num);
+        kernel_accel = atoi (token_ptr[4]);
 
-        continue;
+        if ((kernel_accel < 1) || (kernel_accel > 1024))
+        {
+          log_info ("WARNING: Tuning-db: Invalid kernel_accel '%d' in Line '%u'", kernel_accel, line_num);
+
+          continue;
+        }
+      }
+      else
+      {
+        kernel_accel = 0;
       }
 
-      kernel_loops = atoi (token_ptr[5]);
-
-      if ((kernel_loops < 1) || (kernel_loops > 1024))
+      if (token_ptr[5][0] != 'A')
       {
-        log_info ("WARNING: Tuning-db: Invalid kernel_loops '%d' in Line '%u'", kernel_loops, line_num);
+        kernel_loops = atoi (token_ptr[5]);
 
-        continue;
+        if ((kernel_loops < 1) || (kernel_loops > 1024))
+        {
+          log_info ("WARNING: Tuning-db: Invalid kernel_loops '%d' in Line '%u'", kernel_loops, line_num);
+
+          continue;
+        }
+      }
+      else
+      {
+        kernel_loops = 0;
       }
 
       tuning_db_entry_t *entry = &tuning_db->entry_buf[tuning_db->entry_cnt];
 
-      entry->device_name      = mystrdup (device_name);
-      entry->attack_mode      = attack_mode;
-      entry->hash_type        = hash_type;
-      entry->vector_width     = vector_width;
-      entry->kernel_accel     = kernel_accel;
-      entry->kernel_loops     = kernel_loops;
+      entry->device_name  = mystrdup (device_name);
+      entry->attack_mode  = attack_mode;
+      entry->hash_type    = hash_type;
+      entry->vector_width = vector_width;
+      entry->kernel_accel = kernel_accel;
+      entry->kernel_loops = kernel_loops;
 
       tuning_db->entry_cnt++;
     }
     else
     {
-      // todo: some warning message
+      log_info ("WARNING: Tuning-db: Invalid number of token in Line '%u'", line_num);
 
       continue;
     }
@@ -9302,17 +9317,6 @@ tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, char *device_name, 
 
       if (entry != NULL) break;
     }
-  }
-
-  // if still not found use some defaults
-
-  if (entry == NULL)
-  {
-    s.vector_width = TUNING_DB_DEFAULT_VECTOR_WIDTH;
-    s.kernel_accel = TUNING_DB_DEFAULT_KERNEL_ACCEL;
-    s.kernel_loops = TUNING_DB_DEFAULT_KERNEL_LOOPS;
-
-    return &s;
   }
 
   // free converted device_name

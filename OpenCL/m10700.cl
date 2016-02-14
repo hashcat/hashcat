@@ -1670,6 +1670,8 @@ __kernel void m10700_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   const u32 pw_len = pws[gid].pw_len;
 
+  if (pw_len == 0) return;
+
   /**
    * digest
    */

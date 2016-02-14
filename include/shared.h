@@ -153,10 +153,7 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define SP_ROOT_CNT           (SP_PW_MAX * CHARSIZ)
 #define SP_MARKOV_CNT         (SP_PW_MAX * CHARSIZ * CHARSIZ)
 
-#define TUNING_DB_FILE                  "hashcat_tuning.hctab"
-#define TUNING_DB_DEFAULT_VECTOR_WIDTH  1
-#define TUNING_DB_DEFAULT_KERNEL_ACCEL  1
-#define TUNING_DB_DEFAULT_KERNEL_LOOPS  1
+#define TUNING_DB_FILE        "hashcat_tuning.hctab"
 
 #define INDUCT_DIR            "induct"
 #define OUTFILES_DIR          "outfiles"
@@ -1233,6 +1230,7 @@ extern hc_thread_mutex_t mux_display;
 #define STATUS_QUIT               7
 #define STATUS_BYPASS             8
 #define STATUS_STOP_AT_CHECKPOINT 9
+#define STATUS_AUTOTUNE           10
 
 #define ST_0000 "Initializing"
 #define ST_0001 "Starting"
@@ -1244,6 +1242,7 @@ extern hc_thread_mutex_t mux_display;
 #define ST_0007 "Quit"
 #define ST_0008 "Bypass"
 #define ST_0009 "Running (stop at checkpoint)"
+#define ST_0010 "Autotuning"
 
 /**
  * kernel types
