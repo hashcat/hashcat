@@ -2787,42 +2787,47 @@ static void autotune (hc_device_param_t *device_param)
   hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, device_param->size_pws, device_param->pws_buf, 0, NULL, NULL);
   hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, device_param->size_pws, device_param->pws_buf, 0, NULL, NULL);
 
-  // good increase steps
+  // steps for loops
 
-  u32 steps[32];
+  #define STEPS_LOOPS_CNT 15
 
-  steps[ 0] = 1;
-  steps[ 1] = 2;
-  steps[ 2] = 3;
-  steps[ 3] = 4;
-  steps[ 4] = 8;
-  steps[ 5] = 12;
-  steps[ 6] = 16;
-  steps[ 7] = 24;
-  steps[ 8] = 28;
-  steps[ 9] = 32;
-  steps[10] = 40;
-  steps[11] = 48;
-  steps[12] = 56;
-  steps[13] = 64;
-  steps[14] = 80;
-  steps[15] = 96;
-  steps[16] = 100;
-  steps[17] = 112;
-  steps[18] = 128;
-  steps[19] = 160;
-  steps[20] = 200;
-  steps[21] = 250;
-  steps[22] = 256;
-  steps[23] = 384;
-  steps[24] = 400;
-  steps[25] = 500;
-  steps[26] = 512;
-  steps[27] = 640;
-  steps[28] = 768;
-  steps[29] = 800;
-  steps[30] = 1000;
-  steps[31] = 1024;
+  u32 steps_loops[STEPS_LOOPS_CNT];
+
+  steps_loops[ 0] = 1;
+  steps_loops[ 1] = 2;
+  steps_loops[ 2] = 4;
+  steps_loops[ 3] = 8;
+  steps_loops[ 4] = 16;
+  steps_loops[ 5] = 32;
+  steps_loops[ 6] = 64;
+  steps_loops[ 7] = 100;
+  steps_loops[ 8] = 128;
+  steps_loops[ 9] = 200;
+  steps_loops[10] = 256;
+  steps_loops[11] = 500;
+  steps_loops[12] = 512;
+  steps_loops[13] = 1000;
+  steps_loops[14] = 1024;
+
+  // steps for accel
+
+  #define STEPS_ACCEL_CNT 13
+
+  u32 steps_accel[STEPS_ACCEL_CNT];
+
+  steps_accel[ 0] = 1;
+  steps_accel[ 1] = 2;
+  steps_accel[ 2] = 4;
+  steps_accel[ 3] = 8;
+  steps_accel[ 4] = 16;
+  steps_accel[ 5] = 32;
+  steps_accel[ 6] = 64;
+  steps_accel[ 7] = 128;
+  steps_accel[ 8] = 256;
+  steps_accel[ 9] = 384;
+  steps_accel[10] = 512;
+  steps_accel[11] = 768;
+  steps_accel[12] = 1024;
 
   // find out highest kernel-loops that stays below target_ms, we can use it later for multiplication as this is a linear function
 
@@ -2832,7 +2837,7 @@ static void autotune (hc_device_param_t *device_param)
   {
     const double exec_ms = try_run (device_param, kernel_accel_min, kernel_loops_tmp, 1);
 
-    if (exec_ms < target_ms) break;
+    if ((exec_ms * 3) < target_ms) break;
 
     if (kernel_loops_tmp == kernel_loops_min) break;
   }
@@ -2841,9 +2846,9 @@ static void autotune (hc_device_param_t *device_param)
 
   double e_best = 0;
 
-  for (int i = 0; i < 32; i++)
+  for (int i = 0; i < STEPS_ACCEL_CNT; i++)
   {
-    const u32 kernel_accel_try = steps[i];
+    const u32 kernel_accel_try = steps_accel[i];
 
     if (kernel_accel_try < kernel_accel_min) continue;
     if (kernel_accel_try > kernel_accel_max) break;
@@ -2866,9 +2871,9 @@ static void autotune (hc_device_param_t *device_param)
 
   e_best = 0;
 
-  for (int i = 0; i < 32; i++)
+  for (int i = 0; i < STEPS_LOOPS_CNT; i++)
   {
-    const u32 kernel_loops_try = steps[i];
+    const u32 kernel_loops_try = steps_loops[i];
 
     if (kernel_loops_try < kernel_loops_min) continue;
     if (kernel_loops_try > kernel_loops_max) break;
