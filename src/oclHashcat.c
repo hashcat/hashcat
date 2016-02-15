@@ -12771,11 +12771,11 @@ int main (int argc, char **argv)
           {
             if (opti_type & OPTI_TYPE_USES_BITS_64)
             {
-              hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
+              hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
             }
             else
             {
-              hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
+              hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
             }
           }
           else
@@ -12784,11 +12784,11 @@ int main (int argc, char **argv)
             {
               if (opti_type & OPTI_TYPE_USES_BITS_64)
               {
-                hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
+                hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
               }
               else
               {
-                hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
+                hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
               }
             }
             else
