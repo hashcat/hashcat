@@ -32,6 +32,7 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 #define MARKOV_DISABLE          0
 #define MARKOV_CLASSIC          0
 #define BENCHMARK               0
+#define BENCHMARK_REPEATS       2
 #define RESTORE                 0
 #define RESTORE_TIMER           60
 #define RESTORE_DISABLE         0
@@ -384,6 +385,7 @@ const char *USAGE_BIG[] =
   "* Resources:",
   "",
   "  -b,  --benchmark                   Run benchmark",
+  "       --benchmark-repeats=NUM       Repeat the kernel on the device NUM times to increase benchmark accuracy",
   "  -c,  --segment-size=NUM            Size in MB to cache from the wordfile",
   "       --bitmap-min=NUM              Minimum number of bits allowed for bitmaps",
   "       --bitmap-max=NUM              Maximum number of bits allowed for bitmaps",
@@ -2691,6 +2693,83 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
   }
 }
 
+static void choose_kernel (hc_device_param_t *device_param, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt)
+{
+  if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  {
+    if (attack_mode == ATTACK_MODE_BF)
+    {
+      if (opts_type & OPTS_TYPE_PT_BITSLICE)
+      {
+        const uint size_tm = 32 * sizeof (bs_word_t);
+
+        run_kernel_bzero (device_param, device_param->d_tm_c, size_tm);
+
+        run_kernel_tm (device_param);
+
+        hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_tm_c, device_param->d_bfs_c, 0, 0, size_tm, 0, NULL, NULL);
+      }
+    }
+
+    if (highest_pw_len < 16)
+    {
+      run_kernel (KERN_RUN_1, device_param, pws_cnt, true);
+    }
+    else if (highest_pw_len < 32)
+    {
+      run_kernel (KERN_RUN_2, device_param, pws_cnt, true);
+    }
+    else
+    {
+      run_kernel (KERN_RUN_3, device_param, pws_cnt, true);
+    }
+  }
+  else
+  {
+    run_kernel_amp (device_param, pws_cnt);
+
+    run_kernel (KERN_RUN_1, device_param, pws_cnt, false);
+
+    if (opts_type & OPTS_TYPE_HOOK12)
+    {
+      run_kernel (KERN_RUN_12, device_param, pws_cnt, false);
+    }
+
+    uint iter = salt_buf->salt_iter;
+
+    uint loop_step = device_param->kernel_loops;
+
+    for (uint loop_pos = 0; loop_pos < iter; loop_pos += loop_step)
+    {
+      uint loop_left = iter - loop_pos;
+
+      loop_left = MIN (loop_left, loop_step);
+
+      device_param->kernel_params_buf32[25] = loop_pos;
+      device_param->kernel_params_buf32[26] = loop_left;
+
+      run_kernel (KERN_RUN_2, device_param, pws_cnt, true);
+
+      if (data.devices_status == STATUS_CRACKED) break;
+      if (data.devices_status == STATUS_ABORTED) break;
+      if (data.devices_status == STATUS_QUIT)    break;
+    }
+
+    if (opts_type & OPTS_TYPE_HOOK23)
+    {
+      run_kernel (KERN_RUN_23, device_param, pws_cnt, false);
+
+      hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+      // do something with data
+
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+    }
+
+    run_kernel (KERN_RUN_3, device_param, pws_cnt, false);
+  }
+}
+
 static int run_rule_engine (const int rule_len, const char *rule_buf)
 {
   if (rule_len == 0)
@@ -3219,78 +3298,14 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
         hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
       }
 
-      if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+      choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt);
+
+      if (data.benchmark == 1)
       {
-        if (data.attack_mode == ATTACK_MODE_BF)
+        for (u32 i = 0; i < data.benchmark_repeats; i++)
         {
-          if (data.opts_type & OPTS_TYPE_PT_BITSLICE)
-          {
-            const uint size_tm = 32 * sizeof (bs_word_t);
-
-            run_kernel_bzero (device_param, device_param->d_tm_c, size_tm);
-
-            run_kernel_tm (device_param);
-
-            hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_tm_c, device_param->d_bfs_c, 0, 0, size_tm, 0, NULL, NULL);
-          }
+          choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt);
         }
-
-        if (highest_pw_len < 16)
-        {
-          run_kernel (KERN_RUN_1, device_param, pws_cnt, true);
-        }
-        else if (highest_pw_len < 32)
-        {
-          run_kernel (KERN_RUN_2, device_param, pws_cnt, true);
-        }
-        else
-        {
-          run_kernel (KERN_RUN_3, device_param, pws_cnt, true);
-        }
-      }
-      else
-      {
-        run_kernel_amp (device_param, pws_cnt);
-
-        run_kernel (KERN_RUN_1, device_param, pws_cnt, false);
-
-        if (data.opts_type & OPTS_TYPE_HOOK12)
-        {
-          run_kernel (KERN_RUN_12, device_param, pws_cnt, false);
-        }
-
-        uint iter = salt_buf->salt_iter;
-
-        uint loop_step = device_param->kernel_loops;
-
-        for (uint loop_pos = 0; loop_pos < iter; loop_pos += loop_step)
-        {
-          uint loop_left = iter - loop_pos;
-
-          loop_left = MIN (loop_left, loop_step);
-
-          device_param->kernel_params_buf32[25] = loop_pos;
-          device_param->kernel_params_buf32[26] = loop_left;
-
-          run_kernel (KERN_RUN_2, device_param, pws_cnt, true);
-
-          if (data.devices_status == STATUS_CRACKED) break;
-          if (data.devices_status == STATUS_ABORTED) break;
-          if (data.devices_status == STATUS_QUIT)    break;
-        }
-
-        if (data.opts_type & OPTS_TYPE_HOOK23)
-        {
-          run_kernel (KERN_RUN_23, device_param, pws_cnt, false);
-
-          hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
-
-          // do something with data
-
-          hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
-        }
-
-        run_kernel (KERN_RUN_3, device_param, pws_cnt, false);
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
@@ -3314,6 +3329,11 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
        */
 
       u64 perf_sum_all = (u64) pw_cnt * (u64) innerloop_left;
+
+      if (data.benchmark == 1)
+      {
+        perf_sum_all = (perf_sum_all * data.benchmark_repeats) + perf_sum_all;
+      }
 
       hc_thread_mutex_lock (mux_counter);
 
@@ -5465,6 +5485,7 @@ int main (int argc, char **argv)
   uint  version           = VERSION;
   uint  quiet             = QUIET;
   uint  benchmark         = BENCHMARK;
+  uint  benchmark_repeats = BENCHMARK_REPEATS;
   uint  show              = SHOW;
   uint  left              = LEFT;
   uint  username          = USERNAME;
@@ -5560,6 +5581,7 @@ int main (int argc, char **argv)
   #define IDX_FORCE             0xff08
   #define IDX_RUNTIME           0xff09
   #define IDX_BENCHMARK         'b'
+  #define IDX_BENCHMARK_REPEATS 0xff78
   #define IDX_HASH_MODE         'm'
   #define IDX_ATTACK_MODE       'a'
   #define IDX_RP_FILE           'r'
@@ -5637,6 +5659,7 @@ int main (int argc, char **argv)
     {"outfile-check-dir", required_argument, 0, IDX_OUTFILE_CHECK_DIR},
     {"force",             no_argument,       0, IDX_FORCE},
     {"benchmark",         no_argument,       0, IDX_BENCHMARK},
+    {"benchmark-repeats", required_argument, 0, IDX_BENCHMARK_REPEATS},
     {"restore",           no_argument,       0, IDX_RESTORE},
     {"restore-disable",   no_argument,       0, IDX_RESTORE_DISABLE},
     {"status",            no_argument,       0, IDX_STATUS},
@@ -5945,6 +5968,7 @@ int main (int argc, char **argv)
       case IDX_LIMIT:             limit             = atoll (optarg);  break;
       case IDX_KEYSPACE:          keyspace          = 1;               break;
       case IDX_BENCHMARK:         benchmark         = 1;               break;
+      case IDX_BENCHMARK_REPEATS: benchmark_repeats = atoi (optarg);   break;
       case IDX_RESTORE:                                                break;
       case IDX_RESTORE_DISABLE:   restore_disable   = 1;               break;
       case IDX_STATUS:            status            = 1;               break;
@@ -6701,6 +6725,7 @@ int main (int argc, char **argv)
   data.rp_gen_seed       = rp_gen_seed;
   data.force             = force;
   data.benchmark         = benchmark;
+  data.benchmark_repeats = benchmark_repeats;
   data.skip              = skip;
   data.limit             = limit;
   #if defined(HAVE_HWMON) && defined(HAVE_ADL)
@@ -6775,6 +6800,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (attack_mode);
   logfile_top_uint   (attack_kern);
   logfile_top_uint   (benchmark);
+  logfile_top_uint   (benchmark_repeats);
   logfile_top_uint   (bitmap_min);
   logfile_top_uint   (bitmap_max);
   logfile_top_uint   (debug_mode);

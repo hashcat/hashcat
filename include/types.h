@@ -1189,6 +1189,7 @@ typedef struct
   uint    quiet;
   uint    force;
   uint    benchmark;
+  uint    benchmark_repeats;
   uint    runtime;
   uint    remove;
   uint    remove_timer;

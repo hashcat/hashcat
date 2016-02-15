@@ -176,18 +176,15 @@ _oclHashcat ()
   local OUTFILE_FORMATS="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15"
   local OPENCL_DEVICE_TYPES="1 2 3"
   local OPENCL_VECTOR_WIDTH="1 2 4 8"
-  local BENCHMARK_MODE="0 1"
   local DEBUG_MODE="1 2 3 4"
   local WORKLOAD_PROFILE="1 2 3"
-  local KERNEL_ACCEL="1 8 16 24 32 40 48 56 64 62 80 88 96 104 112 120 128 136 144 152 160"
-  local KERNEL_LOOPS="8 16 32 64 128 256 512 1024"
   local HIDDEN_FILES="exe|bin|pot|hcstat|dictstat|accepted|sh|cmd|bat|restore"
   local HIDDEN_FILES_AGGRESIVE="exe|bin|pot|hcstat|dictstat|hcmask|hcchr|accepted|sh|cmd|restore"
   local BUILD_IN_CHARSETS='?l ?u ?d ?a ?b ?s'
 
   local SHORT_OPTS="-m -a -V -v -h -b -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -i -s -l"
-  local LONG_OPTS="--hash-type --attack-mode --version --help --eula --quiet --benchmark --benchmark-mode --hex-salt --hex-wordlist --hex-charset --force --status --status-timer --status-automat --loopback --weak-hash-threshold --markov-hcstat --markov-disable --markov-classic --markov-threshold --runtime --session --restore --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --separator --show --left --username --remove --remove-timer --potfile-disable --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --gpu-temp-disable --gpu-temp-abort --gpu-temp-retain --powertune-enable --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --rules-cleanup --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --truecrypt-keyfiles"
-  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --benchmark-mode --status-timer --weak-hash-threshold --markov-hcstat --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --gpu-temp-abort --gpu-temp-retain -disable --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --truecrypt-keyfiles"
+  local LONG_OPTS="--hash-type --attack-mode --version --help --eula --quiet --benchmark --benchmark-repeats --hex-salt --hex-wordlist --hex-charset --force --status --status-timer --status-automat --loopback --weak-hash-threshold --markov-hcstat --markov-disable --markov-classic --markov-threshold --runtime --session --restore --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --separator --show --left --username --remove --remove-timer --potfile-disable --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --gpu-temp-disable --gpu-temp-abort --gpu-temp-retain --powertune-enable --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --rules-cleanup --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --truecrypt-keyfiles"
+  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --benchmark-repeats --status-timer --weak-hash-threshold --markov-hcstat --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --gpu-temp-abort --gpu-temp-retain -disable --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --truecrypt-keyfiles"
 
   COMPREPLY=()
   local cur="${COMP_WORDS[COMP_CWORD]}"
@@ -225,23 +222,8 @@ _oclHashcat ()
       return 0
       ;;
 
-    --benchmark-mode)
-      COMPREPLY=($(compgen -W "${BENCHMARK_MODE}" -- ${cur}))
-      return 0
-      ;;
-
     -w|--workload-profile)
       COMPREPLY=($(compgen -W "${WORKLOAD_PROFILE}" -- ${cur}))
-      return 0
-      ;;
-
-    -n|--kernel-accel)
-      COMPREPLY=($(compgen -W "${KERNEL_ACCEL}" -- ${cur}))
-      return 0
-      ;;
-
-    -u|--kernel-loops)
-      COMPREPLY=($(compgen -W "${KERNEL_LOOPS}" -- ${cur}))
       return 0
       ;;
 
@@ -416,18 +398,6 @@ _oclHashcat ()
     -w*)
       local workload_profile_var="$(echo -n "-w ${WORKLOAD_PROFILE}" | sed 's/ / -w/g')"
       COMPREPLY=($(compgen -W "${workload_profile_var}" -- ${cur}))
-      return 0
-      ;;
-
-    -n*)
-      local kernel_accel_var="$(echo -n "-n ${KERNEL_ACCEL}" | sed 's/ / -n/g')"
-      COMPREPLY=($(compgen -W "${kernel_accel_var}" -- ${cur}))
-      return 0
-      ;;
-
-    -u*)
-      local kernel_loops_var="$(echo -n "-u ${KERNEL_LOOPS}" | sed 's/ / -u/g')"
-      COMPREPLY=($(compgen -W "${kernel_loops_var}" -- ${cur}))
       return 0
       ;;
 
