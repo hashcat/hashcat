@@ -2448,21 +2448,18 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     const size_t global_work_size[3] = { num_elements,        32, 1 };
     const size_t local_work_size[3]  = { kernel_threads / 32, 32, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, &event, true);
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, &event);
   }
   else
   {
+    size_t workgroup_size = 0;
+    hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
+    if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
+
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    const cl_int rc = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event, false);
-
-    if (rc != CL_SUCCESS)
-    {
-      const size_t local_work_size_fallback[3]  = { 1, 1, 1 };
-
-      hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size_fallback, 0, NULL, &event, true);
-    }
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
   }
 
   hc_clFlush (data.ocl, device_param->command_queue);
@@ -2512,7 +2509,7 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
   // causes problems with special threads like in bcrypt
   // const uint kernel_threads = device_param->kernel_threads;
 
-  const uint kernel_threads = KERNEL_THREADS;
+  uint kernel_threads = KERNEL_THREADS;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -2551,17 +2548,14 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
                         break;
   }
 
+  size_t workgroup_size = 0;
+  hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &workgroup_size, NULL);
+  if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
+
   const size_t global_work_size[3] = { num_elements, 1, 1 };
   const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-  const cl_int rc = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, false);
-
-  if (rc != CL_SUCCESS)
-  {
-    const size_t local_work_size_fallback[3]  = { 1, 1, 1 };
-
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size_fallback, 0, NULL, NULL, true);
-  }
+  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
@@ -2578,17 +2572,14 @@ static void run_kernel_tb (hc_device_param_t *device_param, const uint num)
 
   cl_kernel kernel = device_param->kernel_tb;
 
+  size_t workgroup_size = 0;
+  hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
+  if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
+
   const size_t global_work_size[3] = { num_elements, 1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  const cl_int rc = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, false);
-
-  if (rc != CL_SUCCESS)
-  {
-    const size_t local_work_size_fallback[3]  = { 1, 1, 1 };
-
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size_fallback, 0, NULL, NULL, true);
-  }
+  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
@@ -2599,21 +2590,18 @@ static void run_kernel_tm (hc_device_param_t *device_param)
 {
   const uint num_elements = 1024; // fixed
 
-  const uint kernel_threads = 32;
+  uint kernel_threads = 32;
 
   cl_kernel kernel = device_param->kernel_tm;
+
+  size_t workgroup_size = 0;
+  hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
+  if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
 
   const size_t global_work_size[3] = { num_elements, 1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  const cl_int rc = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, false);
-
-  if (rc != CL_SUCCESS)
-  {
-    const size_t local_work_size_fallback[3]  = { 1, 1, 1 };
-
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size_fallback, 0, NULL, NULL, true);
-  }
+  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
@@ -2630,7 +2618,7 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   // causes problems with special threads like in bcrypt
   // const uint kernel_threads = device_param->kernel_threads;
 
-  const uint kernel_threads = KERNEL_THREADS;
+  uint kernel_threads = KERNEL_THREADS;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -2639,17 +2627,14 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
   hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint), device_param->kernel_params_amp[6]);
 
+  size_t workgroup_size = 0;
+  hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
+  if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
+
   const size_t global_work_size[3] = { num_elements, 1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  const cl_int rc = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL, false);
-
-  if (rc != CL_SUCCESS)
-  {
-    const size_t local_work_size_fallback[3]  = { 1, 1, 1 };
-
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size_fallback, 0, NULL, NULL, true);
-  }
+  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
