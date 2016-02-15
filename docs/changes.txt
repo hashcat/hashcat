@@ -6,10 +6,6 @@ Desc.: Dropped CUDA support and switched to OpenCL for NVidia
 
 Type.: Feature
 File.: Kernel
-Desc.: Extended support from 14 to 255 functions calls per rule on GPU
-
-Type.: Feature
-File.: Kernel
 Desc.: Added new hash mode -m 12900 = Android FDE (Samsung DEK)
 Issue: 86
 
@@ -17,6 +13,10 @@ Type.: Feature
 File.: Kernel
 Desc.: Added new hash mode -m 13000 = RAR5
 Issue: 68
+
+Type.: Feature
+File.: Kernel
+Desc.: Extended support from 14 to 255 functions calls per rule on GPU
 
 Type.: Feature
 File.: Host
@@ -62,6 +62,10 @@ Type.: Feature
 File.: Host
 Desc.: Added option --opencl-vector-width to override automatically selected vector-width size
 Issue: 2
+
+Type.: Feature
+File.: Host
+Desc.: Added autotuning engine and tuning database
 
 Type.: Feature
 File.: Host
