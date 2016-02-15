@@ -2441,40 +2441,40 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
   hc_clSetKernelArg (data.ocl, kernel, 30, sizeof (cl_uint), device_param->kernel_params[30]);
   hc_clSetKernelArg (data.ocl, kernel, 31, sizeof (cl_uint), device_param->kernel_params[31]);
 
-  cl_event event;
+  hc_timer_t timer;
+
+  hc_timer_set (&timer);
 
   if ((data.opts_type & OPTS_TYPE_PT_BITSLICE) && (data.attack_mode == ATTACK_MODE_BF))
   {
     const size_t global_work_size[3] = { num_elements,        32, 1 };
     const size_t local_work_size[3]  = { kernel_threads / 32, 32, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, &event);
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL);
   }
   else
   {
     size_t workgroup_size = 0;
+
     hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
+
     if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
 
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
   }
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
-  hc_clWaitForEvents (data.ocl, 1, &event);
+  hc_clFinish (data.ocl, device_param->command_queue);
 
   if (event_update)
   {
-    cl_ulong time_start;
-    cl_ulong time_end;
+    float exec_time;
 
-    hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
-    hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
-
-    const double exec_time = (time_end - time_start) / 1000000.0;
+    hc_timer_get (timer, exec_time);
 
     uint exec_pos = device_param->exec_pos;
 
@@ -2489,10 +2489,6 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 
     device_param->exec_pos = exec_pos;
   }
-
-  hc_clReleaseEvent (data.ocl, event);
-
-  hc_clFinish (data.ocl, device_param->command_queue);
 }
 
 static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param, const uint num)
