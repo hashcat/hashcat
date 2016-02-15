@@ -3299,6 +3299,15 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
       {
         speed_pos = 0;
       }
+
+      /**
+       * benchmark
+       */
+
+      if (data.benchmark == 1)
+      {
+        data.devices_status = STATUS_BYPASS;
+      };
     }
   }
 
@@ -6858,13 +6867,6 @@ int main (int argc, char **argv)
       workload_profile = 3;
 
       data.workload_profile = workload_profile;
-    }
-
-    if (runtime_chgd == 0)
-    {
-      runtime = 17;
-
-      data.runtime = runtime;
     }
   }
 
