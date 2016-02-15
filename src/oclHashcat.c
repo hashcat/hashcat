@@ -3357,10 +3357,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
        * benchmark
        */
 
-      if (data.benchmark == 1)
-      {
-        data.devices_status = STATUS_BYPASS;
-      };
+      if (data.benchmark == 1) break;
     }
   }
 
@@ -4611,6 +4608,8 @@ static void *thread_calc (void *p)
       if (data.devices_status == STATUS_ABORTED) break;
       if (data.devices_status == STATUS_QUIT)    break;
       if (data.devices_status == STATUS_BYPASS)  break;
+
+      if (data.benchmark == 1) break;
 
       device_param->words_done = words_fin;
     }
