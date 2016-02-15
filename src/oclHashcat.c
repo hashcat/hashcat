@@ -2892,6 +2892,54 @@ static void autotune (hc_device_param_t *device_param)
     }
   }
 
+  // final balance
+
+  const double exec_ms = try_run (device_param, kernel_accel, kernel_loops, 1);
+
+  e_best = exec_ms;
+
+  u32 kernel_accel_try = kernel_accel;
+  u32 kernel_loops_try = kernel_loops;
+
+  for (int i = 0; i < 2; i++)
+  {
+    kernel_accel_try >>= 1;
+    kernel_loops_try <<= 1;
+
+    if (kernel_accel_try < kernel_accel_min) break;
+    if (kernel_loops_try > kernel_loops_max) break;
+
+    const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try, 1);
+
+    if (exec_ms > e_best) break;
+
+    kernel_accel = kernel_accel_try;
+    kernel_loops = kernel_loops_try;
+
+    e_best = exec_ms;
+  }
+
+  kernel_accel_try = kernel_accel;
+  kernel_loops_try = kernel_loops;
+
+  for (int i = 0; i < 2; i++)
+  {
+    kernel_accel_try <<= 1;
+    kernel_loops_try >>= 1;
+
+    if (kernel_accel_try > kernel_accel_max) break;
+    if (kernel_loops_try < kernel_loops_min) break;
+
+    const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try, 1);
+
+    if (exec_ms > e_best) break;
+
+    kernel_accel = kernel_accel_try;
+    kernel_loops = kernel_loops_try;
+
+    e_best = exec_ms;
+  }
+
   // reset timer
 
   device_param->exec_pos = 0;
