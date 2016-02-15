@@ -4348,7 +4348,9 @@ static void *thread_calc_stdin (void *p)
 
   if (device_param->skipped) return NULL;
 
-  if ((device_param->kernel_accel == 0) && (device_param->kernel_loops == 0))
+  const bool run_autotune = ((device_param->kernel_accel == 0) && (device_param->kernel_loops == 0));
+
+  if (run_autotune)
   {
     autotune (device_param);
   }
@@ -4558,6 +4560,12 @@ static void *thread_calc_stdin (void *p)
     }
   }
 
+  if (run_autotune)
+  {
+    device_param->kernel_accel = 0;
+    device_param->kernel_loops = 0;
+  }
+
   return NULL;
 }
 
@@ -4567,7 +4575,9 @@ static void *thread_calc (void *p)
 
   if (device_param->skipped) return NULL;
 
-  if ((device_param->kernel_accel == 0) && (device_param->kernel_loops == 0))
+  const bool run_autotune = ((device_param->kernel_accel == 0) && (device_param->kernel_loops == 0));
+
+  if (run_autotune)
   {
     autotune (device_param);
   }
@@ -4930,6 +4940,12 @@ static void *thread_calc (void *p)
     free (wl_data);
 
     fclose (fd);
+  }
+
+  if (run_autotune)
+  {
+    device_param->kernel_accel = 0;
+    device_param->kernel_loops = 0;
   }
 
   return NULL;
