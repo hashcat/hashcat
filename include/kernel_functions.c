@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-#if defined _MD4_ || defined _DCC2_ || defined _NETNTLMV2_ || defined _KRB5PA_ || defined _MS_DRSR_
+#if defined _MD4_ || defined _DCC2_ || defined _NETNTLMV2_ || defined _KRB5PA_ || defined _MS_DRSR_ || defined _KRB5TGS_
 
 #define MD4_F_S(x,y,z)  (((x) & (y)) | ((~(x)) & (z)))
 #define MD4_G_S(x,y,z)  (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
@@ -56,7 +56,7 @@
 
 #endif
 
-#if defined _MD5_ || defined _MD5H_ || defined _SAPB_ || defined _OLDOFFICE01_ || defined _WPA_ || defined _MD5_SHA1_ || defined _SHA1_MD5_ || defined _NETNTLMV2_ || defined _KRB5PA_ || defined _PBKDF2_MD5_
+#if defined _MD5_ || defined _MD5H_ || defined _SAPB_ || defined _OLDOFFICE01_ || defined _WPA_ || defined _MD5_SHA1_ || defined _SHA1_MD5_ || defined _NETNTLMV2_ || defined _KRB5PA_ || defined _PBKDF2_MD5_ || defined _KRB5TGS_
 
 #define MD5_F_S(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
 #define MD5_G_S(x,y,z)  ((y) ^ ((z) & ((x) ^ (y))))

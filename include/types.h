@@ -129,6 +129,15 @@ typedef struct
 
 typedef struct
 {
+  uint account_info[512];
+  uint checksum[4];
+  uint edata2[2560];
+  uint edata2_len;
+
+} krb5tgs_t;
+
+typedef struct
+{
   uint salt_buf[16];
   uint data_buf[112];
   uint keyfile_buf[16];

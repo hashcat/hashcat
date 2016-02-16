@@ -136,7 +136,7 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 
 #define MAX_DICTSTAT            10000
 
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 130
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 131
 
 #define global_free(attr)       \
 {                               \
@@ -182,6 +182,7 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   5600,
   7300,
   7500,
+  13100,
   8300,
   11100,
   11200,
@@ -577,6 +578,7 @@ const char *USAGE_BIG[] =
   "  11100 = PostgreSQL Challenge-Response Authentication (MD5)",
   "  11200 = MySQL Challenge-Response Authentication (SHA1)",
   "  11400 = SIP digest authentication (MD5)",
+  "  13100 = Kerberos 5 TGS-REP etype 23",
   "",
   "[[ Forums, CMS, E-Commerce, Frameworks, Middleware, Wiki, Management ]]",
   "",
@@ -6109,7 +6111,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  if (hash_mode_chgd && hash_mode > 13000) // just added to remove compiler warnings for hash_mode_chgd
+  if (hash_mode_chgd && hash_mode > 13100) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
@@ -10357,6 +10359,22 @@ int main (int argc, char **argv)
                    dgst_pos3   = 3;
                    break;
 
+      case 13100:  hash_type   = HASH_TYPE_KRB5TGS;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_KRB5TGS;
+                   dgst_size   = DGST_SIZE_4_4;
+                   parse_func  = krb5tgs_parse_hash;
+                   sort_by_digest = sort_by_digest_4_4;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
       default:     usage_mini_print (PROGNAME); return (-1);
     }
 
@@ -10460,6 +10478,7 @@ int main (int argc, char **argv)
       case 12000:  esalt_size = sizeof (pbkdf2_sha1_t);   break;
       case 12100:  esalt_size = sizeof (pbkdf2_sha512_t); break;
       case 13000:  esalt_size = sizeof (rar5_t);          break;
+      case 13100:  esalt_size = sizeof (krb5tgs_t);       break;
     }
 
     data.esalt_size = esalt_size;

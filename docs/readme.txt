@@ -138,6 +138,7 @@ NVidia users require ForceWare 346.59 or later (recommended 358.09 or later)
 - NetNTLMv1 + ESS
 - NetNTLMv2
 - Kerberos 5 AS-REQ Pre-Auth etype 23
+- Kerberos 5 TGS-REP etype 23
 - Netscape LDAP SHA/SSHA
 - LM
 - NTLM

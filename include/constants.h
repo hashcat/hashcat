@@ -151,7 +151,7 @@
 #define SHA256C3f 0xc67178f2u
 #endif
 
-#if defined _MD4_ || defined _DCC2_ || defined _NETNTLMV2_ || defined _KRB5PA_ || defined _MS_DRSR_
+#if defined _MD4_ || defined _DCC2_ || defined _NETNTLMV2_ || defined _KRB5PA_ || defined _MS_DRSR_ || defined _KRB5TGS_
 /**
  * MD4 Constants
  */
@@ -179,7 +179,7 @@
 #define MD4C02 0x6ed9eba1u
 #endif
 
-#if defined _MD5_ || defined _MD5H_ || defined _SAPB_ || defined _OLDOFFICE01_ || defined _WPA_ || defined _MD5_SHA1_ || defined _SHA1_MD5_ || defined _NETNTLMV2_ || defined _KRB5PA_  || defined _PBKDF2_MD5_
+#if defined _MD5_ || defined _MD5H_ || defined _SAPB_ || defined _OLDOFFICE01_ || defined _WPA_ || defined _MD5_SHA1_ || defined _SHA1_MD5_ || defined _NETNTLMV2_ || defined _KRB5PA_  || defined _PBKDF2_MD5_ || defined _KRB5TGS_
 /**
  * MD5 Constants
  */

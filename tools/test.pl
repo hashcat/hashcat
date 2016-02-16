@@ -44,7 +44,7 @@ my $hashcat = "./oclHashcat";
 
 my $MAX_LEN = 55;
 
-my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 130, 131, 132, 140, 141, 150, 160, 190, 200, 300, 400, 500, 900, 1000, 1100, 1400, 1410, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7100, 7200, 7300, 7400, 7500, 7600, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000);
+my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 130, 131, 132, 140, 141, 150, 160, 190, 200, 300, 400, 500, 900, 1000, 1100, 1400, 1410, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7100, 7200, 7300, 7400, 7500, 7600, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100);
 
 my %is_unicode      = map { $_ => 1 } qw(30 40 130 131 132 140 141 1000 1100 1430 1440 1441 1730 1740 1731 5500 5600 8000 9400 9500 9600 9700 9800);
 my %less_fifteen    = map { $_ => 1 } qw(500 1600 1800 2400 2410 3200 6300 7400 10500 10700);
@@ -2209,6 +2209,37 @@ sub verify
 
       next unless (exists ($db->{$hash_line}) and (! defined ($db->{$hash_line})));
     }
+    elsif ($mode == 13100 )
+    {
+      ($hash_in, $word) = split ":", $line;
+
+      next unless defined $hash_in;
+      next unless defined $word;
+
+      my @data = split ('\$', $hash_in);
+
+      next unless scalar @data == 8;
+
+      shift @data;
+
+      my $signature = shift @data;
+      my $algorithm = shift @data;
+      my $user      = shift @data;
+      $user         = substr ($user, 1);
+      my $realm     = shift @data;
+      my $spn       = shift @data;
+      $spn          = substr ($spn, 0, length($spn) - 1);
+      my $checksum  = shift @data;
+      my $edata2    = shift @data;
+      
+      next unless ($signature eq "krb5tgs");
+      next unless (length($checksum) == 32);
+      next unless (length($edata2) == 64);
+
+      $salt = $user.'$'.$realm.'$'.$spn.'$'.substr($edata2, 0, 16);
+
+      next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
+    }
     else
     {
       print "ERROR: hash mode is not supported\n";
@@ -2486,6 +2517,14 @@ sub verify
     elsif ($mode == 13000)
     {
       $hash_out = gen_hash ($mode, $word, $salt, $iter, $param);
+
+      $len = length $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
+    elsif ($mode == 13100)
+    {
+      $hash_out = gen_hash ($mode, $word, $salt);
 
       $len = length $hash_out;
 
@@ -2910,6 +2949,12 @@ sub passthrough
     elsif ($mode == 13000)
     {
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
+    }
+    elsif ($mode == 13100)
+    {
+      $salt_buf = get_random_kerberos5_tgs_salt();
+
+      $tmp_hash = gen_hash ($mode, $word_buf, $salt_buf);
     }
     else
     {
@@ -3635,6 +3680,20 @@ sub single
         else
         {
           rnd ($mode, $i, 32);
+        }
+      }
+    }
+    elsif ($mode == 13100)
+    {
+      for (my $i = 1; $i < 27; $i++)
+      {
+        if ($len != 0)
+        {
+          rnd ($mode, $len, 16);
+        }
+        else
+        {
+          rnd ($mode, $i, 16);
         }
       }
     }
@@ -6612,6 +6671,41 @@ END_CODE
 
     $tmp_hash = sprintf ('$rar5$16$%s$%d$%s$8$%s', $salt_buf, $iterations, $iv, unpack ("H*", $hash_final));
   }
+  elsif ($mode == 13100)
+  {
+    my @salt_arr = split ('\$', $salt_buf);
+
+    my $user  = $salt_arr[0];
+
+    my $realm = $salt_arr[1];
+
+    my $spn   = $salt_arr[2];
+
+    my $nonce = $salt_arr[3];
+
+    my $cleartext_ticket = '6381b03081ada00703050050a00000a11b3019a003020117a1'.
+    '12041058e0d77776e8b8e03991f2966939222aa2171b154d594b5242544553542e434f4e5'.
+    '44f534f2e434f4da3133011a003020102a10a30081b067472616e6365a40b3009a0030201'.
+    '01a1020400a511180f32303136303231353134343735305aa611180f32303136303231353'.
+    '134343735305aa711180f32303136303231363030343735305aa811180f32303136303232'.
+    '323134343735305a';
+
+    $cleartext_ticket = $nonce . $cleartext_ticket;
+
+    my $k = md4 (encode ("UTF-16LE", $word_buf));
+
+    my $k1 = hmac_md5 ("\x02\x00\x00\x00", $k);
+
+    my $checksum = hmac_md5 (pack ("H*", $cleartext_ticket), $k1);
+
+    my $k3 = hmac_md5 ($checksum, $k1);
+
+    my $cipher = Crypt::RC4->new ($k3);
+
+    my $edata2 = $cipher->RC4 (pack ("H*", $cleartext_ticket));
+
+    $tmp_hash = sprintf ('$krb5tgs$23$*%s$%s$%s*$%s$%s', $user, $realm, $spn, unpack ("H*", $checksum), substr(unpack ("H*", $edata2), 0, 64));
+  }
 
   return ($tmp_hash);
 }
@@ -6705,6 +6799,10 @@ sub rnd
   elsif ($mode == 8300)
   {
     $salt_buf = get_random_dnssec_salt ();
+  }
+  elsif ($mode == 13100)
+  {
+    $salt_buf = get_random_kerberos5_tgs_salt ();
   }
   else
   {
@@ -7969,6 +8067,19 @@ sub get_random_kerberos5_salt
   my $salt  = "salt";
 
   my $salt_buf = $user . "\$" . $realm . "\$" . $salt . "\$" . unpack ("H*", $custom_salt) . "\$" . unpack ("H*", $clear_data) . "\$";
+
+  return $salt_buf;
+}
+
+sub get_random_kerberos5_tgs_salt
+{
+  my $nonce = randbytes (8);
+
+  my $user  = "user";
+  my $realm = "realm";
+  my $spn   = "test/spn";
+
+  my $salt_buf = $user . "\$" . $realm . "\$" . $spn . "\$" . unpack ("H*",$nonce);
 
   return $salt_buf;
 }

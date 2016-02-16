@@ -1151,6 +1151,8 @@ typedef struct
   u32  digest_buf[8];
   #elif defined _RAR5_
   u32  digest_buf[4];
+  #elif defined _KRB5TGS_
+  u32  digest_buf[4];
   #endif
 
 } digest_t;
@@ -1269,6 +1271,15 @@ typedef struct
   u32 checksum[4];
 
 } krb5pa_t;
+
+typedef struct
+{
+  u32 account_info[512];
+  u32 checksum[4];
+  u32 edata2[2560];
+  u32 edata2_len;
+
+} krb5tgs_t;
 
 typedef struct
 {

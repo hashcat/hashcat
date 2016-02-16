@@ -5834,6 +5834,7 @@ char *strhashtype (const uint hash_mode)
     case 12800: return ((char *) HT_12800); break;
     case 12900: return ((char *) HT_12900); break;
     case 13000: return ((char *) HT_13000); break;
+    case 13100: return ((char *) HT_13100); break;
   }
 
   return ((char *) "Unknown");
@@ -8277,6 +8278,36 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
       byte_swap_32 (digest_buf[0]),
       byte_swap_32 (digest_buf[1])
     );
+  }
+  else if (hash_mode == 13100)
+  {
+    krb5tgs_t *krb5tgss = (krb5tgs_t *) data.esalts_buf;
+
+    krb5tgs_t *krb5tgs = &krb5tgss[salt_pos];
+
+    u8 *ptr_checksum  = (u8 *) krb5tgs->checksum;
+    u8 *ptr_edata2 = (u8 *) krb5tgs->edata2;
+
+    char data[256] = { 0 };
+
+    char *ptr_data = data;
+
+    for (uint i = 0; i < 16; i++, ptr_data += 2)
+      sprintf (ptr_data, "%02x", ptr_checksum[i]);
+
+    /* skip '$' */
+    ptr_data++;
+
+    for (uint i = 0; i < 32; i++, ptr_data += 2)
+      sprintf (ptr_data, "%02x", ptr_edata2[i]);
+
+    *ptr_data = 0;
+
+    snprintf (out_buf, len-1, "%s$%s$%s$%s",
+      SIGNATURE_KRB5TGS,
+      (char *) krb5tgs->account_info,
+      data,
+      data + 33);
   }
   else
   {
@@ -18667,6 +18698,102 @@ int rar5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[1] = hex_to_u32 ((const u8 *) &pswcheck[ 8]);
   digest[2] = 0;
   digest[3] = 0;
+
+  return (PARSER_OK);
+}
+
+int krb5tgs_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_13100) || (input_len > DISPLAY_LEN_MAX_13100)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_KRB5TGS, input_buf, 11)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  krb5tgs_t *krb5tgs = (krb5tgs_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  /* Skip '$' */
+  char *account_pos = input_buf + 11 + 1; 
+  
+  char *data_pos;
+
+  uint data_len;
+
+  if (account_pos[0] == '*')
+  {
+    account_pos++;
+
+    data_pos = strchr (account_pos, '*');
+
+    /* Skip '*' */
+    data_pos++;
+
+    if (data_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+    uint account_len = data_pos - account_pos + 1;
+
+    if (account_len >= 512) return (PARSER_SALT_LENGTH);
+
+    /* Skip '$' */
+    data_pos++;
+
+    data_len = input_len - 11 - 1 - account_len - 2;
+
+    memcpy (krb5tgs->account_info, account_pos - 1, account_len);
+  }
+  else
+  {
+    /* assume $krb5tgs$23$checksum$edata2 */
+    data_pos = account_pos;
+
+    memcpy (krb5tgs->account_info, "**", 3);
+
+    data_len = input_len - 11 - 1 - 1;
+  }
+
+  if (data_len < ((16 + 32) * 2)) return (PARSER_SALT_LENGTH);
+
+  char *checksum_ptr = (char *) krb5tgs->checksum;
+
+  for (uint i = 0; i < 16 * 2; i += 2)
+  {
+    const char p0 = data_pos[i + 0];
+    const char p1 = data_pos[i + 1];
+
+    *checksum_ptr++ = hex_convert (p1) << 0
+                     | hex_convert (p0) << 4;
+  }
+
+  char *edata_ptr = (char *) krb5tgs->edata2;
+
+  /* skip '$' */
+  for (uint i = 16 * 2 + 1; i < input_len; i += 2)
+  {
+    const char p0 = data_pos[i + 0];
+    const char p1 = data_pos[i + 1];
+    *edata_ptr++ = hex_convert (p1) << 0
+                    | hex_convert (p0) << 4;
+  }
+  
+  krb5tgs->edata2_len = strlen(edata_ptr - input_len)/(2 * 4);
+
+  salt->salt_buf[0] = krb5tgs->checksum[0];
+  salt->salt_buf[1] = krb5tgs->checksum[1];
+  salt->salt_buf[2] = krb5tgs->checksum[2];
+  salt->salt_buf[3] = krb5tgs->checksum[3];
+  
+  salt->salt_len = 32;
+
+  digest[0] = krb5tgs->checksum[0];
+  digest[1] = krb5tgs->checksum[1];
+  digest[2] = krb5tgs->checksum[2];
+  digest[3] = krb5tgs->checksum[3];
 
   return (PARSER_OK);
 }
