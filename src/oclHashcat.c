@@ -12782,7 +12782,7 @@ int main (int argc, char **argv)
 
         if (opencl_vector_width_chgd == 0)
         {
-          if (tuningdb_entry == NULL)
+          if (tuningdb_entry == NULL || tuningdb_entry->vector_width == -1)
           {
             if (opti_type & OPTI_TYPE_USES_BITS_64)
             {
@@ -12795,21 +12795,7 @@ int main (int argc, char **argv)
           }
           else
           {
-            if (tuningdb_entry->vector_width == -1)
-            {
-              if (opti_type & OPTI_TYPE_USES_BITS_64)
-              {
-                hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
-              }
-              else
-              {
-                hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
-              }
-            }
-            else
-            {
-              vector_width = (cl_uint) tuningdb_entry->vector_width;
-            }
+            vector_width = (cl_uint) tuningdb_entry->vector_width;
           }
         }
         else
