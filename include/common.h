@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               magnum <john.magnum@hushmail.com>
+ *
  * License.....: MIT
  */
 

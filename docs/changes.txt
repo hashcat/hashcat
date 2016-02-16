@@ -24,6 +24,11 @@ File.: Kernel
 Desc.: Extended support from 14 to 255 functions calls per rule on GPU
 
 Type.: Feature
+File.: Kernel
+Desc.: Added support for vector width 16
+Issue: 226
+
+Type.: Feature
 File.: Host
 Desc.: Added support to utilize multiple different OpenCL platforms in parallel, ex: AMD + NV
 Issue: 2

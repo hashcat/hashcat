@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               magnum <john.magnum@hushmail.com>
+ *
  * License.....: MIT
  */
 
@@ -104,6 +106,8 @@ static u32x round_crc32 (u32x a, const u32x v)
   a = (u32x) (crc32tab[k.s0], crc32tab[k.s1], crc32tab[k.s2], crc32tab[k.s3]);
   #elif VECT_SIZE == 8
   a = (u32x) (crc32tab[k.s0], crc32tab[k.s1], crc32tab[k.s2], crc32tab[k.s3], crc32tab[k.s4], crc32tab[k.s5], crc32tab[k.s6], crc32tab[k.s7]);
+  #elif VECT_SIZE == 16
+  a = (u32x) (crc32tab[k.s0], crc32tab[k.s1], crc32tab[k.s2], crc32tab[k.s3], crc32tab[k.s4], crc32tab[k.s5], crc32tab[k.s6], crc32tab[k.s7], crc32tab[k.s8], crc32tab[k.s9], crc32tab[k.sa], crc32tab[k.sb], crc32tab[k.sc], crc32tab[k.sd], crc32tab[k.se], crc32tab[k.sf]);
   #endif
 
   a ^= s;

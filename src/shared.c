@@ -1,6 +1,7 @@
 /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
  *               Gabriele Gristina <matrix@hashcat.net>
+ *               magnum <john.magnum@hushmail.com>
  *
  * License.....: MIT
  */
@@ -15,6 +16,11 @@
 /**
  * basic bit handling
  */
+
+u32 is_power_of_2(u32 v)
+{
+  return (v && !(v & (v - 1)));
+}
 
 u32 rotl32 (const u32 a, const u32 n)
 {

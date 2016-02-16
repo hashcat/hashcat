@@ -1,6 +1,7 @@
 /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
  *               Gabriele Gristina <matrix@hashcat.net>
+ *               magnum <john.magnum@hushmail.com>
  *
  * License.....: MIT
  */
@@ -68,6 +69,8 @@ __constant u32 lotus_magic_table[256] =
 #define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
 #elif VECT_SIZE == 8
 #define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#elif VECT_SIZE == 16
+#define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
 #if   VECT_SIZE == 1
@@ -78,6 +81,8 @@ __constant u32 lotus_magic_table[256] =
 #define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
 #elif VECT_SIZE == 8
 #define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
+#elif VECT_SIZE == 16
+#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
 static void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
