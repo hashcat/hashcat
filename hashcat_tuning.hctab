@@ -48,7 +48,7 @@ GeForce_GTX_560_Ti                              ALIAS_nv_budget
 GeForce_GTX_750_Ti                              ALIAS_nv_budget
 
 GeForce_GTX_570                                 ALIAS_nv_old
-GeForce_GTX_Titan                               ALIAS_nv_old
+GeForce_GTX_TITAN                               ALIAS_nv_old
 
 Iris                                            ALIAS_osx_gpu
 Intel(R)_Core(TM)_i7-4578U_CPU_@_3.00GHz        ALIAS_osx_cpu
