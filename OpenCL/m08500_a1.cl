@@ -685,7 +685,7 @@ __kernel void m08500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     data[0] = salt_buf0[0];
     data[1] = salt_buf0[1];
 
-    u32 iv[2];
+    volatile u32 iv[2];
 
     _des_crypt_encrypt (iv, data, Kc, Kd, s_SPtrans);
 
@@ -898,7 +898,7 @@ __kernel void m08500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     data[0] = salt_buf0[0];
     data[1] = salt_buf0[1];
 
-    u32 iv[2];
+    volatile u32 iv[2];
 
     _des_crypt_encrypt (iv, data, Kc, Kd, s_SPtrans);
 

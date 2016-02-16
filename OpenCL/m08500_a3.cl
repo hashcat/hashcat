@@ -570,7 +570,7 @@ static void m08500m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
     data[0] = salt_buf0[0];
     data[1] = salt_buf0[1];
 
-    u32x iv[2];
+    volatile u32x iv[2];
 
     _des_crypt_encrypt (iv, data, Kc, Kd, s_SPtrans);
 
@@ -642,7 +642,7 @@ static void m08500s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
     data[0] = salt_buf0[0];
     data[1] = salt_buf0[1];
 
-    u32x iv[2];
+    volatile u32x iv[2];
 
     _des_crypt_encrypt (iv, data, Kc, Kd, s_SPtrans);
 
