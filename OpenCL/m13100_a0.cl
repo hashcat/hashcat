@@ -140,7 +140,7 @@ static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __global u32 in[4],
   return j;
 }
 
-static int decrypt_and_check (__local RC4_KEY *rc4_key, u32 data[4], __global u32* edata2 /*, u32 edata2_len */)
+static int decrypt_and_check (__local RC4_KEY *rc4_key, u32 data[4], __global u32* edata2)
 {
   rc4_init_16 (rc4_key, data);
 
