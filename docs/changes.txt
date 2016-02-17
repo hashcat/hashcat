@@ -16,6 +16,11 @@ Issue: 68
 
 Type.: Feature
 File.: Kernel
+Desc.: Added new hash mode -m 13100 = Kerberos 5 TGS-REP etype 23
+Issue: 81
+
+Type.: Feature
+File.: Kernel
 Desc.: Extended support from 14 to 255 functions calls per rule on GPU
 
 Type.: Feature
