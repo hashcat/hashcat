@@ -361,6 +361,7 @@ extern hc_thread_mutex_t mux_display;
 #define HT_12800  "MS-AzureSync PBKDF2-HMAC-SHA256"
 #define HT_12900  "Android FDE (Samsung DEK)"
 #define HT_13000  "RAR5"
+#define HT_13100  "Kerberos 5 TGS-REP etype 23"
 
 #define HT_00011  "Joomla < 2.5.18"
 #define HT_00012  "PostgreSQL"
@@ -694,6 +695,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_12900 64 + 64 + 32
 #define DISPLAY_LEN_MIN_13000 1 + 4 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 32 + 1 + 1 + 1 + 16
 #define DISPLAY_LEN_MAX_13000 1 + 4 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 32 + 1 + 1 + 1 + 16
+#define DISPLAY_LEN_MIN_13100  1 + 7 + 1 + 2 + 1 + 0 + 0 + 32 + 1 + 64
+#define DISPLAY_LEN_MAX_13100  1 + 7 + 1 + 2 + 1 + 2 + 512 + 1 + 32 + 1 + 20480
 
 #define DISPLAY_LEN_MIN_11    32 + 1 + 16
 #define DISPLAY_LEN_MAX_11    32 + 1 + 32
@@ -807,6 +810,7 @@ extern hc_thread_mutex_t mux_display;
 #define HASH_TYPE_ORACLET        47
 #define HASH_TYPE_BSDICRYPT      48
 #define HASH_TYPE_RAR3HP         49
+#define HASH_TYPE_KRB5TGS        50
 
 #define KERN_TYPE_MD5                 0
 #define KERN_TYPE_MD5_PWSLT           10
@@ -952,6 +956,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_MS_DRSR             12800
 #define KERN_TYPE_ANDROIDFDE_SAMSUNG  12900
 #define KERN_TYPE_RAR5                13000
+#define KERN_TYPE_KRB5TGS             13100
 
 /**
  * signatures
@@ -1021,6 +1026,7 @@ extern hc_thread_mutex_t mux_display;
 #define SIGNATURE_MYWALLET        "$blockchain$"
 #define SIGNATURE_MS_DRSR         "v1;PPH1_MD4"
 #define SIGNATURE_RAR5            "$rar5$"
+#define SIGNATURE_KRB5TGS         "$krb5tgs$23"
 
 /**
  * Default iteration numbers
@@ -1509,6 +1515,7 @@ int hmacsha256_parse_hash         (char *input_buf, uint input_len, hash_t *hash
 int hmacsha512_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf);
 int hmacmd5_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int krb5pa_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf);
+int krb5tgs_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int sapb_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf);
 int sapg_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf);
 int drupal7_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
