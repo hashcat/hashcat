@@ -18781,7 +18781,7 @@ int krb5tgs_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
                     | hex_convert (p0) << 4;
   }
   
-  krb5tgs->edata2_len = strlen(edata_ptr - input_len)/(2 * 4);
+  krb5tgs->edata2_len = strlen (edata_ptr - input_len) / (2 * 4);
 
   salt->salt_buf[0] = krb5tgs->checksum[0];
   salt->salt_buf[1] = krb5tgs->checksum[1];
