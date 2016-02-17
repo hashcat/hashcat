@@ -2228,15 +2228,15 @@ sub verify
       $user         = substr ($user, 1);
       my $realm     = shift @data;
       my $spn       = shift @data;
-      $spn          = substr ($spn, 0, length($spn) - 1);
+      $spn          = substr ($spn, 0, length ($spn) - 1);
       my $checksum  = shift @data;
       my $edata2    = shift @data;
       
       next unless ($signature eq "krb5tgs");
-      next unless (length($checksum) == 32);
-      next unless (length($edata2) == 64);
+      next unless (length ($checksum) == 32);
+      next unless (length ($edata2) == 64);
 
-      $salt = $user.'$'.$realm.'$'.$spn.'$'.substr($edata2, 0, 16);
+      $salt = $user . '$' . $realm . '$' . $spn . '$' . substr ($edata2, 0, 16);
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
@@ -2487,7 +2487,7 @@ sub verify
 
       my $key = $pbkdf2->PBKDF2 ($salt_bin, $word);
 
-      my $cipher = Crypt::CBC->new({
+      my $cipher = Crypt::CBC->new ({
         key         => $key,
         cipher      => "Crypt::Rijndael",
         iv          => $salt_bin,
@@ -2952,7 +2952,7 @@ sub passthrough
     }
     elsif ($mode == 13100)
     {
-      $salt_buf = get_random_kerberos5_tgs_salt();
+      $salt_buf = get_random_kerberos5_tgs_salt ();
 
       $tmp_hash = gen_hash ($mode, $word_buf, $salt_buf);
     }
@@ -4755,7 +4755,7 @@ sub gen_hash
 
     my $key = $pbkdf2->PBKDF2 ($salt, $word_buf);
 
-    my $cipher = Crypt::CBC->new({
+    my $cipher = Crypt::CBC->new ({
       key         => $key,
       cipher      => "Crypt::Rijndael",
       iv          => $iv,
@@ -4811,7 +4811,7 @@ sub gen_hash
 
     my $key = $pbkdf2->PBKDF2 ($salt_buf, $word_buf);
 
-    my $cipher = Crypt::CBC->new({
+    my $cipher = Crypt::CBC->new ({
       key         => $key,
       cipher      => "Crypt::Rijndael",
       iv          => $iv,
@@ -5404,7 +5404,7 @@ sub gen_hash
     my $key1 = substr ($final1, 0, 16);
     my $key2 = substr ($final2, 0, 16);
 
-    my $cipher1 = Crypt::CBC->new({
+    my $cipher1 = Crypt::CBC->new ({
       key         => $key1,
       cipher      => "Crypt::Rijndael",
       iv          => $salt_buf,
@@ -5414,7 +5414,7 @@ sub gen_hash
       padding     => "null",
     });
 
-    my $cipher2 = Crypt::CBC->new({
+    my $cipher2 = Crypt::CBC->new ({
       key         => $key2,
       cipher      => "Crypt::Rijndael",
       iv          => $salt_buf,
@@ -5474,7 +5474,7 @@ sub gen_hash
     my $key1 = substr ($final1, 0, 32);
     my $key2 = substr ($final2, 0, 32);
 
-    my $cipher1 = Crypt::CBC->new({
+    my $cipher1 = Crypt::CBC->new ({
       key         => $key1,
       cipher      => "Crypt::Rijndael",
       iv          => $salt_buf,
@@ -5484,7 +5484,7 @@ sub gen_hash
       padding     => "null",
     });
 
-    my $cipher2 = Crypt::CBC->new({
+    my $cipher2 = Crypt::CBC->new ({
       key         => $key2,
       cipher      => "Crypt::Rijndael",
       iv          => $salt_buf,
@@ -5891,7 +5891,7 @@ sub gen_hash
         $data .= $word_buf . $block;
       }
 
-      my $aes = Crypt::CBC->new({
+      my $aes = Crypt::CBC->new ({
         key         => substr ($block,  0, 16),
         cipher      => "Crypt::Rijndael",
         iv          => substr ($block, 16, 16),
@@ -6045,7 +6045,7 @@ sub gen_hash
 
     my $data = get_random_string (32);
 
-    my $aes = Crypt::CBC->new({
+    my $aes = Crypt::CBC->new ({
       key         => substr ($hash_buf,  0, 32),
       cipher      => "Crypt::Rijndael",
       iv          => substr ($hash_buf, 32, 16),
@@ -6252,7 +6252,7 @@ sub gen_hash
 
     $salt_buf .= "\x00" x $salt_padding_len;
 
-    my $aes = Crypt::CBC->new({
+    my $aes = Crypt::CBC->new ({
       cipher      => "Crypt::Rijndael",
       key         => $key,
       keysize     => 32,
@@ -6324,7 +6324,7 @@ sub gen_hash
     {
         $algorithm = strtolower ($algorithm);
 
-        if(! in_array ($algorithm, hash_algos (), true))
+        if (! in_array ($algorithm, hash_algos (), true))
         {
           trigger_error ("PBKDF2 ERROR: Invalid hash algorithm.", E_USER_ERROR);
         }
@@ -6363,7 +6363,7 @@ sub gen_hash
           $output .= $xorsum;
         }
 
-        if($raw_output)
+        if ($raw_output)
         {
           return substr ($output, 0, $key_length);
         }
@@ -6567,7 +6567,7 @@ END_CODE
 
     my $key = $pbkdf2->PBKDF2 ($salt_buf_bin, $word_buf);
 
-    my $cipher = Crypt::CBC->new({
+    my $cipher = Crypt::CBC->new ({
       key         => $key,
       cipher      => "Crypt::Rijndael",
       iv          => $salt_buf_bin,
@@ -6704,7 +6704,7 @@ END_CODE
 
     my $edata2 = $cipher->RC4 (pack ("H*", $cleartext_ticket));
 
-    $tmp_hash = sprintf ('$krb5tgs$23$*%s$%s$%s*$%s$%s', $user, $realm, $spn, unpack ("H*", $checksum), substr(unpack ("H*", $edata2), 0, 64));
+    $tmp_hash = sprintf ('$krb5tgs$23$*%s$%s$%s*$%s$%s', $user, $realm, $spn, unpack ("H*", $checksum), substr (unpack ("H*", $edata2), 0, 64));
   }
 
   return ($tmp_hash);
