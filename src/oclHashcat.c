@@ -2795,6 +2795,28 @@ static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, 
   device_param->kernel_params_buf32[26] = kernel_loops;
   device_param->kernel_params_buf32[27] = kernel_loops;
 
+  // init some fake words
+
+  if (data.attack_kern == ATTACK_KERN_BF)
+  {
+    run_kernel_mp (KERN_RUN_MP_L, device_param, kernel_power);
+    run_kernel_mp (KERN_RUN_MP_R, device_param, kernel_loops);
+  }
+  else
+  {
+    for (u32 i = 0; i < kernel_power; i++)
+    {
+      device_param->pws_buf[i].pw_len = i & 7;
+    }
+
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+
+    if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+    {
+      run_kernel_amp (device_param, kernel_power);
+    }
+  }
+
   // caching run
 
   if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -2822,6 +2844,11 @@ static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, 
 
   const double exec_ms_prev = get_avg_exec_time (device_param, repeat);
 
+  // reset fake words
+
+  run_kernel_bzero (device_param, device_param->d_pws_buf,     device_param->size_pws);
+  run_kernel_bzero (device_param, device_param->d_pws_amp_buf, device_param->size_pws);
+
   return exec_ms_prev;
 }
 
@@ -2837,18 +2864,6 @@ static void autotune (hc_device_param_t *device_param)
 
   u32 kernel_loops = kernel_loops_min;
   u32 kernel_accel = kernel_accel_min;
-
-  // init some fake words
-
-  const u32 kernel_power_max = device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel_max;
-
-  for (u32 i = 0; i < kernel_power_max; i++)
-  {
-    device_param->pws_buf[i].pw_len = 8;
-  }
-
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, device_param->size_pws, device_param->pws_buf, 0, NULL, NULL);
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, device_param->size_pws, device_param->pws_buf, 0, NULL, NULL);
 
   // steps for loops
 
@@ -3008,16 +3023,6 @@ static void autotune (hc_device_param_t *device_param)
   device_param->exec_pos = 0;
 
   memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
-
-  // reset fake words
-
-  for (u32 i = 0; i < kernel_power_max; i++)
-  {
-    device_param->pws_buf[i].pw_len = 0;
-  }
-
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, device_param->size_pws, device_param->pws_buf, 0, NULL, NULL);
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, device_param->size_pws, device_param->pws_buf, 0, NULL, NULL);
 
   // store
 
