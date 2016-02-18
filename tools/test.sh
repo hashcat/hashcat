@@ -3,6 +3,7 @@
 ##
 ## Authors.....: Gabriele Gristina <matrix@hashcat.net>
 ##               Jens Steube <jens.steube@gmail.com>
+##               magnum <john.magnum@hushmail.com>
 ##
 ## License.....: MIT
 ##
@@ -14,7 +15,7 @@ HASH_TYPES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 1
 #ATTACK_MODES="0 1 3 6 7"
 ATTACK_MODES="0 1 3 7"
 
-VECTOR_WIDTHS="1 2 4 8"
+VECTOR_WIDTHS="1 2 4 8 16"
 
 MATCH_PASS_ONLY="2500 5300 5400 6600 6800 8200"
 
@@ -1598,6 +1599,8 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
         VECTOR=4
       elif [ ${OPTARG} == "8" ]; then
         VECTOR=8
+      elif [ ${OPTARG} == "16" ]; then
+        VECTOR=16
       elif [ ${OPTARG} == "all" ]; then
         VECTOR="all"
       else

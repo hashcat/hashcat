@@ -1,6 +1,7 @@
 /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
  *               Gabriele Gristina <matrix@hashcat.net>
+ *               magnum <john.magnum@hushmail.com>
  *
  * License.....: MIT
  */
@@ -394,7 +395,7 @@ const char *USAGE_BIG[] =
   "       --opencl-platforms=STR        OpenCL platforms to use, separate with comma",
   "  -d,  --opencl-devices=STR          OpenCL devices to use, separate with comma",
   "       --opencl-device-types=STR     OpenCL device-types to use, separate with comma, see references below",
-  "       --opencl-vector-width=NUM     OpenCL vector-width (either 1, 2, 4 or 8), overrides value from device query",
+  "       --opencl-vector-width=NUM     OpenCL vector-width (either 1, 2, 4, 8 or 16), overrides value from device query",
   "  -w,  --workload-profile=NUM        Enable a specific workload profile, see references below",
   "  -n,  --kernel-accel=NUM            Workload tuning, increase the outer-loop step size",
   "  -u,  --kernel-loops=NUM            Workload tuning, increase the inner-loop step size",
@@ -6306,7 +6307,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  if ((opencl_vector_width != 0) && (opencl_vector_width != 1) && (opencl_vector_width != 2) && (opencl_vector_width != 4) && (opencl_vector_width != 8))
+  if (opencl_vector_width_chgd && (!is_power_of_2(opencl_vector_width) || opencl_vector_width > 16))
   {
     log_error ("ERROR: opencl-vector-width %i not allowed", opencl_vector_width);
 
@@ -12782,7 +12783,7 @@ int main (int argc, char **argv)
 
         if (opencl_vector_width_chgd == 0)
         {
-          if (tuningdb_entry == NULL)
+          if (tuningdb_entry == NULL || tuningdb_entry->vector_width == -1)
           {
             if (opti_type & OPTI_TYPE_USES_BITS_64)
             {
@@ -12795,21 +12796,7 @@ int main (int argc, char **argv)
           }
           else
           {
-            if (tuningdb_entry->vector_width == -1)
-            {
-              if (opti_type & OPTI_TYPE_USES_BITS_64)
-              {
-                hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
-              }
-              else
-              {
-                hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
-              }
-            }
-            else
-            {
-              vector_width = (cl_uint) tuningdb_entry->vector_width;
-            }
+            vector_width = (cl_uint) tuningdb_entry->vector_width;
           }
         }
         else
@@ -12817,7 +12804,7 @@ int main (int argc, char **argv)
           vector_width = opencl_vector_width;
         }
 
-        if (vector_width > 8) vector_width = 8;
+        if (vector_width > 16) vector_width = 16;
 
         device_param->vector_width = vector_width;
 

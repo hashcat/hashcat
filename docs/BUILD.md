@@ -6,6 +6,7 @@ oclHashcat build documentation
 # Authors:
 * Gabriele Gristina <<matrix@hashcat.net>>
 * Christoph Heuwieser <<dropdead@hashcat.net>>
+* magnum <<john.magnum@hushmail.com>>
 
 # Building oclHashcat for Linux and OSX
 
@@ -39,7 +40,7 @@ Get a copy of the **oclHashcat** repository
 $ git clone https://github.com/hashcat/oclHashcat.git
 ```
 
-Basically all you need is the OpenCL Headers. 
+Basically all you need is the OpenCL Headers.
 
 Simply clone into the reference Implementation:
 

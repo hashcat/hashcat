@@ -1,6 +1,7 @@
 /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
  *               Gabriele Gristina <matrix@hashcat.net>
+ *               magnum <john.magnum@hushmail.com>
  *
  * License.....: MIT
  */
@@ -1267,6 +1268,8 @@ extern hc_thread_mutex_t mux_display;
 /*
  * functions
  */
+
+u32 is_power_of_2(u32 v);
 
 u32 rotl32 (const u32 a, const u32 n);
 u32 rotr32 (const u32 a, const u32 n);

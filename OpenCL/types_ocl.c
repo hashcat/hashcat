@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               magnum <john.magnum@hushmail.com>
+ *
  * License.....: MIT
  */
 
@@ -16,32 +18,19 @@ typedef ulong  u64;
 #define VECT_SIZE 1
 #endif
 
+#define CONCAT(a, b)	     a##b
+#define VTYPE(type, width) CONCAT(type, width)
+
 #if VECT_SIZE == 1
 typedef uchar   u8x;
 typedef ushort  u16x;
 typedef uint    u32x;
 typedef ulong   u64x;
-#endif
-
-#if VECT_SIZE == 2
-typedef uchar2  u8x;
-typedef ushort2 u16x;
-typedef uint2   u32x;
-typedef ulong2  u64x;
-#endif
-
-#if VECT_SIZE == 4
-typedef uchar4  u8x;
-typedef ushort4 u16x;
-typedef uint4   u32x;
-typedef ulong4  u64x;
-#endif
-
-#if VECT_SIZE == 8
-typedef uchar8  u8x;
-typedef ushort8 u16x;
-typedef uint8   u32x;
-typedef ulong8  u64x;
+#else
+typedef VTYPE(uchar,  VECT_SIZE)  u8x;
+typedef VTYPE(ushort, VECT_SIZE) u16x;
+typedef VTYPE(uint,   VECT_SIZE) u32x;
+typedef VTYPE(ulong,  VECT_SIZE) u64x;
 #endif
 
 // this one needs to die
@@ -93,6 +82,17 @@ static inline u32x l32_from_64 (u64x a)
   r.s7 = (u32) a.s7;
   #endif
 
+  #if VECT_SIZE >= 16
+  r.s8 = (u32) a.s8;
+  r.s9 = (u32) a.s9;
+  r.sa = (u32) a.sa;
+  r.sb = (u32) a.sb;
+  r.sc = (u32) a.sc;
+  r.sd = (u32) a.sd;
+  r.se = (u32) a.se;
+  r.sf = (u32) a.sf;
+  #endif
+
   return r;
 }
 
@@ -123,6 +123,17 @@ static inline u32x h32_from_64 (u64x a)
   r.s7 = (u32) a.s7;
   #endif
 
+  #if VECT_SIZE >= 16
+  r.s8 = (u32) a.s8;
+  r.s9 = (u32) a.s9;
+  r.sa = (u32) a.sa;
+  r.sb = (u32) a.sb;
+  r.sc = (u32) a.sc;
+  r.sd = (u32) a.sd;
+  r.se = (u32) a.se;
+  r.sf = (u32) a.sf;
+  #endif
+
   return r;
 }
 
@@ -149,6 +160,17 @@ static inline u64x hl32_to_64 (const u32x a, const u32x b)
   r.s5 = as_ulong ((uint2) (b.s5, a.s5));
   r.s6 = as_ulong ((uint2) (b.s6, a.s6));
   r.s7 = as_ulong ((uint2) (b.s7, a.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  r.s8 = as_ulong ((uint2) (b.s8, a.s8));
+  r.s9 = as_ulong ((uint2) (b.s9, a.s9));
+  r.sa = as_ulong ((uint2) (b.sa, a.sa));
+  r.sb = as_ulong ((uint2) (b.sb, a.sb));
+  r.sc = as_ulong ((uint2) (b.sc, a.sc));
+  r.sd = as_ulong ((uint2) (b.sd, a.sd));
+  r.se = as_ulong ((uint2) (b.se, a.se));
+  r.sf = as_ulong ((uint2) (b.sf, a.sf));
   #endif
 
   return r;
@@ -629,6 +651,146 @@ static inline u64x rotr64 (const u64x a, const u32 n)
 
   #endif
 
+  #if VECT_SIZE >= 16
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.s8));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s8) : "r"(tl), "r"(tr));
+  }
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.s9));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.s9) : "r"(tl), "r"(tr));
+  }
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.sa));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.sa) : "r"(tl), "r"(tr));
+  }
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.sb));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.sb) : "r"(tl), "r"(tr));
+  }
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.sc));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.sc) : "r"(tl), "r"(tr));
+  }
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.sd));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.sd) : "r"(tl), "r"(tr));
+  }
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.se));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.se) : "r"(tl), "r"(tr));
+  }
+
+  {
+    asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(a.sf));
+
+    if (n >= 32)
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(ir), "r"(il), "r"(n - 32));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(il), "r"(ir), "r"(n - 32));
+    }
+    else
+    {
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tl) : "r"(il), "r"(ir), "r"(n));
+      asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(tr) : "r"(ir), "r"(il), "r"(n));
+    }
+
+    asm ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tl), "r"(tr));
+  }
+
+  #endif
+
   return r;
 }
 #else
@@ -666,6 +828,17 @@ static inline u32x __byte_perm (const u32x a, const u32x b, const u32x c)
   asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(a.s5), "r"(b.s5), "r"(c.s5));
   asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(a.s6), "r"(b.s6), "r"(c.s6));
   asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(a.s7), "r"(b.s7), "r"(c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(a.s8), "r"(b.s8), "r"(c.s8));
+  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(a.s9), "r"(b.s9), "r"(c.s9));
+  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(a.sa), "r"(b.sa), "r"(c.sa));
+  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(a.sb), "r"(b.sb), "r"(c.sb));
+  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(a.sc), "r"(b.sc), "r"(c.sc));
+  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(a.sd), "r"(b.sd), "r"(c.sd));
+  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(a.se), "r"(b.se), "r"(c.se));
+  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(a.sf), "r"(b.sf), "r"(c.sf));
   #endif
 
   return r;
@@ -722,6 +895,17 @@ static inline u32x lut3_2d (const u32x a, const u32x b, const u32x c)
   asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s7) : "r" (a.s7), "r" (b.s7), "r" (c.s7));
   #endif
 
+  #if VECT_SIZE >= 16
+  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s8) : "r" (a.s8), "r" (b.s8), "r" (c.s8));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.s9) : "r" (a.s9), "r" (b.s9), "r" (c.s9));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.sa) : "r" (a.sa), "r" (b.sa), "r" (c.sa));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.sb) : "r" (a.sb), "r" (b.sb), "r" (c.sb));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.sc) : "r" (a.sc), "r" (b.sc), "r" (c.sc));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.sd) : "r" (a.sd), "r" (b.sd), "r" (c.sd));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.se) : "r" (a.se), "r" (b.se), "r" (c.se));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x2d;" : "=r" (r.sf) : "r" (a.sf), "r" (b.sf), "r" (c.sf));
+  #endif
+
   return r;
 }
 
@@ -733,27 +917,32 @@ static inline u32x lut3_39 (const u32x a, const u32x b, const u32x c)
   asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
   #endif
 
-  #if VECT_SIZE == 2
+  #if VECT_SIZE >= 2
   asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
   asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
   #endif
 
-  #if VECT_SIZE == 4
-  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
+  #if VECT_SIZE >= 4
   asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
   asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
   #endif
 
-  #if VECT_SIZE == 8
-  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
+  #if VECT_SIZE >= 8
   asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s4) : "r" (a.s4), "r" (b.s4), "r" (c.s4));
   asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s5) : "r" (a.s5), "r" (b.s5), "r" (c.s5));
   asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s6) : "r" (a.s6), "r" (b.s6), "r" (c.s6));
   asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s7) : "r" (a.s7), "r" (b.s7), "r" (c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s8) : "r" (a.s8), "r" (b.s8), "r" (c.s8));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.s9) : "r" (a.s9), "r" (b.s9), "r" (c.s9));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.sa) : "r" (a.sa), "r" (b.sa), "r" (c.sa));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.sb) : "r" (a.sb), "r" (b.sb), "r" (c.sb));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.sc) : "r" (a.sc), "r" (b.sc), "r" (c.sc));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.sd) : "r" (a.sd), "r" (b.sd), "r" (c.sd));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.se) : "r" (a.se), "r" (b.se), "r" (c.se));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x39;" : "=r" (r.sf) : "r" (a.sf), "r" (b.sf), "r" (c.sf));
   #endif
 
   return r;
@@ -767,27 +956,32 @@ static inline u32x lut3_59 (const u32x a, const u32x b, const u32x c)
   asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r) : "r" (a), "r" (b), "r" (c));
   #endif
 
-  #if VECT_SIZE == 2
+  #if VECT_SIZE >= 2
   asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
   asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
   #endif
 
-  #if VECT_SIZE == 4
-  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
+  #if VECT_SIZE >= 4
   asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
   asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
   #endif
 
-  #if VECT_SIZE == 8
-  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
+  #if VECT_SIZE >= 8
   asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s4) : "r" (a.s4), "r" (b.s4), "r" (c.s4));
   asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s5) : "r" (a.s5), "r" (b.s5), "r" (c.s5));
   asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s6) : "r" (a.s6), "r" (b.s6), "r" (c.s6));
   asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s7) : "r" (a.s7), "r" (b.s7), "r" (c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s8) : "r" (a.s8), "r" (b.s8), "r" (c.s8));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.s9) : "r" (a.s9), "r" (b.s9), "r" (c.s9));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.sa) : "r" (a.sa), "r" (b.sa), "r" (c.sa));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.sb) : "r" (a.sb), "r" (b.sb), "r" (c.sb));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.sc) : "r" (a.sc), "r" (b.sc), "r" (c.sc));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.sd) : "r" (a.sd), "r" (b.sd), "r" (c.sd));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.se) : "r" (a.se), "r" (b.se), "r" (c.se));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x59;" : "=r" (r.sf) : "r" (a.sf), "r" (b.sf), "r" (c.sf));
   #endif
 
   return r;
@@ -801,27 +995,32 @@ static inline u32x lut3_96 (const u32x a, const u32x b, const u32x c)
   asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r)    : "r" (a),    "r" (b),    "r" (c));
   #endif
 
-  #if VECT_SIZE == 2
+  #if VECT_SIZE >= 2
   asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
   asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
   #endif
 
-  #if VECT_SIZE == 4
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
+  #if VECT_SIZE >= 4
   asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
   asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
   #endif
 
-  #if VECT_SIZE == 8
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
-  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
+  #if VECT_SIZE >= 8
   asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s4) : "r" (a.s4), "r" (b.s4), "r" (c.s4));
   asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s5) : "r" (a.s5), "r" (b.s5), "r" (c.s5));
   asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s6) : "r" (a.s6), "r" (b.s6), "r" (c.s6));
   asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s7) : "r" (a.s7), "r" (b.s7), "r" (c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s8) : "r" (a.s8), "r" (b.s8), "r" (c.s8));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.s9) : "r" (a.s9), "r" (b.s9), "r" (c.s9));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.sa) : "r" (a.sa), "r" (b.sa), "r" (c.sa));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.sb) : "r" (a.sb), "r" (b.sb), "r" (c.sb));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.sc) : "r" (a.sc), "r" (b.sc), "r" (c.sc));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.sd) : "r" (a.sd), "r" (b.sd), "r" (c.sd));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.se) : "r" (a.se), "r" (b.se), "r" (c.se));
+  asm ("lop3.b32 %0, %1, %2, %3, 0x96;" : "=r" (r.sf) : "r" (a.sf), "r" (b.sf), "r" (c.sf));
   #endif
 
   return r;
@@ -835,27 +1034,32 @@ static inline u32x lut3_e4 (const u32x a, const u32x b, const u32x c)
   asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r)    : "r" (a),    "r" (b),    "r" (c));
   #endif
 
-  #if VECT_SIZE == 2
+  #if VECT_SIZE >= 2
   asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
   asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
   #endif
 
-  #if VECT_SIZE == 4
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
+  #if VECT_SIZE >= 4
   asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
   asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
   #endif
 
-  #if VECT_SIZE == 8
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
+  #if VECT_SIZE >= 8
   asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s4) : "r" (a.s4), "r" (b.s4), "r" (c.s4));
   asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s5) : "r" (a.s5), "r" (b.s5), "r" (c.s5));
   asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s6) : "r" (a.s6), "r" (b.s6), "r" (c.s6));
   asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s7) : "r" (a.s7), "r" (b.s7), "r" (c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s8) : "r" (a.s8), "r" (b.s8), "r" (c.s8));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.s9) : "r" (a.s9), "r" (b.s9), "r" (c.s9));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.sa) : "r" (a.sa), "r" (b.sa), "r" (c.sa));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.sb) : "r" (a.sb), "r" (b.sb), "r" (c.sb));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.sc) : "r" (a.sc), "r" (b.sc), "r" (c.sc));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.sd) : "r" (a.sd), "r" (b.sd), "r" (c.sd));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.se) : "r" (a.se), "r" (b.se), "r" (c.se));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe4;" : "=r" (r.sf) : "r" (a.sf), "r" (b.sf), "r" (c.sf));
   #endif
 
   return r;
@@ -869,27 +1073,32 @@ static inline u32x lut3_e8 (const u32x a, const u32x b, const u32x c)
   asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r)    : "r" (a),    "r" (b),    "r" (c));
   #endif
 
-  #if VECT_SIZE == 2
+  #if VECT_SIZE >= 2
   asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
   asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
   #endif
 
-  #if VECT_SIZE == 4
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
+  #if VECT_SIZE >= 4
   asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
   asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
   #endif
 
-  #if VECT_SIZE == 8
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
-  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
+  #if VECT_SIZE >= 8
   asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s4) : "r" (a.s4), "r" (b.s4), "r" (c.s4));
   asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s5) : "r" (a.s5), "r" (b.s5), "r" (c.s5));
   asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s6) : "r" (a.s6), "r" (b.s6), "r" (c.s6));
   asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s7) : "r" (a.s7), "r" (b.s7), "r" (c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s8) : "r" (a.s8), "r" (b.s8), "r" (c.s8));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.s9) : "r" (a.s9), "r" (b.s9), "r" (c.s9));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.sa) : "r" (a.sa), "r" (b.sa), "r" (c.sa));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.sb) : "r" (a.sb), "r" (b.sb), "r" (c.sb));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.sc) : "r" (a.sc), "r" (b.sc), "r" (c.sc));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.sd) : "r" (a.sd), "r" (b.sd), "r" (c.sd));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.se) : "r" (a.se), "r" (b.se), "r" (c.se));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xe8;" : "=r" (r.sf) : "r" (a.sf), "r" (b.sf), "r" (c.sf));
   #endif
 
   return r;
@@ -903,27 +1112,32 @@ static inline u32x lut3_ca (const u32x a, const u32x b, const u32x c)
   asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r)    : "r" (a),    "r" (b),    "r" (c));
   #endif
 
-  #if VECT_SIZE == 2
+  #if VECT_SIZE >= 2
   asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
   asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
   #endif
 
-  #if VECT_SIZE == 4
-  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
+  #if VECT_SIZE >= 4
   asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
   asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
   #endif
 
-  #if VECT_SIZE == 8
-  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s0) : "r" (a.s0), "r" (b.s0), "r" (c.s0));
-  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s1) : "r" (a.s1), "r" (b.s1), "r" (c.s1));
-  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s2) : "r" (a.s2), "r" (b.s2), "r" (c.s2));
-  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s3) : "r" (a.s3), "r" (b.s3), "r" (c.s3));
+  #if VECT_SIZE >= 8
   asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s4) : "r" (a.s4), "r" (b.s4), "r" (c.s4));
   asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s5) : "r" (a.s5), "r" (b.s5), "r" (c.s5));
   asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s6) : "r" (a.s6), "r" (b.s6), "r" (c.s6));
   asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s7) : "r" (a.s7), "r" (b.s7), "r" (c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s8) : "r" (a.s8), "r" (b.s8), "r" (c.s8));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.s9) : "r" (a.s9), "r" (b.s9), "r" (c.s9));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.sa) : "r" (a.sa), "r" (b.sa), "r" (c.sa));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.sb) : "r" (a.sb), "r" (b.sb), "r" (c.sb));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.sc) : "r" (a.sc), "r" (b.sc), "r" (c.sc));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.sd) : "r" (a.sd), "r" (b.sd), "r" (c.sd));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.se) : "r" (a.se), "r" (b.se), "r" (c.se));
+  asm ("lop3.b32 %0, %1, %2, %3, 0xca;" : "=r" (r.sf) : "r" (a.sf), "r" (b.sf), "r" (c.sf));
   #endif
 
   return r;
@@ -1043,6 +1257,12 @@ static inline u32x amd_bytealign (const u32x a, const u32x b, const u32 c)
   const u64x tmp = ((((u64x) (a.s0, a.s1, a.s2, a.s3, a.s4, a.s5, a.s6, a.s7)) << 32) | ((u64x) (b.s0, b.s1, b.s2, b.s3, b.s4, b.s5, b.s6, b.s7))) >> ((c & 3) * 8);
 
   return (u32x) (tmp.s0, tmp.s1, tmp.s2, tmp.s3, tmp.s4, tmp.s5, tmp.s6, tmp.s7);
+  #endif
+
+  #if VECT_SIZE == 16
+  const u64x tmp = ((((u64x) (a.s0, a.s1, a.s2, a.s3, a.s4, a.s5, a.s6, a.s7, a.s8, a.s9, a.sa, a.sb, a.sc, a.sd, a.se, a.sf)) << 32) | ((u64x) (b.s0, b.s1, b.s2, b.s3, b.s4, b.s5, b.s6, b.s7, b.s8, b.s9, b.sa, b.sb, b.sc, b.sd, b.se, b.sf))) >> ((c & 3) * 8);
+
+  return (u32x) (tmp.s0, tmp.s1, tmp.s2, tmp.s3, tmp.s4, tmp.s5, tmp.s6, tmp.s7, tmp.s8, tmp.s9, tmp.sa, tmp.sb, tmp.sc, tmp.sd, tmp.se, tmp.sf);
   #endif
 }
 #endif

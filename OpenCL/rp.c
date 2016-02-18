@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               magnum <john.magnum@hushmail.com>
+ *
  * License.....: MIT
  */
 
@@ -4236,6 +4238,96 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].s7 = tmp1[1];
         w1[2].s7 = tmp1[2];
         w1[3].s7 = tmp1[3];
+        break;
+      #endif
+
+      #if VECT_SIZE >= 16
+      case 8:
+        w0[0].s8 = tmp0[0];
+        w0[1].s8 = tmp0[1];
+        w0[2].s8 = tmp0[2];
+        w0[3].s8 = tmp0[3];
+        w1[0].s8 = tmp1[0];
+        w1[1].s8 = tmp1[1];
+        w1[2].s8 = tmp1[2];
+        w1[3].s8 = tmp1[3];
+        break;
+
+      case 9:
+        w0[0].s9 = tmp0[0];
+        w0[1].s9 = tmp0[1];
+        w0[2].s9 = tmp0[2];
+        w0[3].s9 = tmp0[3];
+        w1[0].s9 = tmp1[0];
+        w1[1].s9 = tmp1[1];
+        w1[2].s9 = tmp1[2];
+        w1[3].s9 = tmp1[3];
+        break;
+
+      case 10:
+        w0[0].sa = tmp0[0];
+        w0[1].sa = tmp0[1];
+        w0[2].sa = tmp0[2];
+        w0[3].sa = tmp0[3];
+        w1[0].sa = tmp1[0];
+        w1[1].sa = tmp1[1];
+        w1[2].sa = tmp1[2];
+        w1[3].sa = tmp1[3];
+        break;
+
+      case 11:
+        w0[0].sb = tmp0[0];
+        w0[1].sb = tmp0[1];
+        w0[2].sb = tmp0[2];
+        w0[3].sb = tmp0[3];
+        w1[0].sb = tmp1[0];
+        w1[1].sb = tmp1[1];
+        w1[2].sb = tmp1[2];
+        w1[3].sb = tmp1[3];
+        break;
+
+      case 12:
+        w0[0].sc = tmp0[0];
+        w0[1].sc = tmp0[1];
+        w0[2].sc = tmp0[2];
+        w0[3].sc = tmp0[3];
+        w1[0].sc = tmp1[0];
+        w1[1].sc = tmp1[1];
+        w1[2].sc = tmp1[2];
+        w1[3].sc = tmp1[3];
+        break;
+
+      case 13:
+        w0[0].sd = tmp0[0];
+        w0[1].sd = tmp0[1];
+        w0[2].sd = tmp0[2];
+        w0[3].sd = tmp0[3];
+        w1[0].sd = tmp1[0];
+        w1[1].sd = tmp1[1];
+        w1[2].sd = tmp1[2];
+        w1[3].sd = tmp1[3];
+        break;
+
+      case 14:
+        w0[0].se = tmp0[0];
+        w0[1].se = tmp0[1];
+        w0[2].se = tmp0[2];
+        w0[3].se = tmp0[3];
+        w1[0].se = tmp1[0];
+        w1[1].se = tmp1[1];
+        w1[2].se = tmp1[2];
+        w1[3].se = tmp1[3];
+        break;
+
+      case 15:
+        w0[0].sf = tmp0[0];
+        w0[1].sf = tmp0[1];
+        w0[2].sf = tmp0[2];
+        w0[3].sf = tmp0[3];
+        w1[0].sf = tmp1[0];
+        w1[1].sf = tmp1[1];
+        w1[2].sf = tmp1[2];
+        w1[3].sf = tmp1[3];
         break;
       #endif
     }

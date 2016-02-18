@@ -1,3 +1,9 @@
+## Authors.....: Jens Steube <jens.steube@gmail.com>
+##               magnum <john.magnum@hushmail.com>
+##
+## License.....: MIT
+##
+
 OCLHASHCAT_ROOT="."
 
 # helper functions
@@ -175,7 +181,7 @@ _oclHashcat ()
   local ATTACK_MODES="0 1 3 6 7"
   local OUTFILE_FORMATS="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15"
   local OPENCL_DEVICE_TYPES="1 2 3"
-  local OPENCL_VECTOR_WIDTH="1 2 4 8"
+  local OPENCL_VECTOR_WIDTH="1 2 4 8 16"
   local DEBUG_MODE="1 2 3 4"
   local WORKLOAD_PROFILE="1 2 3"
   local HIDDEN_FILES="exe|bin|pot|hcstat|dictstat|accepted|sh|cmd|bat|restore"
