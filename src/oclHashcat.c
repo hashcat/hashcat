@@ -2865,47 +2865,16 @@ static void autotune (hc_device_param_t *device_param)
   u32 kernel_loops = kernel_loops_min;
   u32 kernel_accel = kernel_accel_min;
 
-  // steps for loops
+  // steps
 
-  #define STEPS_LOOPS_CNT 15
+  #define STEPS_CNT 11
 
-  u32 steps_loops[STEPS_LOOPS_CNT];
+  u32 steps[STEPS_CNT];
 
-  steps_loops[ 0] = 1;
-  steps_loops[ 1] = 2;
-  steps_loops[ 2] = 4;
-  steps_loops[ 3] = 8;
-  steps_loops[ 4] = 16;
-  steps_loops[ 5] = 32;
-  steps_loops[ 6] = 64;
-  steps_loops[ 7] = 100;
-  steps_loops[ 8] = 128;
-  steps_loops[ 9] = 200;
-  steps_loops[10] = 256;
-  steps_loops[11] = 500;
-  steps_loops[12] = 512;
-  steps_loops[13] = 1000;
-  steps_loops[14] = 1024;
-
-  // steps for accel
-
-  #define STEPS_ACCEL_CNT 13
-
-  u32 steps_accel[STEPS_ACCEL_CNT];
-
-  steps_accel[ 0] = 1;
-  steps_accel[ 1] = 2;
-  steps_accel[ 2] = 4;
-  steps_accel[ 3] = 8;
-  steps_accel[ 4] = 16;
-  steps_accel[ 5] = 32;
-  steps_accel[ 6] = 64;
-  steps_accel[ 7] = 128;
-  steps_accel[ 8] = 256;
-  steps_accel[ 9] = 384;
-  steps_accel[10] = 512;
-  steps_accel[11] = 768;
-  steps_accel[12] = 1024;
+  for (int i = 0; i < STEPS_CNT; i++)
+  {
+    steps[i] = 1 << i;
+  }
 
   // find out highest kernel-loops that stays below target_ms, we can use it later for multiplication as this is a linear function
 
@@ -2924,9 +2893,9 @@ static void autotune (hc_device_param_t *device_param)
 
   double e_best = 0;
 
-  for (int i = 0; i < STEPS_ACCEL_CNT; i++)
+  for (int i = 0; i < STEPS_CNT; i++)
   {
-    const u32 kernel_accel_try = steps_accel[i];
+    const u32 kernel_accel_try = steps[i];
 
     if (kernel_accel_try < kernel_accel_min) continue;
     if (kernel_accel_try > kernel_accel_max) break;
@@ -2949,9 +2918,9 @@ static void autotune (hc_device_param_t *device_param)
 
   e_best = 0;
 
-  for (int i = 0; i < STEPS_LOOPS_CNT - 1; i++)
+  for (int i = 0; i < STEPS_CNT - 1; i++)
   {
-    const u32 kernel_loops_try = steps_loops[i];
+    const u32 kernel_loops_try = steps[i];
 
     if (kernel_loops_try < kernel_loops_min) continue;
     if (kernel_loops_try > kernel_loops_max) break;
