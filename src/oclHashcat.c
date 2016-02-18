@@ -2949,7 +2949,7 @@ static void autotune (hc_device_param_t *device_param)
 
   e_best = 0;
 
-  for (int i = 0; i < STEPS_LOOPS_CNT; i++)
+  for (int i = 0; i < STEPS_LOOPS_CNT - 1; i++)
   {
     const u32 kernel_loops_try = steps_loops[i];
 
@@ -2974,7 +2974,12 @@ static void autotune (hc_device_param_t *device_param)
 
   const double exec_ms = try_run (device_param, kernel_accel, kernel_loops, 1);
 
-  e_best = exec_ms;
+  u32 kernel_accel_best = kernel_accel;
+  u32 kernel_loops_best = kernel_loops;
+
+  u32 exec_best = exec_ms;
+
+  // reset
 
   u32 kernel_accel_try = kernel_accel;
   u32 kernel_loops_try = kernel_loops;
@@ -2989,13 +2994,16 @@ static void autotune (hc_device_param_t *device_param)
 
     const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try, 1);
 
-    if (exec_ms > e_best) break;
+    if (exec_ms < exec_best)
+    {
+      kernel_accel_best = kernel_accel_try;
+      kernel_loops_best = kernel_loops_try;
 
-    kernel_accel = kernel_accel_try;
-    kernel_loops = kernel_loops_try;
-
-    e_best = exec_ms;
+      exec_best = exec_ms;
+    }
   }
+
+  // reset
 
   kernel_accel_try = kernel_accel;
   kernel_loops_try = kernel_loops;
@@ -3010,13 +3018,17 @@ static void autotune (hc_device_param_t *device_param)
 
     const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try, 1);
 
-    if (exec_ms > e_best) break;
+    if (exec_ms < exec_best)
+    {
+      kernel_accel_best = kernel_accel_try;
+      kernel_loops_best = kernel_loops_try;
 
-    kernel_accel = kernel_accel_try;
-    kernel_loops = kernel_loops_try;
-
-    e_best = exec_ms;
+      exec_best = exec_ms;
+    }
   }
+
+  kernel_accel = kernel_accel_best;
+  kernel_loops = kernel_loops_best;
 
   // reset timer
 
