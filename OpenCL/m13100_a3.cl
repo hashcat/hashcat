@@ -1,6 +1,6 @@
 /**
  * Authors......: Jens Steube <jens.steube@gmail.com>
- * Authors......: Fist0urs   <eddy.maaalou@gmail.com>
+ * Authors......: Fist0urs <eddy.maaalou@gmail.com>
  *
  * License.....: MIT
  */
@@ -136,40 +136,6 @@ static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __global u32 in[4],
   }
 
   return j;
-}
-
-static int decrypt_and_check (__local RC4_KEY *rc4_key, u32 data[4], __global u32* edata2)
-{
-  rc4_init_16 (rc4_key, data);
-
-  u32 out[8];
-
-  u8 j = 0;
-
-  /* 
-    8 first bytes are nonce, then ASN1 structs (DER encoding: type-length-data)
-
-    if length >= 128 bytes:
-        length is on 2 bytes and type is \x63\x82 (encode_krb5_enc_tkt_part) and data is an ASN1 sequence \x30\x82
-    else:
-        length is on 1 byte and type is \x63\x81 and data is an ASN1 sequence \x30\x81
-
-    next headers follow the same ASN1 "type-length-data" scheme
-  */
-
-  j = rc4_next_16 (rc4_key,  0, 0, edata2, out);
-
-  if (((out[2] & 0xff00ffff) != 0x30008163) && ((out[2] & 0x0000ffff) != 0x00008263)) return 0;
-
-  j = rc4_next_16 (rc4_key,  16, j, edata2 + 4, out + 4);
-
-  if (((out[4] & 0x00ffffff) != 0x00000503) && (out[4] != 0x050307A0)) return 0;
-
-  // TODO (or not): add RC4'ing of all edata2 then hmac-md5 and compare with 
-  // checksum to be definitely sure that this is the correct pass (even if 
-  // collisions must be very rare)
-
-  return 1;
 }
 
 static void md4_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
@@ -419,7 +385,207 @@ static void hmac_md5_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[4
   md5_transform (w0, w1, w2, w3, digest);
 }
 
-static void kerb_prepare (const u32 w0[4], const u32 w1[4], const u32 pw_len, const u32 checksum[4], u32 digest[4])
+static int decrypt_and_check (__local RC4_KEY *rc4_key, u32 data[4], __global u32 *edata2, const u32 edata2_len, const u32 K2[4], const u32 checksum[4])
+{
+  rc4_init_16 (rc4_key, data);
+
+  u32 out0[4];
+  u32 out1[4];
+
+  u8 i = 0;
+  u8 j = 0;
+
+  /*
+    8 first bytes are nonce, then ASN1 structs (DER encoding: type-length-data)
+
+    if length >= 128 bytes:
+        length is on 2 bytes and type is \x63\x82 (encode_krb5_enc_tkt_part) and data is an ASN1 sequence \x30\x82
+    else:
+        length is on 1 byte and type is \x63\x81 and data is an ASN1 sequence \x30\x81
+
+    next headers follow the same ASN1 "type-length-data" scheme
+  */
+
+  j = rc4_next_16 (rc4_key, i, j, edata2 + 0, out0); i += 16;
+
+  if (((out0[2] & 0xff00ffff) != 0x30008163) && ((out0[2] & 0x0000ffff) != 0x00008263)) return 0;
+
+  j = rc4_next_16 (rc4_key, i, j, edata2 + 4, out1); i += 16;
+
+  if (((out1[0] & 0x00ffffff) != 0x00000503) && (out1[0] != 0x050307A0)) return 0;
+
+  rc4_init_16 (rc4_key, data);
+
+  i = 0;
+  j = 0;
+
+  // init hmac
+
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  w0[0] = K2[0];
+  w0[1] = K2[1];
+  w0[2] = K2[2];
+  w0[3] = K2[3];
+  w1[0] = 0;
+  w1[1] = 0;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = 0;
+
+  u32 ipad[4];
+  u32 opad[4];
+
+  hmac_md5_pad (w0, w1, w2, w3, ipad, opad);
+
+  int edata2_left;
+
+  for (edata2_left = edata2_len; edata2_left >= 64; edata2_left -= 64)
+  {
+    j = rc4_next_16 (rc4_key, i, j, edata2, w0); i += 16; edata2 += 4;
+    j = rc4_next_16 (rc4_key, i, j, edata2, w1); i += 16; edata2 += 4;
+    j = rc4_next_16 (rc4_key, i, j, edata2, w2); i += 16; edata2 += 4;
+    j = rc4_next_16 (rc4_key, i, j, edata2, w3); i += 16; edata2 += 4;
+
+    md5_transform (w0, w1, w2, w3, ipad);
+  }
+
+  w0[0] = 0;
+  w0[1] = 0;
+  w0[2] = 0;
+  w0[3] = 0;
+  w1[0] = 0;
+  w1[1] = 0;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = 0;
+
+  if (edata2_left < 16)
+  {
+    j = rc4_next_16 (rc4_key, i, j, edata2, w0); i += 16; edata2 += 4;
+
+    truncate_block  (w0, edata2_left & 0xf);
+    append_0x80_1x4 (w0, edata2_left & 0xf);
+
+    w3[2] = (64 + edata2_len) * 8;
+    w3[3] = 0;
+
+    md5_transform (w0, w1, w2, w3, ipad);
+  }
+  else if (edata2_left < 32)
+  {
+    j = rc4_next_16 (rc4_key, i, j, edata2, w0); i += 16; edata2 += 4;
+    j = rc4_next_16 (rc4_key, i, j, edata2, w1); i += 16; edata2 += 4;
+
+    truncate_block  (w1, edata2_left & 0xf);
+    append_0x80_1x4 (w1, edata2_left & 0xf);
+
+    w3[2] = (64 + edata2_len) * 8;
+    w3[3] = 0;
+
+    md5_transform (w0, w1, w2, w3, ipad);
+  }
+  else if (edata2_left < 48)
+  {
+    j = rc4_next_16 (rc4_key, i, j, edata2, w0); i += 16; edata2 += 4;
+    j = rc4_next_16 (rc4_key, i, j, edata2, w1); i += 16; edata2 += 4;
+    j = rc4_next_16 (rc4_key, i, j, edata2, w2); i += 16; edata2 += 4;
+
+    truncate_block  (w2, edata2_left & 0xf);
+    append_0x80_1x4 (w2, edata2_left & 0xf);
+
+    w3[2] = (64 + edata2_len) * 8;
+    w3[3] = 0;
+
+    md5_transform (w0, w1, w2, w3, ipad);
+  }
+  else
+  {
+    j = rc4_next_16 (rc4_key, i, j, edata2, w0); i += 16; edata2 += 4;
+    j = rc4_next_16 (rc4_key, i, j, edata2, w1); i += 16; edata2 += 4;
+    j = rc4_next_16 (rc4_key, i, j, edata2, w2); i += 16; edata2 += 4;
+    j = rc4_next_16 (rc4_key, i, j, edata2, w3); i += 16; edata2 += 4;
+
+    truncate_block  (w3, edata2_left & 0xf);
+    append_0x80_1x4 (w3, edata2_left & 0xf);
+
+    if (edata2_left < 56)
+    {
+      w3[2] = (64 + edata2_len) * 8;
+      w3[3] = 0;
+
+      md5_transform (w0, w1, w2, w3, ipad);
+    }
+    else
+    {
+      md5_transform (w0, w1, w2, w3, ipad);
+
+      w0[0] = 0;
+      w0[1] = 0;
+      w0[2] = 0;
+      w0[3] = 0;
+      w1[0] = 0;
+      w1[1] = 0;
+      w1[2] = 0;
+      w1[3] = 0;
+      w2[0] = 0;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = (64 + edata2_len) * 8;
+      w3[3] = 0;
+
+      md5_transform (w0, w1, w2, w3, ipad);
+    }
+  }
+
+  w0[0] = ipad[0];
+  w0[1] = ipad[1];
+  w0[2] = ipad[2];
+  w0[3] = ipad[3];
+  w1[0] = 0x80;
+  w1[1] = 0;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = (64 + 16) * 8;
+  w3[3] = 0;
+
+  md5_transform (w0, w1, w2, w3, opad);
+
+  if (checksum[0] != opad[0]) return 0;
+  if (checksum[1] != opad[1]) return 0;
+  if (checksum[2] != opad[2]) return 0;
+  if (checksum[3] != opad[3]) return 0;
+
+  return 1;
+}
+
+static void kerb_prepare (const u32 w0[4], const u32 w1[4], const u32 pw_len, const u32 checksum[4], u32 digest[4], u32 K2[4])
 {
   /**
    * pads
@@ -507,6 +673,13 @@ static void kerb_prepare (const u32 w0[4], const u32 w1[4], const u32 pw_len, co
 
   hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 
+  // K2 = K1;
+
+  K2[0] = digest[0];
+  K2[1] = digest[1];
+  K2[2] = digest[2];
+  K2[3] = digest[3];
+
   // K3=MD5_HMAC(K1,checksum);
 
   w0_t[0] = digest[0];
@@ -582,7 +755,9 @@ static void m13100 (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4], 
 
     u32 digest[4];
 
-    kerb_prepare (w0, w1, pw_len, checksum, digest);
+    u32 K2[4];
+
+    kerb_prepare (w0, w1, pw_len, checksum, digest, K2);
 
     u32 tmp[4];
 
@@ -591,7 +766,7 @@ static void m13100 (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4], 
     tmp[2] = digest[2];
     tmp[3] = digest[3];
 
-    if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[salt_pos].edata2) == 1)
+    if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[salt_pos].edata2, krb5tgs_bufs[salt_pos].edata2_len, K2, checksum) == 1)
     {
       mark_hash (plains_buf, hashes_shown, digests_offset, gid, il_pos);
 

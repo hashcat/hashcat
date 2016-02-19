@@ -6704,7 +6704,7 @@ END_CODE
 
     my $edata2 = $cipher->RC4 (pack ("H*", $cleartext_ticket));
 
-    $tmp_hash = sprintf ('$krb5tgs$23$*%s$%s$%s*$%s$%s', $user, $realm, $spn, unpack ("H*", $checksum), substr (unpack ("H*", $edata2), 0, 64));
+    $tmp_hash = sprintf ('$krb5tgs$23$*%s$%s$%s*$%s$%s', $user, $realm, $spn, unpack ("H*", $checksum), unpack ("H*", $edata2));
   }
 
   return ($tmp_hash);

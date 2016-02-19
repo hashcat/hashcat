@@ -8302,7 +8302,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
     u8 *ptr_checksum  = (u8 *) krb5tgs->checksum;
     u8 *ptr_edata2 = (u8 *) krb5tgs->edata2;
 
-    char data[256] = { 0 };
+    char data[2560 * 4 * 2] = { 0 };
 
     char *ptr_data = data;
 
@@ -8312,10 +8312,8 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
     /* skip '$' */
     ptr_data++;
 
-    for (uint i = 0; i < 32; i++, ptr_data += 2)
+    for (uint i = 0; i < krb5tgs->edata2_len; i++, ptr_data += 2)
       sprintf (ptr_data, "%02x", ptr_edata2[i]);
-
-    *ptr_data = 0;
 
     snprintf (out_buf, len-1, "%s$%s$%s$%s",
       SIGNATURE_KRB5TGS,
@@ -18795,7 +18793,10 @@ int krb5tgs_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
                     | hex_convert (p0) << 4;
   }
 
-  krb5tgs->edata2_len = strlen (edata_ptr - input_len) / (2 * 4);
+ /* this is needed for hmac_md5 */
+  *edata_ptr++ = 0x80;
+  
+  krb5tgs->edata2_len = (data_len - 32) / 2 ;
 
   salt->salt_buf[0] = krb5tgs->checksum[0];
   salt->salt_buf[1] = krb5tgs->checksum[1];
