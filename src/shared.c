@@ -4354,6 +4354,14 @@ void *rulefind (const void *key, void *base, int nmemb, size_t size, int (*compa
   return NULL;
 }
 
+int sort_by_u32 (const void *v1, const void *v2)
+{
+  const u32 *s1 = (const u32 *) v1;
+  const u32 *s2 = (const u32 *) v2;
+
+  return *s1 - *s2;
+}
+
 int sort_by_salt (const void *v1, const void *v2)
 {
   const salt_t *s1 = (const salt_t *) v1;
@@ -18725,8 +18733,8 @@ int krb5tgs_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
    */
 
   /* Skip '$' */
-  char *account_pos = input_buf + 11 + 1; 
-  
+  char *account_pos = input_buf + 11 + 1;
+
   char *data_pos;
 
   uint data_len;
@@ -18786,14 +18794,14 @@ int krb5tgs_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
     *edata_ptr++ = hex_convert (p1) << 0
                     | hex_convert (p0) << 4;
   }
-  
+
   krb5tgs->edata2_len = strlen (edata_ptr - input_len) / (2 * 4);
 
   salt->salt_buf[0] = krb5tgs->checksum[0];
   salt->salt_buf[1] = krb5tgs->checksum[1];
   salt->salt_buf[2] = krb5tgs->checksum[2];
   salt->salt_buf[3] = krb5tgs->checksum[3];
-  
+
   salt->salt_len = 32;
 
   digest[0] = krb5tgs->checksum[0];

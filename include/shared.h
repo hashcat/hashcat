@@ -1296,6 +1296,7 @@ uint count_lines (FILE *fd);
 
 void *rulefind (const void *key, void *base, int nmemb, size_t size, int (*compar) (const void *, const void *));
 
+int sort_by_u32          (const void *p1, const void *p2);
 int sort_by_mtime        (const void *p1, const void *p2);
 int sort_by_cpu_rule     (const void *p1, const void *p2);
 int sort_by_kernel_rule  (const void *p1, const void *p2);

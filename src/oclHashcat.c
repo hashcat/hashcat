@@ -2846,8 +2846,10 @@ static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, 
 
   // reset fake words
 
-  run_kernel_bzero (device_param, device_param->d_pws_buf,     device_param->size_pws);
-  run_kernel_bzero (device_param, device_param->d_pws_amp_buf, device_param->size_pws);
+  memset (device_param->pws_buf, 0, kernel_power * sizeof (pw_t));
+
+  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
   return exec_ms_prev;
 }
@@ -2856,31 +2858,49 @@ static void autotune (hc_device_param_t *device_param)
 {
   const double target_ms = TARGET_MS_PROFILE[data.workload_profile - 1];
 
-  u32 kernel_loops_min = device_param->kernel_loops_min;
-  u32 kernel_loops_max = device_param->kernel_loops_max;
+  const u32 kernel_accel_min = device_param->kernel_accel_min;
+  const u32 kernel_accel_max = device_param->kernel_accel_max;
 
-  u32 kernel_accel_min = device_param->kernel_accel_min;
-  u32 kernel_accel_max = device_param->kernel_accel_max;
+  const u32 kernel_loops_min = device_param->kernel_loops_min;
+  const u32 kernel_loops_max = device_param->kernel_loops_max;
 
-  u32 kernel_loops = kernel_loops_min;
   u32 kernel_accel = kernel_accel_min;
+  u32 kernel_loops = kernel_loops_min;
 
   // steps
 
-  #define STEPS_CNT 11
+  #define STEPS_CNT 10
 
-  u32 steps[STEPS_CNT];
+  #define STEPS_ACCEL_CNT (STEPS_CNT + 2)
+  #define STEPS_LOOPS_CNT (STEPS_CNT + 2)
 
-  for (int i = 0; i < STEPS_CNT; i++)
+  u32 steps_accel[STEPS_ACCEL_CNT];
+  u32 steps_loops[STEPS_LOOPS_CNT];
+
+  for (int i = 1; i < STEPS_ACCEL_CNT; i++)
   {
-    steps[i] = 1 << i;
+    steps_accel[i] = 1 << i;
   }
+
+  for (int i = 0; i < STEPS_LOOPS_CNT; i++)
+  {
+    steps_loops[i] = 1 << i;
+  }
+
+  steps_accel[STEPS_CNT + 0] = kernel_accel_min;
+  steps_accel[STEPS_CNT + 1] = kernel_accel_max;
+
+  steps_loops[STEPS_CNT + 0] = kernel_loops_min;
+  steps_loops[STEPS_CNT + 1] = kernel_loops_max;
+
+  qsort (steps_accel, STEPS_ACCEL_CNT, sizeof (u32), sort_by_u32);
+  qsort (steps_loops, STEPS_LOOPS_CNT, sizeof (u32), sort_by_u32);
 
   // find out highest kernel-loops that stays below target_ms, we can use it later for multiplication as this is a linear function
 
   u32 kernel_loops_tmp;
 
-  for (kernel_loops_tmp = MIN (kernel_loops_max, 200); kernel_loops_tmp >= kernel_loops_min; kernel_loops_tmp >>= 1)
+  for (kernel_loops_tmp = kernel_loops_max; kernel_loops_tmp >= kernel_loops_min; kernel_loops_tmp >>= 1)
   {
     const double exec_ms = try_run (device_param, kernel_accel_min, kernel_loops_tmp, 1);
 
@@ -2893,9 +2913,9 @@ static void autotune (hc_device_param_t *device_param)
 
   double e_best = 0;
 
-  for (int i = 0; i < STEPS_CNT; i++)
+  for (int i = 0; i < STEPS_ACCEL_CNT; i++)
   {
-    const u32 kernel_accel_try = steps[i];
+    const u32 kernel_accel_try = steps_accel[i];
 
     if (kernel_accel_try < kernel_accel_min) continue;
     if (kernel_accel_try > kernel_accel_max) break;
@@ -2918,9 +2938,9 @@ static void autotune (hc_device_param_t *device_param)
 
   e_best = 0;
 
-  for (int i = 0; i < STEPS_CNT - 1; i++)
+  for (int i = 0; i < STEPS_LOOPS_CNT; i++)
   {
-    const u32 kernel_loops_try = steps[i];
+    const u32 kernel_loops_try = steps_loops[i];
 
     if (kernel_loops_try < kernel_loops_min) continue;
     if (kernel_loops_try > kernel_loops_max) break;
@@ -4333,12 +4353,7 @@ static void *thread_calc_stdin (void *p)
 
   if (device_param->skipped) return NULL;
 
-  const bool run_autotune = ((device_param->kernel_accel == 0) && (device_param->kernel_loops == 0));
-
-  if (run_autotune)
-  {
-    autotune (device_param);
-  }
+  autotune (device_param);
 
   const uint attack_kern = data.attack_kern;
 
@@ -4545,11 +4560,8 @@ static void *thread_calc_stdin (void *p)
     }
   }
 
-  if (run_autotune)
-  {
-    device_param->kernel_accel = 0;
-    device_param->kernel_loops = 0;
-  }
+  device_param->kernel_accel = 0;
+  device_param->kernel_loops = 0;
 
   return NULL;
 }
@@ -4560,12 +4572,7 @@ static void *thread_calc (void *p)
 
   if (device_param->skipped) return NULL;
 
-  const bool run_autotune = ((device_param->kernel_accel == 0) && (device_param->kernel_loops == 0));
-
-  if (run_autotune)
-  {
-    autotune (device_param);
-  }
+  autotune (device_param);
 
   const uint attack_mode = data.attack_mode;
   const uint attack_kern = data.attack_kern;
@@ -4927,11 +4934,8 @@ static void *thread_calc (void *p)
     fclose (fd);
   }
 
-  if (run_autotune)
-  {
-    device_param->kernel_accel = 0;
-    device_param->kernel_loops = 0;
-  }
+  device_param->kernel_accel = 0;
+  device_param->kernel_loops = 0;
 
   return NULL;
 }
@@ -6234,20 +6238,6 @@ int main (int argc, char **argv)
   if (rp_gen_func_min > rp_gen_func_max)
   {
     log_error ("ERROR: Invalid rp-gen-func-min specified");
-
-    return (-1);
-  }
-
-  if (kernel_accel_chgd == 1 && kernel_loops_chgd == 0)
-  {
-    log_error ("ERROR: If kernel-accel is specified, kernel-loops need to be specified as well");
-
-    return (-1);
-  }
-
-  if (kernel_loops_chgd == 1 && kernel_accel_chgd == 0)
-  {
-    log_error ("ERROR: If kernel-loops is specified, kernel-accel need to be specified as well");
 
     return (-1);
   }
@@ -13023,25 +13013,27 @@ int main (int argc, char **argv)
            * kernel accel and loops tuning db adjustment
            */
 
-          uint _kernel_accel = kernel_accel;
-          uint _kernel_loops = kernel_loops;
+          device_param->kernel_accel_min = 1;
+          device_param->kernel_accel_max = 1024;
+
+          device_param->kernel_loops_min = 1;
+          device_param->kernel_loops_max = 1024;
 
           tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, attack_mode, hash_mode);
 
-          if (kernel_accel_chgd == 0)
+          if (tuningdb_entry)
           {
-            if (tuningdb_entry)
+            u32 _kernel_accel = tuningdb_entry->kernel_accel;
+            u32 _kernel_loops = tuningdb_entry->kernel_loops;
+
+            if (_kernel_accel)
             {
-              _kernel_accel = tuningdb_entry->kernel_accel;
+              device_param->kernel_accel_min = _kernel_accel;
+              device_param->kernel_accel_max = _kernel_accel;
             }
-          }
 
-          if (kernel_loops_chgd == 0)
-          {
-            if (tuningdb_entry)
+            if (_kernel_loops)
             {
-              _kernel_loops = tuningdb_entry->kernel_loops;
-
               if (workload_profile == 1)
               {
                 _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
@@ -13050,11 +13042,29 @@ int main (int argc, char **argv)
               {
                 _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
               }
+
+              device_param->kernel_loops_min = _kernel_loops;
+              device_param->kernel_loops_max = _kernel_loops;
             }
           }
 
-          device_param->kernel_accel = _kernel_accel;
-          device_param->kernel_loops = _kernel_loops;
+          // commandline parameters overwrite tuningdb entries
+
+          if (kernel_accel)
+          {
+            device_param->kernel_accel_min = kernel_accel;
+            device_param->kernel_accel_max = kernel_accel;
+          }
+
+          if (kernel_loops)
+          {
+            device_param->kernel_loops_min = kernel_loops;
+            device_param->kernel_loops_max = kernel_loops;
+          }
+
+          /**
+           * activate device
+           */
 
           devices_active++;
         }
@@ -13614,68 +13624,57 @@ int main (int argc, char **argv)
        * some algorithms need a fixed kernel-loops count
        */
 
-      u32 kernel_loops_min = 1;
-      u32 kernel_loops_max = 1024;
-
       if (hash_mode == 1500)
       {
         const u32 kernel_loops_fixed = 1024;
 
-        kernel_loops_min = kernel_loops_fixed;
-        kernel_loops_max = kernel_loops_fixed;
+        device_param->kernel_loops_min = kernel_loops_fixed;
+        device_param->kernel_loops_max = kernel_loops_fixed;
       }
 
       if (hash_mode == 3000)
       {
         const u32 kernel_loops_fixed = 1024;
 
-        kernel_loops_min = kernel_loops_fixed;
-        kernel_loops_max = kernel_loops_fixed;
+        device_param->kernel_loops_min = kernel_loops_fixed;
+        device_param->kernel_loops_max = kernel_loops_fixed;
       }
 
       if (hash_mode == 8900)
       {
         const u32 kernel_loops_fixed = 1;
 
-        kernel_loops_min = kernel_loops_fixed;
-        kernel_loops_max = kernel_loops_fixed;
+        device_param->kernel_loops_min = kernel_loops_fixed;
+        device_param->kernel_loops_max = kernel_loops_fixed;
       }
 
       if (hash_mode == 9300)
       {
         const u32 kernel_loops_fixed = 1;
 
-        kernel_loops_min = kernel_loops_fixed;
-        kernel_loops_max = kernel_loops_fixed;
+        device_param->kernel_loops_min = kernel_loops_fixed;
+        device_param->kernel_loops_max = kernel_loops_fixed;
       }
 
       if (hash_mode == 12500)
       {
         const u32 kernel_loops_fixed = ROUNDS_RAR3 / 16;
 
-        kernel_loops_min = kernel_loops_fixed;
-        kernel_loops_max = kernel_loops_fixed;
+        device_param->kernel_loops_min = kernel_loops_fixed;
+        device_param->kernel_loops_max = kernel_loops_fixed;
       }
+
+      /**
+       * some algorithms have a maximum kernel-loops count
+       */
 
       if (attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
       {
-        if (data.salts_buf[0].salt_iter < kernel_loops_max)
+        if (data.salts_buf[0].salt_iter < device_param->kernel_loops_max)
         {
-          kernel_loops_max = data.salts_buf[0].salt_iter;
+          device_param->kernel_loops_max = data.salts_buf[0].salt_iter;
         }
       }
-
-      device_param->kernel_loops_min = kernel_loops_min;
-      device_param->kernel_loops_max = kernel_loops_max;
-
-      // find out if we would request too much memory on memory blocks which are based on kernel_accel
-
-      uint size_pws   = 4;
-      uint size_tmps  = 4;
-      uint size_hooks = 4;
-
-      uint kernel_accel_min = 1;
-      uint kernel_accel_max = 1024;
 
       /**
        * some algorithms need a special kernel-accel
@@ -13683,15 +13682,26 @@ int main (int argc, char **argv)
 
       if (hash_mode == 8900)
       {
-        kernel_accel_max = 64;
+        device_param->kernel_accel_min = 1;
+        device_param->kernel_accel_max = 64;
       }
 
       if (hash_mode == 9300)
       {
-        kernel_accel_max = 64;
+        device_param->kernel_accel_min = 1;
+        device_param->kernel_accel_max = 64;
       }
 
-      while (kernel_accel_max)
+      u32 kernel_accel_min = device_param->kernel_accel_min;
+      u32 kernel_accel_max = device_param->kernel_accel_max;
+
+      // find out if we would request too much memory on memory blocks which are based on kernel_accel
+
+      uint size_pws   = 4;
+      uint size_tmps  = 4;
+      uint size_hooks = 4;
+
+      while (kernel_accel_max >= kernel_accel_min)
       {
         uint kernel_power_max = device_processors * kernel_threads * kernel_accel_max;
 
@@ -13818,24 +13828,26 @@ int main (int argc, char **argv)
         break;
       }
 
+      /*
       if (kernel_accel_max == 0)
       {
         log_error ("Device #%u: Device does not provide enough allocatable device-memory to handle hash-type %u", device_id + 1, data.hash_mode);
 
         return -1;
       }
+      */
 
       device_param->kernel_accel_min = kernel_accel_min;
       device_param->kernel_accel_max = kernel_accel_max;
 
+      /*
       if (kernel_accel_max < kernel_accel)
       {
         if (quiet == 0) log_info ("Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
 
         device_param->kernel_accel = kernel_accel_max;
       }
-
-      const u32 kernel_accel = device_param->kernel_accel;
+      */
 
       device_param->size_pws   = size_pws;
       device_param->size_tmps  = size_tmps;
@@ -13843,7 +13855,7 @@ int main (int argc, char **argv)
 
       // do not confuse kernel_accel_max with kernel_accel here
 
-      const u32 kernel_power = device_processors * kernel_threads * kernel_accel;
+      const u32 kernel_power = device_processors * kernel_threads * kernel_accel_max;
 
       device_param->kernel_threads    = kernel_threads;
       device_param->kernel_power_user = kernel_power;
