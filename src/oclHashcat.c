@@ -12719,7 +12719,7 @@ int main (int argc, char **argv)
 
         // tuning db
 
-        tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, attack_mode, hash_mode);
+        tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param, attack_mode, hash_mode);
 
         // device_version
 
@@ -13019,7 +13019,7 @@ int main (int argc, char **argv)
           device_param->kernel_loops_min = 1;
           device_param->kernel_loops_max = 1024;
 
-          tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, attack_mode, hash_mode);
+          tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param, attack_mode, hash_mode);
 
           if (tuningdb_entry)
           {

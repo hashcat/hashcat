@@ -9298,13 +9298,13 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
   return tuning_db;
 }
 
-tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, char *device_name, int attack_mode, int hash_type)
+tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, hc_device_param_t *device_param, int attack_mode, int hash_type)
 {
   static tuning_db_entry_t s;
 
   // first we need to convert all spaces in the device_name to underscore
 
-  char *device_name_nospace = strdup (device_name);
+  char *device_name_nospace = strdup (device_param->device_name);
 
   int device_name_length = strlen (device_name_nospace);
 
@@ -9350,11 +9350,35 @@ tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, char *device_name, 
 
     if (entry != NULL) break;
 
-    // in non-wildcard mode also check the alias_name
+    // in non-wildcard mode do some additional checks:
 
-    if (((i & 1) == 0) && (alias_name != NULL))
+    if ((i & 1) == 0)
     {
-      s.device_name = alias_name;
+      // in case we have an alias-name
+
+      if (alias_name != NULL)
+      {
+        s.device_name = alias_name;
+
+        entry = bsearch (&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
+
+        if (entry != NULL) break;
+      }
+
+      // or by device type
+
+      if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+      {
+        s.device_name = "DEVICE_TYPE_CPU";
+      }
+      else if (device_param->device_type & CL_DEVICE_TYPE_GPU)
+      {
+        s.device_name = "DEVICE_TYPE_GPU";
+      }
+      else if (device_param->device_type & CL_DEVICE_TYPE_ACCELERATOR)
+      {
+        s.device_name = "DEVICE_TYPE_ACCELERATOR";
+      }
 
       entry = bsearch (&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
 
@@ -18795,7 +18819,7 @@ int krb5tgs_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
  /* this is needed for hmac_md5 */
   *edata_ptr++ = 0x80;
-  
+
   krb5tgs->edata2_len = (data_len - 32) / 2 ;
 
   salt->salt_buf[0] = krb5tgs->checksum[0];

@@ -1442,7 +1442,7 @@ void sp_stretch_root (hcstat_table_t *in, hcstat_table_t *out);
 void tuning_db_destroy (tuning_db_t *tuning_db);
 tuning_db_t *tuning_db_alloc (FILE *fp);
 tuning_db_t *tuning_db_init (const char *tuning_db_file);
-tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, char *device_name, int attack_mode, int hash_type);
+tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, hc_device_param_t *device_param, int attack_mode, int hash_type);
 
 int bcrypt_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf);
 int cisco4_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf);
