@@ -2234,7 +2234,7 @@ sub verify
       
       next unless ($signature eq "krb5tgs");
       next unless (length ($checksum) == 32);
-      next unless (length ($edata2) == 64);
+      next unless (length ($edata2) >= 64);
 
       $salt = $user . '$' . $realm . '$' . $spn . '$' . substr ($edata2, 0, 16);
 
