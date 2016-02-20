@@ -269,7 +269,7 @@ static void m09710m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32 w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32 w0lr = w0l | w0r;
 
@@ -395,7 +395,7 @@ static void m09710s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32 w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32 w0lr = w0l | w0r;
 

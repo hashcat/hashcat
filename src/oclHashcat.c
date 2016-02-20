@@ -220,12 +220,12 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   101,
   111,
   1711,
-  3000, // broken in osx
+  3000,
   1000,
   1100,
   2100,
   12800,
-  1500, // broken in osx
+  1500,
   12400,
   500,
   3200,
@@ -278,7 +278,7 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   10410,
   10500,
   10600,
-  10700, // broken in osx
+  10700,
   9000,
   5200,
   6800,
@@ -2877,7 +2877,7 @@ static void autotune (hc_device_param_t *device_param)
   u32 steps_accel[STEPS_ACCEL_CNT];
   u32 steps_loops[STEPS_LOOPS_CNT];
 
-  for (int i = 1; i < STEPS_ACCEL_CNT; i++)
+  for (int i = 0; i < STEPS_ACCEL_CNT; i++)
   {
     steps_accel[i] = 1 << i;
   }
@@ -2900,62 +2900,66 @@ static void autotune (hc_device_param_t *device_param)
 
   u32 kernel_loops_tmp;
 
-  for (kernel_loops_tmp = kernel_loops_max; kernel_loops_tmp >= kernel_loops_min; kernel_loops_tmp >>= 1)
+  for (kernel_loops_tmp = kernel_loops_max; kernel_loops_tmp > kernel_loops_min; kernel_loops_tmp >>= 1)
   {
     const double exec_ms = try_run (device_param, kernel_accel_min, kernel_loops_tmp, 1);
 
     if (exec_ms < target_ms) break;
-
-    if (kernel_loops_tmp == kernel_loops_min) break;
   }
 
   // kernel-accel
 
-  double e_best = 0;
-
-  for (int i = 0; i < STEPS_ACCEL_CNT; i++)
+  if (kernel_accel_min < kernel_accel_max)
   {
-    const u32 kernel_accel_try = steps_accel[i];
+    double e_best = 0;
 
-    if (kernel_accel_try < kernel_accel_min) continue;
-    if (kernel_accel_try > kernel_accel_max) break;
-
-    const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_tmp, 1);
-
-    if (exec_ms > target_ms) break;
-
-    const double e = kernel_accel_try / exec_ms;
-
-    if (e > e_best)
+    for (int i = 0; i < STEPS_ACCEL_CNT; i++)
     {
-      kernel_accel = kernel_accel_try;
+      const u32 kernel_accel_try = steps_accel[i];
 
-      e_best = e;
+      if (kernel_accel_try < kernel_accel_min) continue;
+      if (kernel_accel_try > kernel_accel_max) break;
+
+      const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_tmp, 1);
+
+      if (exec_ms > target_ms) break;
+
+      const double e = kernel_accel_try / exec_ms;
+
+      if (e > e_best)
+      {
+        kernel_accel = kernel_accel_try;
+
+        e_best = e;
+      }
     }
   }
 
   // kernel-loops final
 
-  e_best = 0;
-
-  for (int i = 0; i < STEPS_LOOPS_CNT; i++)
+  if (kernel_loops_min < kernel_loops_max)
   {
-    const u32 kernel_loops_try = steps_loops[i];
+    double e_best = 0;
 
-    if (kernel_loops_try < kernel_loops_min) continue;
-    if (kernel_loops_try > kernel_loops_max) break;
-
-    const double exec_ms = try_run (device_param, kernel_accel, kernel_loops_try, 1);
-
-    if (exec_ms > target_ms) break;
-
-    const double e = kernel_loops_try / exec_ms;
-
-    if (e > e_best)
+    for (int i = 0; i < STEPS_LOOPS_CNT; i++)
     {
-      kernel_loops = kernel_loops_try;
+      const u32 kernel_loops_try = steps_loops[i];
 
-      e_best = e;
+      if (kernel_loops_try < kernel_loops_min) continue;
+      if (kernel_loops_try > kernel_loops_max) break;
+
+      const double exec_ms = try_run (device_param, kernel_accel, kernel_loops_try, 1);
+
+      if (exec_ms > target_ms) break;
+
+      const double e = kernel_loops_try / exec_ms;
+
+      if (e > e_best)
+      {
+        kernel_loops = kernel_loops_try;
+
+        e_best = e;
+      }
     }
   }
 
@@ -2970,54 +2974,64 @@ static void autotune (hc_device_param_t *device_param)
 
   // reset
 
-  u32 kernel_accel_try = kernel_accel;
-  u32 kernel_loops_try = kernel_loops;
-
-  for (int i = 0; i < 2; i++)
+  if (kernel_accel_min < kernel_accel_max)
   {
-    kernel_accel_try >>= 1;
-    kernel_loops_try <<= 1;
+    u32 kernel_accel_try = kernel_accel;
+    u32 kernel_loops_try = kernel_loops;
 
-    if (kernel_accel_try < kernel_accel_min) break;
-    if (kernel_loops_try > kernel_loops_max) break;
-
-    const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try, 1);
-
-    if (exec_ms < exec_best)
+    for (int i = 0; i < 2; i++)
     {
-      kernel_accel_best = kernel_accel_try;
-      kernel_loops_best = kernel_loops_try;
+      kernel_accel_try >>= 1;
+      kernel_loops_try <<= 1;
 
-      exec_best = exec_ms;
+      if (kernel_accel_try < kernel_accel_min) break;
+      if (kernel_loops_try > kernel_loops_max) break;
+
+      const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try, 1);
+
+      if (exec_ms < exec_best)
+      {
+        kernel_accel_best = kernel_accel_try;
+        kernel_loops_best = kernel_loops_try;
+
+        exec_best = exec_ms;
+      }
     }
+
+    kernel_accel = kernel_accel_best;
+    kernel_loops = kernel_loops_best;
   }
 
   // reset
 
-  kernel_accel_try = kernel_accel;
-  kernel_loops_try = kernel_loops;
 
-  for (int i = 0; i < 2; i++)
+  if (kernel_loops_min < kernel_loops_max)
   {
-    kernel_accel_try <<= 1;
-    kernel_loops_try >>= 1;
+    u32 kernel_accel_try = kernel_accel;
+    u32 kernel_loops_try = kernel_loops;
 
-    if (kernel_accel_try > kernel_accel_max) break;
-    if (kernel_loops_try < kernel_loops_min) break;
-
-    const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try, 1);
-
-    if (exec_ms < exec_best)
+    for (int i = 0; i < 2; i++)
     {
-      kernel_accel_best = kernel_accel_try;
-      kernel_loops_best = kernel_loops_try;
+      kernel_accel_try <<= 1;
+      kernel_loops_try >>= 1;
 
-      exec_best = exec_ms;
+      if (kernel_accel_try > kernel_accel_max) break;
+      if (kernel_loops_try < kernel_loops_min) break;
+
+      const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try, 1);
+
+      if (exec_ms < exec_best)
+      {
+        kernel_accel_best = kernel_accel_try;
+        kernel_loops_best = kernel_loops_try;
+
+        exec_best = exec_ms;
+      }
     }
-  }
 
-  kernel_accel = kernel_accel_best;
-  kernel_loops = kernel_loops_best;
+    kernel_accel = kernel_accel_best;
+    kernel_loops = kernel_loops_best;
+  }
 
   // reset timer
 
@@ -13430,21 +13444,6 @@ int main (int argc, char **argv)
     }
     #endif // HAVE_ADK
     #endif // HAVE_HWMON
-
-    #ifdef OSX
-    if (hash_mode == 3000 || hash_mode == 1500 || hash_mode == 10700)
-    {
-      if (force == 0)
-      {
-        log_info ("");
-        log_info ("Warning: Hash mode %d is not stable with OSX.", hash_mode);
-        log_info ("You can use --force to override this but do not post error reports if you do so");
-        log_info ("");
-
-        continue;
-      }
-    }
-    #endif
 
     #ifdef DEBUG
     if (benchmark == 1) log_info ("Hashmode: %d", data.hash_mode);

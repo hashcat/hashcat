@@ -275,7 +275,7 @@ static void m10400m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
   {
-    const u32 w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32 w0r = ix_create_bft (bfs_buf, il_pos);
 
     w0[0] = w0l | w0r;
 
@@ -428,7 +428,7 @@ static void m10400s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos++)
   {
-    const u32 w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32 w0r = ix_create_bft (bfs_buf, il_pos);
 
     w0[0] = w0l | w0r;
 

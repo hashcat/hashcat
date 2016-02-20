@@ -275,7 +275,7 @@ static void m00060m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32x w0rl = w0r | w0l;
 
@@ -390,7 +390,7 @@ static void m00060s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32x w0rl = w0r | w0l;
 

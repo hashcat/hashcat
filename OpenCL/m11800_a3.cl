@@ -2314,7 +2314,7 @@ static void m11800m (__local u64 (*s_sbob_sl64)[256], u32 w[16], const u32 pw_le
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32x w0lr = w0l | w0r;
 
@@ -2409,7 +2409,7 @@ static void m11800s (__local u64 (*s_sbob_sl64)[256], u32 w[16], const u32 pw_le
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
-    const u32x w0r = w0r_create_bft (bfs_buf, il_pos);
+    const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32x w0lr = w0l | w0r;
 
