@@ -13978,12 +13978,17 @@ int main (int argc, char **argv)
           {
             snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.salts_buf[0].scrypt_tmto);
           }
+          else
+          {
+            snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s", build_opts);
+          }
 
           int rc = hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts_update, NULL, NULL, false);
 
           if (rc != 0)
           {
             device_param->skipped = true;
+
             log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
           }
         }
