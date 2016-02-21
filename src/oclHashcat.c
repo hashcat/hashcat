@@ -3048,9 +3048,9 @@ static void autotune (hc_device_param_t *device_param)
 
   device_param->kernel_power = kernel_power;
 
-  log_info ("Device #%u: autotuned kernel-accel to %u", device_param->device_id + 1, kernel_accel);
-  log_info ("Device #%u: autotuned kernel-loops to %u", device_param->device_id + 1, kernel_loops);
-  log_info ("");
+  if (data.quiet == 0) log_info ("Device #%u: autotuned kernel-accel to %u", device_param->device_id + 1, kernel_accel);
+  if (data.quiet == 0) log_info ("Device #%u: autotuned kernel-loops to %u", device_param->device_id + 1, kernel_loops);
+  if (data.quiet == 0) log_info ("");
 }
 
 static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, const uint pws_cnt)
