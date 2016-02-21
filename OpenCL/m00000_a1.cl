@@ -36,42 +36,19 @@ __kernel void m00000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (gid >= gid_max) return;
 
-  u32 wordl0[4];
+  u32 pws0[4] = { 0 };
+  u32 pws1[4] = { 0 };
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pws0[0] = pws[gid].i[0];
+  pws0[1] = pws[gid].i[1];
+  pws0[2] = pws[gid].i[2];
+  pws0[3] = pws[gid].i[3];
+  pws1[0] = pws[gid].i[4];
+  pws1[1] = pws[gid].i[5];
+  pws1[2] = pws[gid].i[6];
+  pws1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    append_0x80_2x4_S (wordl0, wordl1, pw_l_len);
-
-    switch_buffer_by_offset_le_S (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
 
   /**
    * loop
@@ -82,6 +59,24 @@ __kernel void m00000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
     const u32x pw_len = pw_l_len + pw_r_len;
+
+    /**
+     * concat password candidate
+     */
+
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
+
+    wordl0[0] = pws0[0];
+    wordl0[1] = pws0[1];
+    wordl0[2] = pws0[2];
+    wordl0[3] = pws0[3];
+    wordl1[0] = pws1[0];
+    wordl1[1] = pws1[1];
+    wordl1[2] = pws1[2];
+    wordl1[3] = pws1[3];
 
     u32x wordr0[4] = { 0 };
     u32x wordr1[4] = { 0 };
@@ -99,36 +94,38 @@ __kernel void m00000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
     u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-
-    u32x w1[4];
-
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
-
-    u32x w2[4];
-
     w2[0] = wordl2[0] | wordr2[0];
     w2[1] = wordl2[1] | wordr2[1];
     w2[2] = wordl2[2] | wordr2[2];
     w2[3] = wordl2[3] | wordr2[3];
-
-    u32x w3[4];
-
     w3[0] = wordl3[0] | wordr3[0];
     w3[1] = wordl3[1] | wordr3[1];
     w3[2] = pw_len * 8;
     w3[3] = 0;
+
+    /**
+     * md5
+     */
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
@@ -231,42 +228,19 @@ __kernel void m00000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (gid >= gid_max) return;
 
-  u32 wordl0[4];
+  u32 pws0[4] = { 0 };
+  u32 pws1[4] = { 0 };
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pws0[0] = pws[gid].i[0];
+  pws0[1] = pws[gid].i[1];
+  pws0[2] = pws[gid].i[2];
+  pws0[3] = pws[gid].i[3];
+  pws1[0] = pws[gid].i[4];
+  pws1[1] = pws[gid].i[5];
+  pws1[2] = pws[gid].i[6];
+  pws1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    append_0x80_2x4_S (wordl0, wordl1, pw_l_len);
-
-    switch_buffer_by_offset_le_S (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
 
   /**
    * digest
@@ -290,6 +264,24 @@ __kernel void m00000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     const u32x pw_len = pw_l_len + pw_r_len;
 
+    /**
+     * concat password candidate
+     */
+
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
+
+    wordl0[0] = pws0[0];
+    wordl0[1] = pws0[1];
+    wordl0[2] = pws0[2];
+    wordl0[3] = pws0[3];
+    wordl1[0] = pws1[0];
+    wordl1[1] = pws1[1];
+    wordl1[2] = pws1[2];
+    wordl1[3] = pws1[3];
+
     u32x wordr0[4] = { 0 };
     u32x wordr1[4] = { 0 };
     u32x wordr2[4] = { 0 };
@@ -306,36 +298,38 @@ __kernel void m00000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
     u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-
-    u32x w1[4];
-
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
-
-    u32x w2[4];
-
     w2[0] = wordl2[0] | wordr2[0];
     w2[1] = wordl2[1] | wordr2[1];
     w2[2] = wordl2[2] | wordr2[2];
     w2[3] = wordl2[3] | wordr2[3];
-
-    u32x w3[4];
-
     w3[0] = wordl3[0] | wordr3[0];
     w3[1] = wordl3[1] | wordr3[1];
     w3[2] = pw_len * 8;
     w3[3] = 0;
+
+    /**
+     * md5
+     */
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
