@@ -2776,6 +2776,29 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
   }
   else if (data.attack_kern == ATTACK_KERN_COMBI)
   {
+    if (data.attack_mode == ATTACK_MODE_HYBRID2)
+    {
+      if (data.opts_type & OPTS_TYPE_PT_ADD01)
+      {
+        for (u32 i = 0; i < pws_cnt; i++)
+        {
+          const u32 pw_len = device_param->pws_buf[i].pw_len;
+
+          device_param->pws_buf[i].h.hc1[0][pw_len] = 0x01;
+        }
+      }
+
+      if (data.opts_type & OPTS_TYPE_PT_ADD80)
+      {
+        for (u32 i = 0; i < pws_cnt; i++)
+        {
+          const u32 pw_len = device_param->pws_buf[i].pw_len;
+
+          device_param->pws_buf[i].h.hc1[0][pw_len] = 0x80;
+        }
+      }
+    }
+
     hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
   }
   else if (data.attack_kern == ATTACK_KERN_BF)
