@@ -4321,7 +4321,7 @@ static void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int
   }
 }
 
-static uint get_work (hc_device_param_t *device_param, const u64 max)
+static uint get_work (hc_device_param_t *device_param, const u64 max, const bool allow_div)
 {
   hc_thread_mutex_lock (mux_dispatcher);
 
@@ -4332,23 +4332,26 @@ static uint get_work (hc_device_param_t *device_param, const u64 max)
 
   const u64 words_left = words_base - words_cur;
 
-  if (data.kernel_power_all > words_left)
+  if (allow_div)
   {
-    if (data.kernel_power_div == 0)
+    if (data.kernel_power_all > words_left)
     {
-      data.kernel_power_div = find_kernel_power_div (words_left, data.kernel_power_all);
-    }
-  }
-
-  if (data.kernel_power_div)
-  {
-    if (device_param->kernel_power == device_param->kernel_power_user)
-    {
-      const u32 kernel_power_new = (float) device_param->kernel_power * data.kernel_power_div;
-
-      if (kernel_power_new < device_param->kernel_power)
+      if (data.kernel_power_div == 0)
       {
-        device_param->kernel_power = kernel_power_new;
+        data.kernel_power_div = find_kernel_power_div (words_left, data.kernel_power_all);
+      }
+    }
+
+    if (data.kernel_power_div)
+    {
+      if (device_param->kernel_power == device_param->kernel_power_user)
+      {
+        const u32 kernel_power_new = (float) device_param->kernel_power * data.kernel_power_div;
+
+        if (kernel_power_new < device_param->kernel_power)
+        {
+          device_param->kernel_power = kernel_power_new;
+        }
       }
     }
   }
@@ -4515,7 +4518,7 @@ static void *thread_calc (void *p)
   {
     while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
     {
-      const uint work = get_work (device_param, -1);
+      const uint work = get_work (device_param, -1, true);
 
       if (work == 0) break;
 
@@ -4625,11 +4628,15 @@ static void *thread_calc (void *p)
       u64 words_off = 0;
       u64 words_fin = 0;
 
+      bool allow_div = true;
+
       u64 max = -1;
 
       while (max)
       {
-        const uint work = get_work (device_param, max);
+        const uint work = get_work (device_param, max, allow_div);
+
+        allow_div = false;
 
         if (work == 0) break;
 
