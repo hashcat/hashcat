@@ -699,25 +699,13 @@ typedef struct
 
 typedef struct
 {
-  union
-  {
-    u8   hc4[4][ 64];
-    u32  hi4[4][ 16];
-    u64  hl4[4][  8];
+  u32 i[16];
 
-    u8   hc2[2][128];
-    u32  hi2[2][ 32];
-    u64  hl2[2][ 16];
+  u32 pw_len;
 
-    u8   hc1[1][256];
-    u32  hi1[1][ 64];
-    u64  hl1[1][ 32];
-  } h;
-
-  uint pw_len;
-  uint alignment_placeholder_1;
-  uint alignment_placeholder_2;
-  uint alignment_placeholder_3;
+  u32 alignment_placeholder_1;
+  u32 alignment_placeholder_2;
+  u32 alignment_placeholder_3;
 
 } pw_t;
 
@@ -740,14 +728,6 @@ typedef struct
   uint pw_len;
 
 } comb_t;
-
-typedef struct
-{
-  pw_t pw_buf;
-
-  uint cnt;
-
-} pw_cache_t;
 
 typedef struct
 {
@@ -907,20 +887,13 @@ struct __hc_device_param
   uint    size_results;
   uint    size_plains;
 
-  uint  (*pw_add)       (struct __hc_device_param *, const u8 *, const uint);
-
-  void  (*pw_transpose) (const pw_t *, pw_t *);
-
   FILE   *combs_fp;
   comb_t *combs_buf;
 
   void   *hooks_buf;
 
-  pw_cache_t *pw_caches;
-
   pw_t   *pws_buf;
   uint    pws_cnt;
-  u64     pw_cnt;
 
   u64     words_off;
   u64     words_done;

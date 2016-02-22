@@ -1906,7 +1906,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
     for (int i = 0, j = gidm; i < 16; i++, j++)
     {
-      plain_buf[i] = pw.h.hi1[0][j];
+      plain_buf[i] = pw.i[j];
     }
 
     plain_len = pw.pw_len;
@@ -1955,7 +1955,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
     for (int i = 0, j = gidm; i < 16; i++, j++)
     {
-      plain_buf[i] = pw.h.hi1[0][j];
+      plain_buf[i] = pw.i[j];
     }
 
     plain_len = pw.pw_len;
@@ -2016,7 +2016,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
     for (int i = 0, j = gidm; i < 16; i++, j++)
     {
-      plain_buf[i] = pw.h.hi1[0][j];
+      plain_buf[i] = pw.i[j];
     }
 
     plain_len = pw.pw_len;
@@ -2050,7 +2050,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
     for (int i = 0, j = gidm; i < 16; i++, j++)
     {
-      plain_buf[i] = pw.h.hi1[0][j];
+      plain_buf[i] = pw.i[j];
     }
 
     plain_len = pw.pw_len;
@@ -2784,17 +2784,20 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
         {
           const u32 pw_len = device_param->pws_buf[i].pw_len;
 
-          device_param->pws_buf[i].h.hc1[0][pw_len] = 0x01;
+          u8 *ptr = (u8 *) device_param->pws_buf[i].i;
+
+          ptr[pw_len] = 0x01;
         }
       }
-
-      if (data.opts_type & OPTS_TYPE_PT_ADD80)
+      else if (data.opts_type & OPTS_TYPE_PT_ADD80)
       {
         for (u32 i = 0; i < pws_cnt; i++)
         {
           const u32 pw_len = device_param->pws_buf[i].pw_len;
 
-          device_param->pws_buf[i].h.hc1[0][pw_len] = 0x80;
+          u8 *ptr = (u8 *) device_param->pws_buf[i].i;
+
+          ptr[pw_len] = 0x80;
         }
       }
     }
@@ -3076,7 +3079,7 @@ static void autotune (hc_device_param_t *device_param)
   if (data.quiet == 0) log_info ("");
 }
 
-static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, const uint pws_cnt)
+static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 {
   // init speed timer
 
@@ -3220,7 +3223,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
 
             if (rule_len_out < 0)
             {
-              data.words_progress_rejected[salt_pos] += pw_cnt;
+              data.words_progress_rejected[salt_pos] += pws_cnt;
 
               continue;
             }
@@ -3355,7 +3358,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pw_cnt, con
        * progress
        */
 
-      u64 perf_sum_all = (u64) pw_cnt * (u64) innerloop_left;
+      u64 perf_sum_all = (u64) pws_cnt * (u64) innerloop_left;
 
       if (data.benchmark == 1)
       {
@@ -3577,7 +3580,7 @@ static void get_next_word (wl_data_t *wl_data, FILE *fd, char **out_buf, uint *o
 
   if (feof (fd))
   {
-    fprintf (stderr, "bug!!\n");
+    fprintf (stderr, "BUG feof()!!\n");
 
     return;
   }
@@ -3732,47 +3735,6 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
   hc_signal (sigHandler_default);
 
   return (cnt);
-}
-
-static void pw_transpose_to_hi1 (const pw_t *p1, pw_t *p2)
-{
-  memcpy (p2->h.hi1, p1->h.hi1, 64 * sizeof (uint));
-}
-
-static uint pw_add_to_hc1 (hc_device_param_t *device_param, const u8 *pw_buf, const uint pw_len)
-{
-  if (data.devices_status == STATUS_BYPASS) return 0;
-
-  pw_cache_t *pw_cache = device_param->pw_caches + pw_len;
-
-  uint cache_cnt = pw_cache->cnt;
-
-  u8 *pw_hc1 = pw_cache->pw_buf.h.hc1[cache_cnt];
-
-  memcpy (pw_hc1, pw_buf, pw_len);
-
-  memset (pw_hc1 + pw_len, 0, 256 - pw_len);
-
-  uint pws_cnt = device_param->pws_cnt;
-
-  cache_cnt++;
-
-  pw_t *pw = device_param->pws_buf + pws_cnt;
-
-  device_param->pw_transpose (&pw_cache->pw_buf, pw);
-
-  pw->pw_len = pw_len;
-
-  pws_cnt++;
-
-  device_param->pws_cnt = pws_cnt;
-  device_param->pw_cnt  = pws_cnt * 1;
-
-  cache_cnt = 0;
-
-  pw_cache->cnt = cache_cnt;
-
-  return pws_cnt;
 }
 
 static void *thread_monitor (void *p)
@@ -4339,6 +4301,26 @@ static void *thread_outfile_remove (void *p)
   return (p);
 }
 
+static void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len)
+{
+  if (device_param->pws_cnt < device_param->kernel_power)
+  {
+    pw_t *pw = (pw_t *) device_param->pws_buf + device_param->pws_cnt;
+
+    memcpy (pw->i, pw_buf, pw_len);
+
+    pw->pw_len = pw_len;
+
+    device_param->pws_cnt++;
+  }
+  else
+  {
+    fprintf (stderr, "BUG pw_add()!!\n");
+
+    return;
+  }
+}
+
 static uint get_work (hc_device_param_t *device_param, const u64 max)
 {
   hc_thread_mutex_lock (mux_dispatcher);
@@ -4481,7 +4463,7 @@ static void *thread_calc_stdin (void *p)
         }
       }
 
-      device_param->pw_add (device_param, (u8 *) line_buf, line_len);
+      pw_add (device_param, (u8 *) line_buf, line_len);
 
       words_cur++;
 
@@ -4498,102 +4480,17 @@ static void *thread_calc_stdin (void *p)
     if (data.devices_status == STATUS_QUIT)    break;
     if (data.devices_status == STATUS_BYPASS)  break;
 
-    // we need 2 flushing because we have two independant caches and it can occur
-    // that one buffer is already at threshold plus for that length also exists
-    // more data in the 2nd buffer so it would overflow
+    // flush
 
-    // flush session 1
+    const uint pws_cnt = device_param->pws_cnt;
 
+    if (pws_cnt)
     {
-      for (int pw_len = 0; pw_len < PW_MAX1; pw_len++)
-      {
-        pw_cache_t *pw_cache = &device_param->pw_caches[pw_len];
+      run_copy (device_param, pws_cnt);
 
-        const uint pw_cache_cnt = pw_cache->cnt;
+      run_cracker (device_param, pws_cnt);
 
-        if (pw_cache_cnt == 0) continue;
-
-        pw_cache->cnt = 0;
-
-        uint pws_cnt = device_param->pws_cnt;
-
-        pw_t *pw = device_param->pws_buf + pws_cnt;
-
-        device_param->pw_transpose (&pw_cache->pw_buf, pw);
-
-        pw->pw_len = pw_len;
-
-        uint pw_cnt = device_param->pw_cnt;
-
-        pw_cnt += pw_cache_cnt;
-
-        device_param->pw_cnt  = pw_cnt;
-
-        pws_cnt++;
-
-        device_param->pws_cnt = pws_cnt;
-
-        if (pws_cnt == device_param->kernel_power_user) break;
-      }
-
-      const uint pw_cnt  = device_param->pw_cnt;
-      const uint pws_cnt = device_param->pws_cnt;
-
-      if (pws_cnt)
-      {
-        run_copy (device_param, pws_cnt);
-
-        run_cracker (device_param, pw_cnt, pws_cnt);
-
-        device_param->pw_cnt  = 0;
-        device_param->pws_cnt = 0;
-      }
-    }
-
-    // flush session 2
-
-    {
-      for (int pw_len = 0; pw_len < PW_MAX1; pw_len++)
-      {
-        pw_cache_t *pw_cache = &device_param->pw_caches[pw_len];
-
-        const uint pw_cache_cnt = pw_cache->cnt;
-
-        if (pw_cache_cnt == 0) continue;
-
-        pw_cache->cnt = 0;
-
-        uint pws_cnt = device_param->pws_cnt;
-
-        pw_t *pw = device_param->pws_buf + pws_cnt;
-
-        device_param->pw_transpose (&pw_cache->pw_buf, pw);
-
-        pw->pw_len = pw_len;
-
-        uint pw_cnt = device_param->pw_cnt;
-
-        pw_cnt += pw_cache_cnt;
-
-        device_param->pw_cnt  = pw_cnt;
-
-        pws_cnt++;
-
-        device_param->pws_cnt = pws_cnt;
-      }
-
-      const uint pw_cnt  = device_param->pw_cnt;
-      const uint pws_cnt = device_param->pws_cnt;
-
-      if (pws_cnt)
-      {
-        run_copy (device_param, pws_cnt);
-
-        run_cracker (device_param, pw_cnt, pws_cnt);
-
-        device_param->pw_cnt  = 0;
-        device_param->pws_cnt = 0;
-      }
+      device_param->pws_cnt = 0;
     }
   }
 
@@ -4625,19 +4522,16 @@ static void *thread_calc (void *p)
       const u64 words_off = device_param->words_off;
       const u64 words_fin = words_off + work;
 
-      const uint pw_cnt  = work;
       const uint pws_cnt = work;
 
-      device_param->pw_cnt  = pw_cnt;
       device_param->pws_cnt = pws_cnt;
 
       if (pws_cnt)
       {
         run_copy (device_param, pws_cnt);
 
-        run_cracker (device_param, pw_cnt, pws_cnt);
+        run_cracker (device_param, pws_cnt);
 
-        device_param->pw_cnt  = 0;
         device_param->pws_cnt = 0;
       }
 
@@ -4814,7 +4708,7 @@ static void *thread_calc (void *p)
             }
           }
 
-          device_param->pw_add (device_param, (u8 *) line_buf, line_len);
+          pw_add (device_param, (u8 *) line_buf, line_len);
 
           if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
@@ -4839,121 +4733,27 @@ static void *thread_calc (void *p)
       if (data.devices_status == STATUS_QUIT)    break;
       if (data.devices_status == STATUS_BYPASS)  break;
 
-      // we need 2 flushing because we have two independant caches and it can occur
-      // that one buffer is already at threshold plus for that length also exists
-      // more data in the 2nd buffer so it would overflow
-
       //
-      // flush session 1
+      // flush
       //
 
+      const uint pws_cnt = device_param->pws_cnt;
+
+      if (pws_cnt)
       {
-        for (int pw_len = 0; pw_len < PW_MAX1; pw_len++)
-        {
-          pw_cache_t *pw_cache = &device_param->pw_caches[pw_len];
+        run_copy (device_param, pws_cnt);
 
-          const uint pw_cache_cnt = pw_cache->cnt;
+        run_cracker (device_param, pws_cnt);
 
-          if (pw_cache_cnt == 0) continue;
-
-          pw_cache->cnt = 0;
-
-          uint pws_cnt = device_param->pws_cnt;
-
-          pw_t *pw = device_param->pws_buf + pws_cnt;
-
-          device_param->pw_transpose (&pw_cache->pw_buf, pw);
-
-          pw->pw_len = pw_len;
-
-          uint pw_cnt = device_param->pw_cnt;
-
-          pw_cnt += pw_cache_cnt;
-
-          device_param->pw_cnt  = pw_cnt;
-
-          pws_cnt++;
-
-          device_param->pws_cnt = pws_cnt;
-
-          if (pws_cnt == device_param->kernel_power_user) break;
-        }
-
-        const uint pw_cnt  = device_param->pw_cnt;
-        const uint pws_cnt = device_param->pws_cnt;
-
-        if (pws_cnt)
-        {
-          run_copy (device_param, pws_cnt);
-
-          run_cracker (device_param, pw_cnt, pws_cnt);
-
-          device_param->pw_cnt  = 0;
-          device_param->pws_cnt = 0;
-        }
-
-        if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
-
-        if (data.devices_status == STATUS_CRACKED) break;
-        if (data.devices_status == STATUS_ABORTED) break;
-        if (data.devices_status == STATUS_QUIT)    break;
-        if (data.devices_status == STATUS_BYPASS)  break;
+        device_param->pws_cnt = 0;
       }
 
-      //
-      // flush session 2
-      //
+      if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
-      {
-        for (int pw_len = 0; pw_len < PW_MAX1; pw_len++)
-        {
-          pw_cache_t *pw_cache = &device_param->pw_caches[pw_len];
-
-          const uint pw_cache_cnt = pw_cache->cnt;
-
-          if (pw_cache_cnt == 0) continue;
-
-          pw_cache->cnt = 0;
-
-          uint pws_cnt = device_param->pws_cnt;
-
-          pw_t *pw = device_param->pws_buf + pws_cnt;
-
-          device_param->pw_transpose (&pw_cache->pw_buf, pw);
-
-          pw->pw_len = pw_len;
-
-          uint pw_cnt = device_param->pw_cnt;
-
-          pw_cnt += pw_cache_cnt;
-
-          device_param->pw_cnt  = pw_cnt;
-
-          pws_cnt++;
-
-          device_param->pws_cnt = pws_cnt;
-        }
-
-        const uint pw_cnt  = device_param->pw_cnt;
-        const uint pws_cnt = device_param->pws_cnt;
-
-        if (pws_cnt)
-        {
-          run_copy (device_param, pws_cnt);
-
-          run_cracker (device_param, pw_cnt, pws_cnt);
-
-          device_param->pw_cnt  = 0;
-          device_param->pws_cnt = 0;
-        }
-
-        if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
-
-        if (data.devices_status == STATUS_CRACKED) break;
-        if (data.devices_status == STATUS_ABORTED) break;
-        if (data.devices_status == STATUS_QUIT)    break;
-        if (data.devices_status == STATUS_BYPASS)  break;
-      }
+      if (data.devices_status == STATUS_CRACKED) break;
+      if (data.devices_status == STATUS_ABORTED) break;
+      if (data.devices_status == STATUS_QUIT)    break;
+      if (data.devices_status == STATUS_BYPASS)  break;
 
       if (words_fin == 0) break;
 
@@ -10393,7 +10193,7 @@ int main (int argc, char **argv)
     }
 
     /**
-     * transpose
+     * parser
      */
 
     data.parse_func = parse_func;
@@ -14322,16 +14122,6 @@ int main (int argc, char **argv)
 
       device_param->pws_buf = pws_buf;
 
-      pw_cache_t *pw_caches = (pw_cache_t *) mycalloc (64, sizeof (pw_cache_t));
-
-      for (int i = 0; i < 64; i++)
-      {
-        pw_caches[i].pw_buf.pw_len = i;
-        pw_caches[i].cnt = 0;
-      }
-
-      device_param->pw_caches = pw_caches;
-
       comb_t *combs_buf = (comb_t *) mycalloc (KERNEL_COMBS, sizeof (comb_t));
 
       device_param->combs_buf = combs_buf;
@@ -14339,9 +14129,6 @@ int main (int argc, char **argv)
       void *hooks_buf = mymalloc (size_hooks);
 
       device_param->hooks_buf = hooks_buf;
-
-      device_param->pw_transpose  = pw_transpose_to_hi1;
-      device_param->pw_add        = pw_add_to_hc1;
 
       /**
        * kernel args
@@ -16032,11 +15819,8 @@ int main (int argc, char **argv)
 
           // some more resets:
 
-          if (device_param->pw_caches) memset (device_param->pw_caches, 0, 64 * sizeof (pw_cache_t));
-
           if (device_param->pws_buf) memset (device_param->pws_buf, 0, device_param->size_pws);
 
-          device_param->pw_cnt  = 0;
           device_param->pws_cnt = 0;
 
           device_param->words_off  = 0;
@@ -16825,8 +16609,6 @@ int main (int argc, char **argv)
       if (device_param->skipped) continue;
 
       local_free (device_param->result);
-
-      local_free (device_param->pw_caches);
 
       local_free (device_param->combs_buf);
 

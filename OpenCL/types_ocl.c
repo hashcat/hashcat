@@ -1969,7 +1969,7 @@ typedef struct
 
 typedef struct
 {
-  u32 i[64];
+  u32 i[16];
 
   u32 pw_len;
 
