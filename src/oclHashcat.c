@@ -4494,6 +4494,8 @@ static void *thread_calc_stdin (void *p)
       run_cracker (device_param, pws_cnt);
 
       device_param->pws_cnt = 0;
+
+      memset (device_param->pws_buf, 0, device_param->size_pws);
     }
   }
 
@@ -4753,6 +4755,8 @@ static void *thread_calc (void *p)
         run_cracker (device_param, pws_cnt);
 
         device_param->pws_cnt = 0;
+
+        memset (device_param->pws_buf, 0, device_param->size_pws);
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();

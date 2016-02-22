@@ -242,28 +242,22 @@ __kernel void m00050_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
   salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
   salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
   salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
   salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
   salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
   salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
-
-  u32 salt_buf2[4];
-
   salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
   salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
   salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
   salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
-
-  u32 salt_buf3[4];
-
   salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
   salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
   salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
@@ -391,28 +385,22 @@ __kernel void m00050_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
   salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
   salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
   salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
   salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
   salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
   salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
-
-  u32 salt_buf2[4];
-
   salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
   salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
   salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
   salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
-
-  u32 salt_buf3[4];
-
   salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
   salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
   salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
