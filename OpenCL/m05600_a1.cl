@@ -5,8 +5,6 @@
 
 #define _NETNTLMV2_
 
-#define NEW_SIMD_CODE
-
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -18,7 +16,9 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+
+#define COMPARE_S "OpenCL/check_single_comp4.c"
+#define COMPARE_M "OpenCL/check_multi_comp4.c"
 
 static void md4_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {
@@ -326,81 +326,118 @@ __kernel void m05600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * base
    */
 
-  u32 pws0[4] = { 0 };
-  u32 pws1[4] = { 0 };
+  u32 wordl0[4];
 
-  pws0[0] = pws[gid].i[0];
-  pws0[1] = pws[gid].i[1];
-  pws0[2] = pws[gid].i[2];
-  pws0[3] = pws[gid].i[3];
-  pws1[0] = pws[gid].i[4];
-  pws1[1] = pws[gid].i[5];
-  pws1[2] = pws[gid].i[6];
-  pws1[3] = pws[gid].i[7];
+  wordl0[0] = pws[gid].i[ 0];
+  wordl0[1] = pws[gid].i[ 1];
+  wordl0[2] = pws[gid].i[ 2];
+  wordl0[3] = pws[gid].i[ 3];
+
+  u32 wordl1[4];
+
+  wordl1[0] = pws[gid].i[ 4];
+  wordl1[1] = pws[gid].i[ 5];
+  wordl1[2] = pws[gid].i[ 6];
+  wordl1[3] = pws[gid].i[ 7];
+
+  u32 wordl2[4];
+
+  wordl2[0] = 0;
+  wordl2[1] = 0;
+  wordl2[2] = 0;
+  wordl2[3] = 0;
+
+  u32 wordl3[4];
+
+  wordl3[0] = 0;
+  wordl3[1] = 0;
+  wordl3[2] = 0;
+  wordl3[3] = 0;
 
   const u32 pw_l_len = pws[gid].pw_len;
+
+  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+  {
+    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
+
+    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
+  }
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < combs_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < combs_cnt; il_pos++)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
+    const u32 pw_r_len = combs_buf[il_pos].pw_len;
 
-    const u32x pw_len = pw_l_len + pw_r_len;
+    const u32 pw_len = pw_l_len + pw_r_len;
 
-    u32x wordr0[4] = { 0 };
-    u32x wordr1[4] = { 0 };
-    u32x wordr2[4] = { 0 };
-    u32x wordr3[4] = { 0 };
+    u32 wordr0[4];
 
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
+    wordr0[0] = combs_buf[il_pos].i[0];
+    wordr0[1] = combs_buf[il_pos].i[1];
+    wordr0[2] = combs_buf[il_pos].i[2];
+    wordr0[3] = combs_buf[il_pos].i[3];
+
+    u32 wordr1[4];
+
+    wordr1[0] = combs_buf[il_pos].i[4];
+    wordr1[1] = combs_buf[il_pos].i[5];
+    wordr1[2] = combs_buf[il_pos].i[6];
+    wordr1[3] = combs_buf[il_pos].i[7];
+
+    u32 wordr2[4];
+
+    wordr2[0] = 0;
+    wordr2[1] = 0;
+    wordr2[2] = 0;
+    wordr2[3] = 0;
+
+    u32 wordr3[4];
+
+    wordr3[0] = 0;
+    wordr3[1] = 0;
+    wordr3[2] = 0;
+    wordr3[3] = 0;
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
       switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
 
-    u32x w0[4];
+    u32 w0[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
 
-    u32x w1[4];
+    u32 w1[4];
 
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
 
-    u32x w2[4];
+    u32 w2[4];
 
     w2[0] = 0;
     w2[1] = 0;
     w2[2] = 0;
     w2[3] = 0;
 
-    u32x w3[4];
+    u32 w3[4];
 
     w3[0] = 0;
     w3[1] = 0;
     w3[2] = 0;
     w3[3] = 0;
 
-    u32x w0_t[4];
-    u32x w1_t[4];
-    u32x w2_t[4];
-    u32x w3_t[4];
+    u32 w0_t[4];
+    u32 w1_t[4];
+    u32 w2_t[4];
+    u32 w3_t[4];
 
     make_unicode (w0, w0_t, w1_t);
     make_unicode (w1, w2_t, w3_t);
@@ -552,7 +589,12 @@ __kernel void m05600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 
-    COMPARE_M_SIMD (digest[0], digest[3], digest[2], digest[1]);
+    const u32 r0 = digest[0];
+    const u32 r1 = digest[3];
+    const u32 r2 = digest[2];
+    const u32 r3 = digest[1];
+
+    #include COMPARE_M
   }
 }
 
@@ -606,19 +648,42 @@ __kernel void m05600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * base
    */
 
-  u32 pws0[4] = { 0 };
-  u32 pws1[4] = { 0 };
+  u32 wordl0[4];
 
-  pws0[0] = pws[gid].i[0];
-  pws0[1] = pws[gid].i[1];
-  pws0[2] = pws[gid].i[2];
-  pws0[3] = pws[gid].i[3];
-  pws1[0] = pws[gid].i[4];
-  pws1[1] = pws[gid].i[5];
-  pws1[2] = pws[gid].i[6];
-  pws1[3] = pws[gid].i[7];
+  wordl0[0] = pws[gid].i[ 0];
+  wordl0[1] = pws[gid].i[ 1];
+  wordl0[2] = pws[gid].i[ 2];
+  wordl0[3] = pws[gid].i[ 3];
+
+  u32 wordl1[4];
+
+  wordl1[0] = pws[gid].i[ 4];
+  wordl1[1] = pws[gid].i[ 5];
+  wordl1[2] = pws[gid].i[ 6];
+  wordl1[3] = pws[gid].i[ 7];
+
+  u32 wordl2[4];
+
+  wordl2[0] = 0;
+  wordl2[1] = 0;
+  wordl2[2] = 0;
+  wordl2[3] = 0;
+
+  u32 wordl3[4];
+
+  wordl3[0] = 0;
+  wordl3[1] = 0;
+  wordl3[2] = 0;
+  wordl3[3] = 0;
 
   const u32 pw_l_len = pws[gid].pw_len;
+
+  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+  {
+    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
+
+    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
+  }
 
   /**
    * digest
@@ -636,63 +701,77 @@ __kernel void m05600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < combs_cnt; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < combs_cnt; il_pos++)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
+    const u32 pw_r_len = combs_buf[il_pos].pw_len;
 
-    const u32x pw_len = pw_l_len + pw_r_len;
+    const u32 pw_len = pw_l_len + pw_r_len;
 
-    u32x wordr0[4] = { 0 };
-    u32x wordr1[4] = { 0 };
-    u32x wordr2[4] = { 0 };
-    u32x wordr3[4] = { 0 };
+    u32 wordr0[4];
 
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
+    wordr0[0] = combs_buf[il_pos].i[0];
+    wordr0[1] = combs_buf[il_pos].i[1];
+    wordr0[2] = combs_buf[il_pos].i[2];
+    wordr0[3] = combs_buf[il_pos].i[3];
+
+    u32 wordr1[4];
+
+    wordr1[0] = combs_buf[il_pos].i[4];
+    wordr1[1] = combs_buf[il_pos].i[5];
+    wordr1[2] = combs_buf[il_pos].i[6];
+    wordr1[3] = combs_buf[il_pos].i[7];
+
+    u32 wordr2[4];
+
+    wordr2[0] = 0;
+    wordr2[1] = 0;
+    wordr2[2] = 0;
+    wordr2[3] = 0;
+
+    u32 wordr3[4];
+
+    wordr3[0] = 0;
+    wordr3[1] = 0;
+    wordr3[2] = 0;
+    wordr3[3] = 0;
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
       switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
     }
 
-    u32x w0[4];
+    u32 w0[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
 
-    u32x w1[4];
+    u32 w1[4];
 
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
 
-    u32x w2[4];
+    u32 w2[4];
 
     w2[0] = 0;
     w2[1] = 0;
     w2[2] = 0;
     w2[3] = 0;
 
-    u32x w3[4];
+    u32 w3[4];
 
     w3[0] = 0;
     w3[1] = 0;
     w3[2] = 0;
     w3[3] = 0;
 
-    u32x w0_t[4];
-    u32x w1_t[4];
-    u32x w2_t[4];
-    u32x w3_t[4];
+    u32 w0_t[4];
+    u32 w1_t[4];
+    u32 w2_t[4];
+    u32 w3_t[4];
 
     make_unicode (w0, w0_t, w1_t);
     make_unicode (w1, w2_t, w3_t);
@@ -844,7 +923,12 @@ __kernel void m05600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 
-    COMPARE_S_SIMD (digest[0], digest[3], digest[2], digest[1]);
+    const u32 r0 = digest[0];
+    const u32 r1 = digest[3];
+    const u32 r2 = digest[2];
+    const u32 r3 = digest[1];
+
+    #include COMPARE_S
   }
 }
 
