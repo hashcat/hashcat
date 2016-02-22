@@ -56,15 +56,25 @@ __kernel void m00020_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   u32 salt_buf0[4];
   u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
-  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
-  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
-  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
-  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
+  salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
+  salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
+  salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
@@ -157,12 +167,12 @@ __kernel void m00020_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w1[1] |= salt_buf1[1];
     w1[2] |= salt_buf1[2];
     w1[3] |= salt_buf1[3];
-    w2[0] |= 0;
-    w2[1] |= 0;
-    w2[2] |= 0;
-    w2[3] |= 0;
-    w3[0] |= 0;
-    w3[1] |= 0;
+    w2[0] |= salt_buf2[0];
+    w2[1] |= salt_buf2[1];
+    w2[2] |= salt_buf2[2];
+    w2[3] |= salt_buf2[3];
+    w3[0] |= salt_buf3[0];
+    w3[1] |= salt_buf3[1];
     w3[2]  = pw_salt_len * 8;
     w3[3]  = 0;
 
@@ -246,6 +256,7 @@ __kernel void m00020_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     COMPARE_M_SIMD (a, d, c, b);
   }
 }
+
 __kernel void m00020_m08 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 combs_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
 }
@@ -290,15 +301,25 @@ __kernel void m00020_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   u32 salt_buf0[4];
   u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
-  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
-  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
-  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
-  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
+  salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
+  salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
+  salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
@@ -403,12 +424,12 @@ __kernel void m00020_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w1[1] |= salt_buf1[1];
     w1[2] |= salt_buf1[2];
     w1[3] |= salt_buf1[3];
-    w2[0] |= 0;
-    w2[1] |= 0;
-    w2[2] |= 0;
-    w2[3] |= 0;
-    w3[0] |= 0;
-    w3[1] |= 0;
+    w2[0] |= salt_buf2[0];
+    w2[1] |= salt_buf2[1];
+    w2[2] |= salt_buf2[2];
+    w2[3] |= salt_buf2[3];
+    w3[0] |= salt_buf3[0];
+    w3[1] |= salt_buf3[1];
     w3[2]  = pw_salt_len * 8;
     w3[3]  = 0;
 
