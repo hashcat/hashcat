@@ -49,6 +49,7 @@
 #Name                                           Name
 
 GeForce_GTX_560_Ti                              ALIAS_nv_budget
+GeForce_GTX_650_Ti_BOOST                        ALIAS_nv_budget
 GeForce_GTX_750_Ti                              ALIAS_nv_budget
 
 GeForce_GTX_570                                 ALIAS_nv_old
