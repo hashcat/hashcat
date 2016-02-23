@@ -2825,8 +2825,9 @@ static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, 
 
   for (u32 i = 0; i < kernel_power; i++)
   {
+    device_param->pws_buf[i].i[0]   = i;
     device_param->pws_buf[i].i[1]   = 0x01234567;
-    device_param->pws_buf[i].pw_len = i & 7;
+    device_param->pws_buf[i].pw_len = 4 + (i & 3);
   }
 
   hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
