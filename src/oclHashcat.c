@@ -2823,24 +2823,17 @@ static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, 
 
   // init some fake words
 
-  if (data.attack_kern == ATTACK_KERN_BF)
+  for (u32 i = 0; i < kernel_power; i++)
   {
-    run_kernel_mp (KERN_RUN_MP_L, device_param, kernel_power);
-    run_kernel_mp (KERN_RUN_MP_R, device_param, kernel_loops);
+    device_param->pws_buf[i].i[1]   = 0x01234567;
+    device_param->pws_buf[i].pw_len = i & 7;
   }
-  else
+
+  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+
+  if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
   {
-    for (u32 i = 0; i < kernel_power; i++)
-    {
-      device_param->pws_buf[i].pw_len = i & 7;
-    }
-
-    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-
-    if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
-    {
-      run_kernel_amp (device_param, kernel_power);
-    }
+    run_kernel_amp (device_param, kernel_power);
   }
 
   // caching run
@@ -2991,12 +2984,10 @@ static void autotune (hc_device_param_t *device_param)
 
   // final balance
 
-  const double exec_ms = try_run (device_param, kernel_accel, kernel_loops, 1);
-
   u32 kernel_accel_best = kernel_accel;
   u32 kernel_loops_best = kernel_loops;
 
-  u32 exec_best = exec_ms;
+  u32 exec_best = -1;
 
   // reset
 
@@ -3023,13 +3014,9 @@ static void autotune (hc_device_param_t *device_param)
         exec_best = exec_ms;
       }
     }
-
-    kernel_accel = kernel_accel_best;
-    kernel_loops = kernel_loops_best;
   }
 
   // reset
-
 
   if (kernel_loops_min < kernel_loops_max)
   {
@@ -3054,9 +3041,6 @@ static void autotune (hc_device_param_t *device_param)
         exec_best = exec_ms;
       }
     }
-
-    kernel_accel = kernel_accel_best;
-    kernel_loops = kernel_loops_best;
   }
 
   // reset timer
@@ -3067,8 +3051,11 @@ static void autotune (hc_device_param_t *device_param)
 
   // store
 
-  device_param->kernel_loops = kernel_loops;
+  kernel_accel = kernel_accel_best;
+  kernel_loops = kernel_loops_best;
+
   device_param->kernel_accel = kernel_accel;
+  device_param->kernel_loops = kernel_loops;
 
   const u32 kernel_power = device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel;
 

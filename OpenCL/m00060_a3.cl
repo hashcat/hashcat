@@ -217,18 +217,28 @@ static void m00060m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
   salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
   salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
   salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
   salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
   salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
   salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
+  salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
+  salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
+  salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
+
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   /**
    * pads
@@ -271,9 +281,9 @@ static void m00060m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   {
     const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
-    const u32x w0rl = w0r | w0l;
+    const u32x w0lr = w0l | w0r;
 
-    w0_t[0] = w0rl;
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
@@ -289,8 +299,6 @@ static void m00060m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[1] = w3[1];
     w3_t[2] = (64 + pw_len) * 8;
     w3_t[3] = 0;
-
-    append_0x80_4x4 (w0_t, w1_t, w2_t, w3_t, pw_len);
 
     u32x digest[4];
 
@@ -390,9 +398,9 @@ static void m00060s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   {
     const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
-    const u32x w0rl = w0r | w0l;
+    const u32x w0lr = w0l | w0r;
 
-    w0_t[0] = w0rl;
+    w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
@@ -408,8 +416,6 @@ static void m00060s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[1] = w3[1];
     w3_t[2] = (64 + pw_len) * 8;
     w3_t[3] = 0;
-
-    append_0x80_4x4 (w0_t, w1_t, w2_t, w3_t, pw_len);
 
     u32x digest[4];
 
