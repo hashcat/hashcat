@@ -2989,6 +2989,13 @@ static void autotune (hc_device_param_t *device_param)
 
   u32 exec_best = -1;
 
+  if ((kernel_accel_min < kernel_accel_max) || (kernel_loops_min < kernel_loops_max))
+  {
+    const double exec_ms = try_run (device_param, kernel_accel_best, kernel_loops_best, 1);
+
+    exec_best = exec_ms;
+  }
+
   // reset
 
   if (kernel_accel_min < kernel_accel_max)
