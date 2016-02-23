@@ -4309,6 +4309,8 @@ static void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int
 
     memcpy (pw->i, pw_buf, pw_len);
 
+    memset (pw->i + pw_len, 0, sizeof (pw->i) - pw_len);
+
     pw->pw_len = pw_len;
 
     device_param->pws_cnt++;
