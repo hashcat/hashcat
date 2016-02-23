@@ -73,9 +73,11 @@ int ocl_init (OCL_PTR *ocl)
   ocl->lib = hc_dlopen ("/System/Library/Frameworks/OpenCL.framework/OpenCL", RTLD_NOW);
   #else
   ocl->lib = hc_dlopen ("libOpenCL.so", RTLD_NOW);
+
+  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("libOpenCL.so.1", RTLD_NOW);
   #endif
 
-  if (!ocl->lib)
+  if (ocl->lib == NULL)
   {
     log_error ("ERROR: cannot load opencl library");
 
