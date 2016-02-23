@@ -4495,7 +4495,14 @@ static void *thread_calc_stdin (void *p)
 
       device_param->pws_cnt = 0;
 
-      memset (device_param->pws_buf, 0, device_param->size_pws);
+      if (attack_kern == ATTACK_KERN_STRAIGHT)
+      {
+        run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
+      }
+      else if (attack_kern == ATTACK_KERN_COMBI)
+      {
+        run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
+      }
     }
   }
 
@@ -4538,6 +4545,8 @@ static void *thread_calc (void *p)
         run_cracker (device_param, pws_cnt);
 
         device_param->pws_cnt = 0;
+
+        run_kernel_bzero (device_param, device_param->d_bfs_c, device_param->size_bfs);
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
@@ -4756,7 +4765,14 @@ static void *thread_calc (void *p)
 
         device_param->pws_cnt = 0;
 
-        memset (device_param->pws_buf, 0, device_param->size_pws);
+        if (attack_kern == ATTACK_KERN_STRAIGHT)
+        {
+          run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
+        }
+        else if (attack_kern == ATTACK_KERN_COMBI)
+        {
+          run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
+        }
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
@@ -13682,9 +13698,13 @@ int main (int argc, char **argv)
       }
       */
 
-      device_param->size_pws   = size_pws;
-      device_param->size_tmps  = size_tmps;
-      device_param->size_hooks = size_hooks;
+      device_param->size_bfs     = size_bfs;
+      device_param->size_combs   = size_combs;
+      device_param->size_rules   = size_rules;
+      device_param->size_rules_c = size_rules_c;
+      device_param->size_pws     = size_pws;
+      device_param->size_tmps    = size_tmps;
+      device_param->size_hooks   = size_hooks;
 
       // do not confuse kernel_accel_max with kernel_accel here
 

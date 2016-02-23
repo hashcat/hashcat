@@ -879,6 +879,10 @@ struct __hc_device_param
   uint    size_pws;
   uint    size_tmps;
   uint    size_hooks;
+  uint    size_bfs;
+  uint    size_combs;
+  uint    size_rules;
+  uint    size_rules_c;
   uint    size_root_css;
   uint    size_markov_css;
   uint    size_digests;
