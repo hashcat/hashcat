@@ -375,7 +375,7 @@ static void m00190s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
     digests_buf[digests_offset].digest_buf[DGST_R3]
   };
 
- /**
+  /**
    * loop
    */
 
