@@ -81,8 +81,8 @@ static void m00020m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   w2[3] |= salt_buf2[3];
   w3[0] |= salt_buf3[0];
   w3[1] |= salt_buf3[1];
-  w3[2] |= salt_buf3[2];
-  w3[3] |= salt_buf3[3];
+  w3[2]  = pw_salt_len * 8;
+  w3[3]  = 0;
 
   /**
    * loop
@@ -113,8 +113,8 @@ static void m00020m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w2_t[3] = w2[3];
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
-    w3_t[2] = pw_salt_len * 8;
-    w3_t[3] = 0;
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
 
     overwrite_at_le_4x4 (w0_t, w1_t, w2_t, w3_t, w0lr, salt_len);
 
@@ -272,8 +272,8 @@ static void m00020s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   w2[3] |= salt_buf2[3];
   w3[0] |= salt_buf3[0];
   w3[1] |= salt_buf3[1];
-  w3[2] |= salt_buf3[2];
-  w3[3] |= salt_buf3[3];
+  w3[2]  = pw_salt_len * 8;
+  w3[3]  = 0;
 
   /**
    * loop
@@ -304,8 +304,8 @@ static void m00020s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w2_t[3] = w2[3];
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
-    w3_t[2] = pw_salt_len * 8;
-    w3_t[3] = 0;
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
 
     overwrite_at_le_4x4 (w0_t, w1_t, w2_t, w3_t, w0lr, salt_len);
 

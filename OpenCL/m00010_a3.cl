@@ -74,6 +74,8 @@ static void m00010m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
+  const u32 pw_salt_len = pw_len + salt_len;
+
   switch_buffer_by_offset_le_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
 
   w[ 0] |= salt_buf0[0];
@@ -90,13 +92,8 @@ static void m00010m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
   w[11] |= salt_buf2[3];
   w[12] |= salt_buf3[0];
   w[13] |= salt_buf3[1];
-  w[14] |= salt_buf3[2];
-  w[15] |= salt_buf3[3];
-
-  const u32 pw_salt_len = pw_len + salt_len;
-
-  w[14] = pw_salt_len * 8;
-  w[15] = 0;
+  w[14]  = pw_salt_len * 8;
+  w[15]  = 0;
 
   /**
    * base
@@ -509,7 +506,7 @@ __kernel void m00010_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len;
@@ -547,7 +544,7 @@ __kernel void m00010_m08 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len;

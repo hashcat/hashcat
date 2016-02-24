@@ -63,52 +63,30 @@ static void m00040m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    * prepend salt
    */
 
-  u32 w0_t[4];
-  u32 w1_t[4];
-  u32 w2_t[4];
-  u32 w3_t[4];
+  const u32 w0l = w0[0];
 
-  w0_t[0] = w0[0];
-  w0_t[1] = w0[1];
-  w0_t[2] = w0[2];
-  w0_t[3] = w0[3];
-  w1_t[0] = w1[0];
-  w1_t[1] = w1[1];
-  w1_t[2] = w1[2];
-  w1_t[3] = w1[3];
-  w2_t[0] = w2[0];
-  w2_t[1] = w2[1];
-  w2_t[2] = w2[2];
-  w2_t[3] = w2[3];
-  w3_t[0] = w3[0];
-  w3_t[1] = w3[1];
-  w3_t[2] = w3[2];
-  w3_t[3] = w3[3];
+  switch_buffer_by_offset_le_S (w0, w1, w2, w3, salt_len);
 
-  switch_buffer_by_offset_le_S (w0_t, w1_t, w2_t, w3_t, salt_len);
-
-  w0_t[0] |= salt_buf0[0];
-  w0_t[1] |= salt_buf0[1];
-  w0_t[2] |= salt_buf0[2];
-  w0_t[3] |= salt_buf0[3];
-  w1_t[0] |= salt_buf1[0];
-  w1_t[1] |= salt_buf1[1];
-  w1_t[2] |= salt_buf1[2];
-  w1_t[3] |= salt_buf1[3];
-  w2_t[0] |= salt_buf2[0];
-  w2_t[1] |= salt_buf2[1];
-  w2_t[2] |= salt_buf2[2];
-  w2_t[3] |= salt_buf2[3];
-  w3_t[0] |= salt_buf3[0];
-  w3_t[1] |= salt_buf3[1];
-  w3_t[2] |= salt_buf3[2];
-  w3_t[3] |= salt_buf3[3];
+  w0[0] |= salt_buf0[0];
+  w0[1] |= salt_buf0[1];
+  w0[2] |= salt_buf0[2];
+  w0[3] |= salt_buf0[3];
+  w1[0] |= salt_buf1[0];
+  w1[1] |= salt_buf1[1];
+  w1[2] |= salt_buf1[2];
+  w1[3] |= salt_buf1[3];
+  w2[0] |= salt_buf2[0];
+  w2[1] |= salt_buf2[1];
+  w2[2] |= salt_buf2[2];
+  w2[3] |= salt_buf2[3];
+  w3[0] |= salt_buf3[0];
+  w3[1] |= salt_buf3[1];
+  w3[2]  = pw_salt_len * 8;
+  w3[3]  = 0;
 
   /**
    * loop
    */
-
-  u32 w0l = w0[0];
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
@@ -116,48 +94,29 @@ static void m00040m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
-    u32x wx[16];
-
-    wx[ 0] = w0_t[0];
-    wx[ 1] = w0_t[1];
-    wx[ 2] = w0_t[2];
-    wx[ 3] = w0_t[3];
-    wx[ 4] = w1_t[0];
-    wx[ 5] = w1_t[1];
-    wx[ 6] = w1_t[2];
-    wx[ 7] = w1_t[3];
-    wx[ 8] = w2_t[0];
-    wx[ 9] = w2_t[1];
-    wx[10] = w2_t[2];
-    wx[11] = w2_t[3];
-    wx[12] = w3_t[0];
-    wx[13] = w3_t[1];
-    wx[14] = w3_t[2];
-    wx[15] = w3_t[3];
-
-    overwrite_at_le (wx, w0lr, salt_len);
-
     u32x w0_t[4];
     u32x w1_t[4];
     u32x w2_t[4];
     u32x w3_t[4];
 
-    w0_t[0] = wx[ 0];
-    w0_t[1] = wx[ 1];
-    w0_t[2] = wx[ 2];
-    w0_t[3] = wx[ 3];
-    w1_t[0] = wx[ 4];
-    w1_t[1] = wx[ 5];
-    w1_t[2] = wx[ 6];
-    w1_t[3] = wx[ 7];
-    w2_t[0] = wx[ 8];
-    w2_t[1] = wx[ 9];
-    w2_t[2] = wx[10];
-    w2_t[3] = wx[11];
-    w3_t[0] = wx[12];
-    w3_t[1] = wx[13];
-    w3_t[2] = pw_salt_len * 8;
-    w3_t[3] = 0;
+    w0_t[0] = w0[0];
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
+
+    overwrite_at_le_4x4 (w0_t, w1_t, w2_t, w3_t, w0lr, salt_len);
 
     /**
      * md5
@@ -295,52 +254,30 @@ static void m00040s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    * prepend salt
    */
 
-  u32 w0_t[4];
-  u32 w1_t[4];
-  u32 w2_t[4];
-  u32 w3_t[4];
+  const u32 w0l = w0[0];
 
-  w0_t[0] = w0[0];
-  w0_t[1] = w0[1];
-  w0_t[2] = w0[2];
-  w0_t[3] = w0[3];
-  w1_t[0] = w1[0];
-  w1_t[1] = w1[1];
-  w1_t[2] = w1[2];
-  w1_t[3] = w1[3];
-  w2_t[0] = w2[0];
-  w2_t[1] = w2[1];
-  w2_t[2] = w2[2];
-  w2_t[3] = w2[3];
-  w3_t[0] = w3[0];
-  w3_t[1] = w3[1];
-  w3_t[2] = w3[2];
-  w3_t[3] = w3[3];
+  switch_buffer_by_offset_le_S (w0, w1, w2, w3, salt_len);
 
-  switch_buffer_by_offset_le_S (w0_t, w1_t, w2_t, w3_t, salt_len);
-
-  w0_t[0] |= salt_buf0[0];
-  w0_t[1] |= salt_buf0[1];
-  w0_t[2] |= salt_buf0[2];
-  w0_t[3] |= salt_buf0[3];
-  w1_t[0] |= salt_buf1[0];
-  w1_t[1] |= salt_buf1[1];
-  w1_t[2] |= salt_buf1[2];
-  w1_t[3] |= salt_buf1[3];
-  w2_t[0] |= salt_buf2[0];
-  w2_t[1] |= salt_buf2[1];
-  w2_t[2] |= salt_buf2[2];
-  w2_t[3] |= salt_buf2[3];
-  w3_t[0] |= salt_buf3[0];
-  w3_t[1] |= salt_buf3[1];
-  w3_t[2] |= salt_buf3[2];
-  w3_t[3] |= salt_buf3[3];
+  w0[0] |= salt_buf0[0];
+  w0[1] |= salt_buf0[1];
+  w0[2] |= salt_buf0[2];
+  w0[3] |= salt_buf0[3];
+  w1[0] |= salt_buf1[0];
+  w1[1] |= salt_buf1[1];
+  w1[2] |= salt_buf1[2];
+  w1[3] |= salt_buf1[3];
+  w2[0] |= salt_buf2[0];
+  w2[1] |= salt_buf2[1];
+  w2[2] |= salt_buf2[2];
+  w2[3] |= salt_buf2[3];
+  w3[0] |= salt_buf3[0];
+  w3[1] |= salt_buf3[1];
+  w3[2]  = pw_salt_len * 8;
+  w3[3]  = 0;
 
   /**
    * loop
    */
-
-  u32 w0l = w0[0];
 
   for (u32 il_pos = 0; il_pos < bfs_cnt; il_pos += VECT_SIZE)
   {
@@ -348,48 +285,29 @@ static void m00040s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
-    u32x wx[16];
-
-    wx[ 0] = w0_t[0];
-    wx[ 1] = w0_t[1];
-    wx[ 2] = w0_t[2];
-    wx[ 3] = w0_t[3];
-    wx[ 4] = w1_t[0];
-    wx[ 5] = w1_t[1];
-    wx[ 6] = w1_t[2];
-    wx[ 7] = w1_t[3];
-    wx[ 8] = w2_t[0];
-    wx[ 9] = w2_t[1];
-    wx[10] = w2_t[2];
-    wx[11] = w2_t[3];
-    wx[12] = w3_t[0];
-    wx[13] = w3_t[1];
-    wx[14] = w3_t[2];
-    wx[15] = w3_t[3];
-
-    overwrite_at_le (wx, w0lr, salt_len);
-
     u32x w0_t[4];
     u32x w1_t[4];
     u32x w2_t[4];
     u32x w3_t[4];
 
-    w0_t[0] = wx[ 0];
-    w0_t[1] = wx[ 1];
-    w0_t[2] = wx[ 2];
-    w0_t[3] = wx[ 3];
-    w1_t[0] = wx[ 4];
-    w1_t[1] = wx[ 5];
-    w1_t[2] = wx[ 6];
-    w1_t[3] = wx[ 7];
-    w2_t[0] = wx[ 8];
-    w2_t[1] = wx[ 9];
-    w2_t[2] = wx[10];
-    w2_t[3] = wx[11];
-    w3_t[0] = wx[12];
-    w3_t[1] = wx[13];
-    w3_t[2] = pw_salt_len * 8;
-    w3_t[3] = 0;
+    w0_t[0] = w0[0];
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
+
+    overwrite_at_le_4x4 (w0_t, w1_t, w2_t, w3_t, w0lr, salt_len);
 
     /**
      * md5

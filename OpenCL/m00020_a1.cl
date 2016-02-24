@@ -36,17 +36,17 @@ __kernel void m00020_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (gid >= gid_max) return;
 
-  u32 pws0[4] = { 0 };
-  u32 pws1[4] = { 0 };
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  pws0[0] = pws[gid].i[0];
-  pws0[1] = pws[gid].i[1];
-  pws0[2] = pws[gid].i[2];
-  pws0[3] = pws[gid].i[3];
-  pws1[0] = pws[gid].i[4];
-  pws1[1] = pws[gid].i[5];
-  pws1[2] = pws[gid].i[6];
-  pws1[3] = pws[gid].i[7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
 
@@ -97,14 +97,14 @@ __kernel void m00020_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     u32x wordl2[4] = { 0 };
     u32x wordl3[4] = { 0 };
 
-    wordl0[0] = pws0[0];
-    wordl0[1] = pws0[1];
-    wordl0[2] = pws0[2];
-    wordl0[3] = pws0[3];
-    wordl1[0] = pws1[0];
-    wordl1[1] = pws1[1];
-    wordl1[2] = pws1[2];
-    wordl1[3] = pws1[3];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
     u32x wordr0[4] = { 0 };
     u32x wordr1[4] = { 0 };
@@ -148,8 +148,8 @@ __kernel void m00020_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w2[3] = wordl2[3] | wordr2[3];
     w3[0] = wordl3[0] | wordr3[0];
     w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = 0;
-    w3[3] = 0;
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
     /**
      * prepend salt
@@ -281,17 +281,17 @@ __kernel void m00020_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (gid >= gid_max) return;
 
-  u32 pws0[4] = { 0 };
-  u32 pws1[4] = { 0 };
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  pws0[0] = pws[gid].i[0];
-  pws0[1] = pws[gid].i[1];
-  pws0[2] = pws[gid].i[2];
-  pws0[3] = pws[gid].i[3];
-  pws1[0] = pws[gid].i[4];
-  pws1[1] = pws[gid].i[5];
-  pws1[2] = pws[gid].i[6];
-  pws1[3] = pws[gid].i[7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
 
@@ -354,14 +354,14 @@ __kernel void m00020_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     u32x wordl2[4] = { 0 };
     u32x wordl3[4] = { 0 };
 
-    wordl0[0] = pws0[0];
-    wordl0[1] = pws0[1];
-    wordl0[2] = pws0[2];
-    wordl0[3] = pws0[3];
-    wordl1[0] = pws1[0];
-    wordl1[1] = pws1[1];
-    wordl1[2] = pws1[2];
-    wordl1[3] = pws1[3];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
     u32x wordr0[4] = { 0 };
     u32x wordr1[4] = { 0 };
@@ -405,8 +405,8 @@ __kernel void m00020_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w2[3] = wordl2[3] | wordr2[3];
     w3[0] = wordl3[0] | wordr3[0];
     w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = 0;
-    w3[3] = 0;
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
     /**
      * prepend salt
