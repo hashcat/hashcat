@@ -12490,6 +12490,18 @@ int main (int argc, char **argv)
 
         return (-1);
       }
+
+      if (opencl_platforms_filter != (uint) -1)
+      {
+        uint platform_cnt_mask = ~((-1 >> platforms_cnt) << platforms_cnt);
+
+        if (opencl_platforms_filter > platform_cnt_mask)
+        {
+          log_error ("ERROR: The platform selected by the --opencl-platforms parameter is larger than the number of available platforms (%d)", platforms_cnt);
+
+          return (-1);
+        }
+      }
     }
 
     /**
@@ -12943,6 +12955,20 @@ int main (int argc, char **argv)
       log_error ("ERROR: No devices found/left");
 
       return (-1);
+    }
+
+    // additional check to see if the user has chosen a device that is not within the range of available devices (i.e. larger than devices_cnt)
+
+    if (devices_filter != (uint) -1)
+    {
+      uint devices_cnt_mask = ~((-1 >> devices_cnt) << devices_cnt);
+
+      if (devices_filter > devices_cnt_mask)
+      {
+        log_error ("ERROR: The device specified by the --opencl-devices parameter is larger than the number of available devices (%d)", devices_cnt);
+
+        return (-1);
+      }
     }
 
     data.devices_cnt = devices_cnt;
