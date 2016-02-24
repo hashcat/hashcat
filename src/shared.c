@@ -10071,8 +10071,15 @@ int wpa_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
     }
   }
 
-  salt->salt_buf[10] = digest[1];
-  salt->salt_buf[11] = digest[2];
+  uint32_t *p0 = (uint32_t *) in.essid;  
+  uint32_t c0 = 0; 
+  uint32_t c1 = 0; 
+  
+  for (unsigned int i = 0; i < sizeof(in.essid)/sizeof(uint32_t); i++) c0 ^= *p0++;  
+  for (unsigned int i = 0; i < sizeof(wpa->pke)/sizeof(wpa->pke[0]); i++) c1 ^= wpa->pke[i];
+  
+  salt->salt_buf[10] = c0;
+  salt->salt_buf[11] = c1;
 
   return (PARSER_OK);
 }
