@@ -8048,6 +8048,22 @@ static void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
  * vector functions on scalar types (for inner loop usage)
  */
 
+#define PACKVS2(sn,vn,e)  \
+  sn[0] = vn[0].s##e;     \
+  sn[1] = vn[1].s##e;
+
+#define PACKSV2(sn,vn,e)  \
+  vn[0].s##e = sn[0];     \
+  vn[1].s##e = sn[1];
+
+#define PACKVS24(s0,s1,v0,v1,e) \
+  PACKVS4 (s0, v0, e);          \
+  PACKVS4 (s1, v1, e);
+
+#define PACKSV24(s0,s1,v0,v1,e) \
+  PACKSV4 (s0, v0, e);          \
+  PACKSV4 (s1, v1, e);
+
 #define PACKVS4(sn,vn,e)  \
   sn[0] = vn[0].s##e;     \
   sn[1] = vn[1].s##e;     \
@@ -8128,6 +8144,122 @@ static void switch_buffer_by_offset_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u
   PACKVS44 (t0, t1, t2, t3, w0, w1, w2, w3, d); switch_buffer_by_offset_le_S (t0, t1, t2, t3, offset.sd); PACKSV44 (t0, t1, t2, t3, w0, w1, w2, w3, d);
   PACKVS44 (t0, t1, t2, t3, w0, w1, w2, w3, e); switch_buffer_by_offset_le_S (t0, t1, t2, t3, offset.se); PACKSV44 (t0, t1, t2, t3, w0, w1, w2, w3, e);
   PACKVS44 (t0, t1, t2, t3, w0, w1, w2, w3, f); switch_buffer_by_offset_le_S (t0, t1, t2, t3, offset.sf); PACKSV44 (t0, t1, t2, t3, w0, w1, w2, w3, f);
+
+  #endif
+}
+
+static void append_0x01_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
+{
+  #if VECT_SIZE == 1
+
+  append_0x01_2x4_S (w0, w1, offset);
+
+  #else
+
+  u32 t0[4];
+  u32 t1[4];
+
+  #endif
+
+  #if   VECT_SIZE == 2
+
+  PACKVS24 (t0, t1, w0, w1, 0); append_0x01_2x4_S (t0, t1, offset.s0); PACKSV24 (t0, t1, w0, w1, 0);
+  PACKVS24 (t0, t1, w0, w1, 1); append_0x01_2x4_S (t0, t1, offset.s1); PACKSV24 (t0, t1, w0, w1, 1);
+
+  #elif VECT_SIZE == 4
+
+  PACKVS24 (t0, t1, w0, w1, 0); append_0x01_2x4_S (t0, t1, offset.s0); PACKSV24 (t0, t1, w0, w1, 0);
+  PACKVS24 (t0, t1, w0, w1, 1); append_0x01_2x4_S (t0, t1, offset.s1); PACKSV24 (t0, t1, w0, w1, 1);
+  PACKVS24 (t0, t1, w0, w1, 2); append_0x01_2x4_S (t0, t1, offset.s2); PACKSV24 (t0, t1, w0, w1, 2);
+  PACKVS24 (t0, t1, w0, w1, 3); append_0x01_2x4_S (t0, t1, offset.s3); PACKSV24 (t0, t1, w0, w1, 3);
+
+  #elif VECT_SIZE == 8
+
+  PACKVS24 (t0, t1, w0, w1, 0); append_0x01_2x4_S (t0, t1, offset.s0); PACKSV24 (t0, t1, w0, w1, 0);
+  PACKVS24 (t0, t1, w0, w1, 1); append_0x01_2x4_S (t0, t1, offset.s1); PACKSV24 (t0, t1, w0, w1, 1);
+  PACKVS24 (t0, t1, w0, w1, 2); append_0x01_2x4_S (t0, t1, offset.s2); PACKSV24 (t0, t1, w0, w1, 2);
+  PACKVS24 (t0, t1, w0, w1, 3); append_0x01_2x4_S (t0, t1, offset.s3); PACKSV24 (t0, t1, w0, w1, 3);
+  PACKVS24 (t0, t1, w0, w1, 4); append_0x01_2x4_S (t0, t1, offset.s4); PACKSV24 (t0, t1, w0, w1, 4);
+  PACKVS24 (t0, t1, w0, w1, 5); append_0x01_2x4_S (t0, t1, offset.s5); PACKSV24 (t0, t1, w0, w1, 5);
+  PACKVS24 (t0, t1, w0, w1, 6); append_0x01_2x4_S (t0, t1, offset.s6); PACKSV24 (t0, t1, w0, w1, 6);
+  PACKVS24 (t0, t1, w0, w1, 7); append_0x01_2x4_S (t0, t1, offset.s7); PACKSV24 (t0, t1, w0, w1, 7);
+
+  #elif VECT_SIZE == 16
+
+  PACKVS24 (t0, t1, w0, w1, 0); append_0x01_2x4_S (t0, t1, offset.s0); PACKSV24 (t0, t1, w0, w1, 0);
+  PACKVS24 (t0, t1, w0, w1, 1); append_0x01_2x4_S (t0, t1, offset.s1); PACKSV24 (t0, t1, w0, w1, 1);
+  PACKVS24 (t0, t1, w0, w1, 2); append_0x01_2x4_S (t0, t1, offset.s2); PACKSV24 (t0, t1, w0, w1, 2);
+  PACKVS24 (t0, t1, w0, w1, 3); append_0x01_2x4_S (t0, t1, offset.s3); PACKSV24 (t0, t1, w0, w1, 3);
+  PACKVS24 (t0, t1, w0, w1, 4); append_0x01_2x4_S (t0, t1, offset.s4); PACKSV24 (t0, t1, w0, w1, 4);
+  PACKVS24 (t0, t1, w0, w1, 5); append_0x01_2x4_S (t0, t1, offset.s5); PACKSV24 (t0, t1, w0, w1, 5);
+  PACKVS24 (t0, t1, w0, w1, 6); append_0x01_2x4_S (t0, t1, offset.s6); PACKSV24 (t0, t1, w0, w1, 6);
+  PACKVS24 (t0, t1, w0, w1, 7); append_0x01_2x4_S (t0, t1, offset.s7); PACKSV24 (t0, t1, w0, w1, 7);
+  PACKVS24 (t0, t1, w0, w1, 8); append_0x01_2x4_S (t0, t1, offset.s8); PACKSV24 (t0, t1, w0, w1, 8);
+  PACKVS24 (t0, t1, w0, w1, 9); append_0x01_2x4_S (t0, t1, offset.s9); PACKSV24 (t0, t1, w0, w1, 9);
+  PACKVS24 (t0, t1, w0, w1, a); append_0x01_2x4_S (t0, t1, offset.sa); PACKSV24 (t0, t1, w0, w1, a);
+  PACKVS24 (t0, t1, w0, w1, b); append_0x01_2x4_S (t0, t1, offset.sb); PACKSV24 (t0, t1, w0, w1, b);
+  PACKVS24 (t0, t1, w0, w1, c); append_0x01_2x4_S (t0, t1, offset.sc); PACKSV24 (t0, t1, w0, w1, c);
+  PACKVS24 (t0, t1, w0, w1, d); append_0x01_2x4_S (t0, t1, offset.sd); PACKSV24 (t0, t1, w0, w1, d);
+  PACKVS24 (t0, t1, w0, w1, e); append_0x01_2x4_S (t0, t1, offset.se); PACKSV24 (t0, t1, w0, w1, e);
+  PACKVS24 (t0, t1, w0, w1, f); append_0x01_2x4_S (t0, t1, offset.sf); PACKSV24 (t0, t1, w0, w1, f);
+
+  #endif
+}
+
+static void append_0x80_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
+{
+  #if VECT_SIZE == 1
+
+  append_0x80_2x4_S (w0, w1, offset);
+
+  #else
+
+  u32 t0[4];
+  u32 t1[4];
+
+  #endif
+
+  #if   VECT_SIZE == 2
+
+  PACKVS24 (t0, t1, w0, w1, 0); append_0x80_2x4_S (t0, t1, offset.s0); PACKSV24 (t0, t1, w0, w1, 0);
+  PACKVS24 (t0, t1, w0, w1, 1); append_0x80_2x4_S (t0, t1, offset.s1); PACKSV24 (t0, t1, w0, w1, 1);
+
+  #elif VECT_SIZE == 4
+
+  PACKVS24 (t0, t1, w0, w1, 0); append_0x80_2x4_S (t0, t1, offset.s0); PACKSV24 (t0, t1, w0, w1, 0);
+  PACKVS24 (t0, t1, w0, w1, 1); append_0x80_2x4_S (t0, t1, offset.s1); PACKSV24 (t0, t1, w0, w1, 1);
+  PACKVS24 (t0, t1, w0, w1, 2); append_0x80_2x4_S (t0, t1, offset.s2); PACKSV24 (t0, t1, w0, w1, 2);
+  PACKVS24 (t0, t1, w0, w1, 3); append_0x80_2x4_S (t0, t1, offset.s3); PACKSV24 (t0, t1, w0, w1, 3);
+
+  #elif VECT_SIZE == 8
+
+  PACKVS24 (t0, t1, w0, w1, 0); append_0x80_2x4_S (t0, t1, offset.s0); PACKSV24 (t0, t1, w0, w1, 0);
+  PACKVS24 (t0, t1, w0, w1, 1); append_0x80_2x4_S (t0, t1, offset.s1); PACKSV24 (t0, t1, w0, w1, 1);
+  PACKVS24 (t0, t1, w0, w1, 2); append_0x80_2x4_S (t0, t1, offset.s2); PACKSV24 (t0, t1, w0, w1, 2);
+  PACKVS24 (t0, t1, w0, w1, 3); append_0x80_2x4_S (t0, t1, offset.s3); PACKSV24 (t0, t1, w0, w1, 3);
+  PACKVS24 (t0, t1, w0, w1, 4); append_0x80_2x4_S (t0, t1, offset.s4); PACKSV24 (t0, t1, w0, w1, 4);
+  PACKVS24 (t0, t1, w0, w1, 5); append_0x80_2x4_S (t0, t1, offset.s5); PACKSV24 (t0, t1, w0, w1, 5);
+  PACKVS24 (t0, t1, w0, w1, 6); append_0x80_2x4_S (t0, t1, offset.s6); PACKSV24 (t0, t1, w0, w1, 6);
+  PACKVS24 (t0, t1, w0, w1, 7); append_0x80_2x4_S (t0, t1, offset.s7); PACKSV24 (t0, t1, w0, w1, 7);
+
+  #elif VECT_SIZE == 16
+
+  PACKVS24 (t0, t1, w0, w1, 0); append_0x80_2x4_S (t0, t1, offset.s0); PACKSV24 (t0, t1, w0, w1, 0);
+  PACKVS24 (t0, t1, w0, w1, 1); append_0x80_2x4_S (t0, t1, offset.s1); PACKSV24 (t0, t1, w0, w1, 1);
+  PACKVS24 (t0, t1, w0, w1, 2); append_0x80_2x4_S (t0, t1, offset.s2); PACKSV24 (t0, t1, w0, w1, 2);
+  PACKVS24 (t0, t1, w0, w1, 3); append_0x80_2x4_S (t0, t1, offset.s3); PACKSV24 (t0, t1, w0, w1, 3);
+  PACKVS24 (t0, t1, w0, w1, 4); append_0x80_2x4_S (t0, t1, offset.s4); PACKSV24 (t0, t1, w0, w1, 4);
+  PACKVS24 (t0, t1, w0, w1, 5); append_0x80_2x4_S (t0, t1, offset.s5); PACKSV24 (t0, t1, w0, w1, 5);
+  PACKVS24 (t0, t1, w0, w1, 6); append_0x80_2x4_S (t0, t1, offset.s6); PACKSV24 (t0, t1, w0, w1, 6);
+  PACKVS24 (t0, t1, w0, w1, 7); append_0x80_2x4_S (t0, t1, offset.s7); PACKSV24 (t0, t1, w0, w1, 7);
+  PACKVS24 (t0, t1, w0, w1, 8); append_0x80_2x4_S (t0, t1, offset.s8); PACKSV24 (t0, t1, w0, w1, 8);
+  PACKVS24 (t0, t1, w0, w1, 9); append_0x80_2x4_S (t0, t1, offset.s9); PACKSV24 (t0, t1, w0, w1, 9);
+  PACKVS24 (t0, t1, w0, w1, a); append_0x80_2x4_S (t0, t1, offset.sa); PACKSV24 (t0, t1, w0, w1, a);
+  PACKVS24 (t0, t1, w0, w1, b); append_0x80_2x4_S (t0, t1, offset.sb); PACKSV24 (t0, t1, w0, w1, b);
+  PACKVS24 (t0, t1, w0, w1, c); append_0x80_2x4_S (t0, t1, offset.sc); PACKSV24 (t0, t1, w0, w1, c);
+  PACKVS24 (t0, t1, w0, w1, d); append_0x80_2x4_S (t0, t1, offset.sd); PACKSV24 (t0, t1, w0, w1, d);
+  PACKVS24 (t0, t1, w0, w1, e); append_0x80_2x4_S (t0, t1, offset.se); PACKSV24 (t0, t1, w0, w1, e);
+  PACKVS24 (t0, t1, w0, w1, f); append_0x80_2x4_S (t0, t1, offset.sf); PACKSV24 (t0, t1, w0, w1, f);
 
   #endif
 }

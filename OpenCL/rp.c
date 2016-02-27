@@ -5,9 +5,9 @@
  * License.....: MIT
  */
 
-u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len);
-u32 apply_rules (const __global u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len);
-u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, const __global kernel_rule_t *rules_buf, const u32 il_pos, u32x w0[4], u32x w1[4]);
+u32  apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len);
+u32  apply_rules (const __global u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len);
+u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, const __global kernel_rule_t *rules_buf, const u32 il_pos, u32x w0[4], u32x w1[4]);
 
 static u32 generate_cmask (u32 buf)
 {
@@ -4107,7 +4107,7 @@ u32 apply_rules (const __global u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 l
   return out_len;
 }
 
-u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, const __global kernel_rule_t *rules_buf, const u32 il_pos, u32x w0[4], u32x w1[4])
+u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, const __global kernel_rule_t *rules_buf, const u32 il_pos, u32x w0[4], u32x w1[4])
 {
   #if VECT_SIZE == 1
 
@@ -4124,7 +4124,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
 
   #else
 
-  u32 out_len = 0;
+  u32x out_len = 0;
 
   #pragma unroll
   for (int i = 0; i < VECT_SIZE; i++)
@@ -4141,9 +4141,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
     tmp1[2] = pw_buf1[2];
     tmp1[3] = pw_buf1[3];
 
-    out_len = apply_rules (rules_buf[il_pos + i].cmds, tmp0, tmp1, pw_len);
-
-    // it's guaranteed to have out_len always the same for each call in the loop
+    const u32 tmp_len = apply_rules (rules_buf[il_pos + i].cmds, tmp0, tmp1, pw_len);
 
     switch (i)
     {
@@ -4157,6 +4155,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].s0 = tmp1[1];
         w1[2].s0 = tmp1[2];
         w1[3].s0 = tmp1[3];
+        out_len.s0 = tmp_len;
         break;
 
       case 1:
@@ -4168,6 +4167,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].s1 = tmp1[1];
         w1[2].s1 = tmp1[2];
         w1[3].s1 = tmp1[3];
+        out_len.s1 = tmp_len;
         break;
       #endif
 
@@ -4181,6 +4181,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].s2 = tmp1[1];
         w1[2].s2 = tmp1[2];
         w1[3].s2 = tmp1[3];
+        out_len.s2 = tmp_len;
         break;
 
       case 3:
@@ -4192,6 +4193,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].s3 = tmp1[1];
         w1[2].s3 = tmp1[2];
         w1[3].s3 = tmp1[3];
+        out_len.s3 = tmp_len;
         break;
       #endif
 
@@ -4205,6 +4207,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].s4 = tmp1[1];
         w1[2].s4 = tmp1[2];
         w1[3].s4 = tmp1[3];
+        out_len.s4 = tmp_len;
         break;
 
       case 5:
@@ -4216,6 +4219,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].s5 = tmp1[1];
         w1[2].s5 = tmp1[2];
         w1[3].s5 = tmp1[3];
+        out_len.s5 = tmp_len;
         break;
 
       case 6:
@@ -4227,6 +4231,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].s6 = tmp1[1];
         w1[2].s6 = tmp1[2];
         w1[3].s6 = tmp1[3];
+        out_len.s6 = tmp_len;
         break;
 
       case 7:
@@ -4238,6 +4243,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].s7 = tmp1[1];
         w1[2].s7 = tmp1[2];
         w1[3].s7 = tmp1[3];
+        out_len.s7 = tmp_len;
         break;
       #endif
 
@@ -4251,6 +4257,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].s8 = tmp1[1];
         w1[2].s8 = tmp1[2];
         w1[3].s8 = tmp1[3];
+        out_len.s8 = tmp_len;
         break;
 
       case 9:
@@ -4262,6 +4269,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].s9 = tmp1[1];
         w1[2].s9 = tmp1[2];
         w1[3].s9 = tmp1[3];
+        out_len.s9 = tmp_len;
         break;
 
       case 10:
@@ -4273,6 +4281,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].sa = tmp1[1];
         w1[2].sa = tmp1[2];
         w1[3].sa = tmp1[3];
+        out_len.sa = tmp_len;
         break;
 
       case 11:
@@ -4284,6 +4293,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].sb = tmp1[1];
         w1[2].sb = tmp1[2];
         w1[3].sb = tmp1[3];
+        out_len.sb = tmp_len;
         break;
 
       case 12:
@@ -4295,6 +4305,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].sc = tmp1[1];
         w1[2].sc = tmp1[2];
         w1[3].sc = tmp1[3];
+        out_len.sc = tmp_len;
         break;
 
       case 13:
@@ -4306,6 +4317,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].sd = tmp1[1];
         w1[2].sd = tmp1[2];
         w1[3].sd = tmp1[3];
+        out_len.sd = tmp_len;
         break;
 
       case 14:
@@ -4317,6 +4329,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].se = tmp1[1];
         w1[2].se = tmp1[2];
         w1[3].se = tmp1[3];
+        out_len.se = tmp_len;
         break;
 
       case 15:
@@ -4328,6 +4341,7 @@ u32 apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_l
         w1[1].sf = tmp1[1];
         w1[2].sf = tmp1[2];
         w1[3].sf = tmp1[3];
+        out_len.sf = tmp_len;
         break;
       #endif
     }
