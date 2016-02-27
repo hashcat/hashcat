@@ -6052,6 +6052,140 @@ static void overwrite_at_be_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4],
  * vector functions as scalar (for outer loop usage)
  */
 
+static void append_0x01_2x4_S (u32x w0[4], u32x w1[4], const u32 offset)
+{
+  switch (offset)
+  {
+    case 0:
+      w0[0] = 0x01;
+      break;
+
+    case 1:
+      w0[0] = w0[0] | 0x0100;
+      break;
+
+    case 2:
+      w0[0] = w0[0] | 0x010000;
+      break;
+
+    case 3:
+      w0[0] = w0[0] | 0x01000000;
+      break;
+
+    case 4:
+      w0[1] = 0x01;
+      break;
+
+    case 5:
+      w0[1] = w0[1] | 0x0100;
+      break;
+
+    case 6:
+      w0[1] = w0[1] | 0x010000;
+      break;
+
+    case 7:
+      w0[1] = w0[1] | 0x01000000;
+      break;
+
+    case 8:
+      w0[2] = 0x01;
+      break;
+
+    case 9:
+      w0[2] = w0[2] | 0x0100;
+      break;
+
+    case 10:
+      w0[2] = w0[2] | 0x010000;
+      break;
+
+    case 11:
+      w0[2] = w0[2] | 0x01000000;
+      break;
+
+    case 12:
+      w0[3] = 0x01;
+      break;
+
+    case 13:
+      w0[3] = w0[3] | 0x0100;
+      break;
+
+    case 14:
+      w0[3] = w0[3] | 0x010000;
+      break;
+
+    case 15:
+      w0[3] = w0[3] | 0x01000000;
+      break;
+
+    case 16:
+      w1[0] = 0x01;
+      break;
+
+    case 17:
+      w1[0] = w1[0] | 0x0100;
+      break;
+
+    case 18:
+      w1[0] = w1[0] | 0x010000;
+      break;
+
+    case 19:
+      w1[0] = w1[0] | 0x01000000;
+      break;
+
+    case 20:
+      w1[1] = 0x01;
+      break;
+
+    case 21:
+      w1[1] = w1[1] | 0x0100;
+      break;
+
+    case 22:
+      w1[1] = w1[1] | 0x010000;
+      break;
+
+    case 23:
+      w1[1] = w1[1] | 0x01000000;
+      break;
+
+    case 24:
+      w1[2] = 0x01;
+      break;
+
+    case 25:
+      w1[2] = w1[2] | 0x0100;
+      break;
+
+    case 26:
+      w1[2] = w1[2] | 0x010000;
+      break;
+
+    case 27:
+      w1[2] = w1[2] | 0x01000000;
+      break;
+
+    case 28:
+      w1[3] = 0x01;
+      break;
+
+    case 29:
+      w1[3] = w1[3] | 0x0100;
+      break;
+
+    case 30:
+      w1[3] = w1[3] | 0x010000;
+      break;
+
+    case 31:
+      w1[3] = w1[3] | 0x01000000;
+      break;
+  }
+}
+
 static void append_0x80_1x4_S (u32 w0[4], const u32 offset)
 {
   switch (offset)
