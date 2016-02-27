@@ -3093,7 +3093,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
     #if defined(LINUX) && defined(HAVE_NVML)
     int temperature = 0;
 
-    hm_NVML_nvmlDeviceGetTemperature (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_GPU, (unsigned int *) &temperature);
+    hm_NVML_nvmlDeviceGetTemperature (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_GPU, (uint *) &temperature);
 
     return temperature;
     #endif
@@ -3162,7 +3162,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
       #if defined(LINUX) && defined(HAVE_NVML)
       int speed = 0;
 
-      hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, (unsigned int *) &speed);
+      hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, (uint *) &speed);
 
       return speed;
       #endif
@@ -10071,13 +10071,13 @@ int wpa_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
     }
   }
 
-  uint32_t *p0 = (uint32_t *) in.essid;  
-  uint32_t c0 = 0; 
-  uint32_t c1 = 0; 
-  
-  for (unsigned int i = 0; i < sizeof(in.essid)/sizeof(uint32_t); i++) c0 ^= *p0++;  
-  for (unsigned int i = 0; i < sizeof(wpa->pke)/sizeof(wpa->pke[0]); i++) c1 ^= wpa->pke[i];
-  
+  uint32_t *p0 = (uint32_t *) in.essid;
+  uint32_t c0 = 0;
+  uint32_t c1 = 0;
+
+  for (uint i = 0; i < sizeof (in.essid) / sizeof (uint32_t);    i++) c0 ^= *p0++;
+  for (uint i = 0; i < sizeof (wpa->pke) / sizeof (wpa->pke[0]); i++) c1 ^= wpa->pke[i];
+
   salt->salt_buf[10] = c0;
   salt->salt_buf[11] = c1;
 
