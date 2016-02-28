@@ -12493,7 +12493,7 @@ int main (int argc, char **argv)
 
       if (opencl_platforms_filter != (uint) -1)
       {
-        uint platform_cnt_mask = ~((-1 >> platforms_cnt) << platforms_cnt);
+        uint platform_cnt_mask = ~(((uint) -1 >> platforms_cnt) << platforms_cnt);
 
         if (opencl_platforms_filter > platform_cnt_mask)
         {
@@ -12961,7 +12961,7 @@ int main (int argc, char **argv)
 
     if (devices_filter != (uint) -1)
     {
-      uint devices_cnt_mask = ~((-1 >> devices_cnt) << devices_cnt);
+      uint devices_cnt_mask = ~(((uint) -1 >> devices_cnt) << devices_cnt);
 
       if (devices_filter > devices_cnt_mask)
       {
