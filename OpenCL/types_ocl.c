@@ -1373,6 +1373,8 @@ typedef struct
   u32  digest_buf[4];
   #elif defined _KRB5TGS_
   u32  digest_buf[4];
+  #elif defined _AXCRYPT_
+  u32  digest_buf[4];
   #endif
 
 } digest_t;
@@ -1901,6 +1903,15 @@ typedef struct
   u32 final_len;
 
 } seven_zip_tmp_t;
+
+typedef struct
+{
+  u32 KEK[5];
+
+  u32 lsb[4];
+  u32 cipher[4];
+
+} axcrypt_tmp_t;
 
 typedef struct
 {

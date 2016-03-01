@@ -589,6 +589,15 @@ typedef struct
 
 typedef struct
 {
+  u32 KEK[5];
+
+  u32 lsb[4];
+  u32 cipher[4];
+
+} axcrypt_tmp_t;
+
+typedef struct
+{
   u32  random[2];
   u32  hash[5];
   u32  salt[5];   // unused, but makes better valid check
