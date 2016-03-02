@@ -18832,8 +18832,10 @@ int krb5tgs_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *edata_ptr = (char *) krb5tgs->edata2;
 
+  krb5tgs->edata2_len = (data_len - 32) / 2 ;
+
   /* skip '$' */
-  for (uint i = 16 * 2 + 1; i < input_len; i += 2)
+  for (uint i = 16 * 2 + 1; i < (krb5tgs->edata2_len * 2) + (16 * 2 + 1); i += 2)
   {
     const char p0 = data_pos[i + 0];
     const char p1 = data_pos[i + 1];
@@ -18843,8 +18845,6 @@ int krb5tgs_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
  /* this is needed for hmac_md5 */
   *edata_ptr++ = 0x80;
-
-  krb5tgs->edata2_len = (data_len - 32) / 2 ;
 
   salt->salt_buf[0] = krb5tgs->checksum[0];
   salt->salt_buf[1] = krb5tgs->checksum[1];
