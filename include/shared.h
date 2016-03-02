@@ -364,6 +364,7 @@ extern hc_thread_mutex_t mux_display;
 #define HT_13000  "RAR5"
 #define HT_13100  "Kerberos 5 TGS-REP etype 23"
 #define HT_13200  "AxCrypt"
+#define HT_13300  "AxCrypt in memory SHA1"
 
 #define HT_00011  "Joomla < 2.5.18"
 #define HT_00012  "PostgreSQL"
@@ -701,6 +702,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_13100  1 + 7 + 1 + 2 + 1 + 2 + 512 + 1 + 32 + 1 + 20480
 #define DISPLAY_LEN_MIN_13200  1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 48
 #define DISPLAY_LEN_MAX_13200  1 + 7 + 1 + 1 + 1 + 1 + 50 + 1 + 32 + 1 + 48 + 1 + 20480
+#define DISPLAY_LEN_MIN_13300  1 + 12 + 1 + 32
+#define DISPLAY_LEN_MAX_13300  1 + 12 + 1 + 40
 
 #define DISPLAY_LEN_MIN_11    32 + 1 + 16
 #define DISPLAY_LEN_MAX_11    32 + 1 + 32
@@ -962,6 +965,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_RAR5                13000
 #define KERN_TYPE_KRB5TGS             13100
 #define KERN_TYPE_AXCRYPT             13200
+#define KERN_TYPE_SHA1_AXCRYPT        13300
 
 /**
  * signatures
@@ -1033,6 +1037,7 @@ extern hc_thread_mutex_t mux_display;
 #define SIGNATURE_RAR5            "$rar5$"
 #define SIGNATURE_KRB5TGS         "$krb5tgs$23"
 #define SIGNATURE_AXCRYPT         "$axcrypt$*1"
+#define SIGNATURE_AXCRYPT_SHA1     "$axcrypt_sha1"
 
 /**
  * Default iteration numbers
@@ -1595,6 +1600,7 @@ int mywallet_parse_hash           (char *input_buf, uint input_len, hash_t *hash
 int ms_drsr_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int androidfde_samsung_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf);
 int axcrypt_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
+int sha1axcrypt_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf);
 
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
