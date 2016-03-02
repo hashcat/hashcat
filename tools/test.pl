@@ -2242,7 +2242,7 @@ sub verify
     }
     elsif ($mode == 13200)
     {
-      ($hash_in, $word) = split '\*', $line;
+      ($hash_in, $word) = split ":", $line;
 
       next unless defined $hash_in;
       next unless defined $word;
