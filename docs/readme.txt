@@ -185,6 +185,8 @@ NVidia users require ForceWare 346.59 or later (recommended 358.09 or later)
 - 7-Zip
 - RAR3-hp
 - RAR5
+- AxCrypt
+- AxCrypt in memory SHA1
 - PDF 1.1 - 1.3 (Acrobat 2 - 4)
 - PDF 1.4 - 1.6 (Acrobat 5 - 8)
 - PDF 1.7 Level 3 (Acrobat 9)
