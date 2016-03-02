@@ -5850,6 +5850,7 @@ char *strhashtype (const uint hash_mode)
     case 13000: return ((char *) HT_13000); break;
     case 13100: return ((char *) HT_13100); break;
     case 13200: return ((char *) HT_13200); break;
+    case 13300: return ((char *) HT_13300); break;
   }
 
   return ((char *) "Unknown");
@@ -8337,6 +8338,15 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
       salt.salt_buf[7],
       salt.salt_buf[8],
       salt.salt_buf[9]);
+  }
+  else if (hash_mode == 13300)
+  {
+    snprintf (out_buf, len-1, "%s$%08x%08x%08x%08x",
+      SIGNATURE_AXCRYPT_SHA1,
+              digest_buf[0],
+              digest_buf[1],
+              digest_buf[2],
+              digest_buf[3]);
   }
   else
   {
@@ -11510,6 +11520,25 @@ int sha1linkedin_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  return (PARSER_OK);
+}
+
+int sha1axcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_13300) || (input_len > DISPLAY_LEN_MAX_13300)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_AXCRYPT_SHA1, input_buf, 13)) return (PARSER_SIGNATURE_UNMATCHED);
+ 
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  input_buf +=14;
+  
+  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  digest[4] = 0x00000000;
 
   return (PARSER_OK);
 }

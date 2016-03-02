@@ -25,6 +25,10 @@ Desc.: Added new hash mode -m 13200 = AxCrypt
 
 Type.: Feature
 File.: Kernel
+Desc.: Added new hash mode -m 13300 = AxCrypt in memory SHA1
+
+Type.: Feature
+File.: Kernel
 Desc.: Extended support from 14 to 255 functions calls per rule on GPU
 
 Type.: Feature

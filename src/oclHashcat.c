@@ -137,7 +137,7 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 
 #define MAX_DICTSTAT            10000
 
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 132
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 133
 
 #define global_free(attr)       \
 {                               \
@@ -261,6 +261,7 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   12500,
   13000,
   13200,
+  13300,
   6211,
   6221,
   6231,
@@ -687,6 +688,7 @@ const char *USAGE_BIG[] =
   "  12500 = RAR3-hp",
   "  13000 = RAR5",
   "  13200 = AxCrypt",
+  "  13300 = AxCrypt in memory SHA1",
   "",
   "[[ Full-Disk encryptions (FDE) ]]",
   "",
@@ -5967,7 +5969,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  if (hash_mode_chgd && hash_mode > 13200) // just added to remove compiler warnings for hash_mode_chgd
+  if (hash_mode_chgd && hash_mode > 13300) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
@@ -10230,6 +10232,27 @@ int main (int argc, char **argv)
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
                    dgst_pos3   = 3;
+                   break;
+
+      case 13300:  hash_type   = HASH_TYPE_SHA1;
+                   salt_type   = SALT_TYPE_NONE;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_PT_ADD80
+                               | OPTS_TYPE_PT_ADDBITS15;
+                   kern_type   = KERN_TYPE_SHA1_AXCRYPT;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = sha1axcrypt_parse_hash;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_INIT
+                               | OPTI_TYPE_EARLY_SKIP
+                               | OPTI_TYPE_NOT_ITERATED
+                               | OPTI_TYPE_NOT_SALTED;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 4;
+                   dgst_pos2   = 3;
+                   dgst_pos3   = 2;
                    break;
 
       default:     usage_mini_print (PROGNAME); return (-1);
