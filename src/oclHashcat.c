@@ -137,7 +137,7 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 
 #define MAX_DICTSTAT            10000
 
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 131
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 132
 
 #define global_free(attr)       \
 {                               \
@@ -260,6 +260,7 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   11600,
   12500,
   13000,
+  13200,
   6211,
   6221,
   6231,
@@ -685,6 +686,7 @@ const char *USAGE_BIG[] =
   "  11600 = 7-Zip",
   "  12500 = RAR3-hp",
   "  13000 = RAR5",
+  "  13200 = AxCrypt",
   "",
   "[[ Full-Disk encryptions (FDE) ]]",
   "",
@@ -5965,7 +5967,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  if (hash_mode_chgd && hash_mode > 13100) // just added to remove compiler warnings for hash_mode_chgd
+  if (hash_mode_chgd && hash_mode > 13200) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
@@ -10215,6 +10217,21 @@ int main (int argc, char **argv)
                    dgst_pos3   = 3;
                    break;
 
+      case 13200:  hash_type   = HASH_TYPE_AES;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_AXCRYPT;
+                   dgst_size   = DGST_SIZE_4_4;
+                   parse_func  = axcrypt_parse_hash;
+                   sort_by_digest = sort_by_digest_4_4;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
       default:     usage_mini_print (PROGNAME); return (-1);
     }
 
@@ -11550,6 +11567,8 @@ int main (int argc, char **argv)
         case 12900:  hashes_buf[0].salt->salt_iter = ROUNDS_ANDROIDFDE_SAMSUNG - 1;
                      break;
         case 13000:  hashes_buf[0].salt->salt_iter = ROUNDS_RAR5 - 1;
+                     break;
+        case 13200:  hashes_buf[0].salt->salt_iter = ROUNDS_AXCRYPT;
                      break;
       }
 
@@ -13648,6 +13667,7 @@ int main (int argc, char **argv)
           case 12800: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
           case 12900: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
           case 13000: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
+          case 13200: size_tmps = kernel_power_max * sizeof (axcrypt_tmp_t);         break;
         };
 
         // size_hooks

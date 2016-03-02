@@ -5849,6 +5849,7 @@ char *strhashtype (const uint hash_mode)
     case 12900: return ((char *) HT_12900); break;
     case 13000: return ((char *) HT_13000); break;
     case 13100: return ((char *) HT_13100); break;
+    case 13200: return ((char *) HT_13200); break;
   }
 
   return ((char *) "Unknown");
@@ -8320,6 +8321,22 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
       (char *) krb5tgs->account_info,
       data,
       data + 33);
+  }
+  else if (hash_mode == 13200)
+  {
+    snprintf (out_buf, len-1, "%s*%d*%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x",
+      SIGNATURE_AXCRYPT,
+      salt.salt_iter,
+      salt.salt_buf[0],
+      salt.salt_buf[1],
+      salt.salt_buf[2],
+      salt.salt_buf[3],
+      salt.salt_buf[4],
+      salt.salt_buf[5],
+      salt.salt_buf[6],
+      salt.salt_buf[7],
+      salt.salt_buf[8],
+      salt.salt_buf[9]);
   }
   else
   {
@@ -18840,6 +18857,81 @@ int krb5tgs_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[1] = krb5tgs->checksum[1];
   digest[2] = krb5tgs->checksum[2];
   digest[3] = krb5tgs->checksum[3];
+
+  return (PARSER_OK);
+}
+
+int axcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_13200) || (input_len > DISPLAY_LEN_MAX_13200)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_AXCRYPT, input_buf, 11)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  /**
+   * parse line
+   */
+
+  /* Skip '*' */
+  char *wrapping_rounds_pos = input_buf + 11 + 1;
+
+  char *salt_pos;
+
+  char *wrapped_key_pos;
+  
+  char *data_pos;
+
+  salt->salt_iter = atoi (wrapping_rounds_pos);
+  
+  salt_pos = strchr (wrapping_rounds_pos, '*');
+
+  if (salt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  
+  uint wrapping_rounds_len = salt_pos - wrapping_rounds_pos;
+
+  /* Skip '*' */
+  salt_pos++;
+  
+  data_pos = salt_pos;
+  
+  wrapped_key_pos = strchr (salt_pos, '*');
+
+  if (wrapped_key_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint salt_len = wrapped_key_pos - salt_pos;
+
+  if (salt_len != 32) return (PARSER_SALT_LENGTH);
+
+  /* Skip '*' */
+  wrapped_key_pos++;
+
+  uint wrapped_key_len = input_len - 11 - 1 - wrapping_rounds_len - 1 - salt_len - 1;
+
+  if (wrapped_key_len != 48) return (PARSER_SALT_LENGTH);
+
+  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &data_pos[ 0]);
+  salt->salt_buf[1] = hex_to_u32 ((const u8 *) &data_pos[ 8]);
+  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &data_pos[16]);
+  salt->salt_buf[3] = hex_to_u32 ((const u8 *) &data_pos[24]);
+
+  data_pos += 33;
+
+  salt->salt_buf[4] = hex_to_u32 ((const u8 *) &data_pos[ 0]);
+  salt->salt_buf[5] = hex_to_u32 ((const u8 *) &data_pos[ 8]);
+  salt->salt_buf[6] = hex_to_u32 ((const u8 *) &data_pos[16]); 
+  salt->salt_buf[7] = hex_to_u32 ((const u8 *) &data_pos[24]);
+  salt->salt_buf[8] = hex_to_u32 ((const u8 *) &data_pos[32]);
+  salt->salt_buf[9] = hex_to_u32 ((const u8 *) &data_pos[40]);
+
+  salt->salt_len = 40;
+
+  digest[0] = salt->salt_buf[0];
+  digest[1] = salt->salt_buf[1];
+  digest[2] = salt->salt_buf[2];
+  digest[3] = salt->salt_buf[3];
 
   return (PARSER_OK);
 }
