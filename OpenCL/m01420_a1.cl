@@ -177,7 +177,7 @@ __kernel void m01420_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w3[3] |= salt_buf3[3];
 
     /**
-     * sha1
+     * sha256
      */
 
     u32x w0_t = swap32 (w0[0]);
@@ -455,7 +455,7 @@ __kernel void m01420_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w3[3] |= salt_buf3[3];
 
     /**
-     * sha1
+     * sha256
      */
 
     u32x w0_t = swap32 (w0[0]);
