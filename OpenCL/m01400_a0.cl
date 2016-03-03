@@ -68,7 +68,7 @@ __kernel void m01400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     append_0x80_2x4_VV (w0, w1, out_len);
 
     /**
-     * sha1
+     * sha256
      */
 
     u32x w0_t = swap32 (w0[0]);
@@ -235,7 +235,7 @@ __kernel void m01400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     append_0x80_2x4_VV (w0, w1, out_len);
 
     /**
-     * sha1
+     * sha256
      */
 
     u32x w0_t = swap32 (w0[0]);
