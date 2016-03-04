@@ -5,6 +5,8 @@
 
 #define _MD4_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,9 +18,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 __kernel void m01000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
@@ -36,186 +36,160 @@ __kernel void m01000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (gid >= gid_max) return;
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
-
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-
-    u32 w1[4];
-
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
+    w2[0] = wordl2[0] | wordr2[0];
+    w2[1] = wordl2[1] | wordr2[1];
+    w2[2] = wordl2[2] | wordr2[2];
+    w2[3] = wordl2[3] | wordr2[3];
+    w3[0] = wordl3[0] | wordr3[0];
+    w3[1] = wordl3[1] | wordr3[1];
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
-    u32 w2[4];
+    make_unicode (w1, w2, w3);
+    make_unicode (w0, w0, w1);
 
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
+    w3[2] = pw_len * 8 * 2;
     w3[3] = 0;
 
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
+    /**
+     * md4
+     */
 
-    make_unicode (w0, w0_t, w1_t);
-    make_unicode (w1, w2_t, w3_t);
+    u32x a = MD4M_A;
+    u32x b = MD4M_B;
+    u32x c = MD4M_C;
+    u32x d = MD4M_D;
 
-    w3_t[2] = pw_len * 8 * 2;
+    MD4_STEP (MD4_Fo, a, b, c, d, w0[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w0[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w0[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w0[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_Fo, a, b, c, d, w1[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w1[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w1[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w1[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_Fo, a, b, c, d, w2[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w2[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w2[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w2[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_Fo, a, b, c, d, w3[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w3[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w3[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w3[3], MD4C00, MD4S03);
 
-    u32 a = MD4M_A;
-    u32 b = MD4M_B;
-    u32 c = MD4M_C;
-    u32 d = MD4M_D;
+    MD4_STEP (MD4_Go, a, b, c, d, w0[0], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1[0], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2[0], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3[0], MD4C01, MD4S13);
+    MD4_STEP (MD4_Go, a, b, c, d, w0[1], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1[1], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2[1], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3[1], MD4C01, MD4S13);
+    MD4_STEP (MD4_Go, a, b, c, d, w0[2], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1[2], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2[2], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3[2], MD4C01, MD4S13);
+    MD4_STEP (MD4_Go, a, b, c, d, w0[3], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1[3], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2[3], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3[3], MD4C01, MD4S13);
 
-    MD4_STEP (MD4_Fo, a, b, c, d, w0_t[0], MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w0_t[1], MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, w0_t[2], MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, w0_t[3], MD4C00, MD4S03);
-    MD4_STEP (MD4_Fo, a, b, c, d, w1_t[0], MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w1_t[1], MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, w1_t[2], MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, w1_t[3], MD4C00, MD4S03);
-    MD4_STEP (MD4_Fo, a, b, c, d, w2_t[0], MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w2_t[1], MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, w2_t[2], MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, w2_t[3], MD4C00, MD4S03);
-    MD4_STEP (MD4_Fo, a, b, c, d, w3_t[0], MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w3_t[1], MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, w3_t[2], MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, w3_t[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_H , a, b, c, d, w0[0], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2[0], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1[0], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3[0], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0[2], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2[2], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1[2], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3[2], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0[1], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2[1], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1[1], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3[1], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0[3], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2[3], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1[3], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3[3], MD4C02, MD4S23);
 
-    MD4_STEP (MD4_Go, a, b, c, d, w0_t[0], MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w1_t[0], MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, w2_t[0], MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, w3_t[0], MD4C01, MD4S13);
-    MD4_STEP (MD4_Go, a, b, c, d, w0_t[1], MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w1_t[1], MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, w2_t[1], MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, w3_t[1], MD4C01, MD4S13);
-    MD4_STEP (MD4_Go, a, b, c, d, w0_t[2], MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w1_t[2], MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, w2_t[2], MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, w3_t[2], MD4C01, MD4S13);
-    MD4_STEP (MD4_Go, a, b, c, d, w0_t[3], MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w1_t[3], MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, w2_t[3], MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, w3_t[3], MD4C01, MD4S13);
-
-    MD4_STEP (MD4_H , a, b, c, d, w0_t[0], MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, w2_t[0], MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w1_t[0], MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, w3_t[0], MD4C02, MD4S23);
-    MD4_STEP (MD4_H , a, b, c, d, w0_t[2], MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, w2_t[2], MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w1_t[2], MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, w3_t[2], MD4C02, MD4S23);
-    MD4_STEP (MD4_H , a, b, c, d, w0_t[1], MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, w2_t[1], MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w1_t[1], MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, w3_t[1], MD4C02, MD4S23);
-    MD4_STEP (MD4_H , a, b, c, d, w0_t[3], MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, w2_t[3], MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w1_t[3], MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, w3_t[3], MD4C02, MD4S23);
-
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (a, d, c, b);
   }
 }
 
@@ -243,42 +217,19 @@ __kernel void m01000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (gid >= gid_max) return;
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
-
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
 
   /**
    * digest
@@ -296,145 +247,145 @@ __kernel void m01000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-
-    u32 w1[4];
-
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
+    w2[0] = wordl2[0] | wordr2[0];
+    w2[1] = wordl2[1] | wordr2[1];
+    w2[2] = wordl2[2] | wordr2[2];
+    w2[3] = wordl2[3] | wordr2[3];
+    w3[0] = wordl3[0] | wordr3[0];
+    w3[1] = wordl3[1] | wordr3[1];
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
-    u32 w2[4];
+    make_unicode (w1, w2, w3);
+    make_unicode (w0, w0, w1);
 
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
+    w3[2] = pw_len * 8 * 2;
     w3[3] = 0;
 
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
+    /**
+     * md4
+     */
 
-    make_unicode (w0, w0_t, w1_t);
-    make_unicode (w1, w2_t, w3_t);
+    u32x a = MD4M_A;
+    u32x b = MD4M_B;
+    u32x c = MD4M_C;
+    u32x d = MD4M_D;
 
-    w3_t[2] = pw_len * 8 * 2;
+    MD4_STEP (MD4_Fo, a, b, c, d, w0[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w0[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w0[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w0[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_Fo, a, b, c, d, w1[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w1[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w1[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w1[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_Fo, a, b, c, d, w2[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w2[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w2[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w2[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_Fo, a, b, c, d, w3[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w3[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w3[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w3[3], MD4C00, MD4S03);
 
-    u32 a = MD4M_A;
-    u32 b = MD4M_B;
-    u32 c = MD4M_C;
-    u32 d = MD4M_D;
+    MD4_STEP (MD4_Go, a, b, c, d, w0[0], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1[0], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2[0], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3[0], MD4C01, MD4S13);
+    MD4_STEP (MD4_Go, a, b, c, d, w0[1], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1[1], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2[1], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3[1], MD4C01, MD4S13);
+    MD4_STEP (MD4_Go, a, b, c, d, w0[2], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1[2], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2[2], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3[2], MD4C01, MD4S13);
+    MD4_STEP (MD4_Go, a, b, c, d, w0[3], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1[3], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2[3], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3[3], MD4C01, MD4S13);
 
-    MD4_STEP (MD4_Fo, a, b, c, d, w0_t[0], MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w0_t[1], MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, w0_t[2], MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, w0_t[3], MD4C00, MD4S03);
-    MD4_STEP (MD4_Fo, a, b, c, d, w1_t[0], MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w1_t[1], MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, w1_t[2], MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, w1_t[3], MD4C00, MD4S03);
-    MD4_STEP (MD4_Fo, a, b, c, d, w2_t[0], MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w2_t[1], MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, w2_t[2], MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, w2_t[3], MD4C00, MD4S03);
-    MD4_STEP (MD4_Fo, a, b, c, d, w3_t[0], MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w3_t[1], MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, w3_t[2], MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, w3_t[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_H , a, b, c, d, w0[0], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2[0], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1[0], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3[0], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0[2], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2[2], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1[2], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3[2], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0[1], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2[1], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1[1], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3[1], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0[3], MD4C02, MD4S20);
 
-    MD4_STEP (MD4_Go, a, b, c, d, w0_t[0], MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w1_t[0], MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, w2_t[0], MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, w3_t[0], MD4C01, MD4S13);
-    MD4_STEP (MD4_Go, a, b, c, d, w0_t[1], MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w1_t[1], MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, w2_t[1], MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, w3_t[1], MD4C01, MD4S13);
-    MD4_STEP (MD4_Go, a, b, c, d, w0_t[2], MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w1_t[2], MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, w2_t[2], MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, w3_t[2], MD4C01, MD4S13);
-    MD4_STEP (MD4_Go, a, b, c, d, w0_t[3], MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w1_t[3], MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, w2_t[3], MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, w3_t[3], MD4C01, MD4S13);
+    if (MATCHES_NONE_VS (a, search[0])) continue;
 
-    MD4_STEP (MD4_H , a, b, c, d, w0_t[0], MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, w2_t[0], MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w1_t[0], MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, w3_t[0], MD4C02, MD4S23);
-    MD4_STEP (MD4_H , a, b, c, d, w0_t[2], MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, w2_t[2], MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w1_t[2], MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, w3_t[2], MD4C02, MD4S23);
-    MD4_STEP (MD4_H , a, b, c, d, w0_t[1], MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, w2_t[1], MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w1_t[1], MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, w3_t[1], MD4C02, MD4S23);
-    MD4_STEP (MD4_H , a, b, c, d, w0_t[3], MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, w2_t[3], MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w1_t[3], MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, w3_t[3], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , d, a, b, c, w2[3], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1[3], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3[3], MD4C02, MD4S23);
 
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, d, c, b);
   }
 }
 
