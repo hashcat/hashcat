@@ -160,18 +160,16 @@ __kernel void m01700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -191,7 +189,7 @@ __kernel void m01700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     append_0x80_2x4_VV (w0, w1, out_len);
 
     /**
-     * SHA512
+     * sha512
      */
 
     u32x w0_t[4];
@@ -263,18 +261,16 @@ __kernel void m01700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -306,7 +302,7 @@ __kernel void m01700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     append_0x80_2x4_VV (w0, w1, out_len);
 
     /**
-     * SHA512
+     * sha512
      */
 
     u32x w0_t[4];
