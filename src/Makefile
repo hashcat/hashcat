@@ -86,10 +86,17 @@ VERSION_SUM              := $(shell git describe --tags --dirty=+ | cut -d- -f3)
 ## Compiler flags
 ##
 
-CFLAGS                   := -O2 -pipe -W -Wall -std=c99 -Iinclude/
+CFLAGS                   := -pipe -W -Wall -std=c99 -Iinclude/
 
-ifeq ($(DEBUG),1)
-CFLAGS                   += -DDEBUG -g -ggdb -fsanitize=address -fno-omit-frame-pointer
+ifndef DEBUG
+CFLAGS                   += -O2
+else
+CFLAGS                   += -DDEBUG -g -ggdb
+
+ifeq ($(DEBUG),2)
+CFLAGS                   += -fsanitize=address -fno-omit-frame-pointer
+endif
+
 endif
 
 ##
@@ -114,7 +121,12 @@ endif # darwin
 
 ifeq ($(UNAME),Linux)
 CFLAGS_NATIVE            := -D_POSIX -DLINUX
-CFLAGS_NATIVE            += -s $(CFLAGS)
+
+ifndef DEBUG
+CFLAGS_NATIVE            += -s
+endif
+
+CFLAGS_NATIVE            += $(CFLAGS)
 
 LFLAGS_NATIVE            := -lpthread -ldl
 
@@ -137,7 +149,12 @@ endif # linux
 ##
 
 CFLAGS_CROSS_LINUX       := -D_POSIX -DLINUX
-CFLAGS_CROSS_LINUX       += -s $(CFLAGS)
+
+ifndef DEBUG
+CFLAGS_CROSS_LINUX       += -s
+endif
+
+CFLAGS_CROSS_LINUX       += $(CFLAGS)
 CFLAGS_CROSS_LINUX       += -I$(OPENCL_HEADERS_KHRONOS)/
 
 ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
@@ -153,7 +170,12 @@ endif
 endif
 
 CFLAGS_CROSS_WIN         := -D_WIN   -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
-CFLAGS_CROSS_WIN         += -s $(filter-out -fsanitize=address,$(CFLAGS))
+
+ifndef DEBUG
+CFLAGS_CROSS_WIN         += -s
+endif
+
+CFLAGS_CROSS_WIN         += $(filter-out -fsanitize=address,$(CFLAGS))
 CFLAGS_CROSS_WIN         += -I$(OPENCL_HEADERS_KHRONOS)/
 
 ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVAPI)))
