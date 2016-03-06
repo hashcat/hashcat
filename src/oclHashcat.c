@@ -13852,6 +13852,25 @@ int main (int argc, char **argv)
 
             int rc = hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL, false);
 
+            #ifdef DEBUG
+            size_t build_log_size = 0;
+
+            hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+            if (build_log_size > 1)
+            {
+              char *build_log = (char *) malloc (build_log_size + 1);
+
+              memset (build_log, 0, build_log_size + 1);
+
+              hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+
+              puts (build_log);
+
+              free (build_log);
+            }
+            #endif
+
             if (rc != 0)
             {
               device_param->skipped = true;
@@ -13906,6 +13925,25 @@ int main (int argc, char **argv)
           }
 
           int rc = hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts_update, NULL, NULL, false);
+
+          #ifdef DEBUG
+          size_t build_log_size = 0;
+
+          hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+          if (build_log_size > 1)
+          {
+            char *build_log = (char *) malloc (build_log_size + 1);
+
+            memset (build_log, 0, build_log_size + 1);
+
+            hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+
+            puts (build_log);
+
+            free (build_log);
+          }
+          #endif
 
           if (rc != 0)
           {
