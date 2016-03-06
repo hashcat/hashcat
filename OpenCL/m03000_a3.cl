@@ -1754,65 +1754,72 @@ static void m03000m (__global pw_t *pws, __global kernel_rule_t *rules_buf, __gl
   const u32 lid = get_local_id (0);
 
   /**
-   * keys
+   * base
    */
 
-  const u32 K00 = pws[gid].i[ 0];
-  const u32 K01 = pws[gid].i[ 1];
-  const u32 K02 = pws[gid].i[ 2];
-  const u32 K03 = pws[gid].i[ 3];
-  const u32 K04 = pws[gid].i[ 4];
-  const u32 K05 = pws[gid].i[ 5];
-  const u32 K06 = pws[gid].i[ 6];
-  const u32 K07 = pws[gid].i[ 7];
-  const u32 K08 = pws[gid].i[ 8];
-  const u32 K09 = pws[gid].i[ 9];
-  const u32 K10 = pws[gid].i[10];
-  const u32 K11 = pws[gid].i[11];
-  const u32 K12 = pws[gid].i[12];
-  const u32 K13 = pws[gid].i[13];
-  const u32 K14 = pws[gid].i[14];
-  const u32 K15 = pws[gid].i[15];
-  const u32 K16 = pws[gid].i[16];
-  const u32 K17 = pws[gid].i[17];
-  const u32 K18 = pws[gid].i[18];
-  const u32 K19 = pws[gid].i[19];
-  const u32 K20 = pws[gid].i[20];
-  const u32 K21 = pws[gid].i[21];
-  const u32 K22 = pws[gid].i[22];
-  const u32 K23 = pws[gid].i[23];
-  const u32 K24 = pws[gid].i[24];
-  const u32 K25 = pws[gid].i[25];
-  const u32 K26 = pws[gid].i[26];
-  const u32 K27 = pws[gid].i[27];
-  const u32 K28 = pws[gid].i[28];
-  const u32 K29 = pws[gid].i[29];
-  const u32 K30 = pws[gid].i[30];
-  const u32 K31 = pws[gid].i[31];
-  const u32 K32 = pws[gid].i[32];
-  const u32 K33 = pws[gid].i[33];
-  const u32 K34 = pws[gid].i[34];
-  const u32 K35 = pws[gid].i[35];
-  const u32 K36 = pws[gid].i[36];
-  const u32 K37 = pws[gid].i[37];
-  const u32 K38 = pws[gid].i[38];
-  const u32 K39 = pws[gid].i[39];
-  const u32 K40 = pws[gid].i[40];
-  const u32 K41 = pws[gid].i[41];
-  const u32 K42 = pws[gid].i[42];
-  const u32 K43 = pws[gid].i[43];
-  const u32 K44 = pws[gid].i[44];
-  const u32 K45 = pws[gid].i[45];
-  const u32 K46 = pws[gid].i[46];
-  const u32 K47 = pws[gid].i[47];
-  const u32 K48 = pws[gid].i[48];
-  const u32 K49 = pws[gid].i[49];
-  const u32 K50 = pws[gid].i[50];
-  const u32 K51 = pws[gid].i[51];
-  const u32 K52 = pws[gid].i[52];
-  const u32 K53 = pws[gid].i[53];
-  const u32 K54 = pws[gid].i[54];
-  const u32 K55 = pws[gid].i[55];
+  const u32 w0s = pws[gid].i[0];
+  const u32 w1s = pws[gid].i[1];
+
+  const u32 K00 = -((w0s >> ( 0 + 7)) & 1);
+  const u32 K01 = -((w0s >> ( 0 + 6)) & 1);
+  const u32 K02 = -((w0s >> ( 0 + 5)) & 1);
+  const u32 K03 = -((w0s >> ( 0 + 4)) & 1);
+  const u32 K04 = -((w0s >> ( 0 + 3)) & 1);
+  const u32 K05 = -((w0s >> ( 0 + 2)) & 1);
+  const u32 K06 = -((w0s >> ( 0 + 1)) & 1);
+  const u32 K07 = -((w0s >> ( 0 + 0)) & 1);
+  const u32 K08 = -((w0s >> ( 8 + 7)) & 1);
+  const u32 K09 = -((w0s >> ( 8 + 6)) & 1);
+  const u32 K10 = -((w0s >> ( 8 + 5)) & 1);
+  const u32 K11 = -((w0s >> ( 8 + 4)) & 1);
+  const u32 K12 = -((w0s >> ( 8 + 3)) & 1);
+  const u32 K13 = -((w0s >> ( 8 + 2)) & 1);
+  const u32 K14 = -((w0s >> ( 8 + 1)) & 1);
+  const u32 K15 = -((w0s >> ( 8 + 0)) & 1);
+  const u32 K16 = -((w0s >> (16 + 7)) & 1);
+  const u32 K17 = -((w0s >> (16 + 6)) & 1);
+  const u32 K18 = -((w0s >> (16 + 5)) & 1);
+  const u32 K19 = -((w0s >> (16 + 4)) & 1);
+  const u32 K20 = -((w0s >> (16 + 3)) & 1);
+  const u32 K21 = -((w0s >> (16 + 2)) & 1);
+  const u32 K22 = -((w0s >> (16 + 1)) & 1);
+  const u32 K23 = -((w0s >> (16 + 0)) & 1);
+  const u32 K24 = -((w0s >> (24 + 7)) & 1);
+  const u32 K25 = -((w0s >> (24 + 6)) & 1);
+  const u32 K26 = -((w0s >> (24 + 5)) & 1);
+  const u32 K27 = -((w0s >> (24 + 4)) & 1);
+  const u32 K28 = -((w0s >> (24 + 3)) & 1);
+  const u32 K29 = -((w0s >> (24 + 2)) & 1);
+  const u32 K30 = -((w0s >> (24 + 1)) & 1);
+  const u32 K31 = -((w0s >> (24 + 0)) & 1);
+  const u32 K32 = -((w1s >> ( 0 + 7)) & 1);
+  const u32 K33 = -((w1s >> ( 0 + 6)) & 1);
+  const u32 K34 = -((w1s >> ( 0 + 5)) & 1);
+  const u32 K35 = -((w1s >> ( 0 + 4)) & 1);
+  const u32 K36 = -((w1s >> ( 0 + 3)) & 1);
+  const u32 K37 = -((w1s >> ( 0 + 2)) & 1);
+  const u32 K38 = -((w1s >> ( 0 + 1)) & 1);
+  const u32 K39 = -((w1s >> ( 0 + 0)) & 1);
+  const u32 K40 = -((w1s >> ( 8 + 7)) & 1);
+  const u32 K41 = -((w1s >> ( 8 + 6)) & 1);
+  const u32 K42 = -((w1s >> ( 8 + 5)) & 1);
+  const u32 K43 = -((w1s >> ( 8 + 4)) & 1);
+  const u32 K44 = -((w1s >> ( 8 + 3)) & 1);
+  const u32 K45 = -((w1s >> ( 8 + 2)) & 1);
+  const u32 K46 = -((w1s >> ( 8 + 1)) & 1);
+  const u32 K47 = -((w1s >> ( 8 + 0)) & 1);
+  const u32 K48 = -((w1s >> (16 + 7)) & 1);
+  const u32 K49 = -((w1s >> (16 + 6)) & 1);
+  const u32 K50 = -((w1s >> (16 + 5)) & 1);
+  const u32 K51 = -((w1s >> (16 + 4)) & 1);
+  const u32 K52 = -((w1s >> (16 + 3)) & 1);
+  const u32 K53 = -((w1s >> (16 + 2)) & 1);
+  const u32 K54 = -((w1s >> (16 + 1)) & 1);
+  const u32 K55 = -((w1s >> (16 + 0)) & 1);
+
+  /**
+   * inner loop
+   */
 
   const u32 pc_pos = get_local_id (1);
 
@@ -2185,65 +2192,72 @@ static void m03000s (__global pw_t *pws, __global kernel_rule_t *rules_buf, __gl
   const u32 S63 = -((s1 >> 31) & 1);
 
   /**
-   * keys
+   * base
    */
 
-  const u32 K00 = pws[gid].i[ 0];
-  const u32 K01 = pws[gid].i[ 1];
-  const u32 K02 = pws[gid].i[ 2];
-  const u32 K03 = pws[gid].i[ 3];
-  const u32 K04 = pws[gid].i[ 4];
-  const u32 K05 = pws[gid].i[ 5];
-  const u32 K06 = pws[gid].i[ 6];
-  const u32 K07 = pws[gid].i[ 7];
-  const u32 K08 = pws[gid].i[ 8];
-  const u32 K09 = pws[gid].i[ 9];
-  const u32 K10 = pws[gid].i[10];
-  const u32 K11 = pws[gid].i[11];
-  const u32 K12 = pws[gid].i[12];
-  const u32 K13 = pws[gid].i[13];
-  const u32 K14 = pws[gid].i[14];
-  const u32 K15 = pws[gid].i[15];
-  const u32 K16 = pws[gid].i[16];
-  const u32 K17 = pws[gid].i[17];
-  const u32 K18 = pws[gid].i[18];
-  const u32 K19 = pws[gid].i[19];
-  const u32 K20 = pws[gid].i[20];
-  const u32 K21 = pws[gid].i[21];
-  const u32 K22 = pws[gid].i[22];
-  const u32 K23 = pws[gid].i[23];
-  const u32 K24 = pws[gid].i[24];
-  const u32 K25 = pws[gid].i[25];
-  const u32 K26 = pws[gid].i[26];
-  const u32 K27 = pws[gid].i[27];
-  const u32 K28 = pws[gid].i[28];
-  const u32 K29 = pws[gid].i[29];
-  const u32 K30 = pws[gid].i[30];
-  const u32 K31 = pws[gid].i[31];
-  const u32 K32 = pws[gid].i[32];
-  const u32 K33 = pws[gid].i[33];
-  const u32 K34 = pws[gid].i[34];
-  const u32 K35 = pws[gid].i[35];
-  const u32 K36 = pws[gid].i[36];
-  const u32 K37 = pws[gid].i[37];
-  const u32 K38 = pws[gid].i[38];
-  const u32 K39 = pws[gid].i[39];
-  const u32 K40 = pws[gid].i[40];
-  const u32 K41 = pws[gid].i[41];
-  const u32 K42 = pws[gid].i[42];
-  const u32 K43 = pws[gid].i[43];
-  const u32 K44 = pws[gid].i[44];
-  const u32 K45 = pws[gid].i[45];
-  const u32 K46 = pws[gid].i[46];
-  const u32 K47 = pws[gid].i[47];
-  const u32 K48 = pws[gid].i[48];
-  const u32 K49 = pws[gid].i[49];
-  const u32 K50 = pws[gid].i[50];
-  const u32 K51 = pws[gid].i[51];
-  const u32 K52 = pws[gid].i[52];
-  const u32 K53 = pws[gid].i[53];
-  const u32 K54 = pws[gid].i[54];
-  const u32 K55 = pws[gid].i[55];
+  const u32 w0s = pws[gid].i[0];
+  const u32 w1s = pws[gid].i[1];
+
+  const u32 K00 = -((w0s >> ( 0 + 7)) & 1);
+  const u32 K01 = -((w0s >> ( 0 + 6)) & 1);
+  const u32 K02 = -((w0s >> ( 0 + 5)) & 1);
+  const u32 K03 = -((w0s >> ( 0 + 4)) & 1);
+  const u32 K04 = -((w0s >> ( 0 + 3)) & 1);
+  const u32 K05 = -((w0s >> ( 0 + 2)) & 1);
+  const u32 K06 = -((w0s >> ( 0 + 1)) & 1);
+  const u32 K07 = -((w0s >> ( 0 + 0)) & 1);
+  const u32 K08 = -((w0s >> ( 8 + 7)) & 1);
+  const u32 K09 = -((w0s >> ( 8 + 6)) & 1);
+  const u32 K10 = -((w0s >> ( 8 + 5)) & 1);
+  const u32 K11 = -((w0s >> ( 8 + 4)) & 1);
+  const u32 K12 = -((w0s >> ( 8 + 3)) & 1);
+  const u32 K13 = -((w0s >> ( 8 + 2)) & 1);
+  const u32 K14 = -((w0s >> ( 8 + 1)) & 1);
+  const u32 K15 = -((w0s >> ( 8 + 0)) & 1);
+  const u32 K16 = -((w0s >> (16 + 7)) & 1);
+  const u32 K17 = -((w0s >> (16 + 6)) & 1);
+  const u32 K18 = -((w0s >> (16 + 5)) & 1);
+  const u32 K19 = -((w0s >> (16 + 4)) & 1);
+  const u32 K20 = -((w0s >> (16 + 3)) & 1);
+  const u32 K21 = -((w0s >> (16 + 2)) & 1);
+  const u32 K22 = -((w0s >> (16 + 1)) & 1);
+  const u32 K23 = -((w0s >> (16 + 0)) & 1);
+  const u32 K24 = -((w0s >> (24 + 7)) & 1);
+  const u32 K25 = -((w0s >> (24 + 6)) & 1);
+  const u32 K26 = -((w0s >> (24 + 5)) & 1);
+  const u32 K27 = -((w0s >> (24 + 4)) & 1);
+  const u32 K28 = -((w0s >> (24 + 3)) & 1);
+  const u32 K29 = -((w0s >> (24 + 2)) & 1);
+  const u32 K30 = -((w0s >> (24 + 1)) & 1);
+  const u32 K31 = -((w0s >> (24 + 0)) & 1);
+  const u32 K32 = -((w1s >> ( 0 + 7)) & 1);
+  const u32 K33 = -((w1s >> ( 0 + 6)) & 1);
+  const u32 K34 = -((w1s >> ( 0 + 5)) & 1);
+  const u32 K35 = -((w1s >> ( 0 + 4)) & 1);
+  const u32 K36 = -((w1s >> ( 0 + 3)) & 1);
+  const u32 K37 = -((w1s >> ( 0 + 2)) & 1);
+  const u32 K38 = -((w1s >> ( 0 + 1)) & 1);
+  const u32 K39 = -((w1s >> ( 0 + 0)) & 1);
+  const u32 K40 = -((w1s >> ( 8 + 7)) & 1);
+  const u32 K41 = -((w1s >> ( 8 + 6)) & 1);
+  const u32 K42 = -((w1s >> ( 8 + 5)) & 1);
+  const u32 K43 = -((w1s >> ( 8 + 4)) & 1);
+  const u32 K44 = -((w1s >> ( 8 + 3)) & 1);
+  const u32 K45 = -((w1s >> ( 8 + 2)) & 1);
+  const u32 K46 = -((w1s >> ( 8 + 1)) & 1);
+  const u32 K47 = -((w1s >> ( 8 + 0)) & 1);
+  const u32 K48 = -((w1s >> (16 + 7)) & 1);
+  const u32 K49 = -((w1s >> (16 + 6)) & 1);
+  const u32 K50 = -((w1s >> (16 + 5)) & 1);
+  const u32 K51 = -((w1s >> (16 + 4)) & 1);
+  const u32 K52 = -((w1s >> (16 + 3)) & 1);
+  const u32 K53 = -((w1s >> (16 + 2)) & 1);
+  const u32 K54 = -((w1s >> (16 + 1)) & 1);
+  const u32 K55 = -((w1s >> (16 + 0)) & 1);
+
+  /**
+   * inner loop
+   */
 
   const u32 pc_pos = get_local_id (1);
 
@@ -2486,43 +2500,8 @@ static void m03000s (__global pw_t *pws, __global kernel_rule_t *rules_buf, __gl
 }
 
 //
-// transpose bitslice base : easy because no overlapping buffers
-//                    mod  : attention race conditions, need different buffers for *in and *out
+// transpose bitslice mod  : attention race conditions, need different buffers for *in and *out
 //
-
-__kernel void m03000_tb (__global pw_t *pws)
-{
-  const u32 gid = get_global_id (0);
-
-  const u32 w0s = pws[gid].i[0];
-  const u32 w1s = pws[gid].i[1];
-
-
-  for (int i = 0; i < 32; i += 8)
-  {
-    pws[gid].i[i +  0 + 0] = -((w0s >> (i + 7)) & 1);
-    pws[gid].i[i +  0 + 1] = -((w0s >> (i + 6)) & 1);
-    pws[gid].i[i +  0 + 2] = -((w0s >> (i + 5)) & 1);
-    pws[gid].i[i +  0 + 3] = -((w0s >> (i + 4)) & 1);
-    pws[gid].i[i +  0 + 4] = -((w0s >> (i + 3)) & 1);
-    pws[gid].i[i +  0 + 5] = -((w0s >> (i + 2)) & 1);
-    pws[gid].i[i +  0 + 6] = -((w0s >> (i + 1)) & 1);
-    pws[gid].i[i +  0 + 7] = -((w0s >> (i + 0)) & 1);
-  }
-
-
-  for (int i = 0; i < 24; i += 8)
-  {
-    pws[gid].i[i + 32 + 0] = -((w1s >> (i + 7)) & 1);
-    pws[gid].i[i + 32 + 1] = -((w1s >> (i + 6)) & 1);
-    pws[gid].i[i + 32 + 2] = -((w1s >> (i + 5)) & 1);
-    pws[gid].i[i + 32 + 3] = -((w1s >> (i + 4)) & 1);
-    pws[gid].i[i + 32 + 4] = -((w1s >> (i + 3)) & 1);
-    pws[gid].i[i + 32 + 5] = -((w1s >> (i + 2)) & 1);
-    pws[gid].i[i + 32 + 6] = -((w1s >> (i + 1)) & 1);
-    pws[gid].i[i + 32 + 7] = -((w1s >> (i + 0)) & 1);
-  }
-}
 
 __kernel void m03000_tm (__global u32 *mod, __global bs_word_t *words_buf_r)
 {

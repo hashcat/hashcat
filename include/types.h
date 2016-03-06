@@ -950,7 +950,6 @@ struct __hc_device_param
   cl_kernel  kernel_mp_l;
   cl_kernel  kernel_mp_r;
   cl_kernel  kernel_amp;
-  cl_kernel  kernel_tb;
   cl_kernel  kernel_tm;
   cl_kernel  kernel_weak;
 
@@ -1000,7 +999,6 @@ struct __hc_device_param
   void   *kernel_params_mp_r[PARAMCNT];
   void   *kernel_params_mp_l[PARAMCNT];
   void   *kernel_params_amp[PARAMCNT];
-  void   *kernel_params_tb[PARAMCNT];
   void   *kernel_params_tm[PARAMCNT];
 
   u32     kernel_params_buf32[PARAMCNT];

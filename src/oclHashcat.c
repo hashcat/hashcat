@@ -2565,30 +2565,6 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
   hc_clFinish (data.ocl, device_param->command_queue);
 }
 
-static void run_kernel_tb (hc_device_param_t *device_param, const uint num)
-{
-  uint num_elements = num;
-
-  uint kernel_threads = device_param->kernel_threads;
-
-  while (num_elements % kernel_threads) num_elements++;
-
-  cl_kernel kernel = device_param->kernel_tb;
-
-  size_t workgroup_size = 0;
-  hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
-  if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
-
-  const size_t global_work_size[3] = { num_elements, 1, 1 };
-  const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
-
-  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
-
-  hc_clFlush (data.ocl, device_param->command_queue);
-
-  hc_clFinish (data.ocl, device_param->command_queue);
-}
-
 static void run_kernel_tm (hc_device_param_t *device_param)
 {
   const uint num_elements = 1024; // fixed
@@ -3112,16 +3088,6 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
   {
     highest_pw_len = device_param->kernel_params_mp_l_buf32[4]
                    + device_param->kernel_params_mp_l_buf32[5];
-  }
-
-  // bitslice optimization stuff
-
-  if (data.attack_mode == ATTACK_MODE_BF)
-  {
-    if (data.opts_type & OPTS_TYPE_PT_BITSLICE)
-    {
-      run_kernel_tb (device_param, pws_cnt);
-    }
   }
 
   // iteration type
@@ -14344,8 +14310,6 @@ int main (int argc, char **argv)
       device_param->kernel_params_amp[5] = &device_param->kernel_params_amp_buf32[5];
       device_param->kernel_params_amp[6] = &device_param->kernel_params_amp_buf32[6];
 
-      device_param->kernel_params_tb[0] = &device_param->d_pws_buf;
-
       device_param->kernel_params_tm[0] = &device_param->d_bfs_c;
       device_param->kernel_params_tm[1] = &device_param->d_tm_c;
 
@@ -14390,10 +14354,6 @@ int main (int argc, char **argv)
         {
           if (opts_type & OPTS_TYPE_PT_BITSLICE)
           {
-            snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_tb", kern_type);
-
-            device_param->kernel_tb = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
-
             snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_tm", kern_type);
 
             device_param->kernel_tm = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
@@ -14456,8 +14416,6 @@ int main (int argc, char **argv)
 
         if (opts_type & OPTS_TYPE_PT_BITSLICE)
         {
-          hc_clSetKernelArg (data.ocl, device_param->kernel_tb, 0, sizeof (cl_mem), device_param->kernel_params_tb[0]);
-
           hc_clSetKernelArg (data.ocl, device_param->kernel_tm, 0, sizeof (cl_mem), device_param->kernel_params_tm[0]);
           hc_clSetKernelArg (data.ocl, device_param->kernel_tm, 1, sizeof (cl_mem), device_param->kernel_params_tm[1]);
         }
@@ -16759,7 +16717,6 @@ int main (int argc, char **argv)
       if (device_param->kernel_mp)          hc_clReleaseKernel        (data.ocl, device_param->kernel_mp);
       if (device_param->kernel_mp_l)        hc_clReleaseKernel        (data.ocl, device_param->kernel_mp_l);
       if (device_param->kernel_mp_r)        hc_clReleaseKernel        (data.ocl, device_param->kernel_mp_r);
-      if (device_param->kernel_tb)          hc_clReleaseKernel        (data.ocl, device_param->kernel_tb);
       if (device_param->kernel_tm)          hc_clReleaseKernel        (data.ocl, device_param->kernel_tm);
       if (device_param->kernel_amp)         hc_clReleaseKernel        (data.ocl, device_param->kernel_amp);
 
