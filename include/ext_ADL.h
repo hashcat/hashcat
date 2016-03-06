@@ -160,11 +160,17 @@ typedef struct ADLODPerformanceLevel
   int iVddc;
 } ADLODPerformanceLevel;
 
+/*
+ * Attention: we had to change this struct due to an out-of-bound problem mentioned here:
+ * https://github.com/hashcat/oclHashcat/issues/244
+ * the change: ADLODPerformanceLevel aLevels [1] -> ADLODPerformanceLevel aLevels [2]
+ */
+
 typedef struct ADLODPerformanceLevels
 {
   int iSize;
   int iReserved;
-  ADLODPerformanceLevel aLevels [1];
+  ADLODPerformanceLevel aLevels [2];
 } ADLODPerformanceLevels;
 
 typedef struct ADLOD6FanSpeedInfo
@@ -221,12 +227,18 @@ typedef struct ADLOD6PerformanceLevel
   int iMemoryClock;
 } ADLOD6PerformanceLevel;
 
+/*
+ * Attention: we had to change this struct due to an out-of-bound problem mentioned here:
+ * https://github.com/hashcat/oclHashcat/issues/244
+ * the change: ADLOD6PerformanceLevel aLevels [1] -> ADLOD6PerformanceLevel aLevels [2]
+ */
+
 typedef struct ADLOD6StateInfo
 {
   int iNumberOfPerformanceLevels;
   int iExtValue;
   int iExtMask;
-  ADLOD6PerformanceLevel aLevels [1];
+  ADLOD6PerformanceLevel aLevels [2];
 } ADLOD6StateInfo;
 
 typedef struct ADLOD6PowerControlInfo
