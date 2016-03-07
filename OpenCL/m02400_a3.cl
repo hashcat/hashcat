@@ -34,7 +34,17 @@ static void m02400m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
    */
 
   w[ 4] = 0x80;
+  w[ 5] = 0;
+  w[ 6] = 0;
+  w[ 7] = 0;
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
   w[14] = 16 * 8;
+  w[15] = 0;
 
   /**
    * base
@@ -216,7 +226,17 @@ static void m02400s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
    */
 
   w[ 4] = 0x80;
+  w[ 5] = 0;
+  w[ 6] = 0;
+  w[ 7] = 0;
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
   w[14] = 16 * 8;
+  w[15] = 0;
 
   /**
    * base

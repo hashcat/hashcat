@@ -39,18 +39,16 @@ __kernel void m02400_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -67,15 +65,18 @@ __kernel void m02400_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    //not required?
-    //truncate_block_VV (w0, out_len);
-
     w1[0] = 0x80;
     w1[1] = 0;
     w1[2] = 0;
     w1[3] = 0;
-
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
     w3[2] = 16 * 8;
+    w3[3] = 0;
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
@@ -184,18 +185,16 @@ __kernel void m02400_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -224,15 +223,18 @@ __kernel void m02400_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    //not required?
-    //truncate_block_VV (w0, out_len);
-
     w1[0] = 0x80;
     w1[1] = 0;
     w1[2] = 0;
     w1[3] = 0;
-
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
     w3[2] = 16 * 8;
+    w3[3] = 0;
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
