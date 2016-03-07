@@ -834,11 +834,7 @@ void status_display_automat ()
    * counter
    */
 
-  uint salts_left = data.salts_cnt - data.salts_done;
-
-  if (salts_left == 0) salts_left = 1;
-
-  u64 progress_total = data.words_cnt * salts_left;
+  u64 progress_total = data.words_cnt * data.salts_cnt;
 
   u64 all_done     = 0;
   u64 all_rejected = 0;
@@ -846,13 +842,6 @@ void status_display_automat ()
 
   for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
   {
-    if (salts_left > 1)
-    {
-      // otherwise the final cracked status shows 0/XXX progress
-
-      if (data.salts_shown[salt_pos] == 1) continue;
-    }
-
     all_done     += data.words_progress_done[salt_pos];
     all_rejected += data.words_progress_rejected[salt_pos];
     all_restored += data.words_progress_restored[salt_pos];
@@ -865,7 +854,7 @@ void status_display_automat ()
 
   if (data.skip)
   {
-    progress_skip = MIN (data.skip, data.words_base) * salts_left;
+    progress_skip = MIN (data.skip, data.words_base) * data.salts_cnt;
 
     if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
     else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
@@ -874,7 +863,7 @@ void status_display_automat ()
 
   if (data.limit)
   {
-    progress_end = MIN (data.limit, data.words_base) * salts_left;
+    progress_end = MIN (data.limit, data.words_base) * data.salts_cnt;
 
     if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
     else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
@@ -1297,28 +1286,32 @@ void status_display ()
    * counters
    */
 
-  uint salts_left = data.salts_cnt - data.salts_done;
-
-  if (salts_left == 0) salts_left = 1;
-
-  u64 progress_total = data.words_cnt * salts_left;
+  u64 progress_total = data.words_cnt * data.salts_cnt;
 
   u64 all_done     = 0;
   u64 all_rejected = 0;
   u64 all_restored = 0;
 
+  u64 progress_noneed = 0;
+
   for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
   {
-    if (salts_left > 1)
-    {
-      // otherwise the final cracked status shows 0/XXX progress
-
-      if (data.salts_shown[salt_pos] == 1) continue;
-    }
-
     all_done     += data.words_progress_done[salt_pos];
     all_rejected += data.words_progress_rejected[salt_pos];
     all_restored += data.words_progress_restored[salt_pos];
+
+    // Important for ETA only
+
+    if (data.salts_shown[salt_pos] == 1)
+    {
+      const u64 all = data.words_progress_done[salt_pos]
+                    + data.words_progress_rejected[salt_pos]
+                    + data.words_progress_restored[salt_pos];
+
+      const u64 left = data.words_cnt - all;
+
+      progress_noneed += left;
+    }
   }
 
   u64 progress_cur = all_restored + all_done + all_rejected;
@@ -1328,7 +1321,7 @@ void status_display ()
 
   if (data.skip)
   {
-    progress_skip = MIN (data.skip, data.words_base) * salts_left;
+    progress_skip = MIN (data.skip, data.words_base) * data.salts_cnt;
 
     if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
     else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
@@ -1337,7 +1330,7 @@ void status_display ()
 
   if (data.limit)
   {
-    progress_end = MIN (data.limit, data.words_base) * salts_left;
+    progress_end = MIN (data.limit, data.words_base) * data.salts_cnt;
 
     if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
     else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
@@ -1347,38 +1340,28 @@ void status_display ()
   u64 progress_cur_relative_skip = progress_cur - progress_skip;
   u64 progress_end_relative_skip = progress_end - progress_skip;
 
-  float speed_ms_real     = ms_running - ms_paused;
-  u64   speed_plains_real = all_done;
-
   if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
   {
     if (data.devices_status != STATUS_CRACKED)
     {
-      u64 words_per_ms = 0;
-
-      if (speed_plains_real && speed_ms_real)
-      {
-        words_per_ms = speed_plains_real / speed_ms_real;
-      }
-
       #ifdef WIN
       __time64_t sec_etc = 0;
       #else
       time_t sec_etc = 0;
       #endif
 
-      if (words_per_ms)
+      if (hashes_all_ms)
       {
         u64 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
 
-        u64 ms_left = progress_left_relative_skip / words_per_ms;
+        u64 ms_left = (progress_left_relative_skip - progress_noneed) / hashes_all_ms;
 
         sec_etc = ms_left / 1000;
       }
 
       if (sec_etc == 0)
       {
-        log_info ("Time.Estimated.: 0 secs");
+        //log_info ("Time.Estimated.: 0 secs");
       }
       else if ((u64) sec_etc > ETC_MAX)
       {
@@ -1488,9 +1471,11 @@ void status_display ()
       }
     }
 
-    float cpt_avg_min  = (float) data.cpt_total / ((speed_ms_real / 1000) / 60);
-    float cpt_avg_hour = (float) data.cpt_total / ((speed_ms_real / 1000) / 3600);
-    float cpt_avg_day  = (float) data.cpt_total / ((speed_ms_real / 1000) / 86400);
+    float ms_real = ms_running - ms_paused;
+
+    float cpt_avg_min  = (float) data.cpt_total / ((ms_real / 1000) / 60);
+    float cpt_avg_hour = (float) data.cpt_total / ((ms_real / 1000) / 3600);
+    float cpt_avg_day  = (float) data.cpt_total / ((ms_real / 1000) / 86400);
 
     if ((data.cpt_start + 86400) < now)
     {
@@ -3115,8 +3100,6 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
     if (data.devices_status == STATUS_QUIT)    break;
     if (data.devices_status == STATUS_BYPASS)  break;
 
-    if (data.salts_shown[salt_pos] == 1) continue;
-
     salt_t *salt_buf = &data.salts_buf[salt_pos];
 
     device_param->kernel_params_buf32[24] = salt_pos;
@@ -3156,6 +3139,13 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
       if (innerloop_left == 0)
       {
         puts ("bug, how should this happen????\n");
+
+        continue;
+      }
+
+      if (data.salts_shown[salt_pos] == 1)
+      {
+        data.words_progress_done[salt_pos] += (u64) pws_cnt * (u64) innerloop_left;
 
         continue;
       }
