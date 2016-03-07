@@ -9880,8 +9880,10 @@ int netscreen_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len);
 
-  // max. salt length: salt_buf[32] => 32 - 22 (":Administration Tools:") = 10
-  if (salt_len > 10) return (PARSER_SALT_LENGTH);
+  // max. salt length: 55 (max for MD5) - 22 (":Administration Tools:") - 1 (0x80) = 32
+  // 32 - 4 bytes (to fit w0lr for all attack modes) = 28
+
+  if (salt_len > 28) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
 
