@@ -5591,7 +5591,7 @@ static void overwrite_at_le_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4],
     case 31:  w1[3] = amd_bytealign (wx, w1[3] <<  8, 1);
               w2[0] = amd_bytealign (w2[0] >> 24, wx, 1);
               break;
-    case 32:  w0[0] = wx;
+    case 32:  w2[0] = wx;
               break;
     case 33:  w2[0] = amd_bytealign (wx, w2[0] << 24, 3);
               w2[1] = amd_bytealign (w2[1] >>  8, wx, 3);
