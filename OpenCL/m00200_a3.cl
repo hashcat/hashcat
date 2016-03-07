@@ -41,6 +41,25 @@ static void m00200m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
 
     const u32x w0 = w0l | w0r;
 
+    u32x w_t[16];
+
+    w_t[ 0] = w0;
+    w_t[ 1] = w[ 1];
+    w_t[ 2] = w[ 2];
+    w_t[ 3] = w[ 3];
+    w_t[ 4] = w[ 4];
+    w_t[ 5] = w[ 5];
+    w_t[ 6] = w[ 6];
+    w_t[ 7] = w[ 7];
+    w_t[ 8] = w[ 8];
+    w_t[ 9] = w[ 9];
+    w_t[10] = w[10];
+    w_t[11] = w[11];
+    w_t[12] = w[12];
+    w_t[13] = w[13];
+    w_t[14] = w[14];
+    w_t[15] = w[15];
+
     u32x a = MYSQL323_A;
     u32x b = MYSQL323_B;
     u32x c = 0;
@@ -55,35 +74,12 @@ static void m00200m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
       add += v;                                   \
     }
 
-    if (pw_len >= 4)
-    {
-      ROUND ((w0 >>  0) & 0xff);
-      ROUND ((w0 >>  8) & 0xff);
-      ROUND ((w0 >> 16) & 0xff);
-      ROUND ((w0 >> 24) & 0xff);
-    }
-    else if (pw_len == 3)
-    {
-      ROUND ((w0 >>  0) & 0xff);
-      ROUND ((w0 >>  8) & 0xff);
-      ROUND ((w0 >> 16) & 0xff);
-    }
-    else if (pw_len == 2)
-    {
-      ROUND ((w0 >>  0) & 0xff);
-      ROUND ((w0 >>  8) & 0xff);
-    }
-    else if (pw_len == 1)
-    {
-      ROUND ((w0 >>  0) & 0xff);
-    }
-
     int i;
     int j;
 
-    for (i = 4, j = 1; i <= (int) pw_len - 4; i += 4, j += 1)
+    for (i = 0, j = 0; i <= (int) pw_len - 4; i += 4, j += 1)
     {
-      const u32x wj = w[j];
+      const u32x wj = w_t[j];
 
       ROUND ((wj >>  0) & 0xff);
       ROUND ((wj >>  8) & 0xff);
@@ -91,7 +87,7 @@ static void m00200m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
       ROUND ((wj >> 24) & 0xff);
     }
 
-    const u32x wj = w[j];
+    const u32x wj = w_t[j];
 
     const u32 left = pw_len - i;
 
@@ -151,6 +147,25 @@ static void m00200s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
 
     const u32x w0 = w0l | w0r;
 
+    u32x w_t[16];
+
+    w_t[ 0] = w0;
+    w_t[ 1] = w[ 1];
+    w_t[ 2] = w[ 2];
+    w_t[ 3] = w[ 3];
+    w_t[ 4] = w[ 4];
+    w_t[ 5] = w[ 5];
+    w_t[ 6] = w[ 6];
+    w_t[ 7] = w[ 7];
+    w_t[ 8] = w[ 8];
+    w_t[ 9] = w[ 9];
+    w_t[10] = w[10];
+    w_t[11] = w[11];
+    w_t[12] = w[12];
+    w_t[13] = w[13];
+    w_t[14] = w[14];
+    w_t[15] = w[15];
+
     u32x a = MYSQL323_A;
     u32x b = MYSQL323_B;
     u32x c = 0;
@@ -165,35 +180,12 @@ static void m00200s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
       add += v;                                   \
     }
 
-    if (pw_len >= 4)
-    {
-      ROUND ((w0 >>  0) & 0xff);
-      ROUND ((w0 >>  8) & 0xff);
-      ROUND ((w0 >> 16) & 0xff);
-      ROUND ((w0 >> 24) & 0xff);
-    }
-    else if (pw_len == 3)
-    {
-      ROUND ((w0 >>  0) & 0xff);
-      ROUND ((w0 >>  8) & 0xff);
-      ROUND ((w0 >> 16) & 0xff);
-    }
-    else if (pw_len == 2)
-    {
-      ROUND ((w0 >>  0) & 0xff);
-      ROUND ((w0 >>  8) & 0xff);
-    }
-    else if (pw_len == 1)
-    {
-      ROUND ((w0 >>  0) & 0xff);
-    }
-
     int i;
     int j;
 
-    for (i = 4, j = 1; i <= (int) pw_len - 4; i += 4, j += 1)
+    for (i = 0, j = 0; i <= (int) pw_len - 4; i += 4, j += 1)
     {
-      const u32x wj = w[j];
+      const u32x wj = w_t[j];
 
       ROUND ((wj >>  0) & 0xff);
       ROUND ((wj >>  8) & 0xff);
@@ -201,7 +193,7 @@ static void m00200s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
       ROUND ((wj >> 24) & 0xff);
     }
 
-    const u32x wj = w[j];
+    const u32x wj = w_t[j];
 
     const u32 left = pw_len - i;
 
