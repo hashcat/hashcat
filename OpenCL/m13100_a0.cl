@@ -1,6 +1,7 @@
 /**
  * Authors......: Jens Steube <jens.steube@gmail.com>
- * Authors......: Fist0urs <eddy.maaalou@gmail.com>
+ *                Fist0urs <eddy.maaalou@gmail.com>
+ *                Gabriele Gristina <matrix@hashcat.net>
  *
  * License.....: MIT
  */
@@ -89,7 +90,7 @@ static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
   }
 }
 
-static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __global u32 in[4], u32 out[4])
+static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __global u32 *in, u32 out[4])
 {
   #pragma unroll
   for (u32 k = 0; k < 4; k++)
