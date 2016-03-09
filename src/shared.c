@@ -10023,6 +10023,13 @@ int wpa_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint salt_len = strlen (in.essid);
 
+  if (salt_len > 36)
+  {
+    log_info ("WARNING: the length of the ESSID is too long. The hccap file may be invalid or corrupted");
+
+    return (PARSER_SALT_LENGTH);
+  }
+
   memcpy (salt->salt_buf, in.essid, salt_len);
 
   salt->salt_len = salt_len;
