@@ -285,6 +285,7 @@ install: native
 	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/rules
 	$(CP) -a rules/*                                $(SHARED_FOLDER)/rules/
 	$(INSTALL) -m 644 hashcat.hcstat                $(SHARED_FOLDER)/
+	$(INSTALL) -m 644 hashcat_tuning.hctab          $(SHARED_FOLDER)/
 	$(INSTALL) -m 755 $(BINARY_NATIVE)              $(INSTALL_FOLDER)/
 
 uninstall:
