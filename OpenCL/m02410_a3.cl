@@ -34,28 +34,22 @@ static void m02410m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
   salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[1] = 0;
   salt_buf0[2] = 0;
   salt_buf0[3] = 0;
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = 0;
   salt_buf1[1] = 0;
   salt_buf1[2] = 0;
   salt_buf1[3] = 0;
-
-  u32 salt_buf2[4];
-
   salt_buf2[0] = 0;
   salt_buf2[1] = 0;
   salt_buf2[2] = 0;
   salt_buf2[3] = 0;
-
-  u32 salt_buf3[4];
-
   salt_buf3[0] = 0;
   salt_buf3[1] = 0;
   salt_buf3[2] = 0;
@@ -63,23 +57,39 @@ static void m02410m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
 
   switch_buffer_by_offset_le_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
 
-  w[0] |= salt_buf0[0];
-  w[1] |= salt_buf0[1];
-  w[2] |= salt_buf0[2];
-  w[3] |= salt_buf0[3];
-
-  const u32 salt_len = (salt_bufs[salt_pos].salt_len < 4) ? salt_bufs[salt_pos].salt_len : 4;
-
-  const u32 pw_salt_len = pw_len + salt_len;
-
-  truncate_block_S (w, pw_salt_len);
+  w[ 0] |= salt_buf0[0];
+  w[ 1] |= salt_buf0[1];
+  w[ 2] |= salt_buf0[2];
+  w[ 3] |= salt_buf0[3];
+  w[ 4] |= salt_buf1[0];
+  w[ 5] |= salt_buf1[1];
+  w[ 6] |= salt_buf1[2];
+  w[ 7] |= salt_buf1[3];
+  w[ 8] |= salt_buf2[0];
+  w[ 9] |= salt_buf2[1];
+  w[10] |= salt_buf2[2];
+  w[11] |= salt_buf2[3];
+  w[12] |= salt_buf3[0];
+  w[13] |= salt_buf3[1];
+  w[14] |= salt_buf3[2];
+  w[15] |= salt_buf3[3];
 
   /**
    * algorithm specific
    */
 
   w[ 4] = 0x80;
+  w[ 5] = 0;
+  w[ 6] = 0;
+  w[ 7] = 0;
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
   w[14] = 16 * 8;
+  w[15] = 0;
 
   /**
    * base
@@ -261,28 +271,22 @@ static void m02410s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
   salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[1] = 0;
   salt_buf0[2] = 0;
   salt_buf0[3] = 0;
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = 0;
   salt_buf1[1] = 0;
   salt_buf1[2] = 0;
   salt_buf1[3] = 0;
-
-  u32 salt_buf2[4];
-
   salt_buf2[0] = 0;
   salt_buf2[1] = 0;
   salt_buf2[2] = 0;
   salt_buf2[3] = 0;
-
-  u32 salt_buf3[4];
-
   salt_buf3[0] = 0;
   salt_buf3[1] = 0;
   salt_buf3[2] = 0;
@@ -290,23 +294,39 @@ static void m02410s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
 
   switch_buffer_by_offset_le_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
 
-  w[0] |= salt_buf0[0];
-  w[1] |= salt_buf0[1];
-  w[2] |= salt_buf0[2];
-  w[3] |= salt_buf0[3];
-
-  const u32 salt_len = (salt_bufs[salt_pos].salt_len < 4) ? salt_bufs[salt_pos].salt_len : 4;
-
-  const u32 pw_salt_len = pw_len + salt_len;
-
-  truncate_block_S (w, pw_salt_len);
+  w[ 0] |= salt_buf0[0];
+  w[ 1] |= salt_buf0[1];
+  w[ 2] |= salt_buf0[2];
+  w[ 3] |= salt_buf0[3];
+  w[ 4] |= salt_buf1[0];
+  w[ 5] |= salt_buf1[1];
+  w[ 6] |= salt_buf1[2];
+  w[ 7] |= salt_buf1[3];
+  w[ 8] |= salt_buf2[0];
+  w[ 9] |= salt_buf2[1];
+  w[10] |= salt_buf2[2];
+  w[11] |= salt_buf2[3];
+  w[12] |= salt_buf3[0];
+  w[13] |= salt_buf3[1];
+  w[14] |= salt_buf3[2];
+  w[15] |= salt_buf3[3];
 
   /**
    * algorithm specific
    */
 
   w[ 4] = 0x80;
+  w[ 5] = 0;
+  w[ 6] = 0;
+  w[ 7] = 0;
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
   w[14] = 16 * 8;
+  w[15] = 0;
 
   /**
    * base

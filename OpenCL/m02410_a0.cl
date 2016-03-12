@@ -39,18 +39,16 @@ __kernel void m02410_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -59,13 +57,26 @@ __kernel void m02410_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[1] = 0;
   salt_buf0[2] = 0;
   salt_buf0[3] = 0;
-
-  const u32 salt_len = (salt_bufs[salt_pos].salt_len < 4) ? salt_bufs[salt_pos].salt_len : 4;
+  salt_buf1[0] = 0;
+  salt_buf1[1] = 0;
+  salt_buf1[2] = 0;
+  salt_buf1[3] = 0;
+  salt_buf2[0] = 0;
+  salt_buf2[1] = 0;
+  salt_buf2[2] = 0;
+  salt_buf2[3] = 0;
+  salt_buf3[0] = 0;
+  salt_buf3[1] = 0;
+  salt_buf3[2] = 0;
+  salt_buf3[3] = 0;
 
   /**
    * loop
@@ -80,45 +91,31 @@ __kernel void m02410_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    //not required?
-    //truncate_block_VV (w0, out_len);
-
-    w1[0] = 0;
-    w1[1] = 0;
-    w1[2] = 0;
-    w1[3] = 0;
-
     /**
      * append salt
      */
 
     u32x s0[4];
+    u32x s1[4];
+    u32x s2[4];
+    u32x s3[4];
 
     s0[0] = salt_buf0[0];
     s0[1] = salt_buf0[1];
     s0[2] = salt_buf0[2];
     s0[3] = salt_buf0[3];
-
-    u32x s1[4];
-
-    s1[0] = 0;
-    s1[1] = 0;
-    s1[2] = 0;
-    s1[3] = 0;
-
-    u32x s2[4];
-
-    s2[0] = 0;
-    s2[1] = 0;
-    s2[2] = 0;
-    s2[3] = 0;
-
-    u32x s3[4];
-
-    s3[0] = 0;
-    s3[1] = 0;
-    s3[2] = 0;
-    s3[3] = 0;
+    s1[0] = salt_buf1[0];
+    s1[1] = salt_buf1[1];
+    s1[2] = salt_buf1[2];
+    s1[3] = salt_buf1[3];
+    s2[0] = salt_buf2[0];
+    s2[1] = salt_buf2[1];
+    s2[2] = salt_buf2[2];
+    s2[3] = salt_buf2[3];
+    s3[0] = salt_buf3[0];
+    s3[1] = salt_buf3[1];
+    s3[2] = salt_buf3[2];
+    s3[3] = salt_buf3[3];
 
     switch_buffer_by_offset_le_VV (s0, s1, s2, s3, out_len);
 
@@ -126,14 +123,35 @@ __kernel void m02410_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     w0[1] |= s0[1];
     w0[2] |= s0[2];
     w0[3] |= s0[3];
+    w1[0] |= s1[0];
+    w1[1] |= s1[1];
+    w1[2] |= s1[2];
+    w1[3] |= s1[3];
+    w2[0] |= s2[0];
+    w2[1] |= s2[1];
+    w2[2] |= s2[2];
+    w2[3] |= s2[3];
+    w3[0] |= s3[0];
+    w3[1] |= s3[1];
+    w3[2] |= s3[2];
+    w3[3] |= s3[3];
 
-    const u32x pw_salt_len = out_len + salt_len;
-
-    //not required?
-    //truncate_block_VV (w0, pw_salt_len);
+    /**
+     * md5
+     */
 
     w1[0] = 0x80;
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
     w3[2] = 16 * 8;
+    w3[3] = 0;
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
@@ -242,18 +260,16 @@ __kernel void m02410_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -262,13 +278,26 @@ __kernel void m02410_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[1] = 0;
   salt_buf0[2] = 0;
   salt_buf0[3] = 0;
-
-  const u32 salt_len = (salt_bufs[salt_pos].salt_len < 4) ? salt_bufs[salt_pos].salt_len : 4;
+  salt_buf1[0] = 0;
+  salt_buf1[1] = 0;
+  salt_buf1[2] = 0;
+  salt_buf1[3] = 0;
+  salt_buf2[0] = 0;
+  salt_buf2[1] = 0;
+  salt_buf2[2] = 0;
+  salt_buf2[3] = 0;
+  salt_buf3[0] = 0;
+  salt_buf3[1] = 0;
+  salt_buf3[2] = 0;
+  salt_buf3[3] = 0;
 
   /**
    * digest
@@ -295,45 +324,31 @@ __kernel void m02410_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    //not required?
-    //truncate_block_VV (w0, out_len);
-
-    w1[0] = 0;
-    w1[1] = 0;
-    w1[2] = 0;
-    w1[3] = 0;
-
     /**
      * append salt
      */
 
     u32x s0[4];
+    u32x s1[4];
+    u32x s2[4];
+    u32x s3[4];
 
     s0[0] = salt_buf0[0];
     s0[1] = salt_buf0[1];
     s0[2] = salt_buf0[2];
     s0[3] = salt_buf0[3];
-
-    u32x s1[4];
-
-    s1[0] = 0;
-    s1[1] = 0;
-    s1[2] = 0;
-    s1[3] = 0;
-
-    u32x s2[4];
-
-    s2[0] = 0;
-    s2[1] = 0;
-    s2[2] = 0;
-    s2[3] = 0;
-
-    u32x s3[4];
-
-    s3[0] = 0;
-    s3[1] = 0;
-    s3[2] = 0;
-    s3[3] = 0;
+    s1[0] = salt_buf1[0];
+    s1[1] = salt_buf1[1];
+    s1[2] = salt_buf1[2];
+    s1[3] = salt_buf1[3];
+    s2[0] = salt_buf2[0];
+    s2[1] = salt_buf2[1];
+    s2[2] = salt_buf2[2];
+    s2[3] = salt_buf2[3];
+    s3[0] = salt_buf3[0];
+    s3[1] = salt_buf3[1];
+    s3[2] = salt_buf3[2];
+    s3[3] = salt_buf3[3];
 
     switch_buffer_by_offset_le_VV (s0, s1, s2, s3, out_len);
 
@@ -341,14 +356,35 @@ __kernel void m02410_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     w0[1] |= s0[1];
     w0[2] |= s0[2];
     w0[3] |= s0[3];
+    w1[0] |= s1[0];
+    w1[1] |= s1[1];
+    w1[2] |= s1[2];
+    w1[3] |= s1[3];
+    w2[0] |= s2[0];
+    w2[1] |= s2[1];
+    w2[2] |= s2[2];
+    w2[3] |= s2[3];
+    w3[0] |= s3[0];
+    w3[1] |= s3[1];
+    w3[2] |= s3[2];
+    w3[3] |= s3[3];
 
-    const u32x pw_salt_len = out_len + salt_len;
-
-    //not required?
-    //truncate_block_VV (w0, pw_salt_len);
+    /**
+     * md5
+     */
 
     w1[0] = 0x80;
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
     w3[2] = 16 * 8;
+    w3[3] = 0;
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
