@@ -11144,6 +11144,8 @@ int main (int argc, char **argv)
 
           if (hash_len < 1) continue;
 
+          if (hash_buf == NULL) continue;
+
           if (username)
           {
             char *user_buf = NULL;
