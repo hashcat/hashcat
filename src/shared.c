@@ -10272,6 +10272,8 @@ int phpass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
 int md5crypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 {
+  if (input_len < DISPLAY_LEN_MIN_500) return (PARSER_GLOBAL_LENGTH);
+
   if (memcmp (SIGNATURE_MD5CRYPT, input_buf, 3)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
@@ -10304,7 +10306,7 @@ int md5crypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
     salt->salt_iter = ROUNDS_MD5CRYPT;
   }
 
-  if ((input_len < DISPLAY_LEN_MIN_500) || (input_len > (DISPLAY_LEN_MAX_500 + iterations_len))) return (PARSER_GLOBAL_LENGTH);
+  if (input_len > (DISPLAY_LEN_MAX_500 + iterations_len)) return (PARSER_GLOBAL_LENGTH);
 
   char *hash_pos = strchr (salt_pos, '$');
 
