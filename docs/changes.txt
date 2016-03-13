@@ -155,6 +155,10 @@ Type.: Bug
 File.: Host
 Desc.: Fixed some checks in the parser of -m 111 = nsldaps, SSHA-1(Base64), Netscape LDAP SSHA
 
+Type.: Bug
+File.: Host
+Desc.: Fixed some checks in the parser of -m 500 = md5crypt, MD5(Unix), FreeBSD MD5, Cisco-IOS MD5
+
 * changes v2.00 -> v2.01:
 
 Type.: Bug
