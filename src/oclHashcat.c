@@ -11142,6 +11142,8 @@ int main (int argc, char **argv)
 
           hlfmt_hash (hashlist_format, line_buf, line_len, &hash_buf, &hash_len);
 
+          if (hash_len < 1) continue;
+
           if (username)
           {
             char *user_buf = NULL;
