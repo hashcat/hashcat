@@ -97,6 +97,7 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 #define HL_MODE_FILE            4
 #define HL_MODE_ARG             5
 
+#define HLFMTS_CNT              11
 #define HLFMT_HASHCAT           0
 #define HLFMT_PWDUMP            1
 #define HLFMT_PASSWD            2
@@ -107,7 +108,17 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 #define HLFMT_NETNTLM2          8
 #define HLFMT_NSLDAP            9
 #define HLFMT_NSLDAPS           10
-#define HLFMTS_CNT              11
+
+#define HLFMT_TEXT_HASHCAT      "native hashcat"
+#define HLFMT_TEXT_PWDUMP       "pwdump"
+#define HLFMT_TEXT_PASSWD       "passwd"
+#define HLFMT_TEXT_SHADOW       "shadow"
+#define HLFMT_TEXT_DCC          "DCC"
+#define HLFMT_TEXT_DCC2         "DCC 2"
+#define HLFMT_TEXT_NETNTLM1     "NetNTLMv1"
+#define HLFMT_TEXT_NETNTLM2     "NetNTLMv2"
+#define HLFMT_TEXT_NSLDAP       "nsldap"
+#define HLFMT_TEXT_NSLDAPS      "nsldaps"
 
 #define ATTACK_MODE_STRAIGHT    0
 #define ATTACK_MODE_COMBI       1
@@ -5146,6 +5157,25 @@ static void hlfmt_user (uint hashfile_format, char line_buf[BUFSIZ], int line_le
     case HLFMT_PASSWD:  hlfmt_user_passwd  (line_buf, line_len, userbuf_pos, userbuf_len); break;
     case HLFMT_SHADOW:  hlfmt_user_shadow  (line_buf, line_len, userbuf_pos, userbuf_len); break;
   }
+}
+
+char *strhlfmt (const uint hashfile_format)
+{
+  switch (hashfile_format)
+  {
+    case HLFMT_HASHCAT:  return ((char *) HLFMT_TEXT_HASHCAT);  break;
+    case HLFMT_PWDUMP:   return ((char *) HLFMT_TEXT_PWDUMP);   break;
+    case HLFMT_PASSWD:   return ((char *) HLFMT_TEXT_PASSWD);   break;
+    case HLFMT_SHADOW:   return ((char *) HLFMT_TEXT_SHADOW);   break;
+    case HLFMT_DCC:      return ((char *) HLFMT_TEXT_DCC);      break;
+    case HLFMT_DCC2:     return ((char *) HLFMT_TEXT_DCC2);     break;
+    case HLFMT_NETNTLM1: return ((char *) HLFMT_TEXT_NETNTLM1); break;
+    case HLFMT_NETNTLM2: return ((char *) HLFMT_TEXT_NETNTLM2); break;
+    case HLFMT_NSLDAP:   return ((char *) HLFMT_TEXT_NSLDAP);   break;
+    case HLFMT_NSLDAPS:  return ((char *) HLFMT_TEXT_NSLDAPS);  break;
+  }
+
+  return ((char *) "Unknown");
 }
 
 static uint hlfmt_detect (FILE *fp, uint max_check)
@@ -10914,7 +10944,16 @@ int main (int argc, char **argv)
 
         hlfmt_hash (hashlist_format, input_buf, input_len, &hash_buf, &hash_len);
 
-        if (hash_len)
+        bool hash_fmt_error = 0;
+
+        if (hash_len < 1)     hash_fmt_error = 1;
+        if (hash_buf == NULL) hash_fmt_error = 1;
+
+        if (hash_fmt_error)
+        {
+          log_info ("WARNING: failed to parse hashes using the '%s' format", strhlfmt (hashlist_format));
+        }
+        else
         {
           if (opts_type & OPTS_TYPE_HASH_COPY)
           {
@@ -11141,6 +11180,18 @@ int main (int argc, char **argv)
           int   hash_len = 0;
 
           hlfmt_hash (hashlist_format, line_buf, line_len, &hash_buf, &hash_len);
+
+          bool hash_fmt_error = 0;
+
+          if (hash_len < 1)     hash_fmt_error = 1;
+          if (hash_buf == NULL) hash_fmt_error = 1;
+
+          if (hash_fmt_error)
+          {
+            log_info ("WARNING: failed to parse hashes using the '%s' format", strhlfmt (hashlist_format));
+
+            continue;
+          }
 
           if (username)
           {
