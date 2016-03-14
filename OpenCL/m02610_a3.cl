@@ -48,18 +48,29 @@ static void m02610m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    * salt
    */
 
+  u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
+
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
+  salt_buf1[2] = 0;
+  salt_buf1[3] = 0;
+  salt_buf2[0] = 0;
+  salt_buf2[1] = 0;
+  salt_buf2[2] = 0;
+  salt_buf2[3] = 0;
+  salt_buf3[0] = 0;
+  salt_buf3[1] = 0;
+  salt_buf3[2] = 0;
+  salt_buf3[3] = 0;
+
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  u32 s[8];
-
-  s[0] = salt_bufs[salt_pos].salt_buf[0];
-  s[1] = salt_bufs[salt_pos].salt_buf[1];
-  s[2] = salt_bufs[salt_pos].salt_buf[2];
-  s[3] = salt_bufs[salt_pos].salt_buf[3];
-  s[4] = salt_bufs[salt_pos].salt_buf[4];
-  s[5] = salt_bufs[salt_pos].salt_buf[5];
-  s[6] = (32 + salt_len) * 8;
-  s[7] = 0;
 
   /**
    * loop
@@ -74,32 +85,30 @@ static void m02610m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x w0lr = w0l | w0r;
 
     u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
     w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
-    u32x w1_t[4];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
-    u32x w2_t[4];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
-    u32x w3_t[4];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
     w3_t[3] = w3[3];
+
+    /**
+     * md5
+     */
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
@@ -196,15 +205,14 @@ static void m02610m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
 
-    w2_t[0] = s[0];
-    w2_t[1] = s[1];
-    w2_t[2] = s[2];
-    w2_t[3] = s[3];
-
-    w3_t[0] = s[4];
-    w3_t[1] = s[5];
-    w3_t[2] = s[6];
-    w3_t[3] = s[7];
+    w2_t[0] = salt_buf0[0];
+    w2_t[1] = salt_buf0[1];
+    w2_t[2] = salt_buf0[2];
+    w2_t[3] = salt_buf0[3];
+    w3_t[0] = salt_buf1[0];
+    w3_t[1] = salt_buf1[1];
+    w3_t[2] = (32 + salt_len) * 8;
+    w3_t[3] = 0;
 
     a = MD5M_A;
     b = MD5M_B;
@@ -293,6 +301,34 @@ static void m02610s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
+   * salt
+   */
+
+  u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
+
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
+  salt_buf1[2] = 0;
+  salt_buf1[3] = 0;
+  salt_buf2[0] = 0;
+  salt_buf2[1] = 0;
+  salt_buf2[2] = 0;
+  salt_buf2[3] = 0;
+  salt_buf3[0] = 0;
+  salt_buf3[1] = 0;
+  salt_buf3[2] = 0;
+  salt_buf3[3] = 0;
+
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
+  /**
    * digest
    */
 
@@ -303,23 +339,6 @@ static void m02610s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     digests_buf[digests_offset].digest_buf[DGST_R2],
     digests_buf[digests_offset].digest_buf[DGST_R3]
   };
-
-  /**
-   * salt
-   */
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  u32 s[8];
-
-  s[0] = salt_bufs[salt_pos].salt_buf[0];
-  s[1] = salt_bufs[salt_pos].salt_buf[1];
-  s[2] = salt_bufs[salt_pos].salt_buf[2];
-  s[3] = salt_bufs[salt_pos].salt_buf[3];
-  s[4] = salt_bufs[salt_pos].salt_buf[4];
-  s[5] = salt_bufs[salt_pos].salt_buf[5];
-  s[6] = (32 + salt_len) * 8;
-  s[7] = 0;
 
   /**
    * loop
@@ -334,32 +353,30 @@ static void m02610s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x w0lr = w0l | w0r;
 
     u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
     w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
-    u32x w1_t[4];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
-    u32x w2_t[4];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
-    u32x w3_t[4];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
     w3_t[3] = w3[3];
+
+    /**
+     * md5
+     */
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
@@ -456,15 +473,14 @@ static void m02610s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
 
-    w2_t[0] = s[0];
-    w2_t[1] = s[1];
-    w2_t[2] = s[2];
-    w2_t[3] = s[3];
-
-    w3_t[0] = s[4];
-    w3_t[1] = s[5];
-    w3_t[2] = s[6];
-    w3_t[3] = s[7];
+    w2_t[0] = salt_buf0[0];
+    w2_t[1] = salt_buf0[1];
+    w2_t[2] = salt_buf0[2];
+    w2_t[3] = salt_buf0[3];
+    w3_t[0] = salt_buf1[0];
+    w3_t[1] = salt_buf1[1];
+    w3_t[2] = (32 + salt_len) * 8;
+    w3_t[3] = 0;
 
     a = MD5M_A;
     b = MD5M_B;
@@ -535,11 +551,15 @@ static void m02610s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     MD5_STEP (MD5_I , c, d, a, b, w1_t[2], MD5C3a, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w3_t[1], MD5C3b, MD5S33);
     MD5_STEP (MD5_I , a, b, c, d, w1_t[0], MD5C3c, MD5S30);
+
+    if (MATCHES_NONE_VS (a, search[0])) continue;
+
     MD5_STEP (MD5_I , d, a, b, c, w2_t[3], MD5C3d, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w0_t[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2_t[1], MD5C3f, MD5S33);
 
     COMPARE_S_SIMD (a, d, c, b);
+
   }
 }
 
