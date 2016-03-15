@@ -159,6 +159,10 @@ Type.: Bug
 File.: Host
 Desc.: Fixed some checks in the parser of -m 500 = md5crypt, MD5(Unix), FreeBSD MD5, Cisco-IOS MD5
 
+Type.: Bug
+File.: Host
+Desc.: Fixed some checks in the parser of -m 1711 = SSHA-512(Base64), LDAP {SSHA512}
+
 * changes v2.00 -> v2.01:
 
 Type.: Bug
