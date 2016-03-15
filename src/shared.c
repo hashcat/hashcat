@@ -13154,6 +13154,8 @@ int sha512b64s_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   int tmp_len = base64_decode (base64_to_int, (const u8 *) input_buf + 9, input_len - 9, tmp_buf);
 
+  if (tmp_len < 64) return (PARSER_HASH_LENGTH);
+
   memcpy (digest, tmp_buf, 64);
 
   digest[0] = byte_swap_64 (digest[0]);
@@ -13174,7 +13176,11 @@ int sha512b64s_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[6] -= SHA512M_G;
   digest[7] -= SHA512M_H;
 
-  salt->salt_len = tmp_len - 64;
+  int salt_len = tmp_len - 64;
+
+  if (salt_len < 0) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len = salt_len;
 
   memcpy (salt->salt_buf, tmp_buf + 64, salt->salt_len);
 
