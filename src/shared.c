@@ -14448,6 +14448,8 @@ int peoplesoft_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   u32 *digest = (u32 *) hash_buf->digest;
 
+  salt_t *salt = hash_buf->salt;
+
   u8 tmp_buf[100] = { 0 };
 
   base64_decode (base64_to_int, (const u8 *) input_buf, input_len, tmp_buf);
@@ -14465,6 +14467,10 @@ int peoplesoft_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[2] -= SHA1M_C;
   digest[3] -= SHA1M_D;
   digest[4] -= SHA1M_E;
+
+  salt->salt_buf[0] = 0x80;
+
+  salt->salt_len = 0;
 
   return (PARSER_OK);
 }
