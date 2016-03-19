@@ -509,26 +509,6 @@ __kernel void m03000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   const u32 lsz = get_local_size (0);
 
   /**
-   * base
-   */
-
-  u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = 0;
-  pw_buf0[3] = 0;
-
-  u32 pw_buf1[4];
-
-  pw_buf1[0] = 0;
-  pw_buf1[1] = 0;
-  pw_buf1[2] = 0;
-  pw_buf1[3] = 0;
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  /**
    * sbox, kbox
    */
 
@@ -561,6 +541,24 @@ __kernel void m03000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   if (gid >= gid_max) return;
 
   /**
+   * base
+   */
+
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
+
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
+
+  const u32 pw_len = pws[gid].pw_len;
+
+  /**
    * main
    */
 
@@ -571,9 +569,7 @@ __kernel void m03000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
-
-    out_len &= 7; // bug
+    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     u32x key[2];
 
@@ -624,26 +620,6 @@ __kernel void m03000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   const u32 lsz = get_local_size (0);
 
   /**
-   * base
-   */
-
-  u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = 0;
-  pw_buf0[3] = 0;
-
-  u32 pw_buf1[4];
-
-  pw_buf1[0] = 0;
-  pw_buf1[1] = 0;
-  pw_buf1[2] = 0;
-  pw_buf1[3] = 0;
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  /**
    * sbox, kbox
    */
 
@@ -676,6 +652,24 @@ __kernel void m03000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   if (gid >= gid_max) return;
 
   /**
+   * base
+   */
+
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
+
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
+
+  const u32 pw_len = pws[gid].pw_len;
+
+  /**
    * digest
    */
 
@@ -698,9 +692,7 @@ __kernel void m03000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
-
-    out_len &= 7; // bug
+    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     u32x key[2];
 
