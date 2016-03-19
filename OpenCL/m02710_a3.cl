@@ -48,20 +48,29 @@ static void m02710m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    * salt
    */
 
-  u32 s[8];
+  u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
-  s[0] = salt_bufs[salt_pos].salt_buf[0];
-  s[1] = salt_bufs[salt_pos].salt_buf[1];
-  s[2] = salt_bufs[salt_pos].salt_buf[2];
-  s[3] = salt_bufs[salt_pos].salt_buf[3];
-  s[4] = salt_bufs[salt_pos].salt_buf[4];
-  s[5] = salt_bufs[salt_pos].salt_buf[5];
-  s[6] = salt_bufs[salt_pos].salt_buf[6];
-  s[7] = salt_bufs[salt_pos].salt_buf[7];
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
+  salt_buf2[0] = 0;
+  salt_buf2[1] = 0;
+  salt_buf2[2] = 0;
+  salt_buf2[3] = 0;
+  salt_buf3[0] = 0;
+  salt_buf3[1] = 0;
+  salt_buf3[2] = 0;
+  salt_buf3[3] = 0;
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  const u32 r_14 = (32 + salt_len) * 8;
 
   /**
    * loop
@@ -76,32 +85,30 @@ static void m02710m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x w0lr = w0l | w0r;
 
     u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
     w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
-    u32x w1_t[4];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
-    u32x w2_t[4];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
-    u32x w3_t[4];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
     w3_t[3] = w3[3];
+
+    /**
+     * md5
+     */
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
@@ -198,15 +205,14 @@ static void m02710m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
 
-    w2_t[0] = s[0];
-    w2_t[1] = s[1];
-    w2_t[2] = s[2];
-    w2_t[3] = s[3];
-
-    w3_t[0] = s[4];
-    w3_t[1] = s[5];
-    w3_t[2] = s[6];
-    w3_t[3] = s[7];
+    w2_t[0] = salt_buf0[0];
+    w2_t[1] = salt_buf0[1];
+    w2_t[2] = salt_buf0[2];
+    w2_t[3] = salt_buf0[3];
+    w3_t[0] = salt_buf1[0];
+    w3_t[1] = salt_buf1[1];
+    w3_t[2] = salt_buf1[2];
+    w3_t[3] = salt_buf1[3];
 
     a = MD5M_A;
     b = MD5M_B;
@@ -285,6 +291,8 @@ static void m02710m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x r_b = b + MD5M_B;
     const u32x r_c = c + MD5M_C;
     const u32x r_d = d + MD5M_D;
+
+    const u32x r_14 = (32 + salt_len) * 8;
 
     a = r_a;
     b = r_b;
@@ -378,6 +386,34 @@ static void m02710s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
+   * salt
+   */
+
+  u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
+
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
+  salt_buf2[0] = 0;
+  salt_buf2[1] = 0;
+  salt_buf2[2] = 0;
+  salt_buf2[3] = 0;
+  salt_buf3[0] = 0;
+  salt_buf3[1] = 0;
+  salt_buf3[2] = 0;
+  salt_buf3[3] = 0;
+
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
+  /**
    * digest
    */
 
@@ -388,25 +424,6 @@ static void m02710s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     digests_buf[digests_offset].digest_buf[DGST_R2],
     digests_buf[digests_offset].digest_buf[DGST_R3]
   };
-
-  /**
-   * salt
-   */
-
-  u32 s[8];
-
-  s[0] = salt_bufs[salt_pos].salt_buf[0];
-  s[1] = salt_bufs[salt_pos].salt_buf[1];
-  s[2] = salt_bufs[salt_pos].salt_buf[2];
-  s[3] = salt_bufs[salt_pos].salt_buf[3];
-  s[4] = salt_bufs[salt_pos].salt_buf[4];
-  s[5] = salt_bufs[salt_pos].salt_buf[5];
-  s[6] = salt_bufs[salt_pos].salt_buf[6];
-  s[7] = salt_bufs[salt_pos].salt_buf[7];
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  const u32 r_14 = (32 + salt_len) * 8;
 
   /**
    * loop
@@ -421,32 +438,30 @@ static void m02710s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x w0lr = w0l | w0r;
 
     u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
     w0_t[0] = w0lr;
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
-    u32x w1_t[4];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
-    u32x w2_t[4];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
-    u32x w3_t[4];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
     w3_t[3] = w3[3];
+
+    /**
+     * md5
+     */
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
@@ -543,15 +558,14 @@ static void m02710s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
 
-    w2_t[0] = s[0];
-    w2_t[1] = s[1];
-    w2_t[2] = s[2];
-    w2_t[3] = s[3];
-
-    w3_t[0] = s[4];
-    w3_t[1] = s[5];
-    w3_t[2] = s[6];
-    w3_t[3] = s[7];
+    w2_t[0] = salt_buf0[0];
+    w2_t[1] = salt_buf0[1];
+    w2_t[2] = salt_buf0[2];
+    w2_t[3] = salt_buf0[3];
+    w3_t[0] = salt_buf1[0];
+    w3_t[1] = salt_buf1[1];
+    w3_t[2] = salt_buf1[2];
+    w3_t[3] = salt_buf1[3];
 
     a = MD5M_A;
     b = MD5M_B;
@@ -630,6 +644,8 @@ static void m02710s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x r_b = b + MD5M_B;
     const u32x r_c = c + MD5M_C;
     const u32x r_d = d + MD5M_D;
+
+    const u32x r_14 = (32 + salt_len) * 8;
 
     a = r_a;
     b = r_b;

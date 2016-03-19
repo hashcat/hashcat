@@ -47,45 +47,6 @@ __kernel void m02710_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 lsz = get_local_size (0);
 
   /**
-   * base
-   */
-
-  u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  /**
-   * salt
-   */
-
-  u32 s[8];
-
-  s[0] = salt_bufs[salt_pos].salt_buf[0];
-  s[1] = salt_bufs[salt_pos].salt_buf[1];
-  s[2] = salt_bufs[salt_pos].salt_buf[2];
-  s[3] = salt_bufs[salt_pos].salt_buf[3];
-  s[4] = salt_bufs[salt_pos].salt_buf[4];
-  s[5] = salt_bufs[salt_pos].salt_buf[5];
-  s[6] = salt_bufs[salt_pos].salt_buf[6];
-  s[7] = salt_bufs[salt_pos].salt_buf[7];
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  const u32 r_14 = (32 + salt_len) * 8;
-
-  /**
    * bin2asc table
    */
 
@@ -105,6 +66,52 @@ __kernel void m02710_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   /**
+   * base
+   */
+
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
+
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
+
+  const u32 pw_len = pws[gid].pw_len;
+
+  /**
+   * salt
+   */
+
+  u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
+
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
+  salt_buf2[0] = 0;
+  salt_buf2[1] = 0;
+  salt_buf2[2] = 0;
+  salt_buf2[3] = 0;
+  salt_buf3[0] = 0;
+  salt_buf3[1] = 0;
+  salt_buf3[2] = 0;
+  salt_buf3[3] = 0;
+
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
+  /**
    * loop
    */
 
@@ -120,6 +127,7 @@ __kernel void m02710_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     append_0x80_2x4_VV (w0, w1, out_len);
 
     w3[2] = out_len * 8;
+    w3[3] = 0;
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
@@ -216,15 +224,14 @@ __kernel void m02710_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w1[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
           | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
 
-    w2[0] = s[0];
-    w2[1] = s[1];
-    w2[2] = s[2];
-    w2[3] = s[3];
-
-    w3[0] = s[4];
-    w3[1] = s[5];
-    w3[2] = s[6];
-    w3[3] = s[7];
+    w2[0] = salt_buf0[0];
+    w2[1] = salt_buf0[1];
+    w2[2] = salt_buf0[2];
+    w2[3] = salt_buf0[3];
+    w3[0] = salt_buf1[0];
+    w3[1] = salt_buf1[1];
+    w3[2] = salt_buf1[2];
+    w3[3] = salt_buf1[3];
 
     a = MD5M_A;
     b = MD5M_B;
@@ -303,6 +310,8 @@ __kernel void m02710_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     const u32x r_b = b + MD5M_B;
     const u32x r_c = c + MD5M_C;
     const u32x r_d = d + MD5M_D;
+
+    const u32x r_14 = (32 + salt_len) * 8;
 
     a = r_a;
     b = r_b;
@@ -405,57 +414,6 @@ __kernel void m02710_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 lsz = get_local_size (0);
 
   /**
-   * base
-   */
-
-  u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  /**
-   * salt
-   */
-
-  u32 s[8];
-
-  s[0] = salt_bufs[salt_pos].salt_buf[0];
-  s[1] = salt_bufs[salt_pos].salt_buf[1];
-  s[2] = salt_bufs[salt_pos].salt_buf[2];
-  s[3] = salt_bufs[salt_pos].salt_buf[3];
-  s[4] = salt_bufs[salt_pos].salt_buf[4];
-  s[5] = salt_bufs[salt_pos].salt_buf[5];
-  s[6] = salt_bufs[salt_pos].salt_buf[6];
-  s[7] = salt_bufs[salt_pos].salt_buf[7];
-
-  u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  const u32 r_14 = (32 + salt_len) * 8;
-
-  /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
    * bin2asc table
    */
 
@@ -475,6 +433,64 @@ __kernel void m02710_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   /**
+   * base
+   */
+
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
+
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
+
+  const u32 pw_len = pws[gid].pw_len;
+
+  /**
+   * salt
+   */
+
+  u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
+
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
+  salt_buf2[0] = 0;
+  salt_buf2[1] = 0;
+  salt_buf2[2] = 0;
+  salt_buf2[3] = 0;
+  salt_buf3[0] = 0;
+  salt_buf3[1] = 0;
+  salt_buf3[2] = 0;
+  salt_buf3[3] = 0;
+
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
+  /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
+
+  /**
    * loop
    */
 
@@ -490,6 +506,7 @@ __kernel void m02710_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     append_0x80_2x4_VV (w0, w1, out_len);
 
     w3[2] = out_len * 8;
+    w3[3] = 0;
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
@@ -586,15 +603,14 @@ __kernel void m02710_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w1[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
           | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
 
-    w2[0] = s[0];
-    w2[1] = s[1];
-    w2[2] = s[2];
-    w2[3] = s[3];
-
-    w3[0] = s[4];
-    w3[1] = s[5];
-    w3[2] = s[6];
-    w3[3] = s[7];
+    w2[0] = salt_buf0[0];
+    w2[1] = salt_buf0[1];
+    w2[2] = salt_buf0[2];
+    w2[3] = salt_buf0[3];
+    w3[0] = salt_buf1[0];
+    w3[1] = salt_buf1[1];
+    w3[2] = salt_buf1[2];
+    w3[3] = salt_buf1[3];
 
     a = MD5M_A;
     b = MD5M_B;
@@ -674,6 +690,8 @@ __kernel void m02710_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     const u32x r_c = c + MD5M_C;
     const u32x r_d = d + MD5M_D;
 
+    const u32x r_14 = (32 + salt_len) * 8;
+
     a = r_a;
     b = r_b;
     c = r_c;
@@ -743,6 +761,9 @@ __kernel void m02710_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     MD5_STEP0(MD5_I , c, d, a, b,       MD5C3a, MD5S32);
     MD5_STEP0(MD5_I , b, c, d, a,       MD5C3b, MD5S33);
     MD5_STEP0(MD5_I , a, b, c, d,       MD5C3c, MD5S30);
+
+    if (MATCHES_NONE_VS ((a + r_a), search[0])) continue;
+
     MD5_STEP0(MD5_I , d, a, b, c,       MD5C3d, MD5S31);
     MD5_STEP0(MD5_I , c, d, a, b,       MD5C3e, MD5S32);
     MD5_STEP0(MD5_I , b, c, d, a,       MD5C3f, MD5S33);
