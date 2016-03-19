@@ -7,6 +7,8 @@
 
 #define _DES_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -18,9 +20,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 #define PERM_OP(a,b,tt,n,m) \
 {                           \
@@ -338,11 +338,21 @@ __constant u32 c_skb[8][64] =
   },
 };
 
+#if   VECT_SIZE == 1
 #define BOX(i,n,S) (S)[(n)][(i)]
+#elif VECT_SIZE == 2
+#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
+#elif VECT_SIZE == 4
+#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
+#elif VECT_SIZE == 8
+#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7])
+#elif VECT_SIZE == 16
+#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
+#endif
 
-static void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 (*s_skb)[64])
+static void _des_crypt_keysetup (u32x c, u32x d, u32x Kc[16], u32x Kd[16], __local u32 (*s_skb)[64])
 {
-  u32 tt;
+  u32x tt;
 
   PERM_OP  (d, c, tt, 4, 0x0f0f0f0f);
   HPERM_OP (c,    tt, 2, 0xcccc0000);
@@ -358,7 +368,7 @@ static void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u
 
   c = c & 0x0fffffff;
 
-  #pragma unroll
+  #pragma unroll 16
   for (u32 i = 0; i < 16; i++)
   {
     if ((i < 2) || (i == 8) || (i == 15))
@@ -375,52 +385,52 @@ static void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u
     c = c & 0x0fffffff;
     d = d & 0x0fffffff;
 
-    const u32 c00 = (c >>  0) & 0x0000003f;
-    const u32 c06 = (c >>  6) & 0x00383003;
-    const u32 c07 = (c >>  7) & 0x0000003c;
-    const u32 c13 = (c >> 13) & 0x0000060f;
-    const u32 c20 = (c >> 20) & 0x00000001;
+    const u32x c00 = (c >>  0) & 0x0000003f;
+    const u32x c06 = (c >>  6) & 0x00383003;
+    const u32x c07 = (c >>  7) & 0x0000003c;
+    const u32x c13 = (c >> 13) & 0x0000060f;
+    const u32x c20 = (c >> 20) & 0x00000001;
 
-    u32 s = BOX (((c00 >>  0) & 0xff), 0, s_skb)
-          | BOX (((c06 >>  0) & 0xff)
-                |((c07 >>  0) & 0xff), 1, s_skb)
-          | BOX (((c13 >>  0) & 0xff)
-                |((c06 >>  8) & 0xff), 2, s_skb)
-          | BOX (((c20 >>  0) & 0xff)
-                |((c13 >>  8) & 0xff)
-                |((c06 >> 16) & 0xff), 3, s_skb);
+    u32x s = BOX (((c00 >>  0) & 0xff), 0, s_skb)
+           | BOX (((c06 >>  0) & 0xff)
+                 |((c07 >>  0) & 0xff), 1, s_skb)
+           | BOX (((c13 >>  0) & 0xff)
+                 |((c06 >>  8) & 0xff), 2, s_skb)
+           | BOX (((c20 >>  0) & 0xff)
+                 |((c13 >>  8) & 0xff)
+                 |((c06 >> 16) & 0xff), 3, s_skb);
 
-    const u32 d00 = (d >>  0) & 0x00003c3f;
-    const u32 d07 = (d >>  7) & 0x00003f03;
-    const u32 d21 = (d >> 21) & 0x0000000f;
-    const u32 d22 = (d >> 22) & 0x00000030;
+    const u32x d00 = (d >>  0) & 0x00003c3f;
+    const u32x d07 = (d >>  7) & 0x00003f03;
+    const u32x d21 = (d >> 21) & 0x0000000f;
+    const u32x d22 = (d >> 22) & 0x00000030;
 
-    u32 t = BOX (((d00 >>  0) & 0xff), 4, s_skb)
-          | BOX (((d07 >>  0) & 0xff)
-                |((d00 >>  8) & 0xff), 5, s_skb)
-          | BOX (((d07 >>  8) & 0xff), 6, s_skb)
-          | BOX (((d21 >>  0) & 0xff)
-                |((d22 >>  0) & 0xff), 7, s_skb);
+    u32x t = BOX (((d00 >>  0) & 0xff), 4, s_skb)
+           | BOX (((d07 >>  0) & 0xff)
+                 |((d00 >>  8) & 0xff), 5, s_skb)
+           | BOX (((d07 >>  8) & 0xff), 6, s_skb)
+           | BOX (((d21 >>  0) & 0xff)
+                 |((d22 >>  0) & 0xff), 7, s_skb);
 
     Kc[i] = ((t << 16) | (s & 0x0000ffff));
     Kd[i] = ((s >> 16) | (t & 0xffff0000));
   }
 }
 
-static void _des_crypt_encrypt (u32 iv[2], u32 mask, u32 Kc[16], u32 Kd[16], __local u32 (*s_SPtrans)[64])
+static void _des_crypt_encrypt (u32x iv[2], u32 mask, u32x Kc[16], u32x Kd[16], __local u32 (*s_SPtrans)[64])
 {
   const u32 E1 = (mask >> 2) & 0x3f0;
   const u32 E0 = mask & 0x3f;
 
-  u32 r = 0;
-  u32 l = 0;
+  u32x r = 0;
+  u32x l = 0;
 
   for (u32 i = 0; i < 25; i++)
   {
     for (u32 j = 0; j < 16; j += 2)
     {
-      u32 t;
-      u32 u;
+      u32x t;
+      u32x u;
 
       t = r ^ (r >> 16);
       u = t & E0;
@@ -463,7 +473,7 @@ static void _des_crypt_encrypt (u32 iv[2], u32 mask, u32 Kc[16], u32 Kd[16], __l
          | BOX (((t >> 24) & 0x3f), 7, s_SPtrans);
     }
 
-    u32 tt;
+    u32x tt;
 
     tt = l;
     l  = r;
@@ -485,46 +495,7 @@ __kernel void m01500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 lsz = get_local_size (0);
 
   /**
-   * base
-   */
-
-  u32 wordl0[4];
-
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = 0;
-  wordl0[3] = 0;
-
-  u32 wordl1[4];
-
-  wordl1[0] = 0;
-  wordl1[1] = 0;
-  wordl1[2] = 0;
-  wordl1[3] = 0;
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
-
-  const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
-
-  /**
-   * modifier
+   * sbox, kbox
    */
 
   __local u32 s_SPtrans[8][64];
@@ -556,104 +527,124 @@ __kernel void m01500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   /**
+   * base
+   */
+
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
+
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
+
+  const u32 pw_l_len = pws[gid].pw_len;
+
+  /**
    * salt
    */
 
   const u32 mask = salt_bufs[salt_pos].salt_buf[0];
 
   /**
-   * main
+   * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    pw_len = (pw_len >= 8) ? 8 : pw_len;
+    /**
+     * concat password candidate
+     */
 
-    u32 wordr0[4];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = 0;
-    wordr0[3] = 0;
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    u32 wordr1[4];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    wordr1[0] = 0;
-    wordr1[1] = 0;
-    wordr1[2] = 0;
-    wordr1[3] = 0;
-
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
-    w0[2] = 0;
-    w0[3] = 0;
+    w0[2] = wordl0[2] | wordr0[2];
+    w0[3] = wordl0[3] | wordr0[3];
+    w1[0] = wordl1[0] | wordr1[0];
+    w1[1] = wordl1[1] | wordr1[1];
+    w1[2] = wordl1[2] | wordr1[2];
+    w1[3] = wordl1[3] | wordr1[3];
+    w2[0] = wordl2[0] | wordr2[0];
+    w2[1] = wordl2[1] | wordr2[1];
+    w2[2] = wordl2[2] | wordr2[2];
+    w2[3] = wordl2[3] | wordr2[3];
+    w3[0] = wordl3[0] | wordr3[0];
+    w3[1] = wordl3[1] | wordr3[1];
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
-    u32 w1[4];
+    /**
+     * DES
+     */
 
-    w1[0] = 0;
-    w1[1] = 0;
-    w1[2] = 0;
-    w1[3] = 0;
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    u32 data[2];
+    u32x data[2];
 
     data[0] = (w0[0] << 1) & 0xfefefefe;
     data[1] = (w0[1] << 1) & 0xfefefefe;
 
-    u32 Kc[16];
-    u32 Kd[16];
+    u32x Kc[16];
+    u32x Kd[16];
 
     _des_crypt_keysetup (data[0], data[1], Kc, Kd, s_skb);
 
-    u32 iv[2];
+    u32x iv[2];
 
     _des_crypt_encrypt (iv, mask, Kc, Kd, s_SPtrans);
 
-    const u32 r0 = iv[0];
-    const u32 r1 = iv[1];
-    const u32 r2 = 0;
-    const u32 r3 = 0;
+    u32x c = 0;
+    u32x d = 0;
 
-    #include COMPARE_M
+    COMPARE_M_SIMD (iv[0], iv[1], c, d);
   }
 }
 
@@ -676,46 +667,7 @@ __kernel void m01500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 lsz = get_local_size (0);
 
   /**
-   * base
-   */
-
-  u32 wordl0[4];
-
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = 0;
-  wordl0[3] = 0;
-
-  u32 wordl1[4];
-
-  wordl1[0] = 0;
-  wordl1[1] = 0;
-  wordl1[2] = 0;
-  wordl1[3] = 0;
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
-
-  const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
-
-  /**
-   * modifier
+   * sbox, kbox
    */
 
   __local u32 s_SPtrans[8][64];
@@ -747,6 +699,24 @@ __kernel void m01500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   /**
+   * base
+   */
+
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
+
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
+
+  const u32 pw_l_len = pws[gid].pw_len;
+
+  /**
    * salt
    */
 
@@ -765,98 +735,100 @@ __kernel void m01500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   };
 
   /**
-   * main
+   * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    pw_len = (pw_len >= 8) ? 8 : pw_len;
+    /**
+     * concat password candidate
+     */
 
-    u32 wordr0[4];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = 0;
-    wordr0[3] = 0;
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    u32 wordr1[4];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    wordr1[0] = 0;
-    wordr1[1] = 0;
-    wordr1[2] = 0;
-    wordr1[3] = 0;
-
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
-    w0[2] = 0;
-    w0[3] = 0;
+    w0[2] = wordl0[2] | wordr0[2];
+    w0[3] = wordl0[3] | wordr0[3];
+    w1[0] = wordl1[0] | wordr1[0];
+    w1[1] = wordl1[1] | wordr1[1];
+    w1[2] = wordl1[2] | wordr1[2];
+    w1[3] = wordl1[3] | wordr1[3];
+    w2[0] = wordl2[0] | wordr2[0];
+    w2[1] = wordl2[1] | wordr2[1];
+    w2[2] = wordl2[2] | wordr2[2];
+    w2[3] = wordl2[3] | wordr2[3];
+    w3[0] = wordl3[0] | wordr3[0];
+    w3[1] = wordl3[1] | wordr3[1];
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
-    u32 w1[4];
+    /**
+     * DES
+     */
 
-    w1[0] = 0;
-    w1[1] = 0;
-    w1[2] = 0;
-    w1[3] = 0;
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    u32 data[2];
+    u32x data[2];
 
     data[0] = (w0[0] << 1) & 0xfefefefe;
     data[1] = (w0[1] << 1) & 0xfefefefe;
 
-    u32 Kc[16];
-    u32 Kd[16];
+    u32x Kc[16];
+    u32x Kd[16];
 
     _des_crypt_keysetup (data[0], data[1], Kc, Kd, s_skb);
 
-    u32 iv[2];
+    u32x iv[2];
 
     _des_crypt_encrypt (iv, mask, Kc, Kd, s_SPtrans);
 
-    const u32 r0 = iv[0];
-    const u32 r1 = iv[1];
-    const u32 r2 = 0;
-    const u32 r3 = 0;
+    u32x c = 0;
+    u32x d = 0;
 
-    #include COMPARE_S
+    COMPARE_S_SIMD (iv[0], iv[1], c, d);
   }
 }
 
