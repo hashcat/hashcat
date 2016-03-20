@@ -163,6 +163,10 @@ Type.: Bug
 File.: Host
 Desc.: Fixed some checks in the parser of -m 1711 = SSHA-512(Base64), LDAP {SSHA512}
 
+Type.: Bug
+File.: Host
+Desc.: Fixed some checks in the parser of -m 5300 = IKE-PSK MD5 and -m 5400 = IKE-PSK SHA1
+
 * changes v2.00 -> v2.01:
 
 Type.: Bug
