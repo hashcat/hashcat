@@ -12195,6 +12195,8 @@ int ikepsk_md5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   in_off[0] = strtok (input_buf, ":");
 
+  if (in_off[0] == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
   in_len[0] = strlen (in_off[0]);
 
   size_t i;
@@ -12279,6 +12281,8 @@ int ikepsk_sha1_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   size_t in_len[9] = { 0 };
 
   in_off[0] = strtok (input_buf, ":");
+
+  if (in_off[0] == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   in_len[0] = strlen (in_off[0]);
 
