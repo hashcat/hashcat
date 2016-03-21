@@ -171,6 +171,10 @@ Type.: Bug
 File.: Host
 Desc.: Fixed some checks in the parser of -m 5500 = NetNTLMv1
 
+Type.: Bug
+File.: Host
+Desc.: Fixed some checks in the parser of -m 5600 = NetNTLMv2
+
 * changes v2.00 -> v2.01:
 
 Type.: Bug
