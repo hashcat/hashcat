@@ -242,7 +242,7 @@ endif
 
 native: oclHashcat
 
-binaries: linux32 linux64 win32 win64
+binaries: linux32 linux64 win32 win64 linux32API linux64API win32API win64API
 
 clean:
 	$(RM) -f obj/*.o *.bin *.exe *.app *.restore *.out *.pot *.dictstat *.log oclHashcat core
@@ -256,6 +256,12 @@ linux64: oclHashcat64.bin
 
 win32: oclHashcat32.exe
 win64: oclHashcat64.exe
+
+linux32API: oclHashcat32API.bin
+linux64API: oclHashcat64API.bin
+
+win32API: oclHashcat32API.exe
+win64API: oclHashcat64API.exe
 
 ##
 ## Targets: Linux install
@@ -330,3 +336,20 @@ oclHashcat32.exe: src/oclHashcat.c $(WIN_32_OBJS)
 
 oclHashcat64.exe: src/oclHashcat.c $(WIN_64_OBJS)
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -static-libgcc
+
+
+##
+##	Support for third-party integration via API
+##
+
+oclHashcat32API.bin: src/oclHashcat.c src/oclHashcatAPI.c $(LINUX_32_OBJS)
+	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32) -DAPI -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+
+oclHashcat64API.bin: src/oclHashcat.c src/oclHashcatAPI.c $(LINUX_64_OBJS)
+	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64)  -DAPI -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+
+oclHashcat32API.exe: src/oclHashcat.c src/oclHashcatAPI.c $(WIN_32_OBJS)
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32)  -DAPI -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -static-libgcc
+
+oclHashcat64API.exe: src/oclHashcat.c src/oclHashcatAPI.c $(WIN_64_OBJS)
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) -DAPI  -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -static-libgcc
