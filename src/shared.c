@@ -10795,7 +10795,7 @@ int netntlmv1_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *hash_pos = strchr (srvchall_pos, ':');
 
-  if (srvchall_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   uint srvchall_len = hash_pos - srvchall_pos;
 
