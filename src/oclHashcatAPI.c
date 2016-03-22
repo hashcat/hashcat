@@ -22,10 +22,7 @@
 
 #include <common.h>
 #include <unistd.h>
-#ifdef WIN
-#include <process.h>
-#include <windows.h>
-#else
+#ifndef WIN
 #include <pthread.h>
 #endif
 
