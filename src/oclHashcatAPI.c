@@ -22,20 +22,16 @@
 
 #include <common.h>
 #include <unistd.h>
+#include <shared.h>
 #ifndef WIN
 #include <pthread.h>
 #endif
-
-#define PW_MAX 32
 
 
 struct hcapi_control;
 struct hcapi_options;
 struct hcapi_thread_args;
 
-/*
-	Function prototypes
-*/
 struct hcapi_control oclhashcat_init(void);
 int hcapi_main(int, char **);
 int hcapi_start(int, char **);
@@ -49,6 +45,13 @@ void hcapi_generate_commandline(struct hcapi_options, int *, char ***);
 #else
 	int hcapi_start_thread(int, char **);
 #endif
+
+// TODO handle mutex for thread data reads
+// #ifdef WIN
+
+// #else
+// pthread_mutex_t data_lock;
+// #endif
 
 void check_argv_array(char ***, size_t *, size_t *, int *);
 char * strcat_ls(char *, char *);
@@ -162,6 +165,8 @@ typedef struct hcapi_control
 
 	int(*stop)(void);
 	void(*generate_commandline)(OCLHASHCAT_OPTIONS options, int *c, char ***v);
+	hc_global_data_t *(*get_data)(void);
+
 	OCLHASHCAT_OPTIONS options;
 
 }OCLHASHCAT_CON;
@@ -1499,13 +1504,14 @@ int hcapi_start_thread(int argc, char **argv)
 }
 #endif
 
-
+// TODO
 int hcapi_stop(void)
 {
 
 	printf("[+] Stop Called.\n");
 	return 0;
 }
+
 
 void hcapi_append_rules(struct hcapi_options *options, char *new_file_path)
 {
@@ -1639,6 +1645,7 @@ OCLHASHCAT_CON oclhashcat_init(void)
 	control.start_thread = hcapi_start_thread;
 	control.stop = hcapi_stop;
 	control.generate_commandline = hcapi_generate_commandline;
+	control.get_data = hcapi_data;
 	
 	return control;
 
@@ -1675,6 +1682,16 @@ int main()
 	// start_thread works for either win or linux systems
 	// alternatively you can just call start() in a similar way to call in the same thread
 	hc.start_thread(c, v);
+
+
+	// get_data currently returns a pointer to data structure in oclHashcat.c
+	// As of right now there is no mutex keeping one thread from currupting the other
+	// I'm also not sure of the performance impact of reading from this while oclhashcat is working
+	// This needs to be handled better
+	hc_global_data_t *output = malloc(sizeof(hc_global_data_t));
+	output = hc.get_data(); 
+
+	printf("install dir: %s", output->install_dir);
 
 	// Lots of prints for testing. To be deleted upon release
 	printf("[!] BACK IN MAIN");

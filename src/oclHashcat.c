@@ -5157,6 +5157,19 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
 }
 
 /**
+ * API Function to return running status
+ */
+hc_global_data_t * hcapi_data(void)
+{
+
+  hc_global_data_t *hcapi_data = &data;
+
+  return hcapi_data;
+}
+
+
+
+/**
  * main
  */
 

@@ -1674,6 +1674,13 @@ void *thread_keypress     (void *p);
 void *thread_runtime      (void *p);
 
 /**
+ *  API Functions
+ */
+ 
+hc_global_data_t * hcapi_data(void);
+
+
+/**
  * checksum for use on cpu
  */
 
