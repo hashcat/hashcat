@@ -26,14 +26,6 @@
 #include <pthread.h>
 #endif
 
-
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
-// #include <stdint.h>
-#include <math.h>
-// #include <float.h>
-// #include <inttypes.h>
 #define PW_MAX 32
 
 
