@@ -1,4 +1,6 @@
-This document serves as a temporary guide to the notional oclHashcat API. The intent is show other potential developers the current direction of the API, and to get them up-to-speed to help with development of the API itself. The idea is for this to be replaced by a complete API reference once completed. 
+This document serves as a temporary guide to the notional oclHashcat API. The intent is show other potential developers the current direction of the API, and to get them up-to-speed to help with development of the API itself. The idea is for this to be replaced by a complete API reference once completed. One of the main goals is to make as little changes to the main code base as possible. 
+
+There's still a lot of work to do.
 
 
 Basic concept:
@@ -72,22 +74,13 @@ Data Structures:
 
 This structure is returned by the oclhashcat_init() function, and provides the following convienance functions controlling oclHashcat programmatically
 
-  start, stop, generate_commandline, get_data, start_thread
-  
-  Ex: 
-  OCLHASHCAT_CON hc = oclhashcat_init();
-  hc.start() // see below for a more complete example
-  hc.stop() 
-  
-  
+  start, stop, generate_commandline, get_data, start_thread. See below for an example.
+
+
     struct hcapi_options;
   
-This structure holds all the various command line variables for oclHashcat. Each option can be accessed/assigned via the dot operator
+This structure holds all the various command line variables for oclHashcat. Each option can be accessed/assigned via the dot operator. See example below.
 
-    hc.options.attack_mode = 0;
-  	hc.options.hash_mode = 1000;
-  	hc.options.hash_input = "C:\\Users\\auser\\Desktop\\hashes.txt";
-  
     struct hcapi_thread_args;
 
 This structure is used by hcapi_start_thread to pass multiple args to the thread creation functions. 
