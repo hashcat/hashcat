@@ -250,9 +250,18 @@ typedef struct ADLOD6PowerControlInfo
   int iExtMask;
 } ADLOD6PowerControlInfo;
 
+/* __stdcall definition, platform-dependent:
+ * - Already defined on Windows compilers
+ * - GCC has a suitable equivalent on 32-bit platforms
+ * - Leave it blank for other platforms/compilers
+ */
 #if !(defined (_WIN32) || defined (_WIN64))
+#if (defined(__GNUC__) && defined(__i386__))
+#define __stdcall __attribute__((stdcall))
+#else
 #define __stdcall
-#endif
+#endif /* GCC 32-bit  */
+#endif /* Not windows */
 
 typedef void* (__stdcall *ADL_MAIN_MALLOC_CALLBACK )( int );
 
