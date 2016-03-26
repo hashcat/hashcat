@@ -196,27 +196,6 @@ extern int SUPPRESS_OUTPUT;
 extern hc_thread_mutex_t mux_display;
 
 /**
- * password lengths supported
- */
-
-#define PW_LENGTH_MIN_0      0
-#define PW_LENGTH_MAX_0      55
-#define PW_LENGTH_MIN_400    0
-#define PW_LENGTH_MAX_400    40
-#define PW_LENGTH_MIN_500    0
-#define PW_LENGTH_MAX_500    15
-#define PW_LENGTH_MIN_1600   0
-#define PW_LENGTH_MAX_1600   15
-#define PW_LENGTH_MIN_1800   0
-#define PW_LENGTH_MAX_1800   15
-#define PW_LENGTH_MIN_2500   0
-#define PW_LENGTH_MAX_2500   64
-#define PW_LENGTH_MIN_6300   0
-#define PW_LENGTH_MAX_6300   15
-#define PW_LENGTH_MIN_7400   0
-#define PW_LENGTH_MAX_7400   15
-
-/**
  * Strings
  */
 
