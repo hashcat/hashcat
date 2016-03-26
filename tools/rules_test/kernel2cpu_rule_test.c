@@ -11,7 +11,7 @@
 #define RP_GEN_FUNC_MAX      4
 #define PW_MAX              32
 #define LINE_SIG_LEN        RP_GEN_FUNC_MAX * 2 + 1
-
+3
 int max_len = 0;
 
 #include "cpu_rules.h"
@@ -59,7 +59,9 @@ int main (int argc, char **argv)
 {
   FILE *fp = stdin;
 
-  char rule_buf[BUFSIZ];
+  char *rule_buf = (char *) malloc (HCBUFSIZ);
+
+  char *line_buf = (char *) mymalloc (HCBUFSIZ);
 
   int rp_gen_func_min = RP_GEN_FUNC_MIN;
   int rp_gen_func_max = RP_GEN_FUNC_MAX;
@@ -72,9 +74,7 @@ int main (int argc, char **argv)
 
     if (feof (fp)) break;
 
-    char line_buf[BUFSIZ + 1];
-
-    char *line_ptr = fgets (line_buf, BUFSIZ, fp);
+    char *line_ptr = fgets (line_buf, HCBUFSIZ - 1, fp);
 
     if (line_ptr == NULL) continue;
 
@@ -116,7 +116,7 @@ int main (int argc, char **argv)
       }
       else
       {
-        strncpy (rule_buf, argv[1], BUFSIZ);
+        strncpy (rule_buf, argv[1], HCBUFSIZ - 1);
 
         rule_len = strlen (rule_buf);
       }
@@ -203,6 +203,10 @@ int main (int argc, char **argv)
   }
 
   fclose (fp);
+
+  free (line_buf);
+
+  free (rule_buf);
 
   return 0;
 }

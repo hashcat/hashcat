@@ -1666,8 +1666,8 @@ int mangle_title              (char arr[BLOCK_SIZE], int arr_len);
 int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], u32 rp_gen_func_min, u32 rp_gen_func_max);
 int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, char out[BLOCK_SIZE]);
 
-int cpu_rule_to_kernel_rule (char rule_buf[BUFSIZ], uint rule_len, kernel_rule_t *rule);
-int kernel_rule_to_cpu_rule (char rule_buf[BUFSIZ], kernel_rule_t *rule);
+int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule);
+int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);
 
 void *thread_device_watch (void *p);
 void *thread_keypress     (void *p);

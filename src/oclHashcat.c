@@ -3067,6 +3067,8 @@ static void autotune (hc_device_param_t *device_param)
 
 static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 {
+  char *line_buf = (char *) mymalloc (HCBUFSIZ);
+
   // init speed timer
 
   uint speed_pos = device_param->speed_pos;
@@ -3180,8 +3182,6 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
       if (data.attack_mode == ATTACK_MODE_COMBI)
       {
-        char line_buf[BUFSIZ] = { 0 };
-
         uint i = 0;
 
         while (i < innerloop_left)
@@ -3388,6 +3388,8 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
   }
 
   device_param->speed_pos = speed_pos;
+
+  myfree (line_buf);
 }
 
 static void load_segment (wl_data_t *wl_data, FILE *fd)
@@ -4104,11 +4106,11 @@ static void *thread_outfile_remove (void *p)
 
               fseek (fp, out_info[j].seek, SEEK_SET);
 
+              char *line_buf = (char *) mymalloc (HCBUFSIZ);
+
               while (!feof (fp))
               {
-                char line_buf[BUFSIZ] = { 0 };
-
-                char *ptr = fgets (line_buf, BUFSIZ - 1, fp);
+                char *ptr = fgets (line_buf, HCBUFSIZ - 1, fp);
 
                 if (ptr == NULL) break;
 
@@ -4253,6 +4255,8 @@ static void *thread_outfile_remove (void *p)
                 if (data.devices_status == STATUS_CRACKED) break;
               }
 
+              myfree (line_buf);
+
               out_info[j].seek = ftell (fp);
 
               //hc_thread_mutex_unlock (mux_display);
@@ -4362,6 +4366,8 @@ static void *thread_calc_stdin (void *p)
 
   autotune (device_param);
 
+  char *buf = (char *) mymalloc (HCBUFSIZ);
+
   const uint attack_kern = data.attack_kern;
 
   const uint kernel_power = device_param->kernel_power;
@@ -4381,9 +4387,7 @@ static void *thread_calc_stdin (void *p)
 
     while (words_cur < kernel_power)
     {
-      char buf[BUFSIZ] = { 0 };
-
-      char *line_buf = fgets (buf, sizeof (buf), stdin);
+      char *line_buf = fgets (buf, HCBUFSIZ - 1, stdin);
 
       if (line_buf == NULL) break;
 
@@ -4493,6 +4497,8 @@ static void *thread_calc_stdin (void *p)
 
   device_param->kernel_accel = 0;
   device_param->kernel_loops = 0;
+
+  myfree (buf);
 
   return NULL;
 }
@@ -4874,7 +4880,7 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
 
 // hlfmt hashcat
 
-static void hlfmt_hash_hashcat (char line_buf[BUFSIZ], int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_hashcat (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   if (data.username == 0)
   {
@@ -4903,7 +4909,7 @@ static void hlfmt_hash_hashcat (char line_buf[BUFSIZ], int line_len, char **hash
   }
 }
 
-static void hlfmt_user_hashcat (char line_buf[BUFSIZ], int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_hashcat (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
   char *pos = NULL;
   int   len = 0;
@@ -4933,7 +4939,7 @@ static void hlfmt_user_hashcat (char line_buf[BUFSIZ], int line_len, char **user
 
 // hlfmt pwdump
 
-static int hlfmt_detect_pwdump (char line_buf[BUFSIZ], int line_len)
+static int hlfmt_detect_pwdump (char *line_buf, int line_len)
 {
   int sep_cnt = 0;
 
@@ -4958,7 +4964,7 @@ static int hlfmt_detect_pwdump (char line_buf[BUFSIZ], int line_len)
   return 0;
 }
 
-static void hlfmt_hash_pwdump (char line_buf[BUFSIZ], int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_pwdump (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   char *pos = NULL;
   int   len = 0;
@@ -4998,7 +5004,7 @@ static void hlfmt_hash_pwdump (char line_buf[BUFSIZ], int line_len, char **hashb
   *hashbuf_len = len;
 }
 
-static void hlfmt_user_pwdump (char line_buf[BUFSIZ], int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_pwdump (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
   char *pos = NULL;
   int   len = 0;
@@ -5028,7 +5034,7 @@ static void hlfmt_user_pwdump (char line_buf[BUFSIZ], int line_len, char **userb
 
 // hlfmt passwd
 
-static int hlfmt_detect_passwd (char line_buf[BUFSIZ], int line_len)
+static int hlfmt_detect_passwd (char *line_buf, int line_len)
 {
   int sep_cnt = 0;
 
@@ -5053,7 +5059,7 @@ static int hlfmt_detect_passwd (char line_buf[BUFSIZ], int line_len)
   return 0;
 }
 
-static void hlfmt_hash_passwd (char line_buf[BUFSIZ], int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_passwd (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   char *pos = NULL;
   int   len = 0;
@@ -5081,7 +5087,7 @@ static void hlfmt_hash_passwd (char line_buf[BUFSIZ], int line_len, char **hashb
   *hashbuf_len = len;
 }
 
-static void hlfmt_user_passwd (char line_buf[BUFSIZ], int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_passwd (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
   char *pos = NULL;
   int   len = 0;
@@ -5111,7 +5117,7 @@ static void hlfmt_user_passwd (char line_buf[BUFSIZ], int line_len, char **userb
 
 // hlfmt shadow
 
-static int hlfmt_detect_shadow (char line_buf[BUFSIZ], int line_len)
+static int hlfmt_detect_shadow (char *line_buf, int line_len)
 {
   int sep_cnt = 0;
 
@@ -5125,19 +5131,19 @@ static int hlfmt_detect_shadow (char line_buf[BUFSIZ], int line_len)
   return 0;
 }
 
-static void hlfmt_hash_shadow (char line_buf[BUFSIZ], int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_shadow (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   hlfmt_hash_passwd (line_buf, line_len, hashbuf_pos, hashbuf_len);
 }
 
-static void hlfmt_user_shadow (char line_buf[BUFSIZ], int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_shadow (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
   hlfmt_user_passwd (line_buf, line_len, userbuf_pos, userbuf_len);
 }
 
 // hlfmt main
 
-static void hlfmt_hash (uint hashfile_format, char line_buf[BUFSIZ], int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   switch (hashfile_format)
   {
@@ -5148,7 +5154,7 @@ static void hlfmt_hash (uint hashfile_format, char line_buf[BUFSIZ], int line_le
   }
 }
 
-static void hlfmt_user (uint hashfile_format, char line_buf[BUFSIZ], int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
   switch (hashfile_format)
   {
@@ -5189,10 +5195,10 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 
   uint num_check = 0;
 
+  char *line_buf = (char *) mymalloc (HCBUFSIZ);
+
   while (!feof (fp))
   {
-    char line_buf[BUFSIZ] = { 0 };
-
     int line_len = fgetl (fp, line_buf);
 
     if (line_len == 0) continue;
@@ -5205,6 +5211,8 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 
     num_check++;
   }
+
+  myfree (line_buf);
 
   uint hashlist_format = HLFMT_HASHCAT;
 
@@ -10527,11 +10535,11 @@ int main (int argc, char **argv)
 
       uint line_num = 0;
 
+      char *line_buf = (char *) mymalloc (HCBUFSIZ);
+
       while (!feof (pot_fp))
       {
         line_num++;
-
-        char line_buf[BUFSIZ] = { 0 };
 
         int line_len = fgetl (pot_fp, line_buf);
 
@@ -10641,6 +10649,8 @@ int main (int argc, char **argv)
 
         pot_cnt++;
       }
+
+      myfree (line_buf);
 
       fclose (pot_fp);
 
@@ -11166,11 +11176,11 @@ int main (int argc, char **argv)
 
         uint line_num = 0;
 
+        char *line_buf = (char *) mymalloc (HCBUFSIZ);
+
         while (!feof (fp))
         {
           line_num++;
-
-          char line_buf[BUFSIZ] = { 0 };
 
           int line_len = fgetl (fp, line_buf);
 
@@ -11308,6 +11318,8 @@ int main (int argc, char **argv)
             hashes_cnt++;
           }
         }
+
+        myfree (line_buf);
 
         fclose (fp);
 
@@ -11824,11 +11836,17 @@ int main (int argc, char **argv)
 
         if (fp != NULL)
         {
+          char *line_buf = (char *) mymalloc (HCBUFSIZ);
+
+          // to be safe work with a copy (because of line_len loop, i etc)
+          // moved up here because it's easier to handle continue case
+          // it's just 64kb
+
+          char *line_buf_cpy = (char *) mymalloc (HCBUFSIZ);
+
           while (!feof (fp))
           {
-            char line_buf[BUFSIZ] =  { 0 };
-
-            char *ptr = fgets (line_buf, BUFSIZ - 1, fp);
+            char *ptr = fgets (line_buf, HCBUFSIZ - 1, fp);
 
             if (ptr == NULL) break;
 
@@ -11867,10 +11885,6 @@ int main (int argc, char **argv)
                 {
                   // here we have in line_buf: ESSID:MAC1:MAC2   (without the plain)
                   // manipulate salt_buf
-
-                  // to be safe work with a copy (because of line_len loop, i etc)
-
-                  char line_buf_cpy[BUFSIZ] = { 0 };
 
                   memcpy (line_buf_cpy, line_buf, i);
 
@@ -11973,6 +11987,10 @@ int main (int argc, char **argv)
               iter--;
             }
           }
+
+          myfree (line_buf_cpy);
+
+          myfree (line_buf);
 
           fclose (fp);
         }
@@ -12349,7 +12367,7 @@ int main (int argc, char **argv)
       all_kernel_rules_buf = (kernel_rule_t **) mycalloc (rp_files_cnt, sizeof (kernel_rule_t *));
     }
 
-    char rule_buf[BUFSIZ] = { 0 };
+    char *rule_buf = (char *) mymalloc (HCBUFSIZ);
 
     int rule_len = 0;
 
@@ -12379,7 +12397,7 @@ int main (int argc, char **argv)
 
       while (!feof (fp))
       {
-        memset (rule_buf, 0, BUFSIZ);
+        memset (rule_buf, 0, HCBUFSIZ);
 
         rule_len = fgetl (fp, rule_buf);
 
@@ -12507,7 +12525,7 @@ int main (int argc, char **argv)
             kernel_rules_avail += INCR_RULES;
           }
 
-          memset (rule_buf, 0, BLOCK_SIZE);
+          memset (rule_buf, 0, HCBUFSIZ);
 
           rule_len = (int) generate_random_rule (rule_buf, rp_gen_func_min, rp_gen_func_max);
 
@@ -12517,6 +12535,8 @@ int main (int argc, char **argv)
         }
       }
     }
+
+    myfree (rule_buf);
 
     /**
      * generate NOP rules
@@ -15095,11 +15115,11 @@ int main (int argc, char **argv)
                   return (-1);
                 }
 
-                char line_buf[BUFSIZ] = { 0 };
+                char *line_buf = (char *) mymalloc (HCBUFSIZ);
 
                 while (!feof (mask_fp))
                 {
-                  memset (line_buf, 0, BUFSIZ);
+                  memset (line_buf, 0, HCBUFSIZ);
 
                   int line_len = fgetl (mask_fp, line_buf);
 
@@ -15118,6 +15138,8 @@ int main (int argc, char **argv)
 
                   maskcnt++;
                 }
+
+                myfree (line_buf);
 
                 fclose (mask_fp);
               }
@@ -15234,13 +15256,13 @@ int main (int argc, char **argv)
             return (-1);
           }
 
-          char line_buf[BUFSIZ] = { 0 };
+          char *line_buf = (char *) mymalloc (HCBUFSIZ);
 
           uint masks_avail = 1;
 
           while (!feof (mask_fp))
           {
-            memset (line_buf, 0, BUFSIZ);
+            memset (line_buf, 0, HCBUFSIZ);
 
             int line_len = fgetl (mask_fp, line_buf);
 
@@ -15259,6 +15281,8 @@ int main (int argc, char **argv)
 
             maskcnt++;
           }
+
+          myfree (line_buf);
 
           fclose (mask_fp);
 
@@ -15411,13 +15435,13 @@ int main (int argc, char **argv)
             return (-1);
           }
 
-          char line_buf[BUFSIZ] = { 0 };
+          char *line_buf = (char *) mymalloc (HCBUFSIZ);
 
           uint masks_avail = 1;
 
           while (!feof (mask_fp))
           {
-            memset (line_buf, 0, BUFSIZ);
+            memset (line_buf, 0, HCBUFSIZ);
 
             int line_len = fgetl (mask_fp, line_buf);
 
@@ -15436,6 +15460,8 @@ int main (int argc, char **argv)
 
             maskcnt++;
           }
+
+          myfree (line_buf);
 
           fclose (mask_fp);
 

@@ -4197,13 +4197,13 @@ uint count_lines (FILE *fd)
 {
   uint cnt = 0;
 
-  char *buf = (char *) mymalloc (BUFSIZ + 1);
+  char *buf = (char *) mymalloc (HCBUFSIZ + 1);
 
   char prev = '\n';
 
   while (!feof (fd))
   {
-    size_t nread = fread (buf, sizeof (char), BUFSIZ, fd);
+    size_t nread = fread (buf, sizeof (char), HCBUFSIZ, fd);
 
     if (nread < 1) continue;
 
@@ -5453,7 +5453,7 @@ int fgetl (FILE *fp, char *line_buf)
 
     line_len++;
 
-    if (line_len == BUFSIZ) line_len--;
+    if (line_len == HCBUFSIZ) line_len--;
 
     if (c == '\n') break;
   }
@@ -8856,18 +8856,18 @@ restore_data_t *init_restore (int argc, char **argv)
 
       if (rd->pid)
       {
-        char pidbin[BUFSIZ] = { 0 };
+        char *pidbin = (char *) mymalloc (HCBUFSIZ);
 
         int pidbin_len = -1;
 
         #ifdef _POSIX
-        snprintf (pidbin, sizeof (pidbin) - 1, "/proc/%d/cmdline", rd->pid);
+        snprintf (pidbin, HCBUFSIZ - 1, "/proc/%d/cmdline", rd->pid);
 
         FILE *fd = fopen (pidbin, "rb");
 
         if (fd)
         {
-          pidbin_len = fread (pidbin, 1, BUFSIZ, fd);
+          pidbin_len = fread (pidbin, 1, HCBUFSIZ, fd);
 
           pidbin[pidbin_len] = 0;
 
@@ -8892,12 +8892,12 @@ restore_data_t *init_restore (int argc, char **argv)
         #elif _WIN
         HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, rd->pid);
 
-        char pidbin2[BUFSIZ] = { 0 };
+        char *pidbin2 = (char *) mymalloc (HCBUFSIZ);
 
         int pidbin2_len = -1;
 
-        pidbin_len = GetModuleFileName (NULL, pidbin, BUFSIZ);
-        pidbin2_len = GetModuleFileNameEx (hProcess, NULL, pidbin2, BUFSIZ);
+        pidbin_len = GetModuleFileName (NULL, pidbin, HCBUFSIZ);
+        pidbin2_len = GetModuleFileNameEx (hProcess, NULL, pidbin2, HCBUFSIZ);
 
         pidbin[pidbin_len] = 0;
         pidbin2[pidbin2_len] = 0;
@@ -8911,7 +8911,12 @@ restore_data_t *init_restore (int argc, char **argv)
             exit (-1);
           }
         }
+
+        myfree (pidbin2);
+
         #endif
+
+        myfree (pidbin);
       }
 
       if (rd->version_bin < RESTORE_MIN)
@@ -8966,11 +8971,11 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
 
   rd->argv = (char **) mycalloc (rd->argc, sizeof (char *));
 
+  char *buf = (char *) mymalloc (HCBUFSIZ);
+
   for (uint i = 0; i < rd->argc; i++)
   {
-    char buf[BUFSIZ] = { 0 };
-
-    if (fgets (buf, BUFSIZ - 1, fp) == NULL)
+    if (fgets (buf, HCBUFSIZ - 1, fp) == NULL)
     {
       log_error ("ERROR: cannot read %s", eff_restore_file);
 
@@ -8983,6 +8988,8 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
 
     rd->argv[i] = mystrdup (buf);
   }
+
+  myfree (buf);
 
   fclose (fp);
 
@@ -9180,11 +9187,11 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
 
   int line_num = 0;
 
+  char *buf = (char *) mymalloc (HCBUFSIZ);
+
   while (!feof (fp))
   {
-    char buf[BUFSIZ];
-
-    char *line_buf = fgets (buf, sizeof (buf) - 1, fp);
+    char *line_buf = fgets (buf, HCBUFSIZ - 1, fp);
 
     if (line_buf == NULL) break;
 
@@ -9312,6 +9319,8 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
       continue;
     }
   }
+
+  myfree (buf);
 
   fclose (fp);
 
@@ -11540,11 +11549,11 @@ int sha1axcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   if ((input_len < DISPLAY_LEN_MIN_13300) || (input_len > DISPLAY_LEN_MAX_13300)) return (PARSER_GLOBAL_LENGTH);
 
   if (memcmp (SIGNATURE_AXCRYPT_SHA1, input_buf, 13)) return (PARSER_SIGNATURE_UNMATCHED);
- 
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   input_buf +=14;
-  
+
   digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
@@ -18943,22 +18952,22 @@ int axcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   char *salt_pos;
 
   char *wrapped_key_pos;
-  
+
   char *data_pos;
 
   salt->salt_iter = atoi (wrapping_rounds_pos);
-  
+
   salt_pos = strchr (wrapping_rounds_pos, '*');
 
   if (salt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-  
+
   uint wrapping_rounds_len = salt_pos - wrapping_rounds_pos;
 
   /* Skip '*' */
   salt_pos++;
-  
+
   data_pos = salt_pos;
-  
+
   wrapped_key_pos = strchr (salt_pos, '*');
 
   if (wrapped_key_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
@@ -18983,7 +18992,7 @@ int axcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_buf[4] = hex_to_u32 ((const u8 *) &data_pos[ 0]);
   salt->salt_buf[5] = hex_to_u32 ((const u8 *) &data_pos[ 8]);
-  salt->salt_buf[6] = hex_to_u32 ((const u8 *) &data_pos[16]); 
+  salt->salt_buf[6] = hex_to_u32 ((const u8 *) &data_pos[16]);
   salt->salt_buf[7] = hex_to_u32 ((const u8 *) &data_pos[24]);
   salt->salt_buf[8] = hex_to_u32 ((const u8 *) &data_pos[32]);
   salt->salt_buf[9] = hex_to_u32 ((const u8 *) &data_pos[40]);
@@ -19574,7 +19583,7 @@ int conv_itoc (const u8 c)
 #define GET_P0_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >>  8) & 0xff)
 #define GET_P1_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >> 16) & 0xff)
 
-int cpu_rule_to_kernel_rule (char rule_buf[BUFSIZ], uint rule_len, kernel_rule_t *rule)
+int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule)
 {
   uint rule_pos;
   uint rule_cnt;
@@ -19790,11 +19799,11 @@ int cpu_rule_to_kernel_rule (char rule_buf[BUFSIZ], uint rule_len, kernel_rule_t
   return (0);
 }
 
-int kernel_rule_to_cpu_rule (char rule_buf[BUFSIZ], kernel_rule_t *rule)
+int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
 {
   uint rule_cnt;
   uint rule_pos;
-  uint rule_len = BUFSIZ - 1; // maximum possible len
+  uint rule_len = HCBUFSIZ - 1; // maximum possible len
 
   char rule_cmd;
 
