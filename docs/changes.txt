@@ -175,6 +175,10 @@ Type.: Bug
 File.: Host
 Desc.: Fixed some checks in the parser of -m 5600 = NetNTLMv2
 
+Type.: Bug
+File.: Host
+Desc.: Fixed some checks in the parser of -m 8900 = scrypt
+
 * changes v2.00 -> v2.01:
 
 Type.: Bug
