@@ -5876,7 +5876,7 @@ char *strstatus (const uint devices_status)
   return ((char *) "Unknown");
 }
 
-void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
+void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
 {
   uint hash_type = data.hash_type;
   uint hash_mode = data.hash_mode;

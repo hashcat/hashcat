@@ -1110,7 +1110,7 @@ void status_display ()
     }
     else
     {
-      char out_buf[4096] = { 0 };
+      char out_buf[HCBUFSIZ] = { 0 };
 
       ascii_digest (out_buf, 0, 0);
 
@@ -1130,8 +1130,8 @@ void status_display ()
   {
     if (data.hash_mode == 3000)
     {
-      char out_buf1[4096] = { 0 };
-      char out_buf2[4096] = { 0 };
+      char out_buf1[32] = { 0 };
+      char out_buf2[32] = { 0 };
 
       ascii_digest (out_buf1, 0, 0);
       ascii_digest (out_buf2, 0, 1);
@@ -1873,7 +1873,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
   // hash
 
-  char out_buf[4096] = { 0 };
+  char out_buf[HCBUFSIZ] = { 0 };
 
   ascii_digest (out_buf, salt_pos, digest_pos);
 
@@ -2318,7 +2318,7 @@ static void save_hash ()
 
       if (data.hash_mode != 2500)
       {
-        char out_buf[4096] = { 0 };
+        char out_buf[HCBUFSIZ] = { 0 };
 
         if (data.username == 1)
         {

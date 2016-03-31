@@ -1333,7 +1333,7 @@ u32 get_random_num (const u32 min, const u32 max);
 u32 mydivc32 (const u32 dividend, const u32 divisor);
 u64 mydivc64 (const u64 dividend, const u64 divisor);
 
-void ascii_digest (char out_buf[1024], uint salt_pos, uint digest_pos);
+void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos);
 void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos);
 
 void format_speed_display (float val, char *buf, size_t len);
