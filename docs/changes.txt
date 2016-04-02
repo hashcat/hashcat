@@ -184,6 +184,10 @@ Type.: Bug
 File.: Host
 Desc.: Fixed some checks in the parser of -m 8900 = scrypt
 
+Type.: Bug
+File.: Host
+Desc.: Fixed some checks in the parser of -m 10200 = Cram MD5
+
 * changes v2.00 -> v2.01:
 
 Type.: Bug

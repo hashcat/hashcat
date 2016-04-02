@@ -16182,15 +16182,17 @@ int crammd5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *hash_pos = strchr (salt_pos, '$');
 
-  uint salt_len = hash_pos - salt_pos;
-
   if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint salt_len = hash_pos - salt_pos;
 
   hash_pos++;
 
   uint hash_len = input_len - 10 - salt_len - 1;
 
   // base64 decode salt
+
+  if (salt_len > 133) return (PARSER_SALT_LENGTH);
 
   u8 tmp_buf[100] = { 0 };
 
@@ -16204,11 +16206,15 @@ int crammd5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_len = salt_len;
 
-  // base64 decode salt
+  // base64 decode hash
+
+  if (hash_len > 133) return (PARSER_HASH_LENGTH);
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
   hash_len = base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+
+  if (hash_len < 32 + 1) return (PARSER_SALT_LENGTH);
 
   uint user_len = hash_len - 32;
 
