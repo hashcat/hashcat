@@ -26,6 +26,7 @@ use Crypt::Digest::Whirlpool   qw (whirlpool_hex);
 use Crypt::RC4;
 use Crypt::ScryptKDF qw (scrypt_hash scrypt_b64);
 use Crypt::Rijndael;
+use Crypt::Twofish;
 use Crypt::Mode::ECB;
 use Crypt::UnixCrypt_XS qw (crypt_rounds fold_password base64_to_int24 block_to_base64 int24_to_base64);
 use MIME::Base64;
@@ -44,7 +45,7 @@ my $hashcat = "./oclHashcat";
 
 my $MAX_LEN = 55;
 
-my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 130, 131, 132, 140, 141, 150, 160, 190, 200, 300, 400, 500, 900, 1000, 1100, 1400, 1410, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7100, 7200, 7300, 7400, 7500, 7600, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300);
+my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 130, 131, 132, 140, 141, 150, 160, 190, 200, 300, 400, 500, 900, 1000, 1100, 1400, 1410, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7100, 7200, 7300, 7400, 7500, 7600, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300, 13400);
 
 my %is_unicode      = map { $_ => 1 } qw(30 40 130 131 132 133 140 141 1000 1100 1430 1440 1441 1730 1740 1731 5500 5600 8000 9400 9500 9600 9700 9800);
 my %less_fifteen    = map { $_ => 1 } qw(500 1600 1800 2400 2410 3200 6300 7400 10500 10700);
@@ -2231,7 +2232,7 @@ sub verify
       $spn          = substr ($spn, 0, length ($spn) - 1);
       my $checksum  = shift @data;
       my $edata2    = shift @data;
-      
+   
       next unless ($signature eq "krb5tgs");
       next unless (length ($checksum) == 32);
       next unless (length ($edata2) >= 64);
@@ -2285,6 +2286,70 @@ sub verify
 
       next unless ($signature eq '$axcrypt_sha1');
       next unless (length ($digest) == 32 || length ($digest) == 40);
+
+      next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
+    }
+    elsif ($mode == 13400)
+    {
+      ($hash_in, $word) = split ":", $line;
+
+      next unless defined $hash_in;
+      next unless defined $word;
+
+      my @data = split ('\*', $hash_in);
+
+      next unless (scalar @data == 9 || scalar @data == 11);
+
+      my $signature = shift @data;
+      next unless ($signature eq '$keepass$');
+   
+      my $version = shift @data;
+      next unless ($version == 1 || $version == 2);
+   
+      my $iteration          = shift @data;
+   
+      my $algorithm          = shift @data;
+
+      my $final_random_seed  = shift @data;
+   
+      if ($version == 1)
+      {
+        next unless (length ($final_random_seed) == 32);
+      }
+      elsif ($version == 2)
+      {
+        next unless (length ($final_random_seed) == 64);
+      }
+   
+      my $transf_random_seed = shift @data;
+      next unless (length ($transf_random_seed) == 64);
+
+      my $enc_iv = shift @data;
+      next unless (length ($enc_iv) == 32);
+
+      if ($version == 1)
+      {
+        my $contents_hash  = shift @data;
+        next unless (length ($contents_hash) == 64);
+
+        my $inline_flags   = shift @data;
+        next unless ($inline_flags == 1);
+
+        my $contents_len   = shift @data;
+     
+        my $contents       = shift @data;
+        next unless (length ($contents) == $contents_len * 2);
+      }
+      elsif ($version == 2)
+      {
+        my $expected_bytes = shift @data;
+        next unless (length ($expected_bytes) == 64);
+     
+        my $contents_hash  = shift @data;
+        next unless (length ($contents_hash) == 64);
+      }
+
+      $salt = substr ($hash_in, length ("*keepass*") + 1, length ($hash_in));
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
@@ -2584,6 +2649,14 @@ sub verify
 
       $len = length $hash_out;
 
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
+    elsif ($mode == 13400)
+    {
+      $hash_out = gen_hash ($mode, $word, $salt);
+
+      $len = length $hash_out;
+   
       return unless (substr ($line, 0, $len) eq $hash_out);
     }
     else
@@ -3015,6 +3088,12 @@ sub passthrough
     elsif ($mode == 13200)
     {
       $salt_buf = get_random_axcrypt_salt ();
+
+      $tmp_hash = gen_hash ($mode, $word_buf, $salt_buf);
+    }
+    elsif ($mode == 13400)
+    {
+      $salt_buf = get_random_keepass_salt ();
 
       $tmp_hash = gen_hash ($mode, $word_buf, $salt_buf);
     }
@@ -3770,6 +3849,20 @@ sub single
         else
         {
           rnd ($mode, $i, 32);
+        }
+      }
+    }
+    elsif ($mode == 13400)
+    {
+      for (my $i = 1; $i < 16; $i++)
+      {
+        if ($len != 0)
+        {
+          rnd ($mode, $len, 16);
+        }
+        else
+        {
+          rnd ($mode, $i, 16);
         }
       }
     }
@@ -6845,6 +6938,130 @@ END_CODE
     $tmp_hash = sprintf ('$axcrypt_sha1$%s', substr ($hash_buf, 0, 32));
   }
 
+
+  elsif ($mode == 13400)
+  {
+    my @salt_arr = split ('\*', $salt_buf);
+
+    my $version    = $salt_arr[0];
+
+    my $iteration  = $salt_arr[1];
+
+    my $algorithm  = $salt_arr[2];
+
+    my $final_random_seed  = $salt_arr[3];
+ 
+    my $transf_random_seed = $salt_arr[4];
+ 
+    my $enc_iv = $salt_arr[5];
+
+    my $contents_hash;
+
+    # specific to version 1
+    my $inline_flag;
+    my $contents_len;
+    my $contents;
+
+    # specific to version 2
+    my $expected_bytes;
+
+    $final_random_seed  = pack ("H*", $final_random_seed);
+
+    $transf_random_seed = pack ("H*", $transf_random_seed);
+
+    $enc_iv = pack ("H*", $enc_iv);
+
+    my $intermediate_hash = sha256 ($word_buf);
+ 
+    if ($version == 1)
+    {
+      $contents_hash = $salt_arr[6];
+      $contents_hash = pack ("H*", $contents_hash);
+   
+      $inline_flag   = $salt_arr[7];
+   
+      $contents_len  = $salt_arr[8];
+   
+      $contents      = $salt_arr[9];
+      $contents      = pack ("H*", $contents);
+    }
+    elsif ($version == 2)
+    {
+      $intermediate_hash = sha256 ($intermediate_hash);
+    }
+
+    my $aes = Crypt::Mode::ECB->new ('AES', 1);
+
+    for (my $j = 0; $j < $iteration; $j++)
+    {
+      $intermediate_hash = $aes->encrypt ($intermediate_hash, $transf_random_seed);
+
+      $intermediate_hash = substr ($intermediate_hash, 0, 32);
+    }
+ 
+    $intermediate_hash = sha256 ($intermediate_hash);
+ 
+    my $final_key = sha256 ($final_random_seed . $intermediate_hash);
+   
+    my $final_algorithm;
+
+    if ($version == 1 && $algorithm == 1)
+    {
+      $final_algorithm = "Crypt::Twofish";
+    }
+    else
+    {
+      $final_algorithm = "Crypt::Rijndael";
+    }
+
+    my $cipher = Crypt::CBC->new ({
+                   key         => $final_key,
+                   cipher      => $final_algorithm,
+                   iv          => $enc_iv,
+                   literal_key => 1,
+                   header      => "none",
+                   keysize     => 32
+                 });
+ 
+    if ($version == 1)
+    { 
+      $contents_hash = sha256 ($contents);
+   
+      $contents = $cipher->encrypt($contents);
+
+      $tmp_hash = sprintf ('$keepass$*%d*%d*%d*%s*%s*%s*%s*%d*%d*%s',
+            $version,
+            $iteration,
+            $algorithm,
+            unpack ("H*", $final_random_seed),
+            unpack ("H*", $transf_random_seed),
+            unpack ("H*", $enc_iv),
+            unpack ("H*", $contents_hash),
+            $inline_flag,
+            $contents_len,
+            unpack ("H*", $contents));
+    }
+    if ($version == 2)
+    {
+      $expected_bytes =  $salt_arr[6];
+   
+      $contents_hash = $salt_arr[7];
+      $contents_hash = pack ("H*", $contents_hash);
+   
+      $expected_bytes = $cipher->decrypt($contents_hash);
+
+      $tmp_hash = sprintf ('$keepass$*%d*%d*%d*%s*%s*%s*%s*%s',
+            $version,
+            $iteration,
+            $algorithm,
+            unpack ("H*", $final_random_seed),
+            unpack ("H*", $transf_random_seed),
+            unpack ("H*", $enc_iv),
+            unpack ("H*", $expected_bytes),
+            unpack ("H*", $contents_hash));
+    }
+  }
+
   return ($tmp_hash);
 }
 
@@ -6945,6 +7162,10 @@ sub rnd
   elsif ($mode == 13200)
   {
     $salt_buf = get_random_axcrypt_salt ();
+  }
+  elsif ($mode == 13400)
+  {
+    $salt_buf = get_random_keepass_salt ();
   }
   else
   {
@@ -8229,12 +8450,93 @@ sub get_random_kerberos5_tgs_salt
 sub get_random_axcrypt_salt
 {
   my $mysalt = randbytes (16);
-  
+
   $mysalt = unpack ("H*", $mysalt);
 
   my $iteration = get_random_num (6, 100000);
 
   my $salt_buf = $iteration . '*' . $mysalt;
+
+  return $salt_buf;
+}
+
+sub get_random_keepass_salt
+{
+  my $version = 1;# get_random_num (1, 3);
+
+  my $algorithm;
+
+  my $iteration;
+
+  my $final_random_seed;
+
+  if ($version == 1)
+  {
+    $algorithm = 1;#get_random_num (0, 2);
+
+    $iteration = get_random_num (50000, 100000);
+
+    $final_random_seed = randbytes (16);
+    $final_random_seed  = unpack ("H*", $final_random_seed);
+  }
+  elsif ($version == 2)
+  {
+    $algorithm = 0;
+
+    $iteration = get_random_num (6000, 100000);
+
+    $final_random_seed = randbytes (32);
+    $final_random_seed  = unpack ("H*", $final_random_seed);
+  }
+
+  my $transf_random_seed = randbytes (32);
+  $transf_random_seed = unpack ("H*", $transf_random_seed);
+
+  my $enc_iv = randbytes (16);
+  $enc_iv = unpack ("H*", $enc_iv);
+
+  my $contents_hash = randbytes (32);
+  $contents_hash = unpack ("H*", $contents_hash);
+
+  my $inline_flag = 1;
+
+  my $contents_len = get_random_num (128, 500);
+
+  my $contents = randbytes ($contents_len);
+
+  $contents_len += 16 - $contents_len % 16;
+
+  $contents = unpack ("H*", $contents);
+
+  my $salt_buf;
+
+  if ($version == 1)
+  {
+    $salt_buf = $version   . '*' .
+                $iteration . '*' .
+                $algorithm . '*' .
+                $final_random_seed  . '*' .
+                $transf_random_seed . '*' .
+                $enc_iv        . '*' .
+                $contents_hash . '*' .
+                $inline_flag   . '*' .
+                $contents_len  . '*' .
+                $contents;
+  }
+  elsif ($version == 2)
+  {
+    $contents = randbytes (32);
+    $contents = unpack ("H*", $contents);
+ 
+    $salt_buf = $version   . '*' .
+                $iteration . '*' .
+                $algorithm . '*' .
+                $final_random_seed  . '*' .
+                $transf_random_seed . '*' .
+                $enc_iv        . '*' .
+                $contents_hash . '*' .
+                $contents;
+  }
 
   return $salt_buf;
 }

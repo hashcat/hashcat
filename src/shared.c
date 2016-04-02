@@ -5851,6 +5851,7 @@ char *strhashtype (const uint hash_mode)
     case 13100: return ((char *) HT_13100); break;
     case 13200: return ((char *) HT_13200); break;
     case 13300: return ((char *) HT_13300); break;
+    case 13400: return ((char *) HT_13400); break;
   }
 
   return ((char *) "Unknown");
@@ -8347,6 +8348,120 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
               digest_buf[1],
               digest_buf[2],
               digest_buf[3]);
+  }
+  else if (hash_mode == 13400)
+  {
+    keepass_t *keepasss = (keepass_t *) data.esalts_buf;
+
+    keepass_t *keepass = &keepasss[salt_pos];
+
+    u32 version   = (u32) keepass->version;
+    u32 rounds    = salt.salt_iter;
+    u32 algorithm = (u32) keepass->algorithm;
+
+    u32 *ptr_final_random_seed  = (u32 *) keepass->final_random_seed ;
+    u32 *ptr_transf_random_seed = (u32 *) keepass->transf_random_seed ;
+    u32 *ptr_enc_iv             = (u32 *) keepass->enc_iv ;
+    u32 *ptr_contents_hash      = (u32 *) keepass->contents_hash ;
+
+    /* specific to version 1 */
+    u32 contents_len;
+    u32 *ptr_contents;
+
+    /* specific to version 2 */
+    u32 expected_bytes_len;
+    u32 *ptr_expected_bytes;
+
+    u32 final_random_seed_len;
+    u32 transf_random_seed_len;
+    u32 enc_iv_len;
+    u32 contents_hash_len;
+
+    transf_random_seed_len = 8;
+    enc_iv_len             = 4;
+    contents_hash_len      = 8;
+    final_random_seed_len  = 8;
+
+    if (version == 1)
+      final_random_seed_len = 4;
+
+    snprintf (out_buf, len-1, "%s*%d*%d*%d",
+      SIGNATURE_KEEPASS,
+      version,
+      rounds,
+      algorithm);
+
+    char *ptr_data = out_buf;
+
+    ptr_data += strlen(out_buf);
+
+    *ptr_data = '*';
+    ptr_data++;
+
+    for (uint i = 0; i < final_random_seed_len; i++, ptr_data += 8)
+      sprintf (ptr_data, "%08x", ptr_final_random_seed[i]);
+
+    *ptr_data = '*';
+    ptr_data++;
+
+    for (uint i = 0; i < transf_random_seed_len; i++, ptr_data += 8)
+      sprintf (ptr_data, "%08x", ptr_transf_random_seed[i]);
+
+    *ptr_data = '*';
+    ptr_data++;
+
+    for (uint i = 0; i < enc_iv_len; i++, ptr_data += 8)
+      sprintf (ptr_data, "%08x", ptr_enc_iv[i]);
+
+    *ptr_data = '*';
+    ptr_data++;
+
+    if (version == 1)
+    {
+      contents_len = (u32)   keepass->contents_len;
+      ptr_contents = (u32 *) keepass->contents;
+
+      for (uint i = 0; i < contents_hash_len; i++, ptr_data += 8)
+        sprintf (ptr_data, "%08x", ptr_contents_hash[i]);
+ 
+      *ptr_data = '*';
+      ptr_data++;
+   
+      /* inline flag */
+      *ptr_data = '1';
+      ptr_data++;
+   
+      *ptr_data = '*';
+      ptr_data++;
+   
+      char ptr_contents_len[10] = { 0 };
+
+      sprintf ((char*) ptr_contents_len, "%d", contents_len);
+   
+      sprintf (ptr_data, "%d", contents_len);
+   
+      ptr_data += strlen(ptr_contents_len);
+   
+      *ptr_data = '*';
+      ptr_data++;
+
+      for (uint i = 0; i < contents_len / 4; i++, ptr_data += 8)
+        sprintf (ptr_data, "%08x", ptr_contents[i]);
+    }
+    else if (version == 2)
+    {
+      expected_bytes_len = 8;
+      ptr_expected_bytes = (u32 *) keepass->expected_bytes ;
+   
+      for (uint i = 0; i < expected_bytes_len; i++, ptr_data += 8)
+        sprintf (ptr_data, "%08x", ptr_expected_bytes[i]);
+
+      *ptr_data = '*';
+      ptr_data++;
+
+      for (uint i = 0; i < contents_hash_len; i++, ptr_data += 8)
+        sprintf (ptr_data, "%08x", ptr_contents_hash[i]);
+    }
   }
   else
   {
@@ -19007,6 +19122,241 @@ int axcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[1] = salt->salt_buf[1];
   digest[2] = salt->salt_buf[2];
   digest[3] = salt->salt_buf[3];
+
+  return (PARSER_OK);
+}
+
+int keepass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_13400) || (input_len > DISPLAY_LEN_MAX_13400)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_KEEPASS, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  keepass_t *keepass = (keepass_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  char *version_pos;
+
+  char *rounds_pos;
+
+  char *algorithm_pos;
+
+  char *final_random_seed_pos;
+  u32   final_random_seed_len;
+
+  char *transf_random_seed_pos;
+  u32   transf_random_seed_len;
+
+  char *enc_iv_pos;
+  u32   enc_iv_len;
+
+  /* specific to version 1 */
+  char *contents_len_pos;
+  u32   contents_len;
+  char *contents_pos;
+
+  /* specific to version 2 */
+  char *expected_bytes_pos;
+  u32   expected_bytes_len;
+
+  char *contents_hash_pos;
+  u32   contents_hash_len;
+
+  version_pos = input_buf + 8 + 1 + 1;
+
+  keepass->version = atoi (version_pos);
+
+  rounds_pos = strchr (version_pos, '*');
+  rounds_pos++;
+
+  if (rounds_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  salt->salt_iter = (atoi (rounds_pos));
+
+  algorithm_pos = strchr (rounds_pos, '*');
+  algorithm_pos++;
+
+  if (algorithm_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  keepass->algorithm = atoi (algorithm_pos);
+
+  final_random_seed_pos = strchr (algorithm_pos, '*');
+  final_random_seed_pos++;
+
+  if (final_random_seed_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  keepass->final_random_seed[0] = hex_to_u32 ((const u8 *) &final_random_seed_pos[ 0]);
+  keepass->final_random_seed[1] = hex_to_u32 ((const u8 *) &final_random_seed_pos[ 8]);
+  keepass->final_random_seed[2] = hex_to_u32 ((const u8 *) &final_random_seed_pos[16]);
+  keepass->final_random_seed[3] = hex_to_u32 ((const u8 *) &final_random_seed_pos[24]);
+
+  if (keepass->version == 2)
+  {
+    keepass->final_random_seed[4] = hex_to_u32 ((const u8 *) &final_random_seed_pos[32]);
+    keepass->final_random_seed[5] = hex_to_u32 ((const u8 *) &final_random_seed_pos[40]);
+    keepass->final_random_seed[6] = hex_to_u32 ((const u8 *) &final_random_seed_pos[48]);
+    keepass->final_random_seed[7] = hex_to_u32 ((const u8 *) &final_random_seed_pos[56]);
+  }
+
+  transf_random_seed_pos = strchr (final_random_seed_pos, '*');
+
+  final_random_seed_len = transf_random_seed_pos - final_random_seed_pos;
+
+  if (keepass->version == 1 && final_random_seed_len != 32) return (PARSER_SALT_LENGTH);
+  if (keepass->version == 2 && final_random_seed_len != 64) return (PARSER_SALT_LENGTH);
+
+  transf_random_seed_pos++;
+
+  if (transf_random_seed_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  keepass->transf_random_seed[0] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[ 0]);
+  keepass->transf_random_seed[1] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[ 8]);
+  keepass->transf_random_seed[2] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[16]);
+  keepass->transf_random_seed[3] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[24]);
+  keepass->transf_random_seed[4] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[32]);
+  keepass->transf_random_seed[5] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[40]);
+  keepass->transf_random_seed[6] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[48]);
+  keepass->transf_random_seed[7] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[56]);
+
+  enc_iv_pos = strchr (transf_random_seed_pos, '*');
+
+  transf_random_seed_len = enc_iv_pos - transf_random_seed_pos;
+
+  if (transf_random_seed_len != 64) return (PARSER_SALT_LENGTH);
+
+  enc_iv_pos++;
+
+  if (enc_iv_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  keepass->enc_iv[0] = hex_to_u32 ((const u8 *) &enc_iv_pos[ 0]);
+  keepass->enc_iv[1] = hex_to_u32 ((const u8 *) &enc_iv_pos[ 8]);
+  keepass->enc_iv[2] = hex_to_u32 ((const u8 *) &enc_iv_pos[16]);
+  keepass->enc_iv[3] = hex_to_u32 ((const u8 *) &enc_iv_pos[24]);
+
+  if (keepass->version == 1)
+  {
+    contents_hash_pos = strchr (enc_iv_pos, '*');
+
+    enc_iv_len = contents_hash_pos - enc_iv_pos;
+
+    if (enc_iv_len != 32) return (PARSER_SALT_LENGTH);
+
+    contents_hash_pos++;
+
+    if (contents_hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+    keepass->contents_hash[0] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 0]);
+    keepass->contents_hash[1] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 8]);
+    keepass->contents_hash[2] = hex_to_u32 ((const u8 *) &contents_hash_pos[16]);
+    keepass->contents_hash[3] = hex_to_u32 ((const u8 *) &contents_hash_pos[24]);
+    keepass->contents_hash[4] = hex_to_u32 ((const u8 *) &contents_hash_pos[32]);
+    keepass->contents_hash[5] = hex_to_u32 ((const u8 *) &contents_hash_pos[40]);
+    keepass->contents_hash[6] = hex_to_u32 ((const u8 *) &contents_hash_pos[48]);
+    keepass->contents_hash[7] = hex_to_u32 ((const u8 *) &contents_hash_pos[56]);
+
+    /* get length of contents following */
+    char *inline_flag_pos = strchr (contents_hash_pos, '*');
+
+    contents_hash_len = inline_flag_pos - contents_hash_pos;
+
+    if (contents_hash_len != 64) return (PARSER_SALT_LENGTH);
+
+    inline_flag_pos++;
+
+    u32 inline_flag = atoi (inline_flag_pos);
+
+    if (inline_flag != 1) return (PARSER_SALT_LENGTH);
+
+    contents_len_pos = strchr (inline_flag_pos, '*');
+
+    contents_len_pos++;
+
+    contents_len = atoi (contents_len_pos);
+
+    if (contents_len > 50000) return (PARSER_SALT_LENGTH);
+
+    contents_pos = strchr (contents_len_pos, '*');
+
+    contents_pos++;
+
+    u32 i;
+
+    keepass->contents_len = contents_len;
+
+    contents_len = contents_len / 4;
+
+    u32 real_contents_len = input_len - (contents_pos - input_buf);
+
+    if (real_contents_len != keepass->contents_len * 2) return (PARSER_SALT_LENGTH);
+ 
+    for (i = 0; i < contents_len; i++)
+      keepass->contents[i] = hex_to_u32 ((const u8 *) &contents_pos[i * 8]);
+  }
+  else if (keepass->version == 2)
+  {
+    expected_bytes_pos = strchr (enc_iv_pos, '*');
+
+    enc_iv_len = expected_bytes_pos - enc_iv_pos;
+
+    if (enc_iv_len != 32) return (PARSER_SALT_LENGTH);
+
+    expected_bytes_pos++;
+
+    if (expected_bytes_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+    keepass->expected_bytes[0] = hex_to_u32 ((const u8 *) &expected_bytes_pos[ 0]);
+    keepass->expected_bytes[1] = hex_to_u32 ((const u8 *) &expected_bytes_pos[ 8]);
+    keepass->expected_bytes[2] = hex_to_u32 ((const u8 *) &expected_bytes_pos[16]);
+    keepass->expected_bytes[3] = hex_to_u32 ((const u8 *) &expected_bytes_pos[24]);
+    keepass->expected_bytes[4] = hex_to_u32 ((const u8 *) &expected_bytes_pos[32]);
+    keepass->expected_bytes[5] = hex_to_u32 ((const u8 *) &expected_bytes_pos[40]);
+    keepass->expected_bytes[6] = hex_to_u32 ((const u8 *) &expected_bytes_pos[48]);
+    keepass->expected_bytes[7] = hex_to_u32 ((const u8 *) &expected_bytes_pos[56]);
+
+    contents_hash_pos = strchr (expected_bytes_pos, '*');
+
+    expected_bytes_len = contents_hash_pos - expected_bytes_pos;
+
+    if (expected_bytes_len != 64) return (PARSER_SALT_LENGTH);
+
+    contents_hash_pos++;
+
+    if (contents_hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+    keepass->contents_hash[0] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 0]);
+    keepass->contents_hash[1] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 8]);
+    keepass->contents_hash[2] = hex_to_u32 ((const u8 *) &contents_hash_pos[16]);
+    keepass->contents_hash[3] = hex_to_u32 ((const u8 *) &contents_hash_pos[24]);
+    keepass->contents_hash[4] = hex_to_u32 ((const u8 *) &contents_hash_pos[32]);
+    keepass->contents_hash[5] = hex_to_u32 ((const u8 *) &contents_hash_pos[40]);
+    keepass->contents_hash[6] = hex_to_u32 ((const u8 *) &contents_hash_pos[48]);
+    keepass->contents_hash[7] = hex_to_u32 ((const u8 *) &contents_hash_pos[56]);
+
+    contents_hash_len = input_len - (int) (contents_hash_pos - input_buf);
+
+    if (contents_hash_len != 64) return (PARSER_SALT_LENGTH);
+  }
+
+  digest[0] = keepass->enc_iv[0];
+  digest[1] = keepass->enc_iv[1];
+  digest[2] = keepass->enc_iv[2];
+  digest[3] = keepass->enc_iv[3];
+
+  salt->salt_buf[0] = keepass->transf_random_seed[0];
+  salt->salt_buf[1] = keepass->transf_random_seed[1];
+  salt->salt_buf[2] = keepass->transf_random_seed[2];
+  salt->salt_buf[3] = keepass->transf_random_seed[3];
+  salt->salt_buf[4] = keepass->transf_random_seed[4];
+  salt->salt_buf[5] = keepass->transf_random_seed[5];
+  salt->salt_buf[6] = keepass->transf_random_seed[6];
+  salt->salt_buf[7] = keepass->transf_random_seed[7];
 
   return (PARSER_OK);
 }
