@@ -8462,7 +8462,7 @@ sub get_random_axcrypt_salt
 
 sub get_random_keepass_salt
 {
-  my $version = 1;# get_random_num (1, 3);
+  my $version = get_random_num (1, 3);
 
   my $algorithm;
 
@@ -8472,7 +8472,7 @@ sub get_random_keepass_salt
 
   if ($version == 1)
   {
-    $algorithm = 1;#get_random_num (0, 2);
+    $algorithm = get_random_num (0, 2);
 
     $iteration = get_random_num (50000, 100000);
 
