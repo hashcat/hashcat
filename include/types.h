@@ -138,6 +138,25 @@ typedef struct
 
 typedef struct
 {
+  u32 version;
+  u32 algorithm;
+
+  u32 final_random_seed[8];
+  u32 transf_random_seed[8];
+  u32 enc_iv[4];
+  u32 contents_hash[8];
+
+  /* specific to version 1 */
+  u32 contents_len;
+  u32 contents[12500];
+
+  /* specific to version 2 */
+  u32 expected_bytes[8];
+
+} keepass_t;
+
+typedef struct
+{
   uint salt_buf[16];
   uint data_buf[112];
   uint keyfile_buf[16];
@@ -595,6 +614,12 @@ typedef struct
   u32 cipher[4];
 
 } axcrypt_tmp_t;
+
+typedef struct
+{
+  u32 tmp_digest[8];
+
+} keepass_tmp_t;
 
 typedef struct
 {
