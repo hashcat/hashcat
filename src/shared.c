@@ -14688,9 +14688,13 @@ int scrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   // base64 decode
 
+  int salt_len_base64 = hash_pos - saltbuf_pos;
+
+  if (salt_len_base64 > 45) return (PARSER_SALT_LENGTH);
+
   u8 tmp_buf[33] = { 0 };
 
-  int tmp_len = base64_decode (base64_to_int, (const u8 *) saltbuf_pos, hash_pos - saltbuf_pos, tmp_buf);
+  int tmp_len = base64_decode (base64_to_int, (const u8 *) saltbuf_pos, salt_len_base64, tmp_buf);
 
   char *salt_buf_ptr = (char *) salt->salt_buf;
 
