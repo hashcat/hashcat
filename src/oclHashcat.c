@@ -743,7 +743,7 @@ const char *USAGE_BIG[] =
   "   8200 = 1Password, cloudkeychain",
   "  11300 = Bitcoin/Litecoin wallet.dat",
   "  12700 = Blockchain, My Wallet",
-  "  13400 = Keepass 1 (AES/Twofish) and Keepass 2 (AES)"
+  "  13400 = Keepass 1 (AES/Twofish) and Keepass 2 (AES)",
   "",
   NULL
 };
