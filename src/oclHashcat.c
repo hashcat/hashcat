@@ -5324,6 +5324,9 @@ int main (int argc, char **argv)
   if (getenv ("GPU_USE_SYNC_OBJECTS") == NULL)
     putenv ((char *) "GPU_USE_SYNC_OBJECTS=1");
 
+  if (getenv ("CUDA_CACHE_DISABLE") == NULL)
+    putenv ((char *) "CUDA_CACHE_DISABLE=1");
+
   /**
    * Real init
    */
