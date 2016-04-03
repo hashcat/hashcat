@@ -161,6 +161,9 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 
 #define LOOPBACK_FILE         "hashcat.loopback"
 
+#define DICTSTAT_FILENAME     "hashcat.dictstat"
+#define POTFILE_FILENAME      "hashcat.pot"
+
 /**
  * types
  */

@@ -10427,7 +10427,7 @@ int main (int argc, char **argv)
 
     if (keyspace == 0)
     {
-      snprintf (dictstat, sizeof (dictstat) - 1, "%s/hashcat.dictstat", profile_dir);
+      snprintf (dictstat, sizeof (dictstat) - 1, "%s/%s", profile_dir, DICTSTAT_FILENAME);
 
       dictstat_fp = fopen (dictstat, "rb");
 
@@ -10483,7 +10483,7 @@ int main (int argc, char **argv)
 
     char potfile[256] = { 0 };
 
-    snprintf (potfile, sizeof (potfile) - 1, "%s/%s.pot", session_dir, session);
+    snprintf (potfile, sizeof (potfile) - 1, "%s/%s", profile_dir, POTFILE_FILENAME);
 
     data.pot_fp = NULL;
 
