@@ -11473,6 +11473,7 @@ int main (int argc, char **argv)
                       ((seven_zip_t *) hashes_buf[0].esalt)->unpack_size = 112;
                       break;
           case 13400: ((keepass_t *) hashes_buf[0].esalt)->version       = 2;
+                      break;
         }
       }
 
