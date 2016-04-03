@@ -19180,23 +19180,26 @@ int keepass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   keepass->version = atoi (version_pos);
 
   rounds_pos = strchr (version_pos, '*');
-  rounds_pos++;
 
   if (rounds_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  rounds_pos++;
 
   salt->salt_iter = (atoi (rounds_pos));
 
   algorithm_pos = strchr (rounds_pos, '*');
-  algorithm_pos++;
 
   if (algorithm_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  algorithm_pos++;
 
   keepass->algorithm = atoi (algorithm_pos);
 
   final_random_seed_pos = strchr (algorithm_pos, '*');
-  final_random_seed_pos++;
 
   if (final_random_seed_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  final_random_seed_pos++;
 
   keepass->final_random_seed[0] = hex_to_u32 ((const u8 *) &final_random_seed_pos[ 0]);
   keepass->final_random_seed[1] = hex_to_u32 ((const u8 *) &final_random_seed_pos[ 8]);
@@ -19213,14 +19216,14 @@ int keepass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   transf_random_seed_pos = strchr (final_random_seed_pos, '*');
 
+  if (transf_random_seed_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
   final_random_seed_len = transf_random_seed_pos - final_random_seed_pos;
 
   if (keepass->version == 1 && final_random_seed_len != 32) return (PARSER_SALT_LENGTH);
   if (keepass->version == 2 && final_random_seed_len != 64) return (PARSER_SALT_LENGTH);
 
   transf_random_seed_pos++;
-
-  if (transf_random_seed_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   keepass->transf_random_seed[0] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[ 0]);
   keepass->transf_random_seed[1] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[ 8]);
@@ -19233,13 +19236,13 @@ int keepass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   enc_iv_pos = strchr (transf_random_seed_pos, '*');
 
+  if (enc_iv_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
   transf_random_seed_len = enc_iv_pos - transf_random_seed_pos;
 
   if (transf_random_seed_len != 64) return (PARSER_SALT_LENGTH);
 
   enc_iv_pos++;
-
-  if (enc_iv_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   keepass->enc_iv[0] = hex_to_u32 ((const u8 *) &enc_iv_pos[ 0]);
   keepass->enc_iv[1] = hex_to_u32 ((const u8 *) &enc_iv_pos[ 8]);
@@ -19250,13 +19253,13 @@ int keepass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   {
     contents_hash_pos = strchr (enc_iv_pos, '*');
 
+    if (contents_hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
     enc_iv_len = contents_hash_pos - enc_iv_pos;
 
     if (enc_iv_len != 32) return (PARSER_SALT_LENGTH);
 
     contents_hash_pos++;
-
-    if (contents_hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
     keepass->contents_hash[0] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 0]);
     keepass->contents_hash[1] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 8]);
@@ -19270,6 +19273,8 @@ int keepass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
     /* get length of contents following */
     char *inline_flag_pos = strchr (contents_hash_pos, '*');
 
+    if (inline_flag_pos == NULL) return (PARSER_SALT_LENGTH);
+
     contents_hash_len = inline_flag_pos - contents_hash_pos;
 
     if (contents_hash_len != 64) return (PARSER_SALT_LENGTH);
@@ -19282,6 +19287,8 @@ int keepass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
     contents_len_pos = strchr (inline_flag_pos, '*');
 
+    if (contents_len_pos == NULL) return (PARSER_SALT_LENGTH);
+
     contents_len_pos++;
 
     contents_len = atoi (contents_len_pos);
@@ -19289,6 +19296,8 @@ int keepass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
     if (contents_len > 50000) return (PARSER_SALT_LENGTH);
 
     contents_pos = strchr (contents_len_pos, '*');
+
+    if (contents_pos == NULL) return (PARSER_SALT_LENGTH);
 
     contents_pos++;
 
@@ -19309,13 +19318,13 @@ int keepass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   {
     expected_bytes_pos = strchr (enc_iv_pos, '*');
 
+    if (expected_bytes_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
     enc_iv_len = expected_bytes_pos - enc_iv_pos;
 
     if (enc_iv_len != 32) return (PARSER_SALT_LENGTH);
 
     expected_bytes_pos++;
-
-    if (expected_bytes_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
     keepass->expected_bytes[0] = hex_to_u32 ((const u8 *) &expected_bytes_pos[ 0]);
     keepass->expected_bytes[1] = hex_to_u32 ((const u8 *) &expected_bytes_pos[ 8]);
@@ -19328,13 +19337,13 @@ int keepass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
     contents_hash_pos = strchr (expected_bytes_pos, '*');
 
+    if (contents_hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
     expected_bytes_len = contents_hash_pos - expected_bytes_pos;
 
     if (expected_bytes_len != 64) return (PARSER_SALT_LENGTH);
 
     contents_hash_pos++;
-
-    if (contents_hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
     keepass->contents_hash[0] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 0]);
     keepass->contents_hash[1] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 8]);
