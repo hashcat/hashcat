@@ -1307,31 +1307,31 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
    */
 
     /* Final AES part */
-  __local u32 s_td0_final[256];
-  __local u32 s_td1_final[256];
-  __local u32 s_td2_final[256];
-  __local u32 s_td3_final[256];
-  __local u32 s_td4_final[256];
+  __local u32 s_td0[256];
+  __local u32 s_td1[256];
+  __local u32 s_td2[256];
+  __local u32 s_td3[256];
+  __local u32 s_td4[256];
 
-  __local u32 s_te0_final[256];
-  __local u32 s_te1_final[256];
-  __local u32 s_te2_final[256];
-  __local u32 s_te3_final[256];
-  __local u32 s_te4_final[256];
+  __local u32 s_te0[256];
+  __local u32 s_te1[256];
+  __local u32 s_te2[256];
+  __local u32 s_te3[256];
+  __local u32 s_te4[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_td0_final[i] = td0[i];
-    s_td1_final[i] = td1[i];
-    s_td2_final[i] = td2[i];
-    s_td3_final[i] = td3[i];
-    s_td4_final[i] = td4[i];
+    s_td0[i] = td0[i];
+    s_td1[i] = td1[i];
+    s_td2[i] = td2[i];
+    s_td3[i] = td3[i];
+    s_td4[i] = td4[i];
 
-    s_te0_final[i] = te0[i];
-    s_te1_final[i] = te1[i];
-    s_te2_final[i] = te2[i];
-    s_te3_final[i] = te3[i];
-    s_te4_final[i] = te4[i];
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -1394,17 +1394,14 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     w0[1] = final_random_seed[1];
     w0[2] = final_random_seed[2];
     w0[3] = final_random_seed[3];
-
     w1[0] = digest[0];
     w1[1] = digest[1];
     w1[2] = digest[2];
     w1[3] = digest[3];
-
     w2[0] = digest[4];
     w2[1] = digest[5];
     w2[2] = digest[6];
     w2[3] = digest[7];
-
     w3[0] = 0x80000000;
     w3[1] = 0;
     w3[2] = 0;
@@ -1439,17 +1436,14 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     w0[1] = final_random_seed[1];
     w0[2] = final_random_seed[2];
     w0[3] = final_random_seed[3];
-
     w1[0] = final_random_seed[4];
     w1[1] = final_random_seed[5];
     w1[2] = final_random_seed[6];
     w1[3] = final_random_seed[7];
-
     w2[0] = digest[0];
     w2[1] = digest[1];
     w2[2] = digest[2];
     w2[3] = digest[3];
-
     w3[0] = digest[4];
     w3[1] = digest[5];
     w3[2] = digest[6];
@@ -1470,17 +1464,14 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     w0[1] = 0;
     w0[2] = 0;
     w0[3] = 0;
-
     w1[0] = 0;
     w1[1] = 0;
     w1[2] = 0;
     w1[3] = 0;
-
     w2[0] = 0;
     w2[1] = 0;
     w2[2] = 0;
     w2[3] = 0;
-
     w3[0] = 0;
     w3[1] = 0;
     w3[2] = 0;
@@ -1721,9 +1712,9 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
       u32 final_rk[KEYLEN];
 
-      AES256_ExpandKey (digest, final_rk, s_te0_final, s_te1_final, s_te2_final, s_te3_final, s_te4_final);
+      AES256_ExpandKey (digest, final_rk, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-      AES256_InvertKey (final_rk, s_td0_final, s_td1_final, s_td2_final, s_td3_final, s_td4_final, s_te0_final, s_te1_final, s_te2_final, s_te3_final, s_te4_final);
+      AES256_InvertKey (final_rk, s_td0, s_td1, s_td2, s_td3, s_td4, s_te0, s_te1, s_te2, s_te3, s_te4);
 
       u32 wx[16];
 
@@ -1758,7 +1749,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
           u32 out[4];
 
-          AES256_decrypt (data, out, final_rk, s_td0_final, s_td1_final, s_td2_final, s_td3_final, s_td4_final);
+          AES256_decrypt (data, out, final_rk, s_td0, s_td1, s_td2, s_td3, s_td4);
 
           out[0] ^= iv[0];
           out[1] ^= iv[1];
@@ -1813,7 +1804,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
         u32 out[4];
 
-        AES256_decrypt (data, out, final_rk, s_td0_final, s_td1_final, s_td2_final, s_td3_final, s_td4_final);
+        AES256_decrypt (data, out, final_rk, s_td0, s_td1, s_td2, s_td3, s_td4);
 
         out[0] ^= iv[0];
         out[1] ^= iv[1];
@@ -1842,7 +1833,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
       u32 out[4];
 
-      AES256_decrypt (data, out, final_rk, s_td0_final, s_td1_final, s_td2_final, s_td3_final, s_td4_final);
+      AES256_decrypt (data, out, final_rk, s_td0, s_td1, s_td2, s_td3, s_td4);
 
       out[0] ^= iv[0];
       out[1] ^= iv[1];
@@ -1928,9 +1919,9 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     u32 final_rk[KEYLEN];
 
-    AES256_ExpandKey (digest, final_rk, s_te0_final, s_te1_final, s_te2_final, s_te3_final, s_te4_final);
+    AES256_ExpandKey (digest, final_rk, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-    AES256_InvertKey (final_rk, s_td0_final, s_td1_final, s_td2_final, s_td3_final, s_td4_final, s_te0_final, s_te1_final, s_te2_final, s_te3_final, s_te4_final);
+    AES256_InvertKey (final_rk, s_td0, s_td1, s_td2, s_td3, s_td4, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     u32 contents_hash[4];
 
@@ -1939,7 +1930,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     contents_hash[2] = esalt_bufs[salt_pos].contents_hash[2];
     contents_hash[3] = esalt_bufs[salt_pos].contents_hash[3];
 
-    AES256_decrypt (contents_hash, out, final_rk, s_td0_final, s_td1_final, s_td2_final, s_td3_final, s_td4_final);
+    AES256_decrypt (contents_hash, out, final_rk, s_td0, s_td1, s_td2, s_td3, s_td4);
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];
