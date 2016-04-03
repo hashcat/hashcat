@@ -766,7 +766,7 @@ typedef struct
 typedef struct
 {
   u32  version_bin;
-  char cwd[1024];
+  char cwd[256];
   u32  pid;
 
   u32  dictpos;
