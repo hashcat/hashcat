@@ -1168,7 +1168,7 @@ __kernel void m13400_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   sha256_transform (w0, w1, w2, w3, digest);
 
-  if (esalt_bufs[salt_pos].version == 2)
+  if (esalt_bufs[salt_pos].version == 2 && esalt_bufs[salt_pos].keyfile_len == 0)
   {
     w0[0] = digest[0];
     w0[1] = digest[1];
@@ -1198,6 +1198,62 @@ __kernel void m13400_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
     digest[5] = SHA256M_F;
     digest[6] = SHA256M_G;
     digest[7] = SHA256M_H;
+
+    sha256_transform (w0, w1, w2, w3, digest);
+  }
+
+  if (esalt_bufs[salt_pos].keyfile_len != 0)
+  {
+    w0[0] = digest[0];
+    w0[1] = digest[1];
+    w0[2] = digest[2];
+    w0[3] = digest[3];
+
+    w1[0] = digest[4];
+    w1[1] = digest[5];
+    w1[2] = digest[6];
+    w1[3] = digest[7];
+
+    w2[0] = esalt_bufs[salt_pos].keyfile[0];
+    w2[1] = esalt_bufs[salt_pos].keyfile[1];
+    w2[2] = esalt_bufs[salt_pos].keyfile[2];
+    w2[3] = esalt_bufs[salt_pos].keyfile[3];
+
+    w3[0] = esalt_bufs[salt_pos].keyfile[4];
+    w3[1] = esalt_bufs[salt_pos].keyfile[5];
+    w3[3] = esalt_bufs[salt_pos].keyfile[7];
+    w3[2] = esalt_bufs[salt_pos].keyfile[6];
+
+    digest[0] = SHA256M_A;
+    digest[1] = SHA256M_B;
+    digest[2] = SHA256M_C;
+    digest[3] = SHA256M_D;
+    digest[4] = SHA256M_E;
+    digest[5] = SHA256M_F;
+    digest[6] = SHA256M_G;
+    digest[7] = SHA256M_H;
+
+    sha256_transform (w0, w1, w2, w3, digest);
+
+    w0[0] = 0x80000000;
+    w0[1] = 0;
+    w0[2] = 0;
+    w0[3] = 0;
+
+    w1[0] = 0;
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
+
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 64 * 8;
 
     sha256_transform (w0, w1, w2, w3, digest);
   }
@@ -1420,7 +1476,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
   }
   else
   {
-    /* merkle-demgard implementation */
+    /* merkle-damgard implementation */
     u32 final_random_seed[8];
 
     final_random_seed[0] = esalt_bufs[salt_pos].final_random_seed[0];

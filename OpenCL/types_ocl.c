@@ -1597,6 +1597,10 @@ typedef struct
   u32 version;
   u32 algorithm;
 
+  /* key-file handling */
+  u32 keyfile_len;
+  u32 keyfile[8];
+  
   u32 final_random_seed[8];
   u32 transf_random_seed[8];
   u32 enc_iv[4];
