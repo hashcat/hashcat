@@ -2232,7 +2232,7 @@ sub verify
       $spn          = substr ($spn, 0, length ($spn) - 1);
       my $checksum  = shift @data;
       my $edata2    = shift @data;
-   
+
       next unless ($signature eq "krb5tgs");
       next unless (length ($checksum) == 32);
       next unless (length ($edata2) >= 64);
@@ -2298,20 +2298,23 @@ sub verify
 
       my @data = split ('\*', $hash_in);
 
-      next unless (scalar @data == 9 || scalar @data == 11);
+      next unless (scalar @data == 9
+                  || scalar @data == 11
+                  || scalar @data == 12
+                  || scalar @data == 14);
 
       my $signature = shift @data;
       next unless ($signature eq '$keepass$');
-   
+
       my $version = shift @data;
       next unless ($version == 1 || $version == 2);
-   
+
       my $iteration          = shift @data;
-   
+
       my $algorithm          = shift @data;
 
       my $final_random_seed  = shift @data;
-   
+
       if ($version == 1)
       {
         next unless (length ($final_random_seed) == 32);
@@ -2320,7 +2323,7 @@ sub verify
       {
         next unless (length ($final_random_seed) == 64);
       }
-   
+
       my $transf_random_seed = shift @data;
       next unless (length ($transf_random_seed) == 64);
 
@@ -2336,7 +2339,7 @@ sub verify
         next unless ($inline_flags == 1);
 
         my $contents_len   = shift @data;
-     
+
         my $contents       = shift @data;
         next unless (length ($contents) == $contents_len * 2);
       }
@@ -2344,9 +2347,21 @@ sub verify
       {
         my $expected_bytes = shift @data;
         next unless (length ($expected_bytes) == 64);
-     
+
         my $contents_hash  = shift @data;
         next unless (length ($contents_hash) == 64);
+      }
+
+      if (scalar @data == 12 || scalar @data == 14)
+      {
+        my $inline_flags = shift @data;
+        next unless ($inline_flags == 1);
+
+        my $keyfile_len  = shift @data;
+        next unless ($keyfile_len == 64);
+
+        my $keyfile     = shift @data;
+        next unless (length ($keyfile) == $keyfile_len);
       }
 
       $salt = substr ($hash_in, length ("*keepass*") + 1, length ($hash_in));
@@ -2656,7 +2671,7 @@ sub verify
       $hash_out = gen_hash ($mode, $word, $salt);
 
       $len = length $hash_out;
-   
+
       return unless (substr ($line, 0, $len) eq $hash_out);
     }
     else
@@ -6950,9 +6965,9 @@ END_CODE
     my $algorithm  = $salt_arr[2];
 
     my $final_random_seed  = $salt_arr[3];
- 
+
     my $transf_random_seed = $salt_arr[4];
- 
+
     my $enc_iv = $salt_arr[5];
 
     my $contents_hash;
@@ -6965,6 +6980,12 @@ END_CODE
     # specific to version 2
     my $expected_bytes;
 
+    # specific to keyfile handling
+    my $inline_keyfile_flag;
+    my $keyfile_len;
+    my $keyfile_content;
+    my $keyfile_attributes = "";
+
     $final_random_seed  = pack ("H*", $final_random_seed);
 
     $transf_random_seed = pack ("H*", $transf_random_seed);
@@ -6972,21 +6993,56 @@ END_CODE
     $enc_iv = pack ("H*", $enc_iv);
 
     my $intermediate_hash = sha256 ($word_buf);
- 
+
     if ($version == 1)
     {
       $contents_hash = $salt_arr[6];
       $contents_hash = pack ("H*", $contents_hash);
-   
+
       $inline_flag   = $salt_arr[7];
-   
+
       $contents_len  = $salt_arr[8];
-   
+
       $contents      = $salt_arr[9];
       $contents      = pack ("H*", $contents);
+
+      # keyfile handling
+      if (scalar @salt_arr == 13)
+      {
+        $inline_keyfile_flag = $salt_arr[10];
+
+        $keyfile_len         = $salt_arr[11];
+
+        $keyfile_content     = $salt_arr[12];
+
+        $keyfile_attributes = $keyfile_attributes
+                            . "*" . $inline_keyfile_flag
+                            . "*" . $keyfile_len
+                            . "*" . $keyfile_content;
+
+        $intermediate_hash = $intermediate_hash . pack ("H*", $keyfile_content);
+        $intermediate_hash = sha256 ($intermediate_hash);
+      }
     }
     elsif ($version == 2)
     {
+      # keyfile handling
+      if (scalar @salt_arr == 11)
+      {
+        $inline_keyfile_flag = $salt_arr[8];
+
+        $keyfile_len         = $salt_arr[9];
+
+        $keyfile_content     = $salt_arr[10];
+
+        $intermediate_hash = $intermediate_hash . pack ("H*", $keyfile_content);
+
+        $keyfile_attributes = $keyfile_attributes
+                    . "*" . $inline_keyfile_flag
+                    . "*" . $keyfile_len
+                    . "*" . $keyfile_content;
+
+      }
       $intermediate_hash = sha256 ($intermediate_hash);
     }
 
@@ -6998,11 +7054,11 @@ END_CODE
 
       $intermediate_hash = substr ($intermediate_hash, 0, 32);
     }
- 
+
     $intermediate_hash = sha256 ($intermediate_hash);
- 
+
     my $final_key = sha256 ($final_random_seed . $intermediate_hash);
-   
+
     my $final_algorithm;
 
     if ($version == 1 && $algorithm == 1)
@@ -7022,14 +7078,14 @@ END_CODE
                    header      => "none",
                    keysize     => 32
                  });
- 
+
     if ($version == 1)
-    { 
+    {
       $contents_hash = sha256 ($contents);
-   
+
       $contents = $cipher->encrypt($contents);
 
-      $tmp_hash = sprintf ('$keepass$*%d*%d*%d*%s*%s*%s*%s*%d*%d*%s',
+      $tmp_hash = sprintf ('$keepass$*%d*%d*%d*%s*%s*%s*%s*%d*%d*%s%s',
             $version,
             $iteration,
             $algorithm,
@@ -7039,18 +7095,19 @@ END_CODE
             unpack ("H*", $contents_hash),
             $inline_flag,
             $contents_len,
-            unpack ("H*", $contents));
+            unpack ("H*", $contents),
+            $keyfile_attributes);
     }
     if ($version == 2)
     {
       $expected_bytes =  $salt_arr[6];
-   
+
       $contents_hash = $salt_arr[7];
       $contents_hash = pack ("H*", $contents_hash);
-   
+
       $expected_bytes = $cipher->decrypt($contents_hash);
 
-      $tmp_hash = sprintf ('$keepass$*%d*%d*%d*%s*%s*%s*%s*%s',
+      $tmp_hash = sprintf ('$keepass$*%d*%d*%d*%s*%s*%s*%s*%s%s',
             $version,
             $iteration,
             $algorithm,
@@ -7058,7 +7115,8 @@ END_CODE
             unpack ("H*", $transf_random_seed),
             unpack ("H*", $enc_iv),
             unpack ("H*", $expected_bytes),
-            unpack ("H*", $contents_hash));
+            unpack ("H*", $contents_hash),
+            $keyfile_attributes);
     }
   }
 
@@ -8510,6 +8568,17 @@ sub get_random_keepass_salt
 
   my $salt_buf;
 
+  my $is_keyfile = get_random_num (0, 2);
+
+  my $keyfile_attributes = "";
+
+  if ($is_keyfile == 1)
+  {
+    $keyfile_attributes = $keyfile_attributes
+                          . "1*64*"
+                          . unpack ("H*", randbytes (32));
+  }
+
   if ($version == 1)
   {
     $salt_buf = $version   . '*' .
@@ -8521,13 +8590,14 @@ sub get_random_keepass_salt
                 $contents_hash . '*' .
                 $inline_flag   . '*' .
                 $contents_len  . '*' .
-                $contents;
+                $contents      . '*' .
+                $keyfile_attributes;
   }
   elsif ($version == 2)
   {
     $contents = randbytes (32);
     $contents = unpack ("H*", $contents);
- 
+
     $salt_buf = $version   . '*' .
                 $iteration . '*' .
                 $algorithm . '*' .
@@ -8535,7 +8605,8 @@ sub get_random_keepass_salt
                 $transf_random_seed . '*' .
                 $enc_iv        . '*' .
                 $contents_hash . '*' .
-                $contents;
+                $contents      . '*' .
+                $keyfile_attributes;
   }
 
   return $salt_buf;
