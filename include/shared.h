@@ -360,6 +360,7 @@ extern hc_thread_mutex_t mux_display;
 #define HT_00121  "SMF > v1.1"
 #define HT_00122  "OSX v10.4, v10.5, v10.6"
 #define HT_00124  "Django (SHA-1)"
+#define HT_00125  "ArubaOS"
 #define HT_00131  "MSSQL(2000)"
 #define HT_00132  "MSSQL(2005)"
 #define HT_00133  "PeopleSoft"
@@ -722,6 +723,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_122    8 + 40
 #define DISPLAY_LEN_MIN_124   4 + 1 +  0 + 1 + 40
 #define DISPLAY_LEN_MAX_124   4 + 1 + 32 + 1 + 40
+#define DISPLAY_LEN_MIN_125   10 + 40
+#define DISPLAY_LEN_MAX_125   10 + 40
 #define DISPLAY_LEN_MIN_131    6 +  8 + 80
 #define DISPLAY_LEN_MAX_131    6 +  8 + 80
 #define DISPLAY_LEN_MIN_132    6 +  8 + 40
@@ -1473,6 +1476,7 @@ int oracleh_parse_hash            (char *input_buf, uint input_len, hash_t *hash
 int oracles_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int oraclet_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int osc_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf);
+int arubaos_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int osx1_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf);
 int osx512_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf);
 int phpass_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf);

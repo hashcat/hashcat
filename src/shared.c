@@ -5691,6 +5691,7 @@ char *strhashtype (const uint hash_mode)
     case   121: return ((char *) HT_00121); break;
     case   122: return ((char *) HT_00122); break;
     case   124: return ((char *) HT_00124); break;
+    case   125: return ((char *) HT_00125); break;
     case   130: return ((char *) HT_00130); break;
     case   131: return ((char *) HT_00131); break;
     case   132: return ((char *) HT_00132); break;
@@ -6231,7 +6232,7 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
 
     snprintf (out_buf, len-1, "{SSHA}%s", ptr_plain);
   }
-  else if (hash_mode == 122)
+  else if ((hash_mode == 122) || (hash_mode == 125))
   {
     snprintf (out_buf, len-1, "%s%08x%08x%08x%08x%08x",
       (char *) salt.salt_buf,
@@ -9799,6 +9800,43 @@ int lm_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[1] = digest[1];
   digest[2] = 0;
   digest[3] = 0;
+
+  return (PARSER_OK);
+}
+
+int arubaos_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_125) || (input_len > DISPLAY_LEN_MAX_125)) return (PARSER_GLOBAL_LENGTH);
+
+  if ((input_buf[8] != '0') || (input_buf[9] != '1')) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  char *hash_pos = input_buf + 10;
+
+  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+
+  digest[0] -= SHA1M_A;
+  digest[1] -= SHA1M_B;
+  digest[2] -= SHA1M_C;
+  digest[3] -= SHA1M_D;
+  digest[4] -= SHA1M_E;
+
+  uint salt_len = 10;
+
+  char *salt_buf_ptr = (char *) salt->salt_buf;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, input_buf, salt_len);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len = salt_len;
 
   return (PARSER_OK);
 }
