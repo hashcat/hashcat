@@ -148,7 +148,7 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 
 #define MAX_DICTSTAT            10000
 
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 134
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 135
 
 #define global_free(attr)       \
 {                               \
@@ -299,7 +299,8 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   8200,
   11300,
   12700,
-  13400
+  13400,
+  125
 };
 
 /**
@@ -683,6 +684,7 @@ const char *USAGE_BIG[] =
   "   8500 = RACF",
   "   7200 = GRUB 2",
   "   9900 = Radmin2",
+  "    125 = ArubaOS",
   "",
   "[[ Enterprise Application Software (EAS) ]]",
   "",
@@ -7346,6 +7348,30 @@ int main (int argc, char **argv)
                    dgst_pos3   = 1;
                    break;
 
+      case   125:  hash_type   = HASH_TYPE_SHA1;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_PT_ADD80
+                               | OPTS_TYPE_PT_ADDBITS15
+                               | OPTS_TYPE_ST_HEX;
+                   kern_type   = KERN_TYPE_SHA1_SLTPW;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = arubaos_parse_hash;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_INIT
+                               | OPTI_TYPE_PRECOMPUTE_MERKLE
+                               | OPTI_TYPE_EARLY_SKIP
+                               | OPTI_TYPE_NOT_ITERATED
+                               | OPTI_TYPE_PREPENDED_SALT
+                               | OPTI_TYPE_RAW_HASH;
+                   dgst_pos0   = 3;
+                   dgst_pos1   = 4;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 1;
+                   break;
+
       case   130:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
@@ -10689,6 +10715,8 @@ int main (int argc, char **argv)
 
     switch (hash_mode)
     {
+      case   125: if (pw_max > 32) pw_max = 32;
+                  break;
       case   400: if (pw_max > 40) pw_max = 40;
                   break;
       case   500: if (pw_max > 16) pw_max = 16;
