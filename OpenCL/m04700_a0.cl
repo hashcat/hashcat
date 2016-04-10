@@ -18,7 +18,6 @@
 #define DGST_R3 1
 
 #include "include/kernel_functions.c"
-#undef _MD5_
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
 #include "include/rp_kernel.h"
@@ -40,7 +39,7 @@
 __kernel void m04700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
-   * base
+   * modifier
    */
 
   const u32 gid = get_global_id (0);
@@ -71,18 +70,16 @@ __kernel void m04700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    */
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -102,6 +99,7 @@ __kernel void m04700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     append_0x80_2x4_VV (w0, w1, out_len);
 
     w3[2] = out_len * 8;
+    w3[3] = 0;
 
     /**
      * md5
@@ -191,22 +189,21 @@ __kernel void m04700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      */
 
     u32x w0_t = uint_to_hex_lower8_le ((a >>  8) & 255) <<  0
-               | uint_to_hex_lower8_le ((a >>  0) & 255) << 16;
+              | uint_to_hex_lower8_le ((a >>  0) & 255) << 16;
     u32x w1_t = uint_to_hex_lower8_le ((a >> 24) & 255) <<  0
-               | uint_to_hex_lower8_le ((a >> 16) & 255) << 16;
+              | uint_to_hex_lower8_le ((a >> 16) & 255) << 16;
     u32x w2_t = uint_to_hex_lower8_le ((b >>  8) & 255) <<  0
-               | uint_to_hex_lower8_le ((b >>  0) & 255) << 16;
+              | uint_to_hex_lower8_le ((b >>  0) & 255) << 16;
     u32x w3_t = uint_to_hex_lower8_le ((b >> 24) & 255) <<  0
-               | uint_to_hex_lower8_le ((b >> 16) & 255) << 16;
+              | uint_to_hex_lower8_le ((b >> 16) & 255) << 16;
     u32x w4_t = uint_to_hex_lower8_le ((c >>  8) & 255) <<  0
-               | uint_to_hex_lower8_le ((c >>  0) & 255) << 16;
+              | uint_to_hex_lower8_le ((c >>  0) & 255) << 16;
     u32x w5_t = uint_to_hex_lower8_le ((c >> 24) & 255) <<  0
-               | uint_to_hex_lower8_le ((c >> 16) & 255) << 16;
+              | uint_to_hex_lower8_le ((c >> 16) & 255) << 16;
     u32x w6_t = uint_to_hex_lower8_le ((d >>  8) & 255) <<  0
-               | uint_to_hex_lower8_le ((d >>  0) & 255) << 16;
+              | uint_to_hex_lower8_le ((d >>  0) & 255) << 16;
     u32x w7_t = uint_to_hex_lower8_le ((d >> 24) & 255) <<  0
-               | uint_to_hex_lower8_le ((d >> 16) & 255) << 16;
-
+              | uint_to_hex_lower8_le ((d >> 16) & 255) << 16;
     u32x w8_t = 0x80000000;
     u32x w9_t = 0;
     u32x wa_t = 0;
@@ -333,7 +330,7 @@ __kernel void m04700_m16 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 __kernel void m04700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
-   * base
+   * modifier
    */
 
   const u32 gid = get_global_id (0);
@@ -364,18 +361,16 @@ __kernel void m04700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    */
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -413,6 +408,7 @@ __kernel void m04700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     append_0x80_2x4_VV (w0, w1, out_len);
 
     w3[2] = out_len * 8;
+    w3[3] = 0;
 
     /**
      * md5
@@ -502,22 +498,21 @@ __kernel void m04700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      */
 
     u32x w0_t = uint_to_hex_lower8_le ((a >>  8) & 255) <<  0
-               | uint_to_hex_lower8_le ((a >>  0) & 255) << 16;
+              | uint_to_hex_lower8_le ((a >>  0) & 255) << 16;
     u32x w1_t = uint_to_hex_lower8_le ((a >> 24) & 255) <<  0
-               | uint_to_hex_lower8_le ((a >> 16) & 255) << 16;
+              | uint_to_hex_lower8_le ((a >> 16) & 255) << 16;
     u32x w2_t = uint_to_hex_lower8_le ((b >>  8) & 255) <<  0
-               | uint_to_hex_lower8_le ((b >>  0) & 255) << 16;
+              | uint_to_hex_lower8_le ((b >>  0) & 255) << 16;
     u32x w3_t = uint_to_hex_lower8_le ((b >> 24) & 255) <<  0
-               | uint_to_hex_lower8_le ((b >> 16) & 255) << 16;
+              | uint_to_hex_lower8_le ((b >> 16) & 255) << 16;
     u32x w4_t = uint_to_hex_lower8_le ((c >>  8) & 255) <<  0
-               | uint_to_hex_lower8_le ((c >>  0) & 255) << 16;
+              | uint_to_hex_lower8_le ((c >>  0) & 255) << 16;
     u32x w5_t = uint_to_hex_lower8_le ((c >> 24) & 255) <<  0
-               | uint_to_hex_lower8_le ((c >> 16) & 255) << 16;
+              | uint_to_hex_lower8_le ((c >> 16) & 255) << 16;
     u32x w6_t = uint_to_hex_lower8_le ((d >>  8) & 255) <<  0
-               | uint_to_hex_lower8_le ((d >>  0) & 255) << 16;
+              | uint_to_hex_lower8_le ((d >>  0) & 255) << 16;
     u32x w7_t = uint_to_hex_lower8_le ((d >> 24) & 255) <<  0
-               | uint_to_hex_lower8_le ((d >> 16) & 255) << 16;
-
+              | uint_to_hex_lower8_le ((d >> 16) & 255) << 16;
     u32x w8_t = 0x80000000;
     u32x w9_t = 0;
     u32x wa_t = 0;
