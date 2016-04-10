@@ -44,10 +44,6 @@ static void m04400m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
-   * digest
-   */
-
-  /**
    * loop
    */
 
@@ -560,6 +556,9 @@ static void m04400s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     MD5_STEP (MD5_I , c, d, a, b, w6_t, MD5C3a, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, wd_t, MD5C3b, MD5S33);
     MD5_STEP (MD5_I , a, b, c, d, w4_t, MD5C3c, MD5S30);
+
+    if (MATCHES_NONE_VS (a, search[0])) continue;
+
     MD5_STEP (MD5_I , d, a, b, c, wb_t, MD5C3d, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);

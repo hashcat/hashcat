@@ -39,7 +39,7 @@
 __kernel void m04400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
-   * base
+   * modifier
    */
 
   const u32 gid = get_global_id (0);
@@ -70,18 +70,16 @@ __kernel void m04400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    */
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -349,7 +347,7 @@ __kernel void m04400_m16 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 __kernel void m04400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
-   * base
+   * modifier
    */
 
   const u32 gid = get_global_id (0);
@@ -380,18 +378,16 @@ __kernel void m04400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    */
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -652,6 +648,9 @@ __kernel void m04400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     MD5_STEP (MD5_I , c, d, a, b, w6_t, MD5C3a, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, wd_t, MD5C3b, MD5S33);
     MD5_STEP (MD5_I , a, b, c, d, w4_t, MD5C3c, MD5S30);
+
+    if (MATCHES_NONE_VS (a, search[0])) continue;
+
     MD5_STEP (MD5_I , d, a, b, c, wb_t, MD5C3d, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);
