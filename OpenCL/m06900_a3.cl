@@ -716,12 +716,6 @@ static void m06900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
-   * base
-   */
-
-  const u32 w14 = pw_len * 8;
-
-  /**
    * loop
    */
 
@@ -732,6 +726,10 @@ static void m06900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32x w0lr = w0l | w0r;
+
+    /**
+     * GOST
+     */
 
     u32x data[8];
 
@@ -788,7 +786,7 @@ static void m06900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     u32x tmp[8];
 
-    if (pw_len > 0)
+    //if (pw_len > 0) // not really SIMD compatible
     {
       PASS0 (state, tmp, state_m, data_m, s_tables);
       PASS2 (state, tmp, state_m, data_m, s_tables);
@@ -800,7 +798,7 @@ static void m06900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
       SHIFT61 (state, data_m);
     }
 
-    data[0] = w14;
+    data[0] = pw_len * 8;
     data[1] = 0;
     data[2] = 0;
     data[3] = 0;
@@ -892,12 +890,6 @@ static void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
-   * base
-   */
-
-  const u32 w14 = pw_len * 8;
-
-  /**
    * digest
    */
 
@@ -920,6 +912,10 @@ static void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32x w0lr = w0l | w0r;
+
+    /**
+     * GOST
+     */
 
     u32x data[8];
 
@@ -976,7 +972,7 @@ static void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     u32x tmp[8];
 
-    if (pw_len > 0)
+    //if (pw_len > 0) // not really SIMD compatible
     {
       PASS0 (state, tmp, state_m, data_m, s_tables);
       PASS2 (state, tmp, state_m, data_m, s_tables);
@@ -988,7 +984,7 @@ static void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
       SHIFT61 (state, data_m);
     }
 
-    data[0] = w14;
+    data[0] = pw_len * 8;
     data[1] = 0;
     data[2] = 0;
     data[3] = 0;
@@ -1066,7 +1062,7 @@ static void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     /* store */
 
-    COMPARE_S_SIMD (state[0], state[1], state[2], state[3]);
+    COMPARE_M_SIMD (state[0], state[1], state[2], state[3]);
   }
 }
 

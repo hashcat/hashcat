@@ -741,18 +741,16 @@ __kernel void m06900_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
    */
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -768,8 +766,6 @@ __kernel void m06900_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     u32x w3[4] = { 0 };
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
-
-    u32x w14 = out_len * 8;
 
     u32x data[8];
 
@@ -826,7 +822,7 @@ __kernel void m06900_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     u32x tmp[8];
 
-    if (pw_len > 0)
+    //if (pw_len > 0) // not really SIMD compatible
     {
       PASS0 (state, tmp, state_m, data_m, s_tables);
       PASS2 (state, tmp, state_m, data_m, s_tables);
@@ -838,7 +834,7 @@ __kernel void m06900_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
       SHIFT61 (state, data_m);
     }
 
-    data[0] = w14;
+    data[0] = out_len * 8;
     data[1] = 0;
     data[2] = 0;
     data[3] = 0;
@@ -961,18 +957,16 @@ __kernel void m06900_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
    */
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -1001,7 +995,9 @@ __kernel void m06900_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    u32x w14 = out_len * 8;
+    /**
+     * GOST
+     */
 
     u32x data[8];
 
@@ -1058,7 +1054,7 @@ __kernel void m06900_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     u32x tmp[8];
 
-    if (pw_len > 0)
+    //if (pw_len > 0) // not really SIMD compatible
     {
       PASS0 (state, tmp, state_m, data_m, s_tables);
       PASS2 (state, tmp, state_m, data_m, s_tables);
@@ -1070,7 +1066,7 @@ __kernel void m06900_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
       SHIFT61 (state, data_m);
     }
 
-    data[0] = w14;
+    data[0] = out_len * 8;
     data[1] = 0;
     data[2] = 0;
     data[3] = 0;
