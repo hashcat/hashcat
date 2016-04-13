@@ -1395,18 +1395,16 @@ __kernel void m06100_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    */
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -1425,24 +1423,28 @@ __kernel void m06100_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     append_0x80_2x4_VV (w0, w1, out_len);
 
-    u32x wl[16];
+    u32x w[16];
 
-    wl[ 0] = swap32 (w0[0]);
-    wl[ 1] = swap32 (w0[1]);
-    wl[ 2] = swap32 (w0[2]);
-    wl[ 3] = swap32 (w0[3]);
-    wl[ 4] = swap32 (w1[0]);
-    wl[ 5] = swap32 (w1[1]);
-    wl[ 6] = swap32 (w1[2]);
-    wl[ 7] = swap32 (w1[3]);
-    wl[ 8] = 0;
-    wl[ 9] = 0;
-    wl[10] = 0;
-    wl[11] = 0;
-    wl[12] = 0;
-    wl[13] = 0;
-    wl[14] = 0;
-    wl[15] = out_len * 8;
+    w[ 0] = swap32 (w0[0]);
+    w[ 1] = swap32 (w0[1]);
+    w[ 2] = swap32 (w0[2]);
+    w[ 3] = swap32 (w0[3]);
+    w[ 4] = swap32 (w1[0]);
+    w[ 5] = swap32 (w1[1]);
+    w[ 6] = swap32 (w1[2]);
+    w[ 7] = swap32 (w1[3]);
+    w[ 8] = 0;
+    w[ 9] = 0;
+    w[10] = 0;
+    w[11] = 0;
+    w[12] = 0;
+    w[13] = 0;
+    w[14] = 0;
+    w[15] = out_len * 8;
+
+    /**
+     * Whirlpool
+     */
 
     u32x dgst[16];
 
@@ -1463,7 +1465,7 @@ __kernel void m06100_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     dgst[14] = 0;
     dgst[15] = 0;
 
-    whirlpool_transform (wl, dgst, s_Ch, s_Cl);
+    whirlpool_transform (w, dgst, s_Ch, s_Cl);
 
     COMPARE_M_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
@@ -1524,18 +1526,16 @@ __kernel void m06100_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    */
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -1566,24 +1566,28 @@ __kernel void m06100_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     append_0x80_2x4_VV (w0, w1, out_len);
 
-    u32x wl[16];
+    u32x w[16];
 
-    wl[ 0] = swap32 (w0[0]);
-    wl[ 1] = swap32 (w0[1]);
-    wl[ 2] = swap32 (w0[2]);
-    wl[ 3] = swap32 (w0[3]);
-    wl[ 4] = swap32 (w1[0]);
-    wl[ 5] = swap32 (w1[1]);
-    wl[ 6] = swap32 (w1[2]);
-    wl[ 7] = swap32 (w1[3]);
-    wl[ 8] = 0;
-    wl[ 9] = 0;
-    wl[10] = 0;
-    wl[11] = 0;
-    wl[12] = 0;
-    wl[13] = 0;
-    wl[14] = 0;
-    wl[15] = out_len * 8;
+    w[ 0] = swap32 (w0[0]);
+    w[ 1] = swap32 (w0[1]);
+    w[ 2] = swap32 (w0[2]);
+    w[ 3] = swap32 (w0[3]);
+    w[ 4] = swap32 (w1[0]);
+    w[ 5] = swap32 (w1[1]);
+    w[ 6] = swap32 (w1[2]);
+    w[ 7] = swap32 (w1[3]);
+    w[ 8] = 0;
+    w[ 9] = 0;
+    w[10] = 0;
+    w[11] = 0;
+    w[12] = 0;
+    w[13] = 0;
+    w[14] = 0;
+    w[15] = out_len * 8;
+
+    /**
+     * Whirlpool
+     */
 
     u32x dgst[16];
 
@@ -1604,7 +1608,7 @@ __kernel void m06100_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     dgst[14] = 0;
     dgst[15] = 0;
 
-    whirlpool_transform (wl, dgst, s_Ch, s_Cl);
+    whirlpool_transform (w, dgst, s_Ch, s_Cl);
 
     COMPARE_S_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }

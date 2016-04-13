@@ -1367,28 +1367,49 @@ static void m06100m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
-    u32x wl[16];
+    u32x w[16];
 
-    wl[ 0] = w0lr;
-    wl[ 1] = w0[1];
-    wl[ 2] = w0[2];
-    wl[ 3] = w0[3];
-    wl[ 4] = w1[0];
-    wl[ 5] = w1[1];
-    wl[ 6] = w1[2];
-    wl[ 7] = w1[3];
-    wl[ 8] = w2[0];
-    wl[ 9] = w2[1];
-    wl[10] = w2[2];
-    wl[11] = w2[3];
-    wl[12] = w3[0];
-    wl[13] = w3[1];
-    wl[14] = 0;
-    wl[15] = pw_len * 8;
+    w[ 0] = w0lr;
+    w[ 1] = w0[1];
+    w[ 2] = w0[2];
+    w[ 3] = w0[3];
+    w[ 4] = w1[0];
+    w[ 5] = w1[1];
+    w[ 6] = w1[2];
+    w[ 7] = w1[3];
+    w[ 8] = w2[0];
+    w[ 9] = w2[1];
+    w[10] = w2[2];
+    w[11] = w2[3];
+    w[12] = w3[0];
+    w[13] = w3[1];
+    w[14] = 0;
+    w[15] = pw_len * 8;
+
+    /**
+     * Whirlool
+     */
 
     u32x dgst[16];
 
-    whirlpool_transform (wl, dgst, s_Ch, s_Cl);
+    dgst[ 0] = 0;
+    dgst[ 1] = 0;
+    dgst[ 2] = 0;
+    dgst[ 3] = 0;
+    dgst[ 4] = 0;
+    dgst[ 5] = 0;
+    dgst[ 6] = 0;
+    dgst[ 7] = 0;
+    dgst[ 8] = 0;
+    dgst[ 9] = 0;
+    dgst[10] = 0;
+    dgst[11] = 0;
+    dgst[12] = 0;
+    dgst[13] = 0;
+    dgst[14] = 0;
+    dgst[15] = 0;
+
+    whirlpool_transform (w, dgst, s_Ch, s_Cl);
 
     COMPARE_M_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
@@ -1427,28 +1448,49 @@ static void m06100s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
-    u32x wl[16];
+    u32x w[16];
 
-    wl[ 0] = w0lr;
-    wl[ 1] = w0[1];
-    wl[ 2] = w0[2];
-    wl[ 3] = w0[3];
-    wl[ 4] = w1[0];
-    wl[ 5] = w1[1];
-    wl[ 6] = w1[2];
-    wl[ 7] = w1[3];
-    wl[ 8] = w2[0];
-    wl[ 9] = w2[1];
-    wl[10] = w2[2];
-    wl[11] = w2[3];
-    wl[12] = w3[0];
-    wl[13] = w3[1];
-    wl[14] = 0;
-    wl[15] = pw_len * 8;
+    w[ 0] = w0lr;
+    w[ 1] = w0[1];
+    w[ 2] = w0[2];
+    w[ 3] = w0[3];
+    w[ 4] = w1[0];
+    w[ 5] = w1[1];
+    w[ 6] = w1[2];
+    w[ 7] = w1[3];
+    w[ 8] = w2[0];
+    w[ 9] = w2[1];
+    w[10] = w2[2];
+    w[11] = w2[3];
+    w[12] = w3[0];
+    w[13] = w3[1];
+    w[14] = 0;
+    w[15] = pw_len * 8;
+
+    /**
+     * Whirlool
+     */
 
     u32x dgst[16];
 
-    whirlpool_transform (wl, dgst, s_Ch, s_Cl);
+    dgst[ 0] = 0;
+    dgst[ 1] = 0;
+    dgst[ 2] = 0;
+    dgst[ 3] = 0;
+    dgst[ 4] = 0;
+    dgst[ 5] = 0;
+    dgst[ 6] = 0;
+    dgst[ 7] = 0;
+    dgst[ 8] = 0;
+    dgst[ 9] = 0;
+    dgst[10] = 0;
+    dgst[11] = 0;
+    dgst[12] = 0;
+    dgst[13] = 0;
+    dgst[14] = 0;
+    dgst[15] = 0;
+
+    whirlpool_transform (w, dgst, s_Ch, s_Cl);
 
     COMPARE_S_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
