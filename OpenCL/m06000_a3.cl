@@ -227,12 +227,6 @@ static void m06000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
-   * base
-   */
-
-  const u32 w14 = pw_len * 8;
-
-  /**
    * loop
    */
 
@@ -244,24 +238,28 @@ static void m06000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
-    u32x wl[16];
+    u32x w[16];
 
-    wl[ 0] = w0lr;
-    wl[ 1] = w0[1];
-    wl[ 2] = w0[2];
-    wl[ 3] = w0[3];
-    wl[ 4] = w1[0];
-    wl[ 5] = w1[1];
-    wl[ 6] = w1[2];
-    wl[ 7] = w1[3];
-    wl[ 8] = w2[0];
-    wl[ 9] = w2[1];
-    wl[10] = w2[2];
-    wl[11] = w2[3];
-    wl[12] = w3[0];
-    wl[13] = w3[1];
-    wl[14] = w14;
-    wl[15] = 0;
+    w[ 0] = w0lr;
+    w[ 1] = w0[1];
+    w[ 2] = w0[2];
+    w[ 3] = w0[3];
+    w[ 4] = w1[0];
+    w[ 5] = w1[1];
+    w[ 6] = w1[2];
+    w[ 7] = w1[3];
+    w[ 8] = w2[0];
+    w[ 9] = w2[1];
+    w[10] = w2[2];
+    w[11] = w2[3];
+    w[12] = w3[0];
+    w[13] = w3[1];
+    w[14] = pw_len * 8;
+    w[15] = 0;
+
+    /**
+     * RipeMD160
+     */
 
     u32x dgst[5];
 
@@ -271,7 +269,7 @@ static void m06000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     dgst[3] = RIPEMD160M_D;
     dgst[4] = RIPEMD160M_E;
 
-    ripemd160_transform (wl, dgst);
+    ripemd160_transform (w, dgst);
 
     COMPARE_M_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
@@ -285,12 +283,6 @@ static void m06000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
-
-  /**
-   * base
-   */
-
-  const u32 w14 = pw_len * 8;
 
   /**
    * digest
@@ -316,24 +308,28 @@ static void m06000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
-    u32x wl[16];
+    u32x w[16];
 
-    wl[ 0] = w0lr;
-    wl[ 1] = w0[1];
-    wl[ 2] = w0[2];
-    wl[ 3] = w0[3];
-    wl[ 4] = w1[0];
-    wl[ 5] = w1[1];
-    wl[ 6] = w1[2];
-    wl[ 7] = w1[3];
-    wl[ 8] = w2[0];
-    wl[ 9] = w2[1];
-    wl[10] = w2[2];
-    wl[11] = w2[3];
-    wl[12] = w3[0];
-    wl[13] = w3[1];
-    wl[14] = w14;
-    wl[15] = 0;
+    w[ 0] = w0lr;
+    w[ 1] = w0[1];
+    w[ 2] = w0[2];
+    w[ 3] = w0[3];
+    w[ 4] = w1[0];
+    w[ 5] = w1[1];
+    w[ 6] = w1[2];
+    w[ 7] = w1[3];
+    w[ 8] = w2[0];
+    w[ 9] = w2[1];
+    w[10] = w2[2];
+    w[11] = w2[3];
+    w[12] = w3[0];
+    w[13] = w3[1];
+    w[14] = pw_len * 8;
+    w[15] = 0;
+
+    /**
+     * RipeMD160
+     */
 
     u32x dgst[5];
 
@@ -343,7 +339,7 @@ static void m06000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     dgst[3] = RIPEMD160M_D;
     dgst[4] = RIPEMD160M_E;
 
-    ripemd160_transform (wl, dgst);
+    ripemd160_transform (w, dgst);
 
     COMPARE_S_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
