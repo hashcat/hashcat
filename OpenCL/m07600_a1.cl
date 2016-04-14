@@ -5,6 +5,8 @@
 
 #define _SHA1_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,11 +18,19 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
+#include "OpenCL/simd.c"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
-
-#define uint_to_hex_lower8(i) l_bin2asc[(i)]
+#if   VECT_SIZE == 1
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i)])
+#elif VECT_SIZE == 2
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
+#elif VECT_SIZE == 4
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
+#elif VECT_SIZE == 8
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#elif VECT_SIZE == 16
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
+#endif
 
 __kernel void m07600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
@@ -55,178 +65,147 @@ __kernel void m07600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * base
    */
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
-
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
 
   /**
    * salt
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
   salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
   salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
   salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
   salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
   salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
   salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
-
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = 0;
-  salt_buf2[1] = 0;
-  salt_buf2[2] = 0;
-  salt_buf2[3] = 0;
-
-  u32 salt_buf3[4];
-
-  salt_buf3[0] = 0;
-  salt_buf3[1] = 0;
-  salt_buf3[2] = 0;
-  salt_buf3[3] = 0;
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
+  salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
+  salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
+  salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  const u32 total_len = (salt_len + 40) * 8;
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      append_0x80_2x4 (wordr0, wordr1, pw_r_len);
-
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-
-    u32 w1[4];
-
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
-
-    u32 w2[4];
-
     w2[0] = wordl2[0] | wordr2[0];
     w2[1] = wordl2[1] | wordr2[1];
     w2[2] = wordl2[2] | wordr2[2];
     w2[3] = wordl2[3] | wordr2[3];
-
-    u32 w3[4];
-
     w3[0] = wordl3[0] | wordr3[0];
     w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = 0;
-    w3[3] = 0;
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
     /**
      * sha1
      */
 
-    u32 w0_t = swap32 (w0[0]);
-    u32 w1_t = swap32 (w0[1]);
-    u32 w2_t = swap32 (w0[2]);
-    u32 w3_t = swap32 (w0[3]);
-    u32 w4_t = swap32 (w1[0]);
-    u32 w5_t = swap32 (w1[1]);
-    u32 w6_t = swap32 (w1[2]);
-    u32 w7_t = swap32 (w1[3]);
-    u32 w8_t = swap32 (w2[0]);
-    u32 w9_t = swap32 (w2[1]);
-    u32 wa_t = swap32 (w2[2]);
-    u32 wb_t = swap32 (w2[3]);
-    u32 wc_t = swap32 (w3[0]);
-    u32 wd_t = swap32 (w3[1]);
-    u32 we_t = 0;
-    u32 wf_t = pw_len * 8;
+    u32x w0_t = swap32 (w0[0]);
+    u32x w1_t = swap32 (w0[1]);
+    u32x w2_t = swap32 (w0[2]);
+    u32x w3_t = swap32 (w0[3]);
+    u32x w4_t = swap32 (w1[0]);
+    u32x w5_t = swap32 (w1[1]);
+    u32x w6_t = swap32 (w1[2]);
+    u32x w7_t = swap32 (w1[3]);
+    u32x w8_t = swap32 (w2[0]);
+    u32x w9_t = swap32 (w2[1]);
+    u32x wa_t = swap32 (w2[2]);
+    u32x wb_t = swap32 (w2[3]);
+    u32x wc_t = swap32 (w3[0]);
+    u32x wd_t = swap32 (w3[1]);
+    u32x we_t = 0;
+    u32x wf_t = pw_len * 8;
 
-    u32 a = SHA1M_A;
-    u32 b = SHA1M_B;
-    u32 c = SHA1M_C;
-    u32 d = SHA1M_D;
-    u32 e = SHA1M_E;
+    u32x a = SHA1M_A;
+    u32x b = SHA1M_B;
+    u32x c = SHA1M_C;
+    u32x d = SHA1M_D;
+    u32x e = SHA1M_E;
 
     #undef K
     #define K SHA1C00
@@ -334,35 +313,6 @@ __kernel void m07600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * Prepend salt
      */
 
-    u32 w0t[4];
-
-    w0t[0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
-    w0t[1] = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
-    w0t[2] = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
-    w0t[3] = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
-
-    u32 w1t[4];
-
-    w1t[0] = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
-    w1t[1] = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
-    w1t[2] = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
-    w1t[3] = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
-
-    u32 w2t[2];
-
-    w2t[0] = uint_to_hex_lower8 ((e >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((e >> 16) & 255) << 16;
-    w2t[1] = uint_to_hex_lower8 ((e >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((e >>  0) & 255) << 16;
-
     w0_t = salt_buf0[0];
     w1_t = salt_buf0[1];
     w2_t = salt_buf0[2];
@@ -371,14 +321,24 @@ __kernel void m07600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w5_t = salt_buf1[1];
     w6_t = salt_buf1[2];
     w7_t = salt_buf1[3];
-    w8_t = w0t[0];
-    w9_t = w0t[1];
-    wa_t = w0t[2];
-    wb_t = w0t[3];
-    wc_t = w1t[0];
-    wd_t = w1t[1];
-    we_t = w1t[2];
-    wf_t = w1t[3];
+    w8_t = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
+    w9_t = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
+    wa_t = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
+    wb_t = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
+    wc_t = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
+    wd_t = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
+    we_t = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
+    wf_t = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
+
+    const u32x e_sav = e;
 
     /**
      * 2nd SHA1
@@ -511,16 +471,18 @@ __kernel void m07600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     d += SHA1M_D;
     e += SHA1M_E;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
-    u32 r_e = e;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
+    u32x r_e = e;
 
     // 2nd transform
 
-    w0_t = swap32 (w2t[0]);
-    w1_t = swap32 (w2t[1]);
+    w0_t = uint_to_hex_lower8 ((e_sav >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((e_sav >> 16) & 255) << 16;
+    w1_t = uint_to_hex_lower8 ((e_sav >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((e_sav >>  0) & 255) << 16;
     w2_t = 0x80000000;
     w3_t = 0;
     w4_t = 0;
@@ -534,7 +496,10 @@ __kernel void m07600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     wc_t = 0;
     wd_t = 0;
     we_t = 0;
-    wf_t = total_len;
+    wf_t = (salt_len + 40) * 8;
+
+    w0_t = swap32 (w0_t);
+    w1_t = swap32 (w1_t);
 
     #undef K
     #define K SHA1C00
@@ -638,12 +603,7 @@ __kernel void m07600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     d += r_d;
     e += r_e;
 
-    const u32 r0 = d;
-    const u32 r1 = e;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (d, e, c, b);
   }
 }
 
@@ -688,78 +648,47 @@ __kernel void m07600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * base
    */
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
-
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
 
   /**
    * salt
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
   salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
   salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
   salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
   salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
   salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
   salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
-
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = 0;
-  salt_buf2[1] = 0;
-  salt_buf2[2] = 0;
-  salt_buf2[3] = 0;
-
-  u32 salt_buf3[4];
-
-  salt_buf3[0] = 0;
-  salt_buf3[1] = 0;
-  salt_buf3[2] = 0;
-  salt_buf3[3] = 0;
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
+  salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
+  salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
+  salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  const u32 total_len = (salt_len + 40) * 8;
 
   /**
    * digest
@@ -774,110 +703,104 @@ __kernel void m07600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   };
 
   /**
-   * reverse
-   */
-
-  const u32 e_rev = rotl32 (search[1], 2u);
-
-  /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      append_0x80_2x4 (wordr0, wordr1, pw_r_len);
-
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-
-    u32 w1[4];
-
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
-
-    u32 w2[4];
-
     w2[0] = wordl2[0] | wordr2[0];
     w2[1] = wordl2[1] | wordr2[1];
     w2[2] = wordl2[2] | wordr2[2];
     w2[3] = wordl2[3] | wordr2[3];
-
-    u32 w3[4];
-
     w3[0] = wordl3[0] | wordr3[0];
     w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = 0;
-    w3[3] = 0;
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
     /**
      * sha1
      */
 
-    u32 w0_t = swap32 (w0[0]);
-    u32 w1_t = swap32 (w0[1]);
-    u32 w2_t = swap32 (w0[2]);
-    u32 w3_t = swap32 (w0[3]);
-    u32 w4_t = swap32 (w1[0]);
-    u32 w5_t = swap32 (w1[1]);
-    u32 w6_t = swap32 (w1[2]);
-    u32 w7_t = swap32 (w1[3]);
-    u32 w8_t = swap32 (w2[0]);
-    u32 w9_t = swap32 (w2[1]);
-    u32 wa_t = swap32 (w2[2]);
-    u32 wb_t = swap32 (w2[3]);
-    u32 wc_t = swap32 (w3[0]);
-    u32 wd_t = swap32 (w3[1]);
-    u32 we_t = 0;
-    u32 wf_t = pw_len * 8;
+    u32x w0_t = swap32 (w0[0]);
+    u32x w1_t = swap32 (w0[1]);
+    u32x w2_t = swap32 (w0[2]);
+    u32x w3_t = swap32 (w0[3]);
+    u32x w4_t = swap32 (w1[0]);
+    u32x w5_t = swap32 (w1[1]);
+    u32x w6_t = swap32 (w1[2]);
+    u32x w7_t = swap32 (w1[3]);
+    u32x w8_t = swap32 (w2[0]);
+    u32x w9_t = swap32 (w2[1]);
+    u32x wa_t = swap32 (w2[2]);
+    u32x wb_t = swap32 (w2[3]);
+    u32x wc_t = swap32 (w3[0]);
+    u32x wd_t = swap32 (w3[1]);
+    u32x we_t = 0;
+    u32x wf_t = pw_len * 8;
 
-    u32 a = SHA1M_A;
-    u32 b = SHA1M_B;
-    u32 c = SHA1M_C;
-    u32 d = SHA1M_D;
-    u32 e = SHA1M_E;
+    u32x a = SHA1M_A;
+    u32x b = SHA1M_B;
+    u32x c = SHA1M_C;
+    u32x d = SHA1M_D;
+    u32x e = SHA1M_E;
 
     #undef K
     #define K SHA1C00
@@ -985,35 +908,6 @@ __kernel void m07600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * Prepend salt
      */
 
-    u32 w0t[4];
-
-    w0t[0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
-    w0t[1] = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
-    w0t[2] = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
-    w0t[3] = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
-
-    u32 w1t[4];
-
-    w1t[0] = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
-    w1t[1] = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
-    w1t[2] = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
-    w1t[3] = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
-
-    u32 w2t[2];
-
-    w2t[0] = uint_to_hex_lower8 ((e >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((e >> 16) & 255) << 16;
-    w2t[1] = uint_to_hex_lower8 ((e >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((e >>  0) & 255) << 16;
-
     w0_t = salt_buf0[0];
     w1_t = salt_buf0[1];
     w2_t = salt_buf0[2];
@@ -1022,14 +916,24 @@ __kernel void m07600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w5_t = salt_buf1[1];
     w6_t = salt_buf1[2];
     w7_t = salt_buf1[3];
-    w8_t = w0t[0];
-    w9_t = w0t[1];
-    wa_t = w0t[2];
-    wb_t = w0t[3];
-    wc_t = w1t[0];
-    wd_t = w1t[1];
-    we_t = w1t[2];
-    wf_t = w1t[3];
+    w8_t = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
+    w9_t = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
+    wa_t = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
+    wb_t = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
+    wc_t = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
+    wd_t = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
+    we_t = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
+    wf_t = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
+
+    const u32x e_sav = e;
 
     /**
      * 2nd SHA1
@@ -1162,16 +1066,18 @@ __kernel void m07600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     d += SHA1M_D;
     e += SHA1M_E;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
-    u32 r_e = e;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
+    u32x r_e = e;
 
     // 2nd transform
 
-    w0_t = swap32 (w2t[0]);
-    w1_t = swap32 (w2t[1]);
+    w0_t = uint_to_hex_lower8 ((e_sav >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((e_sav >> 16) & 255) << 16;
+    w1_t = uint_to_hex_lower8 ((e_sav >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((e_sav >>  0) & 255) << 16;
     w2_t = 0x80000000;
     w3_t = 0;
     w4_t = 0;
@@ -1185,7 +1091,10 @@ __kernel void m07600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     wc_t = 0;
     wd_t = 0;
     we_t = 0;
-    wf_t = total_len;
+    wf_t = (salt_len + 40) * 8;
+
+    w0_t = swap32 (w0_t);
+    w1_t = swap32 (w1_t);
 
     #undef K
     #define K SHA1C00
@@ -1289,12 +1198,7 @@ __kernel void m07600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     d += r_d;
     e += r_e;
 
-    const u32 r0 = d;
-    const u32 r1 = e;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (d, e, c, b);
   }
 }
 
