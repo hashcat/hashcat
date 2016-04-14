@@ -7,6 +7,9 @@
 
 #define _KRB5PA_
 
+//shared mem too small
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -18,6 +21,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
+#include "OpenCL/simd.c"
 
 typedef struct
 {
@@ -581,15 +585,41 @@ static void m07500 (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4], 
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = bfs_buf[il_pos].i;
+    const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
+
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
+
+    w0_t[0] = w0lr;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
+
+    /**
+     * kerberos
+     */
 
     u32 digest[4];
 
-    kerb_prepare (w0, w1, pw_len, checksum, digest);
+    kerb_prepare (w0_t, w1_t, pw_len, checksum, digest);
 
     u32 tmp[4];
 
