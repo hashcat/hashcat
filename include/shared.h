@@ -1676,8 +1676,8 @@ void *thread_runtime      (void *p);
 /**
  *  API Functions
  */
- 
-hc_global_data_t * hcapi_data(void);
+
+hc_global_data_t * hcapi_data_ptr(void);
 
 
 /**

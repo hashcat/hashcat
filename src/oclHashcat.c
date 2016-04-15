@@ -5157,9 +5157,9 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
 }
 
 /**
- * API Function to return running status
+ * API Function to return status/control pointer to user
  */
-hc_global_data_t * hcapi_data(void)
+hc_global_data_t * hcapi_data_ptr(void)
 {
 
   hc_global_data_t *hcapi_data = &data;
@@ -16523,7 +16523,7 @@ int main (int argc, char **argv)
       {
         data.devices_status = STATUS_RUNNING;
       }
-    }
+    } // End Main Loop?
 
     // problems could occur if already at startup everything was cracked (because of .pot file reading etc), we must set some variables here to avoid NULL pointers
 
