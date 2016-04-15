@@ -39,18 +39,16 @@ __kernel void m08100_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -60,8 +58,8 @@ __kernel void m08100_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   u32 salt_buf0[2];
 
-  salt_buf0[0] = swap32_S (salt_bufs[salt_pos].salt_buf[0]);
-  salt_buf0[1] = swap32_S (salt_bufs[salt_pos].salt_buf[1]);
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
@@ -77,6 +75,18 @@ __kernel void m08100_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     u32x w3[4] = { 0 };
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+
+    append_0x80_4x4_VV (w0, w1, w2, w3, out_len + 1);
+
+    w0[0] = swap32 (w0[0]);
+    w0[1] = swap32 (w0[1]);
+    w0[2] = swap32 (w0[2]);
+    w0[3] = swap32 (w0[3]);
+    w1[0] = swap32 (w1[0]);
+    w1[1] = swap32 (w1[1]);
+    w1[2] = swap32 (w1[2]);
+    w1[3] = swap32 (w1[3]);
+    w2[0] = swap32 (w2[0]);
 
     /**
      * prepend salt
@@ -100,34 +110,15 @@ __kernel void m08100_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w2_t[0] = w1[2];
     w2_t[1] = w1[3];
     w2_t[2] = w2[0];
-    w2_t[3] = w2[1];
-    w3_t[0] = w2[2];
-    w3_t[1] = w2[3];
+    w2_t[3] = 0;
+    w3_t[0] = 0;
+    w3_t[1] = 0;
     w3_t[2] = 0;
     w3_t[3] = (out_salt_len + 1) * 8;
-
-    append_0x80_4x4_VV (w0_t, w1_t, w2_t, w3_t, out_salt_len + 1);
 
     /**
      * sha1
      */
-
-    w0_t[0] = swap32 (w0_t[0]);
-    w0_t[1] = swap32 (w0_t[1]);
-    w0_t[2] = swap32 (w0_t[2]);
-    w0_t[3] = swap32 (w0_t[3]);
-    w1_t[0] = swap32 (w1_t[0]);
-    w1_t[1] = swap32 (w1_t[1]);
-    w1_t[2] = swap32 (w1_t[2]);
-    w1_t[3] = swap32 (w1_t[3]);
-    w2_t[0] = swap32 (w2_t[0]);
-    w2_t[1] = swap32 (w2_t[1]);
-    w2_t[2] = swap32 (w2_t[2]);
-    w2_t[3] = swap32 (w2_t[3]);
-    w3_t[0] = swap32 (w3_t[0]);
-    w3_t[1] = swap32 (w3_t[1]);
-    //w3_t[2] = swap32 (w3_t[2]);
-    //w3_t[3] = swap32 (w3_t[3]);
 
     u32x a = SHA1M_A;
     u32x b = SHA1M_B;
@@ -260,18 +251,16 @@ __kernel void m08100_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -281,8 +270,8 @@ __kernel void m08100_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   u32 salt_buf0[2];
 
-  salt_buf0[0] = swap32_S (salt_bufs[salt_pos].salt_buf[0]);
-  salt_buf0[1] = swap32_S (salt_bufs[salt_pos].salt_buf[1]);
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
@@ -317,6 +306,18 @@ __kernel void m08100_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
+    append_0x80_4x4_VV (w0, w1, w2, w3, out_len + 1);
+
+    w0[0] = swap32 (w0[0]);
+    w0[1] = swap32 (w0[1]);
+    w0[2] = swap32 (w0[2]);
+    w0[3] = swap32 (w0[3]);
+    w1[0] = swap32 (w1[0]);
+    w1[1] = swap32 (w1[1]);
+    w1[2] = swap32 (w1[2]);
+    w1[3] = swap32 (w1[3]);
+    w2[0] = swap32 (w2[0]);
+
     /**
      * prepend salt
      */
@@ -339,34 +340,15 @@ __kernel void m08100_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w2_t[0] = w1[2];
     w2_t[1] = w1[3];
     w2_t[2] = w2[0];
-    w2_t[3] = w2[1];
-    w3_t[0] = w2[2];
-    w3_t[1] = w2[3];
+    w2_t[3] = 0;
+    w3_t[0] = 0;
+    w3_t[1] = 0;
     w3_t[2] = 0;
     w3_t[3] = (out_salt_len + 1) * 8;
-
-    append_0x80_4x4_VV (w0_t, w1_t, w2_t, w3_t, out_salt_len + 1);
 
     /**
      * sha1
      */
-
-    w0_t[0] = swap32 (w0_t[0]);
-    w0_t[1] = swap32 (w0_t[1]);
-    w0_t[2] = swap32 (w0_t[2]);
-    w0_t[3] = swap32 (w0_t[3]);
-    w1_t[0] = swap32 (w1_t[0]);
-    w1_t[1] = swap32 (w1_t[1]);
-    w1_t[2] = swap32 (w1_t[2]);
-    w1_t[3] = swap32 (w1_t[3]);
-    w2_t[0] = swap32 (w2_t[0]);
-    w2_t[1] = swap32 (w2_t[1]);
-    w2_t[2] = swap32 (w2_t[2]);
-    w2_t[3] = swap32 (w2_t[3]);
-    w3_t[0] = swap32 (w3_t[0]);
-    w3_t[1] = swap32 (w3_t[1]);
-    //w3_t[2] = swap32 (w3_t[2]);
-    //w3_t[3] = swap32 (w3_t[3]);
 
     u32x a = SHA1M_A;
     u32x b = SHA1M_B;
