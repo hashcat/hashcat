@@ -1789,16 +1789,6 @@ int main ()
   // Lots of prints for testing. To be deleted upon release
   printf ("[!] BACK IN MAIN");
 
-<<<<<<< HEAD
-=======
-	// get_data currently returns a pointer to data structure in oclHashcat.c
-	// As of right now there is no mutex keeping one thread from corrupting the other
-	// I'm also not sure of the performance impact of reading from this while oclhashcat is working
-	// This needs to be handled better
-	hc_global_data_t *output = malloc(sizeof(hc_global_data_t));
-	output = hc.get_data(); 
->>>>>>> refs/remotes/origin/master
-
   getchar ();
 
 
