@@ -1731,19 +1731,14 @@ int main ()
   oclhashcat_con hc = oclhashcat_init ();
 
 
-  // hc.options.attack_mode = 0;
-  // hc.options.hash_mode = 1000;
-  // hc.options.hash_input = "C:\\Users\\auser\\Desktop\\hashes.txt";
-  // hc.options.append_dictmaskdir(&hc.options, "C:\\Users\\auser\\Desktop\\Dicts\\dictionary.txt");
-  // hc.options.append_rules(&hc.options, "C:\\Users\\auser\\Desktop\\Rules\\somerulse.rule");
-  // hc.options.append_rules(&hc.options, "rules\\best64.rule");
-
   hc.options.attack_mode = 0;
   hc.options.hash_mode = 1000;
-  hc.options.hash_input = "C:\\Users\\rich\\Desktop\\Datastar\\Datastar_hashes";
-  hc.options.append_dictmaskdir (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Dicts\\16Walk.txt");
-  hc.options.append_rules (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Rules\\walk.rule");
-  hc.options.append_rules (&hc.options, "rules\\best64.rule");
+  hc.options.hash_input = "C:\\Users\\auser\\Desktop\\hashes.txt";
+  hc.options.append_dictmaskdir(&hc.options, "C:\\Users\\auser\\Desktop\\Dicts\\dictionary.txt");
+  hc.options.append_rules(&hc.options, "C:\\Users\\auser\\Desktop\\Rules\\somerulse.rule");
+  hc.options.append_rules(&hc.options, "rules\\best64.rule");
+
+
 
   hc.options.quiet = 1;
 
@@ -1794,6 +1789,15 @@ int main ()
   // Lots of prints for testing. To be deleted upon release
   printf ("[!] BACK IN MAIN");
 
+<<<<<<< HEAD
+=======
+	// get_data currently returns a pointer to data structure in oclHashcat.c
+	// As of right now there is no mutex keeping one thread from corrupting the other
+	// I'm also not sure of the performance impact of reading from this while oclhashcat is working
+	// This needs to be handled better
+	hc_global_data_t *output = malloc(sizeof(hc_global_data_t));
+	output = hc.get_data(); 
+>>>>>>> refs/remotes/origin/master
 
   getchar ();
 
