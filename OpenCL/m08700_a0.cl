@@ -317,14 +317,12 @@ __kernel void m08700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    */
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = pws[gid].i[ 4];
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = pws[gid].i[ 6];
@@ -351,6 +349,10 @@ __kernel void m08700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     u32x w3[4] = { 0 };
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+
+    /**
+     * domino
+     */
 
     u32x w[16];
 
@@ -502,14 +504,12 @@ __kernel void m08700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    */
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = pws[gid].i[ 4];
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = pws[gid].i[ 6];
@@ -548,6 +548,10 @@ __kernel void m08700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     u32x w3[4] = { 0 };
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+
+    /**
+     * domino
+     */
 
     u32x w[16];
 

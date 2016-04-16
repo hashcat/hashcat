@@ -285,7 +285,7 @@ static void m08700m (__local u32 *s_lotus_magic_table, __local u32 *l_bin2asc, u
   const u32 lid = get_local_id (0);
 
   /**
-   * padding
+   * base
    */
 
   if (pw_len < 16)
@@ -323,6 +323,10 @@ static void m08700m (__local u32 *s_lotus_magic_table, __local u32 *l_bin2asc, u
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
+
+    /**
+     * domino
+     */
 
     u32x w_tmp[16];
 
@@ -464,6 +468,10 @@ static void m08700s (__local u32 *s_lotus_magic_table, __local u32 *l_bin2asc, u
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
+
+    /**
+     * domino
+     */
 
     u32x w_tmp[16];
 
