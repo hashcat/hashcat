@@ -343,10 +343,6 @@ __kernel void m06000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[14] = pw_len * 8;
     w[15] = 0;
 
-    /**
-     * RipeMD160
-     */
-
     u32x dgst[5];
 
     dgst[0] = RIPEMD160M_A;
@@ -506,10 +502,6 @@ __kernel void m06000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[14] = w3[1];
     w[14] = pw_len * 8;
     w[15] = 0;
-
-    /**
-     * RipeMD160
-     */
 
     u32x dgst[5];
 
