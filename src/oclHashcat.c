@@ -9329,7 +9329,7 @@ int main (int argc, char **argv)
       case  8300:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_HEX
                                | OPTS_TYPE_ST_ADD80;
                    kern_type   = KERN_TYPE_NSEC3;

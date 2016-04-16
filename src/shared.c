@@ -7238,6 +7238,12 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
   {
     char digest_buf_c[34] = { 0 };
 
+    digest_buf[0] = byte_swap_32 (digest_buf[0]);
+    digest_buf[1] = byte_swap_32 (digest_buf[1]);
+    digest_buf[2] = byte_swap_32 (digest_buf[2]);
+    digest_buf[3] = byte_swap_32 (digest_buf[3]);
+    digest_buf[4] = byte_swap_32 (digest_buf[4]);
+
     base32_encode (int_to_itoa32, (const u8 *) digest_buf, 20, (u8 *) digest_buf_c);
 
     digest_buf_c[32] = 0;
