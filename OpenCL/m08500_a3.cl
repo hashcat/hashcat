@@ -558,6 +558,10 @@ static void m08500m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
 
     const u32x w0 = w0l | w0r;
 
+    /**
+     * RACF
+     */
+
     u32x key[2];
 
     transform_racf_key (w0, w1, key);
@@ -629,6 +633,10 @@ static void m08500s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
+
+    /**
+     * RACF
+     */
 
     u32x key[2];
 

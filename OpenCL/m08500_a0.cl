@@ -575,14 +575,12 @@ __kernel void m08500_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
    */
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = 0;
   pw_buf0[3] = 0;
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = 0;
   pw_buf1[1] = 0;
   pw_buf1[2] = 0;
@@ -610,9 +608,11 @@ __kernel void m08500_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    out_len &= 7;
+    /**
+     * RACF
+     */
 
     u32x key[2];
 
@@ -697,14 +697,12 @@ __kernel void m08500_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
    */
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = 0;
   pw_buf0[3] = 0;
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = 0;
   pw_buf1[1] = 0;
   pw_buf1[2] = 0;
@@ -744,9 +742,11 @@ __kernel void m08500_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
 
-    u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    out_len &= 7;
+    /**
+     * RACF
+     */
 
     u32x key[2];
 
