@@ -113,6 +113,11 @@ Desc.: Run weak-hash checks only in straight-attack mode, this greatly reduces c
 
 Type.: Change
 File.: Host
+Desc.: Added parameter --potfile-path to override default potfile path
+Issue: 99
+
+Type.: Change
+File.: Host
 Desc.: Renamed option --gpu-accel to --kernel-accel
 Issue: 2
 

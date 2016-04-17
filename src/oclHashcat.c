@@ -392,6 +392,7 @@ const char *USAGE_BIG[] =
   "       --remove                      Enable remove of hash once it is cracked",
   "       --remove-timer=NUM            Update input hash file each NUM seconds",
   "       --potfile-disable             Do not write potfile",
+  "       --potfile-path                Specific path to potfile",
   "       --debug-mode=NUM              Defines the debug mode (hybrid only by using rules), see references below",
   "       --debug-file=FILE             Output file for debugging rules (see also --debug-mode)",
   "       --induction-dir=FOLDER        Specify induction directory to use, default is $session.induct",
@@ -5339,6 +5340,7 @@ int main (int argc, char **argv)
   u64   limit             = LIMIT;
   uint  keyspace          = KEYSPACE;
   uint  potfile_disable   = POTFILE_DISABLE;
+  char *potfile_path      = NULL;
   uint  debug_mode        = DEBUG_MODE;
   char *debug_file        = NULL;
   char *induction_dir     = NULL;
@@ -5417,6 +5419,7 @@ int main (int argc, char **argv)
   #define IDX_LIMIT             'l'
   #define IDX_KEYSPACE          0xff35
   #define IDX_POTFILE_DISABLE   0xff06
+  #define IDX_POTFILE_PATH      0xffe0
   #define IDX_DEBUG_MODE        0xff43
   #define IDX_DEBUG_FILE        0xff44
   #define IDX_INDUCTION_DIR     0xff46
@@ -5497,6 +5500,7 @@ int main (int argc, char **argv)
     {"limit",             required_argument, 0, IDX_LIMIT},
     {"keyspace",          no_argument,       0, IDX_KEYSPACE},
     {"potfile-disable",   no_argument,       0, IDX_POTFILE_DISABLE},
+    {"potfile-path",      required_argument, 0, IDX_POTFILE_PATH},
     {"debug-mode",        required_argument, 0, IDX_DEBUG_MODE},
     {"debug-file",        required_argument, 0, IDX_DEBUG_FILE},
     {"induction-dir",     required_argument, 0, IDX_INDUCTION_DIR},
@@ -5803,6 +5807,7 @@ int main (int argc, char **argv)
       case IDX_REMOVE_TIMER:      remove_timer      = atoi (optarg);
                                   remove_timer_chgd = 1;               break;
       case IDX_POTFILE_DISABLE:   potfile_disable   = 1;               break;
+      case IDX_POTFILE_PATH:      potfile_path      = optarg;          break;
       case IDX_DEBUG_MODE:        debug_mode        = atoi (optarg);   break;
       case IDX_DEBUG_FILE:        debug_file        = optarg;          break;
       case IDX_INDUCTION_DIR:     induction_dir     = optarg;          break;
@@ -6660,6 +6665,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (outfile_check_timer);
   logfile_top_uint   (outfile_format);
   logfile_top_uint   (potfile_disable);
+  logfile_top_string (potfile_path);
   #if defined(HAVE_HWMON) && defined(HAVE_ADL)
   logfile_top_uint   (powertune_enable);
   #endif
@@ -10484,7 +10490,14 @@ int main (int argc, char **argv)
 
     char potfile[256] = { 0 };
 
-    snprintf (potfile, sizeof (potfile) - 1, "%s/%s", profile_dir, POTFILE_FILENAME);
+    if (potfile_path == NULL)
+    {
+      snprintf (potfile, sizeof (potfile) - 1, "%s/%s", profile_dir, POTFILE_FILENAME);
+    }
+    else
+    {
+      strncpy (potfile, potfile_path, sizeof (potfile) - 1);
+    }
 
     data.pot_fp = NULL;
 
