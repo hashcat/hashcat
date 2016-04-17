@@ -168,10 +168,6 @@ static void m09820m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
   salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
 
-  const u32 salt_len = 16;
-
-  const u32 pw_salt_len = pw_len + salt_len;
-
   /**
    * loop
    */
@@ -183,6 +179,10 @@ static void m09820m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32x w0lr = w0l | w0r;
+
+    /**
+     * sha1
+     */
 
     u32x w0_t[4];
     u32x w1_t[4];
@@ -204,7 +204,7 @@ static void m09820m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[0] = w2[0];
     w3_t[1] = w2[1];
     w3_t[2] = 0;
-    w3_t[3] = pw_salt_len * 8;
+    w3_t[3] = (pw_len + 16) * 8;
 
     u32x digest[5];
 
@@ -241,12 +241,12 @@ static void m09820m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    u32x a = swap32 (digest[0]);
-    u32x b = swap32 (digest[1]) & 0xff;
-    u32x c = 0;
-    u32x d = 0;
+    digest[0] = swap32 (digest[0]);
+    digest[1] = swap32 (digest[1]) & 0xff;
+    digest[2] = 0;
+    digest[3] = 0;
 
-    COMPARE_M_SIMD (a, b, c, d);
+    COMPARE_M_SIMD (digest[0], digest[1], digest[2], digest[3]);
   }
 }
 
@@ -258,6 +258,17 @@ static void m09820s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
+
+  /**
+   * salt
+   */
+
+  u32 salt_buf[4];
+
+  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
 
   /**
    * digest
@@ -272,21 +283,6 @@ static void m09820s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   };
 
   /**
-   * salt
-   */
-
-  u32 salt_buf[4];
-
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
-
-  const u32 salt_len = 16;
-
-  const u32 pw_salt_len = pw_len + salt_len;
-
-  /**
    * loop
    */
 
@@ -297,6 +293,10 @@ static void m09820s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32x w0lr = w0l | w0r;
+
+    /**
+     * sha1
+     */
 
     u32x w0_t[4];
     u32x w1_t[4];
@@ -318,7 +318,7 @@ static void m09820s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w3_t[0] = w2[0];
     w3_t[1] = w2[1];
     w3_t[2] = 0;
-    w3_t[3] = pw_salt_len * 8;
+    w3_t[3] = (pw_len + 16) * 8;
 
     u32x digest[5];
 
@@ -355,12 +355,12 @@ static void m09820s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    u32x a = swap32 (digest[0]);
-    u32x b = swap32 (digest[1]) & 0xff;
-    u32x c = 0;
-    u32x d = 0;
+    digest[0] = swap32 (digest[0]);
+    digest[1] = swap32 (digest[1]) & 0xff;
+    digest[2] = 0;
+    digest[3] = 0;
 
-    COMPARE_S_SIMD (a, b, c, d);
+    COMPARE_S_SIMD (digest[0], digest[1], digest[2], digest[3]);
   }
 }
 
