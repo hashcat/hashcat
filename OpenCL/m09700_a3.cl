@@ -611,14 +611,7 @@ static void m09700m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     // now the RC4 part
 
-    u32 key[4];
-
-    key[0] = digest[0];
-    key[1] = digest[1];
-    key[2] = digest[2];
-    key[3] = digest[3];
-
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, digest);
 
     u32 out[4];
 
@@ -1040,14 +1033,7 @@ static void m09700s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     // now the RC4 part
 
-    u32 key[4];
-
-    key[0] = digest[0];
-    key[1] = digest[1];
-    key[2] = digest[2];
-    key[3] = digest[3];
-
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, digest);
 
     u32 out[4];
 

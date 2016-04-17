@@ -276,6 +276,10 @@ static void m09800m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
+  /**
+   * shared
+   */
+
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
@@ -288,10 +292,6 @@ static void m09800m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
   salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
   salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
-
-  const u32 salt_len = 16;
-
-  const u32 pw_salt_len = pw_len + salt_len;
 
   /**
    * esalt
@@ -317,6 +317,12 @@ static void m09800m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
     const u32 w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32 w0lr = w0l | w0r;
+
+    /**
+     * sha1
+     */
+
+    const u32 pw_salt_len = pw_len + 16;
 
     u32 w0_t[4];
     u32 w1_t[4];
@@ -375,21 +381,19 @@ static void m09800m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    u32 key[4];
-
-    key[0] = swap32 (digest[0]);
-    key[1] = swap32 (digest[1]);
-    key[2] = swap32 (digest[2]);
-    key[3] = swap32 (digest[3]);
+    digest[0] = swap32 (digest[0]);
+    digest[1] = swap32 (digest[1]);
+    digest[2] = swap32 (digest[2]);
+    digest[3] = swap32 (digest[3]);
 
     if (version == 3)
     {
-      key[1] &= 0xff;
-      key[2]  = 0;
-      key[3]  = 0;
+      digest[1] &= 0xff;
+      digest[2]  = 0;
+      digest[3]  = 0;
     }
 
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, digest);
 
     u32 out[4];
 
@@ -440,19 +444,11 @@ static void m09800s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
   /**
-   * digest
+   * shared
    */
 
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
+  __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * salt
@@ -464,10 +460,6 @@ static void m09800s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
   salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
   salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
-
-  const u32 salt_len = 16;
-
-  const u32 pw_salt_len = pw_len + salt_len;
 
   /**
    * esalt
@@ -483,6 +475,18 @@ static void m09800s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   encryptedVerifier[3] = oldoffice34_bufs[salt_pos].encryptedVerifier[3];
 
   /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
+
+  /**
    * loop
    */
 
@@ -493,6 +497,12 @@ static void m09800s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
     const u32 w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32 w0lr = w0l | w0r;
+
+    /**
+     * sha1
+     */
+
+    const u32 pw_salt_len = pw_len + 16;
 
     u32 w0_t[4];
     u32 w1_t[4];
@@ -551,21 +561,19 @@ static void m09800s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    u32 key[4];
-
-    key[0] = swap32 (digest[0]);
-    key[1] = swap32 (digest[1]);
-    key[2] = swap32 (digest[2]);
-    key[3] = swap32 (digest[3]);
+    digest[0] = swap32 (digest[0]);
+    digest[1] = swap32 (digest[1]);
+    digest[2] = swap32 (digest[2]);
+    digest[3] = swap32 (digest[3]);
 
     if (version == 3)
     {
-      key[1] &= 0xff;
-      key[2]  = 0;
-      key[3]  = 0;
+      digest[1] &= 0xff;
+      digest[2]  = 0;
+      digest[3]  = 0;
     }
 
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, digest);
 
     u32 out[4];
 

@@ -9115,27 +9115,6 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
 
   fclose (fp);
 
-  char new_cwd[256] = { 0 };
-
-  char *nwd = getcwd (new_cwd, sizeof (new_cwd));
-
-  if (nwd == NULL)
-  {
-    log_error ("Restore file is corrupted");
-  }
-
-  if (strncmp (new_cwd, rd->cwd, sizeof (new_cwd)) != 0)
-  {
-    if (getcwd (rd->cwd, sizeof (rd->cwd)) == NULL)
-    {
-      log_error ("ERROR: could not determine current user path: %s", strerror (errno));
-
-      exit (-1);
-    }
-
-    log_info ("WARNING: Found old restore file, updating path to %s...", new_cwd);
-  }
-
   if (chdir (rd->cwd))
   {
     log_error ("ERROR: cannot chdir to %s: %s", rd->cwd, strerror (errno));
