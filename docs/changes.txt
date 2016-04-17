@@ -197,6 +197,11 @@ Type.: Bug
 File.: Host
 Desc.: Fixed some checks in the parser of -m 10200 = Cram MD5
 
+Type.: Bug
+File.: Host
+Desc.: MAC and Nonce won't appear sorted in output anymore (same order like in .hccap file)
+Issue: 288
+
 * changes v2.00 -> v2.01:
 
 Type.: Bug
