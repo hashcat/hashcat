@@ -9115,9 +9115,14 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
 
   fclose (fp);
 
+  log_info ("INFO: Changing current working directory to the path found within the .restore file: '%s'", rd->cwd);
+
   if (chdir (rd->cwd))
   {
-    log_error ("ERROR: cannot chdir to %s: %s", rd->cwd, strerror (errno));
+    log_error ("ERROR: The directory '%s' does not exist. It is needed to restore (--restore) the session.\n"
+               "       You could either create this directory (or link it) or update the .restore file using e.g. the analyze_hc_restore.pl tool:\n"
+               "       https://github.com/philsmd/analyze_hc_restore\n"
+               "       The directory must be relative to (or contain) all files/folders mentioned within the command line.", rd->cwd);
 
     exit (-1);
   }
