@@ -7,6 +7,9 @@
 
 #define _OLDOFFICE34_
 
+//too much register pressure
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -276,6 +279,10 @@ static void m09810m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
+  /**
+   * shared
+   */
+
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
@@ -368,19 +375,11 @@ static void m09810s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
   /**
-   * digest
+   * shared
    */
 
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
+  __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * esalt
@@ -394,6 +393,18 @@ static void m09810s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   encryptedVerifier[1] = oldoffice34_bufs[salt_pos].encryptedVerifier[1];
   encryptedVerifier[2] = oldoffice34_bufs[salt_pos].encryptedVerifier[2];
   encryptedVerifier[3] = oldoffice34_bufs[salt_pos].encryptedVerifier[3];
+
+  /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
 
   /**
    * loop
