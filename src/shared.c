@@ -9115,7 +9115,7 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
 
   fclose (fp);
 
-  char new_cwd[1024] = { 0 };
+  char new_cwd[256] = { 0 };
 
   char *nwd = getcwd (new_cwd, sizeof (new_cwd));
 
