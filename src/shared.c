@@ -6581,35 +6581,20 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
 
     wpa_t *wpa = &wpas[salt_pos];
 
-    uint pke[25] = { 0 };
-
-    char *pke_ptr = (char *) pke;
-
-    for (uint i = 0; i < 25; i++)
-    {
-      pke[i] = byte_swap_32 (wpa->pke[i]);
-    }
-
-    unsigned char mac1[6] = { 0 };
-    unsigned char mac2[6] = { 0 };
-
-    memcpy (mac1, pke_ptr + 23, 6);
-    memcpy (mac2, pke_ptr + 29, 6);
-
     snprintf (out_buf, len-1, "%s:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x",
       (char *) salt.salt_buf,
-      mac1[0],
-      mac1[1],
-      mac1[2],
-      mac1[3],
-      mac1[4],
-      mac1[5],
-      mac2[0],
-      mac2[1],
-      mac2[2],
-      mac2[3],
-      mac2[4],
-      mac2[5]);
+      wpa->orig_mac1[0],
+      wpa->orig_mac1[1],
+      wpa->orig_mac1[2],
+      wpa->orig_mac1[3],
+      wpa->orig_mac1[4],
+      wpa->orig_mac1[5],
+      wpa->orig_mac2[0],
+      wpa->orig_mac2[1],
+      wpa->orig_mac2[2],
+      wpa->orig_mac2[3],
+      wpa->orig_mac2[4],
+      wpa->orig_mac2[5]);
   }
   else if (hash_mode == 4400)
   {
@@ -8787,19 +8772,10 @@ void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos)
     memcpy (hccap->eapol, wpa->eapol, wpa->eapol_size);
   }
 
-  uint pke_tmp[25] = { 0 };
-
-  for (int i = 5; i < 25; i++)
-  {
-    pke_tmp[i] = byte_swap_32 (wpa->pke[i]);
-  }
-
-  char *pke_ptr = (char *) pke_tmp;
-
-  memcpy (hccap->mac1,   pke_ptr + 23,  6);
-  memcpy (hccap->mac2,   pke_ptr + 29,  6);
-  memcpy (hccap->nonce1, pke_ptr + 67, 32);
-  memcpy (hccap->nonce2, pke_ptr + 35, 32);
+  memcpy (hccap->mac1,   wpa->orig_mac1,    6);
+  memcpy (hccap->mac2,   wpa->orig_mac2,    6);
+  memcpy (hccap->nonce1, wpa->orig_nonce1, 32);
+  memcpy (hccap->nonce2, wpa->orig_nonce2, 32);
 
   char *digests_buf_ptr = (char *) data.digests_buf;
 
@@ -10258,6 +10234,11 @@ int wpa_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   {
     wpa->pke[i] = byte_swap_32 (wpa->pke[i]);
   }
+
+  memcpy (wpa->orig_mac1,   in.mac1,   6);
+  memcpy (wpa->orig_mac2,   in.mac2,   6);
+  memcpy (wpa->orig_nonce1, in.nonce1, 32);
+  memcpy (wpa->orig_nonce2, in.nonce2, 32);
 
   wpa->keyver = in.keyver;
 

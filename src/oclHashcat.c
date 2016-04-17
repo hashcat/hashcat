@@ -1070,35 +1070,20 @@ void status_display ()
     {
       wpa_t *wpa = (wpa_t *) data.esalts_buf;
 
-      uint pke[25] = { 0 };
-
-      char *pke_ptr = (char *) pke;
-
-      for (uint i = 0; i < 25; i++)
-      {
-        pke[i] = byte_swap_32 (wpa->pke[i]);
-      }
-
-      char mac1[6] = { 0 };
-      char mac2[6] = { 0 };
-
-      memcpy (mac1, pke_ptr + 23, 6);
-      memcpy (mac2, pke_ptr + 29, 6);
-
       log_info ("Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
                 (char *) data.salts_buf[0].salt_buf,
-                mac1[0] & 0xff,
-                mac1[1] & 0xff,
-                mac1[2] & 0xff,
-                mac1[3] & 0xff,
-                mac1[4] & 0xff,
-                mac1[5] & 0xff,
-                mac2[0] & 0xff,
-                mac2[1] & 0xff,
-                mac2[2] & 0xff,
-                mac2[3] & 0xff,
-                mac2[4] & 0xff,
-                mac2[5] & 0xff);
+                wpa->orig_mac1[0],
+                wpa->orig_mac1[1],
+                wpa->orig_mac1[2],
+                wpa->orig_mac1[3],
+                wpa->orig_mac1[4],
+                wpa->orig_mac1[5],
+                wpa->orig_mac2[0],
+                wpa->orig_mac2[1],
+                wpa->orig_mac2[2],
+                wpa->orig_mac2[3],
+                wpa->orig_mac2[4],
+                wpa->orig_mac2[5]);
     }
     else if (data.hash_mode == 5200)
     {
@@ -4176,28 +4161,14 @@ static void *thread_outfile_remove (void *p)
                             wpa_t *wpas = (wpa_t *) data.esalts_buf;
                             wpa_t *wpa  = &wpas[salt_pos];
 
-                            uint pke[25] = { 0 };
-
-                            char *pke_ptr = (char *) pke;
-
-                            for (uint i = 0; i < 25; i++)
-                            {
-                              pke[i] = byte_swap_32 (wpa->pke[i]);
-                            }
-
-                            u8 mac1[6] = { 0 };
-                            u8 mac2[6] = { 0 };
-
-                            memcpy (mac1, pke_ptr + 23, 6);
-                            memcpy (mac2, pke_ptr + 29, 6);
-
                             // compare hex string(s) vs binary MAC address(es)
 
                             for (uint i = 0, j = 0; i < 6; i++, j += 2)
                             {
-                              if (mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
+                              if (wpa->orig_mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
                               {
                                 cracked = 0;
+
                                 break;
                               }
                             }
@@ -4207,9 +4178,10 @@ static void *thread_outfile_remove (void *p)
 
                             for (uint i = 0, j = 0; i < 6; i++, j += 2)
                             {
-                              if (mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
+                              if (wpa->orig_mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
                               {
                                 cracked = 0;
+
                                 break;
                               }
                             }
@@ -11096,16 +11068,23 @@ int main (int argc, char **argv)
 
                 wpa_t *wpa = (wpa_t *) hashes_buf[hashes_cnt].esalt;
 
-                u8 *pke_ptr = (u8 *) wpa->pke;
-
                 // do the appending task
 
                 snprintf (salt_ptr + cur_pos,
                           rem_len,
                           ":%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x",
-                          pke_ptr[20], pke_ptr[27], pke_ptr[26], pke_ptr[25], pke_ptr[24], pke_ptr[31],  // MAC1
-                          pke_ptr[30], pke_ptr[29], pke_ptr[28], pke_ptr[35], pke_ptr[34], pke_ptr[33]); // MAC2
-
+                          wpa->orig_mac1[0],
+                          wpa->orig_mac1[1],
+                          wpa->orig_mac1[2],
+                          wpa->orig_mac1[3],
+                          wpa->orig_mac1[4],
+                          wpa->orig_mac1[5],
+                          wpa->orig_mac2[0],
+                          wpa->orig_mac2[1],
+                          wpa->orig_mac2[2],
+                          wpa->orig_mac2[3],
+                          wpa->orig_mac2[4],
+                          wpa->orig_mac2[5]);
 
                 // memset () the remaining part of the salt
 
@@ -11972,28 +11951,14 @@ int main (int argc, char **argv)
                   {
                     wpa_t *wpa = (wpa_t *) found->esalt;
 
-                    uint pke[25] = { 0 };
-
-                    char *pke_ptr = (char *) pke;
-
-                    for (uint i = 0; i < 25; i++)
-                    {
-                      pke[i] = byte_swap_32 (wpa->pke[i]);
-                    }
-
-                    u8 mac1[6] = { 0 };
-                    u8 mac2[6] = { 0 };
-
-                    memcpy (mac1, pke_ptr + 23, 6);
-                    memcpy (mac2, pke_ptr + 29, 6);
-
                     // compare hex string(s) vs binary MAC address(es)
 
                     for (uint i = 0, j = 0; i < 6; i++, j += 2)
                     {
-                      if (mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
+                      if (wpa->orig_mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
                       {
                         found = NULL;
+
                         break;
                       }
                     }
@@ -12003,9 +11968,10 @@ int main (int argc, char **argv)
 
                     for (uint i = 0, j = 0; i < 6; i++, j += 2)
                     {
-                      if (mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
+                      if (wpa->orig_mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
                       {
                         found = NULL;
+
                         break;
                       }
                     }

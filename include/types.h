@@ -64,6 +64,10 @@ typedef struct
   uint eapol[64];
   int  eapol_size;
   int  keyver;
+  u8   orig_mac1[6];
+  u8   orig_mac2[6];
+  u8   orig_nonce1[32];
+  u8   orig_nonce2[32];
 
 } wpa_t;
 
@@ -144,7 +148,7 @@ typedef struct
   /* key-file handling */
   u32 keyfile_len;
   u32 keyfile[8];
-  
+
   u32 final_random_seed[8];
   u32 transf_random_seed[8];
   u32 enc_iv[4];
