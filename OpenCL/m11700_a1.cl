@@ -2434,14 +2434,14 @@ __kernel void m11700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[ 5] = w1[1];
     w[ 6] = w1[2];
     w[ 7] = w1[3];
-    w[ 8] = 0;
-    w[ 9] = 0;
-    w[10] = 0;
-    w[11] = 0;
-    w[12] = 0;
-    w[13] = 0;
-    w[14] = 0;
-    w[15] = 0;
+    w[ 8] = w2[0];
+    w[ 9] = w2[1];
+    w[10] = w2[2];
+    w[11] = w2[3];
+    w[12] = w3[0];
+    w[13] = w3[1];
+    w[14] = w3[2];
+    w[15] = w3[3];
 
     /**
      * reverse message block
@@ -2662,14 +2662,14 @@ __kernel void m11700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[ 5] = w1[1];
     w[ 6] = w1[2];
     w[ 7] = w1[3];
-    w[ 8] = 0;
-    w[ 9] = 0;
-    w[10] = 0;
-    w[11] = 0;
-    w[12] = 0;
-    w[13] = 0;
-    w[14] = 0;
-    w[15] = 0;
+    w[ 8] = w2[0];
+    w[ 9] = w2[1];
+    w[10] = w2[2];
+    w[11] = w2[3];
+    w[12] = w3[0];
+    w[13] = w3[1];
+    w[14] = w3[2];
+    w[15] = w3[3];
 
     /**
      * reverse message block

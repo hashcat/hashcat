@@ -6,9 +6,10 @@
  * License.....: MIT
  */
 
-#define _GOST2012_512_
+#define _GOST2012_256_
 
-#define NEW_SIMD_CODE
+//too much register pressure
+//#define NEW_SIMD_CODE
 
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
@@ -2319,7 +2320,7 @@ static void m11800m (__local u64 (*s_sbob_sl64)[256], u32 w[16], const u32 pw_le
     const u32x w0lr = w0l | w0r;
 
     /**
-     * reverse message block
+     * GOST
      */
 
     u64x m[8];
@@ -2414,7 +2415,7 @@ static void m11800s (__local u64 (*s_sbob_sl64)[256], u32 w[16], const u32 pw_le
     const u32x w0lr = w0l | w0r;
 
     /**
-     * reverse message block
+     * GOST
      */
 
     u64x m[8];
