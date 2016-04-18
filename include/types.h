@@ -156,7 +156,7 @@ typedef struct
 
   /* specific to version 1 */
   u32 contents_len;
-  u32 contents[12500];
+  u32 contents[75000];
 
   /* specific to version 2 */
   u32 expected_bytes[8];

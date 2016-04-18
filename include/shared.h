@@ -689,7 +689,7 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MIN_13300  1 + 12 + 1 + 32
 #define DISPLAY_LEN_MAX_13300  1 + 12 + 1 + 40
 #define DISPLAY_LEN_MIN_13400  1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 1 + 1 + 1
-#define DISPLAY_LEN_MAX_13400  1 + 7 + 1 + 1 + 10 + 1 + 3 + 1 + 64 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 4 + 1 + 100000 + 1 + 2 + 1 + 64
+#define DISPLAY_LEN_MAX_13400  1 + 7 + 1 + 1 + 10 + 1 + 3 + 1 + 64 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 4 + 1 + 600000 + 1 + 2 + 1 + 64
 
 #define DISPLAY_LEN_MIN_11    32 + 1 + 16
 #define DISPLAY_LEN_MAX_11    32 + 1 + 32
