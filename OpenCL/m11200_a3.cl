@@ -176,11 +176,11 @@ static void m11200m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    u32x plain_sha1_a = a + SHA1M_A;
-    u32x plain_sha1_b = b + SHA1M_B;
-    u32x plain_sha1_c = c + SHA1M_C;
-    u32x plain_sha1_d = d + SHA1M_D;
-    u32x plain_sha1_e = e + SHA1M_E;
+    const u32x plain_sha1_a = a + SHA1M_A;
+    const u32x plain_sha1_b = b + SHA1M_B;
+    const u32x plain_sha1_c = c + SHA1M_C;
+    const u32x plain_sha1_d = d + SHA1M_D;
+    const u32x plain_sha1_e = e + SHA1M_E;
 
     /**
      * sha1 (sha1 ($pass))
@@ -191,7 +191,6 @@ static void m11200m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w2_t = plain_sha1_c;
     w3_t = plain_sha1_d;
     w4_t = plain_sha1_e;
-
     w5_t = 0x80000000;
     w6_t = 0;
     w7_t = 0;
@@ -461,18 +460,6 @@ static void m11200s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
    * salt
    */
 
@@ -483,6 +470,18 @@ static void m11200s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   salt_buf[2] = swap32_S (salt_bufs[salt_pos].salt_buf[2]);
   salt_buf[3] = swap32_S (salt_bufs[salt_pos].salt_buf[3]);
   salt_buf[4] = swap32_S (salt_bufs[salt_pos].salt_buf[4]);
+
+  /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
 
   /**
    * loop
@@ -619,11 +618,11 @@ static void m11200s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    u32x plain_sha1_a = a + SHA1M_A;
-    u32x plain_sha1_b = b + SHA1M_B;
-    u32x plain_sha1_c = c + SHA1M_C;
-    u32x plain_sha1_d = d + SHA1M_D;
-    u32x plain_sha1_e = e + SHA1M_E;
+    const u32x plain_sha1_a = a + SHA1M_A;
+    const u32x plain_sha1_b = b + SHA1M_B;
+    const u32x plain_sha1_c = c + SHA1M_C;
+    const u32x plain_sha1_d = d + SHA1M_D;
+    const u32x plain_sha1_e = e + SHA1M_E;
 
     /**
      * sha1 (sha1 ($pass))
@@ -634,7 +633,6 @@ static void m11200s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w2_t = plain_sha1_c;
     w3_t = plain_sha1_d;
     w4_t = plain_sha1_e;
-
     w5_t = 0x80000000;
     w6_t = 0;
     w7_t = 0;
