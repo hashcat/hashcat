@@ -106,7 +106,7 @@ typedef uint32_t uint; // we need to get rid of this sooner or later, for consis
 #define SPEED_CACHE   128
 #define SPEED_MAXAGE  4096
 
-#define HCBUFSIZ      0x10000 // general large space buffer size in case the size is unknown at compile-time
+#define HCBUFSIZ      0x50000 // general large space buffer size in case the size is unknown at compile-time
 
 /**
  * functions
