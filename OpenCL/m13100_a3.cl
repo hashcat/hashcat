@@ -8,6 +8,9 @@
 
 #define _KRB5TGS_
 
+//too much register pressure
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -19,6 +22,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
+#include "OpenCL/simd.c"
 
 typedef struct
 {
@@ -753,6 +757,10 @@ static void m13100 (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4], 
     const u32 w0r = bfs_buf[il_pos].i;
 
     w0[0] = w0l | w0r;
+
+    /**
+     * kerberos
+     */
 
     u32 digest[4];
 
