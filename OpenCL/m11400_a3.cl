@@ -8,7 +8,8 @@
 
 #define _MD5_
 
-#define NEW_SIMD_CODE
+//incompatible because of brances
+//#define NEW_SIMD_CODE
 
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
@@ -766,18 +767,6 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 lid = get_local_id (0);
 
   /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
    * salt
    */
 
@@ -786,6 +775,7 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 pw_salt_len = salt_len + pw_len;
 
   u32 salt_buf0[16];
+  u32 salt_buf1[16];
 
   salt_buf0[ 0] = esalt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[ 1] = esalt_bufs[salt_pos].salt_buf[ 1];
@@ -803,9 +793,6 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   salt_buf0[13] = esalt_bufs[salt_pos].salt_buf[13];
   salt_buf0[14] = esalt_bufs[salt_pos].salt_buf[14];
   salt_buf0[15] = esalt_bufs[salt_pos].salt_buf[15];
-
-  u32 salt_buf1[16];
-
   salt_buf1[ 0] = esalt_bufs[salt_pos].salt_buf[16];
   salt_buf1[ 1] = esalt_bufs[salt_pos].salt_buf[17];
   salt_buf1[ 2] = esalt_bufs[salt_pos].salt_buf[18];
@@ -830,6 +817,7 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 esalt_len = esalt_bufs[salt_pos].esalt_len;
 
   u32 esalt_buf0[16];
+  u32 esalt_buf1[16];
 
   esalt_buf0[ 0] = esalt_bufs[salt_pos].esalt_buf[ 0];
   esalt_buf0[ 1] = esalt_bufs[salt_pos].esalt_buf[ 1];
@@ -847,9 +835,6 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   esalt_buf0[13] = esalt_bufs[salt_pos].esalt_buf[13];
   esalt_buf0[14] = esalt_bufs[salt_pos].esalt_buf[14];
   esalt_buf0[15] = esalt_bufs[salt_pos].esalt_buf[15];
-
-  u32 esalt_buf1[16];
-
   esalt_buf1[ 0] = esalt_bufs[salt_pos].esalt_buf[16];
   esalt_buf1[ 1] = esalt_bufs[salt_pos].esalt_buf[17];
   esalt_buf1[ 2] = esalt_bufs[salt_pos].esalt_buf[18];
@@ -888,6 +873,7 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     // append the pass to the salt
 
     u32x block0[16];
+    u32x block1[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -905,9 +891,6 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[13] = salt_buf0[13];
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
-
-    u32x block1[16];
-
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
     block1[ 2] = salt_buf1[ 2];
@@ -934,17 +917,14 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
@@ -956,17 +936,14 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
     w3_t[2] = pw_salt_len * 8;
@@ -1073,12 +1050,10 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
             | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
-
     w2_t[0] = esalt_buf0[0];
     w2_t[1] = esalt_buf0[1];
     w2_t[2] = esalt_buf0[2];
     w2_t[3] = esalt_buf0[3];
-
     w3_t[0] = esalt_buf0[4];
     w3_t[1] = esalt_buf0[5];
     w3_t[2] = esalt_buf0[6];
@@ -1176,17 +1151,14 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = esalt_buf0[ 9];
     w0_t[2] = esalt_buf0[10];
     w0_t[3] = esalt_buf0[11];
-
     w1_t[0] = esalt_buf0[12];
     w1_t[1] = esalt_buf0[13];
     w1_t[2] = esalt_buf0[14];
     w1_t[3] = esalt_buf0[15];
-
     w2_t[0] = esalt_buf1[ 0];
     w2_t[1] = esalt_buf1[ 1];
     w2_t[2] = esalt_buf1[ 2];
     w2_t[3] = esalt_buf1[ 3];
-
     w3_t[0] = esalt_buf1[ 4];
     w3_t[1] = esalt_buf1[ 5];
     w3_t[2] = digest_esalt_len * 8;
@@ -1265,7 +1237,7 @@ static void m11400m_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += r_c;
     d += r_d;
 
-    COMPARE_S_SIMD (a, d, c, b);
+    COMPARE_M_SIMD (a, d, c, b);
   }
 }
 
@@ -1279,18 +1251,6 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 lid = get_local_id (0);
 
   /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
    * salt
    */
 
@@ -1299,6 +1259,7 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 pw_salt_len = salt_len + pw_len;
 
   u32 salt_buf0[16];
+  u32 salt_buf1[16];
 
   salt_buf0[ 0] = esalt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[ 1] = esalt_bufs[salt_pos].salt_buf[ 1];
@@ -1316,9 +1277,6 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   salt_buf0[13] = esalt_bufs[salt_pos].salt_buf[13];
   salt_buf0[14] = esalt_bufs[salt_pos].salt_buf[14];
   salt_buf0[15] = esalt_bufs[salt_pos].salt_buf[15];
-
-  u32 salt_buf1[16];
-
   salt_buf1[ 0] = esalt_bufs[salt_pos].salt_buf[16];
   salt_buf1[ 1] = esalt_bufs[salt_pos].salt_buf[17];
   salt_buf1[ 2] = esalt_bufs[salt_pos].salt_buf[18];
@@ -1343,6 +1301,8 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 esalt_len = esalt_bufs[salt_pos].esalt_len;
 
   u32 esalt_buf0[16];
+  u32 esalt_buf1[16];
+  u32 esalt_buf2[16];
 
   esalt_buf0[ 0] = esalt_bufs[salt_pos].esalt_buf[ 0];
   esalt_buf0[ 1] = esalt_bufs[salt_pos].esalt_buf[ 1];
@@ -1360,9 +1320,6 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   esalt_buf0[13] = esalt_bufs[salt_pos].esalt_buf[13];
   esalt_buf0[14] = esalt_bufs[salt_pos].esalt_buf[14];
   esalt_buf0[15] = esalt_bufs[salt_pos].esalt_buf[15];
-
-  u32 esalt_buf1[16];
-
   esalt_buf1[ 0] = esalt_bufs[salt_pos].esalt_buf[16];
   esalt_buf1[ 1] = esalt_bufs[salt_pos].esalt_buf[17];
   esalt_buf1[ 2] = esalt_bufs[salt_pos].esalt_buf[18];
@@ -1379,9 +1336,6 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   esalt_buf1[13] = esalt_bufs[salt_pos].esalt_buf[29];
   esalt_buf1[14] = esalt_bufs[salt_pos].esalt_buf[30];
   esalt_buf1[15] = esalt_bufs[salt_pos].esalt_buf[31];
-
-  u32 esalt_buf2[16];
-
   esalt_buf2[ 0] = esalt_bufs[salt_pos].esalt_buf[32];
   esalt_buf2[ 1] = esalt_bufs[salt_pos].esalt_buf[33];
   esalt_buf2[ 2] = esalt_bufs[salt_pos].esalt_buf[34];
@@ -1420,6 +1374,7 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     // append the pass to the salt
 
     u32x block0[16];
+    u32x block1[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -1437,9 +1392,6 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[13] = salt_buf0[13];
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
-
-    u32x block1[16];
-
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
     block1[ 2] = salt_buf1[ 2];
@@ -1466,17 +1418,14 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
@@ -1488,17 +1437,14 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
     w3_t[2] = pw_salt_len * 8;
@@ -1605,12 +1551,10 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
             | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
-
     w2_t[0] = esalt_buf0[0];
     w2_t[1] = esalt_buf0[1];
     w2_t[2] = esalt_buf0[2];
     w2_t[3] = esalt_buf0[3];
-
     w3_t[0] = esalt_buf0[4];
     w3_t[1] = esalt_buf0[5];
     w3_t[2] = esalt_buf0[6];
@@ -1708,17 +1652,14 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = esalt_buf0[ 9];
     w0_t[2] = esalt_buf0[10];
     w0_t[3] = esalt_buf0[11];
-
     w1_t[0] = esalt_buf0[12];
     w1_t[1] = esalt_buf0[13];
     w1_t[2] = esalt_buf0[14];
     w1_t[3] = esalt_buf0[15];
-
     w2_t[0] = esalt_buf1[ 0];
     w2_t[1] = esalt_buf1[ 1];
     w2_t[2] = esalt_buf1[ 2];
     w2_t[3] = esalt_buf1[ 3];
-
     w3_t[0] = esalt_buf1[ 4];
     w3_t[1] = esalt_buf1[ 5];
     w3_t[2] = esalt_buf1[ 6];
@@ -1808,17 +1749,14 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = esalt_buf1[ 9];
     w0_t[2] = esalt_buf1[10];
     w0_t[3] = esalt_buf1[11];
-
     w1_t[0] = esalt_buf1[12];
     w1_t[1] = esalt_buf1[13];
     w1_t[2] = esalt_buf1[14];
     w1_t[3] = esalt_buf1[15];
-
     w2_t[0] = esalt_buf2[ 0];
     w2_t[1] = esalt_buf2[ 1];
     w2_t[2] = esalt_buf2[ 2];
     w2_t[3] = esalt_buf2[ 3];
-
     w3_t[0] = esalt_buf2[ 4];
     w3_t[1] = esalt_buf2[ 5];
     w3_t[2] = digest_esalt_len * 8;
@@ -1897,7 +1835,7 @@ static void m11400m_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += r_c;
     d += r_d;
 
-    COMPARE_S_SIMD (a, d, c, b);
+    COMPARE_M_SIMD (a, d, c, b);
   }
 }
 
@@ -1911,18 +1849,6 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 lid = get_local_id (0);
 
   /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
    * salt
    */
 
@@ -1931,6 +1857,7 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 pw_salt_len = salt_len + pw_len;
 
   u32 salt_buf0[16];
+  u32 salt_buf1[16];
 
   salt_buf0[ 0] = esalt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[ 1] = esalt_bufs[salt_pos].salt_buf[ 1];
@@ -1948,9 +1875,6 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   salt_buf0[13] = esalt_bufs[salt_pos].salt_buf[13];
   salt_buf0[14] = esalt_bufs[salt_pos].salt_buf[14];
   salt_buf0[15] = esalt_bufs[salt_pos].salt_buf[15];
-
-  u32 salt_buf1[16];
-
   salt_buf1[ 0] = esalt_bufs[salt_pos].salt_buf[16];
   salt_buf1[ 1] = esalt_bufs[salt_pos].salt_buf[17];
   salt_buf1[ 2] = esalt_bufs[salt_pos].salt_buf[18];
@@ -1975,6 +1899,7 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 esalt_len = esalt_bufs[salt_pos].esalt_len;
 
   u32 esalt_buf0[16];
+  u32 esalt_buf1[16];
 
   esalt_buf0[ 0] = esalt_bufs[salt_pos].esalt_buf[ 0];
   esalt_buf0[ 1] = esalt_bufs[salt_pos].esalt_buf[ 1];
@@ -1992,9 +1917,6 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   esalt_buf0[13] = esalt_bufs[salt_pos].esalt_buf[13];
   esalt_buf0[14] = esalt_bufs[salt_pos].esalt_buf[14];
   esalt_buf0[15] = esalt_bufs[salt_pos].esalt_buf[15];
-
-  u32 esalt_buf1[16];
-
   esalt_buf1[ 0] = esalt_bufs[salt_pos].esalt_buf[16];
   esalt_buf1[ 1] = esalt_bufs[salt_pos].esalt_buf[17];
   esalt_buf1[ 2] = esalt_bufs[salt_pos].esalt_buf[18];
@@ -2033,6 +1955,7 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     // append the pass to the salt
 
     u32x block0[16];
+    u32x block1[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -2050,9 +1973,6 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[13] = salt_buf0[13];
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
-
-    u32x block1[16];
-
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
     block1[ 2] = salt_buf1[ 2];
@@ -2079,17 +1999,14 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
@@ -2101,17 +2018,14 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
     w3_t[2] = block0[14];
@@ -2206,17 +2120,14 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = block1[ 1];
     w0_t[2] = block1[ 2];
     w0_t[3] = block1[ 3];
-
     w1_t[0] = block1[ 4];
     w1_t[1] = block1[ 5];
     w1_t[2] = block1[ 6];
     w1_t[3] = block1[ 7];
-
     w2_t[0] = block1[ 8];
     w2_t[1] = block1[ 9];
     w2_t[2] = block1[10];
     w2_t[3] = block1[11];
-
     w3_t[0] = block1[12];
     w3_t[1] = block1[13];
     w3_t[2] = pw_salt_len * 8;
@@ -2316,12 +2227,10 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
             | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
-
     w2_t[0] = esalt_buf0[0];
     w2_t[1] = esalt_buf0[1];
     w2_t[2] = esalt_buf0[2];
     w2_t[3] = esalt_buf0[3];
-
     w3_t[0] = esalt_buf0[4];
     w3_t[1] = esalt_buf0[5];
     w3_t[2] = esalt_buf0[6];
@@ -2419,17 +2328,14 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = esalt_buf0[ 9];
     w0_t[2] = esalt_buf0[10];
     w0_t[3] = esalt_buf0[11];
-
     w1_t[0] = esalt_buf0[12];
     w1_t[1] = esalt_buf0[13];
     w1_t[2] = esalt_buf0[14];
     w1_t[3] = esalt_buf0[15];
-
     w2_t[0] = esalt_buf1[ 0];
     w2_t[1] = esalt_buf1[ 1];
     w2_t[2] = esalt_buf1[ 2];
     w2_t[3] = esalt_buf1[ 3];
-
     w3_t[0] = esalt_buf1[ 4];
     w3_t[1] = esalt_buf1[ 5];
     w3_t[2] = digest_esalt_len * 8;
@@ -2508,7 +2414,7 @@ static void m11400m_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += r_c;
     d += r_d;
 
-    COMPARE_S_SIMD (a, d, c, b);
+    COMPARE_M_SIMD (a, d, c, b);
   }
 }
 
@@ -2522,18 +2428,6 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 lid = get_local_id (0);
 
   /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
    * salt
    */
 
@@ -2542,6 +2436,7 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 pw_salt_len = salt_len + pw_len;
 
   u32 salt_buf0[16];
+  u32 salt_buf1[16];
 
   salt_buf0[ 0] = esalt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[ 1] = esalt_bufs[salt_pos].salt_buf[ 1];
@@ -2559,9 +2454,6 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   salt_buf0[13] = esalt_bufs[salt_pos].salt_buf[13];
   salt_buf0[14] = esalt_bufs[salt_pos].salt_buf[14];
   salt_buf0[15] = esalt_bufs[salt_pos].salt_buf[15];
-
-  u32 salt_buf1[16];
-
   salt_buf1[ 0] = esalt_bufs[salt_pos].salt_buf[16];
   salt_buf1[ 1] = esalt_bufs[salt_pos].salt_buf[17];
   salt_buf1[ 2] = esalt_bufs[salt_pos].salt_buf[18];
@@ -2586,6 +2478,8 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 esalt_len = esalt_bufs[salt_pos].esalt_len;
 
   u32 esalt_buf0[16];
+  u32 esalt_buf1[16];
+  u32 esalt_buf2[16];
 
   esalt_buf0[ 0] = esalt_bufs[salt_pos].esalt_buf[ 0];
   esalt_buf0[ 1] = esalt_bufs[salt_pos].esalt_buf[ 1];
@@ -2603,9 +2497,6 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   esalt_buf0[13] = esalt_bufs[salt_pos].esalt_buf[13];
   esalt_buf0[14] = esalt_bufs[salt_pos].esalt_buf[14];
   esalt_buf0[15] = esalt_bufs[salt_pos].esalt_buf[15];
-
-  u32 esalt_buf1[16];
-
   esalt_buf1[ 0] = esalt_bufs[salt_pos].esalt_buf[16];
   esalt_buf1[ 1] = esalt_bufs[salt_pos].esalt_buf[17];
   esalt_buf1[ 2] = esalt_bufs[salt_pos].esalt_buf[18];
@@ -2622,9 +2513,6 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   esalt_buf1[13] = esalt_bufs[salt_pos].esalt_buf[29];
   esalt_buf1[14] = esalt_bufs[salt_pos].esalt_buf[30];
   esalt_buf1[15] = esalt_bufs[salt_pos].esalt_buf[31];
-
-  u32 esalt_buf2[16];
-
   esalt_buf2[ 0] = esalt_bufs[salt_pos].esalt_buf[32];
   esalt_buf2[ 1] = esalt_bufs[salt_pos].esalt_buf[33];
   esalt_buf2[ 2] = esalt_bufs[salt_pos].esalt_buf[34];
@@ -2663,6 +2551,7 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     // append the pass to the salt
 
     u32x block0[16];
+    u32x block1[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -2680,9 +2569,6 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[13] = salt_buf0[13];
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
-
-    u32 block1[16];
-
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
     block1[ 2] = salt_buf1[ 2];
@@ -2709,17 +2595,14 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
@@ -2731,17 +2614,14 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
     w3_t[2] = block0[14];
@@ -2836,17 +2716,14 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = block1[ 1];
     w0_t[2] = block1[ 2];
     w0_t[3] = block1[ 3];
-
     w1_t[0] = block1[ 4];
     w1_t[1] = block1[ 5];
     w1_t[2] = block1[ 6];
     w1_t[3] = block1[ 7];
-
     w2_t[0] = block1[ 8];
     w2_t[1] = block1[ 9];
     w2_t[2] = block1[10];
     w2_t[3] = block1[11];
-
     w3_t[0] = block1[12];
     w3_t[1] = block1[13];
     w3_t[2] = pw_salt_len * 8;
@@ -2946,12 +2823,10 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
             | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
-
     w2_t[0] = esalt_buf0[0];
     w2_t[1] = esalt_buf0[1];
     w2_t[2] = esalt_buf0[2];
     w2_t[3] = esalt_buf0[3];
-
     w3_t[0] = esalt_buf0[4];
     w3_t[1] = esalt_buf0[5];
     w3_t[2] = esalt_buf0[6];
@@ -3049,17 +2924,14 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = esalt_buf0[ 9];
     w0_t[2] = esalt_buf0[10];
     w0_t[3] = esalt_buf0[11];
-
     w1_t[0] = esalt_buf0[12];
     w1_t[1] = esalt_buf0[13];
     w1_t[2] = esalt_buf0[14];
     w1_t[3] = esalt_buf0[15];
-
     w2_t[0] = esalt_buf1[ 0];
     w2_t[1] = esalt_buf1[ 1];
     w2_t[2] = esalt_buf1[ 2];
     w2_t[3] = esalt_buf1[ 3];
-
     w3_t[0] = esalt_buf1[ 4];
     w3_t[1] = esalt_buf1[ 5];
     w3_t[2] = esalt_buf1[ 6];
@@ -3149,17 +3021,14 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = esalt_buf1[ 9];
     w0_t[2] = esalt_buf1[10];
     w0_t[3] = esalt_buf1[11];
-
     w1_t[0] = esalt_buf1[12];
     w1_t[1] = esalt_buf1[13];
     w1_t[2] = esalt_buf1[14];
     w1_t[3] = esalt_buf1[15];
-
     w2_t[0] = esalt_buf2[ 0];
     w2_t[1] = esalt_buf2[ 1];
     w2_t[2] = esalt_buf2[ 2];
     w2_t[3] = esalt_buf2[ 3];
-
     w3_t[0] = esalt_buf2[ 4];
     w3_t[1] = esalt_buf2[ 5];
     w3_t[2] = digest_esalt_len * 8;
@@ -3238,7 +3107,7 @@ static void m11400m_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     c += r_c;
     d += r_d;
 
-    COMPARE_S_SIMD (a, d, c, b);
+    COMPARE_M_SIMD (a, d, c, b);
   }
 }
 
@@ -3272,6 +3141,7 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 pw_salt_len = salt_len + pw_len;
 
   u32 salt_buf0[16];
+  u32 salt_buf1[16];
 
   salt_buf0[ 0] = esalt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[ 1] = esalt_bufs[salt_pos].salt_buf[ 1];
@@ -3289,9 +3159,6 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   salt_buf0[13] = esalt_bufs[salt_pos].salt_buf[13];
   salt_buf0[14] = esalt_bufs[salt_pos].salt_buf[14];
   salt_buf0[15] = esalt_bufs[salt_pos].salt_buf[15];
-
-  u32 salt_buf1[16];
-
   salt_buf1[ 0] = esalt_bufs[salt_pos].salt_buf[16];
   salt_buf1[ 1] = esalt_bufs[salt_pos].salt_buf[17];
   salt_buf1[ 2] = esalt_bufs[salt_pos].salt_buf[18];
@@ -3316,6 +3183,7 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 esalt_len = esalt_bufs[salt_pos].esalt_len;
 
   u32 esalt_buf0[16];
+  u32 esalt_buf1[16];
 
   esalt_buf0[ 0] = esalt_bufs[salt_pos].esalt_buf[ 0];
   esalt_buf0[ 1] = esalt_bufs[salt_pos].esalt_buf[ 1];
@@ -3333,9 +3201,6 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   esalt_buf0[13] = esalt_bufs[salt_pos].esalt_buf[13];
   esalt_buf0[14] = esalt_bufs[salt_pos].esalt_buf[14];
   esalt_buf0[15] = esalt_bufs[salt_pos].esalt_buf[15];
-
-  u32 esalt_buf1[16];
-
   esalt_buf1[ 0] = esalt_bufs[salt_pos].esalt_buf[16];
   esalt_buf1[ 1] = esalt_bufs[salt_pos].esalt_buf[17];
   esalt_buf1[ 2] = esalt_bufs[salt_pos].esalt_buf[18];
@@ -3374,6 +3239,7 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     // append the pass to the salt
 
     u32x block0[16];
+    u32x block1[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -3391,9 +3257,6 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[13] = salt_buf0[13];
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
-
-    u32x block1[16];
-
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
     block1[ 2] = salt_buf1[ 2];
@@ -3420,17 +3283,14 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
@@ -3442,17 +3302,14 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
     w3_t[2] = pw_salt_len * 8;
@@ -3559,12 +3416,10 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
             | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
-
     w2_t[0] = esalt_buf0[0];
     w2_t[1] = esalt_buf0[1];
     w2_t[2] = esalt_buf0[2];
     w2_t[3] = esalt_buf0[3];
-
     w3_t[0] = esalt_buf0[4];
     w3_t[1] = esalt_buf0[5];
     w3_t[2] = esalt_buf0[6];
@@ -3662,17 +3517,14 @@ static void m11400s_0_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = esalt_buf0[ 9];
     w0_t[2] = esalt_buf0[10];
     w0_t[3] = esalt_buf0[11];
-
     w1_t[0] = esalt_buf0[12];
     w1_t[1] = esalt_buf0[13];
     w1_t[2] = esalt_buf0[14];
     w1_t[3] = esalt_buf0[15];
-
     w2_t[0] = esalt_buf1[ 0];
     w2_t[1] = esalt_buf1[ 1];
     w2_t[2] = esalt_buf1[ 2];
     w2_t[3] = esalt_buf1[ 3];
-
     w3_t[0] = esalt_buf1[ 4];
     w3_t[1] = esalt_buf1[ 5];
     w3_t[2] = digest_esalt_len * 8;
@@ -3785,6 +3637,7 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 pw_salt_len = salt_len + pw_len;
 
   u32 salt_buf0[16];
+  u32 salt_buf1[16];
 
   salt_buf0[ 0] = esalt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[ 1] = esalt_bufs[salt_pos].salt_buf[ 1];
@@ -3802,9 +3655,6 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   salt_buf0[13] = esalt_bufs[salt_pos].salt_buf[13];
   salt_buf0[14] = esalt_bufs[salt_pos].salt_buf[14];
   salt_buf0[15] = esalt_bufs[salt_pos].salt_buf[15];
-
-  u32 salt_buf1[16];
-
   salt_buf1[ 0] = esalt_bufs[salt_pos].salt_buf[16];
   salt_buf1[ 1] = esalt_bufs[salt_pos].salt_buf[17];
   salt_buf1[ 2] = esalt_bufs[salt_pos].salt_buf[18];
@@ -3829,6 +3679,8 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 esalt_len = esalt_bufs[salt_pos].esalt_len;
 
   u32 esalt_buf0[16];
+  u32 esalt_buf1[16];
+  u32 esalt_buf2[16];
 
   esalt_buf0[ 0] = esalt_bufs[salt_pos].esalt_buf[ 0];
   esalt_buf0[ 1] = esalt_bufs[salt_pos].esalt_buf[ 1];
@@ -3846,9 +3698,6 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   esalt_buf0[13] = esalt_bufs[salt_pos].esalt_buf[13];
   esalt_buf0[14] = esalt_bufs[salt_pos].esalt_buf[14];
   esalt_buf0[15] = esalt_bufs[salt_pos].esalt_buf[15];
-
-  u32 esalt_buf1[16];
-
   esalt_buf1[ 0] = esalt_bufs[salt_pos].esalt_buf[16];
   esalt_buf1[ 1] = esalt_bufs[salt_pos].esalt_buf[17];
   esalt_buf1[ 2] = esalt_bufs[salt_pos].esalt_buf[18];
@@ -3865,9 +3714,6 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   esalt_buf1[13] = esalt_bufs[salt_pos].esalt_buf[29];
   esalt_buf1[14] = esalt_bufs[salt_pos].esalt_buf[30];
   esalt_buf1[15] = esalt_bufs[salt_pos].esalt_buf[31];
-
-  u32 esalt_buf2[16];
-
   esalt_buf2[ 0] = esalt_bufs[salt_pos].esalt_buf[32];
   esalt_buf2[ 1] = esalt_bufs[salt_pos].esalt_buf[33];
   esalt_buf2[ 2] = esalt_bufs[salt_pos].esalt_buf[34];
@@ -3906,6 +3752,7 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     // append the pass to the salt
 
     u32x block0[16];
+    u32x block1[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -3923,9 +3770,6 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[13] = salt_buf0[13];
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
-
-    u32x block1[16];
-
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
     block1[ 2] = salt_buf1[ 2];
@@ -3952,17 +3796,14 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
@@ -3974,17 +3815,14 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
     w3_t[2] = pw_salt_len * 8;
@@ -4091,12 +3929,10 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
             | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
-
     w2_t[0] = esalt_buf0[0];
     w2_t[1] = esalt_buf0[1];
     w2_t[2] = esalt_buf0[2];
     w2_t[3] = esalt_buf0[3];
-
     w3_t[0] = esalt_buf0[4];
     w3_t[1] = esalt_buf0[5];
     w3_t[2] = esalt_buf0[6];
@@ -4194,17 +4030,14 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = esalt_buf0[ 9];
     w0_t[2] = esalt_buf0[10];
     w0_t[3] = esalt_buf0[11];
-
     w1_t[0] = esalt_buf0[12];
     w1_t[1] = esalt_buf0[13];
     w1_t[2] = esalt_buf0[14];
     w1_t[3] = esalt_buf0[15];
-
     w2_t[0] = esalt_buf1[ 0];
     w2_t[1] = esalt_buf1[ 1];
     w2_t[2] = esalt_buf1[ 2];
     w2_t[3] = esalt_buf1[ 3];
-
     w3_t[0] = esalt_buf1[ 4];
     w3_t[1] = esalt_buf1[ 5];
     w3_t[2] = esalt_buf1[ 6];
@@ -4294,17 +4127,14 @@ static void m11400s_0_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = esalt_buf1[ 9];
     w0_t[2] = esalt_buf1[10];
     w0_t[3] = esalt_buf1[11];
-
     w1_t[0] = esalt_buf1[12];
     w1_t[1] = esalt_buf1[13];
     w1_t[2] = esalt_buf1[14];
     w1_t[3] = esalt_buf1[15];
-
     w2_t[0] = esalt_buf2[ 0];
     w2_t[1] = esalt_buf2[ 1];
     w2_t[2] = esalt_buf2[ 2];
     w2_t[3] = esalt_buf2[ 3];
-
     w3_t[0] = esalt_buf2[ 4];
     w3_t[1] = esalt_buf2[ 5];
     w3_t[2] = digest_esalt_len * 8;
@@ -4417,6 +4247,7 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 pw_salt_len = salt_len + pw_len;
 
   u32 salt_buf0[16];
+  u32 salt_buf1[16];
 
   salt_buf0[ 0] = esalt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[ 1] = esalt_bufs[salt_pos].salt_buf[ 1];
@@ -4434,9 +4265,6 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   salt_buf0[13] = esalt_bufs[salt_pos].salt_buf[13];
   salt_buf0[14] = esalt_bufs[salt_pos].salt_buf[14];
   salt_buf0[15] = esalt_bufs[salt_pos].salt_buf[15];
-
-  u32 salt_buf1[16];
-
   salt_buf1[ 0] = esalt_bufs[salt_pos].salt_buf[16];
   salt_buf1[ 1] = esalt_bufs[salt_pos].salt_buf[17];
   salt_buf1[ 2] = esalt_bufs[salt_pos].salt_buf[18];
@@ -4461,6 +4289,7 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 esalt_len = esalt_bufs[salt_pos].esalt_len;
 
   u32 esalt_buf0[16];
+  u32 esalt_buf1[16];
 
   esalt_buf0[ 0] = esalt_bufs[salt_pos].esalt_buf[ 0];
   esalt_buf0[ 1] = esalt_bufs[salt_pos].esalt_buf[ 1];
@@ -4478,9 +4307,6 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   esalt_buf0[13] = esalt_bufs[salt_pos].esalt_buf[13];
   esalt_buf0[14] = esalt_bufs[salt_pos].esalt_buf[14];
   esalt_buf0[15] = esalt_bufs[salt_pos].esalt_buf[15];
-
-  u32 esalt_buf1[16];
-
   esalt_buf1[ 0] = esalt_bufs[salt_pos].esalt_buf[16];
   esalt_buf1[ 1] = esalt_bufs[salt_pos].esalt_buf[17];
   esalt_buf1[ 2] = esalt_bufs[salt_pos].esalt_buf[18];
@@ -4519,6 +4345,7 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     // append the pass to the salt
 
     u32x block0[16];
+    u32x block1[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -4536,9 +4363,6 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[13] = salt_buf0[13];
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
-
-    u32x block1[16];
-
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
     block1[ 2] = salt_buf1[ 2];
@@ -4565,17 +4389,14 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
@@ -4587,17 +4408,14 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
     w3_t[2] = block0[14];
@@ -4692,17 +4510,14 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = block1[ 1];
     w0_t[2] = block1[ 2];
     w0_t[3] = block1[ 3];
-
     w1_t[0] = block1[ 4];
     w1_t[1] = block1[ 5];
     w1_t[2] = block1[ 6];
     w1_t[3] = block1[ 7];
-
     w2_t[0] = block1[ 8];
     w2_t[1] = block1[ 9];
     w2_t[2] = block1[10];
     w2_t[3] = block1[11];
-
     w3_t[0] = block1[12];
     w3_t[1] = block1[13];
     w3_t[2] = pw_salt_len * 8;
@@ -4802,12 +4617,10 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
             | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
-
     w2_t[0] = esalt_buf0[0];
     w2_t[1] = esalt_buf0[1];
     w2_t[2] = esalt_buf0[2];
     w2_t[3] = esalt_buf0[3];
-
     w3_t[0] = esalt_buf0[4];
     w3_t[1] = esalt_buf0[5];
     w3_t[2] = esalt_buf0[6];
@@ -4905,17 +4718,14 @@ static void m11400s_1_0 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = esalt_buf0[ 9];
     w0_t[2] = esalt_buf0[10];
     w0_t[3] = esalt_buf0[11];
-
     w1_t[0] = esalt_buf0[12];
     w1_t[1] = esalt_buf0[13];
     w1_t[2] = esalt_buf0[14];
     w1_t[3] = esalt_buf0[15];
-
     w2_t[0] = esalt_buf1[ 0];
     w2_t[1] = esalt_buf1[ 1];
     w2_t[2] = esalt_buf1[ 2];
     w2_t[3] = esalt_buf1[ 3];
-
     w3_t[0] = esalt_buf1[ 4];
     w3_t[1] = esalt_buf1[ 5];
     w3_t[2] = digest_esalt_len * 8;
@@ -5028,6 +4838,7 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 pw_salt_len = salt_len + pw_len;
 
   u32 salt_buf0[16];
+  u32 salt_buf1[16];
 
   salt_buf0[ 0] = esalt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[ 1] = esalt_bufs[salt_pos].salt_buf[ 1];
@@ -5045,9 +4856,6 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   salt_buf0[13] = esalt_bufs[salt_pos].salt_buf[13];
   salt_buf0[14] = esalt_bufs[salt_pos].salt_buf[14];
   salt_buf0[15] = esalt_bufs[salt_pos].salt_buf[15];
-
-  u32 salt_buf1[16];
-
   salt_buf1[ 0] = esalt_bufs[salt_pos].salt_buf[16];
   salt_buf1[ 1] = esalt_bufs[salt_pos].salt_buf[17];
   salt_buf1[ 2] = esalt_bufs[salt_pos].salt_buf[18];
@@ -5072,6 +4880,8 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   const u32 esalt_len = esalt_bufs[salt_pos].esalt_len;
 
   u32 esalt_buf0[16];
+  u32 esalt_buf1[16];
+  u32 esalt_buf2[16];
 
   esalt_buf0[ 0] = esalt_bufs[salt_pos].esalt_buf[ 0];
   esalt_buf0[ 1] = esalt_bufs[salt_pos].esalt_buf[ 1];
@@ -5089,9 +4899,6 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   esalt_buf0[13] = esalt_bufs[salt_pos].esalt_buf[13];
   esalt_buf0[14] = esalt_bufs[salt_pos].esalt_buf[14];
   esalt_buf0[15] = esalt_bufs[salt_pos].esalt_buf[15];
-
-  u32 esalt_buf1[16];
-
   esalt_buf1[ 0] = esalt_bufs[salt_pos].esalt_buf[16];
   esalt_buf1[ 1] = esalt_bufs[salt_pos].esalt_buf[17];
   esalt_buf1[ 2] = esalt_bufs[salt_pos].esalt_buf[18];
@@ -5108,9 +4915,6 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
   esalt_buf1[13] = esalt_bufs[salt_pos].esalt_buf[29];
   esalt_buf1[14] = esalt_bufs[salt_pos].esalt_buf[30];
   esalt_buf1[15] = esalt_bufs[salt_pos].esalt_buf[31];
-
-  u32 esalt_buf2[16];
-
   esalt_buf2[ 0] = esalt_bufs[salt_pos].esalt_buf[32];
   esalt_buf2[ 1] = esalt_bufs[salt_pos].esalt_buf[33];
   esalt_buf2[ 2] = esalt_bufs[salt_pos].esalt_buf[34];
@@ -5149,6 +4953,7 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     // append the pass to the salt
 
     u32x block0[16];
+    u32x block1[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -5166,9 +4971,6 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     block0[13] = salt_buf0[13];
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
-
-    u32x block1[16];
-
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
     block1[ 2] = salt_buf1[ 2];
@@ -5195,17 +4997,14 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
@@ -5217,17 +5016,14 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
     w3_t[2] = block0[14];
@@ -5322,17 +5118,14 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = block1[ 1];
     w0_t[2] = block1[ 2];
     w0_t[3] = block1[ 3];
-
     w1_t[0] = block1[ 4];
     w1_t[1] = block1[ 5];
     w1_t[2] = block1[ 6];
     w1_t[3] = block1[ 7];
-
     w2_t[0] = block1[ 8];
     w2_t[1] = block1[ 9];
     w2_t[2] = block1[10];
     w2_t[3] = block1[11];
-
     w3_t[0] = block1[12];
     w3_t[1] = block1[13];
     w3_t[2] = pw_salt_len * 8;
@@ -5432,12 +5225,10 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
             | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
-
     w2_t[0] = esalt_buf0[0];
     w2_t[1] = esalt_buf0[1];
     w2_t[2] = esalt_buf0[2];
     w2_t[3] = esalt_buf0[3];
-
     w3_t[0] = esalt_buf0[4];
     w3_t[1] = esalt_buf0[5];
     w3_t[2] = esalt_buf0[6];
@@ -5535,17 +5326,14 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = esalt_buf0[ 9];
     w0_t[2] = esalt_buf0[10];
     w0_t[3] = esalt_buf0[11];
-
     w1_t[0] = esalt_buf0[12];
     w1_t[1] = esalt_buf0[13];
     w1_t[2] = esalt_buf0[14];
     w1_t[3] = esalt_buf0[15];
-
     w2_t[0] = esalt_buf1[ 0];
     w2_t[1] = esalt_buf1[ 1];
     w2_t[2] = esalt_buf1[ 2];
     w2_t[3] = esalt_buf1[ 3];
-
     w3_t[0] = esalt_buf1[ 4];
     w3_t[1] = esalt_buf1[ 5];
     w3_t[2] = esalt_buf1[ 6];
@@ -5635,17 +5423,14 @@ static void m11400s_1_1 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 p
     w0_t[1] = esalt_buf1[ 9];
     w0_t[2] = esalt_buf1[10];
     w0_t[3] = esalt_buf1[11];
-
     w1_t[0] = esalt_buf1[12];
     w1_t[1] = esalt_buf1[13];
     w1_t[2] = esalt_buf1[14];
     w1_t[3] = esalt_buf1[15];
-
     w2_t[0] = esalt_buf2[ 0];
     w2_t[1] = esalt_buf2[ 1];
     w2_t[2] = esalt_buf2[ 2];
     w2_t[3] = esalt_buf2[ 3];
-
     w3_t[0] = esalt_buf2[ 4];
     w3_t[1] = esalt_buf2[ 5];
     w3_t[2] = digest_esalt_len * 8;
