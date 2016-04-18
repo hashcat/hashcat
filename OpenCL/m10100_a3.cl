@@ -46,7 +46,7 @@ static void m10100m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
   const u32 lid = get_local_id (0);
 
   /**
-   * base
+   * salt
    */
 
   u64 v0p = SIPHASHM_0;
@@ -74,6 +74,10 @@ static void m10100m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
+
+    /**
+     * siphash
+     */
 
     u64x v0 = v0p;
     u64x v1 = v1p;
@@ -132,19 +136,7 @@ static void m10100s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
   const u32 lid = get_local_id (0);
 
   /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
-   * base
+   * salt
    */
 
   u64 v0p = SIPHASHM_0;
@@ -162,6 +154,18 @@ static void m10100s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
   w_ptr[pw_len / 8] |= (u64) pw_len << 56;
 
   /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
+
+  /**
    * loop
    */
 
@@ -172,6 +176,10 @@ static void m10100s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
+
+    /**
+     * siphash
+     */
 
     u64x v0 = v0p;
     u64x v1 = v1p;
