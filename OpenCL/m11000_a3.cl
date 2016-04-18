@@ -34,30 +34,26 @@ static void m11000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
   salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
   salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
   salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
   salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
   salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
   salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
-
-  u32 salt_buf2[4];
-
   salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
   salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
   salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
   salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
-
-  u32 salt_buf3[2];
-
   salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
   salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
@@ -80,6 +76,7 @@ static void m11000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
      */
 
     // first step fixed 56 bytes of salt
+    // after 56 byte salt, we have beginning of the password
 
     u32x w0_t[4];
     u32x w1_t[4];
@@ -100,17 +97,12 @@ static void m11000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w2_t[3] = salt_buf2[3];
     w3_t[0] = salt_buf3[0];
     w3_t[1] = salt_buf3[1];
-
-    // after 56 byte salt, we have beginning of the password
-
     w3_t[2] = w0lr;
     w3_t[3] = w0[1];
 
     /**
      * md5
      */
-
-    // first transform
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
@@ -301,6 +293,36 @@ static void m11000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
+   * salt
+   */
+
+  u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
+
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
+  salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
+  salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
+  salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
+
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
+  const u32 pw_salt_len = pw_len + salt_len;
+
+  /**
    * digest
    */
 
@@ -311,40 +333,6 @@ static void m11000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     digests_buf[digests_offset].digest_buf[DGST_R2],
     digests_buf[digests_offset].digest_buf[DGST_R3]
   };
-
-  /**
-   * salt
-   */
-
-  u32 salt_buf0[4];
-
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
-  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
-
-  u32 salt_buf1[4];
-
-  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
-  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
-  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
-  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
-
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
-  salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
-  salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
-  salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
-
-  u32 salt_buf3[2];
-
-  salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
-  salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  const u32 pw_salt_len = pw_len + salt_len;
 
   /**
    * loop
@@ -363,6 +351,7 @@ static void m11000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
      */
 
     // first step fixed 56 bytes of salt
+    // after 56 byte salt, we have beginning of the password
 
     u32x w0_t[4];
     u32x w1_t[4];
@@ -383,17 +372,12 @@ static void m11000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w2_t[3] = salt_buf2[3];
     w3_t[0] = salt_buf3[0];
     w3_t[1] = salt_buf3[1];
-
-    // after 56 byte salt, we have beginning of the password
-
     w3_t[2] = w0lr;
     w3_t[3] = w0[1];
 
     /**
      * md5
      */
-
-    // first transform
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
