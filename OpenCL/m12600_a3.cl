@@ -336,18 +336,6 @@ static void m12600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
    * salt
    */
 
@@ -361,6 +349,18 @@ static void m12600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   pc256[5] = salt_bufs[salt_pos].salt_buf_pc[5];
   pc256[6] = salt_bufs[salt_pos].salt_buf_pc[6];
   pc256[7] = salt_bufs[salt_pos].salt_buf_pc[7];
+
+  /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
 
   /**
    * loop
@@ -621,6 +621,9 @@ static void m12600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     wa_t = SHA256_EXPAND (w8_t, w3_t, wb_t, wa_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, wa_t, SHA256C3a);
     wb_t = SHA256_EXPAND (w9_t, w4_t, wc_t, wb_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, wb_t, SHA256C3b);
     wc_t = SHA256_EXPAND (wa_t, w5_t, wd_t, wc_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, wc_t, SHA256C3c);
+
+    if (MATCHES_NONE_VS (d, search[0])) continue;
+
     wd_t = SHA256_EXPAND (wb_t, w6_t, we_t, wd_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, wd_t, SHA256C3d);
     we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, SHA256C3e);
     wf_t = SHA256_EXPAND (wd_t, w8_t, w0_t, wf_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, SHA256C3f);

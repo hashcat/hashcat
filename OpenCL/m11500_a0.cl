@@ -7,7 +7,8 @@
 
 #define _CRC32_
 
-#define NEW_SIMD_CODE
+//incompatible because of branches
+//#define NEW_SIMD_CODE
 
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
@@ -152,14 +153,12 @@ __kernel void m11500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = pws[gid].i[ 4];
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = pws[gid].i[ 6];
@@ -168,7 +167,7 @@ __kernel void m11500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 pw_len = pws[gid].pw_len;
 
   /**
-   * digest
+   * salt
    */
 
   const u32 iv = salt_bufs[salt_pos].salt_buf[0];
@@ -185,6 +184,10 @@ __kernel void m11500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     u32x w3[4] = { 0 };
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+
+    /**
+     * crc32
+     */
 
     u32x w[16];
 
@@ -205,7 +208,7 @@ __kernel void m11500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[14] = 0;
     w[15] = 0;
 
-    u32x a = crc32_VV (w, out_len, iv);
+    u32x a = crc32 (w, out_len, iv);
     u32x b = 0;
     u32x c = 0;
     u32x d = 0;
@@ -239,14 +242,12 @@ __kernel void m11500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = pws[gid].i[ 4];
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = pws[gid].i[ 6];
@@ -255,10 +256,14 @@ __kernel void m11500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 pw_len = pws[gid].pw_len;
 
   /**
-   * digest
+   * salt
    */
 
   const u32 iv = salt_bufs[salt_pos].salt_buf[0];
+
+  /**
+   * digest
+   */
 
   const u32 search[4] =
   {
@@ -281,6 +286,10 @@ __kernel void m11500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
+    /**
+     * crc32
+     */
+
     u32x w[16];
 
     w[ 0] = w0[0];
@@ -300,7 +309,7 @@ __kernel void m11500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[14] = 0;
     w[15] = 0;
 
-    u32x a = crc32_VV (w, out_len, iv);
+    u32x a = crc32 (w, out_len, iv);
     u32x b = 0;
     u32x c = 0;
     u32x d = 0;

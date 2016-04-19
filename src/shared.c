@@ -4197,13 +4197,13 @@ uint count_lines (FILE *fd)
 {
   uint cnt = 0;
 
-  char *buf = (char *) mymalloc (BUFSIZ + 1);
+  char *buf = (char *) mymalloc (HCBUFSIZ + 1);
 
   char prev = '\n';
 
   while (!feof (fd))
   {
-    size_t nread = fread (buf, sizeof (char), BUFSIZ, fd);
+    size_t nread = fread (buf, sizeof (char), HCBUFSIZ, fd);
 
     if (nread < 1) continue;
 
@@ -5453,7 +5453,7 @@ int fgetl (FILE *fp, char *line_buf)
 
     line_len++;
 
-    if (line_len == BUFSIZ) line_len--;
+    if (line_len == HCBUFSIZ) line_len--;
 
     if (c == '\n') break;
   }
@@ -5691,6 +5691,7 @@ char *strhashtype (const uint hash_mode)
     case   121: return ((char *) HT_00121); break;
     case   122: return ((char *) HT_00122); break;
     case   124: return ((char *) HT_00124); break;
+    case   125: return ((char *) HT_00125); break;
     case   130: return ((char *) HT_00130); break;
     case   131: return ((char *) HT_00131); break;
     case   132: return ((char *) HT_00132); break;
@@ -5851,6 +5852,7 @@ char *strhashtype (const uint hash_mode)
     case 13100: return ((char *) HT_13100); break;
     case 13200: return ((char *) HT_13200); break;
     case 13300: return ((char *) HT_13300); break;
+    case 13400: return ((char *) HT_13400); break;
   }
 
   return ((char *) "Unknown");
@@ -5876,7 +5878,7 @@ char *strstatus (const uint devices_status)
   return ((char *) "Unknown");
 }
 
-void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
+void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
 {
   uint hash_type = data.hash_type;
   uint hash_mode = data.hash_mode;
@@ -6184,7 +6186,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
   }
   else if (hash_mode == 23)
   {
-    // do not show the \nskyper\n part in output
+    // do not show the skyper part in output
 
     char *salt_buf_ptr = (char *) salt.salt_buf;
 
@@ -6230,7 +6232,7 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
 
     snprintf (out_buf, len-1, "{SSHA}%s", ptr_plain);
   }
-  else if (hash_mode == 122)
+  else if ((hash_mode == 122) || (hash_mode == 125))
   {
     snprintf (out_buf, len-1, "%s%08x%08x%08x%08x%08x",
       (char *) salt.salt_buf,
@@ -6579,35 +6581,20 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
 
     wpa_t *wpa = &wpas[salt_pos];
 
-    uint pke[25] = { 0 };
-
-    char *pke_ptr = (char *) pke;
-
-    for (uint i = 0; i < 25; i++)
-    {
-      pke[i] = byte_swap_32 (wpa->pke[i]);
-    }
-
-    unsigned char mac1[6] = { 0 };
-    unsigned char mac2[6] = { 0 };
-
-    memcpy (mac1, pke_ptr + 23, 6);
-    memcpy (mac2, pke_ptr + 29, 6);
-
     snprintf (out_buf, len-1, "%s:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x",
       (char *) salt.salt_buf,
-      mac1[0],
-      mac1[1],
-      mac1[2],
-      mac1[3],
-      mac1[4],
-      mac1[5],
-      mac2[0],
-      mac2[1],
-      mac2[2],
-      mac2[3],
-      mac2[4],
-      mac2[5]);
+      wpa->orig_mac1[0],
+      wpa->orig_mac1[1],
+      wpa->orig_mac1[2],
+      wpa->orig_mac1[3],
+      wpa->orig_mac1[4],
+      wpa->orig_mac1[5],
+      wpa->orig_mac2[0],
+      wpa->orig_mac2[1],
+      wpa->orig_mac2[2],
+      wpa->orig_mac2[3],
+      wpa->orig_mac2[4],
+      wpa->orig_mac2[5]);
   }
   else if (hash_mode == 4400)
   {
@@ -7235,6 +7222,12 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
   else if (hash_mode == 8300)
   {
     char digest_buf_c[34] = { 0 };
+
+    digest_buf[0] = byte_swap_32 (digest_buf[0]);
+    digest_buf[1] = byte_swap_32 (digest_buf[1]);
+    digest_buf[2] = byte_swap_32 (digest_buf[2]);
+    digest_buf[3] = byte_swap_32 (digest_buf[3]);
+    digest_buf[4] = byte_swap_32 (digest_buf[4]);
 
     base32_encode (int_to_itoa32, (const u8 *) digest_buf, 20, (u8 *) digest_buf_c);
 
@@ -8348,6 +8341,144 @@ void ascii_digest (char out_buf[4096], uint salt_pos, uint digest_pos)
               digest_buf[2],
               digest_buf[3]);
   }
+  else if (hash_mode == 13400)
+  {
+    keepass_t *keepasss = (keepass_t *) data.esalts_buf;
+
+    keepass_t *keepass = &keepasss[salt_pos];
+
+    u32 version     = (u32) keepass->version;
+    u32 rounds      = salt.salt_iter;
+    u32 algorithm   = (u32) keepass->algorithm;
+    u32 keyfile_len = (u32) keepass->keyfile_len;
+
+    u32 *ptr_final_random_seed  = (u32 *) keepass->final_random_seed ;
+    u32 *ptr_transf_random_seed = (u32 *) keepass->transf_random_seed ;
+    u32 *ptr_enc_iv             = (u32 *) keepass->enc_iv ;
+    u32 *ptr_contents_hash      = (u32 *) keepass->contents_hash ;
+    u32 *ptr_keyfile            = (u32 *) keepass->keyfile ;
+
+    /* specific to version 1 */
+    u32 contents_len;
+    u32 *ptr_contents;
+
+    /* specific to version 2 */
+    u32 expected_bytes_len;
+    u32 *ptr_expected_bytes;
+
+    u32 final_random_seed_len;
+    u32 transf_random_seed_len;
+    u32 enc_iv_len;
+    u32 contents_hash_len;
+
+    transf_random_seed_len = 8;
+    enc_iv_len             = 4;
+    contents_hash_len      = 8;
+    final_random_seed_len  = 8;
+
+    if (version == 1)
+      final_random_seed_len = 4;
+
+    snprintf (out_buf, len-1, "%s*%d*%d*%d",
+      SIGNATURE_KEEPASS,
+      version,
+      rounds,
+      algorithm);
+
+    char *ptr_data = out_buf;
+
+    ptr_data += strlen(out_buf);
+
+    *ptr_data = '*';
+    ptr_data++;
+
+    for (uint i = 0; i < final_random_seed_len; i++, ptr_data += 8)
+      sprintf (ptr_data, "%08x", ptr_final_random_seed[i]);
+
+    *ptr_data = '*';
+    ptr_data++;
+
+    for (uint i = 0; i < transf_random_seed_len; i++, ptr_data += 8)
+      sprintf (ptr_data, "%08x", ptr_transf_random_seed[i]);
+
+    *ptr_data = '*';
+    ptr_data++;
+
+    for (uint i = 0; i < enc_iv_len; i++, ptr_data += 8)
+      sprintf (ptr_data, "%08x", ptr_enc_iv[i]);
+
+    *ptr_data = '*';
+    ptr_data++;
+
+    if (version == 1)
+    {
+      contents_len = (u32)   keepass->contents_len;
+      ptr_contents = (u32 *) keepass->contents;
+
+      for (uint i = 0; i < contents_hash_len; i++, ptr_data += 8)
+        sprintf (ptr_data, "%08x", ptr_contents_hash[i]);
+
+      *ptr_data = '*';
+      ptr_data++;
+
+      /* inline flag */
+      *ptr_data = '1';
+      ptr_data++;
+
+      *ptr_data = '*';
+      ptr_data++;
+
+      char ptr_contents_len[10] = { 0 };
+
+      sprintf ((char*) ptr_contents_len, "%d", contents_len);
+
+      sprintf (ptr_data, "%d", contents_len);
+
+      ptr_data += strlen(ptr_contents_len);
+
+      *ptr_data = '*';
+      ptr_data++;
+
+      for (uint i = 0; i < contents_len / 4; i++, ptr_data += 8)
+        sprintf (ptr_data, "%08x", ptr_contents[i]);
+    }
+    else if (version == 2)
+    {
+      expected_bytes_len = 8;
+      ptr_expected_bytes = (u32 *) keepass->expected_bytes ;
+
+      for (uint i = 0; i < expected_bytes_len; i++, ptr_data += 8)
+        sprintf (ptr_data, "%08x", ptr_expected_bytes[i]);
+
+      *ptr_data = '*';
+      ptr_data++;
+
+      for (uint i = 0; i < contents_hash_len; i++, ptr_data += 8)
+        sprintf (ptr_data, "%08x", ptr_contents_hash[i]);
+    }
+    if (keyfile_len)
+    {
+      *ptr_data = '*';
+      ptr_data++;
+
+      /* inline flag */
+      *ptr_data = '1';
+      ptr_data++;
+
+      *ptr_data = '*';
+      ptr_data++;
+
+      sprintf (ptr_data, "%d", keyfile_len);
+
+      ptr_data += 2;
+
+      *ptr_data = '*';
+      ptr_data++;
+
+      for (uint i = 0; i < 8; i++, ptr_data += 8)
+        sprintf (ptr_data, "%08x", ptr_keyfile[i]);
+    }
+  }
   else
   {
     if (hash_type == HASH_TYPE_MD4)
@@ -8641,19 +8772,10 @@ void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos)
     memcpy (hccap->eapol, wpa->eapol, wpa->eapol_size);
   }
 
-  uint pke_tmp[25] = { 0 };
-
-  for (int i = 5; i < 25; i++)
-  {
-    pke_tmp[i] = byte_swap_32 (wpa->pke[i]);
-  }
-
-  char *pke_ptr = (char *) pke_tmp;
-
-  memcpy (hccap->mac1,   pke_ptr + 23,  6);
-  memcpy (hccap->mac2,   pke_ptr + 29,  6);
-  memcpy (hccap->nonce1, pke_ptr + 67, 32);
-  memcpy (hccap->nonce2, pke_ptr + 35, 32);
+  memcpy (hccap->mac1,   wpa->orig_mac1,    6);
+  memcpy (hccap->mac2,   wpa->orig_mac2,    6);
+  memcpy (hccap->nonce1, wpa->orig_nonce1, 32);
+  memcpy (hccap->nonce2, wpa->orig_nonce2, 32);
 
   char *digests_buf_ptr = (char *) data.digests_buf;
 
@@ -8856,18 +8978,18 @@ restore_data_t *init_restore (int argc, char **argv)
 
       if (rd->pid)
       {
-        char pidbin[BUFSIZ] = { 0 };
+        char *pidbin = (char *) mymalloc (HCBUFSIZ);
 
         int pidbin_len = -1;
 
         #ifdef _POSIX
-        snprintf (pidbin, sizeof (pidbin) - 1, "/proc/%d/cmdline", rd->pid);
+        snprintf (pidbin, HCBUFSIZ - 1, "/proc/%d/cmdline", rd->pid);
 
         FILE *fd = fopen (pidbin, "rb");
 
         if (fd)
         {
-          pidbin_len = fread (pidbin, 1, BUFSIZ, fd);
+          pidbin_len = fread (pidbin, 1, HCBUFSIZ, fd);
 
           pidbin[pidbin_len] = 0;
 
@@ -8892,12 +9014,12 @@ restore_data_t *init_restore (int argc, char **argv)
         #elif _WIN
         HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, rd->pid);
 
-        char pidbin2[BUFSIZ] = { 0 };
+        char *pidbin2 = (char *) mymalloc (HCBUFSIZ);
 
         int pidbin2_len = -1;
 
-        pidbin_len = GetModuleFileName (NULL, pidbin, BUFSIZ);
-        pidbin2_len = GetModuleFileNameEx (hProcess, NULL, pidbin2, BUFSIZ);
+        pidbin_len = GetModuleFileName (NULL, pidbin, HCBUFSIZ);
+        pidbin2_len = GetModuleFileNameEx (hProcess, NULL, pidbin2, HCBUFSIZ);
 
         pidbin[pidbin_len] = 0;
         pidbin2[pidbin2_len] = 0;
@@ -8911,7 +9033,12 @@ restore_data_t *init_restore (int argc, char **argv)
             exit (-1);
           }
         }
+
+        myfree (pidbin2);
+
         #endif
+
+        myfree (pidbin);
       }
 
       if (rd->version_bin < RESTORE_MIN)
@@ -8966,11 +9093,11 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
 
   rd->argv = (char **) mycalloc (rd->argc, sizeof (char *));
 
+  char *buf = (char *) mymalloc (HCBUFSIZ);
+
   for (uint i = 0; i < rd->argc; i++)
   {
-    char buf[BUFSIZ] = { 0 };
-
-    if (fgets (buf, BUFSIZ - 1, fp) == NULL)
+    if (fgets (buf, HCBUFSIZ - 1, fp) == NULL)
     {
       log_error ("ERROR: cannot read %s", eff_restore_file);
 
@@ -8984,32 +9111,18 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
     rd->argv[i] = mystrdup (buf);
   }
 
+  myfree (buf);
+
   fclose (fp);
 
-  char new_cwd[1024] = { 0 };
-
-  char *nwd = getcwd (new_cwd, sizeof (new_cwd));
-
-  if (nwd == NULL)
-  {
-    log_error ("Restore file is corrupted");
-  }
-
-  if (strncmp (new_cwd, rd->cwd, sizeof (new_cwd)) != 0)
-  {
-    if (getcwd (rd->cwd, sizeof (rd->cwd)) == NULL)
-    {
-      log_error ("ERROR: could not determine current user path: %s", strerror (errno));
-
-      exit (-1);
-    }
-
-    log_info ("WARNING: Found old restore file, updating path to %s...", new_cwd);
-  }
+  log_info ("INFO: Changing current working directory to the path found within the .restore file: '%s'", rd->cwd);
 
   if (chdir (rd->cwd))
   {
-    log_error ("ERROR: cannot chdir to %s: %s", rd->cwd, strerror (errno));
+    log_error ("ERROR: The directory '%s' does not exist. It is needed to restore (--restore) the session.\n"
+               "       You could either create this directory (or link it) or update the .restore file using e.g. the analyze_hc_restore.pl tool:\n"
+               "       https://github.com/philsmd/analyze_hc_restore\n"
+               "       The directory must be relative to (or contain) all files/folders mentioned within the command line.", rd->cwd);
 
     exit (-1);
   }
@@ -9180,11 +9293,11 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
 
   int line_num = 0;
 
+  char *buf = (char *) mymalloc (HCBUFSIZ);
+
   while (!feof (fp))
   {
-    char buf[BUFSIZ];
-
-    char *line_buf = fgets (buf, sizeof (buf) - 1, fp);
+    char *line_buf = fgets (buf, HCBUFSIZ - 1, fp);
 
     if (line_buf == NULL) break;
 
@@ -9312,6 +9425,8 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
       continue;
     }
   }
+
+  myfree (buf);
 
   fclose (fp);
 
@@ -9651,6 +9766,43 @@ int lm_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[1] = digest[1];
   digest[2] = 0;
   digest[3] = 0;
+
+  return (PARSER_OK);
+}
+
+int arubaos_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_125) || (input_len > DISPLAY_LEN_MAX_125)) return (PARSER_GLOBAL_LENGTH);
+
+  if ((input_buf[8] != '0') || (input_buf[9] != '1')) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  char *hash_pos = input_buf + 10;
+
+  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+
+  digest[0] -= SHA1M_A;
+  digest[1] -= SHA1M_B;
+  digest[2] -= SHA1M_C;
+  digest[3] -= SHA1M_D;
+  digest[4] -= SHA1M_E;
+
+  uint salt_len = 10;
+
+  char *salt_buf_ptr = (char *) salt->salt_buf;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, input_buf, salt_len);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len = salt_len;
 
   return (PARSER_OK);
 }
@@ -10066,6 +10218,11 @@ int wpa_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   {
     wpa->pke[i] = byte_swap_32 (wpa->pke[i]);
   }
+
+  memcpy (wpa->orig_mac1,   in.mac1,   6);
+  memcpy (wpa->orig_mac2,   in.mac2,   6);
+  memcpy (wpa->orig_nonce1, in.nonce1, 32);
+  memcpy (wpa->orig_nonce2, in.nonce2, 32);
 
   wpa->keyver = in.keyver;
 
@@ -11031,7 +11188,7 @@ int netntlmv2_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *hash_pos = strchr (srvchall_pos, ':');
 
-  if (srvchall_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   uint srvchall_len = hash_pos - srvchall_pos;
 
@@ -11540,11 +11697,11 @@ int sha1axcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   if ((input_len < DISPLAY_LEN_MIN_13300) || (input_len > DISPLAY_LEN_MAX_13300)) return (PARSER_GLOBAL_LENGTH);
 
   if (memcmp (SIGNATURE_AXCRYPT_SHA1, input_buf, 13)) return (PARSER_SIGNATURE_UNMATCHED);
- 
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   input_buf +=14;
-  
+
   digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
@@ -14679,9 +14836,13 @@ int scrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   // base64 decode
 
+  int salt_len_base64 = hash_pos - saltbuf_pos;
+
+  if (salt_len_base64 > 45) return (PARSER_SALT_LENGTH);
+
   u8 tmp_buf[33] = { 0 };
 
-  int tmp_len = base64_decode (base64_to_int, (const u8 *) saltbuf_pos, hash_pos - saltbuf_pos, tmp_buf);
+  int tmp_len = base64_decode (base64_to_int, (const u8 *) saltbuf_pos, salt_len_base64, tmp_buf);
 
   char *salt_buf_ptr = (char *) salt->salt_buf;
 
@@ -16054,15 +16215,17 @@ int crammd5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *hash_pos = strchr (salt_pos, '$');
 
-  uint salt_len = hash_pos - salt_pos;
-
   if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint salt_len = hash_pos - salt_pos;
 
   hash_pos++;
 
   uint hash_len = input_len - 10 - salt_len - 1;
 
   // base64 decode salt
+
+  if (salt_len > 133) return (PARSER_SALT_LENGTH);
 
   u8 tmp_buf[100] = { 0 };
 
@@ -16076,11 +16239,15 @@ int crammd5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_len = salt_len;
 
-  // base64 decode salt
+  // base64 decode hash
+
+  if (hash_len > 133) return (PARSER_HASH_LENGTH);
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
   hash_len = base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+
+  if (hash_len < 32 + 1) return (PARSER_SALT_LENGTH);
 
   uint user_len = hash_len - 32;
 
@@ -18943,22 +19110,22 @@ int axcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   char *salt_pos;
 
   char *wrapped_key_pos;
-  
+
   char *data_pos;
 
   salt->salt_iter = atoi (wrapping_rounds_pos);
-  
+
   salt_pos = strchr (wrapping_rounds_pos, '*');
 
   if (salt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-  
+
   uint wrapping_rounds_len = salt_pos - wrapping_rounds_pos;
 
   /* Skip '*' */
   salt_pos++;
-  
+
   data_pos = salt_pos;
-  
+
   wrapped_key_pos = strchr (salt_pos, '*');
 
   if (wrapped_key_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
@@ -18983,7 +19150,7 @@ int axcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_buf[4] = hex_to_u32 ((const u8 *) &data_pos[ 0]);
   salt->salt_buf[5] = hex_to_u32 ((const u8 *) &data_pos[ 8]);
-  salt->salt_buf[6] = hex_to_u32 ((const u8 *) &data_pos[16]); 
+  salt->salt_buf[6] = hex_to_u32 ((const u8 *) &data_pos[16]);
   salt->salt_buf[7] = hex_to_u32 ((const u8 *) &data_pos[24]);
   salt->salt_buf[8] = hex_to_u32 ((const u8 *) &data_pos[32]);
   salt->salt_buf[9] = hex_to_u32 ((const u8 *) &data_pos[40]);
@@ -18994,6 +19161,308 @@ int axcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[1] = salt->salt_buf[1];
   digest[2] = salt->salt_buf[2];
   digest[3] = salt->salt_buf[3];
+
+  return (PARSER_OK);
+}
+
+int keepass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_13400) || (input_len > DISPLAY_LEN_MAX_13400)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_KEEPASS, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  keepass_t *keepass = (keepass_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  char *version_pos;
+
+  char *rounds_pos;
+
+  char *algorithm_pos;
+
+  char *final_random_seed_pos;
+  u32   final_random_seed_len;
+
+  char *transf_random_seed_pos;
+  u32   transf_random_seed_len;
+
+  char *enc_iv_pos;
+  u32   enc_iv_len;
+
+   /* default is no keyfile provided */
+   char *keyfile_len_pos;
+   u32   keyfile_len = 0;
+   u32   is_keyfile_present = 0;
+   char *keyfile_inline_pos;
+   char *keyfile_pos;
+
+  /* specific to version 1 */
+  char *contents_len_pos;
+  u32   contents_len;
+  char *contents_pos;
+
+  /* specific to version 2 */
+  char *expected_bytes_pos;
+  u32   expected_bytes_len;
+
+  char *contents_hash_pos;
+  u32   contents_hash_len;
+
+  version_pos = input_buf + 8 + 1 + 1;
+
+  keepass->version = atoi (version_pos);
+
+  rounds_pos = strchr (version_pos, '*');
+
+  if (rounds_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  rounds_pos++;
+
+  salt->salt_iter = (atoi (rounds_pos));
+
+  algorithm_pos = strchr (rounds_pos, '*');
+
+  if (algorithm_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  algorithm_pos++;
+
+  keepass->algorithm = atoi (algorithm_pos);
+
+  final_random_seed_pos = strchr (algorithm_pos, '*');
+
+  if (final_random_seed_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  final_random_seed_pos++;
+
+  keepass->final_random_seed[0] = hex_to_u32 ((const u8 *) &final_random_seed_pos[ 0]);
+  keepass->final_random_seed[1] = hex_to_u32 ((const u8 *) &final_random_seed_pos[ 8]);
+  keepass->final_random_seed[2] = hex_to_u32 ((const u8 *) &final_random_seed_pos[16]);
+  keepass->final_random_seed[3] = hex_to_u32 ((const u8 *) &final_random_seed_pos[24]);
+
+  if (keepass->version == 2)
+  {
+    keepass->final_random_seed[4] = hex_to_u32 ((const u8 *) &final_random_seed_pos[32]);
+    keepass->final_random_seed[5] = hex_to_u32 ((const u8 *) &final_random_seed_pos[40]);
+    keepass->final_random_seed[6] = hex_to_u32 ((const u8 *) &final_random_seed_pos[48]);
+    keepass->final_random_seed[7] = hex_to_u32 ((const u8 *) &final_random_seed_pos[56]);
+  }
+
+  transf_random_seed_pos = strchr (final_random_seed_pos, '*');
+
+  if (transf_random_seed_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  final_random_seed_len = transf_random_seed_pos - final_random_seed_pos;
+
+  if (keepass->version == 1 && final_random_seed_len != 32) return (PARSER_SALT_LENGTH);
+  if (keepass->version == 2 && final_random_seed_len != 64) return (PARSER_SALT_LENGTH);
+
+  transf_random_seed_pos++;
+
+  keepass->transf_random_seed[0] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[ 0]);
+  keepass->transf_random_seed[1] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[ 8]);
+  keepass->transf_random_seed[2] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[16]);
+  keepass->transf_random_seed[3] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[24]);
+  keepass->transf_random_seed[4] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[32]);
+  keepass->transf_random_seed[5] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[40]);
+  keepass->transf_random_seed[6] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[48]);
+  keepass->transf_random_seed[7] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[56]);
+
+  enc_iv_pos = strchr (transf_random_seed_pos, '*');
+
+  if (enc_iv_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  transf_random_seed_len = enc_iv_pos - transf_random_seed_pos;
+
+  if (transf_random_seed_len != 64) return (PARSER_SALT_LENGTH);
+
+  enc_iv_pos++;
+
+  keepass->enc_iv[0] = hex_to_u32 ((const u8 *) &enc_iv_pos[ 0]);
+  keepass->enc_iv[1] = hex_to_u32 ((const u8 *) &enc_iv_pos[ 8]);
+  keepass->enc_iv[2] = hex_to_u32 ((const u8 *) &enc_iv_pos[16]);
+  keepass->enc_iv[3] = hex_to_u32 ((const u8 *) &enc_iv_pos[24]);
+
+  if (keepass->version == 1)
+  {
+    contents_hash_pos = strchr (enc_iv_pos, '*');
+
+    if (contents_hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+    enc_iv_len = contents_hash_pos - enc_iv_pos;
+
+    if (enc_iv_len != 32) return (PARSER_SALT_LENGTH);
+
+    contents_hash_pos++;
+
+    keepass->contents_hash[0] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 0]);
+    keepass->contents_hash[1] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 8]);
+    keepass->contents_hash[2] = hex_to_u32 ((const u8 *) &contents_hash_pos[16]);
+    keepass->contents_hash[3] = hex_to_u32 ((const u8 *) &contents_hash_pos[24]);
+    keepass->contents_hash[4] = hex_to_u32 ((const u8 *) &contents_hash_pos[32]);
+    keepass->contents_hash[5] = hex_to_u32 ((const u8 *) &contents_hash_pos[40]);
+    keepass->contents_hash[6] = hex_to_u32 ((const u8 *) &contents_hash_pos[48]);
+    keepass->contents_hash[7] = hex_to_u32 ((const u8 *) &contents_hash_pos[56]);
+
+    /* get length of contents following */
+    char *inline_flag_pos = strchr (contents_hash_pos, '*');
+
+    if (inline_flag_pos == NULL) return (PARSER_SALT_LENGTH);
+
+    contents_hash_len = inline_flag_pos - contents_hash_pos;
+
+    if (contents_hash_len != 64) return (PARSER_SALT_LENGTH);
+
+    inline_flag_pos++;
+
+    u32 inline_flag = atoi (inline_flag_pos);
+
+    if (inline_flag != 1) return (PARSER_SALT_LENGTH);
+
+    contents_len_pos = strchr (inline_flag_pos, '*');
+
+    if (contents_len_pos == NULL) return (PARSER_SALT_LENGTH);
+
+    contents_len_pos++;
+
+    contents_len = atoi (contents_len_pos);
+
+    if (contents_len > 50000) return (PARSER_SALT_LENGTH);
+
+    contents_pos = strchr (contents_len_pos, '*');
+
+    if (contents_pos == NULL) return (PARSER_SALT_LENGTH);
+
+    contents_pos++;
+
+    u32 i;
+
+    keepass->contents_len = contents_len;
+
+    contents_len = contents_len / 4;
+
+    keyfile_inline_pos = strchr (contents_pos, '*');
+
+    u32 real_contents_len;
+
+    if (keyfile_inline_pos == NULL)
+      real_contents_len = input_len - (contents_pos - input_buf);
+    else
+    {
+      real_contents_len = keyfile_inline_pos - contents_pos;
+      keyfile_inline_pos++;
+      is_keyfile_present = 1;
+    }
+
+    if (real_contents_len != keepass->contents_len * 2) return (PARSER_SALT_LENGTH);
+
+    for (i = 0; i < contents_len; i++)
+      keepass->contents[i] = hex_to_u32 ((const u8 *) &contents_pos[i * 8]);
+  }
+  else if (keepass->version == 2)
+  {
+    expected_bytes_pos = strchr (enc_iv_pos, '*');
+
+    if (expected_bytes_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+    enc_iv_len = expected_bytes_pos - enc_iv_pos;
+
+    if (enc_iv_len != 32) return (PARSER_SALT_LENGTH);
+
+    expected_bytes_pos++;
+
+    keepass->expected_bytes[0] = hex_to_u32 ((const u8 *) &expected_bytes_pos[ 0]);
+    keepass->expected_bytes[1] = hex_to_u32 ((const u8 *) &expected_bytes_pos[ 8]);
+    keepass->expected_bytes[2] = hex_to_u32 ((const u8 *) &expected_bytes_pos[16]);
+    keepass->expected_bytes[3] = hex_to_u32 ((const u8 *) &expected_bytes_pos[24]);
+    keepass->expected_bytes[4] = hex_to_u32 ((const u8 *) &expected_bytes_pos[32]);
+    keepass->expected_bytes[5] = hex_to_u32 ((const u8 *) &expected_bytes_pos[40]);
+    keepass->expected_bytes[6] = hex_to_u32 ((const u8 *) &expected_bytes_pos[48]);
+    keepass->expected_bytes[7] = hex_to_u32 ((const u8 *) &expected_bytes_pos[56]);
+
+    contents_hash_pos = strchr (expected_bytes_pos, '*');
+
+    if (contents_hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+    expected_bytes_len = contents_hash_pos - expected_bytes_pos;
+
+    if (expected_bytes_len != 64) return (PARSER_SALT_LENGTH);
+
+    contents_hash_pos++;
+
+    keepass->contents_hash[0] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 0]);
+    keepass->contents_hash[1] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 8]);
+    keepass->contents_hash[2] = hex_to_u32 ((const u8 *) &contents_hash_pos[16]);
+    keepass->contents_hash[3] = hex_to_u32 ((const u8 *) &contents_hash_pos[24]);
+    keepass->contents_hash[4] = hex_to_u32 ((const u8 *) &contents_hash_pos[32]);
+    keepass->contents_hash[5] = hex_to_u32 ((const u8 *) &contents_hash_pos[40]);
+    keepass->contents_hash[6] = hex_to_u32 ((const u8 *) &contents_hash_pos[48]);
+    keepass->contents_hash[7] = hex_to_u32 ((const u8 *) &contents_hash_pos[56]);
+
+    keyfile_inline_pos = strchr (contents_hash_pos, '*');
+
+    if (keyfile_inline_pos == NULL)
+      contents_hash_len = input_len - (int) (contents_hash_pos - input_buf);
+    else
+    {
+      contents_hash_len = keyfile_inline_pos - contents_hash_pos;
+      keyfile_inline_pos++;
+      is_keyfile_present = 1;
+    }
+    if (contents_hash_len != 64) return (PARSER_SALT_LENGTH);
+  }
+
+  if (is_keyfile_present != 0)
+  {
+    keyfile_len_pos = strchr (keyfile_inline_pos, '*');
+
+    keyfile_len_pos++;
+
+    keyfile_len = atoi (keyfile_len_pos);
+
+    keepass->keyfile_len = keyfile_len;
+
+    if (keyfile_len != 64) return (PARSER_SALT_LENGTH);
+
+    keyfile_pos = strchr (keyfile_len_pos, '*');
+
+    if (keyfile_pos == NULL) return (PARSER_SALT_LENGTH);
+
+    keyfile_pos++;
+
+    u32 real_keyfile_len = input_len - (keyfile_pos - input_buf);
+
+    if (real_keyfile_len != 64) return (PARSER_SALT_LENGTH);
+
+    keepass->keyfile[0] = hex_to_u32 ((const u8 *) &keyfile_pos[ 0]);
+    keepass->keyfile[1] = hex_to_u32 ((const u8 *) &keyfile_pos[ 8]);
+    keepass->keyfile[2] = hex_to_u32 ((const u8 *) &keyfile_pos[16]);
+    keepass->keyfile[3] = hex_to_u32 ((const u8 *) &keyfile_pos[24]);
+    keepass->keyfile[4] = hex_to_u32 ((const u8 *) &keyfile_pos[32]);
+    keepass->keyfile[5] = hex_to_u32 ((const u8 *) &keyfile_pos[40]);
+    keepass->keyfile[6] = hex_to_u32 ((const u8 *) &keyfile_pos[48]);
+    keepass->keyfile[7] = hex_to_u32 ((const u8 *) &keyfile_pos[56]);
+  }
+
+  digest[0] = keepass->enc_iv[0];
+  digest[1] = keepass->enc_iv[1];
+  digest[2] = keepass->enc_iv[2];
+  digest[3] = keepass->enc_iv[3];
+
+  salt->salt_buf[0] = keepass->transf_random_seed[0];
+  salt->salt_buf[1] = keepass->transf_random_seed[1];
+  salt->salt_buf[2] = keepass->transf_random_seed[2];
+  salt->salt_buf[3] = keepass->transf_random_seed[3];
+  salt->salt_buf[4] = keepass->transf_random_seed[4];
+  salt->salt_buf[5] = keepass->transf_random_seed[5];
+  salt->salt_buf[6] = keepass->transf_random_seed[6];
+  salt->salt_buf[7] = keepass->transf_random_seed[7];
 
   return (PARSER_OK);
 }
@@ -19402,9 +19871,10 @@ void *thread_keypress (void *p)
 
     if (ch ==  0) continue;
 
-    #ifdef _POSIX
-    if (ch != '\n')
-    #endif
+    //https://github.com/hashcat/oclHashcat/issues/302
+    //#ifdef _POSIX
+    //if (ch != '\n')
+    //#endif
 
     hc_thread_mutex_lock (mux_display);
 
@@ -19413,6 +19883,7 @@ void *thread_keypress (void *p)
     switch (ch)
     {
       case 's':
+      case '\r':
       case '\n':
 
         log_info ("");
@@ -19496,6 +19967,11 @@ void *thread_keypress (void *p)
         break;
     }
 
+    //https://github.com/hashcat/oclHashcat/issues/302
+    //#ifdef _POSIX
+    //if (ch != '\n')
+    //#endif
+
     hc_thread_mutex_unlock (mux_display);
   }
 
@@ -19574,7 +20050,7 @@ int conv_itoc (const u8 c)
 #define GET_P0_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >>  8) & 0xff)
 #define GET_P1_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >> 16) & 0xff)
 
-int cpu_rule_to_kernel_rule (char rule_buf[BUFSIZ], uint rule_len, kernel_rule_t *rule)
+int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule)
 {
   uint rule_pos;
   uint rule_cnt;
@@ -19790,11 +20266,11 @@ int cpu_rule_to_kernel_rule (char rule_buf[BUFSIZ], uint rule_len, kernel_rule_t
   return (0);
 }
 
-int kernel_rule_to_cpu_rule (char rule_buf[BUFSIZ], kernel_rule_t *rule)
+int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
 {
   uint rule_cnt;
   uint rule_pos;
-  uint rule_len = BUFSIZ - 1; // maximum possible len
+  uint rule_len = HCBUFSIZ - 1; // maximum possible len
 
   char rule_cmd;
 

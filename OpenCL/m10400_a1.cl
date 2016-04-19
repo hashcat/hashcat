@@ -7,6 +7,9 @@
 
 #define _MD5_
 
+//too much register pressure
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -18,9 +21,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 __constant u32 padding[8] =
 {
@@ -250,43 +251,22 @@ __kernel void m10400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (gid >= gid_max) return;
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
 
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
-
   /**
-   * key
+   * shared
    */
 
   __local RC4_KEY rc4_keys[64];
@@ -321,119 +301,123 @@ __kernel void m10400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-
-    u32 w1[4];
-
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
 
-    u32 w2[4];
+    /**
+     * pdf
+     */
 
-    w2[0] = wordl2[0] | wordr2[0];
-    w2[1] = wordl2[1] | wordr2[1];
-    w2[2] = wordl2[2] | wordr2[2];
-    w2[3] = wordl2[3] | wordr2[3];
+    u32 p0[4];
+    u32 p1[4];
+    u32 p2[4];
+    u32 p3[4];
 
-    u32 w3[4];
+    p0[0] = padding[0];
+    p0[1] = padding[1];
+    p0[2] = padding[2];
+    p0[3] = padding[3];
+    p1[0] = padding[4];
+    p1[1] = padding[5];
+    p1[2] = padding[6];
+    p1[3] = padding[7];
+    p2[0] = 0;
+    p2[1] = 0;
+    p2[2] = 0;
+    p2[3] = 0;
+    p3[0] = 0;
+    p3[1] = 0;
+    p3[2] = 0;
+    p3[3] = 0;
 
-    w3[0] = wordl3[0] | wordr3[0];
-    w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = wordl3[2] | wordr3[2];
-    w3[3] = wordl3[3] | wordr3[3];
-
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
-
-    // max length supported by pdf11 is 32
-
-    w0_t[0] = padding[0];
-    w0_t[1] = padding[1];
-    w0_t[2] = padding[2];
-    w0_t[3] = padding[3];
-    w1_t[0] = padding[4];
-    w1_t[1] = padding[5];
-    w1_t[2] = padding[6];
-    w1_t[3] = padding[7];
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
-    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, pw_len);
+    switch_buffer_by_offset_le (p0, p1, p2, p3, pw_len);
 
     // add password
     // truncate at 32 is wanted, not a bug!
     // add o_buf
 
-    w0_t[0] |= w0[0];
-    w0_t[1] |= w0[1];
-    w0_t[2] |= w0[2];
-    w0_t[3] |= w0[3];
-    w1_t[0] |= w1[0];
-    w1_t[1] |= w1[1];
-    w1_t[2] |= w1[2];
-    w1_t[3] |= w1[3];
-    w2_t[0]  = o_buf[0];
-    w2_t[1]  = o_buf[1];
-    w2_t[2]  = o_buf[2];
-    w2_t[3]  = o_buf[3];
-    w3_t[0]  = o_buf[4];
-    w3_t[1]  = o_buf[5];
-    w3_t[2]  = o_buf[6];
-    w3_t[3]  = o_buf[7];
+    w0[0] |= p0[0];
+    w0[1] |= p0[1];
+    w0[2] |= p0[2];
+    w0[3] |= p0[3];
+    w1[0] |= p1[0];
+    w1[1] |= p1[1];
+    w1[2] |= p1[2];
+    w1[3] |= p1[3];
+    w2[0]  = o_buf[0];
+    w2[1]  = o_buf[1];
+    w2[2]  = o_buf[2];
+    w2[3]  = o_buf[3];
+    w3[0]  = o_buf[4];
+    w3[1]  = o_buf[5];
+    w3[2]  = o_buf[6];
+    w3[3]  = o_buf[7];
 
     u32 digest[4];
 
@@ -442,48 +426,40 @@ __kernel void m10400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digest[2] = MD5M_C;
     digest[3] = MD5M_D;
 
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    md5_transform (w0, w1, w2, w3, digest);
 
-    w0_t[0] = P;
-    w0_t[1] = id_buf[0];
-    w0_t[2] = id_buf[1];
-    w0_t[3] = id_buf[2];
-    w1_t[0] = id_buf[3];
-    w1_t[1] = 0x80;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 84 * 8;
-    w3_t[3] = 0;
+    w0[0] = P;
+    w0[1] = id_buf[0];
+    w0[2] = id_buf[1];
+    w0[3] = id_buf[2];
+    w1[0] = id_buf[3];
+    w1[1] = 0x80;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 84 * 8;
+    w3[3] = 0;
 
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    md5_transform (w0, w1, w2, w3, digest);
 
     // now the RC4 part
 
-    u32 key[4];
+    digest[1] = digest[1] & 0xff;
+    digest[2] = 0;
+    digest[3] = 0;
 
-    key[0] = digest[0];
-    key[1] = digest[1] & 0xff;
-    key[2] = 0;
-    key[3] = 0;
-
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, digest);
 
     u32 out[4];
 
     rc4_next_16 (rc4_key, 0, 0, padding, out);
 
-    const u32 r0 = out[0];
-    const u32 r1 = out[1];
-    const u32 r2 = out[2];
-    const u32 r3 = out[3];
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
@@ -511,60 +487,27 @@ __kernel void m10400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (gid >= gid_max) return;
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
 
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
-
   /**
-   * key
+   * shared
    */
 
   __local RC4_KEY rc4_keys[64];
 
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
-  /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
 
   /**
    * U_buf
@@ -591,122 +534,138 @@ __kernel void m10400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   id_buf[3] = pdf_bufs[salt_pos].id_buf[3];
 
   /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
+
+  /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-
-    u32 w1[4];
-
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
 
-    u32 w2[4];
+    /**
+     * pdf
+     */
 
-    w2[0] = wordl2[0] | wordr2[0];
-    w2[1] = wordl2[1] | wordr2[1];
-    w2[2] = wordl2[2] | wordr2[2];
-    w2[3] = wordl2[3] | wordr2[3];
+    u32 p0[4];
+    u32 p1[4];
+    u32 p2[4];
+    u32 p3[4];
 
-    u32 w3[4];
+    p0[0] = padding[0];
+    p0[1] = padding[1];
+    p0[2] = padding[2];
+    p0[3] = padding[3];
+    p1[0] = padding[4];
+    p1[1] = padding[5];
+    p1[2] = padding[6];
+    p1[3] = padding[7];
+    p2[0] = 0;
+    p2[1] = 0;
+    p2[2] = 0;
+    p2[3] = 0;
+    p3[0] = 0;
+    p3[1] = 0;
+    p3[2] = 0;
+    p3[3] = 0;
 
-    w3[0] = wordl3[0] | wordr3[0];
-    w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = wordl3[2] | wordr3[2];
-    w3[3] = wordl3[3] | wordr3[3];
-
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
-
-    // max length supported by pdf11 is 32
-
-    w0_t[0] = padding[0];
-    w0_t[1] = padding[1];
-    w0_t[2] = padding[2];
-    w0_t[3] = padding[3];
-    w1_t[0] = padding[4];
-    w1_t[1] = padding[5];
-    w1_t[2] = padding[6];
-    w1_t[3] = padding[7];
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
-    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, pw_len);
+    switch_buffer_by_offset_le (p0, p1, p2, p3, pw_len);
 
     // add password
     // truncate at 32 is wanted, not a bug!
     // add o_buf
 
-    w0_t[0] |= w0[0];
-    w0_t[1] |= w0[1];
-    w0_t[2] |= w0[2];
-    w0_t[3] |= w0[3];
-    w1_t[0] |= w1[0];
-    w1_t[1] |= w1[1];
-    w1_t[2] |= w1[2];
-    w1_t[3] |= w1[3];
-    w2_t[0]  = o_buf[0];
-    w2_t[1]  = o_buf[1];
-    w2_t[2]  = o_buf[2];
-    w2_t[3]  = o_buf[3];
-    w3_t[0]  = o_buf[4];
-    w3_t[1]  = o_buf[5];
-    w3_t[2]  = o_buf[6];
-    w3_t[3]  = o_buf[7];
+    w0[0] |= p0[0];
+    w0[1] |= p0[1];
+    w0[2] |= p0[2];
+    w0[3] |= p0[3];
+    w1[0] |= p1[0];
+    w1[1] |= p1[1];
+    w1[2] |= p1[2];
+    w1[3] |= p1[3];
+    w2[0]  = o_buf[0];
+    w2[1]  = o_buf[1];
+    w2[2]  = o_buf[2];
+    w2[3]  = o_buf[3];
+    w3[0]  = o_buf[4];
+    w3[1]  = o_buf[5];
+    w3[2]  = o_buf[6];
+    w3[3]  = o_buf[7];
 
     u32 digest[4];
 
@@ -715,48 +674,40 @@ __kernel void m10400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digest[2] = MD5M_C;
     digest[3] = MD5M_D;
 
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    md5_transform (w0, w1, w2, w3, digest);
 
-    w0_t[0] = P;
-    w0_t[1] = id_buf[0];
-    w0_t[2] = id_buf[1];
-    w0_t[3] = id_buf[2];
-    w1_t[0] = id_buf[3];
-    w1_t[1] = 0x80;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 84 * 8;
-    w3_t[3] = 0;
+    w0[0] = P;
+    w0[1] = id_buf[0];
+    w0[2] = id_buf[1];
+    w0[3] = id_buf[2];
+    w1[0] = id_buf[3];
+    w1[1] = 0x80;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 84 * 8;
+    w3[3] = 0;
 
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    md5_transform (w0, w1, w2, w3, digest);
 
     // now the RC4 part
 
-    u32 key[4];
+    digest[1] = digest[1] & 0xff;
+    digest[2] = 0;
+    digest[3] = 0;
 
-    key[0] = digest[0];
-    key[1] = digest[1] & 0xff;
-    key[2] = 0;
-    key[3] = 0;
-
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, digest);
 
     u32 out[4];
 
     rc4_next_16 (rc4_key, 0, 0, padding, out);
 
-    const u32 r0 = out[0];
-    const u32 r1 = out[1];
-    const u32 r2 = out[2];
-    const u32 r3 = out[3];
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 

@@ -5,6 +5,9 @@
 
 #define _SAPB_
 
+//too much register pressure
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,9 +19,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 #define GETCHAR(a,p)  (((a)[(p) / 4] >> (((p) & 3) * 8)) & 0xff)
 #define PUTCHAR(a,p,c) ((a)[(p) / 4] = (((a)[(p) / 4] & ~(0xff << (((p) & 3) * 8))) | ((c) << (((p) & 3) * 8))))
@@ -245,28 +246,22 @@ static void m07700m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   u32 s0[4];
+  u32 s1[4];
+  u32 s2[4];
+  u32 s3[4];
 
   s0[0] = salt_buf0[0];
   s0[1] = salt_buf0[1];
   s0[2] = salt_buf0[2];
   s0[3] = 0;
-
-  u32 s1[4];
-
   s1[0] = 0;
   s1[1] = 0;
   s1[2] = 0;
   s1[3] = 0;
-
-  u32 s2[4];
-
   s2[0] = 0;
   s2[1] = 0;
   s2[2] = 0;
   s2[3] = 0;
-
-  u32 s3[4];
-
   s3[0] = 0;
   s3[1] = 0;
   s3[2] = 0;
@@ -282,11 +277,13 @@ static void m07700m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = sapb_trans (bfs_buf[il_pos].i);
+    const u32x w0r = sapb_trans (ix_create_bft (bfs_buf, il_pos));
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
+
+    w0[0] = w0lr;
 
     u32 t[16];
 
@@ -477,13 +474,10 @@ static void m07700m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     a ^= c;
     b ^= d;
+    c  = 0;
+    d  = 0;
 
-    const u32 r0 = a;
-    const u32 r1 = b;
-    const u32 r2 = 0;
-    const u32 r3 = 0;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (a, b, c, d);
   }
 }
 
@@ -516,28 +510,22 @@ static void m07700s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   u32 s0[4];
+  u32 s1[4];
+  u32 s2[4];
+  u32 s3[4];
 
   s0[0] = salt_buf0[0];
   s0[1] = salt_buf0[1];
   s0[2] = salt_buf0[2];
   s0[3] = 0;
-
-  u32 s1[4];
-
   s1[0] = 0;
   s1[1] = 0;
   s1[2] = 0;
   s1[3] = 0;
-
-  u32 s2[4];
-
   s2[0] = 0;
   s2[1] = 0;
   s2[2] = 0;
   s2[3] = 0;
-
-  u32 s3[4];
-
   s3[0] = 0;
   s3[1] = 0;
   s3[2] = 0;
@@ -565,11 +553,13 @@ static void m07700s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = sapb_trans (bfs_buf[il_pos].i);
+    const u32x w0r = sapb_trans (ix_create_bft (bfs_buf, il_pos));
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
+
+    w0[0] = w0lr;
 
     u32 t[16];
 
@@ -760,13 +750,10 @@ static void m07700s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     a ^= c;
     b ^= d;
+    c  = 0;
+    d  = 0;
 
-    const u32 r0 = a;
-    const u32 r1 = b;
-    const u32 r2 = 0;
-    const u32 r3 = 0;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, b, c, d);
   }
 }
 

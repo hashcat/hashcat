@@ -542,18 +542,16 @@ __kernel void m05500_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
    */
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -594,6 +592,7 @@ __kernel void m05500_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     make_unicode (w1, w2_t, w3_t);
 
     w3_t[2] = out_len * 8 * 2;
+    w3_t[3] = 0;
 
     u32x a = MD4M_A;
     u32x b = MD4M_B;
@@ -685,10 +684,7 @@ __kernel void m05500_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
      * DES2
      */
 
-    const u32x bc = (b >> 24) | (c << 8);
-    const u32x cd = (c >> 24) | (d << 8);
-
-    transform_netntlmv1_key (bc, cd, key);
+    transform_netntlmv1_key (((b >> 24) | (c << 8)), ((c >> 24) | (d << 8)), key);
 
     _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
@@ -759,18 +755,16 @@ __kernel void m05500_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
    */
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -781,11 +775,6 @@ __kernel void m05500_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   const u32 s0 = salt_bufs[salt_pos].salt_buf[0];
   const u32 s1 = salt_bufs[salt_pos].salt_buf[1];
   const u32 s2 = salt_bufs[salt_pos].salt_buf[2];
-
-  u32 data[2];
-
-  data[0] = s0;
-  data[1] = s1;
 
   /**
    * digest
@@ -823,6 +812,7 @@ __kernel void m05500_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     make_unicode (w1, w2_t, w3_t);
 
     w3_t[2] = out_len * 8 * 2;
+    w3_t[3] = 0;
 
     u32x a = MD4M_A;
     u32x b = MD4M_B;

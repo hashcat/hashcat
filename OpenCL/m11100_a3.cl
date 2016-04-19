@@ -57,38 +57,61 @@ static void m11100m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 1]; // not a bug
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 1]; // not a bug, see challenge
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 2];
   salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 3];
   salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 4];
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 5];
   salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 6];
   salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 7];
   salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 8];
 
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = 0;
-  salt_buf2[1] = 0;
-  salt_buf2[2] = 0;
-  salt_buf2[3] = 0;
-
-  u32 salt_buf3[4];
-
-  salt_buf3[0] = 0;
-  salt_buf3[1] = 0;
-  salt_buf3[2] = 0;
-  salt_buf3[3] = 0;
-
   const u32 salt_len = salt_bufs[salt_pos].salt_len - 4;
 
-  switch_buffer_by_offset_le_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
+  u32 s0[4];
+  u32 s1[4];
+  u32 s2[4];
+  u32 s3[4];
+
+  s0[0] = salt_buf0[0];
+  s0[1] = salt_buf0[1];
+  s0[2] = salt_buf0[2];
+  s0[3] = salt_buf0[3];
+  s1[0] = salt_buf1[0];
+  s1[1] = salt_buf1[1];
+  s1[2] = salt_buf1[2];
+  s1[3] = salt_buf1[3];
+  s2[0] = 0;
+  s2[1] = 0;
+  s2[2] = 0;
+  s2[3] = 0;
+  s3[0] = 0;
+  s3[1] = 0;
+  s3[2] = 0;
+  s3[3] = 0;
+
+  switch_buffer_by_offset_le_S (s0, s1, s2, s3, pw_len);
 
   const u32 pw_salt_len = pw_len + salt_len;
+
+  w0[0] |= s0[0];
+  w0[1] |= s0[1];
+  w0[2] |= s0[2];
+  w0[3] |= s0[3];
+  w1[0] |= s1[0];
+  w1[1] |= s1[1];
+  w1[2] |= s1[2];
+  w1[3] |= s1[3];
+  w2[0] |= s2[0];
+  w2[1] |= s2[1];
+  w2[2] |= s2[2];
+  w2[3] |= s2[3];
+  w3[0] |= s3[0];
+  w3[1] |= s3[1];
+  w3[2]  = pw_salt_len * 8;
+  w3[3]  = 0;
 
   /**
    * loop
@@ -103,32 +126,26 @@ static void m11100m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x w0lr = w0l | w0r;
 
     u32x w0_t[4];
-
-    w0_t[0] = w0lr  | salt_buf0[0];
-    w0_t[1] = w0[1] | salt_buf0[1];
-    w0_t[2] = w0[2] | salt_buf0[2];
-    w0_t[3] = w0[3] | salt_buf0[3];
-
     u32x w1_t[4];
-
-    w1_t[0] = w1[0] | salt_buf1[0];
-    w1_t[1] = w1[1] | salt_buf1[1];
-    w1_t[2] = w1[2] | salt_buf1[2];
-    w1_t[3] = w1[3] | salt_buf1[3];
-
     u32x w2_t[4];
-
-    w2_t[0] = w2[0] | salt_buf2[0];
-    w2_t[1] = w2[1] | salt_buf2[1];
-    w2_t[2] = w2[2] | salt_buf2[2];
-    w2_t[3] = w2[3] | salt_buf2[3];
-
     u32x w3_t[4];
 
-    w3_t[0] = w3[0] | salt_buf3[0];
-    w3_t[1] = w3[1] | salt_buf3[1];
-    w3_t[2] = pw_salt_len * 8;
-    w3_t[3] = 0;
+    w0_t[0] = w0lr;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
 
     /*
      * md5 ($pass.$salt)
@@ -235,7 +252,6 @@ static void m11100m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w2_t[1] = 0x00000080;
     w2_t[2] = 0;
     w2_t[3] = 0;
-
     w3_t[0] = 0;
     w3_t[1] = 0;
     w3_t[2] = (32 + 4) * 8;
@@ -332,18 +348,6 @@ static void m11100s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
    * challenge
    */
 
@@ -356,38 +360,73 @@ static void m11100s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 1]; // not a bug
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 1]; // not a bug, see challenge
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 2];
   salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 3];
   salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 4];
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 5];
   salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 6];
   salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 7];
   salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 8];
 
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = 0;
-  salt_buf2[1] = 0;
-  salt_buf2[2] = 0;
-  salt_buf2[3] = 0;
-
-  u32 salt_buf3[4];
-
-  salt_buf3[0] = 0;
-  salt_buf3[1] = 0;
-  salt_buf3[2] = 0;
-  salt_buf3[3] = 0;
-
   const u32 salt_len = salt_bufs[salt_pos].salt_len - 4;
 
-  switch_buffer_by_offset_le_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
+  u32 s0[4];
+  u32 s1[4];
+  u32 s2[4];
+  u32 s3[4];
+
+  s0[0] = salt_buf0[0];
+  s0[1] = salt_buf0[1];
+  s0[2] = salt_buf0[2];
+  s0[3] = salt_buf0[3];
+  s1[0] = salt_buf1[0];
+  s1[1] = salt_buf1[1];
+  s1[2] = salt_buf1[2];
+  s1[3] = salt_buf1[3];
+  s2[0] = 0;
+  s2[1] = 0;
+  s2[2] = 0;
+  s2[3] = 0;
+  s3[0] = 0;
+  s3[1] = 0;
+  s3[2] = 0;
+  s3[3] = 0;
+
+  switch_buffer_by_offset_le_S (s0, s1, s2, s3, pw_len);
 
   const u32 pw_salt_len = pw_len + salt_len;
+
+  w0[0] |= s0[0];
+  w0[1] |= s0[1];
+  w0[2] |= s0[2];
+  w0[3] |= s0[3];
+  w1[0] |= s1[0];
+  w1[1] |= s1[1];
+  w1[2] |= s1[2];
+  w1[3] |= s1[3];
+  w2[0] |= s2[0];
+  w2[1] |= s2[1];
+  w2[2] |= s2[2];
+  w2[3] |= s2[3];
+  w3[0] |= s3[0];
+  w3[1] |= s3[1];
+  w3[2]  = pw_salt_len * 8;
+  w3[3]  = 0;
+
+  /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
 
   /**
    * loop
@@ -402,32 +441,26 @@ static void m11100s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x w0lr = w0l | w0r;
 
     u32x w0_t[4];
-
-    w0_t[0] = w0lr  | salt_buf0[0];
-    w0_t[1] = w0[1] | salt_buf0[1];
-    w0_t[2] = w0[2] | salt_buf0[2];
-    w0_t[3] = w0[3] | salt_buf0[3];
-
     u32x w1_t[4];
-
-    w1_t[0] = w1[0] | salt_buf1[0];
-    w1_t[1] = w1[1] | salt_buf1[1];
-    w1_t[2] = w1[2] | salt_buf1[2];
-    w1_t[3] = w1[3] | salt_buf1[3];
-
     u32x w2_t[4];
-
-    w2_t[0] = w2[0] | salt_buf2[0];
-    w2_t[1] = w2[1] | salt_buf2[1];
-    w2_t[2] = w2[2] | salt_buf2[2];
-    w2_t[3] = w2[3] | salt_buf2[3];
-
     u32x w3_t[4];
 
-    w3_t[0] = w3[0] | salt_buf3[0];
-    w3_t[1] = w3[1] | salt_buf3[1];
-    w3_t[2] = pw_salt_len * 8;
-    w3_t[3] = 0;
+    w0_t[0] = w0lr;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
+    w2_t[0] = w2[0];
+    w2_t[1] = w2[1];
+    w2_t[2] = w2[2];
+    w2_t[3] = w2[3];
+    w3_t[0] = w3[0];
+    w3_t[1] = w3[1];
+    w3_t[2] = w3[2];
+    w3_t[3] = w3[3];
 
     /*
      * md5 ($pass.$salt)
@@ -534,7 +567,6 @@ static void m11100s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w2_t[1] = 0x00000080;
     w2_t[2] = 0;
     w2_t[3] = 0;
-
     w3_t[0] = 0;
     w3_t[1] = 0;
     w3_t[2] = (32 + 4) * 8;
@@ -613,6 +645,9 @@ static void m11100s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     MD5_STEP (MD5_I , c, d, a, b, w1_t[2], MD5C3a, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w3_t[1], MD5C3b, MD5S33);
     MD5_STEP (MD5_I , a, b, c, d, w1_t[0], MD5C3c, MD5S30);
+
+    if (MATCHES_NONE_VS (a, search[0])) continue;
+
     MD5_STEP (MD5_I , d, a, b, c, w2_t[3], MD5C3d, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w0_t[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2_t[1], MD5C3f, MD5S33);

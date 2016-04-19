@@ -300,10 +300,10 @@ static void m05600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    */
 
   const u32 userdomain_len = netntlm_bufs[salt_pos].user_len
-                            + netntlm_bufs[salt_pos].domain_len;
+                           + netntlm_bufs[salt_pos].domain_len;
 
   const u32 chall_len = netntlm_bufs[salt_pos].srvchall_len
-                       + netntlm_bufs[salt_pos].clichall_len;
+                      + netntlm_bufs[salt_pos].clichall_len;
 
   /**
    * loop
@@ -317,6 +317,10 @@ static void m05600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
+    /**
+     * pads
+     */
+
     u32x w0_t[4];
     u32x w1_t[4];
     u32x w2_t[4];
@@ -326,17 +330,14 @@ static void m05600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];
@@ -501,6 +502,16 @@ static void m05600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
+   * prepare
+   */
+
+  const u32 userdomain_len = netntlm_bufs[salt_pos].user_len
+                           + netntlm_bufs[salt_pos].domain_len;
+
+  const u32 chall_len = netntlm_bufs[salt_pos].srvchall_len
+                      + netntlm_bufs[salt_pos].clichall_len;
+
+  /**
    * digest
    */
 
@@ -511,16 +522,6 @@ static void m05600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     digests_buf[digests_offset].digest_buf[DGST_R2],
     digests_buf[digests_offset].digest_buf[DGST_R3]
   };
-
-  /**
-   * prepare
-   */
-
-  const u32 userdomain_len = netntlm_bufs[salt_pos].user_len
-                            + netntlm_bufs[salt_pos].domain_len;
-
-  const u32 chall_len = netntlm_bufs[salt_pos].srvchall_len
-                       + netntlm_bufs[salt_pos].clichall_len;
 
   /**
    * loop
@@ -534,6 +535,10 @@ static void m05600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
+    /**
+     * pads
+     */
+
     u32x w0_t[4];
     u32x w1_t[4];
     u32x w2_t[4];
@@ -543,17 +548,14 @@ static void m05600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w0_t[1] = w0[1];
     w0_t[2] = w0[2];
     w0_t[3] = w0[3];
-
     w1_t[0] = w1[0];
     w1_t[1] = w1[1];
     w1_t[2] = w1[2];
     w1_t[3] = w1[3];
-
     w2_t[0] = w2[0];
     w2_t[1] = w2[1];
     w2_t[2] = w2[2];
     w2_t[3] = w2[3];
-
     w3_t[0] = w3[0];
     w3_t[1] = w3[1];
     w3_t[2] = w3[2];

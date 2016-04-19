@@ -7,6 +7,9 @@
 
 #define _MD5_
 
+//too much register pressure
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -85,6 +88,7 @@ static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 
 static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __constant u32 *in, u32 out[4])
 {
+  #pragma unroll 4
   for (u32 k = 0; k < 4; k++)
   {
     u32 xor4 = 0;
@@ -142,6 +146,10 @@ static void m10410m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
+  /**
+   * shared
+   */
+
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
@@ -156,16 +164,13 @@ static void m10410m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     const u32 w0lr = w0l | w0r;
 
-    // now the RC4 part
+    w0[0] = w0lr;
 
-    u32 key[4];
+    /**
+     * pdf
+     */
 
-    key[0] = w0lr;
-    key[1] = w0[1];
-    key[2] = 0;
-    key[3] = 0;
-
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, w0);
 
     u32 out[4];
 
@@ -183,6 +188,10 @@ static void m10410s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
+
+  /**
+   * shared
+   */
 
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
@@ -210,16 +219,13 @@ static void m10410s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     const u32 w0lr = w0l | w0r;
 
-    // now the RC4 part
+    w0[0] = w0lr;
 
-    u32 key[4];
+    /**
+     * pdf
+     */
 
-    key[0] = w0lr;
-    key[1] = w0[1];
-    key[2] = 0;
-    key[3] = 0;
-
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, w0);
 
     u32 out[4];
 

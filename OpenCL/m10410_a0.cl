@@ -7,6 +7,9 @@
 
 #define _MD5_
 
+//too much register pressure
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -20,9 +23,7 @@
 #include "OpenCL/common.c"
 #include "include/rp_kernel.h"
 #include "OpenCL/rp.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 __constant u32 padding[8] =
 {
@@ -89,6 +90,7 @@ static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 
 static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __constant u32 *in, u32 out[4])
 {
+  #pragma unroll 4
   for (u32 k = 0; k < 4; k++)
   {
     u32 xor4 = 0;
@@ -154,14 +156,12 @@ __kernel void m10410_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = pws[gid].i[ 4];
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = pws[gid].i[ 6];
@@ -170,7 +170,7 @@ __kernel void m10410_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 pw_len = pws[gid].pw_len;
 
   /**
-   * key
+   * shared
    */
 
   __local RC4_KEY rc4_keys[64];
@@ -180,59 +180,26 @@ __kernel void m10410_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
+    apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    u32 w1[4];
+    /**
+     * pdf
+     */
 
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
-
-    // now the RC4 part
-
-    u32 key[4];
-
-    key[0] = w0[0];
-    key[1] = w0[1];
-    key[2] = 0;
-    key[3] = 0;
-
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, w0);
 
     u32 out[4];
 
     rc4_next_16 (rc4_key, 0, 0, padding, out);
 
-    const u32 r0 = out[0];
-    const u32 r1 = out[1];
-    const u32 r2 = out[2];
-    const u32 r3 = out[3];
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
@@ -261,20 +228,25 @@ __kernel void m10410_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = pws[gid].i[ 4];
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = pws[gid].i[ 6];
   pw_buf1[3] = pws[gid].i[ 7];
 
   const u32 pw_len = pws[gid].pw_len;
+
+  /**
+   * shared
+   */
+
+  __local RC4_KEY rc4_keys[64];
+  __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * digest
@@ -289,69 +261,29 @@ __kernel void m10410_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   };
 
   /**
-   * key
-   */
-
-  __local RC4_KEY rc4_keys[64];
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
-  /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
+    apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    u32 w1[4];
+    /**
+     * pdf
+     */
 
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
-
-    // now the RC4 part
-
-    u32 key[4];
-
-    key[0] = w0[0];
-    key[1] = w0[1];
-    key[2] = 0;
-    key[3] = 0;
-
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, w0);
 
     u32 out[4];
 
     rc4_next_16 (rc4_key, 0, 0, padding, out);
 
-    const u32 r0 = out[0];
-    const u32 r1 = out[1];
-    const u32 r2 = out[2];
-    const u32 r3 = out[3];
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 

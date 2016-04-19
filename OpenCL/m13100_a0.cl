@@ -8,6 +8,9 @@
 
 #define _KRB5TGS_
 
+//too much register pressure
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -21,6 +24,7 @@
 #include "OpenCL/common.c"
 #include "include/rp_kernel.h"
 #include "OpenCL/rp.c"
+#include "OpenCL/simd.c"
 
 typedef struct
 {
@@ -784,8 +788,6 @@ __kernel void m13100_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * modifier
    */
 
-  __local RC4_KEY rc4_keys[64];
-
   const u32 lid = get_local_id (0);
   const u32 gid = get_global_id (0);
 
@@ -812,6 +814,12 @@ __kernel void m13100_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 pw_len = pws[gid].pw_len;
 
   /**
+   * shared
+   */
+
+  __local RC4_KEY rc4_keys[64];
+
+  /**
    * salt
    */
 
@@ -826,37 +834,14 @@ __kernel void m13100_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
-
-    u32 w1[4];
-
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
+    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
      * kerberos
@@ -866,7 +851,7 @@ __kernel void m13100_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     u32 K2[4];
 
-    kerb_prepare (w0, w1, pw_len, checksum, digest, K2);
+    kerb_prepare (w0, w1, out_len, checksum, digest, K2);
 
     u32 tmp[4];
 
@@ -898,8 +883,6 @@ __kernel void m13100_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * modifier
    */
 
-  __local RC4_KEY rc4_keys[64];
-
   const u32 lid = get_local_id (0);
   const u32 gid = get_global_id (0);
 
@@ -926,6 +909,12 @@ __kernel void m13100_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 pw_len = pws[gid].pw_len;
 
   /**
+   * shared
+   */
+
+  __local RC4_KEY rc4_keys[64];
+
+  /**
    * salt
    */
 
@@ -940,37 +929,14 @@ __kernel void m13100_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
-
-    u32 w1[4];
-
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
+    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
      * kerberos
@@ -980,7 +946,7 @@ __kernel void m13100_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     u32 K2[4];
 
-    kerb_prepare (w0, w1, pw_len, checksum, digest, K2);
+    kerb_prepare (w0, w1, out_len, checksum, digest, K2);
 
     u32 tmp[4];
 

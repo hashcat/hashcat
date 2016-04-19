@@ -102,6 +102,32 @@ static void m09900m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
   const u32 I_w9c3f = w[ 9] + MD5C3f;
 
   /**
+   * fixed buffer
+   */
+
+  u32 t0[4];
+  u32 t1[4];
+  u32 t2[4];
+  u32 t3[4];
+
+  t0[0] = 0;
+  t0[1] = 0;
+  t0[2] = 0;
+  t0[3] = 0;
+  t1[0] = 0;
+  t1[1] = 0;
+  t1[2] = 0;
+  t1[3] = 0;
+  t2[0] = 0;
+  t2[1] = 0x80;
+  t2[2] = 0;
+  t2[3] = 0;
+  t3[0] = 0;
+  t3[1] = 0;
+  t3[2] = 100 * 8;
+  t3[3] = 0;
+
+  /**
    * loop
    */
 
@@ -195,28 +221,6 @@ static void m09900m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
     u32x r_b = b;
     u32x r_c = c;
     u32x r_d = d;
-
-    u32x t0[4];
-    u32x t1[4];
-    u32x t2[4];
-    u32x t3[4];
-
-    t0[0] = 0;
-    t0[1] = 0;
-    t0[2] = 0;
-    t0[3] = 0;
-    t1[0] = 0;
-    t1[1] = 0;
-    t1[2] = 0;
-    t1[3] = 0;
-    t2[0] = 0;
-    t2[1] = 0x80;
-    t2[2] = 0;
-    t2[3] = 0;
-    t3[0] = 0;
-    t3[1] = 0;
-    t3[2] = 100 * 8;
-    t3[3] = 0;
 
     MD5_STEP (MD5_Fo, a, b, c, d, t0[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, t0[1], MD5C01, MD5S01);
@@ -377,6 +381,32 @@ static void m09900s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
   const u32 I_w9c3f = w[ 9] + MD5C3f;
 
   /**
+   * fixed buffer
+   */
+
+  u32 t0[4];
+  u32 t1[4];
+  u32 t2[4];
+  u32 t3[4];
+
+  t0[0] = 0;
+  t0[1] = 0;
+  t0[2] = 0;
+  t0[3] = 0;
+  t1[0] = 0;
+  t1[1] = 0;
+  t1[2] = 0;
+  t1[3] = 0;
+  t2[0] = 0;
+  t2[1] = 0x80;
+  t2[2] = 0;
+  t2[3] = 0;
+  t3[0] = 0;
+  t3[1] = 0;
+  t3[2] = 100 * 8;
+  t3[3] = 0;
+
+  /**
    * digest
    */
 
@@ -482,28 +512,6 @@ static void m09900s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
     u32x r_b = b;
     u32x r_c = c;
     u32x r_d = d;
-
-    u32x t0[4];
-    u32x t1[4];
-    u32x t2[4];
-    u32x t3[4];
-
-    t0[0] = 0;
-    t0[1] = 0;
-    t0[2] = 0;
-    t0[3] = 0;
-    t1[0] = 0;
-    t1[1] = 0;
-    t1[2] = 0;
-    t1[3] = 0;
-    t2[0] = 0;
-    t2[1] = 0x80;
-    t2[2] = 0;
-    t2[3] = 0;
-    t3[0] = 0;
-    t3[1] = 0;
-    t3[2] = 100 * 8;
-    t3[3] = 0;
 
     MD5_STEP (MD5_Fo, a, b, c, d, t0[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, t0[1], MD5C01, MD5S01);

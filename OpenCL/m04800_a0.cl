@@ -28,29 +28,26 @@ __kernel void m04800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * modifier
    */
 
+  const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
+
+  if (gid >= gid_max) return;
 
   /**
    * base
    */
 
-  const u32 gid = get_global_id (0);
-
-  if (gid >= gid_max) return;
-
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -81,35 +78,29 @@ __kernel void m04800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    u32x pw_salt_len = out_len + salt_len;
+    const u32x salt_out_len = salt_len + out_len;
 
     /**
      * append salt
      */
 
     u32x s0[4];
+    u32x s1[4];
+    u32x s2[4];
+    u32x s3[4];
 
     s0[0] = salt_buf[0];
     s0[1] = salt_buf[1];
     s0[2] = salt_buf[2];
     s0[3] = salt_buf[3];
-
-    u32x s1[4];
-
     s1[0] = 0x80;
     s1[1] = 0;
     s1[2] = 0;
     s1[3] = 0;
-
-    u32x s2[4];
-
     s2[0] = 0;
     s2[1] = 0;
     s2[2] = 0;
     s2[3] = 0;
-
-    u32x s3[4];
-
     s3[0] = 0;
     s3[1] = 0;
     s3[2] = 0;
@@ -121,23 +112,20 @@ __kernel void m04800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w0[1] |= s0[1];
     w0[2] |= s0[2];
     w0[3] |= s0[3];
-
     w1[0] |= s1[0];
     w1[1] |= s1[1];
     w1[2] |= s1[2];
     w1[3] |= s1[3];
-
     w2[0] |= s2[0];
     w2[1] |= s2[1];
     w2[2] |= s2[2];
     w2[3] |= s2[3];
-
     w3[0] |= s3[0];
     w3[1] |= s3[1];
-    w3[2]  = 0;
-    w3[3]  = 0;
+    w3[2] |= s3[2];
+    w3[3] |= s3[3];
 
-    /*
+    /**
      * add id byte
      */
 
@@ -145,7 +133,8 @@ __kernel void m04800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     w0[0] |= salt_buf[4];
 
-    w3[2] = pw_salt_len * 8;
+    w3[2]  = salt_out_len * 8;
+    w3[3]  = 0;
 
     /**
      * md5
@@ -242,29 +231,26 @@ __kernel void m04800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * modifier
    */
 
+  const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
+
+  if (gid >= gid_max) return;
 
   /**
    * base
    */
 
-  const u32 gid = get_global_id (0);
-
-  if (gid >= gid_max) return;
-
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -307,35 +293,29 @@ __kernel void m04800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    u32x pw_salt_len = out_len + salt_len;
+    const u32x salt_out_len = salt_len + out_len;
 
     /**
      * append salt
      */
 
     u32x s0[4];
+    u32x s1[4];
+    u32x s2[4];
+    u32x s3[4];
 
     s0[0] = salt_buf[0];
     s0[1] = salt_buf[1];
     s0[2] = salt_buf[2];
     s0[3] = salt_buf[3];
-
-    u32x s1[4];
-
     s1[0] = 0x80;
     s1[1] = 0;
     s1[2] = 0;
     s1[3] = 0;
-
-    u32x s2[4];
-
     s2[0] = 0;
     s2[1] = 0;
     s2[2] = 0;
     s2[3] = 0;
-
-    u32x s3[4];
-
     s3[0] = 0;
     s3[1] = 0;
     s3[2] = 0;
@@ -347,23 +327,20 @@ __kernel void m04800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w0[1] |= s0[1];
     w0[2] |= s0[2];
     w0[3] |= s0[3];
-
     w1[0] |= s1[0];
     w1[1] |= s1[1];
     w1[2] |= s1[2];
     w1[3] |= s1[3];
-
     w2[0] |= s2[0];
     w2[1] |= s2[1];
     w2[2] |= s2[2];
     w2[3] |= s2[3];
-
     w3[0] |= s3[0];
     w3[1] |= s3[1];
-    w3[2]  = 0;
-    w3[3]  = 0;
+    w3[2] |= s3[2];
+    w3[3] |= s3[3];
 
-    /*
+    /**
      * add id byte
      */
 
@@ -371,7 +348,8 @@ __kernel void m04800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     w0[0] |= salt_buf[4];
 
-    w3[2] = pw_salt_len * 8;
+    w3[2]  = salt_out_len * 8;
+    w3[3]  = 0;
 
     /**
      * md5

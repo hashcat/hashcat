@@ -64,6 +64,10 @@ typedef struct
   uint eapol[64];
   int  eapol_size;
   int  keyver;
+  u8   orig_mac1[6];
+  u8   orig_mac2[6];
+  u8   orig_nonce1[32];
+  u8   orig_nonce2[32];
 
 } wpa_t;
 
@@ -135,6 +139,29 @@ typedef struct
   uint edata2_len;
 
 } krb5tgs_t;
+
+typedef struct
+{
+  u32 version;
+  u32 algorithm;
+
+  /* key-file handling */
+  u32 keyfile_len;
+  u32 keyfile[8];
+
+  u32 final_random_seed[8];
+  u32 transf_random_seed[8];
+  u32 enc_iv[4];
+  u32 contents_hash[8];
+
+  /* specific to version 1 */
+  u32 contents_len;
+  u32 contents[75000];
+
+  /* specific to version 2 */
+  u32 expected_bytes[8];
+
+} keepass_t;
 
 typedef struct
 {
@@ -598,6 +625,12 @@ typedef struct
 
 typedef struct
 {
+  u32 tmp_digest[8];
+
+} keepass_tmp_t;
+
+typedef struct
+{
   u32  random[2];
   u32  hash[5];
   u32  salt[5];   // unused, but makes better valid check
@@ -741,7 +774,7 @@ typedef struct
 typedef struct
 {
   u32  version_bin;
-  char cwd[1024];
+  char cwd[256];
   u32  pid;
 
   u32  dictpos;

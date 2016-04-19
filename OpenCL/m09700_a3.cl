@@ -246,6 +246,10 @@ static void m09700m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
+  /**
+   * shared
+   */
+
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
@@ -253,14 +257,13 @@ static void m09700m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
    */
 
   u32 salt_buf_t0[4];
-  u32 salt_buf_t1[5];
-  u32 salt_buf_t2[5];
-  u32 salt_buf_t3[5];
 
   salt_buf_t0[0] = salt_bufs[salt_pos].salt_buf[0];
   salt_buf_t0[1] = salt_bufs[salt_pos].salt_buf[1];
   salt_buf_t0[2] = salt_bufs[salt_pos].salt_buf[2];
   salt_buf_t0[3] = salt_bufs[salt_pos].salt_buf[3];
+
+  u32 salt_buf_t1[5];
 
   salt_buf_t1[0] =                        salt_buf_t0[0] <<  8;
   salt_buf_t1[1] = salt_buf_t0[0] >> 24 | salt_buf_t0[1] <<  8;
@@ -268,11 +271,15 @@ static void m09700m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   salt_buf_t1[3] = salt_buf_t0[2] >> 24 | salt_buf_t0[3] <<  8;
   salt_buf_t1[4] = salt_buf_t0[3] >> 24;
 
+  u32 salt_buf_t2[5];
+
   salt_buf_t2[0] =                        salt_buf_t0[0] << 16;
   salt_buf_t2[1] = salt_buf_t0[0] >> 16 | salt_buf_t0[1] << 16;
   salt_buf_t2[2] = salt_buf_t0[1] >> 16 | salt_buf_t0[2] << 16;
   salt_buf_t2[3] = salt_buf_t0[2] >> 16 | salt_buf_t0[3] << 16;
   salt_buf_t2[4] = salt_buf_t0[3] >> 16;
+
+  u32 salt_buf_t3[5];
 
   salt_buf_t3[0] =                        salt_buf_t0[0] << 24;
   salt_buf_t3[1] = salt_buf_t0[0] >>  8 | salt_buf_t0[1] << 24;
@@ -306,6 +313,10 @@ static void m09700m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
     const u32 w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32 w0lr = w0l | w0r;
+
+    /**
+     * md5
+     */
 
     u32 w0_t[4];
     u32 w1_t[4];
@@ -368,23 +379,6 @@ static void m09700m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     // generate the 16 * 21 buffer
 
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
     // 0..5
     w0_t[0]  = digest_t0[0];
     w0_t[1]  = digest_t0[1];
@@ -424,23 +418,6 @@ static void m09700m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
     // 0..4
     w0_t[0]  = digest_t3[1];
 
@@ -476,23 +453,6 @@ static void m09700m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
     w3_t[3] |= digest_t2[0];
 
     md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
-
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
 
     // 0..3
     w0_t[0]  = digest_t2[1];
@@ -530,23 +490,6 @@ static void m09700m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
     // 0..2
     w0_t[0]  = digest_t1[1];
 
@@ -582,23 +525,6 @@ static void m09700m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
     w3_t[3]  = digest_t0[0];
 
     md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
-
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
 
     // 0..1
     w0_t[0]  = digest_t0[1];
@@ -685,14 +611,7 @@ static void m09700m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     // now the RC4 part
 
-    u32 key[4];
-
-    key[0] = digest[0];
-    key[1] = digest[1];
-    key[2] = digest[2];
-    key[3] = digest[3];
-
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, digest);
 
     u32 out[4];
 
@@ -737,33 +656,24 @@ static void m09700s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
   /**
-   * digest
+   * shared
    */
 
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
+  __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * salt
    */
 
   u32 salt_buf_t0[4];
-  u32 salt_buf_t1[5];
-  u32 salt_buf_t2[5];
-  u32 salt_buf_t3[5];
 
   salt_buf_t0[0] = salt_bufs[salt_pos].salt_buf[0];
   salt_buf_t0[1] = salt_bufs[salt_pos].salt_buf[1];
   salt_buf_t0[2] = salt_bufs[salt_pos].salt_buf[2];
   salt_buf_t0[3] = salt_bufs[salt_pos].salt_buf[3];
+
+  u32 salt_buf_t1[5];
 
   salt_buf_t1[0] =                        salt_buf_t0[0] <<  8;
   salt_buf_t1[1] = salt_buf_t0[0] >> 24 | salt_buf_t0[1] <<  8;
@@ -771,11 +681,15 @@ static void m09700s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   salt_buf_t1[3] = salt_buf_t0[2] >> 24 | salt_buf_t0[3] <<  8;
   salt_buf_t1[4] = salt_buf_t0[3] >> 24;
 
+  u32 salt_buf_t2[5];
+
   salt_buf_t2[0] =                        salt_buf_t0[0] << 16;
   salt_buf_t2[1] = salt_buf_t0[0] >> 16 | salt_buf_t0[1] << 16;
   salt_buf_t2[2] = salt_buf_t0[1] >> 16 | salt_buf_t0[2] << 16;
   salt_buf_t2[3] = salt_buf_t0[2] >> 16 | salt_buf_t0[3] << 16;
   salt_buf_t2[4] = salt_buf_t0[3] >> 16;
+
+  u32 salt_buf_t3[5];
 
   salt_buf_t3[0] =                        salt_buf_t0[0] << 24;
   salt_buf_t3[1] = salt_buf_t0[0] >>  8 | salt_buf_t0[1] << 24;
@@ -799,6 +713,18 @@ static void m09700s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   encryptedVerifier[3] = oldoffice01_bufs[salt_pos].encryptedVerifier[3];
 
   /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
+
+  /**
    * loop
    */
 
@@ -809,6 +735,10 @@ static void m09700s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
     const u32 w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32 w0lr = w0l | w0r;
+
+    /**
+     * md5
+     */
 
     u32 w0_t[4];
     u32 w1_t[4];
@@ -871,23 +801,6 @@ static void m09700s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     // generate the 16 * 21 buffer
 
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
     // 0..5
     w0_t[0]  = digest_t0[0];
     w0_t[1]  = digest_t0[1];
@@ -927,23 +840,6 @@ static void m09700s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
     // 0..4
     w0_t[0]  = digest_t3[1];
 
@@ -979,23 +875,6 @@ static void m09700s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
     w3_t[3] |= digest_t2[0];
 
     md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
-
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
 
     // 0..3
     w0_t[0]  = digest_t2[1];
@@ -1033,23 +912,6 @@ static void m09700s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
 
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
     // 0..2
     w0_t[0]  = digest_t1[1];
 
@@ -1085,23 +947,6 @@ static void m09700s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
     w3_t[3]  = digest_t0[0];
 
     md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
-
-    w0_t[0] = 0;
-    w0_t[1] = 0;
-    w0_t[2] = 0;
-    w0_t[3] = 0;
-    w1_t[0] = 0;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
 
     // 0..1
     w0_t[0]  = digest_t0[1];
@@ -1188,14 +1033,7 @@ static void m09700s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     // now the RC4 part
 
-    u32 key[4];
-
-    key[0] = digest[0];
-    key[1] = digest[1];
-    key[2] = digest[2];
-    key[3] = digest[3];
-
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, digest);
 
     u32 out[4];
 

@@ -161,6 +161,9 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 
 #define LOOPBACK_FILE         "hashcat.loopback"
 
+#define DICTSTAT_FILENAME     "hashcat.dictstat"
+#define POTFILE_FILENAME      "hashcat.pot"
+
 /**
  * types
  */
@@ -194,27 +197,6 @@ extern const char *PROMPT;
 extern int SUPPRESS_OUTPUT;
 
 extern hc_thread_mutex_t mux_display;
-
-/**
- * password lengths supported
- */
-
-#define PW_LENGTH_MIN_0      0
-#define PW_LENGTH_MAX_0      55
-#define PW_LENGTH_MIN_400    0
-#define PW_LENGTH_MAX_400    40
-#define PW_LENGTH_MIN_500    0
-#define PW_LENGTH_MAX_500    15
-#define PW_LENGTH_MIN_1600   0
-#define PW_LENGTH_MAX_1600   15
-#define PW_LENGTH_MIN_1800   0
-#define PW_LENGTH_MAX_1800   15
-#define PW_LENGTH_MIN_2500   0
-#define PW_LENGTH_MAX_2500   64
-#define PW_LENGTH_MIN_6300   0
-#define PW_LENGTH_MAX_6300   15
-#define PW_LENGTH_MIN_7400   0
-#define PW_LENGTH_MAX_7400   15
 
 /**
  * Strings
@@ -365,6 +347,7 @@ extern hc_thread_mutex_t mux_display;
 #define HT_13100  "Kerberos 5 TGS-REP etype 23"
 #define HT_13200  "AxCrypt"
 #define HT_13300  "AxCrypt in memory SHA1"
+#define HT_13400  "Keepass 1 (AES/Twofish) and Keepass 2 (AES)"
 
 #define HT_00011  "Joomla < 2.5.18"
 #define HT_00012  "PostgreSQL"
@@ -377,6 +360,7 @@ extern hc_thread_mutex_t mux_display;
 #define HT_00121  "SMF > v1.1"
 #define HT_00122  "OSX v10.4, v10.5, v10.6"
 #define HT_00124  "Django (SHA-1)"
+#define HT_00125  "ArubaOS"
 #define HT_00131  "MSSQL(2000)"
 #define HT_00132  "MSSQL(2005)"
 #define HT_00133  "PeopleSoft"
@@ -704,6 +688,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_13200  1 + 7 + 1 + 1 + 1 + 1 + 50 + 1 + 32 + 1 + 48 + 1 + 20480
 #define DISPLAY_LEN_MIN_13300  1 + 12 + 1 + 32
 #define DISPLAY_LEN_MAX_13300  1 + 12 + 1 + 40
+#define DISPLAY_LEN_MIN_13400  1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 1 + 1 + 1
+#define DISPLAY_LEN_MAX_13400  1 + 7 + 1 + 1 + 10 + 1 + 3 + 1 + 64 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 4 + 1 + 600000 + 1 + 2 + 1 + 64
 
 #define DISPLAY_LEN_MIN_11    32 + 1 + 16
 #define DISPLAY_LEN_MAX_11    32 + 1 + 32
@@ -737,6 +723,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_122    8 + 40
 #define DISPLAY_LEN_MIN_124   4 + 1 +  0 + 1 + 40
 #define DISPLAY_LEN_MAX_124   4 + 1 + 32 + 1 + 40
+#define DISPLAY_LEN_MIN_125   10 + 40
+#define DISPLAY_LEN_MAX_125   10 + 40
 #define DISPLAY_LEN_MIN_131    6 +  8 + 80
 #define DISPLAY_LEN_MAX_131    6 +  8 + 80
 #define DISPLAY_LEN_MIN_132    6 +  8 + 40
@@ -966,6 +954,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_KRB5TGS             13100
 #define KERN_TYPE_AXCRYPT             13200
 #define KERN_TYPE_SHA1_AXCRYPT        13300
+#define KERN_TYPE_KEEPASS             13400
 
 /**
  * signatures
@@ -1038,6 +1027,7 @@ extern hc_thread_mutex_t mux_display;
 #define SIGNATURE_KRB5TGS         "$krb5tgs$23"
 #define SIGNATURE_AXCRYPT         "$axcrypt$*1"
 #define SIGNATURE_AXCRYPT_SHA1     "$axcrypt_sha1"
+#define SIGNATURE_KEEPASS         "$keepass$"
 
 /**
  * Default iteration numbers
@@ -1090,6 +1080,7 @@ extern hc_thread_mutex_t mux_display;
 #define ROUNDS_ANDROIDFDE_SAMSUNG 4096
 #define ROUNDS_RAR5               (1 << 15)
 #define ROUNDS_AXCRYPT            10000
+#define ROUNDS_KEEPASS            6000
 
 /**
  * salt types
@@ -1354,7 +1345,7 @@ u32 get_random_num (const u32 min, const u32 max);
 u32 mydivc32 (const u32 dividend, const u32 divisor);
 u64 mydivc64 (const u64 dividend, const u64 divisor);
 
-void ascii_digest (char out_buf[1024], uint salt_pos, uint digest_pos);
+void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos);
 void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos);
 
 void format_speed_display (float val, char *buf, size_t len);
@@ -1485,6 +1476,7 @@ int oracleh_parse_hash            (char *input_buf, uint input_len, hash_t *hash
 int oracles_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int oraclet_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int osc_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf);
+int arubaos_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int osx1_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf);
 int osx512_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf);
 int phpass_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf);
@@ -1601,6 +1593,7 @@ int ms_drsr_parse_hash            (char *input_buf, uint input_len, hash_t *hash
 int androidfde_samsung_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf);
 int axcrypt_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int sha1axcrypt_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf);
+int keepass_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
@@ -1666,8 +1659,8 @@ int mangle_title              (char arr[BLOCK_SIZE], int arr_len);
 int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], u32 rp_gen_func_min, u32 rp_gen_func_max);
 int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, char out[BLOCK_SIZE]);
 
-int cpu_rule_to_kernel_rule (char rule_buf[BUFSIZ], uint rule_len, kernel_rule_t *rule);
-int kernel_rule_to_cpu_rule (char rule_buf[BUFSIZ], kernel_rule_t *rule);
+int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule);
+int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);
 
 void *thread_device_watch (void *p);
 void *thread_keypress     (void *p);

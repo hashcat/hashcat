@@ -73,8 +73,8 @@ static void m04500m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     u32x wb_t = w2[3];
     u32x wc_t = w3[0];
     u32x wd_t = w3[1];
-    u32x we_t = 0;
-    u32x wf_t = pw_len * 8;
+    u32x we_t = w3[2];
+    u32x wf_t = w3[3];
 
     u32x a = SHA1M_A;
     u32x b = SHA1M_B;
@@ -379,8 +379,8 @@ static void m04500s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     u32x wb_t = w2[3];
     u32x wc_t = w3[0];
     u32x wd_t = w3[1];
-    u32x we_t = 0;
-    u32x wf_t = pw_len * 8;
+    u32x we_t = w3[2];
+    u32x wf_t = w3[3];
 
     u32x a = SHA1M_A;
     u32x b = SHA1M_B;

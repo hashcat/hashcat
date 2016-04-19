@@ -7,7 +7,8 @@
 
 #define _CRC32_
 
-#define NEW_SIMD_CODE
+//incompatible because of branches
+//#define NEW_SIMD_CODE
 
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
@@ -143,7 +144,7 @@ static void m11500m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
   const u32 lid = get_local_id (0);
 
   /**
-   * digest
+   * salt
    */
 
   const u32 iv = salt_bufs[salt_pos].salt_buf[0];
@@ -159,6 +160,10 @@ static void m11500m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
+
+    /**
+     * crc32
+     */
 
     u32x w_t[16];
 
@@ -198,10 +203,14 @@ static void m11500s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
   const u32 lid = get_local_id (0);
 
   /**
-   * digest
+   * salt
    */
 
   const u32 iv = salt_bufs[salt_pos].salt_buf[0];
+
+  /**
+   * digest
+   */
 
   const u32 search[4] =
   {
@@ -222,6 +231,10 @@ static void m11500s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
+
+    /**
+     * crc32
+     */
 
     u32x w_t[16];
 

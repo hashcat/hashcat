@@ -5,6 +5,8 @@
 
 #define _RIPEMD160_
 
+#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,17 +18,15 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
+#include "OpenCL/simd.c"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
-
-static void ripemd160_transform (const u32 w[16], u32 dgst[5])
+static void ripemd160_transform (const u32x w[16], u32x dgst[5])
 {
-  u32 a1 = dgst[0];
-  u32 b1 = dgst[1];
-  u32 c1 = dgst[2];
-  u32 d1 = dgst[3];
-  u32 e1 = dgst[4];
+  u32x a1 = dgst[0];
+  u32x b1 = dgst[1];
+  u32x c1 = dgst[2];
+  u32x d1 = dgst[3];
+  u32x e1 = dgst[4];
 
   RIPEMD160_STEP (RIPEMD160_F , a1, b1, c1, d1, e1, w[ 0], RIPEMD160C00, RIPEMD160S00);
   RIPEMD160_STEP (RIPEMD160_F , e1, a1, b1, c1, d1, w[ 1], RIPEMD160C00, RIPEMD160S01);
@@ -113,11 +113,11 @@ static void ripemd160_transform (const u32 w[16], u32 dgst[5])
   RIPEMD160_STEP (RIPEMD160_J , c1, d1, e1, a1, b1, w[15], RIPEMD160C40, RIPEMD160S4E);
   RIPEMD160_STEP (RIPEMD160_J , b1, c1, d1, e1, a1, w[13], RIPEMD160C40, RIPEMD160S4F);
 
-  u32 a2 = dgst[0];
-  u32 b2 = dgst[1];
-  u32 c2 = dgst[2];
-  u32 d2 = dgst[3];
-  u32 e2 = dgst[4];
+  u32x a2 = dgst[0];
+  u32x b2 = dgst[1];
+  u32x c2 = dgst[2];
+  u32x d2 = dgst[3];
+  u32x e2 = dgst[4];
 
   RIPEMD160_STEP_WORKAROUND_BUG (RIPEMD160_J , a2, b2, c2, d2, e2, w[ 5], RIPEMD160C50, RIPEMD160S50);
   RIPEMD160_STEP (RIPEMD160_J , e2, a2, b2, c2, d2, w[14], RIPEMD160C50, RIPEMD160S51);
@@ -204,11 +204,11 @@ static void ripemd160_transform (const u32 w[16], u32 dgst[5])
   RIPEMD160_STEP (RIPEMD160_F , c2, d2, e2, a2, b2, w[ 9], RIPEMD160C90, RIPEMD160S9E);
   RIPEMD160_STEP (RIPEMD160_F , b2, c2, d2, e2, a2, w[11], RIPEMD160C90, RIPEMD160S9F);
 
-  const u32 a = dgst[1] + c1 + d2;
-  const u32 b = dgst[2] + d1 + e2;
-  const u32 c = dgst[3] + e1 + a2;
-  const u32 d = dgst[4] + a1 + b2;
-  const u32 e = dgst[0] + b1 + c2;
+  const u32x a = dgst[1] + c1 + d2;
+  const u32x b = dgst[2] + d1 + e2;
+  const u32x c = dgst[3] + e1 + a2;
+  const u32x d = dgst[4] + a1 + b2;
+  const u32x e = dgst[0] + b1 + c2;
 
   dgst[0] = a;
   dgst[1] = b;
@@ -233,134 +233,117 @@ __kernel void m06000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (gid >= gid_max) return;
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
-
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-
-    u32 w1[4];
-
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
-
-    u32 w2[4];
-
     w2[0] = wordl2[0] | wordr2[0];
     w2[1] = wordl2[1] | wordr2[1];
     w2[2] = wordl2[2] | wordr2[2];
     w2[3] = wordl2[3] | wordr2[3];
-
-    u32 w3[4];
-
     w3[0] = wordl3[0] | wordr3[0];
     w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = pw_len * 8;
-    w3[3] = 0;
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
-    u32 wl[16];
+    /**
+     * RipeMD160
+     */
 
-    wl[ 0] = w0[0];
-    wl[ 1] = w0[1];
-    wl[ 2] = w0[2];
-    wl[ 3] = w0[3];
-    wl[ 4] = w1[0];
-    wl[ 5] = w1[1];
-    wl[ 6] = w1[2];
-    wl[ 7] = w1[3];
-    wl[ 8] = 0;
-    wl[ 9] = 0;
-    wl[10] = 0;
-    wl[11] = 0;
-    wl[12] = 0;
-    wl[13] = 0;
-    wl[14] = pw_len * 8;
-    wl[15] = 0;
+    u32x w[16];
 
-    u32 dgst[5];
+    w[ 0] = w0[0];
+    w[ 1] = w0[1];
+    w[ 2] = w0[2];
+    w[ 3] = w0[3];
+    w[ 4] = w1[0];
+    w[ 5] = w1[1];
+    w[ 6] = w1[2];
+    w[ 7] = w1[3];
+    w[ 8] = w2[0];
+    w[ 9] = w2[1];
+    w[10] = w2[2];
+    w[11] = w2[3];
+    w[12] = w3[0];
+    w[14] = w3[1];
+    w[14] = pw_len * 8;
+    w[15] = 0;
+
+    u32x dgst[5];
 
     dgst[0] = RIPEMD160M_A;
     dgst[1] = RIPEMD160M_B;
@@ -368,14 +351,9 @@ __kernel void m06000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     dgst[3] = RIPEMD160M_D;
     dgst[4] = RIPEMD160M_E;
 
-    ripemd160_transform (wl, dgst);
+    ripemd160_transform (w, dgst);
 
-    const u32 r0 = dgst[0];
-    const u32 r1 = dgst[1];
-    const u32 r2 = dgst[2];
-    const u32 r3 = dgst[3];
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
 }
 
@@ -403,42 +381,19 @@ __kernel void m06000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (gid >= gid_max) return;
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
-
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
 
   /**
    * digest
@@ -456,93 +411,99 @@ __kernel void m06000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-
-    u32 w1[4];
-
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
-
-    u32 w2[4];
-
     w2[0] = wordl2[0] | wordr2[0];
     w2[1] = wordl2[1] | wordr2[1];
     w2[2] = wordl2[2] | wordr2[2];
     w2[3] = wordl2[3] | wordr2[3];
-
-    u32 w3[4];
-
     w3[0] = wordl3[0] | wordr3[0];
     w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = pw_len * 8;
-    w3[3] = 0;
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
-    u32 wl[16];
+    /**
+     * RipeMD160
+     */
 
-    wl[ 0] = w0[0];
-    wl[ 1] = w0[1];
-    wl[ 2] = w0[2];
-    wl[ 3] = w0[3];
-    wl[ 4] = w1[0];
-    wl[ 5] = w1[1];
-    wl[ 6] = w1[2];
-    wl[ 7] = w1[3];
-    wl[ 8] = 0;
-    wl[ 9] = 0;
-    wl[10] = 0;
-    wl[11] = 0;
-    wl[12] = 0;
-    wl[13] = 0;
-    wl[14] = pw_len * 8;
-    wl[15] = 0;
+    u32x w[16];
 
-    u32 dgst[5];
+    w[ 0] = w0[0];
+    w[ 1] = w0[1];
+    w[ 2] = w0[2];
+    w[ 3] = w0[3];
+    w[ 4] = w1[0];
+    w[ 5] = w1[1];
+    w[ 6] = w1[2];
+    w[ 7] = w1[3];
+    w[ 8] = w2[0];
+    w[ 9] = w2[1];
+    w[10] = w2[2];
+    w[11] = w2[3];
+    w[12] = w3[0];
+    w[14] = w3[1];
+    w[14] = pw_len * 8;
+    w[15] = 0;
+
+    u32x dgst[5];
 
     dgst[0] = RIPEMD160M_A;
     dgst[1] = RIPEMD160M_B;
@@ -550,14 +511,9 @@ __kernel void m06000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     dgst[3] = RIPEMD160M_D;
     dgst[4] = RIPEMD160M_E;
 
-    ripemd160_transform (wl, dgst);
+    ripemd160_transform (w, dgst);
 
-    const u32 r0 = dgst[0];
-    const u32 r1 = dgst[1];
-    const u32 r2 = dgst[2];
-    const u32 r3 = dgst[3];
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
 }
 

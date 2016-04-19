@@ -5,6 +5,9 @@
 
 #define _OLDOFFICE34_
 
+//too much register pressure
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,9 +19,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 typedef struct
 {
@@ -275,10 +276,6 @@ __kernel void m09810_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   const u32 lid = get_local_id (0);
 
-  __local RC4_KEY rc4_keys[64];
-
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
   /**
    * base
    */
@@ -287,40 +284,27 @@ __kernel void m09810_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (gid >= gid_max) return;
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
 
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
+  /**
+   * shared
+   */
+
+  __local RC4_KEY rc4_keys[64];
+
+  __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * esalt
@@ -339,51 +323,69 @@ __kernel void m09810_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
+
+    w0[0] = wordl0[0] | wordr0[0];
+    w0[1] = wordl0[1] | wordr0[1];
+
+    /**
+     * RC4 + SHA1
+     */
 
     u32 key[4];
 
-    key[0] =  wordl0[0] | wordr0[0];
-    key[1] = (wordl0[1] | wordr0[1]) & 0xff;
+    key[0] = w0[0];
+    key[1] = w0[1] & 0xff;
     key[2] = 0;
     key[3] = 0;
 
@@ -393,27 +395,22 @@ __kernel void m09810_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
-
-    w0_t[0] = swap32 (out[0]);
-    w0_t[1] = swap32 (out[1]);
-    w0_t[2] = swap32 (out[2]);
-    w0_t[3] = swap32 (out[3]);
-    w1_t[0] = 0x80000000;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 16 * 8;
+    w0[0] = swap32 (out[0]);
+    w0[1] = swap32 (out[1]);
+    w0[2] = swap32 (out[2]);
+    w0[3] = swap32 (out[3]);
+    w1[0] = 0x80000000;
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 16 * 8;
 
     u32 digest[5];
 
@@ -423,7 +420,7 @@ __kernel void m09810_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    sha1_transform (w0, w1, w2, w3, digest);
 
     digest[0] = swap32 (digest[0]);
     digest[1] = swap32 (digest[1]);
@@ -432,12 +429,7 @@ __kernel void m09810_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 
-    const u32 r0 = out[0];
-    const u32 r1 = out[1];
-    const u32 r2 = out[2];
-    const u32 r3 = out[3];
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
@@ -457,10 +449,6 @@ __kernel void m09810_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   const u32 lid = get_local_id (0);
 
-  __local RC4_KEY rc4_keys[64];
-
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
   /**
    * base
    */
@@ -469,52 +457,27 @@ __kernel void m09810_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   if (gid >= gid_max) return;
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
 
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
-
   /**
-   * digest
+   * shared
    */
 
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
+  __local RC4_KEY rc4_keys[64];
+
+  __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * esalt
@@ -530,54 +493,84 @@ __kernel void m09810_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   encryptedVerifier[3] = oldoffice34_bufs[salt_pos].encryptedVerifier[3];
 
   /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
+
+  /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
+
+    w0[0] = wordl0[0] | wordr0[0];
+    w0[1] = wordl0[1] | wordr0[1];
+
+    /**
+     * RC4 + SHA1
+     */
 
     u32 key[4];
 
-    key[0] =  wordl0[0] | wordr0[0];
-    key[1] = (wordl0[1] | wordr0[1]) & 0xff;
+    key[0] = w0[0];
+    key[1] = w0[1] & 0xff;
     key[2] = 0;
     key[3] = 0;
 
@@ -587,27 +580,22 @@ __kernel void m09810_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     u8 j = rc4_next_16 (rc4_key, 0, 0, encryptedVerifier, out);
 
-    u32 w0_t[4];
-    u32 w1_t[4];
-    u32 w2_t[4];
-    u32 w3_t[4];
-
-    w0_t[0] = swap32 (out[0]);
-    w0_t[1] = swap32 (out[1]);
-    w0_t[2] = swap32 (out[2]);
-    w0_t[3] = swap32 (out[3]);
-    w1_t[0] = 0x80000000;
-    w1_t[1] = 0;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 16 * 8;
+    w0[0] = swap32 (out[0]);
+    w0[1] = swap32 (out[1]);
+    w0[2] = swap32 (out[2]);
+    w0[3] = swap32 (out[3]);
+    w1[0] = 0x80000000;
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 16 * 8;
 
     u32 digest[5];
 
@@ -617,7 +605,7 @@ __kernel void m09810_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    sha1_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    sha1_transform (w0, w1, w2, w3, digest);
 
     digest[0] = swap32 (digest[0]);
     digest[1] = swap32 (digest[1]);
@@ -626,12 +614,7 @@ __kernel void m09810_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 
-    const u32 r0 = out[0];
-    const u32 r1 = out[1];
-    const u32 r2 = out[2];
-    const u32 r3 = out[3];
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 

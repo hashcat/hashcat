@@ -149,14 +149,12 @@ __kernel void m10420_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = pws[gid].i[ 4];
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = pws[gid].i[ 6];
@@ -201,82 +199,82 @@ __kernel void m10420_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    append_0x80_2x4_VV (w0, w1, out_len);
+    /**
+     * pdf
+     */
 
-    u32x w0_t[4];
-    u32x w1_t[4];
-    u32x w2_t[4];
-    u32x w3_t[4];
+    u32 p0[4];
+    u32 p1[4];
+    u32 p2[4];
+    u32 p3[4];
 
-    // max length supported by pdf11 is 32
+    p0[0] = padding[0];
+    p0[1] = padding[1];
+    p0[2] = padding[2];
+    p0[3] = padding[3];
+    p1[0] = padding[4];
+    p1[1] = padding[5];
+    p1[2] = padding[6];
+    p1[3] = padding[7];
+    p2[0] = 0;
+    p2[1] = 0;
+    p2[2] = 0;
+    p2[3] = 0;
+    p3[0] = 0;
+    p3[1] = 0;
+    p3[2] = 0;
+    p3[3] = 0;
 
-    w0_t[0] = padding[0];
-    w0_t[1] = padding[1];
-    w0_t[2] = padding[2];
-    w0_t[3] = padding[3];
-    w1_t[0] = padding[4];
-    w1_t[1] = padding[5];
-    w1_t[2] = padding[6];
-    w1_t[3] = padding[7];
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
-    switch_buffer_by_offset_le_VV (w0_t, w1_t, w2_t, w3_t, out_len);
+    switch_buffer_by_offset_le (p0, p1, p2, p3, out_len);
 
     // add password
     // truncate at 32 is wanted, not a bug!
     // add o_buf
 
-    w0_t[0] |= w0[0];
-    w0_t[1] |= w0[1];
-    w0_t[2] |= w0[2];
-    w0_t[3] |= w0[3];
-    w1_t[0] |= w1[0];
-    w1_t[1] |= w1[1];
-    w1_t[2] |= w1[2];
-    w1_t[3] |= w1[3];
-    w2_t[0]  = o_buf[0];
-    w2_t[1]  = o_buf[1];
-    w2_t[2]  = o_buf[2];
-    w2_t[3]  = o_buf[3];
-    w3_t[0]  = o_buf[4];
-    w3_t[1]  = o_buf[5];
-    w3_t[2]  = o_buf[6];
-    w3_t[3]  = o_buf[7];
+    w0[0] |= p0[0];
+    w0[1] |= p0[1];
+    w0[2] |= p0[2];
+    w0[3] |= p0[3];
+    w1[0] |= p1[0];
+    w1[1] |= p1[1];
+    w1[2] |= p1[2];
+    w1[3] |= p1[3];
+    w2[0]  = o_buf[0];
+    w2[1]  = o_buf[1];
+    w2[2]  = o_buf[2];
+    w2[3]  = o_buf[3];
+    w3[0]  = o_buf[4];
+    w3[1]  = o_buf[5];
+    w3[2]  = o_buf[6];
+    w3[3]  = o_buf[7];
 
-    u32x digest[4];
+    u32 digest[4];
 
     digest[0] = MD5M_A;
     digest[1] = MD5M_B;
     digest[2] = MD5M_C;
     digest[3] = MD5M_D;
 
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    md5_transform (w0, w1, w2, w3, digest);
 
-    w0_t[0] = P;
-    w0_t[1] = id_buf[0];
-    w0_t[2] = id_buf[1];
-    w0_t[3] = id_buf[2];
-    w1_t[0] = id_buf[3];
-    w1_t[1] = 0x80;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 84 * 8;
-    w3_t[3] = 0;
+    w0[0] = P;
+    w0[1] = id_buf[0];
+    w0[2] = id_buf[1];
+    w0[3] = id_buf[2];
+    w1[0] = id_buf[3];
+    w1[1] = 0x80;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 84 * 8;
+    w3[3] = 0;
 
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    md5_transform (w0, w1, w2, w3, digest);
 
     u32x a = digest[0];
     u32x b = digest[1] & 0xff;
@@ -312,32 +310,18 @@ __kernel void m10420_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = pws[gid].i[ 4];
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = pws[gid].i[ 6];
   pw_buf1[3] = pws[gid].i[ 7];
 
   const u32 pw_len = pws[gid].pw_len;
-
-  /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
 
   /**
    * U_buf
@@ -364,6 +348,18 @@ __kernel void m10420_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   id_buf[3] = pdf_bufs[salt_pos].id_buf[3];
 
   /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
+
+  /**
    * loop
    */
 
@@ -376,82 +372,82 @@ __kernel void m10420_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    append_0x80_2x4_VV (w0, w1, out_len);
+    /**
+     * pdf
+     */
 
-    u32x w0_t[4];
-    u32x w1_t[4];
-    u32x w2_t[4];
-    u32x w3_t[4];
+    u32 p0[4];
+    u32 p1[4];
+    u32 p2[4];
+    u32 p3[4];
 
-    // max length supported by pdf11 is 32
+    p0[0] = padding[0];
+    p0[1] = padding[1];
+    p0[2] = padding[2];
+    p0[3] = padding[3];
+    p1[0] = padding[4];
+    p1[1] = padding[5];
+    p1[2] = padding[6];
+    p1[3] = padding[7];
+    p2[0] = 0;
+    p2[1] = 0;
+    p2[2] = 0;
+    p2[3] = 0;
+    p3[0] = 0;
+    p3[1] = 0;
+    p3[2] = 0;
+    p3[3] = 0;
 
-    w0_t[0] = padding[0];
-    w0_t[1] = padding[1];
-    w0_t[2] = padding[2];
-    w0_t[3] = padding[3];
-    w1_t[0] = padding[4];
-    w1_t[1] = padding[5];
-    w1_t[2] = padding[6];
-    w1_t[3] = padding[7];
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 0;
-    w3_t[3] = 0;
-
-    switch_buffer_by_offset_le_VV (w0_t, w1_t, w2_t, w3_t, out_len);
+    switch_buffer_by_offset_le (p0, p1, p2, p3, out_len);
 
     // add password
     // truncate at 32 is wanted, not a bug!
     // add o_buf
 
-    w0_t[0] |= w0[0];
-    w0_t[1] |= w0[1];
-    w0_t[2] |= w0[2];
-    w0_t[3] |= w0[3];
-    w1_t[0] |= w1[0];
-    w1_t[1] |= w1[1];
-    w1_t[2] |= w1[2];
-    w1_t[3] |= w1[3];
-    w2_t[0]  = o_buf[0];
-    w2_t[1]  = o_buf[1];
-    w2_t[2]  = o_buf[2];
-    w2_t[3]  = o_buf[3];
-    w3_t[0]  = o_buf[4];
-    w3_t[1]  = o_buf[5];
-    w3_t[2]  = o_buf[6];
-    w3_t[3]  = o_buf[7];
+    w0[0] |= p0[0];
+    w0[1] |= p0[1];
+    w0[2] |= p0[2];
+    w0[3] |= p0[3];
+    w1[0] |= p1[0];
+    w1[1] |= p1[1];
+    w1[2] |= p1[2];
+    w1[3] |= p1[3];
+    w2[0]  = o_buf[0];
+    w2[1]  = o_buf[1];
+    w2[2]  = o_buf[2];
+    w2[3]  = o_buf[3];
+    w3[0]  = o_buf[4];
+    w3[1]  = o_buf[5];
+    w3[2]  = o_buf[6];
+    w3[3]  = o_buf[7];
 
-    u32x digest[4];
+    u32 digest[4];
 
     digest[0] = MD5M_A;
     digest[1] = MD5M_B;
     digest[2] = MD5M_C;
     digest[3] = MD5M_D;
 
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    md5_transform (w0, w1, w2, w3, digest);
 
-    w0_t[0] = P;
-    w0_t[1] = id_buf[0];
-    w0_t[2] = id_buf[1];
-    w0_t[3] = id_buf[2];
-    w1_t[0] = id_buf[3];
-    w1_t[1] = 0x80;
-    w1_t[2] = 0;
-    w1_t[3] = 0;
-    w2_t[0] = 0;
-    w2_t[1] = 0;
-    w2_t[2] = 0;
-    w2_t[3] = 0;
-    w3_t[0] = 0;
-    w3_t[1] = 0;
-    w3_t[2] = 84 * 8;
-    w3_t[3] = 0;
+    w0[0] = P;
+    w0[1] = id_buf[0];
+    w0[2] = id_buf[1];
+    w0[3] = id_buf[2];
+    w1[0] = id_buf[3];
+    w1[1] = 0x80;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 84 * 8;
+    w3[3] = 0;
 
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    md5_transform (w0, w1, w2, w3, digest);
 
     u32x a = digest[0];
     u32x b = digest[1] & 0xff;

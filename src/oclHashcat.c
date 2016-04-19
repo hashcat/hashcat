@@ -25,6 +25,134 @@ const uint  RESTORE_MIN         = 210;
 
 double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 
+#define INCR_RULES              10000
+#define INCR_SALTS              100000
+#define INCR_MASKS              1000
+#define INCR_POT                1000
+
+#define USAGE                   0
+#define VERSION                 0
+#define QUIET                   0
+#define MARKOV_THRESHOLD        0
+#define MARKOV_DISABLE          0
+#define MARKOV_CLASSIC          0
+#define BENCHMARK               0
+#define BENCHMARK_REPEATS       2
+#define RESTORE                 0
+#define RESTORE_TIMER           60
+#define RESTORE_DISABLE         0
+#define STATUS                  0
+#define STATUS_TIMER            10
+#define STATUS_AUTOMAT          0
+#define LOOPBACK                0
+#define WEAK_HASH_THRESHOLD     100
+#define SHOW                    0
+#define LEFT                    0
+#define USERNAME                0
+#define REMOVE                  0
+#define REMOVE_TIMER            60
+#define SKIP                    0
+#define LIMIT                   0
+#define KEYSPACE                0
+#define POTFILE_DISABLE         0
+#define DEBUG_MODE              0
+#define RP_GEN                  0
+#define RP_GEN_FUNC_MIN         1
+#define RP_GEN_FUNC_MAX         4
+#define RP_GEN_SEED             0
+#define RULE_BUF_L              ":"
+#define RULE_BUF_R              ":"
+#define FORCE                   0
+#define RUNTIME                 0
+#define HEX_CHARSET             0
+#define HEX_SALT                0
+#define HEX_WORDLIST            0
+#define OUTFILE_FORMAT          3
+#define OUTFILE_AUTOHEX         1
+#define OUTFILE_CHECK_TIMER     5
+#define ATTACK_MODE             0
+#define HASH_MODE               0
+#define SEGMENT_SIZE            32
+#define INCREMENT               0
+#define INCREMENT_MIN           1
+#define INCREMENT_MAX           PW_MAX
+#define SEPARATOR               ':'
+#define BITMAP_MIN              16
+#define BITMAP_MAX              24
+#define GPU_TEMP_DISABLE        0
+#define GPU_TEMP_ABORT          90
+#define GPU_TEMP_RETAIN         80
+#define WORKLOAD_PROFILE        2
+#define KERNEL_ACCEL            0
+#define KERNEL_LOOPS            0
+#define KERNEL_RULES            1024
+#define KERNEL_COMBS            1024
+#define KERNEL_BFS              1024
+#define KERNEL_THREADS          64
+#define POWERTUNE_ENABLE        0
+#define LOGFILE_DISABLE         0
+#define SCRYPT_TMTO             0
+#define OPENCL_VECTOR_WIDTH     0
+
+#define WL_MODE_STDIN           1
+#define WL_MODE_FILE            2
+#define WL_MODE_MASK            3
+
+#define HL_MODE_FILE            4
+#define HL_MODE_ARG             5
+
+#define HLFMTS_CNT              11
+#define HLFMT_HASHCAT           0
+#define HLFMT_PWDUMP            1
+#define HLFMT_PASSWD            2
+#define HLFMT_SHADOW            3
+#define HLFMT_DCC               4
+#define HLFMT_DCC2              5
+#define HLFMT_NETNTLM1          7
+#define HLFMT_NETNTLM2          8
+#define HLFMT_NSLDAP            9
+#define HLFMT_NSLDAPS           10
+
+#define HLFMT_TEXT_HASHCAT      "native hashcat"
+#define HLFMT_TEXT_PWDUMP       "pwdump"
+#define HLFMT_TEXT_PASSWD       "passwd"
+#define HLFMT_TEXT_SHADOW       "shadow"
+#define HLFMT_TEXT_DCC          "DCC"
+#define HLFMT_TEXT_DCC2         "DCC 2"
+#define HLFMT_TEXT_NETNTLM1     "NetNTLMv1"
+#define HLFMT_TEXT_NETNTLM2     "NetNTLMv2"
+#define HLFMT_TEXT_NSLDAP       "nsldap"
+#define HLFMT_TEXT_NSLDAPS      "nsldaps"
+
+#define ATTACK_MODE_STRAIGHT    0
+#define ATTACK_MODE_COMBI       1
+#define ATTACK_MODE_TOGGLE      2
+#define ATTACK_MODE_BF          3
+#define ATTACK_MODE_PERM        4
+#define ATTACK_MODE_TABLE       5
+#define ATTACK_MODE_HYBRID1     6
+#define ATTACK_MODE_HYBRID2     7
+#define ATTACK_MODE_NONE        100
+
+#define ATTACK_KERN_STRAIGHT    0
+#define ATTACK_KERN_COMBI       1
+#define ATTACK_KERN_BF          3
+#define ATTACK_KERN_NONE        100
+
+#define ATTACK_EXEC_OUTSIDE_KERNEL  10
+#define ATTACK_EXEC_INSIDE_KERNEL   11
+
+#define COMBINATOR_MODE_BASE_LEFT   10001
+#define COMBINATOR_MODE_BASE_RIGHT  10002
+
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+
+#define MAX_CUT_TRIES           4
+
+#define MAX_DICTSTAT            10000
+
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 135
 
 
 #define global_free(attr)       \
@@ -175,7 +303,9 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   6600,
   8200,
   11300,
-  12700
+  12700,
+  13400,
+  125
 };
 
 /**
@@ -267,6 +397,7 @@ const char *USAGE_BIG[] =
   "       --remove                      Enable remove of hash once it is cracked",
   "       --remove-timer=NUM            Update input hash file each NUM seconds",
   "       --potfile-disable             Do not write potfile",
+  "       --potfile-path                Specific path to potfile",
   "       --debug-mode=NUM              Defines the debug mode (hybrid only by using rules), see references below",
   "       --debug-file=FILE             Output file for debugging rules (see also --debug-mode)",
   "       --induction-dir=FOLDER        Specify induction directory to use, default is $session.induct",
@@ -559,6 +690,7 @@ const char *USAGE_BIG[] =
   "   8500 = RACF",
   "   7200 = GRUB 2",
   "   9900 = Radmin2",
+  "    125 = ArubaOS",
   "",
   "[[ Enterprise Application Software (EAS) ]]",
   "",
@@ -619,6 +751,7 @@ const char *USAGE_BIG[] =
   "   8200 = 1Password, cloudkeychain",
   "  11300 = Bitcoin/Litecoin wallet.dat",
   "  12700 = Blockchain, My Wallet",
+  "  13400 = Keepass 1 (AES/Twofish) and Keepass 2 (AES)",
   "",
   NULL
 };
@@ -943,35 +1076,20 @@ void status_display ()
     {
       wpa_t *wpa = (wpa_t *) data.esalts_buf;
 
-      uint pke[25] = { 0 };
-
-      char *pke_ptr = (char *) pke;
-
-      for (uint i = 0; i < 25; i++)
-      {
-        pke[i] = byte_swap_32 (wpa->pke[i]);
-      }
-
-      char mac1[6] = { 0 };
-      char mac2[6] = { 0 };
-
-      memcpy (mac1, pke_ptr + 23, 6);
-      memcpy (mac2, pke_ptr + 29, 6);
-
       log_info ("Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
                 (char *) data.salts_buf[0].salt_buf,
-                mac1[0] & 0xff,
-                mac1[1] & 0xff,
-                mac1[2] & 0xff,
-                mac1[3] & 0xff,
-                mac1[4] & 0xff,
-                mac1[5] & 0xff,
-                mac2[0] & 0xff,
-                mac2[1] & 0xff,
-                mac2[2] & 0xff,
-                mac2[3] & 0xff,
-                mac2[4] & 0xff,
-                mac2[5] & 0xff);
+                wpa->orig_mac1[0],
+                wpa->orig_mac1[1],
+                wpa->orig_mac1[2],
+                wpa->orig_mac1[3],
+                wpa->orig_mac1[4],
+                wpa->orig_mac1[5],
+                wpa->orig_mac2[0],
+                wpa->orig_mac2[1],
+                wpa->orig_mac2[2],
+                wpa->orig_mac2[3],
+                wpa->orig_mac2[4],
+                wpa->orig_mac2[5]);
     }
     else if (data.hash_mode == 5200)
     {
@@ -987,7 +1105,7 @@ void status_display ()
     }
     else
     {
-      char out_buf[4096] = { 0 };
+      char out_buf[HCBUFSIZ] = { 0 };
 
       ascii_digest (out_buf, 0, 0);
 
@@ -1007,8 +1125,8 @@ void status_display ()
   {
     if (data.hash_mode == 3000)
     {
-      char out_buf1[4096] = { 0 };
-      char out_buf2[4096] = { 0 };
+      char out_buf1[32] = { 0 };
+      char out_buf2[32] = { 0 };
 
       ascii_digest (out_buf1, 0, 0);
       ascii_digest (out_buf2, 0, 1);
@@ -1750,7 +1868,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
   // hash
 
-  char out_buf[4096] = { 0 };
+  char out_buf[HCBUFSIZ] = { 0 };
 
   ascii_digest (out_buf, salt_pos, digest_pos);
 
@@ -2195,7 +2313,7 @@ static void save_hash ()
 
       if (data.hash_mode != 2500)
       {
-        char out_buf[4096] = { 0 };
+        char out_buf[HCBUFSIZ] = { 0 };
 
         if (data.username == 1)
         {
@@ -2944,6 +3062,8 @@ static void autotune (hc_device_param_t *device_param)
 
 static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 {
+  char *line_buf = (char *) mymalloc (HCBUFSIZ);
+
   // init speed timer
 
   uint speed_pos = device_param->speed_pos;
@@ -3057,8 +3177,6 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
       if (data.attack_mode == ATTACK_MODE_COMBI)
       {
-        char line_buf[BUFSIZ] = { 0 };
-
         uint i = 0;
 
         while (i < innerloop_left)
@@ -3265,6 +3383,8 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
   }
 
   device_param->speed_pos = speed_pos;
+
+  myfree (line_buf);
 }
 
 static void load_segment (wl_data_t *wl_data, FILE *fd)
@@ -3981,11 +4101,11 @@ static void *thread_outfile_remove (void *p)
 
               fseek (fp, out_info[j].seek, SEEK_SET);
 
+              char *line_buf = (char *) mymalloc (HCBUFSIZ);
+
               while (!feof (fp))
               {
-                char line_buf[BUFSIZ] = { 0 };
-
-                char *ptr = fgets (line_buf, BUFSIZ - 1, fp);
+                char *ptr = fgets (line_buf, HCBUFSIZ - 1, fp);
 
                 if (ptr == NULL) break;
 
@@ -4047,28 +4167,14 @@ static void *thread_outfile_remove (void *p)
                             wpa_t *wpas = (wpa_t *) data.esalts_buf;
                             wpa_t *wpa  = &wpas[salt_pos];
 
-                            uint pke[25] = { 0 };
-
-                            char *pke_ptr = (char *) pke;
-
-                            for (uint i = 0; i < 25; i++)
-                            {
-                              pke[i] = byte_swap_32 (wpa->pke[i]);
-                            }
-
-                            u8 mac1[6] = { 0 };
-                            u8 mac2[6] = { 0 };
-
-                            memcpy (mac1, pke_ptr + 23, 6);
-                            memcpy (mac2, pke_ptr + 29, 6);
-
                             // compare hex string(s) vs binary MAC address(es)
 
                             for (uint i = 0, j = 0; i < 6; i++, j += 2)
                             {
-                              if (mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
+                              if (wpa->orig_mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
                               {
                                 cracked = 0;
+
                                 break;
                               }
                             }
@@ -4078,9 +4184,10 @@ static void *thread_outfile_remove (void *p)
 
                             for (uint i = 0, j = 0; i < 6; i++, j += 2)
                             {
-                              if (mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
+                              if (wpa->orig_mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
                               {
                                 cracked = 0;
+
                                 break;
                               }
                             }
@@ -4129,6 +4236,8 @@ static void *thread_outfile_remove (void *p)
 
                 if (data.devices_status == STATUS_CRACKED) break;
               }
+
+              myfree (line_buf);
 
               out_info[j].seek = ftell (fp);
 
@@ -4239,6 +4348,8 @@ static void *thread_calc_stdin (void *p)
 
   autotune (device_param);
 
+  char *buf = (char *) mymalloc (HCBUFSIZ);
+
   const uint attack_kern = data.attack_kern;
 
   const uint kernel_power = device_param->kernel_power;
@@ -4258,9 +4369,7 @@ static void *thread_calc_stdin (void *p)
 
     while (words_cur < kernel_power)
     {
-      char buf[BUFSIZ] = { 0 };
-
-      char *line_buf = fgets (buf, sizeof (buf), stdin);
+      char *line_buf = fgets (buf, HCBUFSIZ - 1, stdin);
 
       if (line_buf == NULL) break;
 
@@ -4370,6 +4479,8 @@ static void *thread_calc_stdin (void *p)
 
   device_param->kernel_accel = 0;
   device_param->kernel_loops = 0;
+
+  myfree (buf);
 
   return NULL;
 }
@@ -4751,7 +4862,7 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
 
 // hlfmt hashcat
 
-static void hlfmt_hash_hashcat (char line_buf[BUFSIZ], int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_hashcat (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   if (data.username == 0)
   {
@@ -4780,7 +4891,7 @@ static void hlfmt_hash_hashcat (char line_buf[BUFSIZ], int line_len, char **hash
   }
 }
 
-static void hlfmt_user_hashcat (char line_buf[BUFSIZ], int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_hashcat (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
   char *pos = NULL;
   int   len = 0;
@@ -4810,7 +4921,7 @@ static void hlfmt_user_hashcat (char line_buf[BUFSIZ], int line_len, char **user
 
 // hlfmt pwdump
 
-static int hlfmt_detect_pwdump (char line_buf[BUFSIZ], int line_len)
+static int hlfmt_detect_pwdump (char *line_buf, int line_len)
 {
   int sep_cnt = 0;
 
@@ -4835,7 +4946,7 @@ static int hlfmt_detect_pwdump (char line_buf[BUFSIZ], int line_len)
   return 0;
 }
 
-static void hlfmt_hash_pwdump (char line_buf[BUFSIZ], int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_pwdump (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   char *pos = NULL;
   int   len = 0;
@@ -4875,7 +4986,7 @@ static void hlfmt_hash_pwdump (char line_buf[BUFSIZ], int line_len, char **hashb
   *hashbuf_len = len;
 }
 
-static void hlfmt_user_pwdump (char line_buf[BUFSIZ], int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_pwdump (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
   char *pos = NULL;
   int   len = 0;
@@ -4905,7 +5016,7 @@ static void hlfmt_user_pwdump (char line_buf[BUFSIZ], int line_len, char **userb
 
 // hlfmt passwd
 
-static int hlfmt_detect_passwd (char line_buf[BUFSIZ], int line_len)
+static int hlfmt_detect_passwd (char *line_buf, int line_len)
 {
   int sep_cnt = 0;
 
@@ -4930,7 +5041,7 @@ static int hlfmt_detect_passwd (char line_buf[BUFSIZ], int line_len)
   return 0;
 }
 
-static void hlfmt_hash_passwd (char line_buf[BUFSIZ], int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_passwd (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   char *pos = NULL;
   int   len = 0;
@@ -4958,7 +5069,7 @@ static void hlfmt_hash_passwd (char line_buf[BUFSIZ], int line_len, char **hashb
   *hashbuf_len = len;
 }
 
-static void hlfmt_user_passwd (char line_buf[BUFSIZ], int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_passwd (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
   char *pos = NULL;
   int   len = 0;
@@ -4988,7 +5099,7 @@ static void hlfmt_user_passwd (char line_buf[BUFSIZ], int line_len, char **userb
 
 // hlfmt shadow
 
-static int hlfmt_detect_shadow (char line_buf[BUFSIZ], int line_len)
+static int hlfmt_detect_shadow (char *line_buf, int line_len)
 {
   int sep_cnt = 0;
 
@@ -5002,19 +5113,19 @@ static int hlfmt_detect_shadow (char line_buf[BUFSIZ], int line_len)
   return 0;
 }
 
-static void hlfmt_hash_shadow (char line_buf[BUFSIZ], int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_shadow (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   hlfmt_hash_passwd (line_buf, line_len, hashbuf_pos, hashbuf_len);
 }
 
-static void hlfmt_user_shadow (char line_buf[BUFSIZ], int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_shadow (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
   hlfmt_user_passwd (line_buf, line_len, userbuf_pos, userbuf_len);
 }
 
 // hlfmt main
 
-static void hlfmt_hash (uint hashfile_format, char line_buf[BUFSIZ], int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   switch (hashfile_format)
   {
@@ -5025,7 +5136,7 @@ static void hlfmt_hash (uint hashfile_format, char line_buf[BUFSIZ], int line_le
   }
 }
 
-static void hlfmt_user (uint hashfile_format, char line_buf[BUFSIZ], int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
   switch (hashfile_format)
   {
@@ -5066,10 +5177,10 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 
   uint num_check = 0;
 
+  char *line_buf = (char *) mymalloc (HCBUFSIZ);
+
   while (!feof (fp))
   {
-    char line_buf[BUFSIZ] = { 0 };
-
     int line_len = fgetl (fp, line_buf);
 
     if (line_len == 0) continue;
@@ -5082,6 +5193,8 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 
     num_check++;
   }
+
+  myfree (line_buf);
 
   uint hashlist_format = HLFMT_HASHCAT;
 
@@ -5208,6 +5321,9 @@ int main (int argc, char **argv)
   if (getenv ("GPU_USE_SYNC_OBJECTS") == NULL)
     putenv ((char *) "GPU_USE_SYNC_OBJECTS=1");
 
+  if (getenv ("CUDA_CACHE_DISABLE") == NULL)
+    putenv ((char *) "CUDA_CACHE_DISABLE=1");
+
   /**
    * Real init
    */
@@ -5246,6 +5362,7 @@ int main (int argc, char **argv)
   u64   limit             = LIMIT;
   uint  keyspace          = KEYSPACE;
   uint  potfile_disable   = POTFILE_DISABLE;
+  char *potfile_path      = NULL;
   uint  debug_mode        = DEBUG_MODE;
   char *debug_file        = NULL;
   char *induction_dir     = NULL;
@@ -5324,6 +5441,7 @@ int main (int argc, char **argv)
   #define IDX_LIMIT             'l'
   #define IDX_KEYSPACE          0xff35
   #define IDX_POTFILE_DISABLE   0xff06
+  #define IDX_POTFILE_PATH      0xffe0
   #define IDX_DEBUG_MODE        0xff43
   #define IDX_DEBUG_FILE        0xff44
   #define IDX_INDUCTION_DIR     0xff46
@@ -5404,6 +5522,7 @@ int main (int argc, char **argv)
     {"limit",             required_argument, 0, IDX_LIMIT},
     {"keyspace",          no_argument,       0, IDX_KEYSPACE},
     {"potfile-disable",   no_argument,       0, IDX_POTFILE_DISABLE},
+    {"potfile-path",      required_argument, 0, IDX_POTFILE_PATH},
     {"debug-mode",        required_argument, 0, IDX_DEBUG_MODE},
     {"debug-file",        required_argument, 0, IDX_DEBUG_FILE},
     {"induction-dir",     required_argument, 0, IDX_INDUCTION_DIR},
@@ -5710,6 +5829,7 @@ int main (int argc, char **argv)
       case IDX_REMOVE_TIMER:      remove_timer      = atoi (optarg);
                                   remove_timer_chgd = 1;               break;
       case IDX_POTFILE_DISABLE:   potfile_disable   = 1;               break;
+      case IDX_POTFILE_PATH:      potfile_path      = optarg;          break;
       case IDX_DEBUG_MODE:        debug_mode        = atoi (optarg);   break;
       case IDX_DEBUG_FILE:        debug_file        = optarg;          break;
       case IDX_INDUCTION_DIR:     induction_dir     = optarg;          break;
@@ -5864,7 +5984,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  if (hash_mode_chgd && hash_mode > 13300) // just added to remove compiler warnings for hash_mode_chgd
+  if (hash_mode_chgd && hash_mode > 13400) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
@@ -6567,6 +6687,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (outfile_check_timer);
   logfile_top_uint   (outfile_format);
   logfile_top_uint   (potfile_disable);
+  logfile_top_string (potfile_path);
   #if defined(HAVE_HWMON) && defined(HAVE_ADL)
   logfile_top_uint   (powertune_enable);
   #endif
@@ -7213,6 +7334,30 @@ int main (int argc, char **argv)
                    kern_type   = KERN_TYPE_SHA1_SLTPW;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = djangosha1_parse_hash;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_INIT
+                               | OPTI_TYPE_PRECOMPUTE_MERKLE
+                               | OPTI_TYPE_EARLY_SKIP
+                               | OPTI_TYPE_NOT_ITERATED
+                               | OPTI_TYPE_PREPENDED_SALT
+                               | OPTI_TYPE_RAW_HASH;
+                   dgst_pos0   = 3;
+                   dgst_pos1   = 4;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 1;
+                   break;
+
+      case   125:  hash_type   = HASH_TYPE_SHA1;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_PT_ADD80
+                               | OPTS_TYPE_PT_ADDBITS15
+                               | OPTS_TYPE_ST_HEX;
+                   kern_type   = KERN_TYPE_SHA1_SLTPW;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = arubaos_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
@@ -9184,7 +9329,7 @@ int main (int argc, char **argv)
       case  8300:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_HEX
                                | OPTS_TYPE_ST_ADD80;
                    kern_type   = KERN_TYPE_NSEC3;
@@ -10150,6 +10295,21 @@ int main (int argc, char **argv)
                    dgst_pos3   = 2;
                    break;
 
+      case 13400:  hash_type   = HASH_TYPE_AES;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_KEEPASS;
+                   dgst_size   = DGST_SIZE_4_4;
+                   parse_func  = keepass_parse_hash;
+                   sort_by_digest = sort_by_digest_4_4;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
       default:     usage_mini_print (PROGNAME); return (-1);
     }
 
@@ -10254,6 +10414,7 @@ int main (int argc, char **argv)
       case 12100:  esalt_size = sizeof (pbkdf2_sha512_t); break;
       case 13000:  esalt_size = sizeof (rar5_t);          break;
       case 13100:  esalt_size = sizeof (krb5tgs_t);       break;
+      case 13400:  esalt_size = sizeof (keepass_t);       break;
     }
 
     data.esalt_size = esalt_size;
@@ -10295,7 +10456,7 @@ int main (int argc, char **argv)
 
     if (keyspace == 0)
     {
-      snprintf (dictstat, sizeof (dictstat) - 1, "%s/hashcat.dictstat", profile_dir);
+      snprintf (dictstat, sizeof (dictstat) - 1, "%s/%s", profile_dir, DICTSTAT_FILENAME);
 
       dictstat_fp = fopen (dictstat, "rb");
 
@@ -10351,7 +10512,14 @@ int main (int argc, char **argv)
 
     char potfile[256] = { 0 };
 
-    snprintf (potfile, sizeof (potfile) - 1, "%s/%s.pot", session_dir, session);
+    if (potfile_path == NULL)
+    {
+      snprintf (potfile, sizeof (potfile) - 1, "%s/%s", profile_dir, POTFILE_FILENAME);
+    }
+    else
+    {
+      strncpy (potfile, potfile_path, sizeof (potfile) - 1);
+    }
 
     data.pot_fp = NULL;
 
@@ -10421,11 +10589,11 @@ int main (int argc, char **argv)
 
       uint line_num = 0;
 
+      char *line_buf = (char *) mymalloc (HCBUFSIZ);
+
       while (!feof (pot_fp))
       {
         line_num++;
-
-        char line_buf[BUFSIZ] = { 0 };
 
         int line_len = fgetl (pot_fp, line_buf);
 
@@ -10536,6 +10704,8 @@ int main (int argc, char **argv)
         pot_cnt++;
       }
 
+      myfree (line_buf);
+
       fclose (pot_fp);
 
       SUPPRESS_OUTPUT = 0;
@@ -10552,6 +10722,8 @@ int main (int argc, char **argv)
 
     switch (hash_mode)
     {
+      case   125: if (pw_max > 32) pw_max = 32;
+                  break;
       case   400: if (pw_max > 40) pw_max = 40;
                   break;
       case   500: if (pw_max > 16) pw_max = 16;
@@ -10931,16 +11103,23 @@ int main (int argc, char **argv)
 
                 wpa_t *wpa = (wpa_t *) hashes_buf[hashes_cnt].esalt;
 
-                u8 *pke_ptr = (u8 *) wpa->pke;
-
                 // do the appending task
 
                 snprintf (salt_ptr + cur_pos,
                           rem_len,
                           ":%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x",
-                          pke_ptr[20], pke_ptr[27], pke_ptr[26], pke_ptr[25], pke_ptr[24], pke_ptr[31],  // MAC1
-                          pke_ptr[30], pke_ptr[29], pke_ptr[28], pke_ptr[35], pke_ptr[34], pke_ptr[33]); // MAC2
-
+                          wpa->orig_mac1[0],
+                          wpa->orig_mac1[1],
+                          wpa->orig_mac1[2],
+                          wpa->orig_mac1[3],
+                          wpa->orig_mac1[4],
+                          wpa->orig_mac1[5],
+                          wpa->orig_mac2[0],
+                          wpa->orig_mac2[1],
+                          wpa->orig_mac2[2],
+                          wpa->orig_mac2[3],
+                          wpa->orig_mac2[4],
+                          wpa->orig_mac2[5]);
 
                 // memset () the remaining part of the salt
 
@@ -11060,11 +11239,11 @@ int main (int argc, char **argv)
 
         uint line_num = 0;
 
+        char *line_buf = (char *) mymalloc (HCBUFSIZ);
+
         while (!feof (fp))
         {
           line_num++;
-
-          char line_buf[BUFSIZ] = { 0 };
 
           int line_len = fgetl (fp, line_buf);
 
@@ -11203,6 +11382,8 @@ int main (int argc, char **argv)
           }
         }
 
+        myfree (line_buf);
+
         fclose (fp);
 
         if (data.quiet == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_avail, hashes_avail, 100.00);
@@ -11335,6 +11516,8 @@ int main (int argc, char **argv)
           case 11600: ((seven_zip_t *) hashes_buf[0].esalt)->iv_len      = 16;
                       ((seven_zip_t *) hashes_buf[0].esalt)->data_len    = 112;
                       ((seven_zip_t *) hashes_buf[0].esalt)->unpack_size = 112;
+                      break;
+          case 13400: ((keepass_t *) hashes_buf[0].esalt)->version       = 2;
                       break;
         }
       }
@@ -11508,6 +11691,8 @@ int main (int argc, char **argv)
         case 13000:  hashes_buf[0].salt->salt_iter = ROUNDS_RAR5 - 1;
                      break;
         case 13200:  hashes_buf[0].salt->salt_iter = ROUNDS_AXCRYPT;
+                     break;
+        case 13400:  hashes_buf[0].salt->salt_iter = ROUNDS_KEEPASS;
                      break;
       }
 
@@ -11718,11 +11903,17 @@ int main (int argc, char **argv)
 
         if (fp != NULL)
         {
+          char *line_buf = (char *) mymalloc (HCBUFSIZ);
+
+          // to be safe work with a copy (because of line_len loop, i etc)
+          // moved up here because it's easier to handle continue case
+          // it's just 64kb
+
+          char *line_buf_cpy = (char *) mymalloc (HCBUFSIZ);
+
           while (!feof (fp))
           {
-            char line_buf[BUFSIZ] =  { 0 };
-
-            char *ptr = fgets (line_buf, BUFSIZ - 1, fp);
+            char *ptr = fgets (line_buf, HCBUFSIZ - 1, fp);
 
             if (ptr == NULL) break;
 
@@ -11762,10 +11953,6 @@ int main (int argc, char **argv)
                   // here we have in line_buf: ESSID:MAC1:MAC2   (without the plain)
                   // manipulate salt_buf
 
-                  // to be safe work with a copy (because of line_len loop, i etc)
-
-                  char line_buf_cpy[BUFSIZ] = { 0 };
-
                   memcpy (line_buf_cpy, line_buf, i);
 
                   char *mac2_pos = strrchr (line_buf_cpy, ':');
@@ -11799,28 +11986,14 @@ int main (int argc, char **argv)
                   {
                     wpa_t *wpa = (wpa_t *) found->esalt;
 
-                    uint pke[25] = { 0 };
-
-                    char *pke_ptr = (char *) pke;
-
-                    for (uint i = 0; i < 25; i++)
-                    {
-                      pke[i] = byte_swap_32 (wpa->pke[i]);
-                    }
-
-                    u8 mac1[6] = { 0 };
-                    u8 mac2[6] = { 0 };
-
-                    memcpy (mac1, pke_ptr + 23, 6);
-                    memcpy (mac2, pke_ptr + 29, 6);
-
                     // compare hex string(s) vs binary MAC address(es)
 
                     for (uint i = 0, j = 0; i < 6; i++, j += 2)
                     {
-                      if (mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
+                      if (wpa->orig_mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
                       {
                         found = NULL;
+
                         break;
                       }
                     }
@@ -11830,9 +12003,10 @@ int main (int argc, char **argv)
 
                     for (uint i = 0, j = 0; i < 6; i++, j += 2)
                     {
-                      if (mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
+                      if (wpa->orig_mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
                       {
                         found = NULL;
+
                         break;
                       }
                     }
@@ -11867,6 +12041,10 @@ int main (int argc, char **argv)
               iter--;
             }
           }
+
+          myfree (line_buf_cpy);
+
+          myfree (line_buf);
 
           fclose (fp);
         }
@@ -12243,7 +12421,7 @@ int main (int argc, char **argv)
       all_kernel_rules_buf = (kernel_rule_t **) mycalloc (rp_files_cnt, sizeof (kernel_rule_t *));
     }
 
-    char rule_buf[BUFSIZ] = { 0 };
+    char *rule_buf = (char *) mymalloc (HCBUFSIZ);
 
     int rule_len = 0;
 
@@ -12273,7 +12451,7 @@ int main (int argc, char **argv)
 
       while (!feof (fp))
       {
-        memset (rule_buf, 0, BUFSIZ);
+        memset (rule_buf, 0, HCBUFSIZ);
 
         rule_len = fgetl (fp, rule_buf);
 
@@ -12401,7 +12579,7 @@ int main (int argc, char **argv)
             kernel_rules_avail += INCR_RULES;
           }
 
-          memset (rule_buf, 0, BLOCK_SIZE);
+          memset (rule_buf, 0, HCBUFSIZ);
 
           rule_len = (int) generate_random_rule (rule_buf, rp_gen_func_min, rp_gen_func_max);
 
@@ -12411,6 +12589,8 @@ int main (int argc, char **argv)
         }
       }
     }
+
+    myfree (rule_buf);
 
     /**
      * generate NOP rules
@@ -13607,6 +13787,7 @@ int main (int argc, char **argv)
           case 12900: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
           case 13000: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
           case 13200: size_tmps = kernel_power_max * sizeof (axcrypt_tmp_t);         break;
+          case 13400: size_tmps = kernel_power_max * sizeof (keepass_tmp_t);         break;
         };
 
         // size_hooks
@@ -13707,7 +13888,7 @@ int main (int argc, char **argv)
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
-      snprintf (build_opts, sizeof (build_opts) - 1, "-I%s/ -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type);
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I\"%s/\" -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type);
 
       /**
        * main kernel
@@ -14989,11 +15170,11 @@ int main (int argc, char **argv)
                   return (-1);
                 }
 
-                char line_buf[BUFSIZ] = { 0 };
+                char *line_buf = (char *) mymalloc (HCBUFSIZ);
 
                 while (!feof (mask_fp))
                 {
-                  memset (line_buf, 0, BUFSIZ);
+                  memset (line_buf, 0, HCBUFSIZ);
 
                   int line_len = fgetl (mask_fp, line_buf);
 
@@ -15012,6 +15193,8 @@ int main (int argc, char **argv)
 
                   maskcnt++;
                 }
+
+                myfree (line_buf);
 
                 fclose (mask_fp);
               }
@@ -15128,13 +15311,13 @@ int main (int argc, char **argv)
             return (-1);
           }
 
-          char line_buf[BUFSIZ] = { 0 };
+          char *line_buf = (char *) mymalloc (HCBUFSIZ);
 
           uint masks_avail = 1;
 
           while (!feof (mask_fp))
           {
-            memset (line_buf, 0, BUFSIZ);
+            memset (line_buf, 0, HCBUFSIZ);
 
             int line_len = fgetl (mask_fp, line_buf);
 
@@ -15153,6 +15336,8 @@ int main (int argc, char **argv)
 
             maskcnt++;
           }
+
+          myfree (line_buf);
 
           fclose (mask_fp);
 
@@ -15305,13 +15490,13 @@ int main (int argc, char **argv)
             return (-1);
           }
 
-          char line_buf[BUFSIZ] = { 0 };
+          char *line_buf = (char *) mymalloc (HCBUFSIZ);
 
           uint masks_avail = 1;
 
           while (!feof (mask_fp))
           {
-            memset (line_buf, 0, BUFSIZ);
+            memset (line_buf, 0, HCBUFSIZ);
 
             int line_len = fgetl (mask_fp, line_buf);
 
@@ -15330,6 +15515,8 @@ int main (int argc, char **argv)
 
             maskcnt++;
           }
+
+          myfree (line_buf);
 
           fclose (mask_fp);
 

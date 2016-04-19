@@ -522,81 +522,86 @@ static void m05500m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
 
     const u32x w0 = w0l | w0r;
 
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
+
+    w0_t[0] = w0;
+    w0_t[1] = w[ 1];
+    w0_t[2] = w[ 2];
+    w0_t[3] = w[ 3];
+    w1_t[0] = w[ 4];
+    w1_t[1] = w[ 5];
+    w1_t[2] = w[ 6];
+    w1_t[3] = w[ 7];
+    w2_t[0] = w[ 8];
+    w2_t[1] = w[ 9];
+    w2_t[2] = w[10];
+    w2_t[3] = w[11];
+    w3_t[0] = w[12];
+    w3_t[1] = w[13];
+    w3_t[2] = w[14];
+    w3_t[3] = w[15];
+
     u32x a = MD4M_A;
     u32x b = MD4M_B;
     u32x c = MD4M_C;
     u32x d = MD4M_D;
 
-    #define w0_t w0
-    #define w1_t w[ 1]
-    #define w2_t w[ 2]
-    #define w3_t w[ 3]
-    #define w4_t w[ 4]
-    #define w5_t w[ 5]
-    #define w6_t w[ 6]
-    #define w7_t w[ 7]
-    #define w8_t w[ 8]
-    #define w9_t w[ 9]
-    #define wa_t w[10]
-    #define wb_t w[11]
-    #define wc_t w[12]
-    #define wd_t w[13]
-    #define we_t w[14]
-    #define wf_t w[15]
+    MD4_STEP (MD4_Fo, a, b, c, d, w0_t[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w0_t[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w0_t[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w0_t[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_Fo, a, b, c, d, w1_t[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w1_t[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w1_t[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w1_t[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_Fo, a, b, c, d, w2_t[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w2_t[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w2_t[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w2_t[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_Fo, a, b, c, d, w3_t[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w3_t[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w3_t[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w3_t[3], MD4C00, MD4S03);
 
-    MD4_STEP (MD4_Fo, a, b, c, d, w0_t, MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w1_t, MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, w2_t, MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, w3_t, MD4C00, MD4S03);
-    MD4_STEP (MD4_Fo, a, b, c, d, w4_t, MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w5_t, MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, w6_t, MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, w7_t, MD4C00, MD4S03);
-    MD4_STEP (MD4_Fo, a, b, c, d, w8_t, MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w9_t, MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, wa_t, MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, wb_t, MD4C00, MD4S03);
-    MD4_STEP (MD4_Fo, a, b, c, d, wc_t, MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, wd_t, MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, we_t, MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, wf_t, MD4C00, MD4S03);
+    MD4_STEP (MD4_Go, a, b, c, d, w0_t[0], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1_t[0], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2_t[0], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3_t[0], MD4C01, MD4S13);
+    MD4_STEP (MD4_Go, a, b, c, d, w0_t[1], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1_t[1], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2_t[1], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3_t[1], MD4C01, MD4S13);
+    MD4_STEP (MD4_Go, a, b, c, d, w0_t[2], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1_t[2], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2_t[2], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3_t[2], MD4C01, MD4S13);
+    MD4_STEP (MD4_Go, a, b, c, d, w0_t[3], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1_t[3], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2_t[3], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3_t[3], MD4C01, MD4S13);
 
-    MD4_STEP (MD4_Go, a, b, c, d, w0_t, MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w4_t, MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, w8_t, MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, wc_t, MD4C01, MD4S13);
-    MD4_STEP (MD4_Go, a, b, c, d, w1_t, MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w5_t, MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, w9_t, MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, wd_t, MD4C01, MD4S13);
-    MD4_STEP (MD4_Go, a, b, c, d, w2_t, MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w6_t, MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, wa_t, MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, we_t, MD4C01, MD4S13);
-    MD4_STEP (MD4_Go, a, b, c, d, w3_t, MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w7_t, MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, wb_t, MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, wf_t, MD4C01, MD4S13);
-
-    MD4_STEP (MD4_H , a, b, c, d, w0_t, MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, w8_t, MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w4_t, MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, wc_t, MD4C02, MD4S23);
-    MD4_STEP (MD4_H , a, b, c, d, w2_t, MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, wa_t, MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w6_t, MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, we_t, MD4C02, MD4S23);
-    MD4_STEP (MD4_H , a, b, c, d, w1_t, MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, w9_t, MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w5_t, MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, wd_t, MD4C02, MD4S23);
-    MD4_STEP (MD4_H , a, b, c, d, w3_t, MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, wb_t, MD4C02, MD4S21);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[0], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[0], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[0], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[0], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[2], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[2], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[2], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[2], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[1], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[1], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[1], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[1], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[3], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[3], MD4C02, MD4S21);
 
     if (MATCHES_NONE_VS (((d + MD4M_D) >> 16), s2)) continue;
 
-    MD4_STEP (MD4_H , c, d, a, b, w7_t, MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, wf_t, MD4C02, MD4S23);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[3], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[3], MD4C02, MD4S23);
 
     a += MD4M_A;
     b += MD4M_B;
@@ -629,10 +634,7 @@ static void m05500m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
      * DES2
      */
 
-    const u32x bc = (b >> 24) | (c << 8);
-    const u32x cd = (c >> 24) | (d << 8);
-
-    transform_netntlmv1_key (bc, cd, key);
+    transform_netntlmv1_key (((b >> 24) | (c << 8)), ((c >> 24) | (d << 8)), key);
 
     _des_crypt_keysetup (key[0], key[1], Kc, Kd, s_skb);
 
@@ -689,81 +691,86 @@ static void m05500s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
 
     const u32x w0 = w0l | w0r;
 
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
+
+    w0_t[0] = w0;
+    w0_t[1] = w[ 1];
+    w0_t[2] = w[ 2];
+    w0_t[3] = w[ 3];
+    w1_t[0] = w[ 4];
+    w1_t[1] = w[ 5];
+    w1_t[2] = w[ 6];
+    w1_t[3] = w[ 7];
+    w2_t[0] = w[ 8];
+    w2_t[1] = w[ 9];
+    w2_t[2] = w[10];
+    w2_t[3] = w[11];
+    w3_t[0] = w[12];
+    w3_t[1] = w[13];
+    w3_t[2] = w[14];
+    w3_t[3] = w[15];
+
     u32x a = MD4M_A;
     u32x b = MD4M_B;
     u32x c = MD4M_C;
     u32x d = MD4M_D;
 
-    #define w0_t w0
-    #define w1_t w[ 1]
-    #define w2_t w[ 2]
-    #define w3_t w[ 3]
-    #define w4_t w[ 4]
-    #define w5_t w[ 5]
-    #define w6_t w[ 6]
-    #define w7_t w[ 7]
-    #define w8_t w[ 8]
-    #define w9_t w[ 9]
-    #define wa_t w[10]
-    #define wb_t w[11]
-    #define wc_t w[12]
-    #define wd_t w[13]
-    #define we_t w[14]
-    #define wf_t w[15]
+    MD4_STEP (MD4_Fo, a, b, c, d, w0_t[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w0_t[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w0_t[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w0_t[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_Fo, a, b, c, d, w1_t[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w1_t[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w1_t[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w1_t[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_Fo, a, b, c, d, w2_t[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w2_t[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w2_t[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w2_t[3], MD4C00, MD4S03);
+    MD4_STEP (MD4_Fo, a, b, c, d, w3_t[0], MD4C00, MD4S00);
+    MD4_STEP (MD4_Fo, d, a, b, c, w3_t[1], MD4C00, MD4S01);
+    MD4_STEP (MD4_Fo, c, d, a, b, w3_t[2], MD4C00, MD4S02);
+    MD4_STEP (MD4_Fo, b, c, d, a, w3_t[3], MD4C00, MD4S03);
 
-    MD4_STEP (MD4_Fo, a, b, c, d, w0_t, MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w1_t, MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, w2_t, MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, w3_t, MD4C00, MD4S03);
-    MD4_STEP (MD4_Fo, a, b, c, d, w4_t, MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w5_t, MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, w6_t, MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, w7_t, MD4C00, MD4S03);
-    MD4_STEP (MD4_Fo, a, b, c, d, w8_t, MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, w9_t, MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, wa_t, MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, wb_t, MD4C00, MD4S03);
-    MD4_STEP (MD4_Fo, a, b, c, d, wc_t, MD4C00, MD4S00);
-    MD4_STEP (MD4_Fo, d, a, b, c, wd_t, MD4C00, MD4S01);
-    MD4_STEP (MD4_Fo, c, d, a, b, we_t, MD4C00, MD4S02);
-    MD4_STEP (MD4_Fo, b, c, d, a, wf_t, MD4C00, MD4S03);
+    MD4_STEP (MD4_Go, a, b, c, d, w0_t[0], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1_t[0], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2_t[0], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3_t[0], MD4C01, MD4S13);
+    MD4_STEP (MD4_Go, a, b, c, d, w0_t[1], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1_t[1], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2_t[1], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3_t[1], MD4C01, MD4S13);
+    MD4_STEP (MD4_Go, a, b, c, d, w0_t[2], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1_t[2], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2_t[2], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3_t[2], MD4C01, MD4S13);
+    MD4_STEP (MD4_Go, a, b, c, d, w0_t[3], MD4C01, MD4S10);
+    MD4_STEP (MD4_Go, d, a, b, c, w1_t[3], MD4C01, MD4S11);
+    MD4_STEP (MD4_Go, c, d, a, b, w2_t[3], MD4C01, MD4S12);
+    MD4_STEP (MD4_Go, b, c, d, a, w3_t[3], MD4C01, MD4S13);
 
-    MD4_STEP (MD4_Go, a, b, c, d, w0_t, MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w4_t, MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, w8_t, MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, wc_t, MD4C01, MD4S13);
-    MD4_STEP (MD4_Go, a, b, c, d, w1_t, MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w5_t, MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, w9_t, MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, wd_t, MD4C01, MD4S13);
-    MD4_STEP (MD4_Go, a, b, c, d, w2_t, MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w6_t, MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, wa_t, MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, we_t, MD4C01, MD4S13);
-    MD4_STEP (MD4_Go, a, b, c, d, w3_t, MD4C01, MD4S10);
-    MD4_STEP (MD4_Go, d, a, b, c, w7_t, MD4C01, MD4S11);
-    MD4_STEP (MD4_Go, c, d, a, b, wb_t, MD4C01, MD4S12);
-    MD4_STEP (MD4_Go, b, c, d, a, wf_t, MD4C01, MD4S13);
-
-    MD4_STEP (MD4_H , a, b, c, d, w0_t, MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, w8_t, MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w4_t, MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, wc_t, MD4C02, MD4S23);
-    MD4_STEP (MD4_H , a, b, c, d, w2_t, MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, wa_t, MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w6_t, MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, we_t, MD4C02, MD4S23);
-    MD4_STEP (MD4_H , a, b, c, d, w1_t, MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, w9_t, MD4C02, MD4S21);
-    MD4_STEP (MD4_H , c, d, a, b, w5_t, MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, wd_t, MD4C02, MD4S23);
-    MD4_STEP (MD4_H , a, b, c, d, w3_t, MD4C02, MD4S20);
-    MD4_STEP (MD4_H , d, a, b, c, wb_t, MD4C02, MD4S21);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[0], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[0], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[0], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[0], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[2], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[2], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[2], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[2], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[1], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[1], MD4C02, MD4S21);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[1], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[1], MD4C02, MD4S23);
+    MD4_STEP (MD4_H , a, b, c, d, w0_t[3], MD4C02, MD4S20);
+    MD4_STEP (MD4_H , d, a, b, c, w2_t[3], MD4C02, MD4S21);
 
     if (MATCHES_NONE_VS (((d + MD4M_D) >> 16), s2)) continue;
 
-    MD4_STEP (MD4_H , c, d, a, b, w7_t, MD4C02, MD4S22);
-    MD4_STEP (MD4_H , b, c, d, a, wf_t, MD4C02, MD4S23);
+    MD4_STEP (MD4_H , c, d, a, b, w1_t[3], MD4C02, MD4S22);
+    MD4_STEP (MD4_H , b, c, d, a, w3_t[3], MD4C02, MD4S23);
 
     a += MD4M_A;
     b += MD4M_B;

@@ -5,6 +5,9 @@
 
 #define _SAPG_
 
+//incompatible data-dependant code
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,9 +19,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 #define GETSHIFTEDINT(a,n) amd_bytealign ((a)[((n)/4)+1], (a)[((n)/4)+0], (n))
 
@@ -199,16 +200,6 @@ static void m07800m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
-  w0[0] = swap32 (w0[0]);
-  w0[1] = swap32 (w0[1]);
-  w0[2] = swap32 (w0[2]);
-  w0[3] = swap32 (w0[3]);
-
-  w1[0] = swap32 (w1[0]);
-  w1[1] = swap32 (w1[1]);
-  w1[2] = swap32 (w1[2]);
-  w1[3] = swap32 (w1[3]);
-
   /**
    * salt
    */
@@ -227,36 +218,30 @@ static void m07800m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   u32 s0[4];
-
-  s0[0] = salt_buf[0];
-  s0[1] = salt_buf[1];
-  s0[2] = salt_buf[2];
-  s0[3] = salt_buf[3];
-
   u32 s1[4];
-
-  s1[0] = salt_buf[4];
-  s1[1] = salt_buf[5];
-  s1[2] = salt_buf[6];
-  s1[3] = salt_buf[7];
-
   u32 s2[4];
+  u32 s3[4];
 
+  s0[0] = swap32 (salt_buf[0]);
+  s0[1] = swap32 (salt_buf[1]);
+  s0[2] = swap32 (salt_buf[2]);
+  s0[3] = swap32 (salt_buf[3]);
+  s1[0] = swap32 (salt_buf[4]);
+  s1[1] = swap32 (salt_buf[5]);
+  s1[2] = swap32 (salt_buf[6]);
+  s1[3] = swap32 (salt_buf[7]);
   s2[0] = 0;
   s2[1] = 0;
   s2[2] = 0;
   s2[3] = 0;
-
-  u32 s3[4];
-
   s3[0] = 0;
   s3[1] = 0;
   s3[2] = 0;
   s3[3] = 0;
 
-  switch_buffer_by_offset_le (s0, s1, s2, s3, pw_len);
+  switch_buffer_by_offset_be_S (s0, s1, s2, s3, pw_len);
 
-  const u32 pw_salt_len = pw_len + salt_len;
+  const u32x pw_salt_len = pw_len + salt_len;
 
   /**
    * loop
@@ -264,263 +249,34 @@ static void m07800m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   u32 w0l = w0[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = swap32 (bfs_buf[il_pos].i);
+    const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
-    w0[0] = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
+
+    w0[0] = w0lr;
 
     /**
-     * sha1
+     * SAP
      */
 
     u32 final[32];
 
-    final[ 0] = swap32 (w0[0] | s0[0]);
-    final[ 1] = swap32 (w0[1] | s0[1]);
-    final[ 2] = swap32 (w0[2] | s0[2]);
-    final[ 3] = swap32 (w0[3] | s0[3]);
-    final[ 4] = swap32 (w1[0] | s1[0]);
-    final[ 5] = swap32 (w1[1] | s1[1]);
-    final[ 6] = swap32 (w1[2] | s1[2]);
-    final[ 7] = swap32 (w1[3] | s1[3]);
-    final[ 8] = swap32 (w2[0] | s2[0]);
-    final[ 9] = swap32 (w2[1] | s2[1]);
-    final[10] = swap32 (w2[2] | s2[2]);
-    final[11] = swap32 (w2[3] | s2[3]);
-    final[12] = swap32 (w3[0] | s3[0]);
-    final[13] = swap32 (w3[1] | s3[1]);
-    final[14] = 0;
-    final[15] = pw_salt_len * 8;
-
-    u32 digest[5];
-
-    digest[0] = SHA1M_A;
-    digest[1] = SHA1M_B;
-    digest[2] = SHA1M_C;
-    digest[3] = SHA1M_D;
-    digest[4] = SHA1M_E;
-
-    sha1_transform (&final[0], &final[4], &final[8], &final[12], digest);
-
-    // prepare magic array range
-
-    u32 lengthMagicArray = 0x20;
-    u32 offsetMagicArray = 0;
-
-    lengthMagicArray += ((digest[0] >> 24) & 0xff) % 6;
-    lengthMagicArray += ((digest[0] >> 16) & 0xff) % 6;
-    lengthMagicArray += ((digest[0] >>  8) & 0xff) % 6;
-    lengthMagicArray += ((digest[0] >>  0) & 0xff) % 6;
-    lengthMagicArray += ((digest[1] >> 24) & 0xff) % 6;
-    lengthMagicArray += ((digest[1] >> 16) & 0xff) % 6;
-    lengthMagicArray += ((digest[1] >>  8) & 0xff) % 6;
-    lengthMagicArray += ((digest[1] >>  0) & 0xff) % 6;
-    lengthMagicArray += ((digest[2] >> 24) & 0xff) % 6;
-    lengthMagicArray += ((digest[2] >> 16) & 0xff) % 6;
-    offsetMagicArray += ((digest[2] >>  8) & 0xff) % 8;
-    offsetMagicArray += ((digest[2] >>  0) & 0xff) % 8;
-    offsetMagicArray += ((digest[3] >> 24) & 0xff) % 8;
-    offsetMagicArray += ((digest[3] >> 16) & 0xff) % 8;
-    offsetMagicArray += ((digest[3] >>  8) & 0xff) % 8;
-    offsetMagicArray += ((digest[3] >>  0) & 0xff) % 8;
-    offsetMagicArray += ((digest[4] >> 24) & 0xff) % 8;
-    offsetMagicArray += ((digest[4] >> 16) & 0xff) % 8;
-    offsetMagicArray += ((digest[4] >>  8) & 0xff) % 8;
-    offsetMagicArray += ((digest[4] >>  0) & 0xff) % 8;
-
-    // final
-
-    digest[0] = SHA1M_A;
-    digest[1] = SHA1M_B;
-    digest[2] = SHA1M_C;
-    digest[3] = SHA1M_D;
-    digest[4] = SHA1M_E;
-
-    #pragma unroll
-    for (int i = 0; i < 32; i++) final[i] = 0;
-
-    final[0] = w0[0];
-    final[1] = w0[1];
-    final[2] = w0[2];
-    final[3] = w0[3];
-    final[4] = w1[0];
-    final[5] = w1[1];
-    final[6] = w1[2];
-    final[7] = w1[3];
-
-    u32 final_len = pw_len;
-
-    u32 i;
-
-    // append MagicArray
-
-    for (i = 0; i < lengthMagicArray - 4; i += 4)
-    {
-      const u32 tmp = GETSHIFTEDINT (theMagicArray, offsetMagicArray + i);
-
-      SETSHIFTEDINT (final, final_len + i, tmp);
-    }
-
-    const u32 mask = 0xffffffff >> (((i - lengthMagicArray) & 3) * 8);
-
-    const u32 tmp = GETSHIFTEDINT (theMagicArray, offsetMagicArray + i) & mask;
-
-    SETSHIFTEDINT (final, final_len + i, tmp);
-
-    final_len += lengthMagicArray;
-
-    // append Salt
-
-    for (i = 0; i < salt_len + 1; i += 4) // +1 for the 0x80
-    {
-      const u32 tmp = salt_buf[i / 4]; // attention, int[] not char[]
-
-      SETSHIFTEDINT (final, final_len + i, tmp);
-    }
-
-    final_len += salt_len;
-
-    // calculate
-
-    int left;
-    int off;
-
-    for (left = final_len, off = 0; left >= 56; left -= 64, off += 16)
-    {
-      swap_buffer (&final[off]);
-
-      sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
-    }
-
-    swap_buffer (&final[off]);
-
-    final[off + 14] = 0;
-    final[off + 15] = final_len * 8;
-
-    sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
-
-    const u32 r0 = digest[3];
-    const u32 r1 = digest[4];
-    const u32 r2 = digest[2];
-    const u32 r3 = digest[1];
-
-    #include COMPARE_M
-  }
-}
-
-static void m07800s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
-{
-  /**
-   * modifier
-   */
-
-  const u32 gid = get_global_id (0);
-  const u32 lid = get_local_id (0);
-
-  w0[0] = swap32 (w0[0]);
-  w0[1] = swap32 (w0[1]);
-  w0[2] = swap32 (w0[2]);
-  w0[3] = swap32 (w0[3]);
-
-  w1[0] = swap32 (w1[0]);
-  w1[1] = swap32 (w1[1]);
-  w1[2] = swap32 (w1[2]);
-  w1[3] = swap32 (w1[3]);
-
-  /**
-   * salt
-   */
-
-  u32 salt_buf[8];
-
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
-  salt_buf[4] = salt_bufs[salt_pos].salt_buf[4];
-  salt_buf[5] = salt_bufs[salt_pos].salt_buf[5];
-  salt_buf[6] = salt_bufs[salt_pos].salt_buf[6];
-  salt_buf[7] = salt_bufs[salt_pos].salt_buf[7];
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  u32 s0[4];
-
-  s0[0] = salt_buf[0];
-  s0[1] = salt_buf[1];
-  s0[2] = salt_buf[2];
-  s0[3] = salt_buf[3];
-
-  u32 s1[4];
-
-  s1[0] = salt_buf[4];
-  s1[1] = salt_buf[5];
-  s1[2] = salt_buf[6];
-  s1[3] = salt_buf[7];
-
-  u32 s2[4];
-
-  s2[0] = 0;
-  s2[1] = 0;
-  s2[2] = 0;
-  s2[3] = 0;
-
-  u32 s3[4];
-
-  s3[0] = 0;
-  s3[1] = 0;
-  s3[2] = 0;
-  s3[3] = 0;
-
-  switch_buffer_by_offset_le (s0, s1, s2, s3, pw_len);
-
-  const u32 pw_salt_len = pw_len + salt_len;
-
-  /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
-
-  /**
-   * loop
-   */
-
-  u32 w0l = w0[0];
-
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
-  {
-    const u32 w0r = swap32 (bfs_buf[il_pos].i);
-
-    w0[0] = w0l | w0r;
-
-    /**
-     * sha1
-     */
-
-    u32 final[32];
-
-    final[ 0] = swap32 (w0[0] | s0[0]);
-    final[ 1] = swap32 (w0[1] | s0[1]);
-    final[ 2] = swap32 (w0[2] | s0[2]);
-    final[ 3] = swap32 (w0[3] | s0[3]);
-    final[ 4] = swap32 (w1[0] | s1[0]);
-    final[ 5] = swap32 (w1[1] | s1[1]);
-    final[ 6] = swap32 (w1[2] | s1[2]);
-    final[ 7] = swap32 (w1[3] | s1[3]);
-    final[ 8] = swap32 (w2[0] | s2[0]);
-    final[ 9] = swap32 (w2[1] | s2[1]);
-    final[10] = swap32 (w2[2] | s2[2]);
-    final[11] = swap32 (w2[3] | s2[3]);
-    final[12] = swap32 (w3[0] | s3[0]);
-    final[13] = swap32 (w3[1] | s3[1]);
+    final[ 0] = w0[0] | s0[0];
+    final[ 1] = w0[1] | s0[1];
+    final[ 2] = w0[2] | s0[2];
+    final[ 3] = w0[3] | s0[3];
+    final[ 4] = w1[0] | s1[0];
+    final[ 5] = w1[1] | s1[1];
+    final[ 6] = w1[2] | s1[2];
+    final[ 7] = w1[3] | s1[3];
+    final[ 8] = w2[0] | s2[0];
+    final[ 9] = w2[1] | s2[1];
+    final[10] = w2[2] | s2[2];
+    final[11] = w2[3] | s2[3];
+    final[12] = w3[0] | s3[0];
+    final[13] = w3[1] | s3[1];
     final[14] = 0;
     final[15] = pw_salt_len * 8;
 
@@ -571,18 +327,18 @@ static void m07800s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     #pragma unroll 32
     for (int i = 0; i < 32; i++) final[i] = 0;
 
-    final[0] = w0[0];
-    final[1] = w0[1];
-    final[2] = w0[2];
-    final[3] = w0[3];
-    final[4] = w1[0];
-    final[5] = w1[1];
-    final[6] = w1[2];
-    final[7] = w1[3];
+    final[0] = swap32 (w0[0]);
+    final[1] = swap32 (w0[1]);
+    final[2] = swap32 (w0[2]);
+    final[3] = swap32 (w0[3]);
+    final[4] = swap32 (w1[0]);
+    final[5] = swap32 (w1[1]);
+    final[6] = swap32 (w1[2]);
+    final[7] = swap32 (w1[3]);
 
     u32 final_len = pw_len;
 
-    u32 i;
+    int i;
 
     // append MagicArray
 
@@ -631,12 +387,219 @@ static void m07800s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
 
-    const u32 r0 = digest[3];
-    const u32 r1 = digest[4];
-    const u32 r2 = digest[2];
-    const u32 r3 = digest[1];
+    COMPARE_M_SIMD (digest[3], digest[4], digest[2], digest[1]);
+  }
+}
 
-    #include COMPARE_S
+static void m07800s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+{
+  /**
+   * modifier
+   */
+
+  const u32 gid = get_global_id (0);
+  const u32 lid = get_local_id (0);
+
+  /**
+   * salt
+   */
+
+  u32 salt_buf[8];
+
+  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
+  salt_buf[4] = salt_bufs[salt_pos].salt_buf[4];
+  salt_buf[5] = salt_bufs[salt_pos].salt_buf[5];
+  salt_buf[6] = salt_bufs[salt_pos].salt_buf[6];
+  salt_buf[7] = salt_bufs[salt_pos].salt_buf[7];
+
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
+  u32 s0[4];
+  u32 s1[4];
+  u32 s2[4];
+  u32 s3[4];
+
+  s0[0] = swap32 (salt_buf[0]);
+  s0[1] = swap32 (salt_buf[1]);
+  s0[2] = swap32 (salt_buf[2]);
+  s0[3] = swap32 (salt_buf[3]);
+  s1[0] = swap32 (salt_buf[4]);
+  s1[1] = swap32 (salt_buf[5]);
+  s1[2] = swap32 (salt_buf[6]);
+  s1[3] = swap32 (salt_buf[7]);
+  s2[0] = 0;
+  s2[1] = 0;
+  s2[2] = 0;
+  s2[3] = 0;
+  s3[0] = 0;
+  s3[1] = 0;
+  s3[2] = 0;
+  s3[3] = 0;
+
+  switch_buffer_by_offset_be_S (s0, s1, s2, s3, pw_len);
+
+  const u32x pw_salt_len = pw_len + salt_len;
+
+  /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
+
+  /**
+   * loop
+   */
+
+  u32 w0l = w0[0];
+
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  {
+    const u32x w0r = ix_create_bft (bfs_buf, il_pos);
+
+    const u32x w0lr = w0l | w0r;
+
+    w0[0] = w0lr;
+
+    /**
+     * SAP
+     */
+
+    u32 final[32];
+
+    final[ 0] = w0[0] | s0[0];
+    final[ 1] = w0[1] | s0[1];
+    final[ 2] = w0[2] | s0[2];
+    final[ 3] = w0[3] | s0[3];
+    final[ 4] = w1[0] | s1[0];
+    final[ 5] = w1[1] | s1[1];
+    final[ 6] = w1[2] | s1[2];
+    final[ 7] = w1[3] | s1[3];
+    final[ 8] = w2[0] | s2[0];
+    final[ 9] = w2[1] | s2[1];
+    final[10] = w2[2] | s2[2];
+    final[11] = w2[3] | s2[3];
+    final[12] = w3[0] | s3[0];
+    final[13] = w3[1] | s3[1];
+    final[14] = 0;
+    final[15] = pw_salt_len * 8;
+
+    u32 digest[5];
+
+    digest[0] = SHA1M_A;
+    digest[1] = SHA1M_B;
+    digest[2] = SHA1M_C;
+    digest[3] = SHA1M_D;
+    digest[4] = SHA1M_E;
+
+    sha1_transform (&final[0], &final[4], &final[8], &final[12], digest);
+
+    // prepare magic array range
+
+    u32 lengthMagicArray = 0x20;
+    u32 offsetMagicArray = 0;
+
+    lengthMagicArray += ((digest[0] >> 24) & 0xff) % 6;
+    lengthMagicArray += ((digest[0] >> 16) & 0xff) % 6;
+    lengthMagicArray += ((digest[0] >>  8) & 0xff) % 6;
+    lengthMagicArray += ((digest[0] >>  0) & 0xff) % 6;
+    lengthMagicArray += ((digest[1] >> 24) & 0xff) % 6;
+    lengthMagicArray += ((digest[1] >> 16) & 0xff) % 6;
+    lengthMagicArray += ((digest[1] >>  8) & 0xff) % 6;
+    lengthMagicArray += ((digest[1] >>  0) & 0xff) % 6;
+    lengthMagicArray += ((digest[2] >> 24) & 0xff) % 6;
+    lengthMagicArray += ((digest[2] >> 16) & 0xff) % 6;
+    offsetMagicArray += ((digest[2] >>  8) & 0xff) % 8;
+    offsetMagicArray += ((digest[2] >>  0) & 0xff) % 8;
+    offsetMagicArray += ((digest[3] >> 24) & 0xff) % 8;
+    offsetMagicArray += ((digest[3] >> 16) & 0xff) % 8;
+    offsetMagicArray += ((digest[3] >>  8) & 0xff) % 8;
+    offsetMagicArray += ((digest[3] >>  0) & 0xff) % 8;
+    offsetMagicArray += ((digest[4] >> 24) & 0xff) % 8;
+    offsetMagicArray += ((digest[4] >> 16) & 0xff) % 8;
+    offsetMagicArray += ((digest[4] >>  8) & 0xff) % 8;
+    offsetMagicArray += ((digest[4] >>  0) & 0xff) % 8;
+
+    // final
+
+    digest[0] = SHA1M_A;
+    digest[1] = SHA1M_B;
+    digest[2] = SHA1M_C;
+    digest[3] = SHA1M_D;
+    digest[4] = SHA1M_E;
+
+    #pragma unroll 32
+    for (int i = 0; i < 32; i++) final[i] = 0;
+
+    final[0] = swap32 (w0[0]);
+    final[1] = swap32 (w0[1]);
+    final[2] = swap32 (w0[2]);
+    final[3] = swap32 (w0[3]);
+    final[4] = swap32 (w1[0]);
+    final[5] = swap32 (w1[1]);
+    final[6] = swap32 (w1[2]);
+    final[7] = swap32 (w1[3]);
+
+    u32 final_len = pw_len;
+
+    int i;
+
+    // append MagicArray
+
+    for (i = 0; i < lengthMagicArray - 4; i += 4)
+    {
+      const u32 tmp = GETSHIFTEDINT (theMagicArray, offsetMagicArray + i);
+
+      SETSHIFTEDINT (final, final_len + i, tmp);
+    }
+
+    const u32 mask = 0xffffffff >> (((i - lengthMagicArray) & 3) * 8);
+
+    const u32 tmp = GETSHIFTEDINT (theMagicArray, offsetMagicArray + i) & mask;
+
+    SETSHIFTEDINT (final, final_len + i, tmp);
+
+    final_len += lengthMagicArray;
+
+    // append Salt
+
+    for (i = 0; i < salt_len + 1; i += 4) // +1 for the 0x80
+    {
+      const u32 tmp = salt_buf[i / 4]; // attention, int[] not char[]
+
+      SETSHIFTEDINT (final, final_len + i, tmp);
+    }
+
+    final_len += salt_len;
+
+    // calculate
+
+    int left;
+    int off;
+
+    for (left = final_len, off = 0; left >= 56; left -= 64, off += 16)
+    {
+      swap_buffer (&final[off]);
+
+      sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
+    }
+
+    swap_buffer (&final[off]);
+
+    final[off + 14] = 0;
+    final[off + 15] = final_len * 8;
+
+    sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
+
+    COMPARE_S_SIMD (digest[3], digest[4], digest[2], digest[1]);
   }
 }
 

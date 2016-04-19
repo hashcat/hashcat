@@ -32,6 +32,18 @@ __constant u64 keccakf_rndc[24] =
   0x8000000000008080, 0x0000000080000001, 0x8000000080008008
 };
 
+__constant u8 keccakf_rotc[24] =
+{
+   1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
+  27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
+};
+
+__constant u8 keccakf_piln[24] =
+{
+  10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
+  15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
+};
+
 #ifndef KECCAK_ROUNDS
 #define KECCAK_ROUNDS 24
 #endif
@@ -80,22 +92,6 @@ static void m05000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
-   * const
-   */
-
-  const u32 keccakf_rotc[24] =
-  {
-     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
-    27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
-  };
-
-  const u32 keccakf_piln[24] =
-  {
-    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
-    15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
-  };
-
-  /**
    * 0x80 keccak, very special
    */
 
@@ -117,16 +113,42 @@ static void m05000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
+    u32x t0[4];
+    u32x t1[4];
+    u32x t2[4];
+    u32x t3[4];
+
+    t0[0] = w0lr;
+    t0[1] = w0[1];
+    t0[2] = w0[2];
+    t0[3] = w0[3];
+    t1[0] = w1[0];
+    t1[1] = w1[1];
+    t1[2] = w1[2];
+    t1[3] = w1[3];
+    t2[0] = w2[0];
+    t2[1] = w2[1];
+    t2[2] = w2[2];
+    t2[3] = w2[3];
+    t3[0] = w3[0];
+    t3[1] = w3[1];
+    t3[2] = w3[2];
+    t3[3] = w3[3];
+
+    /**
+     * Keccak
+     */
+
     u64x st[25];
 
-    st[ 0] = hl32_to_64 (w0[1], w0lr);
-    st[ 1] = hl32_to_64 (w0[3], w0[2]);
-    st[ 2] = hl32_to_64 (w1[1], w1[0]);
-    st[ 3] = hl32_to_64 (w1[3], w1[2]);
-    st[ 4] = hl32_to_64 (w2[1], w2[0]);
-    st[ 5] = hl32_to_64 (w2[3], w2[2]);
-    st[ 6] = hl32_to_64 (w3[1], w3[0]);
-    st[ 7] = hl32_to_64 (w3[3], w3[2]);
+    st[ 0] = hl32_to_64 (t0[1], t0[0]);
+    st[ 1] = hl32_to_64 (t0[3], t0[2]);
+    st[ 2] = hl32_to_64 (t1[1], t1[0]);
+    st[ 3] = hl32_to_64 (t1[3], t1[2]);
+    st[ 4] = hl32_to_64 (t2[1], t2[0]);
+    st[ 5] = hl32_to_64 (t2[3], t2[2]);
+    st[ 6] = hl32_to_64 (t3[1], t3[0]);
+    st[ 7] = hl32_to_64 (t3[3], t3[2]);
     st[ 8] = 0;
     st[ 9] = 0;
     st[10] = 0;
@@ -228,20 +250,14 @@ static void m05000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
-   * const
+   * 0x80 keccak, very special
    */
 
-  const u32 keccakf_rotc[24] =
-  {
-     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
-    27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
-  };
+  const u32 mdlen = salt_bufs[salt_pos].keccak_mdlen;
 
-  const u32 keccakf_piln[24] =
-  {
-    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
-    15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
-  };
+  const u32 rsiz = 200 - (2 * mdlen);
+
+  const u32 add80w = (rsiz - 1) / 8;
 
   /**
    * digest
@@ -256,16 +272,6 @@ static void m05000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   };
 
   /**
-   * 0x80 keccak, very special
-   */
-
-  const u32 mdlen = salt_bufs[salt_pos].keccak_mdlen;
-
-  const u32 rsiz = 200 - (2 * mdlen);
-
-  const u32 add80w = (rsiz - 1) / 8;
-
-  /**
    * loop
    */
 
@@ -277,16 +283,42 @@ static void m05000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
+    u32x t0[4];
+    u32x t1[4];
+    u32x t2[4];
+    u32x t3[4];
+
+    t0[0] = w0lr;
+    t0[1] = w0[1];
+    t0[2] = w0[2];
+    t0[3] = w0[3];
+    t1[0] = w1[0];
+    t1[1] = w1[1];
+    t1[2] = w1[2];
+    t1[3] = w1[3];
+    t2[0] = w2[0];
+    t2[1] = w2[1];
+    t2[2] = w2[2];
+    t2[3] = w2[3];
+    t3[0] = w3[0];
+    t3[1] = w3[1];
+    t3[2] = w3[2];
+    t3[3] = w3[3];
+
+    /**
+     * Keccak
+     */
+
     u64x st[25];
 
-    st[ 0] = hl32_to_64 (w0[1], w0lr);
-    st[ 1] = hl32_to_64 (w0[3], w0[2]);
-    st[ 2] = hl32_to_64 (w1[1], w1[0]);
-    st[ 3] = hl32_to_64 (w1[3], w1[2]);
-    st[ 4] = hl32_to_64 (w2[1], w2[0]);
-    st[ 5] = hl32_to_64 (w2[3], w2[2]);
-    st[ 6] = hl32_to_64 (w3[1], w3[0]);
-    st[ 7] = hl32_to_64 (w3[3], w3[2]);
+    st[ 0] = hl32_to_64 (t0[1], t0[0]);
+    st[ 1] = hl32_to_64 (t0[3], t0[2]);
+    st[ 2] = hl32_to_64 (t1[1], t1[0]);
+    st[ 3] = hl32_to_64 (t1[3], t1[2]);
+    st[ 4] = hl32_to_64 (t2[1], t2[0]);
+    st[ 5] = hl32_to_64 (t2[3], t2[2]);
+    st[ 6] = hl32_to_64 (t3[1], t3[0]);
+    st[ 7] = hl32_to_64 (t3[3], t3[2]);
     st[ 8] = 0;
     st[ 9] = 0;
     st[10] = 0;

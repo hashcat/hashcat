@@ -481,14 +481,12 @@ __kernel void m09720_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = pws[gid].i[ 4];
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = pws[gid].i[ 6];
@@ -522,15 +520,15 @@ __kernel void m09720_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     append_0x80_2x4_VV (w0, w1, out_len);
 
-    u32x w0_t[4];
-    u32x w1_t[4];
-    u32x w2_t[4];
-    u32x w3_t[4];
+    /**
+     * md5
+     */
 
-    make_unicode (w0, w0_t, w1_t);
-    make_unicode (w1, w2_t, w3_t);
+    make_unicode (w1, w2, w3);
+    make_unicode (w0, w0, w1);
 
-    w3_t[2] = out_len * 8 * 2;
+    w3[2] = out_len * 8 * 2;
+    w3[3] = 0;
 
     u32x digest_pre[4];
 
@@ -539,7 +537,7 @@ __kernel void m09720_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digest_pre[2] = MD5M_C;
     digest_pre[3] = MD5M_D;
 
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest_pre);
+    md5_transform (w0, w1, w2, w3, digest_pre);
 
     digest_pre[0] &= 0xffffffff;
     digest_pre[1] &= 0x000000ff;
@@ -557,6 +555,8 @@ __kernel void m09720_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     u32x a = digest[0];
     u32x b = digest[1] & 0xff;
+    u32x c = 0;
+    u32x d = 0;
 
     COMPARE_M_SIMD (a, b, c, d);
   }
@@ -587,20 +587,29 @@ __kernel void m09720_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = pws[gid].i[ 4];
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = pws[gid].i[ 6];
   pw_buf1[3] = pws[gid].i[ 7];
 
   const u32 pw_len = pws[gid].pw_len;
+
+  /**
+   * salt
+   */
+
+  u32 salt_buf[4];
+
+  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
 
   /**
    * digest
@@ -613,17 +622,6 @@ __kernel void m09720_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digests_buf[digests_offset].digest_buf[DGST_R2],
     digests_buf[digests_offset].digest_buf[DGST_R3]
   };
-
-  /**
-   * salt
-   */
-
-  u32 salt_buf[4];
-
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
 
   /**
    * loop
@@ -640,15 +638,15 @@ __kernel void m09720_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     append_0x80_2x4_VV (w0, w1, out_len);
 
-    u32x w0_t[4];
-    u32x w1_t[4];
-    u32x w2_t[4];
-    u32x w3_t[4];
+    /**
+     * md5
+     */
 
-    make_unicode (w0, w0_t, w1_t);
-    make_unicode (w1, w2_t, w3_t);
+    make_unicode (w1, w2, w3);
+    make_unicode (w0, w0, w1);
 
-    w3_t[2] = out_len * 8 * 2;
+    w3[2] = out_len * 8 * 2;
+    w3[3] = 0;
 
     u32x digest_pre[4];
 
@@ -657,7 +655,7 @@ __kernel void m09720_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digest_pre[2] = MD5M_C;
     digest_pre[3] = MD5M_D;
 
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest_pre);
+    md5_transform (w0, w1, w2, w3, digest_pre);
 
     digest_pre[0] &= 0xffffffff;
     digest_pre[1] &= 0x000000ff;
@@ -675,6 +673,8 @@ __kernel void m09720_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     u32x a = digest[0];
     u32x b = digest[1] & 0xff;
+    u32x c = 0;
+    u32x d = 0;
 
     COMPARE_S_SIMD (a, b, c, d);
   }

@@ -39,14 +39,12 @@ __kernel void m11200_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = pws[gid].i[ 4];
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = pws[gid].i[ 6];
@@ -204,11 +202,11 @@ __kernel void m11200_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    u32x plain_sha1_a = a + SHA1M_A;
-    u32x plain_sha1_b = b + SHA1M_B;
-    u32x plain_sha1_c = c + SHA1M_C;
-    u32x plain_sha1_d = d + SHA1M_D;
-    u32x plain_sha1_e = e + SHA1M_E;
+    const u32x plain_sha1_a = a + SHA1M_A;
+    const u32x plain_sha1_b = b + SHA1M_B;
+    const u32x plain_sha1_c = c + SHA1M_C;
+    const u32x plain_sha1_d = d + SHA1M_D;
+    const u32x plain_sha1_e = e + SHA1M_E;
 
     /**
      * sha1 (sha1 ($pass))
@@ -219,7 +217,6 @@ __kernel void m11200_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w2_t = plain_sha1_c;
     w3_t = plain_sha1_d;
     w4_t = plain_sha1_e;
-
     w5_t = 0x80000000;
     w6_t = 0;
     w7_t = 0;
@@ -504,32 +501,18 @@ __kernel void m11200_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = pws[gid].i[ 3];
-
-  u32 pw_buf1[4];
-
   pw_buf1[0] = pws[gid].i[ 4];
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = pws[gid].i[ 6];
   pw_buf1[3] = pws[gid].i[ 7];
 
   const u32 pw_len = pws[gid].pw_len;
-
-  /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
 
   /**
    * salt
@@ -542,6 +525,18 @@ __kernel void m11200_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   salt_buf[2] = swap32_S (salt_bufs[salt_pos].salt_buf[2]);
   salt_buf[3] = swap32_S (salt_bufs[salt_pos].salt_buf[3]);
   salt_buf[4] = swap32_S (salt_bufs[salt_pos].salt_buf[4]);
+
+  /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
 
   /**
    * loop
@@ -681,11 +676,11 @@ __kernel void m11200_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    u32x plain_sha1_a = a + SHA1M_A;
-    u32x plain_sha1_b = b + SHA1M_B;
-    u32x plain_sha1_c = c + SHA1M_C;
-    u32x plain_sha1_d = d + SHA1M_D;
-    u32x plain_sha1_e = e + SHA1M_E;
+    const u32x plain_sha1_a = a + SHA1M_A;
+    const u32x plain_sha1_b = b + SHA1M_B;
+    const u32x plain_sha1_c = c + SHA1M_C;
+    const u32x plain_sha1_d = d + SHA1M_D;
+    const u32x plain_sha1_e = e + SHA1M_E;
 
     /**
      * sha1 (sha1 ($pass))
@@ -696,7 +691,6 @@ __kernel void m11200_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w2_t = plain_sha1_c;
     w3_t = plain_sha1_d;
     w4_t = plain_sha1_e;
-
     w5_t = 0x80000000;
     w6_t = 0;
     w7_t = 0;

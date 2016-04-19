@@ -34,6 +34,18 @@ __constant u64 keccakf_rndc[24] =
   0x8000000000008080, 0x0000000080000001, 0x8000000080008008
 };
 
+__constant u8 keccakf_rotc[24] =
+{
+   1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
+  27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
+};
+
+__constant u8 keccakf_piln[24] =
+{
+  10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
+  15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
+};
+
 #ifndef KECCAK_ROUNDS
 #define KECCAK_ROUNDS 24
 #endif
@@ -81,22 +93,6 @@ __kernel void m05000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   const u32 lid = get_local_id (0);
 
   /**
-   * const
-   */
-
-  const u8 keccakf_rotc[24] =
-  {
-     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
-    27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
-  };
-
-  const u8 keccakf_piln[24] =
-  {
-    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
-    15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
-  };
-
-  /**
    * base
    */
 
@@ -105,18 +101,16 @@ __kernel void m05000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -144,6 +138,10 @@ __kernel void m05000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x01_2x4_VV (w0, w1, out_len);
+
+    /**
+     * Keccak
+     */
 
     u64x st[25];
 
@@ -263,22 +261,6 @@ __kernel void m05000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   const u32 lid = get_local_id (0);
 
   /**
-   * const
-   */
-
-  const u8 keccakf_rotc[24] =
-  {
-     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
-    27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
-  };
-
-  const u8 keccakf_piln[24] =
-  {
-    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
-    15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
-  };
-
-  /**
    * base
    */
 
@@ -287,20 +269,28 @@ __kernel void m05000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
+
+  /**
+   * 0x80 keccak, very special
+   */
+
+  const u32 mdlen = salt_bufs[salt_pos].keccak_mdlen;
+
+  const u32 rsiz = 200 - (2 * mdlen);
+
+  const u32 add80w = (rsiz - 1) / 8;
 
   /**
    * digest
@@ -313,16 +303,6 @@ __kernel void m05000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     digests_buf[digests_offset].digest_buf[DGST_R2],
     digests_buf[digests_offset].digest_buf[DGST_R3]
   };
-
-  /**
-   * 0x80 keccak, very special
-   */
-
-  const u32 mdlen = salt_bufs[salt_pos].keccak_mdlen;
-
-  const u32 rsiz = 200 - (2 * mdlen);
-
-  const u32 add80w = (rsiz - 1) / 8;
 
   /**
    * loop
@@ -338,6 +318,10 @@ __kernel void m05000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     append_0x01_2x4_VV (w0, w1, out_len);
+
+    /**
+     * Keccak
+     */
 
     u64x st[25];
 

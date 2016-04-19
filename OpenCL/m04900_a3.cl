@@ -33,93 +33,76 @@ static void m04900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    * salt
    */
 
+  u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
+
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
+  salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
+  salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
+  salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
+
   u32 salt_buf0_t[4];
-
-  salt_buf0_t[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0_t[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0_t[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf0_t[3] = salt_bufs[salt_pos].salt_buf[3];
-
   u32 salt_buf1_t[4];
-
-  salt_buf1_t[0] = salt_bufs[salt_pos].salt_buf[4];
-  salt_buf1_t[1] = salt_bufs[salt_pos].salt_buf[5];
-  salt_buf1_t[2] = salt_bufs[salt_pos].salt_buf[6];
-  salt_buf1_t[3] = salt_bufs[salt_pos].salt_buf[7];
-
   u32 salt_buf2_t[4];
-
-  salt_buf2_t[0] = 0;
-  salt_buf2_t[1] = 0;
-  salt_buf2_t[2] = 0;
-  salt_buf2_t[3] = 0;
-
   u32 salt_buf3_t[4];
 
-  salt_buf3_t[0] = 0;
-  salt_buf3_t[1] = 0;
-  salt_buf3_t[2] = 0;
-  salt_buf3_t[3] = 0;
+  salt_buf0_t[0] = salt_bufs[salt_pos].salt_buf[ 0];
+  salt_buf0_t[1] = salt_bufs[salt_pos].salt_buf[ 1];
+  salt_buf0_t[2] = salt_bufs[salt_pos].salt_buf[ 2];
+  salt_buf0_t[3] = salt_bufs[salt_pos].salt_buf[ 3];
+  salt_buf1_t[0] = salt_bufs[salt_pos].salt_buf[ 4];
+  salt_buf1_t[1] = salt_bufs[salt_pos].salt_buf[ 5];
+  salt_buf1_t[2] = salt_bufs[salt_pos].salt_buf[ 6];
+  salt_buf1_t[3] = salt_bufs[salt_pos].salt_buf[ 7];
+  salt_buf2_t[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  salt_buf2_t[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  salt_buf2_t[2] = salt_bufs[salt_pos].salt_buf[10];
+  salt_buf2_t[3] = salt_bufs[salt_pos].salt_buf[11];
+  salt_buf3_t[0] = salt_bufs[salt_pos].salt_buf[12];
+  salt_buf3_t[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3_t[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3_t[3] = salt_bufs[salt_pos].salt_buf[15];
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
-  const u32 pw_salt_len = salt_len + pw_len + salt_len;
+  const u32 pw_salt_len = pw_len + salt_len;
 
-  // first we need to switch the right-hand salt to the correct position (2nd salt)
+  const u32 salt_pw_salt_len = salt_len + pw_len + salt_len;
 
-  switch_buffer_by_offset_le_S (salt_buf0_t, salt_buf1_t, salt_buf2_t, salt_buf3_t, salt_len + pw_len);
-
-  u32 salt_buf0[4];
-
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
-
-  u32 salt_buf1[4];
-
-  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
-  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
-  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
-  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
-
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = 0;
-  salt_buf2[1] = 0;
-  salt_buf2[2] = 0;
-  salt_buf2[3] = 0;
-
-  u32 salt_buf3[4];
-
-  salt_buf3[0] = 0;
-  salt_buf3[1] = 0;
-  salt_buf3[2] = 0;
-  salt_buf3[3] = 0;
-
-  // concatenate the 1st and 2nd instance of the salt
+  switch_buffer_by_offset_le_S (salt_buf0_t, salt_buf1_t, salt_buf2_t, salt_buf3_t, pw_salt_len);
 
   salt_buf0[0] |= salt_buf0_t[0];
   salt_buf0[1] |= salt_buf0_t[1];
   salt_buf0[2] |= salt_buf0_t[2];
   salt_buf0[3] |= salt_buf0_t[3];
-
   salt_buf1[0] |= salt_buf1_t[0];
   salt_buf1[1] |= salt_buf1_t[1];
   salt_buf1[2] |= salt_buf1_t[2];
   salt_buf1[3] |= salt_buf1_t[3];
-
   salt_buf2[0] |= salt_buf2_t[0];
   salt_buf2[1] |= salt_buf2_t[1];
   salt_buf2[2] |= salt_buf2_t[2];
   salt_buf2[3] |= salt_buf2_t[3];
-
   salt_buf3[0] |= salt_buf3_t[0];
   salt_buf3[1] |= salt_buf3_t[1];
   salt_buf3[2] |= salt_buf3_t[2];
   salt_buf3[3] |= salt_buf3_t[3];
 
-  append_0x80_4x4_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_salt_len);
+  append_0x80_4x4_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, salt_pw_salt_len);
 
   /**
    * loop
@@ -133,76 +116,70 @@ static void m04900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
-    u32x w0_t[4];
+    u32x t0[4];
+    u32x t1[4];
+    u32x t2[4];
+    u32x t3[4];
 
-    w0_t[0] = w0lr;
-    w0_t[1] = w0[1];
-    w0_t[2] = w0[2];
-    w0_t[3] = w0[3];
-
-    u32x w1_t[4];
-
-    w1_t[0] = w1[0];
-    w1_t[1] = w1[1];
-    w1_t[2] = w1[2];
-    w1_t[3] = w1[3];
-
-    u32x w2_t[4];
-
-    w2_t[0] = w2[0];
-    w2_t[1] = w2[1];
-    w2_t[2] = w2[2];
-    w2_t[3] = w2[3];
-
-    u32x w3_t[4];
-
-    w3_t[0] = w3[0];
-    w3_t[1] = w3[1];
-    w3_t[2] = w3[2];
-    w3_t[3] = w3[3];
+    t0[0] = w0lr;
+    t0[1] = w0[1];
+    t0[2] = w0[2];
+    t0[3] = w0[3];
+    t1[0] = w1[0];
+    t1[1] = w1[1];
+    t1[2] = w1[2];
+    t1[3] = w1[3];
+    t2[0] = w2[0];
+    t2[1] = w2[1];
+    t2[2] = w2[2];
+    t2[3] = w2[3];
+    t3[0] = w3[0];
+    t3[1] = w3[1];
+    t3[2] = w3[2];
+    t3[3] = w3[3];
 
     /**
      * put the password after the first salt but before the second salt
      */
 
-    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (t0, t1, t2, t3, salt_len);
 
-    w0_t[0] |= salt_buf0[0];
-    w0_t[1] |= salt_buf0[1];
-    w0_t[2] |= salt_buf0[2];
-    w0_t[3] |= salt_buf0[3];
-    w1_t[0] |= salt_buf1[0];
-    w1_t[1] |= salt_buf1[1];
-    w1_t[2] |= salt_buf1[2];
-    w1_t[3] |= salt_buf1[3];
-    w2_t[0] |= salt_buf2[0];
-    w2_t[1] |= salt_buf2[1];
-    w2_t[2] |= salt_buf2[2];
-    w2_t[3] |= salt_buf2[3];
-    w3_t[0] |= salt_buf3[0];
-    w3_t[1] |= salt_buf3[1];
-    w3_t[2] |= salt_buf3[2];
-
-    u32x w0 = swap32 (w0_t[0]);
-    u32x w1 = swap32 (w0_t[1]);
-    u32x w2 = swap32 (w0_t[2]);
-    u32x w3 = swap32 (w0_t[3]);
-    u32x w4 = swap32 (w1_t[0]);
-    u32x w5 = swap32 (w1_t[1]);
-    u32x w6 = swap32 (w1_t[2]);
-    u32x w7 = swap32 (w1_t[3]);
-    u32x w8 = swap32 (w2_t[0]);
-    u32x w9 = swap32 (w2_t[1]);
-    u32x wa = swap32 (w2_t[2]);
-    u32x wb = swap32 (w2_t[3]);
-    u32x wc = swap32 (w3_t[0]);
-    u32x wd = swap32 (w3_t[1]);
-    u32x we = swap32 (w3_t[2]);
-    u32x wf = pw_salt_len * 8;
+    t0[0] |= salt_buf0[0];
+    t0[1] |= salt_buf0[1];
+    t0[2] |= salt_buf0[2];
+    t0[3] |= salt_buf0[3];
+    t1[0] |= salt_buf1[0];
+    t1[1] |= salt_buf1[1];
+    t1[2] |= salt_buf1[2];
+    t1[3] |= salt_buf1[3];
+    t2[0] |= salt_buf2[0];
+    t2[1] |= salt_buf2[1];
+    t2[2] |= salt_buf2[2];
+    t2[3] |= salt_buf2[3];
+    t3[0] |= salt_buf3[0];
+    t3[1] |= salt_buf3[1];
+    t3[2] |= salt_buf3[2];
 
     /**
      * sha1
      */
+
+    u32x w0_t = swap32 (t0[0]);
+    u32x w1_t = swap32 (t0[1]);
+    u32x w2_t = swap32 (t0[2]);
+    u32x w3_t = swap32 (t0[3]);
+    u32x w4_t = swap32 (t1[0]);
+    u32x w5_t = swap32 (t1[1]);
+    u32x w6_t = swap32 (t1[2]);
+    u32x w7_t = swap32 (t1[3]);
+    u32x w8_t = swap32 (t2[0]);
+    u32x w9_t = swap32 (t2[1]);
+    u32x wa_t = swap32 (t2[2]);
+    u32x wb_t = swap32 (t2[3]);
+    u32x wc_t = swap32 (t3[0]);
+    u32x wd_t = swap32 (t3[1]);
+    u32x we_t = 0;
+    u32x wf_t = salt_pw_salt_len * 8;
 
     u32x a = SHA1M_A;
     u32x b = SHA1M_B;
@@ -213,98 +190,98 @@ static void m04900m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     #undef K
     #define K SHA1C00
 
-    SHA1_STEP (SHA1_F0o, a, b, c, d, e, w0);
-    SHA1_STEP (SHA1_F0o, e, a, b, c, d, w1);
-    SHA1_STEP (SHA1_F0o, d, e, a, b, c, w2);
-    SHA1_STEP (SHA1_F0o, c, d, e, a, b, w3);
-    SHA1_STEP (SHA1_F0o, b, c, d, e, a, w4);
-    SHA1_STEP (SHA1_F0o, a, b, c, d, e, w5);
-    SHA1_STEP (SHA1_F0o, e, a, b, c, d, w6);
-    SHA1_STEP (SHA1_F0o, d, e, a, b, c, w7);
-    SHA1_STEP (SHA1_F0o, c, d, e, a, b, w8);
-    SHA1_STEP (SHA1_F0o, b, c, d, e, a, w9);
-    SHA1_STEP (SHA1_F0o, a, b, c, d, e, wa);
-    SHA1_STEP (SHA1_F0o, e, a, b, c, d, wb);
-    SHA1_STEP (SHA1_F0o, d, e, a, b, c, wc);
-    SHA1_STEP (SHA1_F0o, c, d, e, a, b, wd);
-    SHA1_STEP (SHA1_F0o, b, c, d, e, a, we);
-    SHA1_STEP (SHA1_F0o, a, b, c, d, e, wf);
-    w0 = rotl32 ((wd ^ w8 ^ w2 ^ w0), 1u); SHA1_STEP (SHA1_F0o, e, a, b, c, d, w0);
-    w1 = rotl32 ((we ^ w9 ^ w3 ^ w1), 1u); SHA1_STEP (SHA1_F0o, d, e, a, b, c, w1);
-    w2 = rotl32 ((wf ^ wa ^ w4 ^ w2), 1u); SHA1_STEP (SHA1_F0o, c, d, e, a, b, w2);
-    w3 = rotl32 ((w0 ^ wb ^ w5 ^ w3), 1u); SHA1_STEP (SHA1_F0o, b, c, d, e, a, w3);
+    SHA1_STEP (SHA1_F0o, a, b, c, d, e, w0_t);
+    SHA1_STEP (SHA1_F0o, e, a, b, c, d, w1_t);
+    SHA1_STEP (SHA1_F0o, d, e, a, b, c, w2_t);
+    SHA1_STEP (SHA1_F0o, c, d, e, a, b, w3_t);
+    SHA1_STEP (SHA1_F0o, b, c, d, e, a, w4_t);
+    SHA1_STEP (SHA1_F0o, a, b, c, d, e, w5_t);
+    SHA1_STEP (SHA1_F0o, e, a, b, c, d, w6_t);
+    SHA1_STEP (SHA1_F0o, d, e, a, b, c, w7_t);
+    SHA1_STEP (SHA1_F0o, c, d, e, a, b, w8_t);
+    SHA1_STEP (SHA1_F0o, b, c, d, e, a, w9_t);
+    SHA1_STEP (SHA1_F0o, a, b, c, d, e, wa_t);
+    SHA1_STEP (SHA1_F0o, e, a, b, c, d, wb_t);
+    SHA1_STEP (SHA1_F0o, d, e, a, b, c, wc_t);
+    SHA1_STEP (SHA1_F0o, c, d, e, a, b, wd_t);
+    SHA1_STEP (SHA1_F0o, b, c, d, e, a, we_t);
+    SHA1_STEP (SHA1_F0o, a, b, c, d, e, wf_t);
+    w0_t = rotl32 ((wd_t ^ w8_t ^ w2_t ^ w0_t), 1u); SHA1_STEP (SHA1_F0o, e, a, b, c, d, w0_t);
+    w1_t = rotl32 ((we_t ^ w9_t ^ w3_t ^ w1_t), 1u); SHA1_STEP (SHA1_F0o, d, e, a, b, c, w1_t);
+    w2_t = rotl32 ((wf_t ^ wa_t ^ w4_t ^ w2_t), 1u); SHA1_STEP (SHA1_F0o, c, d, e, a, b, w2_t);
+    w3_t = rotl32 ((w0_t ^ wb_t ^ w5_t ^ w3_t), 1u); SHA1_STEP (SHA1_F0o, b, c, d, e, a, w3_t);
 
     #undef K
     #define K SHA1C01
 
-    w4 = rotl32 ((w1 ^ wc ^ w6 ^ w4), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w4);
-    w5 = rotl32 ((w2 ^ wd ^ w7 ^ w5), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w5);
-    w6 = rotl32 ((w3 ^ we ^ w8 ^ w6), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w6);
-    w7 = rotl32 ((w4 ^ wf ^ w9 ^ w7), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w7);
-    w8 = rotl32 ((w5 ^ w0 ^ wa ^ w8), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w8);
-    w9 = rotl32 ((w6 ^ w1 ^ wb ^ w9), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w9);
-    wa = rotl32 ((w7 ^ w2 ^ wc ^ wa), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wa);
-    wb = rotl32 ((w8 ^ w3 ^ wd ^ wb), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wb);
-    wc = rotl32 ((w9 ^ w4 ^ we ^ wc), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, wc);
-    wd = rotl32 ((wa ^ w5 ^ wf ^ wd), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wd);
-    we = rotl32 ((wb ^ w6 ^ w0 ^ we), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, we);
-    wf = rotl32 ((wc ^ w7 ^ w1 ^ wf), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wf);
-    w0 = rotl32 ((wd ^ w8 ^ w2 ^ w0), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w0);
-    w1 = rotl32 ((we ^ w9 ^ w3 ^ w1), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w1);
-    w2 = rotl32 ((wf ^ wa ^ w4 ^ w2), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w2);
-    w3 = rotl32 ((w0 ^ wb ^ w5 ^ w3), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w3);
-    w4 = rotl32 ((w1 ^ wc ^ w6 ^ w4), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w4);
-    w5 = rotl32 ((w2 ^ wd ^ w7 ^ w5), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w5);
-    w6 = rotl32 ((w3 ^ we ^ w8 ^ w6), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w6);
-    w7 = rotl32 ((w4 ^ wf ^ w9 ^ w7), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w7);
+    w4_t = rotl32 ((w1_t ^ wc_t ^ w6_t ^ w4_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w4_t);
+    w5_t = rotl32 ((w2_t ^ wd_t ^ w7_t ^ w5_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w5_t);
+    w6_t = rotl32 ((w3_t ^ we_t ^ w8_t ^ w6_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w6_t);
+    w7_t = rotl32 ((w4_t ^ wf_t ^ w9_t ^ w7_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w7_t);
+    w8_t = rotl32 ((w5_t ^ w0_t ^ wa_t ^ w8_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w8_t);
+    w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w9_t);
+    wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wa_t);
+    wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wb_t);
+    wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, wc_t);
+    wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wd_t);
+    we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, we_t);
+    wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wf_t);
+    w0_t = rotl32 ((wd_t ^ w8_t ^ w2_t ^ w0_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w0_t);
+    w1_t = rotl32 ((we_t ^ w9_t ^ w3_t ^ w1_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w1_t);
+    w2_t = rotl32 ((wf_t ^ wa_t ^ w4_t ^ w2_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w2_t);
+    w3_t = rotl32 ((w0_t ^ wb_t ^ w5_t ^ w3_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w3_t);
+    w4_t = rotl32 ((w1_t ^ wc_t ^ w6_t ^ w4_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w4_t);
+    w5_t = rotl32 ((w2_t ^ wd_t ^ w7_t ^ w5_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w5_t);
+    w6_t = rotl32 ((w3_t ^ we_t ^ w8_t ^ w6_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w6_t);
+    w7_t = rotl32 ((w4_t ^ wf_t ^ w9_t ^ w7_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w7_t);
 
     #undef K
     #define K SHA1C02
 
-    w8 = rotl32 ((w5 ^ w0 ^ wa ^ w8), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, w8);
-    w9 = rotl32 ((w6 ^ w1 ^ wb ^ w9), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, w9);
-    wa = rotl32 ((w7 ^ w2 ^ wc ^ wa), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, wa);
-    wb = rotl32 ((w8 ^ w3 ^ wd ^ wb), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, wb);
-    wc = rotl32 ((w9 ^ w4 ^ we ^ wc), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, wc);
-    wd = rotl32 ((wa ^ w5 ^ wf ^ wd), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, wd);
-    we = rotl32 ((wb ^ w6 ^ w0 ^ we), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, we);
-    wf = rotl32 ((wc ^ w7 ^ w1 ^ wf), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, wf);
-    w0 = rotl32 ((wd ^ w8 ^ w2 ^ w0), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, w0);
-    w1 = rotl32 ((we ^ w9 ^ w3 ^ w1), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, w1);
-    w2 = rotl32 ((wf ^ wa ^ w4 ^ w2), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, w2);
-    w3 = rotl32 ((w0 ^ wb ^ w5 ^ w3), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, w3);
-    w4 = rotl32 ((w1 ^ wc ^ w6 ^ w4), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, w4);
-    w5 = rotl32 ((w2 ^ wd ^ w7 ^ w5), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, w5);
-    w6 = rotl32 ((w3 ^ we ^ w8 ^ w6), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, w6);
-    w7 = rotl32 ((w4 ^ wf ^ w9 ^ w7), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, w7);
-    w8 = rotl32 ((w5 ^ w0 ^ wa ^ w8), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, w8);
-    w9 = rotl32 ((w6 ^ w1 ^ wb ^ w9), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, w9);
-    wa = rotl32 ((w7 ^ w2 ^ wc ^ wa), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, wa);
-    wb = rotl32 ((w8 ^ w3 ^ wd ^ wb), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, wb);
+    w8_t = rotl32 ((w5_t ^ w0_t ^ wa_t ^ w8_t), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, w8_t);
+    w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, w9_t);
+    wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, wa_t);
+    wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, wb_t);
+    wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, wc_t);
+    wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, wd_t);
+    we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, we_t);
+    wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, wf_t);
+    w0_t = rotl32 ((wd_t ^ w8_t ^ w2_t ^ w0_t), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, w0_t);
+    w1_t = rotl32 ((we_t ^ w9_t ^ w3_t ^ w1_t), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, w1_t);
+    w2_t = rotl32 ((wf_t ^ wa_t ^ w4_t ^ w2_t), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, w2_t);
+    w3_t = rotl32 ((w0_t ^ wb_t ^ w5_t ^ w3_t), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, w3_t);
+    w4_t = rotl32 ((w1_t ^ wc_t ^ w6_t ^ w4_t), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, w4_t);
+    w5_t = rotl32 ((w2_t ^ wd_t ^ w7_t ^ w5_t), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, w5_t);
+    w6_t = rotl32 ((w3_t ^ we_t ^ w8_t ^ w6_t), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, w6_t);
+    w7_t = rotl32 ((w4_t ^ wf_t ^ w9_t ^ w7_t), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, w7_t);
+    w8_t = rotl32 ((w5_t ^ w0_t ^ wa_t ^ w8_t), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, w8_t);
+    w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, w9_t);
+    wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, wa_t);
+    wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, wb_t);
 
     #undef K
     #define K SHA1C03
 
-    wc = rotl32 ((w9 ^ w4 ^ we ^ wc), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wc);
-    wd = rotl32 ((wa ^ w5 ^ wf ^ wd), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wd);
-    we = rotl32 ((wb ^ w6 ^ w0 ^ we), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, we);
-    wf = rotl32 ((wc ^ w7 ^ w1 ^ wf), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, wf);
-    w0 = rotl32 ((wd ^ w8 ^ w2 ^ w0), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w0);
-    w1 = rotl32 ((we ^ w9 ^ w3 ^ w1), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w1);
-    w2 = rotl32 ((wf ^ wa ^ w4 ^ w2), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w2);
-    w3 = rotl32 ((w0 ^ wb ^ w5 ^ w3), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w3);
-    w4 = rotl32 ((w1 ^ wc ^ w6 ^ w4), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w4);
-    w5 = rotl32 ((w2 ^ wd ^ w7 ^ w5), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w5);
-    w6 = rotl32 ((w3 ^ we ^ w8 ^ w6), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w6);
-    w7 = rotl32 ((w4 ^ wf ^ w9 ^ w7), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w7);
-    w8 = rotl32 ((w5 ^ w0 ^ wa ^ w8), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w8);
-    w9 = rotl32 ((w6 ^ w1 ^ wb ^ w9), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w9);
-    wa = rotl32 ((w7 ^ w2 ^ wc ^ wa), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wa);
-    wb = rotl32 ((w8 ^ w3 ^ wd ^ wb), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wb);
-    wc = rotl32 ((w9 ^ w4 ^ we ^ wc), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wc);
-    wd = rotl32 ((wa ^ w5 ^ wf ^ wd), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wd);
-    we = rotl32 ((wb ^ w6 ^ w0 ^ we), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we);
-    wf = rotl32 ((wc ^ w7 ^ w1 ^ wf), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf);
+    wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wc_t);
+    wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wd_t);
+    we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, we_t);
+    wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, wf_t);
+    w0_t = rotl32 ((wd_t ^ w8_t ^ w2_t ^ w0_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w0_t);
+    w1_t = rotl32 ((we_t ^ w9_t ^ w3_t ^ w1_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w1_t);
+    w2_t = rotl32 ((wf_t ^ wa_t ^ w4_t ^ w2_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w2_t);
+    w3_t = rotl32 ((w0_t ^ wb_t ^ w5_t ^ w3_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w3_t);
+    w4_t = rotl32 ((w1_t ^ wc_t ^ w6_t ^ w4_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w4_t);
+    w5_t = rotl32 ((w2_t ^ wd_t ^ w7_t ^ w5_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w5_t);
+    w6_t = rotl32 ((w3_t ^ we_t ^ w8_t ^ w6_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w6_t);
+    w7_t = rotl32 ((w4_t ^ wf_t ^ w9_t ^ w7_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w7_t);
+    w8_t = rotl32 ((w5_t ^ w0_t ^ wa_t ^ w8_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w8_t);
+    w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w9_t);
+    wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wa_t);
+    wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wb_t);
+    wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wc_t);
+    wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wd_t);
+    we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
+    wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
     COMPARE_M_SIMD (d, e, c, b);
   }
@@ -318,6 +295,81 @@ static void m04900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
+
+  /**
+   * salt
+   */
+
+  u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
+
+  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
+  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
+  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
+  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
+  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
+  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
+  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
+  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
+  salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
+  salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
+  salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
+
+  u32 salt_buf0_t[4];
+  u32 salt_buf1_t[4];
+  u32 salt_buf2_t[4];
+  u32 salt_buf3_t[4];
+
+  salt_buf0_t[0] = salt_bufs[salt_pos].salt_buf[ 0];
+  salt_buf0_t[1] = salt_bufs[salt_pos].salt_buf[ 1];
+  salt_buf0_t[2] = salt_bufs[salt_pos].salt_buf[ 2];
+  salt_buf0_t[3] = salt_bufs[salt_pos].salt_buf[ 3];
+  salt_buf1_t[0] = salt_bufs[salt_pos].salt_buf[ 4];
+  salt_buf1_t[1] = salt_bufs[salt_pos].salt_buf[ 5];
+  salt_buf1_t[2] = salt_bufs[salt_pos].salt_buf[ 6];
+  salt_buf1_t[3] = salt_bufs[salt_pos].salt_buf[ 7];
+  salt_buf2_t[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  salt_buf2_t[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  salt_buf2_t[2] = salt_bufs[salt_pos].salt_buf[10];
+  salt_buf2_t[3] = salt_bufs[salt_pos].salt_buf[11];
+  salt_buf3_t[0] = salt_bufs[salt_pos].salt_buf[12];
+  salt_buf3_t[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3_t[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3_t[3] = salt_bufs[salt_pos].salt_buf[15];
+
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
+  const u32 pw_salt_len = pw_len + salt_len;
+
+  const u32 salt_pw_salt_len = salt_len + pw_len + salt_len;
+
+  switch_buffer_by_offset_le_S (salt_buf0_t, salt_buf1_t, salt_buf2_t, salt_buf3_t, pw_salt_len);
+
+  salt_buf0[0] |= salt_buf0_t[0];
+  salt_buf0[1] |= salt_buf0_t[1];
+  salt_buf0[2] |= salt_buf0_t[2];
+  salt_buf0[3] |= salt_buf0_t[3];
+  salt_buf1[0] |= salt_buf1_t[0];
+  salt_buf1[1] |= salt_buf1_t[1];
+  salt_buf1[2] |= salt_buf1_t[2];
+  salt_buf1[3] |= salt_buf1_t[3];
+  salt_buf2[0] |= salt_buf2_t[0];
+  salt_buf2[1] |= salt_buf2_t[1];
+  salt_buf2[2] |= salt_buf2_t[2];
+  salt_buf2[3] |= salt_buf2_t[3];
+  salt_buf3[0] |= salt_buf3_t[0];
+  salt_buf3[1] |= salt_buf3_t[1];
+  salt_buf3[2] |= salt_buf3_t[2];
+  salt_buf3[3] |= salt_buf3_t[3];
+
+  append_0x80_4x4_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, salt_pw_salt_len);
 
   /**
    * digest
@@ -338,98 +390,6 @@ static void m04900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 e_rev = rotl32_S (search[1], 2u);
 
   /**
-   * salt
-   */
-
-  u32 salt_buf0_t[4];
-
-  salt_buf0_t[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0_t[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0_t[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf0_t[3] = salt_bufs[salt_pos].salt_buf[3];
-
-  u32 salt_buf1_t[4];
-
-  salt_buf1_t[0] = salt_bufs[salt_pos].salt_buf[4];
-  salt_buf1_t[1] = salt_bufs[salt_pos].salt_buf[5];
-  salt_buf1_t[2] = salt_bufs[salt_pos].salt_buf[6];
-  salt_buf1_t[3] = salt_bufs[salt_pos].salt_buf[7];
-
-  u32 salt_buf2_t[4];
-
-  salt_buf2_t[0] = 0;
-  salt_buf2_t[1] = 0;
-  salt_buf2_t[2] = 0;
-  salt_buf2_t[3] = 0;
-
-  u32 salt_buf3_t[4];
-
-  salt_buf3_t[0] = 0;
-  salt_buf3_t[1] = 0;
-  salt_buf3_t[2] = 0;
-  salt_buf3_t[3] = 0;
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  const u32 pw_salt_len = salt_len + pw_len + salt_len;
-
-  // first we need to switch the right-hand salt to the correct position (2nd salt)
-
-  switch_buffer_by_offset_le_S (salt_buf0_t, salt_buf1_t, salt_buf2_t, salt_buf3_t, salt_len + pw_len);
-
-  u32 salt_buf0[4];
-
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
-
-  u32 salt_buf1[4];
-
-  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
-  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
-  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
-  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
-
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = 0;
-  salt_buf2[1] = 0;
-  salt_buf2[2] = 0;
-  salt_buf2[3] = 0;
-
-  u32 salt_buf3[4];
-
-  salt_buf3[0] = 0;
-  salt_buf3[1] = 0;
-  salt_buf3[2] = 0;
-  salt_buf3[3] = 0;
-
-  // concatenate the 1st and 2nd instance of the salt
-
-  salt_buf0[0] |= salt_buf0_t[0];
-  salt_buf0[1] |= salt_buf0_t[1];
-  salt_buf0[2] |= salt_buf0_t[2];
-  salt_buf0[3] |= salt_buf0_t[3];
-
-  salt_buf1[0] |= salt_buf1_t[0];
-  salt_buf1[1] |= salt_buf1_t[1];
-  salt_buf1[2] |= salt_buf1_t[2];
-  salt_buf1[3] |= salt_buf1_t[3];
-
-  salt_buf2[0] |= salt_buf2_t[0];
-  salt_buf2[1] |= salt_buf2_t[1];
-  salt_buf2[2] |= salt_buf2_t[2];
-  salt_buf2[3] |= salt_buf2_t[3];
-
-  salt_buf3[0] |= salt_buf3_t[0];
-  salt_buf3[1] |= salt_buf3_t[1];
-  salt_buf3[2] |= salt_buf3_t[2];
-  salt_buf3[3] |= salt_buf3_t[3];
-
-  append_0x80_4x4_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_salt_len);
-
-  /**
    * loop
    */
 
@@ -441,76 +401,70 @@ static void m04900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
-    u32x w0_t[4];
+    u32x t0[4];
+    u32x t1[4];
+    u32x t2[4];
+    u32x t3[4];
 
-    w0_t[0] = w0lr;
-    w0_t[1] = w0[1];
-    w0_t[2] = w0[2];
-    w0_t[3] = w0[3];
-
-    u32x w1_t[4];
-
-    w1_t[0] = w1[0];
-    w1_t[1] = w1[1];
-    w1_t[2] = w1[2];
-    w1_t[3] = w1[3];
-
-    u32x w2_t[4];
-
-    w2_t[0] = w2[0];
-    w2_t[1] = w2[1];
-    w2_t[2] = w2[2];
-    w2_t[3] = w2[3];
-
-    u32x w3_t[4];
-
-    w3_t[0] = w3[0];
-    w3_t[1] = w3[1];
-    w3_t[2] = w3[2];
-    w3_t[3] = w3[3];
+    t0[0] = w0lr;
+    t0[1] = w0[1];
+    t0[2] = w0[2];
+    t0[3] = w0[3];
+    t1[0] = w1[0];
+    t1[1] = w1[1];
+    t1[2] = w1[2];
+    t1[3] = w1[3];
+    t2[0] = w2[0];
+    t2[1] = w2[1];
+    t2[2] = w2[2];
+    t2[3] = w2[3];
+    t3[0] = w3[0];
+    t3[1] = w3[1];
+    t3[2] = w3[2];
+    t3[3] = w3[3];
 
     /**
      * put the password after the first salt but before the second salt
      */
 
-    switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, salt_len);
+    switch_buffer_by_offset_le (t0, t1, t2, t3, salt_len);
 
-    w0_t[0] |= salt_buf0[0];
-    w0_t[1] |= salt_buf0[1];
-    w0_t[2] |= salt_buf0[2];
-    w0_t[3] |= salt_buf0[3];
-    w1_t[0] |= salt_buf1[0];
-    w1_t[1] |= salt_buf1[1];
-    w1_t[2] |= salt_buf1[2];
-    w1_t[3] |= salt_buf1[3];
-    w2_t[0] |= salt_buf2[0];
-    w2_t[1] |= salt_buf2[1];
-    w2_t[2] |= salt_buf2[2];
-    w2_t[3] |= salt_buf2[3];
-    w3_t[0] |= salt_buf3[0];
-    w3_t[1] |= salt_buf3[1];
-    w3_t[2] |= salt_buf3[2];
-
-    u32x w0 = swap32 (w0_t[0]);
-    u32x w1 = swap32 (w0_t[1]);
-    u32x w2 = swap32 (w0_t[2]);
-    u32x w3 = swap32 (w0_t[3]);
-    u32x w4 = swap32 (w1_t[0]);
-    u32x w5 = swap32 (w1_t[1]);
-    u32x w6 = swap32 (w1_t[2]);
-    u32x w7 = swap32 (w1_t[3]);
-    u32x w8 = swap32 (w2_t[0]);
-    u32x w9 = swap32 (w2_t[1]);
-    u32x wa = swap32 (w2_t[2]);
-    u32x wb = swap32 (w2_t[3]);
-    u32x wc = swap32 (w3_t[0]);
-    u32x wd = swap32 (w3_t[1]);
-    u32x we = swap32 (w3_t[2]);
-    u32x wf = pw_salt_len * 8;
+    t0[0] |= salt_buf0[0];
+    t0[1] |= salt_buf0[1];
+    t0[2] |= salt_buf0[2];
+    t0[3] |= salt_buf0[3];
+    t1[0] |= salt_buf1[0];
+    t1[1] |= salt_buf1[1];
+    t1[2] |= salt_buf1[2];
+    t1[3] |= salt_buf1[3];
+    t2[0] |= salt_buf2[0];
+    t2[1] |= salt_buf2[1];
+    t2[2] |= salt_buf2[2];
+    t2[3] |= salt_buf2[3];
+    t3[0] |= salt_buf3[0];
+    t3[1] |= salt_buf3[1];
+    t3[2] |= salt_buf3[2];
 
     /**
      * sha1
      */
+
+    u32x w0_t = swap32 (t0[0]);
+    u32x w1_t = swap32 (t0[1]);
+    u32x w2_t = swap32 (t0[2]);
+    u32x w3_t = swap32 (t0[3]);
+    u32x w4_t = swap32 (t1[0]);
+    u32x w5_t = swap32 (t1[1]);
+    u32x w6_t = swap32 (t1[2]);
+    u32x w7_t = swap32 (t1[3]);
+    u32x w8_t = swap32 (t2[0]);
+    u32x w9_t = swap32 (t2[1]);
+    u32x wa_t = swap32 (t2[2]);
+    u32x wb_t = swap32 (t2[3]);
+    u32x wc_t = swap32 (t3[0]);
+    u32x wd_t = swap32 (t3[1]);
+    u32x we_t = 0;
+    u32x wf_t = salt_pw_salt_len * 8;
 
     u32x a = SHA1M_A;
     u32x b = SHA1M_B;
@@ -521,101 +475,101 @@ static void m04900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     #undef K
     #define K SHA1C00
 
-    SHA1_STEP (SHA1_F0o, a, b, c, d, e, w0);
-    SHA1_STEP (SHA1_F0o, e, a, b, c, d, w1);
-    SHA1_STEP (SHA1_F0o, d, e, a, b, c, w2);
-    SHA1_STEP (SHA1_F0o, c, d, e, a, b, w3);
-    SHA1_STEP (SHA1_F0o, b, c, d, e, a, w4);
-    SHA1_STEP (SHA1_F0o, a, b, c, d, e, w5);
-    SHA1_STEP (SHA1_F0o, e, a, b, c, d, w6);
-    SHA1_STEP (SHA1_F0o, d, e, a, b, c, w7);
-    SHA1_STEP (SHA1_F0o, c, d, e, a, b, w8);
-    SHA1_STEP (SHA1_F0o, b, c, d, e, a, w9);
-    SHA1_STEP (SHA1_F0o, a, b, c, d, e, wa);
-    SHA1_STEP (SHA1_F0o, e, a, b, c, d, wb);
-    SHA1_STEP (SHA1_F0o, d, e, a, b, c, wc);
-    SHA1_STEP (SHA1_F0o, c, d, e, a, b, wd);
-    SHA1_STEP (SHA1_F0o, b, c, d, e, a, we);
-    SHA1_STEP (SHA1_F0o, a, b, c, d, e, wf);
-    w0 = rotl32 ((wd ^ w8 ^ w2 ^ w0), 1u); SHA1_STEP (SHA1_F0o, e, a, b, c, d, w0);
-    w1 = rotl32 ((we ^ w9 ^ w3 ^ w1), 1u); SHA1_STEP (SHA1_F0o, d, e, a, b, c, w1);
-    w2 = rotl32 ((wf ^ wa ^ w4 ^ w2), 1u); SHA1_STEP (SHA1_F0o, c, d, e, a, b, w2);
-    w3 = rotl32 ((w0 ^ wb ^ w5 ^ w3), 1u); SHA1_STEP (SHA1_F0o, b, c, d, e, a, w3);
+    SHA1_STEP (SHA1_F0o, a, b, c, d, e, w0_t);
+    SHA1_STEP (SHA1_F0o, e, a, b, c, d, w1_t);
+    SHA1_STEP (SHA1_F0o, d, e, a, b, c, w2_t);
+    SHA1_STEP (SHA1_F0o, c, d, e, a, b, w3_t);
+    SHA1_STEP (SHA1_F0o, b, c, d, e, a, w4_t);
+    SHA1_STEP (SHA1_F0o, a, b, c, d, e, w5_t);
+    SHA1_STEP (SHA1_F0o, e, a, b, c, d, w6_t);
+    SHA1_STEP (SHA1_F0o, d, e, a, b, c, w7_t);
+    SHA1_STEP (SHA1_F0o, c, d, e, a, b, w8_t);
+    SHA1_STEP (SHA1_F0o, b, c, d, e, a, w9_t);
+    SHA1_STEP (SHA1_F0o, a, b, c, d, e, wa_t);
+    SHA1_STEP (SHA1_F0o, e, a, b, c, d, wb_t);
+    SHA1_STEP (SHA1_F0o, d, e, a, b, c, wc_t);
+    SHA1_STEP (SHA1_F0o, c, d, e, a, b, wd_t);
+    SHA1_STEP (SHA1_F0o, b, c, d, e, a, we_t);
+    SHA1_STEP (SHA1_F0o, a, b, c, d, e, wf_t);
+    w0_t = rotl32 ((wd_t ^ w8_t ^ w2_t ^ w0_t), 1u); SHA1_STEP (SHA1_F0o, e, a, b, c, d, w0_t);
+    w1_t = rotl32 ((we_t ^ w9_t ^ w3_t ^ w1_t), 1u); SHA1_STEP (SHA1_F0o, d, e, a, b, c, w1_t);
+    w2_t = rotl32 ((wf_t ^ wa_t ^ w4_t ^ w2_t), 1u); SHA1_STEP (SHA1_F0o, c, d, e, a, b, w2_t);
+    w3_t = rotl32 ((w0_t ^ wb_t ^ w5_t ^ w3_t), 1u); SHA1_STEP (SHA1_F0o, b, c, d, e, a, w3_t);
 
     #undef K
     #define K SHA1C01
 
-    w4 = rotl32 ((w1 ^ wc ^ w6 ^ w4), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w4);
-    w5 = rotl32 ((w2 ^ wd ^ w7 ^ w5), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w5);
-    w6 = rotl32 ((w3 ^ we ^ w8 ^ w6), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w6);
-    w7 = rotl32 ((w4 ^ wf ^ w9 ^ w7), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w7);
-    w8 = rotl32 ((w5 ^ w0 ^ wa ^ w8), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w8);
-    w9 = rotl32 ((w6 ^ w1 ^ wb ^ w9), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w9);
-    wa = rotl32 ((w7 ^ w2 ^ wc ^ wa), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wa);
-    wb = rotl32 ((w8 ^ w3 ^ wd ^ wb), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wb);
-    wc = rotl32 ((w9 ^ w4 ^ we ^ wc), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, wc);
-    wd = rotl32 ((wa ^ w5 ^ wf ^ wd), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wd);
-    we = rotl32 ((wb ^ w6 ^ w0 ^ we), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, we);
-    wf = rotl32 ((wc ^ w7 ^ w1 ^ wf), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wf);
-    w0 = rotl32 ((wd ^ w8 ^ w2 ^ w0), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w0);
-    w1 = rotl32 ((we ^ w9 ^ w3 ^ w1), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w1);
-    w2 = rotl32 ((wf ^ wa ^ w4 ^ w2), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w2);
-    w3 = rotl32 ((w0 ^ wb ^ w5 ^ w3), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w3);
-    w4 = rotl32 ((w1 ^ wc ^ w6 ^ w4), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w4);
-    w5 = rotl32 ((w2 ^ wd ^ w7 ^ w5), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w5);
-    w6 = rotl32 ((w3 ^ we ^ w8 ^ w6), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w6);
-    w7 = rotl32 ((w4 ^ wf ^ w9 ^ w7), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w7);
+    w4_t = rotl32 ((w1_t ^ wc_t ^ w6_t ^ w4_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w4_t);
+    w5_t = rotl32 ((w2_t ^ wd_t ^ w7_t ^ w5_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w5_t);
+    w6_t = rotl32 ((w3_t ^ we_t ^ w8_t ^ w6_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w6_t);
+    w7_t = rotl32 ((w4_t ^ wf_t ^ w9_t ^ w7_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w7_t);
+    w8_t = rotl32 ((w5_t ^ w0_t ^ wa_t ^ w8_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w8_t);
+    w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w9_t);
+    wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wa_t);
+    wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wb_t);
+    wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, wc_t);
+    wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wd_t);
+    we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, we_t);
+    wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wf_t);
+    w0_t = rotl32 ((wd_t ^ w8_t ^ w2_t ^ w0_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w0_t);
+    w1_t = rotl32 ((we_t ^ w9_t ^ w3_t ^ w1_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w1_t);
+    w2_t = rotl32 ((wf_t ^ wa_t ^ w4_t ^ w2_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w2_t);
+    w3_t = rotl32 ((w0_t ^ wb_t ^ w5_t ^ w3_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w3_t);
+    w4_t = rotl32 ((w1_t ^ wc_t ^ w6_t ^ w4_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w4_t);
+    w5_t = rotl32 ((w2_t ^ wd_t ^ w7_t ^ w5_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w5_t);
+    w6_t = rotl32 ((w3_t ^ we_t ^ w8_t ^ w6_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w6_t);
+    w7_t = rotl32 ((w4_t ^ wf_t ^ w9_t ^ w7_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w7_t);
 
     #undef K
     #define K SHA1C02
 
-    w8 = rotl32 ((w5 ^ w0 ^ wa ^ w8), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, w8);
-    w9 = rotl32 ((w6 ^ w1 ^ wb ^ w9), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, w9);
-    wa = rotl32 ((w7 ^ w2 ^ wc ^ wa), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, wa);
-    wb = rotl32 ((w8 ^ w3 ^ wd ^ wb), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, wb);
-    wc = rotl32 ((w9 ^ w4 ^ we ^ wc), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, wc);
-    wd = rotl32 ((wa ^ w5 ^ wf ^ wd), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, wd);
-    we = rotl32 ((wb ^ w6 ^ w0 ^ we), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, we);
-    wf = rotl32 ((wc ^ w7 ^ w1 ^ wf), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, wf);
-    w0 = rotl32 ((wd ^ w8 ^ w2 ^ w0), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, w0);
-    w1 = rotl32 ((we ^ w9 ^ w3 ^ w1), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, w1);
-    w2 = rotl32 ((wf ^ wa ^ w4 ^ w2), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, w2);
-    w3 = rotl32 ((w0 ^ wb ^ w5 ^ w3), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, w3);
-    w4 = rotl32 ((w1 ^ wc ^ w6 ^ w4), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, w4);
-    w5 = rotl32 ((w2 ^ wd ^ w7 ^ w5), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, w5);
-    w6 = rotl32 ((w3 ^ we ^ w8 ^ w6), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, w6);
-    w7 = rotl32 ((w4 ^ wf ^ w9 ^ w7), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, w7);
-    w8 = rotl32 ((w5 ^ w0 ^ wa ^ w8), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, w8);
-    w9 = rotl32 ((w6 ^ w1 ^ wb ^ w9), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, w9);
-    wa = rotl32 ((w7 ^ w2 ^ wc ^ wa), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, wa);
-    wb = rotl32 ((w8 ^ w3 ^ wd ^ wb), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, wb);
+    w8_t = rotl32 ((w5_t ^ w0_t ^ wa_t ^ w8_t), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, w8_t);
+    w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, w9_t);
+    wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, wa_t);
+    wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, wb_t);
+    wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, wc_t);
+    wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, wd_t);
+    we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, we_t);
+    wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, wf_t);
+    w0_t = rotl32 ((wd_t ^ w8_t ^ w2_t ^ w0_t), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, w0_t);
+    w1_t = rotl32 ((we_t ^ w9_t ^ w3_t ^ w1_t), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, w1_t);
+    w2_t = rotl32 ((wf_t ^ wa_t ^ w4_t ^ w2_t), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, w2_t);
+    w3_t = rotl32 ((w0_t ^ wb_t ^ w5_t ^ w3_t), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, w3_t);
+    w4_t = rotl32 ((w1_t ^ wc_t ^ w6_t ^ w4_t), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, w4_t);
+    w5_t = rotl32 ((w2_t ^ wd_t ^ w7_t ^ w5_t), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, w5_t);
+    w6_t = rotl32 ((w3_t ^ we_t ^ w8_t ^ w6_t), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, w6_t);
+    w7_t = rotl32 ((w4_t ^ wf_t ^ w9_t ^ w7_t), 1u); SHA1_STEP (SHA1_F2o, a, b, c, d, e, w7_t);
+    w8_t = rotl32 ((w5_t ^ w0_t ^ wa_t ^ w8_t), 1u); SHA1_STEP (SHA1_F2o, e, a, b, c, d, w8_t);
+    w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F2o, d, e, a, b, c, w9_t);
+    wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F2o, c, d, e, a, b, wa_t);
+    wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F2o, b, c, d, e, a, wb_t);
 
     #undef K
     #define K SHA1C03
 
-    wc = rotl32 ((w9 ^ w4 ^ we ^ wc), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wc);
-    wd = rotl32 ((wa ^ w5 ^ wf ^ wd), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wd);
-    we = rotl32 ((wb ^ w6 ^ w0 ^ we), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, we);
-    wf = rotl32 ((wc ^ w7 ^ w1 ^ wf), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, wf);
-    w0 = rotl32 ((wd ^ w8 ^ w2 ^ w0), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w0);
-    w1 = rotl32 ((we ^ w9 ^ w3 ^ w1), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w1);
-    w2 = rotl32 ((wf ^ wa ^ w4 ^ w2), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w2);
-    w3 = rotl32 ((w0 ^ wb ^ w5 ^ w3), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w3);
-    w4 = rotl32 ((w1 ^ wc ^ w6 ^ w4), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w4);
-    w5 = rotl32 ((w2 ^ wd ^ w7 ^ w5), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w5);
-    w6 = rotl32 ((w3 ^ we ^ w8 ^ w6), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w6);
-    w7 = rotl32 ((w4 ^ wf ^ w9 ^ w7), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w7);
-    w8 = rotl32 ((w5 ^ w0 ^ wa ^ w8), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w8);
-    w9 = rotl32 ((w6 ^ w1 ^ wb ^ w9), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w9);
-    wa = rotl32 ((w7 ^ w2 ^ wc ^ wa), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wa);
-    wb = rotl32 ((w8 ^ w3 ^ wd ^ wb), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wb);
+    wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wc_t);
+    wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wd_t);
+    we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, we_t);
+    wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, wf_t);
+    w0_t = rotl32 ((wd_t ^ w8_t ^ w2_t ^ w0_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w0_t);
+    w1_t = rotl32 ((we_t ^ w9_t ^ w3_t ^ w1_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w1_t);
+    w2_t = rotl32 ((wf_t ^ wa_t ^ w4_t ^ w2_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w2_t);
+    w3_t = rotl32 ((w0_t ^ wb_t ^ w5_t ^ w3_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w3_t);
+    w4_t = rotl32 ((w1_t ^ wc_t ^ w6_t ^ w4_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w4_t);
+    w5_t = rotl32 ((w2_t ^ wd_t ^ w7_t ^ w5_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, w5_t);
+    w6_t = rotl32 ((w3_t ^ we_t ^ w8_t ^ w6_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, w6_t);
+    w7_t = rotl32 ((w4_t ^ wf_t ^ w9_t ^ w7_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, w7_t);
+    w8_t = rotl32 ((w5_t ^ w0_t ^ wa_t ^ w8_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, w8_t);
+    w9_t = rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w9_t);
+    wa_t = rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wa_t);
+    wb_t = rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wb_t);
 
     if (MATCHES_NONE_VS (e, e_rev)) continue;
 
-    wc = rotl32 ((w9 ^ w4 ^ we ^ wc), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wc);
-    wd = rotl32 ((wa ^ w5 ^ wf ^ wd), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wd);
-    we = rotl32 ((wb ^ w6 ^ w0 ^ we), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we);
-    wf = rotl32 ((wc ^ w7 ^ w1 ^ wf), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf);
+    wc_t = rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wc_t);
+    wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wd_t);
+    we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
+    wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
     COMPARE_S_SIMD (d, e, c, b);
   }

@@ -5,6 +5,9 @@
 
 #define _SAPG_
 
+//incompatible data-dependant code
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -18,9 +21,7 @@
 #include "OpenCL/common.c"
 #include "include/rp_kernel.h"
 #include "OpenCL/rp.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 #define GETSHIFTEDINT(a,n) amd_bytealign ((a)[((n)/4)+1], (a)[((n)/4)+0], (n))
 
@@ -209,18 +210,16 @@ __kernel void m07800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -245,65 +244,36 @@ __kernel void m07800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
-
-    u32 w1[4];
-
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
+    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
-     * append salt
+     * SAP
      */
 
     u32 s0[4];
+    u32 s1[4];
+    u32 s2[4];
+    u32 s3[4];
 
     s0[0] = salt_buf[0];
     s0[1] = salt_buf[1];
     s0[2] = salt_buf[2];
     s0[3] = salt_buf[3];
-
-    u32 s1[4];
-
     s1[0] = salt_buf[4];
     s1[1] = salt_buf[5];
     s1[2] = salt_buf[6];
     s1[3] = salt_buf[7];
-
-    u32 s2[4];
-
     s2[0] = 0;
     s2[1] = 0;
     s2[2] = 0;
     s2[3] = 0;
-
-    u32 s3[4];
-
     s3[0] = 0;
     s3[1] = 0;
     s3[2] = 0;
@@ -443,12 +413,7 @@ __kernel void m07800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
 
-    const u32 r0 = digest[3];
-    const u32 r1 = digest[4];
-    const u32 r2 = digest[2];
-    const u32 r3 = digest[1];
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (digest[3], digest[4], digest[2], digest[1]);
   }
 }
 
@@ -477,18 +442,16 @@ __kernel void m07800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -525,65 +488,36 @@ __kernel void m07800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    u32 w0[4];
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    w0[0] = pw_buf0[0];
-    w0[1] = pw_buf0[1];
-    w0[2] = pw_buf0[2];
-    w0[3] = pw_buf0[3];
-
-    u32 w1[4];
-
-    w1[0] = pw_buf1[0];
-    w1[1] = pw_buf1[1];
-    w1[2] = pw_buf1[2];
-    w1[3] = pw_buf1[3];
-
-    u32 w2[4];
-
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-
-    u32 w3[4];
-
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
+    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     /**
-     * append salt
+     * SAP
      */
 
     u32 s0[4];
+    u32 s1[4];
+    u32 s2[4];
+    u32 s3[4];
 
     s0[0] = salt_buf[0];
     s0[1] = salt_buf[1];
     s0[2] = salt_buf[2];
     s0[3] = salt_buf[3];
-
-    u32 s1[4];
-
     s1[0] = salt_buf[4];
     s1[1] = salt_buf[5];
     s1[2] = salt_buf[6];
     s1[3] = salt_buf[7];
-
-    u32 s2[4];
-
     s2[0] = 0;
     s2[1] = 0;
     s2[2] = 0;
     s2[3] = 0;
-
-    u32 s3[4];
-
     s3[0] = 0;
     s3[1] = 0;
     s3[2] = 0;
@@ -723,12 +657,7 @@ __kernel void m07800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
 
-    const u32 r0 = digest[3];
-    const u32 r1 = digest[4];
-    const u32 r2 = digest[2];
-    const u32 r3 = digest[1];
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (digest[3], digest[4], digest[2], digest[1]);
   }
 }
 

@@ -505,25 +505,16 @@ static void m03100m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
 
   salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
   salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
   salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
   salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
   salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
   salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
-
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = 0;
-  salt_buf2[1] = 0;
-  salt_buf2[2] = 0;
-  salt_buf2[3] = 0;
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
@@ -565,14 +556,6 @@ static void m03100m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
   w1_t[1] |= salt_buf1[1];
   w1_t[2] |= salt_buf1[2];
   w1_t[3] |= salt_buf1[3];
-  w2_t[0] |= salt_buf2[0];
-  w2_t[1] |= salt_buf2[1];
-  w2_t[2] |= salt_buf2[2];
-  w2_t[3] |= salt_buf2[3];
-  w3_t[0] = 0;
-  w3_t[1] = 0;
-  w3_t[2] = 0;
-  w3_t[3] = 0;
 
   u32x dst[16];
 
@@ -698,10 +681,12 @@ static void m03100m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
      * cmp
      */
 
-    u32x c = 0;
-    u32x d = 0;
+    const u32x r0 = iv[0];
+    const u32x r1 = iv[1];
+    const u32x r2 = 0;
+    const u32x r3 = 0;
 
-    COMPARE_M_SIMD (iv[0], iv[1], c, d);
+    COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
@@ -719,25 +704,16 @@ static void m03100s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
 
   salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
   salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
   salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
   salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
   salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
   salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
-
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = 0;
-  salt_buf2[1] = 0;
-  salt_buf2[2] = 0;
-  salt_buf2[3] = 0;
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
@@ -779,14 +755,6 @@ static void m03100s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
   w1_t[1] |= salt_buf1[1];
   w1_t[2] |= salt_buf1[2];
   w1_t[3] |= salt_buf1[3];
-  w2_t[0] |= salt_buf2[0];
-  w2_t[1] |= salt_buf2[1];
-  w2_t[2] |= salt_buf2[2];
-  w2_t[3] |= salt_buf2[3];
-  w3_t[0] = 0;
-  w3_t[1] = 0;
-  w3_t[2] = 0;
-  w3_t[3] = 0;
 
   u32x dst[16];
 
@@ -924,10 +892,12 @@ static void m03100s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32
      * cmp
      */
 
-    u32x c = 0;
-    u32x d = 0;
+    const u32x r0 = iv[0];
+    const u32x r1 = iv[1];
+    const u32x r2 = 0;
+    const u32x r3 = 0;
 
-    COMPARE_S_SIMD (iv[0], iv[1], c, d);
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }
 

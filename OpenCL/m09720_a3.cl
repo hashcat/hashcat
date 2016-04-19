@@ -494,6 +494,10 @@ static void m09720m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32x w0lr = w0l | w0r;
 
+    /**
+     * md5
+     */
+
     u32x w0_t[4];
     u32x w1_t[4];
     u32x w2_t[4];
@@ -558,6 +562,17 @@ static void m09720s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   const u32 lid = get_local_id (0);
 
   /**
+   * salt
+   */
+
+  u32 salt_buf[4];
+
+  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
+  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
+  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
+  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
+
+  /**
    * digest
    */
 
@@ -570,17 +585,6 @@ static void m09720s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
   };
 
   /**
-   * salt
-   */
-
-  u32 salt_buf[4];
-
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
-
-  /**
    * loop
    */
 
@@ -591,6 +595,10 @@ static void m09720s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32x w0lr = w0l | w0r;
+
+    /**
+     * md5
+     */
 
     u32x w0_t[4];
     u32x w1_t[4];

@@ -5,6 +5,9 @@
 
 #define _MD5_
 
+//incompatible because of brances
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -16,13 +19,21 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
+#include "OpenCL/simd.c"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#if   VECT_SIZE == 1
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i)])
+#elif VECT_SIZE == 2
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
+#elif VECT_SIZE == 4
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
+#elif VECT_SIZE == 8
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#elif VECT_SIZE == 16
+#define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
+#endif
 
-#define uint_to_hex_lower8(i) l_bin2asc[(i)]
-
-static u32 memcat32 (u32 block0[16], u32 block1[16], const u32 block_len, const u32 append0[4], const u32 append1[4], const u32 append2[4], const u32 append3[4], const u32 append_len)
+static u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x append0[4], const u32x append1[4], const u32x append2[4], const u32x append3[4], const u32 append_len)
 {
   const u32 mod = block_len & 3;
   const u32 div = block_len / 4;
@@ -30,35 +41,35 @@ static u32 memcat32 (u32 block0[16], u32 block1[16], const u32 block_len, const 
   #if defined IS_AMD || defined IS_GENERIC
   const int offset_minus_4 = 4 - mod;
 
-  u32 append0_t[4];
+  u32x append0_t[4];
 
   append0_t[0] = amd_bytealign (append0[0],          0, offset_minus_4);
   append0_t[1] = amd_bytealign (append0[1], append0[0], offset_minus_4);
   append0_t[2] = amd_bytealign (append0[2], append0[1], offset_minus_4);
   append0_t[3] = amd_bytealign (append0[3], append0[2], offset_minus_4);
 
-  u32 append1_t[4];
+  u32x append1_t[4];
 
   append1_t[0] = amd_bytealign (append1[0], append0[3], offset_minus_4);
   append1_t[1] = amd_bytealign (append1[1], append1[0], offset_minus_4);
   append1_t[2] = amd_bytealign (append1[2], append1[1], offset_minus_4);
   append1_t[3] = amd_bytealign (append1[3], append1[2], offset_minus_4);
 
-  u32 append2_t[4];
+  u32x append2_t[4];
 
   append2_t[0] = amd_bytealign (append2[0], append1[3], offset_minus_4);
   append2_t[1] = amd_bytealign (append2[1], append2[0], offset_minus_4);
   append2_t[2] = amd_bytealign (append2[2], append2[1], offset_minus_4);
   append2_t[3] = amd_bytealign (append2[3], append2[2], offset_minus_4);
 
-  u32 append3_t[4];
+  u32x append3_t[4];
 
   append3_t[0] = amd_bytealign (append3[0], append2[3], offset_minus_4);
   append3_t[1] = amd_bytealign (append3[1], append3[0], offset_minus_4);
   append3_t[2] = amd_bytealign (append3[2], append3[1], offset_minus_4);
   append3_t[3] = amd_bytealign (append3[3], append3[2], offset_minus_4);
 
-  u32 append4_t[4];
+  u32x append4_t[4];
 
   append4_t[0] = amd_bytealign (         0, append3[3], offset_minus_4);
   append4_t[1] = 0;
@@ -100,35 +111,35 @@ static u32 memcat32 (u32 block0[16], u32 block1[16], const u32 block_len, const 
 
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
-  u32 append0_t[4];
+  u32x append0_t[4];
 
   append0_t[0] = __byte_perm (         0, append0[0], selector);
   append0_t[1] = __byte_perm (append0[0], append0[1], selector);
   append0_t[2] = __byte_perm (append0[1], append0[2], selector);
   append0_t[3] = __byte_perm (append0[2], append0[3], selector);
 
-  u32 append1_t[4];
+  u32x append1_t[4];
 
   append1_t[0] = __byte_perm (append0[3], append1[0], selector);
   append1_t[1] = __byte_perm (append1[0], append1[1], selector);
   append1_t[2] = __byte_perm (append1[1], append1[2], selector);
   append1_t[3] = __byte_perm (append1[2], append1[3], selector);
 
-  u32 append2_t[4];
+  u32x append2_t[4];
 
   append2_t[0] = __byte_perm (append1[3], append2[0], selector);
   append2_t[1] = __byte_perm (append2[0], append2[1], selector);
   append2_t[2] = __byte_perm (append2[1], append2[2], selector);
   append2_t[3] = __byte_perm (append2[2], append2[3], selector);
 
-  u32 append3_t[4];
+  u32x append3_t[4];
 
   append3_t[0] = __byte_perm (append2[3], append3[0], selector);
   append3_t[1] = __byte_perm (append3[0], append3[1], selector);
   append3_t[2] = __byte_perm (append3[1], append3[2], selector);
   append3_t[3] = __byte_perm (append3[2], append3[3], selector);
 
-  u32 append4_t[4];
+  u32x append4_t[4];
 
   append4_t[0] = __byte_perm (append3[3],          0, selector);
   append4_t[1] = 0;
@@ -776,42 +787,19 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * base
    */
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
-
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
 
   /**
    * salt
@@ -820,6 +808,7 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 salt_len = esalt_bufs[salt_pos].salt_len; // not a bug, we need to get it from the esalt
 
   u32 salt_buf0[16];
+  u32 salt_buf1[16];
 
   salt_buf0[ 0] = esalt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[ 1] = esalt_bufs[salt_pos].salt_buf[ 1];
@@ -837,9 +826,6 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   salt_buf0[13] = esalt_bufs[salt_pos].salt_buf[13];
   salt_buf0[14] = esalt_bufs[salt_pos].salt_buf[14];
   salt_buf0[15] = esalt_bufs[salt_pos].salt_buf[15];
-
-  u32 salt_buf1[16];
-
   salt_buf1[ 0] = esalt_bufs[salt_pos].salt_buf[16];
   salt_buf1[ 1] = esalt_bufs[salt_pos].salt_buf[17];
   salt_buf1[ 2] = esalt_bufs[salt_pos].salt_buf[18];
@@ -864,6 +850,8 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 esalt_len = esalt_bufs[salt_pos].esalt_len;
 
   u32 esalt_buf0[16];
+  u32 esalt_buf1[16];
+  u32 esalt_buf2[16];
 
   esalt_buf0[ 0] = esalt_bufs[salt_pos].esalt_buf[ 0];
   esalt_buf0[ 1] = esalt_bufs[salt_pos].esalt_buf[ 1];
@@ -881,9 +869,6 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   esalt_buf0[13] = esalt_bufs[salt_pos].esalt_buf[13];
   esalt_buf0[14] = esalt_bufs[salt_pos].esalt_buf[14];
   esalt_buf0[15] = esalt_bufs[salt_pos].esalt_buf[15];
-
-  u32 esalt_buf1[16];
-
   esalt_buf1[ 0] = esalt_bufs[salt_pos].esalt_buf[16];
   esalt_buf1[ 1] = esalt_bufs[salt_pos].esalt_buf[17];
   esalt_buf1[ 2] = esalt_bufs[salt_pos].esalt_buf[18];
@@ -900,9 +885,6 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   esalt_buf1[13] = esalt_bufs[salt_pos].esalt_buf[29];
   esalt_buf1[14] = esalt_bufs[salt_pos].esalt_buf[30];
   esalt_buf1[15] = esalt_bufs[salt_pos].esalt_buf[31];
-
-  u32 esalt_buf2[16];
-
   esalt_buf2[ 0] = esalt_bufs[salt_pos].esalt_buf[32];
   esalt_buf2[ 1] = esalt_bufs[salt_pos].esalt_buf[33];
   esalt_buf2[ 2] = esalt_bufs[salt_pos].esalt_buf[34];
@@ -927,74 +909,76 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-
-    u32 w1[4];
-
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
-
-    u32 w2[4];
-
     w2[0] = wordl2[0] | wordr2[0];
     w2[1] = wordl2[1] | wordr2[1];
     w2[2] = wordl2[2] | wordr2[2];
     w2[3] = wordl2[3] | wordr2[3];
-
-    u32 w3[4];
-
     w3[0] = wordl3[0] | wordr3[0];
     w3[1] = wordl3[1] | wordr3[1];
     w3[2] = wordl3[2] | wordr3[2];
     w3[3] = wordl3[3] | wordr3[3];
 
-    const u32 pw_salt_len = salt_len + pw_len;
+    const u32x pw_salt_len = salt_len + pw_len;
 
     /*
      * HA1 = md5 ($salt . $pass)
@@ -1002,7 +986,8 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     // append the pass to the salt
 
-    u32 block0[16];
+    u32x block0[16];
+    u32x block1[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -1020,9 +1005,6 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     block0[13] = salt_buf0[13];
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
-
-    u32 block1[16];
-
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
     block1[ 2] = salt_buf1[ 2];
@@ -1044,29 +1026,23 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     block_len = memcat32 (block0, block1, salt_len, w0, w1, w2, w3, pw_len);
 
-    u32 w0_t[4];
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
     w0_t[0] = block0[ 0];
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
-
-    u32 w1_t[4];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
-
-    u32 w2_t[4];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
-    u32 w3_t[4];
-
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
     w3_t[2] = block0[14];
@@ -1079,10 +1055,10 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     // md5
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0_t[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0_t[1], MD5C01, MD5S01);
@@ -1159,26 +1135,23 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (block_len > 55)
     {
-      u32 r_a = a;
-      u32 r_b = b;
-      u32 r_c = c;
-      u32 r_d = d;
+      u32x r_a = a;
+      u32x r_b = b;
+      u32x r_c = c;
+      u32x r_d = d;
 
       w0_t[0] = block1[ 0];
       w0_t[1] = block1[ 1];
       w0_t[2] = block1[ 2];
       w0_t[3] = block1[ 3];
-
       w1_t[0] = block1[ 4];
       w1_t[1] = block1[ 5];
       w1_t[2] = block1[ 6];
       w1_t[3] = block1[ 7];
-
       w2_t[0] = block1[ 8];
       w2_t[1] = block1[ 9];
       w2_t[2] = block1[10];
       w2_t[3] = block1[11];
-
       w3_t[0] = block1[12];
       w3_t[1] = block1[13];
       w3_t[2] = pw_salt_len * 8;
@@ -1279,12 +1252,10 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
             | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
-
     w2_t[0] = esalt_buf0[0];
     w2_t[1] = esalt_buf0[1];
     w2_t[2] = esalt_buf0[2];
     w2_t[3] = esalt_buf0[3];
-
     w3_t[0] = esalt_buf0[4];
     w3_t[1] = esalt_buf0[5];
     w3_t[2] = esalt_buf0[6];
@@ -1371,10 +1342,10 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     c += MD5M_C;
     d += MD5M_D;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
 
     // 2nd transform
 
@@ -1382,17 +1353,14 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w0_t[1] = esalt_buf0[ 9];
     w0_t[2] = esalt_buf0[10];
     w0_t[3] = esalt_buf0[11];
-
     w1_t[0] = esalt_buf0[12];
     w1_t[1] = esalt_buf0[13];
     w1_t[2] = esalt_buf0[14];
     w1_t[3] = esalt_buf0[15];
-
     w2_t[0] = esalt_buf1[ 0];
     w2_t[1] = esalt_buf1[ 1];
     w2_t[2] = esalt_buf1[ 2];
     w2_t[3] = esalt_buf1[ 3];
-
     w3_t[0] = esalt_buf1[ 4];
     w3_t[1] = esalt_buf1[ 5];
     w3_t[2] = esalt_buf1[ 6];
@@ -1495,17 +1463,14 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
       w0_t[1] = esalt_buf1[ 9];
       w0_t[2] = esalt_buf1[10];
       w0_t[3] = esalt_buf1[11];
-
       w1_t[0] = esalt_buf1[12];
       w1_t[1] = esalt_buf1[13];
       w1_t[2] = esalt_buf1[14];
       w1_t[3] = esalt_buf1[15];
-
       w2_t[0] = esalt_buf2[ 0];
       w2_t[1] = esalt_buf2[ 1];
       w2_t[2] = esalt_buf2[ 2];
       w2_t[3] = esalt_buf2[ 3];
-
       w3_t[0] = esalt_buf2[ 4];
       w3_t[1] = esalt_buf2[ 5];
       w3_t[2] = digest_esalt_len * 8;
@@ -1585,12 +1550,7 @@ __kernel void m11400_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     c += r_c;
     d += r_d;
 
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_M
+    COMPARE_M_SIMD (a, d, c, b);
   }
 }
 
@@ -1635,42 +1595,19 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * base
    */
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
-
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
 
   /**
    * salt
@@ -1679,6 +1616,7 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 salt_len = esalt_bufs[salt_pos].salt_len; // not a bug, we need to get it from the esalt
 
   u32 salt_buf0[16];
+  u32 salt_buf1[16];
 
   salt_buf0[ 0] = esalt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[ 1] = esalt_bufs[salt_pos].salt_buf[ 1];
@@ -1696,9 +1634,6 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   salt_buf0[13] = esalt_bufs[salt_pos].salt_buf[13];
   salt_buf0[14] = esalt_bufs[salt_pos].salt_buf[14];
   salt_buf0[15] = esalt_bufs[salt_pos].salt_buf[15];
-
-  u32 salt_buf1[16];
-
   salt_buf1[ 0] = esalt_bufs[salt_pos].salt_buf[16];
   salt_buf1[ 1] = esalt_bufs[salt_pos].salt_buf[17];
   salt_buf1[ 2] = esalt_bufs[salt_pos].salt_buf[18];
@@ -1723,6 +1658,8 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   const u32 esalt_len = esalt_bufs[salt_pos].esalt_len;
 
   u32 esalt_buf0[16];
+  u32 esalt_buf1[16];
+  u32 esalt_buf2[16];
 
   esalt_buf0[ 0] = esalt_bufs[salt_pos].esalt_buf[ 0];
   esalt_buf0[ 1] = esalt_bufs[salt_pos].esalt_buf[ 1];
@@ -1740,9 +1677,6 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   esalt_buf0[13] = esalt_bufs[salt_pos].esalt_buf[13];
   esalt_buf0[14] = esalt_bufs[salt_pos].esalt_buf[14];
   esalt_buf0[15] = esalt_bufs[salt_pos].esalt_buf[15];
-
-  u32 esalt_buf1[16];
-
   esalt_buf1[ 0] = esalt_bufs[salt_pos].esalt_buf[16];
   esalt_buf1[ 1] = esalt_bufs[salt_pos].esalt_buf[17];
   esalt_buf1[ 2] = esalt_bufs[salt_pos].esalt_buf[18];
@@ -1759,9 +1693,6 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   esalt_buf1[13] = esalt_bufs[salt_pos].esalt_buf[29];
   esalt_buf1[14] = esalt_bufs[salt_pos].esalt_buf[30];
   esalt_buf1[15] = esalt_bufs[salt_pos].esalt_buf[31];
-
-  u32 esalt_buf2[16];
-
   esalt_buf2[ 0] = esalt_bufs[salt_pos].esalt_buf[32];
   esalt_buf2[ 1] = esalt_bufs[salt_pos].esalt_buf[33];
   esalt_buf2[ 2] = esalt_bufs[salt_pos].esalt_buf[34];
@@ -1798,74 +1729,76 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w0[4];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-
-    u32 w1[4];
-
     w1[0] = wordl1[0] | wordr1[0];
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
-
-    u32 w2[4];
-
     w2[0] = wordl2[0] | wordr2[0];
     w2[1] = wordl2[1] | wordr2[1];
     w2[2] = wordl2[2] | wordr2[2];
     w2[3] = wordl2[3] | wordr2[3];
-
-    u32 w3[4];
-
     w3[0] = wordl3[0] | wordr3[0];
     w3[1] = wordl3[1] | wordr3[1];
     w3[2] = wordl3[2] | wordr3[2];
     w3[3] = wordl3[3] | wordr3[3];
 
-    const u32 pw_salt_len = salt_len + pw_len;
+    const u32x pw_salt_len = salt_len + pw_len;
 
     /*
      * HA1 = md5 ($salt . $pass)
@@ -1873,7 +1806,8 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     // append the pass to the salt
 
-    u32 block0[16];
+    u32x block0[16];
+    u32x block1[16];
 
     block0[ 0] = salt_buf0[ 0];
     block0[ 1] = salt_buf0[ 1];
@@ -1891,9 +1825,6 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     block0[13] = salt_buf0[13];
     block0[14] = salt_buf0[14];
     block0[15] = salt_buf0[15];
-
-    u32 block1[16];
-
     block1[ 0] = salt_buf1[ 0];
     block1[ 1] = salt_buf1[ 1];
     block1[ 2] = salt_buf1[ 2];
@@ -1915,29 +1846,23 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     block_len = memcat32 (block0, block1, salt_len, w0, w1, w2, w3, pw_len);
 
-    u32 w0_t[4];
+    u32x w0_t[4];
+    u32x w1_t[4];
+    u32x w2_t[4];
+    u32x w3_t[4];
 
     w0_t[0] = block0[ 0];
     w0_t[1] = block0[ 1];
     w0_t[2] = block0[ 2];
     w0_t[3] = block0[ 3];
-
-    u32 w1_t[4];
-
     w1_t[0] = block0[ 4];
     w1_t[1] = block0[ 5];
     w1_t[2] = block0[ 6];
     w1_t[3] = block0[ 7];
-
-    u32 w2_t[4];
-
     w2_t[0] = block0[ 8];
     w2_t[1] = block0[ 9];
     w2_t[2] = block0[10];
     w2_t[3] = block0[11];
-
-    u32 w3_t[4];
-
     w3_t[0] = block0[12];
     w3_t[1] = block0[13];
     w3_t[2] = block0[14];
@@ -1950,10 +1875,10 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     // md5
 
-    u32 a = MD5M_A;
-    u32 b = MD5M_B;
-    u32 c = MD5M_C;
-    u32 d = MD5M_D;
+    u32x a = MD5M_A;
+    u32x b = MD5M_B;
+    u32x c = MD5M_C;
+    u32x d = MD5M_D;
 
     MD5_STEP (MD5_Fo, a, b, c, d, w0_t[0], MD5C00, MD5S00);
     MD5_STEP (MD5_Fo, d, a, b, c, w0_t[1], MD5C01, MD5S01);
@@ -2030,26 +1955,23 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (block_len > 55)
     {
-      u32 r_a = a;
-      u32 r_b = b;
-      u32 r_c = c;
-      u32 r_d = d;
+      u32x r_a = a;
+      u32x r_b = b;
+      u32x r_c = c;
+      u32x r_d = d;
 
       w0_t[0] = block1[ 0];
       w0_t[1] = block1[ 1];
       w0_t[2] = block1[ 2];
       w0_t[3] = block1[ 3];
-
       w1_t[0] = block1[ 4];
       w1_t[1] = block1[ 5];
       w1_t[2] = block1[ 6];
       w1_t[3] = block1[ 7];
-
       w2_t[0] = block1[ 8];
       w2_t[1] = block1[ 9];
       w2_t[2] = block1[10];
       w2_t[3] = block1[11];
-
       w3_t[0] = block1[12];
       w3_t[1] = block1[13];
       w3_t[2] = pw_salt_len * 8;
@@ -2150,12 +2072,10 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
             | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
     w1_t[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
             | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
-
     w2_t[0] = esalt_buf0[0];
     w2_t[1] = esalt_buf0[1];
     w2_t[2] = esalt_buf0[2];
     w2_t[3] = esalt_buf0[3];
-
     w3_t[0] = esalt_buf0[4];
     w3_t[1] = esalt_buf0[5];
     w3_t[2] = esalt_buf0[6];
@@ -2242,10 +2162,10 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     c += MD5M_C;
     d += MD5M_D;
 
-    u32 r_a = a;
-    u32 r_b = b;
-    u32 r_c = c;
-    u32 r_d = d;
+    u32x r_a = a;
+    u32x r_b = b;
+    u32x r_c = c;
+    u32x r_d = d;
 
     // 2nd transform
 
@@ -2253,17 +2173,14 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w0_t[1] = esalt_buf0[ 9];
     w0_t[2] = esalt_buf0[10];
     w0_t[3] = esalt_buf0[11];
-
     w1_t[0] = esalt_buf0[12];
     w1_t[1] = esalt_buf0[13];
     w1_t[2] = esalt_buf0[14];
     w1_t[3] = esalt_buf0[15];
-
     w2_t[0] = esalt_buf1[ 0];
     w2_t[1] = esalt_buf1[ 1];
     w2_t[2] = esalt_buf1[ 2];
     w2_t[3] = esalt_buf1[ 3];
-
     w3_t[0] = esalt_buf1[ 4];
     w3_t[1] = esalt_buf1[ 5];
     w3_t[2] = esalt_buf1[ 6];
@@ -2366,17 +2283,14 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
       w0_t[1] = esalt_buf1[ 9];
       w0_t[2] = esalt_buf1[10];
       w0_t[3] = esalt_buf1[11];
-
       w1_t[0] = esalt_buf1[12];
       w1_t[1] = esalt_buf1[13];
       w1_t[2] = esalt_buf1[14];
       w1_t[3] = esalt_buf1[15];
-
       w2_t[0] = esalt_buf2[ 0];
       w2_t[1] = esalt_buf2[ 1];
       w2_t[2] = esalt_buf2[ 2];
       w2_t[3] = esalt_buf2[ 3];
-
       w3_t[0] = esalt_buf2[ 4];
       w3_t[1] = esalt_buf2[ 5];
       w3_t[2] = digest_esalt_len * 8;
@@ -2456,12 +2370,7 @@ __kernel void m11400_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     c += r_c;
     d += r_d;
 
-    const u32 r0 = a;
-    const u32 r1 = d;
-    const u32 r2 = c;
-    const u32 r3 = b;
-
-    #include COMPARE_S
+    COMPARE_S_SIMD (a, d, c, b);
   }
 }
 

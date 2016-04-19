@@ -7,6 +7,9 @@
 
 #define _OLDOFFICE01_
 
+//too much register pressure
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -246,6 +249,10 @@ static void m09710m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
+  /**
+   * shared
+   */
+
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
@@ -308,14 +315,7 @@ static void m09710m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     // now the RC4 part
 
-    u32 key[4];
-
-    key[0] = digest[0];
-    key[1] = digest[1];
-    key[2] = digest[2];
-    key[3] = digest[3];
-
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, digest);
 
     u32 out[4];
 
@@ -360,19 +360,11 @@ static void m09710s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
-  __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
   /**
-   * digest
+   * shared
    */
 
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
+  __local RC4_KEY *rc4_key = &rc4_keys[lid];
 
   /**
    * esalt
@@ -386,6 +378,18 @@ static void m09710s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
   encryptedVerifier[1] = oldoffice01_bufs[salt_pos].encryptedVerifier[1];
   encryptedVerifier[2] = oldoffice01_bufs[salt_pos].encryptedVerifier[2];
   encryptedVerifier[3] = oldoffice01_bufs[salt_pos].encryptedVerifier[3];
+
+  /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
 
   /**
    * loop
@@ -434,14 +438,7 @@ static void m09710s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4],
 
     // now the RC4 part
 
-    u32 key[4];
-
-    key[0] = digest[0];
-    key[1] = digest[1];
-    key[2] = digest[2];
-    key[3] = digest[3];
-
-    rc4_init_16 (rc4_key, key);
+    rc4_init_16 (rc4_key, digest);
 
     u32 out[4];
 

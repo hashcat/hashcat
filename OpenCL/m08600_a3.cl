@@ -253,7 +253,7 @@ static void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_l
   const u32 lid = get_local_id (0);
 
   /**
-   * padding
+   * base
    */
 
   if (pw_len < 16)
@@ -283,26 +283,26 @@ static void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_l
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    const u32x w0 = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32x w_tmp[16];
+    u32x w_t[16];
 
-    w_tmp[ 0] = w0;
-    w_tmp[ 1] = w[ 1];
-    w_tmp[ 2] = w[ 2];
-    w_tmp[ 3] = w[ 3];
-    w_tmp[ 4] = w[ 4];
-    w_tmp[ 5] = w[ 5];
-    w_tmp[ 6] = w[ 6];
-    w_tmp[ 7] = w[ 7];
-    w_tmp[ 8] = w[ 8];
-    w_tmp[ 9] = w[ 9];
-    w_tmp[10] = w[10];
-    w_tmp[11] = w[11];
-    w_tmp[12] = w[12];
-    w_tmp[13] = w[13];
-    w_tmp[14] = w[14];
-    w_tmp[15] = w[15];
+    w_t[ 0] = w0lr;
+    w_t[ 1] = w[ 1];
+    w_t[ 2] = w[ 2];
+    w_t[ 3] = w[ 3];
+    w_t[ 4] = w[ 4];
+    w_t[ 5] = w[ 5];
+    w_t[ 6] = w[ 6];
+    w_t[ 7] = w[ 7];
+    w_t[ 8] = w[ 8];
+    w_t[ 9] = w[ 9];
+    w_t[10] = w[10];
+    w_t[11] = w[11];
+    w_t[12] = w[12];
+    w_t[13] = w[13];
+    w_t[14] = w[14];
+    w_t[15] = w[15];
 
     u32x state[4];
 
@@ -311,7 +311,7 @@ static void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_l
     state[2] = 0;
     state[3] = 0;
 
-    domino_big_md (w_tmp, pw_len, state, s_lotus_magic_table);
+    domino_big_md (w_t, pw_len, state, s_lotus_magic_table);
 
     COMPARE_M_SIMD (state[0], state[1], state[2], state[3]);
   }
@@ -369,26 +369,26 @@ static void m08600s (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_l
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    const u32x w0 = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    u32x w_tmp[16];
+    u32x w_t[16];
 
-    w_tmp[ 0] = w0;
-    w_tmp[ 1] = w[ 1];
-    w_tmp[ 2] = w[ 2];
-    w_tmp[ 3] = w[ 3];
-    w_tmp[ 4] = w[ 4];
-    w_tmp[ 5] = w[ 5];
-    w_tmp[ 6] = w[ 6];
-    w_tmp[ 7] = w[ 7];
-    w_tmp[ 8] = w[ 8];
-    w_tmp[ 9] = w[ 9];
-    w_tmp[10] = w[10];
-    w_tmp[11] = w[11];
-    w_tmp[12] = w[12];
-    w_tmp[13] = w[13];
-    w_tmp[14] = w[14];
-    w_tmp[15] = w[15];
+    w_t[ 0] = w0lr;
+    w_t[ 1] = w[ 1];
+    w_t[ 2] = w[ 2];
+    w_t[ 3] = w[ 3];
+    w_t[ 4] = w[ 4];
+    w_t[ 5] = w[ 5];
+    w_t[ 6] = w[ 6];
+    w_t[ 7] = w[ 7];
+    w_t[ 8] = w[ 8];
+    w_t[ 9] = w[ 9];
+    w_t[10] = w[10];
+    w_t[11] = w[11];
+    w_t[12] = w[12];
+    w_t[13] = w[13];
+    w_t[14] = w[14];
+    w_t[15] = w[15];
 
     u32x state[4];
 
@@ -397,7 +397,7 @@ static void m08600s (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_l
     state[2] = 0;
     state[3] = 0;
 
-    domino_big_md (w_tmp, pw_len, state, s_lotus_magic_table);
+    domino_big_md (w_t, pw_len, state, s_lotus_magic_table);
 
     COMPARE_S_SIMD (state[0], state[1], state[2], state[3]);
   }

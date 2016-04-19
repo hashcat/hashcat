@@ -236,18 +236,16 @@ __kernel void m06000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -266,24 +264,28 @@ __kernel void m06000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     append_0x80_2x4_VV (w0, w1, out_len);
 
-    u32x wl[16];
+    u32x w[16];
 
-    wl[ 0] = w0[0];
-    wl[ 1] = w0[1];
-    wl[ 2] = w0[2];
-    wl[ 3] = w0[3];
-    wl[ 4] = w1[0];
-    wl[ 5] = w1[1];
-    wl[ 6] = w1[2];
-    wl[ 7] = w1[3];
-    wl[ 8] = 0;
-    wl[ 9] = 0;
-    wl[10] = 0;
-    wl[11] = 0;
-    wl[12] = 0;
-    wl[13] = 0;
-    wl[14] = out_len * 8;
-    wl[15] = 0;
+    w[ 0] = w0[0];
+    w[ 1] = w0[1];
+    w[ 2] = w0[2];
+    w[ 3] = w0[3];
+    w[ 4] = w1[0];
+    w[ 5] = w1[1];
+    w[ 6] = w1[2];
+    w[ 7] = w1[3];
+    w[ 8] = 0;
+    w[ 9] = 0;
+    w[10] = 0;
+    w[11] = 0;
+    w[12] = 0;
+    w[13] = 0;
+    w[14] = out_len * 8;
+    w[15] = 0;
+
+    /**
+     * RipeMD160
+     */
 
     u32x dgst[5];
 
@@ -293,7 +295,7 @@ __kernel void m06000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     dgst[3] = RIPEMD160M_D;
     dgst[4] = RIPEMD160M_E;
 
-    ripemd160_transform (wl, dgst);
+    ripemd160_transform (w, dgst);
 
     COMPARE_M_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }
@@ -324,18 +326,16 @@ __kernel void m06000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   if (gid >= gid_max) return;
 
   u32 pw_buf0[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-
   u32 pw_buf1[4];
 
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -366,24 +366,28 @@ __kernel void m06000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     append_0x80_2x4_VV (w0, w1, out_len);
 
-    u32x wl[16];
+    u32x w[16];
 
-    wl[ 0] = w0[0];
-    wl[ 1] = w0[1];
-    wl[ 2] = w0[2];
-    wl[ 3] = w0[3];
-    wl[ 4] = w1[0];
-    wl[ 5] = w1[1];
-    wl[ 6] = w1[2];
-    wl[ 7] = w1[3];
-    wl[ 8] = 0;
-    wl[ 9] = 0;
-    wl[10] = 0;
-    wl[11] = 0;
-    wl[12] = 0;
-    wl[13] = 0;
-    wl[14] = out_len * 8;
-    wl[15] = 0;
+    w[ 0] = w0[0];
+    w[ 1] = w0[1];
+    w[ 2] = w0[2];
+    w[ 3] = w0[3];
+    w[ 4] = w1[0];
+    w[ 5] = w1[1];
+    w[ 6] = w1[2];
+    w[ 7] = w1[3];
+    w[ 8] = 0;
+    w[ 9] = 0;
+    w[10] = 0;
+    w[11] = 0;
+    w[12] = 0;
+    w[13] = 0;
+    w[14] = out_len * 8;
+    w[15] = 0;
+
+    /**
+     * RipeMD160
+     */
 
     u32x dgst[5];
 
@@ -393,7 +397,7 @@ __kernel void m06000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
     dgst[3] = RIPEMD160M_D;
     dgst[4] = RIPEMD160M_E;
 
-    ripemd160_transform (wl, dgst);
+    ripemd160_transform (w, dgst);
 
     COMPARE_S_SIMD (dgst[0], dgst[1], dgst[2], dgst[3]);
   }

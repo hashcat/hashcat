@@ -7,6 +7,9 @@
 
 #define _GOST2012_256_
 
+//too much register pressure
+//#define NEW_SIMD_CODE
+
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
 
@@ -18,21 +21,31 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
-
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#include "OpenCL/simd.c"
 
 #define INITVAL 0x0101010101010101
 
-#define SBOG_LPSti64                         \
-  s_sbob_sl64[0][(t[0] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[1][(t[1] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[2][(t[2] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[3][(t[3] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[4][(t[4] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[5][(t[5] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[6][(t[6] >> (i * 8)) & 0xff] ^ \
-  s_sbob_sl64[7][(t[7] >> (i * 8)) & 0xff]
+#if   VECT_SIZE == 1
+#define BOX(S,n,i) (S)[(n)][(i)]
+#elif VECT_SIZE == 2
+#define BOX(S,n,i) (u64x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
+#elif VECT_SIZE == 4
+#define BOX(S,n,i) (u64x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
+#elif VECT_SIZE == 8
+#define BOX(S,n,i) (u64x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7])
+#elif VECT_SIZE == 16
+#define BOX(S,n,i) (u64x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
+#endif
+
+#define SBOG_LPSti64                                  \
+  BOX (s_sbob_sl64, 0, ((t[0] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 1, ((t[1] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 2, ((t[2] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 3, ((t[3] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 4, ((t[4] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 5, ((t[5] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 6, ((t[6] >> (i * 8)) & 0xff)) ^  \
+  BOX (s_sbob_sl64, 7, ((t[7] >> (i * 8)) & 0xff))
 
 // constants
 
@@ -2228,11 +2241,11 @@ __constant u64 sbob_rc64[12][8] =
   },
 };
 
-static void streebog_g (u64 h[8], const u64 m[8], __local u64 (*s_sbob_sl64)[256])
+static void streebog_g (u64x h[8], const u64x m[8], __local u64 (*s_sbob_sl64)[256])
 {
-  u64 k[8];
-  u64 s[8];
-  u64 t[8];
+  u64x k[8];
+  u64x s[8];
+  u64x t[8];
 
   #pragma unroll
   for (int i = 0; i < 8; i++)
@@ -2320,112 +2333,121 @@ __kernel void m11700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * base
    */
 
-  u32 wordl0[4];
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
 
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
-
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
 
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w[16];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
-    w[ 0] = wordl0[0] | wordr0[0];
-    w[ 1] = wordl0[1] | wordr0[1];
-    w[ 2] = wordl0[2] | wordr0[2];
-    w[ 3] = wordl0[3] | wordr0[3];
-    w[ 4] = wordl1[0] | wordr1[0];
-    w[ 5] = wordl1[1] | wordr1[1];
-    w[ 6] = wordl1[2] | wordr1[2];
-    w[ 7] = wordl1[3] | wordr1[3];
-    w[ 8] = wordl2[0] | wordr2[0];
-    w[ 9] = wordl2[1] | wordr2[1];
-    w[10] = wordl2[2] | wordr2[2];
-    w[11] = wordl2[3] | wordr2[3];
-    w[12] = wordl3[0] | wordr3[0];
-    w[13] = wordl3[1] | wordr3[1];
-    w[14] = wordl3[1] | wordr3[1];
-    w[15] = wordl3[1] | wordr3[1];
+    w0[0] = wordl0[0] | wordr0[0];
+    w0[1] = wordl0[1] | wordr0[1];
+    w0[2] = wordl0[2] | wordr0[2];
+    w0[3] = wordl0[3] | wordr0[3];
+    w1[0] = wordl1[0] | wordr1[0];
+    w1[1] = wordl1[1] | wordr1[1];
+    w1[2] = wordl1[2] | wordr1[2];
+    w1[3] = wordl1[3] | wordr1[3];
+    w2[0] = wordl2[0] | wordr2[0];
+    w2[1] = wordl2[1] | wordr2[1];
+    w2[2] = wordl2[2] | wordr2[2];
+    w2[3] = wordl2[3] | wordr2[3];
+    w3[0] = wordl3[0] | wordr3[0];
+    w3[1] = wordl3[1] | wordr3[1];
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
-    append_0x01_4x4 (&w[0], &w[1], &w[2], &w[3], pw_len);
+    /**
+     * GOST
+     */
+
+    u32x w[16];
+
+    w[ 0] = w0[0];
+    w[ 1] = w0[1];
+    w[ 2] = w0[2];
+    w[ 3] = w0[3];
+    w[ 4] = w1[0];
+    w[ 5] = w1[1];
+    w[ 6] = w1[2];
+    w[ 7] = w1[3];
+    w[ 8] = w2[0];
+    w[ 9] = w2[1];
+    w[10] = w2[2];
+    w[11] = w2[3];
+    w[12] = w3[0];
+    w[13] = w3[1];
+    w[14] = w3[2];
+    w[15] = w3[3];
 
     /**
      * reverse message block
      */
 
-    u64 m[8];
+    u64x m[8];
 
     m[0] = hl32_to_64 (w[15], w[14]);
     m[1] = hl32_to_64 (w[13], w[12]);
@@ -2447,7 +2469,7 @@ __kernel void m11700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     // state buffer (hash)
 
-    u64 h[8];
+    u64x h[8];
 
     h[0] = INITVAL;
     h[1] = INITVAL;
@@ -2460,7 +2482,7 @@ __kernel void m11700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     streebog_g (h, m, s_sbob_sl64);
 
-    u64 z[8];
+    u64x z[8];
 
     z[0] = 0;
     z[1] = 0;
@@ -2474,12 +2496,12 @@ __kernel void m11700_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     streebog_g (h, z, s_sbob_sl64);
     streebog_g (h, m, s_sbob_sl64);
 
-    const u32 r0 = l32_from_64 (h[0]);
-    const u32 r1 = h32_from_64 (h[0]);
-    const u32 r2 = l32_from_64 (h[1]);
-    const u32 r3 = h32_from_64 (h[1]);
+    const u32x r0 = l32_from_64 (h[0]);
+    const u32x r1 = h32_from_64 (h[0]);
+    const u32x r2 = l32_from_64 (h[1]);
+    const u32x r3 = h32_from_64 (h[1]);
 
-    #include COMPARE_M
+    COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
@@ -2524,6 +2546,24 @@ __kernel void m11700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   if (gid >= gid_max) return;
 
   /**
+   * base
+   */
+
+  u32 pw_buf0[4];
+  u32 pw_buf1[4];
+
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = pws[gid].i[2];
+  pw_buf0[3] = pws[gid].i[3];
+  pw_buf1[0] = pws[gid].i[4];
+  pw_buf1[1] = pws[gid].i[5];
+  pw_buf1[2] = pws[gid].i[6];
+  pw_buf1[3] = pws[gid].i[7];
+
+  const u32 pw_l_len = pws[gid].pw_len;
+
+  /**
    * digest
    */
 
@@ -2536,115 +2576,106 @@ __kernel void m11700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   };
 
   /**
-   * base
-   */
-
-  u32 wordl0[4];
-
-  wordl0[0] = pws[gid].i[ 0];
-  wordl0[1] = pws[gid].i[ 1];
-  wordl0[2] = pws[gid].i[ 2];
-  wordl0[3] = pws[gid].i[ 3];
-
-  u32 wordl1[4];
-
-  wordl1[0] = pws[gid].i[ 4];
-  wordl1[1] = pws[gid].i[ 5];
-  wordl1[2] = pws[gid].i[ 6];
-  wordl1[3] = pws[gid].i[ 7];
-
-  u32 wordl2[4];
-
-  wordl2[0] = 0;
-  wordl2[1] = 0;
-  wordl2[2] = 0;
-  wordl2[3] = 0;
-
-  u32 wordl3[4];
-
-  wordl3[0] = 0;
-  wordl3[1] = 0;
-  wordl3[2] = 0;
-  wordl3[3] = 0;
-
-  const u32 pw_l_len = pws[gid].pw_len;
-
-  if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-  {
-    append_0x80_2x4 (wordl0, wordl1, pw_l_len);
-
-    switch_buffer_by_offset_le (wordl0, wordl1, wordl2, wordl3, combs_buf[0].pw_len);
-  }
-
-  /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = combs_buf[il_pos].pw_len;
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
 
-    const u32 pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = pw_l_len + pw_r_len;
 
-    u32 wordr0[4];
+    /**
+     * concat password candidate
+     */
 
-    wordr0[0] = combs_buf[il_pos].i[0];
-    wordr0[1] = combs_buf[il_pos].i[1];
-    wordr0[2] = combs_buf[il_pos].i[2];
-    wordr0[3] = combs_buf[il_pos].i[3];
+    u32x wordl0[4] = { 0 };
+    u32x wordl1[4] = { 0 };
+    u32x wordl2[4] = { 0 };
+    u32x wordl3[4] = { 0 };
 
-    u32 wordr1[4];
+    wordl0[0] = pw_buf0[0];
+    wordl0[1] = pw_buf0[1];
+    wordl0[2] = pw_buf0[2];
+    wordl0[3] = pw_buf0[3];
+    wordl1[0] = pw_buf1[0];
+    wordl1[1] = pw_buf1[1];
+    wordl1[2] = pw_buf1[2];
+    wordl1[3] = pw_buf1[3];
 
-    wordr1[0] = combs_buf[il_pos].i[4];
-    wordr1[1] = combs_buf[il_pos].i[5];
-    wordr1[2] = combs_buf[il_pos].i[6];
-    wordr1[3] = combs_buf[il_pos].i[7];
+    u32x wordr0[4] = { 0 };
+    u32x wordr1[4] = { 0 };
+    u32x wordr2[4] = { 0 };
+    u32x wordr3[4] = { 0 };
 
-    u32 wordr2[4];
-
-    wordr2[0] = 0;
-    wordr2[1] = 0;
-    wordr2[2] = 0;
-    wordr2[3] = 0;
-
-    u32 wordr3[4];
-
-    wordr3[0] = 0;
-    wordr3[1] = 0;
-    wordr3[2] = 0;
-    wordr3[3] = 0;
+    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
 
     if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      switch_buffer_by_offset_le (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+    }
+    else
+    {
+      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
     }
 
-    u32 w[16];
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
-    w[ 0] = wordl0[0] | wordr0[0];
-    w[ 1] = wordl0[1] | wordr0[1];
-    w[ 2] = wordl0[2] | wordr0[2];
-    w[ 3] = wordl0[3] | wordr0[3];
-    w[ 4] = wordl1[0] | wordr1[0];
-    w[ 5] = wordl1[1] | wordr1[1];
-    w[ 6] = wordl1[2] | wordr1[2];
-    w[ 7] = wordl1[3] | wordr1[3];
-    w[ 8] = wordl2[0] | wordr2[0];
-    w[ 9] = wordl2[1] | wordr2[1];
-    w[10] = wordl2[2] | wordr2[2];
-    w[11] = wordl2[3] | wordr2[3];
-    w[12] = wordl3[0] | wordr3[0];
-    w[13] = wordl3[1] | wordr3[1];
-    w[14] = wordl3[1] | wordr3[1];
-    w[15] = wordl3[1] | wordr3[1];
+    w0[0] = wordl0[0] | wordr0[0];
+    w0[1] = wordl0[1] | wordr0[1];
+    w0[2] = wordl0[2] | wordr0[2];
+    w0[3] = wordl0[3] | wordr0[3];
+    w1[0] = wordl1[0] | wordr1[0];
+    w1[1] = wordl1[1] | wordr1[1];
+    w1[2] = wordl1[2] | wordr1[2];
+    w1[3] = wordl1[3] | wordr1[3];
+    w2[0] = wordl2[0] | wordr2[0];
+    w2[1] = wordl2[1] | wordr2[1];
+    w2[2] = wordl2[2] | wordr2[2];
+    w2[3] = wordl2[3] | wordr2[3];
+    w3[0] = wordl3[0] | wordr3[0];
+    w3[1] = wordl3[1] | wordr3[1];
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
-    append_0x01_4x4 (&w[0], &w[1], &w[2], &w[3], pw_len);
+    /**
+     * GOST
+     */
+
+    u32x w[16];
+
+    w[ 0] = w0[0];
+    w[ 1] = w0[1];
+    w[ 2] = w0[2];
+    w[ 3] = w0[3];
+    w[ 4] = w1[0];
+    w[ 5] = w1[1];
+    w[ 6] = w1[2];
+    w[ 7] = w1[3];
+    w[ 8] = w2[0];
+    w[ 9] = w2[1];
+    w[10] = w2[2];
+    w[11] = w2[3];
+    w[12] = w3[0];
+    w[13] = w3[1];
+    w[14] = w3[2];
+    w[15] = w3[3];
 
     /**
      * reverse message block
      */
 
-    u64 m[8];
+    u64x m[8];
 
     m[0] = hl32_to_64 (w[15], w[14]);
     m[1] = hl32_to_64 (w[13], w[12]);
@@ -2666,7 +2697,7 @@ __kernel void m11700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     // state buffer (hash)
 
-    u64 h[8];
+    u64x h[8];
 
     h[0] = INITVAL;
     h[1] = INITVAL;
@@ -2679,7 +2710,7 @@ __kernel void m11700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     streebog_g (h, m, s_sbob_sl64);
 
-    u64 z[8];
+    u64x z[8];
 
     z[0] = 0;
     z[1] = 0;
@@ -2693,12 +2724,12 @@ __kernel void m11700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     streebog_g (h, z, s_sbob_sl64);
     streebog_g (h, m, s_sbob_sl64);
 
-    const u32 r0 = l32_from_64 (h[0]);
-    const u32 r1 = h32_from_64 (h[0]);
-    const u32 r2 = l32_from_64 (h[1]);
-    const u32 r3 = h32_from_64 (h[1]);
+    const u32x r0 = l32_from_64 (h[0]);
+    const u32x r1 = h32_from_64 (h[0]);
+    const u32x r2 = l32_from_64 (h[1]);
+    const u32x r3 = h32_from_64 (h[1]);
 
-    #include COMPARE_S
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }
 

@@ -49,34 +49,28 @@ static void m07600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
   salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
   salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
   salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
   salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
   salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
   salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
+  salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
+  salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
+  salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
 
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = 0;
-  salt_buf2[1] = 0;
-  salt_buf2[2] = 0;
-  salt_buf2[3] = 0;
-
-  u32 salt_buf3[4];
-
-  salt_buf3[0] = 0;
-  salt_buf3[1] = 0;
-  salt_buf3[2] = 0;
-  salt_buf3[3] = 0;
-
-  const u32 total_len = (32 + 40) * 8;
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   /**
    * loop
@@ -223,35 +217,6 @@ static void m07600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
      * Prepend salt
      */
 
-    u32x w0t[4];
-
-    w0t[0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
-    w0t[1] = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
-    w0t[2] = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
-    w0t[3] = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
-
-    u32x w1t[4];
-
-    w1t[0] = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
-    w1t[1] = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
-    w1t[2] = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
-    w1t[3] = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
-
-    u32x w2t[2];
-
-    w2t[0] = uint_to_hex_lower8 ((e >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((e >> 16) & 255) << 16;
-    w2t[1] = uint_to_hex_lower8 ((e >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((e >>  0) & 255) << 16;
-
     w0_t = salt_buf0[0];
     w1_t = salt_buf0[1];
     w2_t = salt_buf0[2];
@@ -260,14 +225,24 @@ static void m07600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w5_t = salt_buf1[1];
     w6_t = salt_buf1[2];
     w7_t = salt_buf1[3];
-    w8_t = w0t[0];
-    w9_t = w0t[1];
-    wa_t = w0t[2];
-    wb_t = w0t[3];
-    wc_t = w1t[0];
-    wd_t = w1t[1];
-    we_t = w1t[2];
-    wf_t = w1t[3];
+    w8_t = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
+    w9_t = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
+    wa_t = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
+    wb_t = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
+    wc_t = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
+    wd_t = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
+    we_t = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
+    wf_t = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
+
+    const u32x e_sav = e;
 
     /**
      * 2nd SHA1
@@ -408,8 +383,10 @@ static void m07600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     // 2nd transform
 
-    w0_t = swap32 (w2t[0]);
-    w1_t = swap32 (w2t[1]);
+    w0_t = uint_to_hex_lower8 ((e_sav >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((e_sav >> 16) & 255) << 16;
+    w1_t = uint_to_hex_lower8 ((e_sav >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((e_sav >>  0) & 255) << 16;
     w2_t = 0x80000000;
     w3_t = 0;
     w4_t = 0;
@@ -423,7 +400,10 @@ static void m07600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     wc_t = 0;
     wd_t = 0;
     we_t = 0;
-    wf_t = total_len;
+    wf_t = (salt_len + 40) * 8;
+
+    w0_t = swap32 (w0_t);
+    w1_t = swap32 (w1_t);
 
     #undef K
     #define K SHA1C00
@@ -545,34 +525,28 @@ static void m07600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
    */
 
   u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_buf2[4];
+  u32 salt_buf3[4];
 
   salt_buf0[0] = salt_bufs[salt_pos].salt_buf[ 0];
   salt_buf0[1] = salt_bufs[salt_pos].salt_buf[ 1];
   salt_buf0[2] = salt_bufs[salt_pos].salt_buf[ 2];
   salt_buf0[3] = salt_bufs[salt_pos].salt_buf[ 3];
-
-  u32 salt_buf1[4];
-
   salt_buf1[0] = salt_bufs[salt_pos].salt_buf[ 4];
   salt_buf1[1] = salt_bufs[salt_pos].salt_buf[ 5];
   salt_buf1[2] = salt_bufs[salt_pos].salt_buf[ 6];
   salt_buf1[3] = salt_bufs[salt_pos].salt_buf[ 7];
+  salt_buf2[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  salt_buf2[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  salt_buf2[2] = salt_bufs[salt_pos].salt_buf[10];
+  salt_buf2[3] = salt_bufs[salt_pos].salt_buf[11];
+  salt_buf3[0] = salt_bufs[salt_pos].salt_buf[12];
+  salt_buf3[1] = salt_bufs[salt_pos].salt_buf[13];
+  salt_buf3[2] = salt_bufs[salt_pos].salt_buf[14];
+  salt_buf3[3] = salt_bufs[salt_pos].salt_buf[15];
 
-  u32 salt_buf2[4];
-
-  salt_buf2[0] = 0;
-  salt_buf2[1] = 0;
-  salt_buf2[2] = 0;
-  salt_buf2[3] = 0;
-
-  u32 salt_buf3[4];
-
-  salt_buf3[0] = 0;
-  salt_buf3[1] = 0;
-  salt_buf3[2] = 0;
-  salt_buf3[3] = 0;
-
-  const u32 total_len = (32 + 40) * 8;
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   /**
    * digest
@@ -731,35 +705,6 @@ static void m07600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
      * Prepend salt
      */
 
-    u32x w0t[4];
-
-    w0t[0] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
-    w0t[1] = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
-    w0t[2] = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
-    w0t[3] = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
-
-    u32x w1t[4];
-
-    w1t[0] = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
-    w1t[1] = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
-    w1t[2] = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
-    w1t[3] = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
-
-    u32x w2t[2];
-
-    w2t[0] = uint_to_hex_lower8 ((e >> 24) & 255) <<  0
-           | uint_to_hex_lower8 ((e >> 16) & 255) << 16;
-    w2t[1] = uint_to_hex_lower8 ((e >>  8) & 255) <<  0
-           | uint_to_hex_lower8 ((e >>  0) & 255) << 16;
-
     w0_t = salt_buf0[0];
     w1_t = salt_buf0[1];
     w2_t = salt_buf0[2];
@@ -768,14 +713,24 @@ static void m07600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     w5_t = salt_buf1[1];
     w6_t = salt_buf1[2];
     w7_t = salt_buf1[3];
-    w8_t = w0t[0];
-    w9_t = w0t[1];
-    wa_t = w0t[2];
-    wb_t = w0t[3];
-    wc_t = w1t[0];
-    wd_t = w1t[1];
-    we_t = w1t[2];
-    wf_t = w1t[3];
+    w8_t = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
+    w9_t = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
+    wa_t = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
+    wb_t = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
+    wc_t = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
+    wd_t = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
+    we_t = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
+    wf_t = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
+
+    const u32x e_sav = e;
 
     /**
      * 2nd SHA1
@@ -916,8 +871,10 @@ static void m07600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     // 2nd transform
 
-    w0_t = swap32 (w2t[0]);
-    w1_t = swap32 (w2t[1]);
+    w0_t = uint_to_hex_lower8 ((e_sav >> 24) & 255) <<  0
+         | uint_to_hex_lower8 ((e_sav >> 16) & 255) << 16;
+    w1_t = uint_to_hex_lower8 ((e_sav >>  8) & 255) <<  0
+         | uint_to_hex_lower8 ((e_sav >>  0) & 255) << 16;
     w2_t = 0x80000000;
     w3_t = 0;
     w4_t = 0;
@@ -931,7 +888,10 @@ static void m07600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
     wc_t = 0;
     wd_t = 0;
     we_t = 0;
-    wf_t = total_len;
+    wf_t = (salt_len + 40) * 8;
+
+    w0_t = swap32 (w0_t);
+    w1_t = swap32 (w1_t);
 
     #undef K
     #define K SHA1C00
