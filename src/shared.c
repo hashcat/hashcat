@@ -19871,9 +19871,10 @@ void *thread_keypress (void *p)
 
     if (ch ==  0) continue;
 
-    #ifdef _POSIX
-    if (ch != '\n')
-    #endif
+    //https://github.com/hashcat/oclHashcat/issues/302
+    //#ifdef _POSIX
+    //if (ch != '\n')
+    //#endif
 
     hc_thread_mutex_lock (mux_display);
 
@@ -19964,6 +19965,11 @@ void *thread_keypress (void *p)
 
         break;
     }
+
+    //https://github.com/hashcat/oclHashcat/issues/302
+    //#ifdef _POSIX
+    //if (ch != '\n')
+    //#endif
 
     hc_thread_mutex_unlock (mux_display);
   }
