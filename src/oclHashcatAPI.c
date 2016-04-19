@@ -84,6 +84,7 @@ typedef struct hcapi_options
   uint64_t limit;
   uint keyspace;
   uint potfile_disable;
+  char *potfile_path;
   uint debug_mode;
   char *debug_file;
   char *induction_dir;
@@ -334,7 +335,6 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
     size_t input_size = (int) ((ceil (log10 (options.remove_timer))) * sizeof (char)) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -422,12 +422,30 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
   }
 
+  // str
+  if (options.potfile_path != NULL)
+  {
+
+    check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
+
+    size_t input_size = strlen (options.potfile_path) + 2;
+
+    char *user_input = (char *) calloc (input_size, sizeof (char));
+
+    snprintf (user_input, input_size, "%s", options.potfile_path);
+
+    apiargv[apiargc] = strcat_ls ("--potfile_path ", user_input);
+    apiargc++;
+
+  }
+
+  
+
   if (options.debug_mode != DEBUG_MODE)
   {
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
     size_t input_size = (int) ((ceil (log10 (options.debug_mode))) * sizeof (char)) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -439,13 +457,12 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
   }
 
-  // str
+
   if (options.debug_file != NULL)
   {
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
     size_t input_size = strlen (options.debug_file) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -463,7 +480,6 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
     size_t input_size = strlen (options.induction_dir) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -481,7 +497,6 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
     size_t input_size = strlen (options.outfile_check_dir) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -508,7 +523,6 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
     size_t input_size = (int) ((ceil (log10 (options.runtime))) * sizeof (char)) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -525,7 +539,6 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
     size_t input_size = (int) ((ceil (log10 (options.hash_mode))) * sizeof (char)) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -543,7 +556,6 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
     size_t input_size = (int) ((ceil (log10 (options.attack_mode))) * sizeof (char)) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -579,7 +591,6 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
     size_t input_size = (int) ((ceil (log10 (options.markov_threshold))) * sizeof (char)) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -597,7 +608,6 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
     size_t input_size = strlen (options.markov_hcstat) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -615,7 +625,6 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
     size_t input_size = strlen (options.outfile) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -632,7 +641,6 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
     size_t input_size = (int) ((ceil (log10 (options.outfile_format))) * sizeof (char)) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -646,7 +654,6 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
   if (options.outfile_autohex != OUTFILE_AUTOHEX)
   {
-
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
     apiargv[apiargc] = (char *) calloc (26, sizeof (char));
@@ -1645,6 +1652,7 @@ oclhashcat_con oclhashcat_init (void)
   control.options.limit = LIMIT;
   control.options.keyspace = KEYSPACE;
   control.options.potfile_disable = POTFILE_DISABLE;
+  control.options.potfile_path = NULL;
   control.options.debug_mode = DEBUG_MODE;
   control.options.debug_file = NULL;
   control.options.induction_dir = NULL;
@@ -1731,13 +1739,19 @@ int main ()
   oclhashcat_con hc = oclhashcat_init ();
 
 
+  // hc.options.attack_mode = 0;
+  // hc.options.hash_mode = 1000;
+  // hc.options.hash_input = "C:\\Users\\auser\\Desktop\\hashes.txt";
+  // hc.options.append_dictmaskdir(&hc.options, "C:\\Users\\auser\\Desktop\\Dicts\\dictionary.txt");
+  // hc.options.append_rules(&hc.options, "C:\\Users\\auser\\Desktop\\Rules\\somerulse.rule");
+  // hc.options.append_rules(&hc.options, "rules\\best64.rule");
+
   hc.options.attack_mode = 0;
   hc.options.hash_mode = 1000;
-  hc.options.hash_input = "C:\\Users\\auser\\Desktop\\hashes.txt";
-  hc.options.append_dictmaskdir(&hc.options, "C:\\Users\\auser\\Desktop\\Dicts\\dictionary.txt");
-  hc.options.append_rules(&hc.options, "C:\\Users\\auser\\Desktop\\Rules\\somerulse.rule");
-  hc.options.append_rules(&hc.options, "rules\\best64.rule");
-
+  hc.options.hash_input = "C:\\Users\\rich\\Desktop\\Datastar\\Datastar_hashes";
+  hc.options.append_dictmaskdir (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Dicts\\16Walk.txt");
+  hc.options.append_rules (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Rules\\walk.rule");
+  hc.options.append_rules (&hc.options, "rules\\best64.rule");
 
 
   hc.options.quiet = 1;
@@ -1749,7 +1763,7 @@ int main ()
 
   hc.start_thread (c, v);
 
-  oclhashcat_data_ptr *output = malloc (sizeof (hc_global_data_t));
+  oclhashcat_data_ptr *output = malloc (sizeof (oclhashcat_data_ptr));
 
   output = hc.get_data_ptr ();
 

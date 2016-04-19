@@ -135,7 +135,6 @@ void log_error (const char *fmt, ...);
  *
  */
 
-
 #define INCR_RULES              10000
 #define INCR_SALTS              100000
 #define INCR_MASKS              1000
@@ -263,7 +262,6 @@ void log_error (const char *fmt, ...);
 
 #define MAX_DICTSTAT            10000
 
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 133
-
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 135
 
 #endif // COMMON_H
