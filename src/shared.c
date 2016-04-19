@@ -19883,6 +19883,7 @@ void *thread_keypress (void *p)
     switch (ch)
     {
       case 's':
+      case '\r':
       case '\n':
 
         log_info ("");
