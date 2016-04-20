@@ -3,8 +3,13 @@
  * License.....: MIT
  */
 
+#ifdef cl_khr_byte_addressable_store
 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
+#endif
+
+#ifdef cl_clang_storage_class_specifiers
 #pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable
+#endif
 
 /**
  * vendor specific
