@@ -4,6 +4,7 @@
  */
 
 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
+#pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable
 
 /**
  * vendor specific
