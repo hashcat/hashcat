@@ -5696,6 +5696,7 @@ char *strhashtype (const uint hash_mode)
     case   131: return ((char *) HT_00131); break;
     case   132: return ((char *) HT_00132); break;
     case   133: return ((char *) HT_00133); break;
+    case   134: return ((char *) HT_00134); break;
     case   140: return ((char *) HT_00140); break;
     case   141: return ((char *) HT_00141); break;
     case   150: return ((char *) HT_00150); break;
@@ -11754,6 +11755,51 @@ int sha1s_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   return (PARSER_OK);
 }
+
+int pstoken_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if (data.opts_type & OPTS_TYPE_ST_HEX)
+  {
+    if ((input_len < DISPLAY_LEN_MIN_134) || (input_len > DISPLAY_LEN_MAX_134)) return (PARSER_GLOBAL_LENGTH);
+  }
+  else
+  {
+    if ((input_len < DISPLAY_LEN_MIN_134) || (input_len > DISPLAY_LEN_MAX_134)) return (PARSER_GLOBAL_LENGTH);
+  }
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  digest[0] -= SHA1M_A;
+  digest[1] -= SHA1M_B;
+  digest[2] -= SHA1M_C;
+  digest[3] -= SHA1M_D;
+  digest[4] -= SHA1M_E;
+
+  if (input_buf[40] != data.separator) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint salt_len = input_len - 40 - 1;
+
+  char *salt_buf = input_buf + 40 + 1;
+
+  char *salt_buf_ptr = (char *) salt->salt_buf;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len = salt_len;
+
+  return (PARSER_OK);
+}
+
 
 int sha1b64_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 {

@@ -364,6 +364,7 @@ extern hc_thread_mutex_t mux_display;
 #define HT_00131  "MSSQL(2000)"
 #define HT_00132  "MSSQL(2005)"
 #define HT_00133  "PeopleSoft"
+#define HT_00134  "PeopleSoft PS_TOKEN"
 #define HT_00141  "EPiServer 6.x < v4"
 #define HT_01421  "hMailServer"
 #define HT_01441  "EPiServer 6.x > v4"
@@ -731,6 +732,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_132    6 +  8 + 40
 #define DISPLAY_LEN_MIN_133   28
 #define DISPLAY_LEN_MAX_133   28
+#define DISPLAY_LEN_MIN_134   40 + 150
+#define DISPLAY_LEN_MAX_134   40 + 300
 #define DISPLAY_LEN_MIN_141   14 +  0 +  1 + 28
 #define DISPLAY_LEN_MAX_141   14 + 44 +  1 + 28
 #define DISPLAY_LEN_MIN_1441  14 +  0 +  1 + 43
@@ -1475,6 +1478,7 @@ int netntlmv2_parse_hash          (char *input_buf, uint input_len, hash_t *hash
 int oracleh_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int oracles_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int oraclet_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
+int pstoken_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int osc_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf);
 int arubaos_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int osx1_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf);
