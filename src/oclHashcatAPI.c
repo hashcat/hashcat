@@ -1516,7 +1516,11 @@ HANDLE hcapi_start_thread (int argc, char **argv)
 
   debug_print ("Attempting to start background thread, calling  _beginthreadex\n");
   hThread = (HANDLE) _beginthreadex (0, 0, &start_hc_thread, &args, 0, &threadID);
-  sleep (1);
+  
+  // Give the worker thread a chance to initialize
+  int sleep_time = 5;
+  debug_print ("Main thread sleeping for %d\n", sleep_time);
+  sleep (sleep_time);
 
   return hThread;
 }
@@ -1565,7 +1569,9 @@ int hcapi_start_thread (int argc, char **argv)
   err = pthread_create (&hThread, NULL, &start_hc_thread, &args);
   
   // Give the worker thread a chance to initialize
-  sleep (2);
+  int sleep_time = 5;
+  debug_print ("Main thread sleeping for %d\n", sleep_time);
+  sleep (sleep_time);
 
   debug_print ("pthread_create err = %d \n", err);
   return err;
@@ -1748,6 +1754,7 @@ int main ()
 
   hc.options.attack_mode = 0;
   hc.options.hash_mode = 1000;
+  //hc.options.potfile_path = "C:\\Users\\rich\\Desktop";
   hc.options.hash_input = "C:\\Users\\rich\\Desktop\\Datastar\\Datastar_hashes";
   hc.options.append_dictmaskdir (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Dicts\\16Walk.txt");
   hc.options.append_rules (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Rules\\walk.rule");
@@ -1773,6 +1780,7 @@ int main ()
   u64 all_rejected = 0;
   u64 all_restored = 0;
   char quit = 'r';
+
 
   while (1)
   {
