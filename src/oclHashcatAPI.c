@@ -434,7 +434,7 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     snprintf (user_input, input_size, "%s", options.potfile_path);
 
-    apiargv[apiargc] = strcat_ls ("--potfile_path ", user_input);
+    apiargv[apiargc] = strcat_ls ("--potfile-path=", user_input);
     apiargc++;
 
   }
