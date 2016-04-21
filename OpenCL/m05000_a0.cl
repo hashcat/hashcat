@@ -34,18 +34,6 @@ __constant u64 keccakf_rndc[24] =
   0x8000000000008080, 0x0000000080000001, 0x8000000080008008
 };
 
-__constant u8 keccakf_rotc[24] =
-{
-   1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
-  27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
-};
-
-__constant u8 keccakf_piln[24] =
-{
-  10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
-  15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
-};
-
 #ifndef KECCAK_ROUNDS
 #define KECCAK_ROUNDS 24
 #endif
@@ -113,6 +101,22 @@ __kernel void m05000_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
+
+  /**
+   * constants
+   */
+
+  const u8 keccakf_rotc[24] =
+  {
+     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
+    27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
+  };
+
+  const u8 keccakf_piln[24] =
+  {
+    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
+    15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
+  };
 
   /**
    * 0x80 keccak, very special
@@ -281,6 +285,22 @@ __kernel void m05000_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_len = pws[gid].pw_len;
+
+  /**
+   * constants
+   */
+
+  const u8 keccakf_rotc[24] =
+  {
+     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
+    27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
+  };
+
+  const u8 keccakf_piln[24] =
+  {
+    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
+    15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
+  };
 
   /**
    * 0x80 keccak, very special

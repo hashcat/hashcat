@@ -32,18 +32,6 @@ __constant u64 keccakf_rndc[24] =
   0x8000000000008080, 0x0000000080000001, 0x8000000080008008
 };
 
-__constant u8 keccakf_rotc[24] =
-{
-   1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
-  27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
-};
-
-__constant u8 keccakf_piln[24] =
-{
-  10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
-  15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
-};
-
 #ifndef KECCAK_ROUNDS
 #define KECCAK_ROUNDS 24
 #endif
@@ -90,6 +78,22 @@ static void m05000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
+
+  /**
+   * constants
+   */
+
+  const u8 keccakf_rotc[24] =
+  {
+     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
+    27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
+  };
+
+  const u8 keccakf_piln[24] =
+  {
+    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
+    15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
+  };
 
   /**
    * 0x80 keccak, very special
@@ -248,6 +252,22 @@ static void m05000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
+
+  /**
+   * constants
+   */
+
+  const u8 keccakf_rotc[24] =
+  {
+     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
+    27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
+  };
+
+  const u8 keccakf_piln[24] =
+  {
+    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
+    15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
+  };
 
   /**
    * 0x80 keccak, very special
