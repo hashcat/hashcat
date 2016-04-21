@@ -199,11 +199,9 @@ static inline u32 rotl32_S (const u32 a, const u32 n)
 
 static inline u64 rotr64_S (const u64 a, const u32 n)
 {
-  #if DEVICE_TYPE == DEVICE_TYPE_CPU
+  #if (DEVICE_TYPE == DEVICE_TYPE_GPU)
 
-  const u64 r = rotate (a, (u64) 64 - n);
-
-  #else
+  #ifdef amd_bitalign
 
   const u32 a0 = h32_from_64_S (a);
   const u32 a1 = l32_from_64_S (a);
@@ -212,6 +210,16 @@ static inline u64 rotr64_S (const u64 a, const u32 n)
   const u32 t1 = (n >= 32) ? amd_bitalign (a1, a0, n - 32) : amd_bitalign (a0, a1, n);
 
   const u64 r = hl32_to_64_S (t0, t1);
+
+  #else
+
+  const u64 r = rotate (a, (u64) 64 - n);
+
+  #endif
+
+  #else
+
+  const u64 r = rotate (a, (u64) 64 - n);
 
   #endif
 
@@ -255,12 +263,9 @@ static inline u32x rotl32 (const u32x a, const u32 n)
 
 static inline u64x rotr64 (const u64x a, const u32 n)
 {
-  #if DEVICE_TYPE == DEVICE_TYPE_CPU
+  #if (DEVICE_TYPE == DEVICE_TYPE_GPU)
 
-  const u64x r = rotate (a, (u64) 64 - n);
-
-  #else
-
+  #ifdef amd_bitalign
   const u32x a0 = h32_from_64 (a);
   const u32x a1 = l32_from_64 (a);
 
@@ -268,6 +273,16 @@ static inline u64x rotr64 (const u64x a, const u32 n)
   const u32x t1 = (n >= 32) ? amd_bitalign (a1, a0, n - 32) : amd_bitalign (a0, a1, n);
 
   const u64x r = hl32_to_64 (t0, t1);
+
+  #else
+
+  const u64x r = rotate (a, (u64) 64 - n);
+
+  #endif
+
+  #else
+
+  const u64x r = rotate (a, (u64) 64 - n);
 
   #endif
 
@@ -281,12 +296,26 @@ static inline u64x rotl64 (const u64x a, const u32 n)
 
 static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
 {
+#ifdef amd_bfe
   return amd_bfe (a, b, c);
+#else
+  #define BIT(x)      (1 << (x))
+  #define BIT_MASK(x) (BIT (x) - 1)
+  #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
+
+  return BFE (a, b, c);
+#endif
 }
 
 static inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
+#ifdef amd_bytealign
   return amd_bytealign (a, b, c);
+#else
+  const u64 tmp = ((((u64) a) << 32) | ((u64) b)) >> ((c & 3) * 8);
+
+  return (u32) (tmp);
+#endif
 }
 #endif
 
