@@ -1745,20 +1745,14 @@ int main ()
   oclhashcat_con hc = oclhashcat_init ();
 
 
-  // hc.options.attack_mode = 0;
-  // hc.options.hash_mode = 1000;
-  // hc.options.hash_input = "C:\\Users\\auser\\Desktop\\hashes.txt";
-  // hc.options.append_dictmaskdir(&hc.options, "C:\\Users\\auser\\Desktop\\Dicts\\dictionary.txt");
-  // hc.options.append_rules(&hc.options, "C:\\Users\\auser\\Desktop\\Rules\\somerulse.rule");
-  // hc.options.append_rules(&hc.options, "rules\\best64.rule");
-
   hc.options.attack_mode = 0;
   hc.options.hash_mode = 1000;
-  //hc.options.potfile_path = "C:\\Users\\rich\\Desktop";
-  hc.options.hash_input = "C:\\Users\\rich\\Desktop\\Datastar\\Datastar_hashes";
-  hc.options.append_dictmaskdir (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Dicts\\16Walk.txt");
-  hc.options.append_rules (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Rules\\walk.rule");
-  hc.options.append_rules (&hc.options, "rules\\best64.rule");
+  hc.options.hash_input = "C:\\Users\\auser\\Desktop\\hashes.txt";
+  hc.options.append_dictmaskdir(&hc.options, "C:\\Users\\auser\\Desktop\\Dicts\\dictionary.txt");
+  hc.options.append_rules(&hc.options, "C:\\Users\\auser\\Desktop\\Rules\\somerulse.rule");
+  hc.options.append_rules(&hc.options, "rules\\best64.rule");
+
+  
 
 
   hc.options.quiet = 1;
