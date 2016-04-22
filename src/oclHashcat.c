@@ -10295,7 +10295,7 @@ int main (int argc, char **argv)
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
-                               | OPTS_TYPE_ST_ADD80
+			       | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_ST_ADDBITS15;
                    kern_type   = KERN_TYPE_SHA1_SLTPWU;
                    dgst_size   = DGST_SIZE_4_5;
