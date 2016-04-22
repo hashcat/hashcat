@@ -8480,6 +8480,30 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
         sprintf (ptr_data, "%08x", ptr_keyfile[i]);
     }
   }
+  elseif (hash_mode == 13500)
+  {
+    pstoken_t *pstokens = (pstoken_t *) data.esalts_buf;
+    pstoken_t *pstoken  = &pstokens[salt_pos];
+
+    uint mysalt_len = pstoken->salt_len > 512 ? 512 : pstoken->salt_len;
+
+    u8 pstoken_tmp[mysalt_len + 1];
+
+    memset(pstoken_tmp, 0, mysalt_len + 1);
+
+    for (int i = 0; i < mysalt_len; i++)
+    {
+      snprintf(pstoken_tmp[i], 1, "%02x", pstoken->salt_buf[i]);
+    }
+
+    snprintf (out_buf, len-1, "%08x%08x%08x%08x%08x:%s",
+        digest_buf[0],
+        digest_buf[1],
+        digest_buf[2],
+        digest_buf[3],
+        digest_buf[4],
+	pstoken_tmp);
+  }
   else
   {
     if (hash_type == HASH_TYPE_MD4)
