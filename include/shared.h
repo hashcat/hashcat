@@ -348,6 +348,7 @@ extern hc_thread_mutex_t mux_display;
 #define HT_13200  "AxCrypt"
 #define HT_13300  "AxCrypt in memory SHA1"
 #define HT_13400  "Keepass 1 (AES/Twofish) and Keepass 2 (AES)"
+#define HT_13500  "PeopleSoft PS_TOKEN"
 
 #define HT_00011  "Joomla < 2.5.18"
 #define HT_00012  "PostgreSQL"
@@ -364,7 +365,6 @@ extern hc_thread_mutex_t mux_display;
 #define HT_00131  "MSSQL(2000)"
 #define HT_00132  "MSSQL(2005)"
 #define HT_00133  "PeopleSoft"
-#define HT_00134  "PeopleSoft PS_TOKEN"
 #define HT_00141  "EPiServer 6.x < v4"
 #define HT_01421  "hMailServer"
 #define HT_01441  "EPiServer 6.x > v4"
@@ -691,6 +691,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_13300  1 + 12 + 1 + 40
 #define DISPLAY_LEN_MIN_13400  1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 1 + 1 + 1
 #define DISPLAY_LEN_MAX_13400  1 + 7 + 1 + 1 + 10 + 1 + 3 + 1 + 64 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 4 + 1 + 600000 + 1 + 2 + 1 + 64
+#define DISPLAY_LEN_MIN_13500 40 + 1 + 16 * 2
+#define DISPLAY_LEN_MAX_13500 40 + 1 + 512 * 2
 
 #define DISPLAY_LEN_MIN_11    32 + 1 + 16
 #define DISPLAY_LEN_MAX_11    32 + 1 + 32
@@ -732,8 +734,6 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_132    6 +  8 + 40
 #define DISPLAY_LEN_MIN_133   28
 #define DISPLAY_LEN_MAX_133   28
-#define DISPLAY_LEN_MIN_134   40 + 150
-#define DISPLAY_LEN_MAX_134   40 + 300
 #define DISPLAY_LEN_MIN_141   14 +  0 +  1 + 28
 #define DISPLAY_LEN_MAX_141   14 + 44 +  1 + 28
 #define DISPLAY_LEN_MIN_1441  14 +  0 +  1 + 43
@@ -1478,7 +1478,6 @@ int netntlmv2_parse_hash          (char *input_buf, uint input_len, hash_t *hash
 int oracleh_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int oracles_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int oraclet_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
-int pstoken_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int osc_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf);
 int arubaos_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int osx1_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf);
@@ -1598,6 +1597,7 @@ int androidfde_samsung_parse_hash (char *input_buf, uint input_len, hash_t *hash
 int axcrypt_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int sha1axcrypt_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf);
 int keepass_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
+int pstoken_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
