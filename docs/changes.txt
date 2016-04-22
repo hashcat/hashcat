@@ -149,6 +149,11 @@ File.: Host
 Desc.: Use a fixed path for the potfile rather than session depending
 Issue: 99
 
+Type.: Change
+File.: Rules
+Desc.: Removed some duplicate rules in T0XlCv1, d3ad0ne and dive. All rules were found due to superfluous white space differences
+Issue: 301
+
 Type.: Bug
 File.: Host
 Desc.: Fixed a bug in combination of --restore and a user immediately aborting the session after restart
