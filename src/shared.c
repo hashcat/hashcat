@@ -8480,7 +8480,7 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
         sprintf (ptr_data, "%08x", ptr_keyfile[i]);
     }
   }
-  elseif (hash_mode == 13500)
+  else if (hash_mode == 13500)
   {
     pstoken_t *pstokens = (pstoken_t *) data.esalts_buf;
     pstoken_t *pstoken  = &pstokens[salt_pos];
@@ -8491,7 +8491,7 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
 
     memset(pstoken_tmp, 0, mysalt_len + 1);
 
-    for (int i = 0; i < mysalt_len; i++)
+    for (uint i = 0; i < mysalt_len; i++)
     {
       snprintf(pstoken_tmp[i], 1, "%02x", pstoken->salt_buf[i]);
     }

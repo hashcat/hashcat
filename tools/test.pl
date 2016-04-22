@@ -18,7 +18,7 @@ use Digest::HMAC_MD5 qw (hmac_md5);
 use Digest::CRC      qw (crc32);
 use Crypt::PBKDF2;
 use Crypt::DES;
-use Crypt::ECB       qw (encrypt PADDING_AUTO PADDING_NONE);
+use Crypt::ECB 2.00,       qw (encrypt);
 use Crypt::CBC;
 use Crypt::Eksblowfish::Bcrypt qw (bcrypt en_base64);
 use Crypt::Digest::RIPEMD160   qw (ripemd160_hex);
@@ -45,11 +45,11 @@ my $hashcat = "./oclHashcat";
 
 my $MAX_LEN = 55;
 
-my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 125, 130, 131, 132, 140, 141, 150, 160, 190, 200, 300, 400, 500, 900, 1000, 1100, 1400, 1410, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7100, 7200, 7300, 7400, 7500, 7600, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300, 13400);
+my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 125, 130, 131, 132, 134, 140, 141, 150, 160, 190, 200, 300, 400, 500, 900, 1000, 1100, 1400, 1410, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7100, 7200, 7300, 7400, 7500, 7600, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300, 13400, 13500);
 
-my %is_unicode      = map { $_ => 1 } qw(30 40 130 131 132 133 140 141 1000 1100 1430 1440 1441 1730 1740 1731 5500 5600 8000 9400 9500 9600 9700 9800);
+my %is_unicode      = map { $_ => 1 } qw(30 40 130 131 132 133 134 140 141 1000 1100 1430 1440 1441 1730 1740 1731 5500 5600 8000 9400 9500 9600 9700 9800 13500);
 my %less_fifteen    = map { $_ => 1 } qw(500 1600 1800 2400 2410 3200 6300 7400 10500 10700);
-my %allow_long_salt = map { $_ => 1 } qw(2500 5500 5600 7100 7200 7300 9400 9500 9600 9700 9800 10400 10500 10600 10700 1100 11000 11200 11300 11400 11600 12600);
+my %allow_long_salt = map { $_ => 1 } qw(134 2500 5500 5600 7100 7200 7300 9400 9500 9600 9700 9800 10400 10500 10600 10700 1100 11000 11200 11300 11400 11600 12600 13500);
 
 my @lotus_magic_table =
 (
@@ -226,7 +226,7 @@ sub verify
       $word = substr ($line, $index + 1);
     }
     # hash:salt
-    elsif ($mode == 10 || $mode == 11 || $mode == 12 || $mode == 20 || $mode == 21 || $mode == 22 || $mode == 23 || $mode == 30 || $mode == 40 || $mode == 50 || $mode == 60 || $mode == 110 || $mode == 112 || $mode == 120 || $mode == 121 || $mode == 130 || $mode == 140 || $mode == 150 || $mode == 160 || $mode == 1100 || $mode == 1410 || $mode == 1420 || $mode == 1430 || $mode == 1440 || $mode == 1450 || $mode == 1460 || $mode == 1710 || $mode == 1720 || $mode == 1730 || $mode == 1740 || $mode == 1750 || $mode == 1760 || $mode == 2410 || $mode == 2611 || $mode == 2711 || $mode == 2811 || $mode == 3100 || $mode == 3610 || $mode == 3710 || $mode == 3720 || $mode == 3800 || $mode == 3910 || $mode == 4010 || $mode == 4110 || $mode == 4210 || $mode == 4900 || $mode == 5800 || $mode == 7600 || $mode == 8400 || $mode == 11000 || $mode == 12600)
+    elsif ($mode == 10 || $mode == 11 || $mode == 12 || $mode == 20 || $mode == 21 || $mode == 22 || $mode == 23 || $mode == 30 || $mode == 40 || $mode == 50 || $mode == 60 || $mode == 110 || $mode == 112 || $mode == 120 || $mode == 121 || $mode == 130 || $mode == 134 || $mode == 140 || $mode == 150 || $mode == 160 || $mode == 1100 || $mode == 1410 || $mode == 1420 || $mode == 1430 || $mode == 1440 || $mode == 1450 || $mode == 1460 || $mode == 1710 || $mode == 1720 || $mode == 1730 || $mode == 1740 || $mode == 1750 || $mode == 1760 || $mode == 2410 || $mode == 2611 || $mode == 2711 || $mode == 2811 || $mode == 3100 || $mode == 3610 || $mode == 3710 || $mode == 3720 || $mode == 3800 || $mode == 3910 || $mode == 4010 || $mode == 4110 || $mode == 4210 || $mode == 4900 || $mode == 5800 || $mode == 7600 || $mode == 8400 || $mode == 11000 || $mode == 12600 || $mode == 13500)
     {
       # get hash
       my $index1 = index ($line, ":");
@@ -2764,6 +2764,12 @@ sub passthrough
 
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, $salt_len));
     }
+    elsif ($mode == 134)
+    {
+      my $salt_len = get_random_num (120, 130);
+
+      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, $salt_len));
+    }
     elsif ($mode == 11 || $mode == 12 || $mode == 7600 || $mode == 12300)
     {
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
@@ -3114,6 +3120,12 @@ sub passthrough
     elsif ($mode == 13400)
     {
       $salt_buf = get_random_keepass_salt ();
+
+      $tmp_hash = gen_hash ($mode, $word_buf, $salt_buf);
+    }
+    elsif ($mode == 13500)
+    {
+      $salt_buf = get_pstoken_salt ();
 
       $tmp_hash = gen_hash ($mode, $word_buf, $salt_buf);
     }
@@ -3886,6 +3898,20 @@ sub single
         }
       }
     }
+    elsif ($mode == 13500)
+    {
+      for (my $i = 1; $i < 16; $i++)
+      {
+        if ($len != 0)
+        {
+          rnd ($mode, $len, 16);
+        }
+        else
+        {
+          rnd ($mode, $i, 16);
+        }
+      }
+    }
   }
 }
 
@@ -4138,7 +4164,7 @@ sub gen_hash
 
     $tmp_hash = sprintf ("%s", $hash_buf);
   }
-  elsif ($mode == 140)
+  elsif ($mode == 140 || $mode == 134)
   {
     $hash_buf = sha1_hex ($salt_buf . encode ("UTF-16LE", $word_buf));
 
@@ -4842,9 +4868,9 @@ sub gen_hash
 
     my $nthash = Authen::Passphrase::NTHash->new (passphrase => $word_buf)->hash . "\x00" x 5;
 
-    $ntresp .= Crypt::ECB::encrypt (setup_des_key (substr ($nthash,  0, 7)), "DES", $challenge, PADDING_NONE);
-    $ntresp .= Crypt::ECB::encrypt (setup_des_key (substr ($nthash,  7, 7)), "DES", $challenge, PADDING_NONE);
-    $ntresp .= Crypt::ECB::encrypt (setup_des_key (substr ($nthash, 14, 7)), "DES", $challenge, PADDING_NONE);
+    $ntresp .= Crypt::ECB::encrypt (setup_des_key (substr ($nthash,  0, 7)), "DES", $challenge, "none");
+    $ntresp .= Crypt::ECB::encrypt (setup_des_key (substr ($nthash,  7, 7)), "DES", $challenge, "none");
+    $ntresp .= Crypt::ECB::encrypt (setup_des_key (substr ($nthash, 14, 7)), "DES", $challenge, "none");
 
     $tmp_hash = sprintf ("%s::%s:%s:%s:%s", $user, $domain, $c_challenge_hex, unpack ("H*", $ntresp), $s_challenge_hex);
   }
@@ -7134,6 +7160,12 @@ END_CODE
             $keyfile_attributes);
     }
   }
+  elsif ($mode == 13500)
+  {
+    $hash_buf = sha1_hex (pack("H*",$salt_buf) . encode ("UTF-16LE", $word_buf));
+
+    $tmp_hash = sprintf ("%s:%s", $hash_buf, $salt_buf);
+  }
 
   return ($tmp_hash);
 }
@@ -7239,6 +7271,10 @@ sub rnd
   elsif ($mode == 13400)
   {
     $salt_buf = get_random_keepass_salt ();
+  }
+  elsif ($mode == 13500)
+  {
+    $salt_buf = get_pstoken_salt ();
   }
   else
   {
@@ -8625,6 +8661,23 @@ sub get_random_keepass_salt
   }
 
   return $salt_buf;
+}
+
+sub get_pstoken_salt
+{
+ # Cannot be fully random because of the salt structure, will use a constant salt.
+ my $pstoken_const = 
+ "\x71\x00\x00\x00\x04\x03\x02\x01\x01\x00\x00\x00\xbc\x02" .
+ "\x00\x00\x00\x00\x00\x00\x10\x50\x00\x50\x00\x57\x00\x45" .
+ "\x00\x42\x00\x45\x00\x58\x00\x54\x00\x06\x45\x00\x4e\x00" .
+ "\x47\x00\x0e\x50\x00\x53\x00\x46\x00\x54\x00\x5f\x00\x48" .
+ "\x00\x52\x00\x34\x32\x00\x30\x00\x31\x00\x36\x00\x2d\x00" .
+ "\x30\x00\x34\x00\x2d\x00\x30\x00\x38\x00\x2d\x00\x31\x00" .
+ "\x39\x00\x2e\x00\x32\x00\x37\x00\x2e\x00\x30\x00\x35\x00" .
+ "\x2e\x00\x30\x00\x30\x00\x30\x00\x30\x00\x30\x00\x32\x00" .
+ "\x00";
+
+ return unpack ("H*", $pstoken_const);
 }
 
 sub get_random_md5chap_salt

@@ -1796,3 +1796,7 @@ Trac: #197
 Type: Change
 File: Host
 Desc: new default status-timer value is 10 seconds instead of 1 minute
+
+Type: Feature
+File: Kernel
+Desc: Added new hash mode -m 134 = PeopleSoft PS_TOKEN
