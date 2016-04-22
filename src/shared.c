@@ -8493,7 +8493,7 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
 
     for (uint i = 0; i < mysalt_len; i++)
     {
-      snprintf(pstoken_tmp[i], 1, "%02x", pstoken->salt_buf[i]);
+      snprintf((char *)(pstoken_tmp + i), (size_t)2, "%02x", pstoken->salt_buf[i]);
     }
 
     snprintf (out_buf, len-1, "%08x%08x%08x%08x%08x:%s",
