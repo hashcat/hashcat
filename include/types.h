@@ -955,9 +955,18 @@ struct __hc_device_param
   uint    exec_pos;
   double  exec_ms[EXEC_CACHE];
 
+  // this is "average" speed, we'll use this for benchmark and final status screen
+
+  u64     speed_cnt_total;
+  double  speed_ms_total;
+
+  // this is "current" speed
+
   uint    speed_pos;
   u64     speed_cnt[SPEED_CACHE];
-  float   speed_ms[SPEED_CACHE];
+  double  speed_ms[SPEED_CACHE];
+
+  // speed_rec is what additionally limits the "current" speed in time, not array elements
 
   hc_timer_t speed_rec[SPEED_CACHE];
 
@@ -1291,7 +1300,7 @@ typedef struct
   hc_timer_t timer_running;         // timer on current dict
   hc_timer_t timer_paused;          // timer on current dict
 
-  float   ms_paused;                // timer on current dict
+  double  ms_paused;                // timer on current dict
 
   /**
     * hash_info and username

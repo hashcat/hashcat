@@ -33,7 +33,7 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 #define MARKOV_DISABLE          0
 #define MARKOV_CLASSIC          0
 #define BENCHMARK               0
-#define BENCHMARK_REPEATS       2
+#define BENCHMARK_REPEATS       100
 #define RESTORE                 0
 #define RESTORE_TIMER           60
 #define RESTORE_DISABLE         0
@@ -800,12 +800,12 @@ void status_display_automat ()
 
     if (device_param->skipped) continue;
 
-    u64   speed_cnt  = 0;
-    float speed_ms   = 0;
+    u64    speed_cnt  = 0;
+    double speed_ms   = 0;
 
     for (int i = 0; i < SPEED_CACHE; i++)
     {
-      float rec_ms;
+      double rec_ms;
 
       hc_timer_get (device_param->speed_rec[i], rec_ms);
 
@@ -1140,8 +1140,8 @@ void status_display ()
    * speed new
    */
 
-  u64   speed_cnt[DEVICES_MAX] = { 0 };
-  float speed_ms[DEVICES_MAX]  = { 0 };
+  u64    speed_cnt[DEVICES_MAX] = { 0 };
+  double speed_ms[DEVICES_MAX]  = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1162,7 +1162,7 @@ void status_display ()
 
     for (int i = 0; i < SPEED_CACHE; i++)
     {
-      float rec_ms;
+      double rec_ms;
 
       hc_timer_get (device_param->speed_rec[i], rec_ms);
 
@@ -1217,15 +1217,15 @@ void status_display ()
    * timers
    */
 
-  float ms_running = 0;
+  double ms_running = 0;
 
   hc_timer_get (data.timer_running, ms_running);
 
-  float ms_paused = data.ms_paused;
+  double ms_paused = data.ms_paused;
 
   if (data.devices_status == STATUS_PAUSED)
   {
-    float ms_paused_tmp = 0;
+    double ms_paused_tmp = 0;
 
     hc_timer_get (data.timer_paused, ms_paused_tmp);
 
@@ -1472,7 +1472,7 @@ void status_display ()
       }
     }
 
-    float ms_real = ms_running - ms_paused;
+    double ms_real = ms_running - ms_paused;
 
     float cpt_avg_min  = (float) data.cpt_total / ((ms_real / 1000) / 60);
     float cpt_avg_hour = (float) data.cpt_total / ((ms_real / 1000) / 3600);
@@ -1626,13 +1626,13 @@ void status_display ()
 
 static void status_benchmark ()
 {
-  if (data.devices_status == STATUS_INIT) return;
+  if (data.devices_status == STATUS_INIT)     return;
   if (data.devices_status == STATUS_STARTING) return;
 
   if (data.words_cnt == 0) return;
 
-  u64   speed_cnt[DEVICES_MAX] = { 0 };
-  float speed_ms[DEVICES_MAX]  = { 0 };
+  u64    speed_cnt[DEVICES_MAX] = { 0 };
+  double speed_ms[DEVICES_MAX]  = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1640,17 +1640,8 @@ static void status_benchmark ()
 
     if (device_param->skipped) continue;
 
-    speed_cnt[device_id] = 0;
-    speed_ms[device_id]  = 0;
-
-    for (int i = 0; i < SPEED_CACHE; i++)
-    {
-      speed_cnt[device_id] += device_param->speed_cnt[i];
-      speed_ms[device_id]  += device_param->speed_ms[i];
-    }
-
-    speed_cnt[device_id] /= SPEED_CACHE;
-    speed_ms[device_id]  /= SPEED_CACHE;
+    speed_cnt[device_id] = device_param->speed_cnt[0];
+    speed_ms[device_id]  = device_param->speed_ms[0];
   }
 
   float hashes_all_ms = 0;
@@ -2465,7 +2456,7 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 
   if (event_update)
   {
-    float exec_time;
+    double exec_time;
 
     hc_timer_get (timer, exec_time);
 
@@ -3303,9 +3294,34 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
       if (data.benchmark == 1)
       {
-        for (u32 i = 0; i < data.benchmark_repeats; i++)
+        double exec_ms_avg_prev = get_avg_exec_time (device_param, EXEC_CACHE);
+
+        // a few caching rounds
+
+        for (u32 i = 0; i < 2; i++)
         {
+          hc_timer_set (&device_param->timer_speed);
+
           choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt);
+
+          double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
+
+          exec_ms_avg_prev = exec_ms_avg;
+        }
+
+        // benchmark_repeats became a maximum possible repeats
+
+        for (u32 i = 2; i < data.benchmark_repeats; i++)
+        {
+          hc_timer_set (&device_param->timer_speed);
+
+          choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt);
+
+          double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
+
+          if ((exec_ms_avg_prev / exec_ms_avg) < 1.001) break;
+
+          exec_ms_avg_prev = exec_ms_avg;
         }
       }
 
@@ -3331,11 +3347,6 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
       u64 perf_sum_all = (u64) pws_cnt * (u64) innerloop_left;
 
-      if (data.benchmark == 1)
-      {
-        perf_sum_all = (perf_sum_all * data.benchmark_repeats) + perf_sum_all;
-      }
-
       hc_thread_mutex_lock (mux_counter);
 
       data.words_progress_done[salt_pos] += perf_sum_all;
@@ -3346,13 +3357,15 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
        * speed
        */
 
-      float speed_ms;
+      double speed_ms;
 
       hc_timer_get (device_param->timer_speed, speed_ms);
 
       hc_timer_set (&device_param->timer_speed);
 
       hc_thread_mutex_lock (mux_display);
+
+      // current speed
 
       device_param->speed_cnt[speed_pos] = perf_sum_all;
 
@@ -3368,6 +3381,12 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
       {
         speed_pos = 0;
       }
+
+      // average speed
+
+      device_param->speed_cnt_total += perf_sum_all;
+
+      device_param->speed_ms_total += speed_ms;
 
       /**
        * benchmark
@@ -14785,7 +14804,7 @@ int main (int argc, char **argv)
     if (data.quiet == 0) log_info ("");
 
     /**
-     * Inform user which algorithm is checked and at which workload setting
+     * In benchmark-mode, inform user which algorithm is checked
      */
 
     if (benchmark == 1)
@@ -16013,8 +16032,11 @@ int main (int argc, char **argv)
           device_param->speed_pos = 0;
 
           memset (device_param->speed_cnt, 0, SPEED_CACHE * sizeof (u64));
-          memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (float));
+          memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (double));
           memset (device_param->speed_rec, 0, SPEED_CACHE * sizeof (hc_timer_t));
+
+          device_param->speed_cnt_total = 0;
+          device_param->speed_ms_total  = 0;
 
           device_param->exec_pos = 0;
 

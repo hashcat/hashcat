@@ -8816,7 +8816,7 @@ void ResumeThreads ()
 {
   if (data.devices_status == STATUS_PAUSED)
   {
-    float ms_paused;
+    double ms_paused;
 
     hc_timer_get (data.timer_paused, ms_paused);
 
