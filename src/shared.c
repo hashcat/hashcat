@@ -11796,7 +11796,7 @@ int pstoken_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   pstoken_t *pstoken = (pstoken_t *) hash_buf->esalt;
   u8 pstoken_tmp[DISPLAY_LEN_MAX_13500 - 40 - 1];
 
-  memcpy(pstoken_tmp, "\0", DISPLAY_LEN_MAX_13500 - 40 - 1);
+  memset(pstoken_tmp, 0, DISPLAY_LEN_MAX_13500 - 40 - 1);
 
   digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
@@ -11816,7 +11816,7 @@ int pstoken_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *salt_buf = input_buf + 40 + 1;
 
-  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+  if (salt_len == UINT_MAX || salt_len % 2 != 0) return (PARSER_SALT_LENGTH);
 
   for (uint i = 0; i < salt_len / 2; i++) 
   { 
