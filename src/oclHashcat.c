@@ -805,12 +805,6 @@ void status_display_automat ()
 
     for (int i = 0; i < SPEED_CACHE; i++)
     {
-      double rec_ms;
-
-      hc_timer_get (device_param->speed_rec[i], rec_ms);
-
-      if (rec_ms > SPEED_MAXAGE) continue;
-
       speed_cnt  += device_param->speed_cnt[i];
       speed_ms   += device_param->speed_ms[i];
     }
@@ -1149,25 +1143,11 @@ void status_display ()
 
     if (device_param->skipped) continue;
 
-    // we need to clear values (set to 0) because in case the device does
-    // not get new candidates it idles around but speed display would
-    // show it as working.
-    // if we instantly set it to 0 after reading it happens that the
-    // speed can be shown as zero if the users refreshes too fast.
-    // therefore, we add a timestamp when a stat was recorded and if its
-    // too old we will not use it
-
     speed_cnt[device_id] = 0;
     speed_ms[device_id]  = 0;
 
     for (int i = 0; i < SPEED_CACHE; i++)
     {
-      double rec_ms;
-
-      hc_timer_get (device_param->speed_rec[i], rec_ms);
-
-      if (rec_ms > SPEED_MAXAGE) continue;
-
       speed_cnt[device_id] += device_param->speed_cnt[i];
       speed_ms[device_id]  += device_param->speed_ms[i];
     }
@@ -2694,6 +2674,24 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
       if (data.devices_status == STATUS_CRACKED) break;
       if (data.devices_status == STATUS_ABORTED) break;
       if (data.devices_status == STATUS_QUIT)    break;
+
+      /**
+       * speed
+       */
+
+      const float iter_part = (float) (loop_pos + loop_left) / iter;
+
+      const u64 perf_sum_all = pws_cnt * iter_part;
+
+      double speed_ms;
+
+      hc_timer_get (device_param->timer_speed, speed_ms);
+
+      const u32 speed_pos = device_param->speed_pos;
+
+      device_param->speed_cnt[speed_pos] = perf_sum_all;
+
+      device_param->speed_ms[speed_pos] = speed_ms;
     }
 
     if (opts_type & OPTS_TYPE_HOOK23)
@@ -3371,8 +3369,6 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
       device_param->speed_ms[speed_pos] = speed_ms;
 
-      device_param->speed_rec[speed_pos] = device_param->timer_speed;
-
       hc_thread_mutex_unlock (mux_display);
 
       speed_pos++;
@@ -3381,12 +3377,6 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
       {
         speed_pos = 0;
       }
-
-      // average speed
-
-      device_param->speed_cnt_total += perf_sum_all;
-
-      device_param->speed_ms_total += speed_ms;
 
       /**
        * benchmark
@@ -16033,10 +16023,6 @@ int main (int argc, char **argv)
 
           memset (device_param->speed_cnt, 0, SPEED_CACHE * sizeof (u64));
           memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (double));
-          memset (device_param->speed_rec, 0, SPEED_CACHE * sizeof (hc_timer_t));
-
-          device_param->speed_cnt_total = 0;
-          device_param->speed_ms_total  = 0;
 
           device_param->exec_pos = 0;
 
