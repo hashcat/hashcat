@@ -11388,7 +11388,8 @@ int main (int argc, char **argv)
 
         switch (hash_mode)
         {
-          case  1500: hashes_buf[0].salt->salt_len = 2;
+          case  1500: hashes_buf[0].salt->salt_len    = 2;
+                      hashes_buf[0].salt->salt_buf[0] = 388; // pure magic
                       break;
           case  1731: hashes_buf[0].salt->salt_len = 4;
                       break;
