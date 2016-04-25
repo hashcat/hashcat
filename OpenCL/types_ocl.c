@@ -33,9 +33,6 @@ typedef VTYPE(uint,   VECT_SIZE) u32x;
 typedef VTYPE(ulong,  VECT_SIZE) u64x;
 #endif
 
-// this one needs to die
-#define allx(r) r
-
 static inline u32 l32_from_64_S (u64 a)
 {
   const u32 r = (u32) (a);
