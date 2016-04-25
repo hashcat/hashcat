@@ -8485,15 +8485,16 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
     pstoken_t *pstokens = (pstoken_t *) data.esalts_buf;
     pstoken_t *pstoken  = &pstokens[salt_pos];
 
-    uint mysalt_len = pstoken->salt_len > 512 ? 512 : pstoken->salt_len;
+    uint mysalt = pstoken->salt_len > 512 ? 512 : pstoken->salt_len;
 
-    u8 pstoken_tmp[mysalt_len + 1];
+    char pstoken_tmp[1024 + 1];
+    u8 *salt_buf_ptr = (u8 *) pstoken->salt_buf;
 
-    memset(pstoken_tmp, 0, mysalt_len + 1);
+    memset(pstoken_tmp, 0, sizeof (pstoken_tmp));
 
-    for (uint i = 0; i < mysalt_len; i++)
+    for (uint i = 0; i < mysalt; i++)
     {
-      snprintf((char *)(pstoken_tmp + i), (size_t)2, "%02x", pstoken->salt_buf[i]);
+      snprintf(&pstoken_tmp[i*2], 2, "%02x", salt_buf_ptr[i]);
     }
 
     snprintf (out_buf, len-1, "%08x%08x%08x%08x%08x:%s",
