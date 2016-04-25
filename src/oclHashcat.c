@@ -268,6 +268,7 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   8700,
   9100,
   133,
+  13500,
   11600,
   12500,
   13000,
@@ -300,7 +301,6 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   11300,
   12700,
   13400,
-  13500,
   125
 };
 
@@ -10295,15 +10295,13 @@ int main (int argc, char **argv)
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
-			       | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_ST_ADDBITS15;
+			       | OPTS_TYPE_PT_ADD80;
                    kern_type   = KERN_TYPE_SHA1_SLTPWU;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = pstoken_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
