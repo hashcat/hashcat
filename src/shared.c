@@ -11805,12 +11805,6 @@ int pstoken_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
-
   if (input_buf[40] != data.separator) return (PARSER_SEPARATOR_UNMATCHED);
 
   uint salt_len = input_len - 40 - 1;
