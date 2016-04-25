@@ -12864,13 +12864,20 @@ int main (int argc, char **argv)
         {
           if (vendor_id == VENDOR_ID_AMD)
           {
-            cl_uint device_processor_cores = 0;
+            if (strstr (device_version, "MESA"))
+            {
+              // MESA stuff
+            }
+            else
+            {
+              cl_uint device_processor_cores = 0;
 
-            #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
+              #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
 
-            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (device_processor_cores), &device_processor_cores, NULL);
+              hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (device_processor_cores), &device_processor_cores, NULL);
 
-            device_param->device_processor_cores = device_processor_cores;
+              device_param->device_processor_cores = device_processor_cores;
+            }
           }
           else if (vendor_id == VENDOR_ID_NV)
           {
@@ -12962,50 +12969,57 @@ int main (int argc, char **argv)
             }
             else if (vendor_id == VENDOR_ID_AMD)
             {
-              int catalyst_check = (force == 1) ? 0 : 1;
-
-              int catalyst_warn = 0;
-
-              int catalyst_broken = 0;
-
-              if (catalyst_check == 1)
+              if (strstr (device_version, "MESA"))
               {
-                catalyst_warn = 1;
+                // MESA stuff
+              }
+              else
+              {
+                int catalyst_check = (force == 1) ? 0 : 1;
 
-                // v14.9 and higher
-                if (atoi (device_param->driver_version) >= 1573)
+                int catalyst_warn = 0;
+
+                int catalyst_broken = 0;
+
+                if (catalyst_check == 1)
                 {
-                  catalyst_warn = 0;
+                  catalyst_warn = 1;
+
+                  // v14.9 and higher
+                  if (atoi (device_param->driver_version) >= 1573)
+                  {
+                    catalyst_warn = 0;
+                  }
+
+                  catalyst_check = 0;
                 }
 
-                catalyst_check = 0;
-              }
+                if (catalyst_broken == 1)
+                {
+                  log_info ("");
+                  log_info ("ATTENTION! The installed catalyst driver in your system is known to be broken!");
+                  log_info ("It will pass over cracked hashes and does not report them as cracked");
+                  log_info ("You are STRONGLY encouraged not to use it");
+                  log_info ("You can use --force to override this but do not post error reports if you do so");
+                  log_info ("");
 
-              if (catalyst_broken == 1)
-              {
-                log_info ("");
-                log_info ("ATTENTION! The installed catalyst driver in your system is known to be broken!");
-                log_info ("It will pass over cracked hashes and does not report them as cracked");
-                log_info ("You are STRONGLY encouraged not to use it");
-                log_info ("You can use --force to override this but do not post error reports if you do so");
-                log_info ("");
+                  return (-1);
+                }
 
-                return (-1);
-              }
+                if (catalyst_warn == 1)
+                {
+                  log_info ("");
+                  log_info ("ATTENTION! Unsupported or incorrect installed catalyst driver detected!");
+                  log_info ("You are STRONGLY encouraged to use the official supported catalyst driver for good reasons");
+                  log_info ("See oclHashcat's homepage for official supported catalyst drivers");
+                  #ifdef _WIN
+                  log_info ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
+                  #endif
+                  log_info ("You can use --force to override this but do not post error reports if you do so");
+                  log_info ("");
 
-              if (catalyst_warn == 1)
-              {
-                log_info ("");
-                log_info ("ATTENTION! Unsupported or incorrect installed catalyst driver detected!");
-                log_info ("You are STRONGLY encouraged to use the official supported catalyst driver for good reasons");
-                log_info ("See oclHashcat's homepage for official supported catalyst drivers");
-                #ifdef _WIN
-                log_info ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
-                #endif
-                log_info ("You can use --force to override this but do not post error reports if you do so");
-                log_info ("");
-
-                return (-1);
+                  return (-1);
+                }
               }
             }
           }
