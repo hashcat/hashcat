@@ -702,6 +702,13 @@ typedef struct
 
 } psafe3_t;
 
+typedef struct 
+{
+  u32 salt_buf[128];
+  u32 salt_len;
+
+} pstoken_t;
+
 typedef struct
 {
   char    plain_buf[256];

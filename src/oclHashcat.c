@@ -148,7 +148,7 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 
 #define MAX_DICTSTAT            10000
 
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 135
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 136
 
 #define global_free(attr)       \
 {                               \
@@ -268,6 +268,7 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   8700,
   9100,
   133,
+  13500,
   11600,
   12500,
   13000,
@@ -696,6 +697,7 @@ const char *USAGE_BIG[] =
   "   8700 = Lotus Notes/Domino 6",
   "   9100 = Lotus Notes/Domino 8",
   "    133 = PeopleSoft",
+  "  13500 = PeopleSoft Token",
   "",
   "[[ Archives ]]",
   "",
@@ -5971,7 +5973,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  if (hash_mode_chgd && hash_mode > 13400) // just added to remove compiler warnings for hash_mode_chgd
+  if (hash_mode_chgd && hash_mode > 13500) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
@@ -10297,6 +10299,28 @@ int main (int argc, char **argv)
                    dgst_pos3   = 3;
                    break;
 
+      case 13500:  hash_type   = HASH_TYPE_SHA1;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_PT_UNICODE
+			       | OPTS_TYPE_PT_ADD80;
+                   kern_type   = KERN_TYPE_SHA1_SLTPWU;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = pstoken_parse_hash;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_INIT
+                               | OPTI_TYPE_EARLY_SKIP
+                               | OPTI_TYPE_NOT_ITERATED
+                               | OPTI_TYPE_PREPENDED_SALT
+                               | OPTI_TYPE_RAW_HASH;
+                   dgst_pos0   = 3;
+                   dgst_pos1   = 4;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 1;
+                   break;
+
       default:     usage_mini_print (PROGNAME); return (-1);
     }
 
@@ -10402,6 +10426,7 @@ int main (int argc, char **argv)
       case 13000:  esalt_size = sizeof (rar5_t);          break;
       case 13100:  esalt_size = sizeof (krb5tgs_t);       break;
       case 13400:  esalt_size = sizeof (keepass_t);       break;
+      case 13500:  esalt_size = sizeof (pstoken_t);       break;
     }
 
     data.esalt_size = esalt_size;

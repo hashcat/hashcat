@@ -5853,6 +5853,7 @@ char *strhashtype (const uint hash_mode)
     case 13200: return ((char *) HT_13200); break;
     case 13300: return ((char *) HT_13300); break;
     case 13400: return ((char *) HT_13400); break;
+    case 13500: return ((char *) HT_13500); break;
   }
 
   return ((char *) "Unknown");
@@ -8478,6 +8479,31 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
       for (uint i = 0; i < 8; i++, ptr_data += 8)
         sprintf (ptr_data, "%08x", ptr_keyfile[i]);
     }
+  }
+  else if (hash_mode == 13500)
+  {
+    pstoken_t *pstokens = (pstoken_t *) data.esalts_buf;
+    pstoken_t *pstoken  = &pstokens[salt_pos];
+
+    uint mysalt = pstoken->salt_len > 512 ? 512 : pstoken->salt_len;
+
+    char pstoken_tmp[1024 + 1];
+    u8 *salt_buf_ptr = (u8 *) pstoken->salt_buf;
+
+    memset(pstoken_tmp, 0, sizeof (pstoken_tmp));
+
+    for (uint i = 0; i < mysalt; i++)
+    {
+      snprintf(&pstoken_tmp[i*2], 2, "%02x", salt_buf_ptr[i]);
+    }
+
+    snprintf (out_buf, len-1, "%08x%08x%08x%08x%08x:%s",
+        digest_buf[0],
+        digest_buf[1],
+        digest_buf[2],
+        digest_buf[3],
+        digest_buf[4],
+	pstoken_tmp);
   }
   else
   {
@@ -11754,6 +11780,54 @@ int sha1s_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   return (PARSER_OK);
 }
+
+int pstoken_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if (data.opts_type & OPTS_TYPE_ST_HEX)
+  {
+    if ((input_len < DISPLAY_LEN_MIN_13500) || (input_len > DISPLAY_LEN_MAX_13500)) return (PARSER_GLOBAL_LENGTH);
+  }
+  else
+  {
+    if ((input_len < DISPLAY_LEN_MIN_13500) || (input_len > DISPLAY_LEN_MAX_13500)) return (PARSER_GLOBAL_LENGTH);
+  }
+
+  u32 *digest = (u32 *) hash_buf->digest;
+  salt_t *salt = hash_buf->salt;
+  pstoken_t *pstoken = (pstoken_t *) hash_buf->esalt;
+  u8 pstoken_tmp[DISPLAY_LEN_MAX_13500 - 40 - 1];
+
+  memset(pstoken_tmp, 0, DISPLAY_LEN_MAX_13500 - 40 - 1);
+
+  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  if (input_buf[40] != data.separator) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint salt_len = input_len - 40 - 1;
+
+  char *salt_buf = input_buf + 40 + 1;
+
+  if (salt_len == UINT_MAX || salt_len % 2 != 0) return (PARSER_SALT_LENGTH);
+
+  for (uint i = 0; i < salt_len / 2; i++) 
+  { 
+    pstoken_tmp[i] = hex_to_u8 ((const u8 *) &salt_buf[i * 2]); 
+  }
+
+  salt_len /= 2;
+  salt->salt_len = salt_len;
+  pstoken->salt_len = salt_len;
+
+  memcpy(salt->salt_buf, pstoken_tmp, 16);
+  memcpy(pstoken->salt_buf, pstoken_tmp, salt_len);
+
+  return (PARSER_OK);
+}
+
 
 int sha1b64_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 {
