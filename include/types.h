@@ -258,6 +258,16 @@ typedef struct
 
 typedef struct
 {
+  u32 salt_buf[128];
+  u32 salt_len;
+
+  u32 pc_digest[5];
+  u32 pc_offset;
+
+} pstoken_t;
+
+typedef struct
+{
   uint P[256];
 
 } scrypt_tmp_t;
@@ -701,13 +711,6 @@ typedef struct
   u32  hash_buf[8];
 
 } psafe3_t;
-
-typedef struct 
-{
-  u32 salt_buf[128];
-  u32 salt_len;
-
-} pstoken_t;
 
 typedef struct
 {

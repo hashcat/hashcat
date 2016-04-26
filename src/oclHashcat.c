@@ -10304,8 +10304,8 @@ int main (int argc, char **argv)
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
-			       | OPTS_TYPE_PT_ADD80;
-                   kern_type   = KERN_TYPE_SHA1_SLTPWU;
+			                         | OPTS_TYPE_PT_ADD80;
+                   kern_type   = KERN_TYPE_PSTOKEN;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = pstoken_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
@@ -11531,6 +11531,8 @@ int main (int argc, char **argv)
                       ((seven_zip_t *) hashes_buf[0].esalt)->unpack_size = 112;
                       break;
           case 13400: ((keepass_t *) hashes_buf[0].esalt)->version       = 2;
+                      break;
+          case 13500: ((pstoken_t *) hashes_buf[0].esalt)->salt_len      = 113;
                       break;
         }
       }

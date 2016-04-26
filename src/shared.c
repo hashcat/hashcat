@@ -74,6 +74,7 @@ u64 byte_swap_64 (const u64 n)
  */
 
 #include "cpu-md5.c"
+#include "cpu-sha1.c"
 #include "cpu-sha256.c"
 
 /**
@@ -8483,27 +8484,27 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
   else if (hash_mode == 13500)
   {
     pstoken_t *pstokens = (pstoken_t *) data.esalts_buf;
-    pstoken_t *pstoken  = &pstokens[salt_pos];
 
-    uint mysalt = pstoken->salt_len > 512 ? 512 : pstoken->salt_len;
+    pstoken_t *pstoken = &pstokens[salt_pos];
 
-    char pstoken_tmp[1024 + 1];
-    u8 *salt_buf_ptr = (u8 *) pstoken->salt_buf;
+    const u32 salt_len = (pstoken->salt_len > 512) ? 512 : pstoken->salt_len;
 
-    memset(pstoken_tmp, 0, sizeof (pstoken_tmp));
+    char pstoken_tmp[1024 + 1] = { 0 };
 
-    for (uint i = 0; i < mysalt; i++)
+    for (uint i = 0, j = 0; i < salt_len; i += 1, j += 2)
     {
-      snprintf(&pstoken_tmp[i*2], 2, "%02x", salt_buf_ptr[i]);
+      const u8 *ptr = (const u8 *) pstoken->salt_buf;
+
+      sprintf (pstoken_tmp + j, "%02x", ptr[i]);
     }
 
     snprintf (out_buf, len-1, "%08x%08x%08x%08x%08x:%s",
-        digest_buf[0],
-        digest_buf[1],
-        digest_buf[2],
-        digest_buf[3],
-        digest_buf[4],
-	pstoken_tmp);
+      digest_buf[0],
+      digest_buf[1],
+      digest_buf[2],
+      digest_buf[3],
+      digest_buf[4],
+      pstoken_tmp);
   }
   else
   {
@@ -11783,21 +11784,13 @@ int sha1s_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
 int pstoken_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 {
-  if (data.opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_13500) || (input_len > DISPLAY_LEN_MAX_13500)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_13500) || (input_len > DISPLAY_LEN_MAX_13500)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_13500) || (input_len > DISPLAY_LEN_MAX_13500)) return (PARSER_GLOBAL_LENGTH);
 
   u32 *digest = (u32 *) hash_buf->digest;
-  salt_t *salt = hash_buf->salt;
-  pstoken_t *pstoken = (pstoken_t *) hash_buf->esalt;
-  u8 pstoken_tmp[DISPLAY_LEN_MAX_13500 - 40 - 1];
 
-  memset(pstoken_tmp, 0, DISPLAY_LEN_MAX_13500 - 40 - 1);
+  salt_t *salt = hash_buf->salt;
+
+  pstoken_t *pstoken = (pstoken_t *) hash_buf->esalt;
 
   digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
@@ -11813,17 +11806,66 @@ int pstoken_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   if (salt_len == UINT_MAX || salt_len % 2 != 0) return (PARSER_SALT_LENGTH);
 
-  for (uint i = 0; i < salt_len / 2; i++) 
-  { 
-    pstoken_tmp[i] = hex_to_u8 ((const u8 *) &salt_buf[i * 2]); 
+  u8 *pstoken_ptr = (u8 *) pstoken->salt_buf;
+
+  for (uint i = 0, j = 0; i < salt_len; i += 2, j += 1)
+  {
+    pstoken_ptr[j] = hex_to_u8 ((const u8 *) &salt_buf[i]);
   }
 
-  salt_len /= 2;
-  salt->salt_len = salt_len;
-  pstoken->salt_len = salt_len;
+  pstoken->salt_len = salt_len / 2;
 
-  memcpy(salt->salt_buf, pstoken_tmp, 16);
-  memcpy(pstoken->salt_buf, pstoken_tmp, salt_len);
+  salt->salt_len = 32;
+
+  /* some fake salt for the sorting mechanisms */
+
+  salt->salt_buf[0] = pstoken->salt_buf[0];
+  salt->salt_buf[1] = pstoken->salt_buf[1];
+  salt->salt_buf[2] = pstoken->salt_buf[2];
+  salt->salt_buf[3] = pstoken->salt_buf[3];
+  salt->salt_buf[4] = pstoken->salt_buf[4];
+  salt->salt_buf[5] = pstoken->salt_buf[5];
+  salt->salt_buf[6] = pstoken->salt_buf[6];
+  salt->salt_buf[7] = pstoken->salt_buf[7];
+
+  salt->salt_len = 32;
+
+  /* we need to check if we can precompute some of the data --
+     this is possible since the scheme is badly designed */
+
+  pstoken->pc_digest[0] = SHA1M_A;
+  pstoken->pc_digest[1] = SHA1M_B;
+  pstoken->pc_digest[2] = SHA1M_C;
+  pstoken->pc_digest[3] = SHA1M_D;
+  pstoken->pc_digest[4] = SHA1M_E;
+
+  pstoken->pc_offset = 0;
+
+  for (uint i = 0; i < pstoken->salt_len - 64; i += 64)
+  {
+    uint w[16];
+
+    w[ 0] = byte_swap_32 (pstoken->salt_buf[i +  0]);
+    w[ 1] = byte_swap_32 (pstoken->salt_buf[i +  1]);
+    w[ 2] = byte_swap_32 (pstoken->salt_buf[i +  2]);
+    w[ 3] = byte_swap_32 (pstoken->salt_buf[i +  3]);
+    w[ 4] = byte_swap_32 (pstoken->salt_buf[i +  4]);
+    w[ 5] = byte_swap_32 (pstoken->salt_buf[i +  5]);
+    w[ 6] = byte_swap_32 (pstoken->salt_buf[i +  6]);
+    w[ 7] = byte_swap_32 (pstoken->salt_buf[i +  7]);
+    w[ 8] = byte_swap_32 (pstoken->salt_buf[i +  8]);
+    w[ 9] = byte_swap_32 (pstoken->salt_buf[i +  9]);
+    w[10] = byte_swap_32 (pstoken->salt_buf[i + 10]);
+    w[11] = byte_swap_32 (pstoken->salt_buf[i + 11]);
+    w[12] = byte_swap_32 (pstoken->salt_buf[i + 12]);
+    w[13] = byte_swap_32 (pstoken->salt_buf[i + 13]);
+    w[14] = byte_swap_32 (pstoken->salt_buf[i + 14]);
+    w[15] = byte_swap_32 (pstoken->salt_buf[i + 15]);
+
+    sha1_64 (w, pstoken->pc_digest);
+
+    pstoken->pc_offset += 16;
+  }
 
   return (PARSER_OK);
 }

@@ -965,6 +965,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_AXCRYPT             13200
 #define KERN_TYPE_SHA1_AXCRYPT        13300
 #define KERN_TYPE_KEEPASS             13400
+#define KERN_TYPE_PSTOKEN             13500
 
 /**
  * signatures
