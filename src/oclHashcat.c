@@ -12676,6 +12676,49 @@ int main (int argc, char **argv)
 
       hc_clGetDeviceIDs (data.ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
 
+      char platform_vendor[INFOSZ] = { 0 };
+
+      hc_clGetPlatformInfo (data.ocl, platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
+
+      // find our own platform vendor because pocl and mesa are pushing original vendor_id through opencl
+      // this causes trouble with vendor id based macros
+      // we'll assign generic to those without special optimization available
+
+      cl_uint vendor_id = 0;
+
+      if (strcmp (platform_vendor, CL_VENDOR_AMD) == 0)
+      {
+        vendor_id = VENDOR_ID_AMD;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_APPLE) == 0)
+      {
+        vendor_id = VENDOR_ID_GENERIC;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
+      {
+        vendor_id = VENDOR_ID_GENERIC;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_INTEL_SDK) == 0)
+      {
+        vendor_id = VENDOR_ID_GENERIC;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_MESA) == 0)
+      {
+        vendor_id = VENDOR_ID_GENERIC;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_NV) == 0)
+      {
+        vendor_id = VENDOR_ID_NV;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_POCL) == 0)
+      {
+        vendor_id = VENDOR_ID_GENERIC;
+      }
+      else
+      {
+        vendor_id = VENDOR_ID_GENERIC;
+      }
+
       for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
       {
         size_t param_value_size = 0;
@@ -12683,6 +12726,8 @@ int main (int argc, char **argv)
         const uint device_id = devices_cnt;
 
         hc_device_param_t *device_param = &data.devices_param[device_id];
+
+        device_param->vendor_id = vendor_id;
 
         device_param->device = platform_devices[platform_devices_id];
 
@@ -12699,14 +12744,6 @@ int main (int argc, char **argv)
         device_type &= ~CL_DEVICE_TYPE_DEFAULT;
 
         device_param->device_type = device_type;
-
-        // vendor_id
-
-        cl_uint vendor_id = 0;
-
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VENDOR_ID, sizeof (vendor_id), &vendor_id, NULL);
-
-        device_param->vendor_id = vendor_id;
 
         // device_name
 
@@ -12743,16 +12780,6 @@ int main (int argc, char **argv)
         device_param->opencl_v12 = device_opencl_version[9] > '1' || device_opencl_version[11] >= '2';
 
         myfree (device_opencl_version);
-
-        if (strstr (device_version, "pocl"))
-        {
-          // pocl returns the real vendor_id in CL_DEVICE_VENDOR_ID which causes many problems because of hms and missing amd_bfe () etc
-          // we need to overwrite vendor_id to avoid this. maybe open pocl issue?
-
-          cl_uint vendor_id = VENDOR_ID_GENERIC;
-
-          device_param->vendor_id = vendor_id;
-        }
 
         // vector_width
 
@@ -12864,20 +12891,13 @@ int main (int argc, char **argv)
         {
           if (vendor_id == VENDOR_ID_AMD)
           {
-            if (strstr (device_version, "MESA"))
-            {
-              // MESA stuff
-            }
-            else
-            {
-              cl_uint device_processor_cores = 0;
+            cl_uint device_processor_cores = 0;
 
-              #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
+            #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
 
-              hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (device_processor_cores), &device_processor_cores, NULL);
+            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (device_processor_cores), &device_processor_cores, NULL);
 
-              device_param->device_processor_cores = device_processor_cores;
-            }
+            device_param->device_processor_cores = device_processor_cores;
           }
           else if (vendor_id == VENDOR_ID_NV)
           {
@@ -12943,23 +12963,57 @@ int main (int argc, char **argv)
 
         if (device_param->skipped == 0)
         {
-          if (strstr (device_version, "pocl"))
-          {
-            if (force == 0)
-            {
-              log_info ("");
-              log_info ("ATTENTION! All pocl drivers are known to be broken due to broken LLVM <= 3.7");
-              log_info ("You are STRONGLY encouraged not to use it");
-              log_info ("You can use --force to override this but do not post error reports if you do so");
-              log_info ("");
-
-              return (-1);
-            }
-          }
-
           if (device_type & CL_DEVICE_TYPE_GPU)
           {
-            if (vendor_id == VENDOR_ID_NV)
+            if (vendor_id == VENDOR_ID_AMD)
+            {
+              int catalyst_check = (force == 1) ? 0 : 1;
+
+              int catalyst_warn = 0;
+
+              int catalyst_broken = 0;
+
+              if (catalyst_check == 1)
+              {
+                catalyst_warn = 1;
+
+                // v14.9 and higher
+                if (atoi (device_param->driver_version) >= 1573)
+                {
+                  catalyst_warn = 0;
+                }
+
+                catalyst_check = 0;
+              }
+
+              if (catalyst_broken == 1)
+              {
+                log_info ("");
+                log_info ("ATTENTION! The installed catalyst driver in your system is known to be broken!");
+                log_info ("It will pass over cracked hashes and does not report them as cracked");
+                log_info ("You are STRONGLY encouraged not to use it");
+                log_info ("You can use --force to override this but do not post error reports if you do so");
+                log_info ("");
+
+                return (-1);
+              }
+
+              if (catalyst_warn == 1)
+              {
+                log_info ("");
+                log_info ("ATTENTION! Unsupported or incorrect installed catalyst driver detected!");
+                log_info ("You are STRONGLY encouraged to use the official supported catalyst driver for good reasons");
+                log_info ("See oclHashcat's homepage for official supported catalyst drivers");
+                #ifdef _WIN
+                log_info ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
+                #endif
+                log_info ("You can use --force to override this but do not post error reports if you do so");
+                log_info ("");
+
+                return (-1);
+              }
+            }
+            else if (vendor_id == VENDOR_ID_NV)
             {
               if (device_param->kernel_exec_timeout != 0)
               {
@@ -12967,59 +13021,17 @@ int main (int argc, char **argv)
                 if (data.quiet == 0) log_info ("           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
               }
             }
-            else if (vendor_id == VENDOR_ID_AMD)
+            else if (vendor_id == VENDOR_ID_POCL)
             {
-              if (strstr (device_version, "MESA"))
+              if (force == 0)
               {
-                // MESA stuff
-              }
-              else
-              {
-                int catalyst_check = (force == 1) ? 0 : 1;
+                log_info ("");
+                log_info ("ATTENTION! All pocl drivers are known to be broken due to broken LLVM <= 3.7");
+                log_info ("You are STRONGLY encouraged not to use it");
+                log_info ("You can use --force to override this but do not post error reports if you do so");
+                log_info ("");
 
-                int catalyst_warn = 0;
-
-                int catalyst_broken = 0;
-
-                if (catalyst_check == 1)
-                {
-                  catalyst_warn = 1;
-
-                  // v14.9 and higher
-                  if (atoi (device_param->driver_version) >= 1573)
-                  {
-                    catalyst_warn = 0;
-                  }
-
-                  catalyst_check = 0;
-                }
-
-                if (catalyst_broken == 1)
-                {
-                  log_info ("");
-                  log_info ("ATTENTION! The installed catalyst driver in your system is known to be broken!");
-                  log_info ("It will pass over cracked hashes and does not report them as cracked");
-                  log_info ("You are STRONGLY encouraged not to use it");
-                  log_info ("You can use --force to override this but do not post error reports if you do so");
-                  log_info ("");
-
-                  return (-1);
-                }
-
-                if (catalyst_warn == 1)
-                {
-                  log_info ("");
-                  log_info ("ATTENTION! Unsupported or incorrect installed catalyst driver detected!");
-                  log_info ("You are STRONGLY encouraged to use the official supported catalyst driver for good reasons");
-                  log_info ("See oclHashcat's homepage for official supported catalyst drivers");
-                  #ifdef _WIN
-                  log_info ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
-                  #endif
-                  log_info ("You can use --force to override this but do not post error reports if you do so");
-                  log_info ("");
-
-                  return (-1);
-                }
+                return (-1);
               }
             }
           }

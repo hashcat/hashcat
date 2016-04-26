@@ -15,9 +15,9 @@
  * vendor specific
  */
 
-#if VENDOR_ID == 4098
+#if VENDOR_ID == (1 << 0)
 #define IS_AMD
-#elif VENDOR_ID == 4318
+#elif VENDOR_ID == (1 << 6)
 #define IS_NV
 #else
 #define IS_GENERIC

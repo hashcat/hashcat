@@ -126,56 +126,63 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
  * shared stuff
  */
 
-#define ETC_MAX               (60 * 60 * 24 * 365 * 10)
+#define ETC_MAX                 (60 * 60 * 24 * 365 * 10)
 
-#define DEVICES_MAX           128
+#define DEVICES_MAX             128
 
-#define CL_PLATFORMS_MAX      16
+#define CL_PLATFORMS_MAX        16
 
-#define CL_VENDOR_NV          "NVIDIA Corporation"
-#define CL_VENDOR_AMD         "Advanced Micro Devices, Inc."
-#define CL_VENDOR_APPLE       "Apple"
-#define CL_VENDOR_POCL        "The pocl project"
+#define CL_VENDOR_AMD           "Advanced Micro Devices, Inc."
+#define CL_VENDOR_APPLE         "Apple"
+#define CL_VENDOR_INTEL_BEIGNET "Intel"
+#define CL_VENDOR_INTEL_SDK     "Intel(R) OpenCL"
+#define CL_VENDOR_MESA          "Mesa"
+#define CL_VENDOR_NV            "NVIDIA Corporation"
+#define CL_VENDOR_POCL          "The pocl project"
 
-#define VENDOR_ID_AMD         4098
-#define VENDOR_ID_NV          4318
-#define VENDOR_ID_APPLE_INTEL 4294967295
-#define VENDOR_ID_APPLE_IRIS  16925952
-#define VENDOR_ID_GENERIC     9999
+#define VENDOR_ID_AMD           (1 << 0)
+#define VENDOR_ID_APPLE         (1 << 1)
+#define VENDOR_ID_INTEL_BEIGNET (1 << 2)
+#define VENDOR_ID_INTEL_SDK     (1 << 3)
+#define VENDOR_ID INTEL         (1 << 4)
+#define VENDOR_ID_MESA          (1 << 5)
+#define VENDOR_ID_NV            (1 << 6)
+#define VENDOR_ID_POCL          (1 << 7)
+#define VENDOR_ID_GENERIC       (1 << 31)
 
-#define BLOCK_SIZE            64
+#define BLOCK_SIZE              64
 
-#define CHARSIZ               0x100
-#define INFOSZ                CHARSIZ
+#define CHARSIZ                 0x100
+#define INFOSZ                  CHARSIZ
 
-#define SP_HCSTAT             "hashcat.hcstat"
-#define SP_PW_MIN             2
-#define SP_PW_MAX             64
-#define SP_ROOT_CNT           (SP_PW_MAX * CHARSIZ)
-#define SP_MARKOV_CNT         (SP_PW_MAX * CHARSIZ * CHARSIZ)
+#define SP_HCSTAT               "hashcat.hcstat"
+#define SP_PW_MIN               2
+#define SP_PW_MAX               64
+#define SP_ROOT_CNT             (SP_PW_MAX * CHARSIZ)
+#define SP_MARKOV_CNT           (SP_PW_MAX * CHARSIZ * CHARSIZ)
 
-#define TUNING_DB_FILE        "hashcat_tuning.hctab"
+#define TUNING_DB_FILE          "hashcat_tuning.hctab"
 
-#define INDUCT_DIR            "induct"
-#define OUTFILES_DIR          "outfiles"
+#define INDUCT_DIR              "induct"
+#define OUTFILES_DIR            "outfiles"
 
-#define LOOPBACK_FILE         "hashcat.loopback"
+#define LOOPBACK_FILE           "hashcat.loopback"
 
-#define DICTSTAT_FILENAME     "hashcat.dictstat"
-#define POTFILE_FILENAME      "hashcat.pot"
+#define DICTSTAT_FILENAME       "hashcat.dictstat"
+#define POTFILE_FILENAME        "hashcat.pot"
 
 /**
  * types
  */
 
 #ifdef _WIN
-typedef LARGE_INTEGER         hc_timer_t;
-typedef HANDLE                hc_thread_t;
-typedef CRITICAL_SECTION      hc_thread_mutex_t;
+typedef LARGE_INTEGER     hc_timer_t;
+typedef HANDLE            hc_thread_t;
+typedef CRITICAL_SECTION  hc_thread_mutex_t;
 #elif _POSIX
-typedef struct timeval        hc_timer_t;
-typedef pthread_t             hc_thread_t;
-typedef pthread_mutex_t       hc_thread_mutex_t;
+typedef struct timeval    hc_timer_t;
+typedef pthread_t         hc_thread_t;
+typedef pthread_mutex_t   hc_thread_mutex_t;
 #endif
 
 #include <types.h>
@@ -644,8 +651,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_11100 10 + 32 + 1 + 8 + 1 + 32
 #define DISPLAY_LEN_MIN_11200 9 + 40 + 1 + 40
 #define DISPLAY_LEN_MAX_11200 9 + 40 + 1 + 40
-#define DISPLAY_LEN_MIN_11300 1 + 7 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 16 + 1 + 1 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 66
-#define DISPLAY_LEN_MAX_11300 1 + 7 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 16 + 1 + 6 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 66
+#define DISPLAY_LEN_MIN_11300 1 + 7 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 16 + 1 + 1 + 1 + 2 + 1 + 96 + 1 + 1 + 1 + 2
+#define DISPLAY_LEN_MAX_11300 1 + 7 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 16 + 1 + 6 + 1 + 2 + 1 + 96 + 1 + 3 + 1 + 512
 #define DISPLAY_LEN_MIN_11400 6 +   0 + 1 +   0 + 1 +   0 + 1 +   0 + 1 +   0 + 1 +   0 + 1 +   1 + 1 +   0 + 1 +  1 + 1 +  0 + 1 +  0 + 1 +  0 + 1 + 3 + 1 + 32
 #define DISPLAY_LEN_MAX_11400 6 + 512 + 1 + 512 + 1 + 116 + 1 + 116 + 1 + 246 + 1 + 245 + 1 + 246 + 1 + 245 + 1 + 50 + 1 + 50 + 1 + 50 + 1 + 50 + 1 + 3 + 1 + 32
 #define DISPLAY_LEN_MIN_11500 8 + 1 + 8
