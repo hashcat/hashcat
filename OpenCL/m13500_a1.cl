@@ -63,7 +63,7 @@ static void memcat64c_be (u32x block[16], const u32 offset, u32x carry[16])
   tmp13 = __byte_perm (carry[13], carry[12], selector);
   tmp14 = __byte_perm (carry[14], carry[13], selector);
   tmp15 = __byte_perm (carry[15], carry[14], selector);
-  tmp17 = __byte_perm (        0, carry[15], selector);
+  tmp16 = __byte_perm (        0, carry[15], selector);
   #endif
 
   #if defined IS_AMD || defined IS_GENERIC
