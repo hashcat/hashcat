@@ -2675,6 +2675,15 @@ sub verify
 
       return unless (substr ($line, 0, $len) eq $hash_out);
     }
+    elsif ($mode == 13500)
+    {
+      $hash_out = gen_hash ($mode, $word, $salt);
+
+      $len = length $hash_out;
+      print $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
     else
     {
       $hash_out = gen_hash ($mode, $word, $salt, $iter);
