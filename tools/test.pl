@@ -2675,15 +2675,6 @@ sub verify
 
       return unless (substr ($line, 0, $len) eq $hash_out);
     }
-    elsif ($mode == 13500)
-    {
-      $hash_out = gen_hash ($mode, $word, $salt);
-
-      $len = length $hash_out;
-      print $hash_out;
-
-      return unless (substr ($line, 0, $len) eq $hash_out);
-    }
     else
     {
       $hash_out = gen_hash ($mode, $word, $salt, $iter);
@@ -7165,7 +7156,7 @@ END_CODE
   }
   elsif ($mode == 13500)
   {
-    $hash_buf = sha1_hex (pack("H*",$salt_buf) . encode ("UTF-16LE", $word_buf));
+    $hash_buf = sha1_hex (pack ("H*", $salt_buf) . encode ("UTF-16LE", $word_buf));
 
     $tmp_hash = sprintf ("%s:%s", $hash_buf, $salt_buf);
   }
@@ -8668,17 +8659,12 @@ sub get_random_keepass_salt
 
 sub get_pstoken_salt
 {
-  # Cannot be fully random because of the salt structure, will use a constant salt.
-  my $pstoken_const =
-  "\x71\x00\x00\x00\x04\x03\x02\x01\x01\x00\x00\x00\xbc\x02" .
-  "\x00\x00\x00\x00\x00\x00\x10\x50\x00\x50\x00\x57\x00\x45" .
-  "\x00\x42\x00\x45\x00\x58\x00\x54\x00\x06\x45\x00\x4e\x00" .
-  "\x47\x00\x0e\x50\x00\x53\x00\x46\x00\x54\x00\x5f\x00\x48" .
-  "\x00\x52\x00\x34\x32\x00\x30\x00\x31\x00\x36\x00\x2d\x00" .
-  "\x30\x00\x34\x00\x2d\x00\x30\x00\x38\x00\x2d\x00\x31\x00" .
-  "\x39\x00\x2e\x00\x32\x00\x37\x00\x2e\x00\x30\x00\x35\x00" .
-  "\x2e\x00\x30\x00\x30\x00\x30\x00\x30\x00\x30\x00\x32\x00" .
-  "\x00";
+  my $pstoken_length = get_random_num (16, 256);
+
+  ## not a valid pstoken but a better test
+  ## because of random length
+
+  my $pstoken_const = randbytes ($pstoken_length);
 
   return unpack ("H*", $pstoken_const);
 }

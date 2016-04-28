@@ -86,27 +86,6 @@ static void memcat64c_be (u32x block[16], const u32 offset, u32x carry[16])
   tmp14 = amd_bytealign (carry[13], carry[14], offset);
   tmp15 = amd_bytealign (carry[14], carry[15], offset);
   tmp16 = amd_bytealign (carry[15],         0, offset);
-
-  if (mod == 0)
-  {
-    tmp00 = tmp01;
-    tmp01 = tmp02;
-    tmp02 = tmp03;
-    tmp03 = tmp04;
-    tmp04 = tmp05;
-    tmp05 = tmp06;
-    tmp06 = tmp07;
-    tmp07 = tmp08;
-    tmp08 = tmp09;
-    tmp09 = tmp10;
-    tmp10 = tmp11;
-    tmp11 = tmp12;
-    tmp12 = tmp13;
-    tmp13 = tmp14;
-    tmp14 = tmp15;
-    tmp15 = tmp16;
-    tmp16 = 0;
-  }
   #endif
 
   carry[ 0] = 0;
