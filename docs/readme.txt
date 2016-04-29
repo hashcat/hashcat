@@ -22,26 +22,13 @@ NVidia users require ForceWare 346.59 or later (recommended 358.09 or later)
 - Supports interactive pause / resume
 - Supports sessions
 - Supports restore
-- Supports reading words from file and stdin
+- Supports reading password candidates from file and stdin
 - Supports hex-salt and hex-charset
-- Supports user-defined workload and vector-width settings
-- Supports automatic keyspace ordering markov-chains 
+- Supports automatic performance tuning
+- Supports automatic keyspace ordering markov-chains
 - Built-in benchmarking system
 - Integrated thermal watchdog
 - 150+ Hash-types implemented with performance in mind
-- ... and much more
-
-##
-## Attack-Modes
-##
-
-- Straight *
-- Combination
-- Brute-force
-- Hybrid dict + mask
-- Hybrid mask + dict
-
-* = Supports rules
 
 ##
 ## Hash-Types
@@ -181,6 +168,7 @@ NVidia users require ForceWare 346.59 or later (recommended 358.09 or later)
 - SAP CODVN F/G (PASSCODE)
 - SAP CODVN H (PWDSALTEDHASH) iSSHA-1
 - PeopleSoft
+- PeopleSoft PS_TOKEN
 - Skype
 - 7-Zip
 - RAR3-hp
@@ -213,25 +201,24 @@ NVidia users require ForceWare 346.59 or later (recommended 358.09 or later)
 - TrueCrypt 5.0+
 
 ##
-## Tested GPU's
+## Attack-Modes
 ##
 
-- AMD OpenCL enabled GPU using AMD Catalyst driver
-- Intel OpenCL enabled GPU using Intel OpenCL driver
-- NVidia OpenCL enabled GPU using NVidia ForceWare driver
+- Straight *
+- Combination
+- Brute-force
+- Hybrid dict + mask
+- Hybrid mask + dict
+
+* = Supports rules
 
 ##
-## Tested CPU's
+## Supported OpenCL runtimes
 ##
 
-- AMD CPU using AMD Catalyst driver
-- Intel CPU using Intel OpenCL driver
-- Generic CPU using pocl driver or Catalyst driver
-
-##
-## Tested Accelerators's
-##
-
-- Intel Xeon Phi coprocessors using Intel OpenCL driver
-
-To get started, run the example scripts or check out docs/user_manuals.txt
+- AMD Catalyst
+- Apple
+- Intel
+- Mesa/Clover
+- NVidia ForceWare
+- pocl
