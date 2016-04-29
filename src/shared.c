@@ -11815,8 +11815,6 @@ int pstoken_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   pstoken->salt_len = salt_len / 2;
 
-  salt->salt_len = 32;
-
   /* some fake salt for the sorting mechanisms */
 
   salt->salt_buf[0] = pstoken->salt_buf[0];
@@ -11841,26 +11839,26 @@ int pstoken_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   pstoken->pc_offset = 0;
 
-  for (uint i = 0; i < pstoken->salt_len - 64; i += 64)
+  for (int i = 0; i < (int) pstoken->salt_len - 64; i += 64)
   {
     uint w[16];
 
-    w[ 0] = byte_swap_32 (pstoken->salt_buf[i +  0]);
-    w[ 1] = byte_swap_32 (pstoken->salt_buf[i +  1]);
-    w[ 2] = byte_swap_32 (pstoken->salt_buf[i +  2]);
-    w[ 3] = byte_swap_32 (pstoken->salt_buf[i +  3]);
-    w[ 4] = byte_swap_32 (pstoken->salt_buf[i +  4]);
-    w[ 5] = byte_swap_32 (pstoken->salt_buf[i +  5]);
-    w[ 6] = byte_swap_32 (pstoken->salt_buf[i +  6]);
-    w[ 7] = byte_swap_32 (pstoken->salt_buf[i +  7]);
-    w[ 8] = byte_swap_32 (pstoken->salt_buf[i +  8]);
-    w[ 9] = byte_swap_32 (pstoken->salt_buf[i +  9]);
-    w[10] = byte_swap_32 (pstoken->salt_buf[i + 10]);
-    w[11] = byte_swap_32 (pstoken->salt_buf[i + 11]);
-    w[12] = byte_swap_32 (pstoken->salt_buf[i + 12]);
-    w[13] = byte_swap_32 (pstoken->salt_buf[i + 13]);
-    w[14] = byte_swap_32 (pstoken->salt_buf[i + 14]);
-    w[15] = byte_swap_32 (pstoken->salt_buf[i + 15]);
+    w[ 0] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  0]);
+    w[ 1] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  1]);
+    w[ 2] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  2]);
+    w[ 3] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  3]);
+    w[ 4] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  4]);
+    w[ 5] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  5]);
+    w[ 6] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  6]);
+    w[ 7] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  7]);
+    w[ 8] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  8]);
+    w[ 9] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  9]);
+    w[10] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 10]);
+    w[11] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 11]);
+    w[12] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 12]);
+    w[13] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 13]);
+    w[14] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 14]);
+    w[15] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 15]);
 
     sha1_64 (w, pstoken->pc_digest);
 
@@ -11869,7 +11867,6 @@ int pstoken_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   return (PARSER_OK);
 }
-
 
 int sha1b64_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 {
