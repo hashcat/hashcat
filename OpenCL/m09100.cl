@@ -67,7 +67,7 @@ __constant u32 lotus_magic_table[256] =
 
 #define uint_to_hex_upper8(i) l_bin2asc[(i)]
 
-static void lotus_mix (u32 *in, __local u32 *s_lotus_magic_table)
+void lotus_mix (u32 *in, __local u32 *s_lotus_magic_table)
 {
   u32 p = 0;
 
@@ -91,7 +91,7 @@ static void lotus_mix (u32 *in, __local u32 *s_lotus_magic_table)
   }
 }
 
-static void lotus_transform_password (u32 in[4], u32 out[4], __local u32 *s_lotus_magic_table)
+void lotus_transform_password (u32 in[4], u32 out[4], __local u32 *s_lotus_magic_table)
 {
   u32 t = out[3] >> 24;
 
@@ -107,7 +107,7 @@ static void lotus_transform_password (u32 in[4], u32 out[4], __local u32 *s_lotu
   }
 }
 
-static void pad (u32 w[4], const u32 len)
+void pad (u32 w[4], const u32 len)
 {
   const u32 val = 16 - len;
 
@@ -186,7 +186,7 @@ static void pad (u32 w[4], const u32 len)
   }
 }
 
-static void mdtransform_norecalc (u32 state[4], u32 block[4], __local u32 *s_lotus_magic_table)
+void mdtransform_norecalc (u32 state[4], u32 block[4], __local u32 *s_lotus_magic_table)
 {
   u32 x[12];
 
@@ -211,14 +211,14 @@ static void mdtransform_norecalc (u32 state[4], u32 block[4], __local u32 *s_lot
   state[3] = x[3];
 }
 
-static void mdtransform (u32 state[4], u32 checksum[4], u32 block[4], __local u32 *s_lotus_magic_table)
+void mdtransform (u32 state[4], u32 checksum[4], u32 block[4], __local u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-static void domino_big_md (const u32 saved_key[16], const u32 size, u32 state[4], __local u32 *s_lotus_magic_table)
+void domino_big_md (const u32 saved_key[16], const u32 size, u32 state[4], __local u32 *s_lotus_magic_table)
 {
   u32 checksum[4];
 
@@ -259,7 +259,7 @@ static void domino_big_md (const u32 saved_key[16], const u32 size, u32 state[4]
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 A = digest[0];
   u32 B = digest[1];
@@ -387,7 +387,7 @@ static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], c
   digest[4] += E;
 }
 
-static void hmac_sha1_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[5], u32 opad[5])
+void hmac_sha1_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[5], u32 opad[5])
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -440,7 +440,7 @@ static void hmac_sha1_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[
   sha1_transform (w0, w1, w2, w3, opad);
 }
 
-static void hmac_sha1_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[5], u32 opad[5], u32 digest[5])
+void hmac_sha1_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[5], u32 opad[5], u32 digest[5])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -476,7 +476,7 @@ static void hmac_sha1_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[
   sha1_transform (w0, w1, w2, w3, digest);
 }
 
-static void base64_encode (u8 *base64_hash, const u32 len, const u8 *base64_plain)
+void base64_encode (u8 *base64_hash, const u32 len, const u8 *base64_plain)
 {
   u8 *out_ptr = (u8 *) base64_hash;
   u8 *in_ptr  = (u8 *) base64_plain;
@@ -500,7 +500,7 @@ static void base64_encode (u8 *base64_hash, const u32 len, const u8 *base64_plai
   }
 }
 
-static void lotus6_base64_encode (u8 base64_hash[24], const u32 salt0, const u32 salt1, u32 a, u32 b, u32 c)
+void lotus6_base64_encode (u8 base64_hash[24], const u32 salt0, const u32 salt1, u32 a, u32 b, u32 c)
 {
   uchar4 salt0c = as_uchar4 (salt0);
   uchar4 salt1c = as_uchar4 (salt1);

@@ -95,7 +95,6 @@ It combines all features of all hashcat projects in one project.
 - Added several macros to allow writing optimized code for the different OpenCL platforms
 - Replaced typedef for bool with stdbool.h
 - Added special DEBUG environment variables to the makefile
-- Created environment variable to inform NVidia OpenCL runtime to not create its own kernel cache
 - Hashcat now acquires an exclusive lock before writing to any file
 - Changed buffers to not use same buffer for both input and output at the same time with snprintf()
 - Check for allocatable device-memory depending on kernel_accel amplifier before trying to allocate
@@ -114,3 +113,8 @@ It combines all features of all hashcat projects in one project.
 - Renamed option --gpu-accel to --kernel-accel
 - Renamed option --gpu-loops to --kernel-loops
 - Renamed option --gpu-devices to --opencl-devices
+- Added inline declaration to functions from simd.c, common.c, rp.c and types_ocl.c to increase performance
+- Dropped static declaration from functions in all kernel to achieve OpenCL 1.1 compatibility
+- Added -cl-std=CL1.1 to all kernel build options
+- Created environment variable to inform NVidia OpenCL runtime to not create its own kernel cache
+- Created environment variable to inform pocl OpenCL runtime to not create its own kernel cache

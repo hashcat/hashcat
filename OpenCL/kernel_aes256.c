@@ -690,7 +690,7 @@ __constant u32 rcon[] =
   0x1b000000, 0x36000000,
 };
 
-static void aes256_ExpandKey (u32 *ks, const u32 *ukey)
+void aes256_ExpandKey (u32 *ks, const u32 *ukey)
 {
   ks[0] = ukey[0];
   ks[1] = ukey[1];
@@ -740,7 +740,7 @@ static void aes256_ExpandKey (u32 *ks, const u32 *ukey)
   }
 }
 
-static void aes256_InvertKey (u32 *ks)
+void aes256_InvertKey (u32 *ks)
 {
   for (u32 i = 0, j = 56; i < j; i += 4, j -= 4)
   {
@@ -780,7 +780,7 @@ static void aes256_InvertKey (u32 *ks)
   }
 }
 
-static void aes256_set_encrypt_key (u32 *ks, const u32 *ukey)
+void aes256_set_encrypt_key (u32 *ks, const u32 *ukey)
 {
   u32 ukey_s[8];
 
@@ -796,7 +796,7 @@ static void aes256_set_encrypt_key (u32 *ks, const u32 *ukey)
   aes256_ExpandKey (ks, ukey_s);
 }
 
-static void aes256_set_decrypt_key (u32 *ks, const u32 *ukey)
+void aes256_set_decrypt_key (u32 *ks, const u32 *ukey)
 {
   u32 ukey_s[8];
 
@@ -814,7 +814,7 @@ static void aes256_set_decrypt_key (u32 *ks, const u32 *ukey)
   aes256_InvertKey (ks);
 }
 
-static void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out)
+void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out)
 {
   u32 in_s[4];
 
@@ -916,7 +916,7 @@ static void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out)
   out[3] = swap32 (out[3]);
 }
 
-static void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out)
+void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out)
 {
   u32 in_s[4];
 
@@ -1018,7 +1018,7 @@ static void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out)
   out[3] = swap32 (out[3]);
 }
 
-static void aes256_decrypt_xts (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out)
+void aes256_decrypt_xts (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out)
 {
   u32 T[4] = { 0 };
   u32 Z[4] = { 0 };

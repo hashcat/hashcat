@@ -709,7 +709,7 @@ __constant u32 rcon[] =
   0x1b000000, 0x36000000,
 };
 
-static void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   rek[0] = userkey[0];
   rek[1] = userkey[1];
@@ -765,7 +765,7 @@ static void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __loca
   }
 }
 
-static void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   for (u32 i = 0, j = 56; i < j; i += 4, j -= 4)
   {
@@ -805,7 +805,7 @@ static void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, 
   }
 }
 
-static void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
+void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
 {
   u32 s0 = in[0] ^ rdk[0];
   u32 s1 = in[1] ^ rdk[1];
@@ -915,7 +915,7 @@ __constant u32 k_sha256[64] =
   SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
 };
 
-static void sha256_transform (const u32 w[16], u32 digest[8])
+void sha256_transform (const u32 w[16], u32 digest[8])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -1069,7 +1069,7 @@ __constant u32 crc32tab[0x100] =
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-static u32 round_crc32 (u32 a, const u32 v)
+u32 round_crc32 (u32 a, const u32 v)
 {
   const u32 k = (a ^ v) & 0xff;
 
@@ -1082,7 +1082,7 @@ static u32 round_crc32 (u32 a, const u32 v)
   return a;
 }
 
-static u32 crc32 (const u32 w[16], const u32 pw_len, const u32 iv)
+u32 crc32 (const u32 w[16], const u32 pw_len, const u32 iv)
 {
   u32 a = iv ^ ~0;
 
@@ -1102,7 +1102,7 @@ static u32 crc32 (const u32 w[16], const u32 pw_len, const u32 iv)
   return ~a;
 }
 
-static void bzero16 (u32 block[16])
+void bzero16 (u32 block[16])
 {
   block[ 0] = 0;
   block[ 1] = 0;
@@ -1122,7 +1122,7 @@ static void bzero16 (u32 block[16])
   block[15] = 0;
 }
 
-static u32 memcat8c (u32 block[16], const u32 block_len, const u32 append[2], const u32 append_len, u32 digest[8])
+u32 memcat8c (u32 block[16], const u32 block_len, const u32 append[2], const u32 append_len, u32 digest[8])
 {
   const u32 mod = block_len & 3;
   const u32 div = block_len / 4;
@@ -1243,7 +1243,7 @@ static u32 memcat8c (u32 block[16], const u32 block_len, const u32 append[2], co
   return new_len;
 }
 
-static u32 memcat32c (u32 block[16], const u32 block_len, const u32 append[8], const u32 append_len, u32 digest[8])
+u32 memcat32c (u32 block[16], const u32 block_len, const u32 append[8], const u32 append_len, u32 digest[8])
 {
   const u32 mod = block_len & 3;
   const u32 div = block_len / 4;

@@ -33,14 +33,14 @@ typedef VTYPE(uint,   VECT_SIZE) u32x;
 typedef VTYPE(ulong,  VECT_SIZE) u64x;
 #endif
 
-static inline u32 l32_from_64_S (u64 a)
+inline u32 l32_from_64_S (u64 a)
 {
   const u32 r = (u32) (a);
 
   return r;
 }
 
-static inline u32 h32_from_64_S (u64 a)
+inline u32 h32_from_64_S (u64 a)
 {
   a >>= 32;
 
@@ -49,12 +49,12 @@ static inline u32 h32_from_64_S (u64 a)
   return r;
 }
 
-static inline u64 hl32_to_64_S (const u32 a, const u32 b)
+inline u64 hl32_to_64_S (const u32 a, const u32 b)
 {
   return as_ulong ((uint2) (b, a));
 }
 
-static inline u32x l32_from_64 (u64x a)
+inline u32x l32_from_64 (u64x a)
 {
   u32x r;
 
@@ -93,7 +93,7 @@ static inline u32x l32_from_64 (u64x a)
   return r;
 }
 
-static inline u32x h32_from_64 (u64x a)
+inline u32x h32_from_64 (u64x a)
 {
   a >>= 32;
 
@@ -134,7 +134,7 @@ static inline u32x h32_from_64 (u64x a)
   return r;
 }
 
-static inline u64x hl32_to_64 (const u32x a, const u32x b)
+inline u64x hl32_to_64 (const u32x a, const u32x b)
 {
   u64x r;
 
@@ -174,27 +174,27 @@ static inline u64x hl32_to_64 (const u32x a, const u32x b)
 }
 
 #ifdef IS_AMD
-static inline u32 swap32_S (const u32 v)
+inline u32 swap32_S (const u32 v)
 {
   return (as_uint (as_uchar4 (v).s3210));
 }
 
-static inline u64 swap64_S (const u64 v)
+inline u64 swap64_S (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
 }
 
-static inline u32 rotr32_S (const u32 a, const u32 n)
+inline u32 rotr32_S (const u32 a, const u32 n)
 {
   return rotate (a, 32 - n);
 }
 
-static inline u32 rotl32_S (const u32 a, const u32 n)
+inline u32 rotl32_S (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
-static inline u64 rotr64_S (const u64 a, const u32 n)
+inline u64 rotr64_S (const u64 a, const u32 n)
 {
   const u32 a0 = h32_from_64_S (a);
   const u32 a1 = l32_from_64_S (a);
@@ -207,12 +207,12 @@ static inline u64 rotr64_S (const u64 a, const u32 n)
   return r;
 }
 
-static inline u64 rotl64_S (const u64 a, const u32 n)
+inline u64 rotl64_S (const u64 a, const u32 n)
 {
   return rotr64_S (a, 64 - n);
 }
 
-static inline u32x swap32 (const u32x v)
+inline u32x swap32 (const u32x v)
 {
   return ((v >> 24) & 0x000000ff)
        | ((v >>  8) & 0x0000ff00)
@@ -220,7 +220,7 @@ static inline u32x swap32 (const u32x v)
        | ((v << 24) & 0xff000000);
 }
 
-static inline u64x swap64 (const u64x v)
+inline u64x swap64 (const u64x v)
 {
   return ((v >> 56) & 0x00000000000000ff)
        | ((v >> 40) & 0x000000000000ff00)
@@ -232,17 +232,17 @@ static inline u64x swap64 (const u64x v)
        | ((v << 56) & 0xff00000000000000);
 }
 
-static inline u32x rotr32 (const u32x a, const u32 n)
+inline u32x rotr32 (const u32x a, const u32 n)
 {
   return rotate (a, 32 - n);
 }
 
-static inline u32x rotl32 (const u32x a, const u32 n)
+inline u32x rotl32 (const u32x a, const u32 n)
 {
   return rotate (a, n);
 }
 
-static inline u64x rotr64 (const u64x a, const u32 n)
+inline u64x rotr64 (const u64x a, const u32 n)
 {
   const u32x a0 = h32_from_64 (a);
   const u32x a1 = l32_from_64 (a);
@@ -255,24 +255,24 @@ static inline u64x rotr64 (const u64x a, const u32 n)
   return r;
 }
 
-static inline u64x rotl64 (const u64x a, const u32 n)
+inline u64x rotl64 (const u64x a, const u32 n)
 {
   return rotr64 (a, 64 - n);
 }
 
-static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
+inline u32 __bfe (const u32 a, const u32 b, const u32 c)
 {
   return amd_bfe (a, b, c);
 }
 
-static inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
+inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   return amd_bytealign (a, b, c);
 }
 #endif
 
 #ifdef IS_NV
-static inline u32 swap32_S (const u32 v)
+inline u32 swap32_S (const u32 v)
 {
   u32 r;
 
@@ -281,7 +281,7 @@ static inline u32 swap32_S (const u32 v)
   return r;
 }
 
-static inline u64 swap64_S (const u64 v)
+inline u64 swap64_S (const u64 v)
 {
   u32 il;
   u32 ir;
@@ -301,18 +301,18 @@ static inline u64 swap64_S (const u64 v)
   return r;
 }
 
-static inline u32 rotr32_S (const u32 a, const u32 n)
+inline u32 rotr32_S (const u32 a, const u32 n)
 {
   return rotate (a, 32 - n);
 }
 
-static inline u32 rotl32_S (const u32 a, const u32 n)
+inline u32 rotl32_S (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
 #if CUDA_ARCH >= 350
-static inline u64 rotr64_S (const u64 a, const u32 n)
+inline u64 rotr64_S (const u64 a, const u32 n)
 {
   u32 il;
   u32 ir;
@@ -340,18 +340,18 @@ static inline u64 rotr64_S (const u64 a, const u32 n)
   return r;
 }
 #else
-static inline u64 rotr64_S (const u64 a, const u32 n)
+inline u64 rotr64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) 64 - n);
 }
 #endif
 
-static inline u64 rotl64_S (const u64 a, const u32 n)
+inline u64 rotl64_S (const u64 a, const u32 n)
 {
   return rotr64_S (a, 64 - n);
 }
 
-static inline u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
+inline u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -360,7 +360,7 @@ static inline u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-static inline u32x swap32 (const u32x v)
+inline u32x swap32 (const u32x v)
 {
   return ((v >> 24) & 0x000000ff)
        | ((v >>  8) & 0x0000ff00)
@@ -368,7 +368,7 @@ static inline u32x swap32 (const u32x v)
        | ((v << 24) & 0xff000000);
 }
 
-static inline u64x swap64 (const u64x v)
+inline u64x swap64 (const u64x v)
 {
   return ((v >> 56) & 0x00000000000000ff)
        | ((v >> 40) & 0x000000000000ff00)
@@ -380,18 +380,18 @@ static inline u64x swap64 (const u64x v)
        | ((v << 56) & 0xff00000000000000);
 }
 
-static inline u32x rotr32 (const u32x a, const u32 n)
+inline u32x rotr32 (const u32x a, const u32 n)
 {
   return rotate (a, 32 - n);
 }
 
-static inline u32x rotl32 (const u32x a, const u32 n)
+inline u32x rotl32 (const u32x a, const u32 n)
 {
   return rotate (a, n);
 }
 
 #if CUDA_ARCH >= 350
-static inline u64x rotr64 (const u64x a, const u32 n)
+inline u64x rotr64 (const u64x a, const u32 n)
 {
   u64x r;
 
@@ -710,18 +710,18 @@ static inline u64x rotr64 (const u64x a, const u32 n)
   return r;
 }
 #else
-static inline u64x rotr64 (const u64x a, const u32 n)
+inline u64x rotr64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64) 64 - n);
 }
 #endif
 
-static inline u64x rotl64 (const u64x a, const u32 n)
+inline u64x rotl64 (const u64x a, const u32 n)
 {
   return rotr64 (a, (u64) 64 - n);
 }
 
-static inline u32x __byte_perm (const u32x a, const u32x b, const u32x c)
+inline u32x __byte_perm (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
 
@@ -760,7 +760,7 @@ static inline u32x __byte_perm (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
-static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
+inline u32 __bfe (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -770,7 +770,7 @@ static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
 }
 
 #if CUDA_ARCH >= 350
-static inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
+inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -779,7 +779,7 @@ static inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
   return r;
 }
 #else
-static inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
+inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
 {
   return __byte_perm_S (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
 }
@@ -788,44 +788,44 @@ static inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
 #endif
 
 #ifdef IS_GENERIC
-static inline u32 swap32_S (const u32 v)
+inline u32 swap32_S (const u32 v)
 {
   return (as_uint (as_uchar4 (v).s3210));
 }
 
-static inline u64 swap64_S (const u64 v)
+inline u64 swap64_S (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
 }
 
-static inline u32 rotr32_S (const u32 a, const u32 n)
+inline u32 rotr32_S (const u32 a, const u32 n)
 {
   return rotate (a, 32 - n);
 }
 
-static inline u32 rotl32_S (const u32 a, const u32 n)
+inline u32 rotl32_S (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
-static inline u64 rotr64_S (const u64 a, const u32 n)
+inline u64 rotr64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) 64 - n);
 }
 
-static inline u64 rotl64_S (const u64 a, const u32 n)
+inline u64 rotl64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) n);
 }
 
-static inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
+inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   const u64 tmp = ((((u64) a) << 32) | ((u64) b)) >> ((c & 3) * 8);
 
   return (u32) (tmp);
 }
 
-static inline u32x swap32 (const u32x v)
+inline u32x swap32 (const u32x v)
 {
   return ((v >> 24) & 0x000000ff)
        | ((v >>  8) & 0x0000ff00)
@@ -833,7 +833,7 @@ static inline u32x swap32 (const u32x v)
        | ((v << 24) & 0xff000000);
 }
 
-static inline u64x swap64 (const u64x v)
+inline u64x swap64 (const u64x v)
 {
   return ((v >> 56) & 0x00000000000000ff)
        | ((v >> 40) & 0x000000000000ff00)
@@ -845,27 +845,27 @@ static inline u64x swap64 (const u64x v)
        | ((v << 56) & 0xff00000000000000);
 }
 
-static inline u32x rotr32 (const u32x a, const u32 n)
+inline u32x rotr32 (const u32x a, const u32 n)
 {
   return rotate (a, 32 - n);
 }
 
-static inline u32x rotl32 (const u32x a, const u32 n)
+inline u32x rotl32 (const u32x a, const u32 n)
 {
   return rotate (a, n);
 }
 
-static inline u64x rotr64 (const u64x a, const u32 n)
+inline u64x rotr64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64) 64 - n);
 }
 
-static inline u64x rotl64 (const u64x a, const u32 n)
+inline u64x rotl64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64) n);
 }
 
-static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
+inline u32 __bfe (const u32 a, const u32 b, const u32 c)
 {
   #define BIT(x)      (1 << (x))
   #define BIT_MASK(x) (BIT (x) - 1)
@@ -874,7 +874,7 @@ static inline u32 __bfe (const u32 a, const u32 b, const u32 c)
   return BFE (a, b, c);
 }
 
-static inline u32x amd_bytealign (const u32x a, const u32x b, const u32 c)
+inline u32x amd_bytealign (const u32x a, const u32x b, const u32 c)
 {
   #if VECT_SIZE == 1
   const u64x tmp = ((((u64x) (a)) << 32) | ((u64x) (b))) >> ((c & 3) * 8);

@@ -1091,7 +1091,7 @@ __constant u32 Cl[8][256] =
 
 #define BOX(S,n,i) (S)[(n)][(i)]
 
-static void whirlpool_transform_last (u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void whirlpool_transform_last (u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   const u32 rch[R + 1] =
   {
@@ -1290,7 +1290,7 @@ static void whirlpool_transform_last (u32 dgst[16], __local u32 (*s_Ch)[256], __
   dgst[15] ^= statel[7] ^ LAST_W15;
 }
 
-static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   const u32 rch[R + 1] =
   {
@@ -1486,7 +1486,7 @@ static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 (*s_
   dgst[15] ^= statel[7] ^ w[15];
 }
 
-static void hmac_run2a (const u32 w1[16], const u32 w2[16], const u32 ipad[16], const u32 opad[16], u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void hmac_run2a (const u32 w1[16], const u32 w2[16], const u32 ipad[16], const u32 opad[16], u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   dgst[ 0] = ipad[ 0];
   dgst[ 1] = ipad[ 1];
@@ -1549,7 +1549,7 @@ static void hmac_run2a (const u32 w1[16], const u32 w2[16], const u32 ipad[16], 
   whirlpool_transform_last (dgst, s_Ch, s_Cl);
 }
 
-static void hmac_run2b (const u32 w1[16], const u32 ipad[16], const u32 opad[16], u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void hmac_run2b (const u32 w1[16], const u32 ipad[16], const u32 opad[16], u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   dgst[ 0] = ipad[ 0];
   dgst[ 1] = ipad[ 1];
@@ -1613,7 +1613,7 @@ static void hmac_run2b (const u32 w1[16], const u32 ipad[16], const u32 opad[16]
   whirlpool_transform_last (dgst, s_Ch, s_Cl);
 }
 
-static void hmac_init (u32 w[16], u32 ipad[16], u32 opad[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void hmac_init (u32 w[16], u32 ipad[16], u32 opad[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   w[ 0] ^= 0x36363636;
   w[ 1] ^= 0x36363636;
@@ -1688,7 +1688,7 @@ static void hmac_init (u32 w[16], u32 ipad[16], u32 opad[16], __local u32 (*s_Ch
   whirlpool_transform (w, opad, s_Ch, s_Cl);
 }
 
-static u32 u8add (const u32 a, const u32 b)
+u32 u8add (const u32 a, const u32 b)
 {
   const u32 a1 = (a >>  0) & 0xff;
   const u32 a2 = (a >>  8) & 0xff;

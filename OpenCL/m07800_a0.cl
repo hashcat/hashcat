@@ -45,7 +45,7 @@ __constant u32 theMagicArray[64] =
   0, 0, 0, 0, 0, 0, 0, 0
 };
 
-static void swap_buffer (u32 final[16])
+void swap_buffer (u32 final[16])
 {
   final[ 0] = swap32 (final[ 0]);
   final[ 1] = swap32 (final[ 1]);
@@ -65,7 +65,7 @@ static void swap_buffer (u32 final[16])
   final[15] = swap32 (final[15]);
 }
 
-static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 A = digest[0];
   u32 B = digest[1];

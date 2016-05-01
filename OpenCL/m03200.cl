@@ -370,7 +370,7 @@ __constant u32 c_sbox3[256] =
   L ^= P[17];           \
 }
 
-static void expand_key (u32 E[18], const u32 W[16], const u32 len)
+void expand_key (u32 E[18], const u32 W[16], const u32 len)
 {
   u8 *E_cur  = (u8 *) E;
   u8 *E_stop = E_cur + 72;

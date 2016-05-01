@@ -1055,7 +1055,7 @@ __constant entry_t pc[1024] =
   { 0x33323031, 4 }
 };
 
-static void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 offset)
+void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 offset)
 {
   switch (offset)
   {
@@ -1089,7 +1089,7 @@ static void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 of
   }
 }
 
-static void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u32 offset)
+void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u32 offset)
 {
   u32 tmp0;
   u32 tmp1;
@@ -1180,7 +1180,7 @@ static void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], c
   }
 }
 
-static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 A = digest[0];
   u32 B = digest[1];
