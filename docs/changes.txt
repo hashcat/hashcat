@@ -104,6 +104,7 @@ It combines all features of all hashcat projects in one project.
 - Synchronize maximum output line size with input line size
 - Increased maximum hash line size to 0x50000
 - Run weak-hash checks only in straight-attack mode, this greatly reduces code complexity
+- Restrict loopback option to straight attack-mode
 - Moved rules_optimize to hashcat-utils
 - Stick to older libOpenCL in binary package to avoid errors like this: version `OPENCL_2.0' not found
 - Tightened hash parser for several algorithms

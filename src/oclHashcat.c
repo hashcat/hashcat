@@ -6330,13 +6330,7 @@ int main (int argc, char **argv)
 
   if (loopback == 1)
   {
-    if (attack_mode == ATTACK_MODE_BF)
-    {
-      log_error ("ERROR: Parameter loopback not allowed in attack-mode 3");
-
-      return (-1);
-    }
-    else if (attack_mode == ATTACK_MODE_STRAIGHT)
+    if (attack_mode == ATTACK_MODE_STRAIGHT)
     {
       if ((rp_files_cnt == 0) && (rp_gen == 0))
       {
@@ -6344,6 +6338,12 @@ int main (int argc, char **argv)
 
         return (-1);
       }
+    }
+    else
+    {
+      log_error ("ERROR: Parameter loopback allowed in attack-mode 0 only");
+
+      return (-1);
     }
   }
 
