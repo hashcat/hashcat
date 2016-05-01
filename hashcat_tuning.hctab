@@ -71,6 +71,7 @@ ALIAS_nv_budget                                 *       21      2       A       
 ALIAS_nv_budget                                 *       22      2       A       A
 ALIAS_nv_budget                                 *       23      2       A       A
 ALIAS_nv_budget                                 *       200     2       A       A
+ALIAS_nv_budget                                 *       400     2       A       A
 ALIAS_nv_budget                                 *       900     2       A       A
 ALIAS_nv_budget                                 *       1000    2       A       A
 ALIAS_nv_budget                                 *       1100    2       A       A

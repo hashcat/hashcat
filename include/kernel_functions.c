@@ -10,15 +10,9 @@
 #define MD4_H_S(x,y,z)  ((x) ^ (y) ^ (z))
 
 #ifdef IS_NV
-#if CUDA_ARCH >= 500
-#define MD4_F(x,y,z)    lut3_ca ((x), (y), (z))
-#define MD4_G(x,y,z)    lut3_e8 ((x), (y), (z))
-#define MD4_H(x,y,z)    lut3_96 ((x), (y), (z))
-#else
 #define MD4_F(x,y,z)    (((x) & (y)) | ((~(x)) & (z)))
 #define MD4_G(x,y,z)    (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
 #define MD4_H(x,y,z)    ((x) ^ (y) ^ (z))
-#endif
 #define MD4_Fo(x,y,z)   (MD4_F((x), (y), (z)))
 #define MD4_Go(x,y,z)   (MD4_G((x), (y), (z)))
 #endif
@@ -64,17 +58,10 @@
 #define MD5_I_S(x,y,z)  ((y) ^ ((x) | ~(z)))
 
 #ifdef IS_NV
-#if CUDA_ARCH >= 500
-#define MD5_F(x,y,z)    lut3_ca ((x), (y), (z))
-#define MD5_G(x,y,z)    lut3_e4 ((x), (y), (z))
-#define MD5_H(x,y,z)    lut3_96 ((x), (y), (z))
-#define MD5_I(x,y,z)    lut3_39 ((x), (y), (z))
-#else
 #define MD5_F(x,y,z)    ((z) ^ ((x) & ((y) ^ (z))))
 #define MD5_G(x,y,z)    ((y) ^ ((z) & ((x) ^ (y))))
 #define MD5_H(x,y,z)    ((x) ^ (y) ^ (z))
 #define MD5_I(x,y,z)    ((y) ^ ((x) | ~(z)))
-#endif
 #define MD5_Fo(x,y,z)   (MD5_F((x), (y), (z)))
 #define MD5_Go(x,y,z)   (MD5_G((x), (y), (z)))
 #endif
@@ -97,6 +84,15 @@
 #define MD5_Go(x,y,z)   (MD5_G((x), (y), (z)))
 #endif
 
+#define MD5_STEP_S(f,a,b,c,d,x,K,s) \
+{                                   \
+  a += K;                           \
+  a += x;                           \
+  a += f (b, c, d);                 \
+  a  = rotl32_S (a, s);             \
+  a += b;                           \
+}
+
 #define MD5_STEP(f,a,b,c,d,x,K,s)   \
 {                                   \
   a += K;                           \
@@ -118,15 +114,9 @@
 #if defined _SHA1_ || defined _SAPG_ || defined _OFFICE2007_ || defined _OFFICE2010_ || defined _OLDOFFICE34_ || defined _ANDROIDFDE_ || defined _DCC2_ || defined _WPA_ || defined _MD5_SHA1_ || defined _SHA1_MD5_ || defined _PSAFE2_ || defined _LOTUS8_ || defined _PBKDF2_SHA1_ || defined _RAR3_ || defined _SHA256_SHA1_
 
 #ifdef IS_NV
-#if CUDA_ARCH >= 500
-#define SHA1_F0(x,y,z)  lut3_ca ((x), (y), (z))
-#define SHA1_F1(x,y,z)  lut3_96 ((x), (y), (z))
-#define SHA1_F2(x,y,z)  lut3_e8 ((x), (y), (z))
-#else
 #define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
 #define SHA1_F1(x,y,z)  ((x) ^ (y) ^ (z))
 #define SHA1_F2(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
-#endif
 #define SHA1_F0o(x,y,z) (SHA1_F0 ((x), (y), (z)))
 #define SHA1_F2o(x,y,z) (SHA1_F2 ((x), (y), (z)))
 #endif
@@ -196,13 +186,8 @@
 #define SHA256_S3(x) (rotl32 ((x), 26u) ^ rotl32 ((x), 21u) ^ rotl32 ((x),  7u))
 
 #ifdef IS_NV
-#if CUDA_ARCH >= 500
-#define SHA256_F0(x,y,z)  lut3_e8 ((x), (y), (z))
-#define SHA256_F1(x,y,z)  lut3_ca ((x), (y), (z))
-#else
 #define SHA256_F0(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
 #define SHA256_F1(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
-#endif
 #define SHA256_F0o(x,y,z) (SHA256_F0 ((x), (y), (z)))
 #define SHA256_F1o(x,y,z) (SHA256_F1 ((x), (y), (z)))
 #endif
@@ -321,19 +306,11 @@
 #ifdef _RIPEMD160_
 
 #ifdef IS_NV
-#if CUDA_ARCH >= 500
-#define RIPEMD160_F(x,y,z)    lut3_96 ((x), (y), (z))
-#define RIPEMD160_G(x,y,z)    lut3_ca ((x), (y), (z))
-#define RIPEMD160_H(x,y,z)    lut3_59 ((x), (y), (z))
-#define RIPEMD160_I(x,y,z)    lut3_e4 ((x), (y), (z))
-#define RIPEMD160_J(x,y,z)    lut3_2d ((x), (y), (z))
-#else
 #define RIPEMD160_F(x,y,z)    ((x) ^ (y) ^ (z))
 #define RIPEMD160_G(x,y,z)    ((z) ^ ((x) & ((y) ^ (z)))) /* x ? y : z */
 #define RIPEMD160_H(x,y,z)    (((x) | ~(y)) ^ (z))
 #define RIPEMD160_I(x,y,z)    ((y) ^ ((z) & ((x) ^ (y)))) /* z ? x : y */
 #define RIPEMD160_J(x,y,z)    ((x) ^ ((y) | ~(z)))
-#endif
 #define RIPEMD160_Go(x,y,z)   (RIPEMD160_G ((x), (y), (z)))
 #define RIPEMD160_Io(x,y,z)   (RIPEMD160_I ((x), (y), (z)))
 #endif

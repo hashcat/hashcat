@@ -1121,10 +1121,11 @@ extern hc_thread_mutex_t mux_display;
 #define OPTI_TYPE_SINGLE_SALT       (1 << 12)
 #define OPTI_TYPE_BRUTE_FORCE       (1 << 13)
 #define OPTI_TYPE_RAW_HASH          (1 << 14)
-#define OPTI_TYPE_USES_BITS_8       (1 << 15)
-#define OPTI_TYPE_USES_BITS_16      (1 << 16)
-#define OPTI_TYPE_USES_BITS_32      (1 << 17)
-#define OPTI_TYPE_USES_BITS_64      (1 << 18)
+#define OPTI_TYPE_SLOW_HASH_SIMD    (1 << 15)
+#define OPTI_TYPE_USES_BITS_8       (1 << 16)
+#define OPTI_TYPE_USES_BITS_16      (1 << 17)
+#define OPTI_TYPE_USES_BITS_32      (1 << 18)
+#define OPTI_TYPE_USES_BITS_64      (1 << 19)
 
 #define OPTI_STR_ZERO_BYTE          "Zero-Byte"
 #define OPTI_STR_PRECOMPUTE_INIT    "Precompute-Init"
@@ -1140,6 +1141,7 @@ extern hc_thread_mutex_t mux_display;
 #define OPTI_STR_SINGLE_SALT        "Single-Salt"
 #define OPTI_STR_BRUTE_FORCE        "Brute-Force"
 #define OPTI_STR_RAW_HASH           "Raw-Hash"
+#define OPTI_STR_SLOW_HASH_SIMD     "Slow-Hash-SIMD"
 #define OPTI_STR_USES_BITS_8        "Uses-8-Bit"
 #define OPTI_STR_USES_BITS_16       "Uses-16-Bit"
 #define OPTI_STR_USES_BITS_32       "Uses-32-Bit"

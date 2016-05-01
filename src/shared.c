@@ -5632,6 +5632,7 @@ char *stroptitype (const uint opti_type)
     case OPTI_TYPE_SINGLE_SALT:       return ((char *) OPTI_STR_SINGLE_SALT);       break;
     case OPTI_TYPE_BRUTE_FORCE:       return ((char *) OPTI_STR_BRUTE_FORCE);       break;
     case OPTI_TYPE_RAW_HASH:          return ((char *) OPTI_STR_RAW_HASH);          break;
+    case OPTI_TYPE_SLOW_HASH_SIMD:    return ((char *) OPTI_STR_SLOW_HASH_SIMD);    break;
     case OPTI_TYPE_USES_BITS_8:       return ((char *) OPTI_STR_USES_BITS_8);       break;
     case OPTI_TYPE_USES_BITS_16:      return ((char *) OPTI_STR_USES_BITS_16);      break;
     case OPTI_TYPE_USES_BITS_32:      return ((char *) OPTI_STR_USES_BITS_32);      break;

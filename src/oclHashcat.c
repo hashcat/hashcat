@@ -2424,7 +2424,17 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 
     hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
 
+    if (kern_run == KERN_RUN_2)
+    {
+      if (data.opti_type & OPTI_TYPE_SLOW_HASH_SIMD)
+      {
+        num_elements = CEIL ((float) num_elements / device_param->vector_width);
+      }
+    }
+
     if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
+
+    while (num_elements % kernel_threads) num_elements++;
 
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
@@ -7611,7 +7621,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = phpass_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;

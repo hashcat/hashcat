@@ -123,4 +123,6 @@ void log_error (const char *fmt, ...);
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
+#define CEIL(a) ((a - (int) (a)) > 0 ? a + 1 : a)
+
 #endif // COMMON_H
