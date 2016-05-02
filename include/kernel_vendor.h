@@ -7,10 +7,6 @@
 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
 #endif
 
-#ifdef cl_clang_storage_class_specifiers
-#pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable
-#endif
-
 /**
  * vendor specific
  */
@@ -28,10 +24,8 @@
  */
 
 #ifdef IS_AMD
-#ifndef cl_clang_storage_class_specifiers
 #pragma OPENCL EXTENSION cl_amd_media_ops  : enable
 #pragma OPENCL EXTENSION cl_amd_media_ops2 : enable
-#endif
 #endif
 
 /**
