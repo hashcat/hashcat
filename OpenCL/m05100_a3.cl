@@ -145,14 +145,11 @@ void m05100m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
     c += MD5M_C;
     d += MD5M_D;
 
-    u32x e = 0;
-    u32x f = 0;
+    u32x z = 0;
 
-    COMPARE_M_SIMD (a, b, e, f);
-
-    COMPARE_M_SIMD (b, c, e, f);
-
-    COMPARE_M_SIMD (c, d, e, f);
+    COMPARE_M_SIMD (a, b, z, z);
+    COMPARE_M_SIMD (b, c, z, z);
+    COMPARE_M_SIMD (c, d, z, z);
   }
 }
 
@@ -173,8 +170,8 @@ void m05100s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
     digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0
   };
 
   /**
@@ -293,14 +290,11 @@ void m05100s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
     c += MD5M_C;
     d += MD5M_D;
 
-    u32x e = 0;
-    u32x f = 0;
+    u32x z = 0;
 
-    COMPARE_S_SIMD (a, b, e, f);
-
-    COMPARE_S_SIMD (b, c, e, f);
-
-    COMPARE_S_SIMD (c, d, e, f);
+    COMPARE_S_SIMD (a, b, z, z);
+    COMPARE_S_SIMD (b, c, z, z);
+    COMPARE_S_SIMD (c, d, z, z);
   }
 }
 
