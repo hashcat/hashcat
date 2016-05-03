@@ -3018,6 +3018,20 @@ static void autotune (hc_device_param_t *device_param)
     }
   }
 
+  // because of the balance we may have some free space left!
+  // at this point, allow a small variance to overdrive the limit
+
+  const int exec_left = (target_ms * 1.2) / exec_best;
+
+  const int accel_left = kernel_accel_max / kernel_accel_best;
+
+  const int exec_accel_min = MIN (exec_left, accel_left);
+
+  if (exec_accel_min)
+  {
+    kernel_accel_best *= exec_accel_min;
+  }
+
   // reset timer
 
   device_param->exec_pos = 0;
