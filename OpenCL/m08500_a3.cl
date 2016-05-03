@@ -583,10 +583,9 @@ void m08500m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32 w[16],
 
     _des_crypt_encrypt (iv, data, Kc, Kd, s_SPtrans);
 
-    u32x iv2 = 0;
-    u32x iv3 = 0;
+    u32x z = 0;
 
-    COMPARE_M_SIMD (iv[0], iv[1], iv2, iv3);
+    COMPARE_M_SIMD (iv[0], iv[1], z, z);
   }
 }
 
@@ -616,8 +615,8 @@ void m08500s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32 w[16],
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
     digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0
   };
 
   /**
@@ -659,10 +658,9 @@ void m08500s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32 w[16],
 
     _des_crypt_encrypt (iv, data, Kc, Kd, s_SPtrans);
 
-    u32x iv2 = 0;
-    u32x iv3 = 0;
+    u32x z = 0;
 
-    COMPARE_S_SIMD (iv[0], iv[1], iv2, iv3);
+    COMPARE_S_SIMD (iv[0], iv[1], z, z);
   }
 }
 

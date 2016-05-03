@@ -577,8 +577,8 @@ __kernel void m07700_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
     digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0
   };
 
   /**

@@ -641,10 +641,9 @@ __kernel void m01500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     _des_crypt_encrypt (iv, mask, Kc, Kd, s_SPtrans);
 
-    u32x c = 0;
-    u32x d = 0;
+    u32x z = 0;
 
-    COMPARE_M_SIMD (iv[0], iv[1], c, d);
+    COMPARE_M_SIMD (iv[0], iv[1], z, z);
   }
 }
 
@@ -730,8 +729,8 @@ __kernel void m01500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
     digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0
   };
 
   /**
@@ -825,10 +824,9 @@ __kernel void m01500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     _des_crypt_encrypt (iv, mask, Kc, Kd, s_SPtrans);
 
-    u32x c = 0;
-    u32x d = 0;
+    u32x z = 0;
 
-    COMPARE_S_SIMD (iv[0], iv[1], c, d);
+    COMPARE_S_SIMD (iv[0], iv[1], z, z);
   }
 }
 

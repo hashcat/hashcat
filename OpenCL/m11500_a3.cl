@@ -185,11 +185,10 @@ void m11500m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_r
     w_t[15] = w[15];
 
     u32x a = crc32 (w_t, pw_len, iv);
-    u32x b = 0;
-    u32x c = 0;
-    u32x d = 0;
 
-    COMPARE_M_SIMD (a, b, c, d);
+    u32x z = 0;
+
+    COMPARE_M_SIMD (a, z, z, z);
   }
 }
 
@@ -215,9 +214,9 @@ void m11500s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_r
   const u32 search[4] =
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0,
+    0
   };
 
   /**
@@ -256,11 +255,10 @@ void m11500s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_r
     w_t[15] = w[15];
 
     u32x a = crc32 (w_t, pw_len, iv);
-    u32x b = 0;
-    u32x c = 0;
-    u32x d = 0;
 
-    COMPARE_S_SIMD (a, b, c, d);
+    u32x z = 0;
+
+    COMPARE_S_SIMD (a, z, z, z);
   }
 }
 
