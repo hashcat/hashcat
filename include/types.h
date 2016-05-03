@@ -915,6 +915,7 @@ struct __hc_device_param
   u64     device_maxmem_alloc;
   u64     device_global_mem;
   u32     device_maxclock_frequency;
+  size_t  device_maxworkgroup_size;
 
   uint    vector_width;
 
@@ -928,20 +929,20 @@ struct __hc_device_param
   uint    kernel_power;
   uint    kernel_power_user;
 
-  uint    size_pws;
-  uint    size_tmps;
-  uint    size_hooks;
-  uint    size_bfs;
-  uint    size_combs;
-  uint    size_rules;
-  uint    size_rules_c;
-  uint    size_root_css;
-  uint    size_markov_css;
-  uint    size_digests;
-  uint    size_salts;
-  uint    size_shown;
-  uint    size_results;
-  uint    size_plains;
+  size_t  size_pws;
+  size_t  size_tmps;
+  size_t  size_hooks;
+  size_t  size_bfs;
+  size_t  size_combs;
+  size_t  size_rules;
+  size_t  size_rules_c;
+  size_t  size_root_css;
+  size_t  size_markov_css;
+  size_t  size_digests;
+  size_t  size_salts;
+  size_t  size_shown;
+  size_t  size_results;
+  size_t  size_plains;
 
   FILE   *combs_fp;
   comb_t *combs_buf;

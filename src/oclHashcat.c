@@ -84,7 +84,6 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 #define KERNEL_RULES            1024
 #define KERNEL_COMBS            1024
 #define KERNEL_BFS              1024
-#define KERNEL_THREADS          64
 #define POWERTUNE_ENABLE        0
 #define LOGFILE_DISABLE         0
 #define SCRYPT_TMTO             0
@@ -2172,7 +2171,7 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
   hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, device_param->size_results, device_param->result, 0, NULL, NULL);
 
-  for (uint i = 0; i < KERNEL_THREADS; i++) if (device_param->result[i] == 1) found = 1;
+  for (uint i = 0; i < device_param->kernel_threads; i++) if (device_param->result[i] == 1) found = 1;
 
   if (found == 1)
   {
@@ -2481,7 +2480,7 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
   // causes problems with special threads like in bcrypt
   // const uint kernel_threads = device_param->kernel_threads;
 
-  uint kernel_threads = KERNEL_THREADS;
+  uint kernel_threads = device_param->kernel_threads;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -2521,10 +2520,12 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
   }
 
   size_t workgroup_size = 0;
+
   hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &workgroup_size, NULL);
+
   if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
 
-  const size_t global_work_size[3] = { num_elements, 1, 1 };
+  const size_t global_work_size[3] = { num_elements,   1, 1 };
   const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
   hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
@@ -2543,10 +2544,12 @@ static void run_kernel_tm (hc_device_param_t *device_param)
   cl_kernel kernel = device_param->kernel_tm;
 
   size_t workgroup_size = 0;
+
   hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
+
   if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
 
-  const size_t global_work_size[3] = { num_elements, 1, 1 };
+  const size_t global_work_size[3] = { num_elements,    1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
   hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
@@ -2566,7 +2569,7 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   // causes problems with special threads like in bcrypt
   // const uint kernel_threads = device_param->kernel_threads;
 
-  uint kernel_threads = KERNEL_THREADS;
+  uint kernel_threads = device_param->kernel_threads;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -2576,10 +2579,12 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint), device_param->kernel_params_amp[6]);
 
   size_t workgroup_size = 0;
+
   hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
+
   if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
 
-  const size_t global_work_size[3] = { num_elements, 1, 1 };
+  const size_t global_work_size[3] = { num_elements,    1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
   hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
@@ -2589,7 +2594,7 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   hc_clFinish (data.ocl, device_param->command_queue);
 }
 
-static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const uint size)
+static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const size_t size)
 {
   int rc = -1;
 
@@ -2613,11 +2618,11 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
 
     char *tmp = (char *) mymalloc (FILLSZ);
 
-    for (uint i = 0; i < size; i += FILLSZ)
+    for (size_t i = 0; i < size; i += FILLSZ)
     {
-      const int left = size - i;
+      const size_t left = size - i;
 
-      const int fillsz = MIN (FILLSZ, left);
+      const size_t fillsz = MIN (FILLSZ, left);
 
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, buf, CL_TRUE, i, fillsz, tmp, 0, NULL, NULL);
     }
@@ -12134,8 +12139,8 @@ int main (int argc, char **argv)
     uint digests_cnt  = hashes_cnt;
     uint digests_done = 0;
 
-    uint size_digests = digests_cnt * dgst_size;
-    uint size_shown   = digests_cnt * sizeof (uint);
+    size_t size_digests = digests_cnt * dgst_size;
+    size_t size_shown   = digests_cnt * sizeof (uint);
 
     uint *digests_shown     = (uint *) mymalloc (size_shown);
     uint *digests_shown_tmp = (uint *) mymalloc (size_shown);
@@ -12875,21 +12880,30 @@ int main (int argc, char **argv)
 
         device_param->device_processors = device_processors;
 
-        // max_mem_alloc_size
+        // device_maxmem_alloc
+        // note we'll limit to 2gb, otherwise this causes all kinds of weird errors because of possible integer overflows in opencl runtimes
 
         cl_ulong device_maxmem_alloc;
 
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
 
-        device_param->device_maxmem_alloc = device_maxmem_alloc;
+        device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7ffffff);
 
-        // max_mem_alloc_size
+        // device_global_mem
 
         cl_ulong device_global_mem;
 
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof (device_global_mem), &device_global_mem, NULL);
 
         device_param->device_global_mem = device_global_mem;
+
+        // max_work_group_size
+
+        size_t device_maxworkgroup_size;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (device_maxworkgroup_size), &device_maxworkgroup_size, NULL);
+
+        device_param->device_maxworkgroup_size = device_maxworkgroup_size;
 
         // max_clock_frequency
 
@@ -13567,38 +13581,59 @@ int main (int argc, char **argv)
       device_param->command_queue = hc_clCreateCommandQueue (data.ocl, device_param->context, device_param->device, CL_QUEUE_PROFILING_ENABLE);
 
       /**
+       * kernel threads: some algorithms need a fixed kernel-threads count
+       *                 because of shared memory usage or bitslice
+       */
+
+      uint kernel_threads = device_param->device_maxworkgroup_size;
+
+      if (hash_mode ==  1500) kernel_threads = 64; // DES
+      if (hash_mode ==  3000) kernel_threads = 64; // DES
+      if (hash_mode ==  3200) kernel_threads = 8;  // blowfish
+      if (hash_mode ==  7500) kernel_threads = 64; // RC4
+      if (hash_mode ==  9000) kernel_threads = 8;  // blowfish
+      if (hash_mode ==  9700) kernel_threads = 64; // RC4
+      if (hash_mode ==  9710) kernel_threads = 64; // RC4
+      if (hash_mode ==  9800) kernel_threads = 64; // RC4
+      if (hash_mode ==  9810) kernel_threads = 64; // RC4
+      if (hash_mode == 10400) kernel_threads = 64; // RC4
+      if (hash_mode == 10410) kernel_threads = 64; // RC4
+      if (hash_mode == 10500) kernel_threads = 64; // RC4
+      if (hash_mode == 13100) kernel_threads = 64; // RC4
+
+      /**
        * create input buffers on device : calculate size of fixed memory buffers
        */
 
-      uint size_root_css   = SP_PW_MAX *           sizeof (cs_t);
-      uint size_markov_css = SP_PW_MAX * CHARSIZ * sizeof (cs_t);
+      size_t size_root_css   = SP_PW_MAX *           sizeof (cs_t);
+      size_t size_markov_css = SP_PW_MAX * CHARSIZ * sizeof (cs_t);
 
       device_param->size_root_css   = size_root_css;
       device_param->size_markov_css = size_markov_css;
 
-      uint size_results = KERNEL_THREADS * sizeof (uint);
+      size_t size_results = kernel_threads * sizeof (uint);
 
       device_param->size_results = size_results;
 
-      uint size_rules   = kernel_rules_cnt * sizeof (kernel_rule_t);
-      uint size_rules_c = KERNEL_RULES     * sizeof (kernel_rule_t);
+      size_t size_rules   = kernel_rules_cnt * sizeof (kernel_rule_t);
+      size_t size_rules_c = KERNEL_RULES     * sizeof (kernel_rule_t);
 
-      uint size_plains  = digests_cnt * sizeof (plain_t);
-      uint size_salts   = salts_cnt   * sizeof (salt_t);
-      uint size_esalts  = salts_cnt   * esalt_size;
+      size_t size_plains  = digests_cnt * sizeof (plain_t);
+      size_t size_salts   = salts_cnt   * sizeof (salt_t);
+      size_t size_esalts  = salts_cnt   * esalt_size;
 
       device_param->size_plains   = size_plains;
       device_param->size_digests  = size_digests;
       device_param->size_shown    = size_shown;
       device_param->size_salts    = size_salts;
 
-      uint size_combs = KERNEL_COMBS * sizeof (comb_t);
-      uint size_bfs   = KERNEL_BFS   * sizeof (bf_t);
-      uint size_tm    = 32           * sizeof (bs_word_t);
+      size_t size_combs = KERNEL_COMBS * sizeof (comb_t);
+      size_t size_bfs   = KERNEL_BFS   * sizeof (bf_t);
+      size_t size_tm    = 32           * sizeof (bs_word_t);
 
       // scryptV stuff
 
-      u64 size_scryptV = 1;
+      size_t size_scryptV = 1;
 
       if ((hash_mode == 8900) || (hash_mode == 9300))
       {
@@ -13691,17 +13726,6 @@ int main (int argc, char **argv)
       }
 
       /**
-       * create input buffers on device : calculate size of dynamic size memory buffers
-       */
-
-      uint kernel_threads = KERNEL_THREADS;
-
-      // some algorithms need a fixed kernel-threads count (mostly because of shared memory usage)
-
-      if (hash_mode == 3200) kernel_threads = 8;
-      if (hash_mode == 9000) kernel_threads = 8;
-
-      /**
        * some algorithms need a fixed kernel-loops count
        */
 
@@ -13778,13 +13802,13 @@ int main (int argc, char **argv)
 
       // find out if we would request too much memory on memory blocks which are based on kernel_accel
 
-      uint size_pws   = 4;
-      uint size_tmps  = 4;
-      uint size_hooks = 4;
+      size_t size_pws   = 4;
+      size_t size_tmps  = 4;
+      size_t size_hooks = 4;
 
       while (kernel_accel_max >= kernel_accel_min)
       {
-        uint kernel_power_max = device_processors * kernel_threads * kernel_accel_max;
+        const u32 kernel_power_max = device_processors * kernel_threads * kernel_accel_max;
 
         // size_pws
 
@@ -13891,6 +13915,7 @@ int main (int argc, char **argv)
             + size_markov_css
             + size_plains
             + size_pws
+            + size_pws // not a bug
             + size_results
             + size_root_css
             + size_rules

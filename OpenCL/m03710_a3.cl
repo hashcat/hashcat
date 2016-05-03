@@ -744,30 +744,14 @@ __kernel void m03710_m08 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   __local u32 l_bin2asc[256];
 
-  const u32 lid4 = lid * 4;
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    const u32 i0 = (i >> 0) & 15;
+    const u32 i1 = (i >> 4) & 15;
 
-  const u32 lid40 = lid4 + 0;
-  const u32 lid41 = lid4 + 1;
-  const u32 lid42 = lid4 + 2;
-  const u32 lid43 = lid4 + 3;
-
-  const u32 v400 = (lid40 >> 0) & 15;
-  const u32 v401 = (lid40 >> 4) & 15;
-  const u32 v410 = (lid41 >> 0) & 15;
-  const u32 v411 = (lid41 >> 4) & 15;
-  const u32 v420 = (lid42 >> 0) & 15;
-  const u32 v421 = (lid42 >> 4) & 15;
-  const u32 v430 = (lid43 >> 0) & 15;
-  const u32 v431 = (lid43 >> 4) & 15;
-
-  l_bin2asc[lid40] = ((v400 < 10) ? '0' + v400 : 'a' - 10 + v400) << 8
-                   | ((v401 < 10) ? '0' + v401 : 'a' - 10 + v401) << 0;
-  l_bin2asc[lid41] = ((v410 < 10) ? '0' + v410 : 'a' - 10 + v410) << 8
-                   | ((v411 < 10) ? '0' + v411 : 'a' - 10 + v411) << 0;
-  l_bin2asc[lid42] = ((v420 < 10) ? '0' + v420 : 'a' - 10 + v420) << 8
-                   | ((v421 < 10) ? '0' + v421 : 'a' - 10 + v421) << 0;
-  l_bin2asc[lid43] = ((v430 < 10) ? '0' + v430 : 'a' - 10 + v430) << 8
-                   | ((v431 < 10) ? '0' + v431 : 'a' - 10 + v431) << 0;
+    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 8
+                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 0;
+  }
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
@@ -830,30 +814,14 @@ __kernel void m03710_m16 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   __local u32 l_bin2asc[256];
 
-  const u32 lid4 = lid * 4;
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    const u32 i0 = (i >> 0) & 15;
+    const u32 i1 = (i >> 4) & 15;
 
-  const u32 lid40 = lid4 + 0;
-  const u32 lid41 = lid4 + 1;
-  const u32 lid42 = lid4 + 2;
-  const u32 lid43 = lid4 + 3;
-
-  const u32 v400 = (lid40 >> 0) & 15;
-  const u32 v401 = (lid40 >> 4) & 15;
-  const u32 v410 = (lid41 >> 0) & 15;
-  const u32 v411 = (lid41 >> 4) & 15;
-  const u32 v420 = (lid42 >> 0) & 15;
-  const u32 v421 = (lid42 >> 4) & 15;
-  const u32 v430 = (lid43 >> 0) & 15;
-  const u32 v431 = (lid43 >> 4) & 15;
-
-  l_bin2asc[lid40] = ((v400 < 10) ? '0' + v400 : 'a' - 10 + v400) << 8
-                   | ((v401 < 10) ? '0' + v401 : 'a' - 10 + v401) << 0;
-  l_bin2asc[lid41] = ((v410 < 10) ? '0' + v410 : 'a' - 10 + v410) << 8
-                   | ((v411 < 10) ? '0' + v411 : 'a' - 10 + v411) << 0;
-  l_bin2asc[lid42] = ((v420 < 10) ? '0' + v420 : 'a' - 10 + v420) << 8
-                   | ((v421 < 10) ? '0' + v421 : 'a' - 10 + v421) << 0;
-  l_bin2asc[lid43] = ((v430 < 10) ? '0' + v430 : 'a' - 10 + v430) << 8
-                   | ((v431 < 10) ? '0' + v431 : 'a' - 10 + v431) << 0;
+    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 8
+                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 0;
+  }
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
@@ -916,30 +884,14 @@ __kernel void m03710_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   __local u32 l_bin2asc[256];
 
-  const u32 lid4 = lid * 4;
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    const u32 i0 = (i >> 0) & 15;
+    const u32 i1 = (i >> 4) & 15;
 
-  const u32 lid40 = lid4 + 0;
-  const u32 lid41 = lid4 + 1;
-  const u32 lid42 = lid4 + 2;
-  const u32 lid43 = lid4 + 3;
-
-  const u32 v400 = (lid40 >> 0) & 15;
-  const u32 v401 = (lid40 >> 4) & 15;
-  const u32 v410 = (lid41 >> 0) & 15;
-  const u32 v411 = (lid41 >> 4) & 15;
-  const u32 v420 = (lid42 >> 0) & 15;
-  const u32 v421 = (lid42 >> 4) & 15;
-  const u32 v430 = (lid43 >> 0) & 15;
-  const u32 v431 = (lid43 >> 4) & 15;
-
-  l_bin2asc[lid40] = ((v400 < 10) ? '0' + v400 : 'a' - 10 + v400) << 8
-                   | ((v401 < 10) ? '0' + v401 : 'a' - 10 + v401) << 0;
-  l_bin2asc[lid41] = ((v410 < 10) ? '0' + v410 : 'a' - 10 + v410) << 8
-                   | ((v411 < 10) ? '0' + v411 : 'a' - 10 + v411) << 0;
-  l_bin2asc[lid42] = ((v420 < 10) ? '0' + v420 : 'a' - 10 + v420) << 8
-                   | ((v421 < 10) ? '0' + v421 : 'a' - 10 + v421) << 0;
-  l_bin2asc[lid43] = ((v430 < 10) ? '0' + v430 : 'a' - 10 + v430) << 8
-                   | ((v431 < 10) ? '0' + v431 : 'a' - 10 + v431) << 0;
+    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 8
+                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 0;
+  }
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
@@ -1002,30 +954,14 @@ __kernel void m03710_s08 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   __local u32 l_bin2asc[256];
 
-  const u32 lid4 = lid * 4;
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    const u32 i0 = (i >> 0) & 15;
+    const u32 i1 = (i >> 4) & 15;
 
-  const u32 lid40 = lid4 + 0;
-  const u32 lid41 = lid4 + 1;
-  const u32 lid42 = lid4 + 2;
-  const u32 lid43 = lid4 + 3;
-
-  const u32 v400 = (lid40 >> 0) & 15;
-  const u32 v401 = (lid40 >> 4) & 15;
-  const u32 v410 = (lid41 >> 0) & 15;
-  const u32 v411 = (lid41 >> 4) & 15;
-  const u32 v420 = (lid42 >> 0) & 15;
-  const u32 v421 = (lid42 >> 4) & 15;
-  const u32 v430 = (lid43 >> 0) & 15;
-  const u32 v431 = (lid43 >> 4) & 15;
-
-  l_bin2asc[lid40] = ((v400 < 10) ? '0' + v400 : 'a' - 10 + v400) << 8
-                   | ((v401 < 10) ? '0' + v401 : 'a' - 10 + v401) << 0;
-  l_bin2asc[lid41] = ((v410 < 10) ? '0' + v410 : 'a' - 10 + v410) << 8
-                   | ((v411 < 10) ? '0' + v411 : 'a' - 10 + v411) << 0;
-  l_bin2asc[lid42] = ((v420 < 10) ? '0' + v420 : 'a' - 10 + v420) << 8
-                   | ((v421 < 10) ? '0' + v421 : 'a' - 10 + v421) << 0;
-  l_bin2asc[lid43] = ((v430 < 10) ? '0' + v430 : 'a' - 10 + v430) << 8
-                   | ((v431 < 10) ? '0' + v431 : 'a' - 10 + v431) << 0;
+    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 8
+                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 0;
+  }
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
