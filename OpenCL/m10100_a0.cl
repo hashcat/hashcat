@@ -151,10 +151,10 @@ __kernel void m10100_m04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     const u32x a = l32_from_64 (v);
     const u32x b = h32_from_64 (v);
-    const u32x c = 0;
-    const u32x d = 0;
 
-    COMPARE_M_SIMD (a, b, c, d);
+    const u32x z = 0;
+
+    COMPARE_M_SIMD (a, b, z, z);
   }
 }
 
@@ -218,8 +218,8 @@ __kernel void m10100_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
     digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0
   };
 
   /**
@@ -290,10 +290,10 @@ __kernel void m10100_s04 (__global pw_t *pws, __global kernel_rule_t *  rules_bu
 
     const u32x a = l32_from_64 (v);
     const u32x b = h32_from_64 (v);
-    const u32x c = 0;
-    const u32x d = 0;
 
-    COMPARE_S_SIMD (a, b, c, d);
+    const u32x z = 0;
+
+    COMPARE_S_SIMD (a, b, z, z);
   }
 }
 
