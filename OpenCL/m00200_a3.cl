@@ -37,8 +37,6 @@
                                                                   \
     u32x a = MYSQL323_A;                                          \
     u32x b = MYSQL323_B;                                          \
-    u32x c = 0;                                                   \
-    u32x d = 0;                                                   \
                                                                   \
     u32x add = 7;                                                 \
 
@@ -82,7 +80,9 @@
     a &= 0x7fffffff;                                              \
     b &= 0x7fffffff;                                              \
                                                                   \
-    COMPARE_M_SIMD (a, b, c, d);                                  \
+    u32x z = 0;                                                   \
+                                                                  \
+    COMPARE_M_SIMD (a, b, z, z);                                  \
   }                                                               \
 }
 
@@ -91,7 +91,9 @@
     a &= 0x7fffffff;                                              \
     b &= 0x7fffffff;                                              \
                                                                   \
-    COMPARE_S_SIMD (a, b, c, d);                                  \
+    u32x z = 0;                                                   \
+                                                                  \
+    COMPARE_S_SIMD (a, b, z, z);                                  \
   }                                                               \
 }
 
@@ -103,18 +105,6 @@ void m00200m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_r
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
-
-  /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
 
   /**
    * loop
@@ -270,8 +260,8 @@ void m00200s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_r
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
     digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0
   };
 
   /**

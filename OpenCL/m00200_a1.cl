@@ -149,8 +149,6 @@ __kernel void m00200_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     u32x a = MYSQL323_A;
     u32x b = MYSQL323_B;
-    u32x c = 0;
-    u32x d = 0;
 
     u32x add = 7;
 
@@ -197,7 +195,9 @@ __kernel void m00200_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     a &= 0x7fffffff;
     b &= 0x7fffffff;
 
-    COMPARE_M_SIMD (a, b, c, d);
+    u32x z = 0;
+
+    COMPARE_M_SIMD (a, b, z, z);
   }
 }
 
@@ -247,8 +247,8 @@ __kernel void m00200_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
     digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0
   };
 
   /**
@@ -397,7 +397,9 @@ __kernel void m00200_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     a &= 0x7fffffff;
     b &= 0x7fffffff;
 
-    COMPARE_S_SIMD (a, b, c, d);
+    u32x z = 0;
+
+    COMPARE_S_SIMD (a, b, z, z);
   }
 }
 
