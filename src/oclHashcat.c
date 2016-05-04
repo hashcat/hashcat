@@ -84,6 +84,8 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 #define KERNEL_RULES            1024
 #define KERNEL_COMBS            1024
 #define KERNEL_BFS              1024
+#define KERNEL_THREADS_MAX      256
+#define KERNEL_THREADS_MAX_CPU  16
 #define POWERTUNE_ENABLE        0
 #define LOGFILE_DISABLE         0
 #define SCRYPT_TMTO             0
@@ -3024,9 +3026,8 @@ static void autotune (hc_device_param_t *device_param)
   }
 
   // because of the balance we may have some free space left!
-  // at this point, allow a small variance to overdrive the limit
 
-  const int exec_left = (target_ms * 1.2) / exec_best;
+  const int exec_left = target_ms / exec_best;
 
   const int accel_left = kernel_accel_max / kernel_accel_best;
 
@@ -13583,15 +13584,21 @@ int main (int argc, char **argv)
       /**
        * kernel threads: some algorithms need a fixed kernel-threads count
        *                 because of shared memory usage or bitslice
+       *                 there needs to be some upper limit, otherwise there's too much overhead
        */
 
-      uint kernel_threads = device_param->device_maxworkgroup_size;
+      uint kernel_threads = MIN (KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
+
+      if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+      {
+        kernel_threads = KERNEL_THREADS_MAX_CPU;
+      }
 
       if (hash_mode ==  1500) kernel_threads = 64; // DES
       if (hash_mode ==  3000) kernel_threads = 64; // DES
-      if (hash_mode ==  3200) kernel_threads = 8;  // blowfish
+      if (hash_mode ==  3200) kernel_threads = 8;  // Blowfish
       if (hash_mode ==  7500) kernel_threads = 64; // RC4
-      if (hash_mode ==  9000) kernel_threads = 8;  // blowfish
+      if (hash_mode ==  9000) kernel_threads = 8;  // Blowfish
       if (hash_mode ==  9700) kernel_threads = 64; // RC4
       if (hash_mode ==  9710) kernel_threads = 64; // RC4
       if (hash_mode ==  9800) kernel_threads = 64; // RC4
