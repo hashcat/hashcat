@@ -12887,7 +12887,7 @@ int main (int argc, char **argv)
 
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
 
-        device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7ffffff);
+        device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7fffffff);
 
         // device_global_mem
 
@@ -13676,17 +13676,6 @@ int main (int argc, char **argv)
 
         if (quiet == 0) log_info ("");
 
-        uint shader_per_mp = 1;
-
-        if (device_param->vendor_id == VENDOR_ID_AMD)
-        {
-          shader_per_mp = 8;
-        }
-        else if (device_param->vendor_id == VENDOR_ID_NV)
-        {
-          shader_per_mp = 32;
-        }
-
         for (uint tmto = tmto_start; tmto < tmto_stop; tmto++)
         {
           // TODO: in theory the following calculation needs to be done per salt, not global
@@ -13696,7 +13685,7 @@ int main (int argc, char **argv)
 
           size_scryptV /= 1 << tmto;
 
-          size_scryptV *= device_processors * device_processor_cores * shader_per_mp;
+          size_scryptV *= device_processors * device_processor_cores;
 
           if (size_scryptV > device_param->device_maxmem_alloc)
           {
@@ -13708,7 +13697,7 @@ int main (int argc, char **argv)
           for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
           {
             data.salts_buf[salts_pos].scrypt_tmto = tmto;
-            data.salts_buf[salts_pos].scrypt_phy  = device_processors * device_processor_cores * shader_per_mp;
+            data.salts_buf[salts_pos].scrypt_phy  = device_processors * device_processor_cores;
           }
 
           break;
