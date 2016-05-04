@@ -13670,18 +13670,18 @@ int main (int argc, char **argv)
             }
             else if (device_param->vendor_id == VENDOR_ID_NV)
             {
-              tmto_start = 3;
+              tmto_start = 2;
             }
           }
           else if (hash_mode == 9300)
           {
             if (device_param->vendor_id == VENDOR_ID_AMD)
             {
-              tmto_start = 3;
+              tmto_start = 2;
             }
             else if (device_param->vendor_id == VENDOR_ID_NV)
             {
-              tmto_start = 5;
+              tmto_start = 2;
             }
           }
         }
