@@ -13091,14 +13091,19 @@ int main (int argc, char **argv)
                 if (data.quiet == 0) log_info ("           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
               }
             }
-            else if (vendor_id == VENDOR_ID_POCL)
+          }
+
+          if (device_type & CL_DEVICE_TYPE_CPU)
+          {
+            if (vendor_id == VENDOR_ID_AMD)
             {
               if (force == 0)
               {
                 log_info ("");
-                log_info ("ATTENTION! All pocl drivers are known to be broken due to broken LLVM <= 3.7");
+                log_info ("ATTENTION! OpenCL support for CPU of catalyst driver is not reliable.");
                 log_info ("You are STRONGLY encouraged not to use it");
                 log_info ("You can use --force to override this but do not post error reports if you do so");
+                log_info ("A good alternative is the free pocl, but make sure to use a version >= 3.8");
                 log_info ("");
 
                 return (-1);
