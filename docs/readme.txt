@@ -1,9 +1,9 @@
 oclHashcat v2.10
 ================
 
-AMD users require Catalyst 14.9 or later (recommended 15.12 or later)
+AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)
 Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)
-NVidia users require ForceWare 346.59 or later (recommended 358.09 or later)
+NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)
 
 ##
 ## Features

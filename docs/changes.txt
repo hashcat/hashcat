@@ -118,3 +118,4 @@ It combines all features of all hashcat projects in one project.
 - Added -cl-std=CL1.1 to all kernel build options
 - Created environment variable to inform NVidia OpenCL runtime to not create its own kernel cache
 - Created environment variable to inform pocl OpenCL runtime to not create its own kernel cache
+- Dropped special 64-bit rotate() handling for NV, it seems that they've added it to their OpenCL runtime

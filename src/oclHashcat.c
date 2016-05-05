@@ -33,7 +33,6 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 #define MARKOV_DISABLE          0
 #define MARKOV_CLASSIC          0
 #define BENCHMARK               0
-#define BENCHMARK_REPEATS       100
 #define RESTORE                 0
 #define RESTORE_TIMER           60
 #define RESTORE_DISABLE         0
@@ -2612,7 +2611,7 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
   if (rc != 0)
   {
     // NOTE: clEnqueueFillBuffer () always fails with -59
-    //       IOW, it's not supported by Nvidia ForceWare <= 352.21, also pocl segfaults, also on apple
+    //       IOW, it's not supported by Nvidia drivers <= 352.21, also pocl segfaults, also on apple
     //       How's that possible, OpenCL 1.2 support is advertised??
     //       We need to workaround...
 
@@ -2788,62 +2787,57 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
   }
 }
 
-static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops, const int repeat)
+static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
 {
   const u32 kernel_power = device_param->device_processors * device_param->kernel_threads * kernel_accel;
 
-  device_param->kernel_params_buf32[26] = kernel_loops;
-  device_param->kernel_params_buf32[27] = kernel_loops;
+  device_param->kernel_params_buf32[25] = 0;
+  device_param->kernel_params_buf32[26] = kernel_loops; // not a bug, both need to be set
+  device_param->kernel_params_buf32[27] = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
   // init some fake words
 
-  for (u32 i = 0; i < kernel_power; i++)
+  if (data.hash_mode == 10700)
   {
-    device_param->pws_buf[i].i[0]   = i;
-    device_param->pws_buf[i].i[1]   = 0x01234567;
-    device_param->pws_buf[i].pw_len = 4 + (i & 3);
+    // hash mode 10700 hangs on length 0 (unlimited loop)
+
+    for (u32 i = 0; i < kernel_power; i++)
+    {
+      device_param->pws_buf[i].i[0]   = i;
+      device_param->pws_buf[i].i[1]   = i + 0x01234567;
+      device_param->pws_buf[i].i[2]   = i + 0x89abcdef;
+      device_param->pws_buf[i].i[3]   = 0xffffffff;
+      device_param->pws_buf[i].pw_len = 4 + (i & 3);
+    }
+
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+
+    if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+    {
+      run_kernel_amp (device_param, kernel_power);
+    }
   }
-
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-
-  if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
-  {
-    run_kernel_amp (device_param, kernel_power);
-  }
-
-  // caching run
 
   if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    run_kernel (KERN_RUN_1, device_param, kernel_power, false);
+    run_kernel (KERN_RUN_1, device_param, kernel_power, true);
   }
   else
   {
-    run_kernel (KERN_RUN_2, device_param, kernel_power, false);
+    run_kernel (KERN_RUN_2, device_param, kernel_power, true);
   }
 
-  // now user repeats
-
-  for (int i = 0; i < repeat; i++)
-  {
-    if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-    {
-      run_kernel (KERN_RUN_1, device_param, kernel_power, true);
-    }
-    else
-    {
-      run_kernel (KERN_RUN_2, device_param, kernel_power, true);
-    }
-  }
-
-  const double exec_ms_prev = get_avg_exec_time (device_param, repeat);
+  const double exec_ms_prev = get_avg_exec_time (device_param, 1);
 
   // reset fake words
 
-  memset (device_param->pws_buf, 0, kernel_power * sizeof (pw_t));
+  if (data.hash_mode == 10700)
+  {
+    memset (device_param->pws_buf, 0, kernel_power * sizeof (pw_t));
 
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+  }
 
   return exec_ms_prev;
 }
@@ -2861,181 +2855,94 @@ static void autotune (hc_device_param_t *device_param)
   u32 kernel_accel = kernel_accel_min;
   u32 kernel_loops = kernel_loops_min;
 
-  // steps
-
   #define STEPS_CNT 10
 
-  #define STEPS_ACCEL_CNT (STEPS_CNT + 2)
-  #define STEPS_LOOPS_CNT (STEPS_CNT + 2)
+  #define MAX_RETRIES 1
 
-  u32 steps_accel[STEPS_ACCEL_CNT];
-  u32 steps_loops[STEPS_LOOPS_CNT];
+  double exec_ms_final = 0;
 
-  for (int i = 0; i < STEPS_ACCEL_CNT; i++)
+  // first find out highest kernel-loops that stays below target_ms
+
+  for (kernel_loops = kernel_loops_max; kernel_loops > kernel_loops_min; kernel_loops >>= 1)
   {
-    steps_accel[i] = 1 << i;
+    double exec_ms_best = try_run (device_param, kernel_accel_min, kernel_loops);
+
+    for (int i = 0; i < MAX_RETRIES; i++)
+    {
+      const double exec_ms_cur = try_run (device_param, kernel_accel_min, kernel_loops);
+
+      exec_ms_best = MIN (exec_ms_best, exec_ms_cur);
+    }
+
+    if (exec_ms_final == 0) exec_ms_final = exec_ms_best;
+
+    if (exec_ms_best < target_ms) break;
   }
 
-  for (int i = 0; i < STEPS_LOOPS_CNT; i++)
-  {
-    steps_loops[i] = 1 << i;
-  }
-
-  steps_accel[STEPS_CNT + 0] = kernel_accel_min;
-  steps_accel[STEPS_CNT + 1] = kernel_accel_max;
-
-  steps_loops[STEPS_CNT + 0] = kernel_loops_min;
-  steps_loops[STEPS_CNT + 1] = kernel_loops_max;
-
-  qsort (steps_accel, STEPS_ACCEL_CNT, sizeof (u32), sort_by_u32);
-  qsort (steps_loops, STEPS_LOOPS_CNT, sizeof (u32), sort_by_u32);
-
-  // find out highest kernel-loops that stays below target_ms, we can use it later for multiplication as this is a linear function
-
-  u32 kernel_loops_tmp;
-
-  for (kernel_loops_tmp = kernel_loops_max; kernel_loops_tmp > kernel_loops_min; kernel_loops_tmp >>= 1)
-  {
-    const double exec_ms = try_run (device_param, kernel_accel_min, kernel_loops_tmp, 1);
-
-    if (exec_ms < target_ms) break;
-  }
-
-  // kernel-accel
+  // now the same for kernel-accel but with the new kernel-loops from previous loop set
 
   if (kernel_accel_min < kernel_accel_max)
   {
-    double e_best = 0;
-
-    for (int i = 0; i < STEPS_ACCEL_CNT; i++)
+    for (int i = 0; i < STEPS_CNT; i++)
     {
-      const u32 kernel_accel_try = steps_accel[i];
+      const u32 kernel_accel_try = 1 << i;
 
       if (kernel_accel_try < kernel_accel_min) continue;
       if (kernel_accel_try > kernel_accel_max) break;
 
-      const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_tmp, 1);
+      double exec_ms_best = try_run (device_param, kernel_accel_try, kernel_loops);
 
-      if (exec_ms > target_ms) break;
-
-      const double e = kernel_accel_try / exec_ms;
-
-      if (e > e_best)
+      for (int i = 0; i < MAX_RETRIES; i++)
       {
-        kernel_accel = kernel_accel_try;
+        const double exec_ms_cur = try_run (device_param, kernel_accel_try, kernel_loops);
 
-        e_best = e;
+        exec_ms_best = MIN (exec_ms_best, exec_ms_cur);
       }
+
+      if (exec_ms_best > target_ms) break;
+
+      exec_ms_final = exec_ms_best;
+
+      kernel_accel = kernel_accel_try;
     }
   }
 
-  // kernel-loops final
+  // sometimes we're in a bad situation that the algorithm is so slow that we can not
+  // create enough kernel_accel to do both, keep the gpu busy and stay below target_ms.
+  // however, we need to have a minimum kernel_accel of 8.
+  // luckily, at this level of workload, it became a linear function
 
-  if (kernel_loops_min < kernel_loops_max)
+  while (kernel_accel < 8)
   {
-    double e_best = 0;
+    const u32 kernel_accel_try = kernel_accel * 2;
+    const u32 kernel_loops_try = kernel_loops / 2;
 
-    for (int i = 0; i < STEPS_LOOPS_CNT; i++)
+    if (kernel_accel_try > kernel_accel_max) break;
+    if (kernel_loops_try < kernel_loops_min) break;
+
+    kernel_accel = kernel_accel_try;
+    kernel_loops = kernel_loops_try;
+  }
+
+  // finally there's a chance that we have a fixed kernel_loops but not a fixed kernel_accel
+  // in such a case the above function would not create any change
+  // we'll use the runtime to find out if we're allow to do last improvement
+
+  if (exec_ms_final > 0)
+  {
+    if (exec_ms_final < target_ms)
     {
-      const u32 kernel_loops_try = steps_loops[i];
+      const double exec_left = target_ms / exec_ms_final;
 
-      if (kernel_loops_try < kernel_loops_min) continue;
-      if (kernel_loops_try > kernel_loops_max) break;
+      const double accel_left = kernel_accel_max / kernel_accel;
 
-      const double exec_ms = try_run (device_param, kernel_accel, kernel_loops_try, 1);
+      const double exec_accel_min = MIN (exec_left, accel_left);
 
-      if (exec_ms > target_ms) break;
-
-      const double e = kernel_loops_try / exec_ms;
-
-      if (e > e_best)
+      if (exec_accel_min >= 2)
       {
-        kernel_loops = kernel_loops_try;
-
-        e_best = e;
+        kernel_accel *= exec_accel_min;
       }
     }
-  }
-
-  // final balance
-
-  u32 kernel_accel_best = kernel_accel;
-  u32 kernel_loops_best = kernel_loops;
-
-  u32 exec_best = -1;
-
-  if ((kernel_accel_min < kernel_accel_max) || (kernel_loops_min < kernel_loops_max))
-  {
-    const double exec_ms = try_run (device_param, kernel_accel_best, kernel_loops_best, 1);
-
-    exec_best = exec_ms;
-  }
-
-  // reset
-
-  if (kernel_accel_min < kernel_accel_max)
-  {
-    u32 kernel_accel_try = kernel_accel;
-    u32 kernel_loops_try = kernel_loops;
-
-    for (int i = 0; i < 2; i++)
-    {
-      kernel_accel_try >>= 1;
-      kernel_loops_try <<= 1;
-
-      if (kernel_accel_try < kernel_accel_min) break;
-      if (kernel_loops_try > kernel_loops_max) break;
-
-      const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try, 1);
-
-      if (exec_ms < exec_best)
-      {
-        kernel_accel_best = kernel_accel_try;
-        kernel_loops_best = kernel_loops_try;
-
-        exec_best = exec_ms;
-      }
-    }
-  }
-
-  // reset
-
-  if (kernel_loops_min < kernel_loops_max)
-  {
-    u32 kernel_accel_try = kernel_accel;
-    u32 kernel_loops_try = kernel_loops;
-
-    for (int i = 0; i < 2; i++)
-    {
-      kernel_accel_try <<= 1;
-      kernel_loops_try >>= 1;
-
-      if (kernel_accel_try > kernel_accel_max) break;
-      if (kernel_loops_try < kernel_loops_min) break;
-
-      const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try, 1);
-
-      if (exec_ms < exec_best)
-      {
-        kernel_accel_best = kernel_accel_try;
-        kernel_loops_best = kernel_loops_try;
-
-        exec_best = exec_ms;
-      }
-    }
-  }
-
-  // because of the balance we may have some free space left!
-
-  const int exec_left = target_ms / exec_best;
-
-  const int accel_left = kernel_accel_max / kernel_accel_best;
-
-  const int exec_accel_min = MIN (exec_left, accel_left);
-
-  if (exec_accel_min)
-  {
-    kernel_accel_best *= exec_accel_min;
   }
 
   // reset timer
@@ -3045,9 +2952,6 @@ static void autotune (hc_device_param_t *device_param)
   memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
 
   // store
-
-  kernel_accel = kernel_accel_best;
-  kernel_loops = kernel_loops_best;
 
   device_param->kernel_accel = kernel_accel;
   device_param->kernel_loops = kernel_loops;
@@ -3064,12 +2968,11 @@ static void autotune (hc_device_param_t *device_param)
 
     log_info ("Device #%u: autotuned kernel-accel to %u\n"
               "Device #%u: autotuned kernel-loops to %u\n",
-              device_param->device_id + 1,
-              kernel_accel,
-              device_param->device_id + 1,
-              kernel_loops);
+              device_param->device_id + 1, kernel_accel,
+              device_param->device_id + 1, kernel_loops);
 
     fprintf (stdout, "%s", PROMPT);
+
     fflush (stdout);
   }
 
@@ -3320,40 +3223,12 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
         hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
       }
 
-      choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt);
-
       if (data.benchmark == 1)
       {
-        double exec_ms_avg_prev = get_avg_exec_time (device_param, EXEC_CACHE);
-
-        // a few caching rounds
-
-        for (u32 i = 0; i < 2; i++)
-        {
-          hc_timer_set (&device_param->timer_speed);
-
-          choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt);
-
-          double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
-
-          exec_ms_avg_prev = exec_ms_avg;
-        }
-
-        // benchmark_repeats became a maximum possible repeats
-
-        for (u32 i = 2; i < data.benchmark_repeats; i++)
-        {
-          hc_timer_set (&device_param->timer_speed);
-
-          choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt);
-
-          double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
-
-          if ((exec_ms_avg_prev / exec_ms_avg) < 1.001) break;
-
-          exec_ms_avg_prev = exec_ms_avg;
-        }
+        hc_timer_set (&device_param->timer_speed);
       }
+
+      choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt);
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
@@ -5374,7 +5249,6 @@ int main (int argc, char **argv)
   uint  version           = VERSION;
   uint  quiet             = QUIET;
   uint  benchmark         = BENCHMARK;
-  uint  benchmark_repeats = BENCHMARK_REPEATS;
   uint  show              = SHOW;
   uint  left              = LEFT;
   uint  username          = USERNAME;
@@ -5472,7 +5346,6 @@ int main (int argc, char **argv)
   #define IDX_FORCE             0xff08
   #define IDX_RUNTIME           0xff09
   #define IDX_BENCHMARK         'b'
-  #define IDX_BENCHMARK_REPEATS 0xff78
   #define IDX_HASH_MODE         'm'
   #define IDX_ATTACK_MODE       'a'
   #define IDX_RP_FILE           'r'
@@ -5551,7 +5424,6 @@ int main (int argc, char **argv)
     {"outfile-check-dir", required_argument, 0, IDX_OUTFILE_CHECK_DIR},
     {"force",             no_argument,       0, IDX_FORCE},
     {"benchmark",         no_argument,       0, IDX_BENCHMARK},
-    {"benchmark-repeats", required_argument, 0, IDX_BENCHMARK_REPEATS},
     {"restore",           no_argument,       0, IDX_RESTORE},
     {"restore-disable",   no_argument,       0, IDX_RESTORE_DISABLE},
     {"status",            no_argument,       0, IDX_STATUS},
@@ -5861,7 +5733,6 @@ int main (int argc, char **argv)
       case IDX_LIMIT:             limit             = atoll (optarg);  break;
       case IDX_KEYSPACE:          keyspace          = 1;               break;
       case IDX_BENCHMARK:         benchmark         = 1;               break;
-      case IDX_BENCHMARK_REPEATS: benchmark_repeats = atoi (optarg);   break;
       case IDX_RESTORE:                                                break;
       case IDX_RESTORE_DISABLE:   restore_disable   = 1;               break;
       case IDX_STATUS:            status            = 1;               break;
@@ -6604,7 +6475,6 @@ int main (int argc, char **argv)
   data.rp_gen_seed       = rp_gen_seed;
   data.force             = force;
   data.benchmark         = benchmark;
-  data.benchmark_repeats = benchmark_repeats;
   data.skip              = skip;
   data.limit             = limit;
   #if defined(HAVE_HWMON) && defined(HAVE_ADL)
@@ -6679,7 +6549,6 @@ int main (int argc, char **argv)
   logfile_top_uint   (attack_mode);
   logfile_top_uint   (attack_kern);
   logfile_top_uint   (benchmark);
-  logfile_top_uint   (benchmark_repeats);
   logfile_top_uint   (bitmap_min);
   logfile_top_uint   (bitmap_max);
   logfile_top_uint   (debug_mode);
@@ -10338,7 +10207,7 @@ int main (int argc, char **argv)
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
-			                         | OPTS_TYPE_PT_ADD80;
+                               | OPTS_TYPE_PT_ADD80;
                    kern_type   = KERN_TYPE_PSTOKEN;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = pstoken_parse_hash;
