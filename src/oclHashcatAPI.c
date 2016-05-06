@@ -31,34 +31,14 @@
 
 #ifdef DEBUG
 #define debug_print(fmt, args...) fprintf(stderr, "DEBUG: %s:%d:%s(): " fmt, __FILE__, __LINE__, __func__, ##args)
-#define debug_prints(fmt, args...) fprintf(stderr, fmt, ##args)
+#define debug_prints(fmt, args...) fprintf(stderr, fmt, ##args) // simple debug print
 #else
-#define debug_print(fmt, args...) /* Don't do anything in release builds */
+#define debug_print(fmt, args...) // Don't do anything in release builds 
 #define debug_prints(fmt, args...)
 #endif
 
-struct hcapi_control;
-struct hcapi_options;
-struct hcapi_thread_args;
+#define HM_STR_BUF_SIZE 255
 
-struct hcapi_control oclhashcat_init (void);
-int hcapi_main (int, char **);
-int hcapi_start (int, char **);
-int hcapi_stop (void);
-void hcapi_append_rules (struct hcapi_options *options, char *add);
-void hcapi_append_dictmaskdir (struct hcapi_options *options, char *add);
-void hcapi_generate_commandline (struct hcapi_options, int *, char ***);
-
-#ifdef WIN
-HANDLE hcapi_start_thread (int, char **);
-#else
-int hcapi_start_thread (int, char **);
-#endif
-
-void check_argv_array (char ***, size_t *, size_t *, int *);
-char *strcat_ls (char *, char *);
-
-typedef hc_global_data_t oclhashcat_data_ptr;
 typedef unsigned int uint;
 
 typedef struct hcapi_thread_args
@@ -151,8 +131,7 @@ typedef struct hcapi_options
   char *dictmaskdir;
   void (*append_dictmaskdir) (struct hcapi_options * options, char *new_file_path);
 
-
-} oclhashcat_options;
+} hcapi_options;
 
 typedef struct hcapi_control
 {
@@ -166,15 +145,237 @@ typedef struct hcapi_control
 #endif
 
   int (*stop) (void);
-  void (*generate_commandline) (oclhashcat_options options, int *c, char ***v);
+  void (*generate_commandline) (hcapi_options options, int *c, char ***v);
   hc_global_data_t *(*get_data_ptr) (void);
+  void (*status_data) (void);
 
-  oclhashcat_options options;
+  hcapi_options options;
 
-} oclhashcat_con;
+} hcapi_con;
+
+typedef struct hcapi_data_time_start {
+    
+    char *start;
+    char *display_run;
+
+
+} hcapi_data_time_started;
+
+
+typedef struct hcapi_data_time_estimated {
+    
+    char * etc;
+    char *display_etc;
+
+} hcapi_data_time_estimated;
+
+typedef struct hcapi_data_speed_dev {
+    
+
+    int device_id;
+    char display_dev_cur[16];
+    double exec_all_ms[DEVICES_MAX];
+    char display_all_cur[16];
+
+} hcapi_data_speed_dev;
+
+typedef struct hcapi_data_recovered {
+    
+    float digests_percent;
+    float salts_percent;
+
+} hcapi_data_recovered;
+
+
+typedef struct hcapi_data_recovered_time {
+    
+    int cpt_cur_min;
+    int cpt_cur_hour;
+    int cpt_cur_day;
+
+    float ms_real;
+
+    float cpt_avg_min;
+    float cpt_avg_hour;
+    float cpt_avg_day;
+
+} hcapi_data_recovered_time;
+
+typedef struct hcapi_data_progress {
+    
+    u64 progress_cur_relative_skip;
+    u64 progress_end_relative_skip;
+    float percent_finished;
+    float percent_rejected;
+    u64 all_rejected;
+
+} hcapi_data_progress;
+
+
+typedef struct hcapi_data_restore_point {
+    
+    u64 restore_total;
+    u64 restore_point;
+    float percent_restore;
+
+} hcapi_data_restore_point;
+
+
+typedef struct hcapi_data_hwmon_gpu {
+    
+    int device_id;
+    char utilization[HM_STR_BUF_SIZE];
+    char temperature[HM_STR_BUF_SIZE];
+
+} hcapi_data_hwmon_gpu;
+
+typedef struct hcapi_global_data_t {
+    
+  /**
+   * threads
+   */
+  uint    devices_status;
+  uint    devices_cnt;
+  uint    devices_active;
+
+
+  /**
+   * attack specific
+   */
+
+  uint    wordlist_mode;
+  uint    attack_mode;
+  uint    attack_kern;
+  uint    kernel_rules_cnt;
+  uint    combs_cnt;
+  uint    bfs_cnt;
+  uint    css_cnt;
 
 
 
+  /**
+   * hashes
+   */
+
+  uint    digests_cnt;
+  uint    digests_done;
+  uint    salts_cnt;
+  uint    salts_done;
+  salt_t *salts_buf;
+  uint   *salts_shown;
+  void   *esalts_buf;
+
+ 
+
+  /**
+   * crack-per-time
+   */
+
+  cpt_t   cpt_buf[CPT_BUF];
+  time_t  cpt_start;
+  u64     cpt_total;
+
+  /**
+   * user
+   */
+
+  char   *dictfile;
+  char   *dictfile2;
+  char   *mask;
+  uint    maskcnt;
+  uint    maskpos;
+  char   *session;
+  char   *hashfile;
+  uint    restore_disable;
+  uint    hash_mode;
+  uint    hash_type;
+  uint    opts_type;
+
+
+  #ifdef HAVE_HWMON
+  uint    gpu_temp_disable;
+  #endif
+
+  char  **rp_files;
+  uint    rp_files_cnt;
+  uint    rp_gen;
+  uint    rp_gen_seed;
+
+
+  /**
+   * used for restore
+   */
+
+  u64     skip;
+  u64     limit;
+
+
+  /**
+   * status, timer
+   */
+
+  time_t  proc_start;
+  u64     words_cnt;
+  u64     words_base;
+  u64    *words_progress_done;      // progress number of words done     per salt
+  u64    *words_progress_rejected;  // progress number of words rejected per salt
+  u64    *words_progress_restored;  // progress number of words restored per salt
+
+  hc_timer_t timer_running;         // timer on current dict
+  hc_timer_t timer_paused;          // timer on current dict
+
+  float   ms_paused;                // timer on current dict
+
+  /**
+   * Calculated values
+   */
+
+   char *status;
+   char *hash_target;
+   char *hash_type_str;
+
+   hcapi_data_time_started time_started;
+   hcapi_data_time_estimated time_estimated;
+
+   hcapi_data_speed_dev *speed_dev;
+   hcapi_data_recovered recovered;
+   hcapi_data_recovered_time recovered_time;
+   hcapi_data_progress progress;
+   hcapi_data_restore_point restore_point;
+   hcapi_data_hwmon_gpu hwmon_gpu;
+
+} hcapi_global_data_t;
+
+// Storage for runtime status data
+hcapi_global_data_t hcapi_data;
+
+
+
+/**
+ * Function prototypes
+ */
+
+struct hcapi_control oclhashcat_init (void);
+int hcapi_main (int, char **);
+int hcapi_start (int, char **);
+int hcapi_stop (void);
+void hcapi_append_rules (struct hcapi_options *options, char *add);
+void hcapi_append_dictmaskdir (struct hcapi_options *options, char *add);
+void hcapi_generate_commandline (struct hcapi_options, int *, char ***);
+
+#ifdef WIN
+HANDLE hcapi_start_thread (int, char **);
+#else
+int hcapi_start_thread (int, char **);
+#endif
+
+void check_argv_array (char ***, size_t *, size_t *, int *);
+char *strcat_ls (char *, char *);
+
+
+/**
+ * Utility/helper Functions 
+ */
 
 char *strcat_ls (char *dst, char *src)
 {
@@ -230,6 +431,41 @@ void check_argv_array (char ***apiargv, size_t * apiargv_size, size_t * apiargv_
   }
 }
 
+// From oclHashcat.c used in hcapi_status_data()
+static double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
+{
+  int exec_pos = (int) device_param->exec_pos - last_num_entries;
+
+  if (exec_pos < 0) exec_pos += EXEC_CACHE;
+
+  double exec_ms_sum = 0;
+
+  int exec_ms_cnt = 0;
+
+  for (int i = 0; i < last_num_entries; i++)
+  {
+    double exec_ms = device_param->exec_ms[(exec_pos + i) % EXEC_CACHE];
+
+    if (exec_ms)
+    {
+      exec_ms_sum += exec_ms;
+
+      exec_ms_cnt++;
+    }
+  }
+
+  if (exec_ms_cnt == 0) return 0;
+
+  return exec_ms_sum / exec_ms_cnt;
+}
+
+
+
+
+/**
+ * oclHashcat API Functions 
+ */
+
 void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v)
 {
 
@@ -267,7 +503,10 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
   }
 
-
+  /* The --quiet option is always defaulted to 1 for API calls. 
+   * The developer may override this option by setting it to 0 manually, but it's not recommended
+   *
+   */ 
   if (options.quiet != QUIET)
   {
 
@@ -1313,7 +1552,7 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
+    
     size_t input_size = strlen (options.custom_charset_4) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -1331,7 +1570,7 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
 
-    // Account for num of digits plus null
+    
     size_t input_size = strlen (options.hash_input) + 2;
 
     char *user_input = (char *) calloc (input_size, sizeof (char));
@@ -1519,7 +1758,7 @@ HANDLE hcapi_start_thread (int argc, char **argv)
   
   // Give the worker thread a chance to initialize
   int sleep_time = 5;
-  debug_print ("Main thread sleeping for %d\n", sleep_time);
+  debug_print ("oclHashcat Spinning Up! Main thread sleeping for %d\n", sleep_time);
   sleep (sleep_time);
 
   return hThread;
@@ -1594,7 +1833,6 @@ int hcapi_stop (void)
   return 0;
 }
 
-
 void hcapi_append_rules (struct hcapi_options *options, char *new_file_path)
 {
 
@@ -1637,17 +1875,697 @@ void hcapi_append_dictmaskdir (struct hcapi_options *options, char *new_file_pat
   return;
 }
 
-oclhashcat_con oclhashcat_init (void)
+void hcapi_status_data ()
 {
 
-  debug_print ("Intializing\n");
+  
+  hc_thread_mutex_lock (mux_display);
 
-  oclhashcat_con control;
+  if (data.devices_status == STATUS_INIT)     return;
+  if (data.devices_status == STATUS_STARTING) return;
+  if (data.devices_status == STATUS_BYPASS)   return;
 
-  control.options.hash_input = NULL;  // positional param --> hash|hashfile|hccapfile
-  control.options.dictmaskdir = NULL; // positional param --> [dictionary|mask|directory]
+  extern hc_thread_mutex_t mux_adl;
+
+  char tmp_buf[1000] = { 0 };
+
+  uint tmp_len = 0;
+
+  log_info ("Session.Name...: %s", data.session);
+
+  char *status_type = strstatus (data.devices_status);
+
+  uint hash_mode = data.hash_mode;
+
+  char *hash_type = strhashtype (hash_mode); // not a bug
+
+  log_info ("Status.........: %s", status_type);
+ 
+  /**
+   * show rules
+   */
+
+  if (data.rp_files_cnt)
+  {
+    uint i;
+
+    for (i = 0, tmp_len = 0; i < data.rp_files_cnt - 1 && tmp_len < sizeof (tmp_buf); i++)
+    {
+      tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s), ", data.rp_files[i]);
+    }
+
+    snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s)", data.rp_files[i]);
+
+    log_info ("Rules.Type.....: %s", tmp_buf);
+
+    tmp_len = 0;
+  }
+
+  if (data.rp_gen)
+  {
+    log_info ("Rules.Type.....: Generated (%u)", data.rp_gen);
+
+    if (data.rp_gen_seed)
+    {
+      log_info ("Rules.Seed.....: %u", data.rp_gen_seed);
+    }
+  }
+
+  /**
+   * show input
+   */
+
+  if (data.attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    if (data.wordlist_mode == WL_MODE_FILE)
+    {
+      if (data.dictfile != NULL) log_info ("Input.Mode.....: File (%s)", data.dictfile);
+    }
+    else if (data.wordlist_mode == WL_MODE_STDIN)
+    {
+      log_info ("Input.Mode.....: Pipe");
+    }
+  }
+  else if (data.attack_mode == ATTACK_MODE_COMBI)
+  {
+    if (data.dictfile  != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
+    if (data.dictfile2 != NULL) log_info ("Input.Right....: File (%s)", data.dictfile2);
+  }
+  else if (data.attack_mode == ATTACK_MODE_BF)
+  {
+    char *mask = data.mask;
+
+    if (mask != NULL)
+    {
+      uint mask_len = data.css_cnt;
+
+      tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "Mask (%s)", mask);
+
+      if (mask_len > 0)
+      {
+        if (data.opti_type & OPTI_TYPE_SINGLE_HASH)
+        {
+          if (data.opti_type & OPTI_TYPE_APPENDED_SALT)
+          {
+            mask_len -= data.salts_buf[0].salt_len;
+          }
+        }
+
+        if (data.opts_type & OPTS_TYPE_PT_UNICODE) mask_len /= 2;
+
+        tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " [%i]", mask_len);
+      }
+
+      if (data.maskcnt > 1)
+      {
+        float mask_percentage = (float) data.maskpos / (float) data.maskcnt;
+
+        tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " (%.02f%%)", mask_percentage * 100);
+      }
+
+      log_info ("Input.Mode.....: %s", tmp_buf);
+    }
+
+    tmp_len = 0;
+  }
+  else if (data.attack_mode == ATTACK_MODE_HYBRID1)
+  {
+    if (data.dictfile != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
+    if (data.mask     != NULL) log_info ("Input.Right....: Mask (%s) [%i]", data.mask, data.css_cnt);
+  }
+  else if (data.attack_mode == ATTACK_MODE_HYBRID2)
+  {
+    if (data.mask     != NULL) log_info ("Input.Left.....: Mask (%s) [%i]", data.mask, data.css_cnt);
+    if (data.dictfile != NULL) log_info ("Input.Right....: File (%s)", data.dictfile);
+  }
+
+  if (data.digests_cnt == 1)
+  {
+    if (data.hash_mode == 2500)
+    {
+      wpa_t *wpa = (wpa_t *) data.esalts_buf;
+
+      log_info ("Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
+                (char *) data.salts_buf[0].salt_buf,
+                wpa->orig_mac1[0],
+                wpa->orig_mac1[1],
+                wpa->orig_mac1[2],
+                wpa->orig_mac1[3],
+                wpa->orig_mac1[4],
+                wpa->orig_mac1[5],
+                wpa->orig_mac2[0],
+                wpa->orig_mac2[1],
+                wpa->orig_mac2[2],
+                wpa->orig_mac2[3],
+                wpa->orig_mac2[4],
+                wpa->orig_mac2[5]);
+    }
+    else if (data.hash_mode == 5200)
+    {
+      log_info ("Hash.Target....: File (%s)", data.hashfile);
+    }
+    else if (data.hash_mode == 9000)
+    {
+      log_info ("Hash.Target....: File (%s)", data.hashfile);
+    }
+    else if ((data.hash_mode >= 6200) && (data.hash_mode <= 6299))
+    {
+      log_info ("Hash.Target....: File (%s)", data.hashfile);
+    }
+    else
+    {
+      char out_buf[HCBUFSIZ] = { 0 };
+
+      ascii_digest (out_buf, 0, 0);
+
+      // limit length
+      if (strlen (out_buf) > 40)
+      {
+        out_buf[41] = '.';
+        out_buf[42] = '.';
+        out_buf[43] = '.';
+        out_buf[44] = 0;
+      }
+
+      log_info ("Hash.Target....: %s", out_buf);
+    }
+  }
+  else
+  {
+    if (data.hash_mode == 3000)
+    {
+      char out_buf1[32] = { 0 };
+      char out_buf2[32] = { 0 };
+
+      ascii_digest (out_buf1, 0, 0);
+      ascii_digest (out_buf2, 0, 1);
+
+      log_info ("Hash.Target....: %s, %s", out_buf1, out_buf2);
+    }
+    else
+    {
+      log_info ("Hash.Target....: File (%s)", data.hashfile);
+    }
+  }
+
+  log_info ("Hash.Type......: %s", hash_type);
+
+  /**
+   * speed new
+   */
+
+  u64   speed_cnt[DEVICES_MAX] = { 0 };
+  float speed_ms[DEVICES_MAX]  = { 0 };
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    // we need to clear values (set to 0) because in case the device does
+    // not get new candidates it idles around but speed display would
+    // show it as working.
+    // if we instantly set it to 0 after reading it happens that the
+    // speed can be shown as zero if the users refreshes too fast.
+    // therefore, we add a timestamp when a stat was recorded and if its
+    // too old we will not use it
+
+    speed_cnt[device_id] = 0;
+    speed_ms[device_id]  = 0;
+
+    for (int i = 0; i < SPEED_CACHE; i++)
+    {
+      float rec_ms;
+
+      hc_timer_get (device_param->speed_rec[i], rec_ms);
+
+      if (rec_ms > SPEED_MAXAGE) continue;
+
+      speed_cnt[device_id] += device_param->speed_cnt[i];
+      speed_ms[device_id]  += device_param->speed_ms[i];
+    }
+
+    speed_cnt[device_id] /= SPEED_CACHE;
+    speed_ms[device_id]  /= SPEED_CACHE;
+  }
+
+  float hashes_all_ms = 0;
+
+  float hashes_dev_ms[DEVICES_MAX] = { 0 };
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    hashes_dev_ms[device_id] = 0;
+
+    if (speed_ms[device_id])
+    {
+      hashes_dev_ms[device_id] = speed_cnt[device_id] / speed_ms[device_id];
+
+      hashes_all_ms += hashes_dev_ms[device_id];
+    }
+  }
+
+  /**
+   * exec time
+   */
+
+  double exec_all_ms[DEVICES_MAX] = { 0 };
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
+
+    exec_all_ms[device_id] = exec_ms_avg;
+  }
+
+  /**
+   * timers
+   */
+
+  float ms_running = 0;
+
+  hc_timer_get (data.timer_running, ms_running);
+
+  float ms_paused = data.ms_paused;
+
+  if (data.devices_status == STATUS_PAUSED)
+  {
+    float ms_paused_tmp = 0;
+
+    hc_timer_get (data.timer_paused, ms_paused_tmp);
+
+    ms_paused += ms_paused_tmp;
+  }
+
+  #ifdef WIN
+
+  __time64_t sec_run = ms_running / 1000;
+
+  #else
+
+  time_t sec_run = ms_running / 1000;
+
+  #endif
+
+  if (sec_run)
+  {
+    char display_run[32] = { 0 };
+
+    struct tm tm_run;
+
+    struct tm *tmp = NULL;
+
+    #ifdef WIN
+
+    tmp = _gmtime64 (&sec_run);
+
+    #else
+
+    tmp = gmtime (&sec_run);
+
+    #endif
+
+    if (tmp != NULL)
+    {
+      memset (&tm_run, 0, sizeof (tm_run));
+
+      memcpy (&tm_run, tmp, sizeof (tm_run));
+
+      format_timer_display (&tm_run, display_run, sizeof (tm_run));
+
+      char *start = ctime (&data.proc_start);
+
+      size_t start_len = strlen (start);
+
+      if (start[start_len - 1] == '\n') start[start_len - 1] = 0;
+      if (start[start_len - 2] == '\r') start[start_len - 2] = 0;
+
+      log_info ("Time.Started...: %s (%s)", start, display_run);
+    }
+  }
+  else
+  {
+    log_info ("Time.Started...: 0 secs");
+  }
+
+  /**
+   * counters
+   */
+
+  u64 progress_total = data.words_cnt * data.salts_cnt;
+
+  u64 all_done     = 0;
+  u64 all_rejected = 0;
+  u64 all_restored = 0;
+
+  u64 progress_noneed = 0;
+
+  for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+  {
+    all_done     += data.words_progress_done[salt_pos];
+    all_rejected += data.words_progress_rejected[salt_pos];
+    all_restored += data.words_progress_restored[salt_pos];
+
+    // Important for ETA only
+
+    if (data.salts_shown[salt_pos] == 1)
+    {
+      const u64 all = data.words_progress_done[salt_pos]
+                    + data.words_progress_rejected[salt_pos]
+                    + data.words_progress_restored[salt_pos];
+
+      const u64 left = data.words_cnt - all;
+
+      progress_noneed += left;
+    }
+  }
+
+  u64 progress_cur = all_restored + all_done + all_rejected;
+  u64 progress_end = progress_total;
+
+  u64 progress_skip = 0;
+
+  if (data.skip)
+  {
+    progress_skip = MIN (data.skip, data.words_base) * data.salts_cnt;
+
+    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
+    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
+    else if (data.attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
+  }
+
+  if (data.limit)
+  {
+    progress_end = MIN (data.limit, data.words_base) * data.salts_cnt;
+
+    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
+    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
+    else if (data.attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
+  }
+
+  u64 progress_cur_relative_skip = progress_cur - progress_skip;
+  u64 progress_end_relative_skip = progress_end - progress_skip;
+
+  if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
+  {
+    if (data.devices_status != STATUS_CRACKED)
+    {
+      #ifdef WIN
+      __time64_t sec_etc = 0;
+      #else
+      time_t sec_etc = 0;
+      #endif
+
+      if (hashes_all_ms)
+      {
+        u64 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
+
+        u64 ms_left = (progress_left_relative_skip - progress_noneed) / hashes_all_ms;
+
+        sec_etc = ms_left / 1000;
+      }
+
+      if (sec_etc == 0)
+      {
+        //log_info ("Time.Estimated.: 0 secs");
+      }
+      else if ((u64) sec_etc > ETC_MAX)
+      {
+        log_info ("Time.Estimated.: > 10 Years");
+      }
+      else
+      {
+        char display_etc[32] = { 0 };
+
+        struct tm tm_etc;
+
+        struct tm *tmp = NULL;
+
+        #ifdef WIN
+
+        tmp = _gmtime64 (&sec_etc);
+
+        #else
+
+        tmp = gmtime (&sec_etc);
+
+        #endif
+
+        if (tmp != NULL)
+        {
+          memset (&tm_etc, 0, sizeof (tm_etc));
+
+          memcpy (&tm_etc, tmp, sizeof (tm_etc));
+
+          format_timer_display (&tm_etc, display_etc, sizeof (display_etc));
+
+          time_t now;
+
+          time (&now);
+
+          now += sec_etc;
+
+          char *etc = ctime (&now);
+
+          size_t etc_len = strlen (etc);
+
+          if (etc[etc_len - 1] == '\n') etc[etc_len - 1] = 0;
+          if (etc[etc_len - 2] == '\r') etc[etc_len - 2] = 0;
+
+          log_info ("Time.Estimated.: %s (%s)", etc, display_etc);
+        }
+      }
+    }
+  }
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    char display_dev_cur[16] = { 0 };
+
+    strncpy (display_dev_cur, "0.00", 4);
+
+    format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
+
+    log_info ("Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+  }
+
+  char display_all_cur[16] = { 0 };
+
+  strncpy (display_all_cur, "0.00", 4);
+
+  format_speed_display (hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
+
+  if (data.devices_active > 1) log_info ("Speed.Dev.#*...: %9sH/s", display_all_cur);
+
+  const float digests_percent = (float) data.digests_done / data.digests_cnt;
+  const float salts_percent   = (float) data.salts_done   / data.salts_cnt;
+
+  log_info ("Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", data.digests_done, data.digests_cnt, digests_percent * 100, data.salts_done, data.salts_cnt, salts_percent * 100);
+
+  // crack-per-time
+
+  if (data.digests_cnt > 100)
+  {
+    time_t now = time (NULL);
+
+    int cpt_cur_min  = 0;
+    int cpt_cur_hour = 0;
+    int cpt_cur_day  = 0;
+
+    for (int i = 0; i < CPT_BUF; i++)
+    {
+      const uint   cracked   = data.cpt_buf[i].cracked;
+      const time_t timestamp = data.cpt_buf[i].timestamp;
+
+      if ((timestamp + 60) > now)
+      {
+        cpt_cur_min  += cracked;
+      }
+
+      if ((timestamp + 3600) > now)
+      {
+        cpt_cur_hour += cracked;
+      }
+
+      if ((timestamp + 86400) > now)
+      {
+        cpt_cur_day  += cracked;
+      }
+    }
+
+    float ms_real = ms_running - ms_paused;
+
+    float cpt_avg_min  = (float) data.cpt_total / ((ms_real / 1000) / 60);
+    float cpt_avg_hour = (float) data.cpt_total / ((ms_real / 1000) / 3600);
+    float cpt_avg_day  = (float) data.cpt_total / ((ms_real / 1000) / 86400);
+
+    if ((data.cpt_start + 86400) < now)
+    {
+      log_info ("Recovered/Time.: CUR:%llu,%llu,%llu AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+        cpt_cur_min,
+        cpt_cur_hour,
+        cpt_cur_day,
+        cpt_avg_min,
+        cpt_avg_hour,
+        cpt_avg_day);
+    }
+    else if ((data.cpt_start + 3600) < now)
+    {
+      log_info ("Recovered/Time.: CUR:%llu,%llu,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+        cpt_cur_min,
+        cpt_cur_hour,
+        cpt_avg_min,
+        cpt_avg_hour,
+        cpt_avg_day);
+    }
+    else if ((data.cpt_start + 60) < now)
+    {
+      log_info ("Recovered/Time.: CUR:%llu,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+        cpt_cur_min,
+        cpt_avg_min,
+        cpt_avg_hour,
+        cpt_avg_day);
+    }
+    else
+    {
+      log_info ("Recovered/Time.: CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+        cpt_avg_min,
+        cpt_avg_hour,
+        cpt_avg_day);
+    }
+  }
+
+  // Restore point
+
+  u64 restore_point = get_lowest_words_done ();
+
+  u64 restore_total = data.words_base;
+
+  float percent_restore = 0;
+
+  if (restore_total != 0) percent_restore = (float) restore_point / (float) restore_total;
+
+  if (progress_end_relative_skip)
+  {
+    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
+    {
+      float percent_finished = (float) progress_cur_relative_skip / (float) progress_end_relative_skip;
+      float percent_rejected = 0.0;
+
+      if (progress_cur)
+      {
+        percent_rejected = (float) (all_rejected) / (float) progress_cur;
+      }
+
+      log_info ("Progress.......: %llu/%llu (%.02f%%)", (unsigned long long int) progress_cur_relative_skip, (unsigned long long int) progress_end_relative_skip, percent_finished * 100);
+      log_info ("Rejected.......: %llu/%llu (%.02f%%)", (unsigned long long int) all_rejected,               (unsigned long long int) progress_cur_relative_skip, percent_rejected * 100);
+
+      if (data.restore_disable == 0)
+      {
+        if (percent_finished != 1)
+        {
+          log_info ("Restore.Point..: %llu/%llu (%.02f%%)", (unsigned long long int) restore_point, (unsigned long long int) restore_total, percent_restore * 100);
+        }
+      }
+    }
+  }
+  else
+  {
+    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
+    {
+      log_info ("Progress.......: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
+      log_info ("Rejected.......: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
+
+      if (data.restore_disable == 0)
+      {
+        log_info ("Restore.Point..: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
+      }
+    }
+    else
+    {
+      log_info ("Progress.......: %llu", (unsigned long long int) progress_cur_relative_skip);
+      log_info ("Rejected.......: %llu", (unsigned long long int) all_rejected);
+
+      
+    }
+  }
+
+  #ifdef HAVE_HWMON
+  if (data.gpu_temp_disable == 0)
+  {
+    hc_thread_mutex_lock (mux_adl);
+
+    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+    {
+      hc_device_param_t *device_param = &data.devices_param[device_id];
+
+      if (device_param->skipped) continue;
+
+      #define HM_STR_BUF_SIZE 255
+
+      if (data.hm_device[device_id].fan_supported == 1)
+      {
+        char utilization[HM_STR_BUF_SIZE] = { 0 };
+        char temperature[HM_STR_BUF_SIZE] = { 0 };
+        char fanspeed[HM_STR_BUF_SIZE] = { 0 };
+
+        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
+        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
+
+        if (device_param->vendor_id == VENDOR_ID_AMD)
+        {
+          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
+        }
+        else if (device_param->vendor_id == VENDOR_ID_NV)
+        {
+          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
+        }
+
+        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan", device_id + 1, utilization, temperature, fanspeed);
+      }
+      else
+      {
+        char utilization[HM_STR_BUF_SIZE] = { 0 };
+        char temperature[HM_STR_BUF_SIZE] = { 0 };
+
+        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
+        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
+
+        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, N/A Fan", device_id + 1, utilization, temperature);
+      }
+    }
+
+    hc_thread_mutex_unlock (mux_adl);
+  }
+  #endif // HAVE_HWMON
+
+  hc_thread_mutex_unlock (mux_display);
+}
+
+hcapi_con oclhashcat_init (void)
+{
+
+  debug_print ("Intializing options\n");
+
+  hcapi_con control;
+
+  control.options.hash_input = NULL;      // positional param --> hash|hashfile|hccapfile
+  control.options.dictmaskdir = NULL;     // positional param --> [dictionary|mask|directory]
   control.options.version = VERSION;
-  control.options.quiet = QUIET;
+  control.options.quiet = 1;              // Changed from default of QUIET == 0;
   control.options.benchmark = BENCHMARK;
   control.options.show = SHOW;
   control.options.left = LEFT;
@@ -1726,7 +2644,12 @@ oclhashcat_con oclhashcat_init (void)
   control.start_thread = hcapi_start_thread;
   control.stop = hcapi_stop;
   control.generate_commandline = hcapi_generate_commandline;
-  control.get_data_ptr = hcapi_data_ptr;
+  control.status_data = hcapi_status_data;
+
+
+  debug_print ("Intializing data output structure\n");
+
+
 
   return control;
 
@@ -1742,7 +2665,7 @@ int main ()
 
   printf ("[*] Starting API Test.\n");
 
-  oclhashcat_con hc = oclhashcat_init ();
+  hcapi_con hc = oclhashcat_init ();
 
 
   hc.options.attack_mode = 0;
@@ -1752,10 +2675,15 @@ int main ()
   hc.options.append_rules(&hc.options, "C:\\Users\\auser\\Desktop\\Rules\\somerulse.rule");
   hc.options.append_rules(&hc.options, "rules\\best64.rule");
 
-  
+  /*
 
 
-  hc.options.quiet = 1;
+
+
+        IN PROGRESS THIS IS NOT A WORKING COMMIT
+
+
+  */
 
   int c;
   char **v;
@@ -1764,32 +2692,14 @@ int main ()
 
   hc.start_thread (c, v);
 
-  oclhashcat_data_ptr *output = malloc (sizeof (oclhashcat_data_ptr));
-
-  output = hc.get_data_ptr ();
-
-  printf ("install dir: %s\n\n", output->install_dir);
-
-  u64 all_done = 0;
-  u64 all_rejected = 0;
-  u64 all_restored = 0;
   char quit = 'r';
 
 
   while (1)
   {
 
-    for (uint salt_pos = 0; salt_pos < output->salts_cnt; salt_pos++)
-    {
-      all_done += output->words_progress_done[salt_pos];
-      all_rejected += output->words_progress_rejected[salt_pos];
-      all_restored += output->words_progress_restored[salt_pos];
-
-      printf ("all_done: %llu\n", all_done);
-      printf ("all_rejected: %llu\n", all_rejected);
-      printf ("all_restored: %llu\n\n", all_restored);
-
-    }
+    
+    hc.status_data ();
 
     quit = getchar ();
     if (quit == 'q')

@@ -1666,12 +1666,6 @@ void *thread_device_watch (void *p);
 void *thread_keypress     (void *p);
 void *thread_runtime      (void *p);
 
-/**
- *  API Functions
- */
-
-hc_global_data_t * hcapi_data_ptr(void);
-
 
 /**
  * checksum for use on cpu
