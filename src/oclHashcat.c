@@ -2909,10 +2909,10 @@ static void autotune (hc_device_param_t *device_param)
 
   // sometimes we're in a bad situation that the algorithm is so slow that we can not
   // create enough kernel_accel to do both, keep the gpu busy and stay below target_ms.
-  // however, we need to have a minimum kernel_accel of 8.
+  // however, we need to have a minimum kernel_accel of 64.
   // luckily, at this level of workload, it became a linear function
 
-  while (kernel_accel < 8)
+  while (kernel_accel < 64)
   {
     const u32 kernel_accel_try = kernel_accel * 2;
     const u32 kernel_loops_try = kernel_loops / 2;
