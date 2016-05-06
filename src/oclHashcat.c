@@ -2909,10 +2909,10 @@ static void autotune (hc_device_param_t *device_param)
 
   // sometimes we're in a bad situation that the algorithm is so slow that we can not
   // create enough kernel_accel to do both, keep the gpu busy and stay below target_ms.
-  // however, we need to have a minimum kernel_accel of 64.
+  // however, we need to have a minimum kernel_accel and kernel_loops of 32.
   // luckily, at this level of workload, it became a linear function
 
-  while (kernel_accel < 64)
+  while (kernel_accel < 32 && kernel_loops >= 32)
   {
     const u32 kernel_accel_try = kernel_accel * 2;
     const u32 kernel_loops_try = kernel_loops / 2;
@@ -13643,6 +13643,7 @@ int main (int argc, char **argv)
        * some algorithms have a maximum kernel-loops count
        */
 
+      /*
       if (attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
       {
         if (data.salts_buf[0].salt_iter < device_param->kernel_loops_max)
@@ -13650,6 +13651,7 @@ int main (int argc, char **argv)
           device_param->kernel_loops_max = data.salts_buf[0].salt_iter;
         }
       }
+      */
 
       /**
        * some algorithms need a special kernel-accel
