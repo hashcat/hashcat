@@ -64,17 +64,17 @@ DEVICE_TYPE_CPU                                 *       *       N       A       
 #Device                                         Attack  Hash    Vector  Kernel  Kernel
 #Name                                           Mode    Type    Width   Accel   Loops
 
-ALIAS_nv_budget                                 *       0       2       A       A
-ALIAS_nv_budget                                 *       11      2       A       A
-ALIAS_nv_budget                                 *       12      2       A       A
+ALIAS_nv_budget                                 *       0       4       A       A
+ALIAS_nv_budget                                 *       11      4       A       A
+ALIAS_nv_budget                                 *       12      4       A       A
 ALIAS_nv_budget                                 *       21      2       A       A
 ALIAS_nv_budget                                 *       22      2       A       A
 ALIAS_nv_budget                                 *       23      2       A       A
-ALIAS_nv_budget                                 *       200     2       A       A
+ALIAS_nv_budget                                 *       200     4       A       A
 ALIAS_nv_budget                                 *       400     2       A       A
-ALIAS_nv_budget                                 *       900     2       A       A
-ALIAS_nv_budget                                 *       1000    2       A       A
-ALIAS_nv_budget                                 *       1100    2       A       A
+ALIAS_nv_budget                                 *       900     4       A       A
+ALIAS_nv_budget                                 *       1000    4       A       A
+ALIAS_nv_budget                                 *       1100    4       A       A
 ALIAS_nv_budget                                 *       2400    2       A       A
 ALIAS_nv_budget                                 *       2410    2       A       A
 ALIAS_nv_budget                                 *       2600    2       A       A
@@ -85,11 +85,9 @@ ALIAS_nv_budget                                 *       2811    2       A       
 ALIAS_nv_budget                                 *       3711    2       A       A
 ALIAS_nv_budget                                 *       5100    2       A       A
 ALIAS_nv_budget                                 *       5500    2       A       A
-ALIAS_nv_budget                                 *       6000    2       A       A
-ALIAS_nv_budget                                 *       9900    2       A       A
+ALIAS_nv_budget                                 *       9900    4       A       A
 ALIAS_nv_budget                                 *       10100   2       A       A
 ALIAS_nv_budget                                 *       11000   2       A       A
-ALIAS_nv_budget                                 *       11400   2       A       A
 
 #Device                                         Attack  Hash    Vector  Kernel  Kernel
 #Name                                           Mode    Type    Width   Accel   Loops

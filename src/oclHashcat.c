@@ -2859,7 +2859,19 @@ static void autotune (hc_device_param_t *device_param)
 
   #define MAX_RETRIES 1
 
-  double exec_ms_final = 0;
+  if ((kernel_loops_min == kernel_loops_max) || (kernel_accel_min == kernel_accel_max))
+  {
+    // we do this in case the user specified a fixed -u and -n on the commandline
+    // so we have a cached kernel for benchmark
+
+    try_run (device_param, kernel_accel, kernel_loops);
+    try_run (device_param, kernel_accel, kernel_loops);
+    try_run (device_param, kernel_accel, kernel_loops);
+    try_run (device_param, kernel_accel, kernel_loops);
+    try_run (device_param, kernel_accel, kernel_loops);
+  }
+
+  double exec_ms_final = try_run (device_param, kernel_accel, kernel_loops);
 
   // first find out highest kernel-loops that stays below target_ms
 
