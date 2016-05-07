@@ -59,7 +59,7 @@ GeForce_GTX_TITAN                               ALIAS_nv_old
 ## ENTRIES ##
 #############
 
-DEVICE_TYPE_CPU                                 *       *       N       A       1024
+DEVICE_TYPE_CPU                                 *       *       N       A       A
 
 #Device                                         Attack  Hash    Vector  Kernel  Kernel
 #Name                                           Mode    Type    Width   Accel   Loops
@@ -70,11 +70,12 @@ ALIAS_nv_budget                                 *       12      4       A       
 ALIAS_nv_budget                                 *       21      2       A       A
 ALIAS_nv_budget                                 *       22      2       A       A
 ALIAS_nv_budget                                 *       23      2       A       A
+ALIAS_nv_budget                                 *       30      4       A       A
 ALIAS_nv_budget                                 *       200     4       A       A
 ALIAS_nv_budget                                 *       400     2       A       A
 ALIAS_nv_budget                                 *       900     4       A       A
 ALIAS_nv_budget                                 *       1000    4       A       A
-ALIAS_nv_budget                                 *       1100    4       A       A
+ALIAS_nv_budget                                 *       1100    2       A       A
 ALIAS_nv_budget                                 *       2400    2       A       A
 ALIAS_nv_budget                                 *       2410    2       A       A
 ALIAS_nv_budget                                 *       2600    2       A       A
@@ -88,27 +89,18 @@ ALIAS_nv_budget                                 *       5500    2       A       
 ALIAS_nv_budget                                 *       9900    4       A       A
 ALIAS_nv_budget                                 *       10100   2       A       A
 ALIAS_nv_budget                                 *       11000   2       A       A
+ALIAS_nv_budget                                 *       11100   2       A       A
 
 #Device                                         Attack  Hash    Vector  Kernel  Kernel
 #Name                                           Mode    Type    Width   Accel   Loops
 
-ALIAS_nv_old                                    *       0       2       A       A
-ALIAS_nv_old                                    *       11      2       A       A
-ALIAS_nv_old                                    *       12      2       A       A
-ALIAS_nv_old                                    *       21      2       A       A
-ALIAS_nv_old                                    *       22      2       A       A
-ALIAS_nv_old                                    *       23      2       A       A
-ALIAS_nv_old                                    *       100     2       A       A
-ALIAS_nv_old                                    *       101     2       A       A
-ALIAS_nv_old                                    *       111     2       A       A
-ALIAS_nv_old                                    *       112     2       A       A
-ALIAS_nv_old                                    *       131     2       A       A
-ALIAS_nv_old                                    *       132     2       A       A
-ALIAS_nv_old                                    *       133     2       A       A
-ALIAS_nv_old                                    *       200     2       A       A
-ALIAS_nv_old                                    *       300     2       A       A
-ALIAS_nv_old                                    *       900     2       A       A
-ALIAS_nv_old                                    *       1000    2       A       A
+ALIAS_nv_old                                    *       0       4       A       A
+ALIAS_nv_old                                    *       11      4       A       A
+ALIAS_nv_old                                    *       12      4       A       A
+ALIAS_nv_old                                    *       30      4       A       A
+ALIAS_nv_old                                    *       900     4       A       A
+ALIAS_nv_old                                    *       1000    4       A       A
+ALIAS_nv_old                                    *       1100    4       A       A
 ALIAS_nv_old                                    *       2400    2       A       A
 ALIAS_nv_old                                    *       2410    2       A       A
 ALIAS_nv_old                                    *       2600    2       A       A
@@ -116,29 +108,15 @@ ALIAS_nv_old                                    *       2611    2       A       
 ALIAS_nv_old                                    *       2612    2       A       A
 ALIAS_nv_old                                    *       2711    2       A       A
 ALIAS_nv_old                                    *       2811    2       A       A
-ALIAS_nv_old                                    *       3711    2       A       A
-ALIAS_nv_old                                    *       5500    2       A       A
+ALIAS_nv_old                                    *       5100    2       A       A
+ALIAS_nv_old                                    *       5300    2       A       A
 ALIAS_nv_old                                    *       5600    2       A       A
-ALIAS_nv_old                                    *       6800    2       A       A
-ALIAS_nv_old                                    *       7800    2       A       A
+ALIAS_nv_old                                    *       5600    2       A       A
 ALIAS_nv_old                                    *       8600    2       A       A
-ALIAS_nv_old                                    *       9100    2       A       A
-ALIAS_nv_old                                    *       9700    2       A       A
-ALIAS_nv_old                                    *       9710    2       A       A
-ALIAS_nv_old                                    *       9800    2       A       A
-ALIAS_nv_old                                    *       9810    2       A       A
 ALIAS_nv_old                                    *       9900    2       A       A
 ALIAS_nv_old                                    *       10100   2       A       A
-ALIAS_nv_old                                    *       10300   2       A       A
-ALIAS_nv_old                                    *       10400   2       A       A
-ALIAS_nv_old                                    *       10410   2       A       A
-ALIAS_nv_old                                    *       10500   2       A       A
 ALIAS_nv_old                                    *       11000   2       A       A
 ALIAS_nv_old                                    *       11100   2       A       A
-ALIAS_nv_old                                    *       11400   2       A       A
-ALIAS_nv_old                                    *       12000   2       A       A
-ALIAS_nv_old                                    *       12400   2       A       A
-ALIAS_nv_old                                    *       12700   2       A       A
 
 ##############
 ## OSX Iris ##
