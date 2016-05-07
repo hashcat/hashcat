@@ -12984,7 +12984,7 @@ int main (int argc, char **argv)
                 log_info ("ATTENTION! OpenCL support for CPU of catalyst driver is not reliable.");
                 log_info ("You are STRONGLY encouraged not to use it");
                 log_info ("You can use --force to override this but do not post error reports if you do so");
-                log_info ("A good alternative is the free pocl, but make sure to use a version >= 3.8");
+                log_info ("A good alternative is the free pocl >= v0.13, but make sure to use a LLVM >= v3.8");
                 log_info ("");
 
                 return (-1);
