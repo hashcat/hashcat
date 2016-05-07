@@ -48,6 +48,36 @@
 #Device                                         Alias
 #Name                                           Name
 
+Quadro_K2200                                    ALIAS_maxwell_budget
+Quadro_K1200                                    ALIAS_maxwell_budget
+Quadro_K620                                     ALIAS_maxwell_budget
+Quadro_M5500M                                   ALIAS_maxwell_budget
+Quadro_M5000M                                   ALIAS_maxwell_budget
+Quadro_M4000M                                   ALIAS_maxwell_budget
+Quadro_M3000M                                   ALIAS_maxwell_budget
+Quadro_K2200M                                   ALIAS_maxwell_budget
+Quadro_M2000M                                   ALIAS_maxwell_budget
+Quadro_M1000M                                   ALIAS_maxwell_budget
+Quadro_K620M                                    ALIAS_maxwell_budget
+Quadro_M600M                                    ALIAS_maxwell_budget
+Quadro_M500M                                    ALIAS_maxwell_budget
+
+NVIDIA_NVS_810                                  ALIAS_maxwell_budget
+
+GeForce_GTX_750_Ti                              ALIAS_maxwell_budget
+GeForce_GTX_750                                 ALIAS_maxwell_budget
+GeForce_GTX_960M                                ALIAS_maxwell_budget
+GeForce_GTX_950M                                ALIAS_maxwell_budget
+GeForce_GTX_940M                                ALIAS_maxwell_budget
+GeForce_GTX_930M                                ALIAS_maxwell_budget
+GeForce_GTX_850M                                ALIAS_maxwell_budget
+GeForce_840M                                    ALIAS_maxwell_budget
+GeForce_830M                                    ALIAS_maxwell_budget
+GeForce_940M                                    ALIAS_maxwell_budget
+GeForce_930M                                    ALIAS_maxwell_budget
+GeForce_840M                                    ALIAS_maxwell_budget
+GeForce_830M                                    ALIAS_maxwell_budget
+
 Tesla_C2050                                     ALIAS_pre_maxwell
 Tesla_C2050/C2070                               ALIAS_pre_maxwell
 Tesla_C2070                                     ALIAS_pre_maxwell
@@ -214,6 +244,33 @@ ALIAS_pre_maxwell                               *       9900    4       A       
 ALIAS_pre_maxwell                               *       10100   2       A       A
 ALIAS_pre_maxwell                               *       11000   2       A       A
 ALIAS_pre_maxwell                               *       11100   2       A       A
+
+ALIAS_maxwell_budget                            *       0       4       A       A
+ALIAS_maxwell_budget                            *       11      4       A       A
+ALIAS_maxwell_budget                            *       12      4       A       A
+ALIAS_maxwell_budget                            *       21      2       A       A
+ALIAS_maxwell_budget                            *       22      2       A       A
+ALIAS_maxwell_budget                            *       23      2       A       A
+ALIAS_maxwell_budget                            *       30      4       A       A
+ALIAS_maxwell_budget                            *       200     4       A       A
+ALIAS_maxwell_budget                            *       400     2       A       A
+ALIAS_maxwell_budget                            *       900     4       A       A
+ALIAS_maxwell_budget                            *       1000    4       A       A
+ALIAS_maxwell_budget                            *       1100    2       A       A
+ALIAS_maxwell_budget                            *       2400    2       A       A
+ALIAS_maxwell_budget                            *       2410    2       A       A
+ALIAS_maxwell_budget                            *       2600    2       A       A
+ALIAS_maxwell_budget                            *       2611    2       A       A
+ALIAS_maxwell_budget                            *       2612    2       A       A
+ALIAS_maxwell_budget                            *       2711    2       A       A
+ALIAS_maxwell_budget                            *       2811    2       A       A
+ALIAS_maxwell_budget                            *       3711    2       A       A
+ALIAS_maxwell_budget                            *       5100    2       A       A
+ALIAS_maxwell_budget                            *       5500    2       A       A
+ALIAS_maxwell_budget                            *       9900    4       A       A
+ALIAS_maxwell_budget                            *       10100   2       A       A
+ALIAS_maxwell_budget                            *       11000   2       A       A
+ALIAS_maxwell_budget                            *       11100   2       A       A
 
 ##############
 ## OSX Iris ##
