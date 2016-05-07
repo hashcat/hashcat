@@ -2710,6 +2710,11 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
       device_param->speed_cnt[speed_pos] = perf_sum_all;
 
       device_param->speed_ms[speed_pos] = speed_ms;
+
+      if (data.benchmark == 1)
+      {
+        if (speed_ms > 4096) data.devices_status = STATUS_ABORTED;
+      }
     }
 
     if (opts_type & OPTS_TYPE_HOOK23)
@@ -2886,8 +2891,6 @@ static void autotune (hc_device_param_t *device_param)
       exec_ms_best = MIN (exec_ms_best, exec_ms_cur);
     }
 
-    if (exec_ms_final == 0) exec_ms_final = exec_ms_best;
-
     if (exec_ms_best < target_ms) break;
   }
 
@@ -2919,41 +2922,52 @@ static void autotune (hc_device_param_t *device_param)
     }
   }
 
-  // sometimes we're in a bad situation that the algorithm is so slow that we can not
-  // create enough kernel_accel to do both, keep the gpu busy and stay below target_ms.
-  // however, we need to have a minimum kernel_accel and kernel_loops of 32.
-  // luckily, at this level of workload, it became a linear function
-
-  while (kernel_accel < 32 && kernel_loops >= 32)
-  {
-    const u32 kernel_accel_try = kernel_accel * 2;
-    const u32 kernel_loops_try = kernel_loops / 2;
-
-    if (kernel_accel_try > kernel_accel_max) break;
-    if (kernel_loops_try < kernel_loops_min) break;
-
-    kernel_accel = kernel_accel_try;
-    kernel_loops = kernel_loops_try;
-  }
-
-  // finally there's a chance that we have a fixed kernel_loops but not a fixed kernel_accel
+  // there's a chance that we have a fixed kernel_loops but not a fixed kernel_accel
   // in such a case the above function would not create any change
   // we'll use the runtime to find out if we're allow to do last improvement
 
   if (exec_ms_final > 0)
   {
-    if (exec_ms_final < target_ms)
+    if ((exec_ms_final * 2) <= target_ms)
     {
       const double exec_left = target_ms / exec_ms_final;
 
       const double accel_left = kernel_accel_max / kernel_accel;
 
-      const double exec_accel_min = MIN (exec_left, accel_left);
+      const int exec_accel_min = MIN (exec_left, accel_left); // we want that to be int
 
       if (exec_accel_min >= 2)
       {
         kernel_accel *= exec_accel_min;
       }
+    }
+  }
+
+  // sometimes we're in a bad situation that the algorithm is so slow that we can not
+  // create enough kernel_accel to do both, keep the gpu busy and stay below target_ms.
+  // however, we need to have a minimum kernel_accel and kernel_loops of 32.
+  // luckily, at this level of workload, it became a linear function
+
+  if (kernel_accel < 32 || kernel_loops < 32)
+  {
+    const u32 kernel_power = kernel_accel * kernel_loops;
+
+    // find sqrt
+
+    u32 sqrtv;
+
+    for (sqrtv = 1; sqrtv < 0x100000; sqrtv++)
+    {
+      if ((sqrtv * sqrtv) >= kernel_power) break;
+    }
+
+    const u32 kernel_accel_try = sqrtv;
+    const u32 kernel_loops_try = sqrtv;
+
+    if ((kernel_accel_try <= kernel_accel_max) && (kernel_loops_try >= kernel_loops_min))
+    {
+      kernel_accel = kernel_accel_try;
+      kernel_loops = kernel_loops_try;
     }
   }
 
@@ -13655,7 +13669,6 @@ int main (int argc, char **argv)
        * some algorithms have a maximum kernel-loops count
        */
 
-      /*
       if (attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
       {
         if (data.salts_buf[0].salt_iter < device_param->kernel_loops_max)
@@ -13663,7 +13676,6 @@ int main (int argc, char **argv)
           device_param->kernel_loops_max = data.salts_buf[0].salt_iter;
         }
       }
-      */
 
       /**
        * some algorithms need a special kernel-accel
