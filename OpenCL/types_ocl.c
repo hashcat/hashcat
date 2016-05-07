@@ -18,7 +18,7 @@ typedef ulong  u64;
 #define VECT_SIZE 1
 #endif
 
-#define CONCAT(a, b)	     a##b
+#define CONCAT(a, b)       a##b
 #define VTYPE(type, width) CONCAT(type, width)
 
 #if VECT_SIZE == 1
@@ -352,12 +352,77 @@ inline u64x swap64 (const u64x v)
 
 inline u32x rotr32 (const u32x a, const u32 n)
 {
-  return rotate (a, 32 - n);
+  #if CUDA_ARCH < 350
+
+  u32x t;
+  u32x r;
+
+  #if VECT_SIZE == 2
+
+  asm ("\n"
+       "shl.b32  %4,  %2,  %6;\n"
+       "shl.b32  %5,  %3,  %6;\n"
+       "shr.b32  %0,  %2,  %7;\n"
+       "shr.b32  %1,  %3,  %7;\n"
+       "add.u32  %0,  %0,  %4;\n"
+       "add.u32  %1,  %1,  %5;\n"
+      : "=r"(r.s0),
+        "=r"(r.s1)
+      : "r"(a.s0),
+        "r"(a.s1),
+        "r"(t.s0),
+        "r"(t.s1),
+        "r"(32 - n),
+        "r"(n));
+
+  #elif VECT_SIZE == 4
+
+  asm ("\n"
+       "shl.b32  %8,  %4, %12;\n"
+       "shl.b32  %9,  %5, %12;\n"
+       "shl.b32 %10,  %6, %12;\n"
+       "shl.b32 %11,  %7, %12;\n"
+       "shr.b32  %0,  %4, %13;\n"
+       "shr.b32  %1,  %5, %13;\n"
+       "shr.b32  %2,  %6, %13;\n"
+       "shr.b32  %3,  %7, %13;\n"
+       "add.u32  %0,  %0,  %8;\n"
+       "add.u32  %1,  %1,  %9;\n"
+       "add.u32  %2,  %2, %10;\n"
+       "add.u32  %3,  %3, %11;\n"
+      : "=r"(r.s0),
+        "=r"(r.s1),
+        "=r"(r.s2),
+        "=r"(r.s3)
+      : "r"(a.s0),
+        "r"(a.s1),
+        "r"(a.s2),
+        "r"(a.s3),
+        "r"(t.s0),
+        "r"(t.s1),
+        "r"(t.s2),
+        "r"(t.s3),
+        "r"(32 - n),
+        "r"(n));
+
+  #else
+
+  r = rotate (a, n);
+
+  #endif
+
+  return r;
+
+  #else
+
+  return rotate (a, n);
+
+  #endif
 }
 
 inline u32x rotl32 (const u32x a, const u32 n)
 {
-  return rotate (a, n);
+  return rotr32 (a, 32 - n);
 }
 
 inline u64x rotr64 (const u64x a, const u32 n)
