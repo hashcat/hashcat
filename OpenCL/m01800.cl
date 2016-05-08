@@ -23,8 +23,8 @@
 // Buggy drivers...
 
 #ifdef IS_AMD
-//#define STATE_DECL volatile
-#define STATE_DECL
+#define STATE_DECL volatile
+//#define STATE_DECL
 #else
 #define STATE_DECL
 #endif
