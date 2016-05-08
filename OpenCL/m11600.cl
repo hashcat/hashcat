@@ -926,22 +926,22 @@ void sha256_transform (const u32 w[16], u32 digest[8])
   u32 g = digest[6];
   u32 h = digest[7];
 
-  u32 w0_t = swap32 (w[ 0]);
-  u32 w1_t = swap32 (w[ 1]);
-  u32 w2_t = swap32 (w[ 2]);
-  u32 w3_t = swap32 (w[ 3]);
-  u32 w4_t = swap32 (w[ 4]);
-  u32 w5_t = swap32 (w[ 5]);
-  u32 w6_t = swap32 (w[ 6]);
-  u32 w7_t = swap32 (w[ 7]);
-  u32 w8_t = swap32 (w[ 8]);
-  u32 w9_t = swap32 (w[ 9]);
-  u32 wa_t = swap32 (w[10]);
-  u32 wb_t = swap32 (w[11]);
-  u32 wc_t = swap32 (w[12]);
-  u32 wd_t = swap32 (w[13]);
-  u32 we_t = swap32 (w[14]);
-  u32 wf_t = swap32 (w[15]);
+  u32 w0_t = w[ 0];
+  u32 w1_t = w[ 1];
+  u32 w2_t = w[ 2];
+  u32 w3_t = w[ 3];
+  u32 w4_t = w[ 4];
+  u32 w5_t = w[ 5];
+  u32 w6_t = w[ 6];
+  u32 w7_t = w[ 7];
+  u32 w8_t = w[ 8];
+  u32 w9_t = w[ 9];
+  u32 wa_t = w[10];
+  u32 wb_t = w[11];
+  u32 wc_t = w[12];
+  u32 wd_t = w[13];
+  u32 we_t = w[14];
+  u32 wf_t = w[15];
 
   #define ROUND_EXPAND()                            \
   {                                                 \
@@ -1102,7 +1102,7 @@ u32 crc32 (const u32 w[16], const u32 pw_len, const u32 iv)
   return ~a;
 }
 
-u32 memcat8c (u32 block[16], const u32 block_len, const u32 append, const u32 append_len, u32 digest[8])
+u32 memcat8c_be (u32 block[16], const u32 block_len, const u32 append, const u32 append_len, u32 digest[8])
 {
   const u32 mod = block_len & 3;
   const u32 div = block_len / 4;
@@ -1111,19 +1111,15 @@ u32 memcat8c (u32 block[16], const u32 block_len, const u32 append, const u32 ap
   u32 tmp1;
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (block_len & 3);
+  const int selector = (0x76543210 >> ((block_len & 3) * 4)) & 0xffff;
 
-  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
-
-  tmp0 = __byte_perm (0, append, selector);
-  tmp1 = __byte_perm (append, 0, selector);
+  tmp0 = __byte_perm (append, 0, selector);
+  tmp1 = __byte_perm (0, append, selector);
   #endif
 
   #if defined IS_AMD || defined IS_GENERIC
-  const int offset_minus_4 = 4 - block_len;
-
-  tmp0 = amd_bytealign (append, 0, offset_minus_4);
-  tmp1 = amd_bytealign (0, append, offset_minus_4);
+  tmp0 = amd_bytealign (0, append, block_len);
+  tmp1 = amd_bytealign (append, 0, block_len);
   #endif
 
   u32 carry = 0;
@@ -1209,7 +1205,7 @@ u32 memcat8c (u32 block[16], const u32 block_len, const u32 append, const u32 ap
   return new_len;
 }
 
-u32 memcat64c (u32 block[16], const u32 block_len, const u32 append[16], const u32 append_len, u32 digest[8])
+u32 memcat64c_be (u32 block[16], const u32 block_len, const u32 append[16], const u32 append_len, u32 digest[8])
 {
   const u32 mod = block_len & 3;
   const u32 div = block_len / 4;
@@ -1233,49 +1229,45 @@ u32 memcat64c (u32 block[16], const u32 block_len, const u32 append[16], const u
   u32 tmp16;
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (block_len & 3);
+  const int selector = (0x76543210 >> ((block_len & 3) * 4)) & 0xffff;
 
-  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
-
-  tmp00 = __byte_perm (         0, append[ 0], selector);
-  tmp01 = __byte_perm (append[ 0], append[ 1], selector);
-  tmp02 = __byte_perm (append[ 1], append[ 2], selector);
-  tmp03 = __byte_perm (append[ 2], append[ 3], selector);
-  tmp04 = __byte_perm (append[ 3], append[ 4], selector);
-  tmp05 = __byte_perm (append[ 4], append[ 5], selector);
-  tmp06 = __byte_perm (append[ 5], append[ 6], selector);
-  tmp07 = __byte_perm (append[ 6], append[ 7], selector);
-  tmp08 = __byte_perm (append[ 7], append[ 8], selector);
-  tmp09 = __byte_perm (append[ 8], append[ 9], selector);
-  tmp10 = __byte_perm (append[ 9], append[10], selector);
-  tmp11 = __byte_perm (append[10], append[11], selector);
-  tmp12 = __byte_perm (append[11], append[12], selector);
-  tmp13 = __byte_perm (append[12], append[13], selector);
-  tmp14 = __byte_perm (append[13], append[14], selector);
-  tmp15 = __byte_perm (append[14], append[15], selector);
-  tmp16 = __byte_perm (append[15],          0, selector);
+  tmp00 = __byte_perm (append[ 0],          0, selector);
+  tmp01 = __byte_perm (append[ 1], append[ 0], selector);
+  tmp02 = __byte_perm (append[ 2], append[ 1], selector);
+  tmp03 = __byte_perm (append[ 3], append[ 2], selector);
+  tmp04 = __byte_perm (append[ 4], append[ 3], selector);
+  tmp05 = __byte_perm (append[ 5], append[ 4], selector);
+  tmp06 = __byte_perm (append[ 6], append[ 5], selector);
+  tmp07 = __byte_perm (append[ 7], append[ 6], selector);
+  tmp08 = __byte_perm (append[ 8], append[ 7], selector);
+  tmp09 = __byte_perm (append[ 9], append[ 8], selector);
+  tmp10 = __byte_perm (append[10], append[ 9], selector);
+  tmp11 = __byte_perm (append[11], append[10], selector);
+  tmp12 = __byte_perm (append[12], append[11], selector);
+  tmp13 = __byte_perm (append[13], append[12], selector);
+  tmp14 = __byte_perm (append[14], append[13], selector);
+  tmp15 = __byte_perm (append[15], append[14], selector);
+  tmp16 = __byte_perm (         0, append[15], selector);
   #endif
 
   #if defined IS_AMD || defined IS_GENERIC
-  const int offset_minus_4 = 4 - block_len;
-
-  tmp00 = amd_bytealign (append[ 0],          0, offset_minus_4);
-  tmp01 = amd_bytealign (append[ 1], append[ 0], offset_minus_4);
-  tmp02 = amd_bytealign (append[ 2], append[ 1], offset_minus_4);
-  tmp03 = amd_bytealign (append[ 3], append[ 2], offset_minus_4);
-  tmp04 = amd_bytealign (append[ 4], append[ 3], offset_minus_4);
-  tmp05 = amd_bytealign (append[ 5], append[ 4], offset_minus_4);
-  tmp06 = amd_bytealign (append[ 6], append[ 5], offset_minus_4);
-  tmp07 = amd_bytealign (append[ 7], append[ 6], offset_minus_4);
-  tmp08 = amd_bytealign (append[ 8], append[ 7], offset_minus_4);
-  tmp09 = amd_bytealign (append[ 9], append[ 8], offset_minus_4);
-  tmp10 = amd_bytealign (append[10], append[ 9], offset_minus_4);
-  tmp11 = amd_bytealign (append[11], append[10], offset_minus_4);
-  tmp12 = amd_bytealign (append[12], append[11], offset_minus_4);
-  tmp13 = amd_bytealign (append[13], append[12], offset_minus_4);
-  tmp14 = amd_bytealign (append[14], append[13], offset_minus_4);
-  tmp15 = amd_bytealign (append[15], append[14], offset_minus_4);
-  tmp16 = amd_bytealign (         0, append[15], offset_minus_4);
+  tmp00 = amd_bytealign (         0, append[ 0], block_len);
+  tmp01 = amd_bytealign (append[ 0], append[ 1], block_len);
+  tmp02 = amd_bytealign (append[ 1], append[ 2], block_len);
+  tmp03 = amd_bytealign (append[ 2], append[ 3], block_len);
+  tmp04 = amd_bytealign (append[ 3], append[ 4], block_len);
+  tmp05 = amd_bytealign (append[ 4], append[ 5], block_len);
+  tmp06 = amd_bytealign (append[ 5], append[ 6], block_len);
+  tmp07 = amd_bytealign (append[ 6], append[ 7], block_len);
+  tmp08 = amd_bytealign (append[ 7], append[ 8], block_len);
+  tmp09 = amd_bytealign (append[ 8], append[ 9], block_len);
+  tmp10 = amd_bytealign (append[ 9], append[10], block_len);
+  tmp11 = amd_bytealign (append[10], append[11], block_len);
+  tmp12 = amd_bytealign (append[11], append[12], block_len);
+  tmp13 = amd_bytealign (append[12], append[13], block_len);
+  tmp14 = amd_bytealign (append[13], append[14], block_len);
+  tmp15 = amd_bytealign (append[14], append[15], block_len);
+  tmp16 = amd_bytealign (append[15],          0, block_len);
   #endif
 
   u32 carry[16] = { 0 };
@@ -1673,6 +1665,23 @@ __kernel void m11600_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   pw_len *= 2;
 
+  pw[ 0] = swap32 (pw[ 0]);
+  pw[ 1] = swap32 (pw[ 1]);
+  pw[ 2] = swap32 (pw[ 2]);
+  pw[ 3] = swap32 (pw[ 3]);
+  pw[ 4] = swap32 (pw[ 4]);
+  pw[ 5] = swap32 (pw[ 5]);
+  pw[ 6] = swap32 (pw[ 6]);
+  pw[ 7] = swap32 (pw[ 7]);
+  pw[ 8] = swap32 (pw[ 8]);
+  pw[ 9] = swap32 (pw[ 9]);
+  pw[10] = swap32 (pw[10]);
+  pw[11] = swap32 (pw[11]);
+  pw[12] = swap32 (pw[12]);
+  pw[13] = swap32 (pw[13]);
+  pw[14] = swap32 (pw[14]);
+  pw[15] = swap32 (pw[15]);
+
   /**
    * context load
    */
@@ -1716,8 +1725,10 @@ __kernel void m11600_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
-    block_len = memcat64c (block, block_len, pw, pw_len, dgst); final_len += pw_len;
-    block_len = memcat8c  (block, block_len,  j,      8, dgst); final_len += 8;
+    const u32 j_swap = swap32 (j);
+
+    block_len = memcat64c_be (block, block_len,     pw, pw_len, dgst); final_len += pw_len;
+    block_len = memcat8c_be  (block, block_len, j_swap,      8, dgst); final_len += 8;
   }
 
   /**
@@ -1814,53 +1825,29 @@ __kernel void m11600_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
   dgst[6] = tmps[gid].dgst[6];
   dgst[7] = tmps[gid].dgst[7];
 
-  u32 block[16];
-
-  block[ 0] = tmps[gid].block[ 0];
-  block[ 1] = tmps[gid].block[ 1];
-  block[ 2] = tmps[gid].block[ 2];
-  block[ 3] = tmps[gid].block[ 3];
-  block[ 4] = tmps[gid].block[ 4];
-  block[ 5] = tmps[gid].block[ 5];
-  block[ 6] = tmps[gid].block[ 6];
-  block[ 7] = tmps[gid].block[ 7];
-  block[ 8] = tmps[gid].block[ 8];
-  block[ 9] = tmps[gid].block[ 9];
-  block[10] = tmps[gid].block[10];
-  block[11] = tmps[gid].block[11];
-  block[12] = tmps[gid].block[12];
-  block[13] = tmps[gid].block[13];
-  block[14] = tmps[gid].block[14];
-  block[15] = tmps[gid].block[15];
-
   u32 block_len = tmps[gid].block_len;
   u32 final_len = tmps[gid].final_len;
 
-  append_0x80_1x16 (block, block_len);
+  // this optimization should work as long as we have an iteration 6 or higher
 
-  if (block_len >= 56)
-  {
-    sha256_transform (block, dgst);
+  u32 block[16];
 
-    block[ 0] = 0;
-    block[ 1] = 0;
-    block[ 2] = 0;
-    block[ 3] = 0;
-    block[ 4] = 0;
-    block[ 5] = 0;
-    block[ 6] = 0;
-    block[ 7] = 0;
-    block[ 8] = 0;
-    block[ 9] = 0;
-    block[10] = 0;
-    block[11] = 0;
-    block[12] = 0;
-    block[13] = 0;
-    block[14] = 0;
-    block[15] = 0;
-  }
-
-  block[15] = swap32 (final_len * 8);
+  block[ 0] = 0x80000000;
+  block[ 1] = 0;
+  block[ 2] = 0;
+  block[ 3] = 0;
+  block[ 4] = 0;
+  block[ 5] = 0;
+  block[ 6] = 0;
+  block[ 7] = 0;
+  block[ 8] = 0;
+  block[ 9] = 0;
+  block[10] = 0;
+  block[11] = 0;
+  block[12] = 0;
+  block[13] = 0;
+  block[14] = 0;
+  block[15] = final_len * 8;
 
   sha256_transform (block, dgst);
 
