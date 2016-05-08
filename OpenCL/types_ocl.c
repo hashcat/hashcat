@@ -352,69 +352,12 @@ inline u64x swap64 (const u64x v)
 
 inline u32x rotr32 (const u32x a, const u32 n)
 {
-  #if CUDA_ARCH < 350
-
-  u32x t;
-  u32x r;
-
-  #if VECT_SIZE == 2
-
-  asm ("shr.b32 %4, %2, %6;"
-       "shr.b32 %5, %3, %6;"
-       "mad.lo.u32 %0, %2, %7, %4;"
-       "mad.lo.u32 %1, %3, %7, %5;"
-      : "=r"(r.s0),
-        "=r"(r.s1)
-      : "r"(a.s0),
-        "r"(a.s1),
-        "r"(t.s0),
-        "r"(t.s1),
-        "r"(n),
-        "r"(1 << (32 - n)));
-
-  #elif VECT_SIZE == 4
-
-  asm ("shr.b32 %8,  %4, %12;\n"
-       "shr.b32 %9,  %5, %12;\n"
-       "shr.b32 %10, %6, %12;\n"
-       "shr.b32 %11, %7, %12;\n"
-       "mad.lo.u32 %0, %4, %13, %8;\n"
-       "mad.lo.u32 %1, %5, %13, %9;\n"
-       "mad.lo.u32 %2, %6, %13, %10;\n"
-       "mad.lo.u32 %3, %7, %13, %11;\n"
-      : "=r"(r.s0),
-        "=r"(r.s1),
-        "=r"(r.s2),
-        "=r"(r.s3)
-      : "r"(a.s0),
-        "r"(a.s1),
-        "r"(a.s2),
-        "r"(a.s3),
-        "r"(t.s0),
-        "r"(t.s1),
-        "r"(t.s2),
-        "r"(t.s3),
-        "r"(n),
-        "r"(1 << (32 - n)));
-
-  #else
-
-  r = rotate (a, n);
-
-  #endif
-
-  return r;
-
-  #else
-
-  return rotate (a, n);
-
-  #endif
+  return rotate (a, 32 - n);
 }
 
 inline u32x rotl32 (const u32x a, const u32 n)
 {
-  return rotr32 (a, 32 - n);
+  return rotate (a, n);
 }
 
 inline u64x rotr64 (const u64x a, const u32 n)
@@ -475,22 +418,22 @@ inline u32 __bfe (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-#if CUDA_ARCH >= 350
 inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
+  #if CUDA_ARCH >= 350
+
   asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(b), "r"(a), "r"((c & 3) * 8));
+
+  #else
+
+  r = __byte_perm_S (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
+
+  #endif
 
   return r;
 }
-#else
-inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
-{
-  return __byte_perm_S (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
-}
-#endif
-
 #endif
 
 #ifdef IS_GENERIC
