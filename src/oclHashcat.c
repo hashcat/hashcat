@@ -10714,6 +10714,8 @@ int main (int argc, char **argv)
                   break;
       case 11300: if (pw_max > 40) pw_max = 40;
                   break;
+      case 11600: if (pw_max > 32) pw_max = 32;
+                  break;
       case 12500: if (pw_max > 20) pw_max = 20;
                   break;
       case 12800: if (pw_max > 24) pw_max = 24;

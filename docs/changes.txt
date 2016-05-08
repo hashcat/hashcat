@@ -59,6 +59,7 @@ It combines all features of all hashcat projects in one project.
 - Benchmark no longer depends on a fixed time
 - Removed option --benchmark-mode, therefore support --workload-profile in benchmark-mode
 - Extended support from 14 to 255 functions calls per rule
+- Extended password length up to 32 for 7zip
 - Extended version information
 - Removed some duplicate rules in T0XlCv1, d3ad0ne and dive
 - Redesigned changes.txt layout
