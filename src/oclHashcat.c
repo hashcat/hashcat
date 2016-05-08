@@ -12809,7 +12809,7 @@ int main (int argc, char **argv)
 
         device_param->device_maxclock_frequency = device_maxclock_frequency;
 
-        // CL_DEVICE_ENDIAN_LITTLE
+        // device_endian_little
 
         cl_bool device_endian_little;
 
@@ -12822,12 +12822,92 @@ int main (int argc, char **argv)
           device_param->skipped = 1;
         }
 
+        // device_available
+
+        cl_bool device_available;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_AVAILABLE, sizeof (device_available), &device_available, NULL);
+
+        if (device_available == CL_FALSE)
+        {
+          log_info ("Device #%u: WARNING: device not available", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+        // device_compiler_available
+
+        cl_bool device_compiler_available;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_COMPILER_AVAILABLE, sizeof (device_compiler_available), &device_compiler_available, NULL);
+
+        if (device_compiler_available == CL_FALSE)
+        {
+          log_info ("Device #%u: WARNING: device no compiler available", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+        // device_execution_capabilities
+
+        cl_device_exec_capabilities device_execution_capabilities;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXECUTION_CAPABILITIES, sizeof (device_execution_capabilities), &device_execution_capabilities, NULL);
+
+        if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
+        {
+          log_info ("Device #%u: WARNING: device does not support executing kernels", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+        // device_extensions
+
+        size_t device_extensions_size;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXTENSIONS, 0, NULL, &device_extensions_size);
+
+        char *device_extensions = mymalloc (device_extensions_size + 1);
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXTENSIONS, device_extensions_size, device_extensions, NULL);
+
+        if (strstr (device_extensions, "base_atomics") == 0)
+        {
+          log_info ("Device #%u: WARNING: device does not support base atomics", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+        if (strstr (device_extensions, "byte_addressable_store") == 0)
+        {
+          log_info ("Device #%u: WARNING: device does not support byte addressable store", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+        myfree (device_extensions);
+
+        // device_local_mem_size
+
+        cl_ulong device_local_mem_size;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof (device_local_mem_size), &device_local_mem_size, NULL);
+
+        if (device_local_mem_size < 32768)
+        {
+          log_info ("Device #%u: WARNING: device local mem size is too small", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+
         // skipped
 
         device_param->skipped |= ((devices_filter      & (1 << device_id)) == 0);
         device_param->skipped |= ((device_types_filter & (device_type))    == 0);
 
         // driver_version
+
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DRIVER_VERSION, 0, NULL, &param_value_size);
 
         char *driver_version = (char *) mymalloc (param_value_size);
