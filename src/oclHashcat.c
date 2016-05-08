@@ -12809,12 +12809,23 @@ int main (int argc, char **argv)
 
         device_param->device_maxclock_frequency = device_maxclock_frequency;
 
+        // CL_DEVICE_ENDIAN_LITTLE
+
+        cl_bool device_endian_little;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_ENDIAN_LITTLE, sizeof (device_endian_little), &device_endian_little, NULL);
+
+        if (device_endian_little == CL_FALSE)
+        {
+          log_info ("Device #%u: WARNING: not little endian device", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
         // skipped
 
-        const u32 skipped1 = ((devices_filter      & (1 << device_id)) == 0);
-        const u32 skipped2 = ((device_types_filter & (device_type))    == 0);
-
-        device_param->skipped = (skipped1 || skipped2);
+        device_param->skipped |= ((devices_filter      & (1 << device_id)) == 0);
+        device_param->skipped |= ((device_types_filter & (device_type))    == 0);
 
         // driver_version
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DRIVER_VERSION, 0, NULL, &param_value_size);
