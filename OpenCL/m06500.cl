@@ -114,12 +114,7 @@ void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const 
 
   ROUND_STEP (0);
 
-  #ifdef IS_AMD
-  // #pragma unroll
-  // breaks compiler
-  #else
-  #pragma unroll
-  #endif
+  //#pragma unroll
   for (int i = 16; i < 80; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
