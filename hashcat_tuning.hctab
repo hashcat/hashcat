@@ -202,7 +202,7 @@ GeForce_GTX_860M                                ALIAS_nv_use_simd
 GeForce_GTX_870M                                ALIAS_nv_use_simd
 GeForce_GTX_880M                                ALIAS_nv_use_simd
 GeForce_GTX_920M                                ALIAS_nv_use_simd
-GeForce_GTX_TITAN                               ALIAS_nv_use_simd
+GeForce_GTX_TITAN                               ALIAS_nv_vanilla_titan
 GeForce_GTX_TITAN_Black                         ALIAS_nv_use_simd
 GeForce_GTX_TITAN_Z                             ALIAS_nv_use_simd
 
@@ -247,6 +247,34 @@ ALIAS_nv_use_simd                               *       9900    4       A       
 ALIAS_nv_use_simd                               *       10100   2       A       A
 ALIAS_nv_use_simd                               *       11000   2       A       A
 ALIAS_nv_use_simd                               *       11100   2       A       A
+
+ALIAS_nv_vanilla_titan                          *       *       1       A       A
+ALIAS_nv_vanilla_titan                          *       0       4       A       A
+ALIAS_nv_vanilla_titan                          *       11      4       A       A
+ALIAS_nv_vanilla_titan                          *       12      4       A       A
+ALIAS_nv_vanilla_titan                          *       21      1       A       A
+ALIAS_nv_vanilla_titan                          *       22      1       A       A
+ALIAS_nv_vanilla_titan                          *       23      1       A       A
+ALIAS_nv_vanilla_titan                          *       30      4       A       A
+ALIAS_nv_vanilla_titan                          *       200     2       A       A
+ALIAS_nv_vanilla_titan                          *       400     1       A       A
+ALIAS_nv_vanilla_titan                          *       900     4       A       A
+ALIAS_nv_vanilla_titan                          *       1000    4       A       A
+ALIAS_nv_vanilla_titan                          *       1100    4       A       A
+ALIAS_nv_vanilla_titan                          *       2400    4       A       A
+ALIAS_nv_vanilla_titan                          *       2410    2       A       A
+ALIAS_nv_vanilla_titan                          *       2600    2       A       A
+ALIAS_nv_vanilla_titan                          *       2611    2       A       A
+ALIAS_nv_vanilla_titan                          *       2612    2       A       A
+ALIAS_nv_vanilla_titan                          *       2711    2       A       A
+ALIAS_nv_vanilla_titan                          *       2811    2       A       A
+ALIAS_nv_vanilla_titan                          *       3711    1       A       A
+ALIAS_nv_vanilla_titan                          *       5100    2       A       A
+ALIAS_nv_vanilla_titan                          *       5500    1       A       A
+ALIAS_nv_vanilla_titan                          *       9900    2       A       A
+ALIAS_nv_vanilla_titan                          *       10100   2       A       A
+ALIAS_nv_vanilla_titan                          *       11000   2       A       A
+ALIAS_nv_vanilla_titan                          *       11100   2       A       A
 
 ##############
 ## OSX Iris ##
