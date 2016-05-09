@@ -25,6 +25,7 @@
 #include <common.h>
 #include <unistd.h>
 #include <shared.h>
+#include <types.h>
 #ifndef WIN
 #include <pthread.h>
 #endif
@@ -39,6 +40,33 @@
 
 #define HM_STR_BUF_SIZE 255
 
+struct hcapi_control;    
+struct hcapi_options;   
+struct hcapi_thread_args;
+struct hcapi_data_t;
+
+/**
+ * Function prototypes
+ */
+
+struct hcapi_control oclhashcat_init (void);
+int hcapi_main (int, char **);
+int hcapi_start (int, char **);
+int hcapi_stop (void);
+void hcapi_append_rules (struct hcapi_options *, char *);
+void hcapi_append_dictmaskdir (struct hcapi_options *, char *);
+void hcapi_generate_commandline (struct hcapi_options, int *, char ***);
+int hcapi_status_update (struct hcapi_data_t *);
+
+#ifdef WIN
+HANDLE hcapi_start_thread (int, char **);
+#else
+int hcapi_start_thread (int, char **);
+#endif
+
+void check_argv_array (char ***, size_t *, size_t *, int *);
+char *strcat_ls (char *, char *);
+
 typedef unsigned int uint;
 
 typedef struct hcapi_thread_args
@@ -46,7 +74,7 @@ typedef struct hcapi_thread_args
   int c;
   char **v;
 
-} thread_args;
+} hcapi_thread_args;
 
 typedef struct hcapi_options
 {
@@ -133,25 +161,6 @@ typedef struct hcapi_options
 
 } hcapi_options;
 
-typedef struct hcapi_control
-{
-
-  int (*start) (int argc, char **argvv);
-
-#ifdef WIN
-    HANDLE (*start_thread) (int argc, char **argvv);
-#else
-  int (*start_thread) (int argc, char **argvv);
-#endif
-
-  int (*stop) (void);
-  void (*generate_commandline) (hcapi_options options, int *c, char ***v);
-  hc_global_data_t *(*get_data_ptr) (void);
-  void (*status_data) (void);
-
-  hcapi_options options;
-
-} hcapi_con;
 
 typedef struct hcapi_data_time_start {
     
@@ -229,7 +238,9 @@ typedef struct hcapi_data_hwmon_gpu {
 
 } hcapi_data_hwmon_gpu;
 
-typedef struct hcapi_global_data_t {
+
+
+typedef struct hcapi_data_t {
     
   /**
    * threads
@@ -271,7 +282,7 @@ typedef struct hcapi_global_data_t {
    * crack-per-time
    */
 
-  cpt_t   cpt_buf[CPT_BUF];
+  cpt_t   *cpt_buf;
   time_t  cpt_start;
   u64     cpt_total;
 
@@ -344,33 +355,34 @@ typedef struct hcapi_global_data_t {
    hcapi_data_restore_point restore_point;
    hcapi_data_hwmon_gpu hwmon_gpu;
 
-} hcapi_global_data_t;
+} hcapi_data_t;
 
-// Storage for runtime status data
-hcapi_global_data_t hcapi_data;
+
 
 
 
 /**
- * Function prototypes
+ * Primary control structure
  */
 
-struct hcapi_control oclhashcat_init (void);
-int hcapi_main (int, char **);
-int hcapi_start (int, char **);
-int hcapi_stop (void);
-void hcapi_append_rules (struct hcapi_options *options, char *add);
-void hcapi_append_dictmaskdir (struct hcapi_options *options, char *add);
-void hcapi_generate_commandline (struct hcapi_options, int *, char ***);
+typedef struct hcapi_control {
+
+  int (*start) (int argc, char **argvv);
 
 #ifdef WIN
-HANDLE hcapi_start_thread (int, char **);
+    HANDLE (*start_thread) (int argc, char **argvv);
 #else
-int hcapi_start_thread (int, char **);
+  int (*start_thread) (int argc, char **argvv);
 #endif
 
-void check_argv_array (char ***, size_t *, size_t *, int *);
-char *strcat_ls (char *, char *);
+  int (*stop) (void);
+  void (*generate_commandline) (struct hcapi_options options, int *c, char ***v);
+  int (*status_update) (struct hcapi_data_t *status_data);
+
+  hcapi_options options;
+  hcapi_data_t status_data;
+
+} hcapi_control;
 
 
 /**
@@ -1719,7 +1731,7 @@ int hcapi_start (int argc, char **argv)
 unsigned __stdcall start_hc_thread (void *params)
 {
 
-  thread_args *args = (thread_args *) params;
+  hcapi_thread_args *args = (hcapi_thread_args *) params;
 
   int argc = args->c;
   char **argv = args->v;
@@ -1747,7 +1759,7 @@ HANDLE hcapi_start_thread (int argc, char **argv)
   HANDLE hThread;
   unsigned int threadID;
 
-  thread_args args;
+  hcapi_thread_args args;
 
   args.c = argc;
   args.v = argv;
@@ -1768,7 +1780,7 @@ HANDLE hcapi_start_thread (int argc, char **argv)
 void *start_hc_thread (void *params)
 {
 
-  thread_args *args = (thread_args *) params;
+  hcapi_thread_args *args = (hcapi_thread_args *) params;
 
   int argc = args->c;
   char **argv = args->v;
@@ -1799,7 +1811,7 @@ int hcapi_start_thread (int argc, char **argv)
 
   int err;
   pthread_t hThread;
-  thread_args args;
+  hcapi_thread_args args;
 
   args.c = argc;
   args.v = argv;
@@ -1875,23 +1887,32 @@ void hcapi_append_dictmaskdir (struct hcapi_options *options, char *new_file_pat
   return;
 }
 
-void hcapi_status_data ()
+int hcapi_status_update (struct hcapi_data_t *hcapi_data)
 {
 
-  
+  extern hc_global_data_t data;
+  extern hc_thread_mutex_t mux_adl;
+
   hc_thread_mutex_lock (mux_display);
 
-  if (data.devices_status == STATUS_INIT)     return;
-  if (data.devices_status == STATUS_STARTING) return;
-  if (data.devices_status == STATUS_BYPASS)   return;
+  if (data.devices_status == STATUS_INIT)     return 0;
+  if (data.devices_status == STATUS_STARTING) return 0;
+  if (data.devices_status == STATUS_BYPASS)   return 0;
 
-  extern hc_thread_mutex_t mux_adl;
 
   char tmp_buf[1000] = { 0 };
 
   uint tmp_len = 0;
 
-  log_info ("Session.Name...: %s", data.session);
+  //log_info ("Session.Name...: %s", data.session);
+  size_t input_size = strlen (data.session) + 2;
+
+  hcapi_data->session = (char *) calloc (input_size, sizeof (char));
+
+  snprintf (hcapi_data->session, input_size, "%s", data.session);
+
+  
+
 
   char *status_type = strstatus (data.devices_status);
 
@@ -2553,14 +2574,16 @@ void hcapi_status_data ()
   #endif // HAVE_HWMON
 
   hc_thread_mutex_unlock (mux_display);
+
+  return 1;
 }
 
-hcapi_con oclhashcat_init (void)
+hcapi_control oclhashcat_init (void)
 {
 
   debug_print ("Intializing options\n");
 
-  hcapi_con control;
+  hcapi_control control;
 
   control.options.hash_input = NULL;      // positional param --> hash|hashfile|hccapfile
   control.options.dictmaskdir = NULL;     // positional param --> [dictionary|mask|directory]
@@ -2636,19 +2659,22 @@ hcapi_con oclhashcat_init (void)
   control.options.custom_charset_2 = NULL;
   control.options.custom_charset_3 = NULL;
   control.options.custom_charset_4 = NULL;
+  
+
   control.options.append_rules = hcapi_append_rules;
   control.options.append_dictmaskdir = hcapi_append_dictmaskdir;
   control.options.rp_files = NULL;
+
 
   control.start = hcapi_start;
   control.start_thread = hcapi_start_thread;
   control.stop = hcapi_stop;
   control.generate_commandline = hcapi_generate_commandline;
-  control.status_data = hcapi_status_data;
+  control.status_update = hcapi_status_update;
 
-
+  
   debug_print ("Intializing data output structure\n");
-
+  control.status_data.cpt_buf = (cpt_t *)malloc(CPT_BUF * sizeof(cpt_t));
 
 
   return control;
@@ -2665,7 +2691,8 @@ int main ()
 
   printf ("[*] Starting API Test.\n");
 
-  hcapi_con hc = oclhashcat_init ();
+  hcapi_control hc = oclhashcat_init ();
+
 
 
   hc.options.attack_mode = 0;
@@ -2675,15 +2702,6 @@ int main ()
   hc.options.append_rules(&hc.options, "C:\\Users\\auser\\Desktop\\Rules\\somerulse.rule");
   hc.options.append_rules(&hc.options, "rules\\best64.rule");
 
-  /*
-
-
-
-
-        IN PROGRESS THIS IS NOT A WORKING COMMIT
-
-
-  */
 
   int c;
   char **v;
@@ -2698,15 +2716,23 @@ int main ()
   while (1)
   {
 
-    
-    hc.status_data ();
-
     quit = getchar ();
     if (quit == 'q')
     {
 
       hc.stop ();
       break;
+    }
+
+    if(hc.status_update (&hc.status_data)){
+
+
+        printf("-----------------> %s", hc.status_data.session);
+        
+
+    } else {
+
+      printf("ERROR status didn't work");
     }
 
   }
