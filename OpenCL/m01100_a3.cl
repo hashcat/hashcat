@@ -119,8 +119,6 @@ void m01100m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_r
 
     const u32x w0 = w0l | w0r;
 
-    barrier (CLK_LOCAL_MEM_FENCE);
-
     u32x a = MD4M_A;
     u32x b = MD4M_B;
     u32x c = MD4M_C;
@@ -374,8 +372,6 @@ void m01100s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_r
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
-
-    barrier (CLK_LOCAL_MEM_FENCE);
 
     u32x a = MD4M_A;
     u32x b = MD4M_B;
