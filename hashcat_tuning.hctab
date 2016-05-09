@@ -219,12 +219,15 @@ DEVICE_TYPE_CPU                                 *       6900    1       A       
 
 ALIAS_nv_use_simd                               *       *       1       A       A
 ALIAS_nv_use_simd                               *       0       4       A       A
+ALIAS_nv_use_simd                               *       10      4       A       A
 ALIAS_nv_use_simd                               *       11      4       A       A
 ALIAS_nv_use_simd                               *       12      4       A       A
+ALIAS_nv_use_simd                               *       20      2       A       A
 ALIAS_nv_use_simd                               *       21      2       A       A
 ALIAS_nv_use_simd                               *       22      2       A       A
 ALIAS_nv_use_simd                               *       23      2       A       A
 ALIAS_nv_use_simd                               *       30      4       A       A
+ALIAS_nv_use_simd                               *       40      2       A       A
 ALIAS_nv_use_simd                               *       200     4       A       A
 ALIAS_nv_use_simd                               *       400     2       A       A
 ALIAS_nv_use_simd                               *       900     4       A       A
