@@ -6052,7 +6052,7 @@ inline void overwrite_at_be_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4],
  * vector functions as scalar (for outer loop usage)
  */
 
-inline void append_0x01_2x4_S (u32x w0[4], u32x w1[4], const u32 offset)
+inline void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
 {
   switch (offset)
   {
