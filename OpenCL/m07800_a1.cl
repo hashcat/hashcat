@@ -408,7 +408,9 @@ __kernel void m07800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    #pragma unroll 32
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (int i = 0; i < 32; i++) final[i] = 0;
 
     final[0] = w0[0];
@@ -712,7 +714,9 @@ __kernel void m07800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    #pragma unroll 32
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (int i = 0; i < 32; i++) final[i] = 0;
 
     final[0] = w0[0];

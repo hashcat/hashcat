@@ -3,15 +3,30 @@
  * License.....: MIT
  */
 
-#ifdef cl_khr_byte_addressable_store
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics     : enable
 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
+
+/**
+ * device type
+ */
+
+#define DEVICE_TYPE_CPU   2
+#define DEVICE_TYPE_GPU   4
+#define DEVICE_TYPE_ACCEL 8
+
+#if   DEVICE_TYPE == DEVICE_TYPE_CPU
+#define IS_CPU
+#elif DEVICE_TYPE == DEVICE_TYPE_GPU
+#define IS_GPU
+#elif DEVICE_TYPE == DEVICE_TYPE_ACCEL
+#define IS_ACCEL
 #endif
 
 /**
  * vendor specific
  */
 
-#if VENDOR_ID == (1 << 0)
+#if   VENDOR_ID == (1 << 0)
 #define IS_AMD
 #elif VENDOR_ID == (1 << 6)
 #define IS_NV
@@ -29,15 +44,155 @@
 #endif
 
 /**
- * NV specific
+ * Unrolling is generally enabled, for all device types and hash modes
+ * There's a few exception when it's better not to unroll
  */
+
+// Some algorithms run into too much register pressure due to loop unrolling
 
 #ifdef IS_NV
+#ifdef IS_GPU
+
+#if KERN_TYPE == 1500
+#undef _unroll
+#endif
+#if KERN_TYPE == 1800
+#undef _unroll
+#endif
+#if KERN_TYPE == 3000
+#undef _unroll
+#endif
+#if KERN_TYPE == 6221
+#undef _unroll
+#endif
+#if KERN_TYPE == 6222
+#undef _unroll
+#endif
+#if KERN_TYPE == 6223
+#undef _unroll
+#endif
+#if KERN_TYPE == 6500
+#undef _unroll
+#endif
+#if KERN_TYPE == 7100
+#undef _unroll
+#endif
+#if KERN_TYPE == 7400
+#undef _unroll
+#endif
+#if KERN_TYPE == 8200
+#undef _unroll
+#endif
+#if KERN_TYPE == 10400
+#undef _unroll
+#endif
+#if KERN_TYPE == 10500
+#undef _unroll
+#endif
+#if KERN_TYPE == 10700
+#undef _unroll
+#endif
+#if KERN_TYPE == 12300
+#undef _unroll
+#endif
+#if KERN_TYPE == 12400
+#undef _unroll
 #endif
 
-/**
- * Generic
- */
+#endif
+#endif
 
-#ifdef IS_GENERIC
+#ifdef IS_AMD
+#ifdef IS_GPU
+
+#if KERN_TYPE == 3200
+#undef _unroll
+#endif
+#if KERN_TYPE == 5200
+#undef _unroll
+#endif
+#if KERN_TYPE == 6100
+#undef _unroll
+#endif
+#if KERN_TYPE == 6221
+#undef _unroll
+#endif
+#if KERN_TYPE == 6222
+#undef _unroll
+#endif
+#if KERN_TYPE == 6223
+#undef _unroll
+#endif
+#if KERN_TYPE == 6400
+#undef _unroll
+#endif
+#if KERN_TYPE == 6500
+#undef _unroll
+#endif
+#if KERN_TYPE == 6800
+#undef _unroll
+#endif
+#if KERN_TYPE == 7100
+#undef _unroll
+#endif
+#if KERN_TYPE == 7400
+#undef _unroll
+#endif
+#if KERN_TYPE == 8000
+#undef _unroll
+#endif
+#if KERN_TYPE == 8200
+#undef _unroll
+#endif
+#if KERN_TYPE == 10900
+#undef _unroll
+#endif
+#if KERN_TYPE == 11600
+#undef _unroll
+#endif
+#if KERN_TYPE == 12300
+#undef _unroll
+#endif
+#if KERN_TYPE == 12800
+#undef _unroll
+#endif
+#if KERN_TYPE == 12900
+#undef _unroll
+#endif
+#if KERN_TYPE == 13000
+#undef _unroll
+#endif
+
+#endif
+#endif
+
+// Some algorithms break due to loop unrolling, it's unknown why, probably compiler bugs
+// Can overlap with above cases
+
+#ifdef IS_AMD
+#ifdef IS_GPU
+
+#if KERN_TYPE == 1750
+#undef _unroll
+#endif
+#if KERN_TYPE == 1760
+#undef _unroll
+#endif
+#if KERN_TYPE == 6500
+#undef _unroll
+#endif
+#if KERN_TYPE == 7100
+#undef _unroll
+#endif
+#if KERN_TYPE == 9600
+#undef _unroll
+#endif
+#if KERN_TYPE == 12200
+#undef _unroll
+#endif
+#if KERN_TYPE == 12300
+#undef _unroll
+#endif
+
+#endif
 #endif

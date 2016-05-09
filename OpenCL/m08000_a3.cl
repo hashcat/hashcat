@@ -117,7 +117,9 @@ void sha256_transform (u32x digest[8], const u32x w[16])
 
   ROUND_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 64; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
@@ -166,7 +168,9 @@ void sha256_transform_z (u32x digest[8])
 
   ROUND_STEP_Z (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 64; i += 16)
   {
     ROUND_STEP_Z (i);
@@ -215,7 +219,9 @@ void sha256_transform_s (u32x digest[8], __local u32 *w)
 
   ROUND_STEP_S (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 64; i += 16)
   {
     ROUND_STEP_S (i);
@@ -265,7 +271,9 @@ void m08000m (__local u32 *w_s1, __local u32 *w_s2, u32 w[16], const u32 pw_len,
   {
     w_s1[15] =               0 | salt_buf0 >> 16;
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 16; i < 64; i++)
     {
       w_s1[i] = SHA256_EXPAND_S (w_s1[i - 2], w_s1[i - 7], w_s1[i - 15], w_s1[i - 16]);
@@ -276,7 +284,9 @@ void m08000m (__local u32 *w_s1, __local u32 *w_s2, u32 w[16], const u32 pw_len,
     w_s2[ 2] = salt_buf2 << 16 | 0;
     w_s2[15] = (510 + 8) * 8;
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 16; i < 64; i++)
     {
       w_s2[i] = SHA256_EXPAND_S (w_s2[i - 2], w_s2[i - 7], w_s2[i - 15], w_s2[i - 16]);
@@ -383,7 +393,9 @@ void m08000s (__local u32 *w_s1, __local u32 *w_s2, u32 w[16], const u32 pw_len,
   {
     w_s1[15] =               0 | salt_buf0 >> 16;
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 16; i < 64; i++)
     {
       w_s1[i] = SHA256_EXPAND_S (w_s1[i - 2], w_s1[i - 7], w_s1[i - 15], w_s1[i - 16]);
@@ -394,7 +406,9 @@ void m08000s (__local u32 *w_s1, __local u32 *w_s2, u32 w[16], const u32 pw_len,
     w_s2[ 2] = salt_buf2 << 16 | 0;
     w_s2[15] = (510 + 8) * 8;
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 16; i < 64; i++)
     {
       w_s2[i] = SHA256_EXPAND_S (w_s2[i - 2], w_s2[i - 7], w_s2[i - 15], w_s2[i - 16]);

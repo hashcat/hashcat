@@ -324,7 +324,9 @@ void m07800m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    #pragma unroll 32
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (int i = 0; i < 32; i++) final[i] = 0;
 
     final[0] = swap32 (w0[0]);
@@ -536,7 +538,9 @@ void m07800s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    #pragma unroll 32
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (int i = 0; i < 32; i++) final[i] = 0;
 
     final[0] = swap32 (w0[0]);

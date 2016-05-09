@@ -716,7 +716,9 @@ void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *
   rek[2] = userkey[2];
   rek[3] = userkey[3];
 
-  #pragma unroll 10
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0, j = 0; i < 10; i += 1, j += 4)
   {
     u32 temp = rek[j + 3];
@@ -1391,7 +1393,9 @@ __kernel void m06600_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   AES128_ExpandKey (ukey, rek, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  #pragma unroll KEYLEN
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < KEYLEN; i++) rdk[i] = rek[i];
 
   AES128_InvertKey (rdk, s_td0, s_td1, s_td2, s_td3, s_td4, s_te0, s_te1, s_te2, s_te3, s_te4);

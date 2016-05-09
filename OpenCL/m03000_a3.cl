@@ -1546,21 +1546,9 @@ void DES (const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 
   KXX_DECL u32 k36, k37, k38, k39, k40, k41;
   KXX_DECL u32 k42, k43, k44, k45, k46, k47;
 
-  #ifdef IS_NV
-  #if CUDA_ARCH >= 500
-  #else
+  #ifdef _unroll
   #pragma unroll
   #endif
-  #endif
-
-  #ifdef IS_AMD
-  #pragma unroll
-  #endif
-
-  #ifdef IS_GENERIC
-  #pragma unroll 1
-  #endif
-
   for (u32 i = 0; i < 2; i++)
   {
     if (i) KEYSET10 else KEYSET00
@@ -2060,7 +2048,9 @@ void m03000m (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global co
 
       u32 tmpResult = 0;
 
+      #ifdef _unroll
       #pragma unroll
+      #endif
       for (int i = 0; i < 32; i++)
       {
         const u32 b0 = -((search[0] >> i) & 1);
@@ -2087,7 +2077,9 @@ void m03000m (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global co
     u32 out0[32];
     u32 out1[32];
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 0; i < 32; i++)
     {
       out0[i] = out[ 0 + 31 - i];
@@ -2097,7 +2089,9 @@ void m03000m (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global co
     transpose32c (out0);
     transpose32c (out1);
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int slice = 0; slice < 32; slice++)
     {
       const u32 r0 = out0[31 - slice];

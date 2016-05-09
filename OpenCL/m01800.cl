@@ -134,7 +134,9 @@ void sha512_transform (const u64 w[16], u64 digest[8])
 
   ROUND_STEP (0);
 
-  //#pragma unroll
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 16; i < 80; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
@@ -500,7 +502,9 @@ __kernel void m01800_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
     {
       const u32 block_len = wpc_len[pc];
 
-      #pragma unroll 64
+      #ifdef _unroll
+      #pragma unroll
+      #endif
       for (u32 k = 0, p = block_len - 64; k < 64; k++, p++)
       {
         PUTCHAR64_BE (block, p, GETCHAR64_BE (l_alt_result, k));

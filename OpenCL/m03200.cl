@@ -679,7 +679,9 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m03200_loop (__glo
     L0 = 0;
     R0 = 0;
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (u32 i = 0; i < 9; i++)
     {
       BF_ENCRYPT (L0, R0);
@@ -742,7 +744,9 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m03200_loop (__glo
     L0 = 0;
     R0 = 0;
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (u32 i = 0; i < 9; i++)
     {
       BF_ENCRYPT (L0, R0);

@@ -61,7 +61,9 @@ void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 
   __local u32 *ptr = (__local u32 *) rc4_key->S;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (u32 i = 0; i < 64; i++)
   {
     ptr[i] = v; v += a;
@@ -75,7 +77,9 @@ void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 
   u32 j = 0;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (u32 i = 0; i < 255; i += 5)
   {
     j += rc4_key->S[i + 0] + d0; swap (rc4_key, i + 0, j);
@@ -90,7 +94,9 @@ void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 
 u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __constant u32 *in, u32 out[4])
 {
-  #pragma unroll 4
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 k = 0; k < 4; k++)
   {
     u32 xor4 = 0;

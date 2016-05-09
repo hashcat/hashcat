@@ -1569,17 +1569,9 @@ void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, cons
 
   for (u32 ii = 0; ii < 25; ii++)
   {
-    #ifdef IS_NV
-    #if CUDA_ARCH >= 500
-    #else
+    #ifdef _unroll
     #pragma unroll
     #endif
-    #endif
-
-    #ifdef IS_AMD
-    #pragma unroll
-    #endif
-
     for (u32 i = 0; i < 2; i++)
     {
       if (i) KEYSET10 else KEYSET00
@@ -1705,17 +1697,9 @@ void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, cons
 
   for (u32 ii = 0; ii < 25; ii++)
   {
-    #ifdef IS_NV
-    #if CUDA_ARCH >= 500
-    #else
+    #ifdef _unroll
     #pragma unroll
     #endif
-    #endif
-
-    #ifdef IS_AMD
-    #pragma unroll
-    #endif
-
     for (u32 i = 0; i < 2; i++)
     {
       if (i) KEYSET10 else KEYSET00
@@ -2222,7 +2206,9 @@ void m01500m (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global co
 
       u32 tmpResult = 0;
 
+      #ifdef _unroll
       #pragma unroll
+      #endif
       for (int i = 0; i < 32; i++)
       {
         const u32 b0 = -((search[0] >> i) & 1);
@@ -2249,7 +2235,9 @@ void m01500m (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global co
     u32 out0[32];
     u32 out1[32];
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 0; i < 32; i++)
     {
       out0[i] = out[ 0 + 31 - i];
@@ -2259,7 +2247,9 @@ void m01500m (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global co
     transpose32c (out0);
     transpose32c (out1);
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int slice = 0; slice < 32; slice++)
     {
       const u32 r0 = out0[31 - slice];
@@ -2676,7 +2666,9 @@ __kernel void m01500_tm (__global u32 *mod, __global bs_word_t *words_buf_r)
 
   const u32 w0s = (w0 << 1) & 0xfefefefe;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 0, j = 0; i < 32; i += 8, j += 7)
   {
     atomic_or (&words_buf_r[block].b[j + 0], (((w0s >> (i + 7)) & 1) << slice));

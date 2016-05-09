@@ -376,7 +376,9 @@ void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 (*s_
 
   c = c & 0x0fffffff;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i++)
   {
     if ((i < 2) || (i == 8) || (i == 15))

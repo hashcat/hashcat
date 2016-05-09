@@ -384,7 +384,9 @@ void _des_crypt_encrypt (u32x iv[2], u32x data[2], u32x Kc[16], u32x Kd[16], __l
   r = rotl32 (r, 3u);
   l = rotl32 (l, 3u);
 
-  #pragma unroll 16
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i += 2)
   {
     u32x u;
@@ -442,7 +444,9 @@ void _des_crypt_keysetup (u32x c, u32x d, u32x Kc[16], u32x Kd[16], __local u32 
 
   c = c & 0x0fffffff;
 
-  #pragma unroll 16
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i++)
   {
     if ((i < 2) || (i == 8) || (i == 15))

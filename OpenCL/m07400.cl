@@ -112,7 +112,9 @@ void sha256_transform (const u32 w[16], u32 digest[8])
 
   ROUND_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 64; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
@@ -1303,7 +1305,9 @@ void sha256_transform (const u32 w[16], u32 digest[8])
 
   ROUND_STEP (0);
 
-  //#pragma unroll
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 16; i < 64; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
@@ -1686,7 +1690,9 @@ __kernel void m07400_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     if (j1)
     {
-      #pragma unroll 32
+      #ifdef _unroll
+      #pragma unroll
+      #endif
       for (u32 k = 0, p = block_len - 32; k < 32; k++, p++)
       {
         PUTCHAR32_BE (block, p, GETCHAR32_BE (alt_result, k));

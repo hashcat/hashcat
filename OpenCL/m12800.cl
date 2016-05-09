@@ -177,7 +177,9 @@ void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const 
 
   ROUND_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 64; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);

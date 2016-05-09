@@ -110,7 +110,9 @@ void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const 
 
   ROUND_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 64; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
@@ -705,7 +707,9 @@ void scrypt_smix (uint4 *X, uint4 *T, const u32 phy, __global uint4 *V)
 
   const u32 x = gid % xSIZE;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (u32 i = 0; i < STATE_CNT4; i += 4)
   {
     T[0] = (uint4) (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
@@ -743,7 +747,9 @@ void scrypt_smix (uint4 *X, uint4 *T, const u32 phy, __global uint4 *V)
     salsa_r (X);
   }
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (u32 i = 0; i < STATE_CNT4; i += 4)
   {
     T[0] = (uint4) (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
@@ -910,12 +916,16 @@ __kernel void m08900_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   uint4 X[STATE_CNT4];
   uint4 T[STATE_CNT4];
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[z]);
 
   scrypt_smix (X, T, scrypt_phy, d_scryptV_buf);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[z] = swap32_4 (X[z]);
 
   #if SCRYPT_P >= 1

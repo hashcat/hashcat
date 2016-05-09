@@ -4126,7 +4126,9 @@ inline u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const 
 
   u32x out_len = 0;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 0; i < VECT_SIZE; i++)
   {
     u32 tmp0[4];

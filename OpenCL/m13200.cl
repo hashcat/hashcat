@@ -4,7 +4,7 @@
 
  * License.....: MIT
  */
- 
+
 #define _SHA1_
 
 #include "include/constants.h"
@@ -713,7 +713,9 @@ void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *
   rek[2] = userkey[2];
   rek[3] = userkey[3];
 
-  #pragma unroll 10
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0, j = 0; i < 10; i += 1, j += 4)
   {
     u32 temp = rek[j + 3];
@@ -1016,7 +1018,7 @@ __kernel void m13200_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
   const u32 pw_len = pws[gid].pw_len;
 
   append_0x80_4x4 (w0, w1, w2, w3, pw_len);
-  
+
   w0[0] = swap32 (w0[0]);
   w0[1] = swap32 (w0[1]);
   w0[2] = swap32 (w0[2]);
@@ -1035,7 +1037,7 @@ __kernel void m13200_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
   w3[3] = swap32 (w3[3]);
 
   w3[3] = pw_len * 8;
-  
+
   /**
    * KEK
    */
@@ -1072,7 +1074,7 @@ __kernel void m13200_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
   tmps[gid].cipher[1] = salt_bufs[salt_pos].salt_buf[5];
   tmps[gid].cipher[2] = 0;
   tmps[gid].cipher[3] = 0;
-  
+
 }
 
 __kernel void m13200_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global axcrypt_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -1137,17 +1139,19 @@ __kernel void m13200_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   ukeyx[1] = tmps[gid].KEK[1];
   ukeyx[2] = tmps[gid].KEK[2];
   ukeyx[3] = tmps[gid].KEK[3];
-  
+
   AES128_ExpandKey (ukeyx, rek, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  #pragma unroll KEYLEN
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < KEYLEN; i++) rdk[i] = rek[i];
 
   AES128_InvertKey (rdk, s_td0, s_td1, s_td2, s_td3, s_td4, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   u32 lsb[4];
   u32 cipher[4];
-  
+
   lsb[0] = tmps[gid].lsb[0];
   lsb[1] = tmps[gid].lsb[1];
   lsb[2] = tmps[gid].lsb[2];
@@ -1157,8 +1161,8 @@ __kernel void m13200_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   cipher[1] = tmps[gid].cipher[1];
   cipher[2] = tmps[gid].cipher[2];
   cipher[3] = tmps[gid].cipher[3];
-  
-  
+
+
   /**
   * AxCrypt main cipher routine
   */
@@ -1201,7 +1205,7 @@ __kernel void m13200_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   tmps[gid].lsb[1] = lsb[1];
   tmps[gid].lsb[2] = lsb[2];
   tmps[gid].lsb[3] = lsb[3];
-  
+
   tmps[gid].cipher[0] = cipher[0];
   tmps[gid].cipher[1] = cipher[1];
   tmps[gid].cipher[2] = cipher[2];

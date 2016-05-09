@@ -1075,7 +1075,9 @@ void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const 
 
   ROUND_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 64; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
@@ -1541,7 +1543,9 @@ __kernel void m06800_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   u32 rdk[KEYLEN];
 
-  #pragma unroll 60
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < KEYLEN; i++) rdk[i] = rek[i];
 
   AES256_InvertKey (rdk, s_td0, s_td1, s_td2, s_td3, s_td4, s_te0, s_te1, s_te2, s_te3, s_te4);

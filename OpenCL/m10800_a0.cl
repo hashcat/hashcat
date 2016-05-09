@@ -116,7 +116,9 @@ void sha384_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], con
 
   ROUND_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 80; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);

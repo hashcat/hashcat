@@ -1172,7 +1172,9 @@ void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 (*s_Ch)[256
 
     u32 i;
 
-    #pragma unroll 8
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (i = 0; i < 8; i++)
     {
       const u8 Lp0 = Kh[(i + 8) & 7] >> 24;
@@ -1220,7 +1222,9 @@ void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 (*s_Ch)[256
     Kh[7] = Lh[7];
     Kl[7] = Ll[7];
 
-    #pragma unroll 8
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (i = 0; i < 8; i++)
     {
       const u8 Lp0 = stateh[(i + 8) & 7] >> 24;

@@ -2250,7 +2250,9 @@ void streebog_g (u64x h[8], const u64x m[8], __local u64 (*s_sbob_sl64)[256])
   u64x s[8];
   u64x t[8];
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 0; i < 8; i++)
   {
     t[i] = h[i];
@@ -2261,7 +2263,9 @@ void streebog_g (u64x h[8], const u64x m[8], __local u64 (*s_sbob_sl64)[256])
     k[i] = SBOG_LPSti64;
   }
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 0; i < 8; i++)
   {
     s[i] = m[i];
@@ -2269,13 +2273,17 @@ void streebog_g (u64x h[8], const u64x m[8], __local u64 (*s_sbob_sl64)[256])
 
   for (int r = 0; r < 12; r++)
   {
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 0; i < 8; i++)
     {
       t[i] = s[i] ^ k[i];
     }
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 0; i < 8; i++)
     {
       s[i] = SBOG_LPSti64;
@@ -2286,14 +2294,18 @@ void streebog_g (u64x h[8], const u64x m[8], __local u64 (*s_sbob_sl64)[256])
       t[i] = k[i] ^ sbob_rc64[r][i];
     }
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 0; i < 8; i++)
     {
       k[i] = SBOG_LPSti64;
     }
   }
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 0; i < 8; i++)
   {
     h[i] ^= s[i] ^ k[i] ^ m[i];

@@ -115,7 +115,9 @@ void sha512_transform (const u64 w[16], u64 dgst[8])
 
   ROUND_STEP (0);
 
-  //#pragma unroll
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 16; i < 80; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);

@@ -403,13 +403,17 @@
 
 void serpent256_set_key (u32 *ks, const u32 *ukey)
 {
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 0; i < 8; i++)
   {
     ks[i] = ukey[i];
   }
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 0; i < 132; i++)
   {
     ks[i + 8] = rotl32 (ks[i + 7] ^ ks[i + 5] ^ ks[i + 3] ^ ks[i + 0] ^ 0x9e3779b9 ^ i, 11);

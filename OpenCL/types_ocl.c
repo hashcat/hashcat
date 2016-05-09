@@ -5,9 +5,6 @@
  * License.....: MIT
  */
 
-#define DEVICE_TYPE_CPU 2
-#define DEVICE_TYPE_GPU 4
-
 typedef uchar  u8;
 typedef ushort u16;
 typedef uint   u32;

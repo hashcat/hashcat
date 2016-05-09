@@ -132,7 +132,9 @@ void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const 
 
   ROUND256_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 64; i += 16)
   {
     ROUND256_EXPAND (); ROUND256_STEP (i);
@@ -242,7 +244,9 @@ void sha384_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const 
 
   ROUND384_STEP (0);
 
-  //#pragma unroll
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 16; i < 80; i += 16)
   {
     ROUND384_EXPAND (); ROUND384_STEP (i);
@@ -352,7 +356,9 @@ void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const 
 
   ROUND512_STEP (0);
 
-  //#pragma unroll
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 16; i < 80; i += 16)
   {
     ROUND512_EXPAND (); ROUND512_STEP (i);

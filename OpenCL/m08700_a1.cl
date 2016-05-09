@@ -91,7 +91,9 @@ void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   {
     u32 s = 48;
 
-    #pragma unroll 12
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (int j = 0; j < 12; j++)
     {
       u32x tmp_in = in[j];
@@ -113,7 +115,9 @@ void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lotus_mag
 
   u32x c;
 
-  #pragma unroll 4
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 0; i < 4; i++)
   {
     t ^= (in[i] >>  0) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  0; t = ((out[i] >>  0) & 0xff);
