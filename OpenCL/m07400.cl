@@ -40,7 +40,7 @@ __constant u32 k_sha256[64] =
   SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
 };
 
-#ifdef IS_AMD
+#if 1
 
 void sha256_transform (const u32 w[16], u32 digest[8])
 {
@@ -1223,6 +1223,8 @@ __kernel void m07400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 }
 
 #else
+
+// this is basically a much cleaner version, but apparently drops speeds by over 100% :(
 
 #define PUTCHAR32_BE(a,p,c) ((u8 *)(a))[(p) ^ 3] = (u8) (c)
 #define GETCHAR32_BE(a,p)   ((u8 *)(a))[(p) ^ 3]
