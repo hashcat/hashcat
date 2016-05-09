@@ -13587,8 +13587,8 @@ int main (int argc, char **argv)
         kernel_threads = KERNEL_THREADS_MAX_CPU;
       }
 
-      //if (hash_mode ==  1500) kernel_threads = 64; // DES
-      //if (hash_mode ==  3000) kernel_threads = 64; // DES
+      if (hash_mode ==  1500) kernel_threads = 64; // DES
+      if (hash_mode ==  3000) kernel_threads = 64; // DES
       if (hash_mode ==  3200) kernel_threads = 8;  // Blowfish
       if (hash_mode ==  7500) kernel_threads = 64; // RC4
       if (hash_mode ==  9000) kernel_threads = 8;  // Blowfish
