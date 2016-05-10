@@ -2800,29 +2800,6 @@ static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, 
   device_param->kernel_params_buf32[26] = kernel_loops; // not a bug, both need to be set
   device_param->kernel_params_buf32[27] = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
-  // init some fake words
-
-  if (data.hash_mode == 10700)
-  {
-    // hash mode 10700 hangs on length 0 (unlimited loop)
-
-    for (u32 i = 0; i < kernel_power; i++)
-    {
-      device_param->pws_buf[i].i[0]   = i;
-      device_param->pws_buf[i].i[1]   = i + 0x01234567;
-      device_param->pws_buf[i].i[2]   = i + 0x89abcdef;
-      device_param->pws_buf[i].i[3]   = 0xffffffff;
-      device_param->pws_buf[i].pw_len = 4 + (i & 3);
-    }
-
-    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-
-    if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
-    {
-      run_kernel_amp (device_param, kernel_power);
-    }
-  }
-
   if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
     run_kernel (KERN_RUN_1, device_param, kernel_power, true);
@@ -2833,16 +2810,6 @@ static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, 
   }
 
   const double exec_ms_prev = get_avg_exec_time (device_param, 1);
-
-  // reset fake words
-
-  if (data.hash_mode == 10700)
-  {
-    memset (device_param->pws_buf, 0, kernel_power * sizeof (pw_t));
-
-    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-  }
 
   return exec_ms_prev;
 }
@@ -2860,9 +2827,27 @@ static void autotune (hc_device_param_t *device_param)
   u32 kernel_accel = kernel_accel_min;
   u32 kernel_loops = kernel_loops_min;
 
-  #define STEPS_CNT 10
+  // init some fake words
 
-  #define MAX_RETRIES 1
+  const u32 kernel_power_max = device_param->device_processors * device_param->kernel_threads * kernel_accel_max;
+
+  for (u32 i = 0; i < kernel_power_max; i++)
+  {
+    device_param->pws_buf[i].i[0]   = i;
+    device_param->pws_buf[i].i[1]   = 0x01234567;
+    device_param->pws_buf[i].pw_len = 7;
+  }
+
+  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+
+  if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+  {
+    run_kernel_amp (device_param, kernel_power_max);
+  }
+
+  // begin actual testing
+
+  double exec_ms_final = try_run (device_param, kernel_accel, kernel_loops);
 
   if ((kernel_loops_min == kernel_loops_max) || (kernel_accel_min == kernel_accel_max))
   {
@@ -2876,22 +2861,15 @@ static void autotune (hc_device_param_t *device_param)
     try_run (device_param, kernel_accel, kernel_loops);
   }
 
-  double exec_ms_final = try_run (device_param, kernel_accel, kernel_loops);
-
   // first find out highest kernel-loops that stays below target_ms
+
+  #define STEPS_CNT 10
 
   for (kernel_loops = kernel_loops_max; kernel_loops > kernel_loops_min; kernel_loops >>= 1)
   {
-    double exec_ms_best = try_run (device_param, kernel_accel_min, kernel_loops);
+    double exec_ms = try_run (device_param, kernel_accel_min, kernel_loops);
 
-    for (int i = 0; i < MAX_RETRIES; i++)
-    {
-      const double exec_ms_cur = try_run (device_param, kernel_accel_min, kernel_loops);
-
-      exec_ms_best = MIN (exec_ms_best, exec_ms_cur);
-    }
-
-    if (exec_ms_best < target_ms) break;
+    if (exec_ms < target_ms) break;
   }
 
   // now the same for kernel-accel but with the new kernel-loops from previous loop set
@@ -2905,18 +2883,11 @@ static void autotune (hc_device_param_t *device_param)
       if (kernel_accel_try < kernel_accel_min) continue;
       if (kernel_accel_try > kernel_accel_max) break;
 
-      double exec_ms_best = try_run (device_param, kernel_accel_try, kernel_loops);
+      double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops);
 
-      for (int i = 0; i < MAX_RETRIES; i++)
-      {
-        const double exec_ms_cur = try_run (device_param, kernel_accel_try, kernel_loops);
+      if (exec_ms > target_ms) break;
 
-        exec_ms_best = MIN (exec_ms_best, exec_ms_cur);
-      }
-
-      if (exec_ms_best > target_ms) break;
-
-      exec_ms_final = exec_ms_best;
+      exec_ms_final = exec_ms;
 
       kernel_accel = kernel_accel_try;
     }
@@ -2970,6 +2941,13 @@ static void autotune (hc_device_param_t *device_param)
       kernel_loops = kernel_loops_try;
     }
   }
+
+  // reset fake words
+
+  memset (device_param->pws_buf, 0, kernel_power_max * sizeof (pw_t));
+
+  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
   // reset timer
 
