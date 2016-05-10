@@ -3,8 +3,9 @@
  * License.....: MIT
  */
 
-#pragma OPENCL EXTENSION cl_khr_int64_base_atomics     : enable
-#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
+//fails on intel opencl sdk
+//#pragma OPENCL EXTENSION cl_khr_int64_base_atomics     : enable
+//#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
 
 /**
  * device type
