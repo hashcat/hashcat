@@ -1,6 +1,6 @@
 ## *hashcat* ##
 
-**hashcat** is the world's fastest and most advanced password recovery utility, supporting five unique modes of attack for over 180 highly-optimized hashing algorithms. hashcat currently supports CPU's, GPU's other hardware-accelerators on Linux, Windows and OSX, and has facilities to help enable distributed password cracking.
+**hashcat** is the world's fastest and most advanced password recovery utility, supporting five unique modes of attack for over 160 highly-optimized hashing algorithms. hashcat currently supports CPU's, GPU's other hardware-accelerators on Linux, Windows and OSX, and has facilities to help enable distributed password cracking.
 
 ** THE VERSION 3.00 IS CURRENTLY STILL IN BETA **
 
@@ -18,7 +18,7 @@ Please refer to the [Hashcat Wiki](https://hashcat.net/wiki/) and the output of 
 
 ### Building ###
 
-Refer to [docs/BUILD.md](docs/BUILD.md) for instructions on how to build **hashcat** from source.
+Refer to [BUILD.md](BUILD.md) for instructions on how to build **hashcat** from source.
 
 ### Contributing ###
 

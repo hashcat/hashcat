@@ -16,6 +16,13 @@ Get a copy of the **hashcat** repository
 $ git clone https://github.com/hashcat/hashcat.git
 ```
 
+Get a copy of the **OpenCL Headers** repository
+
+```sh
+$ mkdir -p deps/OpenCL-Headers
+$ git clone https://github.com/KhronosGroup/OpenCL-Headers deps/OpenCL-Headers/CL
+```
+
 Run "make"
 
 ```sh
@@ -34,23 +41,9 @@ If you install it, cached kernels, session files, restore- and pot-files etc. wi
 
 # Building hashcat for Windows
 
-Get a copy of the **hashcat** repository
-
-```sh
-$ git clone https://github.com/hashcat/hashcat.git
-```
-
-Basically all you need is the OpenCL Headers.
-
-Simply clone into the reference Implementation:
-
-```sh
-$ mkdir -p deps/OpenCL-Headers
-$ git clone https://github.com/KhronosGroup/OpenCL-Headers deps/OpenCL-Headers/CL
-```
-
 ```sh
 $ make win32 win64
 ```
+
 =
 Enjoy your fresh **hashcat** binaries ;)
