@@ -161,7 +161,7 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define SP_ROOT_CNT             (SP_PW_MAX * CHARSIZ)
 #define SP_MARKOV_CNT           (SP_PW_MAX * CHARSIZ * CHARSIZ)
 
-#define TUNING_DB_FILE          "hashcat_tuning.hctab"
+#define TUNING_DB_FILE          "hashcat.hctune"
 
 #define INDUCT_DIR              "induct"
 #define OUTFILES_DIR            "outfiles"

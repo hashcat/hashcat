@@ -5,8 +5,8 @@
 ## License.....: MIT
 ##
 
-export IN=$HOME/oclHashcat
-export OUT=$HOME/xy/oclHashcat-2.10
+export IN=$HOME/hashcat
+export OUT=$HOME/xy/hashcat-3.00
 
 rm -rf $OUT
 rm -rf $OUT.7z
@@ -14,35 +14,36 @@ rm -rf $OUT.7z
 mkdir -p $OUT
 mkdir -p $OUT/include
 
-cp    $IN/oclHashcat??.exe                      $OUT/
-cp    $IN/oclHashcat??.bin                      $OUT/
-cp    $IN/hashcat.hcstat                        $OUT/
-cp    $IN/hashcat_tuning.hctab                  $OUT/
+cp    $IN/hashcat??.exe                 $OUT/
+cp    $IN/hashcat??.bin                 $OUT/
+cp    $IN/hashcat.hcstat                $OUT/
+cp    $IN/hashcat.hctune                $OUT/
 
-cp -r $IN/docs                                  $OUT/
-cp -r $IN/charsets                              $OUT/
-cp -r $IN/masks                                 $OUT/
-cp -r $IN/rules                                 $OUT/
-cp -r $IN/extra                                 $OUT/
-cp    $IN/example.dict                          $OUT/
-cp    $IN/example[0123456789]*.hash             $OUT/
-cp    $IN/example[0123456789]*.cmd              $OUT/
+cp -r $IN/docs                          $OUT/
+cp -r $IN/charsets                      $OUT/
+cp -r $IN/masks                         $OUT/
+cp -r $IN/rules                         $OUT/
+cp -r $IN/extra                         $OUT/
+cp    $IN/example.dict                  $OUT/
+cp    $IN/example[0123456789]*.hash	$OUT/
+cp    $IN/example[0123456789]*.cmd	$OUT/
 
-cp -r $IN/include/constants.h                   $OUT/include
-cp -r $IN/include/kernel_functions.c            $OUT/include
-cp -r $IN/include/kernel_vendor.h               $OUT/include
-cp -r $IN/include/rp_kernel.h                   $OUT/include
-cp -r $IN/OpenCL                                $OUT/
+cp -r $IN/include/constants.h		$OUT/include
+cp -r $IN/include/kernel_functions.c	$OUT/include
+cp -r $IN/include/kernel_vendor.h       $OUT/include
+cp -r $IN/include/rp_kernel.h           $OUT/include
+cp -r $IN/OpenCL                        $OUT/
 
 # since for the binary distribution we still use .bin, we need to rewrite the commands
 # within the example*.sh files
 
 for example in example[0123456789]*.sh; do
 
-  sed 's!./oclHashcat !./oclHashcat64.bin !' $IN/${example} > $OUT/${example}
+  sed 's!./hashcat !./hashcat64.bin !' $IN/${example} > $OUT/${example}
 
 done
 
+dos2unix $OUT/masks/*.hcmask
 dos2unix $OUT/rules/*.rule
 dos2unix $OUT/rules/hybrid/*.rule
 dos2unix $OUT/docs/*
@@ -53,28 +54,31 @@ unix2dos $OUT/rules/*.rule
 unix2dos $OUT/rules/hybrid/*.rule
 unix2dos $OUT/docs/*
 unix2dos $OUT/example*.cmd
+unix2dos $OUT/include/*
+unix2dos $OUT/OpenCL/*
+unix2dos $OUT/hashcat.hctune
 
-chmod 700 $OUT
-chmod 700 $OUT/rules
-chmod 600 $OUT/rules/*
-chmod 700 $OUT/docs
-chmod 600 $OUT/docs/*
-chmod 700 $OUT/charsets
-chmod 700 $OUT/charsets/*
-chmod 700 $OUT/masks
-chmod 600 $OUT/masks/*
-chmod 600 $OUT/example*
-chmod 700 $OUT/example*.sh
-chmod 700 $OUT/extra
-chmod 700 $OUT/extra/tab_completion/*.sh
-chmod 700 $OUT/extra/tab_completion/install
-chmod 700 $OUT/include
-chmod 600 $OUT/include/*
-chmod 700 $OUT/OpenCL
-chmod 600 $OUT/OpenCL/*
-chmod 600 $OUT/*.exe
-chmod 700 $OUT/*.bin
-chmod 600 $OUT/hashcat.hcstat
-chmod 600 $OUT/hashcat_tuning.hctab
+chmod 755 $OUT
+chmod 755 $OUT/rules
+chmod 644 $OUT/rules/*
+chmod 755 $OUT/docs
+chmod 644 $OUT/docs/*
+chmod 755 $OUT/charsets
+chmod 755 $OUT/charsets/*
+chmod 755 $OUT/masks
+chmod 644 $OUT/masks/*
+chmod 644 $OUT/example*
+chmod 755 $OUT/example*.sh
+chmod 755 $OUT/extra
+chmod 755 $OUT/extra/tab_completion/*.sh
+chmod 755 $OUT/extra/tab_completion/install
+chmod 755 $OUT/include
+chmod 644 $OUT/include/*
+chmod 755 $OUT/OpenCL
+chmod 644 $OUT/OpenCL/*
+chmod 644 $OUT/*.exe
+chmod 755 $OUT/*.bin
+chmod 644 $OUT/hashcat.hcstat
+chmod 644 $OUT/hashcat.hctune
 
 time 7z a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $OUT.7z $OUT

@@ -15,9 +15,9 @@
 #include <rp_kernel_on_cpu.h>
 #include <getopt.h>
 
-const char *PROGNAME            = "oclHashcat";
-const uint  VERSION_BIN         = 210;
-const uint  RESTORE_MIN         = 210;
+const char *PROGNAME            = "hashcat";
+const uint  VERSION_BIN         = 300;
+const uint  RESTORE_MIN         = 300;
 
 double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 
@@ -754,7 +754,7 @@ const char *USAGE_BIG[] =
 };
 
 /**
- * oclHashcat specific functions
+ * hashcat specific functions
  */
 
 static double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
@@ -1688,7 +1688,7 @@ static void status_benchmark ()
 }
 
 /**
- * oclHashcat -only- functions
+ * hashcat -only- functions
  */
 
 static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *shared_dir, char *source_file)
@@ -5578,7 +5578,7 @@ int main (int argc, char **argv)
   if (session == NULL) session = (char *) PROGNAME;
 
   /**
-   * folders, as discussed on https://github.com/hashcat/oclHashcat/issues/20
+   * folders, as discussed on https://github.com/hashcat/hashcat/issues/20
    */
 
   char *exec_path = get_exec_path ();
@@ -5671,7 +5671,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  // this allows the user to use --show and --left while cracking (i.e. while another instance of oclHashcat is running)
+  // this allows the user to use --show and --left while cracking (i.e. while another instance of hashcat is running)
   if ((show == 1) || (left == 1))
   {
     restore_disable = 1;
@@ -13061,7 +13061,7 @@ int main (int argc, char **argv)
                 log_info ("");
                 log_info ("ATTENTION! Unsupported or incorrect installed catalyst driver detected!");
                 log_info ("You are STRONGLY encouraged to use the official supported catalyst driver for good reasons");
-                log_info ("See oclHashcat's homepage for official supported catalyst drivers");
+                log_info ("See hashcat's homepage for official supported catalyst drivers");
                 #ifdef _WIN
                 log_info ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
                 #endif
@@ -13971,7 +13971,7 @@ int main (int argc, char **argv)
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
-      snprintf (build_opts, sizeof (build_opts) - 1, "-cl-std=CL1.1 -I\"%s/\" -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u -DKERN_TYPE=%u -D_unroll", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, kern_type);
+      snprintf (build_opts, sizeof (build_opts) - 1, "-cl-nv-verbose -cl-std=CL1.1 -I\"%s/\" -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u -DKERN_TYPE=%u -D_unroll", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, kern_type);
 
       /**
        * main kernel
@@ -16597,7 +16597,7 @@ int main (int argc, char **argv)
               log_info ("");
               log_info ("ATTENTION!");
               log_info ("  The wordlist or mask you are using is too small.");
-              log_info ("  Therefore, oclHashcat is unable to utilize the full parallelization power of your device(s).");
+              log_info ("  Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
               log_info ("  The cracking speed will drop.");
               log_info ("  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
               log_info ("");

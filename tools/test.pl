@@ -41,7 +41,7 @@ use Net::DNS::RR::NSEC3;
 use Convert::EBCDIC qw (ascii2ebcdic);
 use Digest::SipHash qw/siphash/;
 
-my $hashcat = "./oclHashcat";
+my $hashcat = "./hashcat";
 
 my $MAX_LEN = 55;
 
@@ -1649,7 +1649,7 @@ sub verify
     # WPA/WPA2
     elsif ($mode == 2500)
     {
-      print "ERROR: verify currently not supported for WPA/WPA2 (because of oclHashcat's output format)\n";
+      print "ERROR: verify currently not supported for WPA/WPA2 (because of hashcat's output format)\n";
 
       exit (1);
     }
@@ -2689,7 +2689,7 @@ sub verify
       }
       elsif ($mode == 5600)
       {
-        # oclHashcat outputs the user name always upper-case, we need
+        # hashcat outputs the user name always upper-case, we need
         next unless (substr ($line, 0, $len) eq $hash_out);
 
         my $found = 0;

@@ -14,7 +14,7 @@
 /*                                                                      */
 /* -------------------------------------------------------------------- */
 /*                                                                      */
-/* Cleaned and optimized for GPU use with oclHashcat by Jens Steube     */
+/* Cleaned and optimized for GPU use with hashcat by Jens Steube        */
 
 /* 15 terms */
 

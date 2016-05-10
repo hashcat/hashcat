@@ -1,14 +1,16 @@
-## *oclHashcat* ##
+## *hashcat* ##
 
-**oclHashcat** is the world's fastest and most advanced GPGPU-based password recovery utility, supporting five unique modes of attack for over 170 highly-optimized hashing algorithms. oclHashcat currently supports AMD (OpenCL) and Nvidia (CUDA) graphics processors on GNU/Linux and Windows 7/8/10, and has facilities to help enable distributed password cracking.
+**hashcat** is the world's fastest and most advanced password recovery utility, supporting five unique modes of attack for over 180 highly-optimized hashing algorithms. hashcat currently supports CPU's, GPU's other hardware-accelerators on Linux, Windows and OSX, and has facilities to help enable distributed password cracking.
+
+** THE VERSION 3.00 IS CURRENTLY STILL IN BETA **
 
 ### License ###
 
-**oclHashcat** is licensed under the MIT license. Refer to [docs/license.txt](docs/license.txt) for more information. 
+**hashcat** is licensed under the MIT license. Refer to [docs/license.txt](docs/license.txt) for more information. 
 
 ### Installation ###
 
-Download the [latest release](https://hashcat.net/oclhashcat/) and unpack it in the desired location. Please remember to use `7z x` when unpacking the archive from the command line to ensure full file paths remain intact.
+Download the [latest release](https://hashcat.net/hashcat/) and unpack it in the desired location. Please remember to use `7z x` when unpacking the archive from the command line to ensure full file paths remain intact.
 
 ### Usage/Help ###
 
@@ -16,7 +18,7 @@ Please refer to the [Hashcat Wiki](https://hashcat.net/wiki/) and the output of 
 
 ### Building ###
 
-Refer to [docs/BUILD.md](docs/BUILD.md) for instructions on how to build **oclHashcat** from source.
+Refer to [docs/BUILD.md](docs/BUILD.md) for instructions on how to build **hashcat** from source.
 
 ### Contributing ###
 
@@ -41,8 +43,8 @@ Your pull request should fully describe the functionality you are adding/removin
 
 Solve only one problem in each pull request. If you're fixing a bug and adding a new feature, you need to make two separate pull requests. If you're fixing three bugs, you need to make three separate pull requests. If you're adding four new features, you need to make four separate pull requests. So on, and so forth.
 
-If your patch fixes a bug, please be sure there is an [issue](https://github.com/hashcat/oclHashcat/issues) open for the bug before submitting a pull request. If your patch aims to improve performance or optimizes an algorithm, be sure to quantify your optimizations and document the trade-offs, and back up your claims with benchmarks and metrics.
+If your patch fixes a bug, please be sure there is an [issue](https://github.com/hashcat/hashcat/issues) open for the bug before submitting a pull request. If your patch aims to improve performance or optimizes an algorithm, be sure to quantify your optimizations and document the trade-offs, and back up your claims with benchmarks and metrics.
 
-In order to maintain the quality and integrity of the **oclHashcat** source tree, all pull requests must be reviewed and signed off by at least two [board members](https://github.com/orgs/hashcat/people) before being merged. The [project lead](https://github.com/jsteube) has the ultimate authority in deciding whether to accept or reject a pull request. Do not be discouraged if your pull request is rejected!
+In order to maintain the quality and integrity of the **hashcat** source tree, all pull requests must be reviewed and signed off by at least two [board members](https://github.com/orgs/hashcat/people) before being merged. The [project lead](https://github.com/jsteube) has the ultimate authority in deciding whether to accept or reject a pull request. Do not be discouraged if your pull request is rejected!
 
 ### Happy Cracking!

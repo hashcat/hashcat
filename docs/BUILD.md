@@ -1,4 +1,4 @@
-oclHashcat build documentation
+hashcat build documentation
 =
 # Revision:
 * 1.3
@@ -8,12 +8,12 @@ oclHashcat build documentation
 * Christoph Heuwieser <<dropdead@hashcat.net>>
 * magnum <<john.magnum@hushmail.com>>
 
-# Building oclHashcat for Linux and OSX
+# Building hashcat for Linux and OSX
 
-Get a copy of the **oclHashcat** repository
+Get a copy of the **hashcat** repository
 
 ```sh
-$ git clone https://github.com/hashcat/oclHashcat.git
+$ git clone https://github.com/hashcat/hashcat.git
 ```
 
 Run "make"
@@ -22,7 +22,7 @@ Run "make"
 $ make
 ```
 
-# Install oclHashcat for Linux
+# Install hashcat for Linux
 
 The install target is linux FHS compatible and can be used like this:
 
@@ -32,12 +32,12 @@ $ make install
 
 If you install it, cached kernels, session files, restore- and pot-files etc. will go to $HOME/.hashcat/
 
-# Building oclHashcat for Windows
+# Building hashcat for Windows
 
-Get a copy of the **oclHashcat** repository
+Get a copy of the **hashcat** repository
 
 ```sh
-$ git clone https://github.com/hashcat/oclHashcat.git
+$ git clone https://github.com/hashcat/hashcat.git
 ```
 
 Basically all you need is the OpenCL Headers.
@@ -53,4 +53,4 @@ $ git clone https://github.com/KhronosGroup/OpenCL-Headers deps/OpenCL-Headers/C
 $ make win32 win64
 ```
 =
-Enjoy your fresh **oclHashcat** binaries ;)
+Enjoy your fresh **hashcat** binaries ;)

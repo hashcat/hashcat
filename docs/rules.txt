@@ -42,7 +42,7 @@
 #define RULE_OP_REJECT_CONTAINS         '%' // reject plains that contain char X less than N times
 #define RULE_OP_REJECT_MEMORY           'Q' // reject plains that match the plain saved (see M), i.e. if unchanged
 
-/* hashcat only */
+/* With -j or -k only */
 
 #define RULE_OP_MANGLE_SWITCH_FIRST     'k' // switches the first 2 chars. ex: hello -> ehllo
 #define RULE_OP_MANGLE_SWITCH_LAST      'K' // switches the last 2 chars.  ex: hello -> helol
@@ -56,3 +56,4 @@
 #define RULE_OP_MANGLE_DUPEBLOCK_FIRST  'y' // duplicates first n characters
 #define RULE_OP_MANGLE_DUPEBLOCK_LAST   'Y' // duplicates last n characters
 #define RULE_OP_MANGLE_TITLE            'E' // lowercase everything then upper case the first letter and every letter after a space
+

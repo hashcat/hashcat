@@ -1578,7 +1578,7 @@ EOF
   exit 1
 }
 
-BIN="oclHashcat"
+BIN="hashcat"
 MARKOV="enabled"
 ATTACK=0
 MODE=0

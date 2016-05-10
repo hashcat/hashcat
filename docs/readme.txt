@@ -1,5 +1,7 @@
-oclHashcat v2.10
-================
+hashcat v3.00
+=============
+
+** THE VERSION 3.00 IS CURRENTLY STILL IN BETA **
 
 AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)
 Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)
@@ -10,11 +12,11 @@ NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)
 ##
 
 - World's fastest password cracker
-- World's first and only GPGPU-based rule engine
+- World's first and only in-kernel rule engine
 - Free
 - Open-Source (MIT License)
 - Multi-OS (Linux, Windows and OSX)
-- Multi-Platform (CPU, GPU, FPGA, etc., everything that comes with an OpenCL runtime)
+- Multi-Platform (CPU, GPU, DSP, FPGA, etc., everything that comes with an OpenCL runtime)
 - Multi-Hash (Cracking multiple hashes at the same time)
 - Multi-Devices (Utilizing multiple devices in same system)
 - Multi-Device-Types (Utilizing mixed device types in same system)
@@ -28,7 +30,7 @@ NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)
 - Supports automatic keyspace ordering markov-chains
 - Built-in benchmarking system
 - Integrated thermal watchdog
-- 150+ Hash-types implemented with performance in mind
+- 160+ Hash-types implemented with performance in mind
 
 ##
 ## Hash-Types
@@ -222,3 +224,15 @@ NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)
 - Mesa/Clover
 - NVidia ForceWare
 - pocl
+
+##
+## Supported OpenCL device types
+##
+
+- GPU
+- CPU 
+- APU
+- DSP
+- FPGA
+- Coprocessor
+

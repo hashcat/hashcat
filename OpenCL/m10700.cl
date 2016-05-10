@@ -1176,7 +1176,7 @@ void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const 
 #define WORDSZ384   128
 #define WORDSZ512   128
 
-#define PWMAXSZ     32        // oclHashcat password length limit
+#define PWMAXSZ     32        // hashcat password length limit
 #define BLMAXSZ     BLSZ512
 #define WORDMAXSZ   WORDSZ512
 

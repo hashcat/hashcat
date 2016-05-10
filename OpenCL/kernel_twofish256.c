@@ -17,7 +17,7 @@
 /*                                                                      */
 /* -------------------------------------------------------------------- */
 /*                                                                      */
-/* Cleaned and optimized for GPU use with oclHashcat by Jens Steube     */
+/* Cleaned and optimized for GPU use with hashcat by Jens Steube        */
 
 #define extract_byte(x,n) (((x) >> (8 * (n))) & 0xff)
 

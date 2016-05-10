@@ -162,7 +162,7 @@ typedef struct ADLODPerformanceLevel
 
 /*
  * Attention: we had to change this struct due to an out-of-bound problem mentioned here:
- * https://github.com/hashcat/oclHashcat/issues/244
+ * https://github.com/hashcat/hashcat/issues/244
  * the change: ADLODPerformanceLevel aLevels [1] -> ADLODPerformanceLevel aLevels [2]
  */
 
@@ -229,7 +229,7 @@ typedef struct ADLOD6PerformanceLevel
 
 /*
  * Attention: we had to change this struct due to an out-of-bound problem mentioned here:
- * https://github.com/hashcat/oclHashcat/issues/244
+ * https://github.com/hashcat/hashcat/issues/244
  * the change: ADLOD6PerformanceLevel aLevels [1] -> ADLOD6PerformanceLevel aLevels [2]
  */
 

@@ -15,7 +15,7 @@
 # - A line can not start with a space or a tab
 # - Comment lines are allowed, use a # as first character
 # - Invalid lines are ignored
-# - The Device-Name is the OpenCL Device-Name. It's shown on oclHashcat startup.
+# - The Device-Name is the OpenCL Device-Name. It's shown on hashcat startup.
 #   - If the device contains spaces, replace all spaces with _ character.
 # - The Device-Name can be assigned an alias. This is useful if many devices share the same chip
 # - There's also a hard-wired Device-Name which matches all device types called:

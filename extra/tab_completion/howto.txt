@@ -1,4 +1,4 @@
 run:
 source ./install
 OR
-source ./oclHashcat.sh # not working permanently (i.e. not working after a reboot)
+source ./hashcat.sh # not working permanently (i.e. not working after a reboot)
