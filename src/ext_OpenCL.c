@@ -79,7 +79,20 @@ int ocl_init (OCL_PTR *ocl)
 
   if (ocl->lib == NULL)
   {
-    log_error ("ERROR: cannot load opencl library");
+    log_info ("");
+    log_info ("ATTENTION! Can't find OpenCL ICD loader library");
+    log_info ("");
+    #if defined (LINUX)
+    log_info ("You're probably missing the \"ocl-icd-libopencl1\" package (Debian/Ubuntu)");
+    log_info ("  sudo apt-get install ocl-icd-libopencl1");
+    log_info ("");
+    #elif defined (WIN)
+    log_info ("You're probably missing the OpenCL runtime installation");
+    log_info ("  AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)");
+    log_info ("  Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)");
+    log_info ("  NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)");
+    log_info ("");
+    #endif
 
     exit (-1);
   }

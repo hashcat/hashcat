@@ -12548,7 +12548,14 @@ int main (int argc, char **argv)
 
       if (platforms_cnt == 0)
       {
-        log_error ("ERROR: No OpenCL compatible platform found");
+        log_info ("");
+        log_info ("ATTENTION! No OpenCL compatible platform found");
+        log_info ("");
+        log_info ("You're probably missing the OpenCL runtime installation");
+        log_info ("  AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)");
+        log_info ("  Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)");
+        log_info ("  NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)");
+        log_info ("");
 
         return (-1);
       }

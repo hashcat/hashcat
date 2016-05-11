@@ -221,7 +221,7 @@ NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)
 - AMD Catalyst
 - Apple
 - Intel
-- Mesa/Clover
+- Mesa (Gallium)
 - NVidia ForceWare
 - pocl
 

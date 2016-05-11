@@ -11,7 +11,7 @@ It combines all features of all hashcat projects in one project.
 
 - Support for Apple OpenCL runtime
 - Support for NVidia OpenCL runtime (replaces CUDA)
-- Support for Mesa/Clover OpenCL runtime
+- Support for Mesa (Gallium) OpenCL runtime
 - Support for pocl OpenCL runtime
 - Support for Khronos' OSS OpenCL reference implementation for building
 - Support to utilize OpenCL devices-types other than GPU, ex: CPU and FPGA
