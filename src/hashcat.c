@@ -12600,6 +12600,42 @@ int main (int argc, char **argv)
     }
 
     /**
+     * OpenCL device types:
+     *   In case the user did not specify --opencl-device-types and the user runs hashcat in a system with only a CPU only he probably want to use that CPU.
+     *   In such a case, automatically enable CPU device type support, since it's disabled by default.
+     */
+
+    if (opencl_device_types == NULL)
+    {
+      cl_device_type device_types_all = 0;
+
+      for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
+      {
+        if ((opencl_platforms_filter & (1 << platform_id)) == 0) continue;
+
+        cl_platform_id platform = platforms[platform_id];
+
+        hc_clGetDeviceIDs (data.ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
+
+        for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
+        {
+          cl_device_id device = platform_devices[platform_devices_id];
+
+          cl_device_type device_type;
+
+          hc_clGetDeviceInfo (data.ocl, device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+
+          device_types_all |= device_type;
+        }
+      }
+
+      if ((device_types_all & (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) == 0)
+      {
+        device_types_filter |= CL_DEVICE_TYPE_CPU;
+      }
+    }
+
+    /**
      * OpenCL devices: simply push all devices from all platforms into the same device array
      */
 
