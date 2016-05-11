@@ -5537,7 +5537,7 @@ int main (int argc, char **argv)
 
   if (version)
   {
-    log_info ("%s (%s)", VERSION_TAG, VERSION_SUM);
+    log_info ("%s", VERSION_TAG);
 
     return (0);
   }
@@ -5845,19 +5845,19 @@ int main (int argc, char **argv)
   {
     if (benchmark == 1)
     {
-      log_info ("%s %s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG, VERSION_SUM);
+      log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
 
       log_info ("");
     }
     else if (restore == 1)
     {
-      log_info ("%s %s (%s) starting in restore-mode...", PROGNAME, VERSION_TAG, VERSION_SUM);
+      log_info ("%s (%s) starting in restore-mode...", PROGNAME, VERSION_TAG);
 
       log_info ("");
     }
     else
     {
-      log_info ("%s %s (%s) starting...", PROGNAME, VERSION_TAG, VERSION_SUM);
+      log_info ("%s (%s) starting...", PROGNAME, VERSION_TAG);
 
       log_info ("");
     }
