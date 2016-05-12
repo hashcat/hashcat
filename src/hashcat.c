@@ -2914,32 +2914,24 @@ static void autotune (hc_device_param_t *device_param)
     }
   }
 
-  // sometimes we're in a bad situation that the algorithm is so slow that we can not
-  // create enough kernel_accel to do both, keep the gpu busy and stay below target_ms.
-  // however, we need to have a minimum kernel_accel and kernel_loops of 32.
-  // luckily, at this level of workload, it became a linear function
+  // balancing the workload turns out to be very efficient
 
-  if (kernel_accel < 32 || kernel_loops < 32)
+  const u32 kernel_power_balance = kernel_accel * kernel_loops;
+
+  u32 sqrtv;
+
+  for (sqrtv = 1; sqrtv < 0x100000; sqrtv++)
   {
-    const u32 kernel_power = kernel_accel * kernel_loops;
+    if ((sqrtv * sqrtv) >= kernel_power_balance) break;
+  }
 
-    // find sqrt
+  const u32 kernel_accel_try = sqrtv;
+  const u32 kernel_loops_try = sqrtv;
 
-    u32 sqrtv;
-
-    for (sqrtv = 1; sqrtv < 0x100000; sqrtv++)
-    {
-      if ((sqrtv * sqrtv) >= kernel_power) break;
-    }
-
-    const u32 kernel_accel_try = sqrtv;
-    const u32 kernel_loops_try = sqrtv;
-
-    if ((kernel_accel_try <= kernel_accel_max) && (kernel_loops_try >= kernel_loops_min))
-    {
-      kernel_accel = kernel_accel_try;
-      kernel_loops = kernel_loops_try;
-    }
+  if ((kernel_accel_try <= kernel_accel_max) && (kernel_loops_try >= kernel_loops_min))
+  {
+    kernel_accel = kernel_accel_try;
+    kernel_loops = kernel_loops_try;
   }
 
   // reset fake words
