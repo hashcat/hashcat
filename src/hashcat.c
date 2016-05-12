@@ -2161,6 +2161,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
     if ((quiet == 0) && (debug_file == NULL))
     {
       fprintf (stdout, "%s", PROMPT);
+
       fflush (stdout);
     }
   }
@@ -2359,10 +2360,9 @@ static float find_kernel_power_div (const u64 total_left, const uint kernel_powe
   {
     clear_prompt ();
 
-    log_info ("");
+    //log_info ("");
 
     log_info ("INFO: approaching final keyspace, workload adjusted");
-
     log_info ("");
 
     fprintf (stdout, "%s", PROMPT);
@@ -5840,19 +5840,16 @@ int main (int argc, char **argv)
     if (benchmark == 1)
     {
       log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
-
       log_info ("");
     }
     else if (restore == 1)
     {
       log_info ("%s (%s) starting in restore-mode...", PROGNAME, VERSION_TAG);
-
       log_info ("");
     }
     else
     {
       log_info ("%s (%s) starting...", PROGNAME, VERSION_TAG);
-
       log_info ("");
     }
   }
@@ -13474,10 +13471,10 @@ int main (int argc, char **argv)
       {
         log_info ("Watchdog: Temperature retain trigger set to %uc", gpu_temp_retain);
       }
+
+      if (data.quiet == 0) log_info ("");
       #endif
     }
-
-    if (data.quiet == 0) log_info ("");
 
     /**
      * HM devices: copy
@@ -13575,6 +13572,8 @@ int main (int argc, char **argv)
     #ifdef DEBUG
     if (benchmark == 1) log_info ("Hashmode: %d", data.hash_mode);
     #endif
+
+    if (data.quiet == 0) log_info_nn ("Initializing device kernels and memory...");
 
     uint kernel_power_all = 0;
 
@@ -13711,8 +13710,6 @@ int main (int argc, char **argv)
           }
         }
 
-        if (quiet == 0) log_info ("");
-
         for (uint tmto = tmto_start; tmto < tmto_stop; tmto++)
         {
           // TODO: in theory the following calculation needs to be done per salt, not global
@@ -13747,7 +13744,6 @@ int main (int argc, char **argv)
           return -1;
         }
 
-        if (quiet == 0) log_info ("");
         if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %u\n", data.salts_buf[0].scrypt_tmto, size_scryptV);
       }
 
@@ -14092,7 +14088,9 @@ int main (int argc, char **argv)
             if (rc != 0)
             {
               device_param->skipped = true;
+
               log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+
               continue;
             }
 
@@ -14110,7 +14108,9 @@ int main (int argc, char **argv)
           }
           else
           {
-            if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+            #ifdef DEBUG
+            log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+            #endif
 
             load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
@@ -14121,7 +14121,9 @@ int main (int argc, char **argv)
         }
         else
         {
-          if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
+          #ifdef DEBUG
+          log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
+          #endif
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
@@ -14227,6 +14229,7 @@ int main (int argc, char **argv)
         if (cached == 0)
         {
           if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+          if (quiet == 0) log_info ("");
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
@@ -14237,7 +14240,9 @@ int main (int argc, char **argv)
           if (rc != 0)
           {
             device_param->skipped = true;
+
             log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+
             continue;
           }
 
@@ -14255,7 +14260,9 @@ int main (int argc, char **argv)
         }
         else
         {
-          if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+          #ifdef DEBUG
+          log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+          #endif
 
           load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
@@ -14324,6 +14331,7 @@ int main (int argc, char **argv)
         if (cached == 0)
         {
           if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+          if (quiet == 0) log_info ("");
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
@@ -14334,7 +14342,9 @@ int main (int argc, char **argv)
           if (rc != 0)
           {
             device_param->skipped = true;
+
             log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+
             continue;
           }
 
@@ -14352,7 +14362,9 @@ int main (int argc, char **argv)
         }
         else
         {
+          #ifdef DEBUG
           if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+          #endif
 
           load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
@@ -14925,7 +14937,7 @@ int main (int argc, char **argv)
 
     data.kernel_power_all = kernel_power_all;
 
-    if (data.quiet == 0) log_info ("");
+    if (data.quiet == 0) log_info_nn ("");
 
     /**
      * In benchmark-mode, inform user which algorithm is checked
@@ -15780,11 +15792,11 @@ int main (int argc, char **argv)
       {
         weak_hash_check (device_param, salt_pos);
       }
+
+      // Display hack, guarantee that there is at least one \r before real start
+
+      //if (data.quiet == 0) log_info ("");
     }
-
-    // Display hack, guarantee that there is at least one \r before real start
-
-    if (data.quiet == 0) log_info_nn ("");
 
     /**
      * status and monitor threads
@@ -16632,7 +16644,6 @@ int main (int argc, char **argv)
           {
             if (quiet == 0)
             {
-              log_info ("");
               log_info ("ATTENTION!");
               log_info ("  The wordlist or mask you are using is too small.");
               log_info ("  Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
