@@ -40,6 +40,7 @@ It combines all features of all hashcat projects in one project.
 - Added new hash-mode 13300 = AxCrypt in memory SHA1
 - Added new hash-mode 13400 = Keepass 1 (AES/Twofish) and Keepass 2 (AES)
 - Added new hash-mode 13500 = PeopleSoft PS_TOKEN
+- Added new hash-mode 13600 = WinZip
 
 ##
 ## Performance

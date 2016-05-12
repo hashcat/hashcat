@@ -5856,6 +5856,7 @@ char *strhashtype (const uint hash_mode)
     case 13300: return ((char *) HT_13300); break;
     case 13400: return ((char *) HT_13400); break;
     case 13500: return ((char *) HT_13500); break;
+    case 13600: return ((char *) HT_13600); break;
   }
 
   return ((char *) "Unknown");
@@ -8506,6 +8507,57 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
       digest_buf[3],
       digest_buf[4],
       pstoken_tmp);
+  }
+  else if (hash_mode == 13600)
+  {
+    zip2_t *zip2s = (zip2_t *) data.esalts_buf;
+
+    zip2_t *zip2 = &zip2s[salt_pos];
+
+    const u32 salt_len = zip2->salt_len;
+
+    char salt_tmp[32 + 1] = { 0 };
+
+    for (uint i = 0, j = 0; i < salt_len; i += 1, j += 2)
+    {
+      const u8 *ptr = (const u8 *) zip2->salt_buf;
+
+      sprintf (salt_tmp + j, "%02x", ptr[i]);
+    }
+
+    const u32 data_len = zip2->data_len;
+
+    char data_tmp[8192 + 1] = { 0 };
+
+    for (uint i = 0, j = 0; i < data_len; i += 1, j += 2)
+    {
+      const u8 *ptr = (const u8 *) zip2->data_buf;
+
+      sprintf (data_tmp + j, "%02x", ptr[i]);
+    }
+
+    const u32 auth_len = zip2->auth_len;
+
+    char auth_tmp[20 + 1] = { 0 };
+
+    for (uint i = 0, j = 0; i < auth_len; i += 1, j += 2)
+    {
+      const u8 *ptr = (const u8 *) zip2->auth_buf;
+
+      sprintf (auth_tmp + j, "%02x", ptr[i]);
+    }
+
+    snprintf (out_buf, 255, "%s*%u*%u*%u*%s*%4x*%u*%s*%s*%s",
+      SIGNATURE_ZIP2_START,
+      zip2->type,
+      zip2->mode,
+      zip2->magic,
+      salt_tmp,
+      zip2->verify_bytes,
+      zip2->compress_length,
+      data_tmp,
+      auth_tmp,
+      SIGNATURE_ZIP2_STOP);
   }
   else
   {
@@ -19856,6 +19908,235 @@ int androidfde_samsung_parse_hash (char *input_buf, uint input_len, hash_t *hash
   digest[5] = hex_to_u32 ((const u8 *) &hash_pos[40]);
   digest[6] = hex_to_u32 ((const u8 *) &hash_pos[48]);
   digest[7] = hex_to_u32 ((const u8 *) &hash_pos[56]);
+
+  return (PARSER_OK);
+}
+
+int zip2_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_13600) || (input_len > DISPLAY_LEN_MAX_13600)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_ZIP2_START, input_buf                , 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_ZIP2_STOP , input_buf + input_len - 7, 7)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  zip2_t *zip2 = (zip2_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  char *param0_pos = input_buf + 6 + 1;
+
+  char *param1_pos = strchr (param0_pos, '*');
+
+  if (param1_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param0_len = param1_pos - param0_pos;
+
+  param1_pos++;
+
+  char *param2_pos = strchr (param1_pos, '*');
+
+  if (param2_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param1_len = param2_pos - param1_pos;
+
+  param2_pos++;
+
+  char *param3_pos = strchr (param2_pos, '*');
+
+  if (param3_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param2_len = param3_pos - param2_pos;
+
+  param3_pos++;
+
+  char *param4_pos = strchr (param3_pos, '*');
+
+  if (param4_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param3_len = param4_pos - param3_pos;
+
+  param4_pos++;
+
+  char *param5_pos = strchr (param4_pos, '*');
+
+  if (param5_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param4_len = param5_pos - param4_pos;
+
+  param5_pos++;
+
+  char *param6_pos = strchr (param5_pos, '*');
+
+  if (param6_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param5_len = param6_pos - param5_pos;
+
+  param6_pos++;
+
+  char *param7_pos = strchr (param6_pos, '*');
+
+  if (param7_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param6_len = param7_pos - param6_pos;
+
+  param7_pos++;
+
+  char *param8_pos = strchr (param7_pos, '*');
+
+  if (param8_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param7_len = param8_pos - param7_pos;
+
+  param8_pos++;
+
+  const uint type  = atoi (param0_pos);
+  const uint mode  = atoi (param1_pos);
+  const uint magic = atoi (param2_pos);
+
+  char *salt_buf = param3_pos;
+
+  uint verify_bytes; sscanf (param4_pos, "%4x*", &verify_bytes);
+
+  const uint compress_length = atoi (param5_pos);
+
+  char *data_buf = param6_pos;
+  char *auth     = param7_pos;
+
+  /**
+   * verify some data
+   */
+
+  if (param0_len != 1) return (PARSER_SALT_VALUE);
+
+  if (param1_len != 1) return (PARSER_SALT_VALUE);
+
+  if (param2_len != 1) return (PARSER_SALT_VALUE);
+
+  if ((param3_len != 16) && (param3_len != 24) && (param3_len != 32)) return (PARSER_SALT_VALUE);
+
+  if (param4_len >= 5) return (PARSER_SALT_VALUE);
+
+  if (param5_len >= 5) return (PARSER_SALT_VALUE);
+
+  if (param6_len >= 8192) return (PARSER_SALT_VALUE);
+
+  if (param6_len & 1) return (PARSER_SALT_VALUE);
+
+  if (param7_len != 20) return (PARSER_SALT_VALUE);
+
+  if (type != 0) return (PARSER_SALT_VALUE);
+
+  if ((mode != 1) && (mode != 2) && (mode != 3)) return (PARSER_SALT_VALUE);
+
+  if (magic != 0) return (PARSER_SALT_VALUE);
+
+  if (verify_bytes >= 0x10000) return (PARSER_SALT_VALUE);
+
+  /**
+   * store data
+   */
+
+  zip2->type  = type;
+  zip2->mode  = mode;
+  zip2->magic = magic;
+
+  if (mode == 1)
+  {
+    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_buf[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_buf[ 8]);
+    zip2->salt_buf[2] = 0;
+    zip2->salt_buf[3] = 0;
+
+    zip2->salt_len = 8;
+  }
+  else if (mode == 2)
+  {
+    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_buf[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_buf[ 8]);
+    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_buf[16]);
+    zip2->salt_buf[3] = 0;
+
+    zip2->salt_len = 12;
+  }
+  else if (mode == 3)
+  {
+    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_buf[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_buf[ 8]);
+    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_buf[16]);
+    zip2->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_buf[24]);
+
+    zip2->salt_len = 16;
+  }
+
+  zip2->salt_buf[0] = byte_swap_32 (zip2->salt_buf[0]);
+  zip2->salt_buf[1] = byte_swap_32 (zip2->salt_buf[1]);
+  zip2->salt_buf[2] = byte_swap_32 (zip2->salt_buf[2]);
+  zip2->salt_buf[3] = byte_swap_32 (zip2->salt_buf[3]);
+
+  zip2->verify_bytes = verify_bytes;
+
+  zip2->compress_length = compress_length;
+
+  char *data_buf_ptr = (char *) zip2->data_buf;
+
+  for (uint i = 0; i < param6_len; i += 2)
+  {
+    const char p0 = data_buf[i + 0];
+    const char p1 = data_buf[i + 1];
+
+    *data_buf_ptr++ = hex_convert (p1) << 0
+                    | hex_convert (p0) << 4;
+
+    zip2->data_len++;
+  }
+
+  *data_buf_ptr = 0x80;
+
+  char *auth_ptr = (char *) zip2->auth_buf;
+
+  for (uint i = 0; i < param7_len; i += 2)
+  {
+    const char p0 = auth[i + 0];
+    const char p1 = auth[i + 1];
+
+    *auth_ptr++ = hex_convert (p1) << 0
+                | hex_convert (p0) << 4;
+
+    zip2->auth_len++;
+  }
+
+  /**
+   * salt buf (fake)
+   */
+
+  salt->salt_buf[0] = zip2->salt_buf[0];
+  salt->salt_buf[1] = zip2->salt_buf[1];
+  salt->salt_buf[2] = zip2->salt_buf[2];
+  salt->salt_buf[3] = zip2->salt_buf[3];
+  salt->salt_buf[4] = zip2->data_buf[0];
+  salt->salt_buf[5] = zip2->data_buf[1];
+  salt->salt_buf[6] = zip2->data_buf[2];
+  salt->salt_buf[7] = zip2->data_buf[3];
+
+  salt->salt_len = 32;
+
+  salt->salt_iter = ROUNDS_ZIP2 - 1;
+
+  /**
+   * digest buf (fake)
+   */
+
+  digest[0] = zip2->auth_buf[0];
+  digest[1] = zip2->auth_buf[1];
+  digest[2] = zip2->auth_buf[2];
+  digest[3] = zip2->auth_buf[3];
+  digest[4] = zip2->auth_buf[4];
 
   return (PARSER_OK);
 }

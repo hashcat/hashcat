@@ -895,6 +895,22 @@ typedef struct
 
 typedef struct
 {
+  u32 type;
+  u32 mode;
+  u32 magic;
+  u32 salt_len;
+  u32 salt_buf[4];
+  u32 verify_bytes;
+  u32 compress_length;
+  u32 data_len;
+  u32 data_buf[2048];
+  u32 auth_len;
+  u32 auth_buf[5];
+
+} zip2_t;
+
+typedef struct
+{
   u32 version;
   u32 algorithm;
 

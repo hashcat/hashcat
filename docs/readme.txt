@@ -172,6 +172,7 @@ NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)
 - PeopleSoft
 - PeopleSoft PS_TOKEN
 - Skype
+- WinZip
 - 7-Zip
 - RAR3-hp
 - RAR5

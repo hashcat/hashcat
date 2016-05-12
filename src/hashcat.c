@@ -148,7 +148,7 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 
 #define MAX_DICTSTAT            10000
 
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 136
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 137
 
 #define global_free(attr)       \
 {                               \
@@ -270,6 +270,7 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   133,
   13500,
   11600,
+  13600,
   12500,
   13000,
   13200,
@@ -706,6 +707,7 @@ const char *USAGE_BIG[] =
   "  13000 = RAR5",
   "  13200 = AxCrypt",
   "  13300 = AxCrypt in memory SHA1",
+  "  13600 = WinZip",
   "",
   "[[ Full-Disk encryptions (FDE) ]]",
   "",
@@ -2914,32 +2916,24 @@ static void autotune (hc_device_param_t *device_param)
     }
   }
 
-  // sometimes we're in a bad situation that the algorithm is so slow that we can not
-  // create enough kernel_accel to do both, keep the gpu busy and stay below target_ms.
-  // however, we need to have a minimum kernel_accel and kernel_loops of 32.
-  // luckily, at this level of workload, it became a linear function
+  // balancing the workload turns out to be very efficient
 
-  if (kernel_accel < 32 || kernel_loops < 32)
+  const u32 kernel_power_balance = kernel_accel * kernel_loops;
+
+  u32 sqrtv;
+
+  for (sqrtv = 1; sqrtv < 0x100000; sqrtv++)
   {
-    const u32 kernel_power = kernel_accel * kernel_loops;
+    if ((sqrtv * sqrtv) >= kernel_power_balance) break;
+  }
 
-    // find sqrt
+  const u32 kernel_accel_try = sqrtv;
+  const u32 kernel_loops_try = sqrtv;
 
-    u32 sqrtv;
-
-    for (sqrtv = 1; sqrtv < 0x100000; sqrtv++)
-    {
-      if ((sqrtv * sqrtv) >= kernel_power) break;
-    }
-
-    const u32 kernel_accel_try = sqrtv;
-    const u32 kernel_loops_try = sqrtv;
-
-    if ((kernel_accel_try <= kernel_accel_max) && (kernel_loops_try >= kernel_loops_min))
-    {
-      kernel_accel = kernel_accel_try;
-      kernel_loops = kernel_loops_try;
-    }
+  if ((kernel_accel_try <= kernel_accel_max) && (kernel_loops_try >= kernel_loops_min))
+  {
+    kernel_accel = kernel_accel_try;
+    kernel_loops = kernel_loops_try;
   }
 
   // reset fake words
@@ -5881,7 +5875,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  if (hash_mode_chgd && hash_mode > 13500) // just added to remove compiler warnings for hash_mode_chgd
+  if (hash_mode_chgd && hash_mode > 13600) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
@@ -10228,6 +10222,21 @@ int main (int argc, char **argv)
                    dgst_pos3   = 1;
                    break;
 
+      case 13600:  hash_type   = HASH_TYPE_PBKDF2_SHA1;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_ZIP2;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = zip2_parse_hash;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
       default:     usage_mini_print (PROGNAME); return (-1);
     }
 
@@ -10334,6 +10343,7 @@ int main (int argc, char **argv)
       case 13100:  esalt_size = sizeof (krb5tgs_t);       break;
       case 13400:  esalt_size = sizeof (keepass_t);       break;
       case 13500:  esalt_size = sizeof (pstoken_t);       break;
+      case 13600:  esalt_size = sizeof (zip2_t);          break;
     }
 
     data.esalt_size = esalt_size;
@@ -11439,9 +11449,13 @@ int main (int argc, char **argv)
                       ((seven_zip_t *) hashes_buf[0].esalt)->data_len    = 112;
                       ((seven_zip_t *) hashes_buf[0].esalt)->unpack_size = 112;
                       break;
-          case 13400: ((keepass_t *) hashes_buf[0].esalt)->version       = 2;
+          case 13400: ((keepass_t *) hashes_buf[0].esalt)->version      = 2;
                       break;
-          case 13500: ((pstoken_t *) hashes_buf[0].esalt)->salt_len      = 113;
+          case 13500: ((pstoken_t *) hashes_buf[0].esalt)->salt_len     = 113;
+                      break;
+          case 13600: ((zip2_t *)    hashes_buf[0].esalt)->salt_len     = 16;
+                      ((zip2_t *)    hashes_buf[0].esalt)->data_len     = 32;
+                      ((zip2_t *)    hashes_buf[0].esalt)->mode         = 3;
                       break;
         }
       }
@@ -11617,6 +11631,8 @@ int main (int argc, char **argv)
         case 13200:  hashes_buf[0].salt->salt_iter = ROUNDS_AXCRYPT;
                      break;
         case 13400:  hashes_buf[0].salt->salt_iter = ROUNDS_KEEPASS;
+                     break;
+        case 13600:  hashes_buf[0].salt->salt_iter = ROUNDS_ZIP2;
                      break;
       }
 
@@ -13891,6 +13907,7 @@ int main (int argc, char **argv)
           case 13000: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
           case 13200: size_tmps = kernel_power_max * sizeof (axcrypt_tmp_t);         break;
           case 13400: size_tmps = kernel_power_max * sizeof (keepass_tmp_t);         break;
+          case 13600: size_tmps = kernel_power_max * sizeof (pbkdf2_sha1_tmp_t);     break;
         };
 
         // size_hooks

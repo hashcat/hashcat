@@ -356,6 +356,7 @@ extern hc_thread_mutex_t mux_display;
 #define HT_13300  "AxCrypt in memory SHA1"
 #define HT_13400  "Keepass 1 (AES/Twofish) and Keepass 2 (AES)"
 #define HT_13500  "PeopleSoft PS_TOKEN"
+#define HT_13600  "WinZip"
 
 #define HT_00011  "Joomla < 2.5.18"
 #define HT_00012  "PostgreSQL"
@@ -700,6 +701,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_13400  1 + 7 + 1 + 1 + 10 + 1 + 3 + 1 + 64 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 4 + 1 + 600000 + 1 + 2 + 1 + 64
 #define DISPLAY_LEN_MIN_13500 40 + 1 + 32
 #define DISPLAY_LEN_MAX_13500 40 + 1 + 1024
+#define DISPLAY_LEN_MIN_13600 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 16 + 1 + 4 + 1 + 1 + 1 +    2 + 1 + 20 + 1 + 7
+#define DISPLAY_LEN_MAX_13600 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 4 + 1 + 4 + 1 + 8192 + 1 + 20 + 1 + 7
 
 #define DISPLAY_LEN_MIN_11    32 + 1 + 16
 #define DISPLAY_LEN_MAX_11    32 + 1 + 32
@@ -966,6 +969,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_SHA1_AXCRYPT        13300
 #define KERN_TYPE_KEEPASS             13400
 #define KERN_TYPE_PSTOKEN             13500
+#define KERN_TYPE_ZIP2                13600
 
 /**
  * signatures
@@ -1037,8 +1041,10 @@ extern hc_thread_mutex_t mux_display;
 #define SIGNATURE_RAR5            "$rar5$"
 #define SIGNATURE_KRB5TGS         "$krb5tgs$23"
 #define SIGNATURE_AXCRYPT         "$axcrypt$*1"
-#define SIGNATURE_AXCRYPT_SHA1     "$axcrypt_sha1"
+#define SIGNATURE_AXCRYPT_SHA1    "$axcrypt_sha1"
 #define SIGNATURE_KEEPASS         "$keepass$"
+#define SIGNATURE_ZIP2_START      "$zip2$"
+#define SIGNATURE_ZIP2_STOP       "$/zip2$"
 
 /**
  * Default iteration numbers
@@ -1092,6 +1098,7 @@ extern hc_thread_mutex_t mux_display;
 #define ROUNDS_RAR5               (1 << 15)
 #define ROUNDS_AXCRYPT            10000
 #define ROUNDS_KEEPASS            6000
+#define ROUNDS_ZIP2               1000
 
 /**
  * salt types
@@ -1608,6 +1615,7 @@ int axcrypt_parse_hash            (char *input_buf, uint input_len, hash_t *hash
 int sha1axcrypt_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf);
 int keepass_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int pstoken_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
+int zip2_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf);
 
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
