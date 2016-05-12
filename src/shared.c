@@ -8547,7 +8547,7 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
       sprintf (auth_tmp + j, "%02x", ptr[i]);
     }
 
-    snprintf (out_buf, 255, "%s*%u*%u*%u*%s*%4x*%u*%s*%s*%s",
+    snprintf (out_buf, 255, "%s*%u*%u*%u*%s*%x*%u*%s*%s*%s",
       SIGNATURE_ZIP2_START,
       zip2->type,
       zip2->mode,
