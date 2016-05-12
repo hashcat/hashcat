@@ -278,7 +278,7 @@ typedef struct
   u32 data_len;
   u32 data_buf[2048];
   u32 auth_len;
-  u32 auth_buf[5];
+  u32 auth_buf[4];
 
 } zip2_t;
 

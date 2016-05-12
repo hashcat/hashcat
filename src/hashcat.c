@@ -10224,9 +10224,9 @@ int main (int argc, char **argv)
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
                    kern_type   = KERN_TYPE_ZIP2;
-                   dgst_size   = DGST_SIZE_4_5;
+                   dgst_size   = DGST_SIZE_4_4;
                    parse_func  = zip2_parse_hash;
-                   sort_by_digest = sort_by_digest_4_5;
+                   sort_by_digest = sort_by_digest_4_4;
                    opti_type   = OPTI_TYPE_ZERO_BYTE;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;

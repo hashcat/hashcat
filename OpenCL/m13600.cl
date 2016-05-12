@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-#define _PBKDF2_SHA1_
+#define _ZIP2_
 
 #include "include/constants.h"
 #include "include/kernel_vendor.h"
@@ -598,12 +598,12 @@ __kernel void m13600_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   hmac_sha1_run (w0, w1, w2, w3, ipad, opad, digest);
 
-  #define il_pos 0
-
   const u32 r0 = swap32 (digest[0] & 0xffffffff);
   const u32 r1 = swap32 (digest[1] & 0xffffffff);
   const u32 r2 = swap32 (digest[2] & 0xffff0000);
   const u32 r3 = swap32 (digest[3] & 0x00000000);
+
+  #define il_pos 0
 
   #include COMPARE_M
 }

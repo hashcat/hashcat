@@ -664,6 +664,8 @@ typedef struct
   u32  digest_buf[4];
   #elif defined _KEEPASS_
   u32  digest_buf[4];
+  #elif defined _ZIP2_
+  u32  digest_buf[4];
   #endif
 
 } digest_t;
@@ -905,7 +907,7 @@ typedef struct
   u32 data_len;
   u32 data_buf[2048];
   u32 auth_len;
-  u32 auth_buf[5];
+  u32 auth_buf[4];
 
 } zip2_t;
 

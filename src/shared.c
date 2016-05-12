@@ -20136,7 +20136,6 @@ int zip2_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[1] = zip2->auth_buf[1];
   digest[2] = zip2->auth_buf[2];
   digest[3] = zip2->auth_buf[3];
-  digest[4] = zip2->auth_buf[4];
 
   return (PARSER_OK);
 }
