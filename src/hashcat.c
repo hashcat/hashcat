@@ -8113,7 +8113,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = dcc2_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;

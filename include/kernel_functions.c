@@ -33,6 +33,14 @@
 #define MD4_Go(x,y,z)   (MD4_G((x), (y), (z)))
 #endif
 
+#define MD4_STEP_S(f,a,b,c,d,x,K,s) \
+{                                   \
+  a += K;                           \
+  a += x;                           \
+  a += f (b, c, d);                 \
+  a  = rotl32_S (a, s);             \
+}
+
 #define MD4_STEP(f,a,b,c,d,x,K,s)   \
 {                                   \
   a += K;                           \
