@@ -18,6 +18,8 @@ Please refer to the [Hashcat Wiki](https://hashcat.net/wiki/) and the output of 
 
 ### Building ###
 
+![Hashcat Build status](https://travis-ci.org/hashcat/oclHashcat.svg?branch=master)
+
 Refer to [BUILD.md](BUILD.md) for instructions on how to build **hashcat** from source.
 
 ### Contributing ###
