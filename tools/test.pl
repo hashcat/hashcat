@@ -2836,7 +2836,7 @@ sub passthrough
     }
     elsif ($mode == 125)
     {
-      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 10));
+      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 8));
     }
     elsif ($mode == 141 || $mode == 1441)
     {
