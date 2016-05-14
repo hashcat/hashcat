@@ -121,7 +121,7 @@ void md5_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u
   digest[3] += d;
 }
 
-void md5_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[4])
+void md5_transform_V (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[4])
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -326,217 +326,31 @@ __kernel void m00400_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   if (gid >= gid_max) return;
 
-  u32x w0[4] = { 0 };
-  u32x w1[4] = { 0 };
-  u32x w2[4] = { 0 };
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
 
-  u32x pw_len = 0;
+  w0[0] = packv (pws, i, gid, 0);
+  w0[1] = packv (pws, i, gid, 1);
+  w0[2] = packv (pws, i, gid, 2);
+  w0[3] = packv (pws, i, gid, 3);
+  w1[0] = packv (pws, i, gid, 4);
+  w1[1] = packv (pws, i, gid, 5);
+  w1[2] = packv (pws, i, gid, 6);
+  w1[3] = packv (pws, i, gid, 7);
+  w2[0] = packv (pws, i, gid, 8);
+  w2[1] = packv (pws, i, gid, 9);
+  w2[2] = 0;
+  w2[3] = 0;
 
-  u32x digest[4] = { 0 };
+  u32x pw_len = packvf (pws, pw_len, gid);
 
-  #if VECT_SIZE == 1
+  u32x digest[4];
 
-  w0[0] = pws[gid].i[0];
-  w0[1] = pws[gid].i[1];
-  w0[2] = pws[gid].i[2];
-  w0[3] = pws[gid].i[3];
-  w1[0] = pws[gid].i[4];
-  w1[1] = pws[gid].i[5];
-  w1[2] = pws[gid].i[6];
-  w1[3] = pws[gid].i[7];
-  w2[0] = pws[gid].i[8];
-  w2[1] = pws[gid].i[9];
-
-  pw_len = pws[gid].pw_len;
-
-  digest[0] = tmps[gid].digest_buf[0];
-  digest[1] = tmps[gid].digest_buf[1];
-  digest[2] = tmps[gid].digest_buf[2];
-  digest[3] = tmps[gid].digest_buf[3];
-
-  #else
-
-  const u32 gidx = gid * VECT_SIZE;
-
-  #if VECT_SIZE >= 2
-
-  if ((gidx + 0) < gid_max)
-  {
-    w0[0].s0 = pws[gidx + 0].i[0];
-    w0[1].s0 = pws[gidx + 0].i[1];
-    w0[2].s0 = pws[gidx + 0].i[2];
-    w0[3].s0 = pws[gidx + 0].i[3];
-    w1[0].s0 = pws[gidx + 0].i[4];
-    w1[1].s0 = pws[gidx + 0].i[5];
-    w1[2].s0 = pws[gidx + 0].i[6];
-    w1[3].s0 = pws[gidx + 0].i[7];
-    w2[0].s0 = pws[gidx + 0].i[8];
-    w2[1].s0 = pws[gidx + 0].i[9];
-
-    pw_len.s0 = pws[gidx + 0].pw_len;
-
-    digest[0].s0 = tmps[gidx + 0].digest_buf[0];
-    digest[1].s0 = tmps[gidx + 0].digest_buf[1];
-    digest[2].s0 = tmps[gidx + 0].digest_buf[2];
-    digest[3].s0 = tmps[gidx + 0].digest_buf[3];
-  }
-
-  if ((gidx + 1) < gid_max)
-  {
-    w0[0].s1 = pws[gidx + 1].i[0];
-    w0[1].s1 = pws[gidx + 1].i[1];
-    w0[2].s1 = pws[gidx + 1].i[2];
-    w0[3].s1 = pws[gidx + 1].i[3];
-    w1[0].s1 = pws[gidx + 1].i[4];
-    w1[1].s1 = pws[gidx + 1].i[5];
-    w1[2].s1 = pws[gidx + 1].i[6];
-    w1[3].s1 = pws[gidx + 1].i[7];
-    w2[0].s1 = pws[gidx + 1].i[8];
-    w2[1].s1 = pws[gidx + 1].i[9];
-
-    pw_len.s1 = pws[gidx + 1].pw_len;
-
-    digest[0].s1 = tmps[gidx + 1].digest_buf[0];
-    digest[1].s1 = tmps[gidx + 1].digest_buf[1];
-    digest[2].s1 = tmps[gidx + 1].digest_buf[2];
-    digest[3].s1 = tmps[gidx + 1].digest_buf[3];
-  }
-
-  #endif
-
-  #if VECT_SIZE >= 4
-
-  if ((gidx + 2) < gid_max)
-  {
-    w0[0].s2 = pws[gidx + 2].i[0];
-    w0[1].s2 = pws[gidx + 2].i[1];
-    w0[2].s2 = pws[gidx + 2].i[2];
-    w0[3].s2 = pws[gidx + 2].i[3];
-    w1[0].s2 = pws[gidx + 2].i[4];
-    w1[1].s2 = pws[gidx + 2].i[5];
-    w1[2].s2 = pws[gidx + 2].i[6];
-    w1[3].s2 = pws[gidx + 2].i[7];
-    w2[0].s2 = pws[gidx + 2].i[8];
-    w2[1].s2 = pws[gidx + 2].i[9];
-
-    pw_len.s2 = pws[gidx + 2].pw_len;
-
-    digest[0].s2 = tmps[gidx + 2].digest_buf[0];
-    digest[1].s2 = tmps[gidx + 2].digest_buf[1];
-    digest[2].s2 = tmps[gidx + 2].digest_buf[2];
-    digest[3].s2 = tmps[gidx + 2].digest_buf[3];
-  }
-
-  if ((gidx + 3) < gid_max)
-  {
-    w0[0].s3 = pws[gidx + 3].i[0];
-    w0[1].s3 = pws[gidx + 3].i[1];
-    w0[2].s3 = pws[gidx + 3].i[2];
-    w0[3].s3 = pws[gidx + 3].i[3];
-    w1[0].s3 = pws[gidx + 3].i[4];
-    w1[1].s3 = pws[gidx + 3].i[5];
-    w1[2].s3 = pws[gidx + 3].i[6];
-    w1[3].s3 = pws[gidx + 3].i[7];
-    w2[0].s3 = pws[gidx + 3].i[8];
-    w2[1].s3 = pws[gidx + 3].i[9];
-
-    pw_len.s3 = pws[gidx + 3].pw_len;
-
-    digest[0].s3 = tmps[gidx + 3].digest_buf[0];
-    digest[1].s3 = tmps[gidx + 3].digest_buf[1];
-    digest[2].s3 = tmps[gidx + 3].digest_buf[2];
-    digest[3].s3 = tmps[gidx + 3].digest_buf[3];
-  }
-
-  #endif
-  #if VECT_SIZE >= 8
-
-  if ((gidx + 4) < gid_max)
-  {
-    w0[0].s4 = pws[gidx + 4].i[0];
-    w0[1].s4 = pws[gidx + 4].i[1];
-    w0[2].s4 = pws[gidx + 4].i[2];
-    w0[3].s4 = pws[gidx + 4].i[3];
-    w1[0].s4 = pws[gidx + 4].i[4];
-    w1[1].s4 = pws[gidx + 4].i[5];
-    w1[2].s4 = pws[gidx + 4].i[6];
-    w1[3].s4 = pws[gidx + 4].i[7];
-    w2[0].s4 = pws[gidx + 4].i[8];
-    w2[1].s4 = pws[gidx + 4].i[9];
-
-    pw_len.s4 = pws[gidx + 4].pw_len;
-
-    digest[0].s4 = tmps[gidx + 4].digest_buf[0];
-    digest[1].s4 = tmps[gidx + 4].digest_buf[1];
-    digest[2].s4 = tmps[gidx + 4].digest_buf[2];
-    digest[3].s4 = tmps[gidx + 4].digest_buf[3];
-  }
-
-  if ((gidx + 5) < gid_max)
-  {
-    w0[0].s5 = pws[gidx + 5].i[0];
-    w0[1].s5 = pws[gidx + 5].i[1];
-    w0[2].s5 = pws[gidx + 5].i[2];
-    w0[3].s5 = pws[gidx + 5].i[3];
-    w1[0].s5 = pws[gidx + 5].i[4];
-    w1[1].s5 = pws[gidx + 5].i[5];
-    w1[2].s5 = pws[gidx + 5].i[6];
-    w1[3].s5 = pws[gidx + 5].i[7];
-    w2[0].s5 = pws[gidx + 5].i[8];
-    w2[1].s5 = pws[gidx + 5].i[9];
-
-    pw_len.s5 = pws[gidx + 5].pw_len;
-
-    digest[0].s5 = tmps[gidx + 5].digest_buf[0];
-    digest[1].s5 = tmps[gidx + 5].digest_buf[1];
-    digest[2].s5 = tmps[gidx + 5].digest_buf[2];
-    digest[3].s5 = tmps[gidx + 5].digest_buf[3];
-  }
-
-  if ((gidx + 6) < gid_max)
-  {
-    w0[0].s6 = pws[gidx + 6].i[0];
-    w0[1].s6 = pws[gidx + 6].i[1];
-    w0[2].s6 = pws[gidx + 6].i[2];
-    w0[3].s6 = pws[gidx + 6].i[3];
-    w1[0].s6 = pws[gidx + 6].i[4];
-    w1[1].s6 = pws[gidx + 6].i[5];
-    w1[2].s6 = pws[gidx + 6].i[6];
-    w1[3].s6 = pws[gidx + 6].i[7];
-    w2[0].s6 = pws[gidx + 6].i[8];
-    w2[1].s6 = pws[gidx + 6].i[9];
-
-    pw_len.s6 = pws[gidx + 6].pw_len;
-
-    digest[0].s6 = tmps[gidx + 6].digest_buf[0];
-    digest[1].s6 = tmps[gidx + 6].digest_buf[1];
-    digest[2].s6 = tmps[gidx + 6].digest_buf[2];
-    digest[3].s6 = tmps[gidx + 6].digest_buf[3];
-  }
-
-  if ((gidx + 7) < gid_max)
-  {
-    w0[0].s7 = pws[gidx + 7].i[0];
-    w0[1].s7 = pws[gidx + 7].i[1];
-    w0[2].s7 = pws[gidx + 7].i[2];
-    w0[3].s7 = pws[gidx + 7].i[3];
-    w1[0].s7 = pws[gidx + 7].i[4];
-    w1[1].s7 = pws[gidx + 7].i[5];
-    w1[2].s7 = pws[gidx + 7].i[6];
-    w1[3].s7 = pws[gidx + 7].i[7];
-    w2[0].s7 = pws[gidx + 7].i[8];
-    w2[1].s7 = pws[gidx + 7].i[9];
-
-    pw_len.s7 = pws[gidx + 7].pw_len;
-
-    digest[0].s7 = tmps[gidx + 7].digest_buf[0];
-    digest[1].s7 = tmps[gidx + 7].digest_buf[1];
-    digest[2].s7 = tmps[gidx + 7].digest_buf[2];
-    digest[3].s7 = tmps[gidx + 7].digest_buf[3];
-  }
-
-  #endif
-  #endif
+  digest[0] = packv (tmps, digest_buf, gid, 0);
+  digest[1] = packv (tmps, digest_buf, gid, 1);
+  digest[2] = packv (tmps, digest_buf, gid, 2);
+  digest[3] = packv (tmps, digest_buf, gid, 3);
 
   /**
    * loop
@@ -584,94 +398,13 @@ __kernel void m00400_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
     digest[2] = MD5M_C;
     digest[3] = MD5M_D;
 
-    md5_transform (block0, block1, block2, block3, digest);
+    md5_transform_V (block0, block1, block2, block3, digest);
   }
 
-  #if VECT_SIZE == 1
-
-  tmps[gid].digest_buf[0] = digest[0];
-  tmps[gid].digest_buf[1] = digest[1];
-  tmps[gid].digest_buf[2] = digest[2];
-  tmps[gid].digest_buf[3] = digest[3];
-
-  #else
-
-  #if VECT_SIZE >= 2
-
-  if ((gidx + 0) < gid_max)
-  {
-    tmps[gidx + 0].digest_buf[0] = digest[0].s0;
-    tmps[gidx + 0].digest_buf[1] = digest[1].s0;
-    tmps[gidx + 0].digest_buf[2] = digest[2].s0;
-    tmps[gidx + 0].digest_buf[3] = digest[3].s0;
-  }
-
-  if ((gidx + 1) < gid_max)
-  {
-    tmps[gidx + 1].digest_buf[0] = digest[0].s1;
-    tmps[gidx + 1].digest_buf[1] = digest[1].s1;
-    tmps[gidx + 1].digest_buf[2] = digest[2].s1;
-    tmps[gidx + 1].digest_buf[3] = digest[3].s1;
-  }
-
-  #endif
-
-  #if VECT_SIZE >= 4
-
-  if ((gidx + 2) < gid_max)
-  {
-    tmps[gidx + 2].digest_buf[0] = digest[0].s2;
-    tmps[gidx + 2].digest_buf[1] = digest[1].s2;
-    tmps[gidx + 2].digest_buf[2] = digest[2].s2;
-    tmps[gidx + 2].digest_buf[3] = digest[3].s2;
-  }
-
-  if ((gidx + 3) < gid_max)
-  {
-    tmps[gidx + 3].digest_buf[0] = digest[0].s3;
-    tmps[gidx + 3].digest_buf[1] = digest[1].s3;
-    tmps[gidx + 3].digest_buf[2] = digest[2].s3;
-    tmps[gidx + 3].digest_buf[3] = digest[3].s3;
-  }
-
-  #endif
-
-  #if VECT_SIZE >= 8
-
-  if ((gidx + 4) < gid_max)
-  {
-    tmps[gidx + 4].digest_buf[0] = digest[0].s4;
-    tmps[gidx + 4].digest_buf[1] = digest[1].s4;
-    tmps[gidx + 4].digest_buf[2] = digest[2].s4;
-    tmps[gidx + 4].digest_buf[3] = digest[3].s4;
-  }
-
-  if ((gidx + 5) < gid_max)
-  {
-    tmps[gidx + 5].digest_buf[0] = digest[0].s5;
-    tmps[gidx + 5].digest_buf[1] = digest[1].s5;
-    tmps[gidx + 5].digest_buf[2] = digest[2].s5;
-    tmps[gidx + 5].digest_buf[3] = digest[3].s5;
-  }
-
-  if ((gidx + 6) < gid_max)
-  {
-    tmps[gidx + 6].digest_buf[0] = digest[0].s6;
-    tmps[gidx + 6].digest_buf[1] = digest[1].s6;
-    tmps[gidx + 6].digest_buf[2] = digest[2].s6;
-    tmps[gidx + 6].digest_buf[3] = digest[3].s6;
-  }
-
-  if ((gidx + 7) < gid_max)
-  {
-    tmps[gidx + 7].digest_buf[0] = digest[0].s7;
-    tmps[gidx + 7].digest_buf[1] = digest[1].s7;
-    tmps[gidx + 7].digest_buf[2] = digest[2].s7;
-    tmps[gidx + 7].digest_buf[3] = digest[3].s7;
-  }
-
-  #endif
-  #endif
+  unpackv (tmps, digest_buf, gid, 0, digest[0]);
+  unpackv (tmps, digest_buf, gid, 1, digest[1]);
+  unpackv (tmps, digest_buf, gid, 2, digest[2]);
+  unpackv (tmps, digest_buf, gid, 3, digest[3]);
 }
 
 __kernel void m00400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global phpass_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)

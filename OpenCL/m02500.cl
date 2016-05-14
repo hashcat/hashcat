@@ -18,6 +18,7 @@
 #include "include/kernel_functions.c"
 #include "OpenCL/types_ocl.c"
 #include "OpenCL/common.c"
+#include "OpenCL/simd.c"
 
 #define COMPARE_S "OpenCL/check_single_comp4.c"
 #define COMPARE_M "OpenCL/check_multi_comp4.c"
@@ -750,312 +751,34 @@ __kernel void m02500_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   u32x ipad[5];
   u32x opad[5];
 
-  #if VECT_SIZE == 1
+  ipad[0] = packv (tmps, ipad, gid, 0);
+  ipad[1] = packv (tmps, ipad, gid, 1);
+  ipad[2] = packv (tmps, ipad, gid, 2);
+  ipad[3] = packv (tmps, ipad, gid, 3);
+  ipad[4] = packv (tmps, ipad, gid, 4);
 
-  ipad[0] = tmps[gid].ipad[0];
-  ipad[1] = tmps[gid].ipad[1];
-  ipad[2] = tmps[gid].ipad[2];
-  ipad[3] = tmps[gid].ipad[3];
-  ipad[4] = tmps[gid].ipad[4];
-
-  opad[0] = tmps[gid].opad[0];
-  opad[1] = tmps[gid].opad[1];
-  opad[2] = tmps[gid].opad[2];
-  opad[3] = tmps[gid].opad[3];
-  opad[4] = tmps[gid].opad[4];
-
-  #else
-
-  const u32 gidx = gid * VECT_SIZE;
-
-  #if VECT_SIZE >= 2
-
-  if ((gidx + 0) < gid_max)
-  {
-    ipad[0].s0 = tmps[gidx + 0].ipad[0];
-    ipad[1].s0 = tmps[gidx + 0].ipad[1];
-    ipad[2].s0 = tmps[gidx + 0].ipad[2];
-    ipad[3].s0 = tmps[gidx + 0].ipad[3];
-    ipad[4].s0 = tmps[gidx + 0].ipad[4];
-
-    opad[0].s0 = tmps[gidx + 0].opad[0];
-    opad[1].s0 = tmps[gidx + 0].opad[1];
-    opad[2].s0 = tmps[gidx + 0].opad[2];
-    opad[3].s0 = tmps[gidx + 0].opad[3];
-    opad[4].s0 = tmps[gidx + 0].opad[4];
-  }
-
-  if ((gidx + 1) < gid_max)
-  {
-    ipad[0].s1 = tmps[gidx + 1].ipad[0];
-    ipad[1].s1 = tmps[gidx + 1].ipad[1];
-    ipad[2].s1 = tmps[gidx + 1].ipad[2];
-    ipad[3].s1 = tmps[gidx + 1].ipad[3];
-    ipad[4].s1 = tmps[gidx + 1].ipad[4];
-
-    opad[0].s1 = tmps[gidx + 1].opad[0];
-    opad[1].s1 = tmps[gidx + 1].opad[1];
-    opad[2].s1 = tmps[gidx + 1].opad[2];
-    opad[3].s1 = tmps[gidx + 1].opad[3];
-    opad[4].s1 = tmps[gidx + 1].opad[4];
-  }
-
-  #endif
-
-  #if VECT_SIZE >= 4
-
-  if ((gidx + 2) < gid_max)
-  {
-    ipad[0].s2 = tmps[gidx + 2].ipad[0];
-    ipad[1].s2 = tmps[gidx + 2].ipad[1];
-    ipad[2].s2 = tmps[gidx + 2].ipad[2];
-    ipad[3].s2 = tmps[gidx + 2].ipad[3];
-    ipad[4].s2 = tmps[gidx + 2].ipad[4];
-
-    opad[0].s2 = tmps[gidx + 2].opad[0];
-    opad[1].s2 = tmps[gidx + 2].opad[1];
-    opad[2].s2 = tmps[gidx + 2].opad[2];
-    opad[3].s2 = tmps[gidx + 2].opad[3];
-    opad[4].s2 = tmps[gidx + 2].opad[4];
-  }
-
-  if ((gidx + 3) < gid_max)
-  {
-    ipad[0].s3 = tmps[gidx + 3].ipad[0];
-    ipad[1].s3 = tmps[gidx + 3].ipad[1];
-    ipad[2].s3 = tmps[gidx + 3].ipad[2];
-    ipad[3].s3 = tmps[gidx + 3].ipad[3];
-    ipad[4].s3 = tmps[gidx + 3].ipad[4];
-
-    opad[0].s3 = tmps[gidx + 3].opad[0];
-    opad[1].s3 = tmps[gidx + 3].opad[1];
-    opad[2].s3 = tmps[gidx + 3].opad[2];
-    opad[3].s3 = tmps[gidx + 3].opad[3];
-    opad[4].s3 = tmps[gidx + 3].opad[4];
-  }
-
-  #endif
-
-  #if VECT_SIZE >= 8
-
-  if ((gidx + 4) < gid_max)
-  {
-    ipad[0].s4 = tmps[gidx + 4].ipad[0];
-    ipad[1].s4 = tmps[gidx + 4].ipad[1];
-    ipad[2].s4 = tmps[gidx + 4].ipad[2];
-    ipad[3].s4 = tmps[gidx + 4].ipad[3];
-    ipad[4].s4 = tmps[gidx + 4].ipad[4];
-
-    opad[0].s4 = tmps[gidx + 4].opad[0];
-    opad[1].s4 = tmps[gidx + 4].opad[1];
-    opad[2].s4 = tmps[gidx + 4].opad[2];
-    opad[3].s4 = tmps[gidx + 4].opad[3];
-    opad[4].s4 = tmps[gidx + 4].opad[4];
-  }
-
-  if ((gidx + 5) < gid_max)
-  {
-    ipad[0].s5 = tmps[gidx + 5].ipad[0];
-    ipad[1].s5 = tmps[gidx + 5].ipad[1];
-    ipad[2].s5 = tmps[gidx + 5].ipad[2];
-    ipad[3].s5 = tmps[gidx + 5].ipad[3];
-    ipad[4].s5 = tmps[gidx + 5].ipad[4];
-
-    opad[0].s5 = tmps[gidx + 5].opad[0];
-    opad[1].s5 = tmps[gidx + 5].opad[1];
-    opad[2].s5 = tmps[gidx + 5].opad[2];
-    opad[3].s5 = tmps[gidx + 5].opad[3];
-    opad[4].s5 = tmps[gidx + 5].opad[4];
-  }
-
-  if ((gidx + 6) < gid_max)
-  {
-    ipad[0].s6 = tmps[gidx + 6].ipad[0];
-    ipad[1].s6 = tmps[gidx + 6].ipad[1];
-    ipad[2].s6 = tmps[gidx + 6].ipad[2];
-    ipad[3].s6 = tmps[gidx + 6].ipad[3];
-    ipad[4].s6 = tmps[gidx + 6].ipad[4];
-
-    opad[0].s6 = tmps[gidx + 6].opad[0];
-    opad[1].s6 = tmps[gidx + 6].opad[1];
-    opad[2].s6 = tmps[gidx + 6].opad[2];
-    opad[3].s6 = tmps[gidx + 6].opad[3];
-    opad[4].s6 = tmps[gidx + 6].opad[4];
-  }
-
-  if ((gidx + 7) < gid_max)
-  {
-    ipad[0].s7 = tmps[gidx + 7].ipad[0];
-    ipad[1].s7 = tmps[gidx + 7].ipad[1];
-    ipad[2].s7 = tmps[gidx + 7].ipad[2];
-    ipad[3].s7 = tmps[gidx + 7].ipad[3];
-    ipad[4].s7 = tmps[gidx + 7].ipad[4];
-
-    opad[0].s7 = tmps[gidx + 7].opad[0];
-    opad[1].s7 = tmps[gidx + 7].opad[1];
-    opad[2].s7 = tmps[gidx + 7].opad[2];
-    opad[3].s7 = tmps[gidx + 7].opad[3];
-    opad[4].s7 = tmps[gidx + 7].opad[4];
-  }
-
-  #endif
-
-  #endif
+  opad[0] = packv (tmps, opad, gid, 0);
+  opad[1] = packv (tmps, opad, gid, 1);
+  opad[2] = packv (tmps, opad, gid, 2);
+  opad[3] = packv (tmps, opad, gid, 3);
+  opad[4] = packv (tmps, opad, gid, 4);
 
   for (u32 i = 0; i < 8; i += 5)
   {
     u32x dgst[5];
     u32x out[5];
 
-    #if VECT_SIZE == 1
+    dgst[0] = packv (tmps, dgst, gid, 0);
+    dgst[1] = packv (tmps, dgst, gid, 1);
+    dgst[2] = packv (tmps, dgst, gid, 2);
+    dgst[3] = packv (tmps, dgst, gid, 3);
+    dgst[4] = packv (tmps, dgst, gid, 4);
 
-    dgst[0] = tmps[gid].dgst[i + 0];
-    dgst[1] = tmps[gid].dgst[i + 1];
-    dgst[2] = tmps[gid].dgst[i + 2];
-    dgst[3] = tmps[gid].dgst[i + 3];
-    dgst[4] = tmps[gid].dgst[i + 4];
-
-    out[0] = tmps[gid].out[i + 0];
-    out[1] = tmps[gid].out[i + 1];
-    out[2] = tmps[gid].out[i + 2];
-    out[3] = tmps[gid].out[i + 3];
-    out[4] = tmps[gid].out[i + 4];
-
-    #else
-
-    #if VECT_SIZE >= 2
-
-    if ((gidx + 0) < gid_max)
-    {
-      dgst[0].s0 = tmps[gidx + 0].dgst[i + 0];
-      dgst[1].s0 = tmps[gidx + 0].dgst[i + 1];
-      dgst[2].s0 = tmps[gidx + 0].dgst[i + 2];
-      dgst[3].s0 = tmps[gidx + 0].dgst[i + 3];
-      dgst[4].s0 = tmps[gidx + 0].dgst[i + 4];
-
-      out[0].s0 = tmps[gidx + 0].out[i + 0];
-      out[1].s0 = tmps[gidx + 0].out[i + 1];
-      out[2].s0 = tmps[gidx + 0].out[i + 2];
-      out[3].s0 = tmps[gidx + 0].out[i + 3];
-      out[4].s0 = tmps[gidx + 0].out[i + 4];
-    }
-
-    if ((gidx + 1) < gid_max)
-    {
-      dgst[0].s1 = tmps[gidx + 1].dgst[i + 0];
-      dgst[1].s1 = tmps[gidx + 1].dgst[i + 1];
-      dgst[2].s1 = tmps[gidx + 1].dgst[i + 2];
-      dgst[3].s1 = tmps[gidx + 1].dgst[i + 3];
-      dgst[4].s1 = tmps[gidx + 1].dgst[i + 4];
-
-      out[0].s1 = tmps[gidx + 1].out[i + 0];
-      out[1].s1 = tmps[gidx + 1].out[i + 1];
-      out[2].s1 = tmps[gidx + 1].out[i + 2];
-      out[3].s1 = tmps[gidx + 1].out[i + 3];
-      out[4].s1 = tmps[gidx + 1].out[i + 4];
-    }
-
-    #endif
-
-    #if VECT_SIZE >= 4
-
-    if ((gidx + 2) < gid_max)
-    {
-      dgst[0].s2 = tmps[gidx + 2].dgst[i + 0];
-      dgst[1].s2 = tmps[gidx + 2].dgst[i + 1];
-      dgst[2].s2 = tmps[gidx + 2].dgst[i + 2];
-      dgst[3].s2 = tmps[gidx + 2].dgst[i + 3];
-      dgst[4].s2 = tmps[gidx + 2].dgst[i + 4];
-
-      out[0].s2 = tmps[gidx + 2].out[i + 0];
-      out[1].s2 = tmps[gidx + 2].out[i + 1];
-      out[2].s2 = tmps[gidx + 2].out[i + 2];
-      out[3].s2 = tmps[gidx + 2].out[i + 3];
-      out[4].s2 = tmps[gidx + 2].out[i + 4];
-    }
-
-    if ((gidx + 3) < gid_max)
-    {
-      dgst[0].s3 = tmps[gidx + 3].dgst[i + 0];
-      dgst[1].s3 = tmps[gidx + 3].dgst[i + 1];
-      dgst[2].s3 = tmps[gidx + 3].dgst[i + 2];
-      dgst[3].s3 = tmps[gidx + 3].dgst[i + 3];
-      dgst[4].s3 = tmps[gidx + 3].dgst[i + 4];
-
-      out[0].s3 = tmps[gidx + 3].out[i + 0];
-      out[1].s3 = tmps[gidx + 3].out[i + 1];
-      out[2].s3 = tmps[gidx + 3].out[i + 2];
-      out[3].s3 = tmps[gidx + 3].out[i + 3];
-      out[4].s3 = tmps[gidx + 3].out[i + 4];
-    }
-
-    #endif
-
-    #if VECT_SIZE >= 8
-
-    if ((gidx + 4) < gid_max)
-    {
-      dgst[0].s4 = tmps[gidx + 4].dgst[i + 0];
-      dgst[1].s4 = tmps[gidx + 4].dgst[i + 1];
-      dgst[2].s4 = tmps[gidx + 4].dgst[i + 2];
-      dgst[3].s4 = tmps[gidx + 4].dgst[i + 3];
-      dgst[4].s4 = tmps[gidx + 4].dgst[i + 4];
-
-      out[0].s4 = tmps[gidx + 4].out[i + 0];
-      out[1].s4 = tmps[gidx + 4].out[i + 1];
-      out[2].s4 = tmps[gidx + 4].out[i + 2];
-      out[3].s4 = tmps[gidx + 4].out[i + 3];
-      out[4].s4 = tmps[gidx + 4].out[i + 4];
-    }
-
-    if ((gidx + 5) < gid_max)
-    {
-      dgst[0].s5 = tmps[gidx + 5].dgst[i + 0];
-      dgst[1].s5 = tmps[gidx + 5].dgst[i + 1];
-      dgst[2].s5 = tmps[gidx + 5].dgst[i + 2];
-      dgst[3].s5 = tmps[gidx + 5].dgst[i + 3];
-      dgst[4].s5 = tmps[gidx + 5].dgst[i + 4];
-
-      out[0].s5 = tmps[gidx + 5].out[i + 0];
-      out[1].s5 = tmps[gidx + 5].out[i + 1];
-      out[2].s5 = tmps[gidx + 5].out[i + 2];
-      out[3].s5 = tmps[gidx + 5].out[i + 3];
-      out[4].s5 = tmps[gidx + 5].out[i + 4];
-    }
-
-    if ((gidx + 6) < gid_max)
-    {
-      dgst[0].s6 = tmps[gidx + 6].dgst[i + 0];
-      dgst[1].s6 = tmps[gidx + 6].dgst[i + 1];
-      dgst[2].s6 = tmps[gidx + 6].dgst[i + 2];
-      dgst[3].s6 = tmps[gidx + 6].dgst[i + 3];
-      dgst[4].s6 = tmps[gidx + 6].dgst[i + 4];
-
-      out[0].s6 = tmps[gidx + 6].out[i + 0];
-      out[1].s6 = tmps[gidx + 6].out[i + 1];
-      out[2].s6 = tmps[gidx + 6].out[i + 2];
-      out[3].s6 = tmps[gidx + 6].out[i + 3];
-      out[4].s6 = tmps[gidx + 6].out[i + 4];
-    }
-
-    if ((gidx + 7) < gid_max)
-    {
-      dgst[0].s7 = tmps[gidx + 7].dgst[i + 0];
-      dgst[1].s7 = tmps[gidx + 7].dgst[i + 1];
-      dgst[2].s7 = tmps[gidx + 7].dgst[i + 2];
-      dgst[3].s7 = tmps[gidx + 7].dgst[i + 3];
-      dgst[4].s7 = tmps[gidx + 7].dgst[i + 4];
-
-      out[0].s7 = tmps[gidx + 7].out[i + 0];
-      out[1].s7 = tmps[gidx + 7].out[i + 1];
-      out[2].s7 = tmps[gidx + 7].out[i + 2];
-      out[3].s7 = tmps[gidx + 7].out[i + 3];
-      out[4].s7 = tmps[gidx + 7].out[i + 4];
-    }
-
-    #endif
-
-    #endif
+    out[0] = packv (tmps, out, gid, 0);
+    out[1] = packv (tmps, out, gid, 1);
+    out[2] = packv (tmps, out, gid, 2);
+    out[3] = packv (tmps, out, gid, 3);
+    out[4] = packv (tmps, out, gid, 4);
 
     for (u32 j = 0; j < loop_cnt; j++)
     {
@@ -1090,155 +813,17 @@ __kernel void m02500_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
       out[4] ^= dgst[4];
     }
 
-    #if VECT_SIZE == 1
+    unpackv (tmps, dgst, gid, 0, dgst[0]);
+    unpackv (tmps, dgst, gid, 1, dgst[1]);
+    unpackv (tmps, dgst, gid, 2, dgst[2]);
+    unpackv (tmps, dgst, gid, 3, dgst[3]);
+    unpackv (tmps, dgst, gid, 4, dgst[4]);
 
-    tmps[gid].dgst[i + 0] = dgst[0];
-    tmps[gid].dgst[i + 1] = dgst[1];
-    tmps[gid].dgst[i + 2] = dgst[2];
-    tmps[gid].dgst[i + 3] = dgst[3];
-    tmps[gid].dgst[i + 4] = dgst[4];
-
-    tmps[gid].out[i + 0] = out[0];
-    tmps[gid].out[i + 1] = out[1];
-    tmps[gid].out[i + 2] = out[2];
-    tmps[gid].out[i + 3] = out[3];
-    tmps[gid].out[i + 4] = out[4];
-
-    #else
-
-    #if VECT_SIZE >= 2
-
-    if ((gidx + 0) < gid_max)
-    {
-      tmps[gidx + 0].dgst[i + 0] = dgst[0].s0;
-      tmps[gidx + 0].dgst[i + 1] = dgst[1].s0;
-      tmps[gidx + 0].dgst[i + 2] = dgst[2].s0;
-      tmps[gidx + 0].dgst[i + 3] = dgst[3].s0;
-      tmps[gidx + 0].dgst[i + 4] = dgst[4].s0;
-
-      tmps[gidx + 0].out[i + 0] = out[0].s0;
-      tmps[gidx + 0].out[i + 1] = out[1].s0;
-      tmps[gidx + 0].out[i + 2] = out[2].s0;
-      tmps[gidx + 0].out[i + 3] = out[3].s0;
-      tmps[gidx + 0].out[i + 4] = out[4].s0;
-    }
-
-    if ((gidx + 1) < gid_max)
-    {
-      tmps[gidx + 1].dgst[i + 0] = dgst[0].s1;
-      tmps[gidx + 1].dgst[i + 1] = dgst[1].s1;
-      tmps[gidx + 1].dgst[i + 2] = dgst[2].s1;
-      tmps[gidx + 1].dgst[i + 3] = dgst[3].s1;
-      tmps[gidx + 1].dgst[i + 4] = dgst[4].s1;
-
-      tmps[gidx + 1].out[i + 0] = out[0].s1;
-      tmps[gidx + 1].out[i + 1] = out[1].s1;
-      tmps[gidx + 1].out[i + 2] = out[2].s1;
-      tmps[gidx + 1].out[i + 3] = out[3].s1;
-      tmps[gidx + 1].out[i + 4] = out[4].s1;
-    }
-
-    #endif
-
-    #if VECT_SIZE >= 4
-
-    if ((gidx + 2) < gid_max)
-    {
-      tmps[gidx + 2].dgst[i + 0] = dgst[0].s2;
-      tmps[gidx + 2].dgst[i + 1] = dgst[1].s2;
-      tmps[gidx + 2].dgst[i + 2] = dgst[2].s2;
-      tmps[gidx + 2].dgst[i + 3] = dgst[3].s2;
-      tmps[gidx + 2].dgst[i + 4] = dgst[4].s2;
-
-      tmps[gidx + 2].out[i + 0] = out[0].s2;
-      tmps[gidx + 2].out[i + 1] = out[1].s2;
-      tmps[gidx + 2].out[i + 2] = out[2].s2;
-      tmps[gidx + 2].out[i + 3] = out[3].s2;
-      tmps[gidx + 2].out[i + 4] = out[4].s2;
-    }
-
-    if ((gidx + 3) < gid_max)
-    {
-      tmps[gidx + 3].dgst[i + 0] = dgst[0].s3;
-      tmps[gidx + 3].dgst[i + 1] = dgst[1].s3;
-      tmps[gidx + 3].dgst[i + 2] = dgst[2].s3;
-      tmps[gidx + 3].dgst[i + 3] = dgst[3].s3;
-      tmps[gidx + 3].dgst[i + 4] = dgst[4].s3;
-
-      tmps[gidx + 3].out[i + 0] = out[0].s3;
-      tmps[gidx + 3].out[i + 1] = out[1].s3;
-      tmps[gidx + 3].out[i + 2] = out[2].s3;
-      tmps[gidx + 3].out[i + 3] = out[3].s3;
-      tmps[gidx + 3].out[i + 4] = out[4].s3;
-    }
-
-    #endif
-
-    #if VECT_SIZE >= 8
-
-    if ((gidx + 4) < gid_max)
-    {
-      tmps[gidx + 4].dgst[i + 0] = dgst[0].s4;
-      tmps[gidx + 4].dgst[i + 1] = dgst[1].s4;
-      tmps[gidx + 4].dgst[i + 2] = dgst[2].s4;
-      tmps[gidx + 4].dgst[i + 3] = dgst[3].s4;
-      tmps[gidx + 4].dgst[i + 4] = dgst[4].s4;
-
-      tmps[gidx + 4].out[i + 0] = out[0].s4;
-      tmps[gidx + 4].out[i + 1] = out[1].s4;
-      tmps[gidx + 4].out[i + 2] = out[2].s4;
-      tmps[gidx + 4].out[i + 3] = out[3].s4;
-      tmps[gidx + 4].out[i + 4] = out[4].s4;
-    }
-
-    if ((gidx + 5) < gid_max)
-    {
-      tmps[gidx + 5].dgst[i + 0] = dgst[0].s5;
-      tmps[gidx + 5].dgst[i + 1] = dgst[1].s5;
-      tmps[gidx + 5].dgst[i + 2] = dgst[2].s5;
-      tmps[gidx + 5].dgst[i + 3] = dgst[3].s5;
-      tmps[gidx + 5].dgst[i + 4] = dgst[4].s5;
-
-      tmps[gidx + 5].out[i + 0] = out[0].s5;
-      tmps[gidx + 5].out[i + 1] = out[1].s5;
-      tmps[gidx + 5].out[i + 2] = out[2].s5;
-      tmps[gidx + 5].out[i + 3] = out[3].s5;
-      tmps[gidx + 5].out[i + 4] = out[4].s5;
-    }
-
-    if ((gidx + 6) < gid_max)
-    {
-      tmps[gidx + 6].dgst[i + 0] = dgst[0].s6;
-      tmps[gidx + 6].dgst[i + 1] = dgst[1].s6;
-      tmps[gidx + 6].dgst[i + 2] = dgst[2].s6;
-      tmps[gidx + 6].dgst[i + 3] = dgst[3].s6;
-      tmps[gidx + 6].dgst[i + 4] = dgst[4].s6;
-
-      tmps[gidx + 6].out[i + 0] = out[0].s6;
-      tmps[gidx + 6].out[i + 1] = out[1].s6;
-      tmps[gidx + 6].out[i + 2] = out[2].s6;
-      tmps[gidx + 6].out[i + 3] = out[3].s6;
-      tmps[gidx + 6].out[i + 4] = out[4].s6;
-    }
-
-    if ((gidx + 7) < gid_max)
-    {
-      tmps[gidx + 7].dgst[i + 0] = dgst[0].s7;
-      tmps[gidx + 7].dgst[i + 1] = dgst[1].s7;
-      tmps[gidx + 7].dgst[i + 2] = dgst[2].s7;
-      tmps[gidx + 7].dgst[i + 3] = dgst[3].s7;
-      tmps[gidx + 7].dgst[i + 4] = dgst[4].s7;
-
-      tmps[gidx + 7].out[i + 0] = out[0].s7;
-      tmps[gidx + 7].out[i + 1] = out[1].s7;
-      tmps[gidx + 7].out[i + 2] = out[2].s7;
-      tmps[gidx + 7].out[i + 3] = out[3].s7;
-      tmps[gidx + 7].out[i + 4] = out[4].s7;
-    }
-
-    #endif
-
-    #endif
+    unpackv (tmps, out, gid, 0, out[0]);
+    unpackv (tmps, out, gid, 1, out[1]);
+    unpackv (tmps, out, gid, 2, out[2]);
+    unpackv (tmps, out, gid, 3, out[3]);
+    unpackv (tmps, out, gid, 4, out[4]);
   }
 }
 
