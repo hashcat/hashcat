@@ -6186,6 +6186,536 @@ inline void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
   }
 }
 
+inline void append_0x01_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset)
+{
+  switch (offset)
+  {
+    case 0:
+      w0[0] = 0x01;
+      break;
+
+    case 1:
+      w0[0] = w0[0] | 0x0100;
+      break;
+
+    case 2:
+      w0[0] = w0[0] | 0x010000;
+      break;
+
+    case 3:
+      w0[0] = w0[0] | 0x01000000;
+      break;
+
+    case 4:
+      w0[1] = 0x01;
+      break;
+
+    case 5:
+      w0[1] = w0[1] | 0x0100;
+      break;
+
+    case 6:
+      w0[1] = w0[1] | 0x010000;
+      break;
+
+    case 7:
+      w0[1] = w0[1] | 0x01000000;
+      break;
+
+    case 8:
+      w0[2] = 0x01;
+      break;
+
+    case 9:
+      w0[2] = w0[2] | 0x0100;
+      break;
+
+    case 10:
+      w0[2] = w0[2] | 0x010000;
+      break;
+
+    case 11:
+      w0[2] = w0[2] | 0x01000000;
+      break;
+
+    case 12:
+      w0[3] = 0x01;
+      break;
+
+    case 13:
+      w0[3] = w0[3] | 0x0100;
+      break;
+
+    case 14:
+      w0[3] = w0[3] | 0x010000;
+      break;
+
+    case 15:
+      w0[3] = w0[3] | 0x01000000;
+      break;
+
+    case 16:
+      w1[0] = 0x01;
+      break;
+
+    case 17:
+      w1[0] = w1[0] | 0x0100;
+      break;
+
+    case 18:
+      w1[0] = w1[0] | 0x010000;
+      break;
+
+    case 19:
+      w1[0] = w1[0] | 0x01000000;
+      break;
+
+    case 20:
+      w1[1] = 0x01;
+      break;
+
+    case 21:
+      w1[1] = w1[1] | 0x0100;
+      break;
+
+    case 22:
+      w1[1] = w1[1] | 0x010000;
+      break;
+
+    case 23:
+      w1[1] = w1[1] | 0x01000000;
+      break;
+
+    case 24:
+      w1[2] = 0x01;
+      break;
+
+    case 25:
+      w1[2] = w1[2] | 0x0100;
+      break;
+
+    case 26:
+      w1[2] = w1[2] | 0x010000;
+      break;
+
+    case 27:
+      w1[2] = w1[2] | 0x01000000;
+      break;
+
+    case 28:
+      w1[3] = 0x01;
+      break;
+
+    case 29:
+      w1[3] = w1[3] | 0x0100;
+      break;
+
+    case 30:
+      w1[3] = w1[3] | 0x010000;
+      break;
+
+    case 31:
+      w1[3] = w1[3] | 0x01000000;
+      break;
+
+    case 32:
+      w2[0] = 0x01;
+      break;
+
+    case 33:
+      w2[0] = w2[0] | 0x0100;
+      break;
+
+    case 34:
+      w2[0] = w2[0] | 0x010000;
+      break;
+
+    case 35:
+      w2[0] = w2[0] | 0x01000000;
+      break;
+
+    case 36:
+      w2[1] = 0x01;
+      break;
+
+    case 37:
+      w2[1] = w2[1] | 0x0100;
+      break;
+
+    case 38:
+      w2[1] = w2[1] | 0x010000;
+      break;
+
+    case 39:
+      w2[1] = w2[1] | 0x01000000;
+      break;
+
+    case 40:
+      w2[2] = 0x01;
+      break;
+
+    case 41:
+      w2[2] = w2[2] | 0x0100;
+      break;
+
+    case 42:
+      w2[2] = w2[2] | 0x010000;
+      break;
+
+    case 43:
+      w2[2] = w2[2] | 0x01000000;
+      break;
+
+    case 44:
+      w2[3] = 0x01;
+      break;
+
+    case 45:
+      w2[3] = w2[3] | 0x0100;
+      break;
+
+    case 46:
+      w2[3] = w2[3] | 0x010000;
+      break;
+
+    case 47:
+      w2[3] = w2[3] | 0x01000000;
+      break;
+  }
+}
+
+inline void append_0x02_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
+{
+  switch (offset)
+  {
+    case 0:
+      w0[0] = 0x02;
+      break;
+
+    case 1:
+      w0[0] = w0[0] | 0x0200;
+      break;
+
+    case 2:
+      w0[0] = w0[0] | 0x020000;
+      break;
+
+    case 3:
+      w0[0] = w0[0] | 0x02000000;
+      break;
+
+    case 4:
+      w0[1] = 0x02;
+      break;
+
+    case 5:
+      w0[1] = w0[1] | 0x0200;
+      break;
+
+    case 6:
+      w0[1] = w0[1] | 0x020000;
+      break;
+
+    case 7:
+      w0[1] = w0[1] | 0x02000000;
+      break;
+
+    case 8:
+      w0[2] = 0x02;
+      break;
+
+    case 9:
+      w0[2] = w0[2] | 0x0200;
+      break;
+
+    case 10:
+      w0[2] = w0[2] | 0x020000;
+      break;
+
+    case 11:
+      w0[2] = w0[2] | 0x02000000;
+      break;
+
+    case 12:
+      w0[3] = 0x02;
+      break;
+
+    case 13:
+      w0[3] = w0[3] | 0x0200;
+      break;
+
+    case 14:
+      w0[3] = w0[3] | 0x020000;
+      break;
+
+    case 15:
+      w0[3] = w0[3] | 0x02000000;
+      break;
+
+    case 16:
+      w1[0] = 0x02;
+      break;
+
+    case 17:
+      w1[0] = w1[0] | 0x0200;
+      break;
+
+    case 18:
+      w1[0] = w1[0] | 0x020000;
+      break;
+
+    case 19:
+      w1[0] = w1[0] | 0x02000000;
+      break;
+
+    case 20:
+      w1[1] = 0x02;
+      break;
+
+    case 21:
+      w1[1] = w1[1] | 0x0200;
+      break;
+
+    case 22:
+      w1[1] = w1[1] | 0x020000;
+      break;
+
+    case 23:
+      w1[1] = w1[1] | 0x02000000;
+      break;
+
+    case 24:
+      w1[2] = 0x02;
+      break;
+
+    case 25:
+      w1[2] = w1[2] | 0x0200;
+      break;
+
+    case 26:
+      w1[2] = w1[2] | 0x020000;
+      break;
+
+    case 27:
+      w1[2] = w1[2] | 0x02000000;
+      break;
+
+    case 28:
+      w1[3] = 0x02;
+      break;
+
+    case 29:
+      w1[3] = w1[3] | 0x0200;
+      break;
+
+    case 30:
+      w1[3] = w1[3] | 0x020000;
+      break;
+
+    case 31:
+      w1[3] = w1[3] | 0x02000000;
+      break;
+  }
+}
+
+inline void append_0x02_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset)
+{
+  switch (offset)
+  {
+    case 0:
+      w0[0] = 0x02;
+      break;
+
+    case 1:
+      w0[0] = w0[0] | 0x0200;
+      break;
+
+    case 2:
+      w0[0] = w0[0] | 0x020000;
+      break;
+
+    case 3:
+      w0[0] = w0[0] | 0x02000000;
+      break;
+
+    case 4:
+      w0[1] = 0x02;
+      break;
+
+    case 5:
+      w0[1] = w0[1] | 0x0200;
+      break;
+
+    case 6:
+      w0[1] = w0[1] | 0x020000;
+      break;
+
+    case 7:
+      w0[1] = w0[1] | 0x02000000;
+      break;
+
+    case 8:
+      w0[2] = 0x02;
+      break;
+
+    case 9:
+      w0[2] = w0[2] | 0x0200;
+      break;
+
+    case 10:
+      w0[2] = w0[2] | 0x020000;
+      break;
+
+    case 11:
+      w0[2] = w0[2] | 0x02000000;
+      break;
+
+    case 12:
+      w0[3] = 0x02;
+      break;
+
+    case 13:
+      w0[3] = w0[3] | 0x0200;
+      break;
+
+    case 14:
+      w0[3] = w0[3] | 0x020000;
+      break;
+
+    case 15:
+      w0[3] = w0[3] | 0x02000000;
+      break;
+
+    case 16:
+      w1[0] = 0x02;
+      break;
+
+    case 17:
+      w1[0] = w1[0] | 0x0200;
+      break;
+
+    case 18:
+      w1[0] = w1[0] | 0x020000;
+      break;
+
+    case 19:
+      w1[0] = w1[0] | 0x02000000;
+      break;
+
+    case 20:
+      w1[1] = 0x02;
+      break;
+
+    case 21:
+      w1[1] = w1[1] | 0x0200;
+      break;
+
+    case 22:
+      w1[1] = w1[1] | 0x020000;
+      break;
+
+    case 23:
+      w1[1] = w1[1] | 0x02000000;
+      break;
+
+    case 24:
+      w1[2] = 0x02;
+      break;
+
+    case 25:
+      w1[2] = w1[2] | 0x0200;
+      break;
+
+    case 26:
+      w1[2] = w1[2] | 0x020000;
+      break;
+
+    case 27:
+      w1[2] = w1[2] | 0x02000000;
+      break;
+
+    case 28:
+      w1[3] = 0x02;
+      break;
+
+    case 29:
+      w1[3] = w1[3] | 0x0200;
+      break;
+
+    case 30:
+      w1[3] = w1[3] | 0x020000;
+      break;
+
+    case 31:
+      w1[3] = w1[3] | 0x02000000;
+      break;
+
+    case 32:
+      w2[0] = 0x02;
+      break;
+
+    case 33:
+      w2[0] = w2[0] | 0x0200;
+      break;
+
+    case 34:
+      w2[0] = w2[0] | 0x020000;
+      break;
+
+    case 35:
+      w2[0] = w2[0] | 0x02000000;
+      break;
+
+    case 36:
+      w2[1] = 0x02;
+      break;
+
+    case 37:
+      w2[1] = w2[1] | 0x0200;
+      break;
+
+    case 38:
+      w2[1] = w2[1] | 0x020000;
+      break;
+
+    case 39:
+      w2[1] = w2[1] | 0x02000000;
+      break;
+
+    case 40:
+      w2[2] = 0x02;
+      break;
+
+    case 41:
+      w2[2] = w2[2] | 0x0200;
+      break;
+
+    case 42:
+      w2[2] = w2[2] | 0x020000;
+      break;
+
+    case 43:
+      w2[2] = w2[2] | 0x02000000;
+      break;
+
+    case 44:
+      w2[3] = 0x02;
+      break;
+
+    case 45:
+      w2[3] = w2[3] | 0x0200;
+      break;
+
+    case 46:
+      w2[3] = w2[3] | 0x020000;
+      break;
+
+    case 47:
+      w2[3] = w2[3] | 0x02000000;
+      break;
+  }
+}
+
 inline void append_0x80_1x4_S (u32 w0[4], const u32 offset)
 {
   switch (offset)

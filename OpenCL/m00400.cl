@@ -449,6 +449,93 @@ __kernel void m00400_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   }
 
   #endif
+  #if VECT_SIZE >= 8
+
+  if ((gidx + 4) < gid_max)
+  {
+    w0[0].s4 = pws[gidx + 4].i[0];
+    w0[1].s4 = pws[gidx + 4].i[1];
+    w0[2].s4 = pws[gidx + 4].i[2];
+    w0[3].s4 = pws[gidx + 4].i[3];
+    w1[0].s4 = pws[gidx + 4].i[4];
+    w1[1].s4 = pws[gidx + 4].i[5];
+    w1[2].s4 = pws[gidx + 4].i[6];
+    w1[3].s4 = pws[gidx + 4].i[7];
+    w2[0].s4 = pws[gidx + 4].i[8];
+    w2[1].s4 = pws[gidx + 4].i[9];
+
+    pw_len.s4 = pws[gidx + 4].pw_len;
+
+    digest[0].s4 = tmps[gidx + 4].digest_buf[0];
+    digest[1].s4 = tmps[gidx + 4].digest_buf[1];
+    digest[2].s4 = tmps[gidx + 4].digest_buf[2];
+    digest[3].s4 = tmps[gidx + 4].digest_buf[3];
+  }
+
+  if ((gidx + 5) < gid_max)
+  {
+    w0[0].s5 = pws[gidx + 5].i[0];
+    w0[1].s5 = pws[gidx + 5].i[1];
+    w0[2].s5 = pws[gidx + 5].i[2];
+    w0[3].s5 = pws[gidx + 5].i[3];
+    w1[0].s5 = pws[gidx + 5].i[4];
+    w1[1].s5 = pws[gidx + 5].i[5];
+    w1[2].s5 = pws[gidx + 5].i[6];
+    w1[3].s5 = pws[gidx + 5].i[7];
+    w2[0].s5 = pws[gidx + 5].i[8];
+    w2[1].s5 = pws[gidx + 5].i[9];
+
+    pw_len.s5 = pws[gidx + 5].pw_len;
+
+    digest[0].s5 = tmps[gidx + 5].digest_buf[0];
+    digest[1].s5 = tmps[gidx + 5].digest_buf[1];
+    digest[2].s5 = tmps[gidx + 5].digest_buf[2];
+    digest[3].s5 = tmps[gidx + 5].digest_buf[3];
+  }
+
+  if ((gidx + 6) < gid_max)
+  {
+    w0[0].s6 = pws[gidx + 6].i[0];
+    w0[1].s6 = pws[gidx + 6].i[1];
+    w0[2].s6 = pws[gidx + 6].i[2];
+    w0[3].s6 = pws[gidx + 6].i[3];
+    w1[0].s6 = pws[gidx + 6].i[4];
+    w1[1].s6 = pws[gidx + 6].i[5];
+    w1[2].s6 = pws[gidx + 6].i[6];
+    w1[3].s6 = pws[gidx + 6].i[7];
+    w2[0].s6 = pws[gidx + 6].i[8];
+    w2[1].s6 = pws[gidx + 6].i[9];
+
+    pw_len.s6 = pws[gidx + 6].pw_len;
+
+    digest[0].s6 = tmps[gidx + 6].digest_buf[0];
+    digest[1].s6 = tmps[gidx + 6].digest_buf[1];
+    digest[2].s6 = tmps[gidx + 6].digest_buf[2];
+    digest[3].s6 = tmps[gidx + 6].digest_buf[3];
+  }
+
+  if ((gidx + 7) < gid_max)
+  {
+    w0[0].s7 = pws[gidx + 7].i[0];
+    w0[1].s7 = pws[gidx + 7].i[1];
+    w0[2].s7 = pws[gidx + 7].i[2];
+    w0[3].s7 = pws[gidx + 7].i[3];
+    w1[0].s7 = pws[gidx + 7].i[4];
+    w1[1].s7 = pws[gidx + 7].i[5];
+    w1[2].s7 = pws[gidx + 7].i[6];
+    w1[3].s7 = pws[gidx + 7].i[7];
+    w2[0].s7 = pws[gidx + 7].i[8];
+    w2[1].s7 = pws[gidx + 7].i[9];
+
+    pw_len.s7 = pws[gidx + 7].pw_len;
+
+    digest[0].s7 = tmps[gidx + 7].digest_buf[0];
+    digest[1].s7 = tmps[gidx + 7].digest_buf[1];
+    digest[2].s7 = tmps[gidx + 7].digest_buf[2];
+    digest[3].s7 = tmps[gidx + 7].digest_buf[3];
+  }
+
+  #endif
   #endif
 
   /**
@@ -545,6 +632,42 @@ __kernel void m00400_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
     tmps[gidx + 3].digest_buf[1] = digest[1].s3;
     tmps[gidx + 3].digest_buf[2] = digest[2].s3;
     tmps[gidx + 3].digest_buf[3] = digest[3].s3;
+  }
+
+  #endif
+
+  #if VECT_SIZE >= 8
+
+  if ((gidx + 4) < gid_max)
+  {
+    tmps[gidx + 4].digest_buf[0] = digest[0].s4;
+    tmps[gidx + 4].digest_buf[1] = digest[1].s4;
+    tmps[gidx + 4].digest_buf[2] = digest[2].s4;
+    tmps[gidx + 4].digest_buf[3] = digest[3].s4;
+  }
+
+  if ((gidx + 5) < gid_max)
+  {
+    tmps[gidx + 5].digest_buf[0] = digest[0].s5;
+    tmps[gidx + 5].digest_buf[1] = digest[1].s5;
+    tmps[gidx + 5].digest_buf[2] = digest[2].s5;
+    tmps[gidx + 5].digest_buf[3] = digest[3].s5;
+  }
+
+  if ((gidx + 6) < gid_max)
+  {
+    tmps[gidx + 6].digest_buf[0] = digest[0].s6;
+    tmps[gidx + 6].digest_buf[1] = digest[1].s6;
+    tmps[gidx + 6].digest_buf[2] = digest[2].s6;
+    tmps[gidx + 6].digest_buf[3] = digest[3].s6;
+  }
+
+  if ((gidx + 7) < gid_max)
+  {
+    tmps[gidx + 7].digest_buf[0] = digest[0].s7;
+    tmps[gidx + 7].digest_buf[1] = digest[1].s7;
+    tmps[gidx + 7].digest_buf[2] = digest[2].s7;
+    tmps[gidx + 7].digest_buf[3] = digest[3].s7;
   }
 
   #endif
