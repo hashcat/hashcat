@@ -8167,7 +8167,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = wpa_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -12684,19 +12685,19 @@ int main (int argc, char **argv)
       }
       else if (strcmp (platform_vendor, CL_VENDOR_APPLE) == 0)
       {
-        vendor_id = VENDOR_ID_GENERIC;
+        vendor_id = VENDOR_ID_APPLE;
       }
       else if (strcmp (platform_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
       {
-        vendor_id = VENDOR_ID_GENERIC;
+        vendor_id = VENDOR_ID_INTEL_BEIGNET;
       }
       else if (strcmp (platform_vendor, CL_VENDOR_INTEL_SDK) == 0)
       {
-        vendor_id = VENDOR_ID_GENERIC;
+        vendor_id = VENDOR_ID_INTEL_SDK;
       }
       else if (strcmp (platform_vendor, CL_VENDOR_MESA) == 0)
       {
-        vendor_id = VENDOR_ID_GENERIC;
+        vendor_id = VENDOR_ID_MESA;
       }
       else if (strcmp (platform_vendor, CL_VENDOR_NV) == 0)
       {
@@ -12704,7 +12705,7 @@ int main (int argc, char **argv)
       }
       else if (strcmp (platform_vendor, CL_VENDOR_POCL) == 0)
       {
-        vendor_id = VENDOR_ID_GENERIC;
+        vendor_id = VENDOR_ID_POCL;
       }
       else
       {
@@ -14006,6 +14007,21 @@ int main (int argc, char **argv)
       // we don't have sm_* on vendors not NV but it doesn't matter
 
       snprintf (build_opts, sizeof (build_opts) - 1, "-cl-std=CL1.1 -I\"%s/\" -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u -DKERN_TYPE=%u -D_unroll", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, kern_type);
+
+      if (device_param->vendor_id == VENDOR_ID_INTEL_SDK)
+      {
+        // we do vectorizing much better than the auto-vectorizer
+
+        char build_opts_new[1024] = { 0 };
+
+        snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -cl-opt-disable", build_opts);
+
+        strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);
+      }
+
+      #ifdef DEBUG
+      log_info ("Device #%u: build_opts '%s'\n", device_id + 1, build_opts);
+      #endif
 
       /**
        * main kernel

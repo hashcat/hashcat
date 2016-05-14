@@ -137,6 +137,15 @@
 #define SHA1_F2o(x,y,z) (SHA1_F2 ((x), (y), (z)))
 #endif
 
+#define SHA1_STEP_S(f,a,b,c,d,e,x)  \
+{                                   \
+  e += K;                           \
+  e += x;                           \
+  e += f (b, c, d);                 \
+  e += rotl32_S (a,  5u);           \
+  b  = rotl32_S (b, 30u);           \
+}
+
 #define SHA1_STEP(f,a,b,c,d,e,x)    \
 {                                   \
   e += K;                           \

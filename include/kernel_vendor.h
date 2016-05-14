@@ -29,8 +29,25 @@
 
 #if   VENDOR_ID == (1 << 0)
 #define IS_AMD
-#elif VENDOR_ID == (1 << 6)
+//#define IS_GENERIC
+#elif VENDOR_ID == (1 << 1)
+#define IS_APPLE
+#define IS_GENERIC
+#elif VENDOR_ID == (1 << 2)
+#define IS_INTEL_BEIGNET
+#define IS_GENERIC
+#elif VENDOR_ID == (1 << 3)
+#define IS_INTEL_SDK
+#define IS_GENERIC
+#elif VENDOR_ID == (1 << 4)
+#define IS_MESA
+#define IS_GENERIC
+#elif VENDOR_ID == (1 << 5)
 #define IS_NV
+//#define IS_GENERIC
+#elif VENDOR_ID == (1 << 6)
+#define IS_POCL
+#define IS_GENERIC
 #else
 #define IS_GENERIC
 #endif
