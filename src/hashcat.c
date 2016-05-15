@@ -2409,23 +2409,17 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
   hc_clSetKernelArg (data.ocl, kernel, 30, sizeof (cl_uint), device_param->kernel_params[30]);
   hc_clSetKernelArg (data.ocl, kernel, 31, sizeof (cl_uint), device_param->kernel_params[31]);
 
-  hc_timer_t timer;
-
-  hc_timer_set (&timer);
+  cl_event event;
 
   if ((data.opts_type & OPTS_TYPE_PT_BITSLICE) && (data.attack_mode == ATTACK_MODE_BF))
   {
     const size_t global_work_size[3] = { num_elements,        32, 1 };
     const size_t local_work_size[3]  = { kernel_threads / 32, 32, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, &event);
   }
   else
   {
-    size_t workgroup_size = 0;
-
-    hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
-
     if (kern_run == KERN_RUN_2)
     {
       if (data.opti_type & OPTI_TYPE_SLOW_HASH_SIMD)
@@ -2434,25 +2428,27 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
       }
     }
 
-    if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
-
     while (num_elements % kernel_threads) num_elements++;
 
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
   }
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
-  hc_clFinish (data.ocl, device_param->command_queue);
+  hc_clWaitForEvents (data.ocl, 1, &event);
 
   if (event_update)
   {
-    double exec_time;
+    cl_ulong time_start;
+    cl_ulong time_end;
 
-    hc_timer_get (timer, exec_time);
+    hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
+    hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
+
+    const double exec_time = (double) (time_end - time_start) / 1000000.0;
 
     uint exec_pos = device_param->exec_pos;
 
@@ -2467,6 +2463,10 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 
     device_param->exec_pos = exec_pos;
   }
+
+  hc_clReleaseEvent (data.ocl, event);
+
+  hc_clFinish (data.ocl, device_param->command_queue);
 }
 
 static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param, const uint num)
@@ -2522,12 +2522,6 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
                         break;
   }
 
-  size_t workgroup_size = 0;
-
-  hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &workgroup_size, NULL);
-
-  if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
-
   const size_t global_work_size[3] = { num_elements,   1, 1 };
   const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
@@ -2545,12 +2539,6 @@ static void run_kernel_tm (hc_device_param_t *device_param)
   uint kernel_threads = 32;
 
   cl_kernel kernel = device_param->kernel_tm;
-
-  size_t workgroup_size = 0;
-
-  hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
-
-  if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
 
   const size_t global_work_size[3] = { num_elements,    1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
@@ -2580,12 +2568,6 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
 
   hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
   hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint), device_param->kernel_params_amp[6]);
-
-  size_t workgroup_size = 0;
-
-  hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
-
-  if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
 
   const size_t global_work_size[3] = { num_elements,    1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
@@ -14636,6 +14618,8 @@ int main (int argc, char **argv)
        * kernel name
        */
 
+      size_t kernel_wgs_tmp;
+
       char kernel_name[64] = { 0 };
 
       if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -14676,6 +14660,8 @@ int main (int argc, char **argv)
             snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_tm", kern_type);
 
             device_param->kernel_tm = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+
+            hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_tm, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
           }
         }
       }
@@ -14698,6 +14684,8 @@ int main (int argc, char **argv)
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_hook12", kern_type);
 
           device_param->kernel12 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+
+          hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel12, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
         }
 
         if (opts_type & OPTS_TYPE_HOOK23)
@@ -14705,8 +14693,14 @@ int main (int argc, char **argv)
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_hook23", kern_type);
 
           device_param->kernel23 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+
+          hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel23, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
         }
       }
+
+      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel1, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel2, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel3, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
 
       for (uint i = 0; i <= 20; i++)
       {
@@ -14733,6 +14727,9 @@ int main (int argc, char **argv)
         device_param->kernel_mp_l = hc_clCreateKernel (data.ocl, device_param->program_mp, "l_markov");
         device_param->kernel_mp_r = hc_clCreateKernel (data.ocl, device_param->program_mp, "r_markov");
 
+        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp_l, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp_r, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
         if (opts_type & OPTS_TYPE_PT_BITSLICE)
         {
           hc_clSetKernelArg (data.ocl, device_param->kernel_tm, 0, sizeof (cl_mem), device_param->kernel_params_tm[0]);
@@ -14742,10 +14739,14 @@ int main (int argc, char **argv)
       else if (attack_mode == ATTACK_MODE_HYBRID1)
       {
         device_param->kernel_mp = hc_clCreateKernel (data.ocl, device_param->program_mp, "C_markov");
+
+        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
       }
       else if (attack_mode == ATTACK_MODE_HYBRID2)
       {
         device_param->kernel_mp = hc_clCreateKernel (data.ocl, device_param->program_mp, "C_markov");
+
+        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
       }
 
       if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -14755,6 +14756,8 @@ int main (int argc, char **argv)
       else
       {
         device_param->kernel_amp = hc_clCreateKernel (data.ocl, device_param->program_amp, "amp");
+
+        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_amp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
       }
 
       if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -14773,6 +14776,11 @@ int main (int argc, char **argv)
           hc_clSetKernelArg (data.ocl, device_param->kernel_amp, i, sizeof (cl_uint), device_param->kernel_params_amp[i]);
         }
       }
+
+      // maybe this has been updated by clGetKernelWorkGroupInfo()
+      // value can only be decreased, so we don't need to reallocate buffers
+
+      device_param->kernel_threads = kernel_threads;
 
       /**
        * Store initial fanspeed if gpu_temp_retain is enabled
