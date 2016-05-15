@@ -197,6 +197,11 @@
 
 #define SHIFT_RIGHT_32(x,n) ((x) >> (n))
 
+#define SHA256_S0_S(x) (rotl32_S ((x), 25u) ^ rotl32_S ((x), 14u) ^ SHIFT_RIGHT_32 ((x),  3u))
+#define SHA256_S1_S(x) (rotl32_S ((x), 15u) ^ rotl32_S ((x), 13u) ^ SHIFT_RIGHT_32 ((x), 10u))
+#define SHA256_S2_S(x) (rotl32_S ((x), 30u) ^ rotl32_S ((x), 19u) ^ rotl32_S ((x), 10u))
+#define SHA256_S3_S(x) (rotl32_S ((x), 26u) ^ rotl32_S ((x), 21u) ^ rotl32_S ((x),  7u))
+
 #define SHA256_S0(x) (rotl32 ((x), 25u) ^ rotl32 ((x), 14u) ^ SHIFT_RIGHT_32 ((x),  3u))
 #define SHA256_S1(x) (rotl32 ((x), 15u) ^ rotl32 ((x), 13u) ^ SHIFT_RIGHT_32 ((x), 10u))
 #define SHA256_S2(x) (rotl32 ((x), 30u) ^ rotl32 ((x), 19u) ^ rotl32 ((x), 10u))
@@ -223,15 +228,28 @@
 #define SHA256_F1o(x,y,z) (SHA256_F1 ((x), (y), (z)))
 #endif
 
-#define SHA256_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
-{                                               \
-  h += K;                                       \
-  h += x;                                       \
-  h += SHA256_S3 (e);                           \
-  h += F1 (e,f,g);                              \
-  d += h;                                       \
-  h += SHA256_S2 (a);                           \
-  h += F0 (a,b,c);                              \
+#define SHA256_STEP_S(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
+{                                                 \
+  h += K;                                         \
+  h += x;                                         \
+  h += SHA256_S3_S (e);                           \
+  h += F1 (e,f,g);                                \
+  d += h;                                         \
+  h += SHA256_S2_S (a);                           \
+  h += F0 (a,b,c);                                \
+}
+
+#define SHA256_EXPAND_S(x,y,z,w) (SHA256_S1_S (x) + y + SHA256_S0_S (z) + w)
+
+#define SHA256_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)    \
+{                                                 \
+  h += K;                                         \
+  h += x;                                         \
+  h += SHA256_S3 (e);                             \
+  h += F1 (e,f,g);                                \
+  d += h;                                         \
+  h += SHA256_S2 (a);                             \
+  h += F0 (a,b,c);                                \
 }
 
 #define SHA256_EXPAND(x,y,z,w) (SHA256_S1 (x) + y + SHA256_S0 (z) + w)
@@ -283,6 +301,11 @@
 
 #define SHIFT_RIGHT_64(x,n) ((x) >> (n))
 
+#define SHA512_S0_S(x) (rotr64_S ((x), 28) ^ rotr64_S ((x), 34) ^ rotr64_S ((x), 39))
+#define SHA512_S1_S(x) (rotr64_S ((x), 14) ^ rotr64_S ((x), 18) ^ rotr64_S ((x), 41))
+#define SHA512_S2_S(x) (rotr64_S ((x),  1) ^ rotr64_S ((x),  8) ^ SHIFT_RIGHT_64 ((x), 7))
+#define SHA512_S3_S(x) (rotr64_S ((x), 19) ^ rotr64_S ((x), 61) ^ SHIFT_RIGHT_64 ((x), 6))
+
 #define SHA512_S0(x) (rotr64 ((x), 28) ^ rotr64 ((x), 34) ^ rotr64 ((x), 39))
 #define SHA512_S1(x) (rotr64 ((x), 14) ^ rotr64 ((x), 18) ^ rotr64 ((x), 41))
 #define SHA512_S2(x) (rotr64 ((x),  1) ^ rotr64 ((x),  8) ^ SHIFT_RIGHT_64 ((x), 7))
@@ -305,6 +328,19 @@
 #define SHA512_F0o(x,y,z) (SHA512_F0 ((x), (y), (z)))
 #define SHA512_F1o(x,y,z) (SHA512_F1 ((x), (y), (z)))
 #endif
+
+#define SHA512_STEP_S(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
+{                                                 \
+  h += K;                                         \
+  h += x;                                         \
+  h += SHA512_S1_S (e);                           \
+  h += F0 (e, f, g);                              \
+  d += h;                                         \
+  h += SHA512_S0_S (a);                           \
+  h += F1 (a, b, c);                              \
+}
+
+#define SHA512_EXPAND_S(x,y,z,w) (SHA512_S3_S (x) + y + SHA512_S2_S (z) + w)
 
 #define SHA512_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                               \

@@ -8992,7 +8992,8 @@ int main (int argc, char **argv)
                    parse_func  = sha512osx_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                               | OPTI_TYPE_USES_BITS_64
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9008,7 +9009,8 @@ int main (int argc, char **argv)
                    parse_func  = sha512grub_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                               | OPTI_TYPE_USES_BITS_64
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9354,7 +9356,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = cisco8_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9561,7 +9564,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = djangopbkdf2_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9757,7 +9761,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = pbkdf2_sha256_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9929,7 +9934,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = pbkdf2_md5_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9946,7 +9952,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = pbkdf2_sha1_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9964,7 +9971,8 @@ int main (int argc, char **argv)
                    parse_func  = pbkdf2_sha512_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                               | OPTI_TYPE_USES_BITS_64
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
