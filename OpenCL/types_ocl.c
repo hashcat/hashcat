@@ -318,15 +318,6 @@ inline u64 rotl64_S (const u64 a, const u32 n)
   return rotr64_S (a, 64 - n);
 }
 
-inline u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
-{
-  u32 r;
-
-  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
-
-  return r;
-}
-
 inline u32x swap32 (const u32x v)
 {
   return ((v >> 24) & 0x000000ff)
@@ -406,7 +397,55 @@ inline u32x __byte_perm (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
-inline u32 __bfe (const u32 a, const u32 b, const u32 c)
+inline u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  asm ("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c));
+
+  return r;
+}
+
+inline u32x __bfe (const u32x a, const u32x b, const u32x c)
+{
+  u32x r;
+
+  #if VECT_SIZE == 1
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r)    : "r"(a),    "r"(b),    "r"(c));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(a.s0), "r"(b.s0), "r"(c.s0));
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(a.s1), "r"(b.s1), "r"(c.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(a.s2), "r"(b.s2), "r"(c.s2));
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(a.s3), "r"(b.s3), "r"(c.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(a.s4), "r"(b.s4), "r"(c.s4));
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(a.s5), "r"(b.s5), "r"(c.s5));
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(a.s6), "r"(b.s6), "r"(c.s6));
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(a.s7), "r"(b.s7), "r"(c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(a.s8), "r"(b.s8), "r"(c.s8));
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(a.s9), "r"(b.s9), "r"(c.s9));
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(a.sa), "r"(b.sa), "r"(c.sa));
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(a.sb), "r"(b.sb), "r"(c.sb));
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(a.sc), "r"(b.sc), "r"(c.sc));
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(a.sd), "r"(b.sd), "r"(c.sd));
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(a.se), "r"(b.se), "r"(c.se));
+  asm ("bfe.u32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(a.sf), "r"(b.sf), "r"(c.sf));
+  #endif
+
+  return r;
+}
+
+inline u32 __bfe_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -415,7 +454,54 @@ inline u32 __bfe (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-inline u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
+inline u32x amd_bytealign (const u32x a, const u32x b, const u32x c)
+{
+  u32x r;
+
+  #if CUDA_ARCH >= 350
+
+  #if VECT_SIZE == 1
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r)    : "r"(b),    "r"(a),    "r"((c & 3) * 8));
+  #endif
+
+  #if VECT_SIZE >= 2
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s0) : "r"(b.s0), "r"(a.s0), "r"((c.s0 & 3) * 8));
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s1) : "r"(b.s1), "r"(a.s1), "r"((c.s1 & 3) * 8));
+  #endif
+
+  #if VECT_SIZE >= 4
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s2) : "r"(b.s2), "r"(a.s2), "r"((c.s2 & 3) * 8));
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s3) : "r"(b.s3), "r"(a.s3), "r"((c.s3 & 3) * 8));
+  #endif
+
+  #if VECT_SIZE >= 8
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s4) : "r"(b.s4), "r"(a.s4), "r"((c.s4 & 3) * 8));
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s5) : "r"(b.s5), "r"(a.s5), "r"((c.s5 & 3) * 8));
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s6) : "r"(b.s6), "r"(a.s6), "r"((c.s6 & 3) * 8));
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s7) : "r"(b.s7), "r"(a.s7), "r"((c.s7 & 3) * 8));
+  #endif
+
+  #if VECT_SIZE >= 16
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s8) : "r"(b.s8), "r"(a.s8), "r"((c.s8 & 3) * 8));
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.s9) : "r"(b.s9), "r"(a.s9), "r"((c.s9 & 3) * 8));
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sa) : "r"(b.sa), "r"(a.sa), "r"((c.sa & 3) * 8));
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sb) : "r"(b.sb), "r"(a.sb), "r"((c.sb & 3) * 8));
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sc) : "r"(b.sc), "r"(a.sc), "r"((c.sc & 3) * 8));
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sd) : "r"(b.sd), "r"(a.sd), "r"((c.sd & 3) * 8));
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.se) : "r"(b.se), "r"(a.se), "r"((c.se & 3) * 8));
+  asm ("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(r.sf) : "r"(b.sf), "r"(a.sf), "r"((c.sf & 3) * 8));
+  #endif
+
+  #else
+
+  r = __byte_perm (b, a, ((u32x) (0x76543210) >> ((c & 3) * 4)) & 0xffff);
+
+  #endif
+
+  return r;
+}
+
+inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -464,13 +550,6 @@ inline u64 rotl64_S (const u64 a, const u32 n)
   return rotate (a, (u64) n);
 }
 
-inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
-{
-  const u64 tmp = ((((u64) a) << 32) | ((u64) b)) >> ((c & 3) * 8);
-
-  return (u32) (tmp);
-}
-
 inline u32x swap32 (const u32x v)
 {
   return ((v >> 24) & 0x000000ff)
@@ -511,13 +590,30 @@ inline u64x rotl64 (const u64x a, const u32 n)
   return rotate (a, (u64) n);
 }
 
-inline u32 __bfe (const u32 a, const u32 b, const u32 c)
+inline u32x __bfe (const u32x a, const u32x b, const u32x c)
 {
   #define BIT(x)      (1 << (x))
   #define BIT_MASK(x) (BIT (x) - 1)
   #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
 
   return BFE (a, b, c);
+
+  #undef BIT
+  #undef BIT_MASK
+  #undef BFE
+}
+
+inline u32 __bfe_S (const u32 a, const u32 b, const u32 c)
+{
+  #define BIT(x)      (1 << (x))
+  #define BIT_MASK(x) (BIT (x) - 1)
+  #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
+
+  return BFE (a, b, c);
+
+  #undef BIT
+  #undef BIT_MASK
+  #undef BFE
 }
 
 inline u32x amd_bytealign (const u32x a, const u32x b, const u32 c)
@@ -552,6 +648,14 @@ inline u32x amd_bytealign (const u32x a, const u32x b, const u32 c)
   return (u32x) (tmp.s0, tmp.s1, tmp.s2, tmp.s3, tmp.s4, tmp.s5, tmp.s6, tmp.s7, tmp.s8, tmp.s9, tmp.sa, tmp.sb, tmp.sc, tmp.sd, tmp.se, tmp.sf);
   #endif
 }
+
+inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
+{
+  const u64 tmp = ((((u64) a) << 32) | ((u64) b)) >> ((c & 3) * 8);
+
+  return (u32) (tmp);
+}
+
 #endif
 
 typedef struct

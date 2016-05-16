@@ -1409,6 +1409,7 @@ inline void append_block1 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
 
 inline void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
 {
+/*
   #ifdef IS_NV
   switch (offset)
   {
@@ -1655,6 +1656,7 @@ inline void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
   #endif
 
   #if defined IS_AMD || defined IS_GENERIC
+*/
   switch (offset)
   {
     case 31:
@@ -1866,7 +1868,7 @@ inline void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       dst0[0] = src_r0[0];
       break;
   }
-  #endif
+//  #endif
 }
 
 inline void reverse_block (u32 in0[4], u32 in1[4], u32 out0[4], u32 out1[4], const u32 len)
