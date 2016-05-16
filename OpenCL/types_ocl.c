@@ -257,7 +257,12 @@ inline u64x rotl64 (const u64x a, const u32 n)
   return rotr64 (a, 64 - n);
 }
 
-inline u32 __bfe (const u32 a, const u32 b, const u32 c)
+inline u32x __bfe (const u32x a, const u32x b, const u32x c)
+{
+  return amd_bfe (a, b, c);
+}
+
+inline u32 __bfe_S (const u32 a, const u32 b, const u32 c)
 {
   return amd_bfe (a, b, c);
 }

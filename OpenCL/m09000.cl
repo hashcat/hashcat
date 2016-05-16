@@ -320,16 +320,16 @@ __constant u32 c_pbox[18] =
 #endif
 
 #ifdef IS_NV
-#define BF_ROUND(L,R,N)           \
-{                                 \
-  u32 tmp;                        \
-                                  \
-  tmp  = S0[__bfe ((L), 24, 8)];  \
-  tmp += S1[__bfe ((L), 16, 8)];  \
-  tmp ^= S2[__bfe ((L),  8, 8)];  \
-  tmp += S3[__bfe ((L),  0, 8)];  \
-                                  \
-  (R) ^= tmp ^ P[(N)];            \
+#define BF_ROUND(L,R,N)             \
+{                                   \
+  u32 tmp;                          \
+                                    \
+  tmp  = S0[__bfe_S ((L), 24, 8)];  \
+  tmp += S1[__bfe_S ((L), 16, 8)];  \
+  tmp ^= S2[__bfe_S ((L),  8, 8)];  \
+  tmp += S3[__bfe_S ((L),  0, 8)];  \
+                                    \
+  (R) ^= tmp ^ P[(N)];              \
 }
 #endif
 
@@ -747,6 +747,7 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m09000_loop (__glo
 
   u32 P[18];
 
+  #pragma unroll
   for (u32 i = 0; i < 18; i++)
   {
     P[i] = tmps[gid].P[i];
@@ -762,6 +763,7 @@ __kernel void __attribute__((reqd_work_group_size (8, 1, 1))) m09000_loop (__glo
   __local u32 *S2 = S2_all[lid];
   __local u32 *S3 = S3_all[lid];
 
+  #pragma unroll
   for (u32 i = 0; i < 256; i++)
   {
     S0[i] = tmps[gid].S0[i];
