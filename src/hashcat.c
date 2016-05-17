@@ -5871,8 +5871,11 @@ int main (int argc, char **argv)
   {
     if (benchmark == 1)
     {
-      log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
-      log_info ("");
+      if (status_automat == 0)
+      {
+        log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
+        log_info ("");
+      }
     }
     else if (restore == 1)
     {
@@ -13075,21 +13078,24 @@ int main (int argc, char **argv)
 
         if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
         {
-          if (device_param->skipped == 0)
+          if (status_automat == 0)
           {
-            log_info ("Device #%u: %s, %lu/%lu MB allocatable, %dMhz, %uMCU",
-                      device_id + 1,
-                      device_name,
-                      (unsigned int) (device_maxmem_alloc / 1024 / 1024),
-                      (unsigned int) (device_global_mem   / 1024 / 1024),
-                      (unsigned int) (device_maxclock_frequency),
-                      (unsigned int)  device_processors);
-          }
-          else
-          {
-            log_info ("Device #%u: %s, skipped",
-                      device_id + 1,
-                      device_name);
+            if (device_param->skipped == 0)
+            {
+              log_info ("Device #%u: %s, %lu/%lu MB allocatable, %dMhz, %uMCU",
+                        device_id + 1,
+                        device_name,
+                        (unsigned int) (device_maxmem_alloc / 1024 / 1024),
+                        (unsigned int) (device_global_mem   / 1024 / 1024),
+                        (unsigned int) (device_maxclock_frequency),
+                        (unsigned int)  device_processors);
+            }
+            else
+            {
+              log_info ("Device #%u: %s, skipped",
+                        device_id + 1,
+                        device_name);
+            }
           }
         }
 
@@ -13268,7 +13274,10 @@ int main (int argc, char **argv)
 
     if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
     {
-      log_info ("");
+      if (status_automat == 0)
+      {
+        log_info ("");
+      }
     }
 
     /**
@@ -15026,16 +15035,19 @@ int main (int argc, char **argv)
      * In benchmark-mode, inform user which algorithm is checked
      */
 
-    if (benchmark == 1 && status_automat == 0)
+    if (benchmark == 1)
     {
-      quiet = 0;
+      if (status_automat == 0)
+      {
+        quiet = 0;
 
-      data.quiet = quiet;
+        data.quiet = quiet;
 
-      char *hash_type = strhashtype (data.hash_mode); // not a bug
+        char *hash_type = strhashtype (data.hash_mode); // not a bug
 
-      log_info ("Hashtype: %s", hash_type);
-      log_info ("");
+        log_info ("Hashtype: %s", hash_type);
+        log_info ("");
+      }
     }
 
     /**
