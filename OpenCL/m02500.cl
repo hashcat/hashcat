@@ -768,17 +768,17 @@ __kernel void m02500_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
     u32x dgst[5];
     u32x out[5];
 
-    dgst[0] = packv (tmps, dgst, gid, 0);
-    dgst[1] = packv (tmps, dgst, gid, 1);
-    dgst[2] = packv (tmps, dgst, gid, 2);
-    dgst[3] = packv (tmps, dgst, gid, 3);
-    dgst[4] = packv (tmps, dgst, gid, 4);
+    dgst[0] = packv (tmps, dgst, gid, i + 0);
+    dgst[1] = packv (tmps, dgst, gid, i + 1);
+    dgst[2] = packv (tmps, dgst, gid, i + 2);
+    dgst[3] = packv (tmps, dgst, gid, i + 3);
+    dgst[4] = packv (tmps, dgst, gid, i + 4);
 
-    out[0] = packv (tmps, out, gid, 0);
-    out[1] = packv (tmps, out, gid, 1);
-    out[2] = packv (tmps, out, gid, 2);
-    out[3] = packv (tmps, out, gid, 3);
-    out[4] = packv (tmps, out, gid, 4);
+    out[0] = packv (tmps, out, gid, i + 0);
+    out[1] = packv (tmps, out, gid, i + 1);
+    out[2] = packv (tmps, out, gid, i + 2);
+    out[3] = packv (tmps, out, gid, i + 3);
+    out[4] = packv (tmps, out, gid, i + 4);
 
     for (u32 j = 0; j < loop_cnt; j++)
     {
@@ -813,17 +813,17 @@ __kernel void m02500_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
       out[4] ^= dgst[4];
     }
 
-    unpackv (tmps, dgst, gid, 0, dgst[0]);
-    unpackv (tmps, dgst, gid, 1, dgst[1]);
-    unpackv (tmps, dgst, gid, 2, dgst[2]);
-    unpackv (tmps, dgst, gid, 3, dgst[3]);
-    unpackv (tmps, dgst, gid, 4, dgst[4]);
+    unpackv (tmps, dgst, gid, i + 0, dgst[0]);
+    unpackv (tmps, dgst, gid, i + 1, dgst[1]);
+    unpackv (tmps, dgst, gid, i + 2, dgst[2]);
+    unpackv (tmps, dgst, gid, i + 3, dgst[3]);
+    unpackv (tmps, dgst, gid, i + 4, dgst[4]);
 
-    unpackv (tmps, out, gid, 0, out[0]);
-    unpackv (tmps, out, gid, 1, out[1]);
-    unpackv (tmps, out, gid, 2, out[2]);
-    unpackv (tmps, out, gid, 3, out[3]);
-    unpackv (tmps, out, gid, 4, out[4]);
+    unpackv (tmps, out, gid, i + 0, out[0]);
+    unpackv (tmps, out, gid, i + 1, out[1]);
+    unpackv (tmps, out, gid, i + 2, out[2]);
+    unpackv (tmps, out, gid, i + 3, out[3]);
+    unpackv (tmps, out, gid, i + 4, out[4]);
   }
 }
 
