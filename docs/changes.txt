@@ -59,6 +59,7 @@ It combines all features of all hashcat projects in one project.
 - Benchmark accuracy improved; Is now on par to: singlehash -a 3 -w 3 ?b?b?b?b?b?b?b
 - Benchmark no longer depends on a fixed time
 - Removed option --benchmark-mode, therefore support --workload-profile in benchmark-mode
+- Enabled support of --status-automat in combination with --benchmark for automated benchmark processing
 - Extended support from 14 to 255 functions calls per rule
 - Extended password length up to 32 for 7zip
 - Extended salt length up to 55 for raw hash types, eg: md5($pass.$salt)

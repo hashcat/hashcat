@@ -1160,9 +1160,9 @@ void status_display ()
     speed_ms[device_id]  /= SPEED_CACHE;
   }
 
-  float hashes_all_ms = 0;
+  double hashes_all_ms = 0;
 
-  float hashes_dev_ms[DEVICES_MAX] = { 0 };
+  double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1174,7 +1174,7 @@ void status_display ()
 
     if (speed_ms[device_id])
     {
-      hashes_dev_ms[device_id] = speed_cnt[device_id] / speed_ms[device_id];
+      hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
 
       hashes_all_ms += hashes_dev_ms[device_id];
     }
@@ -1608,12 +1608,59 @@ void status_display ()
   #endif // HAVE_HWMON
 }
 
+static void status_benchmark_automat ()
+{
+  u64    speed_cnt[DEVICES_MAX] = { 0 };
+  double speed_ms[DEVICES_MAX]  = { 0 };
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    speed_cnt[device_id] = device_param->speed_cnt[0];
+    speed_ms[device_id]  = device_param->speed_ms[0];
+  }
+
+  double hashes_dev_ms[DEVICES_MAX] = { 0 };
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    hashes_dev_ms[device_id] = 0;
+
+    if (speed_ms[device_id])
+    {
+      hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
+    }
+  }
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    log_info ("%u:%u:%llu", device_id + 1, data.hash_mode, (unsigned long long int) (hashes_dev_ms[device_id] * 1000));
+  }
+}
+
 static void status_benchmark ()
 {
   if (data.devices_status == STATUS_INIT)     return;
   if (data.devices_status == STATUS_STARTING) return;
+  if (data.devices_status == STATUS_BYPASS)   return;
 
-  if (data.words_cnt == 0) return;
+  if (data.status_automat == 1)
+  {
+    status_benchmark_automat ();
+
+    return;
+  }
 
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
@@ -1628,9 +1675,9 @@ static void status_benchmark ()
     speed_ms[device_id]  = device_param->speed_ms[0];
   }
 
-  float hashes_all_ms = 0;
+  double hashes_all_ms = 0;
 
-  float hashes_dev_ms[DEVICES_MAX] = { 0 };
+  double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1642,7 +1689,7 @@ static void status_benchmark ()
 
     if (speed_ms[device_id])
     {
-      hashes_dev_ms[device_id] = speed_cnt[device_id] / speed_ms[device_id];
+      hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
 
       hashes_all_ms += hashes_dev_ms[device_id];
     }
@@ -14979,7 +15026,7 @@ int main (int argc, char **argv)
      * In benchmark-mode, inform user which algorithm is checked
      */
 
-    if (benchmark == 1)
+    if (benchmark == 1 && status_automat == 0)
     {
       quiet = 0;
 
@@ -16981,7 +17028,10 @@ int main (int argc, char **argv)
     {
       status_benchmark ();
 
-      log_info ("");
+      if (status_automat == 0)
+      {
+        log_info ("");
+      }
     }
     else
     {
