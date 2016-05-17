@@ -5876,6 +5876,10 @@ int main (int argc, char **argv)
         log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
         log_info ("");
       }
+      else
+      {
+        log_info ("# %s (%s) %s", PROGNAME, VERSION_TAG, ctime (&proc_start));
+      }
     }
     else if (restore == 1)
     {
