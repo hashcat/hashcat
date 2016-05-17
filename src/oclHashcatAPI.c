@@ -272,11 +272,12 @@ typedef struct hcapi_data_t {
   uint    digests_done;
   uint    salts_cnt;
   uint    salts_done;
-  salt_t *salts_buf;
-  uint   *salts_shown;
-  void   *esalts_buf;
 
- 
+  /* TODO
+    salt_t *salts_buf;
+    uint   *salts_shown;
+    void   *esalts_buf;
+  */
 
   /**
    * crack-per-time
@@ -293,8 +294,8 @@ typedef struct hcapi_data_t {
   char   *dictfile;
   char   *dictfile2;
   char   *mask;
-  uint    maskcnt;
-  uint    maskpos;
+  uint    mask_cnt;
+  uint    mask_pos;
   char   *session;
   char   *hashfile;
   uint    restore_disable;
@@ -344,6 +345,11 @@ typedef struct hcapi_data_t {
    char *status;
    char *hash_target;
    char *hash_type_str;
+   char *input_mode;
+   char *input_left;
+   char *input_right;
+   uint mask_len;
+   float mask_percentage;
 
    hcapi_data_time_started time_started;
    hcapi_data_time_estimated time_estimated;
@@ -403,7 +409,7 @@ char *strcat_ls (char *dst, char *src)
   {
 
     printf ("ERROR: Allocating Memory");
-    exit (1);
+    exit (-1);
   }
 
   snprintf (tmp, total_len, "%s%s", dst, src);
@@ -424,20 +430,13 @@ void check_argv_array (char ***apiargv, size_t * apiargv_size, size_t * apiargv_
 
     *apiargv = realloc (*apiargv, (*apiargv_size + *apiargv_grow_by) * sizeof (char *));
 
-    // Something went wrong Free memory for apiargv
+    // Something went wrong 
     if (*apiargv == NULL)
     {
 
-      for (size_t i = 0; i < (size_t) * apiargc; i++)
-      {
-        // Free individual args
-        free (*apiargv[i]);
-      }
+      debug_print("ERROR: Expanding Array!\n");
+      exit (-1);
 
-      free (*apiargv);
-
-      printf ("ERROR: Expanding Array!\n");
-      exit (1);
     }
 
   }
@@ -496,7 +495,7 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
   if (apiargv == NULL)
   {
     printf ("ERROR: Memory allocation failure ARGV!\n");
-    exit (1);
+    exit (-1);
   }
 
   // Account for program call
@@ -1604,10 +1603,10 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
     char *dictmaskdir = strcat_ls ("", options.dictmaskdir);
 
     /**
-			WARNING: strtok() is considered unsafe. Would normally us strtok_r or strtok_s,
-				 but they are not standard in C99. Other options are we could roll our own, make options.dictmaskdir an char *array[] and dynamically grow for each rule, compile with 
-				 -std=C11 which has strtok_r
-		*/
+      WARNING: strtok() is considered unsafe. Would normally us strtok_r or strtok_s,
+         but they are not standard in C99. Other options are we could roll our own, make options.dictmaskdir an char *array[] and dynamically grow for each rule, compile with 
+         -std=C11 which has strtok_r
+    */
     token = strtok (dictmaskdir, seps);
 
     if (token != NULL)
@@ -1653,10 +1652,10 @@ void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v
     char *rule_files = strcat_ls ("", options.rp_files);
 
     /**
-			WARNING: strtok() is considered unsafe. Would normally us strtok_r or strtok_s,
-				 but they are not standard in C99. Other options are we could roll our own, make options.rp_files an char *array[] and dynamically grow for each rule, compile with 
-				 -std=C11 which has strtok_r
-		*/
+      WARNING: strtok() is considered unsafe. Would normally us strtok_r or strtok_s,
+         but they are not standard in C99. Other options are we could roll our own, make options.rp_files an char *array[] and dynamically grow for each rule, compile with 
+         -std=C11 which has strtok_r
+    */
     token = strtok (rule_files, seps);
 
     if (token != NULL)
@@ -1893,26 +1892,25 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
   extern hc_global_data_t data;
   extern hc_thread_mutex_t mux_adl;
 
+  
+
   hc_thread_mutex_lock (mux_display);
 
   if (data.devices_status == STATUS_INIT)     return 0;
   if (data.devices_status == STATUS_STARTING) return 0;
   if (data.devices_status == STATUS_BYPASS)   return 0;
 
+  size_t input_size;
 
-  char tmp_buf[1000] = { 0 };
 
-  uint tmp_len = 0;
+  // Set API Data session
+  input_size = strlen (data.session) + 2;
 
-  //log_info ("Session.Name...: %s", data.session);
-  size_t input_size = strlen (data.session) + 2;
-
-  hcapi_data->session = (char *) calloc (input_size, sizeof (char));
+  hcapi_data->session = (char *) realloc (hcapi_data->session, input_size*sizeof (char));
 
   snprintf (hcapi_data->session, input_size, "%s", data.session);
 
   
-
 
   char *status_type = strstatus (data.devices_status);
 
@@ -1920,57 +1918,186 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
 
   char *hash_type = strhashtype (hash_mode); // not a bug
 
-  log_info ("Status.........: %s", status_type);
+
+
+  // Set API Data hash_type
+  hcapi_data->hash_type = data.hash_type;
+
+  // Set API Data hash_mode
+  hcapi_data->hash_mode = hash_mode;
+
+  // Set API Data devices_status
+  hcapi_data->devices_status = data.devices_status;
+
+  // Set API Data devices_cnt
+  hcapi_data->devices_cnt = data.devices_cnt;
+
+  // Set API Data devices_active
+  hcapi_data->devices_active = data.devices_active;
+
+  // Set API Data wordlist_mode
+  hcapi_data->wordlist_mode = data.wordlist_mode;
+
+  // Set API Data attack_mode
+  hcapi_data->attack_mode = data.attack_mode;
+
+  // Set API Data attack_kern
+  hcapi_data->attack_kern = data.attack_kern;
+
+  // Set API Data kernel_rules_cnt
+  hcapi_data->kernel_rules_cnt = data.kernel_rules_cnt;
+
+  // Set API Data combs_cnt
+  hcapi_data->combs_cnt = data.combs_cnt;
+
+  // Set API Data bfs_cnt
+  hcapi_data->bfs_cnt = data.bfs_cnt;
+
+  // Set API Data css_cnt
+  hcapi_data->css_cnt = data.css_cnt;
+
+  // Set API Data digest_cnt
+  hcapi_data->digests_cnt = data.digests_cnt;
+
+  // Set API Data digest_done
+  hcapi_data->digests_done = data.digests_done;
+
+  // Set API Data salts_cnt
+  hcapi_data->salts_cnt = data.salts_cnt;
+
+  // Set API Data salts_done
+  hcapi_data->salts_done = data.salts_done;
+
+  // Set API Data status
+  input_size = strlen (status_type) + 2;
+
+  hcapi_data->status = (char *) realloc (hcapi_data->status, input_size*sizeof (char));
+
+  snprintf (hcapi_data->status, input_size, "%s", status_type);
+
+  // Set API Data hash_type_str
+  input_size = strlen (hash_type) + 1;
+
+  hcapi_data->hash_type_str = (char *) realloc (hcapi_data->hash_type_str, input_size*sizeof (char));
+
+  snprintf (hcapi_data->hash_type_str, input_size, "%s", hash_type);
+  
+
  
   /**
-   * show rules
+   * copy rules
    */
 
   if (data.rp_files_cnt)
   {
-    uint i;
 
-    for (i = 0, tmp_len = 0; i < data.rp_files_cnt - 1 && tmp_len < sizeof (tmp_buf); i++)
+    // Set API Data rp_files_cnt
+    hcapi_data->rp_files_cnt = data.rp_files_cnt;
+
+    
+    uint i;
+    input_size = 0;
+    
+    hcapi_data->rp_files = realloc(hcapi_data->rp_files , hcapi_data->rp_files_cnt * (sizeof(char *)));
+
+    for (i = 0; i < hcapi_data->rp_files_cnt; i++)
     {
-      tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s), ", data.rp_files[i]);
+
+      if (hcapi_data->rp_files[i] != NULL)
+      {
+
+        free(hcapi_data->rp_files[i]);
+
+      }        
+
+      hcapi_data->rp_files[i] = NULL; 
+
+      input_size = strlen(data.rp_files[i])+1;
+
+      hcapi_data->rp_files[i] = realloc(hcapi_data->rp_files[i], input_size*sizeof(char));
+
+      // Set API Data rp_files
+      snprintf(hcapi_data->rp_files[i], input_size, "%s", data.rp_files[i]);
+
     }
 
-    snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s)", data.rp_files[i]);
-
-    log_info ("Rules.Type.....: %s", tmp_buf);
-
-    tmp_len = 0;
   }
+
 
   if (data.rp_gen)
   {
-    log_info ("Rules.Type.....: Generated (%u)", data.rp_gen);
+
+    // Set API Data rp_gen
+    hcapi_data->rp_gen = data.rp_gen;
 
     if (data.rp_gen_seed)
     {
-      log_info ("Rules.Seed.....: %u", data.rp_gen_seed);
+      // Set API Data rp_gen
+      hcapi_data->rp_gen_seed =  data.rp_gen_seed;
     }
+
   }
 
   /**
-   * show input
+   * Set input
    */
 
   if (data.attack_mode == ATTACK_MODE_STRAIGHT)
   {
     if (data.wordlist_mode == WL_MODE_FILE)
     {
-      if (data.dictfile != NULL) log_info ("Input.Mode.....: File (%s)", data.dictfile);
+      if (data.dictfile != NULL) {
+
+        
+        input_size = strlen (data.dictfile) + 1;
+
+        hcapi_data->input_mode = (char *) realloc (hcapi_data->input_mode, input_size*sizeof (char));
+
+        // Set API Data input_mode
+        snprintf (hcapi_data->input_mode, input_size, "%s", data.dictfile);
+
+      }
+
+        
     }
     else if (data.wordlist_mode == WL_MODE_STDIN)
     {
-      log_info ("Input.Mode.....: Pipe");
+      
+      char *mode = "Pipe";
+      input_size = strlen (mode) + 1;
+
+      hcapi_data->input_mode = (char *) realloc (hcapi_data->input_mode, input_size*sizeof (char));
+
+      // Set API Data input_mode
+      snprintf (hcapi_data->input_mode, input_size, "%s", mode);
+
     }
   }
   else if (data.attack_mode == ATTACK_MODE_COMBI)
   {
-    if (data.dictfile  != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
-    if (data.dictfile2 != NULL) log_info ("Input.Right....: File (%s)", data.dictfile2);
+    if (data.dictfile  != NULL) 
+    {
+        
+        input_size = strlen (data.dictfile) + 1;
+
+        hcapi_data->input_left = (char *) realloc (hcapi_data->input_left, input_size*sizeof (char));
+
+        // Set API Data input_left
+        snprintf (hcapi_data->input_left, input_size, "%s", data.dictfile);
+
+    }
+
+    if (data.dictfile2 != NULL) 
+    {
+
+      input_size = strlen (data.dictfile2) + 1;
+
+      hcapi_data->input_right= (char *) realloc (hcapi_data->input_right, input_size*sizeof (char));
+
+      // Set API Data input_right
+      snprintf (hcapi_data->input_right, input_size, "%s", data.dictfile2);
+
+    }
   }
   else if (data.attack_mode == ATTACK_MODE_BF)
   {
@@ -1978,9 +2105,16 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
 
     if (mask != NULL)
     {
-      uint mask_len = data.css_cnt;
 
-      tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "Mask (%s)", mask);
+      uint mask_len = data.css_cnt;
+      hcapi_data->mask_len = mask_len;
+
+      input_size = strlen (data.mask) + 1;
+
+      hcapi_data->mask= (char *) realloc (hcapi_data->mask, input_size*sizeof (char));
+
+      // Set API Data mask
+      snprintf (hcapi_data->mask, input_size, "%s", data.mask);
 
       if (mask_len > 0)
       {
@@ -1988,36 +2122,92 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
         {
           if (data.opti_type & OPTI_TYPE_APPENDED_SALT)
           {
+
             mask_len -= data.salts_buf[0].salt_len;
+            hcapi_data->mask_len = mask_len;
+
           }
         }
 
-        if (data.opts_type & OPTS_TYPE_PT_UNICODE) mask_len /= 2;
+        if (data.opts_type & OPTS_TYPE_PT_UNICODE) 
+        {
 
-        tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " [%i]", mask_len);
+          mask_len /= 2;
+          hcapi_data->mask_len = mask_len;
+
+        }
       }
+
+      // Set API Data maskcnt
+      hcapi_data->mask_cnt = data.maskcnt;
+
+      // Set API Data maskpos
+      hcapi_data->mask_pos = data.maskpos;
 
       if (data.maskcnt > 1)
       {
         float mask_percentage = (float) data.maskpos / (float) data.maskcnt;
 
-        tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " (%.02f%%)", mask_percentage * 100);
+        hcapi_data->mask_percentage = mask_percentage;
+
       }
 
-      log_info ("Input.Mode.....: %s", tmp_buf);
     }
 
-    tmp_len = 0;
+    
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID1)
   {
-    if (data.dictfile != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
-    if (data.mask     != NULL) log_info ("Input.Right....: Mask (%s) [%i]", data.mask, data.css_cnt);
+    if (data.dictfile != NULL)
+    {
+      input_size = strlen (data.dictfile) + 1;
+
+      hcapi_data->input_left = (char *) realloc (hcapi_data->input_left, input_size*sizeof (char));
+
+      // Set API Data input_left
+      snprintf (hcapi_data->input_left, input_size, "%s", data.dictfile);
+
+    }
+
+
+    if (data.mask     != NULL) 
+    {
+
+      input_size = strlen (data.mask) + 1;
+
+      hcapi_data->input_right= (char *) realloc (hcapi_data->input_right, input_size*sizeof (char));
+
+      // Set API Data input_right
+      snprintf (hcapi_data->input_right, input_size, "%s", data.mask);
+
+    }
+    
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (data.mask     != NULL) log_info ("Input.Left.....: Mask (%s) [%i]", data.mask, data.css_cnt);
-    if (data.dictfile != NULL) log_info ("Input.Right....: File (%s)", data.dictfile);
+    if (data.mask     != NULL) 
+    {
+      input_size = strlen (data.mask) + 1;
+
+      hcapi_data->input_left= (char *) realloc (hcapi_data->input_left, input_size*sizeof (char));
+
+      // Set API Data input_right
+      snprintf (hcapi_data->input_left, input_size, "%s", data.mask);
+
+    }
+
+    if (data.dictfile != NULL) 
+    {
+
+      input_size = strlen (data.dictfile) + 1;
+
+      hcapi_data->input_right = (char *) realloc (hcapi_data->input_right, input_size*sizeof (char));
+
+      // Set API Data input_left
+      snprintf (hcapi_data->input_right, input_size, "%s", data.dictfile);
+
+    }
+
   }
 
   if (data.digests_cnt == 1)
@@ -2659,13 +2849,10 @@ hcapi_control oclhashcat_init (void)
   control.options.custom_charset_2 = NULL;
   control.options.custom_charset_3 = NULL;
   control.options.custom_charset_4 = NULL;
-  
+  control.options.rp_files = NULL;
 
   control.options.append_rules = hcapi_append_rules;
   control.options.append_dictmaskdir = hcapi_append_dictmaskdir;
-  control.options.rp_files = NULL;
-
-
   control.start = hcapi_start;
   control.start_thread = hcapi_start_thread;
   control.stop = hcapi_stop;
@@ -2674,8 +2861,31 @@ hcapi_control oclhashcat_init (void)
 
   
   debug_print ("Intializing data output structure\n");
+  
   control.status_data.cpt_buf = (cpt_t *)malloc(CPT_BUF * sizeof(cpt_t));
-
+  control.status_data.dictfile = NULL;
+  control.status_data.dictfile2 = NULL;
+  control.status_data.mask = NULL;
+  control.status_data.session = NULL;
+  control.status_data.hashfile = NULL;
+  control.status_data.time_started.start = NULL;
+  control.status_data.time_started.display_run = NULL;
+  control.status_data.time_estimated.etc = NULL;
+  control.status_data.time_estimated.display_etc = NULL;
+  control.status_data.status = NULL;
+  control.status_data.hash_target = NULL;
+  control.status_data.hash_type_str = NULL;
+  control.status_data.rp_files_cnt = 0;
+  control.status_data.rp_files = NULL;
+  control.status_data.rp_gen = 0;
+  control.status_data.rp_gen_seed = 0;
+  control.status_data.input_mode = NULL;
+  control.status_data.input_left = NULL;
+  control.status_data.input_right = NULL;
+  control.status_data.mask_cnt = 0;
+  control.status_data.mask_pos = 0;
+  control.status_data.mask_percentage = 0.0;
+  control.status_data.mask_len = 0;
 
   return control;
 
@@ -2694,13 +2904,19 @@ int main ()
   hcapi_control hc = oclhashcat_init ();
 
 
-
   hc.options.attack_mode = 0;
   hc.options.hash_mode = 1000;
-  hc.options.hash_input = "C:\\Users\\auser\\Desktop\\hashes.txt";
-  hc.options.append_dictmaskdir(&hc.options, "C:\\Users\\auser\\Desktop\\Dicts\\dictionary.txt");
-  hc.options.append_rules(&hc.options, "C:\\Users\\auser\\Desktop\\Rules\\somerulse.rule");
-  hc.options.append_rules(&hc.options, "rules\\best64.rule");
+  hc.options.hash_input = "C:\\Users\\rich\\Desktop\\Datastar\\Datastar_hashes";
+  hc.options.append_dictmaskdir (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Dicts\\16Walk.txt");
+  hc.options.append_rules (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Rules\\walk.rule");
+  hc.options.append_rules (&hc.options, "rules\\best64.rule");
+
+  // hc.options.attack_mode = 0;
+  // hc.options.hash_mode = 1000;
+  // hc.options.hash_input = "C:\\Users\\auser\\Desktop\\hashes.txt";
+  // hc.options.append_dictmaskdir(&hc.options, "C:\\Users\\auser\\Desktop\\Dicts\\dictionary.txt");
+  // hc.options.append_rules(&hc.options, "C:\\Users\\auser\\Desktop\\Rules\\somerulse.rule");
+  // hc.options.append_rules(&hc.options, "rules\\best64.rule");
 
 
   int c;
@@ -2726,19 +2942,37 @@ int main ()
 
     if(hc.status_update (&hc.status_data)){
 
-
-        printf("-----------------> %s", hc.status_data.session);
         
+        printf("-----------------session : %s\n", hc.status_data.session);
+        printf("-----------------devices_status : %u\n", hc.status_data.devices_status);
+        printf("-----------------hash_type : %u\n", hc.status_data.hash_type);
+        printf("-----------------hash_type_str : %s\n", hc.status_data.hash_type_str);
+        printf("-----------------hash_mode : %u\n", hc.status_data.hash_mode);
+        printf("-----------------rp_files_cnt : %d\n", hc.status_data.rp_files_cnt);
+
+
+        for(uint i = 0; i < hc.status_data.rp_files_cnt; i++)
+        {
+
+          printf("-----------------Rules file %d: %s\n", i, hc.status_data.rp_files[i]);
+        }
+        
+        printf("-----------------rp_gen : %u\n", hc.status_data.rp_gen);
+        printf("-----------------rp_gen_seed : %u\n", hc.status_data.rp_gen_seed);
+        printf("-----------------input_mode : %s\n", hc.status_data.input_mode);
+        printf("-----------------mask : %s\n", hc.status_data.mask);
+        printf("-----------------mask_cnt: %u\n", hc.status_data.mask_cnt);
+        printf("-----------------mask_pos: %u\n", hc.status_data.mask_pos);
+        printf("-----------------mask_len: %u\n", hc.status_data.mask_len);
 
     } else {
 
-      printf("ERROR status didn't work");
+      printf("ERROR status update not available\n");
     }
 
   }
 
 
-  // Lots of prints for testing. To be deleted upon release
   printf ("[!] BACK IN MAIN");
 
   getchar ();
