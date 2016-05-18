@@ -5251,6 +5251,8 @@ int main (int argc, char **argv)
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
 
+  umask (077);
+
   /**
    * Real init
    */
