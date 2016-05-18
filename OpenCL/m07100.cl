@@ -75,7 +75,7 @@ void sha512_transform_S (const u64 w[16], u64 dgst[8])
   u64 we_t = w[14];
   u64 wf_t = w[15];
 
-  #define ROUND_EXPAND()                              \
+  #define ROUND_EXPAND_S()                            \
   {                                                   \
     w0_t = SHA512_EXPAND_S (we_t, w9_t, w1_t, w0_t);  \
     w1_t = SHA512_EXPAND_S (wf_t, wa_t, w2_t, w1_t);  \
@@ -95,7 +95,7 @@ void sha512_transform_S (const u64 w[16], u64 dgst[8])
     wf_t = SHA512_EXPAND_S (wd_t, w8_t, w0_t, wf_t);  \
   }
 
-  #define ROUND_STEP(i)                                                                     \
+  #define ROUND_STEP_S(i)                                                                   \
   {                                                                                         \
     SHA512_STEP_S (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha512[i +  0]); \
     SHA512_STEP_S (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha512[i +  1]); \
@@ -115,14 +115,14 @@ void sha512_transform_S (const u64 w[16], u64 dgst[8])
     SHA512_STEP_S (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha512[i + 15]); \
   }
 
-  ROUND_STEP (0);
+  ROUND_STEP_S (0);
 
   #ifdef _unroll
   #pragma unroll
   #endif
   for (int i = 16; i < 80; i += 16)
   {
-    ROUND_EXPAND (); ROUND_STEP (i);
+    ROUND_EXPAND_S (); ROUND_STEP_S (i);
   }
 
   dgst[0] += a;

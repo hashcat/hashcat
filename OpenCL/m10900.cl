@@ -71,7 +71,7 @@ void sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], cons
   u32 we_t = w3[2];
   u32 wf_t = w3[3];
 
-  #define ROUND_EXPAND()                              \
+  #define ROUND_EXPAND_S()                            \
   {                                                   \
     w0_t = SHA256_EXPAND_S (we_t, w9_t, w1_t, w0_t);  \
     w1_t = SHA256_EXPAND_S (wf_t, wa_t, w2_t, w1_t);  \
@@ -91,8 +91,8 @@ void sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], cons
     wf_t = SHA256_EXPAND_S (wd_t, w8_t, w0_t, wf_t);  \
   }
 
-  #define ROUND_STEP(i)                                                                   \
-  {                                                                                       \
+  #define ROUND_STEP_S(i)                                                                   \
+  {                                                                                         \
     SHA256_STEP_S (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha256[i +  0]); \
     SHA256_STEP_S (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha256[i +  1]); \
     SHA256_STEP_S (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha256[i +  2]); \
@@ -111,14 +111,14 @@ void sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], cons
     SHA256_STEP_S (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha256[i + 15]); \
   }
 
-  ROUND_STEP (0);
+  ROUND_STEP_S (0);
 
   #ifdef _unroll
   #pragma unroll
   #endif
   for (int i = 16; i < 64; i += 16)
   {
-    ROUND_EXPAND (); ROUND_STEP (i);
+    ROUND_EXPAND_S (); ROUND_STEP_S (i);
   }
 
   digest[0] += a;
