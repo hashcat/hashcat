@@ -597,7 +597,7 @@ inline u64x rotl64 (const u64x a, const u32 n)
 
 inline u32x __bfe (const u32x a, const u32x b, const u32x c)
 {
-  #define BIT(x)      (1 << (x))
+  #define BIT(x)      ((u32x) (1u) << (x))
   #define BIT_MASK(x) (BIT (x) - 1)
   #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
 
@@ -610,7 +610,7 @@ inline u32x __bfe (const u32x a, const u32x b, const u32x c)
 
 inline u32 __bfe_S (const u32 a, const u32 b, const u32 c)
 {
-  #define BIT(x)      (1 << (x))
+  #define BIT(x)      (1u << (x))
   #define BIT_MASK(x) (BIT (x) - 1)
   #define BFE(x,y,z)  (((x) >> (y)) & BIT_MASK (z))
 
