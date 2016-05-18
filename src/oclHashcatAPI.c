@@ -40,22 +40,22 @@
 
 #define HM_STR_BUF_SIZE 255
 
-struct hcapi_control;    
-struct hcapi_options;   
-struct hcapi_thread_args;
+struct hcapi_control_t;    
+struct hcapi_options_t;   
+struct hcapi_thread_args_t;
 struct hcapi_data_t;
 
 /**
  * Function prototypes
  */
 
-struct hcapi_control oclhashcat_init (void);
+struct hcapi_control_t oclhashcat_init (void);
 int hcapi_main (int, char **);
 int hcapi_start (int, char **);
 int hcapi_stop (void);
-void hcapi_append_rules (struct hcapi_options *, char *);
-void hcapi_append_dictmaskdir (struct hcapi_options *, char *);
-void hcapi_generate_commandline (struct hcapi_options, int *, char ***);
+void hcapi_append_rules (struct hcapi_options_t *, char *);
+void hcapi_append_dictmaskdir (struct hcapi_options_t *, char *);
+void hcapi_generate_commandline (struct hcapi_options_t, int *, char ***);
 int hcapi_status_update (struct hcapi_data_t *);
 
 #ifdef WIN
@@ -69,14 +69,14 @@ char *strcat_ls (char *, char *);
 
 typedef unsigned int uint;
 
-typedef struct hcapi_thread_args
+typedef struct hcapi_thread_args_t
 {
   int c;
   char **v;
 
-} hcapi_thread_args;
+} hcapi_thread_args_t;
 
-typedef struct hcapi_options
+typedef struct hcapi_options_t
 {
 
   char *hash_input;
@@ -154,31 +154,31 @@ typedef struct hcapi_options
   char *custom_charset_4;
 
   char *rp_files;
-  void (*append_rules) (struct hcapi_options * options, char *new_file_path);
+  void (*append_rules) (struct hcapi_options_t * options, char *new_file_path);
 
   char *dictmaskdir;
-  void (*append_dictmaskdir) (struct hcapi_options * options, char *new_file_path);
+  void (*append_dictmaskdir) (struct hcapi_options_t * options, char *new_file_path);
 
-} hcapi_options;
+} hcapi_options_t;
 
 
-typedef struct hcapi_data_time_start {
+typedef struct hcapi_data_time_started_t {
     
     char *start;
     char *display_run;
 
 
-} hcapi_data_time_started;
+} hcapi_data_time_started_t;
 
 
-typedef struct hcapi_data_time_estimated {
+typedef struct hcapi_data_time_estimated_t {
     
     char * etc;
     char *display_etc;
 
-} hcapi_data_time_estimated;
+} hcapi_data_time_estimated_t;
 
-typedef struct hcapi_data_speed_dev {
+typedef struct hcapi_data_speed_dev_t {
     
 
     int device_id;
@@ -186,17 +186,17 @@ typedef struct hcapi_data_speed_dev {
     double exec_all_ms[DEVICES_MAX];
     char display_all_cur[16];
 
-} hcapi_data_speed_dev;
+} hcapi_data_speed_dev_t;
 
-typedef struct hcapi_data_recovered {
+typedef struct hcapi_data_recovered_t {
     
     float digests_percent;
     float salts_percent;
 
-} hcapi_data_recovered;
+} hcapi_data_recovered_t;
 
 
-typedef struct hcapi_data_recovered_time {
+typedef struct hcapi_data_recovered_time_t {
     
     int cpt_cur_min;
     int cpt_cur_hour;
@@ -208,9 +208,9 @@ typedef struct hcapi_data_recovered_time {
     float cpt_avg_hour;
     float cpt_avg_day;
 
-} hcapi_data_recovered_time;
+} hcapi_data_recovered_time_t;
 
-typedef struct hcapi_data_progress {
+typedef struct hcapi_data_progress_t {
     
     u64 progress_cur_relative_skip;
     u64 progress_end_relative_skip;
@@ -218,25 +218,25 @@ typedef struct hcapi_data_progress {
     float percent_rejected;
     u64 all_rejected;
 
-} hcapi_data_progress;
+} hcapi_data_progress_t;
 
 
-typedef struct hcapi_data_restore_point {
+typedef struct hcapi_data_restore_point_t {
     
     u64 restore_total;
     u64 restore_point;
     float percent_restore;
 
-} hcapi_data_restore_point;
+} hcapi_data_restore_point_t;
 
 
-typedef struct hcapi_data_hwmon_gpu {
+typedef struct hcapi_data_hwmon_gpu_t {
     
     int device_id;
     char utilization[HM_STR_BUF_SIZE];
     char temperature[HM_STR_BUF_SIZE];
 
-} hcapi_data_hwmon_gpu;
+} hcapi_data_hwmon_gpu_t;
 
 
 
@@ -246,6 +246,7 @@ typedef struct hcapi_data_t {
    * threads
    */
   uint    devices_status;
+  char    *devices_status_str;
   uint    devices_cnt;
   uint    devices_active;
 
@@ -351,15 +352,14 @@ typedef struct hcapi_data_t {
    uint mask_len;
    float mask_percentage;
 
-   hcapi_data_time_started time_started;
-   hcapi_data_time_estimated time_estimated;
-
-   hcapi_data_speed_dev *speed_dev;
-   hcapi_data_recovered recovered;
-   hcapi_data_recovered_time recovered_time;
-   hcapi_data_progress progress;
-   hcapi_data_restore_point restore_point;
-   hcapi_data_hwmon_gpu hwmon_gpu;
+   hcapi_data_time_started_t *time_started;
+   hcapi_data_time_estimated_t *time_estimated;
+   hcapi_data_speed_dev_t *speed_dev;
+   hcapi_data_recovered_t *recovered;
+   hcapi_data_recovered_time_t *recovered_time;
+   hcapi_data_progress_t *progress;
+   hcapi_data_restore_point_t *restore_point;
+   hcapi_data_hwmon_gpu_t *hwmon_gpu;
 
 } hcapi_data_t;
 
@@ -371,7 +371,7 @@ typedef struct hcapi_data_t {
  * Primary control structure
  */
 
-typedef struct hcapi_control {
+typedef struct hcapi_control_t {
 
   int (*start) (int argc, char **argvv);
 
@@ -382,13 +382,13 @@ typedef struct hcapi_control {
 #endif
 
   int (*stop) (void);
-  void (*generate_commandline) (struct hcapi_options options, int *c, char ***v);
+  void (*generate_commandline) (struct hcapi_options_t options, int *c, char ***v);
   int (*status_update) (struct hcapi_data_t *status_data);
 
-  hcapi_options options;
+  hcapi_options_t options;
   hcapi_data_t status_data;
 
-} hcapi_control;
+} hcapi_control_t;
 
 
 /**
@@ -477,7 +477,7 @@ static double get_avg_exec_time (hc_device_param_t *device_param, const int last
  * oclHashcat API Functions 
  */
 
-void hcapi_generate_commandline (struct hcapi_options options, int *c, char ***v)
+void hcapi_generate_commandline (struct hcapi_options_t options, int *c, char ***v)
 {
 
   /* 
@@ -1730,7 +1730,7 @@ int hcapi_start (int argc, char **argv)
 unsigned __stdcall start_hc_thread (void *params)
 {
 
-  hcapi_thread_args *args = (hcapi_thread_args *) params;
+  hcapi_thread_args_t *args = (hcapi_thread_args_t *) params;
 
   int argc = args->c;
   char **argv = args->v;
@@ -1758,7 +1758,7 @@ HANDLE hcapi_start_thread (int argc, char **argv)
   HANDLE hThread;
   unsigned int threadID;
 
-  hcapi_thread_args args;
+  hcapi_thread_args_t args;
 
   args.c = argc;
   args.v = argv;
@@ -1779,7 +1779,7 @@ HANDLE hcapi_start_thread (int argc, char **argv)
 void *start_hc_thread (void *params)
 {
 
-  hcapi_thread_args *args = (hcapi_thread_args *) params;
+  hcapi_thread_args_t *args = (hcapi_thread_args_t *) params;
 
   int argc = args->c;
   char **argv = args->v;
@@ -1810,7 +1810,7 @@ int hcapi_start_thread (int argc, char **argv)
 
   int err;
   pthread_t hThread;
-  hcapi_thread_args args;
+  hcapi_thread_args_t args;
 
   args.c = argc;
   args.v = argv;
@@ -1844,7 +1844,7 @@ int hcapi_stop (void)
   return 0;
 }
 
-void hcapi_append_rules (struct hcapi_options *options, char *new_file_path)
+void hcapi_append_rules (struct hcapi_options_t *options, char *new_file_path)
 {
 
   debug_print ("Called Append Rules.\n");
@@ -1865,7 +1865,7 @@ void hcapi_append_rules (struct hcapi_options *options, char *new_file_path)
   return;
 }
 
-void hcapi_append_dictmaskdir (struct hcapi_options *options, char *new_file_path)
+void hcapi_append_dictmaskdir (struct hcapi_options_t *options, char *new_file_path)
 {
 
   debug_print ("Called Append Dict, Mask, or Dir.\n");
@@ -1901,7 +1901,7 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
   if (data.devices_status == STATUS_BYPASS)   return 0;
 
   size_t input_size;
-
+  char tmp_buf[1000] = { 0 };
 
   // Set API Data session
   input_size = strlen (data.session) + 2;
@@ -1918,6 +1918,12 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
 
   char *hash_type = strhashtype (hash_mode); // not a bug
 
+  // Set API Data device_status_str
+  input_size = strlen (status_type) + 2;
+
+  hcapi_data->devices_status_str= (char *) realloc (hcapi_data->devices_status_str, input_size*sizeof (char));
+
+  snprintf (hcapi_data->devices_status_str, input_size, "%s", status_type);
 
 
   // Set API Data hash_type
@@ -2216,7 +2222,8 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
     {
       wpa_t *wpa = (wpa_t *) data.esalts_buf;
 
-      log_info ("Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
+
+      snprintf(tmp_buf, sizeof(tmp_buf), "%s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
                 (char *) data.salts_buf[0].salt_buf,
                 wpa->orig_mac1[0],
                 wpa->orig_mac1[1],
@@ -2230,18 +2237,48 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
                 wpa->orig_mac2[3],
                 wpa->orig_mac2[4],
                 wpa->orig_mac2[5]);
+
+      input_size = strlen(tmp_buf)+1;
+
+      hcapi_data->hash_target = (char *) realloc (hcapi_data->input_right, input_size*sizeof (char));
+
+      memcpy(&hcapi_data->hash_target, tmp_buf, input_size);
+
     }
     else if (data.hash_mode == 5200)
     {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
+      
+
+      input_size = strlen (data.hashfile) + 1;
+
+      hcapi_data->hash_target = (char *) realloc (hcapi_data->hash_target, input_size*sizeof (char));
+
+      // Set API Data hash_target
+      snprintf (hcapi_data->hash_target, input_size, "%s", data.hashfile);
+
     }
     else if (data.hash_mode == 9000)
     {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
+
+
+      input_size = strlen (data.hashfile) + 1;
+
+      hcapi_data->hash_target = (char *) realloc (hcapi_data->hash_target, input_size*sizeof (char));
+
+      // Set API Data hash_target
+      snprintf (hcapi_data->hash_target, input_size, "%s", data.hashfile);
+
     }
     else if ((data.hash_mode >= 6200) && (data.hash_mode <= 6299))
     {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
+
+      input_size = strlen (data.hashfile) + 1;
+
+      hcapi_data->hash_target = (char *) realloc (hcapi_data->hash_target, input_size*sizeof (char));
+
+      // Set API Data hash_target
+      snprintf (hcapi_data->hash_target, input_size, "%s", data.hashfile);
+
     }
     else
     {
@@ -2258,7 +2295,14 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
         out_buf[44] = 0;
       }
 
-      log_info ("Hash.Target....: %s", out_buf);
+      
+
+      input_size = strlen (out_buf) + 1;
+
+      hcapi_data->hash_target = (char *) realloc (hcapi_data->hash_target, input_size*sizeof (char));
+
+      // Set API Data hash_target
+      snprintf (hcapi_data->hash_target, input_size, "%s", out_buf);
     }
   }
   else
@@ -2271,15 +2315,27 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
       ascii_digest (out_buf1, 0, 0);
       ascii_digest (out_buf2, 0, 1);
 
-      log_info ("Hash.Target....: %s, %s", out_buf1, out_buf2);
+      input_size = strlen (out_buf1) + strlen(out_buf2) + 3;
+
+      hcapi_data->hash_target = (char *) realloc (hcapi_data->hash_target, input_size*sizeof (char));
+
+      // Set API Data hash_target
+      snprintf (hcapi_data->hash_target, input_size, "%s, %s", out_buf1, out_buf2);
+
     }
     else
     {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
+
+      input_size = strlen (data.hashfile) + 1;
+
+      hcapi_data->hash_target = (char *) realloc (hcapi_data->hash_target, input_size*sizeof (char));
+
+      // Set API Data hash_target
+      snprintf (hcapi_data->hash_target, input_size, "%s", data.hashfile);
+
     }
   }
 
-  log_info ("Hash.Type......: %s", hash_type);
 
   /**
    * speed new
@@ -2420,12 +2476,41 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
       if (start[start_len - 1] == '\n') start[start_len - 1] = 0;
       if (start[start_len - 2] == '\r') start[start_len - 2] = 0;
 
-      log_info ("Time.Started...: %s (%s)", start, display_run);
+      input_size = strlen (start) + 1;
+
+      hcapi_data->time_started->start = (char *) realloc (hcapi_data->time_started->start, input_size*sizeof (char));
+
+      // Set API Data start time
+      snprintf (hcapi_data->time_started->start, input_size, "%s", start);
+
+      input_size = strlen (display_run) + 1;
+
+      hcapi_data->time_started->display_run = (char *) realloc (hcapi_data->time_started->display_run, input_size*sizeof (char));
+
+      // Set API Data display time
+      snprintf (hcapi_data->time_started->display_run, input_size, "%s", display_run);
+
     }
   }
   else
   {
-    log_info ("Time.Started...: 0 secs");
+      char *zero_time = "N/A";
+      input_size = strlen (zero_time) + 1;
+
+      hcapi_data->time_started->start = (char *) realloc (hcapi_data->time_started->start, input_size*sizeof (char));
+
+      // Set API Data start time
+      snprintf (hcapi_data->time_started->start, input_size, "%s", zero_time);
+
+
+      zero_time = "0 sec";
+      input_size = strlen (zero_time) + 1;
+
+      hcapi_data->time_started->display_run = (char *) realloc (hcapi_data->time_started->display_run, input_size*sizeof (char));
+
+      // Set API Data display time
+      snprintf (hcapi_data->time_started->display_run, input_size, "%s", zero_time);
+
   }
 
   /**
@@ -2433,6 +2518,10 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
    */
 
   u64 progress_total = data.words_cnt * data.salts_cnt;
+
+  // Set API Data words_cnt
+  hcapi_data->words_cnt = data.words_cnt;
+
 
   u64 all_done     = 0;
   u64 all_rejected = 0;
@@ -2511,7 +2600,15 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
       }
       else if ((u64) sec_etc > ETC_MAX)
       {
-        log_info ("Time.Estimated.: > 10 Years");
+        
+        char *time_inf = "> 10 Years";
+        input_size = strlen (time_inf) + 1;
+
+        hcapi_data->time_estimated->etc = (char *) realloc (hcapi_data->time_estimated->etc, input_size*sizeof (char));
+
+        // Set API Data time_estimated
+        snprintf (hcapi_data->time_estimated->etc, input_size, "%s", time_inf);
+
       }
       else
       {
@@ -2552,10 +2649,31 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
           if (etc[etc_len - 1] == '\n') etc[etc_len - 1] = 0;
           if (etc[etc_len - 2] == '\r') etc[etc_len - 2] = 0;
 
-          log_info ("Time.Estimated.: %s (%s)", etc, display_etc);
+          input_size = strlen (etc) + 1;
+
+          hcapi_data->time_estimated->etc = (char *) realloc (hcapi_data->time_estimated->etc, input_size*sizeof (char));
+
+          // Set API Data time_estimated
+          snprintf (hcapi_data->time_estimated->etc, input_size, "%s", etc);
+
+          input_size = strlen (display_etc) + 1;
+
+          hcapi_data->time_estimated->display_etc = (char *) realloc (hcapi_data->time_estimated->display_etc, input_size*sizeof (char));
+
+          // Set API Data time_estimated
+          snprintf (hcapi_data->time_estimated->display_etc, input_size, "%s", display_etc);
+
+
         }
       }
     }
+  }
+
+  // Setup API speed_dev
+  if (hcapi_data->hwmon_gpu == NULL){
+
+    hcapi_data->speed_dev = (hcapi_data_speed_dev_t *)malloc(data.devices_cnt*sizeof(hcapi_data_speed_dev_t));
+
   }
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
@@ -2571,6 +2689,14 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
     format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
     log_info ("Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+
+    hcapi_data->speed_dev[device_id].device_id = device_id + 1;
+
+    memcpy(hcapi_data->speed_dev[device_id].display_dev_cur, display_dev_cur, sizeof(display_dev_cur));
+
+    //TODO memcpy(hcapi_data->speed_dev[device_id].exec_all_ms, exec_all_ms[device_id], sizeof(exec_all_ms));
+    
+
   }
 
   char display_all_cur[16] = { 0 };
@@ -2768,12 +2894,12 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
   return 1;
 }
 
-hcapi_control oclhashcat_init (void)
+hcapi_control_t oclhashcat_init (void)
 {
 
   debug_print ("Intializing options\n");
 
-  hcapi_control control;
+  hcapi_control_t control;
 
   control.options.hash_input = NULL;      // positional param --> hash|hashfile|hccapfile
   control.options.dictmaskdir = NULL;     // positional param --> [dictionary|mask|directory]
@@ -2865,13 +2991,24 @@ hcapi_control oclhashcat_init (void)
   control.status_data.cpt_buf = (cpt_t *)malloc(CPT_BUF * sizeof(cpt_t));
   control.status_data.dictfile = NULL;
   control.status_data.dictfile2 = NULL;
+  control.status_data.devices_status_str = NULL;
   control.status_data.mask = NULL;
   control.status_data.session = NULL;
   control.status_data.hashfile = NULL;
-  control.status_data.time_started.start = NULL;
-  control.status_data.time_started.display_run = NULL;
-  control.status_data.time_estimated.etc = NULL;
-  control.status_data.time_estimated.display_etc = NULL;
+  control.status_data.time_started = (hcapi_data_time_started_t *)malloc(sizeof(hcapi_data_time_started_t));
+  control.status_data.time_started->start = NULL;
+  control.status_data.time_started->display_run = NULL;
+
+  control.status_data.time_estimated = (hcapi_data_time_estimated_t *)malloc( sizeof(hcapi_data_time_estimated_t));
+  control.status_data.time_estimated->etc = NULL;
+  control.status_data.time_estimated->display_etc = NULL;
+
+  control.status_data.speed_dev = (hcapi_data_speed_dev_t *)malloc(sizeof(hcapi_data_speed_dev_t));
+  control.status_data.recovered = (hcapi_data_recovered_t *)malloc(sizeof(hcapi_data_recovered_t));
+  control.status_data.recovered_time = (hcapi_data_recovered_time_t *)malloc(sizeof(hcapi_data_recovered_time_t));
+  control.status_data.progress = (hcapi_data_progress_t *)malloc(sizeof(hcapi_data_progress_t));
+  control.status_data.restore_point = (hcapi_data_restore_point_t *)malloc(sizeof(hcapi_data_restore_point_t));
+  control.status_data.hwmon_gpu = NULL; //(hcapi_data_hwmon_gpu_t *)malloc(sizeof(hcapi_data_hwmon_gpu_t));
   control.status_data.status = NULL;
   control.status_data.hash_target = NULL;
   control.status_data.hash_type_str = NULL;
@@ -2901,7 +3038,7 @@ int main ()
 
   printf ("[*] Starting API Test.\n");
 
-  hcapi_control hc = oclhashcat_init ();
+  hcapi_control_t hc = oclhashcat_init ();
 
 
   hc.options.attack_mode = 0;
@@ -2945,6 +3082,7 @@ int main ()
         
         printf("-----------------session : %s\n", hc.status_data.session);
         printf("-----------------devices_status : %u\n", hc.status_data.devices_status);
+        printf("-----------------devices_status_str: %s\n", hc.status_data.devices_status_str);
         printf("-----------------hash_type : %u\n", hc.status_data.hash_type);
         printf("-----------------hash_type_str : %s\n", hc.status_data.hash_type_str);
         printf("-----------------hash_mode : %u\n", hc.status_data.hash_mode);
@@ -2955,6 +3093,7 @@ int main ()
         {
 
           printf("-----------------Rules file %d: %s\n", i, hc.status_data.rp_files[i]);
+
         }
         
         printf("-----------------rp_gen : %u\n", hc.status_data.rp_gen);
@@ -2964,6 +3103,21 @@ int main ()
         printf("-----------------mask_cnt: %u\n", hc.status_data.mask_cnt);
         printf("-----------------mask_pos: %u\n", hc.status_data.mask_pos);
         printf("-----------------mask_len: %u\n", hc.status_data.mask_len);
+        printf("-----------------mask_len: %u\n", hc.status_data.mask_len);
+        printf("-----------------start: %s\n", hc.status_data.time_started->start);
+        printf("-----------------display_run: %s\n", hc.status_data.time_started->display_run);
+        printf("-----------------etc: %s\n", hc.status_data.time_estimated->etc);
+        printf("-----------------display_etc: %s\n", hc.status_data.time_estimated->display_etc);
+        printf("-----------------devices_cnt: %u\n", hc.status_data.devices_cnt);
+
+        for(uint device_id = 0; device_id < hc.status_data.devices_cnt; device_id++)
+        {
+
+          printf("-----------------Device %d: \n", hc.status_data.speed_dev[device_id].device_id);
+          printf("-----------------display_dev_cur: %s: \n", hc.status_data.speed_dev[device_id].display_dev_cur);
+          //TODO printf("-----------------exec_all_ms: %0.2f: \n", hc.status_data.speed_dev[device_id].exec_all_ms);
+        
+        }
 
     } else {
 
