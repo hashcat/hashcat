@@ -4407,6 +4407,8 @@ static void *thread_calc_stdin (void *p)
 
       device_param->pws_cnt = 0;
 
+      /*
+      still required?
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
         run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
@@ -4415,6 +4417,7 @@ static void *thread_calc_stdin (void *p)
       {
         run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
       }
+      */
     }
   }
 
@@ -4460,7 +4463,10 @@ static void *thread_calc (void *p)
 
         device_param->pws_cnt = 0;
 
+        /*
+        still required?
         run_kernel_bzero (device_param, device_param->d_bfs_c, device_param->size_bfs);
+        */
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
@@ -4679,6 +4685,8 @@ static void *thread_calc (void *p)
 
         device_param->pws_cnt = 0;
 
+        /*
+        still required?
         if (attack_kern == ATTACK_KERN_STRAIGHT)
         {
           run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
@@ -4687,6 +4695,7 @@ static void *thread_calc (void *p)
         {
           run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
         }
+        */
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
@@ -13852,11 +13861,25 @@ int main (int argc, char **argv)
        * some algorithms have a maximum kernel-loops count
        */
 
-      if (attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+      if (device_param->kernel_loops_min < device_param->kernel_loops_max)
       {
-        if (data.salts_buf[0].salt_iter < device_param->kernel_loops_max)
+        u32 innerloop_cnt = 0;
+
+        if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
         {
-          device_param->kernel_loops_max = data.salts_buf[0].salt_iter;
+          if      (data.attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = data.kernel_rules_cnt;
+          else if (data.attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = data.combs_cnt;
+          else if (data.attack_kern == ATTACK_KERN_BF)        innerloop_cnt = data.bfs_cnt;
+        }
+        else
+        {
+          innerloop_cnt = data.salts_buf[0].salt_iter;
+        }
+
+        if ((innerloop_cnt >= device_param->kernel_loops_min) &&
+            (innerloop_cnt <= device_param->kernel_loops_max))
+        {
+          device_param->kernel_loops_max = innerloop_cnt;
         }
       }
 
