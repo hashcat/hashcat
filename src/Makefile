@@ -80,7 +80,7 @@ CC_WIN_64                := x86_64-w64-mingw32-gcc
 ##
 
 COMPTIME                 := $(shell date +%s)
-VERSION_TAG              := $(shell git describe --tags --dirty=+ || echo '$Format:%D$'|sed -r 's/.* ([^ ]+$)/\1/')
+VERSION_TAG              := $(shell git describe --tags --dirty=+)
 
 ##
 ## Compiler flags
