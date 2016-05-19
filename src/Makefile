@@ -80,7 +80,8 @@ CC_WIN_64                := x86_64-w64-mingw32-gcc
 ##
 
 COMPTIME                 := $(shell date +%s)
-VERSION_TAG              := $(shell git describe --tags --dirty=+)
+VERSION_EXPORT           := $Format:%D$
+VERSION_TAG              := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)"|cut -d, -f2|sed -r 's|.* (\w+/)?([^ ]+)|\2|')
 
 ##
 ## Compiler flags
