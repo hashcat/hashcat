@@ -148,7 +148,7 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
 
 #define MAX_DICTSTAT            10000
 
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 137
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 143
 
 #define global_free(attr)       \
 {                               \
@@ -279,6 +279,12 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   6221,
   6231,
   6241,
+  13711,
+  13721,
+  13731,
+  13741,
+  13751,
+  13761,
   8800,
   12900,
   12200,
@@ -401,6 +407,8 @@ const char *USAGE_BIG[] =
   "       --outfile-check-dir=FOLDER    Specify the outfile directory which should be monitored, default is $session.outfiles",
   "       --logfile-disable             Disable the logfile",
   "       --truecrypt-keyfiles=FILE     Keyfiles used, separate with comma",
+  "       --veracrypt-keyfiles=FILE     Keyfiles used, separate with comma",
+  "       --veracrypt-pim=NUM           VeraCrypt personal iterations multiplier",
   "",
   "* Resources:",
   "",
@@ -711,7 +719,7 @@ const char *USAGE_BIG[] =
   "",
   "[[ Full-Disk encryptions (FDE) ]]",
   "",
-  "   62XY = TrueCrypt 5.0+",
+  "   62XY = TrueCrypt",
   "     X  = 1 = PBKDF2-HMAC-RipeMD160",
   "     X  = 2 = PBKDF2-HMAC-SHA512",
   "     X  = 3 = PBKDF2-HMAC-Whirlpool",
@@ -722,6 +730,16 @@ const char *USAGE_BIG[] =
   "   8800 = Android FDE < v4.3",
   "  12900 = Android FDE (Samsung DEK)",
   "  12200 = eCryptfs",
+  "  137XY = VeraCrypt",
+  "     X  = 1 = PBKDF2-HMAC-RipeMD160",
+  "     X  = 2 = PBKDF2-HMAC-SHA512",
+  "     X  = 3 = PBKDF2-HMAC-Whirlpool",
+  "     X  = 4 = PBKDF2-HMAC-RipeMD160 + boot-mode",
+  "     X  = 5 = PBKDF2-HMAC-SHA256",
+  "     X  = 6 = PBKDF2-HMAC-SHA256 + boot-mode",
+  "      Y = 1 = XTS  512 bit (Ciphers: AES or Serpent or Twofish)",
+  "      Y = 2 = XTS 1024 bit (Ciphers: AES or Serpent or Twofish or AES-Twofish or Serpent-AES or Twofish-Serpent)",
+  "      Y = 3 = XTS 1536 bit (Ciphers: All)",
   "",
   "[[ Documents ]]",
   "",
@@ -1093,6 +1111,10 @@ void status_display ()
       log_info ("Hash.Target....: File (%s)", data.hashfile);
     }
     else if ((data.hash_mode >= 6200) && (data.hash_mode <= 6299))
+    {
+      log_info ("Hash.Target....: File (%s)", data.hashfile);
+    }
+    else if ((data.hash_mode >= 13700) && (data.hash_mode <= 13799))
     {
       log_info ("Hash.Target....: File (%s)", data.hashfile);
     }
@@ -5344,6 +5366,8 @@ int main (int argc, char **argv)
   char *opencl_device_types = NULL;
   uint  opencl_vector_width = OPENCL_VECTOR_WIDTH;
   char *truecrypt_keyfiles = NULL;
+  char *veracrypt_keyfiles = NULL;
+  uint  veracrypt_pim     = 0;
   uint  workload_profile  = WORKLOAD_PROFILE;
   uint  kernel_accel      = KERNEL_ACCEL;
   uint  kernel_loops      = KERNEL_LOOPS;
@@ -5432,6 +5456,8 @@ int main (int argc, char **argv)
   #define IDX_POWERTUNE_ENABLE  0xff41
   #define IDX_LOGFILE_DISABLE   0xff51
   #define IDX_TRUECRYPT_KEYFILES 0xff52
+  #define IDX_VERACRYPT_KEYFILES 0xff53
+  #define IDX_VERACRYPT_PIM     0xff54
   #define IDX_SCRYPT_TMTO       0xff61
   #define IDX_SEGMENT_SIZE      'c'
   #define IDX_SEPARATOR         'p'
@@ -5518,6 +5544,8 @@ int main (int argc, char **argv)
     #endif // HAVE_HWMON
     {"logfile-disable",   no_argument,       0, IDX_LOGFILE_DISABLE},
     {"truecrypt-keyfiles", required_argument, 0, IDX_TRUECRYPT_KEYFILES},
+    {"veracrypt-keyfiles", required_argument, 0, IDX_VERACRYPT_KEYFILES},
+    {"veracrypt-pim",     required_argument, 0, IDX_VERACRYPT_PIM},
     {"segment-size",      required_argument, 0, IDX_SEGMENT_SIZE},
     {"scrypt-tmto",       required_argument, 0, IDX_SCRYPT_TMTO},
     // deprecated
@@ -5844,6 +5872,8 @@ int main (int argc, char **argv)
       #endif // HAVE_HWMON
       case IDX_LOGFILE_DISABLE:   logfile_disable   = 1;               break;
       case IDX_TRUECRYPT_KEYFILES: truecrypt_keyfiles = optarg;        break;
+      case IDX_VERACRYPT_KEYFILES: veracrypt_keyfiles = optarg;        break;
+      case IDX_VERACRYPT_PIM:     veracrypt_pim     = atoi (optarg);   break;
       case IDX_SEGMENT_SIZE:      segment_size      = atoi (optarg);   break;
       case IDX_SCRYPT_TMTO:       scrypt_tmto       = atoi (optarg);   break;
       case IDX_SEPARATOR:         separator         = optarg[0];       break;
@@ -5922,7 +5952,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  if (hash_mode_chgd && hash_mode > 13600) // just added to remove compiler warnings for hash_mode_chgd
+  if (hash_mode_chgd && hash_mode > 13799) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
@@ -5951,7 +5981,7 @@ int main (int argc, char **argv)
 
   if (username == 1)
   {
-    if ((hash_mode == 2500) || (hash_mode == 5200) || ((hash_mode >= 6200) && (hash_mode <= 6299)))
+    if ((hash_mode == 2500) || (hash_mode == 5200) || ((hash_mode >= 6200) && (hash_mode <= 6299)) || ((hash_mode >= 13700) && (hash_mode <= 13799)))
     {
       log_error ("ERROR: Mixing support for user names and hashes of type %s is not supported", strhashtype (hash_mode));
 
@@ -6527,6 +6557,8 @@ int main (int argc, char **argv)
   #endif
   data.logfile_disable   = logfile_disable;
   data.truecrypt_keyfiles = truecrypt_keyfiles;
+  data.veracrypt_keyfiles = veracrypt_keyfiles;
+  data.veracrypt_pim     = veracrypt_pim;
   data.scrypt_tmto       = scrypt_tmto;
   data.workload_profile  = workload_profile;
 
@@ -6670,6 +6702,8 @@ int main (int argc, char **argv)
   logfile_top_string (rule_buf_r);
   logfile_top_string (session);
   logfile_top_string (truecrypt_keyfiles);
+  logfile_top_string (veracrypt_keyfiles);
+  logfile_top_uint   (veracrypt_pim);
 
   /**
    * Init OpenCL library loader
@@ -10294,6 +10328,280 @@ int main (int argc, char **argv)
                    dgst_pos3   = 3;
                    break;
 
+      case 13711:  hash_type   = HASH_TYPE_RIPEMD160;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCRIPEMD160_XTS512;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = veracrypt_parse_hash_655331;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13712:  hash_type   = HASH_TYPE_RIPEMD160;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCRIPEMD160_XTS1024;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = veracrypt_parse_hash_655331;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13713:  hash_type   = HASH_TYPE_RIPEMD160;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCRIPEMD160_XTS1536;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = veracrypt_parse_hash_655331;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13721:  hash_type   = HASH_TYPE_SHA512;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_TCSHA512_XTS512;
+                   dgst_size   = DGST_SIZE_8_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_8_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13722:  hash_type   = HASH_TYPE_SHA512;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_TCSHA512_XTS1024;
+                   dgst_size   = DGST_SIZE_8_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_8_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13723:  hash_type   = HASH_TYPE_SHA512;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_TCSHA512_XTS1536;
+                   dgst_size   = DGST_SIZE_8_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_8_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13731:  hash_type   = HASH_TYPE_WHIRLPOOL;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS512;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13732:  hash_type   = HASH_TYPE_WHIRLPOOL;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS1024;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13733:  hash_type   = HASH_TYPE_WHIRLPOOL;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS1536;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13741:  hash_type   = HASH_TYPE_RIPEMD160;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCRIPEMD160_XTS512;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = veracrypt_parse_hash_327661;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13742:  hash_type   = HASH_TYPE_RIPEMD160;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCRIPEMD160_XTS1024;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = veracrypt_parse_hash_327661;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13743:  hash_type   = HASH_TYPE_RIPEMD160;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCRIPEMD160_XTS1536;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = veracrypt_parse_hash_327661;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13751:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_VCSHA256_XTS512;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13752:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_VCSHA256_XTS1024;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13753:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_VCSHA256_XTS1536;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13761:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_VCSHA256_XTS512;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_200000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13762:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_VCSHA256_XTS1024;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_200000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13763:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_VCSHA256_XTS1536;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_200000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+
       default:     usage_mini_print (PROGNAME); return (-1);
     }
 
@@ -10401,6 +10709,24 @@ int main (int argc, char **argv)
       case 13400:  esalt_size = sizeof (keepass_t);       break;
       case 13500:  esalt_size = sizeof (pstoken_t);       break;
       case 13600:  esalt_size = sizeof (zip2_t);          break;
+      case 13711:  esalt_size = sizeof (tc_t);            break;
+      case 13712:  esalt_size = sizeof (tc_t);            break;
+      case 13713:  esalt_size = sizeof (tc_t);            break;
+      case 13721:  esalt_size = sizeof (tc_t);            break;
+      case 13722:  esalt_size = sizeof (tc_t);            break;
+      case 13723:  esalt_size = sizeof (tc_t);            break;
+      case 13731:  esalt_size = sizeof (tc_t);            break;
+      case 13732:  esalt_size = sizeof (tc_t);            break;
+      case 13733:  esalt_size = sizeof (tc_t);            break;
+      case 13741:  esalt_size = sizeof (tc_t);            break;
+      case 13742:  esalt_size = sizeof (tc_t);            break;
+      case 13743:  esalt_size = sizeof (tc_t);            break;
+      case 13751:  esalt_size = sizeof (tc_t);            break;
+      case 13752:  esalt_size = sizeof (tc_t);            break;
+      case 13753:  esalt_size = sizeof (tc_t);            break;
+      case 13761:  esalt_size = sizeof (tc_t);            break;
+      case 13762:  esalt_size = sizeof (tc_t);            break;
+      case 13763:  esalt_size = sizeof (tc_t);            break;
     }
 
     data.esalt_size = esalt_size;
@@ -10809,7 +11135,8 @@ int main (int argc, char **argv)
 
       if ((hash_mode == 2500) ||
           (hash_mode == 5200) ||
-          ((hash_mode >= 6200) && (hash_mode <= 6299)) ||
+          ((hash_mode >=  6200) && (hash_mode <=  6299)) ||
+          ((hash_mode >= 13700) && (hash_mode <= 13799)) ||
           (hash_mode == 9000))
       {
         hashlist_mode = HL_MODE_ARG;
@@ -11557,6 +11884,42 @@ int main (int argc, char **argv)
                     break;
         case 9000:  data.hashfile = mystrdup ("hashcat.psafe2");
                     break;
+        case 13711: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13712: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13713: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13721: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13722: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13723: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13731: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13732: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13733: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13741: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13742: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13743: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13751: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13752: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13753: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13761: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13762: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13763: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
       }
 
       // set default iterations
@@ -11690,6 +12053,42 @@ int main (int argc, char **argv)
         case 13400:  hashes_buf[0].salt->salt_iter = ROUNDS_KEEPASS;
                      break;
         case 13600:  hashes_buf[0].salt->salt_iter = ROUNDS_ZIP2;
+                     break;
+        case 13711:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_655331;
+                     break;
+        case 13712:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_655331;
+                     break;
+        case 13713:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_655331;
+                     break;
+        case 13721:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13722:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13723:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13731:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13732:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13733:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13741:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_327661;
+                     break;
+        case 13742:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_327661;
+                     break;
+        case 13743:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_327661;
+                     break;
+        case 13751:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13752:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13753:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13761:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_200000;
+                     break;
+        case 13762:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_200000;
+                     break;
+        case 13763:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_200000;
                      break;
       }
 
@@ -11893,7 +12292,8 @@ int main (int argc, char **argv)
 
       // no solution for these special hash types (for instane because they use hashfile in output etc)
       if ((hash_mode != 5200) &&
-          !((hash_mode >= 6200) && (hash_mode <= 6299)) &&
+          !((hash_mode >=  6200) && (hash_mode <=  6299)) &&
+          !((hash_mode >= 13700) && (hash_mode <= 13799)) &&
           (hash_mode != 9000))
       {
         FILE *fp = fopen (potfile, "rb");
@@ -12243,6 +12643,24 @@ int main (int argc, char **argv)
       case  6241: salts_buf->truecrypt_mdlen = 1 * 512; break;
       case  6242: salts_buf->truecrypt_mdlen = 2 * 512; break;
       case  6243: salts_buf->truecrypt_mdlen = 3 * 512; break;
+      case 13711: salts_buf->truecrypt_mdlen = 1 * 512; break;
+      case 13712: salts_buf->truecrypt_mdlen = 2 * 512; break;
+      case 13713: salts_buf->truecrypt_mdlen = 3 * 512; break;
+      case 13721: salts_buf->truecrypt_mdlen = 1 * 512; break;
+      case 13722: salts_buf->truecrypt_mdlen = 2 * 512; break;
+      case 13723: salts_buf->truecrypt_mdlen = 3 * 512; break;
+      case 13731: salts_buf->truecrypt_mdlen = 1 * 512; break;
+      case 13732: salts_buf->truecrypt_mdlen = 2 * 512; break;
+      case 13733: salts_buf->truecrypt_mdlen = 3 * 512; break;
+      case 13741: salts_buf->truecrypt_mdlen = 1 * 512; break;
+      case 13742: salts_buf->truecrypt_mdlen = 2 * 512; break;
+      case 13743: salts_buf->truecrypt_mdlen = 3 * 512; break;
+      case 13751: salts_buf->truecrypt_mdlen = 1 * 512; break;
+      case 13752: salts_buf->truecrypt_mdlen = 2 * 512; break;
+      case 13753: salts_buf->truecrypt_mdlen = 3 * 512; break;
+      case 13761: salts_buf->truecrypt_mdlen = 1 * 512; break;
+      case 13762: salts_buf->truecrypt_mdlen = 2 * 512; break;
+      case 13763: salts_buf->truecrypt_mdlen = 3 * 512; break;
     }
 
     if (truecrypt_keyfiles)
@@ -12250,6 +12668,23 @@ int main (int argc, char **argv)
       uint *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
 
       char *keyfiles = strdup (truecrypt_keyfiles);
+
+      char *keyfile = strtok (keyfiles, ",");
+
+      do
+      {
+        truecrypt_crc32 (keyfile, (u8 *) keyfile_buf);
+
+      } while ((keyfile = strtok (NULL, ",")) != NULL);
+
+      free (keyfiles);
+    }
+
+    if (veracrypt_keyfiles)
+    {
+      uint *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
+
+      char *keyfiles = strdup (veracrypt_keyfiles);
 
       char *keyfile = strtok (keyfiles, ",");
 
@@ -13984,6 +14419,24 @@ int main (int argc, char **argv)
           case 13200: size_tmps = kernel_power_max * sizeof (axcrypt_tmp_t);         break;
           case 13400: size_tmps = kernel_power_max * sizeof (keepass_tmp_t);         break;
           case 13600: size_tmps = kernel_power_max * sizeof (pbkdf2_sha1_tmp_t);     break;
+          case 13711: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13712: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13713: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13721: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
+          case 13722: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
+          case 13723: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
+          case 13731: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13732: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13733: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13741: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13742: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13743: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13751: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13752: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13753: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13761: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13762: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13763: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
         };
 
         // size_hooks
@@ -15956,7 +16409,8 @@ int main (int argc, char **argv)
         if (data.outfile_check_directory != NULL)
         {
           if ((hash_mode != 5200) &&
-              !((hash_mode >= 6200) && (hash_mode <= 6299)) &&
+              !((hash_mode >=  6200) && (hash_mode <=  6299)) &&
+              !((hash_mode >= 13700) && (hash_mode <= 13799)) &&
               (hash_mode != 9000))
           {
             hc_thread_create (ni_threads[ni_threads_cnt], thread_outfile_remove, NULL);

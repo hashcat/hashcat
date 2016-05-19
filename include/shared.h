@@ -382,18 +382,36 @@ extern hc_thread_mutex_t mux_display;
 #define HT_02612  "PHPS"
 #define HT_02711  "vBulletin > v3.8.5"
 #define HT_02811  "IPB2+, MyBB1.2+"
-#define HT_06211  "TrueCrypt 5.0+ PBKDF2-HMAC-RipeMD160 + XTS 512 bit"
-#define HT_06212  "TrueCrypt 5.0+ PBKDF2-HMAC-RipeMD160 + XTS 1024 bit"
-#define HT_06213  "TrueCrypt 5.0+ PBKDF2-HMAC-RipeMD160 + XTS 1536 bit"
-#define HT_06221  "TrueCrypt 5.0+ PBKDF2-HMAC-SHA512 + XTS 512 bit"
-#define HT_06222  "TrueCrypt 5.0+ PBKDF2-HMAC-SHA512 + XTS 1024 bit"
-#define HT_06223  "TrueCrypt 5.0+ PBKDF2-HMAC-SHA512 + XTS 1536 bit"
-#define HT_06231  "TrueCrypt 5.0+ PBKDF2-HMAC-Whirlpool + XTS 512 bit"
-#define HT_06232  "TrueCrypt 5.0+ PBKDF2-HMAC-Whirlpool + XTS 1024 bit"
-#define HT_06233  "TrueCrypt 5.0+ PBKDF2-HMAC-Whirlpool + XTS 1536 bit"
-#define HT_06241  "TrueCrypt 5.0+ PBKDF2-HMAC-RipeMD160 + XTS 512 bit + boot-mode"
-#define HT_06242  "TrueCrypt 5.0+ PBKDF2-HMAC-RipeMD160 + XTS 1024 bit + boot-mode"
-#define HT_06243  "TrueCrypt 5.0+ PBKDF2-HMAC-RipeMD160 + XTS 1536 bit + boot-mode"
+#define HT_06211  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit"
+#define HT_06212  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit"
+#define HT_06213  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit"
+#define HT_06221  "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit"
+#define HT_06222  "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit"
+#define HT_06223  "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit"
+#define HT_06231  "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 512 bit"
+#define HT_06232  "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 1024 bit"
+#define HT_06233  "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 1536 bit"
+#define HT_06241  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit + boot-mode"
+#define HT_06242  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit + boot-mode"
+#define HT_06243  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit + boot-mode"
+#define HT_13711  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit"
+#define HT_13712  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit"
+#define HT_13713  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit"
+#define HT_13721  "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit"
+#define HT_13722  "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit"
+#define HT_13723  "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit"
+#define HT_13731  "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 512 bit"
+#define HT_13732  "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1024 bit"
+#define HT_13733  "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1536 bit"
+#define HT_13741  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit + boot-mode"
+#define HT_13742  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit + boot-mode"
+#define HT_13743  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit + boot-mode"
+#define HT_13751  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit"
+#define HT_13752  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit"
+#define HT_13753  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit"
+#define HT_13761  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit + boot-mode"
+#define HT_13762  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit + boot-mode"
+#define HT_13763  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit + boot-mode"
 
 /**
  * Outfile formats
@@ -897,6 +915,9 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_TCWHIRLPOOL_XTS512  6231
 #define KERN_TYPE_TCWHIRLPOOL_XTS1024 6232
 #define KERN_TYPE_TCWHIRLPOOL_XTS1536 6233
+#define KERN_TYPE_VCSHA256_XTS512     13751
+#define KERN_TYPE_VCSHA256_XTS1024    13752
+#define KERN_TYPE_VCSHA256_XTS1536    13753
 #define KERN_TYPE_MD5AIX              6300
 #define KERN_TYPE_SHA256AIX           6400
 #define KERN_TYPE_SHA512AIX           6500
@@ -1057,6 +1078,10 @@ extern hc_thread_mutex_t mux_display;
 #define ROUNDS_ANDROIDPIN         1024
 #define ROUNDS_TRUECRYPT_1K       1000
 #define ROUNDS_TRUECRYPT_2K       2000
+#define ROUNDS_VERACRYPT_200000   200000
+#define ROUNDS_VERACRYPT_500000   500000
+#define ROUNDS_VERACRYPT_327661   327661
+#define ROUNDS_VERACRYPT_655331   655331
 #define ROUNDS_SHA1AIX            (1 << 6)
 #define ROUNDS_SHA256AIX          (1 << 6)
 #define ROUNDS_SHA512AIX          (1 << 6)
@@ -1222,7 +1247,8 @@ extern hc_thread_mutex_t mux_display;
 #define PARSER_PSAFE2_FILE_SIZE    -13
 #define PARSER_PSAFE3_FILE_SIZE    -14
 #define PARSER_TC_FILE_SIZE        -15
-#define PARSER_SIP_AUTH_DIRECTIVE  -16
+#define PARSER_VC_FILE_SIZE        -16
+#define PARSER_SIP_AUTH_DIRECTIVE  -17
 #define PARSER_UNKNOWN_ERROR       -255
 
 #define PA_000 "OK"
@@ -1241,7 +1267,8 @@ extern hc_thread_mutex_t mux_display;
 #define PA_013 "Invalid psafe2 filesize"
 #define PA_014 "Invalid psafe3 filesize"
 #define PA_015 "Invalid truecrypt filesize"
-#define PA_016 "Invalid SIP directive, only MD5 is supported"
+#define PA_016 "Invalid veracrypt filesize"
+#define PA_017 "Invalid SIP directive, only MD5 is supported"
 #define PA_255 "Unknown error"
 
 /**
@@ -1615,6 +1642,10 @@ int sha1axcrypt_parse_hash        (char *input_buf, uint input_len, hash_t *hash
 int keepass_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int pstoken_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int zip2_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf);
+int veracrypt_parse_hash_200000   (char *input_buf, uint input_len, hash_t *hash_buf);
+int veracrypt_parse_hash_500000   (char *input_buf, uint input_len, hash_t *hash_buf);
+int veracrypt_parse_hash_327661   (char *input_buf, uint input_len, hash_t *hash_buf);
+int veracrypt_parse_hash_655331   (char *input_buf, uint input_len, hash_t *hash_buf);
 
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);

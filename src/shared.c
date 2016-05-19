@@ -5857,6 +5857,24 @@ char *strhashtype (const uint hash_mode)
     case 13400: return ((char *) HT_13400); break;
     case 13500: return ((char *) HT_13500); break;
     case 13600: return ((char *) HT_13600); break;
+    case 13711: return ((char *) HT_13711); break;
+    case 13712: return ((char *) HT_13712); break;
+    case 13713: return ((char *) HT_13713); break;
+    case 13721: return ((char *) HT_13721); break;
+    case 13722: return ((char *) HT_13722); break;
+    case 13723: return ((char *) HT_13723); break;
+    case 13731: return ((char *) HT_13731); break;
+    case 13732: return ((char *) HT_13732); break;
+    case 13733: return ((char *) HT_13733); break;
+    case 13741: return ((char *) HT_13741); break;
+    case 13742: return ((char *) HT_13742); break;
+    case 13743: return ((char *) HT_13743); break;
+    case 13751: return ((char *) HT_13751); break;
+    case 13752: return ((char *) HT_13752); break;
+    case 13753: return ((char *) HT_13753); break;
+    case 13761: return ((char *) HT_13761); break;
+    case 13762: return ((char *) HT_13762); break;
+    case 13763: return ((char *) HT_13763); break;
   }
 
   return ((char *) "Unknown");
@@ -8558,6 +8576,10 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
       data_tmp,
       auth_tmp,
       SIGNATURE_ZIP2_STOP);
+  }
+  else if ((hash_mode >= 13700) && (hash_mode <= 13799))
+  {
+    snprintf (out_buf, len-1, "%s", hashfile);
   }
   else
   {
@@ -12840,6 +12862,202 @@ int truecrypt_parse_hash_2k (char *input_buf, uint input_len, hash_t *hash_buf)
   salt->salt_iter = ROUNDS_TRUECRYPT_2K - 1;
 
   tc->signature = 0x45555254; // "TRUE"
+
+  digest[0] = tc->data_buf[0];
+
+  return (PARSER_OK);
+}
+
+int veracrypt_parse_hash_200000 (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  tc_t *tc = (tc_t *) hash_buf->esalt;
+
+  if (input_len == 0)
+  {
+    log_error ("VeraCrypt container not specified");
+
+    exit (-1);
+  }
+
+  FILE *fp = fopen (input_buf, "rb");
+
+  if (fp == NULL)
+  {
+    log_error ("%s: %s", input_buf, strerror (errno));
+
+    exit (-1);
+  }
+
+  char buf[512] = { 0 };
+
+  int n = fread (buf, 1, sizeof (buf), fp);
+
+  fclose (fp);
+
+  if (n != 512) return (PARSER_VC_FILE_SIZE);
+
+  memcpy (tc->salt_buf, buf, 64);
+
+  memcpy (tc->data_buf, buf + 64, 512 - 64);
+
+  salt->salt_buf[0] = tc->salt_buf[0];
+
+  salt->salt_len = 4;
+
+  salt->salt_iter = ROUNDS_VERACRYPT_200000 - 1;
+
+  tc->signature = 0x41524556; // "VERA"
+
+  digest[0] = tc->data_buf[0];
+
+  return (PARSER_OK);
+}
+
+int veracrypt_parse_hash_500000 (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  tc_t *tc = (tc_t *) hash_buf->esalt;
+
+  if (input_len == 0)
+  {
+    log_error ("VeraCrypt container not specified");
+
+    exit (-1);
+  }
+
+  FILE *fp = fopen (input_buf, "rb");
+
+  if (fp == NULL)
+  {
+    log_error ("%s: %s", input_buf, strerror (errno));
+
+    exit (-1);
+  }
+
+  char buf[512] = { 0 };
+
+  int n = fread (buf, 1, sizeof (buf), fp);
+
+  fclose (fp);
+
+  if (n != 512) return (PARSER_VC_FILE_SIZE);
+
+  memcpy (tc->salt_buf, buf, 64);
+
+  memcpy (tc->data_buf, buf + 64, 512 - 64);
+
+  salt->salt_buf[0] = tc->salt_buf[0];
+
+  salt->salt_len = 4;
+
+  salt->salt_iter = ROUNDS_VERACRYPT_500000 - 1;
+
+  tc->signature = 0x41524556; // "VERA"
+
+  digest[0] = tc->data_buf[0];
+
+  return (PARSER_OK);
+}
+
+int veracrypt_parse_hash_327661 (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  tc_t *tc = (tc_t *) hash_buf->esalt;
+
+  if (input_len == 0)
+  {
+    log_error ("VeraCrypt container not specified");
+
+    exit (-1);
+  }
+
+  FILE *fp = fopen (input_buf, "rb");
+
+  if (fp == NULL)
+  {
+    log_error ("%s: %s", input_buf, strerror (errno));
+
+    exit (-1);
+  }
+
+  char buf[512] = { 0 };
+
+  int n = fread (buf, 1, sizeof (buf), fp);
+
+  fclose (fp);
+
+  if (n != 512) return (PARSER_VC_FILE_SIZE);
+
+  memcpy (tc->salt_buf, buf, 64);
+
+  memcpy (tc->data_buf, buf + 64, 512 - 64);
+
+  salt->salt_buf[0] = tc->salt_buf[0];
+
+  salt->salt_len = 4;
+
+  salt->salt_iter = ROUNDS_VERACRYPT_327661 - 1;
+
+  tc->signature = 0x41524556; // "VERA"
+
+  digest[0] = tc->data_buf[0];
+
+  return (PARSER_OK);
+}
+
+int veracrypt_parse_hash_655331 (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  tc_t *tc = (tc_t *) hash_buf->esalt;
+
+  if (input_len == 0)
+  {
+    log_error ("VeraCrypt container not specified");
+
+    exit (-1);
+  }
+
+  FILE *fp = fopen (input_buf, "rb");
+
+  if (fp == NULL)
+  {
+    log_error ("%s: %s", input_buf, strerror (errno));
+
+    exit (-1);
+  }
+
+  char buf[512] = { 0 };
+
+  int n = fread (buf, 1, sizeof (buf), fp);
+
+  fclose (fp);
+
+  if (n != 512) return (PARSER_VC_FILE_SIZE);
+
+  memcpy (tc->salt_buf, buf, 64);
+
+  memcpy (tc->data_buf, buf + 64, 512 - 64);
+
+  salt->salt_buf[0] = tc->salt_buf[0];
+
+  salt->salt_len = 4;
+
+  salt->salt_iter = ROUNDS_VERACRYPT_655331 - 1;
+
+  tc->signature = 0x41524556; // "VERA"
 
   digest[0] = tc->data_buf[0];
 

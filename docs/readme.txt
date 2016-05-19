@@ -201,7 +201,8 @@ NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)
 - eCryptfs
 - Android FDE <= 4.3
 - Android FDE (Samsung DEK)
-- TrueCrypt 5.0+
+- TrueCrypt
+- VeraCrypt
 
 ##
 ## Attack-Modes

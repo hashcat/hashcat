@@ -1258,6 +1258,8 @@ typedef struct
   uint    scrypt_tmto;
   uint    segment_size;
   char   *truecrypt_keyfiles;
+  char   *veracrypt_keyfiles;
+  uint    veracrypt_pim;
   uint    workload_profile;
 
   uint    hash_mode;

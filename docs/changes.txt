@@ -27,6 +27,8 @@ It combines all features of all hashcat projects in one project.
 - Added command prompt to quit at next restore checkpoint
 - Added human-readable error message for the OpenCL error codes
 - Added option --potfile-path to override potfile path
+- Added option --veracrypt-keyfile to set Keyfiles used, can be multiple
+- Added option --veracrypt-pim to set the VeraCrypt personal iterations multiplier
 
 ##
 ## Algorithms
@@ -41,6 +43,7 @@ It combines all features of all hashcat projects in one project.
 - Added new hash-mode 13400 = Keepass 1 (AES/Twofish) and Keepass 2 (AES)
 - Added new hash-mode 13500 = PeopleSoft PS_TOKEN
 - Added new hash-mode 13600 = WinZip
+- Added new hash-mode 137** = VeraCrypt
 
 ##
 ## Performance
