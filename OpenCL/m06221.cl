@@ -564,6 +564,8 @@ __kernel void m06221_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
   data[2] = esalt_bufs[0].data_buf[2];
   data[3] = esalt_bufs[0].data_buf[3];
 
+  const u32 signature = esalt_bufs[0].signature;
+
   u32 tmp[4];
 
   {
@@ -574,7 +576,7 @@ __kernel void m06221_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     aes256_decrypt_xts (ukey1, ukey2, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
       mark_hash (plains_buf, hashes_shown, 0, gid, 0);
 
@@ -590,7 +592,7 @@ __kernel void m06221_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     serpent256_decrypt_xts (ukey1, ukey2, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
       mark_hash (plains_buf, hashes_shown, 0, gid, 0);
 
@@ -606,7 +608,7 @@ __kernel void m06221_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     twofish256_decrypt_xts (ukey1, ukey2, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
       mark_hash (plains_buf, hashes_shown, 0, gid, 0);
 

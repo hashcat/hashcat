@@ -168,6 +168,7 @@ typedef struct
   uint salt_buf[16];
   uint data_buf[112];
   uint keyfile_buf[16];
+  uint signature;
 
 } tc_t;
 

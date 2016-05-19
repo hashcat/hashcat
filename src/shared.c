@@ -12788,7 +12788,9 @@ int truecrypt_parse_hash_1k (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_len = 4;
 
-  salt->salt_iter = 1000 - 1;
+  salt->salt_iter = ROUNDS_TRUECRYPT_1K - 1;
+
+  tc->signature = 0x45555254; // "TRUE"
 
   digest[0] = tc->data_buf[0];
 
@@ -12835,7 +12837,9 @@ int truecrypt_parse_hash_2k (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_len = 4;
 
-  salt->salt_iter = 2000 - 1;
+  salt->salt_iter = ROUNDS_TRUECRYPT_2K - 1;
+
+  tc->signature = 0x45555254; // "TRUE"
 
   digest[0] = tc->data_buf[0];
 
