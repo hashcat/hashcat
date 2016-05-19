@@ -184,7 +184,7 @@ typedef struct hcapi_data_speed_dev_t {
     int device_id;
     char display_dev_cur[16];
     double exec_all_ms[DEVICES_MAX];
-    char display_all_cur[16];
+    
 
 } hcapi_data_speed_dev_t;
 
@@ -192,15 +192,19 @@ typedef struct hcapi_data_recovered_t {
     
     float digests_percent;
     float salts_percent;
+    int    digests_cnt;
+    int    digests_done;
+    int    salts_cnt;
+    int    salts_done;
 
 } hcapi_data_recovered_t;
 
 
 typedef struct hcapi_data_recovered_time_t {
     
-    int cpt_cur_min;
-    int cpt_cur_hour;
-    int cpt_cur_day;
+    uint cpt_cur_min;
+    uint cpt_cur_hour;
+    uint cpt_cur_day;
 
     float ms_real;
 
@@ -235,6 +239,7 @@ typedef struct hcapi_data_hwmon_gpu_t {
     int device_id;
     char utilization[HM_STR_BUF_SIZE];
     char temperature[HM_STR_BUF_SIZE];
+    char fanspeed[HM_STR_BUF_SIZE];
 
 } hcapi_data_hwmon_gpu_t;
 
@@ -263,16 +268,6 @@ typedef struct hcapi_data_t {
   uint    bfs_cnt;
   uint    css_cnt;
 
-
-
-  /**
-   * hashes
-   */
-
-  uint    digests_cnt;
-  uint    digests_done;
-  uint    salts_cnt;
-  uint    salts_done;
 
   /* TODO
     salt_t *salts_buf;
@@ -351,6 +346,7 @@ typedef struct hcapi_data_t {
    char *input_right;
    uint mask_len;
    float mask_percentage;
+   char display_all_cur[16];
 
    hcapi_data_time_started_t *time_started;
    hcapi_data_time_estimated_t *time_estimated;
@@ -1963,16 +1959,16 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
   hcapi_data->css_cnt = data.css_cnt;
 
   // Set API Data digest_cnt
-  hcapi_data->digests_cnt = data.digests_cnt;
+  hcapi_data->recovered->digests_cnt = data.digests_cnt;
 
   // Set API Data digest_done
-  hcapi_data->digests_done = data.digests_done;
+  hcapi_data->recovered->digests_done = data.digests_done;
 
   // Set API Data salts_cnt
-  hcapi_data->salts_cnt = data.salts_cnt;
+  hcapi_data->recovered->salts_cnt = data.salts_cnt;
 
   // Set API Data salts_done
-  hcapi_data->salts_done = data.salts_done;
+  hcapi_data->recovered->salts_done = data.salts_done;
 
   // Set API Data status
   input_size = strlen (status_type) + 2;
@@ -2669,8 +2665,8 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
     }
   }
 
-  // Setup API speed_dev
-  if (hcapi_data->hwmon_gpu == NULL){
+  // Setup API Data speed_dev
+  if (hcapi_data->speed_dev == NULL){
 
     hcapi_data->speed_dev = (hcapi_data_speed_dev_t *)malloc(data.devices_cnt*sizeof(hcapi_data_speed_dev_t));
 
@@ -2688,13 +2684,15 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
 
     format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
-    log_info ("Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+    
 
     hcapi_data->speed_dev[device_id].device_id = device_id + 1;
 
+    // Setup API Data display_dev_cur
     memcpy(hcapi_data->speed_dev[device_id].display_dev_cur, display_dev_cur, sizeof(display_dev_cur));
 
-    //TODO memcpy(hcapi_data->speed_dev[device_id].exec_all_ms, exec_all_ms[device_id], sizeof(exec_all_ms));
+    // Setup API Data exec_all_ms
+    hcapi_data->speed_dev[device_id].exec_all_ms[device_id] = exec_all_ms[device_id];
     
 
   }
@@ -2705,12 +2703,18 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
 
   format_speed_display (hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
-  if (data.devices_active > 1) log_info ("Speed.Dev.#*...: %9sH/s", display_all_cur);
+  if (data.devices_active > 1) 
+  {
 
+    // Setup API Data display_all_cur
+    memcpy(hcapi_data->display_all_cur, display_all_cur, sizeof(display_all_cur));
+
+  }
   const float digests_percent = (float) data.digests_done / data.digests_cnt;
   const float salts_percent   = (float) data.salts_done   / data.salts_cnt;
 
-  log_info ("Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", data.digests_done, data.digests_cnt, digests_percent * 100, data.salts_done, data.salts_cnt, salts_percent * 100);
+  hcapi_data->recovered->digests_percent = digests_percent;
+  hcapi_data->recovered->salts_percent = salts_percent;
 
   // crack-per-time
 
@@ -2751,37 +2755,43 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
 
     if ((data.cpt_start + 86400) < now)
     {
-      log_info ("Recovered/Time.: CUR:%llu,%llu,%llu AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_cur_min,
-        cpt_cur_hour,
-        cpt_cur_day,
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
+
+
+
+        hcapi_data->recovered_time->cpt_cur_min = cpt_cur_min;
+        hcapi_data->recovered_time->cpt_cur_hour = cpt_cur_hour;
+        hcapi_data->recovered_time->cpt_cur_day = cpt_cur_day;
+        hcapi_data->recovered_time->cpt_avg_min = cpt_avg_min;
+        hcapi_data->recovered_time->cpt_avg_hour = cpt_avg_hour;
+        hcapi_data->recovered_time->cpt_avg_day = cpt_avg_day;
+        
     }
     else if ((data.cpt_start + 3600) < now)
     {
-      log_info ("Recovered/Time.: CUR:%llu,%llu,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_cur_min,
-        cpt_cur_hour,
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
+
+
+        hcapi_data->recovered_time->cpt_cur_min = cpt_cur_min;
+        hcapi_data->recovered_time->cpt_cur_hour = cpt_cur_hour;
+        hcapi_data->recovered_time->cpt_avg_min = cpt_avg_min;
+        hcapi_data->recovered_time->cpt_avg_hour = cpt_avg_hour;
+        hcapi_data->recovered_time->cpt_avg_day = cpt_avg_day;
     }
     else if ((data.cpt_start + 60) < now)
     {
-      log_info ("Recovered/Time.: CUR:%llu,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_cur_min,
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
+
+
+        hcapi_data->recovered_time->cpt_cur_min = cpt_cur_min;
+        hcapi_data->recovered_time->cpt_avg_min = cpt_avg_min;
+        hcapi_data->recovered_time->cpt_avg_hour = cpt_avg_hour;
+        hcapi_data->recovered_time->cpt_avg_day = cpt_avg_day;
     }
     else
     {
-      log_info ("Recovered/Time.: CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
+
+
+        hcapi_data->recovered_time->cpt_avg_min = cpt_avg_min;
+        hcapi_data->recovered_time->cpt_avg_hour = cpt_avg_hour;
+        hcapi_data->recovered_time->cpt_avg_day = cpt_avg_day;
     }
   }
 
@@ -2807,14 +2817,22 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
         percent_rejected = (float) (all_rejected) / (float) progress_cur;
       }
 
-      log_info ("Progress.......: %llu/%llu (%.02f%%)", (unsigned long long int) progress_cur_relative_skip, (unsigned long long int) progress_end_relative_skip, percent_finished * 100);
-      log_info ("Rejected.......: %llu/%llu (%.02f%%)", (unsigned long long int) all_rejected,               (unsigned long long int) progress_cur_relative_skip, percent_rejected * 100);
+      hcapi_data->progress->progress_cur_relative_skip = progress_cur_relative_skip;
+      hcapi_data->progress->progress_end_relative_skip = progress_end_relative_skip;
+      hcapi_data->progress->percent_finished = percent_finished;
+
+
+      hcapi_data->progress->all_rejected = all_rejected;
+      hcapi_data->progress->percent_rejected = percent_rejected;
 
       if (data.restore_disable == 0)
       {
         if (percent_finished != 1)
         {
-          log_info ("Restore.Point..: %llu/%llu (%.02f%%)", (unsigned long long int) restore_point, (unsigned long long int) restore_total, percent_restore * 100);
+        
+          hcapi_data->restore_point->restore_total = restore_total;
+          hcapi_data->restore_point->restore_point = restore_point;
+          hcapi_data->restore_point->percent_restore = percent_restore;
         }
       }
     }
@@ -2823,20 +2841,27 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
   {
     if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
     {
-      log_info ("Progress.......: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
-      log_info ("Rejected.......: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
+
+      hcapi_data->progress->progress_cur_relative_skip = 0;
+      hcapi_data->progress->progress_end_relative_skip = 0;
+      hcapi_data->progress->percent_finished = 100.0;
+      hcapi_data->progress->all_rejected = 0;
+      hcapi_data->progress->percent_rejected = 100.0;
 
       if (data.restore_disable == 0)
       {
-        log_info ("Restore.Point..: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
+
+        hcapi_data->restore_point->restore_total = 0;
+        hcapi_data->restore_point->restore_point = 0;
+        hcapi_data->restore_point->percent_restore = 100.0;
       }
     }
     else
     {
-      log_info ("Progress.......: %llu", (unsigned long long int) progress_cur_relative_skip);
-      log_info ("Rejected.......: %llu", (unsigned long long int) all_rejected);
 
-      
+      hcapi_data->progress->progress_cur_relative_skip = progress_cur_relative_skip;
+      hcapi_data->progress->all_rejected = all_rejected;
+
     }
   }
 
@@ -2844,6 +2869,13 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
   if (data.gpu_temp_disable == 0)
   {
     hc_thread_mutex_lock (mux_adl);
+
+    // Setup API Data hwmon_gpu
+    if (hcapi_data->hwmon_gpu == NULL){
+
+      hcapi_data->hwmon_gpu = (hcapi_data_hwmon_gpu_t *)malloc(data.devices_cnt*sizeof(hcapi_data_hwmon_gpu_t));
+
+    }
 
     for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
     {
@@ -2871,7 +2903,14 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
           hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
         }
 
-        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan", device_id + 1, utilization, temperature, fanspeed);
+
+
+        hcapi_data->hwmon_gpu[device_id].device_id = device_id;
+        snprintf (hcapi_data->hwmon_gpu[device_id].utilization, sizeof(utilization), "%s", utilization );
+        snprintf (hcapi_data->hwmon_gpu[device_id].temperature, sizeof(temperature), "%s", temperature );
+        snprintf (hcapi_data->hwmon_gpu[device_id].fanspeed, sizeof(fanspeed), "%s", fanspeed );
+
+
       }
       else
       {
@@ -2881,7 +2920,12 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
         hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
         hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
 
-        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, N/A Fan", device_id + 1, utilization, temperature);
+        hcapi_data->hwmon_gpu[device_id].device_id = device_id;
+        snprintf (hcapi_data->hwmon_gpu[device_id].utilization, sizeof(utilization), "%s", utilization );
+        snprintf (hcapi_data->hwmon_gpu[device_id].temperature, sizeof(temperature), "%s", temperature );
+
+        char fanspeed[HM_STR_BUF_SIZE] = { 0 };
+        snprintf (hcapi_data->hwmon_gpu[device_id].fanspeed, sizeof(fanspeed), "%s", fanspeed );
       }
     }
 
@@ -2998,17 +3042,21 @@ hcapi_control_t oclhashcat_init (void)
   control.status_data.time_started = (hcapi_data_time_started_t *)malloc(sizeof(hcapi_data_time_started_t));
   control.status_data.time_started->start = NULL;
   control.status_data.time_started->display_run = NULL;
-
   control.status_data.time_estimated = (hcapi_data_time_estimated_t *)malloc( sizeof(hcapi_data_time_estimated_t));
   control.status_data.time_estimated->etc = NULL;
   control.status_data.time_estimated->display_etc = NULL;
-
   control.status_data.speed_dev = (hcapi_data_speed_dev_t *)malloc(sizeof(hcapi_data_speed_dev_t));
   control.status_data.recovered = (hcapi_data_recovered_t *)malloc(sizeof(hcapi_data_recovered_t));
   control.status_data.recovered_time = (hcapi_data_recovered_time_t *)malloc(sizeof(hcapi_data_recovered_time_t));
+  control.status_data.recovered_time->cpt_cur_min = 0;
+  control.status_data.recovered_time->cpt_cur_hour = 0;
+  control.status_data.recovered_time->cpt_cur_day = 0;
+  control.status_data.recovered_time->cpt_avg_min = 0.0;
+  control.status_data.recovered_time->cpt_avg_hour = 0.0;
+  control.status_data.recovered_time->cpt_avg_day = 0.0;
   control.status_data.progress = (hcapi_data_progress_t *)malloc(sizeof(hcapi_data_progress_t));
   control.status_data.restore_point = (hcapi_data_restore_point_t *)malloc(sizeof(hcapi_data_restore_point_t));
-  control.status_data.hwmon_gpu = NULL; //(hcapi_data_hwmon_gpu_t *)malloc(sizeof(hcapi_data_hwmon_gpu_t));
+  control.status_data.hwmon_gpu = NULL;
   control.status_data.status = NULL;
   control.status_data.hash_target = NULL;
   control.status_data.hash_type_str = NULL;
@@ -3023,6 +3071,10 @@ hcapi_control_t oclhashcat_init (void)
   control.status_data.mask_pos = 0;
   control.status_data.mask_percentage = 0.0;
   control.status_data.mask_len = 0;
+  memset(control.status_data.display_all_cur, 0, 16);
+  strncpy (control.status_data.display_all_cur, "0.00", 4);
+
+
 
   return control;
 
@@ -3043,17 +3095,10 @@ int main ()
 
   hc.options.attack_mode = 0;
   hc.options.hash_mode = 1000;
-  hc.options.hash_input = "C:\\Users\\rich\\Desktop\\Datastar\\Datastar_hashes";
+  hc.options.hash_input = "C:\\Users\\rich\\Desktop\\hashes\\test_hashes";
   hc.options.append_dictmaskdir (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Dicts\\16Walk.txt");
   hc.options.append_rules (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Rules\\walk.rule");
   hc.options.append_rules (&hc.options, "rules\\best64.rule");
-
-  // hc.options.attack_mode = 0;
-  // hc.options.hash_mode = 1000;
-  // hc.options.hash_input = "C:\\Users\\auser\\Desktop\\hashes.txt";
-  // hc.options.append_dictmaskdir(&hc.options, "C:\\Users\\auser\\Desktop\\Dicts\\dictionary.txt");
-  // hc.options.append_rules(&hc.options, "C:\\Users\\auser\\Desktop\\Rules\\somerulse.rule");
-  // hc.options.append_rules(&hc.options, "rules\\best64.rule");
 
 
   int c;
@@ -3114,8 +3159,42 @@ int main ()
         {
 
           printf("-----------------Device %d: \n", hc.status_data.speed_dev[device_id].device_id);
-          printf("-----------------display_dev_cur: %s: \n", hc.status_data.speed_dev[device_id].display_dev_cur);
-          //TODO printf("-----------------exec_all_ms: %0.2f: \n", hc.status_data.speed_dev[device_id].exec_all_ms);
+          printf("-----------------display_dev_cur: %s \n", hc.status_data.speed_dev[device_id].display_dev_cur);
+          printf("-----------------exec_all_ms: %0.2f \n", hc.status_data.speed_dev[device_id].exec_all_ms[device_id]);
+        
+        }
+
+        
+        printf("-----------------digests_cnt: %u\n", hc.status_data.recovered->digests_cnt);
+        printf("-----------------digests_done: %u\n", hc.status_data.recovered->digests_done);
+        printf("-----------------salts_cnt: %u\n", hc.status_data.recovered->salts_cnt);
+        printf("-----------------salts_done: %u\n", hc.status_data.recovered->salts_done);
+        printf("-----------------digests_percent: %.2f%%\n", hc.status_data.recovered->digests_percent*100);
+        printf("-----------------salts_percent: %.2f%%\n", hc.status_data.recovered->salts_percent*100);
+
+        
+        printf("-----------------cpt_cur_min: %u\n", hc.status_data.recovered_time->cpt_cur_min);
+        printf("-----------------cpt_cur_hour: %u\n", hc.status_data.recovered_time->cpt_cur_hour);
+        printf("-----------------cpt_cur_day: %u\n", hc.status_data.recovered_time->cpt_cur_day);
+        printf("-----------------cpt_avg_min: %0.2f\n", hc.status_data.recovered_time->cpt_avg_min);
+        printf("-----------------cpt_avg_hour: %0.2f\n", hc.status_data.recovered_time->cpt_avg_hour);
+        printf("-----------------cpt_avg_day: %0.2f\n", hc.status_data.recovered_time->cpt_avg_day);
+
+
+        printf("-----------------progress_cur_relative_skip: %llu\n", hc.status_data.progress->progress_cur_relative_skip);
+        printf("-----------------progress_end_relative_skip: %llu\n", hc.status_data.progress->progress_end_relative_skip);
+        printf("-----------------percent_finished: %.2f%%\n", hc.status_data.progress->percent_finished*100);
+        printf("-----------------percent_rejected: %.2f%%\n", hc.status_data.progress->percent_rejected*100);
+        printf("-----------------all_rejected: %llu\n", hc.status_data.progress->all_rejected);
+
+        for(uint device_id = 0; device_id < hc.status_data.devices_cnt; device_id++)
+        {
+
+          printf("-----------------Device %d: \n", hc.status_data.hwmon_gpu[device_id].device_id);
+          printf("-----------------utilization: %s \n", hc.status_data.hwmon_gpu[device_id].utilization);
+          printf("-----------------temperature: %s \n", hc.status_data.hwmon_gpu[device_id].temperature);
+          printf("-----------------fanspeed: %s \n", hc.status_data.hwmon_gpu[device_id].fanspeed);
+
         
         }
 
