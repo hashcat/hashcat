@@ -1759,8 +1759,6 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
         && esalt_bufs[salt_pos].contents_hash[7] == final_digest[7])
         {
           mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, il_pos);
-
-          d_return_buf[lid] = 1;
         }
     }
     else
@@ -1965,8 +1963,6 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
         && esalt_bufs[salt_pos].contents_hash[7] == final_digest[7])
         {
           mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, il_pos);
-
-          d_return_buf[lid] = 1;
         }
     }
   }
@@ -2005,8 +2001,6 @@ __kernel void m13400_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
       && esalt_bufs[salt_pos].expected_bytes[3] == out[3])
       {
         mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, il_pos);
-
-        d_return_buf[lid] = 1;
       }
   }
 }

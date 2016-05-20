@@ -2016,8 +2016,6 @@ __kernel void m11600_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     if ((out[0] == 0) && (out[1] == 0) && (out[2] == 0) && (out[3] == 0))
     {
       mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, 0);
-
-      d_return_buf[lid] = 1;
     }
   }
 

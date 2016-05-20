@@ -10588,7 +10588,6 @@ int main (int argc, char **argv)
                    dgst_pos3   = 3;
                    break;
 
-
       default:     usage_mini_print (PROGNAME); return (-1);
     }
 

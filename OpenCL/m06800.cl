@@ -1574,8 +1574,6 @@ __kernel void m06800_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
    && (out[3] == salt_buf[3]))
   {
     mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, 0);
-
-    d_return_buf[lid] = 1;
   }
 
   /**

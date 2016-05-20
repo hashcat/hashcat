@@ -635,8 +635,6 @@ void m07500 (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[
     if (decrypt_and_check (&rc4_keys[lid], tmp, timestamp_ct) == 1)
     {
       mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, il_pos);
-
-      d_return_buf[lid] = 1;
     }
   }
 }
