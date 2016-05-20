@@ -1890,7 +1890,7 @@ static void gidd_to_pw_t (hc_device_param_t *device_param, const u64 gidd, pw_t 
   hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, gidd * sizeof (pw_t), sizeof (pw_t), pw, 0, NULL, NULL);
 }
 
-static void check_hash (hc_device_param_t *device_param, const uint salt_pos, const uint digest_pos)
+static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 {
   char *outfile    = data.outfile;
   uint  quiet      = data.quiet;
@@ -1909,38 +1909,32 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
   char out_buf[HCBUFSIZ] = { 0 };
 
+  const u32 salt_pos    = plain->salt_pos;
+  const u32 digest_pos  = plain->digest_pos;  // relative
+  const u32 gidvid      = plain->gidvid;
+  const u32 il_pos      = plain->il_pos;
+
   ascii_digest (out_buf, salt_pos, digest_pos);
 
-  uint idx = data.salts_buf[salt_pos].digests_offset + digest_pos;
-
   // plain
-
-  plain_t plain;
-
-  hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, idx * sizeof (plain_t), sizeof (plain_t), &plain, 0, NULL, NULL);
-
-  uint gidvid = plain.gidvid;
-  uint il_pos = plain.il_pos;
 
   u64 crackpos = device_param->words_off;
 
   uint plain_buf[16] = { 0 };
 
   u8 *plain_ptr = (u8 *) plain_buf;
+
   unsigned int plain_len = 0;
 
   if (data.attack_mode == ATTACK_MODE_STRAIGHT)
   {
-    u64 gidd = gidvid;
-    u64 gidm = 0;
-
     pw_t pw;
 
-    gidd_to_pw_t (device_param, gidd, &pw);
+    gidd_to_pw_t (device_param, gidvid, &pw);
 
-    for (int i = 0, j = gidm; i < 16; i++, j++)
+    for (int i = 0; i < 16; i++)
     {
-      plain_buf[i] = pw.i[j];
+      plain_buf[i] = pw.i[i];
     }
 
     plain_len = pw.pw_len;
@@ -1980,16 +1974,13 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_COMBI)
   {
-    u64 gidd = gidvid;
-    u64 gidm = 0;
-
     pw_t pw;
 
-    gidd_to_pw_t (device_param, gidd, &pw);
+    gidd_to_pw_t (device_param, gidvid, &pw);
 
-    for (int i = 0, j = gidm; i < 16; i++, j++)
+    for (int i = 0; i < 16; i++)
     {
-      plain_buf[i] = pw.i[j];
+      plain_buf[i] = pw.i[i];
     }
 
     plain_len = pw.pw_len;
@@ -2041,16 +2032,13 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID1)
   {
-    u64 gidd = gidvid;
-    u64 gidm = 0;
-
     pw_t pw;
 
-    gidd_to_pw_t (device_param, gidd, &pw);
+    gidd_to_pw_t (device_param, gidvid, &pw);
 
-    for (int i = 0, j = gidm; i < 16; i++, j++)
+    for (int i = 0; i < 16; i++)
     {
-      plain_buf[i] = pw.i[j];
+      plain_buf[i] = pw.i[i];
     }
 
     plain_len = pw.pw_len;
@@ -2075,16 +2063,13 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID2)
   {
-    u64 gidd = gidvid;
-    u64 gidm = 0;
-
     pw_t pw;
 
-    gidd_to_pw_t (device_param, gidd, &pw);
+    gidd_to_pw_t (device_param, gidvid, &pw);
 
-    for (int i = 0, j = gidm; i < 16; i++, j++)
+    for (int i = 0; i < 16; i++)
     {
-      plain_buf[i] = pw.i[j];
+      plain_buf[i] = pw.i[i];
     }
 
     plain_len = pw.pw_len;
@@ -2240,33 +2225,31 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 {
   salt_t *salt_buf = &data.salts_buf[salt_pos];
 
-  int found = 0;
+  u32 num_cracked;
 
-  hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, device_param->size_results, device_param->result, 0, NULL, NULL);
+  hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
 
-  for (uint i = 0; i < device_param->kernel_threads; i++) if (device_param->result[i] == 1) found = 1;
-
-  if (found == 1)
+  if (num_cracked)
   {
     // display hack (for weak hashes etc, it could be that there is still something to clear on the current line)
 
     log_info_nn ("");
 
-    hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
+    plain_t *cracked = (plain_t *) mycalloc (num_cracked, sizeof (plain_t));
+
+    hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
 
     uint cpt_cracked = 0;
 
-    for (uint digest_pos = 0; digest_pos < salt_buf->digests_cnt; digest_pos++)
+    for (uint i = 0; i < num_cracked; i++)
     {
-      uint idx = salt_buf->digests_offset + digest_pos;
+      const uint hash_pos = cracked[i].hash_pos;
 
-      if (data.digests_shown_tmp[idx] == 0) continue;
-
-      if (data.digests_shown[idx] == 1) continue;
+      if (data.digests_shown[hash_pos] == 1) continue;
 
       if ((data.opts_type & OPTS_TYPE_PT_NEVERCRACK) == 0)
       {
-        data.digests_shown[idx] = 1;
+        data.digests_shown[hash_pos] = 1;
 
         data.digests_done++;
 
@@ -2284,8 +2267,10 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
       if (data.salts_done == data.salts_cnt) data.devices_status = STATUS_CRACKED;
 
-      check_hash (device_param, salt_pos, digest_pos);
+      check_hash (device_param, &cracked[i]);
     }
+
+    myfree (cracked);
 
     if (cpt_cracked > 0)
     {
@@ -2310,9 +2295,9 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
     }
 
-    memset (device_param->result, 0, device_param->size_results);
+    num_cracked = 0;
 
-    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, device_param->size_results, device_param->result, 0, NULL, NULL);
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
   }
 }
 
@@ -14150,7 +14135,7 @@ int main (int argc, char **argv)
       device_param->size_root_css   = size_root_css;
       device_param->size_markov_css = size_markov_css;
 
-      size_t size_results = kernel_threads * sizeof (uint);
+      size_t size_results = sizeof (uint);
 
       device_param->size_results = size_results;
 
@@ -15030,10 +15015,6 @@ int main (int argc, char **argv)
       /**
        * main host data
        */
-
-      uint *result = (uint *) mymalloc (size_results);
-
-      device_param->result = result;
 
       pw_t *pws_buf = (pw_t *) mymalloc (size_pws);
 
@@ -17553,8 +17534,6 @@ int main (int argc, char **argv)
       hc_device_param_t *device_param = &data.devices_param[device_id];
 
       if (device_param->skipped) continue;
-
-      local_free (device_param->result);
 
       local_free (device_param->combs_buf);
 

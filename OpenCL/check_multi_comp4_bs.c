@@ -18,17 +18,15 @@ if (check (digest_tp,
              bitmap_shift1,
              bitmap_shift2))
 {
-  int hash_pos = find_hash (digest_tp, digests_cnt, &digests_buf[digests_offset]);
+  int digest_pos = find_hash (digest_tp, digests_cnt, &digests_buf[digests_offset]);
 
-  if (hash_pos != -1)
+  if (digest_pos != -1)
   {
-    const u32 final_hash_pos = digests_offset + hash_pos;
+    const u32 final_hash_pos = digests_offset + digest_pos;
 
     if (atomic_add (&hashes_shown[final_hash_pos], 1) == 0)
     {
-      mark_hash (plains_buf, hashes_shown, final_hash_pos, gid, il_pos + slice);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_result, salt_pos, digest_pos, final_hash_pos, gid, il_pos + slice);
     }
   }
 }

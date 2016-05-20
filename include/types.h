@@ -859,6 +859,9 @@ typedef struct
 
 typedef struct
 {
+  uint salt_pos;
+  uint digest_pos;
+  uint hash_pos;
   uint gidvid;
   uint il_pos;
 
@@ -971,8 +974,6 @@ struct __hc_device_param
 
   u64     words_off;
   u64     words_done;
-
-  uint   *result;
 
   uint    outerloop_pos;
   uint    outerloop_left;
