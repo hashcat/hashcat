@@ -5211,6 +5211,8 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
 
   for (uint i = 0; i < digests_cnt; i++)
   {
+    if (data.digests_shown[i] == 1) continue; // can happen with potfile
+
     uint *digest_ptr = (uint *) digests_buf_ptr;
 
     digests_buf_ptr += dgst_size;
