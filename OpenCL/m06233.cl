@@ -1984,7 +1984,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
 
       d_return_buf[lid] = 1;
     }
@@ -2000,7 +2000,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
 
       d_return_buf[lid] = 1;
     }
@@ -2016,7 +2016,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
 
       d_return_buf[lid] = 1;
     }
@@ -2055,7 +2055,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
 
       d_return_buf[lid] = 1;
     }
@@ -2072,7 +2072,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
 
       d_return_buf[lid] = 1;
     }
@@ -2089,7 +2089,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
 
       d_return_buf[lid] = 1;
     }
@@ -2129,7 +2129,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
 
       d_return_buf[lid] = 1;
     }
@@ -2147,7 +2147,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
 
       d_return_buf[lid] = 1;
     }

@@ -859,7 +859,7 @@ __kernel void m13100_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[salt_pos].edata2, krb5tgs_bufs[salt_pos].edata2_len, K2, checksum) == 1)
     {
-      mark_hash (plains_buf, hashes_shown, digests_offset, gid, il_pos);
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, il_pos);
 
       d_return_buf[lid] = 1;
     }
@@ -1003,7 +1003,7 @@ __kernel void m13100_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[salt_pos].edata2, krb5tgs_bufs[salt_pos].edata2_len, K2, checksum) == 1)
     {
-      mark_hash (plains_buf, hashes_shown, digests_offset, gid, il_pos);
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, il_pos);
 
       d_return_buf[lid] = 1;
     }

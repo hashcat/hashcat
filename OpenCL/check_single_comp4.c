@@ -7,6 +7,6 @@ if ((r0 == search[0])
 
   if (atomic_add (&hashes_shown[final_hash_pos], 1) == 0)
   {
-    mark_hash (plains_buf, d_result, salt_pos, 0, final_hash_pos, gid, il_pos);
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, final_hash_pos, gid, il_pos);
   }
 }
