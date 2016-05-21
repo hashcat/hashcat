@@ -201,22 +201,27 @@ void hmac_sha256_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u
 
   sha256_transform (w0, w1, w2, w3, digest);
 
-  w0[0] = digest[0];
-  w0[1] = digest[1];
-  w0[2] = digest[2];
-  w0[3] = digest[3];
-  w1[0] = digest[4];
-  w1[1] = digest[5];
-  w1[2] = digest[6];
-  w1[3] = digest[7];
-  w2[0] = 0x80000000;
-  w2[1] = 0;
-  w2[2] = 0;
-  w2[3] = 0;
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = 0;
-  w3[3] = (64 + 32) * 8;
+  u32 t0[4];
+  u32 t1[4];
+  u32 t2[4];
+  u32 t3[4];
+
+  t0[0] = digest[0];
+  t0[1] = digest[1];
+  t0[2] = digest[2];
+  t0[3] = digest[3];
+  t1[0] = digest[4];
+  t1[1] = digest[5];
+  t1[2] = digest[6];
+  t1[3] = digest[7];
+  t2[0] = 0x80000000;
+  t2[1] = 0;
+  t2[2] = 0;
+  t2[3] = 0;
+  t3[0] = 0;
+  t3[1] = 0;
+  t3[2] = 0;
+  t3[3] = (64 + 32) * 8;
 
   digest[0] = opad[0];
   digest[1] = opad[1];
@@ -227,7 +232,7 @@ void hmac_sha256_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u
   digest[6] = opad[6];
   digest[7] = opad[7];
 
-  sha256_transform (w0, w1, w2, w3, digest);
+  sha256_transform (t0, t1, t2, t3, digest);
 }
 
 void hmac_sha256_run2 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], u32 ipad[8], u32 opad[8], u32 digest[8])
@@ -244,22 +249,27 @@ void hmac_sha256_run2 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u3
   sha256_transform (w0, w1, w2, w3, digest);
   sha256_transform (w4, w5, w6, w7, digest);
 
-  w0[0] = digest[0];
-  w0[1] = digest[1];
-  w0[2] = digest[2];
-  w0[3] = digest[3];
-  w1[0] = digest[4];
-  w1[1] = digest[5];
-  w1[2] = digest[6];
-  w1[3] = digest[7];
-  w2[0] = 0x80000000;
-  w2[1] = 0;
-  w2[2] = 0;
-  w2[3] = 0;
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = 0;
-  w3[3] = (64 + 32) * 8;
+  u32 t0[4];
+  u32 t1[4];
+  u32 t2[4];
+  u32 t3[4];
+
+  t0[0] = digest[0];
+  t0[1] = digest[1];
+  t0[2] = digest[2];
+  t0[3] = digest[3];
+  t1[0] = digest[4];
+  t1[1] = digest[5];
+  t1[2] = digest[6];
+  t1[3] = digest[7];
+  t2[0] = 0x80000000;
+  t2[1] = 0;
+  t2[2] = 0;
+  t2[3] = 0;
+  t3[0] = 0;
+  t3[1] = 0;
+  t3[2] = 0;
+  t3[3] = (64 + 32) * 8;
 
   digest[0] = opad[0];
   digest[1] = opad[1];
@@ -270,7 +280,7 @@ void hmac_sha256_run2 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u3
   digest[6] = opad[6];
   digest[7] = opad[7];
 
-  sha256_transform (w0, w1, w2, w3, digest);
+  sha256_transform (t0, t1, t2, t3, digest);
 }
 
 u32 u8add (const u32 a, const u32 b)
@@ -663,4 +673,3 @@ __kernel void m13751_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     }
   }
 }
-
