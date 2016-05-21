@@ -423,8 +423,8 @@ const char *USAGE_BIG[] =
   "       --opencl-device-types=STR     OpenCL device-types to use, separate with comma, see references below",
   "       --opencl-vector-width=NUM     OpenCL vector-width (either 1, 2, 4, 8 or 16), overrides value from device query",
   "  -w,  --workload-profile=NUM        Enable a specific workload profile, see references below",
-  "  -n,  --kernel-accel=NUM            Workload tuning, increase the outer-loop step size",
-  "  -u,  --kernel-loops=NUM            Workload tuning, increase the inner-loop step size",
+  "  -n,  --kernel-accel=NUM            Workload tuning, increase the outer-loop step size (outdated option, use -w)",
+  "  -u,  --kernel-loops=NUM            Workload tuning, increase the inner-loop step size (outdated option, use -w)",
   "       --gpu-temp-disable            Disable temperature and fanspeed readings and triggers",
   #ifdef HAVE_HWMON
   "       --gpu-temp-abort=NUM          Abort session if GPU temperature reaches NUM degrees celsius",
@@ -6068,6 +6068,16 @@ int main (int argc, char **argv)
 
   if (kernel_accel_chgd == 1)
   {
+    if (force == 0)
+    {
+      log_info ("The manual use of the option -n (or --kernel-accel) is outdated");
+      log_info ("Please consider using the option -w instead");
+      log_info ("You can use --force to override this but do not post error reports if you do so");
+      log_info ("");
+
+      return (-1);
+    }
+
     if (kernel_accel < 1)
     {
       log_error ("ERROR: Invalid kernel-accel specified");
@@ -6085,6 +6095,16 @@ int main (int argc, char **argv)
 
   if (kernel_loops_chgd == 1)
   {
+    if (force == 0)
+    {
+      log_info ("The manual use of the option -u (or --kernel-loops) is outdated");
+      log_info ("Please consider using the option -w instead");
+      log_info ("You can use --force to override this but do not post error reports if you do so");
+      log_info ("");
+
+      return (-1);
+    }
+
     if (kernel_loops < 1)
     {
       log_error ("ERROR: Invalid kernel-loops specified");
