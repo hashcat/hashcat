@@ -6496,45 +6496,47 @@ int main (int argc, char **argv)
    * store stuff
    */
 
-  data.hash_mode         = hash_mode;
-  data.restore           = restore;
-  data.restore_timer     = restore_timer;
-  data.restore_disable   = restore_disable;
-  data.status            = status;
-  data.status_timer      = status_timer;
-  data.status_automat    = status_automat;
-  data.loopback          = loopback;
-  data.runtime           = runtime;
-  data.remove            = remove;
-  data.remove_timer      = remove_timer;
-  data.debug_mode        = debug_mode;
-  data.debug_file        = debug_file;
-  data.username          = username;
-  data.quiet             = quiet;
-  data.outfile           = outfile;
-  data.outfile_format    = outfile_format;
-  data.outfile_autohex   = outfile_autohex;
-  data.hex_charset       = hex_charset;
-  data.hex_salt          = hex_salt;
-  data.hex_wordlist      = hex_wordlist;
-  data.separator         = separator;
-  data.rp_files          = rp_files;
-  data.rp_files_cnt      = rp_files_cnt;
-  data.rp_gen            = rp_gen;
-  data.rp_gen_seed       = rp_gen_seed;
-  data.force             = force;
-  data.benchmark         = benchmark;
-  data.skip              = skip;
-  data.limit             = limit;
-  #if defined(HAVE_HWMON) && defined(HAVE_ADL)
-  data.powertune_enable  = powertune_enable;
+  data.hash_mode          = hash_mode;
+  data.restore            = restore;
+  data.restore_timer      = restore_timer;
+  data.restore_disable    = restore_disable;
+  data.status             = status;
+  data.status_timer       = status_timer;
+  data.status_automat     = status_automat;
+  data.loopback           = loopback;
+  data.runtime            = runtime;
+  data.remove             = remove;
+  data.remove_timer       = remove_timer;
+  data.debug_mode         = debug_mode;
+  data.debug_file         = debug_file;
+  data.username           = username;
+  data.quiet              = quiet;
+  data.outfile            = outfile;
+  data.outfile_format     = outfile_format;
+  data.outfile_autohex    = outfile_autohex;
+  data.hex_charset        = hex_charset;
+  data.hex_salt           = hex_salt;
+  data.hex_wordlist       = hex_wordlist;
+  data.separator          = separator;
+  data.rp_files           = rp_files;
+  data.rp_files_cnt       = rp_files_cnt;
+  data.rp_gen             = rp_gen;
+  data.rp_gen_seed        = rp_gen_seed;
+  data.force              = force;
+  data.benchmark          = benchmark;
+  data.skip               = skip;
+  data.limit              = limit;
+  #ifdef HAVE_HWMON
+  #ifdef HAVE_ADL
+  data.powertune_enable   = powertune_enable;
   #endif
-  data.logfile_disable   = logfile_disable;
+  #endif
+  data.logfile_disable    = logfile_disable;
   data.truecrypt_keyfiles = truecrypt_keyfiles;
   data.veracrypt_keyfiles = veracrypt_keyfiles;
-  data.veracrypt_pim     = veracrypt_pim;
-  data.scrypt_tmto       = scrypt_tmto;
-  data.workload_profile  = workload_profile;
+  data.veracrypt_pim      = veracrypt_pim;
+  data.scrypt_tmto        = scrypt_tmto;
+  data.workload_profile   = workload_profile;
 
   /**
    * cpu affinity
