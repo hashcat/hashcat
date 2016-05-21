@@ -66,7 +66,7 @@ inline u32 check (const u32 digest[2], __global u32 *bitmap_s1_a, __global u32 *
 
 inline void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const int salt_pos, const int digest_pos, const int hash_pos, const u32 gid, const u32 il_pos)
 {
-  const u32 idx = atomic_add (d_result, 1);
+  const u32 idx = atomic_inc (d_result);
 
   plains_buf[idx].salt_pos    = salt_pos;
   plains_buf[idx].digest_pos  = digest_pos; // relative
