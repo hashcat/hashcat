@@ -1894,8 +1894,6 @@ __kernel void m08800_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     if ((r0 == 0x4f44534d) && (r1 == 0x302e3553))
     {
       mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, 0);
-
-      d_return_buf[lid] = 1;
     }
   }
 
@@ -1962,8 +1960,6 @@ __kernel void m08800_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     if ((r[5] < 2) && (r[6] < 16) && ((r[14] & 0xffff) == 0xEF53))
     {
       mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, 0);
-
-      d_return_buf[lid] = 1;
     }
   }
 }
