@@ -2865,7 +2865,22 @@ static void autotune (hc_device_param_t *device_param)
   u32 kernel_accel = kernel_accel_min;
   u32 kernel_loops = kernel_loops_min;
 
-  // init some fake words
+  // in this case the user specified a fixed -u and -n on the commandline
+  // no way to tune anything
+  // but we need to run a few caching rounds
+
+  if ((kernel_loops_min == kernel_loops_max) && (kernel_accel_min == kernel_accel_max))
+  {
+    try_run (device_param, kernel_accel, kernel_loops);
+    try_run (device_param, kernel_accel, kernel_loops);
+    try_run (device_param, kernel_accel, kernel_loops);
+    try_run (device_param, kernel_accel, kernel_loops);
+
+    return;
+  }
+
+  // from here it's clear we are allowed to autotune
+  // so let's init some fake words
 
   const u32 kernel_power_max = device_param->device_processors * device_param->kernel_threads * kernel_accel_max;
 
@@ -2883,34 +2898,30 @@ static void autotune (hc_device_param_t *device_param)
     run_kernel_amp (device_param, kernel_power_max);
   }
 
-  // begin actual testing
-
-  double exec_ms_final = try_run (device_param, kernel_accel, kernel_loops);
-
-  if ((kernel_loops_min == kernel_loops_max) || (kernel_accel_min == kernel_accel_max))
-  {
-    // we do this in case the user specified a fixed -u and -n on the commandline
-    // so we have a cached kernel for benchmark
-
-    try_run (device_param, kernel_accel, kernel_loops);
-    try_run (device_param, kernel_accel, kernel_loops);
-    try_run (device_param, kernel_accel, kernel_loops);
-    try_run (device_param, kernel_accel, kernel_loops);
-    try_run (device_param, kernel_accel, kernel_loops);
-  }
+  #define VERIFIER_CNT 1
 
   // first find out highest kernel-loops that stays below target_ms
 
-  #define STEPS_CNT 10
-
-  for (kernel_loops = kernel_loops_max; kernel_loops > kernel_loops_min; kernel_loops >>= 1)
+  if (kernel_loops_min < kernel_loops_max)
   {
-    double exec_ms = try_run (device_param, kernel_accel_min, kernel_loops);
+    for (kernel_loops = kernel_loops_max; kernel_loops > kernel_loops_min; kernel_loops >>= 1)
+    {
+      double exec_ms = try_run (device_param, kernel_accel_min, kernel_loops);
 
-    if (exec_ms < target_ms) break;
+      for (int i = 0; i < VERIFIER_CNT; i++)
+      {
+        double exec_ms_v = try_run (device_param, kernel_accel_min, kernel_loops);
+
+        exec_ms = MIN (exec_ms, exec_ms_v);
+      }
+
+      if (exec_ms < target_ms) break;
+    }
   }
 
   // now the same for kernel-accel but with the new kernel-loops from previous loop set
+
+  #define STEPS_CNT 10
 
   if (kernel_accel_min < kernel_accel_max)
   {
@@ -2923,59 +2934,79 @@ static void autotune (hc_device_param_t *device_param)
 
       double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops);
 
-      if (exec_ms > target_ms) break;
+      for (int i = 0; i < VERIFIER_CNT; i++)
+      {
+        double exec_ms_v = try_run (device_param, kernel_accel_try, kernel_loops);
 
-      exec_ms_final = exec_ms;
+        exec_ms = MIN (exec_ms, exec_ms_v);
+      }
+
+      if (exec_ms > target_ms) break;
 
       kernel_accel = kernel_accel_try;
     }
   }
 
-  // there's a chance that we have a fixed kernel_loops but not a fixed kernel_accel
-  // in such a case the above function would not create any change
-  // we'll use the runtime to find out if we're allow to do last improvement
+  // at this point we want to know the actual runtime for the following reason:
+  // we need a reference for the balancing loop following up, and this
+  // the balancing loop can have an effect that the creates a new opportunity, for example:
+  //   if the target is 95 ms and the current runtime is 48ms the above loop
+  //   stopped the execution because the previous exec_ms was > 95ms
+  //   due to the rebalance it's possible that the runtime reduces from 48ms to 47ms
+  //   and this creates the possibility to double the workload -> 47 * 2 = 95ms, which is < 96ms
 
-  if (exec_ms_final > 0)
+  double exec_ms_pre_final = try_run (device_param, kernel_accel, kernel_loops);
+
+  for (int i = 0; i < VERIFIER_CNT; i++)
   {
-    if ((exec_ms_final * 2) <= target_ms)
+    double exec_ms_pre_final_v = try_run (device_param, kernel_accel, kernel_loops);
+
+    exec_ms_pre_final = MIN (exec_ms_pre_final, exec_ms_pre_final_v);
+  }
+
+  if ((kernel_loops_min < kernel_loops_max) && (kernel_accel_min < kernel_accel_max))
+  {
+    for (u32 f = 2; f < 1024; f++)
     {
-      const double exec_left = target_ms / exec_ms_final;
+      const u32 kernel_accel_try = kernel_accel * f;
+      const u32 kernel_loops_try = kernel_loops / f;
 
-      const double accel_left = kernel_accel_max / kernel_accel;
+      if (kernel_accel_try > kernel_accel_max) break;
+      if (kernel_loops_try < kernel_loops_min) break;
 
-      const int exec_accel_min = MIN (exec_left, accel_left); // we want that to be int
+      double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try);
 
-      if (exec_accel_min >= 2)
+      for (int i = 0; i < VERIFIER_CNT; i++)
       {
-        kernel_accel *= exec_accel_min;
+        double exec_ms_v = try_run (device_param, kernel_accel_try, kernel_loops_try);
+
+        exec_ms = MIN (exec_ms, exec_ms_v);
+      }
+
+      if (exec_ms < exec_ms_pre_final)
+      {
+        exec_ms_pre_final = exec_ms;
+
+        kernel_accel = kernel_accel_try;
+        kernel_loops = kernel_loops_try;
       }
     }
   }
 
-  // balancing the workload turns out to be very efficient
+  const double exec_left = target_ms / exec_ms_pre_final;
 
-  if (kernel_loops_min != kernel_loops_max)
+  const double accel_left = kernel_accel_max / kernel_accel;
+
+  const int exec_accel_min = MIN (exec_left, accel_left); // we want that to be int
+
+  if (exec_accel_min >= 2)
   {
-    const u32 kernel_power_balance = kernel_accel * kernel_loops;
+    // this is safe to not overflow kernel_accel_max because of accel_left
 
-    u32 sqrtv;
-
-    for (sqrtv = 1; sqrtv < 0x100000; sqrtv++)
-    {
-      if ((sqrtv * sqrtv) >= kernel_power_balance) break;
-    }
-
-    const u32 kernel_accel_try = sqrtv;
-    const u32 kernel_loops_try = sqrtv;
-
-    if ((kernel_accel_try <= kernel_accel_max) && (kernel_loops_try >= kernel_loops_min))
-    {
-      kernel_accel = kernel_accel_try;
-      kernel_loops = kernel_loops_try;
-    }
+    kernel_accel *= exec_accel_min;
   }
 
-  // reset fake words
+  // reset them fake words
 
   memset (device_param->pws_buf, 0, kernel_power_max * sizeof (pw_t));
 
@@ -14312,22 +14343,6 @@ int main (int argc, char **argv)
         {
           device_param->kernel_loops_max = innerloop_cnt;
         }
-      }
-
-      /**
-       * some algorithms need a special kernel-accel
-       */
-
-      if (hash_mode == 8900)
-      {
-        device_param->kernel_accel_min = 1;
-        device_param->kernel_accel_max = 64;
-      }
-
-      if (hash_mode == 9300)
-      {
-        device_param->kernel_accel_min = 1;
-        device_param->kernel_accel_max = 64;
       }
 
       u32 kernel_accel_min = device_param->kernel_accel_min;
