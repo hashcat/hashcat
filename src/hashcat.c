@@ -5295,259 +5295,251 @@ int main (int argc, char **argv)
    * commandline parameters
    */
 
-  uint  usage             = USAGE;
-  uint  version           = VERSION;
-  uint  quiet             = QUIET;
-  uint  benchmark         = BENCHMARK;
-  uint  show              = SHOW;
-  uint  left              = LEFT;
-  uint  username          = USERNAME;
-  uint  remove            = REMOVE;
-  uint  remove_timer      = REMOVE_TIMER;
-  u64   skip              = SKIP;
-  u64   limit             = LIMIT;
-  uint  keyspace          = KEYSPACE;
-  uint  potfile_disable   = POTFILE_DISABLE;
-  char *potfile_path      = NULL;
-  uint  debug_mode        = DEBUG_MODE;
-  char *debug_file        = NULL;
-  char *induction_dir     = NULL;
-  char *outfile_check_dir = NULL;
-  uint  force             = FORCE;
-  uint  runtime           = RUNTIME;
-  uint  hash_mode         = HASH_MODE;
-  uint  attack_mode       = ATTACK_MODE;
-  uint  markov_disable    = MARKOV_DISABLE;
-  uint  markov_classic    = MARKOV_CLASSIC;
-  uint  markov_threshold  = MARKOV_THRESHOLD;
-  char *markov_hcstat     = NULL;
-  char *outfile           = NULL;
-  uint  outfile_format    = OUTFILE_FORMAT;
-  uint  outfile_autohex   = OUTFILE_AUTOHEX;
-  uint  outfile_check_timer = OUTFILE_CHECK_TIMER;
-  uint  restore           = RESTORE;
-  uint  restore_timer     = RESTORE_TIMER;
-  uint  restore_disable   = RESTORE_DISABLE;
-  uint  status            = STATUS;
-  uint  status_timer      = STATUS_TIMER;
-  uint  status_automat    = STATUS_AUTOMAT;
-  uint  loopback          = LOOPBACK;
-  uint  weak_hash_threshold = WEAK_HASH_THRESHOLD;
-  char *session           = NULL;
-  uint  hex_charset       = HEX_CHARSET;
-  uint  hex_salt          = HEX_SALT;
-  uint  hex_wordlist      = HEX_WORDLIST;
-  uint  rp_gen            = RP_GEN;
-  uint  rp_gen_func_min   = RP_GEN_FUNC_MIN;
-  uint  rp_gen_func_max   = RP_GEN_FUNC_MAX;
-  uint  rp_gen_seed       = RP_GEN_SEED;
-  char *rule_buf_l        = (char *) RULE_BUF_L;
-  char *rule_buf_r        = (char *) RULE_BUF_R;
-  uint  increment         = INCREMENT;
-  uint  increment_min     = INCREMENT_MIN;
-  uint  increment_max     = INCREMENT_MAX;
-  char *cpu_affinity      = NULL;
-  OCL_PTR *ocl            = NULL;
-  char *opencl_devices    = NULL;
-  char *opencl_platforms  = NULL;
-  char *opencl_device_types = NULL;
-  uint  opencl_vector_width = OPENCL_VECTOR_WIDTH;
-  char *truecrypt_keyfiles = NULL;
-  char *veracrypt_keyfiles = NULL;
-  uint  veracrypt_pim     = 0;
-  uint  workload_profile  = WORKLOAD_PROFILE;
-  uint  kernel_accel      = KERNEL_ACCEL;
-  uint  kernel_loops      = KERNEL_LOOPS;
-  uint  gpu_temp_disable  = GPU_TEMP_DISABLE;
+  uint  usage                 = USAGE;
+  uint  version               = VERSION;
+  uint  quiet                 = QUIET;
+  uint  benchmark             = BENCHMARK;
+  uint  show                  = SHOW;
+  uint  left                  = LEFT;
+  uint  username              = USERNAME;
+  uint  remove                = REMOVE;
+  uint  remove_timer          = REMOVE_TIMER;
+  u64   skip                  = SKIP;
+  u64   limit                 = LIMIT;
+  uint  keyspace              = KEYSPACE;
+  uint  potfile_disable       = POTFILE_DISABLE;
+  char *potfile_path          = NULL;
+  uint  debug_mode            = DEBUG_MODE;
+  char *debug_file            = NULL;
+  char *induction_dir         = NULL;
+  char *outfile_check_dir     = NULL;
+  uint  force                 = FORCE;
+  uint  runtime               = RUNTIME;
+  uint  hash_mode             = HASH_MODE;
+  uint  attack_mode           = ATTACK_MODE;
+  uint  markov_disable        = MARKOV_DISABLE;
+  uint  markov_classic        = MARKOV_CLASSIC;
+  uint  markov_threshold      = MARKOV_THRESHOLD;
+  char *markov_hcstat         = NULL;
+  char *outfile               = NULL;
+  uint  outfile_format        = OUTFILE_FORMAT;
+  uint  outfile_autohex       = OUTFILE_AUTOHEX;
+  uint  outfile_check_timer   = OUTFILE_CHECK_TIMER;
+  uint  restore               = RESTORE;
+  uint  restore_timer         = RESTORE_TIMER;
+  uint  restore_disable       = RESTORE_DISABLE;
+  uint  status                = STATUS;
+  uint  status_timer          = STATUS_TIMER;
+  uint  status_automat        = STATUS_AUTOMAT;
+  uint  loopback              = LOOPBACK;
+  uint  weak_hash_threshold   = WEAK_HASH_THRESHOLD;
+  char *session               = NULL;
+  uint  hex_charset           = HEX_CHARSET;
+  uint  hex_salt              = HEX_SALT;
+  uint  hex_wordlist          = HEX_WORDLIST;
+  uint  rp_gen                = RP_GEN;
+  uint  rp_gen_func_min       = RP_GEN_FUNC_MIN;
+  uint  rp_gen_func_max       = RP_GEN_FUNC_MAX;
+  uint  rp_gen_seed           = RP_GEN_SEED;
+  char *rule_buf_l            = (char *) RULE_BUF_L;
+  char *rule_buf_r            = (char *) RULE_BUF_R;
+  uint  increment             = INCREMENT;
+  uint  increment_min         = INCREMENT_MIN;
+  uint  increment_max         = INCREMENT_MAX;
+  char *cpu_affinity          = NULL;
+  OCL_PTR *ocl                = NULL;
+  char *opencl_devices        = NULL;
+  char *opencl_platforms      = NULL;
+  char *opencl_device_types   = NULL;
+  uint  opencl_vector_width   = OPENCL_VECTOR_WIDTH;
+  char *truecrypt_keyfiles    = NULL;
+  char *veracrypt_keyfiles    = NULL;
+  uint  veracrypt_pim         = 0;
+  uint  workload_profile      = WORKLOAD_PROFILE;
+  uint  kernel_accel          = KERNEL_ACCEL;
+  uint  kernel_loops          = KERNEL_LOOPS;
+  uint  gpu_temp_disable      = GPU_TEMP_DISABLE;
   #ifdef HAVE_HWMON
-  uint  gpu_temp_abort    = GPU_TEMP_ABORT;
-  uint  gpu_temp_retain   = GPU_TEMP_RETAIN;
+  uint  gpu_temp_abort        = GPU_TEMP_ABORT;
+  uint  gpu_temp_retain       = GPU_TEMP_RETAIN;
   #ifdef HAVE_ADL
-  uint  powertune_enable  = POWERTUNE_ENABLE;
+  uint  powertune_enable      = POWERTUNE_ENABLE;
   #endif
   #endif
-  uint  logfile_disable   = LOGFILE_DISABLE;
-  uint  segment_size      = SEGMENT_SIZE;
-  uint  scrypt_tmto       = SCRYPT_TMTO;
-  char  separator         = SEPARATOR;
-  uint  bitmap_min        = BITMAP_MIN;
-  uint  bitmap_max        = BITMAP_MAX;
-  char *custom_charset_1  = NULL;
-  char *custom_charset_2  = NULL;
-  char *custom_charset_3  = NULL;
-  char *custom_charset_4  = NULL;
+  uint  logfile_disable       = LOGFILE_DISABLE;
+  uint  segment_size          = SEGMENT_SIZE;
+  uint  scrypt_tmto           = SCRYPT_TMTO;
+  char  separator             = SEPARATOR;
+  uint  bitmap_min            = BITMAP_MIN;
+  uint  bitmap_max            = BITMAP_MAX;
+  char *custom_charset_1      = NULL;
+  char *custom_charset_2      = NULL;
+  char *custom_charset_3      = NULL;
+  char *custom_charset_4      = NULL;
 
-  #define IDX_HELP              'h'
-  #define IDX_VERSION           'V'
-  #define IDX_VERSION_LOWER     'v'
-  #define IDX_QUIET             0xff02
-  #define IDX_SHOW              0xff03
-  #define IDX_LEFT              0xff04
-  #define IDX_REMOVE            0xff05
-  #define IDX_REMOVE_TIMER      0xff37
-  #define IDX_SKIP              's'
-  #define IDX_LIMIT             'l'
-  #define IDX_KEYSPACE          0xff35
-  #define IDX_POTFILE_DISABLE   0xff06
-  #define IDX_POTFILE_PATH      0xffe0
-  #define IDX_DEBUG_MODE        0xff43
-  #define IDX_DEBUG_FILE        0xff44
-  #define IDX_INDUCTION_DIR     0xff46
-  #define IDX_OUTFILE_CHECK_DIR 0xff47
-  #define IDX_USERNAME          0xff07
-  #define IDX_FORCE             0xff08
-  #define IDX_RUNTIME           0xff09
-  #define IDX_BENCHMARK         'b'
-  #define IDX_HASH_MODE         'm'
-  #define IDX_ATTACK_MODE       'a'
-  #define IDX_RP_FILE           'r'
-  #define IDX_RP_GEN            'g'
-  #define IDX_RP_GEN_FUNC_MIN   0xff10
-  #define IDX_RP_GEN_FUNC_MAX   0xff11
-  #define IDX_RP_GEN_SEED       0xff34
-  #define IDX_RULE_BUF_L        'j'
-  #define IDX_RULE_BUF_R        'k'
-  #define IDX_INCREMENT         'i'
-  #define IDX_INCREMENT_MIN     0xff12
-  #define IDX_INCREMENT_MAX     0xff13
-  #define IDX_OUTFILE           'o'
-  #define IDX_OUTFILE_FORMAT    0xff14
-  #define IDX_OUTFILE_AUTOHEX_DISABLE 0xff39
-  #define IDX_OUTFILE_CHECK_TIMER 0xff45
-  #define IDX_RESTORE           0xff15
-  #define IDX_RESTORE_DISABLE   0xff27
-  #define IDX_STATUS            0xff17
-  #define IDX_STATUS_TIMER      0xff18
-  #define IDX_STATUS_AUTOMAT    0xff50
-  #define IDX_LOOPBACK          0xff38
-  #define IDX_WEAK_HASH_THRESHOLD 0xff42
-  #define IDX_SESSION           0xff19
-  #define IDX_HEX_CHARSET       0xff20
-  #define IDX_HEX_SALT          0xff21
-  #define IDX_HEX_WORDLIST      0xff40
-  #define IDX_MARKOV_DISABLE    0xff22
-  #define IDX_MARKOV_CLASSIC    0xff23
-  #define IDX_MARKOV_THRESHOLD  't'
-  #define IDX_MARKOV_HCSTAT     0xff24
-  #define IDX_CPU_AFFINITY      0xff25
-  #define IDX_OPENCL_DEVICES    'd'
-  #define IDX_OPENCL_PLATFORMS  0xff72
-  #define IDX_OPENCL_DEVICE_TYPES 0xff73
-  #define IDX_OPENCL_VECTOR_WIDTH 0xff74
-  #define IDX_WORKLOAD_PROFILE  'w'
-  #define IDX_KERNEL_ACCEL      'n'
-  #define IDX_KERNEL_LOOPS      'u'
-  #define IDX_GPU_TEMP_DISABLE  0xff29
-  #define IDX_GPU_TEMP_ABORT    0xff30
-  #define IDX_GPU_TEMP_RETAIN   0xff31
-  #define IDX_POWERTUNE_ENABLE  0xff41
-  #define IDX_LOGFILE_DISABLE   0xff51
-  #define IDX_TRUECRYPT_KEYFILES 0xff52
-  #define IDX_VERACRYPT_KEYFILES 0xff53
-  #define IDX_VERACRYPT_PIM     0xff54
-  #define IDX_SCRYPT_TMTO       0xff61
-  #define IDX_SEGMENT_SIZE      'c'
-  #define IDX_SEPARATOR         'p'
-  #define IDX_BITMAP_MIN        0xff70
-  #define IDX_BITMAP_MAX        0xff71
-  #define IDX_CUSTOM_CHARSET_1  '1'
-  #define IDX_CUSTOM_CHARSET_2  '2'
-  #define IDX_CUSTOM_CHARSET_3  '3'
-  #define IDX_CUSTOM_CHARSET_4  '4'
+  #define IDX_HELP                      'h'
+  #define IDX_VERSION                   'V'
+  #define IDX_VERSION_LOWER             'v'
+  #define IDX_QUIET                     0xff02
+  #define IDX_SHOW                      0xff03
+  #define IDX_LEFT                      0xff04
+  #define IDX_REMOVE                    0xff05
+  #define IDX_REMOVE_TIMER              0xff37
+  #define IDX_SKIP                      's'
+  #define IDX_LIMIT                     'l'
+  #define IDX_KEYSPACE                  0xff35
+  #define IDX_POTFILE_DISABLE           0xff06
+  #define IDX_POTFILE_PATH              0xffe0
+  #define IDX_DEBUG_MODE                0xff43
+  #define IDX_DEBUG_FILE                0xff44
+  #define IDX_INDUCTION_DIR             0xff46
+  #define IDX_OUTFILE_CHECK_DIR         0xff47
+  #define IDX_USERNAME                  0xff07
+  #define IDX_FORCE                     0xff08
+  #define IDX_RUNTIME                   0xff09
+  #define IDX_BENCHMARK                 'b'
+  #define IDX_HASH_MODE                 'm'
+  #define IDX_ATTACK_MODE               'a'
+  #define IDX_RP_FILE                   'r'
+  #define IDX_RP_GEN                    'g'
+  #define IDX_RP_GEN_FUNC_MIN           0xff10
+  #define IDX_RP_GEN_FUNC_MAX           0xff11
+  #define IDX_RP_GEN_SEED               0xff34
+  #define IDX_RULE_BUF_L                'j'
+  #define IDX_RULE_BUF_R                'k'
+  #define IDX_INCREMENT                 'i'
+  #define IDX_INCREMENT_MIN             0xff12
+  #define IDX_INCREMENT_MAX             0xff13
+  #define IDX_OUTFILE                   'o'
+  #define IDX_OUTFILE_FORMAT            0xff14
+  #define IDX_OUTFILE_AUTOHEX_DISABLE   0xff39
+  #define IDX_OUTFILE_CHECK_TIMER       0xff45
+  #define IDX_RESTORE                   0xff15
+  #define IDX_RESTORE_DISABLE           0xff27
+  #define IDX_STATUS                    0xff17
+  #define IDX_STATUS_TIMER              0xff18
+  #define IDX_STATUS_AUTOMAT            0xff50
+  #define IDX_LOOPBACK                  0xff38
+  #define IDX_WEAK_HASH_THRESHOLD       0xff42
+  #define IDX_SESSION                   0xff19
+  #define IDX_HEX_CHARSET               0xff20
+  #define IDX_HEX_SALT                  0xff21
+  #define IDX_HEX_WORDLIST              0xff40
+  #define IDX_MARKOV_DISABLE            0xff22
+  #define IDX_MARKOV_CLASSIC            0xff23
+  #define IDX_MARKOV_THRESHOLD          't'
+  #define IDX_MARKOV_HCSTAT             0xff24
+  #define IDX_CPU_AFFINITY              0xff25
+  #define IDX_OPENCL_DEVICES            'd'
+  #define IDX_OPENCL_PLATFORMS          0xff72
+  #define IDX_OPENCL_DEVICE_TYPES       0xff73
+  #define IDX_OPENCL_VECTOR_WIDTH       0xff74
+  #define IDX_WORKLOAD_PROFILE          'w'
+  #define IDX_KERNEL_ACCEL              'n'
+  #define IDX_KERNEL_LOOPS              'u'
+  #define IDX_GPU_TEMP_DISABLE          0xff29
+  #define IDX_GPU_TEMP_ABORT            0xff30
+  #define IDX_GPU_TEMP_RETAIN           0xff31
+  #define IDX_POWERTUNE_ENABLE          0xff41
+  #define IDX_LOGFILE_DISABLE           0xff51
+  #define IDX_TRUECRYPT_KEYFILES        0xff52
+  #define IDX_VERACRYPT_KEYFILES        0xff53
+  #define IDX_VERACRYPT_PIM             0xff54
+  #define IDX_SCRYPT_TMTO               0xff61
+  #define IDX_SEGMENT_SIZE              'c'
+  #define IDX_SEPARATOR                 'p'
+  #define IDX_BITMAP_MIN                0xff70
+  #define IDX_BITMAP_MAX                0xff71
+  #define IDX_CUSTOM_CHARSET_1          '1'
+  #define IDX_CUSTOM_CHARSET_2          '2'
+  #define IDX_CUSTOM_CHARSET_3          '3'
+  #define IDX_CUSTOM_CHARSET_4          '4'
 
   char short_options[] = "hVvm:a:r:j:k:g:o:t:d:n:u:c:p:s:l:1:2:3:4:ibw:";
 
   struct option long_options[] =
   {
-    {"help",              no_argument,       0, IDX_HELP},
-    {"version",           no_argument,       0, IDX_VERSION},
-    {"quiet",             no_argument,       0, IDX_QUIET},
-    {"show",              no_argument,       0, IDX_SHOW},
-    {"left",              no_argument,       0, IDX_LEFT},
-    {"username",          no_argument,       0, IDX_USERNAME},
-    {"remove",            no_argument,       0, IDX_REMOVE},
-    {"remove-timer",      required_argument, 0, IDX_REMOVE_TIMER},
-    {"skip",              required_argument, 0, IDX_SKIP},
-    {"limit",             required_argument, 0, IDX_LIMIT},
-    {"keyspace",          no_argument,       0, IDX_KEYSPACE},
-    {"potfile-disable",   no_argument,       0, IDX_POTFILE_DISABLE},
-    {"potfile-path",      required_argument, 0, IDX_POTFILE_PATH},
-    {"debug-mode",        required_argument, 0, IDX_DEBUG_MODE},
-    {"debug-file",        required_argument, 0, IDX_DEBUG_FILE},
-    {"induction-dir",     required_argument, 0, IDX_INDUCTION_DIR},
-    {"outfile-check-dir", required_argument, 0, IDX_OUTFILE_CHECK_DIR},
-    {"force",             no_argument,       0, IDX_FORCE},
-    {"benchmark",         no_argument,       0, IDX_BENCHMARK},
-    {"restore",           no_argument,       0, IDX_RESTORE},
-    {"restore-disable",   no_argument,       0, IDX_RESTORE_DISABLE},
-    {"status",            no_argument,       0, IDX_STATUS},
-    {"status-timer",      required_argument, 0, IDX_STATUS_TIMER},
-    {"status-automat",    no_argument,       0, IDX_STATUS_AUTOMAT},
-    {"loopback",          no_argument,       0, IDX_LOOPBACK},
-    {"weak-hash-threshold",
-                          required_argument, 0, IDX_WEAK_HASH_THRESHOLD},
-    {"session",           required_argument, 0, IDX_SESSION},
-    {"runtime",           required_argument, 0, IDX_RUNTIME},
-    {"generate-rules",    required_argument, 0, IDX_RP_GEN},
-    {"generate-rules-func-min",
-                          required_argument, 0, IDX_RP_GEN_FUNC_MIN},
-    {"generate-rules-func-max",
-                          required_argument, 0, IDX_RP_GEN_FUNC_MAX},
-    {"generate-rules-seed",
-                          required_argument, 0, IDX_RP_GEN_SEED},
-    {"rule-left",         required_argument, 0, IDX_RULE_BUF_L},
-    {"rule-right",        required_argument, 0, IDX_RULE_BUF_R},
-    {"hash-type",         required_argument, 0, IDX_HASH_MODE},
-    {"attack-mode",       required_argument, 0, IDX_ATTACK_MODE},
-    {"rules-file",        required_argument, 0, IDX_RP_FILE},
-    {"outfile",           required_argument, 0, IDX_OUTFILE},
-    {"outfile-format",    required_argument, 0, IDX_OUTFILE_FORMAT},
-    {"outfile-autohex-disable",
-                          no_argument,       0, IDX_OUTFILE_AUTOHEX_DISABLE},
-    {"outfile-check-timer",
-                          required_argument, 0, IDX_OUTFILE_CHECK_TIMER},
-    {"hex-charset",       no_argument,       0, IDX_HEX_CHARSET},
-    {"hex-salt",          no_argument,       0, IDX_HEX_SALT},
-    {"hex-wordlist",      no_argument,       0, IDX_HEX_WORDLIST},
-    {"markov-disable",    no_argument,       0, IDX_MARKOV_DISABLE},
-    {"markov-classic",    no_argument,       0, IDX_MARKOV_CLASSIC},
-    {"markov-threshold",  required_argument, 0, IDX_MARKOV_THRESHOLD},
-    {"markov-hcstat",     required_argument, 0, IDX_MARKOV_HCSTAT},
-    {"cpu-affinity",      required_argument, 0, IDX_CPU_AFFINITY},
-    {"opencl-devices",    required_argument, 0, IDX_OPENCL_DEVICES},
-    {"opencl-platforms",  required_argument, 0, IDX_OPENCL_PLATFORMS},
-    {"opencl-device-types", required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
-    {"opencl-vector-width", required_argument, 0, IDX_OPENCL_VECTOR_WIDTH},
-    {"workload-profile",  required_argument, 0, IDX_WORKLOAD_PROFILE},
-    {"kernel-accel",      required_argument, 0, IDX_KERNEL_ACCEL},
-    {"kernel-loops",      required_argument, 0, IDX_KERNEL_LOOPS},
-    {"gpu-temp-disable",  no_argument,       0, IDX_GPU_TEMP_DISABLE},
+    {"help",                      no_argument,       0, IDX_HELP},
+    {"version",                   no_argument,       0, IDX_VERSION},
+    {"quiet",                     no_argument,       0, IDX_QUIET},
+    {"show",                      no_argument,       0, IDX_SHOW},
+    {"left",                      no_argument,       0, IDX_LEFT},
+    {"username",                  no_argument,       0, IDX_USERNAME},
+    {"remove",                    no_argument,       0, IDX_REMOVE},
+    {"remove-timer",              required_argument, 0, IDX_REMOVE_TIMER},
+    {"skip",                      required_argument, 0, IDX_SKIP},
+    {"limit",                     required_argument, 0, IDX_LIMIT},
+    {"keyspace",                  no_argument,       0, IDX_KEYSPACE},
+    {"potfile-disable",           no_argument,       0, IDX_POTFILE_DISABLE},
+    {"potfile-path",              required_argument, 0, IDX_POTFILE_PATH},
+    {"debug-mode",                required_argument, 0, IDX_DEBUG_MODE},
+    {"debug-file",                required_argument, 0, IDX_DEBUG_FILE},
+    {"induction-dir",             required_argument, 0, IDX_INDUCTION_DIR},
+    {"outfile-check-dir",         required_argument, 0, IDX_OUTFILE_CHECK_DIR},
+    {"force",                     no_argument,       0, IDX_FORCE},
+    {"benchmark",                 no_argument,       0, IDX_BENCHMARK},
+    {"restore",                   no_argument,       0, IDX_RESTORE},
+    {"restore-disable",           no_argument,       0, IDX_RESTORE_DISABLE},
+    {"status",                    no_argument,       0, IDX_STATUS},
+    {"status-timer",              required_argument, 0, IDX_STATUS_TIMER},
+    {"status-automat",            no_argument,       0, IDX_STATUS_AUTOMAT},
+    {"loopback",                  no_argument,       0, IDX_LOOPBACK},
+    {"weak-hash-threshold",       required_argument, 0, IDX_WEAK_HASH_THRESHOLD},
+    {"session",                   required_argument, 0, IDX_SESSION},
+    {"runtime",                   required_argument, 0, IDX_RUNTIME},
+    {"generate-rules",            required_argument, 0, IDX_RP_GEN},
+    {"generate-rules-func-min",   required_argument, 0, IDX_RP_GEN_FUNC_MIN},
+    {"generate-rules-func-max",   required_argument, 0, IDX_RP_GEN_FUNC_MAX},
+    {"generate-rules-seed",       required_argument, 0, IDX_RP_GEN_SEED},
+    {"rule-left",                 required_argument, 0, IDX_RULE_BUF_L},
+    {"rule-right",                required_argument, 0, IDX_RULE_BUF_R},
+    {"hash-type",                 required_argument, 0, IDX_HASH_MODE},
+    {"attack-mode",               required_argument, 0, IDX_ATTACK_MODE},
+    {"rules-file",                required_argument, 0, IDX_RP_FILE},
+    {"outfile",                   required_argument, 0, IDX_OUTFILE},
+    {"outfile-format",            required_argument, 0, IDX_OUTFILE_FORMAT},
+    {"outfile-autohex-disable",   no_argument,       0, IDX_OUTFILE_AUTOHEX_DISABLE},
+    {"outfile-check-timer",       required_argument, 0, IDX_OUTFILE_CHECK_TIMER},
+    {"hex-charset",               no_argument,       0, IDX_HEX_CHARSET},
+    {"hex-salt",                  no_argument,       0, IDX_HEX_SALT},
+    {"hex-wordlist",              no_argument,       0, IDX_HEX_WORDLIST},
+    {"markov-disable",            no_argument,       0, IDX_MARKOV_DISABLE},
+    {"markov-classic",            no_argument,       0, IDX_MARKOV_CLASSIC},
+    {"markov-threshold",          required_argument, 0, IDX_MARKOV_THRESHOLD},
+    {"markov-hcstat",             required_argument, 0, IDX_MARKOV_HCSTAT},
+    {"cpu-affinity",              required_argument, 0, IDX_CPU_AFFINITY},
+    {"opencl-devices",            required_argument, 0, IDX_OPENCL_DEVICES},
+    {"opencl-platforms",          required_argument, 0, IDX_OPENCL_PLATFORMS},
+    {"opencl-device-types",       required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
+    {"opencl-vector-width",       required_argument, 0, IDX_OPENCL_VECTOR_WIDTH},
+    {"workload-profile",          required_argument, 0, IDX_WORKLOAD_PROFILE},
+    {"kernel-accel",              required_argument, 0, IDX_KERNEL_ACCEL},
+    {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
+    {"gpu-temp-disable",          no_argument,       0, IDX_GPU_TEMP_DISABLE},
     #ifdef HAVE_HWMON
-    {"gpu-temp-abort",    required_argument, 0, IDX_GPU_TEMP_ABORT},
-    {"gpu-temp-retain",   required_argument, 0, IDX_GPU_TEMP_RETAIN},
+    {"gpu-temp-abort",            required_argument, 0, IDX_GPU_TEMP_ABORT},
+    {"gpu-temp-retain",           required_argument, 0, IDX_GPU_TEMP_RETAIN},
     #ifdef HAVE_ADL
-    {"powertune-enable",  no_argument,       0, IDX_POWERTUNE_ENABLE},
+    {"powertune-enable",          no_argument,       0, IDX_POWERTUNE_ENABLE},
     #endif
     #endif // HAVE_HWMON
-    {"logfile-disable",   no_argument,       0, IDX_LOGFILE_DISABLE},
-    {"truecrypt-keyfiles", required_argument, 0, IDX_TRUECRYPT_KEYFILES},
-    {"veracrypt-keyfiles", required_argument, 0, IDX_VERACRYPT_KEYFILES},
-    {"veracrypt-pim",     required_argument, 0, IDX_VERACRYPT_PIM},
-    {"segment-size",      required_argument, 0, IDX_SEGMENT_SIZE},
-    {"scrypt-tmto",       required_argument, 0, IDX_SCRYPT_TMTO},
-    // deprecated
-    {"seperator",         required_argument, 0, IDX_SEPARATOR},
-    {"separator",         required_argument, 0, IDX_SEPARATOR},
-    {"bitmap-min",        required_argument, 0, IDX_BITMAP_MIN},
-    {"bitmap-max",        required_argument, 0, IDX_BITMAP_MAX},
-    {"increment",         no_argument,       0, IDX_INCREMENT},
-    {"increment-min",     required_argument, 0, IDX_INCREMENT_MIN},
-    {"increment-max",     required_argument, 0, IDX_INCREMENT_MAX},
-    {"custom-charset1",   required_argument, 0, IDX_CUSTOM_CHARSET_1},
-    {"custom-charset2",   required_argument, 0, IDX_CUSTOM_CHARSET_2},
-    {"custom-charset3",   required_argument, 0, IDX_CUSTOM_CHARSET_3},
-    {"custom-charset4",   required_argument, 0, IDX_CUSTOM_CHARSET_4},
-
+    {"logfile-disable",           no_argument,       0, IDX_LOGFILE_DISABLE},
+    {"truecrypt-keyfiles",        required_argument, 0, IDX_TRUECRYPT_KEYFILES},
+    {"veracrypt-keyfiles",        required_argument, 0, IDX_VERACRYPT_KEYFILES},
+    {"veracrypt-pim",             required_argument, 0, IDX_VERACRYPT_PIM},
+    {"segment-size",              required_argument, 0, IDX_SEGMENT_SIZE},
+    {"scrypt-tmto",               required_argument, 0, IDX_SCRYPT_TMTO},
+    {"seperator",                 required_argument, 0, IDX_SEPARATOR},
+    {"separator",                 required_argument, 0, IDX_SEPARATOR},
+    {"bitmap-min",                required_argument, 0, IDX_BITMAP_MIN},
+    {"bitmap-max",                required_argument, 0, IDX_BITMAP_MAX},
+    {"increment",                 no_argument,       0, IDX_INCREMENT},
+    {"increment-min",             required_argument, 0, IDX_INCREMENT_MIN},
+    {"increment-max",             required_argument, 0, IDX_INCREMENT_MAX},
+    {"custom-charset1",           required_argument, 0, IDX_CUSTOM_CHARSET_1},
+    {"custom-charset2",           required_argument, 0, IDX_CUSTOM_CHARSET_2},
+    {"custom-charset3",           required_argument, 0, IDX_CUSTOM_CHARSET_3},
+    {"custom-charset4",           required_argument, 0, IDX_CUSTOM_CHARSET_4},
     {0, 0, 0, 0}
   };
 
@@ -5766,115 +5758,110 @@ int main (int argc, char **argv)
   {
     switch (c)
     {
-    //case IDX_HELP:              usage             = 1;               break;
-    //case IDX_VERSION:           version           = 1;               break;
-    //case IDX_RESTORE:           restore           = 1;               break;
-      case IDX_QUIET:             quiet             = 1;               break;
-    //case IDX_SHOW:              show              = 1;               break;
-      case IDX_SHOW:                                                   break;
-    //case IDX_LEFT:              left              = 1;               break;
-      case IDX_LEFT:                                                   break;
-      case IDX_USERNAME:          username          = 1;               break;
-      case IDX_REMOVE:            remove            = 1;               break;
-      case IDX_REMOVE_TIMER:      remove_timer      = atoi (optarg);
-                                  remove_timer_chgd = 1;               break;
-      case IDX_POTFILE_DISABLE:   potfile_disable   = 1;               break;
-      case IDX_POTFILE_PATH:      potfile_path      = optarg;          break;
-      case IDX_DEBUG_MODE:        debug_mode        = atoi (optarg);   break;
-      case IDX_DEBUG_FILE:        debug_file        = optarg;          break;
-      case IDX_INDUCTION_DIR:     induction_dir     = optarg;          break;
-      case IDX_OUTFILE_CHECK_DIR: outfile_check_dir = optarg;          break;
-      case IDX_FORCE:             force             = 1;               break;
-      case IDX_SKIP:              skip              = atoll (optarg);  break;
-      case IDX_LIMIT:             limit             = atoll (optarg);  break;
-      case IDX_KEYSPACE:          keyspace          = 1;               break;
-      case IDX_BENCHMARK:         benchmark         = 1;               break;
-      case IDX_RESTORE:                                                break;
-      case IDX_RESTORE_DISABLE:   restore_disable   = 1;               break;
-      case IDX_STATUS:            status            = 1;               break;
-      case IDX_STATUS_TIMER:      status_timer      = atoi (optarg);   break;
-      case IDX_STATUS_AUTOMAT:    status_automat    = 1;               break;
-      case IDX_LOOPBACK:          loopback          = 1;               break;
-      case IDX_WEAK_HASH_THRESHOLD:
-                                  weak_hash_threshold = atoi (optarg); break;
-    //case IDX_SESSION:           session           = optarg;          break;
-      case IDX_SESSION:                                                break;
-      case IDX_HASH_MODE:         hash_mode         = atoi (optarg);
-                                  hash_mode_chgd    = 1;               break;
-      case IDX_RUNTIME:           runtime           = atoi (optarg);
-                                  runtime_chgd      = 1;               break;
-      case IDX_ATTACK_MODE:       attack_mode       = atoi (optarg);
-                                  attack_mode_chgd  = 1;               break;
-      case IDX_RP_FILE:           rp_files[rp_files_cnt++] = optarg;   break;
-      case IDX_RP_GEN:            rp_gen            = atoi (optarg);   break;
-      case IDX_RP_GEN_FUNC_MIN:   rp_gen_func_min   = atoi (optarg);   break;
-      case IDX_RP_GEN_FUNC_MAX:   rp_gen_func_max   = atoi (optarg);   break;
-      case IDX_RP_GEN_SEED:       rp_gen_seed       = atoi (optarg);
-                                  rp_gen_seed_chgd  = 1;               break;
-      case IDX_RULE_BUF_L:        rule_buf_l        = optarg;          break;
-      case IDX_RULE_BUF_R:        rule_buf_r        = optarg;          break;
-      case IDX_MARKOV_DISABLE:    markov_disable    = 1;               break;
-      case IDX_MARKOV_CLASSIC:    markov_classic    = 1;               break;
-      case IDX_MARKOV_THRESHOLD:  markov_threshold  = atoi (optarg);   break;
-      case IDX_MARKOV_HCSTAT:     markov_hcstat     = optarg;          break;
-      case IDX_OUTFILE:           outfile           = optarg;          break;
-      case IDX_OUTFILE_FORMAT:    outfile_format    = atoi (optarg);
-                                  outfile_format_chgd = 1;             break;
-      case IDX_OUTFILE_AUTOHEX_DISABLE:
-                                  outfile_autohex   = 0;               break;
-      case IDX_OUTFILE_CHECK_TIMER:
-                                  outfile_check_timer = atoi (optarg); break;
-      case IDX_HEX_CHARSET:       hex_charset       = 1;               break;
-      case IDX_HEX_SALT:          hex_salt          = 1;               break;
-      case IDX_HEX_WORDLIST:      hex_wordlist      = 1;               break;
-      case IDX_CPU_AFFINITY:      cpu_affinity      = optarg;          break;
-      case IDX_OPENCL_DEVICES:    opencl_devices    = optarg;          break;
-      case IDX_OPENCL_PLATFORMS:  opencl_platforms  = optarg;          break;
-      case IDX_OPENCL_DEVICE_TYPES:
-                                  opencl_device_types = optarg;        break;
-      case IDX_OPENCL_VECTOR_WIDTH:
-                                  opencl_vector_width      = atoi (optarg);
-                                  opencl_vector_width_chgd = 1;        break;
-      case IDX_WORKLOAD_PROFILE:  workload_profile         = atoi (optarg);
-                                  workload_profile_chgd    = 1;        break;
-      case IDX_KERNEL_ACCEL:      kernel_accel             = atoi (optarg);
-                                  kernel_accel_chgd        = 1;        break;
-      case IDX_KERNEL_LOOPS:      kernel_loops             = atoi (optarg);
-                                  kernel_loops_chgd        = 1;        break;
-      case IDX_GPU_TEMP_DISABLE:  gpu_temp_disable  = 1;               break;
+    //case IDX_HELP:                      usage                     = 1;              break;
+    //case IDX_VERSION:                   version                   = 1;              break;
+    //case IDX_RESTORE:                   restore                   = 1;              break;
+      case IDX_QUIET:                     quiet                     = 1;              break;
+    //case IDX_SHOW:                      show                      = 1;              break;
+      case IDX_SHOW:                                                                  break;
+    //case IDX_LEFT:                      left                      = 1;              break;
+      case IDX_LEFT:                                                                  break;
+      case IDX_USERNAME:                  username                  = 1;              break;
+      case IDX_REMOVE:                    remove                    = 1;              break;
+      case IDX_REMOVE_TIMER:              remove_timer              = atoi (optarg);
+                                          remove_timer_chgd         = 1;              break;
+      case IDX_POTFILE_DISABLE:           potfile_disable           = 1;              break;
+      case IDX_POTFILE_PATH:              potfile_path              = optarg;         break;
+      case IDX_DEBUG_MODE:                debug_mode                = atoi (optarg);  break;
+      case IDX_DEBUG_FILE:                debug_file                = optarg;         break;
+      case IDX_INDUCTION_DIR:             induction_dir             = optarg;         break;
+      case IDX_OUTFILE_CHECK_DIR:         outfile_check_dir         = optarg;         break;
+      case IDX_FORCE:                     force                     = 1;              break;
+      case IDX_SKIP:                      skip                      = atoll (optarg); break;
+      case IDX_LIMIT:                     limit                     = atoll (optarg); break;
+      case IDX_KEYSPACE:                  keyspace                  = 1;              break;
+      case IDX_BENCHMARK:                 benchmark                 = 1;              break;
+      case IDX_RESTORE:                                                               break;
+      case IDX_RESTORE_DISABLE:           restore_disable           = 1;              break;
+      case IDX_STATUS:                    status                    = 1;              break;
+      case IDX_STATUS_TIMER:              status_timer              = atoi (optarg);  break;
+      case IDX_STATUS_AUTOMAT:            status_automat            = 1;              break;
+      case IDX_LOOPBACK:                  loopback                  = 1;              break;
+      case IDX_WEAK_HASH_THRESHOLD:       weak_hash_threshold       = atoi (optarg);  break;
+    //case IDX_SESSION:                   session                   = optarg;         break;
+      case IDX_SESSION:                                                               break;
+      case IDX_HASH_MODE:                 hash_mode                 = atoi (optarg);
+                                          hash_mode_chgd            = 1;              break;
+      case IDX_RUNTIME:                   runtime                   = atoi (optarg);
+                                          runtime_chgd              = 1;              break;
+      case IDX_ATTACK_MODE:               attack_mode               = atoi (optarg);
+                                          attack_mode_chgd          = 1;              break;
+      case IDX_RP_FILE:                   rp_files[rp_files_cnt++]  = optarg;         break;
+      case IDX_RP_GEN:                    rp_gen                    = atoi (optarg);  break;
+      case IDX_RP_GEN_FUNC_MIN:           rp_gen_func_min           = atoi (optarg);  break;
+      case IDX_RP_GEN_FUNC_MAX:           rp_gen_func_max           = atoi (optarg);  break;
+      case IDX_RP_GEN_SEED:               rp_gen_seed               = atoi (optarg);
+                                          rp_gen_seed_chgd          = 1;              break;
+      case IDX_RULE_BUF_L:                rule_buf_l                = optarg;         break;
+      case IDX_RULE_BUF_R:                rule_buf_r                = optarg;         break;
+      case IDX_MARKOV_DISABLE:            markov_disable            = 1;              break;
+      case IDX_MARKOV_CLASSIC:            markov_classic            = 1;              break;
+      case IDX_MARKOV_THRESHOLD:          markov_threshold          = atoi (optarg);  break;
+      case IDX_MARKOV_HCSTAT:             markov_hcstat             = optarg;         break;
+      case IDX_OUTFILE:                   outfile                   = optarg;         break;
+      case IDX_OUTFILE_FORMAT:            outfile_format            = atoi (optarg);
+                                          outfile_format_chgd       = 1;              break;
+      case IDX_OUTFILE_AUTOHEX_DISABLE:   outfile_autohex           = 0;              break;
+      case IDX_OUTFILE_CHECK_TIMER:       outfile_check_timer       = atoi (optarg);  break;
+      case IDX_HEX_CHARSET:               hex_charset               = 1;              break;
+      case IDX_HEX_SALT:                  hex_salt                  = 1;              break;
+      case IDX_HEX_WORDLIST:              hex_wordlist              = 1;              break;
+      case IDX_CPU_AFFINITY:              cpu_affinity              = optarg;         break;
+      case IDX_OPENCL_DEVICES:            opencl_devices            = optarg;         break;
+      case IDX_OPENCL_PLATFORMS:          opencl_platforms          = optarg;         break;
+      case IDX_OPENCL_DEVICE_TYPES:       opencl_device_types       = optarg;         break;
+      case IDX_OPENCL_VECTOR_WIDTH:       opencl_vector_width       = atoi (optarg);
+                                          opencl_vector_width_chgd  = 1;              break;
+      case IDX_WORKLOAD_PROFILE:          workload_profile          = atoi (optarg);
+                                          workload_profile_chgd     = 1;              break;
+      case IDX_KERNEL_ACCEL:              kernel_accel              = atoi (optarg);
+                                          kernel_accel_chgd         = 1;              break;
+      case IDX_KERNEL_LOOPS:              kernel_loops              = atoi (optarg);
+                                          kernel_loops_chgd         = 1;              break;
+      case IDX_GPU_TEMP_DISABLE:          gpu_temp_disable          = 1;              break;
       #ifdef HAVE_HWMON
-      case IDX_GPU_TEMP_ABORT:    gpu_temp_abort    = atoi (optarg);
-                                  #ifdef HAVE_ADL
-                                  gpu_temp_abort_chgd = 1;
-                                  #endif
-                                  break;
-      case IDX_GPU_TEMP_RETAIN:   gpu_temp_retain   = atoi (optarg);
-                                  #ifdef HAVE_ADL
-                                  gpu_temp_retain_chgd = 1;
-                                  #endif
-                                  break;
+      case IDX_GPU_TEMP_ABORT:            gpu_temp_abort            = atoi (optarg);
       #ifdef HAVE_ADL
-      case IDX_POWERTUNE_ENABLE:  powertune_enable  = 1;               break;
+                                          gpu_temp_abort_chgd       = 1;
+      #endif
+                                                                                      break;
+      case IDX_GPU_TEMP_RETAIN:           gpu_temp_retain           = atoi (optarg);
+      #ifdef HAVE_ADL
+                                          gpu_temp_retain_chgd      = 1;
+      #endif
+                                                                                      break;
+      #ifdef HAVE_ADL
+      case IDX_POWERTUNE_ENABLE:          powertune_enable          = 1;              break;
       #endif
       #endif // HAVE_HWMON
-      case IDX_LOGFILE_DISABLE:   logfile_disable   = 1;               break;
-      case IDX_TRUECRYPT_KEYFILES: truecrypt_keyfiles = optarg;        break;
-      case IDX_VERACRYPT_KEYFILES: veracrypt_keyfiles = optarg;        break;
-      case IDX_VERACRYPT_PIM:     veracrypt_pim     = atoi (optarg);   break;
-      case IDX_SEGMENT_SIZE:      segment_size      = atoi (optarg);   break;
-      case IDX_SCRYPT_TMTO:       scrypt_tmto       = atoi (optarg);   break;
-      case IDX_SEPARATOR:         separator         = optarg[0];       break;
-      case IDX_BITMAP_MIN:        bitmap_min        = atoi (optarg);   break;
-      case IDX_BITMAP_MAX:        bitmap_max        = atoi (optarg);   break;
-      case IDX_INCREMENT:         increment         = 1;               break;
-      case IDX_INCREMENT_MIN:     increment_min      = atoi (optarg);
-                                  increment_min_chgd = 1;              break;
-      case IDX_INCREMENT_MAX:     increment_max      = atoi (optarg);
-                                  increment_max_chgd = 1;              break;
-      case IDX_CUSTOM_CHARSET_1:  custom_charset_1  = optarg;          break;
-      case IDX_CUSTOM_CHARSET_2:  custom_charset_2  = optarg;          break;
-      case IDX_CUSTOM_CHARSET_3:  custom_charset_3  = optarg;          break;
-      case IDX_CUSTOM_CHARSET_4:  custom_charset_4  = optarg;          break;
+      case IDX_LOGFILE_DISABLE:           logfile_disable           = 1;              break;
+      case IDX_TRUECRYPT_KEYFILES:        truecrypt_keyfiles        = optarg;         break;
+      case IDX_VERACRYPT_KEYFILES:        veracrypt_keyfiles        = optarg;         break;
+      case IDX_VERACRYPT_PIM:             veracrypt_pim             = atoi (optarg);  break;
+      case IDX_SEGMENT_SIZE:              segment_size              = atoi (optarg);  break;
+      case IDX_SCRYPT_TMTO:               scrypt_tmto               = atoi (optarg);  break;
+      case IDX_SEPARATOR:                 separator                 = optarg[0];      break;
+      case IDX_BITMAP_MIN:                bitmap_min                = atoi (optarg);  break;
+      case IDX_BITMAP_MAX:                bitmap_max                = atoi (optarg);  break;
+      case IDX_INCREMENT:                 increment                 = 1;              break;
+      case IDX_INCREMENT_MIN:             increment_min             = atoi (optarg);
+                                          increment_min_chgd        = 1;              break;
+      case IDX_INCREMENT_MAX:             increment_max             = atoi (optarg);
+                                          increment_max_chgd        = 1;              break;
+      case IDX_CUSTOM_CHARSET_1:          custom_charset_1          = optarg;         break;
+      case IDX_CUSTOM_CHARSET_2:          custom_charset_2          = optarg;         break;
+      case IDX_CUSTOM_CHARSET_3:          custom_charset_3          = optarg;         break;
+      case IDX_CUSTOM_CHARSET_4:          custom_charset_4          = optarg;         break;
 
       default:
         log_error ("ERROR: Invalid argument specified");
@@ -10587,6 +10574,7 @@ int main (int argc, char **argv)
                    dgst_pos2   = 2;
                    dgst_pos3   = 3;
                    break;
+
 
       default:     usage_mini_print (PROGNAME); return (-1);
     }
