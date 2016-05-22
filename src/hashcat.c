@@ -19,7 +19,7 @@ const char *PROGNAME            = "hashcat";
 const uint  VERSION_BIN         = 300;
 const uint  RESTORE_MIN         = 300;
 
-double TARGET_MS_PROFILE[4]     = { 8, 16, 96, 512 };
+double TARGET_MS_PROFILE[4]     = { 4, 12, 96, 480 };
 
 #define INCR_RULES              10000
 #define INCR_SALTS              100000
@@ -729,10 +729,10 @@ const char *USAGE_BIG[] =
   "",
   "  # | Performance | Runtime | Power Consumption | Desktop Impact",
   " ---+-------------+---------+-------------------+----------------",
-  "  1 | Low         |   8 ms  | Low               | Minimal",
-  "  2 | Default     |  16 ms  | Economic          | Noticeable",
+  "  1 | Low         |   4 ms  | Low               | Minimal",
+  "  2 | Default     |  12 ms  | Economic          | Noticeable",
   "  3 | High        |  96 ms  | High              | Unresponsive",
-  "  4 | Nightmare   | 512 ms  | Insane            | Headless",
+  "  4 | Nightmare   | 480 ms  | Insane            | Headless",
   "",
   "If you have no idea what just happend, please visit the following pages:",
   "",
@@ -2966,13 +2966,13 @@ static void autotune (hc_device_param_t *device_param)
 
   const double accel_left = kernel_accel_max / kernel_accel;
 
-  const int exec_accel_min = MIN (exec_left, accel_left); // we want that to be int
+  const double exec_accel_min = MIN (exec_left, accel_left); // we want that to be int
 
-  if (exec_accel_min >= 2)
+  if (exec_accel_min >= 1.0)
   {
     // this is safe to not overflow kernel_accel_max because of accel_left
 
-    kernel_accel *= exec_accel_min;
+    kernel_accel = (double) kernel_accel * exec_accel_min;
   }
 
   // reset them fake words
