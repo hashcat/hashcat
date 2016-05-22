@@ -69,6 +69,7 @@ It combines all features of all hashcat projects in one project.
 - Extended version information
 - Removed some duplicate rules in T0XlCv1, d3ad0ne and dive
 - Redesigned changes.txt layout
+- Redesigned --help menu layout
 
 ##
 ## Bugs

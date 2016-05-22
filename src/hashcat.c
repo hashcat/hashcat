@@ -6120,7 +6120,7 @@ int main (int argc, char **argv)
     }
   }
 
-  if ((workload_profile < 1) || (workload_profile > 3))
+  if ((workload_profile < 1) || (workload_profile > 4))
   {
     log_error ("ERROR: workload-profile %i not available", workload_profile);
 
