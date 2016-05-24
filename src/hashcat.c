@@ -2760,7 +2760,35 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
   }
   else if (data.attack_kern == ATTACK_KERN_COMBI)
   {
-    if (data.attack_mode == ATTACK_MODE_HYBRID2)
+    if (data.attack_mode == ATTACK_MODE_COMBI)
+    {
+      if (data.combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+      {
+        if (data.opts_type & OPTS_TYPE_PT_ADD01)
+        {
+          for (u32 i = 0; i < pws_cnt; i++)
+          {
+            const u32 pw_len = device_param->pws_buf[i].pw_len;
+
+            u8 *ptr = (u8 *) device_param->pws_buf[i].i;
+
+            ptr[pw_len] = 0x01;
+          }
+        }
+        else if (data.opts_type & OPTS_TYPE_PT_ADD80)
+        {
+          for (u32 i = 0; i < pws_cnt; i++)
+          {
+            const u32 pw_len = device_param->pws_buf[i].pw_len;
+
+            u8 *ptr = (u8 *) device_param->pws_buf[i].i;
+
+            ptr[pw_len] = 0x80;
+          }
+        }
+      }
+    }
+    else if (data.attack_mode == ATTACK_MODE_HYBRID2)
     {
       if (data.opts_type & OPTS_TYPE_PT_ADD01)
       {
