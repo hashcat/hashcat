@@ -2215,6 +2215,8 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
       if (data.digests_shown[hash_pos] == 1) continue;
 
+      hc_thread_mutex_lock (mux_display);
+
       if ((data.opts_type & OPTS_TYPE_PT_NEVERCRACK) == 0)
       {
         data.digests_shown[hash_pos] = 1;
@@ -2235,6 +2237,8 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
       if (data.salts_done == data.salts_cnt) data.devices_status = STATUS_CRACKED;
 
+      hc_thread_mutex_unlock (mux_display);
+
       check_hash (device_param, &cracked[i]);
     }
 
@@ -2242,6 +2246,8 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
     if (cpt_cracked > 0)
     {
+      hc_thread_mutex_lock (mux_display);
+
       data.cpt_buf[data.cpt_pos].timestamp = time (NULL);
       data.cpt_buf[data.cpt_pos].cracked   = cpt_cracked;
 
@@ -2250,6 +2256,8 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
       data.cpt_total += cpt_cracked;
 
       if (data.cpt_pos == CPT_BUF) data.cpt_pos = 0;
+
+      hc_thread_mutex_unlock (mux_display);
     }
 
     if (data.opts_type & OPTS_TYPE_PT_NEVERCRACK)
@@ -3311,11 +3319,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
        * result
        */
 
-      hc_thread_mutex_lock (mux_display);
-
       check_cracked (device_param, salt_pos);
-
-      hc_thread_mutex_unlock (mux_display);
 
       /**
        * progress
@@ -3339,15 +3343,15 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
       hc_timer_set (&device_param->timer_speed);
 
-      hc_thread_mutex_lock (mux_display);
-
       // current speed
+
+      //hc_thread_mutex_lock (mux_display);
 
       device_param->speed_cnt[speed_pos] = perf_sum_all;
 
       device_param->speed_ms[speed_pos] = speed_ms;
 
-      hc_thread_mutex_unlock (mux_display);
+      //hc_thread_mutex_unlock (mux_display);
 
       speed_pos++;
 
@@ -3923,7 +3927,7 @@ static void *thread_monitor (void *p)
 
       if (status_left == 0)
       {
-        hc_thread_mutex_lock (mux_display);
+        //hc_thread_mutex_lock (mux_display);
 
         if (data.quiet == 0) clear_prompt ();
 
@@ -3933,7 +3937,7 @@ static void *thread_monitor (void *p)
 
         if (data.quiet == 0) log_info ("");
 
-        hc_thread_mutex_unlock (mux_display);
+        //hc_thread_mutex_unlock (mux_display);
 
         status_left = data.status_timer;
       }
