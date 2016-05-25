@@ -14471,36 +14471,38 @@ int main (int argc, char **argv)
 
         int skip = 0;
 
-        if (size_pws   > device_param->device_maxmem_alloc) skip = 1;
-        if (size_tmps  > device_param->device_maxmem_alloc) skip = 1;
-        if (size_hooks > device_param->device_maxmem_alloc) skip = 1;
+        const u64 size_total
+          = bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + size_bfs
+          + size_combs
+          + size_digests
+          + size_esalts
+          + size_hooks
+          + size_markov_css
+          + size_plains
+          + size_pws
+          + size_pws // not a bug
+          + size_results
+          + size_root_css
+          + size_rules
+          + size_rules_c
+          + size_salts
+          + size_scryptV
+          + size_shown
+          + size_tm
+          + size_tmps;
 
-        if (( bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + size_bfs
-            + size_combs
-            + size_digests
-            + size_esalts
-            + size_hooks
-            + size_markov_css
-            + size_plains
-            + size_pws
-            + size_pws // not a bug
-            + size_results
-            + size_root_css
-            + size_rules
-            + size_rules_c
-            + size_salts
-            + size_scryptV
-            + size_shown
-            + size_tm
-            + size_tmps) > device_param->device_global_mem) skip = 1;
+        // Don't ask me, ask AMD!
+
+        if (size_total > device_param->device_maxmem_alloc) skip = 1;
+        if (size_total > device_param->device_global_mem)   skip = 1;
 
         if (skip == 1)
         {
