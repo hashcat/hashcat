@@ -2975,6 +2975,8 @@ static void autotune (hc_device_param_t *device_param)
     exec_ms_pre_final = MIN (exec_ms_pre_final, exec_ms_pre_final_v);
   }
 
+  u32 diff = kernel_loops - kernel_accel;
+
   if ((kernel_loops_min < kernel_loops_max) && (kernel_accel_min < kernel_accel_max))
   {
     for (u32 f = 2; f < 1024; f++)
@@ -2984,6 +2986,10 @@ static void autotune (hc_device_param_t *device_param)
 
       if (kernel_accel_try > kernel_accel_max) break;
       if (kernel_loops_try < kernel_loops_min) break;
+
+      u32 diff_new = kernel_loops_try - kernel_accel_try;
+
+      if (diff_new > diff) break;
 
       double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try);
 
