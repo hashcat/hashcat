@@ -13647,6 +13647,7 @@ int main (int argc, char **argv)
             }
           }
 
+          /* turns out pocl still creates segfaults (because of llvm)
           if (device_type & CL_DEVICE_TYPE_CPU)
           {
             if (vendor_id == VENDOR_ID_AMD)
@@ -13664,6 +13665,7 @@ int main (int argc, char **argv)
               }
             }
           }
+          */
 
           /**
            * kernel accel and loops tuning db adjustment
@@ -14557,9 +14559,9 @@ int main (int argc, char **argv)
       // we don't have sm_* on vendors not NV but it doesn't matter
 
       #if _WIN
-      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\\OpenCL\\\" -I '%s\\OpenCL\\' -I %s\\OpenCL\\", shared_dir, shared_dir, shared_dir);
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\\OpenCL\\\" -I '%s\\OpenCL\\' -I %s\\OpenCL\\ -I\"%s\\OpenCL\\\" -I'%s\\OpenCL\\' -I%s\\OpenCL\\", shared_dir, shared_dir, shared_dir, shared_dir, shared_dir, shared_dir);
       #else
-      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s/OpenCL/\" -I '%s/OpenCL/' -I %s/OpenCL/", shared_dir, shared_dir, shared_dir);
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s/OpenCL/\" -I '%s/OpenCL/' -I %s/OpenCL/ -I\"%s/OpenCL/\" -I'%s/OpenCL/' -I%s/OpenCL/", shared_dir, shared_dir, shared_dir, shared_dir, shared_dir, shared_dir);
       #endif
 
       char build_opts_new[1024] = { 0 };
