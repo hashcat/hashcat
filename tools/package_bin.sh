@@ -65,7 +65,6 @@ chmod 755 $OUT/example*.sh
 chmod 755 $OUT/extra
 chmod 755 $OUT/extra/tab_completion/*.sh
 chmod 755 $OUT/extra/tab_completion/install
-chmod 644 $OUT/include/*
 chmod 755 $OUT/OpenCL
 chmod 644 $OUT/OpenCL/*
 chmod 644 $OUT/*.exe
