@@ -7,23 +7,23 @@
 
 #define _LOTUS8_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
+#include "inc_hash_functions.cl"
 
 #undef _SHA1_
 
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#define COMPARE_S "inc_comp_single.cl"
+#define COMPARE_M "inc_comp_multi.cl"
 
 __constant char lotus64_table[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/";
 

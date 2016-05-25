@@ -3,12 +3,12 @@
  * License.....: MIT
  */
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
-#include "OpenCL/types_ocl.c"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
+#include "inc_types.cl"
 
-#include "include/rp_kernel.h"
-#include "OpenCL/rp.c"
+#include "inc_rp.h"
+#include "inc_rp.cl"
 
 __kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, const u32 combs_mode, const u32 gid_max)
 {

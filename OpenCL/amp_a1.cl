@@ -3,9 +3,9 @@
  * License.....: MIT
  */
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
-#include "OpenCL/types_ocl.c"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
+#include "inc_types.cl"
 
 inline void switch_buffer_by_offset_le (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {

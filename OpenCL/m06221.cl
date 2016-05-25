@@ -5,21 +5,21 @@
 
 #define _SHA512_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#include "OpenCL/kernel_aes256.c"
-#include "OpenCL/kernel_twofish256.c"
-#include "OpenCL/kernel_serpent256.c"
+#include "inc_cipher_aes256.cl"
+#include "inc_cipher_twofish256.cl"
+#include "inc_cipher_serpent256.cl"
 
 __constant u64 k_sha512[80] =
 {

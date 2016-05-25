@@ -7,20 +7,20 @@
 
 #define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 14
 #define DGST_R1 15
 #define DGST_R2 6
 #define DGST_R3 7
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "include/rp_kernel.h"
-#include "OpenCL/rp.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_rp.h"
+#include "inc_rp.cl"
+#include "inc_simd.cl"
 
 __constant u64 k_sha512[80] =
 {
