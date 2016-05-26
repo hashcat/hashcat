@@ -3062,7 +3062,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   #ifdef HAVE_ADL
-  if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_amd)
     {
@@ -3089,7 +3089,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
   #endif
 
   #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-  if (data.devices_param[device_id].vendor_id == VENDOR_ID_NV)
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     #if defined(LINUX) && defined(HAVE_NVML)
     int temperature = 0;
@@ -3125,7 +3125,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
   if (data.hm_device[device_id].fan_supported == 1)
   {
     #ifdef HAVE_ADL
-    if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
+    if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
     {
       if (data.hm_amd)
       {
@@ -3158,7 +3158,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
     #endif // HAVE_ADL
 
     #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-    if (data.devices_param[device_id].vendor_id == VENDOR_ID_NV)
+    if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
     {
       #if defined(LINUX) && defined(HAVE_NVML)
       int speed = 0;
@@ -3190,7 +3190,7 @@ int hm_get_utilization_with_device_id (const uint device_id)
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   #ifdef HAVE_ADL
-  if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_amd)
     {
@@ -3206,7 +3206,7 @@ int hm_get_utilization_with_device_id (const uint device_id)
   #endif // HAVE_ADL
 
   #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-  if (data.devices_param[device_id].vendor_id == VENDOR_ID_NV)
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     #if defined(LINUX) && defined(HAVE_NVML)
     nvmlUtilization_t utilization;

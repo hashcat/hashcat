@@ -995,13 +995,15 @@ struct __hc_device_param
   // device specific attributes starting
 
   char   *device_name;
+  char   *device_vendor;
   char   *device_name_chksum;
   char   *device_version;
   char   *driver_version;
 
   bool    opencl_v12;
 
-  cl_uint vendor_id;
+  cl_uint device_vendor_id;
+  cl_uint platform_vendor_id;
 
   cl_kernel  kernel1;
   cl_kernel  kernel12;
