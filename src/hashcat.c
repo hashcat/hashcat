@@ -2609,8 +2609,56 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   hc_clFinish (data.ocl, device_param->command_queue);
 }
 
+static void run_kernel_memset (hc_device_param_t *device_param, cl_mem buf, const uint value, const uint num)
+{
+  const u32 num16d = num / 16;
+  const u32 num16m = num % 16;
+
+  if (num16d)
+  {
+    device_param->kernel_params_memset_buf32[1] = value;
+    device_param->kernel_params_memset_buf32[2] = num16d;
+
+    uint kernel_threads = device_param->kernel_threads;
+
+    uint num_elements = num16d;
+
+    while (num_elements % kernel_threads) num_elements++;
+
+    cl_kernel kernel = device_param->kernel_memset;
+
+    hc_clSetKernelArg (data.ocl, kernel, 0, sizeof (cl_mem),  (void *) &buf);
+    hc_clSetKernelArg (data.ocl, kernel, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]);
+    hc_clSetKernelArg (data.ocl, kernel, 2, sizeof (cl_uint), device_param->kernel_params_memset[2]);
+
+    const size_t global_work_size[3] = { num_elements,   1, 1 };
+    const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
+
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+
+    hc_clFlush (data.ocl, device_param->command_queue);
+
+    hc_clFinish (data.ocl, device_param->command_queue);
+  }
+
+  if (num16m)
+  {
+    u32 tmp[4];
+
+    tmp[0] = value;
+    tmp[1] = value;
+    tmp[2] = value;
+    tmp[3] = value;
+
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, buf, CL_TRUE, num16d * 16, num16m, tmp, 0, NULL, NULL);
+  }
+}
+
 static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const size_t size)
 {
+  run_kernel_memset (device_param, buf, 0, size);
+
+  /*
   int rc = -1;
 
   if (device_param->opencl_v12 && device_param->platform_vendor_id == VENDOR_ID_AMD)
@@ -2644,6 +2692,7 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
 
     myfree (tmp);
   }
+  */
 }
 
 static void choose_kernel (hc_device_param_t *device_param, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt)
@@ -2895,6 +2944,14 @@ static void autotune (hc_device_param_t *device_param)
 
   const u32 kernel_power_max = device_param->device_processors * device_param->kernel_threads * kernel_accel_max;
 
+  run_kernel_memset (device_param, device_param->d_pws_buf, 7, kernel_power_max * sizeof (pw_t));
+
+  if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+  {
+    run_kernel_memset (device_param, device_param->d_pws_amp_buf, 7, kernel_power_max * sizeof (pw_t));
+  }
+
+  /*
   for (u32 i = 0; i < kernel_power_max; i++)
   {
     device_param->pws_buf[i].i[0]   = i;
@@ -2908,6 +2965,7 @@ static void autotune (hc_device_param_t *device_param)
   {
     run_kernel_amp (device_param, kernel_power_max);
   }
+  */
 
   #define VERIFIER_CNT 1
 
@@ -3030,10 +3088,19 @@ static void autotune (hc_device_param_t *device_param)
 
   // reset them fake words
 
+  /*
   memset (device_param->pws_buf, 0, kernel_power_max * sizeof (pw_t));
 
   hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
   hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+  */
+
+  run_kernel_memset (device_param, device_param->d_pws_buf, 0, kernel_power_max * sizeof (pw_t));
+
+  if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+  {
+    run_kernel_memset (device_param, device_param->d_pws_amp_buf, 0, kernel_power_max * sizeof (pw_t));
+  }
 
   // reset timer
 
@@ -15084,13 +15151,6 @@ int main (int argc, char **argv)
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown,  CL_TRUE, 0, size_shown,   data.digests_shown, 0, NULL, NULL);
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_salt_bufs,      CL_TRUE, 0, size_salts,   data.salts_buf,     0, NULL, NULL);
 
-      run_kernel_bzero (device_param, device_param->d_pws_buf,        size_pws);
-      run_kernel_bzero (device_param, device_param->d_pws_amp_buf,    size_pws);
-      run_kernel_bzero (device_param, device_param->d_tmps,           size_tmps);
-      run_kernel_bzero (device_param, device_param->d_hooks,          size_hooks);
-      run_kernel_bzero (device_param, device_param->d_plain_bufs,     size_plains);
-      run_kernel_bzero (device_param, device_param->d_result,         size_results);
-
       /**
        * special buffers
        */
@@ -15101,8 +15161,6 @@ int main (int argc, char **argv)
         device_param->d_rules_c = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_rules_c, NULL);
 
         hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_rules, CL_TRUE, 0, size_rules, kernel_rules_buf, 0, NULL, NULL);
-
-        run_kernel_bzero (device_param, device_param->d_rules_c, size_rules_c);
       }
       else if (attack_kern == ATTACK_KERN_COMBI)
       {
@@ -15110,11 +15168,6 @@ int main (int argc, char **argv)
         device_param->d_combs_c         = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_combs,      NULL);
         device_param->d_root_css_buf    = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL);
         device_param->d_markov_css_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL);
-
-        run_kernel_bzero (device_param, device_param->d_combs,          size_combs);
-        run_kernel_bzero (device_param, device_param->d_combs_c,        size_combs);
-        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
-        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
       }
       else if (attack_kern == ATTACK_KERN_BF)
       {
@@ -15123,12 +15176,6 @@ int main (int argc, char **argv)
         device_param->d_tm_c            = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_tm,         NULL);
         device_param->d_root_css_buf    = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL);
         device_param->d_markov_css_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL);
-
-        run_kernel_bzero (device_param, device_param->d_bfs,            size_bfs);
-        run_kernel_bzero (device_param, device_param->d_bfs_c,          size_bfs);
-        run_kernel_bzero (device_param, device_param->d_tm_c,           size_tm);
-        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
-        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
       }
 
       if (size_esalts)
@@ -15272,6 +15319,13 @@ int main (int argc, char **argv)
       device_param->kernel_params_tm[0] = &device_param->d_bfs_c;
       device_param->kernel_params_tm[1] = &device_param->d_tm_c;
 
+      device_param->kernel_params_memset_buf32[1] = 0; // value
+      device_param->kernel_params_memset_buf32[2] = 0; // gid_max
+
+      device_param->kernel_params_memset[0] = NULL;
+      device_param->kernel_params_memset[1] = &device_param->kernel_params_memset_buf32[1];
+      device_param->kernel_params_memset[2] = &device_param->kernel_params_memset_buf32[2];
+
       /**
        * kernel name
        */
@@ -15380,6 +15434,18 @@ int main (int argc, char **argv)
         if (opts_type & OPTS_TYPE_HOOK23) hc_clSetKernelArg (data.ocl, device_param->kernel23, i, sizeof (cl_uint), device_param->kernel_params[i]);
       }
 
+      // GPU memset
+
+      device_param->kernel_memset = hc_clCreateKernel (data.ocl, device_param->program, "gpu_memset");
+
+      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_memset, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
+      hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 0, sizeof (cl_mem),  device_param->kernel_params_memset[0]);
+      hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]);
+      hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 2, sizeof (cl_uint), device_param->kernel_params_memset[2]);
+
+      // MP start
+
       if (attack_mode == ATTACK_MODE_BF)
       {
         device_param->kernel_mp_l = hc_clCreateKernel (data.ocl, device_param->program_mp, "l_markov");
@@ -15439,6 +15505,39 @@ int main (int argc, char **argv)
       // value can only be decreased, so we don't need to reallocate buffers
 
       device_param->kernel_threads = kernel_threads;
+
+      // zero some data buffers
+
+      run_kernel_bzero (device_param, device_param->d_pws_buf,        size_pws);
+      run_kernel_bzero (device_param, device_param->d_pws_amp_buf,    size_pws);
+      run_kernel_bzero (device_param, device_param->d_tmps,           size_tmps);
+      run_kernel_bzero (device_param, device_param->d_hooks,          size_hooks);
+      run_kernel_bzero (device_param, device_param->d_plain_bufs,     size_plains);
+      run_kernel_bzero (device_param, device_param->d_result,         size_results);
+
+      /**
+       * special buffers
+       */
+
+      if (attack_kern == ATTACK_KERN_STRAIGHT)
+      {
+        run_kernel_bzero (device_param, device_param->d_rules_c, size_rules_c);
+      }
+      else if (attack_kern == ATTACK_KERN_COMBI)
+      {
+        run_kernel_bzero (device_param, device_param->d_combs,          size_combs);
+        run_kernel_bzero (device_param, device_param->d_combs_c,        size_combs);
+        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
+        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
+      }
+      else if (attack_kern == ATTACK_KERN_BF)
+      {
+        run_kernel_bzero (device_param, device_param->d_bfs,            size_bfs);
+        run_kernel_bzero (device_param, device_param->d_bfs_c,          size_bfs);
+        run_kernel_bzero (device_param, device_param->d_tm_c,           size_tm);
+        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
+        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
+      }
 
       /**
        * Store initial fanspeed if gpu_temp_retain is enabled

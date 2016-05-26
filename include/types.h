@@ -1016,13 +1016,13 @@ struct __hc_device_param
   cl_kernel  kernel_amp;
   cl_kernel  kernel_tm;
   cl_kernel  kernel_weak;
+  cl_kernel  kernel_memset;
 
   cl_context context;
 
   cl_program program;
   cl_program program_mp;
   cl_program program_amp;
-  cl_program program_weak;
 
   cl_command_queue command_queue;
 
@@ -1064,6 +1064,7 @@ struct __hc_device_param
   void   *kernel_params_mp_l[PARAMCNT];
   void   *kernel_params_amp[PARAMCNT];
   void   *kernel_params_tm[PARAMCNT];
+  void   *kernel_params_memset[PARAMCNT];
 
   u32     kernel_params_buf32[PARAMCNT];
 
@@ -1077,6 +1078,7 @@ struct __hc_device_param
   u64     kernel_params_mp_l_buf64[PARAMCNT];
 
   u32     kernel_params_amp_buf32[PARAMCNT];
+  u32     kernel_params_memset_buf32[PARAMCNT];
 };
 
 typedef struct __hc_device_param hc_device_param_t;

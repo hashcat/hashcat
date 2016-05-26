@@ -9322,3 +9322,12 @@ inline void append_0x80_4x4_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], 
 
   #endif
 }
+
+__kernel void gpu_memset (__global uint4 *buf, const u32 value, const u32 gid_max)
+{
+  const u32 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  buf[gid] = (uint4) (value);
+}
