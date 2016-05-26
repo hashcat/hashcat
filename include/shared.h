@@ -133,6 +133,7 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define CL_PLATFORMS_MAX        16
 
 #define CL_VENDOR_AMD           "Advanced Micro Devices, Inc."
+#define CL_VENDOR_AMD_USE_INTEL "GenuineIntel"
 #define CL_VENDOR_APPLE         "Apple"
 #define CL_VENDOR_INTEL_BEIGNET "Intel"
 #define CL_VENDOR_INTEL_SDK     "Intel(R) Corporation"
@@ -147,6 +148,7 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define VENDOR_ID_MESA          (1 << 4)
 #define VENDOR_ID_NV            (1 << 5)
 #define VENDOR_ID_POCL          (1 << 6)
+#define VENDOR_ID_AMD_USE_INTEL (1 << 7)
 #define VENDOR_ID_GENERIC       (1 << 31)
 
 #define BLOCK_SIZE              64

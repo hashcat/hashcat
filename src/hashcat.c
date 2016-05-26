@@ -13222,6 +13222,10 @@ int main (int argc, char **argv)
       {
         platform_vendor_id = VENDOR_ID_AMD;
       }
+      else if (strcmp (platform_vendor, CL_VENDOR_AMD_USE_INTEL) == 0)
+      {
+        platform_vendor_id = VENDOR_ID_AMD_USE_INTEL;
+      }
       else if (strcmp (platform_vendor, CL_VENDOR_APPLE) == 0)
       {
         platform_vendor_id = VENDOR_ID_APPLE;
@@ -13296,6 +13300,47 @@ int main (int argc, char **argv)
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VENDOR, param_value_size, device_vendor, NULL);
 
         device_param->device_vendor = device_vendor;
+
+        cl_uint device_vendor_id = 0;
+
+        if (strcmp (device_vendor, CL_VENDOR_AMD) == 0)
+        {
+          device_vendor_id = VENDOR_ID_AMD;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_AMD_USE_INTEL) == 0)
+        {
+          device_vendor_id = VENDOR_ID_AMD_USE_INTEL;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_APPLE) == 0)
+        {
+          device_vendor_id = VENDOR_ID_APPLE;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
+        {
+          device_vendor_id = VENDOR_ID_INTEL_BEIGNET;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_INTEL_SDK) == 0)
+        {
+          device_vendor_id = VENDOR_ID_INTEL_SDK;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_MESA) == 0)
+        {
+          device_vendor_id = VENDOR_ID_MESA;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_NV) == 0)
+        {
+          device_vendor_id = VENDOR_ID_NV;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_POCL) == 0)
+        {
+          device_vendor_id = VENDOR_ID_POCL;
+        }
+        else
+        {
+          device_vendor_id = VENDOR_ID_GENERIC;
+        }
+
+        device_param->device_vendor_id = device_vendor_id;
 
         // tuning db
 
@@ -13486,14 +13531,15 @@ int main (int argc, char **argv)
           device_param->skipped = 1;
         }
 
-        // if we have an Intel CPU and an not Intel OpenCL runtime that's a tricky situation
-        // both platforms will support CPU device types and therefore both will use 50% of the physical resources
-        // however, intel has better simd control over their own hardware so it makes sense
-        // to give them full control over their own hardware
+        // If there's both an Intel CPU and an AMD OpenCL runtime it's a tricky situation
+        // Both platforms support CPU device types and therefore both will try to use 100% of the physical resources
+        // This results in both utilizing it for 50%
+        // However, Intel has much better SIMD control over their own hardware
+        // It makes sense to give them full control over their own hardware
 
         if (device_type & CL_DEVICE_TYPE_CPU)
         {
-          if ((device_param->device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->platform_vendor_id != VENDOR_ID_INTEL_SDK))
+          if (device_param->device_vendor_id == VENDOR_ID_AMD_USE_INTEL)
           {
             if (data.quiet == 0) log_info ("Device #%u: WARNING: not native intel opencl platform", device_id + 1);
 
@@ -13545,7 +13591,7 @@ int main (int argc, char **argv)
 
         if (device_type & CL_DEVICE_TYPE_GPU)
         {
-          if (platform_vendor_id == VENDOR_ID_AMD)
+          if (device_vendor_id == VENDOR_ID_AMD)
           {
             cl_uint device_processor_cores = 0;
 
@@ -13555,7 +13601,7 @@ int main (int argc, char **argv)
 
             device_param->device_processor_cores = device_processor_cores;
           }
-          else if (platform_vendor_id == VENDOR_ID_NV)
+          else if (device_vendor_id == VENDOR_ID_NV)
           {
             cl_uint kernel_exec_timeout = 0;
 
@@ -14065,14 +14111,14 @@ int main (int argc, char **argv)
         const uint platform_devices_id = device_param->platform_devices_id;
 
         #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-        if (device_param->platform_vendor_id == VENDOR_ID_NV)
+        if (device_param->device_vendor_id == VENDOR_ID_NV)
         {
           memcpy (&data.hm_device[device_id], &hm_adapters_nv[platform_devices_id], sizeof (hm_attrs_t));
         }
         #endif
 
         #ifdef HAVE_ADL
-        if (device_param->platform_vendor_id == VENDOR_ID_AMD)
+        if (device_param->device_vendor_id == VENDOR_ID_AMD)
         {
           memcpy (&data.hm_device[device_id], &hm_adapters_amd[platform_devices_id], sizeof (hm_attrs_t));
         }
@@ -14260,22 +14306,22 @@ int main (int argc, char **argv)
 
           if (hash_mode == 8900)
           {
-            if (device_param->platform_vendor_id == VENDOR_ID_AMD)
+            if (device_param->device_vendor_id == VENDOR_ID_AMD)
             {
               tmto_start = 1;
             }
-            else if (device_param->platform_vendor_id == VENDOR_ID_NV)
+            else if (device_param->device_vendor_id == VENDOR_ID_NV)
             {
               tmto_start = 2;
             }
           }
           else if (hash_mode == 9300)
           {
-            if (device_param->platform_vendor_id == VENDOR_ID_AMD)
+            if (device_param->device_vendor_id == VENDOR_ID_AMD)
             {
               tmto_start = 2;
             }
-            else if (device_param->platform_vendor_id == VENDOR_ID_NV)
+            else if (device_param->device_vendor_id == VENDOR_ID_NV)
             {
               tmto_start = 2;
             }
@@ -14603,12 +14649,12 @@ int main (int argc, char **argv)
 
       char build_opts_new[1024] = { 0 };
 
-      snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u -DKERN_TYPE=%u -D_unroll -cl-std=CL1.1", build_opts, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, kern_type);
+      snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u -DKERN_TYPE=%u -D_unroll -cl-std=CL1.1", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, kern_type);
 
       strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);
 
-
-      if (device_param->platform_vendor_id == VENDOR_ID_INTEL_SDK)
+      /*
+      if (device_param->device_vendor_id == VENDOR_ID_INTEL_SDK)
       {
         // we do vectorizing much better than the auto-vectorizer
 
@@ -14616,6 +14662,7 @@ int main (int argc, char **argv)
 
         strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);
       }
+      */
 
       #ifdef DEBUG
       log_info ("Device #%u: build_opts '%s'\n", device_id + 1, build_opts);
