@@ -13189,6 +13189,34 @@ int main (int argc, char **argv)
     }
 
     /**
+     * Detect if the user has both an Intel and and AMD OpenCL runtime and not filtered any of them
+     * In this case mark it for later use
+     */
+
+    int has_intel = 0;
+    int has_amd   = 0;
+
+    for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
+    {
+      if ((opencl_platforms_filter & (1 << platform_id)) == 0) continue;
+
+      cl_platform_id platform = platforms[platform_id];
+
+      char platform_vendor[INFOSZ] = { 0 };
+
+      hc_clGetPlatformInfo (data.ocl, platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
+
+      if (strcmp (platform_vendor, CL_VENDOR_AMD) == 0)
+      {
+        has_intel = 1;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_INTEL_SDK) == 0)
+      {
+        has_amd = 1;
+      }
+    }
+
+    /**
      * OpenCL devices: simply push all devices from all platforms into the same device array
      */
 
@@ -13393,7 +13421,7 @@ int main (int argc, char **argv)
 
         if (device_endian_little == CL_FALSE)
         {
-          log_info ("Device #%u: WARNING: not little endian device", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: not little endian device", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13406,7 +13434,7 @@ int main (int argc, char **argv)
 
         if (device_available == CL_FALSE)
         {
-          log_info ("Device #%u: WARNING: device not available", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: device not available", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13419,7 +13447,7 @@ int main (int argc, char **argv)
 
         if (device_compiler_available == CL_FALSE)
         {
-          log_info ("Device #%u: WARNING: device no compiler available", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: device no compiler available", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13432,7 +13460,7 @@ int main (int argc, char **argv)
 
         if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
         {
-          log_info ("Device #%u: WARNING: device does not support executing kernels", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: device does not support executing kernels", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13449,14 +13477,14 @@ int main (int argc, char **argv)
 
         if (strstr (device_extensions, "base_atomics") == 0)
         {
-          log_info ("Device #%u: WARNING: device does not support base atomics", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: device does not support base atomics", device_id + 1);
 
           device_param->skipped = 1;
         }
 
         if (strstr (device_extensions, "byte_addressable_store") == 0)
         {
-          log_info ("Device #%u: WARNING: device does not support byte addressable store", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: device does not support byte addressable store", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13471,11 +13499,25 @@ int main (int argc, char **argv)
 
         if (device_local_mem_size < 32768)
         {
-          log_info ("Device #%u: WARNING: device local mem size is too small", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: device local mem size is too small", device_id + 1);
 
           device_param->skipped = 1;
         }
 
+        // if we have both intel and amd opencl runtime we want they share the same cpu
+        // so both virtual cpu share the same resources and run at 50%
+        // however, intel has better control over their own hardware so it makes sense
+        // to give them full control over their own hardware
+
+        if (device_type & CL_DEVICE_TYPE_CPU)
+        {
+          if ((has_intel == 1) && (has_amd == 1) && (vendor_id == VENDOR_ID_AMD))
+          {
+            if (data.quiet == 0) log_info ("Device #%u: WARNING: Not its native platform vendor", device_id + 1);
+
+            device_param->skipped = 1;
+          }
+        }
 
         // skipped
 
