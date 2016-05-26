@@ -93,9 +93,6 @@ void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   {
     u32 s = 48;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
     for (int j = 0; j < 12; j++)
     {
       u32x tmp_in = in[j];

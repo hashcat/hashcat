@@ -79,9 +79,6 @@ void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   {
     u32 s = 48;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
     for (int j = 0; j < 12; j++)
     {
       u32x tmp_in = in[j];
@@ -226,7 +223,7 @@ void mdtransform (u32x state[4], u32x checksum[4], u32x block[4], __local u32 *s
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-void domino_big_md (const u32x saved_key[16], const u32x size, u32x state[4], __local u32 *s_lotus_magic_table)
+void domino_big_md (const u32x saved_key[16], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
 {
   u32x checksum[4];
 
@@ -237,10 +234,28 @@ void domino_big_md (const u32x saved_key[16], const u32x size, u32x state[4], __
 
   u32x block[4];
 
-  block[0] = saved_key[0];
-  block[1] = saved_key[1];
-  block[2] = saved_key[2];
-  block[3] = saved_key[3];
+  block[0] = 0;
+  block[1] = 0;
+  block[2] = 0;
+  block[3] = 0;
+
+  u32 curpos;
+  u32 idx;
+
+  for (curpos = 0, idx = 0; curpos + 16 < size; curpos += 16, idx += 4)
+  {
+    block[0] = saved_key[idx + 0];
+    block[1] = saved_key[idx + 1];
+    block[2] = saved_key[idx + 2];
+    block[3] = saved_key[idx + 3];
+
+    mdtransform (state, checksum, block, s_lotus_magic_table);
+  }
+
+  block[0] = saved_key[idx + 0];
+  block[1] = saved_key[idx + 1];
+  block[2] = saved_key[idx + 2];
+  block[3] = saved_key[idx + 3];
 
   mdtransform (state, checksum, block, s_lotus_magic_table);
 

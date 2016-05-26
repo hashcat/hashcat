@@ -27,6 +27,8 @@
 
 __constant char lotus64_table[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/";
 
+#define uint_to_hex_upper8(i) l_bin2asc[(i)]
+
 __constant u32 lotus_magic_table[256] =
 {
   0xbd, 0x56, 0xea, 0xf2, 0xa2, 0xf1, 0xac, 0x2a,
@@ -63,51 +65,56 @@ __constant u32 lotus_magic_table[256] =
   0x29, 0x39, 0xb9, 0xe9, 0x4c, 0xff, 0x43, 0xab,
 };
 
-#define BOX(S,i) (S)[(i)]
+#if   VECT_SIZE == 1
+#define BOX1(S,i) (S)[(i)]
+#elif VECT_SIZE == 2
+#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1])
+#elif VECT_SIZE == 4
+#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
+#elif VECT_SIZE == 8
+#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
+#elif VECT_SIZE == 16
+#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
+#endif
 
-#define uint_to_hex_upper8(i) l_bin2asc[(i)]
-
-void lotus_mix (u32 *in, __local u32 *s_lotus_magic_table)
+void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
 {
-  u32 p = 0;
+  u32x p = 0;
 
   for (int i = 0; i < 18; i++)
   {
     u32 s = 48;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
     for (int j = 0; j < 12; j++)
     {
-      u32 tmp_in = in[j];
-      u32 tmp_out = 0;
+      u32x tmp_in = in[j];
+      u32x tmp_out = 0;
 
-      p = (p + s--) & 0xff; p = ((tmp_in >>  0) & 0xff) ^ BOX (s_lotus_magic_table, p); tmp_out |= p <<  0;
-      p = (p + s--) & 0xff; p = ((tmp_in >>  8) & 0xff) ^ BOX (s_lotus_magic_table, p); tmp_out |= p <<  8;
-      p = (p + s--) & 0xff; p = ((tmp_in >> 16) & 0xff) ^ BOX (s_lotus_magic_table, p); tmp_out |= p << 16;
-      p = (p + s--) & 0xff; p = ((tmp_in >> 24) & 0xff) ^ BOX (s_lotus_magic_table, p); tmp_out |= p << 24;
+      p = (p + s--) & 0xff; p = ((tmp_in >>  0) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p <<  0;
+      p = (p + s--) & 0xff; p = ((tmp_in >>  8) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p <<  8;
+      p = (p + s--) & 0xff; p = ((tmp_in >> 16) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p << 16;
+      p = (p + s--) & 0xff; p = ((tmp_in >> 24) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p << 24;
 
       in[j] = tmp_out;
     }
   }
 }
 
-void lotus_transform_password (u32 in[4], u32 out[4], __local u32 *s_lotus_magic_table)
+void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lotus_magic_table)
 {
-  u32 t = out[3] >> 24;
+  u32x t = out[3] >> 24;
 
-  u32 c;
+  u32x c;
 
   #ifdef _unroll
   #pragma unroll
   #endif
   for (int i = 0; i < 4; i++)
   {
-    t ^= (in[i] >>  0) & 0xff; c = BOX (s_lotus_magic_table, t); out[i] ^= c <<  0; t = ((out[i] >>  0) & 0xff);
-    t ^= (in[i] >>  8) & 0xff; c = BOX (s_lotus_magic_table, t); out[i] ^= c <<  8; t = ((out[i] >>  8) & 0xff);
-    t ^= (in[i] >> 16) & 0xff; c = BOX (s_lotus_magic_table, t); out[i] ^= c << 16; t = ((out[i] >> 16) & 0xff);
-    t ^= (in[i] >> 24) & 0xff; c = BOX (s_lotus_magic_table, t); out[i] ^= c << 24; t = ((out[i] >> 24) & 0xff);
+    t ^= (in[i] >>  0) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  0; t = ((out[i] >>  0) & 0xff);
+    t ^= (in[i] >>  8) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  8; t = ((out[i] >>  8) & 0xff);
+    t ^= (in[i] >> 16) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c << 16; t = ((out[i] >> 16) & 0xff);
+    t ^= (in[i] >> 24) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c << 24; t = ((out[i] >> 24) & 0xff);
   }
 }
 
@@ -190,9 +197,9 @@ void pad (u32 w[4], const u32 len)
   }
 }
 
-void mdtransform_norecalc (u32 state[4], u32 block[4], __local u32 *s_lotus_magic_table)
+void mdtransform_norecalc (u32x state[4], u32x block[4], __local u32 *s_lotus_magic_table)
 {
-  u32 x[12];
+  u32x x[12];
 
   x[ 0] = state[0];
   x[ 1] = state[1];
@@ -215,23 +222,23 @@ void mdtransform_norecalc (u32 state[4], u32 block[4], __local u32 *s_lotus_magi
   state[3] = x[3];
 }
 
-void mdtransform (u32 state[4], u32 checksum[4], u32 block[4], __local u32 *s_lotus_magic_table)
+void mdtransform (u32x state[4], u32x checksum[4], u32x block[4], __local u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-void domino_big_md (const u32 saved_key[16], const u32 size, u32 state[4], __local u32 *s_lotus_magic_table)
+void domino_big_md (const u32x saved_key[16], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
 {
-  u32 checksum[4];
+  u32x checksum[4];
 
   checksum[0] = 0;
   checksum[1] = 0;
   checksum[2] = 0;
   checksum[3] = 0;
 
-  u32 block[4];
+  u32x block[4];
 
   block[0] = 0;
   block[1] = 0;
@@ -250,8 +257,6 @@ void domino_big_md (const u32 saved_key[16], const u32 size, u32 state[4], __loc
 
     mdtransform (state, checksum, block, s_lotus_magic_table);
   }
-
-  u32 left = size - curpos;
 
   block[0] = saved_key[idx + 0];
   block[1] = saved_key[idx + 1];

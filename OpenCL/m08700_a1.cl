@@ -91,9 +91,6 @@ void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   {
     u32 s = 48;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
     for (int j = 0; j < 12; j++)
     {
       u32x tmp_in = in[j];
@@ -127,20 +124,20 @@ void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lotus_mag
   }
 }
 
-void pad (u32x w[4], const u32 len)
+void pad (u32 w[4], const u32 len)
 {
   const u32 val = 16 - len;
 
-  const u32x mask1 = val << 24;
+  const u32 mask1 = val << 24;
 
-  const u32x mask2 = val << 16
+  const u32 mask2 = val << 16
                    | val << 24;
 
-  const u32x mask3 = val <<  8
+  const u32 mask3 = val <<  8
                    | val << 16
                    | val << 24;
 
-  const u32x mask4 = val <<  0
+  const u32 mask4 = val <<  0
                    | val <<  8
                    | val << 16
                    | val << 24;
