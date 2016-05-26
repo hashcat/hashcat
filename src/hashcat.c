@@ -17814,6 +17814,7 @@ int main (int argc, char **argv)
       if (device_param->kernel_mp_r)        hc_clReleaseKernel        (data.ocl, device_param->kernel_mp_r);
       if (device_param->kernel_tm)          hc_clReleaseKernel        (data.ocl, device_param->kernel_tm);
       if (device_param->kernel_amp)         hc_clReleaseKernel        (data.ocl, device_param->kernel_amp);
+      if (device_param->kernel_memset)      hc_clReleaseKernel        (data.ocl, device_param->kernel_memset);
 
       if (device_param->program)            hc_clReleaseProgram       (data.ocl, device_param->program);
       if (device_param->program_mp)         hc_clReleaseProgram       (data.ocl, device_param->program_mp);
