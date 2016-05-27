@@ -29,6 +29,7 @@ It combines all features of all hashcat projects in one project.
 - Added option --potfile-path to override potfile path
 - Added option --veracrypt-keyfile to set Keyfiles used, can be multiple
 - Added option --veracrypt-pim to set the VeraCrypt personal iterations multiplier
+- Added option --machine-readable for easier parsing of output
 
 ##
 ## Algorithms
