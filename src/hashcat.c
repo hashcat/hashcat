@@ -38,7 +38,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 #define RESTORE_DISABLE         0
 #define STATUS                  0
 #define STATUS_TIMER            10
-#define STATUS_MACHINE_READABLE 0
+#define MACHINE_READABLE        0
 #define LOOPBACK                0
 #define WEAK_HASH_THRESHOLD     100
 #define SHOW                    0
@@ -914,7 +914,7 @@ void status_display ()
   if (data.devices_status == STATUS_STARTING) return;
   if (data.devices_status == STATUS_BYPASS)   return;
 
-  if (data.status_machine_readable == 1)
+  if (data.machine_readable == 1)
   {
     status_display_machine_readable ();
 
@@ -1629,7 +1629,7 @@ static void status_benchmark ()
   if (data.devices_status == STATUS_STARTING) return;
   if (data.devices_status == STATUS_BYPASS)   return;
 
-  if (data.status_machine_readable == 1)
+  if (data.machine_readable == 1)
   {
     status_benchmark_automate ();
 
@@ -5430,7 +5430,7 @@ int main (int argc, char **argv)
   uint  restore_disable           = RESTORE_DISABLE;
   uint  status                    = STATUS;
   uint  status_timer              = STATUS_TIMER;
-  uint  status_machine_readable   = STATUS_MACHINE_READABLE;
+  uint  machine_readable          = MACHINE_READABLE;
   uint  loopback                  = LOOPBACK;
   uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   char *session                   = NULL;
@@ -5518,7 +5518,7 @@ int main (int argc, char **argv)
   #define IDX_RESTORE_DISABLE           0xff27
   #define IDX_STATUS                    0xff17
   #define IDX_STATUS_TIMER              0xff18
-  #define IDX_STATUS_MACHINE_READABLE   0xff50
+  #define IDX_MACHINE_READABLE          0xff50
   #define IDX_LOOPBACK                  0xff38
   #define IDX_WEAK_HASH_THRESHOLD       0xff42
   #define IDX_SESSION                   0xff19
@@ -5582,7 +5582,7 @@ int main (int argc, char **argv)
     {"restore-disable",           no_argument,       0, IDX_RESTORE_DISABLE},
     {"status",                    no_argument,       0, IDX_STATUS},
     {"status-timer",              required_argument, 0, IDX_STATUS_TIMER},
-    {"machine-readable",          no_argument,       0, IDX_STATUS_MACHINE_READABLE},
+    {"machine-readable",          no_argument,       0, IDX_MACHINE_READABLE},
     {"loopback",                  no_argument,       0, IDX_LOOPBACK},
     {"weak-hash-threshold",       required_argument, 0, IDX_WEAK_HASH_THRESHOLD},
     {"session",                   required_argument, 0, IDX_SESSION},
@@ -5885,7 +5885,7 @@ int main (int argc, char **argv)
       case IDX_RESTORE_DISABLE:           restore_disable           = 1;              break;
       case IDX_STATUS:                    status                    = 1;              break;
       case IDX_STATUS_TIMER:              status_timer              = atoi (optarg);  break;
-      case IDX_STATUS_MACHINE_READABLE:   status_machine_readable   = 1;              break;
+      case IDX_MACHINE_READABLE:          machine_readable          = 1;              break;
       case IDX_LOOPBACK:                  loopback                  = 1;              break;
       case IDX_WEAK_HASH_THRESHOLD:       weak_hash_threshold       = atoi (optarg);  break;
     //case IDX_SESSION:                   session                   = optarg;         break;
@@ -5986,7 +5986,7 @@ int main (int argc, char **argv)
   {
     if (benchmark == 1)
     {
-      if (status_machine_readable == 0)
+      if (machine_readable == 0)
       {
         log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
         log_info ("");
@@ -6622,7 +6622,7 @@ int main (int argc, char **argv)
   data.restore_disable         = restore_disable;
   data.status                  = status;
   data.status_timer            = status_timer;
-  data.status_machine_readable = status_machine_readable;
+  data.machine_readable        = machine_readable;
   data.loopback                = loopback;
   data.runtime                 = runtime;
   data.remove                  = remove;
@@ -6770,7 +6770,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (segment_size);
   logfile_top_uint   (show);
   logfile_top_uint   (status);
-  logfile_top_uint   (status_machine_readable);
+  logfile_top_uint   (machine_readable);
   logfile_top_uint   (status_timer);
   logfile_top_uint   (usage);
   logfile_top_uint   (username);
@@ -13696,7 +13696,7 @@ int main (int argc, char **argv)
 
         if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
         {
-          if (status_machine_readable == 0)
+          if (machine_readable == 0)
           {
             if (device_param->skipped == 0)
             {
@@ -13894,7 +13894,7 @@ int main (int argc, char **argv)
 
     if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
     {
-      if (status_machine_readable == 0)
+      if (machine_readable == 0)
       {
         log_info ("");
       }
@@ -15713,7 +15713,7 @@ int main (int argc, char **argv)
 
     if (benchmark == 1)
     {
-      if (status_machine_readable == 0)
+      if (machine_readable == 0)
       {
         quiet = 0;
 
@@ -17717,7 +17717,7 @@ int main (int argc, char **argv)
     {
       status_benchmark ();
 
-      if (status_machine_readable == 0)
+      if (machine_readable == 0)
       {
         log_info ("");
       }
