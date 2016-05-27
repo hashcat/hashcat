@@ -38,7 +38,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 #define RESTORE_DISABLE         0
 #define STATUS                  0
 #define STATUS_TIMER            10
-#define STATUS_AUTOMAT          0
+#define STATUS_AUTOMATE         0
 #define LOOPBACK                0
 #define WEAK_HASH_THRESHOLD     100
 #define SHOW                    0
@@ -349,9 +349,7 @@ const char *USAGE_BIG[] =
   "",
   "Usage: %s [options]... hash|hashfile|hccapfile [dictionary|mask|directory]...",
   "",
-  "###########",
-  "# Options #",
-  "###########",
+  "- [ Options ] -",
   "",
   " Options Short / Long          | Type | Description                                          | Example",
   "===============================|======|======================================================|=======================",
@@ -366,7 +364,7 @@ const char *USAGE_BIG[] =
   "     --force                   |      | Ignore warnings                                      |",
   "     --status                  |      | Enable automatic update of the status-screen         |",
   "     --status-timer            | Num  | Sets seconds between status-screen update to X       | --status-timer=1",
-  "     --status-automat          |      | Display the status view in a machine readable format |",
+  "     --status-automate         |      | Display the status view in a machine readable format |",
   "     --loopback                |      | Add new plains to induct directory                   |",
   "     --weak-hash-threshold     | Num  | Threshold X when to stop checking for weak hashes    | --weak=0",
   "     --markov-hcstat           | File | Specify hcstat file to use                           | --markov-hc=my.hcstat",
@@ -436,9 +434,7 @@ const char *USAGE_BIG[] =
   "     --increment-min           | Num  | Start mask incrementing at X                         | --increment-min=4",
   "     --increment-max           | Num  | Stop mask incrementing at X                          | --increment-max=8",
   "",
-  "################",
-  "## Hash modes ##",
-  "################",
+  "- [ Hash modes ] -",
   "",
   "      # | Name                                             | Category",
   "  ------+--------------------------------------------------+--------------------------------------",
@@ -654,9 +650,7 @@ const char *USAGE_BIG[] =
   "  12700 | Blockchain, My Wallet                            | Password Managers",
   "  13400 | Keepass 1 (AES/Twofish) and Keepass 2 (AES)      | Password Managers",
   "",
-  "#####################",
-  "## Outfile Formats ##",
-  "#####################",
+  "- [ Outfile Formats ] -",
   "",
   "  # | Format",
   " ---+--------",
@@ -676,9 +670,7 @@ const char *USAGE_BIG[] =
   " 14 | plain:hex_plain:crack_pos",
   " 15 | hash[:salt]:plain:hex_plain:crack_pos",
   "",
-  "##########################",
-  "## Rule Debugging Modes ##",
-  "##########################",
+  "- [ Rule Debugging Modes ] -",
   "",
   "  # | Format",
   " ---+--------",
@@ -687,9 +679,7 @@ const char *USAGE_BIG[] =
   "  3 | Original-Word:Finding-Rule",
   "  4 | Original-Word:Finding-Rule:Processed-Word",
   "",
-  "##################",
-  "## Attack Modes ##",
-  "##################",
+  "- [ Attack Modes ] -",
   "",
   "  # | Mode",
   " ---+------",
@@ -699,9 +689,7 @@ const char *USAGE_BIG[] =
   "  6 | Hybrid Wordlist + Mask",
   "  7 | Hybrid Mask + Wordlist",
   "",
-  "#######################",
-  "## Built-in Charsets ##",
-  "#######################",
+  "- [ Built-in Charsets ] -",
   "",
   "  ? | Charset",
   " ---+---------",
@@ -712,9 +700,7 @@ const char *USAGE_BIG[] =
   "  a | ?l?u?d?s",
   "  b | 0x00 - 0xff",
   "",
-  "#########################",
-  "## OpenCL Device Types ##",
-  "#########################",
+  "- [ OpenCL Device Types ] -",
   "",
   "  # | Device Type",
   " ---+-------------",
@@ -722,9 +708,7 @@ const char *USAGE_BIG[] =
   "  2 | GPU",
   "  3 | FPGA, DSP, Co-Processor",
   "",
-  "#######################",
-  "## Workload Profiles ##",
-  "#######################",
+  "- [ Workload Profiles ] -",
   "",
   "  # | Performance | Runtime | Power Consumption | Desktop Impact",
   " ---+-------------+---------+-------------------+----------------",
@@ -772,7 +756,7 @@ static double get_avg_exec_time (hc_device_param_t *device_param, const int last
   return exec_ms_sum / exec_ms_cnt;
 }
 
-void status_display_automat ()
+void status_display_automate ()
 {
   FILE *out = stdout;
 
@@ -930,9 +914,9 @@ void status_display ()
   if (data.devices_status == STATUS_STARTING) return;
   if (data.devices_status == STATUS_BYPASS)   return;
 
-  if (data.status_automat == 1)
+  if (data.status_automate == 1)
   {
-    status_display_automat ();
+    status_display_automate ();
 
     return;
   }
@@ -1598,7 +1582,7 @@ void status_display ()
   #endif // HAVE_HWMON
 }
 
-static void status_benchmark_automat ()
+static void status_benchmark_automate ()
 {
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
@@ -1645,9 +1629,9 @@ static void status_benchmark ()
   if (data.devices_status == STATUS_STARTING) return;
   if (data.devices_status == STATUS_BYPASS)   return;
 
-  if (data.status_automat == 1)
+  if (data.status_automate == 1)
   {
-    status_benchmark_automat ();
+    status_benchmark_automate ();
 
     return;
   }
@@ -5368,7 +5352,7 @@ int main (int argc, char **argv)
   uint  restore_disable       = RESTORE_DISABLE;
   uint  status                = STATUS;
   uint  status_timer          = STATUS_TIMER;
-  uint  status_automat        = STATUS_AUTOMAT;
+  uint  status_automate       = STATUS_AUTOMATE;
   uint  loopback              = LOOPBACK;
   uint  weak_hash_threshold   = WEAK_HASH_THRESHOLD;
   char *session               = NULL;
@@ -5456,7 +5440,7 @@ int main (int argc, char **argv)
   #define IDX_RESTORE_DISABLE           0xff27
   #define IDX_STATUS                    0xff17
   #define IDX_STATUS_TIMER              0xff18
-  #define IDX_STATUS_AUTOMAT            0xff50
+  #define IDX_STATUS_AUTOMATE           0xff50
   #define IDX_LOOPBACK                  0xff38
   #define IDX_WEAK_HASH_THRESHOLD       0xff42
   #define IDX_SESSION                   0xff19
@@ -5520,7 +5504,7 @@ int main (int argc, char **argv)
     {"restore-disable",           no_argument,       0, IDX_RESTORE_DISABLE},
     {"status",                    no_argument,       0, IDX_STATUS},
     {"status-timer",              required_argument, 0, IDX_STATUS_TIMER},
-    {"status-automat",            no_argument,       0, IDX_STATUS_AUTOMAT},
+    {"status-automate",            no_argument,       0, IDX_STATUS_AUTOMATE},
     {"loopback",                  no_argument,       0, IDX_LOOPBACK},
     {"weak-hash-threshold",       required_argument, 0, IDX_WEAK_HASH_THRESHOLD},
     {"session",                   required_argument, 0, IDX_SESSION},
@@ -5823,7 +5807,7 @@ int main (int argc, char **argv)
       case IDX_RESTORE_DISABLE:           restore_disable           = 1;              break;
       case IDX_STATUS:                    status                    = 1;              break;
       case IDX_STATUS_TIMER:              status_timer              = atoi (optarg);  break;
-      case IDX_STATUS_AUTOMAT:            status_automat            = 1;              break;
+      case IDX_STATUS_AUTOMATE:           status_automate           = 1;              break;
       case IDX_LOOPBACK:                  loopback                  = 1;              break;
       case IDX_WEAK_HASH_THRESHOLD:       weak_hash_threshold       = atoi (optarg);  break;
     //case IDX_SESSION:                   session                   = optarg;         break;
@@ -5924,7 +5908,7 @@ int main (int argc, char **argv)
   {
     if (benchmark == 1)
     {
-      if (status_automat == 0)
+      if (status_automate == 0)
       {
         log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
         log_info ("");
@@ -6560,7 +6544,7 @@ int main (int argc, char **argv)
   data.restore_disable    = restore_disable;
   data.status             = status;
   data.status_timer       = status_timer;
-  data.status_automat     = status_automat;
+  data.status_automate    = status_automate;
   data.loopback           = loopback;
   data.runtime            = runtime;
   data.remove             = remove;
@@ -6708,7 +6692,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (segment_size);
   logfile_top_uint   (show);
   logfile_top_uint   (status);
-  logfile_top_uint   (status_automat);
+  logfile_top_uint   (status_automate);
   logfile_top_uint   (status_timer);
   logfile_top_uint   (usage);
   logfile_top_uint   (username);
@@ -13562,7 +13546,7 @@ int main (int argc, char **argv)
 
         if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
         {
-          if (status_automat == 0)
+          if (status_automate == 0)
           {
             if (device_param->skipped == 0)
             {
@@ -13758,7 +13742,7 @@ int main (int argc, char **argv)
 
     if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
     {
-      if (status_automat == 0)
+      if (status_automate == 0)
       {
         log_info ("");
       }
@@ -15533,7 +15517,7 @@ int main (int argc, char **argv)
 
     if (benchmark == 1)
     {
-      if (status_automat == 0)
+      if (status_automate == 0)
       {
         quiet = 0;
 
@@ -17537,7 +17521,7 @@ int main (int argc, char **argv)
     {
       status_benchmark ();
 
-      if (status_automat == 0)
+      if (status_automate == 0)
       {
         log_info ("");
       }
