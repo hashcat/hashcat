@@ -38,7 +38,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 #define RESTORE_DISABLE         0
 #define STATUS                  0
 #define STATUS_TIMER            10
-#define STATUS_AUTOMATE         0
+#define STATUS_MACHINE_READABLE 0
 #define LOOPBACK                0
 #define WEAK_HASH_THRESHOLD     100
 #define SHOW                    0
@@ -364,7 +364,7 @@ const char *USAGE_BIG[] =
   "     --force                   |      | Ignore warnings                                      |",
   "     --status                  |      | Enable automatic update of the status-screen         |",
   "     --status-timer            | Num  | Sets seconds between status-screen update to X       | --status-timer=1",
-  "     --status-automate         |      | Display the status view in a machine readable format |",
+  "     --machine-readable        |      | Display the status view in a machine readable format |",
   "     --loopback                |      | Add new plains to induct directory                   |",
   "     --weak-hash-threshold     | Num  | Threshold X when to stop checking for weak hashes    | --weak=0",
   "     --markov-hcstat           | File | Specify hcstat file to use                           | --markov-hc=my.hcstat",
@@ -437,7 +437,7 @@ const char *USAGE_BIG[] =
   "- [ Hash modes ] -",
   "",
   "      # | Name                                             | Category",
-  "  ------+--------------------------------------------------+--------------------------------------",
+  "  ======+==================================================+======================================",
   "    900 | MD4                                              | Raw Hash",
   "      0 | MD5                                              | Raw Hash",
   "   5100 | Half MD5                                         | Raw Hash",
@@ -653,7 +653,7 @@ const char *USAGE_BIG[] =
   "- [ Outfile Formats ] -",
   "",
   "  # | Format",
-  " ---+--------",
+  " ===+========",
   "  1 | hash[:salt]",
   "  2 | plain",
   "  3 | hash[:salt]:plain",
@@ -673,7 +673,7 @@ const char *USAGE_BIG[] =
   "- [ Rule Debugging Modes ] -",
   "",
   "  # | Format",
-  " ---+--------",
+  " ===+========",
   "  1 | Finding-Rule",
   "  2 | Original-Word",
   "  3 | Original-Word:Finding-Rule",
@@ -682,7 +682,7 @@ const char *USAGE_BIG[] =
   "- [ Attack Modes ] -",
   "",
   "  # | Mode",
-  " ---+------",
+  " ===+======",
   "  0 | Straight",
   "  1 | Combination",
   "  3 | Brute-force",
@@ -692,7 +692,7 @@ const char *USAGE_BIG[] =
   "- [ Built-in Charsets ] -",
   "",
   "  ? | Charset",
-  " ---+---------",
+  " ===+=========",
   "  l | abcdefghijklmnopqrstuvwxyz",
   "  u | ABCDEFGHIJKLMNOPQRSTUVWXYZ",
   "  d | 0123456789",
@@ -703,7 +703,7 @@ const char *USAGE_BIG[] =
   "- [ OpenCL Device Types ] -",
   "",
   "  # | Device Type",
-  " ---+-------------",
+  " ===+=============",
   "  1 | CPU",
   "  2 | GPU",
   "  3 | FPGA, DSP, Co-Processor",
@@ -711,7 +711,7 @@ const char *USAGE_BIG[] =
   "- [ Workload Profiles ] -",
   "",
   "  # | Performance | Runtime | Power Consumption | Desktop Impact",
-  " ---+-------------+---------+-------------------+----------------",
+  " ===+=============+=========+===================+=================",
   "  1 | Low         |   2 ms  | Low               | Minimal",
   "  2 | Default     |  12 ms  | Economic          | Noticeable",
   "  3 | High        |  96 ms  | High              | Unresponsive",
@@ -756,7 +756,7 @@ static double get_avg_exec_time (hc_device_param_t *device_param, const int last
   return exec_ms_sum / exec_ms_cnt;
 }
 
-void status_display_automate ()
+void status_display_machine_readable ()
 {
   FILE *out = stdout;
 
@@ -914,9 +914,9 @@ void status_display ()
   if (data.devices_status == STATUS_STARTING) return;
   if (data.devices_status == STATUS_BYPASS)   return;
 
-  if (data.status_automate == 1)
+  if (data.status_machine_readable == 1)
   {
-    status_display_automate ();
+    status_display_machine_readable ();
 
     return;
   }
@@ -1629,7 +1629,7 @@ static void status_benchmark ()
   if (data.devices_status == STATUS_STARTING) return;
   if (data.devices_status == STATUS_BYPASS)   return;
 
-  if (data.status_automate == 1)
+  if (data.status_machine_readable == 1)
   {
     status_benchmark_automate ();
 
@@ -5395,87 +5395,87 @@ int main (int argc, char **argv)
    * commandline parameters
    */
 
-  uint  usage                 = USAGE;
-  uint  version               = VERSION;
-  uint  quiet                 = QUIET;
-  uint  benchmark             = BENCHMARK;
-  uint  show                  = SHOW;
-  uint  left                  = LEFT;
-  uint  username              = USERNAME;
-  uint  remove                = REMOVE;
-  uint  remove_timer          = REMOVE_TIMER;
-  u64   skip                  = SKIP;
-  u64   limit                 = LIMIT;
-  uint  keyspace              = KEYSPACE;
-  uint  potfile_disable       = POTFILE_DISABLE;
-  char *potfile_path          = NULL;
-  uint  debug_mode            = DEBUG_MODE;
-  char *debug_file            = NULL;
-  char *induction_dir         = NULL;
-  char *outfile_check_dir     = NULL;
-  uint  force                 = FORCE;
-  uint  runtime               = RUNTIME;
-  uint  hash_mode             = HASH_MODE;
-  uint  attack_mode           = ATTACK_MODE;
-  uint  markov_disable        = MARKOV_DISABLE;
-  uint  markov_classic        = MARKOV_CLASSIC;
-  uint  markov_threshold      = MARKOV_THRESHOLD;
-  char *markov_hcstat         = NULL;
-  char *outfile               = NULL;
-  uint  outfile_format        = OUTFILE_FORMAT;
-  uint  outfile_autohex       = OUTFILE_AUTOHEX;
-  uint  outfile_check_timer   = OUTFILE_CHECK_TIMER;
-  uint  restore               = RESTORE;
-  uint  restore_timer         = RESTORE_TIMER;
-  uint  restore_disable       = RESTORE_DISABLE;
-  uint  status                = STATUS;
-  uint  status_timer          = STATUS_TIMER;
-  uint  status_automate       = STATUS_AUTOMATE;
-  uint  loopback              = LOOPBACK;
-  uint  weak_hash_threshold   = WEAK_HASH_THRESHOLD;
-  char *session               = NULL;
-  uint  hex_charset           = HEX_CHARSET;
-  uint  hex_salt              = HEX_SALT;
-  uint  hex_wordlist          = HEX_WORDLIST;
-  uint  rp_gen                = RP_GEN;
-  uint  rp_gen_func_min       = RP_GEN_FUNC_MIN;
-  uint  rp_gen_func_max       = RP_GEN_FUNC_MAX;
-  uint  rp_gen_seed           = RP_GEN_SEED;
-  char *rule_buf_l            = (char *) RULE_BUF_L;
-  char *rule_buf_r            = (char *) RULE_BUF_R;
-  uint  increment             = INCREMENT;
-  uint  increment_min         = INCREMENT_MIN;
-  uint  increment_max         = INCREMENT_MAX;
-  char *cpu_affinity          = NULL;
-  OCL_PTR *ocl                = NULL;
-  char *opencl_devices        = NULL;
-  char *opencl_platforms      = NULL;
-  char *opencl_device_types   = NULL;
-  uint  opencl_vector_width   = OPENCL_VECTOR_WIDTH;
-  char *truecrypt_keyfiles    = NULL;
-  char *veracrypt_keyfiles    = NULL;
-  uint  veracrypt_pim         = 0;
-  uint  workload_profile      = WORKLOAD_PROFILE;
-  uint  kernel_accel          = KERNEL_ACCEL;
-  uint  kernel_loops          = KERNEL_LOOPS;
-  uint  gpu_temp_disable      = GPU_TEMP_DISABLE;
+  uint  usage                     = USAGE;
+  uint  version                   = VERSION;
+  uint  quiet                     = QUIET;
+  uint  benchmark                 = BENCHMARK;
+  uint  show                      = SHOW;
+  uint  left                      = LEFT;
+  uint  username                  = USERNAME;
+  uint  remove                    = REMOVE;
+  uint  remove_timer              = REMOVE_TIMER;
+  u64   skip                      = SKIP;
+  u64   limit                     = LIMIT;
+  uint  keyspace                  = KEYSPACE;
+  uint  potfile_disable           = POTFILE_DISABLE;
+  char *potfile_path              = NULL;
+  uint  debug_mode                = DEBUG_MODE;
+  char *debug_file                = NULL;
+  char *induction_dir             = NULL;
+  char *outfile_check_dir         = NULL;
+  uint  force                     = FORCE;
+  uint  runtime                   = RUNTIME;
+  uint  hash_mode                 = HASH_MODE;
+  uint  attack_mode               = ATTACK_MODE;
+  uint  markov_disable            = MARKOV_DISABLE;
+  uint  markov_classic            = MARKOV_CLASSIC;
+  uint  markov_threshold          = MARKOV_THRESHOLD;
+  char *markov_hcstat             = NULL;
+  char *outfile                   = NULL;
+  uint  outfile_format            = OUTFILE_FORMAT;
+  uint  outfile_autohex           = OUTFILE_AUTOHEX;
+  uint  outfile_check_timer       = OUTFILE_CHECK_TIMER;
+  uint  restore                   = RESTORE;
+  uint  restore_timer             = RESTORE_TIMER;
+  uint  restore_disable           = RESTORE_DISABLE;
+  uint  status                    = STATUS;
+  uint  status_timer              = STATUS_TIMER;
+  uint  status_machine_readable   = STATUS_MACHINE_READABLE;
+  uint  loopback                  = LOOPBACK;
+  uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
+  char *session                   = NULL;
+  uint  hex_charset               = HEX_CHARSET;
+  uint  hex_salt                  = HEX_SALT;
+  uint  hex_wordlist              = HEX_WORDLIST;
+  uint  rp_gen                    = RP_GEN;
+  uint  rp_gen_func_min           = RP_GEN_FUNC_MIN;
+  uint  rp_gen_func_max           = RP_GEN_FUNC_MAX;
+  uint  rp_gen_seed               = RP_GEN_SEED;
+  char *rule_buf_l                = (char *) RULE_BUF_L;
+  char *rule_buf_r                = (char *) RULE_BUF_R;
+  uint  increment                 = INCREMENT;
+  uint  increment_min             = INCREMENT_MIN;
+  uint  increment_max             = INCREMENT_MAX;
+  char *cpu_affinity              = NULL;
+  OCL_PTR *ocl                    = NULL;
+  char *opencl_devices            = NULL;
+  char *opencl_platforms          = NULL;
+  char *opencl_device_types       = NULL;
+  uint  opencl_vector_width       = OPENCL_VECTOR_WIDTH;
+  char *truecrypt_keyfiles        = NULL;
+  char *veracrypt_keyfiles        = NULL;
+  uint  veracrypt_pim             = 0;
+  uint  workload_profile          = WORKLOAD_PROFILE;
+  uint  kernel_accel              = KERNEL_ACCEL;
+  uint  kernel_loops              = KERNEL_LOOPS;
+  uint  gpu_temp_disable          = GPU_TEMP_DISABLE;
   #ifdef HAVE_HWMON
-  uint  gpu_temp_abort        = GPU_TEMP_ABORT;
-  uint  gpu_temp_retain       = GPU_TEMP_RETAIN;
+  uint  gpu_temp_abort            = GPU_TEMP_ABORT;
+  uint  gpu_temp_retain           = GPU_TEMP_RETAIN;
   #ifdef HAVE_ADL
-  uint  powertune_enable      = POWERTUNE_ENABLE;
+  uint  powertune_enable          = POWERTUNE_ENABLE;
   #endif
   #endif
-  uint  logfile_disable       = LOGFILE_DISABLE;
-  uint  segment_size          = SEGMENT_SIZE;
-  uint  scrypt_tmto           = SCRYPT_TMTO;
-  char  separator             = SEPARATOR;
-  uint  bitmap_min            = BITMAP_MIN;
-  uint  bitmap_max            = BITMAP_MAX;
-  char *custom_charset_1      = NULL;
-  char *custom_charset_2      = NULL;
-  char *custom_charset_3      = NULL;
-  char *custom_charset_4      = NULL;
+  uint  logfile_disable           = LOGFILE_DISABLE;
+  uint  segment_size              = SEGMENT_SIZE;
+  uint  scrypt_tmto               = SCRYPT_TMTO;
+  char  separator                 = SEPARATOR;
+  uint  bitmap_min                = BITMAP_MIN;
+  uint  bitmap_max                = BITMAP_MAX;
+  char *custom_charset_1          = NULL;
+  char *custom_charset_2          = NULL;
+  char *custom_charset_3          = NULL;
+  char *custom_charset_4          = NULL;
 
   #define IDX_HELP                      'h'
   #define IDX_VERSION                   'V'
@@ -5518,7 +5518,7 @@ int main (int argc, char **argv)
   #define IDX_RESTORE_DISABLE           0xff27
   #define IDX_STATUS                    0xff17
   #define IDX_STATUS_TIMER              0xff18
-  #define IDX_STATUS_AUTOMATE           0xff50
+  #define IDX_STATUS_MACHINE_READABLE   0xff50
   #define IDX_LOOPBACK                  0xff38
   #define IDX_WEAK_HASH_THRESHOLD       0xff42
   #define IDX_SESSION                   0xff19
@@ -5582,7 +5582,7 @@ int main (int argc, char **argv)
     {"restore-disable",           no_argument,       0, IDX_RESTORE_DISABLE},
     {"status",                    no_argument,       0, IDX_STATUS},
     {"status-timer",              required_argument, 0, IDX_STATUS_TIMER},
-    {"status-automate",            no_argument,       0, IDX_STATUS_AUTOMATE},
+    {"machine-readable",          no_argument,       0, IDX_STATUS_MACHINE_READABLE},
     {"loopback",                  no_argument,       0, IDX_LOOPBACK},
     {"weak-hash-threshold",       required_argument, 0, IDX_WEAK_HASH_THRESHOLD},
     {"session",                   required_argument, 0, IDX_SESSION},
@@ -5885,7 +5885,7 @@ int main (int argc, char **argv)
       case IDX_RESTORE_DISABLE:           restore_disable           = 1;              break;
       case IDX_STATUS:                    status                    = 1;              break;
       case IDX_STATUS_TIMER:              status_timer              = atoi (optarg);  break;
-      case IDX_STATUS_AUTOMATE:           status_automate           = 1;              break;
+      case IDX_STATUS_MACHINE_READABLE:   status_machine_readable   = 1;              break;
       case IDX_LOOPBACK:                  loopback                  = 1;              break;
       case IDX_WEAK_HASH_THRESHOLD:       weak_hash_threshold       = atoi (optarg);  break;
     //case IDX_SESSION:                   session                   = optarg;         break;
@@ -5986,7 +5986,7 @@ int main (int argc, char **argv)
   {
     if (benchmark == 1)
     {
-      if (status_automate == 0)
+      if (status_machine_readable == 0)
       {
         log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
         log_info ("");
@@ -6616,47 +6616,47 @@ int main (int argc, char **argv)
    * store stuff
    */
 
-  data.hash_mode          = hash_mode;
-  data.restore            = restore;
-  data.restore_timer      = restore_timer;
-  data.restore_disable    = restore_disable;
-  data.status             = status;
-  data.status_timer       = status_timer;
-  data.status_automate    = status_automate;
-  data.loopback           = loopback;
-  data.runtime            = runtime;
-  data.remove             = remove;
-  data.remove_timer       = remove_timer;
-  data.debug_mode         = debug_mode;
-  data.debug_file         = debug_file;
-  data.username           = username;
-  data.quiet              = quiet;
-  data.outfile            = outfile;
-  data.outfile_format     = outfile_format;
-  data.outfile_autohex    = outfile_autohex;
-  data.hex_charset        = hex_charset;
-  data.hex_salt           = hex_salt;
-  data.hex_wordlist       = hex_wordlist;
-  data.separator          = separator;
-  data.rp_files           = rp_files;
-  data.rp_files_cnt       = rp_files_cnt;
-  data.rp_gen             = rp_gen;
-  data.rp_gen_seed        = rp_gen_seed;
-  data.force              = force;
-  data.benchmark          = benchmark;
-  data.skip               = skip;
-  data.limit              = limit;
+  data.hash_mode               = hash_mode;
+  data.restore                 = restore;
+  data.restore_timer           = restore_timer;
+  data.restore_disable         = restore_disable;
+  data.status                  = status;
+  data.status_timer            = status_timer;
+  data.status_machine_readable = status_machine_readable;
+  data.loopback                = loopback;
+  data.runtime                 = runtime;
+  data.remove                  = remove;
+  data.remove_timer            = remove_timer;
+  data.debug_mode              = debug_mode;
+  data.debug_file              = debug_file;
+  data.username                = username;
+  data.quiet                   = quiet;
+  data.outfile                 = outfile;
+  data.outfile_format          = outfile_format;
+  data.outfile_autohex         = outfile_autohex;
+  data.hex_charset             = hex_charset;
+  data.hex_salt                = hex_salt;
+  data.hex_wordlist            = hex_wordlist;
+  data.separator               = separator;
+  data.rp_files                = rp_files;
+  data.rp_files_cnt            = rp_files_cnt;
+  data.rp_gen                  = rp_gen;
+  data.rp_gen_seed             = rp_gen_seed;
+  data.force                   = force;
+  data.benchmark               = benchmark;
+  data.skip                    = skip;
+  data.limit                   = limit;
   #ifdef HAVE_HWMON
   #ifdef HAVE_ADL
-  data.powertune_enable   = powertune_enable;
+  data.powertune_enable        = powertune_enable;
   #endif
   #endif
-  data.logfile_disable    = logfile_disable;
-  data.truecrypt_keyfiles = truecrypt_keyfiles;
-  data.veracrypt_keyfiles = veracrypt_keyfiles;
-  data.veracrypt_pim      = veracrypt_pim;
-  data.scrypt_tmto        = scrypt_tmto;
-  data.workload_profile   = workload_profile;
+  data.logfile_disable         = logfile_disable;
+  data.truecrypt_keyfiles      = truecrypt_keyfiles;
+  data.veracrypt_keyfiles      = veracrypt_keyfiles;
+  data.veracrypt_pim           = veracrypt_pim;
+  data.scrypt_tmto             = scrypt_tmto;
+  data.workload_profile        = workload_profile;
 
   /**
    * cpu affinity
@@ -6770,7 +6770,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (segment_size);
   logfile_top_uint   (show);
   logfile_top_uint   (status);
-  logfile_top_uint   (status_automate);
+  logfile_top_uint   (status_machine_readable);
   logfile_top_uint   (status_timer);
   logfile_top_uint   (usage);
   logfile_top_uint   (username);
@@ -13696,7 +13696,7 @@ int main (int argc, char **argv)
 
         if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
         {
-          if (status_automate == 0)
+          if (status_machine_readable == 0)
           {
             if (device_param->skipped == 0)
             {
@@ -13894,7 +13894,7 @@ int main (int argc, char **argv)
 
     if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
     {
-      if (status_automate == 0)
+      if (status_machine_readable == 0)
       {
         log_info ("");
       }
@@ -15713,7 +15713,7 @@ int main (int argc, char **argv)
 
     if (benchmark == 1)
     {
-      if (status_automate == 0)
+      if (status_machine_readable == 0)
       {
         quiet = 0;
 
@@ -17717,7 +17717,7 @@ int main (int argc, char **argv)
     {
       status_benchmark ();
 
-      if (status_automate == 0)
+      if (status_machine_readable == 0)
       {
         log_info ("");
       }
