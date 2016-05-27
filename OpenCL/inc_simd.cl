@@ -1162,3 +1162,15 @@ inline u32x ix_create_combt (__global comb_t *combs_buf, const u32 il_pos, const
 #elif VECT_SIZE == 16
 #define unpackv(arr,var,gid,idx,val) (arr)[((gid) * 16) + 0].var[(idx)] = val.s0; (arr)[((gid) * 16) + 1].var[(idx)] = val.s1; (arr)[((gid) * 16) + 2].var[(idx)] = val.s2; (arr)[((gid) * 16) + 3].var[(idx)] = val.s3; (arr)[((gid) * 16) + 4].var[(idx)] = val.s4; (arr)[((gid) * 16) + 5].var[(idx)] = val.s5; (arr)[((gid) * 16) + 6].var[(idx)] = val.s6; (arr)[((gid) * 16) + 7].var[(idx)] = val.s7; (arr)[((gid) * 16) + 8].var[(idx)] = val.s8; (arr)[((gid) * 16) + 9].var[(idx)] = val.s9; (arr)[((gid) * 16) + 10].var[(idx)] = val.sa; (arr)[((gid) * 16) + 11].var[(idx)] = val.sb; (arr)[((gid) * 16) + 12].var[(idx)] = val.sc; (arr)[((gid) * 16) + 13].var[(idx)] = val.sd; (arr)[((gid) * 16) + 14].var[(idx)] = val.se; (arr)[((gid) * 16) + 15].var[(idx)] = val.sf;
 #endif
+
+#if   VECT_SIZE == 1
+#define unpackv_xor(arr,var,gid,idx,val) (arr)[((gid) *  1) + 0].var[(idx)] ^= val;
+#elif VECT_SIZE == 2
+#define unpackv_xor(arr,var,gid,idx,val) (arr)[((gid) *  2) + 0].var[(idx)] ^= val.s0; (arr)[((gid) *  2) + 1].var[(idx)] ^= val.s1;
+#elif VECT_SIZE == 4
+#define unpackv_xor(arr,var,gid,idx,val) (arr)[((gid) *  4) + 0].var[(idx)] ^= val.s0; (arr)[((gid) *  4) + 1].var[(idx)] ^= val.s1; (arr)[((gid) *  4) + 2].var[(idx)] ^= val.s2; (arr)[((gid) *  4) + 3].var[(idx)] ^= val.s3;
+#elif VECT_SIZE == 8
+#define unpackv_xor(arr,var,gid,idx,val) (arr)[((gid) *  8) + 0].var[(idx)] ^= val.s0; (arr)[((gid) *  8) + 1].var[(idx)] ^= val.s1; (arr)[((gid) *  8) + 2].var[(idx)] ^= val.s2; (arr)[((gid) *  8) + 3].var[(idx)] ^= val.s3; (arr)[((gid) *  8) + 4].var[(idx)] ^= val.s4; (arr)[((gid) *  8) + 5].var[(idx)] ^= val.s5; (arr)[((gid) *  8) + 6].var[(idx)] ^= val.s6; (arr)[((gid) *  8) + 7].var[(idx)] ^= val.s7;
+#elif VECT_SIZE == 16
+#define unpackv_xor(arr,var,gid,idx,val) (arr)[((gid) * 16) + 0].var[(idx)] ^= val.s0; (arr)[((gid) * 16) + 1].var[(idx)] ^= val.s1; (arr)[((gid) * 16) + 2].var[(idx)] ^= val.s2; (arr)[((gid) * 16) + 3].var[(idx)] ^= val.s3; (arr)[((gid) * 16) + 4].var[(idx)] ^= val.s4; (arr)[((gid) * 16) + 5].var[(idx)] ^= val.s5; (arr)[((gid) * 16) + 6].var[(idx)] ^= val.s6; (arr)[((gid) * 16) + 7].var[(idx)] ^= val.s7; (arr)[((gid) * 16) + 8].var[(idx)] ^= val.s8; (arr)[((gid) * 16) + 9].var[(idx)] ^= val.s9; (arr)[((gid) * 16) + 10].var[(idx)] ^= val.sa; (arr)[((gid) * 16) + 11].var[(idx)] ^= val.sb; (arr)[((gid) * 16) + 12].var[(idx)] ^= val.sc; (arr)[((gid) * 16) + 13].var[(idx)] ^= val.sd; (arr)[((gid) * 16) + 14].var[(idx)] ^= val.se; (arr)[((gid) * 16) + 15].var[(idx)] ^= val.sf;
+#endif

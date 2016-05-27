@@ -370,6 +370,59 @@ void hmac_sha512_run_V (const u64x w1[16], const u64x ipad[8], const u64x opad[8
   sha512_transform_V (w, dgst);
 }
 
+void hmac_sha512_run_V_x (const u64x ipad[8], const u64x opad[8], u64x dgst[8])
+{
+  u64x w[16];
+
+  w[ 0] = dgst[0];
+  w[ 1] = dgst[1];
+  w[ 2] = dgst[2];
+  w[ 3] = dgst[3];
+  w[ 4] = dgst[4];
+  w[ 5] = dgst[5];
+  w[ 6] = dgst[6];
+  w[ 7] = dgst[7];
+  w[ 8] = 0x8000000000000000;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
+  w[14] = 0;
+  w[15] = (128 + 64) * 8;
+
+  dgst[0] = ipad[0];
+  dgst[1] = ipad[1];
+  dgst[2] = ipad[2];
+  dgst[3] = ipad[3];
+  dgst[4] = ipad[4];
+  dgst[5] = ipad[5];
+  dgst[6] = ipad[6];
+  dgst[7] = ipad[7];
+
+  sha512_transform_V (w, dgst);
+
+  w[ 0] = dgst[0];
+  w[ 1] = dgst[1];
+  w[ 2] = dgst[2];
+  w[ 3] = dgst[3];
+  w[ 4] = dgst[4];
+  w[ 5] = dgst[5];
+  w[ 6] = dgst[6];
+  w[ 7] = dgst[7];
+
+  dgst[0] = opad[0];
+  dgst[1] = opad[1];
+  dgst[2] = opad[2];
+  dgst[3] = opad[3];
+  dgst[4] = opad[4];
+  dgst[5] = opad[5];
+  dgst[6] = opad[6];
+  dgst[7] = opad[7];
+
+  sha512_transform_V (w, dgst);
+}
+
 void hmac_sha512_init_V (u64x w[16], u64x ipad[8], u64x opad[8])
 {
   w[ 0] ^= 0x3636363636363636;
@@ -590,7 +643,6 @@ __kernel void m07100_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   for (u32 i = 0; i < 8; i += 8)
   {
     u64x dgst[8];
-    u64x out[8];
 
     dgst[0] = pack64v (tmps, dgst, gid, 0);
     dgst[1] = pack64v (tmps, dgst, gid, 1);
@@ -601,46 +653,18 @@ __kernel void m07100_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
     dgst[6] = pack64v (tmps, dgst, gid, 6);
     dgst[7] = pack64v (tmps, dgst, gid, 7);
 
-    out[0] = pack64v (tmps, out, gid, 0);
-    out[1] = pack64v (tmps, out, gid, 1);
-    out[2] = pack64v (tmps, out, gid, 2);
-    out[3] = pack64v (tmps, out, gid, 3);
-    out[4] = pack64v (tmps, out, gid, 4);
-    out[5] = pack64v (tmps, out, gid, 5);
-    out[6] = pack64v (tmps, out, gid, 6);
-    out[7] = pack64v (tmps, out, gid, 7);
-
     for (u32 j = 0; j < loop_cnt; j++)
     {
-      u64x w[16];
+      hmac_sha512_run_V_x (ipad, opad, dgst);
 
-      w[ 0] = dgst[0];
-      w[ 1] = dgst[1];
-      w[ 2] = dgst[2];
-      w[ 3] = dgst[3];
-      w[ 4] = dgst[4];
-      w[ 5] = dgst[5];
-      w[ 6] = dgst[6];
-      w[ 7] = dgst[7];
-      w[ 8] = 0x8000000000000000;
-      w[ 9] = 0;
-      w[10] = 0;
-      w[11] = 0;
-      w[12] = 0;
-      w[13] = 0;
-      w[14] = 0;
-      w[15] = (128 + 64) * 8;
-
-      hmac_sha512_run_V (w, ipad, opad, dgst);
-
-      out[0] ^= dgst[0];
-      out[1] ^= dgst[1];
-      out[2] ^= dgst[2];
-      out[3] ^= dgst[3];
-      out[4] ^= dgst[4];
-      out[5] ^= dgst[5];
-      out[6] ^= dgst[6];
-      out[7] ^= dgst[7];
+      unpackv_xor (tmps, out, gid, 0, dgst[0]);
+      unpackv_xor (tmps, out, gid, 1, dgst[1]);
+      unpackv_xor (tmps, out, gid, 2, dgst[2]);
+      unpackv_xor (tmps, out, gid, 3, dgst[3]);
+      unpackv_xor (tmps, out, gid, 4, dgst[4]);
+      unpackv_xor (tmps, out, gid, 5, dgst[5]);
+      unpackv_xor (tmps, out, gid, 6, dgst[6]);
+      unpackv_xor (tmps, out, gid, 7, dgst[7]);
     }
 
     unpackv (tmps, dgst, gid, 0, dgst[0]);
@@ -651,15 +675,6 @@ __kernel void m07100_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
     unpackv (tmps, dgst, gid, 5, dgst[5]);
     unpackv (tmps, dgst, gid, 6, dgst[6]);
     unpackv (tmps, dgst, gid, 7, dgst[7]);
-
-    unpackv (tmps, out, gid, 0, out[0]);
-    unpackv (tmps, out, gid, 1, out[1]);
-    unpackv (tmps, out, gid, 2, out[2]);
-    unpackv (tmps, out, gid, 3, out[3]);
-    unpackv (tmps, out, gid, 4, out[4]);
-    unpackv (tmps, out, gid, 5, out[5]);
-    unpackv (tmps, out, gid, 6, out[6]);
-    unpackv (tmps, out, gid, 7, out[7]);
   }
 }
 
