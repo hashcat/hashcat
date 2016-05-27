@@ -7,20 +7,20 @@
 
 #define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 3
 #define DGST_R2 2
 #define DGST_R3 1
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "include/rp_kernel.h"
-#include "OpenCL/rp.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_rp.h"
+#include "inc_rp.cl"
+#include "inc_simd.cl"
 
 void md4_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[4])
 {

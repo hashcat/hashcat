@@ -7,18 +7,18 @@
 
 #define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 3
 #define DGST_R1 4
 #define DGST_R2 2
 #define DGST_R3 1
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_simd.cl"
 
 void m00110m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {

@@ -10,18 +10,18 @@
 
 #define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_simd.cl"
 
 __constant u32 lotus_magic_table[256] =
 {
@@ -79,9 +79,6 @@ void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   {
     u32 s = 48;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
     for (int j = 0; j < 12; j++)
     {
       u32x tmp_in = in[j];
@@ -122,16 +119,16 @@ void pad (u32 w[4], const u32 len)
   const u32 mask1 = val << 24;
 
   const u32 mask2 = val << 16
-                   | val << 24;
+                  | val << 24;
 
   const u32 mask3 = val <<  8
-                   | val << 16
-                   | val << 24;
+                  | val << 16
+                  | val << 24;
 
   const u32 mask4 = val <<  0
-                   | val <<  8
-                   | val << 16
-                   | val << 24;
+                  | val <<  8
+                  | val << 16
+                  | val << 24;
 
   switch (len)
   {
@@ -226,7 +223,7 @@ void mdtransform (u32x state[4], u32x checksum[4], u32x block[4], __local u32 *s
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-void domino_big_md (const u32x saved_key[16], const u32x size, u32x state[4], __local u32 *s_lotus_magic_table)
+void domino_big_md (const u32x saved_key[4], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
 {
   u32x checksum[4];
 
@@ -235,14 +232,7 @@ void domino_big_md (const u32x saved_key[16], const u32x size, u32x state[4], __
   checksum[2] = 0;
   checksum[3] = 0;
 
-  u32x block[4];
-
-  block[0] = saved_key[0];
-  block[1] = saved_key[1];
-  block[2] = saved_key[2];
-  block[3] = saved_key[3];
-
-  mdtransform (state, checksum, block, s_lotus_magic_table);
+  mdtransform (state, checksum, saved_key, s_lotus_magic_table);
 
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
@@ -260,22 +250,7 @@ void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __g
    * base
    */
 
-  if (pw_len < 16)
-  {
-    pad (&w[ 0], pw_len & 0xf);
-  }
-  else if (pw_len < 32)
-  {
-    pad (&w[ 4], pw_len & 0xf);
-  }
-  else if (pw_len < 48)
-  {
-    pad (&w[ 8], pw_len & 0xf);
-  }
-  else if (pw_len < 64)
-  {
-    pad (&w[12], pw_len & 0xf);
-  }
+  pad (&w[ 0], pw_len);
 
   /**
    * loop
@@ -289,24 +264,12 @@ void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __g
 
     const u32x w0lr = w0l | w0r;
 
-    u32x w_t[16];
+    u32x w_t[4];
 
-    w_t[ 0] = w0lr;
-    w_t[ 1] = w[ 1];
-    w_t[ 2] = w[ 2];
-    w_t[ 3] = w[ 3];
-    w_t[ 4] = w[ 4];
-    w_t[ 5] = w[ 5];
-    w_t[ 6] = w[ 6];
-    w_t[ 7] = w[ 7];
-    w_t[ 8] = w[ 8];
-    w_t[ 9] = w[ 9];
-    w_t[10] = w[10];
-    w_t[11] = w[11];
-    w_t[12] = w[12];
-    w_t[13] = w[13];
-    w_t[14] = w[14];
-    w_t[15] = w[15];
+    w_t[0] = w0lr;
+    w_t[1] = w[ 1];
+    w_t[2] = w[ 2];
+    w_t[3] = w[ 3];
 
     u32x state[4];
 
@@ -334,22 +297,7 @@ void m08600s (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __g
    * base
    */
 
-  if (pw_len < 16)
-  {
-    pad (&w[ 0], pw_len & 0xf);
-  }
-  else if (pw_len < 32)
-  {
-    pad (&w[ 4], pw_len & 0xf);
-  }
-  else if (pw_len < 48)
-  {
-    pad (&w[ 8], pw_len & 0xf);
-  }
-  else if (pw_len < 64)
-  {
-    pad (&w[12], pw_len & 0xf);
-  }
+  pad (&w[0], pw_len);
 
   /**
    * digest
@@ -375,24 +323,12 @@ void m08600s (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __g
 
     const u32x w0lr = w0l | w0r;
 
-    u32x w_t[16];
+    u32x w_t[4];
 
-    w_t[ 0] = w0lr;
-    w_t[ 1] = w[ 1];
-    w_t[ 2] = w[ 2];
-    w_t[ 3] = w[ 3];
-    w_t[ 4] = w[ 4];
-    w_t[ 5] = w[ 5];
-    w_t[ 6] = w[ 6];
-    w_t[ 7] = w[ 7];
-    w_t[ 8] = w[ 8];
-    w_t[ 9] = w[ 9];
-    w_t[10] = w[10];
-    w_t[11] = w[11];
-    w_t[12] = w[12];
-    w_t[13] = w[13];
-    w_t[14] = w[14];
-    w_t[15] = w[15];
+    w_t[0] = w0lr;
+    w_t[1] = w[ 1];
+    w_t[2] = w[ 2];
+    w_t[3] = w[ 3];
 
     u32x state[4];
 

@@ -8,18 +8,18 @@
 //too much register pressure
 //#define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_simd.cl"
 
 #define GETCHAR(a,p)  (((a)[(p) / 4] >> (((p) & 3) * 8)) & 0xff)
 #define PUTCHAR(a,p,c) ((a)[(p) / 4] = (((a)[(p) / 4] & ~(0xff << (((p) & 3) * 8))) | ((c) << (((p) & 3) * 8))))

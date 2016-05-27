@@ -9,8 +9,8 @@
 #ifndef SHARED_H
 #define SHARED_H
 
-#include <common.h>
-#include <constants.h>
+#include "common.h"
+#include "inc_hash_constants.h"
 
 /**
  * thread management
@@ -108,18 +108,18 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define hc_sleep(x) sleep ((x));
 #endif
 
-#include <ext_OpenCL.h>
+#include "ext_OpenCL.h"
 
 /**
  * temperature management
  */
 
 #if _WIN
-#include <ext_ADL.h>
-#include <ext_nvapi.h>
+#include "ext_ADL.h"
+#include "ext_nvapi.h"
 #else
-#include <ext_ADL.h>
-#include <ext_nvml.h>
+#include "ext_ADL.h"
+#include "ext_nvml.h"
 #endif
 
 /**
@@ -133,6 +133,7 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define CL_PLATFORMS_MAX        16
 
 #define CL_VENDOR_AMD           "Advanced Micro Devices, Inc."
+#define CL_VENDOR_AMD_USE_INTEL "GenuineIntel"
 #define CL_VENDOR_APPLE         "Apple"
 #define CL_VENDOR_INTEL_BEIGNET "Intel"
 #define CL_VENDOR_INTEL_SDK     "Intel(R) Corporation"
@@ -147,6 +148,7 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define VENDOR_ID_MESA          (1 << 4)
 #define VENDOR_ID_NV            (1 << 5)
 #define VENDOR_ID_POCL          (1 << 6)
+#define VENDOR_ID_AMD_USE_INTEL (1 << 7)
 #define VENDOR_ID_GENERIC       (1 << 31)
 
 #define BLOCK_SIZE              64
@@ -184,9 +186,9 @@ typedef pthread_t         hc_thread_t;
 typedef pthread_mutex_t   hc_thread_mutex_t;
 #endif
 
-#include <types.h>
+#include "types.h"
 #include "rp_cpu.h"
-#include "rp_kernel.h"
+#include "inc_rp.h"
 
 /**
  * valid project specific global stuff

@@ -3,15 +3,13 @@
  * License.....: MIT
  */
 
-#include <common.h>
-
-#define RULES_PER_PLAIN_MIN  1
+#define RULES_PER_PLAIN_MIN 1
 #define RULES_PER_PLAIN_MAX 99
-#define RP_GEN_FUNC_MIN      1
-#define RP_GEN_FUNC_MAX      4
+#define RP_GEN_FUNC_MIN     1
+#define RP_GEN_FUNC_MAX     4
 #define PW_MAX              32
 #define LINE_SIG_LEN        RP_GEN_FUNC_MAX * 2 + 1
-3
+
 int max_len = 0;
 
 #include "cpu_rules.h"
@@ -61,7 +59,7 @@ int main (int argc, char **argv)
 
   char *rule_buf = (char *) malloc (HCBUFSIZ);
 
-  char *line_buf = (char *) mymalloc (HCBUFSIZ);
+  char *line_buf = (char *) malloc (HCBUFSIZ);
 
   int rp_gen_func_min = RP_GEN_FUNC_MIN;
   int rp_gen_func_max = RP_GEN_FUNC_MAX;

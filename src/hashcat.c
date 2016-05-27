@@ -1554,11 +1554,11 @@ void status_display ()
         hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
         hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
 
-        if (device_param->vendor_id == VENDOR_ID_AMD)
+        if (device_param->device_vendor_id == VENDOR_ID_AMD)
         {
           hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
         }
-        else if (device_param->vendor_id == VENDOR_ID_NV)
+        else if (device_param->device_vendor_id == VENDOR_ID_NV)
         {
           hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
         }
@@ -2593,11 +2593,59 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   hc_clFinish (data.ocl, device_param->command_queue);
 }
 
+static void run_kernel_memset (hc_device_param_t *device_param, cl_mem buf, const uint value, const uint num)
+{
+  const u32 num16d = num / 16;
+  const u32 num16m = num % 16;
+
+  if (num16d)
+  {
+    device_param->kernel_params_memset_buf32[1] = value;
+    device_param->kernel_params_memset_buf32[2] = num16d;
+
+    uint kernel_threads = device_param->kernel_threads;
+
+    uint num_elements = num16d;
+
+    while (num_elements % kernel_threads) num_elements++;
+
+    cl_kernel kernel = device_param->kernel_memset;
+
+    hc_clSetKernelArg (data.ocl, kernel, 0, sizeof (cl_mem),  (void *) &buf);
+    hc_clSetKernelArg (data.ocl, kernel, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]);
+    hc_clSetKernelArg (data.ocl, kernel, 2, sizeof (cl_uint), device_param->kernel_params_memset[2]);
+
+    const size_t global_work_size[3] = { num_elements,   1, 1 };
+    const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
+
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+
+    hc_clFlush (data.ocl, device_param->command_queue);
+
+    hc_clFinish (data.ocl, device_param->command_queue);
+  }
+
+  if (num16m)
+  {
+    u32 tmp[4];
+
+    tmp[0] = value;
+    tmp[1] = value;
+    tmp[2] = value;
+    tmp[3] = value;
+
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, buf, CL_TRUE, num16d * 16, num16m, tmp, 0, NULL, NULL);
+  }
+}
+
 static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const size_t size)
 {
+  run_kernel_memset (device_param, buf, 0, size);
+
+  /*
   int rc = -1;
 
-  if (device_param->opencl_v12 && device_param->vendor_id == VENDOR_ID_AMD)
+  if (device_param->opencl_v12 && device_param->platform_vendor_id == VENDOR_ID_AMD)
   {
     // So far tested, amd is the only supporting this OpenCL 1.2 function without segfaulting
 
@@ -2628,6 +2676,7 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
 
     myfree (tmp);
   }
+  */
 }
 
 static void choose_kernel (hc_device_param_t *device_param, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt)
@@ -2879,6 +2928,14 @@ static void autotune (hc_device_param_t *device_param)
 
   const u32 kernel_power_max = device_param->device_processors * device_param->kernel_threads * kernel_accel_max;
 
+  run_kernel_memset (device_param, device_param->d_pws_buf, 7, kernel_power_max * sizeof (pw_t));
+
+  if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+  {
+    run_kernel_memset (device_param, device_param->d_pws_amp_buf, 7, kernel_power_max * sizeof (pw_t));
+  }
+
+  /*
   for (u32 i = 0; i < kernel_power_max; i++)
   {
     device_param->pws_buf[i].i[0]   = i;
@@ -2892,6 +2949,7 @@ static void autotune (hc_device_param_t *device_param)
   {
     run_kernel_amp (device_param, kernel_power_max);
   }
+  */
 
   #define VERIFIER_CNT 1
 
@@ -2959,15 +3017,26 @@ static void autotune (hc_device_param_t *device_param)
     exec_ms_pre_final = MIN (exec_ms_pre_final, exec_ms_pre_final_v);
   }
 
+  u32 diff = kernel_loops - kernel_accel;
+
   if ((kernel_loops_min < kernel_loops_max) && (kernel_accel_min < kernel_accel_max))
   {
-    for (u32 f = 2; f < 1024; f++)
+    u32 kernel_accel_orig = kernel_accel;
+    u32 kernel_loops_orig = kernel_loops;
+
+    for (u32 f = 1; f < 1024; f++)
     {
-      const u32 kernel_accel_try = kernel_accel * f;
-      const u32 kernel_loops_try = kernel_loops / f;
+      const u32 kernel_accel_try = (float) kernel_accel_orig * f;
+      const u32 kernel_loops_try = (float) kernel_loops_orig / f;
 
       if (kernel_accel_try > kernel_accel_max) break;
       if (kernel_loops_try < kernel_loops_min) break;
+
+      u32 diff_new = kernel_loops_try - kernel_accel_try;
+
+      if (diff_new > diff) break;
+
+      diff_new = diff;
 
       double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try);
 
@@ -3003,10 +3072,19 @@ static void autotune (hc_device_param_t *device_param)
 
   // reset them fake words
 
+  /*
   memset (device_param->pws_buf, 0, kernel_power_max * sizeof (pw_t));
 
   hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
   hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+  */
+
+  run_kernel_memset (device_param, device_param->d_pws_buf, 0, kernel_power_max * sizeof (pw_t));
+
+  if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+  {
+    run_kernel_memset (device_param, device_param->d_pws_amp_buf, 0, kernel_power_max * sizeof (pw_t));
+  }
 
   // reset timer
 
@@ -11078,6 +11156,8 @@ int main (int argc, char **argv)
                   break;
       case  7400: if (pw_max > 16) pw_max = 16;
                   break;
+      case  7500: if (pw_max >  8) pw_max =  8;
+                  break;
       case  7900: if (pw_max > 48) pw_max = 48;
                   break;
       case  8500: if (pw_max >  8) pw_max =  8;
@@ -13189,39 +13269,43 @@ int main (int argc, char **argv)
       // this causes trouble with vendor id based macros
       // we'll assign generic to those without special optimization available
 
-      cl_uint vendor_id = 0;
+      cl_uint platform_vendor_id = 0;
 
       if (strcmp (platform_vendor, CL_VENDOR_AMD) == 0)
       {
-        vendor_id = VENDOR_ID_AMD;
+        platform_vendor_id = VENDOR_ID_AMD;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_AMD_USE_INTEL) == 0)
+      {
+        platform_vendor_id = VENDOR_ID_AMD_USE_INTEL;
       }
       else if (strcmp (platform_vendor, CL_VENDOR_APPLE) == 0)
       {
-        vendor_id = VENDOR_ID_APPLE;
+        platform_vendor_id = VENDOR_ID_APPLE;
       }
       else if (strcmp (platform_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
       {
-        vendor_id = VENDOR_ID_INTEL_BEIGNET;
+        platform_vendor_id = VENDOR_ID_INTEL_BEIGNET;
       }
       else if (strcmp (platform_vendor, CL_VENDOR_INTEL_SDK) == 0)
       {
-        vendor_id = VENDOR_ID_INTEL_SDK;
+        platform_vendor_id = VENDOR_ID_INTEL_SDK;
       }
       else if (strcmp (platform_vendor, CL_VENDOR_MESA) == 0)
       {
-        vendor_id = VENDOR_ID_MESA;
+        platform_vendor_id = VENDOR_ID_MESA;
       }
       else if (strcmp (platform_vendor, CL_VENDOR_NV) == 0)
       {
-        vendor_id = VENDOR_ID_NV;
+        platform_vendor_id = VENDOR_ID_NV;
       }
       else if (strcmp (platform_vendor, CL_VENDOR_POCL) == 0)
       {
-        vendor_id = VENDOR_ID_POCL;
+        platform_vendor_id = VENDOR_ID_POCL;
       }
       else
       {
-        vendor_id = VENDOR_ID_GENERIC;
+        platform_vendor_id = VENDOR_ID_GENERIC;
       }
 
       for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
@@ -13232,7 +13316,7 @@ int main (int argc, char **argv)
 
         hc_device_param_t *device_param = &data.devices_param[device_id];
 
-        device_param->vendor_id = vendor_id;
+        device_param->platform_vendor_id = platform_vendor_id;
 
         device_param->device = platform_devices[platform_devices_id];
 
@@ -13259,6 +13343,57 @@ int main (int argc, char **argv)
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NAME, param_value_size, device_name, NULL);
 
         device_param->device_name = device_name;
+
+        // device_vendor
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VENDOR, 0, NULL, &param_value_size);
+
+        char *device_vendor = (char *) mymalloc (param_value_size);
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VENDOR, param_value_size, device_vendor, NULL);
+
+        device_param->device_vendor = device_vendor;
+
+        cl_uint device_vendor_id = 0;
+
+        if (strcmp (device_vendor, CL_VENDOR_AMD) == 0)
+        {
+          device_vendor_id = VENDOR_ID_AMD;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_AMD_USE_INTEL) == 0)
+        {
+          device_vendor_id = VENDOR_ID_AMD_USE_INTEL;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_APPLE) == 0)
+        {
+          device_vendor_id = VENDOR_ID_APPLE;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
+        {
+          device_vendor_id = VENDOR_ID_INTEL_BEIGNET;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_INTEL_SDK) == 0)
+        {
+          device_vendor_id = VENDOR_ID_INTEL_SDK;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_MESA) == 0)
+        {
+          device_vendor_id = VENDOR_ID_MESA;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_NV) == 0)
+        {
+          device_vendor_id = VENDOR_ID_NV;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_POCL) == 0)
+        {
+          device_vendor_id = VENDOR_ID_POCL;
+        }
+        else
+        {
+          device_vendor_id = VENDOR_ID_GENERIC;
+        }
+
+        device_param->device_vendor_id = device_vendor_id;
 
         // tuning db
 
@@ -13366,7 +13501,7 @@ int main (int argc, char **argv)
 
         if (device_endian_little == CL_FALSE)
         {
-          log_info ("Device #%u: WARNING: not little endian device", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: not little endian device", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13379,7 +13514,7 @@ int main (int argc, char **argv)
 
         if (device_available == CL_FALSE)
         {
-          log_info ("Device #%u: WARNING: device not available", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: device not available", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13392,7 +13527,7 @@ int main (int argc, char **argv)
 
         if (device_compiler_available == CL_FALSE)
         {
-          log_info ("Device #%u: WARNING: device no compiler available", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: device no compiler available", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13405,7 +13540,7 @@ int main (int argc, char **argv)
 
         if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
         {
-          log_info ("Device #%u: WARNING: device does not support executing kernels", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: device does not support executing kernels", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13422,14 +13557,14 @@ int main (int argc, char **argv)
 
         if (strstr (device_extensions, "base_atomics") == 0)
         {
-          log_info ("Device #%u: WARNING: device does not support base atomics", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: device does not support base atomics", device_id + 1);
 
           device_param->skipped = 1;
         }
 
         if (strstr (device_extensions, "byte_addressable_store") == 0)
         {
-          log_info ("Device #%u: WARNING: device does not support byte addressable store", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: device does not support byte addressable store", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13444,11 +13579,26 @@ int main (int argc, char **argv)
 
         if (device_local_mem_size < 32768)
         {
-          log_info ("Device #%u: WARNING: device local mem size is too small", device_id + 1);
+          if (data.quiet == 0) log_info ("Device #%u: WARNING: device local mem size is too small", device_id + 1);
 
           device_param->skipped = 1;
         }
 
+        // If there's both an Intel CPU and an AMD OpenCL runtime it's a tricky situation
+        // Both platforms support CPU device types and therefore both will try to use 100% of the physical resources
+        // This results in both utilizing it for 50%
+        // However, Intel has much better SIMD control over their own hardware
+        // It makes sense to give them full control over their own hardware
+
+        if (device_type & CL_DEVICE_TYPE_CPU)
+        {
+          if (device_param->device_vendor_id == VENDOR_ID_AMD_USE_INTEL)
+          {
+            if (data.quiet == 0) log_info ("Device #%u: WARNING: not native intel opencl platform", device_id + 1);
+
+            device_param->skipped = 1;
+          }
+        }
 
         // skipped
 
@@ -13470,9 +13620,9 @@ int main (int argc, char **argv)
         char *device_name_chksum = (char *) mymalloc (INFOSZ);
 
         #if __x86_64__
-        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
         #else
-        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
         #endif
 
         uint device_name_digest[4] = { 0 };
@@ -13494,7 +13644,7 @@ int main (int argc, char **argv)
 
         if (device_type & CL_DEVICE_TYPE_GPU)
         {
-          if (vendor_id == VENDOR_ID_AMD)
+          if (device_vendor_id == VENDOR_ID_AMD)
           {
             cl_uint device_processor_cores = 0;
 
@@ -13504,7 +13654,7 @@ int main (int argc, char **argv)
 
             device_param->device_processor_cores = device_processor_cores;
           }
-          else if (vendor_id == VENDOR_ID_NV)
+          else if (device_vendor_id == VENDOR_ID_NV)
           {
             cl_uint kernel_exec_timeout = 0;
 
@@ -13573,7 +13723,7 @@ int main (int argc, char **argv)
         {
           if (device_type & CL_DEVICE_TYPE_GPU)
           {
-            if (vendor_id == VENDOR_ID_AMD)
+            if (platform_vendor_id == VENDOR_ID_AMD)
             {
               int catalyst_check = (force == 1) ? 0 : 1;
 
@@ -13621,7 +13771,7 @@ int main (int argc, char **argv)
                 return (-1);
               }
             }
-            else if (vendor_id == VENDOR_ID_NV)
+            else if (platform_vendor_id == VENDOR_ID_NV)
             {
               if (device_param->kernel_exec_timeout != 0)
               {
@@ -13631,9 +13781,10 @@ int main (int argc, char **argv)
             }
           }
 
+          /* turns out pocl still creates segfaults (because of llvm)
           if (device_type & CL_DEVICE_TYPE_CPU)
           {
-            if (vendor_id == VENDOR_ID_AMD)
+            if (platform_vendor_id == VENDOR_ID_AMD)
             {
               if (force == 0)
               {
@@ -13648,6 +13799,7 @@ int main (int argc, char **argv)
               }
             }
           }
+          */
 
           /**
            * kernel accel and loops tuning db adjustment
@@ -14012,14 +14164,14 @@ int main (int argc, char **argv)
         const uint platform_devices_id = device_param->platform_devices_id;
 
         #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-        if (device_param->vendor_id == VENDOR_ID_NV)
+        if (device_param->device_vendor_id == VENDOR_ID_NV)
         {
           memcpy (&data.hm_device[device_id], &hm_adapters_nv[platform_devices_id], sizeof (hm_attrs_t));
         }
         #endif
 
         #ifdef HAVE_ADL
-        if (device_param->vendor_id == VENDOR_ID_AMD)
+        if (device_param->device_vendor_id == VENDOR_ID_AMD)
         {
           memcpy (&data.hm_device[device_id], &hm_adapters_amd[platform_devices_id], sizeof (hm_attrs_t));
         }
@@ -14207,22 +14359,22 @@ int main (int argc, char **argv)
 
           if (hash_mode == 8900)
           {
-            if (device_param->vendor_id == VENDOR_ID_AMD)
+            if (device_param->device_vendor_id == VENDOR_ID_AMD)
             {
               tmto_start = 1;
             }
-            else if (device_param->vendor_id == VENDOR_ID_NV)
+            else if (device_param->device_vendor_id == VENDOR_ID_NV)
             {
               tmto_start = 2;
             }
           }
           else if (hash_mode == 9300)
           {
-            if (device_param->vendor_id == VENDOR_ID_AMD)
+            if (device_param->device_vendor_id == VENDOR_ID_AMD)
             {
               tmto_start = 2;
             }
-            else if (device_param->vendor_id == VENDOR_ID_NV)
+            else if (device_param->device_vendor_id == VENDOR_ID_NV)
             {
               tmto_start = 2;
             }
@@ -14453,36 +14605,38 @@ int main (int argc, char **argv)
 
         int skip = 0;
 
-        if (size_pws   > device_param->device_maxmem_alloc) skip = 1;
-        if (size_tmps  > device_param->device_maxmem_alloc) skip = 1;
-        if (size_hooks > device_param->device_maxmem_alloc) skip = 1;
+        const u64 size_total
+          = bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + size_bfs
+          + size_combs
+          + size_digests
+          + size_esalts
+          + size_hooks
+          + size_markov_css
+          + size_plains
+          + size_pws
+          + size_pws // not a bug
+          + size_results
+          + size_root_css
+          + size_rules
+          + size_rules_c
+          + size_salts
+          + size_scryptV
+          + size_shown
+          + size_tm
+          + size_tmps;
 
-        if (( bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + size_bfs
-            + size_combs
-            + size_digests
-            + size_esalts
-            + size_hooks
-            + size_markov_css
-            + size_plains
-            + size_pws
-            + size_pws // not a bug
-            + size_results
-            + size_root_css
-            + size_rules
-            + size_rules_c
-            + size_salts
-            + size_scryptV
-            + size_shown
-            + size_tm
-            + size_tmps) > device_param->device_global_mem) skip = 1;
+        // Don't ask me, ask AMD!
+
+        if (size_total > device_param->device_maxmem_alloc) skip = 1;
+        if (size_total > device_param->device_global_mem)   skip = 1;
 
         if (skip == 1)
         {
@@ -14540,18 +14694,28 @@ int main (int argc, char **argv)
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
-      snprintf (build_opts, sizeof (build_opts) - 1, "-cl-std=CL1.1 -I\"%s/\" -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u -DKERN_TYPE=%u -D_unroll", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, kern_type);
+      #if _WIN
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\\OpenCL\\\" -I '%s\\OpenCL\\' -I %s\\OpenCL\\ -I\"%s\\OpenCL\\\" -I'%s\\OpenCL\\' -I%s\\OpenCL\\", shared_dir, shared_dir, shared_dir, shared_dir, shared_dir, shared_dir);
+      #else
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s/OpenCL/\" -I '%s/OpenCL/' -I %s/OpenCL/ -I\"%s/OpenCL/\" -I'%s/OpenCL/' -I%s/OpenCL/", shared_dir, shared_dir, shared_dir, shared_dir, shared_dir, shared_dir);
+      #endif
 
-      if (device_param->vendor_id == VENDOR_ID_INTEL_SDK)
+      char build_opts_new[1024] = { 0 };
+
+      snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u -DKERN_TYPE=%u -D_unroll -cl-std=CL1.1", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, kern_type);
+
+      strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);
+
+      /*
+      if (device_param->device_vendor_id == VENDOR_ID_INTEL_SDK)
       {
         // we do vectorizing much better than the auto-vectorizer
-
-        char build_opts_new[1024] = { 0 };
 
         snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -cl-opt-disable", build_opts);
 
         strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);
       }
+      */
 
       #ifdef DEBUG
       log_info ("Device #%u: build_opts '%s'\n", device_id + 1, build_opts);
@@ -14973,13 +15137,6 @@ int main (int argc, char **argv)
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown,  CL_TRUE, 0, size_shown,   data.digests_shown, 0, NULL, NULL);
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_salt_bufs,      CL_TRUE, 0, size_salts,   data.salts_buf,     0, NULL, NULL);
 
-      run_kernel_bzero (device_param, device_param->d_pws_buf,        size_pws);
-      run_kernel_bzero (device_param, device_param->d_pws_amp_buf,    size_pws);
-      run_kernel_bzero (device_param, device_param->d_tmps,           size_tmps);
-      run_kernel_bzero (device_param, device_param->d_hooks,          size_hooks);
-      run_kernel_bzero (device_param, device_param->d_plain_bufs,     size_plains);
-      run_kernel_bzero (device_param, device_param->d_result,         size_results);
-
       /**
        * special buffers
        */
@@ -14990,8 +15147,6 @@ int main (int argc, char **argv)
         device_param->d_rules_c = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_rules_c, NULL);
 
         hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_rules, CL_TRUE, 0, size_rules, kernel_rules_buf, 0, NULL, NULL);
-
-        run_kernel_bzero (device_param, device_param->d_rules_c, size_rules_c);
       }
       else if (attack_kern == ATTACK_KERN_COMBI)
       {
@@ -14999,11 +15154,6 @@ int main (int argc, char **argv)
         device_param->d_combs_c         = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_combs,      NULL);
         device_param->d_root_css_buf    = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL);
         device_param->d_markov_css_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL);
-
-        run_kernel_bzero (device_param, device_param->d_combs,          size_combs);
-        run_kernel_bzero (device_param, device_param->d_combs_c,        size_combs);
-        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
-        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
       }
       else if (attack_kern == ATTACK_KERN_BF)
       {
@@ -15012,12 +15162,6 @@ int main (int argc, char **argv)
         device_param->d_tm_c            = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_tm,         NULL);
         device_param->d_root_css_buf    = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL);
         device_param->d_markov_css_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL);
-
-        run_kernel_bzero (device_param, device_param->d_bfs,            size_bfs);
-        run_kernel_bzero (device_param, device_param->d_bfs_c,          size_bfs);
-        run_kernel_bzero (device_param, device_param->d_tm_c,           size_tm);
-        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
-        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
       }
 
       if (size_esalts)
@@ -15161,6 +15305,13 @@ int main (int argc, char **argv)
       device_param->kernel_params_tm[0] = &device_param->d_bfs_c;
       device_param->kernel_params_tm[1] = &device_param->d_tm_c;
 
+      device_param->kernel_params_memset_buf32[1] = 0; // value
+      device_param->kernel_params_memset_buf32[2] = 0; // gid_max
+
+      device_param->kernel_params_memset[0] = NULL;
+      device_param->kernel_params_memset[1] = &device_param->kernel_params_memset_buf32[1];
+      device_param->kernel_params_memset[2] = &device_param->kernel_params_memset_buf32[2];
+
       /**
        * kernel name
        */
@@ -15269,6 +15420,18 @@ int main (int argc, char **argv)
         if (opts_type & OPTS_TYPE_HOOK23) hc_clSetKernelArg (data.ocl, device_param->kernel23, i, sizeof (cl_uint), device_param->kernel_params[i]);
       }
 
+      // GPU memset
+
+      device_param->kernel_memset = hc_clCreateKernel (data.ocl, device_param->program, "gpu_memset");
+
+      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_memset, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
+      hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 0, sizeof (cl_mem),  device_param->kernel_params_memset[0]);
+      hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]);
+      hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 2, sizeof (cl_uint), device_param->kernel_params_memset[2]);
+
+      // MP start
+
       if (attack_mode == ATTACK_MODE_BF)
       {
         device_param->kernel_mp_l = hc_clCreateKernel (data.ocl, device_param->program_mp, "l_markov");
@@ -15328,6 +15491,39 @@ int main (int argc, char **argv)
       // value can only be decreased, so we don't need to reallocate buffers
 
       device_param->kernel_threads = kernel_threads;
+
+      // zero some data buffers
+
+      run_kernel_bzero (device_param, device_param->d_pws_buf,        size_pws);
+      run_kernel_bzero (device_param, device_param->d_pws_amp_buf,    size_pws);
+      run_kernel_bzero (device_param, device_param->d_tmps,           size_tmps);
+      run_kernel_bzero (device_param, device_param->d_hooks,          size_hooks);
+      run_kernel_bzero (device_param, device_param->d_plain_bufs,     size_plains);
+      run_kernel_bzero (device_param, device_param->d_result,         size_results);
+
+      /**
+       * special buffers
+       */
+
+      if (attack_kern == ATTACK_KERN_STRAIGHT)
+      {
+        run_kernel_bzero (device_param, device_param->d_rules_c, size_rules_c);
+      }
+      else if (attack_kern == ATTACK_KERN_COMBI)
+      {
+        run_kernel_bzero (device_param, device_param->d_combs,          size_combs);
+        run_kernel_bzero (device_param, device_param->d_combs_c,        size_combs);
+        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
+        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
+      }
+      else if (attack_kern == ATTACK_KERN_BF)
+      {
+        run_kernel_bzero (device_param, device_param->d_bfs,            size_bfs);
+        run_kernel_bzero (device_param, device_param->d_bfs_c,          size_bfs);
+        run_kernel_bzero (device_param, device_param->d_tm_c,           size_tm);
+        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
+        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
+      }
 
       /**
        * Store initial fanspeed if gpu_temp_retain is enabled
@@ -17602,6 +17798,7 @@ int main (int argc, char **argv)
       if (device_param->kernel_mp_r)        hc_clReleaseKernel        (data.ocl, device_param->kernel_mp_r);
       if (device_param->kernel_tm)          hc_clReleaseKernel        (data.ocl, device_param->kernel_tm);
       if (device_param->kernel_amp)         hc_clReleaseKernel        (data.ocl, device_param->kernel_amp);
+      if (device_param->kernel_memset)      hc_clReleaseKernel        (data.ocl, device_param->kernel_memset);
 
       if (device_param->program)            hc_clReleaseProgram       (data.ocl, device_param->program);
       if (device_param->program_mp)         hc_clReleaseProgram       (data.ocl, device_param->program_mp);

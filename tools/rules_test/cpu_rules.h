@@ -6,7 +6,8 @@
 #ifndef CPU_RULES_H
 #define CPU_RULES_H
 
-#include <common.h>
+#include "common.h"
+#include "inc_rp.h"
 #include "rp_cpu.h"
 
 #define BLOCK_SIZE               64

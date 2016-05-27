@@ -10,18 +10,18 @@
 //incompatible
 //#define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_simd.cl"
 
 __constant u32 lotus_magic_table[256] =
 {
@@ -91,9 +91,6 @@ void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   {
     u32 s = 48;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
     for (int j = 0; j < 12; j++)
     {
       u32x tmp_in = in[j];
@@ -127,20 +124,20 @@ void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lotus_mag
   }
 }
 
-void pad (u32x w[4], const u32 len)
+void pad (u32 w[4], const u32 len)
 {
   const u32 val = 16 - len;
 
-  const u32x mask1 = val << 24;
+  const u32 mask1 = val << 24;
 
-  const u32x mask2 = val << 16
+  const u32 mask2 = val << 16
                    | val << 24;
 
-  const u32x mask3 = val <<  8
+  const u32 mask3 = val <<  8
                    | val << 16
                    | val << 24;
 
-  const u32x mask4 = val <<  0
+  const u32 mask4 = val <<  0
                    | val <<  8
                    | val << 16
                    | val << 24;

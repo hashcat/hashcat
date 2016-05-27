@@ -12,7 +12,6 @@ rm -rf $OUT
 rm -rf $OUT.7z
 
 mkdir -p $OUT
-mkdir -p $OUT/include
 
 cp    $IN/hashcat??.exe                 $OUT/
 cp    $IN/hashcat??.bin                 $OUT/
@@ -27,11 +26,6 @@ cp -r $IN/extra                         $OUT/
 cp    $IN/example.dict                  $OUT/
 cp    $IN/example[0123456789]*.hash	$OUT/
 cp    $IN/example[0123456789]*.cmd	$OUT/
-
-cp -r $IN/include/constants.h		$OUT/include
-cp -r $IN/include/kernel_functions.c	$OUT/include
-cp -r $IN/include/kernel_vendor.h       $OUT/include
-cp -r $IN/include/rp_kernel.h           $OUT/include
 cp -r $IN/OpenCL                        $OUT/
 
 # since for the binary distribution we still use .bin, we need to rewrite the commands
@@ -54,7 +48,6 @@ unix2dos $OUT/rules/*.rule
 unix2dos $OUT/rules/hybrid/*.rule
 unix2dos $OUT/docs/*
 unix2dos $OUT/example*.cmd
-unix2dos $OUT/include/*
 unix2dos $OUT/OpenCL/*
 unix2dos $OUT/hashcat.hctune
 
@@ -72,8 +65,6 @@ chmod 755 $OUT/example*.sh
 chmod 755 $OUT/extra
 chmod 755 $OUT/extra/tab_completion/*.sh
 chmod 755 $OUT/extra/tab_completion/install
-chmod 755 $OUT/include
-chmod 644 $OUT/include/*
 chmod 755 $OUT/OpenCL
 chmod 644 $OUT/OpenCL/*
 chmod 644 $OUT/*.exe

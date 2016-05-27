@@ -10,18 +10,18 @@
 //incompatible
 //#define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_simd.cl"
 
 __constant u32 lotus_magic_table[256] =
 {
@@ -79,9 +79,6 @@ void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   {
     u32 s = 48;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
     for (int j = 0; j < 12; j++)
     {
       u32x tmp_in = in[j];
@@ -115,23 +112,23 @@ void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lotus_mag
   }
 }
 
-void pad (u32x w[4], const u32 len)
+void pad (u32 w[4], const u32 len)
 {
   const u32 val = 16 - len;
 
-  const u32x mask1 = val << 24;
+  const u32 mask1 = val << 24;
 
-  const u32x mask2 = val << 16
-                   | val << 24;
+  const u32 mask2 = val << 16
+                  | val << 24;
 
-  const u32x mask3 = val <<  8
-                   | val << 16
-                   | val << 24;
+  const u32 mask3 = val <<  8
+                  | val << 16
+                  | val << 24;
 
-  const u32x mask4 = val <<  0
-                   | val <<  8
-                   | val << 16
-                   | val << 24;
+  const u32 mask4 = val <<  0
+                  | val <<  8
+                  | val << 16
+                  | val << 24;
 
   switch (len)
   {
@@ -226,7 +223,7 @@ void mdtransform (u32x state[4], u32x checksum[4], u32x block[4], __local u32 *s
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-void domino_big_md (const u32x saved_key[16], const u32x size, u32x state[4], __local u32 *s_lotus_magic_table)
+void domino_big_md (const u32x saved_key[4], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
 {
   u32x checksum[4];
 
@@ -235,14 +232,7 @@ void domino_big_md (const u32x saved_key[16], const u32x size, u32x state[4], __
   checksum[2] = 0;
   checksum[3] = 0;
 
-  u32x block[4];
-
-  block[0] = saved_key[0];
-  block[1] = saved_key[1];
-  block[2] = saved_key[2];
-  block[3] = saved_key[3];
-
-  mdtransform (state, checksum, block, s_lotus_magic_table);
+  mdtransform (state, checksum, saved_key, s_lotus_magic_table);
 
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
@@ -342,39 +332,15 @@ __kernel void m08600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     }
 
     u32x w0[4];
-    u32x w1[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-    w1[0] = wordl1[0] | wordr1[0];
-    w1[1] = wordl1[1] | wordr1[1];
-    w1[2] = wordl1[2] | wordr1[2];
-    w1[3] = wordl1[3] | wordr1[3];
 
     /**
      * domino
      */
-
-    u32x w[16];
-
-    w[ 0] = w0[0];
-    w[ 1] = w0[1];
-    w[ 2] = w0[2];
-    w[ 3] = w0[3];
-    w[ 4] = w1[0];
-    w[ 5] = w1[1];
-    w[ 6] = w1[2];
-    w[ 7] = w1[3];
-    w[ 8] = 0;
-    w[ 9] = 0;
-    w[10] = 0;
-    w[11] = 0;
-    w[12] = 0;
-    w[13] = 0;
-    w[14] = 0;
-    w[15] = 0;
 
     u32x state[4];
 
@@ -387,24 +353,9 @@ __kernel void m08600_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * padding
      */
 
-    if (pw_len < 16)
-    {
-      pad (&w[ 0], pw_len & 0xf);
-    }
-    else if (pw_len < 32)
-    {
-      pad (&w[ 4], pw_len & 0xf);
-    }
-    else if (pw_len < 48)
-    {
-      pad (&w[ 8], pw_len & 0xf);
-    }
-    else if (pw_len < 64)
-    {
-      pad (&w[12], pw_len & 0xf);
-    }
+    pad (w0, pw_len);
 
-    domino_big_md (w, pw_len, state, s_lotus_magic_table);
+    domino_big_md (w0, pw_len, state, s_lotus_magic_table);
 
     COMPARE_M_SIMD (state[0], state[1], state[2], state[3]);
   }
@@ -525,39 +476,15 @@ __kernel void m08600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     }
 
     u32x w0[4];
-    u32x w1[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
     w0[2] = wordl0[2] | wordr0[2];
     w0[3] = wordl0[3] | wordr0[3];
-    w1[0] = wordl1[0] | wordr1[0];
-    w1[1] = wordl1[1] | wordr1[1];
-    w1[2] = wordl1[2] | wordr1[2];
-    w1[3] = wordl1[3] | wordr1[3];
 
     /**
      * domino
      */
-
-    u32x w[16];
-
-    w[ 0] = w0[0];
-    w[ 1] = w0[1];
-    w[ 2] = w0[2];
-    w[ 3] = w0[3];
-    w[ 4] = w1[0];
-    w[ 5] = w1[1];
-    w[ 6] = w1[2];
-    w[ 7] = w1[3];
-    w[ 8] = 0;
-    w[ 9] = 0;
-    w[10] = 0;
-    w[11] = 0;
-    w[12] = 0;
-    w[13] = 0;
-    w[14] = 0;
-    w[15] = 0;
 
     u32x state[4];
 
@@ -570,24 +497,9 @@ __kernel void m08600_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
      * padding
      */
 
-    if (pw_len < 16)
-    {
-      pad (&w[ 0], pw_len & 0xf);
-    }
-    else if (pw_len < 32)
-    {
-      pad (&w[ 4], pw_len & 0xf);
-    }
-    else if (pw_len < 48)
-    {
-      pad (&w[ 8], pw_len & 0xf);
-    }
-    else if (pw_len < 64)
-    {
-      pad (&w[12], pw_len & 0xf);
-    }
+    pad (w0, pw_len);
 
-    domino_big_md (w, pw_len, state, s_lotus_magic_table);
+    domino_big_md (w0, pw_len, state, s_lotus_magic_table);
 
     COMPARE_S_SIMD (state[0], state[1], state[2], state[3]);
   }
