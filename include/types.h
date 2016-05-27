@@ -1244,7 +1244,7 @@ typedef struct
   uint    restore_disable;
   uint    status;
   uint    status_timer;
-  uint    status_automat;
+  uint    status_automate;
   uint    quiet;
   uint    force;
   uint    benchmark;
