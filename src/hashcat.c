@@ -5332,8 +5332,43 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
  * main
  */
 
+#ifdef _WIN
+void SetConsoleWindowSize (const int x, const int y)
+{
+  HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
+
+  if (h == INVALID_HANDLE_VALUE) return;
+
+  CONSOLE_SCREEN_BUFFER_INFO bufferInfo;
+
+  if (!GetConsoleScreenBufferInfo (h, &bufferInfo)) return;
+
+  SMALL_RECT *sr = &bufferInfo.srWindow;
+
+  sr->Left   = 0;
+  sr->Top    = 0;
+  sr->Right  = MAX (sr->Right,  x - 1);
+  sr->Bottom = MAX (sr->Bottom, y - 1);
+
+  COORD co;
+
+  co.X = sr->Right  + 1;
+  co.Y = sr->Bottom + 1;
+
+  co.Y = MAX (co.Y, 1337);
+
+  if (!SetConsoleScreenBufferSize (h, co)) return;
+
+  if (!SetConsoleWindowInfo (h, TRUE, sr)) return;
+}
+#endif
+
 int main (int argc, char **argv)
 {
+  #ifdef _WIN
+  SetConsoleWindowSize (132, 44);
+  #endif
+
   /**
    * To help users a bit
    */
