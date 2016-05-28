@@ -3251,6 +3251,23 @@ int hm_get_memoryspeed_with_device_id (const uint device_id)
   }
   #endif // HAVE_ADL
 
+  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  {
+    #if defined(LINUX) && defined(HAVE_NVML)
+    unsigned int clock;
+
+    hm_NVML_nvmlDeviceGetClockInfo (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_CLOCK_MEM, &clock);
+
+    return clock;
+    #endif
+
+    #if defined(WIN) && defined(HAVE_NVAPI)
+
+    #endif
+  }
+  #endif // HAVE_NVML || HAVE_NVAPI
+
   return -1;
 }
 
@@ -3273,6 +3290,23 @@ int hm_get_corespeed_with_device_id (const uint device_id)
     }
   }
   #endif // HAVE_ADL
+
+  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  {
+    #if defined(LINUX) && defined(HAVE_NVML)
+    unsigned int clock;
+
+    hm_NVML_nvmlDeviceGetClockInfo (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_CLOCK_SM, &clock);
+
+    return clock;
+    #endif
+
+    #if defined(WIN) && defined(HAVE_NVAPI)
+
+    #endif
+  }
+  #endif // HAVE_NVML || HAVE_NVAPI
 
   return -1;
 }

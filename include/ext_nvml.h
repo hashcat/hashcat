@@ -52,6 +52,12 @@ typedef enum nvmlReturn_enum {
   NVML_ERROR_UNKNOWN = 999            // An internal driver error occurred
 } nvmlReturn_t;
 
+typedef enum nvmlClockType_enum {
+	NVML_CLOCK_GRAPHICS = 0,
+	NVML_CLOCK_SM = 1,
+	NVML_CLOCK_MEM = 2
+} nvmlClockType_t;
+
 /*
  * End of declarations from nvml.h
  **/
@@ -69,6 +75,7 @@ typedef nvmlReturn_t (*NVML_DEVICE_GET_TEMPERATURE) (nvmlDevice_t, nvmlTemperatu
 typedef nvmlReturn_t (*NVML_DEVICE_GET_FAN_SPEED) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_DEVICE_GET_POWER_USAGE) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_DEVICE_GET_UTILIZATION_RATES) (nvmlDevice_t, nvmlUtilization_t *);
+typedef nvmlReturn_t (*NVML_DEVICE_GET_CLOCKINFO) (nvmlDevice_t, nvmlClockType_t, unsigned int *);
 
 typedef struct
 {
@@ -83,6 +90,7 @@ typedef struct
   NVML_DEVICE_GET_FAN_SPEED nvmlDeviceGetFanSpeed;
   NVML_DEVICE_GET_POWER_USAGE nvmlDeviceGetPowerUsage;
   NVML_DEVICE_GET_UTILIZATION_RATES nvmlDeviceGetUtilizationRates;
+  NVML_DEVICE_GET_CLOCKINFO nvmlDeviceGetClockInfo;
 
 } hm_nvml_lib_t;
 
@@ -100,6 +108,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetTemperature (NVML_PTR *nvml, nvmlDevice_t devi
 nvmlReturn_t hm_NVML_nvmlDeviceGetFanSpeed (NVML_PTR *nvml, int, nvmlDevice_t device, unsigned int *speed);
 nvmlReturn_t hm_NVML_nvmlDeviceGetPowerUsage (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *power);
 nvmlReturn_t hm_NVML_nvmlDeviceGetUtilizationRates (NVML_PTR *nvml, nvmlDevice_t device, nvmlUtilization_t *utilization);
+nvmlReturn_t hm_NVML_nvmlDeviceGetClockInfo (NVML_PTR *nvml, nvmlDevice_t device, nvmlClockType_t type, unsigned int *clock);
 
 #endif // HAVE_HWMON && HAVE_NVML
 
