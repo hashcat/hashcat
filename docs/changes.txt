@@ -23,6 +23,7 @@ It combines all features of all hashcat projects in one project.
 - Added makefile native compilation target
 - Added makefile install and uninstall targets
 - Added autotuning engine and user-configurable tuning database
+- Added current engine clock and current memory clock to the status display
 - Added execution timer of the running kernel to the status display
 - Added command prompt to quit at next restore checkpoint
 - Added human-readable error message for the OpenCL error codes

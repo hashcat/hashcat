@@ -3231,6 +3231,52 @@ int hm_get_utilization_with_device_id (const uint device_id)
   return -1;
 }
 
+int hm_get_memoryspeed_with_device_id (const uint device_id)
+{
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
+  #ifdef HAVE_ADL
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  {
+    if (data.hm_amd)
+    {
+      ADLPMActivity PMActivity;
+
+      PMActivity.iSize = sizeof (ADLPMActivity);
+
+      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &PMActivity) != ADL_OK) return -1;
+
+      return PMActivity.iMemoryClock / 100;
+    }
+  }
+  #endif // HAVE_ADL
+
+  return -1;
+}
+
+int hm_get_corespeed_with_device_id (const uint device_id)
+{
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
+  #ifdef HAVE_ADL
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  {
+    if (data.hm_amd)
+    {
+      ADLPMActivity PMActivity;
+
+      PMActivity.iSize = sizeof (ADLPMActivity);
+
+      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &PMActivity) != ADL_OK) return -1;
+
+      return PMActivity.iEngineClock / 100;
+    }
+  }
+  #endif // HAVE_ADL
+
+  return -1;
+}
+
 #ifdef HAVE_ADL
 int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed)
 {

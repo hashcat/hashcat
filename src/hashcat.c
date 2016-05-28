@@ -1549,10 +1549,14 @@ void status_display ()
       {
         char utilization[HM_STR_BUF_SIZE] = { 0 };
         char temperature[HM_STR_BUF_SIZE] = { 0 };
-        char fanspeed[HM_STR_BUF_SIZE] = { 0 };
+        char fanspeed[HM_STR_BUF_SIZE]    = { 0 };
+        char corespeed[HM_STR_BUF_SIZE]   = { 0 };
+        char memoryspeed[HM_STR_BUF_SIZE] = { 0 };
 
-        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
-        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
+        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE,   "%", hm_get_utilization_with_device_id (device_id));
+        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE,   "c", hm_get_temperature_with_device_id (device_id));
+        hm_device_val_to_str ((char *) corespeed,   HM_STR_BUF_SIZE, "Mhz", hm_get_corespeed_with_device_id   (device_id));
+        hm_device_val_to_str ((char *) memoryspeed, HM_STR_BUF_SIZE, "Mhz", hm_get_memoryspeed_with_device_id (device_id));
 
         if (device_param->device_vendor_id == VENDOR_ID_AMD)
         {
@@ -1563,7 +1567,7 @@ void status_display ()
           hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
         }
 
-        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan", device_id + 1, utilization, temperature, fanspeed);
+        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan, %s Core, %s Memory", device_id + 1, utilization, temperature, fanspeed, corespeed, memoryspeed);
       }
       else
       {
@@ -3840,6 +3844,7 @@ static void *thread_monitor (void *p)
     hc_sleep (sleep_time);
 
     if (data.devices_status != STATUS_RUNNING) continue;
+
 
     #ifdef HAVE_HWMON
     if (hwmon_check == 1)
@@ -6883,6 +6888,7 @@ int main (int argc, char **argv)
     potfile_disable       = 1;
     weak_hash_threshold   = 0;
     gpu_temp_disable      = 1;
+    powertune_enable      = 1;
 
     data.status_timer     = status_timer;
     data.restore_timer    = restore_timer;
