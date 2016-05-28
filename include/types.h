@@ -1098,8 +1098,11 @@ typedef struct
 
   } adapter_index;
 
-  int     od_version;
-  int     fan_supported;
+  int   od_version;
+  int   fan_supported;
+
+  int   gpu_temp_threshold_slowdown;
+  int   gpu_temp_threshold_shutdown;
 
   // int     busid; // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPUs
   // int     devid; // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPUs

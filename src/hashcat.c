@@ -2104,6 +2104,7 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 
       out_fp = stdout;
     }
+
     lock_file (out_fp);
   }
   else
@@ -3781,6 +3782,8 @@ static void *thread_monitor (void *p)
   #ifdef HAVE_HWMON
   uint hwmon_check   = 0;
 
+  int slowdown_warnings = 0;
+
   // these variables are mainly used for fan control (AMD only)
 
   int *fan_speed_chgd = (int *) mycalloc (data.devices_cnt, sizeof (int));
@@ -3845,8 +3848,52 @@ static void *thread_monitor (void *p)
 
     if (data.devices_status != STATUS_RUNNING) continue;
 
-
     #ifdef HAVE_HWMON
+
+    if (1)
+    {
+      hc_thread_mutex_lock (mux_adl);
+
+      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+      {
+        hc_device_param_t *device_param = &data.devices_param[device_id];
+
+        if (device_param->skipped) continue;
+
+        if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
+        const int temperature = hm_get_temperature_with_device_id (device_id);
+
+        const int threshold = data.hm_device[device_id].gpu_temp_threshold_slowdown;
+
+        if (temperature >= threshold)
+        {
+          if (slowdown_warnings < 3)
+          {
+            if (data.quiet == 0) clear_prompt ();
+
+            log_info ("WARNING: Drivers temperature threshold (%dc) hit on GPU #%d, expect performance to drop...", threshold, device_id + 1);
+
+            if (slowdown_warnings == 2)
+            {
+              log_info ("");
+            }
+
+            if (data.quiet == 0) fprintf (stdout, "%s", PROMPT);
+            if (data.quiet == 0) fflush (stdout);
+
+            slowdown_warnings++;
+          }
+        }
+        else
+        {
+          slowdown_warnings = 0;
+        }
+      }
+
+      hc_thread_mutex_unlock (mux_adl);
+    }
+
     if (hwmon_check == 1)
     {
       hc_thread_mutex_lock (mux_adl);
@@ -13946,11 +13993,11 @@ int main (int argc, char **argv)
 
     #ifdef HAVE_HWMON
     #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-    hm_attrs_t hm_adapters_nv[DEVICES_MAX]  = { { { 0 }, 0, 0 } };
+    hm_attrs_t hm_adapters_nv[DEVICES_MAX]  = { { { 0 }, 0, 0, 0, 0 } };
     #endif
 
     #ifdef HAVE_ADL
-    hm_attrs_t hm_adapters_amd[DEVICES_MAX] = { { { 0 }, 0, 0 } };
+    hm_attrs_t hm_adapters_amd[DEVICES_MAX] = { { { 0 }, 0, 0, 0, 0 } };
     #endif
 
     if (gpu_temp_disable == 0)
@@ -14219,13 +14266,13 @@ int main (int argc, char **argv)
       }
     }
 
-   /*
-    * Temporary fix:
-    * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
-    * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
-    * were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
-    * Driver / ADL bug?
-    */
+    /**
+     * Temporary fix:
+     * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
+     * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
+     * were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
+     * Driver / ADL bug?
+     */
 
     #ifdef HAVE_ADL
     if (powertune_enable == 1)
@@ -15564,6 +15611,19 @@ int main (int argc, char **argv)
         run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
         run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
       }
+
+      /**
+       * Store thermal target temperature so we can send a notice to user
+       */
+
+      #if defined(HAVE_HWMON)
+      if (gpu_temp_disable == 0)
+      {
+        const int gpu_temp_threshold_slowdown = hm_get_threshold_slowdown_with_device_id (device_id);
+
+        data.hm_device[device_id].gpu_temp_threshold_slowdown = (gpu_temp_threshold_slowdown == -1) ? 100000 : gpu_temp_threshold_slowdown;
+      }
+      #endif
 
       /**
        * Store initial fanspeed if gpu_temp_retain is enabled

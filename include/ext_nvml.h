@@ -58,6 +58,15 @@ typedef enum nvmlClockType_enum {
 	NVML_CLOCK_MEM = 2
 } nvmlClockType_t;
 
+typedef enum nvmlTemperatureThresholds_enum
+{
+    NVML_TEMPERATURE_THRESHOLD_SHUTDOWN = 0,    // Temperature at which the GPU will shut down
+                                                // for HW protection
+    NVML_TEMPERATURE_THRESHOLD_SLOWDOWN = 1,    // Temperature at which the GPU will begin slowdown
+    // Keep this last
+    NVML_TEMPERATURE_THRESHOLD_COUNT
+} nvmlTemperatureThresholds_t;
+
 /*
  * End of declarations from nvml.h
  **/
@@ -76,6 +85,7 @@ typedef nvmlReturn_t (*NVML_DEVICE_GET_FAN_SPEED) (nvmlDevice_t, unsigned int *)
 typedef nvmlReturn_t (*NVML_DEVICE_GET_POWER_USAGE) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_DEVICE_GET_UTILIZATION_RATES) (nvmlDevice_t, nvmlUtilization_t *);
 typedef nvmlReturn_t (*NVML_DEVICE_GET_CLOCKINFO) (nvmlDevice_t, nvmlClockType_t, unsigned int *);
+typedef nvmlReturn_t (*NVML_DEVICE_GET_THRESHOLD) (nvmlDevice_t, nvmlTemperatureThresholds_t, unsigned int *);
 
 typedef struct
 {
@@ -91,6 +101,7 @@ typedef struct
   NVML_DEVICE_GET_POWER_USAGE nvmlDeviceGetPowerUsage;
   NVML_DEVICE_GET_UTILIZATION_RATES nvmlDeviceGetUtilizationRates;
   NVML_DEVICE_GET_CLOCKINFO nvmlDeviceGetClockInfo;
+  NVML_DEVICE_GET_THRESHOLD nvmlDeviceGetTemperatureThreshold;
 
 } hm_nvml_lib_t;
 
@@ -109,6 +120,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetFanSpeed (NVML_PTR *nvml, int, nvmlDevice_t de
 nvmlReturn_t hm_NVML_nvmlDeviceGetPowerUsage (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *power);
 nvmlReturn_t hm_NVML_nvmlDeviceGetUtilizationRates (NVML_PTR *nvml, nvmlDevice_t device, nvmlUtilization_t *utilization);
 nvmlReturn_t hm_NVML_nvmlDeviceGetClockInfo (NVML_PTR *nvml, nvmlDevice_t device, nvmlClockType_t type, unsigned int *clock);
+nvmlReturn_t hm_NVML_nvmlDeviceGetTemperatureThreshold (NVML_PTR *nvml, nvmlDevice_t device, nvmlTemperatureThresholds_t thresholdType, unsigned int *temp);
 
 #endif // HAVE_HWMON && HAVE_NVML
 
