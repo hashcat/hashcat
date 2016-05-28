@@ -76,7 +76,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 #define BITMAP_MAX              24
 #define GPU_TEMP_DISABLE        0
 #define GPU_TEMP_ABORT          90
-#define GPU_TEMP_RETAIN         80
+#define GPU_TEMP_RETAIN         70
 #define WORKLOAD_PROFILE        2
 #define KERNEL_ACCEL            0
 #define KERNEL_LOOPS            0
