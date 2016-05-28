@@ -3263,7 +3263,14 @@ int hm_get_memoryspeed_with_device_id (const uint device_id)
     #endif
 
     #if defined(WIN) && defined(HAVE_NVAPI)
+    NV_GPU_CLOCK_FREQUENCIES pClkFreqs = { 0 };
 
+    pClkFreqs.version   = NV_GPU_CLOCK_FREQUENCIES_VER;
+    pClkFreqs.ClockType = NV_GPU_CLOCK_FREQUENCIES_CURRENT_FREQ;
+
+    if (hm_NvAPI_GPU_GetAllClockFrequencies (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &pClkFreqs) != NVAPI_OK) return -1;
+
+    return pClkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_MEMORY].frequency / 1000;
     #endif
   }
   #endif // HAVE_NVML || HAVE_NVAPI
@@ -3303,7 +3310,14 @@ int hm_get_corespeed_with_device_id (const uint device_id)
     #endif
 
     #if defined(WIN) && defined(HAVE_NVAPI)
+    NV_GPU_CLOCK_FREQUENCIES pClkFreqs = { 0 };
 
+    pClkFreqs.version   = NV_GPU_CLOCK_FREQUENCIES_VER;
+    pClkFreqs.ClockType = NV_GPU_CLOCK_FREQUENCIES_CURRENT_FREQ;
+
+    if (hm_NvAPI_GPU_GetAllClockFrequencies (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &pClkFreqs) != NVAPI_OK) return -1;
+
+    return pClkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS].frequency / 1000;
     #endif
   }
   #endif // HAVE_NVML || HAVE_NVAPI

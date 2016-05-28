@@ -1567,7 +1567,7 @@ void status_display ()
           hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
         }
 
-        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan, %s Core, %s Memory", device_id + 1, utilization, temperature, fanspeed, corespeed, memoryspeed);
+        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan, %s Core, %s Mem", device_id + 1, utilization, temperature, fanspeed, corespeed, memoryspeed);
       }
       else
       {
