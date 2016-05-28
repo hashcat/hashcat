@@ -6883,7 +6883,12 @@ int main (int argc, char **argv)
     potfile_disable       = 1;
     weak_hash_threshold   = 0;
     gpu_temp_disable      = 1;
+
+    #ifdef HAVE_HWMON
+    #ifdef HAVE_ADL
     powertune_enable      = 1;
+    #endif
+    #endif
 
     data.status_timer     = status_timer;
     data.restore_timer    = restore_timer;
