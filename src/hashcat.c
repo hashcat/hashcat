@@ -5338,7 +5338,7 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
  */
 
 #ifdef _WIN
-void SetConsoleWindowSize (const int x, const int y)
+void SetConsoleWindowSize (const int x)
 {
   HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
 
@@ -5350,17 +5350,12 @@ void SetConsoleWindowSize (const int x, const int y)
 
   SMALL_RECT *sr = &bufferInfo.srWindow;
 
-  sr->Left   = 0;
-  sr->Top    = 0;
-  sr->Right  = MAX (sr->Right,  x - 1);
-  sr->Bottom = MAX (sr->Bottom, y - 1);
+  sr->Right = MAX (sr->Right, x - 1);
 
   COORD co;
 
   co.X = sr->Right  + 1;
   co.Y = sr->Bottom + 1;
-
-  co.Y = MAX (co.Y, 1337);
 
   if (!SetConsoleScreenBufferSize (h, co)) return;
 
@@ -5371,7 +5366,7 @@ void SetConsoleWindowSize (const int x, const int y)
 int main (int argc, char **argv)
 {
   #ifdef _WIN
-  SetConsoleWindowSize (132, 44);
+  SetConsoleWindowSize (132);
   #endif
 
   /**
@@ -13741,12 +13736,11 @@ int main (int argc, char **argv)
           {
             if (device_param->skipped == 0)
             {
-              log_info ("Device #%u: %s, %lu/%lu MB allocatable, %dMhz, %uMCU",
+              log_info ("Device #%u: %s, %lu/%lu MB allocatable, %uMCU",
                         device_id + 1,
                         device_name,
                         (unsigned int) (device_maxmem_alloc / 1024 / 1024),
                         (unsigned int) (device_global_mem   / 1024 / 1024),
-                        (unsigned int) (device_maxclock_frequency),
                         (unsigned int)  device_processors);
             }
             else
