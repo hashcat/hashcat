@@ -34,6 +34,8 @@ int nvml_init (NVML_PTR *nvml)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetUtilizationRates, NVML_DEVICE_GET_UTILIZATION_RATES, NVML, 0)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetClockInfo, NVML_DEVICE_GET_CLOCKINFO, NVML, 0)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetTemperatureThreshold, NVML_DEVICE_GET_THRESHOLD, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetCurrPcieLinkGeneration, NVML_DEVICE_GET_CURRPCIELINKGENERATION, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetCurrPcieLinkWidth, NVML_DEVICE_GET_CURRPCIELINKWIDTH, NVML, 0)
 
   return 0;
 }
@@ -228,6 +230,42 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetTemperatureThreshold (NVML_PTR *nvml, nvmlDevi
   if (nvml_rc != NVML_SUCCESS)
   {
     *temp = -1;
+
+    //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+    //log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
+  }
+
+  return nvml_rc;
+}
+
+nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *currLinkGen)
+{
+  if (!nvml) return -1;
+
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetCurrPcieLinkGeneration (device, currLinkGen);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    *currLinkGen = -1;
+
+    //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+    //log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
+  }
+
+  return nvml_rc;
+}
+
+nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *currLinkWidth)
+{
+  if (!nvml) return -1;
+
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetCurrPcieLinkWidth (device, currLinkWidth);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    *currLinkWidth = -1;
 
     //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
