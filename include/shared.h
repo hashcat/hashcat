@@ -1457,6 +1457,8 @@ int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_
 int hm_get_threshold_slowdown_with_device_id (const uint device_id);
 int hm_get_temperature_with_device_id        (const uint device_id);
 int hm_get_fanspeed_with_device_id           (const uint device_id);
+int hm_get_maxbuslanes_with_device_id        (const uint device_id);
+int hm_get_currentbuslanes_with_device_id    (const uint device_id);
 int hm_get_utilization_with_device_id        (const uint device_id);
 int hm_get_memoryspeed_with_device_id        (const uint device_id);
 int hm_get_corespeed_with_device_id          (const uint device_id);

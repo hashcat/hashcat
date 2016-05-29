@@ -1545,40 +1545,23 @@ void status_display ()
 
       #define HM_STR_BUF_SIZE 255
 
-      if (data.hm_device[device_id].fan_supported == 1)
-      {
-        char utilization[HM_STR_BUF_SIZE] = { 0 };
-        char temperature[HM_STR_BUF_SIZE] = { 0 };
-        char fanspeed[HM_STR_BUF_SIZE]    = { 0 };
-        char corespeed[HM_STR_BUF_SIZE]   = { 0 };
-        char memoryspeed[HM_STR_BUF_SIZE] = { 0 };
+      char utilization[HM_STR_BUF_SIZE]     = { 0 };
+      char temperature[HM_STR_BUF_SIZE]     = { 0 };
+      char fanspeed[HM_STR_BUF_SIZE]        = { 0 };
+      char corespeed[HM_STR_BUF_SIZE]       = { 0 };
+      char memoryspeed[HM_STR_BUF_SIZE]     = { 0 };
+      char currentbuslanes[HM_STR_BUF_SIZE] = { 0 };
+      char maxbuslanes[HM_STR_BUF_SIZE]     = { 0 };
 
-        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE,   "%", hm_get_utilization_with_device_id (device_id));
-        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE,   "c", hm_get_temperature_with_device_id (device_id));
-        hm_device_val_to_str ((char *) corespeed,   HM_STR_BUF_SIZE, "Mhz", hm_get_corespeed_with_device_id   (device_id));
-        hm_device_val_to_str ((char *) memoryspeed, HM_STR_BUF_SIZE, "Mhz", hm_get_memoryspeed_with_device_id (device_id));
+      hm_device_val_to_str ((char *) utilization,     HM_STR_BUF_SIZE,   "%", hm_get_utilization_with_device_id     (device_id));
+      hm_device_val_to_str ((char *) temperature,     HM_STR_BUF_SIZE,   "c", hm_get_temperature_with_device_id     (device_id));
+      hm_device_val_to_str ((char *) fanspeed,        HM_STR_BUF_SIZE,   "%", hm_get_fanspeed_with_device_id        (device_id));
+      hm_device_val_to_str ((char *) corespeed,       HM_STR_BUF_SIZE, "Mhz", hm_get_corespeed_with_device_id       (device_id));
+      hm_device_val_to_str ((char *) memoryspeed,     HM_STR_BUF_SIZE, "Mhz", hm_get_memoryspeed_with_device_id     (device_id));
+      hm_device_val_to_str ((char *) currentbuslanes, HM_STR_BUF_SIZE,    "", hm_get_currentbuslanes_with_device_id (device_id));
+      hm_device_val_to_str ((char *) maxbuslanes,     HM_STR_BUF_SIZE,    "", hm_get_maxbuslanes_with_device_id     (device_id));
 
-        if (device_param->device_vendor_id == VENDOR_ID_AMD)
-        {
-          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
-        }
-        else if (device_param->device_vendor_id == VENDOR_ID_NV)
-        {
-          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
-        }
-
-        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan, %s Core, %s Mem", device_id + 1, utilization, temperature, fanspeed, corespeed, memoryspeed);
-      }
-      else
-      {
-        char utilization[HM_STR_BUF_SIZE] = { 0 };
-        char temperature[HM_STR_BUF_SIZE] = { 0 };
-
-        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
-        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
-
-        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, N/A Fan", device_id + 1, utilization, temperature);
-      }
+      log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan, %s Core, %s Mem, %s/%s Lanes", device_id + 1, utilization, temperature, fanspeed, corespeed, memoryspeed, currentbuslanes, maxbuslanes);
     }
 
     hc_thread_mutex_unlock (mux_adl);
