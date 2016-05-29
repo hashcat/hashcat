@@ -1543,23 +1543,67 @@ void status_display ()
 
       if (device_param->skipped) continue;
 
-      #define HM_STR_BUF_SIZE 255
+      const int num_temperature = hm_get_temperature_with_device_id (device_id);
+      const int num_fanspeed    = hm_get_fanspeed_with_device_id    (device_id);
+      const int num_utilization = hm_get_utilization_with_device_id (device_id);
+      const int num_corespeed   = hm_get_corespeed_with_device_id   (device_id);
+      const int num_memoryspeed = hm_get_memoryspeed_with_device_id (device_id);
+      const int num_buslanes    = hm_get_buslanes_with_device_id    (device_id);
 
-      char utilization[HM_STR_BUF_SIZE] = { 0 };
-      char temperature[HM_STR_BUF_SIZE] = { 0 };
-      char fanspeed[HM_STR_BUF_SIZE]    = { 0 };
-      char corespeed[HM_STR_BUF_SIZE]   = { 0 };
-      char memoryspeed[HM_STR_BUF_SIZE] = { 0 };
-      char buslanes[HM_STR_BUF_SIZE]    = { 0 };
+      char output_buf[256] = { 0 };
 
-      hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE,   "%", hm_get_utilization_with_device_id (device_id));
-      hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE,   "c", hm_get_temperature_with_device_id (device_id));
-      hm_device_val_to_str ((char *) fanspeed,    HM_STR_BUF_SIZE,   "%", hm_get_fanspeed_with_device_id    (device_id));
-      hm_device_val_to_str ((char *) corespeed,   HM_STR_BUF_SIZE, "Mhz", hm_get_corespeed_with_device_id   (device_id));
-      hm_device_val_to_str ((char *) memoryspeed, HM_STR_BUF_SIZE, "Mhz", hm_get_memoryspeed_with_device_id (device_id));
-      hm_device_val_to_str ((char *) buslanes,    HM_STR_BUF_SIZE,    "", hm_get_buslanes_with_device_id    (device_id));
+      int output_len = 0;
 
-      log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan, %s Core, %s Mem, %s Lanes", device_id + 1, utilization, temperature, fanspeed, corespeed, memoryspeed, buslanes);
+      if (num_temperature >= 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Temp:%uc", num_temperature);
+
+        output_len = strlen (output_buf);
+      }
+
+      if (num_fanspeed >= 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Fan:%u%%", num_fanspeed);
+
+        output_len = strlen (output_buf);
+      }
+
+      if (num_utilization >= 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Util:%u%%", num_utilization);
+
+        output_len = strlen (output_buf);
+      }
+
+      if (num_corespeed >= 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Core:%uMhz", num_corespeed);
+
+        output_len = strlen (output_buf);
+      }
+
+      if (num_memoryspeed >= 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Mem:%uMhz", num_memoryspeed);
+
+        output_len = strlen (output_buf);
+      }
+
+      if (num_buslanes >= 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Lanes:%u", num_buslanes);
+
+        output_len = strlen (output_buf);
+      }
+
+      if (output_len == 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " N/A");
+
+        output_len = strlen (output_buf);
+      }
+
+      log_info ("HWMon.GPU.#%d...:%s", device_id + 1, output_buf);
     }
 
     hc_thread_mutex_unlock (mux_adl);
