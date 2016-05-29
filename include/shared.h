@@ -1461,6 +1461,7 @@ int hm_get_buslanes_with_device_id           (const uint device_id);
 int hm_get_utilization_with_device_id        (const uint device_id);
 int hm_get_memoryspeed_with_device_id        (const uint device_id);
 int hm_get_corespeed_with_device_id          (const uint device_id);
+int hm_get_throttle_with_device_id           (const uint device_id);
 
 int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed);
 

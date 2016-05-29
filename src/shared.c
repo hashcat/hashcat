@@ -3416,6 +3416,34 @@ int hm_get_corespeed_with_device_id (const uint device_id)
   return -1;
 }
 
+int hm_get_throttle_with_device_id (const uint device_id)
+{
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
+  #ifdef HAVE_ADL
+
+  #endif // HAVE_ADL
+
+  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  {
+    #if defined(LINUX) && defined(HAVE_NVML)
+
+    #endif
+
+    #if defined(WIN) && defined(HAVE_NVAPI)
+    NvU32 throttle = 0;
+
+    if (hm_NvAPI_GPU_GetPerfDecreaseInfo (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &throttle) != NVAPI_OK) return -1;
+
+    return throttle;
+    #endif
+  }
+  #endif // HAVE_NVML || HAVE_NVAPI
+
+  return -1;
+}
+
 #ifdef HAVE_ADL
 int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed)
 {

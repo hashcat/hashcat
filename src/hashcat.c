@@ -1549,6 +1549,8 @@ void status_display ()
       const int num_corespeed   = hm_get_corespeed_with_device_id   (device_id);
       const int num_memoryspeed = hm_get_memoryspeed_with_device_id (device_id);
       const int num_buslanes    = hm_get_buslanes_with_device_id    (device_id);
+      // not working
+      //const int num_throttle    = hm_get_throttle_with_device_id    (device_id);
 
       char output_buf[256] = { 0 };
 
@@ -1556,35 +1558,35 @@ void status_display ()
 
       if (num_temperature >= 0)
       {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Temp:%uc", num_temperature);
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Temp:%3uc", num_temperature);
 
         output_len = strlen (output_buf);
       }
 
       if (num_fanspeed >= 0)
       {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Fan:%u%%", num_fanspeed);
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Fan:%3u%%", num_fanspeed);
 
         output_len = strlen (output_buf);
       }
 
       if (num_utilization >= 0)
       {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Util:%u%%", num_utilization);
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Util:%3u%%", num_utilization);
 
         output_len = strlen (output_buf);
       }
 
       if (num_corespeed >= 0)
       {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Core:%uMhz", num_corespeed);
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Core:%4uMhz", num_corespeed);
 
         output_len = strlen (output_buf);
       }
 
       if (num_memoryspeed >= 0)
       {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Mem:%uMhz", num_memoryspeed);
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Mem:%4uMhz", num_memoryspeed);
 
         output_len = strlen (output_buf);
       }
@@ -1596,6 +1598,15 @@ void status_display ()
         output_len = strlen (output_buf);
       }
 
+      /*
+      if (num_throttle >= 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Throttle:%u", num_throttle);
+
+        output_len = strlen (output_buf);
+      }
+      */
+
       if (output_len == 0)
       {
         snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " N/A");
@@ -1603,7 +1614,7 @@ void status_display ()
         output_len = strlen (output_buf);
       }
 
-      log_info ("HWMon.GPU.#%d...:%s", device_id + 1, output_buf);
+      log_info ("HWMon.Dev.#%d...:%s", device_id + 1, output_buf);
     }
 
     hc_thread_mutex_unlock (mux_adl);

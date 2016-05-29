@@ -385,6 +385,19 @@ typedef NV_GPU_CLOCK_FREQUENCIES_V2 NV_GPU_CLOCK_FREQUENCIES;
 #define NV_GPU_CLOCK_FREQUENCIES_VER	  NV_GPU_CLOCK_FREQUENCIES_VER_3
 //! @}
 
+//! Used in NvAPI_GPU_GetPerfDecreaseInfo.
+//! Bit masks for knowing the exact reason for performance decrease
+typedef enum _NVAPI_GPU_PERF_DECREASE
+{
+    NV_GPU_PERF_DECREASE_NONE                        = 0,          //!< No Slowdown detected
+    NV_GPU_PERF_DECREASE_REASON_THERMAL_PROTECTION   = 0x00000001, //!< Thermal slowdown/shutdown/POR thermal protection
+    NV_GPU_PERF_DECREASE_REASON_POWER_CONTROL        = 0x00000002, //!< Power capping / pstate cap
+    NV_GPU_PERF_DECREASE_REASON_AC_BATT              = 0x00000004, //!< AC->BATT event
+    NV_GPU_PERF_DECREASE_REASON_API_TRIGGERED        = 0x00000008, //!< API triggered slowdown
+    NV_GPU_PERF_DECREASE_REASON_INSUFFICIENT_POWER   = 0x00000010, //!< Power connector missing
+    NV_GPU_PERF_DECREASE_REASON_UNKNOWN              = 0x80000000, //!< Unknown reason
+} NVAPI_GPU_PERF_DECREASE;
+
 
 NVAPI_INTERFACE NvAPI_QueryInterface(uint offset);
 NVAPI_INTERFACE NvAPI_Initialize();
@@ -397,6 +410,7 @@ NVAPI_INTERFACE NvAPI_GPU_GetCoolerSettings(NvPhysicalGpuHandle hPhysicalGpu, Nv
 NVAPI_INTERFACE NvAPI_GPU_GetDynamicPstatesInfoEx(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
 NVAPI_INTERFACE NvAPI_GPU_GetAllClockFrequencies(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_CLOCK_FREQUENCIES *pClkFreqs);
 NVAPI_INTERFACE NvAPI_GPU_GetCurrentPCIEDownstreamWidth(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pWidth);
+NVAPI_INTERFACE NvAPI_GPU_GetPerfDecreaseInfo(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pPerfDecrInfo);
 
 #ifdef __nvapi_success
     #undef __success
@@ -467,6 +481,7 @@ typedef int (*NVAPI_GPU_GETCOOLERSETTINGS) (NvPhysicalGpuHandle, NvU32, NV_GPU_C
 typedef int (*NVAPI_GPU_GETDYNAMICPSTATESINFOEX) (NvPhysicalGpuHandle, NV_GPU_DYNAMIC_PSTATES_INFO_EX *);
 typedef int (*NVAPI_GPU_GETALLCLOCKFREQUENCIES) (NvPhysicalGpuHandle, NV_GPU_CLOCK_FREQUENCIES *);
 typedef int (*NVAPI_GPU_GETCURRENTPCIEDOWNSTREAMWIDTH) (NvPhysicalGpuHandle, NvU32 *);
+typedef int (*NVAPI_GPU_GETPERFDECREASEINFO) (NvPhysicalGpuHandle, NvU32 *);
 
 typedef struct
 {
@@ -483,6 +498,7 @@ typedef struct
   NVAPI_GPU_GETDYNAMICPSTATESINFOEX NvAPI_GPU_GetDynamicPstatesInfoEx;
   NVAPI_GPU_GETALLCLOCKFREQUENCIES NvAPI_GPU_GetAllClockFrequencies;
   NVAPI_GPU_GETCURRENTPCIEDOWNSTREAMWIDTH NvAPI_GPU_GetCurrentPCIEDownstreamWidth;
+  NVAPI_GPU_GETPERFDECREASEINFO NvAPI_GPU_GetPerfDecreaseInfo;
 
 } hm_nvapi_lib_t;
 
@@ -502,6 +518,7 @@ int hm_NvAPI_GPU_GetCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysi
 int hm_NvAPI_GPU_GetDynamicPstatesInfoEx (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
 int hm_NvAPI_GPU_GetAllClockFrequencies (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_CLOCK_FREQUENCIES *pClkFreqs);
 int hm_NvAPI_GPU_GetCurrentPCIEDownstreamWidth (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pWidth);
+int hm_NvAPI_GPU_GetPerfDecreaseInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pPerfDecrInfo);
 
 #endif // HAVE_HWMON && HAVE_NVAPI
 
