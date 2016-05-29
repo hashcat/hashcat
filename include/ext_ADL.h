@@ -312,6 +312,7 @@ typedef int (*ADL_OVERDRIVE6_CAPABILITIES_GET) (int, ADLOD6Capabilities *);
 typedef int (*ADL_OVERDRIVE6_STATE_SET) (int, int, ADLOD6StateInfo *);
 typedef int (*ADL_OVERDRIVE6_POWERCONTROL_CAPS) (int, int *);
 typedef int (*ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET) (int, int *, int *);
+typedef int (*ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET) (int, ADLOD6ParameterRange *);
 
 typedef struct
 {
@@ -349,6 +350,7 @@ typedef struct
   ADL_OVERDRIVE6_CURRENTSTATUS_GET ADL_Overdrive6_CurrentStatus_Get;
   ADL_OVERDRIVE6_STATE_SET ADL_Overdrive6_State_Set;
   ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET ADL_Overdrive6_TargetTemperatureData_Get;
+  ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET ADL_Overdrive6_TargetTemperatureRangeInfo_Get;
 
 } hm_adl_lib_t;
 
@@ -389,6 +391,7 @@ int hm_ADL_Overdrive_Capabilities_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6Ca
 int hm_ADL_Overdrive_State_Set (ADL_PTR *adl, int iAdapterIndex, int type, ADLOD6StateInfo *state);
 int hm_ADL_Overdrive6_PowerControl_Caps (ADL_PTR *adl, int iAdapterIndex, int *lpSupported);
 int hm_ADL_Overdrive6_TargetTemperatureData_Get (ADL_PTR *adl, int iAdapterIndex, int *cur_temp, int *default_temp);
+int hm_ADL_Overdrive6_TargetTemperatureRangeInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6ParameterRange *lpTargetTemperatureInfo);
 
 #endif // HAVE_HWMON && HAVE_ADL
 

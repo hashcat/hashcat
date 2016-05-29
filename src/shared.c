@@ -3062,7 +3062,27 @@ int hm_get_threshold_slowdown_with_device_id (const uint device_id)
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   #ifdef HAVE_ADL
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  {
+    if (data.hm_amd)
+    {
+      if (data.hm_device[device_id].od_version == 5)
+      {
 
+      }
+      else if (data.hm_device[device_id].od_version == 6)
+      {
+        int CurrentValue = 0;
+        int DefaultValue = 0;
+
+        if (hm_ADL_Overdrive6_TargetTemperatureData_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &CurrentValue, &DefaultValue) != ADL_OK) return -1;
+
+        // the return value has never been tested since hm_ADL_Overdrive6_TargetTemperatureData_Get() never worked on any system. expect problems.
+
+        return DefaultValue;
+      }
+    }
+  }
   #endif
 
   #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
