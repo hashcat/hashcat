@@ -50,12 +50,6 @@ DOCUMENT_FOLDER          ?= $(PREFIX)/share/doc/$(PROG_NAME)
 OPENCL_HEADERS_KHRONOS   := deps/OpenCL-Headers
 
 ##
-
-WITH_ADL                 := 1
-WITH_NVML                := 1
-WITH_NVAPI               := 1
-
-##
 ## Native compiler paths
 ##
 
@@ -93,11 +87,9 @@ ifndef DEBUG
 CFLAGS                   += -O2
 else
 CFLAGS                   += -DDEBUG -g -ggdb
-
 ifeq ($(DEBUG),2)
 CFLAGS                   += -fsanitize=address -fno-omit-frame-pointer
 endif
-
 endif
 
 ##
@@ -108,41 +100,20 @@ BINARY_NATIVE            := $(PROG_NAME)
 
 ifeq ($(UNAME),Darwin)
 export MACOSX_DEPLOYMENT_TARGET=10.9
-
-BINARY_NATIVE            := $(PROG_NAME).app
-
+BINARY_NATIVE            := $(BINARY_NATIVE).app
 CFLAGS_NATIVE            := -D_POSIX -DOSX
 CFLAGS_NATIVE            += $(CFLAGS)
-
 LFLAGS_NATIVE            := -lpthread
-
-WITH_ADL                 := 0
-WITH_NVML                := 0
 endif # darwin
 
 ifeq ($(UNAME),Linux)
 CFLAGS_NATIVE            := -D_POSIX -DLINUX
-
 ifndef DEBUG
 CFLAGS_NATIVE            += -s
 endif
-
 CFLAGS_NATIVE            += $(CFLAGS)
-
 LFLAGS_NATIVE            := -lpthread -ldl
-
-ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
 CFLAGS_NATIVE            += -DHAVE_HWMON
-
-ifeq ($(WITH_ADL),1)
-CFLAGS_NATIVE            += -DHAVE_ADL
-endif
-
-ifeq ($(WITH_NVML),1)
-CFLAGS_NATIVE            += -DHAVE_NVML
-endif
-endif
-
 endif # linux
 
 ##
@@ -156,39 +127,16 @@ CFLAGS_CROSS_LINUX       += -s
 endif
 
 CFLAGS_CROSS_LINUX       += $(CFLAGS)
-CFLAGS_CROSS_LINUX       +=
-
-ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
 CFLAGS_CROSS_LINUX       += -DHAVE_HWMON
 
-ifeq ($(WITH_ADL),1)
-CFLAGS_CROSS_LINUX       += -DHAVE_ADL
-endif
-
-ifeq ($(WITH_NVML),1)
-CFLAGS_CROSS_LINUX       += -DHAVE_NVML
-endif
-endif
-
-CFLAGS_CROSS_WIN         := -D_WIN   -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
+CFLAGS_CROSS_WIN         := -D_WIN -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
 
 ifndef DEBUG
 CFLAGS_CROSS_WIN         += -s
 endif
 
 CFLAGS_CROSS_WIN         += $(filter-out -fsanitize=address,$(CFLAGS))
-
-ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVAPI)))
 CFLAGS_CROSS_WIN         += -DHAVE_HWMON
-
-ifeq ($(WITH_ADL),1)
-CFLAGS_CROSS_WIN         += -DHAVE_ADL
-endif
-
-ifeq ($(WITH_NVAPI),1)
-CFLAGS_CROSS_WIN         += -DHAVE_NVAPI
-endif
-endif
 
 CFLAGS_CROSS_32          := -m32
 CFLAGS_CROSS_64          := -m64
@@ -202,40 +150,17 @@ LFLAGS_CROSS_WIN         := -lpsapi
 
 NATIVE_OBJS              := obj/ext_OpenCL.NATIVE.o obj/shared.NATIVE.o obj/rp_kernel_on_cpu.NATIVE.o
 
-ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
-ifeq ($(WITH_ADL),1)
+ifeq ($(UNAME),Linux)
 NATIVE_OBJS              += obj/ext_ADL.NATIVE.o
-endif
-
-ifeq ($(WITH_NVML),1)
 NATIVE_OBJS              += obj/ext_nvml.NATIVE.o
 endif
-endif
 
-LINUX_32_OBJS            := obj/ext_OpenCL.LINUX.32.o obj/shared.LINUX.32.o obj/rp_kernel_on_cpu.LINUX.32.o
-LINUX_64_OBJS            := obj/ext_OpenCL.LINUX.64.o obj/shared.LINUX.64.o obj/rp_kernel_on_cpu.LINUX.64.o
+LINUX_32_OBJS            := obj/ext_OpenCL.LINUX.32.o obj/shared.LINUX.32.o obj/rp_kernel_on_cpu.LINUX.32.o obj/ext_ADL.LINUX.32.o obj/ext_nvml.LINUX.32.o
+LINUX_64_OBJS            := obj/ext_OpenCL.LINUX.64.o obj/shared.LINUX.64.o obj/rp_kernel_on_cpu.LINUX.64.o obj/ext_ADL.LINUX.64.o obj/ext_nvml.LINUX.64.o
 
-WIN_32_OBJS              := obj/ext_OpenCL.WIN.32.o obj/shared.WIN.32.o obj/rp_kernel_on_cpu.WIN.32.o
-WIN_64_OBJS              := obj/ext_OpenCL.WIN.64.o obj/shared.WIN.64.o obj/rp_kernel_on_cpu.WIN.64.o
-
-ifeq ($(WITH_ADL),1)
-LINUX_32_OBJS            += obj/ext_ADL.LINUX.32.o
-LINUX_64_OBJS            += obj/ext_ADL.LINUX.64.o
-
-WIN_32_OBJS              += obj/ext_ADL.WIN.32.o
-WIN_64_OBJS              += obj/ext_ADL.WIN.64.o
-endif
-
-ifeq ($(WITH_NVML),1)
-LINUX_32_OBJS            += obj/ext_nvml.LINUX.32.o
-LINUX_64_OBJS            += obj/ext_nvml.LINUX.64.o
-endif
-
-ifeq ($(WITH_NVAPI),1)
-WIN_32_OBJS              += obj/ext_nvapi.WIN.32.o
-WIN_64_OBJS              += obj/ext_nvapi.WIN.64.o
-endif
-
+WIN_32_OBJS              := obj/ext_OpenCL.WIN.32.o   obj/shared.WIN.32.o   obj/rp_kernel_on_cpu.WIN.32.o   obj/ext_ADL.WIN.32.o   obj/ext_nvapi.WIN.32.o
+WIN_64_OBJS              := obj/ext_OpenCL.WIN.64.o   obj/shared.WIN.64.o   obj/rp_kernel_on_cpu.WIN.64.o   obj/ext_ADL.WIN.64.o   obj/ext_nvapi.WIN.64.o
+ 
 ##
 ## Targets: Global
 ##

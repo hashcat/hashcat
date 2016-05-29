@@ -76,7 +76,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 #define BITMAP_MAX              24
 #define GPU_TEMP_DISABLE        0
 #define GPU_TEMP_ABORT          90
-#define GPU_TEMP_RETAIN         70
+#define GPU_TEMP_RETAIN         0
 #define WORKLOAD_PROFILE        2
 #define KERNEL_ACCEL            0
 #define KERNEL_LOOPS            0
@@ -411,9 +411,7 @@ const char *USAGE_BIG[] =
   #ifdef HAVE_HWMON
   "     --gpu-temp-abort          | Num  | Abort if GPU temperature reaches X degrees celsius   | --gpu-temp-abort=100",
   "     --gpu-temp-retain         | Num  | Try to retain GPU temperature at X degrees celsius   | --gpu-temp-retain=95",
-  #ifdef HAVE_ADL
   "     --powertune-enable        |      | Enable automatic power tuning (AMD OverDrive 6 only) |",
-  #endif
   #endif
   "     --scrypt-tmto             | Num  | Manually override TMTO value for scrypt to X         | --scrypt-tmto=3",
   " -s, --skip                    | Num  | Skip X words from the start                          | -s 1000000",
@@ -3820,7 +3818,7 @@ static void *thread_monitor (void *p)
 
   int slowdown_warnings = 0;
 
-  // these variables are mainly used for fan control (AMD only)
+  // these variables are mainly used for fan control
 
   int *fan_speed_chgd = (int *) mycalloc (data.devices_cnt, sizeof (int));
 
@@ -3829,12 +3827,10 @@ static void *thread_monitor (void *p)
   int *temp_diff_old = (int *) mycalloc (data.devices_cnt, sizeof (int));
   int *temp_diff_sum = (int *) mycalloc (data.devices_cnt, sizeof (int));
 
-  #ifdef HAVE_ADL
   int temp_threshold = 1; // degrees celcius
 
   int fan_speed_min =  15; // in percentage
   int fan_speed_max = 100;
-  #endif // HAVE_ADL
 
   time_t last_temp_check_time;
   #endif // HAVE_HWMON
@@ -3961,12 +3957,11 @@ static void *thread_monitor (void *p)
           break;
         }
 
-        #ifdef HAVE_ADL
         const int gpu_temp_retain = data.gpu_temp_retain;
 
-        if (gpu_temp_retain) // VENDOR_ID_AMD implied
+        if (gpu_temp_retain)
         {
-          if (data.hm_device[device_id].fan_supported == 1)
+          if (data.hm_device[device_id].fan_set_supported == 1)
           {
             int temp_cur = temperature;
 
@@ -4006,7 +4001,16 @@ static void *thread_monitor (void *p)
 
                 if ((freely_change_fan_speed == 1) || (fan_speed_must_change == 1))
                 {
-                  hm_set_fanspeed_with_device_id_amd (device_id, fan_speed_new);
+                  if (device_param->device_vendor_id == VENDOR_ID_AMD)
+                  {
+                    hm_set_fanspeed_with_device_id_amd (device_id, fan_speed_new, 1);
+                  }
+                  else if (device_param->device_vendor_id == VENDOR_ID_NV)
+                  {
+                    #ifdef _WIN
+                    hm_set_fanspeed_with_device_id_nvapi (device_id, fan_speed_new, 1);
+                    #endif
+                  }
 
                   fan_speed_chgd[device_id] = 1;
                 }
@@ -4016,7 +4020,6 @@ static void *thread_monitor (void *p)
             }
           }
         }
-        #endif // HAVE_ADL
       }
 
       hc_thread_mutex_unlock (mux_adl);
@@ -5361,7 +5364,7 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 
 // wrapper around mymalloc for ADL
 
-#if defined(HAVE_HWMON) && defined(HAVE_ADL)
+#if defined(HAVE_HWMON)
 void *__stdcall ADL_Main_Memory_Alloc (const int iSize)
 {
   return mymalloc (iSize);
@@ -5580,9 +5583,7 @@ int main (int argc, char **argv)
   #ifdef HAVE_HWMON
   uint  gpu_temp_abort            = GPU_TEMP_ABORT;
   uint  gpu_temp_retain           = GPU_TEMP_RETAIN;
-  #ifdef HAVE_ADL
   uint  powertune_enable          = POWERTUNE_ENABLE;
-  #endif
   #endif
   uint  logfile_disable           = LOGFILE_DISABLE;
   uint  segment_size              = SEGMENT_SIZE;
@@ -5737,9 +5738,7 @@ int main (int argc, char **argv)
     #ifdef HAVE_HWMON
     {"gpu-temp-abort",            required_argument, 0, IDX_GPU_TEMP_ABORT},
     {"gpu-temp-retain",           required_argument, 0, IDX_GPU_TEMP_RETAIN},
-    #ifdef HAVE_ADL
     {"powertune-enable",          no_argument,       0, IDX_POWERTUNE_ENABLE},
-    #endif
     #endif // HAVE_HWMON
     {"logfile-disable",           no_argument,       0, IDX_LOGFILE_DISABLE},
     {"truecrypt-keyfiles",        required_argument, 0, IDX_TRUECRYPT_KEYFILES},
@@ -5963,11 +5962,6 @@ int main (int argc, char **argv)
   uint workload_profile_chgd    = 0;
   uint opencl_vector_width_chgd = 0;
 
-  #if defined(HAVE_HWMON) && defined(HAVE_ADL)
-  uint gpu_temp_retain_chgd   = 0;
-  uint gpu_temp_abort_chgd    = 0;
-  #endif
-
   optind = 1;
   optopt = 0;
   option_index = 0;
@@ -6048,19 +6042,9 @@ int main (int argc, char **argv)
                                           kernel_loops_chgd         = 1;              break;
       case IDX_GPU_TEMP_DISABLE:          gpu_temp_disable          = 1;              break;
       #ifdef HAVE_HWMON
-      case IDX_GPU_TEMP_ABORT:            gpu_temp_abort            = atoi (optarg);
-      #ifdef HAVE_ADL
-                                          gpu_temp_abort_chgd       = 1;
-      #endif
-                                                                                      break;
-      case IDX_GPU_TEMP_RETAIN:           gpu_temp_retain           = atoi (optarg);
-      #ifdef HAVE_ADL
-                                          gpu_temp_retain_chgd      = 1;
-      #endif
-                                                                                      break;
-      #ifdef HAVE_ADL
+      case IDX_GPU_TEMP_ABORT:            gpu_temp_abort            = atoi (optarg);  break;
+      case IDX_GPU_TEMP_RETAIN:           gpu_temp_retain           = atoi (optarg);  break;
       case IDX_POWERTUNE_ENABLE:          powertune_enable          = 1;              break;
-      #endif
       #endif // HAVE_HWMON
       case IDX_LOGFILE_DISABLE:           logfile_disable           = 1;              break;
       case IDX_TRUECRYPT_KEYFILES:        truecrypt_keyfiles        = optarg;         break;
@@ -6765,9 +6749,7 @@ int main (int argc, char **argv)
   data.skip                    = skip;
   data.limit                   = limit;
   #ifdef HAVE_HWMON
-  #ifdef HAVE_ADL
   data.powertune_enable        = powertune_enable;
-  #endif
   #endif
   data.logfile_disable         = logfile_disable;
   data.truecrypt_keyfiles      = truecrypt_keyfiles;
@@ -6870,7 +6852,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (outfile_format);
   logfile_top_uint   (potfile_disable);
   logfile_top_string (potfile_path);
-  #if defined(HAVE_HWMON) && defined(HAVE_ADL)
+  #if defined(HAVE_HWMON)
   logfile_top_uint   (powertune_enable);
   #endif
   logfile_top_uint   (scrypt_tmto);
@@ -6968,9 +6950,7 @@ int main (int argc, char **argv)
     gpu_temp_disable      = 1;
 
     #ifdef HAVE_HWMON
-    #ifdef HAVE_ADL
     powertune_enable      = 1;
-    #endif
     #endif
 
     data.status_timer     = status_timer;
@@ -13304,32 +13284,6 @@ int main (int argc, char **argv)
     }
 
     /**
-     * OpenCL platforms: For each platform check if we need to unset features that we can not use, eg: temp_retain
-     */
-
-    for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
-    {
-      cl_platform_id platform = platforms[platform_id];
-
-      char platform_vendor[INFOSZ] = { 0 };
-
-      hc_clGetPlatformInfo (data.ocl, platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
-
-      #ifdef HAVE_HWMON
-      #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-      if (strcmp (platform_vendor, CL_VENDOR_NV) == 0)
-      {
-        // make sure that we do not directly control the fan for NVidia
-
-        gpu_temp_retain = 0;
-
-        data.gpu_temp_retain = gpu_temp_retain;
-      }
-      #endif // HAVE_NVML || HAVE_NVAPI
-      #endif
-    }
-
-    /**
      * OpenCL device types:
      *   In case the user did not specify --opencl-device-types and the user runs hashcat in a system with only a CPU only he probably want to use that CPU.
      *   In such a case, automatically enable CPU device type support, since it's disabled by default.
@@ -14028,17 +13982,13 @@ int main (int argc, char **argv)
      */
 
     #ifdef HAVE_HWMON
-    #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-    hm_attrs_t hm_adapters_nv[DEVICES_MAX]  = { { { 0 }, 0, 0, 0, 0 } };
-    #endif
-
-    #ifdef HAVE_ADL
-    hm_attrs_t hm_adapters_amd[DEVICES_MAX] = { { { 0 }, 0, 0, 0, 0 } };
+    hm_attrs_t hm_adapters_nv[DEVICES_MAX]  = { { { 0 }, 0, 0, 0, 0, 0 } };
+    hm_attrs_t hm_adapters_amd[DEVICES_MAX] = { { { 0 }, 0, 0, 0, 0, 0 } };
     #endif
 
     if (gpu_temp_disable == 0)
     {
-      #if defined(WIN) && defined(HAVE_NVAPI)
+      #if defined(WIN)
       NVAPI_PTR *nvapi = (NVAPI_PTR *) mymalloc (sizeof (NVAPI_PTR));
 
       if (nvapi_init (nvapi) == 0)
@@ -14065,13 +14015,13 @@ int main (int argc, char **argv)
 
             pCoolerSettings.Version = GPU_COOLER_SETTINGS_VER | sizeof (NV_GPU_COOLER_SETTINGS);
 
-            if (hm_NvAPI_GPU_GetCoolerSettings (data.hm_nv, hm_adapters_nv[i].adapter_index.nv, 0, &pCoolerSettings) != NVAPI_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
+            if (hm_NvAPI_GPU_GetCoolerSettings (data.hm_nv, hm_adapters_nv[i].adapter_index.nv, 0, &pCoolerSettings) != NVAPI_NOT_SUPPORTED) hm_adapters_nv[i].fan_get_supported = 1;
           }
         }
       }
-      #endif // WIN && HAVE_NVAPI
+      #endif // WIN
 
-      #if defined(LINUX) && defined(HAVE_NVML)
+      #if defined(LINUX)
       NVML_PTR *nvml = (NVML_PTR *) mymalloc (sizeof (NVML_PTR));
 
       if (nvml_init (nvml) == 0)
@@ -14096,15 +14046,14 @@ int main (int argc, char **argv)
           {
             unsigned int speed;
 
-            if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
+            if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapters_nv[i].fan_get_supported = 1;
           }
         }
       }
-      #endif // LINUX && HAVE_NVML
+      #endif // LINUX
 
       data.hm_amd = NULL;
 
-      #ifdef HAVE_ADL
       ADL_PTR *adl = (ADL_PTR *) mymalloc (sizeof (ADL_PTR));
 
       if (adl_init (adl) == 0)
@@ -14150,7 +14099,6 @@ int main (int argc, char **argv)
           myfree (lpAdapterInfo);
         }
       }
-      #endif // HAVE_ADL
 
       if (data.hm_amd == NULL && data.hm_nv == NULL)
       {
@@ -14163,13 +14111,12 @@ int main (int argc, char **argv)
      */
 
     #ifdef HAVE_HWMON
-    int *temp_retain_fanspeed_value = (int *) mycalloc (data.devices_cnt, sizeof (int));
+    int *temp_retain_fanspeed_value  = (int *) mycalloc (data.devices_cnt, sizeof (int));
+    int *temp_retain_fanpolicy_value = (int *) mycalloc (data.devices_cnt, sizeof (int));
 
-    #ifdef HAVE_ADL
     ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (data.devices_cnt, sizeof (ADLOD6MemClockState));
 
     int *od_power_control_status = (int *) mycalloc (data.devices_cnt, sizeof (int));
-    #endif // ADL
     #endif
 
     /**
@@ -14270,6 +14217,8 @@ int main (int argc, char **argv)
       #endif
     }
 
+    #ifdef HAVE_HWMON
+
     /**
      * HM devices: copy
      */
@@ -14286,19 +14235,15 @@ int main (int argc, char **argv)
 
         const uint platform_devices_id = device_param->platform_devices_id;
 
-        #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
         if (device_param->device_vendor_id == VENDOR_ID_NV)
         {
           memcpy (&data.hm_device[device_id], &hm_adapters_nv[platform_devices_id], sizeof (hm_attrs_t));
         }
-        #endif
 
-        #ifdef HAVE_ADL
         if (device_param->device_vendor_id == VENDOR_ID_AMD)
         {
           memcpy (&data.hm_device[device_id], &hm_adapters_amd[platform_devices_id], sizeof (hm_attrs_t));
         }
-        #endif
       }
     }
 
@@ -14310,7 +14255,6 @@ int main (int argc, char **argv)
      * Driver / ADL bug?
      */
 
-    #ifdef HAVE_ADL
     if (powertune_enable == 1)
     {
       hc_thread_mutex_lock (mux_adl);
@@ -14360,7 +14304,7 @@ int main (int argc, char **argv)
 
       hc_thread_mutex_unlock (mux_adl);
     }
-    #endif // HAVE_ADK
+
     #endif // HAVE_HWMON
 
     #ifdef DEBUG
@@ -15648,72 +15592,71 @@ int main (int argc, char **argv)
         run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
       }
 
+      #if defined(HAVE_HWMON)
+
       /**
        * Store thermal target temperature so we can send a notice to user
        */
 
-      #if defined(HAVE_HWMON)
       if (gpu_temp_disable == 0)
       {
         const int gpu_temp_threshold_slowdown = hm_get_threshold_slowdown_with_device_id (device_id);
 
         data.hm_device[device_id].gpu_temp_threshold_slowdown = (gpu_temp_threshold_slowdown == -1) ? 100000 : gpu_temp_threshold_slowdown;
       }
-      #endif
 
       /**
        * Store initial fanspeed if gpu_temp_retain is enabled
        */
 
-      #if defined(HAVE_HWMON) && defined(HAVE_ADL)
-      int gpu_temp_retain_set = 0;
-
       if (gpu_temp_disable == 0)
       {
-        if (gpu_temp_retain != 0) // VENDOR_ID_AMD implied
+        if (gpu_temp_retain != 0)
         {
           hc_thread_mutex_lock (mux_adl);
 
-          if (data.hm_device[device_id].fan_supported == 1)
+          if (data.hm_device[device_id].fan_get_supported == 1)
           {
-            if (gpu_temp_retain_chgd == 0)
+            const int fanspeed  = hm_get_fanspeed_with_device_id  (device_id);
+            const int fanpolicy = hm_get_fanpolicy_with_device_id (device_id);
+
+            temp_retain_fanspeed_value[device_id]  = fanspeed;
+            temp_retain_fanpolicy_value[device_id] = fanpolicy;
+
+            // we also set it to tell the OS we take control over the fan and it's automatic controller
+            // if it was set to automatic. we do not control user-defined fanspeeds.
+
+            if (fanpolicy == 1)
             {
-              uint cur_temp = 0;
-              uint default_temp = 0;
+              data.hm_device[device_id].fan_set_supported = 1;
 
-              int ADL_rc = hm_ADL_Overdrive6_TargetTemperatureData_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, (int *) &cur_temp, (int *) &default_temp);
+              int rc = -1;
 
-              if (ADL_rc == ADL_OK)
+              if (device_param->device_vendor_id == VENDOR_ID_AMD)
               {
-                #define GPU_TEMP_RETAIN_ABORT_DIFF 15
+                rc = hm_set_fanspeed_with_device_id_amd (device_id, fanspeed, 1);
+              }
+              else if (device_param->device_vendor_id == VENDOR_ID_NV)
+              {
+                #ifdef _WIN
+                rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, 1);
+                #endif
+              }
 
-                const uint gpu_temp_retain_target = default_temp - GPU_TEMP_RETAIN_ABORT_DIFF;
+              if (rc == 0)
+              {
+                data.hm_device[device_id].fan_set_supported = 1;
+              }
+              else
+              {
+                log_info ("WARNING: Failed to set initial fan speed for device #%u", device_id + 1);
 
-                // special case with multi gpu setups: always use minimum retain
-
-                if (gpu_temp_retain_set == 0)
-                {
-                  gpu_temp_retain = gpu_temp_retain_target;
-                  gpu_temp_retain_set = 1;
-                }
-                else
-                {
-                  gpu_temp_retain = MIN (gpu_temp_retain, gpu_temp_retain_target);
-                }
-
-                if (gpu_temp_abort_chgd == 0) gpu_temp_abort = gpu_temp_retain + GPU_TEMP_RETAIN_ABORT_DIFF;
+                data.hm_device[device_id].fan_set_supported = 0;
               }
             }
-
-            const int fan_speed = hm_get_fanspeed_with_device_id (device_id);
-
-            temp_retain_fanspeed_value[device_id] = fan_speed;
-
-            if (fan_speed == -1)
+            else
             {
-              log_info ("WARNING: Failed to get current fan speed settings for gpu number: %i:", device_id + 1);
-
-              temp_retain_fanspeed_value[device_id] = 0;
+              data.hm_device[device_id].fan_set_supported = 0;
             }
           }
 
@@ -15836,7 +15779,8 @@ int main (int argc, char **argv)
 
         hc_thread_mutex_unlock (mux_adl);
       }
-      #endif // HAVE_HWMON && HAVE_ADL
+
+      #endif // HAVE_HWMON
     }
 
     data.kernel_power_all = kernel_power_all;
@@ -17949,7 +17893,6 @@ int main (int argc, char **argv)
     #ifdef HAVE_HWMON
     if (gpu_temp_disable == 0)
     {
-      #ifdef HAVE_ADL
       if (gpu_temp_retain != 0) // VENDOR_ID_AMD is implied here
       {
         hc_thread_mutex_lock (mux_adl);
@@ -17960,24 +17903,35 @@ int main (int argc, char **argv)
 
           if (device_param->skipped) continue;
 
-          if (data.hm_device[device_id].fan_supported == 1)
+          if (data.hm_device[device_id].fan_set_supported == 1)
           {
-            int fanspeed = temp_retain_fanspeed_value[device_id];
+            int fanspeed  = temp_retain_fanspeed_value[device_id];
+            int fanpolicy = temp_retain_fanpolicy_value[device_id];
 
-            if (fanspeed == -1) continue;
+            if (fanpolicy == 1)
+            {
+              int rc = -1;
 
-            int rc = hm_set_fanspeed_with_device_id_amd (device_id, fanspeed);
+              if (device_param->device_vendor_id == VENDOR_ID_AMD)
+              {
+                rc = hm_set_fanspeed_with_device_id_amd (device_id, fanspeed, 0);
+              }
+              else if (device_param->device_vendor_id == VENDOR_ID_NV)
+              {
+                #ifdef _WIN
+                rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, 16);
+                #endif
+              }
 
-            if (rc == -1) log_info ("WARNING: Failed to restore default fan speed for gpu number: %i:", device_id);
+              if (rc == -1) log_info ("WARNING: Failed to restore default fan speed and policy for device #%", device_id + 1);
+            }
           }
         }
 
         hc_thread_mutex_unlock (mux_adl);
       }
-      #endif // HAVE_ADL
     }
 
-    #ifdef HAVE_ADL
     // reset power tuning
 
     if (powertune_enable == 1) // VENDOR_ID_AMD is implied here
@@ -18039,20 +17993,18 @@ int main (int argc, char **argv)
 
       hc_thread_mutex_unlock (mux_adl);
     }
-    #endif // HAVE_ADL
 
     if (gpu_temp_disable == 0)
     {
-      #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
       if (data.hm_nv)
       {
-        #if defined(LINUX) && defined(HAVE_NVML)
+        #if defined(LINUX)
 
         hm_NVML_nvmlShutdown (data.hm_nv);
 
         nvml_close (data.hm_nv);
 
-        #elif defined(WIN) && (HAVE_NVAPI)
+        #elif defined(WIN)
 
         hm_NvAPI_Unload (data.hm_nv);
 
@@ -18062,17 +18014,15 @@ int main (int argc, char **argv)
 
         data.hm_nv = NULL;
       }
-      #endif
 
-      #ifdef HAVE_ADL
       if (data.hm_amd)
       {
         hm_ADL_Main_Control_Destroy (data.hm_amd);
 
         adl_close (data.hm_amd);
+
         data.hm_amd = NULL;
       }
-      #endif
     }
     #endif // HAVE_HWMON
 
@@ -18115,10 +18065,8 @@ int main (int argc, char **argv)
 
     #ifdef HAVE_HWMON
     local_free (temp_retain_fanspeed_value);
-    #ifdef HAVE_ADL
     local_free (od_clock_mem_status);
     local_free (od_power_control_status);
-    #endif // ADL
     #endif
 
     global_free (devices_param);

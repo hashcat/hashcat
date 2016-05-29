@@ -9,7 +9,7 @@
 #ifndef EXT_NVML_H
 #define EXT_NVML_H
 
-#if defined(HAVE_HWMON) && defined(HAVE_NVML)
+#if defined(HAVE_HWMON)
 
 #include <common.h>
 
@@ -128,6 +128,6 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetTemperatureThreshold (NVML_PTR *nvml, nvmlDevi
 nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *currLinkGen);
 nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *currLinkWidth);
 
-#endif // HAVE_HWMON && HAVE_NVML
+#endif // HAVE_HWMON
 
 #endif // EXT_NVML_H

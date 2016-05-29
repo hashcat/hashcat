@@ -8,7 +8,7 @@
 #ifndef EXT_NVAPI_H
 #define EXT_NVAPI_H
 
-#if defined(HAVE_HWMON) && defined(HAVE_NVAPI)
+#if defined(HAVE_HWMON)
 
 #include <common.h>
 
@@ -296,7 +296,9 @@ typedef struct
 #define NV_GPU_DYNAMIC_PSTATES_INFO_EX_VER MAKE_NVAPI_VERSION(NV_GPU_DYNAMIC_PSTATES_INFO_EX,1)
 
 #define NVAPI_MAX_COOLER_PER_GPU 20
+
 #define GPU_COOLER_SETTINGS_VER  0x20000
+#define GPU_COOLER_LEVELS_VER    0x10000
 
 // Used in NV_GPU_COOLER_SETTINGS
 typedef struct
@@ -324,6 +326,20 @@ typedef struct
   NvCooler Cooler[NVAPI_MAX_COOLER_PER_GPU];
 
 } NV_GPU_COOLER_SETTINGS;
+
+typedef struct
+{
+  NvS32 Level;
+  NvS32 Policy;
+
+} NvLevel;
+
+typedef struct
+{
+  NvU32    Version;
+  NvLevel  Levels[NVAPI_MAX_COOLER_PER_GPU];
+
+} NV_GPU_COOLER_LEVELS;
 
 #define NVAPI_MAX_GPU_PUBLIC_CLOCKS     32
 
@@ -407,6 +423,7 @@ NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs(NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX
 NVAPI_INTERFACE NvAPI_GPU_GetThermalSettings(NvPhysicalGpuHandle hPhysicalGpu, NvU32 sensorIndex, NV_GPU_THERMAL_SETTINGS *pThermalSettings);
 NVAPI_INTERFACE NvAPI_GPU_GetTachReading(NvPhysicalGpuHandle hPhysicalGPU, NvU32 *pValue);
 NVAPI_INTERFACE NvAPI_GPU_GetCoolerSettings(NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_SETTINGS *pCoolerSettings);
+NVAPI_INTERFACE NvAPI_GPU_SetCoolerLevels(NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels);
 NVAPI_INTERFACE NvAPI_GPU_GetDynamicPstatesInfoEx(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
 NVAPI_INTERFACE NvAPI_GPU_GetAllClockFrequencies(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_CLOCK_FREQUENCIES *pClkFreqs);
 NVAPI_INTERFACE NvAPI_GPU_GetCurrentPCIEDownstreamWidth(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pWidth);
@@ -478,6 +495,7 @@ typedef int (*NVAPI_ENUMPHYSICALGPUS) (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX
 typedef int (*NVAPI_GPU_GETTHERMALSETTINGS) (NvPhysicalGpuHandle, NvU32, NV_GPU_THERMAL_SETTINGS *);
 typedef int (*NVAPI_GPU_GETTACHREADING) (NvPhysicalGpuHandle, NvU32 *);
 typedef int (*NVAPI_GPU_GETCOOLERSETTINGS) (NvPhysicalGpuHandle, NvU32, NV_GPU_COOLER_SETTINGS *);
+typedef int (*NVAPI_GPU_SETCOOLERLEVELS) (NvPhysicalGpuHandle, NvU32, NV_GPU_COOLER_LEVELS *);
 typedef int (*NVAPI_GPU_GETDYNAMICPSTATESINFOEX) (NvPhysicalGpuHandle, NV_GPU_DYNAMIC_PSTATES_INFO_EX *);
 typedef int (*NVAPI_GPU_GETALLCLOCKFREQUENCIES) (NvPhysicalGpuHandle, NV_GPU_CLOCK_FREQUENCIES *);
 typedef int (*NVAPI_GPU_GETCURRENTPCIEDOWNSTREAMWIDTH) (NvPhysicalGpuHandle, NvU32 *);
@@ -495,6 +513,7 @@ typedef struct
   NVAPI_GPU_GETTHERMALSETTINGS NvAPI_GPU_GetThermalSettings;
   NVAPI_GPU_GETTACHREADING NvAPI_GPU_GetTachReading;
   NVAPI_GPU_GETCOOLERSETTINGS NvAPI_GPU_GetCoolerSettings;
+  NVAPI_GPU_SETCOOLERLEVELS NvAPI_GPU_SetCoolerLevels;
   NVAPI_GPU_GETDYNAMICPSTATESINFOEX NvAPI_GPU_GetDynamicPstatesInfoEx;
   NVAPI_GPU_GETALLCLOCKFREQUENCIES NvAPI_GPU_GetAllClockFrequencies;
   NVAPI_GPU_GETCURRENTPCIEDOWNSTREAMWIDTH NvAPI_GPU_GetCurrentPCIEDownstreamWidth;
@@ -515,11 +534,12 @@ int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle
 int hm_NvAPI_GPU_GetThermalSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 sensorIndex, NV_GPU_THERMAL_SETTINGS *pThermalSettings);
 int hm_NvAPI_GPU_GetTachReading (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGPU, NvU32 *pValue);
 int hm_NvAPI_GPU_GetCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_SETTINGS *pCoolerSettings);
+int hm_NvAPI_GPU_SetCoolerLevels (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels);
 int hm_NvAPI_GPU_GetDynamicPstatesInfoEx (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
 int hm_NvAPI_GPU_GetAllClockFrequencies (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_CLOCK_FREQUENCIES *pClkFreqs);
 int hm_NvAPI_GPU_GetCurrentPCIEDownstreamWidth (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pWidth);
 int hm_NvAPI_GPU_GetPerfDecreaseInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pPerfDecrInfo);
 
-#endif // HAVE_HWMON && HAVE_NVAPI
+#endif // HAVE_HWMON
 
 #endif // EXT_NVAPI_H

@@ -2671,7 +2671,8 @@ void fsync (int fd)
  */
 
 #ifdef HAVE_HWMON
-#if defined(_WIN) && defined(HAVE_NVAPI)
+
+#if defined(_WIN)
 int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 {
   NvU32 pGpuCount;
@@ -2687,9 +2688,9 @@ int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 
   return (pGpuCount);
 }
-#endif // _WIN && HAVE_NVAPI
+#endif // _WIN
 
-#if defined(LINUX) && defined(HAVE_NVML)
+#if defined(LINUX)
 int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 {
   int pGpuCount = 0;
@@ -2714,9 +2715,8 @@ int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
 
   return (pGpuCount);
 }
-#endif // LINUX && HAVE_NVML
+#endif
 
-#ifdef HAVE_ADL
 int get_adapters_num_amd (void *adl, int *iNumberAdapters)
 {
   if (hm_ADL_Adapter_NumberOfAdapters_Get ((ADL_PTR *) adl, iNumberAdapters) != ADL_OK) return -1;
@@ -2969,11 +2969,11 @@ int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_
       if ((FanSpeedInfo.iFlags & ADL_DL_FANCTRL_SUPPORTS_PERCENT_READ) &&
           (FanSpeedInfo.iFlags & ADL_DL_FANCTRL_SUPPORTS_PERCENT_WRITE))
       {
-        hm_device[opencl_device_index].fan_supported = 1;
+        hm_device[opencl_device_index].fan_get_supported = 1;
       }
       else
       {
-        hm_device[opencl_device_index].fan_supported = 0;
+        hm_device[opencl_device_index].fan_get_supported = 0;
       }
     }
     else // od_version == 6
@@ -2988,11 +2988,11 @@ int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_
 
       if (faninfo.iSpeedType & ADL_OD6_FANSPEED_TYPE_PERCENT)
       {
-        hm_device[opencl_device_index].fan_supported = 1;
+        hm_device[opencl_device_index].fan_get_supported = 1;
       }
       else
       {
-        hm_device[opencl_device_index].fan_supported = 0;
+        hm_device[opencl_device_index].fan_get_supported = 0;
       }
     }
   }
@@ -3055,13 +3055,11 @@ int hm_get_adapter_index_amd (hm_attrs_t *hm_device, u32 *valid_adl_device_list,
 
   return num_adl_adapters;
 }
-#endif // HAVE_ADL
 
 int hm_get_threshold_slowdown_with_device_id (const uint device_id)
 {
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  #ifdef HAVE_ADL
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_amd)
@@ -3083,12 +3081,10 @@ int hm_get_threshold_slowdown_with_device_id (const uint device_id)
       }
     }
   }
-  #endif
 
-  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    #if defined(LINUX) && defined(HAVE_NVML)
+    #if defined(LINUX)
     int target = 0;
 
     hm_NVML_nvmlDeviceGetTemperatureThreshold (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN, (unsigned int *) &target);
@@ -3096,11 +3092,10 @@ int hm_get_threshold_slowdown_with_device_id (const uint device_id)
     return target;
     #endif
 
-    #if defined(WIN) && defined(HAVE_NVAPI)
+    #if defined(WIN)
 
-    #endif // WIN && HAVE_NVAPI
+    #endif // WIN
   }
-  #endif // HAVE_NVML || HAVE_NVAPI
 
   return -1;
 }
@@ -3109,7 +3104,6 @@ int hm_get_temperature_with_device_id (const uint device_id)
 {
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  #ifdef HAVE_ADL
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_amd)
@@ -3134,12 +3128,10 @@ int hm_get_temperature_with_device_id (const uint device_id)
       }
     }
   }
-  #endif
 
-  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    #if defined(LINUX) && defined(HAVE_NVML)
+    #if defined(LINUX)
     int temperature = 0;
 
     hm_NVML_nvmlDeviceGetTemperature (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_GPU, (uint *) &temperature);
@@ -3147,7 +3139,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
     return temperature;
     #endif
 
-    #if defined(WIN) && defined(HAVE_NVAPI)
+    #if defined(WIN)
     NV_GPU_THERMAL_SETTINGS pThermalSettings;
 
     pThermalSettings.version = NV_GPU_THERMAL_SETTINGS_VER;
@@ -3158,21 +3150,63 @@ int hm_get_temperature_with_device_id (const uint device_id)
     if (hm_NvAPI_GPU_GetThermalSettings (data.hm_nv, data.hm_device[device_id].adapter_index.nv, 0, &pThermalSettings) != NVAPI_OK) return -1;
 
     return pThermalSettings.sensor[0].currentTemp;
-    #endif // WIN && HAVE_NVAPI
+    #endif // WIN
   }
-  #endif // HAVE_NVML || HAVE_NVAPI
+
+  return -1;
+}
+
+int hm_get_fanpolicy_with_device_id (const uint device_id)
+{
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
+  if (data.hm_device[device_id].fan_get_supported == 1)
+  {
+    if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+    {
+      if (data.hm_amd)
+      {
+        if (data.hm_device[device_id].od_version == 5)
+        {
+          ADLFanSpeedValue lpFanSpeedValue;
+
+          memset (&lpFanSpeedValue, 0, sizeof (lpFanSpeedValue));
+
+          lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
+          lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
+
+          if (hm_ADL_Overdrive5_FanSpeed_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+
+          return (lpFanSpeedValue.iFanSpeed & ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED) ? 0 : 1;
+        }
+        else // od_version == 6
+        {
+          return 1;
+        }
+      }
+    }
+
+    if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+    {
+      #if defined(LINUX)
+      return 0;
+      #endif
+
+      #if defined(WIN)
+      return 1;
+      #endif
+    }
+  }
 
   return -1;
 }
 
 int hm_get_fanspeed_with_device_id (const uint device_id)
 {
-  // we shouldn't really need this extra CL_DEVICE_TYPE_GPU check, because fan_supported should not be set w/ CPUs
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (data.hm_device[device_id].fan_supported == 1)
+  if (data.hm_device[device_id].fan_get_supported == 1)
   {
-    #ifdef HAVE_ADL
     if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
     {
       if (data.hm_amd)
@@ -3203,12 +3237,10 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
         }
       }
     }
-    #endif // HAVE_ADL
 
-    #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
     if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
     {
-      #if defined(LINUX) && defined(HAVE_NVML)
+      #if defined(LINUX)
       int speed = 0;
 
       hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, (uint *) &speed);
@@ -3216,17 +3248,16 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
       return speed;
       #endif
 
-      #if defined(WIN) && defined(HAVE_NVAPI)
+      #if defined(WIN)
       NV_GPU_COOLER_SETTINGS pCoolerSettings;
 
       pCoolerSettings.Version = GPU_COOLER_SETTINGS_VER | sizeof (NV_GPU_COOLER_SETTINGS);
 
-      hm_NvAPI_GPU_GetCoolerSettings (data.hm_nv, data.hm_device[device_id].adapter_index.nv, 0, &pCoolerSettings);
+      if (hm_NvAPI_GPU_GetCoolerSettings (data.hm_nv, data.hm_device[device_id].adapter_index.nv, 0, &pCoolerSettings) != NVAPI_OK) return -1;
 
       return pCoolerSettings.Cooler[0].CurrentLevel;
       #endif
     }
-    #endif // HAVE_NVML || HAVE_NVAPI
   }
 
   return -1;
@@ -3236,7 +3267,6 @@ int hm_get_buslanes_with_device_id (const uint device_id)
 {
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  #ifdef HAVE_ADL
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_amd)
@@ -3250,12 +3280,10 @@ int hm_get_buslanes_with_device_id (const uint device_id)
       return PMActivity.iCurrentBusLanes;
     }
   }
-  #endif // HAVE_ADL
 
-  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    #if defined(LINUX) && defined(HAVE_NVML)
+    #if defined(LINUX)
     unsigned int currLinkWidth;
 
     hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &currLinkWidth);
@@ -3263,7 +3291,7 @@ int hm_get_buslanes_with_device_id (const uint device_id)
     return currLinkWidth;
     #endif
 
-    #if defined(WIN) && defined(HAVE_NVAPI)
+    #if defined(WIN)
     int Width;
 
     if (hm_NvAPI_GPU_GetCurrentPCIEDownstreamWidth (data.hm_nv, data.hm_device[device_id].adapter_index.nv, (NvU32 *) &Width) != NVAPI_OK) return -1;
@@ -3271,7 +3299,6 @@ int hm_get_buslanes_with_device_id (const uint device_id)
     return Width;
     #endif
   }
-  #endif // HAVE_NVML || HAVE_NVAPI
 
   return -1;
 }
@@ -3280,7 +3307,6 @@ int hm_get_utilization_with_device_id (const uint device_id)
 {
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  #ifdef HAVE_ADL
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_amd)
@@ -3294,12 +3320,10 @@ int hm_get_utilization_with_device_id (const uint device_id)
       return PMActivity.iActivityPercent;
     }
   }
-  #endif // HAVE_ADL
 
-  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    #if defined(LINUX) && defined(HAVE_NVML)
+    #if defined(LINUX)
     nvmlUtilization_t utilization;
 
     hm_NVML_nvmlDeviceGetUtilizationRates (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &utilization);
@@ -3307,7 +3331,7 @@ int hm_get_utilization_with_device_id (const uint device_id)
     return utilization.gpu;
     #endif
 
-    #if defined(WIN) && defined(HAVE_NVAPI)
+    #if defined(WIN)
     NV_GPU_DYNAMIC_PSTATES_INFO_EX pDynamicPstatesInfoEx;
 
     pDynamicPstatesInfoEx.version = NV_GPU_DYNAMIC_PSTATES_INFO_EX_VER;
@@ -3317,7 +3341,6 @@ int hm_get_utilization_with_device_id (const uint device_id)
     return pDynamicPstatesInfoEx.utilization[0].percentage;
     #endif
   }
-  #endif // HAVE_NVML || HAVE_NVAPI
 
   return -1;
 }
@@ -3326,7 +3349,6 @@ int hm_get_memoryspeed_with_device_id (const uint device_id)
 {
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  #ifdef HAVE_ADL
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_amd)
@@ -3340,12 +3362,10 @@ int hm_get_memoryspeed_with_device_id (const uint device_id)
       return PMActivity.iMemoryClock / 100;
     }
   }
-  #endif // HAVE_ADL
 
-  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    #if defined(LINUX) && defined(HAVE_NVML)
+    #if defined(LINUX)
     unsigned int clock;
 
     hm_NVML_nvmlDeviceGetClockInfo (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_CLOCK_MEM, &clock);
@@ -3353,7 +3373,7 @@ int hm_get_memoryspeed_with_device_id (const uint device_id)
     return clock;
     #endif
 
-    #if defined(WIN) && defined(HAVE_NVAPI)
+    #if defined(WIN)
     NV_GPU_CLOCK_FREQUENCIES pClkFreqs = { 0 };
 
     pClkFreqs.version   = NV_GPU_CLOCK_FREQUENCIES_VER;
@@ -3364,7 +3384,6 @@ int hm_get_memoryspeed_with_device_id (const uint device_id)
     return pClkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_MEMORY].frequency / 1000;
     #endif
   }
-  #endif // HAVE_NVML || HAVE_NVAPI
 
   return -1;
 }
@@ -3373,7 +3392,6 @@ int hm_get_corespeed_with_device_id (const uint device_id)
 {
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  #ifdef HAVE_ADL
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_amd)
@@ -3387,12 +3405,10 @@ int hm_get_corespeed_with_device_id (const uint device_id)
       return PMActivity.iEngineClock / 100;
     }
   }
-  #endif // HAVE_ADL
 
-  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    #if defined(LINUX) && defined(HAVE_NVML)
+    #if defined(LINUX)
     unsigned int clock;
 
     hm_NVML_nvmlDeviceGetClockInfo (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_CLOCK_SM, &clock);
@@ -3400,7 +3416,7 @@ int hm_get_corespeed_with_device_id (const uint device_id)
     return clock;
     #endif
 
-    #if defined(WIN) && defined(HAVE_NVAPI)
+    #if defined(WIN)
     NV_GPU_CLOCK_FREQUENCIES pClkFreqs = { 0 };
 
     pClkFreqs.version   = NV_GPU_CLOCK_FREQUENCIES_VER;
@@ -3411,7 +3427,6 @@ int hm_get_corespeed_with_device_id (const uint device_id)
     return pClkFreqs.domain[NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS].frequency / 1000;
     #endif
   }
-  #endif // HAVE_NVML || HAVE_NVAPI
 
   return -1;
 }
@@ -3420,18 +3435,18 @@ int hm_get_throttle_with_device_id (const uint device_id)
 {
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  #ifdef HAVE_ADL
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  {
 
-  #endif // HAVE_ADL
+  }
 
-  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    #if defined(LINUX) && defined(HAVE_NVML)
+    #if defined(LINUX)
 
     #endif
 
-    #if defined(WIN) && defined(HAVE_NVAPI)
+    #if defined(WIN)
     NvU32 throttle = 0;
 
     if (hm_NvAPI_GPU_GetPerfDecreaseInfo (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &throttle) != NVAPI_OK) return -1;
@@ -3439,15 +3454,13 @@ int hm_get_throttle_with_device_id (const uint device_id)
     return throttle;
     #endif
   }
-  #endif // HAVE_NVML || HAVE_NVAPI
 
   return -1;
 }
 
-#ifdef HAVE_ADL
-int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed)
+int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed, const int fanpolicy)
 {
-  if (data.hm_device[device_id].fan_supported == 1)
+  if (data.hm_device[device_id].fan_set_supported == 1)
   {
     if (data.hm_amd)
     {
@@ -3459,7 +3472,7 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
 
         lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
         lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
-        lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
+        lpFanSpeedValue.iFlags     = (fanpolicy == 1) ? ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED : 0;
         lpFanSpeedValue.iFanSpeed  = fanspeed;
 
         if (hm_ADL_Overdrive5_FanSpeed_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, 0, &lpFanSpeedValue) != ADL_OK) return -1;
@@ -3484,23 +3497,48 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
 
   return -1;
 }
+
+#if defined(WIN)
+int hm_set_fanspeed_with_device_id_nvapi (const uint device_id, const int fanspeed, const int fanpolicy)
+{
+  if (data.hm_device[device_id].fan_set_supported == 1)
+  {
+    if (data.hm_nv)
+    {
+      NV_GPU_COOLER_LEVELS CoolerLevels = { 0 };
+
+      CoolerLevels.Version = GPU_COOLER_LEVELS_VER | sizeof (NV_GPU_COOLER_LEVELS);
+
+      CoolerLevels.Levels[0].Level  = fanspeed;
+      CoolerLevels.Levels[0].Policy = fanpolicy;
+
+      if (hm_NvAPI_GPU_SetCoolerLevels (data.hm_nv, data.hm_device[device_id].adapter_index.nv, 0, &CoolerLevels) != NVAPI_OK) return -1;
+
+      return 0;
+    }
+  }
+
+  return -1;
+}
 #endif
 
-// helper function for status display
-
-void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value)
+#if defined(LINUX)
+int hm_set_fanspeed_with_device_id_nvml (const uint device_id, const int fanspeed, const int fanpolicy)
 {
-  #define VALUE_NOT_AVAILABLE "N/A"
+  if (data.hm_device[device_id].fan_set_supported == 1)
+  {
+    if (data.hm_nv)
+    {
+      // NVML does not support setting the fan speed... :((
 
-  if (value == -1)
-  {
-    snprintf (target_buf, max_buf_size, VALUE_NOT_AVAILABLE);
+      if (fanspeed == fanpolicy) return -1; // makes the compiler happy
+    }
   }
-  else
-  {
-    snprintf (target_buf, max_buf_size, "%2d%s", value, suffix);
-  }
+
+  return -1;
 }
+#endif
+
 #endif // HAVE_HWMON
 
 /**

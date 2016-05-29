@@ -23,7 +23,8 @@ It combines all features of all hashcat projects in one project.
 - Added makefile native compilation target
 - Added makefile install and uninstall targets
 - Added autotuning engine and user-configurable tuning database
-- Added current engine clock and current memory clock to the status display
+- Added current engine clock, current memory clock and pci-e lanes to the status display
+- Added support for --gpu-temp-retain for nvidia devices on windows
 - Added execution timer of the running kernel to the status display
 - Added command prompt to quit at next restore checkpoint
 - Added human-readable error message for the OpenCL error codes
@@ -130,3 +131,5 @@ It combines all features of all hashcat projects in one project.
 - Created environment variable to inform NVidia OpenCL runtime to not create its own kernel cache
 - Created environment variable to inform pocl OpenCL runtime to not create its own kernel cache
 - Dropped special 64-bit rotate() handling for NV, it seems that they've added it to their OpenCL runtime
+- Disabled retain support by default, you can reactive it using --gpu-temp-retain
+- Completely get rid of HAVE_ADL, HAVE_NVML and HAVE_NVAPI in sources

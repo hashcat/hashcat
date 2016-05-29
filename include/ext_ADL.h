@@ -9,7 +9,7 @@
 #ifndef EXT_ADL_H
 #define EXT_ADL_H
 
-#if defined(HAVE_HWMON) && defined(HAVE_ADL)
+#if defined(HAVE_HWMON)
 
 #include <common.h>
 
@@ -393,6 +393,6 @@ int hm_ADL_Overdrive6_PowerControl_Caps (ADL_PTR *adl, int iAdapterIndex, int *l
 int hm_ADL_Overdrive6_TargetTemperatureData_Get (ADL_PTR *adl, int iAdapterIndex, int *cur_temp, int *default_temp);
 int hm_ADL_Overdrive6_TargetTemperatureRangeInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6ParameterRange *lpTargetTemperatureInfo);
 
-#endif // HAVE_HWMON && HAVE_ADL
+#endif // HAVE_HWMON
 
 #endif // EXT_ADL_H

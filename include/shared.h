@@ -1434,11 +1434,8 @@ void fsync (int fd);
 
 #ifdef HAVE_HWMON
 
-#if defined(HAVE_NVML) || defined(HAVE_NVAPI)
 int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX]);
-#endif
 
-#ifdef HAVE_ADL
 int get_adapters_num_amd (void *adl, int *iNumberAdapters);
 
 int hm_get_adapter_index_amd (hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
@@ -1452,18 +1449,26 @@ int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_
 
 // int hm_get_device_num (void *adl, HM_ADAPTER_AMD hm_adapter_index, int *hm_device_num);
 // void hm_get_opencl_busid_devid (hm_attrs_t *hm_device, uint opencl_num_devices, cl_device_id *devices);
-#endif // HAVE_ADL
 
 int hm_get_threshold_slowdown_with_device_id (const uint device_id);
 int hm_get_temperature_with_device_id        (const uint device_id);
 int hm_get_fanspeed_with_device_id           (const uint device_id);
+int hm_get_fanpolicy_with_device_id          (const uint device_id);
 int hm_get_buslanes_with_device_id           (const uint device_id);
 int hm_get_utilization_with_device_id        (const uint device_id);
 int hm_get_memoryspeed_with_device_id        (const uint device_id);
 int hm_get_corespeed_with_device_id          (const uint device_id);
 int hm_get_throttle_with_device_id           (const uint device_id);
 
-int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed);
+int hm_set_fanspeed_with_device_id_amd   (const uint device_id, const int fanspeed, const int fanpolicy);
+
+#if defined(WIN)
+int hm_set_fanspeed_with_device_id_nvapi (const uint device_id, const int fanspeed, const int fanpolicy);
+#endif
+
+#if defined(LINUX)
+int hm_set_fanspeed_with_device_id_nvml  (const uint device_id, const int fanspeed, const int fanpolicy);
+#endif
 
 void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value);
 #endif // HAVE_HWMON

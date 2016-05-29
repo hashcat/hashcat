@@ -36,6 +36,7 @@ int nvapi_init (NVAPI_PTR *nvapi)
   HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetThermalSettings,             NVAPI_GPU_GETTHERMALSETTINGS,             nvapi_QueryInterface, 0xE3640A56, NVAPI, 0)
   HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetTachReading,                 NVAPI_GPU_GETTACHREADING,                 nvapi_QueryInterface, 0x5F608315, NVAPI, 0)
   HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetCoolerSettings,              NVAPI_GPU_GETCOOLERSETTINGS,              nvapi_QueryInterface, 0xDA141340, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GPU_SetCoolerLevels,                NVAPI_GPU_SETCOOLERLEVELS,                nvapi_QueryInterface, 0x891FA0AE, NVAPI, 0)
   HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetAllClockFrequencies,         NVAPI_GPU_GETALLCLOCKFREQUENCIES,         nvapi_QueryInterface, 0xDCB616C3, NVAPI, 0)
   HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetCurrentPCIEDownstreamWidth,  NVAPI_GPU_GETCURRENTPCIEDOWNSTREAMWIDTH,  nvapi_QueryInterface, 0xD048C3B1, NVAPI, 0)
   HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetPerfDecreaseInfo,            NVAPI_GPU_GETPERFDECREASEINFO,            nvapi_QueryInterface, 0x7F7F4600, NVAPI, 0)
@@ -166,6 +167,24 @@ int hm_NvAPI_GPU_GetCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysi
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
     log_info ("WARN: %s %d %s\n", "NvAPI_GPU_GetCoolerSettings()", NvAPI_rc, string);
+  }
+
+  return NvAPI_rc;
+}
+
+int hm_NvAPI_GPU_SetCoolerLevels (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels)
+{
+  if (!nvapi) return (-1);
+
+  NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_SetCoolerLevels (hPhysicalGpu, coolerIndex, pCoolerLevels);
+
+  if (NvAPI_rc != NVAPI_OK)
+  {
+    NvAPI_ShortString string = { 0 };
+
+    hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
+
+    log_info ("WARN: %s %d %s\n", "NvAPI_GPU_SetCoolerLevels()", NvAPI_rc, string);
   }
 
   return NvAPI_rc;

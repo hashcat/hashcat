@@ -1088,18 +1088,15 @@ typedef struct
 {
   union
   {
-    #ifdef HAVE_ADL
     HM_ADAPTER_AMD amd;
-    #endif
-
-    #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
     HM_ADAPTER_NV  nv;
-    #endif
 
   } adapter_index;
 
   int   od_version;
-  int   fan_supported;
+
+  int   fan_get_supported;
+  int   fan_set_supported;
 
   int   gpu_temp_threshold_slowdown;
   int   gpu_temp_threshold_shutdown;
