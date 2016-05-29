@@ -396,6 +396,7 @@ NVAPI_INTERFACE NvAPI_GPU_GetTachReading(NvPhysicalGpuHandle hPhysicalGPU, NvU32
 NVAPI_INTERFACE NvAPI_GPU_GetCoolerSettings(NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_SETTINGS *pCoolerSettings);
 NVAPI_INTERFACE NvAPI_GPU_GetDynamicPstatesInfoEx(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
 NVAPI_INTERFACE NvAPI_GPU_GetAllClockFrequencies(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_CLOCK_FREQUENCIES *pClkFreqs);
+NVAPI_INTERFACE NvAPI_GPU_GetCurrentPCIEDownstreamWidth(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pWidth);
 
 #ifdef __nvapi_success
     #undef __success
@@ -465,6 +466,7 @@ typedef int (*NVAPI_GPU_GETTACHREADING) (NvPhysicalGpuHandle, NvU32 *);
 typedef int (*NVAPI_GPU_GETCOOLERSETTINGS) (NvPhysicalGpuHandle, NvU32, NV_GPU_COOLER_SETTINGS *);
 typedef int (*NVAPI_GPU_GETDYNAMICPSTATESINFOEX) (NvPhysicalGpuHandle, NV_GPU_DYNAMIC_PSTATES_INFO_EX *);
 typedef int (*NVAPI_GPU_GETALLCLOCKFREQUENCIES) (NvPhysicalGpuHandle, NV_GPU_CLOCK_FREQUENCIES *);
+typedef int (*NVAPI_GPU_GETCURRENTPCIEDOWNSTREAMWIDTH) (NvPhysicalGpuHandle, NvU32 *);
 
 typedef struct
 {
@@ -480,6 +482,7 @@ typedef struct
   NVAPI_GPU_GETCOOLERSETTINGS NvAPI_GPU_GetCoolerSettings;
   NVAPI_GPU_GETDYNAMICPSTATESINFOEX NvAPI_GPU_GetDynamicPstatesInfoEx;
   NVAPI_GPU_GETALLCLOCKFREQUENCIES NvAPI_GPU_GetAllClockFrequencies;
+  NVAPI_GPU_GETCURRENTPCIEDOWNSTREAMWIDTH NvAPI_GPU_GetCurrentPCIEDownstreamWidth;
 
 } hm_nvapi_lib_t;
 
@@ -498,6 +501,7 @@ int hm_NvAPI_GPU_GetTachReading (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysical
 int hm_NvAPI_GPU_GetCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_SETTINGS *pCoolerSettings);
 int hm_NvAPI_GPU_GetDynamicPstatesInfoEx (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
 int hm_NvAPI_GPU_GetAllClockFrequencies (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_CLOCK_FREQUENCIES *pClkFreqs);
+int hm_NvAPI_GPU_GetCurrentPCIEDownstreamWidth (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pWidth);
 
 #endif // HAVE_HWMON && HAVE_NVAPI
 

@@ -3264,7 +3264,11 @@ int hm_get_buslanes_with_device_id (const uint device_id)
     #endif
 
     #if defined(WIN) && defined(HAVE_NVAPI)
+    int Width;
 
+    if (hm_NvAPI_GPU_GetCurrentPCIEDownstreamWidth (data.hm_nv, data.hm_device[device_id].adapter_index.nv, (NvU32 *) &Width) != NVAPI_OK) return -1;
+
+    return Width;
     #endif
   }
   #endif // HAVE_NVML || HAVE_NVAPI
