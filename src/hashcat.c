@@ -13984,7 +13984,6 @@ int main (int argc, char **argv)
     #ifdef HAVE_HWMON
     hm_attrs_t hm_adapters_nv[DEVICES_MAX]  = { { { 0 }, 0, 0, 0, 0, 0 } };
     hm_attrs_t hm_adapters_amd[DEVICES_MAX] = { { { 0 }, 0, 0, 0, 0, 0 } };
-    #endif
 
     if (gpu_temp_disable == 0)
     {
@@ -14110,33 +14109,17 @@ int main (int argc, char **argv)
      * OpenCL devices: allocate buffer for device specific information
      */
 
-    #ifdef HAVE_HWMON
     int *temp_retain_fanspeed_value  = (int *) mycalloc (data.devices_cnt, sizeof (int));
     int *temp_retain_fanpolicy_value = (int *) mycalloc (data.devices_cnt, sizeof (int));
 
     ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (data.devices_cnt, sizeof (ADLOD6MemClockState));
 
     int *od_power_control_status = (int *) mycalloc (data.devices_cnt, sizeof (int));
-    #endif
-
-    /**
-     * enable custom signal handler(s)
-     */
-
-    if (benchmark == 0)
-    {
-      hc_signal (sigHandler_default);
-    }
-    else
-    {
-      hc_signal (sigHandler_benchmark);
-    }
 
     /**
      * User-defined GPU temp handling
      */
 
-    #ifdef HAVE_HWMON
     if (gpu_temp_disable == 1)
     {
       gpu_temp_abort  = 0;
@@ -14157,6 +14140,19 @@ int main (int argc, char **argv)
     data.gpu_temp_abort   = gpu_temp_abort;
     data.gpu_temp_retain  = gpu_temp_retain;
     #endif
+
+    /**
+     * enable custom signal handler(s)
+     */
+
+    if (benchmark == 0)
+    {
+      hc_signal (sigHandler_default);
+    }
+    else
+    {
+      hc_signal (sigHandler_benchmark);
+    }
 
     /**
      * inform the user
