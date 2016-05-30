@@ -212,31 +212,34 @@ GeForce_GTX_950M                                ALIAS_nv_sm50
 GeForce_GTX_960M                                ALIAS_nv_sm50
 
 ##
-## Maxwell sm_52 cards
+## Maxwell sm_52 cards or higher
 ##
 
-Tesla_M40                                       ALIAS_nv_sm52
+Tesla_M40                                       ALIAS_nv_sm52_or_higher
 
-Quadro_M2000                                    ALIAS_nv_sm52
-Quadro_M4000                                    ALIAS_nv_sm52
-Quadro_M5000                                    ALIAS_nv_sm52
-Quadro_M6000_24GB                               ALIAS_nv_sm52
-Quadro_M6000                                    ALIAS_nv_sm52
+Quadro_M2000                                    ALIAS_nv_sm52_or_higher
+Quadro_M4000                                    ALIAS_nv_sm52_or_higher
+Quadro_M5000                                    ALIAS_nv_sm52_or_higher
+Quadro_M6000_24GB                               ALIAS_nv_sm52_or_higher
+Quadro_M6000                                    ALIAS_nv_sm52_or_higher
 
-GeForce_GTX_950                                 ALIAS_nv_sm52
-GeForce_GTX_960                                 ALIAS_nv_sm52
-GeForce_GTX_970                                 ALIAS_nv_sm52
-GeForce_GTX_980                                 ALIAS_nv_sm52
-GeForce_GTX_980_Ti                              ALIAS_nv_sm52
-GeForce_GTX_TITAN_X                             ALIAS_nv_sm52
+GeForce_GTX_950                                 ALIAS_nv_sm52_or_higher
+GeForce_GTX_960                                 ALIAS_nv_sm52_or_higher
+GeForce_GTX_970                                 ALIAS_nv_sm52_or_higher
+GeForce_GTX_980                                 ALIAS_nv_sm52_or_higher
+GeForce_GTX_980_Ti                              ALIAS_nv_sm52_or_higher
+GeForce_GTX_TITAN_X                             ALIAS_nv_sm52_or_higher
+GeForce_GTX_1080                                ALIAS_nv_sm52_or_higher
+Graphics_Device                                 ALIAS_nv_sm52_or_higher
+# ^ We need to remove this as soon as it gets a real device name :)
 
-GeForce_910M                                    ALIAS_nv_sm52
-GeForce_GTX_910M                                ALIAS_nv_sm52
-GeForce_GTX_965M                                ALIAS_nv_sm52
-GeForce_GTX_970M                                ALIAS_nv_sm52
-GeForce_GTX_980M                                ALIAS_nv_sm52
+GeForce_910M                                    ALIAS_nv_sm52_or_higher
+GeForce_GTX_910M                                ALIAS_nv_sm52_or_higher
+GeForce_GTX_965M                                ALIAS_nv_sm52_or_higher
+GeForce_GTX_970M                                ALIAS_nv_sm52_or_higher
+GeForce_GTX_980M                                ALIAS_nv_sm52_or_higher
 
-Tegra_X1                                        ALIAS_nv_sm52
+Tegra_X1                                        ALIAS_nv_sm52_or_higher
 
 #############
 ## ENTRIES ##
@@ -325,25 +328,25 @@ ALIAS_nv_sm50                                   *       11000   2       A       
 ALIAS_nv_sm50                                   *       11100   2       A       A
 ALIAS_nv_sm50                                   *       11900   2       A       A
 
-ALIAS_nv_sm52                                   *       0       4       A       A
-ALIAS_nv_sm52                                   *       10      4       A       A
-ALIAS_nv_sm52                                   *       11      4       A       A
-ALIAS_nv_sm52                                   *       12      4       A       A
-ALIAS_nv_sm52                                   *       30      4       A       A
-ALIAS_nv_sm52                                   *       200     4       A       A
-ALIAS_nv_sm52                                   *       900     4       A       A
-ALIAS_nv_sm52                                   *       1000    2       A       A
-ALIAS_nv_sm52                                   *       1100    4       A       A
-ALIAS_nv_sm52                                   *       2400    2       A       A
-ALIAS_nv_sm52                                   *       2410    4       A       A
-ALIAS_nv_sm52                                   *       2711    2       A       A
-ALIAS_nv_sm50                                   *       3711    2       A       A
-ALIAS_nv_sm50                                   *       5100    2       A       A
-ALIAS_nv_sm52                                   *       8000    2       A       A
-ALIAS_nv_sm52                                   *       9900    4       A       A
-ALIAS_nv_sm52                                   *       10100   2       A       A
-ALIAS_nv_sm52                                   *       11000   2       A       A
-ALIAS_nv_sm52                                   *       11100   2       A       A
+ALIAS_nv_sm52_or_higher                         *       0       4       A       A
+ALIAS_nv_sm52_or_higher                         *       10      4       A       A
+ALIAS_nv_sm52_or_higher                         *       11      4       A       A
+ALIAS_nv_sm52_or_higher                         *       12      4       A       A
+ALIAS_nv_sm52_or_higher                         *       30      4       A       A
+ALIAS_nv_sm52_or_higher                         *       200     4       A       A
+ALIAS_nv_sm52_or_higher                         *       900     4       A       A
+ALIAS_nv_sm52_or_higher                         *       1000    2       A       A
+ALIAS_nv_sm52_or_higher                         *       1100    4       A       A
+ALIAS_nv_sm52_or_higher                         *       2400    2       A       A
+ALIAS_nv_sm52_or_higher                         *       2410    4       A       A
+ALIAS_nv_sm52_or_higher                         *       2711    2       A       A
+ALIAS_nv_sm52_or_higher                         *       3711    2       A       A
+ALIAS_nv_sm52_or_higher                         *       5100    2       A       A
+ALIAS_nv_sm52_or_higher                         *       8000    2       A       A
+ALIAS_nv_sm52_or_higher                         *       9900    4       A       A
+ALIAS_nv_sm52_or_higher                         *       10100   2       A       A
+ALIAS_nv_sm52_or_higher                         *       11000   2       A       A
+ALIAS_nv_sm52_or_higher                         *       11100   2       A       A
 
 ##
 ## The following cards were manually tuned, as example
