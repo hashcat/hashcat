@@ -1547,8 +1547,7 @@ void status_display ()
       const int num_corespeed   = hm_get_corespeed_with_device_id   (device_id);
       const int num_memoryspeed = hm_get_memoryspeed_with_device_id (device_id);
       const int num_buslanes    = hm_get_buslanes_with_device_id    (device_id);
-      // not working
-      //const int num_throttle    = hm_get_throttle_with_device_id    (device_id);
+      const int num_throttle    = hm_get_throttle_with_device_id    (device_id);
 
       char output_buf[256] = { 0 };
 
@@ -1596,14 +1595,12 @@ void status_display ()
         output_len = strlen (output_buf);
       }
 
-      /*
-      if (num_throttle >= 0)
+      if (num_throttle == 1)
       {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Throttle:%u", num_throttle);
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " *Throttled*");
 
         output_len = strlen (output_buf);
       }
-      */
 
       if (output_len == 0)
       {
@@ -14013,6 +14010,21 @@ int main (int argc, char **argv)
             unsigned int speed;
 
             if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapters_nv[i].fan_get_supported = 1;
+
+            hm_NVML_nvmlDeviceSetComputeMode (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, NVML_COMPUTEMODE_EXCLUSIVE_PROCESS);
+
+            hm_NVML_nvmlDeviceSetGpuOperationMode (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, NVML_GOM_ALL_ON);
+
+            unsigned int minLimit;
+            unsigned int maxLimit;
+
+            if (hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, &minLimit, &maxLimit) == NVML_SUCCESS)
+            {
+              if (maxLimit > 0)
+              {
+                hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, maxLimit);
+              }
+            }
           }
         }
       }
@@ -15563,8 +15575,12 @@ int main (int argc, char **argv)
       if (gpu_temp_disable == 0)
       {
         const int gpu_temp_threshold_slowdown = hm_get_threshold_slowdown_with_device_id (device_id);
+        const int gpu_temp_threshold_shutdown = hm_get_threshold_slowdown_with_device_id (device_id);
 
-        data.hm_device[device_id].gpu_temp_threshold_slowdown = (gpu_temp_threshold_slowdown == -1) ? 100000 : gpu_temp_threshold_slowdown;
+        data.hm_device[device_id].gpu_temp_threshold_slowdown = (gpu_temp_threshold_slowdown > 0) ? gpu_temp_threshold_slowdown : 10000;
+        data.hm_device[device_id].gpu_temp_threshold_shutdown = (gpu_temp_threshold_shutdown > 0) ? gpu_temp_threshold_shutdown : 10000;
+
+        // we could use those numbers for gpu_temp_retain and gpu_temp_abort, too
       }
 
       /**

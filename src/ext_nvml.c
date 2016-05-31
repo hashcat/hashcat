@@ -56,6 +56,12 @@ int nvml_init (NVML_PTR *nvml)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetTemperatureThreshold, NVML_DEVICE_GET_THRESHOLD, NVML, 0)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetCurrPcieLinkGeneration, NVML_DEVICE_GET_CURRPCIELINKGENERATION, NVML, 0)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetCurrPcieLinkWidth, NVML_DEVICE_GET_CURRPCIELINKWIDTH, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetCurrentClocksThrottleReasons, NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetSupportedClocksThrottleReasons, NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceSetComputeMode, NVML_DEVICE_SET_COMPUTEMODE, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceSetGpuOperationMode, NVML_DEVICE_SET_OPERATIONMODE, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetPowerManagementLimitConstraints, NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceSetPowerManagementLimit, NVML_DEVICE_SET_POWERMANAGEMENTLIMIT, NVML, 0)
 
   return 0;
 }
@@ -153,11 +159,9 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetTemperature (NVML_PTR *nvml, nvmlDevice_t devi
 
   if (nvml_rc != NVML_SUCCESS)
   {
-    *temp = -1;
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
-
-    //log_info ("WARN: %s %d %s\n", "nvmlDeviceGetTemperature()", nvml_rc, string);
+    log_info ("WARN: %s %d %s\n", "nvmlDeviceGetTemperature()", nvml_rc, string);
   }
 
   return nvml_rc;
@@ -171,8 +175,6 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetFanSpeed (NVML_PTR *nvml, int skip_warnings, n
 
   if (nvml_rc != NVML_SUCCESS)
   {
-    *speed = -1;
-
     if (skip_warnings == 0)
     {
       const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
@@ -184,8 +186,6 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetFanSpeed (NVML_PTR *nvml, int skip_warnings, n
   return nvml_rc;
 }
 
-/* only tesla following */
-
 nvmlReturn_t hm_NVML_nvmlDeviceGetPowerUsage (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *power)
 {
   if (!nvml) return -1;
@@ -194,11 +194,9 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetPowerUsage (NVML_PTR *nvml, nvmlDevice_t devic
 
   if (nvml_rc != NVML_SUCCESS)
   {
-    *power = -1;
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
-
-    //log_info ("WARN: %s %d %s\n", "nvmlDeviceGetPowerUsage()", nvml_rc, string);
+    log_info ("WARN: %s %d %s\n", "nvmlDeviceGetPowerUsage()", nvml_rc, string);
   }
 
   return nvml_rc;
@@ -212,12 +210,9 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetUtilizationRates (NVML_PTR *nvml, nvmlDevice_t
 
   if (nvml_rc != NVML_SUCCESS)
   {
-    utilization->gpu    = -1;
-    utilization->memory = -1;
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
-
-    //log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
+    log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
   }
 
   return nvml_rc;
@@ -231,11 +226,9 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetClockInfo (NVML_PTR *nvml, nvmlDevice_t device
 
   if (nvml_rc != NVML_SUCCESS)
   {
-    *clock = -1;
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
-
-    //log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
+    log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
   }
 
   return nvml_rc;
@@ -249,11 +242,9 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetTemperatureThreshold (NVML_PTR *nvml, nvmlDevi
 
   if (nvml_rc != NVML_SUCCESS)
   {
-    *temp = -1;
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
-
-    //log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
+    log_info ("WARN: %s %d %s\n", "nvmlDeviceGetTemperatureThreshold()", nvml_rc, string);
   }
 
   return nvml_rc;
@@ -267,11 +258,9 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (NVML_PTR *nvml, nvmlDe
 
   if (nvml_rc != NVML_SUCCESS)
   {
-    *currLinkGen = -1;
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
-
-    //log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
+    log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
   }
 
   return nvml_rc;
@@ -285,11 +274,117 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (NVML_PTR *nvml, nvmlDevice_
 
   if (nvml_rc != NVML_SUCCESS)
   {
-    *currLinkWidth = -1;
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    //const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+    log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
+  }
 
-    //log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
+  return nvml_rc;
+}
+
+nvmlReturn_t hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (NVML_PTR *nvml, nvmlDevice_t device, unsigned long long *clocksThrottleReasons)
+{
+  if (!nvml) return -1;
+
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetCurrentClocksThrottleReasons (device, clocksThrottleReasons);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+    log_info ("WARN: %s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
+  }
+
+  return nvml_rc;
+}
+
+nvmlReturn_t hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (NVML_PTR *nvml, nvmlDevice_t device, unsigned long long *supportedClocksThrottleReasons)
+{
+  if (!nvml) return -1;
+
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetSupportedClocksThrottleReasons (device, supportedClocksThrottleReasons);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+    log_info ("WARN: %s %d %s\n", "nvmlDeviceGetSupportedClocksThrottleReasons()", nvml_rc, string);
+  }
+
+  return nvml_rc;
+}
+
+nvmlReturn_t hm_NVML_nvmlDeviceSetComputeMode (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, nvmlComputeMode_t mode)
+{
+  if (!nvml) return -1;
+
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceSetComputeMode (device, mode);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    if (skip_warnings == 0)
+    {
+      const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+      log_info ("WARN: %s %d %s\n", "nvmlDeviceSetComputeMode()", nvml_rc, string);
+    }
+  }
+
+  return nvml_rc;
+}
+
+nvmlReturn_t hm_NVML_nvmlDeviceSetGpuOperationMode (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, nvmlGpuOperationMode_t mode)
+{
+  if (!nvml) return -1;
+
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceSetGpuOperationMode (device, mode);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    if (skip_warnings == 0)
+    {
+      const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+      log_info ("WARN: %s %d %s\n", "nvmlDeviceSetGpuOperationMode()", nvml_rc, string);
+    }
+  }
+
+  return nvml_rc;
+}
+
+nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int *minLimit, unsigned int *maxLimit)
+{
+  if (!nvml) return -1;
+
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetPowerManagementLimitConstraints (device, minLimit, maxLimit);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    if (skip_warnings == 0)
+    {
+      const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+      log_info ("WARN: %s %d %s\n", "nvmlDeviceGetPowerManagementLimitConstraints()", nvml_rc, string);
+    }
+  }
+
+  return nvml_rc;
+}
+
+nvmlReturn_t hm_NVML_nvmlDeviceSetPowerManagementLimit (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int limit)
+{
+  if (!nvml) return -1;
+
+  nvmlReturn_t nvml_rc = nvml->nvmlDeviceSetPowerManagementLimit (device, limit);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    if (skip_warnings == 0)
+    {
+      const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+      log_info ("WARN: %s %d %s\n", "nvmlDeviceSetPowerManagementLimit()", nvml_rc, string);
+    }
   }
 
   return nvml_rc;

@@ -67,6 +67,42 @@ typedef enum nvmlTemperatureThresholds_enum
     NVML_TEMPERATURE_THRESHOLD_COUNT
 } nvmlTemperatureThresholds_t;
 
+/**
+ * Compute mode.
+ *
+ * NVML_COMPUTEMODE_EXCLUSIVE_PROCESS was added in CUDA 4.0.
+ * Earlier CUDA versions supported a single exclusive mode,
+ * which is equivalent to NVML_COMPUTEMODE_EXCLUSIVE_THREAD in CUDA 4.0 and beyond.
+ */
+typedef enum nvmlComputeMode_enum
+{
+    NVML_COMPUTEMODE_DEFAULT           = 0,  //!< Default compute mode -- multiple contexts per device
+    NVML_COMPUTEMODE_EXCLUSIVE_THREAD  = 1,  //!< Compute-exclusive-thread mode -- only one context per device, usable from one thread at a time
+    NVML_COMPUTEMODE_PROHIBITED        = 2,  //!< Compute-prohibited mode -- no contexts per device
+    NVML_COMPUTEMODE_EXCLUSIVE_PROCESS = 3,  //!< Compute-exclusive-process mode -- only one context per device, usable from multiple threads at a time
+
+    // Keep this last
+    NVML_COMPUTEMODE_COUNT
+} nvmlComputeMode_t;
+
+/**
+ * GPU Operation Mode
+ *
+ * GOM allows to reduce power usage and optimize GPU throughput by disabling GPU features.
+ *
+ * Each GOM is designed to meet specific user needs.
+ */
+typedef enum nvmlGom_enum
+{
+    NVML_GOM_ALL_ON                    = 0, //!< Everything is enabled and running at full speed
+
+    NVML_GOM_COMPUTE                   = 1, //!< Designed for running only compute tasks. Graphics operations
+                                            //!< are not allowed
+
+    NVML_GOM_LOW_DP                    = 2  //!< Designed for running graphics applications that don't require
+                                            //!< high bandwidth double precision
+} nvmlGpuOperationMode_t;
+
 /*
  * End of declarations from nvml.h
  **/
@@ -88,6 +124,12 @@ typedef nvmlReturn_t (*NVML_DEVICE_GET_CLOCKINFO) (nvmlDevice_t, nvmlClockType_t
 typedef nvmlReturn_t (*NVML_DEVICE_GET_THRESHOLD) (nvmlDevice_t, nvmlTemperatureThresholds_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_DEVICE_GET_CURRPCIELINKGENERATION) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_DEVICE_GET_CURRPCIELINKWIDTH) (nvmlDevice_t, unsigned int *);
+typedef nvmlReturn_t (*NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS) (nvmlDevice_t, unsigned long long *);
+typedef nvmlReturn_t (*NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS) (nvmlDevice_t, unsigned long long *);
+typedef nvmlReturn_t (*NVML_DEVICE_SET_COMPUTEMODE) (nvmlDevice_t, nvmlComputeMode_t);
+typedef nvmlReturn_t (*NVML_DEVICE_SET_OPERATIONMODE) (nvmlDevice_t, nvmlGpuOperationMode_t);
+typedef nvmlReturn_t (*NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS) (nvmlDevice_t, unsigned int *, unsigned int *);
+typedef nvmlReturn_t (*NVML_DEVICE_SET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int);
 
 typedef struct
 {
@@ -106,6 +148,12 @@ typedef struct
   NVML_DEVICE_GET_THRESHOLD nvmlDeviceGetTemperatureThreshold;
   NVML_DEVICE_GET_CURRPCIELINKGENERATION nvmlDeviceGetCurrPcieLinkGeneration;
   NVML_DEVICE_GET_CURRPCIELINKWIDTH nvmlDeviceGetCurrPcieLinkWidth;
+  NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS nvmlDeviceGetCurrentClocksThrottleReasons;
+  NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS nvmlDeviceGetSupportedClocksThrottleReasons;
+  NVML_DEVICE_SET_COMPUTEMODE nvmlDeviceSetComputeMode;
+  NVML_DEVICE_SET_OPERATIONMODE nvmlDeviceSetGpuOperationMode;
+  NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS nvmlDeviceGetPowerManagementLimitConstraints;
+  NVML_DEVICE_SET_POWERMANAGEMENTLIMIT nvmlDeviceSetPowerManagementLimit;
 
 } hm_nvml_lib_t;
 
@@ -127,6 +175,12 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetClockInfo (NVML_PTR *nvml, nvmlDevice_t device
 nvmlReturn_t hm_NVML_nvmlDeviceGetTemperatureThreshold (NVML_PTR *nvml, nvmlDevice_t device, nvmlTemperatureThresholds_t thresholdType, unsigned int *temp);
 nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *currLinkGen);
 nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *currLinkWidth);
+nvmlReturn_t hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (NVML_PTR *nvml, nvmlDevice_t device, unsigned long long *clocksThrottleReasons);
+nvmlReturn_t hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (NVML_PTR *nvml, nvmlDevice_t device, unsigned long long *supportedClocksThrottleReasons);
+nvmlReturn_t hm_NVML_nvmlDeviceSetComputeMode (NVML_PTR *nvml, int, nvmlDevice_t device, nvmlComputeMode_t mode);
+nvmlReturn_t hm_NVML_nvmlDeviceSetGpuOperationMode (NVML_PTR *nvml, int, nvmlDevice_t device, nvmlGpuOperationMode_t mode);
+nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (NVML_PTR *nvml, int, nvmlDevice_t device, unsigned int *minLimit, unsigned int *maxLimit);
+nvmlReturn_t hm_NVML_nvmlDeviceSetPowerManagementLimit (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int limit);
 
 #endif // HAVE_HWMON
 

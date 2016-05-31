@@ -3074,6 +3074,37 @@ int hm_get_threshold_slowdown_with_device_id (const uint device_id)
   return -1;
 }
 
+int hm_get_threshold_shutdown_with_device_id (const uint device_id)
+{
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  {
+    if (data.hm_amd)
+    {
+      if (data.hm_device[device_id].od_version == 5)
+      {
+
+      }
+      else if (data.hm_device[device_id].od_version == 6)
+      {
+
+      }
+    }
+  }
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  {
+    int target = 0;
+
+    hm_NVML_nvmlDeviceGetTemperatureThreshold (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_THRESHOLD_SHUTDOWN, (unsigned int *) &target);
+
+    return target;
+  }
+
+  return -1;
+}
+
 int hm_get_temperature_with_device_id (const uint device_id)
 {
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
@@ -3341,7 +3372,16 @@ int hm_get_throttle_with_device_id (const uint device_id)
 
   if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
+    unsigned long long clocksThrottleReasons = 0;
+    unsigned long long supportedThrottleReasons = 0;
 
+    hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &clocksThrottleReasons);
+
+    hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &supportedThrottleReasons);
+
+    clocksThrottleReasons &= supportedThrottleReasons;
+
+    return (clocksThrottleReasons > 0);
   }
 
   return -1;
