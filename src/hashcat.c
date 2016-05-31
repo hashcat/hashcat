@@ -2967,28 +2967,31 @@ static void autotune (hc_device_param_t *device_param)
 
   const u32 kernel_power_max = device_param->device_processors * device_param->kernel_threads * kernel_accel_max;
 
-  run_kernel_memset (device_param, device_param->d_pws_buf, 7, kernel_power_max * sizeof (pw_t));
-
-  if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+  if (data.attack_kern == ATTACK_KERN_BF)
   {
-    run_kernel_memset (device_param, device_param->d_pws_amp_buf, 7, kernel_power_max * sizeof (pw_t));
+    run_kernel_memset (device_param, device_param->d_pws_buf, 7, kernel_power_max * sizeof (pw_t));
   }
-
-  /*
-  for (u32 i = 0; i < kernel_power_max; i++)
+  else
   {
-    device_param->pws_buf[i].i[0]   = i;
-    device_param->pws_buf[i].i[1]   = 0x01234567;
-    device_param->pws_buf[i].pw_len = 7;
-  }
+    for (u32 i = 0; i < kernel_power_max; i++)
+    {
+      device_param->pws_buf[i].i[0]   = i;
+      device_param->pws_buf[i].i[1]   = 0x01234567;
+      device_param->pws_buf[i].pw_len = 7 + (i & 7);
+    }
 
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+    if (data.kernel_rules_cnt > 1)
+    {
+      hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, 0, 0, kernel_loops_max * sizeof (kernel_rule_t), 0, NULL, NULL);
+    }
+
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+  }
 
   if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
   {
     run_kernel_amp (device_param, kernel_power_max);
   }
-  */
 
   #define VERIFIER_CNT 1
 
