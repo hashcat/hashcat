@@ -114,13 +114,8 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
  * temperature management
  */
 
-#if _WIN
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#else
 #include "ext_ADL.h"
 #include "ext_nvml.h"
-#endif
 
 /**
  * shared stuff
@@ -1461,14 +1456,7 @@ int hm_get_corespeed_with_device_id          (const uint device_id);
 int hm_get_throttle_with_device_id           (const uint device_id);
 
 int hm_set_fanspeed_with_device_id_amd   (const uint device_id, const int fanspeed, const int fanpolicy);
-
-#if defined(WIN)
-int hm_set_fanspeed_with_device_id_nvapi (const uint device_id, const int fanspeed, const int fanpolicy);
-#endif
-
-#if defined(LINUX)
 int hm_set_fanspeed_with_device_id_nvml  (const uint device_id, const int fanspeed, const int fanpolicy);
-#endif
 
 void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value);
 #endif // HAVE_HWMON

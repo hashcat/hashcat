@@ -4010,9 +4010,7 @@ static void *thread_monitor (void *p)
                   }
                   else if (device_param->device_vendor_id == VENDOR_ID_NV)
                   {
-                    #ifdef _WIN
-                    hm_set_fanspeed_with_device_id_nvapi (device_id, fan_speed_new, 1);
-                    #endif
+
                   }
 
                   fan_speed_chgd[device_id] = 1;
@@ -13990,40 +13988,6 @@ int main (int argc, char **argv)
 
     if (gpu_temp_disable == 0)
     {
-      #if defined(WIN)
-      NVAPI_PTR *nvapi = (NVAPI_PTR *) mymalloc (sizeof (NVAPI_PTR));
-
-      if (nvapi_init (nvapi) == 0)
-        data.hm_nv = nvapi;
-
-      if (data.hm_nv)
-      {
-        if (hm_NvAPI_Initialize (data.hm_nv) == NVAPI_OK)
-        {
-          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX] = { 0 };
-
-          int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
-
-          int tmp_out = 0;
-
-          for (int i = 0; i < tmp_in; i++)
-          {
-            hm_adapters_nv[tmp_out++].adapter_index.nv = nvGPUHandle[i];
-          }
-
-          for (int i = 0; i < tmp_out; i++)
-          {
-            NV_GPU_COOLER_SETTINGS pCoolerSettings;
-
-            pCoolerSettings.Version = GPU_COOLER_SETTINGS_VER | sizeof (NV_GPU_COOLER_SETTINGS);
-
-            if (hm_NvAPI_GPU_GetCoolerSettings (data.hm_nv, hm_adapters_nv[i].adapter_index.nv, 0, &pCoolerSettings) != NVAPI_NOT_SUPPORTED) hm_adapters_nv[i].fan_get_supported = 1;
-          }
-        }
-      }
-      #endif // WIN
-
-      #if defined(LINUX)
       NVML_PTR *nvml = (NVML_PTR *) mymalloc (sizeof (NVML_PTR));
 
       if (nvml_init (nvml) == 0)
@@ -14052,7 +14016,6 @@ int main (int argc, char **argv)
           }
         }
       }
-      #endif // LINUX
 
       data.hm_amd = NULL;
 
@@ -15637,9 +15600,7 @@ int main (int argc, char **argv)
               }
               else if (device_param->device_vendor_id == VENDOR_ID_NV)
               {
-                #ifdef _WIN
-                rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, 1);
-                #endif
+
               }
 
               if (rc == 0)
@@ -17917,9 +17878,7 @@ int main (int argc, char **argv)
               }
               else if (device_param->device_vendor_id == VENDOR_ID_NV)
               {
-                #ifdef _WIN
-                rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, 16);
-                #endif
+
               }
 
               if (rc == -1) log_info ("WARNING: Failed to restore default fan speed and policy for device #%", device_id + 1);
@@ -17997,19 +17956,9 @@ int main (int argc, char **argv)
     {
       if (data.hm_nv)
       {
-        #if defined(LINUX)
-
         hm_NVML_nvmlShutdown (data.hm_nv);
 
         nvml_close (data.hm_nv);
-
-        #elif defined(WIN)
-
-        hm_NvAPI_Unload (data.hm_nv);
-
-        nvapi_close (data.hm_nv);
-
-        #endif
 
         data.hm_nv = NULL;
       }

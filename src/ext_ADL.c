@@ -12,7 +12,9 @@ int adl_init (ADL_PTR *adl)
   memset (adl, 0, sizeof (ADL_PTR));
 
   #ifdef _WIN
-  if (!(adl->lib = hc_dlopen ("atiadlxx.dll")))
+  adl->lib = hc_dlopen ("atiadlxx.dll");
+
+  if (!adl->lib)
   {
     adl->lib = hc_dlopen ("atiadlxy.dll");
   }

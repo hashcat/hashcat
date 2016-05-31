@@ -13,12 +13,32 @@ int nvml_init (NVML_PTR *nvml)
 
   memset (nvml, 0, sizeof (NVML_PTR));
 
-  nvml->lib = hc_dlopen ("libnvidia-ml.so", RTLD_NOW);
+  #ifdef _WIN
+  nvml->lib = hc_dlopen ("nvml.dll");
 
   if (!nvml->lib)
   {
-    //if (data.quiet == 0)
-    //  log_info ("WARNING: load NVML library failed, proceed without NVML HWMon enabled.");
+    DWORD BufferSize = 1024;
+
+    char *Buffer = (char *) mymalloc (BufferSize);
+
+    RegGetValue (HKEY_LOCAL_MACHINE, "SOFTWARE\\NVIDIA Corporation\\Global\\NVSMI", "NVSMIPATH", RRF_RT_ANY, NULL, (PVOID) Buffer, &BufferSize);
+
+    strcat (Buffer, "\\nvml.dll");
+
+    nvml->lib = hc_dlopen (Buffer);
+
+    myfree (Buffer);
+  }
+
+  #elif _POSIX
+  nvml->lib = hc_dlopen ("libnvidia-ml.so", RTLD_NOW);
+  #endif
+
+  if (!nvml->lib)
+  {
+    if (data.quiet == 0)
+      log_info ("WARNING: load NVML library failed, proceed without NVML HWMon enabled.");
 
     return (-1);
   }
