@@ -2977,15 +2977,17 @@ static void autotune (hc_device_param_t *device_param)
       device_param->pws_buf[i].pw_len = 7 + (i & 7);
     }
 
-    if (data.kernel_rules_cnt > 1)
-    {
-      hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, 0, 0, kernel_loops_max * sizeof (kernel_rule_t), 0, NULL, NULL);
-    }
-
     hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
   }
 
-  if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+  if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  {
+    if (data.kernel_rules_cnt > 1)
+    {
+      hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL);
+    }
+  }
+  else
   {
     run_kernel_amp (device_param, kernel_power_max);
   }

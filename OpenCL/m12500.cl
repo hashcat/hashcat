@@ -31,6 +31,8 @@
 #define PUTCHAR_BE(a,p,c) ((u8 *)(a))[(p) ^ 3] = (u8) (c)
 #define GETCHAR_BE(a,p)   ((u8 *)(a))[(p) ^ 3]
 
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+
 __constant u32 te0[256] =
 {
   0xc66363a5, 0xf87c7c84, 0xee777799, 0xf67b7b8d,
@@ -1017,7 +1019,7 @@ __kernel void m12500_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   pw_buf[3] = pws[gid].i[3];
   pw_buf[4] = pws[gid].i[4];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = MIN (pws[gid].pw_len, 20);
 
   u32 salt_buf[2];
 
@@ -1150,7 +1152,7 @@ __kernel void m12500_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = MIN (pws[gid].pw_len, 20);
 
   const u32 salt_len = 8;
 
@@ -1226,16 +1228,16 @@ __kernel void m12500_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     pw_buf[3] = pws[gid].i[3];
     pw_buf[4] = pws[gid].i[4];
 
-    const u32 pw_len = pws[gid].pw_len;
+    //const u32 pw_len = pws[gid].pw_len;
 
     u32 salt_buf[2];
 
     salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
     salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
 
-    const u32 salt_len = 8;
+    //const u32 salt_len = 8;
 
-    const u32 p3 = (pw_len * 2) + salt_len + 3;
+    //const u32 p3 = (pw_len * 2) + salt_len + 3;
 
     u32 w[16];
 
