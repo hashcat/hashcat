@@ -1455,9 +1455,7 @@ int hm_get_utilization_with_device_id        (const uint device_id);
 int hm_get_memoryspeed_with_device_id        (const uint device_id);
 int hm_get_corespeed_with_device_id          (const uint device_id);
 int hm_get_throttle_with_device_id           (const uint device_id);
-
-int hm_set_fanspeed_with_device_id_amd   (const uint device_id, const int fanspeed, const int fanpolicy);
-int hm_set_fanspeed_with_device_id_nvml  (const uint device_id, const int fanspeed, const int fanpolicy);
+int hm_set_fanspeed_with_device_id_amd       (const uint device_id, const int fanspeed, const int fanpolicy);
 
 void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value);
 #endif // HAVE_HWMON

@@ -130,6 +130,7 @@ typedef nvmlReturn_t (*NVML_DEVICE_SET_COMPUTEMODE) (nvmlDevice_t, nvmlComputeMo
 typedef nvmlReturn_t (*NVML_DEVICE_SET_OPERATIONMODE) (nvmlDevice_t, nvmlGpuOperationMode_t);
 typedef nvmlReturn_t (*NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS) (nvmlDevice_t, unsigned int *, unsigned int *);
 typedef nvmlReturn_t (*NVML_DEVICE_SET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int);
+typedef nvmlReturn_t (*NVML_DEVICE_GET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int *);
 
 typedef struct
 {
@@ -154,6 +155,7 @@ typedef struct
   NVML_DEVICE_SET_OPERATIONMODE nvmlDeviceSetGpuOperationMode;
   NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS nvmlDeviceGetPowerManagementLimitConstraints;
   NVML_DEVICE_SET_POWERMANAGEMENTLIMIT nvmlDeviceSetPowerManagementLimit;
+  NVML_DEVICE_GET_POWERMANAGEMENTLIMIT nvmlDeviceGetPowerManagementLimit;
 
 } hm_nvml_lib_t;
 
@@ -165,22 +167,23 @@ void nvml_close (NVML_PTR *lib);
 const char * hm_NVML_nvmlErrorString (NVML_PTR *nvml, nvmlReturn_t nvml_rc);
 nvmlReturn_t hm_NVML_nvmlInit (NVML_PTR *nvml);
 nvmlReturn_t hm_NVML_nvmlShutdown (NVML_PTR *nvml);
-nvmlReturn_t hm_NVML_nvmlDeviceGetName (NVML_PTR *nvml, nvmlDevice_t device, char *name, unsigned int length);
+nvmlReturn_t hm_NVML_nvmlDeviceGetName (NVML_PTR *nvml, int, nvmlDevice_t device, char *name, unsigned int length);
 nvmlReturn_t hm_NVML_nvmlDeviceGetHandleByIndex (NVML_PTR *nvml, int, unsigned int index, nvmlDevice_t *device);
-nvmlReturn_t hm_NVML_nvmlDeviceGetTemperature (NVML_PTR *nvml, nvmlDevice_t device, nvmlTemperatureSensors_t sensorType, unsigned int *temp);
+nvmlReturn_t hm_NVML_nvmlDeviceGetTemperature (NVML_PTR *nvml, int, nvmlDevice_t device, nvmlTemperatureSensors_t sensorType, unsigned int *temp);
 nvmlReturn_t hm_NVML_nvmlDeviceGetFanSpeed (NVML_PTR *nvml, int, nvmlDevice_t device, unsigned int *speed);
-nvmlReturn_t hm_NVML_nvmlDeviceGetPowerUsage (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *power);
-nvmlReturn_t hm_NVML_nvmlDeviceGetUtilizationRates (NVML_PTR *nvml, nvmlDevice_t device, nvmlUtilization_t *utilization);
-nvmlReturn_t hm_NVML_nvmlDeviceGetClockInfo (NVML_PTR *nvml, nvmlDevice_t device, nvmlClockType_t type, unsigned int *clock);
-nvmlReturn_t hm_NVML_nvmlDeviceGetTemperatureThreshold (NVML_PTR *nvml, nvmlDevice_t device, nvmlTemperatureThresholds_t thresholdType, unsigned int *temp);
-nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *currLinkGen);
-nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (NVML_PTR *nvml, nvmlDevice_t device, unsigned int *currLinkWidth);
-nvmlReturn_t hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (NVML_PTR *nvml, nvmlDevice_t device, unsigned long long *clocksThrottleReasons);
-nvmlReturn_t hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (NVML_PTR *nvml, nvmlDevice_t device, unsigned long long *supportedClocksThrottleReasons);
+nvmlReturn_t hm_NVML_nvmlDeviceGetPowerUsage (NVML_PTR *nvml, int, nvmlDevice_t device, unsigned int *power);
+nvmlReturn_t hm_NVML_nvmlDeviceGetUtilizationRates (NVML_PTR *nvml, int, nvmlDevice_t device, nvmlUtilization_t *utilization);
+nvmlReturn_t hm_NVML_nvmlDeviceGetClockInfo (NVML_PTR *nvml, int, nvmlDevice_t device, nvmlClockType_t type, unsigned int *clock);
+nvmlReturn_t hm_NVML_nvmlDeviceGetTemperatureThreshold (NVML_PTR *nvml, int, nvmlDevice_t device, nvmlTemperatureThresholds_t thresholdType, unsigned int *temp);
+nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (NVML_PTR *nvml, int, nvmlDevice_t device, unsigned int *currLinkGen);
+nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (NVML_PTR *nvml, int, nvmlDevice_t device, unsigned int *currLinkWidth);
+nvmlReturn_t hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (NVML_PTR *nvml, int, nvmlDevice_t device, unsigned long long *clocksThrottleReasons);
+nvmlReturn_t hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (NVML_PTR *nvml, int, nvmlDevice_t device, unsigned long long *supportedClocksThrottleReasons);
 nvmlReturn_t hm_NVML_nvmlDeviceSetComputeMode (NVML_PTR *nvml, int, nvmlDevice_t device, nvmlComputeMode_t mode);
 nvmlReturn_t hm_NVML_nvmlDeviceSetGpuOperationMode (NVML_PTR *nvml, int, nvmlDevice_t device, nvmlGpuOperationMode_t mode);
 nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (NVML_PTR *nvml, int, nvmlDevice_t device, unsigned int *minLimit, unsigned int *maxLimit);
 nvmlReturn_t hm_NVML_nvmlDeviceSetPowerManagementLimit (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int limit);
+nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimit (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int *limit);
 
 #endif // HAVE_HWMON
 

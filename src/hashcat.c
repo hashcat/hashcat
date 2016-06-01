@@ -411,7 +411,7 @@ const char *USAGE_BIG[] =
   #ifdef HAVE_HWMON
   "     --gpu-temp-abort          | Num  | Abort if GPU temperature reaches X degrees celsius   | --gpu-temp-abort=100",
   "     --gpu-temp-retain         | Num  | Try to retain GPU temperature at X degrees celsius   | --gpu-temp-retain=95",
-  "     --powertune-enable        |      | Enable automatic power tuning (AMD OverDrive 6 only) |",
+  "     --powertune-enable        |      | Enable power tuning, restores settings when finished |",
   #endif
   "     --scrypt-tmto             | Num  | Manually override TMTO value for scrypt to X         | --scrypt-tmto=3",
   " -s, --skip                    | Num  | Skip X words from the start                          | -s 1000000",
@@ -14009,22 +14009,11 @@ int main (int argc, char **argv)
           {
             unsigned int speed;
 
-            if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapters_nv[i].fan_get_supported = 1;
+            if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 0, hm_adapters_nv[i].adapter_index.nv, &speed) == NVML_SUCCESS) hm_adapters_nv[i].fan_get_supported = 1;
 
             hm_NVML_nvmlDeviceSetComputeMode (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, NVML_COMPUTEMODE_EXCLUSIVE_PROCESS);
 
             hm_NVML_nvmlDeviceSetGpuOperationMode (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, NVML_GOM_ALL_ON);
-
-            unsigned int minLimit;
-            unsigned int maxLimit;
-
-            if (hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, &minLimit, &maxLimit) == NVML_SUCCESS)
-            {
-              if (maxLimit > 0)
-              {
-                hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, maxLimit);
-              }
-            }
           }
         }
       }
@@ -14093,6 +14082,8 @@ int main (int argc, char **argv)
     ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (data.devices_cnt, sizeof (ADLOD6MemClockState));
 
     int *od_power_control_status = (int *) mycalloc (data.devices_cnt, sizeof (int));
+
+    unsigned int *nvml_power_limit = (unsigned int *) mycalloc (data.devices_cnt, sizeof (unsigned int));
 
     /**
      * User-defined GPU temp handling
@@ -14222,11 +14213,7 @@ int main (int argc, char **argv)
     }
 
     /**
-     * Temporary fix:
-     * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
-     * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
-     * were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
-     * Driver / ADL bug?
+     * powertune on user request
      */
 
     if (powertune_enable == 1)
@@ -14239,38 +14226,177 @@ int main (int argc, char **argv)
 
         if (device_param->skipped) continue;
 
-        if (data.hm_device[device_id].od_version == 6)
+        if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
         {
-          // set powertune value only
+          /**
+           * Temporary fix:
+           * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
+           * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
+           * were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
+           * Driver / ADL bug?
+           */
 
-          int powertune_supported = 0;
-
-          int ADL_rc = 0;
-
-          if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
+          if (data.hm_device[device_id].od_version == 6)
           {
-            log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
+            int ADL_rc;
 
-            return (-1);
-          }
+            // check powertune capabilities first, if not available then skip device
 
-          if (powertune_supported != 0)
-          {
-            // powertune set
-            ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
+            int powertune_supported = 0;
 
-            if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune)) != ADL_OK)
+            if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
             {
-              log_error ("ERROR: Failed to get current ADL PowerControl settings");
+              log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
               return (-1);
             }
 
-            if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to set new ADL PowerControl values");
+            // first backup current value, we will restore it later
 
-              return (-1);
+            if (powertune_supported != 0)
+            {
+              // powercontrol settings
+
+              ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
+
+              if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune)) == ADL_OK)
+              {
+                ADL_rc = hm_ADL_Overdrive_PowerControl_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &od_power_control_status[device_id]);
+              }
+
+              if (ADL_rc != ADL_OK)
+              {
+                log_error ("ERROR: Failed to get current ADL PowerControl settings");
+
+                return (-1);
+              }
+
+              if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
+              {
+                log_error ("ERROR: Failed to set new ADL PowerControl values");
+
+                return (-1);
+              }
+
+              // clocks
+
+              memset (&od_clock_mem_status[device_id], 0, sizeof (ADLOD6MemClockState));
+
+              od_clock_mem_status[device_id].state.iNumberOfPerformanceLevels = 2;
+
+              if ((ADL_rc = hm_ADL_Overdrive_StateInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
+              {
+                log_error ("ERROR: Failed to get ADL memory and engine clock frequency");
+
+                return (-1);
+              }
+
+              // Query capabilities only to see if profiles were not "damaged", if so output a warning but do accept the users profile settings
+
+              ADLOD6Capabilities caps = {0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0, 0};
+
+              if ((ADL_rc = hm_ADL_Overdrive_Capabilities_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &caps)) != ADL_OK)
+              {
+                log_error ("ERROR: Failed to get ADL device capabilities");
+
+                return (-1);
+              }
+
+              int engine_clock_max = caps.sEngineClockRange.iMax * 0.6666;
+              int memory_clock_max = caps.sMemoryClockRange.iMax * 0.6250;
+
+              int warning_trigger_engine = (int) (0.25 * (float) engine_clock_max);
+              int warning_trigger_memory = (int) (0.25 * (float) memory_clock_max);
+
+              int engine_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
+              int memory_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
+
+              // warning if profile has too low max values
+
+              if ((engine_clock_max - engine_clock_profile_max) > warning_trigger_engine)
+              {
+                log_info ("WARN: the custom profile seems to have too low maximum engine clock values. You therefore may not reach full performance");
+              }
+
+              if ((memory_clock_max - memory_clock_profile_max) > warning_trigger_memory)
+              {
+                log_info ("WARN: the custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
+              }
+
+              ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
+
+              performance_state->iNumberOfPerformanceLevels = 2;
+
+              performance_state->aLevels[0].iEngineClock = engine_clock_profile_max;
+              performance_state->aLevels[1].iEngineClock = engine_clock_profile_max;
+              performance_state->aLevels[0].iMemoryClock = memory_clock_profile_max;
+              performance_state->aLevels[1].iMemoryClock = memory_clock_profile_max;
+
+              if ((ADL_rc = hm_ADL_Overdrive_State_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+              {
+                log_info ("ERROR: Failed to set ADL performance state");
+
+                return (-1);
+              }
+
+              local_free (performance_state);
+            }
+
+            // set powertune value only
+
+            if (powertune_supported != 0)
+            {
+              // powertune set
+              ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
+
+              if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune)) != ADL_OK)
+              {
+                log_error ("ERROR: Failed to get current ADL PowerControl settings");
+
+                return (-1);
+              }
+
+              if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
+              {
+                log_error ("ERROR: Failed to set new ADL PowerControl values");
+
+                return (-1);
+              }
+            }
+          }
+        }
+
+        if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+        {
+          // first backup current value, we will restore it later
+
+          unsigned int limit;
+
+          int powertune_supported = 0;
+
+          if (hm_NVML_nvmlDeviceGetPowerManagementLimit (data.hm_nv, 0, data.hm_device[device_id].adapter_index.nv, &limit) == NVML_SUCCESS)
+          {
+            powertune_supported = 1;
+          }
+
+          // if backup worked, activate the maximum allowed
+
+          if (powertune_supported != 0)
+          {
+            unsigned int minLimit;
+            unsigned int maxLimit;
+
+            if (hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (data.hm_nv, 0, data.hm_device[device_id].adapter_index.nv, &minLimit, &maxLimit) == NVML_SUCCESS)
+            {
+              if (maxLimit > 0)
+              {
+                if (hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nv, 0, data.hm_device[device_id].adapter_index.nv, maxLimit) == NVML_SUCCESS)
+                {
+                  // now we can be sure we need to reset later
+
+                  nvml_power_limit[device_id] = limit;
+                }
+              }
             }
           }
         }
@@ -15638,122 +15764,6 @@ int main (int argc, char **argv)
 
           hc_thread_mutex_unlock (mux_adl);
         }
-      }
-
-      /**
-       * Store original powercontrol/clocks settings, set overdrive 6 performance tuning settings
-       */
-
-      if (powertune_enable == 1) // VENDOR_ID_AMD implied
-      {
-        hc_thread_mutex_lock (mux_adl);
-
-        if (data.hm_device[device_id].od_version == 6)
-        {
-          int ADL_rc;
-
-          // check powertune capabilities first, if not available then skip device
-
-          int powertune_supported = 0;
-
-          if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
-          {
-            log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
-
-            return (-1);
-          }
-
-          if (powertune_supported != 0)
-          {
-            // powercontrol settings
-
-            ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
-
-            if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune)) == ADL_OK)
-            {
-              ADL_rc = hm_ADL_Overdrive_PowerControl_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &od_power_control_status[device_id]);
-            }
-
-            if (ADL_rc != ADL_OK)
-            {
-              log_error ("ERROR: Failed to get current ADL PowerControl settings");
-
-              return (-1);
-            }
-
-            if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to set new ADL PowerControl values");
-
-              return (-1);
-            }
-
-            // clocks
-
-            memset (&od_clock_mem_status[device_id], 0, sizeof (ADLOD6MemClockState));
-
-            od_clock_mem_status[device_id].state.iNumberOfPerformanceLevels = 2;
-
-            if ((ADL_rc = hm_ADL_Overdrive_StateInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to get ADL memory and engine clock frequency");
-
-              return (-1);
-            }
-
-            // Query capabilities only to see if profiles were not "damaged", if so output a warning but do accept the users profile settings
-
-            ADLOD6Capabilities caps = {0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0, 0};
-
-            if ((ADL_rc = hm_ADL_Overdrive_Capabilities_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &caps)) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to get ADL device capabilities");
-
-              return (-1);
-            }
-
-            int engine_clock_max = caps.sEngineClockRange.iMax * 0.6666;
-            int memory_clock_max = caps.sMemoryClockRange.iMax * 0.6250;
-
-            int warning_trigger_engine = (int) (0.25 * (float) engine_clock_max);
-            int warning_trigger_memory = (int) (0.25 * (float) memory_clock_max);
-
-            int engine_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
-            int memory_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
-
-            // warning if profile has too low max values
-
-            if ((engine_clock_max - engine_clock_profile_max) > warning_trigger_engine)
-            {
-              log_info ("WARN: the custom profile seems to have too low maximum engine clock values. You therefore may not reach full performance");
-            }
-
-            if ((memory_clock_max - memory_clock_profile_max) > warning_trigger_memory)
-            {
-              log_info ("WARN: the custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
-            }
-
-            ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
-
-            performance_state->iNumberOfPerformanceLevels = 2;
-
-            performance_state->aLevels[0].iEngineClock = engine_clock_profile_max;
-            performance_state->aLevels[1].iEngineClock = engine_clock_profile_max;
-            performance_state->aLevels[0].iMemoryClock = memory_clock_profile_max;
-            performance_state->aLevels[1].iMemoryClock = memory_clock_profile_max;
-
-            if ((ADL_rc = hm_ADL_Overdrive_State_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
-            {
-              log_info ("ERROR: Failed to set ADL performance state");
-
-              return (-1);
-            }
-
-            local_free (performance_state);
-          }
-        }
-
-        hc_thread_mutex_unlock (mux_adl);
       }
 
       #endif // HAVE_HWMON
@@ -17918,49 +17928,62 @@ int main (int argc, char **argv)
 
         if (device_param->skipped) continue;
 
-        if (data.hm_device[device_id].od_version == 6)
+        if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
         {
-          // check powertune capabilities first, if not available then skip device
-
-          int powertune_supported = 0;
-
-          if ((hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
+          if (data.hm_device[device_id].od_version == 6)
           {
-            log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
+            // check powertune capabilities first, if not available then skip device
 
-            return (-1);
+            int powertune_supported = 0;
+
+            if ((hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
+            {
+              log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
+
+              return (-1);
+            }
+
+            if (powertune_supported != 0)
+            {
+              // powercontrol settings
+
+              if ((hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, od_power_control_status[device_id])) != ADL_OK)
+              {
+                log_info ("ERROR: Failed to restore the ADL PowerControl values");
+
+                return (-1);
+              }
+
+              // clocks
+
+              ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
+
+              performance_state->iNumberOfPerformanceLevels = 2;
+
+              performance_state->aLevels[0].iEngineClock = od_clock_mem_status[device_id].state.aLevels[0].iEngineClock;
+              performance_state->aLevels[1].iEngineClock = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
+              performance_state->aLevels[0].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[0].iMemoryClock;
+              performance_state->aLevels[1].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
+
+              if ((hm_ADL_Overdrive_State_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+              {
+                log_info ("ERROR: Failed to restore ADL performance state");
+
+                return (-1);
+              }
+
+              local_free (performance_state);
+            }
           }
+        }
 
-          if (powertune_supported != 0)
+        if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+        {
+          unsigned int limit = nvml_power_limit[device_id];
+
+          if (limit > 0)
           {
-            // powercontrol settings
-
-            if ((hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, od_power_control_status[device_id])) != ADL_OK)
-            {
-              log_info ("ERROR: Failed to restore the ADL PowerControl values");
-
-              return (-1);
-            }
-
-            // clocks
-
-            ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
-
-            performance_state->iNumberOfPerformanceLevels = 2;
-
-            performance_state->aLevels[0].iEngineClock = od_clock_mem_status[device_id].state.aLevels[0].iEngineClock;
-            performance_state->aLevels[1].iEngineClock = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
-            performance_state->aLevels[0].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[0].iMemoryClock;
-            performance_state->aLevels[1].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
-
-            if ((hm_ADL_Overdrive_State_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
-            {
-              log_info ("ERROR: Failed to restore ADL performance state");
-
-              return (-1);
-            }
-
-            local_free (performance_state);
+            hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nv, 0, data.hm_device[device_id].adapter_index.nv, limit);
           }
         }
       }
@@ -18031,6 +18054,7 @@ int main (int argc, char **argv)
     local_free (temp_retain_fanspeed_value);
     local_free (od_clock_mem_status);
     local_free (od_power_control_status);
+    local_free (nvml_power_limit);
     #endif
 
     global_free (devices_param);

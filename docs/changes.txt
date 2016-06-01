@@ -32,6 +32,7 @@ It combines all features of all hashcat projects in one project.
 - Added option --veracrypt-keyfile to set Keyfiles used, can be multiple
 - Added option --veracrypt-pim to set the VeraCrypt personal iterations multiplier
 - Added option --machine-readable for easier parsing of output
+- Added option --powertune-enable to work with NVidia devices as well, not just AMD
 
 ##
 ## Algorithms
@@ -133,3 +134,4 @@ It combines all features of all hashcat projects in one project.
 - Dropped special 64-bit rotate() handling for NV, it seems that they've added it to their OpenCL runtime
 - Disabled retain support by default, you can reactive it using --gpu-temp-retain
 - Completely get rid of HAVE_ADL, HAVE_NVML and HAVE_NVAPI in sources
+- Replaced NVAPI with NVML on windows

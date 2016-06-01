@@ -3066,7 +3066,7 @@ int hm_get_threshold_slowdown_with_device_id (const uint device_id)
   {
     int target = 0;
 
-    hm_NVML_nvmlDeviceGetTemperatureThreshold (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN, (unsigned int *) &target);
+    if (hm_NVML_nvmlDeviceGetTemperatureThreshold (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN, (unsigned int *) &target) != NVML_SUCCESS) return -1;
 
     return target;
   }
@@ -3097,7 +3097,7 @@ int hm_get_threshold_shutdown_with_device_id (const uint device_id)
   {
     int target = 0;
 
-    hm_NVML_nvmlDeviceGetTemperatureThreshold (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_THRESHOLD_SHUTDOWN, (unsigned int *) &target);
+    if (hm_NVML_nvmlDeviceGetTemperatureThreshold (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_THRESHOLD_SHUTDOWN, (unsigned int *) &target) != NVML_SUCCESS) return -1;
 
     return target;
   }
@@ -3138,7 +3138,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
   {
     int temperature = 0;
 
-    hm_NVML_nvmlDeviceGetTemperature (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_GPU, (uint *) &temperature);
+    if (hm_NVML_nvmlDeviceGetTemperature (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_GPU, (uint *) &temperature) != NVML_SUCCESS) return -1;
 
     return temperature;
   }
@@ -3232,7 +3232,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
     {
       int speed = 0;
 
-      hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, (uint *) &speed);
+      if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 0, data.hm_device[device_id].adapter_index.nv, (uint *) &speed) != NVML_SUCCESS) return -1;
 
       return speed;
     }
@@ -3263,7 +3263,7 @@ int hm_get_buslanes_with_device_id (const uint device_id)
   {
     unsigned int currLinkWidth;
 
-    hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &currLinkWidth);
+    if (hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, &currLinkWidth) != NVML_SUCCESS) return -1;
 
     return currLinkWidth;
   }
@@ -3293,7 +3293,7 @@ int hm_get_utilization_with_device_id (const uint device_id)
   {
     nvmlUtilization_t utilization;
 
-    hm_NVML_nvmlDeviceGetUtilizationRates (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &utilization);
+    if (hm_NVML_nvmlDeviceGetUtilizationRates (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, &utilization) != NVML_SUCCESS) return -1;
 
     return utilization.gpu;
   }
@@ -3323,7 +3323,7 @@ int hm_get_memoryspeed_with_device_id (const uint device_id)
   {
     unsigned int clock;
 
-    hm_NVML_nvmlDeviceGetClockInfo (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_CLOCK_MEM, &clock);
+    if (hm_NVML_nvmlDeviceGetClockInfo (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, NVML_CLOCK_MEM, &clock) != NVML_SUCCESS) return -1;
 
     return clock;
   }
@@ -3353,7 +3353,7 @@ int hm_get_corespeed_with_device_id (const uint device_id)
   {
     unsigned int clock;
 
-    hm_NVML_nvmlDeviceGetClockInfo (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_CLOCK_SM, &clock);
+    if (hm_NVML_nvmlDeviceGetClockInfo (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, NVML_CLOCK_SM, &clock) != NVML_SUCCESS) return -1;
 
     return clock;
   }
@@ -3375,9 +3375,8 @@ int hm_get_throttle_with_device_id (const uint device_id)
     unsigned long long clocksThrottleReasons = 0;
     unsigned long long supportedThrottleReasons = 0;
 
-    hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &clocksThrottleReasons);
-
-    hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &supportedThrottleReasons);
+    if (hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons   (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, &clocksThrottleReasons)    != NVML_SUCCESS) return -1;
+    if (hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, &supportedThrottleReasons) != NVML_SUCCESS) return -1;
 
     clocksThrottleReasons &= supportedThrottleReasons;
 
@@ -3421,21 +3420,6 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
 
         return 0;
       }
-    }
-  }
-
-  return -1;
-}
-
-int hm_set_fanspeed_with_device_id_nvml (const uint device_id, const int fanspeed, const int fanpolicy)
-{
-  if (data.hm_device[device_id].fan_set_supported == 1)
-  {
-    if (data.hm_nv)
-    {
-      // NVML does not support setting the fan speed... :((
-
-      if (fanspeed == fanpolicy) return -1; // makes the compiler happy
     }
   }
 
