@@ -107,7 +107,7 @@ typedef enum nvmlGom_enum
  * End of declarations from nvml.h
  **/
 
-typedef nvmlDevice_t HM_ADAPTER_NV;
+typedef nvmlDevice_t HM_ADAPTER_NVML;
 
 #include <shared.h>
 
@@ -134,7 +134,7 @@ typedef nvmlReturn_t (*NVML_DEVICE_GET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsi
 
 typedef struct
 {
-  NV_LIB lib;
+  NVML_LIB lib;
 
   NVML_ERROR_STRING nvmlErrorString;
   NVML_INIT nvmlInit;

@@ -116,6 +116,7 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 
 #include "ext_ADL.h"
 #include "ext_nvml.h"
+#include "ext_nvapi.h"
 
 /**
  * shared stuff
@@ -1429,20 +1430,20 @@ void fsync (int fd);
 
 #ifdef HAVE_HWMON
 
-int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX]);
+int hm_get_adapter_index_nvml (HM_ADAPTER_NVML nvGPUHandle[DEVICES_MAX]);
 
-int get_adapters_num_amd (void *adl, int *iNumberAdapters);
+int get_adapters_num_adl (void *adl, int *iNumberAdapters);
 
-int hm_get_adapter_index_amd (hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
+int hm_get_adapter_index_adl (hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 
-LPAdapterInfo hm_get_adapter_info_amd (void *adl, int iNumberAdapters);
+LPAdapterInfo hm_get_adapter_info_adl (void *adl, int iNumberAdapters);
 
 u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 
 int hm_get_overdrive_version  (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 
-// int hm_get_device_num (void *adl, HM_ADAPTER_AMD hm_adapter_index, int *hm_device_num);
+// int hm_get_device_num (void *adl, HM_ADAPTER_ADL hm_adapter_index, int *hm_device_num);
 // void hm_get_opencl_busid_devid (hm_attrs_t *hm_device, uint opencl_num_devices, cl_device_id *devices);
 
 int hm_get_threshold_slowdown_with_device_id (const uint device_id);
@@ -1455,7 +1456,7 @@ int hm_get_utilization_with_device_id        (const uint device_id);
 int hm_get_memoryspeed_with_device_id        (const uint device_id);
 int hm_get_corespeed_with_device_id          (const uint device_id);
 int hm_get_throttle_with_device_id           (const uint device_id);
-int hm_set_fanspeed_with_device_id_amd       (const uint device_id, const int fanspeed, const int fanpolicy);
+int hm_set_fanspeed_with_device_id_adl       (const uint device_id, const int fanspeed, const int fanpolicy);
 
 void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value);
 #endif // HAVE_HWMON

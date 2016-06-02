@@ -269,7 +269,7 @@ typedef void* (__stdcall *ADL_MAIN_MALLOC_CALLBACK )( int );
  * End of declarations from adl_sdk.h and subheaders
  **/
 
-typedef int HM_ADAPTER_AMD;
+typedef int HM_ADAPTER_ADL;
 
 #include <shared.h>
 
@@ -316,7 +316,7 @@ typedef int (*ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET) (int, ADLOD6Paramet
 
 typedef struct
 {
-  AMD_LIB lib;
+  ADL_LIB lib;
 
   ADL_MAIN_CONTROL_DESTROY ADL_Main_Control_Destroy;
   ADL_MAIN_CONTROL_CREATE ADL_Main_Control_Create;

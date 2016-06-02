@@ -1087,8 +1087,9 @@ typedef struct
 {
   union
   {
-    HM_ADAPTER_AMD amd;
-    HM_ADAPTER_NV  nv;
+    HM_ADAPTER_ADL   adl;
+    HM_ADAPTER_NVML  nvml;
+    HM_ADAPTER_NVAPI nvapi;
 
   } adapter_index;
 
@@ -1168,8 +1169,9 @@ typedef struct
    */
 
   #ifdef HAVE_HWMON
-  void   *hm_nv;
-  void   *hm_amd;
+  void   *hm_adl;
+  void   *hm_nvml;
+  void   *hm_nvapi;
   hm_attrs_t hm_device[DEVICES_MAX];
   #endif
 

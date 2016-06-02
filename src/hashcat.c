@@ -4005,7 +4005,7 @@ static void *thread_monitor (void *p)
                 {
                   if (device_param->device_vendor_id == VENDOR_ID_AMD)
                   {
-                    hm_set_fanspeed_with_device_id_amd (device_id, fan_speed_new, 1);
+                    hm_set_fanspeed_with_device_id_adl (device_id, fan_speed_new, 1);
                   }
                   else if (device_param->device_vendor_id == VENDOR_ID_NV)
                   {
@@ -13995,68 +13995,71 @@ int main (int argc, char **argv)
      */
 
     #ifdef HAVE_HWMON
-    hm_attrs_t hm_adapters_nv[DEVICES_MAX]  = { { { 0 }, 0, 0, 0, 0, 0 } };
-    hm_attrs_t hm_adapters_amd[DEVICES_MAX] = { { { 0 }, 0, 0, 0, 0, 0 } };
+    hm_attrs_t hm_adapters_adl[DEVICES_MAX]   = { { { 0 }, 0, 0, 0, 0, 0 } };
+    hm_attrs_t hm_adapters_nvapi[DEVICES_MAX] = { { { 0 }, 0, 0, 0, 0, 0 } };
+    hm_attrs_t hm_adapters_nvml[DEVICES_MAX]  = { { { 0 }, 0, 0, 0, 0, 0 } };
 
     if (gpu_temp_disable == 0)
     {
-      NVML_PTR *nvml = (NVML_PTR *) mymalloc (sizeof (NVML_PTR));
-      ADL_PTR  *adl  = (ADL_PTR *)  mymalloc (sizeof (ADL_PTR));
+      ADL_PTR   *adl   = (ADL_PTR *)   mymalloc (sizeof (ADL_PTR));
+      NVAPI_PTR *nvapi = (NVAPI_PTR *) mymalloc (sizeof (NVAPI_PTR));
+      NVML_PTR  *nvml  = (NVML_PTR *)  mymalloc (sizeof (NVML_PTR));
 
-      data.hm_amd = NULL;
-      data.hm_nv  = NULL;
+      data.hm_adl   = NULL;
+      data.hm_nvapi = NULL;
+      data.hm_nvml  = NULL;
 
       if ((need_nvml == 1) && (nvml_init (nvml) == 0))
       {
-        data.hm_nv = nvml;
+        data.hm_nvml = nvml;
       }
 
-      if (data.hm_nv)
+      if (data.hm_nvml)
       {
-        if (hm_NVML_nvmlInit (data.hm_nv) == NVML_SUCCESS)
+        if (hm_NVML_nvmlInit (data.hm_nvml) == NVML_SUCCESS)
         {
-          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX] = { 0 };
+          HM_ADAPTER_NVML nvmlGPUHandle[DEVICES_MAX] = { 0 };
 
-          int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
+          int tmp_in = hm_get_adapter_index_nvml (nvmlGPUHandle);
 
           int tmp_out = 0;
 
           for (int i = 0; i < tmp_in; i++)
           {
-            hm_adapters_nv[tmp_out++].adapter_index.nv = nvGPUHandle[i];
+            hm_adapters_nvml[tmp_out++].adapter_index.nvml = nvmlGPUHandle[i];
           }
 
           for (int i = 0; i < tmp_out; i++)
           {
             unsigned int speed;
 
-            if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 0, hm_adapters_nv[i].adapter_index.nv, &speed) == NVML_SUCCESS) hm_adapters_nv[i].fan_get_supported = 1;
+            if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nvml, 0, hm_adapters_nvml[i].adapter_index.nvml, &speed) == NVML_SUCCESS) hm_adapters_nvml[i].fan_get_supported = 1;
 
-            hm_NVML_nvmlDeviceSetComputeMode (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, NVML_COMPUTEMODE_EXCLUSIVE_PROCESS);
+            hm_NVML_nvmlDeviceSetComputeMode (data.hm_nvml, 1, hm_adapters_nvml[i].adapter_index.nvml, NVML_COMPUTEMODE_EXCLUSIVE_PROCESS);
 
-            hm_NVML_nvmlDeviceSetGpuOperationMode (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, NVML_GOM_ALL_ON);
+            hm_NVML_nvmlDeviceSetGpuOperationMode (data.hm_nvml, 1, hm_adapters_nvml[i].adapter_index.nvml, NVML_GOM_ALL_ON);
           }
         }
       }
 
       if ((need_adl == 1) && (adl_init (adl) == 0))
       {
-        data.hm_amd = adl;
+        data.hm_adl = adl;
       }
 
-      if (data.hm_amd)
+      if (data.hm_adl)
       {
-        if (hm_ADL_Main_Control_Create (data.hm_amd, ADL_Main_Memory_Alloc, 0) == ADL_OK)
+        if (hm_ADL_Main_Control_Create (data.hm_adl, ADL_Main_Memory_Alloc, 0) == ADL_OK)
         {
           // total number of adapters
 
           int hm_adapters_num;
 
-          if (get_adapters_num_amd (data.hm_amd, &hm_adapters_num) != 0) return (-1);
+          if (get_adapters_num_adl (data.hm_adl, &hm_adapters_num) != 0) return (-1);
 
           // adapter info
 
-          LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_amd (data.hm_amd, hm_adapters_num);
+          LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_adl (data.hm_adl, hm_adapters_num);
 
           if (lpAdapterInfo == NULL) return (-1);
 
@@ -14070,12 +14073,12 @@ int main (int argc, char **argv)
           {
             hc_thread_mutex_lock (mux_adl);
 
-            // hm_get_opencl_busid_devid (hm_adapters_amd, devices_all_cnt, devices_all);
+            // hm_get_opencl_busid_devid (hm_adapters_adl, devices_all_cnt, devices_all);
 
-            hm_get_adapter_index_amd (hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+            hm_get_adapter_index_adl (hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
 
-            hm_get_overdrive_version  (data.hm_amd, hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-            hm_check_fanspeed_control (data.hm_amd, hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+            hm_get_overdrive_version  (data.hm_adl, hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+            hm_check_fanspeed_control (data.hm_adl, hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
 
             hc_thread_mutex_unlock (mux_adl);
           }
@@ -14085,7 +14088,7 @@ int main (int argc, char **argv)
         }
       }
 
-      if (data.hm_amd == NULL && data.hm_nv == NULL)
+      if (data.hm_adl == NULL && data.hm_nvml == NULL)
       {
         gpu_temp_disable = 1;
       }
@@ -14174,7 +14177,7 @@ int main (int argc, char **argv)
        */
 
       #ifdef HAVE_HWMON
-      if (gpu_temp_disable == 0 && data.hm_amd == NULL && data.hm_nv == NULL)
+      if (gpu_temp_disable == 0 && data.hm_adl == NULL && data.hm_nvml == NULL)
       {
         log_info ("Watchdog: Hardware Monitoring Interface not found on your system");
       }
@@ -14221,12 +14224,12 @@ int main (int argc, char **argv)
 
         if (device_param->device_vendor_id == VENDOR_ID_NV)
         {
-          memcpy (&data.hm_device[device_id], &hm_adapters_nv[platform_devices_id], sizeof (hm_attrs_t));
+          memcpy (&data.hm_device[device_id], &hm_adapters_nvml[platform_devices_id], sizeof (hm_attrs_t));
         }
 
         if (device_param->device_vendor_id == VENDOR_ID_AMD)
         {
-          memcpy (&data.hm_device[device_id], &hm_adapters_amd[platform_devices_id], sizeof (hm_attrs_t));
+          memcpy (&data.hm_device[device_id], &hm_adapters_adl[platform_devices_id], sizeof (hm_attrs_t));
         }
       }
     }
@@ -14263,7 +14266,7 @@ int main (int argc, char **argv)
 
             int powertune_supported = 0;
 
-            if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
+            if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &powertune_supported)) != ADL_OK)
             {
               log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
@@ -14278,9 +14281,9 @@ int main (int argc, char **argv)
 
               ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
 
-              if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune)) == ADL_OK)
+              if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &powertune)) == ADL_OK)
               {
-                ADL_rc = hm_ADL_Overdrive_PowerControl_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &od_power_control_status[device_id]);
+                ADL_rc = hm_ADL_Overdrive_PowerControl_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &od_power_control_status[device_id]);
               }
 
               if (ADL_rc != ADL_OK)
@@ -14290,7 +14293,7 @@ int main (int argc, char **argv)
                 return (-1);
               }
 
-              if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
+              if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adapter_index.adl, powertune.iMaxValue)) != ADL_OK)
               {
                 log_error ("ERROR: Failed to set new ADL PowerControl values");
 
@@ -14303,7 +14306,7 @@ int main (int argc, char **argv)
 
               od_clock_mem_status[device_id].state.iNumberOfPerformanceLevels = 2;
 
-              if ((ADL_rc = hm_ADL_Overdrive_StateInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
+              if ((ADL_rc = hm_ADL_Overdrive_StateInfo_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
               {
                 log_error ("ERROR: Failed to get ADL memory and engine clock frequency");
 
@@ -14314,7 +14317,7 @@ int main (int argc, char **argv)
 
               ADLOD6Capabilities caps = {0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0, 0};
 
-              if ((ADL_rc = hm_ADL_Overdrive_Capabilities_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &caps)) != ADL_OK)
+              if ((ADL_rc = hm_ADL_Overdrive_Capabilities_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &caps)) != ADL_OK)
               {
                 log_error ("ERROR: Failed to get ADL device capabilities");
 
@@ -14351,7 +14354,7 @@ int main (int argc, char **argv)
               performance_state->aLevels[0].iMemoryClock = memory_clock_profile_max;
               performance_state->aLevels[1].iMemoryClock = memory_clock_profile_max;
 
-              if ((ADL_rc = hm_ADL_Overdrive_State_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+              if ((ADL_rc = hm_ADL_Overdrive_State_Set (data.hm_adl, data.hm_device[device_id].adapter_index.adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
               {
                 log_info ("ERROR: Failed to set ADL performance state");
 
@@ -14368,14 +14371,14 @@ int main (int argc, char **argv)
               // powertune set
               ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
 
-              if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune)) != ADL_OK)
+              if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &powertune)) != ADL_OK)
               {
                 log_error ("ERROR: Failed to get current ADL PowerControl settings");
 
                 return (-1);
               }
 
-              if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
+              if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adapter_index.adl, powertune.iMaxValue)) != ADL_OK)
               {
                 log_error ("ERROR: Failed to set new ADL PowerControl values");
 
@@ -14393,7 +14396,7 @@ int main (int argc, char **argv)
 
           int powertune_supported = 0;
 
-          if (hm_NVML_nvmlDeviceGetPowerManagementLimit (data.hm_nv, 0, data.hm_device[device_id].adapter_index.nv, &limit) == NVML_SUCCESS)
+          if (hm_NVML_nvmlDeviceGetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].adapter_index.nvml, &limit) == NVML_SUCCESS)
           {
             powertune_supported = 1;
           }
@@ -14405,11 +14408,11 @@ int main (int argc, char **argv)
             unsigned int minLimit;
             unsigned int maxLimit;
 
-            if (hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (data.hm_nv, 0, data.hm_device[device_id].adapter_index.nv, &minLimit, &maxLimit) == NVML_SUCCESS)
+            if (hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (data.hm_nvml, 0, data.hm_device[device_id].adapter_index.nvml, &minLimit, &maxLimit) == NVML_SUCCESS)
             {
               if (maxLimit > 0)
               {
-                if (hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nv, 0, data.hm_device[device_id].adapter_index.nv, maxLimit) == NVML_SUCCESS)
+                if (hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].adapter_index.nvml, maxLimit) == NVML_SUCCESS)
                 {
                   // now we can be sure we need to reset later
 
@@ -15748,7 +15751,7 @@ int main (int argc, char **argv)
 
               if (device_param->device_vendor_id == VENDOR_ID_AMD)
               {
-                rc = hm_set_fanspeed_with_device_id_amd (device_id, fanspeed, 1);
+                rc = hm_set_fanspeed_with_device_id_adl (device_id, fanspeed, 1);
               }
               else if (device_param->device_vendor_id == VENDOR_ID_NV)
               {
@@ -17928,7 +17931,7 @@ int main (int argc, char **argv)
 
               if (device_param->device_vendor_id == VENDOR_ID_AMD)
               {
-                rc = hm_set_fanspeed_with_device_id_amd (device_id, fanspeed, 0);
+                rc = hm_set_fanspeed_with_device_id_adl (device_id, fanspeed, 0);
               }
               else if (device_param->device_vendor_id == VENDOR_ID_NV)
               {
@@ -17964,7 +17967,7 @@ int main (int argc, char **argv)
 
             int powertune_supported = 0;
 
-            if ((hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
+            if ((hm_ADL_Overdrive6_PowerControl_Caps (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &powertune_supported)) != ADL_OK)
             {
               log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
@@ -17975,7 +17978,7 @@ int main (int argc, char **argv)
             {
               // powercontrol settings
 
-              if ((hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, od_power_control_status[device_id])) != ADL_OK)
+              if ((hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adapter_index.adl, od_power_control_status[device_id])) != ADL_OK)
               {
                 log_info ("ERROR: Failed to restore the ADL PowerControl values");
 
@@ -17993,7 +17996,7 @@ int main (int argc, char **argv)
               performance_state->aLevels[0].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[0].iMemoryClock;
               performance_state->aLevels[1].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
 
-              if ((hm_ADL_Overdrive_State_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+              if ((hm_ADL_Overdrive_State_Set (data.hm_adl, data.hm_device[device_id].adapter_index.adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
               {
                 log_info ("ERROR: Failed to restore ADL performance state");
 
@@ -18011,7 +18014,7 @@ int main (int argc, char **argv)
 
           if (limit > 0)
           {
-            hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nv, 0, data.hm_device[device_id].adapter_index.nv, limit);
+            hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].adapter_index.nvml, limit);
           }
         }
       }
@@ -18021,22 +18024,22 @@ int main (int argc, char **argv)
 
     if (gpu_temp_disable == 0)
     {
-      if (data.hm_nv)
+      if (data.hm_nvml)
       {
-        hm_NVML_nvmlShutdown (data.hm_nv);
+        hm_NVML_nvmlShutdown (data.hm_nvml);
 
-        nvml_close (data.hm_nv);
+        nvml_close (data.hm_nvml);
 
-        data.hm_nv = NULL;
+        data.hm_nvml = NULL;
       }
 
-      if (data.hm_amd)
+      if (data.hm_adl)
       {
-        hm_ADL_Main_Control_Destroy (data.hm_amd);
+        hm_ADL_Main_Control_Destroy (data.hm_adl);
 
-        adl_close (data.hm_amd);
+        adl_close (data.hm_adl);
 
-        data.hm_amd = NULL;
+        data.hm_adl = NULL;
       }
     }
     #endif // HAVE_HWMON
