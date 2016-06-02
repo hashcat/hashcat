@@ -947,7 +947,6 @@ struct __hc_device_param
   uint    kernel_accel_min;
   uint    kernel_accel_max;
   uint    kernel_power;
-  uint    kernel_power_user;
 
   size_t  size_pws;
   size_t  size_tmps;

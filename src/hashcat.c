@@ -2420,7 +2420,7 @@ static float find_kernel_power_div (const u64 total_left, const uint kernel_powe
     fflush (stdout);
   }
 
-  if ((kernel_power_all * kernel_power_div) < 8) return 1;
+  //if ((kernel_power_all * kernel_power_div) < 8) return 1;
 
   return kernel_power_div;
 }
@@ -2905,7 +2905,7 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
 
 static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
 {
-  const u32 kernel_power = device_param->device_processors * device_param->kernel_threads * kernel_accel;
+  const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads * kernel_accel;
 
   device_param->kernel_params_buf32[25] = 0;
   device_param->kernel_params_buf32[26] = kernel_loops; // not a bug, both need to be set
@@ -2913,11 +2913,11 @@ static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, 
 
   if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    run_kernel (KERN_RUN_1, device_param, kernel_power, true);
+    run_kernel (KERN_RUN_1, device_param, kernel_power_try, true);
   }
   else
   {
-    run_kernel (KERN_RUN_2, device_param, kernel_power, true);
+    run_kernel (KERN_RUN_2, device_param, kernel_power_try, true);
   }
 
   const double exec_ms_prev = get_avg_exec_time (device_param, 1);
@@ -4409,8 +4409,8 @@ static void *thread_outfile_remove (void *p)
 
 static void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len)
 {
-  if (device_param->pws_cnt < device_param->kernel_power)
-  {
+  //if (device_param->pws_cnt < device_param->kernel_power)
+  //{
     pw_t *pw = (pw_t *) device_param->pws_buf + device_param->pws_cnt;
 
     u8 *ptr = (u8 *) pw->i;
@@ -4422,16 +4422,26 @@ static void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int
     pw->pw_len = pw_len;
 
     device_param->pws_cnt++;
-  }
-  else
-  {
-    fprintf (stderr, "BUG pw_add()!!\n");
-
-    return;
-  }
+  //}
+  //else
+  //{
+  //  fprintf (stderr, "BUG pw_add()!!\n");
+  //
+  //  return;
+  //}
 }
 
-static uint get_work (hc_device_param_t *device_param, const u64 max, const bool allow_div)
+static u32 get_power (const u32 kernel_power)
+{
+  if (data.kernel_power_div)
+  {
+    return (float) kernel_power * data.kernel_power_div;
+  }
+
+  return kernel_power;
+}
+
+static uint get_work (hc_device_param_t *device_param, const u64 max)
 {
   hc_thread_mutex_lock (mux_dispatcher);
 
@@ -4442,31 +4452,15 @@ static uint get_work (hc_device_param_t *device_param, const u64 max, const bool
 
   const u64 words_left = words_base - words_cur;
 
-  if (allow_div)
+  if (data.kernel_power_all > words_left)
   {
-    if (data.kernel_power_all > words_left)
+    if (data.kernel_power_div == 0)
     {
-      if (data.kernel_power_div == 0)
-      {
-        data.kernel_power_div = find_kernel_power_div (words_left, data.kernel_power_all);
-      }
-    }
-
-    if (data.kernel_power_div)
-    {
-      if (device_param->kernel_power == device_param->kernel_power_user)
-      {
-        const u32 kernel_power_new = (float) device_param->kernel_power * data.kernel_power_div;
-
-        if (kernel_power_new < device_param->kernel_power)
-        {
-          device_param->kernel_power = kernel_power_new;
-        }
-      }
+      data.kernel_power_div = find_kernel_power_div (words_left, data.kernel_power_all);
     }
   }
 
-  const uint kernel_power = device_param->kernel_power;
+  const u32 kernel_power = get_power (device_param->kernel_power);
 
   uint work = MIN (words_left, kernel_power);
 
@@ -4479,7 +4473,7 @@ static uint get_work (hc_device_param_t *device_param, const u64 max, const bool
   return work;
 }
 
-static void *thread_calc_stdin (void *p)
+static void *thread_autotune (void *p)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) p;
 
@@ -4487,11 +4481,18 @@ static void *thread_calc_stdin (void *p)
 
   autotune (device_param);
 
+  return NULL;
+}
+
+static void *thread_calc_stdin (void *p)
+{
+  hc_device_param_t *device_param = (hc_device_param_t *) p;
+
+  if (device_param->skipped) return NULL;
+
   char *buf = (char *) mymalloc (HCBUFSIZ);
 
   const uint attack_kern = data.attack_kern;
-
-  const uint kernel_power = device_param->kernel_power;
 
   while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
   {
@@ -4506,7 +4507,7 @@ static void *thread_calc_stdin (void *p)
 
     uint words_cur = 0;
 
-    while (words_cur < kernel_power)
+    while (words_cur < get_power (device_param->kernel_power))
     {
       char *line_buf = fgets (buf, HCBUFSIZ - 1, stdin);
 
@@ -4633,8 +4634,6 @@ static void *thread_calc (void *p)
 
   if (device_param->skipped) return NULL;
 
-  autotune (device_param);
-
   const uint attack_mode = data.attack_mode;
   const uint attack_kern = data.attack_kern;
 
@@ -4642,7 +4641,7 @@ static void *thread_calc (void *p)
   {
     while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
     {
-      const uint work = get_work (device_param, -1, true);
+      const uint work = get_work (device_param, -1);
 
       if (work == 0) break;
 
@@ -4757,17 +4756,15 @@ static void *thread_calc (void *p)
       u64 words_off = 0;
       u64 words_fin = 0;
 
-      bool allow_div = true;
-
       u64 max = -1;
 
       while (max)
       {
-        const uint work = get_work (device_param, max, allow_div);
-
-        allow_div = false;
+        const uint work = get_work (device_param, max);
 
         if (work == 0) break;
+
+        max = 0;
 
         words_off = device_param->words_off;
         words_fin = words_off + work;
@@ -4776,8 +4773,6 @@ static void *thread_calc (void *p)
         uint  line_len;
 
         for ( ; words_cur < words_off; words_cur++) get_next_word (wl_data, fd, &line_buf, &line_len);
-
-        max = 0;
 
         for ( ; words_cur < words_fin; words_cur++)
         {
@@ -14437,8 +14432,6 @@ int main (int argc, char **argv)
 
     if (data.quiet == 0) log_info_nn ("Initializing device kernels and memory...");
 
-    uint kernel_power_all = 0;
-
     for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
     {
       /**
@@ -14498,6 +14491,8 @@ int main (int argc, char **argv)
       if (hash_mode == 10410) kernel_threads = 64; // RC4
       if (hash_mode == 10500) kernel_threads = 64; // RC4
       if (hash_mode == 13100) kernel_threads = 64; // RC4
+
+      device_param->kernel_threads = kernel_threads;
 
       /**
        * create input buffers on device : calculate size of fixed memory buffers
@@ -14867,15 +14862,6 @@ int main (int argc, char **argv)
       device_param->size_pws     = size_pws;
       device_param->size_tmps    = size_tmps;
       device_param->size_hooks   = size_hooks;
-
-      // do not confuse kernel_accel_max with kernel_accel here
-
-      const u32 kernel_power = device_processors * kernel_threads * kernel_accel_max;
-
-      device_param->kernel_threads    = kernel_threads;
-      device_param->kernel_power_user = kernel_power;
-
-      kernel_power_all += kernel_power;
 
       /**
        * default building options
@@ -15792,8 +15778,6 @@ int main (int argc, char **argv)
 
       #endif // HAVE_HWMON
     }
-
-    data.kernel_power_all = kernel_power_all;
 
     if (data.quiet == 0) log_info_nn ("");
 
@@ -17019,6 +17003,8 @@ int main (int argc, char **argv)
 
         data.ms_paused = 0;
 
+        data.kernel_power_div = 0;
+
         data.words_cur = rd->words_cur;
 
         for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
@@ -17036,8 +17022,6 @@ int main (int argc, char **argv)
 
           memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
 
-          device_param->kernel_power = device_param->kernel_power_user;
-
           device_param->outerloop_pos  = 0;
           device_param->outerloop_left = 0;
           device_param->innerloop_pos  = 0;
@@ -17052,8 +17036,6 @@ int main (int argc, char **argv)
           device_param->words_off  = 0;
           device_param->words_done = 0;
         }
-
-        data.kernel_power_div = 0;
 
         // figure out some workload
 
@@ -17497,26 +17479,6 @@ int main (int argc, char **argv)
         }
 
         /*
-         * Inform user about possible slow speeds
-         */
-
-        if ((wordlist_mode == WL_MODE_FILE) || (wordlist_mode == WL_MODE_MASK))
-        {
-          if (data.words_base < kernel_power_all)
-          {
-            if (quiet == 0)
-            {
-              log_info ("ATTENTION!");
-              log_info ("  The wordlist or mask you are using is too small.");
-              log_info ("  Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
-              log_info ("  The cracking speed will drop.");
-              log_info ("  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
-              log_info ("");
-            }
-          }
-        }
-
-        /*
          * Update loopback file
          */
 
@@ -17576,17 +17538,61 @@ int main (int argc, char **argv)
           if (data.quiet == 0) log_info ("");
         }
 
-        time_t runtime_start;
+        /**
+         * create autotune threads
+         */
 
-        time (&runtime_start);
+        hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
 
-        data.runtime_start = runtime_start;
+        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+        {
+          hc_device_param_t *device_param = &devices_param[device_id];
+
+          hc_thread_create (c_threads[device_id], thread_autotune, device_param);
+        }
+
+        hc_thread_wait (data.devices_cnt, c_threads);
+
+        /*
+         * Inform user about possible slow speeds
+         */
+
+        uint kernel_power_all = 0;
+
+        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+        {
+          hc_device_param_t *device_param = &devices_param[device_id];
+
+          kernel_power_all += device_param->kernel_power;
+        }
+
+        data.kernel_power_all = kernel_power_all;
+
+        if ((wordlist_mode == WL_MODE_FILE) || (wordlist_mode == WL_MODE_MASK))
+        {
+          if (data.words_base < kernel_power_all)
+          {
+            if (quiet == 0)
+            {
+              log_info ("ATTENTION!");
+              log_info ("  The wordlist or mask you are using is too small.");
+              log_info ("  Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
+              log_info ("  The cracking speed will drop.");
+              log_info ("  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
+              log_info ("");
+            }
+          }
+        }
 
         /**
          * create cracker threads
          */
 
-        hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
+        time_t runtime_start;
+
+        time (&runtime_start);
+
+        data.runtime_start = runtime_start;
 
         for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
         {
@@ -17601,8 +17607,6 @@ int main (int argc, char **argv)
             hc_thread_create (c_threads[device_id], thread_calc, device_param);
           }
         }
-
-        // wait for crack threads to exit
 
         hc_thread_wait (data.devices_cnt, c_threads);
 
