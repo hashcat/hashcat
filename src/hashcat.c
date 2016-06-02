@@ -13323,6 +13323,9 @@ int main (int argc, char **argv)
      * OpenCL devices: simply push all devices from all platforms into the same device array
      */
 
+    int need_adl  = 0;
+    int need_nvml = 0;
+
     hc_device_param_t *devices_param = (hc_device_param_t *) mycalloc (DEVICES_MAX, sizeof (hc_device_param_t));
 
     data.devices_param = devices_param;
@@ -13713,6 +13716,21 @@ int main (int argc, char **argv)
 
         // device_processor_cores
 
+        if (device_param->device_type & CL_DEVICE_TYPE_GPU)
+        {
+          if ((device_param->platform_vendor_id == VENDOR_ID_AMD) && (device_param->device_vendor_id == VENDOR_ID_AMD))
+          {
+            need_adl = 1;
+          }
+
+          if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
+          {
+            need_nvml = 1;
+          }
+        }
+
+        // device_processor_cores
+
         if (device_type & CL_DEVICE_TYPE_CPU)
         {
           cl_uint device_processor_cores = 1;
@@ -13988,9 +14006,15 @@ int main (int argc, char **argv)
     if (gpu_temp_disable == 0)
     {
       NVML_PTR *nvml = (NVML_PTR *) mymalloc (sizeof (NVML_PTR));
+      ADL_PTR  *adl  = (ADL_PTR *)  mymalloc (sizeof (ADL_PTR));
 
-      if (nvml_init (nvml) == 0)
+      data.hm_amd = NULL;
+      data.hm_nv  = NULL;
+
+      if ((need_nvml == 1) && (nvml_init (nvml) == 0))
+      {
         data.hm_nv = nvml;
+      }
 
       if (data.hm_nv)
       {
@@ -14020,12 +14044,10 @@ int main (int argc, char **argv)
         }
       }
 
-      data.hm_amd = NULL;
-
-      ADL_PTR *adl = (ADL_PTR *) mymalloc (sizeof (ADL_PTR));
-
-      if (adl_init (adl) == 0)
+      if ((need_adl == 1) && (adl_init (adl) == 0))
+      {
         data.hm_amd = adl;
+      }
 
       if (data.hm_amd)
       {
