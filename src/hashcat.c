@@ -13627,8 +13627,11 @@ int main (int argc, char **argv)
           {
             if (data.force == 0)
             {
-              log_info ("Device #%u: WARNING: not native intel opencl runtime, expect massive speed loss", device_id + 1);
-              log_info ("           You can use --force to override this but do not post error reports if you do so");
+              if (algorithm_pos == 0)
+              {
+                log_info ("Device #%u: WARNING: not native intel opencl runtime, expect massive speed loss", device_id + 1);
+                log_info ("           You can use --force to override this but do not post error reports if you do so");
+              }
 
               device_param->skipped = 1;
             }
