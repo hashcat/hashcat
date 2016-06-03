@@ -3816,7 +3816,9 @@ static void *thread_monitor (void *p)
   uint status_left  = data.status_timer;
 
   #ifdef HAVE_HWMON
-  uint hwmon_check   = 0;
+  uint hwmon_check = 0;
+
+  int slowdown_warnings = 0;
 
   // these variables are mainly used for fan control
 
@@ -3881,6 +3883,62 @@ static void *thread_monitor (void *p)
     if (data.devices_status != STATUS_RUNNING) continue;
 
     #ifdef HAVE_HWMON
+
+    if (hwmon_check == 1)
+    {
+      hc_thread_mutex_lock (mux_adl);
+
+      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+      {
+        hc_device_param_t *device_param = &data.devices_param[device_id];
+
+        if (device_param->skipped) continue;
+
+        if (device_param->device_vendor_id == VENDOR_ID_NV)
+        {
+          if (data.hm_nvapi)
+          {
+            NV_GPU_PERF_POLICIES_INFO_PARAMS_V1   perfPolicies_info   = { 0 };
+            NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 perfPolicies_status = { 0 };
+
+            perfPolicies_info.version   = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1, 1);
+            perfPolicies_status.version = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1, 1);
+
+            hm_NvAPI_GPU_GetPerfPoliciesInfo (data.hm_nvapi, data.hm_device[device_id].nvapi, &perfPolicies_info);
+
+            perfPolicies_status.info_value = perfPolicies_info.info_value;
+
+            hm_NvAPI_GPU_GetPerfPoliciesStatus (data.hm_nvapi, data.hm_device[device_id].nvapi, &perfPolicies_status);
+
+            if (perfPolicies_status.throttle & 2)
+            {
+              if (slowdown_warnings < 3)
+              {
+                if (data.quiet == 0) clear_prompt ();
+
+                log_info ("WARNING: Drivers temperature threshold hit on GPU #%d, expect performance to drop...", device_id + 1);
+
+                if (slowdown_warnings == 2)
+                {
+                  log_info ("");
+                }
+
+                if (data.quiet == 0) fprintf (stdout, "%s", PROMPT);
+                if (data.quiet == 0) fflush (stdout);
+
+                slowdown_warnings++;
+              }
+            }
+            else
+            {
+              slowdown_warnings = 0;
+            }
+          }
+        }
+      }
+
+      hc_thread_mutex_unlock (mux_adl);
+    }
 
     if (hwmon_check == 1)
     {
@@ -13627,8 +13685,11 @@ int main (int argc, char **argv)
           {
             if (data.force == 0)
             {
-              log_info ("Device #%u: WARNING: not native intel opencl runtime, expect massive speed loss", device_id + 1);
-              log_info ("           You can use --force to override this but do not post error reports if you do so");
+              if (algorithm_pos == 0)
+              {
+                log_info ("Device #%u: WARNING: not native intel opencl runtime, expect massive speed loss", device_id + 1);
+                log_info ("           You can use --force to override this but do not post error reports if you do so");
+              }
 
               device_param->skipped = 1;
             }
@@ -14207,14 +14268,24 @@ int main (int argc, char **argv)
 
         const uint platform_devices_id = device_param->platform_devices_id;
 
-        if (device_param->device_vendor_id == VENDOR_ID_NV)
-        {
-          memcpy (&data.hm_device[device_id], &hm_adapters_nvml[platform_devices_id], sizeof (hm_attrs_t));
-        }
-
         if (device_param->device_vendor_id == VENDOR_ID_AMD)
         {
-          memcpy (&data.hm_device[device_id], &hm_adapters_adl[platform_devices_id], sizeof (hm_attrs_t));
+          data.hm_device[device_id].adl               = hm_adapters_adl[platform_devices_id].adl;
+          data.hm_device[device_id].nvapi             = 0;
+          data.hm_device[device_id].nvml              = 0;
+          data.hm_device[device_id].od_version        = hm_adapters_adl[platform_devices_id].od_version;
+          data.hm_device[device_id].fan_get_supported = hm_adapters_adl[platform_devices_id].fan_get_supported;
+          data.hm_device[device_id].fan_set_supported = hm_adapters_adl[platform_devices_id].fan_set_supported;
+        }
+
+        if (device_param->device_vendor_id == VENDOR_ID_NV)
+        {
+          data.hm_device[device_id].adl               = 0;
+          data.hm_device[device_id].nvapi             = hm_adapters_nvapi[platform_devices_id].nvapi;
+          data.hm_device[device_id].nvml              = hm_adapters_nvml[platform_devices_id].nvml;
+          data.hm_device[device_id].od_version        = 0;
+          data.hm_device[device_id].fan_get_supported = hm_adapters_nvml[platform_devices_id].fan_get_supported;
+          data.hm_device[device_id].fan_set_supported = 0;
         }
       }
     }
