@@ -13671,10 +13671,13 @@ int main (int argc, char **argv)
         {
           if (device_param->device_vendor_id == VENDOR_ID_AMD_USE_INTEL)
           {
-            log_info ("Device #%u: WARNING: not native intel opencl runtime, expect massive speed loss", device_id + 1);
-            log_info ("           You can use --force to override this but do not post error reports if you do so");
+            if (data.force == 0)
+            {
+              log_info ("Device #%u: WARNING: not native intel opencl runtime, expect massive speed loss", device_id + 1);
+              log_info ("           You can use --force to override this but do not post error reports if you do so");
 
-            if (data.force == 0) device_param->skipped = 1;
+              device_param->skipped = 1;
+            }
           }
         }
 
