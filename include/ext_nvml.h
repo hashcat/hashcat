@@ -103,6 +103,63 @@ typedef enum nvmlGom_enum
                                             //!< high bandwidth double precision
 } nvmlGpuOperationMode_t;
 
+/***************************************************************************************************/
+/** @addtogroup nvmlClocksThrottleReasons
+ *  @{
+ */
+/***************************************************************************************************/
+
+/** Nothing is running on the GPU and the clocks are dropping to Idle state
+ * \note This limiter may be removed in a later release
+ */
+#define nvmlClocksThrottleReasonGpuIdle                   0x0000000000000001LL
+
+/** GPU clocks are limited by current setting of applications clocks
+ *
+ * @see nvmlDeviceSetApplicationsClocks
+ * @see nvmlDeviceGetApplicationsClock
+ */
+#define nvmlClocksThrottleReasonApplicationsClocksSetting   0x0000000000000002LL
+
+/**
+ * @deprecated Renamed to \ref nvmlClocksThrottleReasonApplicationsClocksSetting
+ *             as the name describes the situation more accurately.
+ */
+#define nvmlClocksThrottleReasonUserDefinedClocks         nvmlClocksThrottleReasonApplicationsClocksSetting
+
+/** SW Power Scaling algorithm is reducing the clocks below requested clocks
+ *
+ * @see nvmlDeviceGetPowerUsage
+ * @see nvmlDeviceSetPowerManagementLimit
+ * @see nvmlDeviceGetPowerManagementLimit
+ */
+#define nvmlClocksThrottleReasonSwPowerCap                0x0000000000000004LL
+
+/** HW Slowdown (reducing the core clocks by a factor of 2 or more) is engaged
+ *
+ * This is an indicator of:
+ *   - temperature being too high
+ *   - External Power Brake Assertion is triggered (e.g. by the system power supply)
+ *   - Power draw is too high and Fast Trigger protection is reducing the clocks
+ *   - May be also reported during PState or clock change
+ *      - This behavior may be removed in a later release.
+ *
+ * @see nvmlDeviceGetTemperature
+ * @see nvmlDeviceGetTemperatureThreshold
+ * @see nvmlDeviceGetPowerUsage
+ */
+#define nvmlClocksThrottleReasonHwSlowdown                0x0000000000000008LL
+
+/** Some other unspecified factor is reducing the clocks */
+#define nvmlClocksThrottleReasonUnknown                   0x8000000000000000LL
+
+/** Bit mask representing no clocks throttling
+ *
+ * Clocks are as high as possible.
+ * */
+#define nvmlClocksThrottleReasonNone                      0x0000000000000000LL
+
+
 /*
  * End of declarations from nvml.h
  **/

@@ -3396,6 +3396,8 @@ int hm_get_throttle_with_device_id (const uint device_id)
 
     clocksThrottleReasons &= supportedThrottleReasons;
 
+    clocksThrottleReasons &= ~nvmlClocksThrottleReasonUnknown;
+
     return (clocksThrottleReasons > 0);
   }
 
