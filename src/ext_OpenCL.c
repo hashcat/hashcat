@@ -397,8 +397,7 @@ cl_int hc_clBuildProgram (OCL_PTR *ocl, cl_program program, cl_uint num_devices,
 
     char *options_update = (char *) mymalloc (len + 1);
 
-    options_update = strncat (options_update, options, len - 1 - 15);
-    options_update = strncat (options_update, " -cl-opt-disable", 1 + 15);
+    snprintf (options_update, len, "%s -cl-opt-disable", options);
 
     if (data.quiet == 0) log_error ("\n=== Build failed, retry with optimization disabled ===\n");
 
