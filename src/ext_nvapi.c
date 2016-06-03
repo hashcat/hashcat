@@ -31,13 +31,13 @@ int nvapi_init (NVAPI_PTR *nvapi)
     return (-1);
   }
 
-  HC_LOAD_FUNC(nvapi, nvapi_QueryInterface,                     NVAPI_QUERYINTERFACE,                     NVAPI,                0)
-  HC_LOAD_ADDR(nvapi, NvAPI_Initialize,                         NVAPI_INITIALIZE,                         nvapi_QueryInterface, 0x0150E828, NVAPI, 0)
-  HC_LOAD_ADDR(nvapi, NvAPI_Unload,                             NVAPI_UNLOAD,                             nvapi_QueryInterface, 0xD22BDD7E, NVAPI, 0)
-  HC_LOAD_ADDR(nvapi, NvAPI_GetErrorMessage,                    NVAPI_GETERRORMESSAGE,                    nvapi_QueryInterface, 0x6C2D048C, NVAPI, 0)
-  HC_LOAD_ADDR(nvapi, NvAPI_EnumPhysicalGPUs,                   NVAPI_ENUMPHYSICALGPUS,                   nvapi_QueryInterface, 0xE5AC921F, NVAPI, 0)
-
-  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetPerfDecreaseInfo,            NVAPI_GPU_GETPERFDECREASEINFO,            nvapi_QueryInterface, 0x7F7F4600, NVAPI, 0)
+  HC_LOAD_FUNC(nvapi, nvapi_QueryInterface,             NVAPI_QUERYINTERFACE,             NVAPI,                0)
+  HC_LOAD_ADDR(nvapi, NvAPI_Initialize,                 NVAPI_INITIALIZE,                 nvapi_QueryInterface, 0x0150E828, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_Unload,                     NVAPI_UNLOAD,                     nvapi_QueryInterface, 0xD22BDD7E, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GetErrorMessage,            NVAPI_GETERRORMESSAGE,            nvapi_QueryInterface, 0x6C2D048C, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_EnumPhysicalGPUs,           NVAPI_ENUMPHYSICALGPUS,           nvapi_QueryInterface, 0xE5AC921F, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetPerfPoliciesInfo,    NVAPI_GPU_GETPERFPOLICIESINFO,    nvapi_QueryInterface, 0x409D9841, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetPerfPoliciesStatus,  NVAPI_GPU_GETPERFPOLICIESSTATUS,  nvapi_QueryInterface, 0x3D358A0C, NVAPI, 0)
 
   return 0;
 }
@@ -116,11 +116,11 @@ int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle
   return NvAPI_rc;
 }
 
-int hm_NvAPI_GPU_GetPerfDecreaseInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pPerfDecrInfo)
+int hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info)
 {
   if (!nvapi) return (-1);
 
-  NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetPerfDecreaseInfo (hPhysicalGpu, pPerfDecrInfo);
+  NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetPerfPoliciesInfo (hPhysicalGpu, perfPolicies_info);
 
   if (NvAPI_rc != NVAPI_OK)
   {
@@ -128,7 +128,25 @@ int hm_NvAPI_GPU_GetPerfDecreaseInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhy
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
-    log_info ("WARN: %s %d %s\n", "NvAPI_GPU_GetPerfDecreaseInfo()", NvAPI_rc, string);
+    log_info ("WARN: %s %d %s\n", "NvAPI_GPU_GetPerfPoliciesInfo()", NvAPI_rc, string);
+  }
+
+  return NvAPI_rc;
+}
+
+int hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status)
+{
+  if (!nvapi) return (-1);
+
+  NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetPerfPoliciesStatus (hPhysicalGpu, perfPolicies_status);
+
+  if (NvAPI_rc != NVAPI_OK)
+  {
+    NvAPI_ShortString string = { 0 };
+
+    hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
+
+    log_info ("WARN: %s %d %s\n", "NvAPI_GPU_GetPerfPoliciesStatus()", NvAPI_rc, string);
   }
 
   return NvAPI_rc;

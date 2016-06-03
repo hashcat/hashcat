@@ -183,28 +183,42 @@ typedef enum _NvAPI_Status
     NVAPI_FIRMWARE_REVISION_NOT_SUPPORTED       = -200,    // The device's firmware is not supported.
 } NvAPI_Status;
 
-
-//! Used in NvAPI_GPU_GetPerfDecreaseInfo.
-//! Bit masks for knowing the exact reason for performance decrease
-typedef enum _NVAPI_GPU_PERF_DECREASE
+typedef struct
 {
-    NV_GPU_PERF_DECREASE_NONE                        = 0,          //!< No Slowdown detected
-    NV_GPU_PERF_DECREASE_REASON_THERMAL_PROTECTION   = 0x00000001, //!< Thermal slowdown/shutdown/POR thermal protection
-    NV_GPU_PERF_DECREASE_REASON_POWER_CONTROL        = 0x00000002, //!< Power capping / pstate cap
-    NV_GPU_PERF_DECREASE_REASON_AC_BATT              = 0x00000004, //!< AC->BATT event
-    NV_GPU_PERF_DECREASE_REASON_API_TRIGGERED        = 0x00000008, //!< API triggered slowdown
-    NV_GPU_PERF_DECREASE_REASON_INSUFFICIENT_POWER   = 0x00000010, //!< Power connector missing
-    NV_GPU_PERF_DECREASE_REASON_UNKNOWN              = 0x80000000, //!< Unknown reason
-} NVAPI_GPU_PERF_DECREASE;
+  // total size (of memset) is always: 76 = 0x4c
 
+  NvU32 version;
 
-NVAPI_INTERFACE NvAPI_QueryInterface(uint offset);
-NVAPI_INTERFACE NvAPI_Initialize();
-NVAPI_INTERFACE NvAPI_Unload();
-NVAPI_INTERFACE NvAPI_GetErrorMessage(NvAPI_Status nr,NvAPI_ShortString szDesc);
-NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs(NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
+  NvU32 a;
+  NvU32 info_value;
 
-NVAPI_INTERFACE NvAPI_GPU_GetPerfDecreaseInfo(NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pPerfDecrInfo);
+  unsigned char x[64];
+
+} NV_GPU_PERF_POLICIES_INFO_PARAMS_V1;
+
+typedef struct
+{
+  // total size (of memset) is always: 1360 = 0x550
+
+  NvU32 version;
+  NvU32 info_value;
+
+  NvU32 a;
+  NvU32 b;
+
+  NvU32 throttle;
+
+  unsigned char x[1340];
+
+} NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1;
+
+NVAPI_INTERFACE NvAPI_QueryInterface (uint offset);
+NVAPI_INTERFACE NvAPI_Initialize ();
+NVAPI_INTERFACE NvAPI_Unload ();
+NVAPI_INTERFACE NvAPI_GetErrorMessage (NvAPI_Status nr,NvAPI_ShortString szDesc);
+NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
+NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesInfo (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info);
+NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesStatus (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status);
 
 #ifdef __nvapi_success
     #undef __success
@@ -269,8 +283,8 @@ typedef int (*NVAPI_INITIALIZE) (void);
 typedef int (*NVAPI_UNLOAD) (void);
 typedef int (*NVAPI_GETERRORMESSAGE) (NvAPI_Status, NvAPI_ShortString);
 typedef int (*NVAPI_ENUMPHYSICALGPUS) (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *);
-
-typedef int (*NVAPI_GPU_GETPERFDECREASEINFO) (NvPhysicalGpuHandle, NvU32 *);
+typedef int (*NVAPI_GPU_GETPERFPOLICIESINFO) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *);
+typedef int (*NVAPI_GPU_GETPERFPOLICIESSTATUS) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *);
 
 typedef struct
 {
@@ -281,8 +295,8 @@ typedef struct
   NVAPI_UNLOAD NvAPI_Unload;
   NVAPI_GETERRORMESSAGE NvAPI_GetErrorMessage;
   NVAPI_ENUMPHYSICALGPUS NvAPI_EnumPhysicalGPUs;
-
-  NVAPI_GPU_GETPERFDECREASEINFO NvAPI_GPU_GetPerfDecreaseInfo;
+  NVAPI_GPU_GETPERFPOLICIESINFO NvAPI_GPU_GetPerfPoliciesInfo;
+  NVAPI_GPU_GETPERFPOLICIESSTATUS NvAPI_GPU_GetPerfPoliciesStatus;
 
 } hm_nvapi_lib_t;
 
@@ -296,8 +310,8 @@ int hm_NvAPI_Initialize (NVAPI_PTR *nvapi);
 int hm_NvAPI_Unload (NVAPI_PTR *nvapi);
 int hm_NvAPI_GetErrorMessage (NVAPI_PTR *nvapi, NvAPI_Status nr, NvAPI_ShortString szDesc);
 int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
-
-int hm_NvAPI_GPU_GetPerfDecreaseInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pPerfDecrInfo);
+int hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info);
+int hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status);
 
 #endif // HAVE_HWMON
 
