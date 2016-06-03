@@ -168,26 +168,32 @@ typedef nvmlDevice_t HM_ADAPTER_NVML;
 
 #include <shared.h>
 
-typedef const char * (*NVML_ERROR_STRING) (nvmlReturn_t);
-typedef int (*NVML_INIT) (void);
-typedef int (*NVML_SHUTDOWN) (void);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_NAME) (nvmlDevice_t, char *, unsigned int);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_HANDLE_BY_INDEX) (unsigned int, nvmlDevice_t *);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_TEMPERATURE) (nvmlDevice_t, nvmlTemperatureSensors_t, unsigned int *);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_FAN_SPEED) (nvmlDevice_t, unsigned int *);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_POWER_USAGE) (nvmlDevice_t, unsigned int *);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_UTILIZATION_RATES) (nvmlDevice_t, nvmlUtilization_t *);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_CLOCKINFO) (nvmlDevice_t, nvmlClockType_t, unsigned int *);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_THRESHOLD) (nvmlDevice_t, nvmlTemperatureThresholds_t, unsigned int *);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_CURRPCIELINKGENERATION) (nvmlDevice_t, unsigned int *);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_CURRPCIELINKWIDTH) (nvmlDevice_t, unsigned int *);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS) (nvmlDevice_t, unsigned long long *);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS) (nvmlDevice_t, unsigned long long *);
-typedef nvmlReturn_t (*NVML_DEVICE_SET_COMPUTEMODE) (nvmlDevice_t, nvmlComputeMode_t);
-typedef nvmlReturn_t (*NVML_DEVICE_SET_OPERATIONMODE) (nvmlDevice_t, nvmlGpuOperationMode_t);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS) (nvmlDevice_t, unsigned int *, unsigned int *);
-typedef nvmlReturn_t (*NVML_DEVICE_SET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int);
-typedef nvmlReturn_t (*NVML_DEVICE_GET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int *);
+#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+#define NVML_API_CALL __stdcall
+#else
+#define NVML_API_CALL
+#endif
+
+typedef const char * (*NVML_API_CALL NVML_ERROR_STRING) (nvmlReturn_t);
+typedef int (*NVML_API_CALL NVML_INIT) (void);
+typedef int (*NVML_API_CALL NVML_SHUTDOWN) (void);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_NAME) (nvmlDevice_t, char *, unsigned int);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_HANDLE_BY_INDEX) (unsigned int, nvmlDevice_t *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_TEMPERATURE) (nvmlDevice_t, nvmlTemperatureSensors_t, unsigned int *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_FAN_SPEED) (nvmlDevice_t, unsigned int *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWER_USAGE) (nvmlDevice_t, unsigned int *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_UTILIZATION_RATES) (nvmlDevice_t, nvmlUtilization_t *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CLOCKINFO) (nvmlDevice_t, nvmlClockType_t, unsigned int *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_THRESHOLD) (nvmlDevice_t, nvmlTemperatureThresholds_t, unsigned int *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CURRPCIELINKGENERATION) (nvmlDevice_t, unsigned int *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CURRPCIELINKWIDTH) (nvmlDevice_t, unsigned int *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS) (nvmlDevice_t, unsigned long long *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS) (nvmlDevice_t, unsigned long long *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_COMPUTEMODE) (nvmlDevice_t, nvmlComputeMode_t);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_OPERATIONMODE) (nvmlDevice_t, nvmlGpuOperationMode_t);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS) (nvmlDevice_t, unsigned int *, unsigned int *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int *);
 
 typedef struct
 {

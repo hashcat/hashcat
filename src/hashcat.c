@@ -164,6 +164,12 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
   attr = NULL;            \
 }
 
+#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+#define HC_API_CALL __stdcall
+#else
+#define HC_API_CALL
+#endif
+
 static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
 {
   900,
@@ -5372,7 +5378,7 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 // wrapper around mymalloc for ADL
 
 #if defined(HAVE_HWMON)
-void *__stdcall ADL_Main_Memory_Alloc (const int iSize)
+void *HC_API_CALL ADL_Main_Memory_Alloc (const int iSize)
 {
   return mymalloc (iSize);
 }
@@ -17557,34 +17563,11 @@ int main (int argc, char **argv)
           }
         }
 
-        data.devices_status = STATUS_RUNNING;
-
-        if (initial_restore_done == 0)
-        {
-          if (data.restore_disable == 0) cycle_restore ();
-
-          initial_restore_done = 1;
-        }
-
-        hc_timer_set (&data.timer_running);
-
-        if ((wordlist_mode == WL_MODE_FILE) || (wordlist_mode == WL_MODE_MASK))
-        {
-          if ((quiet == 0) && (status == 0) && (benchmark == 0))
-          {
-            if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-            if (quiet == 0) fflush (stdout);
-          }
-        }
-        else if (wordlist_mode == WL_MODE_STDIN)
-        {
-          if (data.quiet == 0) log_info ("Starting attack in stdin mode...");
-          if (data.quiet == 0) log_info ("");
-        }
-
         /**
          * create autotune threads
          */
+
+        data.devices_status = STATUS_AUTOTUNE;
 
         hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
 
@@ -17631,6 +17614,31 @@ int main (int argc, char **argv)
         /**
          * create cracker threads
          */
+
+        data.devices_status = STATUS_RUNNING;
+
+        if (initial_restore_done == 0)
+        {
+          if (data.restore_disable == 0) cycle_restore ();
+
+          initial_restore_done = 1;
+        }
+
+        hc_timer_set (&data.timer_running);
+
+        if ((wordlist_mode == WL_MODE_FILE) || (wordlist_mode == WL_MODE_MASK))
+        {
+          if ((quiet == 0) && (status == 0) && (benchmark == 0))
+          {
+            if (quiet == 0) fprintf (stdout, "%s", PROMPT);
+            if (quiet == 0) fflush (stdout);
+          }
+        }
+        else if (wordlist_mode == WL_MODE_STDIN)
+        {
+          if (data.quiet == 0) log_info ("Starting attack in stdin mode...");
+          if (data.quiet == 0) log_info ("");
+        }
 
         time_t runtime_start;
 

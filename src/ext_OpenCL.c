@@ -129,7 +129,7 @@ int ocl_init (OCL_PTR *ocl)
   HC_LOAD_FUNC(ocl, clSetKernelArg, OCL_CLSETKERNELARG, OpenCL, 1)
   HC_LOAD_FUNC(ocl, clWaitForEvents, OCL_CLWAITFOREVENTS, OpenCL, 1)
   HC_LOAD_FUNC(ocl, clGetEventProfilingInfo, OCL_CLGETEVENTPROFILINGINFO, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clReleaseEvent, CLRELEASEEVENT, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clReleaseEvent, OCL_CLRELEASEEVENT, OpenCL, 1)
 
   return 0;
 }

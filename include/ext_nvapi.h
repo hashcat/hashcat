@@ -203,13 +203,19 @@ typedef NvPhysicalGpuHandle HM_ADAPTER_NVAPI;
 
 #include <shared.h>
 
-typedef int *(*NVAPI_QUERYINTERFACE) (uint);
-typedef int (*NVAPI_INITIALIZE) (void);
-typedef int (*NVAPI_UNLOAD) (void);
-typedef int (*NVAPI_GETERRORMESSAGE) (NvAPI_Status, NvAPI_ShortString);
-typedef int (*NVAPI_ENUMPHYSICALGPUS) (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *);
-typedef int (*NVAPI_GPU_GETPERFPOLICIESINFO) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *);
-typedef int (*NVAPI_GPU_GETPERFPOLICIESSTATUS) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *);
+#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+#define NVAPI_API_CALL __stdcall
+#else
+#define NVAPI_API_CALL
+#endif
+
+typedef int *(*NVAPI_API_CALL NVAPI_QUERYINTERFACE) (uint);
+typedef int (*NVAPI_API_CALL NVAPI_INITIALIZE) (void);
+typedef int (*NVAPI_API_CALL NVAPI_UNLOAD) (void);
+typedef int (*NVAPI_API_CALL NVAPI_GETERRORMESSAGE) (NvAPI_Status, NvAPI_ShortString);
+typedef int (*NVAPI_API_CALL NVAPI_ENUMPHYSICALGPUS) (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *);
+typedef int (*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESINFO) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *);
+typedef int (*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESSTATUS) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *);
 
 typedef struct
 {

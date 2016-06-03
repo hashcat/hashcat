@@ -250,20 +250,13 @@ typedef struct ADLOD6PowerControlInfo
   int iExtMask;
 } ADLOD6PowerControlInfo;
 
-/* __stdcall definition, platform-dependent:
- * - Already defined on Windows compilers
- * - GCC has a suitable equivalent on 32-bit platforms
- * - Leave it blank for other platforms/compilers
- */
-#if !(defined (_WIN32) || defined (_WIN64))
-#if (defined(__GNUC__) && defined(__i386__))
-#define __stdcall __attribute__((stdcall))
+#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+#define ADL_API_CALL __stdcall
 #else
-#define __stdcall
-#endif /* GCC 32-bit  */
-#endif /* Not windows */
+#define ADL_API_CALL
+#endif
 
-typedef void* (__stdcall *ADL_MAIN_MALLOC_CALLBACK )( int );
+typedef void* (ADL_API_CALL *ADL_MAIN_MALLOC_CALLBACK )( int );
 
 /*
  * End of declarations from adl_sdk.h and subheaders
@@ -280,39 +273,39 @@ typedef struct
 
 } ADLOD6MemClockState;
 
-typedef int (*ADL_MAIN_CONTROL_DESTROY) ();
-typedef int (*ADL_MAIN_CONTROL_CREATE) (ADL_MAIN_MALLOC_CALLBACK, int);
-typedef int (*ADL_ADAPTER_NUMBEROFADAPTERS_GET) (int *);
-typedef int (*ADL_ADAPTER_ADAPTERINFO_GET) (LPAdapterInfo, int);
-typedef int (*ADL_DISPLAY_DISPLAYINFO_GET) (int, int *, ADLDisplayInfo **, int);
-typedef int (*ADL_OVERDRIVE5_TEMPERATURE_GET) (int, int, ADLTemperature *);
-typedef int (*ADL_OVERDRIVE6_TEMPERATURE_GET) (int, int *);
-typedef int (*ADL_OVERDRIVE5_CURRENTACTIVITY_GET) (int, ADLPMActivity *);
-typedef int (*ADL_OVERDRIVE5_THERMALDEVICES_ENUM) (int, int, ADLThermalControllerInfo *);
-typedef int (*ADL_ADAPTER_ID_GET) (int, int *);
-typedef int (*ADL_ADAPTER_VIDEOBIOSINFO_GET) (int, ADLBiosInfo *);
-typedef int (*ADL_OVERDRIVE5_FANSPEEDINFO_GET) (int, int, ADLFanSpeedInfo *);
-typedef int (*ADL_OVERDRIVE5_FANSPEED_GET) (int, int, ADLFanSpeedValue *);
-typedef int (*ADL_OVERDRIVE6_FANSPEED_GET) (int, ADLOD6FanSpeedInfo *);
-typedef int (*ADL_OVERDRIVE5_FANSPEED_SET) (int, int, ADLFanSpeedValue *);
-typedef int (*ADL_OVERDRIVE6_FANSPEED_SET) (int, ADLOD6FanSpeedValue *);
-typedef int (*ADL_OVERDRIVE5_FANSPEEDTODEFAULT_SET) (int, int);
-typedef int (*ADL_OVERDRIVE5_ODPARAMETERS_GET) (int, ADLODParameters *);
-typedef int (*ADL_OVERDRIVE5_ODPERFORMANCELEVELS_GET) (int, int, ADLODPerformanceLevels *);
-typedef int (*ADL_OVERDRIVE5_ODPERFORMANCELEVELS_SET) (int, ADLODPerformanceLevels *);
-typedef int (*ADL_OVERDRIVE6_POWERCONTROL_SET) (int, int);
-typedef int (*ADL_OVERDRIVE6_POWERCONTROL_GET) (int, int *, int *);
-typedef int (*ADL_OVERDRIVE6_POWERCONTROLINFO_GET) (int, ADLOD6PowerControlInfo *);
-typedef int (*ADL_ADAPTER_ACTIVE_GET) (int, int *);
-typedef int (*ADL_DISPLAYENABLE_SET) (int, int *, int, int);
-typedef int (*ADL_OVERDRIVE_CAPS) (int, int *, int *, int *);
-typedef int (*ADL_OVERDRIVE6_CURRENTSTATUS_GET) (int, ADLOD6CurrentStatus *);
-typedef int (*ADL_OVERDRIVE6_STATEINFO_GET) (int, int, ADLOD6MemClockState *);
-typedef int (*ADL_OVERDRIVE6_CAPABILITIES_GET) (int, ADLOD6Capabilities *);
-typedef int (*ADL_OVERDRIVE6_STATE_SET) (int, int, ADLOD6StateInfo *);
-typedef int (*ADL_OVERDRIVE6_POWERCONTROL_CAPS) (int, int *);
-typedef int (*ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET) (int, int *, int *);
-typedef int (*ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET) (int, ADLOD6ParameterRange *);
+typedef int (ADL_API_CALL *ADL_MAIN_CONTROL_DESTROY) ();
+typedef int (ADL_API_CALL *ADL_MAIN_CONTROL_CREATE) (ADL_MAIN_MALLOC_CALLBACK, int);
+typedef int (ADL_API_CALL *ADL_ADAPTER_NUMBEROFADAPTERS_GET) (int *);
+typedef int (ADL_API_CALL *ADL_ADAPTER_ADAPTERINFO_GET) (LPAdapterInfo, int);
+typedef int (ADL_API_CALL *ADL_DISPLAY_DISPLAYINFO_GET) (int, int *, ADLDisplayInfo **, int);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE5_TEMPERATURE_GET) (int, int, ADLTemperature *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TEMPERATURE_GET) (int, int *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE5_CURRENTACTIVITY_GET) (int, ADLPMActivity *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE5_THERMALDEVICES_ENUM) (int, int, ADLThermalControllerInfo *);
+typedef int (ADL_API_CALL *ADL_ADAPTER_ID_GET) (int, int *);
+typedef int (ADL_API_CALL *ADL_ADAPTER_VIDEOBIOSINFO_GET) (int, ADLBiosInfo *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE5_FANSPEEDINFO_GET) (int, int, ADLFanSpeedInfo *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE5_FANSPEED_GET) (int, int, ADLFanSpeedValue *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_FANSPEED_GET) (int, ADLOD6FanSpeedInfo *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE5_FANSPEED_SET) (int, int, ADLFanSpeedValue *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_FANSPEED_SET) (int, ADLOD6FanSpeedValue *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE5_FANSPEEDTODEFAULT_SET) (int, int);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE5_ODPARAMETERS_GET) (int, ADLODParameters *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE5_ODPERFORMANCELEVELS_GET) (int, int, ADLODPerformanceLevels *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE5_ODPERFORMANCELEVELS_SET) (int, ADLODPerformanceLevels *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_POWERCONTROL_SET) (int, int);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_POWERCONTROL_GET) (int, int *, int *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_POWERCONTROLINFO_GET) (int, ADLOD6PowerControlInfo *);
+typedef int (ADL_API_CALL *ADL_ADAPTER_ACTIVE_GET) (int, int *);
+typedef int (ADL_API_CALL *ADL_DISPLAYENABLE_SET) (int, int *, int, int);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE_CAPS) (int, int *, int *, int *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_CURRENTSTATUS_GET) (int, ADLOD6CurrentStatus *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_STATEINFO_GET) (int, int, ADLOD6MemClockState *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_CAPABILITIES_GET) (int, ADLOD6Capabilities *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_STATE_SET) (int, int, ADLOD6StateInfo *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_POWERCONTROL_CAPS) (int, int *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET) (int, int *, int *);
+typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET) (int, ADLOD6ParameterRange *);
 
 typedef struct
 {
