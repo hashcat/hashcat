@@ -12,36 +12,13 @@
 
 #include <common.h>
 
-/*
+/**
  * Declarations from nvapi.h and subheaders
- **/
-
-#ifndef __success
-    #define __nvapi_success
-    #define __success(epxr)
-#endif
-
-//#define NVAPI_INTERFACE extern __success(return == NVAPI_OK) NvAPI_Status __cdecl
-#define NVAPI_INTERFACE extern __success(return == NVAPI_OK) NvAPI_Status
-
-/*
- * Definitions from nvapi_lite_common.h
  */
 
-// mac os 32-bit still needs this
-#if (defined(macintosh) || defined(__APPLE__)) && !defined(__LP64__)
-typedef signed long        NvS32; /* -2147483648 to 2147483647  */
-#else
-typedef signed int         NvS32; /* -2147483648 to 2147483647 */
-#endif
+#define NVAPI_INTERFACE extern NvAPI_Status
 
-// mac os 32-bit still needs this
-#if ( (defined(macintosh) && defined(__LP64__) && (__NVAPI_RESERVED0__)) || \
-      (!defined(macintosh) && defined(__NVAPI_RESERVED0__)) )
-typedef unsigned int       NvU32; /* 0 to 4294967295                         */
-#else
-typedef unsigned long      NvU32; /* 0 to 4294967295                         */
-#endif
+typedef unsigned long NvU32;
 
 #define NV_DECLARE_HANDLE(name) struct name##__ { int unused; }; typedef struct name##__ *name
 
@@ -56,10 +33,8 @@ typedef char NvAPI_LongString[NVAPI_LONG_STRING_MAX];
 typedef char NvAPI_ShortString[NVAPI_SHORT_STRING_MAX];
 
 #define MAKE_NVAPI_VERSION(typeName,ver) (NvU32)(sizeof(typeName) | ((ver)<<16))
-#define GET_NVAPI_VERSION(ver) (NvU32)((ver)>>16)
-#define GET_NVAPI_SIZE(ver) (NvU32)((ver) & 0xffff)
 
-#define NVAPI_MAX_PHYSICAL_GPUS             64
+#define NVAPI_MAX_PHYSICAL_GPUS     64
 
 typedef enum _NvAPI_Status
 {
@@ -220,59 +195,9 @@ NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MA
 NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesInfo (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info);
 NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesStatus (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status);
 
-#ifdef __nvapi_success
-    #undef __success
-    #undef __nvapi_success
-#endif
-
 /*
  * End of declarations from nvapi.h and subheaders
  **/
-
-// Just annotations (they do nothing special)
-
-#ifndef __success
-#define __success(x)
-#endif
-#ifndef __in
-#define __in
-#endif
-#ifndef __out
-#define __out
-#endif
-#ifndef __in_ecount
-#define __in_ecount(x)
-#endif
-#ifndef __out_ecount
-#define __out_ecount(x)
-#endif
-#ifndef __in_opt
-#define __in_opt
-#endif
-#ifndef __out_opt
-#define __out_opt
-#endif
-#ifndef __inout
-#define __inout
-#endif
-#ifndef __inout_opt
-#define __inout_opt
-#endif
-#ifndef __inout_ecount
-#define __inout_ecount(x)
-#endif
-#ifndef __inout_ecount_full
-#define __inout_ecount_full(x)
-#endif
-#ifndef __inout_ecount_part_opt
-#define __inout_ecount_part_opt(x,y)
-#endif
-#ifndef __inout_ecount_full_opt
-#define __inout_ecount_full_opt(x,y)
-#endif
-#ifndef __out_ecount_full_opt
-#define __out_ecount_full_opt(x)
-#endif
 
 typedef NvPhysicalGpuHandle HM_ADAPTER_NVAPI;
 
