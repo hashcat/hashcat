@@ -13,10 +13,14 @@ int nvapi_init (NVAPI_PTR *nvapi)
 
   memset (nvapi, 0, sizeof (NVAPI_PTR));
 
+  #ifdef _WIN
   #if __x86_64__
   nvapi->lib = hc_dlopen ("nvapi64.dll");
   #elif __x86__
   nvapi->lib = hc_dlopen ("nvapi.dll");
+  #endif
+  #else
+  nvapi->lib = hc_dlopen ("nvapi.so", RTLD_NOW); // uhm yes, but .. yeah
   #endif
 
   if (!nvapi->lib)

@@ -115,8 +115,8 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
  */
 
 #include "ext_ADL.h"
-#include "ext_nvml.h"
 #include "ext_nvapi.h"
+#include "ext_nvml.h"
 
 /**
  * shared stuff
@@ -1430,11 +1430,13 @@ void fsync (int fd);
 
 #ifdef HAVE_HWMON
 
-int hm_get_adapter_index_nvml (HM_ADAPTER_NVML nvGPUHandle[DEVICES_MAX]);
-
 int get_adapters_num_adl (void *adl, int *iNumberAdapters);
 
 int hm_get_adapter_index_adl (hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
+
+int hm_get_adapter_index_nvapi (HM_ADAPTER_NVAPI nvapiGPUHandle[DEVICES_MAX]);
+
+int hm_get_adapter_index_nvml (HM_ADAPTER_NVML nvmlGPUHandle[DEVICES_MAX]);
 
 LPAdapterInfo hm_get_adapter_info_adl (void *adl, int iNumberAdapters);
 

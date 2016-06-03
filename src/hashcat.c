@@ -13318,8 +13318,9 @@ int main (int argc, char **argv)
      * OpenCL devices: simply push all devices from all platforms into the same device array
      */
 
-    int need_adl  = 0;
-    int need_nvml = 0;
+    int need_adl   = 0;
+    int need_nvapi = 0;
+    int need_nvml  = 0;
 
     hc_device_param_t *devices_param = (hc_device_param_t *) mycalloc (DEVICES_MAX, sizeof (hc_device_param_t));
 
@@ -13577,7 +13578,7 @@ int main (int argc, char **argv)
 
         if (device_endian_little == CL_FALSE)
         {
-          if (data.quiet == 0) log_info ("Device #%u: WARNING: not little endian device", device_id + 1);
+          log_info ("Device #%u: WARNING: not little endian device", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13590,7 +13591,7 @@ int main (int argc, char **argv)
 
         if (device_available == CL_FALSE)
         {
-          if (data.quiet == 0) log_info ("Device #%u: WARNING: device not available", device_id + 1);
+          log_info ("Device #%u: WARNING: device not available", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13603,7 +13604,7 @@ int main (int argc, char **argv)
 
         if (device_compiler_available == CL_FALSE)
         {
-          if (data.quiet == 0) log_info ("Device #%u: WARNING: device no compiler available", device_id + 1);
+          log_info ("Device #%u: WARNING: device no compiler available", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13616,7 +13617,7 @@ int main (int argc, char **argv)
 
         if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
         {
-          if (data.quiet == 0) log_info ("Device #%u: WARNING: device does not support executing kernels", device_id + 1);
+          log_info ("Device #%u: WARNING: device does not support executing kernels", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13633,14 +13634,14 @@ int main (int argc, char **argv)
 
         if (strstr (device_extensions, "base_atomics") == 0)
         {
-          if (data.quiet == 0) log_info ("Device #%u: WARNING: device does not support base atomics", device_id + 1);
+          log_info ("Device #%u: WARNING: device does not support base atomics", device_id + 1);
 
           device_param->skipped = 1;
         }
 
         if (strstr (device_extensions, "byte_addressable_store") == 0)
         {
-          if (data.quiet == 0) log_info ("Device #%u: WARNING: device does not support byte addressable store", device_id + 1);
+          log_info ("Device #%u: WARNING: device does not support byte addressable store", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13655,7 +13656,7 @@ int main (int argc, char **argv)
 
         if (device_local_mem_size < 32768)
         {
-          if (data.quiet == 0) log_info ("Device #%u: WARNING: device local mem size is too small", device_id + 1);
+          log_info ("Device #%u: WARNING: device local mem size is too small", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13670,9 +13671,10 @@ int main (int argc, char **argv)
         {
           if (device_param->device_vendor_id == VENDOR_ID_AMD_USE_INTEL)
           {
-            if (data.quiet == 0) log_info ("Device #%u: WARNING: not native intel opencl platform", device_id + 1);
+            log_info ("Device #%u: WARNING: not native intel opencl runtime, expect massive speed loss", device_id + 1);
+            log_info ("           You can use --force to override this but do not post error reports if you do so");
 
-            device_param->skipped = 1;
+            if (data.force == 0) device_param->skipped = 1;
           }
         }
 
@@ -13721,6 +13723,10 @@ int main (int argc, char **argv)
           if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
           {
             need_nvml = 1;
+
+            #ifdef _WIN
+            need_nvapi = 1;
+            #endif
           }
         }
 
@@ -14038,6 +14044,28 @@ int main (int argc, char **argv)
             hm_NVML_nvmlDeviceSetComputeMode (data.hm_nvml, 1, hm_adapters_nvml[i].adapter_index.nvml, NVML_COMPUTEMODE_EXCLUSIVE_PROCESS);
 
             hm_NVML_nvmlDeviceSetGpuOperationMode (data.hm_nvml, 1, hm_adapters_nvml[i].adapter_index.nvml, NVML_GOM_ALL_ON);
+          }
+        }
+      }
+
+      if ((need_nvapi == 1) && (nvapi_init (nvapi) == 0))
+      {
+        data.hm_nvapi = nvapi;
+      }
+
+      if (data.hm_nvapi)
+      {
+        if (hm_NvAPI_Initialize (data.hm_nvapi) == NVAPI_OK)
+        {
+          HM_ADAPTER_NVAPI nvGPUHandle[DEVICES_MAX] = { 0 };
+
+          int tmp_in = hm_get_adapter_index_nvapi (nvGPUHandle);
+
+          int tmp_out = 0;
+
+          for (int i = 0; i < tmp_in; i++)
+          {
+            hm_adapters_nvapi[tmp_out++].adapter_index.nvapi = nvGPUHandle[i];
           }
         }
       }

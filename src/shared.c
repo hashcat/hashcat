@@ -2672,31 +2672,6 @@ void fsync (int fd)
 
 #ifdef HAVE_HWMON
 
-int hm_get_adapter_index_nvml (HM_ADAPTER_NVML nvGPUHandle[DEVICES_MAX])
-{
-  int pGpuCount = 0;
-
-  for (uint i = 0; i < DEVICES_MAX; i++)
-  {
-    if (hm_NVML_nvmlDeviceGetHandleByIndex (data.hm_nvml, 1, i, &nvGPUHandle[i]) != NVML_SUCCESS) break;
-
-    // can be used to determine if the device by index matches the cuda device by index
-    // char name[100]; memset (name, 0, sizeof (name));
-    // hm_NVML_nvmlDeviceGetName (data.hm_nvml, nvGPUHandle[i], name, sizeof (name) - 1);
-
-    pGpuCount++;
-  }
-
-  if (pGpuCount == 0)
-  {
-    log_info ("WARN: No NVML adapters found");
-
-    return (0);
-  }
-
-  return (pGpuCount);
-}
-
 int get_adapters_num_adl (void *adl, int *iNumberAdapters)
 {
   if (hm_ADL_Adapter_NumberOfAdapters_Get ((ADL_PTR *) adl, iNumberAdapters) != ADL_OK) return -1;
@@ -2756,6 +2731,47 @@ LPAdapterInfo hm_get_adapter_info_adl (void *adl, int iNumberAdapters)
   if (hm_ADL_Adapter_AdapterInfo_Get ((ADL_PTR *) adl, lpAdapterInfo, AdapterInfoSize) != ADL_OK) return NULL;
 
   return lpAdapterInfo;
+}
+
+int hm_get_adapter_index_nvapi (HM_ADAPTER_NVAPI nvapiGPUHandle[DEVICES_MAX])
+{
+  NvU32 pGpuCount;
+
+  if (hm_NvAPI_EnumPhysicalGPUs (data.hm_nvapi, nvapiGPUHandle, &pGpuCount) != NVAPI_OK) return (0);
+
+  if (pGpuCount == 0)
+  {
+    log_info ("WARN: No NvAPI adapters found");
+
+    return (0);
+  }
+
+  return (pGpuCount);
+}
+
+int hm_get_adapter_index_nvml (HM_ADAPTER_NVML nvmlGPUHandle[DEVICES_MAX])
+{
+  int pGpuCount = 0;
+
+  for (uint i = 0; i < DEVICES_MAX; i++)
+  {
+    if (hm_NVML_nvmlDeviceGetHandleByIndex (data.hm_nvml, 1, i, &nvmlGPUHandle[i]) != NVML_SUCCESS) break;
+
+    // can be used to determine if the device by index matches the cuda device by index
+    // char name[100]; memset (name, 0, sizeof (name));
+    // hm_NVML_nvmlDeviceGetName (data.hm_nvml, nvGPUHandle[i], name, sizeof (name) - 1);
+
+    pGpuCount++;
+  }
+
+  if (pGpuCount == 0)
+  {
+    log_info ("WARN: No NVML adapters found");
+
+    return (0);
+  }
+
+  return (pGpuCount);
 }
 
 /*
