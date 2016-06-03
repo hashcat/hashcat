@@ -5435,8 +5435,8 @@ void SetConsoleWindowSize (const int x)
 
   COORD co;
 
-  co.X = sr->Right  + 1;
-  co.Y = sr->Bottom + 1;
+  co.X = sr->Right + 1;
+  co.Y = 9999;
 
   if (!SetConsoleScreenBufferSize (h, co)) return;
 
