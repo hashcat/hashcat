@@ -3046,7 +3046,7 @@ int hm_get_adapter_index_adl (hm_attrs_t *hm_device, u32 *valid_adl_device_list,
 
     int opencl_device_index = i;
 
-    hm_device[opencl_device_index].adapter_index.adl = info.iAdapterIndex;
+    hm_device[opencl_device_index].adl = info.iAdapterIndex;
   }
 
   return num_adl_adapters;
@@ -3069,7 +3069,7 @@ int hm_get_threshold_slowdown_with_device_id (const uint device_id)
         int CurrentValue = 0;
         int DefaultValue = 0;
 
-        if (hm_ADL_Overdrive6_TargetTemperatureData_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &CurrentValue, &DefaultValue) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive6_TargetTemperatureData_Get (data.hm_adl, data.hm_device[device_id].adl, &CurrentValue, &DefaultValue) != ADL_OK) return -1;
 
         // the return value has never been tested since hm_ADL_Overdrive6_TargetTemperatureData_Get() never worked on any system. expect problems.
 
@@ -3082,7 +3082,7 @@ int hm_get_threshold_slowdown_with_device_id (const uint device_id)
   {
     int target = 0;
 
-    if (hm_NVML_nvmlDeviceGetTemperatureThreshold (data.hm_nvml, 1, data.hm_device[device_id].adapter_index.nvml, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN, (unsigned int *) &target) != NVML_SUCCESS) return -1;
+    if (hm_NVML_nvmlDeviceGetTemperatureThreshold (data.hm_nvml, 1, data.hm_device[device_id].nvml, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN, (unsigned int *) &target) != NVML_SUCCESS) return -1;
 
     return target;
   }
@@ -3113,7 +3113,7 @@ int hm_get_threshold_shutdown_with_device_id (const uint device_id)
   {
     int target = 0;
 
-    if (hm_NVML_nvmlDeviceGetTemperatureThreshold (data.hm_nvml, 1, data.hm_device[device_id].adapter_index.nvml, NVML_TEMPERATURE_THRESHOLD_SHUTDOWN, (unsigned int *) &target) != NVML_SUCCESS) return -1;
+    if (hm_NVML_nvmlDeviceGetTemperatureThreshold (data.hm_nvml, 1, data.hm_device[device_id].nvml, NVML_TEMPERATURE_THRESHOLD_SHUTDOWN, (unsigned int *) &target) != NVML_SUCCESS) return -1;
 
     return target;
   }
@@ -3135,7 +3135,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
 
         Temperature.iSize = sizeof (ADLTemperature);
 
-        if (hm_ADL_Overdrive5_Temperature_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, 0, &Temperature) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive5_Temperature_Get (data.hm_adl, data.hm_device[device_id].adl, 0, &Temperature) != ADL_OK) return -1;
 
         return Temperature.iTemperature / 1000;
       }
@@ -3143,7 +3143,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
       {
         int Temperature = 0;
 
-        if (hm_ADL_Overdrive6_Temperature_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &Temperature) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive6_Temperature_Get (data.hm_adl, data.hm_device[device_id].adl, &Temperature) != ADL_OK) return -1;
 
         return Temperature / 1000;
       }
@@ -3154,7 +3154,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
   {
     int temperature = 0;
 
-    if (hm_NVML_nvmlDeviceGetTemperature (data.hm_nvml, 1, data.hm_device[device_id].adapter_index.nvml, NVML_TEMPERATURE_GPU, (uint *) &temperature) != NVML_SUCCESS) return -1;
+    if (hm_NVML_nvmlDeviceGetTemperature (data.hm_nvml, 1, data.hm_device[device_id].nvml, NVML_TEMPERATURE_GPU, (uint *) &temperature) != NVML_SUCCESS) return -1;
 
     return temperature;
   }
@@ -3181,7 +3181,7 @@ int hm_get_fanpolicy_with_device_id (const uint device_id)
           lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
           lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
 
-          if (hm_ADL_Overdrive5_FanSpeed_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+          if (hm_ADL_Overdrive5_FanSpeed_Get (data.hm_adl, data.hm_device[device_id].adl, 0, &lpFanSpeedValue) != ADL_OK) return -1;
 
           return (lpFanSpeedValue.iFanSpeed & ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED) ? 0 : 1;
         }
@@ -3227,7 +3227,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
           lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
           lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
 
-          if (hm_ADL_Overdrive5_FanSpeed_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+          if (hm_ADL_Overdrive5_FanSpeed_Get (data.hm_adl, data.hm_device[device_id].adl, 0, &lpFanSpeedValue) != ADL_OK) return -1;
 
           return lpFanSpeedValue.iFanSpeed;
         }
@@ -3237,7 +3237,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
 
           memset (&faninfo, 0, sizeof (faninfo));
 
-          if (hm_ADL_Overdrive6_FanSpeed_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &faninfo) != ADL_OK) return -1;
+          if (hm_ADL_Overdrive6_FanSpeed_Get (data.hm_adl, data.hm_device[device_id].adl, &faninfo) != ADL_OK) return -1;
 
           return faninfo.iFanSpeedPercent;
         }
@@ -3248,7 +3248,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
     {
       int speed = 0;
 
-      if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nvml, 0, data.hm_device[device_id].adapter_index.nvml, (uint *) &speed) != NVML_SUCCESS) return -1;
+      if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nvml, 0, data.hm_device[device_id].nvml, (uint *) &speed) != NVML_SUCCESS) return -1;
 
       return speed;
     }
@@ -3269,7 +3269,7 @@ int hm_get_buslanes_with_device_id (const uint device_id)
 
       PMActivity.iSize = sizeof (ADLPMActivity);
 
-      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &PMActivity) != ADL_OK) return -1;
+      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_adl, data.hm_device[device_id].adl, &PMActivity) != ADL_OK) return -1;
 
       return PMActivity.iCurrentBusLanes;
     }
@@ -3279,7 +3279,7 @@ int hm_get_buslanes_with_device_id (const uint device_id)
   {
     unsigned int currLinkWidth;
 
-    if (hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (data.hm_nvml, 1, data.hm_device[device_id].adapter_index.nvml, &currLinkWidth) != NVML_SUCCESS) return -1;
+    if (hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (data.hm_nvml, 1, data.hm_device[device_id].nvml, &currLinkWidth) != NVML_SUCCESS) return -1;
 
     return currLinkWidth;
   }
@@ -3299,7 +3299,7 @@ int hm_get_utilization_with_device_id (const uint device_id)
 
       PMActivity.iSize = sizeof (ADLPMActivity);
 
-      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &PMActivity) != ADL_OK) return -1;
+      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_adl, data.hm_device[device_id].adl, &PMActivity) != ADL_OK) return -1;
 
       return PMActivity.iActivityPercent;
     }
@@ -3309,7 +3309,7 @@ int hm_get_utilization_with_device_id (const uint device_id)
   {
     nvmlUtilization_t utilization;
 
-    if (hm_NVML_nvmlDeviceGetUtilizationRates (data.hm_nvml, 1, data.hm_device[device_id].adapter_index.nvml, &utilization) != NVML_SUCCESS) return -1;
+    if (hm_NVML_nvmlDeviceGetUtilizationRates (data.hm_nvml, 1, data.hm_device[device_id].nvml, &utilization) != NVML_SUCCESS) return -1;
 
     return utilization.gpu;
   }
@@ -3329,7 +3329,7 @@ int hm_get_memoryspeed_with_device_id (const uint device_id)
 
       PMActivity.iSize = sizeof (ADLPMActivity);
 
-      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &PMActivity) != ADL_OK) return -1;
+      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_adl, data.hm_device[device_id].adl, &PMActivity) != ADL_OK) return -1;
 
       return PMActivity.iMemoryClock / 100;
     }
@@ -3339,7 +3339,7 @@ int hm_get_memoryspeed_with_device_id (const uint device_id)
   {
     unsigned int clock;
 
-    if (hm_NVML_nvmlDeviceGetClockInfo (data.hm_nvml, 1, data.hm_device[device_id].adapter_index.nvml, NVML_CLOCK_MEM, &clock) != NVML_SUCCESS) return -1;
+    if (hm_NVML_nvmlDeviceGetClockInfo (data.hm_nvml, 1, data.hm_device[device_id].nvml, NVML_CLOCK_MEM, &clock) != NVML_SUCCESS) return -1;
 
     return clock;
   }
@@ -3359,7 +3359,7 @@ int hm_get_corespeed_with_device_id (const uint device_id)
 
       PMActivity.iSize = sizeof (ADLPMActivity);
 
-      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &PMActivity) != ADL_OK) return -1;
+      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_adl, data.hm_device[device_id].adl, &PMActivity) != ADL_OK) return -1;
 
       return PMActivity.iEngineClock / 100;
     }
@@ -3369,7 +3369,7 @@ int hm_get_corespeed_with_device_id (const uint device_id)
   {
     unsigned int clock;
 
-    if (hm_NVML_nvmlDeviceGetClockInfo (data.hm_nvml, 1, data.hm_device[device_id].adapter_index.nvml, NVML_CLOCK_SM, &clock) != NVML_SUCCESS) return -1;
+    if (hm_NVML_nvmlDeviceGetClockInfo (data.hm_nvml, 1, data.hm_device[device_id].nvml, NVML_CLOCK_SM, &clock) != NVML_SUCCESS) return -1;
 
     return clock;
   }
@@ -3391,8 +3391,8 @@ int hm_get_throttle_with_device_id (const uint device_id)
     unsigned long long clocksThrottleReasons = 0;
     unsigned long long supportedThrottleReasons = 0;
 
-    if (hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons   (data.hm_nvml, 1, data.hm_device[device_id].adapter_index.nvml, &clocksThrottleReasons)    != NVML_SUCCESS) return -1;
-    if (hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (data.hm_nvml, 1, data.hm_device[device_id].adapter_index.nvml, &supportedThrottleReasons) != NVML_SUCCESS) return -1;
+    if (hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons   (data.hm_nvml, 1, data.hm_device[device_id].nvml, &clocksThrottleReasons)    != NVML_SUCCESS) return -1;
+    if (hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (data.hm_nvml, 1, data.hm_device[device_id].nvml, &supportedThrottleReasons) != NVML_SUCCESS) return -1;
 
     clocksThrottleReasons &= supportedThrottleReasons;
 
@@ -3419,7 +3419,7 @@ int hm_set_fanspeed_with_device_id_adl (const uint device_id, const int fanspeed
         lpFanSpeedValue.iFlags     = (fanpolicy == 1) ? ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED : 0;
         lpFanSpeedValue.iFanSpeed  = fanspeed;
 
-        if (hm_ADL_Overdrive5_FanSpeed_Set (data.hm_adl, data.hm_device[device_id].adapter_index.adl, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive5_FanSpeed_Set (data.hm_adl, data.hm_device[device_id].adl, 0, &lpFanSpeedValue) != ADL_OK) return -1;
 
         return 0;
       }
@@ -3432,7 +3432,7 @@ int hm_set_fanspeed_with_device_id_adl (const uint device_id, const int fanspeed
         fan_speed_value.iSpeedType = ADL_OD6_FANSPEED_TYPE_PERCENT;
         fan_speed_value.iFanSpeed  = fanspeed;
 
-        if (hm_ADL_Overdrive6_FanSpeed_Set (data.hm_adl, data.hm_device[device_id].adapter_index.adl, &fan_speed_value) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive6_FanSpeed_Set (data.hm_adl, data.hm_device[device_id].adl, &fan_speed_value) != ADL_OK) return -1;
 
         return 0;
       }

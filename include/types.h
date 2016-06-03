@@ -1085,24 +1085,14 @@ typedef struct __hc_device_param hc_device_param_t;
 #ifdef HAVE_HWMON
 typedef struct
 {
-  union
-  {
-    HM_ADAPTER_ADL   adl;
-    HM_ADAPTER_NVML  nvml;
-    HM_ADAPTER_NVAPI nvapi;
+  HM_ADAPTER_ADL   adl;
+  HM_ADAPTER_NVML  nvml;
+  HM_ADAPTER_NVAPI nvapi;
 
-  } adapter_index;
+  int od_version;
 
-  int   od_version;
-
-  int   fan_get_supported;
-  int   fan_set_supported;
-
-  int   gpu_temp_threshold_slowdown;
-  int   gpu_temp_threshold_shutdown;
-
-  // int     busid; // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPUs
-  // int     devid; // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPUs
+  int fan_get_supported;
+  int fan_set_supported;
 
 } hm_attrs_t;
 #endif // HAVE_HWMON
@@ -1169,9 +1159,9 @@ typedef struct
    */
 
   #ifdef HAVE_HWMON
-  void   *hm_adl;
-  void   *hm_nvml;
-  void   *hm_nvapi;
+  void      *hm_adl;
+  void      *hm_nvml;
+  void      *hm_nvapi;
   hm_attrs_t hm_device[DEVICES_MAX];
   #endif
 
