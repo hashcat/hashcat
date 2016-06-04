@@ -393,7 +393,7 @@ cl_int hc_clBuildProgram (OCL_PTR *ocl, cl_program program, cl_uint num_devices,
 
   if (CL_err != CL_SUCCESS)
   {
-    size_t len = strlen (options) + 1 + 15;
+    size_t len = strlen (options) + 256;
 
     char *options_update = (char *) mymalloc (len + 1);
 
