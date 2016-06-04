@@ -1537,6 +1537,12 @@ void status_display ()
   }
 
   #ifdef HAVE_HWMON
+
+  if (data.devices_status == STATUS_EXHAUSTED)  return;
+  if (data.devices_status == STATUS_CRACKED)    return;
+  if (data.devices_status == STATUS_ABORTED)    return;
+  if (data.devices_status == STATUS_QUIT)       return;
+
   if (data.gpu_temp_disable == 0)
   {
     hc_thread_mutex_lock (mux_adl);
@@ -1620,6 +1626,7 @@ void status_display ()
 
     hc_thread_mutex_unlock (mux_adl);
   }
+
   #endif // HAVE_HWMON
 }
 
