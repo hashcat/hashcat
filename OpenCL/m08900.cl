@@ -622,75 +622,55 @@ uint4 swap32_4 (uint4 v)
   R3 = R3 + X3;         \
 }
 
-void salsa_r (uint4 *T)
+void salsa_r (uint4 *TI)
 {
-  uint4 R0 = T[STATE_CNT4 - 4];
-  uint4 R1 = T[STATE_CNT4 - 3];
-  uint4 R2 = T[STATE_CNT4 - 2];
-  uint4 R3 = T[STATE_CNT4 - 1];
+  uint4 R0 = TI[STATE_CNT4 - 4];
+  uint4 R1 = TI[STATE_CNT4 - 3];
+  uint4 R2 = TI[STATE_CNT4 - 2];
+  uint4 R3 = TI[STATE_CNT4 - 1];
 
-  for (u32 i = 0; i < STATE_CNT4; i += 8)
+  uint4 TO[STATE_CNT4];
+
+  int idx_y  = 0;
+  int idx_r1 = 0;
+  int idx_r2 = SCRYPT_R * 4;
+
+  for (int i = 0; i < SCRYPT_R; i++)
   {
     uint4 Y0;
     uint4 Y1;
     uint4 Y2;
     uint4 Y3;
 
-    Y0 = T[i + 0];
-    Y1 = T[i + 1];
-    Y2 = T[i + 2];
-    Y3 = T[i + 3];
+    Y0 = TI[idx_y++];
+    Y1 = TI[idx_y++];
+    Y2 = TI[idx_y++];
+    Y3 = TI[idx_y++];
 
     SALSA20_8_XOR ();
 
-    T[i + 0] = R0;
-    T[i + 1] = R1;
-    T[i + 2] = R2;
-    T[i + 3] = R3;
+    TO[idx_r1++] = R0;
+    TO[idx_r1++] = R1;
+    TO[idx_r1++] = R2;
+    TO[idx_r1++] = R3;
 
-    Y0 = T[i + 4];
-    Y1 = T[i + 5];
-    Y2 = T[i + 6];
-    Y3 = T[i + 7];
+    Y0 = TI[idx_y++];
+    Y1 = TI[idx_y++];
+    Y2 = TI[idx_y++];
+    Y3 = TI[idx_y++];
 
     SALSA20_8_XOR ();
 
-    T[i + 4] = R0;
-    T[i + 5] = R1;
-    T[i + 6] = R2;
-    T[i + 7] = R3;
+    TO[idx_r2++] = R0;
+    TO[idx_r2++] = R1;
+    TO[idx_r2++] = R2;
+    TO[idx_r2++] = R3;
   }
 
-  #define exchg(x,y) { const uint4 t = T[(x)]; T[(x)] = T[(y)]; T[(y)] = t; }
-
-  #define exchg4(x,y)         \
-  {                           \
-    const u32 x4 = (x) * 4;  \
-    const u32 y4 = (y) * 4;  \
-                              \
-    exchg (x4 + 0, y4 + 0);   \
-    exchg (x4 + 1, y4 + 1);   \
-    exchg (x4 + 2, y4 + 2);   \
-    exchg (x4 + 3, y4 + 3);   \
-  }
-
-  for (u32 i = 1; i < SCRYPT_R / 1; i++)
+  #pragma unroll
+  for (int i = 0; i < STATE_CNT4; i++)
   {
-    const u32 x = i * 1;
-    const u32 y = i * 2;
-
-    exchg4 (x, y);
-  }
-
-  for (u32 i = 1; i < SCRYPT_R / 2; i++)
-  {
-    const u32 x = i * 1;
-    const u32 y = i * 2;
-
-    const u32 xr1 = (SCRYPT_R * 2) - 1 - x;
-    const u32 yr1 = (SCRYPT_R * 2) - 1 - y;
-
-    exchg4 (xr1, yr1);
+    TI[i] = TO[i];
   }
 }
 
