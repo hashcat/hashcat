@@ -2402,42 +2402,6 @@ static void save_hash ()
   unlink (old_hashfile);
 }
 
-static float find_kernel_power_div (const u64 total_left, const uint kernel_power_all)
-{
-  // function called only in case kernel_power_all > words_left
-
-  float kernel_power_div = (float) (total_left) / kernel_power_all;
-
-  kernel_power_div += kernel_power_div / 100;
-
-  u32 kernel_power_new = (u32) (kernel_power_all * kernel_power_div);
-
-  while (kernel_power_new < total_left)
-  {
-    kernel_power_div += kernel_power_div / 100;
-
-    kernel_power_new = (u32) (kernel_power_all * kernel_power_div);
-  }
-
-  if (data.quiet == 0)
-  {
-    clear_prompt ();
-
-    //log_info ("");
-
-    log_info ("INFO: approaching final keyspace, workload adjusted");
-    log_info ("");
-
-    fprintf (stdout, "%s", PROMPT);
-
-    fflush (stdout);
-  }
-
-  //if ((kernel_power_all * kernel_power_div) < 8) return 1;
-
-  return kernel_power_div;
-}
-
 static void run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num, const uint event_update)
 {
   uint num_elements = num;
@@ -4456,14 +4420,43 @@ static void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int
   //}
 }
 
-static u32 get_power (const u32 kernel_power)
+static void set_kernel_power_final (const u64 kernel_power_final)
 {
-  if (data.kernel_power_div)
+  if (data.quiet == 0)
   {
-    return (float) kernel_power * data.kernel_power_div;
+    clear_prompt ();
+
+    //log_info ("");
+
+    log_info ("INFO: approaching final keyspace, workload adjusted");
+    log_info ("");
+
+    fprintf (stdout, "%s", PROMPT);
+
+    fflush (stdout);
   }
 
-  return kernel_power;
+  data.kernel_power_final = kernel_power_final;
+}
+
+static u32 get_power (hc_device_param_t *device_param)
+{
+  const u64 kernel_power_final = data.kernel_power_final;
+
+  if (kernel_power_final)
+  {
+    const double device_factor = (double) device_param->hardware_power / data.hardware_power_all;
+
+    const u64 words_left_device = CEIL ((double) kernel_power_final * device_factor);
+
+    // work should be at least the hardware power available without any accelerator
+
+    const u64 work = MAX (words_left_device, device_param->hardware_power);
+
+    return work;
+  }
+
+  return device_param->kernel_power;
 }
 
 static uint get_work (hc_device_param_t *device_param, const u64 max)
@@ -4475,17 +4468,19 @@ static uint get_work (hc_device_param_t *device_param, const u64 max)
 
   device_param->words_off = words_cur;
 
+  const u64 kernel_power_all = data.kernel_power_all;
+
   const u64 words_left = words_base - words_cur;
 
-  if (data.kernel_power_all > words_left)
+  if (words_left < kernel_power_all)
   {
-    if (data.kernel_power_div == 0)
+    if (data.kernel_power_final == 0)
     {
-      data.kernel_power_div = find_kernel_power_div (words_left, data.kernel_power_all);
+      set_kernel_power_final (words_left);
     }
   }
 
-  const u32 kernel_power = get_power (device_param->kernel_power);
+  const u32 kernel_power = get_power (device_param);
 
   uint work = MIN (words_left, kernel_power);
 
@@ -4532,7 +4527,7 @@ static void *thread_calc_stdin (void *p)
 
     uint words_cur = 0;
 
-    while (words_cur < get_power (device_param->kernel_power))
+    while (words_cur < device_param->kernel_power)
     {
       char *line_buf = fgets (buf, HCBUFSIZ - 1, stdin);
 
@@ -4566,6 +4561,8 @@ static void *thread_calc_stdin (void *p)
         continue;
       }
 
+      // hmm that's always the case, or?
+
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
         if ((line_len < data.pw_min) || (line_len > data.pw_max))
@@ -4575,25 +4572,6 @@ static void *thread_calc_stdin (void *p)
           for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
           {
             data.words_progress_rejected[salt_pos] += data.kernel_rules_cnt;
-          }
-
-          hc_thread_mutex_unlock (mux_counter);
-
-          continue;
-        }
-      }
-      else if (attack_kern == ATTACK_KERN_COMBI)
-      {
-        // do not check if minimum restriction is satisfied (line_len >= data.pw_min) here
-        // since we still need to combine the plains
-
-        if (line_len > data.pw_max)
-        {
-          hc_thread_mutex_lock (mux_counter);
-
-          for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
-          {
-            data.words_progress_rejected[salt_pos] += data.combs_cnt;
           }
 
           hc_thread_mutex_unlock (mux_counter);
@@ -5407,8 +5385,6 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
 
   for (uint i = 0; i < digests_cnt; i++)
   {
-    if (data.digests_shown[i] == 1) continue; // can happen with potfile
-
     uint *digest_ptr = (uint *) digests_buf_ptr;
 
     digests_buf_ptr += dgst_size;
@@ -14566,6 +14542,8 @@ int main (int argc, char **argv)
 
       device_param->kernel_threads = kernel_threads;
 
+      device_param->hardware_power = device_processors * kernel_threads;
+
       /**
        * create input buffers on device : calculate size of fixed memory buffers
        */
@@ -17060,7 +17038,7 @@ int main (int argc, char **argv)
 
         data.ms_paused = 0;
 
-        data.kernel_power_div = 0;
+        data.kernel_power_final = 0;
 
         data.words_cur = rd->words_cur;
 
@@ -17591,14 +17569,20 @@ int main (int argc, char **argv)
          * Inform user about possible slow speeds
          */
 
+        uint hardware_power_all = 0;
+
         uint kernel_power_all = 0;
 
         for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
         {
           hc_device_param_t *device_param = &devices_param[device_id];
 
+          hardware_power_all += device_param->hardware_power;
+
           kernel_power_all += device_param->kernel_power;
         }
+
+        data.hardware_power_all = hardware_power_all; // hardware_power_all is the same as kernel_power_all but without the influence of kernel_accel on the devices
 
         data.kernel_power_all = kernel_power_all;
 
@@ -18268,3 +18252,4 @@ int main (int argc, char **argv)
 
   return -1;
 }
+

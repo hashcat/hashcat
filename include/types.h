@@ -947,6 +947,7 @@ struct __hc_device_param
   uint    kernel_accel_min;
   uint    kernel_accel_max;
   uint    kernel_power;
+  uint    hardware_power;
 
   size_t  size_pws;
   size_t  size_tmps;
@@ -1113,8 +1114,9 @@ typedef struct
    * workload specific
    */
 
+  uint    hardware_power_all;
   uint    kernel_power_all;
-  float   kernel_power_div;
+  u64     kernel_power_final; // we save that so that all divisions are done from the same base
 
   /**
    * attack specific
@@ -1335,3 +1337,4 @@ typedef struct
 extern hc_global_data_t data;
 
 #endif
+
