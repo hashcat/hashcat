@@ -159,9 +159,13 @@ endif
 LINUX_32_OBJS            := obj/ext_OpenCL.LINUX.32.o obj/shared.LINUX.32.o obj/rp_kernel_on_cpu.LINUX.32.o obj/ext_ADL.LINUX.32.o obj/ext_nvml.LINUX.32.o obj/ext_nvapi.LINUX.32.o
 LINUX_64_OBJS            := obj/ext_OpenCL.LINUX.64.o obj/shared.LINUX.64.o obj/rp_kernel_on_cpu.LINUX.64.o obj/ext_ADL.LINUX.64.o obj/ext_nvml.LINUX.64.o obj/ext_nvapi.LINUX.64.o
 
-WIN_32_OBJS              := obj/ext_OpenCL.WIN.32.o   obj/shared.WIN.32.o   obj/rp_kernel_on_cpu.WIN.32.o   obj/ext_ADL.WIN.32.o   obj/ext_nvml.WIN.32.o   obj/ext_nvapi.WIN.32.o
-WIN_64_OBJS              := obj/ext_OpenCL.WIN.64.o   obj/shared.WIN.64.o   obj/rp_kernel_on_cpu.WIN.64.o   obj/ext_ADL.WIN.64.o   obj/ext_nvml.WIN.64.o   obj/ext_nvapi.WIN.64.o
- 
+## may need to adjust according to your mingw distribution
+CRT_GLOB_32              := /usr/i686-w64-mingw32/lib/CRT_glob.o
+CRT_GLOB_64              := /usr/x86_64-w64-mingw32/lib/CRT_glob.o
+
+WIN_32_OBJS              := obj/ext_OpenCL.WIN.32.o   obj/shared.WIN.32.o   obj/rp_kernel_on_cpu.WIN.32.o   obj/ext_ADL.WIN.32.o   obj/ext_nvml.WIN.32.o   obj/ext_nvapi.WIN.32.o   $(CRT_GLOB_32)
+WIN_64_OBJS              := obj/ext_OpenCL.WIN.64.o   obj/shared.WIN.64.o   obj/rp_kernel_on_cpu.WIN.64.o   obj/ext_ADL.WIN.64.o   obj/ext_nvml.WIN.64.o   obj/ext_nvapi.WIN.64.o   $(CRT_GLOB_64)
+
 ##
 ## Targets: Global
 ##
@@ -240,10 +244,10 @@ obj/%.LINUX.64.o: src/%.c
 	$(CC_LINUX_64) -D_LINUX64 $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64) -c -o $@ $<
 
 obj/%.WIN.32.o:   src/%.c
-	$(CC_WIN_32)   -D_WIN32   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32) -c -o $@ $< 
+	$(CC_WIN_32)   -D_WIN32   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32) -c -o $@ $<
 
 obj/%.WIN.64.o:   src/%.c
-	$(CC_WIN_64)   -D_WIN64   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) -c -o $@ $< 
+	$(CC_WIN_64)   -D_WIN64   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) -c -o $@ $<
 
 hashcat32.bin: src/hashcat.c $(LINUX_32_OBJS)
 	$(CC_LINUX_32) -D_LINUX32 $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
