@@ -220,11 +220,11 @@ NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)
 ## Supported OpenCL runtimes
 ##
 
-- AMD Catalyst
+- AMD
 - Apple
 - Intel
 - Mesa (Gallium)
-- NVidia ForceWare
+- NVidia
 - pocl
 
 ##
