@@ -13,8 +13,9 @@ PROG_NAME                := hashcat
 ##
 
 UNAME                    := $(shell uname -s)
+UNAME			 := $(patsubst CYGWIN_NT-%,CYGWIN_NT-,$(UNAME))
 
-ifeq (,$(filter $(UNAME),Linux Darwin CYGWIN_NT-10.0))
+ifeq (,$(filter $(UNAME),Linux Darwin CYGWIN_NT-))
 $(error "! Your Operating System ($(UNAME)) is not supported by $(PROG_NAME) Makefile")
 endif
 
