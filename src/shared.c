@@ -84,6 +84,7 @@ int last_len = 0;
 
 void log_final (FILE *fp, const char *fmt, va_list ap)
 {
+  printf("\nhere\n");
   if (last_len)
   {
     fputc ('\r', fp);
@@ -103,6 +104,7 @@ void log_final (FILE *fp, const char *fmt, va_list ap)
   int len = vsnprintf (s, max_len, fmt, ap);
 
   if (len > max_len) len = max_len;
+
 
   fwrite (s, len, 1, fp);
 
@@ -4854,7 +4856,7 @@ void format_debug (char *debug_file, uint debug_mode, unsigned char *orig_plain_
 void format_plain (FILE *fp, unsigned char *plain_ptr, uint plain_len, uint outfile_autohex)
 {
   int needs_hexify = 0;
-
+  
   if (outfile_autohex == 1)
   {
     for (uint i = 0; i < plain_len; i++)
@@ -4888,6 +4890,7 @@ void format_plain (FILE *fp, unsigned char *plain_ptr, uint plain_len, uint outf
   }
   else
   {
+
     fwrite (plain_ptr, plain_len, 1, fp);
   }
 }
@@ -4898,6 +4901,7 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
 
   char separator = data.separator;
 
+  
   if (outfile_format & OUTFILE_FMT_HASH)
   {
     fprintf (out_fp, "%s", out_buf);
@@ -4913,11 +4917,13 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
     {
       for (uint i = 0; i < user_len; i++)
       {
+        
         fprintf (out_fp, "%c", username[i]);
       }
 
       if (outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
+        
         fputc (separator, out_fp);
       }
     }
@@ -4925,6 +4931,7 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
 
   if (outfile_format & OUTFILE_FMT_PLAIN)
   {
+    
     format_plain (out_fp, plain_ptr, plain_len, data.outfile_autohex);
 
     if (outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
@@ -4937,6 +4944,7 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
   {
     for (uint i = 0; i < plain_len; i++)
     {
+      
       fprintf (out_fp, "%02x", plain_ptr[i]);
     }
 
@@ -4961,6 +4969,7 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
     #endif
   }
 
+  
   fputc ('\n', out_fp);
 }
 
@@ -8491,6 +8500,8 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
     }
     else if (hash_type == HASH_TYPE_MD5)
     {
+
+
       snprintf (out_buf, len-1, "%08x%08x%08x%08x",
         digest_buf[0],
         digest_buf[1],

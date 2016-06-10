@@ -1970,6 +1970,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
   if (pot_fp)
   {
+
     lock_file (pot_fp);
 
     fprintf (pot_fp, "%s:", out_buf);
@@ -1999,12 +2000,24 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else
   {
+
     out_fp = stdout;
 
     if (quiet == 0) clear_prompt ();
   }
 
+  #ifdef API
+  if (out_fp == stdout)
+  {
+    // Suppress print stdput in API mode. 
+  }
+  else
+  {
+    format_output (out_fp, out_buf, plain_ptr, plain_len, crackpos, NULL, 0);
+  }
+  #else
   format_output (out_fp, out_buf, plain_ptr, plain_len, crackpos, NULL, 0);
+  #endif
 
   if (outfile != NULL)
   {
@@ -2019,8 +2032,10 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
     {
       if ((data.devices_status != STATUS_CRACKED) && (data.status != 1))
       {
+        #ifndef API
         if (quiet == 0) fprintf (stdout, "%s", PROMPT);
         if (quiet == 0) fflush (stdout);
+        #endif
       }
     }
   }
@@ -2198,6 +2213,7 @@ static void save_hash ()
         }
 
         ascii_digest (out_buf, salt_pos, digest_pos);
+
 
         fputs (out_buf, fp);
 
@@ -5139,18 +5155,6 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
 
   return collisions;
 }
-
-/**
- * API Function to return status/control pointer to user
- */
-hc_global_data_t * hcapi_data_ptr(void)
-{
-
-  hc_global_data_t *hcapi_data = &data;
-
-  return hcapi_data;
-}
-
 
 
 /**

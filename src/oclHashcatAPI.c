@@ -2178,9 +2178,13 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
       input_size = strlen (data.mask) + 1;
 
       hcapi_data->input_right= (char *) realloc (hcapi_data->input_right, input_size*sizeof (char));
+      hcapi_data->mask = (char *) realloc (hcapi_data->mask, input_size*sizeof (char));
 
       // Set API Data input_right
       snprintf (hcapi_data->input_right, input_size, "%s", data.mask);
+
+      // Set API Data mask
+      snprintf (hcapi_data->mask, input_size, "%s", data.mask);
 
     }
     
@@ -2192,9 +2196,14 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
       input_size = strlen (data.mask) + 1;
 
       hcapi_data->input_left= (char *) realloc (hcapi_data->input_left, input_size*sizeof (char));
+      hcapi_data->mask = (char *) realloc (hcapi_data->mask, input_size*sizeof (char));
 
       // Set API Data input_right
       snprintf (hcapi_data->input_left, input_size, "%s", data.mask);
+
+      // Set API Data mask
+      snprintf (hcapi_data->mask, input_size, "%s", data.mask);
+
 
     }
 
@@ -3093,12 +3102,18 @@ int main ()
   hcapi_control_t hc = oclhashcat_init ();
 
 
-  hc.options.attack_mode = 0;
-  hc.options.hash_mode = 1000;
-  hc.options.hash_input = "C:\\Users\\rich\\Desktop\\hashes\\test_hashes";
-  hc.options.append_dictmaskdir (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Dicts\\16Walk.txt");
-  hc.options.append_rules (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Rules\\walk.rule");
-  hc.options.append_rules (&hc.options, "rules\\best64.rule");
+  // hc.options.attack_mode = 0;
+  // hc.options.hash_mode = 1000;
+  // hc.options.hash_input = "C:\\Users\\rich\\Desktop\\hashes\\test_hashes";
+  // hc.options.append_dictmaskdir (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Dicts\\16Walk.txt");
+  // hc.options.append_rules (&hc.options, "C:\\Users\\rich\\Desktop\\CRACKME\\Rules\\walk.rule");
+  // hc.options.append_rules (&hc.options, "rules\\best64.rule");
+
+  hc.options.attack_mode = 7;
+  hc.options.markov_threshold = 32;
+  hc.options.hash_input = "C:\\Users\\rich\\Desktop\\hashes\\example0.hash";
+  hc.options.append_dictmaskdir(&hc.options, "?a?a?a?a");
+  hc.options.append_dictmaskdir (&hc.options, "C:\\Users\\rich\\Desktop\\hashes\\example.dict");
 
 
   int c;
