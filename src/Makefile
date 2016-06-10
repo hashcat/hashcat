@@ -37,6 +37,7 @@ endif
 ## Installation paths (Linux only)
 ##
 
+DESTDIR                  ?=
 PREFIX                   ?= /usr/local
 
 INSTALL_FOLDER           ?= $(PREFIX)/bin
@@ -194,30 +195,31 @@ win64: hashcat64.exe
 ##
 
 install: native
-	$(INSTALL) -m 755 -d                            $(DOCUMENT_FOLDER)
-	$(CP) -a docs/*                                 $(DOCUMENT_FOLDER)/
-	$(CP) -a example*.sh                            $(DOCUMENT_FOLDER)/
-	$(CP) -a example*.hash                          $(DOCUMENT_FOLDER)/
-	$(INSTALL) -m 644 example.dict                  $(DOCUMENT_FOLDER)/
-	$(INSTALL) -m 755 -d                            $(DOCUMENT_FOLDER)/extra
-	$(CP) -a extra/*                                $(DOCUMENT_FOLDER)/extra/
-	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)
-	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/charsets
-	$(CP) -a charsets/*                             $(SHARED_FOLDER)/charsets/
-	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/masks
-	$(CP) -a masks/*                                $(SHARED_FOLDER)/masks/
-	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/OpenCL
-	$(CP) -a OpenCL/*                               $(SHARED_FOLDER)/OpenCL/
-	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/rules
-	$(CP) -a rules/*                                $(SHARED_FOLDER)/rules/
-	$(INSTALL) -m 644 hashcat.hcstat                $(SHARED_FOLDER)/
-	$(INSTALL) -m 644 hashcat.hctune                $(SHARED_FOLDER)/
-	$(INSTALL) -m 755 $(BINARY_NATIVE)              $(INSTALL_FOLDER)/
+	$(INSTALL) -m 755 -d                            $(DESTDIR)$(DOCUMENT_FOLDER)
+	$(CP) -a docs/*                                 $(DESTDIR)$(DOCUMENT_FOLDER)/
+	$(CP) -a example*.sh                            $(DESTDIR)$(DOCUMENT_FOLDER)/
+	$(CP) -a example*.hash                          $(DESTDIR)$(DOCUMENT_FOLDER)/
+	$(INSTALL) -m 644 example.dict                  $(DESTDIR)$(DOCUMENT_FOLDER)/
+	$(INSTALL) -m 755 -d                            $(DESTDIR)$(DOCUMENT_FOLDER)/extra
+	$(CP) -a extra/*                                $(DESTDIR)$(DOCUMENT_FOLDER)/extra/
+	$(INSTALL) -m 755 -d                            $(DESTDIR)$(SHARED_FOLDER)
+	$(INSTALL) -m 755 -d                            $(DESTDIR)$(SHARED_FOLDER)/charsets
+	$(CP) -a charsets/*                             $(DESTDIR)$(SHARED_FOLDER)/charsets/
+	$(INSTALL) -m 755 -d                            $(DESTDIR)$(SHARED_FOLDER)/masks
+	$(CP) -a masks/*                                $(DESTDIR)$(SHARED_FOLDER)/masks/
+	$(INSTALL) -m 755 -d                            $(DESTDIR)$(SHARED_FOLDER)/OpenCL
+	$(CP) -a OpenCL/*                               $(DESTDIR)$(SHARED_FOLDER)/OpenCL/
+	$(INSTALL) -m 755 -d                            $(DESTDIR)$(SHARED_FOLDER)/rules
+	$(CP) -a rules/*                                $(DESTDIR)$(SHARED_FOLDER)/rules/
+	$(INSTALL) -m 644 hashcat.hcstat                $(DESTDIR)$(SHARED_FOLDER)/
+	$(INSTALL) -m 644 hashcat.hctune                $(DESTDIR)$(SHARED_FOLDER)/
+	$(INSTALL) -m 755 -d                            $(DESTDIR)$(INSTALL_FOLDER)
+	$(INSTALL) -m 755 $(BINARY_NATIVE)              $(DESTDIR)$(INSTALL_FOLDER)/
 
 uninstall:
-	$(RM) -f  $(INSTALL_FOLDER)/$(BINARY_NATIVE)
-	$(RM) -rf $(SHARED_FOLDER)
-	$(RM) -rf $(DOCUMENT_FOLDER)
+	$(RM) -f  $(DESTDIR)$(INSTALL_FOLDER)/$(BINARY_NATIVE)
+	$(RM) -rf $(DESTDIR)$(SHARED_FOLDER)
+	$(RM) -rf $(DESTDIR)$(DOCUMENT_FOLDER)
 
 ##
 ## native compiled hashcat
