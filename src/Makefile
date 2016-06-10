@@ -212,6 +212,7 @@ install: native
 	$(CP) -a rules/*                                $(DESTDIR)$(SHARED_FOLDER)/rules/
 	$(INSTALL) -m 644 hashcat.hcstat                $(DESTDIR)$(SHARED_FOLDER)/
 	$(INSTALL) -m 644 hashcat.hctune                $(DESTDIR)$(SHARED_FOLDER)/
+	$(INSTALL) -m 755 -d                            $(DESTDIR)$(INSTALL_FOLDER)
 	$(INSTALL) -m 755 $(BINARY_NATIVE)              $(DESTDIR)$(INSTALL_FOLDER)/
 
 uninstall:
