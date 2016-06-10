@@ -14680,7 +14680,7 @@ int main (int argc, char **argv)
        * some algorithms need a fixed kernel-loops count
        */
 
-      if (hash_mode == 1500)
+      if (hash_mode == 1500 && attack_mode == ATTACK_MODE_BF)
       {
         const u32 kernel_loops_fixed = 1024;
 
@@ -14688,7 +14688,7 @@ int main (int argc, char **argv)
         device_param->kernel_loops_max = kernel_loops_fixed;
       }
 
-      if (hash_mode == 3000)
+      if (hash_mode == 3000 && attack_mode == ATTACK_MODE_BF)
       {
         const u32 kernel_loops_fixed = 1024;
 
