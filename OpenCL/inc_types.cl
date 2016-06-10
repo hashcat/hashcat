@@ -1023,6 +1023,12 @@ typedef struct
 
 typedef struct
 {
+  u32 salt_buf[32];
+
+} win8phone_t;
+
+typedef struct
+{
   u32 version;
   u32 algorithm;
 

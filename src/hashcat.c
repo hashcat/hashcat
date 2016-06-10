@@ -1,4 +1,4 @@
-/**
+ /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
  *               Gabriele Gristina <matrix@hashcat.net>
  *               magnum <john.magnum@hushmail.com>
@@ -576,6 +576,7 @@ const char *USAGE_BIG[] =
   "     22 | Juniper Netscreen/SSG (ScreenOS)                 | Operating-Systems",
   "    501 | Juniper IVE                                      | Operating-Systems",
   "   5800 | Android PIN                                      | Operating-Systems",
+  "  13800 | Windows 8+ phone PIN/Password                    | Operating-Systems",
   "   8100 | Citrix Netscaler                                 | Operating-Systems",
   "   8500 | RACF                                             | Operating-Systems",
   "   7200 | GRUB 2                                           | Operating-Systems",
@@ -6124,7 +6125,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  if (hash_mode_chgd && hash_mode > 13799) // just added to remove compiler warnings for hash_mode_chgd
+  if (hash_mode_chgd && hash_mode > 13800) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
@@ -10797,6 +10798,26 @@ int main (int argc, char **argv)
                    dgst_pos3   = 3;
                    break;
 
+      case 13800:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_PT_UNICODE;
+                   kern_type   = KERN_TYPE_WIN8PHONE;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = win8phone_parse_hash;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_INIT
+                               | OPTI_TYPE_EARLY_SKIP
+                               | OPTI_TYPE_NOT_ITERATED
+                               | OPTI_TYPE_RAW_HASH;
+                   dgst_pos0   = 3;
+                   dgst_pos1   = 7;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 6;
+                   break;
+
 
       default:     usage_mini_print (PROGNAME); return (-1);
     }
@@ -10923,6 +10944,7 @@ int main (int argc, char **argv)
       case 13761:  esalt_size = sizeof (tc_t);            break;
       case 13762:  esalt_size = sizeof (tc_t);            break;
       case 13763:  esalt_size = sizeof (tc_t);            break;
+      case 13800:  esalt_size = sizeof (win8phone_t);     break;
     }
 
     data.esalt_size = esalt_size;

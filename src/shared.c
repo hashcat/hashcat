@@ -6031,6 +6031,7 @@ char *strhashtype (const uint hash_mode)
     case 13761: return ((char *) HT_13761); break;
     case 13762: return ((char *) HT_13762); break;
     case 13763: return ((char *) HT_13763); break;
+    case 13800: return ((char *) HT_13800); break;
   }
 
   return ((char *) "Unknown");
@@ -8736,6 +8737,30 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
   else if ((hash_mode >= 13700) && (hash_mode <= 13799))
   {
     snprintf (out_buf, len-1, "%s", hashfile);
+  }
+  else if (hash_mode == 13800)
+  {
+    win8phone_t *esalts = (win8phone_t *) data.esalts_buf;
+
+    win8phone_t *esalt = &esalts[salt_pos];
+
+    char buf[256 + 1] = { 0 };
+
+    for (int i = 0, j = 0; i < 32; i += 1, j += 8)
+    {
+      sprintf (buf + j, "%08x", esalt->salt_buf[i]);
+    }
+
+    snprintf (out_buf, len-1, "%08x%08x%08x%08x%08x%08x%08x%08x:%s",
+      digest_buf[0],
+      digest_buf[1],
+      digest_buf[2],
+      digest_buf[3],
+      digest_buf[4],
+      digest_buf[5],
+      digest_buf[6],
+      digest_buf[7],
+      buf);
   }
   else
   {
@@ -20514,6 +20539,50 @@ int zip2_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[1] = zip2->auth_buf[1];
   digest[2] = zip2->auth_buf[2];
   digest[3] = zip2->auth_buf[3];
+
+  return (PARSER_OK);
+}
+
+int win8phone_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_13800) || (input_len > DISPLAY_LEN_MAX_13800)) return (PARSER_GLOBAL_LENGTH);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  win8phone_t *esalt = hash_buf->esalt;
+
+  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+  digest[5] = hex_to_u32 ((const u8 *) &input_buf[40]);
+  digest[6] = hex_to_u32 ((const u8 *) &input_buf[48]);
+  digest[7] = hex_to_u32 ((const u8 *) &input_buf[56]);
+
+  if (input_buf[64] != data.separator) return (PARSER_SEPARATOR_UNMATCHED);
+
+  char *salt_buf_ptr = input_buf + 64 + 1;
+
+  u32 *salt_buf = esalt->salt_buf;
+
+  for (int i = 0, j = 0; i < 32; i += 1, j += 8)
+  {
+    salt_buf[i] = hex_to_u32 ((const u8 *) &salt_buf_ptr[j]);
+  }
+
+  salt->salt_buf[0] = salt_buf[0];
+  salt->salt_buf[1] = salt_buf[1];
+  salt->salt_buf[2] = salt_buf[2];
+  salt->salt_buf[3] = salt_buf[3];
+  salt->salt_buf[4] = salt_buf[4];
+  salt->salt_buf[5] = salt_buf[5];
+  salt->salt_buf[6] = salt_buf[6];
+  salt->salt_buf[7] = salt_buf[7];
+
+  salt->salt_len = 64;
 
   return (PARSER_OK);
 }

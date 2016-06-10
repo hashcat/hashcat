@@ -354,6 +354,7 @@ extern hc_thread_mutex_t mux_display;
 #define HT_13400  "Keepass 1 (AES/Twofish) and Keepass 2 (AES)"
 #define HT_13500  "PeopleSoft PS_TOKEN"
 #define HT_13600  "WinZip"
+#define HT_13800  "Windows 8+ phone PIN/Password"
 
 #define HT_00011  "Joomla < 2.5.18"
 #define HT_00012  "PostgreSQL"
@@ -718,6 +719,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_13500 40 + 1 + 1024
 #define DISPLAY_LEN_MIN_13600 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 16 + 1 + 1 + 1 + 1 + 1 +    0 + 1 + 20 + 1 + 7
 #define DISPLAY_LEN_MAX_13600 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 4 + 1 + 4 + 1 + 8192 + 1 + 20 + 1 + 7
+#define DISPLAY_LEN_MIN_13800  64 + 1 + 256
+#define DISPLAY_LEN_MAX_13800  64 + 1 + 256
 
 #define DISPLAY_LEN_MIN_11    32 + 1 + 16
 #define DISPLAY_LEN_MAX_11    32 + 1 + 32
@@ -988,6 +991,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_KEEPASS             13400
 #define KERN_TYPE_PSTOKEN             13500
 #define KERN_TYPE_ZIP2                13600
+#define KERN_TYPE_WIN8PHONE           13800
 
 /**
  * signatures
@@ -1648,6 +1652,7 @@ int veracrypt_parse_hash_200000   (char *input_buf, uint input_len, hash_t *hash
 int veracrypt_parse_hash_500000   (char *input_buf, uint input_len, hash_t *hash_buf);
 int veracrypt_parse_hash_327661   (char *input_buf, uint input_len, hash_t *hash_buf);
 int veracrypt_parse_hash_655331   (char *input_buf, uint input_len, hash_t *hash_buf);
+int win8phone_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf);
 
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);

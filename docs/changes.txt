@@ -48,6 +48,7 @@ It combines all features of all hashcat projects in one project.
 - Added new hash-mode 13500 = PeopleSoft PS_TOKEN
 - Added new hash-mode 13600 = WinZip
 - Added new hash-mode 137** = VeraCrypt
+- Added new hash-mode 13800 = Windows 8+ phone PIN/Password
 
 ##
 ## Performance

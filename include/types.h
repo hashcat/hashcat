@@ -285,6 +285,12 @@ typedef struct
 
 typedef struct
 {
+  uint salt_buf[32];
+
+} win8phone_t;
+
+typedef struct
+{
   uint P[256];
 
 } scrypt_tmp_t;

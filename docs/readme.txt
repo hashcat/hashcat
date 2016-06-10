@@ -160,6 +160,7 @@ NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)
 - Juniper IVE
 - Juniper Netscreen/SSG (ScreenOS)
 - Android PIN
+- Windows 8+ phone PIN/Password
 - GRUB 2
 - CRC32
 - RACF
