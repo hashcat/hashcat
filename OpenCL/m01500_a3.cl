@@ -7,20 +7,20 @@
 
 #define _DES_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#define COMPARE_S "OpenCL/check_single_comp4_bs.c"
-#define COMPARE_M "OpenCL/check_multi_comp4_bs.c"
+#define COMPARE_S "inc_comp_single_bs.cl"
+#define COMPARE_M "inc_comp_multi_bs.cl"
 
 #define myselx(a,b,c) ((c) ? (b) : (a))
 
@@ -52,7 +52,7 @@
 
 #define LUT(a,b,c,d,e) u32 a; asm ("lop3.b32 %0, %1, %2, %3, "#e";" : "=r"(a): "r"(b), "r"(c), "r"(d));
 
-static void s1 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s1 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
   LUT(xAA55AA5500550055, a1, a4, a6, 0xC1)
   LUT(xA55AA55AF0F5F0F5, a3, a6, xAA55AA5500550055, 0x9E)
@@ -86,7 +86,7 @@ static void s1 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
   *out4 ^= x4;
 }
 
-static void s2 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s2 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
   LUT(xEEEEEEEE99999999, a1, a2, a6, 0x97)
   LUT(xFFFFEEEE66666666, a5, a6, xEEEEEEEE99999999, 0x67)
@@ -119,7 +119,7 @@ static void s2 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
   *out4 ^= x4;
 }
 
-static void s3 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s3 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
   LUT(xA50FA50FA50FA50F, a1, a3, a4, 0xC9)
   LUT(xF0F00F0FF0F0F0F0, a3, a5, a6, 0x4B)
@@ -153,7 +153,7 @@ static void s3 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
   *out4 ^= x4;
 }
 
-static void s4 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s4 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
   LUT(x55F055F055F055F0, a1, a3, a4, 0x72)
   LUT(xA500F5F0A500F5F0, a3, a5, x55F055F055F055F0, 0xAD)
@@ -180,7 +180,7 @@ static void s4 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
   *out4 ^= x4;
 }
 
-static void s5 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s5 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
   LUT(xA0A0A0A0FFFFFFFF, a1, a3, a6, 0xAB)
   LUT(xFFFF00005555FFFF, a1, a5, a6, 0xB9)
@@ -214,7 +214,7 @@ static void s5 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
   *out4 ^= x4;
 }
 
-static void s6 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s6 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
   LUT(x5050F5F55050F5F5, a1, a3, a5, 0xB2)
   LUT(x6363C6C66363C6C6, a1, a2, x5050F5F55050F5F5, 0x66)
@@ -247,7 +247,7 @@ static void s6 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
   *out4 ^= x4;
 }
 
-static void s7 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s7 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
   LUT(x88AA88AA88AA88AA, a1, a2, a4, 0x0B)
   LUT(xAAAAFF00AAAAFF00, a1, a4, a5, 0x27)
@@ -280,7 +280,7 @@ static void s7 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
   *out4 ^= x4;
 }
 
-static void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
   LUT(xEEEE3333EEEE3333, a1, a2, a5, 0x9D)
   LUT(xBBBBBBBBBBBBBBBB, a1, a1, a2, 0x83)
@@ -338,7 +338,7 @@ static void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
  * The effort has been sponsored by Rapid7: http://www.rapid7.com
  */
 
-static void s1 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s1 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x55005500, x5A0F5A0F, x3333FFFF, x66666666, x22226666, x2D2D6969,
         x25202160;
@@ -413,7 +413,7 @@ static void s1 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out4 ^= x31;
 }
 
-static void s2 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s2 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x33CC33CC;
     u32 x55550000, x00AA00FF, x33BB33FF;
@@ -484,7 +484,7 @@ static void s2 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out4 ^= x31;
 }
 
-static void s3 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s3 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x44444444, x0F0FF0F0, x4F4FF4F4, x00FFFF00, x00AAAA00, x4FE55EF4;
     u32 x3C3CC3C3, x3C3C0000, x7373F4F4, x0C840A00;
@@ -555,7 +555,7 @@ static void s3 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out3 ^= x21;
 }
 
-static void s4 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s4 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x5A5A5A5A, x0F0FF0F0;
     u32 x33FF33FF, x33FFCC00, x0C0030F0, x0C0CC0C0, x0CF3C03F, x5EFBDA7F,
@@ -609,7 +609,7 @@ static void s4 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out4 ^= x31;
 }
 
-static void s5 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s5 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x77777777, x77770000, x22225555, x11116666, x1F1F6F6F;
     u32 x70700000, x43433333, x00430033, x55557777, x55167744, x5A19784B;
@@ -682,7 +682,7 @@ static void s5 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out2 ^= x11;
 }
 
-static void s6 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s6 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x33CC33CC;
     u32 x3333FFFF, x11115555, x22DD6699, x22DD9966, x00220099;
@@ -755,7 +755,7 @@ static void s6 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out1 ^= x01;
 }
 
-static void s7 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s7 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
     u32 x00000F00, x33333C33, x7B777E77, x0FF0F00F, x74878E78;
@@ -826,7 +826,7 @@ static void s7 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out2 ^= x11;
 }
 
-static void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x0C0C0C0C, x0000F0F0, x00FFF00F, x00555005, x00515001;
     u32 x33000330, x77555775, x30303030, x3030CFCF, x30104745, x30555745;
@@ -919,7 +919,7 @@ static void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
  * The effort has been sponsored by Rapid7: http://www.rapid7.com
  */
 
-static void s1 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s1 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x55005500, x5A0F5A0F, x3333FFFF, x66666666, x22226666, x2D2D6969,
         x25202160;
@@ -994,7 +994,7 @@ static void s1 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out4 ^= x31;
 }
 
-static void s2 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s2 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x33CC33CC;
     u32 x55550000, x00AA00FF, x33BB33FF;
@@ -1065,7 +1065,7 @@ static void s2 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out4 ^= x31;
 }
 
-static void s3 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s3 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x44444444, x0F0FF0F0, x4F4FF4F4, x00FFFF00, x00AAAA00, x4FE55EF4;
     u32 x3C3CC3C3, x3C3C0000, x7373F4F4, x0C840A00;
@@ -1136,7 +1136,7 @@ static void s3 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out3 ^= x21;
 }
 
-static void s4 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s4 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x5A5A5A5A, x0F0FF0F0;
     u32 x33FF33FF, x33FFCC00, x0C0030F0, x0C0CC0C0, x0CF3C03F, x5EFBDA7F,
@@ -1190,7 +1190,7 @@ static void s4 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out4 ^= x31;
 }
 
-static void s5 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s5 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x77777777, x77770000, x22225555, x11116666, x1F1F6F6F;
     u32 x70700000, x43433333, x00430033, x55557777, x55167744, x5A19784B;
@@ -1263,7 +1263,7 @@ static void s5 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out2 ^= x11;
 }
 
-static void s6 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s6 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x33CC33CC;
     u32 x3333FFFF, x11115555, x22DD6699, x22DD9966, x00220099;
@@ -1336,7 +1336,7 @@ static void s6 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out1 ^= x01;
 }
 
-static void s7 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s7 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
     u32 x00000F00, x33333C33, x7B777E77, x0FF0F00F, x74878E78;
@@ -1407,7 +1407,7 @@ static void s7 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
     *out2 ^= x11;
 }
 
-static void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
+void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, u32 *out1, u32 *out2, u32 *out3, u32 *out4)
 {
     u32 x0C0C0C0C, x0000F0F0, x00FFF00F, x00555005, x00515001;
     u32 x33000330, x77555775, x30303030, x3030CFCF, x30104745, x30555745;
@@ -1543,7 +1543,7 @@ static void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u3
 
 #ifdef DESCRYPT_SALT
 
-static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, u32 *D00, u32 *D01, u32 *D02, u32 *D03, u32 *D04, u32 *D05, u32 *D06, u32 *D07, u32 *D08, u32 *D09, u32 *D10, u32 *D11, u32 *D12, u32 *D13, u32 *D14, u32 *D15, u32 *D16, u32 *D17, u32 *D18, u32 *D19, u32 *D20, u32 *D21, u32 *D22, u32 *D23, u32 *D24, u32 *D25, u32 *D26, u32 *D27, u32 *D28, u32 *D29, u32 *D30, u32 *D31, u32 *D32, u32 *D33, u32 *D34, u32 *D35, u32 *D36, u32 *D37, u32 *D38, u32 *D39, u32 *D40, u32 *D41, u32 *D42, u32 *D43, u32 *D44, u32 *D45, u32 *D46, u32 *D47, u32 *D48, u32 *D49, u32 *D50, u32 *D51, u32 *D52, u32 *D53, u32 *D54, u32 *D55, u32 *D56, u32 *D57, u32 *D58, u32 *D59, u32 *D60, u32 *D61, u32 *D62, u32 *D63)
+void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, u32 *D00, u32 *D01, u32 *D02, u32 *D03, u32 *D04, u32 *D05, u32 *D06, u32 *D07, u32 *D08, u32 *D09, u32 *D10, u32 *D11, u32 *D12, u32 *D13, u32 *D14, u32 *D15, u32 *D16, u32 *D17, u32 *D18, u32 *D19, u32 *D20, u32 *D21, u32 *D22, u32 *D23, u32 *D24, u32 *D25, u32 *D26, u32 *D27, u32 *D28, u32 *D29, u32 *D30, u32 *D31, u32 *D32, u32 *D33, u32 *D34, u32 *D35, u32 *D36, u32 *D37, u32 *D38, u32 *D39, u32 *D40, u32 *D41, u32 *D42, u32 *D43, u32 *D44, u32 *D45, u32 *D46, u32 *D47, u32 *D48, u32 *D49, u32 *D50, u32 *D51, u32 *D52, u32 *D53, u32 *D54, u32 *D55, u32 *D56, u32 *D57, u32 *D58, u32 *D59, u32 *D60, u32 *D61, u32 *D62, u32 *D63)
 {
   sXXX_DECL u32 s001 = (0x001 & DESCRYPT_SALT) ? 0xffffffff : 0;
   sXXX_DECL u32 s002 = (0x002 & DESCRYPT_SALT) ? 0xffffffff : 0;
@@ -1569,17 +1569,9 @@ static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K0
 
   for (u32 ii = 0; ii < 25; ii++)
   {
-    #ifdef IS_NV
-    #if CUDA_ARCH >= 500
-    #else
+    #ifdef _unroll
     #pragma unroll
     #endif
-    #endif
-
-    #ifdef IS_AMD
-    #pragma unroll
-    #endif
-
     for (u32 i = 0; i < 2; i++)
     {
       if (i) KEYSET10 else KEYSET00
@@ -1679,7 +1671,7 @@ static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K0
 
 #else
 
-static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, u32 *D00, u32 *D01, u32 *D02, u32 *D03, u32 *D04, u32 *D05, u32 *D06, u32 *D07, u32 *D08, u32 *D09, u32 *D10, u32 *D11, u32 *D12, u32 *D13, u32 *D14, u32 *D15, u32 *D16, u32 *D17, u32 *D18, u32 *D19, u32 *D20, u32 *D21, u32 *D22, u32 *D23, u32 *D24, u32 *D25, u32 *D26, u32 *D27, u32 *D28, u32 *D29, u32 *D30, u32 *D31, u32 *D32, u32 *D33, u32 *D34, u32 *D35, u32 *D36, u32 *D37, u32 *D38, u32 *D39, u32 *D40, u32 *D41, u32 *D42, u32 *D43, u32 *D44, u32 *D45, u32 *D46, u32 *D47, u32 *D48, u32 *D49, u32 *D50, u32 *D51, u32 *D52, u32 *D53, u32 *D54, u32 *D55, u32 *D56, u32 *D57, u32 *D58, u32 *D59, u32 *D60, u32 *D61, u32 *D62, u32 *D63)
+void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, u32 *D00, u32 *D01, u32 *D02, u32 *D03, u32 *D04, u32 *D05, u32 *D06, u32 *D07, u32 *D08, u32 *D09, u32 *D10, u32 *D11, u32 *D12, u32 *D13, u32 *D14, u32 *D15, u32 *D16, u32 *D17, u32 *D18, u32 *D19, u32 *D20, u32 *D21, u32 *D22, u32 *D23, u32 *D24, u32 *D25, u32 *D26, u32 *D27, u32 *D28, u32 *D29, u32 *D30, u32 *D31, u32 *D32, u32 *D33, u32 *D34, u32 *D35, u32 *D36, u32 *D37, u32 *D38, u32 *D39, u32 *D40, u32 *D41, u32 *D42, u32 *D43, u32 *D44, u32 *D45, u32 *D46, u32 *D47, u32 *D48, u32 *D49, u32 *D50, u32 *D51, u32 *D52, u32 *D53, u32 *D54, u32 *D55, u32 *D56, u32 *D57, u32 *D58, u32 *D59, u32 *D60, u32 *D61, u32 *D62, u32 *D63)
 {
   sXXX_DECL u32 s001 = (0x001 & SALT) ? 0xffffffff : 0;
   sXXX_DECL u32 s002 = (0x002 & SALT) ? 0xffffffff : 0;
@@ -1705,17 +1697,9 @@ static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K0
 
   for (u32 ii = 0; ii < 25; ii++)
   {
-    #ifdef IS_NV
-    #if CUDA_ARCH >= 500
-    #else
+    #ifdef _unroll
     #pragma unroll
     #endif
-    #endif
-
-    #ifdef IS_AMD
-    #pragma unroll
-    #endif
-
     for (u32 i = 0; i < 2; i++)
     {
       if (i) KEYSET10 else KEYSET00
@@ -1815,7 +1799,7 @@ static void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K0
 
 #endif
 
-static void transpose32c (u32 data[32])
+void transpose32c (u32 data[32])
 {
   #define swap(x,y,j,m)               \
      t  = ((x) ^ ((y) >> (j))) & (m); \
@@ -1906,7 +1890,7 @@ static void transpose32c (u32 data[32])
   swap (data[30], data[31],  1, 0x55555555);
 }
 
-static void m01500m (__local u32 *s_S, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bs_word_t * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+void m01500m (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bs_word_t * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * base
@@ -1931,62 +1915,62 @@ static void m01500m (__local u32 *s_S, __global pw_t *pws, __global kernel_rule_
   const u32 w0s = (w0 << 1) & 0xfefefefe;
   const u32 w1s = (w1 << 1) & 0xfefefefe;
 
-  const u32 K00 = -((w0s >> ( 0 + 7)) & 1);
-  const u32 K01 = -((w0s >> ( 0 + 6)) & 1);
-  const u32 K02 = -((w0s >> ( 0 + 5)) & 1);
-  const u32 K03 = -((w0s >> ( 0 + 4)) & 1);
-  const u32 K04 = -((w0s >> ( 0 + 3)) & 1);
-  const u32 K05 = -((w0s >> ( 0 + 2)) & 1);
-  const u32 K06 = -((w0s >> ( 0 + 1)) & 1);
-  const u32 K07 = -((w0s >> ( 8 + 7)) & 1);
-  const u32 K08 = -((w0s >> ( 8 + 6)) & 1);
-  const u32 K09 = -((w0s >> ( 8 + 5)) & 1);
-  const u32 K10 = -((w0s >> ( 8 + 4)) & 1);
-  const u32 K11 = -((w0s >> ( 8 + 3)) & 1);
-  const u32 K12 = -((w0s >> ( 8 + 2)) & 1);
-  const u32 K13 = -((w0s >> ( 8 + 1)) & 1);
-  const u32 K14 = -((w0s >> (16 + 7)) & 1);
-  const u32 K15 = -((w0s >> (16 + 6)) & 1);
-  const u32 K16 = -((w0s >> (16 + 5)) & 1);
-  const u32 K17 = -((w0s >> (16 + 4)) & 1);
-  const u32 K18 = -((w0s >> (16 + 3)) & 1);
-  const u32 K19 = -((w0s >> (16 + 2)) & 1);
-  const u32 K20 = -((w0s >> (16 + 1)) & 1);
-  const u32 K21 = -((w0s >> (24 + 7)) & 1);
-  const u32 K22 = -((w0s >> (24 + 6)) & 1);
-  const u32 K23 = -((w0s >> (24 + 5)) & 1);
-  const u32 K24 = -((w0s >> (24 + 4)) & 1);
-  const u32 K25 = -((w0s >> (24 + 3)) & 1);
-  const u32 K26 = -((w0s >> (24 + 2)) & 1);
-  const u32 K27 = -((w0s >> (24 + 1)) & 1);
-  const u32 K28 = -((w1s >> ( 0 + 7)) & 1);
-  const u32 K29 = -((w1s >> ( 0 + 6)) & 1);
-  const u32 K30 = -((w1s >> ( 0 + 5)) & 1);
-  const u32 K31 = -((w1s >> ( 0 + 4)) & 1);
-  const u32 K32 = -((w1s >> ( 0 + 3)) & 1);
-  const u32 K33 = -((w1s >> ( 0 + 2)) & 1);
-  const u32 K34 = -((w1s >> ( 0 + 1)) & 1);
-  const u32 K35 = -((w1s >> ( 8 + 7)) & 1);
-  const u32 K36 = -((w1s >> ( 8 + 6)) & 1);
-  const u32 K37 = -((w1s >> ( 8 + 5)) & 1);
-  const u32 K38 = -((w1s >> ( 8 + 4)) & 1);
-  const u32 K39 = -((w1s >> ( 8 + 3)) & 1);
-  const u32 K40 = -((w1s >> ( 8 + 2)) & 1);
-  const u32 K41 = -((w1s >> ( 8 + 1)) & 1);
-  const u32 K42 = -((w1s >> (16 + 7)) & 1);
-  const u32 K43 = -((w1s >> (16 + 6)) & 1);
-  const u32 K44 = -((w1s >> (16 + 5)) & 1);
-  const u32 K45 = -((w1s >> (16 + 4)) & 1);
-  const u32 K46 = -((w1s >> (16 + 3)) & 1);
-  const u32 K47 = -((w1s >> (16 + 2)) & 1);
-  const u32 K48 = -((w1s >> (16 + 1)) & 1);
-  const u32 K49 = -((w1s >> (24 + 7)) & 1);
-  const u32 K50 = -((w1s >> (24 + 6)) & 1);
-  const u32 K51 = -((w1s >> (24 + 5)) & 1);
-  const u32 K52 = -((w1s >> (24 + 4)) & 1);
-  const u32 K53 = -((w1s >> (24 + 3)) & 1);
-  const u32 K54 = -((w1s >> (24 + 2)) & 1);
-  const u32 K55 = -((w1s >> (24 + 1)) & 1);
+  #define K00 (((w0s >> ( 0 + 7)) & 1) ? -1 : 0)
+  #define K01 (((w0s >> ( 0 + 6)) & 1) ? -1 : 0)
+  #define K02 (((w0s >> ( 0 + 5)) & 1) ? -1 : 0)
+  #define K03 (((w0s >> ( 0 + 4)) & 1) ? -1 : 0)
+  #define K04 (((w0s >> ( 0 + 3)) & 1) ? -1 : 0)
+  #define K05 (((w0s >> ( 0 + 2)) & 1) ? -1 : 0)
+  #define K06 (((w0s >> ( 0 + 1)) & 1) ? -1 : 0)
+  #define K07 (((w0s >> ( 8 + 7)) & 1) ? -1 : 0)
+  #define K08 (((w0s >> ( 8 + 6)) & 1) ? -1 : 0)
+  #define K09 (((w0s >> ( 8 + 5)) & 1) ? -1 : 0)
+  #define K10 (((w0s >> ( 8 + 4)) & 1) ? -1 : 0)
+  #define K11 (((w0s >> ( 8 + 3)) & 1) ? -1 : 0)
+  #define K12 (((w0s >> ( 8 + 2)) & 1) ? -1 : 0)
+  #define K13 (((w0s >> ( 8 + 1)) & 1) ? -1 : 0)
+  #define K14 (((w0s >> (16 + 7)) & 1) ? -1 : 0)
+  #define K15 (((w0s >> (16 + 6)) & 1) ? -1 : 0)
+  #define K16 (((w0s >> (16 + 5)) & 1) ? -1 : 0)
+  #define K17 (((w0s >> (16 + 4)) & 1) ? -1 : 0)
+  #define K18 (((w0s >> (16 + 3)) & 1) ? -1 : 0)
+  #define K19 (((w0s >> (16 + 2)) & 1) ? -1 : 0)
+  #define K20 (((w0s >> (16 + 1)) & 1) ? -1 : 0)
+  #define K21 (((w0s >> (24 + 7)) & 1) ? -1 : 0)
+  #define K22 (((w0s >> (24 + 6)) & 1) ? -1 : 0)
+  #define K23 (((w0s >> (24 + 5)) & 1) ? -1 : 0)
+  #define K24 (((w0s >> (24 + 4)) & 1) ? -1 : 0)
+  #define K25 (((w0s >> (24 + 3)) & 1) ? -1 : 0)
+  #define K26 (((w0s >> (24 + 2)) & 1) ? -1 : 0)
+  #define K27 (((w0s >> (24 + 1)) & 1) ? -1 : 0)
+  #define K28 (((w1s >> ( 0 + 7)) & 1) ? -1 : 0)
+  #define K29 (((w1s >> ( 0 + 6)) & 1) ? -1 : 0)
+  #define K30 (((w1s >> ( 0 + 5)) & 1) ? -1 : 0)
+  #define K31 (((w1s >> ( 0 + 4)) & 1) ? -1 : 0)
+  #define K32 (((w1s >> ( 0 + 3)) & 1) ? -1 : 0)
+  #define K33 (((w1s >> ( 0 + 2)) & 1) ? -1 : 0)
+  #define K34 (((w1s >> ( 0 + 1)) & 1) ? -1 : 0)
+  #define K35 (((w1s >> ( 8 + 7)) & 1) ? -1 : 0)
+  #define K36 (((w1s >> ( 8 + 6)) & 1) ? -1 : 0)
+  #define K37 (((w1s >> ( 8 + 5)) & 1) ? -1 : 0)
+  #define K38 (((w1s >> ( 8 + 4)) & 1) ? -1 : 0)
+  #define K39 (((w1s >> ( 8 + 3)) & 1) ? -1 : 0)
+  #define K40 (((w1s >> ( 8 + 2)) & 1) ? -1 : 0)
+  #define K41 (((w1s >> ( 8 + 1)) & 1) ? -1 : 0)
+  #define K42 (((w1s >> (16 + 7)) & 1) ? -1 : 0)
+  #define K43 (((w1s >> (16 + 6)) & 1) ? -1 : 0)
+  #define K44 (((w1s >> (16 + 5)) & 1) ? -1 : 0)
+  #define K45 (((w1s >> (16 + 4)) & 1) ? -1 : 0)
+  #define K46 (((w1s >> (16 + 3)) & 1) ? -1 : 0)
+  #define K47 (((w1s >> (16 + 2)) & 1) ? -1 : 0)
+  #define K48 (((w1s >> (16 + 1)) & 1) ? -1 : 0)
+  #define K49 (((w1s >> (24 + 7)) & 1) ? -1 : 0)
+  #define K50 (((w1s >> (24 + 6)) & 1) ? -1 : 0)
+  #define K51 (((w1s >> (24 + 5)) & 1) ? -1 : 0)
+  #define K52 (((w1s >> (24 + 4)) & 1) ? -1 : 0)
+  #define K53 (((w1s >> (24 + 3)) & 1) ? -1 : 0)
+  #define K54 (((w1s >> (24 + 2)) & 1) ? -1 : 0)
+  #define K55 (((w1s >> (24 + 1)) & 1) ? -1 : 0)
 
   /**
    * inner loop
@@ -2222,7 +2206,9 @@ static void m01500m (__local u32 *s_S, __global pw_t *pws, __global kernel_rule_
 
       u32 tmpResult = 0;
 
+      #ifdef _unroll
       #pragma unroll
+      #endif
       for (int i = 0; i < 32; i++)
       {
         const u32 b0 = -((search[0] >> i) & 1);
@@ -2249,7 +2235,9 @@ static void m01500m (__local u32 *s_S, __global pw_t *pws, __global kernel_rule_
     u32 out0[32];
     u32 out1[32];
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 0; i < 32; i++)
     {
       out0[i] = out[ 0 + 31 - i];
@@ -2259,7 +2247,9 @@ static void m01500m (__local u32 *s_S, __global pw_t *pws, __global kernel_rule_
     transpose32c (out0);
     transpose32c (out1);
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int slice = 0; slice < 32; slice++)
     {
       const u32 r0 = out0[31 - slice];
@@ -2272,7 +2262,7 @@ static void m01500m (__local u32 *s_S, __global pw_t *pws, __global kernel_rule_
   }
 }
 
-static void m01500s (__local u32 *s_S, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bs_word_t * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+void m01500s (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bs_word_t * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * base
@@ -2291,70 +2281,73 @@ static void m01500s (__local u32 *s_S, __global pw_t *pws, __global kernel_rule_
    * digest
    */
 
-  #define S00 s_S[ 0]
-  #define S01 s_S[ 1]
-  #define S02 s_S[ 2]
-  #define S03 s_S[ 3]
-  #define S04 s_S[ 4]
-  #define S05 s_S[ 5]
-  #define S06 s_S[ 6]
-  #define S07 s_S[ 7]
-  #define S08 s_S[ 8]
-  #define S09 s_S[ 9]
-  #define S10 s_S[10]
-  #define S11 s_S[11]
-  #define S12 s_S[12]
-  #define S13 s_S[13]
-  #define S14 s_S[14]
-  #define S15 s_S[15]
-  #define S16 s_S[16]
-  #define S17 s_S[17]
-  #define S18 s_S[18]
-  #define S19 s_S[19]
-  #define S20 s_S[20]
-  #define S21 s_S[21]
-  #define S22 s_S[22]
-  #define S23 s_S[23]
-  #define S24 s_S[24]
-  #define S25 s_S[25]
-  #define S26 s_S[26]
-  #define S27 s_S[27]
-  #define S28 s_S[28]
-  #define S29 s_S[29]
-  #define S30 s_S[30]
-  #define S31 s_S[31]
-  #define S32 s_S[32]
-  #define S33 s_S[33]
-  #define S34 s_S[34]
-  #define S35 s_S[35]
-  #define S36 s_S[36]
-  #define S37 s_S[37]
-  #define S38 s_S[38]
-  #define S39 s_S[39]
-  #define S40 s_S[40]
-  #define S41 s_S[41]
-  #define S42 s_S[42]
-  #define S43 s_S[43]
-  #define S44 s_S[44]
-  #define S45 s_S[45]
-  #define S46 s_S[46]
-  #define S47 s_S[47]
-  #define S48 s_S[48]
-  #define S49 s_S[49]
-  #define S50 s_S[50]
-  #define S51 s_S[51]
-  #define S52 s_S[52]
-  #define S53 s_S[53]
-  #define S54 s_S[54]
-  #define S55 s_S[55]
-  #define S56 s_S[56]
-  #define S57 s_S[57]
-  #define S58 s_S[58]
-  #define S59 s_S[59]
-  #define S60 s_S[60]
-  #define S61 s_S[61]
-  #define S62 s_S[62]
-  #define S63 s_S[63]
+  const u32 s0 = digests_buf[0].digest_buf[0];
+  const u32 s1 = digests_buf[0].digest_buf[1];
+
+  #define S00 (((s0 >>  0) & 1) ? -1 : 0)
+  #define S01 (((s0 >>  1) & 1) ? -1 : 0)
+  #define S02 (((s0 >>  2) & 1) ? -1 : 0)
+  #define S03 (((s0 >>  3) & 1) ? -1 : 0)
+  #define S04 (((s0 >>  4) & 1) ? -1 : 0)
+  #define S05 (((s0 >>  5) & 1) ? -1 : 0)
+  #define S06 (((s0 >>  6) & 1) ? -1 : 0)
+  #define S07 (((s0 >>  7) & 1) ? -1 : 0)
+  #define S08 (((s0 >>  8) & 1) ? -1 : 0)
+  #define S09 (((s0 >>  9) & 1) ? -1 : 0)
+  #define S10 (((s0 >> 10) & 1) ? -1 : 0)
+  #define S11 (((s0 >> 11) & 1) ? -1 : 0)
+  #define S12 (((s0 >> 12) & 1) ? -1 : 0)
+  #define S13 (((s0 >> 13) & 1) ? -1 : 0)
+  #define S14 (((s0 >> 14) & 1) ? -1 : 0)
+  #define S15 (((s0 >> 15) & 1) ? -1 : 0)
+  #define S16 (((s0 >> 16) & 1) ? -1 : 0)
+  #define S17 (((s0 >> 17) & 1) ? -1 : 0)
+  #define S18 (((s0 >> 18) & 1) ? -1 : 0)
+  #define S19 (((s0 >> 19) & 1) ? -1 : 0)
+  #define S20 (((s0 >> 20) & 1) ? -1 : 0)
+  #define S21 (((s0 >> 21) & 1) ? -1 : 0)
+  #define S22 (((s0 >> 22) & 1) ? -1 : 0)
+  #define S23 (((s0 >> 23) & 1) ? -1 : 0)
+  #define S24 (((s0 >> 24) & 1) ? -1 : 0)
+  #define S25 (((s0 >> 25) & 1) ? -1 : 0)
+  #define S26 (((s0 >> 26) & 1) ? -1 : 0)
+  #define S27 (((s0 >> 27) & 1) ? -1 : 0)
+  #define S28 (((s0 >> 28) & 1) ? -1 : 0)
+  #define S29 (((s0 >> 29) & 1) ? -1 : 0)
+  #define S30 (((s0 >> 30) & 1) ? -1 : 0)
+  #define S31 (((s0 >> 31) & 1) ? -1 : 0)
+  #define S32 (((s1 >>  0) & 1) ? -1 : 0)
+  #define S33 (((s1 >>  1) & 1) ? -1 : 0)
+  #define S34 (((s1 >>  2) & 1) ? -1 : 0)
+  #define S35 (((s1 >>  3) & 1) ? -1 : 0)
+  #define S36 (((s1 >>  4) & 1) ? -1 : 0)
+  #define S37 (((s1 >>  5) & 1) ? -1 : 0)
+  #define S38 (((s1 >>  6) & 1) ? -1 : 0)
+  #define S39 (((s1 >>  7) & 1) ? -1 : 0)
+  #define S40 (((s1 >>  8) & 1) ? -1 : 0)
+  #define S41 (((s1 >>  9) & 1) ? -1 : 0)
+  #define S42 (((s1 >> 10) & 1) ? -1 : 0)
+  #define S43 (((s1 >> 11) & 1) ? -1 : 0)
+  #define S44 (((s1 >> 12) & 1) ? -1 : 0)
+  #define S45 (((s1 >> 13) & 1) ? -1 : 0)
+  #define S46 (((s1 >> 14) & 1) ? -1 : 0)
+  #define S47 (((s1 >> 15) & 1) ? -1 : 0)
+  #define S48 (((s1 >> 16) & 1) ? -1 : 0)
+  #define S49 (((s1 >> 17) & 1) ? -1 : 0)
+  #define S50 (((s1 >> 18) & 1) ? -1 : 0)
+  #define S51 (((s1 >> 19) & 1) ? -1 : 0)
+  #define S52 (((s1 >> 20) & 1) ? -1 : 0)
+  #define S53 (((s1 >> 21) & 1) ? -1 : 0)
+  #define S54 (((s1 >> 22) & 1) ? -1 : 0)
+  #define S55 (((s1 >> 23) & 1) ? -1 : 0)
+  #define S56 (((s1 >> 24) & 1) ? -1 : 0)
+  #define S57 (((s1 >> 25) & 1) ? -1 : 0)
+  #define S58 (((s1 >> 26) & 1) ? -1 : 0)
+  #define S59 (((s1 >> 27) & 1) ? -1 : 0)
+  #define S60 (((s1 >> 28) & 1) ? -1 : 0)
+  #define S61 (((s1 >> 29) & 1) ? -1 : 0)
+  #define S62 (((s1 >> 30) & 1) ? -1 : 0)
+  #define S63 (((s1 >> 31) & 1) ? -1 : 0)
 
   /**
    * base
@@ -2366,62 +2359,62 @@ static void m01500s (__local u32 *s_S, __global pw_t *pws, __global kernel_rule_
   const u32 w0s = (w0 << 1) & 0xfefefefe;
   const u32 w1s = (w1 << 1) & 0xfefefefe;
 
-  const u32 K00 = -((w0s >> ( 0 + 7)) & 1);
-  const u32 K01 = -((w0s >> ( 0 + 6)) & 1);
-  const u32 K02 = -((w0s >> ( 0 + 5)) & 1);
-  const u32 K03 = -((w0s >> ( 0 + 4)) & 1);
-  const u32 K04 = -((w0s >> ( 0 + 3)) & 1);
-  const u32 K05 = -((w0s >> ( 0 + 2)) & 1);
-  const u32 K06 = -((w0s >> ( 0 + 1)) & 1);
-  const u32 K07 = -((w0s >> ( 8 + 7)) & 1);
-  const u32 K08 = -((w0s >> ( 8 + 6)) & 1);
-  const u32 K09 = -((w0s >> ( 8 + 5)) & 1);
-  const u32 K10 = -((w0s >> ( 8 + 4)) & 1);
-  const u32 K11 = -((w0s >> ( 8 + 3)) & 1);
-  const u32 K12 = -((w0s >> ( 8 + 2)) & 1);
-  const u32 K13 = -((w0s >> ( 8 + 1)) & 1);
-  const u32 K14 = -((w0s >> (16 + 7)) & 1);
-  const u32 K15 = -((w0s >> (16 + 6)) & 1);
-  const u32 K16 = -((w0s >> (16 + 5)) & 1);
-  const u32 K17 = -((w0s >> (16 + 4)) & 1);
-  const u32 K18 = -((w0s >> (16 + 3)) & 1);
-  const u32 K19 = -((w0s >> (16 + 2)) & 1);
-  const u32 K20 = -((w0s >> (16 + 1)) & 1);
-  const u32 K21 = -((w0s >> (24 + 7)) & 1);
-  const u32 K22 = -((w0s >> (24 + 6)) & 1);
-  const u32 K23 = -((w0s >> (24 + 5)) & 1);
-  const u32 K24 = -((w0s >> (24 + 4)) & 1);
-  const u32 K25 = -((w0s >> (24 + 3)) & 1);
-  const u32 K26 = -((w0s >> (24 + 2)) & 1);
-  const u32 K27 = -((w0s >> (24 + 1)) & 1);
-  const u32 K28 = -((w1s >> ( 0 + 7)) & 1);
-  const u32 K29 = -((w1s >> ( 0 + 6)) & 1);
-  const u32 K30 = -((w1s >> ( 0 + 5)) & 1);
-  const u32 K31 = -((w1s >> ( 0 + 4)) & 1);
-  const u32 K32 = -((w1s >> ( 0 + 3)) & 1);
-  const u32 K33 = -((w1s >> ( 0 + 2)) & 1);
-  const u32 K34 = -((w1s >> ( 0 + 1)) & 1);
-  const u32 K35 = -((w1s >> ( 8 + 7)) & 1);
-  const u32 K36 = -((w1s >> ( 8 + 6)) & 1);
-  const u32 K37 = -((w1s >> ( 8 + 5)) & 1);
-  const u32 K38 = -((w1s >> ( 8 + 4)) & 1);
-  const u32 K39 = -((w1s >> ( 8 + 3)) & 1);
-  const u32 K40 = -((w1s >> ( 8 + 2)) & 1);
-  const u32 K41 = -((w1s >> ( 8 + 1)) & 1);
-  const u32 K42 = -((w1s >> (16 + 7)) & 1);
-  const u32 K43 = -((w1s >> (16 + 6)) & 1);
-  const u32 K44 = -((w1s >> (16 + 5)) & 1);
-  const u32 K45 = -((w1s >> (16 + 4)) & 1);
-  const u32 K46 = -((w1s >> (16 + 3)) & 1);
-  const u32 K47 = -((w1s >> (16 + 2)) & 1);
-  const u32 K48 = -((w1s >> (16 + 1)) & 1);
-  const u32 K49 = -((w1s >> (24 + 7)) & 1);
-  const u32 K50 = -((w1s >> (24 + 6)) & 1);
-  const u32 K51 = -((w1s >> (24 + 5)) & 1);
-  const u32 K52 = -((w1s >> (24 + 4)) & 1);
-  const u32 K53 = -((w1s >> (24 + 3)) & 1);
-  const u32 K54 = -((w1s >> (24 + 2)) & 1);
-  const u32 K55 = -((w1s >> (24 + 1)) & 1);
+  #define K00 (((w0s >> ( 0 + 7)) & 1) ? -1 : 0)
+  #define K01 (((w0s >> ( 0 + 6)) & 1) ? -1 : 0)
+  #define K02 (((w0s >> ( 0 + 5)) & 1) ? -1 : 0)
+  #define K03 (((w0s >> ( 0 + 4)) & 1) ? -1 : 0)
+  #define K04 (((w0s >> ( 0 + 3)) & 1) ? -1 : 0)
+  #define K05 (((w0s >> ( 0 + 2)) & 1) ? -1 : 0)
+  #define K06 (((w0s >> ( 0 + 1)) & 1) ? -1 : 0)
+  #define K07 (((w0s >> ( 8 + 7)) & 1) ? -1 : 0)
+  #define K08 (((w0s >> ( 8 + 6)) & 1) ? -1 : 0)
+  #define K09 (((w0s >> ( 8 + 5)) & 1) ? -1 : 0)
+  #define K10 (((w0s >> ( 8 + 4)) & 1) ? -1 : 0)
+  #define K11 (((w0s >> ( 8 + 3)) & 1) ? -1 : 0)
+  #define K12 (((w0s >> ( 8 + 2)) & 1) ? -1 : 0)
+  #define K13 (((w0s >> ( 8 + 1)) & 1) ? -1 : 0)
+  #define K14 (((w0s >> (16 + 7)) & 1) ? -1 : 0)
+  #define K15 (((w0s >> (16 + 6)) & 1) ? -1 : 0)
+  #define K16 (((w0s >> (16 + 5)) & 1) ? -1 : 0)
+  #define K17 (((w0s >> (16 + 4)) & 1) ? -1 : 0)
+  #define K18 (((w0s >> (16 + 3)) & 1) ? -1 : 0)
+  #define K19 (((w0s >> (16 + 2)) & 1) ? -1 : 0)
+  #define K20 (((w0s >> (16 + 1)) & 1) ? -1 : 0)
+  #define K21 (((w0s >> (24 + 7)) & 1) ? -1 : 0)
+  #define K22 (((w0s >> (24 + 6)) & 1) ? -1 : 0)
+  #define K23 (((w0s >> (24 + 5)) & 1) ? -1 : 0)
+  #define K24 (((w0s >> (24 + 4)) & 1) ? -1 : 0)
+  #define K25 (((w0s >> (24 + 3)) & 1) ? -1 : 0)
+  #define K26 (((w0s >> (24 + 2)) & 1) ? -1 : 0)
+  #define K27 (((w0s >> (24 + 1)) & 1) ? -1 : 0)
+  #define K28 (((w1s >> ( 0 + 7)) & 1) ? -1 : 0)
+  #define K29 (((w1s >> ( 0 + 6)) & 1) ? -1 : 0)
+  #define K30 (((w1s >> ( 0 + 5)) & 1) ? -1 : 0)
+  #define K31 (((w1s >> ( 0 + 4)) & 1) ? -1 : 0)
+  #define K32 (((w1s >> ( 0 + 3)) & 1) ? -1 : 0)
+  #define K33 (((w1s >> ( 0 + 2)) & 1) ? -1 : 0)
+  #define K34 (((w1s >> ( 0 + 1)) & 1) ? -1 : 0)
+  #define K35 (((w1s >> ( 8 + 7)) & 1) ? -1 : 0)
+  #define K36 (((w1s >> ( 8 + 6)) & 1) ? -1 : 0)
+  #define K37 (((w1s >> ( 8 + 5)) & 1) ? -1 : 0)
+  #define K38 (((w1s >> ( 8 + 4)) & 1) ? -1 : 0)
+  #define K39 (((w1s >> ( 8 + 3)) & 1) ? -1 : 0)
+  #define K40 (((w1s >> ( 8 + 2)) & 1) ? -1 : 0)
+  #define K41 (((w1s >> ( 8 + 1)) & 1) ? -1 : 0)
+  #define K42 (((w1s >> (16 + 7)) & 1) ? -1 : 0)
+  #define K43 (((w1s >> (16 + 6)) & 1) ? -1 : 0)
+  #define K44 (((w1s >> (16 + 5)) & 1) ? -1 : 0)
+  #define K45 (((w1s >> (16 + 4)) & 1) ? -1 : 0)
+  #define K46 (((w1s >> (16 + 3)) & 1) ? -1 : 0)
+  #define K47 (((w1s >> (16 + 2)) & 1) ? -1 : 0)
+  #define K48 (((w1s >> (16 + 1)) & 1) ? -1 : 0)
+  #define K49 (((w1s >> (24 + 7)) & 1) ? -1 : 0)
+  #define K50 (((w1s >> (24 + 6)) & 1) ? -1 : 0)
+  #define K51 (((w1s >> (24 + 5)) & 1) ? -1 : 0)
+  #define K52 (((w1s >> (24 + 4)) & 1) ? -1 : 0)
+  #define K53 (((w1s >> (24 + 3)) & 1) ? -1 : 0)
+  #define K54 (((w1s >> (24 + 2)) & 1) ? -1 : 0)
+  #define K55 (((w1s >> (24 + 1)) & 1) ? -1 : 0)
 
   /**
    * inner loop
@@ -2593,6 +2586,9 @@ static void m01500s (__local u32 *s_S, __global pw_t *pws, __global kernel_rule_
   tmpResult |= D13 ^ S13;
   tmpResult |= D14 ^ S14;
   tmpResult |= D15 ^ S15;
+
+  if (tmpResult == 0xffffffff) return;
+
   tmpResult |= D16 ^ S16;
   tmpResult |= D17 ^ S17;
   tmpResult |= D18 ^ S18;
@@ -2609,6 +2605,9 @@ static void m01500s (__local u32 *s_S, __global pw_t *pws, __global kernel_rule_
   tmpResult |= D29 ^ S29;
   tmpResult |= D30 ^ S30;
   tmpResult |= D31 ^ S31;
+
+  if (tmpResult == 0xffffffff) return;
+
   tmpResult |= D32 ^ S32;
   tmpResult |= D33 ^ S33;
   tmpResult |= D34 ^ S34;
@@ -2667,7 +2666,9 @@ __kernel void m01500_tm (__global u32 *mod, __global bs_word_t *words_buf_r)
 
   const u32 w0s = (w0 << 1) & 0xfefefefe;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 0, j = 0; i < 32; i += 8, j += 7)
   {
     atomic_or (&words_buf_r[block].b[j + 0], (((w0s >> (i + 7)) & 1) << slice));
@@ -2688,23 +2689,6 @@ __kernel void m01500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
-  const u32 vid = get_local_id (1);
-
-  const u32 s0 = digests_buf[digests_offset].digest_buf[0];
-  const u32 s1 = digests_buf[digests_offset].digest_buf[1];
-
-  __local u32 s_S[64];
-
-  if (lid == 0)
-  {
-    s_S[ 0 + vid] = -((s0 >> vid) & 1);
-  }
-  else if (lid == 1)
-  {
-    s_S[32 + vid] = -((s1 >> vid) & 1);
-  }
-
-  barrier (CLK_LOCAL_MEM_FENCE);
 
   if (gid >= gid_max) return;
 
@@ -2712,7 +2696,7 @@ __kernel void m01500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * main
    */
 
-  m01500m (s_S, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
+  m01500m (pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
 __kernel void m01500_m08 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bs_word_t * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -2731,23 +2715,6 @@ __kernel void m01500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
-  const u32 vid = get_local_id (1);
-
-  const u32 s0 = digests_buf[digests_offset].digest_buf[0];
-  const u32 s1 = digests_buf[digests_offset].digest_buf[1];
-
-  __local u32 s_S[64];
-
-  if (lid == 0)
-  {
-    s_S[ 0 + vid] = -((s0 >> vid) & 1);
-  }
-  else if (lid == 1)
-  {
-    s_S[32 + vid] = -((s1 >> vid) & 1);
-  }
-
-  barrier (CLK_LOCAL_MEM_FENCE);
 
   if (gid >= gid_max) return;
 
@@ -2755,7 +2722,7 @@ __kernel void m01500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
    * main
    */
 
-  m01500s (s_S, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
+  m01500s (pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
 __kernel void m01500_s08 (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bs_word_t * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)

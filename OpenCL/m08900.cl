@@ -5,20 +5,20 @@
 
 #define _SCRYPT_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#define COMPARE_S "inc_comp_single.cl"
+#define COMPARE_M "inc_comp_multi.cl"
 
 __constant u32 k_sha256[64] =
 {
@@ -40,7 +40,7 @@ __constant u32 k_sha256[64] =
   SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
 };
 
-static void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
+void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -110,7 +110,9 @@ static void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4],
 
   ROUND_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 64; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
@@ -126,7 +128,7 @@ static void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4],
   digest[7] += h;
 }
 
-static void hmac_sha256_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8])
+void hmac_sha256_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8])
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -185,7 +187,7 @@ static void hmac_sha256_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipa
   sha256_transform (w0, w1, w2, w3, opad);
 }
 
-static void hmac_sha256_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8], u32 digest[8])
+void hmac_sha256_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8], u32 digest[8])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -227,7 +229,7 @@ static void hmac_sha256_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipa
   sha256_transform (w0, w1, w2, w3, digest);
 }
 
-static void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
+void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
 {
   switch (block_len)
   {
@@ -560,7 +562,7 @@ static void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4],
   }
 }
 
-static uint4 swap32_4 (uint4 v)
+uint4 swap32_4 (uint4 v)
 {
   return (rotate ((v & 0x00FF00FF), 24u) | rotate ((v & 0xFF00FF00),  8u));
 }
@@ -620,79 +622,59 @@ static uint4 swap32_4 (uint4 v)
   R3 = R3 + X3;         \
 }
 
-static void salsa_r (uint4 *T)
+void salsa_r (uint4 *TI)
 {
-  uint4 R0 = T[STATE_CNT4 - 4];
-  uint4 R1 = T[STATE_CNT4 - 3];
-  uint4 R2 = T[STATE_CNT4 - 2];
-  uint4 R3 = T[STATE_CNT4 - 1];
+  uint4 R0 = TI[STATE_CNT4 - 4];
+  uint4 R1 = TI[STATE_CNT4 - 3];
+  uint4 R2 = TI[STATE_CNT4 - 2];
+  uint4 R3 = TI[STATE_CNT4 - 1];
 
-  for (u32 i = 0; i < STATE_CNT4; i += 8)
+  uint4 TO[STATE_CNT4];
+
+  int idx_y  = 0;
+  int idx_r1 = 0;
+  int idx_r2 = SCRYPT_R * 4;
+
+  for (int i = 0; i < SCRYPT_R; i++)
   {
     uint4 Y0;
     uint4 Y1;
     uint4 Y2;
     uint4 Y3;
 
-    Y0 = T[i + 0];
-    Y1 = T[i + 1];
-    Y2 = T[i + 2];
-    Y3 = T[i + 3];
+    Y0 = TI[idx_y++];
+    Y1 = TI[idx_y++];
+    Y2 = TI[idx_y++];
+    Y3 = TI[idx_y++];
 
     SALSA20_8_XOR ();
 
-    T[i + 0] = R0;
-    T[i + 1] = R1;
-    T[i + 2] = R2;
-    T[i + 3] = R3;
+    TO[idx_r1++] = R0;
+    TO[idx_r1++] = R1;
+    TO[idx_r1++] = R2;
+    TO[idx_r1++] = R3;
 
-    Y0 = T[i + 4];
-    Y1 = T[i + 5];
-    Y2 = T[i + 6];
-    Y3 = T[i + 7];
+    Y0 = TI[idx_y++];
+    Y1 = TI[idx_y++];
+    Y2 = TI[idx_y++];
+    Y3 = TI[idx_y++];
 
     SALSA20_8_XOR ();
 
-    T[i + 4] = R0;
-    T[i + 5] = R1;
-    T[i + 6] = R2;
-    T[i + 7] = R3;
+    TO[idx_r2++] = R0;
+    TO[idx_r2++] = R1;
+    TO[idx_r2++] = R2;
+    TO[idx_r2++] = R3;
   }
 
-  #define exchg(x,y) { const uint4 t = T[(x)]; T[(x)] = T[(y)]; T[(y)] = t; }
-
-  #define exchg4(x,y)         \
-  {                           \
-    const u32 x4 = (x) * 4;  \
-    const u32 y4 = (y) * 4;  \
-                              \
-    exchg (x4 + 0, y4 + 0);   \
-    exchg (x4 + 1, y4 + 1);   \
-    exchg (x4 + 2, y4 + 2);   \
-    exchg (x4 + 3, y4 + 3);   \
-  }
-
-  for (u32 i = 1; i < SCRYPT_R / 1; i++)
+  #pragma unroll
+  for (int i = 0; i < STATE_CNT4; i++)
   {
-    const u32 x = i * 1;
-    const u32 y = i * 2;
-
-    exchg4 (x, y);
-  }
-
-  for (u32 i = 1; i < SCRYPT_R / 2; i++)
-  {
-    const u32 x = i * 1;
-    const u32 y = i * 2;
-
-    const u32 xr1 = (SCRYPT_R * 2) - 1 - x;
-    const u32 yr1 = (SCRYPT_R * 2) - 1 - y;
-
-    exchg4 (xr1, yr1);
+    TI[i] = TO[i];
   }
 }
 
-static void scrypt_smix (uint4 *X, uint4 *T, const u32 phy, __global uint4 *V)
+void scrypt_smix (uint4 *X, uint4 *T, const u32 phy, __global uint4 *V)
 {
   #define Coord(x,y,z) (((x) * zSIZE) + ((y) * zSIZE * xSIZE) + (z))
   #define CO Coord(x,y,z)
@@ -705,7 +687,9 @@ static void scrypt_smix (uint4 *X, uint4 *T, const u32 phy, __global uint4 *V)
 
   const u32 x = gid % xSIZE;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (u32 i = 0; i < STATE_CNT4; i += 4)
   {
     T[0] = (uint4) (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
@@ -743,7 +727,9 @@ static void scrypt_smix (uint4 *X, uint4 *T, const u32 phy, __global uint4 *V)
     salsa_r (X);
   }
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (u32 i = 0; i < STATE_CNT4; i += 4)
   {
     T[0] = (uint4) (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
@@ -910,12 +896,16 @@ __kernel void m08900_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   uint4 X[STATE_CNT4];
   uint4 T[STATE_CNT4];
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[z]);
 
   scrypt_smix (X, T, scrypt_phy, d_scryptV_buf);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[z] = swap32_4 (X[z]);
 
   #if SCRYPT_P >= 1

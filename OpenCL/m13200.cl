@@ -4,20 +4,20 @@
 
  * License.....: MIT
  */
- 
+
 #define _SHA1_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
 __constant u32 te0[256] =
 {
@@ -706,14 +706,16 @@ __constant u32 rcon[] =
   0x1b000000, 0x36000000,
 };
 
-static void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   rek[0] = userkey[0];
   rek[1] = userkey[1];
   rek[2] = userkey[2];
   rek[3] = userkey[3];
 
-  #pragma unroll 10
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0, j = 0; i < 10; i += 1, j += 4)
   {
     u32 temp = rek[j + 3];
@@ -733,7 +735,7 @@ static void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __loca
   }
 }
 
-static void AES128_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void AES128_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   for (u32 i = 0, j = 40; i < j; i += 4, j -= 4)
   {
@@ -773,7 +775,7 @@ static void AES128_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, 
   }
 }
 
-static void AES128_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
+void AES128_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
 {
   u32 s0 = in[0] ^ rdk[0];
   u32 s1 = in[1] ^ rdk[1];
@@ -847,7 +849,7 @@ static void AES128_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32
          ^ rdk[43];
 }
 
-static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 A = digest[0];
   u32 B = digest[1];
@@ -1016,7 +1018,7 @@ __kernel void m13200_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
   const u32 pw_len = pws[gid].pw_len;
 
   append_0x80_4x4 (w0, w1, w2, w3, pw_len);
-  
+
   w0[0] = swap32 (w0[0]);
   w0[1] = swap32 (w0[1]);
   w0[2] = swap32 (w0[2]);
@@ -1035,7 +1037,7 @@ __kernel void m13200_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
   w3[3] = swap32 (w3[3]);
 
   w3[3] = pw_len * 8;
-  
+
   /**
    * KEK
    */
@@ -1072,7 +1074,7 @@ __kernel void m13200_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
   tmps[gid].cipher[1] = salt_bufs[salt_pos].salt_buf[5];
   tmps[gid].cipher[2] = 0;
   tmps[gid].cipher[3] = 0;
-  
+
 }
 
 __kernel void m13200_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global axcrypt_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -1137,17 +1139,19 @@ __kernel void m13200_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   ukeyx[1] = tmps[gid].KEK[1];
   ukeyx[2] = tmps[gid].KEK[2];
   ukeyx[3] = tmps[gid].KEK[3];
-  
+
   AES128_ExpandKey (ukeyx, rek, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  #pragma unroll KEYLEN
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < KEYLEN; i++) rdk[i] = rek[i];
 
   AES128_InvertKey (rdk, s_td0, s_td1, s_td2, s_td3, s_td4, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   u32 lsb[4];
   u32 cipher[4];
-  
+
   lsb[0] = tmps[gid].lsb[0];
   lsb[1] = tmps[gid].lsb[1];
   lsb[2] = tmps[gid].lsb[2];
@@ -1157,8 +1161,8 @@ __kernel void m13200_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   cipher[1] = tmps[gid].cipher[1];
   cipher[2] = tmps[gid].cipher[2];
   cipher[3] = tmps[gid].cipher[3];
-  
-  
+
+
   /**
   * AxCrypt main cipher routine
   */
@@ -1201,7 +1205,7 @@ __kernel void m13200_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   tmps[gid].lsb[1] = lsb[1];
   tmps[gid].lsb[2] = lsb[2];
   tmps[gid].lsb[3] = lsb[3];
-  
+
   tmps[gid].cipher[0] = cipher[0];
   tmps[gid].cipher[1] = cipher[1];
   tmps[gid].cipher[2] = cipher[2];
@@ -1223,8 +1227,6 @@ __kernel void m13200_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   if(tmps[gid].cipher[0]==0xA6A6A6A6 && tmps[gid].cipher[1]==0xA6A6A6A6)
   {
-    mark_hash (plains_buf, hashes_shown, digests_offset, gid, il_pos);
-
-    d_return_buf[lid] = 1;
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, il_pos);
   }
 }

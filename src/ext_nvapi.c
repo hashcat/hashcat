@@ -13,10 +13,14 @@ int nvapi_init (NVAPI_PTR *nvapi)
 
   memset (nvapi, 0, sizeof (NVAPI_PTR));
 
+  #ifdef _WIN
   #if __x86_64__
   nvapi->lib = hc_dlopen ("nvapi64.dll");
   #elif __x86__
   nvapi->lib = hc_dlopen ("nvapi.dll");
+  #endif
+  #else
+  nvapi->lib = hc_dlopen ("nvapi.so", RTLD_NOW); // uhm yes, but .. yeah
   #endif
 
   if (!nvapi->lib)
@@ -27,15 +31,13 @@ int nvapi_init (NVAPI_PTR *nvapi)
     return (-1);
   }
 
-  HC_LOAD_FUNC(nvapi, nvapi_QueryInterface,               NVAPI_QUERYINTERFACE,               NVAPI,                0)
-  HC_LOAD_ADDR(nvapi, NvAPI_Initialize,                   NVAPI_INITIALIZE,                   nvapi_QueryInterface, 0x0150E828, NVAPI, 0)
-  HC_LOAD_ADDR(nvapi, NvAPI_Unload,                       NVAPI_UNLOAD,                       nvapi_QueryInterface, 0xD22BDD7E, NVAPI, 0)
-  HC_LOAD_ADDR(nvapi, NvAPI_GetErrorMessage,              NVAPI_GETERRORMESSAGE,              nvapi_QueryInterface, 0x6C2D048C, NVAPI, 0)
-  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetDynamicPstatesInfoEx,  NVAPI_GPU_GETDYNAMICPSTATESINFOEX,  nvapi_QueryInterface, 0x60DED2ED, NVAPI, 0)
-  HC_LOAD_ADDR(nvapi, NvAPI_EnumPhysicalGPUs,             NVAPI_ENUMPHYSICALGPUS,             nvapi_QueryInterface, 0xE5AC921F, NVAPI, 0)
-  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetThermalSettings,       NVAPI_GPU_GETTHERMALSETTINGS,       nvapi_QueryInterface, 0xE3640A56, NVAPI, 0)
-  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetTachReading,           NVAPI_GPU_GETTACHREADING,           nvapi_QueryInterface, 0x5F608315, NVAPI, 0)
-  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetCoolerSettings,        NVAPI_GPU_GETCOOLERSETTINGS,        nvapi_QueryInterface, 0xDA141340, NVAPI, 0)
+  HC_LOAD_FUNC(nvapi, nvapi_QueryInterface,             NVAPI_QUERYINTERFACE,             NVAPI,                0)
+  HC_LOAD_ADDR(nvapi, NvAPI_Initialize,                 NVAPI_INITIALIZE,                 nvapi_QueryInterface, 0x0150E828, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_Unload,                     NVAPI_UNLOAD,                     nvapi_QueryInterface, 0xD22BDD7E, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GetErrorMessage,            NVAPI_GETERRORMESSAGE,            nvapi_QueryInterface, 0x6C2D048C, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_EnumPhysicalGPUs,           NVAPI_ENUMPHYSICALGPUS,           nvapi_QueryInterface, 0xE5AC921F, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetPerfPoliciesInfo,    NVAPI_GPU_GETPERFPOLICIESINFO,    nvapi_QueryInterface, 0x409D9841, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetPerfPoliciesStatus,  NVAPI_GPU_GETPERFPOLICIESSTATUS,  nvapi_QueryInterface, 0x3D358A0C, NVAPI, 0)
 
   return 0;
 }
@@ -114,11 +116,11 @@ int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle
   return NvAPI_rc;
 }
 
-int hm_NvAPI_GPU_GetThermalSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 sensorIndex, NV_GPU_THERMAL_SETTINGS *pThermalSettings)
+int hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info)
 {
   if (!nvapi) return (-1);
 
-  NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetThermalSettings (hPhysicalGpu, sensorIndex, pThermalSettings);
+  NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetPerfPoliciesInfo (hPhysicalGpu, perfPolicies_info);
 
   if (NvAPI_rc != NVAPI_OK)
   {
@@ -126,17 +128,17 @@ int hm_NvAPI_GPU_GetThermalSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhys
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
-    log_info ("WARN: %s %d %s\n", "NvAPI_GPU_GetThermalSettings()", NvAPI_rc, string);
+    log_info ("WARN: %s %d %s\n", "NvAPI_GPU_GetPerfPoliciesInfo()", NvAPI_rc, string);
   }
 
   return NvAPI_rc;
 }
 
-int hm_NvAPI_GPU_GetTachReading (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGPU, NvU32 *pValue)
+int hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status)
 {
   if (!nvapi) return (-1);
 
-  NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetTachReading (hPhysicalGPU, pValue);
+  NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetPerfPoliciesStatus (hPhysicalGpu, perfPolicies_status);
 
   if (NvAPI_rc != NVAPI_OK)
   {
@@ -144,43 +146,7 @@ int hm_NvAPI_GPU_GetTachReading (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysical
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
-    log_info ("WARN: %s %d %s\n", "NvAPI_GPU_GetTachReading()", NvAPI_rc, string);
-  }
-
-  return NvAPI_rc;
-}
-
-int hm_NvAPI_GPU_GetCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_SETTINGS *pCoolerSettings)
-{
-  if (!nvapi) return (-1);
-
-  NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetCoolerSettings (hPhysicalGpu, coolerIndex, pCoolerSettings);
-
-  if (NvAPI_rc != NVAPI_OK)
-  {
-    NvAPI_ShortString string = { 0 };
-
-    hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
-
-    log_info ("WARN: %s %d %s\n", "NvAPI_GPU_GetCoolerSettings()", NvAPI_rc, string);
-  }
-
-  return NvAPI_rc;
-}
-
-int hm_NvAPI_GPU_GetDynamicPstatesInfoEx (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx)
-{
-  if (!nvapi) return (-1);
-
-  NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetDynamicPstatesInfoEx (hPhysicalGpu, pDynamicPstatesInfoEx);
-
-  if (NvAPI_rc != NVAPI_OK)
-  {
-    NvAPI_ShortString string = { 0 };
-
-    hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
-
-    log_info ("WARN: %s %d %s\n", "NvAPI_GPU_GetDynamicPstatesInfoEx()", NvAPI_rc, string);
+    log_info ("WARN: %s %d %s\n", "NvAPI_GPU_GetPerfPoliciesStatus()", NvAPI_rc, string);
   }
 
   return NvAPI_rc;

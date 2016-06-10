@@ -9,8 +9,8 @@
 #ifndef SHARED_H
 #define SHARED_H
 
-#include <common.h>
-#include <constants.h>
+#include "common.h"
+#include "inc_hash_constants.h"
 
 /**
  * thread management
@@ -108,79 +108,83 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define hc_sleep(x) sleep ((x));
 #endif
 
-#include <ext_OpenCL.h>
+#include "ext_OpenCL.h"
 
 /**
  * temperature management
  */
 
-#if _WIN
-#include <ext_ADL.h>
-#include <ext_nvapi.h>
-#else
-#include <ext_ADL.h>
-#include <ext_nvml.h>
-#endif
+#include "ext_ADL.h"
+#include "ext_nvapi.h"
+#include "ext_nvml.h"
 
 /**
  * shared stuff
  */
 
-#define ETC_MAX               (60 * 60 * 24 * 365 * 10)
+#define ETC_MAX                 (60 * 60 * 24 * 365 * 10)
 
-#define DEVICES_MAX           128
+#define DEVICES_MAX             128
 
-#define CL_PLATFORMS_MAX      16
+#define CL_PLATFORMS_MAX        16
 
-#define CL_VENDOR_NV          "NVIDIA Corporation"
-#define CL_VENDOR_AMD         "Advanced Micro Devices, Inc."
-#define CL_VENDOR_APPLE       "Apple"
-#define CL_VENDOR_POCL        "The pocl project"
+#define CL_VENDOR_AMD           "Advanced Micro Devices, Inc."
+#define CL_VENDOR_AMD_USE_INTEL "GenuineIntel"
+#define CL_VENDOR_APPLE         "Apple"
+#define CL_VENDOR_INTEL_BEIGNET "Intel"
+#define CL_VENDOR_INTEL_SDK     "Intel(R) Corporation"
+#define CL_VENDOR_MESA          "Mesa"
+#define CL_VENDOR_NV            "NVIDIA Corporation"
+#define CL_VENDOR_POCL          "The pocl project"
 
-#define VENDOR_ID_AMD         4098
-#define VENDOR_ID_NV          4318
-#define VENDOR_ID_APPLE_INTEL 4294967295
-#define VENDOR_ID_APPLE_IRIS  16925952
-#define VENDOR_ID_GENERIC     9999
+#define VENDOR_ID_AMD           (1 << 0)
+#define VENDOR_ID_APPLE         (1 << 1)
+#define VENDOR_ID_INTEL_BEIGNET (1 << 2)
+#define VENDOR_ID_INTEL_SDK     (1 << 3)
+#define VENDOR_ID_MESA          (1 << 4)
+#define VENDOR_ID_NV            (1 << 5)
+#define VENDOR_ID_POCL          (1 << 6)
+#define VENDOR_ID_AMD_USE_INTEL (1 << 7)
+#define VENDOR_ID_GENERIC       (1 << 31)
 
-#define BLOCK_SIZE            64
+#define BLOCK_SIZE              64
 
-#define CHARSIZ               0x100
-#define INFOSZ                CHARSIZ
+#define CHARSIZ                 0x100
+#define INFOSZ                  CHARSIZ
 
-#define SP_HCSTAT             "hashcat.hcstat"
-#define SP_PW_MIN             2
-#define SP_PW_MAX             64
-#define SP_ROOT_CNT           (SP_PW_MAX * CHARSIZ)
-#define SP_MARKOV_CNT         (SP_PW_MAX * CHARSIZ * CHARSIZ)
+#define SP_HCSTAT               "hashcat.hcstat"
+#define SP_PW_MIN               2
+#define SP_PW_MAX               64
+#define SP_ROOT_CNT             (SP_PW_MAX * CHARSIZ)
+#define SP_MARKOV_CNT           (SP_PW_MAX * CHARSIZ * CHARSIZ)
 
-#define TUNING_DB_FILE        "hashcat_tuning.hctab"
+#define TUNING_DB_FILE          "hashcat.hctune"
 
-#define INDUCT_DIR            "induct"
-#define OUTFILES_DIR          "outfiles"
+#define INDUCT_DIR              "induct"
+#define OUTFILES_DIR            "outfiles"
 
-#define LOOPBACK_FILE         "hashcat.loopback"
+#define LOOPBACK_FILE           "hashcat.loopback"
 
-#define DICTSTAT_FILENAME     "hashcat.dictstat"
-#define POTFILE_FILENAME      "hashcat.pot"
+#define DICTSTAT_FILENAME       "hashcat.dictstat"
+#define POTFILE_FILENAME        "hashcat.pot"
 
 /**
  * types
  */
 
 #ifdef _WIN
-typedef LARGE_INTEGER         hc_timer_t;
-typedef HANDLE                hc_thread_t;
-typedef CRITICAL_SECTION      hc_thread_mutex_t;
+typedef LARGE_INTEGER     hc_timer_t;
+typedef HANDLE            hc_thread_t;
+typedef CRITICAL_SECTION  hc_thread_mutex_t;
 #elif _POSIX
-typedef struct timeval        hc_timer_t;
-typedef pthread_t             hc_thread_t;
-typedef pthread_mutex_t       hc_thread_mutex_t;
+typedef struct timeval    hc_timer_t;
+typedef pthread_t         hc_thread_t;
+typedef pthread_mutex_t   hc_thread_mutex_t;
 #endif
 
-#include <types.h>
+#include "types.h"
 #include "rp_cpu.h"
-#include "rp_kernel.h"
+#include "inc_rp.h"
 
 /**
  * valid project specific global stuff
@@ -348,6 +352,9 @@ extern hc_thread_mutex_t mux_display;
 #define HT_13200  "AxCrypt"
 #define HT_13300  "AxCrypt in memory SHA1"
 #define HT_13400  "Keepass 1 (AES/Twofish) and Keepass 2 (AES)"
+#define HT_13500  "PeopleSoft PS_TOKEN"
+#define HT_13600  "WinZip"
+#define HT_13800  "Windows 8+ phone PIN/Password"
 
 #define HT_00011  "Joomla < 2.5.18"
 #define HT_00012  "PostgreSQL"
@@ -374,18 +381,36 @@ extern hc_thread_mutex_t mux_display;
 #define HT_02612  "PHPS"
 #define HT_02711  "vBulletin > v3.8.5"
 #define HT_02811  "IPB2+, MyBB1.2+"
-#define HT_06211  "TrueCrypt 5.0+ PBKDF2-HMAC-RipeMD160 + XTS 512 bit"
-#define HT_06212  "TrueCrypt 5.0+ PBKDF2-HMAC-RipeMD160 + XTS 1024 bit"
-#define HT_06213  "TrueCrypt 5.0+ PBKDF2-HMAC-RipeMD160 + XTS 1536 bit"
-#define HT_06221  "TrueCrypt 5.0+ PBKDF2-HMAC-SHA512 + XTS 512 bit"
-#define HT_06222  "TrueCrypt 5.0+ PBKDF2-HMAC-SHA512 + XTS 1024 bit"
-#define HT_06223  "TrueCrypt 5.0+ PBKDF2-HMAC-SHA512 + XTS 1536 bit"
-#define HT_06231  "TrueCrypt 5.0+ PBKDF2-HMAC-Whirlpool + XTS 512 bit"
-#define HT_06232  "TrueCrypt 5.0+ PBKDF2-HMAC-Whirlpool + XTS 1024 bit"
-#define HT_06233  "TrueCrypt 5.0+ PBKDF2-HMAC-Whirlpool + XTS 1536 bit"
-#define HT_06241  "TrueCrypt 5.0+ PBKDF2-HMAC-RipeMD160 + XTS 512 bit + boot-mode"
-#define HT_06242  "TrueCrypt 5.0+ PBKDF2-HMAC-RipeMD160 + XTS 1024 bit + boot-mode"
-#define HT_06243  "TrueCrypt 5.0+ PBKDF2-HMAC-RipeMD160 + XTS 1536 bit + boot-mode"
+#define HT_06211  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit"
+#define HT_06212  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit"
+#define HT_06213  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit"
+#define HT_06221  "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit"
+#define HT_06222  "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit"
+#define HT_06223  "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit"
+#define HT_06231  "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 512 bit"
+#define HT_06232  "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 1024 bit"
+#define HT_06233  "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 1536 bit"
+#define HT_06241  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit + boot-mode"
+#define HT_06242  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit + boot-mode"
+#define HT_06243  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit + boot-mode"
+#define HT_13711  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit"
+#define HT_13712  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit"
+#define HT_13713  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit"
+#define HT_13721  "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit"
+#define HT_13722  "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit"
+#define HT_13723  "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit"
+#define HT_13731  "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 512 bit"
+#define HT_13732  "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1024 bit"
+#define HT_13733  "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1536 bit"
+#define HT_13741  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit + boot-mode"
+#define HT_13742  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit + boot-mode"
+#define HT_13743  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit + boot-mode"
+#define HT_13751  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit"
+#define HT_13752  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit"
+#define HT_13753  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit"
+#define HT_13761  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit + boot-mode"
+#define HT_13762  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit + boot-mode"
+#define HT_13763  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit + boot-mode"
 
 /**
  * Outfile formats
@@ -644,8 +669,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_11100 10 + 32 + 1 + 8 + 1 + 32
 #define DISPLAY_LEN_MIN_11200 9 + 40 + 1 + 40
 #define DISPLAY_LEN_MAX_11200 9 + 40 + 1 + 40
-#define DISPLAY_LEN_MIN_11300 1 + 7 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 16 + 1 + 1 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 66
-#define DISPLAY_LEN_MAX_11300 1 + 7 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 16 + 1 + 6 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 66
+#define DISPLAY_LEN_MIN_11300 1 + 7 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 16 + 1 + 1 + 1 + 2 + 1 + 96 + 1 + 1 + 1 + 2
+#define DISPLAY_LEN_MAX_11300 1 + 7 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 16 + 1 + 6 + 1 + 2 + 1 + 96 + 1 + 3 + 1 + 512
 #define DISPLAY_LEN_MIN_11400 6 +   0 + 1 +   0 + 1 +   0 + 1 +   0 + 1 +   0 + 1 +   0 + 1 +   1 + 1 +   0 + 1 +  1 + 1 +  0 + 1 +  0 + 1 +  0 + 1 + 3 + 1 + 32
 #define DISPLAY_LEN_MAX_11400 6 + 512 + 1 + 512 + 1 + 116 + 1 + 116 + 1 + 246 + 1 + 245 + 1 + 246 + 1 + 245 + 1 + 50 + 1 + 50 + 1 + 50 + 1 + 50 + 1 + 3 + 1 + 32
 #define DISPLAY_LEN_MIN_11500 8 + 1 + 8
@@ -690,6 +715,12 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_13300  1 + 12 + 1 + 40
 #define DISPLAY_LEN_MIN_13400  1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 1 + 1 + 1
 #define DISPLAY_LEN_MAX_13400  1 + 7 + 1 + 1 + 10 + 1 + 3 + 1 + 64 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 4 + 1 + 600000 + 1 + 2 + 1 + 64
+#define DISPLAY_LEN_MIN_13500 40 + 1 + 32
+#define DISPLAY_LEN_MAX_13500 40 + 1 + 1024
+#define DISPLAY_LEN_MIN_13600 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 16 + 1 + 1 + 1 + 1 + 1 +    0 + 1 + 20 + 1 + 7
+#define DISPLAY_LEN_MAX_13600 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 4 + 1 + 4 + 1 + 8192 + 1 + 20 + 1 + 7
+#define DISPLAY_LEN_MIN_13800  64 + 1 + 256
+#define DISPLAY_LEN_MAX_13800  64 + 1 + 256
 
 #define DISPLAY_LEN_MIN_11    32 + 1 + 16
 #define DISPLAY_LEN_MAX_11    32 + 1 + 32
@@ -885,6 +916,9 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_TCWHIRLPOOL_XTS512  6231
 #define KERN_TYPE_TCWHIRLPOOL_XTS1024 6232
 #define KERN_TYPE_TCWHIRLPOOL_XTS1536 6233
+#define KERN_TYPE_VCSHA256_XTS512     13751
+#define KERN_TYPE_VCSHA256_XTS1024    13752
+#define KERN_TYPE_VCSHA256_XTS1536    13753
 #define KERN_TYPE_MD5AIX              6300
 #define KERN_TYPE_SHA256AIX           6400
 #define KERN_TYPE_SHA512AIX           6500
@@ -955,6 +989,9 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_AXCRYPT             13200
 #define KERN_TYPE_SHA1_AXCRYPT        13300
 #define KERN_TYPE_KEEPASS             13400
+#define KERN_TYPE_PSTOKEN             13500
+#define KERN_TYPE_ZIP2                13600
+#define KERN_TYPE_WIN8PHONE           13800
 
 /**
  * signatures
@@ -1026,8 +1063,10 @@ extern hc_thread_mutex_t mux_display;
 #define SIGNATURE_RAR5            "$rar5$"
 #define SIGNATURE_KRB5TGS         "$krb5tgs$23"
 #define SIGNATURE_AXCRYPT         "$axcrypt$*1"
-#define SIGNATURE_AXCRYPT_SHA1     "$axcrypt_sha1"
+#define SIGNATURE_AXCRYPT_SHA1    "$axcrypt_sha1"
 #define SIGNATURE_KEEPASS         "$keepass$"
+#define SIGNATURE_ZIP2_START      "$zip2$"
+#define SIGNATURE_ZIP2_STOP       "$/zip2$"
 
 /**
  * Default iteration numbers
@@ -1041,6 +1080,10 @@ extern hc_thread_mutex_t mux_display;
 #define ROUNDS_ANDROIDPIN         1024
 #define ROUNDS_TRUECRYPT_1K       1000
 #define ROUNDS_TRUECRYPT_2K       2000
+#define ROUNDS_VERACRYPT_200000   200000
+#define ROUNDS_VERACRYPT_500000   500000
+#define ROUNDS_VERACRYPT_327661   327661
+#define ROUNDS_VERACRYPT_655331   655331
 #define ROUNDS_SHA1AIX            (1 << 6)
 #define ROUNDS_SHA256AIX          (1 << 6)
 #define ROUNDS_SHA512AIX          (1 << 6)
@@ -1081,6 +1124,7 @@ extern hc_thread_mutex_t mux_display;
 #define ROUNDS_RAR5               (1 << 15)
 #define ROUNDS_AXCRYPT            10000
 #define ROUNDS_KEEPASS            6000
+#define ROUNDS_ZIP2               1000
 
 /**
  * salt types
@@ -1110,10 +1154,11 @@ extern hc_thread_mutex_t mux_display;
 #define OPTI_TYPE_SINGLE_SALT       (1 << 12)
 #define OPTI_TYPE_BRUTE_FORCE       (1 << 13)
 #define OPTI_TYPE_RAW_HASH          (1 << 14)
-#define OPTI_TYPE_USES_BITS_8       (1 << 15)
-#define OPTI_TYPE_USES_BITS_16      (1 << 16)
-#define OPTI_TYPE_USES_BITS_32      (1 << 17)
-#define OPTI_TYPE_USES_BITS_64      (1 << 18)
+#define OPTI_TYPE_SLOW_HASH_SIMD    (1 << 15)
+#define OPTI_TYPE_USES_BITS_8       (1 << 16)
+#define OPTI_TYPE_USES_BITS_16      (1 << 17)
+#define OPTI_TYPE_USES_BITS_32      (1 << 18)
+#define OPTI_TYPE_USES_BITS_64      (1 << 19)
 
 #define OPTI_STR_ZERO_BYTE          "Zero-Byte"
 #define OPTI_STR_PRECOMPUTE_INIT    "Precompute-Init"
@@ -1129,6 +1174,7 @@ extern hc_thread_mutex_t mux_display;
 #define OPTI_STR_SINGLE_SALT        "Single-Salt"
 #define OPTI_STR_BRUTE_FORCE        "Brute-Force"
 #define OPTI_STR_RAW_HASH           "Raw-Hash"
+#define OPTI_STR_SLOW_HASH_SIMD     "Slow-Hash-SIMD"
 #define OPTI_STR_USES_BITS_8        "Uses-8-Bit"
 #define OPTI_STR_USES_BITS_16       "Uses-16-Bit"
 #define OPTI_STR_USES_BITS_32       "Uses-32-Bit"
@@ -1203,7 +1249,8 @@ extern hc_thread_mutex_t mux_display;
 #define PARSER_PSAFE2_FILE_SIZE    -13
 #define PARSER_PSAFE3_FILE_SIZE    -14
 #define PARSER_TC_FILE_SIZE        -15
-#define PARSER_SIP_AUTH_DIRECTIVE  -16
+#define PARSER_VC_FILE_SIZE        -16
+#define PARSER_SIP_AUTH_DIRECTIVE  -17
 #define PARSER_UNKNOWN_ERROR       -255
 
 #define PA_000 "OK"
@@ -1222,7 +1269,8 @@ extern hc_thread_mutex_t mux_display;
 #define PA_013 "Invalid psafe2 filesize"
 #define PA_014 "Invalid psafe3 filesize"
 #define PA_015 "Invalid truecrypt filesize"
-#define PA_016 "Invalid SIP directive, only MD5 is supported"
+#define PA_016 "Invalid veracrypt filesize"
+#define PA_017 "Invalid SIP directive, only MD5 is supported"
 #define PA_255 "Unknown error"
 
 /**
@@ -1386,31 +1434,35 @@ void fsync (int fd);
 
 #ifdef HAVE_HWMON
 
-#if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX]);
-#endif
+int get_adapters_num_adl (void *adl, int *iNumberAdapters);
 
-#ifdef HAVE_ADL
-int get_adapters_num_amd (void *adl, int *iNumberAdapters);
+int hm_get_adapter_index_adl (hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 
-int hm_get_adapter_index_amd (hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
+int hm_get_adapter_index_nvapi (HM_ADAPTER_NVAPI nvapiGPUHandle[DEVICES_MAX]);
 
-LPAdapterInfo hm_get_adapter_info_amd (void *adl, int iNumberAdapters);
+int hm_get_adapter_index_nvml (HM_ADAPTER_NVML nvmlGPUHandle[DEVICES_MAX]);
+
+LPAdapterInfo hm_get_adapter_info_adl (void *adl, int iNumberAdapters);
 
 u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 
 int hm_get_overdrive_version  (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
 
-// int hm_get_device_num (void *adl, HM_ADAPTER_AMD hm_adapter_index, int *hm_device_num);
+// int hm_get_device_num (void *adl, HM_ADAPTER_ADL hm_adapter_index, int *hm_device_num);
 // void hm_get_opencl_busid_devid (hm_attrs_t *hm_device, uint opencl_num_devices, cl_device_id *devices);
-#endif // HAVE_ADL
 
-int hm_get_temperature_with_device_id (const uint device_id);
-int hm_get_fanspeed_with_device_id    (const uint device_id);
-int hm_get_utilization_with_device_id (const uint device_id);
-
-int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed);
+int hm_get_threshold_slowdown_with_device_id (const uint device_id);
+int hm_get_threshold_shutdown_with_device_id (const uint device_id);
+int hm_get_temperature_with_device_id        (const uint device_id);
+int hm_get_fanspeed_with_device_id           (const uint device_id);
+int hm_get_fanpolicy_with_device_id          (const uint device_id);
+int hm_get_buslanes_with_device_id           (const uint device_id);
+int hm_get_utilization_with_device_id        (const uint device_id);
+int hm_get_memoryspeed_with_device_id        (const uint device_id);
+int hm_get_corespeed_with_device_id          (const uint device_id);
+int hm_get_throttle_with_device_id           (const uint device_id);
+int hm_set_fanspeed_with_device_id_adl       (const uint device_id, const int fanspeed, const int fanpolicy);
 
 void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value);
 #endif // HAVE_HWMON
@@ -1594,6 +1646,13 @@ int androidfde_samsung_parse_hash (char *input_buf, uint input_len, hash_t *hash
 int axcrypt_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int sha1axcrypt_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf);
 int keepass_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
+int pstoken_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
+int zip2_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf);
+int veracrypt_parse_hash_200000   (char *input_buf, uint input_len, hash_t *hash_buf);
+int veracrypt_parse_hash_500000   (char *input_buf, uint input_len, hash_t *hash_buf);
+int veracrypt_parse_hash_327661   (char *input_buf, uint input_len, hash_t *hash_buf);
+int veracrypt_parse_hash_655331   (char *input_buf, uint input_len, hash_t *hash_buf);
+int win8phone_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf);
 
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);

@@ -8,20 +8,20 @@
 //incompatible data-dependant code
 //#define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 3
 #define DGST_R1 4
 #define DGST_R2 2
 #define DGST_R3 1
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "include/rp_kernel.h"
-#include "OpenCL/rp.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_rp.h"
+#include "inc_rp.cl"
+#include "inc_simd.cl"
 
 #define GETSHIFTEDINT(a,n) amd_bytealign ((a)[((n)/4)+1], (a)[((n)/4)+0], (n))
 
@@ -45,7 +45,7 @@ __constant u32 theMagicArray[64] =
   0, 0, 0, 0, 0, 0, 0, 0
 };
 
-static void swap_buffer (u32 final[16])
+void swap_buffer (u32 final[16])
 {
   final[ 0] = swap32 (final[ 0]);
   final[ 1] = swap32 (final[ 1]);
@@ -65,7 +65,7 @@ static void swap_buffer (u32 final[16])
   final[15] = swap32 (final[15]);
 }
 
-static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 A = digest[0];
   u32 B = digest[1];
@@ -350,7 +350,9 @@ __kernel void m07800_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    #pragma unroll 32
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (int i = 0; i < 32; i++) final[i] = 0;
 
     final[0] = w0[0];
@@ -594,7 +596,9 @@ __kernel void m07800_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    #pragma unroll 32
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (int i = 0; i < 32; i++) final[i] = 0;
 
     final[0] = w0[0];

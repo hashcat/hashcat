@@ -10,18 +10,18 @@
 
 #define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_simd.cl"
 
 __constant u32 lotus_magic_table[256] =
 {
@@ -71,7 +71,7 @@ __constant u32 lotus_magic_table[256] =
 #define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
-static void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
+void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
 {
   u32x p = 0;
 
@@ -79,7 +79,6 @@ static void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   {
     u32 s = 48;
 
-    #pragma unroll 12
     for (int j = 0; j < 12; j++)
     {
       u32x tmp_in = in[j];
@@ -95,13 +94,15 @@ static void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   }
 }
 
-static void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lotus_magic_table)
+void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lotus_magic_table)
 {
   u32x t = out[3] >> 24;
 
   u32x c;
 
-  #pragma unroll 4
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 0; i < 4; i++)
   {
     t ^= (in[i] >>  0) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  0; t = ((out[i] >>  0) & 0xff);
@@ -111,23 +112,23 @@ static void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lo
   }
 }
 
-static void pad (u32 w[4], const u32 len)
+void pad (u32 w[4], const u32 len)
 {
   const u32 val = 16 - len;
 
   const u32 mask1 = val << 24;
 
   const u32 mask2 = val << 16
-                   | val << 24;
+                  | val << 24;
 
   const u32 mask3 = val <<  8
-                   | val << 16
-                   | val << 24;
+                  | val << 16
+                  | val << 24;
 
   const u32 mask4 = val <<  0
-                   | val <<  8
-                   | val << 16
-                   | val << 24;
+                  | val <<  8
+                  | val << 16
+                  | val << 24;
 
   switch (len)
   {
@@ -190,7 +191,7 @@ static void pad (u32 w[4], const u32 len)
   }
 }
 
-static void mdtransform_norecalc (u32x state[4], u32x block[4], __local u32 *s_lotus_magic_table)
+void mdtransform_norecalc (u32x state[4], u32x block[4], __local u32 *s_lotus_magic_table)
 {
   u32x x[12];
 
@@ -215,14 +216,14 @@ static void mdtransform_norecalc (u32x state[4], u32x block[4], __local u32 *s_l
   state[3] = x[3];
 }
 
-static void mdtransform (u32x state[4], u32x checksum[4], u32x block[4], __local u32 *s_lotus_magic_table)
+void mdtransform (u32x state[4], u32x checksum[4], u32x block[4], __local u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-static void domino_big_md (const u32x saved_key[16], const u32x size, u32x state[4], __local u32 *s_lotus_magic_table)
+void domino_big_md (const u32x saved_key[4], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
 {
   u32x checksum[4];
 
@@ -231,19 +232,12 @@ static void domino_big_md (const u32x saved_key[16], const u32x size, u32x state
   checksum[2] = 0;
   checksum[3] = 0;
 
-  u32x block[4];
-
-  block[0] = saved_key[0];
-  block[1] = saved_key[1];
-  block[2] = saved_key[2];
-  block[3] = saved_key[3];
-
-  mdtransform (state, checksum, block, s_lotus_magic_table);
+  mdtransform (state, checksum, saved_key, s_lotus_magic_table);
 
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-static void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
@@ -256,22 +250,7 @@ static void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_l
    * base
    */
 
-  if (pw_len < 16)
-  {
-    pad (&w[ 0], pw_len & 0xf);
-  }
-  else if (pw_len < 32)
-  {
-    pad (&w[ 4], pw_len & 0xf);
-  }
-  else if (pw_len < 48)
-  {
-    pad (&w[ 8], pw_len & 0xf);
-  }
-  else if (pw_len < 64)
-  {
-    pad (&w[12], pw_len & 0xf);
-  }
+  pad (&w[ 0], pw_len);
 
   /**
    * loop
@@ -285,24 +264,12 @@ static void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_l
 
     const u32x w0lr = w0l | w0r;
 
-    u32x w_t[16];
+    u32x w_t[4];
 
-    w_t[ 0] = w0lr;
-    w_t[ 1] = w[ 1];
-    w_t[ 2] = w[ 2];
-    w_t[ 3] = w[ 3];
-    w_t[ 4] = w[ 4];
-    w_t[ 5] = w[ 5];
-    w_t[ 6] = w[ 6];
-    w_t[ 7] = w[ 7];
-    w_t[ 8] = w[ 8];
-    w_t[ 9] = w[ 9];
-    w_t[10] = w[10];
-    w_t[11] = w[11];
-    w_t[12] = w[12];
-    w_t[13] = w[13];
-    w_t[14] = w[14];
-    w_t[15] = w[15];
+    w_t[0] = w0lr;
+    w_t[1] = w[ 1];
+    w_t[2] = w[ 2];
+    w_t[3] = w[ 3];
 
     u32x state[4];
 
@@ -317,7 +284,7 @@ static void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_l
   }
 }
 
-static void m08600s (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+void m08600s (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
@@ -330,22 +297,7 @@ static void m08600s (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_l
    * base
    */
 
-  if (pw_len < 16)
-  {
-    pad (&w[ 0], pw_len & 0xf);
-  }
-  else if (pw_len < 32)
-  {
-    pad (&w[ 4], pw_len & 0xf);
-  }
-  else if (pw_len < 48)
-  {
-    pad (&w[ 8], pw_len & 0xf);
-  }
-  else if (pw_len < 64)
-  {
-    pad (&w[12], pw_len & 0xf);
-  }
+  pad (&w[0], pw_len);
 
   /**
    * digest
@@ -371,24 +323,12 @@ static void m08600s (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_l
 
     const u32x w0lr = w0l | w0r;
 
-    u32x w_t[16];
+    u32x w_t[4];
 
-    w_t[ 0] = w0lr;
-    w_t[ 1] = w[ 1];
-    w_t[ 2] = w[ 2];
-    w_t[ 3] = w[ 3];
-    w_t[ 4] = w[ 4];
-    w_t[ 5] = w[ 5];
-    w_t[ 6] = w[ 6];
-    w_t[ 7] = w[ 7];
-    w_t[ 8] = w[ 8];
-    w_t[ 9] = w[ 9];
-    w_t[10] = w[10];
-    w_t[11] = w[11];
-    w_t[12] = w[12];
-    w_t[13] = w[13];
-    w_t[14] = w[14];
-    w_t[15] = w[15];
+    w_t[0] = w0lr;
+    w_t[1] = w[ 1];
+    w_t[2] = w[ 2];
+    w_t[3] = w[ 3];
 
     u32x state[4];
 

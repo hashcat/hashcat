@@ -5,23 +5,23 @@
 
 #define _RIPEMD160_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#include "OpenCL/kernel_aes256.c"
-#include "OpenCL/kernel_twofish256.c"
-#include "OpenCL/kernel_serpent256.c"
+#include "inc_cipher_aes256.cl"
+#include "inc_cipher_twofish256.cl"
+#include "inc_cipher_serpent256.cl"
 
-static void ripemd160_transform (const u32 w[16], u32 dgst[5])
+void ripemd160_transform (const u32 w[16], u32 dgst[5])
 {
   u32 a1 = dgst[0];
   u32 b1 = dgst[1];
@@ -218,7 +218,7 @@ static void ripemd160_transform (const u32 w[16], u32 dgst[5])
   dgst[4] = e;
 }
 
-static void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[5], const u32 opad[5], u32 dgst[5])
+void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[5], const u32 opad[5], u32 dgst[5])
 {
   dgst[0] = ipad[0];
   dgst[1] = ipad[1];
@@ -257,7 +257,7 @@ static void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[5], co
   ripemd160_transform (w, dgst);
 }
 
-static void hmac_run (u32 w[16], const u32 ipad[5], const u32 opad[5], u32 dgst[5])
+void hmac_run (u32 w[16], const u32 ipad[5], const u32 opad[5], u32 dgst[5])
 {
   dgst[0] = ipad[0];
   dgst[1] = ipad[1];
@@ -293,7 +293,7 @@ static void hmac_run (u32 w[16], const u32 ipad[5], const u32 opad[5], u32 dgst[
   ripemd160_transform (w, dgst);
 }
 
-static void hmac_init (u32 w[16], u32 ipad[5], u32 opad[5])
+void hmac_init (u32 w[16], u32 ipad[5], u32 opad[5])
 {
   w[ 0] ^= 0x36363636;
   w[ 1] ^= 0x36363636;
@@ -346,7 +346,7 @@ static void hmac_init (u32 w[16], u32 ipad[5], u32 opad[5])
   ripemd160_transform (w, opad);
 }
 
-static u32 u8add (const u32 a, const u32 b)
+u32 u8add (const u32 a, const u32 b)
 {
   const u32 a1 = (a >>  0) & 0xff;
   const u32 a2 = (a >>  8) & 0xff;
@@ -656,6 +656,8 @@ __kernel void m06213_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
   data[2] = esalt_bufs[0].data_buf[2];
   data[3] = esalt_bufs[0].data_buf[3];
 
+  const u32 signature = esalt_bufs[0].signature;
+
   u32 tmp[4];
 
   {
@@ -666,11 +668,9 @@ __kernel void m06213_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     aes256_decrypt_xts (ukey1, ukey2, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -682,11 +682,9 @@ __kernel void m06213_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     serpent256_decrypt_xts (ukey1, ukey2, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -698,11 +696,9 @@ __kernel void m06213_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     twofish256_decrypt_xts (ukey1, ukey2, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -737,11 +733,9 @@ __kernel void m06213_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     aes256_decrypt_xts     (ukey2, ukey4, tmp, tmp);
     twofish256_decrypt_xts (ukey1, ukey3, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -754,11 +748,9 @@ __kernel void m06213_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     serpent256_decrypt_xts (ukey2, ukey4, tmp, tmp);
     aes256_decrypt_xts     (ukey1, ukey3, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -771,11 +763,9 @@ __kernel void m06213_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     twofish256_decrypt_xts (ukey2, ukey4, tmp, tmp);
     serpent256_decrypt_xts (ukey1, ukey3, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -811,11 +801,9 @@ __kernel void m06213_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     twofish256_decrypt_xts (ukey2, ukey5, tmp, tmp);
     serpent256_decrypt_xts (ukey1, ukey4, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -829,11 +817,9 @@ __kernel void m06213_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     twofish256_decrypt_xts (ukey2, ukey5, tmp, tmp);
     aes256_decrypt_xts     (ukey1, ukey4, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 }

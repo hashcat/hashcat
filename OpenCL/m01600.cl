@@ -5,25 +5,25 @@
 
 #define _MD5_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#define COMPARE_S "inc_comp_single.cl"
+#define COMPARE_M "inc_comp_multi.cl"
 
 #define md5apr1_magic0 0x72706124u
 #define md5apr1_magic1 0x00002431u
 
-static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
+void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -121,7 +121,7 @@ static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], co
   digest[3] += d;
 }
 
-static void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
+void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
 {
   u32 tmp0;
   u32 tmp1;
@@ -233,7 +233,7 @@ static void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4]
   }
 }
 
-static void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
+void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
 {
   u32 tmp0;
   u32 tmp1;
@@ -345,7 +345,7 @@ static void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block
   }
 }
 
-static void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
+void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
 {
   u32 tmp0;
   u32 tmp1;
@@ -437,7 +437,7 @@ static void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4],
   }
 }
 
-static void append_sign (u32 block0[4], u32 block1[4], const u32 block_len)
+void append_sign (u32 block0[4], u32 block1[4], const u32 block_len)
 {
   switch (block_len)
   {
@@ -535,7 +535,7 @@ static void append_sign (u32 block0[4], u32 block1[4], const u32 block_len)
   }
 }
 
-static void append_1st (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append)
+void append_1st (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append)
 {
   switch (block_len)
   {

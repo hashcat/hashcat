@@ -74,6 +74,7 @@ u64 byte_swap_64 (const u64 n)
  */
 
 #include "cpu-md5.c"
+#include "cpu-sha1.c"
 #include "cpu-sha256.c"
 
 /**
@@ -84,7 +85,6 @@ int last_len = 0;
 
 void log_final (FILE *fp, const char *fmt, va_list ap)
 {
-  printf("\nhere\n");
   if (last_len)
   {
     fputc ('\r', fp);
@@ -104,7 +104,6 @@ void log_final (FILE *fp, const char *fmt, va_list ap)
   int len = vsnprintf (s, max_len, fmt, ap);
 
   if (len > max_len) len = max_len;
-
 
   fwrite (s, len, 1, fp);
 
@@ -2672,53 +2671,8 @@ void fsync (int fd)
  */
 
 #ifdef HAVE_HWMON
-#if defined(_WIN) && defined(HAVE_NVAPI)
-int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
-{
-  NvU32 pGpuCount;
 
-  if (hm_NvAPI_EnumPhysicalGPUs (data.hm_nv, nvGPUHandle, &pGpuCount) != NVAPI_OK) return (0);
-
-  if (pGpuCount == 0)
-  {
-    log_info ("WARN: No NvAPI adapters found");
-
-    return (0);
-  }
-
-  return (pGpuCount);
-}
-#endif // _WIN && HAVE_NVAPI
-
-#if defined(LINUX) && defined(HAVE_NVML)
-int hm_get_adapter_index_nv (HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX])
-{
-  int pGpuCount = 0;
-
-  for (uint i = 0; i < DEVICES_MAX; i++)
-  {
-    if (hm_NVML_nvmlDeviceGetHandleByIndex (data.hm_nv, 1, i, &nvGPUHandle[i]) != NVML_SUCCESS) break;
-
-    // can be used to determine if the device by index matches the cuda device by index
-    // char name[100]; memset (name, 0, sizeof (name));
-    // hm_NVML_nvmlDeviceGetName (data.hm_nv, nvGPUHandle[i], name, sizeof (name) - 1);
-
-    pGpuCount++;
-  }
-
-  if (pGpuCount == 0)
-  {
-    log_info ("WARN: No NVML adapters found");
-
-    return (0);
-  }
-
-  return (pGpuCount);
-}
-#endif // LINUX && HAVE_NVML
-
-#ifdef HAVE_ADL
-int get_adapters_num_amd (void *adl, int *iNumberAdapters)
+int get_adapters_num_adl (void *adl, int *iNumberAdapters)
 {
   if (hm_ADL_Adapter_NumberOfAdapters_Get ((ADL_PTR *) adl, iNumberAdapters) != ADL_OK) return -1;
 
@@ -2768,7 +2722,7 @@ int hm_show_performance_level (HM_LIB hm_dll, int iAdapterIndex)
 }
 */
 
-LPAdapterInfo hm_get_adapter_info_amd (void *adl, int iNumberAdapters)
+LPAdapterInfo hm_get_adapter_info_adl (void *adl, int iNumberAdapters)
 {
   size_t AdapterInfoSize = iNumberAdapters * sizeof (AdapterInfo);
 
@@ -2779,9 +2733,50 @@ LPAdapterInfo hm_get_adapter_info_amd (void *adl, int iNumberAdapters)
   return lpAdapterInfo;
 }
 
+int hm_get_adapter_index_nvapi (HM_ADAPTER_NVAPI nvapiGPUHandle[DEVICES_MAX])
+{
+  NvU32 pGpuCount;
+
+  if (hm_NvAPI_EnumPhysicalGPUs (data.hm_nvapi, nvapiGPUHandle, &pGpuCount) != NVAPI_OK) return (0);
+
+  if (pGpuCount == 0)
+  {
+    log_info ("WARN: No NvAPI adapters found");
+
+    return (0);
+  }
+
+  return (pGpuCount);
+}
+
+int hm_get_adapter_index_nvml (HM_ADAPTER_NVML nvmlGPUHandle[DEVICES_MAX])
+{
+  int pGpuCount = 0;
+
+  for (uint i = 0; i < DEVICES_MAX; i++)
+  {
+    if (hm_NVML_nvmlDeviceGetHandleByIndex (data.hm_nvml, 1, i, &nvmlGPUHandle[i]) != NVML_SUCCESS) break;
+
+    // can be used to determine if the device by index matches the cuda device by index
+    // char name[100]; memset (name, 0, sizeof (name));
+    // hm_NVML_nvmlDeviceGetName (data.hm_nvml, nvGPUHandle[i], name, sizeof (name) - 1);
+
+    pGpuCount++;
+  }
+
+  if (pGpuCount == 0)
+  {
+    log_info ("WARN: No NVML adapters found");
+
+    return (0);
+  }
+
+  return (pGpuCount);
+}
+
 /*
 //
-// does not help at all, since AMD does not assign different bus id, device id when we have multi GPU setups
+// does not help at all, since ADL does not assign different bus id, device id when we have multi GPU setups
 //
 
 int hm_get_opencl_device_index (hm_attrs_t *hm_device, uint num_adl_adapters, int bus_num, int dev_num)
@@ -2970,11 +2965,11 @@ int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_
       if ((FanSpeedInfo.iFlags & ADL_DL_FANCTRL_SUPPORTS_PERCENT_READ) &&
           (FanSpeedInfo.iFlags & ADL_DL_FANCTRL_SUPPORTS_PERCENT_WRITE))
       {
-        hm_device[opencl_device_index].fan_supported = 1;
+        hm_device[opencl_device_index].fan_get_supported = 1;
       }
       else
       {
-        hm_device[opencl_device_index].fan_supported = 0;
+        hm_device[opencl_device_index].fan_get_supported = 0;
       }
     }
     else // od_version == 6
@@ -2989,11 +2984,11 @@ int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_
 
       if (faninfo.iSpeedType & ADL_OD6_FANSPEED_TYPE_PERCENT)
       {
-        hm_device[opencl_device_index].fan_supported = 1;
+        hm_device[opencl_device_index].fan_get_supported = 1;
       }
       else
       {
-        hm_device[opencl_device_index].fan_supported = 0;
+        hm_device[opencl_device_index].fan_get_supported = 0;
       }
     }
   }
@@ -3033,7 +3028,7 @@ int hm_get_overdrive_version (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_d
   return 0;
 }
 
-int hm_get_adapter_index_amd (hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
+int hm_get_adapter_index_adl (hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
   for (int i = 0; i < num_adl_adapters; i++)
   {
@@ -3051,21 +3046,88 @@ int hm_get_adapter_index_amd (hm_attrs_t *hm_device, u32 *valid_adl_device_list,
 
     int opencl_device_index = i;
 
-    hm_device[opencl_device_index].adapter_index.amd = info.iAdapterIndex;
+    hm_device[opencl_device_index].adl = info.iAdapterIndex;
   }
 
   return num_adl_adapters;
 }
-#endif // HAVE_ADL
+
+int hm_get_threshold_slowdown_with_device_id (const uint device_id)
+{
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  {
+    if (data.hm_adl)
+    {
+      if (data.hm_device[device_id].od_version == 5)
+      {
+
+      }
+      else if (data.hm_device[device_id].od_version == 6)
+      {
+        int CurrentValue = 0;
+        int DefaultValue = 0;
+
+        if (hm_ADL_Overdrive6_TargetTemperatureData_Get (data.hm_adl, data.hm_device[device_id].adl, &CurrentValue, &DefaultValue) != ADL_OK) return -1;
+
+        // the return value has never been tested since hm_ADL_Overdrive6_TargetTemperatureData_Get() never worked on any system. expect problems.
+
+        return DefaultValue;
+      }
+    }
+  }
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  {
+    int target = 0;
+
+    if (hm_NVML_nvmlDeviceGetTemperatureThreshold (data.hm_nvml, 1, data.hm_device[device_id].nvml, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN, (unsigned int *) &target) != NVML_SUCCESS) return -1;
+
+    return target;
+  }
+
+  return -1;
+}
+
+int hm_get_threshold_shutdown_with_device_id (const uint device_id)
+{
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  {
+    if (data.hm_adl)
+    {
+      if (data.hm_device[device_id].od_version == 5)
+      {
+
+      }
+      else if (data.hm_device[device_id].od_version == 6)
+      {
+
+      }
+    }
+  }
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  {
+    int target = 0;
+
+    if (hm_NVML_nvmlDeviceGetTemperatureThreshold (data.hm_nvml, 1, data.hm_device[device_id].nvml, NVML_TEMPERATURE_THRESHOLD_SHUTDOWN, (unsigned int *) &target) != NVML_SUCCESS) return -1;
+
+    return target;
+  }
+
+  return -1;
+}
 
 int hm_get_temperature_with_device_id (const uint device_id)
 {
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  #ifdef HAVE_ADL
-  if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
-    if (data.hm_amd)
+    if (data.hm_adl)
     {
       if (data.hm_device[device_id].od_version == 5)
       {
@@ -3073,7 +3135,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
 
         Temperature.iSize = sizeof (ADLTemperature);
 
-        if (hm_ADL_Overdrive5_Temperature_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, 0, &Temperature) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive5_Temperature_Get (data.hm_adl, data.hm_device[device_id].adl, 0, &Temperature) != ADL_OK) return -1;
 
         return Temperature.iTemperature / 1000;
       }
@@ -3081,54 +3143,79 @@ int hm_get_temperature_with_device_id (const uint device_id)
       {
         int Temperature = 0;
 
-        if (hm_ADL_Overdrive6_Temperature_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &Temperature) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive6_Temperature_Get (data.hm_adl, data.hm_device[device_id].adl, &Temperature) != ADL_OK) return -1;
 
         return Temperature / 1000;
       }
     }
   }
-  #endif
 
-  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-  if (data.devices_param[device_id].vendor_id == VENDOR_ID_NV)
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    #if defined(LINUX) && defined(HAVE_NVML)
     int temperature = 0;
 
-    hm_NVML_nvmlDeviceGetTemperature (data.hm_nv, data.hm_device[device_id].adapter_index.nv, NVML_TEMPERATURE_GPU, (uint *) &temperature);
+    if (hm_NVML_nvmlDeviceGetTemperature (data.hm_nvml, 1, data.hm_device[device_id].nvml, NVML_TEMPERATURE_GPU, (uint *) &temperature) != NVML_SUCCESS) return -1;
 
     return temperature;
-    #endif
-
-    #if defined(WIN) && defined(HAVE_NVAPI)
-    NV_GPU_THERMAL_SETTINGS pThermalSettings;
-
-    pThermalSettings.version = NV_GPU_THERMAL_SETTINGS_VER;
-    pThermalSettings.count = NVAPI_MAX_THERMAL_SENSORS_PER_GPU;
-    pThermalSettings.sensor[0].controller = NVAPI_THERMAL_CONTROLLER_UNKNOWN;
-    pThermalSettings.sensor[0].target = NVAPI_THERMAL_TARGET_GPU;
-
-    if (hm_NvAPI_GPU_GetThermalSettings (data.hm_nv, data.hm_device[device_id].adapter_index.nv, 0, &pThermalSettings) != NVAPI_OK) return -1;
-
-    return pThermalSettings.sensor[0].currentTemp;
-    #endif // WIN && HAVE_NVAPI
   }
-  #endif // HAVE_NVML || HAVE_NVAPI
+
+  return -1;
+}
+
+int hm_get_fanpolicy_with_device_id (const uint device_id)
+{
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
+  if (data.hm_device[device_id].fan_get_supported == 1)
+  {
+    if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+    {
+      if (data.hm_adl)
+      {
+        if (data.hm_device[device_id].od_version == 5)
+        {
+          ADLFanSpeedValue lpFanSpeedValue;
+
+          memset (&lpFanSpeedValue, 0, sizeof (lpFanSpeedValue));
+
+          lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
+          lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
+
+          if (hm_ADL_Overdrive5_FanSpeed_Get (data.hm_adl, data.hm_device[device_id].adl, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+
+          return (lpFanSpeedValue.iFanSpeed & ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED) ? 0 : 1;
+        }
+        else // od_version == 6
+        {
+          return 1;
+        }
+      }
+    }
+
+    if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+    {
+      #if defined(LINUX)
+      return 0;
+      #endif
+
+      #if defined(WIN)
+      return 1;
+      #endif
+    }
+  }
 
   return -1;
 }
 
 int hm_get_fanspeed_with_device_id (const uint device_id)
 {
-  // we shouldn't really need this extra CL_DEVICE_TYPE_GPU check, because fan_supported should not be set w/ CPUs
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (data.hm_device[device_id].fan_supported == 1)
+  if (data.hm_device[device_id].fan_get_supported == 1)
   {
-    #ifdef HAVE_ADL
-    if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
+    if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
     {
-      if (data.hm_amd)
+      if (data.hm_adl)
       {
         if (data.hm_device[device_id].od_version == 5)
         {
@@ -3140,7 +3227,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
           lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
           lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
 
-          if (hm_ADL_Overdrive5_FanSpeed_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+          if (hm_ADL_Overdrive5_FanSpeed_Get (data.hm_adl, data.hm_device[device_id].adl, 0, &lpFanSpeedValue) != ADL_OK) return -1;
 
           return lpFanSpeedValue.iFanSpeed;
         }
@@ -3150,37 +3237,51 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
 
           memset (&faninfo, 0, sizeof (faninfo));
 
-          if (hm_ADL_Overdrive6_FanSpeed_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &faninfo) != ADL_OK) return -1;
+          if (hm_ADL_Overdrive6_FanSpeed_Get (data.hm_adl, data.hm_device[device_id].adl, &faninfo) != ADL_OK) return -1;
 
           return faninfo.iFanSpeedPercent;
         }
       }
     }
-    #endif // HAVE_ADL
 
-    #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-    if (data.devices_param[device_id].vendor_id == VENDOR_ID_NV)
+    if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
     {
-      #if defined(LINUX) && defined(HAVE_NVML)
       int speed = 0;
 
-      hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 1, data.hm_device[device_id].adapter_index.nv, (uint *) &speed);
+      if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nvml, 0, data.hm_device[device_id].nvml, (uint *) &speed) != NVML_SUCCESS) return -1;
 
       return speed;
-      #endif
-
-      #if defined(WIN) && defined(HAVE_NVAPI)
-
-      NV_GPU_COOLER_SETTINGS pCoolerSettings;
-
-      pCoolerSettings.Version = GPU_COOLER_SETTINGS_VER | sizeof (NV_GPU_COOLER_SETTINGS);
-
-      hm_NvAPI_GPU_GetCoolerSettings (data.hm_nv, data.hm_device[device_id].adapter_index.nv, 0, &pCoolerSettings);
-
-      return pCoolerSettings.Cooler[0].CurrentLevel;
-      #endif
     }
-    #endif // HAVE_NVML || HAVE_NVAPI
+  }
+
+  return -1;
+}
+
+int hm_get_buslanes_with_device_id (const uint device_id)
+{
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  {
+    if (data.hm_adl)
+    {
+      ADLPMActivity PMActivity;
+
+      PMActivity.iSize = sizeof (ADLPMActivity);
+
+      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_adl, data.hm_device[device_id].adl, &PMActivity) != ADL_OK) return -1;
+
+      return PMActivity.iCurrentBusLanes;
+    }
+  }
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  {
+    unsigned int currLinkWidth;
+
+    if (hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (data.hm_nvml, 1, data.hm_device[device_id].nvml, &currLinkWidth) != NVML_SUCCESS) return -1;
+
+    return currLinkWidth;
   }
 
   return -1;
@@ -3190,54 +3291,124 @@ int hm_get_utilization_with_device_id (const uint device_id)
 {
   if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  #ifdef HAVE_ADL
-  if (data.devices_param[device_id].vendor_id == VENDOR_ID_AMD)
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
-    if (data.hm_amd)
+    if (data.hm_adl)
     {
       ADLPMActivity PMActivity;
 
       PMActivity.iSize = sizeof (ADLPMActivity);
 
-      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &PMActivity) != ADL_OK) return -1;
+      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_adl, data.hm_device[device_id].adl, &PMActivity) != ADL_OK) return -1;
 
       return PMActivity.iActivityPercent;
     }
   }
-  #endif // HAVE_ADL
 
-  #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-  if (data.devices_param[device_id].vendor_id == VENDOR_ID_NV)
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    #if defined(LINUX) && defined(HAVE_NVML)
     nvmlUtilization_t utilization;
 
-    hm_NVML_nvmlDeviceGetUtilizationRates (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &utilization);
+    if (hm_NVML_nvmlDeviceGetUtilizationRates (data.hm_nvml, 1, data.hm_device[device_id].nvml, &utilization) != NVML_SUCCESS) return -1;
 
     return utilization.gpu;
-    #endif
-
-    #if defined(WIN) && defined(HAVE_NVAPI)
-    NV_GPU_DYNAMIC_PSTATES_INFO_EX pDynamicPstatesInfoEx;
-
-    pDynamicPstatesInfoEx.version = NV_GPU_DYNAMIC_PSTATES_INFO_EX_VER;
-
-    if (hm_NvAPI_GPU_GetDynamicPstatesInfoEx (data.hm_nv, data.hm_device[device_id].adapter_index.nv, &pDynamicPstatesInfoEx) != NVAPI_OK) return -1;
-
-    return pDynamicPstatesInfoEx.utilization[0].percentage;
-    #endif
   }
-  #endif // HAVE_NVML || HAVE_NVAPI
 
   return -1;
 }
 
-#ifdef HAVE_ADL
-int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed)
+int hm_get_memoryspeed_with_device_id (const uint device_id)
 {
-  if (data.hm_device[device_id].fan_supported == 1)
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
-    if (data.hm_amd)
+    if (data.hm_adl)
+    {
+      ADLPMActivity PMActivity;
+
+      PMActivity.iSize = sizeof (ADLPMActivity);
+
+      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_adl, data.hm_device[device_id].adl, &PMActivity) != ADL_OK) return -1;
+
+      return PMActivity.iMemoryClock / 100;
+    }
+  }
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  {
+    unsigned int clock;
+
+    if (hm_NVML_nvmlDeviceGetClockInfo (data.hm_nvml, 1, data.hm_device[device_id].nvml, NVML_CLOCK_MEM, &clock) != NVML_SUCCESS) return -1;
+
+    return clock;
+  }
+
+  return -1;
+}
+
+int hm_get_corespeed_with_device_id (const uint device_id)
+{
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  {
+    if (data.hm_adl)
+    {
+      ADLPMActivity PMActivity;
+
+      PMActivity.iSize = sizeof (ADLPMActivity);
+
+      if (hm_ADL_Overdrive_CurrentActivity_Get (data.hm_adl, data.hm_device[device_id].adl, &PMActivity) != ADL_OK) return -1;
+
+      return PMActivity.iEngineClock / 100;
+    }
+  }
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  {
+    unsigned int clock;
+
+    if (hm_NVML_nvmlDeviceGetClockInfo (data.hm_nvml, 1, data.hm_device[device_id].nvml, NVML_CLOCK_SM, &clock) != NVML_SUCCESS) return -1;
+
+    return clock;
+  }
+
+  return -1;
+}
+
+int hm_get_throttle_with_device_id (const uint device_id)
+{
+  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  {
+
+  }
+
+  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  {
+    unsigned long long clocksThrottleReasons = 0;
+    unsigned long long supportedThrottleReasons = 0;
+
+    if (hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons   (data.hm_nvml, 1, data.hm_device[device_id].nvml, &clocksThrottleReasons)    != NVML_SUCCESS) return -1;
+    if (hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (data.hm_nvml, 1, data.hm_device[device_id].nvml, &supportedThrottleReasons) != NVML_SUCCESS) return -1;
+
+    clocksThrottleReasons &= supportedThrottleReasons;
+
+    clocksThrottleReasons &= ~nvmlClocksThrottleReasonUnknown;
+
+    return (clocksThrottleReasons > 0);
+  }
+
+  return -1;
+}
+
+int hm_set_fanspeed_with_device_id_adl (const uint device_id, const int fanspeed, const int fanpolicy)
+{
+  if (data.hm_device[device_id].fan_set_supported == 1)
+  {
+    if (data.hm_adl)
     {
       if (data.hm_device[device_id].od_version == 5)
       {
@@ -3247,10 +3418,10 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
 
         lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
         lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
-        lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
+        lpFanSpeedValue.iFlags     = (fanpolicy == 1) ? ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED : 0;
         lpFanSpeedValue.iFanSpeed  = fanspeed;
 
-        if (hm_ADL_Overdrive5_FanSpeed_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive5_FanSpeed_Set (data.hm_adl, data.hm_device[device_id].adl, 0, &lpFanSpeedValue) != ADL_OK) return -1;
 
         return 0;
       }
@@ -3263,7 +3434,7 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
         fan_speed_value.iSpeedType = ADL_OD6_FANSPEED_TYPE_PERCENT;
         fan_speed_value.iFanSpeed  = fanspeed;
 
-        if (hm_ADL_Overdrive6_FanSpeed_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &fan_speed_value) != ADL_OK) return -1;
+        if (hm_ADL_Overdrive6_FanSpeed_Set (data.hm_adl, data.hm_device[device_id].adl, &fan_speed_value) != ADL_OK) return -1;
 
         return 0;
       }
@@ -3272,23 +3443,7 @@ int hm_set_fanspeed_with_device_id_amd (const uint device_id, const int fanspeed
 
   return -1;
 }
-#endif
 
-// helper function for status display
-
-void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value)
-{
-  #define VALUE_NOT_AVAILABLE "N/A"
-
-  if (value == -1)
-  {
-    snprintf (target_buf, max_buf_size, VALUE_NOT_AVAILABLE);
-  }
-  else
-  {
-    snprintf (target_buf, max_buf_size, "%2d%s", value, suffix);
-  }
-}
 #endif // HAVE_HWMON
 
 /**
@@ -4856,7 +5011,7 @@ void format_debug (char *debug_file, uint debug_mode, unsigned char *orig_plain_
 void format_plain (FILE *fp, unsigned char *plain_ptr, uint plain_len, uint outfile_autohex)
 {
   int needs_hexify = 0;
-  
+
   if (outfile_autohex == 1)
   {
     for (uint i = 0; i < plain_len; i++)
@@ -4890,7 +5045,6 @@ void format_plain (FILE *fp, unsigned char *plain_ptr, uint plain_len, uint outf
   }
   else
   {
-
     fwrite (plain_ptr, plain_len, 1, fp);
   }
 }
@@ -4901,7 +5055,6 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
 
   char separator = data.separator;
 
-  
   if (outfile_format & OUTFILE_FMT_HASH)
   {
     fprintf (out_fp, "%s", out_buf);
@@ -4917,13 +5070,11 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
     {
       for (uint i = 0; i < user_len; i++)
       {
-        
         fprintf (out_fp, "%c", username[i]);
       }
 
       if (outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
-        
         fputc (separator, out_fp);
       }
     }
@@ -4931,7 +5082,6 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
 
   if (outfile_format & OUTFILE_FMT_PLAIN)
   {
-    
     format_plain (out_fp, plain_ptr, plain_len, data.outfile_autohex);
 
     if (outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
@@ -4944,7 +5094,6 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
   {
     for (uint i = 0; i < plain_len; i++)
     {
-      
       fprintf (out_fp, "%02x", plain_ptr[i]);
     }
 
@@ -4969,7 +5118,6 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
     #endif
   }
 
-  
   fputc ('\n', out_fp);
 }
 
@@ -5640,6 +5788,7 @@ char *stroptitype (const uint opti_type)
     case OPTI_TYPE_SINGLE_SALT:       return ((char *) OPTI_STR_SINGLE_SALT);       break;
     case OPTI_TYPE_BRUTE_FORCE:       return ((char *) OPTI_STR_BRUTE_FORCE);       break;
     case OPTI_TYPE_RAW_HASH:          return ((char *) OPTI_STR_RAW_HASH);          break;
+    case OPTI_TYPE_SLOW_HASH_SIMD:    return ((char *) OPTI_STR_SLOW_HASH_SIMD);    break;
     case OPTI_TYPE_USES_BITS_8:       return ((char *) OPTI_STR_USES_BITS_8);       break;
     case OPTI_TYPE_USES_BITS_16:      return ((char *) OPTI_STR_USES_BITS_16);      break;
     case OPTI_TYPE_USES_BITS_32:      return ((char *) OPTI_STR_USES_BITS_32);      break;
@@ -5862,6 +6011,27 @@ char *strhashtype (const uint hash_mode)
     case 13200: return ((char *) HT_13200); break;
     case 13300: return ((char *) HT_13300); break;
     case 13400: return ((char *) HT_13400); break;
+    case 13500: return ((char *) HT_13500); break;
+    case 13600: return ((char *) HT_13600); break;
+    case 13711: return ((char *) HT_13711); break;
+    case 13712: return ((char *) HT_13712); break;
+    case 13713: return ((char *) HT_13713); break;
+    case 13721: return ((char *) HT_13721); break;
+    case 13722: return ((char *) HT_13722); break;
+    case 13723: return ((char *) HT_13723); break;
+    case 13731: return ((char *) HT_13731); break;
+    case 13732: return ((char *) HT_13732); break;
+    case 13733: return ((char *) HT_13733); break;
+    case 13741: return ((char *) HT_13741); break;
+    case 13742: return ((char *) HT_13742); break;
+    case 13743: return ((char *) HT_13743); break;
+    case 13751: return ((char *) HT_13751); break;
+    case 13752: return ((char *) HT_13752); break;
+    case 13753: return ((char *) HT_13753); break;
+    case 13761: return ((char *) HT_13761); break;
+    case 13762: return ((char *) HT_13762); break;
+    case 13763: return ((char *) HT_13763); break;
+    case 13800: return ((char *) HT_13800); break;
   }
 
   return ((char *) "Unknown");
@@ -8488,6 +8658,110 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
         sprintf (ptr_data, "%08x", ptr_keyfile[i]);
     }
   }
+  else if (hash_mode == 13500)
+  {
+    pstoken_t *pstokens = (pstoken_t *) data.esalts_buf;
+
+    pstoken_t *pstoken = &pstokens[salt_pos];
+
+    const u32 salt_len = (pstoken->salt_len > 512) ? 512 : pstoken->salt_len;
+
+    char pstoken_tmp[1024 + 1] = { 0 };
+
+    for (uint i = 0, j = 0; i < salt_len; i += 1, j += 2)
+    {
+      const u8 *ptr = (const u8 *) pstoken->salt_buf;
+
+      sprintf (pstoken_tmp + j, "%02x", ptr[i]);
+    }
+
+    snprintf (out_buf, len-1, "%08x%08x%08x%08x%08x:%s",
+      digest_buf[0],
+      digest_buf[1],
+      digest_buf[2],
+      digest_buf[3],
+      digest_buf[4],
+      pstoken_tmp);
+  }
+  else if (hash_mode == 13600)
+  {
+    zip2_t *zip2s = (zip2_t *) data.esalts_buf;
+
+    zip2_t *zip2 = &zip2s[salt_pos];
+
+    const u32 salt_len = zip2->salt_len;
+
+    char salt_tmp[32 + 1] = { 0 };
+
+    for (uint i = 0, j = 0; i < salt_len; i += 1, j += 2)
+    {
+      const u8 *ptr = (const u8 *) zip2->salt_buf;
+
+      sprintf (salt_tmp + j, "%02x", ptr[i]);
+    }
+
+    const u32 data_len = zip2->data_len;
+
+    char data_tmp[8192 + 1] = { 0 };
+
+    for (uint i = 0, j = 0; i < data_len; i += 1, j += 2)
+    {
+      const u8 *ptr = (const u8 *) zip2->data_buf;
+
+      sprintf (data_tmp + j, "%02x", ptr[i]);
+    }
+
+    const u32 auth_len = zip2->auth_len;
+
+    char auth_tmp[20 + 1] = { 0 };
+
+    for (uint i = 0, j = 0; i < auth_len; i += 1, j += 2)
+    {
+      const u8 *ptr = (const u8 *) zip2->auth_buf;
+
+      sprintf (auth_tmp + j, "%02x", ptr[i]);
+    }
+
+    snprintf (out_buf, 255, "%s*%u*%u*%u*%s*%x*%u*%s*%s*%s",
+      SIGNATURE_ZIP2_START,
+      zip2->type,
+      zip2->mode,
+      zip2->magic,
+      salt_tmp,
+      zip2->verify_bytes,
+      zip2->compress_length,
+      data_tmp,
+      auth_tmp,
+      SIGNATURE_ZIP2_STOP);
+  }
+  else if ((hash_mode >= 13700) && (hash_mode <= 13799))
+  {
+    snprintf (out_buf, len-1, "%s", hashfile);
+  }
+  else if (hash_mode == 13800)
+  {
+    win8phone_t *esalts = (win8phone_t *) data.esalts_buf;
+
+    win8phone_t *esalt = &esalts[salt_pos];
+
+    char buf[256 + 1] = { 0 };
+
+    for (int i = 0, j = 0; i < 32; i += 1, j += 8)
+    {
+      sprintf (buf + j, "%08x", esalt->salt_buf[i]);
+    }
+
+    snprintf (out_buf, len-1, "%08x%08x%08x%08x%08x%08x%08x%08x:%s",
+      digest_buf[0],
+      digest_buf[1],
+      digest_buf[2],
+      digest_buf[3],
+      digest_buf[4],
+      digest_buf[5],
+      digest_buf[6],
+      digest_buf[7],
+      buf);
+  }
   else
   {
     if (hash_type == HASH_TYPE_MD4)
@@ -8500,8 +8774,6 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
     }
     else if (hash_type == HASH_TYPE_MD5)
     {
-
-
       snprintf (out_buf, len-1, "%08x%08x%08x%08x",
         digest_buf[0],
         digest_buf[1],
@@ -8827,7 +9099,7 @@ void ResumeThreads ()
 {
   if (data.devices_status == STATUS_PAUSED)
   {
-    float ms_paused;
+    double ms_paused;
 
     hc_timer_get (data.timer_paused, ms_paused);
 
@@ -11766,6 +12038,92 @@ int sha1s_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   return (PARSER_OK);
 }
 
+int pstoken_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_13500) || (input_len > DISPLAY_LEN_MAX_13500)) return (PARSER_GLOBAL_LENGTH);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  pstoken_t *pstoken = (pstoken_t *) hash_buf->esalt;
+
+  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  if (input_buf[40] != data.separator) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint salt_len = input_len - 40 - 1;
+
+  char *salt_buf = input_buf + 40 + 1;
+
+  if (salt_len == UINT_MAX || salt_len % 2 != 0) return (PARSER_SALT_LENGTH);
+
+  u8 *pstoken_ptr = (u8 *) pstoken->salt_buf;
+
+  for (uint i = 0, j = 0; i < salt_len; i += 2, j += 1)
+  {
+    pstoken_ptr[j] = hex_to_u8 ((const u8 *) &salt_buf[i]);
+  }
+
+  pstoken->salt_len = salt_len / 2;
+
+  /* some fake salt for the sorting mechanisms */
+
+  salt->salt_buf[0] = pstoken->salt_buf[0];
+  salt->salt_buf[1] = pstoken->salt_buf[1];
+  salt->salt_buf[2] = pstoken->salt_buf[2];
+  salt->salt_buf[3] = pstoken->salt_buf[3];
+  salt->salt_buf[4] = pstoken->salt_buf[4];
+  salt->salt_buf[5] = pstoken->salt_buf[5];
+  salt->salt_buf[6] = pstoken->salt_buf[6];
+  salt->salt_buf[7] = pstoken->salt_buf[7];
+
+  salt->salt_len = 32;
+
+  /* we need to check if we can precompute some of the data --
+     this is possible since the scheme is badly designed */
+
+  pstoken->pc_digest[0] = SHA1M_A;
+  pstoken->pc_digest[1] = SHA1M_B;
+  pstoken->pc_digest[2] = SHA1M_C;
+  pstoken->pc_digest[3] = SHA1M_D;
+  pstoken->pc_digest[4] = SHA1M_E;
+
+  pstoken->pc_offset = 0;
+
+  for (int i = 0; i < (int) pstoken->salt_len - 64; i += 64)
+  {
+    uint w[16];
+
+    w[ 0] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  0]);
+    w[ 1] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  1]);
+    w[ 2] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  2]);
+    w[ 3] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  3]);
+    w[ 4] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  4]);
+    w[ 5] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  5]);
+    w[ 6] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  6]);
+    w[ 7] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  7]);
+    w[ 8] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  8]);
+    w[ 9] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset +  9]);
+    w[10] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 10]);
+    w[11] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 11]);
+    w[12] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 12]);
+    w[13] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 13]);
+    w[14] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 14]);
+    w[15] = byte_swap_32 (pstoken->salt_buf[pstoken->pc_offset + 15]);
+
+    sha1_64 (w, pstoken->pc_digest);
+
+    pstoken->pc_offset += 16;
+  }
+
+  return (PARSER_OK);
+}
+
 int sha1b64_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 {
   if ((input_len < DISPLAY_LEN_MIN_101) || (input_len > DISPLAY_LEN_MAX_101)) return (PARSER_GLOBAL_LENGTH);
@@ -12633,7 +12991,9 @@ int truecrypt_parse_hash_1k (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_len = 4;
 
-  salt->salt_iter = 1000 - 1;
+  salt->salt_iter = ROUNDS_TRUECRYPT_1K - 1;
+
+  tc->signature = 0x45555254; // "TRUE"
 
   digest[0] = tc->data_buf[0];
 
@@ -12680,7 +13040,205 @@ int truecrypt_parse_hash_2k (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_len = 4;
 
-  salt->salt_iter = 2000 - 1;
+  salt->salt_iter = ROUNDS_TRUECRYPT_2K - 1;
+
+  tc->signature = 0x45555254; // "TRUE"
+
+  digest[0] = tc->data_buf[0];
+
+  return (PARSER_OK);
+}
+
+int veracrypt_parse_hash_200000 (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  tc_t *tc = (tc_t *) hash_buf->esalt;
+
+  if (input_len == 0)
+  {
+    log_error ("VeraCrypt container not specified");
+
+    exit (-1);
+  }
+
+  FILE *fp = fopen (input_buf, "rb");
+
+  if (fp == NULL)
+  {
+    log_error ("%s: %s", input_buf, strerror (errno));
+
+    exit (-1);
+  }
+
+  char buf[512] = { 0 };
+
+  int n = fread (buf, 1, sizeof (buf), fp);
+
+  fclose (fp);
+
+  if (n != 512) return (PARSER_VC_FILE_SIZE);
+
+  memcpy (tc->salt_buf, buf, 64);
+
+  memcpy (tc->data_buf, buf + 64, 512 - 64);
+
+  salt->salt_buf[0] = tc->salt_buf[0];
+
+  salt->salt_len = 4;
+
+  salt->salt_iter = ROUNDS_VERACRYPT_200000 - 1;
+
+  tc->signature = 0x41524556; // "VERA"
+
+  digest[0] = tc->data_buf[0];
+
+  return (PARSER_OK);
+}
+
+int veracrypt_parse_hash_500000 (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  tc_t *tc = (tc_t *) hash_buf->esalt;
+
+  if (input_len == 0)
+  {
+    log_error ("VeraCrypt container not specified");
+
+    exit (-1);
+  }
+
+  FILE *fp = fopen (input_buf, "rb");
+
+  if (fp == NULL)
+  {
+    log_error ("%s: %s", input_buf, strerror (errno));
+
+    exit (-1);
+  }
+
+  char buf[512] = { 0 };
+
+  int n = fread (buf, 1, sizeof (buf), fp);
+
+  fclose (fp);
+
+  if (n != 512) return (PARSER_VC_FILE_SIZE);
+
+  memcpy (tc->salt_buf, buf, 64);
+
+  memcpy (tc->data_buf, buf + 64, 512 - 64);
+
+  salt->salt_buf[0] = tc->salt_buf[0];
+
+  salt->salt_len = 4;
+
+  salt->salt_iter = ROUNDS_VERACRYPT_500000 - 1;
+
+  tc->signature = 0x41524556; // "VERA"
+
+  digest[0] = tc->data_buf[0];
+
+  return (PARSER_OK);
+}
+
+int veracrypt_parse_hash_327661 (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  tc_t *tc = (tc_t *) hash_buf->esalt;
+
+  if (input_len == 0)
+  {
+    log_error ("VeraCrypt container not specified");
+
+    exit (-1);
+  }
+
+  FILE *fp = fopen (input_buf, "rb");
+
+  if (fp == NULL)
+  {
+    log_error ("%s: %s", input_buf, strerror (errno));
+
+    exit (-1);
+  }
+
+  char buf[512] = { 0 };
+
+  int n = fread (buf, 1, sizeof (buf), fp);
+
+  fclose (fp);
+
+  if (n != 512) return (PARSER_VC_FILE_SIZE);
+
+  memcpy (tc->salt_buf, buf, 64);
+
+  memcpy (tc->data_buf, buf + 64, 512 - 64);
+
+  salt->salt_buf[0] = tc->salt_buf[0];
+
+  salt->salt_len = 4;
+
+  salt->salt_iter = ROUNDS_VERACRYPT_327661 - 1;
+
+  tc->signature = 0x41524556; // "VERA"
+
+  digest[0] = tc->data_buf[0];
+
+  return (PARSER_OK);
+}
+
+int veracrypt_parse_hash_655331 (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  tc_t *tc = (tc_t *) hash_buf->esalt;
+
+  if (input_len == 0)
+  {
+    log_error ("VeraCrypt container not specified");
+
+    exit (-1);
+  }
+
+  FILE *fp = fopen (input_buf, "rb");
+
+  if (fp == NULL)
+  {
+    log_error ("%s: %s", input_buf, strerror (errno));
+
+    exit (-1);
+  }
+
+  char buf[512] = { 0 };
+
+  int n = fread (buf, 1, sizeof (buf), fp);
+
+  fclose (fp);
+
+  if (n != 512) return (PARSER_VC_FILE_SIZE);
+
+  memcpy (tc->salt_buf, buf, 64);
+
+  memcpy (tc->data_buf, buf + 64, 512 - 64);
+
+  salt->salt_buf[0] = tc->salt_buf[0];
+
+  salt->salt_len = 4;
+
+  salt->salt_iter = ROUNDS_VERACRYPT_655331 - 1;
+
+  tc->signature = 0x41524556; // "VERA"
 
   digest[0] = tc->data_buf[0];
 
@@ -19757,6 +20315,278 @@ int androidfde_samsung_parse_hash (char *input_buf, uint input_len, hash_t *hash
   return (PARSER_OK);
 }
 
+int zip2_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_13600) || (input_len > DISPLAY_LEN_MAX_13600)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_ZIP2_START, input_buf                , 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_ZIP2_STOP , input_buf + input_len - 7, 7)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  zip2_t *zip2 = (zip2_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  char *param0_pos = input_buf + 6 + 1;
+
+  char *param1_pos = strchr (param0_pos, '*');
+
+  if (param1_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param0_len = param1_pos - param0_pos;
+
+  param1_pos++;
+
+  char *param2_pos = strchr (param1_pos, '*');
+
+  if (param2_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param1_len = param2_pos - param1_pos;
+
+  param2_pos++;
+
+  char *param3_pos = strchr (param2_pos, '*');
+
+  if (param3_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param2_len = param3_pos - param2_pos;
+
+  param3_pos++;
+
+  char *param4_pos = strchr (param3_pos, '*');
+
+  if (param4_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param3_len = param4_pos - param3_pos;
+
+  param4_pos++;
+
+  char *param5_pos = strchr (param4_pos, '*');
+
+  if (param5_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param4_len = param5_pos - param4_pos;
+
+  param5_pos++;
+
+  char *param6_pos = strchr (param5_pos, '*');
+
+  if (param6_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param5_len = param6_pos - param5_pos;
+
+  param6_pos++;
+
+  char *param7_pos = strchr (param6_pos, '*');
+
+  if (param7_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param6_len = param7_pos - param6_pos;
+
+  param7_pos++;
+
+  char *param8_pos = strchr (param7_pos, '*');
+
+  if (param8_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 param7_len = param8_pos - param7_pos;
+
+  param8_pos++;
+
+  const uint type  = atoi (param0_pos);
+  const uint mode  = atoi (param1_pos);
+  const uint magic = atoi (param2_pos);
+
+  char *salt_buf = param3_pos;
+
+  uint verify_bytes; sscanf (param4_pos, "%4x*", &verify_bytes);
+
+  const uint compress_length = atoi (param5_pos);
+
+  char *data_buf = param6_pos;
+  char *auth     = param7_pos;
+
+  /**
+   * verify some data
+   */
+
+  if (param0_len != 1) return (PARSER_SALT_VALUE);
+
+  if (param1_len != 1) return (PARSER_SALT_VALUE);
+
+  if (param2_len != 1) return (PARSER_SALT_VALUE);
+
+  if ((param3_len != 16) && (param3_len != 24) && (param3_len != 32)) return (PARSER_SALT_VALUE);
+
+  if (param4_len >= 5) return (PARSER_SALT_VALUE);
+
+  if (param5_len >= 5) return (PARSER_SALT_VALUE);
+
+  if (param6_len >= 8192) return (PARSER_SALT_VALUE);
+
+  if (param6_len & 1) return (PARSER_SALT_VALUE);
+
+  if (param7_len != 20) return (PARSER_SALT_VALUE);
+
+  if (type != 0) return (PARSER_SALT_VALUE);
+
+  if ((mode != 1) && (mode != 2) && (mode != 3)) return (PARSER_SALT_VALUE);
+
+  if (magic != 0) return (PARSER_SALT_VALUE);
+
+  if (verify_bytes >= 0x10000) return (PARSER_SALT_VALUE);
+
+  /**
+   * store data
+   */
+
+  zip2->type  = type;
+  zip2->mode  = mode;
+  zip2->magic = magic;
+
+  if (mode == 1)
+  {
+    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_buf[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_buf[ 8]);
+    zip2->salt_buf[2] = 0;
+    zip2->salt_buf[3] = 0;
+
+    zip2->salt_len = 8;
+  }
+  else if (mode == 2)
+  {
+    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_buf[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_buf[ 8]);
+    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_buf[16]);
+    zip2->salt_buf[3] = 0;
+
+    zip2->salt_len = 12;
+  }
+  else if (mode == 3)
+  {
+    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_buf[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_buf[ 8]);
+    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_buf[16]);
+    zip2->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_buf[24]);
+
+    zip2->salt_len = 16;
+  }
+
+  zip2->salt_buf[0] = byte_swap_32 (zip2->salt_buf[0]);
+  zip2->salt_buf[1] = byte_swap_32 (zip2->salt_buf[1]);
+  zip2->salt_buf[2] = byte_swap_32 (zip2->salt_buf[2]);
+  zip2->salt_buf[3] = byte_swap_32 (zip2->salt_buf[3]);
+
+  zip2->verify_bytes = verify_bytes;
+
+  zip2->compress_length = compress_length;
+
+  char *data_buf_ptr = (char *) zip2->data_buf;
+
+  for (uint i = 0; i < param6_len; i += 2)
+  {
+    const char p0 = data_buf[i + 0];
+    const char p1 = data_buf[i + 1];
+
+    *data_buf_ptr++ = hex_convert (p1) << 0
+                    | hex_convert (p0) << 4;
+
+    zip2->data_len++;
+  }
+
+  *data_buf_ptr = 0x80;
+
+  char *auth_ptr = (char *) zip2->auth_buf;
+
+  for (uint i = 0; i < param7_len; i += 2)
+  {
+    const char p0 = auth[i + 0];
+    const char p1 = auth[i + 1];
+
+    *auth_ptr++ = hex_convert (p1) << 0
+                | hex_convert (p0) << 4;
+
+    zip2->auth_len++;
+  }
+
+  /**
+   * salt buf (fake)
+   */
+
+  salt->salt_buf[0] = zip2->salt_buf[0];
+  salt->salt_buf[1] = zip2->salt_buf[1];
+  salt->salt_buf[2] = zip2->salt_buf[2];
+  salt->salt_buf[3] = zip2->salt_buf[3];
+  salt->salt_buf[4] = zip2->data_buf[0];
+  salt->salt_buf[5] = zip2->data_buf[1];
+  salt->salt_buf[6] = zip2->data_buf[2];
+  salt->salt_buf[7] = zip2->data_buf[3];
+
+  salt->salt_len = 32;
+
+  salt->salt_iter = ROUNDS_ZIP2 - 1;
+
+  /**
+   * digest buf (fake)
+   */
+
+  digest[0] = zip2->auth_buf[0];
+  digest[1] = zip2->auth_buf[1];
+  digest[2] = zip2->auth_buf[2];
+  digest[3] = zip2->auth_buf[3];
+
+  return (PARSER_OK);
+}
+
+int win8phone_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_13800) || (input_len > DISPLAY_LEN_MAX_13800)) return (PARSER_GLOBAL_LENGTH);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  win8phone_t *esalt = hash_buf->esalt;
+
+  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+  digest[5] = hex_to_u32 ((const u8 *) &input_buf[40]);
+  digest[6] = hex_to_u32 ((const u8 *) &input_buf[48]);
+  digest[7] = hex_to_u32 ((const u8 *) &input_buf[56]);
+
+  if (input_buf[64] != data.separator) return (PARSER_SEPARATOR_UNMATCHED);
+
+  char *salt_buf_ptr = input_buf + 64 + 1;
+
+  u32 *salt_buf = esalt->salt_buf;
+
+  for (int i = 0, j = 0; i < 32; i += 1, j += 8)
+  {
+    salt_buf[i] = hex_to_u32 ((const u8 *) &salt_buf_ptr[j]);
+  }
+
+  salt->salt_buf[0] = salt_buf[0];
+  salt->salt_buf[1] = salt_buf[1];
+  salt->salt_buf[2] = salt_buf[2];
+  salt->salt_buf[3] = salt_buf[3];
+  salt->salt_buf[4] = salt_buf[4];
+  salt->salt_buf[5] = salt_buf[5];
+  salt->salt_buf[6] = salt_buf[6];
+  salt->salt_buf[7] = salt_buf[7];
+
+  salt->salt_len = 64;
+
+  return (PARSER_OK);
+}
+
 /**
  * parallel running threads
  */
@@ -19882,7 +20712,7 @@ void *thread_keypress (void *p)
 
     if (ch ==  0) continue;
 
-    //https://github.com/hashcat/oclHashcat/issues/302
+    //https://github.com/hashcat/hashcat/issues/302
     //#ifdef _POSIX
     //if (ch != '\n')
     //#endif
@@ -19978,7 +20808,7 @@ void *thread_keypress (void *p)
         break;
     }
 
-    //https://github.com/hashcat/oclHashcat/issues/302
+    //https://github.com/hashcat/hashcat/issues/302
     //#ifdef _POSIX
     //if (ch != '\n')
     //#endif

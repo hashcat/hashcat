@@ -7,18 +7,18 @@
 
 #define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 14
 #define DGST_R1 15
 #define DGST_R2 6
 #define DGST_R3 7
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_simd.cl"
 
 __constant u64 k_sha512[80] =
 {
@@ -44,7 +44,7 @@ __constant u64 k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-static void sha512_transform (const u64x w0[4], const u64x w1[4], const u64x w2[4], const u64x w3[4], u64x digest[8])
+void sha512_transform (const u64x w0[4], const u64x w1[4], const u64x w2[4], const u64x w3[4], u64x digest[8])
 {
   u64x w0_t = w0[0];
   u64x w1_t = w0[1];
@@ -114,7 +114,9 @@ static void sha512_transform (const u64x w0[4], const u64x w1[4], const u64x w2[
 
   ROUND_STEP (0);
 
-  //#pragma unroll
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 16; i < 80; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
@@ -130,7 +132,7 @@ static void sha512_transform (const u64x w0[4], const u64x w1[4], const u64x w2[
   digest[7] += h;
 }
 
-static void hmac_sha512_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u64x ipad[8], u64x opad[8])
+void hmac_sha512_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u64x ipad[8], u64x opad[8])
 {
   u64x w0_t[4];
   u64x w1_t[4];
@@ -194,7 +196,7 @@ static void hmac_sha512_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u64
   sha512_transform (w0_t, w1_t, w2_t, w3_t, opad);
 }
 
-static void hmac_sha512_run (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u64x ipad[8], u64x opad[8], u64x digest[8])
+void hmac_sha512_run (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u64x ipad[8], u64x opad[8], u64x digest[8])
 {
   u64x w0_t[4];
   u64x w1_t[4];

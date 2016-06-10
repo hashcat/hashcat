@@ -11,18 +11,18 @@
 //too much register pressure
 //#define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_simd.cl"
 
 #define INITVAL 0x0101010101010101
 
@@ -2242,24 +2242,25 @@ __constant u64 sbob_rc64[12][8] =
   },
 };
 
-static void streebog_g (u64x h[8], const u64x m[8], __local u64 (*s_sbob_sl64)[256])
+void streebog_g (u64x h[8], const u64x m[8], __local u64 (*s_sbob_sl64)[256])
 {
   u64x k[8];
   u64x s[8];
   u64x t[8];
 
-  #pragma unroll
   for (int i = 0; i < 8; i++)
   {
     t[i] = h[i];
   }
 
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 0; i < 8; i++)
   {
     k[i] = SBOG_LPSti64;
   }
 
-  #pragma unroll
   for (int i = 0; i < 8; i++)
   {
     s[i] = m[i];
@@ -2267,13 +2268,14 @@ static void streebog_g (u64x h[8], const u64x m[8], __local u64 (*s_sbob_sl64)[2
 
   for (int r = 0; r < 12; r++)
   {
-    #pragma unroll
     for (int i = 0; i < 8; i++)
     {
       t[i] = s[i] ^ k[i];
     }
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 0; i < 8; i++)
     {
       s[i] = SBOG_LPSti64;
@@ -2284,21 +2286,22 @@ static void streebog_g (u64x h[8], const u64x m[8], __local u64 (*s_sbob_sl64)[2
       t[i] = k[i] ^ sbob_rc64[r][i];
     }
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 0; i < 8; i++)
     {
       k[i] = SBOG_LPSti64;
     }
   }
 
-  #pragma unroll
   for (int i = 0; i < 8; i++)
   {
     h[i] ^= s[i] ^ k[i] ^ m[i];
   }
 }
 
-static void m11700m (__local u64 (*s_sbob_sl64)[256], u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+void m11700m (__local u64 (*s_sbob_sl64)[256], u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
@@ -2381,7 +2384,7 @@ static void m11700m (__local u64 (*s_sbob_sl64)[256], u32 w[16], const u32 pw_le
   }
 }
 
-static void m11700s (__local u64 (*s_sbob_sl64)[256], u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+void m11700s (__local u64 (*s_sbob_sl64)[256], u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier

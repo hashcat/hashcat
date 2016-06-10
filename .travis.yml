@@ -1,0 +1,13 @@
+os:
+  - linux
+  - osx
+language: c
+install:
+  - mkdir -p deps/OpenCL-Headers
+  - git clone https://github.com/KhronosGroup/OpenCL-Headers deps/OpenCL-Headers/CL
+compiler:
+  - clang
+  - gcc
+script:
+  - make
+

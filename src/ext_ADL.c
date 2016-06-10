@@ -12,7 +12,9 @@ int adl_init (ADL_PTR *adl)
   memset (adl, 0, sizeof (ADL_PTR));
 
   #ifdef _WIN
-  if (!(adl->lib = hc_dlopen ("atiadlxx.dll")))
+  adl->lib = hc_dlopen ("atiadlxx.dll");
+
+  if (!adl->lib)
   {
     adl->lib = hc_dlopen ("atiadlxy.dll");
   }
@@ -60,6 +62,7 @@ int adl_init (ADL_PTR *adl)
   HC_LOAD_FUNC(adl, ADL_Overdrive6_CurrentStatus_Get, ADL_OVERDRIVE6_CURRENTSTATUS_GET, ADL, 0)
   HC_LOAD_FUNC(adl, ADL_Overdrive6_State_Set, ADL_OVERDRIVE6_STATE_SET, ADL, 0)
   HC_LOAD_FUNC(adl, ADL_Overdrive6_TargetTemperatureData_Get, ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_TargetTemperatureRangeInfo_Get, ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET, ADL, 0)
 
   return 0;
 }
@@ -579,6 +582,15 @@ int hm_ADL_Overdrive6_TargetTemperatureData_Get (ADL_PTR *adl, int iAdapterIndex
   if (!adl) return (-1);
 
   int ADL_rc = adl->ADL_Overdrive6_TargetTemperatureData_Get (iAdapterIndex, cur_temp, default_temp);
+
+  return (ADL_rc);
+}
+
+int hm_ADL_Overdrive6_TargetTemperatureRangeInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6ParameterRange *lpTargetTemperatureInfo)
+{
+  if (!adl) return (-1);
+
+  int ADL_rc = adl->ADL_Overdrive6_TargetTemperatureRangeInfo_Get (iAdapterIndex, lpTargetTemperatureInfo);
 
   return (ADL_rc);
 }

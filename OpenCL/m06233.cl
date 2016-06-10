@@ -7,21 +7,21 @@
 
 #define _WHIRLPOOL_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#include "OpenCL/kernel_aes256.c"
-#include "OpenCL/kernel_twofish256.c"
-#include "OpenCL/kernel_serpent256.c"
+#include "inc_cipher_aes256.cl"
+#include "inc_cipher_twofish256.cl"
+#include "inc_cipher_serpent256.cl"
 
 #define R 10
 
@@ -1091,7 +1091,7 @@ __constant u32 Cl[8][256] =
 
 #define BOX(S,n,i) (S)[(n)][(i)]
 
-static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   const u32 rch[R + 1] =
   {
@@ -1172,7 +1172,9 @@ static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 (*s_
 
     u32 i;
 
-    #pragma unroll 8
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (i = 0; i < 8; i++)
     {
       const u8 Lp0 = Kh[(i + 8) & 7] >> 24;
@@ -1220,7 +1222,9 @@ static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 (*s_
     Kh[7] = Lh[7];
     Kl[7] = Ll[7];
 
-    #pragma unroll 8
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (i = 0; i < 8; i++)
     {
       const u8 Lp0 = stateh[(i + 8) & 7] >> 24;
@@ -1287,7 +1291,7 @@ static void whirlpool_transform (const u32 w[16], u32 dgst[16], __local u32 (*s_
   dgst[15] ^= statel[7] ^ w[15];
 }
 
-static void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[16], const u32 opad[16], u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[16], const u32 opad[16], u32 dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   dgst[ 0] = ipad[ 0];
   dgst[ 1] = ipad[ 1];
@@ -1367,7 +1371,7 @@ static void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[16], c
   whirlpool_transform (w, dgst, s_Ch, s_Cl);
 }
 
-static void hmac_init (u32 w[16], u32 ipad[16], u32 opad[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void hmac_init (u32 w[16], u32 ipad[16], u32 opad[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   w[ 0] ^= 0x36363636;
   w[ 1] ^= 0x36363636;
@@ -1442,7 +1446,7 @@ static void hmac_init (u32 w[16], u32 ipad[16], u32 opad[16], __local u32 (*s_Ch
   whirlpool_transform (w, opad, s_Ch, s_Cl);
 }
 
-static u32 u8add (const u32 a, const u32 b)
+u32 u8add (const u32 a, const u32 b)
 {
   const u32 a1 = (a >>  0) & 0xff;
   const u32 a2 = (a >>  8) & 0xff;
@@ -1966,6 +1970,8 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
   data[2] = esalt_bufs[0].data_buf[2];
   data[3] = esalt_bufs[0].data_buf[3];
 
+  const u32 signature = esalt_bufs[0].signature;
+
   u32 tmp[4];
 
   {
@@ -1976,11 +1982,9 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     aes256_decrypt_xts (ukey1, ukey2, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -1992,11 +1996,9 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     serpent256_decrypt_xts (ukey1, ukey2, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -2008,11 +2010,9 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
     twofish256_decrypt_xts (ukey1, ukey2, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -2047,11 +2047,9 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     aes256_decrypt_xts     (ukey2, ukey4, tmp, tmp);
     twofish256_decrypt_xts (ukey1, ukey3, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -2064,11 +2062,9 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     serpent256_decrypt_xts (ukey2, ukey4, tmp, tmp);
     aes256_decrypt_xts     (ukey1, ukey3, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -2081,11 +2077,9 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     twofish256_decrypt_xts (ukey2, ukey4, tmp, tmp);
     serpent256_decrypt_xts (ukey1, ukey3, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -2121,11 +2115,9 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     twofish256_decrypt_xts (ukey2, ukey5, tmp, tmp);
     serpent256_decrypt_xts (ukey1, ukey4, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 
@@ -2139,11 +2131,9 @@ __kernel void m06233_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     twofish256_decrypt_xts (ukey2, ukey5, tmp, tmp);
     aes256_decrypt_xts     (ukey1, ukey4, tmp, tmp);
 
-    if (((tmp[0] == 0x45555254) && (tmp[3] == 0)) || ((tmp[0] == 0x45555254) && ((tmp[1] >> 16) <= 5)))
+    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
     {
-      mark_hash (plains_buf, hashes_shown, 0, gid, 0);
-
-      d_return_buf[lid] = 1;
+      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
     }
   }
 }

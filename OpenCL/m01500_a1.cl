@@ -9,18 +9,18 @@
 
 #define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_simd.cl"
 
 #define PERM_OP(a,b,tt,n,m) \
 {                           \
@@ -350,7 +350,7 @@ __constant u32 c_skb[8][64] =
 #define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
 
-static void _des_crypt_keysetup (u32x c, u32x d, u32x Kc[16], u32x Kd[16], __local u32 (*s_skb)[64])
+void _des_crypt_keysetup (u32x c, u32x d, u32x Kc[16], u32x Kd[16], __local u32 (*s_skb)[64])
 {
   u32x tt;
 
@@ -368,7 +368,9 @@ static void _des_crypt_keysetup (u32x c, u32x d, u32x Kc[16], u32x Kd[16], __loc
 
   c = c & 0x0fffffff;
 
-  #pragma unroll 16
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i++)
   {
     if ((i < 2) || (i == 8) || (i == 15))
@@ -417,7 +419,7 @@ static void _des_crypt_keysetup (u32x c, u32x d, u32x Kc[16], u32x Kd[16], __loc
   }
 }
 
-static void _des_crypt_encrypt (u32x iv[2], u32 mask, u32x Kc[16], u32x Kd[16], __local u32 (*s_SPtrans)[64])
+void _des_crypt_encrypt (u32x iv[2], u32 mask, u32x Kc[16], u32x Kd[16], __local u32 (*s_SPtrans)[64])
 {
   const u32 E1 = (mask >> 2) & 0x3f0;
   const u32 E0 = mask & 0x3f;
@@ -427,6 +429,9 @@ static void _des_crypt_encrypt (u32x iv[2], u32 mask, u32x Kc[16], u32x Kd[16], 
 
   for (u32 i = 0; i < 25; i++)
   {
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (u32 j = 0; j < 16; j += 2)
     {
       u32x t;
@@ -641,10 +646,9 @@ __kernel void m01500_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     _des_crypt_encrypt (iv, mask, Kc, Kd, s_SPtrans);
 
-    u32x c = 0;
-    u32x d = 0;
+    u32x z = 0;
 
-    COMPARE_M_SIMD (iv[0], iv[1], c, d);
+    COMPARE_M_SIMD (iv[0], iv[1], z, z);
   }
 }
 
@@ -730,8 +734,8 @@ __kernel void m01500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
     digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0
   };
 
   /**
@@ -825,10 +829,9 @@ __kernel void m01500_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     _des_crypt_encrypt (iv, mask, Kc, Kd, s_SPtrans);
 
-    u32x c = 0;
-    u32x d = 0;
+    u32x z = 0;
 
-    COMPARE_S_SIMD (iv[0], iv[1], c, d);
+    COMPARE_S_SIMD (iv[0], iv[1], z, z);
   }
 }
 

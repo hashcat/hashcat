@@ -1,20 +1,22 @@
-oclHashcat v2.10
-================
+hashcat v3.00
+=============
 
-AMD users require Catalyst 14.9 or later (recommended 15.12 or later)
+** THE VERSION 3.00 IS CURRENTLY STILL IN BETA **
+
+AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)
 Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)
-NVidia users require ForceWare 346.59 or later (recommended 358.09 or later)
+NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)
 
 ##
 ## Features
 ##
 
 - World's fastest password cracker
-- World's first and only GPGPU-based rule engine
+- World's first and only in-kernel rule engine
 - Free
 - Open-Source (MIT License)
 - Multi-OS (Linux, Windows and OSX)
-- Multi-Platform (CPU, GPU, FPGA, etc., everything that comes with an OpenCL runtime)
+- Multi-Platform (CPU, GPU, DSP, FPGA, etc., everything that comes with an OpenCL runtime)
 - Multi-Hash (Cracking multiple hashes at the same time)
 - Multi-Devices (Utilizing multiple devices in same system)
 - Multi-Device-Types (Utilizing mixed device types in same system)
@@ -22,26 +24,13 @@ NVidia users require ForceWare 346.59 or later (recommended 358.09 or later)
 - Supports interactive pause / resume
 - Supports sessions
 - Supports restore
-- Supports reading words from file and stdin
+- Supports reading password candidates from file and stdin
 - Supports hex-salt and hex-charset
-- Supports user-defined workload and vector-width settings
-- Supports automatic keyspace ordering markov-chains 
+- Supports automatic performance tuning
+- Supports automatic keyspace ordering markov-chains
 - Built-in benchmarking system
 - Integrated thermal watchdog
-- 150+ Hash-types implemented with performance in mind
-- ... and much more
-
-##
-## Attack-Modes
-##
-
-- Straight *
-- Combination
-- Brute-force
-- Hybrid dict + mask
-- Hybrid mask + dict
-
-* = Supports rules
+- 160+ Hash-types implemented with performance in mind
 
 ##
 ## Hash-Types
@@ -171,6 +160,7 @@ NVidia users require ForceWare 346.59 or later (recommended 358.09 or later)
 - Juniper IVE
 - Juniper Netscreen/SSG (ScreenOS)
 - Android PIN
+- Windows 8+ phone PIN/Password
 - GRUB 2
 - CRC32
 - RACF
@@ -181,7 +171,9 @@ NVidia users require ForceWare 346.59 or later (recommended 358.09 or later)
 - SAP CODVN F/G (PASSCODE)
 - SAP CODVN H (PWDSALTEDHASH) iSSHA-1
 - PeopleSoft
+- PeopleSoft PS_TOKEN
 - Skype
+- WinZip
 - 7-Zip
 - RAR3-hp
 - RAR5
@@ -210,28 +202,40 @@ NVidia users require ForceWare 346.59 or later (recommended 358.09 or later)
 - eCryptfs
 - Android FDE <= 4.3
 - Android FDE (Samsung DEK)
-- TrueCrypt 5.0+
+- TrueCrypt
+- VeraCrypt
 
 ##
-## Tested GPU's
+## Attack-Modes
 ##
 
-- AMD OpenCL enabled GPU using AMD Catalyst driver
-- Intel OpenCL enabled GPU using Intel OpenCL driver
-- NVidia OpenCL enabled GPU using NVidia ForceWare driver
+- Straight *
+- Combination
+- Brute-force
+- Hybrid dict + mask
+- Hybrid mask + dict
+
+* = Supports rules
 
 ##
-## Tested CPU's
+## Supported OpenCL runtimes
 ##
 
-- AMD CPU using AMD Catalyst driver
-- Intel CPU using Intel OpenCL driver
-- Generic CPU using pocl driver or Catalyst driver
+- AMD
+- Apple
+- Intel
+- Mesa (Gallium)
+- NVidia
+- pocl
 
 ##
-## Tested Accelerators's
+## Supported OpenCL device types
 ##
 
-- Intel Xeon Phi coprocessors using Intel OpenCL driver
+- GPU
+- CPU 
+- APU
+- DSP
+- FPGA
+- Coprocessor
 
-To get started, run the example scripts or check out docs/user_manuals.txt

@@ -7,18 +7,18 @@
 
 #define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 2
 #define DGST_R1 3
 #define DGST_R2 4
 #define DGST_R3 5
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_simd.cl"
 
 __constant u64 keccakf_rndc[24] =
 {
@@ -30,18 +30,6 @@ __constant u64 keccakf_rndc[24] =
   0x8000000000008003, 0x8000000000008002, 0x8000000000000080,
   0x000000000000800a, 0x800000008000000a, 0x8000000080008081,
   0x8000000000008080, 0x0000000080000001, 0x8000000080008008
-};
-
-__constant u8 keccakf_rotc[24] =
-{
-   1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
-  27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
-};
-
-__constant u8 keccakf_piln[24] =
-{
-  10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
-  15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
 };
 
 #ifndef KECCAK_ROUNDS
@@ -111,6 +99,22 @@ __kernel void m05000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
+
+  /**
+   * constants
+   */
+
+  const u8 keccakf_rotc[24] =
+  {
+     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
+    27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
+  };
+
+  const u8 keccakf_piln[24] =
+  {
+    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
+    15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
+  };
 
   /**
    * 0x80 keccak, very special
@@ -337,6 +341,22 @@ __kernel void m05000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
+
+  /**
+   * constants
+   */
+
+  const u8 keccakf_rotc[24] =
+  {
+     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
+    27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
+  };
+
+  const u8 keccakf_piln[24] =
+  {
+    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
+    15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
+  };
 
   /**
    * 0x80 keccak, very special

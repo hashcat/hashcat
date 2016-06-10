@@ -7,20 +7,97 @@
 
 #define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_simd.cl"
 
-static void m00200m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+#define ROUND(v)                              \
+{                                             \
+  a ^= (((a & 0x3f) + add) * (v)) + (a << 8); \
+  b += (b << 8) ^ a;                          \
+  add += v;                                   \
+}
+
+#define CODE_PRE                                                  \
+{                                                                 \
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)      \
+  {                                                               \
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];             \
+                                                                  \
+    const u32x w0 = w0l | w0r;                                    \
+                                                                  \
+    u32x a = MYSQL323_A;                                          \
+    u32x b = MYSQL323_B;                                          \
+                                                                  \
+    u32x add = 7;                                                 \
+
+#define CODE_LOOP(rest)                                           \
+                                                                  \
+    int i;                                                        \
+    int j;                                                        \
+                                                                  \
+    for (i = 0, j = 1; i <= (int) (rest) - 4; i += 4, j += 1)     \
+    {                                                             \
+      const u32 wj = w[j];                                        \
+                                                                  \
+      ROUND ((wj >>  0) & 0xff);                                  \
+      ROUND ((wj >>  8) & 0xff);                                  \
+      ROUND ((wj >> 16) & 0xff);                                  \
+      ROUND ((wj >> 24) & 0xff);                                  \
+    }                                                             \
+                                                                  \
+    const u32 wj = w[j];                                          \
+                                                                  \
+    const u32 left = (rest) - i;                                  \
+                                                                  \
+    if (left == 3)                                                \
+    {                                                             \
+      ROUND ((wj >>  0) & 0xff);                                  \
+      ROUND ((wj >>  8) & 0xff);                                  \
+      ROUND ((wj >> 16) & 0xff);                                  \
+    }                                                             \
+    else if (left == 2)                                           \
+    {                                                             \
+      ROUND ((wj >>  0) & 0xff);                                  \
+      ROUND ((wj >>  8) & 0xff);                                  \
+    }                                                             \
+    else if (left == 1)                                           \
+    {                                                             \
+      ROUND ((wj >>  0) & 0xff);                                  \
+    }
+
+#define CODE_POST_M                                               \
+                                                                  \
+    a &= 0x7fffffff;                                              \
+    b &= 0x7fffffff;                                              \
+                                                                  \
+    u32x z = 0;                                                   \
+                                                                  \
+    COMPARE_M_SIMD (a, b, z, z);                                  \
+  }                                                               \
+}
+
+#define CODE_POST_S                                               \
+                                                                  \
+    a &= 0x7fffffff;                                              \
+    b &= 0x7fffffff;                                              \
+                                                                  \
+    u32x z = 0;                                                   \
+                                                                  \
+    COMPARE_S_SIMD (a, b, z, z);                                  \
+  }                                                               \
+}
+
+void m00200m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
@@ -35,86 +112,138 @@ static void m00200m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
 
   u32 w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  switch (pw_len)
   {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+    case  1:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff);
+      CODE_POST_M;
+      break;
 
-    const u32x w0 = w0l | w0r;
+    case  2:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff);
+      CODE_POST_M;
+      break;
 
-    u32x w_t[16];
+    case  3:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff);
+      CODE_POST_M;
+      break;
 
-    w_t[ 0] = w0;
-    w_t[ 1] = w[ 1];
-    w_t[ 2] = w[ 2];
-    w_t[ 3] = w[ 3];
-    w_t[ 4] = w[ 4];
-    w_t[ 5] = w[ 5];
-    w_t[ 6] = w[ 6];
-    w_t[ 7] = w[ 7];
-    w_t[ 8] = w[ 8];
-    w_t[ 9] = w[ 9];
-    w_t[10] = w[10];
-    w_t[11] = w[11];
-    w_t[12] = w[12];
-    w_t[13] = w[13];
-    w_t[14] = w[14];
-    w_t[15] = w[15];
+    case  4:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      CODE_POST_M;
+      break;
 
-    u32x a = MYSQL323_A;
-    u32x b = MYSQL323_B;
-    u32x c = 0;
-    u32x d = 0;
+    case  5:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff);
+      CODE_POST_M;
+      break;
 
-    u32x add = 7;
+    case  6:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff);
+      CODE_POST_M;
+      break;
 
-    #define ROUND(v)                              \
-    {                                             \
-      a ^= (((a & 0x3f) + add) * (v)) + (a << 8); \
-      b += (b << 8) ^ a;                          \
-      add += v;                                   \
-    }
+    case  7:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff);
+      CODE_POST_M;
+      break;
 
-    int i;
-    int j;
+    case  8:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      CODE_POST_M;
+      break;
 
-    for (i = 0, j = 0; i <= (int) pw_len - 4; i += 4, j += 1)
-    {
-      const u32x wj = w_t[j];
+    case  9:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff);
+      CODE_POST_M;
+      break;
 
-      ROUND ((wj >>  0) & 0xff);
-      ROUND ((wj >>  8) & 0xff);
-      ROUND ((wj >> 16) & 0xff);
-      ROUND ((wj >> 24) & 0xff);
-    }
+    case 10:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff);
+      CODE_POST_M;
+      break;
 
-    const u32x wj = w_t[j];
+    case 11:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff); ROUND ((w[2] >> 16) & 0xff);
+      CODE_POST_M;
+      break;
 
-    const u32 left = pw_len - i;
+    case 12:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff); ROUND ((w[2] >> 16) & 0xff); ROUND ((w[2] >> 24) & 0xff);
+      CODE_POST_M;
+      break;
 
-    if (left == 3)
-    {
-      ROUND ((wj >>  0) & 0xff);
-      ROUND ((wj >>  8) & 0xff);
-      ROUND ((wj >> 16) & 0xff);
-    }
-    else if (left == 2)
-    {
-      ROUND ((wj >>  0) & 0xff);
-      ROUND ((wj >>  8) & 0xff);
-    }
-    else if (left == 1)
-    {
-      ROUND ((wj >>  0) & 0xff);
-    }
+    case 13:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff); ROUND ((w[2] >> 16) & 0xff); ROUND ((w[2] >> 24) & 0xff);
+      ROUND ((w[3] >>  0) & 0xff);
+      CODE_POST_M;
+      break;
 
-    a &= 0x7fffffff;
-    b &= 0x7fffffff;
+    case 14:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff); ROUND ((w[2] >> 16) & 0xff); ROUND ((w[2] >> 24) & 0xff);
+      ROUND ((w[3] >>  0) & 0xff); ROUND ((w[3] >>  8) & 0xff);
+      CODE_POST_M;
+      break;
 
-    COMPARE_M_SIMD (a, b, c, d);
+    case 15:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff); ROUND ((w[2] >> 16) & 0xff); ROUND ((w[2] >> 24) & 0xff);
+      ROUND ((w[3] >>  0) & 0xff); ROUND ((w[3] >>  8) & 0xff); ROUND ((w[3] >> 16) & 0xff);
+      CODE_POST_M;
+      break;
+
+    case 16:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff); ROUND ((w[2] >> 16) & 0xff); ROUND ((w[2] >> 24) & 0xff);
+      ROUND ((w[3] >>  0) & 0xff); ROUND ((w[3] >>  8) & 0xff); ROUND ((w[3] >> 16) & 0xff); ROUND ((w[3] >> 24) & 0xff);
+      CODE_POST_M;
+      break;
+
+    default:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      CODE_LOOP (pw_len - 4);
+      CODE_POST_M;
+      break;
   }
 }
 
-static void m00200s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+void m00200s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
@@ -131,8 +260,8 @@ static void m00200s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
     digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0
   };
 
   /**
@@ -141,82 +270,134 @@ static void m00200s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global k
 
   u32 w0l = w[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  switch (pw_len)
   {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+    case  1:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff);
+      CODE_POST_S;
+      break;
 
-    const u32x w0 = w0l | w0r;
+    case  2:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff);
+      CODE_POST_S;
+      break;
 
-    u32x w_t[16];
+    case  3:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff);
+      CODE_POST_S;
+      break;
 
-    w_t[ 0] = w0;
-    w_t[ 1] = w[ 1];
-    w_t[ 2] = w[ 2];
-    w_t[ 3] = w[ 3];
-    w_t[ 4] = w[ 4];
-    w_t[ 5] = w[ 5];
-    w_t[ 6] = w[ 6];
-    w_t[ 7] = w[ 7];
-    w_t[ 8] = w[ 8];
-    w_t[ 9] = w[ 9];
-    w_t[10] = w[10];
-    w_t[11] = w[11];
-    w_t[12] = w[12];
-    w_t[13] = w[13];
-    w_t[14] = w[14];
-    w_t[15] = w[15];
+    case  4:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      CODE_POST_S;
+      break;
 
-    u32x a = MYSQL323_A;
-    u32x b = MYSQL323_B;
-    u32x c = 0;
-    u32x d = 0;
+    case  5:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff);
+      CODE_POST_S;
+      break;
 
-    u32x add = 7;
+    case  6:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff);
+      CODE_POST_S;
+      break;
 
-    #define ROUND(v)                              \
-    {                                             \
-      a ^= (((a & 0x3f) + add) * (v)) + (a << 8); \
-      b += (b << 8) ^ a;                          \
-      add += v;                                   \
-    }
+    case  7:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff);
+      CODE_POST_S;
+      break;
 
-    int i;
-    int j;
+    case  8:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      CODE_POST_S;
+      break;
 
-    for (i = 0, j = 0; i <= (int) pw_len - 4; i += 4, j += 1)
-    {
-      const u32x wj = w_t[j];
+    case  9:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff);
+      CODE_POST_S;
+      break;
 
-      ROUND ((wj >>  0) & 0xff);
-      ROUND ((wj >>  8) & 0xff);
-      ROUND ((wj >> 16) & 0xff);
-      ROUND ((wj >> 24) & 0xff);
-    }
+    case 10:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff);
+      CODE_POST_S;
+      break;
 
-    const u32x wj = w_t[j];
+    case 11:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff); ROUND ((w[2] >> 16) & 0xff);
+      CODE_POST_S;
+      break;
 
-    const u32 left = pw_len - i;
+    case 12:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff); ROUND ((w[2] >> 16) & 0xff); ROUND ((w[2] >> 24) & 0xff);
+      CODE_POST_S;
+      break;
 
-    if (left == 3)
-    {
-      ROUND ((wj >>  0) & 0xff);
-      ROUND ((wj >>  8) & 0xff);
-      ROUND ((wj >> 16) & 0xff);
-    }
-    else if (left == 2)
-    {
-      ROUND ((wj >>  0) & 0xff);
-      ROUND ((wj >>  8) & 0xff);
-    }
-    else if (left == 1)
-    {
-      ROUND ((wj >>  0) & 0xff);
-    }
+    case 13:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff); ROUND ((w[2] >> 16) & 0xff); ROUND ((w[2] >> 24) & 0xff);
+      ROUND ((w[3] >>  0) & 0xff);
+      CODE_POST_S;
+      break;
 
-    a &= 0x7fffffff;
-    b &= 0x7fffffff;
+    case 14:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff); ROUND ((w[2] >> 16) & 0xff); ROUND ((w[2] >> 24) & 0xff);
+      ROUND ((w[3] >>  0) & 0xff); ROUND ((w[3] >>  8) & 0xff);
+      CODE_POST_S;
+      break;
 
-    COMPARE_S_SIMD (a, b, c, d);
+    case 15:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff); ROUND ((w[2] >> 16) & 0xff); ROUND ((w[2] >> 24) & 0xff);
+      ROUND ((w[3] >>  0) & 0xff); ROUND ((w[3] >>  8) & 0xff); ROUND ((w[3] >> 16) & 0xff);
+      CODE_POST_S;
+      break;
+
+    case 16:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      ROUND ((w[1] >>  0) & 0xff); ROUND ((w[1] >>  8) & 0xff); ROUND ((w[1] >> 16) & 0xff); ROUND ((w[1] >> 24) & 0xff);
+      ROUND ((w[2] >>  0) & 0xff); ROUND ((w[2] >>  8) & 0xff); ROUND ((w[2] >> 16) & 0xff); ROUND ((w[2] >> 24) & 0xff);
+      ROUND ((w[3] >>  0) & 0xff); ROUND ((w[3] >>  8) & 0xff); ROUND ((w[3] >> 16) & 0xff); ROUND ((w[3] >> 24) & 0xff);
+      CODE_POST_S;
+      break;
+
+    default:
+      CODE_PRE;
+      ROUND ((w0   >>  0) & 0xff); ROUND ((w0   >>  8) & 0xff); ROUND ((w0   >> 16) & 0xff); ROUND ((w0   >> 24) & 0xff);
+      CODE_LOOP (pw_len - 4);
+      CODE_POST_S;
+      break;
   }
 }
 

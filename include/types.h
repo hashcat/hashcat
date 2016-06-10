@@ -168,6 +168,7 @@ typedef struct
   uint salt_buf[16];
   uint data_buf[112];
   uint keyfile_buf[16];
+  uint signature;
 
 } tc_t;
 
@@ -255,6 +256,38 @@ typedef struct
   uint rc4key[2];
 
 } oldoffice34_t;
+
+typedef struct
+{
+  u32 salt_buf[128];
+  u32 salt_len;
+
+  u32 pc_digest[5];
+  u32 pc_offset;
+
+} pstoken_t;
+
+typedef struct
+{
+  u32 type;
+  u32 mode;
+  u32 magic;
+  u32 salt_len;
+  u32 salt_buf[4];
+  u32 verify_bytes;
+  u32 compress_length;
+  u32 data_len;
+  u32 data_buf[2048];
+  u32 auth_len;
+  u32 auth_buf[4];
+
+} zip2_t;
+
+typedef struct
+{
+  uint salt_buf[32];
+
+} win8phone_t;
 
 typedef struct
 {
@@ -832,6 +865,9 @@ typedef struct
 
 typedef struct
 {
+  uint salt_pos;
+  uint digest_pos;
+  uint hash_pos;
   uint gidvid;
   uint il_pos;
 
@@ -905,6 +941,7 @@ struct __hc_device_param
   u64     device_maxmem_alloc;
   u64     device_global_mem;
   u32     device_maxclock_frequency;
+  size_t  device_maxworkgroup_size;
 
   uint    vector_width;
 
@@ -916,22 +953,22 @@ struct __hc_device_param
   uint    kernel_accel_min;
   uint    kernel_accel_max;
   uint    kernel_power;
-  uint    kernel_power_user;
+  uint    hardware_power;
 
-  uint    size_pws;
-  uint    size_tmps;
-  uint    size_hooks;
-  uint    size_bfs;
-  uint    size_combs;
-  uint    size_rules;
-  uint    size_rules_c;
-  uint    size_root_css;
-  uint    size_markov_css;
-  uint    size_digests;
-  uint    size_salts;
-  uint    size_shown;
-  uint    size_results;
-  uint    size_plains;
+  size_t  size_pws;
+  size_t  size_tmps;
+  size_t  size_hooks;
+  size_t  size_bfs;
+  size_t  size_combs;
+  size_t  size_rules;
+  size_t  size_rules_c;
+  size_t  size_root_css;
+  size_t  size_markov_css;
+  size_t  size_digests;
+  size_t  size_salts;
+  size_t  size_shown;
+  size_t  size_results;
+  size_t  size_plains;
 
   FILE   *combs_fp;
   comb_t *combs_buf;
@@ -944,8 +981,6 @@ struct __hc_device_param
   u64     words_off;
   u64     words_done;
 
-  uint   *result;
-
   uint    outerloop_pos;
   uint    outerloop_left;
 
@@ -955,24 +990,26 @@ struct __hc_device_param
   uint    exec_pos;
   double  exec_ms[EXEC_CACHE];
 
+  // this is "current" speed
+
   uint    speed_pos;
   u64     speed_cnt[SPEED_CACHE];
-  float   speed_ms[SPEED_CACHE];
-
-  hc_timer_t speed_rec[SPEED_CACHE];
+  double  speed_ms[SPEED_CACHE];
 
   hc_timer_t timer_speed;
 
   // device specific attributes starting
 
   char   *device_name;
+  char   *device_vendor;
   char   *device_name_chksum;
   char   *device_version;
   char   *driver_version;
 
   bool    opencl_v12;
 
-  cl_uint vendor_id;
+  cl_uint device_vendor_id;
+  cl_uint platform_vendor_id;
 
   cl_kernel  kernel1;
   cl_kernel  kernel12;
@@ -985,13 +1022,13 @@ struct __hc_device_param
   cl_kernel  kernel_amp;
   cl_kernel  kernel_tm;
   cl_kernel  kernel_weak;
+  cl_kernel  kernel_memset;
 
   cl_context context;
 
   cl_program program;
   cl_program program_mp;
   cl_program program_amp;
-  cl_program program_weak;
 
   cl_command_queue command_queue;
 
@@ -1033,6 +1070,7 @@ struct __hc_device_param
   void   *kernel_params_mp_l[PARAMCNT];
   void   *kernel_params_amp[PARAMCNT];
   void   *kernel_params_tm[PARAMCNT];
+  void   *kernel_params_memset[PARAMCNT];
 
   u32     kernel_params_buf32[PARAMCNT];
 
@@ -1046,6 +1084,7 @@ struct __hc_device_param
   u64     kernel_params_mp_l_buf64[PARAMCNT];
 
   u32     kernel_params_amp_buf32[PARAMCNT];
+  u32     kernel_params_memset_buf32[PARAMCNT];
 };
 
 typedef struct __hc_device_param hc_device_param_t;
@@ -1053,23 +1092,14 @@ typedef struct __hc_device_param hc_device_param_t;
 #ifdef HAVE_HWMON
 typedef struct
 {
-  union
-  {
-    #ifdef HAVE_ADL
-    HM_ADAPTER_AMD amd;
-    #endif
+  HM_ADAPTER_ADL   adl;
+  HM_ADAPTER_NVML  nvml;
+  HM_ADAPTER_NVAPI nvapi;
 
-    #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-    HM_ADAPTER_NV  nv;
-    #endif
+  int od_version;
 
-  } adapter_index;
-
-  int     od_version;
-  int     fan_supported;
-
-  // int     busid; // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPUs
-  // int     devid; // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPUs
+  int fan_get_supported;
+  int fan_set_supported;
 
 } hm_attrs_t;
 #endif // HAVE_HWMON
@@ -1090,8 +1120,9 @@ typedef struct
    * workload specific
    */
 
+  uint    hardware_power_all;
   uint    kernel_power_all;
-  float   kernel_power_div;
+  u64     kernel_power_final; // we save that so that all divisions are done from the same base
 
   /**
    * attack specific
@@ -1136,8 +1167,9 @@ typedef struct
    */
 
   #ifdef HAVE_HWMON
-  void   *hm_nv;
-  void   *hm_amd;
+  void      *hm_adl;
+  void      *hm_nvml;
+  void      *hm_nvapi;
   hm_attrs_t hm_device[DEVICES_MAX];
   #endif
 
@@ -1211,7 +1243,7 @@ typedef struct
   uint    restore_disable;
   uint    status;
   uint    status_timer;
-  uint    status_automat;
+  uint    machine_readable;
   uint    quiet;
   uint    force;
   uint    benchmark;
@@ -1230,6 +1262,8 @@ typedef struct
   uint    scrypt_tmto;
   uint    segment_size;
   char   *truecrypt_keyfiles;
+  char   *veracrypt_keyfiles;
+  uint    veracrypt_pim;
   uint    workload_profile;
 
   uint    hash_mode;
@@ -1291,7 +1325,7 @@ typedef struct
   hc_timer_t timer_running;         // timer on current dict
   hc_timer_t timer_paused;          // timer on current dict
 
-  float   ms_paused;                // timer on current dict
+  double  ms_paused;                // timer on current dict
 
   /**
     * hash_info and username
@@ -1309,3 +1343,4 @@ typedef struct
 extern hc_global_data_t data;
 
 #endif
+

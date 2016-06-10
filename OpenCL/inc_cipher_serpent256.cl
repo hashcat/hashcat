@@ -14,7 +14,7 @@
 /*                                                                      */
 /* -------------------------------------------------------------------- */
 /*                                                                      */
-/* Cleaned and optimized for GPU use with oclHashcat by Jens Steube     */
+/* Cleaned and optimized for GPU use with hashcat by Jens Steube        */
 
 /* 15 terms */
 
@@ -401,15 +401,19 @@
     c = rotr32(c, 3);     \
     a = rotr32(a, 13)
 
-static void serpent256_set_key (u32 *ks, const u32 *ukey)
+void serpent256_set_key (u32 *ks, const u32 *ukey)
 {
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 0; i < 8; i++)
   {
     ks[i] = ukey[i];
   }
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 0; i < 132; i++)
   {
     ks[i + 8] = rotl32 (ks[i + 7] ^ ks[i + 5] ^ ks[i + 3] ^ ks[i + 0] ^ 0x9e3779b9 ^ i, 11);
@@ -453,7 +457,7 @@ static void serpent256_set_key (u32 *ks, const u32 *ukey)
   k_set(32,a,b,c,d); sb3(a,b,c,d,e,f,g,h); k_get(32,e,f,g,h);
 }
 
-static void serpent256_encrypt (const u32 *ks, const u32 *in, u32 *out)
+void serpent256_encrypt (const u32 *ks, const u32 *in, u32 *out)
 {
   u32  a,b,c,d,e,f,g,h;
   u32  t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16;
@@ -503,7 +507,7 @@ static void serpent256_encrypt (const u32 *ks, const u32 *in, u32 *out)
   out[3] = d;
 }
 
-static void serpent256_decrypt (const u32 *ks, const u32 *in, u32 *out)
+void serpent256_decrypt (const u32 *ks, const u32 *in, u32 *out)
 {
   u32  a,b,c,d,e,f,g,h;
   u32  t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16;
@@ -553,7 +557,7 @@ static void serpent256_decrypt (const u32 *ks, const u32 *in, u32 *out)
   out[3] = d;
 }
 
-static void serpent256_decrypt_xts (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out)
+void serpent256_decrypt_xts (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out)
 {
   u32 T[4] = { 0 };
   u32 Z[4] = { 0 };

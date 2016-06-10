@@ -5,25 +5,26 @@
 
 #define _SHA512_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#define COMPARE_S "inc_comp_single.cl"
+#define COMPARE_M "inc_comp_multi.cl"
 
 // Buggy drivers...
 
 #ifdef IS_AMD
 #define STATE_DECL volatile
+//#define STATE_DECL
 #else
 #define STATE_DECL
 #endif
@@ -63,7 +64,7 @@ __constant u64 k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-static void sha512_transform (const u64 w[16], u64 digest[8])
+void sha512_transform (const u64 w[16], u64 digest[8])
 {
   u64 w0_t = w[ 0];
   u64 w1_t = w[ 1];
@@ -133,7 +134,9 @@ static void sha512_transform (const u64 w[16], u64 digest[8])
 
   ROUND_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 80; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
@@ -149,7 +152,7 @@ static void sha512_transform (const u64 w[16], u64 digest[8])
   digest[7] += h;
 }
 
-static void sha512_init (sha512_ctx_t *sha512_ctx)
+void sha512_init (sha512_ctx_t *sha512_ctx)
 {
   sha512_ctx->state[0] = SHA512M_A;
   sha512_ctx->state[1] = SHA512M_B;
@@ -163,7 +166,7 @@ static void sha512_init (sha512_ctx_t *sha512_ctx)
   sha512_ctx->len = 0;
 }
 
-static void sha512_update (sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
+void sha512_update (sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
 {
   int pos = sha512_ctx->len & 0x7f;
 
@@ -196,7 +199,7 @@ static void sha512_update (sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
   }
 }
 
-static void sha512_final (sha512_ctx_t *sha512_ctx)
+void sha512_final (sha512_ctx_t *sha512_ctx)
 {
   int pos = sha512_ctx->len & 0x7f;
 
@@ -499,7 +502,9 @@ __kernel void m01800_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
     {
       const u32 block_len = wpc_len[pc];
 
-      #pragma unroll 64
+      #ifdef _unroll
+      #pragma unroll
+      #endif
       for (u32 k = 0, p = block_len - 64; k < 64; k++, p++)
       {
         PUTCHAR64_BE (block, p, GETCHAR64_BE (l_alt_result, k));

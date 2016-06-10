@@ -4,19 +4,19 @@
 ## License.....: MIT
 ##
 
-OCLHASHCAT_ROOT="."
+HASHCAT_ROOT="."
 
 # helper functions
-_oclHashcat_get_permutations ()
+_hashcat_get_permutations ()
 {
   local num_devices=${1}
-  oclHashcat_devices_permutation=""
+  hashcat_devices_permutation=""
 
   # Formula: Sum (k=1...num_devices) (num_devices! / (k! * (num_devices - k)!))
   # or ofc (2 ^ num_devices) - 1
   if [ "${num_devices}" -gt 0 ]; then
 
-    oclHashcat_devices_permutation=$(seq 1 $num_devices)
+    hashcat_devices_permutation=$(seq 1 $num_devices)
 
     local k
 
@@ -24,7 +24,7 @@ _oclHashcat_get_permutations ()
 
       if [ "${k}" -eq ${num_devices} ];then
 
-        oclHashcat_devices_permutation="${oclHashcat_devices_permutation} $(seq 1 $num_devices | tr '\n' ',' | sed 's/, *$//')"
+        hashcat_devices_permutation="${hashcat_devices_permutation} $(seq 1 $num_devices | tr '\n' ',' | sed 's/, *$//')"
 
       else
 
@@ -65,7 +65,7 @@ _oclHashcat_get_permutations ()
 
             if [ "${pos_changed}" -eq 0 ]; then
 
-              oclHashcat_devices_permutation="${oclHashcat_devices_permutation} ${out_str}"
+              hashcat_devices_permutation="${hashcat_devices_permutation} ${out_str}"
 
             else
 
@@ -127,7 +127,7 @@ _oclHashcat_get_permutations ()
   fi
 }
 
-_oclHashcat_opencl_devices ()
+_hashcat_opencl_devices ()
 {
   local num_devices=0
 
@@ -144,7 +144,7 @@ _oclHashcat_opencl_devices ()
   return ${num_devices}
 }
 
-_oclHashcat_cpu_devices ()
+_hashcat_cpu_devices ()
 {
   local num_devices=0
 
@@ -157,7 +157,7 @@ _oclHashcat_cpu_devices ()
   return ${num_devices}
 }
 
-_oclHashcat_contains ()
+_hashcat_contains ()
 {
   local haystack=${1}
   local needle="${2}"
@@ -173,7 +173,7 @@ _oclHashcat_contains ()
   return 1
 }
 
-_oclHashcat ()
+_hashcat ()
 {
   local VERSION=2.10
 
@@ -189,7 +189,7 @@ _oclHashcat ()
   local BUILD_IN_CHARSETS='?l ?u ?d ?a ?b ?s'
 
   local SHORT_OPTS="-m -a -V -v -h -b -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -i -s -l"
-  local LONG_OPTS="--hash-type --attack-mode --version --help --eula --quiet --benchmark --benchmark-repeats --hex-salt --hex-wordlist --hex-charset --force --status --status-timer --status-automat --loopback --weak-hash-threshold --markov-hcstat --markov-disable --markov-classic --markov-threshold --runtime --session --restore --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --separator --show --left --username --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --gpu-temp-disable --gpu-temp-abort --gpu-temp-retain --powertune-enable --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --rules-cleanup --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --truecrypt-keyfiles"
+  local LONG_OPTS="--hash-type --attack-mode --version --help --eula --quiet --benchmark --benchmark-repeats --hex-salt --hex-wordlist --hex-charset --force --status --status-timer --machine-readable --loopback --weak-hash-threshold --markov-hcstat --markov-disable --markov-classic --markov-threshold --runtime --session --restore --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --separator --show --left --username --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --gpu-temp-disable --gpu-temp-abort --gpu-temp-retain --powertune-enable --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --rules-cleanup --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --truecrypt-keyfiles"
   local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --benchmark-repeats --status-timer --weak-hash-threshold --markov-hcstat --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --gpu-temp-abort --gpu-temp-retain -disable --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --truecrypt-keyfiles"
 
   COMPREPLY=()
@@ -246,12 +246,12 @@ _oclHashcat ()
       ;;
 
      -d|--opencl-devices)
-      _oclHashcat_opencl_devices
+      _hashcat_opencl_devices
       local num_devices=${?}
 
-      _oclHashcat_get_permutations ${num_devices}
+      _hashcat_get_permutations ${num_devices}
 
-      COMPREPLY=($(compgen -W "${oclHashcat_devices_permutation}" -- ${cur}))
+      COMPREPLY=($(compgen -W "${hashcat_devices_permutation}" -- ${cur}))
       return 0
       ;;
 
@@ -294,12 +294,12 @@ _oclHashcat ()
       ;;
 
     --cpu-affinity)
-      _oclHashcat_cpu_devices
+      _hashcat_cpu_devices
       local num_devices=${?}
 
-      _oclHashcat_get_permutations ${num_devices}
+      _hashcat_get_permutations ${num_devices}
 
-      COMPREPLY=($(compgen -W "${oclHashcat_devices_permutation}" -- ${cur}))
+      COMPREPLY=($(compgen -W "${hashcat_devices_permutation}" -- ${cur}))
       return 0
       ;;
 
@@ -422,12 +422,12 @@ _oclHashcat ()
       ;;
 
     -d*)
-      _oclHashcat_opencl_devices
+      _hashcat_opencl_devices
       local num_devices=${?}
 
-      _oclHashcat_get_permutations ${num_devices}
+      _hashcat_get_permutations ${num_devices}
 
-      local opencl_devices_var="$(echo "  "${oclHashcat_devices_permutation} | sed 's/ / -d/g')"
+      local opencl_devices_var="$(echo "  "${hashcat_devices_permutation} | sed 's/ / -d/g')"
       COMPREPLY=($(compgen -W "${opencl_devices_var}" -- ${cur}))
       return 0
       ;;
@@ -450,7 +450,7 @@ _oclHashcat ()
 
   local h=1
   local no_opts=0
-  local attack_mode=0 # also default of oclHashcat
+  local attack_mode=0 # also default of hashcat
   local has_charset_1=0
   local has_charset_2=0
   local has_charset_3=0
@@ -504,13 +504,13 @@ _oclHashcat ()
 
     fi
 
-    if _oclHashcat_contains "${OPTIONS}" "${COMP_WORDS[h]}"; then
+    if _hashcat_contains "${OPTIONS}" "${COMP_WORDS[h]}"; then
 
       h=$((h + 2))
 
     else
 
-      if ! _oclHashcat_contains "${LONG_OPTS}${SHORT_OPTS}" "${COMP_WORDS[h]}"; then
+      if ! _hashcat_contains "${LONG_OPTS}${SHORT_OPTS}" "${COMP_WORDS[h]}"; then
         local variants="-m -a -w -n -u -o -r -d"
         local skip=0
         local v
@@ -759,4 +759,4 @@ _oclHashcat ()
     esac
 }
 
-complete -F _oclHashcat -o filenames "${OCLHASHCAT_ROOT}"/oclHashcat64.bin "${OCLHASHCAT_ROOT}"/oclHashcat32.bin "${OCLHASHCAT_ROOT}"/oclHashcat oclHashcat
+complete -F _hashcat -o filenames "${HASHCAT_ROOT}"/hashcat64.bin "${HASHCAT_ROOT}"/hashcat32.bin "${HASHCAT_ROOT}"/hashcat hashcat

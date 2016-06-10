@@ -5,7 +5,7 @@
 
 GCC     := gcc
 ROOT    := ../..
-CFLAGS  := -O2 -s -pipe -W -Wall -std=c99 -I$(ROOT)/include/
+CFLAGS  := -O2 -s -pipe -W -Wall -std=c99 -I$(ROOT)/include/ -I$(ROOT)/OpenCL/
 LIBS    :=
 TARGET  := kernel2cpu_rule_test
 INCLUDE := $(ROOT)/src/rp_kernel_on_cpu.c cpu_rules.c

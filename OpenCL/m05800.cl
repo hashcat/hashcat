@@ -5,20 +5,20 @@
 
 #define _SHA1_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#define COMPARE_S "inc_comp_single.cl"
+#define COMPARE_M "inc_comp_multi.cl"
 
 typedef struct
 {
@@ -1055,7 +1055,7 @@ __constant entry_t pc[1024] =
   { 0x33323031, 4 }
 };
 
-static void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 offset)
+void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 offset)
 {
   switch (offset)
   {
@@ -1089,7 +1089,7 @@ static void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 of
   }
 }
 
-static void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u32 offset)
+void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u32 offset)
 {
   u32 tmp0;
   u32 tmp1;
@@ -1180,7 +1180,7 @@ static void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], c
   }
 }
 
-static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 A = digest[0];
   u32 B = digest[1];

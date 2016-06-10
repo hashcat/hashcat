@@ -10,15 +10,9 @@
 #define MD4_H_S(x,y,z)  ((x) ^ (y) ^ (z))
 
 #ifdef IS_NV
-#if CUDA_ARCH >= 500
-#define MD4_F(x,y,z)    lut3_ca ((x), (y), (z))
-#define MD4_G(x,y,z)    lut3_e8 ((x), (y), (z))
-#define MD4_H(x,y,z)    lut3_96 ((x), (y), (z))
-#else
 #define MD4_F(x,y,z)    (((x) & (y)) | ((~(x)) & (z)))
 #define MD4_G(x,y,z)    (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
 #define MD4_H(x,y,z)    ((x) ^ (y) ^ (z))
-#endif
 #define MD4_Fo(x,y,z)   (MD4_F((x), (y), (z)))
 #define MD4_Go(x,y,z)   (MD4_G((x), (y), (z)))
 #endif
@@ -38,6 +32,14 @@
 #define MD4_Fo(x,y,z)   (MD4_F((x), (y), (z)))
 #define MD4_Go(x,y,z)   (MD4_G((x), (y), (z)))
 #endif
+
+#define MD4_STEP_S(f,a,b,c,d,x,K,s) \
+{                                   \
+  a += K;                           \
+  a += x;                           \
+  a += f (b, c, d);                 \
+  a  = rotl32_S (a, s);             \
+}
 
 #define MD4_STEP(f,a,b,c,d,x,K,s)   \
 {                                   \
@@ -64,17 +66,10 @@
 #define MD5_I_S(x,y,z)  ((y) ^ ((x) | ~(z)))
 
 #ifdef IS_NV
-#if CUDA_ARCH >= 500
-#define MD5_F(x,y,z)    lut3_ca ((x), (y), (z))
-#define MD5_G(x,y,z)    lut3_e4 ((x), (y), (z))
-#define MD5_H(x,y,z)    lut3_96 ((x), (y), (z))
-#define MD5_I(x,y,z)    lut3_39 ((x), (y), (z))
-#else
 #define MD5_F(x,y,z)    ((z) ^ ((x) & ((y) ^ (z))))
 #define MD5_G(x,y,z)    ((y) ^ ((z) & ((x) ^ (y))))
 #define MD5_H(x,y,z)    ((x) ^ (y) ^ (z))
 #define MD5_I(x,y,z)    ((y) ^ ((x) | ~(z)))
-#endif
 #define MD5_Fo(x,y,z)   (MD5_F((x), (y), (z)))
 #define MD5_Go(x,y,z)   (MD5_G((x), (y), (z)))
 #endif
@@ -97,6 +92,15 @@
 #define MD5_Go(x,y,z)   (MD5_G((x), (y), (z)))
 #endif
 
+#define MD5_STEP_S(f,a,b,c,d,x,K,s) \
+{                                   \
+  a += K;                           \
+  a += x;                           \
+  a += f (b, c, d);                 \
+  a  = rotl32_S (a, s);             \
+  a += b;                           \
+}
+
 #define MD5_STEP(f,a,b,c,d,x,K,s)   \
 {                                   \
   a += K;                           \
@@ -115,18 +119,12 @@
 }
 #endif
 
-#if defined _SHA1_ || defined _SAPG_ || defined _OFFICE2007_ || defined _OFFICE2010_ || defined _OLDOFFICE34_ || defined _ANDROIDFDE_ || defined _DCC2_ || defined _WPA_ || defined _MD5_SHA1_ || defined _SHA1_MD5_ || defined _PSAFE2_ || defined _LOTUS8_ || defined _PBKDF2_SHA1_ || defined _RAR3_ || defined _SHA256_SHA1_
+#if defined _SHA1_ || defined _SAPG_ || defined _OFFICE2007_ || defined _OFFICE2010_ || defined _OLDOFFICE34_ || defined _ANDROIDFDE_ || defined _DCC2_ || defined _WPA_ || defined _MD5_SHA1_ || defined _SHA1_MD5_ || defined _PSAFE2_ || defined _LOTUS8_ || defined _PBKDF2_SHA1_ || defined _RAR3_ || defined _SHA256_SHA1_ || defined _ZIP2_
 
 #ifdef IS_NV
-#if CUDA_ARCH >= 500
-#define SHA1_F0(x,y,z)  lut3_ca ((x), (y), (z))
-#define SHA1_F1(x,y,z)  lut3_96 ((x), (y), (z))
-#define SHA1_F2(x,y,z)  lut3_e8 ((x), (y), (z))
-#else
 #define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
 #define SHA1_F1(x,y,z)  ((x) ^ (y) ^ (z))
 #define SHA1_F2(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
-#endif
 #define SHA1_F0o(x,y,z) (SHA1_F0 ((x), (y), (z)))
 #define SHA1_F2o(x,y,z) (SHA1_F2 ((x), (y), (z)))
 #endif
@@ -146,6 +144,15 @@
 #define SHA1_F0o(x,y,z) (SHA1_F0 ((x), (y), (z)))
 #define SHA1_F2o(x,y,z) (SHA1_F2 ((x), (y), (z)))
 #endif
+
+#define SHA1_STEP_S(f,a,b,c,d,e,x)  \
+{                                   \
+  e += K;                           \
+  e += x;                           \
+  e += f (b, c, d);                 \
+  e += rotl32_S (a,  5u);           \
+  b  = rotl32_S (b, 30u);           \
+}
 
 #define SHA1_STEP(f,a,b,c,d,e,x)    \
 {                                   \
@@ -190,19 +197,19 @@
 
 #define SHIFT_RIGHT_32(x,n) ((x) >> (n))
 
+#define SHA256_S0_S(x) (rotl32_S ((x), 25u) ^ rotl32_S ((x), 14u) ^ SHIFT_RIGHT_32 ((x),  3u))
+#define SHA256_S1_S(x) (rotl32_S ((x), 15u) ^ rotl32_S ((x), 13u) ^ SHIFT_RIGHT_32 ((x), 10u))
+#define SHA256_S2_S(x) (rotl32_S ((x), 30u) ^ rotl32_S ((x), 19u) ^ rotl32_S ((x), 10u))
+#define SHA256_S3_S(x) (rotl32_S ((x), 26u) ^ rotl32_S ((x), 21u) ^ rotl32_S ((x),  7u))
+
 #define SHA256_S0(x) (rotl32 ((x), 25u) ^ rotl32 ((x), 14u) ^ SHIFT_RIGHT_32 ((x),  3u))
 #define SHA256_S1(x) (rotl32 ((x), 15u) ^ rotl32 ((x), 13u) ^ SHIFT_RIGHT_32 ((x), 10u))
 #define SHA256_S2(x) (rotl32 ((x), 30u) ^ rotl32 ((x), 19u) ^ rotl32 ((x), 10u))
 #define SHA256_S3(x) (rotl32 ((x), 26u) ^ rotl32 ((x), 21u) ^ rotl32 ((x),  7u))
 
 #ifdef IS_NV
-#if CUDA_ARCH >= 500
-#define SHA256_F0(x,y,z)  lut3_e8 ((x), (y), (z))
-#define SHA256_F1(x,y,z)  lut3_ca ((x), (y), (z))
-#else
 #define SHA256_F0(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
 #define SHA256_F1(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
-#endif
 #define SHA256_F0o(x,y,z) (SHA256_F0 ((x), (y), (z)))
 #define SHA256_F1o(x,y,z) (SHA256_F1 ((x), (y), (z)))
 #endif
@@ -221,15 +228,28 @@
 #define SHA256_F1o(x,y,z) (SHA256_F1 ((x), (y), (z)))
 #endif
 
-#define SHA256_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
-{                                               \
-  h += K;                                       \
-  h += x;                                       \
-  h += SHA256_S3 (e);                           \
-  h += F1 (e,f,g);                              \
-  d += h;                                       \
-  h += SHA256_S2 (a);                           \
-  h += F0 (a,b,c);                              \
+#define SHA256_STEP_S(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
+{                                                 \
+  h += K;                                         \
+  h += x;                                         \
+  h += SHA256_S3_S (e);                           \
+  h += F1 (e,f,g);                                \
+  d += h;                                         \
+  h += SHA256_S2_S (a);                           \
+  h += F0 (a,b,c);                                \
+}
+
+#define SHA256_EXPAND_S(x,y,z,w) (SHA256_S1_S (x) + y + SHA256_S0_S (z) + w)
+
+#define SHA256_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)    \
+{                                                 \
+  h += K;                                         \
+  h += x;                                         \
+  h += SHA256_S3 (e);                             \
+  h += F1 (e,f,g);                                \
+  d += h;                                         \
+  h += SHA256_S2 (a);                             \
+  h += F0 (a,b,c);                                \
 }
 
 #define SHA256_EXPAND(x,y,z,w) (SHA256_S1 (x) + y + SHA256_S0 (z) + w)
@@ -281,6 +301,11 @@
 
 #define SHIFT_RIGHT_64(x,n) ((x) >> (n))
 
+#define SHA512_S0_S(x) (rotr64_S ((x), 28) ^ rotr64_S ((x), 34) ^ rotr64_S ((x), 39))
+#define SHA512_S1_S(x) (rotr64_S ((x), 14) ^ rotr64_S ((x), 18) ^ rotr64_S ((x), 41))
+#define SHA512_S2_S(x) (rotr64_S ((x),  1) ^ rotr64_S ((x),  8) ^ SHIFT_RIGHT_64 ((x), 7))
+#define SHA512_S3_S(x) (rotr64_S ((x), 19) ^ rotr64_S ((x), 61) ^ SHIFT_RIGHT_64 ((x), 6))
+
 #define SHA512_S0(x) (rotr64 ((x), 28) ^ rotr64 ((x), 34) ^ rotr64 ((x), 39))
 #define SHA512_S1(x) (rotr64 ((x), 14) ^ rotr64 ((x), 18) ^ rotr64 ((x), 41))
 #define SHA512_S2(x) (rotr64 ((x),  1) ^ rotr64 ((x),  8) ^ SHIFT_RIGHT_64 ((x), 7))
@@ -304,6 +329,19 @@
 #define SHA512_F1o(x,y,z) (SHA512_F1 ((x), (y), (z)))
 #endif
 
+#define SHA512_STEP_S(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
+{                                                 \
+  h += K;                                         \
+  h += x;                                         \
+  h += SHA512_S1_S (e);                           \
+  h += F0 (e, f, g);                              \
+  d += h;                                         \
+  h += SHA512_S0_S (a);                           \
+  h += F1 (a, b, c);                              \
+}
+
+#define SHA512_EXPAND_S(x,y,z,w) (SHA512_S3_S (x) + y + SHA512_S2_S (z) + w)
+
 #define SHA512_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                               \
   h += K;                                       \
@@ -321,19 +359,11 @@
 #ifdef _RIPEMD160_
 
 #ifdef IS_NV
-#if CUDA_ARCH >= 500
-#define RIPEMD160_F(x,y,z)    lut3_96 ((x), (y), (z))
-#define RIPEMD160_G(x,y,z)    lut3_ca ((x), (y), (z))
-#define RIPEMD160_H(x,y,z)    lut3_59 ((x), (y), (z))
-#define RIPEMD160_I(x,y,z)    lut3_e4 ((x), (y), (z))
-#define RIPEMD160_J(x,y,z)    lut3_2d ((x), (y), (z))
-#else
 #define RIPEMD160_F(x,y,z)    ((x) ^ (y) ^ (z))
 #define RIPEMD160_G(x,y,z)    ((z) ^ ((x) & ((y) ^ (z)))) /* x ? y : z */
 #define RIPEMD160_H(x,y,z)    (((x) | ~(y)) ^ (z))
 #define RIPEMD160_I(x,y,z)    ((y) ^ ((z) & ((x) ^ (y)))) /* z ? x : y */
 #define RIPEMD160_J(x,y,z)    ((x) ^ ((y) | ~(z)))
-#endif
 #define RIPEMD160_Go(x,y,z)   (RIPEMD160_G ((x), (y), (z)))
 #define RIPEMD160_Io(x,y,z)   (RIPEMD160_I ((x), (y), (z)))
 #endif

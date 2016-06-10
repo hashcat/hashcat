@@ -1,11 +1,11 @@
 #!/bin/bash
-# Programmable bash completion for oclHashcat
+# Programmable bash completion for hashcat
 # this script was tested under ubuntu, please verify if on your
 # distro /etc/bash_completion.d/ exists (otherwise it won't work)
 
 COMPGENSCRIPT=/etc/bash_completion
 COMPGENFOLDER=${COMPGENSCRIPT}.d
-COMPGENTARGET=${COMPGENFOLDER}/oclHashcat.sh
+COMPGENTARGET=${COMPGENFOLDER}/hashcat.sh
 BASHRC=~/.bashrc
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -131,15 +131,15 @@ fi
 
 if [ -d "${COMPGENFOLDER}" ]; then
 
-  # remove the old version of oclHashcat64.sh (was renamed to just oclHashcat.sh)
+  # remove the old version of hashcat64.sh (was renamed to just hashcat.sh)
 
-  rm -f "${COMPGENTARGET}"/oclHashcat64.sh
+  rm -f "${COMPGENTARGET}"/hashcat64.sh
 
   # copy the script to target folder
 
-  cp ${ROOT}/oclHashcat.sh "${COMPGENTARGET}"
+  cp ${ROOT}/hashcat.sh "${COMPGENTARGET}"
 
-  # adjust paths to the main binaries of oclHashcat
+  # adjust paths to the main binaries of hashcat
 
   sed -ri "s!^(ROOT=).*!\1\"${ROOT_PARENT}\"!" "${COMPGENTARGET}"
 
@@ -162,7 +162,7 @@ EOF
 
   if source_completion; then
 
-    echo "Bash completion scripts for oclHashcat were successfully installed, but since you didn't 'source' this file, you need to run:"
+    echo "Bash completion scripts for hashcat were successfully installed, but since you didn't 'source' this file, you need to run:"
     echo "source ${COMPGENTARGET} # or source ${BASHRC}"
     echo
     echo "in order to be able to use the tab completion within the current shell."

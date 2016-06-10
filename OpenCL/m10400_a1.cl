@@ -10,18 +10,18 @@
 //too much register pressure
 //#define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_simd.cl"
 
 __constant u32 padding[8] =
 {
@@ -43,7 +43,7 @@ typedef struct
 
 } RC4_KEY;
 
-static void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
+void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
 {
   u8 tmp;
 
@@ -52,14 +52,16 @@ static void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
+void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
 
   __local u32 *ptr = (__local u32 *) rc4_key->S;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (u32 i = 0; i < 64; i++)
   {
     ptr[i] = v; v += a;
@@ -73,7 +75,9 @@ static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 
   u32 j = 0;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (u32 i = 0; i < 255; i += 5)
   {
     j += rc4_key->S[i + 0] + d0; swap (rc4_key, i + 0, j);
@@ -86,9 +90,11 @@ static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
   j += rc4_key->S[255] + d0; swap (rc4_key, 255, j);
 }
 
-static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __constant u32 *in, u32 out[4])
+u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __constant u32 *in, u32 out[4])
 {
-  #pragma unroll 4
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 k = 0; k < 4; k++)
   {
     u32 xor4 = 0;
@@ -137,7 +143,7 @@ static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __constant u32 *in,
   return j;
 }
 
-static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
+void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {
   u32 a = digest[0];
   u32 b = digest[1];

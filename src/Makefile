@@ -6,7 +6,7 @@
 ## License.....: MIT
 ##
 
-PROG_NAME                := oclHashcat
+PROG_NAME                := hashcat
 
 ##
 ## Detect Operating System
@@ -43,16 +43,11 @@ SHARED_FOLDER            ?= $(PREFIX)/share/$(PROG_NAME)
 DOCUMENT_FOLDER          ?= $(PREFIX)/share/doc/$(PROG_NAME)
 
 ##
-## Dependencies, cross compilation only
+## Dependencies
+## You may ignore them if you have your own headers somewhere
 ##
 
 OPENCL_HEADERS_KHRONOS   := deps/OpenCL-Headers
-
-##
-
-WITH_ADL                 := 1
-WITH_NVML                := 1
-WITH_NVAPI               := 1
 
 ##
 ## Native compiler paths
@@ -79,24 +74,22 @@ CC_WIN_64                := x86_64-w64-mingw32-gcc
 ##
 
 COMPTIME                 := $(shell date +%s)
-VERSION_TAG              := $(shell git describe --tags --dirty=+ | cut -d- -f1)
-VERSION_SUM              := $(shell git describe --tags --dirty=+ | cut -d- -f3)
+VERSION_EXPORT           := $Format:%D$
+VERSION_TAG              := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)"|cut -d, -f2|sed -r 's|.* (\w+/)?([^ ]+)|\2|')
 
 ##
 ## Compiler flags
 ##
 
-CFLAGS                   := -pipe -W -Wall -std=c99 -Iinclude/
+CFLAGS                   := -pipe -W -Wall -std=c99 -Iinclude/ -IOpenCL/ -I$(OPENCL_HEADERS_KHRONOS)/
 
 ifndef DEBUG
 CFLAGS                   += -O2
 else
 CFLAGS                   += -DDEBUG -g -ggdb
-
 ifeq ($(DEBUG),2)
 CFLAGS                   += -fsanitize=address -fno-omit-frame-pointer
 endif
-
 endif
 
 ##
@@ -107,41 +100,20 @@ BINARY_NATIVE            := $(PROG_NAME)
 
 ifeq ($(UNAME),Darwin)
 export MACOSX_DEPLOYMENT_TARGET=10.9
-
-BINARY_NATIVE            := $(PROG_NAME).app
-
+BINARY_NATIVE            := $(BINARY_NATIVE).app
 CFLAGS_NATIVE            := -D_POSIX -DOSX
 CFLAGS_NATIVE            += $(CFLAGS)
-
 LFLAGS_NATIVE            := -lpthread
-
-WITH_ADL                 := 0
-WITH_NVML                := 0
 endif # darwin
 
 ifeq ($(UNAME),Linux)
 CFLAGS_NATIVE            := -D_POSIX -DLINUX
-
 ifndef DEBUG
 CFLAGS_NATIVE            += -s
 endif
-
 CFLAGS_NATIVE            += $(CFLAGS)
-
 LFLAGS_NATIVE            := -lpthread -ldl
-
-ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
 CFLAGS_NATIVE            += -DHAVE_HWMON
-
-ifeq ($(WITH_ADL),1)
-CFLAGS_NATIVE            += -DHAVE_ADL
-endif
-
-ifeq ($(WITH_NVML),1)
-CFLAGS_NATIVE            += -DHAVE_NVML
-endif
-endif
-
 endif # linux
 
 ##
@@ -155,40 +127,16 @@ CFLAGS_CROSS_LINUX       += -s
 endif
 
 CFLAGS_CROSS_LINUX       += $(CFLAGS)
-CFLAGS_CROSS_LINUX       += -I$(OPENCL_HEADERS_KHRONOS)/
-
-ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
 CFLAGS_CROSS_LINUX       += -DHAVE_HWMON
 
-ifeq ($(WITH_ADL),1)
-CFLAGS_CROSS_LINUX       += -DHAVE_ADL
-endif
-
-ifeq ($(WITH_NVML),1)
-CFLAGS_CROSS_LINUX       += -DHAVE_NVML
-endif
-endif
-
-CFLAGS_CROSS_WIN         := -D_WIN   -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
+CFLAGS_CROSS_WIN         := -D_WIN -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
 
 ifndef DEBUG
 CFLAGS_CROSS_WIN         += -s
 endif
 
 CFLAGS_CROSS_WIN         += $(filter-out -fsanitize=address,$(CFLAGS))
-CFLAGS_CROSS_WIN         += -I$(OPENCL_HEADERS_KHRONOS)/
-
-ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVAPI)))
 CFLAGS_CROSS_WIN         += -DHAVE_HWMON
-
-ifeq ($(WITH_ADL),1)
-CFLAGS_CROSS_WIN         += -DHAVE_ADL
-endif
-
-ifeq ($(WITH_NVAPI),1)
-CFLAGS_CROSS_WIN         += -DHAVE_NVAPI
-endif
-endif
 
 CFLAGS_CROSS_32          := -m32
 CFLAGS_CROSS_64          := -m64
@@ -202,60 +150,42 @@ LFLAGS_CROSS_WIN         := -lpsapi
 
 NATIVE_OBJS              := obj/ext_OpenCL.NATIVE.o obj/shared.NATIVE.o obj/rp_kernel_on_cpu.NATIVE.o
 
-ifneq (,$(filter 1,$(WITH_ADL) $(WITH_NVML)))
-ifeq ($(WITH_ADL),1)
+ifeq ($(UNAME),Linux)
 NATIVE_OBJS              += obj/ext_ADL.NATIVE.o
-endif
-
-ifeq ($(WITH_NVML),1)
+NATIVE_OBJS              += obj/ext_nvapi.NATIVE.o
 NATIVE_OBJS              += obj/ext_nvml.NATIVE.o
 endif
-endif
 
-LINUX_32_OBJS            := obj/ext_OpenCL.LINUX.32.o obj/shared.LINUX.32.o obj/rp_kernel_on_cpu.LINUX.32.o
-LINUX_64_OBJS            := obj/ext_OpenCL.LINUX.64.o obj/shared.LINUX.64.o obj/rp_kernel_on_cpu.LINUX.64.o
+LINUX_32_OBJS            := obj/ext_OpenCL.LINUX.32.o obj/shared.LINUX.32.o obj/rp_kernel_on_cpu.LINUX.32.o obj/ext_ADL.LINUX.32.o obj/ext_nvml.LINUX.32.o obj/ext_nvapi.LINUX.32.o
+LINUX_64_OBJS            := obj/ext_OpenCL.LINUX.64.o obj/shared.LINUX.64.o obj/rp_kernel_on_cpu.LINUX.64.o obj/ext_ADL.LINUX.64.o obj/ext_nvml.LINUX.64.o obj/ext_nvapi.LINUX.64.o
 
-WIN_32_OBJS              := obj/ext_OpenCL.WIN.32.o obj/shared.WIN.32.o obj/rp_kernel_on_cpu.WIN.32.o
-WIN_64_OBJS              := obj/ext_OpenCL.WIN.64.o obj/shared.WIN.64.o obj/rp_kernel_on_cpu.WIN.64.o
+## may need to adjust according to your mingw distribution
+CRT_GLOB_32              := /usr/i686-w64-mingw32/lib/CRT_glob.o
+CRT_GLOB_64              := /usr/x86_64-w64-mingw32/lib/CRT_glob.o
 
-ifeq ($(WITH_ADL),1)
-LINUX_32_OBJS            += obj/ext_ADL.LINUX.32.o
-LINUX_64_OBJS            += obj/ext_ADL.LINUX.64.o
-
-WIN_32_OBJS              += obj/ext_ADL.WIN.32.o
-WIN_64_OBJS              += obj/ext_ADL.WIN.64.o
-endif
-
-ifeq ($(WITH_NVML),1)
-LINUX_32_OBJS            += obj/ext_nvml.LINUX.32.o
-LINUX_64_OBJS            += obj/ext_nvml.LINUX.64.o
-endif
-
-ifeq ($(WITH_NVAPI),1)
-WIN_32_OBJS              += obj/ext_nvapi.WIN.32.o
-WIN_64_OBJS              += obj/ext_nvapi.WIN.64.o
-endif
+WIN_32_OBJS              := obj/ext_OpenCL.WIN.32.o   obj/shared.WIN.32.o   obj/rp_kernel_on_cpu.WIN.32.o   obj/ext_ADL.WIN.32.o   obj/ext_nvml.WIN.32.o   obj/ext_nvapi.WIN.32.o   $(CRT_GLOB_32)
+WIN_64_OBJS              := obj/ext_OpenCL.WIN.64.o   obj/shared.WIN.64.o   obj/rp_kernel_on_cpu.WIN.64.o   obj/ext_ADL.WIN.64.o   obj/ext_nvml.WIN.64.o   obj/ext_nvapi.WIN.64.o   $(CRT_GLOB_64)
 
 ##
 ## Targets: Global
 ##
 
-native: oclHashcat
+native: hashcat
 
 binaries: linux32 linux64 win32 win64 linux32API linux64API win32API win64API
 
 clean:
-	$(RM) -f obj/*.o *.bin *.exe *.app *.restore *.out *.pot *.dictstat *.log oclHashcat core
+	$(RM) -f obj/*.o *.bin *.exe *.app *.restore *.out *.pot *.dictstat *.log hashcat core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
 	$(RM) -rf *.dSYM
 	$(RM) -rf kernels
 
-linux32: oclHashcat32.bin
-linux64: oclHashcat64.bin
+linux32: hashcat32.bin
+linux64: hashcat64.bin
 
-win32: oclHashcat32.exe
-win64: oclHashcat64.exe
+win32: hashcat32.exe
+win64: hashcat64.exe
 
 linux32API: oclHashcat32API.bin
 linux64API: oclHashcat64API.bin
@@ -291,7 +221,7 @@ install: native
 	$(INSTALL) -m 755 -d                            $(SHARED_FOLDER)/rules
 	$(CP) -a rules/*                                $(SHARED_FOLDER)/rules/
 	$(INSTALL) -m 644 hashcat.hcstat                $(SHARED_FOLDER)/
-	$(INSTALL) -m 644 hashcat_tuning.hctab          $(SHARED_FOLDER)/
+	$(INSTALL) -m 644 hashcat.hctune                $(SHARED_FOLDER)/
 	$(INSTALL) -m 755 $(BINARY_NATIVE)              $(INSTALL_FOLDER)/
 
 uninstall:
@@ -300,56 +230,60 @@ uninstall:
 	$(RM) -rf $(DOCUMENT_FOLDER)
 
 ##
-## native compiled oclHashcat
+## native compiled hashcat
 ##
 
 obj/%.NATIVE.o:   src/%.c
 	$(CC_NATIVE) $(CFLAGS_NATIVE) -c -o $@ $<
 
-oclHashcat:       src/oclHashcat.c $(NATIVE_OBJS)
-	$(CC_NATIVE) $(CFLAGS_NATIVE)    -o $(BINARY_NATIVE) $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+hashcat:       src/hashcat.c $(NATIVE_OBJS)
+	$(CC_NATIVE) $(CFLAGS_NATIVE)    -o $(BINARY_NATIVE) $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 ##
-## cross compiled oclHashcat for binary release version
+## cross compiled hashcat for binary release version
 ##
 
 obj/%.LINUX.32.o: src/%.c
-	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32) -c -o $@ $<
+	$(CC_LINUX_32) -D_LINUX32 $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32) -c -o $@ $<
 
 obj/%.LINUX.64.o: src/%.c
-	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64) -c -o $@ $<
+	$(CC_LINUX_64) -D_LINUX64 $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64) -c -o $@ $<
 
 obj/%.WIN.32.o:   src/%.c
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32) -c -o $@ $<
+	$(CC_WIN_32)   -D_WIN32   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32) -c -o $@ $<
 
 obj/%.WIN.64.o:   src/%.c
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) -c -o $@ $<
+	$(CC_WIN_64)   -D_WIN64   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) -c -o $@ $<
 
-oclHashcat32.bin: src/oclHashcat.c $(LINUX_32_OBJS)
-	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+hashcat32.bin: src/hashcat.c $(LINUX_32_OBJS)
+	$(CC_LINUX_32) -D_LINUX32 $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-oclHashcat64.bin: src/oclHashcat.c $(LINUX_64_OBJS)
-	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+hashcat64.bin: src/hashcat.c $(LINUX_64_OBJS)
+	$(CC_LINUX_64) -D_LINUX64 $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-oclHashcat32.exe: src/oclHashcat.c $(WIN_32_OBJS)
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -static-libgcc
+hashcat32.exe: src/hashcat.c $(WIN_32_OBJS)
+	$(CC_WIN_32)   -D_WIN32   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -static-libgcc
 
 oclHashcat64.exe: src/oclHashcat.c $(WIN_64_OBJS)
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -static-libgcc
+
+hashcat64.exe: src/hashcat.c $(WIN_64_OBJS)
+	$(CC_WIN_64)   -D_WIN64   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -static-libgcc
 
 
 ##
 ##	Support for third-party integration via API
 ##
 
-oclHashcat32API.bin: src/oclHashcat.c src/oclHashcatAPI.c $(LINUX_32_OBJS)
+oclHashcat32API.bin: src/hashcat.c src/oclHashcatAPI.c $(LINUX_32_OBJS)
 	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32) -DAPI -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-oclHashcat64API.bin: src/oclHashcat.c src/oclHashcatAPI.c $(LINUX_64_OBJS)
+oclHashcat64API.bin: src/hashcat.c src/oclHashcatAPI.c $(LINUX_64_OBJS)
 	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64)  -DAPI -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-oclHashcat32API.exe: src/oclHashcat.c src/oclHashcatAPI.c $(WIN_32_OBJS)
+oclHashcat32API.exe: src/hashcat.c src/oclHashcatAPI.c $(WIN_32_OBJS)
 	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32)  -DAPI -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -static-libgcc
 
-oclHashcat64API.exe: src/oclHashcat.c src/oclHashcatAPI.c $(WIN_64_OBJS)
+oclHashcat64API.exe: src/hashcat.c src/oclHashcatAPI.c $(WIN_64_OBJS)
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) -DAPI  -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -static-libgcc
+

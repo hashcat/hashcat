@@ -7,17 +7,17 @@
 
 #define _SHA512_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
 __constant u32 te0[256] =
 {
@@ -706,7 +706,7 @@ __constant u32 rcon[] =
   0x1b000000, 0x36000000,
 };
 
-static void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   rek[0] = userkey[0];
   rek[1] = userkey[1];
@@ -762,7 +762,7 @@ static void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __loca
   }
 }
 
-static void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   for (u32 i = 0, j = 56; i < j; i += 4, j -= 4)
   {
@@ -802,7 +802,7 @@ static void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, 
   }
 }
 
-static void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
+void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
 {
   u32 s0 = in[0] ^ rdk[0];
   u32 s1 = in[1] ^ rdk[1];
@@ -916,7 +916,7 @@ __constant u64 k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-static void sha512_transform (const u64 w[16], u64 dgst[8])
+void sha512_transform (const u64 w[16], u64 dgst[8])
 {
   u64 a = dgst[0];
   u64 b = dgst[1];
@@ -986,7 +986,9 @@ static void sha512_transform (const u64 w[16], u64 dgst[8])
 
   ROUND_STEP (0);
 
-  //#pragma unroll
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 16; i < 80; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
@@ -1347,8 +1349,6 @@ __kernel void m11300_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
    && (out[2] == 0x10101010)
    && (out[3] == 0x10101010))
   {
-    mark_hash (plains_buf, hashes_shown, digests_offset + 0, gid, 0);
-
-    d_return_buf[lid] = 1;
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, 0);
   }
 }

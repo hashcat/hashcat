@@ -7,20 +7,20 @@
 
 #define _DES_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#define COMPARE_S "inc_comp_single.cl"
+#define COMPARE_M "inc_comp_multi.cl"
 
 #define PERM_OP(a,b,tt,n,m) \
 {                           \
@@ -358,7 +358,7 @@ __constant u32 c_skb[8][64] =
 
 #define BOX(i,n,S) (S)[(n)][(i)]
 
-static void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 (*s_skb)[64])
+void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 (*s_skb)[64])
 {
   u32 tt;
 
@@ -376,7 +376,9 @@ static void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u
 
   c = c & 0x0fffffff;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (u32 i = 0; i < 16; i++)
   {
     if ((i < 2) || (i == 8) || (i == 15))
@@ -425,7 +427,7 @@ static void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u
   }
 }
 
-static void _des_crypt_encrypt (u32 iv[2], u32 mask, u32 rounds, u32 Kc[16], u32 Kd[16], __local u32 (*s_SPtrans)[64])
+void _des_crypt_encrypt (u32 iv[2], u32 mask, u32 rounds, u32 Kc[16], u32 Kd[16], __local u32 (*s_SPtrans)[64])
 {
   u32 tt;
 

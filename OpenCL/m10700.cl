@@ -7,20 +7,20 @@
 
 #define _PDF17L8_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#define COMPARE_S "inc_comp_single.cl"
+#define COMPARE_M "inc_comp_multi.cl"
 
 typedef struct
 {
@@ -62,7 +62,7 @@ __constant u32 k_sha256[64] =
   SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
 };
 
-static void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
+void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -132,7 +132,9 @@ static void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4],
 
   ROUND256_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 64; i += 16)
   {
     ROUND256_EXPAND (); ROUND256_STEP (i);
@@ -172,7 +174,7 @@ __constant u64 k_sha384[80] =
   SHA384C4c, SHA384C4d, SHA384C4e, SHA384C4f,
 };
 
-static void sha384_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
+void sha384_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
 {
   u64 a = digest[0];
   u64 b = digest[1];
@@ -242,7 +244,9 @@ static void sha384_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4],
 
   ROUND384_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 80; i += 16)
   {
     ROUND384_EXPAND (); ROUND384_STEP (i);
@@ -282,7 +286,7 @@ __constant u64 k_sha512[80] =
   SHA384C4c, SHA384C4d, SHA384C4e, SHA384C4f,
 };
 
-static void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
+void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
 {
   u64 a = digest[0];
   u64 b = digest[1];
@@ -352,7 +356,9 @@ static void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4],
 
   ROUND512_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 80; i += 16)
   {
     ROUND512_EXPAND (); ROUND512_STEP (i);
@@ -715,7 +721,7 @@ __constant u32 rcon[] =
   0x1b000000, 0x36000000,
 };
 
-static void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   rek[0] = swap32 (userkey[0]);
   rek[1] = swap32 (userkey[1]);
@@ -741,7 +747,7 @@ static void AES128_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __loca
   }
 }
 
-static void AES128_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void AES128_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   u32 in_swap[4];
 
@@ -827,7 +833,7 @@ static void AES128_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32
   out[3] = swap32 (out[3]);
 }
 
-static void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
+void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
 {
   switch (block_len)
   {
@@ -1170,7 +1176,7 @@ static void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4],
 #define WORDSZ384   128
 #define WORDSZ512   128
 
-#define PWMAXSZ     32        // oclHashcat password length limit
+#define PWMAXSZ     32        // hashcat password length limit
 #define BLMAXSZ     BLSZ512
 #define WORDMAXSZ   WORDSZ512
 
@@ -1179,7 +1185,7 @@ static void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4],
 #define WORDMAXSZ4  (WORDMAXSZ  / 4)
 #define AESSZ4      (AESSZ      / 4)
 
-static void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, const u32 bl_len)
+void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, const u32 bl_len)
 {
   const u32 bd = bl_len / 4;
 
@@ -1224,7 +1230,7 @@ static void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, co
   }
 }
 
-static void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, const u32 pwbl_len)
+void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, const u32 pwbl_len)
 {
   const u32 m = offset % pwbl_len;
 
@@ -1248,7 +1254,7 @@ static void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, const
   #endif
 }
 
-static void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, const u32 *sc, const u32 pwbl_len, u32 *iv, const u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, const u32 *sc, const u32 pwbl_len, u32 *iv, const u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   for (u32 k = 0, wk = 0; k < W_len; k += AESSZ, wk += AESSZ4)
   {
@@ -1270,7 +1276,7 @@ static void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, c
   }
 }
 
-static u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   // make scratch buffer
 

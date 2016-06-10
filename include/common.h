@@ -59,8 +59,9 @@
 typedef void *OCL_LIB;
 
 #ifdef HAVE_HWMON
-typedef void *NV_LIB;
-typedef void *AMD_LIB;
+typedef void *ADL_LIB;
+typedef void *NVAPI_LIB;
+typedef void *NVML_LIB;
 #ifdef OSX
 #define __stdcall
 #endif
@@ -92,8 +93,9 @@ typedef UINT64 uint64_t;
 typedef HINSTANCE OCL_LIB;
 
 #ifdef HAVE_HWMON
-typedef HINSTANCE NV_LIB;
-typedef HINSTANCE AMD_LIB;
+typedef HINSTANCE ADL_LIB;
+typedef HINSTANCE NVAPI_LIB;
+typedef HINSTANCE NVML_LIB;
 #endif
 
 #define mkdir(name,mode) mkdir (name)
@@ -130,6 +132,9 @@ void log_error (const char *fmt, ...);
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
 
+#define CEIL(a) ((a - (int) (a)) > 0 ? a + 1 : a)
+
+
 /**
  * All the variables below have been moved from oclHashcat.c to share with API
  *
@@ -147,13 +152,12 @@ void log_error (const char *fmt, ...);
 #define MARKOV_DISABLE          0
 #define MARKOV_CLASSIC          0
 #define BENCHMARK               0
-#define BENCHMARK_REPEATS       2
 #define RESTORE                 0
 #define RESTORE_TIMER           60
 #define RESTORE_DISABLE         0
 #define STATUS                  0
 #define STATUS_TIMER            10
-#define STATUS_AUTOMAT          0
+#define MACHINE_READABLE        0
 #define LOOPBACK                0
 #define WEAK_HASH_THRESHOLD     100
 #define SHOW                    0
@@ -191,14 +195,15 @@ void log_error (const char *fmt, ...);
 #define BITMAP_MAX              24
 #define GPU_TEMP_DISABLE        0
 #define GPU_TEMP_ABORT          90
-#define GPU_TEMP_RETAIN         80
+#define GPU_TEMP_RETAIN         0
 #define WORKLOAD_PROFILE        2
 #define KERNEL_ACCEL            0
 #define KERNEL_LOOPS            0
 #define KERNEL_RULES            1024
 #define KERNEL_COMBS            1024
 #define KERNEL_BFS              1024
-#define KERNEL_THREADS          64
+#define KERNEL_THREADS_MAX      256
+#define KERNEL_THREADS_MAX_CPU  16
 #define POWERTUNE_ENABLE        0
 #define LOGFILE_DISABLE         0
 #define SCRYPT_TMTO             0
@@ -262,6 +267,7 @@ void log_error (const char *fmt, ...);
 
 #define MAX_DICTSTAT            10000
 
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 135
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 143
+
 
 #endif // COMMON_H

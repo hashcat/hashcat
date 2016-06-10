@@ -1,4 +1,4 @@
-/**
+ /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
  *               Gabriele Gristina <matrix@hashcat.net>
  *               magnum <john.magnum@hushmail.com>
@@ -19,12 +19,11 @@
 #include <stdint.h>
 #include <math.h>
 
-const char *PROGNAME            = "oclHashcat";
-const uint  VERSION_BIN         = 210;
-const uint  RESTORE_MIN         = 210;
+const char *PROGNAME            = "hashcat";
+const uint  VERSION_BIN         = 300;
+const uint  RESTORE_MIN         = 300;
 
-double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
-
+double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 
 #define global_free(attr)       \
 {                               \
@@ -39,6 +38,12 @@ double TARGET_MS_PROFILE[3]     = { 8, 16, 96 };
                           \
   attr = NULL;            \
 }
+
+#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+#define HC_API_CALL __stdcall
+#else
+#define HC_API_CALL
+#endif
 
 static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
 {
@@ -144,7 +149,9 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   8700,
   9100,
   133,
+  13500,
   11600,
+  13600,
   12500,
   13000,
   13200,
@@ -153,6 +160,12 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   6221,
   6231,
   6241,
+  13711,
+  13721,
+  13731,
+  13741,
+  13751,
+  13761,
   8800,
   12900,
   12200,
@@ -217,418 +230,383 @@ const char *USAGE_BIG[] =
   "",
   "Usage: %s [options]... hash|hashfile|hccapfile [dictionary|mask|directory]...",
   "",
-  "=======",
-  "Options",
-  "=======",
+  "- [ Options ] -",
   "",
-  "* General:",
-  "",
-  "  -m,  --hash-type=NUM               Hash-type, see references below",
-  "  -a,  --attack-mode=NUM             Attack-mode, see references below",
-  "  -V,  --version                     Print version",
-  "  -h,  --help                        Print help",
-  "       --quiet                       Suppress output",
-  "",
-  "* Misc:",
-  "",
-  "       --hex-charset                 Assume charset is given in hex",
-  "       --hex-salt                    Assume salt is given in hex",
-  "       --hex-wordlist                Assume words in wordlist is given in hex",
-  "       --force                       Ignore warnings",
-  "       --status                      Enable automatic update of the status-screen",
-  "       --status-timer=NUM            Seconds between status-screen update",
-  "       --status-automat              Display the status view in a machine readable format",
-  "       --loopback                    Add new plains to induct directory",
-  "       --weak-hash-threshold=NUM     Threshold when to stop checking for weak hashes, default is 100 salts",
-  "",
-  "* Markov:",
-  "",
-  "       --markov-hcstat=FILE          Specify hcstat file to use, default is hashcat.hcstat",
-  "       --markov-disable              Disables markov-chains, emulates classic brute-force",
-  "       --markov-classic              Enables classic markov-chains, no per-position enhancement",
-  "  -t,  --markov-threshold=NUM        Threshold when to stop accepting new markov-chains",
-  "",
-  "* Session:",
-  "",
-  "       --runtime=NUM                 Abort session after NUM seconds of runtime",
-  "       --session=STR                 Define specific session name",
-  "       --restore                     Restore session from --session",
-  "       --restore-disable             Do not write restore file",
-  "",
-  "* Files:",
-  "",
-  "  -o,  --outfile=FILE                Define outfile for recovered hash",
-  "       --outfile-format=NUM          Define outfile-format for recovered hash, see references below",
-  "       --outfile-autohex-disable     Disable the use of $HEX[] in output plains",
-  "       --outfile-check-timer=NUM     Seconds between outfile checks",
-  "  -p,  --separator=CHAR              Separator char for hashlists and outfile",
-  "       --show                        Show cracked passwords only",
-  "       --left                        Show un-cracked passwords only",
-  "       --username                    Enable ignoring of usernames in hashfile (recommended: also use --show)",
-  "       --remove                      Enable remove of hash once it is cracked",
-  "       --remove-timer=NUM            Update input hash file each NUM seconds",
-  "       --potfile-disable             Do not write potfile",
-  "       --potfile-path                Specific path to potfile",
-  "       --debug-mode=NUM              Defines the debug mode (hybrid only by using rules), see references below",
-  "       --debug-file=FILE             Output file for debugging rules (see also --debug-mode)",
-  "       --induction-dir=FOLDER        Specify induction directory to use, default is $session.induct",
-  "       --outfile-check-dir=FOLDER    Specify the outfile directory which should be monitored, default is $session.outfiles",
-  "       --logfile-disable             Disable the logfile",
-  "       --truecrypt-keyfiles=FILE     Keyfiles used, separate with comma",
-  "",
-  "* Resources:",
-  "",
-  "  -b,  --benchmark                   Run benchmark",
-  "       --benchmark-repeats=NUM       Repeat the kernel on the device NUM times to increase benchmark accuracy",
-  "  -c,  --segment-size=NUM            Size in MB to cache from the wordfile",
-  "       --bitmap-min=NUM              Minimum number of bits allowed for bitmaps",
-  "       --bitmap-max=NUM              Maximum number of bits allowed for bitmaps",
-  "       --cpu-affinity=STR            Locks to CPU devices, separate with comma",
-  "       --opencl-platforms=STR        OpenCL platforms to use, separate with comma",
-  "  -d,  --opencl-devices=STR          OpenCL devices to use, separate with comma",
-  "       --opencl-device-types=STR     OpenCL device-types to use, separate with comma, see references below",
-  "       --opencl-vector-width=NUM     OpenCL vector-width (either 1, 2, 4, 8 or 16), overrides value from device query",
-  "  -w,  --workload-profile=NUM        Enable a specific workload profile, see references below",
-  "  -n,  --kernel-accel=NUM            Workload tuning, increase the outer-loop step size",
-  "  -u,  --kernel-loops=NUM            Workload tuning, increase the inner-loop step size",
-  "       --gpu-temp-disable            Disable temperature and fanspeed readings and triggers",
+  " Options Short / Long          | Type | Description                                          | Example",
+  "===============================|======|======================================================|=======================",
+  " -m, --hash-type               | Num  | Hash-type, see references below                      | -m 1000",
+  " -a, --attack-mode             | Num  | Attack-mode, see references below                    | -a 3",
+  " -V, --version                 |      | Print version                                        |",
+  " -h, --help                    |      | Print help                                           |",
+  "     --quiet                   |      | Suppress output                                      |",
+  "     --hex-charset             |      | Assume charset is given in hex                       |",
+  "     --hex-salt                |      | Assume salt is given in hex                          |",
+  "     --hex-wordlist            |      | Assume words in wordlist is given in hex             |",
+  "     --force                   |      | Ignore warnings                                      |",
+  "     --status                  |      | Enable automatic update of the status-screen         |",
+  "     --status-timer            | Num  | Sets seconds between status-screen update to X       | --status-timer=1",
+  "     --machine-readable        |      | Display the status view in a machine readable format |",
+  "     --loopback                |      | Add new plains to induct directory                   |",
+  "     --weak-hash-threshold     | Num  | Threshold X when to stop checking for weak hashes    | --weak=0",
+  "     --markov-hcstat           | File | Specify hcstat file to use                           | --markov-hc=my.hcstat",
+  "     --markov-disable          |      | Disables markov-chains, emulates classic brute-force |",
+  "     --markov-classic          |      | Enables classic markov-chains, no per-position       |",
+  " -t, --markov-threshold        | Num  | Threshold X when to stop accepting new markov-chains | -t 50",
+  "     --runtime                 | Num  | Abort session after X seconds of runtime             | --runtime=10",
+  "     --session                 | Str  | Define specific session name                         | --session=mysession",
+  "     --restore                 |      | Restore session from --session                       |",
+  "     --restore-disable         |      | Do not write restore file                            |",
+  " -o, --outfile                 | File | Define outfile for recovered hash                    | -o outfile.txt",
+  "     --outfile-format          | Num  | Define outfile-format X for recovered hash           | --outfile-format=7",
+  "     --outfile-autohex-disable |      | Disable the use of $HEX[] in output plains           |",
+  "     --outfile-check-timer     | Num  | Sets seconds between outfile checks to X             | --outfile-check=30",
+  " -p, --separator               | Char | Separator char for hashlists and outfile             | -p :",
+  "     --show                    |      | Show cracked passwords only                          |",
+  "     --left                    |      | Show un-cracked passwords only                       |",
+  "     --username                |      | Enable ignoring of usernames in hashfile             |",
+  "     --remove                  |      | Enable remove of hash once it is cracked             |",
+  "     --remove-timer            | Num  | Update input hash file each X seconds                | --remove-timer=30",
+  "     --potfile-disable         |      | Do not write potfile                                 |",
+  "     --potfile-path            | Dir  | Specific path to potfile                             | --potfile-path=my.pot",
+  "     --debug-mode              | Num  | Defines the debug mode (hybrid only by using rules)  | --debug-mode=4",
+  "     --debug-file              | File | Output file for debugging rules                      | --debug-file=good.log",
+  "     --induction-dir           | Dir  | Specify the induction directory to use for loopback  | --induction=inducts",
+  "     --outfile-check-dir       | Dir  | Specify the outfile directory to monitor for plains  | --outfile-check-dir=x",
+  "     --logfile-disable         |      | Disable the logfile                                  |",
+  "     --truecrypt-keyfiles      | File | Keyfiles used, separate with comma                   | --truecrypt-key=x.png",
+  "     --veracrypt-keyfiles      | File | Keyfiles used, separate with comma                   | --veracrypt-key=x.txt",
+  "     --veracrypt-pim           | Num  | VeraCrypt personal iterations multiplier             | --veracrypt-pim=1000",
+  " -b, --benchmark               |      | Run benchmark                                        |",
+  " -c, --segment-size            | Num  | Sets size in MB to cache from the wordfile to X      | -c 32",
+  "     --bitmap-min              | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24",
+  "     --bitmap-max              | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-min=24",
+  "     --cpu-affinity            | Str  | Locks to CPU devices, separate with comma            | --cpu-affinity=1,2,3",
+  "     --opencl-platforms        | Str  | OpenCL platforms to use, separate with comma         | --opencl-platforms=2",
+  " -d, --opencl-devices          | Str  | OpenCL devices to use, separate with comma           | -d 1",
+  "     --opencl-device-types     | Str  | OpenCL device-types to use, separate with comma      | --opencl-device-type=1",
+  "     --opencl-vector-width     | Num  | Manual override OpenCL vector-width to X             | --opencl-vector=4",
+  " -w, --workload-profile        | Num  | Enable a specific workload profile, see pool below   | -w 3",
+  " -n, --kernel-accel            | Num  | Manual workload tuning, set outerloop step size to X | -n 64",
+  " -u, --kernel-loops            | Num  | Manual workload tuning, set innerloop step size to X | -u 256",
+  "     --gpu-temp-disable        |      | Disable temperature and fanspeed reads and triggers  |",
   #ifdef HAVE_HWMON
-  "       --gpu-temp-abort=NUM          Abort session if GPU temperature reaches NUM degrees celsius",
-  "       --gpu-temp-retain=NUM         Try to retain GPU temperature at NUM degrees celsius (AMD only)",
-  #ifdef HAVE_ADL
-  "       --powertune-enable            Enable automatic power tuning option (AMD OverDrive 6 only)",
+  "     --gpu-temp-abort          | Num  | Abort if GPU temperature reaches X degrees celsius   | --gpu-temp-abort=100",
+  "     --gpu-temp-retain         | Num  | Try to retain GPU temperature at X degrees celsius   | --gpu-temp-retain=95",
+  "     --powertune-enable        |      | Enable power tuning, restores settings when finished |",
   #endif
-  #endif
-  "       --scrypt-tmto=NUM             Manually override automatically calculated TMTO value for scrypt",
+  "     --scrypt-tmto             | Num  | Manually override TMTO value for scrypt to X         | --scrypt-tmto=3",
+  " -s, --skip                    | Num  | Skip X words from the start                          | -s 1000000",
+  " -l, --limit                   | Num  | Limit X words from the start + skipped words         | -l 1000000",
+  "     --keyspace                |      | Show keyspace base:mod values and quit               |",
+  " -j, --rule-left               | Rule | Single Rule applied to each word from left wordlist  | -j 'c'",
+  " -k, --rule-right              | Rule | Single Rule applied to each word from right wordlist | -k '^-'",
+  " -r, --rules-file              | File | Multiple Rules applied to each word from wordlists   | -r rules/best64.rule",
+  " -g, --generate-rules          | Num  | Generate X random rules                              | -g 10000",
+  "     --generate-rules-func-min | Num  | Force min X funcs per rule                           |",
+  "     --generate-rules-func-max | Num  | Force max X funcs per rule                           |",
+  "     --generate-rules-seed     | Num  | Force RNG seed set to X                              |",
+  " -1, --custom-charset1         | CS   | User-defined charset ?1                              | -1 ?l?d?u",
+  " -2, --custom-charset2         | CS   | User-defined charset ?2                              | -2 ?l?d?s",
+  " -3, --custom-charset3         | CS   | User-defined charset ?3                              |",
+  " -4, --custom-charset4         | CS   | User-defined charset ?4                              |",
+  " -i, --increment               |      | Enable mask increment mode                           |",
+  "     --increment-min           | Num  | Start mask incrementing at X                         | --increment-min=4",
+  "     --increment-max           | Num  | Stop mask incrementing at X                          | --increment-max=8",
   "",
-  "* Distributed:",
+  "- [ Hash modes ] -",
   "",
-  "  -s,  --skip=NUM                    Skip number of words",
-  "  -l,  --limit=NUM                   Limit number of words",
-  "       --keyspace                    Show keyspace base:mod values and quit",
+  "      # | Name                                             | Category",
+  "  ======+==================================================+======================================",
+  "    900 | MD4                                              | Raw Hash",
+  "      0 | MD5                                              | Raw Hash",
+  "   5100 | Half MD5                                         | Raw Hash",
+  "    100 | SHA1                                             | Raw Hash",
+  "  10800 | SHA-384                                          | Raw Hash",
+  "   1400 | SHA-256                                          | Raw Hash",
+  "   1700 | SHA-512                                          | Raw Hash",
+  "   5000 | SHA-3(Keccak)                                    | Raw Hash",
+  "  10100 | SipHash                                          | Raw Hash",
+  "   6000 | RipeMD160                                        | Raw Hash",
+  "   6100 | Whirlpool                                        | Raw Hash",
+  "   6900 | GOST R 34.11-94                                  | Raw Hash",
+  "  11700 | GOST R 34.11-2012 (Streebog) 256-bit             | Raw Hash",
+  "  11800 | GOST R 34.11-2012 (Streebog) 512-bit             | Raw Hash",
+  "     10 | md5($pass.$salt)                                 | Raw Hash, Salted and / or Iterated",
+  "     20 | md5($salt.$pass)                                 | Raw Hash, Salted and / or Iterated",
+  "     30 | md5(unicode($pass).$salt)                        | Raw Hash, Salted and / or Iterated",
+  "     40 | md5($salt.unicode($pass))                        | Raw Hash, Salted and / or Iterated",
+  "   3800 | md5($salt.$pass.$salt)                           | Raw Hash, Salted and / or Iterated",
+  "   3710 | md5($salt.md5($pass))                            | Raw Hash, Salted and / or Iterated",
+  "   2600 | md5(md5($pass)                                   | Raw Hash, Salted and / or Iterated",
+  "   4300 | md5(strtoupper(md5($pass)))                      | Raw Hash, Salted and / or Iterated",
+  "   4400 | md5(sha1($pass))                                 | Raw Hash, Salted and / or Iterated",
+  "    110 | sha1($pass.$salt)                                | Raw Hash, Salted and / or Iterated",
+  "    120 | sha1($salt.$pass)                                | Raw Hash, Salted and / or Iterated",
+  "    130 | sha1(unicode($pass).$salt)                       | Raw Hash, Salted and / or Iterated",
+  "    140 | sha1($salt.unicode($pass))                       | Raw Hash, Salted and / or Iterated",
+  "   4500 | sha1(sha1($pass)                                 | Raw Hash, Salted and / or Iterated",
+  "   4700 | sha1(md5($pass))                                 | Raw Hash, Salted and / or Iterated",
+  "   4900 | sha1($salt.$pass.$salt)                          | Raw Hash, Salted and / or Iterated",
+  "   1410 | sha256($pass.$salt)                              | Raw Hash, Salted and / or Iterated",
+  "   1420 | sha256($salt.$pass)                              | Raw Hash, Salted and / or Iterated",
+  "   1430 | sha256(unicode($pass).$salt)                     | Raw Hash, Salted and / or Iterated",
+  "   1440 | sha256($salt.unicode($pass))                     | Raw Hash, Salted and / or Iterated",
+  "   1710 | sha512($pass.$salt)                              | Raw Hash, Salted and / or Iterated",
+  "   1720 | sha512($salt.$pass)                              | Raw Hash, Salted and / or Iterated",
+  "   1730 | sha512(unicode($pass).$salt)                     | Raw Hash, Salted and / or Iterated",
+  "   1740 | sha512($salt.unicode($pass))                     | Raw Hash, Salted and / or Iterated",
+  "     50 | HMAC-MD5 (key = $pass)                           | Raw Hash, Authenticated",
+  "     60 | HMAC-MD5 (key = $salt)                           | Raw Hash, Authenticated",
+  "    150 | HMAC-SHA1 (key = $pass)                          | Raw Hash, Authenticated",
+  "    160 | HMAC-SHA1 (key = $salt)                          | Raw Hash, Authenticated",
+  "   1450 | HMAC-SHA256 (key = $pass)                        | Raw Hash, Authenticated",
+  "   1460 | HMAC-SHA256 (key = $salt)                        | Raw Hash, Authenticated",
+  "   1750 | HMAC-SHA512 (key = $pass)                        | Raw Hash, Authenticated",
+  "   1760 | HMAC-SHA512 (key = $salt)                        | Raw Hash, Authenticated",
+  "    400 | phpass                                           | Generic KDF",
+  "   8900 | scrypt                                           | Generic KDF",
+  "  11900 | PBKDF2-HMAC-MD5                                  | Generic KDF",
+  "  12000 | PBKDF2-HMAC-SHA1                                 | Generic KDF",
+  "  10900 | PBKDF2-HMAC-SHA256                               | Generic KDF",
+  "  12100 | PBKDF2-HMAC-SHA512                               | Generic KDF",
+  "     23 | Skype                                            | Network protocols",
+  "   2500 | WPA/WPA2                                         | Network protocols",
+  "   4800 | iSCSI CHAP authentication, MD5(Chap)             | Network protocols",
+  "   5300 | IKE-PSK MD5                                      | Network protocols",
+  "   5400 | IKE-PSK SHA1                                     | Network protocols",
+  "   5500 | NetNTLMv1                                        | Network protocols",
+  "   5500 | NetNTLMv1 + ESS                                  | Network protocols",
+  "   5600 | NetNTLMv2                                        | Network protocols",
+  "   7300 | IPMI2 RAKP HMAC-SHA1                             | Network protocols",
+  "   7500 | Kerberos 5 AS-REQ Pre-Auth etype 23              | Network protocols",
+  "   8300 | DNSSEC (NSEC3)                                   | Network protocols",
+  "  10200 | Cram MD5                                         | Network protocols",
+  "  11100 | PostgreSQL CRAM (MD5)                            | Network protocols",
+  "  11200 | MySQL CRAM (SHA1)                                | Network protocols",
+  "  11400 | SIP digest authentication (MD5)                  | Network protocols",
+  "  13100 | Kerberos 5 TGS-REP etype 23                      | Network protocols",
+  "    121 | SMF (Simple Machines Forum)                      | Forums, CMS, E-Commerce, Frameworks",
+  "    400 | phpBB3                                           | Forums, CMS, E-Commerce, Frameworks",
+  "   2611 | vBulletin < v3.8.5                               | Forums, CMS, E-Commerce, Frameworks",
+  "   2711 | vBulletin > v3.8.5                               | Forums, CMS, E-Commerce, Frameworks",
+  "   2811 | MyBB                                             | Forums, CMS, E-Commerce, Frameworks",
+  "   2811 | IPB (Invison Power Board)                        | Forums, CMS, E-Commerce, Frameworks",
+  "   8400 | WBB3 (Woltlab Burning Board)                     | Forums, CMS, E-Commerce, Frameworks",
+  "     11 | Joomla < 2.5.18                                  | Forums, CMS, E-Commerce, Frameworks",
+  "    400 | Joomla > 2.5.18                                  | Forums, CMS, E-Commerce, Frameworks",
+  "    400 | Wordpress                                        | Forums, CMS, E-Commerce, Frameworks",
+  "   2612 | PHPS                                             | Forums, CMS, E-Commerce, Frameworks",
+  "   7900 | Drupal7                                          | Forums, CMS, E-Commerce, Frameworks",
+  "     21 | osCommerce                                       | Forums, CMS, E-Commerce, Frameworks",
+  "     21 | xt:Commerce                                      | Forums, CMS, E-Commerce, Frameworks",
+  "  11000 | PrestaShop                                       | Forums, CMS, E-Commerce, Frameworks",
+  "    124 | Django (SHA-1)                                   | Forums, CMS, E-Commerce, Frameworks",
+  "  10000 | Django (PBKDF2-SHA256)                           | Forums, CMS, E-Commerce, Frameworks",
+  "   3711 | Mediawiki B type                                 | Forums, CMS, E-Commerce, Frameworks",
+  "   7600 | Redmine                                          | Forums, CMS, E-Commerce, Frameworks",
+  "     12 | PostgreSQL                                       | Database Server",
+  "    131 | MSSQL(2000)                                      | Database Server",
+  "    132 | MSSQL(2005)                                      | Database Server",
+  "   1731 | MSSQL(2012)                                      | Database Server",
+  "   1731 | MSSQL(2014)                                      | Database Server",
+  "    200 | MySQL323                                         | Database Server",
+  "    300 | MySQL4.1/MySQL5                                  | Database Server",
+  "   3100 | Oracle H: Type (Oracle 7+)                       | Database Server",
+  "    112 | Oracle S: Type (Oracle 11+)                      | Database Server",
+  "  12300 | Oracle T: Type (Oracle 12+)                      | Database Server",
+  "   8000 | Sybase ASE                                       | Database Server",
+  "    141 | EPiServer 6.x < v4                               | HTTP, SMTP, LDAP Server",
+  "   1441 | EPiServer 6.x > v4                               | HTTP, SMTP, LDAP Server",
+  "   1600 | Apache $apr1$                                    | HTTP, SMTP, LDAP Server",
+  "  12600 | ColdFusion 10+                                   | HTTP, SMTP, LDAP Server",
+  "   1421 | hMailServer                                      | HTTP, SMTP, LDAP Server",
+  "    101 | nsldap, SHA-1(Base64), Netscape LDAP SHA         | HTTP, SMTP, LDAP Server",
+  "    111 | nsldaps, SSHA-1(Base64), Netscape LDAP SSHA      | HTTP, SMTP, LDAP Server",
+  "   1711 | SSHA-512(Base64), LDAP {SSHA512}                 | HTTP, SMTP, LDAP Server",
+  "  11500 | CRC32                                            | Checksums",
+  "   3000 | LM                                               | Operating-Systems",
+  "   1000 | NTLM                                             | Operating-Systems",
+  "   1100 | Domain Cached Credentials (DCC), MS Cache        | Operating-Systems",
+  "   2100 | Domain Cached Credentials 2 (DCC2), MS Cache 2   | Operating-Systems",
+  "  12800 | MS-AzureSync PBKDF2-HMAC-SHA256                  | Operating-Systems",
+  "   1500 | descrypt, DES(Unix), Traditional DES             | Operating-Systems",
+  "  12400 | BSDiCrypt, Extended DES                          | Operating-Systems",
+  "    500 | md5crypt $1$, MD5(Unix)                          | Operating-Systems",
+  "   3200 | bcrypt $2*$, Blowfish(Unix)                      | Operating-Systems",
+  "   7400 | sha256crypt $5$, SHA256(Unix)                    | Operating-Systems",
+  "   1800 | sha512crypt $6$, SHA512(Unix)                    | Operating-Systems",
+  "    122 | OSX v10.4, OSX v10.5, OSX v10.6                  | Operating-Systems",
+  "   1722 | OSX v10.7                                        | Operating-Systems",
+  "   7100 | OSX v10.8, OSX v10.9, OSX v10.10                 | Operating-Systems",
+  "   6300 | AIX {smd5}                                       | Operating-Systems",
+  "   6700 | AIX {ssha1}                                      | Operating-Systems",
+  "   6400 | AIX {ssha256}                                    | Operating-Systems",
+  "   6500 | AIX {ssha512}                                    | Operating-Systems",
+  "   2400 | Cisco-PIX                                        | Operating-Systems",
+  "   2410 | Cisco-ASA                                        | Operating-Systems",
+  "    500 | Cisco-IOS $1$                                    | Operating-Systems",
+  "   5700 | Cisco-IOS $4$                                    | Operating-Systems",
+  "   9200 | Cisco-IOS $8$                                    | Operating-Systems",
+  "   9300 | Cisco-IOS $9$                                    | Operating-Systems",
+  "     22 | Juniper Netscreen/SSG (ScreenOS)                 | Operating-Systems",
+  "    501 | Juniper IVE                                      | Operating-Systems",
+  "   5800 | Android PIN                                      | Operating-Systems",
+  "  13800 | Windows 8+ phone PIN/Password                    | Operating-Systems",
+  "   8100 | Citrix Netscaler                                 | Operating-Systems",
+  "   8500 | RACF                                             | Operating-Systems",
+  "   7200 | GRUB 2                                           | Operating-Systems",
+  "   9900 | Radmin2                                          | Operating-Systems",
+  "    125 | ArubaOS                                          | Operating-Systems",
+  "   7700 | SAP CODVN B (BCODE)                              | Enterprise Application Software (EAS)",
+  "   7800 | SAP CODVN F/G (PASSCODE)                         | Enterprise Application Software (EAS)",
+  "  10300 | SAP CODVN H (PWDSALTEDHASH) iSSHA-1              | Enterprise Application Software (EAS)",
+  "   8600 | Lotus Notes/Domino 5                             | Enterprise Application Software (EAS)",
+  "   8700 | Lotus Notes/Domino 6                             | Enterprise Application Software (EAS)",
+  "   9100 | Lotus Notes/Domino 8                             | Enterprise Application Software (EAS)",
+  "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
+  "  13500 | PeopleSoft Token                                 | Enterprise Application Software (EAS)",
+  "  11600 | 7-Zip                                            | Archives",
+  "  12500 | RAR3-hp                                          | Archives",
+  "  13000 | RAR5                                             | Archives",
+  "  13200 | AxCrypt                                          | Archives",
+  "  13300 | AxCrypt in memory SHA1                           | Archives",
+  "  13600 | WinZip                                           | Archives",
+  "   62XY | TrueCrypt                                        | Full-Disk encryptions (FDE)",
+  "     X  | 1 = PBKDF2-HMAC-RipeMD160                        | Full-Disk encryptions (FDE)",
+  "     X  | 2 = PBKDF2-HMAC-SHA512                           | Full-Disk encryptions (FDE)",
+  "     X  | 3 = PBKDF2-HMAC-Whirlpool                        | Full-Disk encryptions (FDE)",
+  "     X  | 4 = PBKDF2-HMAC-RipeMD160 + boot-mode            | Full-Disk encryptions (FDE)",
+  "      Y | 1 = XTS  512 bit pure AES                        | Full-Disk encryptions (FDE)",
+  "      Y | 1 = XTS  512 bit pure Serpent                    | Full-Disk encryptions (FDE)",
+  "      Y | 1 = XTS  512 bit pure Twofish                    | Full-Disk encryptions (FDE)",
+  "      Y | 2 = XTS 1024 bit pure AES                        | Full-Disk encryptions (FDE)",
+  "      Y | 2 = XTS 1024 bit pure Serpent                    | Full-Disk encryptions (FDE)",
+  "      Y | 2 = XTS 1024 bit pure Twofish                    | Full-Disk encryptions (FDE)",
+  "      Y | 2 = XTS 1024 bit cascaded AES-Twofish            | Full-Disk encryptions (FDE)",
+  "      Y | 2 = XTS 1024 bit cascaded Serpent-AES            | Full-Disk encryptions (FDE)",
+  "      Y | 2 = XTS 1024 bit cascaded Twofish-Serpent        | Full-Disk encryptions (FDE)",
+  "      Y | 3 = XTS 1536 bit all                             | Full-Disk encryptions (FDE)",
+  "   8800 | Android FDE < v4.3                               | Full-Disk encryptions (FDE)",
+  "  12900 | Android FDE (Samsung DEK)                        | Full-Disk encryptions (FDE)",
+  "  12200 | eCryptfs                                         | Full-Disk encryptions (FDE)",
+  "  137XY | VeraCrypt                                        | Full-Disk encryptions (FDE)",
+  "     X  | 1 = PBKDF2-HMAC-RipeMD160                        | Full-Disk encryptions (FDE)",
+  "     X  | 2 = PBKDF2-HMAC-SHA512                           | Full-Disk encryptions (FDE)",
+  "     X  | 3 = PBKDF2-HMAC-Whirlpool                        | Full-Disk encryptions (FDE)",
+  "     X  | 4 = PBKDF2-HMAC-RipeMD160 + boot-mode            | Full-Disk encryptions (FDE)",
+  "     X  | 5 = PBKDF2-HMAC-SHA256                           | Full-Disk encryptions (FDE)",
+  "     X  | 6 = PBKDF2-HMAC-SHA256 + boot-mode               | Full-Disk encryptions (FDE)",
+  "      Y | 1 = XTS  512 bit pure AES                        | Full-Disk encryptions (FDE)",
+  "      Y | 1 = XTS  512 bit pure Serpent                    | Full-Disk encryptions (FDE)",
+  "      Y | 1 = XTS  512 bit pure Twofish                    | Full-Disk encryptions (FDE)",
+  "      Y | 2 = XTS 1024 bit pure AES                        | Full-Disk encryptions (FDE)",
+  "      Y | 2 = XTS 1024 bit pure Serpent                    | Full-Disk encryptions (FDE)",
+  "      Y | 2 = XTS 1024 bit pure Twofish                    | Full-Disk encryptions (FDE)",
+  "      Y | 2 = XTS 1024 bit cascaded AES-Twofish            | Full-Disk encryptions (FDE)",
+  "      Y | 2 = XTS 1024 bit cascaded Serpent-AES            | Full-Disk encryptions (FDE)",
+  "      Y | 2 = XTS 1024 bit cascaded Twofish-Serpent        | Full-Disk encryptions (FDE)",
+  "      Y | 3 = XTS 1536 bit all                             | Full-Disk encryptions (FDE)",
+  "   9700 | MS Office <= 2003 $0|$1, MD5 + RC4               | Documents",
+  "   9710 | MS Office <= 2003 $0|$1, MD5 + RC4, collider #1  | Documents",
+  "   9720 | MS Office <= 2003 $0|$1, MD5 + RC4, collider #2  | Documents",
+  "   9800 | MS Office <= 2003 $3|$4, SHA1 + RC4              | Documents",
+  "   9810 | MS Office <= 2003 $3|$4, SHA1 + RC4, collider #1 | Documents",
+  "   9820 | MS Office <= 2003 $3|$4, SHA1 + RC4, collider #2 | Documents",
+  "   9400 | MS Office 2007                                   | Documents",
+  "   9500 | MS Office 2010                                   | Documents",
+  "   9600 | MS Office 2013                                   | Documents",
+  "  10400 | PDF 1.1 - 1.3 (Acrobat 2 - 4)                    | Documents",
+  "  10410 | PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #1       | Documents",
+  "  10420 | PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #2       | Documents",
+  "  10500 | PDF 1.4 - 1.6 (Acrobat 5 - 8)                    | Documents",
+  "  10600 | PDF 1.7 Level 3 (Acrobat 9)                      | Documents",
+  "  10700 | PDF 1.7 Level 8 (Acrobat 10 - 11)                | Documents",
+  "   9000 | Password Safe v2                                 | Password Managers",
+  "   5200 | Password Safe v3                                 | Password Managers",
+  "   6800 | Lastpass + Lastpass sniffed                      | Password Managers",
+  "   6600 | 1Password, agilekeychain                         | Password Managers",
+  "   8200 | 1Password, cloudkeychain                         | Password Managers",
+  "  11300 | Bitcoin/Litecoin wallet.dat                      | Password Managers",
+  "  12700 | Blockchain, My Wallet                            | Password Managers",
+  "  13400 | Keepass 1 (AES/Twofish) and Keepass 2 (AES)      | Password Managers",
   "",
-  "* Rules:",
+  "- [ Outfile Formats ] -",
   "",
-  "  -j,  --rule-left=RULE              Single rule applied to each word from left dict",
-  "  -k,  --rule-right=RULE             Single rule applied to each word from right dict",
-  "  -r,  --rules-file=FILE             Rules-file, multi use: -r 1.rule -r 2.rule",
-  "  -g,  --generate-rules=NUM          Generate NUM random rules",
-  "       --generate-rules-func-min=NUM Force NUM functions per random rule min",
-  "       --generate-rules-func-max=NUM Force NUM functions per random rule max",
-  "       --generate-rules-seed=NUM     Force RNG seed to NUM",
+  "  # | Format",
+  " ===+========",
+  "  1 | hash[:salt]",
+  "  2 | plain",
+  "  3 | hash[:salt]:plain",
+  "  4 | hex_plain",
+  "  5 | hash[:salt]:hex_plain",
+  "  6 | plain:hex_plain",
+  "  7 | hash[:salt]:plain:hex_plain",
+  "  8 | crackpos",
+  "  9 | hash[:salt]:crack_pos",
+  " 10 | plain:crack_pos",
+  " 11 | hash[:salt]:plain:crack_pos",
+  " 12 | hex_plain:crack_pos",
+  " 13 | hash[:salt]:hex_plain:crack_pos",
+  " 14 | plain:hex_plain:crack_pos",
+  " 15 | hash[:salt]:plain:hex_plain:crack_pos",
   "",
-  "* Custom charsets:",
+  "- [ Rule Debugging Modes ] -",
   "",
-  "  -1,  --custom-charset1=CS          User-defined charsets",
-  "  -2,  --custom-charset2=CS          Example:",
-  "  -3,  --custom-charset3=CS          --custom-charset1=?dabcdef : sets charset ?1 to 0123456789abcdef",
-  "  -4,  --custom-charset4=CS          -2 mycharset.hcchr : sets charset ?2 to chars contained in file",
+  "  # | Format",
+  " ===+========",
+  "  1 | Finding-Rule",
+  "  2 | Original-Word",
+  "  3 | Original-Word:Finding-Rule",
+  "  4 | Original-Word:Finding-Rule:Processed-Word",
   "",
-  "* Increment:",
+  "- [ Attack Modes ] -",
   "",
-  "  -i,  --increment                   Enable increment mode",
-  "       --increment-min=NUM           Start incrementing at NUM",
-  "       --increment-max=NUM           Stop incrementing at NUM",
+  "  # | Mode",
+  " ===+======",
+  "  0 | Straight",
+  "  1 | Combination",
+  "  3 | Brute-force",
+  "  6 | Hybrid Wordlist + Mask",
+  "  7 | Hybrid Mask + Wordlist",
   "",
-  "==========",
-  "References",
-  "==========",
+  "- [ Built-in Charsets ] -",
   "",
-  "* Workload Profile:",
+  "  ? | Charset",
+  " ===+=========",
+  "  l | abcdefghijklmnopqrstuvwxyz",
+  "  u | ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  "  d | 0123456789",
+  "  s |  !\"#$%%&'()*+,-./:;<=>?@[\\]^_`{|}~",
+  "  a | ?l?u?d?s",
+  "  b | 0x00 - 0xff",
   "",
-  "    1 = Interactive performance profile, kernel execution runtime to  8ms, lower latency desktop, lower speed",
-  "    2 = Default     performance profile, kernel execution runtime to 16ms, economic setting",
-  "    3 = Headless    performance profile, kernel execution runtime to 96ms, higher latency desktop, higher speed",
+  "- [ OpenCL Device Types ] -",
   "",
-  "* OpenCL device-types:",
+  "  # | Device Type",
+  " ===+=============",
+  "  1 | CPU",
+  "  2 | GPU",
+  "  3 | FPGA, DSP, Co-Processor",
   "",
-  "    1 = CPU devices",
-  "    2 = GPU devices",
-  "    3 = Accelerator devices (FPGA, CELL Blade, etc.)",
+  "- [ Workload Profiles ] -",
   "",
-  "* Outfile Formats:",
+  "  # | Performance | Runtime | Power Consumption | Desktop Impact",
+  " ===+=============+=========+===================+=================",
+  "  1 | Low         |   2 ms  | Low               | Minimal",
+  "  2 | Default     |  12 ms  | Economic          | Noticeable",
+  "  3 | High        |  96 ms  | High              | Unresponsive",
+  "  4 | Nightmare   | 480 ms  | Insane            | Headless",
   "",
-  "    1 = hash[:salt]",
-  "    2 = plain",
-  "    3 = hash[:salt]:plain",
-  "    4 = hex_plain",
-  "    5 = hash[:salt]:hex_plain",
-  "    6 = plain:hex_plain",
-  "    7 = hash[:salt]:plain:hex_plain",
-  "    8 = crackpos",
-  "    9 = hash[:salt]:crackpos",
-  "   10 = plain:crackpos",
-  "   11 = hash[:salt]:plain:crackpos",
-  "   12 = hex_plain:crackpos",
-  "   13 = hash[:salt]:hex_plain:crackpos",
-  "   14 = plain:hex_plain:crackpos",
-  "   15 = hash[:salt]:plain:hex_plain:crackpos",
+  "If you have no idea what just happened then visit the following pages:",
   "",
-  "* Debug mode output formats (for hybrid mode only, by using rules):",
-  "",
-  "    1 = save finding rule",
-  "    2 = save original word",
-  "    3 = save original word and finding rule",
-  "    4 = save original word, finding rule and modified plain",
-  "",
-  "* Built-in charsets:",
-  "",
-  "   ?l = abcdefghijklmnopqrstuvwxyz",
-  "   ?u = ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-  "   ?d = 0123456789",
-  "   ?s =  !\"#$%%&'()*+,-./:;<=>?@[\\]^_`{|}~",
-  "   ?a = ?l?u?d?s",
-  "   ?b = 0x00 - 0xff",
-  "",
-  "* Attack modes:",
-  "",
-  "    0 = Straight",
-  "    1 = Combination",
-  "    3 = Brute-force",
-  "    6 = Hybrid dict + mask",
-  "    7 = Hybrid mask + dict",
-  "",
-  "* Hash types:",
-  "",
-  "[[ Roll-your-own: Raw Hashes ]]",
-  "",
-  "    900 = MD4",
-  "      0 = MD5",
-  "   5100 = Half MD5",
-  "    100 = SHA1",
-  "  10800 = SHA-384",
-  "   1400 = SHA-256",
-  "   1700 = SHA-512",
-  "   5000 = SHA-3(Keccak)",
-  "  10100 = SipHash",
-  "   6000 = RipeMD160",
-  "   6100 = Whirlpool",
-  "   6900 = GOST R 34.11-94",
-  "  11700 = GOST R 34.11-2012 (Streebog) 256-bit",
-  "  11800 = GOST R 34.11-2012 (Streebog) 512-bit",
-  "",
-  "[[ Roll-your-own: Iterated and / or Salted Hashes ]]",
-  "",
-  "     10 = md5($pass.$salt)",
-  "     20 = md5($salt.$pass)",
-  "     30 = md5(unicode($pass).$salt)",
-  "     40 = md5($salt.unicode($pass))",
-  "   3800 = md5($salt.$pass.$salt)",
-  "   3710 = md5($salt.md5($pass))",
-  "   2600 = md5(md5($pass)",
-  "   4300 = md5(strtoupper(md5($pass)))",
-  "   4400 = md5(sha1($pass))",
-  "    110 = sha1($pass.$salt)",
-  "    120 = sha1($salt.$pass)",
-  "    130 = sha1(unicode($pass).$salt)",
-  "    140 = sha1($salt.unicode($pass))",
-  "   4500 = sha1(sha1($pass)",
-  "   4700 = sha1(md5($pass))",
-  "   4900 = sha1($salt.$pass.$salt)",
-  "   1410 = sha256($pass.$salt)",
-  "   1420 = sha256($salt.$pass)",
-  "   1430 = sha256(unicode($pass).$salt)",
-  "   1440 = sha256($salt.unicode($pass))",
-  "   1710 = sha512($pass.$salt)",
-  "   1720 = sha512($salt.$pass)",
-  "   1730 = sha512(unicode($pass).$salt)",
-  "   1740 = sha512($salt.unicode($pass))",
-  "",
-  "[[ Roll-your-own: Authenticated Hashes ]]",
-  "",
-  "     50 = HMAC-MD5 (key = $pass)",
-  "     60 = HMAC-MD5 (key = $salt)",
-  "    150 = HMAC-SHA1 (key = $pass)",
-  "    160 = HMAC-SHA1 (key = $salt)",
-  "   1450 = HMAC-SHA256 (key = $pass)",
-  "   1460 = HMAC-SHA256 (key = $salt)",
-  "   1750 = HMAC-SHA512 (key = $pass)",
-  "   1760 = HMAC-SHA512 (key = $salt)",
-  "",
-  "[[ Generic KDF ]]",
-  "",
-  "    400 = phpass",
-  "   8900 = scrypt",
-  "  11900 = PBKDF2-HMAC-MD5",
-  "  12000 = PBKDF2-HMAC-SHA1",
-  "  10900 = PBKDF2-HMAC-SHA256",
-  "  12100 = PBKDF2-HMAC-SHA512",
-  "",
-  "[[ Network protocols, Challenge-Response ]]",
-  "",
-  "     23 = Skype",
-  "   2500 = WPA/WPA2",
-  "   4800 = iSCSI CHAP authentication, MD5(Chap)",
-  "   5300 = IKE-PSK MD5",
-  "   5400 = IKE-PSK SHA1",
-  "   5500 = NetNTLMv1",
-  "   5500 = NetNTLMv1 + ESS",
-  "   5600 = NetNTLMv2",
-  "   7300 = IPMI2 RAKP HMAC-SHA1",
-  "   7500 = Kerberos 5 AS-REQ Pre-Auth etype 23",
-  "   8300 = DNSSEC (NSEC3)",
-  "  10200 = Cram MD5",
-  "  11100 = PostgreSQL Challenge-Response Authentication (MD5)",
-  "  11200 = MySQL Challenge-Response Authentication (SHA1)",
-  "  11400 = SIP digest authentication (MD5)",
-  "  13100 = Kerberos 5 TGS-REP etype 23",
-  "",
-  "[[ Forums, CMS, E-Commerce, Frameworks, Middleware, Wiki, Management ]]",
-  "",
-  "    121 = SMF (Simple Machines Forum)",
-  "    400 = phpBB3",
-  "   2611 = vBulletin < v3.8.5",
-  "   2711 = vBulletin > v3.8.5",
-  "   2811 = MyBB",
-  "   2811 = IPB (Invison Power Board)",
-  "   8400 = WBB3 (Woltlab Burning Board)",
-  "     11 = Joomla < 2.5.18",
-  "    400 = Joomla > 2.5.18",
-  "    400 = Wordpress",
-  "   2612 = PHPS",
-  "   7900 = Drupal7",
-  "     21 = osCommerce",
-  "     21 = xt:Commerce",
-  "  11000 = PrestaShop",
-  "    124 = Django (SHA-1)",
-  "  10000 = Django (PBKDF2-SHA256)",
-  "   3711 = Mediawiki B type",
-  "   7600 = Redmine",
-  "",
-  "[[ Database Server ]]",
-  "",
-  "     12 = PostgreSQL",
-  "    131 = MSSQL(2000)",
-  "    132 = MSSQL(2005)",
-  "   1731 = MSSQL(2012)",
-  "   1731 = MSSQL(2014)",
-  "    200 = MySQL323",
-  "    300 = MySQL4.1/MySQL5",
-  "   3100 = Oracle H: Type (Oracle 7+)",
-  "    112 = Oracle S: Type (Oracle 11+)",
-  "  12300 = Oracle T: Type (Oracle 12+)",
-  "   8000 = Sybase ASE",
-  "",
-  "[[ HTTP, SMTP, LDAP Server ]]",
-  "",
-  "    141 = EPiServer 6.x < v4",
-  "   1441 = EPiServer 6.x > v4",
-  "   1600 = Apache $apr1$",
-  "  12600 = ColdFusion 10+",
-  "   1421 = hMailServer",
-  "    101 = nsldap, SHA-1(Base64), Netscape LDAP SHA",
-  "    111 = nsldaps, SSHA-1(Base64), Netscape LDAP SSHA",
-  "   1711 = SSHA-512(Base64), LDAP {SSHA512}",
-  "",
-  "[[ Checksums ]]",
-  "",
-  "  11500 = CRC32",
-  "",
-  "[[ Operating-Systems ]]",
-  "",
-  "   3000 = LM",
-  "   1000 = NTLM",
-  "   1100 = Domain Cached Credentials (DCC), MS Cache",
-  "   2100 = Domain Cached Credentials 2 (DCC2), MS Cache 2",
-  "  12800 = MS-AzureSync PBKDF2-HMAC-SHA256",
-  "   1500 = descrypt, DES(Unix), Traditional DES",
-  "  12400 = BSDiCrypt, Extended DES",
-  "    500 = md5crypt $1$, MD5(Unix)",
-  "   3200 = bcrypt $2*$, Blowfish(Unix)",
-  "   7400 = sha256crypt $5$, SHA256(Unix)",
-  "   1800 = sha512crypt $6$, SHA512(Unix)",
-  "    122 = OSX v10.4",
-  "    122 = OSX v10.5",
-  "    122 = OSX v10.6",
-  "   1722 = OSX v10.7",
-  "   7100 = OSX v10.8",
-  "   7100 = OSX v10.9",
-  "   7100 = OSX v10.10",
-  "   6300 = AIX {smd5}",
-  "   6700 = AIX {ssha1}",
-  "   6400 = AIX {ssha256}",
-  "   6500 = AIX {ssha512}",
-  "   2400 = Cisco-PIX",
-  "   2410 = Cisco-ASA",
-  "    500 = Cisco-IOS $1$",
-  "   5700 = Cisco-IOS $4$",
-  "   9200 = Cisco-IOS $8$",
-  "   9300 = Cisco-IOS $9$",
-  "     22 = Juniper Netscreen/SSG (ScreenOS)",
-  "    501 = Juniper IVE",
-  "   5800 = Android PIN",
-  "   8100 = Citrix Netscaler",
-  "   8500 = RACF",
-  "   7200 = GRUB 2",
-  "   9900 = Radmin2",
-  "    125 = ArubaOS",
-  "",
-  "[[ Enterprise Application Software (EAS) ]]",
-  "",
-  "   7700 = SAP CODVN B (BCODE)",
-  "   7800 = SAP CODVN F/G (PASSCODE)",
-  "  10300 = SAP CODVN H (PWDSALTEDHASH) iSSHA-1",
-  "   8600 = Lotus Notes/Domino 5",
-  "   8700 = Lotus Notes/Domino 6",
-  "   9100 = Lotus Notes/Domino 8",
-  "    133 = PeopleSoft",
-  "",
-  "[[ Archives ]]",
-  "",
-  "  11600 = 7-Zip",
-  "  12500 = RAR3-hp",
-  "  13000 = RAR5",
-  "  13200 = AxCrypt",
-  "  13300 = AxCrypt in memory SHA1",
-  "",
-  "[[ Full-Disk encryptions (FDE) ]]",
-  "",
-  "   62XY = TrueCrypt 5.0+",
-  "     X  = 1 = PBKDF2-HMAC-RipeMD160",
-  "     X  = 2 = PBKDF2-HMAC-SHA512",
-  "     X  = 3 = PBKDF2-HMAC-Whirlpool",
-  "     X  = 4 = PBKDF2-HMAC-RipeMD160 + boot-mode",
-  "      Y = 1 = XTS  512 bit (Ciphers: AES or Serpent or Twofish)",
-  "      Y = 2 = XTS 1024 bit (Ciphers: AES or Serpent or Twofish or AES-Twofish or Serpent-AES or Twofish-Serpent)",
-  "      Y = 3 = XTS 1536 bit (Ciphers: All)",
-  "   8800 = Android FDE < v4.3",
-  "  12900 = Android FDE (Samsung DEK)",
-  "  12200 = eCryptfs",
-  "",
-  "[[ Documents ]]",
-  "",
-  "   9700 = MS Office <= 2003 MD5 + RC4, oldoffice$0, oldoffice$1",
-  "   9710 = MS Office <= 2003 MD5 + RC4, collider-mode #1",
-  "   9720 = MS Office <= 2003 MD5 + RC4, collider-mode #2",
-  "   9800 = MS Office <= 2003 SHA1 + RC4, oldoffice$3, oldoffice$4",
-  "   9810 = MS Office <= 2003 SHA1 + RC4, collider-mode #1",
-  "   9820 = MS Office <= 2003 SHA1 + RC4, collider-mode #2",
-  "   9400 = MS Office 2007",
-  "   9500 = MS Office 2010",
-  "   9600 = MS Office 2013",
-  "  10400 = PDF 1.1 - 1.3 (Acrobat 2 - 4)",
-  "  10410 = PDF 1.1 - 1.3 (Acrobat 2 - 4) + collider-mode #1",
-  "  10420 = PDF 1.1 - 1.3 (Acrobat 2 - 4) + collider-mode #2",
-  "  10500 = PDF 1.4 - 1.6 (Acrobat 5 - 8)",
-  "  10600 = PDF 1.7 Level 3 (Acrobat 9)",
-  "  10700 = PDF 1.7 Level 8 (Acrobat 10 - 11)",
-  "",
-  "[[ Password Managers ]]",
-  "",
-  "   9000 = Password Safe v2",
-  "   5200 = Password Safe v3",
-  "   6800 = Lastpass",
-  "   6600 = 1Password, agilekeychain",
-  "   8200 = 1Password, cloudkeychain",
-  "  11300 = Bitcoin/Litecoin wallet.dat",
-  "  12700 = Blockchain, My Wallet",
-  "  13400 = Keepass 1 (AES/Twofish) and Keepass 2 (AES)",
+  "* https://hashcat.net/wiki/#howtos_videos_papers_articles_etc_in_the_wild",
+  "* https://hashcat.net/wiki/#frequently_asked_questions",
   "",
   NULL
 };
 
 /**
- * oclHashcat specific functions
+ * hashcat specific functions
  */
 
 static double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
@@ -658,7 +636,7 @@ static double get_avg_exec_time (hc_device_param_t *device_param, const int last
   return exec_ms_sum / exec_ms_cnt;
 }
 
-void status_display_automat ()
+void status_display_machine_readable ()
 {
   FILE *out = stdout;
 
@@ -676,17 +654,11 @@ void status_display_automat ()
 
     if (device_param->skipped) continue;
 
-    u64   speed_cnt  = 0;
-    float speed_ms   = 0;
+    u64    speed_cnt  = 0;
+    double speed_ms   = 0;
 
     for (int i = 0; i < SPEED_CACHE; i++)
     {
-      float rec_ms;
-
-      hc_timer_get (device_param->speed_rec[i], rec_ms);
-
-      if (rec_ms > SPEED_MAXAGE) continue;
-
       speed_cnt  += device_param->speed_cnt[i];
       speed_ms   += device_param->speed_ms[i];
     }
@@ -822,9 +794,9 @@ void status_display ()
   if (data.devices_status == STATUS_STARTING) return;
   if (data.devices_status == STATUS_BYPASS)   return;
 
-  if (data.status_automat == 1)
+  if (data.machine_readable == 1)
   {
-    status_display_automat ();
+    status_display_machine_readable ();
 
     return;
   }
@@ -974,6 +946,10 @@ void status_display ()
     {
       log_info ("Hash.Target....: File (%s)", data.hashfile);
     }
+    else if ((data.hash_mode >= 13700) && (data.hash_mode <= 13799))
+    {
+      log_info ("Hash.Target....: File (%s)", data.hashfile);
+    }
     else
     {
       char out_buf[HCBUFSIZ] = { 0 };
@@ -1016,8 +992,8 @@ void status_display ()
    * speed new
    */
 
-  u64   speed_cnt[DEVICES_MAX] = { 0 };
-  float speed_ms[DEVICES_MAX]  = { 0 };
+  u64    speed_cnt[DEVICES_MAX] = { 0 };
+  double speed_ms[DEVICES_MAX]  = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1025,25 +1001,11 @@ void status_display ()
 
     if (device_param->skipped) continue;
 
-    // we need to clear values (set to 0) because in case the device does
-    // not get new candidates it idles around but speed display would
-    // show it as working.
-    // if we instantly set it to 0 after reading it happens that the
-    // speed can be shown as zero if the users refreshes too fast.
-    // therefore, we add a timestamp when a stat was recorded and if its
-    // too old we will not use it
-
     speed_cnt[device_id] = 0;
     speed_ms[device_id]  = 0;
 
     for (int i = 0; i < SPEED_CACHE; i++)
     {
-      float rec_ms;
-
-      hc_timer_get (device_param->speed_rec[i], rec_ms);
-
-      if (rec_ms > SPEED_MAXAGE) continue;
-
       speed_cnt[device_id] += device_param->speed_cnt[i];
       speed_ms[device_id]  += device_param->speed_ms[i];
     }
@@ -1052,9 +1014,9 @@ void status_display ()
     speed_ms[device_id]  /= SPEED_CACHE;
   }
 
-  float hashes_all_ms = 0;
+  double hashes_all_ms = 0;
 
-  float hashes_dev_ms[DEVICES_MAX] = { 0 };
+  double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1066,7 +1028,7 @@ void status_display ()
 
     if (speed_ms[device_id])
     {
-      hashes_dev_ms[device_id] = speed_cnt[device_id] / speed_ms[device_id];
+      hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
 
       hashes_all_ms += hashes_dev_ms[device_id];
     }
@@ -1093,15 +1055,15 @@ void status_display ()
    * timers
    */
 
-  float ms_running = 0;
+  double ms_running = 0;
 
   hc_timer_get (data.timer_running, ms_running);
 
-  float ms_paused = data.ms_paused;
+  double ms_paused = data.ms_paused;
 
   if (data.devices_status == STATUS_PAUSED)
   {
-    float ms_paused_tmp = 0;
+    double ms_paused_tmp = 0;
 
     hc_timer_get (data.timer_paused, ms_paused_tmp);
 
@@ -1348,7 +1310,7 @@ void status_display ()
       }
     }
 
-    float ms_real = ms_running - ms_paused;
+    double ms_real = ms_running - ms_paused;
 
     float cpt_avg_min  = (float) data.cpt_total / ((ms_real / 1000) / 60);
     float cpt_avg_hour = (float) data.cpt_total / ((ms_real / 1000) / 3600);
@@ -1451,6 +1413,12 @@ void status_display ()
   }
 
   #ifdef HAVE_HWMON
+
+  if (data.devices_status == STATUS_EXHAUSTED)  return;
+  if (data.devices_status == STATUS_CRACKED)    return;
+  if (data.devices_status == STATUS_ABORTED)    return;
+  if (data.devices_status == STATUS_QUIT)       return;
+
   if (data.gpu_temp_disable == 0)
   {
     hc_thread_mutex_lock (mux_adl);
@@ -1461,54 +1429,87 @@ void status_display ()
 
       if (device_param->skipped) continue;
 
-      #define HM_STR_BUF_SIZE 255
+      const int num_temperature = hm_get_temperature_with_device_id (device_id);
+      const int num_fanspeed    = hm_get_fanspeed_with_device_id    (device_id);
+      const int num_utilization = hm_get_utilization_with_device_id (device_id);
+      const int num_corespeed   = hm_get_corespeed_with_device_id   (device_id);
+      const int num_memoryspeed = hm_get_memoryspeed_with_device_id (device_id);
+      const int num_buslanes    = hm_get_buslanes_with_device_id    (device_id);
+      const int num_throttle    = hm_get_throttle_with_device_id    (device_id);
 
-      if (data.hm_device[device_id].fan_supported == 1)
+      char output_buf[256] = { 0 };
+
+      int output_len = 0;
+
+      if (num_temperature >= 0)
       {
-        char utilization[HM_STR_BUF_SIZE] = { 0 };
-        char temperature[HM_STR_BUF_SIZE] = { 0 };
-        char fanspeed[HM_STR_BUF_SIZE] = { 0 };
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Temp:%3uc", num_temperature);
 
-        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
-        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
-
-        if (device_param->vendor_id == VENDOR_ID_AMD)
-        {
-          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
-        }
-        else if (device_param->vendor_id == VENDOR_ID_NV)
-        {
-          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
-        }
-
-        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, %s Fan", device_id + 1, utilization, temperature, fanspeed);
+        output_len = strlen (output_buf);
       }
-      else
+
+      if (num_fanspeed >= 0)
       {
-        char utilization[HM_STR_BUF_SIZE] = { 0 };
-        char temperature[HM_STR_BUF_SIZE] = { 0 };
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Fan:%3u%%", num_fanspeed);
 
-        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
-        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
-
-        log_info ("HWMon.GPU.#%d...: %s Util, %s Temp, N/A Fan", device_id + 1, utilization, temperature);
+        output_len = strlen (output_buf);
       }
+
+      if (num_utilization >= 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Util:%3u%%", num_utilization);
+
+        output_len = strlen (output_buf);
+      }
+
+      if (num_corespeed >= 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Core:%4uMhz", num_corespeed);
+
+        output_len = strlen (output_buf);
+      }
+
+      if (num_memoryspeed >= 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Mem:%4uMhz", num_memoryspeed);
+
+        output_len = strlen (output_buf);
+      }
+
+      if (num_buslanes >= 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Lanes:%u", num_buslanes);
+
+        output_len = strlen (output_buf);
+      }
+
+      if (num_throttle == 1)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " *Throttled*");
+
+        output_len = strlen (output_buf);
+      }
+
+      if (output_len == 0)
+      {
+        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " N/A");
+
+        output_len = strlen (output_buf);
+      }
+
+      log_info ("HWMon.Dev.#%d...:%s", device_id + 1, output_buf);
     }
 
     hc_thread_mutex_unlock (mux_adl);
   }
+
   #endif // HAVE_HWMON
 }
 
-static void status_benchmark ()
+static void status_benchmark_automate ()
 {
-  if (data.devices_status == STATUS_INIT) return;
-  if (data.devices_status == STATUS_STARTING) return;
-
-  if (data.words_cnt == 0) return;
-
-  u64   speed_cnt[DEVICES_MAX] = { 0 };
-  float speed_ms[DEVICES_MAX]  = { 0 };
+  u64    speed_cnt[DEVICES_MAX] = { 0 };
+  double speed_ms[DEVICES_MAX]  = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1516,22 +1517,11 @@ static void status_benchmark ()
 
     if (device_param->skipped) continue;
 
-    speed_cnt[device_id] = 0;
-    speed_ms[device_id]  = 0;
-
-    for (int i = 0; i < SPEED_CACHE; i++)
-    {
-      speed_cnt[device_id] += device_param->speed_cnt[i];
-      speed_ms[device_id]  += device_param->speed_ms[i];
-    }
-
-    speed_cnt[device_id] /= SPEED_CACHE;
-    speed_ms[device_id]  /= SPEED_CACHE;
+    speed_cnt[device_id] = device_param->speed_cnt[0];
+    speed_ms[device_id]  = device_param->speed_ms[0];
   }
 
-  float hashes_all_ms = 0;
-
-  float hashes_dev_ms[DEVICES_MAX] = { 0 };
+  double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -1543,7 +1533,61 @@ static void status_benchmark ()
 
     if (speed_ms[device_id])
     {
-      hashes_dev_ms[device_id] = speed_cnt[device_id] / speed_ms[device_id];
+      hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
+    }
+  }
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    log_info ("%u:%u:%llu", device_id + 1, data.hash_mode, (unsigned long long int) (hashes_dev_ms[device_id] * 1000));
+  }
+}
+
+static void status_benchmark ()
+{
+  if (data.devices_status == STATUS_INIT)     return;
+  if (data.devices_status == STATUS_STARTING) return;
+  if (data.devices_status == STATUS_BYPASS)   return;
+
+  if (data.machine_readable == 1)
+  {
+    status_benchmark_automate ();
+
+    return;
+  }
+
+  u64    speed_cnt[DEVICES_MAX] = { 0 };
+  double speed_ms[DEVICES_MAX]  = { 0 };
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    speed_cnt[device_id] = device_param->speed_cnt[0];
+    speed_ms[device_id]  = device_param->speed_ms[0];
+  }
+
+  double hashes_all_ms = 0;
+
+  double hashes_dev_ms[DEVICES_MAX] = { 0 };
+
+  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &data.devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    hashes_dev_ms[device_id] = 0;
+
+    if (speed_ms[device_id])
+    {
+      hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
 
       hashes_all_ms += hashes_dev_ms[device_id];
     }
@@ -1591,7 +1635,7 @@ static void status_benchmark ()
 }
 
 /**
- * oclHashcat -only- functions
+ * hashcat -only- functions
  */
 
 static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *shared_dir, char *source_file)
@@ -1722,7 +1766,7 @@ static void gidd_to_pw_t (hc_device_param_t *device_param, const u64 gidd, pw_t 
   hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, gidd * sizeof (pw_t), sizeof (pw_t), pw, 0, NULL, NULL);
 }
 
-static void check_hash (hc_device_param_t *device_param, const uint salt_pos, const uint digest_pos)
+static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 {
   char *outfile    = data.outfile;
   uint  quiet      = data.quiet;
@@ -1741,38 +1785,32 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
   char out_buf[HCBUFSIZ] = { 0 };
 
+  const u32 salt_pos    = plain->salt_pos;
+  const u32 digest_pos  = plain->digest_pos;  // relative
+  const u32 gidvid      = plain->gidvid;
+  const u32 il_pos      = plain->il_pos;
+
   ascii_digest (out_buf, salt_pos, digest_pos);
 
-  uint idx = data.salts_buf[salt_pos].digests_offset + digest_pos;
-
   // plain
-
-  plain_t plain;
-
-  hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, idx * sizeof (plain_t), sizeof (plain_t), &plain, 0, NULL, NULL);
-
-  uint gidvid = plain.gidvid;
-  uint il_pos = plain.il_pos;
 
   u64 crackpos = device_param->words_off;
 
   uint plain_buf[16] = { 0 };
 
   u8 *plain_ptr = (u8 *) plain_buf;
+
   unsigned int plain_len = 0;
 
   if (data.attack_mode == ATTACK_MODE_STRAIGHT)
   {
-    u64 gidd = gidvid;
-    u64 gidm = 0;
-
     pw_t pw;
 
-    gidd_to_pw_t (device_param, gidd, &pw);
+    gidd_to_pw_t (device_param, gidvid, &pw);
 
-    for (int i = 0, j = gidm; i < 16; i++, j++)
+    for (int i = 0; i < 16; i++)
     {
-      plain_buf[i] = pw.i[j];
+      plain_buf[i] = pw.i[i];
     }
 
     plain_len = pw.pw_len;
@@ -1812,16 +1850,13 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_COMBI)
   {
-    u64 gidd = gidvid;
-    u64 gidm = 0;
-
     pw_t pw;
 
-    gidd_to_pw_t (device_param, gidd, &pw);
+    gidd_to_pw_t (device_param, gidvid, &pw);
 
-    for (int i = 0, j = gidm; i < 16; i++, j++)
+    for (int i = 0; i < 16; i++)
     {
-      plain_buf[i] = pw.i[j];
+      plain_buf[i] = pw.i[i];
     }
 
     plain_len = pw.pw_len;
@@ -1873,16 +1908,13 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID1)
   {
-    u64 gidd = gidvid;
-    u64 gidm = 0;
-
     pw_t pw;
 
-    gidd_to_pw_t (device_param, gidd, &pw);
+    gidd_to_pw_t (device_param, gidvid, &pw);
 
-    for (int i = 0, j = gidm; i < 16; i++, j++)
+    for (int i = 0; i < 16; i++)
     {
-      plain_buf[i] = pw.i[j];
+      plain_buf[i] = pw.i[i];
     }
 
     plain_len = pw.pw_len;
@@ -1907,16 +1939,13 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID2)
   {
-    u64 gidd = gidvid;
-    u64 gidm = 0;
-
     pw_t pw;
 
-    gidd_to_pw_t (device_param, gidd, &pw);
+    gidd_to_pw_t (device_param, gidvid, &pw);
 
-    for (int i = 0, j = gidm; i < 16; i++, j++)
+    for (int i = 0; i < 16; i++)
     {
-      plain_buf[i] = pw.i[j];
+      plain_buf[i] = pw.i[i];
     }
 
     plain_len = pw.pw_len;
@@ -1996,6 +2025,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
 
       out_fp = stdout;
     }
+
     lock_file (out_fp);
   }
   else
@@ -2077,6 +2107,7 @@ static void check_hash (hc_device_param_t *device_param, const uint salt_pos, co
     if ((quiet == 0) && (debug_file == NULL))
     {
       fprintf (stdout, "%s", PROMPT);
+
       fflush (stdout);
     }
   }
@@ -2086,33 +2117,33 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 {
   salt_t *salt_buf = &data.salts_buf[salt_pos];
 
-  int found = 0;
+  u32 num_cracked;
 
-  hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, device_param->size_results, device_param->result, 0, NULL, NULL);
+  hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
 
-  for (uint i = 0; i < KERNEL_THREADS; i++) if (device_param->result[i] == 1) found = 1;
-
-  if (found == 1)
+  if (num_cracked)
   {
     // display hack (for weak hashes etc, it could be that there is still something to clear on the current line)
 
     log_info_nn ("");
 
-    hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
+    plain_t *cracked = (plain_t *) mycalloc (num_cracked, sizeof (plain_t));
+
+    hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
 
     uint cpt_cracked = 0;
 
-    for (uint digest_pos = 0; digest_pos < salt_buf->digests_cnt; digest_pos++)
+    for (uint i = 0; i < num_cracked; i++)
     {
-      uint idx = salt_buf->digests_offset + digest_pos;
+      const uint hash_pos = cracked[i].hash_pos;
 
-      if (data.digests_shown_tmp[idx] == 0) continue;
+      if (data.digests_shown[hash_pos] == 1) continue;
 
-      if (data.digests_shown[idx] == 1) continue;
+      hc_thread_mutex_lock (mux_display);
 
       if ((data.opts_type & OPTS_TYPE_PT_NEVERCRACK) == 0)
       {
-        data.digests_shown[idx] = 1;
+        data.digests_shown[hash_pos] = 1;
 
         data.digests_done++;
 
@@ -2130,11 +2161,17 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
       if (data.salts_done == data.salts_cnt) data.devices_status = STATUS_CRACKED;
 
-      check_hash (device_param, salt_pos, digest_pos);
+      hc_thread_mutex_unlock (mux_display);
+
+      check_hash (device_param, &cracked[i]);
     }
+
+    myfree (cracked);
 
     if (cpt_cracked > 0)
     {
+      hc_thread_mutex_lock (mux_display);
+
       data.cpt_buf[data.cpt_pos].timestamp = time (NULL);
       data.cpt_buf[data.cpt_pos].cracked   = cpt_cracked;
 
@@ -2143,6 +2180,8 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
       data.cpt_total += cpt_cracked;
 
       if (data.cpt_pos == CPT_BUF) data.cpt_pos = 0;
+
+      hc_thread_mutex_unlock (mux_display);
     }
 
     if (data.opts_type & OPTS_TYPE_PT_NEVERCRACK)
@@ -2156,9 +2195,9 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
     }
 
-    memset (device_param->result, 0, device_param->size_results);
+    num_cracked = 0;
 
-    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, device_param->size_results, device_param->result, 0, NULL, NULL);
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
   }
 }
 
@@ -2255,43 +2294,6 @@ static void save_hash ()
   unlink (old_hashfile);
 }
 
-static float find_kernel_power_div (const u64 total_left, const uint kernel_power_all)
-{
-  // function called only in case kernel_power_all > words_left
-
-  float kernel_power_div = (float) (total_left) / kernel_power_all;
-
-  kernel_power_div += kernel_power_div / 100;
-
-  u32 kernel_power_new = (u32) (kernel_power_all * kernel_power_div);
-
-  while (kernel_power_new < total_left)
-  {
-    kernel_power_div += kernel_power_div / 100;
-
-    kernel_power_new = (u32) (kernel_power_all * kernel_power_div);
-  }
-
-  if (data.quiet == 0)
-  {
-    clear_prompt ();
-
-    log_info ("");
-
-    log_info ("INFO: approaching final keyspace, workload adjusted");
-
-    log_info ("");
-
-    fprintf (stdout, "%s", PROMPT);
-
-    fflush (stdout);
-  }
-
-  if ((kernel_power_all * kernel_power_div) < 8) return 1;
-
-  return kernel_power_div;
-}
-
 static void run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num, const uint event_update)
 {
   uint num_elements = num;
@@ -2326,40 +2328,46 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
   hc_clSetKernelArg (data.ocl, kernel, 30, sizeof (cl_uint), device_param->kernel_params[30]);
   hc_clSetKernelArg (data.ocl, kernel, 31, sizeof (cl_uint), device_param->kernel_params[31]);
 
-  hc_timer_t timer;
-
-  hc_timer_set (&timer);
+  cl_event event;
 
   if ((data.opts_type & OPTS_TYPE_PT_BITSLICE) && (data.attack_mode == ATTACK_MODE_BF))
   {
     const size_t global_work_size[3] = { num_elements,        32, 1 };
     const size_t local_work_size[3]  = { kernel_threads / 32, 32, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, &event);
   }
   else
   {
-    size_t workgroup_size = 0;
+    if (kern_run == KERN_RUN_2)
+    {
+      if (data.opti_type & OPTI_TYPE_SLOW_HASH_SIMD)
+      {
+        num_elements = CEIL ((float) num_elements / device_param->vector_width);
+      }
+    }
 
-    hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
-
-    if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
+    while (num_elements % kernel_threads) num_elements++;
 
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
   }
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
-  hc_clFinish (data.ocl, device_param->command_queue);
+  hc_clWaitForEvents (data.ocl, 1, &event);
 
   if (event_update)
   {
-    float exec_time;
+    cl_ulong time_start;
+    cl_ulong time_end;
 
-    hc_timer_get (timer, exec_time);
+    hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
+    hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
+
+    const double exec_time = (double) (time_end - time_start) / 1000000.0;
 
     uint exec_pos = device_param->exec_pos;
 
@@ -2374,6 +2382,10 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 
     device_param->exec_pos = exec_pos;
   }
+
+  hc_clReleaseEvent (data.ocl, event);
+
+  hc_clFinish (data.ocl, device_param->command_queue);
 }
 
 static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param, const uint num)
@@ -2390,7 +2402,7 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
   // causes problems with special threads like in bcrypt
   // const uint kernel_threads = device_param->kernel_threads;
 
-  uint kernel_threads = KERNEL_THREADS;
+  uint kernel_threads = device_param->kernel_threads;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -2429,11 +2441,7 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
                         break;
   }
 
-  size_t workgroup_size = 0;
-  hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &workgroup_size, NULL);
-  if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
-
-  const size_t global_work_size[3] = { num_elements, 1, 1 };
+  const size_t global_work_size[3] = { num_elements,   1, 1 };
   const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
   hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
@@ -2451,11 +2459,7 @@ static void run_kernel_tm (hc_device_param_t *device_param)
 
   cl_kernel kernel = device_param->kernel_tm;
 
-  size_t workgroup_size = 0;
-  hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
-  if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
-
-  const size_t global_work_size[3] = { num_elements, 1, 1 };
+  const size_t global_work_size[3] = { num_elements,    1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
   hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
@@ -2475,7 +2479,7 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   // causes problems with special threads like in bcrypt
   // const uint kernel_threads = device_param->kernel_threads;
 
-  uint kernel_threads = KERNEL_THREADS;
+  uint kernel_threads = device_param->kernel_threads;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -2484,11 +2488,7 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
   hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint), device_param->kernel_params_amp[6]);
 
-  size_t workgroup_size = 0;
-  hc_clGetKernelWorkGroupInfo (data.ocl, kernel, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &workgroup_size, NULL);
-  if (kernel_threads > workgroup_size) kernel_threads = workgroup_size;
-
-  const size_t global_work_size[3] = { num_elements, 1, 1 };
+  const size_t global_work_size[3] = { num_elements,    1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
   hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
@@ -2498,11 +2498,59 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
   hc_clFinish (data.ocl, device_param->command_queue);
 }
 
-static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const uint size)
+static void run_kernel_memset (hc_device_param_t *device_param, cl_mem buf, const uint value, const uint num)
 {
+  const u32 num16d = num / 16;
+  const u32 num16m = num % 16;
+
+  if (num16d)
+  {
+    device_param->kernel_params_memset_buf32[1] = value;
+    device_param->kernel_params_memset_buf32[2] = num16d;
+
+    uint kernel_threads = device_param->kernel_threads;
+
+    uint num_elements = num16d;
+
+    while (num_elements % kernel_threads) num_elements++;
+
+    cl_kernel kernel = device_param->kernel_memset;
+
+    hc_clSetKernelArg (data.ocl, kernel, 0, sizeof (cl_mem),  (void *) &buf);
+    hc_clSetKernelArg (data.ocl, kernel, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]);
+    hc_clSetKernelArg (data.ocl, kernel, 2, sizeof (cl_uint), device_param->kernel_params_memset[2]);
+
+    const size_t global_work_size[3] = { num_elements,   1, 1 };
+    const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
+
+    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+
+    hc_clFlush (data.ocl, device_param->command_queue);
+
+    hc_clFinish (data.ocl, device_param->command_queue);
+  }
+
+  if (num16m)
+  {
+    u32 tmp[4];
+
+    tmp[0] = value;
+    tmp[1] = value;
+    tmp[2] = value;
+    tmp[3] = value;
+
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, buf, CL_TRUE, num16d * 16, num16m, tmp, 0, NULL, NULL);
+  }
+}
+
+static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const size_t size)
+{
+  run_kernel_memset (device_param, buf, 0, size);
+
+  /*
   int rc = -1;
 
-  if (device_param->opencl_v12 && device_param->vendor_id == VENDOR_ID_AMD)
+  if (device_param->opencl_v12 && device_param->platform_vendor_id == VENDOR_ID_AMD)
   {
     // So far tested, amd is the only supporting this OpenCL 1.2 function without segfaulting
 
@@ -2514,7 +2562,7 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
   if (rc != 0)
   {
     // NOTE: clEnqueueFillBuffer () always fails with -59
-    //       IOW, it's not supported by Nvidia ForceWare <= 352.21, also pocl segfaults, also on apple
+    //       IOW, it's not supported by Nvidia drivers <= 352.21, also pocl segfaults, also on apple
     //       How's that possible, OpenCL 1.2 support is advertised??
     //       We need to workaround...
 
@@ -2522,17 +2570,18 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
 
     char *tmp = (char *) mymalloc (FILLSZ);
 
-    for (uint i = 0; i < size; i += FILLSZ)
+    for (size_t i = 0; i < size; i += FILLSZ)
     {
-      const int left = size - i;
+      const size_t left = size - i;
 
-      const int fillsz = MIN (FILLSZ, left);
+      const size_t fillsz = MIN (FILLSZ, left);
 
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, buf, CL_TRUE, i, fillsz, tmp, 0, NULL, NULL);
     }
 
     myfree (tmp);
   }
+  */
 }
 
 static void choose_kernel (hc_device_param_t *device_param, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt)
@@ -2595,6 +2644,29 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
       if (data.devices_status == STATUS_CRACKED) break;
       if (data.devices_status == STATUS_ABORTED) break;
       if (data.devices_status == STATUS_QUIT)    break;
+
+      /**
+       * speed
+       */
+
+      const float iter_part = (float) (loop_pos + loop_left) / iter;
+
+      const u64 perf_sum_all = pws_cnt * iter_part;
+
+      double speed_ms;
+
+      hc_timer_get (device_param->timer_speed, speed_ms);
+
+      const u32 speed_pos = device_param->speed_pos;
+
+      device_param->speed_cnt[speed_pos] = perf_sum_all;
+
+      device_param->speed_ms[speed_pos] = speed_ms;
+
+      if (data.benchmark == 1)
+      {
+        if (speed_ms > 4096) data.devices_status = STATUS_ABORTED;
+      }
     }
 
     if (opts_type & OPTS_TYPE_HOOK23)
@@ -2634,7 +2706,35 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
   }
   else if (data.attack_kern == ATTACK_KERN_COMBI)
   {
-    if (data.attack_mode == ATTACK_MODE_HYBRID2)
+    if (data.attack_mode == ATTACK_MODE_COMBI)
+    {
+      if (data.combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+      {
+        if (data.opts_type & OPTS_TYPE_PT_ADD01)
+        {
+          for (u32 i = 0; i < pws_cnt; i++)
+          {
+            const u32 pw_len = device_param->pws_buf[i].pw_len;
+
+            u8 *ptr = (u8 *) device_param->pws_buf[i].i;
+
+            ptr[pw_len] = 0x01;
+          }
+        }
+        else if (data.opts_type & OPTS_TYPE_PT_ADD80)
+        {
+          for (u32 i = 0; i < pws_cnt; i++)
+          {
+            const u32 pw_len = device_param->pws_buf[i].pw_len;
+
+            u8 *ptr = (u8 *) device_param->pws_buf[i].i;
+
+            ptr[pw_len] = 0x80;
+          }
+        }
+      }
+    }
+    else if (data.attack_mode == ATTACK_MODE_HYBRID2)
     {
       if (data.opts_type & OPTS_TYPE_PT_ADD01)
       {
@@ -2672,62 +2772,24 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
   }
 }
 
-static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops, const int repeat)
+static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
 {
-  const u32 kernel_power = device_param->device_processors * device_param->kernel_threads * kernel_accel;
+  const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads * kernel_accel;
 
-  device_param->kernel_params_buf32[26] = kernel_loops;
-  device_param->kernel_params_buf32[27] = kernel_loops;
-
-  // init some fake words
-
-  for (u32 i = 0; i < kernel_power; i++)
-  {
-    device_param->pws_buf[i].i[0]   = i;
-    device_param->pws_buf[i].i[1]   = 0x01234567;
-    device_param->pws_buf[i].pw_len = 4 + (i & 3);
-  }
-
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-
-  if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
-  {
-    run_kernel_amp (device_param, kernel_power);
-  }
-
-  // caching run
+  device_param->kernel_params_buf32[25] = 0;
+  device_param->kernel_params_buf32[26] = kernel_loops; // not a bug, both need to be set
+  device_param->kernel_params_buf32[27] = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
   if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    run_kernel (KERN_RUN_1, device_param, kernel_power, false);
+    run_kernel (KERN_RUN_1, device_param, kernel_power_try, true);
   }
   else
   {
-    run_kernel (KERN_RUN_2, device_param, kernel_power, false);
+    run_kernel (KERN_RUN_2, device_param, kernel_power_try, true);
   }
 
-  // now user repeats
-
-  for (int i = 0; i < repeat; i++)
-  {
-    if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-    {
-      run_kernel (KERN_RUN_1, device_param, kernel_power, true);
-    }
-    else
-    {
-      run_kernel (KERN_RUN_2, device_param, kernel_power, true);
-    }
-  }
-
-  const double exec_ms_prev = get_avg_exec_time (device_param, repeat);
-
-  // reset fake words
-
-  memset (device_param->pws_buf, 0, kernel_power * sizeof (pw_t));
-
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+  const double exec_ms_prev = get_avg_exec_time (device_param, 1);
 
   return exec_ms_prev;
 }
@@ -2745,168 +2807,193 @@ static void autotune (hc_device_param_t *device_param)
   u32 kernel_accel = kernel_accel_min;
   u32 kernel_loops = kernel_loops_min;
 
-  // steps
+  // in this case the user specified a fixed -u and -n on the commandline
+  // no way to tune anything
+  // but we need to run a few caching rounds
+
+  if ((kernel_loops_min == kernel_loops_max) && (kernel_accel_min == kernel_accel_max))
+  {
+    try_run (device_param, kernel_accel, kernel_loops);
+    try_run (device_param, kernel_accel, kernel_loops);
+    try_run (device_param, kernel_accel, kernel_loops);
+    try_run (device_param, kernel_accel, kernel_loops);
+
+    device_param->kernel_accel = kernel_accel;
+    device_param->kernel_loops = kernel_loops;
+
+    const u32 kernel_power = device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel;
+
+    device_param->kernel_power = kernel_power;
+
+    return;
+  }
+
+  // from here it's clear we are allowed to autotune
+  // so let's init some fake words
+
+  const u32 kernel_power_max = device_param->device_processors * device_param->kernel_threads * kernel_accel_max;
+
+  if (data.attack_kern == ATTACK_KERN_BF)
+  {
+    run_kernel_memset (device_param, device_param->d_pws_buf, 7, kernel_power_max * sizeof (pw_t));
+  }
+  else
+  {
+    for (u32 i = 0; i < kernel_power_max; i++)
+    {
+      device_param->pws_buf[i].i[0]   = i;
+      device_param->pws_buf[i].i[1]   = 0x01234567;
+      device_param->pws_buf[i].pw_len = 7 + (i & 7);
+    }
+
+    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+  }
+
+  if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  {
+    if (data.kernel_rules_cnt > 1)
+    {
+      hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL);
+    }
+  }
+  else
+  {
+    run_kernel_amp (device_param, kernel_power_max);
+  }
+
+  #define VERIFIER_CNT 1
+
+  // first find out highest kernel-loops that stays below target_ms
+
+  if (kernel_loops_min < kernel_loops_max)
+  {
+    for (kernel_loops = kernel_loops_max; kernel_loops > kernel_loops_min; kernel_loops >>= 1)
+    {
+      double exec_ms = try_run (device_param, kernel_accel_min, kernel_loops);
+
+      for (int i = 0; i < VERIFIER_CNT; i++)
+      {
+        double exec_ms_v = try_run (device_param, kernel_accel_min, kernel_loops);
+
+        exec_ms = MIN (exec_ms, exec_ms_v);
+      }
+
+      if (exec_ms < target_ms) break;
+    }
+  }
+
+  // now the same for kernel-accel but with the new kernel-loops from previous loop set
 
   #define STEPS_CNT 10
 
-  #define STEPS_ACCEL_CNT (STEPS_CNT + 2)
-  #define STEPS_LOOPS_CNT (STEPS_CNT + 2)
-
-  u32 steps_accel[STEPS_ACCEL_CNT];
-  u32 steps_loops[STEPS_LOOPS_CNT];
-
-  for (int i = 0; i < STEPS_ACCEL_CNT; i++)
-  {
-    steps_accel[i] = 1 << i;
-  }
-
-  for (int i = 0; i < STEPS_LOOPS_CNT; i++)
-  {
-    steps_loops[i] = 1 << i;
-  }
-
-  steps_accel[STEPS_CNT + 0] = kernel_accel_min;
-  steps_accel[STEPS_CNT + 1] = kernel_accel_max;
-
-  steps_loops[STEPS_CNT + 0] = kernel_loops_min;
-  steps_loops[STEPS_CNT + 1] = kernel_loops_max;
-
-  qsort (steps_accel, STEPS_ACCEL_CNT, sizeof (u32), sort_by_u32);
-  qsort (steps_loops, STEPS_LOOPS_CNT, sizeof (u32), sort_by_u32);
-
-  // find out highest kernel-loops that stays below target_ms, we can use it later for multiplication as this is a linear function
-
-  u32 kernel_loops_tmp;
-
-  for (kernel_loops_tmp = kernel_loops_max; kernel_loops_tmp > kernel_loops_min; kernel_loops_tmp >>= 1)
-  {
-    const double exec_ms = try_run (device_param, kernel_accel_min, kernel_loops_tmp, 1);
-
-    if (exec_ms < target_ms) break;
-  }
-
-  // kernel-accel
-
   if (kernel_accel_min < kernel_accel_max)
   {
-    double e_best = 0;
-
-    for (int i = 0; i < STEPS_ACCEL_CNT; i++)
+    for (int i = 0; i < STEPS_CNT; i++)
     {
-      const u32 kernel_accel_try = steps_accel[i];
+      const u32 kernel_accel_try = 1 << i;
 
       if (kernel_accel_try < kernel_accel_min) continue;
       if (kernel_accel_try > kernel_accel_max) break;
 
-      const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_tmp, 1);
+      double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops);
+
+      for (int i = 0; i < VERIFIER_CNT; i++)
+      {
+        double exec_ms_v = try_run (device_param, kernel_accel_try, kernel_loops);
+
+        exec_ms = MIN (exec_ms, exec_ms_v);
+      }
 
       if (exec_ms > target_ms) break;
 
-      const double e = kernel_accel_try / exec_ms;
-
-      if (e > e_best)
-      {
-        kernel_accel = kernel_accel_try;
-
-        e_best = e;
-      }
+      kernel_accel = kernel_accel_try;
     }
   }
 
-  // kernel-loops final
+  // at this point we want to know the actual runtime for the following reason:
+  // we need a reference for the balancing loop following up, and this
+  // the balancing loop can have an effect that the creates a new opportunity, for example:
+  //   if the target is 95 ms and the current runtime is 48ms the above loop
+  //   stopped the execution because the previous exec_ms was > 95ms
+  //   due to the rebalance it's possible that the runtime reduces from 48ms to 47ms
+  //   and this creates the possibility to double the workload -> 47 * 2 = 95ms, which is < 96ms
 
-  if (kernel_loops_min < kernel_loops_max)
+  double exec_ms_pre_final = try_run (device_param, kernel_accel, kernel_loops);
+
+  for (int i = 0; i < VERIFIER_CNT; i++)
   {
-    double e_best = 0;
+    double exec_ms_pre_final_v = try_run (device_param, kernel_accel, kernel_loops);
 
-    for (int i = 0; i < STEPS_LOOPS_CNT; i++)
-    {
-      const u32 kernel_loops_try = steps_loops[i];
-
-      if (kernel_loops_try < kernel_loops_min) continue;
-      if (kernel_loops_try > kernel_loops_max) break;
-
-      const double exec_ms = try_run (device_param, kernel_accel, kernel_loops_try, 1);
-
-      if (exec_ms > target_ms) break;
-
-      const double e = kernel_loops_try / exec_ms;
-
-      if (e > e_best)
-      {
-        kernel_loops = kernel_loops_try;
-
-        e_best = e;
-      }
-    }
+    exec_ms_pre_final = MIN (exec_ms_pre_final, exec_ms_pre_final_v);
   }
 
-  // final balance
+  u32 diff = kernel_loops - kernel_accel;
 
-  u32 kernel_accel_best = kernel_accel;
-  u32 kernel_loops_best = kernel_loops;
-
-  u32 exec_best = -1;
-
-  if ((kernel_accel_min < kernel_accel_max) || (kernel_loops_min < kernel_loops_max))
+  if ((kernel_loops_min < kernel_loops_max) && (kernel_accel_min < kernel_accel_max))
   {
-    const double exec_ms = try_run (device_param, kernel_accel_best, kernel_loops_best, 1);
+    u32 kernel_accel_orig = kernel_accel;
+    u32 kernel_loops_orig = kernel_loops;
 
-    exec_best = exec_ms;
-  }
-
-  // reset
-
-  if (kernel_accel_min < kernel_accel_max)
-  {
-    u32 kernel_accel_try = kernel_accel;
-    u32 kernel_loops_try = kernel_loops;
-
-    for (int i = 0; i < 2; i++)
+    for (u32 f = 1; f < 1024; f++)
     {
-      kernel_accel_try >>= 1;
-      kernel_loops_try <<= 1;
-
-      if (kernel_accel_try < kernel_accel_min) break;
-      if (kernel_loops_try > kernel_loops_max) break;
-
-      const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try, 1);
-
-      if (exec_ms < exec_best)
-      {
-        kernel_accel_best = kernel_accel_try;
-        kernel_loops_best = kernel_loops_try;
-
-        exec_best = exec_ms;
-      }
-    }
-  }
-
-  // reset
-
-  if (kernel_loops_min < kernel_loops_max)
-  {
-    u32 kernel_accel_try = kernel_accel;
-    u32 kernel_loops_try = kernel_loops;
-
-    for (int i = 0; i < 2; i++)
-    {
-      kernel_accel_try <<= 1;
-      kernel_loops_try >>= 1;
+      const u32 kernel_accel_try = (float) kernel_accel_orig * f;
+      const u32 kernel_loops_try = (float) kernel_loops_orig / f;
 
       if (kernel_accel_try > kernel_accel_max) break;
       if (kernel_loops_try < kernel_loops_min) break;
 
-      const double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try, 1);
+      u32 diff_new = kernel_loops_try - kernel_accel_try;
 
-      if (exec_ms < exec_best)
+      if (diff_new > diff) break;
+
+      diff_new = diff;
+
+      double exec_ms = try_run (device_param, kernel_accel_try, kernel_loops_try);
+
+      for (int i = 0; i < VERIFIER_CNT; i++)
       {
-        kernel_accel_best = kernel_accel_try;
-        kernel_loops_best = kernel_loops_try;
+        double exec_ms_v = try_run (device_param, kernel_accel_try, kernel_loops_try);
 
-        exec_best = exec_ms;
+        exec_ms = MIN (exec_ms, exec_ms_v);
+      }
+
+      if (exec_ms < exec_ms_pre_final)
+      {
+        exec_ms_pre_final = exec_ms;
+
+        kernel_accel = kernel_accel_try;
+        kernel_loops = kernel_loops_try;
       }
     }
+  }
+
+  const double exec_left = target_ms / exec_ms_pre_final;
+
+  const double accel_left = kernel_accel_max / kernel_accel;
+
+  const double exec_accel_min = MIN (exec_left, accel_left); // we want that to be int
+
+  if (exec_accel_min >= 1.0)
+  {
+    // this is safe to not overflow kernel_accel_max because of accel_left
+
+    kernel_accel = (double) kernel_accel * exec_accel_min;
+  }
+
+  // reset them fake words
+
+  /*
+  memset (device_param->pws_buf, 0, kernel_power_max * sizeof (pw_t));
+
+  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+  */
+
+  run_kernel_memset (device_param, device_param->d_pws_buf, 0, kernel_power_max * sizeof (pw_t));
+
+  if (data.attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+  {
+    run_kernel_memset (device_param, device_param->d_pws_amp_buf, 0, kernel_power_max * sizeof (pw_t));
   }
 
   // reset timer
@@ -2916,9 +3003,6 @@ static void autotune (hc_device_param_t *device_param)
   memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
 
   // store
-
-  kernel_accel = kernel_accel_best;
-  kernel_loops = kernel_loops_best;
 
   device_param->kernel_accel = kernel_accel;
   device_param->kernel_loops = kernel_loops;
@@ -2935,12 +3019,11 @@ static void autotune (hc_device_param_t *device_param)
 
     log_info ("Device #%u: autotuned kernel-accel to %u\n"
               "Device #%u: autotuned kernel-loops to %u\n",
-              device_param->device_id + 1,
-              kernel_accel,
-              device_param->device_id + 1,
-              kernel_loops);
+              device_param->device_id + 1, kernel_accel,
+              device_param->device_id + 1, kernel_loops);
 
     fprintf (stdout, "%s", PROMPT);
+
     fflush (stdout);
   }
 
@@ -3191,15 +3274,12 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
         hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
       }
 
-      choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt);
-
       if (data.benchmark == 1)
       {
-        for (u32 i = 0; i < data.benchmark_repeats; i++)
-        {
-          choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt);
-        }
+        hc_timer_set (&device_param->timer_speed);
       }
+
+      choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt);
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
@@ -3211,22 +3291,13 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
        * result
        */
 
-      hc_thread_mutex_lock (mux_display);
-
       check_cracked (device_param, salt_pos);
-
-      hc_thread_mutex_unlock (mux_display);
 
       /**
        * progress
        */
 
       u64 perf_sum_all = (u64) pws_cnt * (u64) innerloop_left;
-
-      if (data.benchmark == 1)
-      {
-        perf_sum_all = (perf_sum_all * data.benchmark_repeats) + perf_sum_all;
-      }
 
       hc_thread_mutex_lock (mux_counter);
 
@@ -3238,21 +3309,21 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
        * speed
        */
 
-      float speed_ms;
+      double speed_ms;
 
       hc_timer_get (device_param->timer_speed, speed_ms);
 
       hc_timer_set (&device_param->timer_speed);
 
-      hc_thread_mutex_lock (mux_display);
+      // current speed
+
+      //hc_thread_mutex_lock (mux_display);
 
       device_param->speed_cnt[speed_pos] = perf_sum_all;
 
       device_param->speed_ms[speed_pos] = speed_ms;
 
-      device_param->speed_rec[speed_pos] = device_param->timer_speed;
-
-      hc_thread_mutex_unlock (mux_display);
+      //hc_thread_mutex_unlock (mux_display);
 
       speed_pos++;
 
@@ -3614,9 +3685,11 @@ static void *thread_monitor (void *p)
   uint status_left  = data.status_timer;
 
   #ifdef HAVE_HWMON
-  uint hwmon_check   = 0;
+  uint hwmon_check = 0;
 
-  // these variables are mainly used for fan control (AMD only)
+  int slowdown_warnings = 0;
+
+  // these variables are mainly used for fan control
 
   int *fan_speed_chgd = (int *) mycalloc (data.devices_cnt, sizeof (int));
 
@@ -3625,12 +3698,10 @@ static void *thread_monitor (void *p)
   int *temp_diff_old = (int *) mycalloc (data.devices_cnt, sizeof (int));
   int *temp_diff_sum = (int *) mycalloc (data.devices_cnt, sizeof (int));
 
-  #ifdef HAVE_ADL
   int temp_threshold = 1; // degrees celcius
 
   int fan_speed_min =  15; // in percentage
   int fan_speed_max = 100;
-  #endif // HAVE_ADL
 
   time_t last_temp_check_time;
   #endif // HAVE_HWMON
@@ -3681,6 +3752,63 @@ static void *thread_monitor (void *p)
     if (data.devices_status != STATUS_RUNNING) continue;
 
     #ifdef HAVE_HWMON
+
+    if (hwmon_check == 1)
+    {
+      hc_thread_mutex_lock (mux_adl);
+
+      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+      {
+        hc_device_param_t *device_param = &data.devices_param[device_id];
+
+        if (device_param->skipped) continue;
+
+        if (device_param->device_vendor_id == VENDOR_ID_NV)
+        {
+          if (data.hm_nvapi)
+          {
+            NV_GPU_PERF_POLICIES_INFO_PARAMS_V1   perfPolicies_info   = { 0 };
+            NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 perfPolicies_status = { 0 };
+
+            perfPolicies_info.version   = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1, 1);
+            perfPolicies_status.version = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1, 1);
+
+            hm_NvAPI_GPU_GetPerfPoliciesInfo (data.hm_nvapi, data.hm_device[device_id].nvapi, &perfPolicies_info);
+
+            perfPolicies_status.info_value = perfPolicies_info.info_value;
+
+            hm_NvAPI_GPU_GetPerfPoliciesStatus (data.hm_nvapi, data.hm_device[device_id].nvapi, &perfPolicies_status);
+
+            if (perfPolicies_status.throttle & 2)
+            {
+              if (slowdown_warnings < 3)
+              {
+                if (data.quiet == 0) clear_prompt ();
+
+                log_info ("WARNING: Drivers temperature threshold hit on GPU #%d, expect performance to drop...", device_id + 1);
+
+                if (slowdown_warnings == 2)
+                {
+                  log_info ("");
+                }
+
+                if (data.quiet == 0) fprintf (stdout, "%s", PROMPT);
+                if (data.quiet == 0) fflush (stdout);
+
+                slowdown_warnings++;
+              }
+            }
+            else
+            {
+              slowdown_warnings = 0;
+            }
+          }
+        }
+      }
+
+      hc_thread_mutex_unlock (mux_adl);
+    }
+
     if (hwmon_check == 1)
     {
       hc_thread_mutex_lock (mux_adl);
@@ -3712,12 +3840,11 @@ static void *thread_monitor (void *p)
           break;
         }
 
-        #ifdef HAVE_ADL
         const int gpu_temp_retain = data.gpu_temp_retain;
 
-        if (gpu_temp_retain) // VENDOR_ID_AMD implied
+        if (gpu_temp_retain)
         {
-          if (data.hm_device[device_id].fan_supported == 1)
+          if (data.hm_device[device_id].fan_set_supported == 1)
           {
             int temp_cur = temperature;
 
@@ -3757,7 +3884,14 @@ static void *thread_monitor (void *p)
 
                 if ((freely_change_fan_speed == 1) || (fan_speed_must_change == 1))
                 {
-                  hm_set_fanspeed_with_device_id_amd (device_id, fan_speed_new);
+                  if (device_param->device_vendor_id == VENDOR_ID_AMD)
+                  {
+                    hm_set_fanspeed_with_device_id_adl (device_id, fan_speed_new, 1);
+                  }
+                  else if (device_param->device_vendor_id == VENDOR_ID_NV)
+                  {
+
+                  }
 
                   fan_speed_chgd[device_id] = 1;
                 }
@@ -3767,7 +3901,6 @@ static void *thread_monitor (void *p)
             }
           }
         }
-        #endif // HAVE_ADL
       }
 
       hc_thread_mutex_unlock (mux_adl);
@@ -3828,7 +3961,7 @@ static void *thread_monitor (void *p)
 
       if (status_left == 0)
       {
-        hc_thread_mutex_lock (mux_display);
+        //hc_thread_mutex_lock (mux_display);
 
         if (data.quiet == 0) clear_prompt ();
 
@@ -3838,7 +3971,7 @@ static void *thread_monitor (void *p)
 
         if (data.quiet == 0) log_info ("");
 
-        hc_thread_mutex_unlock (mux_display);
+        //hc_thread_mutex_unlock (mux_display);
 
         status_left = data.status_timer;
       }
@@ -4157,8 +4290,8 @@ static void *thread_outfile_remove (void *p)
 
 static void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len)
 {
-  if (device_param->pws_cnt < device_param->kernel_power)
-  {
+  //if (device_param->pws_cnt < device_param->kernel_power)
+  //{
     pw_t *pw = (pw_t *) device_param->pws_buf + device_param->pws_cnt;
 
     u8 *ptr = (u8 *) pw->i;
@@ -4170,16 +4303,55 @@ static void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int
     pw->pw_len = pw_len;
 
     device_param->pws_cnt++;
-  }
-  else
-  {
-    fprintf (stderr, "BUG pw_add()!!\n");
-
-    return;
-  }
+  //}
+  //else
+  //{
+  //  fprintf (stderr, "BUG pw_add()!!\n");
+  //
+  //  return;
+  //}
 }
 
-static uint get_work (hc_device_param_t *device_param, const u64 max, const bool allow_div)
+static void set_kernel_power_final (const u64 kernel_power_final)
+{
+  if (data.quiet == 0)
+  {
+    clear_prompt ();
+
+    //log_info ("");
+
+    log_info ("INFO: approaching final keyspace, workload adjusted");
+    log_info ("");
+
+    fprintf (stdout, "%s", PROMPT);
+
+    fflush (stdout);
+  }
+
+  data.kernel_power_final = kernel_power_final;
+}
+
+static u32 get_power (hc_device_param_t *device_param)
+{
+  const u64 kernel_power_final = data.kernel_power_final;
+
+  if (kernel_power_final)
+  {
+    const double device_factor = (double) device_param->hardware_power / data.hardware_power_all;
+
+    const u64 words_left_device = CEIL ((double) kernel_power_final * device_factor);
+
+    // work should be at least the hardware power available without any accelerator
+
+    const u64 work = MAX (words_left_device, device_param->hardware_power);
+
+    return work;
+  }
+
+  return device_param->kernel_power;
+}
+
+static uint get_work (hc_device_param_t *device_param, const u64 max)
 {
   hc_thread_mutex_lock (mux_dispatcher);
 
@@ -4188,33 +4360,19 @@ static uint get_work (hc_device_param_t *device_param, const u64 max, const bool
 
   device_param->words_off = words_cur;
 
+  const u64 kernel_power_all = data.kernel_power_all;
+
   const u64 words_left = words_base - words_cur;
 
-  if (allow_div)
+  if (words_left < kernel_power_all)
   {
-    if (data.kernel_power_all > words_left)
+    if (data.kernel_power_final == 0)
     {
-      if (data.kernel_power_div == 0)
-      {
-        data.kernel_power_div = find_kernel_power_div (words_left, data.kernel_power_all);
-      }
-    }
-
-    if (data.kernel_power_div)
-    {
-      if (device_param->kernel_power == device_param->kernel_power_user)
-      {
-        const u32 kernel_power_new = (float) device_param->kernel_power * data.kernel_power_div;
-
-        if (kernel_power_new < device_param->kernel_power)
-        {
-          device_param->kernel_power = kernel_power_new;
-        }
-      }
+      set_kernel_power_final (words_left);
     }
   }
 
-  const uint kernel_power = device_param->kernel_power;
+  const u32 kernel_power = get_power (device_param);
 
   uint work = MIN (words_left, kernel_power);
 
@@ -4227,7 +4385,7 @@ static uint get_work (hc_device_param_t *device_param, const u64 max, const bool
   return work;
 }
 
-static void *thread_calc_stdin (void *p)
+static void *thread_autotune (void *p)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) p;
 
@@ -4235,11 +4393,18 @@ static void *thread_calc_stdin (void *p)
 
   autotune (device_param);
 
+  return NULL;
+}
+
+static void *thread_calc_stdin (void *p)
+{
+  hc_device_param_t *device_param = (hc_device_param_t *) p;
+
+  if (device_param->skipped) return NULL;
+
   char *buf = (char *) mymalloc (HCBUFSIZ);
 
   const uint attack_kern = data.attack_kern;
-
-  const uint kernel_power = device_param->kernel_power;
 
   while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
   {
@@ -4254,7 +4419,7 @@ static void *thread_calc_stdin (void *p)
 
     uint words_cur = 0;
 
-    while (words_cur < kernel_power)
+    while (words_cur < device_param->kernel_power)
     {
       char *line_buf = fgets (buf, HCBUFSIZ - 1, stdin);
 
@@ -4288,6 +4453,8 @@ static void *thread_calc_stdin (void *p)
         continue;
       }
 
+      // hmm that's always the case, or?
+
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
         if ((line_len < data.pw_min) || (line_len > data.pw_max))
@@ -4297,25 +4464,6 @@ static void *thread_calc_stdin (void *p)
           for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
           {
             data.words_progress_rejected[salt_pos] += data.kernel_rules_cnt;
-          }
-
-          hc_thread_mutex_unlock (mux_counter);
-
-          continue;
-        }
-      }
-      else if (attack_kern == ATTACK_KERN_COMBI)
-      {
-        // do not check if minimum restriction is satisfied (line_len >= data.pw_min) here
-        // since we still need to combine the plains
-
-        if (line_len > data.pw_max)
-        {
-          hc_thread_mutex_lock (mux_counter);
-
-          for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
-          {
-            data.words_progress_rejected[salt_pos] += data.combs_cnt;
           }
 
           hc_thread_mutex_unlock (mux_counter);
@@ -4353,6 +4501,8 @@ static void *thread_calc_stdin (void *p)
 
       device_param->pws_cnt = 0;
 
+      /*
+      still required?
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
         run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
@@ -4361,6 +4511,7 @@ static void *thread_calc_stdin (void *p)
       {
         run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
       }
+      */
     }
   }
 
@@ -4378,8 +4529,6 @@ static void *thread_calc (void *p)
 
   if (device_param->skipped) return NULL;
 
-  autotune (device_param);
-
   const uint attack_mode = data.attack_mode;
   const uint attack_kern = data.attack_kern;
 
@@ -4387,7 +4536,7 @@ static void *thread_calc (void *p)
   {
     while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
     {
-      const uint work = get_work (device_param, -1, true);
+      const uint work = get_work (device_param, -1);
 
       if (work == 0) break;
 
@@ -4406,7 +4555,10 @@ static void *thread_calc (void *p)
 
         device_param->pws_cnt = 0;
 
+        /*
+        still required?
         run_kernel_bzero (device_param, device_param->d_bfs_c, device_param->size_bfs);
+        */
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
@@ -4499,17 +4651,15 @@ static void *thread_calc (void *p)
       u64 words_off = 0;
       u64 words_fin = 0;
 
-      bool allow_div = true;
-
       u64 max = -1;
 
       while (max)
       {
-        const uint work = get_work (device_param, max, allow_div);
-
-        allow_div = false;
+        const uint work = get_work (device_param, max);
 
         if (work == 0) break;
+
+        max = 0;
 
         words_off = device_param->words_off;
         words_fin = words_off + work;
@@ -4518,8 +4668,6 @@ static void *thread_calc (void *p)
         uint  line_len;
 
         for ( ; words_cur < words_off; words_cur++) get_next_word (wl_data, fd, &line_buf, &line_len);
-
-        max = 0;
 
         for ( ; words_cur < words_fin; words_cur++)
         {
@@ -4625,6 +4773,8 @@ static void *thread_calc (void *p)
 
         device_param->pws_cnt = 0;
 
+        /*
+        still required?
         if (attack_kern == ATTACK_KERN_STRAIGHT)
         {
           run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
@@ -4633,6 +4783,7 @@ static void *thread_calc (void *p)
         {
           run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
         }
+        */
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
@@ -5103,8 +5254,8 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 
 // wrapper around mymalloc for ADL
 
-#if defined(HAVE_HWMON) && defined(HAVE_ADL)
-void *__stdcall ADL_Main_Memory_Alloc (const int iSize)
+#if defined(HAVE_HWMON)
+void *HC_API_CALL ADL_Main_Memory_Alloc (const int iSize)
 {
   return mymalloc (iSize);
 }
@@ -5157,16 +5308,47 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
 }
 
 
+
+
+#ifdef _WIN
+void SetConsoleWindowSize (const int x)
+{
+  HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
+
+  if (h == INVALID_HANDLE_VALUE) return;
+
+  CONSOLE_SCREEN_BUFFER_INFO bufferInfo;
+
+  if (!GetConsoleScreenBufferInfo (h, &bufferInfo)) return;
+
+  SMALL_RECT *sr = &bufferInfo.srWindow;
+
+  sr->Right = MAX (sr->Right, x - 1);
+
+  COORD co;
+
+  co.X = sr->Right + 1;
+  co.Y = 9999;
+
+  if (!SetConsoleScreenBufferSize (h, co)) return;
+
+  if (!SetConsoleWindowInfo (h, TRUE, sr)) return;
+}
+#endif
+
 /**
  * main
  */
-
 #ifdef API
 int hcapi_main(int argc, char **argv)
 #else
 int main (int argc, char **argv)
 #endif
 {
+  #ifdef _WIN
+  SetConsoleWindowSize (132);
+  #endif
+
   /**
    * To help users a bit
    */
@@ -5199,6 +5381,11 @@ int main (int argc, char **argv)
   if (getenv ("CUDA_CACHE_DISABLE") == NULL)
     putenv ((char *) "CUDA_CACHE_DISABLE=1");
 
+  if (getenv ("POCL_KERNEL_CACHE") == NULL)
+    putenv ((char *) "POCL_KERNEL_CACHE=0");
+
+  umask (077);
+
   /**
    * Real init
    */
@@ -5223,256 +5410,247 @@ int main (int argc, char **argv)
    * commandline parameters
    */
 
-  uint  usage             = USAGE;
-  uint  version           = VERSION;
-  uint  quiet             = QUIET;
-  uint  benchmark         = BENCHMARK;
-  uint  benchmark_repeats = BENCHMARK_REPEATS;
-  uint  show              = SHOW;
-  uint  left              = LEFT;
-  uint  username          = USERNAME;
-  uint  remove            = REMOVE;
-  uint  remove_timer      = REMOVE_TIMER;
-  u64   skip              = SKIP;
-  u64   limit             = LIMIT;
-  uint  keyspace          = KEYSPACE;
-  uint  potfile_disable   = POTFILE_DISABLE;
-  char *potfile_path      = NULL;
-  uint  debug_mode        = DEBUG_MODE;
-  char *debug_file        = NULL;
-  char *induction_dir     = NULL;
-  char *outfile_check_dir = NULL;
-  uint  force             = FORCE;
-  uint  runtime           = RUNTIME;
-  uint  hash_mode         = HASH_MODE;
-  uint  attack_mode       = ATTACK_MODE;
-  uint  markov_disable    = MARKOV_DISABLE;
-  uint  markov_classic    = MARKOV_CLASSIC;
-  uint  markov_threshold  = MARKOV_THRESHOLD;
-  char *markov_hcstat     = NULL;
-  char *outfile           = NULL;
-  uint  outfile_format    = OUTFILE_FORMAT;
-  uint  outfile_autohex   = OUTFILE_AUTOHEX;
-  uint  outfile_check_timer = OUTFILE_CHECK_TIMER;
-  uint  restore           = RESTORE;
-  uint  restore_timer     = RESTORE_TIMER;
-  uint  restore_disable   = RESTORE_DISABLE;
-  uint  status            = STATUS;
-  uint  status_timer      = STATUS_TIMER;
-  uint  status_automat    = STATUS_AUTOMAT;
-  uint  loopback          = LOOPBACK;
-  uint  weak_hash_threshold = WEAK_HASH_THRESHOLD;
-  char *session           = NULL;
-  uint  hex_charset       = HEX_CHARSET;
-  uint  hex_salt          = HEX_SALT;
-  uint  hex_wordlist      = HEX_WORDLIST;
-  uint  rp_gen            = RP_GEN;
-  uint  rp_gen_func_min   = RP_GEN_FUNC_MIN;
-  uint  rp_gen_func_max   = RP_GEN_FUNC_MAX;
-  uint  rp_gen_seed       = RP_GEN_SEED;
-  char *rule_buf_l        = (char *) RULE_BUF_L;
-  char *rule_buf_r        = (char *) RULE_BUF_R;
-  uint  increment         = INCREMENT;
-  uint  increment_min     = INCREMENT_MIN;
-  uint  increment_max     = INCREMENT_MAX;
-  char *cpu_affinity      = NULL;
-  OCL_PTR *ocl            = NULL;
-  char *opencl_devices    = NULL;
-  char *opencl_platforms  = NULL;
-  char *opencl_device_types = NULL;
-  uint  opencl_vector_width = OPENCL_VECTOR_WIDTH;
-  char *truecrypt_keyfiles = NULL;
-  uint  workload_profile  = WORKLOAD_PROFILE;
-  uint  kernel_accel      = KERNEL_ACCEL;
-  uint  kernel_loops      = KERNEL_LOOPS;
-  uint  gpu_temp_disable  = GPU_TEMP_DISABLE;
+  uint  usage                     = USAGE;
+  uint  version                   = VERSION;
+  uint  quiet                     = QUIET;
+  uint  benchmark                 = BENCHMARK;
+  uint  show                      = SHOW;
+  uint  left                      = LEFT;
+  uint  username                  = USERNAME;
+  uint  remove                    = REMOVE;
+  uint  remove_timer              = REMOVE_TIMER;
+  u64   skip                      = SKIP;
+  u64   limit                     = LIMIT;
+  uint  keyspace                  = KEYSPACE;
+  uint  potfile_disable           = POTFILE_DISABLE;
+  char *potfile_path              = NULL;
+  uint  debug_mode                = DEBUG_MODE;
+  char *debug_file                = NULL;
+  char *induction_dir             = NULL;
+  char *outfile_check_dir         = NULL;
+  uint  force                     = FORCE;
+  uint  runtime                   = RUNTIME;
+  uint  hash_mode                 = HASH_MODE;
+  uint  attack_mode               = ATTACK_MODE;
+  uint  markov_disable            = MARKOV_DISABLE;
+  uint  markov_classic            = MARKOV_CLASSIC;
+  uint  markov_threshold          = MARKOV_THRESHOLD;
+  char *markov_hcstat             = NULL;
+  char *outfile                   = NULL;
+  uint  outfile_format            = OUTFILE_FORMAT;
+  uint  outfile_autohex           = OUTFILE_AUTOHEX;
+  uint  outfile_check_timer       = OUTFILE_CHECK_TIMER;
+  uint  restore                   = RESTORE;
+  uint  restore_timer             = RESTORE_TIMER;
+  uint  restore_disable           = RESTORE_DISABLE;
+  uint  status                    = STATUS;
+  uint  status_timer              = STATUS_TIMER;
+  uint  machine_readable          = MACHINE_READABLE;
+  uint  loopback                  = LOOPBACK;
+  uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
+  char *session                   = NULL;
+  uint  hex_charset               = HEX_CHARSET;
+  uint  hex_salt                  = HEX_SALT;
+  uint  hex_wordlist              = HEX_WORDLIST;
+  uint  rp_gen                    = RP_GEN;
+  uint  rp_gen_func_min           = RP_GEN_FUNC_MIN;
+  uint  rp_gen_func_max           = RP_GEN_FUNC_MAX;
+  uint  rp_gen_seed               = RP_GEN_SEED;
+  char *rule_buf_l                = (char *) RULE_BUF_L;
+  char *rule_buf_r                = (char *) RULE_BUF_R;
+  uint  increment                 = INCREMENT;
+  uint  increment_min             = INCREMENT_MIN;
+  uint  increment_max             = INCREMENT_MAX;
+  char *cpu_affinity              = NULL;
+  OCL_PTR *ocl                    = NULL;
+  char *opencl_devices            = NULL;
+  char *opencl_platforms          = NULL;
+  char *opencl_device_types       = NULL;
+  uint  opencl_vector_width       = OPENCL_VECTOR_WIDTH;
+  char *truecrypt_keyfiles        = NULL;
+  char *veracrypt_keyfiles        = NULL;
+  uint  veracrypt_pim             = 0;
+  uint  workload_profile          = WORKLOAD_PROFILE;
+  uint  kernel_accel              = KERNEL_ACCEL;
+  uint  kernel_loops              = KERNEL_LOOPS;
+  uint  gpu_temp_disable          = GPU_TEMP_DISABLE;
   #ifdef HAVE_HWMON
-  uint  gpu_temp_abort    = GPU_TEMP_ABORT;
-  uint  gpu_temp_retain   = GPU_TEMP_RETAIN;
-  #ifdef HAVE_ADL
-  uint  powertune_enable  = POWERTUNE_ENABLE;
+  uint  gpu_temp_abort            = GPU_TEMP_ABORT;
+  uint  gpu_temp_retain           = GPU_TEMP_RETAIN;
+  uint  powertune_enable          = POWERTUNE_ENABLE;
   #endif
-  #endif
-  uint  logfile_disable   = LOGFILE_DISABLE;
-  uint  segment_size      = SEGMENT_SIZE;
-  uint  scrypt_tmto       = SCRYPT_TMTO;
-  char  separator         = SEPARATOR;
-  uint  bitmap_min        = BITMAP_MIN;
-  uint  bitmap_max        = BITMAP_MAX;
-  char *custom_charset_1  = NULL;
-  char *custom_charset_2  = NULL;
-  char *custom_charset_3  = NULL;
-  char *custom_charset_4  = NULL;
+  uint  logfile_disable           = LOGFILE_DISABLE;
+  uint  segment_size              = SEGMENT_SIZE;
+  uint  scrypt_tmto               = SCRYPT_TMTO;
+  char  separator                 = SEPARATOR;
+  uint  bitmap_min                = BITMAP_MIN;
+  uint  bitmap_max                = BITMAP_MAX;
+  char *custom_charset_1          = NULL;
+  char *custom_charset_2          = NULL;
+  char *custom_charset_3          = NULL;
+  char *custom_charset_4          = NULL;
 
-  #define IDX_HELP              'h'
-  #define IDX_VERSION           'V'
-  #define IDX_VERSION_LOWER     'v'
-  #define IDX_QUIET             0xff02
-  #define IDX_SHOW              0xff03
-  #define IDX_LEFT              0xff04
-  #define IDX_REMOVE            0xff05
-  #define IDX_REMOVE_TIMER      0xff37
-  #define IDX_SKIP              's'
-  #define IDX_LIMIT             'l'
-  #define IDX_KEYSPACE          0xff35
-  #define IDX_POTFILE_DISABLE   0xff06
-  #define IDX_POTFILE_PATH      0xffe0
-  #define IDX_DEBUG_MODE        0xff43
-  #define IDX_DEBUG_FILE        0xff44
-  #define IDX_INDUCTION_DIR     0xff46
-  #define IDX_OUTFILE_CHECK_DIR 0xff47
-  #define IDX_USERNAME          0xff07
-  #define IDX_FORCE             0xff08
-  #define IDX_RUNTIME           0xff09
-  #define IDX_BENCHMARK         'b'
-  #define IDX_BENCHMARK_REPEATS 0xff78
-  #define IDX_HASH_MODE         'm'
-  #define IDX_ATTACK_MODE       'a'
-  #define IDX_RP_FILE           'r'
-  #define IDX_RP_GEN            'g'
-  #define IDX_RP_GEN_FUNC_MIN   0xff10
-  #define IDX_RP_GEN_FUNC_MAX   0xff11
-  #define IDX_RP_GEN_SEED       0xff34
-  #define IDX_RULE_BUF_L        'j'
-  #define IDX_RULE_BUF_R        'k'
-  #define IDX_INCREMENT         'i'
-  #define IDX_INCREMENT_MIN     0xff12
-  #define IDX_INCREMENT_MAX     0xff13
-  #define IDX_OUTFILE           'o'
-  #define IDX_OUTFILE_FORMAT    0xff14
-  #define IDX_OUTFILE_AUTOHEX_DISABLE 0xff39
-  #define IDX_OUTFILE_CHECK_TIMER 0xff45
-  #define IDX_RESTORE           0xff15
-  #define IDX_RESTORE_DISABLE   0xff27
-  #define IDX_STATUS            0xff17
-  #define IDX_STATUS_TIMER      0xff18
-  #define IDX_STATUS_AUTOMAT    0xff50
-  #define IDX_LOOPBACK          0xff38
-  #define IDX_WEAK_HASH_THRESHOLD 0xff42
-  #define IDX_SESSION           0xff19
-  #define IDX_HEX_CHARSET       0xff20
-  #define IDX_HEX_SALT          0xff21
-  #define IDX_HEX_WORDLIST      0xff40
-  #define IDX_MARKOV_DISABLE    0xff22
-  #define IDX_MARKOV_CLASSIC    0xff23
-  #define IDX_MARKOV_THRESHOLD  't'
-  #define IDX_MARKOV_HCSTAT     0xff24
-  #define IDX_CPU_AFFINITY      0xff25
-  #define IDX_OPENCL_DEVICES    'd'
-  #define IDX_OPENCL_PLATFORMS  0xff72
-  #define IDX_OPENCL_DEVICE_TYPES 0xff73
-  #define IDX_OPENCL_VECTOR_WIDTH 0xff74
-  #define IDX_WORKLOAD_PROFILE  'w'
-  #define IDX_KERNEL_ACCEL      'n'
-  #define IDX_KERNEL_LOOPS      'u'
-  #define IDX_GPU_TEMP_DISABLE  0xff29
-  #define IDX_GPU_TEMP_ABORT    0xff30
-  #define IDX_GPU_TEMP_RETAIN   0xff31
-  #define IDX_POWERTUNE_ENABLE  0xff41
-  #define IDX_LOGFILE_DISABLE   0xff51
-  #define IDX_TRUECRYPT_KEYFILES 0xff52
-  #define IDX_SCRYPT_TMTO       0xff61
-  #define IDX_SEGMENT_SIZE      'c'
-  #define IDX_SEPARATOR         'p'
-  #define IDX_BITMAP_MIN        0xff70
-  #define IDX_BITMAP_MAX        0xff71
-  #define IDX_CUSTOM_CHARSET_1  '1'
-  #define IDX_CUSTOM_CHARSET_2  '2'
-  #define IDX_CUSTOM_CHARSET_3  '3'
-  #define IDX_CUSTOM_CHARSET_4  '4'
+  #define IDX_HELP                      'h'
+  #define IDX_VERSION                   'V'
+  #define IDX_VERSION_LOWER             'v'
+  #define IDX_QUIET                     0xff02
+  #define IDX_SHOW                      0xff03
+  #define IDX_LEFT                      0xff04
+  #define IDX_REMOVE                    0xff05
+  #define IDX_REMOVE_TIMER              0xff37
+  #define IDX_SKIP                      's'
+  #define IDX_LIMIT                     'l'
+  #define IDX_KEYSPACE                  0xff35
+  #define IDX_POTFILE_DISABLE           0xff06
+  #define IDX_POTFILE_PATH              0xffe0
+  #define IDX_DEBUG_MODE                0xff43
+  #define IDX_DEBUG_FILE                0xff44
+  #define IDX_INDUCTION_DIR             0xff46
+  #define IDX_OUTFILE_CHECK_DIR         0xff47
+  #define IDX_USERNAME                  0xff07
+  #define IDX_FORCE                     0xff08
+  #define IDX_RUNTIME                   0xff09
+  #define IDX_BENCHMARK                 'b'
+  #define IDX_HASH_MODE                 'm'
+  #define IDX_ATTACK_MODE               'a'
+  #define IDX_RP_FILE                   'r'
+  #define IDX_RP_GEN                    'g'
+  #define IDX_RP_GEN_FUNC_MIN           0xff10
+  #define IDX_RP_GEN_FUNC_MAX           0xff11
+  #define IDX_RP_GEN_SEED               0xff34
+  #define IDX_RULE_BUF_L                'j'
+  #define IDX_RULE_BUF_R                'k'
+  #define IDX_INCREMENT                 'i'
+  #define IDX_INCREMENT_MIN             0xff12
+  #define IDX_INCREMENT_MAX             0xff13
+  #define IDX_OUTFILE                   'o'
+  #define IDX_OUTFILE_FORMAT            0xff14
+  #define IDX_OUTFILE_AUTOHEX_DISABLE   0xff39
+  #define IDX_OUTFILE_CHECK_TIMER       0xff45
+  #define IDX_RESTORE                   0xff15
+  #define IDX_RESTORE_DISABLE           0xff27
+  #define IDX_STATUS                    0xff17
+  #define IDX_STATUS_TIMER              0xff18
+  #define IDX_MACHINE_READABLE          0xff50
+  #define IDX_LOOPBACK                  0xff38
+  #define IDX_WEAK_HASH_THRESHOLD       0xff42
+  #define IDX_SESSION                   0xff19
+  #define IDX_HEX_CHARSET               0xff20
+  #define IDX_HEX_SALT                  0xff21
+  #define IDX_HEX_WORDLIST              0xff40
+  #define IDX_MARKOV_DISABLE            0xff22
+  #define IDX_MARKOV_CLASSIC            0xff23
+  #define IDX_MARKOV_THRESHOLD          't'
+  #define IDX_MARKOV_HCSTAT             0xff24
+  #define IDX_CPU_AFFINITY              0xff25
+  #define IDX_OPENCL_DEVICES            'd'
+  #define IDX_OPENCL_PLATFORMS          0xff72
+  #define IDX_OPENCL_DEVICE_TYPES       0xff73
+  #define IDX_OPENCL_VECTOR_WIDTH       0xff74
+  #define IDX_WORKLOAD_PROFILE          'w'
+  #define IDX_KERNEL_ACCEL              'n'
+  #define IDX_KERNEL_LOOPS              'u'
+  #define IDX_GPU_TEMP_DISABLE          0xff29
+  #define IDX_GPU_TEMP_ABORT            0xff30
+  #define IDX_GPU_TEMP_RETAIN           0xff31
+  #define IDX_POWERTUNE_ENABLE          0xff41
+  #define IDX_LOGFILE_DISABLE           0xff51
+  #define IDX_TRUECRYPT_KEYFILES        0xff52
+  #define IDX_VERACRYPT_KEYFILES        0xff53
+  #define IDX_VERACRYPT_PIM             0xff54
+  #define IDX_SCRYPT_TMTO               0xff61
+  #define IDX_SEGMENT_SIZE              'c'
+  #define IDX_SEPARATOR                 'p'
+  #define IDX_BITMAP_MIN                0xff70
+  #define IDX_BITMAP_MAX                0xff71
+  #define IDX_CUSTOM_CHARSET_1          '1'
+  #define IDX_CUSTOM_CHARSET_2          '2'
+  #define IDX_CUSTOM_CHARSET_3          '3'
+  #define IDX_CUSTOM_CHARSET_4          '4'
 
   char short_options[] = "hVvm:a:r:j:k:g:o:t:d:n:u:c:p:s:l:1:2:3:4:ibw:";
 
   struct option long_options[] =
   {
-    {"help",              no_argument,       0, IDX_HELP},
-    {"version",           no_argument,       0, IDX_VERSION},
-    {"quiet",             no_argument,       0, IDX_QUIET},
-    {"show",              no_argument,       0, IDX_SHOW},
-    {"left",              no_argument,       0, IDX_LEFT},
-    {"username",          no_argument,       0, IDX_USERNAME},
-    {"remove",            no_argument,       0, IDX_REMOVE},
-    {"remove-timer",      required_argument, 0, IDX_REMOVE_TIMER},
-    {"skip",              required_argument, 0, IDX_SKIP},
-    {"limit",             required_argument, 0, IDX_LIMIT},
-    {"keyspace",          no_argument,       0, IDX_KEYSPACE},
-    {"potfile-disable",   no_argument,       0, IDX_POTFILE_DISABLE},
-    {"potfile-path",      required_argument, 0, IDX_POTFILE_PATH},
-    {"debug-mode",        required_argument, 0, IDX_DEBUG_MODE},
-    {"debug-file",        required_argument, 0, IDX_DEBUG_FILE},
-    {"induction-dir",     required_argument, 0, IDX_INDUCTION_DIR},
-    {"outfile-check-dir", required_argument, 0, IDX_OUTFILE_CHECK_DIR},
-    {"force",             no_argument,       0, IDX_FORCE},
-    {"benchmark",         no_argument,       0, IDX_BENCHMARK},
-    {"benchmark-repeats", required_argument, 0, IDX_BENCHMARK_REPEATS},
-    {"restore",           no_argument,       0, IDX_RESTORE},
-    {"restore-disable",   no_argument,       0, IDX_RESTORE_DISABLE},
-    {"status",            no_argument,       0, IDX_STATUS},
-    {"status-timer",      required_argument, 0, IDX_STATUS_TIMER},
-    {"status-automat",    no_argument,       0, IDX_STATUS_AUTOMAT},
-    {"loopback",          no_argument,       0, IDX_LOOPBACK},
-    {"weak-hash-threshold",
-                          required_argument, 0, IDX_WEAK_HASH_THRESHOLD},
-    {"session",           required_argument, 0, IDX_SESSION},
-    {"runtime",           required_argument, 0, IDX_RUNTIME},
-    {"generate-rules",    required_argument, 0, IDX_RP_GEN},
-    {"generate-rules-func-min",
-                          required_argument, 0, IDX_RP_GEN_FUNC_MIN},
-    {"generate-rules-func-max",
-                          required_argument, 0, IDX_RP_GEN_FUNC_MAX},
-    {"generate-rules-seed",
-                          required_argument, 0, IDX_RP_GEN_SEED},
-    {"rule-left",         required_argument, 0, IDX_RULE_BUF_L},
-    {"rule-right",        required_argument, 0, IDX_RULE_BUF_R},
-    {"hash-type",         required_argument, 0, IDX_HASH_MODE},
-    {"attack-mode",       required_argument, 0, IDX_ATTACK_MODE},
-    {"rules-file",        required_argument, 0, IDX_RP_FILE},
-    {"outfile",           required_argument, 0, IDX_OUTFILE},
-    {"outfile-format",    required_argument, 0, IDX_OUTFILE_FORMAT},
-    {"outfile-autohex-disable",
-                          no_argument,       0, IDX_OUTFILE_AUTOHEX_DISABLE},
-    {"outfile-check-timer",
-                          required_argument, 0, IDX_OUTFILE_CHECK_TIMER},
-    {"hex-charset",       no_argument,       0, IDX_HEX_CHARSET},
-    {"hex-salt",          no_argument,       0, IDX_HEX_SALT},
-    {"hex-wordlist",      no_argument,       0, IDX_HEX_WORDLIST},
-    {"markov-disable",    no_argument,       0, IDX_MARKOV_DISABLE},
-    {"markov-classic",    no_argument,       0, IDX_MARKOV_CLASSIC},
-    {"markov-threshold",  required_argument, 0, IDX_MARKOV_THRESHOLD},
-    {"markov-hcstat",     required_argument, 0, IDX_MARKOV_HCSTAT},
-    {"cpu-affinity",      required_argument, 0, IDX_CPU_AFFINITY},
-    {"opencl-devices",    required_argument, 0, IDX_OPENCL_DEVICES},
-    {"opencl-platforms",  required_argument, 0, IDX_OPENCL_PLATFORMS},
-    {"opencl-device-types", required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
-    {"opencl-vector-width", required_argument, 0, IDX_OPENCL_VECTOR_WIDTH},
-    {"workload-profile",  required_argument, 0, IDX_WORKLOAD_PROFILE},
-    {"kernel-accel",      required_argument, 0, IDX_KERNEL_ACCEL},
-    {"kernel-loops",      required_argument, 0, IDX_KERNEL_LOOPS},
-    {"gpu-temp-disable",  no_argument,       0, IDX_GPU_TEMP_DISABLE},
+    {"help",                      no_argument,       0, IDX_HELP},
+    {"version",                   no_argument,       0, IDX_VERSION},
+    {"quiet",                     no_argument,       0, IDX_QUIET},
+    {"show",                      no_argument,       0, IDX_SHOW},
+    {"left",                      no_argument,       0, IDX_LEFT},
+    {"username",                  no_argument,       0, IDX_USERNAME},
+    {"remove",                    no_argument,       0, IDX_REMOVE},
+    {"remove-timer",              required_argument, 0, IDX_REMOVE_TIMER},
+    {"skip",                      required_argument, 0, IDX_SKIP},
+    {"limit",                     required_argument, 0, IDX_LIMIT},
+    {"keyspace",                  no_argument,       0, IDX_KEYSPACE},
+    {"potfile-disable",           no_argument,       0, IDX_POTFILE_DISABLE},
+    {"potfile-path",              required_argument, 0, IDX_POTFILE_PATH},
+    {"debug-mode",                required_argument, 0, IDX_DEBUG_MODE},
+    {"debug-file",                required_argument, 0, IDX_DEBUG_FILE},
+    {"induction-dir",             required_argument, 0, IDX_INDUCTION_DIR},
+    {"outfile-check-dir",         required_argument, 0, IDX_OUTFILE_CHECK_DIR},
+    {"force",                     no_argument,       0, IDX_FORCE},
+    {"benchmark",                 no_argument,       0, IDX_BENCHMARK},
+    {"restore",                   no_argument,       0, IDX_RESTORE},
+    {"restore-disable",           no_argument,       0, IDX_RESTORE_DISABLE},
+    {"status",                    no_argument,       0, IDX_STATUS},
+    {"status-timer",              required_argument, 0, IDX_STATUS_TIMER},
+    {"machine-readable",          no_argument,       0, IDX_MACHINE_READABLE},
+    {"loopback",                  no_argument,       0, IDX_LOOPBACK},
+    {"weak-hash-threshold",       required_argument, 0, IDX_WEAK_HASH_THRESHOLD},
+    {"session",                   required_argument, 0, IDX_SESSION},
+    {"runtime",                   required_argument, 0, IDX_RUNTIME},
+    {"generate-rules",            required_argument, 0, IDX_RP_GEN},
+    {"generate-rules-func-min",   required_argument, 0, IDX_RP_GEN_FUNC_MIN},
+    {"generate-rules-func-max",   required_argument, 0, IDX_RP_GEN_FUNC_MAX},
+    {"generate-rules-seed",       required_argument, 0, IDX_RP_GEN_SEED},
+    {"rule-left",                 required_argument, 0, IDX_RULE_BUF_L},
+    {"rule-right",                required_argument, 0, IDX_RULE_BUF_R},
+    {"hash-type",                 required_argument, 0, IDX_HASH_MODE},
+    {"attack-mode",               required_argument, 0, IDX_ATTACK_MODE},
+    {"rules-file",                required_argument, 0, IDX_RP_FILE},
+    {"outfile",                   required_argument, 0, IDX_OUTFILE},
+    {"outfile-format",            required_argument, 0, IDX_OUTFILE_FORMAT},
+    {"outfile-autohex-disable",   no_argument,       0, IDX_OUTFILE_AUTOHEX_DISABLE},
+    {"outfile-check-timer",       required_argument, 0, IDX_OUTFILE_CHECK_TIMER},
+    {"hex-charset",               no_argument,       0, IDX_HEX_CHARSET},
+    {"hex-salt",                  no_argument,       0, IDX_HEX_SALT},
+    {"hex-wordlist",              no_argument,       0, IDX_HEX_WORDLIST},
+    {"markov-disable",            no_argument,       0, IDX_MARKOV_DISABLE},
+    {"markov-classic",            no_argument,       0, IDX_MARKOV_CLASSIC},
+    {"markov-threshold",          required_argument, 0, IDX_MARKOV_THRESHOLD},
+    {"markov-hcstat",             required_argument, 0, IDX_MARKOV_HCSTAT},
+    {"cpu-affinity",              required_argument, 0, IDX_CPU_AFFINITY},
+    {"opencl-devices",            required_argument, 0, IDX_OPENCL_DEVICES},
+    {"opencl-platforms",          required_argument, 0, IDX_OPENCL_PLATFORMS},
+    {"opencl-device-types",       required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
+    {"opencl-vector-width",       required_argument, 0, IDX_OPENCL_VECTOR_WIDTH},
+    {"workload-profile",          required_argument, 0, IDX_WORKLOAD_PROFILE},
+    {"kernel-accel",              required_argument, 0, IDX_KERNEL_ACCEL},
+    {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
+    {"gpu-temp-disable",          no_argument,       0, IDX_GPU_TEMP_DISABLE},
     #ifdef HAVE_HWMON
-    {"gpu-temp-abort",    required_argument, 0, IDX_GPU_TEMP_ABORT},
-    {"gpu-temp-retain",   required_argument, 0, IDX_GPU_TEMP_RETAIN},
-    #ifdef HAVE_ADL
-    {"powertune-enable",  no_argument,       0, IDX_POWERTUNE_ENABLE},
-    #endif
+    {"gpu-temp-abort",            required_argument, 0, IDX_GPU_TEMP_ABORT},
+    {"gpu-temp-retain",           required_argument, 0, IDX_GPU_TEMP_RETAIN},
+    {"powertune-enable",          no_argument,       0, IDX_POWERTUNE_ENABLE},
     #endif // HAVE_HWMON
-    {"logfile-disable",   no_argument,       0, IDX_LOGFILE_DISABLE},
-    {"truecrypt-keyfiles", required_argument, 0, IDX_TRUECRYPT_KEYFILES},
-    {"segment-size",      required_argument, 0, IDX_SEGMENT_SIZE},
-    {"scrypt-tmto",       required_argument, 0, IDX_SCRYPT_TMTO},
-    // deprecated
-    {"seperator",         required_argument, 0, IDX_SEPARATOR},
-    {"separator",         required_argument, 0, IDX_SEPARATOR},
-    {"bitmap-min",        required_argument, 0, IDX_BITMAP_MIN},
-    {"bitmap-max",        required_argument, 0, IDX_BITMAP_MAX},
-    {"increment",         no_argument,       0, IDX_INCREMENT},
-    {"increment-min",     required_argument, 0, IDX_INCREMENT_MIN},
-    {"increment-max",     required_argument, 0, IDX_INCREMENT_MAX},
-    {"custom-charset1",   required_argument, 0, IDX_CUSTOM_CHARSET_1},
-    {"custom-charset2",   required_argument, 0, IDX_CUSTOM_CHARSET_2},
-    {"custom-charset3",   required_argument, 0, IDX_CUSTOM_CHARSET_3},
-    {"custom-charset4",   required_argument, 0, IDX_CUSTOM_CHARSET_4},
-
+    {"logfile-disable",           no_argument,       0, IDX_LOGFILE_DISABLE},
+    {"truecrypt-keyfiles",        required_argument, 0, IDX_TRUECRYPT_KEYFILES},
+    {"veracrypt-keyfiles",        required_argument, 0, IDX_VERACRYPT_KEYFILES},
+    {"veracrypt-pim",             required_argument, 0, IDX_VERACRYPT_PIM},
+    {"segment-size",              required_argument, 0, IDX_SEGMENT_SIZE},
+    {"scrypt-tmto",               required_argument, 0, IDX_SCRYPT_TMTO},
+    {"seperator",                 required_argument, 0, IDX_SEPARATOR},
+    {"separator",                 required_argument, 0, IDX_SEPARATOR},
+    {"bitmap-min",                required_argument, 0, IDX_BITMAP_MIN},
+    {"bitmap-max",                required_argument, 0, IDX_BITMAP_MAX},
+    {"increment",                 no_argument,       0, IDX_INCREMENT},
+    {"increment-min",             required_argument, 0, IDX_INCREMENT_MIN},
+    {"increment-max",             required_argument, 0, IDX_INCREMENT_MAX},
+    {"custom-charset1",           required_argument, 0, IDX_CUSTOM_CHARSET_1},
+    {"custom-charset2",           required_argument, 0, IDX_CUSTOM_CHARSET_2},
+    {"custom-charset3",           required_argument, 0, IDX_CUSTOM_CHARSET_3},
+    {"custom-charset4",           required_argument, 0, IDX_CUSTOM_CHARSET_4},
     {0, 0, 0, 0}
   };
 
@@ -5514,7 +5692,7 @@ int main (int argc, char **argv)
 
   if (version)
   {
-    log_info ("%s (%s)", VERSION_TAG, VERSION_SUM);
+    log_info ("%s", VERSION_TAG);
 
     return (0);
   }
@@ -5533,7 +5711,7 @@ int main (int argc, char **argv)
   if (session == NULL) session = (char *) PROGNAME;
 
   /**
-   * folders, as discussed on https://github.com/hashcat/oclHashcat/issues/20
+   * folders, as discussed on https://github.com/hashcat/hashcat/issues/20
    */
 
   char *exec_path = get_exec_path ();
@@ -5626,7 +5804,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  // this allows the user to use --show and --left while cracking (i.e. while another instance of oclHashcat is running)
+  // this allows the user to use --show and --left while cracking (i.e. while another instance of hashcat is running)
   if ((show == 1) || (left == 1))
   {
     restore_disable = 1;
@@ -5678,11 +5856,6 @@ int main (int argc, char **argv)
   uint workload_profile_chgd    = 0;
   uint opencl_vector_width_chgd = 0;
 
-  #if defined(HAVE_HWMON) && defined(HAVE_ADL)
-  uint gpu_temp_retain_chgd   = 0;
-  uint gpu_temp_abort_chgd    = 0;
-  #endif
-
   optind = 1;
   optopt = 0;
   option_index = 0;
@@ -5691,114 +5864,100 @@ int main (int argc, char **argv)
   {
     switch (c)
     {
-    //case IDX_HELP:              usage             = 1;               break;
-    //case IDX_VERSION:           version           = 1;               break;
-    //case IDX_RESTORE:           restore           = 1;               break;
-      case IDX_QUIET:             quiet             = 1;               break;
-    //case IDX_SHOW:              show              = 1;               break;
-      case IDX_SHOW:                                                   break;
-    //case IDX_LEFT:              left              = 1;               break;
-      case IDX_LEFT:                                                   break;
-      case IDX_USERNAME:          username          = 1;               break;
-      case IDX_REMOVE:            remove            = 1;               break;
-      case IDX_REMOVE_TIMER:      remove_timer      = atoi (optarg);
-                                  remove_timer_chgd = 1;               break;
-      case IDX_POTFILE_DISABLE:   potfile_disable   = 1;               break;
-      case IDX_POTFILE_PATH:      potfile_path      = optarg;          break;
-      case IDX_DEBUG_MODE:        debug_mode        = atoi (optarg);   break;
-      case IDX_DEBUG_FILE:        debug_file        = optarg;          break;
-      case IDX_INDUCTION_DIR:     induction_dir     = optarg;          break;
-      case IDX_OUTFILE_CHECK_DIR: outfile_check_dir = optarg;          break;
-      case IDX_FORCE:             force             = 1;               break;
-      case IDX_SKIP:              skip              = atoll (optarg);  break;
-      case IDX_LIMIT:             limit             = atoll (optarg);  break;
-      case IDX_KEYSPACE:          keyspace          = 1;               break;
-      case IDX_BENCHMARK:         benchmark         = 1;               break;
-      case IDX_BENCHMARK_REPEATS: benchmark_repeats = atoi (optarg);   break;
-      case IDX_RESTORE:                                                break;
-      case IDX_RESTORE_DISABLE:   restore_disable   = 1;               break;
-      case IDX_STATUS:            status            = 1;               break;
-      case IDX_STATUS_TIMER:      status_timer      = atoi (optarg);   break;
-      case IDX_STATUS_AUTOMAT:    status_automat    = 1;               break;
-      case IDX_LOOPBACK:          loopback          = 1;               break;
-      case IDX_WEAK_HASH_THRESHOLD:
-                                  weak_hash_threshold = atoi (optarg); break;
-    //case IDX_SESSION:           session           = optarg;          break;
-      case IDX_SESSION:                                                break;
-      case IDX_HASH_MODE:         hash_mode         = atoi (optarg);
-                                  hash_mode_chgd    = 1;               break;
-      case IDX_RUNTIME:           runtime           = atoi (optarg);
-                                  runtime_chgd      = 1;               break;
-      case IDX_ATTACK_MODE:       attack_mode       = atoi (optarg);
-                                  attack_mode_chgd  = 1;               break;
-      case IDX_RP_FILE:           rp_files[rp_files_cnt++] = optarg;   break;
-      case IDX_RP_GEN:            rp_gen            = atoi (optarg);   break;
-      case IDX_RP_GEN_FUNC_MIN:   rp_gen_func_min   = atoi (optarg);   break;
-      case IDX_RP_GEN_FUNC_MAX:   rp_gen_func_max   = atoi (optarg);   break;
-      case IDX_RP_GEN_SEED:       rp_gen_seed       = atoi (optarg);
-                                  rp_gen_seed_chgd  = 1;               break;
-      case IDX_RULE_BUF_L:        rule_buf_l        = optarg;          break;
-      case IDX_RULE_BUF_R:        rule_buf_r        = optarg;          break;
-      case IDX_MARKOV_DISABLE:    markov_disable    = 1;               break;
-      case IDX_MARKOV_CLASSIC:    markov_classic    = 1;               break;
-      case IDX_MARKOV_THRESHOLD:  markov_threshold  = atoi (optarg);   break;
-      case IDX_MARKOV_HCSTAT:     markov_hcstat     = optarg;          break;
-      case IDX_OUTFILE:           outfile           = optarg;          break;
-      case IDX_OUTFILE_FORMAT:    outfile_format    = atoi (optarg);
-                                  outfile_format_chgd = 1;             break;
-      case IDX_OUTFILE_AUTOHEX_DISABLE:
-                                  outfile_autohex   = 0;               break;
-      case IDX_OUTFILE_CHECK_TIMER:
-                                  outfile_check_timer = atoi (optarg); break;
-      case IDX_HEX_CHARSET:       hex_charset       = 1;               break;
-      case IDX_HEX_SALT:          hex_salt          = 1;               break;
-      case IDX_HEX_WORDLIST:      hex_wordlist      = 1;               break;
-      case IDX_CPU_AFFINITY:      cpu_affinity      = optarg;          break;
-      case IDX_OPENCL_DEVICES:    opencl_devices    = optarg;          break;
-      case IDX_OPENCL_PLATFORMS:  opencl_platforms  = optarg;          break;
-      case IDX_OPENCL_DEVICE_TYPES:
-                                  opencl_device_types = optarg;        break;
-      case IDX_OPENCL_VECTOR_WIDTH:
-                                  opencl_vector_width      = atoi (optarg);
-                                  opencl_vector_width_chgd = 1;        break;
-      case IDX_WORKLOAD_PROFILE:  workload_profile         = atoi (optarg);
-                                  workload_profile_chgd    = 1;        break;
-      case IDX_KERNEL_ACCEL:      kernel_accel             = atoi (optarg);
-                                  kernel_accel_chgd        = 1;        break;
-      case IDX_KERNEL_LOOPS:      kernel_loops             = atoi (optarg);
-                                  kernel_loops_chgd        = 1;        break;
-      case IDX_GPU_TEMP_DISABLE:  gpu_temp_disable  = 1;               break;
+    //case IDX_HELP:                      usage                     = 1;              break;
+    //case IDX_VERSION:                   version                   = 1;              break;
+    //case IDX_RESTORE:                   restore                   = 1;              break;
+      case IDX_QUIET:                     quiet                     = 1;              break;
+    //case IDX_SHOW:                      show                      = 1;              break;
+      case IDX_SHOW:                                                                  break;
+    //case IDX_LEFT:                      left                      = 1;              break;
+      case IDX_LEFT:                                                                  break;
+      case IDX_USERNAME:                  username                  = 1;              break;
+      case IDX_REMOVE:                    remove                    = 1;              break;
+      case IDX_REMOVE_TIMER:              remove_timer              = atoi (optarg);
+                                          remove_timer_chgd         = 1;              break;
+      case IDX_POTFILE_DISABLE:           potfile_disable           = 1;              break;
+      case IDX_POTFILE_PATH:              potfile_path              = optarg;         break;
+      case IDX_DEBUG_MODE:                debug_mode                = atoi (optarg);  break;
+      case IDX_DEBUG_FILE:                debug_file                = optarg;         break;
+      case IDX_INDUCTION_DIR:             induction_dir             = optarg;         break;
+      case IDX_OUTFILE_CHECK_DIR:         outfile_check_dir         = optarg;         break;
+      case IDX_FORCE:                     force                     = 1;              break;
+      case IDX_SKIP:                      skip                      = atoll (optarg); break;
+      case IDX_LIMIT:                     limit                     = atoll (optarg); break;
+      case IDX_KEYSPACE:                  keyspace                  = 1;              break;
+      case IDX_BENCHMARK:                 benchmark                 = 1;              break;
+      case IDX_RESTORE:                                                               break;
+      case IDX_RESTORE_DISABLE:           restore_disable           = 1;              break;
+      case IDX_STATUS:                    status                    = 1;              break;
+      case IDX_STATUS_TIMER:              status_timer              = atoi (optarg);  break;
+      case IDX_MACHINE_READABLE:          machine_readable          = 1;              break;
+      case IDX_LOOPBACK:                  loopback                  = 1;              break;
+      case IDX_WEAK_HASH_THRESHOLD:       weak_hash_threshold       = atoi (optarg);  break;
+    //case IDX_SESSION:                   session                   = optarg;         break;
+      case IDX_SESSION:                                                               break;
+      case IDX_HASH_MODE:                 hash_mode                 = atoi (optarg);
+                                          hash_mode_chgd            = 1;              break;
+      case IDX_RUNTIME:                   runtime                   = atoi (optarg);
+                                          runtime_chgd              = 1;              break;
+      case IDX_ATTACK_MODE:               attack_mode               = atoi (optarg);
+                                          attack_mode_chgd          = 1;              break;
+      case IDX_RP_FILE:                   rp_files[rp_files_cnt++]  = optarg;         break;
+      case IDX_RP_GEN:                    rp_gen                    = atoi (optarg);  break;
+      case IDX_RP_GEN_FUNC_MIN:           rp_gen_func_min           = atoi (optarg);  break;
+      case IDX_RP_GEN_FUNC_MAX:           rp_gen_func_max           = atoi (optarg);  break;
+      case IDX_RP_GEN_SEED:               rp_gen_seed               = atoi (optarg);
+                                          rp_gen_seed_chgd          = 1;              break;
+      case IDX_RULE_BUF_L:                rule_buf_l                = optarg;         break;
+      case IDX_RULE_BUF_R:                rule_buf_r                = optarg;         break;
+      case IDX_MARKOV_DISABLE:            markov_disable            = 1;              break;
+      case IDX_MARKOV_CLASSIC:            markov_classic            = 1;              break;
+      case IDX_MARKOV_THRESHOLD:          markov_threshold          = atoi (optarg);  break;
+      case IDX_MARKOV_HCSTAT:             markov_hcstat             = optarg;         break;
+      case IDX_OUTFILE:                   outfile                   = optarg;         break;
+      case IDX_OUTFILE_FORMAT:            outfile_format            = atoi (optarg);
+                                          outfile_format_chgd       = 1;              break;
+      case IDX_OUTFILE_AUTOHEX_DISABLE:   outfile_autohex           = 0;              break;
+      case IDX_OUTFILE_CHECK_TIMER:       outfile_check_timer       = atoi (optarg);  break;
+      case IDX_HEX_CHARSET:               hex_charset               = 1;              break;
+      case IDX_HEX_SALT:                  hex_salt                  = 1;              break;
+      case IDX_HEX_WORDLIST:              hex_wordlist              = 1;              break;
+      case IDX_CPU_AFFINITY:              cpu_affinity              = optarg;         break;
+      case IDX_OPENCL_DEVICES:            opencl_devices            = optarg;         break;
+      case IDX_OPENCL_PLATFORMS:          opencl_platforms          = optarg;         break;
+      case IDX_OPENCL_DEVICE_TYPES:       opencl_device_types       = optarg;         break;
+      case IDX_OPENCL_VECTOR_WIDTH:       opencl_vector_width       = atoi (optarg);
+                                          opencl_vector_width_chgd  = 1;              break;
+      case IDX_WORKLOAD_PROFILE:          workload_profile          = atoi (optarg);
+                                          workload_profile_chgd     = 1;              break;
+      case IDX_KERNEL_ACCEL:              kernel_accel              = atoi (optarg);
+                                          kernel_accel_chgd         = 1;              break;
+      case IDX_KERNEL_LOOPS:              kernel_loops              = atoi (optarg);
+                                          kernel_loops_chgd         = 1;              break;
+      case IDX_GPU_TEMP_DISABLE:          gpu_temp_disable          = 1;              break;
       #ifdef HAVE_HWMON
-      case IDX_GPU_TEMP_ABORT:    gpu_temp_abort    = atoi (optarg);
-                                  #ifdef HAVE_ADL
-                                  gpu_temp_abort_chgd = 1;
-                                  #endif
-                                  break;
-      case IDX_GPU_TEMP_RETAIN:   gpu_temp_retain   = atoi (optarg);
-                                  #ifdef HAVE_ADL
-                                  gpu_temp_retain_chgd = 1;
-                                  #endif
-                                  break;
-      #ifdef HAVE_ADL
-      case IDX_POWERTUNE_ENABLE:  powertune_enable  = 1;               break;
-      #endif
+      case IDX_GPU_TEMP_ABORT:            gpu_temp_abort            = atoi (optarg);  break;
+      case IDX_GPU_TEMP_RETAIN:           gpu_temp_retain           = atoi (optarg);  break;
+      case IDX_POWERTUNE_ENABLE:          powertune_enable          = 1;              break;
       #endif // HAVE_HWMON
-      case IDX_LOGFILE_DISABLE:   logfile_disable   = 1;               break;
-      case IDX_TRUECRYPT_KEYFILES: truecrypt_keyfiles = optarg;        break;
-      case IDX_SEGMENT_SIZE:      segment_size      = atoi (optarg);   break;
-      case IDX_SCRYPT_TMTO:       scrypt_tmto       = atoi (optarg);   break;
-      case IDX_SEPARATOR:         separator         = optarg[0];       break;
-      case IDX_BITMAP_MIN:        bitmap_min        = atoi (optarg);   break;
-      case IDX_BITMAP_MAX:        bitmap_max        = atoi (optarg);   break;
-      case IDX_INCREMENT:         increment         = 1;               break;
-      case IDX_INCREMENT_MIN:     increment_min      = atoi (optarg);
-                                  increment_min_chgd = 1;              break;
-      case IDX_INCREMENT_MAX:     increment_max      = atoi (optarg);
-                                  increment_max_chgd = 1;              break;
-      case IDX_CUSTOM_CHARSET_1:  custom_charset_1  = optarg;          break;
-      case IDX_CUSTOM_CHARSET_2:  custom_charset_2  = optarg;          break;
-      case IDX_CUSTOM_CHARSET_3:  custom_charset_3  = optarg;          break;
-      case IDX_CUSTOM_CHARSET_4:  custom_charset_4  = optarg;          break;
+      case IDX_LOGFILE_DISABLE:           logfile_disable           = 1;              break;
+      case IDX_TRUECRYPT_KEYFILES:        truecrypt_keyfiles        = optarg;         break;
+      case IDX_VERACRYPT_KEYFILES:        veracrypt_keyfiles        = optarg;         break;
+      case IDX_VERACRYPT_PIM:             veracrypt_pim             = atoi (optarg);  break;
+      case IDX_SEGMENT_SIZE:              segment_size              = atoi (optarg);  break;
+      case IDX_SCRYPT_TMTO:               scrypt_tmto               = atoi (optarg);  break;
+      case IDX_SEPARATOR:                 separator                 = optarg[0];      break;
+      case IDX_BITMAP_MIN:                bitmap_min                = atoi (optarg);  break;
+      case IDX_BITMAP_MAX:                bitmap_max                = atoi (optarg);  break;
+      case IDX_INCREMENT:                 increment                 = 1;              break;
+      case IDX_INCREMENT_MIN:             increment_min             = atoi (optarg);
+                                          increment_min_chgd        = 1;              break;
+      case IDX_INCREMENT_MAX:             increment_max             = atoi (optarg);
+                                          increment_max_chgd        = 1;              break;
+      case IDX_CUSTOM_CHARSET_1:          custom_charset_1          = optarg;         break;
+      case IDX_CUSTOM_CHARSET_2:          custom_charset_2          = optarg;         break;
+      case IDX_CUSTOM_CHARSET_3:          custom_charset_3          = optarg;         break;
+      case IDX_CUSTOM_CHARSET_4:          custom_charset_4          = optarg;         break;
 
       default:
         log_error ("ERROR: Invalid argument specified");
@@ -5823,20 +5982,24 @@ int main (int argc, char **argv)
   {
     if (benchmark == 1)
     {
-      log_info ("%s %s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG, VERSION_SUM);
-
-      log_info ("");
+      if (machine_readable == 0)
+      {
+        log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
+        log_info ("");
+      }
+      else
+      {
+        log_info ("# %s (%s) %s", PROGNAME, VERSION_TAG, ctime (&proc_start));
+      }
     }
     else if (restore == 1)
     {
-      log_info ("%s %s (%s) starting in restore-mode...", PROGNAME, VERSION_TAG, VERSION_SUM);
-
+      log_info ("%s (%s) starting in restore-mode...", PROGNAME, VERSION_TAG);
       log_info ("");
     }
     else
     {
-      log_info ("%s %s (%s) starting...", PROGNAME, VERSION_TAG, VERSION_SUM);
-
+      log_info ("%s (%s) starting...", PROGNAME, VERSION_TAG);
       log_info ("");
     }
   }
@@ -5859,7 +6022,7 @@ int main (int argc, char **argv)
     return (-1);
   }
 
-  if (hash_mode_chgd && hash_mode > 13400) // just added to remove compiler warnings for hash_mode_chgd
+  if (hash_mode_chgd && hash_mode > 13800) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
@@ -5888,7 +6051,7 @@ int main (int argc, char **argv)
 
   if (username == 1)
   {
-    if ((hash_mode == 2500) || (hash_mode == 5200) || ((hash_mode >= 6200) && (hash_mode <= 6299)))
+    if ((hash_mode == 2500) || (hash_mode == 5200) || ((hash_mode >= 6200) && (hash_mode <= 6299)) || ((hash_mode >= 13700) && (hash_mode <= 13799)))
     {
       log_error ("ERROR: Mixing support for user names and hashes of type %s is not supported", strhashtype (hash_mode));
 
@@ -6001,6 +6164,16 @@ int main (int argc, char **argv)
 
   if (kernel_accel_chgd == 1)
   {
+    if (force == 0)
+    {
+      log_info ("The manual use of the option -n (or --kernel-accel) is outdated");
+      log_info ("Please consider using the option -w instead");
+      log_info ("You can use --force to override this but do not post error reports if you do so");
+      log_info ("");
+
+      return (-1);
+    }
+
     if (kernel_accel < 1)
     {
       log_error ("ERROR: Invalid kernel-accel specified");
@@ -6018,6 +6191,16 @@ int main (int argc, char **argv)
 
   if (kernel_loops_chgd == 1)
   {
+    if (force == 0)
+    {
+      log_info ("The manual use of the option -u (or --kernel-loops) is outdated");
+      log_info ("Please consider using the option -w instead");
+      log_info ("You can use --force to override this but do not post error reports if you do so");
+      log_info ("");
+
+      return (-1);
+    }
+
     if (kernel_loops < 1)
     {
       log_error ("ERROR: Invalid kernel-loops specified");
@@ -6033,7 +6216,7 @@ int main (int argc, char **argv)
     }
   }
 
-  if ((workload_profile < 1) || (workload_profile > 3))
+  if ((workload_profile < 1) || (workload_profile > 4))
   {
     log_error ("ERROR: workload-profile %i not available", workload_profile);
 
@@ -6206,13 +6389,7 @@ int main (int argc, char **argv)
 
   if (loopback == 1)
   {
-    if (attack_mode == ATTACK_MODE_BF)
-    {
-      log_error ("ERROR: Parameter loopback not allowed in attack-mode 3");
-
-      return (-1);
-    }
-    else if (attack_mode == ATTACK_MODE_STRAIGHT)
+    if (attack_mode == ATTACK_MODE_STRAIGHT)
     {
       if ((rp_files_cnt == 0) && (rp_gen == 0))
       {
@@ -6220,6 +6397,12 @@ int main (int argc, char **argv)
 
         return (-1);
       }
+    }
+    else
+    {
+      log_error ("ERROR: Parameter loopback allowed in attack-mode 0 only");
+
+      return (-1);
     }
   }
 
@@ -6429,44 +6612,45 @@ int main (int argc, char **argv)
    * store stuff
    */
 
-  data.hash_mode         = hash_mode;
-  data.restore           = restore;
-  data.restore_timer     = restore_timer;
-  data.restore_disable   = restore_disable;
-  data.status            = status;
-  data.status_timer      = status_timer;
-  data.status_automat    = status_automat;
-  data.loopback          = loopback;
-  data.runtime           = runtime;
-  data.remove            = remove;
-  data.remove_timer      = remove_timer;
-  data.debug_mode        = debug_mode;
-  data.debug_file        = debug_file;
-  data.username          = username;
-  data.quiet             = quiet;
-  data.outfile           = outfile;
-  data.outfile_format    = outfile_format;
-  data.outfile_autohex   = outfile_autohex;
-  data.hex_charset       = hex_charset;
-  data.hex_salt          = hex_salt;
-  data.hex_wordlist      = hex_wordlist;
-  data.separator         = separator;
-  data.rp_files          = rp_files;
-  data.rp_files_cnt      = rp_files_cnt;
-  data.rp_gen            = rp_gen;
-  data.rp_gen_seed       = rp_gen_seed;
-  data.force             = force;
-  data.benchmark         = benchmark;
-  data.benchmark_repeats = benchmark_repeats;
-  data.skip              = skip;
-  data.limit             = limit;
-  #if defined(HAVE_HWMON) && defined(HAVE_ADL)
-  data.powertune_enable  = powertune_enable;
+  data.hash_mode               = hash_mode;
+  data.restore                 = restore;
+  data.restore_timer           = restore_timer;
+  data.restore_disable         = restore_disable;
+  data.status                  = status;
+  data.status_timer            = status_timer;
+  data.machine_readable        = machine_readable;
+  data.loopback                = loopback;
+  data.runtime                 = runtime;
+  data.remove                  = remove;
+  data.remove_timer            = remove_timer;
+  data.debug_mode              = debug_mode;
+  data.debug_file              = debug_file;
+  data.username                = username;
+  data.quiet                   = quiet;
+  data.outfile                 = outfile;
+  data.outfile_format          = outfile_format;
+  data.outfile_autohex         = outfile_autohex;
+  data.hex_charset             = hex_charset;
+  data.hex_salt                = hex_salt;
+  data.hex_wordlist            = hex_wordlist;
+  data.separator               = separator;
+  data.rp_files                = rp_files;
+  data.rp_files_cnt            = rp_files_cnt;
+  data.rp_gen                  = rp_gen;
+  data.rp_gen_seed             = rp_gen_seed;
+  data.force                   = force;
+  data.benchmark               = benchmark;
+  data.skip                    = skip;
+  data.limit                   = limit;
+  #ifdef HAVE_HWMON
+  data.powertune_enable        = powertune_enable;
   #endif
-  data.logfile_disable   = logfile_disable;
-  data.truecrypt_keyfiles = truecrypt_keyfiles;
-  data.scrypt_tmto       = scrypt_tmto;
-  data.workload_profile  = workload_profile;
+  data.logfile_disable         = logfile_disable;
+  data.truecrypt_keyfiles      = truecrypt_keyfiles;
+  data.veracrypt_keyfiles      = veracrypt_keyfiles;
+  data.veracrypt_pim           = veracrypt_pim;
+  data.scrypt_tmto             = scrypt_tmto;
+  data.workload_profile        = workload_profile;
 
   /**
    * cpu affinity
@@ -6532,7 +6716,6 @@ int main (int argc, char **argv)
   logfile_top_uint   (attack_mode);
   logfile_top_uint   (attack_kern);
   logfile_top_uint   (benchmark);
-  logfile_top_uint   (benchmark_repeats);
   logfile_top_uint   (bitmap_min);
   logfile_top_uint   (bitmap_max);
   logfile_top_uint   (debug_mode);
@@ -6563,7 +6746,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (outfile_format);
   logfile_top_uint   (potfile_disable);
   logfile_top_string (potfile_path);
-  #if defined(HAVE_HWMON) && defined(HAVE_ADL)
+  #if defined(HAVE_HWMON)
   logfile_top_uint   (powertune_enable);
   #endif
   logfile_top_uint   (scrypt_tmto);
@@ -6581,7 +6764,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (segment_size);
   logfile_top_uint   (show);
   logfile_top_uint   (status);
-  logfile_top_uint   (status_automat);
+  logfile_top_uint   (machine_readable);
   logfile_top_uint   (status_timer);
   logfile_top_uint   (usage);
   logfile_top_uint   (username);
@@ -6609,6 +6792,8 @@ int main (int argc, char **argv)
   logfile_top_string (rule_buf_r);
   logfile_top_string (session);
   logfile_top_string (truecrypt_keyfiles);
+  logfile_top_string (veracrypt_keyfiles);
+  logfile_top_uint   (veracrypt_pim);
 
   /**
    * Init OpenCL library loader
@@ -6657,6 +6842,10 @@ int main (int argc, char **argv)
     potfile_disable       = 1;
     weak_hash_threshold   = 0;
     gpu_temp_disable      = 1;
+
+    #ifdef HAVE_HWMON
+    powertune_enable      = 1;
+    #endif
 
     data.status_timer     = status_timer;
     data.restore_timer    = restore_timer;
@@ -7497,7 +7686,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = phpass_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8101,7 +8291,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = dcc2_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8155,7 +8346,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = wpa_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8996,7 +9188,8 @@ int main (int argc, char **argv)
                    parse_func  = sha512osx_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                               | OPTI_TYPE_USES_BITS_64
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9012,7 +9205,8 @@ int main (int argc, char **argv)
                    parse_func  = sha512grub_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                               | OPTI_TYPE_USES_BITS_64
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9358,7 +9552,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = cisco8_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9565,7 +9760,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = djangopbkdf2_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9761,7 +9957,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = pbkdf2_sha256_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9933,7 +10130,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = pbkdf2_md5_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9950,7 +10148,8 @@ int main (int argc, char **argv)
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = pbkdf2_sha1_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9968,7 +10167,8 @@ int main (int argc, char **argv)
                    parse_func  = pbkdf2_sha512_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
                    opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                               | OPTI_TYPE_USES_BITS_64
+                               | OPTI_TYPE_SLOW_HASH_SIMD;
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10185,6 +10385,337 @@ int main (int argc, char **argv)
                    dgst_pos3   = 3;
                    break;
 
+      case 13500:  hash_type   = HASH_TYPE_SHA1;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_PT_UNICODE
+                               | OPTS_TYPE_PT_ADD80;
+                   kern_type   = KERN_TYPE_PSTOKEN;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = pstoken_parse_hash;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_INIT
+                               | OPTI_TYPE_EARLY_SKIP
+                               | OPTI_TYPE_NOT_ITERATED
+                               | OPTI_TYPE_PREPENDED_SALT
+                               | OPTI_TYPE_RAW_HASH;
+                   dgst_pos0   = 3;
+                   dgst_pos1   = 4;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 1;
+                   break;
+
+      case 13600:  hash_type   = HASH_TYPE_PBKDF2_SHA1;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_ZIP2;
+                   dgst_size   = DGST_SIZE_4_4;
+                   parse_func  = zip2_parse_hash;
+                   sort_by_digest = sort_by_digest_4_4;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13711:  hash_type   = HASH_TYPE_RIPEMD160;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCRIPEMD160_XTS512;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = veracrypt_parse_hash_655331;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13712:  hash_type   = HASH_TYPE_RIPEMD160;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCRIPEMD160_XTS1024;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = veracrypt_parse_hash_655331;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13713:  hash_type   = HASH_TYPE_RIPEMD160;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCRIPEMD160_XTS1536;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = veracrypt_parse_hash_655331;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13721:  hash_type   = HASH_TYPE_SHA512;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_TCSHA512_XTS512;
+                   dgst_size   = DGST_SIZE_8_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_8_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13722:  hash_type   = HASH_TYPE_SHA512;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_TCSHA512_XTS1024;
+                   dgst_size   = DGST_SIZE_8_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_8_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13723:  hash_type   = HASH_TYPE_SHA512;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_TCSHA512_XTS1536;
+                   dgst_size   = DGST_SIZE_8_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_8_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13731:  hash_type   = HASH_TYPE_WHIRLPOOL;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS512;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13732:  hash_type   = HASH_TYPE_WHIRLPOOL;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS1024;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13733:  hash_type   = HASH_TYPE_WHIRLPOOL;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS1536;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13741:  hash_type   = HASH_TYPE_RIPEMD160;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCRIPEMD160_XTS512;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = veracrypt_parse_hash_327661;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13742:  hash_type   = HASH_TYPE_RIPEMD160;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCRIPEMD160_XTS1024;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = veracrypt_parse_hash_327661;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13743:  hash_type   = HASH_TYPE_RIPEMD160;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = KERN_TYPE_TCRIPEMD160_XTS1536;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = veracrypt_parse_hash_327661;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13751:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_VCSHA256_XTS512;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13752:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_VCSHA256_XTS1024;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13753:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_VCSHA256_XTS1536;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_500000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13761:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_VCSHA256_XTS512;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_200000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13762:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_VCSHA256_XTS1024;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_200000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13763:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   kern_type   = KERN_TYPE_VCSHA256_XTS1536;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = veracrypt_parse_hash_200000;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 13800:  hash_type   = HASH_TYPE_SHA256;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_PT_UNICODE;
+                   kern_type   = KERN_TYPE_WIN8PHONE;
+                   dgst_size   = DGST_SIZE_4_8;
+                   parse_func  = win8phone_parse_hash;
+                   sort_by_digest = sort_by_digest_4_8;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_INIT
+                               | OPTI_TYPE_EARLY_SKIP
+                               | OPTI_TYPE_NOT_ITERATED
+                               | OPTI_TYPE_RAW_HASH;
+                   dgst_pos0   = 3;
+                   dgst_pos1   = 7;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 6;
+                   break;
+
+
       default:     usage_mini_print (PROGNAME); return (-1);
     }
 
@@ -10290,6 +10821,27 @@ int main (int argc, char **argv)
       case 13000:  esalt_size = sizeof (rar5_t);          break;
       case 13100:  esalt_size = sizeof (krb5tgs_t);       break;
       case 13400:  esalt_size = sizeof (keepass_t);       break;
+      case 13500:  esalt_size = sizeof (pstoken_t);       break;
+      case 13600:  esalt_size = sizeof (zip2_t);          break;
+      case 13711:  esalt_size = sizeof (tc_t);            break;
+      case 13712:  esalt_size = sizeof (tc_t);            break;
+      case 13713:  esalt_size = sizeof (tc_t);            break;
+      case 13721:  esalt_size = sizeof (tc_t);            break;
+      case 13722:  esalt_size = sizeof (tc_t);            break;
+      case 13723:  esalt_size = sizeof (tc_t);            break;
+      case 13731:  esalt_size = sizeof (tc_t);            break;
+      case 13732:  esalt_size = sizeof (tc_t);            break;
+      case 13733:  esalt_size = sizeof (tc_t);            break;
+      case 13741:  esalt_size = sizeof (tc_t);            break;
+      case 13742:  esalt_size = sizeof (tc_t);            break;
+      case 13743:  esalt_size = sizeof (tc_t);            break;
+      case 13751:  esalt_size = sizeof (tc_t);            break;
+      case 13752:  esalt_size = sizeof (tc_t);            break;
+      case 13753:  esalt_size = sizeof (tc_t);            break;
+      case 13761:  esalt_size = sizeof (tc_t);            break;
+      case 13762:  esalt_size = sizeof (tc_t);            break;
+      case 13763:  esalt_size = sizeof (tc_t);            break;
+      case 13800:  esalt_size = sizeof (win8phone_t);     break;
     }
 
     data.esalt_size = esalt_size;
@@ -10623,6 +11175,8 @@ int main (int argc, char **argv)
                   break;
       case  7400: if (pw_max > 16) pw_max = 16;
                   break;
+      case  7500: if (pw_max >  8) pw_max =  8;
+                  break;
       case  7900: if (pw_max > 48) pw_max = 48;
                   break;
       case  8500: if (pw_max >  8) pw_max =  8;
@@ -10647,6 +11201,8 @@ int main (int argc, char **argv)
       case 10700: if (pw_max > 16) pw_max = 16;
                   break;
       case 11300: if (pw_max > 40) pw_max = 40;
+                  break;
+      case 11600: if (pw_max > 32) pw_max = 32;
                   break;
       case 12500: if (pw_max > 20) pw_max = 20;
                   break;
@@ -10696,7 +11252,8 @@ int main (int argc, char **argv)
 
       if ((hash_mode == 2500) ||
           (hash_mode == 5200) ||
-          ((hash_mode >= 6200) && (hash_mode <= 6299)) ||
+          ((hash_mode >=  6200) && (hash_mode <=  6299)) ||
+          ((hash_mode >= 13700) && (hash_mode <= 13799)) ||
           (hash_mode == 9000))
       {
         hashlist_mode = HL_MODE_ARG;
@@ -11276,7 +11833,8 @@ int main (int argc, char **argv)
 
         switch (hash_mode)
         {
-          case  1500: hashes_buf[0].salt->salt_len = 2;
+          case  1500: hashes_buf[0].salt->salt_len    = 2;
+                      hashes_buf[0].salt->salt_buf[0] = 388; // pure magic
                       break;
           case  1731: hashes_buf[0].salt->salt_len = 4;
                       break;
@@ -11392,7 +11950,13 @@ int main (int argc, char **argv)
                       ((seven_zip_t *) hashes_buf[0].esalt)->data_len    = 112;
                       ((seven_zip_t *) hashes_buf[0].esalt)->unpack_size = 112;
                       break;
-          case 13400: ((keepass_t *) hashes_buf[0].esalt)->version       = 2;
+          case 13400: ((keepass_t *) hashes_buf[0].esalt)->version      = 2;
+                      break;
+          case 13500: ((pstoken_t *) hashes_buf[0].esalt)->salt_len     = 113;
+                      break;
+          case 13600: ((zip2_t *)    hashes_buf[0].esalt)->salt_len     = 16;
+                      ((zip2_t *)    hashes_buf[0].esalt)->data_len     = 32;
+                      ((zip2_t *)    hashes_buf[0].esalt)->mode         = 3;
                       break;
         }
       }
@@ -11436,6 +12000,42 @@ int main (int argc, char **argv)
         case 8200:  data.hashfile = mystrdup ("hashcat.cloudkey");
                     break;
         case 9000:  data.hashfile = mystrdup ("hashcat.psafe2");
+                    break;
+        case 13711: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13712: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13713: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13721: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13722: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13723: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13731: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13732: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13733: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13741: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13742: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13743: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13751: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13752: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13753: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13761: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13762: data.hashfile = mystrdup ("hashcat.vc");
+                    break;
+        case 13763: data.hashfile = mystrdup ("hashcat.vc");
                     break;
       }
 
@@ -11568,6 +12168,44 @@ int main (int argc, char **argv)
         case 13200:  hashes_buf[0].salt->salt_iter = ROUNDS_AXCRYPT;
                      break;
         case 13400:  hashes_buf[0].salt->salt_iter = ROUNDS_KEEPASS;
+                     break;
+        case 13600:  hashes_buf[0].salt->salt_iter = ROUNDS_ZIP2;
+                     break;
+        case 13711:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_655331;
+                     break;
+        case 13712:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_655331;
+                     break;
+        case 13713:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_655331;
+                     break;
+        case 13721:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13722:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13723:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13731:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13732:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13733:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13741:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_327661;
+                     break;
+        case 13742:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_327661;
+                     break;
+        case 13743:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_327661;
+                     break;
+        case 13751:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13752:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13753:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                     break;
+        case 13761:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_200000;
+                     break;
+        case 13762:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_200000;
+                     break;
+        case 13763:  hashes_buf[0].salt->salt_iter = ROUNDS_VERACRYPT_200000;
                      break;
       }
 
@@ -11771,7 +12409,8 @@ int main (int argc, char **argv)
 
       // no solution for these special hash types (for instane because they use hashfile in output etc)
       if ((hash_mode != 5200) &&
-          !((hash_mode >= 6200) && (hash_mode <= 6299)) &&
+          !((hash_mode >=  6200) && (hash_mode <=  6299)) &&
+          !((hash_mode >= 13700) && (hash_mode <= 13799)) &&
           (hash_mode != 9000))
       {
         FILE *fp = fopen (potfile, "rb");
@@ -11966,8 +12605,8 @@ int main (int argc, char **argv)
     uint digests_cnt  = hashes_cnt;
     uint digests_done = 0;
 
-    uint size_digests = digests_cnt * dgst_size;
-    uint size_shown   = digests_cnt * sizeof (uint);
+    size_t size_digests = digests_cnt * dgst_size;
+    size_t size_shown   = digests_cnt * sizeof (uint);
 
     uint *digests_shown     = (uint *) mymalloc (size_shown);
     uint *digests_shown_tmp = (uint *) mymalloc (size_shown);
@@ -12121,6 +12760,24 @@ int main (int argc, char **argv)
       case  6241: salts_buf->truecrypt_mdlen = 1 * 512; break;
       case  6242: salts_buf->truecrypt_mdlen = 2 * 512; break;
       case  6243: salts_buf->truecrypt_mdlen = 3 * 512; break;
+      case 13711: salts_buf->truecrypt_mdlen = 1 * 512; break;
+      case 13712: salts_buf->truecrypt_mdlen = 2 * 512; break;
+      case 13713: salts_buf->truecrypt_mdlen = 3 * 512; break;
+      case 13721: salts_buf->truecrypt_mdlen = 1 * 512; break;
+      case 13722: salts_buf->truecrypt_mdlen = 2 * 512; break;
+      case 13723: salts_buf->truecrypt_mdlen = 3 * 512; break;
+      case 13731: salts_buf->truecrypt_mdlen = 1 * 512; break;
+      case 13732: salts_buf->truecrypt_mdlen = 2 * 512; break;
+      case 13733: salts_buf->truecrypt_mdlen = 3 * 512; break;
+      case 13741: salts_buf->truecrypt_mdlen = 1 * 512; break;
+      case 13742: salts_buf->truecrypt_mdlen = 2 * 512; break;
+      case 13743: salts_buf->truecrypt_mdlen = 3 * 512; break;
+      case 13751: salts_buf->truecrypt_mdlen = 1 * 512; break;
+      case 13752: salts_buf->truecrypt_mdlen = 2 * 512; break;
+      case 13753: salts_buf->truecrypt_mdlen = 3 * 512; break;
+      case 13761: salts_buf->truecrypt_mdlen = 1 * 512; break;
+      case 13762: salts_buf->truecrypt_mdlen = 2 * 512; break;
+      case 13763: salts_buf->truecrypt_mdlen = 3 * 512; break;
     }
 
     if (truecrypt_keyfiles)
@@ -12128,6 +12785,23 @@ int main (int argc, char **argv)
       uint *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
 
       char *keyfiles = strdup (truecrypt_keyfiles);
+
+      char *keyfile = strtok (keyfiles, ",");
+
+      do
+      {
+        truecrypt_crc32 (keyfile, (u8 *) keyfile_buf);
+
+      } while ((keyfile = strtok (NULL, ",")) != NULL);
+
+      free (keyfiles);
+    }
+
+    if (veracrypt_keyfiles)
+    {
+      uint *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
+
+      char *keyfiles = strdup (veracrypt_keyfiles);
 
       char *keyfile = strtok (keyfiles, ",");
 
@@ -12499,7 +13173,14 @@ int main (int argc, char **argv)
 
       if (platforms_cnt == 0)
       {
-        log_error ("ERROR: No OpenCL compatible platform found");
+        log_info ("");
+        log_info ("ATTENTION! No OpenCL compatible platform found");
+        log_info ("");
+        log_info ("You're probably missing the OpenCL runtime installation");
+        log_info ("  AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)");
+        log_info ("  Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)");
+        log_info ("  NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)");
+        log_info ("");
 
         return (-1);
       }
@@ -12518,34 +13199,48 @@ int main (int argc, char **argv)
     }
 
     /**
-     * OpenCL platforms: For each platform check if we need to unset features that we can not use, eg: temp_retain
+     * OpenCL device types:
+     *   In case the user did not specify --opencl-device-types and the user runs hashcat in a system with only a CPU only he probably want to use that CPU.
+     *   In such a case, automatically enable CPU device type support, since it's disabled by default.
      */
 
-    for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
+    if (opencl_device_types == NULL)
     {
-      cl_platform_id platform = platforms[platform_id];
+      cl_device_type device_types_all = 0;
 
-      char platform_vendor[INFOSZ] = { 0 };
-
-      hc_clGetPlatformInfo (data.ocl, platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
-
-      #ifdef HAVE_HWMON
-      #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-      if (strcmp (platform_vendor, CL_VENDOR_NV) == 0)
+      for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
       {
-        // make sure that we do not directly control the fan for NVidia
+        if ((opencl_platforms_filter & (1 << platform_id)) == 0) continue;
 
-        gpu_temp_retain = 0;
+        cl_platform_id platform = platforms[platform_id];
 
-        data.gpu_temp_retain = gpu_temp_retain;
+        hc_clGetDeviceIDs (data.ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
+
+        for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
+        {
+          cl_device_id device = platform_devices[platform_devices_id];
+
+          cl_device_type device_type;
+
+          hc_clGetDeviceInfo (data.ocl, device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+
+          device_types_all |= device_type;
+        }
       }
-      #endif // HAVE_NVML || HAVE_NVAPI
-      #endif
+
+      if ((device_types_all & (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) == 0)
+      {
+        device_types_filter |= CL_DEVICE_TYPE_CPU;
+      }
     }
 
     /**
      * OpenCL devices: simply push all devices from all platforms into the same device array
      */
+
+    int need_adl   = 0;
+    int need_nvapi = 0;
+    int need_nvml  = 0;
 
     hc_device_param_t *devices_param = (hc_device_param_t *) mycalloc (DEVICES_MAX, sizeof (hc_device_param_t));
 
@@ -12563,6 +13258,53 @@ int main (int argc, char **argv)
 
       hc_clGetDeviceIDs (data.ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
 
+      char platform_vendor[INFOSZ] = { 0 };
+
+      hc_clGetPlatformInfo (data.ocl, platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
+
+      // find our own platform vendor because pocl and mesa are pushing original vendor_id through opencl
+      // this causes trouble with vendor id based macros
+      // we'll assign generic to those without special optimization available
+
+      cl_uint platform_vendor_id = 0;
+
+      if (strcmp (platform_vendor, CL_VENDOR_AMD) == 0)
+      {
+        platform_vendor_id = VENDOR_ID_AMD;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_AMD_USE_INTEL) == 0)
+      {
+        platform_vendor_id = VENDOR_ID_AMD_USE_INTEL;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_APPLE) == 0)
+      {
+        platform_vendor_id = VENDOR_ID_APPLE;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
+      {
+        platform_vendor_id = VENDOR_ID_INTEL_BEIGNET;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_INTEL_SDK) == 0)
+      {
+        platform_vendor_id = VENDOR_ID_INTEL_SDK;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_MESA) == 0)
+      {
+        platform_vendor_id = VENDOR_ID_MESA;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_NV) == 0)
+      {
+        platform_vendor_id = VENDOR_ID_NV;
+      }
+      else if (strcmp (platform_vendor, CL_VENDOR_POCL) == 0)
+      {
+        platform_vendor_id = VENDOR_ID_POCL;
+      }
+      else
+      {
+        platform_vendor_id = VENDOR_ID_GENERIC;
+      }
+
       for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
       {
         size_t param_value_size = 0;
@@ -12570,6 +13312,8 @@ int main (int argc, char **argv)
         const uint device_id = devices_cnt;
 
         hc_device_param_t *device_param = &data.devices_param[device_id];
+
+        device_param->platform_vendor_id = platform_vendor_id;
 
         device_param->device = platform_devices[platform_devices_id];
 
@@ -12587,14 +13331,6 @@ int main (int argc, char **argv)
 
         device_param->device_type = device_type;
 
-        // vendor_id
-
-        cl_uint vendor_id = 0;
-
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VENDOR_ID, sizeof (vendor_id), &vendor_id, NULL);
-
-        device_param->vendor_id = vendor_id;
-
         // device_name
 
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NAME, 0, NULL, &param_value_size);
@@ -12604,6 +13340,57 @@ int main (int argc, char **argv)
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NAME, param_value_size, device_name, NULL);
 
         device_param->device_name = device_name;
+
+        // device_vendor
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VENDOR, 0, NULL, &param_value_size);
+
+        char *device_vendor = (char *) mymalloc (param_value_size);
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VENDOR, param_value_size, device_vendor, NULL);
+
+        device_param->device_vendor = device_vendor;
+
+        cl_uint device_vendor_id = 0;
+
+        if (strcmp (device_vendor, CL_VENDOR_AMD) == 0)
+        {
+          device_vendor_id = VENDOR_ID_AMD;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_AMD_USE_INTEL) == 0)
+        {
+          device_vendor_id = VENDOR_ID_AMD_USE_INTEL;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_APPLE) == 0)
+        {
+          device_vendor_id = VENDOR_ID_APPLE;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_INTEL_BEIGNET) == 0)
+        {
+          device_vendor_id = VENDOR_ID_INTEL_BEIGNET;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_INTEL_SDK) == 0)
+        {
+          device_vendor_id = VENDOR_ID_INTEL_SDK;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_MESA) == 0)
+        {
+          device_vendor_id = VENDOR_ID_MESA;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_NV) == 0)
+        {
+          device_vendor_id = VENDOR_ID_NV;
+        }
+        else if (strcmp (device_vendor, CL_VENDOR_POCL) == 0)
+        {
+          device_vendor_id = VENDOR_ID_POCL;
+        }
+        else
+        {
+          device_vendor_id = VENDOR_ID_GENERIC;
+        }
+
+        device_param->device_vendor_id = device_vendor_id;
 
         // tuning db
 
@@ -12630,16 +13417,6 @@ int main (int argc, char **argv)
         device_param->opencl_v12 = device_opencl_version[9] > '1' || device_opencl_version[11] >= '2';
 
         myfree (device_opencl_version);
-
-        if (strstr (device_version, "pocl"))
-        {
-          // pocl returns the real vendor_id in CL_DEVICE_VENDOR_ID which causes many problems because of hms and missing amd_bfe () etc
-          // we need to overwrite vendor_id to avoid this. maybe open pocl issue?
-
-          cl_uint vendor_id = VENDOR_ID_GENERIC;
-
-          device_param->vendor_id = vendor_id;
-        }
 
         // vector_width
 
@@ -12680,21 +13457,30 @@ int main (int argc, char **argv)
 
         device_param->device_processors = device_processors;
 
-        // max_mem_alloc_size
+        // device_maxmem_alloc
+        // note we'll limit to 2gb, otherwise this causes all kinds of weird errors because of possible integer overflows in opencl runtimes
 
         cl_ulong device_maxmem_alloc;
 
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
 
-        device_param->device_maxmem_alloc = device_maxmem_alloc;
+        device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7fffffff);
 
-        // max_mem_alloc_size
+        // device_global_mem
 
         cl_ulong device_global_mem;
 
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof (device_global_mem), &device_global_mem, NULL);
 
         device_param->device_global_mem = device_global_mem;
+
+        // max_work_group_size
+
+        size_t device_maxworkgroup_size;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (device_maxworkgroup_size), &device_maxworkgroup_size, NULL);
+
+        device_param->device_maxworkgroup_size = device_maxworkgroup_size;
 
         // max_clock_frequency
 
@@ -12704,14 +13490,127 @@ int main (int argc, char **argv)
 
         device_param->device_maxclock_frequency = device_maxclock_frequency;
 
+        // device_endian_little
+
+        cl_bool device_endian_little;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_ENDIAN_LITTLE, sizeof (device_endian_little), &device_endian_little, NULL);
+
+        if (device_endian_little == CL_FALSE)
+        {
+          log_info ("Device #%u: WARNING: not little endian device", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+        // device_available
+
+        cl_bool device_available;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_AVAILABLE, sizeof (device_available), &device_available, NULL);
+
+        if (device_available == CL_FALSE)
+        {
+          log_info ("Device #%u: WARNING: device not available", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+        // device_compiler_available
+
+        cl_bool device_compiler_available;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_COMPILER_AVAILABLE, sizeof (device_compiler_available), &device_compiler_available, NULL);
+
+        if (device_compiler_available == CL_FALSE)
+        {
+          log_info ("Device #%u: WARNING: device no compiler available", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+        // device_execution_capabilities
+
+        cl_device_exec_capabilities device_execution_capabilities;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXECUTION_CAPABILITIES, sizeof (device_execution_capabilities), &device_execution_capabilities, NULL);
+
+        if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
+        {
+          log_info ("Device #%u: WARNING: device does not support executing kernels", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+        // device_extensions
+
+        size_t device_extensions_size;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXTENSIONS, 0, NULL, &device_extensions_size);
+
+        char *device_extensions = mymalloc (device_extensions_size + 1);
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXTENSIONS, device_extensions_size, device_extensions, NULL);
+
+        if (strstr (device_extensions, "base_atomics") == 0)
+        {
+          log_info ("Device #%u: WARNING: device does not support base atomics", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+        if (strstr (device_extensions, "byte_addressable_store") == 0)
+        {
+          log_info ("Device #%u: WARNING: device does not support byte addressable store", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+        myfree (device_extensions);
+
+        // device_local_mem_size
+
+        cl_ulong device_local_mem_size;
+
+        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof (device_local_mem_size), &device_local_mem_size, NULL);
+
+        if (device_local_mem_size < 32768)
+        {
+          log_info ("Device #%u: WARNING: device local mem size is too small", device_id + 1);
+
+          device_param->skipped = 1;
+        }
+
+        // If there's both an Intel CPU and an AMD OpenCL runtime it's a tricky situation
+        // Both platforms support CPU device types and therefore both will try to use 100% of the physical resources
+        // This results in both utilizing it for 50%
+        // However, Intel has much better SIMD control over their own hardware
+        // It makes sense to give them full control over their own hardware
+
+        if (device_type & CL_DEVICE_TYPE_CPU)
+        {
+          if (device_param->device_vendor_id == VENDOR_ID_AMD_USE_INTEL)
+          {
+            if (data.force == 0)
+            {
+              if (algorithm_pos == 0)
+              {
+                log_info ("Device #%u: WARNING: not native intel opencl runtime, expect massive speed loss", device_id + 1);
+                log_info ("           You can use --force to override this but do not post error reports if you do so");
+              }
+
+              device_param->skipped = 1;
+            }
+          }
+        }
+
         // skipped
 
-        const u32 skipped1 = ((devices_filter      & (1 << device_id)) == 0);
-        const u32 skipped2 = ((device_types_filter & (device_type))    == 0);
-
-        device_param->skipped = (skipped1 || skipped2);
+        device_param->skipped |= ((devices_filter      & (1 << device_id)) == 0);
+        device_param->skipped |= ((device_types_filter & (device_type))    == 0);
 
         // driver_version
+
         hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DRIVER_VERSION, 0, NULL, &param_value_size);
 
         char *driver_version = (char *) mymalloc (param_value_size);
@@ -12725,9 +13624,9 @@ int main (int argc, char **argv)
         char *device_name_chksum = (char *) mymalloc (INFOSZ);
 
         #if __x86_64__
-        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
         #else
-        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
         #endif
 
         uint device_name_digest[4] = { 0 };
@@ -12740,6 +13639,25 @@ int main (int argc, char **argv)
 
         // device_processor_cores
 
+        if (device_param->device_type & CL_DEVICE_TYPE_GPU)
+        {
+          if ((device_param->platform_vendor_id == VENDOR_ID_AMD) && (device_param->device_vendor_id == VENDOR_ID_AMD))
+          {
+            need_adl = 1;
+          }
+
+          if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
+          {
+            need_nvml = 1;
+
+            #ifdef _WIN
+            need_nvapi = 1;
+            #endif
+          }
+        }
+
+        // device_processor_cores
+
         if (device_type & CL_DEVICE_TYPE_CPU)
         {
           cl_uint device_processor_cores = 1;
@@ -12749,7 +13667,7 @@ int main (int argc, char **argv)
 
         if (device_type & CL_DEVICE_TYPE_GPU)
         {
-          if (vendor_id == VENDOR_ID_AMD)
+          if (device_vendor_id == VENDOR_ID_AMD)
           {
             cl_uint device_processor_cores = 0;
 
@@ -12759,7 +13677,7 @@ int main (int argc, char **argv)
 
             device_param->device_processor_cores = device_processor_cores;
           }
-          else if (vendor_id == VENDOR_ID_NV)
+          else if (device_vendor_id == VENDOR_ID_NV)
           {
             cl_uint kernel_exec_timeout = 0;
 
@@ -12801,21 +13719,23 @@ int main (int argc, char **argv)
 
         if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
         {
-          if (device_param->skipped == 0)
+          if (machine_readable == 0)
           {
-            log_info ("Device #%u: %s, %lu/%lu MB allocatable, %dMhz, %uMCU",
-                      device_id + 1,
-                      device_name,
-                      (unsigned int) (device_maxmem_alloc / 1024 / 1024),
-                      (unsigned int) (device_global_mem   / 1024 / 1024),
-                      (unsigned int) (device_maxclock_frequency),
-                      (unsigned int)  device_processors);
-          }
-          else
-          {
-            log_info ("Device #%u: %s, skipped",
-                      device_id + 1,
-                      device_name);
+            if (device_param->skipped == 0)
+            {
+              log_info ("Device #%u: %s, %lu/%lu MB allocatable, %uMCU",
+                        device_id + 1,
+                        device_name,
+                        (unsigned int) (device_maxmem_alloc / 1024 / 1024),
+                        (unsigned int) (device_global_mem   / 1024 / 1024),
+                        (unsigned int)  device_processors);
+            }
+            else
+            {
+              log_info ("Device #%u: %s, skipped",
+                        device_id + 1,
+                        device_name);
+            }
           }
         }
 
@@ -12823,31 +13743,9 @@ int main (int argc, char **argv)
 
         if (device_param->skipped == 0)
         {
-          if (strstr (device_version, "pocl"))
-          {
-            if (force == 0)
-            {
-              log_info ("");
-              log_info ("ATTENTION! All pocl drivers are known to be broken due to broken LLVM <= 3.7");
-              log_info ("You are STRONGLY encouraged not to use it");
-              log_info ("You can use --force to override this but do not post error reports if you do so");
-              log_info ("");
-
-              return (-1);
-            }
-          }
-
           if (device_type & CL_DEVICE_TYPE_GPU)
           {
-            if (vendor_id == VENDOR_ID_NV)
-            {
-              if (device_param->kernel_exec_timeout != 0)
-              {
-                if (data.quiet == 0) log_info ("Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
-                if (data.quiet == 0) log_info ("           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
-              }
-            }
-            else if (vendor_id == VENDOR_ID_AMD)
+            if (platform_vendor_id == VENDOR_ID_AMD)
             {
               int catalyst_check = (force == 1) ? 0 : 1;
 
@@ -12885,7 +13783,7 @@ int main (int argc, char **argv)
                 log_info ("");
                 log_info ("ATTENTION! Unsupported or incorrect installed catalyst driver detected!");
                 log_info ("You are STRONGLY encouraged to use the official supported catalyst driver for good reasons");
-                log_info ("See oclHashcat's homepage for official supported catalyst drivers");
+                log_info ("See hashcat's homepage for official supported catalyst drivers");
                 #ifdef _WIN
                 log_info ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
                 #endif
@@ -12895,7 +13793,35 @@ int main (int argc, char **argv)
                 return (-1);
               }
             }
+            else if (platform_vendor_id == VENDOR_ID_NV)
+            {
+              if (device_param->kernel_exec_timeout != 0)
+              {
+                if (data.quiet == 0) log_info ("Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
+                if (data.quiet == 0) log_info ("           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
+              }
+            }
           }
+
+          /* turns out pocl still creates segfaults (because of llvm)
+          if (device_type & CL_DEVICE_TYPE_CPU)
+          {
+            if (platform_vendor_id == VENDOR_ID_AMD)
+            {
+              if (force == 0)
+              {
+                log_info ("");
+                log_info ("ATTENTION! OpenCL support for CPU of catalyst driver is not reliable.");
+                log_info ("You are STRONGLY encouraged not to use it");
+                log_info ("You can use --force to override this but do not post error reports if you do so");
+                log_info ("A good alternative is the free pocl >= v0.13, but make sure to use a LLVM >= v3.8");
+                log_info ("");
+
+                return (-1);
+              }
+            }
+          }
+          */
 
           /**
            * kernel accel and loops tuning db adjustment
@@ -12990,7 +13916,10 @@ int main (int argc, char **argv)
 
     if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
     {
-      log_info ("");
+      if (machine_readable == 0)
+      {
+        log_info ("");
+      }
     }
 
     /**
@@ -12998,101 +13927,93 @@ int main (int argc, char **argv)
      */
 
     #ifdef HAVE_HWMON
-    #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-    hm_attrs_t hm_adapters_nv[DEVICES_MAX]  = { { { 0 }, 0, 0 } };
-    #endif
-
-    #ifdef HAVE_ADL
-    hm_attrs_t hm_adapters_amd[DEVICES_MAX] = { { { 0 }, 0, 0 } };
-    #endif
+    hm_attrs_t hm_adapters_adl[DEVICES_MAX]   = { { 0 } };
+    hm_attrs_t hm_adapters_nvapi[DEVICES_MAX] = { { 0 } };
+    hm_attrs_t hm_adapters_nvml[DEVICES_MAX]  = { { 0 } };
 
     if (gpu_temp_disable == 0)
     {
-      #if defined(WIN) && defined(HAVE_NVAPI)
+      ADL_PTR   *adl   = (ADL_PTR *)   mymalloc (sizeof (ADL_PTR));
       NVAPI_PTR *nvapi = (NVAPI_PTR *) mymalloc (sizeof (NVAPI_PTR));
+      NVML_PTR  *nvml  = (NVML_PTR *)  mymalloc (sizeof (NVML_PTR));
 
-      if (nvapi_init (nvapi) == 0)
-        data.hm_nv = nvapi;
+      data.hm_adl   = NULL;
+      data.hm_nvapi = NULL;
+      data.hm_nvml  = NULL;
 
-      if (data.hm_nv)
+      if ((need_nvml == 1) && (nvml_init (nvml) == 0))
       {
-        if (hm_NvAPI_Initialize (data.hm_nv) == NVAPI_OK)
-        {
-          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX] = { 0 };
-
-          int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
-
-          int tmp_out = 0;
-
-          for (int i = 0; i < tmp_in; i++)
-          {
-            hm_adapters_nv[tmp_out++].adapter_index.nv = nvGPUHandle[i];
-          }
-
-          for (int i = 0; i < tmp_out; i++)
-          {
-            NV_GPU_COOLER_SETTINGS pCoolerSettings;
-
-            pCoolerSettings.Version = GPU_COOLER_SETTINGS_VER | sizeof (NV_GPU_COOLER_SETTINGS);
-
-            if (hm_NvAPI_GPU_GetCoolerSettings (data.hm_nv, hm_adapters_nv[i].adapter_index.nv, 0, &pCoolerSettings) != NVAPI_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
-          }
-        }
+        data.hm_nvml = nvml;
       }
-      #endif // WIN && HAVE_NVAPI
 
-      #if defined(LINUX) && defined(HAVE_NVML)
-      NVML_PTR *nvml = (NVML_PTR *) mymalloc (sizeof (NVML_PTR));
-
-      if (nvml_init (nvml) == 0)
-        data.hm_nv = nvml;
-
-      if (data.hm_nv)
+      if (data.hm_nvml)
       {
-        if (hm_NVML_nvmlInit (data.hm_nv) == NVML_SUCCESS)
+        if (hm_NVML_nvmlInit (data.hm_nvml) == NVML_SUCCESS)
         {
-          HM_ADAPTER_NV nvGPUHandle[DEVICES_MAX] = { 0 };
+          HM_ADAPTER_NVML nvmlGPUHandle[DEVICES_MAX] = { 0 };
 
-          int tmp_in = hm_get_adapter_index_nv (nvGPUHandle);
+          int tmp_in = hm_get_adapter_index_nvml (nvmlGPUHandle);
 
           int tmp_out = 0;
 
           for (int i = 0; i < tmp_in; i++)
           {
-            hm_adapters_nv[tmp_out++].adapter_index.nv = nvGPUHandle[i];
+            hm_adapters_nvml[tmp_out++].nvml = nvmlGPUHandle[i];
           }
 
           for (int i = 0; i < tmp_out; i++)
           {
             unsigned int speed;
 
-            if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nv, 1, hm_adapters_nv[i].adapter_index.nv, &speed) != NVML_ERROR_NOT_SUPPORTED) hm_adapters_nv[i].fan_supported = 1;
+            if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nvml, 0, hm_adapters_nvml[i].nvml, &speed) == NVML_SUCCESS) hm_adapters_nvml[i].fan_get_supported = 1;
+
+            hm_NVML_nvmlDeviceSetComputeMode (data.hm_nvml, 1, hm_adapters_nvml[i].nvml, NVML_COMPUTEMODE_EXCLUSIVE_PROCESS);
+
+            hm_NVML_nvmlDeviceSetGpuOperationMode (data.hm_nvml, 1, hm_adapters_nvml[i].nvml, NVML_GOM_ALL_ON);
           }
         }
       }
-      #endif // LINUX && HAVE_NVML
 
-      data.hm_amd = NULL;
-
-      #ifdef HAVE_ADL
-      ADL_PTR *adl = (ADL_PTR *) mymalloc (sizeof (ADL_PTR));
-
-      if (adl_init (adl) == 0)
-        data.hm_amd = adl;
-
-      if (data.hm_amd)
+      if ((need_nvapi == 1) && (nvapi_init (nvapi) == 0))
       {
-        if (hm_ADL_Main_Control_Create (data.hm_amd, ADL_Main_Memory_Alloc, 0) == ADL_OK)
+        data.hm_nvapi = nvapi;
+      }
+
+      if (data.hm_nvapi)
+      {
+        if (hm_NvAPI_Initialize (data.hm_nvapi) == NVAPI_OK)
+        {
+          HM_ADAPTER_NVAPI nvGPUHandle[DEVICES_MAX] = { 0 };
+
+          int tmp_in = hm_get_adapter_index_nvapi (nvGPUHandle);
+
+          int tmp_out = 0;
+
+          for (int i = 0; i < tmp_in; i++)
+          {
+            hm_adapters_nvapi[tmp_out++].nvapi = nvGPUHandle[i];
+          }
+        }
+      }
+
+      if ((need_adl == 1) && (adl_init (adl) == 0))
+      {
+        data.hm_adl = adl;
+      }
+
+      if (data.hm_adl)
+      {
+        if (hm_ADL_Main_Control_Create (data.hm_adl, ADL_Main_Memory_Alloc, 0) == ADL_OK)
         {
           // total number of adapters
 
           int hm_adapters_num;
 
-          if (get_adapters_num_amd (data.hm_amd, &hm_adapters_num) != 0) return (-1);
+          if (get_adapters_num_adl (data.hm_adl, &hm_adapters_num) != 0) return (-1);
 
           // adapter info
 
-          LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_amd (data.hm_amd, hm_adapters_num);
+          LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_adl (data.hm_adl, hm_adapters_num);
 
           if (lpAdapterInfo == NULL) return (-1);
 
@@ -13106,12 +14027,12 @@ int main (int argc, char **argv)
           {
             hc_thread_mutex_lock (mux_adl);
 
-            // hm_get_opencl_busid_devid (hm_adapters_amd, devices_all_cnt, devices_all);
+            // hm_get_opencl_busid_devid (hm_adapters_adl, devices_all_cnt, devices_all);
 
-            hm_get_adapter_index_amd (hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+            hm_get_adapter_index_adl (hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
 
-            hm_get_overdrive_version  (data.hm_amd, hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-            hm_check_fanspeed_control (data.hm_amd, hm_adapters_amd, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+            hm_get_overdrive_version  (data.hm_adl, hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+            hm_check_fanspeed_control (data.hm_adl, hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
 
             hc_thread_mutex_unlock (mux_adl);
           }
@@ -13120,9 +14041,8 @@ int main (int argc, char **argv)
           myfree (lpAdapterInfo);
         }
       }
-      #endif // HAVE_ADL
 
-      if (data.hm_amd == NULL && data.hm_nv == NULL)
+      if (data.hm_adl == NULL && data.hm_nvml == NULL)
       {
         gpu_temp_disable = 1;
       }
@@ -13132,34 +14052,19 @@ int main (int argc, char **argv)
      * OpenCL devices: allocate buffer for device specific information
      */
 
-    #ifdef HAVE_HWMON
-    int *temp_retain_fanspeed_value = (int *) mycalloc (data.devices_cnt, sizeof (int));
+    int *temp_retain_fanspeed_value  = (int *) mycalloc (data.devices_cnt, sizeof (int));
+    int *temp_retain_fanpolicy_value = (int *) mycalloc (data.devices_cnt, sizeof (int));
 
-    #ifdef HAVE_ADL
     ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (data.devices_cnt, sizeof (ADLOD6MemClockState));
 
     int *od_power_control_status = (int *) mycalloc (data.devices_cnt, sizeof (int));
-    #endif // ADL
-    #endif
 
-    /**
-     * enable custom signal handler(s)
-     */
-
-    if (benchmark == 0)
-    {
-      hc_signal (sigHandler_default);
-    }
-    else
-    {
-      hc_signal (sigHandler_benchmark);
-    }
+    unsigned int *nvml_power_limit = (unsigned int *) mycalloc (data.devices_cnt, sizeof (unsigned int));
 
     /**
      * User-defined GPU temp handling
      */
 
-    #ifdef HAVE_HWMON
     if (gpu_temp_disable == 1)
     {
       gpu_temp_abort  = 0;
@@ -13180,6 +14085,19 @@ int main (int argc, char **argv)
     data.gpu_temp_abort   = gpu_temp_abort;
     data.gpu_temp_retain  = gpu_temp_retain;
     #endif
+
+    /**
+     * enable custom signal handler(s)
+     */
+
+    if (benchmark == 0)
+    {
+      hc_signal (sigHandler_default);
+    }
+    else
+    {
+      hc_signal (sigHandler_benchmark);
+    }
 
     /**
      * inform the user
@@ -13213,7 +14131,7 @@ int main (int argc, char **argv)
        */
 
       #ifdef HAVE_HWMON
-      if (gpu_temp_disable == 0 && data.hm_amd == NULL && data.hm_nv == NULL)
+      if (gpu_temp_disable == 0 && data.hm_adl == NULL && data.hm_nvml == NULL)
       {
         log_info ("Watchdog: Hardware Monitoring Interface not found on your system");
       }
@@ -13235,10 +14153,12 @@ int main (int argc, char **argv)
       {
         log_info ("Watchdog: Temperature retain trigger set to %uc", gpu_temp_retain);
       }
+
+      if (data.quiet == 0) log_info ("");
       #endif
     }
 
-    if (data.quiet == 0) log_info ("");
+    #ifdef HAVE_HWMON
 
     /**
      * HM devices: copy
@@ -13256,31 +14176,32 @@ int main (int argc, char **argv)
 
         const uint platform_devices_id = device_param->platform_devices_id;
 
-        #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-        if (device_param->vendor_id == VENDOR_ID_NV)
+        if (device_param->device_vendor_id == VENDOR_ID_AMD)
         {
-          memcpy (&data.hm_device[device_id], &hm_adapters_nv[platform_devices_id], sizeof (hm_attrs_t));
+          data.hm_device[device_id].adl               = hm_adapters_adl[platform_devices_id].adl;
+          data.hm_device[device_id].nvapi             = 0;
+          data.hm_device[device_id].nvml              = 0;
+          data.hm_device[device_id].od_version        = hm_adapters_adl[platform_devices_id].od_version;
+          data.hm_device[device_id].fan_get_supported = hm_adapters_adl[platform_devices_id].fan_get_supported;
+          data.hm_device[device_id].fan_set_supported = hm_adapters_adl[platform_devices_id].fan_set_supported;
         }
-        #endif
 
-        #ifdef HAVE_ADL
-        if (device_param->vendor_id == VENDOR_ID_AMD)
+        if (device_param->device_vendor_id == VENDOR_ID_NV)
         {
-          memcpy (&data.hm_device[device_id], &hm_adapters_amd[platform_devices_id], sizeof (hm_attrs_t));
+          data.hm_device[device_id].adl               = 0;
+          data.hm_device[device_id].nvapi             = hm_adapters_nvapi[platform_devices_id].nvapi;
+          data.hm_device[device_id].nvml              = hm_adapters_nvml[platform_devices_id].nvml;
+          data.hm_device[device_id].od_version        = 0;
+          data.hm_device[device_id].fan_get_supported = hm_adapters_nvml[platform_devices_id].fan_get_supported;
+          data.hm_device[device_id].fan_set_supported = 0;
         }
-        #endif
       }
     }
 
-   /*
-    * Temporary fix:
-    * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
-    * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
-    * were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
-    * Driver / ADL bug?
-    */
+    /**
+     * powertune on user request
+     */
 
-    #ifdef HAVE_ADL
     if (powertune_enable == 1)
     {
       hc_thread_mutex_lock (mux_adl);
@@ -13291,38 +14212,177 @@ int main (int argc, char **argv)
 
         if (device_param->skipped) continue;
 
-        if (data.hm_device[device_id].od_version == 6)
+        if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
         {
-          // set powertune value only
+          /**
+           * Temporary fix:
+           * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
+           * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
+           * were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
+           * Driver / ADL bug?
+           */
 
-          int powertune_supported = 0;
-
-          int ADL_rc = 0;
-
-          if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
+          if (data.hm_device[device_id].od_version == 6)
           {
-            log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
+            int ADL_rc;
 
-            return (-1);
-          }
+            // check powertune capabilities first, if not available then skip device
 
-          if (powertune_supported != 0)
-          {
-            // powertune set
-            ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
+            int powertune_supported = 0;
 
-            if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune)) != ADL_OK)
+            if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (data.hm_adl, data.hm_device[device_id].adl, &powertune_supported)) != ADL_OK)
             {
-              log_error ("ERROR: Failed to get current ADL PowerControl settings");
+              log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
               return (-1);
             }
 
-            if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to set new ADL PowerControl values");
+            // first backup current value, we will restore it later
 
-              return (-1);
+            if (powertune_supported != 0)
+            {
+              // powercontrol settings
+
+              ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
+
+              if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_adl, data.hm_device[device_id].adl, &powertune)) == ADL_OK)
+              {
+                ADL_rc = hm_ADL_Overdrive_PowerControl_Get (data.hm_adl, data.hm_device[device_id].adl, &od_power_control_status[device_id]);
+              }
+
+              if (ADL_rc != ADL_OK)
+              {
+                log_error ("ERROR: Failed to get current ADL PowerControl settings");
+
+                return (-1);
+              }
+
+              if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adl, powertune.iMaxValue)) != ADL_OK)
+              {
+                log_error ("ERROR: Failed to set new ADL PowerControl values");
+
+                return (-1);
+              }
+
+              // clocks
+
+              memset (&od_clock_mem_status[device_id], 0, sizeof (ADLOD6MemClockState));
+
+              od_clock_mem_status[device_id].state.iNumberOfPerformanceLevels = 2;
+
+              if ((ADL_rc = hm_ADL_Overdrive_StateInfo_Get (data.hm_adl, data.hm_device[device_id].adl, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
+              {
+                log_error ("ERROR: Failed to get ADL memory and engine clock frequency");
+
+                return (-1);
+              }
+
+              // Query capabilities only to see if profiles were not "damaged", if so output a warning but do accept the users profile settings
+
+              ADLOD6Capabilities caps = {0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0, 0};
+
+              if ((ADL_rc = hm_ADL_Overdrive_Capabilities_Get (data.hm_adl, data.hm_device[device_id].adl, &caps)) != ADL_OK)
+              {
+                log_error ("ERROR: Failed to get ADL device capabilities");
+
+                return (-1);
+              }
+
+              int engine_clock_max = caps.sEngineClockRange.iMax * 0.6666;
+              int memory_clock_max = caps.sMemoryClockRange.iMax * 0.6250;
+
+              int warning_trigger_engine = (int) (0.25 * (float) engine_clock_max);
+              int warning_trigger_memory = (int) (0.25 * (float) memory_clock_max);
+
+              int engine_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
+              int memory_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
+
+              // warning if profile has too low max values
+
+              if ((engine_clock_max - engine_clock_profile_max) > warning_trigger_engine)
+              {
+                log_info ("WARN: the custom profile seems to have too low maximum engine clock values. You therefore may not reach full performance");
+              }
+
+              if ((memory_clock_max - memory_clock_profile_max) > warning_trigger_memory)
+              {
+                log_info ("WARN: the custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
+              }
+
+              ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
+
+              performance_state->iNumberOfPerformanceLevels = 2;
+
+              performance_state->aLevels[0].iEngineClock = engine_clock_profile_max;
+              performance_state->aLevels[1].iEngineClock = engine_clock_profile_max;
+              performance_state->aLevels[0].iMemoryClock = memory_clock_profile_max;
+              performance_state->aLevels[1].iMemoryClock = memory_clock_profile_max;
+
+              if ((ADL_rc = hm_ADL_Overdrive_State_Set (data.hm_adl, data.hm_device[device_id].adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+              {
+                log_info ("ERROR: Failed to set ADL performance state");
+
+                return (-1);
+              }
+
+              local_free (performance_state);
+            }
+
+            // set powertune value only
+
+            if (powertune_supported != 0)
+            {
+              // powertune set
+              ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
+
+              if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_adl, data.hm_device[device_id].adl, &powertune)) != ADL_OK)
+              {
+                log_error ("ERROR: Failed to get current ADL PowerControl settings");
+
+                return (-1);
+              }
+
+              if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adl, powertune.iMaxValue)) != ADL_OK)
+              {
+                log_error ("ERROR: Failed to set new ADL PowerControl values");
+
+                return (-1);
+              }
+            }
+          }
+        }
+
+        if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+        {
+          // first backup current value, we will restore it later
+
+          unsigned int limit;
+
+          int powertune_supported = 0;
+
+          if (hm_NVML_nvmlDeviceGetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].nvml, &limit) == NVML_SUCCESS)
+          {
+            powertune_supported = 1;
+          }
+
+          // if backup worked, activate the maximum allowed
+
+          if (powertune_supported != 0)
+          {
+            unsigned int minLimit;
+            unsigned int maxLimit;
+
+            if (hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (data.hm_nvml, 0, data.hm_device[device_id].nvml, &minLimit, &maxLimit) == NVML_SUCCESS)
+            {
+              if (maxLimit > 0)
+              {
+                if (hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].nvml, maxLimit) == NVML_SUCCESS)
+                {
+                  // now we can be sure we need to reset later
+
+                  nvml_power_limit[device_id] = limit;
+                }
+              }
             }
           }
         }
@@ -13330,14 +14390,14 @@ int main (int argc, char **argv)
 
       hc_thread_mutex_unlock (mux_adl);
     }
-    #endif // HAVE_ADK
+
     #endif // HAVE_HWMON
 
     #ifdef DEBUG
     if (benchmark == 1) log_info ("Hashmode: %d", data.hash_mode);
     #endif
 
-    uint kernel_power_all = 0;
+    if (data.quiet == 0) log_info_nn ("Initializing device kernels and memory...");
 
     for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
     {
@@ -13373,38 +14433,69 @@ int main (int argc, char **argv)
       device_param->command_queue = hc_clCreateCommandQueue (data.ocl, device_param->context, device_param->device, CL_QUEUE_PROFILING_ENABLE);
 
       /**
+       * kernel threads: some algorithms need a fixed kernel-threads count
+       *                 because of shared memory usage or bitslice
+       *                 there needs to be some upper limit, otherwise there's too much overhead
+       */
+
+      uint kernel_threads = MIN (KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
+
+      if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+      {
+        kernel_threads = KERNEL_THREADS_MAX_CPU;
+      }
+
+      if (hash_mode ==  1500) kernel_threads = 64; // DES
+      if (hash_mode ==  3000) kernel_threads = 64; // DES
+      if (hash_mode ==  3200) kernel_threads = 8;  // Blowfish
+      if (hash_mode ==  7500) kernel_threads = 64; // RC4
+      if (hash_mode ==  9000) kernel_threads = 8;  // Blowfish
+      if (hash_mode ==  9700) kernel_threads = 64; // RC4
+      if (hash_mode ==  9710) kernel_threads = 64; // RC4
+      if (hash_mode ==  9800) kernel_threads = 64; // RC4
+      if (hash_mode ==  9810) kernel_threads = 64; // RC4
+      if (hash_mode == 10400) kernel_threads = 64; // RC4
+      if (hash_mode == 10410) kernel_threads = 64; // RC4
+      if (hash_mode == 10500) kernel_threads = 64; // RC4
+      if (hash_mode == 13100) kernel_threads = 64; // RC4
+
+      device_param->kernel_threads = kernel_threads;
+
+      device_param->hardware_power = device_processors * kernel_threads;
+
+      /**
        * create input buffers on device : calculate size of fixed memory buffers
        */
 
-      uint size_root_css   = SP_PW_MAX *           sizeof (cs_t);
-      uint size_markov_css = SP_PW_MAX * CHARSIZ * sizeof (cs_t);
+      size_t size_root_css   = SP_PW_MAX *           sizeof (cs_t);
+      size_t size_markov_css = SP_PW_MAX * CHARSIZ * sizeof (cs_t);
 
       device_param->size_root_css   = size_root_css;
       device_param->size_markov_css = size_markov_css;
 
-      uint size_results = KERNEL_THREADS * sizeof (uint);
+      size_t size_results = sizeof (uint);
 
       device_param->size_results = size_results;
 
-      uint size_rules   = kernel_rules_cnt * sizeof (kernel_rule_t);
-      uint size_rules_c = KERNEL_RULES     * sizeof (kernel_rule_t);
+      size_t size_rules   = kernel_rules_cnt * sizeof (kernel_rule_t);
+      size_t size_rules_c = KERNEL_RULES     * sizeof (kernel_rule_t);
 
-      uint size_plains  = digests_cnt * sizeof (plain_t);
-      uint size_salts   = salts_cnt   * sizeof (salt_t);
-      uint size_esalts  = salts_cnt   * esalt_size;
+      size_t size_plains  = digests_cnt * sizeof (plain_t);
+      size_t size_salts   = salts_cnt   * sizeof (salt_t);
+      size_t size_esalts  = salts_cnt   * esalt_size;
 
       device_param->size_plains   = size_plains;
       device_param->size_digests  = size_digests;
       device_param->size_shown    = size_shown;
       device_param->size_salts    = size_salts;
 
-      uint size_combs = KERNEL_COMBS * sizeof (comb_t);
-      uint size_bfs   = KERNEL_BFS   * sizeof (bf_t);
-      uint size_tm    = 32           * sizeof (bs_word_t);
+      size_t size_combs = KERNEL_COMBS * sizeof (comb_t);
+      size_t size_bfs   = KERNEL_BFS   * sizeof (bf_t);
+      size_t size_tm    = 32           * sizeof (bs_word_t);
 
       // scryptV stuff
 
-      u64 size_scryptV = 1;
+      size_t size_scryptV = 1;
 
       if ((hash_mode == 8900) || (hash_mode == 9300))
       {
@@ -13423,39 +14514,26 @@ int main (int argc, char **argv)
 
           if (hash_mode == 8900)
           {
-            if (device_param->vendor_id == VENDOR_ID_AMD)
+            if (device_param->device_vendor_id == VENDOR_ID_AMD)
             {
               tmto_start = 1;
             }
-            else if (device_param->vendor_id == VENDOR_ID_NV)
+            else if (device_param->device_vendor_id == VENDOR_ID_NV)
             {
-              tmto_start = 3;
+              tmto_start = 2;
             }
           }
           else if (hash_mode == 9300)
           {
-            if (device_param->vendor_id == VENDOR_ID_AMD)
+            if (device_param->device_vendor_id == VENDOR_ID_AMD)
             {
-              tmto_start = 3;
+              tmto_start = 2;
             }
-            else if (device_param->vendor_id == VENDOR_ID_NV)
+            else if (device_param->device_vendor_id == VENDOR_ID_NV)
             {
-              tmto_start = 5;
+              tmto_start = 2;
             }
           }
-        }
-
-        if (quiet == 0) log_info ("");
-
-        uint shader_per_mp = 1;
-
-        if (device_param->vendor_id == VENDOR_ID_AMD)
-        {
-          shader_per_mp = 8;
-        }
-        else if (device_param->vendor_id == VENDOR_ID_NV)
-        {
-          shader_per_mp = 32;
         }
 
         for (uint tmto = tmto_start; tmto < tmto_stop; tmto++)
@@ -13467,7 +14545,7 @@ int main (int argc, char **argv)
 
           size_scryptV /= 1 << tmto;
 
-          size_scryptV *= device_processors * device_processor_cores * shader_per_mp;
+          size_scryptV *= device_processors * device_processor_cores;
 
           if (size_scryptV > device_param->device_maxmem_alloc)
           {
@@ -13479,7 +14557,7 @@ int main (int argc, char **argv)
           for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
           {
             data.salts_buf[salts_pos].scrypt_tmto = tmto;
-            data.salts_buf[salts_pos].scrypt_phy  = device_processors * device_processor_cores * shader_per_mp;
+            data.salts_buf[salts_pos].scrypt_phy  = device_processors * device_processor_cores;
           }
 
           break;
@@ -13492,20 +14570,8 @@ int main (int argc, char **argv)
           return -1;
         }
 
-        if (quiet == 0) log_info ("");
         if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %u\n", data.salts_buf[0].scrypt_tmto, size_scryptV);
       }
-
-      /**
-       * create input buffers on device : calculate size of dynamic size memory buffers
-       */
-
-      uint kernel_threads = KERNEL_THREADS;
-
-      // some algorithms need a fixed kernel-threads count (mostly because of shared memory usage)
-
-      if (hash_mode == 3200) kernel_threads = 8;
-      if (hash_mode == 9000) kernel_threads = 8;
 
       /**
        * some algorithms need a fixed kernel-loops count
@@ -13555,28 +14621,26 @@ int main (int argc, char **argv)
        * some algorithms have a maximum kernel-loops count
        */
 
-      if (attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+      if (device_param->kernel_loops_min < device_param->kernel_loops_max)
       {
-        if (data.salts_buf[0].salt_iter < device_param->kernel_loops_max)
+        u32 innerloop_cnt = 0;
+
+        if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
         {
-          device_param->kernel_loops_max = data.salts_buf[0].salt_iter;
+          if      (data.attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = data.kernel_rules_cnt;
+          else if (data.attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = data.combs_cnt;
+          else if (data.attack_kern == ATTACK_KERN_BF)        innerloop_cnt = data.bfs_cnt;
         }
-      }
+        else
+        {
+          innerloop_cnt = data.salts_buf[0].salt_iter;
+        }
 
-      /**
-       * some algorithms need a special kernel-accel
-       */
-
-      if (hash_mode == 8900)
-      {
-        device_param->kernel_accel_min = 1;
-        device_param->kernel_accel_max = 64;
-      }
-
-      if (hash_mode == 9300)
-      {
-        device_param->kernel_accel_min = 1;
-        device_param->kernel_accel_max = 64;
+        if ((innerloop_cnt >= device_param->kernel_loops_min) &&
+            (innerloop_cnt <= device_param->kernel_loops_max))
+        {
+          device_param->kernel_loops_max = innerloop_cnt;
+        }
       }
 
       u32 kernel_accel_min = device_param->kernel_accel_min;
@@ -13584,13 +14648,13 @@ int main (int argc, char **argv)
 
       // find out if we would request too much memory on memory blocks which are based on kernel_accel
 
-      uint size_pws   = 4;
-      uint size_tmps  = 4;
-      uint size_hooks = 4;
+      size_t size_pws   = 4;
+      size_t size_tmps  = 4;
+      size_t size_hooks = 4;
 
       while (kernel_accel_max >= kernel_accel_min)
       {
-        uint kernel_power_max = device_processors * kernel_threads * kernel_accel_max;
+        const u32 kernel_power_max = device_processors * kernel_threads * kernel_accel_max;
 
         // size_pws
 
@@ -13663,6 +14727,25 @@ int main (int argc, char **argv)
           case 13000: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
           case 13200: size_tmps = kernel_power_max * sizeof (axcrypt_tmp_t);         break;
           case 13400: size_tmps = kernel_power_max * sizeof (keepass_tmp_t);         break;
+          case 13600: size_tmps = kernel_power_max * sizeof (pbkdf2_sha1_tmp_t);     break;
+          case 13711: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13712: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13713: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13721: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
+          case 13722: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
+          case 13723: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
+          case 13731: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13732: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13733: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13741: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13742: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13743: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13751: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13752: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13753: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13761: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13762: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
+          case 13763: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
         };
 
         // size_hooks
@@ -13677,35 +14760,38 @@ int main (int argc, char **argv)
 
         int skip = 0;
 
-        if (size_pws   > device_param->device_maxmem_alloc) skip = 1;
-        if (size_tmps  > device_param->device_maxmem_alloc) skip = 1;
-        if (size_hooks > device_param->device_maxmem_alloc) skip = 1;
+        const u64 size_total
+          = bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + bitmap_size
+          + size_bfs
+          + size_combs
+          + size_digests
+          + size_esalts
+          + size_hooks
+          + size_markov_css
+          + size_plains
+          + size_pws
+          + size_pws // not a bug
+          + size_results
+          + size_root_css
+          + size_rules
+          + size_rules_c
+          + size_salts
+          + size_scryptV
+          + size_shown
+          + size_tm
+          + size_tmps;
 
-        if (( bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + bitmap_size
-            + size_bfs
-            + size_combs
-            + size_digests
-            + size_esalts
-            + size_hooks
-            + size_markov_css
-            + size_plains
-            + size_pws
-            + size_results
-            + size_root_css
-            + size_rules
-            + size_rules_c
-            + size_salts
-            + size_scryptV
-            + size_shown
-            + size_tm
-            + size_tmps) > device_param->device_global_mem) skip = 1;
+        // Don't ask me, ask AMD!
+
+        if (size_total > device_param->device_maxmem_alloc) skip = 1;
+        if (size_total > device_param->device_global_mem)   skip = 1;
 
         if (skip == 1)
         {
@@ -13746,15 +14832,6 @@ int main (int argc, char **argv)
       device_param->size_tmps    = size_tmps;
       device_param->size_hooks   = size_hooks;
 
-      // do not confuse kernel_accel_max with kernel_accel here
-
-      const u32 kernel_power = device_processors * kernel_threads * kernel_accel_max;
-
-      device_param->kernel_threads    = kernel_threads;
-      device_param->kernel_power_user = kernel_power;
-
-      kernel_power_all += kernel_power;
-
       /**
        * default building options
        */
@@ -13763,7 +14840,32 @@ int main (int argc, char **argv)
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
-      snprintf (build_opts, sizeof (build_opts) - 1, "-I\"%s/\" -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u", shared_dir, device_param->vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type);
+      #if _WIN
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\\OpenCL\\\" -I '%s\\OpenCL\\' -I %s\\OpenCL\\ -I\"%s\\OpenCL\\\" -I'%s\\OpenCL\\' -I%s\\OpenCL\\", shared_dir, shared_dir, shared_dir, shared_dir, shared_dir, shared_dir);
+      #else
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s/OpenCL/\" -I '%s/OpenCL/' -I %s/OpenCL/ -I\"%s/OpenCL/\" -I'%s/OpenCL/' -I%s/OpenCL/", shared_dir, shared_dir, shared_dir, shared_dir, shared_dir, shared_dir);
+      #endif
+
+      char build_opts_new[1024] = { 0 };
+
+      snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u -DKERN_TYPE=%u -D_unroll -cl-std=CL1.1", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, kern_type);
+
+      strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);
+
+      /*
+      if (device_param->device_vendor_id == VENDOR_ID_INTEL_SDK)
+      {
+        // we do vectorizing much better than the auto-vectorizer
+
+        snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -cl-opt-disable", build_opts);
+
+        strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);
+      }
+      */
+
+      #ifdef DEBUG
+      log_info ("Device #%u: build_opts '%s'\n", device_id + 1, build_opts);
+      #endif
 
       /**
        * main kernel
@@ -13846,7 +14948,9 @@ int main (int argc, char **argv)
             if (rc != 0)
             {
               device_param->skipped = true;
+
               log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+
               continue;
             }
 
@@ -13864,7 +14968,9 @@ int main (int argc, char **argv)
           }
           else
           {
-            if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+            #ifdef DEBUG
+            log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+            #endif
 
             load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
@@ -13875,7 +14981,9 @@ int main (int argc, char **argv)
         }
         else
         {
-          if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
+          #ifdef DEBUG
+          log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
+          #endif
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
@@ -13981,6 +15089,7 @@ int main (int argc, char **argv)
         if (cached == 0)
         {
           if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+          if (quiet == 0) log_info ("");
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
@@ -13991,7 +15100,9 @@ int main (int argc, char **argv)
           if (rc != 0)
           {
             device_param->skipped = true;
+
             log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+
             continue;
           }
 
@@ -14009,7 +15120,9 @@ int main (int argc, char **argv)
         }
         else
         {
-          if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+          #ifdef DEBUG
+          log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+          #endif
 
           load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
@@ -14078,6 +15191,7 @@ int main (int argc, char **argv)
         if (cached == 0)
         {
           if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+          if (quiet == 0) log_info ("");
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
@@ -14088,7 +15202,9 @@ int main (int argc, char **argv)
           if (rc != 0)
           {
             device_param->skipped = true;
+
             log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+
             continue;
           }
 
@@ -14106,7 +15222,9 @@ int main (int argc, char **argv)
         }
         else
         {
+          #ifdef DEBUG
           if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+          #endif
 
           load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
@@ -14165,13 +15283,6 @@ int main (int argc, char **argv)
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown,  CL_TRUE, 0, size_shown,   data.digests_shown, 0, NULL, NULL);
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_salt_bufs,      CL_TRUE, 0, size_salts,   data.salts_buf,     0, NULL, NULL);
 
-      run_kernel_bzero (device_param, device_param->d_pws_buf,        size_pws);
-      run_kernel_bzero (device_param, device_param->d_pws_amp_buf,    size_pws);
-      run_kernel_bzero (device_param, device_param->d_tmps,           size_tmps);
-      run_kernel_bzero (device_param, device_param->d_hooks,          size_hooks);
-      run_kernel_bzero (device_param, device_param->d_plain_bufs,     size_plains);
-      run_kernel_bzero (device_param, device_param->d_result,         size_results);
-
       /**
        * special buffers
        */
@@ -14182,8 +15293,6 @@ int main (int argc, char **argv)
         device_param->d_rules_c = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_rules_c, NULL);
 
         hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_rules, CL_TRUE, 0, size_rules, kernel_rules_buf, 0, NULL, NULL);
-
-        run_kernel_bzero (device_param, device_param->d_rules_c, size_rules_c);
       }
       else if (attack_kern == ATTACK_KERN_COMBI)
       {
@@ -14191,11 +15300,6 @@ int main (int argc, char **argv)
         device_param->d_combs_c         = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_combs,      NULL);
         device_param->d_root_css_buf    = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL);
         device_param->d_markov_css_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL);
-
-        run_kernel_bzero (device_param, device_param->d_combs,          size_combs);
-        run_kernel_bzero (device_param, device_param->d_combs_c,        size_combs);
-        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
-        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
       }
       else if (attack_kern == ATTACK_KERN_BF)
       {
@@ -14204,12 +15308,6 @@ int main (int argc, char **argv)
         device_param->d_tm_c            = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_tm,         NULL);
         device_param->d_root_css_buf    = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL);
         device_param->d_markov_css_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL);
-
-        run_kernel_bzero (device_param, device_param->d_bfs,            size_bfs);
-        run_kernel_bzero (device_param, device_param->d_bfs_c,          size_bfs);
-        run_kernel_bzero (device_param, device_param->d_tm_c,           size_tm);
-        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
-        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
       }
 
       if (size_esalts)
@@ -14222,10 +15320,6 @@ int main (int argc, char **argv)
       /**
        * main host data
        */
-
-      uint *result = (uint *) mymalloc (size_results);
-
-      device_param->result = result;
 
       pw_t *pws_buf = (pw_t *) mymalloc (size_pws);
 
@@ -14357,9 +15451,18 @@ int main (int argc, char **argv)
       device_param->kernel_params_tm[0] = &device_param->d_bfs_c;
       device_param->kernel_params_tm[1] = &device_param->d_tm_c;
 
+      device_param->kernel_params_memset_buf32[1] = 0; // value
+      device_param->kernel_params_memset_buf32[2] = 0; // gid_max
+
+      device_param->kernel_params_memset[0] = NULL;
+      device_param->kernel_params_memset[1] = &device_param->kernel_params_memset_buf32[1];
+      device_param->kernel_params_memset[2] = &device_param->kernel_params_memset_buf32[2];
+
       /**
        * kernel name
        */
+
+      size_t kernel_wgs_tmp;
 
       char kernel_name[64] = { 0 };
 
@@ -14401,6 +15504,8 @@ int main (int argc, char **argv)
             snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_tm", kern_type);
 
             device_param->kernel_tm = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+
+            hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_tm, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
           }
         }
       }
@@ -14423,6 +15528,8 @@ int main (int argc, char **argv)
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_hook12", kern_type);
 
           device_param->kernel12 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+
+          hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel12, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
         }
 
         if (opts_type & OPTS_TYPE_HOOK23)
@@ -14430,8 +15537,14 @@ int main (int argc, char **argv)
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_hook23", kern_type);
 
           device_param->kernel23 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+
+          hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel23, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
         }
       }
+
+      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel1, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel2, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel3, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
 
       for (uint i = 0; i <= 20; i++)
       {
@@ -14453,10 +15566,25 @@ int main (int argc, char **argv)
         if (opts_type & OPTS_TYPE_HOOK23) hc_clSetKernelArg (data.ocl, device_param->kernel23, i, sizeof (cl_uint), device_param->kernel_params[i]);
       }
 
+      // GPU memset
+
+      device_param->kernel_memset = hc_clCreateKernel (data.ocl, device_param->program, "gpu_memset");
+
+      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_memset, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
+      hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 0, sizeof (cl_mem),  device_param->kernel_params_memset[0]);
+      hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]);
+      hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 2, sizeof (cl_uint), device_param->kernel_params_memset[2]);
+
+      // MP start
+
       if (attack_mode == ATTACK_MODE_BF)
       {
         device_param->kernel_mp_l = hc_clCreateKernel (data.ocl, device_param->program_mp, "l_markov");
         device_param->kernel_mp_r = hc_clCreateKernel (data.ocl, device_param->program_mp, "r_markov");
+
+        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp_l, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp_r, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
 
         if (opts_type & OPTS_TYPE_PT_BITSLICE)
         {
@@ -14467,10 +15595,14 @@ int main (int argc, char **argv)
       else if (attack_mode == ATTACK_MODE_HYBRID1)
       {
         device_param->kernel_mp = hc_clCreateKernel (data.ocl, device_param->program_mp, "C_markov");
+
+        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
       }
       else if (attack_mode == ATTACK_MODE_HYBRID2)
       {
         device_param->kernel_mp = hc_clCreateKernel (data.ocl, device_param->program_mp, "C_markov");
+
+        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
       }
 
       if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -14480,6 +15612,8 @@ int main (int argc, char **argv)
       else
       {
         device_param->kernel_amp = hc_clCreateKernel (data.ocl, device_param->program_amp, "amp");
+
+        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_amp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
       }
 
       if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -14499,59 +15633,96 @@ int main (int argc, char **argv)
         }
       }
 
+      // maybe this has been updated by clGetKernelWorkGroupInfo()
+      // value can only be decreased, so we don't need to reallocate buffers
+
+      device_param->kernel_threads = kernel_threads;
+
+      // zero some data buffers
+
+      run_kernel_bzero (device_param, device_param->d_pws_buf,        size_pws);
+      run_kernel_bzero (device_param, device_param->d_pws_amp_buf,    size_pws);
+      run_kernel_bzero (device_param, device_param->d_tmps,           size_tmps);
+      run_kernel_bzero (device_param, device_param->d_hooks,          size_hooks);
+      run_kernel_bzero (device_param, device_param->d_plain_bufs,     size_plains);
+      run_kernel_bzero (device_param, device_param->d_result,         size_results);
+
+      /**
+       * special buffers
+       */
+
+      if (attack_kern == ATTACK_KERN_STRAIGHT)
+      {
+        run_kernel_bzero (device_param, device_param->d_rules_c, size_rules_c);
+      }
+      else if (attack_kern == ATTACK_KERN_COMBI)
+      {
+        run_kernel_bzero (device_param, device_param->d_combs,          size_combs);
+        run_kernel_bzero (device_param, device_param->d_combs_c,        size_combs);
+        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
+        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
+      }
+      else if (attack_kern == ATTACK_KERN_BF)
+      {
+        run_kernel_bzero (device_param, device_param->d_bfs,            size_bfs);
+        run_kernel_bzero (device_param, device_param->d_bfs_c,          size_bfs);
+        run_kernel_bzero (device_param, device_param->d_tm_c,           size_tm);
+        run_kernel_bzero (device_param, device_param->d_root_css_buf,   size_root_css);
+        run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
+      }
+
+      #if defined(HAVE_HWMON)
+
       /**
        * Store initial fanspeed if gpu_temp_retain is enabled
        */
 
-      #if defined(HAVE_HWMON) && defined(HAVE_ADL)
-      int gpu_temp_retain_set = 0;
-
       if (gpu_temp_disable == 0)
       {
-        if (gpu_temp_retain != 0) // VENDOR_ID_AMD implied
+        if (gpu_temp_retain != 0)
         {
           hc_thread_mutex_lock (mux_adl);
 
-          if (data.hm_device[device_id].fan_supported == 1)
+          if (data.hm_device[device_id].fan_get_supported == 1)
           {
-            if (gpu_temp_retain_chgd == 0)
+            const int fanspeed  = hm_get_fanspeed_with_device_id  (device_id);
+            const int fanpolicy = hm_get_fanpolicy_with_device_id (device_id);
+
+            temp_retain_fanspeed_value[device_id]  = fanspeed;
+            temp_retain_fanpolicy_value[device_id] = fanpolicy;
+
+            // we also set it to tell the OS we take control over the fan and it's automatic controller
+            // if it was set to automatic. we do not control user-defined fanspeeds.
+
+            if (fanpolicy == 1)
             {
-              uint cur_temp = 0;
-              uint default_temp = 0;
+              data.hm_device[device_id].fan_set_supported = 1;
 
-              int ADL_rc = hm_ADL_Overdrive6_TargetTemperatureData_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, (int *) &cur_temp, (int *) &default_temp);
+              int rc = -1;
 
-              if (ADL_rc == ADL_OK)
+              if (device_param->device_vendor_id == VENDOR_ID_AMD)
               {
-                #define GPU_TEMP_RETAIN_ABORT_DIFF 15
+                rc = hm_set_fanspeed_with_device_id_adl (device_id, fanspeed, 1);
+              }
+              else if (device_param->device_vendor_id == VENDOR_ID_NV)
+              {
 
-                const uint gpu_temp_retain_target = default_temp - GPU_TEMP_RETAIN_ABORT_DIFF;
+              }
 
-                // special case with multi gpu setups: always use minimum retain
+              if (rc == 0)
+              {
+                data.hm_device[device_id].fan_set_supported = 1;
+              }
+              else
+              {
+                log_info ("WARNING: Failed to set initial fan speed for device #%u", device_id + 1);
 
-                if (gpu_temp_retain_set == 0)
-                {
-                  gpu_temp_retain = gpu_temp_retain_target;
-                  gpu_temp_retain_set = 1;
-                }
-                else
-                {
-                  gpu_temp_retain = MIN (gpu_temp_retain, gpu_temp_retain_target);
-                }
-
-                if (gpu_temp_abort_chgd == 0) gpu_temp_abort = gpu_temp_retain + GPU_TEMP_RETAIN_ABORT_DIFF;
+                data.hm_device[device_id].fan_set_supported = 0;
               }
             }
-
-            const int fan_speed = hm_get_fanspeed_with_device_id (device_id);
-
-            temp_retain_fanspeed_value[device_id] = fan_speed;
-
-            if (fan_speed == -1)
+            else
             {
-              log_info ("WARNING: Failed to get current fan speed settings for gpu number: %i:", device_id + 1);
-
-              temp_retain_fanspeed_value[device_id] = 0;
+              data.hm_device[device_id].fan_set_supported = 0;
             }
           }
 
@@ -14559,142 +15730,28 @@ int main (int argc, char **argv)
         }
       }
 
-      /**
-       * Store original powercontrol/clocks settings, set overdrive 6 performance tuning settings
-       */
-
-      if (powertune_enable == 1) // VENDOR_ID_AMD implied
-      {
-        hc_thread_mutex_lock (mux_adl);
-
-        if (data.hm_device[device_id].od_version == 6)
-        {
-          int ADL_rc;
-
-          // check powertune capabilities first, if not available then skip device
-
-          int powertune_supported = 0;
-
-          if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
-          {
-            log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
-
-            return (-1);
-          }
-
-          if (powertune_supported != 0)
-          {
-            // powercontrol settings
-
-            ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
-
-            if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune)) == ADL_OK)
-            {
-              ADL_rc = hm_ADL_Overdrive_PowerControl_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &od_power_control_status[device_id]);
-            }
-
-            if (ADL_rc != ADL_OK)
-            {
-              log_error ("ERROR: Failed to get current ADL PowerControl settings");
-
-              return (-1);
-            }
-
-            if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, powertune.iMaxValue)) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to set new ADL PowerControl values");
-
-              return (-1);
-            }
-
-            // clocks
-
-            memset (&od_clock_mem_status[device_id], 0, sizeof (ADLOD6MemClockState));
-
-            od_clock_mem_status[device_id].state.iNumberOfPerformanceLevels = 2;
-
-            if ((ADL_rc = hm_ADL_Overdrive_StateInfo_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to get ADL memory and engine clock frequency");
-
-              return (-1);
-            }
-
-            // Query capabilities only to see if profiles were not "damaged", if so output a warning but do accept the users profile settings
-
-            ADLOD6Capabilities caps = {0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0, 0};
-
-            if ((ADL_rc = hm_ADL_Overdrive_Capabilities_Get (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &caps)) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to get ADL device capabilities");
-
-              return (-1);
-            }
-
-            int engine_clock_max = caps.sEngineClockRange.iMax * 0.6666;
-            int memory_clock_max = caps.sMemoryClockRange.iMax * 0.6250;
-
-            int warning_trigger_engine = (int) (0.25 * (float) engine_clock_max);
-            int warning_trigger_memory = (int) (0.25 * (float) memory_clock_max);
-
-            int engine_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
-            int memory_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
-
-            // warning if profile has too low max values
-
-            if ((engine_clock_max - engine_clock_profile_max) > warning_trigger_engine)
-            {
-              log_info ("WARN: the custom profile seems to have too low maximum engine clock values. You therefore may not reach full performance");
-            }
-
-            if ((memory_clock_max - memory_clock_profile_max) > warning_trigger_memory)
-            {
-              log_info ("WARN: the custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
-            }
-
-            ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
-
-            performance_state->iNumberOfPerformanceLevels = 2;
-
-            performance_state->aLevels[0].iEngineClock = engine_clock_profile_max;
-            performance_state->aLevels[1].iEngineClock = engine_clock_profile_max;
-            performance_state->aLevels[0].iMemoryClock = memory_clock_profile_max;
-            performance_state->aLevels[1].iMemoryClock = memory_clock_profile_max;
-
-            if ((ADL_rc = hm_ADL_Overdrive_State_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
-            {
-              log_info ("ERROR: Failed to set ADL performance state");
-
-              return (-1);
-            }
-
-            local_free (performance_state);
-          }
-        }
-
-        hc_thread_mutex_unlock (mux_adl);
-      }
-      #endif // HAVE_HWMON && HAVE_ADL
+      #endif // HAVE_HWMON
     }
 
-    data.kernel_power_all = kernel_power_all;
-
-    if (data.quiet == 0) log_info ("");
+    if (data.quiet == 0) log_info_nn ("");
 
     /**
-     * Inform user which algorithm is checked and at which workload setting
+     * In benchmark-mode, inform user which algorithm is checked
      */
 
     if (benchmark == 1)
     {
-      quiet = 0;
+      if (machine_readable == 0)
+      {
+        quiet = 0;
 
-      data.quiet = quiet;
+        data.quiet = quiet;
 
-      char *hash_type = strhashtype (data.hash_mode); // not a bug
+        char *hash_type = strhashtype (data.hash_mode); // not a bug
 
-      log_info ("Hashtype: %s", hash_type);
-      log_info ("");
+        log_info ("Hashtype: %s", hash_type);
+        log_info ("");
+      }
     }
 
     /**
@@ -15534,11 +16591,11 @@ int main (int argc, char **argv)
       {
         weak_hash_check (device_param, salt_pos);
       }
+
+      // Display hack, guarantee that there is at least one \r before real start
+
+      //if (data.quiet == 0) log_info ("");
     }
-
-    // Display hack, guarantee that there is at least one \r before real start
-
-    if (data.quiet == 0) log_info_nn ("");
 
     /**
      * status and monitor threads
@@ -15574,7 +16631,8 @@ int main (int argc, char **argv)
         if (data.outfile_check_directory != NULL)
         {
           if ((hash_mode != 5200) &&
-              !((hash_mode >= 6200) && (hash_mode <= 6299)) &&
+              !((hash_mode >=  6200) && (hash_mode <=  6299)) &&
+              !((hash_mode >= 13700) && (hash_mode <= 13799)) &&
               (hash_mode != 9000))
           {
             hc_thread_create (ni_threads[ni_threads_cnt], thread_outfile_remove, NULL);
@@ -15899,6 +16957,8 @@ int main (int argc, char **argv)
 
         data.ms_paused = 0;
 
+        data.kernel_power_final = 0;
+
         data.words_cur = rd->words_cur;
 
         for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
@@ -15910,14 +16970,11 @@ int main (int argc, char **argv)
           device_param->speed_pos = 0;
 
           memset (device_param->speed_cnt, 0, SPEED_CACHE * sizeof (u64));
-          memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (float));
-          memset (device_param->speed_rec, 0, SPEED_CACHE * sizeof (hc_timer_t));
+          memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (double));
 
           device_param->exec_pos = 0;
 
           memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
-
-          device_param->kernel_power = device_param->kernel_power_user;
 
           device_param->outerloop_pos  = 0;
           device_param->outerloop_left = 0;
@@ -15933,8 +16990,6 @@ int main (int argc, char **argv)
           device_param->words_off  = 0;
           device_param->words_done = 0;
         }
-
-        data.kernel_power_div = 0;
 
         // figure out some workload
 
@@ -16378,27 +17433,6 @@ int main (int argc, char **argv)
         }
 
         /*
-         * Inform user about possible slow speeds
-         */
-
-        if ((wordlist_mode == WL_MODE_FILE) || (wordlist_mode == WL_MODE_MASK))
-        {
-          if (data.words_base < kernel_power_all)
-          {
-            if (quiet == 0)
-            {
-              log_info ("");
-              log_info ("ATTENTION!");
-              log_info ("  The wordlist or mask you are using is too small.");
-              log_info ("  Therefore, oclHashcat is unable to utilize the full parallelization power of your device(s).");
-              log_info ("  The cracking speed will drop.");
-              log_info ("  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
-              log_info ("");
-            }
-          }
-        }
-
-        /*
          * Update loopback file
          */
 
@@ -16433,6 +17467,64 @@ int main (int argc, char **argv)
           }
         }
 
+        /**
+         * create autotune threads
+         */
+
+        data.devices_status = STATUS_AUTOTUNE;
+
+        hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
+
+        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+        {
+          hc_device_param_t *device_param = &devices_param[device_id];
+
+          hc_thread_create (c_threads[device_id], thread_autotune, device_param);
+        }
+
+        hc_thread_wait (data.devices_cnt, c_threads);
+
+        /*
+         * Inform user about possible slow speeds
+         */
+
+        uint hardware_power_all = 0;
+
+        uint kernel_power_all = 0;
+
+        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+        {
+          hc_device_param_t *device_param = &devices_param[device_id];
+
+          hardware_power_all += device_param->hardware_power;
+
+          kernel_power_all += device_param->kernel_power;
+        }
+
+        data.hardware_power_all = hardware_power_all; // hardware_power_all is the same as kernel_power_all but without the influence of kernel_accel on the devices
+
+        data.kernel_power_all = kernel_power_all;
+
+        if ((wordlist_mode == WL_MODE_FILE) || (wordlist_mode == WL_MODE_MASK))
+        {
+          if (data.words_base < kernel_power_all)
+          {
+            if (quiet == 0)
+            {
+              log_info ("ATTENTION!");
+              log_info ("  The wordlist or mask you are using is too small.");
+              log_info ("  Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
+              log_info ("  The cracking speed will drop.");
+              log_info ("  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
+              log_info ("");
+            }
+          }
+        }
+
+        /**
+         * create cracker threads
+         */
+
         data.devices_status = STATUS_RUNNING;
 
         if (initial_restore_done == 0)
@@ -16464,12 +17556,6 @@ int main (int argc, char **argv)
 
         data.runtime_start = runtime_start;
 
-        /**
-         * create cracker threads
-         */
-
-        hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
-
         for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
         {
           hc_device_param_t *device_param = &devices_param[device_id];
@@ -16483,8 +17569,6 @@ int main (int argc, char **argv)
             hc_thread_create (c_threads[device_id], thread_calc, device_param);
           }
         }
-
-        // wait for crack threads to exit
 
         hc_thread_wait (data.devices_cnt, c_threads);
 
@@ -16689,7 +17773,10 @@ int main (int argc, char **argv)
     {
       status_benchmark ();
 
-      log_info ("");
+      if (machine_readable == 0)
+      {
+        log_info ("");
+      }
     }
     else
     {
@@ -16714,8 +17801,6 @@ int main (int argc, char **argv)
       hc_device_param_t *device_param = &data.devices_param[device_id];
 
       if (device_param->skipped) continue;
-
-      local_free (device_param->result);
 
       local_free (device_param->combs_buf);
 
@@ -16769,6 +17854,7 @@ int main (int argc, char **argv)
       if (device_param->kernel_mp_r)        hc_clReleaseKernel        (data.ocl, device_param->kernel_mp_r);
       if (device_param->kernel_tm)          hc_clReleaseKernel        (data.ocl, device_param->kernel_tm);
       if (device_param->kernel_amp)         hc_clReleaseKernel        (data.ocl, device_param->kernel_amp);
+      if (device_param->kernel_memset)      hc_clReleaseKernel        (data.ocl, device_param->kernel_memset);
 
       if (device_param->program)            hc_clReleaseProgram       (data.ocl, device_param->program);
       if (device_param->program_mp)         hc_clReleaseProgram       (data.ocl, device_param->program_mp);
@@ -16783,7 +17869,6 @@ int main (int argc, char **argv)
     #ifdef HAVE_HWMON
     if (gpu_temp_disable == 0)
     {
-      #ifdef HAVE_ADL
       if (gpu_temp_retain != 0) // VENDOR_ID_AMD is implied here
       {
         hc_thread_mutex_lock (mux_adl);
@@ -16794,24 +17879,33 @@ int main (int argc, char **argv)
 
           if (device_param->skipped) continue;
 
-          if (data.hm_device[device_id].fan_supported == 1)
+          if (data.hm_device[device_id].fan_set_supported == 1)
           {
-            int fanspeed = temp_retain_fanspeed_value[device_id];
+            int fanspeed  = temp_retain_fanspeed_value[device_id];
+            int fanpolicy = temp_retain_fanpolicy_value[device_id];
 
-            if (fanspeed == -1) continue;
+            if (fanpolicy == 1)
+            {
+              int rc = -1;
 
-            int rc = hm_set_fanspeed_with_device_id_amd (device_id, fanspeed);
+              if (device_param->device_vendor_id == VENDOR_ID_AMD)
+              {
+                rc = hm_set_fanspeed_with_device_id_adl (device_id, fanspeed, 0);
+              }
+              else if (device_param->device_vendor_id == VENDOR_ID_NV)
+              {
 
-            if (rc == -1) log_info ("WARNING: Failed to restore default fan speed for gpu number: %i:", device_id);
+              }
+
+              if (rc == -1) log_info ("WARNING: Failed to restore default fan speed and policy for device #%", device_id + 1);
+            }
           }
         }
 
         hc_thread_mutex_unlock (mux_adl);
       }
-      #endif // HAVE_ADL
     }
 
-    #ifdef HAVE_ADL
     // reset power tuning
 
     if (powertune_enable == 1) // VENDOR_ID_AMD is implied here
@@ -16824,89 +17918,88 @@ int main (int argc, char **argv)
 
         if (device_param->skipped) continue;
 
-        if (data.hm_device[device_id].od_version == 6)
+        if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
         {
-          // check powertune capabilities first, if not available then skip device
-
-          int powertune_supported = 0;
-
-          if ((hm_ADL_Overdrive6_PowerControl_Caps (data.hm_amd, data.hm_device[device_id].adapter_index.amd, &powertune_supported)) != ADL_OK)
+          if (data.hm_device[device_id].od_version == 6)
           {
-            log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
+            // check powertune capabilities first, if not available then skip device
 
-            return (-1);
+            int powertune_supported = 0;
+
+            if ((hm_ADL_Overdrive6_PowerControl_Caps (data.hm_adl, data.hm_device[device_id].adl, &powertune_supported)) != ADL_OK)
+            {
+              log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
+
+              return (-1);
+            }
+
+            if (powertune_supported != 0)
+            {
+              // powercontrol settings
+
+              if ((hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adl, od_power_control_status[device_id])) != ADL_OK)
+              {
+                log_info ("ERROR: Failed to restore the ADL PowerControl values");
+
+                return (-1);
+              }
+
+              // clocks
+
+              ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
+
+              performance_state->iNumberOfPerformanceLevels = 2;
+
+              performance_state->aLevels[0].iEngineClock = od_clock_mem_status[device_id].state.aLevels[0].iEngineClock;
+              performance_state->aLevels[1].iEngineClock = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
+              performance_state->aLevels[0].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[0].iMemoryClock;
+              performance_state->aLevels[1].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
+
+              if ((hm_ADL_Overdrive_State_Set (data.hm_adl, data.hm_device[device_id].adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+              {
+                log_info ("ERROR: Failed to restore ADL performance state");
+
+                return (-1);
+              }
+
+              local_free (performance_state);
+            }
           }
+        }
 
-          if (powertune_supported != 0)
+        if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+        {
+          unsigned int limit = nvml_power_limit[device_id];
+
+          if (limit > 0)
           {
-            // powercontrol settings
-
-            if ((hm_ADL_Overdrive_PowerControl_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, od_power_control_status[device_id])) != ADL_OK)
-            {
-              log_info ("ERROR: Failed to restore the ADL PowerControl values");
-
-              return (-1);
-            }
-
-            // clocks
-
-            ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
-
-            performance_state->iNumberOfPerformanceLevels = 2;
-
-            performance_state->aLevels[0].iEngineClock = od_clock_mem_status[device_id].state.aLevels[0].iEngineClock;
-            performance_state->aLevels[1].iEngineClock = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
-            performance_state->aLevels[0].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[0].iMemoryClock;
-            performance_state->aLevels[1].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
-
-            if ((hm_ADL_Overdrive_State_Set (data.hm_amd, data.hm_device[device_id].adapter_index.amd, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
-            {
-              log_info ("ERROR: Failed to restore ADL performance state");
-
-              return (-1);
-            }
-
-            local_free (performance_state);
+            hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].nvml, limit);
           }
         }
       }
 
       hc_thread_mutex_unlock (mux_adl);
     }
-    #endif // HAVE_ADL
 
     if (gpu_temp_disable == 0)
     {
-      #if defined(HAVE_NVML) || defined(HAVE_NVAPI)
-      if (data.hm_nv)
+      if (data.hm_nvml)
       {
-        #if defined(LINUX) && defined(HAVE_NVML)
+        hm_NVML_nvmlShutdown (data.hm_nvml);
 
-        hm_NVML_nvmlShutdown (data.hm_nv);
+        nvml_close (data.hm_nvml);
 
-        nvml_close (data.hm_nv);
-
-        #elif defined(WIN) && (HAVE_NVAPI)
-
-        hm_NvAPI_Unload (data.hm_nv);
-
-        nvapi_close (data.hm_nv);
-
-        #endif
-
-        data.hm_nv = NULL;
+        data.hm_nvml = NULL;
       }
-      #endif
 
-      #ifdef HAVE_ADL
-      if (data.hm_amd)
+      if (data.hm_adl)
       {
-        hm_ADL_Main_Control_Destroy (data.hm_amd);
+        hm_ADL_Main_Control_Destroy (data.hm_adl);
 
-        adl_close (data.hm_amd);
-        data.hm_amd = NULL;
+        adl_close (data.hm_adl);
+
+        data.hm_adl = NULL;
       }
-      #endif
     }
     #endif // HAVE_HWMON
 
@@ -16949,10 +18042,9 @@ int main (int argc, char **argv)
 
     #ifdef HAVE_HWMON
     local_free (temp_retain_fanspeed_value);
-    #ifdef HAVE_ADL
     local_free (od_clock_mem_status);
     local_free (od_power_control_status);
-    #endif // ADL
+    local_free (nvml_power_limit);
     #endif
 
     global_free (devices_param);
@@ -17079,3 +18171,4 @@ int main (int argc, char **argv)
 
   return -1;
 }
+

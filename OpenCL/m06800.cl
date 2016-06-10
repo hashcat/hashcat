@@ -7,20 +7,20 @@
 
 #define _SHA256_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#define COMPARE_S "inc_comp_single.cl"
+#define COMPARE_M "inc_comp_multi.cl"
 
 __constant u32 te0[256] =
 {
@@ -709,7 +709,7 @@ __constant u32 rcon[] =
   0x1b000000, 0x36000000,
 };
 
-static void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   rek[0] = userkey[0];
   rek[1] = userkey[1];
@@ -765,7 +765,7 @@ static void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __loca
   }
 }
 
-static void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   for (u32 i = 0, j = 56; i < j; i += 4, j -= 4)
   {
@@ -805,7 +805,7 @@ static void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, 
   }
 }
 
-static void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
+void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
 {
   u32 s0 = in[0] ^ rdk[0];
   u32 s1 = in[1] ^ rdk[1];
@@ -895,7 +895,7 @@ static void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32
          ^ rdk[59];
 }
 
-static void AES256_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void AES256_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   u32 s0 = in[0] ^ rek[0];
   u32 s1 = in[1] ^ rek[1];
@@ -1005,7 +1005,7 @@ __constant u32 k_sha256[64] =
   SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
 };
 
-static void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
+void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -1075,7 +1075,9 @@ static void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4],
 
   ROUND_STEP (0);
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 16; i < 64; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
@@ -1091,7 +1093,7 @@ static void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4],
   digest[7] += h;
 }
 
-static void hmac_sha256_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8])
+void hmac_sha256_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8])
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -1150,7 +1152,7 @@ static void hmac_sha256_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipa
   sha256_transform (w0, w1, w2, w3, opad);
 }
 
-static void hmac_sha256_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8], u32 digest[8])
+void hmac_sha256_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8], u32 digest[8])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -1541,7 +1543,9 @@ __kernel void m06800_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   u32 rdk[KEYLEN];
 
-  #pragma unroll 60
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (u32 i = 0; i < KEYLEN; i++) rdk[i] = rek[i];
 
   AES256_InvertKey (rdk, s_td0, s_td1, s_td2, s_td3, s_td4, s_te0, s_te1, s_te2, s_te3, s_te4);
@@ -1569,9 +1573,7 @@ __kernel void m06800_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
    && (out[2] == salt_buf[2])
    && (out[3] == salt_buf[3]))
   {
-    mark_hash (plains_buf, hashes_shown, digests_offset + 0, gid, 0);
-
-    d_return_buf[lid] = 1;
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, 0);
   }
 
   /**

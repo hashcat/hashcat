@@ -10,20 +10,20 @@
 
 #define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "include/rp_kernel.h"
-#include "OpenCL/rp.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_rp.h"
+#include "inc_rp.cl"
+#include "inc_simd.cl"
 
 #define R 10
 
@@ -1135,7 +1135,7 @@ __constant u32 rcl[R + 1] =
 
 // this is a highly optimized that assumes dgst[16] = { 0 }; only reuse of no 2nd transform is needed
 
-static void whirlpool_transform (const u32x w[16], u32x dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void whirlpool_transform (const u32x w[16], u32x dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   u32x Kh[8];
   u32x Kl[8];
@@ -1180,7 +1180,9 @@ static void whirlpool_transform (const u32x w[16], u32x dgst[16], __local u32 (*
   u32x Lh[8];
   u32x Ll[8];
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (int i = 0; i < 8; i++)
   {
     const u32x Lp0 = stateh[(i + 8) & 7] >> 24;
@@ -1233,7 +1235,9 @@ static void whirlpool_transform (const u32x w[16], u32x dgst[16], __local u32 (*
     u32x Lh[8];
     u32x Ll[8];
 
+    #ifdef _unroll
     #pragma unroll
+    #endif
     for (int i = 0; i < 8; i++)
     {
       const u32x Lp0 = Kh[(i + 8) & 7] >> 24;
@@ -1281,7 +1285,9 @@ static void whirlpool_transform (const u32x w[16], u32x dgst[16], __local u32 (*
     Kh[7] = Lh[7];
     Kl[7] = Ll[7];
 
-    #pragma unroll 8
+    #ifdef _unroll
+    #pragma unroll
+    #endif
     for (int i = 0; i < 8; i++)
     {
       const u32x Lp0 = stateh[(i + 8) & 7] >> 24;

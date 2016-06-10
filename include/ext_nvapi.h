@@ -8,53 +8,17 @@
 #ifndef EXT_NVAPI_H
 #define EXT_NVAPI_H
 
-#if defined(HAVE_HWMON) && defined(HAVE_NVAPI)
+#if defined(HAVE_HWMON)
 
 #include <common.h>
 
-/*
+/**
  * Declarations from nvapi.h and subheaders
- **/
-
-#ifndef __success
-    #define __nvapi_success
-    #define __success(epxr)
-#endif
-
-#define NVAPI_INTERFACE extern __success(return == NVAPI_OK) NvAPI_Status __cdecl
-
-/*
- * Definitions from nvapi_lite_common.h
  */
 
-// 64-bit types for compilers that support them, plus some obsolete variants
-#if defined(__GNUC__) || defined(__arm) || defined(__IAR_SYSTEMS_ICC__) || defined(__ghs__) || defined(_WIN64)
-typedef unsigned long long NvU64; /* 0 to 18446744073709551615  */
-typedef long long          NvS64; /* -9223372036854775808 to 9223372036854775807  */
-#else
-typedef unsigned __int64   NvU64; /* 0 to 18446744073709551615  */
-typedef __int64            NvS64; /* -9223372036854775808 to 9223372036854775807  */
-#endif
+#define NVAPI_INTERFACE extern NvAPI_Status
 
-// mac os 32-bit still needs this
-#if (defined(macintosh) || defined(__APPLE__)) && !defined(__LP64__)
-typedef signed long        NvS32; /* -2147483648 to 2147483647  */
-#else
-typedef signed int         NvS32; /* -2147483648 to 2147483647 */
-#endif
-
-// mac os 32-bit still needs this
-#if ( (defined(macintosh) && defined(__LP64__) && (__NVAPI_RESERVED0__)) || \
-      (!defined(macintosh) && defined(__NVAPI_RESERVED0__)) )
-typedef unsigned int       NvU32; /* 0 to 4294967295                         */
-#else
-typedef unsigned long      NvU32; /* 0 to 4294967295                         */
-#endif
-
-typedef signed   short   NvS16;
-typedef unsigned short   NvU16;
-typedef unsigned char    NvU8;
-typedef signed   char    NvS8;
+typedef unsigned long NvU32;
 
 #define NV_DECLARE_HANDLE(name) struct name##__ { int unused; }; typedef struct name##__ *name
 
@@ -69,10 +33,8 @@ typedef char NvAPI_LongString[NVAPI_LONG_STRING_MAX];
 typedef char NvAPI_ShortString[NVAPI_SHORT_STRING_MAX];
 
 #define MAKE_NVAPI_VERSION(typeName,ver) (NvU32)(sizeof(typeName) | ((ver)<<16))
-#define GET_NVAPI_VERSION(ver) (NvU32)((ver)>>16)
-#define GET_NVAPI_SIZE(ver) (NvU32)((ver) & 0xffff)
 
-#define NVAPI_MAX_PHYSICAL_GPUS             64
+#define NVAPI_MAX_PHYSICAL_GPUS     64
 
 typedef enum _NvAPI_Status
 {
@@ -196,226 +158,76 @@ typedef enum _NvAPI_Status
     NVAPI_FIRMWARE_REVISION_NOT_SUPPORTED       = -200,    // The device's firmware is not supported.
 } NvAPI_Status;
 
-/*
- * Declarations from from nvapi.h
- */
-
-#define NVAPI_MAX_THERMAL_SENSORS_PER_GPU 3
-
-// Used in NV_GPU_THERMAL_SETTINGS
-typedef enum
-{
-    NVAPI_THERMAL_TARGET_NONE          = 0,
-    NVAPI_THERMAL_TARGET_GPU           = 1,     // GPU core temperature requires NvPhysicalGpuHandle
-    NVAPI_THERMAL_TARGET_MEMORY        = 2,     // GPU memory temperature requires NvPhysicalGpuHandle
-    NVAPI_THERMAL_TARGET_POWER_SUPPLY  = 4,     // GPU power supply temperature requires NvPhysicalGpuHandle
-    NVAPI_THERMAL_TARGET_BOARD         = 8,     // GPU board ambient temperature requires NvPhysicalGpuHandle
-    NVAPI_THERMAL_TARGET_VCD_BOARD     = 9,     // Visual Computing Device Board temperature requires NvVisualComputingDeviceHandle
-    NVAPI_THERMAL_TARGET_VCD_INLET     = 10,    // Visual Computing Device Inlet temperature requires NvVisualComputingDeviceHandle
-    NVAPI_THERMAL_TARGET_VCD_OUTLET    = 11,    // Visual Computing Device Outlet temperature requires NvVisualComputingDeviceHandle
-
-    NVAPI_THERMAL_TARGET_ALL           = 15,
-    NVAPI_THERMAL_TARGET_UNKNOWN       = -1,
-} NV_THERMAL_TARGET;
-
-// Used in NV_GPU_THERMAL_SETTINGS
-typedef enum
-{
-    NVAPI_THERMAL_CONTROLLER_NONE = 0,
-    NVAPI_THERMAL_CONTROLLER_GPU_INTERNAL,
-    NVAPI_THERMAL_CONTROLLER_ADM1032,
-    NVAPI_THERMAL_CONTROLLER_MAX6649,
-    NVAPI_THERMAL_CONTROLLER_MAX1617,
-    NVAPI_THERMAL_CONTROLLER_LM99,
-    NVAPI_THERMAL_CONTROLLER_LM89,
-    NVAPI_THERMAL_CONTROLLER_LM64,
-    NVAPI_THERMAL_CONTROLLER_ADT7473,
-    NVAPI_THERMAL_CONTROLLER_SBMAX6649,
-    NVAPI_THERMAL_CONTROLLER_VBIOSEVT,
-    NVAPI_THERMAL_CONTROLLER_OS,
-    NVAPI_THERMAL_CONTROLLER_UNKNOWN = -1,
-} NV_THERMAL_CONTROLLER;
-
-// Used in NvAPI_GPU_GetThermalSettings()
 typedef struct
 {
-    NvU32   version;                // structure version
-    NvU32   count;                  // number of associated thermal sensors
-    struct
-    {
-        NV_THERMAL_CONTROLLER       controller;        // internal, ADM1032, MAX6649...
-        NvU32                       defaultMinTemp;    // The min default temperature value of the thermal sensor in degree Celsius
-        NvU32                       defaultMaxTemp;    // The max default temperature value of the thermal sensor in degree Celsius
-        NvU32                       currentTemp;       // The current temperature value of the thermal sensor in degree Celsius
-        NV_THERMAL_TARGET           target;            // Thermal sensor targeted @ GPU, memory, chipset, powersupply, Visual Computing Device, etc.
-    } sensor[NVAPI_MAX_THERMAL_SENSORS_PER_GPU];
+  // total size (of memset) is always: 76 = 0x4c
 
-} NV_GPU_THERMAL_SETTINGS_V1;
+  NvU32 version;
+
+  NvU32 a;
+  NvU32 info_value;
+
+  unsigned char x[64];
+
+} NV_GPU_PERF_POLICIES_INFO_PARAMS_V1;
 
 typedef struct
 {
-    NvU32   version;                // structure version
-    NvU32   count;                  // number of associated thermal sensors
-    struct
-    {
-        NV_THERMAL_CONTROLLER       controller;         // internal, ADM1032, MAX6649...
-        NvS32                       defaultMinTemp;     // Minimum default temperature value of the thermal sensor in degree Celsius
-        NvS32                       defaultMaxTemp;     // Maximum default temperature value of the thermal sensor in degree Celsius
-        NvS32                       currentTemp;        // Current temperature value of the thermal sensor in degree Celsius
-        NV_THERMAL_TARGET           target;             // Thermal sensor targeted - GPU, memory, chipset, powersupply, Visual Computing Device, etc
-    } sensor[NVAPI_MAX_THERMAL_SENSORS_PER_GPU];
+  // total size (of memset) is always: 1360 = 0x550
 
-} NV_GPU_THERMAL_SETTINGS_V2;
+  NvU32 version;
+  NvU32 info_value;
 
-typedef NV_GPU_THERMAL_SETTINGS_V2  NV_GPU_THERMAL_SETTINGS;
+  NvU32 a;
+  NvU32 b;
 
-// Macro for constructing the version field of NV_GPU_THERMAL_SETTINGS_V1
-#define NV_GPU_THERMAL_SETTINGS_VER_1   MAKE_NVAPI_VERSION(NV_GPU_THERMAL_SETTINGS_V1,1)
+  NvU32 throttle;
 
-// Macro for constructing the version field of NV_GPU_THERMAL_SETTINGS_V2
-#define NV_GPU_THERMAL_SETTINGS_VER_2   MAKE_NVAPI_VERSION(NV_GPU_THERMAL_SETTINGS_V2,2)
+  unsigned char x[1340];
 
-// Macro for constructing the version field of NV_GPU_THERMAL_SETTINGS
-#define NV_GPU_THERMAL_SETTINGS_VER     NV_GPU_THERMAL_SETTINGS_VER_2
+} NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1;
 
-#define NVAPI_MAX_GPU_UTILIZATIONS 8
-
-// Used in NvAPI_GPU_GetDynamicPstatesInfoEx().
-typedef struct
-{
-    NvU32       version;        // Structure version
-    NvU32       flags;          // bit 0 indicates if the dynamic Pstate is enabled or not
-    struct
-    {
-        NvU32   bIsPresent:1;   // Set if this utilization domain is present on this GPU
-        NvU32   percentage;     // Percentage of time where the domain is considered busy in the last 1 second interval
-    } utilization[NVAPI_MAX_GPU_UTILIZATIONS];
-} NV_GPU_DYNAMIC_PSTATES_INFO_EX;
-
-// Macro for constructing the version field of NV_GPU_DYNAMIC_PSTATES_INFO_EX
-#define NV_GPU_DYNAMIC_PSTATES_INFO_EX_VER MAKE_NVAPI_VERSION(NV_GPU_DYNAMIC_PSTATES_INFO_EX,1)
-
-#define NVAPI_MAX_COOLER_PER_GPU 20
-#define GPU_COOLER_SETTINGS_VER  0x20000
-
-// Used in NV_GPU_COOLER_SETTINGS
-typedef struct
-{
-  NvS32 Type;
-  NvS32 Controller;
-  NvS32 DefaultMin;
-  NvS32 DefaultMax;
-  NvS32 CurrentMin;
-  NvS32 CurrentMax;
-  NvS32 CurrentLevel;
-  NvS32 DefaultPolicy;
-  NvS32 CurrentPolicy;
-  NvS32 Target;
-  NvS32 ControlType;
-  NvS32 Active;
-
-} NvCooler;
-
-// Used in NvAPI_GPU_GetCoolerSettings().
-typedef struct
-{
-  NvU32    Version;
-  NvU32    Count;
-  NvCooler Cooler[NVAPI_MAX_COOLER_PER_GPU];
-
-} NV_GPU_COOLER_SETTINGS;
-
-NVAPI_INTERFACE NvAPI_QueryInterface(uint offset);
-NVAPI_INTERFACE NvAPI_Initialize();
-NVAPI_INTERFACE NvAPI_Unload();
-NVAPI_INTERFACE NvAPI_GetErrorMessage(NvAPI_Status nr,NvAPI_ShortString szDesc);
-NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs(NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
-NVAPI_INTERFACE NvAPI_GPU_GetThermalSettings(NvPhysicalGpuHandle hPhysicalGpu, NvU32 sensorIndex, NV_GPU_THERMAL_SETTINGS *pThermalSettings);
-NVAPI_INTERFACE NvAPI_GPU_GetTachReading(NvPhysicalGpuHandle hPhysicalGPU, NvU32 *pValue);
-NVAPI_INTERFACE NvAPI_GPU_GetCoolerSettings(NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_SETTINGS *pCoolerSettings);
-NVAPI_INTERFACE NvAPI_GPU_GetDynamicPstatesInfoEx(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
-
-#ifdef __nvapi_success
-    #undef __success
-    #undef __nvapi_success
-#endif
+NVAPI_INTERFACE NvAPI_QueryInterface (uint offset);
+NVAPI_INTERFACE NvAPI_Initialize ();
+NVAPI_INTERFACE NvAPI_Unload ();
+NVAPI_INTERFACE NvAPI_GetErrorMessage (NvAPI_Status nr,NvAPI_ShortString szDesc);
+NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
+NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesInfo (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info);
+NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesStatus (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status);
 
 /*
  * End of declarations from nvapi.h and subheaders
  **/
 
-// Just annotations (they do nothing special)
-
-#ifndef __success
-#define __success(x)
-#endif
-#ifndef __in
-#define __in
-#endif
-#ifndef __out
-#define __out
-#endif
-#ifndef __in_ecount
-#define __in_ecount(x)
-#endif
-#ifndef __out_ecount
-#define __out_ecount(x)
-#endif
-#ifndef __in_opt
-#define __in_opt
-#endif
-#ifndef __out_opt
-#define __out_opt
-#endif
-#ifndef __inout
-#define __inout
-#endif
-#ifndef __inout_opt
-#define __inout_opt
-#endif
-#ifndef __inout_ecount
-#define __inout_ecount(x)
-#endif
-#ifndef __inout_ecount_full
-#define __inout_ecount_full(x)
-#endif
-#ifndef __inout_ecount_part_opt
-#define __inout_ecount_part_opt(x,y)
-#endif
-#ifndef __inout_ecount_full_opt
-#define __inout_ecount_full_opt(x,y)
-#endif
-#ifndef __out_ecount_full_opt
-#define __out_ecount_full_opt(x)
-#endif
-
-typedef NvPhysicalGpuHandle HM_ADAPTER_NV;
+typedef NvPhysicalGpuHandle HM_ADAPTER_NVAPI;
 
 #include <shared.h>
 
-typedef int *(*NVAPI_QUERYINTERFACE) (uint);
-typedef int (*NVAPI_INITIALIZE) (void);
-typedef int (*NVAPI_UNLOAD) (void);
-typedef int (*NVAPI_GETERRORMESSAGE) (NvAPI_Status, NvAPI_ShortString);
-typedef int (*NVAPI_ENUMPHYSICALGPUS) (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *);
-typedef int (*NVAPI_GPU_GETTHERMALSETTINGS) (NvPhysicalGpuHandle, NvU32, NV_GPU_THERMAL_SETTINGS *);
-typedef int (*NVAPI_GPU_GETTACHREADING) (NvPhysicalGpuHandle, NvU32 *);
-typedef int (*NVAPI_GPU_GETCOOLERSETTINGS) (NvPhysicalGpuHandle, NvU32, NV_GPU_COOLER_SETTINGS *);
-typedef int (*NVAPI_GPU_GETDYNAMICPSTATESINFOEX) (NvPhysicalGpuHandle, NV_GPU_DYNAMIC_PSTATES_INFO_EX *);
+#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+#define NVAPI_API_CALL __stdcall
+#else
+#define NVAPI_API_CALL
+#endif
+
+typedef int *(*NVAPI_API_CALL NVAPI_QUERYINTERFACE) (uint);
+typedef int (*NVAPI_API_CALL NVAPI_INITIALIZE) (void);
+typedef int (*NVAPI_API_CALL NVAPI_UNLOAD) (void);
+typedef int (*NVAPI_API_CALL NVAPI_GETERRORMESSAGE) (NvAPI_Status, NvAPI_ShortString);
+typedef int (*NVAPI_API_CALL NVAPI_ENUMPHYSICALGPUS) (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *);
+typedef int (*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESINFO) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *);
+typedef int (*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESSTATUS) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *);
 
 typedef struct
 {
-  NV_LIB lib;
+  NVAPI_LIB lib;
 
   NVAPI_QUERYINTERFACE nvapi_QueryInterface;
   NVAPI_INITIALIZE NvAPI_Initialize;
   NVAPI_UNLOAD NvAPI_Unload;
   NVAPI_GETERRORMESSAGE NvAPI_GetErrorMessage;
   NVAPI_ENUMPHYSICALGPUS NvAPI_EnumPhysicalGPUs;
-  NVAPI_GPU_GETTHERMALSETTINGS NvAPI_GPU_GetThermalSettings;
-  NVAPI_GPU_GETTACHREADING NvAPI_GPU_GetTachReading;
-  NVAPI_GPU_GETCOOLERSETTINGS NvAPI_GPU_GetCoolerSettings;
-  NVAPI_GPU_GETDYNAMICPSTATESINFOEX NvAPI_GPU_GetDynamicPstatesInfoEx;
+  NVAPI_GPU_GETPERFPOLICIESINFO NvAPI_GPU_GetPerfPoliciesInfo;
+  NVAPI_GPU_GETPERFPOLICIESSTATUS NvAPI_GPU_GetPerfPoliciesStatus;
 
 } hm_nvapi_lib_t;
 
@@ -429,11 +241,9 @@ int hm_NvAPI_Initialize (NVAPI_PTR *nvapi);
 int hm_NvAPI_Unload (NVAPI_PTR *nvapi);
 int hm_NvAPI_GetErrorMessage (NVAPI_PTR *nvapi, NvAPI_Status nr, NvAPI_ShortString szDesc);
 int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
-int hm_NvAPI_GPU_GetThermalSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 sensorIndex, NV_GPU_THERMAL_SETTINGS *pThermalSettings);
-int hm_NvAPI_GPU_GetTachReading (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGPU, NvU32 *pValue);
-int hm_NvAPI_GPU_GetCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_SETTINGS *pCoolerSettings);
-int hm_NvAPI_GPU_GetDynamicPstatesInfoEx (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_DYNAMIC_PSTATES_INFO_EX *pDynamicPstatesInfoEx);
+int hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info);
+int hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status);
 
-#endif // HAVE_HWMON && HAVE_NVAPI
+#endif // HAVE_HWMON
 
 #endif // EXT_NVAPI_H

@@ -79,7 +79,20 @@ int ocl_init (OCL_PTR *ocl)
 
   if (ocl->lib == NULL)
   {
-    log_error ("ERROR: cannot load opencl library");
+    log_info ("");
+    log_info ("ATTENTION! Can't find OpenCL ICD loader library");
+    log_info ("");
+    #if defined (LINUX)
+    log_info ("You're probably missing the \"ocl-icd-libopencl1\" package (Debian/Ubuntu)");
+    log_info ("  sudo apt-get install ocl-icd-libopencl1");
+    log_info ("");
+    #elif defined (WIN)
+    log_info ("You're probably missing the OpenCL runtime installation");
+    log_info ("  AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)");
+    log_info ("  Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)");
+    log_info ("  NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)");
+    log_info ("");
+    #endif
 
     exit (-1);
   }
@@ -116,7 +129,7 @@ int ocl_init (OCL_PTR *ocl)
   HC_LOAD_FUNC(ocl, clSetKernelArg, OCL_CLSETKERNELARG, OpenCL, 1)
   HC_LOAD_FUNC(ocl, clWaitForEvents, OCL_CLWAITFOREVENTS, OpenCL, 1)
   HC_LOAD_FUNC(ocl, clGetEventProfilingInfo, OCL_CLGETEVENTPROFILINGINFO, OpenCL, 1)
-  HC_LOAD_FUNC(ocl, clReleaseEvent, CLRELEASEEVENT, OpenCL, 1)
+  HC_LOAD_FUNC(ocl, clReleaseEvent, OCL_CLRELEASEEVENT, OpenCL, 1)
 
   return 0;
 }
@@ -380,12 +393,11 @@ cl_int hc_clBuildProgram (OCL_PTR *ocl, cl_program program, cl_uint num_devices,
 
   if (CL_err != CL_SUCCESS)
   {
-    size_t len = strlen (options) + 1 + 15;
+    size_t len = strlen (options) + 256;
 
     char *options_update = (char *) mymalloc (len + 1);
 
-    options_update = strncat (options_update, options, len - 1 - 15);
-    options_update = strncat (options_update, " -cl-opt-disable", 1 + 15);
+    snprintf (options_update, len, "%s -cl-opt-disable", options);
 
     if (data.quiet == 0) log_error ("\n=== Build failed, retry with optimization disabled ===\n");
 

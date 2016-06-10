@@ -11,20 +11,20 @@
 //incompatible
 //#define NEW_SIMD_CODE
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
-#include "include/rp_kernel.h"
-#include "OpenCL/rp.c"
-#include "OpenCL/simd.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
+#include "inc_rp.h"
+#include "inc_rp.cl"
+#include "inc_simd.cl"
 
 __constant u32 lotus_magic_table[256] =
 {
@@ -86,7 +86,7 @@ __constant u32 lotus_magic_table[256] =
 #define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
-static void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
+void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
 {
   u32x p = 0;
 
@@ -94,7 +94,6 @@ static void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   {
     u32 s = 48;
 
-    #pragma unroll 12
     for (int j = 0; j < 12; j++)
     {
       u32x tmp_in = in[j];
@@ -110,13 +109,15 @@ static void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   }
 }
 
-static void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lotus_magic_table)
+void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lotus_magic_table)
 {
   u32x t = out[3] >> 24;
 
   u32x c;
 
-  #pragma unroll 4
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 0; i < 4; i++)
   {
     t ^= (in[i] >>  0) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  0; t = ((out[i] >>  0) & 0xff);
@@ -126,20 +127,20 @@ static void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lo
   }
 }
 
-static void pad (u32x w[4], const u32 len)
+void pad (u32 w[4], const u32 len)
 {
   const u32 val = 16 - len;
 
-  const u32x mask1 = val << 24;
+  const u32 mask1 = val << 24;
 
-  const u32x mask2 = val << 16
+  const u32 mask2 = val << 16
                    | val << 24;
 
-  const u32x mask3 = val <<  8
+  const u32 mask3 = val <<  8
                    | val << 16
                    | val << 24;
 
-  const u32x mask4 = val <<  0
+  const u32 mask4 = val <<  0
                    | val <<  8
                    | val << 16
                    | val << 24;
@@ -205,7 +206,7 @@ static void pad (u32x w[4], const u32 len)
   }
 }
 
-static void mdtransform_norecalc (u32x state[4], u32x block[4], __local u32 *s_lotus_magic_table)
+void mdtransform_norecalc (u32x state[4], u32x block[4], __local u32 *s_lotus_magic_table)
 {
   u32x x[12];
 
@@ -230,14 +231,14 @@ static void mdtransform_norecalc (u32x state[4], u32x block[4], __local u32 *s_l
   state[3] = x[3];
 }
 
-static void mdtransform (u32x state[4], u32x checksum[4], u32x block[4], __local u32 *s_lotus_magic_table)
+void mdtransform (u32x state[4], u32x checksum[4], u32x block[4], __local u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-static void domino_big_md (const u32x saved_key[16], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
+void domino_big_md (const u32x saved_key[16], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
 {
   u32x checksum[4];
 

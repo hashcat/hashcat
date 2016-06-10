@@ -5,20 +5,20 @@
 
 #define _SHA512_
 
-#include "include/constants.h"
-#include "include/kernel_vendor.h"
+#include "inc_hash_constants.h"
+#include "inc_vendor.cl"
 
 #define DGST_R0 0
 #define DGST_R1 1
 #define DGST_R2 2
 #define DGST_R3 3
 
-#include "include/kernel_functions.c"
-#include "OpenCL/types_ocl.c"
-#include "OpenCL/common.c"
+#include "inc_hash_functions.cl"
+#include "inc_types.cl"
+#include "inc_common.cl"
 
-#define COMPARE_S "OpenCL/check_single_comp4.c"
-#define COMPARE_M "OpenCL/check_multi_comp4.c"
+#define COMPARE_S "inc_comp_single.cl"
+#define COMPARE_M "inc_comp_multi.cl"
 
 __constant u64 k_sha512[80] =
 {
@@ -44,7 +44,7 @@ __constant u64 k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-static void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
+void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
 {
   u64 a = digest[0];
   u64 b = digest[1];
@@ -114,7 +114,9 @@ static void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4],
 
   ROUND_STEP (0);
 
-  //#pragma unroll
+  #ifdef _unroll
+  #pragma unroll
+  #endif
   for (int i = 16; i < 80; i += 16)
   {
     ROUND_EXPAND (); ROUND_STEP (i);
@@ -130,7 +132,7 @@ static void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4],
   digest[7] += h;
 }
 
-static void hmac_sha512_pad (u64 w0[4], u64 w1[4], u64 w2[4], u64 w3[4], u64 ipad[8], u64 opad[8])
+void hmac_sha512_pad (u64 w0[4], u64 w1[4], u64 w2[4], u64 w3[4], u64 ipad[8], u64 opad[8])
 {
   w0[0] = w0[0] ^ 0x3636363636363636;
   w0[1] = w0[1] ^ 0x3636363636363636;
@@ -189,7 +191,7 @@ static void hmac_sha512_pad (u64 w0[4], u64 w1[4], u64 w2[4], u64 w3[4], u64 ipa
   sha512_transform (w0, w1, w2, w3, opad);
 }
 
-static void hmac_sha512_run (u64 w0[4], u64 w1[4], u64 w2[4], u64 w3[4], u64 ipad[8], u64 opad[8], u64 digest[8])
+void hmac_sha512_run (u64 w0[4], u64 w1[4], u64 w2[4], u64 w3[4], u64 ipad[8], u64 opad[8], u64 digest[8])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -218,6 +220,62 @@ static void hmac_sha512_run (u64 w0[4], u64 w1[4], u64 w2[4], u64 w3[4], u64 ipa
   w3[1] = 0;
   w3[2] = 0;
   w3[3] = (128 + 64) * 8;
+
+  digest[0] = opad[0];
+  digest[1] = opad[1];
+  digest[2] = opad[2];
+  digest[3] = opad[3];
+  digest[4] = opad[4];
+  digest[5] = opad[5];
+  digest[6] = opad[6];
+  digest[7] = opad[7];
+
+  sha512_transform (w0, w1, w2, w3, digest);
+}
+
+void hmac_sha512_run_x (u64 ipad[8], u64 opad[8], u64 digest[8])
+{
+  u64 w0[4];
+  u64 w1[4];
+  u64 w2[4];
+  u64 w3[4];
+
+  w0[0] = digest[0];
+  w0[1] = digest[1];
+  w0[2] = digest[2];
+  w0[3] = digest[3];
+  w1[0] = digest[4];
+  w1[1] = digest[5];
+  w1[2] = digest[6];
+  w1[3] = digest[7];
+  w2[0] = 0x8000000000000000;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = (128 + 64) * 8;
+
+  digest[0] = ipad[0];
+  digest[1] = ipad[1];
+  digest[2] = ipad[2];
+  digest[3] = ipad[3];
+  digest[4] = ipad[4];
+  digest[5] = ipad[5];
+  digest[6] = ipad[6];
+  digest[7] = ipad[7];
+
+  sha512_transform (w0, w1, w2, w3, digest);
+
+  w0[0] = digest[0];
+  w0[1] = digest[1];
+  w0[2] = digest[2];
+  w0[3] = digest[3];
+  w1[0] = digest[4];
+  w1[1] = digest[5];
+  w1[2] = digest[6];
+  w1[3] = digest[7];
 
   digest[0] = opad[0];
   digest[1] = opad[1];
@@ -458,7 +516,6 @@ __kernel void m06500_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   opad[7] = tmps[gid].opad[7];
 
   u64 dgst[8];
-  u64 out[8];
 
   dgst[0] = tmps[gid].dgst[0];
   dgst[1] = tmps[gid].dgst[1];
@@ -469,49 +526,18 @@ __kernel void m06500_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   dgst[6] = tmps[gid].dgst[6];
   dgst[7] = tmps[gid].dgst[7];
 
-  out[0] = tmps[gid].out[0];
-  out[1] = tmps[gid].out[1];
-  out[2] = tmps[gid].out[2];
-  out[3] = tmps[gid].out[3];
-  out[4] = tmps[gid].out[4];
-  out[5] = tmps[gid].out[5];
-  out[6] = tmps[gid].out[6];
-  out[7] = tmps[gid].out[7];
-
   for (u32 j = 0; j < loop_cnt; j++)
   {
-    u64 w0[4];
-    u64 w1[4];
-    u64 w2[4];
-    u64 w3[4];
+    hmac_sha512_run_x (ipad, opad, dgst);
 
-    w0[0] = dgst[0];
-    w0[1] = dgst[1];
-    w0[2] = dgst[2];
-    w0[3] = dgst[3];
-    w1[0] = dgst[4];
-    w1[1] = dgst[5];
-    w1[2] = dgst[6];
-    w1[3] = dgst[7];
-    w2[0] = 0x8000000000000000;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = (128 + 64) * 8;
-
-    hmac_sha512_run (w0, w1, w2, w3, ipad, opad, dgst);
-
-    out[0] ^= dgst[0];
-    out[1] ^= dgst[1];
-    out[2] ^= dgst[2];
-    out[3] ^= dgst[3];
-    out[4] ^= dgst[4];
-    out[5] ^= dgst[5];
-    out[6] ^= dgst[6];
-    out[7] ^= dgst[7];
+    tmps[gid].out[0] ^= dgst[0];
+    tmps[gid].out[1] ^= dgst[1];
+    tmps[gid].out[2] ^= dgst[2];
+    tmps[gid].out[3] ^= dgst[3];
+    tmps[gid].out[4] ^= dgst[4];
+    tmps[gid].out[5] ^= dgst[5];
+    tmps[gid].out[6] ^= dgst[6];
+    tmps[gid].out[7] ^= dgst[7];
   }
 
   tmps[gid].dgst[0] = dgst[0];
@@ -522,15 +548,6 @@ __kernel void m06500_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   tmps[gid].dgst[5] = dgst[5];
   tmps[gid].dgst[6] = dgst[6];
   tmps[gid].dgst[7] = dgst[7];
-
-  tmps[gid].out[0] = out[0];
-  tmps[gid].out[1] = out[1];
-  tmps[gid].out[2] = out[2];
-  tmps[gid].out[3] = out[3];
-  tmps[gid].out[4] = out[4];
-  tmps[gid].out[5] = out[5];
-  tmps[gid].out[6] = out[6];
-  tmps[gid].out[7] = out[7];
 }
 
 __kernel void m06500_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __global bf_t *bfs_buf, __global sha512aix_tmp_t *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
