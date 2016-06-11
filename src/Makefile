@@ -48,7 +48,8 @@ DOCUMENT_FOLDER          ?= $(PREFIX)/share/doc/$(PROG_NAME)
 
 ##
 ## Dependencies
-## You may ignore them if you have your own headers somewhere
+## You may ignore them if you're compiling only a native binary and
+## You have your own headers somewhere, for example: apt-get install opencl-headers
 ##
 
 OPENCL_HEADERS_KHRONOS   := deps/OpenCL-Headers
@@ -57,11 +58,11 @@ OPENCL_HEADERS_KHRONOS   := deps/OpenCL-Headers
 ## Native compiler paths
 ##
 
-CP                       := cp
-RM                       := rm
+CC                       := gcc
+FIND                     := find
 INSTALL                  := install
-
-CC_NATIVE                := gcc
+RM                       := rm
+SED                      := sed
 
 ##
 ## Cross compiler paths
@@ -78,6 +79,7 @@ CC_WIN_64                := x86_64-w64-mingw32-gcc
 ##
 
 COMPTIME                 := $(shell date +%s)
+
 VERSION_EXPORT           := $Format:%D$
 VERSION_TAG              := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)"|cut -d, -f2|sed -r 's|.* (\w+/)?([^ ]+)|\2|')
 
@@ -125,20 +127,16 @@ endif # linux
 ##
 
 CFLAGS_CROSS_LINUX       := -D_POSIX -DLINUX
-
 ifndef DEBUG
 CFLAGS_CROSS_LINUX       += -s
 endif
-
 CFLAGS_CROSS_LINUX       += $(CFLAGS)
 CFLAGS_CROSS_LINUX       += -DHAVE_HWMON
 
 CFLAGS_CROSS_WIN         := -D_WIN -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
-
 ifndef DEBUG
 CFLAGS_CROSS_WIN         += -s
 endif
-
 CFLAGS_CROSS_WIN         += $(filter-out -fsanitize=address,$(CFLAGS))
 CFLAGS_CROSS_WIN         += -DHAVE_HWMON
 
@@ -197,26 +195,42 @@ win64: hashcat64.exe
 ##
 
 install: native
-	$(INSTALL) -m 755 -d                            $(DESTDIR)$(DOCUMENT_FOLDER)
-	$(CP) -a docs/*                                 $(DESTDIR)$(DOCUMENT_FOLDER)/
-	$(CP) -a example*.sh                            $(DESTDIR)$(DOCUMENT_FOLDER)/
-	$(CP) -a example*.hash                          $(DESTDIR)$(DOCUMENT_FOLDER)/
-	$(INSTALL) -m 644 example.dict                  $(DESTDIR)$(DOCUMENT_FOLDER)/
-	$(INSTALL) -m 755 -d                            $(DESTDIR)$(DOCUMENT_FOLDER)/extra
-	$(CP) -a extra/*                                $(DESTDIR)$(DOCUMENT_FOLDER)/extra/
-	$(INSTALL) -m 755 -d                            $(DESTDIR)$(SHARED_FOLDER)
-	$(INSTALL) -m 755 -d                            $(DESTDIR)$(SHARED_FOLDER)/charsets
-	$(CP) -a charsets/*                             $(DESTDIR)$(SHARED_FOLDER)/charsets/
-	$(INSTALL) -m 755 -d                            $(DESTDIR)$(SHARED_FOLDER)/masks
-	$(CP) -a masks/*                                $(DESTDIR)$(SHARED_FOLDER)/masks/
-	$(INSTALL) -m 755 -d                            $(DESTDIR)$(SHARED_FOLDER)/OpenCL
-	$(CP) -a OpenCL/*                               $(DESTDIR)$(SHARED_FOLDER)/OpenCL/
-	$(INSTALL) -m 755 -d                            $(DESTDIR)$(SHARED_FOLDER)/rules
-	$(CP) -a rules/*                                $(DESTDIR)$(SHARED_FOLDER)/rules/
-	$(INSTALL) -m 644 hashcat.hcstat                $(DESTDIR)$(SHARED_FOLDER)/
-	$(INSTALL) -m 644 hashcat.hctune                $(DESTDIR)$(SHARED_FOLDER)/
-	$(INSTALL) -m 755 -d                            $(DESTDIR)$(INSTALL_FOLDER)
-	$(INSTALL) -m 755 $(BINARY_NATIVE)              $(DESTDIR)$(INSTALL_FOLDER)/
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(INSTALL_FOLDER)
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)/docs
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)/charsets
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)/masks
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)/OpenCL
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)/rules
+	$(INSTALL) -m 644 example.dict                          $(DESTDIR)$(DOCUMENT_FOLDER)/
+	$(INSTALL) -m 644 example0.hash                         $(DESTDIR)$(DOCUMENT_FOLDER)/
+	$(INSTALL) -m 644 example400.hash                       $(DESTDIR)$(DOCUMENT_FOLDER)/
+	$(INSTALL) -m 644 example500.hash                       $(DESTDIR)$(DOCUMENT_FOLDER)/
+	$(INSTALL) -m 755 example0.sh                           $(DESTDIR)$(DOCUMENT_FOLDER)/
+	$(INSTALL) -m 755 example400.sh                         $(DESTDIR)$(DOCUMENT_FOLDER)/
+	$(INSTALL) -m 755 example500.sh                         $(DESTDIR)$(DOCUMENT_FOLDER)/
+	$(INSTALL) -m 644 extra/tab_completion/hashcat.sh       $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion/
+	$(INSTALL) -m 644 extra/tab_completion/howto.txt        $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion/
+	$(INSTALL) -m 755 extra/tab_completion/install          $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion/
+	$(INSTALL) -m 644 hashcat.hcstat                        $(DESTDIR)$(SHARED_FOLDER)/
+	$(INSTALL) -m 644 hashcat.hctune                        $(DESTDIR)$(SHARED_FOLDER)/
+	$(INSTALL) -m 755 $(BINARY_NATIVE)                      $(DESTDIR)$(INSTALL_FOLDER)/
+	$(FIND) docs/     -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
+	$(FIND) charsets/ -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
+	$(FIND) masks/    -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
+	$(FIND) OpenCL/   -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
+	$(FIND) rules/    -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
+	$(FIND) docs/     -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
+	$(FIND) charsets/ -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
+	$(FIND) masks/    -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
+	$(FIND) OpenCL/   -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
+	$(FIND) rules/    -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
+	$(SED) -i 's/^..hashcat64.bin/hashcat/'                 $(DESTDIR)$(DOCUMENT_FOLDER)/example0.sh
+	$(SED) -i 's/^..hashcat64.bin/hashcat/'                 $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
+	$(SED) -i 's/^..hashcat64.bin/hashcat/'                 $(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
 
 uninstall:
 	$(RM) -f  $(DESTDIR)$(INSTALL_FOLDER)/$(BINARY_NATIVE)
@@ -228,10 +242,10 @@ uninstall:
 ##
 
 obj/%.NATIVE.o:   src/%.c
-	$(CC_NATIVE) $(CFLAGS_NATIVE) -c -o $@ $<
+	$(CC) $(CFLAGS_NATIVE) -c -o $@ $<
 
 hashcat:       src/hashcat.c $(NATIVE_OBJS)
-	$(CC_NATIVE) $(CFLAGS_NATIVE)    -o $(BINARY_NATIVE) $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+	$(CC) $(CFLAGS_NATIVE)    -o $(BINARY_NATIVE) $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 ##
 ## cross compiled hashcat for binary release version
