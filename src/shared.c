@@ -11983,13 +11983,13 @@ int sha1axcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   u32 *digest = (u32 *) hash_buf->digest;
 
-  input_buf +=14;
+  input_buf += 14;
 
   digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
-  digest[4] = 0x00000000;
+  digest[4] = 0;
 
   return (PARSER_OK);
 }

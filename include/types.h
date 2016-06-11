@@ -649,8 +649,7 @@ typedef struct
 
 typedef struct
 {
-  u32 KEK[5];
-
+  u32 KEK[4];
   u32 lsb[4];
   u32 cipher[4];
 

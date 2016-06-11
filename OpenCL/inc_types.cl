@@ -775,6 +775,8 @@ typedef struct
   u32  digest_buf[4];
   #elif defined _ZIP2_
   u32  digest_buf[4];
+  #elif defined _AXCRYPT_
+  u32  digest_buf[4];
   #endif
 
 } digest_t;
@@ -1366,8 +1368,7 @@ typedef struct
 
 typedef struct
 {
-  u32 KEK[5];
-
+  u32 KEK[4];
   u32 lsb[4];
   u32 cipher[4];
 
