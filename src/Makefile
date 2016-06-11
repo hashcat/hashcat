@@ -228,9 +228,9 @@ install: native
 	$(FIND) masks/    -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
 	$(FIND) OpenCL/   -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
 	$(FIND) rules/    -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
-	$(SED) -i 's/^..hashcat64.bin/hashcat/'                 $(DESTDIR)$(DOCUMENT_FOLDER)/example0.sh
-	$(SED) -i 's/^..hashcat64.bin/hashcat/'                 $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
-	$(SED) -i 's/^..hashcat64.bin/hashcat/'                 $(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
+	$(SED) -i 's/\.\/hashcat/hashcat/'                      $(DESTDIR)$(DOCUMENT_FOLDER)/example0.sh
+	$(SED) -i 's/\.\/hashcat/hashcat/'                      $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
+	$(SED) -i 's/\.\/hashcat/hashcat/'                      $(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
 
 uninstall:
 	$(RM) -f  $(DESTDIR)$(INSTALL_FOLDER)/$(BINARY_NATIVE)
