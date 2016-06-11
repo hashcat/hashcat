@@ -12095,7 +12095,7 @@ int pstoken_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   pstoken->pc_offset = 0;
 
-  for (int i = 0; i < (int) pstoken->salt_len - 64; i += 64)
+  for (int i = 0; i < (int) pstoken->salt_len - 63; i += 64)
   {
     uint w[16];
 
