@@ -6972,8 +6972,10 @@ int main (int argc, char **argv)
     gpu_temp_disable      = 1;
 
     #ifdef HAVE_HWMON
-    gpu_temp_disable      = 0;
-    powertune_enable      = 1;
+    if (powertune_enable == 1)
+    {
+      gpu_temp_disable = 0;
+    }
     #endif
 
     data.status_timer     = status_timer;
