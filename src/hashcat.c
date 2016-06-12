@@ -6111,6 +6111,9 @@ int main (int argc, char **argv)
       {
         log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
         log_info ("");
+        log_info ("Note: Reported benchmark cracking speed = real cracking speed");
+        log_info ("To verify, run hashcat like this: only_one_hash.txt -a 3 -w 3 ?b?b?b?b?b?b?b");
+        log_info ("");
       }
       else
       {
