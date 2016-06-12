@@ -3402,7 +3402,10 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
        * result
        */
 
-      check_cracked (device_param, salt_pos);
+      if (data.benchmark == 0)
+      {
+        check_cracked (device_param, salt_pos);
+      }
 
       /**
        * progress
@@ -6966,6 +6969,7 @@ int main (int argc, char **argv)
     gpu_temp_disable      = 1;
 
     #ifdef HAVE_HWMON
+    gpu_temp_disable      = 0;
     powertune_enable      = 1;
     #endif
 
