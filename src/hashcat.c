@@ -5425,7 +5425,20 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
  * main
  */
 
-#ifdef _WIN
+#ifdef LINUX
+int (*clock_gettime_orig) (clockid_t clk_id, struct timespec *tp);
+
+int clock_gettime (clockid_t clk_id, struct timespec *tp)
+{
+  int r = clock_gettime_orig (clk_id, tp);
+
+  usleep (NVIDIA_100PERCENTCPU_WORKAROUND);
+
+  return r;
+}
+#endif
+
+#ifdef WIN
 void SetConsoleWindowSize (const int x)
 {
   HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
@@ -5451,26 +5464,13 @@ void SetConsoleWindowSize (const int x)
 }
 #endif
 
-#ifdef _POSIX
-int (*clock_gettime_orig) (clockid_t clk_id, struct timespec *tp);
-
-int clock_gettime (clockid_t clk_id, struct timespec *tp)
-{
-  int r = clock_gettime_orig (clk_id, tp);
-
-  usleep (NVIDIA_100PERCENTCPU_WORKAROUND);
-
-  return r;
-}
-#endif
-
 int main (int argc, char **argv)
 {
-  #ifdef _POSIX
+  #ifdef LINUX
   clock_gettime_orig = dlsym (RTLD_NEXT, "clock_gettime");
   #endif
 
-  #ifdef _WIN
+  #ifdef WIN
   SetConsoleWindowSize (132);
   #endif
 
