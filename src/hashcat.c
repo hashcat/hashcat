@@ -150,6 +150,8 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 
 #define NUM_DEFAULT_BENCHMARK_ALGORITHMS 143
 
+#define NVIDIA_100PERCENTCPU_WORKAROUND 100
+
 #define global_free(attr)       \
 {                               \
   myfree ((void *) data.attr);  \
@@ -5446,8 +5448,25 @@ void SetConsoleWindowSize (const int x)
 }
 #endif
 
+#ifdef _POSIX
+int (*clock_gettime_orig) (clockid_t clk_id, struct timespec *tp);
+
+int clock_gettime (clockid_t clk_id, struct timespec *tp)
+{
+  int r = clock_gettime_orig (clk_id, tp);
+
+  usleep (NVIDIA_100PERCENTCPU_WORKAROUND);
+
+  return r;
+}
+#endif
+
 int main (int argc, char **argv)
 {
+  #ifdef _POSIX
+  clock_gettime_orig = dlsym (RTLD_NEXT, "clock_gettime");
+  #endif
+
   #ifdef _WIN
   SetConsoleWindowSize (132);
   #endif
@@ -18274,4 +18293,3 @@ int main (int argc, char **argv)
 
   return -1;
 }
-
