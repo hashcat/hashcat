@@ -2468,6 +2468,11 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
+  if (data.devices_status == STATUS_RUNNING)
+  {
+    usleep (device_param->exec_prev * 1000);
+  }
+
   hc_clWaitForEvents (data.ocl, 1, &event);
 
   if (event_update)
@@ -2483,6 +2488,8 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     uint exec_pos = device_param->exec_pos;
 
     device_param->exec_ms[exec_pos] = exec_time;
+
+    device_param->exec_prev = exec_time;
 
     exec_pos++;
 
@@ -5425,19 +5432,6 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
  * main
  */
 
-#ifdef LINUX
-int (*clock_gettime_orig) (clockid_t clk_id, struct timespec *tp);
-
-int clock_gettime (clockid_t clk_id, struct timespec *tp)
-{
-  int r = clock_gettime_orig (clk_id, tp);
-
-  usleep (NVIDIA_100PERCENTCPU_WORKAROUND);
-
-  return r;
-}
-#endif
-
 #ifdef WIN
 void SetConsoleWindowSize (const int x)
 {
@@ -5466,10 +5460,6 @@ void SetConsoleWindowSize (const int x)
 
 int main (int argc, char **argv)
 {
-  #ifdef LINUX
-  clock_gettime_orig = dlsym (RTLD_NEXT, "clock_gettime");
-  #endif
-
   #ifdef WIN
   SetConsoleWindowSize (132);
   #endif

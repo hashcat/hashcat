@@ -988,6 +988,7 @@ struct __hc_device_param
 
   uint    exec_pos;
   double  exec_ms[EXEC_CACHE];
+  double  exec_prev;
 
   // this is "current" speed
 
