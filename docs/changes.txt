@@ -33,6 +33,7 @@ It combines all features of all hashcat projects in one project.
 - Added option --veracrypt-pim to set the VeraCrypt personal iterations multiplier
 - Added option --machine-readable for easier parsing of output
 - Added option --powertune-enable to work with NVidia devices as well, not just AMD
+- Added option --stdout to print candidates instead of trying to crack a hash
 
 ##
 ## Algorithms

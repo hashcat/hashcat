@@ -665,7 +665,9 @@ inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 
 typedef struct
 {
-  #if   defined _DES_
+  #if defined _STDOUT_
+  u32  digest_buf[4];
+  #elif defined _DES_
   u32  digest_buf[4];
   #elif defined _MD4_
   u32  digest_buf[4];

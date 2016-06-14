@@ -33,6 +33,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 #define MARKOV_DISABLE          0
 #define MARKOV_CLASSIC          0
 #define BENCHMARK               0
+#define STDOUT_FLAG             0
 #define RESTORE                 0
 #define RESTORE_TIMER           60
 #define RESTORE_DISABLE         0
@@ -388,6 +389,7 @@ const char *USAGE_BIG[] =
   "     --outfile-autohex-disable |      | Disable the use of $HEX[] in output plains           |",
   "     --outfile-check-timer     | Num  | Sets seconds between outfile checks to X             | --outfile-check=30",
   " -p, --separator               | Char | Separator char for hashlists and outfile             | -p :",
+  "     --stdout                  |      | Do not crack a hash, instead print candidates only   |",
   "     --show                    |      | Show cracked passwords only                          |",
   "     --left                    |      | Show un-cracked passwords only                       |",
   "     --username                |      | Enable ignoring of usernames in hashfile             |",
@@ -2313,6 +2315,175 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
   }
 }
 
+static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
+{
+  char out_buf[HCBUFSIZ] = { 0 };
+
+  uint plain_buf[16] = { 0 };
+
+  u8 *plain_ptr = (u8 *) plain_buf;
+
+  uint plain_len = 0;
+
+  const uint il_cnt = device_param->kernel_params_buf32[27]; // ugly, i know
+
+  if (data.attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    pw_t pw;
+
+    for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
+    {
+      gidd_to_pw_t (device_param, gidvid, &pw);
+
+      const uint pos = device_param->innerloop_pos;
+
+      for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
+      {
+        for (int i = 0; i < 8; i++)
+        {
+          plain_buf[i] = pw.i[i];
+        }
+
+        plain_len = pw.pw_len;
+
+        plain_len = apply_rules (data.kernel_rules_buf[pos + il_pos].cmds, &plain_buf[0], &plain_buf[4], plain_len);
+
+        if (plain_len > data.pw_max) plain_len = data.pw_max;
+
+        format_output (stdout, out_buf, plain_ptr, plain_len, 0, NULL, 0);
+      }
+    }
+  }
+  else if (data.attack_mode == ATTACK_MODE_COMBI)
+  {
+    pw_t pw;
+
+    for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
+    {
+      gidd_to_pw_t (device_param, gidvid, &pw);
+
+      for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
+      {
+        for (int i = 0; i < 8; i++)
+        {
+          plain_buf[i] = pw.i[i];
+        }
+
+        plain_len = pw.pw_len;
+
+        char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
+        uint  comb_len =          device_param->combs_buf[il_pos].pw_len;
+
+        if (data.combs_mode == COMBINATOR_MODE_BASE_LEFT)
+        {
+          memcpy (plain_ptr + plain_len, comb_buf, comb_len);
+        }
+        else
+        {
+          memmove (plain_ptr + comb_len, plain_ptr, plain_len);
+
+          memcpy (plain_ptr, comb_buf, comb_len);
+        }
+
+        plain_len += comb_len;
+
+        if (data.pw_max != PW_DICTMAX1)
+        {
+          if (plain_len > data.pw_max) plain_len = data.pw_max;
+        }
+
+        format_output (stdout, out_buf, plain_ptr, plain_len, 0, NULL, 0);
+      }
+    }
+  }
+  else if (data.attack_mode == ATTACK_MODE_BF)
+  {
+    for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
+    {
+      for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
+      {
+        u64 l_off = device_param->kernel_params_mp_l_buf64[3] + gidvid;
+        u64 r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
+
+        uint l_start = device_param->kernel_params_mp_l_buf32[5];
+        uint r_start = device_param->kernel_params_mp_r_buf32[5];
+
+        uint l_stop = device_param->kernel_params_mp_l_buf32[4];
+        uint r_stop = device_param->kernel_params_mp_r_buf32[4];
+
+        sp_exec (l_off, (char *) plain_ptr + l_start, data.root_css_buf, data.markov_css_buf, l_start, l_start + l_stop);
+        sp_exec (r_off, (char *) plain_ptr + r_start, data.root_css_buf, data.markov_css_buf, r_start, r_start + r_stop);
+
+        plain_len = data.css_cnt;
+
+        format_output (stdout, out_buf, plain_ptr, plain_len, 0, NULL, 0);
+      }
+    }
+  }
+  else if (data.attack_mode == ATTACK_MODE_HYBRID1)
+  {
+    pw_t pw;
+
+    for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
+    {
+      gidd_to_pw_t (device_param, gidvid, &pw);
+
+      for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
+      {
+        for (int i = 0; i < 8; i++)
+        {
+          plain_buf[i] = pw.i[i];
+        }
+
+        plain_len = pw.pw_len;
+
+        u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
+
+        uint start = 0;
+        uint stop  = device_param->kernel_params_mp_buf32[4];
+
+        sp_exec (off, (char *) plain_ptr + plain_len, data.root_css_buf, data.markov_css_buf, start, start + stop);
+
+        plain_len += start + stop;
+
+        format_output (stdout, out_buf, plain_ptr, plain_len, 0, NULL, 0);
+      }
+    }
+  }
+  else if (data.attack_mode == ATTACK_MODE_HYBRID2)
+  {
+    pw_t pw;
+
+    for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
+    {
+      gidd_to_pw_t (device_param, gidvid, &pw);
+
+      for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
+      {
+        for (int i = 0; i < 8; i++)
+        {
+          plain_buf[i] = pw.i[i];
+        }
+
+        plain_len = pw.pw_len;
+
+        u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
+
+        uint start = 0;
+        uint stop  = device_param->kernel_params_mp_buf32[4];
+
+        memmove (plain_ptr + stop, plain_ptr, plain_len);
+
+        sp_exec (off, (char *) plain_ptr, data.root_css_buf, data.markov_css_buf, start, start + stop);
+
+        plain_len += start + stop;
+
+        format_output (stdout, out_buf, plain_ptr, plain_len, 0, NULL, 0);
+      }
+    }
+  }
+}
+
 static void save_hash ()
 {
   char *hashfile = data.hashfile;
@@ -2723,6 +2894,13 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
 
 static void choose_kernel (hc_device_param_t *device_param, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration)
 {
+  if (data.hash_mode == 2000)
+  {
+    process_stdout (device_param, pws_cnt);
+
+    return;
+  }
+
   if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
     if (attack_mode == ATTACK_MODE_BF)
@@ -2761,6 +2939,12 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
     if (opts_type & OPTS_TYPE_HOOK12)
     {
       run_kernel (KERN_RUN_12, device_param, pws_cnt, false, 0);
+
+      hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+      // do something with data
+
+      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
     }
 
     uint iter = salt_buf->salt_iter;
@@ -2950,10 +3134,13 @@ static void autotune (hc_device_param_t *device_param)
 
   if ((kernel_loops_min == kernel_loops_max) && (kernel_accel_min == kernel_accel_max))
   {
-    try_run (device_param, kernel_accel, kernel_loops);
-    try_run (device_param, kernel_accel, kernel_loops);
-    try_run (device_param, kernel_accel, kernel_loops);
-    try_run (device_param, kernel_accel, kernel_loops);
+    if (data.hash_mode != 2000)
+    {
+      try_run (device_param, kernel_accel, kernel_loops);
+      try_run (device_param, kernel_accel, kernel_loops);
+      try_run (device_param, kernel_accel, kernel_loops);
+      try_run (device_param, kernel_accel, kernel_loops);
+    }
 
     device_param->kernel_accel = kernel_accel;
     device_param->kernel_loops = kernel_loops;
@@ -5559,6 +5746,7 @@ int main (int argc, char **argv)
   uint  version                   = VERSION;
   uint  quiet                     = QUIET;
   uint  benchmark                 = BENCHMARK;
+  uint  stdout_flag               = STDOUT_FLAG;
   uint  show                      = SHOW;
   uint  left                      = LEFT;
   uint  username                  = USERNAME;
@@ -5656,6 +5844,7 @@ int main (int argc, char **argv)
   #define IDX_FORCE                     0xff08
   #define IDX_RUNTIME                   0xff09
   #define IDX_BENCHMARK                 'b'
+  #define IDX_STDOUT_FLAG               0xff77
   #define IDX_HASH_MODE                 'm'
   #define IDX_ATTACK_MODE               'a'
   #define IDX_RP_FILE                   'r'
@@ -5736,6 +5925,7 @@ int main (int argc, char **argv)
     {"outfile-check-dir",         required_argument, 0, IDX_OUTFILE_CHECK_DIR},
     {"force",                     no_argument,       0, IDX_FORCE},
     {"benchmark",                 no_argument,       0, IDX_BENCHMARK},
+    {"stdout",                    no_argument,       0, IDX_STDOUT_FLAG},
     {"restore",                   no_argument,       0, IDX_RESTORE},
     {"restore-disable",           no_argument,       0, IDX_RESTORE_DISABLE},
     {"status",                    no_argument,       0, IDX_STATUS},
@@ -6032,6 +6222,7 @@ int main (int argc, char **argv)
       case IDX_LIMIT:                     limit                     = atoll (optarg); break;
       case IDX_KEYSPACE:                  keyspace                  = 1;              break;
       case IDX_BENCHMARK:                 benchmark                 = 1;              break;
+      case IDX_STDOUT_FLAG:               stdout_flag               = 1;              break;
       case IDX_RESTORE:                                                               break;
       case IDX_RESTORE_DISABLE:           restore_disable           = 1;              break;
       case IDX_STATUS:                    status                    = 1;              break;
@@ -6144,6 +6335,10 @@ int main (int argc, char **argv)
     {
       log_info ("%s (%s) starting in restore-mode...", PROGNAME, VERSION_TAG);
       log_info ("");
+    }
+    else if (stdout_flag == 1)
+    {
+      // do nothing
     }
     else
     {
@@ -6408,8 +6603,32 @@ int main (int argc, char **argv)
     case ATTACK_MODE_HYBRID2:  attack_kern = ATTACK_KERN_COMBI;    break;
   }
 
-  if (benchmark == 0)
+  if (benchmark == 1)
   {
+    if (myargv[optind] != 0)
+    {
+      log_error ("ERROR: Invalid argument for benchmark mode specified");
+
+      return (-1);
+    }
+
+    if (attack_mode_chgd == 1)
+    {
+      if (attack_mode != ATTACK_MODE_BF)
+      {
+        log_error ("ERROR: Only attack-mode 3 allowed in benchmark mode");
+
+        return (-1);
+      }
+    }
+  }
+  else
+  {
+    if (stdout_flag == 1) // no hash here
+    {
+      optind--;
+    }
+
     if (keyspace == 1)
     {
       int num_additional_params = 1;
@@ -6467,25 +6686,6 @@ int main (int argc, char **argv)
       return (-1);
     }
   }
-  else
-  {
-    if (myargv[optind] != 0)
-    {
-      log_error ("ERROR: Invalid argument for benchmark mode specified");
-
-      return (-1);
-    }
-
-    if (attack_mode_chgd == 1)
-    {
-      if (attack_mode != ATTACK_MODE_BF)
-      {
-        log_error ("ERROR: Only attack-mode 3 allowed in benchmark mode");
-
-        return (-1);
-      }
-    }
-  }
 
   if (skip != 0 && limit != 0)
   {
@@ -6516,6 +6716,24 @@ int main (int argc, char **argv)
     weak_hash_threshold = 0;
 
     quiet = 1;
+  }
+
+  if (stdout_flag == 1)
+  {
+    status_timer          = 0;
+    restore_timer         = 0;
+    restore_disable       = 1;
+    restore               = 0;
+    potfile_disable       = 1;
+    weak_hash_threshold   = 0;
+    gpu_temp_disable      = 1;
+    hash_mode             = 2000;
+    quiet                 = 1;
+    outfile_format        = OUTFILE_FMT_PLAIN;
+    kernel_accel          = 1024;
+    kernel_loops          = 1024;
+    force                 = 1;
+    outfile_check_timer   = 0;
   }
 
   if (remove_timer_chgd == 1)
@@ -6864,6 +7082,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (attack_mode);
   logfile_top_uint   (attack_kern);
   logfile_top_uint   (benchmark);
+  logfile_top_uint   (stdout_flag);
   logfile_top_uint   (bitmap_min);
   logfile_top_uint   (bitmap_max);
   logfile_top_uint   (debug_mode);
@@ -6990,6 +7209,7 @@ int main (int argc, char **argv)
     potfile_disable       = 1;
     weak_hash_threshold   = 0;
     gpu_temp_disable      = 1;
+    outfile_check_timer   = 0;
 
     #ifdef HAVE_HWMON
     if (powertune_enable == 1)
@@ -6998,9 +7218,10 @@ int main (int argc, char **argv)
     }
     #endif
 
-    data.status_timer     = status_timer;
-    data.restore_timer    = restore_timer;
-    data.restore_disable  = restore_disable;
+    data.status_timer         = status_timer;
+    data.restore_timer        = restore_timer;
+    data.restore_disable      = restore_disable;
+    data.outfile_check_timer  = outfile_check_timer;
 
     /**
      * force attack mode to be bruteforce
@@ -8430,6 +8651,21 @@ int main (int argc, char **argv)
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
                    dgst_pos3   = 3;
+                   break;
+
+      case  2000:  hash_type   = HASH_TYPE_STDOUT;
+                   salt_type   = SALT_TYPE_NONE;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   kern_type   = 0;
+                   dgst_size   = DGST_SIZE_4_4;
+                   parse_func  = NULL;
+                   sort_by_digest = NULL;
+                   opti_type   = 0;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 0;
+                   dgst_pos2   = 0;
+                   dgst_pos3   = 0;
                    break;
 
       case  2100:  hash_type   = HASH_TYPE_DCC2;
@@ -10866,7 +11102,6 @@ int main (int argc, char **argv)
                    dgst_pos3   = 6;
                    break;
 
-
       default:     usage_mini_print (PROGNAME); return (-1);
     }
 
@@ -11395,7 +11630,7 @@ int main (int argc, char **argv)
 
     uint hashes_avail = 0;
 
-    if (benchmark == 0)
+    if ((benchmark == 0) && (stdout_flag == 0))
     {
       struct stat f;
 
@@ -11576,6 +11811,10 @@ int main (int argc, char **argv)
       if (keyspace == 1)
       {
         // useless to read hash file for keyspace, cheat a little bit w/ optind
+      }
+      else if (stdout_flag == 1)
+      {
+        // useless to read hash file for stdout, cheat a little bit w/ optind
       }
       else if (hashes_avail == 0)
       {
@@ -12386,7 +12625,7 @@ int main (int argc, char **argv)
       return (0);
     }
 
-    if (keyspace == 0)
+    if ((keyspace == 0) && (stdout_flag == 0))
     {
       if (hashes_cnt == 0)
       {
@@ -14903,7 +15142,9 @@ int main (int argc, char **argv)
 
         if ((opts_type & OPTS_TYPE_HOOK12) || (opts_type & OPTS_TYPE_HOOK23))
         {
-          // none yet
+          switch (hash_mode)
+          {
+          }
         }
 
         // now check if all device-memory sizes which depend on the kernel_accel_max amplifier are within its boundaries
@@ -16754,11 +16995,18 @@ int main (int argc, char **argv)
 
     if (data.devices_status != STATUS_CRACKED) data.devices_status = STATUS_STARTING;
 
-    hc_thread_t i_thread = 0;
+    uint i_threads_cnt = 0;
+
+    hc_thread_t *i_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
     if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
     {
-      hc_thread_create (i_thread, thread_keypress, &benchmark);
+      if (stdout_flag == 0)
+      {
+        hc_thread_create (i_threads[i_threads_cnt], thread_keypress, &benchmark);
+
+        i_threads_cnt++;
+      }
     }
 
     if (wordlist_mode == WL_MODE_STDIN) data.status = 1;
@@ -16767,9 +17015,12 @@ int main (int argc, char **argv)
 
     hc_thread_t *ni_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
-    hc_thread_create (ni_threads[ni_threads_cnt], thread_monitor, NULL);
+    if (stdout_flag == 0)
+    {
+      hc_thread_create (ni_threads[ni_threads_cnt], thread_monitor, NULL);
 
-    ni_threads_cnt++;
+      ni_threads_cnt++;
+    }
 
     /**
       * Outfile remove
@@ -17622,9 +17873,9 @@ int main (int argc, char **argv)
          * create autotune threads
          */
 
-        data.devices_status = STATUS_AUTOTUNE;
-
         hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
+
+        data.devices_status = STATUS_AUTOTUNE;
 
         for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
         {
@@ -17890,10 +18141,12 @@ int main (int argc, char **argv)
 
     // wait for interactive threads
 
-    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
+    for (uint thread_idx = 0; thread_idx < i_threads_cnt; thread_idx++)
     {
-      hc_thread_wait (1, &i_thread);
+      hc_thread_wait (1, &i_threads[thread_idx]);
     }
+
+    local_free (i_threads);
 
     // we dont need restore file anymore
     if (data.restore_disable == 0)
