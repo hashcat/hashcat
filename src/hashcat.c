@@ -2470,11 +2470,14 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 
   if (data.devices_status == STATUS_RUNNING)
   {
-    switch (kern_run)
+    if (iteration < EXPECTED_ITERATIONS)
     {
-      case KERN_RUN_1: usleep (device_param->exec_us_prev1[iteration]); break;
-      case KERN_RUN_2: usleep (device_param->exec_us_prev2[iteration]); break;
-      case KERN_RUN_3: usleep (device_param->exec_us_prev3[iteration]); break;
+      switch (kern_run)
+      {
+        case KERN_RUN_1: if (device_param->exec_us_prev1[iteration]) usleep (device_param->exec_us_prev1[iteration]); break;
+        case KERN_RUN_2: if (device_param->exec_us_prev2[iteration]) usleep (device_param->exec_us_prev2[iteration]); break;
+        case KERN_RUN_3: if (device_param->exec_us_prev3[iteration]) usleep (device_param->exec_us_prev3[iteration]); break;
+      }
     }
   }
 
@@ -2490,11 +2493,14 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 
   if (data.devices_status == STATUS_RUNNING)
   {
-    switch (kern_run)
+    if (iteration < EXPECTED_ITERATIONS)
     {
-      case KERN_RUN_1: device_param->exec_us_prev1[iteration] = exec_us; break;
-      case KERN_RUN_2: device_param->exec_us_prev2[iteration] = exec_us; break;
-      case KERN_RUN_3: device_param->exec_us_prev3[iteration] = exec_us; break;
+      switch (kern_run)
+      {
+        case KERN_RUN_1: device_param->exec_us_prev1[iteration] = exec_us; break;
+        case KERN_RUN_2: device_param->exec_us_prev2[iteration] = exec_us; break;
+        case KERN_RUN_3: device_param->exec_us_prev3[iteration] = exec_us; break;
+      }
     }
   }
 
@@ -3243,7 +3249,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
     // innerloops
 
-    for (uint innerloop_pos = 0, fast_iteration = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step, fast_iteration++)
+    for (uint innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
     {
       while (data.devices_status == STATUS_PAUSED) hc_sleep (1);
 
@@ -3254,9 +3260,16 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
       if (data.devices_status == STATUS_QUIT)    break;
       if (data.devices_status == STATUS_BYPASS)  break;
 
+      uint fast_iteration = 0;
+
       uint innerloop_left = innerloop_cnt - innerloop_pos;
 
-      if (innerloop_left > innerloop_step) innerloop_left = innerloop_step;
+      if (innerloop_left > innerloop_step)
+      {
+        innerloop_left = innerloop_step;
+
+        fast_iteration = 1;
+      }
 
       device_param->innerloop_pos  = innerloop_pos;
       device_param->innerloop_left = innerloop_left;
