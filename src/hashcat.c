@@ -2405,7 +2405,7 @@ static void save_hash ()
   unlink (old_hashfile);
 }
 
-static void run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num, const uint event_update)
+static void run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num, const uint event_update, const uint iteration)
 {
   uint num_elements = num;
 
@@ -2472,9 +2472,9 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
   {
     switch (kern_run)
     {
-      case KERN_RUN_1: usleep (device_param->exec_us_prev1); break;
-      case KERN_RUN_2: usleep (device_param->exec_us_prev2); break;
-      case KERN_RUN_3: usleep (device_param->exec_us_prev3); break;
+      case KERN_RUN_1: usleep (device_param->exec_us_prev1[iteration]); break;
+      case KERN_RUN_2: usleep (device_param->exec_us_prev2[iteration]); break;
+      case KERN_RUN_3: usleep (device_param->exec_us_prev3[iteration]); break;
     }
   }
 
@@ -2492,9 +2492,9 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
   {
     switch (kern_run)
     {
-      case KERN_RUN_1: device_param->exec_us_prev1 = exec_us; break;
-      case KERN_RUN_2: device_param->exec_us_prev2 = exec_us; break;
-      case KERN_RUN_3: device_param->exec_us_prev3 = exec_us; break;
+      case KERN_RUN_1: device_param->exec_us_prev1[iteration] = exec_us; break;
+      case KERN_RUN_2: device_param->exec_us_prev2[iteration] = exec_us; break;
+      case KERN_RUN_3: device_param->exec_us_prev3[iteration] = exec_us; break;
     }
   }
 
@@ -2715,7 +2715,7 @@ static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const
   */
 }
 
-static void choose_kernel (hc_device_param_t *device_param, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt)
+static void choose_kernel (hc_device_param_t *device_param, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration)
 {
   if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
@@ -2735,33 +2735,33 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
 
     if (highest_pw_len < 16)
     {
-      run_kernel (KERN_RUN_1, device_param, pws_cnt, true);
+      run_kernel (KERN_RUN_1, device_param, pws_cnt, true, fast_iteration);
     }
     else if (highest_pw_len < 32)
     {
-      run_kernel (KERN_RUN_2, device_param, pws_cnt, true);
+      run_kernel (KERN_RUN_2, device_param, pws_cnt, true, fast_iteration);
     }
     else
     {
-      run_kernel (KERN_RUN_3, device_param, pws_cnt, true);
+      run_kernel (KERN_RUN_3, device_param, pws_cnt, true, fast_iteration);
     }
   }
   else
   {
     run_kernel_amp (device_param, pws_cnt);
 
-    run_kernel (KERN_RUN_1, device_param, pws_cnt, false);
+    run_kernel (KERN_RUN_1, device_param, pws_cnt, false, 0);
 
     if (opts_type & OPTS_TYPE_HOOK12)
     {
-      run_kernel (KERN_RUN_12, device_param, pws_cnt, false);
+      run_kernel (KERN_RUN_12, device_param, pws_cnt, false, 0);
     }
 
     uint iter = salt_buf->salt_iter;
 
     uint loop_step = device_param->kernel_loops;
 
-    for (uint loop_pos = 0; loop_pos < iter; loop_pos += loop_step)
+    for (uint loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
     {
       uint loop_left = iter - loop_pos;
 
@@ -2770,7 +2770,7 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
       device_param->kernel_params_buf32[25] = loop_pos;
       device_param->kernel_params_buf32[26] = loop_left;
 
-      run_kernel (KERN_RUN_2, device_param, pws_cnt, true);
+      run_kernel (KERN_RUN_2, device_param, pws_cnt, true, slow_iteration);
 
       if (data.devices_status == STATUS_CRACKED) break;
       if (data.devices_status == STATUS_ABORTED) break;
@@ -2802,7 +2802,7 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
 
     if (opts_type & OPTS_TYPE_HOOK23)
     {
-      run_kernel (KERN_RUN_23, device_param, pws_cnt, false);
+      run_kernel (KERN_RUN_23, device_param, pws_cnt, false, 0);
 
       hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -2811,7 +2811,7 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
     }
 
-    run_kernel (KERN_RUN_3, device_param, pws_cnt, false);
+    run_kernel (KERN_RUN_3, device_param, pws_cnt, false, 0);
   }
 }
 
@@ -2913,11 +2913,11 @@ static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, 
 
   if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    run_kernel (KERN_RUN_1, device_param, kernel_power_try, true);
+    run_kernel (KERN_RUN_1, device_param, kernel_power_try, true, 0);
   }
   else
   {
-    run_kernel (KERN_RUN_2, device_param, kernel_power_try, true);
+    run_kernel (KERN_RUN_2, device_param, kernel_power_try, true, 0);
   }
 
   const double exec_ms_prev = get_avg_exec_time (device_param, 1);
@@ -3133,9 +3133,9 @@ static void autotune (hc_device_param_t *device_param)
 
   memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
 
-  device_param->exec_us_prev1 = 0;
-  device_param->exec_us_prev2 = 0;
-  device_param->exec_us_prev3 = 0;
+  memset (device_param->exec_us_prev1, 0, EXPECTED_ITERATIONS * sizeof (double));
+  memset (device_param->exec_us_prev2, 0, EXPECTED_ITERATIONS * sizeof (double));
+  memset (device_param->exec_us_prev3, 0, EXPECTED_ITERATIONS * sizeof (double));
 
   // store
 
@@ -3243,7 +3243,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
     // innerloops
 
-    for (uint innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
+    for (uint innerloop_pos = 0, fast_iteration = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step, fast_iteration++)
     {
       while (data.devices_status == STATUS_PAUSED) hc_sleep (1);
 
@@ -3414,7 +3414,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
         hc_timer_set (&device_param->timer_speed);
       }
 
-      choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt);
+      choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt, fast_iteration);
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
@@ -4987,11 +4987,11 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
 
   if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    run_kernel (KERN_RUN_1, device_param, 1, false);
+    run_kernel (KERN_RUN_1, device_param, 1, false, 0);
   }
   else
   {
-    run_kernel (KERN_RUN_1, device_param, 1, false);
+    run_kernel (KERN_RUN_1, device_param, 1, false, 0);
 
     uint loop_step = 16;
 
@@ -5006,10 +5006,10 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
       device_param->kernel_params_buf32[25] = loop_pos;
       device_param->kernel_params_buf32[26] = loop_left;
 
-      run_kernel (KERN_RUN_2, device_param, 1, false);
+      run_kernel (KERN_RUN_2, device_param, 1, false, 0);
     }
 
-    run_kernel (KERN_RUN_3, device_param, 1, false);
+    run_kernel (KERN_RUN_3, device_param, 1, false, 0);
   }
 
   /**

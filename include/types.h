@@ -991,9 +991,9 @@ struct __hc_device_param
 
   // workaround cpu spinning
 
-  double  exec_us_prev1;
-  double  exec_us_prev2;
-  double  exec_us_prev3;
+  double  exec_us_prev1[EXPECTED_ITERATIONS];
+  double  exec_us_prev2[EXPECTED_ITERATIONS];
+  double  exec_us_prev3[EXPECTED_ITERATIONS];
 
   // this is "current" speed
 
