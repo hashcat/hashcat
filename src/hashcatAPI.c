@@ -114,7 +114,7 @@ typedef struct hcapi_options_t
   uint restore_disable;
   uint status;
   uint status_timer;
-  uint status_automat;
+  uint machine_readable;
   uint loopback;
   uint weak_hash_threshold;
   char *session;
@@ -237,12 +237,15 @@ typedef struct hcapi_data_restore_point_t {
 typedef struct hcapi_data_hwmon_gpu_t {
     
     int device_id;
-    char utilization[HM_STR_BUF_SIZE];
-    char temperature[HM_STR_BUF_SIZE];
-    char fanspeed[HM_STR_BUF_SIZE];
+    int temperature;
+    int fanspeed;
+    int utilization;
+    int corespeed;
+    int memoryspeed;
+    int buslanes;
+    int throttle;
 
 } hcapi_data_hwmon_gpu_t;
-
 
 
 typedef struct hcapi_data_t {
@@ -975,12 +978,12 @@ void hcapi_generate_commandline (struct hcapi_options_t options, int *c, char **
 
   }
 
-  if (options.status_automat != STATUS_AUTOMAT)
+  if (options.machine_readable != MACHINE_READABLE)
   {
 
     check_argv_array (&apiargv, &apiargv_size, &apiargv_grow_by, &apiargc);
     apiargv[apiargc] = (char *) calloc (17, sizeof (char));
-    apiargv[apiargc] = "--status-automat";
+    apiargv[apiargc] = "--machine-readable";
     apiargc++;
   }
 
@@ -2172,7 +2175,7 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
     }
 
 
-    if (data.mask     != NULL) 
+    if (data.mask != NULL) 
     {
 
       input_size = strlen (data.mask) + 1;
@@ -2191,7 +2194,7 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (data.mask     != NULL) 
+    if (data.mask != NULL) 
     {
       input_size = strlen (data.mask) + 1;
 
@@ -2355,31 +2358,19 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
 
     if (device_param->skipped) continue;
 
-    // we need to clear values (set to 0) because in case the device does
-    // not get new candidates it idles around but speed display would
-    // show it as working.
-    // if we instantly set it to 0 after reading it happens that the
-    // speed can be shown as zero if the users refreshes too fast.
-    // therefore, we add a timestamp when a stat was recorded and if its
-    // too old we will not use it
 
     speed_cnt[device_id] = 0;
     speed_ms[device_id]  = 0;
 
     for (int i = 0; i < SPEED_CACHE; i++)
     {
-      float rec_ms;
-
-      hc_timer_get (device_param->speed_rec[i], rec_ms);
-
-      if (rec_ms > SPEED_MAXAGE) continue;
-
       speed_cnt[device_id] += device_param->speed_cnt[i];
       speed_ms[device_id]  += device_param->speed_ms[i];
     }
 
     speed_cnt[device_id] /= SPEED_CACHE;
     speed_ms[device_id]  /= SPEED_CACHE;
+
   }
 
   float hashes_all_ms = 0;
@@ -2875,6 +2866,12 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
   }
 
   #ifdef HAVE_HWMON
+
+  if (data.devices_status == STATUS_EXHAUSTED)  return 0;
+  if (data.devices_status == STATUS_CRACKED)    return 0;
+  if (data.devices_status == STATUS_ABORTED)    return 0;
+  if (data.devices_status == STATUS_QUIT)       return 0;
+
   if (data.gpu_temp_disable == 0)
   {
     hc_thread_mutex_lock (mux_adl);
@@ -2892,50 +2889,66 @@ int hcapi_status_update (struct hcapi_data_t *hcapi_data)
 
       if (device_param->skipped) continue;
 
-      #define HM_STR_BUF_SIZE 255
+      const int num_temperature = hm_get_temperature_with_device_id (device_id);
+      const int num_fanspeed    = hm_get_fanspeed_with_device_id    (device_id);
+      const int num_utilization = hm_get_utilization_with_device_id (device_id);
+      const int num_corespeed   = hm_get_corespeed_with_device_id   (device_id);
+      const int num_memoryspeed = hm_get_memoryspeed_with_device_id (device_id);
+      const int num_buslanes    = hm_get_buslanes_with_device_id    (device_id);
+      const int num_throttle    = hm_get_throttle_with_device_id    (device_id);
 
-      if (data.hm_device[device_id].fan_supported == 1)
+
+      hcapi_data->hwmon_gpu[device_id].device_id = device_id;
+
+      if (num_temperature >= 0)
       {
-        char utilization[HM_STR_BUF_SIZE] = { 0 };
-        char temperature[HM_STR_BUF_SIZE] = { 0 };
-        char fanspeed[HM_STR_BUF_SIZE] = { 0 };
 
-        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
-        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
-
-        if (device_param->vendor_id == VENDOR_ID_AMD)
-        {
-          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
-        }
-        else if (device_param->vendor_id == VENDOR_ID_NV)
-        {
-          hm_device_val_to_str ((char *) fanspeed, HM_STR_BUF_SIZE, "%", hm_get_fanspeed_with_device_id (device_id));
-        }
-
-
-
-        hcapi_data->hwmon_gpu[device_id].device_id = device_id;
-        snprintf (hcapi_data->hwmon_gpu[device_id].utilization, sizeof(utilization), "%s", utilization );
-        snprintf (hcapi_data->hwmon_gpu[device_id].temperature, sizeof(temperature), "%s", temperature );
-        snprintf (hcapi_data->hwmon_gpu[device_id].fanspeed, sizeof(fanspeed), "%s", fanspeed );
-
+        hcapi_data->hwmon_gpu[device_id].temperature = num_temperature;
 
       }
-      else
+
+      if (num_fanspeed >= 0)
       {
-        char utilization[HM_STR_BUF_SIZE] = { 0 };
-        char temperature[HM_STR_BUF_SIZE] = { 0 };
 
-        hm_device_val_to_str ((char *) utilization, HM_STR_BUF_SIZE, "%", hm_get_utilization_with_device_id (device_id));
-        hm_device_val_to_str ((char *) temperature, HM_STR_BUF_SIZE, "c", hm_get_temperature_with_device_id (device_id));
+        hcapi_data->hwmon_gpu[device_id].fanspeed = num_fanspeed;
 
-        hcapi_data->hwmon_gpu[device_id].device_id = device_id;
-        snprintf (hcapi_data->hwmon_gpu[device_id].utilization, sizeof(utilization), "%s", utilization );
-        snprintf (hcapi_data->hwmon_gpu[device_id].temperature, sizeof(temperature), "%s", temperature );
-
-        char fanspeed[HM_STR_BUF_SIZE] = { 0 };
-        snprintf (hcapi_data->hwmon_gpu[device_id].fanspeed, sizeof(fanspeed), "%s", fanspeed );
       }
+
+      if (num_utilization >= 0)
+      {
+
+        hcapi_data->hwmon_gpu[device_id].utilization = num_utilization;
+
+      }
+
+      if (num_corespeed >= 0)
+      {
+
+        hcapi_data->hwmon_gpu[device_id].corespeed = num_corespeed;
+
+      }
+
+      if (num_memoryspeed >= 0)
+      {
+
+        hcapi_data->hwmon_gpu[device_id].memoryspeed = num_memoryspeed;
+
+      }
+
+      if (num_buslanes >= 0)
+      {
+
+        hcapi_data->hwmon_gpu[device_id].buslanes = num_buslanes;
+
+      }
+
+      if (num_throttle >= 0)
+      {
+
+        hcapi_data->hwmon_gpu[device_id].throttle = num_throttle;
+
+      }
+
     }
 
     hc_thread_mutex_unlock (mux_adl);
@@ -2990,7 +3003,7 @@ hcapi_control_t oclhashcat_init (void)
   control.options.restore_disable = RESTORE_DISABLE;
   control.options.status = STATUS;
   control.options.status_timer = STATUS_TIMER;
-  control.options.status_automat = STATUS_AUTOMAT;
+  control.options.machine_readable = MACHINE_READABLE;
   control.options.loopback = LOOPBACK;
   control.options.weak_hash_threshold = WEAK_HASH_THRESHOLD;
   control.options.session = NULL;
@@ -3174,8 +3187,17 @@ int main ()
         {
 
           printf("-----------------Device %d: \n", hc.status_data.speed_dev[device_id].device_id);
-          printf("-----------------display_dev_cur: %s \n", hc.status_data.speed_dev[device_id].display_dev_cur);
-          printf("-----------------exec_all_ms: %0.2f \n", hc.status_data.speed_dev[device_id].exec_all_ms[device_id]);
+          printf("-----------------\tdisplay_dev_cur: %s \n", hc.status_data.speed_dev[device_id].display_dev_cur);
+          printf("-----------------\texec_all_ms: %0.2f \n", hc.status_data.speed_dev[device_id].exec_all_ms[device_id]);
+          printf("-----------------\tutilization: %3u%% \n", hc.status_data.hwmon_gpu[device_id].utilization);
+          printf("-----------------\ttemperature: %3uc \n", hc.status_data.hwmon_gpu[device_id].temperature);
+          printf("-----------------\tfanspeed: %3uc \n", hc.status_data.hwmon_gpu[device_id].fanspeed);
+          printf("-----------------\tcore: %4uMhz \n", hc.status_data.hwmon_gpu[device_id].corespeed);
+          printf("-----------------\tmem: %4uMhz \n", hc.status_data.hwmon_gpu[device_id].memoryspeed);
+          printf("-----------------\tlanes: %u \n", hc.status_data.hwmon_gpu[device_id].buslanes);
+          printf("-----------------\tthrottle: %d \n", hc.status_data.hwmon_gpu[device_id].throttle);
+
+
         
         }
 
@@ -3202,16 +3224,7 @@ int main ()
         printf("-----------------percent_rejected: %.2f%%\n", hc.status_data.progress->percent_rejected*100);
         printf("-----------------all_rejected: %llu\n", hc.status_data.progress->all_rejected);
 
-        for(uint device_id = 0; device_id < hc.status_data.devices_cnt; device_id++)
-        {
-
-          printf("-----------------Device %d: \n", hc.status_data.hwmon_gpu[device_id].device_id);
-          printf("-----------------utilization: %s \n", hc.status_data.hwmon_gpu[device_id].utilization);
-          printf("-----------------temperature: %s \n", hc.status_data.hwmon_gpu[device_id].temperature);
-          printf("-----------------fanspeed: %s \n", hc.status_data.hwmon_gpu[device_id].fanspeed);
-
         
-        }
 
     } else {
 
