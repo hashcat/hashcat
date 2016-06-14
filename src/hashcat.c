@@ -205,7 +205,11 @@ static void (*get_next_word_func) (char *, u32, u32 *, u32 *);
 static unsigned int full01 = 0x01010101;
 static unsigned int full80 = 0x80808080;
 
+#ifdef API
+int SUPPRESS_OUTPUT = 1;
+#else
 int SUPPRESS_OUTPUT = 0;
+#endif
 
 hc_thread_mutex_t mux_adl;
 hc_thread_mutex_t mux_counter;
