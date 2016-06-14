@@ -988,7 +988,12 @@ struct __hc_device_param
 
   uint    exec_pos;
   double  exec_ms[EXEC_CACHE];
-  double  exec_prev;
+
+  // workaround cpu spinning
+
+  double  exec_us_prev1;
+  double  exec_us_prev2;
+  double  exec_us_prev3;
 
   // this is "current" speed
 

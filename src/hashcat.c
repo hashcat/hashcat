@@ -2470,26 +2470,39 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 
   if (data.devices_status == STATUS_RUNNING)
   {
-    usleep (device_param->exec_prev * 1000);
+    switch (kern_run)
+    {
+      case KERN_RUN_1: usleep (device_param->exec_us_prev1); break;
+      case KERN_RUN_2: usleep (device_param->exec_us_prev2); break;
+      case KERN_RUN_3: usleep (device_param->exec_us_prev3); break;
+    }
   }
 
   hc_clWaitForEvents (data.ocl, 1, &event);
 
+  cl_ulong time_start;
+  cl_ulong time_end;
+
+  hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
+  hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
+
+  const double exec_us = (double) (time_end - time_start) / 1000;
+
+  if (data.devices_status == STATUS_RUNNING)
+  {
+    switch (kern_run)
+    {
+      case KERN_RUN_1: device_param->exec_us_prev1 = exec_us; break;
+      case KERN_RUN_2: device_param->exec_us_prev2 = exec_us; break;
+      case KERN_RUN_3: device_param->exec_us_prev3 = exec_us; break;
+    }
+  }
+
   if (event_update)
   {
-    cl_ulong time_start;
-    cl_ulong time_end;
-
-    hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
-    hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
-
-    const double exec_time = (double) (time_end - time_start) / 1000000.0;
-
     uint exec_pos = device_param->exec_pos;
 
-    device_param->exec_ms[exec_pos] = exec_time;
-
-    device_param->exec_prev = exec_time;
+    device_param->exec_ms[exec_pos] = exec_us / 1000;
 
     exec_pos++;
 
@@ -3119,6 +3132,10 @@ static void autotune (hc_device_param_t *device_param)
   device_param->exec_pos = 0;
 
   memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
+
+  device_param->exec_us_prev1 = 0;
+  device_param->exec_us_prev2 = 0;
+  device_param->exec_us_prev3 = 0;
 
   // store
 
