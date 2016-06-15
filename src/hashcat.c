@@ -2540,14 +2540,7 @@ static void save_hash ()
 
         fputs (out_buf, fp);
 
-        if (fp == stdout)
-        {
-          log_out (fp, "");
-        }
-        else
-        {
-          fputc ('\n', fp);
-        }
+        fputc ('\n', fp);
       }
       else
       {
