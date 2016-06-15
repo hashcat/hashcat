@@ -837,6 +837,7 @@ extern hc_thread_mutex_t mux_display;
 #define HASH_TYPE_BSDICRYPT      48
 #define HASH_TYPE_RAR3HP         49
 #define HASH_TYPE_KRB5TGS        50
+#define HASH_TYPE_STDOUT         51
 
 #define KERN_TYPE_MD5                 0
 #define KERN_TYPE_MD5_PWSLT           10
@@ -1125,6 +1126,7 @@ extern hc_thread_mutex_t mux_display;
 #define ROUNDS_AXCRYPT            10000
 #define ROUNDS_KEEPASS            6000
 #define ROUNDS_ZIP2               1000
+#define ROUNDS_STDOUT             0
 
 /**
  * salt types
@@ -1216,7 +1218,6 @@ extern hc_thread_mutex_t mux_display;
  * digests
  */
 
-#define DGST_SIZE_0                 0
 #define DGST_SIZE_4_2               (2  * sizeof (uint))   // 8
 #define DGST_SIZE_4_4               (4  * sizeof (uint))   // 16
 #define DGST_SIZE_4_5               (5  * sizeof (uint))   // 20
