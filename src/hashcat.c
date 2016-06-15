@@ -2350,8 +2350,6 @@ static void save_hash ()
 
       if (data.hash_mode != 2500)
       {
-        char out_buf[HCBUFSIZ] = { 0 };
-
         if (data.username == 1)
         {
           user_t *user = data.hash_info[idx]->user;
@@ -2363,11 +2361,22 @@ static void save_hash ()
           fputc (separator, fp);
         }
 
+        char out_buf[HCBUFSIZ]; // scratch buffer
+
+        out_buf[0] = 0;
+
         ascii_digest (out_buf, salt_pos, digest_pos);
 
         fputs (out_buf, fp);
 
-        log_out (fp, "");
+        if (fp == stdout)
+        {
+          log_out (fp, "");
+        }
+        else
+        {
+          fputc ('\n', fp);
+        }
       }
       else
       {
