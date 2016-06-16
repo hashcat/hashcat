@@ -75,6 +75,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 #define SEPARATOR               ':'
 #define BITMAP_MIN              16
 #define BITMAP_MAX              24
+#define NVIDIA_SPIN_DAMP        100
 #define GPU_TEMP_DISABLE        0
 #define GPU_TEMP_ABORT          90
 #define GPU_TEMP_RETAIN         0
@@ -417,6 +418,7 @@ const char *USAGE_BIG[] =
   " -w, --workload-profile        | Num  | Enable a specific workload profile, see pool below   | -w 3",
   " -n, --kernel-accel            | Num  | Manual workload tuning, set outerloop step size to X | -n 64",
   " -u, --kernel-loops            | Num  | Manual workload tuning, set innerloop step size to X | -u 256",
+  "     --nvidia-spin-damp        | Num  | Workaround NVidias CPU burning loop bug, in percent  | --nvidia-spin-damp=50",
   "     --gpu-temp-disable        |      | Disable temperature and fanspeed reads and triggers  |",
   #ifdef HAVE_HWMON
   "     --gpu-temp-abort          | Num  | Abort if GPU temperature reaches X degrees celsius   | --gpu-temp-abort=100",
@@ -2641,15 +2643,18 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 
   hc_clFlush (data.ocl, device_param->command_queue);
 
-  if (data.devices_status == STATUS_RUNNING)
+  if (device_param->nvidia_spin_damp)
   {
-    if (iteration < EXPECTED_ITERATIONS)
+    if (data.devices_status == STATUS_RUNNING)
     {
-      switch (kern_run)
+      if (iteration < EXPECTED_ITERATIONS)
       {
-        case KERN_RUN_1: if (device_param->exec_us_prev1[iteration]) usleep (device_param->exec_us_prev1[iteration]); break;
-        case KERN_RUN_2: if (device_param->exec_us_prev2[iteration]) usleep (device_param->exec_us_prev2[iteration]); break;
-        case KERN_RUN_3: if (device_param->exec_us_prev3[iteration]) usleep (device_param->exec_us_prev3[iteration]); break;
+        switch (kern_run)
+        {
+          case KERN_RUN_1: if (device_param->exec_us_prev1[iteration]) usleep (device_param->exec_us_prev1[iteration] * device_param->nvidia_spin_damp); break;
+          case KERN_RUN_2: if (device_param->exec_us_prev2[iteration]) usleep (device_param->exec_us_prev2[iteration] * device_param->nvidia_spin_damp); break;
+          case KERN_RUN_3: if (device_param->exec_us_prev3[iteration]) usleep (device_param->exec_us_prev3[iteration] * device_param->nvidia_spin_damp); break;
+        }
       }
     }
   }
@@ -5808,6 +5813,7 @@ int main (int argc, char **argv)
   uint  workload_profile          = WORKLOAD_PROFILE;
   uint  kernel_accel              = KERNEL_ACCEL;
   uint  kernel_loops              = KERNEL_LOOPS;
+  uint  nvidia_spin_damp          = NVIDIA_SPIN_DAMP;
   uint  gpu_temp_disable          = GPU_TEMP_DISABLE;
   #ifdef HAVE_HWMON
   uint  gpu_temp_abort            = GPU_TEMP_ABORT;
@@ -5886,6 +5892,7 @@ int main (int argc, char **argv)
   #define IDX_WORKLOAD_PROFILE          'w'
   #define IDX_KERNEL_ACCEL              'n'
   #define IDX_KERNEL_LOOPS              'u'
+  #define IDX_NVIDIA_SPIN_DAMP          0xff79
   #define IDX_GPU_TEMP_DISABLE          0xff29
   #define IDX_GPU_TEMP_ABORT            0xff30
   #define IDX_GPU_TEMP_RETAIN           0xff31
@@ -5965,6 +5972,7 @@ int main (int argc, char **argv)
     {"workload-profile",          required_argument, 0, IDX_WORKLOAD_PROFILE},
     {"kernel-accel",              required_argument, 0, IDX_KERNEL_ACCEL},
     {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
+    {"nvidia-spin-damp",          required_argument, 0, IDX_NVIDIA_SPIN_DAMP},
     {"gpu-temp-disable",          no_argument,       0, IDX_GPU_TEMP_DISABLE},
     #ifdef HAVE_HWMON
     {"gpu-temp-abort",            required_argument, 0, IDX_GPU_TEMP_ABORT},
@@ -6184,6 +6192,7 @@ int main (int argc, char **argv)
   uint runtime_chgd             = 0;
   uint kernel_loops_chgd        = 0;
   uint kernel_accel_chgd        = 0;
+  uint nvidia_spin_damp_chgd    = 0;
   uint attack_mode_chgd         = 0;
   uint outfile_format_chgd      = 0;
   uint rp_gen_seed_chgd         = 0;
@@ -6272,6 +6281,8 @@ int main (int argc, char **argv)
                                           kernel_accel_chgd         = 1;              break;
       case IDX_KERNEL_LOOPS:              kernel_loops              = atoi (optarg);
                                           kernel_loops_chgd         = 1;              break;
+      case IDX_NVIDIA_SPIN_DAMP:          nvidia_spin_damp          = atoi (optarg);
+                                          nvidia_spin_damp_chgd     = 1;              break;
       case IDX_GPU_TEMP_DISABLE:          gpu_temp_disable          = 1;              break;
       #ifdef HAVE_HWMON
       case IDX_GPU_TEMP_ABORT:            gpu_temp_abort            = atoi (optarg);  break;
@@ -6830,6 +6841,14 @@ int main (int argc, char **argv)
     weak_hash_threshold = 0;
   }
 
+  if (nvidia_spin_damp > 100)
+  {
+    log_error ("ERROR: setting --nvidia-spin-damp must be between 0 and 100 (inclusive)");
+
+    return (-1);
+  }
+
+
   /**
    * induction directory
    */
@@ -7091,6 +7110,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (force);
   logfile_top_uint   (kernel_accel);
   logfile_top_uint   (kernel_loops);
+  logfile_top_uint   (nvidia_spin_damp);
   logfile_top_uint   (gpu_temp_disable);
   #ifdef HAVE_HWMON
   logfile_top_uint   (gpu_temp_abort);
@@ -7210,6 +7230,7 @@ int main (int argc, char **argv)
     restore_disable       = 1;
     potfile_disable       = 1;
     weak_hash_threshold   = 0;
+    nvidia_spin_damp      = 0;
     gpu_temp_disable      = 1;
     outfile_check_timer   = 0;
 
@@ -14098,6 +14119,29 @@ int main (int argc, char **argv)
 
             device_param->sm_minor = sm_minor;
             device_param->sm_major = sm_major;
+
+            // CPU burning loop damper
+            // Value is given as number between 0-100
+            // By default 100%
+
+            device_param->nvidia_spin_damp = (double) nvidia_spin_damp;
+
+            if (nvidia_spin_damp_chgd == 0)
+            {
+              if (data.attack_mode == ATTACK_MODE_STRAIGHT)
+              {
+                /**
+                 * the workaround is not a friend of rule based attacks
+                 * the words from the wordlist combined with fast and slow rules cause
+                 * fluctuations which cause inaccurate wait time estimations
+                 * using a reduced damping percentage almost compensates this
+                 */
+
+                device_param->nvidia_spin_damp = 64;
+              }
+            }
+
+            device_param->nvidia_spin_damp /= 100;
           }
           else
           {

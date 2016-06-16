@@ -1013,6 +1013,8 @@ struct __hc_device_param
 
   bool    opencl_v12;
 
+  double  nvidia_spin_damp;
+
   cl_uint device_vendor_id;
   cl_uint platform_vendor_id;
 
