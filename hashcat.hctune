@@ -230,8 +230,6 @@ GeForce_GTX_980                                 ALIAS_nv_sm52_or_higher
 GeForce_GTX_980_Ti                              ALIAS_nv_sm52_or_higher
 GeForce_GTX_TITAN_X                             ALIAS_nv_sm52_or_higher
 GeForce_GTX_1080                                ALIAS_nv_sm52_or_higher
-Graphics_Device                                 ALIAS_nv_sm52_or_higher
-# ^ We need to remove this as soon as it gets a real device name :)
 
 GeForce_910M                                    ALIAS_nv_sm52_or_higher
 GeForce_GTX_910M                                ALIAS_nv_sm52_or_higher
