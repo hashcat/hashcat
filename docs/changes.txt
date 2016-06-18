@@ -137,3 +137,4 @@ It combines all features of all hashcat projects in one project.
 - Disabled retain support by default, you can reactive it using --gpu-temp-retain
 - Completely get rid of HAVE_ADL, HAVE_NVML and HAVE_NVAPI in sources
 - Replaced NVAPI with NVML on windows
+- Added support for XNVCTRL on Linux to add support for --gpu-temp-retain for NVidia GPU

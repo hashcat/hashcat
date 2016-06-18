@@ -3195,7 +3195,12 @@ int hm_get_fanpolicy_with_device_id (const uint device_id)
     if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
     {
       #if defined(LINUX)
-      return 0;
+      if (data.hm_xnvctrl)
+      {
+        if (set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE) != 0) return -1;
+
+        return 1;
+      }
       #endif
 
       #if defined(WIN)
@@ -3399,6 +3404,21 @@ int hm_get_throttle_with_device_id (const uint device_id)
     clocksThrottleReasons &= ~nvmlClocksThrottleReasonUnknown;
 
     return (clocksThrottleReasons > 0);
+  }
+
+  return -1;
+}
+
+int hm_set_fanspeed_with_device_id_xnvctrl (const uint device_id, const int fanspeed)
+{
+  if (data.hm_device[device_id].fan_set_supported == 1)
+  {
+    if (data.hm_xnvctrl)
+    {
+      if (set_fan_speed_target (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, fanspeed) != 0) return -1;
+
+      return 0;
+    }
   }
 
   return -1;

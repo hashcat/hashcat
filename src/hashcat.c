@@ -4235,7 +4235,9 @@ static void *thread_monitor (void *p)
                   }
                   else if (device_param->device_vendor_id == VENDOR_ID_NV)
                   {
-
+                    #ifdef _POSIX
+                    hm_set_fanspeed_with_device_id_xnvctrl (device_id, fan_speed_new);
+                    #endif
                   }
 
                   fan_speed_chgd[device_id] = 1;
@@ -13651,9 +13653,10 @@ int main (int argc, char **argv)
      * OpenCL devices: simply push all devices from all platforms into the same device array
      */
 
-    int need_adl   = 0;
-    int need_nvapi = 0;
-    int need_nvml  = 0;
+    int need_adl     = 0;
+    int need_nvapi   = 0;
+    int need_nvml    = 0;
+    int need_xnvctrl = 0;
 
     hc_device_param_t *devices_param = (hc_device_param_t *) mycalloc (DEVICES_MAX, sizeof (hc_device_param_t));
 
@@ -14063,6 +14066,10 @@ int main (int argc, char **argv)
           {
             need_nvml = 1;
 
+            #ifdef _POSIX
+            need_xnvctrl = 1;
+            #endif
+
             #ifdef _WIN
             need_nvapi = 1;
             #endif
@@ -14363,19 +14370,22 @@ int main (int argc, char **argv)
      */
 
     #ifdef HAVE_HWMON
-    hm_attrs_t hm_adapters_adl[DEVICES_MAX]   = { { 0 } };
-    hm_attrs_t hm_adapters_nvapi[DEVICES_MAX] = { { 0 } };
-    hm_attrs_t hm_adapters_nvml[DEVICES_MAX]  = { { 0 } };
+    hm_attrs_t hm_adapters_adl[DEVICES_MAX]     = { { 0 } };
+    hm_attrs_t hm_adapters_nvapi[DEVICES_MAX]   = { { 0 } };
+    hm_attrs_t hm_adapters_nvml[DEVICES_MAX]    = { { 0 } };
+    hm_attrs_t hm_adapters_xnvctrl[DEVICES_MAX] = { { 0 } };
 
     if (gpu_temp_disable == 0)
     {
-      ADL_PTR   *adl   = (ADL_PTR *)   mymalloc (sizeof (ADL_PTR));
-      NVAPI_PTR *nvapi = (NVAPI_PTR *) mymalloc (sizeof (NVAPI_PTR));
-      NVML_PTR  *nvml  = (NVML_PTR *)  mymalloc (sizeof (NVML_PTR));
+      ADL_PTR     *adl     = (ADL_PTR *)     mymalloc (sizeof (ADL_PTR));
+      NVAPI_PTR   *nvapi   = (NVAPI_PTR *)   mymalloc (sizeof (NVAPI_PTR));
+      NVML_PTR    *nvml    = (NVML_PTR *)    mymalloc (sizeof (NVML_PTR));
+      XNVCTRL_PTR *xnvctrl = (XNVCTRL_PTR *) mymalloc (sizeof (XNVCTRL_PTR));
 
-      data.hm_adl   = NULL;
-      data.hm_nvapi = NULL;
-      data.hm_nvml  = NULL;
+      data.hm_adl     = NULL;
+      data.hm_nvapi   = NULL;
+      data.hm_nvml    = NULL;
+      data.hm_xnvctrl = NULL;
 
       if ((need_nvml == 1) && (nvml_init (nvml) == 0))
       {
@@ -14432,6 +14442,30 @@ int main (int argc, char **argv)
         }
       }
 
+      if ((need_xnvctrl == 1) && (xnvctrl_init (xnvctrl) == 0))
+      {
+        data.hm_xnvctrl = xnvctrl;
+      }
+
+      if (data.hm_xnvctrl)
+      {
+        if (hm_XNVCTRL_XOpenDisplay (data.hm_xnvctrl) == 0)
+        {
+          for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+          {
+            hc_device_param_t *device_param = &data.devices_param[device_id];
+
+            if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
+            hm_adapters_xnvctrl[device_id].xnvctrl = device_id;
+
+            int speed = 0;
+
+            if (get_fan_speed_current (data.hm_xnvctrl, device_id, &speed) == 0) hm_adapters_xnvctrl[device_id].fan_get_supported = 1;
+          }
+        }
+      }
+
       if ((need_adl == 1) && (adl_init (adl) == 0))
       {
         data.hm_adl = adl;
@@ -14478,7 +14512,7 @@ int main (int argc, char **argv)
         }
       }
 
-      if (data.hm_adl == NULL && data.hm_nvml == NULL)
+      if (data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl)
       {
         gpu_temp_disable = 1;
       }
@@ -14567,7 +14601,7 @@ int main (int argc, char **argv)
        */
 
       #ifdef HAVE_HWMON
-      if (gpu_temp_disable == 0 && data.hm_adl == NULL && data.hm_nvml == NULL)
+      if (gpu_temp_disable == 0 && data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl == NULL)
       {
         log_info ("Watchdog: Hardware Monitoring Interface not found on your system");
       }
@@ -14617,6 +14651,7 @@ int main (int argc, char **argv)
           data.hm_device[device_id].adl               = hm_adapters_adl[platform_devices_id].adl;
           data.hm_device[device_id].nvapi             = 0;
           data.hm_device[device_id].nvml              = 0;
+          data.hm_device[device_id].xnvctrl           = 0;
           data.hm_device[device_id].od_version        = hm_adapters_adl[platform_devices_id].od_version;
           data.hm_device[device_id].fan_get_supported = hm_adapters_adl[platform_devices_id].fan_get_supported;
           data.hm_device[device_id].fan_set_supported = hm_adapters_adl[platform_devices_id].fan_set_supported;
@@ -14627,6 +14662,7 @@ int main (int argc, char **argv)
           data.hm_device[device_id].adl               = 0;
           data.hm_device[device_id].nvapi             = hm_adapters_nvapi[platform_devices_id].nvapi;
           data.hm_device[device_id].nvml              = hm_adapters_nvml[platform_devices_id].nvml;
+          data.hm_device[device_id].xnvctrl           = hm_adapters_xnvctrl[platform_devices_id].xnvctrl;
           data.hm_device[device_id].od_version        = 0;
           data.hm_device[device_id].fan_get_supported = hm_adapters_nvml[platform_devices_id].fan_get_supported;
           data.hm_device[device_id].fan_set_supported = 0;
@@ -16144,7 +16180,9 @@ int main (int argc, char **argv)
               }
               else if (device_param->device_vendor_id == VENDOR_ID_NV)
               {
-
+                #ifdef _POSIX
+                rc = hm_set_fanspeed_with_device_id_xnvctrl (device_id, fanspeed);
+                #endif
               }
 
               if (rc == 0)
@@ -18344,7 +18382,9 @@ int main (int argc, char **argv)
               }
               else if (device_param->device_vendor_id == VENDOR_ID_NV)
               {
-
+                #ifdef _POSIX
+                rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE);
+                #endif
               }
 
               if (rc == -1) log_info ("WARNING: Failed to restore default fan speed and policy for device #%", device_id + 1);
@@ -18440,6 +18480,24 @@ int main (int argc, char **argv)
         nvml_close (data.hm_nvml);
 
         data.hm_nvml = NULL;
+      }
+
+      if (data.hm_nvapi)
+      {
+        hm_NvAPI_Unload (data.hm_nvapi);
+
+        nvapi_close (data.hm_nvapi);
+
+        data.hm_nvapi = NULL;
+      }
+
+      if (data.hm_xnvctrl)
+      {
+        hm_XNVCTRL_XCloseDisplay (data.hm_xnvctrl);
+
+        xnvctrl_close (data.hm_xnvctrl);
+
+        data.hm_xnvctrl = NULL;
       }
 
       if (data.hm_adl)

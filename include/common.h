@@ -56,6 +56,7 @@ typedef void *OCL_LIB;
 typedef void *ADL_LIB;
 typedef void *NVAPI_LIB;
 typedef void *NVML_LIB;
+typedef void *XNVCTRL_LIB;
 #ifdef OSX
 #define __stdcall
 #endif
@@ -90,6 +91,7 @@ typedef HINSTANCE OCL_LIB;
 typedef HINSTANCE ADL_LIB;
 typedef HINSTANCE NVAPI_LIB;
 typedef HINSTANCE NVML_LIB;
+typedef HINSTANCE XNVCTRL_LIB;
 #endif
 
 #define mkdir(name,mode) mkdir (name)
