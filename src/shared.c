@@ -3398,21 +3398,6 @@ int hm_get_throttle_with_device_id (const uint device_id)
   return -1;
 }
 
-int hm_set_fanspeed_with_device_id_xnvctrl (const uint device_id, const int fanspeed)
-{
-  if (data.hm_device[device_id].fan_set_supported == 1)
-  {
-    if (data.hm_xnvctrl)
-    {
-      if (set_fan_speed_target (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, fanspeed) != 0) return -1;
-
-      return 0;
-    }
-  }
-
-  return -1;
-}
-
 int hm_set_fanspeed_with_device_id_adl (const uint device_id, const int fanspeed, const int fanpolicy)
 {
   if (data.hm_device[device_id].fan_set_supported == 1)
@@ -3447,6 +3432,43 @@ int hm_set_fanspeed_with_device_id_adl (const uint device_id, const int fanspeed
 
         return 0;
       }
+    }
+  }
+
+  return -1;
+}
+
+int hm_set_fanspeed_with_device_id_nvapi (const uint device_id, const int fanspeed, const int fanpolicy)
+{
+  if (data.hm_device[device_id].fan_set_supported == 1)
+  {
+    if (data.hm_nvapi)
+    {
+      NV_GPU_COOLER_LEVELS CoolerLevels = { 0 };
+
+      CoolerLevels.Version = GPU_COOLER_LEVELS_VER | sizeof (NV_GPU_COOLER_LEVELS);
+
+      CoolerLevels.Levels[0].Level  = fanspeed;
+      CoolerLevels.Levels[0].Policy = fanpolicy;
+
+      if (hm_NvAPI_GPU_SetCoolerLevels (data.hm_nvapi, data.hm_device[device_id].nvapi, 0, &CoolerLevels) != NVAPI_OK) return -1;
+
+      return 0;
+    }
+  }
+
+  return -1;
+}
+
+int hm_set_fanspeed_with_device_id_xnvctrl (const uint device_id, const int fanspeed)
+{
+  if (data.hm_device[device_id].fan_set_supported == 1)
+  {
+    if (data.hm_xnvctrl)
+    {
+      if (set_fan_speed_target (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, fanspeed) != 0) return -1;
+
+      return 0;
     }
   }
 

@@ -19,6 +19,7 @@
 #define NVAPI_INTERFACE extern NvAPI_Status
 
 typedef unsigned long NvU32;
+typedef   signed long NvS32;
 
 #define NV_DECLARE_HANDLE(name) struct name##__ { int unused; }; typedef struct name##__ *name
 
@@ -35,6 +36,9 @@ typedef char NvAPI_ShortString[NVAPI_SHORT_STRING_MAX];
 #define MAKE_NVAPI_VERSION(typeName,ver) (NvU32)(sizeof(typeName) | ((ver)<<16))
 
 #define NVAPI_MAX_PHYSICAL_GPUS     64
+#define NVAPI_MAX_COOLER_PER_GPU    20
+
+#define GPU_COOLER_LEVELS_VER    0x10000
 
 typedef enum _NvAPI_Status
 {
@@ -187,6 +191,20 @@ typedef struct
 
 } NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1;
 
+typedef struct
+{
+  NvS32 Level;
+  NvS32 Policy;
+
+} NvLevel;
+
+typedef struct
+{
+  NvU32    Version;
+  NvLevel  Levels[NVAPI_MAX_COOLER_PER_GPU];
+
+} NV_GPU_COOLER_LEVELS;
+
 NVAPI_INTERFACE NvAPI_QueryInterface (uint offset);
 NVAPI_INTERFACE NvAPI_Initialize ();
 NVAPI_INTERFACE NvAPI_Unload ();
@@ -194,6 +212,7 @@ NVAPI_INTERFACE NvAPI_GetErrorMessage (NvAPI_Status nr,NvAPI_ShortString szDesc)
 NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
 NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesInfo (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info);
 NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesStatus (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status);
+NVAPI_INTERFACE NvAPI_GPU_SetCoolerLevels (NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels);
 
 /*
  * End of declarations from nvapi.h and subheaders
@@ -216,6 +235,7 @@ typedef int (*NVAPI_API_CALL NVAPI_GETERRORMESSAGE) (NvAPI_Status, NvAPI_ShortSt
 typedef int (*NVAPI_API_CALL NVAPI_ENUMPHYSICALGPUS) (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *);
 typedef int (*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESINFO) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *);
 typedef int (*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESSTATUS) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *);
+typedef int (*NVAPI_API_CALL NVAPI_GPU_SETCOOLERLEVELS) (NvPhysicalGpuHandle, NvU32, NV_GPU_COOLER_LEVELS *);
 
 typedef struct
 {
@@ -228,6 +248,7 @@ typedef struct
   NVAPI_ENUMPHYSICALGPUS NvAPI_EnumPhysicalGPUs;
   NVAPI_GPU_GETPERFPOLICIESINFO NvAPI_GPU_GetPerfPoliciesInfo;
   NVAPI_GPU_GETPERFPOLICIESSTATUS NvAPI_GPU_GetPerfPoliciesStatus;
+  NVAPI_GPU_SETCOOLERLEVELS NvAPI_GPU_SetCoolerLevels;
 
 } hm_nvapi_lib_t;
 
@@ -243,6 +264,7 @@ int hm_NvAPI_GetErrorMessage (NVAPI_PTR *nvapi, NvAPI_Status nr, NvAPI_ShortStri
 int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
 int hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info);
 int hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status);
+int hm_NvAPI_GPU_SetCoolerLevels (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels);
 
 #endif // HAVE_HWMON
 
