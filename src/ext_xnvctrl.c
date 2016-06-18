@@ -114,11 +114,15 @@ int set_fan_control (XNVCTRL_PTR *xnvctrl, int gpu, int val)
 {
   if (xnvctrl->dpy == NULL) return -1;
 
-  xnvctrl->XNVCTRLSetTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_GPU, gpu, 0, NV_CTRL_GPU_COOLER_MANUAL_CONTROL, val);
-
   int cur;
 
   int rc = get_fan_control (xnvctrl, gpu, &cur);
+
+  if (rc == -1) return -1;
+
+  xnvctrl->XNVCTRLSetTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_GPU, gpu, 0, NV_CTRL_GPU_COOLER_MANUAL_CONTROL, val);
+
+  rc = get_fan_control (xnvctrl, gpu, &cur);
 
   if (rc == -1) return -1;
 
@@ -140,6 +144,8 @@ int get_core_threshold (XNVCTRL_PTR *xnvctrl, int gpu, int *val)
 
 int get_fan_speed_current (XNVCTRL_PTR *xnvctrl, int gpu, int *val)
 {
+  if (xnvctrl->dpy == NULL) return -1;
+
   int rc = xnvctrl->XNVCTRLQueryTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_COOLER, gpu, 0, NV_CTRL_THERMAL_COOLER_CURRENT_LEVEL, val);
 
   if (!rc) return -1;
@@ -162,11 +168,15 @@ int set_fan_speed_target (XNVCTRL_PTR *xnvctrl, int gpu, int val)
 {
   if (xnvctrl->dpy == NULL) return -1;
 
-  xnvctrl->XNVCTRLSetTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_COOLER, gpu, 0, NV_CTRL_THERMAL_COOLER_LEVEL, val);
-
   int cur;
 
   int rc = get_fan_speed_target (xnvctrl, gpu, &cur);
+
+  if (rc == -1) return -1;
+
+  xnvctrl->XNVCTRLSetTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_COOLER, gpu, 0, NV_CTRL_THERMAL_COOLER_LEVEL, val);
+
+  rc = get_fan_speed_target (xnvctrl, gpu, &cur);
 
   if (rc == -1) return -1;
 
