@@ -78,7 +78,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 #define NVIDIA_SPIN_DAMP        100
 #define GPU_TEMP_DISABLE        0
 #define GPU_TEMP_ABORT          90
-#define GPU_TEMP_RETAIN         0
+#define GPU_TEMP_RETAIN         65
 #define WORKLOAD_PROFILE        2
 #define KERNEL_ACCEL            0
 #define KERNEL_LOOPS            0
@@ -16199,7 +16199,7 @@ int main (int argc, char **argv)
               }
               else
               {
-                log_info ("WARNING: Failed to set initial fan speed for device #%u", device_id + 1);
+                //log_info ("WARNING: Failed to set initial fan speed for device #%u", device_id + 1);
 
                 data.hm_device[device_id].fan_set_supported = 0;
               }

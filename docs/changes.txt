@@ -134,7 +134,5 @@ It combines all features of all hashcat projects in one project.
 - Created environment variable to inform NVidia OpenCL runtime to not create its own kernel cache
 - Created environment variable to inform pocl OpenCL runtime to not create its own kernel cache
 - Dropped special 64-bit rotate() handling for NV, it seems that they've added it to their OpenCL runtime
-- Disabled retain support by default, you can reactive it using --gpu-temp-retain
 - Completely get rid of HAVE_ADL, HAVE_NVML and HAVE_NVAPI in sources
 - Replaced NVAPI with NVML on windows
-
