@@ -2657,7 +2657,7 @@ void unlock_file (FILE *fp)
 }
 #endif // F_SETLKW
 
-#ifdef _WIN
+#ifdef WIN
 void fsync (int fd)
 {
   HANDLE h = (HANDLE) _get_osfhandle (fd);
@@ -4474,7 +4474,7 @@ int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t *cpu_se
 
 void set_cpu_affinity (char *cpu_affinity)
 {
-  #ifdef WIN
+  #ifdef _WIN
   DWORD_PTR aff_mask = 0;
   #elif _POSIX
   cpu_set_t cpuset;
@@ -4493,7 +4493,7 @@ void set_cpu_affinity (char *cpu_affinity)
 
       if (cpu_id == 0)
       {
-        #ifdef WIN
+        #ifdef _WIN
         aff_mask = 0;
         #elif _POSIX
         CPU_ZERO (&cpuset);
@@ -4509,7 +4509,7 @@ void set_cpu_affinity (char *cpu_affinity)
         exit (-1);
       }
 
-      #ifdef WIN
+      #ifdef _WIN
       aff_mask |= 1 << (cpu_id - 1);
       #elif _POSIX
       CPU_SET ((cpu_id - 1), &cpuset);
@@ -4520,7 +4520,7 @@ void set_cpu_affinity (char *cpu_affinity)
     free (devices);
   }
 
-  #ifdef WIN
+  #ifdef _WIN
   SetProcessAffinityMask (GetCurrentProcess (), aff_mask);
   SetThreadAffinityMask (GetCurrentThread (), aff_mask);
   #elif _POSIX
@@ -4743,7 +4743,7 @@ int sort_by_dictstat (const void *s1, const void *s2)
   dictstat_t *d1 = (dictstat_t *) s1;
   dictstat_t *d2 = (dictstat_t *) s2;
 
-  #ifdef LINUX
+  #ifdef _POSIX
   d2->stat.st_atim = d1->stat.st_atim;
   #else
   d2->stat.st_atime = d1->stat.st_atime;

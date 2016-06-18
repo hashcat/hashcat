@@ -4235,11 +4235,11 @@ static void *thread_monitor (void *p)
                   }
                   else if (device_param->device_vendor_id == VENDOR_ID_NV)
                   {
-                    #ifdef _WIN
+                    #ifdef WIN
                     hm_set_fanspeed_with_device_id_nvapi (device_id, fan_speed_new, 1);
                     #endif
 
-                    #ifdef _LINUX
+                    #ifdef LINUX
                     hm_set_fanspeed_with_device_id_xnvctrl (device_id, fan_speed_new);
                     #endif
                   }
@@ -14070,11 +14070,11 @@ int main (int argc, char **argv)
           {
             need_nvml = 1;
 
-            #ifdef _LINUX
+            #ifdef LINUX
             need_xnvctrl = 1;
             #endif
 
-            #ifdef _WIN
+            #ifdef WIN
             need_nvapi = 1;
             #endif
           }
@@ -16184,12 +16184,12 @@ int main (int argc, char **argv)
               }
               else if (device_param->device_vendor_id == VENDOR_ID_NV)
               {
-                #ifdef _WIN
-                rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, 1);
+                #ifdef LINUX
+                rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
                 #endif
 
-                #ifdef _LINUX
-                rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
+                #ifdef WIN
+                rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, 1);
                 #endif
               }
 
@@ -16199,7 +16199,7 @@ int main (int argc, char **argv)
               }
               else
               {
-                //log_info ("WARNING: Failed to set initial fan speed for device #%u", device_id + 1);
+                log_info ("WARNING: Failed to set initial fan speed for device #%u", device_id + 1);
 
                 data.hm_device[device_id].fan_set_supported = 0;
               }
@@ -18390,12 +18390,12 @@ int main (int argc, char **argv)
               }
               else if (device_param->device_vendor_id == VENDOR_ID_NV)
               {
-                #ifdef _WIN
-                rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, fanpolicy);
+                #ifdef LINUX
+                rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE);
                 #endif
 
-                #ifdef _LINUX
-                rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE);
+                #ifdef WIN
+                rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, fanpolicy);
                 #endif
               }
 
