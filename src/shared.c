@@ -3194,18 +3194,7 @@ int hm_get_fanpolicy_with_device_id (const uint device_id)
 
     if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
     {
-      #if defined(LINUX)
-      if (data.hm_xnvctrl)
-      {
-        if (set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE) != 0) return -1;
-
-        return 1;
-      }
-      #endif
-
-      #if defined(WIN)
       return 1;
-      #endif
     }
   }
 

@@ -14512,7 +14512,7 @@ int main (int argc, char **argv)
         }
       }
 
-      if (data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl)
+      if (data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl == NULL)
       {
         gpu_temp_disable = 1;
       }
@@ -14654,7 +14654,7 @@ int main (int argc, char **argv)
           data.hm_device[device_id].xnvctrl           = 0;
           data.hm_device[device_id].od_version        = hm_adapters_adl[platform_devices_id].od_version;
           data.hm_device[device_id].fan_get_supported = hm_adapters_adl[platform_devices_id].fan_get_supported;
-          data.hm_device[device_id].fan_set_supported = hm_adapters_adl[platform_devices_id].fan_set_supported;
+          data.hm_device[device_id].fan_set_supported = 0;
         }
 
         if (device_param->device_vendor_id == VENDOR_ID_NV)
@@ -16181,7 +16181,7 @@ int main (int argc, char **argv)
               else if (device_param->device_vendor_id == VENDOR_ID_NV)
               {
                 #ifdef _POSIX
-                rc = hm_set_fanspeed_with_device_id_xnvctrl (device_id, fanspeed);
+                rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
                 #endif
               }
 
