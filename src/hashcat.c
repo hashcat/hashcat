@@ -6493,7 +6493,7 @@ int main (int argc, char **argv)
     {
       if (outfile_format > 1)
       {
-        log_error ("ERROR: Mixing outfile-format > 1 is not allowed together with left parameter");
+        log_error ("ERROR: Mixing outfile-format > 1 with left parameter is not allowed");
 
         return (-1);
       }
@@ -6510,7 +6510,7 @@ int main (int argc, char **argv)
     {
       if ((outfile_format > 7) && (outfile_format < 16))
       {
-        log_error ("ERROR: Mixing outfile-format > 7 is not allowed together with show parameter");
+        log_error ("ERROR: Mixing outfile-format > 7 with show parameter is not allowed");
 
         return (-1);
       }
@@ -6540,21 +6540,21 @@ int main (int argc, char **argv)
 
   if ((increment == 1) && (attack_mode == ATTACK_MODE_STRAIGHT))
   {
-    log_error ("ERROR: increment is not allowed in attack-mode 0");
+    log_error ("ERROR: Increment is not allowed in attack-mode 0");
 
     return (-1);
   }
 
   if ((increment == 0) && (increment_min_chgd == 1))
   {
-    log_error ("ERROR: increment-min is only supported together with increment switch");
+    log_error ("ERROR: Increment-min is only supported combined with increment switch");
 
     return (-1);
   }
 
   if ((increment == 0) && (increment_max_chgd == 1))
   {
-    log_error ("ERROR: increment-max is only supported together with increment switch");
+    log_error ("ERROR: Increment-max is only supported combined with increment switch");
 
     return (-1);
   }
@@ -6774,13 +6774,13 @@ int main (int argc, char **argv)
   {
     if (show == 1)
     {
-      log_error ("ERROR: Mixing show parameter not supported with keyspace parameter");
+      log_error ("ERROR: Combining show parameter with keyspace parameter is not allowed");
 
       return (-1);
     }
     else if (left == 1)
     {
-      log_error ("ERROR: Mixing left parameter not supported wiht keyspace parameter");
+      log_error ("ERROR: Combining left parameter with keyspace parameter is not allowed");
 
       return (-1);
     }
@@ -14646,7 +14646,7 @@ int main (int argc, char **argv)
     {
       if (gpu_temp_abort < gpu_temp_retain)
       {
-        log_error ("ERROR: invalid values for gpu-temp-abort. Parameter gpu-temp-abort is less than gpu-temp-retain.");
+        log_error ("ERROR: Invalid values for gpu-temp-abort. Parameter gpu-temp-abort is less than gpu-temp-retain.");
 
         return (-1);
       }
@@ -14874,12 +14874,12 @@ int main (int argc, char **argv)
 
               if ((engine_clock_max - engine_clock_profile_max) > warning_trigger_engine)
               {
-                log_info ("WARN: the custom profile seems to have too low maximum engine clock values. You therefore may not reach full performance");
+                log_info ("WARN: The custom profile seems to have too low maximum engine clock values. You therefore may not reach full performance");
               }
 
               if ((memory_clock_max - memory_clock_profile_max) > warning_trigger_memory)
               {
-                log_info ("WARN: the custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
+                log_info ("WARN: The custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
               }
 
               ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
@@ -15122,7 +15122,7 @@ int main (int argc, char **argv)
 
           if (size_scryptV > device_param->device_maxmem_alloc)
           {
-            if (quiet == 0) log_info ("WARNING: not enough device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+            if (quiet == 0) log_info ("WARNING: Not enough device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
 
             continue;
           }
@@ -15138,7 +15138,7 @@ int main (int argc, char **argv)
 
         if (data.salts_buf[0].scrypt_phy == 0)
         {
-          log_error ("ERROR: can't allocate enough device memory");
+          log_error ("ERROR: Can't allocate enough device memory");
 
           return -1;
         }
@@ -15524,7 +15524,7 @@ int main (int argc, char **argv)
             {
               device_param->skipped = true;
 
-              log_info ("- Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+              log_info ("- Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
 
               continue;
             }
@@ -15604,7 +15604,7 @@ int main (int argc, char **argv)
           {
             device_param->skipped = true;
 
-            log_info ("- Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+            log_info ("- Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
           }
         }
 
@@ -15676,7 +15676,7 @@ int main (int argc, char **argv)
           {
             device_param->skipped = true;
 
-            log_info ("- Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+            log_info ("- Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
 
             continue;
           }
@@ -16434,7 +16434,7 @@ int main (int argc, char **argv)
 
             if (keyspace == 1)
             {
-              log_error ("ERROR: keyspace parameter is not allowed together with a directory");
+              log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
               return (-1);
             }
@@ -16897,7 +16897,7 @@ int main (int argc, char **argv)
 
           if (keyspace == 1)
           {
-            log_error ("ERROR: keyspace parameter is not allowed together with a directory");
+            log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
             return (-1);
           }
@@ -17076,7 +17076,7 @@ int main (int argc, char **argv)
 
           if (keyspace == 1)
           {
-            log_error ("ERROR: keyspace parameter is not allowed together with a directory");
+            log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
             return (-1);
           }
@@ -17250,8 +17250,8 @@ int main (int argc, char **argv)
     {
       if (potfile_remove_cracks > 0)
       {
-        if (potfile_remove_cracks == 1) log_info ("INFO: removed 1 hash found in pot file\n");
-        else                            log_info ("INFO: removed %u hashes found in pot file\n", potfile_remove_cracks);
+        if (potfile_remove_cracks == 1) log_info ("INFO: Removed 1 hash found in pot file\n");
+        else                            log_info ("INFO: Removed %u hashes found in pot file\n", potfile_remove_cracks);
       }
     }
 
@@ -17773,12 +17773,12 @@ int main (int argc, char **argv)
           {
             if (css_cnt < mask_min)
             {
-              log_info ("WARNING: skipping mask '%s' because it is smaller than the minimum password length", mask);
+              log_info ("WARNING: Skipping mask '%s' because it is smaller than the minimum password length", mask);
             }
 
             if (css_cnt > mask_max)
             {
-              log_info ("WARNING: skipping mask '%s' because it is larger than the maximum password length", mask);
+              log_info ("WARNING: Skipping mask '%s' because it is larger than the maximum password length", mask);
             }
 
             // skip to next mask
@@ -17993,7 +17993,7 @@ int main (int argc, char **argv)
 
         if (data.words_cur > data.words_base)
         {
-          log_error ("ERROR: restore value greater keyspace");
+          log_error ("ERROR: Restore value greater keyspace");
 
           return (-1);
         }
