@@ -2653,7 +2653,7 @@ void lock_file (FILE *fp)
   {
     if (errno != EINTR)
     {
-      log_error ("ERROR: failed acquiring write lock: %s", strerror (errno));
+      log_error ("ERROR: Failed acquiring write lock: %s", strerror (errno));
 
       exit (-1);
     }
@@ -3501,7 +3501,7 @@ void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHAR
 
   if (css_cnt > SP_PW_MAX)
   {
-    log_error ("ERROR: mask length is too long");
+    log_error ("ERROR: Mask length is too long");
 
     exit (-1);
   }
@@ -3613,7 +3613,7 @@ void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, int mp_
 
         if (in_pos == in_len)
         {
-          log_error ("ERROR: the hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", in_buf);
+          log_error ("ERROR: The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", in_buf);
 
           exit (-1);
         }
@@ -3622,7 +3622,7 @@ void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, int mp_
 
         if ((is_valid_hex_char (p0) == 0) || (is_valid_hex_char (p1) == 0))
         {
-          log_error ("ERROR: invalid hex character detected in mask %s", in_buf);
+          log_error ("ERROR: Invalid hex character detected in mask %s", in_buf);
 
           exit (-1);
         }
@@ -3705,7 +3705,7 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
                   break;
         case '?': mp_add_cs_buf (&chr, 1, css, css_pos);
                   break;
-        default:  log_error ("ERROR: syntax error: %s", mask_buf);
+        default:  log_error ("ERROR: Syntax error: %s", mask_buf);
                   exit (-1);
       }
     }
@@ -3719,7 +3719,7 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
 
         if (mask_pos == mask_len)
         {
-          log_error ("ERROR: the hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", mask_buf);
+          log_error ("ERROR: The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", mask_buf);
 
           exit (-1);
         }
@@ -3730,7 +3730,7 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
 
         if ((is_valid_hex_char (p0) == 0) || (is_valid_hex_char (p1) == 0))
         {
-          log_error ("ERROR: invalid hex character detected in mask %s", mask_buf);
+          log_error ("ERROR: Invalid hex character detected in mask %s", mask_buf);
 
           exit (-1);
         }
@@ -3753,7 +3753,7 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
 
   if (css_pos == 0)
   {
-    log_error ("ERROR: invalid mask length (0)");
+    log_error ("ERROR: Invalid mask length (0)");
 
     exit (-1);
   }
@@ -3838,7 +3838,7 @@ void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index)
 
     if (len == 0)
     {
-      log_info ("WARNING: charset file corrupted");
+      log_info ("WARNING: Charset file corrupted");
 
       mp_expand (buf, strlen (buf), mp_sys, mp_usr, index, 1);
     }
@@ -3888,7 +3888,7 @@ char *mp_get_truncated_mask (char *mask_buf, size_t mask_len, uint len)
 
         if (mask_pos == mask_len)
         {
-          log_error ("ERROR: the hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", mask_buf);
+          log_error ("ERROR: The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", mask_buf);
 
           exit (-1);
         }
@@ -3899,7 +3899,7 @@ char *mp_get_truncated_mask (char *mask_buf, size_t mask_len, uint len)
 
         if ((is_valid_hex_char (p0) == 0) || (is_valid_hex_char (p1) == 0))
         {
-          log_error ("ERROR: invalid hex character detected in mask: %s", mask_buf);
+          log_error ("ERROR: Invalid hex character detected in mask: %s", mask_buf);
 
           exit (-1);
         }
@@ -4518,7 +4518,7 @@ void set_cpu_affinity (char *cpu_affinity)
 
       if (cpu_id > 32)
       {
-        log_error ("ERROR: invalid cpu_id %u specified", cpu_id);
+        log_error ("ERROR: Invalid cpu_id %u specified", cpu_id);
 
         exit (-1);
       }
@@ -5439,7 +5439,7 @@ uint setup_opencl_platforms_filter (char *opencl_platforms)
 
       if (platform < 1 || platform > 32)
       {
-        log_error ("ERROR: invalid OpenCL platform %u specified", platform);
+        log_error ("ERROR: Invalid OpenCL platform %u specified", platform);
 
         exit (-1);
       }
@@ -5474,7 +5474,7 @@ u32 setup_devices_filter (char *opencl_devices)
 
       if (device_id < 1 || device_id > 32)
       {
-        log_error ("ERROR: invalid device_id %u specified", device_id);
+        log_error ("ERROR: Invalid device_id %u specified", device_id);
 
         exit (-1);
       }
@@ -5509,7 +5509,7 @@ cl_device_type setup_device_types_filter (char *opencl_device_types)
 
       if (device_type < 1 || device_type > 3)
       {
-        log_error ("ERROR: invalid device_type %u specified", device_type);
+        log_error ("ERROR: Invalid device_type %u specified", device_type);
 
         exit (-1);
       }
@@ -9176,7 +9176,7 @@ void stop_at_checkpoint ()
 
   if (data.restore_disable == 1)
   {
-    log_info ("WARNING: this feature is disabled when --restore-disable was specified");
+    log_info ("WARNING: This feature is disabled when --restore-disable was specified");
 
     return;
   }
@@ -9191,7 +9191,7 @@ void stop_at_checkpoint ()
 
     data.checkpoint_cur_words = get_lowest_words_done ();
 
-    log_info ("Checkpoint enabled: will quit at next Restore Point update");
+    log_info ("Checkpoint enabled: Will quit at next Restore Point update");
   }
   else
   {
@@ -9297,7 +9297,7 @@ restore_data_t *init_restore (int argc, char **argv)
 
       if (nread != 1)
       {
-        log_error ("ERROR: cannot read %s", data.eff_restore_file);
+        log_error ("ERROR: Cannot read %s", data.eff_restore_file);
 
         exit (-1);
       }
@@ -9333,7 +9333,7 @@ restore_data_t *init_restore (int argc, char **argv)
 
           if (strcmp (argv0_r, pidbin_r) == 0)
           {
-            log_error ("ERROR: already an instance %s running on pid %d", pidbin, rd->pid);
+            log_error ("ERROR: Already an instance %s running on pid %d", pidbin, rd->pid);
 
             exit (-1);
           }
@@ -9356,7 +9356,7 @@ restore_data_t *init_restore (int argc, char **argv)
         {
           if (strcmp (pidbin, pidbin2) == 0)
           {
-            log_error ("ERROR: already an instance %s running on pid %d", pidbin2, rd->pid);
+            log_error ("ERROR: Already an instance %s running on pid %d", pidbin2, rd->pid);
 
             exit (-1);
           }
@@ -9371,7 +9371,7 @@ restore_data_t *init_restore (int argc, char **argv)
 
       if (rd->version_bin < RESTORE_MIN)
       {
-        log_error ("ERROR: cannot use outdated %s. Please remove it.", data.eff_restore_file);
+        log_error ("ERROR: Cannot use outdated %s. Please remove it.", data.eff_restore_file);
 
         exit (-1);
       }
@@ -9407,14 +9407,14 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
 
   if (fp == NULL)
   {
-    log_error ("ERROR: restore file '%s': %s", eff_restore_file, strerror (errno));
+    log_error ("ERROR: Restore file '%s': %s", eff_restore_file, strerror (errno));
 
     exit (-1);
   }
 
   if (fread (rd, sizeof (restore_data_t), 1, fp) != 1)
   {
-    log_error ("ERROR: cannot read %s", eff_restore_file);
+    log_error ("ERROR: Can't read %s", eff_restore_file);
 
     exit (-1);
   }
@@ -9427,7 +9427,7 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
   {
     if (fgets (buf, HCBUFSIZ - 1, fp) == NULL)
     {
-      log_error ("ERROR: cannot read %s", eff_restore_file);
+      log_error ("ERROR: Can't read %s", eff_restore_file);
 
       exit (-1);
     }
@@ -9536,13 +9536,13 @@ void cycle_restore ()
   {
     if (unlink (eff_restore_file))
     {
-      log_info ("WARN: unlink file '%s': %s", eff_restore_file, strerror (errno));
+      log_info ("WARN: Unlink file '%s': %s", eff_restore_file, strerror (errno));
     }
   }
 
   if (rename (new_restore_file, eff_restore_file))
   {
-    log_info ("WARN: rename file '%s' to '%s': %s", new_restore_file, eff_restore_file, strerror (errno));
+    log_info ("WARN: Rename file '%s' to '%s': %s", new_restore_file, eff_restore_file, strerror (errno));
   }
 }
 
@@ -10505,7 +10505,7 @@ int wpa_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   if (salt_len > 36)
   {
-    log_info ("WARNING: the length of the ESSID is too long. The hccap file may be invalid or corrupted");
+    log_info ("WARNING: The length of the ESSID is too long. The hccap file may be invalid or corrupted");
 
     return (PARSER_SALT_LENGTH);
   }
@@ -18606,7 +18606,7 @@ int sip_auth_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   if (memcmp (directive_pos, "MD5", 3))
   {
-    log_info ("ERROR: only the MD5 directive is currently supported\n");
+    log_info ("ERROR: Only the MD5 directive is currently supported\n");
 
     myfree (temp_input_buf);
 
