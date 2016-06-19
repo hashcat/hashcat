@@ -22,7 +22,9 @@ int xnvctrl_init (XNVCTRL_PTR *xnvctrl)
 
   if (xnvctrl->lib_x11 == NULL)
   {
-    if (data.quiet == 0) log_info ("WARNING: load X11 library failed, proceed without X11 HWMon enabled.");
+    if (data.quiet == 0) log_info ("WARNING: Failed loading the X11 library: %s", dlerror());
+    if (data.quiet == 0) log_info ("         Please install libx11-dev package.");
+    if (data.quiet == 0) log_info ("");
 
     return -1;
   }
@@ -31,25 +33,20 @@ int xnvctrl_init (XNVCTRL_PTR *xnvctrl)
 
   if (xnvctrl->lib_xnvctrl == NULL)
   {
-    xnvctrl->lib_xnvctrl = dlopen ("libXNVCtrl.so.0", RTLD_LAZY);
+    if (data.quiet == 0) log_info ("WARNING: Failed loading the XNVCTRL library: %s", dlerror());
+    if (data.quiet == 0) log_info ("         Please install libxnvctrl-dev package.");
+    if (data.quiet == 0) log_info ("");
 
-    if (xnvctrl->lib_xnvctrl == NULL)
-    {
-      if (data.quiet == 0) log_info ("WARNING: load XNVCTRL library failed, proceed without XNVCTRL HWMon enabled.");
-
-      return -1;
-    }
+    return -1;
   }
 
-  xnvctrl->XOpenDisplay  = dlsym (xnvctrl->lib_x11, "XOpenDisplay");
-  xnvctrl->XCloseDisplay = dlsym (xnvctrl->lib_x11, "XCloseDisplay");
+  HC_LOAD_FUNC2 (xnvctrl, XOpenDisplay,  XOPENDISPLAY,  lib_x11, X11, 0);
+  HC_LOAD_FUNC2 (xnvctrl, XCloseDisplay, XCLOSEDISPLAY, lib_x11, X11, 0);
 
-  xnvctrl->XNVCTRLQueryTargetAttribute = dlsym (xnvctrl->lib_xnvctrl, "XNVCTRLQueryTargetAttribute");
-  xnvctrl->XNVCTRLSetTargetAttribute   = dlsym (xnvctrl->lib_xnvctrl, "XNVCTRLSetTargetAttribute");
+  HC_LOAD_FUNC2 (xnvctrl, XNVCTRLQueryTargetAttribute, XNVCTRLQUERYTARGETATTRIBUTE, lib_xnvctrl, XNVCTRL, 0);
+  HC_LOAD_FUNC2 (xnvctrl, XNVCTRLSetTargetAttribute,   XNVCTRLSETTARGETATTRIBUTE,   lib_xnvctrl, XNVCTRL, 0);
 
   #endif
-
-  // not using HC_LOAD_FUNC() here, because we're using 2 libraries and therefore have 2 different variable names for them
 
   return 0;
 }
@@ -78,6 +75,10 @@ void xnvctrl_close (XNVCTRL_PTR *xnvctrl)
 
 int hm_XNVCTRL_XOpenDisplay (XNVCTRL_PTR *xnvctrl)
 {
+  if (xnvctrl == NULL) return -1;
+
+  if (xnvctrl->XOpenDisplay == NULL) return -1;
+
   void *dpy = xnvctrl->XOpenDisplay (NULL);
 
   if (dpy == NULL)
@@ -94,6 +95,10 @@ int hm_XNVCTRL_XOpenDisplay (XNVCTRL_PTR *xnvctrl)
 
 void hm_XNVCTRL_XCloseDisplay (XNVCTRL_PTR *xnvctrl)
 {
+  if (xnvctrl == NULL) return;
+
+  if (xnvctrl->XCloseDisplay == NULL) return;
+
   if (xnvctrl->dpy == NULL) return;
 
   xnvctrl->XCloseDisplay (xnvctrl->dpy);
@@ -101,6 +106,10 @@ void hm_XNVCTRL_XCloseDisplay (XNVCTRL_PTR *xnvctrl)
 
 int get_fan_control (XNVCTRL_PTR *xnvctrl, int gpu, int *val)
 {
+  if (xnvctrl == NULL) return -1;
+
+  if (xnvctrl->XNVCTRLQueryTargetAttribute == NULL) return -1;
+
   if (xnvctrl->dpy == NULL) return -1;
 
   int rc = xnvctrl->XNVCTRLQueryTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_GPU, gpu, 0, NV_CTRL_GPU_COOLER_MANUAL_CONTROL, val);
@@ -112,6 +121,10 @@ int get_fan_control (XNVCTRL_PTR *xnvctrl, int gpu, int *val)
 
 int set_fan_control (XNVCTRL_PTR *xnvctrl, int gpu, int val)
 {
+  if (xnvctrl == NULL) return -1;
+
+  if (xnvctrl->XNVCTRLSetTargetAttribute == NULL) return -1;
+
   if (xnvctrl->dpy == NULL) return -1;
 
   int cur;
@@ -133,6 +146,10 @@ int set_fan_control (XNVCTRL_PTR *xnvctrl, int gpu, int val)
 
 int get_core_threshold (XNVCTRL_PTR *xnvctrl, int gpu, int *val)
 {
+  if (xnvctrl == NULL) return -1;
+
+  if (xnvctrl->XNVCTRLQueryTargetAttribute == NULL) return -1;
+
   if (xnvctrl->dpy == NULL) return -1;
 
   int rc = xnvctrl->XNVCTRLQueryTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_GPU, gpu, 0, NV_CTRL_GPU_CORE_THRESHOLD, val);
@@ -144,6 +161,10 @@ int get_core_threshold (XNVCTRL_PTR *xnvctrl, int gpu, int *val)
 
 int get_fan_speed_current (XNVCTRL_PTR *xnvctrl, int gpu, int *val)
 {
+  if (xnvctrl == NULL) return -1;
+
+  if (xnvctrl->XNVCTRLQueryTargetAttribute == NULL) return -1;
+
   if (xnvctrl->dpy == NULL) return -1;
 
   int rc = xnvctrl->XNVCTRLQueryTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_COOLER, gpu, 0, NV_CTRL_THERMAL_COOLER_CURRENT_LEVEL, val);
@@ -155,6 +176,10 @@ int get_fan_speed_current (XNVCTRL_PTR *xnvctrl, int gpu, int *val)
 
 int get_fan_speed_target (XNVCTRL_PTR *xnvctrl, int gpu, int *val)
 {
+  if (xnvctrl == NULL) return -1;
+
+  if (xnvctrl->XNVCTRLQueryTargetAttribute == NULL) return -1;
+
   if (xnvctrl->dpy == NULL) return -1;
 
   int rc = xnvctrl->XNVCTRLQueryTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_COOLER, gpu, 0, NV_CTRL_THERMAL_COOLER_LEVEL, val);
@@ -166,6 +191,10 @@ int get_fan_speed_target (XNVCTRL_PTR *xnvctrl, int gpu, int *val)
 
 int set_fan_speed_target (XNVCTRL_PTR *xnvctrl, int gpu, int val)
 {
+  if (xnvctrl == NULL) return -1;
+
+  if (xnvctrl->XNVCTRLSetTargetAttribute == NULL) return -1;
+
   if (xnvctrl->dpy == NULL) return -1;
 
   int cur;

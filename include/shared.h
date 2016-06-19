@@ -72,6 +72,20 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define hc_dlsym dlsym
 #endif
 
+#define HC_LOAD_FUNC2(ptr,name,type,var,libname,noerr) \
+  ptr->name = (type) hc_dlsym (ptr->var, #name); \
+  if (noerr != -1) { \
+    if (!ptr->name) { \
+      if (noerr == 1) { \
+        log_error ("ERROR: %s is missing from %s shared library.", #name, #libname); \
+        exit (-1); \
+      } else { \
+        log_info ("WARNING: %s is missing from %s shared library.", #name, #libname); \
+        return (-1); \
+      } \
+    } \
+  }
+
 #define HC_LOAD_FUNC(ptr,name,type,libname,noerr) \
   ptr->name = (type) hc_dlsym (ptr->lib, #name); \
   if (noerr != -1) { \
