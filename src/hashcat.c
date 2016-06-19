@@ -1835,6 +1835,26 @@ static void generate_cached_kernel_amp_filename (const uint attack_kern, char *p
   snprintf (cached_file, 255, "%s/kernels/amp_a%d.%s.kernel", profile_dir, attack_kern, device_name_chksum);
 }
 
+static char *filename_from_filepath (char *filepath)
+{
+  char *ptr = NULL;
+
+  if ((ptr = strrchr (filepath, '/')) != NULL)
+  {
+    ptr++;
+  }
+  else if ((ptr = strrchr (filepath, '\\')) != NULL)
+  {
+    ptr++;
+  }
+  else
+  {
+    ptr = filepath;
+  }
+
+  return ptr;
+}
+
 static uint convert_from_hex (char *line_buf, const uint line_len)
 {
   if (line_len & 1) return (line_len); // not in hex
@@ -3352,8 +3372,8 @@ static void autotune (hc_device_param_t *device_param)
   {
     clear_prompt ();
 
-    log_info ("Device #%u: autotuned kernel-accel to %u\n"
-              "Device #%u: autotuned kernel-loops to %u\n",
+    log_info ("- Device #%u: autotuned kernel-accel to %u\n"
+              "- Device #%u: autotuned kernel-loops to %u\n",
               device_param->device_id + 1, kernel_accel,
               device_param->device_id + 1, kernel_loops);
 
@@ -13672,8 +13692,6 @@ int main (int argc, char **argv)
 
     for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
     {
-      if ((opencl_platforms_filter & (1 << platform_id)) == 0) continue;
-
       cl_platform_id platform = platforms[platform_id];
 
       hc_clGetDeviceIDs (data.ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
@@ -13724,6 +13742,33 @@ int main (int argc, char **argv)
       {
         platform_vendor_id = VENDOR_ID_GENERIC;
       }
+
+      const uint platform_skipped = ((opencl_platforms_filter & (1 << platform_id)) == 0);
+
+      if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
+      {
+        if (machine_readable == 0)
+        {
+          int len = 0;
+
+          if (platform_skipped == 0)
+          {
+            len = log_info ("OpenCL Platform #%u: %s", platform_id + 1, platform_vendor);
+          }
+          else
+          {
+            len = log_info ("OpenCL Platform #%u: %s, skipped", platform_id + 1, platform_vendor);
+          }
+
+          char line[256] = { 0 };
+
+          for (int i = 0; i < len; i++) line[i] = '=';
+
+          log_info (line);
+        }
+      }
+
+      if (platform_skipped == 1) continue;
 
       for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
       {
@@ -13918,7 +13963,7 @@ int main (int argc, char **argv)
 
         if (device_endian_little == CL_FALSE)
         {
-          log_info ("Device #%u: WARNING: not little endian device", device_id + 1);
+          log_info ("- Device #%u: WARNING: not little endian device", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13931,7 +13976,7 @@ int main (int argc, char **argv)
 
         if (device_available == CL_FALSE)
         {
-          log_info ("Device #%u: WARNING: device not available", device_id + 1);
+          log_info ("- Device #%u: WARNING: device not available", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13944,7 +13989,7 @@ int main (int argc, char **argv)
 
         if (device_compiler_available == CL_FALSE)
         {
-          log_info ("Device #%u: WARNING: device no compiler available", device_id + 1);
+          log_info ("- Device #%u: WARNING: device no compiler available", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13957,7 +14002,7 @@ int main (int argc, char **argv)
 
         if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
         {
-          log_info ("Device #%u: WARNING: device does not support executing kernels", device_id + 1);
+          log_info ("- Device #%u: WARNING: device does not support executing kernels", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13974,14 +14019,14 @@ int main (int argc, char **argv)
 
         if (strstr (device_extensions, "base_atomics") == 0)
         {
-          log_info ("Device #%u: WARNING: device does not support base atomics", device_id + 1);
+          log_info ("- Device #%u: WARNING: device does not support base atomics", device_id + 1);
 
           device_param->skipped = 1;
         }
 
         if (strstr (device_extensions, "byte_addressable_store") == 0)
         {
-          log_info ("Device #%u: WARNING: device does not support byte addressable store", device_id + 1);
+          log_info ("- Device #%u: WARNING: device does not support byte addressable store", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -13996,7 +14041,7 @@ int main (int argc, char **argv)
 
         if (device_local_mem_size < 32768)
         {
-          log_info ("Device #%u: WARNING: device local mem size is too small", device_id + 1);
+          log_info ("- Device #%u: WARNING: device local mem size is too small", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -14015,8 +14060,8 @@ int main (int argc, char **argv)
             {
               if (algorithm_pos == 0)
               {
-                log_info ("Device #%u: WARNING: not native intel opencl runtime, expect massive speed loss", device_id + 1);
-                log_info ("           You can use --force to override this but do not post error reports if you do so");
+                log_info ("- Device #%u: WARNING: not native intel opencl runtime, expect massive speed loss", device_id + 1);
+                log_info ("             You can use --force to override this but do not post error reports if you do so");
               }
 
               device_param->skipped = 1;
@@ -14170,7 +14215,7 @@ int main (int argc, char **argv)
           {
             if (device_param->skipped == 0)
             {
-              log_info ("Device #%u: %s, %lu/%lu MB allocatable, %uMCU",
+              log_info ("- Device #%u: %s, %lu/%lu MB allocatable, %uMCU",
                         device_id + 1,
                         device_name,
                         (unsigned int) (device_maxmem_alloc / 1024 / 1024),
@@ -14179,7 +14224,7 @@ int main (int argc, char **argv)
             }
             else
             {
-              log_info ("Device #%u: %s, skipped",
+              log_info ("- Device #%u: %s, skipped",
                         device_id + 1,
                         device_name);
             }
@@ -14244,8 +14289,8 @@ int main (int argc, char **argv)
             {
               if (device_param->kernel_exec_timeout != 0)
               {
-                if (data.quiet == 0) log_info ("Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
-                if (data.quiet == 0) log_info ("           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
+                if (data.quiet == 0) log_info ("- Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
+                if (data.quiet == 0) log_info ("             See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
               }
             }
           }
@@ -14334,6 +14379,14 @@ int main (int argc, char **argv)
 
         devices_cnt++;
       }
+
+      if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
+      {
+        if (machine_readable == 0)
+        {
+          log_info ("");
+        }
+      }
     }
 
     if (keyspace == 0 && devices_active == 0)
@@ -14360,14 +14413,6 @@ int main (int argc, char **argv)
     data.devices_cnt = devices_cnt;
 
     data.devices_active = devices_active;
-
-    if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
-    {
-      if (machine_readable == 0)
-      {
-        log_info ("");
-      }
-    }
 
     /**
      * HM devices: init
@@ -15284,7 +15329,7 @@ int main (int argc, char **argv)
       /*
       if (kernel_accel_max == 0)
       {
-        log_error ("Device #%u: Device does not provide enough allocatable device-memory to handle hash-type %u", device_id + 1, data.hash_mode);
+        log_error ("- Device #%u: Device does not provide enough allocatable device-memory to handle hash-type %u", device_id + 1, data.hash_mode);
 
         return -1;
       }
@@ -15296,7 +15341,7 @@ int main (int argc, char **argv)
       /*
       if (kernel_accel_max < kernel_accel)
       {
-        if (quiet == 0) log_info ("Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
+        if (quiet == 0) log_info ("- Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
 
         device_param->kernel_accel = kernel_accel_max;
       }
@@ -15342,7 +15387,7 @@ int main (int argc, char **argv)
       */
 
       #ifdef DEBUG
-      log_info ("Device #%u: build_opts '%s'\n", device_id + 1, build_opts);
+      log_info ("- Device #%u: build_opts '%s'\n", device_id + 1, build_opts);
       #endif
 
       /**
@@ -15396,7 +15441,7 @@ int main (int argc, char **argv)
         {
           if (cached == 0)
           {
-            if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+            if (quiet == 0) log_info ("- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
 
             load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
@@ -15427,7 +15472,7 @@ int main (int argc, char **argv)
             {
               device_param->skipped = true;
 
-              log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+              log_info ("- Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
 
               continue;
             }
@@ -15447,7 +15492,7 @@ int main (int argc, char **argv)
           else
           {
             #ifdef DEBUG
-            log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+            log_info ("- Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
             #endif
 
             load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
@@ -15460,7 +15505,7 @@ int main (int argc, char **argv)
         else
         {
           #ifdef DEBUG
-          log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
+          log_info ("- Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
           #endif
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
@@ -15507,7 +15552,7 @@ int main (int argc, char **argv)
           {
             device_param->skipped = true;
 
-            log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+            log_info ("- Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
           }
         }
 
@@ -15566,7 +15611,7 @@ int main (int argc, char **argv)
 
         if (cached == 0)
         {
-          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+          if (quiet == 0) log_info ("- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
           if (quiet == 0) log_info ("");
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
@@ -15579,7 +15624,7 @@ int main (int argc, char **argv)
           {
             device_param->skipped = true;
 
-            log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+            log_info ("- Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
 
             continue;
           }
@@ -15599,7 +15644,7 @@ int main (int argc, char **argv)
         else
         {
           #ifdef DEBUG
-          log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+          log_info ("- Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
           #endif
 
           load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
@@ -15668,7 +15713,7 @@ int main (int argc, char **argv)
 
         if (cached == 0)
         {
-          if (quiet == 0) log_info ("Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, cached_file);
+          if (quiet == 0) log_info ("- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
           if (quiet == 0) log_info ("");
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
@@ -15681,7 +15726,7 @@ int main (int argc, char **argv)
           {
             device_param->skipped = true;
 
-            log_info ("Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+            log_info ("- Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
 
             continue;
           }
@@ -15701,7 +15746,7 @@ int main (int argc, char **argv)
         else
         {
           #ifdef DEBUG
-          if (quiet == 0) log_info ("Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+          if (quiet == 0) log_info ("- Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
           #endif
 
           load_kernel (cached_file, 1, kernel_lengths, kernel_sources);

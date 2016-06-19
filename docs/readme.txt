@@ -3,9 +3,9 @@ hashcat v3.00
 
 ** THE VERSION 3.00 IS CURRENTLY STILL IN BETA **
 
-AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)
-Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)
-NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)
+AMD users require AMD drivers 14.9 or later (recommended 15.12)
+Intel users require Intel OpenCL Runtime 14.2 or later (recommended 16.2 or later)
+NVidia users require NVidia drivers 346.59 or later (recommended 367.27 or later)
 
 ##
 ## Features
@@ -238,4 +238,3 @@ NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)
 - DSP
 - FPGA
 - Coprocessor
-

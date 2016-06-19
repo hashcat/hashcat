@@ -83,7 +83,7 @@ u64 byte_swap_64 (const u64 n)
 
 int last_len = 0;
 
-void log_final (FILE *fp, const char *fmt, va_list ap)
+int log_final (FILE *fp, const char *fmt, va_list ap)
 {
   if (last_len)
   {
@@ -110,84 +110,96 @@ void log_final (FILE *fp, const char *fmt, va_list ap)
   fflush (fp);
 
   last_len = len;
+
+  return len;
 }
 
-void log_out_nn (FILE *fp, const char *fmt, ...)
+int log_out_nn (FILE *fp, const char *fmt, ...)
 {
-  if (SUPPRESS_OUTPUT) return;
+  if (SUPPRESS_OUTPUT) return 0;
 
   va_list ap;
 
   va_start (ap, fmt);
 
-  log_final (fp, fmt, ap);
+  const int len = log_final (fp, fmt, ap);
 
   va_end (ap);
+
+  return len;
 }
 
-void log_info_nn (const char *fmt, ...)
+int log_info_nn (const char *fmt, ...)
 {
-  if (SUPPRESS_OUTPUT) return;
+  if (SUPPRESS_OUTPUT) return 0;
 
   va_list ap;
 
   va_start (ap, fmt);
 
-  log_final (stdout, fmt, ap);
+  const int len = log_final (stdout, fmt, ap);
 
   va_end (ap);
+
+  return len;
 }
 
-void log_error_nn (const char *fmt, ...)
+int log_error_nn (const char *fmt, ...)
 {
-  if (SUPPRESS_OUTPUT) return;
+  if (SUPPRESS_OUTPUT) return 0;
 
   va_list ap;
 
   va_start (ap, fmt);
 
-  log_final (stderr, fmt, ap);
+  const int len = log_final (stderr, fmt, ap);
 
   va_end (ap);
+
+  return len;
 }
 
-void log_out (FILE *fp, const char *fmt, ...)
+int log_out (FILE *fp, const char *fmt, ...)
 {
-  if (SUPPRESS_OUTPUT) return;
+  if (SUPPRESS_OUTPUT) return 0;
 
   va_list ap;
 
   va_start (ap, fmt);
 
-  log_final (fp, fmt, ap);
+  const int len = log_final (fp, fmt, ap);
 
   va_end (ap);
 
   fputc ('\n', fp);
 
   last_len = 0;
+
+  return len;
 }
 
-void log_info (const char *fmt, ...)
+int log_info (const char *fmt, ...)
 {
-  if (SUPPRESS_OUTPUT) return;
+  if (SUPPRESS_OUTPUT) return 0;
 
   va_list ap;
 
   va_start (ap, fmt);
 
-  log_final (stdout, fmt, ap);
+  const int len = log_final (stdout, fmt, ap);
 
   va_end (ap);
 
   fputc ('\n', stdout);
 
   last_len = 0;
+
+  return len;
 }
 
-void log_error (const char *fmt, ...)
+int log_error (const char *fmt, ...)
 {
-  if (SUPPRESS_OUTPUT) return;
+  if (SUPPRESS_OUTPUT) return 0;
 
   fputc ('\n', stderr);
   fputc ('\n', stderr);
@@ -196,7 +208,7 @@ void log_error (const char *fmt, ...)
 
   va_start (ap, fmt);
 
-  log_final (stderr, fmt, ap);
+  const int len = log_final (stderr, fmt, ap);
 
   va_end (ap);
 
@@ -204,6 +216,8 @@ void log_error (const char *fmt, ...)
   fputc ('\n', stderr);
 
   last_len = 0;
+
+  return len;
 }
 
 /**
