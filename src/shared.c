@@ -9176,7 +9176,7 @@ void stop_at_checkpoint ()
 
   if (data.restore_disable == 1)
   {
-    log_info ("WARNING: This feature is disabled when --restore-disable was specified");
+    log_info ("WARNING: This feature is disabled when --restore-disable is specified");
 
     return;
   }
@@ -10505,7 +10505,7 @@ int wpa_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   if (salt_len > 36)
   {
-    log_info ("WARNING: The length of the ESSID is too long. The hccap file may be invalid or corrupted");
+    log_info ("WARNING: The ESSID length is too long, the hccap file may be invalid or corrupted");
 
     return (PARSER_SALT_LENGTH);
   }
