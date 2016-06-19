@@ -11929,7 +11929,7 @@ int main (int argc, char **argv)
 
         if (hash_fmt_error)
         {
-          log_info ("WARNING: failed to parse hashes using the '%s' format", strhlfmt (hashlist_format));
+          log_info ("WARNING: Failed to parse hashes using the '%s' format", strhlfmt (hashlist_format));
         }
         else
         {
@@ -12226,7 +12226,7 @@ int main (int argc, char **argv)
 
               if (parser_status < PARSER_GLOBAL_ZERO)
               {
-                log_info ("WARNING: Hashfile '%s' in line %u (%s): %s", data.hashfile, line_num, line_buf, strparser (parser_status));
+                log_info ("WARNING: Hashfile '%s' on line %u (%s): %s", data.hashfile, line_num, line_buf, strparser (parser_status));
 
                 continue;
               }
@@ -12239,7 +12239,7 @@ int main (int argc, char **argv)
 
               if (parser_status < PARSER_GLOBAL_ZERO)
               {
-                log_info ("WARNING: Hashfile '%s' in line %u (%s): %s", data.hashfile, line_num, line_buf, strparser (parser_status));
+                log_info ("WARNING: Hashfile '%s' on line %u (%s): %s", data.hashfile, line_num, line_buf, strparser (parser_status));
 
                 continue;
               }
@@ -12261,7 +12261,7 @@ int main (int argc, char **argv)
 
               if (parser_status < PARSER_GLOBAL_ZERO)
               {
-                log_info ("WARNING: Hashfile '%s' in line %u (%s): %s", data.hashfile, line_num, line_buf, strparser (parser_status));
+                log_info ("WARNING: Hashfile '%s' on line %u (%s): %s", data.hashfile, line_num, line_buf, strparser (parser_status));
 
                 continue;
               }
@@ -12280,7 +12280,7 @@ int main (int argc, char **argv)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              log_info ("WARNING: Hashfile '%s' in line %u (%s): %s", data.hashfile, line_num, line_buf, strparser (parser_status));
+              log_info ("WARNING: Hashfile '%s' on line %u (%s): %s", data.hashfile, line_num, line_buf, strparser (parser_status));
 
               continue;
             }
@@ -13504,14 +13504,14 @@ int main (int argc, char **argv)
 
         if (result == -1)
         {
-          log_info ("WARNING: Skipping invalid or unsupported rule in file %s in line %u: %s", rp_file, rule_line, rule_buf);
+          log_info ("WARNING: Skipping invalid or unsupported rule in file %s on line %u: %s", rp_file, rule_line, rule_buf);
 
           continue;
         }
 
         if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1)
         {
-          log_info ("WARNING: Cannot convert rule for use on device in file %s in line %u: %s", rp_file, rule_line, rule_buf);
+          log_info ("WARNING: Cannot convert rule for use on device in file %s on line %u: %s", rp_file, rule_line, rule_buf);
 
           memset (&kernel_rules_buf[kernel_rules_cnt], 0, sizeof (kernel_rule_t)); // needs to be cleared otherwise we could have some remaining data
 
@@ -14015,7 +14015,7 @@ int main (int argc, char **argv)
 
         if (device_endian_little == CL_FALSE)
         {
-          log_info ("- Device #%u: WARNING: not little endian device", device_id + 1);
+          log_info ("- Device #%u: WARNING: Not a little endian device", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -14028,7 +14028,7 @@ int main (int argc, char **argv)
 
         if (device_available == CL_FALSE)
         {
-          log_info ("- Device #%u: WARNING: device not available", device_id + 1);
+          log_info ("- Device #%u: WARNING: Device not available", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -14041,7 +14041,7 @@ int main (int argc, char **argv)
 
         if (device_compiler_available == CL_FALSE)
         {
-          log_info ("- Device #%u: WARNING: device no compiler available", device_id + 1);
+          log_info ("- Device #%u: WARNING: No compiler available for device", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -14054,7 +14054,7 @@ int main (int argc, char **argv)
 
         if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
         {
-          log_info ("- Device #%u: WARNING: device does not support executing kernels", device_id + 1);
+          log_info ("- Device #%u: WARNING: Device does not support executing kernels", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -14071,14 +14071,14 @@ int main (int argc, char **argv)
 
         if (strstr (device_extensions, "base_atomics") == 0)
         {
-          log_info ("- Device #%u: WARNING: device does not support base atomics", device_id + 1);
+          log_info ("- Device #%u: WARNING: Device does not support base atomics", device_id + 1);
 
           device_param->skipped = 1;
         }
 
         if (strstr (device_extensions, "byte_addressable_store") == 0)
         {
-          log_info ("- Device #%u: WARNING: device does not support byte addressable store", device_id + 1);
+          log_info ("- Device #%u: WARNING: Device does not support byte addressable store", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -14093,7 +14093,7 @@ int main (int argc, char **argv)
 
         if (device_local_mem_size < 32768)
         {
-          log_info ("- Device #%u: WARNING: device local mem size is too small", device_id + 1);
+          log_info ("- Device #%u: WARNING: Device local mem size is too small", device_id + 1);
 
           device_param->skipped = 1;
         }
@@ -14112,7 +14112,7 @@ int main (int argc, char **argv)
             {
               if (algorithm_pos == 0)
               {
-                log_info ("- Device #%u: WARNING: not native intel opencl runtime, expect massive speed loss", device_id + 1);
+                log_info ("- Device #%u: WARNING: Not a native intel opencl runtime, expect massive speed loss", device_id + 1);
                 log_info ("             You can use --force to override this but do not post error reports if you do so");
               }
 
@@ -14313,8 +14313,8 @@ int main (int argc, char **argv)
               if (catalyst_broken == 1)
               {
                 log_info ("");
-                log_info ("ATTENTION! The installed catalyst driver in your system is known to be broken!");
-                log_info ("It will pass over cracked hashes and does not report them as cracked");
+                log_info ("ATTENTION! The Catalyst driver installed on your system is known to be broken!");
+                log_info ("It passes over cracked hashes and will not report them as cracked");
                 log_info ("You are STRONGLY encouraged not to use it");
                 log_info ("You can use --force to override this but do not post error reports if you do so");
                 log_info ("");
@@ -14325,8 +14325,8 @@ int main (int argc, char **argv)
               if (catalyst_warn == 1)
               {
                 log_info ("");
-                log_info ("ATTENTION! Unsupported or incorrect installed catalyst driver detected!");
-                log_info ("You are STRONGLY encouraged to use the official supported catalyst driver for good reasons");
+                log_info ("ATTENTION! Unsupported or incorrectly installed Catalyst driver detected!");
+                log_info ("You are STRONGLY encouraged to use the official supported catalyst driver");
                 log_info ("See hashcat's homepage for official supported catalyst drivers");
                 #ifdef _WIN
                 log_info ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
