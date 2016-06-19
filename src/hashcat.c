@@ -4189,7 +4189,7 @@ static void *thread_monitor (void *p)
               {
                 if (data.quiet == 0) clear_prompt ();
 
-                log_info ("WARNING: Drivers temperature threshold hit on GPU #%d, expect performance to drop...", device_id + 1);
+                log_info ("WARNING: Driver's temperature threshold hit on GPU #%d, expect performance to drop...", device_id + 1);
 
                 if (slowdown_warnings == 2)
                 {
@@ -6493,7 +6493,7 @@ int main (int argc, char **argv)
     {
       if (outfile_format > 1)
       {
-        log_error ("ERROR: Mixing outfile-format > 1 is not allowed together with left parameter");
+        log_error ("ERROR: Mixing outfile-format > 1 with left parameter is not allowed");
 
         return (-1);
       }
@@ -6510,7 +6510,7 @@ int main (int argc, char **argv)
     {
       if ((outfile_format > 7) && (outfile_format < 16))
       {
-        log_error ("ERROR: Mixing outfile-format > 7 is not allowed together with show parameter");
+        log_error ("ERROR: Mixing outfile-format > 7 with show parameter is not allowed");
 
         return (-1);
       }
@@ -6540,21 +6540,21 @@ int main (int argc, char **argv)
 
   if ((increment == 1) && (attack_mode == ATTACK_MODE_STRAIGHT))
   {
-    log_error ("ERROR: increment is not allowed in attack-mode 0");
+    log_error ("ERROR: Increment is not allowed in attack-mode 0");
 
     return (-1);
   }
 
   if ((increment == 0) && (increment_min_chgd == 1))
   {
-    log_error ("ERROR: increment-min is only supported together with increment switch");
+    log_error ("ERROR: Increment-min is only supported combined with increment switch");
 
     return (-1);
   }
 
   if ((increment == 0) && (increment_max_chgd == 1))
   {
-    log_error ("ERROR: increment-max is only supported together with increment switch");
+    log_error ("ERROR: Increment-max is only supported combined with increment switch");
 
     return (-1);
   }
@@ -6774,13 +6774,13 @@ int main (int argc, char **argv)
   {
     if (show == 1)
     {
-      log_error ("ERROR: Mixing show parameter not supported with keyspace parameter");
+      log_error ("ERROR: Combining show parameter with keyspace parameter is not allowed");
 
       return (-1);
     }
     else if (left == 1)
     {
-      log_error ("ERROR: Mixing left parameter not supported wiht keyspace parameter");
+      log_error ("ERROR: Combining left parameter with keyspace parameter is not allowed");
 
       return (-1);
     }
@@ -6812,15 +6812,13 @@ int main (int argc, char **argv)
     kernel_loops          = 1024;
     force                 = 1;
     outfile_check_timer   = 0;
-    session               = "stdout";
-    opencl_vector_width   = 1;
   }
 
   if (remove_timer_chgd == 1)
   {
     if (remove == 0)
     {
-      log_error ("ERROR: Parameter remove-timer require parameter remove enabled");
+      log_error ("ERROR: Parameter remove-timer requires parameter remove enabled");
 
       return (-1);
     }
@@ -6846,7 +6844,7 @@ int main (int argc, char **argv)
     }
     else
     {
-      log_error ("ERROR: Parameter loopback allowed in attack-mode 0 only");
+      log_error ("ERROR: Parameter loopback is only allowed in attack-mode 0");
 
       return (-1);
     }
@@ -6900,7 +6898,7 @@ int main (int argc, char **argv)
   {
     if ((weak_hash_threshold != WEAK_HASH_THRESHOLD) && (weak_hash_threshold != 0))
     {
-      log_error ("ERROR: setting --weak-hash-threshold allowed only in straight-attack mode");
+      log_error ("ERROR: Setting --weak-hash-threshold allowed only in straight-attack mode");
 
       return (-1);
     }
@@ -6910,7 +6908,7 @@ int main (int argc, char **argv)
 
   if (nvidia_spin_damp > 100)
   {
-    log_error ("ERROR: setting --nvidia-spin-damp must be between 0 and 100 (inclusive)");
+    log_error ("ERROR: Setting --nvidia-spin-damp must be between 0 and 100 (inclusive)");
 
     return (-1);
   }
@@ -8747,7 +8745,7 @@ int main (int argc, char **argv)
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
-                   kern_type   = KERN_TYPE_STDOUT;
+                   kern_type   = 0;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = NULL;
                    sort_by_digest = NULL;
@@ -11786,7 +11784,7 @@ int main (int argc, char **argv)
 
         if (hashes_avail == 0)
         {
-          log_error ("ERROR: hashfile is empty or corrupt");
+          log_error ("ERROR: Hashfile is empty or corrupt");
 
           fclose (fp);
 
@@ -11797,7 +11795,7 @@ int main (int argc, char **argv)
 
         if ((remove == 1) && (hashlist_format != HLFMT_HASHCAT))
         {
-          log_error ("ERROR: remove not supported in native hashfile-format mode");
+          log_error ("ERROR: Remove not supported in native hashfile-format mode");
 
           fclose (fp);
 
@@ -13678,13 +13676,14 @@ int main (int argc, char **argv)
       }
     }
 
+    /**
+     * OpenCL device types:
+     *   In case the user did not specify --opencl-device-types and the user runs hashcat in a system with only a CPU only he probably want to use that CPU.
+     *   In such a case, automatically enable CPU device type support, since it's disabled by default.
+     */
+
     if (opencl_device_types == NULL)
     {
-      /**
-       * OpenCL device types:
-       *   In case the user did not specify --opencl-device-types and the user runs hashcat in a system with only a CPU only he probably want to use that CPU.
-       */
-
       cl_device_type device_types_all = 0;
 
       for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
@@ -13707,22 +13706,9 @@ int main (int argc, char **argv)
         }
       }
 
-      // In such a case, automatically enable CPU device type support, since it's disabled by default.
-
       if ((device_types_all & (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) == 0)
       {
         device_types_filter |= CL_DEVICE_TYPE_CPU;
-      }
-
-      // In another case, when the user uses --stdout, using CPU devices is much faster to setup
-      // If we have a CPU device, force it to be used
-
-      if (stdout_flag == 1)
-      {
-        if (device_types_all & CL_DEVICE_TYPE_CPU)
-        {
-          device_types_filter = CL_DEVICE_TYPE_CPU;
-        }
       }
     }
 
@@ -13802,21 +13788,22 @@ int main (int argc, char **argv)
       {
         if (machine_readable == 0)
         {
+          int len = 0;
+
           if (platform_skipped == 0)
           {
-            const int len = log_info ("OpenCL Platform #%u: %s", platform_id + 1, platform_vendor);
-
-            char line[256] = { 0 };
-
-            for (int i = 0; i < len; i++) line[i] = '=';
-
-            log_info (line);
+            len = log_info ("OpenCL Platform #%u: %s", platform_id + 1, platform_vendor);
           }
           else
           {
-            log_info ("OpenCL Platform #%u: %s, skipped", platform_id + 1, platform_vendor);
-            log_info ("");
+            len = log_info ("OpenCL Platform #%u: %s, skipped", platform_id + 1, platform_vendor);
           }
+
+          char line[256] = { 0 };
+
+          for (int i = 0; i < len; i++) line[i] = '=';
+
+          log_info (line);
         }
       }
 
@@ -14646,7 +14633,7 @@ int main (int argc, char **argv)
     {
       if (gpu_temp_abort < gpu_temp_retain)
       {
-        log_error ("ERROR: invalid values for gpu-temp-abort. Parameter gpu-temp-abort is less than gpu-temp-retain.");
+        log_error ("ERROR: Invalid values for gpu-temp-abort. Parameter gpu-temp-abort is less than gpu-temp-retain.");
 
         return (-1);
       }
@@ -14874,12 +14861,12 @@ int main (int argc, char **argv)
 
               if ((engine_clock_max - engine_clock_profile_max) > warning_trigger_engine)
               {
-                log_info ("WARN: the custom profile seems to have too low maximum engine clock values. You therefore may not reach full performance");
+                log_info ("WARN: The custom profile seems to have too low maximum engine clock values. You therefore may not reach full performance");
               }
 
               if ((memory_clock_max - memory_clock_profile_max) > warning_trigger_memory)
               {
-                log_info ("WARN: the custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
+                log_info ("WARN: The custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
               }
 
               ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
@@ -15122,7 +15109,7 @@ int main (int argc, char **argv)
 
           if (size_scryptV > device_param->device_maxmem_alloc)
           {
-            if (quiet == 0) log_info ("WARNING: not enough device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+            if (quiet == 0) log_info ("WARNING: Not enough device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
 
             continue;
           }
@@ -15138,7 +15125,7 @@ int main (int argc, char **argv)
 
         if (data.salts_buf[0].scrypt_phy == 0)
         {
-          log_error ("ERROR: can't allocate enough device memory");
+          log_error ("ERROR: Can't allocate enough device memory");
 
           return -1;
         }
@@ -15524,7 +15511,7 @@ int main (int argc, char **argv)
             {
               device_param->skipped = true;
 
-              log_info ("- Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+              log_info ("- Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
 
               continue;
             }
@@ -15604,7 +15591,7 @@ int main (int argc, char **argv)
           {
             device_param->skipped = true;
 
-            log_info ("- Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+            log_info ("- Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
           }
         }
 
@@ -15676,7 +15663,7 @@ int main (int argc, char **argv)
           {
             device_param->skipped = true;
 
-            log_info ("- Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+            log_info ("- Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
 
             continue;
           }
@@ -16434,7 +16421,7 @@ int main (int argc, char **argv)
 
             if (keyspace == 1)
             {
-              log_error ("ERROR: keyspace parameter is not allowed together with a directory");
+              log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
               return (-1);
             }
@@ -16897,7 +16884,7 @@ int main (int argc, char **argv)
 
           if (keyspace == 1)
           {
-            log_error ("ERROR: keyspace parameter is not allowed together with a directory");
+            log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
             return (-1);
           }
@@ -17076,7 +17063,7 @@ int main (int argc, char **argv)
 
           if (keyspace == 1)
           {
-            log_error ("ERROR: keyspace parameter is not allowed together with a directory");
+            log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
             return (-1);
           }
@@ -17250,8 +17237,8 @@ int main (int argc, char **argv)
     {
       if (potfile_remove_cracks > 0)
       {
-        if (potfile_remove_cracks == 1) log_info ("INFO: removed 1 hash found in pot file\n");
-        else                            log_info ("INFO: removed %u hashes found in pot file\n", potfile_remove_cracks);
+        if (potfile_remove_cracks == 1) log_info ("INFO: Removed 1 hash found in pot file\n");
+        else                            log_info ("INFO: Removed %u hashes found in pot file\n", potfile_remove_cracks);
       }
     }
 
@@ -17773,12 +17760,12 @@ int main (int argc, char **argv)
           {
             if (css_cnt < mask_min)
             {
-              log_info ("WARNING: skipping mask '%s' because it is smaller than the minimum password length", mask);
+              log_info ("WARNING: Skipping mask '%s' because it is smaller than the minimum password length", mask);
             }
 
             if (css_cnt > mask_max)
             {
-              log_info ("WARNING: skipping mask '%s' because it is larger than the maximum password length", mask);
+              log_info ("WARNING: Skipping mask '%s' because it is larger than the maximum password length", mask);
             }
 
             // skip to next mask
@@ -17993,7 +17980,7 @@ int main (int argc, char **argv)
 
         if (data.words_cur > data.words_base)
         {
-          log_error ("ERROR: restore value greater keyspace");
+          log_error ("ERROR: Restore value greater keyspace");
 
           return (-1);
         }
