@@ -2337,9 +2337,46 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
   }
 }
 
+// stolen from princeprocessor ;)
+
+typedef struct
+{
+  FILE *fp;
+
+  char  buf[BUFSIZ];
+  int   len;
+
+} out_t;
+
+static void out_flush (out_t *out)
+{
+  fwrite (out->buf, 1, out->len, out->fp);
+
+  out->len = 0;
+}
+
+static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
+{
+  char *ptr = out->buf + out->len;
+
+  memcpy (ptr, pw_buf, pw_len);
+
+  ptr[pw_len] = '\n';
+
+  out->len += pw_len + 1;
+
+  if (out->len >= BUFSIZ - 100)
+  {
+    out_flush (out);
+  }
+}
+
 static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 {
-  char out_buf[HCBUFSIZ] = { 0 };
+  out_t out;
+
+  out.fp  = stdout;
+  out.len = 0;
 
   uint plain_buf[16] = { 0 };
 
@@ -2372,7 +2409,7 @@ static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
         if (plain_len > data.pw_max) plain_len = data.pw_max;
 
-        format_output (stdout, out_buf, plain_ptr, plain_len, 0, NULL, 0);
+        out_push (&out, plain_ptr, plain_len);
       }
     }
   }
@@ -2414,7 +2451,7 @@ static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
           if (plain_len > data.pw_max) plain_len = data.pw_max;
         }
 
-        format_output (stdout, out_buf, plain_ptr, plain_len, 0, NULL, 0);
+        out_push (&out, plain_ptr, plain_len);
       }
     }
   }
@@ -2438,7 +2475,7 @@ static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
         plain_len = data.css_cnt;
 
-        format_output (stdout, out_buf, plain_ptr, plain_len, 0, NULL, 0);
+        out_push (&out, plain_ptr, plain_len);
       }
     }
   }
@@ -2468,7 +2505,7 @@ static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
         plain_len += start + stop;
 
-        format_output (stdout, out_buf, plain_ptr, plain_len, 0, NULL, 0);
+        out_push (&out, plain_ptr, plain_len);
       }
     }
   }
@@ -2500,10 +2537,12 @@ static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
         plain_len += start + stop;
 
-        format_output (stdout, out_buf, plain_ptr, plain_len, 0, NULL, 0);
+        out_push (&out, plain_ptr, plain_len);
       }
     }
   }
+
+  out_flush (&out);
 }
 
 static void save_hash ()
