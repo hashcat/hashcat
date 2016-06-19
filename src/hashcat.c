@@ -6773,6 +6773,8 @@ int main (int argc, char **argv)
     kernel_loops          = 1024;
     force                 = 1;
     outfile_check_timer   = 0;
+    session               = "stdout";
+    opencl_vector_width   = 1;
   }
 
   if (remove_timer_chgd == 1)
@@ -8706,7 +8708,7 @@ int main (int argc, char **argv)
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
                    opts_type   = OPTS_TYPE_PT_GENERATE_LE;
-                   kern_type   = 0;
+                   kern_type   = KERN_TYPE_STDOUT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = NULL;
                    sort_by_digest = NULL;
@@ -13637,14 +13639,13 @@ int main (int argc, char **argv)
       }
     }
 
-    /**
-     * OpenCL device types:
-     *   In case the user did not specify --opencl-device-types and the user runs hashcat in a system with only a CPU only he probably want to use that CPU.
-     *   In such a case, automatically enable CPU device type support, since it's disabled by default.
-     */
-
     if (opencl_device_types == NULL)
     {
+      /**
+       * OpenCL device types:
+       *   In case the user did not specify --opencl-device-types and the user runs hashcat in a system with only a CPU only he probably want to use that CPU.
+       */
+
       cl_device_type device_types_all = 0;
 
       for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
@@ -13667,9 +13668,22 @@ int main (int argc, char **argv)
         }
       }
 
+      // In such a case, automatically enable CPU device type support, since it's disabled by default.
+
       if ((device_types_all & (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) == 0)
       {
         device_types_filter |= CL_DEVICE_TYPE_CPU;
+      }
+
+      // In another case, when the user uses --stdout, using CPU devices is much faster to setup
+      // If we have a CPU device, force it to be used
+
+      if (stdout_flag == 1)
+      {
+        if (device_types_all & CL_DEVICE_TYPE_CPU)
+        {
+          device_types_filter = CL_DEVICE_TYPE_CPU;
+        }
       }
     }
 
@@ -13749,22 +13763,21 @@ int main (int argc, char **argv)
       {
         if (machine_readable == 0)
         {
-          int len = 0;
-
           if (platform_skipped == 0)
           {
-            len = log_info ("OpenCL Platform #%u: %s", platform_id + 1, platform_vendor);
+            const int len = log_info ("OpenCL Platform #%u: %s", platform_id + 1, platform_vendor);
+
+            char line[256] = { 0 };
+
+            for (int i = 0; i < len; i++) line[i] = '=';
+
+            log_info (line);
           }
           else
           {
-            len = log_info ("OpenCL Platform #%u: %s, skipped", platform_id + 1, platform_vendor);
+            log_info ("OpenCL Platform #%u: %s, skipped", platform_id + 1, platform_vendor);
+            log_info ("");
           }
-
-          char line[256] = { 0 };
-
-          for (int i = 0; i < len; i++) line[i] = '=';
-
-          log_info (line);
         }
       }
 

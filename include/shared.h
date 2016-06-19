@@ -893,6 +893,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_HMACSHA512_PW       1750
 #define KERN_TYPE_HMACSHA512_SLT      1760
 #define KERN_TYPE_SHA512CRYPT         1800
+#define KERN_TYPE_STDOUT              2000
 #define KERN_TYPE_DCC2                2100
 #define KERN_TYPE_MD5PIX              2400
 #define KERN_TYPE_MD5ASA              2410
