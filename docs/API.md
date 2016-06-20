@@ -86,7 +86,7 @@ This structure is used by hcapi_start_thread to pass multiple args to the thread
 
 This structure holds all the status data about the running hashcat process. 
 
-** NOTE: The structures below were designed to help organize the status data. If there is a better approach all ideas are welcome **
+**NOTE: The structures below were designed to help organize the status data. If there is a better approach all ideas are welcome**
 
 ###hcapi_data_time_started_t
 
