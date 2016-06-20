@@ -155,9 +155,9 @@ int main ()
 
   hc.options.attack_mode = 7;
   hc.options.markov_threshold = 32;
-  hc.options.hash_input = "C:\\Users\\rich\\Desktop\\hashes\\example0.hash";
+  hc.options.hash_input = "C:\\Users\\user\\Desktop\\hashes\\example0.hash";
   hc.options.append_dictmaskdir(&hc.options, "?a?a?a?a");
-  hc.options.append_dictmaskdir (&hc.options, "C:\\Users\\rich\\Desktop\\hashes\\example.dict");
+  hc.options.append_dictmaskdir (&hc.options, "C:\\Users\\user\\Desktop\\hashes\\example.dict");
 
 
   int c;
