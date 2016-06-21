@@ -2276,13 +2276,13 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
     uint cpt_cracked = 0;
 
+    hc_thread_mutex_lock (mux_display);
+
     for (uint i = 0; i < num_cracked; i++)
     {
       const uint hash_pos = cracked[i].hash_pos;
 
       if (data.digests_shown[hash_pos] == 1) continue;
-
-      hc_thread_mutex_lock (mux_display);
 
       if ((data.opts_type & OPTS_TYPE_PT_NEVERCRACK) == 0)
       {
@@ -2304,10 +2304,10 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
       if (data.salts_done == data.salts_cnt) data.devices_status = STATUS_CRACKED;
 
-      hc_thread_mutex_unlock (mux_display);
-
       check_hash (device_param, &cracked[i]);
     }
+
+    hc_thread_mutex_unlock (mux_display);
 
     myfree (cracked);
 
