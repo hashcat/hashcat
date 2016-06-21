@@ -6591,8 +6591,8 @@ int main (int argc, char **argv)
   {
     if (force == 0)
     {
-      log_info ("The manual use of the option -n (or --kernel-accel) is outdated");
-      log_info ("Please consider using the option -w instead");
+      log_info ("The manual use of the -n option (or --kernel-accel) is outdated");
+      log_info ("Please consider using the -w option instead");
       log_info ("You can use --force to override this but do not post error reports if you do so");
       log_info ("");
 
@@ -6618,7 +6618,7 @@ int main (int argc, char **argv)
   {
     if (force == 0)
     {
-      log_info ("The manual use of the option -u (or --kernel-loops) is outdated");
+      log_info ("The manual use of the -u option (or --kernel-loops) is outdated");
       log_info ("Please consider using the option -w instead");
       log_info ("You can use --force to override this but do not post error reports if you do so");
       log_info ("");
