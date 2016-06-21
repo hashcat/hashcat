@@ -6619,7 +6619,7 @@ int main (int argc, char **argv)
     if (force == 0)
     {
       log_info ("The manual use of the -u option (or --kernel-loops) is outdated");
-      log_info ("Please consider using the option -w instead");
+      log_info ("Please consider using the -w option instead");
       log_info ("You can use --force to override this but do not post error reports if you do so");
       log_info ("");
 
