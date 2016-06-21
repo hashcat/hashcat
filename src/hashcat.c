@@ -1753,7 +1753,14 @@ static void status_benchmark ()
 
     format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
-    log_info ("Speed.Dev.#%d.: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+    if (data.devices_active >= 10)
+    {
+      log_info ("Speed.Dev.#%d: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+    }
+    else
+    {
+      log_info ("Speed.Dev.#%d.: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+    }
   }
 
   char display_all_cur[16] = { 0 };
@@ -6399,9 +6406,6 @@ int main (int argc, char **argv)
       if (machine_readable == 0)
       {
         log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
-        log_info ("");
-        log_info ("Note: Reported benchmark cracking speed = real cracking speed");
-        log_info ("To verify, run hashcat like this: only_one_hash.txt -a 3 -w 3 ?b?b?b?b?b?b?b");
         log_info ("");
       }
       else
