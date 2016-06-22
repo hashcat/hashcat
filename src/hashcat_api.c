@@ -3142,9 +3142,9 @@ int main ()
 
   hc.options.attack_mode = 7;
   hc.options.markov_threshold = 32;
-  hc.options.hash_input = "/home/rtadmin/hc/oclHashcat/example0.hash";
+  hc.options.hash_input = "/home/user/hc/oclHashcat/example0.hash";
   hc.options.append_dictmaskdir (&hc.options, "?a?a?a?a");
-  hc.options.append_dictmaskdir (&hc.options, "/home/rtadmin/hc/oclHashcat/example.dict");
+  hc.options.append_dictmaskdir (&hc.options, "/home/user/hc/oclHashcat/example.dict");
 
 
   int c;
