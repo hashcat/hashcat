@@ -172,6 +172,8 @@ WIN_64_OBJS              := obj/ext_OpenCL.WIN.64.o   obj/shared.WIN.64.o   obj/
 
 native: hashcat
 
+nativeAPI: hashcatAPI
+
 binaries: linux32 linux64 win32 win64 linux32API linux64API win32API win64API
 
 clean:
@@ -198,7 +200,7 @@ win64API: hashcat64API.exe
 ## How to make /usr/bin/install doing recursive??
 ##
 
-install: native
+install: native nativeAPI
 	$(INSTALL) -m 755 -d                            $(DOCUMENT_FOLDER)
 	$(CP) -a docs/*                                 $(DOCUMENT_FOLDER)/
 	$(CP) -a example*.sh                            $(DOCUMENT_FOLDER)/
@@ -239,6 +241,9 @@ obj/%.NATIVE.o:   src/%.c
 hashcat:       src/hashcat.c $(NATIVE_OBJS)
 	$(CC_NATIVE) $(CFLAGS_NATIVE)    -o $(BINARY_NATIVE) $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
+hashcatAPI:       src/hashcat.c src/hashcat_api.c $(NATIVE_OBJS)
+	$(CC_NATIVE) $(CFLAGS_NATIVE)   -DAPI -o $(BINARY_NATIVE) $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+
 ##
 ## cross compiled hashcat for binary release version
 ##
@@ -268,18 +273,18 @@ hashcat64.exe: src/hashcat.c $(WIN_64_OBJS)
 	$(CC_WIN_64)   -D_WIN64   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -static-libgcc
 
 ##
-##	Support for third-party integration via API
+##	support for third-party integration via API
 ##
 
-hashcat32API.bin: src/hashcat.c src/hashcatAPI.c $(LINUX_32_OBJS)
+hashcat32API.bin: src/hashcat.c src/hashcat_api.c $(LINUX_32_OBJS)
 	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32) -DAPI -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-hashcat64API.bin: src/hashcat.c src/hashcatAPI.c $(LINUX_64_OBJS)
+hashcat64API.bin: src/hashcat.c src/hashcat_api.c $(LINUX_64_OBJS)
 	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64)  -DAPI -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-hashcat32API.exe: src/hashcat.c src/hashcatAPI.c $(WIN_32_OBJS)
+hashcat32API.exe: src/hashcat.c src/hashcat_api.c $(WIN_32_OBJS)
 	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32)  -DAPI -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -static-libgcc
 
-hashcat64API.exe: src/hashcat.c src/hashcatAPI.c $(WIN_64_OBJS)
+hashcat64API.exe: src/hashcat.c src/hashcat_api.c $(WIN_64_OBJS)
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) -DAPI  -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DVERSION_SUM=\"$(VERSION_SUM)\" -static-libgcc
 
