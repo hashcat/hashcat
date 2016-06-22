@@ -156,6 +156,7 @@ int log_error (const char *fmt, ...);
 #define MARKOV_DISABLE          0
 #define MARKOV_CLASSIC          0
 #define BENCHMARK               0
+#define STDOUT_FLAG             0
 #define RESTORE                 0
 #define RESTORE_TIMER           60
 #define RESTORE_DISABLE         0
@@ -197,9 +198,10 @@ int log_error (const char *fmt, ...);
 #define SEPARATOR               ':'
 #define BITMAP_MIN              16
 #define BITMAP_MAX              24
+#define NVIDIA_SPIN_DAMP        100
 #define GPU_TEMP_DISABLE        0
 #define GPU_TEMP_ABORT          90
-#define GPU_TEMP_RETAIN         0
+#define GPU_TEMP_RETAIN         65
 #define WORKLOAD_PROFILE        2
 #define KERNEL_ACCEL            0
 #define KERNEL_LOOPS            0
@@ -272,6 +274,8 @@ int log_error (const char *fmt, ...);
 #define MAX_DICTSTAT            10000
 
 #define NUM_DEFAULT_BENCHMARK_ALGORITHMS 143
+
+#define NVIDIA_100PERCENTCPU_WORKAROUND 100
 
 
 #endif // COMMON_H

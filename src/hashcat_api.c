@@ -1798,11 +1798,14 @@ void *start_hc_thread (void *params)
 
   debug_prints ("\n");
 
+  #ifdef DEBUG
   pthread_t self;
 
   self = pthread_self ();
 
   debug_print ("hcapi_main called from Thread: %d \n", (int) self);
+  #endif
+
   hcapi_main (argc, argv);
 
 
@@ -3139,9 +3142,9 @@ int main ()
 
   hc.options.attack_mode = 7;
   hc.options.markov_threshold = 32;
-  hc.options.hash_input = "C:\\Users\\user\\Desktop\\hashes\\example0.hash";
+  hc.options.hash_input = "/home/rtadmin/hc/oclHashcat/example0.hash";
   hc.options.append_dictmaskdir (&hc.options, "?a?a?a?a");
-  hc.options.append_dictmaskdir (&hc.options, "C:\\Users\\user\\Desktop\\hashes\\example.dict");
+  hc.options.append_dictmaskdir (&hc.options, "/home/rtadmin/hc/oclHashcat/example.dict");
 
 
   int c;
@@ -3152,7 +3155,7 @@ int main ()
   printf("[!] hashcat starting in the background\n");
   hc.start_thread (c, v);
 
-  char quit = 'r';
+  char quit;
 
   
   printf("USAGE: [q]uit [S]tatus \n");
@@ -3239,11 +3242,11 @@ int main ()
       printf ("-----------------cpt_avg_day: %0.2f\n", hc.status_data.recovered_time->cpt_avg_day);
 
 
-      printf ("-----------------progress_cur_relative_skip: %llu\n", hc.status_data.progress->progress_cur_relative_skip);
-      printf ("-----------------progress_end_relative_skip: %llu\n", hc.status_data.progress->progress_end_relative_skip);
+      printf ("-----------------progress_cur_relative_skip: %" PRIu64 "\n", hc.status_data.progress->progress_cur_relative_skip);
+      printf ("-----------------progress_end_relative_skip: %" PRIu64 "\n", hc.status_data.progress->progress_end_relative_skip);
       printf ("-----------------percent_finished: %.2f%%\n", hc.status_data.progress->percent_finished * 100);
       printf ("-----------------percent_rejected: %.2f%%\n", hc.status_data.progress->percent_rejected * 100);
-      printf ("-----------------all_rejected: %llu\n", hc.status_data.progress->all_rejected);
+      printf ("-----------------all_rejected: %" PRIu64 "\n", hc.status_data.progress->all_rejected);
 
 
 
@@ -3252,7 +3255,7 @@ int main ()
     {
 
       printf ("[ERROR] status update not available\n");
-      printf ("\tEither hashcat has not fully started yet just wait a couple of seconds\n Or there is an arg error. Check your settings and use -DDEBUG flag.\n");
+      printf ("Either hashcat has not fully started yet just wait a couple of seconds\n Or there is an arg error. Check your settings and use -DDEBUG flag.\n");
     }
 
   }
