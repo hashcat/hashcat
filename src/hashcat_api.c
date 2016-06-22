@@ -9,7 +9,7 @@
  * 
  * or
  * 
- * make linux32API linux64API win32API win64API nativeAPI
+ * make linux32API linux64API win32API win64API installAPI
  * 
  * 
  * Author: Rich Kelley
