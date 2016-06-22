@@ -15337,11 +15337,11 @@ int main (int argc, char **argv)
         // now check if all device-memory sizes which depend on the kernel_accel_max amplifier are within its boundaries
         // if not, decrease amplifier and try again
 
-        if (size_pws   > device_param->device_maxmem_alloc) skip = 1;
-        if (size_tmps  > device_param->device_maxmem_alloc) skip = 1;
-        if (size_hooks > device_param->device_maxmem_alloc) skip = 1;
+        int memory_limit_hit = 0;
 
-        int skip = 0;
+        if (size_pws   > device_param->device_maxmem_alloc) memory_limit_hit = 1;
+        if (size_tmps  > device_param->device_maxmem_alloc) memory_limit_hit = 1;
+        if (size_hooks > device_param->device_maxmem_alloc) memory_limit_hit = 1;
 
         const u64 size_total
           = bitmap_size
@@ -15371,9 +15371,9 @@ int main (int argc, char **argv)
           + size_tm
           + size_tmps;
 
-        if (size_total > device_param->device_global_mem) skip = 1;
+        if (size_total > device_param->device_global_mem) memory_limit_hit = 1;
 
-        if (skip == 1)
+        if (memory_limit_hit == 1)
         {
           kernel_accel_max--;
 
