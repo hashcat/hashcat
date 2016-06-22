@@ -5,7 +5,7 @@
  * License.....: MIT
  */
 
-#define _SHA1_
+#define _AXCRYPT_
 
 #include "inc_hash_constants.h"
 #include "inc_vendor.cl"
@@ -988,28 +988,22 @@ __kernel void m13200_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
   if (gid >= gid_max) return;
 
   u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
   w0[0] = pws[gid].i[ 0];
   w0[1] = pws[gid].i[ 1];
   w0[2] = pws[gid].i[ 2];
   w0[3] = pws[gid].i[ 3];
-
-  u32 w1[4];
-
   w1[0] = pws[gid].i[ 4];
   w1[1] = pws[gid].i[ 5];
   w1[2] = pws[gid].i[ 6];
   w1[3] = pws[gid].i[ 7];
-
-  u32 w2[4];
-
   w2[0] = pws[gid].i[ 8];
   w2[1] = pws[gid].i[ 9];
   w2[2] = pws[gid].i[10];
   w2[3] = pws[gid].i[11];
-
-  u32 w3[4];
-
   w3[0] = pws[gid].i[12];
   w3[1] = pws[gid].i[13];
   w3[2] = pws[gid].i[14];
@@ -1033,9 +1027,7 @@ __kernel void m13200_init (__global pw_t *pws, __global kernel_rule_t *rules_buf
   w2[3] = swap32 (w2[3]);
   w3[0] = swap32 (w3[0]);
   w3[1] = swap32 (w3[1]);
-  w3[2] = swap32 (w3[2]);
-  w3[3] = swap32 (w3[3]);
-
+  w3[2] = 0;
   w3[3] = pw_len * 8;
 
   /**

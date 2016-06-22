@@ -62,6 +62,7 @@ typedef void *OCL_LIB;
 typedef void *ADL_LIB;
 typedef void *NVAPI_LIB;
 typedef void *NVML_LIB;
+typedef void *XNVCTRL_LIB;
 #ifdef OSX
 #define __stdcall
 #endif
@@ -96,6 +97,7 @@ typedef HINSTANCE OCL_LIB;
 typedef HINSTANCE ADL_LIB;
 typedef HINSTANCE NVAPI_LIB;
 typedef HINSTANCE NVML_LIB;
+typedef HINSTANCE XNVCTRL_LIB;
 #endif
 
 #define mkdir(name,mode) mkdir (name)
@@ -116,17 +118,19 @@ typedef uint32_t uint; // we need to get rid of this sooner or later, for consis
 
 #define HCBUFSIZ      0x50000 // general large space buffer size in case the size is unknown at compile-time
 
+#define EXPECTED_ITERATIONS 10000
+
 /**
  * functions
  */
 
-void log_out_nn (FILE *fp, const char *fmt, ...);
-void log_info_nn (const char *fmt, ...);
-void log_error_nn (const char *fmt, ...);
+int log_out_nn (FILE *fp, const char *fmt, ...);
+int log_info_nn (const char *fmt, ...);
+int log_error_nn (const char *fmt, ...);
 
-void log_out (FILE *fp, const char *fmt, ...);
-void log_info (const char *fmt, ...);
-void log_error (const char *fmt, ...);
+int log_out (FILE *fp, const char *fmt, ...);
+int log_info (const char *fmt, ...);
+int log_error (const char *fmt, ...);
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))

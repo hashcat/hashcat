@@ -649,8 +649,7 @@ typedef struct
 
 typedef struct
 {
-  u32 KEK[5];
-
+  u32 KEK[4];
   u32 lsb[4];
   u32 cipher[4];
 
@@ -990,6 +989,12 @@ struct __hc_device_param
   uint    exec_pos;
   double  exec_ms[EXEC_CACHE];
 
+  // workaround cpu spinning
+
+  double  exec_us_prev1[EXPECTED_ITERATIONS];
+  double  exec_us_prev2[EXPECTED_ITERATIONS];
+  double  exec_us_prev3[EXPECTED_ITERATIONS];
+
   // this is "current" speed
 
   uint    speed_pos;
@@ -1007,6 +1012,8 @@ struct __hc_device_param
   char   *driver_version;
 
   bool    opencl_v12;
+
+  double  nvidia_spin_damp;
 
   cl_uint device_vendor_id;
   cl_uint platform_vendor_id;
@@ -1092,9 +1099,10 @@ typedef struct __hc_device_param hc_device_param_t;
 #ifdef HAVE_HWMON
 typedef struct
 {
-  HM_ADAPTER_ADL   adl;
-  HM_ADAPTER_NVML  nvml;
-  HM_ADAPTER_NVAPI nvapi;
+  HM_ADAPTER_ADL     adl;
+  HM_ADAPTER_NVML    nvml;
+  HM_ADAPTER_NVAPI   nvapi;
+  HM_ADAPTER_XNVCTRL xnvctrl;
 
   int od_version;
 
@@ -1170,6 +1178,7 @@ typedef struct
   void      *hm_adl;
   void      *hm_nvml;
   void      *hm_nvapi;
+  void      *hm_xnvctrl;
   hm_attrs_t hm_device[DEVICES_MAX];
   #endif
 
@@ -1247,7 +1256,6 @@ typedef struct
   uint    quiet;
   uint    force;
   uint    benchmark;
-  uint    benchmark_repeats;
   uint    runtime;
   uint    remove;
   uint    remove_timer;

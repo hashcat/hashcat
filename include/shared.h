@@ -72,6 +72,20 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define hc_dlsym dlsym
 #endif
 
+#define HC_LOAD_FUNC2(ptr,name,type,var,libname,noerr) \
+  ptr->name = (type) hc_dlsym (ptr->var, #name); \
+  if (noerr != -1) { \
+    if (!ptr->name) { \
+      if (noerr == 1) { \
+        log_error ("ERROR: %s is missing from %s shared library.", #name, #libname); \
+        exit (-1); \
+      } else { \
+        log_info ("WARNING: %s is missing from %s shared library.", #name, #libname); \
+        return (-1); \
+      } \
+    } \
+  }
+
 #define HC_LOAD_FUNC(ptr,name,type,libname,noerr) \
   ptr->name = (type) hc_dlsym (ptr->lib, #name); \
   if (noerr != -1) { \
@@ -117,6 +131,7 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #include "ext_ADL.h"
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
+#include "ext_xnvctrl.h"
 
 /**
  * shared stuff
@@ -837,6 +852,7 @@ extern hc_thread_mutex_t mux_display;
 #define HASH_TYPE_BSDICRYPT      48
 #define HASH_TYPE_RAR3HP         49
 #define HASH_TYPE_KRB5TGS        50
+#define HASH_TYPE_STDOUT         51
 
 #define KERN_TYPE_MD5                 0
 #define KERN_TYPE_MD5_PWSLT           10
@@ -877,6 +893,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_HMACSHA512_PW       1750
 #define KERN_TYPE_HMACSHA512_SLT      1760
 #define KERN_TYPE_SHA512CRYPT         1800
+#define KERN_TYPE_STDOUT              2000
 #define KERN_TYPE_DCC2                2100
 #define KERN_TYPE_MD5PIX              2400
 #define KERN_TYPE_MD5ASA              2410
@@ -1125,6 +1142,7 @@ extern hc_thread_mutex_t mux_display;
 #define ROUNDS_AXCRYPT            10000
 #define ROUNDS_KEEPASS            6000
 #define ROUNDS_ZIP2               1000
+#define ROUNDS_STDOUT             0
 
 /**
  * salt types
@@ -1216,7 +1234,6 @@ extern hc_thread_mutex_t mux_display;
  * digests
  */
 
-#define DGST_SIZE_0                 0
 #define DGST_SIZE_4_2               (2  * sizeof (uint))   // 8
 #define DGST_SIZE_4_4               (4  * sizeof (uint))   // 16
 #define DGST_SIZE_4_5               (5  * sizeof (uint))   // 20
@@ -1463,6 +1480,8 @@ int hm_get_memoryspeed_with_device_id        (const uint device_id);
 int hm_get_corespeed_with_device_id          (const uint device_id);
 int hm_get_throttle_with_device_id           (const uint device_id);
 int hm_set_fanspeed_with_device_id_adl       (const uint device_id, const int fanspeed, const int fanpolicy);
+int hm_set_fanspeed_with_device_id_nvapi     (const uint device_id, const int fanspeed, const int fanpolicy);
+int hm_set_fanspeed_with_device_id_xnvctrl   (const uint device_id, const int fanspeed);
 
 void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value);
 #endif // HAVE_HWMON

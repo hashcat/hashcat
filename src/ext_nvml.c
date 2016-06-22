@@ -38,7 +38,7 @@ int nvml_init (NVML_PTR *nvml)
   if (!nvml->lib)
   {
     if (data.quiet == 0)
-      log_info ("WARNING: load NVML library failed, proceed without NVML HWMon enabled.");
+      log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
 
     return (-1);
   }

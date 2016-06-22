@@ -60,7 +60,7 @@ int ocl_init (OCL_PTR *ocl)
 {
   if (!ocl)
   {
-    log_error ("ERROR: opencl library ptr is null");
+    log_error ("ERROR: OpenCL library pointer is null");
 
     exit (-1);
   }

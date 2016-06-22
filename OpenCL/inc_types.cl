@@ -665,7 +665,9 @@ inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 
 typedef struct
 {
-  #if   defined _DES_
+  #if defined _STDOUT_
+  u32  digest_buf[4];
+  #elif defined _DES_
   u32  digest_buf[4];
   #elif defined _MD4_
   u32  digest_buf[4];
@@ -774,6 +776,8 @@ typedef struct
   #elif defined _KEEPASS_
   u32  digest_buf[4];
   #elif defined _ZIP2_
+  u32  digest_buf[4];
+  #elif defined _AXCRYPT_
   u32  digest_buf[4];
   #endif
 
@@ -1366,8 +1370,7 @@ typedef struct
 
 typedef struct
 {
-  u32 KEK[5];
-
+  u32 KEK[4];
   u32 lsb[4];
   u32 cipher[4];
 
