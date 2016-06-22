@@ -9,7 +9,7 @@ The core of the API is located in the src/hashcatAPI.c source file
 
 When using the API use the -DAPI compiler flag. This is already included in the Make file. For testing purposes you only have to type
 
-    make win64API win32API linux64API linux32API
+    make win64API win32API linux64API linux32API installAPI
 
 Using the -DDEBUG flag will produce more verbose debugging output to help with development. 
 
