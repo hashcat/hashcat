@@ -5903,7 +5903,6 @@ char *strhashtype (const uint hash_mode)
     case   141: return ((char *) HT_00141); break;
     case   150: return ((char *) HT_00150); break;
     case   160: return ((char *) HT_00160); break;
-    case   190: return ((char *) HT_00190); break;
     case   200: return ((char *) HT_00200); break;
     case   300: return ((char *) HT_00300); break;
     case   400: return ((char *) HT_00400); break;
@@ -12001,21 +12000,6 @@ int sha1_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[2] -= SHA1M_C;
   digest[3] -= SHA1M_D;
   digest[4] -= SHA1M_E;
-
-  return (PARSER_OK);
-}
-
-int sha1linkedin_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
-{
-  if ((input_len < DISPLAY_LEN_MIN_100) || (input_len > DISPLAY_LEN_MAX_100)) return (PARSER_GLOBAL_LENGTH);
-
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
-  digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
 
   return (PARSER_OK);
 }

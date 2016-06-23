@@ -235,7 +235,6 @@ extern hc_thread_mutex_t mux_display;
 #define HT_00140  "sha1($salt.unicode($pass))"
 #define HT_00150  "HMAC-SHA1 (key = $pass)"
 #define HT_00160  "HMAC-SHA1 (key = $salt)"
-#define HT_00190  "sha1(LinkedIn)"
 #define HT_00200  "MySQL323"
 #define HT_00300  "MySQL4.1/MySQL5"
 #define HT_00400  "phpass, MD5(Wordpress), MD5(phpBB3), MD5(Joomla)"
@@ -468,8 +467,6 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_150   40 + 1 + 51
 #define DISPLAY_LEN_MIN_150H  40 + 1 + 0
 #define DISPLAY_LEN_MAX_150H  40 + 1 + 102
-#define DISPLAY_LEN_MIN_190   40
-#define DISPLAY_LEN_MAX_190   40
 #define DISPLAY_LEN_MIN_200   16
 #define DISPLAY_LEN_MAX_200   16
 #define DISPLAY_LEN_MIN_300   40
@@ -868,7 +865,6 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_SHA1_SLTPWU         140
 #define KERN_TYPE_HMACSHA1_PW         150
 #define KERN_TYPE_HMACSHA1_SLT        160
-#define KERN_TYPE_SHA1_LINKEDIN       190
 #define KERN_TYPE_MYSQL               200
 #define KERN_TYPE_MYSQL41             300
 #define KERN_TYPE_PHPASS              400
@@ -1552,7 +1548,6 @@ int osx1_parse_hash               (char *input_buf, uint input_len, hash_t *hash
 int osx512_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf);
 int phpass_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf);
 int sha1_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf);
-int sha1linkedin_parse_hash       (char *input_buf, uint input_len, hash_t *hash_buf);
 int sha1b64_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf);
 int sha1b64s_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf);
 int sha1s_parse_hash              (char *input_buf, uint input_len, hash_t *hash_buf);

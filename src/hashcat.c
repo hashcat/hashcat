@@ -8086,27 +8086,6 @@ int main (int argc, char **argv)
                    dgst_pos3   = 1;
                    break;
 
-      case   190:  hash_type   = HASH_TYPE_SHA1;
-                   salt_type   = SALT_TYPE_NONE;
-                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
-                               | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
-                   kern_type   = KERN_TYPE_SHA1_LINKEDIN;
-                   dgst_size   = DGST_SIZE_4_5;
-                   parse_func  = sha1linkedin_parse_hash;
-                   sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_EARLY_SKIP
-                               | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_NOT_SALTED;
-                   dgst_pos0   = 0;
-                   dgst_pos1   = 4;
-                   dgst_pos2   = 3;
-                   dgst_pos3   = 2;
-                   break;
-
       case   200:  hash_type   = HASH_TYPE_MYSQL;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
