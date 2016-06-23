@@ -3,7 +3,7 @@
 ## Overview
 Fundamentally the API is simply constructing command line arguments (argv) to pass to the existing hashcat main function. The arguments are constructed by comparing the default value of a variable to the currently assigned value. If there is a change then the command is added to the argv array. 
 
-The core of the API is located in the src/hashcatAPI.c source file 
+The core of the API is located in the src/hashcat_api.c source file 
 
 ## Compiling and Macros
 
