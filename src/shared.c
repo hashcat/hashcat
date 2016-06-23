@@ -85,6 +85,7 @@ int last_len = 0;
 
 int log_final (FILE *fp, const char *fmt, va_list ap)
 {
+
   if (last_len)
   {
     fputc ('\r', fp);

@@ -1,0 +1,3 @@
+chmod +x ~/Downloads/NVIDIA-Linux-*-361.28.run
+sudo sh ~/Downloads/NVIDIA-Linux-*-361.28.run
+sudo sh ~/Downloads/NVIDIA-Linux-*-361.28.run --uninstall
