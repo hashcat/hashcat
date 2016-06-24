@@ -9220,6 +9220,29 @@ void myquit ()
   data.devices_status = STATUS_QUIT;
 }
 
+void naive_escape (const char *cpath_real, char *cpath_escaped)
+{
+  const size_t len = MIN (strlen (cpath_real), 1024);
+
+  for (size_t in = 0, out = 0; in < len; in++, out++)
+  {
+    const u8 c = cpath_real[in];
+
+    if (c == ' ')
+    {
+      #if _WIN
+      cpath_escaped[out] = '^';
+      #else
+      cpath_escaped[out] = '\\';
+      #endif
+
+      out++;
+    }
+
+    cpath_escaped[out] = c;
+  }
+}
+
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources)
 {
   FILE *fp = fopen (kernel_file, "rb");

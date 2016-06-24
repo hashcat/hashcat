@@ -15393,32 +15393,33 @@ int main (int argc, char **argv)
        * default building options
        */
 
-      char build_opts[1024] = { 0 };
+      char cpath[1024] = { 0 };
+
+      #if _WIN
+
+      snprintf (cpath, sizeof (cpath) - 1, "%s\\OpenCL\\", shared_dir);
+
+      char cpath_real[MAX_PATH] = { 0 };
+
+      GetFullPathName (cpath, MAX_PATH, cpath_real, NULL);
+
+      #else
+
+      snprintf (cpath, sizeof (cpath) - 1, "%s/OpenCL/", shared_dir);
+
+      char *cpath_real = realpath (cpath, NULL);
+
+      #endif
+
+      char cpath_escaped[1024] = { 0 };
+
+      naive_escape (cpath_real, cpath_escaped);
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
-      #if _WIN
-      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\\OpenCL\\\" -I '%s\\OpenCL\\' -I %s\\OpenCL\\ -I\"%s\\OpenCL\\\" -I'%s\\OpenCL\\' -I%s\\OpenCL\\", shared_dir, shared_dir, shared_dir, shared_dir, shared_dir, shared_dir);
-      #else
-      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s/OpenCL/\" -I '%s/OpenCL/' -I %s/OpenCL/ -I\"%s/OpenCL/\" -I'%s/OpenCL/' -I%s/OpenCL/", shared_dir, shared_dir, shared_dir, shared_dir, shared_dir, shared_dir);
-      #endif
+      char build_opts[1024] = { 0 };
 
-      char build_opts_new[1024] = { 0 };
-
-      snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -DVENDOR_ID=%u -DCUDA_ARCH=%d -DVECT_SIZE=%u -DDEVICE_TYPE=%u -DKERN_TYPE=%u -D_unroll -cl-std=CL1.1", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, kern_type);
-
-      strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);
-
-      /*
-      if (device_param->device_vendor_id == VENDOR_ID_INTEL_SDK)
-      {
-        // we do vectorizing much better than the auto-vectorizer
-
-        snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -cl-opt-disable", build_opts);
-
-        strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);
-      }
-      */
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I %s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1", cpath_escaped, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, kern_type);
 
       #ifdef DEBUG
       log_info ("- Device #%u: build_opts '%s'\n", device_id + 1, build_opts);
