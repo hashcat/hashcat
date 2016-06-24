@@ -15401,7 +15401,7 @@ int main (int argc, char **argv)
 
       snprintf (cpath, sizeof (cpath) - 1, "%s\\OpenCL\\", shared_dir);
 
-      char cpath_real[MAX_PATH] = { 0 };
+      char *cpath_real = mymalloc (MAX_PATH);
 
       if (GetFullPathName (cpath, MAX_PATH, cpath_real, NULL) == 0)
       {
@@ -15412,11 +15412,13 @@ int main (int argc, char **argv)
 
       snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", cpath_real);
 
+      myfree (cpath_real);
+
       #else
 
       snprintf (cpath, sizeof (cpath) - 1, "%s/OpenCL/", shared_dir);
 
-      char cpath_real[PATH_MAX] = { 0 };
+      char *cpath_real = mymalloc (PATH_MAX);
 
       if (realpath (cpath, cpath_real) == NULL)
       {
@@ -15429,7 +15431,9 @@ int main (int argc, char **argv)
 
       naive_escape (cpath_real, cpath_escaped, sizeof (cpath_escaped));
 
-      snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", cpath_real);
+      myfree (cpath_real);
+
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", cpath_escaped);
 
       #endif
 
