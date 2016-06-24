@@ -18084,6 +18084,8 @@ int main (int argc, char **argv)
           {
             if (quiet == 0)
             {
+              clear_prompt ();
+
               log_info ("ATTENTION!");
               log_info ("  The wordlist or mask you are using is too small.");
               log_info ("  Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
