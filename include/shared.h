@@ -1668,7 +1668,7 @@ int veracrypt_parse_hash_327661   (char *input_buf, uint input_len, hash_t *hash
 int veracrypt_parse_hash_655331   (char *input_buf, uint input_len, hash_t *hash_buf);
 int win8phone_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf);
 
-void naive_escape (const char *cpath_real, char *cpath_escaped);
+void naive_escape (const char *cpath_real, char *cpath_escaped, const size_t cpath_escaped_len);
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
 

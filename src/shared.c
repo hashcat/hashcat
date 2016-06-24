@@ -9220,9 +9220,9 @@ void myquit ()
   data.devices_status = STATUS_QUIT;
 }
 
-void naive_escape (const char *cpath_real, char *cpath_escaped)
+void naive_escape (const char *cpath_real, char *cpath_escaped, const size_t cpath_escaped_len)
 {
-  const size_t len = MIN (strlen (cpath_real), 1024);
+  const size_t len = strlen (cpath_real);
 
   for (size_t in = 0, out = 0; in < len; in++, out++)
   {
@@ -9230,14 +9230,12 @@ void naive_escape (const char *cpath_real, char *cpath_escaped)
 
     if (c == ' ')
     {
-      #if _WIN
-      cpath_escaped[out] = '^';
-      #else
       cpath_escaped[out] = '\\';
-      #endif
 
       out++;
     }
+
+    if (out == cpath_escaped_len) break;
 
     cpath_escaped[out] = c;
   }

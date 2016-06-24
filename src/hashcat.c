@@ -15395,31 +15395,51 @@ int main (int argc, char **argv)
 
       char cpath[1024] = { 0 };
 
+      char build_opts[1024] = { 0 };
+
       #if _WIN
 
       snprintf (cpath, sizeof (cpath) - 1, "%s\\OpenCL\\", shared_dir);
 
       char cpath_real[MAX_PATH] = { 0 };
 
-      GetFullPathName (cpath, MAX_PATH, cpath_real, NULL);
+      if (GetFullPathName (cpath, MAX_PATH, cpath_real, NULL) == 0)
+      {
+        log_error ("ERROR: %s: %s", cpath, "GetFullPathName()");
+
+        return -1;
+      }
+
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", cpath_real);
 
       #else
 
       snprintf (cpath, sizeof (cpath) - 1, "%s/OpenCL/", shared_dir);
 
-      char *cpath_real = realpath (cpath, NULL);
+      char cpath_real[PATH_MAX] = { 0 };
 
-      #endif
+      if (realpath (cpath, cpath_real) == NULL)
+      {
+        log_error ("ERROR: %s: %s", cpath, strerror (errno));
+
+        return -1;
+      }
 
       char cpath_escaped[1024] = { 0 };
 
-      naive_escape (cpath_real, cpath_escaped);
+      naive_escape (cpath_real, cpath_escaped, sizeof (cpath_escaped));
+
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", cpath_real);
+
+      #endif
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
-      char build_opts[1024] = { 0 };
+      char build_opts_new[1024] = { 0 };
 
-      snprintf (build_opts, sizeof (build_opts) - 1, "-I %s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1", cpath_escaped, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, kern_type);
+      snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, kern_type);
+
+      strncpy (build_opts, build_opts_new, sizeof (build_opts));
 
       #ifdef DEBUG
       log_info ("- Device #%u: build_opts '%s'\n", device_id + 1, build_opts);
