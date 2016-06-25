@@ -7333,6 +7333,35 @@ int main (int argc, char **argv)
   }
 
   /**
+   * status, monitor and outfile remove threads
+   */
+
+  uint wordlist_mode = ((optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
+
+  data.wordlist_mode = wordlist_mode;
+
+  if (wordlist_mode == WL_MODE_STDIN)
+  {
+    status = 1;
+
+    data.status = status;
+  }
+
+  uint i_threads_cnt = 0;
+
+  hc_thread_t *i_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
+
+  if (keyspace == 0 && benchmark == 0 && stdout_flag == 0)
+  {
+    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
+    {
+      hc_thread_create (i_threads[i_threads_cnt], thread_keypress, NULL);
+
+      i_threads_cnt++;
+    }
+  }
+
+  /**
    * config
    */
 
@@ -16395,10 +16424,6 @@ int main (int argc, char **argv)
     wl_data->cnt   = 0;
     wl_data->pos   = 0;
 
-    uint wordlist_mode = ((optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
-
-    data.wordlist_mode = wordlist_mode;
-
     cs_t  *css_buf   = NULL;
     uint   css_cnt   = 0;
     uint   dictcnt   = 0;
@@ -17191,29 +17216,17 @@ int main (int argc, char **argv)
      * status and monitor threads
      */
 
-    if (data.devices_status != STATUS_CRACKED) data.devices_status = STATUS_STARTING;
+    if (data.devices_status == STATUS_CRACKED) break;
+    if (data.devices_status == STATUS_ABORTED) break;
+    if (data.devices_status == STATUS_QUIT)    break;
 
-    uint i_threads_cnt = 0;
-
-    hc_thread_t *i_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
-
-    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
-    {
-      if (stdout_flag == 0)
-      {
-        hc_thread_create (i_threads[i_threads_cnt], thread_keypress, &benchmark);
-
-        i_threads_cnt++;
-      }
-    }
-
-    if (wordlist_mode == WL_MODE_STDIN) data.status = 1;
+    data.devices_status = STATUS_STARTING;
 
     uint ni_threads_cnt = 0;
 
     hc_thread_t *ni_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
-    if (stdout_flag == 0)
+    if (keyspace == 0 && benchmark == 0 && stdout_flag == 0)
     {
       hc_thread_create (ni_threads[ni_threads_cnt], thread_monitor, NULL);
 
@@ -17224,7 +17237,7 @@ int main (int argc, char **argv)
       * Outfile remove
       */
 
-    if (keyspace == 0)
+    if (keyspace == 0 && benchmark == 0 && stdout_flag == 0)
     {
       if (outfile_check_timer != 0)
       {
@@ -17284,6 +17297,8 @@ int main (int argc, char **argv)
     for (uint maskpos = rd->maskpos; maskpos < maskcnt; maskpos++)
     {
       if (data.devices_status == STATUS_CRACKED) break;
+      if (data.devices_status == STATUS_ABORTED) break;
+      if (data.devices_status == STATUS_QUIT)    break;
 
       data.devices_status = STATUS_INIT;
 
@@ -17531,6 +17546,10 @@ int main (int argc, char **argv)
         data.subid = subid;
 
         logfile_sub_msg ("START");
+
+        if (data.devices_status == STATUS_CRACKED) break;
+        if (data.devices_status == STATUS_ABORTED) break;
+        if (data.devices_status == STATUS_QUIT)    break;
 
         data.devices_status = STATUS_INIT;
 
@@ -18073,6 +18092,10 @@ int main (int argc, char **argv)
 
         hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
 
+        if (data.devices_status == STATUS_CRACKED) break;
+        if (data.devices_status == STATUS_ABORTED) break;
+        if (data.devices_status == STATUS_QUIT)    break;
+
         data.devices_status = STATUS_AUTOTUNE;
 
         for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
@@ -18129,6 +18152,7 @@ int main (int argc, char **argv)
 
         if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
+        if (data.devices_status == STATUS_CRACKED) break;
         if (data.devices_status == STATUS_ABORTED) break;
         if (data.devices_status == STATUS_QUIT)    break;
 
@@ -18344,15 +18368,6 @@ int main (int argc, char **argv)
 
     local_free (ni_threads);
 
-    // wait for interactive threads
-
-    for (uint thread_idx = 0; thread_idx < i_threads_cnt; thread_idx++)
-    {
-      hc_thread_wait (1, &i_threads[thread_idx]);
-    }
-
-    local_free (i_threads);
-
     // we dont need restore file anymore
     if (data.restore_disable == 0)
     {
@@ -18393,7 +18408,7 @@ int main (int argc, char **argv)
 
       if (quiet == 0) log_info ("");
 
-      if (status == 1)
+      if (status == 1 && stdout_flag == 0)
       {
         status_display ();
       }
@@ -18704,6 +18719,15 @@ int main (int argc, char **argv)
 
     if (data.devices_status == STATUS_QUIT) break;
   }
+
+  // wait for interactive threads
+
+  for (uint thread_idx = 0; thread_idx < i_threads_cnt; thread_idx++)
+  {
+    hc_thread_wait (1, &i_threads[thread_idx]);
+  }
+
+  local_free (i_threads);
 
   // destroy others mutex
 

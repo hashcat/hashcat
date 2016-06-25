@@ -20769,8 +20769,6 @@ void status_display ();
 
 void *thread_keypress (void *p)
 {
-  int benchmark = *((int *) p);
-
   uint quiet = data.quiet;
 
   tty_break();
@@ -20852,8 +20850,6 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        if (benchmark == 1) break;
-
         stop_at_checkpoint ();
 
         log_info ("");
@@ -20867,14 +20863,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        if (benchmark == 1)
-        {
-          myquit ();
-        }
-        else
-        {
-          myabort ();
-        }
+        myabort ();
 
         break;
     }
