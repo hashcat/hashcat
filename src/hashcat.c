@@ -413,7 +413,7 @@ const char *USAGE_BIG[] =
   "     --cpu-affinity            | Str  | Locks to CPU devices, separate with comma            | --cpu-affinity=1,2,3",
   "     --opencl-platforms        | Str  | OpenCL platforms to use, separate with comma         | --opencl-platforms=2",
   " -d, --opencl-devices          | Str  | OpenCL devices to use, separate with comma           | -d 1",
-  "     --opencl-device-types     | Str  | OpenCL device-types to use, separate with comma      | --opencl-device-type=1",
+  " -D, --opencl-device-types     | Str  | OpenCL device-types to use, separate with comma      | -D 1",
   "     --opencl-vector-width     | Num  | Manual override OpenCL vector-width to X             | --opencl-vector=4",
   " -w, --workload-profile        | Num  | Enable a specific workload profile, see pool below   | -w 3",
   " -n, --kernel-accel            | Num  | Manual workload tuning, set outerloop step size to X | -n 64",
@@ -5959,7 +5959,7 @@ int main (int argc, char **argv)
   #define IDX_CPU_AFFINITY              0xff25
   #define IDX_OPENCL_DEVICES            'd'
   #define IDX_OPENCL_PLATFORMS          0xff72
-  #define IDX_OPENCL_DEVICE_TYPES       0xff73
+  #define IDX_OPENCL_DEVICE_TYPES       'D'
   #define IDX_OPENCL_VECTOR_WIDTH       0xff74
   #define IDX_WORKLOAD_PROFILE          'w'
   #define IDX_KERNEL_ACCEL              'n'
@@ -5983,7 +5983,7 @@ int main (int argc, char **argv)
   #define IDX_CUSTOM_CHARSET_3          '3'
   #define IDX_CUSTOM_CHARSET_4          '4'
 
-  char short_options[] = "hVvm:a:r:j:k:g:o:t:d:n:u:c:p:s:l:1:2:3:4:ibw:";
+  char short_options[] = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:ibw:";
 
   struct option long_options[] =
   {
