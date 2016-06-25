@@ -9220,25 +9220,46 @@ void myquit ()
   data.devices_status = STATUS_QUIT;
 }
 
-void naive_escape (const char *cpath_real, char *cpath_escaped, const size_t cpath_escaped_len)
+void naive_replace (char *s, const u8 key_char, const u8 replace_char)
 {
-  const size_t len = strlen (cpath_real);
+  const size_t len = strlen (s);
+
+  for (size_t in = 0; in < len; in++)
+  {
+    const u8 c = s[in];
+
+    if (c == key_char)
+    {
+      s[in] = replace_char;
+    }
+  }
+}
+
+void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char)
+{
+  char s_escaped[1024] = { 0 };
+
+  size_t s_escaped_max = sizeof (s_escaped);
+
+  const size_t len = strlen (s);
 
   for (size_t in = 0, out = 0; in < len; in++, out++)
   {
-    const u8 c = cpath_real[in];
+    const u8 c = s[in];
 
-    if (c == ' ')
+    if (c == key_char)
     {
-      cpath_escaped[out] = '\\';
+      s_escaped[out] = escape_char;
 
       out++;
     }
 
-    if (out == cpath_escaped_len) break;
+    if (out == s_escaped_max - 2) break;
 
-    cpath_escaped[out] = c;
+    s_escaped[out] = c;
   }
+
+  strncpy (s, s_escaped, s_max - 1);
 }
 
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources)

@@ -15410,6 +15410,10 @@ int main (int argc, char **argv)
         return -1;
       }
 
+      naive_replace (cpath_real, '\\', '/');
+
+      // not escaping here, windows has quotes
+
       snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", cpath_real);
 
       myfree (cpath_real);
@@ -15427,13 +15431,11 @@ int main (int argc, char **argv)
         return -1;
       }
 
-      char cpath_escaped[1024] = { 0 };
+      naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
 
-      naive_escape (cpath_real, cpath_escaped, sizeof (cpath_escaped));
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", cpath_real);
 
       myfree (cpath_real);
-
-      snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", cpath_escaped);
 
       #endif
 
