@@ -362,7 +362,7 @@ const char *USAGE_BIG[] =
   "- [ Options ] -",
   "",
   " Options Short / Long          | Type | Description                                          | Example",
-  "===============================|======|======================================================|=======================",
+  "===============================+======+======================================================+=======================",
   " -m, --hash-type               | Num  | Hash-type, see references below                      | -m 1000",
   " -a, --attack-mode             | Num  | Attack-mode, see references below                    | -a 3",
   " -V, --version                 |      | Print version                                        |",
@@ -391,8 +391,8 @@ const char *USAGE_BIG[] =
   "     --outfile-check-timer     | Num  | Sets seconds between outfile checks to X             | --outfile-check=30",
   " -p, --separator               | Char | Separator char for hashlists and outfile             | -p :",
   "     --stdout                  |      | Do not crack a hash, instead print candidates only   |",
-  "     --show                    |      | Show cracked passwords only                          |",
-  "     --left                    |      | Show un-cracked passwords only                       |",
+  "     --show                    |      | Compare hashlist with potfile; Show cracked hashes   |",
+  "     --left                    |      | Compare hashlist with potfile; Show uncracked hashes |",
   "     --username                |      | Enable ignoring of usernames in hashfile             |",
   "     --remove                  |      | Enable remove of hash once it is cracked             |",
   "     --remove-timer            | Num  | Update input hash file each X seconds                | --remove-timer=30",
@@ -429,9 +429,9 @@ const char *USAGE_BIG[] =
   " -s, --skip                    | Num  | Skip X words from the start                          | -s 1000000",
   " -l, --limit                   | Num  | Limit X words from the start + skipped words         | -l 1000000",
   "     --keyspace                |      | Show keyspace base:mod values and quit               |",
-  " -j, --rule-left               | Rule | Single Rule applied to each word from left wordlist  | -j 'c'",
-  " -k, --rule-right              | Rule | Single Rule applied to each word from right wordlist | -k '^-'",
-  " -r, --rules-file              | File | Multiple Rules applied to each word from wordlists   | -r rules/best64.rule",
+  " -j, --rule-left               | Rule | Single rule applied to each word from left wordlist  | -j 'c'",
+  " -k, --rule-right              | Rule | Single rule applied to each word from right wordlist | -k '^-'",
+  " -r, --rules-file              | File | Multiple rules applied to each word from wordlists   | -r rules/best64.rule",
   " -g, --generate-rules          | Num  | Generate X random rules                              | -g 10000",
   "     --generate-rules-func-min | Num  | Force min X funcs per rule                           |",
   "     --generate-rules-func-max | Num  | Force max X funcs per rule                           |",
@@ -728,11 +728,20 @@ const char *USAGE_BIG[] =
   "  3 | High        |  96 ms  | High              | Unresponsive",
   "  4 | Nightmare   | 480 ms  | Insane            | Headless",
   "",
-  "If you have no idea what just happened then visit the following pages:",
+  "- [ Basic Examples ] -",
+  "",
+  "  Attack-          | Hash- |",
+  "  Mode             | Type  | Example command",
+  " ==================+=======+==================================================================",
+  "  Wordlist         | $P$   | %s -a 0 -m 400 example400.hash example.dict",
+  "  Wordlist + Rules | MD5   | %s -a 0 -m 0 example0.hash example.dict -r rules/best64.rule",
+  "  Brute-Force      | MD5   | %s -a 3 -m 0 example0.hash ?a?a?a?a?a?a",
+  "  Combinator       | MD5   | %s -a 1 -m 0 example0.hash example.dict example.dict",
+  "",
+  "If you still have no idea what just happened try following pages:",
   "",
   "* https://hashcat.net/wiki/#howtos_videos_papers_articles_etc_in_the_wild",
   "* https://hashcat.net/wiki/#frequently_asked_questions",
-  "",
   NULL
 };
 
@@ -6419,6 +6428,10 @@ int main (int argc, char **argv)
       log_info ("");
     }
     else if (stdout_flag == 1)
+    {
+      // do nothing
+    }
+    else if (keyspace == 1)
     {
       // do nothing
     }
@@ -17216,11 +17229,10 @@ int main (int argc, char **argv)
      * status and monitor threads
      */
 
-    if (data.devices_status == STATUS_CRACKED) break;
-    if (data.devices_status == STATUS_ABORTED) break;
-    if (data.devices_status == STATUS_QUIT)    break;
-
-    data.devices_status = STATUS_STARTING;
+    if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+    {
+      data.devices_status = STATUS_STARTING;
+    }
 
     uint ni_threads_cnt = 0;
 
@@ -17296,12 +17308,6 @@ int main (int argc, char **argv)
 
     for (uint maskpos = rd->maskpos; maskpos < maskcnt; maskpos++)
     {
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-
-      data.devices_status = STATUS_INIT;
-
       if (maskpos > rd->maskpos)
       {
         rd->dictpos = 0;
@@ -17547,11 +17553,10 @@ int main (int argc, char **argv)
 
         logfile_sub_msg ("START");
 
-        if (data.devices_status == STATUS_CRACKED) break;
-        if (data.devices_status == STATUS_ABORTED) break;
-        if (data.devices_status == STATUS_QUIT)    break;
-
-        data.devices_status = STATUS_INIT;
+        if (data.devices_status == STATUS_STARTING)
+        {
+          data.devices_status = STATUS_INIT;
+        }
 
         memset (data.words_progress_done,     0, data.salts_cnt * sizeof (u64));
         memset (data.words_progress_rejected, 0, data.salts_cnt * sizeof (u64));
@@ -17651,9 +17656,6 @@ int main (int argc, char **argv)
 
             if (data.words_cnt == 0)
             {
-              if (data.devices_status == STATUS_CRACKED) break;
-              if (data.devices_status == STATUS_ABORTED) break;
-
               dictpos++;
 
               continue;
@@ -17701,9 +17703,6 @@ int main (int argc, char **argv)
 
           if (data.words_cnt == 0)
           {
-            if (data.devices_status == STATUS_CRACKED) break;
-            if (data.devices_status == STATUS_ABORTED) break;
-
             dictpos++;
 
             continue;
@@ -17744,9 +17743,6 @@ int main (int argc, char **argv)
 
           if (data.words_cnt == 0)
           {
-            if (data.devices_status == STATUS_CRACKED) break;
-            if (data.devices_status == STATUS_ABORTED) break;
-
             dictpos++;
 
             continue;
@@ -18092,17 +18088,16 @@ int main (int argc, char **argv)
 
         hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
 
-        if (data.devices_status == STATUS_CRACKED) break;
-        if (data.devices_status == STATUS_ABORTED) break;
-        if (data.devices_status == STATUS_QUIT)    break;
-
-        data.devices_status = STATUS_AUTOTUNE;
-
-        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+        if (data.devices_status == STATUS_INIT)
         {
-          hc_device_param_t *device_param = &devices_param[device_id];
+          data.devices_status = STATUS_AUTOTUNE;
 
-          hc_thread_create (c_threads[device_id], thread_autotune, device_param);
+          for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+          {
+            hc_device_param_t *device_param = &devices_param[device_id];
+
+            hc_thread_create (c_threads[device_id], thread_autotune, device_param);
+          }
         }
 
         hc_thread_wait (data.devices_cnt, c_threads);
@@ -18150,13 +18145,10 @@ int main (int argc, char **argv)
          * create cracker threads
          */
 
-        if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
-
-        if (data.devices_status == STATUS_CRACKED) break;
-        if (data.devices_status == STATUS_ABORTED) break;
-        if (data.devices_status == STATUS_QUIT)    break;
-
-        data.devices_status = STATUS_RUNNING;
+        if (data.devices_status == STATUS_AUTOTUNE)
+        {
+          data.devices_status = STATUS_RUNNING;
+        }
 
         if (initial_restore_done == 0)
         {
@@ -18187,17 +18179,20 @@ int main (int argc, char **argv)
 
         data.runtime_start = runtime_start;
 
-        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+        if (data.devices_status == STATUS_RUNNING)
         {
-          hc_device_param_t *device_param = &devices_param[device_id];
+          for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+          {
+            hc_device_param_t *device_param = &devices_param[device_id];
 
-          if (wordlist_mode == WL_MODE_STDIN)
-          {
-            hc_thread_create (c_threads[device_id], thread_calc_stdin, device_param);
-          }
-          else
-          {
-            hc_thread_create (c_threads[device_id], thread_calc, device_param);
+            if (wordlist_mode == WL_MODE_STDIN)
+            {
+              hc_thread_create (c_threads[device_id], thread_calc_stdin, device_param);
+            }
+            else
+            {
+              hc_thread_create (c_threads[device_id], thread_calc, device_param);
+            }
           }
         }
 
@@ -18205,21 +18200,9 @@ int main (int argc, char **argv)
 
         local_free (c_threads);
 
-        data.restore = 0;
-
-        // finalize task
-
         logfile_sub_var_uint ("status-after-work", data.devices_status);
 
-        if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
-
-        if (data.devices_status == STATUS_CRACKED) break;
-        if (data.devices_status == STATUS_ABORTED) break;
-
-        if (data.devices_status == STATUS_BYPASS)
-        {
-          data.devices_status = STATUS_RUNNING;
-        }
+        data.restore = 0;
 
         if (induction_dictionaries_cnt)
         {
@@ -18288,6 +18271,19 @@ int main (int argc, char **argv)
         logfile_sub_msg ("STOP");
 
         global_free (subid);
+
+        // finalize task
+
+        if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+
+        if (data.devices_status == STATUS_CRACKED) break;
+        if (data.devices_status == STATUS_ABORTED) break;
+        if (data.devices_status == STATUS_QUIT)    break;
+
+        if (data.devices_status == STATUS_BYPASS)
+        {
+          data.devices_status = STATUS_RUNNING;
+        }
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
@@ -18404,20 +18400,16 @@ int main (int argc, char **argv)
     }
     else
     {
-      if (quiet == 0) clear_prompt ();
-
-      if (quiet == 0) log_info ("");
-
-      if (status == 1 && stdout_flag == 0)
+      if (quiet == 0)
       {
-        status_display ();
-      }
-      else
-      {
-        if (quiet == 0) status_display ();
-      }
+        clear_prompt ();
 
-      if (quiet == 0) log_info ("");
+        log_info ("");
+
+        if (stdout_flag == 0) status_display ();
+
+        log_info ("");
+      }
     }
 
     for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
