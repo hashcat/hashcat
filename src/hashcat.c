@@ -18125,6 +18125,11 @@ int main (int argc, char **argv)
          * create cracker threads
          */
 
+        if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+
+        if (data.devices_status == STATUS_ABORTED) break;
+        if (data.devices_status == STATUS_QUIT)    break;
+
         data.devices_status = STATUS_RUNNING;
 
         if (initial_restore_done == 0)
