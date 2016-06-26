@@ -3402,11 +3402,17 @@ int hm_get_throttle_with_device_id (const uint device_id)
     if (hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons   (data.hm_nvml, 1, data.hm_device[device_id].nvml, &clocksThrottleReasons)    != NVML_SUCCESS) return -1;
     if (hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (data.hm_nvml, 1, data.hm_device[device_id].nvml, &supportedThrottleReasons) != NVML_SUCCESS) return -1;
 
-    clocksThrottleReasons &= supportedThrottleReasons;
-
+    clocksThrottleReasons &=  supportedThrottleReasons;
+    clocksThrottleReasons &= ~nvmlClocksThrottleReasonGpuIdle;
+    clocksThrottleReasons &= ~nvmlClocksThrottleReasonApplicationsClocksSetting;
     clocksThrottleReasons &= ~nvmlClocksThrottleReasonUnknown;
 
-    return (clocksThrottleReasons > 0);
+    if (data.kernel_power_final)
+    {
+      clocksThrottleReasons &= ~nvmlClocksThrottleReasonHwSlowdown;
+    }
+
+    return (clocksThrottleReasons != nvmlClocksThrottleReasonNone);
   }
 
   return -1;
