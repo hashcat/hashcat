@@ -13538,7 +13538,7 @@ int main (int argc, char **argv)
 
         if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1)
         {
-          log_info ("WARNING: Cannot convert rule for use on device in file %s on line %u: %s", rp_file, rule_line, rule_buf);
+          log_info ("WARNING: Cannot convert rule for use on OpenCL device in file %s on line %u: %s", rp_file, rule_line, rule_buf);
 
           memset (&kernel_rules_buf[kernel_rules_cnt], 0, sizeof (kernel_rule_t)); // needs to be cleared otherwise we could have some remaining data
 
@@ -13548,7 +13548,7 @@ int main (int argc, char **argv)
         /* its so slow
         if (rulefind (&kernel_rules_buf[kernel_rules_cnt], kernel_rules_buf, kernel_rules_cnt, sizeof (kernel_rule_t), sort_by_kernel_rule))
         {
-          log_info ("Duplicate rule for use on device in file %s in line %u: %s", rp_file, rule_line, rule_buf);
+          log_info ("Duplicate rule for use on OpenCL device in file %s in line %u: %s", rp_file, rule_line, rule_buf);
 
           continue;
         }
@@ -13652,7 +13652,7 @@ int main (int argc, char **argv)
      * generate NOP rules
      */
 
-    if (kernel_rules_cnt == 0)
+    if ((rp_files_cnt == 0) && (rp_gen == 0))
     {
       kernel_rules_buf = (kernel_rule_t *) mymalloc (sizeof (kernel_rule_t));
 
@@ -13663,6 +13663,13 @@ int main (int argc, char **argv)
 
     data.kernel_rules_cnt = kernel_rules_cnt;
     data.kernel_rules_buf = kernel_rules_buf;
+
+    if (kernel_rules_cnt == 0)
+    {
+      log_error ("ERROR: No valid rules left");
+
+      return (-1);
+    }
 
     /**
      * OpenCL platforms: detect
@@ -14541,9 +14548,9 @@ int main (int argc, char **argv)
 
             if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nvml, 0, hm_adapters_nvml[i].nvml, &speed) == NVML_SUCCESS) hm_adapters_nvml[i].fan_get_supported = 1;
 
-            hm_NVML_nvmlDeviceSetComputeMode (data.hm_nvml, 1, hm_adapters_nvml[i].nvml, NVML_COMPUTEMODE_EXCLUSIVE_PROCESS);
-
-            hm_NVML_nvmlDeviceSetGpuOperationMode (data.hm_nvml, 1, hm_adapters_nvml[i].nvml, NVML_GOM_ALL_ON);
+            // doesn't seem to create any advantages
+            //hm_NVML_nvmlDeviceSetComputeMode (data.hm_nvml, 1, hm_adapters_nvml[i].nvml, NVML_COMPUTEMODE_EXCLUSIVE_PROCESS);
+            //hm_NVML_nvmlDeviceSetGpuOperationMode (data.hm_nvml, 1, hm_adapters_nvml[i].nvml, NVML_GOM_ALL_ON);
           }
         }
       }
