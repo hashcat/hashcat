@@ -8,14 +8,8 @@
 //too much register pressure
 //#define NEW_SIMD_CODE
 
-#include "inc_hash_constants.h"
 #include "inc_vendor.cl"
-
-#define DGST_R0 3
-#define DGST_R1 4
-#define DGST_R2 2
-#define DGST_R3 1
-
+#include "inc_hash_constants.h"
 #include "inc_hash_functions.cl"
 #include "inc_types.cl"
 #include "inc_common.cl"
