@@ -4349,7 +4349,7 @@ static void *thread_monitor (void *p)
 
       time (&runtime_cur);
 
-      int runtime_left = data.runtime_start + data.runtime - runtime_cur;
+      int runtime_left = data.proc_start + data.runtime - runtime_cur;
 
       if (runtime_left <= 0)
       {
@@ -4385,7 +4385,7 @@ static void *thread_monitor (void *p)
 
       if (status_left == 0)
       {
-        //hc_thread_mutex_lock (mux_display);
+        hc_thread_mutex_lock (mux_display);
 
         if (data.quiet == 0) clear_prompt ();
 
@@ -4395,7 +4395,7 @@ static void *thread_monitor (void *p)
 
         if (data.quiet == 0) log_info ("");
 
-        //hc_thread_mutex_unlock (mux_display);
+        hc_thread_mutex_unlock (mux_display);
 
         status_left = data.status_timer;
       }
@@ -7358,18 +7358,22 @@ int main (int argc, char **argv)
     data.status = status;
   }
 
-  uint i_threads_cnt = 0;
+  uint outer_threads_cnt = 0;
 
-  hc_thread_t *i_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
+  hc_thread_t *outer_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
   if (keyspace == 0 && benchmark == 0 && stdout_flag == 0)
   {
     if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
     {
-      hc_thread_create (i_threads[i_threads_cnt], thread_keypress, NULL);
+      hc_thread_create (outer_threads[outer_threads_cnt], thread_keypress, NULL);
 
-      i_threads_cnt++;
+      outer_threads_cnt++;
     }
+
+    hc_thread_create (outer_threads[outer_threads_cnt], thread_monitor, NULL);
+
+    outer_threads_cnt++;
   }
 
   /**
@@ -17232,16 +17236,9 @@ int main (int argc, char **argv)
       data.devices_status = STATUS_STARTING;
     }
 
-    uint ni_threads_cnt = 0;
+    uint inner_threads_cnt = 0;
 
-    hc_thread_t *ni_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
-
-    if (keyspace == 0 && benchmark == 0 && stdout_flag == 0)
-    {
-      hc_thread_create (ni_threads[ni_threads_cnt], thread_monitor, NULL);
-
-      ni_threads_cnt++;
-    }
+    hc_thread_t *inner_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
     /**
       * Outfile remove
@@ -17258,9 +17255,9 @@ int main (int argc, char **argv)
               !((hash_mode >= 13700) && (hash_mode <= 13799)) &&
               (hash_mode != 9000))
           {
-            hc_thread_create (ni_threads[ni_threads_cnt], thread_outfile_remove, NULL);
+            hc_thread_create (inner_threads[inner_threads_cnt], thread_outfile_remove, NULL);
 
-            ni_threads_cnt++;
+            inner_threads_cnt++;
           }
           else
           {
@@ -18337,12 +18334,12 @@ int main (int argc, char **argv)
       data.devices_status = STATUS_EXHAUSTED;
     }
 
-    for (uint thread_idx = 0; thread_idx < ni_threads_cnt; thread_idx++)
+    for (uint thread_idx = 0; thread_idx < inner_threads_cnt; thread_idx++)
     {
-      hc_thread_wait (1, &ni_threads[thread_idx]);
+      hc_thread_wait (1, &inner_threads[thread_idx]);
     }
 
-    local_free (ni_threads);
+    local_free (inner_threads);
 
     // we dont need restore file anymore
     if (data.restore_disable == 0)
@@ -18666,12 +18663,12 @@ int main (int argc, char **argv)
 
   // wait for interactive threads
 
-  for (uint thread_idx = 0; thread_idx < i_threads_cnt; thread_idx++)
+  for (uint thread_idx = 0; thread_idx < outer_threads_cnt; thread_idx++)
   {
-    hc_thread_wait (1, &i_threads[thread_idx]);
+    hc_thread_wait (1, &outer_threads[thread_idx]);
   }
 
-  local_free (i_threads);
+  local_free (outer_threads);
 
   // destroy others mutex
 
