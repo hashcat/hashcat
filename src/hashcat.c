@@ -17561,7 +17561,10 @@ int main (int argc, char **argv)
 
         logfile_sub_msg ("START");
 
-        data.devices_status = STATUS_INIT;
+        if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+        {
+          data.devices_status = STATUS_INIT;
+        }
 
         memset (data.words_progress_done,     0, data.salts_cnt * sizeof (u64));
         memset (data.words_progress_rejected, 0, data.salts_cnt * sizeof (u64));
@@ -18089,7 +18092,10 @@ int main (int argc, char **argv)
 
         hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
 
-        data.devices_status = STATUS_AUTOTUNE;
+        if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+        {
+          data.devices_status = STATUS_AUTOTUNE;
+        }
 
         for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
         {
@@ -18143,7 +18149,10 @@ int main (int argc, char **argv)
          * create cracker threads
          */
 
-        data.devices_status = STATUS_RUNNING;
+        if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+        {
+          data.devices_status = STATUS_RUNNING;
+        }
 
         if (initial_restore_done == 0)
         {

@@ -9206,16 +9206,16 @@ void stop_at_checkpoint ()
 
 void myabort ()
 {
-  if (data.devices_status == STATUS_INIT)     return;
-  if (data.devices_status == STATUS_STARTING) return;
+  //if (data.devices_status == STATUS_INIT)     return;
+  //if (data.devices_status == STATUS_STARTING) return;
 
   data.devices_status = STATUS_ABORTED;
 }
 
 void myquit ()
 {
-  if (data.devices_status == STATUS_INIT)     return;
-  if (data.devices_status == STATUS_STARTING) return;
+  //if (data.devices_status == STATUS_INIT)     return;
+  //if (data.devices_status == STATUS_STARTING) return;
 
   data.devices_status = STATUS_QUIT;
 }
