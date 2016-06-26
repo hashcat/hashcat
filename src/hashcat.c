@@ -4780,7 +4780,7 @@ static uint get_work (hc_device_param_t *device_param, const u64 max)
   hc_thread_mutex_lock (mux_dispatcher);
 
   const u64 words_cur  = data.words_cur;
-  const u64 words_base = (data.limit == 0) ? data.words_base : data.limit;
+  const u64 words_base = (data.limit == 0) ? data.words_base : MIN (data.limit, data.words_base);
 
   device_param->words_off = words_cur;
 
