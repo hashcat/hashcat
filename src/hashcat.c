@@ -18201,11 +18201,6 @@ int main (int argc, char **argv)
 
         local_free (c_threads);
 
-        if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT) && (data.devices_status != STATUS_BYPASS))
-        {
-          data.devices_status = STATUS_EXHAUSTED;
-        }
-
         logfile_sub_var_uint ("status-after-work", data.devices_status);
 
         data.restore = 0;
@@ -18265,11 +18260,11 @@ int main (int argc, char **argv)
 
         global_free (subid);
 
-        // from this point we handle bypass as exhausted
+        // from this point we handle bypass as running
 
         if (data.devices_status == STATUS_BYPASS)
         {
-          data.devices_status = STATUS_EXHAUSTED;
+          data.devices_status = STATUS_RUNNING;
         }
 
         // finalize task
@@ -18336,6 +18331,11 @@ int main (int argc, char **argv)
     }
 
     // wait for non-interactive threads
+
+    if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+    {
+      data.devices_status = STATUS_EXHAUSTED;
+    }
 
     for (uint thread_idx = 0; thread_idx < ni_threads_cnt; thread_idx++)
     {
