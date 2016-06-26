@@ -932,7 +932,6 @@ void status_display ()
 {
   if (data.devices_status == STATUS_INIT)     return;
   if (data.devices_status == STATUS_STARTING) return;
-  if (data.devices_status == STATUS_BYPASS)   return;
 
   if (data.machine_readable == 1)
   {
@@ -1691,7 +1690,6 @@ static void status_benchmark ()
 {
   if (data.devices_status == STATUS_INIT)     return;
   if (data.devices_status == STATUS_STARTING) return;
-  if (data.devices_status == STATUS_BYPASS)   return;
 
   if (data.machine_readable == 1)
   {
@@ -17308,6 +17306,10 @@ int main (int argc, char **argv)
 
     for (uint maskpos = rd->maskpos; maskpos < maskcnt; maskpos++)
     {
+      if (data.devices_status == STATUS_CRACKED) continue;
+      if (data.devices_status == STATUS_ABORTED) continue;
+      if (data.devices_status == STATUS_QUIT)    continue;
+
       if (maskpos > rd->maskpos)
       {
         rd->dictpos = 0;
@@ -17545,18 +17547,21 @@ int main (int argc, char **argv)
         }
       }
 
-      for (uint dictpos = rd->dictpos; dictpos < dictcnt; )
+      for (uint dictpos = rd->dictpos; dictpos < dictcnt; dictpos++)
       {
+        if (data.devices_status == STATUS_CRACKED) continue;
+        if (data.devices_status == STATUS_ABORTED) continue;
+        if (data.devices_status == STATUS_QUIT)    continue;
+
+        rd->dictpos = dictpos;
+
         char *subid = logfile_generate_subid ();
 
         data.subid = subid;
 
         logfile_sub_msg ("START");
 
-        if (data.devices_status == STATUS_STARTING)
-        {
-          data.devices_status = STATUS_INIT;
-        }
+        data.devices_status = STATUS_INIT;
 
         memset (data.words_progress_done,     0, data.salts_cnt * sizeof (u64));
         memset (data.words_progress_rejected, 0, data.salts_cnt * sizeof (u64));
@@ -17656,7 +17661,7 @@ int main (int argc, char **argv)
 
             if (data.words_cnt == 0)
             {
-              dictpos++;
+              logfile_sub_msg ("STOP");
 
               continue;
             }
@@ -17703,7 +17708,7 @@ int main (int argc, char **argv)
 
           if (data.words_cnt == 0)
           {
-            dictpos++;
+            logfile_sub_msg ("STOP");
 
             continue;
           }
@@ -17743,7 +17748,7 @@ int main (int argc, char **argv)
 
           if (data.words_cnt == 0)
           {
-            dictpos++;
+            logfile_sub_msg ("STOP");
 
             continue;
           }
@@ -17806,10 +17811,6 @@ int main (int argc, char **argv)
             }
 
             // skip to next mask
-
-            dictpos++;
-
-            rd->dictpos = dictpos;
 
             logfile_sub_msg ("STOP");
 
@@ -18088,16 +18089,13 @@ int main (int argc, char **argv)
 
         hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
 
-        if (data.devices_status == STATUS_INIT)
+        data.devices_status = STATUS_AUTOTUNE;
+
+        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
         {
-          data.devices_status = STATUS_AUTOTUNE;
+          hc_device_param_t *device_param = &devices_param[device_id];
 
-          for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-          {
-            hc_device_param_t *device_param = &devices_param[device_id];
-
-            hc_thread_create (c_threads[device_id], thread_autotune, device_param);
-          }
+          hc_thread_create (c_threads[device_id], thread_autotune, device_param);
         }
 
         hc_thread_wait (data.devices_cnt, c_threads);
@@ -18145,10 +18143,7 @@ int main (int argc, char **argv)
          * create cracker threads
          */
 
-        if (data.devices_status == STATUS_AUTOTUNE)
-        {
-          data.devices_status = STATUS_RUNNING;
-        }
+        data.devices_status = STATUS_RUNNING;
 
         if (initial_restore_done == 0)
         {
@@ -18179,26 +18174,28 @@ int main (int argc, char **argv)
 
         data.runtime_start = runtime_start;
 
-        if (data.devices_status == STATUS_RUNNING)
+        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
         {
-          for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-          {
-            hc_device_param_t *device_param = &devices_param[device_id];
+          hc_device_param_t *device_param = &devices_param[device_id];
 
-            if (wordlist_mode == WL_MODE_STDIN)
-            {
-              hc_thread_create (c_threads[device_id], thread_calc_stdin, device_param);
-            }
-            else
-            {
-              hc_thread_create (c_threads[device_id], thread_calc, device_param);
-            }
+          if (wordlist_mode == WL_MODE_STDIN)
+          {
+            hc_thread_create (c_threads[device_id], thread_calc_stdin, device_param);
+          }
+          else
+          {
+            hc_thread_create (c_threads[device_id], thread_calc, device_param);
           }
         }
 
         hc_thread_wait (data.devices_cnt, c_threads);
 
         local_free (c_threads);
+
+        if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT) && (data.devices_status != STATUS_BYPASS))
+        {
+          data.devices_status = STATUS_EXHAUSTED;
+        }
 
         logfile_sub_var_uint ("status-after-work", data.devices_status);
 
@@ -18218,45 +18215,32 @@ int main (int argc, char **argv)
           induction_dictionaries_cnt = count_dictionaries (induction_dictionaries);
         }
 
-        if (benchmark == 0)
+        if (benchmark == 1)
         {
-          if (((dictpos + 1) < dictcnt) || ((maskpos + 1) < maskcnt) || induction_dictionaries_cnt)
+          status_benchmark ();
+
+          if (machine_readable == 0)
           {
-            if (quiet == 0) clear_prompt ();
-
-            if (quiet == 0) log_info ("");
-
-            if (status == 1)
-            {
-              status_display ();
-            }
-            else
-            {
-              if (quiet == 0) status_display ();
-            }
-
-            if (quiet == 0) log_info ("");
+            log_info ("");
           }
-        }
-
-        if (attack_mode == ATTACK_MODE_BF)
-        {
-          dictpos++;
-
-          rd->dictpos = dictpos;
         }
         else
         {
-          if (induction_dictionaries_cnt)
+          if (quiet == 0)
           {
-            qsort (induction_dictionaries, induction_dictionaries_cnt, sizeof (char *), sort_by_mtime);
-          }
-          else
-          {
-            dictpos++;
+            clear_prompt ();
 
-            rd->dictpos = dictpos;
+            log_info ("");
+
+            if (stdout_flag == 0) status_display ();
+
+            log_info ("");
           }
+        }
+
+        if (induction_dictionaries_cnt)
+        {
+          qsort (induction_dictionaries, induction_dictionaries_cnt, sizeof (char *), sort_by_mtime);
         }
 
         time_t runtime_stop;
@@ -18272,34 +18256,26 @@ int main (int argc, char **argv)
 
         global_free (subid);
 
-        // finalize task
+        // from this point we handle bypass as exhausted
 
-        if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+        if (data.devices_status == STATUS_BYPASS)
+        {
+          data.devices_status = STATUS_EXHAUSTED;
+        }
+
+        // finalize task
 
         if (data.devices_status == STATUS_CRACKED) break;
         if (data.devices_status == STATUS_ABORTED) break;
         if (data.devices_status == STATUS_QUIT)    break;
-
-        if (data.devices_status == STATUS_BYPASS)
-        {
-          data.devices_status = STATUS_RUNNING;
-        }
       }
-
-      if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
       if (data.devices_status == STATUS_CRACKED) break;
       if (data.devices_status == STATUS_ABORTED) break;
       if (data.devices_status == STATUS_QUIT)    break;
-
-      if (data.devices_status == STATUS_BYPASS)
-      {
-        data.devices_status = STATUS_RUNNING;
-      }
     }
 
     // problems could occur if already at startup everything was cracked (because of .pot file reading etc), we must set some variables here to avoid NULL pointers
-
     if (attack_mode == ATTACK_MODE_STRAIGHT)
     {
       if (data.wordlist_mode == WL_MODE_FILE)
@@ -18336,11 +18312,6 @@ int main (int argc, char **argv)
 
         data.mask = masks[0];
       }
-    }
-
-    if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
-    {
-      data.devices_status = STATUS_EXHAUSTED;
     }
 
     // if cracked / aborted remove last induction dictionary
@@ -18389,29 +18360,6 @@ int main (int argc, char **argv)
      * Clean up
      */
 
-    if (benchmark == 1)
-    {
-      status_benchmark ();
-
-      if (machine_readable == 0)
-      {
-        log_info ("");
-      }
-    }
-    else
-    {
-      if (quiet == 0)
-      {
-        clear_prompt ();
-
-        log_info ("");
-
-        if (stdout_flag == 0) status_display ();
-
-        log_info ("");
-      }
-    }
-
     for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
     {
       hc_device_param_t *device_param = &data.devices_param[device_id];
@@ -18419,15 +18367,10 @@ int main (int argc, char **argv)
       if (device_param->skipped) continue;
 
       local_free (device_param->combs_buf);
-
       local_free (device_param->hooks_buf);
-
       local_free (device_param->device_name);
-
       local_free (device_param->device_name_chksum);
-
       local_free (device_param->device_version);
-
       local_free (device_param->driver_version);
 
       if (device_param->pws_buf)            myfree                    (device_param->pws_buf);
