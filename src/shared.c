@@ -3482,16 +3482,25 @@ int hm_set_fanspeed_with_device_id_nvapi (const uint device_id, const int fanspe
   {
     if (data.hm_nvapi)
     {
-      NV_GPU_COOLER_LEVELS CoolerLevels = { 0 };
+      if (fanpolicy == 1)
+      {
+        NV_GPU_COOLER_LEVELS CoolerLevels = { 0 };
 
-      CoolerLevels.Version = GPU_COOLER_LEVELS_VER | sizeof (NV_GPU_COOLER_LEVELS);
+        CoolerLevels.Version = GPU_COOLER_LEVELS_VER | sizeof (NV_GPU_COOLER_LEVELS);
 
-      CoolerLevels.Levels[0].Level  = fanspeed;
-      CoolerLevels.Levels[0].Policy = fanpolicy;
+        CoolerLevels.Levels[0].Level  = fanspeed;
+        CoolerLevels.Levels[0].Policy = 1;
 
-      if (hm_NvAPI_GPU_SetCoolerLevels (data.hm_nvapi, data.hm_device[device_id].nvapi, 0, &CoolerLevels) != NVAPI_OK) return -1;
+        if (hm_NvAPI_GPU_SetCoolerLevels (data.hm_nvapi, data.hm_device[device_id].nvapi, 0, &CoolerLevels) != NVAPI_OK) return -1;
 
-      return 0;
+        return 0;
+      }
+      else
+      {
+        if (hm_NvAPI_GPU_RestoreCoolerSettings (data.hm_nvapi, data.hm_device[device_id].nvapi, 0) != NVAPI_OK) return -1;
+
+        return 0;
+      }
     }
   }
 

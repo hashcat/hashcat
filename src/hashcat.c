@@ -18460,7 +18460,7 @@ int main (int argc, char **argv)
               #endif
 
               #ifdef WIN
-              rc = hm_set_fanspeed_with_device_id_nvapi (device_id, 100, 8);
+              rc = hm_set_fanspeed_with_device_id_nvapi (device_id, 100, 0);
               #endif
             }
 

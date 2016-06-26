@@ -213,6 +213,7 @@ NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MA
 NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesInfo (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info);
 NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesStatus (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status);
 NVAPI_INTERFACE NvAPI_GPU_SetCoolerLevels (NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels);
+NVAPI_INTERFACE NvAPI_GPU_RestoreCoolerSettings (NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex);
 
 /*
  * End of declarations from nvapi.h and subheaders
@@ -236,6 +237,7 @@ typedef int (*NVAPI_API_CALL NVAPI_ENUMPHYSICALGPUS) (NvPhysicalGpuHandle nvGPUH
 typedef int (*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESINFO) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *);
 typedef int (*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESSTATUS) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *);
 typedef int (*NVAPI_API_CALL NVAPI_GPU_SETCOOLERLEVELS) (NvPhysicalGpuHandle, NvU32, NV_GPU_COOLER_LEVELS *);
+typedef int (*NVAPI_API_CALL NVAPI_GPU_RESTORECOOLERSETTINGS) (NvPhysicalGpuHandle, NvU32);
 
 typedef struct
 {
@@ -249,6 +251,7 @@ typedef struct
   NVAPI_GPU_GETPERFPOLICIESINFO NvAPI_GPU_GetPerfPoliciesInfo;
   NVAPI_GPU_GETPERFPOLICIESSTATUS NvAPI_GPU_GetPerfPoliciesStatus;
   NVAPI_GPU_SETCOOLERLEVELS NvAPI_GPU_SetCoolerLevels;
+  NVAPI_GPU_RESTORECOOLERSETTINGS NvAPI_GPU_RestoreCoolerSettings;
 
 } hm_nvapi_lib_t;
 
@@ -265,6 +268,7 @@ int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle
 int hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info);
 int hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status);
 int hm_NvAPI_GPU_SetCoolerLevels (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels);
+int hm_NvAPI_GPU_RestoreCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex);
 
 #endif // HAVE_HWMON
 
