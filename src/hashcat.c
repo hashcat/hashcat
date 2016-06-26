@@ -78,7 +78,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 #define NVIDIA_SPIN_DAMP        100
 #define GPU_TEMP_DISABLE        0
 #define GPU_TEMP_ABORT          90
-#define GPU_TEMP_RETAIN         65
+#define GPU_TEMP_RETAIN         75
 #define WORKLOAD_PROFILE        2
 #define KERNEL_ACCEL            0
 #define KERNEL_LOOPS            0
@@ -14657,9 +14657,6 @@ int main (int argc, char **argv)
      * OpenCL devices: allocate buffer for device specific information
      */
 
-    int *temp_retain_fanspeed_value  = (int *) mycalloc (data.devices_cnt, sizeof (int));
-    int *temp_retain_fanpolicy_value = (int *) mycalloc (data.devices_cnt, sizeof (int));
-
     ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (data.devices_cnt, sizeof (ADLOD6MemClockState));
 
     int *od_power_control_status = (int *) mycalloc (data.devices_cnt, sizeof (int));
@@ -16322,9 +16319,6 @@ int main (int argc, char **argv)
           {
             const int fanspeed  = hm_get_fanspeed_with_device_id  (device_id);
             const int fanpolicy = hm_get_fanpolicy_with_device_id (device_id);
-
-            temp_retain_fanspeed_value[device_id]  = fanspeed;
-            temp_retain_fanpolicy_value[device_id] = fanpolicy;
 
             // we also set it to tell the OS we take control over the fan and it's automatic controller
             // if it was set to automatic. we do not control user-defined fanspeeds.
@@ -18453,30 +18447,24 @@ int main (int argc, char **argv)
 
           if (data.hm_device[device_id].fan_set_supported == 1)
           {
-            int fanspeed  = temp_retain_fanspeed_value[device_id];
-            int fanpolicy = temp_retain_fanpolicy_value[device_id];
+            int rc = -1;
 
-            if (fanpolicy == 1)
+            if (device_param->device_vendor_id == VENDOR_ID_AMD)
             {
-              int rc = -1;
-
-              if (device_param->device_vendor_id == VENDOR_ID_AMD)
-              {
-                rc = hm_set_fanspeed_with_device_id_adl (device_id, fanspeed, 0);
-              }
-              else if (device_param->device_vendor_id == VENDOR_ID_NV)
-              {
-                #ifdef LINUX
-                rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE);
-                #endif
-
-                #ifdef WIN
-                rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, fanpolicy);
-                #endif
-              }
-
-              if (rc == -1) log_info ("WARNING: Failed to restore default fan speed and policy for device #%", device_id + 1);
+              rc = hm_set_fanspeed_with_device_id_adl (device_id, 100, 0);
             }
+            else if (device_param->device_vendor_id == VENDOR_ID_NV)
+            {
+              #ifdef LINUX
+              rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE);
+              #endif
+
+              #ifdef WIN
+              rc = hm_set_fanspeed_with_device_id_nvapi (device_id, 100, 8);
+              #endif
+            }
+
+            if (rc == -1) log_info ("WARNING: Failed to restore default fan speed and policy for device #%", device_id + 1);
           }
         }
 
@@ -18637,7 +18625,6 @@ int main (int argc, char **argv)
     local_free (bitmap_s2_d);
 
     #ifdef HAVE_HWMON
-    local_free (temp_retain_fanspeed_value);
     local_free (od_clock_mem_status);
     local_free (od_power_control_status);
     local_free (nvml_power_limit);

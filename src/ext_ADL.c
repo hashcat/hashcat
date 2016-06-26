@@ -63,6 +63,7 @@ int adl_init (ADL_PTR *adl)
   HC_LOAD_FUNC(adl, ADL_Overdrive6_State_Set, ADL_OVERDRIVE6_STATE_SET, ADL, 0)
   HC_LOAD_FUNC(adl, ADL_Overdrive6_TargetTemperatureData_Get, ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET, ADL, 0)
   HC_LOAD_FUNC(adl, ADL_Overdrive6_TargetTemperatureRangeInfo_Get, ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET, ADL, 0)
+  HC_LOAD_FUNC(adl, ADL_Overdrive6_FanSpeed_Reset, ADL_OVERDRIVE6_FANSPEED_RESET, ADL, 0)
 
   return 0;
 }
@@ -591,6 +592,15 @@ int hm_ADL_Overdrive6_TargetTemperatureRangeInfo_Get (ADL_PTR *adl, int iAdapter
   if (!adl) return (-1);
 
   int ADL_rc = adl->ADL_Overdrive6_TargetTemperatureRangeInfo_Get (iAdapterIndex, lpTargetTemperatureInfo);
+
+  return (ADL_rc);
+}
+
+int hm_ADL_Overdrive6_FanSpeed_Reset (ADL_PTR *adl, int iAdapterIndex)
+{
+  if (!adl) return (-1);
+
+  int ADL_rc = adl->ADL_Overdrive6_FanSpeed_Reset (iAdapterIndex);
 
   return (ADL_rc);
 }

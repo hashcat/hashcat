@@ -3424,33 +3424,51 @@ int hm_set_fanspeed_with_device_id_adl (const uint device_id, const int fanspeed
   {
     if (data.hm_adl)
     {
-      if (data.hm_device[device_id].od_version == 5)
+      if (fanpolicy == 1)
       {
-        ADLFanSpeedValue lpFanSpeedValue;
+        if (data.hm_device[device_id].od_version == 5)
+        {
+          ADLFanSpeedValue lpFanSpeedValue;
 
-        memset (&lpFanSpeedValue, 0, sizeof (lpFanSpeedValue));
+          memset (&lpFanSpeedValue, 0, sizeof (lpFanSpeedValue));
 
-        lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
-        lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
-        lpFanSpeedValue.iFlags     = (fanpolicy == 1) ? ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED : 0;
-        lpFanSpeedValue.iFanSpeed  = fanspeed;
+          lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
+          lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
+          lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
+          lpFanSpeedValue.iFanSpeed  = fanspeed;
 
-        if (hm_ADL_Overdrive5_FanSpeed_Set (data.hm_adl, data.hm_device[device_id].adl, 0, &lpFanSpeedValue) != ADL_OK) return -1;
+          if (hm_ADL_Overdrive5_FanSpeed_Set (data.hm_adl, data.hm_device[device_id].adl, 0, &lpFanSpeedValue) != ADL_OK) return -1;
 
-        return 0;
+          return 0;
+        }
+        else // od_version == 6
+        {
+          ADLOD6FanSpeedValue fan_speed_value;
+
+          memset (&fan_speed_value, 0, sizeof (fan_speed_value));
+
+          fan_speed_value.iSpeedType = ADL_OD6_FANSPEED_TYPE_PERCENT;
+          fan_speed_value.iFanSpeed  = fanspeed;
+
+          if (hm_ADL_Overdrive6_FanSpeed_Set (data.hm_adl, data.hm_device[device_id].adl, &fan_speed_value) != ADL_OK) return -1;
+
+          return 0;
+        }
       }
-      else // od_version == 6
+      else
       {
-        ADLOD6FanSpeedValue fan_speed_value;
+        if (data.hm_device[device_id].od_version == 5)
+        {
+          if (hm_ADL_Overdrive5_FanSpeedToDefault_Set (data.hm_adl, data.hm_device[device_id].adl, 0) != ADL_OK) return -1;
 
-        memset (&fan_speed_value, 0, sizeof (fan_speed_value));
+          return 0;
+        }
+        else // od_version == 6
+        {
+          if (hm_ADL_Overdrive6_FanSpeed_Reset (data.hm_adl, data.hm_device[device_id].adl) != ADL_OK) return -1;
 
-        fan_speed_value.iSpeedType = ADL_OD6_FANSPEED_TYPE_PERCENT;
-        fan_speed_value.iFanSpeed  = fanspeed;
-
-        if (hm_ADL_Overdrive6_FanSpeed_Set (data.hm_adl, data.hm_device[device_id].adl, &fan_speed_value) != ADL_OK) return -1;
-
-        return 0;
+          return 0;
+        }
       }
     }
   }
