@@ -14188,7 +14188,7 @@ int main (int argc, char **argv)
 
         device_param->device_name_chksum = device_name_chksum;
 
-        // device_processor_cores
+        // vendor specific
 
         if (device_param->device_type & CL_DEVICE_TYPE_GPU)
         {
@@ -14211,28 +14211,9 @@ int main (int argc, char **argv)
           }
         }
 
-        // device_processor_cores
-
-        if (device_type & CL_DEVICE_TYPE_CPU)
-        {
-          cl_uint device_processor_cores = 1;
-
-          device_param->device_processor_cores = device_processor_cores;
-        }
-
         if (device_type & CL_DEVICE_TYPE_GPU)
         {
-          if (device_vendor_id == VENDOR_ID_AMD)
-          {
-            cl_uint device_processor_cores = 0;
-
-            #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
-
-            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof (device_processor_cores), &device_processor_cores, NULL);
-
-            device_param->device_processor_cores = device_processor_cores;
-          }
-          else if (device_vendor_id == VENDOR_ID_NV)
+          if (device_vendor_id == VENDOR_ID_NV)
           {
             cl_uint kernel_exec_timeout = 0;
 
@@ -14241,14 +14222,6 @@ int main (int argc, char **argv)
             hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
 
             device_param->kernel_exec_timeout = kernel_exec_timeout;
-
-            cl_uint device_processor_cores = 0;
-
-            #define CL_DEVICE_WARP_SIZE_NV                      0x4003
-
-            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_WARP_SIZE_NV, sizeof (device_processor_cores), &device_processor_cores, NULL);
-
-            device_param->device_processor_cores = device_processor_cores;
 
             cl_uint sm_minor = 0;
             cl_uint sm_major = 0;
@@ -14284,12 +14257,6 @@ int main (int argc, char **argv)
             }
 
             device_param->nvidia_spin_damp /= 100;
-          }
-          else
-          {
-            cl_uint device_processor_cores = 1;
-
-            device_param->device_processor_cores = device_processor_cores;
           }
         }
 
@@ -15019,7 +14986,6 @@ int main (int argc, char **argv)
 
       const char *device_name_chksum      = device_param->device_name_chksum;
       const u32   device_processors       = device_param->device_processors;
-      const u32   device_processor_cores  = device_param->device_processor_cores;
 
       /**
        * create context for each device
@@ -15053,7 +15019,9 @@ int main (int argc, char **argv)
       if (hash_mode ==  3000) kernel_threads = 64; // DES
       if (hash_mode ==  3200) kernel_threads = 8;  // Blowfish
       if (hash_mode ==  7500) kernel_threads = 64; // RC4
+      if (hash_mode ==  8900) kernel_threads = 32; // scrypt
       if (hash_mode ==  9000) kernel_threads = 8;  // Blowfish
+      if (hash_mode ==  9300) kernel_threads = 32; // scrypt
       if (hash_mode ==  9700) kernel_threads = 64; // RC4
       if (hash_mode ==  9710) kernel_threads = 64; // RC4
       if (hash_mode ==  9800) kernel_threads = 64; // RC4
@@ -15140,6 +15108,9 @@ int main (int argc, char **argv)
           }
         }
 
+        device_param->kernel_accel_min = 1;
+        device_param->kernel_accel_max = 8;
+
         for (uint tmto = tmto_start; tmto < tmto_stop; tmto++)
         {
           // TODO: in theory the following calculation needs to be done per salt, not global
@@ -15149,7 +15120,7 @@ int main (int argc, char **argv)
 
           size_scryptV /= 1 << tmto;
 
-          size_scryptV *= device_processors * device_processor_cores;
+          size_scryptV *= device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel_max;
 
           if (size_scryptV > device_param->device_maxmem_alloc)
           {
@@ -15161,7 +15132,7 @@ int main (int argc, char **argv)
           for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
           {
             data.salts_buf[salts_pos].scrypt_tmto = tmto;
-            data.salts_buf[salts_pos].scrypt_phy  = device_processors * device_processor_cores;
+            data.salts_buf[salts_pos].scrypt_phy  = device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel_max;
           }
 
           break;

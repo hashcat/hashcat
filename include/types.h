@@ -936,7 +936,6 @@ struct __hc_device_param
   uint    kernel_exec_timeout;
 
   uint    device_processors;
-  uint    device_processor_cores;
   u64     device_maxmem_alloc;
   u64     device_global_mem;
   u32     device_maxclock_frequency;

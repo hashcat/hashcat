@@ -683,9 +683,11 @@ void scrypt_smix (uint4 *X, uint4 *T, const u32 phy, __global uint4 *V)
   const u32 ySIZE = SCRYPT_N / SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
 
-  const u32 gid = get_global_id (0);
+  const u32 lid = get_local_id (0);
+  const u32 lsz = get_local_size (0);
+  const u32 rid = get_group_id (0);
 
-  const u32 x = gid % xSIZE;
+  const u32 x = (rid * lsz) + lid;
 
   #ifdef _unroll
   #pragma unroll
