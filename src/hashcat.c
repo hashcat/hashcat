@@ -18236,6 +18236,16 @@ int main (int argc, char **argv)
           data.devices_status = STATUS_RUNNING;
         }
 
+        // and overwrite benchmark aborts as well
+
+        if (data.benchmark == 1)
+        {
+          if (data.devices_status == STATUS_ABORTED)
+          {
+            data.devices_status = STATUS_RUNNING;
+          }
+        }
+
         // finalize task
 
         if (data.devices_status == STATUS_CRACKED) break;
@@ -18406,7 +18416,7 @@ int main (int argc, char **argv)
     #ifdef HAVE_HWMON
     if (gpu_temp_disable == 0)
     {
-      if (gpu_temp_retain != 0) // VENDOR_ID_AMD is implied here
+      if (gpu_temp_retain != 0)
       {
         hc_thread_mutex_lock (mux_adl);
 
@@ -18445,7 +18455,7 @@ int main (int argc, char **argv)
 
     // reset power tuning
 
-    if (powertune_enable == 1) // VENDOR_ID_AMD is implied here
+    if (powertune_enable == 1)
     {
       hc_thread_mutex_lock (mux_adl);
 

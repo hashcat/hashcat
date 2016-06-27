@@ -20737,7 +20737,7 @@ BOOL WINAPI sigHandler_benchmark (DWORD sig)
   {
     case CTRL_CLOSE_EVENT:
 
-      myabort ();
+      myquit ();
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
