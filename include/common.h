@@ -38,17 +38,17 @@
 #include <semaphore.h>
 #include <dlfcn.h>
 #include <pwd.h>
+#include <limits.h>
 
 #ifdef LINUX
 #include <termio.h>
 #endif
 
-#ifdef OSX
+#ifdef DARWIN
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <mach-o/dyld.h>
 #include <mach/mach.h>
-#include <limits.h>
 #endif
 
 typedef void *OCL_LIB;
@@ -58,7 +58,7 @@ typedef void *ADL_LIB;
 typedef void *NVAPI_LIB;
 typedef void *NVML_LIB;
 typedef void *XNVCTRL_LIB;
-#ifdef OSX
+#ifdef DARWIN
 #define __stdcall
 #endif
 #endif

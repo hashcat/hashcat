@@ -6,6 +6,12 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#ifdef _WIN
+#define EOL "\r\n"
+#else
+#define EOL "\n"
+#endif
+
 typedef struct
 {
   uint salt_buf[16];

@@ -46,7 +46,7 @@
 #define hc_thread_mutex_delete(m)   pthread_mutex_destroy  (&m)
 #endif
 
-#ifdef OSX
+#ifdef DARWIN
 typedef struct cpu_set
 {
   uint32_t count;

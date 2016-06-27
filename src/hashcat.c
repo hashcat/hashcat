@@ -6,7 +6,7 @@
  * License.....: MIT
  */
 
-#ifdef OSX
+#ifdef DARWIN
 #include <stdio.h>
 #endif
 
@@ -916,15 +916,7 @@ void status_display_machine_readable ()
    * flush
    */
 
-  #ifdef _WIN
-  fputc ('\r', out);
-  fputc ('\n', out);
-  #endif
-
-  #ifdef _POSIX
-  fputc ('\n', out);
-  #endif
-
+  fputs (EOL, out);
   fflush (out);
 }
 
