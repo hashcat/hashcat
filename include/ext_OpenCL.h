@@ -13,7 +13,7 @@
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 
-#ifdef OSX
+#ifdef DARWIN
 #include <OpenCL/cl.h>
 #endif
 

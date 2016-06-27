@@ -6,7 +6,7 @@
  * License.....: MIT
  */
 
-#ifdef OSX
+#ifdef DARWIN
 #include <stdio.h>
 #endif
 

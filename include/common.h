@@ -43,7 +43,7 @@
 #include <termio.h>
 #endif
 
-#ifdef OSX
+#ifdef DARWIN
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <mach-o/dyld.h>
@@ -58,7 +58,7 @@ typedef void *ADL_LIB;
 typedef void *NVAPI_LIB;
 typedef void *NVML_LIB;
 typedef void *XNVCTRL_LIB;
-#ifdef OSX
+#ifdef DARWIN
 #define __stdcall
 #endif
 #endif

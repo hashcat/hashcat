@@ -6,7 +6,7 @@
  * License.....: MIT
  */
 
-#ifdef OSX
+#ifdef DARWIN
 #include <stdio.h>
 #endif
 
@@ -2382,7 +2382,7 @@ int tty_fix()
 }
 #endif
 
-#ifdef OSX
+#ifdef DARWIN
 static struct termios savemodes;
 static int havemodes = 0;
 
@@ -4325,7 +4325,7 @@ char *get_exec_path ()
 
   const int len = GetModuleFileName (NULL, exec_path, exec_path_len - 1);
 
-  #elif OSX
+  #elif DARWIN
 
   uint size = exec_path_len;
 
@@ -4462,7 +4462,7 @@ void truecrypt_crc32 (const char *filename, u8 keytab[64])
   myfree (buf);
 }
 
-#ifdef OSX
+#ifdef DARWIN
 int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t *cpu_set)
 {
   int core;
@@ -5730,7 +5730,7 @@ char **scan_directory (const char *path)
 
   if ((d = opendir (tmp_path)) != NULL)
   {
-    #ifdef OSX
+    #ifdef DARWIN
     struct dirent e;
 
     for (;;) {
