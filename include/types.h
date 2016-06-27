@@ -1123,6 +1123,9 @@ typedef struct
 
   hc_device_param_t *devices_param;
 
+  uint    shutdown_inner;
+  uint    shutdown_outer;
+
   /**
    * workload specific
    */

@@ -9162,36 +9162,32 @@ void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos)
 
 void SuspendThreads ()
 {
-  if (data.devices_status == STATUS_RUNNING)
-  {
-    hc_timer_set (&data.timer_paused);
+  if (data.devices_status != STATUS_RUNNING) return;
 
-    data.devices_status = STATUS_PAUSED;
+  hc_timer_set (&data.timer_paused);
 
-    log_info ("Paused");
-  }
+  data.devices_status = STATUS_PAUSED;
+
+  log_info ("Paused");
 }
 
 void ResumeThreads ()
 {
-  if (data.devices_status == STATUS_PAUSED)
-  {
-    double ms_paused;
+  if (data.devices_status != STATUS_PAUSED) return;
 
-    hc_timer_get (data.timer_paused, ms_paused);
+  double ms_paused;
 
-    data.ms_paused += ms_paused;
+  hc_timer_get (data.timer_paused, ms_paused);
 
-    data.devices_status = STATUS_RUNNING;
+  data.ms_paused += ms_paused;
 
-    log_info ("Resumed");
-  }
+  data.devices_status = STATUS_RUNNING;
+
+  log_info ("Resumed");
 }
 
 void bypass ()
 {
-  if (data.devices_status != STATUS_RUNNING) return;
-
   data.devices_status = STATUS_BYPASS;
 
   log_info ("Next dictionary / mask in queue selected, bypassing current one");
@@ -9239,17 +9235,11 @@ void stop_at_checkpoint ()
 
 void myabort ()
 {
-  //if (data.devices_status == STATUS_INIT)     return;
-  //if (data.devices_status == STATUS_STARTING) return;
-
   data.devices_status = STATUS_ABORTED;
 }
 
 void myquit ()
 {
-  //if (data.devices_status == STATUS_INIT)     return;
-  //if (data.devices_status == STATUS_STARTING) return;
-
   data.devices_status = STATUS_QUIT;
 }
 
@@ -20806,7 +20796,7 @@ void *thread_keypress (void *p)
 
   tty_break();
 
-  while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+  while (data.shutdown_outer == 0)
   {
     int ch = tty_getchar();
 

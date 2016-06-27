@@ -1,4 +1,4 @@
- /**
+/**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
  *               Gabriele Gristina <matrix@hashcat.net>
  *               magnum <john.magnum@hushmail.com>
@@ -3045,6 +3045,7 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
       if (data.devices_status == STATUS_CRACKED) break;
       if (data.devices_status == STATUS_ABORTED) break;
       if (data.devices_status == STATUS_QUIT)    break;
+      if (data.devices_status == STATUS_BYPASS)  break;
 
       /**
        * speed
@@ -3701,6 +3702,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
       if (data.devices_status == STATUS_CRACKED) break;
       if (data.devices_status == STATUS_ABORTED) break;
       if (data.devices_status == STATUS_QUIT)    break;
+      if (data.devices_status == STATUS_BYPASS)  break;
 
       /**
        * result
@@ -4163,7 +4165,7 @@ static void *thread_monitor (void *p)
     return (p);
   }
 
-  while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+  while (data.shutdown_inner == 0)
   {
     hc_sleep (sleep_time);
 
@@ -4452,7 +4454,7 @@ static void *thread_outfile_remove (void *p)
 
   uint check_left = outfile_check_timer; // or 1 if we want to check it at startup
 
-  while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+  while (data.shutdown_inner == 0)
   {
     hc_sleep (1);
 
@@ -4830,7 +4832,7 @@ static void *thread_calc_stdin (void *p)
 
   const uint attack_kern = data.attack_kern;
 
-  while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+  while ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
   {
     hc_thread_mutex_lock (mux_dispatcher);
 
@@ -4958,7 +4960,7 @@ static void *thread_calc (void *p)
 
   if (attack_mode == ATTACK_MODE_BF)
   {
-    while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+    while ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
     {
       const uint work = get_work (device_param, -1);
 
@@ -5070,7 +5072,7 @@ static void *thread_calc (void *p)
 
     u64 words_cur = 0;
 
-    while ((data.devices_status != STATUS_EXHAUSTED) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+    while ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
     {
       u64 words_off = 0;
       u64 words_fin = 0;
@@ -7362,6 +7364,8 @@ int main (int argc, char **argv)
 
   hc_thread_t *outer_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
+  data.shutdown_outer = 0;
+
   if (keyspace == 0 && benchmark == 0 && stdout_flag == 0)
   {
     if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
@@ -7370,10 +7374,6 @@ int main (int argc, char **argv)
 
       outer_threads_cnt++;
     }
-
-    hc_thread_create (outer_threads[outer_threads_cnt], thread_monitor, NULL);
-
-    outer_threads_cnt++;
   }
 
   /**
@@ -17203,7 +17203,7 @@ int main (int argc, char **argv)
      * status and monitor threads
      */
 
-    if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+    if ((data.devices_status != STATUS_BYPASS) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
     {
       data.devices_status = STATUS_STARTING;
     }
@@ -17212,12 +17212,18 @@ int main (int argc, char **argv)
 
     hc_thread_t *inner_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
+    data.shutdown_inner = 0;
+
     /**
       * Outfile remove
       */
 
     if (keyspace == 0 && benchmark == 0 && stdout_flag == 0)
     {
+      hc_thread_create (inner_threads[inner_threads_cnt], thread_monitor, NULL);
+
+      inner_threads_cnt++;
+
       if (outfile_check_timer != 0)
       {
         if (data.outfile_check_directory != NULL)
@@ -17530,7 +17536,7 @@ int main (int argc, char **argv)
 
         logfile_sub_msg ("START");
 
-        if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+        if ((data.devices_status != STATUS_BYPASS) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
         {
           data.devices_status = STATUS_INIT;
         }
@@ -18061,7 +18067,7 @@ int main (int argc, char **argv)
 
         hc_thread_t *c_threads = (hc_thread_t *) mycalloc (data.devices_cnt, sizeof (hc_thread_t));
 
-        if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+        if ((data.devices_status != STATUS_BYPASS) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
         {
           data.devices_status = STATUS_AUTOTUNE;
         }
@@ -18118,7 +18124,7 @@ int main (int argc, char **argv)
          * create cracker threads
          */
 
-        if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+        if ((data.devices_status != STATUS_BYPASS) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
         {
           data.devices_status = STATUS_RUNNING;
         }
@@ -18170,7 +18176,7 @@ int main (int argc, char **argv)
 
         local_free (c_threads);
 
-        if ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+        if ((data.devices_status != STATUS_BYPASS) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
         {
           data.devices_status = STATUS_EXHAUSTED;
         }
@@ -18314,7 +18320,9 @@ int main (int argc, char **argv)
       }
     }
 
-    // wait for non-interactive threads
+    // wait for inner threads
+
+    data.shutdown_inner = 1;
 
     for (uint thread_idx = 0; thread_idx < inner_threads_cnt; thread_idx++)
     {
@@ -18636,7 +18644,9 @@ int main (int argc, char **argv)
     if (data.devices_status == STATUS_QUIT) break;
   }
 
-  // wait for interactive threads
+  // wait for outer threads
+
+  data.shutdown_outer = 1;
 
   for (uint thread_idx = 0; thread_idx < outer_threads_cnt; thread_idx++)
   {
