@@ -15427,8 +15427,6 @@ int main (int argc, char **argv)
 
       snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", cpath_real);
 
-      myfree (cpath_real);
-
       #else
 
       snprintf (cpath, sizeof (cpath) - 1, "%s/OpenCL/", shared_dir);
@@ -15446,9 +15444,63 @@ int main (int argc, char **argv)
 
       snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", cpath_real);
 
-      myfree (cpath_real);
-
       #endif
+
+      // include check
+      // this test needs to be done manually because of osx opencl runtime
+      // if there's a problem with permission, its not reporting back and erroring out silently
+
+      #define files_cnt 15
+
+      const char *files_names[files_cnt] =
+      {
+        "inc_cipher_aes256.cl",
+        "inc_cipher_serpent256.cl",
+        "inc_cipher_twofish256.cl",
+        "inc_common.cl",
+        "inc_comp_multi_bs.cl",
+        "inc_comp_multi.cl",
+        "inc_comp_single_bs.cl",
+        "inc_comp_single.cl",
+        "inc_hash_constants.h",
+        "inc_hash_functions.cl",
+        "inc_rp.cl",
+        "inc_rp.h",
+        "inc_simd.cl",
+        "inc_types.cl",
+        "inc_vendor.cl",
+      };
+
+      for (int i = 0; i < files_cnt; i++)
+      {
+        char path[1024] = { 0 };
+
+        snprintf (path, sizeof (path) - 1, "%s/%s", cpath_real, files_names[i]);
+
+        FILE *fd = fopen (path, "r");
+
+        if (fd == NULL)
+        {
+          log_error ("ERROR: %s: fopen(): %s", path, strerror (errno));
+
+          return -1;
+        }
+
+        char buf[1];
+
+        size_t n = fread (buf, 1, 1, fd);
+
+        if (n != 1)
+        {
+          log_error ("ERROR: %s: fread(): %s", path, strerror (errno));
+
+          return -1;
+        }
+
+        fclose (fd);
+      }
+
+      myfree (cpath_real);
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
