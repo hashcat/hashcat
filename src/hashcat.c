@@ -15011,9 +15011,7 @@ int main (int argc, char **argv)
       if (hash_mode ==  3000) kernel_threads = 64; // DES
       if (hash_mode ==  3200) kernel_threads = 8;  // Blowfish
       if (hash_mode ==  7500) kernel_threads = 64; // RC4
-      if (hash_mode ==  8900) kernel_threads = 32; // scrypt
       if (hash_mode ==  9000) kernel_threads = 8;  // Blowfish
-      if (hash_mode ==  9300) kernel_threads = 32; // scrypt
       if (hash_mode ==  9700) kernel_threads = 64; // RC4
       if (hash_mode ==  9710) kernel_threads = 64; // RC4
       if (hash_mode ==  9800) kernel_threads = 64; // RC4
@@ -15063,6 +15061,24 @@ int main (int argc, char **argv)
 
       if ((hash_mode == 8900) || (hash_mode == 9300))
       {
+        // we need to check that all hashes have the same scrypt settings
+
+        const u32 scrypt_N = data.salts_buf[0].scrypt_N;
+        const u32 scrypt_r = data.salts_buf[0].scrypt_r;
+        const u32 scrypt_p = data.salts_buf[0].scrypt_p;
+
+        for (uint i = 1; i < salts_cnt; i++)
+        {
+          if ((data.salts_buf[i].scrypt_N != scrypt_N)
+           || (data.salts_buf[i].scrypt_r != scrypt_r)
+           || (data.salts_buf[i].scrypt_p != scrypt_p))
+          {
+            log_error ("ERROR: Mixed scrypt settings not supported");
+
+            return -1;
+          }
+        }
+
         uint tmto_start = 0;
         uint tmto_stop  = 10;
 
@@ -15100,15 +15116,16 @@ int main (int argc, char **argv)
           }
         }
 
+        data.scrypt_tmp_size = (128 * scrypt_r);
+
         device_param->kernel_accel_min = 1;
         device_param->kernel_accel_max = 8;
 
-        for (uint tmto = tmto_start; tmto < tmto_stop; tmto++)
-        {
-          // TODO: in theory the following calculation needs to be done per salt, not global
-          //       we assume all hashes have the same scrypt settings
+        uint tmto;
 
-          size_scryptV = (128 * data.salts_buf[0].scrypt_r) * data.salts_buf[0].scrypt_N;
+        for (tmto = tmto_start; tmto < tmto_stop; tmto++)
+        {
+          size_scryptV = (128 * scrypt_r) * scrypt_N;
 
           size_scryptV /= 1 << tmto;
 
@@ -15123,21 +15140,20 @@ int main (int argc, char **argv)
 
           for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
           {
-            data.salts_buf[salts_pos].scrypt_tmto = tmto;
-            data.salts_buf[salts_pos].scrypt_phy  = device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel_max;
+            data.scrypt_tmto_final = tmto;
           }
 
           break;
         }
 
-        if (data.salts_buf[0].scrypt_phy == 0)
+        if (tmto == tmto_stop)
         {
           log_error ("ERROR: Can't allocate enough device memory");
 
           return -1;
         }
 
-        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %u\n", data.salts_buf[0].scrypt_tmto, size_scryptV);
+        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %u\n", data.scrypt_tmto_final, size_scryptV);
       }
 
       /**
@@ -15265,11 +15281,11 @@ int main (int argc, char **argv)
           case  7900: size_tmps = kernel_power_max * sizeof (drupal7_tmp_t);         break;
           case  8200: size_tmps = kernel_power_max * sizeof (pbkdf2_sha512_tmp_t);   break;
           case  8800: size_tmps = kernel_power_max * sizeof (androidfde_tmp_t);      break;
-          case  8900: size_tmps = kernel_power_max * sizeof (scrypt_tmp_t);          break;
+          case  8900: size_tmps = kernel_power_max * data.scrypt_tmp_size;           break;
           case  9000: size_tmps = kernel_power_max * sizeof (pwsafe2_tmp_t);         break;
           case  9100: size_tmps = kernel_power_max * sizeof (lotus8_tmp_t);          break;
           case  9200: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
-          case  9300: size_tmps = kernel_power_max * sizeof (scrypt_tmp_t);          break;
+          case  9300: size_tmps = kernel_power_max * data.scrypt_tmp_size;           break;
           case  9400: size_tmps = kernel_power_max * sizeof (office2007_tmp_t);      break;
           case  9500: size_tmps = kernel_power_max * sizeof (office2010_tmp_t);      break;
           case  9600: size_tmps = kernel_power_max * sizeof (office2013_tmp_t);      break;
@@ -15640,11 +15656,11 @@ int main (int argc, char **argv)
 
           if (force_jit_compilation == 1500)
           {
-            snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DDESCRYPT_SALT=%d", build_opts, data.salts_buf[0].salt_buf[0]);
+            snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DDESCRYPT_SALT=%u", build_opts, data.salts_buf[0].salt_buf[0]);
           }
           else if (force_jit_compilation == 8900)
           {
-            snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DSCRYPT_N=%d -DSCRYPT_R=%d -DSCRYPT_P=%d -DSCRYPT_TMTO=%d", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.salts_buf[0].scrypt_tmto);
+            snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%u -DSCRYPT_TMP_ELEM=%u", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.scrypt_tmto_final, data.scrypt_tmp_size / 16);
           }
           else
           {

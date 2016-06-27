@@ -32,8 +32,6 @@ typedef struct
   uint scrypt_N;
   uint scrypt_r;
   uint scrypt_p;
-  uint scrypt_tmto;
-  uint scrypt_phy;
 
 } salt_t;
 
@@ -294,12 +292,6 @@ typedef struct
   uint salt_buf[32];
 
 } win8phone_t;
-
-typedef struct
-{
-  uint P[256];
-
-} scrypt_tmp_t;
 
 typedef struct
 {
@@ -1209,6 +1201,9 @@ typedef struct
   uint   *salts_shown;
 
   void   *esalts_buf;
+
+  uint    scrypt_tmp_size;
+  uint    scrypt_tmto_final;
 
   /**
    * logging

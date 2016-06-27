@@ -689,8 +689,6 @@ typedef struct
   u32 scrypt_N;
   u32 scrypt_r;
   u32 scrypt_p;
-  u32 scrypt_tmto;
-  u32 scrypt_phy;
 
 } salt_t;
 
@@ -1370,6 +1368,10 @@ typedef struct
 
 typedef struct
 {
-  uint4 P[64];
+  #ifndef SCRYPT_TMP_ELEM
+  #define SCRYPT_TMP_ELEM 1
+  #endif
+
+  uint4 P[SCRYPT_TMP_ELEM];
 
 } scrypt_tmp_t;

@@ -668,20 +668,15 @@ void salsa_r (uint4 *TI)
   }
 }
 
-void scrypt_smix (uint4 *X, uint4 *T, const u32 phy, __global uint4 *V)
+void scrypt_smix (uint4 *X, uint4 *T, __global uint4 *V)
 {
-  #define Coord(x,y,z) (((x) * zSIZE) + ((y) * zSIZE * xSIZE) + (z))
+  #define Coord(x,y,z) (((x) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
   #define CO Coord(x,y,z)
 
-  const u32 xSIZE = phy;
   const u32 ySIZE = SCRYPT_N / SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
 
-  const u32 lid = get_local_id (0);
-  const u32 lsz = get_local_size (0);
-  const u32 rid = get_group_id (0);
-
-  const u32 x = (rid * lsz) + lid;
+  const u32 x = get_global_id (0);
 
   #ifdef _unroll
   #pragma unroll
@@ -887,8 +882,6 @@ __kernel void m08900_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   if (gid >= gid_max) return;
 
-  const u32 scrypt_phy = salt_bufs[salt_pos].scrypt_phy;
-
   uint4 X[STATE_CNT4];
   uint4 T[STATE_CNT4];
 
@@ -897,7 +890,7 @@ __kernel void m08900_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   #endif
   for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[z]);
 
-  scrypt_smix (X, T, scrypt_phy, d_scryptV_buf);
+  scrypt_smix (X, T, d_scryptV_buf);
 
   #ifdef _unroll
   #pragma unroll
@@ -909,7 +902,7 @@ __kernel void m08900_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
   {
     for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[i + z]);
 
-    scrypt_smix (X, T, scrypt_phy, d_scryptV_buf);
+    scrypt_smix (X, T, d_scryptV_buf);
 
     for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[i + z] = swap32_4 (X[z]);
   }
