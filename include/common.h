@@ -38,6 +38,7 @@
 #include <semaphore.h>
 #include <dlfcn.h>
 #include <pwd.h>
+#include <limits.h>
 
 #ifdef LINUX
 #include <termio.h>
@@ -48,7 +49,6 @@
 #include <sys/ioctl.h>
 #include <mach-o/dyld.h>
 #include <mach/mach.h>
-#include <limits.h>
 #endif
 
 typedef void *OCL_LIB;
