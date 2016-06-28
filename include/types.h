@@ -917,7 +917,7 @@ typedef struct
 #define PW_MAX1     (PW_MAX + 1)
 #define PW_DICTMAX  31
 #define PW_DICTMAX1 (PW_DICTMAX + 1)
-#define PARAMCNT    32
+#define PARAMCNT    64
 
 struct __hc_device_param
 {
@@ -1064,7 +1064,10 @@ struct __hc_device_param
   cl_mem  d_tmps;
   cl_mem  d_hooks;
   cl_mem  d_result;
-  cl_mem  d_scryptV_buf;
+  cl_mem  d_scryptV0_buf;
+  cl_mem  d_scryptV1_buf;
+  cl_mem  d_scryptV2_buf;
+  cl_mem  d_scryptV3_buf;
   cl_mem  d_root_css_buf;
   cl_mem  d_markov_css_buf;
 

@@ -2390,7 +2390,7 @@ static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
   uint plain_len = 0;
 
-  const uint il_cnt = device_param->kernel_params_buf32[27]; // ugly, i know
+  const uint il_cnt = device_param->kernel_params_buf32[30]; // ugly, i know
 
   if (data.attack_mode == ATTACK_MODE_STRAIGHT)
   {
@@ -2649,8 +2649,8 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
 {
   uint num_elements = num;
 
-  device_param->kernel_params_buf32[30] = data.combs_mode;
-  device_param->kernel_params_buf32[31] = num;
+  device_param->kernel_params_buf32[33] = data.combs_mode;
+  device_param->kernel_params_buf32[34] = num;
 
   uint kernel_threads = device_param->kernel_threads;
 
@@ -2667,9 +2667,6 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     case KERN_RUN_3:    kernel = device_param->kernel3;     break;
   }
 
-  hc_clSetKernelArg (data.ocl, kernel, 21, sizeof (cl_uint), device_param->kernel_params[21]);
-  hc_clSetKernelArg (data.ocl, kernel, 22, sizeof (cl_uint), device_param->kernel_params[22]);
-  hc_clSetKernelArg (data.ocl, kernel, 23, sizeof (cl_uint), device_param->kernel_params[23]);
   hc_clSetKernelArg (data.ocl, kernel, 24, sizeof (cl_uint), device_param->kernel_params[24]);
   hc_clSetKernelArg (data.ocl, kernel, 25, sizeof (cl_uint), device_param->kernel_params[25]);
   hc_clSetKernelArg (data.ocl, kernel, 26, sizeof (cl_uint), device_param->kernel_params[26]);
@@ -2678,6 +2675,9 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
   hc_clSetKernelArg (data.ocl, kernel, 29, sizeof (cl_uint), device_param->kernel_params[29]);
   hc_clSetKernelArg (data.ocl, kernel, 30, sizeof (cl_uint), device_param->kernel_params[30]);
   hc_clSetKernelArg (data.ocl, kernel, 31, sizeof (cl_uint), device_param->kernel_params[31]);
+  hc_clSetKernelArg (data.ocl, kernel, 32, sizeof (cl_uint), device_param->kernel_params[32]);
+  hc_clSetKernelArg (data.ocl, kernel, 33, sizeof (cl_uint), device_param->kernel_params[33]);
+  hc_clSetKernelArg (data.ocl, kernel, 34, sizeof (cl_uint), device_param->kernel_params[34]);
 
   cl_event event;
 
@@ -3029,8 +3029,8 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
 
       loop_left = MIN (loop_left, loop_step);
 
-      device_param->kernel_params_buf32[25] = loop_pos;
-      device_param->kernel_params_buf32[26] = loop_left;
+      device_param->kernel_params_buf32[28] = loop_pos;
+      device_param->kernel_params_buf32[29] = loop_left;
 
       run_kernel (KERN_RUN_2, device_param, pws_cnt, true, slow_iteration);
 
@@ -3170,9 +3170,9 @@ static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, 
 {
   const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads * kernel_accel;
 
-  device_param->kernel_params_buf32[25] = 0;
-  device_param->kernel_params_buf32[26] = kernel_loops; // not a bug, both need to be set
-  device_param->kernel_params_buf32[27] = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
+  device_param->kernel_params_buf32[28] = 0;
+  device_param->kernel_params_buf32[29] = kernel_loops; // not a bug, both need to be set
+  device_param->kernel_params_buf32[30] = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
   if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
@@ -3496,9 +3496,9 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
     salt_t *salt_buf = &data.salts_buf[salt_pos];
 
-    device_param->kernel_params_buf32[24] = salt_pos;
-    device_param->kernel_params_buf32[28] = salt_buf->digests_cnt;
-    device_param->kernel_params_buf32[29] = salt_buf->digests_offset;
+    device_param->kernel_params_buf32[27] = salt_pos;
+    device_param->kernel_params_buf32[31] = salt_buf->digests_cnt;
+    device_param->kernel_params_buf32[32] = salt_buf->digests_offset;
 
     FILE *combs_fp = device_param->combs_fp;
 
@@ -3534,7 +3534,7 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
       device_param->innerloop_pos  = innerloop_pos;
       device_param->innerloop_left = innerloop_left;
 
-      device_param->kernel_params_buf32[27] = innerloop_left;
+      device_param->kernel_params_buf32[30] = innerloop_left;
 
       // i think we can get rid of this
       if (innerloop_left == 0)
@@ -5244,12 +5244,12 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
 
   salt_t *salt_buf = &data.salts_buf[salt_pos];
 
-  device_param->kernel_params_buf32[24] = salt_pos;
-  device_param->kernel_params_buf32[27] = 1;
-  device_param->kernel_params_buf32[28] = salt_buf->digests_cnt;
-  device_param->kernel_params_buf32[29] = salt_buf->digests_offset;
-  device_param->kernel_params_buf32[30] = 0;
-  device_param->kernel_params_buf32[31] = 1;
+  device_param->kernel_params_buf32[27] = salt_pos;
+  device_param->kernel_params_buf32[30] = 1;
+  device_param->kernel_params_buf32[31] = salt_buf->digests_cnt;
+  device_param->kernel_params_buf32[32] = salt_buf->digests_offset;
+  device_param->kernel_params_buf32[33] = 0;
+  device_param->kernel_params_buf32[34] = 1;
 
   char *dictfile_old = data.dictfile;
 
@@ -5283,8 +5283,8 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
 
       loop_left = MIN (loop_left, loop_step);
 
-      device_param->kernel_params_buf32[25] = loop_pos;
-      device_param->kernel_params_buf32[26] = loop_left;
+      device_param->kernel_params_buf32[28] = loop_pos;
+      device_param->kernel_params_buf32[29] = loop_left;
 
       run_kernel (KERN_RUN_2, device_param, 1, false, 0);
     }
@@ -5302,14 +5302,14 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
    * cleanup
    */
 
-  device_param->kernel_params_buf32[24] = 0;
-  device_param->kernel_params_buf32[25] = 0;
-  device_param->kernel_params_buf32[26] = 0;
   device_param->kernel_params_buf32[27] = 0;
   device_param->kernel_params_buf32[28] = 0;
   device_param->kernel_params_buf32[29] = 0;
   device_param->kernel_params_buf32[30] = 0;
   device_param->kernel_params_buf32[31] = 0;
+  device_param->kernel_params_buf32[32] = 0;
+  device_param->kernel_params_buf32[33] = 0;
+  device_param->kernel_params_buf32[34] = 0;
 
   data.dictfile = dictfile_old;
 
@@ -15057,7 +15057,7 @@ int main (int argc, char **argv)
 
       // scryptV stuff
 
-      size_t size_scryptV = 1;
+      size_t size_scrypt = 4;
 
       if ((hash_mode == 8900) || (hash_mode == 9300))
       {
@@ -15089,14 +15089,13 @@ int main (int argc, char **argv)
         else
         {
           // in case the user did not specify the tmto manually
-          // use some values known to run best (tested on 290x for AMD and 980ti for NV)
-          // but set the lower end only in case the user has a device with too less memory
+          // use some values known to run best (tested on 290x for AMD and GTX1080 for NV)
 
           if (hash_mode == 8900)
           {
             if (device_param->device_vendor_id == VENDOR_ID_AMD)
             {
-              tmto_start = 1;
+              tmto_start = 3;
             }
             else if (device_param->device_vendor_id == VENDOR_ID_NV)
             {
@@ -15111,7 +15110,7 @@ int main (int argc, char **argv)
             }
             else if (device_param->device_vendor_id == VENDOR_ID_NV)
             {
-              tmto_start = 2;
+              tmto_start = 4;
             }
           }
         }
@@ -15125,15 +15124,22 @@ int main (int argc, char **argv)
 
         for (tmto = tmto_start; tmto < tmto_stop; tmto++)
         {
-          size_scryptV = (128 * scrypt_r) * scrypt_N;
+          size_scrypt = (128 * scrypt_r) * scrypt_N;
 
-          size_scryptV /= 1 << tmto;
+          size_scrypt /= 1 << tmto;
 
-          size_scryptV *= device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel_max;
+          size_scrypt *= device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel_max;
 
-          if (size_scryptV > device_param->device_maxmem_alloc)
+          if ((size_scrypt / 4) > device_param->device_maxmem_alloc)
           {
-            if (quiet == 0) log_info ("WARNING: Not enough device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+            if (quiet == 0) log_info ("WARNING: Not enough single-block device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+
+            continue;
+          }
+
+          if (size_scrypt > device_param->device_global_mem)
+          {
+            if (quiet == 0) log_info ("WARNING: Not enough total device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
 
             continue;
           }
@@ -15153,8 +15159,10 @@ int main (int argc, char **argv)
           return -1;
         }
 
-        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %u\n", data.scrypt_tmto_final, size_scryptV);
+        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %u\n", data.scrypt_tmto_final, size_scrypt);
       }
+
+      size_t size_scrypt4 = size_scrypt / 4;
 
       /**
        * some algorithms need a fixed kernel-loops count
@@ -15372,7 +15380,10 @@ int main (int argc, char **argv)
           + size_rules
           + size_rules_c
           + size_salts
-          + size_scryptV
+          + size_scrypt4
+          + size_scrypt4
+          + size_scrypt4
+          + size_scrypt4
           + size_shown
           + size_tm
           + size_tmps;
@@ -15932,7 +15943,10 @@ int main (int argc, char **argv)
       device_param->d_digests_shown = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_shown,   NULL);
       device_param->d_salt_bufs     = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_salts,   NULL);
       device_param->d_result        = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_results, NULL);
-      device_param->d_scryptV_buf   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scryptV, NULL);
+      device_param->d_scryptV0_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4, NULL);
+      device_param->d_scryptV1_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4, NULL);
+      device_param->d_scryptV2_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4, NULL);
+      device_param->d_scryptV3_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4, NULL);
 
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_a,    CL_TRUE, 0, bitmap_size,  bitmap_s1_a,        0, NULL, NULL);
       hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_b,    CL_TRUE, 0, bitmap_size,  bitmap_s1_b,        0, NULL, NULL);
@@ -16000,17 +16014,17 @@ int main (int argc, char **argv)
        * kernel args
        */
 
-      device_param->kernel_params_buf32[21] = bitmap_mask;
-      device_param->kernel_params_buf32[22] = bitmap_shift1;
-      device_param->kernel_params_buf32[23] = bitmap_shift2;
-      device_param->kernel_params_buf32[24] = 0; // salt_pos
-      device_param->kernel_params_buf32[25] = 0; // loop_pos
-      device_param->kernel_params_buf32[26] = 0; // loop_cnt
-      device_param->kernel_params_buf32[27] = 0; // kernel_rules_cnt
-      device_param->kernel_params_buf32[28] = 0; // digests_cnt
-      device_param->kernel_params_buf32[29] = 0; // digests_offset
-      device_param->kernel_params_buf32[30] = 0; // combs_mode
-      device_param->kernel_params_buf32[31] = 0; // gid_max
+      device_param->kernel_params_buf32[24] = bitmap_mask;
+      device_param->kernel_params_buf32[25] = bitmap_shift1;
+      device_param->kernel_params_buf32[26] = bitmap_shift2;
+      device_param->kernel_params_buf32[27] = 0; // salt_pos
+      device_param->kernel_params_buf32[28] = 0; // loop_pos
+      device_param->kernel_params_buf32[29] = 0; // loop_cnt
+      device_param->kernel_params_buf32[30] = 0; // kernel_rules_cnt
+      device_param->kernel_params_buf32[31] = 0; // digests_cnt
+      device_param->kernel_params_buf32[32] = 0; // digests_offset
+      device_param->kernel_params_buf32[33] = 0; // combs_mode
+      device_param->kernel_params_buf32[34] = 0; // gid_max
 
       device_param->kernel_params[ 0] = (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
                                       ? &device_param->d_pws_buf
@@ -16034,10 +16048,10 @@ int main (int argc, char **argv)
       device_param->kernel_params[17] = &device_param->d_salt_bufs;
       device_param->kernel_params[18] = &device_param->d_esalt_bufs;
       device_param->kernel_params[19] = &device_param->d_result;
-      device_param->kernel_params[20] = &device_param->d_scryptV_buf;
-      device_param->kernel_params[21] = &device_param->kernel_params_buf32[21];
-      device_param->kernel_params[22] = &device_param->kernel_params_buf32[22];
-      device_param->kernel_params[23] = &device_param->kernel_params_buf32[23];
+      device_param->kernel_params[20] = &device_param->d_scryptV0_buf;
+      device_param->kernel_params[21] = &device_param->d_scryptV1_buf;
+      device_param->kernel_params[22] = &device_param->d_scryptV2_buf;
+      device_param->kernel_params[23] = &device_param->d_scryptV3_buf;
       device_param->kernel_params[24] = &device_param->kernel_params_buf32[24];
       device_param->kernel_params[25] = &device_param->kernel_params_buf32[25];
       device_param->kernel_params[26] = &device_param->kernel_params_buf32[26];
@@ -16046,6 +16060,9 @@ int main (int argc, char **argv)
       device_param->kernel_params[29] = &device_param->kernel_params_buf32[29];
       device_param->kernel_params[30] = &device_param->kernel_params_buf32[30];
       device_param->kernel_params[31] = &device_param->kernel_params_buf32[31];
+      device_param->kernel_params[32] = &device_param->kernel_params_buf32[32];
+      device_param->kernel_params[33] = &device_param->kernel_params_buf32[33];
+      device_param->kernel_params[34] = &device_param->kernel_params_buf32[34];
 
       device_param->kernel_params_mp_buf64[3] = 0;
       device_param->kernel_params_mp_buf32[4] = 0;
@@ -16209,7 +16226,7 @@ int main (int argc, char **argv)
       hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel2, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
       hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel3, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
 
-      for (uint i = 0; i <= 20; i++)
+      for (uint i = 0; i <= 23; i++)
       {
         hc_clSetKernelArg (data.ocl, device_param->kernel1, i, sizeof (cl_mem), device_param->kernel_params[i]);
         hc_clSetKernelArg (data.ocl, device_param->kernel2, i, sizeof (cl_mem), device_param->kernel_params[i]);
@@ -16219,7 +16236,7 @@ int main (int argc, char **argv)
         if (opts_type & OPTS_TYPE_HOOK23) hc_clSetKernelArg (data.ocl, device_param->kernel23, i, sizeof (cl_mem), device_param->kernel_params[i]);
       }
 
-      for (uint i = 21; i <= 31; i++)
+      for (uint i = 24; i <= 34; i++)
       {
         hc_clSetKernelArg (data.ocl, device_param->kernel1, i, sizeof (cl_uint), device_param->kernel_params[i]);
         hc_clSetKernelArg (data.ocl, device_param->kernel2, i, sizeof (cl_uint), device_param->kernel_params[i]);
@@ -18454,7 +18471,10 @@ int main (int argc, char **argv)
       if (device_param->d_tmps)             hc_clReleaseMemObject     (data.ocl, device_param->d_tmps);
       if (device_param->d_hooks)            hc_clReleaseMemObject     (data.ocl, device_param->d_hooks);
       if (device_param->d_result)           hc_clReleaseMemObject     (data.ocl, device_param->d_result);
-      if (device_param->d_scryptV_buf)      hc_clReleaseMemObject     (data.ocl, device_param->d_scryptV_buf);
+      if (device_param->d_scryptV0_buf)     hc_clReleaseMemObject     (data.ocl, device_param->d_scryptV0_buf);
+      if (device_param->d_scryptV1_buf)     hc_clReleaseMemObject     (data.ocl, device_param->d_scryptV1_buf);
+      if (device_param->d_scryptV2_buf)     hc_clReleaseMemObject     (data.ocl, device_param->d_scryptV2_buf);
+      if (device_param->d_scryptV3_buf)     hc_clReleaseMemObject     (data.ocl, device_param->d_scryptV3_buf);
       if (device_param->d_root_css_buf)     hc_clReleaseMemObject     (data.ocl, device_param->d_root_css_buf);
       if (device_param->d_markov_css_buf)   hc_clReleaseMemObject     (data.ocl, device_param->d_markov_css_buf);
       if (device_param->d_tm_c)             hc_clReleaseMemObject     (data.ocl, device_param->d_tm_c);
