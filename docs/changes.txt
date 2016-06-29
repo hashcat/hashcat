@@ -3,8 +3,6 @@
 This release markes the fusion of "hashcat" and "oclHashcat" into "hashcat".
 It combines all features of all hashcat projects in one project.
 
-** THE VERSION 3.00 IS CURRENTLY STILL IN BETA **
-
 ##
 ## Features
 ##
