@@ -18295,9 +18295,16 @@ int main (int argc, char **argv)
 
             log_info ("");
 
-            if (stdout_flag == 0) status_display ();
+            status_display ();
 
             log_info ("");
+          }
+          else
+          {
+            if (status == 1)
+            {
+              status_display ();
+            }
           }
         }
 
