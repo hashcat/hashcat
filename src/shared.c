@@ -2334,12 +2334,12 @@ void drupal7_encode (u8 digest[64], u8 buf[43])
  */
 
 #ifdef LINUX
-static struct termio savemodes;
+static struct termios savemodes;
 static int havemodes = 0;
 
 int tty_break()
 {
-  struct termio modmodes;
+  struct termios modmodes;
 
   if (ioctl (fileno (stdin), TCGETA, &savemodes) < 0) return -1;
 

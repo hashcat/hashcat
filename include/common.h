@@ -41,7 +41,8 @@
 #include <limits.h>
 
 #ifdef LINUX
-#include <termio.h>
+#include <termios.h>
+#include <sys/ioctl.h>
 #endif
 
 #ifdef DARWIN
