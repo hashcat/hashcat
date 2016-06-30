@@ -1,3 +1,17 @@
+* changes v3.00 -> v3.xx:
+
+##
+## Improvements
+##
+
+- Make linux-build POSIX compatible; Also allow it to actually compile on musl-libc systems
+
+##
+## Bugs
+##
+
+- Fixed a bug where hashcat is suppressing --machine-readable output in the final status update
+
 * changes v2.01 -> v3.00:
 
 This release markes the fusion of "hashcat" and "oclHashcat" into "hashcat".
