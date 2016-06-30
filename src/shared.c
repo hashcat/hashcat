@@ -2341,7 +2341,7 @@ int tty_break()
 {
   struct termios modmodes;
 
-  if (ioctl (fileno (stdin), TCGETA, &savemodes) < 0) return -1;
+  if (tcgetattr (fileno (stdin), &savemodes) < 0) return -1;
 
   havemodes = 1;
 
@@ -2350,7 +2350,7 @@ int tty_break()
   modmodes.c_cc[VMIN] = 1;
   modmodes.c_cc[VTIME] = 0;
 
-  return ioctl (fileno (stdin), TCSETAW, &modmodes);
+  return tcsetattr (fileno (stdin), TCSANOW, &modmodes);
 }
 
 int tty_getchar()
@@ -2378,7 +2378,7 @@ int tty_fix()
 {
   if (!havemodes) return 0;
 
-  return ioctl (fileno (stdin), TCSETAW, &savemodes);
+  return tcsetattr (fileno (stdin), TCSADRAIN, &savemodes);
 }
 #endif
 
