@@ -2211,7 +2211,7 @@ sub verify
 
       next unless (exists ($db->{$hash_line}) and (! defined ($db->{$hash_line})));
     }
-    elsif ($mode == 13100 )
+    elsif ($mode == 13100)
     {
       ($hash_in, $word) = split ":", $line;
 
@@ -2238,7 +2238,10 @@ sub verify
       next unless (length ($checksum) == 32);
       next unless (length ($edata2) >= 64);
 
-      $salt = $user . '$' . $realm . '$' . $spn . '$' . substr ($edata2, 0, 16);
+      $salt = $user . '$' . $realm . '$' . $spn . '$';
+
+      $param  = $checksum;
+      $param2 = $edata2;
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
@@ -2253,8 +2256,6 @@ sub verify
 
       next unless scalar @data == 5;
 
-      shift @data;
-
       my $signature = shift @data;
       my $version   = shift @data;
       my $iteration = shift @data;
@@ -2265,7 +2266,8 @@ sub verify
       next unless (length ($mysalt) == 32);
       next unless (length ($digest) == 48);
 
-      $salt = $iteration . '*' . $mysalt;
+      $salt  = $iteration . '*' . $mysalt;
+      $param = $digest;
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
@@ -2365,7 +2367,8 @@ sub verify
         next unless (length ($keyfile) == $keyfile_len);
       }
 
-      $salt = substr ($hash_in, length ("*keepass*") + 1, length ($hash_in));
+      $salt = substr ($hash_in, length ("*keepass*") + 1);
+      $param = 1; # distinguish between encrypting vs decrypting
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
@@ -2674,7 +2677,7 @@ sub verify
     }
     elsif ($mode == 13100)
     {
-      $hash_out = gen_hash ($mode, $word, $salt);
+      $hash_out = gen_hash ($mode, $word, $salt, $iter, $param, $param2);
 
       $len = length $hash_out;
 
@@ -2682,7 +2685,7 @@ sub verify
     }
     elsif ($mode == 13200)
     {
-      $hash_out = gen_hash ($mode, $word, $salt);
+      $hash_out = gen_hash ($mode, $word, $salt, $iter, $param);
 
       $len = length $hash_out;
 
@@ -2690,7 +2693,7 @@ sub verify
     }
     elsif ($mode == 13400)
     {
-      $hash_out = gen_hash ($mode, $word, $salt);
+      $hash_out = gen_hash ($mode, $word, $salt, $iter, $param);
 
       $len = length $hash_out;
 
@@ -6956,28 +6959,63 @@ END_CODE
 
     my $spn   = $salt_arr[2];
 
-    my $nonce = $salt_arr[3];
-
-    my $cleartext_ticket = '6381b03081ada00703050050a00000a11b3019a003020117a1'.
-    '12041058e0d77776e8b8e03991f2966939222aa2171b154d594b5242544553542e434f4e5'.
-    '44f534f2e434f4da3133011a003020102a10a30081b067472616e6365a40b3009a0030201'.
-    '01a1020400a511180f32303136303231353134343735305aa611180f32303136303231353'.
-    '134343735305aa711180f32303136303231363030343735305aa811180f32303136303232'.
-    '323134343735305a';
-
-    $cleartext_ticket = $nonce . $cleartext_ticket;
-
     my $k = md4 (encode ("UTF-16LE", $word_buf));
 
     my $k1 = hmac_md5 ("\x02\x00\x00\x00", $k);
 
-    my $checksum = hmac_md5 (pack ("H*", $cleartext_ticket), $k1);
+    my $cleartext_ticket = '6381b03081ada00703050050a00000a11b3019a003020117a1'.
+      '12041058e0d77776e8b8e03991f2966939222aa2171b154d594b5242544553542e434f4e5'.
+      '44f534f2e434f4da3133011a003020102a10a30081b067472616e6365a40b3009a0030201'.
+      '01a1020400a511180f32303136303231353134343735305aa611180f32303136303231353'.
+      '134343735305aa711180f32303136303231363030343735305aa811180f32303136303232'.
+      '323134343735305a';
+
+    my $checksum = "";
+
+    if (defined $additional_param)
+    {
+      $checksum = pack ("H*", $additional_param);
+    }
+    else
+    {
+      my $nonce = $salt_arr[3];
+
+      $cleartext_ticket = $nonce . $cleartext_ticket;
+
+      $checksum = hmac_md5 (pack ("H*", $cleartext_ticket), $k1);
+    }
 
     my $k3 = hmac_md5 ($checksum, $k1);
 
+    my $edata2 = "";
+
+    if (defined $additional_param2)
+    {
+      $edata2 = $additional_param2;
+
+      my $cipher_decrypt = Crypt::RC4->new ($k3);
+
+      my $ticket_decrypt = unpack ("H*", $cipher_decrypt->RC4 (pack ("H*", $edata2)));
+
+      my $check_correct  = ((substr ($ticket_decrypt, 16, 4) eq "6381" && substr ($ticket_decrypt, 22, 2) eq "30") ||
+                            (substr ($ticket_decrypt, 16, 4) eq "6382")) &&
+                           ((substr ($ticket_decrypt, 32, 6) eq "030500") ||
+                            (substr ($ticket_decrypt, 32, 8) eq "050307A0"));
+
+      if ($check_correct == 1)
+      {
+        $cleartext_ticket = $ticket_decrypt;
+      }
+      else # validation failed
+      {
+        # fake/wrong ticket (otherwise if we just decrypt/encrypt we end up with false positives all the time)
+        $cleartext_ticket = "0" x (length ($cleartext_ticket) + 16);
+      }
+    }
+
     my $cipher = Crypt::RC4->new ($k3);
 
-    my $edata2 = $cipher->RC4 (pack ("H*", $cleartext_ticket));
+    $edata2 = $cipher->RC4 (pack ("H*", $cleartext_ticket));
 
     $tmp_hash = sprintf ('$krb5tgs$23$*%s$%s$%s*$%s$%s', $user, $realm, $spn, unpack ("H*", $checksum), unpack ("H*", $edata2));
   }
@@ -6985,27 +7023,73 @@ END_CODE
   {
     my @salt_arr = split ('\*', $salt_buf);
 
-    my $iteration  = $salt_arr[0];
+    my $iteration = $salt_arr[0];
 
     my $mysalt = $salt_arr[1];
 
     $mysalt = pack ("H*", $mysalt);
 
-    my $DEK = randbytes (16);
-
     my $iv = "a6a6a6a6a6a6a6a6";
 
-    my $KEK = sha1($word_buf);
+    my $KEK = sha1 ($word_buf);
 
     $KEK = substr ($KEK ^ $mysalt, 0, 16);
 
     my $aes = Crypt::Mode::ECB->new ('AES');
 
-    my @R = ('', substr(pack ("H*",$DEK),0,8), substr(pack ("H*",$DEK),8,16));
-
     my $B;
 
-    my $A = pack ("H*", $iv);
+    my $A;
+
+    my @R = ();
+
+    if (defined $additional_param)
+    {
+      $additional_param = pack ("H*", $additional_param);
+
+      $A = substr ($additional_param,  0, 8);
+      $B = 0x00 x 8;
+
+      $R[1] = substr ($additional_param,  8, 8);
+      $R[2] = substr ($additional_param, 16, 8);
+
+      for (my $j = $iteration - 1; $j >= 0; $j--)
+      {
+        $A = substr ($A, 0, 8) ^ pack ("l", (2 * $j + 2));
+
+        $B = $R[2];
+
+        $A = $aes->decrypt ($A . $B . "\x00" x 16, $KEK);
+
+        $R[2] = substr ($A, 8, 16);
+
+        $A = substr ($A, 0, 8) ^ pack ("l", (2 * $j + 1));
+
+        $B = $R[1];
+
+        $A = $aes->decrypt ($A . $B . "\x00" x 16, $KEK);
+
+        $R[1] = substr ($A, 8, 16);
+      }
+
+      # check if valid
+      if (index ($A, "\xa6\xa6\xa6\xa6\xa6\xa6\xa6\xa6") != 0)
+      {
+        # fake wrong @R and $A values
+
+        @R = ('', "\x00" x 8, "\x00" x 8);
+
+        $A = "\x00" x 16;
+      }
+    }
+    else
+    {
+      my $DEK = randbytes (16);
+
+      @R = ('', substr (pack ("H*", $DEK), 0, 8), substr (pack ("H*", $DEK), 8, 16));
+
+      $A = pack ("H*", $iv);
+    }
 
     for (my $j = 0; $j < $iteration; $j++)
     {
@@ -7038,11 +7122,11 @@ END_CODE
   {
     my @salt_arr = split ('\*', $salt_buf);
 
-    my $version    = $salt_arr[0];
+    my $version   = $salt_arr[0];
 
-    my $iteration  = $salt_arr[1];
+    my $iteration = $salt_arr[1];
 
-    my $algorithm  = $salt_arr[2];
+    my $algorithm = $salt_arr[2];
 
     my $final_random_seed  = $salt_arr[3];
 
@@ -7077,13 +7161,17 @@ END_CODE
     if ($version == 1)
     {
       $contents_hash = $salt_arr[6];
+
       $contents_hash = pack ("H*", $contents_hash);
 
       $inline_flag   = $salt_arr[7];
 
+
       $contents_len  = $salt_arr[8];
 
+
       $contents      = $salt_arr[9];
+
       $contents      = pack ("H*", $contents);
 
       # keyfile handling
@@ -7101,6 +7189,7 @@ END_CODE
                             . "*" . $keyfile_content;
 
         $intermediate_hash = $intermediate_hash . pack ("H*", $keyfile_content);
+
         $intermediate_hash = sha256 ($intermediate_hash);
       }
     }
@@ -7123,6 +7212,7 @@ END_CODE
                     . "*" . $keyfile_content;
 
       }
+
       $intermediate_hash = sha256 ($intermediate_hash);
     }
 
@@ -7161,9 +7251,30 @@ END_CODE
 
     if ($version == 1)
     {
-      $contents_hash = sha256 ($contents);
+      if (defined $additional_param)
+      {
+        # if we try to verify the crack, we need to decrypt the contents instead of only encrypting it:
 
-      $contents = $cipher->encrypt($contents);
+        $contents = $cipher->decrypt ($contents);
+
+        # and check the output
+
+        my $contents_hash_old = $contents_hash;
+
+        $contents_hash = sha256 ($contents);
+
+        if ($contents_hash_old ne $contents_hash)
+        {
+          # fake content
+          $contents = "\x00" x length ($contents);
+        }
+      }
+      else
+      {
+        $contents_hash = sha256 ($contents);
+      }
+
+      $contents = $cipher->encrypt ($contents);
 
       $tmp_hash = sprintf ('$keepass$*%d*%d*%d*%s*%s*%s*%s*%d*%d*%s%s',
             $version,
@@ -7180,12 +7291,12 @@ END_CODE
     }
     if ($version == 2)
     {
-      $expected_bytes =  $salt_arr[6];
+      $expected_bytes = $salt_arr[6];
 
       $contents_hash = $salt_arr[7];
       $contents_hash = pack ("H*", $contents_hash);
 
-      $expected_bytes = $cipher->decrypt($contents_hash);
+      $expected_bytes = $cipher->decrypt ($contents_hash);
 
       $tmp_hash = sprintf ('$keepass$*%d*%d*%d*%s*%s*%s*%s*%s%s',
             $version,
@@ -8673,7 +8784,7 @@ sub get_random_kerberos5_tgs_salt
   my $realm = "realm";
   my $spn   = "test/spn";
 
-  my $salt_buf = $user . "\$" . $realm . "\$" . $spn . "\$" . unpack ("H*",$nonce);
+  my $salt_buf = $user . "\$" . $realm . "\$" . $spn . "\$" . unpack ("H*", $nonce);
 
   return $salt_buf;
 }
