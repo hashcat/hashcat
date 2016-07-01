@@ -1339,26 +1339,22 @@ void status_display ()
       }
       else
       {
-        char display_etc[32] = { 0 };
+        char display_etc[32]     = { 0 };
+        char display_runtime[32] = { 0 };
 
         struct tm tm_etc;
+        struct tm tm_runtime;
 
         struct tm *tmp = NULL;
 
         #ifdef WIN
-
         tmp = _gmtime64 (&sec_etc);
-
         #else
-
         tmp = gmtime (&sec_etc);
-
         #endif
 
         if (tmp != NULL)
         {
-          memset (&tm_etc, 0, sizeof (tm_etc));
-
           memcpy (&tm_etc, tmp, sizeof (tm_etc));
 
           format_timer_display (&tm_etc, display_etc, sizeof (display_etc));
@@ -1376,7 +1372,43 @@ void status_display ()
           if (etc[etc_len - 1] == '\n') etc[etc_len - 1] = 0;
           if (etc[etc_len - 2] == '\r') etc[etc_len - 2] = 0;
 
-          log_info ("Time.Estimated.: %s (%s)", etc, display_etc);
+          if (data.runtime)
+          {
+            time_t runtime_cur;
+
+            time (&runtime_cur);
+
+            #ifdef WIN
+
+            __time64_t runtime_left = data.proc_start + data.runtime - runtime_cur;
+
+            tmp = _gmtime64 (&runtime_left);
+
+            #else
+
+            time_t runtime_left = data.proc_start + data.runtime - runtime_cur;
+
+            tmp = gmtime (&runtime_left);
+
+            #endif
+
+            if ((tmp != NULL) && (runtime_left > 0) && (runtime_left < sec_etc))
+            {
+              memcpy (&tm_runtime, tmp, sizeof (tm_runtime));
+
+              format_timer_display (&tm_runtime, display_runtime, sizeof (display_runtime));
+
+              log_info ("Time.Estimated.: %s (%s), but limited (%s)", etc, display_etc, display_runtime);
+            }
+            else
+            {
+              log_info ("Time.Estimated.: %s (%s), but limit exceeded", etc, display_etc);
+            }
+          }
+          else
+          {
+            log_info ("Time.Estimated.: %s (%s)", etc, display_etc);
+          }
         }
       }
     }

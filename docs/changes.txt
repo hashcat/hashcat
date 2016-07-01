@@ -5,6 +5,7 @@
 ##
 
 - Make linux-build POSIX compatible; Also allow it to actually compile on musl-libc systems
+- The Time.Estimated attribute in status display should also show --runtime limit if user set it
 
 ##
 ## Bugs
