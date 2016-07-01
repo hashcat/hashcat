@@ -6139,6 +6139,20 @@ int main (int argc, char **argv)
   char *resolved_install_folder = realpath (INSTALL_FOLDER, NULL);
   char *resolved_exec_path      = realpath (exec_path, NULL);
 
+  if (resolved_install_folder == NULL)
+  {
+    log_error ("ERROR: %s: %s", resolved_install_folder, strerror (errno));
+
+    return (-1);
+  }
+
+  if (resolved_exec_path == NULL)
+  {
+    log_error ("ERROR: %s: %s", resolved_exec_path, strerror (errno));
+
+    return (-1);
+  }
+
   char *install_dir = get_install_dir (resolved_exec_path);
   char *profile_dir = NULL;
   char *session_dir = NULL;
