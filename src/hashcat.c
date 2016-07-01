@@ -6171,7 +6171,7 @@ int main (int argc, char **argv)
 
   char *exec_path = get_exec_path ();
 
-  #ifdef LINUX
+  #if defined(LINUX) || defined(__APPLE__)
 
   char *resolved_install_folder = realpath (INSTALL_FOLDER, NULL);
   char *resolved_exec_path      = realpath (exec_path, NULL);
