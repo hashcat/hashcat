@@ -925,6 +925,9 @@ void status_display ()
   if (data.devices_status == STATUS_INIT)     return;
   if (data.devices_status == STATUS_STARTING) return;
 
+  // in this case some required buffers are free'd, ascii_digest() would run into segfault
+  if (data.shutdown_inner == 1) return;
+
   if (data.machine_readable == 1)
   {
     status_display_machine_readable ();
@@ -1714,6 +1717,8 @@ static void status_benchmark ()
 {
   if (data.devices_status == STATUS_INIT)     return;
   if (data.devices_status == STATUS_STARTING) return;
+
+  if (data.shutdown_inner == 1) return;
 
   if (data.machine_readable == 1)
   {
