@@ -17499,6 +17499,36 @@ int main (int argc, char **argv)
 
             mask = mask + str_pos + 1;
           }
+
+          /**
+           * What follows is a very special case where "\," is within the mask field of a line in a .hcmask file only because otherwise (without the "\")
+           * it would be interpreted as a custom charset definition.
+           *
+           * We need to replace all "\," with just "," within the mask (but allow the special case "\\," which means "\" followed by ",")
+           * Note: "\\" is not needed to replace all "\" within the mask! The meaning of "\\" within a line containing the string "\\," is just to allow "\" followed by ","
+           */
+
+          uint mask_len_cur = strlen (mask);
+
+          uint mask_out_pos = 0;
+          char mask_prev = 0;
+
+          for (uint mask_iter = 0; mask_iter < mask_len_cur; mask_iter++, mask_out_pos++)
+          {
+            if (mask[mask_iter] == ',')
+            {
+              if (mask_prev == '\\')
+              {
+                mask_out_pos -= 1; // this means: skip the previous "\"
+              }
+            }
+
+            mask_prev = mask[mask_iter];
+
+            mask[mask_out_pos] = mask[mask_iter];
+          }
+
+          mask[mask_out_pos] = '\0';
         }
 
         if ((attack_mode == ATTACK_MODE_HYBRID1) || (attack_mode == ATTACK_MODE_HYBRID2))
