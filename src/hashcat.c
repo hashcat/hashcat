@@ -86,7 +86,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 #define KERNEL_COMBS            1024
 #define KERNEL_BFS              1024
 #define KERNEL_THREADS_MAX      256
-#define KERNEL_THREADS_MAX_CPU  16
+#define KERNEL_THREADS_MAX_CPU  1
 #define POWERTUNE_ENABLE        0
 #define LOGFILE_DISABLE         0
 #define SCRYPT_TMTO             0
@@ -15053,6 +15053,9 @@ int main (int argc, char **argv)
 
       uint kernel_threads = MIN (KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
 
+      if (hash_mode ==  8900) kernel_threads = 64; // Scrypt
+      if (hash_mode ==  9300) kernel_threads = 64; // Scrypt
+
       if (device_param->device_type & CL_DEVICE_TYPE_CPU)
       {
         kernel_threads = KERNEL_THREADS_MAX_CPU;
@@ -15062,9 +15065,7 @@ int main (int argc, char **argv)
       if (hash_mode ==  3000) kernel_threads = 64; // DES
       if (hash_mode ==  3200) kernel_threads = 8;  // Blowfish
       if (hash_mode ==  7500) kernel_threads = 64; // RC4
-      if (hash_mode ==  8900) kernel_threads = 64; // Scrypt
       if (hash_mode ==  9000) kernel_threads = 8;  // Blowfish
-      if (hash_mode ==  9300) kernel_threads = 64; // Scrypt
       if (hash_mode ==  9700) kernel_threads = 64; // RC4
       if (hash_mode ==  9710) kernel_threads = 64; // RC4
       if (hash_mode ==  9800) kernel_threads = 64; // RC4
