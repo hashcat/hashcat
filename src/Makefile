@@ -63,6 +63,9 @@ FIND                     := find
 INSTALL                  := install
 RM                       := rm
 SED                      := sed
+ifeq ($(UNAME),Darwin)
+SED                      := gsed
+endif
 
 ##
 ## Cross compiler paths
@@ -81,7 +84,7 @@ CC_WIN_64                := x86_64-w64-mingw32-gcc
 COMPTIME                 := $(shell date +%s)
 
 VERSION_EXPORT           := $Format:%D$
-VERSION_TAG              := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)"|cut -d, -f2|sed -r 's|.* (\w+/)?([^ ]+)|\2|')
+VERSION_TAG              := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)"|cut -d, -f2|$(SED) -r 's|.* (\w+/)?([^ ]+)|\2|')
 
 ##
 ## Compiler flags
@@ -106,7 +109,6 @@ BINARY_NATIVE            := $(PROG_NAME)
 
 ifeq ($(UNAME),Darwin)
 export MACOSX_DEPLOYMENT_TARGET=10.9
-BINARY_NATIVE            := $(BINARY_NATIVE).app
 CFLAGS_NATIVE            := -D_POSIX -DDARWIN
 CFLAGS_NATIVE            += $(CFLAGS)
 LFLAGS_NATIVE            := -lpthread
@@ -178,7 +180,7 @@ native: hashcat
 binaries: linux32 linux64 win32 win64
 
 clean:
-	$(RM) -f obj/*.o *.bin *.exe *.app *.restore *.out *.pot *.dictstat *.log hashcat core
+	$(RM) -f obj/*.o *.bin *.exe *.restore *.out *.pot *.dictstat *.log hashcat core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
 	$(RM) -rf *.dSYM
