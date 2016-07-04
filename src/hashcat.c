@@ -15168,7 +15168,7 @@ int main (int argc, char **argv)
           }
         }
 
-        data.scrypt_tmp_size = (128 * scrypt_r);
+        data.scrypt_tmp_size = (128 * scrypt_r * scrypt_p);
 
         device_param->kernel_accel_min = 1;
         device_param->kernel_accel_max = 8;
@@ -15212,7 +15212,7 @@ int main (int argc, char **argv)
           return -1;
         }
 
-        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %u\n", data.scrypt_tmto_final, size_scrypt);
+        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %llu\n", data.scrypt_tmto_final, (unsigned long long int) size_scrypt);
       }
 
       size_t size_scrypt4 = size_scrypt / 4;
