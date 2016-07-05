@@ -90,7 +90,7 @@ VERSION_TAG              := $(shell test -d .git && git describe --tags --dirty=
 ## Compiler flags
 ##
 
-CFLAGS                   := -pipe -W -Wall -std=c99 -Iinclude/ -IOpenCL/ -I$(OPENCL_HEADERS_KHRONOS)/
+CFLAGS                   += -pipe -W -Wall -std=c99 -Iinclude/ -IOpenCL/ -I$(OPENCL_HEADERS_KHRONOS)/
 
 ifndef DEBUG
 CFLAGS                   += -O2
@@ -112,6 +112,7 @@ export MACOSX_DEPLOYMENT_TARGET=10.9
 CFLAGS_NATIVE            := -D_POSIX -DDARWIN
 CFLAGS_NATIVE            += $(CFLAGS)
 LFLAGS_NATIVE            := -lpthread
+LFLAGS_NATIVE            += $(LDFLAGS)
 endif # darwin
 
 ifeq ($(UNAME),Linux)
@@ -122,6 +123,7 @@ endif
 CFLAGS_NATIVE            += $(CFLAGS)
 LFLAGS_NATIVE            := -lpthread -ldl
 CFLAGS_NATIVE            += -DHAVE_HWMON
+LFLAGS_NATIVE            += $(LDFLAGS)
 endif # linux
 
 ##
