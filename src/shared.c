@@ -4371,6 +4371,20 @@ char *get_exec_path ()
 
   const int len = strlen (exec_path);
 
+  #elif __FreeBSD__
+
+  #include <sys/sysctl.h>
+
+  int mib[4];
+  mib[0] = CTL_KERN;
+  mib[1] = KERN_PROC;
+  mib[2] = KERN_PROC_PATHNAME;
+  mib[3] = -1;
+
+  size_t size = sizeof(exec_path);
+
+  const int len = sysctl(mib, 4, exec_path, &size, NULL, 0);
+
   #else
   #error Your Operating System is not supported or detected
   #endif
