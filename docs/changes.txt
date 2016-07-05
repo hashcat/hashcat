@@ -15,6 +15,7 @@
 - Fixed a bug where hashcat did not check the return of realpath() and crashes uncontrolled if the path does not exist
 - Fixed a bug where hashcat crashes for accessing deallocated buffer if user spams "s" shortly before hashcat shuts down
 - Fixed a bug where hashcat crashes in case of a scrypt P setting > 1
+- Fixed a bug where hashcat did not correctly use the newly cracked plains whenever --loopback or the induction folder was used
 
 * changes v2.01 -> v3.00:
 

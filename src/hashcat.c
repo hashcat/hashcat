@@ -18393,6 +18393,10 @@ int main (int argc, char **argv)
         if (induction_dictionaries_cnt)
         {
           qsort (induction_dictionaries, induction_dictionaries_cnt, sizeof (char *), sort_by_mtime);
+
+          // yeah, this next statement is a little hack to make sure that --loopback runs correctly (because with it we guarantee that the loop iterates one more time)
+
+          dictpos--;
         }
 
         time_t runtime_stop;
