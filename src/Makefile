@@ -58,14 +58,13 @@ OPENCL_HEADERS_KHRONOS   := deps/OpenCL-Headers
 ## Native compiler paths
 ##
 
-CC                       ?= gcc
-FIND                     ?= find
-INSTALL                  ?= install
-RM                       ?= rm
+CC                       := gcc
+FIND                     := find
+INSTALL                  := install
+RM                       := rm
+SED                      := sed
 ifeq ($(UNAME),Darwin,FreeBSD)
-SED                      ?= gsed
-else
-SED                      ?= sed
+SED                      := gsed
 endif
 
 ##
