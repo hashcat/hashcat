@@ -63,7 +63,11 @@ FIND                     := find
 INSTALL                  := install
 RM                       := rm
 SED                      := sed
-ifeq ($(UNAME),Darwin,FreeBSD)
+ifeq ($(UNAME),Darwin)
+SED                      := gsed
+endif
+ifeq ($(UNAME),FreeBSD)
+CC                       := cc
 SED                      := gsed
 endif
 
