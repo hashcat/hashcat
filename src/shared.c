@@ -6,7 +6,7 @@
  * License.....: MIT
  */
 
-#ifdef DARWIN
+#if defined(DARWIN) || defined(__FreeBSD__)
 #include <stdio.h>
 #endif
 
