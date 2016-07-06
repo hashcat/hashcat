@@ -6,8 +6,13 @@
  * License.....: MIT
  */
 
-#if defined(DARWIN) || defined(__FreeBSD__)
+#ifdef DARWIN
 #include <stdio.h>
+#endif
+
+#ifdef __FreeBSD__
+#include <stdio.h>
+#include <pthread_np.h>
 #endif
 
 #include <shared.h>
@@ -4537,6 +4542,9 @@ void set_cpu_affinity (char *cpu_affinity)
 {
   #ifdef _WIN
   DWORD_PTR aff_mask = 0;
+  #elif __FreeBSD__
+  cpuset_t cpuset;
+  CPU_ZERO (&cpuset);
   #elif _POSIX
   cpu_set_t cpuset;
   CPU_ZERO (&cpuset);
@@ -4584,6 +4592,9 @@ void set_cpu_affinity (char *cpu_affinity)
   #ifdef _WIN
   SetProcessAffinityMask (GetCurrentProcess (), aff_mask);
   SetThreadAffinityMask (GetCurrentThread (), aff_mask);
+  #elif __FreeBSD__
+  pthread_t thread = pthread_self ();
+  pthread_setaffinity_np (thread, sizeof (cpuset_t), &cpuset);
   #elif _POSIX
   pthread_t thread = pthread_self ();
   pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset);
