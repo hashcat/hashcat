@@ -4386,9 +4386,12 @@ char *get_exec_path ()
   mib[2] = KERN_PROC_PATHNAME;
   mib[3] = -1;
 
-  size_t size = sizeof(exec_path);
+  char tmp[32] = { 0 };
 
-  const int len = sysctl(mib, 4, exec_path, &size, NULL, 0);
+  size_t size = exec_path_len;
+  sysctl(mib, 4, exec_path, &size, NULL, 0);
+
+  const int len = readlink (tmp, exec_path, exec_path_len - 1);
 
   #else
   #error Your Operating System is not supported or detected
