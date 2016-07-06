@@ -2387,7 +2387,7 @@ int tty_fix()
 }
 #endif
 
-#ifdef DARWIN
+#if defined(DARWIN) || defined(__FreeBSD__)
 static struct termios savemodes;
 static int havemodes = 0;
 

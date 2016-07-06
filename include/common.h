@@ -52,6 +52,11 @@
 #include <mach/mach.h>
 #endif
 
+#ifdef __FreeBSD__
+#include <termios.h>
+#include <sys/ioctl.h>
+#endif
+
 typedef void *OCL_LIB;
 
 #ifdef HAVE_HWMON
