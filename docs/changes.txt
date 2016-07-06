@@ -16,6 +16,7 @@
 - Fixed a bug where hashcat crashes for accessing deallocated buffer if user spams "s" shortly before hashcat shuts down
 - Fixed a bug where hashcat crashes in case of a scrypt P setting > 1
 - Fixed a bug where hashcat did not correctly use the newly cracked plains whenever --loopback or the induction folder was used
+- Fixed a bug where hashcat did not correctly remove hashes of type WPA/WPA2 even if present in potfile
 
 * changes v2.01 -> v3.00:
 

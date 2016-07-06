@@ -4695,8 +4695,9 @@ int sort_by_hash_t_salt_hccap (const void *v1, const void *v2)
   const salt_t *s1 = h1->salt;
   const salt_t *s2 = h2->salt;
 
-  // 16 - 2 (since last 2 uints contain the digest)
-  uint n = 14;
+  // last 2: salt_buf[10] and salt_buf[11] contain the digest (skip them)
+
+  uint n = 9; // 9 * 4 = 36 bytes (max length of ESSID)
 
   while (n--)
   {
