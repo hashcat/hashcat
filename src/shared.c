@@ -6,7 +6,7 @@
  * License.....: MIT
  */
 
-#ifdef DARWIN
+#ifdef __APPLE__
 #include <stdio.h>
 #endif
 
@@ -2387,7 +2387,7 @@ int tty_fix()
 }
 #endif
 
-#if defined(DARWIN) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__)
 static struct termios savemodes;
 static int havemodes = 0;
 
@@ -4365,7 +4365,7 @@ char *get_exec_path ()
 
   const int len = GetModuleFileName (NULL, exec_path, exec_path_len - 1);
 
-  #elif DARWIN
+  #elif __APPLE__
 
   uint size = exec_path_len;
 
@@ -4519,7 +4519,7 @@ void truecrypt_crc32 (const char *filename, u8 keytab[64])
   myfree (buf);
 }
 
-#ifdef DARWIN
+#ifdef __APPLE__
 int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t *cpu_set)
 {
   int core;
@@ -5794,11 +5794,14 @@ char **scan_directory (const char *path)
 
   if ((d = opendir (tmp_path)) != NULL)
   {
-    #ifdef DARWIN
+    #ifdef __APPLE__
+
     struct dirent e;
 
-    for (;;) {
+    for (;;)
+    {
       memset (&e, 0, sizeof (e));
+
       struct dirent *de = NULL;
 
       if (readdir_r (d, &e, &de) != 0)
@@ -5809,12 +5812,16 @@ char **scan_directory (const char *path)
       }
 
       if (de == NULL) break;
+
     #else
+
     struct dirent *de;
 
     while ((de = readdir (d)) != NULL)
     {
+
     #endif
+
       if ((strcmp (de->d_name, ".") == 0) || (strcmp (de->d_name, "..") == 0)) continue;
 
       int path_size = strlen (tmp_path) + 1 + strlen (de->d_name);

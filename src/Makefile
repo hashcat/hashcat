@@ -113,7 +113,7 @@ BINARY_NATIVE            := $(PROG_NAME)
 
 ifeq ($(UNAME),Darwin)
 export MACOSX_DEPLOYMENT_TARGET=10.9
-CFLAGS_NATIVE            := -D_POSIX -DDARWIN
+CFLAGS_NATIVE            := -D_POSIX
 CFLAGS_NATIVE            += $(CFLAGS)
 LFLAGS_NATIVE            := -lpthread
 LFLAGS_NATIVE            += $(LDFLAGS)

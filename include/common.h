@@ -45,7 +45,7 @@
 #include <sys/ioctl.h>
 #endif
 
-#ifdef DARWIN
+#ifdef __APPLE__
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <mach-o/dyld.h>
@@ -64,7 +64,7 @@ typedef void *ADL_LIB;
 typedef void *NVAPI_LIB;
 typedef void *NVML_LIB;
 typedef void *XNVCTRL_LIB;
-#ifdef DARWIN
+#ifdef __APPLE__
 #define __stdcall
 #endif
 #endif
