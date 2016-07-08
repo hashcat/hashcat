@@ -1012,6 +1012,8 @@ struct __hc_device_param
 
   double  nvidia_spin_damp;
 
+  cl_platform_id platform;
+
   cl_uint device_vendor_id;
   cl_uint platform_vendor_id;
 

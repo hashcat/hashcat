@@ -4,8 +4,11 @@
 ## Improvements
 ##
 
-- Make linux-build POSIX compatible; Also allow it to actually compile on musl-libc systems
+- Make Linux build POSIX compatible; Also allow it to actually compile on musl-libc systems
+- Add support to compile on FreeBSD
+- Make use of cl_context_properties[] to clCreateContext(), even if OpenCL specification allow the use of NULL, some runtimes fail without
 - The Time.Estimated attribute in status display should also show --runtime limit if user set it
+
 
 ##
 ## Bugs

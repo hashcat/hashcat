@@ -15034,7 +15034,13 @@ int main (int argc, char **argv)
        * create context for each device
        */
 
-      device_param->context = hc_clCreateContext (data.ocl, NULL, 1, &device_param->device, NULL, NULL);
+      cl_context_properties properties[3];
+
+      properties[0] = CL_CONTEXT_PLATFORM;
+      properties[1] = (cl_context_properties) device_param->platform;
+      properties[2] = 0;
+
+      device_param->context = hc_clCreateContext (data.ocl, properties, 1, &device_param->device, NULL, NULL);
 
       /**
        * create command-queue
