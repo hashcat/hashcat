@@ -4216,8 +4216,11 @@ static void *thread_monitor (void *p)
         {
           if (data.hm_nvapi)
           {
-            NV_GPU_PERF_POLICIES_INFO_PARAMS_V1   perfPolicies_info   = { 0 };
-            NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 perfPolicies_status = { 0 };
+            NV_GPU_PERF_POLICIES_INFO_PARAMS_V1   perfPolicies_info;
+            NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 perfPolicies_status;
+
+            memset (&perfPolicies_info,   0, sizeof (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1));
+            memset (&perfPolicies_status, 0, sizeof (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1));
 
             perfPolicies_info.version   = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1, 1);
             perfPolicies_status.version = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1, 1);
@@ -14519,10 +14522,15 @@ int main (int argc, char **argv)
      */
 
     #ifdef HAVE_HWMON
-    hm_attrs_t hm_adapters_adl[DEVICES_MAX]     = { { 0 } };
-    hm_attrs_t hm_adapters_nvapi[DEVICES_MAX]   = { { 0 } };
-    hm_attrs_t hm_adapters_nvml[DEVICES_MAX]    = { { 0 } };
-    hm_attrs_t hm_adapters_xnvctrl[DEVICES_MAX] = { { 0 } };
+    hm_attrs_t hm_adapters_adl[DEVICES_MAX];
+    hm_attrs_t hm_adapters_nvapi[DEVICES_MAX];
+    hm_attrs_t hm_adapters_nvml[DEVICES_MAX];
+    hm_attrs_t hm_adapters_xnvctrl[DEVICES_MAX];
+
+    memset (hm_adapters_adl,     0, sizeof (hm_adapters_adl));
+    memset (hm_adapters_nvapi,   0, sizeof (hm_adapters_nvapi));
+    memset (hm_adapters_nvml,    0, sizeof (hm_adapters_nvml));
+    memset (hm_adapters_xnvctrl, 0, sizeof (hm_adapters_xnvctrl));
 
     if (gpu_temp_disable == 0)
     {

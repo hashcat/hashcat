@@ -3489,7 +3489,9 @@ int hm_set_fanspeed_with_device_id_nvapi (const uint device_id, const int fanspe
     {
       if (fanpolicy == 1)
       {
-        NV_GPU_COOLER_LEVELS CoolerLevels = { 0 };
+        NV_GPU_COOLER_LEVELS CoolerLevels;
+
+        memset (&CoolerLevels, 0, sizeof (NV_GPU_COOLER_LEVELS));
 
         CoolerLevels.Version = GPU_COOLER_LEVELS_VER | sizeof (NV_GPU_COOLER_LEVELS);
 
@@ -6176,9 +6178,10 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
 
   uint len = 4096;
 
-  uint digest_buf[64] = { 0 };
+  u8 datax[256] = { 0 };
 
-  u64 *digest_buf64 = (u64 *) digest_buf;
+  u64 *digest_buf64 = (u64 *) datax;
+  u32 *digest_buf   = (u32 *) datax;
 
   char *digests_buf_ptr = (char *) data.digests_buf;
 

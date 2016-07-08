@@ -8,7 +8,8 @@
 - Add support to compile on FreeBSD
 - Make use of cl_context_properties[] to clCreateContext(), even if OpenCL specification allow the use of NULL, some runtimes fail without
 - The Time.Estimated attribute in status display should also show --runtime limit if user set it
-
+- Fix some strict aliasing rule violation on older compilers
+- Fix some variable initializers on older compilers
 
 ##
 ## Bugs
