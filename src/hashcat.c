@@ -13018,6 +13018,7 @@ int main (int argc, char **argv)
                   // here we have in line_buf: ESSID:MAC1:MAC2   (without the plain)
                   // manipulate salt_buf
 
+                  memset (line_buf_cpy, 0, HCBUFSIZ);
                   memcpy (line_buf_cpy, line_buf, i);
 
                   char *mac2_pos = strrchr (line_buf_cpy, ':');
