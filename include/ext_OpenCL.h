@@ -22,7 +22,7 @@
 // #include <CL/cl_ext.h> // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPU
 #endif
 
-#ifdef LINUX
+#ifdef __linux__
 #include <CL/cl.h>
 // #include <CL/cl_ext.h> // used for CL_DEVICE_TOPOLOGY_AMD but broken for dual GPU
 #endif

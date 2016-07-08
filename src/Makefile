@@ -120,7 +120,7 @@ LFLAGS_NATIVE            += $(LDFLAGS)
 endif # darwin
 
 ifeq ($(UNAME),Linux)
-CFLAGS_NATIVE            := -D_POSIX -DLINUX
+CFLAGS_NATIVE            := -D_POSIX
 ifndef DEBUG
 CFLAGS_NATIVE            += -s
 endif
@@ -141,7 +141,7 @@ endif # freebsd
 ## Cross compilation target
 ##
 
-CFLAGS_CROSS_LINUX       := -D_POSIX -DLINUX
+CFLAGS_CROSS_LINUX       := -D_POSIX
 ifndef DEBUG
 CFLAGS_CROSS_LINUX       += -s
 endif

@@ -4350,7 +4350,7 @@ static void *thread_monitor (void *p)
                     hm_set_fanspeed_with_device_id_nvapi (device_id, fan_speed_new, 1);
                     #endif
 
-                    #ifdef LINUX
+                    #ifdef __linux__
                     hm_set_fanspeed_with_device_id_xnvctrl (device_id, fan_speed_new);
                     #endif
                   }
@@ -6179,7 +6179,7 @@ int main (int argc, char **argv)
   char *exec_path = get_exec_path ();
 
 
-  #if defined(LINUX) || defined(__APPLE__) || defined(__FreeBSD__)
+  #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
 
   char *resolved_install_folder = realpath (INSTALL_FOLDER, NULL);
   char *resolved_exec_path      = realpath (exec_path, NULL);
@@ -14255,7 +14255,7 @@ int main (int argc, char **argv)
           {
             need_nvml = 1;
 
-            #ifdef LINUX
+            #ifdef __linux__
             need_xnvctrl = 1;
             #endif
 
@@ -16459,7 +16459,7 @@ int main (int argc, char **argv)
               }
               else if (device_param->device_vendor_id == VENDOR_ID_NV)
               {
-                #ifdef LINUX
+                #ifdef __linux__
                 rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
                 #endif
 
@@ -18641,7 +18641,7 @@ int main (int argc, char **argv)
             }
             else if (device_param->device_vendor_id == VENDOR_ID_NV)
             {
-              #ifdef LINUX
+              #ifdef __linux__
               rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE);
               #endif
 

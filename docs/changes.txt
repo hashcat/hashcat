@@ -10,7 +10,8 @@
 - The Time.Estimated attribute in status display should also show --runtime limit if user set it
 - Fix some strict aliasing rule violation on older compilers
 - Fix some variable initializers on older compilers
-- Replace DARWIN macro with __APPLE__
+- Replace DARWIN macro with compiler predefined macro __APPLE__
+- Replace LINUX macro with compiler predefined macro __linux__
 
 ##
 ## Bugs

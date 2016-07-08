@@ -40,7 +40,7 @@
 #include <pwd.h>
 #include <limits.h>
 
-#ifdef LINUX
+#ifdef __linux__
 #include <termios.h>
 #include <sys/ioctl.h>
 #endif

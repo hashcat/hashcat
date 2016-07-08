@@ -2338,7 +2338,7 @@ void drupal7_encode (u8 digest[64], u8 buf[43])
  * tty
  */
 
-#ifdef LINUX
+#ifdef __linux__
 static struct termios savemodes;
 static int havemodes = 0;
 
@@ -4353,7 +4353,7 @@ char *get_exec_path ()
 
   char *exec_path = (char *) mymalloc (exec_path_len);
 
-  #ifdef LINUX
+  #ifdef __linux__
 
   char tmp[32] = { 0 };
 
@@ -4821,7 +4821,7 @@ int sort_by_dictstat (const void *s1, const void *s2)
   dictstat_t *d1 = (dictstat_t *) s1;
   dictstat_t *d2 = (dictstat_t *) s2;
 
-  #ifdef _LINUX
+  #ifdef __linux__
   d2->stat.st_atim = d1->stat.st_atim;
   #else
   d2->stat.st_atime = d1->stat.st_atime;

@@ -82,7 +82,7 @@ int ocl_init (OCL_PTR *ocl)
     log_info ("");
     log_info ("ATTENTION! Can't find OpenCL ICD loader library");
     log_info ("");
-    #if defined (LINUX)
+    #ifdef __linux__
     log_info ("You're probably missing the \"ocl-icd-libopencl1\" package (Debian/Ubuntu)");
     log_info ("  sudo apt-get install ocl-icd-libopencl1");
     log_info ("");
