@@ -13917,6 +13917,8 @@ int main (int argc, char **argv)
 
         device_param->platform_devices_id = platform_devices_id;
 
+        device_param->platform = platform;
+
         // device_type
 
         cl_device_type device_type;
