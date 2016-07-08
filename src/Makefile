@@ -17,7 +17,7 @@ UNAME                    := $(shell uname -s)
 # we need to strip the windows version number to be able to build hashcat on cygwin hosts
 UNAME                    := $(patsubst CYGWIN_NT-%,CYGWIN_NT-,$(UNAME))
 
-ifeq (,$(filter $(UNAME),Linux Darwin CYGWIN_NT-))
+ifeq (,$(filter $(UNAME),Linux Darwin CYGWIN_NT- FreeBSD))
 $(error "! Your Operating System ($(UNAME)) is not supported by $(PROG_NAME) Makefile")
 endif
 
@@ -64,6 +64,10 @@ INSTALL                  := install
 RM                       := rm
 SED                      := sed
 ifeq ($(UNAME),Darwin)
+SED                      := gsed
+endif
+ifeq ($(UNAME),FreeBSD)
+CC                       := cc
 SED                      := gsed
 endif
 
@@ -125,6 +129,13 @@ LFLAGS_NATIVE            := -lpthread -ldl
 CFLAGS_NATIVE            += -DHAVE_HWMON
 LFLAGS_NATIVE            += $(LDFLAGS)
 endif # linux
+
+ifeq ($(UNAME),FreeBSD)
+CFLAGS_NATIVE            := -D_POSIX
+CFLAGS_NATIVE            += $(CFLAGS)
+LFLAGS_NATIVE            := -lpthread
+LFLAGS_NATIVE            += $(LDFLAGS)
+endif # freebsd
 
 ##
 ## Cross compilation target

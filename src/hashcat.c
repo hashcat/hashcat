@@ -6,7 +6,7 @@
  * License.....: MIT
  */
 
-#ifdef DARWIN
+#if defined(DARWIN) || defined(__FreeBSD__)
 #include <stdio.h>
 #endif
 
@@ -6171,7 +6171,8 @@ int main (int argc, char **argv)
 
   char *exec_path = get_exec_path ();
 
-  #if defined(LINUX) || defined(__APPLE__)
+
+  #if defined(LINUX) || defined(__APPLE__) || defined(__FreeBSD__)
 
   char *resolved_install_folder = realpath (INSTALL_FOLDER, NULL);
   char *resolved_exec_path      = realpath (exec_path, NULL);
@@ -13017,6 +13018,7 @@ int main (int argc, char **argv)
                   // here we have in line_buf: ESSID:MAC1:MAC2   (without the plain)
                   // manipulate salt_buf
 
+                  memset (line_buf_cpy, 0, HCBUFSIZ);
                   memcpy (line_buf_cpy, line_buf, i);
 
                   char *mac2_pos = strrchr (line_buf_cpy, ':');
