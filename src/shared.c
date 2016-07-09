@@ -17933,7 +17933,7 @@ int pdf17l8_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   int enc_md = atoi (enc_md_pos);
 
-  if (enc_md != 1) return (PARSER_SALT_VALUE);
+  if ((enc_md != 0) && (enc_md != 1)) return (PARSER_SALT_VALUE);
 
   const uint id_len = atoi (id_len_pos);
   const uint u_len  = atoi (u_len_pos);
