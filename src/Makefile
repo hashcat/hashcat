@@ -193,7 +193,7 @@ native: hashcat
 binaries: linux32 linux64 win32 win64
 
 clean:
-	$(RM) -f obj/*.o *.bin *.exe *.restore *.out *.pot *.dictstat *.log hashcat core
+	$(RM) -f obj/*.o *.bin *.exe *.restore *.out *.pot *.log hashcat core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
 	$(RM) -rf *.dSYM
