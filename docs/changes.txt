@@ -13,6 +13,7 @@
 - Replace DARWIN macro with compiler predefined macro __APPLE__
 - Replace LINUX macro with compiler predefined macro __linux__
 - Allow the use of enc_id == 0 in hash-mode 10600 and 10700 as it takes no part in the actual computation
+- Get rid of exit() calls in OpenCL wrapper library with the goal to have a better control which error can be ignored under special circumstances
 
 ##
 ## Bugs

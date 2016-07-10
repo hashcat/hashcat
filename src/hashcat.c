@@ -1959,9 +1959,18 @@ static void clear_prompt ()
   fflush (stdout);
 }
 
-static void gidd_to_pw_t (hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
+static int gidd_to_pw_t (hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
 {
-  hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, gidd * sizeof (pw_t), sizeof (pw_t), pw, 0, NULL, NULL);
+  cl_int CL_err = hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, gidd * sizeof (pw_t), sizeof (pw_t), pw, 0, NULL, NULL);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
 }
 
 static void check_hash (hc_device_param_t *device_param, plain_t *plain)
@@ -2296,13 +2305,22 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
   }
 }
 
-static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
+static int check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 {
   salt_t *salt_buf = &data.salts_buf[salt_pos];
 
   u32 num_cracked;
 
-  hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
+  cl_int CL_err;
+
+  CL_err = hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
 
   if (num_cracked)
   {
@@ -2312,7 +2330,14 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
     plain_t *cracked = (plain_t *) mycalloc (num_cracked, sizeof (plain_t));
 
-    hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
+    CL_err = hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
 
     uint cpt_cracked = 0;
 
@@ -2375,13 +2400,29 @@ static void check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
       memset (data.digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (uint));
 
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
+      CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
     }
 
     num_cracked = 0;
 
-    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
+    CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
   }
+
+  return 0;
 }
 
 // stolen from princeprocessor ;)
@@ -2686,8 +2727,10 @@ static void save_hash ()
   unlink (old_hashfile);
 }
 
-static void run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num, const uint event_update, const uint iteration)
+static int run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num, const uint event_update, const uint iteration)
 {
+  cl_int CL_err = CL_SUCCESS;
+
   uint num_elements = num;
 
   device_param->kernel_params_buf32[33] = data.combs_mode;
@@ -2708,17 +2751,24 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     case KERN_RUN_3:    kernel = device_param->kernel3;     break;
   }
 
-  hc_clSetKernelArg (data.ocl, kernel, 24, sizeof (cl_uint), device_param->kernel_params[24]);
-  hc_clSetKernelArg (data.ocl, kernel, 25, sizeof (cl_uint), device_param->kernel_params[25]);
-  hc_clSetKernelArg (data.ocl, kernel, 26, sizeof (cl_uint), device_param->kernel_params[26]);
-  hc_clSetKernelArg (data.ocl, kernel, 27, sizeof (cl_uint), device_param->kernel_params[27]);
-  hc_clSetKernelArg (data.ocl, kernel, 28, sizeof (cl_uint), device_param->kernel_params[28]);
-  hc_clSetKernelArg (data.ocl, kernel, 29, sizeof (cl_uint), device_param->kernel_params[29]);
-  hc_clSetKernelArg (data.ocl, kernel, 30, sizeof (cl_uint), device_param->kernel_params[30]);
-  hc_clSetKernelArg (data.ocl, kernel, 31, sizeof (cl_uint), device_param->kernel_params[31]);
-  hc_clSetKernelArg (data.ocl, kernel, 32, sizeof (cl_uint), device_param->kernel_params[32]);
-  hc_clSetKernelArg (data.ocl, kernel, 33, sizeof (cl_uint), device_param->kernel_params[33]);
-  hc_clSetKernelArg (data.ocl, kernel, 34, sizeof (cl_uint), device_param->kernel_params[34]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 24, sizeof (cl_uint), device_param->kernel_params[24]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 25, sizeof (cl_uint), device_param->kernel_params[25]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 26, sizeof (cl_uint), device_param->kernel_params[26]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 27, sizeof (cl_uint), device_param->kernel_params[27]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 28, sizeof (cl_uint), device_param->kernel_params[28]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 29, sizeof (cl_uint), device_param->kernel_params[29]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 30, sizeof (cl_uint), device_param->kernel_params[30]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 31, sizeof (cl_uint), device_param->kernel_params[31]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 32, sizeof (cl_uint), device_param->kernel_params[32]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 33, sizeof (cl_uint), device_param->kernel_params[33]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 34, sizeof (cl_uint), device_param->kernel_params[34]);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
 
   cl_event event;
 
@@ -2727,7 +2777,14 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     const size_t global_work_size[3] = { num_elements,        32, 1 };
     const size_t local_work_size[3]  = { kernel_threads / 32, 32, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, &event);
+    CL_err = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, &event);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clEnqueueNDRangeKernel(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
   }
   else
   {
@@ -2744,10 +2801,24 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
+    CL_err = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clEnqueueNDRangeKernel(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
   }
 
-  hc_clFlush (data.ocl, device_param->command_queue);
+  CL_err = hc_clFlush (data.ocl, device_param->command_queue);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clFlush(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
 
   if (device_param->nvidia_spin_damp)
   {
@@ -2765,13 +2836,27 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     }
   }
 
-  hc_clWaitForEvents (data.ocl, 1, &event);
+  CL_err = hc_clWaitForEvents (data.ocl, 1, &event);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clWaitForEvents(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
 
   cl_ulong time_start;
   cl_ulong time_end;
 
-  hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
-  hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
+  CL_err |= hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_START, sizeof (time_start), &time_start, NULL);
+  CL_err |= hc_clGetEventProfilingInfo (data.ocl, event, CL_PROFILING_COMMAND_END,   sizeof (time_end),   &time_end,   NULL);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clGetEventProfilingInfo(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
 
   const double exec_us = (double) (time_end - time_start) / 1000;
 
@@ -2804,13 +2889,31 @@ static void run_kernel (const uint kern_run, hc_device_param_t *device_param, co
     device_param->exec_pos = exec_pos;
   }
 
-  hc_clReleaseEvent (data.ocl, event);
+  CL_err = hc_clReleaseEvent (data.ocl, event);
 
-  hc_clFinish (data.ocl, device_param->command_queue);
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clReleaseEvent(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  CL_err = hc_clFinish (data.ocl, device_param->command_queue);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clFinish(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
 }
 
-static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param, const uint num)
+static int run_kernel_mp (const uint kern_run, hc_device_param_t *device_param, const uint num)
 {
+  cl_int CL_err = CL_SUCCESS;
+
   uint num_elements = num;
 
   switch (kern_run)
@@ -2838,42 +2941,74 @@ static void run_kernel_mp (const uint kern_run, hc_device_param_t *device_param,
 
   switch (kern_run)
   {
-    case KERN_RUN_MP:   hc_clSetKernelArg (data.ocl, kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp[3]);
-                        hc_clSetKernelArg (data.ocl, kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp[4]);
-                        hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp[5]);
-                        hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp[6]);
-                        hc_clSetKernelArg (data.ocl, kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp[7]);
-                        hc_clSetKernelArg (data.ocl, kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp[8]);
+    case KERN_RUN_MP:   CL_err |= hc_clSetKernelArg (data.ocl, kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp[3]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp[4]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp[5]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp[6]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp[7]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp[8]);
                         break;
-    case KERN_RUN_MP_R: hc_clSetKernelArg (data.ocl, kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp_r[3]);
-                        hc_clSetKernelArg (data.ocl, kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp_r[4]);
-                        hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp_r[5]);
-                        hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp_r[6]);
-                        hc_clSetKernelArg (data.ocl, kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp_r[7]);
-                        hc_clSetKernelArg (data.ocl, kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp_r[8]);
+    case KERN_RUN_MP_R: CL_err |= hc_clSetKernelArg (data.ocl, kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp_r[3]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp_r[4]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp_r[5]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp_r[6]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp_r[7]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp_r[8]);
                         break;
-    case KERN_RUN_MP_L: hc_clSetKernelArg (data.ocl, kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp_l[3]);
-                        hc_clSetKernelArg (data.ocl, kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp_l[4]);
-                        hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp_l[5]);
-                        hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp_l[6]);
-                        hc_clSetKernelArg (data.ocl, kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp_l[7]);
-                        hc_clSetKernelArg (data.ocl, kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp_l[8]);
-                        hc_clSetKernelArg (data.ocl, kernel, 9, sizeof (cl_uint),  device_param->kernel_params_mp_l[9]);
+    case KERN_RUN_MP_L: CL_err |= hc_clSetKernelArg (data.ocl, kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp_l[3]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp_l[4]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp_l[5]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp_l[6]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp_l[7]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp_l[8]);
+                        CL_err |= hc_clSetKernelArg (data.ocl, kernel, 9, sizeof (cl_uint),  device_param->kernel_params_mp_l[9]);
                         break;
+  }
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
   }
 
   const size_t global_work_size[3] = { num_elements,   1, 1 };
   const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+  CL_err = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
-  hc_clFlush (data.ocl, device_param->command_queue);
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clEnqueueNDRangeKernel(): %s\n", val2cstr_cl (CL_err));
 
-  hc_clFinish (data.ocl, device_param->command_queue);
+    return -1;
+  }
+
+  CL_err = hc_clFlush (data.ocl, device_param->command_queue);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clFlush(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  CL_err = hc_clFinish (data.ocl, device_param->command_queue);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clFinish(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
 }
 
-static void run_kernel_tm (hc_device_param_t *device_param)
+static int run_kernel_tm (hc_device_param_t *device_param)
 {
+  cl_int CL_err = CL_SUCCESS;
+
   const uint num_elements = 1024; // fixed
 
   uint kernel_threads = 32;
@@ -2883,15 +3018,40 @@ static void run_kernel_tm (hc_device_param_t *device_param)
   const size_t global_work_size[3] = { num_elements,    1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+  CL_err = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
-  hc_clFlush (data.ocl, device_param->command_queue);
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clEnqueueNDRangeKernel(): %s\n", val2cstr_cl (CL_err));
 
-  hc_clFinish (data.ocl, device_param->command_queue);
+    return -1;
+  }
+
+  CL_err = hc_clFlush (data.ocl, device_param->command_queue);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clFlush(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  CL_err = hc_clFinish (data.ocl, device_param->command_queue);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clFinish(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
 }
 
-static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
+static int run_kernel_amp (hc_device_param_t *device_param, const uint num)
 {
+  cl_int CL_err = CL_SUCCESS;
+
   uint num_elements = num;
 
   device_param->kernel_params_amp_buf32[5] = data.combs_mode;
@@ -2906,21 +3066,53 @@ static void run_kernel_amp (hc_device_param_t *device_param, const uint num)
 
   cl_kernel kernel = device_param->kernel_amp;
 
-  hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
-  hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint), device_param->kernel_params_amp[6]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
+  CL_err |= hc_clSetKernelArg (data.ocl, kernel, 6, sizeof (cl_uint), device_param->kernel_params_amp[6]);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
 
   const size_t global_work_size[3] = { num_elements,    1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
 
-  hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+  CL_err = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
-  hc_clFlush (data.ocl, device_param->command_queue);
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clEnqueueNDRangeKernel(): %s\n", val2cstr_cl (CL_err));
 
-  hc_clFinish (data.ocl, device_param->command_queue);
+    return -1;
+  }
+
+  CL_err = hc_clFlush (data.ocl, device_param->command_queue);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clFlush(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  CL_err = hc_clFinish (data.ocl, device_param->command_queue);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clFinish(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
 }
 
-static void run_kernel_memset (hc_device_param_t *device_param, cl_mem buf, const uint value, const uint num)
+static int run_kernel_memset (hc_device_param_t *device_param, cl_mem buf, const uint value, const uint num)
 {
+  cl_int CL_err = CL_SUCCESS;
+
   const u32 num16d = num / 16;
   const u32 num16m = num % 16;
 
@@ -2937,18 +3129,46 @@ static void run_kernel_memset (hc_device_param_t *device_param, cl_mem buf, cons
 
     cl_kernel kernel = device_param->kernel_memset;
 
-    hc_clSetKernelArg (data.ocl, kernel, 0, sizeof (cl_mem),  (void *) &buf);
-    hc_clSetKernelArg (data.ocl, kernel, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]);
-    hc_clSetKernelArg (data.ocl, kernel, 2, sizeof (cl_uint), device_param->kernel_params_memset[2]);
+    CL_err |= hc_clSetKernelArg (data.ocl, kernel, 0, sizeof (cl_mem),  (void *) &buf);
+    CL_err |= hc_clSetKernelArg (data.ocl, kernel, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]);
+    CL_err |= hc_clSetKernelArg (data.ocl, kernel, 2, sizeof (cl_uint), device_param->kernel_params_memset[2]);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
 
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+    CL_err = hc_clEnqueueNDRangeKernel (data.ocl, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
-    hc_clFlush (data.ocl, device_param->command_queue);
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clEnqueueNDRangeKernel(): %s\n", val2cstr_cl (CL_err));
 
-    hc_clFinish (data.ocl, device_param->command_queue);
+      return -1;
+    }
+
+    CL_err = hc_clFlush (data.ocl, device_param->command_queue);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clFlush(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
+
+    CL_err = hc_clFinish (data.ocl, device_param->command_queue);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clFinish(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
   }
 
   if (num16m)
@@ -2960,58 +3180,33 @@ static void run_kernel_memset (hc_device_param_t *device_param, cl_mem buf, cons
     tmp[2] = value;
     tmp[3] = value;
 
-    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, buf, CL_TRUE, num16d * 16, num16m, tmp, 0, NULL, NULL);
-  }
-}
+    CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, buf, CL_TRUE, num16d * 16, num16m, tmp, 0, NULL, NULL);
 
-static void run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const size_t size)
-{
-  run_kernel_memset (device_param, buf, 0, size);
-
-  /*
-  int rc = -1;
-
-  if (device_param->opencl_v12 && device_param->platform_vendor_id == VENDOR_ID_AMD)
-  {
-    // So far tested, amd is the only supporting this OpenCL 1.2 function without segfaulting
-
-    const cl_uchar zero = 0;
-
-    rc = hc_clEnqueueFillBuffer (data.ocl, device_param->command_queue, buf, &zero, sizeof (cl_uchar), 0, size, 0, NULL, NULL);
-  }
-
-  if (rc != 0)
-  {
-    // NOTE: clEnqueueFillBuffer () always fails with -59
-    //       IOW, it's not supported by Nvidia drivers <= 352.21, also pocl segfaults, also on apple
-    //       How's that possible, OpenCL 1.2 support is advertised??
-    //       We need to workaround...
-
-    #define FILLSZ 0x100000
-
-    char *tmp = (char *) mymalloc (FILLSZ);
-
-    for (size_t i = 0; i < size; i += FILLSZ)
+    if (CL_err != CL_SUCCESS)
     {
-      const size_t left = size - i;
+      log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
 
-      const size_t fillsz = MIN (FILLSZ, left);
-
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, buf, CL_TRUE, i, fillsz, tmp, 0, NULL, NULL);
+      return -1;
     }
-
-    myfree (tmp);
   }
-  */
+
+  return 0;
 }
 
-static void choose_kernel (hc_device_param_t *device_param, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration)
+static int run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const size_t size)
 {
+  return run_kernel_memset (device_param, buf, 0, size);
+}
+
+static int choose_kernel (hc_device_param_t *device_param, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration)
+{
+  cl_int CL_err = CL_SUCCESS;
+
   if (data.hash_mode == 2000)
   {
     process_stdout (device_param, pws_cnt);
 
-    return;
+    return 0;
   }
 
   if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -3026,7 +3221,14 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
 
         run_kernel_tm (device_param);
 
-        hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_tm_c, device_param->d_bfs_c, 0, 0, size_tm, 0, NULL, NULL);
+        CL_err = hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_tm_c, device_param->d_bfs_c, 0, 0, size_tm, 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clEnqueueCopyBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
     }
 
@@ -3053,11 +3255,25 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
     {
       run_kernel (KERN_RUN_12, device_param, pws_cnt, false, 0);
 
-      hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+      CL_err = hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
 
       // do something with data
 
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+      CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
     }
 
     uint iter = salt_buf->salt_iter;
@@ -3108,15 +3324,31 @@ static void choose_kernel (hc_device_param_t *device_param, const uint attack_ex
     {
       run_kernel (KERN_RUN_23, device_param, pws_cnt, false, 0);
 
-      hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+      CL_err = hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
 
       // do something with data
 
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+      CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
     }
 
     run_kernel (KERN_RUN_3, device_param, pws_cnt, false, 0);
   }
+
+  return 0;
 }
 
 static int run_rule_engine (const int rule_len, const char *rule_buf)
@@ -3133,11 +3365,20 @@ static int run_rule_engine (const int rule_len, const char *rule_buf)
   return 1;
 }
 
-static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
+static int run_copy (hc_device_param_t *device_param, const uint pws_cnt)
 {
+  cl_int CL_err = CL_SUCCESS;
+
   if (data.attack_kern == ATTACK_KERN_STRAIGHT)
   {
-    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+    CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
   }
   else if (data.attack_kern == ATTACK_KERN_COMBI)
   {
@@ -3195,7 +3436,14 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
       }
     }
 
-    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+    CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
   }
   else if (data.attack_kern == ATTACK_KERN_BF)
   {
@@ -3205,6 +3453,8 @@ static void run_copy (hc_device_param_t *device_param, const uint pws_cnt)
 
     run_kernel_mp (KERN_RUN_MP_L, device_param, pws_cnt);
   }
+
+  return 0;
 }
 
 static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
@@ -3229,7 +3479,7 @@ static double try_run (hc_device_param_t *device_param, const u32 kernel_accel, 
   return exec_ms_prev;
 }
 
-static void autotune (hc_device_param_t *device_param)
+static int autotune (hc_device_param_t *device_param)
 {
   const double target_ms = TARGET_MS_PROFILE[data.workload_profile - 1];
 
@@ -3263,7 +3513,7 @@ static void autotune (hc_device_param_t *device_param)
 
     device_param->kernel_power = kernel_power;
 
-    return;
+    return 0;
   }
 
   // from here it's clear we are allowed to autotune
@@ -3284,14 +3534,28 @@ static void autotune (hc_device_param_t *device_param)
       device_param->pws_buf[i].pw_len = 7 + (i & 7);
     }
 
-    hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+    cl_int CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
   }
 
   if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
     if (data.kernel_rules_cnt > 1)
     {
-      hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL);
+      cl_int CL_err = hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clEnqueueCopyBuffer(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
     }
   }
   else
@@ -3470,9 +3734,11 @@ static void autotune (hc_device_param_t *device_param)
   }
 
   #endif
+
+  return 0;
 }
 
-static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
+static int run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 {
   char *line_buf = (char *) mymalloc (HCBUFSIZ);
 
@@ -3704,23 +3970,58 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
       if (data.attack_mode == ATTACK_MODE_STRAIGHT)
       {
-        hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, innerloop_pos * sizeof (kernel_rule_t), 0, innerloop_left * sizeof (kernel_rule_t), 0, NULL, NULL);
+        cl_int CL_err = hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, innerloop_pos * sizeof (kernel_rule_t), 0, innerloop_left * sizeof (kernel_rule_t), 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clEnqueueCopyBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
       else if (data.attack_mode == ATTACK_MODE_COMBI)
       {
-        hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (comb_t), device_param->combs_buf, 0, NULL, NULL);
+        cl_int CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (comb_t), device_param->combs_buf, 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
       else if (data.attack_mode == ATTACK_MODE_BF)
       {
-        hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_bfs, device_param->d_bfs_c, 0, 0, innerloop_left * sizeof (bf_t), 0, NULL, NULL);
+        cl_int CL_err = hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_bfs, device_param->d_bfs_c, 0, 0, innerloop_left * sizeof (bf_t), 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clEnqueueCopyBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
       else if (data.attack_mode == ATTACK_MODE_HYBRID1)
       {
-        hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
+        cl_int CL_err = hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clEnqueueCopyBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
       else if (data.attack_mode == ATTACK_MODE_HYBRID2)
       {
-        hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
+        cl_int CL_err = hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clEnqueueCopyBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
 
       if (data.benchmark == 1)
@@ -3728,7 +4029,9 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
         hc_timer_set (&device_param->timer_speed);
       }
 
-      choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt, fast_iteration);
+      int rc = choose_kernel (device_param, data.attack_exec, data.attack_mode, data.opts_type, salt_buf, highest_pw_len, pws_cnt, fast_iteration);
+
+      if (rc == -1) return -1;
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
@@ -3796,6 +4099,8 @@ static void run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
   device_param->speed_pos = speed_pos;
 
   myfree (line_buf);
+
+  return 0;
 }
 
 static void load_segment (wl_data_t *wl_data, FILE *fd)
@@ -6137,7 +6442,7 @@ int main (int argc, char **argv)
       case IDX_SESSION:       session = optarg; break;
       case IDX_SHOW:          show    = 1;      break;
       case IDX_LEFT:          left    = 1;      break;
-      case '?':               return (-1);
+      case '?':               return -1;
     }
   }
 
@@ -6145,7 +6450,7 @@ int main (int argc, char **argv)
   {
     log_error ("ERROR: Invalid argument specified");
 
-    return (-1);
+    return -1;
   }
 
   /**
@@ -6156,14 +6461,14 @@ int main (int argc, char **argv)
   {
     log_info ("%s", VERSION_TAG);
 
-    return (0);
+    return 0;
   }
 
   if (usage)
   {
     usage_big_print (PROGNAME);
 
-    return (0);
+    return 0;
   }
 
   /**
@@ -6188,14 +6493,14 @@ int main (int argc, char **argv)
   {
     log_error ("ERROR: %s: %s", resolved_install_folder, strerror (errno));
 
-    return (-1);
+    return -1;
   }
 
   if (resolved_exec_path == NULL)
   {
     log_error ("ERROR: %s: %s", resolved_exec_path, strerror (errno));
 
-    return (-1);
+    return -1;
   }
 
   char *install_dir = get_install_dir (resolved_exec_path);
@@ -6278,7 +6583,7 @@ int main (int argc, char **argv)
     if (show == 1) log_error ("ERROR: Mixing --restore parameter and --show is not supported");
     else           log_error ("ERROR: Mixing --restore parameter and --left is not supported");
 
-    return (-1);
+    return -1;
   }
 
   // this allows the user to use --show and --left while cracking (i.e. while another instance of hashcat is running)
@@ -6307,7 +6612,7 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: Incompatible restore-file version");
 
-      return (-1);
+      return -1;
     }
 
     myargc = rd->argc;
@@ -6442,7 +6747,7 @@ int main (int argc, char **argv)
 
       default:
         log_error ("ERROR: Invalid argument specified");
-        return (-1);
+        return -1;
     }
   }
 
@@ -6450,7 +6755,7 @@ int main (int argc, char **argv)
   {
     log_error ("ERROR: Invalid argument specified");
 
-    return (-1);
+    return -1;
   }
 
   /**
@@ -6501,21 +6806,21 @@ int main (int argc, char **argv)
   {
     log_error ("ERROR: Invalid attack-mode specified");
 
-    return (-1);
+    return -1;
   }
 
   if (runtime_chgd && runtime == 0) // just added to remove compiler warnings for runtime_chgd
   {
     log_error ("ERROR: Invalid runtime specified");
 
-    return (-1);
+    return -1;
   }
 
   if (hash_mode_chgd && hash_mode > 13800) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
-    return (-1);
+    return -1;
   }
 
   // renamed hash modes
@@ -6534,7 +6839,7 @@ int main (int argc, char **argv)
     {
       log_error ("Old -m specified, use -m %d instead", n);
 
-      return (-1);
+      return -1;
     }
   }
 
@@ -6544,7 +6849,7 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: Mixing support for user names and hashes of type %s is not supported", strhashtype (hash_mode));
 
-      return (-1);
+      return -1;
     }
   }
 
@@ -6552,7 +6857,7 @@ int main (int argc, char **argv)
   {
     log_error ("ERROR: Invalid outfile-format specified");
 
-    return (-1);
+    return -1;
   }
 
   if (left == 1)
@@ -6563,7 +6868,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: Mixing outfile-format > 1 with left parameter is not allowed");
 
-        return (-1);
+        return -1;
       }
     }
     else
@@ -6580,7 +6885,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: Mixing outfile-format > 7 with show parameter is not allowed");
 
-        return (-1);
+        return -1;
       }
     }
   }
@@ -6589,49 +6894,49 @@ int main (int argc, char **argv)
   {
     log_error ("ERROR: Invalid increment-min specified");
 
-    return (-1);
+    return -1;
   }
 
   if (increment_max > INCREMENT_MAX)
   {
     log_error ("ERROR: Invalid increment-max specified");
 
-    return (-1);
+    return -1;
   }
 
   if (increment_min > increment_max)
   {
     log_error ("ERROR: Invalid increment-min specified");
 
-    return (-1);
+    return -1;
   }
 
   if ((increment == 1) && (attack_mode == ATTACK_MODE_STRAIGHT))
   {
     log_error ("ERROR: Increment is not allowed in attack-mode 0");
 
-    return (-1);
+    return -1;
   }
 
   if ((increment == 0) && (increment_min_chgd == 1))
   {
     log_error ("ERROR: Increment-min is only supported combined with increment switch");
 
-    return (-1);
+    return -1;
   }
 
   if ((increment == 0) && (increment_max_chgd == 1))
   {
     log_error ("ERROR: Increment-max is only supported combined with increment switch");
 
-    return (-1);
+    return -1;
   }
 
   if (rp_files_cnt && rp_gen)
   {
     log_error ("ERROR: Use of both rules-file and rules-generate is not supported");
 
-    return (-1);
+    return -1;
   }
 
   if (rp_files_cnt || rp_gen)
@@ -6640,7 +6945,7 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: Use of rules-file or rules-generate only allowed in attack-mode 0");
 
-      return (-1);
+      return -1;
     }
   }
 
@@ -6648,7 +6953,7 @@ int main (int argc, char **argv)
   {
     log_error ("ERROR: Invalid rp-gen-func-min specified");
 
-    return (-1);
+    return -1;
   }
 
   if (kernel_accel_chgd == 1)
@@ -6660,21 +6965,21 @@ int main (int argc, char **argv)
       log_info ("You can use --force to override this but do not post error reports if you do so");
       log_info ("");
 
-      return (-1);
+      return -1;
     }
 
     if (kernel_accel < 1)
     {
       log_error ("ERROR: Invalid kernel-accel specified");
 
-      return (-1);
+      return -1;
     }
 
     if (kernel_accel > 1024)
     {
       log_error ("ERROR: Invalid kernel-accel specified");
 
-      return (-1);
+      return -1;
     }
   }
 
@@ -6687,21 +6992,21 @@ int main (int argc, char **argv)
       log_info ("You can use --force to override this but do not post error reports if you do so");
       log_info ("");
 
-      return (-1);
+      return -1;
     }
 
     if (kernel_loops < 1)
     {
       log_error ("ERROR: Invalid kernel-loops specified");
 
-      return (-1);
+      return -1;
     }
 
     if (kernel_loops > 1024)
     {
       log_error ("ERROR: Invalid kernel-loops specified");
 
-      return (-1);
+      return -1;
     }
   }
 
@@ -6709,14 +7014,14 @@ int main (int argc, char **argv)
   {
     log_error ("ERROR: workload-profile %i not available", workload_profile);
 
-    return (-1);
+    return -1;
   }
 
   if (opencl_vector_width_chgd && (!is_power_of_2(opencl_vector_width) || opencl_vector_width > 16))
   {
     log_error ("ERROR: opencl-vector-width %i not allowed", opencl_vector_width);
 
-    return (-1);
+    return -1;
   }
 
   if (show == 1 || left == 1)
@@ -6727,14 +7032,14 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: Mixing remove parameter not allowed with show parameter or left parameter");
 
-      return (-1);
+      return -1;
     }
 
     if (potfile_disable == 1)
     {
       log_error ("ERROR: Mixing potfile-disable parameter not allowed with show parameter or left parameter");
 
-      return (-1);
+      return -1;
     }
   }
 
@@ -6755,7 +7060,7 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: Invalid argument for benchmark mode specified");
 
-      return (-1);
+      return -1;
     }
 
     if (attack_mode_chgd == 1)
@@ -6764,7 +7069,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: Only attack-mode 3 allowed in benchmark mode");
 
-        return (-1);
+        return -1;
       }
     }
   }
@@ -6795,7 +7100,7 @@ int main (int argc, char **argv)
       {
         usage_mini_print (myargv[0]);
 
-        return (-1);
+        return -1;
       }
     }
     else if (attack_kern == ATTACK_KERN_STRAIGHT)
@@ -6804,7 +7109,7 @@ int main (int argc, char **argv)
       {
         usage_mini_print (myargv[0]);
 
-        return (-1);
+        return -1;
       }
     }
     else if (attack_kern == ATTACK_KERN_COMBI)
@@ -6813,7 +7118,7 @@ int main (int argc, char **argv)
       {
         usage_mini_print (myargv[0]);
 
-        return (-1);
+        return -1;
       }
     }
     else if (attack_kern == ATTACK_KERN_BF)
@@ -6822,14 +7127,14 @@ int main (int argc, char **argv)
       {
         usage_mini_print (myargv[0]);
 
-        return (-1);
+        return -1;
       }
     }
     else
     {
       usage_mini_print (myargv[0]);
 
-      return (-1);
+      return -1;
     }
   }
 
@@ -6844,13 +7149,13 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: Combining show parameter with keyspace parameter is not allowed");
 
-      return (-1);
+      return -1;
     }
     else if (left == 1)
     {
       log_error ("ERROR: Combining left parameter with keyspace parameter is not allowed");
 
-      return (-1);
+      return -1;
     }
 
     potfile_disable = 1;
@@ -6890,14 +7195,14 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: Parameter remove-timer require parameter remove enabled");
 
-      return (-1);
+      return -1;
     }
 
     if (remove_timer < 1)
     {
       log_error ("ERROR: Parameter remove-timer must have a value greater than or equal to 1");
 
-      return (-1);
+      return -1;
     }
   }
 
@@ -6909,14 +7214,14 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: Parameter loopback not allowed without rules-file or rules-generate");
 
-        return (-1);
+        return -1;
       }
     }
     else
     {
       log_error ("ERROR: Parameter loopback allowed in attack-mode 0 only");
 
-      return (-1);
+      return -1;
     }
   }
 
@@ -6926,14 +7231,14 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: Parameter debug-mode option is only available with attack-mode 0");
 
-      return (-1);
+      return -1;
     }
 
     if ((rp_files_cnt == 0) && (rp_gen == 0))
     {
       log_error ("ERROR: Parameter debug-mode not allowed without rules-file or rules-generate");
 
-      return (-1);
+      return -1;
     }
   }
 
@@ -6941,7 +7246,7 @@ int main (int argc, char **argv)
   {
     log_error ("ERROR: Invalid debug-mode specified");
 
-    return (-1);
+    return -1;
   }
 
   if (debug_file != NULL)
@@ -6950,7 +7255,7 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: Parameter debug-file requires parameter debug-mode to be set");
 
-      return (-1);
+      return -1;
     }
   }
 
@@ -6960,7 +7265,7 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: Parameter induction-dir not allowed with brute-force attacks");
 
-      return (-1);
+      return -1;
     }
   }
 
@@ -6970,7 +7275,7 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: setting --weak-hash-threshold allowed only in straight-attack mode");
 
-      return (-1);
+      return -1;
     }
 
     weak_hash_threshold = 0;
@@ -6980,7 +7285,7 @@ int main (int argc, char **argv)
   {
     log_error ("ERROR: setting --nvidia-spin-damp must be between 0 and 100 (inclusive)");
 
-    return (-1);
+    return -1;
   }
 
 
@@ -7018,14 +7323,14 @@ int main (int argc, char **argv)
             {
               log_error ("ERROR: Rename directory %s to %s: %s", induction_directory, induction_directory_mv, strerror (errno));
 
-              return (-1);
+              return -1;
             }
           }
           else
           {
             log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
 
-            return (-1);
+            return -1;
           }
         }
 
@@ -7033,7 +7338,7 @@ int main (int argc, char **argv)
         {
           log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
 
-          return (-1);
+          return -1;
         }
       }
     }
@@ -7094,7 +7399,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: Directory specified in outfile-check '%s' is not a valid directory", outfile_check_directory);
 
-        return (-1);
+        return -1;
       }
     }
     else if (outfile_check_dir == NULL)
@@ -7103,7 +7408,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: %s: %s", outfile_check_directory, strerror (errno));
 
-        return (-1);
+        return -1;
       }
     }
   }
@@ -11270,7 +11575,7 @@ int main (int argc, char **argv)
                    dgst_pos3   = 6;
                    break;
 
-      default:     usage_mini_print (PROGNAME); return (-1);
+      default:     usage_mini_print (PROGNAME); return -1;
     }
 
     /**
@@ -11293,7 +11598,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: Parameter hex-salt not valid for hash-type %u", hash_mode);
 
-        return (-1);
+        return -1;
       }
     }
 
@@ -11515,7 +11820,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: %s: %s", potfile, strerror (errno));
 
-        return (-1);
+        return -1;
       }
 
       if (outfile != NULL)
@@ -11526,7 +11831,7 @@ int main (int argc, char **argv)
 
           fclose (pot_fp);
 
-          return (-1);
+          return -1;
         }
       }
       else
@@ -11544,7 +11849,7 @@ int main (int argc, char **argv)
         {
           log_error ("ERROR: %s: %s", potfile, strerror (errno));
 
-          return (-1);
+          return -1;
         }
 
         data.pot_fp = pot_fp;
@@ -11829,7 +12134,7 @@ int main (int argc, char **argv)
           {
             log_error ("ERROR: %s: %s", data.hashfile, strerror (errno));
 
-            return (-1);
+            return -1;
           }
 
           hashes_avail = st.st_size / sizeof (hccap_t);
@@ -11853,7 +12158,7 @@ int main (int argc, char **argv)
         {
           log_error ("ERROR: %s: %s", hashfile, strerror (errno));
 
-          return (-1);
+          return -1;
         }
 
         if (data.quiet == 0) log_info_nn ("Counting lines in %s", hashfile);
@@ -11868,7 +12173,7 @@ int main (int argc, char **argv)
 
           fclose (fp);
 
-          return (-1);
+          return -1;
         }
 
         hashlist_format = hlfmt_detect (fp, 100); // 100 = max numbers to "scan". could be hashes_avail, too
@@ -11879,7 +12184,7 @@ int main (int argc, char **argv)
 
           fclose (fp);
 
-          return (-1);
+          return -1;
         }
 
         fclose (fp);
@@ -12031,7 +12336,7 @@ int main (int argc, char **argv)
             {
               log_error ("ERROR: hccap file not specified");
 
-              return (-1);
+              return -1;
             }
 
             hashlist_mode = HL_MODE_FILE;
@@ -12044,7 +12349,7 @@ int main (int argc, char **argv)
             {
               log_error ("ERROR: %s: %s", hash_buf, strerror (errno));
 
-              return (-1);
+              return -1;
             }
 
             if (hashes_avail < 1)
@@ -12053,7 +12358,7 @@ int main (int argc, char **argv)
 
               fclose (fp);
 
-              return (-1);
+              return -1;
             }
 
             uint hccap_size = sizeof (hccap_t);
@@ -12224,7 +12529,7 @@ int main (int argc, char **argv)
         {
           log_error ("ERROR: %s: %s", hashfile, strerror (errno));
 
-          return (-1);
+          return -1;
         }
 
         uint line_num = 0;
@@ -12790,7 +13095,7 @@ int main (int argc, char **argv)
 
       if (data.quiet == 0) log_info_nn ("");
 
-      return (0);
+      return 0;
     }
 
     if ((keyspace == 0) && (stdout_flag == 0))
@@ -12799,7 +13104,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: No hashes loaded");
 
-        return (-1);
+        return -1;
       }
     }
 
@@ -12880,7 +13185,7 @@ int main (int argc, char **argv)
           {
             log_error ("ERROR: Hashfile and Outfile are not allowed to point to the same file");
 
-            return (-1);
+            return -1;
           }
           #endif
 
@@ -12889,7 +13194,7 @@ int main (int argc, char **argv)
           {
             log_error ("ERROR: Hashfile and Outfile are not allowed to point to the same file");
 
-            return (-1);
+            return -1;
           }
           #endif
         }
@@ -13554,7 +13859,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: %s: %s", rp_file, strerror (errno));
 
-        return (-1);
+        return -1;
       }
 
       while (!feof (fp))
@@ -13720,7 +14025,7 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: No valid rules left");
 
-      return (-1);
+      return -1;
     }
 
     /**
@@ -13735,7 +14040,14 @@ int main (int argc, char **argv)
 
     if (keyspace == 0)
     {
-      hc_clGetPlatformIDs (data.ocl, CL_PLATFORMS_MAX, platforms, &platforms_cnt);
+      cl_int CL_err = hc_clGetPlatformIDs (data.ocl, CL_PLATFORMS_MAX, platforms, &platforms_cnt);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clGetPlatformIDs(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
 
       if (platforms_cnt == 0)
       {
@@ -13748,7 +14060,7 @@ int main (int argc, char **argv)
         log_info ("  NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)");
         log_info ("");
 
-        return (-1);
+        return -1;
       }
 
       if (opencl_platforms_filter != (uint) -1)
@@ -13759,7 +14071,7 @@ int main (int argc, char **argv)
         {
           log_error ("ERROR: The platform selected by the --opencl-platforms parameter is larger than the number of available platforms (%d)", platforms_cnt);
 
-          return (-1);
+          return -1;
         }
       }
     }
@@ -13779,7 +14091,14 @@ int main (int argc, char **argv)
 
         cl_platform_id platform = platforms[platform_id];
 
-        hc_clGetDeviceIDs (data.ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
+        cl_int CL_err = hc_clGetDeviceIDs (data.ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceIDs(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
         {
@@ -13787,7 +14106,14 @@ int main (int argc, char **argv)
 
           cl_device_type device_type;
 
-          hc_clGetDeviceInfo (data.ocl, device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+          cl_int CL_err = hc_clGetDeviceInfo (data.ocl, device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
 
           device_types_all |= device_type;
         }
@@ -13831,13 +14157,29 @@ int main (int argc, char **argv)
 
     for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
     {
+      cl_int CL_err = CL_SUCCESS;
+
       cl_platform_id platform = platforms[platform_id];
 
-      hc_clGetDeviceIDs (data.ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
+      CL_err = hc_clGetDeviceIDs (data.ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clGetDeviceIDs(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
 
       char platform_vendor[INFOSZ] = { 0 };
 
-      hc_clGetPlatformInfo (data.ocl, platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
+      CL_err = hc_clGetPlatformInfo (data.ocl, platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clGetPlatformInfo(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
 
       // find our own platform vendor because pocl and mesa are pushing original vendor_id through opencl
       // this causes trouble with vendor id based macros
@@ -13930,7 +14272,14 @@ int main (int argc, char **argv)
 
         cl_device_type device_type;
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         device_type &= ~CL_DEVICE_TYPE_DEFAULT;
 
@@ -13938,21 +14287,49 @@ int main (int argc, char **argv)
 
         // device_name
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NAME, 0, NULL, &param_value_size);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NAME, 0, NULL, &param_value_size);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         char *device_name = (char *) mymalloc (param_value_size);
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NAME, param_value_size, device_name, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NAME, param_value_size, device_name, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         device_param->device_name = device_name;
 
         // device_vendor
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VENDOR, 0, NULL, &param_value_size);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VENDOR, 0, NULL, &param_value_size);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         char *device_vendor = (char *) mymalloc (param_value_size);
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VENDOR, param_value_size, device_vendor, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VENDOR, param_value_size, device_vendor, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         device_param->device_vendor = device_vendor;
 
@@ -14003,21 +14380,49 @@ int main (int argc, char **argv)
 
         // device_version
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VERSION, 0, NULL, &param_value_size);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VERSION, 0, NULL, &param_value_size);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         char *device_version = (char *) mymalloc (param_value_size);
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VERSION, param_value_size, device_version, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_VERSION, param_value_size, device_version, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         device_param->device_version = device_version;
 
         // device_opencl_version
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &param_value_size);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &param_value_size);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         char *device_opencl_version = (char *) mymalloc (param_value_size);
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_OPENCL_C_VERSION, param_value_size, device_opencl_version, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_OPENCL_C_VERSION, param_value_size, device_opencl_version, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         device_param->opencl_v12 = device_opencl_version[9] > '1' || device_opencl_version[11] >= '2';
 
@@ -14033,11 +14438,25 @@ int main (int argc, char **argv)
           {
             if (opti_type & OPTI_TYPE_USES_BITS_64)
             {
-              hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
+              CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
+
+              if (CL_err != CL_SUCCESS)
+              {
+                log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+                return -1;
+              }
             }
             else
             {
-              hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
+              CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
+
+              if (CL_err != CL_SUCCESS)
+              {
+                log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+                return -1;
+              }
             }
           }
           else
@@ -14058,7 +14477,14 @@ int main (int argc, char **argv)
 
         cl_uint device_processors;
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof (device_processors), &device_processors, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof (device_processors), &device_processors, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         device_param->device_processors = device_processors;
 
@@ -14067,7 +14493,14 @@ int main (int argc, char **argv)
 
         cl_ulong device_maxmem_alloc;
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7fffffff);
 
@@ -14075,7 +14508,14 @@ int main (int argc, char **argv)
 
         cl_ulong device_global_mem;
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof (device_global_mem), &device_global_mem, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof (device_global_mem), &device_global_mem, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         device_param->device_global_mem = device_global_mem;
 
@@ -14083,7 +14523,14 @@ int main (int argc, char **argv)
 
         size_t device_maxworkgroup_size;
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (device_maxworkgroup_size), &device_maxworkgroup_size, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof (device_maxworkgroup_size), &device_maxworkgroup_size, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         device_param->device_maxworkgroup_size = device_maxworkgroup_size;
 
@@ -14091,7 +14538,14 @@ int main (int argc, char **argv)
 
         cl_uint device_maxclock_frequency;
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof (device_maxclock_frequency), &device_maxclock_frequency, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof (device_maxclock_frequency), &device_maxclock_frequency, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         device_param->device_maxclock_frequency = device_maxclock_frequency;
 
@@ -14099,7 +14553,14 @@ int main (int argc, char **argv)
 
         cl_bool device_endian_little;
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_ENDIAN_LITTLE, sizeof (device_endian_little), &device_endian_little, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_ENDIAN_LITTLE, sizeof (device_endian_little), &device_endian_little, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         if (device_endian_little == CL_FALSE)
         {
@@ -14112,7 +14573,14 @@ int main (int argc, char **argv)
 
         cl_bool device_available;
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_AVAILABLE, sizeof (device_available), &device_available, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_AVAILABLE, sizeof (device_available), &device_available, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         if (device_available == CL_FALSE)
         {
@@ -14125,7 +14593,14 @@ int main (int argc, char **argv)
 
         cl_bool device_compiler_available;
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_COMPILER_AVAILABLE, sizeof (device_compiler_available), &device_compiler_available, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_COMPILER_AVAILABLE, sizeof (device_compiler_available), &device_compiler_available, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         if (device_compiler_available == CL_FALSE)
         {
@@ -14138,7 +14613,14 @@ int main (int argc, char **argv)
 
         cl_device_exec_capabilities device_execution_capabilities;
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXECUTION_CAPABILITIES, sizeof (device_execution_capabilities), &device_execution_capabilities, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXECUTION_CAPABILITIES, sizeof (device_execution_capabilities), &device_execution_capabilities, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
         {
@@ -14151,11 +14633,25 @@ int main (int argc, char **argv)
 
         size_t device_extensions_size;
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXTENSIONS, 0, NULL, &device_extensions_size);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXTENSIONS, 0, NULL, &device_extensions_size);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         char *device_extensions = mymalloc (device_extensions_size + 1);
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXTENSIONS, device_extensions_size, device_extensions, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXTENSIONS, device_extensions_size, device_extensions, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         if (strstr (device_extensions, "base_atomics") == 0)
         {
@@ -14177,7 +14673,14 @@ int main (int argc, char **argv)
 
         cl_ulong device_local_mem_size;
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof (device_local_mem_size), &device_local_mem_size, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof (device_local_mem_size), &device_local_mem_size, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         if (device_local_mem_size < 32768)
         {
@@ -14216,11 +14719,25 @@ int main (int argc, char **argv)
 
         // driver_version
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DRIVER_VERSION, 0, NULL, &param_value_size);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DRIVER_VERSION, 0, NULL, &param_value_size);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         char *driver_version = (char *) mymalloc (param_value_size);
 
-        hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DRIVER_VERSION, param_value_size, driver_version, NULL);
+        CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DRIVER_VERSION, param_value_size, driver_version, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         device_param->driver_version = driver_version;
 
@@ -14273,7 +14790,14 @@ int main (int argc, char **argv)
 
             #define CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV            0x4005
 
-            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
+            CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
 
             device_param->kernel_exec_timeout = kernel_exec_timeout;
 
@@ -14283,8 +14807,23 @@ int main (int argc, char **argv)
             #define CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV       0x4000
             #define CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV       0x4001
 
-            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV, sizeof (sm_minor), &sm_minor, NULL);
-            hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV, sizeof (sm_major), &sm_major, NULL);
+            CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV, sizeof (sm_minor), &sm_minor, NULL);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
+
+            CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV, sizeof (sm_major), &sm_major, NULL);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
 
             device_param->sm_minor = sm_minor;
             device_param->sm_major = sm_major;
@@ -14374,7 +14913,7 @@ int main (int argc, char **argv)
                 log_info ("You can use --force to override this but do not post error reports if you do so");
                 log_info ("");
 
-                return (-1);
+                return -1;
               }
 
               if (catalyst_warn == 1)
@@ -14389,7 +14928,7 @@ int main (int argc, char **argv)
                 log_info ("You can use --force to override this but do not post error reports if you do so");
                 log_info ("");
 
-                return (-1);
+                return -1;
               }
             }
             else if (platform_vendor_id == VENDOR_ID_NV)
@@ -14416,7 +14955,7 @@ int main (int argc, char **argv)
                 log_info ("A good alternative is the free pocl >= v0.13, but make sure to use a LLVM >= v3.8");
                 log_info ("");
 
-                return (-1);
+                return -1;
               }
             }
           }
@@ -14500,7 +15039,7 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: No devices found/left");
 
-      return (-1);
+      return -1;
     }
 
     // additional check to see if the user has chosen a device that is not within the range of available devices (i.e. larger than devices_cnt)
@@ -14513,7 +15052,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: The device specified by the --opencl-devices parameter is larger than the number of available devices (%d)", devices_cnt);
 
-        return (-1);
+        return -1;
       }
     }
 
@@ -14640,13 +15179,13 @@ int main (int argc, char **argv)
 
           int hm_adapters_num;
 
-          if (get_adapters_num_adl (data.hm_adl, &hm_adapters_num) != 0) return (-1);
+          if (get_adapters_num_adl (data.hm_adl, &hm_adapters_num) != 0) return -1;
 
           // adapter info
 
           LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_adl (data.hm_adl, hm_adapters_num);
 
-          if (lpAdapterInfo == NULL) return (-1);
+          if (lpAdapterInfo == NULL) return -1;
 
           // get a list (of ids of) valid/usable adapters
 
@@ -14705,7 +15244,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: Invalid values for gpu-temp-abort. Parameter gpu-temp-abort is less than gpu-temp-retain.");
 
-        return (-1);
+        return -1;
       }
     }
 
@@ -14864,7 +15403,7 @@ int main (int argc, char **argv)
             {
               log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
-              return (-1);
+              return -1;
             }
 
             // first backup current value, we will restore it later
@@ -14884,14 +15423,14 @@ int main (int argc, char **argv)
               {
                 log_error ("ERROR: Failed to get current ADL PowerControl settings");
 
-                return (-1);
+                return -1;
               }
 
               if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adl, powertune.iMaxValue)) != ADL_OK)
               {
                 log_error ("ERROR: Failed to set new ADL PowerControl values");
 
-                return (-1);
+                return -1;
               }
 
               // clocks
@@ -14904,7 +15443,7 @@ int main (int argc, char **argv)
               {
                 log_error ("ERROR: Failed to get ADL memory and engine clock frequency");
 
-                return (-1);
+                return -1;
               }
 
               // Query capabilities only to see if profiles were not "damaged", if so output a warning but do accept the users profile settings
@@ -14915,7 +15454,7 @@ int main (int argc, char **argv)
               {
                 log_error ("ERROR: Failed to get ADL device capabilities");
 
-                return (-1);
+                return -1;
               }
 
               int engine_clock_max = caps.sEngineClockRange.iMax * 0.6666;
@@ -14952,7 +15491,7 @@ int main (int argc, char **argv)
               {
                 log_info ("ERROR: Failed to set ADL performance state");
 
-                return (-1);
+                return -1;
               }
 
               local_free (performance_state);
@@ -14969,14 +15508,14 @@ int main (int argc, char **argv)
               {
                 log_error ("ERROR: Failed to get current ADL PowerControl settings");
 
-                return (-1);
+                return -1;
               }
 
               if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adl, powertune.iMaxValue)) != ADL_OK)
               {
                 log_error ("ERROR: Failed to set new ADL PowerControl values");
 
-                return (-1);
+                return -1;
               }
             }
           }
@@ -15031,6 +15570,8 @@ int main (int argc, char **argv)
 
     for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
     {
+      cl_int CL_err = CL_SUCCESS;
+
       /**
        * host buffer
        */
@@ -15056,7 +15597,14 @@ int main (int argc, char **argv)
       properties[1] = (cl_context_properties) device_param->platform;
       properties[2] = 0;
 
-      device_param->context = hc_clCreateContext (data.ocl, properties, 1, &device_param->device, NULL, NULL);
+      CL_err = hc_clCreateContext (data.ocl, properties, 1, &device_param->device, NULL, NULL, &device_param->context);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clCreateContext(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
 
       /**
        * create command-queue
@@ -15065,7 +15613,14 @@ int main (int argc, char **argv)
       // not supported with NV
       // device_param->command_queue = hc_clCreateCommandQueueWithProperties (device_param->context, device_param->device, NULL);
 
-      device_param->command_queue = hc_clCreateCommandQueue (data.ocl, device_param->context, device_param->device, CL_QUEUE_PROFILING_ENABLE);
+      CL_err = hc_clCreateCommandQueue (data.ocl, device_param->context, device_param->device, CL_QUEUE_PROFILING_ENABLE, &device_param->command_queue);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clCreateCommandQueue(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
 
       /**
        * kernel threads: some algorithms need a fixed kernel-threads count
@@ -15672,30 +16227,56 @@ int main (int argc, char **argv)
 
             load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
-            device_param->program = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL);
+            CL_err = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program);
 
-            int rc = hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL, false);
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clCreateProgramWithSource(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
+
+            CL_err = hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clBuildProgram(): %s\n", val2cstr_cl (CL_err));
+
+              //return -1;
+            }
 
             #ifdef DEBUG
             size_t build_log_size = 0;
 
-            hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+            CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
 
             if (build_log_size > 1)
             {
-              char *build_log = (char *) malloc (build_log_size + 1);
+              char *build_log = (char *) mymalloc (build_log_size + 1);
 
-              memset (build_log, 0, build_log_size + 1);
+              CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
-              hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+              if (CL_err != CL_SUCCESS)
+              {
+                log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+
+                return -1;
+              }
 
               puts (build_log);
 
-              free (build_log);
+              myfree (build_log);
             }
             #endif
 
-            if (rc != 0)
+            if (CL_err != CL_SUCCESS)
             {
               device_param->skipped = true;
 
@@ -15706,11 +16287,25 @@ int main (int argc, char **argv)
 
             size_t binary_size;
 
-            hc_clGetProgramInfo (data.ocl, device_param->program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+            CL_err = hc_clGetProgramInfo (data.ocl, device_param->program, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clGetProgramInfo(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
 
             u8 *binary = (u8 *) mymalloc (binary_size);
 
-            hc_clGetProgramInfo (data.ocl, device_param->program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+            CL_err = hc_clGetProgramInfo (data.ocl, device_param->program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clGetProgramInfo(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
 
             writeProgramBin (cached_file, binary, binary_size);
 
@@ -15724,9 +16319,23 @@ int main (int argc, char **argv)
 
             load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
-            device_param->program = hc_clCreateProgramWithBinary (data.ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL);
+            CL_err = hc_clCreateProgramWithBinary (data.ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL, &device_param->program);
 
-            hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL, true);
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clCreateProgramWithBinary(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
+
+            CL_err = hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts, NULL, NULL);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clBuildProgram(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
           }
         }
         else
@@ -15737,7 +16346,14 @@ int main (int argc, char **argv)
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
-          device_param->program = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL);
+          CL_err = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateProgramWithSource(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
 
           char build_opts_update[1024] = { 0 };
 
@@ -15754,28 +16370,47 @@ int main (int argc, char **argv)
             snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s", build_opts);
           }
 
-          int rc = hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts_update, NULL, NULL, false);
+          CL_err = hc_clBuildProgram (data.ocl, device_param->program, 1, &device_param->device, build_opts_update, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clBuildProgram(): %s\n", val2cstr_cl (CL_err));
+
+            //return -1;
+          }
 
           #ifdef DEBUG
           size_t build_log_size = 0;
 
-          hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+          CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
 
           if (build_log_size > 1)
           {
-            char *build_log = (char *) malloc (build_log_size + 1);
+            char *build_log = (char *) mymalloc (build_log_size + 1);
 
-            memset (build_log, 0, build_log_size + 1);
+            CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
-            hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
 
             puts (build_log);
 
-            free (build_log);
+            myfree (build_log);
           }
           #endif
 
-          if (rc != 0)
+          if (CL_err != CL_SUCCESS)
           {
             device_param->skipped = true;
 
@@ -15843,11 +16478,25 @@ int main (int argc, char **argv)
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
-          device_param->program_mp = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL);
+          CL_err = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program_mp);
 
-          int rc = hc_clBuildProgram (data.ocl, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL, false);
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateProgramWithSource(): %s\n", val2cstr_cl (CL_err));
 
-          if (rc != 0)
+            return -1;
+          }
+
+          CL_err = hc_clBuildProgram (data.ocl, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clBuildProgram(): %s\n", val2cstr_cl (CL_err));
+
+            //return -1;
+          }
+
+          if (CL_err != CL_SUCCESS)
           {
             device_param->skipped = true;
 
@@ -15858,11 +16507,25 @@ int main (int argc, char **argv)
 
           size_t binary_size;
 
-          hc_clGetProgramInfo (data.ocl, device_param->program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+          CL_err = hc_clGetProgramInfo (data.ocl, device_param->program_mp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clGetProgramInfo(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
 
           u8 *binary = (u8 *) mymalloc (binary_size);
 
-          hc_clGetProgramInfo (data.ocl, device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+          CL_err = hc_clGetProgramInfo (data.ocl, device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clGetProgramInfo(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
 
           writeProgramBin (cached_file, binary, binary_size);
 
@@ -15876,9 +16539,23 @@ int main (int argc, char **argv)
 
           load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
-          device_param->program_mp = hc_clCreateProgramWithBinary (data.ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL);
+          CL_err = hc_clCreateProgramWithBinary (data.ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL, &device_param->program_mp);
 
-          hc_clBuildProgram (data.ocl, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL, true);
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateProgramWithBinary(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
+
+          CL_err = hc_clBuildProgram (data.ocl, device_param->program_mp, 1, &device_param->device, build_opts, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clBuildProgram(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
         }
 
         local_free (kernel_lengths);
@@ -15945,11 +16622,25 @@ int main (int argc, char **argv)
 
           load_kernel (source_file, 1, kernel_lengths, kernel_sources);
 
-          device_param->program_amp = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL);
+          CL_err = hc_clCreateProgramWithSource (data.ocl, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program_amp);
 
-          int rc = hc_clBuildProgram (data.ocl, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL, false);
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateProgramWithSource(): %s\n", val2cstr_cl (CL_err));
 
-          if (rc != 0)
+            return -1;
+          }
+
+          CL_err = hc_clBuildProgram (data.ocl, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clBuildProgram(): %s\n", val2cstr_cl (CL_err));
+
+            //return -1;
+          }
+
+          if (CL_err != CL_SUCCESS)
           {
             device_param->skipped = true;
 
@@ -15960,11 +16651,25 @@ int main (int argc, char **argv)
 
           size_t binary_size;
 
-          hc_clGetProgramInfo (data.ocl, device_param->program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+          CL_err = hc_clGetProgramInfo (data.ocl, device_param->program_amp, CL_PROGRAM_BINARY_SIZES, sizeof (size_t), &binary_size, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clGetProgramInfo(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
 
           u8 *binary = (u8 *) mymalloc (binary_size);
 
-          hc_clGetProgramInfo (data.ocl, device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+          CL_err = hc_clGetProgramInfo (data.ocl, device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clGetProgramInfo(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
 
           writeProgramBin (cached_file, binary, binary_size);
 
@@ -15978,9 +16683,23 @@ int main (int argc, char **argv)
 
           load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
-          device_param->program_amp = hc_clCreateProgramWithBinary (data.ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL);
+          CL_err = hc_clCreateProgramWithBinary (data.ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL, &device_param->program_amp);
 
-          hc_clBuildProgram (data.ocl, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL, true);
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateProgramWithBinary(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
+
+          CL_err = hc_clBuildProgram (data.ocl, device_param->program_amp, 1, &device_param->device, build_opts, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clBuildProgram(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
         }
 
         local_free (kernel_lengths);
@@ -16002,39 +16721,53 @@ int main (int argc, char **argv)
        * global buffers
        */
 
-      device_param->d_pws_buf       = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_pws,     NULL);
-      device_param->d_pws_amp_buf   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_pws,     NULL);
-      device_param->d_tmps          = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_tmps,    NULL);
-      device_param->d_hooks         = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_hooks,   NULL);
-      device_param->d_bitmap_s1_a   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s1_b   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s1_c   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s1_d   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s2_a   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s2_b   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s2_c   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_bitmap_s2_d   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL);
-      device_param->d_plain_bufs    = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_plains,  NULL);
-      device_param->d_digests_buf   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_digests, NULL);
-      device_param->d_digests_shown = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_shown,   NULL);
-      device_param->d_salt_bufs     = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_salts,   NULL);
-      device_param->d_result        = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_results, NULL);
-      device_param->d_scryptV0_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4, NULL);
-      device_param->d_scryptV1_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4, NULL);
-      device_param->d_scryptV2_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4, NULL);
-      device_param->d_scryptV3_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4, NULL);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_pws,     NULL, &device_param->d_pws_buf);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_pws,     NULL, &device_param->d_pws_amp_buf);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_tmps,    NULL, &device_param->d_tmps);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_hooks,   NULL, &device_param->d_hooks);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL, &device_param->d_bitmap_s1_a);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL, &device_param->d_bitmap_s1_b);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL, &device_param->d_bitmap_s1_c);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL, &device_param->d_bitmap_s1_d);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL, &device_param->d_bitmap_s2_a);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL, &device_param->d_bitmap_s2_b);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL, &device_param->d_bitmap_s2_c);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_size,  NULL, &device_param->d_bitmap_s2_d);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_plains,  NULL, &device_param->d_plain_bufs);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_digests, NULL, &device_param->d_digests_buf);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_shown,   NULL, &device_param->d_digests_shown);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY,   size_salts,   NULL, &device_param->d_salt_bufs);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_results, NULL, &device_param->d_result);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4, NULL, &device_param->d_scryptV0_buf);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4, NULL, &device_param->d_scryptV1_buf);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4, NULL, &device_param->d_scryptV2_buf);
+      CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_WRITE,  size_scrypt4, NULL, &device_param->d_scryptV3_buf);
 
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_a,    CL_TRUE, 0, bitmap_size,  bitmap_s1_a,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_b,    CL_TRUE, 0, bitmap_size,  bitmap_s1_b,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_c,    CL_TRUE, 0, bitmap_size,  bitmap_s1_c,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_d,    CL_TRUE, 0, bitmap_size,  bitmap_s1_d,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s2_a,    CL_TRUE, 0, bitmap_size,  bitmap_s2_a,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s2_b,    CL_TRUE, 0, bitmap_size,  bitmap_s2_b,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s2_c,    CL_TRUE, 0, bitmap_size,  bitmap_s2_c,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s2_d,    CL_TRUE, 0, bitmap_size,  bitmap_s2_d,        0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_buf,    CL_TRUE, 0, size_digests, data.digests_buf,   0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown,  CL_TRUE, 0, size_shown,   data.digests_shown, 0, NULL, NULL);
-      hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_salt_bufs,      CL_TRUE, 0, size_salts,   data.salts_buf,     0, NULL, NULL);
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clCreateBuffer(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
+
+      CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_a,    CL_TRUE, 0, bitmap_size,  bitmap_s1_a,        0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_b,    CL_TRUE, 0, bitmap_size,  bitmap_s1_b,        0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_c,    CL_TRUE, 0, bitmap_size,  bitmap_s1_c,        0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s1_d,    CL_TRUE, 0, bitmap_size,  bitmap_s1_d,        0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s2_a,    CL_TRUE, 0, bitmap_size,  bitmap_s2_a,        0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s2_b,    CL_TRUE, 0, bitmap_size,  bitmap_s2_b,        0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s2_c,    CL_TRUE, 0, bitmap_size,  bitmap_s2_c,        0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_bitmap_s2_d,    CL_TRUE, 0, bitmap_size,  bitmap_s2_d,        0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_buf,    CL_TRUE, 0, size_digests, data.digests_buf,   0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown,  CL_TRUE, 0, size_shown,   data.digests_shown, 0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_salt_bufs,      CL_TRUE, 0, size_salts,   data.salts_buf,     0, NULL, NULL);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
 
       /**
        * special buffers
@@ -16042,32 +16775,74 @@ int main (int argc, char **argv)
 
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        device_param->d_rules   = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_rules,   NULL);
-        device_param->d_rules_c = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_rules_c, NULL);
+        CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_rules,   NULL, &device_param->d_rules);
+        CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_rules_c, NULL, &device_param->d_rules_c);
 
-        hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_rules, CL_TRUE, 0, size_rules, kernel_rules_buf, 0, NULL, NULL);
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clCreateBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
+
+        CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_rules, CL_TRUE, 0, size_rules, kernel_rules_buf, 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
       else if (attack_kern == ATTACK_KERN_COMBI)
       {
-        device_param->d_combs           = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_combs,      NULL);
-        device_param->d_combs_c         = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_combs,      NULL);
-        device_param->d_root_css_buf    = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL);
-        device_param->d_markov_css_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL);
+        CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_combs,      NULL, &device_param->d_combs);
+        CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_combs,      NULL, &device_param->d_combs_c);
+        CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL, &device_param->d_root_css_buf);
+        CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL, &device_param->d_markov_css_buf);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clCreateBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
       else if (attack_kern == ATTACK_KERN_BF)
       {
-        device_param->d_bfs             = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_bfs,        NULL);
-        device_param->d_bfs_c           = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_bfs,        NULL);
-        device_param->d_tm_c            = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_tm,         NULL);
-        device_param->d_root_css_buf    = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL);
-        device_param->d_markov_css_buf  = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL);
+        CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_bfs,        NULL, &device_param->d_bfs);
+        CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_bfs,        NULL, &device_param->d_bfs_c);
+        CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_tm,         NULL, &device_param->d_tm_c);
+        CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_root_css,   NULL, &device_param->d_root_css_buf);
+        CL_err |= hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_markov_css, NULL, &device_param->d_markov_css_buf);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clCreateBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
 
       if (size_esalts)
       {
-        device_param->d_esalt_bufs = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_esalts, NULL);
+        CL_err = hc_clCreateBuffer (data.ocl, device_param->context, CL_MEM_READ_ONLY, size_esalts, NULL, &device_param->d_esalt_bufs);
 
-        hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_esalt_bufs, CL_TRUE, 0, size_esalts, data.esalts_buf, 0, NULL, NULL);
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clCreateBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
+
+        CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_esalt_bufs, CL_TRUE, 0, size_esalts, data.esalts_buf, 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
 
       /**
@@ -16228,29 +17003,71 @@ int main (int argc, char **argv)
         {
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_s%02d", kern_type, 4);
 
-          device_param->kernel1 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+          CL_err = hc_clCreateKernel (data.ocl, device_param->program, kernel_name, &device_param->kernel1);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
 
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_s%02d", kern_type, 8);
 
-          device_param->kernel2 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+          CL_err = hc_clCreateKernel (data.ocl, device_param->program, kernel_name, &device_param->kernel2);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
 
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_s%02d", kern_type, 16);
 
-          device_param->kernel3 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+          CL_err = hc_clCreateKernel (data.ocl, device_param->program, kernel_name, &device_param->kernel3);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
         }
         else
         {
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d", kern_type, 4);
 
-          device_param->kernel1 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+          CL_err = hc_clCreateKernel (data.ocl, device_param->program, kernel_name, &device_param->kernel1);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
 
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d", kern_type, 8);
 
-          device_param->kernel2 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+          CL_err = hc_clCreateKernel (data.ocl, device_param->program, kernel_name, &device_param->kernel2);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
 
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_m%02d", kern_type, 16);
 
-          device_param->kernel3 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+          CL_err = hc_clCreateKernel (data.ocl, device_param->program, kernel_name, &device_param->kernel3);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
         }
 
         if (data.attack_mode == ATTACK_MODE_BF)
@@ -16259,9 +17076,23 @@ int main (int argc, char **argv)
           {
             snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_tm", kern_type);
 
-            device_param->kernel_tm = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+            CL_err = hc_clCreateKernel (data.ocl, device_param->program, kernel_name, &device_param->kernel_tm);
 
-            hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_tm, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
+
+            CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_tm, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clGetKernelWorkGroupInfo(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
           }
         }
       }
@@ -16269,96 +17100,236 @@ int main (int argc, char **argv)
       {
         snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_init", kern_type);
 
-        device_param->kernel1 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+        CL_err = hc_clCreateKernel (data.ocl, device_param->program, kernel_name, &device_param->kernel1);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_loop", kern_type);
 
-        device_param->kernel2 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+        CL_err = hc_clCreateKernel (data.ocl, device_param->program, kernel_name, &device_param->kernel2);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_comp", kern_type);
 
-        device_param->kernel3 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+        CL_err = hc_clCreateKernel (data.ocl, device_param->program, kernel_name, &device_param->kernel3);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         if (opts_type & OPTS_TYPE_HOOK12)
         {
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_hook12", kern_type);
 
-          device_param->kernel12 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+          CL_err = hc_clCreateKernel (data.ocl, device_param->program, kernel_name, &device_param->kernel12);
 
-          hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel12, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
+
+          CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel12, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clGetKernelWorkGroupInfo(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
         }
 
         if (opts_type & OPTS_TYPE_HOOK23)
         {
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05d_hook23", kern_type);
 
-          device_param->kernel23 = hc_clCreateKernel (data.ocl, device_param->program, kernel_name);
+          CL_err = hc_clCreateKernel (data.ocl, device_param->program, kernel_name, &device_param->kernel23);
 
-          hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel23, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
+
+          CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel23, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clGetKernelWorkGroupInfo(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
         }
       }
 
-      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel1, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
-      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel2, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
-      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel3, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+      CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel1, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+      CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel2, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+      CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel3, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clGetKernelWorkGroupInfo(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
 
       for (uint i = 0; i <= 23; i++)
       {
-        hc_clSetKernelArg (data.ocl, device_param->kernel1, i, sizeof (cl_mem), device_param->kernel_params[i]);
-        hc_clSetKernelArg (data.ocl, device_param->kernel2, i, sizeof (cl_mem), device_param->kernel_params[i]);
-        hc_clSetKernelArg (data.ocl, device_param->kernel3, i, sizeof (cl_mem), device_param->kernel_params[i]);
+        CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel1, i, sizeof (cl_mem), device_param->kernel_params[i]);
+        CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel2, i, sizeof (cl_mem), device_param->kernel_params[i]);
+        CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel3, i, sizeof (cl_mem), device_param->kernel_params[i]);
 
-        if (opts_type & OPTS_TYPE_HOOK12) hc_clSetKernelArg (data.ocl, device_param->kernel12, i, sizeof (cl_mem), device_param->kernel_params[i]);
-        if (opts_type & OPTS_TYPE_HOOK23) hc_clSetKernelArg (data.ocl, device_param->kernel23, i, sizeof (cl_mem), device_param->kernel_params[i]);
+        if (opts_type & OPTS_TYPE_HOOK12) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel12, i, sizeof (cl_mem), device_param->kernel_params[i]);
+        if (opts_type & OPTS_TYPE_HOOK23) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel23, i, sizeof (cl_mem), device_param->kernel_params[i]);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
 
       for (uint i = 24; i <= 34; i++)
       {
-        hc_clSetKernelArg (data.ocl, device_param->kernel1, i, sizeof (cl_uint), device_param->kernel_params[i]);
-        hc_clSetKernelArg (data.ocl, device_param->kernel2, i, sizeof (cl_uint), device_param->kernel_params[i]);
-        hc_clSetKernelArg (data.ocl, device_param->kernel3, i, sizeof (cl_uint), device_param->kernel_params[i]);
+        CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel1, i, sizeof (cl_uint), device_param->kernel_params[i]);
+        CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel2, i, sizeof (cl_uint), device_param->kernel_params[i]);
+        CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel3, i, sizeof (cl_uint), device_param->kernel_params[i]);
 
-        if (opts_type & OPTS_TYPE_HOOK12) hc_clSetKernelArg (data.ocl, device_param->kernel12, i, sizeof (cl_uint), device_param->kernel_params[i]);
-        if (opts_type & OPTS_TYPE_HOOK23) hc_clSetKernelArg (data.ocl, device_param->kernel23, i, sizeof (cl_uint), device_param->kernel_params[i]);
+        if (opts_type & OPTS_TYPE_HOOK12) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel12, i, sizeof (cl_uint), device_param->kernel_params[i]);
+        if (opts_type & OPTS_TYPE_HOOK23) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel23, i, sizeof (cl_uint), device_param->kernel_params[i]);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
 
       // GPU memset
 
-      device_param->kernel_memset = hc_clCreateKernel (data.ocl, device_param->program, "gpu_memset");
+      CL_err = hc_clCreateKernel (data.ocl, device_param->program, "gpu_memset", &device_param->kernel_memset);
 
-      hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_memset, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
 
-      hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 0, sizeof (cl_mem),  device_param->kernel_params_memset[0]);
-      hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]);
-      hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 2, sizeof (cl_uint), device_param->kernel_params_memset[2]);
+        return -1;
+      }
+
+      CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_memset, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clGetKernelWorkGroupInfo(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
+
+      CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 0, sizeof (cl_mem),  device_param->kernel_params_memset[0]);
+      CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]);
+      CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_memset, 2, sizeof (cl_uint), device_param->kernel_params_memset[2]);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
 
       // MP start
 
       if (attack_mode == ATTACK_MODE_BF)
       {
-        device_param->kernel_mp_l = hc_clCreateKernel (data.ocl, device_param->program_mp, "l_markov");
-        device_param->kernel_mp_r = hc_clCreateKernel (data.ocl, device_param->program_mp, "r_markov");
+        CL_err |= hc_clCreateKernel (data.ocl, device_param->program_mp, "l_markov", &device_param->kernel_mp_l);
+        CL_err |= hc_clCreateKernel (data.ocl, device_param->program_mp, "r_markov", &device_param->kernel_mp_r);
 
-        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp_l, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
-        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp_r, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
+
+        CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp_l, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+        CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp_r, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetKernelWorkGroupInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
 
         if (opts_type & OPTS_TYPE_PT_BITSLICE)
         {
-          hc_clSetKernelArg (data.ocl, device_param->kernel_tm, 0, sizeof (cl_mem), device_param->kernel_params_tm[0]);
-          hc_clSetKernelArg (data.ocl, device_param->kernel_tm, 1, sizeof (cl_mem), device_param->kernel_params_tm[1]);
+          CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_tm, 0, sizeof (cl_mem), device_param->kernel_params_tm[0]);
+          CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_tm, 1, sizeof (cl_mem), device_param->kernel_params_tm[1]);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
         }
       }
       else if (attack_mode == ATTACK_MODE_HYBRID1)
       {
-        device_param->kernel_mp = hc_clCreateKernel (data.ocl, device_param->program_mp, "C_markov");
+        CL_err = hc_clCreateKernel (data.ocl, device_param->program_mp, "C_markov", &device_param->kernel_mp);
 
-        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
+
+        CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetKernelWorkGroupInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
       else if (attack_mode == ATTACK_MODE_HYBRID2)
       {
-        device_param->kernel_mp = hc_clCreateKernel (data.ocl, device_param->program_mp, "C_markov");
+        CL_err = hc_clCreateKernel (data.ocl, device_param->program_mp, "C_markov", &device_param->kernel_mp);
 
-        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
+
+        CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetKernelWorkGroupInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
 
       if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -16367,9 +17338,23 @@ int main (int argc, char **argv)
       }
       else
       {
-        device_param->kernel_amp = hc_clCreateKernel (data.ocl, device_param->program_amp, "amp");
+        CL_err = hc_clCreateKernel (data.ocl, device_param->program_amp, "amp", &device_param->kernel_amp);
 
-        hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_amp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
+
+        CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_amp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clGetKernelWorkGroupInfo(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
       }
 
       if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -16380,12 +17365,26 @@ int main (int argc, char **argv)
       {
         for (uint i = 0; i < 5; i++)
         {
-          hc_clSetKernelArg (data.ocl, device_param->kernel_amp, i, sizeof (cl_mem), device_param->kernel_params_amp[i]);
+          CL_err = hc_clSetKernelArg (data.ocl, device_param->kernel_amp, i, sizeof (cl_mem), device_param->kernel_params_amp[i]);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
         }
 
         for (uint i = 5; i < 7; i++)
         {
-          hc_clSetKernelArg (data.ocl, device_param->kernel_amp, i, sizeof (cl_uint), device_param->kernel_params_amp[i]);
+          CL_err = hc_clSetKernelArg (data.ocl, device_param->kernel_amp, i, sizeof (cl_uint), device_param->kernel_params_amp[i]);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
         }
       }
 
@@ -16530,21 +17529,21 @@ int main (int argc, char **argv)
     {
       log_error ("ERROR: %s: %s", "stdin", strerror (errno));
 
-      return (-1);
+      return -1;
     }
 
     if (_setmode (_fileno (stdout), _O_BINARY) == -1)
     {
       log_error ("ERROR: %s: %s", "stdout", strerror (errno));
 
-      return (-1);
+      return -1;
     }
 
     if (_setmode (_fileno (stderr), _O_BINARY) == -1)
     {
       log_error ("ERROR: %s: %s", "stderr", strerror (errno));
 
-      return (-1);
+      return -1;
     }
     #endif
 
@@ -16589,7 +17588,7 @@ int main (int argc, char **argv)
           {
             log_error ("ERROR: %s: %s", l0_filename, strerror (errno));
 
-            return (-1);
+            return -1;
           }
 
           uint is_dir = S_ISDIR (l0_stat.st_mode);
@@ -16610,7 +17609,7 @@ int main (int argc, char **argv)
             {
               log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
-              return (-1);
+              return -1;
             }
 
             char **dictionary_files = NULL;
@@ -16631,7 +17630,7 @@ int main (int argc, char **argv)
                 {
                   log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
 
-                  return (-1);
+                  return -1;
                 }
 
                 if (S_ISREG (l1_stat.st_mode))
@@ -16653,7 +17652,7 @@ int main (int argc, char **argv)
         {
           log_error ("ERROR: No usable dictionary file found.");
 
-          return (-1);
+          return -1;
         }
       }
       else if (wordlist_mode == WL_MODE_STDIN)
@@ -16679,7 +17678,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: %s: %s", dictfile1, strerror (errno));
 
-        return (-1);
+        return -1;
       }
 
       if (stat (dictfile1, &tmp_stat) == -1)
@@ -16688,7 +17687,7 @@ int main (int argc, char **argv)
 
         fclose (fp1);
 
-        return (-1);
+        return -1;
       }
 
       if (S_ISDIR (tmp_stat.st_mode))
@@ -16697,7 +17696,7 @@ int main (int argc, char **argv)
 
         fclose (fp1);
 
-        return (-1);
+        return -1;
       }
 
       if ((fp2 = fopen (dictfile2, "rb")) == NULL)
@@ -16706,7 +17705,7 @@ int main (int argc, char **argv)
 
         fclose (fp1);
 
-        return (-1);
+        return -1;
       }
 
       if (stat (dictfile2, &tmp_stat) == -1)
@@ -16716,7 +17715,7 @@ int main (int argc, char **argv)
         fclose (fp1);
         fclose (fp2);
 
-        return (-1);
+        return -1;
       }
 
       if (S_ISDIR (tmp_stat.st_mode))
@@ -16726,7 +17725,7 @@ int main (int argc, char **argv)
         fclose (fp1);
         fclose (fp2);
 
-        return (-1);
+        return -1;
       }
 
       data.combs_cnt = 1;
@@ -16744,7 +17743,7 @@ int main (int argc, char **argv)
         fclose (fp1);
         fclose (fp2);
 
-        return (-1);
+        return -1;
       }
 
       data.combs_cnt = 1;
@@ -16762,7 +17761,7 @@ int main (int argc, char **argv)
         fclose (fp1);
         fclose (fp2);
 
-        return (-1);
+        return -1;
       }
 
       fclose (fp1);
@@ -16840,7 +17839,7 @@ int main (int argc, char **argv)
                 {
                   log_error ("ERROR: %s: %s", mask, strerror (errno));
 
-                  return (-1);
+                  return -1;
                 }
               }
 
@@ -16854,7 +17853,7 @@ int main (int argc, char **argv)
                 {
                   log_error ("ERROR: %s: %s", mask, strerror (errno));
 
-                  return (-1);
+                  return -1;
                 }
 
                 char *line_buf = (char *) mymalloc (HCBUFSIZ);
@@ -16889,7 +17888,7 @@ int main (int argc, char **argv)
               {
                 log_error ("ERROR: %s: unsupported file-type", mask);
 
-                return (-1);
+                return -1;
               }
             }
 
@@ -16995,7 +17994,7 @@ int main (int argc, char **argv)
           {
             log_error ("ERROR: %s: %s", mask, strerror (errno));
 
-            return (-1);
+            return -1;
           }
 
           char *line_buf = (char *) mymalloc (HCBUFSIZ);
@@ -17052,7 +18051,7 @@ int main (int argc, char **argv)
         {
           log_error ("ERROR: %s: %s", filename, strerror (errno));
 
-          return (-1);
+          return -1;
         }
 
         uint is_dir = S_ISDIR (file_stat.st_mode);
@@ -17073,7 +18072,7 @@ int main (int argc, char **argv)
           {
             log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
-            return (-1);
+            return -1;
           }
 
           char **dictionary_files = NULL;
@@ -17094,7 +18093,7 @@ int main (int argc, char **argv)
               {
                 log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
 
-                return (-1);
+                return -1;
               }
 
               if (S_ISREG (l1_stat.st_mode))
@@ -17116,7 +18115,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: No usable dictionary file found.");
 
-        return (-1);
+        return -1;
       }
 
       if (increment)
@@ -17174,7 +18173,7 @@ int main (int argc, char **argv)
           {
             log_error ("ERROR: %s: %s", mask, strerror (errno));
 
-            return (-1);
+            return -1;
           }
 
           char *line_buf = (char *) mymalloc (HCBUFSIZ);
@@ -17231,7 +18230,7 @@ int main (int argc, char **argv)
         {
           log_error ("ERROR: %s: %s", filename, strerror (errno));
 
-          return (-1);
+          return -1;
         }
 
         uint is_dir = S_ISDIR (file_stat.st_mode);
@@ -17252,7 +18251,7 @@ int main (int argc, char **argv)
           {
             log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
-            return (-1);
+            return -1;
           }
 
           char **dictionary_files = NULL;
@@ -17273,7 +18272,7 @@ int main (int argc, char **argv)
               {
                 log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
 
-                return (-1);
+                return -1;
               }
 
               if (S_ISREG (l1_stat.st_mode))
@@ -17295,7 +18294,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: No usable dictionary file found.");
 
-        return (-1);
+        return -1;
       }
 
       if (increment)
@@ -17627,12 +18626,28 @@ int main (int argc, char **argv)
               device_param->kernel_params_mp_buf32[7] = 0;
             }
 
-            for (uint i = 0; i < 3; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp[i]);
-            for (uint i = 3; i < 4; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp[i]);
-            for (uint i = 4; i < 8; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp[i]);
+            cl_int CL_err = CL_SUCCESS;
 
-            hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   root_css_buf,   0, NULL, NULL);
-            hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, markov_css_buf, 0, NULL, NULL);
+            for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_mp, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp[i]);
+            for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_mp, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp[i]);
+            for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_mp, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp[i]);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
+
+            CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   root_css_buf,   0, NULL, NULL);
+            CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, markov_css_buf, 0, NULL, NULL);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
           }
         }
         else if (attack_mode == ATTACK_MODE_BF)
@@ -17668,7 +18683,7 @@ int main (int argc, char **argv)
           {
             log_error ("ERROR: Mask is too small");
 
-            return (-1);
+            return -1;
           }
         }
       }
@@ -17701,7 +18716,7 @@ int main (int argc, char **argv)
         {
           log_error ("ERROR: --keyspace is not supported with --increment or mask files");
 
-          return (-1);
+          return -1;
         }
       }
 
@@ -17813,7 +18828,7 @@ int main (int argc, char **argv)
             {
               log_error ("ERROR: %s: %s", dictfile, strerror (errno));
 
-              return (-1);
+              return -1;
             }
 
             data.words_cnt = count_words (wl_data, fd2, dictfile, dictstat_base, &dictstat_nmemb);
@@ -17844,7 +18859,7 @@ int main (int argc, char **argv)
             {
               log_error ("ERROR: %s: %s", dictfile, strerror (errno));
 
-              return (-1);
+              return -1;
             }
 
             data.words_cnt = count_words (wl_data, fd2, dictfile, dictstat_base, &dictstat_nmemb);
@@ -17859,7 +18874,7 @@ int main (int argc, char **argv)
             {
               log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
 
-              return (-1);
+              return -1;
             }
 
             data.words_cnt = count_words (wl_data, fd2, dictfile2, dictstat_base, &dictstat_nmemb);
@@ -17900,7 +18915,7 @@ int main (int argc, char **argv)
           {
             log_error ("ERROR: %s: %s", dictfile, strerror (errno));
 
-            return (-1);
+            return -1;
           }
 
           data.words_cnt = count_words (wl_data, fd2, dictfile, dictstat_base, &dictstat_nmemb);
@@ -18131,16 +19146,32 @@ int main (int argc, char **argv)
             device_param->kernel_params_mp_r_buf32[6] = 0;
             device_param->kernel_params_mp_r_buf32[7] = 0;
 
-            for (uint i = 0; i < 3; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp_l, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_l[i]);
-            for (uint i = 3; i < 4; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
-            for (uint i = 4; i < 9; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
+            cl_int CL_err = CL_SUCCESS;
 
-            for (uint i = 0; i < 3; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp_r, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_r[i]);
-            for (uint i = 3; i < 4; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]);
-            for (uint i = 4; i < 8; i++) hc_clSetKernelArg (data.ocl, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]);
+            for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_mp_l, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_l[i]);
+            for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
+            for (uint i = 4; i < 9; i++) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
 
-            hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   root_css_buf,   0, NULL, NULL);
-            hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, markov_css_buf, 0, NULL, NULL);
+            for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_mp_r, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_r[i]);
+            for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]);
+            for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (data.ocl, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
+
+            CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   root_css_buf,   0, NULL, NULL);
+            CL_err |= hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, markov_css_buf, 0, NULL, NULL);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
           }
         }
 
@@ -18174,14 +19205,14 @@ int main (int argc, char **argv)
         {
           log_info ("%llu", (unsigned long long int) words_base);
 
-          return (0);
+          return 0;
         }
 
         if (data.words_cur > data.words_base)
         {
           log_error ("ERROR: Restore value greater keyspace");
 
-          return (-1);
+          return -1;
         }
 
         if (data.words_cur)
@@ -18556,6 +19587,8 @@ int main (int argc, char **argv)
 
       if (device_param->skipped) continue;
 
+      cl_int CL_err = CL_SUCCESS;
+
       local_free (device_param->combs_buf);
       local_free (device_param->hooks_buf);
       local_free (device_param->device_name);
@@ -18563,57 +19596,94 @@ int main (int argc, char **argv)
       local_free (device_param->device_version);
       local_free (device_param->driver_version);
 
-      if (device_param->pws_buf)            myfree                    (device_param->pws_buf);
-      if (device_param->d_pws_buf)          hc_clReleaseMemObject     (data.ocl, device_param->d_pws_buf);
-      if (device_param->d_pws_amp_buf)      hc_clReleaseMemObject     (data.ocl, device_param->d_pws_amp_buf);
-      if (device_param->d_rules)            hc_clReleaseMemObject     (data.ocl, device_param->d_rules);
-      if (device_param->d_rules_c)          hc_clReleaseMemObject     (data.ocl, device_param->d_rules_c);
-      if (device_param->d_combs)            hc_clReleaseMemObject     (data.ocl, device_param->d_combs);
-      if (device_param->d_combs_c)          hc_clReleaseMemObject     (data.ocl, device_param->d_combs_c);
-      if (device_param->d_bfs)              hc_clReleaseMemObject     (data.ocl, device_param->d_bfs);
-      if (device_param->d_bfs_c)            hc_clReleaseMemObject     (data.ocl, device_param->d_bfs_c);
-      if (device_param->d_bitmap_s1_a)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s1_a);
-      if (device_param->d_bitmap_s1_b)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s1_b);
-      if (device_param->d_bitmap_s1_c)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s1_c);
-      if (device_param->d_bitmap_s1_d)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s1_d);
-      if (device_param->d_bitmap_s2_a)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s2_a);
-      if (device_param->d_bitmap_s2_b)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s2_b);
-      if (device_param->d_bitmap_s2_c)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s2_c);
-      if (device_param->d_bitmap_s2_d)      hc_clReleaseMemObject     (data.ocl, device_param->d_bitmap_s2_d);
-      if (device_param->d_plain_bufs)       hc_clReleaseMemObject     (data.ocl, device_param->d_plain_bufs);
-      if (device_param->d_digests_buf)      hc_clReleaseMemObject     (data.ocl, device_param->d_digests_buf);
-      if (device_param->d_digests_shown)    hc_clReleaseMemObject     (data.ocl, device_param->d_digests_shown);
-      if (device_param->d_salt_bufs)        hc_clReleaseMemObject     (data.ocl, device_param->d_salt_bufs);
-      if (device_param->d_esalt_bufs)       hc_clReleaseMemObject     (data.ocl, device_param->d_esalt_bufs);
-      if (device_param->d_tmps)             hc_clReleaseMemObject     (data.ocl, device_param->d_tmps);
-      if (device_param->d_hooks)            hc_clReleaseMemObject     (data.ocl, device_param->d_hooks);
-      if (device_param->d_result)           hc_clReleaseMemObject     (data.ocl, device_param->d_result);
-      if (device_param->d_scryptV0_buf)     hc_clReleaseMemObject     (data.ocl, device_param->d_scryptV0_buf);
-      if (device_param->d_scryptV1_buf)     hc_clReleaseMemObject     (data.ocl, device_param->d_scryptV1_buf);
-      if (device_param->d_scryptV2_buf)     hc_clReleaseMemObject     (data.ocl, device_param->d_scryptV2_buf);
-      if (device_param->d_scryptV3_buf)     hc_clReleaseMemObject     (data.ocl, device_param->d_scryptV3_buf);
-      if (device_param->d_root_css_buf)     hc_clReleaseMemObject     (data.ocl, device_param->d_root_css_buf);
-      if (device_param->d_markov_css_buf)   hc_clReleaseMemObject     (data.ocl, device_param->d_markov_css_buf);
-      if (device_param->d_tm_c)             hc_clReleaseMemObject     (data.ocl, device_param->d_tm_c);
+      if (device_param->pws_buf)            myfree (device_param->pws_buf);
 
-      if (device_param->kernel1)            hc_clReleaseKernel        (data.ocl, device_param->kernel1);
-      if (device_param->kernel12)           hc_clReleaseKernel        (data.ocl, device_param->kernel12);
-      if (device_param->kernel2)            hc_clReleaseKernel        (data.ocl, device_param->kernel2);
-      if (device_param->kernel23)           hc_clReleaseKernel        (data.ocl, device_param->kernel23);
-      if (device_param->kernel3)            hc_clReleaseKernel        (data.ocl, device_param->kernel3);
-      if (device_param->kernel_mp)          hc_clReleaseKernel        (data.ocl, device_param->kernel_mp);
-      if (device_param->kernel_mp_l)        hc_clReleaseKernel        (data.ocl, device_param->kernel_mp_l);
-      if (device_param->kernel_mp_r)        hc_clReleaseKernel        (data.ocl, device_param->kernel_mp_r);
-      if (device_param->kernel_tm)          hc_clReleaseKernel        (data.ocl, device_param->kernel_tm);
-      if (device_param->kernel_amp)         hc_clReleaseKernel        (data.ocl, device_param->kernel_amp);
-      if (device_param->kernel_memset)      hc_clReleaseKernel        (data.ocl, device_param->kernel_memset);
+      if (device_param->d_pws_buf)          CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_pws_buf);
+      if (device_param->d_pws_amp_buf)      CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_pws_amp_buf);
+      if (device_param->d_rules)            CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_rules);
+      if (device_param->d_rules_c)          CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_rules_c);
+      if (device_param->d_combs)            CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_combs);
+      if (device_param->d_combs_c)          CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_combs_c);
+      if (device_param->d_bfs)              CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_bfs);
+      if (device_param->d_bfs_c)            CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_bfs_c);
+      if (device_param->d_bitmap_s1_a)      CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_bitmap_s1_a);
+      if (device_param->d_bitmap_s1_b)      CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_bitmap_s1_b);
+      if (device_param->d_bitmap_s1_c)      CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_bitmap_s1_c);
+      if (device_param->d_bitmap_s1_d)      CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_bitmap_s1_d);
+      if (device_param->d_bitmap_s2_a)      CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_bitmap_s2_a);
+      if (device_param->d_bitmap_s2_b)      CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_bitmap_s2_b);
+      if (device_param->d_bitmap_s2_c)      CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_bitmap_s2_c);
+      if (device_param->d_bitmap_s2_d)      CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_bitmap_s2_d);
+      if (device_param->d_plain_bufs)       CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_plain_bufs);
+      if (device_param->d_digests_buf)      CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_digests_buf);
+      if (device_param->d_digests_shown)    CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_digests_shown);
+      if (device_param->d_salt_bufs)        CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_salt_bufs);
+      if (device_param->d_esalt_bufs)       CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_esalt_bufs);
+      if (device_param->d_tmps)             CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_tmps);
+      if (device_param->d_hooks)            CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_hooks);
+      if (device_param->d_result)           CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_result);
+      if (device_param->d_scryptV0_buf)     CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_scryptV0_buf);
+      if (device_param->d_scryptV1_buf)     CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_scryptV1_buf);
+      if (device_param->d_scryptV2_buf)     CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_scryptV2_buf);
+      if (device_param->d_scryptV3_buf)     CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_scryptV3_buf);
+      if (device_param->d_root_css_buf)     CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_root_css_buf);
+      if (device_param->d_markov_css_buf)   CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_markov_css_buf);
+      if (device_param->d_tm_c)             CL_err |= hc_clReleaseMemObject (data.ocl, device_param->d_tm_c);
 
-      if (device_param->program)            hc_clReleaseProgram       (data.ocl, device_param->program);
-      if (device_param->program_mp)         hc_clReleaseProgram       (data.ocl, device_param->program_mp);
-      if (device_param->program_amp)        hc_clReleaseProgram       (data.ocl, device_param->program_amp);
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clReleaseMemObject(): %s\n", val2cstr_cl (CL_err));
 
-      if (device_param->command_queue)      hc_clReleaseCommandQueue  (data.ocl, device_param->command_queue);
-      if (device_param->context)            hc_clReleaseContext       (data.ocl, device_param->context);
+        return -1;
+      }
+
+      if (device_param->kernel1)        CL_err |= hc_clReleaseKernel (data.ocl, device_param->kernel1);
+      if (device_param->kernel12)       CL_err |= hc_clReleaseKernel (data.ocl, device_param->kernel12);
+      if (device_param->kernel2)        CL_err |= hc_clReleaseKernel (data.ocl, device_param->kernel2);
+      if (device_param->kernel23)       CL_err |= hc_clReleaseKernel (data.ocl, device_param->kernel23);
+      if (device_param->kernel3)        CL_err |= hc_clReleaseKernel (data.ocl, device_param->kernel3);
+      if (device_param->kernel_mp)      CL_err |= hc_clReleaseKernel (data.ocl, device_param->kernel_mp);
+      if (device_param->kernel_mp_l)    CL_err |= hc_clReleaseKernel (data.ocl, device_param->kernel_mp_l);
+      if (device_param->kernel_mp_r)    CL_err |= hc_clReleaseKernel (data.ocl, device_param->kernel_mp_r);
+      if (device_param->kernel_tm)      CL_err |= hc_clReleaseKernel (data.ocl, device_param->kernel_tm);
+      if (device_param->kernel_amp)     CL_err |= hc_clReleaseKernel (data.ocl, device_param->kernel_amp);
+      if (device_param->kernel_memset)  CL_err |= hc_clReleaseKernel (data.ocl, device_param->kernel_memset);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clReleaseKernel(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
+
+      if (device_param->program)     CL_err |= hc_clReleaseProgram (data.ocl, device_param->program);
+      if (device_param->program_mp)  CL_err |= hc_clReleaseProgram (data.ocl, device_param->program_mp);
+      if (device_param->program_amp) CL_err |= hc_clReleaseProgram (data.ocl, device_param->program_amp);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clReleaseProgram(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
+
+      if (device_param->command_queue) CL_err |= hc_clReleaseCommandQueue (data.ocl, device_param->command_queue);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clReleaseCommandQueue(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
+
+      if (device_param->context) CL_err |= hc_clReleaseContext (data.ocl, device_param->context);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: hc_clReleaseContext(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
     }
 
     // reset default fan speed
@@ -18682,7 +19752,7 @@ int main (int argc, char **argv)
             {
               log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
 
-              return (-1);
+              return -1;
             }
 
             if (powertune_supported != 0)
@@ -18693,7 +19763,7 @@ int main (int argc, char **argv)
               {
                 log_info ("ERROR: Failed to restore the ADL PowerControl values");
 
-                return (-1);
+                return -1;
               }
 
               // clocks
@@ -18711,7 +19781,7 @@ int main (int argc, char **argv)
               {
                 log_info ("ERROR: Failed to restore ADL performance state");
 
-                return (-1);
+                return -1;
               }
 
               local_free (performance_state);
@@ -18896,7 +19966,7 @@ int main (int argc, char **argv)
         {
           log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
 
-          return (-1);
+          return -1;
         }
       }
 
@@ -18922,7 +19992,7 @@ int main (int argc, char **argv)
       {
         log_error ("ERROR: %s: %s", outfile_check_directory, strerror (errno));
 
-        return (-1);
+        return -1;
       }
     }
 
