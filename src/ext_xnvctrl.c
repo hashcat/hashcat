@@ -7,14 +7,14 @@
 
 int xnvctrl_init (XNVCTRL_PTR *xnvctrl)
 {
-  if (!xnvctrl) return (-1);
+  if (!xnvctrl) return -1;
 
   memset (xnvctrl, 0, sizeof (XNVCTRL_PTR));
 
   #ifdef _WIN
 
   // unsupport platform?
-  return (-1);
+  return -1;
 
   #elif _POSIX
 

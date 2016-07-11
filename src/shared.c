@@ -2756,13 +2756,13 @@ int hm_get_adapter_index_nvapi (HM_ADAPTER_NVAPI nvapiGPUHandle[DEVICES_MAX])
 {
   NvU32 pGpuCount;
 
-  if (hm_NvAPI_EnumPhysicalGPUs (data.hm_nvapi, nvapiGPUHandle, &pGpuCount) != NVAPI_OK) return (0);
+  if (hm_NvAPI_EnumPhysicalGPUs (data.hm_nvapi, nvapiGPUHandle, &pGpuCount) != NVAPI_OK) return 0;
 
   if (pGpuCount == 0)
   {
     log_info ("WARN: No NvAPI adapters found");
 
-    return (0);
+    return 0;
   }
 
   return (pGpuCount);
@@ -2787,7 +2787,7 @@ int hm_get_adapter_index_nvml (HM_ADAPTER_NVML nvmlGPUHandle[DEVICES_MAX])
   {
     log_info ("WARN: No NVML adapters found");
 
-    return (0);
+    return 0;
   }
 
   return (pGpuCount);
@@ -4647,7 +4647,7 @@ int sort_by_salt (const void *v1, const void *v2)
   while (n--)
   {
     if (s1->salt_buf[n] > s2->salt_buf[n]) return ( 1);
-    if (s1->salt_buf[n] < s2->salt_buf[n]) return (-1);
+    if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
   }
 
   n = 8;
@@ -4655,10 +4655,10 @@ int sort_by_salt (const void *v1, const void *v2)
   while (n--)
   {
     if (s1->salt_buf_pc[n] > s2->salt_buf_pc[n]) return ( 1);
-    if (s1->salt_buf_pc[n] < s2->salt_buf_pc[n]) return (-1);
+    if (s1->salt_buf_pc[n] < s2->salt_buf_pc[n]) return -1;
   }
 
-  return (0);
+  return 0;
 }
 
 int sort_by_salt_buf (const void *v1, const void *v2)
@@ -4677,7 +4677,7 @@ int sort_by_salt_buf (const void *v1, const void *v2)
   while (n--)
   {
     if (s1->salt_buf[n] > s2->salt_buf[n]) return ( 1);
-    if (s1->salt_buf[n] < s2->salt_buf[n]) return (-1);
+    if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
   }
 
   return 0;
@@ -4697,20 +4697,20 @@ int sort_by_hash_t_salt (const void *v1, const void *v2)
   while (n--)
   {
     if (s1->salt_buf[n] > s2->salt_buf[n]) return ( 1);
-    if (s1->salt_buf[n] < s2->salt_buf[n]) return (-1);
+    if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
   }
 
   /* original code, seems buggy since salt_len can be very big (had a case with 131 len)
      also it thinks salt_buf[x] is a char but its a uint so salt_len should be / 4
   if (s1->salt_len > s2->salt_len) return ( 1);
-  if (s1->salt_len < s2->salt_len) return (-1);
+  if (s1->salt_len < s2->salt_len) return -1;
 
   uint n = s1->salt_len;
 
   while (n--)
   {
     if (s1->salt_buf[n] > s2->salt_buf[n]) return ( 1);
-    if (s1->salt_buf[n] < s2->salt_buf[n]) return (-1);
+    if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
   }
   */
 
@@ -4732,7 +4732,7 @@ int sort_by_hash_t_salt_hccap (const void *v1, const void *v2)
   while (n--)
   {
     if (s1->salt_buf[n] > s2->salt_buf[n]) return ( 1);
-    if (s1->salt_buf[n] < s2->salt_buf[n]) return (-1);
+    if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
   }
 
   return 0;
@@ -4848,10 +4848,10 @@ int sort_by_digest_4_2 (const void *v1, const void *v2)
   while (n--)
   {
     if (d1[n] > d2[n]) return ( 1);
-    if (d1[n] < d2[n]) return (-1);
+    if (d1[n] < d2[n]) return -1;
   }
 
-  return (0);
+  return 0;
 }
 
 int sort_by_digest_4_4 (const void *v1, const void *v2)
@@ -4864,10 +4864,10 @@ int sort_by_digest_4_4 (const void *v1, const void *v2)
   while (n--)
   {
     if (d1[n] > d2[n]) return ( 1);
-    if (d1[n] < d2[n]) return (-1);
+    if (d1[n] < d2[n]) return -1;
   }
 
-  return (0);
+  return 0;
 }
 
 int sort_by_digest_4_5 (const void *v1, const void *v2)
@@ -4880,10 +4880,10 @@ int sort_by_digest_4_5 (const void *v1, const void *v2)
   while (n--)
   {
     if (d1[n] > d2[n]) return ( 1);
-    if (d1[n] < d2[n]) return (-1);
+    if (d1[n] < d2[n]) return -1;
   }
 
-  return (0);
+  return 0;
 }
 
 int sort_by_digest_4_6 (const void *v1, const void *v2)
@@ -4896,10 +4896,10 @@ int sort_by_digest_4_6 (const void *v1, const void *v2)
   while (n--)
   {
     if (d1[n] > d2[n]) return ( 1);
-    if (d1[n] < d2[n]) return (-1);
+    if (d1[n] < d2[n]) return -1;
   }
 
-  return (0);
+  return 0;
 }
 
 int sort_by_digest_4_8 (const void *v1, const void *v2)
@@ -4912,10 +4912,10 @@ int sort_by_digest_4_8 (const void *v1, const void *v2)
   while (n--)
   {
     if (d1[n] > d2[n]) return ( 1);
-    if (d1[n] < d2[n]) return (-1);
+    if (d1[n] < d2[n]) return -1;
   }
 
-  return (0);
+  return 0;
 }
 
 int sort_by_digest_4_16 (const void *v1, const void *v2)
@@ -4928,10 +4928,10 @@ int sort_by_digest_4_16 (const void *v1, const void *v2)
   while (n--)
   {
     if (d1[n] > d2[n]) return ( 1);
-    if (d1[n] < d2[n]) return (-1);
+    if (d1[n] < d2[n]) return -1;
   }
 
-  return (0);
+  return 0;
 }
 
 int sort_by_digest_4_32 (const void *v1, const void *v2)
@@ -4944,10 +4944,10 @@ int sort_by_digest_4_32 (const void *v1, const void *v2)
   while (n--)
   {
     if (d1[n] > d2[n]) return ( 1);
-    if (d1[n] < d2[n]) return (-1);
+    if (d1[n] < d2[n]) return -1;
   }
 
-  return (0);
+  return 0;
 }
 
 int sort_by_digest_4_64 (const void *v1, const void *v2)
@@ -4960,10 +4960,10 @@ int sort_by_digest_4_64 (const void *v1, const void *v2)
   while (n--)
   {
     if (d1[n] > d2[n]) return ( 1);
-    if (d1[n] < d2[n]) return (-1);
+    if (d1[n] < d2[n]) return -1;
   }
 
-  return (0);
+  return 0;
 }
 
 int sort_by_digest_8_8 (const void *v1, const void *v2)
@@ -4976,10 +4976,10 @@ int sort_by_digest_8_8 (const void *v1, const void *v2)
   while (n--)
   {
     if (d1[n] > d2[n]) return ( 1);
-    if (d1[n] < d2[n]) return (-1);
+    if (d1[n] < d2[n]) return -1;
   }
 
-  return (0);
+  return 0;
 }
 
 int sort_by_digest_8_16 (const void *v1, const void *v2)
@@ -4992,10 +4992,10 @@ int sort_by_digest_8_16 (const void *v1, const void *v2)
   while (n--)
   {
     if (d1[n] > d2[n]) return ( 1);
-    if (d1[n] < d2[n]) return (-1);
+    if (d1[n] < d2[n]) return -1;
   }
 
-  return (0);
+  return 0;
 }
 
 int sort_by_digest_8_25 (const void *v1, const void *v2)
@@ -5008,10 +5008,10 @@ int sort_by_digest_8_25 (const void *v1, const void *v2)
   while (n--)
   {
     if (d1[n] > d2[n]) return ( 1);
-    if (d1[n] < d2[n]) return (-1);
+    if (d1[n] < d2[n]) return -1;
   }
 
-  return (0);
+  return 0;
 }
 
 int sort_by_digest_p0p1 (const void *v1, const void *v2)
@@ -5025,15 +5025,15 @@ int sort_by_digest_p0p1 (const void *v1, const void *v2)
   const uint dgst_pos3 = data.dgst_pos3;
 
   if (d1[dgst_pos3] > d2[dgst_pos3]) return ( 1);
-  if (d1[dgst_pos3] < d2[dgst_pos3]) return (-1);
+  if (d1[dgst_pos3] < d2[dgst_pos3]) return -1;
   if (d1[dgst_pos2] > d2[dgst_pos2]) return ( 1);
-  if (d1[dgst_pos2] < d2[dgst_pos2]) return (-1);
+  if (d1[dgst_pos2] < d2[dgst_pos2]) return -1;
   if (d1[dgst_pos1] > d2[dgst_pos1]) return ( 1);
-  if (d1[dgst_pos1] < d2[dgst_pos1]) return (-1);
+  if (d1[dgst_pos1] < d2[dgst_pos1]) return -1;
   if (d1[dgst_pos0] > d2[dgst_pos0]) return ( 1);
-  if (d1[dgst_pos0] < d2[dgst_pos0]) return (-1);
+  if (d1[dgst_pos0] < d2[dgst_pos0]) return -1;
 
-  return (0);
+  return 0;
 }
 
 int sort_by_tuning_db_alias (const void *v1, const void *v2)
@@ -21139,11 +21139,11 @@ int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_PURGECHAR:
-        return (-1);
+        return -1;
         break;
 
       case RULE_OP_MANGLE_TOGGLECASE_REC:
-        return (-1);
+        return -1;
         break;
 
       case RULE_OP_MANGLE_DUPECHAR_FIRST:
@@ -21219,14 +21219,14 @@ int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule)
         break;
 
       default:
-        return (-1);
+        return -1;
         break;
     }
   }
 
-  if (rule_pos < rule_len) return (-1);
+  if (rule_pos < rule_len) return -1;
 
-  return (0);
+  return 0;
 }
 
 int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
@@ -21358,11 +21358,11 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_PURGECHAR:
-        return (-1);
+        return -1;
         break;
 
       case RULE_OP_MANGLE_TOGGLECASE_REC:
-        return (-1);
+        return -1;
         break;
 
       case RULE_OP_MANGLE_DUPECHAR_FIRST:
@@ -21442,7 +21442,7 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
         break;
 
       default:
-        return (-1);
+        return -1;
         break;
     }
   }
@@ -21452,7 +21452,7 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
     return rule_pos;
   }
 
-  return (-1);
+  return -1;
 }
 
 /**

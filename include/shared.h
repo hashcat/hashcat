@@ -81,7 +81,7 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
         exit (-1); \
       } else { \
         log_info ("WARNING: %s is missing from %s shared library.", #name, #libname); \
-        return (-1); \
+        return -1; \
       } \
     } \
   }
@@ -95,7 +95,7 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
         exit (-1); \
       } else { \
         log_info ("WARNING: %s is missing from %s shared library.", #name, #libname); \
-        return (-1); \
+        return -1; \
       } \
     } \
   }
@@ -108,7 +108,7 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
       exit (-1); \
     } else { \
       log_error ("WARNING: %s at address %08x is missing from %s shared library.", #name, addr, #libname); \
-      return (-1); \
+      return -1; \
     } \
   }
 

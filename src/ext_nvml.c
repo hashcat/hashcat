@@ -9,7 +9,7 @@
 
 int nvml_init (NVML_PTR *nvml)
 {
-  if (!nvml) return (-1);
+  if (!nvml) return -1;
 
   memset (nvml, 0, sizeof (NVML_PTR));
 
@@ -40,7 +40,7 @@ int nvml_init (NVML_PTR *nvml)
     if (data.quiet == 0)
       log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
 
-    return (-1);
+    return -1;
   }
 
   HC_LOAD_FUNC(nvml, nvmlErrorString, NVML_ERROR_STRING, NVML, 0)

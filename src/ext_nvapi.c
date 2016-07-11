@@ -9,7 +9,7 @@
 
 int nvapi_init (NVAPI_PTR *nvapi)
 {
-  if (!nvapi) return (-1);
+  if (!nvapi) return -1;
 
   memset (nvapi, 0, sizeof (NVAPI_PTR));
 
@@ -28,7 +28,7 @@ int nvapi_init (NVAPI_PTR *nvapi)
     //if (data.quiet == 0)
     //  log_info ("WARNING: load NVAPI library failed, proceed without NVAPI HWMon enabled.");
 
-    return (-1);
+    return -1;
   }
 
   HC_LOAD_FUNC(nvapi, nvapi_QueryInterface,             NVAPI_QUERYINTERFACE,             NVAPI,                0)
@@ -57,7 +57,7 @@ void nvapi_close (NVAPI_PTR *nvapi)
 
 int hm_NvAPI_Initialize (NVAPI_PTR *nvapi)
 {
-  if (!nvapi) return (-1);
+  if (!nvapi) return -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_Initialize ();
 
@@ -77,7 +77,7 @@ int hm_NvAPI_Initialize (NVAPI_PTR *nvapi)
 
 int hm_NvAPI_Unload (NVAPI_PTR *nvapi)
 {
-  if (!nvapi) return (-1);
+  if (!nvapi) return -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_Unload ();
 
@@ -95,14 +95,14 @@ int hm_NvAPI_Unload (NVAPI_PTR *nvapi)
 
 int hm_NvAPI_GetErrorMessage (NVAPI_PTR *nvapi, NvAPI_Status NvAPI_rc, NvAPI_ShortString string)
 {
-  if (!nvapi) return (-1);
+  if (!nvapi) return -1;
 
   return nvapi->NvAPI_GetErrorMessage (NvAPI_rc, string);
 }
 
 int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount)
 {
-  if (!nvapi) return (-1);
+  if (!nvapi) return -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_EnumPhysicalGPUs (nvGPUHandle, pGpuCount);
 
@@ -120,7 +120,7 @@ int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle
 
 int hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info)
 {
-  if (!nvapi) return (-1);
+  if (!nvapi) return -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetPerfPoliciesInfo (hPhysicalGpu, perfPolicies_info);
 
@@ -138,7 +138,7 @@ int hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhy
 
 int hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status)
 {
-  if (!nvapi) return (-1);
+  if (!nvapi) return -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetPerfPoliciesStatus (hPhysicalGpu, perfPolicies_status);
 
@@ -156,7 +156,7 @@ int hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hP
 
 int hm_NvAPI_GPU_SetCoolerLevels (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels)
 {
-  if (!nvapi) return (-1);
+  if (!nvapi) return -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_SetCoolerLevels (hPhysicalGpu, coolerIndex, pCoolerLevels);
 
@@ -174,7 +174,7 @@ int hm_NvAPI_GPU_SetCoolerLevels (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysica
 
 int hm_NvAPI_GPU_RestoreCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex)
 {
-  if (!nvapi) return (-1);
+  if (!nvapi) return -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_RestoreCoolerSettings (hPhysicalGpu, coolerIndex);
 
