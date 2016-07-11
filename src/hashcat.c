@@ -6148,6 +6148,22 @@ int main (int argc, char **argv)
   umask (077);
 
   /**
+   * There's some buggy OpenCL runtime that do not support -I.
+   * A workaround is to chdir() to the OpenCL folder,
+   * then compile the kernels,
+   * then chdir() back to where we came from so we need to save it first
+   */
+
+  char cwd[1024];
+
+  if (getcwd (cwd, sizeof (cwd) - 1) == NULL)
+  {
+    log_error ("ERROR: getcwd(): %s", strerror (errno));
+
+    return -1;
+  }
+
+  /**
    * Real init
    */
 
@@ -16140,17 +16156,20 @@ int main (int argc, char **argv)
         "inc_vendor.cl",
       };
 
+      if (chdir (cpath_real) == -1)
+      {
+        log_error ("ERROR: %s: %s", cpath_real, strerror (errno));
+
+        return -1;
+      }
+
       for (int i = 0; i < files_cnt; i++)
       {
-        char path[1024] = { 0 };
-
-        snprintf (path, sizeof (path) - 1, "%s/%s", cpath_real, files_names[i]);
-
-        FILE *fd = fopen (path, "r");
+        FILE *fd = fopen (files_names[i], "r");
 
         if (fd == NULL)
         {
-          log_error ("ERROR: %s: fopen(): %s", path, strerror (errno));
+          log_error ("ERROR: %s: fopen(): %s", files_names[i], strerror (errno));
 
           return -1;
         }
@@ -16161,7 +16180,7 @@ int main (int argc, char **argv)
 
         if (n != 1)
         {
-          log_error ("ERROR: %s: fread(): %s", path, strerror (errno));
+          log_error ("ERROR: %s: fread(): %s", files_names[i], strerror (errno));
 
           return -1;
         }
@@ -16716,6 +16735,15 @@ int main (int argc, char **argv)
         local_free (kernel_lengths);
         local_free (kernel_sources[0]);
         local_free (kernel_sources);
+      }
+
+      // return back to the folder we came from initially (workaround)
+
+      if (chdir (cwd) == -1)
+      {
+        log_error ("ERROR: %s: %s", cwd, strerror (errno));
+
+        return -1;
       }
 
       // some algorithm collide too fast, make that impossible
