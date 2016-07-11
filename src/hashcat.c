@@ -14095,9 +14095,13 @@ int main (int argc, char **argv)
 
         if (CL_err != CL_SUCCESS)
         {
-          log_error ("ERROR: clGetDeviceIDs(): %s\n", val2cstr_cl (CL_err));
+          //log_error ("ERROR: clGetDeviceIDs(): %s\n", val2cstr_cl (CL_err));
 
-          return -1;
+          //return -1;
+
+          // Silently ignore at this point, it will be reused later and create a note for the user at that point
+
+          continue;
         }
 
         for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
@@ -14161,15 +14165,6 @@ int main (int argc, char **argv)
 
       cl_platform_id platform = platforms[platform_id];
 
-      CL_err = hc_clGetDeviceIDs (data.ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
-
-      if (CL_err != CL_SUCCESS)
-      {
-        log_error ("ERROR: clGetDeviceIDs(): %s\n", val2cstr_cl (CL_err));
-
-        return -1;
-      }
-
       char platform_vendor[INFOSZ] = { 0 };
 
       CL_err = hc_clGetPlatformInfo (data.ocl, platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
@@ -14224,7 +14219,18 @@ int main (int argc, char **argv)
         platform_vendor_id = VENDOR_ID_GENERIC;
       }
 
-      const uint platform_skipped = ((opencl_platforms_filter & (1 << platform_id)) == 0);
+      uint platform_skipped = ((opencl_platforms_filter & (1 << platform_id)) == 0);
+
+      CL_err = hc_clGetDeviceIDs (data.ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        //log_error ("ERROR: clGetDeviceIDs(): %s\n", val2cstr_cl (CL_err));
+
+        //return -1;
+
+        platform_skipped = 2;
+      }
 
       if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
       {
@@ -14240,9 +14246,14 @@ int main (int argc, char **argv)
 
             log_info (line);
           }
-          else
+          else if (platform_skipped == 1)
           {
             log_info ("OpenCL Platform #%u: %s, skipped", platform_id + 1, platform_vendor);
+            log_info ("");
+          }
+          else if (platform_skipped == 2)
+          {
+            log_info ("OpenCL Platform #%u: %s, skipped! No OpenCL compatible devices found", platform_id + 1, platform_vendor);
             log_info ("");
           }
         }
