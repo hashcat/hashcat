@@ -14260,6 +14260,7 @@ int main (int argc, char **argv)
       }
 
       if (platform_skipped == 1) continue;
+      if (platform_skipped == 2) continue;
 
       for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
       {
