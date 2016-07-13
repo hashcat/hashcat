@@ -16107,12 +16107,6 @@ int main (int argc, char **argv)
         return -1;
       }
 
-      naive_replace (cpath_real, '\\', '/');
-
-      // not escaping here, windows has quotes
-
-      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", cpath_real);
-
       #else
 
       snprintf (cpath, sizeof (cpath) - 1, "%s/OpenCL/", shared_dir);
@@ -16125,6 +16119,25 @@ int main (int argc, char **argv)
 
         return -1;
       }
+
+      #endif
+
+      if (chdir (cpath_real) == -1)
+      {
+        log_error ("ERROR: %s: %s", cpath_real, strerror (errno));
+
+        return -1;
+      }
+
+      #if _WIN
+
+      naive_replace (cpath_real, '\\', '/');
+
+      // not escaping here, windows has quotes
+
+      snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", cpath_real);
+
+      #else
 
       naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
 
@@ -16156,13 +16169,6 @@ int main (int argc, char **argv)
         "inc_types.cl",
         "inc_vendor.cl",
       };
-
-      if (chdir (cpath_real) == -1)
-      {
-        log_error ("ERROR: %s: %s", cpath_real, strerror (errno));
-
-        return -1;
-      }
 
       for (int i = 0; i < files_cnt; i++)
       {
