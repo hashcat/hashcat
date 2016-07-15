@@ -31,7 +31,9 @@ endif
 
 MAKEFLAGS                += -l -j -rR --no-print-directory
 
-ifneq ($(findstring clean,$(MAKECMDGOALS)),)
+MG                       := $(MAKECMDGOALS)
+
+ifneq (,$(findstring clean,$(MG)))
 MAKEFLAGS                += -j 1
 endif
 
@@ -63,6 +65,7 @@ FIND                     := find
 INSTALL                  := install
 RM                       := rm
 SED                      := sed
+EGREP                    := egrep
 ifeq ($(UNAME),Darwin)
 SED                      := gsed
 endif
@@ -177,9 +180,62 @@ endif
 LINUX_32_OBJS            := obj/ext_OpenCL.LINUX.32.o obj/shared.LINUX.32.o obj/rp_kernel_on_cpu.LINUX.32.o obj/ext_ADL.LINUX.32.o obj/ext_nvml.LINUX.32.o obj/ext_nvapi.LINUX.32.o obj/ext_xnvctrl.LINUX.32.o
 LINUX_64_OBJS            := obj/ext_OpenCL.LINUX.64.o obj/shared.LINUX.64.o obj/rp_kernel_on_cpu.LINUX.64.o obj/ext_ADL.LINUX.64.o obj/ext_nvml.LINUX.64.o obj/ext_nvapi.LINUX.64.o obj/ext_xnvctrl.LINUX.64.o
 
-## may need to adjust according to your mingw distribution
-CRT_GLOB_32              := /usr/i686-w64-mingw32/lib/CRT_glob.o
-CRT_GLOB_64              := /usr/x86_64-w64-mingw32/lib/CRT_glob.o
+# MinGW's CRT GLOB (for windows builds only)
+
+CRT_GLOB_FILE_NAME       ?= CRT_glob.o
+
+CRT_GLOB_32              :=
+CRT_GLOB_64              :=
+
+# we can skip the CRT_glob.o check/search if we do not build windows binaries
+
+IS_WIN_BUILD             := $(filter binaries,$(MG))$(filter win32,$(MG))$(filter win64,$(MG))$(filter hashcat32.exe,$(MG))$(filter hashcat64.exe,$(MG))
+
+ifneq (,$(IS_WIN_BUILD))
+
+# entering this code path means: we need to check for CRT_glob.o since we try to build binaries for windows operating systems
+
+CRT_GLOB_LIB_PATH_32     ?= /usr/i686-w64-mingw32/lib/
+CRT_GLOB_LIB_PATH_64     ?= /usr/x86_64-w64-mingw32/lib/
+
+CRT_GLOB_LIB_SYSROOT_32  := $(shell $(CC_WIN_32) --verbose 2>&1 | $(EGREP) -m 1 -o '(with-sysroot="[^"]"|with-sysroot=[^ ]*)' | $(SED) 's/^with-sysroot="\?\([^"]*\)"\?$$/\1/')
+CRT_GLOB_LIB_SYSROOT_64  := $(shell $(CC_WIN_64) --verbose 2>&1 | $(EGREP) -m 1 -o '(with-sysroot="[^"]"|with-sysroot=[^ ]*)' | $(SED) 's/^with-sysroot="\?\([^"]*\)"\?$$/\1/')
+
+ifneq (,$(CRT_GLOB_LIB_SYSROOT_32))
+CRT_GLOB_LIB_PATH_32     := $(CRT_GLOB_LIB_SYSROOT_32)
+endif
+
+ifneq (,$(CRT_GLOB_LIB_SYSROOT_64))
+CRT_GLOB_LIB_PATH_64     := $(CRT_GLOB_LIB_SYSROOT_64)
+endif
+
+CRT_GLOB_32              := $(shell $(FIND) "$(CRT_GLOB_LIB_PATH_32)" -name $(CRT_GLOB_FILE_NAME) -print -quit)
+
+ifeq (,$(CRT_GLOB_32))
+define WARNING_MESSAGE=
+
+
+! The MinGW CRT GLOB library for 32-bit compilation was not found on your system. Please make sure that $(CRT_GLOB_FILE_NAME) exists
+! ATTENTION: File globbing will be disabled
+
+endef
+$(warning $(WARNING_MESSAGE))
+endif
+
+CRT_GLOB_64              := $(shell $(FIND) "$(CRT_GLOB_LIB_PATH_64)" -name $(CRT_GLOB_FILE_NAME) -print -quit)
+
+ifeq (,$(CRT_GLOB_64))
+define WARNING_MESSAGE=
+
+
+! The MinGW CRT GLOB library for 64-bit compilation was not found on your system. Please make sure that $(CRT_GLOB_FILE_NAME) exists
+! ATTENTION: File globbing will be disabled
+
+endef
+$(warning $(WARNING_MESSAGE))
+endif
+
+endif
 
 WIN_32_OBJS              := obj/ext_OpenCL.WIN.32.o   obj/shared.WIN.32.o   obj/rp_kernel_on_cpu.WIN.32.o   obj/ext_ADL.WIN.32.o   obj/ext_nvml.WIN.32.o   obj/ext_nvapi.WIN.32.o   obj/ext_xnvctrl.WIN.32.o   $(CRT_GLOB_32)
 WIN_64_OBJS              := obj/ext_OpenCL.WIN.64.o   obj/shared.WIN.64.o   obj/rp_kernel_on_cpu.WIN.64.o   obj/ext_ADL.WIN.64.o   obj/ext_nvml.WIN.64.o   obj/ext_nvapi.WIN.64.o   obj/ext_xnvctrl.WIN.64.o   $(CRT_GLOB_64)
