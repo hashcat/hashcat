@@ -16,6 +16,8 @@
 - Get rid of exit() calls in OpenCL wrapper library with the goal to have a better control which error can be ignored under special circumstances
 - Do not error and exit if an OpenCL platform has no devices, just print a warning and continue with the next platform
 - Workaround OpenCL runtimes that do not accept -I parameter in the OpenCL kernel build options even if this is an OpenCL standard option
+- Output cracked hashes on Windows using \r\n and not \n
+- Replace RegGetValue() with RegQueryValueEx() to enable Windows XP 32 bit compatibility
 
 ##
 ## Bugs

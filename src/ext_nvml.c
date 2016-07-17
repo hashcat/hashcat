@@ -20,9 +20,35 @@ int nvml_init (NVML_PTR *nvml)
   {
     DWORD BufferSize = 1024;
 
-    char *Buffer = (char *) mymalloc (BufferSize);
+    DWORD Type = REG_SZ;
 
-    RegGetValue (HKEY_LOCAL_MACHINE, "SOFTWARE\\NVIDIA Corporation\\Global\\NVSMI", "NVSMIPATH", RRF_RT_ANY, NULL, (PVOID) Buffer, &BufferSize);
+    char *Buffer = (char *) mymalloc (BufferSize + 1);
+
+    HKEY hKey = 0;
+
+    if (RegOpenKeyEx (HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\NVIDIA Corporation\\Global\\NVSMI"), 0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS)
+    {
+      if (RegQueryValueEx (hKey, TEXT("NVSMIPATH"), NULL, &Type, (PVOID) Buffer, &BufferSize) == ERROR_SUCCESS)
+      {
+        Buffer[BufferSize] = 0;
+      }
+      else
+      {
+        if (data.quiet == 0)
+          log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
+
+        return -1;
+      }
+
+      RegCloseKey (hKey);
+    }
+    else
+    {
+      if (data.quiet == 0)
+        log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
+
+      return -1;
+    }
 
     strcat (Buffer, "\\nvml.dll");
 

@@ -5227,7 +5227,7 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
     #endif
   }
 
-  fputc ('\n', out_fp);
+  fputs (EOL, out_fp);
 }
 
 void handle_show_request (pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *), FILE *out_fp)
