@@ -5,6 +5,16 @@
  * License.....: MIT
  */
 
+#define DO_NOT_USE_BYTE_PERM
+
+#ifdef DO_NOT_USE_BYTE_PERM
+#ifdef IS_NV
+#undef IS_NV
+#define IS_GENERIC
+#define RESTORE_NV
+#endif
+#endif
+
 inline u32  apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len);
 inline u32  apply_rules (const __global u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len);
 inline u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, const __global kernel_rule_t *rules_buf, const u32 il_pos, u32x w0[4], u32x w1[4]);
@@ -4355,3 +4365,11 @@ inline u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const 
 
   #endif
 }
+
+#ifdef DO_NOT_USE_BYTE_PERM
+#ifdef RESTORE_NV
+#undef RESTORE_NV
+#undef IS_GENERIC
+#define IS_NV
+#endif
+#endif
