@@ -6564,6 +6564,65 @@ int main (int argc, char **argv)
   myfree (exec_path);
 
   /**
+   * There's alot of problem related to bad support -I parameters when building the kernel.
+   * Each OpenCL runtime handles it slightly different.
+   * The most problematic is with new AMD drivers on Windows, which can not handle quote characters!
+   * The best workaround found so far is to modify the TMP variable (only inside hashcat process) before the runtime is load
+   */
+
+  char cpath[1024] = { 0 };
+
+  #if _WIN
+
+  snprintf (cpath, sizeof (cpath) - 1, "%s\\OpenCL\\", shared_dir);
+
+  char *cpath_real = mymalloc (MAX_PATH);
+
+  if (GetFullPathName (cpath, MAX_PATH, cpath_real, NULL) == 0)
+  {
+    log_error ("ERROR: %s: %s", cpath, "GetFullPathName()");
+
+    return -1;
+  }
+
+  #else
+
+  snprintf (cpath, sizeof (cpath) - 1, "%s/OpenCL/", shared_dir);
+
+  char *cpath_real = mymalloc (PATH_MAX);
+
+  if (realpath (cpath, cpath_real) == NULL)
+  {
+    log_error ("ERROR: %s: %s", cpath, strerror (errno));
+
+    return -1;
+  }
+
+  #endif
+
+  if (getenv ("TMP") == NULL)
+  {
+    char tmp[1000];
+
+    snprintf (tmp, sizeof (tmp) - 1, "TMP=%s", cpath_real);
+
+    putenv (tmp);
+  }
+
+  #if _WIN
+
+  naive_replace (cpath_real, '\\', '/');
+
+  // not escaping here, windows using quotes later
+  // naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
+
+  #else
+
+  naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
+
+  #endif
+
+  /**
    * kernel cache, we need to make sure folder exist
    */
 
@@ -16090,38 +16149,6 @@ int main (int argc, char **argv)
        * default building options
        */
 
-      char cpath[1024] = { 0 };
-
-      char build_opts[1024] = { 0 };
-
-      #if _WIN
-
-      snprintf (cpath, sizeof (cpath) - 1, "%s\\OpenCL\\", shared_dir);
-
-      char *cpath_real = mymalloc (MAX_PATH);
-
-      if (GetFullPathName (cpath, MAX_PATH, cpath_real, NULL) == 0)
-      {
-        log_error ("ERROR: %s: %s", cpath, "GetFullPathName()");
-
-        return -1;
-      }
-
-      #else
-
-      snprintf (cpath, sizeof (cpath) - 1, "%s/OpenCL/", shared_dir);
-
-      char *cpath_real = mymalloc (PATH_MAX);
-
-      if (realpath (cpath, cpath_real) == NULL)
-      {
-        log_error ("ERROR: %s: %s", cpath, strerror (errno));
-
-        return -1;
-      }
-
-      #endif
-
       if (chdir (cpath_real) == -1)
       {
         log_error ("ERROR: %s: %s", cpath_real, strerror (errno));
@@ -16129,20 +16156,12 @@ int main (int argc, char **argv)
         return -1;
       }
 
+      char build_opts[1024] = { 0 };
+
       #if _WIN
-
-      naive_replace (cpath_real, '\\', '/');
-
-      // not escaping here, windows has quotes
-
       snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", cpath_real);
-
       #else
-
-      naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
-
       snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", cpath_real);
-
       #endif
 
       // include check
@@ -16194,8 +16213,6 @@ int main (int argc, char **argv)
 
         fclose (fd);
       }
-
-      myfree (cpath_real);
 
       // we don't have sm_* on vendors not NV but it doesn't matter
 
