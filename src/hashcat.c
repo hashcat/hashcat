@@ -6600,7 +6600,8 @@ int main (int argc, char **argv)
 
   #endif
 
-  if (getenv ("TMP") == NULL)
+  //if (getenv ("TMP") == NULL)
+  if (1)
   {
     char tmp[1000];
 
