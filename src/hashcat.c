@@ -1387,13 +1387,13 @@ void status_display ()
 
             #ifdef WIN
 
-            __time64_t runtime_left = data.proc_start + data.runtime - runtime_cur;
+            __time64_t runtime_left = data.proc_start + data.runtime + data.prepare_time - runtime_cur;
 
             tmp = _gmtime64 (&runtime_left);
 
             #else
 
-            time_t runtime_left = data.proc_start + data.runtime - runtime_cur;
+            time_t runtime_left = data.proc_start + data.runtime + data.prepare_time - runtime_cur;
 
             tmp = gmtime (&runtime_left);
 
@@ -4692,7 +4692,7 @@ static void *thread_monitor (void *p)
 
       time (&runtime_cur);
 
-      int runtime_left = data.proc_start + data.runtime - runtime_cur;
+      int runtime_left = data.proc_start + data.runtime + data.prepare_time - runtime_cur;
 
       if (runtime_left <= 0)
       {
@@ -6174,6 +6174,10 @@ int main (int argc, char **argv)
   time (&proc_start);
 
   data.proc_start = proc_start;
+
+  time_t prepare_start;
+
+  time (&prepare_start);
 
   int    myargc = argc;
   char **myargv = argv;
@@ -19436,6 +19440,8 @@ int main (int argc, char **argv)
 
         data.runtime_start = runtime_start;
 
+        data.prepare_time += runtime_start - prepare_start;
+
         for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
         {
           hc_device_param_t *device_param = &devices_param[device_id];
@@ -19524,6 +19530,8 @@ int main (int argc, char **argv)
 
         logfile_sub_uint (runtime_start);
         logfile_sub_uint (runtime_stop);
+
+        time (&prepare_start);
 
         logfile_sub_msg ("STOP");
 

@@ -31,6 +31,7 @@
 - Fixed a bug where hashcat did not correctly use the newly cracked plains whenever --loopback or the induction folder was used
 - Fixed a bug where hashcat did not correctly remove hashes of type WPA/WPA2 even if present in potfile
 - Fixed a bug where hashcat reported an invalid password for a zero-length password in LM
+- Fixed a bug where hashcat did not take into account how long it takes to prepare a session when auto-aborting with --runtime is in use
 
 * changes v2.01 -> v3.00:
 
