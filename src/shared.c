@@ -21139,7 +21139,8 @@ int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_PURGECHAR:
-        return -1;
+        SET_NAME (rule, rule_buf[rule_pos]);
+        SET_P0   (rule, rule_buf[rule_pos]);
         break;
 
       case RULE_OP_MANGLE_TOGGLECASE_REC:
@@ -21358,7 +21359,8 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_PURGECHAR:
-        return -1;
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0 (rule);
         break;
 
       case RULE_OP_MANGLE_TOGGLECASE_REC:

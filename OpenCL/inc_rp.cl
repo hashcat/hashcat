@@ -1597,8 +1597,43 @@ inline u32 rule_op_mangle_replace (const u32 p0, const u32 p1, u32 buf0[4], u32 
 
 inline u32 rule_op_mangle_purgechar (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
-  // TODO
-  return in_len;
+  u32 out_len = 0;
+
+  u32 buf_in[8];
+
+  buf_in[0] = buf0[0];
+  buf_in[1] = buf0[1];
+  buf_in[2] = buf0[2];
+  buf_in[3] = buf0[3];
+  buf_in[4] = buf1[0];
+  buf_in[5] = buf1[1];
+  buf_in[6] = buf1[2];
+  buf_in[7] = buf1[3];
+
+  u32 buf_out[8] = { 0 };
+
+  u8 *in  = (u8 *) buf_in;
+  u8 *out = (u8 *) buf_out;
+
+  for (u32 pos = 0; pos < in_len; pos++)
+  {
+    if (in[pos] == (u8) p0) continue;
+
+    out[out_len] = in[pos];
+
+    out_len++;
+  }
+
+  buf0[0] = buf_out[0];
+  buf0[1] = buf_out[1];
+  buf0[2] = buf_out[2];
+  buf0[3] = buf_out[3];
+  buf1[0] = buf_out[4];
+  buf1[1] = buf_out[5];
+  buf1[2] = buf_out[6];
+  buf1[3] = buf_out[7];
+
+  return out_len;
 }
 
 inline u32 rule_op_mangle_togglecase_rec (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
@@ -2490,7 +2525,7 @@ inline u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], 
     case RULE_OP_MANGLE_OVERSTRIKE:       out_len = rule_op_mangle_overstrike       (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_TRUNCATE_AT:      out_len = rule_op_mangle_truncate_at      (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_REPLACE:          out_len = rule_op_mangle_replace          (p0, p1, buf0, buf1, out_len); break;
-    //case RULE_OP_MANGLE_PURGECHAR:        out_len = rule_op_mangle_purgechar        (p0, p1, buf0, buf1, out_len); break;
+    case RULE_OP_MANGLE_PURGECHAR:        out_len = rule_op_mangle_purgechar        (p0, p1, buf0, buf1, out_len); break;
     //case RULE_OP_MANGLE_TOGGLECASE_REC:   out_len = rule_op_mangle_togglecase_rec   (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_FIRST:   out_len = rule_op_mangle_dupechar_first   (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_LAST:    out_len = rule_op_mangle_dupechar_last    (p0, p1, buf0, buf1, out_len); break;
