@@ -19,6 +19,7 @@
 - Workaround for OpenCL runtimes which do accept -I parameter in the OpenCL kernel build options, but do not allow quotes
 - Output cracked hashes on Windows using \r\n and not \n
 - Replace RegGetValue() with RegQueryValueEx() to enable Windows XP 32 bit compatibility
+- Slightly increased NVidias rule-processing performance by using generic instructions instead of byte_perm()
 
 ##
 ## Bugs
