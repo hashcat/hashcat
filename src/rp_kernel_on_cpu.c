@@ -21,7 +21,7 @@ static u32 generate_cmask (u32 buf)
 
 static void truncate_right (u32 w0[4], u32 w1[4], const u32 len)
 {
-  const u32 tmp = (1 << ((len % 4) * 8)) - 1;
+  const u32 tmp = (1u << ((len % 4) * 8)) - 1;
 
   switch (len / 4)
   {
@@ -74,7 +74,7 @@ static void truncate_right (u32 w0[4], u32 w1[4], const u32 len)
 
 static void truncate_left (u32 w0[4], u32 w1[4], const u32 len)
 {
-  const u32 tmp = ~((1 << ((len % 4) * 8)) - 1);
+  const u32 tmp = ~((1u << ((len % 4) * 8)) - 1);
 
   switch (len / 4)
   {
@@ -1322,7 +1322,7 @@ static u32 rule_op_mangle_delete_last (const u32 p0, const u32 p1, u32 buf0[4], 
 
   const u32 in_len1 = in_len - 1;
 
-  const u32 tmp = (1 << ((in_len1 & 3) * 8)) - 1;
+  const u32 tmp = (1u << ((in_len1 & 3) * 8)) - 1;
 
   switch (in_len1 / 4)
   {
@@ -1350,7 +1350,7 @@ static u32 rule_op_mangle_delete_at (const u32 p0, const u32 p1, u32 buf0[4], u3
 
   lshift_block (buf0, buf1, tib40, tib41);
 
-  const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
+  const u32 ml = (1u << ((p0 & 3) * 8)) - 1;
   const u32 mr = ~ml;
 
   switch (p0 / 4)
@@ -1451,7 +1451,7 @@ static u32 rule_op_mangle_omit (const u32 p0, const u32 p1, u32 buf0[4], u32 buf
 
   lshift_block_N (buf0, buf1, tib40, tib41, p1);
 
-  const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
+  const u32 ml = (1u << ((p0 & 3) * 8)) - 1;
   const u32 mr = ~ml;
 
   switch (p0 / 4)
@@ -1530,7 +1530,7 @@ static u32 rule_op_mangle_insert (const u32 p0, const u32 p1, u32 buf0[4], u32 b
 
   const u32 p1n = p1 << ((p0 & 3) * 8);
 
-  const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
+  const u32 ml = (1u << ((p0 & 3) * 8)) - 1;
 
   const u32 mr = 0xffffff00 << ((p0 & 3) * 8);
 

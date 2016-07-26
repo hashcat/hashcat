@@ -4584,7 +4584,7 @@ void set_cpu_affinity (char *cpu_affinity)
       }
 
       #ifdef _WIN
-      aff_mask |= 1 << (cpu_id - 1);
+      aff_mask |= 1u << (cpu_id - 1);
       #elif _POSIX
       CPU_SET ((cpu_id - 1), &cpuset);
       #endif
@@ -5508,7 +5508,7 @@ uint setup_opencl_platforms_filter (char *opencl_platforms)
         exit (-1);
       }
 
-      opencl_platforms_filter |= 1 << (platform - 1);
+      opencl_platforms_filter |= 1u << (platform - 1);
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
@@ -5543,7 +5543,7 @@ u32 setup_devices_filter (char *opencl_devices)
         exit (-1);
       }
 
-      devices_filter |= 1 << (device_id - 1);
+      devices_filter |= 1u << (device_id - 1);
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
@@ -5578,7 +5578,7 @@ cl_device_type setup_device_types_filter (char *opencl_device_types)
         exit (-1);
       }
 
-      device_types_filter |= 1 << device_type;
+      device_types_filter |= 1u << device_type;
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
@@ -10099,7 +10099,7 @@ int bcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *iter_pos = input_buf + 4;
 
-  salt->salt_iter = 1 << atoi (iter_pos);
+  salt->salt_iter = 1u << atoi (iter_pos);
 
   char *salt_pos = strchr (iter_pos, '$');
 
@@ -10835,7 +10835,7 @@ int phpass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *iter_pos = input_buf + 3;
 
-  uint salt_iter = 1 << itoa64_to_int (iter_pos[0]);
+  uint salt_iter = 1u << itoa64_to_int (iter_pos[0]);
 
   if (salt_iter > 0x80000000) return (PARSER_SALT_ITERATION);
 
@@ -13445,7 +13445,7 @@ int sha1aix_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_sign[0] = atoi (salt_iter);
 
-  salt->salt_iter = (1 << atoi (salt_iter)) - 1;
+  salt->salt_iter = (1u << atoi (salt_iter)) - 1;
 
   hash_pos++;
 
@@ -13494,7 +13494,7 @@ int sha256aix_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_sign[0] = atoi (salt_iter);
 
-  salt->salt_iter = (1 << atoi (salt_iter)) - 1;
+  salt->salt_iter = (1u << atoi (salt_iter)) - 1;
 
   hash_pos++;
 
@@ -13546,7 +13546,7 @@ int sha512aix_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_sign[0] = atoi (salt_iter);
 
-  salt->salt_iter = (1 << atoi (salt_iter)) - 1;
+  salt->salt_iter = (1u << atoi (salt_iter)) - 1;
 
   hash_pos++;
 
@@ -14479,7 +14479,7 @@ int drupal7_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *iter_pos = input_buf + 3;
 
-  uint salt_iter = 1 << itoa64_to_int (iter_pos[0]);
+  uint salt_iter = 1u << itoa64_to_int (iter_pos[0]);
 
   if (salt_iter > 0x80000000) return (PARSER_SALT_ITERATION);
 
@@ -19060,7 +19060,7 @@ int seven_zip_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_sign[0] = iter;
 
-  salt->salt_iter = 1 << iter;
+  salt->salt_iter = 1u << iter;
 
   /**
    * digest
@@ -19679,7 +19679,7 @@ int rar5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_sign[0] = iterations;
 
-  salt->salt_iter = ((1 << iterations) + 32) - 1;
+  salt->salt_iter = ((1u << iterations) + 32) - 1;
 
   /**
    * digest buf
