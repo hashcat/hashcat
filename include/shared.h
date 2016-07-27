@@ -152,15 +152,15 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define CL_VENDOR_NV            "NVIDIA Corporation"
 #define CL_VENDOR_POCL          "The pocl project"
 
-#define VENDOR_ID_AMD           (1 << 0)
-#define VENDOR_ID_APPLE         (1 << 1)
-#define VENDOR_ID_INTEL_BEIGNET (1 << 2)
-#define VENDOR_ID_INTEL_SDK     (1 << 3)
-#define VENDOR_ID_MESA          (1 << 4)
-#define VENDOR_ID_NV            (1 << 5)
-#define VENDOR_ID_POCL          (1 << 6)
-#define VENDOR_ID_AMD_USE_INTEL (1 << 7)
-#define VENDOR_ID_GENERIC       (1 << 31)
+#define VENDOR_ID_AMD           (1u << 0)
+#define VENDOR_ID_APPLE         (1u << 1)
+#define VENDOR_ID_INTEL_BEIGNET (1u << 2)
+#define VENDOR_ID_INTEL_SDK     (1u << 3)
+#define VENDOR_ID_MESA          (1u << 4)
+#define VENDOR_ID_NV            (1u << 5)
+#define VENDOR_ID_POCL          (1u << 6)
+#define VENDOR_ID_AMD_USE_INTEL (1u << 7)
+#define VENDOR_ID_GENERIC       (1u << 31)
 
 #define BLOCK_SIZE              64
 
