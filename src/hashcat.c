@@ -1054,11 +1054,27 @@ void status_display ()
   {
     if (data.dictfile != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
     if (data.mask     != NULL) log_info ("Input.Right....: Mask (%s) [%i]", data.mask, data.css_cnt);
+    if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
+    {
+      char *custom_charset_1 = data.custom_charset_1;
+      char *custom_charset_2 = data.custom_charset_2;
+      char *custom_charset_3 = data.custom_charset_3;
+      char *custom_charset_4 = data.custom_charset_4;
+      log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+    }
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID2)
   {
     if (data.mask     != NULL) log_info ("Input.Left.....: Mask (%s) [%i]", data.mask, data.css_cnt);
     if (data.dictfile != NULL) log_info ("Input.Right....: File (%s)", data.dictfile);
+    if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
+    {
+      char *custom_charset_1 = data.custom_charset_1;
+      char *custom_charset_2 = data.custom_charset_2;
+      char *custom_charset_3 = data.custom_charset_3;
+      char *custom_charset_4 = data.custom_charset_4;
+      log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+    }
   }
 
   if (data.digests_cnt == 1)
