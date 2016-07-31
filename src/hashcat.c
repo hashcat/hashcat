@@ -1036,6 +1036,16 @@ void status_display ()
       }
 
       log_info ("Input.Mode.....: %s", tmp_buf);
+
+      if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
+      {
+        char *custom_charset_1 = data.custom_charset_1;
+        char *custom_charset_2 = data.custom_charset_2;
+        char *custom_charset_3 = data.custom_charset_3;
+        char *custom_charset_4 = data.custom_charset_4;
+
+        log_info ("Custom.Chars...: -1 %s. -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+      }
     }
 
     tmp_len = 0;
@@ -7549,6 +7559,10 @@ int main (int argc, char **argv)
   data.benchmark               = benchmark;
   data.skip                    = skip;
   data.limit                   = limit;
+  data.custom_charset_1        = custom_charset_1;
+  data.custom_charset_2        = custom_charset_2;
+  data.custom_charset_3        = custom_charset_3;
+  data.custom_charset_4        = custom_charset_4;
   #ifdef HAVE_HWMON
   data.powertune_enable        = powertune_enable;
   #endif

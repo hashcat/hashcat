@@ -1281,6 +1281,10 @@ typedef struct
   char   *veracrypt_keyfiles;
   uint    veracrypt_pim;
   uint    workload_profile;
+  char   *custom_charset_1;
+  char   *custom_charset_2;
+  char   *custom_charset_3;
+  char   *custom_charset_4;
 
   uint    hash_mode;
   uint    hash_type;
