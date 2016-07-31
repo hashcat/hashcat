@@ -1044,7 +1044,7 @@ void status_display ()
         char *custom_charset_3 = data.custom_charset_3;
         char *custom_charset_4 = data.custom_charset_4;
 
-        log_info ("Custom.Chars...: -1 %s. -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+        log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
       }
     }
 
