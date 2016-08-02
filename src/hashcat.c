@@ -490,6 +490,7 @@ const char *USAGE_BIG[] =
   "   1720 | sha512($salt.$pass)                              | Raw Hash, Salted and / or Iterated",
   "   1730 | sha512(unicode($pass).$salt)                     | Raw Hash, Salted and / or Iterated",
   "   1740 | sha512($salt.unicode($pass))                     | Raw Hash, Salted and / or Iterated",
+  "   1510 | DES-ECB (PT = $salt, key = $pass)                | Raw Hash, Salted and / or Iterated",
   "     50 | HMAC-MD5 (key = $pass)                           | Raw Hash, Authenticated",
   "     60 | HMAC-MD5 (key = $salt)                           | Raw Hash, Authenticated",
   "    150 | HMAC-SHA1 (key = $pass)                          | Raw Hash, Authenticated",
@@ -8941,6 +8942,23 @@ int main (int argc, char **argv)
                    dgst_pos3   = 3;
                    break;
 
+      case  1510:  hash_type   = HASH_TYPE_DES;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_ST_GENERATE_LE;
+                   kern_type   = KERN_TYPE_DES;
+                   dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
+                   parse_func  = des_parse_hash;
+                   sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_PERMUT;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
       case  1600:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -12096,6 +12114,8 @@ int main (int argc, char **argv)
                   break;
       case  1500: if (pw_max >  8) pw_max =  8;
                   break;
+      case  1510: if (pw_max >  8) pw_max =  8;
+                  break;
       case  1600: if (pw_max > 16) pw_max = 16;
                   break;
       case  1800: if (pw_max > 16) pw_max = 16;
@@ -12778,6 +12798,8 @@ int main (int argc, char **argv)
         {
           case  1500: hashes_buf[0].salt->salt_len    = 2;
                       hashes_buf[0].salt->salt_buf[0] = 388; // pure magic
+                      break;
+          case  1510: hashes_buf[0].salt->salt_len = 8;
                       break;
           case  1731: hashes_buf[0].salt->salt_len = 4;
                       break;
@@ -15899,6 +15921,14 @@ int main (int argc, char **argv)
         device_param->kernel_loops_max = kernel_loops_fixed;
       }
 
+      if (hash_mode == 1510 && attack_mode == ATTACK_MODE_BF)
+      {
+        const u32 kernel_loops_fixed = 1024;
+
+        device_param->kernel_loops_min = kernel_loops_fixed;
+        device_param->kernel_loops_max = kernel_loops_fixed;
+      }
+
       if (hash_mode == 3000 && attack_mode == ATTACK_MODE_BF)
       {
         const u32 kernel_loops_fixed = 1024;
@@ -17075,7 +17105,7 @@ int main (int argc, char **argv)
 
           if (CL_err != CL_SUCCESS)
           {
-            log_error ("ERROR: clCreateKernel(): %s\n", val2cstr_cl (CL_err));
+            log_error ("ERROR: clCreateKernel(): %s %s\n", val2cstr_cl (CL_err), kernel_name);
 
             return -1;
           }
