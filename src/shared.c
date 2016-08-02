@@ -6147,6 +6147,7 @@ char *strhashtype (const uint hash_mode)
     case 13762: return ((char *) HT_13762); break;
     case 13763: return ((char *) HT_13763); break;
     case 13800: return ((char *) HT_13800); break;
+    case 13900: return ((char *) HT_13900); break;
   }
 
   return ((char *) "Unknown");
@@ -14973,6 +14974,37 @@ int wbb3_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len);
 
   if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len = salt_len;
+
+  return (PARSER_OK);
+}
+
+int opencart_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_13900) || (input_len > DISPLAY_LEN_MAX_13900)) return (PARSER_GLOBAL_LENGTH);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  if (input_buf[40] != data.separator) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint salt_len = input_len - 40 - 1;
+
+  char *salt_buf = input_buf + 40 + 1;
+
+  char *salt_buf_ptr = (char *) salt->salt_buf;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len);
+
+  if ((salt_len != 9) || (salt_len == UINT_MAX)) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
 

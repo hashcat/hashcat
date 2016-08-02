@@ -35,6 +35,12 @@
 - Fixed a bug where hashcat reported an invalid password for a zero-length password in LM
 - Fixed a bug where hashcat did not take into account how long it takes to prepare a session when auto-aborting with --runtime is in use
 
+##
+## Algorithms
+##
+
+- Added new hash-mode 13900 = OpenCart
+
 * changes v2.01 -> v3.00:
 
 This release markes the fusion of "hashcat" and "oclHashcat" into "hashcat".
