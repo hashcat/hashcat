@@ -152,15 +152,15 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define CL_VENDOR_NV            "NVIDIA Corporation"
 #define CL_VENDOR_POCL          "The pocl project"
 
-#define VENDOR_ID_AMD           (1u << 0)
-#define VENDOR_ID_APPLE         (1u << 1)
-#define VENDOR_ID_INTEL_BEIGNET (1u << 2)
-#define VENDOR_ID_INTEL_SDK     (1u << 3)
-#define VENDOR_ID_MESA          (1u << 4)
-#define VENDOR_ID_NV            (1u << 5)
-#define VENDOR_ID_POCL          (1u << 6)
-#define VENDOR_ID_AMD_USE_INTEL (1u << 7)
-#define VENDOR_ID_GENERIC       (1u << 31)
+#define VENDOR_ID_AMD           (1 << 0)
+#define VENDOR_ID_APPLE         (1 << 1)
+#define VENDOR_ID_INTEL_BEIGNET (1 << 2)
+#define VENDOR_ID_INTEL_SDK     (1 << 3)
+#define VENDOR_ID_MESA          (1 << 4)
+#define VENDOR_ID_NV            (1 << 5)
+#define VENDOR_ID_POCL          (1 << 6)
+#define VENDOR_ID_AMD_USE_INTEL (1 << 7)
+#define VENDOR_ID_GENERIC       (1 << 31)
 
 #define BLOCK_SIZE              64
 
@@ -253,6 +253,7 @@ extern hc_thread_mutex_t mux_display;
 #define HT_01460  "HMAC-SHA256 (key = $salt)"
 #define HT_01500  "descrypt, DES(Unix), Traditional DES"
 #define HT_01510  "DES"
+#define HT_01530  "3DES"
 #define HT_01600  "md5apr1, MD5(APR), Apache MD5"
 #define HT_01700  "SHA512"
 #define HT_01710  "sha512($pass.$salt)"
@@ -512,6 +513,10 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_1510  16+1+8
 #define DISPLAY_LEN_MIN_1510H 16+1+16
 #define DISPLAY_LEN_MAX_1510H 16+1+16
+#define DISPLAY_LEN_MIN_1530  16+1+8
+#define DISPLAY_LEN_MAX_1530  16+1+8
+#define DISPLAY_LEN_MIN_1530H 16+1+16
+#define DISPLAY_LEN_MAX_1530H 16+1+16
 #define DISPLAY_LEN_MIN_1600  29 + 0
 #define DISPLAY_LEN_MAX_1600  29 + 8
 #define DISPLAY_LEN_MIN_1700  128
@@ -855,7 +860,7 @@ extern hc_thread_mutex_t mux_display;
 #define HASH_TYPE_RAR3HP         49
 #define HASH_TYPE_KRB5TGS        50
 #define HASH_TYPE_STDOUT         51
-#define HASH_TYPE_DES            52
+#define HASH_TYPE_DES     52
 
 #define KERN_TYPE_MD5                 0
 #define KERN_TYPE_MD5_PWSLT           10
@@ -887,6 +892,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_HMACSHA256_SLT      1460
 #define KERN_TYPE_DESCRYPT            1500
 #define KERN_TYPE_DES                 1510
+#define KERN_TYPE_3DES                1530
 #define KERN_TYPE_APR1CRYPT           1600
 #define KERN_TYPE_SHA512              1700
 #define KERN_TYPE_SHA512_PWSLT        1710
