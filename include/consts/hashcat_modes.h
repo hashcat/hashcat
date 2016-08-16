@@ -1,0 +1,71 @@
+#pragma once
+
+typedef enum WL_MODE_ {
+  WL_MODE_STDIN = 1,
+  WL_MODE_FILE = 2,
+  WL_MODE_MASK = 3
+} WL_MODE;
+
+typedef enum ATTACK_MODE_ {
+  ATTACK_MODE_STRAIGHT = 0,
+  ATTACK_MODE_COMBI = 1,
+  ATTACK_MODE_TOGGLE = 2,
+  ATTACK_MODE_BF = 3,
+  ATTACK_MODE_PERM = 4,
+  ATTACK_MODE_TABLE = 5,
+  ATTACK_MODE_HYBRID1 = 6,
+  ATTACK_MODE_HYBRID2 = 7,
+  ATTACK_MODE_NONE = 100,
+  DEFAULT_ATTACK_MODE = 0
+} ATTACK_MODE;
+
+typedef enum HL_MODE_ {
+  HL_MODE_FILE = 4,
+  HL_MODE_ARG = 5
+} HL_MODE;
+
+typedef enum HLFMT_ {
+  HLFMTS_CNT = 11,
+  HLFMT_HASHCAT = 0,
+  HLFMT_PWDUMP = 1,
+  HLFMT_PASSWD = 2,
+  HLFMT_SHADOW = 3,
+  HLFMT_DCC = 4,
+  HLFMT_DCC2 = 5,
+  HLFMT_NETNTLM1 = 7,
+  HLFMT_NETNTLM2 = 8,
+  HLFMT_NSLDAP = 9,
+  HLFMT_NSLDAPS = 10
+}HLFMT;
+
+static const char HLFMT_TEXT_HASHCAT[] = "native hashcat";
+static const char HLFMT_TEXT_PWDUMP[] = "pwdump";
+static const char HLFMT_TEXT_PASSWD[] = "passwd";
+static const char HLFMT_TEXT_SHADOW[] = "shadow";
+static const char HLFMT_TEXT_DCC[] = "DCC";
+static const char HLFMT_TEXT_DCC2[] = "DCC 2";
+static const char HLFMT_TEXT_NETNTLM1[] = "NetNTLMv1";
+static const char HLFMT_TEXT_NETNTLM2[] = "NetNTLMv2";
+static const char HLFMT_TEXT_NSLDAP[] = "nsldap";
+static const char HLFMT_TEXT_NSLDAPS[] = "nsldaps";
+
+
+typedef enum ATTACK_KERN_ {
+  ATTACK_KERN_STRAIGHT = 0,
+  ATTACK_KERN_COMBI = 1,
+  ATTACK_KERN_BF = 3,
+  ATTACK_KERN_NONE = 100
+} ATTACK_KERN;
+
+typedef enum COMBINATOR_MODE_BASE_ {
+  COMBINATOR_MODE_BASE_LEFT = 10001,
+  COMBINATOR_MODE_BASE_RIGHT = 10002,
+}COMBINATOR_MODE_BASE;
+
+
+typedef enum ATTACK_EXEC_SIDE_KERNEL_ {
+  ATTACK_EXEC_SIDE_KERNEL_INVALID = 0,
+  ATTACK_EXEC_OUTSIDE_KERNEL = 10,
+  ATTACK_EXEC_INSIDE_KERNEL = 11,
+}ATTACK_EXEC_SIDE_KERNEL;
+

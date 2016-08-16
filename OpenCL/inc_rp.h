@@ -2,6 +2,7 @@
  * Author......: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
+#pragma once
 
 #define RULE_OP_MANGLE_NOOP             ':'
 #define RULE_OP_MANGLE_LREST            'l'

@@ -1,0 +1,38 @@
+#pragma once
+static const char PROGNAME[]    = "@PACKAGE_NAME@";
+static const char VERSION_TAG[] = "@VERSION_TAG@";
+static const unsigned int VERSION_BIN = @VERSION_BIN@;
+#define COMPTIME @COMPTIME@
+#cmakedefine WITH_HWMON
+
+enum _HASHCAT_CONFIG{
+  ETC_MAX             = @HASHCAT_ETC_MAX@,
+  DEVICES_MAX         = @HASHCAT_DEVICES_MAX@,
+  CL_PLATFORMS_MAX    = @HASHCAT_CL_PLATFORMS_MAX@,
+  BLOCK_SIZE          = @HASHCAT_BLOCK_SIZE@,
+  CHARSIZ             = @HASHCAT_CHARSIZ@,
+
+  EXEC_CACHE          = @HASHCAT_EXEC_CACHE@,
+  SPEED_CACHE         = @HASHCAT_SPEED_CACHE@,
+  
+  SPEED_MAXAGE        = @HASHCAT_SPEED_MAXAGE@,
+  
+  HCBUFSIZ            = @HASHCAT_HCBUFSIZ@,
+  EXPECTED_ITERATIONS = @HASHCAT_EXPECTED_ITERATIONS_COUNT@,
+  CPT_BUF             = @HASHCAT_CPT_BUF@,
+  MAX_CUT_TRIES       = @HASHCAT_MAX_CUT_TRIES@,
+  MAX_DICTSTAT        = @HASHCAT_MAX_DICTSTAT@,
+  VERIFIER_CNT        = @HASHCAT_VERIFIER_CNT@,
+  STEPS_CNT           = @HASHCAT_STEPS_CNT@,
+};
+
+static const char LOOPBACK_FILE[]     = "@HASHCAT_LOOPBACK_FILENAME@";
+static const char DICTSTAT_FILENAME[] = "@HASHCAT_DICTSTAT_FILENAME@";
+static const char POTFILE_FILENAME[]  = "@HASHCAT_POTFILE_FILENAME@";
+static const char SP_HCSTAT[]         = "@HASHCAT_HCSTAT_DEFAULT_FILENAME@";
+static const char TUNING_DB_FILE[]    = "@HASHCAT_TUNING_DB_FILENAME@";
+
+static const char INDUCT_DIR[]   = "@HASHCAT_INDUCT_DIR@";
+static const char OUTFILES_DIR[] = "@HASHCAT_OUTFILES_DIR@";
+static const char SESSIONS_FOLDER[] = "@HASHCAT_SESSIONS_DIR@";
+static const char DOT_HASHCAT[] = "@HASHCAT_PROFILE_DIR@";

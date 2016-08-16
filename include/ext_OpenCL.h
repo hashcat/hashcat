@@ -4,11 +4,11 @@
  *
  * License.....: MIT
  */
-
+#pragma once
 #ifndef EXT_OPENCL_H
 #define EXT_OPENCL_H
 
-#include <common.h>
+#include "common.h"
 
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
@@ -28,8 +28,6 @@
 #ifdef __FreeBSD__
 #include <CL/cl.h>
 #endif
-
-#include <shared.h>
 
 typedef cl_int           (CL_API_CALL *OCL_CLBUILDPROGRAM)            (cl_program, cl_uint, const cl_device_id *, const char *, void (CL_CALLBACK *)(cl_program, void *), void *);
 typedef cl_mem           (CL_API_CALL *OCL_CLCREATEBUFFER)            (cl_context, cl_mem_flags, size_t, void *, cl_int *);
@@ -64,7 +62,16 @@ typedef cl_int           (CL_API_CALL *OCL_CLRELEASEPROGRAM)          (cl_progra
 typedef cl_int           (CL_API_CALL *OCL_CLSETKERNELARG)            (cl_kernel, cl_uint, size_t, const void *);
 typedef cl_int           (CL_API_CALL *OCL_CLWAITFOREVENTS)           (cl_uint, const cl_event *);
 
-typedef struct
+#ifdef _POSIX
+typedef void *OCL_LIB;
+#endif
+#ifdef _WIN
+typedef HINSTANCE OCL_LIB;
+#endif
+
+
+
+typedef struct hc_opencl_lib_t_
 {
   OCL_LIB lib;
 
@@ -103,7 +110,7 @@ typedef struct
 
 } hc_opencl_lib_t;
 
-#define OCL_PTR hc_opencl_lib_t
+typedef hc_opencl_lib_t OCL_PTR;
 
 const char *val2cstr_cl (cl_int CL_err);
 
