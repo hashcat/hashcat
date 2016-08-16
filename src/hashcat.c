@@ -154,7 +154,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 
 #define MAX_DICTSTAT            10000
 
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 143
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 144
 
 #define NVIDIA_100PERCENTCPU_WORKAROUND 100
 
@@ -218,6 +218,7 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   2711,
   2811,
   8400,
+  13900,
   11,
   2612,
   7900,
@@ -539,6 +540,7 @@ const char *USAGE_BIG[] =
   "  10000 | Django (PBKDF2-SHA256)                           | Forums, CMS, E-Commerce, Frameworks",
   "   3711 | Mediawiki B type                                 | Forums, CMS, E-Commerce, Frameworks",
   "   7600 | Redmine                                          | Forums, CMS, E-Commerce, Frameworks",
+  "  13900 | OpenCart                                         | Forums, CMS, E-Commerce, Frameworks",
   "     12 | PostgreSQL                                       | Database Server",
   "    131 | MSSQL(2000)                                      | Database Server",
   "    132 | MSSQL(2005)                                      | Database Server",
@@ -6896,7 +6898,7 @@ int main (int argc, char **argv)
     return -1;
   }
 
-  if (hash_mode_chgd && hash_mode > 13800) // just added to remove compiler warnings for hash_mode_chgd
+  if (hash_mode_chgd && hash_mode > 13900) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
@@ -11653,6 +11655,25 @@ int main (int argc, char **argv)
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
                    dgst_pos3   = 6;
+                   break;
+
+      case 13900:  hash_type   = HASH_TYPE_SHA1;
+                   salt_type   = SALT_TYPE_INTERN;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_PT_ADD80
+                               | OPTS_TYPE_PT_ADDBITS15;
+                   kern_type   = KERN_TYPE_OPENCART;
+                   dgst_size   = DGST_SIZE_4_5;
+                   parse_func  = opencart_parse_hash;
+                   sort_by_digest = sort_by_digest_4_5;
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_INIT
+                               | OPTI_TYPE_NOT_ITERATED;
+                   dgst_pos0   = 3;
+                   dgst_pos1   = 4;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 1;
                    break;
 
       default:     usage_mini_print (PROGNAME); return -1;

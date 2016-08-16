@@ -369,6 +369,7 @@ extern hc_thread_mutex_t mux_display;
 #define HT_13500  "PeopleSoft PS_TOKEN"
 #define HT_13600  "WinZip"
 #define HT_13800  "Windows 8+ phone PIN/Password"
+#define HT_13900  "OpenCart"
 
 #define HT_00011  "Joomla < 2.5.18"
 #define HT_00012  "PostgreSQL"
@@ -733,6 +734,8 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_13600 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 4 + 1 + 4 + 1 + 8192 + 1 + 20 + 1 + 7
 #define DISPLAY_LEN_MIN_13800  64 + 1 + 256
 #define DISPLAY_LEN_MAX_13800  64 + 1 + 256
+#define DISPLAY_LEN_MIN_13900 40 + 1 + 9
+#define DISPLAY_LEN_MAX_13900 40 + 1 + 9
 
 #define DISPLAY_LEN_MIN_11    32 + 1 + 16
 #define DISPLAY_LEN_MAX_11    32 + 1 + 32
@@ -1005,6 +1008,7 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_PSTOKEN             13500
 #define KERN_TYPE_ZIP2                13600
 #define KERN_TYPE_WIN8PHONE           13800
+#define KERN_TYPE_OPENCART            13900
 
 /**
  * signatures
@@ -1667,6 +1671,7 @@ int veracrypt_parse_hash_500000   (char *input_buf, uint input_len, hash_t *hash
 int veracrypt_parse_hash_327661   (char *input_buf, uint input_len, hash_t *hash_buf);
 int veracrypt_parse_hash_655331   (char *input_buf, uint input_len, hash_t *hash_buf);
 int win8phone_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf);
+int opencart_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf);
 
 void naive_replace (char *s, const u8 key_char, const u8 replace_char);
 void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char);
