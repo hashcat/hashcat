@@ -1038,6 +1038,33 @@ void status_display ()
       }
 
       log_info ("Input.Mode.....: %s", tmp_buf);
+
+      if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
+      {
+        char *custom_charset_1 = data.custom_charset_1;
+        char *custom_charset_2 = data.custom_charset_2;
+        char *custom_charset_3 = data.custom_charset_3;
+        char *custom_charset_4 = data.custom_charset_4;
+
+        if (custom_charset_1 == NULL)
+        {
+          custom_charset_1 = "Undefined";
+        }
+        if (custom_charset_2 == NULL)
+        {
+          custom_charset_2 = "Undefined";
+        }
+        if (custom_charset_3 == NULL)
+        {
+          custom_charset_3 = "Undefined";
+        }
+        if (custom_charset_4 == NULL)
+        {
+          custom_charset_4 = "Undefined";
+        }
+
+        log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+      }
     }
 
     tmp_len = 0;
@@ -1046,11 +1073,63 @@ void status_display ()
   {
     if (data.dictfile != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
     if (data.mask     != NULL) log_info ("Input.Right....: Mask (%s) [%i]", data.mask, data.css_cnt);
+    if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
+    {
+      char *custom_charset_1 = data.custom_charset_1;
+      char *custom_charset_2 = data.custom_charset_2;
+      char *custom_charset_3 = data.custom_charset_3;
+      char *custom_charset_4 = data.custom_charset_4;
+
+      if (custom_charset_1 == NULL)
+      {
+        custom_charset_1 = "Undefined";
+      }
+      if (custom_charset_2 == NULL)
+      {
+        custom_charset_2 = "Undefined";
+      }
+      if (custom_charset_3 == NULL)
+      {
+        custom_charset_3 = "Undefined";
+      }
+      if (custom_charset_4 == NULL)
+      {
+        custom_charset_4 = "Undefined";
+      }
+
+      log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+    }
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID2)
   {
     if (data.mask     != NULL) log_info ("Input.Left.....: Mask (%s) [%i]", data.mask, data.css_cnt);
     if (data.dictfile != NULL) log_info ("Input.Right....: File (%s)", data.dictfile);
+    if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
+    {
+      char *custom_charset_1 = data.custom_charset_1;
+      char *custom_charset_2 = data.custom_charset_2;
+      char *custom_charset_3 = data.custom_charset_3;
+      char *custom_charset_4 = data.custom_charset_4;
+
+      if (custom_charset_1 == NULL)
+      {
+        custom_charset_1 = "Undefined";
+      }
+      if (custom_charset_2 == NULL)
+      {
+        custom_charset_2 = "Undefined";
+      }
+      if (custom_charset_3 == NULL)
+      {
+        custom_charset_3 = "Undefined";
+      }
+      if (custom_charset_4 == NULL)
+      {
+        custom_charset_4 = "Undefined";
+      }
+      
+      log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+    }
   }
 
   if (data.digests_cnt == 1)
@@ -7551,6 +7630,10 @@ int main (int argc, char **argv)
   data.benchmark               = benchmark;
   data.skip                    = skip;
   data.limit                   = limit;
+  data.custom_charset_1        = custom_charset_1;
+  data.custom_charset_2        = custom_charset_2;
+  data.custom_charset_3        = custom_charset_3;
+  data.custom_charset_4        = custom_charset_4;
   #ifdef HAVE_HWMON
   data.powertune_enable        = powertune_enable;
   #endif

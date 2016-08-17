@@ -16981,7 +16981,7 @@ int crammd5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   hash_len = base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
 
-  if (hash_len < 32 + 1) return (PARSER_SALT_LENGTH);
+  if (hash_len < 32 + 1) return (PARSER_HASH_LENGTH);
 
   uint user_len = hash_len - 32;
 

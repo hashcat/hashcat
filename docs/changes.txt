@@ -4,6 +4,7 @@
 ## Improvements
 ##
 
+- Added mask display to modes 3, 6, and 7.  Allows the user to see the custom character set used during the run
 - Make Linux build POSIX compatible; Also allow it to actually compile on musl-libc systems
 - Add support to compile on FreeBSD
 - Make use of cl_context_properties[] to clCreateContext(), even if OpenCL specification allow the use of NULL, some runtimes fail without
@@ -26,6 +27,7 @@
 ## Bugs
 ##
 
+- Fixed a bug where CRAM MD5 checked salt length instead of hash length
 - Fixed a bug where hashcat is suppressing --machine-readable output in the final status update
 - Fixed a bug where hashcat did not check the return of realpath() and crashes uncontrolled if the path does not exist
 - Fixed a bug where hashcat crashes for accessing deallocated buffer if user spams "s" shortly before hashcat shuts down
