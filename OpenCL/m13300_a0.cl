@@ -392,7 +392,7 @@ __kernel void m13300_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
 
     e &= 0x00000000;
 
-    COMPARE_M_SIMD (a, e, d, c);
+    COMPARE_S_SIMD (a, e, d, c);
   }
 }
 
