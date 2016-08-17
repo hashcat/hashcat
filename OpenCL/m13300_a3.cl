@@ -526,7 +526,7 @@ void m13300s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_r
 
     e &= 0x00000000;
 
-    COMPARE_M_SIMD (a, e, d, c);
+    COMPARE_S_SIMD (a, e, d, c);
   }
 }
 

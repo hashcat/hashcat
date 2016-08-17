@@ -487,7 +487,7 @@ __kernel void m01710_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     const u32x r2 = l32_from_64 (digest[3]);
     const u32x r3 = h32_from_64 (digest[3]);
 
-    COMPARE_M_SIMD (r0, r1, r2, r3);
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }
 

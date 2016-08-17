@@ -1056,7 +1056,7 @@ void m06900s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
 
     /* store */
 
-    COMPARE_M_SIMD (state[0], state[1], state[2], state[3]);
+    COMPARE_S_SIMD (state[0], state[1], state[2], state[3]);
   }
 }
 

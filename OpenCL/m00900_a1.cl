@@ -367,7 +367,7 @@ __kernel void m00900_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     MD4_STEP (MD4_H , c, d, a, b, w1[3], MD4C02, MD4S22);
     MD4_STEP (MD4_H , b, c, d, a, w3[3], MD4C02, MD4S23);
 
-    COMPARE_M_SIMD (a, d, c, b);
+    COMPARE_S_SIMD (a, d, c, b);
   }
 }
 
