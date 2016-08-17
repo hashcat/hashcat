@@ -1044,6 +1044,23 @@ void status_display ()
         char *custom_charset_3 = data.custom_charset_3;
         char *custom_charset_4 = data.custom_charset_4;
 
+        if (custom_charset_1 == NULL)
+        {
+          custom_charset_1 = "Undefined";
+        }
+        if (custom_charset_2 == NULL)
+        {
+          custom_charset_2 = "Undefined";
+        }
+        if (custom_charset_3 == NULL)
+        {
+          custom_charset_3 = "Undefined";
+        }
+        if (custom_charset_4 == NULL)
+        {
+          custom_charset_4 = "Undefined";
+        }
+
         log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
       }
     }
@@ -1060,6 +1077,24 @@ void status_display ()
       char *custom_charset_2 = data.custom_charset_2;
       char *custom_charset_3 = data.custom_charset_3;
       char *custom_charset_4 = data.custom_charset_4;
+
+      if (custom_charset_1 == NULL)
+      {
+        custom_charset_1 = "Undefined";
+      }
+      if (custom_charset_2 == NULL)
+      {
+        custom_charset_2 = "Undefined";
+      }
+      if (custom_charset_3 == NULL)
+      {
+        custom_charset_3 = "Undefined";
+      }
+      if (custom_charset_4 == NULL)
+      {
+        custom_charset_4 = "Undefined";
+      }
+
       log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
     }
   }
@@ -1073,6 +1108,24 @@ void status_display ()
       char *custom_charset_2 = data.custom_charset_2;
       char *custom_charset_3 = data.custom_charset_3;
       char *custom_charset_4 = data.custom_charset_4;
+
+      if (custom_charset_1 == NULL)
+      {
+        custom_charset_1 = "Undefined";
+      }
+      if (custom_charset_2 == NULL)
+      {
+        custom_charset_2 = "Undefined";
+      }
+      if (custom_charset_3 == NULL)
+      {
+        custom_charset_3 = "Undefined";
+      }
+      if (custom_charset_4 == NULL)
+      {
+        custom_charset_4 = "Undefined";
+      }
+      
       log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
     }
   }
