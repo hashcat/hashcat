@@ -16449,6 +16449,7 @@ int main (int argc, char **argv)
 
             size_t build_log_size = 0;
 
+            /*
             CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
             if (CL_err != CL_SUCCESS)
@@ -16457,8 +16458,15 @@ int main (int argc, char **argv)
 
               return -1;
             }
+            */
 
+            hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+            #ifdef DEBUG
             if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
+            #else
+            if (CL_err != CL_SUCCESS)
+            #endif
             {
               char *build_log = (char *) mymalloc (build_log_size + 1);
 
@@ -16581,6 +16589,7 @@ int main (int argc, char **argv)
 
           size_t build_log_size = 0;
 
+          /*
           CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
           if (CL_err != CL_SUCCESS)
@@ -16589,8 +16598,15 @@ int main (int argc, char **argv)
 
             return -1;
           }
+          */
 
+          hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+          #ifdef DEBUG
           if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
+          #else
+          if (CL_err != CL_SUCCESS)
+          #endif
           {
             char *build_log = (char *) mymalloc (build_log_size + 1);
 
@@ -16692,6 +16708,43 @@ int main (int argc, char **argv)
             log_error ("ERROR: clBuildProgram(): %s\n", val2cstr_cl (CL_err));
 
             //return -1;
+          }
+
+          size_t build_log_size = 0;
+
+          /*
+          CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
+          */
+
+          hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+          #ifdef DEBUG
+          if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
+          #else
+          if (CL_err != CL_SUCCESS)
+          #endif
+          {
+            char *build_log = (char *) mymalloc (build_log_size + 1);
+
+            CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
+
+            puts (build_log);
+
+            myfree (build_log);
           }
 
           if (CL_err != CL_SUCCESS)
@@ -16836,6 +16889,43 @@ int main (int argc, char **argv)
             log_error ("ERROR: clBuildProgram(): %s\n", val2cstr_cl (CL_err));
 
             //return -1;
+          }
+
+          size_t build_log_size = 0;
+
+          /*
+          CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
+          */
+
+          hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+
+          #ifdef DEBUG
+          if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
+          #else
+          if (CL_err != CL_SUCCESS)
+          #endif
+          {
+            char *build_log = (char *) mymalloc (build_log_size + 1);
+
+            CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+
+              return -1;
+            }
+
+            puts (build_log);
+
+            myfree (build_log);
           }
 
           if (CL_err != CL_SUCCESS)
