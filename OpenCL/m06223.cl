@@ -671,7 +671,7 @@ __kernel void m06223_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
     }
   }
 
-  u32 ukey5[8];
+  volatile u32 ukey5[8];
 
   ukey5[0] = swap32 (h32_from_64 (tmps[gid].out[16]));
   ukey5[1] = swap32 (l32_from_64 (tmps[gid].out[16]));
@@ -682,7 +682,7 @@ __kernel void m06223_comp (__global pw_t *pws, __global kernel_rule_t *rules_buf
   ukey5[6] = swap32 (h32_from_64 (tmps[gid].out[19]));
   ukey5[7] = swap32 (l32_from_64 (tmps[gid].out[19]));
 
-  u32 ukey6[8];
+  volatile u32 ukey6[8];
 
   ukey6[0] = swap32 (h32_from_64 (tmps[gid].out[20]));
   ukey6[1] = swap32 (l32_from_64 (tmps[gid].out[20]));
