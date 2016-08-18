@@ -7898,7 +7898,10 @@ int main (int argc, char **argv)
 
   if (wordlist_mode == WL_MODE_STDIN)
   {
-    status = 1;
+    // enable status (in stdin mode) whenever we do not use --stdout together with an outfile
+
+    if      (stdout_flag == 0) status = 1;
+    else if (outfile != NULL)  status = 1;
 
     data.status = status;
   }
