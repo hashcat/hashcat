@@ -24,6 +24,7 @@
 - Add support for @ rule (RULE_OP_MANGLE_PURGECHAR) to use on GPU
 - Add support for --outfile (short -o) to be used together with --stdout
 - Skip periodic status output whenever --stdout is used together with stdin mode, but no outfile was specified
+- Show error message if --show is used together with --outfile-autohex-disable (this is currently not supported)
 
 ##
 ## Bugs
