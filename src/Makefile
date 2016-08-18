@@ -183,7 +183,7 @@ CRT_GLOB_32              :=
 CRT_GLOB_64              :=
 CRT_GLOB_INCLUDE_FOLDER  := $(dir $(lastword $(MAKEFILE_LIST)))
 
-include $(CRT_GLOB_INCLUDE_FOLDER)win_file_globbing.mk
+include $(CRT_GLOB_INCLUDE_FOLDER)/win_file_globbing.mk
 
 WIN_32_OBJS              := obj/ext_OpenCL.WIN.32.o   obj/shared.WIN.32.o   obj/rp_kernel_on_cpu.WIN.32.o   obj/ext_ADL.WIN.32.o   obj/ext_nvml.WIN.32.o   obj/ext_nvapi.WIN.32.o   obj/ext_xnvctrl.WIN.32.o   $(CRT_GLOB_32)
 WIN_64_OBJS              := obj/ext_OpenCL.WIN.64.o   obj/shared.WIN.64.o   obj/rp_kernel_on_cpu.WIN.64.o   obj/ext_ADL.WIN.64.o   obj/ext_nvml.WIN.64.o   obj/ext_nvapi.WIN.64.o   obj/ext_xnvctrl.WIN.64.o   $(CRT_GLOB_64)

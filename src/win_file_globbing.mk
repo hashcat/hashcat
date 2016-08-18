@@ -1,5 +1,5 @@
 ##
-## Authors.....: Jens Steube <jens.steube@gmail.com>
+## Authors.....: Philipp Schmidt <philsmd@hashcat.net>
 ##
 ## License.....: MIT
 ##
