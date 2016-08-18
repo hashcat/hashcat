@@ -2544,7 +2544,18 @@ static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 {
   out_t out;
 
-  out.fp  = stdout;
+  out.fp = stdout;
+
+  if (data.outfile != NULL)
+  {
+    if ((out.fp = fopen (data.outfile, "ab")) == NULL)
+    {
+      log_error ("ERROR: %s: %s", data.outfile, strerror (errno));
+
+      out.fp = stdout;
+    }
+  }
+
   out.len = 0;
 
   uint plain_buf[16] = { 0 };
@@ -2712,6 +2723,11 @@ static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
   }
 
   out_flush (&out);
+
+  if (out.fp != stdout)
+  {
+    fclose (out.fp);
+  }
 }
 
 static void save_hash ()

@@ -22,6 +22,7 @@
 - Replace RegGetValue() with RegQueryValueEx() to enable Windows XP 32 bit compatibility
 - Slightly increased NVidias rule-processing performance by using generic instructions instead of byte_perm()
 - Add support for @ rule (RULE_OP_MANGLE_PURGECHAR) to use on GPU
+- Add support for --outfile (short -o) to be used together with --stdout
 
 ##
 ## Bugs
