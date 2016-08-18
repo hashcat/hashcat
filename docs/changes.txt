@@ -1,4 +1,4 @@
-* changes v3.00 -> v3.xx:
+* changes v3.00 -> v3.10:
 
 ##
 ## Improvements

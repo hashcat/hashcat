@@ -1,4 +1,4 @@
-hashcat v3.00
+hashcat v3.10
 =============
 
 AMD users require AMD drivers 14.9 or later (recommended 15.12)

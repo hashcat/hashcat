@@ -20,7 +20,7 @@
 #include <getopt.h>
 
 const char *PROGNAME            = "hashcat";
-const uint  VERSION_BIN         = 300;
+const uint  VERSION_BIN         = 310;
 const uint  RESTORE_MIN         = 300;
 
 double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
