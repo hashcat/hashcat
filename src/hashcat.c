@@ -18915,8 +18915,23 @@ int main (int argc, char **argv)
       }
 
       /**
+       * prevent the user from using --skip/--limit together w/ maskfile and or dictfile
+       */
+
+      if (skip != 0 || limit != 0)
+      {
+        if ((maskcnt > 1) || (dictcnt > 1))
+        {
+          log_error ("ERROR: --skip/--limit are not supported with --increment or mask files");
+
+          return -1;
+        }
+      }
+
+      /**
        * prevent the user from using --keyspace together w/ maskfile and or dictfile
        */
+
       if (keyspace == 1)
       {
         if ((maskcnt > 1) || (dictcnt > 1))
