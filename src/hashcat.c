@@ -1127,7 +1127,7 @@ void status_display ()
       {
         custom_charset_4 = "Undefined";
       }
-      
+
       log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
     }
   }
@@ -16362,7 +16362,11 @@ int main (int argc, char **argv)
 
       char build_opts_new[1024] = { 0 };
 
+      #ifdef DEBUG
       snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, data.dgst_size / 4, kern_type);
+      #else
+      snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1 -w", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, data.dgst_size / 4, kern_type);
+      #endif
 
       strncpy (build_opts, build_opts_new, sizeof (build_opts));
 
@@ -16443,7 +16447,6 @@ int main (int argc, char **argv)
               //return -1;
             }
 
-            #ifdef DEBUG
             size_t build_log_size = 0;
 
             CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
@@ -16455,7 +16458,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            if (build_log_size > 1)
+            if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
             {
               char *build_log = (char *) mymalloc (build_log_size + 1);
 
@@ -16472,7 +16475,6 @@ int main (int argc, char **argv)
 
               myfree (build_log);
             }
-            #endif
 
             if (CL_err != CL_SUCCESS)
             {
@@ -16577,7 +16579,6 @@ int main (int argc, char **argv)
             //return -1;
           }
 
-          #ifdef DEBUG
           size_t build_log_size = 0;
 
           CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
@@ -16589,7 +16590,7 @@ int main (int argc, char **argv)
             return -1;
           }
 
-          if (build_log_size > 1)
+          if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
           {
             char *build_log = (char *) mymalloc (build_log_size + 1);
 
@@ -16606,7 +16607,6 @@ int main (int argc, char **argv)
 
             myfree (build_log);
           }
-          #endif
 
           if (CL_err != CL_SUCCESS)
           {
