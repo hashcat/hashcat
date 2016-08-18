@@ -25,6 +25,7 @@
 - Add support for --outfile (short -o) to be used together with --stdout
 - Skip periodic status output whenever --stdout is used together with stdin mode, but no outfile was specified
 - Show error message if --show is used together with --outfile-autohex-disable (this is currently not supported)
+- Show error message if --skip/--limit is used together with mask files or --increment
 
 ##
 ## Bugs
