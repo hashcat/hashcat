@@ -2548,7 +2548,11 @@ static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
   if (data.outfile != NULL)
   {
-    if ((out.fp = fopen (data.outfile, "ab")) == NULL)
+    if ((out.fp = fopen (data.outfile, "ab")) != NULL)
+    {
+      lock_file (out.fp);
+    }
+    else
     {
       log_error ("ERROR: %s: %s", data.outfile, strerror (errno));
 
@@ -2726,6 +2730,8 @@ static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
   if (out.fp != stdout)
   {
+    unlock_file (out.fp);
+
     fclose (out.fp);
   }
 }
