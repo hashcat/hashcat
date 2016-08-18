@@ -7226,6 +7226,16 @@ int main (int argc, char **argv)
     }
   }
 
+  if (show == 1)
+  {
+    if (outfile_autohex == 0)
+    {
+      log_error ("ERROR: Mixing outfile-autohex-disable parameter not allowed with show parameter");
+
+      return -1;
+    }
+  }
+
   uint attack_kern = ATTACK_KERN_NONE;
 
   switch (attack_mode)
