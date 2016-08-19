@@ -164,6 +164,7 @@ NVidia users require NVidia drivers 346.59 or later (recommended 367.27 or later
 - RACF
 - Radmin2
 - Redmine
+- OpenCart
 - Citrix Netscaler
 - SAP CODVN B (BCODE)
 - SAP CODVN F/G (PASSCODE)
