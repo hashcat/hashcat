@@ -4483,7 +4483,7 @@ uint count_lines (FILE *fd)
 
 void truecrypt_crc32 (const char *filename, u8 keytab[64])
 {
-  uint crc = ~0;
+  uint crc = ~0u;
 
   FILE *fd = fopen (filename, "rb");
 
@@ -5456,7 +5456,7 @@ void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int inpu
 
   // only show the hash part which is still not cracked
 
-  uint user_len = input_len - 32;
+  uint user_len = input_len - 32u;
 
   char *hash_output = (char *) mymalloc (33);
 
@@ -5516,7 +5516,7 @@ uint setup_opencl_platforms_filter (char *opencl_platforms)
   }
   else
   {
-    opencl_platforms_filter = -1;
+    opencl_platforms_filter = -1u;
   }
 
   return opencl_platforms_filter;
@@ -5551,7 +5551,7 @@ u32 setup_devices_filter (char *opencl_devices)
   }
   else
   {
-    devices_filter = -1;
+    devices_filter = -1u;
   }
 
   return devices_filter;
@@ -6949,7 +6949,7 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
 
     ikepsk_t *ikepsk  = &ikepsks[salt_pos];
 
-    int buf_len = len -1;
+    int buf_len = len - 1;
 
     // msg_buf
 
@@ -7015,7 +7015,7 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
 
     ikepsk_t *ikepsk  = &ikepsks[salt_pos];
 
-    int buf_len = len -1;
+    int buf_len = len - 1;
 
     // msg_buf
 
@@ -9562,7 +9562,7 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
 
 u64 get_lowest_words_done ()
 {
-  u64 words_cur = -1;
+  u64 words_cur = -1u;
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
@@ -10140,7 +10140,7 @@ int bcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   digest[4] = byte_swap_32 (digest[4]);
   digest[5] = byte_swap_32 (digest[5]);
 
-  digest[5] &= ~0xff; // its just 23 not 24 !
+  digest[5] &= ~0xffu; // its just 23 not 24 !
 
   return (PARSER_OK);
 }
@@ -20407,7 +20407,7 @@ int ms_drsr_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_len = salt_len / 2;
 
-  salt->salt_iter = atoi (iter_pos) - 1;
+  salt->salt_iter = atoi (iter_pos) - 1u;
 
   /**
    * digest buf

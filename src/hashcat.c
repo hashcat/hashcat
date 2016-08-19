@@ -5406,7 +5406,7 @@ static void *thread_calc (void *p)
   {
     while ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
     {
-      const uint work = get_work (device_param, -1);
+      const uint work = get_work (device_param, -1u);
 
       if (work == 0) break;
 
@@ -5521,7 +5521,7 @@ static void *thread_calc (void *p)
       u64 words_off = 0;
       u64 words_fin = 0;
 
-      u64 max = -1;
+      u64 max = -1u;
 
       while (max)
       {
@@ -7944,10 +7944,10 @@ int main (int argc, char **argv)
   uint dgst_size   = 0;
   uint esalt_size  = 0;
   uint opti_type   = 0;
-  uint dgst_pos0   = -1;
-  uint dgst_pos1   = -1;
-  uint dgst_pos2   = -1;
-  uint dgst_pos3   = -1;
+  uint dgst_pos0   = -1u;
+  uint dgst_pos1   = -1u;
+  uint dgst_pos2   = -1u;
+  uint dgst_pos3   = -1u;
 
   int (*parse_func) (char *, uint, hash_t *);
   int (*sort_by_digest) (const void *, const void *);
@@ -14022,8 +14022,8 @@ int main (int argc, char **argv)
 
     bitmap_size = bitmap_nums * sizeof (uint);
 
-    generate_bitmaps (digests_cnt, dgst_size, bitmap_shift1, (char *) data.digests_buf, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, -1);
-    generate_bitmaps (digests_cnt, dgst_size, bitmap_shift2, (char *) data.digests_buf, bitmap_mask, bitmap_size, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d, -1);
+    generate_bitmaps (digests_cnt, dgst_size, bitmap_shift1, (char *) data.digests_buf, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, -1ul);
+    generate_bitmaps (digests_cnt, dgst_size, bitmap_shift2, (char *) data.digests_buf, bitmap_mask, bitmap_size, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d, -1ul);
 
     /**
      * prepare quick rule
@@ -17008,10 +17008,10 @@ int main (int argc, char **argv)
 
       if (benchmark == 1)
       {
-        ((uint *) digests_buf)[0] = -1;
-        ((uint *) digests_buf)[1] = -1;
-        ((uint *) digests_buf)[2] = -1;
-        ((uint *) digests_buf)[3] = -1;
+        ((uint *) digests_buf)[0] = -1u;
+        ((uint *) digests_buf)[1] = -1u;
+        ((uint *) digests_buf)[2] = -1u;
+        ((uint *) digests_buf)[3] = -1u;
       }
 
       /**
