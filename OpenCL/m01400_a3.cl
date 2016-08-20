@@ -14,6 +14,20 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
+#define SHA256_STEP_REV(a,b,c,d,e,f,g,h)        \
+{                                               \
+  u32 t2 = SHA256_S2_S(b) + SHA256_F0o(b,c,d);  \
+  u32 t1 = a - t2;                              \
+  a = b;                                        \
+  b = c;                                        \
+  c = d;                                        \
+  d = e - t1;                                   \
+  e = f;                                        \
+  f = g;                                        \
+  g = h;                                        \
+  h = 0;                                        \
+}
+
 void m01400m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_rule_t *rules_buf, __global comb_t *combs_buf, __constant u32x * words_buf_r, __global void *tmps, __global void *hooks, __global u32 *bitmaps_buf_s1_a, __global u32 *bitmaps_buf_s1_b, __global u32 *bitmaps_buf_s1_c, __global u32 *bitmaps_buf_s1_d, __global u32 *bitmaps_buf_s2_a, __global u32 *bitmaps_buf_s2_b, __global u32 *bitmaps_buf_s2_c, __global u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global digest_t *digests_buf, __global u32 *hashes_shown, __global salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
@@ -155,6 +169,24 @@ void m01400s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_r
   };
 
   /**
+   * reverse
+   */
+
+  u32 a_rev = digests_buf[digests_offset].digest_buf[0];
+  u32 b_rev = digests_buf[digests_offset].digest_buf[1];
+  u32 c_rev = digests_buf[digests_offset].digest_buf[2];
+  u32 d_rev = digests_buf[digests_offset].digest_buf[3];
+  u32 e_rev = digests_buf[digests_offset].digest_buf[4];
+  u32 f_rev = digests_buf[digests_offset].digest_buf[5];
+  u32 g_rev = digests_buf[digests_offset].digest_buf[6];
+  u32 h_rev = digests_buf[digests_offset].digest_buf[7];
+
+  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
+  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
+  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
+  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
+
+  /**
    * loop
    */
 
@@ -252,13 +284,13 @@ void m01400s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global kernel_r
     w6_t = SHA256_EXPAND (w4_t, wf_t, w7_t, w6_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, w6_t, SHA256C36);
     w7_t = SHA256_EXPAND (w5_t, w0_t, w8_t, w7_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, w7_t, SHA256C37);
     w8_t = SHA256_EXPAND (w6_t, w1_t, w9_t, w8_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w8_t, SHA256C38);
+
+    if (MATCHES_NONE_VS (h, d_rev)) continue;
+
     w9_t = SHA256_EXPAND (w7_t, w2_t, wa_t, w9_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w9_t, SHA256C39);
     wa_t = SHA256_EXPAND (w8_t, w3_t, wb_t, wa_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, wa_t, SHA256C3a);
     wb_t = SHA256_EXPAND (w9_t, w4_t, wc_t, wb_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, wb_t, SHA256C3b);
     wc_t = SHA256_EXPAND (wa_t, w5_t, wd_t, wc_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, wc_t, SHA256C3c);
-
-    if (MATCHES_NONE_VS (d, search[0])) continue;
-
     wd_t = SHA256_EXPAND (wb_t, w6_t, we_t, wd_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, wd_t, SHA256C3d);
     we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, SHA256C3e);
     wf_t = SHA256_EXPAND (wd_t, w8_t, w0_t, wf_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, SHA256C3f);
