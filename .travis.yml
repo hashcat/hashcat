@@ -1,13 +1,27 @@
 os:
   - linux
   - osx
-language: c
+dist: trusty
+language:
+  - c
+  - cpp
+before_install:
+  - git clone --depth 1 --recurse-submodules https://cmake.org/cmake.git cmake_build
+  - cd cmake_build
+  - cmake .
+  - make
+  - sudo make install
+  - cd ..
+  - rm -rfdv ./cmake_build
 install:
-  - mkdir -p deps/OpenCL-Headers
-  - git clone https://github.com/KhronosGroup/OpenCL-Headers deps/OpenCL-Headers/CL
+  - git submodule update --recursive
 compiler:
   - clang
   - gcc
+  - g++
 script:
+  - mkdir ./build
+  - cd build
+  - cmake ../
   - make
 

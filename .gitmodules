@@ -1,0 +1,6 @@
+[submodule "*nixShims4Windows"]
+	path = deps/nixShims4Windows
+	url = https://github.com/KOLANICH/nixShims4Windows.git
+[submodule "OpenCL-Headers"]
+	path = deps/OpenCL-Headers/CL
+	url = https://github.com/KhronosGroup/OpenCL-Headers.git

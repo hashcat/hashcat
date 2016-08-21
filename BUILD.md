@@ -8,26 +8,63 @@ hashcat build documentation
 * Christoph Heuwieser <<dropdead@hashcat.net>>
 * magnum <<john.magnum@hushmail.com>>
 
-# Building hashcat for Linux and OSX
+# Prepare for building
 
-Get a copy of the **hashcat** repository
+* Get a copy of the **hashcat** repository
 
 ```sh
 $ git clone https://github.com/hashcat/hashcat.git
+$ cd hashcat
 ```
 
-Get a copy of the **OpenCL Headers** repository
+* Get a copy of the **OpenCL Headers** repository and a copy of .nix windows shims, if you want to build it with Visual Studio
 
 ```sh
-$ mkdir -p deps/OpenCL-Headers
-$ git clone https://github.com/KhronosGroup/OpenCL-Headers deps/OpenCL-Headers/CL
+$ git submodule update --recursive
 ```
 
-Run "make"
+* Install CMake for your OS. You can download it from [official website](https://www.cmake.org/download#latest).
+	
+* Create build dir
+	```sh
+	$ mkdir build
+	$ cd build
+	```
 
+# Create project and build
+You can just 
 ```sh
-$ make
+	cmake ..
 ```
+to select toolchain automatically based on what you have.
+
+## Linux/BSD/Mac
+  ```sh
+	cmake -G "Unix Makefiles" ..
+	make
+  ```
+
+## Windows (create nmake makefile)
+  ```powershell
+	cmake -G "NMake Makefiles" ..
+	nmake
+  ```
+  
+## Windows (create Visual Studio project)
+  * determine VS version number (for example 14) and year number (for example 2015)
+  *
+  ```powershell
+	cmake -G "Visual Studio <version number> <year number>" ..
+	devenv hashcat.sln
+  ```
+  * Build with VS
+
+## Windows (MinGW)
+  * ```powershell
+	cmake -G "MinGW Makefiles" ..
+	make
+  ```
+	* If you use CodeBlocks prepend with ```CodeBlocks - ```
 
 # Install hashcat for Linux
 
@@ -39,11 +76,6 @@ $ make install
 
 If you install it, cached kernels, session files, restore- and pot-files etc. will go to $HOME/.hashcat/
 
-# Building hashcat for Windows
-
-```sh
-$ make win32 win64
-```
 
 =
 Enjoy your fresh **hashcat** binaries ;)

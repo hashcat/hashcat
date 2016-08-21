@@ -16,145 +16,118 @@
 
 #include <common.h>
 #include <shared.h>
+#include <bit_ops.h>
 #include <rp_kernel_on_cpu.h>
 #include <getopt.h>
+#include <consts/hash_types.h>
+#include <consts/kernel_types.h>
+#include <consts/digest_sizes.h>
+#include <consts/hash_options.h>
+#include <consts/salt_types.h>
+#include <consts/outfile_formats.h>
+#include <consts/parser.h>
+#include <consts/rounds_count.h>
+#include <consts/optimizer_options.h>
+#include <consts/devices_vendors.h>
+#include <consts/hashcat_modes.h>
+#include <cpu/cpu-md5.h>
+#include <converter.h>
+#include <cpu_rules.h>
+#include <logfile.h>
+#include <sort_by.h>
+#include <parse_hash.h>
+#include <mask_processor.h>
+#include <stat_processor.h>
+#include <logging.h>
+#include <hc_global_data_t.h>
+#include <hc_global.h>
+#include <hc_device_param_t.h>
+#include <status_display.h>
+#include <filenames_generators.h>
+#include <check_hash.h>
+#include <hlfmt.h>
 
-const char *PROGNAME            = "hashcat";
-const uint  VERSION_BIN         = 310;
 const uint  RESTORE_MIN         = 300;
 
 double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 
-#define INCR_RULES              10000
-#define INCR_SALTS              100000
-#define INCR_MASKS              1000
-#define INCR_POT                1000
+hc_global_data_t data;
 
-#define USAGE                   0
-#define VERSION                 0
-#define QUIET                   0
-#define MARKOV_THRESHOLD        0
-#define MARKOV_DISABLE          0
-#define MARKOV_CLASSIC          0
-#define BENCHMARK               0
-#define STDOUT_FLAG             0
-#define RESTORE                 0
-#define RESTORE_TIMER           60
-#define RESTORE_DISABLE         0
-#define STATUS                  0
-#define STATUS_TIMER            10
-#define MACHINE_READABLE        0
-#define LOOPBACK                0
-#define WEAK_HASH_THRESHOLD     100
-#define SHOW                    0
-#define LEFT                    0
-#define USERNAME                0
-#define REMOVE                  0
-#define REMOVE_TIMER            60
-#define SKIP                    0
-#define LIMIT                   0
-#define KEYSPACE                0
-#define POTFILE_DISABLE         0
-#define DEBUG_MODE              0
-#define RP_GEN                  0
-#define RP_GEN_FUNC_MIN         1
-#define RP_GEN_FUNC_MAX         4
-#define RP_GEN_SEED             0
-#define RULE_BUF_L              ":"
-#define RULE_BUF_R              ":"
-#define FORCE                   0
-#define RUNTIME                 0
-#define HEX_CHARSET             0
-#define HEX_SALT                0
-#define HEX_WORDLIST            0
-#define OUTFILE_FORMAT          3
-#define OUTFILE_AUTOHEX         1
-#define OUTFILE_CHECK_TIMER     5
-#define ATTACK_MODE             0
-#define HASH_MODE               0
-#define SEGMENT_SIZE            32
-#define INCREMENT               0
-#define INCREMENT_MIN           1
-#define INCREMENT_MAX           PW_MAX
-#define SEPARATOR               ':'
-#define BITMAP_MIN              16
-#define BITMAP_MAX              24
-#define NVIDIA_SPIN_DAMP        100
-#define GPU_TEMP_DISABLE        0
-#define GPU_TEMP_ABORT          90
-#define GPU_TEMP_RETAIN         75
-#define WORKLOAD_PROFILE        2
-#define KERNEL_ACCEL            0
-#define KERNEL_LOOPS            0
-#define KERNEL_RULES            1024
-#define KERNEL_COMBS            1024
-#define KERNEL_BFS              1024
-#define KERNEL_THREADS_MAX      256
-#define KERNEL_THREADS_MAX_CPU  1
-#define POWERTUNE_ENABLE        0
-#define LOGFILE_DISABLE         0
-#define SCRYPT_TMTO             0
-#define OPENCL_VECTOR_WIDTH     0
+typedef enum INCR_ {
+  INCR_RULES=10000,
+  INCR_SALTS=100000,
+  INCR_MASKS=1000,
+  INCR_POT=1000
+} INCR;
 
-#define WL_MODE_STDIN           1
-#define WL_MODE_FILE            2
-#define WL_MODE_MASK            3
+typedef enum HASHCAT_MISC_ENUM_ {
+  USAGE=0,
+  VERSION=0,
+  QUIET=0,
+  MARKOV_THRESHOLD=0,
+  MARKOV_DISABLE=0,
+  MARKOV_CLASSIC=0,
+  BENCHMARK=0,
+  STDOUT_FLAG=0,
+  RESTORE=0,
+  RESTORE_TIMER=60,
+  RESTORE_DISABLE=0,
+  STATUS=0,
+  STATUS_TIMER=10,
+  MACHINE_READABLE=0,
+  LOOPBACK=0,
+  WEAK_HASH_THRESHOLD=100,
+  SHOW=0,
+  LEFT=0,
+  USERNAME=0,
+  REMOVE=0,
+  REMOVE_TIMER=60,
+  SKIP=0,
+  LIMIT=0,
+  KEYSPACE=0,
+  POTFILE_DISABLE=0,
+  DEBUG_MODE=0,
+  RP_GEN=0,
+  RP_GEN_FUNC_MIN=1,
+  RP_GEN_FUNC_MAX=4,
+  RP_GEN_SEED=0,
+  FORCE=0,
+  RUNTIME=0,
+  HEX_CHARSET=0,
+  HEX_SALT=0,
+  HEX_WORDLIST=0,
+  OUTFILE_FORMAT=3,
+  OUTFILE_AUTOHEX=1,
+  OUTFILE_CHECK_TIMER=5,
+  HASH_MODE=0,
+  SEGMENT_SIZE=32,
+  INCREMENT=0,
+  INCREMENT_MIN=1,
+  INCREMENT_MAX=PW_MAX,
+  BITMAP_MIN=16,
+  BITMAP_MAX=24,
+  NVIDIA_SPIN_DAMP=100,
+  GPU_TEMP_DISABLE=0,
+  GPU_TEMP_ABORT=90,
+  GPU_TEMP_RETAIN=75,
+  WORKLOAD_PROFILE=2,
+  KERNEL_ACCEL=0,
+  KERNEL_LOOPS=0,
+  KERNEL_RULES=1024,
+  KERNEL_COMBS=1024,
+  KERNEL_BFS=1024,
+  KERNEL_THREADS_MAX=256,
+  KERNEL_THREADS_MAX_CPU=1,
+  POWERTUNE_ENABLE=0,
+  LOGFILE_DISABLE=0,
+  SCRYPT_TMTO=0,
+  OPENCL_VECTOR_WIDTH=0,
+}HASHCAT_MISC_ENUM;
 
-#define HL_MODE_FILE            4
-#define HL_MODE_ARG             5
+static const char RULE_BUF_L[] = ":";
+static const char RULE_BUF_R[] = ":";
+static const char SEPARATOR = ':';
 
-#define HLFMTS_CNT              11
-#define HLFMT_HASHCAT           0
-#define HLFMT_PWDUMP            1
-#define HLFMT_PASSWD            2
-#define HLFMT_SHADOW            3
-#define HLFMT_DCC               4
-#define HLFMT_DCC2              5
-#define HLFMT_NETNTLM1          7
-#define HLFMT_NETNTLM2          8
-#define HLFMT_NSLDAP            9
-#define HLFMT_NSLDAPS           10
-
-#define HLFMT_TEXT_HASHCAT      "native hashcat"
-#define HLFMT_TEXT_PWDUMP       "pwdump"
-#define HLFMT_TEXT_PASSWD       "passwd"
-#define HLFMT_TEXT_SHADOW       "shadow"
-#define HLFMT_TEXT_DCC          "DCC"
-#define HLFMT_TEXT_DCC2         "DCC 2"
-#define HLFMT_TEXT_NETNTLM1     "NetNTLMv1"
-#define HLFMT_TEXT_NETNTLM2     "NetNTLMv2"
-#define HLFMT_TEXT_NSLDAP       "nsldap"
-#define HLFMT_TEXT_NSLDAPS      "nsldaps"
-
-#define ATTACK_MODE_STRAIGHT    0
-#define ATTACK_MODE_COMBI       1
-#define ATTACK_MODE_TOGGLE      2
-#define ATTACK_MODE_BF          3
-#define ATTACK_MODE_PERM        4
-#define ATTACK_MODE_TABLE       5
-#define ATTACK_MODE_HYBRID1     6
-#define ATTACK_MODE_HYBRID2     7
-#define ATTACK_MODE_NONE        100
-
-#define ATTACK_KERN_STRAIGHT    0
-#define ATTACK_KERN_COMBI       1
-#define ATTACK_KERN_BF          3
-#define ATTACK_KERN_NONE        100
-
-#define ATTACK_EXEC_OUTSIDE_KERNEL  10
-#define ATTACK_EXEC_INSIDE_KERNEL   11
-
-#define COMBINATOR_MODE_BASE_LEFT   10001
-#define COMBINATOR_MODE_BASE_RIGHT  10002
-
-#define MIN(a,b) (((a) < (b)) ? (a) : (b))
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
-
-#define MAX_CUT_TRIES           4
-
-#define MAX_DICTSTAT            10000
-
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 144
 
 #define NVIDIA_100PERCENTCPU_WORKAROUND 100
 
@@ -178,153 +151,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 #define HC_API_CALL
 #endif
 
-static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
-{
-  900,
-  0,
-  5100,
-  100,
-  1400,
-  10800,
-  1700,
-  5000,
-  10100,
-  6000,
-  6100,
-  6900,
-  11700,
-  11800,
-  400,
-  8900,
-  11900,
-  12000,
-  10900,
-  12100,
-  23,
-  2500,
-  5300,
-  5400,
-  5500,
-  5600,
-  7300,
-  7500,
-  13100,
-  8300,
-  11100,
-  11200,
-  11400,
-  121,
-  2611,
-  2711,
-  2811,
-  8400,
-  13900,
-  11,
-  2612,
-  7900,
-  21,
-  11000,
-  124,
-  10000,
-  3711,
-  7600,
-  12,
-  131,
-  132,
-  1731,
-  200,
-  300,
-  3100,
-  112,
-  12300,
-  8000,
-  141,
-  1441,
-  1600,
-  12600,
-  1421,
-  101,
-  111,
-  1711,
-  3000,
-  1000,
-  1100,
-  2100,
-  12800,
-  1500,
-  12400,
-  500,
-  3200,
-  7400,
-  1800,
-  122,
-  1722,
-  7100,
-  6300,
-  6700,
-  6400,
-  6500,
-  2400,
-  2410,
-  5700,
-  9200,
-  9300,
-  22,
-  501,
-  5800,
-  8100,
-  8500,
-  7200,
-  9900,
-  7700,
-  7800,
-  10300,
-  8600,
-  8700,
-  9100,
-  133,
-  13500,
-  11600,
-  13600,
-  12500,
-  13000,
-  13200,
-  13300,
-  6211,
-  6221,
-  6231,
-  6241,
-  13711,
-  13721,
-  13731,
-  13741,
-  13751,
-  13761,
-  8800,
-  12900,
-  12200,
-  9700,
-  9710,
-  9800,
-  9810,
-  9400,
-  9500,
-  9600,
-  10400,
-  10410,
-  10500,
-  10600,
-  10700,
-  9000,
-  5200,
-  6800,
-  6600,
-  8200,
-  11300,
-  12700,
-  13400,
-  125
-};
+#include <default_benchmark_algorithms.h>
 
 /**
  * types
@@ -346,1416 +173,12 @@ hc_thread_mutex_t mux_counter;
 hc_thread_mutex_t mux_dispatcher;
 hc_thread_mutex_t mux_display;
 
-hc_global_data_t data;
 
 const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
-
-const char *USAGE_MINI[] =
-{
-  "Usage: %s [options]... hash|hashfile|hccapfile [dictionary|mask|directory]...",
-  "",
-  "Try --help for more help.",
-  NULL
-};
-
-const char *USAGE_BIG[] =
-{
-  "%s, advanced password recovery",
-  "",
-  "Usage: %s [options]... hash|hashfile|hccapfile [dictionary|mask|directory]...",
-  "",
-  "- [ Options ] -",
-  "",
-  " Options Short / Long          | Type | Description                                          | Example",
-  "===============================+======+======================================================+=======================",
-  " -m, --hash-type               | Num  | Hash-type, see references below                      | -m 1000",
-  " -a, --attack-mode             | Num  | Attack-mode, see references below                    | -a 3",
-  " -V, --version                 |      | Print version                                        |",
-  " -h, --help                    |      | Print help                                           |",
-  "     --quiet                   |      | Suppress output                                      |",
-  "     --hex-charset             |      | Assume charset is given in hex                       |",
-  "     --hex-salt                |      | Assume salt is given in hex                          |",
-  "     --hex-wordlist            |      | Assume words in wordlist is given in hex             |",
-  "     --force                   |      | Ignore warnings                                      |",
-  "     --status                  |      | Enable automatic update of the status-screen         |",
-  "     --status-timer            | Num  | Sets seconds between status-screen update to X       | --status-timer=1",
-  "     --machine-readable        |      | Display the status view in a machine readable format |",
-  "     --loopback                |      | Add new plains to induct directory                   |",
-  "     --weak-hash-threshold     | Num  | Threshold X when to stop checking for weak hashes    | --weak=0",
-  "     --markov-hcstat           | File | Specify hcstat file to use                           | --markov-hc=my.hcstat",
-  "     --markov-disable          |      | Disables markov-chains, emulates classic brute-force |",
-  "     --markov-classic          |      | Enables classic markov-chains, no per-position       |",
-  " -t, --markov-threshold        | Num  | Threshold X when to stop accepting new markov-chains | -t 50",
-  "     --runtime                 | Num  | Abort session after X seconds of runtime             | --runtime=10",
-  "     --session                 | Str  | Define specific session name                         | --session=mysession",
-  "     --restore                 |      | Restore session from --session                       |",
-  "     --restore-disable         |      | Do not write restore file                            |",
-  " -o, --outfile                 | File | Define outfile for recovered hash                    | -o outfile.txt",
-  "     --outfile-format          | Num  | Define outfile-format X for recovered hash           | --outfile-format=7",
-  "     --outfile-autohex-disable |      | Disable the use of $HEX[] in output plains           |",
-  "     --outfile-check-timer     | Num  | Sets seconds between outfile checks to X             | --outfile-check=30",
-  " -p, --separator               | Char | Separator char for hashlists and outfile             | -p :",
-  "     --stdout                  |      | Do not crack a hash, instead print candidates only   |",
-  "     --show                    |      | Compare hashlist with potfile; Show cracked hashes   |",
-  "     --left                    |      | Compare hashlist with potfile; Show uncracked hashes |",
-  "     --username                |      | Enable ignoring of usernames in hashfile             |",
-  "     --remove                  |      | Enable remove of hash once it is cracked             |",
-  "     --remove-timer            | Num  | Update input hash file each X seconds                | --remove-timer=30",
-  "     --potfile-disable         |      | Do not write potfile                                 |",
-  "     --potfile-path            | Dir  | Specific path to potfile                             | --potfile-path=my.pot",
-  "     --debug-mode              | Num  | Defines the debug mode (hybrid only by using rules)  | --debug-mode=4",
-  "     --debug-file              | File | Output file for debugging rules                      | --debug-file=good.log",
-  "     --induction-dir           | Dir  | Specify the induction directory to use for loopback  | --induction=inducts",
-  "     --outfile-check-dir       | Dir  | Specify the outfile directory to monitor for plains  | --outfile-check-dir=x",
-  "     --logfile-disable         |      | Disable the logfile                                  |",
-  "     --truecrypt-keyfiles      | File | Keyfiles used, separate with comma                   | --truecrypt-key=x.png",
-  "     --veracrypt-keyfiles      | File | Keyfiles used, separate with comma                   | --veracrypt-key=x.txt",
-  "     --veracrypt-pim           | Num  | VeraCrypt personal iterations multiplier             | --veracrypt-pim=1000",
-  " -b, --benchmark               |      | Run benchmark                                        |",
-  " -c, --segment-size            | Num  | Sets size in MB to cache from the wordfile to X      | -c 32",
-  "     --bitmap-min              | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24",
-  "     --bitmap-max              | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-min=24",
-  "     --cpu-affinity            | Str  | Locks to CPU devices, separate with comma            | --cpu-affinity=1,2,3",
-  "     --opencl-platforms        | Str  | OpenCL platforms to use, separate with comma         | --opencl-platforms=2",
-  " -d, --opencl-devices          | Str  | OpenCL devices to use, separate with comma           | -d 1",
-  " -D, --opencl-device-types     | Str  | OpenCL device-types to use, separate with comma      | -D 1",
-  "     --opencl-vector-width     | Num  | Manual override OpenCL vector-width to X             | --opencl-vector=4",
-  " -w, --workload-profile        | Num  | Enable a specific workload profile, see pool below   | -w 3",
-  " -n, --kernel-accel            | Num  | Manual workload tuning, set outerloop step size to X | -n 64",
-  " -u, --kernel-loops            | Num  | Manual workload tuning, set innerloop step size to X | -u 256",
-  "     --nvidia-spin-damp        | Num  | Workaround NVidias CPU burning loop bug, in percent  | --nvidia-spin-damp=50",
-  "     --gpu-temp-disable        |      | Disable temperature and fanspeed reads and triggers  |",
-  #ifdef HAVE_HWMON
-  "     --gpu-temp-abort          | Num  | Abort if GPU temperature reaches X degrees celsius   | --gpu-temp-abort=100",
-  "     --gpu-temp-retain         | Num  | Try to retain GPU temperature at X degrees celsius   | --gpu-temp-retain=95",
-  "     --powertune-enable        |      | Enable power tuning, restores settings when finished |",
-  #endif
-  "     --scrypt-tmto             | Num  | Manually override TMTO value for scrypt to X         | --scrypt-tmto=3",
-  " -s, --skip                    | Num  | Skip X words from the start                          | -s 1000000",
-  " -l, --limit                   | Num  | Limit X words from the start + skipped words         | -l 1000000",
-  "     --keyspace                |      | Show keyspace base:mod values and quit               |",
-  " -j, --rule-left               | Rule | Single rule applied to each word from left wordlist  | -j 'c'",
-  " -k, --rule-right              | Rule | Single rule applied to each word from right wordlist | -k '^-'",
-  " -r, --rules-file              | File | Multiple rules applied to each word from wordlists   | -r rules/best64.rule",
-  " -g, --generate-rules          | Num  | Generate X random rules                              | -g 10000",
-  "     --generate-rules-func-min | Num  | Force min X funcs per rule                           |",
-  "     --generate-rules-func-max | Num  | Force max X funcs per rule                           |",
-  "     --generate-rules-seed     | Num  | Force RNG seed set to X                              |",
-  " -1, --custom-charset1         | CS   | User-defined charset ?1                              | -1 ?l?d?u",
-  " -2, --custom-charset2         | CS   | User-defined charset ?2                              | -2 ?l?d?s",
-  " -3, --custom-charset3         | CS   | User-defined charset ?3                              |",
-  " -4, --custom-charset4         | CS   | User-defined charset ?4                              |",
-  " -i, --increment               |      | Enable mask increment mode                           |",
-  "     --increment-min           | Num  | Start mask incrementing at X                         | --increment-min=4",
-  "     --increment-max           | Num  | Stop mask incrementing at X                          | --increment-max=8",
-  "",
-  "- [ Hash modes ] -",
-  "",
-  "      # | Name                                             | Category",
-  "  ======+==================================================+======================================",
-  "    900 | MD4                                              | Raw Hash",
-  "      0 | MD5                                              | Raw Hash",
-  "   5100 | Half MD5                                         | Raw Hash",
-  "    100 | SHA1                                             | Raw Hash",
-  "  10800 | SHA-384                                          | Raw Hash",
-  "   1400 | SHA-256                                          | Raw Hash",
-  "   1700 | SHA-512                                          | Raw Hash",
-  "   5000 | SHA-3(Keccak)                                    | Raw Hash",
-  "  10100 | SipHash                                          | Raw Hash",
-  "   6000 | RipeMD160                                        | Raw Hash",
-  "   6100 | Whirlpool                                        | Raw Hash",
-  "   6900 | GOST R 34.11-94                                  | Raw Hash",
-  "  11700 | GOST R 34.11-2012 (Streebog) 256-bit             | Raw Hash",
-  "  11800 | GOST R 34.11-2012 (Streebog) 512-bit             | Raw Hash",
-  "     10 | md5($pass.$salt)                                 | Raw Hash, Salted and / or Iterated",
-  "     20 | md5($salt.$pass)                                 | Raw Hash, Salted and / or Iterated",
-  "     30 | md5(unicode($pass).$salt)                        | Raw Hash, Salted and / or Iterated",
-  "     40 | md5($salt.unicode($pass))                        | Raw Hash, Salted and / or Iterated",
-  "   3800 | md5($salt.$pass.$salt)                           | Raw Hash, Salted and / or Iterated",
-  "   3710 | md5($salt.md5($pass))                            | Raw Hash, Salted and / or Iterated",
-  "   2600 | md5(md5($pass))                                  | Raw Hash, Salted and / or Iterated",
-  "   4300 | md5(strtoupper(md5($pass)))                      | Raw Hash, Salted and / or Iterated",
-  "   4400 | md5(sha1($pass))                                 | Raw Hash, Salted and / or Iterated",
-  "    110 | sha1($pass.$salt)                                | Raw Hash, Salted and / or Iterated",
-  "    120 | sha1($salt.$pass)                                | Raw Hash, Salted and / or Iterated",
-  "    130 | sha1(unicode($pass).$salt)                       | Raw Hash, Salted and / or Iterated",
-  "    140 | sha1($salt.unicode($pass))                       | Raw Hash, Salted and / or Iterated",
-  "   4500 | sha1(sha1($pass))                                | Raw Hash, Salted and / or Iterated",
-  "   4700 | sha1(md5($pass))                                 | Raw Hash, Salted and / or Iterated",
-  "   4900 | sha1($salt.$pass.$salt)                          | Raw Hash, Salted and / or Iterated",
-  "   1410 | sha256($pass.$salt)                              | Raw Hash, Salted and / or Iterated",
-  "   1420 | sha256($salt.$pass)                              | Raw Hash, Salted and / or Iterated",
-  "   1430 | sha256(unicode($pass).$salt)                     | Raw Hash, Salted and / or Iterated",
-  "   1440 | sha256($salt.unicode($pass))                     | Raw Hash, Salted and / or Iterated",
-  "   1710 | sha512($pass.$salt)                              | Raw Hash, Salted and / or Iterated",
-  "   1720 | sha512($salt.$pass)                              | Raw Hash, Salted and / or Iterated",
-  "   1730 | sha512(unicode($pass).$salt)                     | Raw Hash, Salted and / or Iterated",
-  "   1740 | sha512($salt.unicode($pass))                     | Raw Hash, Salted and / or Iterated",
-  "     50 | HMAC-MD5 (key = $pass)                           | Raw Hash, Authenticated",
-  "     60 | HMAC-MD5 (key = $salt)                           | Raw Hash, Authenticated",
-  "    150 | HMAC-SHA1 (key = $pass)                          | Raw Hash, Authenticated",
-  "    160 | HMAC-SHA1 (key = $salt)                          | Raw Hash, Authenticated",
-  "   1450 | HMAC-SHA256 (key = $pass)                        | Raw Hash, Authenticated",
-  "   1460 | HMAC-SHA256 (key = $salt)                        | Raw Hash, Authenticated",
-  "   1750 | HMAC-SHA512 (key = $pass)                        | Raw Hash, Authenticated",
-  "   1760 | HMAC-SHA512 (key = $salt)                        | Raw Hash, Authenticated",
-  "    400 | phpass                                           | Generic KDF",
-  "   8900 | scrypt                                           | Generic KDF",
-  "  11900 | PBKDF2-HMAC-MD5                                  | Generic KDF",
-  "  12000 | PBKDF2-HMAC-SHA1                                 | Generic KDF",
-  "  10900 | PBKDF2-HMAC-SHA256                               | Generic KDF",
-  "  12100 | PBKDF2-HMAC-SHA512                               | Generic KDF",
-  "     23 | Skype                                            | Network protocols",
-  "   2500 | WPA/WPA2                                         | Network protocols",
-  "   4800 | iSCSI CHAP authentication, MD5(Chap)             | Network protocols",
-  "   5300 | IKE-PSK MD5                                      | Network protocols",
-  "   5400 | IKE-PSK SHA1                                     | Network protocols",
-  "   5500 | NetNTLMv1                                        | Network protocols",
-  "   5500 | NetNTLMv1 + ESS                                  | Network protocols",
-  "   5600 | NetNTLMv2                                        | Network protocols",
-  "   7300 | IPMI2 RAKP HMAC-SHA1                             | Network protocols",
-  "   7500 | Kerberos 5 AS-REQ Pre-Auth etype 23              | Network protocols",
-  "   8300 | DNSSEC (NSEC3)                                   | Network protocols",
-  "  10200 | Cram MD5                                         | Network protocols",
-  "  11100 | PostgreSQL CRAM (MD5)                            | Network protocols",
-  "  11200 | MySQL CRAM (SHA1)                                | Network protocols",
-  "  11400 | SIP digest authentication (MD5)                  | Network protocols",
-  "  13100 | Kerberos 5 TGS-REP etype 23                      | Network protocols",
-  "    121 | SMF (Simple Machines Forum)                      | Forums, CMS, E-Commerce, Frameworks",
-  "    400 | phpBB3                                           | Forums, CMS, E-Commerce, Frameworks",
-  "   2611 | vBulletin < v3.8.5                               | Forums, CMS, E-Commerce, Frameworks",
-  "   2711 | vBulletin > v3.8.5                               | Forums, CMS, E-Commerce, Frameworks",
-  "   2811 | MyBB                                             | Forums, CMS, E-Commerce, Frameworks",
-  "   2811 | IPB (Invison Power Board)                        | Forums, CMS, E-Commerce, Frameworks",
-  "   8400 | WBB3 (Woltlab Burning Board)                     | Forums, CMS, E-Commerce, Frameworks",
-  "     11 | Joomla < 2.5.18                                  | Forums, CMS, E-Commerce, Frameworks",
-  "    400 | Joomla > 2.5.18                                  | Forums, CMS, E-Commerce, Frameworks",
-  "    400 | Wordpress                                        | Forums, CMS, E-Commerce, Frameworks",
-  "   2612 | PHPS                                             | Forums, CMS, E-Commerce, Frameworks",
-  "   7900 | Drupal7                                          | Forums, CMS, E-Commerce, Frameworks",
-  "     21 | osCommerce                                       | Forums, CMS, E-Commerce, Frameworks",
-  "     21 | xt:Commerce                                      | Forums, CMS, E-Commerce, Frameworks",
-  "  11000 | PrestaShop                                       | Forums, CMS, E-Commerce, Frameworks",
-  "    124 | Django (SHA-1)                                   | Forums, CMS, E-Commerce, Frameworks",
-  "  10000 | Django (PBKDF2-SHA256)                           | Forums, CMS, E-Commerce, Frameworks",
-  "   3711 | Mediawiki B type                                 | Forums, CMS, E-Commerce, Frameworks",
-  "   7600 | Redmine                                          | Forums, CMS, E-Commerce, Frameworks",
-  "  13900 | OpenCart                                         | Forums, CMS, E-Commerce, Frameworks",
-  "     12 | PostgreSQL                                       | Database Server",
-  "    131 | MSSQL(2000)                                      | Database Server",
-  "    132 | MSSQL(2005)                                      | Database Server",
-  "   1731 | MSSQL(2012)                                      | Database Server",
-  "   1731 | MSSQL(2014)                                      | Database Server",
-  "    200 | MySQL323                                         | Database Server",
-  "    300 | MySQL4.1/MySQL5                                  | Database Server",
-  "   3100 | Oracle H: Type (Oracle 7+)                       | Database Server",
-  "    112 | Oracle S: Type (Oracle 11+)                      | Database Server",
-  "  12300 | Oracle T: Type (Oracle 12+)                      | Database Server",
-  "   8000 | Sybase ASE                                       | Database Server",
-  "    141 | EPiServer 6.x < v4                               | HTTP, SMTP, LDAP Server",
-  "   1441 | EPiServer 6.x > v4                               | HTTP, SMTP, LDAP Server",
-  "   1600 | Apache $apr1$                                    | HTTP, SMTP, LDAP Server",
-  "  12600 | ColdFusion 10+                                   | HTTP, SMTP, LDAP Server",
-  "   1421 | hMailServer                                      | HTTP, SMTP, LDAP Server",
-  "    101 | nsldap, SHA-1(Base64), Netscape LDAP SHA         | HTTP, SMTP, LDAP Server",
-  "    111 | nsldaps, SSHA-1(Base64), Netscape LDAP SSHA      | HTTP, SMTP, LDAP Server",
-  "   1711 | SSHA-512(Base64), LDAP {SSHA512}                 | HTTP, SMTP, LDAP Server",
-  "  11500 | CRC32                                            | Checksums",
-  "   3000 | LM                                               | Operating-Systems",
-  "   1000 | NTLM                                             | Operating-Systems",
-  "   1100 | Domain Cached Credentials (DCC), MS Cache        | Operating-Systems",
-  "   2100 | Domain Cached Credentials 2 (DCC2), MS Cache 2   | Operating-Systems",
-  "  12800 | MS-AzureSync PBKDF2-HMAC-SHA256                  | Operating-Systems",
-  "   1500 | descrypt, DES(Unix), Traditional DES             | Operating-Systems",
-  "  12400 | BSDiCrypt, Extended DES                          | Operating-Systems",
-  "    500 | md5crypt $1$, MD5(Unix)                          | Operating-Systems",
-  "   3200 | bcrypt $2*$, Blowfish(Unix)                      | Operating-Systems",
-  "   7400 | sha256crypt $5$, SHA256(Unix)                    | Operating-Systems",
-  "   1800 | sha512crypt $6$, SHA512(Unix)                    | Operating-Systems",
-  "    122 | OSX v10.4, OSX v10.5, OSX v10.6                  | Operating-Systems",
-  "   1722 | OSX v10.7                                        | Operating-Systems",
-  "   7100 | OSX v10.8, OSX v10.9, OSX v10.10                 | Operating-Systems",
-  "   6300 | AIX {smd5}                                       | Operating-Systems",
-  "   6700 | AIX {ssha1}                                      | Operating-Systems",
-  "   6400 | AIX {ssha256}                                    | Operating-Systems",
-  "   6500 | AIX {ssha512}                                    | Operating-Systems",
-  "   2400 | Cisco-PIX                                        | Operating-Systems",
-  "   2410 | Cisco-ASA                                        | Operating-Systems",
-  "    500 | Cisco-IOS $1$                                    | Operating-Systems",
-  "   5700 | Cisco-IOS $4$                                    | Operating-Systems",
-  "   9200 | Cisco-IOS $8$                                    | Operating-Systems",
-  "   9300 | Cisco-IOS $9$                                    | Operating-Systems",
-  "     22 | Juniper Netscreen/SSG (ScreenOS)                 | Operating-Systems",
-  "    501 | Juniper IVE                                      | Operating-Systems",
-  "   5800 | Android PIN                                      | Operating-Systems",
-  "  13800 | Windows 8+ phone PIN/Password                    | Operating-Systems",
-  "   8100 | Citrix Netscaler                                 | Operating-Systems",
-  "   8500 | RACF                                             | Operating-Systems",
-  "   7200 | GRUB 2                                           | Operating-Systems",
-  "   9900 | Radmin2                                          | Operating-Systems",
-  "    125 | ArubaOS                                          | Operating-Systems",
-  "   7700 | SAP CODVN B (BCODE)                              | Enterprise Application Software (EAS)",
-  "   7800 | SAP CODVN F/G (PASSCODE)                         | Enterprise Application Software (EAS)",
-  "  10300 | SAP CODVN H (PWDSALTEDHASH) iSSHA-1              | Enterprise Application Software (EAS)",
-  "   8600 | Lotus Notes/Domino 5                             | Enterprise Application Software (EAS)",
-  "   8700 | Lotus Notes/Domino 6                             | Enterprise Application Software (EAS)",
-  "   9100 | Lotus Notes/Domino 8                             | Enterprise Application Software (EAS)",
-  "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
-  "  13500 | PeopleSoft Token                                 | Enterprise Application Software (EAS)",
-  "  11600 | 7-Zip                                            | Archives",
-  "  12500 | RAR3-hp                                          | Archives",
-  "  13000 | RAR5                                             | Archives",
-  "  13200 | AxCrypt                                          | Archives",
-  "  13300 | AxCrypt in memory SHA1                           | Archives",
-  "  13600 | WinZip                                           | Archives",
-  "   62XY | TrueCrypt                                        | Full-Disk encryptions (FDE)",
-  "     X  | 1 = PBKDF2-HMAC-RipeMD160                        | Full-Disk encryptions (FDE)",
-  "     X  | 2 = PBKDF2-HMAC-SHA512                           | Full-Disk encryptions (FDE)",
-  "     X  | 3 = PBKDF2-HMAC-Whirlpool                        | Full-Disk encryptions (FDE)",
-  "     X  | 4 = PBKDF2-HMAC-RipeMD160 + boot-mode            | Full-Disk encryptions (FDE)",
-  "      Y | 1 = XTS  512 bit pure AES                        | Full-Disk encryptions (FDE)",
-  "      Y | 1 = XTS  512 bit pure Serpent                    | Full-Disk encryptions (FDE)",
-  "      Y | 1 = XTS  512 bit pure Twofish                    | Full-Disk encryptions (FDE)",
-  "      Y | 2 = XTS 1024 bit pure AES                        | Full-Disk encryptions (FDE)",
-  "      Y | 2 = XTS 1024 bit pure Serpent                    | Full-Disk encryptions (FDE)",
-  "      Y | 2 = XTS 1024 bit pure Twofish                    | Full-Disk encryptions (FDE)",
-  "      Y | 2 = XTS 1024 bit cascaded AES-Twofish            | Full-Disk encryptions (FDE)",
-  "      Y | 2 = XTS 1024 bit cascaded Serpent-AES            | Full-Disk encryptions (FDE)",
-  "      Y | 2 = XTS 1024 bit cascaded Twofish-Serpent        | Full-Disk encryptions (FDE)",
-  "      Y | 3 = XTS 1536 bit all                             | Full-Disk encryptions (FDE)",
-  "   8800 | Android FDE < v4.3                               | Full-Disk encryptions (FDE)",
-  "  12900 | Android FDE (Samsung DEK)                        | Full-Disk encryptions (FDE)",
-  "  12200 | eCryptfs                                         | Full-Disk encryptions (FDE)",
-  "  137XY | VeraCrypt                                        | Full-Disk encryptions (FDE)",
-  "     X  | 1 = PBKDF2-HMAC-RipeMD160                        | Full-Disk encryptions (FDE)",
-  "     X  | 2 = PBKDF2-HMAC-SHA512                           | Full-Disk encryptions (FDE)",
-  "     X  | 3 = PBKDF2-HMAC-Whirlpool                        | Full-Disk encryptions (FDE)",
-  "     X  | 4 = PBKDF2-HMAC-RipeMD160 + boot-mode            | Full-Disk encryptions (FDE)",
-  "     X  | 5 = PBKDF2-HMAC-SHA256                           | Full-Disk encryptions (FDE)",
-  "     X  | 6 = PBKDF2-HMAC-SHA256 + boot-mode               | Full-Disk encryptions (FDE)",
-  "      Y | 1 = XTS  512 bit pure AES                        | Full-Disk encryptions (FDE)",
-  "      Y | 1 = XTS  512 bit pure Serpent                    | Full-Disk encryptions (FDE)",
-  "      Y | 1 = XTS  512 bit pure Twofish                    | Full-Disk encryptions (FDE)",
-  "      Y | 2 = XTS 1024 bit pure AES                        | Full-Disk encryptions (FDE)",
-  "      Y | 2 = XTS 1024 bit pure Serpent                    | Full-Disk encryptions (FDE)",
-  "      Y | 2 = XTS 1024 bit pure Twofish                    | Full-Disk encryptions (FDE)",
-  "      Y | 2 = XTS 1024 bit cascaded AES-Twofish            | Full-Disk encryptions (FDE)",
-  "      Y | 2 = XTS 1024 bit cascaded Serpent-AES            | Full-Disk encryptions (FDE)",
-  "      Y | 2 = XTS 1024 bit cascaded Twofish-Serpent        | Full-Disk encryptions (FDE)",
-  "      Y | 3 = XTS 1536 bit all                             | Full-Disk encryptions (FDE)",
-  "   9700 | MS Office <= 2003 $0|$1, MD5 + RC4               | Documents",
-  "   9710 | MS Office <= 2003 $0|$1, MD5 + RC4, collider #1  | Documents",
-  "   9720 | MS Office <= 2003 $0|$1, MD5 + RC4, collider #2  | Documents",
-  "   9800 | MS Office <= 2003 $3|$4, SHA1 + RC4              | Documents",
-  "   9810 | MS Office <= 2003 $3|$4, SHA1 + RC4, collider #1 | Documents",
-  "   9820 | MS Office <= 2003 $3|$4, SHA1 + RC4, collider #2 | Documents",
-  "   9400 | MS Office 2007                                   | Documents",
-  "   9500 | MS Office 2010                                   | Documents",
-  "   9600 | MS Office 2013                                   | Documents",
-  "  10400 | PDF 1.1 - 1.3 (Acrobat 2 - 4)                    | Documents",
-  "  10410 | PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #1       | Documents",
-  "  10420 | PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #2       | Documents",
-  "  10500 | PDF 1.4 - 1.6 (Acrobat 5 - 8)                    | Documents",
-  "  10600 | PDF 1.7 Level 3 (Acrobat 9)                      | Documents",
-  "  10700 | PDF 1.7 Level 8 (Acrobat 10 - 11)                | Documents",
-  "   9000 | Password Safe v2                                 | Password Managers",
-  "   5200 | Password Safe v3                                 | Password Managers",
-  "   6800 | Lastpass + Lastpass sniffed                      | Password Managers",
-  "   6600 | 1Password, agilekeychain                         | Password Managers",
-  "   8200 | 1Password, cloudkeychain                         | Password Managers",
-  "  11300 | Bitcoin/Litecoin wallet.dat                      | Password Managers",
-  "  12700 | Blockchain, My Wallet                            | Password Managers",
-  "  13400 | Keepass 1 (AES/Twofish) and Keepass 2 (AES)      | Password Managers",
-  "",
-  "- [ Outfile Formats ] -",
-  "",
-  "  # | Format",
-  " ===+========",
-  "  1 | hash[:salt]",
-  "  2 | plain",
-  "  3 | hash[:salt]:plain",
-  "  4 | hex_plain",
-  "  5 | hash[:salt]:hex_plain",
-  "  6 | plain:hex_plain",
-  "  7 | hash[:salt]:plain:hex_plain",
-  "  8 | crackpos",
-  "  9 | hash[:salt]:crack_pos",
-  " 10 | plain:crack_pos",
-  " 11 | hash[:salt]:plain:crack_pos",
-  " 12 | hex_plain:crack_pos",
-  " 13 | hash[:salt]:hex_plain:crack_pos",
-  " 14 | plain:hex_plain:crack_pos",
-  " 15 | hash[:salt]:plain:hex_plain:crack_pos",
-  "",
-  "- [ Rule Debugging Modes ] -",
-  "",
-  "  # | Format",
-  " ===+========",
-  "  1 | Finding-Rule",
-  "  2 | Original-Word",
-  "  3 | Original-Word:Finding-Rule",
-  "  4 | Original-Word:Finding-Rule:Processed-Word",
-  "",
-  "- [ Attack Modes ] -",
-  "",
-  "  # | Mode",
-  " ===+======",
-  "  0 | Straight",
-  "  1 | Combination",
-  "  3 | Brute-force",
-  "  6 | Hybrid Wordlist + Mask",
-  "  7 | Hybrid Mask + Wordlist",
-  "",
-  "- [ Built-in Charsets ] -",
-  "",
-  "  ? | Charset",
-  " ===+=========",
-  "  l | abcdefghijklmnopqrstuvwxyz",
-  "  u | ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-  "  d | 0123456789",
-  "  s |  !\"#$%%&'()*+,-./:;<=>?@[\\]^_`{|}~",
-  "  a | ?l?u?d?s",
-  "  b | 0x00 - 0xff",
-  "",
-  "- [ OpenCL Device Types ] -",
-  "",
-  "  # | Device Type",
-  " ===+=============",
-  "  1 | CPU",
-  "  2 | GPU",
-  "  3 | FPGA, DSP, Co-Processor",
-  "",
-  "- [ Workload Profiles ] -",
-  "",
-  "  # | Performance | Runtime | Power Consumption | Desktop Impact",
-  " ===+=============+=========+===================+=================",
-  "  1 | Low         |   2 ms  | Low               | Minimal",
-  "  2 | Default     |  12 ms  | Economic          | Noticeable",
-  "  3 | High        |  96 ms  | High              | Unresponsive",
-  "  4 | Nightmare   | 480 ms  | Insane            | Headless",
-  "",
-  "- [ Basic Examples ] -",
-  "",
-  "  Attack-          | Hash- |",
-  "  Mode             | Type  | Example command",
-  " ==================+=======+==================================================================",
-  "  Wordlist         | $P$   | %s -a 0 -m 400 example400.hash example.dict",
-  "  Wordlist + Rules | MD5   | %s -a 0 -m 0 example0.hash example.dict -r rules/best64.rule",
-  "  Brute-Force      | MD5   | %s -a 3 -m 0 example0.hash ?a?a?a?a?a?a",
-  "  Combinator       | MD5   | %s -a 1 -m 0 example0.hash example.dict example.dict",
-  "",
-  "If you still have no idea what just happened try following pages:",
-  "",
-  "* https://hashcat.net/wiki/#howtos_videos_papers_articles_etc_in_the_wild",
-  "* https://hashcat.net/wiki/#frequently_asked_questions",
-  NULL
-};
 
 /**
  * hashcat specific functions
  */
-
-static double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
-{
-  int exec_pos = (int) device_param->exec_pos - last_num_entries;
-
-  if (exec_pos < 0) exec_pos += EXEC_CACHE;
-
-  double exec_ms_sum = 0;
-
-  int exec_ms_cnt = 0;
-
-  for (int i = 0; i < last_num_entries; i++)
-  {
-    double exec_ms = device_param->exec_ms[(exec_pos + i) % EXEC_CACHE];
-
-    if (exec_ms)
-    {
-      exec_ms_sum += exec_ms;
-
-      exec_ms_cnt++;
-    }
-  }
-
-  if (exec_ms_cnt == 0) return 0;
-
-  return exec_ms_sum / exec_ms_cnt;
-}
-
-void status_display_machine_readable ()
-{
-  FILE *out = stdout;
-
-  fprintf (out, "STATUS\t%u\t", data.devices_status);
-
-  /**
-   * speed new
-   */
-
-  fprintf (out, "SPEED\t");
-
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    u64    speed_cnt  = 0;
-    double speed_ms   = 0;
-
-    for (int i = 0; i < SPEED_CACHE; i++)
-    {
-      speed_cnt  += device_param->speed_cnt[i];
-      speed_ms   += device_param->speed_ms[i];
-    }
-
-    speed_cnt  /= SPEED_CACHE;
-    speed_ms   /= SPEED_CACHE;
-
-    fprintf (out, "%llu\t%f\t", (unsigned long long int) speed_cnt, speed_ms);
-  }
-
-  /**
-   * exec time
-   */
-
-  fprintf (out, "EXEC_RUNTIME\t");
-
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
-
-    fprintf (out, "%f\t", exec_ms_avg);
-  }
-
-  /**
-   * words_cur
-   */
-
-  u64 words_cur = get_lowest_words_done ();
-
-  fprintf (out, "CURKU\t%llu\t", (unsigned long long int) words_cur);
-
-  /**
-   * counter
-   */
-
-  u64 progress_total = data.words_cnt * data.salts_cnt;
-
-  u64 all_done     = 0;
-  u64 all_rejected = 0;
-  u64 all_restored = 0;
-
-  for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
-  {
-    all_done     += data.words_progress_done[salt_pos];
-    all_rejected += data.words_progress_rejected[salt_pos];
-    all_restored += data.words_progress_restored[salt_pos];
-  }
-
-  u64 progress_cur = all_restored + all_done + all_rejected;
-  u64 progress_end = progress_total;
-
-  u64 progress_skip = 0;
-
-  if (data.skip)
-  {
-    progress_skip = MIN (data.skip, data.words_base) * data.salts_cnt;
-
-    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
-    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
-    else if (data.attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
-  }
-
-  if (data.limit)
-  {
-    progress_end = MIN (data.limit, data.words_base) * data.salts_cnt;
-
-    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
-    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
-    else if (data.attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
-  }
-
-  u64 progress_cur_relative_skip = progress_cur - progress_skip;
-  u64 progress_end_relative_skip = progress_end - progress_skip;
-
-  fprintf (out, "PROGRESS\t%llu\t%llu\t", (unsigned long long int) progress_cur_relative_skip, (unsigned long long int) progress_end_relative_skip);
-
-  /**
-   * cracks
-   */
-
-  fprintf (out, "RECHASH\t%u\t%u\t", data.digests_done, data.digests_cnt);
-  fprintf (out, "RECSALT\t%u\t%u\t", data.salts_done,   data.salts_cnt);
-
-  /**
-   * temperature
-   */
-
-  #ifdef HAVE_HWMON
-  if (data.gpu_temp_disable == 0)
-  {
-    fprintf (out, "TEMP\t");
-
-    hc_thread_mutex_lock (mux_adl);
-
-    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-    {
-      hc_device_param_t *device_param = &data.devices_param[device_id];
-
-      if (device_param->skipped) continue;
-
-      int temp = hm_get_temperature_with_device_id (device_id);
-
-      fprintf (out, "%d\t", temp);
-    }
-
-    hc_thread_mutex_unlock (mux_adl);
-  }
-  #endif // HAVE_HWMON
-
-  /**
-   * flush
-   */
-
-  fputs (EOL, out);
-  fflush (out);
-}
-
-void status_display ()
-{
-  if (data.devices_status == STATUS_INIT)     return;
-  if (data.devices_status == STATUS_STARTING) return;
-
-  // in this case some required buffers are free'd, ascii_digest() would run into segfault
-  if (data.shutdown_inner == 1) return;
-
-  if (data.machine_readable == 1)
-  {
-    status_display_machine_readable ();
-
-    return;
-  }
-
-  char tmp_buf[1000] = { 0 };
-
-  uint tmp_len = 0;
-
-  log_info ("Session.Name...: %s", data.session);
-
-  char *status_type = strstatus (data.devices_status);
-
-  uint hash_mode = data.hash_mode;
-
-  char *hash_type = strhashtype (hash_mode); // not a bug
-
-  log_info ("Status.........: %s", status_type);
-
-  /**
-   * show rules
-   */
-
-  if (data.rp_files_cnt)
-  {
-    uint i;
-
-    for (i = 0, tmp_len = 0; i < data.rp_files_cnt - 1 && tmp_len < sizeof (tmp_buf); i++)
-    {
-      tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s), ", data.rp_files[i]);
-    }
-
-    snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s)", data.rp_files[i]);
-
-    log_info ("Rules.Type.....: %s", tmp_buf);
-
-    tmp_len = 0;
-  }
-
-  if (data.rp_gen)
-  {
-    log_info ("Rules.Type.....: Generated (%u)", data.rp_gen);
-
-    if (data.rp_gen_seed)
-    {
-      log_info ("Rules.Seed.....: %u", data.rp_gen_seed);
-    }
-  }
-
-  /**
-   * show input
-   */
-
-  if (data.attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    if (data.wordlist_mode == WL_MODE_FILE)
-    {
-      if (data.dictfile != NULL) log_info ("Input.Mode.....: File (%s)", data.dictfile);
-    }
-    else if (data.wordlist_mode == WL_MODE_STDIN)
-    {
-      log_info ("Input.Mode.....: Pipe");
-    }
-  }
-  else if (data.attack_mode == ATTACK_MODE_COMBI)
-  {
-    if (data.dictfile  != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
-    if (data.dictfile2 != NULL) log_info ("Input.Right....: File (%s)", data.dictfile2);
-  }
-  else if (data.attack_mode == ATTACK_MODE_BF)
-  {
-    char *mask = data.mask;
-
-    if (mask != NULL)
-    {
-      uint mask_len = data.css_cnt;
-
-      tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "Mask (%s)", mask);
-
-      if (mask_len > 0)
-      {
-        if (data.opti_type & OPTI_TYPE_SINGLE_HASH)
-        {
-          if (data.opti_type & OPTI_TYPE_APPENDED_SALT)
-          {
-            mask_len -= data.salts_buf[0].salt_len;
-          }
-        }
-
-        if (data.opts_type & OPTS_TYPE_PT_UNICODE) mask_len /= 2;
-
-        tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " [%i]", mask_len);
-      }
-
-      if (data.maskcnt > 1)
-      {
-        float mask_percentage = (float) data.maskpos / (float) data.maskcnt;
-
-        tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " (%.02f%%)", mask_percentage * 100);
-      }
-
-      log_info ("Input.Mode.....: %s", tmp_buf);
-
-      if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
-      {
-        char *custom_charset_1 = data.custom_charset_1;
-        char *custom_charset_2 = data.custom_charset_2;
-        char *custom_charset_3 = data.custom_charset_3;
-        char *custom_charset_4 = data.custom_charset_4;
-
-        if (custom_charset_1 == NULL)
-        {
-          custom_charset_1 = "Undefined";
-        }
-        if (custom_charset_2 == NULL)
-        {
-          custom_charset_2 = "Undefined";
-        }
-        if (custom_charset_3 == NULL)
-        {
-          custom_charset_3 = "Undefined";
-        }
-        if (custom_charset_4 == NULL)
-        {
-          custom_charset_4 = "Undefined";
-        }
-
-        log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
-      }
-    }
-
-    tmp_len = 0;
-  }
-  else if (data.attack_mode == ATTACK_MODE_HYBRID1)
-  {
-    if (data.dictfile != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
-    if (data.mask     != NULL) log_info ("Input.Right....: Mask (%s) [%i]", data.mask, data.css_cnt);
-    if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
-    {
-      char *custom_charset_1 = data.custom_charset_1;
-      char *custom_charset_2 = data.custom_charset_2;
-      char *custom_charset_3 = data.custom_charset_3;
-      char *custom_charset_4 = data.custom_charset_4;
-
-      if (custom_charset_1 == NULL)
-      {
-        custom_charset_1 = "Undefined";
-      }
-      if (custom_charset_2 == NULL)
-      {
-        custom_charset_2 = "Undefined";
-      }
-      if (custom_charset_3 == NULL)
-      {
-        custom_charset_3 = "Undefined";
-      }
-      if (custom_charset_4 == NULL)
-      {
-        custom_charset_4 = "Undefined";
-      }
-
-      log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
-    }
-  }
-  else if (data.attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    if (data.mask     != NULL) log_info ("Input.Left.....: Mask (%s) [%i]", data.mask, data.css_cnt);
-    if (data.dictfile != NULL) log_info ("Input.Right....: File (%s)", data.dictfile);
-    if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
-    {
-      char *custom_charset_1 = data.custom_charset_1;
-      char *custom_charset_2 = data.custom_charset_2;
-      char *custom_charset_3 = data.custom_charset_3;
-      char *custom_charset_4 = data.custom_charset_4;
-
-      if (custom_charset_1 == NULL)
-      {
-        custom_charset_1 = "Undefined";
-      }
-      if (custom_charset_2 == NULL)
-      {
-        custom_charset_2 = "Undefined";
-      }
-      if (custom_charset_3 == NULL)
-      {
-        custom_charset_3 = "Undefined";
-      }
-      if (custom_charset_4 == NULL)
-      {
-        custom_charset_4 = "Undefined";
-      }
-
-      log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
-    }
-  }
-
-  if (data.digests_cnt == 1)
-  {
-    if (data.hash_mode == 2500)
-    {
-      wpa_t *wpa = (wpa_t *) data.esalts_buf;
-
-      log_info ("Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
-                (char *) data.salts_buf[0].salt_buf,
-                wpa->orig_mac1[0],
-                wpa->orig_mac1[1],
-                wpa->orig_mac1[2],
-                wpa->orig_mac1[3],
-                wpa->orig_mac1[4],
-                wpa->orig_mac1[5],
-                wpa->orig_mac2[0],
-                wpa->orig_mac2[1],
-                wpa->orig_mac2[2],
-                wpa->orig_mac2[3],
-                wpa->orig_mac2[4],
-                wpa->orig_mac2[5]);
-    }
-    else if (data.hash_mode == 5200)
-    {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
-    }
-    else if (data.hash_mode == 9000)
-    {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
-    }
-    else if ((data.hash_mode >= 6200) && (data.hash_mode <= 6299))
-    {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
-    }
-    else if ((data.hash_mode >= 13700) && (data.hash_mode <= 13799))
-    {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
-    }
-    else
-    {
-      char out_buf[HCBUFSIZ] = { 0 };
-
-      ascii_digest (out_buf, 0, 0);
-
-      // limit length
-      if (strlen (out_buf) > 40)
-      {
-        out_buf[41] = '.';
-        out_buf[42] = '.';
-        out_buf[43] = '.';
-        out_buf[44] = 0;
-      }
-
-      log_info ("Hash.Target....: %s", out_buf);
-    }
-  }
-  else
-  {
-    if (data.hash_mode == 3000)
-    {
-      char out_buf1[32] = { 0 };
-      char out_buf2[32] = { 0 };
-
-      ascii_digest (out_buf1, 0, 0);
-      ascii_digest (out_buf2, 0, 1);
-
-      log_info ("Hash.Target....: %s, %s", out_buf1, out_buf2);
-    }
-    else
-    {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
-    }
-  }
-
-  log_info ("Hash.Type......: %s", hash_type);
-
-  /**
-   * speed new
-   */
-
-  u64    speed_cnt[DEVICES_MAX] = { 0 };
-  double speed_ms[DEVICES_MAX]  = { 0 };
-
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    speed_cnt[device_id] = 0;
-    speed_ms[device_id]  = 0;
-
-    for (int i = 0; i < SPEED_CACHE; i++)
-    {
-      speed_cnt[device_id] += device_param->speed_cnt[i];
-      speed_ms[device_id]  += device_param->speed_ms[i];
-    }
-
-    speed_cnt[device_id] /= SPEED_CACHE;
-    speed_ms[device_id]  /= SPEED_CACHE;
-  }
-
-  double hashes_all_ms = 0;
-
-  double hashes_dev_ms[DEVICES_MAX] = { 0 };
-
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    hashes_dev_ms[device_id] = 0;
-
-    if (speed_ms[device_id])
-    {
-      hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
-
-      hashes_all_ms += hashes_dev_ms[device_id];
-    }
-  }
-
-  /**
-   * exec time
-   */
-
-  double exec_all_ms[DEVICES_MAX] = { 0 };
-
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
-
-    exec_all_ms[device_id] = exec_ms_avg;
-  }
-
-  /**
-   * timers
-   */
-
-  double ms_running = 0;
-
-  hc_timer_get (data.timer_running, ms_running);
-
-  double ms_paused = data.ms_paused;
-
-  if (data.devices_status == STATUS_PAUSED)
-  {
-    double ms_paused_tmp = 0;
-
-    hc_timer_get (data.timer_paused, ms_paused_tmp);
-
-    ms_paused += ms_paused_tmp;
-  }
-
-  #ifdef WIN
-
-  __time64_t sec_run = ms_running / 1000;
-
-  #else
-
-  time_t sec_run = ms_running / 1000;
-
-  #endif
-
-  if (sec_run)
-  {
-    char display_run[32] = { 0 };
-
-    struct tm tm_run;
-
-    struct tm *tmp = NULL;
-
-    #ifdef WIN
-
-    tmp = _gmtime64 (&sec_run);
-
-    #else
-
-    tmp = gmtime (&sec_run);
-
-    #endif
-
-    if (tmp != NULL)
-    {
-      memset (&tm_run, 0, sizeof (tm_run));
-
-      memcpy (&tm_run, tmp, sizeof (tm_run));
-
-      format_timer_display (&tm_run, display_run, sizeof (tm_run));
-
-      char *start = ctime (&data.proc_start);
-
-      size_t start_len = strlen (start);
-
-      if (start[start_len - 1] == '\n') start[start_len - 1] = 0;
-      if (start[start_len - 2] == '\r') start[start_len - 2] = 0;
-
-      log_info ("Time.Started...: %s (%s)", start, display_run);
-    }
-  }
-  else
-  {
-    log_info ("Time.Started...: 0 secs");
-  }
-
-  /**
-   * counters
-   */
-
-  u64 progress_total = data.words_cnt * data.salts_cnt;
-
-  u64 all_done     = 0;
-  u64 all_rejected = 0;
-  u64 all_restored = 0;
-
-  u64 progress_noneed = 0;
-
-  for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
-  {
-    all_done     += data.words_progress_done[salt_pos];
-    all_rejected += data.words_progress_rejected[salt_pos];
-    all_restored += data.words_progress_restored[salt_pos];
-
-    // Important for ETA only
-
-    if (data.salts_shown[salt_pos] == 1)
-    {
-      const u64 all = data.words_progress_done[salt_pos]
-                    + data.words_progress_rejected[salt_pos]
-                    + data.words_progress_restored[salt_pos];
-
-      const u64 left = data.words_cnt - all;
-
-      progress_noneed += left;
-    }
-  }
-
-  u64 progress_cur = all_restored + all_done + all_rejected;
-  u64 progress_end = progress_total;
-
-  u64 progress_skip = 0;
-
-  if (data.skip)
-  {
-    progress_skip = MIN (data.skip, data.words_base) * data.salts_cnt;
-
-    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
-    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
-    else if (data.attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
-  }
-
-  if (data.limit)
-  {
-    progress_end = MIN (data.limit, data.words_base) * data.salts_cnt;
-
-    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
-    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
-    else if (data.attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
-  }
-
-  u64 progress_cur_relative_skip = progress_cur - progress_skip;
-  u64 progress_end_relative_skip = progress_end - progress_skip;
-
-  if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
-  {
-    if (data.devices_status != STATUS_CRACKED)
-    {
-      #ifdef WIN
-      __time64_t sec_etc = 0;
-      #else
-      time_t sec_etc = 0;
-      #endif
-
-      if (hashes_all_ms)
-      {
-        u64 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
-
-        u64 ms_left = (progress_left_relative_skip - progress_noneed) / hashes_all_ms;
-
-        sec_etc = ms_left / 1000;
-      }
-
-      if (sec_etc == 0)
-      {
-        //log_info ("Time.Estimated.: 0 secs");
-      }
-      else if ((u64) sec_etc > ETC_MAX)
-      {
-        log_info ("Time.Estimated.: > 10 Years");
-      }
-      else
-      {
-        char display_etc[32]     = { 0 };
-        char display_runtime[32] = { 0 };
-
-        struct tm tm_etc;
-        struct tm tm_runtime;
-
-        struct tm *tmp = NULL;
-
-        #ifdef WIN
-        tmp = _gmtime64 (&sec_etc);
-        #else
-        tmp = gmtime (&sec_etc);
-        #endif
-
-        if (tmp != NULL)
-        {
-          memcpy (&tm_etc, tmp, sizeof (tm_etc));
-
-          format_timer_display (&tm_etc, display_etc, sizeof (display_etc));
-
-          time_t now;
-
-          time (&now);
-
-          now += sec_etc;
-
-          char *etc = ctime (&now);
-
-          size_t etc_len = strlen (etc);
-
-          if (etc[etc_len - 1] == '\n') etc[etc_len - 1] = 0;
-          if (etc[etc_len - 2] == '\r') etc[etc_len - 2] = 0;
-
-          if (data.runtime)
-          {
-            time_t runtime_cur;
-
-            time (&runtime_cur);
-
-            #ifdef WIN
-
-            __time64_t runtime_left = data.proc_start + data.runtime + data.prepare_time - runtime_cur;
-
-            tmp = _gmtime64 (&runtime_left);
-
-            #else
-
-            time_t runtime_left = data.proc_start + data.runtime + data.prepare_time - runtime_cur;
-
-            tmp = gmtime (&runtime_left);
-
-            #endif
-
-            if ((tmp != NULL) && (runtime_left > 0) && (runtime_left < sec_etc))
-            {
-              memcpy (&tm_runtime, tmp, sizeof (tm_runtime));
-
-              format_timer_display (&tm_runtime, display_runtime, sizeof (display_runtime));
-
-              log_info ("Time.Estimated.: %s (%s), but limited (%s)", etc, display_etc, display_runtime);
-            }
-            else
-            {
-              log_info ("Time.Estimated.: %s (%s), but limit exceeded", etc, display_etc);
-            }
-          }
-          else
-          {
-            log_info ("Time.Estimated.: %s (%s)", etc, display_etc);
-          }
-        }
-      }
-    }
-  }
-
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    char display_dev_cur[16] = { 0 };
-
-    strncpy (display_dev_cur, "0.00", 4);
-
-    format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
-
-    log_info ("Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
-  }
-
-  char display_all_cur[16] = { 0 };
-
-  strncpy (display_all_cur, "0.00", 4);
-
-  format_speed_display (hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
-
-  if (data.devices_active > 1) log_info ("Speed.Dev.#*...: %9sH/s", display_all_cur);
-
-  const float digests_percent = (float) data.digests_done / data.digests_cnt;
-  const float salts_percent   = (float) data.salts_done   / data.salts_cnt;
-
-  log_info ("Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", data.digests_done, data.digests_cnt, digests_percent * 100, data.salts_done, data.salts_cnt, salts_percent * 100);
-
-  // crack-per-time
-
-  if (data.digests_cnt > 100)
-  {
-    time_t now = time (NULL);
-
-    int cpt_cur_min  = 0;
-    int cpt_cur_hour = 0;
-    int cpt_cur_day  = 0;
-
-    for (int i = 0; i < CPT_BUF; i++)
-    {
-      const uint   cracked   = data.cpt_buf[i].cracked;
-      const time_t timestamp = data.cpt_buf[i].timestamp;
-
-      if ((timestamp + 60) > now)
-      {
-        cpt_cur_min  += cracked;
-      }
-
-      if ((timestamp + 3600) > now)
-      {
-        cpt_cur_hour += cracked;
-      }
-
-      if ((timestamp + 86400) > now)
-      {
-        cpt_cur_day  += cracked;
-      }
-    }
-
-    double ms_real = ms_running - ms_paused;
-
-    float cpt_avg_min  = (float) data.cpt_total / ((ms_real / 1000) / 60);
-    float cpt_avg_hour = (float) data.cpt_total / ((ms_real / 1000) / 3600);
-    float cpt_avg_day  = (float) data.cpt_total / ((ms_real / 1000) / 86400);
-
-    if ((data.cpt_start + 86400) < now)
-    {
-      log_info ("Recovered/Time.: CUR:%llu,%llu,%llu AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_cur_min,
-        cpt_cur_hour,
-        cpt_cur_day,
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
-    }
-    else if ((data.cpt_start + 3600) < now)
-    {
-      log_info ("Recovered/Time.: CUR:%llu,%llu,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_cur_min,
-        cpt_cur_hour,
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
-    }
-    else if ((data.cpt_start + 60) < now)
-    {
-      log_info ("Recovered/Time.: CUR:%llu,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_cur_min,
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
-    }
-    else
-    {
-      log_info ("Recovered/Time.: CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
-    }
-  }
-
-  // Restore point
-
-  u64 restore_point = get_lowest_words_done ();
-
-  u64 restore_total = data.words_base;
-
-  float percent_restore = 0;
-
-  if (restore_total != 0) percent_restore = (float) restore_point / (float) restore_total;
-
-  if (progress_end_relative_skip)
-  {
-    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
-    {
-      float percent_finished = (float) progress_cur_relative_skip / (float) progress_end_relative_skip;
-      float percent_rejected = 0.0;
-
-      if (progress_cur)
-      {
-        percent_rejected = (float) (all_rejected) / (float) progress_cur;
-      }
-
-      log_info ("Progress.......: %llu/%llu (%.02f%%)", (unsigned long long int) progress_cur_relative_skip, (unsigned long long int) progress_end_relative_skip, percent_finished * 100);
-      log_info ("Rejected.......: %llu/%llu (%.02f%%)", (unsigned long long int) all_rejected,               (unsigned long long int) progress_cur_relative_skip, percent_rejected * 100);
-
-      if (data.restore_disable == 0)
-      {
-        if (percent_finished != 1)
-        {
-          log_info ("Restore.Point..: %llu/%llu (%.02f%%)", (unsigned long long int) restore_point, (unsigned long long int) restore_total, percent_restore * 100);
-        }
-      }
-    }
-  }
-  else
-  {
-    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
-    {
-      log_info ("Progress.......: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
-      log_info ("Rejected.......: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
-
-      if (data.restore_disable == 0)
-      {
-        log_info ("Restore.Point..: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
-      }
-    }
-    else
-    {
-      log_info ("Progress.......: %llu", (unsigned long long int) progress_cur_relative_skip);
-      log_info ("Rejected.......: %llu", (unsigned long long int) all_rejected);
-
-      // --restore not allowed if stdin is used -- really? why?
-
-      //if (data.restore_disable == 0)
-      //{
-      //  log_info ("Restore.Point..: %llu", (unsigned long long int) restore_point);
-      //}
-    }
-  }
-
-  #ifdef HAVE_HWMON
-
-  if (data.devices_status == STATUS_EXHAUSTED)  return;
-  if (data.devices_status == STATUS_CRACKED)    return;
-  if (data.devices_status == STATUS_ABORTED)    return;
-  if (data.devices_status == STATUS_QUIT)       return;
-
-  if (data.gpu_temp_disable == 0)
-  {
-    hc_thread_mutex_lock (mux_adl);
-
-    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-    {
-      hc_device_param_t *device_param = &data.devices_param[device_id];
-
-      if (device_param->skipped) continue;
-
-      const int num_temperature = hm_get_temperature_with_device_id (device_id);
-      const int num_fanspeed    = hm_get_fanspeed_with_device_id    (device_id);
-      const int num_utilization = hm_get_utilization_with_device_id (device_id);
-      const int num_corespeed   = hm_get_corespeed_with_device_id   (device_id);
-      const int num_memoryspeed = hm_get_memoryspeed_with_device_id (device_id);
-      const int num_buslanes    = hm_get_buslanes_with_device_id    (device_id);
-      const int num_throttle    = hm_get_throttle_with_device_id    (device_id);
-
-      char output_buf[256] = { 0 };
-
-      int output_len = 0;
-
-      if (num_temperature >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Temp:%3uc", num_temperature);
-
-        output_len = strlen (output_buf);
-      }
-
-      if (num_fanspeed >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Fan:%3u%%", num_fanspeed);
-
-        output_len = strlen (output_buf);
-      }
-
-      if (num_utilization >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Util:%3u%%", num_utilization);
-
-        output_len = strlen (output_buf);
-      }
-
-      if (num_corespeed >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Core:%4uMhz", num_corespeed);
-
-        output_len = strlen (output_buf);
-      }
-
-      if (num_memoryspeed >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Mem:%4uMhz", num_memoryspeed);
-
-        output_len = strlen (output_buf);
-      }
-
-      if (num_buslanes >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Lanes:%u", num_buslanes);
-
-        output_len = strlen (output_buf);
-      }
-
-      if (num_throttle == 1)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " *Throttled*");
-
-        output_len = strlen (output_buf);
-      }
-
-      if (output_len == 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " N/A");
-
-        output_len = strlen (output_buf);
-      }
-
-      log_info ("HWMon.Dev.#%d...:%s", device_id + 1, output_buf);
-    }
-
-    hc_thread_mutex_unlock (mux_adl);
-  }
-
-  #endif // HAVE_HWMON
-}
 
 static void status_benchmark_automate ()
 {
@@ -1897,91 +320,6 @@ static void status_benchmark ()
  * hashcat -only- functions
  */
 
-static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *shared_dir, char *source_file)
-{
-  if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-  {
-    if (attack_kern == ATTACK_KERN_STRAIGHT)
-      snprintf (source_file, 255, "%s/OpenCL/m%05d_a0.cl", shared_dir, (int) kern_type);
-    else if (attack_kern == ATTACK_KERN_COMBI)
-      snprintf (source_file, 255, "%s/OpenCL/m%05d_a1.cl", shared_dir, (int) kern_type);
-    else if (attack_kern == ATTACK_KERN_BF)
-      snprintf (source_file, 255, "%s/OpenCL/m%05d_a3.cl", shared_dir, (int) kern_type);
-  }
-  else
-    snprintf (source_file, 255, "%s/OpenCL/m%05d.cl", shared_dir, (int) kern_type);
-}
-
-static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
-{
-  if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-  {
-    if (attack_kern == ATTACK_KERN_STRAIGHT)
-      snprintf (cached_file, 255, "%s/kernels/m%05d_a0.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
-    else if (attack_kern == ATTACK_KERN_COMBI)
-      snprintf (cached_file, 255, "%s/kernels/m%05d_a1.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
-    else if (attack_kern == ATTACK_KERN_BF)
-      snprintf (cached_file, 255, "%s/kernels/m%05d_a3.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
-  }
-  else
-  {
-    snprintf (cached_file, 255, "%s/kernels/m%05d.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
-  }
-}
-
-static void generate_source_kernel_mp_filename (const uint opti_type, const uint opts_type, char *shared_dir, char *source_file)
-{
-  if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
-  {
-    snprintf (source_file, 255, "%s/OpenCL/markov_be.cl", shared_dir);
-  }
-  else
-  {
-    snprintf (source_file, 255, "%s/OpenCL/markov_le.cl", shared_dir);
-  }
-}
-
-static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
-{
-  if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
-  {
-    snprintf (cached_file, 255, "%s/kernels/markov_be.%s.kernel", profile_dir, device_name_chksum);
-  }
-  else
-  {
-    snprintf (cached_file, 255, "%s/kernels/markov_le.%s.kernel", profile_dir, device_name_chksum);
-  }
-}
-
-static void generate_source_kernel_amp_filename (const uint attack_kern, char *shared_dir, char *source_file)
-{
-  snprintf (source_file, 255, "%s/OpenCL/amp_a%d.cl", shared_dir, attack_kern);
-}
-
-static void generate_cached_kernel_amp_filename (const uint attack_kern, char *profile_dir, const char *device_name_chksum, char *cached_file)
-{
-  snprintf (cached_file, 255, "%s/kernels/amp_a%d.%s.kernel", profile_dir, attack_kern, device_name_chksum);
-}
-
-static char *filename_from_filepath (char *filepath)
-{
-  char *ptr = NULL;
-
-  if ((ptr = strrchr (filepath, '/')) != NULL)
-  {
-    ptr++;
-  }
-  else if ((ptr = strrchr (filepath, '\\')) != NULL)
-  {
-    ptr++;
-  }
-  else
-  {
-    ptr = filepath;
-  }
-
-  return ptr;
-}
 
 static uint convert_from_hex (char *line_buf, const uint line_len)
 {
@@ -2026,365 +364,7 @@ static uint convert_from_hex (char *line_buf, const uint line_len)
   return (line_len);
 }
 
-static void clear_prompt ()
-{
-  fputc ('\r', stdout);
 
-  for (size_t i = 0; i < strlen (PROMPT); i++)
-  {
-    fputc (' ', stdout);
-  }
-
-  fputc ('\r', stdout);
-
-  fflush (stdout);
-}
-
-static int gidd_to_pw_t (hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
-{
-  cl_int CL_err = hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, gidd * sizeof (pw_t), sizeof (pw_t), pw, 0, NULL, NULL);
-
-  if (CL_err != CL_SUCCESS)
-  {
-    log_error ("ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
-
-    return -1;
-  }
-
-  return 0;
-}
-
-static void check_hash (hc_device_param_t *device_param, plain_t *plain)
-{
-  char *outfile    = data.outfile;
-  uint  quiet      = data.quiet;
-  FILE *pot_fp     = data.pot_fp;
-  uint  loopback   = data.loopback;
-  uint  debug_mode = data.debug_mode;
-  char *debug_file = data.debug_file;
-
-  char debug_rule_buf[BLOCK_SIZE] = { 0 };
-  int  debug_rule_len  = 0; // -1 error
-  uint debug_plain_len = 0;
-
-  u8 debug_plain_ptr[BLOCK_SIZE] = { 0 };
-
-  // hash
-
-  char out_buf[HCBUFSIZ] = { 0 };
-
-  const u32 salt_pos    = plain->salt_pos;
-  const u32 digest_pos  = plain->digest_pos;  // relative
-  const u32 gidvid      = plain->gidvid;
-  const u32 il_pos      = plain->il_pos;
-
-  ascii_digest (out_buf, salt_pos, digest_pos);
-
-  // plain
-
-  u64 crackpos = device_param->words_off;
-
-  uint plain_buf[16] = { 0 };
-
-  u8 *plain_ptr = (u8 *) plain_buf;
-
-  unsigned int plain_len = 0;
-
-  if (data.attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    pw_t pw;
-
-    gidd_to_pw_t (device_param, gidvid, &pw);
-
-    for (int i = 0; i < 16; i++)
-    {
-      plain_buf[i] = pw.i[i];
-    }
-
-    plain_len = pw.pw_len;
-
-    const uint off = device_param->innerloop_pos + il_pos;
-
-    if (debug_mode > 0)
-    {
-      debug_rule_len = 0;
-
-      // save rule
-      if ((debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4))
-      {
-        memset (debug_rule_buf, 0, sizeof (debug_rule_buf));
-
-        debug_rule_len = kernel_rule_to_cpu_rule (debug_rule_buf, &data.kernel_rules_buf[off]);
-      }
-
-      // save plain
-      if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4))
-      {
-        memset (debug_plain_ptr, 0, sizeof (debug_plain_ptr));
-
-        memcpy (debug_plain_ptr, plain_ptr, plain_len);
-
-        debug_plain_len = plain_len;
-      }
-    }
-
-    plain_len = apply_rules (data.kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], plain_len);
-
-    crackpos += gidvid;
-    crackpos *= data.kernel_rules_cnt;
-    crackpos += device_param->innerloop_pos + il_pos;
-
-    if (plain_len > data.pw_max) plain_len = data.pw_max;
-  }
-  else if (data.attack_mode == ATTACK_MODE_COMBI)
-  {
-    pw_t pw;
-
-    gidd_to_pw_t (device_param, gidvid, &pw);
-
-    for (int i = 0; i < 16; i++)
-    {
-      plain_buf[i] = pw.i[i];
-    }
-
-    plain_len = pw.pw_len;
-
-    char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
-    uint  comb_len =          device_param->combs_buf[il_pos].pw_len;
-
-    if (data.combs_mode == COMBINATOR_MODE_BASE_LEFT)
-    {
-      memcpy (plain_ptr + plain_len, comb_buf, comb_len);
-    }
-    else
-    {
-      memmove (plain_ptr + comb_len, plain_ptr, plain_len);
-
-      memcpy (plain_ptr, comb_buf, comb_len);
-    }
-
-    plain_len += comb_len;
-
-    crackpos += gidvid;
-    crackpos *= data.combs_cnt;
-    crackpos += device_param->innerloop_pos + il_pos;
-
-    if (data.pw_max != PW_DICTMAX1)
-    {
-      if (plain_len > data.pw_max) plain_len = data.pw_max;
-    }
-  }
-  else if (data.attack_mode == ATTACK_MODE_BF)
-  {
-    u64 l_off = device_param->kernel_params_mp_l_buf64[3] + gidvid;
-    u64 r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
-
-    uint l_start = device_param->kernel_params_mp_l_buf32[5];
-    uint r_start = device_param->kernel_params_mp_r_buf32[5];
-
-    uint l_stop = device_param->kernel_params_mp_l_buf32[4];
-    uint r_stop = device_param->kernel_params_mp_r_buf32[4];
-
-    sp_exec (l_off, (char *) plain_ptr + l_start, data.root_css_buf, data.markov_css_buf, l_start, l_start + l_stop);
-    sp_exec (r_off, (char *) plain_ptr + r_start, data.root_css_buf, data.markov_css_buf, r_start, r_start + r_stop);
-
-    plain_len = data.css_cnt;
-
-    crackpos += gidvid;
-    crackpos *= data.bfs_cnt;
-    crackpos += device_param->innerloop_pos + il_pos;
-  }
-  else if (data.attack_mode == ATTACK_MODE_HYBRID1)
-  {
-    pw_t pw;
-
-    gidd_to_pw_t (device_param, gidvid, &pw);
-
-    for (int i = 0; i < 16; i++)
-    {
-      plain_buf[i] = pw.i[i];
-    }
-
-    plain_len = pw.pw_len;
-
-    u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
-
-    uint start = 0;
-    uint stop  = device_param->kernel_params_mp_buf32[4];
-
-    sp_exec (off, (char *) plain_ptr + plain_len, data.root_css_buf, data.markov_css_buf, start, start + stop);
-
-    plain_len += start + stop;
-
-    crackpos += gidvid;
-    crackpos *= data.combs_cnt;
-    crackpos += device_param->innerloop_pos + il_pos;
-
-    if (data.pw_max != PW_DICTMAX1)
-    {
-      if (plain_len > data.pw_max) plain_len = data.pw_max;
-    }
-  }
-  else if (data.attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    pw_t pw;
-
-    gidd_to_pw_t (device_param, gidvid, &pw);
-
-    for (int i = 0; i < 16; i++)
-    {
-      plain_buf[i] = pw.i[i];
-    }
-
-    plain_len = pw.pw_len;
-
-    u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
-
-    uint start = 0;
-    uint stop  = device_param->kernel_params_mp_buf32[4];
-
-    memmove (plain_ptr + stop, plain_ptr, plain_len);
-
-    sp_exec (off, (char *) plain_ptr, data.root_css_buf, data.markov_css_buf, start, start + stop);
-
-    plain_len += start + stop;
-
-    crackpos += gidvid;
-    crackpos *= data.combs_cnt;
-    crackpos += device_param->innerloop_pos + il_pos;
-
-    if (data.pw_max != PW_DICTMAX1)
-    {
-      if (plain_len > data.pw_max) plain_len = data.pw_max;
-    }
-  }
-
-  if (data.attack_mode == ATTACK_MODE_BF)
-  {
-    if (data.opti_type & OPTI_TYPE_BRUTE_FORCE) // lots of optimizations can happen here
-    {
-      if (data.opti_type & OPTI_TYPE_SINGLE_HASH)
-      {
-        if (data.opti_type & OPTI_TYPE_APPENDED_SALT)
-        {
-          plain_len = plain_len - data.salts_buf[0].salt_len;
-        }
-      }
-
-      if (data.opts_type & OPTS_TYPE_PT_UNICODE)
-      {
-        for (uint i = 0, j = 0; i < plain_len; i += 2, j += 1)
-        {
-          plain_ptr[j] = plain_ptr[i];
-        }
-
-        plain_len = plain_len / 2;
-      }
-    }
-  }
-
-  // if enabled, update also the potfile
-
-  if (pot_fp)
-  {
-    lock_file (pot_fp);
-
-    fprintf (pot_fp, "%s:", out_buf);
-
-    format_plain (pot_fp, plain_ptr, plain_len, 1);
-
-    fputc ('\n', pot_fp);
-
-    fflush (pot_fp);
-
-    unlock_file (pot_fp);
-  }
-
-  // outfile
-
-  FILE *out_fp = NULL;
-
-  if (outfile != NULL)
-  {
-    if ((out_fp = fopen (outfile, "ab")) == NULL)
-    {
-      log_error ("ERROR: %s: %s", outfile, strerror (errno));
-
-      out_fp = stdout;
-    }
-
-    lock_file (out_fp);
-  }
-  else
-  {
-    out_fp = stdout;
-
-    if (quiet == 0) clear_prompt ();
-  }
-
-  format_output (out_fp, out_buf, plain_ptr, plain_len, crackpos, NULL, 0);
-
-  if (outfile != NULL)
-  {
-    if (out_fp != stdout)
-    {
-      fclose (out_fp);
-    }
-  }
-  else
-  {
-    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
-    {
-      if ((data.devices_status != STATUS_CRACKED) && (data.status != 1))
-      {
-        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-        if (quiet == 0) fflush (stdout);
-      }
-    }
-  }
-
-  // loopback
-
-  if (loopback)
-  {
-    char *loopback_file = data.loopback_file;
-
-    FILE *fb_fp = NULL;
-
-    if ((fb_fp = fopen (loopback_file, "ab")) != NULL)
-    {
-      lock_file (fb_fp);
-
-      format_plain (fb_fp, plain_ptr, plain_len, 1);
-
-      fputc ('\n', fb_fp);
-
-      fclose (fb_fp);
-    }
-  }
-
-  // (rule) debug mode
-
-  // the next check implies that:
-  // - (data.attack_mode == ATTACK_MODE_STRAIGHT)
-  // - debug_mode > 0
-
-  if ((debug_plain_len > 0) || (debug_rule_len > 0))
-  {
-    if (debug_rule_len < 0) debug_rule_len = 0;
-
-    if ((quiet == 0) && (debug_file == NULL)) clear_prompt ();
-
-    format_debug (debug_file, debug_mode, debug_plain_ptr, debug_plain_len, plain_ptr, plain_len, debug_rule_buf, debug_rule_len);
-
-    if ((quiet == 0) && (debug_file == NULL))
-    {
-      fprintf (stdout, "%s", PROMPT);
-
-      fflush (stdout);
-    }
-  }
-}
 
 static int check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 {
@@ -2508,7 +488,7 @@ static int check_cracked (hc_device_param_t *device_param, const uint salt_pos)
 
 // stolen from princeprocessor ;)
 
-typedef struct
+typedef struct out_t_
 {
   FILE *fp;
 
@@ -2548,13 +528,13 @@ static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
   if (data.outfile != NULL)
   {
-    if ((out.fp = fopen (data.outfile, "ab")) != NULL)
+    if ((out.fp = fopen(data.outfile, "ab")) != NULL)
     {
-      lock_file (out.fp);
+      lock_file(out.fp);
     }
     else
     {
-      log_error ("ERROR: %s: %s", data.outfile, strerror (errno));
+      log_error("ERROR: %s: %s", data.outfile, strerror(errno));
 
       out.fp = stdout;
     }
@@ -2730,9 +710,9 @@ static void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
   if (out.fp != stdout)
   {
-    unlock_file (out.fp);
+    unlock_file(out.fp);
 
-    fclose (out.fp);
+    fclose(out.fp);
   }
 }
 
@@ -3387,17 +1367,19 @@ static int choose_kernel (hc_device_param_t *device_param, const uint attack_exe
     {
       uint loop_left = iter - loop_pos;
 
-      loop_left = MIN (loop_left, loop_step);
+      loop_left = __min (loop_left, loop_step);
 
       device_param->kernel_params_buf32[28] = loop_pos;
       device_param->kernel_params_buf32[29] = loop_left;
 
       run_kernel (KERN_RUN_2, device_param, pws_cnt, true, slow_iteration);
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (data.devices_status == STATUS_CRACKED ||
+          data.devices_status == STATUS_ABORTED ||
+          data.devices_status == STATUS_QUIT    ||
+          data.devices_status == STATUS_BYPASS
+         )
+        break;
 
       /**
        * speed
@@ -3409,7 +1391,7 @@ static int choose_kernel (hc_device_param_t *device_param, const uint attack_exe
 
       double speed_ms;
 
-      hc_timer_get (device_param->timer_speed, speed_ms);
+      speed_ms=hc_timer_get(device_param->timer_speed);
 
       const u32 speed_pos = device_param->speed_pos;
 
@@ -3651,7 +1633,7 @@ static int autotune (hc_device_param_t *device_param)
   {
     if (data.kernel_rules_cnt > 1)
     {
-      cl_int CL_err = hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL);
+      cl_int CL_err = hc_clEnqueueCopyBuffer (data.ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, 0, 0, __min (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL);
 
       if (CL_err != CL_SUCCESS)
       {
@@ -3666,8 +1648,6 @@ static int autotune (hc_device_param_t *device_param)
     run_kernel_amp (device_param, kernel_power_max);
   }
 
-  #define VERIFIER_CNT 1
-
   // first find out highest kernel-loops that stays below target_ms
 
   if (kernel_loops_min < kernel_loops_max)
@@ -3680,7 +1660,7 @@ static int autotune (hc_device_param_t *device_param)
       {
         double exec_ms_v = try_run (device_param, kernel_accel_min, kernel_loops);
 
-        exec_ms = MIN (exec_ms, exec_ms_v);
+        exec_ms = __min (exec_ms, exec_ms_v);
       }
 
       if (exec_ms < target_ms) break;
@@ -3688,8 +1668,6 @@ static int autotune (hc_device_param_t *device_param)
   }
 
   // now the same for kernel-accel but with the new kernel-loops from previous loop set
-
-  #define STEPS_CNT 10
 
   if (kernel_accel_min < kernel_accel_max)
   {
@@ -3706,7 +1684,7 @@ static int autotune (hc_device_param_t *device_param)
       {
         double exec_ms_v = try_run (device_param, kernel_accel_try, kernel_loops);
 
-        exec_ms = MIN (exec_ms, exec_ms_v);
+        exec_ms = __min (exec_ms, exec_ms_v);
       }
 
       if (exec_ms > target_ms) break;
@@ -3729,7 +1707,7 @@ static int autotune (hc_device_param_t *device_param)
   {
     double exec_ms_pre_final_v = try_run (device_param, kernel_accel, kernel_loops);
 
-    exec_ms_pre_final = MIN (exec_ms_pre_final, exec_ms_pre_final_v);
+    exec_ms_pre_final = __min (exec_ms_pre_final, exec_ms_pre_final_v);
   }
 
   u32 diff = kernel_loops - kernel_accel;
@@ -3759,7 +1737,7 @@ static int autotune (hc_device_param_t *device_param)
       {
         double exec_ms_v = try_run (device_param, kernel_accel_try, kernel_loops_try);
 
-        exec_ms = MIN (exec_ms, exec_ms_v);
+        exec_ms = __min (exec_ms, exec_ms_v);
       }
 
       if (exec_ms < exec_ms_pre_final)
@@ -3776,7 +1754,7 @@ static int autotune (hc_device_param_t *device_param)
 
   const double accel_left = kernel_accel_max / kernel_accel;
 
-  const double exec_accel_min = MIN (exec_left, accel_left); // we want that to be int
+  const double exec_accel_min = __min (exec_left, accel_left); // we want that to be int
 
   if (exec_accel_min >= 1.0)
   {
@@ -3899,10 +1877,12 @@ static int run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
     if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
-    if (data.devices_status == STATUS_CRACKED) break;
-    if (data.devices_status == STATUS_ABORTED) break;
-    if (data.devices_status == STATUS_QUIT)    break;
-    if (data.devices_status == STATUS_BYPASS)  break;
+    if (data.devices_status == STATUS_CRACKED ||
+        data.devices_status == STATUS_ABORTED ||
+        data.devices_status == STATUS_QUIT    ||
+        data.devices_status == STATUS_BYPASS
+       )
+      break;
 
     salt_t *salt_buf = &data.salts_buf[salt_pos];
 
@@ -3925,10 +1905,12 @@ static int run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (data.devices_status == STATUS_CRACKED ||
+        data.devices_status == STATUS_ABORTED ||
+        data.devices_status == STATUS_QUIT ||
+        data.devices_status == STATUS_BYPASS
+        )
+        break;
 
       uint fast_iteration = 0;
 
@@ -3997,7 +1979,7 @@ static int run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
             line_buf_new = rule_buf_out;
           }
 
-          line_len = MIN (line_len, PW_DICTMAX);
+          line_len = __min (line_len, PW_DICTMAX);
 
           u8 *ptr = (u8 *) device_param->combs_buf[i].i;
 
@@ -4138,10 +2120,12 @@ static int run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (data.devices_status == STATUS_CRACKED ||
+          data.devices_status == STATUS_ABORTED ||
+          data.devices_status == STATUS_QUIT ||
+          data.devices_status == STATUS_BYPASS
+         )
+        break;
 
       /**
        * result
@@ -4170,7 +2154,7 @@ static int run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
       double speed_ms;
 
-      hc_timer_get (device_param->timer_speed, speed_ms);
+      speed_ms=hc_timer_get(device_param->timer_speed);
 
       hc_timer_set (&device_param->timer_speed);
 
@@ -4423,7 +2407,7 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
 
   if (d.stat.st_size == 0) return 0;
 
-  dictstat_t *d_cache = (dictstat_t *) lfind (&d, dictstat_base, dictstat_nmemb, sizeof (dictstat_t), sort_by_dictstat);
+  dictstat_t *d_cache = (dictstat_t *) _lfind (&d, dictstat_base, dictstat_nmemb, sizeof (dictstat_t), sort_by_dictstat);
 
   if (run_rule_engine (data.rule_len_l, data.rule_buf_l) == 0)
   {
@@ -4433,13 +2417,13 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
 
       u64 keyspace = cnt;
 
-      if (data.attack_kern == ATTACK_KERN_STRAIGHT)
-      {
-        keyspace *= data.kernel_rules_cnt;
-      }
-      else if (data.attack_kern == ATTACK_KERN_COMBI)
-      {
-        keyspace *= data.combs_cnt;
+      switch (data.attack_kern){
+        case ATTACK_KERN_STRAIGHT:
+          keyspace *= data.kernel_rules_cnt;
+        break;
+        case ATTACK_KERN_COMBI:
+          keyspace *= data.combs_cnt;
+        break;
       }
 
       if (data.quiet == 0) log_info ("Cache-hit dictionary stats %s: %llu bytes, %llu words, %llu keyspace", dictfile, (unsigned long long int) d.stat.st_size, (unsigned long long int) cnt, (unsigned long long int) keyspace);
@@ -4527,7 +2511,7 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
   if (data.quiet == 0) log_info ("Generated dictionary stats for %s: %llu bytes, %llu words, %llu keyspace", dictfile, (unsigned long long int) comp, (unsigned long long int) cnt2, (unsigned long long int) cnt);
   if (data.quiet == 0) log_info ("");
 
-  lsearch (&d, dictstat_base, dictstat_nmemb, sizeof (dictstat_t), sort_by_dictstat);
+  _lsearch (&d, dictstat_base, dictstat_nmemb, sizeof (dictstat_t), sort_by_dictstat);
 
   hc_signal (sigHandler_default);
 
@@ -4545,7 +2529,7 @@ static void *thread_monitor (void *p)
   uint remove_left  = data.remove_timer;
   uint status_left  = data.status_timer;
 
-  #ifdef HAVE_HWMON
+  #ifdef WITH_HWMON
   uint hwmon_check = 0;
 
   int slowdown_warnings = 0;
@@ -4565,7 +2549,7 @@ static void *thread_monitor (void *p)
   int fan_speed_max = 100;
 
   time_t last_temp_check_time;
-  #endif // HAVE_HWMON
+  #endif // WITH_HWMON
 
   uint sleep_time = 1;
 
@@ -4589,7 +2573,7 @@ static void *thread_monitor (void *p)
     status_check = 1;
   }
 
-  #ifdef HAVE_HWMON
+  #ifdef WITH_HWMON
   if (data.gpu_temp_disable == 0)
   {
     time (&last_temp_check_time);
@@ -4600,7 +2584,7 @@ static void *thread_monitor (void *p)
 
   if ((runtime_check == 0) && (remove_check == 0) && (status_check == 0) && (restore_check == 0))
   {
-    #ifdef HAVE_HWMON
+    #ifdef WITH_HWMON
     if (hwmon_check == 0)
     #endif
     return (p);
@@ -4612,7 +2596,7 @@ static void *thread_monitor (void *p)
 
     if (data.devices_status != STATUS_RUNNING) continue;
 
-    #ifdef HAVE_HWMON
+    #ifdef WITH_HWMON
 
     if (hwmon_check == 1)
     {
@@ -4775,7 +2759,7 @@ static void *thread_monitor (void *p)
 
       hc_thread_mutex_unlock (mux_adl);
     }
-    #endif // HAVE_HWMON
+    #endif // WITH_HWMON
 
     if (restore_check == 1)
     {
@@ -4848,7 +2832,7 @@ static void *thread_monitor (void *p)
     }
   }
 
-  #ifdef HAVE_HWMON
+  #ifdef WITH_HWMON
   myfree (fan_speed_chgd);
 
   myfree (temp_diff_old);
@@ -4859,6 +2843,18 @@ static void *thread_monitor (void *p)
 
   return (p);
 }
+
+#ifdef _POSIX
+typedef struct stat statT;
+#endif
+
+#ifdef _WIN
+#ifdef _MSC_VER
+typedef struct _stat64 statT;
+#else
+typedef struct stat64 statT;
+#endif
+#endif
 
 static void *thread_outfile_remove (void *p)
 {
@@ -4970,16 +2966,12 @@ static void *thread_outfile_remove (void *p)
             if (fp != NULL)
             {
               //hc_thread_mutex_lock (mux_display);
-
+              statT outfile_stat;
               #ifdef _POSIX
-              struct stat outfile_stat;
-
               fstat (fileno (fp), &outfile_stat);
               #endif
 
               #ifdef _WIN
-              struct stat64 outfile_stat;
-
               _fstat64 (fileno (fp), &outfile_stat);
               #endif
 
@@ -5213,7 +3205,7 @@ static u32 get_power (hc_device_param_t *device_param)
 
     // work should be at least the hardware power available without any accelerator
 
-    const u64 work = MAX (words_left_device, device_param->hardware_power);
+    const u64 work = __max (words_left_device, device_param->hardware_power);
 
     return work;
   }
@@ -5226,7 +3218,7 @@ static uint get_work (hc_device_param_t *device_param, const u64 max)
   hc_thread_mutex_lock (mux_dispatcher);
 
   const u64 words_cur  = data.words_cur;
-  const u64 words_base = (data.limit == 0) ? data.words_base : MIN (data.limit, data.words_base);
+  const u64 words_base = (data.limit == 0) ? data.words_base : __min (data.limit, data.words_base);
 
   device_param->words_off = words_cur;
 
@@ -5244,9 +3236,9 @@ static uint get_work (hc_device_param_t *device_param, const u64 max)
 
   const u32 kernel_power = get_power (device_param);
 
-  uint work = MIN (words_left, kernel_power);
+  uint work = __min (words_left, kernel_power);
 
-  work = MIN (work, max);
+  work = __min (work, max);
 
   data.words_cur += work;
 
@@ -5689,7 +3681,7 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
 {
   if (!device_param)
   {
-    log_error ("ERROR: %s : Invalid argument", __func__);
+    //log_error ("ERROR: %s : Invalid argument", __func__ );
 
     exit (-1);
   }
@@ -5733,7 +3725,7 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
     {
       uint loop_left = iter - loop_pos;
 
-      loop_left = MIN (loop_left, loop_step);
+      loop_left = __min (loop_left, loop_step);
 
       device_param->kernel_params_buf32[28] = loop_pos;
       device_param->kernel_params_buf32[29] = loop_left;
@@ -5768,355 +3760,7 @@ static void weak_hash_check (hc_device_param_t *device_param, const uint salt_po
   data.kernel_rules_buf[0].cmds[0] = cmd0_rule_old;
 }
 
-// hlfmt hashcat
 
-static void hlfmt_hash_hashcat (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
-{
-  if (data.username == 0)
-  {
-    *hashbuf_pos = line_buf;
-    *hashbuf_len = line_len;
-  }
-  else
-  {
-    char *pos = line_buf;
-    int   len = line_len;
-
-    for (int i = 0; i < line_len; i++, pos++, len--)
-    {
-      if (line_buf[i] == data.separator)
-      {
-        pos++;
-
-        len--;
-
-        break;
-      }
-    }
-
-    *hashbuf_pos = pos;
-    *hashbuf_len = len;
-  }
-}
-
-static void hlfmt_user_hashcat (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
-{
-  char *pos = NULL;
-  int   len = 0;
-
-  int sep_cnt = 0;
-
-  for (int i = 0; i < line_len; i++)
-  {
-    if (line_buf[i] == data.separator)
-    {
-      sep_cnt++;
-
-      continue;
-    }
-
-    if (sep_cnt == 0)
-    {
-      if (pos == NULL) pos = line_buf + i;
-
-      len++;
-    }
-  }
-
-  *userbuf_pos = pos;
-  *userbuf_len = len;
-}
-
-// hlfmt pwdump
-
-static int hlfmt_detect_pwdump (char *line_buf, int line_len)
-{
-  int sep_cnt = 0;
-
-  int sep2_len = 0;
-  int sep3_len = 0;
-
-  for (int i = 0; i < line_len; i++)
-  {
-    if (line_buf[i] == ':')
-    {
-      sep_cnt++;
-
-      continue;
-    }
-
-    if (sep_cnt == 2) sep2_len++;
-    if (sep_cnt == 3) sep3_len++;
-  }
-
-  if ((sep_cnt == 6) && ((sep2_len == 32) || (sep3_len == 32))) return 1;
-
-  return 0;
-}
-
-static void hlfmt_hash_pwdump (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
-{
-  char *pos = NULL;
-  int   len = 0;
-
-  int sep_cnt = 0;
-
-  for (int i = 0; i < line_len; i++)
-  {
-    if (line_buf[i] == ':')
-    {
-      sep_cnt++;
-
-      continue;
-    }
-
-    if (data.hash_mode == 1000)
-    {
-      if (sep_cnt == 3)
-      {
-        if (pos == NULL) pos = line_buf + i;
-
-        len++;
-      }
-    }
-    else if (data.hash_mode == 3000)
-    {
-      if (sep_cnt == 2)
-      {
-        if (pos == NULL) pos = line_buf + i;
-
-        len++;
-      }
-    }
-  }
-
-  *hashbuf_pos = pos;
-  *hashbuf_len = len;
-}
-
-static void hlfmt_user_pwdump (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
-{
-  char *pos = NULL;
-  int   len = 0;
-
-  int sep_cnt = 0;
-
-  for (int i = 0; i < line_len; i++)
-  {
-    if (line_buf[i] == ':')
-    {
-      sep_cnt++;
-
-      continue;
-    }
-
-    if (sep_cnt == 0)
-    {
-      if (pos == NULL) pos = line_buf + i;
-
-      len++;
-    }
-  }
-
-  *userbuf_pos = pos;
-  *userbuf_len = len;
-}
-
-// hlfmt passwd
-
-static int hlfmt_detect_passwd (char *line_buf, int line_len)
-{
-  int sep_cnt = 0;
-
-  char sep5_first = 0;
-  char sep6_first = 0;
-
-  for (int i = 0; i < line_len; i++)
-  {
-    if (line_buf[i] == ':')
-    {
-      sep_cnt++;
-
-      continue;
-    }
-
-    if (sep_cnt == 5) if (sep5_first == 0) sep5_first = line_buf[i];
-    if (sep_cnt == 6) if (sep6_first == 0) sep6_first = line_buf[i];
-  }
-
-  if ((sep_cnt == 6) && ((sep5_first == '/') || (sep6_first == '/'))) return 1;
-
-  return 0;
-}
-
-static void hlfmt_hash_passwd (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
-{
-  char *pos = NULL;
-  int   len = 0;
-
-  int sep_cnt = 0;
-
-  for (int i = 0; i < line_len; i++)
-  {
-    if (line_buf[i] == ':')
-    {
-      sep_cnt++;
-
-      continue;
-    }
-
-    if (sep_cnt == 1)
-    {
-      if (pos == NULL) pos = line_buf + i;
-
-      len++;
-    }
-  }
-
-  *hashbuf_pos = pos;
-  *hashbuf_len = len;
-}
-
-static void hlfmt_user_passwd (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
-{
-  char *pos = NULL;
-  int   len = 0;
-
-  int sep_cnt = 0;
-
-  for (int i = 0; i < line_len; i++)
-  {
-    if (line_buf[i] == ':')
-    {
-      sep_cnt++;
-
-      continue;
-    }
-
-    if (sep_cnt == 0)
-    {
-      if (pos == NULL) pos = line_buf + i;
-
-      len++;
-    }
-  }
-
-  *userbuf_pos = pos;
-  *userbuf_len = len;
-}
-
-// hlfmt shadow
-
-static int hlfmt_detect_shadow (char *line_buf, int line_len)
-{
-  int sep_cnt = 0;
-
-  for (int i = 0; i < line_len; i++)
-  {
-    if (line_buf[i] == ':') sep_cnt++;
-  }
-
-  if (sep_cnt == 8) return 1;
-
-  return 0;
-}
-
-static void hlfmt_hash_shadow (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
-{
-  hlfmt_hash_passwd (line_buf, line_len, hashbuf_pos, hashbuf_len);
-}
-
-static void hlfmt_user_shadow (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
-{
-  hlfmt_user_passwd (line_buf, line_len, userbuf_pos, userbuf_len);
-}
-
-// hlfmt main
-
-static void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
-{
-  switch (hashfile_format)
-  {
-    case HLFMT_HASHCAT: hlfmt_hash_hashcat (line_buf, line_len, hashbuf_pos, hashbuf_len); break;
-    case HLFMT_PWDUMP:  hlfmt_hash_pwdump  (line_buf, line_len, hashbuf_pos, hashbuf_len); break;
-    case HLFMT_PASSWD:  hlfmt_hash_passwd  (line_buf, line_len, hashbuf_pos, hashbuf_len); break;
-    case HLFMT_SHADOW:  hlfmt_hash_shadow  (line_buf, line_len, hashbuf_pos, hashbuf_len); break;
-  }
-}
-
-static void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
-{
-  switch (hashfile_format)
-  {
-    case HLFMT_HASHCAT: hlfmt_user_hashcat (line_buf, line_len, userbuf_pos, userbuf_len); break;
-    case HLFMT_PWDUMP:  hlfmt_user_pwdump  (line_buf, line_len, userbuf_pos, userbuf_len); break;
-    case HLFMT_PASSWD:  hlfmt_user_passwd  (line_buf, line_len, userbuf_pos, userbuf_len); break;
-    case HLFMT_SHADOW:  hlfmt_user_shadow  (line_buf, line_len, userbuf_pos, userbuf_len); break;
-  }
-}
-
-char *strhlfmt (const uint hashfile_format)
-{
-  switch (hashfile_format)
-  {
-    case HLFMT_HASHCAT:  return ((char *) HLFMT_TEXT_HASHCAT);  break;
-    case HLFMT_PWDUMP:   return ((char *) HLFMT_TEXT_PWDUMP);   break;
-    case HLFMT_PASSWD:   return ((char *) HLFMT_TEXT_PASSWD);   break;
-    case HLFMT_SHADOW:   return ((char *) HLFMT_TEXT_SHADOW);   break;
-    case HLFMT_DCC:      return ((char *) HLFMT_TEXT_DCC);      break;
-    case HLFMT_DCC2:     return ((char *) HLFMT_TEXT_DCC2);     break;
-    case HLFMT_NETNTLM1: return ((char *) HLFMT_TEXT_NETNTLM1); break;
-    case HLFMT_NETNTLM2: return ((char *) HLFMT_TEXT_NETNTLM2); break;
-    case HLFMT_NSLDAP:   return ((char *) HLFMT_TEXT_NSLDAP);   break;
-    case HLFMT_NSLDAPS:  return ((char *) HLFMT_TEXT_NSLDAPS);  break;
-  }
-
-  return ((char *) "Unknown");
-}
-
-static uint hlfmt_detect (FILE *fp, uint max_check)
-{
-  // Exception: those formats are wrongly detected as HLFMT_SHADOW, prevent it
-
-  if (data.hash_mode == 5300) return HLFMT_HASHCAT;
-  if (data.hash_mode == 5400) return HLFMT_HASHCAT;
-
-  uint *formats_cnt = (uint *) mycalloc (HLFMTS_CNT, sizeof (uint));
-
-  uint num_check = 0;
-
-  char *line_buf = (char *) mymalloc (HCBUFSIZ);
-
-  while (!feof (fp))
-  {
-    int line_len = fgetl (fp, line_buf);
-
-    if (line_len == 0) continue;
-
-    if (hlfmt_detect_pwdump (line_buf, line_len)) formats_cnt[HLFMT_PWDUMP]++;
-    if (hlfmt_detect_passwd (line_buf, line_len)) formats_cnt[HLFMT_PASSWD]++;
-    if (hlfmt_detect_shadow (line_buf, line_len)) formats_cnt[HLFMT_SHADOW]++;
-
-    if (num_check == max_check) break;
-
-    num_check++;
-  }
-
-  myfree (line_buf);
-
-  uint hashlist_format = HLFMT_HASHCAT;
-
-  for (int i = 1; i < HLFMTS_CNT; i++)
-  {
-    if (formats_cnt[i - 1] >= formats_cnt[i]) continue;
-
-    hashlist_format = i;
-  }
-
-  free (formats_cnt);
-
-  return hashlist_format;
-}
 
 /**
  * some further helper function
@@ -6124,7 +3768,7 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 
 // wrapper around mymalloc for ADL
 
-#if defined(HAVE_HWMON)
+#if defined(WITH_HWMON)
 void *HC_API_CALL ADL_Main_Memory_Alloc (const int iSize)
 {
   return mymalloc (iSize);
@@ -6194,7 +3838,7 @@ void SetConsoleWindowSize (const int x)
 
   SMALL_RECT *sr = &bufferInfo.srWindow;
 
-  sr->Right = MAX (sr->Right, x - 1);
+  sr->Right = __max (sr->Right, x - 1);
 
   COORD co;
 
@@ -6206,6 +3850,8 @@ void SetConsoleWindowSize (const int x)
   if (!SetConsoleWindowInfo (h, TRUE, sr)) return;
 }
 #endif
+
+// logfile_append() checks for logfile_disable internally to make it easier from here
 
 int main (int argc, char **argv)
 {
@@ -6225,30 +3871,30 @@ int main (int argc, char **argv)
 
     snprintf (display, sizeof (display) - 1, "DISPLAY=%s", compute);
 
-    putenv (display);
+    _putenv (display);
   }
   else
   {
     if (getenv ("DISPLAY") == NULL)
-      putenv ((char *) "DISPLAY=:0");
+      _putenv ((char *) "DISPLAY=:0");
   }
 
   if (getenv ("GPU_MAX_ALLOC_PERCENT") == NULL)
-    putenv ((char *) "GPU_MAX_ALLOC_PERCENT=100");
+    _putenv ((char *) "GPU_MAX_ALLOC_PERCENT=100");
 
   if (getenv ("CPU_MAX_ALLOC_PERCENT") == NULL)
-    putenv ((char *) "CPU_MAX_ALLOC_PERCENT=100");
+    _putenv ((char *) "CPU_MAX_ALLOC_PERCENT=100");
 
   if (getenv ("GPU_USE_SYNC_OBJECTS") == NULL)
-    putenv ((char *) "GPU_USE_SYNC_OBJECTS=1");
+    _putenv ((char *) "GPU_USE_SYNC_OBJECTS=1");
 
   if (getenv ("CUDA_CACHE_DISABLE") == NULL)
-    putenv ((char *) "CUDA_CACHE_DISABLE=1");
+    _putenv ((char *) "CUDA_CACHE_DISABLE=1");
 
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
-    putenv ((char *) "POCL_KERNEL_CACHE=0");
+    _putenv ((char *) "POCL_KERNEL_CACHE=0");
 
-  umask (077);
+  _umask (077);
 
   /**
    * There's some buggy OpenCL runtime that do not support -I.
@@ -6316,7 +3962,7 @@ int main (int argc, char **argv)
   uint  force                     = FORCE;
   uint  runtime                   = RUNTIME;
   uint  hash_mode                 = HASH_MODE;
-  uint  attack_mode               = ATTACK_MODE;
+  ATTACK_MODE  attack_mode        = DEFAULT_ATTACK_MODE;
   uint  markov_disable            = MARKOV_DISABLE;
   uint  markov_classic            = MARKOV_CLASSIC;
   uint  markov_threshold          = MARKOV_THRESHOLD;
@@ -6360,7 +4006,7 @@ int main (int argc, char **argv)
   uint  kernel_loops              = KERNEL_LOOPS;
   uint  nvidia_spin_damp          = NVIDIA_SPIN_DAMP;
   uint  gpu_temp_disable          = GPU_TEMP_DISABLE;
-  #ifdef HAVE_HWMON
+  #ifdef WITH_HWMON
   uint  gpu_temp_abort            = GPU_TEMP_ABORT;
   uint  gpu_temp_retain           = GPU_TEMP_RETAIN;
   uint  powertune_enable          = POWERTUNE_ENABLE;
@@ -6519,11 +4165,11 @@ int main (int argc, char **argv)
     {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
     {"nvidia-spin-damp",          required_argument, 0, IDX_NVIDIA_SPIN_DAMP},
     {"gpu-temp-disable",          no_argument,       0, IDX_GPU_TEMP_DISABLE},
-    #ifdef HAVE_HWMON
+    #ifdef WITH_HWMON
     {"gpu-temp-abort",            required_argument, 0, IDX_GPU_TEMP_ABORT},
     {"gpu-temp-retain",           required_argument, 0, IDX_GPU_TEMP_RETAIN},
     {"powertune-enable",          no_argument,       0, IDX_POWERTUNE_ENABLE},
-    #endif // HAVE_HWMON
+    #endif // WITH_HWMON
     {"logfile-disable",           no_argument,       0, IDX_LOGFILE_DISABLE},
     {"truecrypt-keyfiles",        required_argument, 0, IDX_TRUECRYPT_KEYFILES},
     {"veracrypt-keyfiles",        required_argument, 0, IDX_VERACRYPT_KEYFILES},
@@ -6641,8 +4287,8 @@ int main (int argc, char **argv)
     session_dir = get_session_dir (profile_dir);
     shared_dir  = strdup (SHARED_FOLDER);
 
-    mkdir (profile_dir, 0700);
-    mkdir (session_dir, 0700);
+    hc_mkdir(profile_dir, 0700);
+    hc_mkdir(session_dir, 0700);
   }
   else
   {
@@ -6683,7 +4329,7 @@ int main (int argc, char **argv)
 
   snprintf (cpath, sizeof (cpath) - 1, "%s\\OpenCL\\", shared_dir);
 
-  char *cpath_real = mymalloc (MAX_PATH);
+  char *cpath_real = (char *) mymalloc (MAX_PATH);
 
   if (GetFullPathName (cpath, MAX_PATH, cpath_real, NULL) == 0)
   {
@@ -6714,7 +4360,7 @@ int main (int argc, char **argv)
 
     snprintf (tmp, sizeof (tmp) - 1, "TMP=%s", cpath_real);
 
-    putenv (tmp);
+    _putenv (tmp);
   }
 
   #if _WIN
@@ -6740,7 +4386,7 @@ int main (int argc, char **argv)
 
   snprintf (kernels_folder, kernels_folder_size - 1, "%s/kernels", profile_dir);
 
-  mkdir (kernels_folder, 0700);
+  hc_mkdir (kernels_folder, 0700);
 
   myfree (kernels_folder);
 
@@ -6867,7 +4513,7 @@ int main (int argc, char **argv)
                                           hash_mode_chgd            = 1;              break;
       case IDX_RUNTIME:                   runtime                   = atoi (optarg);
                                           runtime_chgd              = 1;              break;
-      case IDX_ATTACK_MODE:               attack_mode               = atoi (optarg);
+      case IDX_ATTACK_MODE:               attack_mode               = (ATTACK_MODE) atoi (optarg);
                                           attack_mode_chgd          = 1;              break;
       case IDX_RP_FILE:                   rp_files[rp_files_cnt++]  = optarg;         break;
       case IDX_RP_GEN:                    rp_gen                    = atoi (optarg);  break;
@@ -6904,11 +4550,11 @@ int main (int argc, char **argv)
       case IDX_NVIDIA_SPIN_DAMP:          nvidia_spin_damp          = atoi (optarg);
                                           nvidia_spin_damp_chgd     = 1;              break;
       case IDX_GPU_TEMP_DISABLE:          gpu_temp_disable          = 1;              break;
-      #ifdef HAVE_HWMON
+      #ifdef WITH_HWMON
       case IDX_GPU_TEMP_ABORT:            gpu_temp_abort            = atoi (optarg);  break;
       case IDX_GPU_TEMP_RETAIN:           gpu_temp_retain           = atoi (optarg);  break;
       case IDX_POWERTUNE_ENABLE:          powertune_enable          = 1;              break;
-      #endif // HAVE_HWMON
+      #endif // WITH_HWMON
       case IDX_LOGFILE_DISABLE:           logfile_disable           = 1;              break;
       case IDX_TRUECRYPT_KEYFILES:        truecrypt_keyfiles        = optarg;         break;
       case IDX_VERACRYPT_KEYFILES:        veracrypt_keyfiles        = optarg;         break;
@@ -7230,13 +4876,13 @@ int main (int argc, char **argv)
   {
     if (outfile_autohex == 0)
     {
-      log_error ("ERROR: Mixing outfile-autohex-disable parameter not allowed with show parameter");
+      log_error("ERROR: Mixing outfile-autohex-disable parameter not allowed with show parameter");
 
       return -1;
     }
   }
 
-  uint attack_kern = ATTACK_KERN_NONE;
+  ATTACK_KERN attack_kern = ATTACK_KERN_NONE;
 
   switch (attack_mode)
   {
@@ -7287,47 +4933,53 @@ int main (int argc, char **argv)
       if (keyspace_wordlist_specified == 0) optind--;
     }
 
-    if (attack_kern == ATTACK_KERN_NONE)
-    {
-      if ((optind + 1) != myargc)
+    switch (attack_kern) {
+      case ATTACK_KERN_NONE:
       {
-        usage_mini_print (myargv[0]);
+        if ((optind + 1) != myargc)
+        {
+          usage_mini_print(myargv[0]);
+
+          return -1;
+        }
+      }
+      break;
+      case ATTACK_KERN_STRAIGHT:
+      {
+        if ((optind + 1) > myargc)
+        {
+          usage_mini_print(myargv[0]);
+
+          return -1;
+        }
+      }
+      break;
+      case ATTACK_KERN_COMBI:
+      {
+        if ((optind + 3) != myargc)
+        {
+          usage_mini_print(myargv[0]);
+
+          return -1;
+        }
+      }
+      break;
+      case ATTACK_KERN_BF:
+      {
+        if ((optind + 1) > myargc)
+        {
+          usage_mini_print(myargv[0]);
+
+          return -1;
+        }
+      }
+      break;
+      default:
+      {
+        usage_mini_print(myargv[0]);
 
         return -1;
       }
-    }
-    else if (attack_kern == ATTACK_KERN_STRAIGHT)
-    {
-      if ((optind + 1) > myargc)
-      {
-        usage_mini_print (myargv[0]);
-
-        return -1;
-      }
-    }
-    else if (attack_kern == ATTACK_KERN_COMBI)
-    {
-      if ((optind + 3) != myargc)
-      {
-        usage_mini_print (myargv[0]);
-
-        return -1;
-      }
-    }
-    else if (attack_kern == ATTACK_KERN_BF)
-    {
-      if ((optind + 1) > myargc)
-      {
-        usage_mini_print (myargv[0]);
-
-        return -1;
-      }
-    }
-    else
-    {
-      usage_mini_print (myargv[0]);
-
-      return -1;
     }
   }
 
@@ -7500,7 +5152,7 @@ int main (int argc, char **argv)
 
       if (keyspace == 0)
       {
-        if (rmdir (induction_directory) == -1)
+        if (_rmdir (induction_directory) == -1)
         {
           if (errno == ENOENT)
           {
@@ -7527,7 +5179,7 @@ int main (int argc, char **argv)
           }
         }
 
-        if (mkdir (induction_directory, 0700) == -1)
+        if (hc_mkdir (induction_directory, 0700) == -1)
         {
           log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
 
@@ -7597,7 +5249,7 @@ int main (int argc, char **argv)
     }
     else if (outfile_check_dir == NULL)
     {
-      if (mkdir (outfile_check_directory, 0700) == -1)
+      if (hc_mkdir (outfile_check_directory, 0700) == -1)
       {
         log_error ("ERROR: %s: %s", outfile_check_directory, strerror (errno));
 
@@ -7666,7 +5318,7 @@ int main (int argc, char **argv)
   data.custom_charset_2        = custom_charset_2;
   data.custom_charset_3        = custom_charset_3;
   data.custom_charset_4        = custom_charset_4;
-  #ifdef HAVE_HWMON
+  #ifdef WITH_HWMON
   data.powertune_enable        = powertune_enable;
   #endif
   data.logfile_disable         = logfile_disable;
@@ -7713,19 +5365,6 @@ int main (int argc, char **argv)
     data.topid = topid;
   }
 
-  // logfile_append() checks for logfile_disable internally to make it easier from here
-
-  #define logfile_top_msg(msg)            logfile_append ("%s\t%s",           data.topid,             (msg));
-  #define logfile_sub_msg(msg)            logfile_append ("%s\t%s\t%s",       data.topid, data.subid, (msg));
-  #define logfile_top_var_uint64(var,val) logfile_append ("%s\t%s\t%llu",     data.topid,             (var), (val));
-  #define logfile_sub_var_uint64(var,val) logfile_append ("%s\t%s\t%s\t%llu", data.topid, data.subid, (var), (val));
-  #define logfile_top_var_uint(var,val)   logfile_append ("%s\t%s\t%u",       data.topid,             (var), (val));
-  #define logfile_sub_var_uint(var,val)   logfile_append ("%s\t%s\t%s\t%u",   data.topid, data.subid, (var), (val));
-  #define logfile_top_var_char(var,val)   logfile_append ("%s\t%s\t%c",       data.topid,             (var), (val));
-  #define logfile_sub_var_char(var,val)   logfile_append ("%s\t%s\t%s\t%c",   data.topid, data.subid, (var), (val));
-  #define logfile_top_var_string(var,val) if ((val) != NULL) logfile_append ("%s\t%s\t%s",       data.topid,             (var), (val));
-  #define logfile_sub_var_string(var,val) if ((val) != NULL) logfile_append ("%s\t%s\t%s\t%s",   data.topid, data.subid, (var), (val));
-
   #define logfile_top_uint64(var)         logfile_top_var_uint64 (#var, (var));
   #define logfile_sub_uint64(var)         logfile_sub_var_uint64 (#var, (var));
   #define logfile_top_uint(var)           logfile_top_var_uint   (#var, (var));
@@ -7749,7 +5388,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (kernel_loops);
   logfile_top_uint   (nvidia_spin_damp);
   logfile_top_uint   (gpu_temp_disable);
-  #ifdef HAVE_HWMON
+  #ifdef WITH_HWMON
   logfile_top_uint   (gpu_temp_abort);
   logfile_top_uint   (gpu_temp_retain);
   #endif
@@ -7772,7 +5411,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (outfile_format);
   logfile_top_uint   (potfile_disable);
   logfile_top_string (potfile_path);
-  #if defined(HAVE_HWMON)
+  #if defined(WITH_HWMON)
   logfile_top_uint   (powertune_enable);
   #endif
   logfile_top_uint   (scrypt_tmto);
@@ -7871,7 +5510,7 @@ int main (int argc, char **argv)
     gpu_temp_disable      = 1;
     outfile_check_timer   = 0;
 
-    #ifdef HAVE_HWMON
+    #ifdef WITH_HWMON
     if (powertune_enable == 1)
     {
       gpu_temp_disable = 0;
@@ -7902,7 +5541,7 @@ int main (int argc, char **argv)
    * status, monitor and outfile remove threads
    */
 
-  uint wordlist_mode = ((optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
+  WL_MODE wordlist_mode = ((optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
 
   data.wordlist_mode = wordlist_mode;
 
@@ -7910,7 +5549,7 @@ int main (int argc, char **argv)
   {
     // enable status (in stdin mode) whenever we do not use --stdout together with an outfile
 
-    if      (stdout_flag == 0) status = 1;
+    if (stdout_flag == 0) status = 1;
     else if (outfile != NULL)  status = 1;
 
     data.status = status;
@@ -7936,14 +5575,14 @@ int main (int argc, char **argv)
    * config
    */
 
-  uint hash_type   = 0;
-  uint salt_type   = 0;
-  uint attack_exec = 0;
-  uint opts_type   = 0;
-  uint kern_type   = 0;
+  HASH_TYPE hash_type   = HASH_TYPE_INVALID;
+  SALT_TYPE salt_type   = SALT_TYPE_INVALID;
+  ATTACK_EXEC_SIDE_KERNEL attack_exec = ATTACK_EXEC_SIDE_KERNEL_INVALID;
+  OPTS_TYPE opts_type = OPTS_TYPE_INVALID;
+  KERN_TYPE kern_type = KERN_TYPE_MD5;
   uint dgst_size   = 0;
   uint esalt_size  = 0;
-  uint opti_type   = 0;
+  OPTI_TYPE opti_type   = OPTI_TYPE_INVALID;
   uint dgst_pos0   = -1;
   uint dgst_pos1   = -1;
   uint dgst_pos2   = -1;
@@ -7959,7 +5598,7 @@ int main (int argc, char **argv)
 
   if (benchmark == 1 && hash_mode_chgd == 0) algorithm_max = NUM_DEFAULT_BENCHMARK_ALGORITHMS;
 
-  for (algorithm_pos = 0; algorithm_pos < algorithm_max; algorithm_pos++)
+  for (algorithm_pos = 0; algorithm_pos < algorithm_max; ++algorithm_pos)
   {
     /*
      * We need to reset 'rd' in benchmark mode otherwise when the user hits 'bypass'
@@ -7998,21 +5637,21 @@ int main (int argc, char **argv)
       case     0:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS14;
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8022,21 +5661,21 @@ int main (int argc, char **argv)
       case    10:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS14;
+                               | OPTS_TYPE_ST_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5_PWSLT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5s_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8046,21 +5685,21 @@ int main (int argc, char **argv)
       case    11:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS14;
+                               | OPTS_TYPE_ST_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5_PWSLT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = joomla_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8070,21 +5709,21 @@ int main (int argc, char **argv)
       case    12:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS14;
+                               | OPTS_TYPE_ST_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5_PWSLT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = postgresql_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8094,20 +5733,20 @@ int main (int argc, char **argv)
       case    20:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS14;
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5_SLTPW;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5s_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8117,20 +5756,20 @@ int main (int argc, char **argv)
       case    21:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS14;
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5_SLTPW;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = osc_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8140,20 +5779,20 @@ int main (int argc, char **argv)
       case    22:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS14;
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5_SLTPW;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = netscreen_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8163,20 +5802,20 @@ int main (int argc, char **argv)
       case    23:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS14;
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5_SLTPW;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = skype_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8186,22 +5825,22 @@ int main (int argc, char **argv)
       case    30:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS14;
+                               | OPTS_TYPE_ST_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5_PWUSLT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5s_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8211,21 +5850,21 @@ int main (int argc, char **argv)
       case    40:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
-                               | OPTS_TYPE_PT_UNICODE;
+                               | OPTS_TYPE_PT_UNICODE );
                    kern_type   = KERN_TYPE_MD5_SLTPWU;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5s_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8235,15 +5874,15 @@ int main (int argc, char **argv)
       case    50:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS14;
+                               | OPTS_TYPE_ST_ADDBITS14 );
                    kern_type   = KERN_TYPE_HMACMD5_PW;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = hmacmd5_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8253,15 +5892,15 @@ int main (int argc, char **argv)
       case    60:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS14;
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_HMACMD5_SLT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = hmacmd5_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8271,20 +5910,20 @@ int main (int argc, char **argv)
       case   100:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA1;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8294,20 +5933,20 @@ int main (int argc, char **argv)
       case   101:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA1;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1b64_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8317,20 +5956,20 @@ int main (int argc, char **argv)
       case   110:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS15;
+                               | OPTS_TYPE_ST_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA1_PWSLT;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1s_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8340,20 +5979,20 @@ int main (int argc, char **argv)
       case   111:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS15;
+                               | OPTS_TYPE_ST_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA1_PWSLT;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1b64s_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8363,21 +6002,21 @@ int main (int argc, char **argv)
       case   112:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15
-                               | OPTS_TYPE_ST_HEX;
+                               | OPTS_TYPE_ST_HEX );
                    kern_type   = KERN_TYPE_SHA1_PWSLT;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = oracles_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8387,20 +6026,20 @@ int main (int argc, char **argv)
       case   120:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA1_SLTPW;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1s_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8410,21 +6049,21 @@ int main (int argc, char **argv)
       case   121:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
-                               | OPTS_TYPE_ST_LOWER;
+                               | OPTS_TYPE_ST_LOWER );
                    kern_type   = KERN_TYPE_SHA1_SLTPW;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = smf_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8434,21 +6073,21 @@ int main (int argc, char **argv)
       case   122:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
-                               | OPTS_TYPE_ST_HEX;
+                               | OPTS_TYPE_ST_HEX );
                    kern_type   = KERN_TYPE_SHA1_SLTPW;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = osx1_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8458,20 +6097,20 @@ int main (int argc, char **argv)
       case   124:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA1_SLTPW;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = djangosha1_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8481,21 +6120,21 @@ int main (int argc, char **argv)
       case   125:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
-                               | OPTS_TYPE_ST_HEX;
+                               | OPTS_TYPE_ST_HEX );
                    kern_type   = KERN_TYPE_SHA1_SLTPW;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = arubaos_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8505,21 +6144,21 @@ int main (int argc, char **argv)
       case   130:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS15;
+                               | OPTS_TYPE_ST_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA1_PWUSLT;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1s_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8529,23 +6168,23 @@ int main (int argc, char **argv)
       case   131:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_PT_UPPER
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15
-                               | OPTS_TYPE_ST_HEX;
+                               | OPTS_TYPE_ST_HEX );
                    kern_type   = KERN_TYPE_SHA1_PWUSLT;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = mssql2000_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8555,22 +6194,22 @@ int main (int argc, char **argv)
       case   132:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15
-                               | OPTS_TYPE_ST_HEX;
+                               | OPTS_TYPE_ST_HEX );
                    kern_type   = KERN_TYPE_SHA1_PWUSLT;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = mssql2005_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8580,21 +6219,21 @@ int main (int argc, char **argv)
       case   133:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS15;
+                               | OPTS_TYPE_ST_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA1_PWUSLT;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = peoplesoft_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8604,21 +6243,21 @@ int main (int argc, char **argv)
       case   140:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
-                               | OPTS_TYPE_PT_UNICODE;
+                               | OPTS_TYPE_PT_UNICODE );
                    kern_type   = KERN_TYPE_SHA1_SLTPWU;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1s_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8628,22 +6267,22 @@ int main (int argc, char **argv)
       case   141:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
                                | OPTS_TYPE_PT_UNICODE
-                               | OPTS_TYPE_ST_BASE64;
+                               | OPTS_TYPE_ST_BASE64 );
                    kern_type   = KERN_TYPE_SHA1_SLTPWU;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = episerver_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8653,15 +6292,15 @@ int main (int argc, char **argv)
       case   150:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS15;
+                               | OPTS_TYPE_ST_ADDBITS15 );
                    kern_type   = KERN_TYPE_HMACSHA1_PW;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = hmacsha1_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8671,15 +6310,15 @@ int main (int argc, char **argv)
       case   160:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_HMACSHA1_SLT;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = hmacsha1_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8689,12 +6328,12 @@ int main (int argc, char **argv)
       case   200:  hash_type   = HASH_TYPE_MYSQL;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = 0;
+                   opts_type   = OPTS_TYPE_INVALID;
                    kern_type   = KERN_TYPE_MYSQL;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = mysql323_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8704,19 +6343,19 @@ int main (int argc, char **argv)
       case   300:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_MYSQL41;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_NOT_SALTED;
+                               | OPTI_TYPE_NOT_SALTED );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -8726,13 +6365,13 @@ int main (int argc, char **argv)
       case   400:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_PHPASS;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = phpass_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SLOW_HASH_SIMD;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8742,12 +6381,12 @@ int main (int argc, char **argv)
       case   500:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_MD5CRYPT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5crypt_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8757,13 +6396,13 @@ int main (int argc, char **argv)
       case   501:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_HASH_COPY;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_HASH_COPY );
                    kern_type   = KERN_TYPE_MD5CRYPT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = juniper_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -8773,21 +6412,21 @@ int main (int argc, char **argv)
       case   900:  hash_type   = HASH_TYPE_MD4;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS14;
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD4;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md4_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8797,22 +6436,22 @@ int main (int argc, char **argv)
       case  1000:  hash_type   = HASH_TYPE_MD4;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
-                               | OPTS_TYPE_PT_UNICODE;
+                               | OPTS_TYPE_PT_UNICODE );
                    kern_type   = KERN_TYPE_MD4_PWU;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md4_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8822,22 +6461,22 @@ int main (int argc, char **argv)
       case  1100:  hash_type   = HASH_TYPE_MD4;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_UNICODE
-                               | OPTS_TYPE_ST_LOWER;
+                               | OPTS_TYPE_ST_LOWER );
                    kern_type   = KERN_TYPE_MD44_PWUSLT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = dcc_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -8847,20 +6486,20 @@ int main (int argc, char **argv)
       case  1400:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA256;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = sha256_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -8870,20 +6509,20 @@ int main (int argc, char **argv)
       case  1410:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS15;
+                               | OPTS_TYPE_ST_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA256_PWSLT;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = sha256s_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -8893,20 +6532,20 @@ int main (int argc, char **argv)
       case  1420:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA256_SLTPW;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = sha256s_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -8916,20 +6555,20 @@ int main (int argc, char **argv)
       case  1421:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA256_SLTPW;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = hmailserver_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -8939,21 +6578,21 @@ int main (int argc, char **argv)
       case  1430:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS15;
+                               | OPTS_TYPE_ST_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA256_PWUSLT;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = sha256s_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -8963,21 +6602,21 @@ int main (int argc, char **argv)
       case  1440:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
-                               | OPTS_TYPE_PT_UNICODE;
+                               | OPTS_TYPE_PT_UNICODE );
                    kern_type   = KERN_TYPE_SHA256_SLTPWU;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = sha256s_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -8987,22 +6626,22 @@ int main (int argc, char **argv)
       case  1441:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
                                | OPTS_TYPE_PT_UNICODE
-                               | OPTS_TYPE_ST_BASE64;
+                               | OPTS_TYPE_ST_BASE64 );
                    kern_type   = KERN_TYPE_SHA256_SLTPWU;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = episerver4_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -9012,14 +6651,14 @@ int main (int argc, char **argv)
       case  1450:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
-                               | OPTS_TYPE_ST_ADD80;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_ST_ADD80 );
                    kern_type   = KERN_TYPE_HMACSHA256_PW;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = hmacsha256_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -9029,15 +6668,15 @@ int main (int argc, char **argv)
       case  1460:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_HMACSHA256_SLT;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = hmacsha256_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -9047,14 +6686,14 @@ int main (int argc, char **argv)
       case  1500:  hash_type   = HASH_TYPE_DESCRYPT;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_PT_BITSLICE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_PT_BITSLICE );
                    kern_type   = KERN_TYPE_DESCRYPT;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = descrypt_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_PRECOMPUTE_PERMUT;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_PERMUT );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9064,12 +6703,12 @@ int main (int argc, char **argv)
       case  1600:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_APR1CRYPT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5apr1_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9079,21 +6718,21 @@ int main (int argc, char **argv)
       case  1700:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA512;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = sha512_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
                    dgst_pos2   = 6;
@@ -9103,21 +6742,21 @@ int main (int argc, char **argv)
       case  1710:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS15;
+                               | OPTS_TYPE_ST_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA512_PWSLT;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = sha512s_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
                    dgst_pos2   = 6;
@@ -9127,21 +6766,21 @@ int main (int argc, char **argv)
       case  1711:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS15;
+                               | OPTS_TYPE_ST_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA512_PWSLT;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = sha512b64s_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
                    dgst_pos2   = 6;
@@ -9151,21 +6790,21 @@ int main (int argc, char **argv)
       case  1720:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA512_SLTPW;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = sha512s_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
                    dgst_pos2   = 6;
@@ -9175,22 +6814,22 @@ int main (int argc, char **argv)
       case  1722:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
-                               | OPTS_TYPE_ST_HEX;
+                               | OPTS_TYPE_ST_HEX );
                    kern_type   = KERN_TYPE_SHA512_SLTPW;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = osx512_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
                    dgst_pos2   = 6;
@@ -9200,22 +6839,22 @@ int main (int argc, char **argv)
       case  1730:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS15;
+                               | OPTS_TYPE_ST_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA512_PWSLTU;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = sha512s_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
                    dgst_pos2   = 6;
@@ -9225,23 +6864,23 @@ int main (int argc, char **argv)
       case  1731:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15
-                               | OPTS_TYPE_ST_HEX;
+                               | OPTS_TYPE_ST_HEX );
                    kern_type   = KERN_TYPE_SHA512_PWSLTU;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = mssql2012_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
                    dgst_pos2   = 6;
@@ -9251,22 +6890,22 @@ int main (int argc, char **argv)
       case  1740:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS15
-                               | OPTS_TYPE_PT_UNICODE;
+                               | OPTS_TYPE_PT_UNICODE );
                    kern_type   = KERN_TYPE_SHA512_SLTPWU;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = sha512s_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
                    dgst_pos2   = 6;
@@ -9276,15 +6915,15 @@ int main (int argc, char **argv)
       case  1750:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
-                               | OPTS_TYPE_ST_ADD80;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_ST_ADD80 );
                    kern_type   = KERN_TYPE_HMACSHA512_PW;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = hmacsha512_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
                    dgst_pos2   = 6;
@@ -9294,16 +6933,16 @@ int main (int argc, char **argv)
       case  1760:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_HMACSHA512_SLT;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = hmacsha512_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 14;
                    dgst_pos1   = 15;
                    dgst_pos2   = 6;
@@ -9313,13 +6952,13 @@ int main (int argc, char **argv)
       case  1800:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_SHA512CRYPT;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = sha512crypt_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64 );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9329,12 +6968,12 @@ int main (int argc, char **argv)
       case  2000:  hash_type   = HASH_TYPE_STDOUT;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_STDOUT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = NULL;
                    sort_by_digest = NULL;
-                   opti_type   = 0;
+                   opti_type   = OPTI_TYPE_INVALID;
                    dgst_pos0   = 0;
                    dgst_pos1   = 0;
                    dgst_pos2   = 0;
@@ -9344,15 +6983,15 @@ int main (int argc, char **argv)
       case  2100:  hash_type   = HASH_TYPE_DCC2;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE  // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   = (OPTS_TYPE)(OPTS_TYPE_PT_GENERATE_LE  // should be OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_LOWER
-                               | OPTS_TYPE_ST_UNICODE;
+                               | OPTS_TYPE_ST_UNICODE);
                    kern_type   = KERN_TYPE_DCC2;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = dcc2_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SLOW_HASH_SIMD;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9362,17 +7001,17 @@ int main (int argc, char **argv)
       case  2400:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_MD5PIX;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5pix_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_NOT_SALTED;
+                               | OPTI_TYPE_NOT_SALTED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9382,16 +7021,16 @@ int main (int argc, char **argv)
       case  2410:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_MD5ASA;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5asa_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9401,13 +7040,13 @@ int main (int argc, char **argv)
       case  2500:  hash_type   = HASH_TYPE_WPA;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_WPA;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = wpa_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SLOW_HASH_SIMD;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9417,18 +7056,18 @@ int main (int argc, char **argv)
       case  2600:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_VIRTUAL;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
-                               | OPTS_TYPE_ST_ADD80;
+                               | OPTS_TYPE_ST_ADD80 );
                    kern_type   = KERN_TYPE_MD55_PWSLT1;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5md5_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_EARLY_SKIP;
+                               | OPTI_TYPE_EARLY_SKIP );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9438,18 +7077,18 @@ int main (int argc, char **argv)
       case  2611:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
-                               | OPTS_TYPE_ST_ADD80;
+                               | OPTS_TYPE_ST_ADD80 );
                    kern_type   = KERN_TYPE_MD55_PWSLT1;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = vb3_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_EARLY_SKIP;
+                               | OPTI_TYPE_EARLY_SKIP );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9459,19 +7098,19 @@ int main (int argc, char **argv)
       case  2612:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_HEX;
+                               | OPTS_TYPE_ST_HEX );
                    kern_type   = KERN_TYPE_MD55_PWSLT1;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = phps_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_EARLY_SKIP;
+                               | OPTI_TYPE_EARLY_SKIP );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9481,17 +7120,17 @@ int main (int argc, char **argv)
       case  2711:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
-                               | OPTS_TYPE_ST_ADD80;
+                               | OPTS_TYPE_ST_ADD80 );
                    kern_type   = KERN_TYPE_MD55_PWSLT2;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = vb30_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_EARLY_SKIP;
+                               | OPTI_TYPE_EARLY_SKIP );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9501,16 +7140,16 @@ int main (int argc, char **argv)
       case  2811:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS14;
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD55_SLTPW;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = ipb2_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_EARLY_SKIP;
+                               | OPTI_TYPE_EARLY_SKIP );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9520,15 +7159,15 @@ int main (int argc, char **argv)
       case  3000:  hash_type   = HASH_TYPE_LM;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_UPPER
-                               | OPTS_TYPE_PT_BITSLICE;
+                               | OPTS_TYPE_PT_BITSLICE );
                    kern_type   = KERN_TYPE_LM;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = lm_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_PRECOMPUTE_PERMUT;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_PERMUT );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9538,14 +7177,14 @@ int main (int argc, char **argv)
       case  3100:  hash_type   = HASH_TYPE_ORACLEH;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_UPPER
-                               | OPTS_TYPE_ST_UPPER;
+                               | OPTS_TYPE_ST_UPPER );
                    kern_type   = KERN_TYPE_ORACLEH;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = oracleh_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9555,13 +7194,13 @@ int main (int argc, char **argv)
       case  3200:  hash_type   = HASH_TYPE_BCRYPT;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_ST_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_ST_GENERATE_LE );
                    kern_type   = KERN_TYPE_BCRYPT;
                    dgst_size   = DGST_SIZE_4_6;
                    parse_func  = bcrypt_parse_hash;
                    sort_by_digest = sort_by_digest_4_6;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9571,17 +7210,17 @@ int main (int argc, char **argv)
       case  3710:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS14;
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5_SLT_MD5_PW;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5s_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_EARLY_SKIP;
+                               | OPTI_TYPE_EARLY_SKIP );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9591,17 +7230,17 @@ int main (int argc, char **argv)
       case  3711:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS14;
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5_SLT_MD5_PW;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = mediawiki_b_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_EARLY_SKIP;
+                               | OPTI_TYPE_EARLY_SKIP );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9611,18 +7250,18 @@ int main (int argc, char **argv)
       case  3800:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_ST_ADDBITS14;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_ST_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5_SLT_PW_SLT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5s_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9632,18 +7271,18 @@ int main (int argc, char **argv)
       case  4300:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_VIRTUAL;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
-                               | OPTS_TYPE_ST_ADD80;
+                               | OPTS_TYPE_ST_ADD80 );
                    kern_type   = KERN_TYPE_MD5U5_PWSLT1;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5md5_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_EARLY_SKIP;
+                               | OPTI_TYPE_EARLY_SKIP );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9654,20 +7293,20 @@ int main (int argc, char **argv)
       case  4400:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_MD5_SHA1;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9677,18 +7316,18 @@ int main (int argc, char **argv)
       case  4500:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA11;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
-                               | OPTI_TYPE_NOT_SALTED;
+                               | OPTI_TYPE_NOT_SALTED );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -9698,20 +7337,20 @@ int main (int argc, char **argv)
       case  4700:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS14;
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_SHA1_MD5;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -9721,19 +7360,19 @@ int main (int argc, char **argv)
       case  4800:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_PT_ADDBITS14;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5_CHAP;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = chap_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_MEET_IN_MIDDLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9743,15 +7382,15 @@ int main (int argc, char **argv)
       case  4900:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_SHA1_SLT_PW_SLT;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1s_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_EARLY_SKIP;
+                               | OPTI_TYPE_EARLY_SKIP );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -9761,15 +7400,15 @@ int main (int argc, char **argv)
       case  5000:  hash_type   = HASH_TYPE_KECCAK;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_PT_ADD01;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_PT_ADD01 );
                    kern_type   = KERN_TYPE_KECCAK;
                    dgst_size   = DGST_SIZE_8_25;
                    parse_func  = keccak_parse_hash;
                    sort_by_digest = sort_by_digest_8_25;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 2;
                    dgst_pos1   = 3;
                    dgst_pos2   = 4;
@@ -9779,15 +7418,15 @@ int main (int argc, char **argv)
       case  5100:  hash_type   = HASH_TYPE_MD5H;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS14;
+                               | OPTS_TYPE_PT_ADDBITS14 );
                    kern_type   = KERN_TYPE_MD5H;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = md5half_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_RAW_HASH;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9797,12 +7436,12 @@ int main (int argc, char **argv)
       case  5200:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_PSAFE3;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = psafe3_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9812,13 +7451,13 @@ int main (int argc, char **argv)
       case  5300:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_ST_ADD80;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_ST_ADD80 );
                    kern_type   = KERN_TYPE_IKEPSK_MD5;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = ikepsk_md5_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9828,13 +7467,13 @@ int main (int argc, char **argv)
       case  5400:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
-                               | OPTS_TYPE_ST_ADD80;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_ST_ADD80 );
                    kern_type   = KERN_TYPE_IKEPSK_SHA1;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = ikepsk_sha1_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -9844,17 +7483,17 @@ int main (int argc, char **argv)
       case  5500:  hash_type   = HASH_TYPE_NETNTLM;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
                                | OPTS_TYPE_PT_UNICODE
-                               | OPTS_TYPE_ST_HEX;
+                               | OPTS_TYPE_ST_HEX );
                    kern_type   = KERN_TYPE_NETNTLMv1;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = netntlmv1_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_PRECOMPUTE_PERMUT;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_PERMUT );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9864,15 +7503,15 @@ int main (int argc, char **argv)
       case  5600:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_ADDBITS14
-                               | OPTS_TYPE_PT_UNICODE;
+                               | OPTS_TYPE_PT_UNICODE );
                    kern_type   = KERN_TYPE_NETNTLMv2;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = netntlmv2_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -9882,20 +7521,20 @@ int main (int argc, char **argv)
       case  5700:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA256;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = cisco4_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -9905,13 +7544,13 @@ int main (int argc, char **argv)
       case  5800:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE  // should be OPTS_TYPE_PT_GENERATE_BE
-                               | OPTS_TYPE_ST_ADD80;
+                   opts_type   = (OPTS_TYPE)(OPTS_TYPE_PT_GENERATE_LE  // should be OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_ST_ADD80);
                    kern_type   = KERN_TYPE_ANDROIDPIN;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = androidpin_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9921,13 +7560,13 @@ int main (int argc, char **argv)
       case  6000:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_PT_ADD80;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_PT_ADD80 );
                    kern_type   = KERN_TYPE_RIPEMD160;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = ripemd160_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9937,13 +7576,13 @@ int main (int argc, char **argv)
       case  6100:  hash_type   = HASH_TYPE_WHIRLPOOL;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
-                               | OPTS_TYPE_PT_ADD80;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_PT_ADD80 );
                    kern_type   = KERN_TYPE_WHIRLPOOL;
                    dgst_size   = DGST_SIZE_4_16;
                    parse_func  = whirlpool_parse_hash;
                    sort_by_digest = sort_by_digest_4_16;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9953,12 +7592,12 @@ int main (int argc, char **argv)
       case  6211:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS512;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = truecrypt_parse_hash_2k;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9968,12 +7607,12 @@ int main (int argc, char **argv)
       case  6212:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS1024;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = truecrypt_parse_hash_2k;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9983,12 +7622,12 @@ int main (int argc, char **argv)
       case  6213:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS1536;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = truecrypt_parse_hash_2k;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -9998,13 +7637,13 @@ int main (int argc, char **argv)
       case  6221:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_TCSHA512_XTS512;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = truecrypt_parse_hash_1k;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64 );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10014,13 +7653,13 @@ int main (int argc, char **argv)
       case  6222:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_TCSHA512_XTS1024;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = truecrypt_parse_hash_1k;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64 );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10030,13 +7669,13 @@ int main (int argc, char **argv)
       case  6223:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_TCSHA512_XTS1536;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = truecrypt_parse_hash_1k;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64 );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10046,12 +7685,12 @@ int main (int argc, char **argv)
       case  6231:  hash_type   = HASH_TYPE_WHIRLPOOL;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS512;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = truecrypt_parse_hash_1k;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10061,12 +7700,12 @@ int main (int argc, char **argv)
       case  6232:  hash_type   = HASH_TYPE_WHIRLPOOL;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS1024;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = truecrypt_parse_hash_1k;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10076,12 +7715,12 @@ int main (int argc, char **argv)
       case  6233:  hash_type   = HASH_TYPE_WHIRLPOOL;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS1536;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = truecrypt_parse_hash_1k;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10091,12 +7730,12 @@ int main (int argc, char **argv)
       case  6241:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS512;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = truecrypt_parse_hash_1k;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10106,12 +7745,12 @@ int main (int argc, char **argv)
       case  6242:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS1024;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = truecrypt_parse_hash_1k;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10121,12 +7760,12 @@ int main (int argc, char **argv)
       case  6243:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS1536;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = truecrypt_parse_hash_1k;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10136,12 +7775,12 @@ int main (int argc, char **argv)
       case  6300:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_MD5AIX;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = md5aix_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10151,12 +7790,12 @@ int main (int argc, char **argv)
       case  6400:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_SHA256AIX;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = sha256aix_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10166,13 +7805,13 @@ int main (int argc, char **argv)
       case  6500:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_SHA512AIX;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = sha512aix_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64 );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10182,12 +7821,12 @@ int main (int argc, char **argv)
       case  6600:  hash_type   = HASH_TYPE_AES;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_AGILEKEY;
                    dgst_size   = DGST_SIZE_4_5; // because kernel uses _SHA1_
                    parse_func  = agilekey_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10197,12 +7836,12 @@ int main (int argc, char **argv)
       case  6700:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_SHA1AIX;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1aix_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10212,12 +7851,12 @@ int main (int argc, char **argv)
       case  6800:  hash_type   = HASH_TYPE_AES;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_LASTPASS;
                    dgst_size   = DGST_SIZE_4_8; // because kernel uses _SHA256_
                    parse_func  = lastpass_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10227,12 +7866,12 @@ int main (int argc, char **argv)
       case  6900:  hash_type   = HASH_TYPE_GOST;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_GOST;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = gost_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10242,14 +7881,14 @@ int main (int argc, char **argv)
       case  7100:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_PBKDF2_SHA512;
                    dgst_size   = DGST_SIZE_8_16;
                    parse_func  = sha512osx_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_SLOW_HASH_SIMD;
+                               | OPTI_TYPE_SLOW_HASH_SIMD );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10259,14 +7898,14 @@ int main (int argc, char **argv)
       case  7200:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_PBKDF2_SHA512;
                    dgst_size   = DGST_SIZE_8_16;
                    parse_func  = sha512grub_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_SLOW_HASH_SIMD;
+                               | OPTI_TYPE_SLOW_HASH_SIMD );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10276,15 +7915,15 @@ int main (int argc, char **argv)
       case  7300:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS15;
+                               | OPTS_TYPE_ST_ADDBITS15 );
                    kern_type   = KERN_TYPE_RAKP;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = rakp_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -10294,12 +7933,12 @@ int main (int argc, char **argv)
       case  7400:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_SHA256CRYPT;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = sha256crypt_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10309,13 +7948,13 @@ int main (int argc, char **argv)
       case  7500:  hash_type   = HASH_TYPE_KRB5PA;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_KRB5PA;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = krb5pa_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10325,18 +7964,18 @@ int main (int argc, char **argv)
       case  7600:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA1_SLT_SHA1_PW;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = redmine_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_PREPENDED_SALT;
+                               | OPTI_TYPE_PREPENDED_SALT );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -10346,16 +7985,16 @@ int main (int argc, char **argv)
       case  7700:  hash_type   = HASH_TYPE_SAPB;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_UPPER
-                               | OPTS_TYPE_ST_UPPER;
+                               | OPTS_TYPE_ST_UPPER );
                    kern_type   = KERN_TYPE_SAPB;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = sapb_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10365,16 +8004,16 @@ int main (int argc, char **argv)
       case  7800:  hash_type   = HASH_TYPE_SAPG;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_UPPER;
+                               | OPTS_TYPE_ST_UPPER );
                    kern_type   = KERN_TYPE_SAPG;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sapg_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -10384,13 +8023,13 @@ int main (int argc, char **argv)
       case  7900:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_DRUPAL7;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = drupal7_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64 );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10400,19 +8039,19 @@ int main (int argc, char **argv)
       case  8000:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_HEX;
+                               | OPTS_TYPE_ST_HEX );
                    kern_type   = KERN_TYPE_SYBASEASE;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = sybasease_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -10422,18 +8061,18 @@ int main (int argc, char **argv)
       case  8100:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE );
                    kern_type   = KERN_TYPE_NETSCALER;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = netscaler_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -10443,12 +8082,12 @@ int main (int argc, char **argv)
       case  8200:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_CLOUDKEY;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = cloudkey_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10458,14 +8097,14 @@ int main (int argc, char **argv)
       case  8300:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_HEX
-                               | OPTS_TYPE_ST_ADD80;
+                               | OPTS_TYPE_ST_ADD80 );
                    kern_type   = KERN_TYPE_NSEC3;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = nsec3_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -10475,16 +8114,16 @@ int main (int argc, char **argv)
       case  8400:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_WBB3;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = wbb3_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -10494,14 +8133,14 @@ int main (int argc, char **argv)
       case  8500:  hash_type   = HASH_TYPE_DESRACF;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_ST_UPPER;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_ST_UPPER );
                    kern_type   = KERN_TYPE_RACF;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = racf_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_PRECOMPUTE_PERMUT;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_PERMUT );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10511,15 +8150,15 @@ int main (int argc, char **argv)
       case  8600:  hash_type   = HASH_TYPE_LOTUS5;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_LOTUS5;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = lotus5_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_EARLY_SKIP
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10529,14 +8168,14 @@ int main (int argc, char **argv)
       case  8700:  hash_type   = HASH_TYPE_LOTUS6;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_LOTUS6;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = lotus6_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_EARLY_SKIP
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10546,12 +8185,12 @@ int main (int argc, char **argv)
       case  8800:  hash_type   = HASH_TYPE_ANDROIDFDE;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_ANDROIDFDE;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = androidfde_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10561,12 +8200,12 @@ int main (int argc, char **argv)
       case  8900:  hash_type   = HASH_TYPE_SCRYPT;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_SCRYPT;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = scrypt_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10576,13 +8215,13 @@ int main (int argc, char **argv)
       case  9000:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_ST_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_ST_GENERATE_LE );
                    kern_type   = KERN_TYPE_PSAFE2;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = psafe2_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10592,12 +8231,12 @@ int main (int argc, char **argv)
       case  9100:  hash_type   = HASH_TYPE_LOTUS8;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_LOTUS8;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = lotus8_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10607,13 +8246,13 @@ int main (int argc, char **argv)
       case  9200:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_PBKDF2_SHA256;
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = cisco8_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SLOW_HASH_SIMD;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10623,12 +8262,12 @@ int main (int argc, char **argv)
       case  9300:  hash_type   = HASH_TYPE_SCRYPT;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_SCRYPT;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = cisco9_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10638,12 +8277,12 @@ int main (int argc, char **argv)
       case  9400:  hash_type   = HASH_TYPE_OFFICE2007;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_OFFICE2007;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = office2007_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10653,12 +8292,12 @@ int main (int argc, char **argv)
       case  9500:  hash_type   = HASH_TYPE_OFFICE2010;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_OFFICE2010;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = office2010_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10668,12 +8307,12 @@ int main (int argc, char **argv)
       case  9600:  hash_type   = HASH_TYPE_OFFICE2013;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_OFFICE2013;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = office2013_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10683,16 +8322,16 @@ int main (int argc, char **argv)
       case  9700:  hash_type   = HASH_TYPE_OLDOFFICE01;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_UNICODE;
+                               | OPTS_TYPE_PT_UNICODE );
                    kern_type   = KERN_TYPE_OLDOFFICE01;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = oldoffice01_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10702,15 +8341,15 @@ int main (int argc, char **argv)
       case  9710:  hash_type   = HASH_TYPE_OLDOFFICE01;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_PT_ADD80;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_PT_ADD80 );
                    kern_type   = KERN_TYPE_OLDOFFICE01CM1;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = oldoffice01cm1_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10720,17 +8359,17 @@ int main (int argc, char **argv)
       case  9720:  hash_type   = HASH_TYPE_OLDOFFICE01;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_UNICODE
-                               | OPTS_TYPE_PT_NEVERCRACK;
+                               | OPTS_TYPE_PT_NEVERCRACK );
                    kern_type   = KERN_TYPE_OLDOFFICE01CM2;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = oldoffice01cm2_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10740,16 +8379,16 @@ int main (int argc, char **argv)
       case  9800:  hash_type   = HASH_TYPE_OLDOFFICE34;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_UNICODE;
+                               | OPTS_TYPE_PT_UNICODE );
                    kern_type   = KERN_TYPE_OLDOFFICE34;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = oldoffice34_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10759,14 +8398,14 @@ int main (int argc, char **argv)
       case  9810:  hash_type   = HASH_TYPE_OLDOFFICE34;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_OLDOFFICE34CM1;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = oldoffice34cm1_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10776,17 +8415,17 @@ int main (int argc, char **argv)
       case  9820:  hash_type   = HASH_TYPE_OLDOFFICE34;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
                                | OPTS_TYPE_PT_UNICODE
-                               | OPTS_TYPE_PT_NEVERCRACK;
+                               | OPTS_TYPE_PT_NEVERCRACK );
                    kern_type   = KERN_TYPE_OLDOFFICE34CM2;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = oldoffice34cm2_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10796,16 +8435,16 @@ int main (int argc, char **argv)
       case  9900:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_RADMIN2;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = radmin2_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_NOT_SALTED;
+                               | OPTI_TYPE_NOT_SALTED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -10815,13 +8454,13 @@ int main (int argc, char **argv)
       case 10000:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_PBKDF2_SHA256;
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = djangopbkdf2_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SLOW_HASH_SIMD;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10831,14 +8470,14 @@ int main (int argc, char **argv)
       case 10100:  hash_type   = HASH_TYPE_SIPHASH;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_SIPHASH;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = siphash_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10848,15 +8487,15 @@ int main (int argc, char **argv)
       case 10200:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_ADD80
-                               | OPTS_TYPE_ST_ADDBITS14;
+                               | OPTS_TYPE_ST_ADDBITS14 );
                    kern_type   = KERN_TYPE_HMACMD5_PW;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = crammd5_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -10866,12 +8505,12 @@ int main (int argc, char **argv)
       case 10300:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_SAPH_SHA1;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = saph_sha1_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10881,13 +8520,13 @@ int main (int argc, char **argv)
       case 10400:  hash_type   = HASH_TYPE_PDFU16;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_PDF11;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = pdf11_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10897,13 +8536,13 @@ int main (int argc, char **argv)
       case 10410:  hash_type   = HASH_TYPE_PDFU16;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_PDF11CM1;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = pdf11cm1_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10913,13 +8552,13 @@ int main (int argc, char **argv)
       case 10420:  hash_type   = HASH_TYPE_PDFU16;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_PDF11CM2;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = pdf11cm2_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10929,13 +8568,13 @@ int main (int argc, char **argv)
       case 10500:  hash_type   = HASH_TYPE_PDFU16;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_PDF14;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = pdf14_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10945,21 +8584,21 @@ int main (int argc, char **argv)
       case 10600:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_ST_ADD80
                                | OPTS_TYPE_ST_ADDBITS15
-                               | OPTS_TYPE_HASH_COPY;
+                               | OPTS_TYPE_HASH_COPY );
                    kern_type   = KERN_TYPE_SHA256_PWSLT;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = pdf17l3_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_APPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -10969,14 +8608,14 @@ int main (int argc, char **argv)
       case 10700:  hash_type   = HASH_TYPE_PDFU32;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_HASH_COPY;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_HASH_COPY );
                    kern_type   = KERN_TYPE_PDF17L8;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = pdf17l8_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -10986,21 +8625,21 @@ int main (int argc, char **argv)
       case 10800:  hash_type   = HASH_TYPE_SHA384;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA384;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = sha384_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_NOT_SALTED
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 6;
                    dgst_pos1   = 7;
                    dgst_pos2   = 4;
@@ -11010,15 +8649,15 @@ int main (int argc, char **argv)
       case 10900:  hash_type   = HASH_TYPE_PBKDF2_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_BASE64
-                               | OPTS_TYPE_HASH_COPY;
+                               | OPTS_TYPE_HASH_COPY );
                    kern_type   = KERN_TYPE_PBKDF2_SHA256;
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = pbkdf2_sha256_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SLOW_HASH_SIMD;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11028,16 +8667,16 @@ int main (int argc, char **argv)
       case 11000:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_PT_ADD80;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_PT_ADD80 );
                    kern_type   = KERN_TYPE_PRESTASHOP;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = prestashop_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_PREPENDED_SALT;
+                               | OPTI_TYPE_PREPENDED_SALT );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -11047,16 +8686,16 @@ int main (int argc, char **argv)
       case 11100:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_ST_ADD80;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_ST_ADD80 );
                    kern_type   = KERN_TYPE_POSTGRESQL_AUTH;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = postgresql_auth_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_PRECOMPUTE_MERKLE
-                               | OPTI_TYPE_EARLY_SKIP;
+                               | OPTI_TYPE_EARLY_SKIP );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -11066,15 +8705,15 @@ int main (int argc, char **argv)
       case 11200:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_ST_HEX;
+                               | OPTS_TYPE_ST_HEX );
                    kern_type   = KERN_TYPE_MYSQL_AUTH;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = mysql_auth_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_EARLY_SKIP;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_EARLY_SKIP );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -11084,14 +8723,14 @@ int main (int argc, char **argv)
       case 11300:  hash_type   = HASH_TYPE_BITCOIN_WALLET;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_HEX
-                               | OPTS_TYPE_ST_ADD80;
+                               | OPTS_TYPE_ST_ADD80 );
                    kern_type   = KERN_TYPE_BITCOIN_WALLET;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = bitcoin_wallet_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11101,14 +8740,14 @@ int main (int argc, char **argv)
       case 11400:  hash_type   = HASH_TYPE_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_HASH_COPY;
+                               | OPTS_TYPE_HASH_COPY );
                    kern_type   = KERN_TYPE_SIP_AUTH;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = sip_auth_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 3;
                    dgst_pos2   = 2;
@@ -11118,14 +8757,14 @@ int main (int argc, char **argv)
       case 11500:  hash_type   = HASH_TYPE_CRC32;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_GENERATE_LE
-                               | OPTS_TYPE_ST_HEX;
+                               | OPTS_TYPE_ST_HEX );
                    kern_type   = KERN_TYPE_CRC32;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = crc32_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11135,13 +8774,13 @@ int main (int argc, char **argv)
       case 11600:  hash_type   = HASH_TYPE_AES;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_PT_NEVERCRACK;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_PT_NEVERCRACK );
                    kern_type   = KERN_TYPE_SEVEN_ZIP;
                    dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                    parse_func  = seven_zip_parse_hash;
                    sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11151,13 +8790,13 @@ int main (int argc, char **argv)
       case 11700:  hash_type   = HASH_TYPE_GOST_2012SBOG_256;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_PT_ADD01;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_PT_ADD01 );
                    kern_type   = KERN_TYPE_GOST_2012SBOG_256;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = gost2012sbog_256_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11167,13 +8806,13 @@ int main (int argc, char **argv)
       case 11800:  hash_type   = HASH_TYPE_GOST_2012SBOG_512;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_PT_ADD01;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_PT_ADD01 );
                    kern_type   = KERN_TYPE_GOST_2012SBOG_512;
                    dgst_size   = DGST_SIZE_4_16;
                    parse_func  = gost2012sbog_512_parse_hash;
                    sort_by_digest = sort_by_digest_4_16;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11183,15 +8822,15 @@ int main (int argc, char **argv)
       case 11900:  hash_type   = HASH_TYPE_PBKDF2_MD5;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_BASE64
-                               | OPTS_TYPE_HASH_COPY;
+                               | OPTS_TYPE_HASH_COPY );
                    kern_type   = KERN_TYPE_PBKDF2_MD5;
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = pbkdf2_md5_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SLOW_HASH_SIMD;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11201,15 +8840,15 @@ int main (int argc, char **argv)
       case 12000:  hash_type   = HASH_TYPE_PBKDF2_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_BASE64
-                               | OPTS_TYPE_HASH_COPY;
+                               | OPTS_TYPE_HASH_COPY );
                    kern_type   = KERN_TYPE_PBKDF2_SHA1;
                    dgst_size   = DGST_SIZE_4_32;
                    parse_func  = pbkdf2_sha1_parse_hash;
                    sort_by_digest = sort_by_digest_4_32;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_SLOW_HASH_SIMD;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_SLOW_HASH_SIMD );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11219,16 +8858,16 @@ int main (int argc, char **argv)
       case 12100:  hash_type   = HASH_TYPE_PBKDF2_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
                                | OPTS_TYPE_ST_BASE64
-                               | OPTS_TYPE_HASH_COPY;
+                               | OPTS_TYPE_HASH_COPY );
                    kern_type   = KERN_TYPE_PBKDF2_SHA512;
                    dgst_size   = DGST_SIZE_8_16;
                    parse_func  = pbkdf2_sha512_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_USES_BITS_64
-                               | OPTI_TYPE_SLOW_HASH_SIMD;
+                               | OPTI_TYPE_SLOW_HASH_SIMD );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11238,13 +8877,13 @@ int main (int argc, char **argv)
       case 12200:  hash_type   = HASH_TYPE_ECRYPTFS;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_ECRYPTFS;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = ecryptfs_parse_hash;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64 );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11254,13 +8893,13 @@ int main (int argc, char **argv)
       case 12300:  hash_type   = HASH_TYPE_ORACLET;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_ORACLET;
                    dgst_size   = DGST_SIZE_8_16;
                    parse_func  = oraclet_parse_hash;
                    sort_by_digest = sort_by_digest_8_16;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64 );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11270,13 +8909,13 @@ int main (int argc, char **argv)
       case 12400:  hash_type   = HASH_TYPE_BSDICRYPT;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_BSDICRYPT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = bsdicrypt_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_PRECOMPUTE_PERMUT;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_PERMUT );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11286,12 +8925,12 @@ int main (int argc, char **argv)
       case 12500:  hash_type   = HASH_TYPE_RAR3HP;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_RAR3;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = rar3hp_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11301,16 +8940,16 @@ int main (int argc, char **argv)
       case 12600:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
-                               | OPTS_TYPE_PT_ADD80;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_PT_ADD80 );
                    kern_type   = KERN_TYPE_CF10;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = cf10_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_EARLY_SKIP
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -11320,13 +8959,13 @@ int main (int argc, char **argv)
       case 12700:  hash_type   = HASH_TYPE_AES;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
-                               | OPTS_TYPE_HASH_COPY;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_HASH_COPY );
                    kern_type   = KERN_TYPE_MYWALLET;
                    dgst_size   = DGST_SIZE_4_5; // because kernel uses _SHA1_
                    parse_func  = mywallet_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11336,12 +8975,12 @@ int main (int argc, char **argv)
       case 12800:  hash_type   = HASH_TYPE_PBKDF2_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_MS_DRSR;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = ms_drsr_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11351,12 +8990,12 @@ int main (int argc, char **argv)
       case 12900:  hash_type   = HASH_TYPE_PBKDF2_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_ANDROIDFDE_SAMSUNG;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = androidfde_samsung_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11366,12 +9005,12 @@ int main (int argc, char **argv)
       case 13000:  hash_type   = HASH_TYPE_PBKDF2_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_RAR5;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = rar5_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11381,13 +9020,13 @@ int main (int argc, char **argv)
       case 13100:  hash_type   = HASH_TYPE_KRB5TGS;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_KRB5TGS;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = krb5tgs_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_NOT_ITERATED;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11397,12 +9036,12 @@ int main (int argc, char **argv)
       case 13200:  hash_type   = HASH_TYPE_AES;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_AXCRYPT;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = axcrypt_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11412,18 +9051,18 @@ int main (int argc, char **argv)
       case 13300:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_NONE;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_SHA1_AXCRYPT;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = sha1axcrypt_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_NOT_SALTED;
+                               | OPTI_TYPE_NOT_SALTED );
                    dgst_pos0   = 0;
                    dgst_pos1   = 4;
                    dgst_pos2   = 3;
@@ -11433,12 +9072,12 @@ int main (int argc, char **argv)
       case 13400:  hash_type   = HASH_TYPE_AES;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_KEEPASS;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = keepass_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11448,19 +9087,19 @@ int main (int argc, char **argv)
       case 13500:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_UNICODE
-                               | OPTS_TYPE_PT_ADD80;
+                               | OPTS_TYPE_PT_ADD80 );
                    kern_type   = KERN_TYPE_PSTOKEN;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = pstoken_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
                                | OPTI_TYPE_PREPENDED_SALT
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -11470,12 +9109,12 @@ int main (int argc, char **argv)
       case 13600:  hash_type   = HASH_TYPE_PBKDF2_SHA1;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_ZIP2;
                    dgst_size   = DGST_SIZE_4_4;
                    parse_func  = zip2_parse_hash;
                    sort_by_digest = sort_by_digest_4_4;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11485,12 +9124,12 @@ int main (int argc, char **argv)
       case 13711:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS512;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = veracrypt_parse_hash_655331;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11500,12 +9139,12 @@ int main (int argc, char **argv)
       case 13712:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS1024;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = veracrypt_parse_hash_655331;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11515,12 +9154,12 @@ int main (int argc, char **argv)
       case 13713:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS1536;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = veracrypt_parse_hash_655331;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11530,13 +9169,13 @@ int main (int argc, char **argv)
       case 13721:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_TCSHA512_XTS512;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = veracrypt_parse_hash_500000;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64 );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11546,13 +9185,13 @@ int main (int argc, char **argv)
       case 13722:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_TCSHA512_XTS1024;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = veracrypt_parse_hash_500000;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64 );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11562,13 +9201,13 @@ int main (int argc, char **argv)
       case 13723:  hash_type   = HASH_TYPE_SHA512;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_TCSHA512_XTS1536;
                    dgst_size   = DGST_SIZE_8_8;
                    parse_func  = veracrypt_parse_hash_500000;
                    sort_by_digest = sort_by_digest_8_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
-                               | OPTI_TYPE_USES_BITS_64;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_USES_BITS_64 );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11578,12 +9217,12 @@ int main (int argc, char **argv)
       case 13731:  hash_type   = HASH_TYPE_WHIRLPOOL;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS512;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = veracrypt_parse_hash_500000;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11593,12 +9232,12 @@ int main (int argc, char **argv)
       case 13732:  hash_type   = HASH_TYPE_WHIRLPOOL;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS1024;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = veracrypt_parse_hash_500000;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11608,12 +9247,12 @@ int main (int argc, char **argv)
       case 13733:  hash_type   = HASH_TYPE_WHIRLPOOL;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCWHIRLPOOL_XTS1536;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = veracrypt_parse_hash_500000;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11623,12 +9262,12 @@ int main (int argc, char **argv)
       case 13741:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS512;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = veracrypt_parse_hash_327661;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11638,12 +9277,12 @@ int main (int argc, char **argv)
       case 13742:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS1024;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = veracrypt_parse_hash_327661;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11653,12 +9292,12 @@ int main (int argc, char **argv)
       case 13743:  hash_type   = HASH_TYPE_RIPEMD160;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE );
                    kern_type   = KERN_TYPE_TCRIPEMD160_XTS1536;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = veracrypt_parse_hash_327661;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11668,12 +9307,12 @@ int main (int argc, char **argv)
       case 13751:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_VCSHA256_XTS512;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = veracrypt_parse_hash_500000;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11683,12 +9322,12 @@ int main (int argc, char **argv)
       case 13752:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_VCSHA256_XTS1024;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = veracrypt_parse_hash_500000;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11698,12 +9337,12 @@ int main (int argc, char **argv)
       case 13753:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_VCSHA256_XTS1536;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = veracrypt_parse_hash_500000;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11713,12 +9352,12 @@ int main (int argc, char **argv)
       case 13761:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_VCSHA256_XTS512;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = veracrypt_parse_hash_200000;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11728,12 +9367,12 @@ int main (int argc, char **argv)
       case 13762:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_VCSHA256_XTS1024;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = veracrypt_parse_hash_200000;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11743,12 +9382,12 @@ int main (int argc, char **argv)
       case 13763:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_OUTSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_LE; // should be OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_LE ); // should be OPTS_TYPE_PT_GENERATE_BE
                    kern_type   = KERN_TYPE_VCSHA256_XTS1536;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = veracrypt_parse_hash_200000;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE;
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE );
                    dgst_pos0   = 0;
                    dgst_pos1   = 1;
                    dgst_pos2   = 2;
@@ -11758,17 +9397,17 @@ int main (int argc, char **argv)
       case 13800:  hash_type   = HASH_TYPE_SHA256;
                    salt_type   = SALT_TYPE_EMBEDDED;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
-                               | OPTS_TYPE_PT_UNICODE;
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
+                               | OPTS_TYPE_PT_UNICODE );
                    kern_type   = KERN_TYPE_WIN8PHONE;
                    dgst_size   = DGST_SIZE_4_8;
                    parse_func  = win8phone_parse_hash;
                    sort_by_digest = sort_by_digest_4_8;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
                                | OPTI_TYPE_EARLY_SKIP
                                | OPTI_TYPE_NOT_ITERATED
-                               | OPTI_TYPE_RAW_HASH;
+                               | OPTI_TYPE_RAW_HASH );
                    dgst_pos0   = 3;
                    dgst_pos1   = 7;
                    dgst_pos2   = 2;
@@ -11778,16 +9417,16 @@ int main (int argc, char **argv)
       case 13900:  hash_type   = HASH_TYPE_SHA1;
                    salt_type   = SALT_TYPE_INTERN;
                    attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
-                   opts_type   = OPTS_TYPE_PT_GENERATE_BE
+                   opts_type   =(OPTS_TYPE)( OPTS_TYPE_PT_GENERATE_BE
                                | OPTS_TYPE_PT_ADD80
-                               | OPTS_TYPE_PT_ADDBITS15;
+                               | OPTS_TYPE_PT_ADDBITS15 );
                    kern_type   = KERN_TYPE_OPENCART;
                    dgst_size   = DGST_SIZE_4_5;
                    parse_func  = opencart_parse_hash;
                    sort_by_digest = sort_by_digest_4_5;
-                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                   opti_type   =(OPTI_TYPE)( OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_PRECOMPUTE_INIT
-                               | OPTI_TYPE_NOT_ITERATED;
+                               | OPTI_TYPE_NOT_ITERATED );
                    dgst_pos0   = 3;
                    dgst_pos1   = 4;
                    dgst_pos2   = 2;
@@ -11811,7 +9450,7 @@ int main (int argc, char **argv)
     {
       if (salt_type == SALT_TYPE_INTERN)
       {
-        opts_type |= OPTS_TYPE_ST_HEX;
+        opts_type = (OPTS_TYPE)(opts_type | OPTS_TYPE_ST_HEX);
       }
       else
       {
@@ -11833,7 +9472,7 @@ int main (int argc, char **argv)
     data.attack_kern = attack_kern;
     data.attack_exec = attack_exec;
     data.kern_type   = kern_type;
-    data.opts_type   = opts_type;
+    data.opts_type   = (OPTS_TYPE) opts_type;
     data.dgst_size   = dgst_size;
     data.salt_type   = salt_type;
     data.isSalted    = isSalted;
@@ -11967,15 +9606,12 @@ int main (int argc, char **argv)
 
       if (dictstat_fp)
       {
+        statT tmpstat;
         #ifdef _POSIX
-        struct stat tmpstat;
-
         fstat (fileno (dictstat_fp), &tmpstat);
         #endif
 
         #ifdef _WIN
-        struct stat64 tmpstat;
-
         _fstat64 (fileno (dictstat_fp), &tmpstat);
         #endif
 
@@ -11996,7 +9632,7 @@ int main (int argc, char **argv)
 
             if (fread (&d, sizeof (dictstat_t), 1, dictstat_fp) == 0) continue;
 
-            lsearch (&d, dictstat_base, &dictstat_nmemb, sizeof (dictstat_t), sort_by_dictstat);
+            _lsearch (&d, dictstat_base, &dictstat_nmemb, sizeof (dictstat_t), sort_by_dictstat);
 
             if (dictstat_nmemb == (MAX_DICTSTAT - 1000))
             {
@@ -12317,8 +9953,8 @@ int main (int argc, char **argv)
      * load hashes, part I: find input mode, count hashes
      */
 
-    uint hashlist_mode   = 0;
-    uint hashlist_format = HLFMT_HASHCAT;
+    HL_MODE hashlist_mode   = (HL_MODE) 0;
+    HLFMT hashlist_format   = HLFMT_HASHCAT;
 
     uint hashes_avail = 0;
 
@@ -13335,15 +10971,8 @@ int main (int argc, char **argv)
     {
       if (data.hashfile != NULL)
       {
-        #ifdef _POSIX
-        struct stat tmpstat_outfile;
-        struct stat tmpstat_hashfile;
-        #endif
-
-        #ifdef _WIN
-        struct stat64 tmpstat_outfile;
-        struct stat64 tmpstat_hashfile;
-        #endif
+        statT tmpstat_outfile;
+        statT tmpstat_hashfile;
 
         FILE *tmp_outfile_fp = fopen (data.outfile, "r");
 
@@ -13375,7 +11004,7 @@ int main (int argc, char **argv)
           fclose (tmp_hashfile_fp);
         }
 
-        if (tmp_outfile_fp && tmp_outfile_fp)
+        if (tmp_outfile_fp)
         {
           tmpstat_outfile.st_mode     = 0;
           tmpstat_outfile.st_nlink    = 0;
@@ -13409,7 +11038,7 @@ int main (int argc, char **argv)
           #endif
 
           #ifdef _WIN
-          if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (struct stat64)) == 0)
+          if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (statT)) == 0)
           {
             log_error ("ERROR: Hashfile and Outfile are not allowed to point to the same file");
 
@@ -13867,7 +11496,7 @@ int main (int argc, char **argv)
     {
       uint *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
 
-      char *keyfiles = strdup (truecrypt_keyfiles);
+      char *keyfiles = _strdup (truecrypt_keyfiles);
 
       char *keyfile = strtok (keyfiles, ",");
 
@@ -13884,7 +11513,7 @@ int main (int argc, char **argv)
     {
       uint *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
 
-      char *keyfiles = strdup (veracrypt_keyfiles);
+      char *keyfiles = _strdup (veracrypt_keyfiles);
 
       char *keyfile = strtok (keyfiles, ",");
 
@@ -13916,18 +11545,18 @@ int main (int argc, char **argv)
      */
 
     if (salts_cnt == 1)
-      opti_type |= OPTI_TYPE_SINGLE_SALT;
+      opti_type = (OPTI_TYPE)(opti_type | OPTI_TYPE_SINGLE_SALT);
 
     if (digests_cnt == 1)
-      opti_type |= OPTI_TYPE_SINGLE_HASH;
+      opti_type = (OPTI_TYPE)(opti_type | OPTI_TYPE_SINGLE_HASH);
 
     if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-      opti_type |= OPTI_TYPE_NOT_ITERATED;
+      opti_type = (OPTI_TYPE)(opti_type | OPTI_TYPE_NOT_ITERATED);
 
     if (attack_mode == ATTACK_MODE_BF)
-      opti_type |= OPTI_TYPE_BRUTE_FORCE;
+      opti_type = (OPTI_TYPE)(opti_type | OPTI_TYPE_BRUTE_FORCE);
 
-    data.opti_type = opti_type;
+    data.opti_type = (OPTI_TYPE) opti_type;
 
     if (opti_type & OPTI_TYPE_BRUTE_FORCE)
     {
@@ -13937,20 +11566,20 @@ int main (int argc, char **argv)
         {
           if (opts_type & OPTS_TYPE_ST_ADD80)
           {
-            opts_type &= ~OPTS_TYPE_ST_ADD80;
-            opts_type |=  OPTS_TYPE_PT_ADD80;
+            opts_type = (OPTS_TYPE)(opts_type & ~OPTS_TYPE_ST_ADD80);
+            opts_type = (OPTS_TYPE)(opts_type | OPTS_TYPE_PT_ADD80);
           }
 
           if (opts_type & OPTS_TYPE_ST_ADDBITS14)
           {
-            opts_type &= ~OPTS_TYPE_ST_ADDBITS14;
-            opts_type |=  OPTS_TYPE_PT_ADDBITS14;
+            opts_type = (OPTS_TYPE)(opts_type & ~OPTS_TYPE_ST_ADDBITS14);
+            opts_type = (OPTS_TYPE)(opts_type | OPTS_TYPE_PT_ADDBITS14);
           }
 
           if (opts_type & OPTS_TYPE_ST_ADDBITS15)
           {
-            opts_type &= ~OPTS_TYPE_ST_ADDBITS15;
-            opts_type |=  OPTS_TYPE_PT_ADDBITS15;
+            opts_type = (OPTS_TYPE)(opts_type & ~OPTS_TYPE_ST_ADDBITS15);
+            opts_type = (OPTS_TYPE)(opts_type | OPTS_TYPE_PT_ADDBITS15);
           }
         }
       }
@@ -14733,7 +12362,7 @@ int main (int argc, char **argv)
           return -1;
         }
 
-        device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7fffffff);
+        device_param->device_maxmem_alloc = __min (device_maxmem_alloc, 0x7fffffff);
 
         // device_global_mem
 
@@ -14873,7 +12502,7 @@ int main (int argc, char **argv)
           return -1;
         }
 
-        char *device_extensions = mymalloc (device_extensions_size + 1);
+        char *device_extensions = (char*) mymalloc (device_extensions_size + 1);
 
         CL_err = hc_clGetDeviceInfo (data.ocl, device_param->device, CL_DEVICE_EXTENSIONS, device_extensions_size, device_extensions, NULL);
 
@@ -15295,7 +12924,7 @@ int main (int argc, char **argv)
      * HM devices: init
      */
 
-    #ifdef HAVE_HWMON
+    #ifdef WITH_HWMON
     hm_attrs_t hm_adapters_adl[DEVICES_MAX];
     hm_attrs_t hm_adapters_nvapi[DEVICES_MAX];
     hm_attrs_t hm_adapters_nvml[DEVICES_MAX];
@@ -15528,7 +13157,7 @@ int main (int argc, char **argv)
        * Watchdog and Temperature balance
        */
 
-      #ifdef HAVE_HWMON
+      #ifdef WITH_HWMON
       if (gpu_temp_disable == 0 && data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl == NULL)
       {
         log_info ("Watchdog: Hardware Monitoring Interface not found on your system");
@@ -15556,7 +13185,7 @@ int main (int argc, char **argv)
       #endif
     }
 
-    #ifdef HAVE_HWMON
+    #ifdef WITH_HWMON
 
     /**
      * HM devices: copy
@@ -15791,7 +13420,7 @@ int main (int argc, char **argv)
       hc_thread_mutex_unlock (mux_adl);
     }
 
-    #endif // HAVE_HWMON
+    #endif // WITH_HWMON
 
     #ifdef DEBUG
     if (benchmark == 1) log_info ("Hashmode: %d", data.hash_mode);
@@ -15859,7 +13488,7 @@ int main (int argc, char **argv)
        *                 there needs to be some upper limit, otherwise there's too much overhead
        */
 
-      uint kernel_threads = MIN (KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
+      uint kernel_threads = __min (KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
 
       if (hash_mode ==  8900) kernel_threads = 64; // Scrypt
       if (hash_mode ==  9300) kernel_threads = 64; // Scrypt
@@ -16362,12 +13991,16 @@ int main (int argc, char **argv)
 
       char build_opts_new[1024] = { 0 };
 
-      #ifdef DEBUG
-      snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, data.dgst_size / 4, kern_type);
-      #else
-      snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1 -w", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, data.dgst_size / 4, kern_type);
-      #endif
 
+      snprintf (
+        build_opts_new, sizeof(build_opts_new) - 1,
+        #ifdef DEBUG
+        "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1",
+        #else
+        "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1 -w",
+        #endif
+        build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, data.dgst_size / 4, kern_type
+      );
       strncpy (build_opts, build_opts_new, sizeof (build_opts));
 
       #ifdef DEBUG
@@ -16460,14 +14093,15 @@ int main (int argc, char **argv)
             }
             */
 
-            hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+            hc_clGetProgramBuildInfo(data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-            #ifdef DEBUG
-            if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
-            #else
-            if (CL_err != CL_SUCCESS)
-            #endif
-            {
+
+            if (
+              #ifdef DEBUG
+              (build_log_size != 0) ||
+              #endif
+              (CL_err != CL_SUCCESS)
+            ){
               char *build_log = (char *) mymalloc (build_log_size + 1);
 
               CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
@@ -16600,14 +14234,15 @@ int main (int argc, char **argv)
           }
           */
 
-          hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+          hc_clGetProgramBuildInfo(data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-          #ifdef DEBUG
-          if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
-          #else
-          if (CL_err != CL_SUCCESS)
-          #endif
-          {
+
+          if (
+#ifdef DEBUG
+            (build_log_size != 0) ||
+#endif
+            (CL_err != CL_SUCCESS)
+          ){
             char *build_log = (char *) mymalloc (build_log_size + 1);
 
             CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
@@ -16717,34 +14352,34 @@ int main (int argc, char **argv)
 
           if (CL_err != CL_SUCCESS)
           {
-            log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+          log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
 
-            return -1;
+          return -1;
           }
           */
 
-          hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+          hc_clGetProgramBuildInfo(data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-          #ifdef DEBUG
-          if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
-          #else
-          if (CL_err != CL_SUCCESS)
-          #endif
-          {
-            char *build_log = (char *) mymalloc (build_log_size + 1);
+          if (
+            #ifdef DEBUG
+            (build_log_size != 0) ||
+            #endif
+            (CL_err != CL_SUCCESS)
+          ){
+            char *build_log = (char *)mymalloc(build_log_size + 1);
 
-            CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+            CL_err = hc_clGetProgramBuildInfo(data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
             if (CL_err != CL_SUCCESS)
             {
-              log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+              log_error("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl(CL_err));
 
               return -1;
             }
 
-            puts (build_log);
+            puts(build_log);
 
-            myfree (build_log);
+            myfree(build_log);
           }
 
           if (CL_err != CL_SUCCESS)
@@ -16898,34 +14533,35 @@ int main (int argc, char **argv)
 
           if (CL_err != CL_SUCCESS)
           {
-            log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+          log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
 
-            return -1;
+          return -1;
           }
           */
 
-          hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+          hc_clGetProgramBuildInfo(data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-          #ifdef DEBUG
-          if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
-          #else
-          if (CL_err != CL_SUCCESS)
-          #endif
-          {
-            char *build_log = (char *) mymalloc (build_log_size + 1);
 
-            CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+          if (
+            #ifdef DEBUG
+            (build_log_size != 0) ||
+            #endif
+            (CL_err != CL_SUCCESS)
+          ){
+            char *build_log = (char *)mymalloc(build_log_size + 1);
+
+            CL_err = hc_clGetProgramBuildInfo(data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
             if (CL_err != CL_SUCCESS)
             {
-              log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+              log_error("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl(CL_err));
 
               return -1;
             }
 
-            puts (build_log);
+            puts(build_log);
 
-            myfree (build_log);
+            myfree(build_log);
           }
 
           if (CL_err != CL_SUCCESS)
@@ -17382,7 +15018,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_tm, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+            CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_tm, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = __min (kernel_threads, kernel_wgs_tmp);
 
             if (CL_err != CL_SUCCESS)
             {
@@ -17441,7 +15077,7 @@ int main (int argc, char **argv)
             return -1;
           }
 
-          CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel12, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+          CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel12, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = __min (kernel_threads, kernel_wgs_tmp);
 
           if (CL_err != CL_SUCCESS)
           {
@@ -17464,7 +15100,7 @@ int main (int argc, char **argv)
             return -1;
           }
 
-          CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel23, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+          CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel23, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = __min (kernel_threads, kernel_wgs_tmp);
 
           if (CL_err != CL_SUCCESS)
           {
@@ -17475,9 +15111,9 @@ int main (int argc, char **argv)
         }
       }
 
-      CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel1, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
-      CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel2, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
-      CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel3, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+      CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel1, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = __min (kernel_threads, kernel_wgs_tmp);
+      CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel2, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = __min (kernel_threads, kernel_wgs_tmp);
+      CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel3, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = __min (kernel_threads, kernel_wgs_tmp);
 
       if (CL_err != CL_SUCCESS)
       {
@@ -17531,7 +15167,7 @@ int main (int argc, char **argv)
         return -1;
       }
 
-      CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_memset, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+      CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_memset, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = __min (kernel_threads, kernel_wgs_tmp);
 
       if (CL_err != CL_SUCCESS)
       {
@@ -17565,8 +15201,8 @@ int main (int argc, char **argv)
           return -1;
         }
 
-        CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp_l, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
-        CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp_r, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+        CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp_l, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = __min (kernel_threads, kernel_wgs_tmp);
+        CL_err |= hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp_r, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = __min (kernel_threads, kernel_wgs_tmp);
 
         if (CL_err != CL_SUCCESS)
         {
@@ -17599,7 +15235,7 @@ int main (int argc, char **argv)
           return -1;
         }
 
-        CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+        CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = __min (kernel_threads, kernel_wgs_tmp);
 
         if (CL_err != CL_SUCCESS)
         {
@@ -17619,7 +15255,7 @@ int main (int argc, char **argv)
           return -1;
         }
 
-        CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+        CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_mp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = __min (kernel_threads, kernel_wgs_tmp);
 
         if (CL_err != CL_SUCCESS)
         {
@@ -17644,7 +15280,7 @@ int main (int argc, char **argv)
           return -1;
         }
 
-        CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_amp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = MIN (kernel_threads, kernel_wgs_tmp);
+        CL_err = hc_clGetKernelWorkGroupInfo (data.ocl, device_param->kernel_amp, device_param->device, CL_KERNEL_WORK_GROUP_SIZE, sizeof (size_t), &kernel_wgs_tmp, NULL); kernel_threads = __min (kernel_threads, kernel_wgs_tmp);
 
         if (CL_err != CL_SUCCESS)
         {
@@ -17723,7 +15359,7 @@ int main (int argc, char **argv)
         run_kernel_bzero (device_param, device_param->d_markov_css_buf, size_markov_css);
       }
 
-      #if defined(HAVE_HWMON)
+      #if defined(WITH_HWMON)
 
       /**
        * Store initial fanspeed if gpu_temp_retain is enabled
@@ -17785,7 +15421,7 @@ int main (int argc, char **argv)
         }
       }
 
-      #endif // HAVE_HWMON
+      #endif // WITH_HWMON
     }
 
     if (data.quiet == 0) log_info_nn ("");
@@ -17936,7 +15572,7 @@ int main (int argc, char **argv)
 
                   dictcnt++;
 
-                  dictfiles[dictcnt - 1] = strdup (l1_filename);
+                  dictfiles[dictcnt - 1] = _strdup (l1_filename);
                 }
               }
             }
@@ -18399,7 +16035,7 @@ int main (int argc, char **argv)
 
                 dictcnt++;
 
-                dictfiles[dictcnt - 1] = strdup (l1_filename);
+                dictfiles[dictcnt - 1] = _strdup (l1_filename);
               }
             }
           }
@@ -18578,7 +16214,7 @@ int main (int argc, char **argv)
 
                 dictcnt++;
 
-                dictfiles[dictcnt - 1] = strdup (l1_filename);
+                dictfiles[dictcnt - 1] = _strdup (l1_filename);
               }
             }
           }
@@ -18958,7 +16594,7 @@ int main (int argc, char **argv)
               local_free (dictfiles[i]);
             }
 
-            for (uint pw_len = MAX (1, pw_min); pw_len <= pw_max; pw_len++)
+            for (uint pw_len = __max (1, pw_min); pw_len <= pw_max; pw_len++)
             {
               char *l1_filename = mp_get_truncated_mask (mask, strlen (mask), pw_len);
 
@@ -19007,21 +16643,20 @@ int main (int argc, char **argv)
       /**
        * prevent the user from using --skip/--limit together w/ maskfile and or dictfile
        */
-
       if (skip != 0 || limit != 0)
       {
         if ((maskcnt > 1) || (dictcnt > 1))
         {
-          log_error ("ERROR: --skip/--limit are not supported with --increment or mask files");
+          log_error("ERROR: --skip/--limit are not supported with --increment or mask files");
 
           return -1;
         }
       }
 
+
       /**
        * prevent the user from using --keyspace together w/ maskfile and or dictfile
        */
-
       if (keyspace == 1)
       {
         if ((maskcnt > 1) || (dictcnt > 1))
@@ -20004,7 +17639,7 @@ int main (int argc, char **argv)
 
     // reset default fan speed
 
-    #ifdef HAVE_HWMON
+    #ifdef WITH_HWMON
     if (gpu_temp_disable == 0)
     {
       if (gpu_temp_retain != 0)
@@ -20157,7 +17792,7 @@ int main (int argc, char **argv)
         data.hm_adl = NULL;
       }
     }
-    #endif // HAVE_HWMON
+    #endif // WITH_HWMON
 
     // free memory
 
@@ -20196,7 +17831,7 @@ int main (int argc, char **argv)
     local_free (bitmap_s2_c);
     local_free (bitmap_s2_d);
 
-    #ifdef HAVE_HWMON
+    #ifdef WITH_HWMON
     local_free (od_clock_mem_status);
     local_free (od_power_control_status);
     local_free (nvml_power_limit);
@@ -20231,7 +17866,7 @@ int main (int argc, char **argv)
 
   data.shutdown_outer = 1;
 
-  for (uint thread_idx = 0; thread_idx < outer_threads_cnt; thread_idx++)
+  for (uint thread_idx = 0; thread_idx < outer_threads_cnt; ++thread_idx)
   {
     hc_thread_wait (1, &outer_threads[thread_idx]);
   }
@@ -20268,7 +17903,7 @@ int main (int argc, char **argv)
   {
     if (attack_mode != ATTACK_MODE_BF)
     {
-      if (rmdir (induction_directory) == -1)
+      if (_rmdir (induction_directory) == -1)
       {
         if (errno == ENOENT)
         {
@@ -20294,7 +17929,7 @@ int main (int argc, char **argv)
 
   if (outfile_check_dir == NULL)
   {
-    if (rmdir (outfile_check_directory) == -1)
+    if (_rmdir (outfile_check_directory) == -1)
     {
       if (errno == ENOENT)
       {
@@ -20329,11 +17964,19 @@ int main (int argc, char **argv)
 
   if (data.ocl) ocl_close (data.ocl);
 
-  if (data.devices_status == STATUS_ABORTED)            return 2;
-  if (data.devices_status == STATUS_QUIT)               return 2;
-  if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) return 2;
-  if (data.devices_status == STATUS_EXHAUSTED)          return 1;
-  if (data.devices_status == STATUS_CRACKED)            return 0;
+  switch (data.devices_status) {
+    case STATUS_ABORTED:
+    case STATUS_QUIT:
+    case STATUS_STOP_AT_CHECKPOINT:
+      return 2;
+    break;
+    case STATUS_EXHAUSTED:
+      return 1;
+    break;
+    case STATUS_CRACKED:
+      return 0;
+    break;
+  }
 
   return -1;
 }
