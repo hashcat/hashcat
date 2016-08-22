@@ -96,57 +96,6 @@ double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 #define SCRYPT_TMTO             0
 #define OPENCL_VECTOR_WIDTH     0
 
-#define WL_MODE_STDIN           1
-#define WL_MODE_FILE            2
-#define WL_MODE_MASK            3
-
-#define HL_MODE_FILE            4
-#define HL_MODE_ARG             5
-
-#define HLFMTS_CNT              11
-#define HLFMT_HASHCAT           0
-#define HLFMT_PWDUMP            1
-#define HLFMT_PASSWD            2
-#define HLFMT_SHADOW            3
-#define HLFMT_DCC               4
-#define HLFMT_DCC2              5
-#define HLFMT_NETNTLM1          7
-#define HLFMT_NETNTLM2          8
-#define HLFMT_NSLDAP            9
-#define HLFMT_NSLDAPS           10
-
-#define HLFMT_TEXT_HASHCAT      "native hashcat"
-#define HLFMT_TEXT_PWDUMP       "pwdump"
-#define HLFMT_TEXT_PASSWD       "passwd"
-#define HLFMT_TEXT_SHADOW       "shadow"
-#define HLFMT_TEXT_DCC          "DCC"
-#define HLFMT_TEXT_DCC2         "DCC 2"
-#define HLFMT_TEXT_NETNTLM1     "NetNTLMv1"
-#define HLFMT_TEXT_NETNTLM2     "NetNTLMv2"
-#define HLFMT_TEXT_NSLDAP       "nsldap"
-#define HLFMT_TEXT_NSLDAPS      "nsldaps"
-
-#define ATTACK_MODE_STRAIGHT    0
-#define ATTACK_MODE_COMBI       1
-#define ATTACK_MODE_TOGGLE      2
-#define ATTACK_MODE_BF          3
-#define ATTACK_MODE_PERM        4
-#define ATTACK_MODE_TABLE       5
-#define ATTACK_MODE_HYBRID1     6
-#define ATTACK_MODE_HYBRID2     7
-#define ATTACK_MODE_NONE        100
-
-#define ATTACK_KERN_STRAIGHT    0
-#define ATTACK_KERN_COMBI       1
-#define ATTACK_KERN_BF          3
-#define ATTACK_KERN_NONE        100
-
-#define ATTACK_EXEC_OUTSIDE_KERNEL  10
-#define ATTACK_EXEC_INSIDE_KERNEL   11
-
-#define COMBINATOR_MODE_BASE_LEFT   10001
-#define COMBINATOR_MODE_BASE_RIGHT  10002
-
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
