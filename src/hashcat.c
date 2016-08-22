@@ -25,76 +25,80 @@ const uint  RESTORE_MIN = 300;
 
 double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 
-#define INCR_RULES              10000
-#define INCR_SALTS              100000
-#define INCR_MASKS              1000
-#define INCR_POT                1000
+typedef enum INCR_ {
+  INCR_RULES = 10000,
+  INCR_SALTS = 100000,
+  INCR_MASKS = 1000,
+  INCR_POT = 1000
+} INCR;
 
-#define USAGE                   0
-#define VERSION                 0
-#define QUIET                   0
-#define MARKOV_THRESHOLD        0
-#define MARKOV_DISABLE          0
-#define MARKOV_CLASSIC          0
-#define BENCHMARK               0
-#define STDOUT_FLAG             0
-#define RESTORE                 0
-#define RESTORE_TIMER           60
-#define RESTORE_DISABLE         0
-#define STATUS                  0
-#define STATUS_TIMER            10
-#define MACHINE_READABLE        0
-#define LOOPBACK                0
-#define WEAK_HASH_THRESHOLD     100
-#define SHOW                    0
-#define LEFT                    0
-#define USERNAME                0
-#define REMOVE                  0
-#define REMOVE_TIMER            60
-#define SKIP                    0
-#define LIMIT                   0
-#define KEYSPACE                0
-#define POTFILE_DISABLE         0
-#define DEBUG_MODE              0
-#define RP_GEN                  0
-#define RP_GEN_FUNC_MIN         1
-#define RP_GEN_FUNC_MAX         4
-#define RP_GEN_SEED             0
-#define RULE_BUF_L              ":"
-#define RULE_BUF_R              ":"
-#define FORCE                   0
-#define RUNTIME                 0
-#define HEX_CHARSET             0
-#define HEX_SALT                0
-#define HEX_WORDLIST            0
-#define OUTFILE_FORMAT          3
-#define OUTFILE_AUTOHEX         1
-#define OUTFILE_CHECK_TIMER     5
-#define ATTACK_MODE             0
-#define HASH_MODE               0
-#define SEGMENT_SIZE            32
-#define INCREMENT               0
-#define INCREMENT_MIN           1
-#define INCREMENT_MAX           PW_MAX
-#define SEPARATOR               ':'
-#define BITMAP_MIN              16
-#define BITMAP_MAX              24
-#define NVIDIA_SPIN_DAMP        100
-#define GPU_TEMP_DISABLE        0
-#define GPU_TEMP_ABORT          90
-#define GPU_TEMP_RETAIN         75
-#define WORKLOAD_PROFILE        2
-#define KERNEL_ACCEL            0
-#define KERNEL_LOOPS            0
-#define KERNEL_RULES            1024
-#define KERNEL_COMBS            1024
-#define KERNEL_BFS              1024
-#define KERNEL_THREADS_MAX      256
-#define KERNEL_THREADS_MAX_CPU  1
-#define POWERTUNE_ENABLE        0
-#define LOGFILE_DISABLE         0
-#define SCRYPT_TMTO             0
-#define OPENCL_VECTOR_WIDTH     0
+typedef enum HASHCAT_MISC_ENUM_ {
+  USAGE = 0,
+  VERSION = 0,
+  QUIET = 0,
+  MARKOV_THRESHOLD = 0,
+  MARKOV_DISABLE = 0,
+  MARKOV_CLASSIC = 0,
+  BENCHMARK = 0,
+  STDOUT_FLAG = 0,
+  RESTORE = 0,
+  RESTORE_TIMER = 60,
+  RESTORE_DISABLE = 0,
+  STATUS = 0,
+  STATUS_TIMER = 10,
+  MACHINE_READABLE = 0,
+  LOOPBACK = 0,
+  WEAK_HASH_THRESHOLD = 100,
+  SHOW = 0,
+  LEFT = 0,
+  USERNAME = 0,
+  REMOVE = 0,
+  REMOVE_TIMER = 60,
+  SKIP = 0,
+  LIMIT = 0,
+  KEYSPACE = 0,
+  POTFILE_DISABLE = 0,
+  DEBUG_MODE = 0,
+  RP_GEN = 0,
+  RP_GEN_FUNC_MIN = 1,
+  RP_GEN_FUNC_MAX = 4,
+  RP_GEN_SEED = 0,
+  FORCE = 0,
+  RUNTIME = 0,
+  HEX_CHARSET = 0,
+  HEX_SALT = 0,
+  HEX_WORDLIST = 0,
+  OUTFILE_FORMAT = 3,
+  OUTFILE_AUTOHEX = 1,
+  OUTFILE_CHECK_TIMER = 5,
+  HASH_MODE = 0,
+  SEGMENT_SIZE = 32,
+  INCREMENT = 0,
+  INCREMENT_MIN = 1,
+  INCREMENT_MAX = PW_MAX,
+  BITMAP_MIN = 16,
+  BITMAP_MAX = 24,
+  NVIDIA_SPIN_DAMP = 100,
+  GPU_TEMP_DISABLE = 0,
+  GPU_TEMP_ABORT = 90,
+  GPU_TEMP_RETAIN = 75,
+  WORKLOAD_PROFILE = 2,
+  KERNEL_ACCEL = 0,
+  KERNEL_LOOPS = 0,
+  KERNEL_RULES = 1024,
+  KERNEL_COMBS = 1024,
+  KERNEL_BFS = 1024,
+  KERNEL_THREADS_MAX = 256,
+  KERNEL_THREADS_MAX_CPU = 1,
+  POWERTUNE_ENABLE = 0,
+  LOGFILE_DISABLE = 0,
+  SCRYPT_TMTO = 0,
+  OPENCL_VECTOR_WIDTH = 0,
+}HASHCAT_MISC_ENUM;
+
+static const char RULE_BUF_L[] = ":";
+static const char RULE_BUF_R[] = ":";
+static const char SEPARATOR = ':';
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
