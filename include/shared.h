@@ -859,42 +859,11 @@ extern hc_thread_mutex_t mux_display;
 #include "consts/rounds_count.h"
 #include "consts/salt_types.h"
 #include "consts/optimizer_options.h"
+#include "consts/hash_options.h"
 
    /**
-    * signatures
+    * digests
     */
-
-#define OPTS_TYPE_PT_UNICODE        (1 <<  0)
-#define OPTS_TYPE_PT_UPPER          (1 <<  1)
-#define OPTS_TYPE_PT_LOWER          (1 <<  2)
-#define OPTS_TYPE_PT_ADD01          (1 <<  3)
-#define OPTS_TYPE_PT_ADD02          (1 <<  4)
-#define OPTS_TYPE_PT_ADD80          (1 <<  5)
-#define OPTS_TYPE_PT_ADDBITS14      (1 <<  6)
-#define OPTS_TYPE_PT_ADDBITS15      (1 <<  7)
-#define OPTS_TYPE_PT_GENERATE_LE    (1 <<  8)
-#define OPTS_TYPE_PT_GENERATE_BE    (1 <<  9)
-#define OPTS_TYPE_PT_NEVERCRACK     (1 << 10) // if we want all possible results
-#define OPTS_TYPE_PT_BITSLICE       (1 << 11)
-#define OPTS_TYPE_ST_UNICODE        (1 << 12)
-#define OPTS_TYPE_ST_UPPER          (1 << 13)
-#define OPTS_TYPE_ST_LOWER          (1 << 14)
-#define OPTS_TYPE_ST_ADD01          (1 << 15)
-#define OPTS_TYPE_ST_ADD02          (1 << 16)
-#define OPTS_TYPE_ST_ADD80          (1 << 17)
-#define OPTS_TYPE_ST_ADDBITS14      (1 << 18)
-#define OPTS_TYPE_ST_ADDBITS15      (1 << 19)
-#define OPTS_TYPE_ST_GENERATE_LE    (1 << 20)
-#define OPTS_TYPE_ST_GENERATE_BE    (1 << 21)
-#define OPTS_TYPE_ST_HEX            (1 << 22)
-#define OPTS_TYPE_ST_BASE64         (1 << 23)
-#define OPTS_TYPE_HASH_COPY         (1 << 24)
-#define OPTS_TYPE_HOOK12            (1 << 25)
-#define OPTS_TYPE_HOOK23            (1 << 26)
-
-    /**
-     * digests
-     */
 
 #define DGST_SIZE_4_2               (2  * sizeof (uint))   // 8
 #define DGST_SIZE_4_4               (4  * sizeof (uint))   // 16
@@ -908,9 +877,9 @@ extern hc_thread_mutex_t mux_display;
 #define DGST_SIZE_8_16              (16 * sizeof (u64))    // 128 !!!
 #define DGST_SIZE_8_25              (25 * sizeof (u64))    // 200
 
-     /**
-      * parser
-      */
+    /**
+     * parser
+     */
 
 #define PARSER_OK                   0
 #define PARSER_COMMENT             -1
@@ -952,9 +921,9 @@ extern hc_thread_mutex_t mux_display;
 #define PA_017 "Invalid SIP directive, only MD5 is supported"
 #define PA_255 "Unknown error"
 
-      /**
-       * status
-       */
+     /**
+      * status
+      */
 
 #define STATUS_STARTING           0
 #define STATUS_INIT               1
@@ -980,9 +949,9 @@ extern hc_thread_mutex_t mux_display;
 #define ST_0009 "Running (stop at checkpoint)"
 #define ST_0010 "Autotuning"
 
-       /**
-        * kernel types
-        */
+      /**
+       * kernel types
+       */
 
 #define KERN_RUN_MP          101
 #define KERN_RUN_MP_L        102
@@ -994,9 +963,9 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_RUN_23          2500
 #define KERN_RUN_3           3000
 
-        /*
-         * functions
-         */
+       /*
+        * functions
+        */
 
 u32 is_power_of_2(u32 v);
 

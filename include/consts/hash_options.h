@@ -1,0 +1,34 @@
+#pragma once
+/**
+* hash options
+*/
+typedef enum OPTS_TYPE_ {
+  OPTS_TYPE_INVALID = 0,
+  OPTS_TYPE_PT_UNICODE = (1 << 0),
+  OPTS_TYPE_PT_UPPER = (1 << 1),
+  OPTS_TYPE_PT_LOWER = (1 << 2),
+  OPTS_TYPE_PT_ADD01 = (1 << 3),
+  OPTS_TYPE_PT_ADD02 = (1 << 4),
+  OPTS_TYPE_PT_ADD80 = (1 << 5),
+  OPTS_TYPE_PT_ADDBITS14 = (1 << 6),
+  OPTS_TYPE_PT_ADDBITS15 = (1 << 7),
+  OPTS_TYPE_PT_GENERATE_LE = (1 << 8),
+  OPTS_TYPE_PT_GENERATE_BE = (1 << 9),
+  OPTS_TYPE_PT_NEVERCRACK = (1 << 10), // if we want all possible results
+  OPTS_TYPE_PT_BITSLICE = (1 << 11),
+  OPTS_TYPE_ST_UNICODE = (1 << 12),
+  OPTS_TYPE_ST_UPPER = (1 << 13),
+  OPTS_TYPE_ST_LOWER = (1 << 14),
+  OPTS_TYPE_ST_ADD01 = (1 << 15),
+  OPTS_TYPE_ST_ADD02 = (1 << 16),
+  OPTS_TYPE_ST_ADD80 = (1 << 17),
+  OPTS_TYPE_ST_ADDBITS14 = (1 << 18),
+  OPTS_TYPE_ST_ADDBITS15 = (1 << 19),
+  OPTS_TYPE_ST_GENERATE_LE = (1 << 20),
+  OPTS_TYPE_ST_GENERATE_BE = (1 << 21),
+  OPTS_TYPE_ST_HEX = (1 << 22),
+  OPTS_TYPE_ST_BASE64 = (1 << 23),
+  OPTS_TYPE_HASH_COPY = (1 << 24),
+  OPTS_TYPE_HOOK12 = (1 << 25),
+  OPTS_TYPE_HOOK23 = (1 << 26)
+} OPTS_TYPE;
