@@ -8,7 +8,7 @@
 #include <stat_processor.h>
 #include <logging.h>
 
-static void check_hash(hc_device_param_t *device_param, plain_t *plain)
+void check_hash(hc_device_param_t *device_param, plain_t *plain)
 {
   char *outfile = data.outfile;
   uint  quiet = data.quiet;
