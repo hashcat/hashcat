@@ -857,20 +857,12 @@ extern hc_thread_mutex_t mux_display;
 #include "consts/kernel_types.h"
 #include "consts/signatures.h"
 #include "consts/rounds_count.h"
+#include "consts/salt_types.h"
 
    /**
     * signatures
     */
-
-#define SALT_TYPE_NONE        1
-#define SALT_TYPE_EMBEDDED    2
-#define SALT_TYPE_INTERN      3
-#define SALT_TYPE_EXTERN      4
-#define SALT_TYPE_VIRTUAL     5
-
-    /**
-     * optimizer options
-     */
+* /
 
 #define OPTI_TYPE_ZERO_BYTE         (1 <<  1)
 #define OPTI_TYPE_PRECOMPUTE_INIT   (1 <<  2)
@@ -912,9 +904,9 @@ extern hc_thread_mutex_t mux_display;
 #define OPTI_STR_USES_BITS_32       "Uses-32-Bit"
 #define OPTI_STR_USES_BITS_64       "Uses-64-Bit"
 
-     /**
-      * hash options
-      */
+/**
+ * hash options
+ */
 
 #define OPTS_TYPE_PT_UNICODE        (1 <<  0)
 #define OPTS_TYPE_PT_UPPER          (1 <<  1)
@@ -944,9 +936,9 @@ extern hc_thread_mutex_t mux_display;
 #define OPTS_TYPE_HOOK12            (1 << 25)
 #define OPTS_TYPE_HOOK23            (1 << 26)
 
-      /**
-       * digests
-       */
+ /**
+  * digests
+  */
 
 #define DGST_SIZE_4_2               (2  * sizeof (uint))   // 8
 #define DGST_SIZE_4_4               (4  * sizeof (uint))   // 16
@@ -960,9 +952,9 @@ extern hc_thread_mutex_t mux_display;
 #define DGST_SIZE_8_16              (16 * sizeof (u64))    // 128 !!!
 #define DGST_SIZE_8_25              (25 * sizeof (u64))    // 200
 
-       /**
-        * parser
-        */
+  /**
+   * parser
+   */
 
 #define PARSER_OK                   0
 #define PARSER_COMMENT             -1
@@ -1004,9 +996,9 @@ extern hc_thread_mutex_t mux_display;
 #define PA_017 "Invalid SIP directive, only MD5 is supported"
 #define PA_255 "Unknown error"
 
-        /**
-         * status
-         */
+   /**
+    * status
+    */
 
 #define STATUS_STARTING           0
 #define STATUS_INIT               1
@@ -1032,9 +1024,9 @@ extern hc_thread_mutex_t mux_display;
 #define ST_0009 "Running (stop at checkpoint)"
 #define ST_0010 "Autotuning"
 
-         /**
-          * kernel types
-          */
+    /**
+     * kernel types
+     */
 
 #define KERN_RUN_MP          101
 #define KERN_RUN_MP_L        102
@@ -1046,11 +1038,11 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_RUN_23          2500
 #define KERN_RUN_3           3000
 
-          /*
-           * functions
-           */
+     /*
+      * functions
+      */
 
-u32 is_power_of_2(u32 v);
+  u32 is_power_of_2(u32 v);
 
 u32 rotl32(const u32 a, const u32 n);
 u32 rotr32(const u32 a, const u32 n);
