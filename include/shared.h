@@ -225,59 +225,7 @@ extern hc_thread_mutex_t mux_display;
  */
 
 #include "consts/display_lengths.h"
-
-#define HASH_TYPE_MD4          1
-#define HASH_TYPE_MD5          2
-#define HASH_TYPE_MD5H         3
-#define HASH_TYPE_SHA1         4
-#define HASH_TYPE_SHA256       5
-#define HASH_TYPE_SHA384       6
-#define HASH_TYPE_SHA512       7
-#define HASH_TYPE_DCC2         8
-#define HASH_TYPE_WPA          9
-#define HASH_TYPE_LM           10
-#define HASH_TYPE_DESCRYPT     11
-#define HASH_TYPE_ORACLEH      12
-#define HASH_TYPE_DESRACF      13
-#define HASH_TYPE_BCRYPT       14
-#define HASH_TYPE_KECCAK       15
-#define HASH_TYPE_NETNTLM      16
-#define HASH_TYPE_RIPEMD160    17
-#define HASH_TYPE_WHIRLPOOL    18
-#define HASH_TYPE_AES          19
-#define HASH_TYPE_GOST         20
-#define HASH_TYPE_KRB5PA       21
-#define HASH_TYPE_SAPB         22
-#define HASH_TYPE_SAPG         23
-#define HASH_TYPE_MYSQL        24
-#define HASH_TYPE_LOTUS5       25
-#define HASH_TYPE_LOTUS6       26
-#define HASH_TYPE_ANDROIDFDE   27
-#define HASH_TYPE_SCRYPT       28
-#define HASH_TYPE_LOTUS8       29
-#define HASH_TYPE_OFFICE2007   30
-#define HASH_TYPE_OFFICE2010   31
-#define HASH_TYPE_OFFICE2013   32
-#define HASH_TYPE_OLDOFFICE01  33
-#define HASH_TYPE_OLDOFFICE34  34
-#define HASH_TYPE_SIPHASH      35
-#define HASH_TYPE_PDFU16       36
-#define HASH_TYPE_PDFU32       37
-#define HASH_TYPE_PBKDF2_SHA256  38
-#define HASH_TYPE_BITCOIN_WALLET 39
-#define HASH_TYPE_CRC32          40
-#define HASH_TYPE_GOST_2012SBOG_256  41
-#define HASH_TYPE_GOST_2012SBOG_512  42
-#define HASH_TYPE_PBKDF2_MD5     43
-#define HASH_TYPE_PBKDF2_SHA1    44
-#define HASH_TYPE_PBKDF2_SHA512  45
-#define HASH_TYPE_ECRYPTFS       46
-#define HASH_TYPE_ORACLET        47
-#define HASH_TYPE_BSDICRYPT      48
-#define HASH_TYPE_RAR3HP         49
-#define HASH_TYPE_KRB5TGS        50
-#define HASH_TYPE_STDOUT         51
-
+#include "consts/hash_types.h"
 #include "consts/kernel_types.h"
 #include "consts/signatures.h"
 #include "consts/rounds_count.h"
