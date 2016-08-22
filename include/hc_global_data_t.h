@@ -21,7 +21,7 @@ typedef struct hc_global_data_t_
   * threads
   */
 
-  uint    devices_status;
+  DEVICES_STATUS    devices_status;
   uint    devices_cnt;
   uint    devices_active;
 
@@ -42,12 +42,12 @@ typedef struct hc_global_data_t_
                               * attack specific
                               */
 
-  uint    wordlist_mode;
-  uint    hashlist_mode;
-  uint    hashlist_format;
+  WL_MODE    wordlist_mode;
+  HL_MODE    hashlist_mode;
+  HLFMT    hashlist_format;
 
-  uint    attack_mode;
-  uint    attack_kern;
+  ATTACK_MODE    attack_mode;
+  ATTACK_KERN    attack_kern;
   uint    attack_exec;
 
   uint    kernel_rules_cnt;
@@ -74,23 +74,24 @@ typedef struct hc_global_data_t_
   * opencl library stuff
   */
 
-  void   *ocl;
+  OCL_PTR   *ocl;
 
   /**
   * hardware watchdog
   */
 
 #ifdef HAVE_HWMON
-  void      *hm_adl;
-  void      *hm_nvml;
-  void      *hm_nvapi;
-  void      *hm_xnvctrl;
+  ADL_PTR      *hm_adl;
+  NVML_PTR      *hm_nvml;
+  NVAPI_PTR      *hm_nvapi;
+  XNVCTRL_PTR      *hm_xnvctrl;
   hm_attrs_t hm_device[DEVICES_MAX];
 #endif
 
   /**
   * hashes
   */
+
 
   uint    digests_cnt;
   uint    digests_done;
@@ -188,14 +189,14 @@ typedef struct hc_global_data_t_
   char   *custom_charset_4;
 
   uint    hash_mode;
-  uint    hash_type;
-  uint    kern_type;
-  uint    opts_type;
-  uint    salt_type;
+  HASH_TYPE    hash_type;
+  KERN_TYPE    kern_type;
+  OPTS_TYPE    opts_type;
+  SALT_TYPE    salt_type;
   uint    esalt_size;
   uint    isSalted;
   uint    dgst_size;
-  uint    opti_type;
+  OPTI_TYPE    opti_type;
   uint    dgst_pos0;
   uint    dgst_pos1;
   uint    dgst_pos2;
@@ -262,5 +263,3 @@ typedef struct hc_global_data_t_
   int(*parse_func)     (char *, uint, hash_t *);
 
 } hc_global_data_t;
-
-extern hc_global_data_t data;
