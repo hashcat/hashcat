@@ -215,29 +215,13 @@ extern hc_thread_mutex_t mux_display;
 #include "consts/salt_types.h"
 #include "consts/optimizer_options.h"
 #include "consts/hash_options.h"
-
- /**
-  * digests
-  */
-
-#define DGST_SIZE_4_2               (2  * sizeof (uint))   // 8
-#define DGST_SIZE_4_4               (4  * sizeof (uint))   // 16
-#define DGST_SIZE_4_5               (5  * sizeof (uint))   // 20
-#define DGST_SIZE_4_6               (6  * sizeof (uint))   // 24
-#define DGST_SIZE_4_8               (8  * sizeof (uint))   // 32
-#define DGST_SIZE_4_16              (16 * sizeof (uint))   // 64 !!!
-#define DGST_SIZE_4_32              (32 * sizeof (uint))   // 128 !!!
-#define DGST_SIZE_4_64              (64 * sizeof (uint))   // 256
-#define DGST_SIZE_8_8               (8  * sizeof (u64))    // 64 !!!
-#define DGST_SIZE_8_16              (16 * sizeof (u64))    // 128 !!!
-#define DGST_SIZE_8_25              (25 * sizeof (u64))    // 200
-
+#include "consts/digest_sizes.h"
 #include "consts/parser.h"
 #include "consts/devices_statuses.h"
 
-  /**
-   * kernel types
-   */
+ /**
+  * kernel types
+  */
 
 #define KERN_RUN_MP          101
 #define KERN_RUN_MP_L        102
@@ -249,9 +233,9 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_RUN_23          2500
 #define KERN_RUN_3           3000
 
-   /*
-    * functions
-    */
+  /*
+   * functions
+   */
 
 u32 is_power_of_2(u32 v);
 
