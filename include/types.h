@@ -911,14 +911,6 @@ typedef struct
 
 } tuning_db_t;
 
-#define RULES_MAX   256
-#define PW_MIN      0
-#define PW_MAX      54
-#define PW_MAX1     (PW_MAX + 1)
-#define PW_DICTMAX  31
-#define PW_DICTMAX1 (PW_DICTMAX + 1)
-#define PARAMCNT    64
-
 #include "hc_device_param_t.h"
 
 #ifdef HAVE_HWMON

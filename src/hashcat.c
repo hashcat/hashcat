@@ -3216,8 +3216,6 @@ static int autotune(hc_device_param_t *device_param)
     run_kernel_amp(device_param, kernel_power_max);
   }
 
-#define VERIFIER_CNT 1
-
   // first find out highest kernel-loops that stays below target_ms
 
   if (kernel_loops_min < kernel_loops_max)
@@ -3238,8 +3236,6 @@ static int autotune(hc_device_param_t *device_param)
   }
 
   // now the same for kernel-accel but with the new kernel-loops from previous loop set
-
-#define STEPS_CNT 10
 
   if (kernel_accel_min < kernel_accel_max)
   {

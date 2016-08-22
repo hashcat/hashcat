@@ -39,35 +39,9 @@
    /**
     * shared stuff
     */
-
-#define ETC_MAX                 (60 * 60 * 24 * 365 * 10)
-
-#define DEVICES_MAX             128
-
-#define CL_PLATFORMS_MAX        16
+#include "config.h"
 
 #include "consts/devices_vendors.h"
-
-#define BLOCK_SIZE              64
-
-#define CHARSIZ                 0x100
-#define INFOSZ                  CHARSIZ
-
-#define SP_HCSTAT               "hashcat.hcstat"
-#define SP_PW_MIN               2
-#define SP_PW_MAX               64
-#define SP_ROOT_CNT             (SP_PW_MAX * CHARSIZ)
-#define SP_MARKOV_CNT           (SP_PW_MAX * CHARSIZ * CHARSIZ)
-
-#define TUNING_DB_FILE          "hashcat.hctune"
-
-#define INDUCT_DIR              "induct"
-#define OUTFILES_DIR            "outfiles"
-
-#define LOOPBACK_FILE           "hashcat.loopback"
-
-#define DICTSTAT_FILENAME       "hashcat.dictstat"
-#define POTFILE_FILENAME        "hashcat.pot"
 
 #include "types.h"
 #include "rp_cpu.h"

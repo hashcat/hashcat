@@ -7,6 +7,7 @@
 
 #ifndef COMMON_H
 #define COMMON_H
+#include "config.h"
 
 #define _POSIX_SOURCE
 #define _GNU_SOURCE
@@ -93,15 +94,6 @@ typedef HINSTANCE XNVCTRL_LIB;
 #define mkdir(name,mode) mkdir (name)
 
 #endif // _WIN
-
-#define EXEC_CACHE    128
-
-#define SPEED_CACHE   128
-#define SPEED_MAXAGE  4096
-
-#define HCBUFSIZ      0x50000 // general large space buffer size in case the size is unknown at compile-time
-
-#define EXPECTED_ITERATIONS 10000
 
 /**
  * functions
