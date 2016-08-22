@@ -858,55 +858,11 @@ extern hc_thread_mutex_t mux_display;
 #include "consts/signatures.h"
 #include "consts/rounds_count.h"
 #include "consts/salt_types.h"
+#include "consts/optimizer_options.h"
 
    /**
     * signatures
     */
-* /
-
-#define OPTI_TYPE_ZERO_BYTE         (1 <<  1)
-#define OPTI_TYPE_PRECOMPUTE_INIT   (1 <<  2)
-#define OPTI_TYPE_PRECOMPUTE_MERKLE (1 <<  3)
-#define OPTI_TYPE_PRECOMPUTE_PERMUT (1 <<  4)
-#define OPTI_TYPE_MEET_IN_MIDDLE    (1 <<  5)
-#define OPTI_TYPE_EARLY_SKIP        (1 <<  6)
-#define OPTI_TYPE_NOT_SALTED        (1 <<  7)
-#define OPTI_TYPE_NOT_ITERATED      (1 <<  8)
-#define OPTI_TYPE_PREPENDED_SALT    (1 <<  9)
-#define OPTI_TYPE_APPENDED_SALT     (1 << 10)
-#define OPTI_TYPE_SINGLE_HASH       (1 << 11)
-#define OPTI_TYPE_SINGLE_SALT       (1 << 12)
-#define OPTI_TYPE_BRUTE_FORCE       (1 << 13)
-#define OPTI_TYPE_RAW_HASH          (1 << 14)
-#define OPTI_TYPE_SLOW_HASH_SIMD    (1 << 15)
-#define OPTI_TYPE_USES_BITS_8       (1 << 16)
-#define OPTI_TYPE_USES_BITS_16      (1 << 17)
-#define OPTI_TYPE_USES_BITS_32      (1 << 18)
-#define OPTI_TYPE_USES_BITS_64      (1 << 19)
-
-#define OPTI_STR_ZERO_BYTE          "Zero-Byte"
-#define OPTI_STR_PRECOMPUTE_INIT    "Precompute-Init"
-#define OPTI_STR_PRECOMPUTE_MERKLE  "Precompute-Merkle-Demgard"
-#define OPTI_STR_PRECOMPUTE_PERMUT  "Precompute-Final-Permutation"
-#define OPTI_STR_MEET_IN_MIDDLE     "Meet-In-The-Middle"
-#define OPTI_STR_EARLY_SKIP         "Early-Skip"
-#define OPTI_STR_NOT_SALTED         "Not-Salted"
-#define OPTI_STR_NOT_ITERATED       "Not-Iterated"
-#define OPTI_STR_PREPENDED_SALT     "Prepended-Salt"
-#define OPTI_STR_APPENDED_SALT      "Appended-Salt"
-#define OPTI_STR_SINGLE_HASH        "Single-Hash"
-#define OPTI_STR_SINGLE_SALT        "Single-Salt"
-#define OPTI_STR_BRUTE_FORCE        "Brute-Force"
-#define OPTI_STR_RAW_HASH           "Raw-Hash"
-#define OPTI_STR_SLOW_HASH_SIMD     "Slow-Hash-SIMD"
-#define OPTI_STR_USES_BITS_8        "Uses-8-Bit"
-#define OPTI_STR_USES_BITS_16       "Uses-16-Bit"
-#define OPTI_STR_USES_BITS_32       "Uses-32-Bit"
-#define OPTI_STR_USES_BITS_64       "Uses-64-Bit"
-
-/**
- * hash options
- */
 
 #define OPTS_TYPE_PT_UNICODE        (1 <<  0)
 #define OPTS_TYPE_PT_UPPER          (1 <<  1)
@@ -936,9 +892,9 @@ extern hc_thread_mutex_t mux_display;
 #define OPTS_TYPE_HOOK12            (1 << 25)
 #define OPTS_TYPE_HOOK23            (1 << 26)
 
- /**
-  * digests
-  */
+    /**
+     * digests
+     */
 
 #define DGST_SIZE_4_2               (2  * sizeof (uint))   // 8
 #define DGST_SIZE_4_4               (4  * sizeof (uint))   // 16
@@ -952,9 +908,9 @@ extern hc_thread_mutex_t mux_display;
 #define DGST_SIZE_8_16              (16 * sizeof (u64))    // 128 !!!
 #define DGST_SIZE_8_25              (25 * sizeof (u64))    // 200
 
-  /**
-   * parser
-   */
+     /**
+      * parser
+      */
 
 #define PARSER_OK                   0
 #define PARSER_COMMENT             -1
@@ -996,9 +952,9 @@ extern hc_thread_mutex_t mux_display;
 #define PA_017 "Invalid SIP directive, only MD5 is supported"
 #define PA_255 "Unknown error"
 
-   /**
-    * status
-    */
+      /**
+       * status
+       */
 
 #define STATUS_STARTING           0
 #define STATUS_INIT               1
@@ -1024,9 +980,9 @@ extern hc_thread_mutex_t mux_display;
 #define ST_0009 "Running (stop at checkpoint)"
 #define ST_0010 "Autotuning"
 
-    /**
-     * kernel types
-     */
+       /**
+        * kernel types
+        */
 
 #define KERN_RUN_MP          101
 #define KERN_RUN_MP_L        102
@@ -1038,11 +994,11 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_RUN_23          2500
 #define KERN_RUN_3           3000
 
-     /*
-      * functions
-      */
+        /*
+         * functions
+         */
 
-  u32 is_power_of_2(u32 v);
+u32 is_power_of_2(u32 v);
 
 u32 rotl32(const u32 a, const u32 n);
 u32 rotr32(const u32 a, const u32 n);
