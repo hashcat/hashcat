@@ -2,15 +2,26 @@
 /**
 * libraries stuff
 */
-
 #ifdef _WIN
-#define hc_dlopen LoadLibrary
-#define hc_dlclose FreeLibrary
-#define hc_dlsym GetProcAddress
+inline HMODULE hc_dlopen(LPCSTR lpLibFileName) {
+  return LoadLibraryA(lpLibFileName);
+}
+inline BOOL hc_dlclose(HMODULE hLibModule){
+  return FreeLibrary(hLibModule);
+}
+inline FARPROC hc_dlsym(HMODULE hModule, LPCSTR lpProcName) {
+  return GetProcAddress(hModule, lpProcName);
+}
 #else
-#define hc_dlopen dlopen
-#define hc_dlclose dlclose
-#define hc_dlsym dlsym
+inline void * hc_dlopen(const char * fileName, int flag) {
+  return dlopen(fileName, flag);
+}
+inline int hc_dlclose(void * handle){
+  return dlclose(handle);
+}
+inline void * hc_dlsym(void * module, const char * symbol) {
+  return dlsym(module, symbol);
+}
 #endif
 
 #define HC_LOAD_FUNC2(ptr,name,type,var,libname,noerr) \
