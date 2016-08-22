@@ -1,3 +1,4 @@
+#pragma once
 /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
  *               Gabriele Gristina <matrix@hashcat.net>
