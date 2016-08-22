@@ -37,150 +37,14 @@
     * logging
     */
 
-int last_len = 0;
 
-int log_final(FILE *fp, const char *fmt, va_list ap)
-{
-  if (last_len)
-  {
-    fputc('\r', fp);
+#include <logging.h>
 
-    for (int i = 0; i < last_len; i++)
-    {
-      fputc(' ', fp);
-    }
+#include <converter.h>
 
-    fputc('\r', fp);
-  }
-
-  char s[4096] = { 0 };
-
-  int max_len = (int) sizeof(s);
-
-  int len = vsnprintf(s, max_len, fmt, ap);
-
-  if (len > max_len) len = max_len;
-
-  fwrite(s, len, 1, fp);
-
-  fflush(fp);
-
-  last_len = len;
-
-  return len;
-}
-
-int log_out_nn(FILE *fp, const char *fmt, ...)
-{
-  if (SUPPRESS_OUTPUT) return 0;
-
-  va_list ap;
-
-  va_start(ap, fmt);
-
-  const int len = log_final(fp, fmt, ap);
-
-  va_end(ap);
-
-  return len;
-}
-
-int log_info_nn(const char *fmt, ...)
-{
-  if (SUPPRESS_OUTPUT) return 0;
-
-  va_list ap;
-
-  va_start(ap, fmt);
-
-  const int len = log_final(stdout, fmt, ap);
-
-  va_end(ap);
-
-  return len;
-}
-
-int log_error_nn(const char *fmt, ...)
-{
-  if (SUPPRESS_OUTPUT) return 0;
-
-  va_list ap;
-
-  va_start(ap, fmt);
-
-  const int len = log_final(stderr, fmt, ap);
-
-  va_end(ap);
-
-  return len;
-}
-
-int log_out(FILE *fp, const char *fmt, ...)
-{
-  if (SUPPRESS_OUTPUT) return 0;
-
-  va_list ap;
-
-  va_start(ap, fmt);
-
-  const int len = log_final(fp, fmt, ap);
-
-  va_end(ap);
-
-  fputc('\n', fp);
-
-  last_len = 0;
-
-  return len;
-}
-
-int log_info(const char *fmt, ...)
-{
-  if (SUPPRESS_OUTPUT) return 0;
-
-  va_list ap;
-
-  va_start(ap, fmt);
-
-  const int len = log_final(stdout, fmt, ap);
-
-  va_end(ap);
-
-  fputc('\n', stdout);
-
-  last_len = 0;
-
-  return len;
-}
-
-int log_error(const char *fmt, ...)
-{
-  if (SUPPRESS_OUTPUT) return 0;
-
-  fputc('\n', stderr);
-  fputc('\n', stderr);
-
-  va_list ap;
-
-  va_start(ap, fmt);
-
-  const int len = log_final(stderr, fmt, ap);
-
-  va_end(ap);
-
-  fputc('\n', stderr);
-  fputc('\n', stderr);
-
-  last_len = 0;
-
-  return len;
-}
-
-#include "converter.h"
-
-/**
- * decoder
- */
+    /**
+     * decoder
+     */
 
 static void AES128_decrypt_cbc(const u32 key[4], const u32 iv[4], const u32 in[16], u32 out[16])
 {
@@ -3914,7 +3778,7 @@ char **scan_directory(const char *path)
     }
 
     closedir(d);
-  }
+    }
   else if (errno == ENOTDIR)
   {
     files = (char **)myrealloc(files, num_files * sizeof(char *), sizeof(char *));
@@ -3933,7 +3797,7 @@ char **scan_directory(const char *path)
   myfree(tmp_path);
 
   return (files);
-}
+  }
 
 int count_dictionaries(char **dictionary_files)
 {
