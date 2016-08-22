@@ -1,10 +1,10 @@
 /**
- * Authors.....: Jens Steube <jens.steube@gmail.com>
- *               Gabriele Gristina <matrix@hashcat.net>
- *               magnum <john.magnum@hushmail.com>
- *
- * License.....: MIT
- */
+* Authors.....: Jens Steube <jens.steube@gmail.com>
+*               Gabriele Gristina <matrix@hashcat.net>
+*               magnum <john.magnum@hushmail.com>
+*
+* License.....: MIT
+*/
 
 #ifdef __APPLE__
 #include <stdio.h>
@@ -108,18 +108,18 @@ double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 #define NVIDIA_100PERCENTCPU_WORKAROUND 100
 
 #define global_free(attr)       \
-{                               \
-  myfree ((void *) data.attr);  \
-                                \
-  data.attr = NULL;             \
-}
+  {                               \
+    myfree ((void *) data.attr);  \
+    \
+    data.attr = NULL;             \
+  }
 
 #define local_free(attr)  \
-{                         \
-  myfree ((void *) attr); \
-                          \
-  attr = NULL;            \
-}
+  {                         \
+    myfree ((void *) attr); \
+    \
+    attr = NULL;            \
+  }
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
 #define HC_API_CALL __stdcall
@@ -276,14 +276,14 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
 };
 
 /**
- * types
- */
+* types
+*/
 
 static void(*get_next_word_func) (char *, u32, u32 *, u32 *);
 
 /**
- * globals
- */
+* globals
+*/
 
 static unsigned int full01 = 0x01010101;
 static unsigned int full80 = 0x80808080;
@@ -301,8 +301,8 @@ const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => 
 
 #include <consts/help_texts.h>
 /**
- * hashcat specific functions
- */
+* hashcat specific functions
+*/
 
 
 static double get_avg_exec_time(hc_device_param_t *device_param, const int last_num_entries)
@@ -332,980 +332,7 @@ static double get_avg_exec_time(hc_device_param_t *device_param, const int last_
   return exec_ms_sum / exec_ms_cnt;
 }
 
-void status_display_machine_readable()
-{
-  FILE *out = stdout;
-
-  fprintf(out, "STATUS\t%u\t", data.devices_status);
-
-  /**
-   * speed new
-   */
-
-  fprintf(out, "SPEED\t");
-
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    u64    speed_cnt = 0;
-    double speed_ms = 0;
-
-    for (int i = 0; i < SPEED_CACHE; i++)
-    {
-      speed_cnt += device_param->speed_cnt[i];
-      speed_ms += device_param->speed_ms[i];
-    }
-
-    speed_cnt /= SPEED_CACHE;
-    speed_ms /= SPEED_CACHE;
-
-    fprintf(out, "%llu\t%f\t", (unsigned long long int) speed_cnt, speed_ms);
-  }
-
-  /**
-   * exec time
-   */
-
-  fprintf(out, "EXEC_RUNTIME\t");
-
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    double exec_ms_avg = get_avg_exec_time(device_param, EXEC_CACHE);
-
-    fprintf(out, "%f\t", exec_ms_avg);
-  }
-
-  /**
-   * words_cur
-   */
-
-  u64 words_cur = get_lowest_words_done();
-
-  fprintf(out, "CURKU\t%llu\t", (unsigned long long int) words_cur);
-
-  /**
-   * counter
-   */
-
-  u64 progress_total = data.words_cnt * data.salts_cnt;
-
-  u64 all_done = 0;
-  u64 all_rejected = 0;
-  u64 all_restored = 0;
-
-  for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
-  {
-    all_done += data.words_progress_done[salt_pos];
-    all_rejected += data.words_progress_rejected[salt_pos];
-    all_restored += data.words_progress_restored[salt_pos];
-  }
-
-  u64 progress_cur = all_restored + all_done + all_rejected;
-  u64 progress_end = progress_total;
-
-  u64 progress_skip = 0;
-
-  if (data.skip)
-  {
-    progress_skip = MIN(data.skip, data.words_base) * data.salts_cnt;
-
-    if (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
-    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
-    else if (data.attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
-  }
-
-  if (data.limit)
-  {
-    progress_end = MIN(data.limit, data.words_base) * data.salts_cnt;
-
-    if (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end *= data.kernel_rules_cnt;
-    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end *= data.combs_cnt;
-    else if (data.attack_kern == ATTACK_KERN_BF)       progress_end *= data.bfs_cnt;
-  }
-
-  u64 progress_cur_relative_skip = progress_cur - progress_skip;
-  u64 progress_end_relative_skip = progress_end - progress_skip;
-
-  fprintf(out, "PROGRESS\t%llu\t%llu\t", (unsigned long long int) progress_cur_relative_skip, (unsigned long long int) progress_end_relative_skip);
-
-  /**
-   * cracks
-   */
-
-  fprintf(out, "RECHASH\t%u\t%u\t", data.digests_done, data.digests_cnt);
-  fprintf(out, "RECSALT\t%u\t%u\t", data.salts_done, data.salts_cnt);
-
-  /**
-   * temperature
-   */
-
-#ifdef HAVE_HWMON
-  if (data.gpu_temp_disable == 0)
-  {
-    fprintf(out, "TEMP\t");
-
-    hc_thread_mutex_lock(mux_adl);
-
-    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-    {
-      hc_device_param_t *device_param = &data.devices_param[device_id];
-
-      if (device_param->skipped) continue;
-
-      int temp = hm_get_temperature_with_device_id(device_id);
-
-      fprintf(out, "%d\t", temp);
-    }
-
-    hc_thread_mutex_unlock(mux_adl);
-  }
-#endif // HAVE_HWMON
-
-  /**
-   * flush
-   */
-
-  fputs(EOL, out);
-  fflush(out);
-}
-
-void status_display()
-{
-  if (data.devices_status == STATUS_INIT)     return;
-  if (data.devices_status == STATUS_STARTING) return;
-
-  // in this case some required buffers are free'd, ascii_digest() would run into segfault
-  if (data.shutdown_inner == 1) return;
-
-  if (data.machine_readable == 1)
-  {
-    status_display_machine_readable();
-
-    return;
-  }
-
-  char tmp_buf[1000] = { 0 };
-
-  uint tmp_len = 0;
-
-  log_info("Session.Name...: %s", data.session);
-
-  char *status_type = strstatus(data.devices_status);
-
-  uint hash_mode = data.hash_mode;
-
-  char *hash_type = strhashtype(hash_mode); // not a bug
-
-  log_info("Status.........: %s", status_type);
-
-  /**
-   * show rules
-   */
-
-  if (data.rp_files_cnt)
-  {
-    uint i;
-
-    for (i = 0, tmp_len = 0; i < data.rp_files_cnt - 1 && tmp_len < sizeof(tmp_buf); i++)
-    {
-      tmp_len += snprintf(tmp_buf + tmp_len, sizeof(tmp_buf) - tmp_len, "File (%s), ", data.rp_files[i]);
-    }
-
-    snprintf(tmp_buf + tmp_len, sizeof(tmp_buf) - tmp_len, "File (%s)", data.rp_files[i]);
-
-    log_info("Rules.Type.....: %s", tmp_buf);
-
-    tmp_len = 0;
-  }
-
-  if (data.rp_gen)
-  {
-    log_info("Rules.Type.....: Generated (%u)", data.rp_gen);
-
-    if (data.rp_gen_seed)
-    {
-      log_info("Rules.Seed.....: %u", data.rp_gen_seed);
-    }
-  }
-
-  /**
-   * show input
-   */
-
-  if (data.attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    if (data.wordlist_mode == WL_MODE_FILE)
-    {
-      if (data.dictfile != NULL) log_info("Input.Mode.....: File (%s)", data.dictfile);
-    }
-    else if (data.wordlist_mode == WL_MODE_STDIN)
-    {
-      log_info("Input.Mode.....: Pipe");
-    }
-  }
-  else if (data.attack_mode == ATTACK_MODE_COMBI)
-  {
-    if (data.dictfile != NULL) log_info("Input.Left.....: File (%s)", data.dictfile);
-    if (data.dictfile2 != NULL) log_info("Input.Right....: File (%s)", data.dictfile2);
-  }
-  else if (data.attack_mode == ATTACK_MODE_BF)
-  {
-    char *mask = data.mask;
-
-    if (mask != NULL)
-    {
-      uint mask_len = data.css_cnt;
-
-      tmp_len += snprintf(tmp_buf + tmp_len, sizeof(tmp_buf) - tmp_len, "Mask (%s)", mask);
-
-      if (mask_len > 0)
-      {
-        if (data.opti_type & OPTI_TYPE_SINGLE_HASH)
-        {
-          if (data.opti_type & OPTI_TYPE_APPENDED_SALT)
-          {
-            mask_len -= data.salts_buf[0].salt_len;
-          }
-        }
-
-        if (data.opts_type & OPTS_TYPE_PT_UNICODE) mask_len /= 2;
-
-        tmp_len += snprintf(tmp_buf + tmp_len, sizeof(tmp_buf) - tmp_len, " [%i]", mask_len);
-      }
-
-      if (data.maskcnt > 1)
-      {
-        float mask_percentage = (float)data.maskpos / (float)data.maskcnt;
-
-        tmp_len += snprintf(tmp_buf + tmp_len, sizeof(tmp_buf) - tmp_len, " (%.02f%%)", mask_percentage * 100);
-      }
-
-      log_info("Input.Mode.....: %s", tmp_buf);
-
-      if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
-      {
-        char *custom_charset_1 = data.custom_charset_1;
-        char *custom_charset_2 = data.custom_charset_2;
-        char *custom_charset_3 = data.custom_charset_3;
-        char *custom_charset_4 = data.custom_charset_4;
-
-        if (custom_charset_1 == NULL)
-        {
-          custom_charset_1 = "Undefined";
-        }
-        if (custom_charset_2 == NULL)
-        {
-          custom_charset_2 = "Undefined";
-        }
-        if (custom_charset_3 == NULL)
-        {
-          custom_charset_3 = "Undefined";
-        }
-        if (custom_charset_4 == NULL)
-        {
-          custom_charset_4 = "Undefined";
-        }
-
-        log_info("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
-      }
-    }
-
-    tmp_len = 0;
-  }
-  else if (data.attack_mode == ATTACK_MODE_HYBRID1)
-  {
-    if (data.dictfile != NULL) log_info("Input.Left.....: File (%s)", data.dictfile);
-    if (data.mask != NULL) log_info("Input.Right....: Mask (%s) [%i]", data.mask, data.css_cnt);
-    if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
-    {
-      char *custom_charset_1 = data.custom_charset_1;
-      char *custom_charset_2 = data.custom_charset_2;
-      char *custom_charset_3 = data.custom_charset_3;
-      char *custom_charset_4 = data.custom_charset_4;
-
-      if (custom_charset_1 == NULL)
-      {
-        custom_charset_1 = "Undefined";
-      }
-      if (custom_charset_2 == NULL)
-      {
-        custom_charset_2 = "Undefined";
-      }
-      if (custom_charset_3 == NULL)
-      {
-        custom_charset_3 = "Undefined";
-      }
-      if (custom_charset_4 == NULL)
-      {
-        custom_charset_4 = "Undefined";
-      }
-
-      log_info("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
-    }
-  }
-  else if (data.attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    if (data.mask != NULL) log_info("Input.Left.....: Mask (%s) [%i]", data.mask, data.css_cnt);
-    if (data.dictfile != NULL) log_info("Input.Right....: File (%s)", data.dictfile);
-    if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
-    {
-      char *custom_charset_1 = data.custom_charset_1;
-      char *custom_charset_2 = data.custom_charset_2;
-      char *custom_charset_3 = data.custom_charset_3;
-      char *custom_charset_4 = data.custom_charset_4;
-
-      if (custom_charset_1 == NULL)
-      {
-        custom_charset_1 = "Undefined";
-      }
-      if (custom_charset_2 == NULL)
-      {
-        custom_charset_2 = "Undefined";
-      }
-      if (custom_charset_3 == NULL)
-      {
-        custom_charset_3 = "Undefined";
-      }
-      if (custom_charset_4 == NULL)
-      {
-        custom_charset_4 = "Undefined";
-      }
-
-      log_info("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
-    }
-  }
-
-  if (data.digests_cnt == 1)
-  {
-    if (data.hash_mode == 2500)
-    {
-      wpa_t *wpa = (wpa_t *)data.esalts_buf;
-
-      log_info("Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
-        (char *)data.salts_buf[0].salt_buf,
-        wpa->orig_mac1[0],
-        wpa->orig_mac1[1],
-        wpa->orig_mac1[2],
-        wpa->orig_mac1[3],
-        wpa->orig_mac1[4],
-        wpa->orig_mac1[5],
-        wpa->orig_mac2[0],
-        wpa->orig_mac2[1],
-        wpa->orig_mac2[2],
-        wpa->orig_mac2[3],
-        wpa->orig_mac2[4],
-        wpa->orig_mac2[5]);
-    }
-    else if (data.hash_mode == 5200)
-    {
-      log_info("Hash.Target....: File (%s)", data.hashfile);
-    }
-    else if (data.hash_mode == 9000)
-    {
-      log_info("Hash.Target....: File (%s)", data.hashfile);
-    }
-    else if ((data.hash_mode >= 6200) && (data.hash_mode <= 6299))
-    {
-      log_info("Hash.Target....: File (%s)", data.hashfile);
-    }
-    else if ((data.hash_mode >= 13700) && (data.hash_mode <= 13799))
-    {
-      log_info("Hash.Target....: File (%s)", data.hashfile);
-    }
-    else
-    {
-      char out_buf[HCBUFSIZ] = { 0 };
-
-      ascii_digest(out_buf, 0, 0);
-
-      // limit length
-      if (strlen(out_buf) > 40)
-      {
-        out_buf[41] = '.';
-        out_buf[42] = '.';
-        out_buf[43] = '.';
-        out_buf[44] = 0;
-      }
-
-      log_info("Hash.Target....: %s", out_buf);
-    }
-  }
-  else
-  {
-    if (data.hash_mode == 3000)
-    {
-      char out_buf1[32] = { 0 };
-      char out_buf2[32] = { 0 };
-
-      ascii_digest(out_buf1, 0, 0);
-      ascii_digest(out_buf2, 0, 1);
-
-      log_info("Hash.Target....: %s, %s", out_buf1, out_buf2);
-    }
-    else
-    {
-      log_info("Hash.Target....: File (%s)", data.hashfile);
-    }
-  }
-
-  log_info("Hash.Type......: %s", hash_type);
-
-  /**
-   * speed new
-   */
-
-  u64    speed_cnt[DEVICES_MAX] = { 0 };
-  double speed_ms[DEVICES_MAX] = { 0 };
-
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    speed_cnt[device_id] = 0;
-    speed_ms[device_id] = 0;
-
-    for (int i = 0; i < SPEED_CACHE; i++)
-    {
-      speed_cnt[device_id] += device_param->speed_cnt[i];
-      speed_ms[device_id] += device_param->speed_ms[i];
-    }
-
-    speed_cnt[device_id] /= SPEED_CACHE;
-    speed_ms[device_id] /= SPEED_CACHE;
-  }
-
-  double hashes_all_ms = 0;
-
-  double hashes_dev_ms[DEVICES_MAX] = { 0 };
-
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    hashes_dev_ms[device_id] = 0;
-
-    if (speed_ms[device_id])
-    {
-      hashes_dev_ms[device_id] = (double)speed_cnt[device_id] / speed_ms[device_id];
-
-      hashes_all_ms += hashes_dev_ms[device_id];
-    }
-  }
-
-  /**
-   * exec time
-   */
-
-  double exec_all_ms[DEVICES_MAX] = { 0 };
-
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    double exec_ms_avg = get_avg_exec_time(device_param, EXEC_CACHE);
-
-    exec_all_ms[device_id] = exec_ms_avg;
-  }
-
-  /**
-   * timers
-   */
-
-  double ms_running = 0;
-
-  hc_timer_get(data.timer_running, ms_running);
-
-  double ms_paused = data.ms_paused;
-
-  if (data.devices_status == STATUS_PAUSED)
-  {
-    double ms_paused_tmp = 0;
-
-    hc_timer_get(data.timer_paused, ms_paused_tmp);
-
-    ms_paused += ms_paused_tmp;
-  }
-
-#ifdef WIN
-
-  __time64_t sec_run = ms_running / 1000;
-
-#else
-
-  time_t sec_run = ms_running / 1000;
-
-#endif
-
-  if (sec_run)
-  {
-    char display_run[32] = { 0 };
-
-    struct tm tm_run;
-
-    struct tm *tmp = NULL;
-
-#ifdef WIN
-
-    tmp = _gmtime64(&sec_run);
-
-#else
-
-    tmp = gmtime(&sec_run);
-
-#endif
-
-    if (tmp != NULL)
-    {
-      memset(&tm_run, 0, sizeof(tm_run));
-
-      memcpy(&tm_run, tmp, sizeof(tm_run));
-
-      format_timer_display(&tm_run, display_run, sizeof(tm_run));
-
-      char *start = ctime(&data.proc_start);
-
-      size_t start_len = strlen(start);
-
-      if (start[start_len - 1] == '\n') start[start_len - 1] = 0;
-      if (start[start_len - 2] == '\r') start[start_len - 2] = 0;
-
-      log_info("Time.Started...: %s (%s)", start, display_run);
-    }
-  }
-  else
-  {
-    log_info("Time.Started...: 0 secs");
-  }
-
-  /**
-   * counters
-   */
-
-  u64 progress_total = data.words_cnt * data.salts_cnt;
-
-  u64 all_done = 0;
-  u64 all_rejected = 0;
-  u64 all_restored = 0;
-
-  u64 progress_noneed = 0;
-
-  for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
-  {
-    all_done += data.words_progress_done[salt_pos];
-    all_rejected += data.words_progress_rejected[salt_pos];
-    all_restored += data.words_progress_restored[salt_pos];
-
-    // Important for ETA only
-
-    if (data.salts_shown[salt_pos] == 1)
-    {
-      const u64 all = data.words_progress_done[salt_pos]
-        + data.words_progress_rejected[salt_pos]
-        + data.words_progress_restored[salt_pos];
-
-      const u64 left = data.words_cnt - all;
-
-      progress_noneed += left;
-    }
-  }
-
-  u64 progress_cur = all_restored + all_done + all_rejected;
-  u64 progress_end = progress_total;
-
-  u64 progress_skip = 0;
-
-  if (data.skip)
-  {
-    progress_skip = MIN(data.skip, data.words_base) * data.salts_cnt;
-
-    if (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
-    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
-    else if (data.attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
-  }
-
-  if (data.limit)
-  {
-    progress_end = MIN(data.limit, data.words_base) * data.salts_cnt;
-
-    if (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end *= data.kernel_rules_cnt;
-    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end *= data.combs_cnt;
-    else if (data.attack_kern == ATTACK_KERN_BF)       progress_end *= data.bfs_cnt;
-  }
-
-  u64 progress_cur_relative_skip = progress_cur - progress_skip;
-  u64 progress_end_relative_skip = progress_end - progress_skip;
-
-  if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
-  {
-    if (data.devices_status != STATUS_CRACKED)
-    {
-#ifdef WIN
-      __time64_t sec_etc = 0;
-#else
-      time_t sec_etc = 0;
-#endif
-
-      if (hashes_all_ms)
-      {
-        u64 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
-
-        u64 ms_left = (progress_left_relative_skip - progress_noneed) / hashes_all_ms;
-
-        sec_etc = ms_left / 1000;
-      }
-
-      if (sec_etc == 0)
-      {
-        //log_info ("Time.Estimated.: 0 secs");
-      }
-      else if ((u64)sec_etc > ETC_MAX)
-      {
-        log_info("Time.Estimated.: > 10 Years");
-      }
-      else
-      {
-        char display_etc[32] = { 0 };
-        char display_runtime[32] = { 0 };
-
-        struct tm tm_etc;
-        struct tm tm_runtime;
-
-        struct tm *tmp = NULL;
-
-#ifdef WIN
-        tmp = _gmtime64(&sec_etc);
-#else
-        tmp = gmtime(&sec_etc);
-#endif
-
-        if (tmp != NULL)
-        {
-          memcpy(&tm_etc, tmp, sizeof(tm_etc));
-
-          format_timer_display(&tm_etc, display_etc, sizeof(display_etc));
-
-          time_t now;
-
-          time(&now);
-
-          now += sec_etc;
-
-          char *etc = ctime(&now);
-
-          size_t etc_len = strlen(etc);
-
-          if (etc[etc_len - 1] == '\n') etc[etc_len - 1] = 0;
-          if (etc[etc_len - 2] == '\r') etc[etc_len - 2] = 0;
-
-          if (data.runtime)
-          {
-            time_t runtime_cur;
-
-            time(&runtime_cur);
-
-#ifdef WIN
-
-            __time64_t runtime_left = data.proc_start + data.runtime + data.prepare_time - runtime_cur;
-
-            tmp = _gmtime64(&runtime_left);
-
-#else
-
-            time_t runtime_left = data.proc_start + data.runtime + data.prepare_time - runtime_cur;
-
-            tmp = gmtime(&runtime_left);
-
-#endif
-
-            if ((tmp != NULL) && (runtime_left > 0) && (runtime_left < sec_etc))
-            {
-              memcpy(&tm_runtime, tmp, sizeof(tm_runtime));
-
-              format_timer_display(&tm_runtime, display_runtime, sizeof(display_runtime));
-
-              log_info("Time.Estimated.: %s (%s), but limited (%s)", etc, display_etc, display_runtime);
-            }
-            else
-            {
-              log_info("Time.Estimated.: %s (%s), but limit exceeded", etc, display_etc);
-            }
-          }
-          else
-          {
-            log_info("Time.Estimated.: %s (%s)", etc, display_etc);
-          }
-        }
-      }
-    }
-  }
-
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    char display_dev_cur[16] = { 0 };
-
-    strncpy(display_dev_cur, "0.00", 4);
-
-    format_speed_display(hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof(display_dev_cur));
-
-    log_info("Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
-  }
-
-  char display_all_cur[16] = { 0 };
-
-  strncpy(display_all_cur, "0.00", 4);
-
-  format_speed_display(hashes_all_ms * 1000, display_all_cur, sizeof(display_all_cur));
-
-  if (data.devices_active > 1) log_info("Speed.Dev.#*...: %9sH/s", display_all_cur);
-
-  const float digests_percent = (float)data.digests_done / data.digests_cnt;
-  const float salts_percent = (float)data.salts_done / data.salts_cnt;
-
-  log_info("Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", data.digests_done, data.digests_cnt, digests_percent * 100, data.salts_done, data.salts_cnt, salts_percent * 100);
-
-  // crack-per-time
-
-  if (data.digests_cnt > 100)
-  {
-    time_t now = time(NULL);
-
-    int cpt_cur_min = 0;
-    int cpt_cur_hour = 0;
-    int cpt_cur_day = 0;
-
-    for (int i = 0; i < CPT_BUF; i++)
-    {
-      const uint   cracked = data.cpt_buf[i].cracked;
-      const time_t timestamp = data.cpt_buf[i].timestamp;
-
-      if ((timestamp + 60) > now)
-      {
-        cpt_cur_min += cracked;
-      }
-
-      if ((timestamp + 3600) > now)
-      {
-        cpt_cur_hour += cracked;
-      }
-
-      if ((timestamp + 86400) > now)
-      {
-        cpt_cur_day += cracked;
-      }
-    }
-
-    double ms_real = ms_running - ms_paused;
-
-    float cpt_avg_min = (float)data.cpt_total / ((ms_real / 1000) / 60);
-    float cpt_avg_hour = (float)data.cpt_total / ((ms_real / 1000) / 3600);
-    float cpt_avg_day = (float)data.cpt_total / ((ms_real / 1000) / 86400);
-
-    if ((data.cpt_start + 86400) < now)
-    {
-      log_info("Recovered/Time.: CUR:%llu,%llu,%llu AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_cur_min,
-        cpt_cur_hour,
-        cpt_cur_day,
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
-    }
-    else if ((data.cpt_start + 3600) < now)
-    {
-      log_info("Recovered/Time.: CUR:%llu,%llu,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_cur_min,
-        cpt_cur_hour,
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
-    }
-    else if ((data.cpt_start + 60) < now)
-    {
-      log_info("Recovered/Time.: CUR:%llu,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_cur_min,
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
-    }
-    else
-    {
-      log_info("Recovered/Time.: CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
-    }
-  }
-
-  // Restore point
-
-  u64 restore_point = get_lowest_words_done();
-
-  u64 restore_total = data.words_base;
-
-  float percent_restore = 0;
-
-  if (restore_total != 0) percent_restore = (float)restore_point / (float)restore_total;
-
-  if (progress_end_relative_skip)
-  {
-    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
-    {
-      float percent_finished = (float)progress_cur_relative_skip / (float)progress_end_relative_skip;
-      float percent_rejected = 0.0;
-
-      if (progress_cur)
-      {
-        percent_rejected = (float)(all_rejected) / (float)progress_cur;
-      }
-
-      log_info("Progress.......: %llu/%llu (%.02f%%)", (unsigned long long int) progress_cur_relative_skip, (unsigned long long int) progress_end_relative_skip, percent_finished * 100);
-      log_info("Rejected.......: %llu/%llu (%.02f%%)", (unsigned long long int) all_rejected, (unsigned long long int) progress_cur_relative_skip, percent_rejected * 100);
-
-      if (data.restore_disable == 0)
-      {
-        if (percent_finished != 1)
-        {
-          log_info("Restore.Point..: %llu/%llu (%.02f%%)", (unsigned long long int) restore_point, (unsigned long long int) restore_total, percent_restore * 100);
-        }
-      }
-    }
-  }
-  else
-  {
-    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
-    {
-      log_info("Progress.......: %llu/%llu (%.02f%%)", (u64)0, (u64)0, (float)100);
-      log_info("Rejected.......: %llu/%llu (%.02f%%)", (u64)0, (u64)0, (float)100);
-
-      if (data.restore_disable == 0)
-      {
-        log_info("Restore.Point..: %llu/%llu (%.02f%%)", (u64)0, (u64)0, (float)100);
-      }
-    }
-    else
-    {
-      log_info("Progress.......: %llu", (unsigned long long int) progress_cur_relative_skip);
-      log_info("Rejected.......: %llu", (unsigned long long int) all_rejected);
-
-      // --restore not allowed if stdin is used -- really? why?
-
-      //if (data.restore_disable == 0)
-      //{
-      //  log_info ("Restore.Point..: %llu", (unsigned long long int) restore_point);
-      //}
-    }
-  }
-
-#ifdef HAVE_HWMON
-
-  if (data.devices_status == STATUS_EXHAUSTED)  return;
-  if (data.devices_status == STATUS_CRACKED)    return;
-  if (data.devices_status == STATUS_ABORTED)    return;
-  if (data.devices_status == STATUS_QUIT)       return;
-
-  if (data.gpu_temp_disable == 0)
-  {
-    hc_thread_mutex_lock(mux_adl);
-
-    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
-    {
-      hc_device_param_t *device_param = &data.devices_param[device_id];
-
-      if (device_param->skipped) continue;
-
-      const int num_temperature = hm_get_temperature_with_device_id(device_id);
-      const int num_fanspeed = hm_get_fanspeed_with_device_id(device_id);
-      const int num_utilization = hm_get_utilization_with_device_id(device_id);
-      const int num_corespeed = hm_get_corespeed_with_device_id(device_id);
-      const int num_memoryspeed = hm_get_memoryspeed_with_device_id(device_id);
-      const int num_buslanes = hm_get_buslanes_with_device_id(device_id);
-      const int num_throttle = hm_get_throttle_with_device_id(device_id);
-
-      char output_buf[256] = { 0 };
-
-      int output_len = 0;
-
-      if (num_temperature >= 0)
-      {
-        snprintf(output_buf + output_len, sizeof(output_buf) - output_len, " Temp:%3uc", num_temperature);
-
-        output_len = strlen(output_buf);
-      }
-
-      if (num_fanspeed >= 0)
-      {
-        snprintf(output_buf + output_len, sizeof(output_buf) - output_len, " Fan:%3u%%", num_fanspeed);
-
-        output_len = strlen(output_buf);
-      }
-
-      if (num_utilization >= 0)
-      {
-        snprintf(output_buf + output_len, sizeof(output_buf) - output_len, " Util:%3u%%", num_utilization);
-
-        output_len = strlen(output_buf);
-      }
-
-      if (num_corespeed >= 0)
-      {
-        snprintf(output_buf + output_len, sizeof(output_buf) - output_len, " Core:%4uMhz", num_corespeed);
-
-        output_len = strlen(output_buf);
-      }
-
-      if (num_memoryspeed >= 0)
-      {
-        snprintf(output_buf + output_len, sizeof(output_buf) - output_len, " Mem:%4uMhz", num_memoryspeed);
-
-        output_len = strlen(output_buf);
-      }
-
-      if (num_buslanes >= 0)
-      {
-        snprintf(output_buf + output_len, sizeof(output_buf) - output_len, " Lanes:%u", num_buslanes);
-
-        output_len = strlen(output_buf);
-      }
-
-      if (num_throttle == 1)
-      {
-        snprintf(output_buf + output_len, sizeof(output_buf) - output_len, " *Throttled*");
-
-        output_len = strlen(output_buf);
-      }
-
-      if (output_len == 0)
-      {
-        snprintf(output_buf + output_len, sizeof(output_buf) - output_len, " N/A");
-
-        output_len = strlen(output_buf);
-      }
-
-      log_info("HWMon.Dev.#%d...:%s", device_id + 1, output_buf);
-    }
-
-    hc_thread_mutex_unlock(mux_adl);
-  }
-
-#endif // HAVE_HWMON
-}
+#include <status_display.h>
 
 static void status_benchmark_automate()
 {
@@ -1396,8 +423,8 @@ static void status_benchmark()
   }
 
   /**
-   * exec time
-   */
+* exec time
+*/
 
   double exec_all_ms[DEVICES_MAX] = { 0 };
 
@@ -1444,8 +471,8 @@ static void status_benchmark()
 }
 
 /**
- * hashcat -only- functions
- */
+* hashcat -only- functions
+*/
 
 #include <filenames_generators.h>
 
@@ -2866,8 +1893,8 @@ static int choose_kernel(hc_device_param_t *device_param, const uint attack_exec
       if (data.devices_status == STATUS_BYPASS)  break;
 
       /**
-       * speed
-       */
+* speed
+*/
 
       const float iter_part = (float)(loop_pos + loop_left) / iter;
 
@@ -3250,11 +2277,11 @@ static int autotune(hc_device_param_t *device_param)
   // reset them fake words
 
   /*
-  memset (device_param->pws_buf, 0, kernel_power_max * sizeof (pw_t));
+memset (device_param->pws_buf, 0, kernel_power_max * sizeof (pw_t));
 
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-  hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-  */
+hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+*/
 
   run_kernel_memset(device_param, device_param->d_pws_buf, 0, kernel_power_max * sizeof(pw_t));
 
@@ -3606,8 +2633,8 @@ static int run_cracker(hc_device_param_t *device_param, const uint pws_cnt)
       if (data.devices_status == STATUS_BYPASS)  break;
 
       /**
-       * result
-       */
+* result
+*/
 
       if (data.benchmark == 0)
       {
@@ -3615,8 +2642,8 @@ static int run_cracker(hc_device_param_t *device_param, const uint pws_cnt)
       }
 
       /**
-       * progress
-       */
+* progress
+*/
 
       u64 perf_sum_all = (u64)pws_cnt * (u64)innerloop_left;
 
@@ -3627,8 +2654,8 @@ static int run_cracker(hc_device_param_t *device_param, const uint pws_cnt)
       hc_thread_mutex_unlock(mux_counter);
 
       /**
-       * speed
-       */
+* speed
+*/
 
       double speed_ms;
 
@@ -3654,8 +2681,8 @@ static int run_cracker(hc_device_param_t *device_param, const uint pws_cnt)
       }
 
       /**
-       * benchmark
-       */
+* benchmark
+*/
 
       if (data.benchmark == 1) break;
     }
@@ -4834,16 +3861,16 @@ static void *thread_calc_stdin(void *p)
       device_param->pws_cnt = 0;
 
       /*
-      still required?
-      if (attack_kern == ATTACK_KERN_STRAIGHT)
-      {
-        run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
-      }
-      else if (attack_kern == ATTACK_KERN_COMBI)
-      {
-        run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
-      }
-      */
+still required?
+if (attack_kern == ATTACK_KERN_STRAIGHT)
+{
+  run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
+}
+else if (attack_kern == ATTACK_KERN_COMBI)
+{
+  run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
+}
+*/
     }
   }
 
@@ -4888,9 +3915,9 @@ static void *thread_calc(void *p)
         device_param->pws_cnt = 0;
 
         /*
-        still required?
-        run_kernel_bzero (device_param, device_param->d_bfs_c, device_param->size_bfs);
-        */
+still required?
+run_kernel_bzero (device_param, device_param->d_bfs_c, device_param->size_bfs);
+*/
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
@@ -5106,16 +4133,16 @@ static void *thread_calc(void *p)
         device_param->pws_cnt = 0;
 
         /*
-        still required?
-        if (attack_kern == ATTACK_KERN_STRAIGHT)
-        {
-          run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
-        }
-        else if (attack_kern == ATTACK_KERN_COMBI)
-        {
-          run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
-        }
-        */
+still required?
+if (attack_kern == ATTACK_KERN_STRAIGHT)
+{
+run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
+}
+else if (attack_kern == ATTACK_KERN_COMBI)
+{
+run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
+}
+*/
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
@@ -5176,8 +4203,8 @@ static void weak_hash_check(hc_device_param_t *device_param, const uint salt_pos
   data.kernel_rules_buf[0].cmds[0] = 0;
 
   /**
-   * run the kernel
-   */
+* run the kernel
+*/
 
   if (data.attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
@@ -5207,14 +4234,14 @@ static void weak_hash_check(hc_device_param_t *device_param, const uint salt_pos
   }
 
   /**
-   * result
-   */
+* result
+*/
 
   check_cracked(device_param, salt_pos);
 
   /**
-   * cleanup
-   */
+* cleanup
+*/
 
   device_param->kernel_params_buf32[27] = 0;
   device_param->kernel_params_buf32[28] = 0;
@@ -5233,10 +4260,10 @@ static void weak_hash_check(hc_device_param_t *device_param, const uint salt_pos
 #include "hlfmt.h"
 
 /**
- * some further helper function
- */
+* some further helper function
+*/
 
- // wrapper around mymalloc for ADL
+// wrapper around mymalloc for ADL
 
 #if defined(HAVE_HWMON)
 void *HC_API_CALL ADL_Main_Memory_Alloc(const int iSize)
@@ -5292,8 +4319,8 @@ static uint generate_bitmaps(const uint digests_cnt, const uint dgst_size, const
 }
 
 /**
- * main
- */
+* main
+*/
 
 #ifdef WIN
 void SetConsoleWindowSize(const int x)
@@ -5328,8 +4355,8 @@ int main(int argc, char **argv)
 #endif
 
   /**
-   * To help users a bit
-   */
+* To help users a bit
+*/
 
   char *compute = getenv("COMPUTE");
 
@@ -5365,11 +4392,11 @@ int main(int argc, char **argv)
   umask(077);
 
   /**
-   * There's some buggy OpenCL runtime that do not support -I.
-   * A workaround is to chdir() to the OpenCL folder,
-   * then compile the kernels,
-   * then chdir() back to where we came from so we need to save it first
-   */
+* There's some buggy OpenCL runtime that do not support -I.
+* A workaround is to chdir() to the OpenCL folder,
+* then compile the kernels,
+* then chdir() back to where we came from so we need to save it first
+*/
 
   char cwd[1024];
 
@@ -5381,8 +4408,8 @@ int main(int argc, char **argv)
   }
 
   /**
-   * Real init
-   */
+* Real init
+*/
 
   memset(&data, 0, sizeof(hc_global_data_t));
 
@@ -5405,8 +4432,8 @@ int main(int argc, char **argv)
   hc_thread_mutex_init(mux_adl);
 
   /**
-   * commandline parameters
-   */
+* commandline parameters
+*/
 
   uint  usage = USAGE;
   uint  version = VERSION;
@@ -5691,8 +4718,8 @@ int main(int argc, char **argv)
   }
 
   /**
-   * exit functions
-   */
+* exit functions
+*/
 
   if (version)
   {
@@ -5709,14 +4736,14 @@ int main(int argc, char **argv)
   }
 
   /**
-   * session needs to be set, always!
-   */
+* session needs to be set, always!
+*/
 
   if (session == NULL) session = (char *)PROGNAME;
 
   /**
-   * folders, as discussed on https://github.com/hashcat/hashcat/issues/20
-   */
+* folders, as discussed on https://github.com/hashcat/hashcat/issues/20
+*/
 
   char *exec_path = get_exec_path();
 
@@ -5785,11 +4812,11 @@ int main(int argc, char **argv)
   myfree(exec_path);
 
   /**
-   * There's alot of problem related to bad support -I parameters when building the kernel.
-   * Each OpenCL runtime handles it slightly different.
-   * The most problematic is with new AMD drivers on Windows, which can not handle quote characters!
-   * The best workaround found so far is to modify the TMP variable (only inside hashcat process) before the runtime is load
-   */
+* There's alot of problem related to bad support -I parameters when building the kernel.
+* Each OpenCL runtime handles it slightly different.
+* The most problematic is with new AMD drivers on Windows, which can not handle quote characters!
+* The best workaround found so far is to modify the TMP variable (only inside hashcat process) before the runtime is load
+*/
 
   char cpath[1024] = { 0 };
 
@@ -5845,8 +4872,8 @@ int main(int argc, char **argv)
 #endif
 
   /**
-   * kernel cache, we need to make sure folder exist
-   */
+* kernel cache, we need to make sure folder exist
+*/
 
   int kernels_folder_size = strlen(profile_dir) + 1 + 7 + 1 + 1;
 
@@ -5859,8 +4886,8 @@ int main(int argc, char **argv)
   myfree(kernels_folder);
 
   /**
-   * session
-   */
+* session
+*/
 
   size_t session_size = strlen(session_dir) + 1 + strlen(session) + 32;
 
@@ -5898,8 +4925,8 @@ int main(int argc, char **argv)
   data.rd = rd;
 
   /**
-   * restore file
-   */
+* restore file
+*/
 
   if (restore == 1)
   {
@@ -6056,10 +5083,10 @@ int main(int argc, char **argv)
   }
 
   /**
-   * Inform user things getting started,
-   * - this is giving us a visual header before preparations start, so we do not need to clear them afterwards
-   * - we do not need to check algorithm_pos
-   */
+* Inform user things getting started,
+* - this is giving us a visual header before preparations start, so we do not need to clear them afterwards
+* - we do not need to check algorithm_pos
+*/
 
   if (quiet == 0)
   {
@@ -6096,8 +5123,8 @@ int main(int argc, char **argv)
   }
 
   /**
-   * sanity check
-   */
+* sanity check
+*/
 
   if (attack_mode > 7)
   {
@@ -6597,8 +5624,8 @@ int main(int argc, char **argv)
 
 
   /**
-   * induction directory
-   */
+* induction directory
+*/
 
   char *induction_directory = NULL;
 
@@ -6658,16 +5685,16 @@ int main(int argc, char **argv)
   data.induction_directory = induction_directory;
 
   /**
-   * loopback
-   */
+* loopback
+*/
 
   size_t loopback_size = strlen(session_dir) + 1 + session_size + strlen(LOOPBACK_FILE) + 12;
 
   char *loopback_file = (char *)mymalloc(loopback_size);
 
   /**
-   * tuning db
-   */
+* tuning db
+*/
 
   char tuning_db_file[256] = { 0 };
 
@@ -6676,8 +5703,8 @@ int main(int argc, char **argv)
   tuning_db_t *tuning_db = tuning_db_init(tuning_db_file);
 
   /**
-   * outfile-check directory
-   */
+* outfile-check directory
+*/
 
   char *outfile_check_directory = NULL;
 
@@ -6721,8 +5748,8 @@ int main(int argc, char **argv)
   }
 
   /**
-   * special other stuff
-   */
+* special other stuff
+*/
 
   if (hash_mode == 9710)
   {
@@ -6743,8 +5770,8 @@ int main(int argc, char **argv)
   }
 
   /**
-   * store stuff
-   */
+* store stuff
+*/
 
   data.hash_mode = hash_mode;
   data.restore = restore;
@@ -6791,8 +5818,8 @@ int main(int argc, char **argv)
   data.workload_profile = workload_profile;
 
   /**
-   * cpu affinity
-   */
+* cpu affinity
+*/
 
   if (cpu_affinity)
   {
@@ -6809,8 +5836,8 @@ int main(int argc, char **argv)
   }
 
   /**
-   * logfile init
-   */
+* logfile init
+*/
 
   if (logfile_disable == 0)
   {
@@ -6936,8 +5963,8 @@ int main(int argc, char **argv)
   logfile_top_uint(veracrypt_pim);
 
   /**
-   * Init OpenCL library loader
-   */
+* Init OpenCL library loader
+*/
 
   if (keyspace == 0)
   {
@@ -6949,32 +5976,32 @@ int main(int argc, char **argv)
   }
 
   /**
-   * OpenCL platform selection
-   */
+* OpenCL platform selection
+*/
 
   u32 opencl_platforms_filter = setup_opencl_platforms_filter(opencl_platforms);
 
   /**
-   * OpenCL device selection
-   */
+* OpenCL device selection
+*/
 
   u32 devices_filter = setup_devices_filter(opencl_devices);
 
   /**
-   * OpenCL device type selection
-   */
+* OpenCL device type selection
+*/
 
   cl_device_type device_types_filter = setup_device_types_filter(opencl_device_types);
 
   /**
-   * benchmark
-   */
+* benchmark
+*/
 
   if (benchmark == 1)
   {
     /**
-     * disable useless stuff for benchmark
-     */
+* disable useless stuff for benchmark
+*/
 
     status_timer = 0;
     restore_timer = 0;
@@ -6998,8 +6025,8 @@ int main(int argc, char **argv)
     data.outfile_check_timer = outfile_check_timer;
 
     /**
-     * force attack mode to be bruteforce
-     */
+* force attack mode to be bruteforce
+*/
 
     attack_mode = ATTACK_MODE_BF;
     attack_kern = ATTACK_KERN_BF;
@@ -7013,8 +6040,8 @@ int main(int argc, char **argv)
   }
 
   /**
-   * status, monitor and outfile remove threads
-   */
+* status, monitor and outfile remove threads
+*/
 
   uint wordlist_mode = ((optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
 
@@ -7047,8 +6074,8 @@ int main(int argc, char **argv)
   }
 
   /**
-   * config
-   */
+* config
+*/
 
   uint hash_type = 0;
   uint salt_type = 0;
@@ -7076,9 +6103,9 @@ int main(int argc, char **argv)
   for (algorithm_pos = 0; algorithm_pos < algorithm_max; algorithm_pos++)
   {
     /*
-     * We need to reset 'rd' in benchmark mode otherwise when the user hits 'bypass'
-     * the following algos are skipped entirely
-     */
+* We need to reset 'rd' in benchmark mode otherwise when the user hits 'bypass'
+* the following algos are skipped entirely
+*/
 
     if (algorithm_pos > 0)
     {
@@ -7090,8 +6117,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * update hash_mode in case of multihash benchmark
-     */
+* update hash_mode in case of multihash benchmark
+*/
 
     if (benchmark == 1)
     {
@@ -10912,14 +9939,14 @@ int main(int argc, char **argv)
     }
 
     /**
-     * parser
-     */
+* parser
+*/
 
     data.parse_func = parse_func;
 
     /**
-     * misc stuff
-     */
+* misc stuff
+*/
 
     if (hex_salt)
     {
@@ -11039,8 +10066,8 @@ int main(int argc, char **argv)
     data.esalt_size = esalt_size;
 
     /**
-     * choose dictionary parser
-     */
+* choose dictionary parser
+*/
 
     if (hash_type == HASH_TYPE_LM)
     {
@@ -11056,8 +10083,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * dictstat
-     */
+* dictstat
+*/
 
     dictstat_t *dictstat_base = (dictstat_t *)mycalloc(MAX_DICTSTAT, sizeof(dictstat_t));
 
@@ -11096,7 +10123,7 @@ int main(int argc, char **argv)
         if (tmpstat.st_mtime < COMPTIME)
         {
           /* with v0.15 the format changed so we have to ensure user is using a good version
-             since there is no version-header in the dictstat file */
+    since there is no version-header in the dictstat file */
 
           fclose(dictstat_fp);
 
@@ -11126,8 +10153,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * potfile
-     */
+* potfile
+*/
 
     char potfile[256] = { 0 };
 
@@ -11333,8 +10360,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * word len
-     */
+* word len
+*/
 
     uint pw_min = PW_MIN;
     uint pw_max = PW_MAX;
@@ -11414,8 +10441,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * charsets : keep them together for more easy maintainnce
-     */
+* charsets : keep them together for more easy maintainnce
+*/
 
     cs_t mp_sys[6] = { { { 0 }, 0 } };
     cs_t mp_usr[4] = { { { 0 }, 0 } };
@@ -11428,8 +10455,8 @@ int main(int argc, char **argv)
     if (custom_charset_4) mp_setup_usr(mp_sys, mp_usr, custom_charset_4, 3);
 
     /**
-     * load hashes, part I: find input mode, count hashes
-     */
+* load hashes, part I: find input mode, count hashes
+*/
 
     uint hashlist_mode = 0;
     uint hashlist_format = HLFMT_HASHCAT;
@@ -11539,8 +10566,8 @@ int main(int argc, char **argv)
     logfile_top_uint(hashlist_format);
 
     /**
-     * load hashes, part II: allocate required memory, set pointers
-     */
+* load hashes, part II: allocate required memory, set pointers
+*/
 
     hash_t *hashes_buf = NULL;
     void   *digests_buf = NULL;
@@ -11607,8 +10634,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * load hashes, part III: parse hashes or generate them if benchmark
-     */
+* load hashes, part III: parse hashes or generate them if benchmark
+*/
 
     uint hashes_cnt = 0;
 
@@ -12442,8 +11469,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * Sanity check for hashfile vs outfile (should not point to the same physical file)
-     */
+* Sanity check for hashfile vs outfile (should not point to the same physical file)
+*/
 
     if (data.outfile != NULL)
     {
@@ -12535,8 +11562,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * Remove duplicates
-     */
+* Remove duplicates
+*/
 
     if (data.quiet == 0) log_info_nn("Removing duplicate hashes...");
 
@@ -12576,8 +11603,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * Potfile removes
-     */
+* Potfile removes
+*/
 
     uint potfile_remove_cracks = 0;
 
@@ -12775,8 +11802,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * Now generate all the buffers required for later
-     */
+* Now generate all the buffers required for later
+*/
 
     void   *digests_buf_new = (void *)mycalloc(hashes_avail, dgst_size);
 
@@ -12940,8 +11967,8 @@ int main(int argc, char **argv)
     local_free(hashes_buf);
 
     /**
-     * special modification not set from parser
-     */
+* special modification not set from parser
+*/
 
     switch (hash_mode)
     {
@@ -13026,8 +12053,8 @@ int main(int argc, char **argv)
     data.hash_info = hash_info;
 
     /**
-     * Automatic Optimizers
-     */
+* Automatic Optimizers
+*/
 
     if (salts_cnt == 1)
       opti_type |= OPTI_TYPE_SINGLE_SALT;
@@ -13071,8 +12098,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * Some algorithm, like descrypt, can benefit from JIT compilation
-     */
+* Some algorithm, like descrypt, can benefit from JIT compilation
+*/
 
     int force_jit_compilation = -1;
 
@@ -13090,8 +12117,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * generate bitmap tables
-     */
+* generate bitmap tables
+*/
 
     const uint bitmap_shift1 = 5;
     const uint bitmap_shift2 = 13;
@@ -13140,8 +12167,8 @@ int main(int argc, char **argv)
     generate_bitmaps(digests_cnt, dgst_size, bitmap_shift2, (char *)data.digests_buf, bitmap_mask, bitmap_size, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d, -1);
 
     /**
-     * prepare quick rule
-     */
+* prepare quick rule
+*/
 
     data.rule_buf_l = rule_buf_l;
     data.rule_buf_r = rule_buf_r;
@@ -13153,8 +12180,8 @@ int main(int argc, char **argv)
     data.rule_len_r = rule_len_r;
 
     /**
-     * load rules
-     */
+* load rules
+*/
 
     uint *all_kernel_rules_cnt = NULL;
 
@@ -13236,13 +12263,13 @@ int main(int argc, char **argv)
         }
 
         /* its so slow
-        if (rulefind (&kernel_rules_buf[kernel_rules_cnt], kernel_rules_buf, kernel_rules_cnt, sizeof (kernel_rule_t), sort_by_kernel_rule))
-        {
-          log_info ("Duplicate rule for use on OpenCL device in file %s in line %u: %s", rp_file, rule_line, rule_buf);
+if (rulefind (&kernel_rules_buf[kernel_rules_cnt], kernel_rules_buf, kernel_rules_cnt, sizeof (kernel_rule_t), sort_by_kernel_rule))
+{
+log_info ("Duplicate rule for use on OpenCL device in file %s in line %u: %s", rp_file, rule_line, rule_buf);
 
-          continue;
-        }
-        */
+continue;
+}
+*/
 
         kernel_rules_cnt++;
       }
@@ -13255,8 +12282,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * merge rules or automatic rule generator
-     */
+* merge rules or automatic rule generator
+*/
 
     uint kernel_rules_cnt = 0;
 
@@ -13339,8 +12366,8 @@ int main(int argc, char **argv)
     myfree(rule_buf);
 
     /**
-     * generate NOP rules
-     */
+* generate NOP rules
+*/
 
     if ((rp_files_cnt == 0) && (rp_gen == 0))
     {
@@ -13362,8 +12389,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * OpenCL platforms: detect
-     */
+* OpenCL platforms: detect
+*/
 
     cl_platform_id platforms[CL_PLATFORMS_MAX] = { 0 };
     cl_device_id platform_devices[DEVICES_MAX] = { 0 };
@@ -13412,9 +12439,9 @@ int main(int argc, char **argv)
     if (opencl_device_types == NULL)
     {
       /**
-       * OpenCL device types:
-       *   In case the user did not specify --opencl-device-types and the user runs hashcat in a system with only a CPU only he probably want to use that CPU.
-       */
+* OpenCL device types:
+*   In case the user did not specify --opencl-device-types and the user runs hashcat in a system with only a CPU only he probably want to use that CPU.
+*/
 
       cl_device_type device_types_all = 0;
 
@@ -13476,8 +12503,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * OpenCL devices: simply push all devices from all platforms into the same device array
-     */
+* OpenCL devices: simply push all devices from all platforms into the same device array
+*/
 
     int need_adl = 0;
     int need_nvapi = 0;
@@ -14184,11 +13211,11 @@ int main(int argc, char **argv)
               if (data.attack_mode == ATTACK_MODE_STRAIGHT)
               {
                 /**
-                 * the workaround is not a friend of rule based attacks
-                 * the words from the wordlist combined with fast and slow rules cause
-                 * fluctuations which cause inaccurate wait time estimations
-                 * using a reduced damping percentage almost compensates this
-                 */
+      * the workaround is not a friend of rule based attacks
+      * the words from the wordlist combined with fast and slow rules cause
+      * fluctuations which cause inaccurate wait time estimations
+      * using a reduced damping percentage almost compensates this
+      */
 
                 device_param->nvidia_spin_damp = 64;
               }
@@ -14287,28 +13314,28 @@ int main(int argc, char **argv)
           }
 
           /* turns out pocl still creates segfaults (because of llvm)
-          if (device_type & CL_DEVICE_TYPE_CPU)
-          {
-            if (platform_vendor_id == VENDOR_ID_AMD)
-            {
-              if (force == 0)
-              {
-                log_info ("");
-                log_info ("ATTENTION! OpenCL support for CPU of catalyst driver is not reliable.");
-                log_info ("You are STRONGLY encouraged not to use it");
-                log_info ("You can use --force to override this but do not post error reports if you do so");
-                log_info ("A good alternative is the free pocl >= v0.13, but make sure to use a LLVM >= v3.8");
-                log_info ("");
+    if (device_type & CL_DEVICE_TYPE_CPU)
+    {
+    if (platform_vendor_id == VENDOR_ID_AMD)
+    {
+    if (force == 0)
+    {
+    log_info ("");
+    log_info ("ATTENTION! OpenCL support for CPU of catalyst driver is not reliable.");
+    log_info ("You are STRONGLY encouraged not to use it");
+    log_info ("You can use --force to override this but do not post error reports if you do so");
+    log_info ("A good alternative is the free pocl >= v0.13, but make sure to use a LLVM >= v3.8");
+    log_info ("");
 
-                return -1;
-              }
-            }
-          }
-          */
+    return -1;
+    }
+    }
+    }
+    */
 
-          /**
-           * kernel accel and loops tuning db adjustment
-           */
+    /**
+* kernel accel and loops tuning db adjustment
+*/
 
           device_param->kernel_accel_min = 1;
           device_param->kernel_accel_max = 1024;
@@ -14360,8 +13387,8 @@ int main(int argc, char **argv)
           }
 
           /**
-           * activate device
-           */
+    * activate device
+    */
 
           devices_active++;
         }
@@ -14406,8 +13433,8 @@ int main(int argc, char **argv)
     data.devices_active = devices_active;
 
     /**
-     * HM devices: init
-     */
+* HM devices: init
+*/
 
 #ifdef HAVE_HWMON
     hm_attrs_t hm_adapters_adl[DEVICES_MAX];
@@ -14564,8 +13591,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * OpenCL devices: allocate buffer for device specific information
-     */
+* OpenCL devices: allocate buffer for device specific information
+*/
 
     ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *)mycalloc(data.devices_cnt, sizeof(ADLOD6MemClockState));
 
@@ -14574,8 +13601,8 @@ int main(int argc, char **argv)
     unsigned int *nvml_power_limit = (unsigned int *)mycalloc(data.devices_cnt, sizeof(unsigned int));
 
     /**
-     * User-defined GPU temp handling
-     */
+* User-defined GPU temp handling
+*/
 
     if (gpu_temp_disable == 1)
     {
@@ -14599,8 +13626,8 @@ int main(int argc, char **argv)
 #endif
 
     /**
-     * enable custom signal handler(s)
-     */
+* enable custom signal handler(s)
+*/
 
     if (benchmark == 0)
     {
@@ -14612,8 +13639,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * inform the user
-     */
+* inform the user
+*/
 
     if (data.quiet == 0)
     {
@@ -14639,8 +13666,8 @@ int main(int argc, char **argv)
       }
 
       /**
-       * Watchdog and Temperature balance
-       */
+* Watchdog and Temperature balance
+*/
 
 #ifdef HAVE_HWMON
       if (gpu_temp_disable == 0 && data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl == NULL)
@@ -14673,8 +13700,8 @@ int main(int argc, char **argv)
 #ifdef HAVE_HWMON
 
     /**
-     * HM devices: copy
-     */
+* HM devices: copy
+*/
 
     if (gpu_temp_disable == 0)
     {
@@ -14713,8 +13740,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * powertune on user request
-     */
+* powertune on user request
+*/
 
     if (powertune_enable == 1)
     {
@@ -14729,12 +13756,12 @@ int main(int argc, char **argv)
         if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
         {
           /**
-           * Temporary fix:
-           * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
-           * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
-           * were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
-           * Driver / ADL bug?
-           */
+    * Temporary fix:
+    * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
+    * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
+    * were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
+    * Driver / ADL bug?
+    */
 
           if (data.hm_device[device_id].od_version == 6)
           {
@@ -14918,23 +13945,23 @@ int main(int argc, char **argv)
       cl_int CL_err = CL_SUCCESS;
 
       /**
-       * host buffer
-       */
+* host buffer
+*/
 
       hc_device_param_t *device_param = &data.devices_param[device_id];
 
       if (device_param->skipped) continue;
 
       /**
-       * device properties
-       */
+* device properties
+*/
 
       const char *device_name_chksum = device_param->device_name_chksum;
       const u32   device_processors = device_param->device_processors;
 
       /**
-       * create context for each device
-       */
+* create context for each device
+*/
 
       cl_context_properties properties[3];
 
@@ -14952,11 +13979,11 @@ int main(int argc, char **argv)
       }
 
       /**
-       * create command-queue
-       */
+* create command-queue
+*/
 
-       // not supported with NV
-       // device_param->command_queue = hc_clCreateCommandQueueWithProperties (device_param->context, device_param->device, NULL);
+// not supported with NV
+// device_param->command_queue = hc_clCreateCommandQueueWithProperties (device_param->context, device_param->device, NULL);
 
       CL_err = hc_clCreateCommandQueue(data.ocl, device_param->context, device_param->device, CL_QUEUE_PROFILING_ENABLE, &device_param->command_queue);
 
@@ -14968,10 +13995,10 @@ int main(int argc, char **argv)
       }
 
       /**
-       * kernel threads: some algorithms need a fixed kernel-threads count
-       *                 because of shared memory usage or bitslice
-       *                 there needs to be some upper limit, otherwise there's too much overhead
-       */
+* kernel threads: some algorithms need a fixed kernel-threads count
+*                 because of shared memory usage or bitslice
+*                 there needs to be some upper limit, otherwise there's too much overhead
+*/
 
       uint kernel_threads = MIN(KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
 
@@ -15002,8 +14029,8 @@ int main(int argc, char **argv)
       device_param->hardware_power = device_processors * kernel_threads;
 
       /**
-       * create input buffers on device : calculate size of fixed memory buffers
-       */
+* create input buffers on device : calculate size of fixed memory buffers
+*/
 
       size_t size_root_css = SP_PW_MAX *           sizeof(cs_t);
       size_t size_markov_css = SP_PW_MAX * CHARSIZ * sizeof(cs_t);
@@ -15141,8 +14168,8 @@ int main(int argc, char **argv)
       size_t size_scrypt4 = size_scrypt / 4;
 
       /**
-       * some algorithms need a fixed kernel-loops count
-       */
+* some algorithms need a fixed kernel-loops count
+*/
 
       if (hash_mode == 1500 && attack_mode == ATTACK_MODE_BF)
       {
@@ -15185,8 +14212,8 @@ int main(int argc, char **argv)
       }
 
       /**
-       * some algorithms have a maximum kernel-loops count
-       */
+* some algorithms have a maximum kernel-loops count
+*/
 
       if (device_param->kernel_loops_min < device_param->kernel_loops_max)
       {
@@ -15387,13 +14414,13 @@ int main(int argc, char **argv)
       device_param->kernel_accel_max = kernel_accel_max;
 
       /*
-      if (kernel_accel_max < kernel_accel)
-      {
-        if (quiet == 0) log_info ("- Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
+if (kernel_accel_max < kernel_accel)
+{
+  if (quiet == 0) log_info ("- Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
 
-        device_param->kernel_accel = kernel_accel_max;
-      }
-      */
+  device_param->kernel_accel = kernel_accel_max;
+}
+*/
 
       device_param->size_bfs = size_bfs;
       device_param->size_combs = size_combs;
@@ -15404,8 +14431,8 @@ int main(int argc, char **argv)
       device_param->size_hooks = size_hooks;
 
       /**
-       * default building options
-       */
+* default building options
+*/
 
       if (chdir(cpath_real) == -1)
       {
@@ -15489,13 +14516,13 @@ int main(int argc, char **argv)
 #endif
 
       /**
-       * main kernel
-       */
+* main kernel
+*/
 
       {
         /**
-         * kernel source filename
-         */
+* kernel source filename
+*/
 
         char source_file[256] = { 0 };
 
@@ -15511,8 +14538,8 @@ int main(int argc, char **argv)
         }
 
         /**
-         * kernel cached filename
-         */
+* kernel cached filename
+*/
 
         char cached_file[256] = { 0 };
 
@@ -15528,8 +14555,8 @@ int main(int argc, char **argv)
         }
 
         /**
-         * kernel compile or load
-         */
+* kernel compile or load
+*/
 
         size_t *kernel_lengths = (size_t *)mymalloc(sizeof(size_t));
 
@@ -15564,15 +14591,15 @@ int main(int argc, char **argv)
             size_t build_log_size = 0;
 
             /*
-            CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+    CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-            if (CL_err != CL_SUCCESS)
-            {
-              log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
 
-              return -1;
-            }
-            */
+      return -1;
+    }
+    */
 
             hc_clGetProgramBuildInfo(data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
@@ -15704,15 +14731,15 @@ int main(int argc, char **argv)
           size_t build_log_size = 0;
 
           /*
-          CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+    CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-          if (CL_err != CL_SUCCESS)
-          {
-            log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+    if (CL_err != CL_SUCCESS)
+    {
+    log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
 
-            return -1;
-          }
-          */
+    return -1;
+    }
+    */
 
           hc_clGetProgramBuildInfo(data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
@@ -15752,14 +14779,14 @@ int main(int argc, char **argv)
       }
 
       /**
-       * word generator kernel
-       */
+* word generator kernel
+*/
 
       if (attack_mode != ATTACK_MODE_STRAIGHT)
       {
         /**
-         * kernel mp source filename
-         */
+* kernel mp source filename
+*/
 
         char source_file[256] = { 0 };
 
@@ -15775,8 +14802,8 @@ int main(int argc, char **argv)
         }
 
         /**
-         * kernel mp cached filename
-         */
+* kernel mp cached filename
+*/
 
         char cached_file[256] = { 0 };
 
@@ -15792,8 +14819,8 @@ int main(int argc, char **argv)
         }
 
         /**
-         * kernel compile or load
-         */
+* kernel compile or load
+*/
 
         size_t *kernel_lengths = (size_t *)mymalloc(sizeof(size_t));
 
@@ -15827,15 +14854,15 @@ int main(int argc, char **argv)
           size_t build_log_size = 0;
 
           /*
-          CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+    CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-          if (CL_err != CL_SUCCESS)
-          {
-            log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+    if (CL_err != CL_SUCCESS)
+    {
+    log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
 
-            return -1;
-          }
-          */
+    return -1;
+    }
+    */
 
           hc_clGetProgramBuildInfo(data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
@@ -15929,8 +14956,8 @@ int main(int argc, char **argv)
       }
 
       /**
-       * amplifier kernel
-       */
+* amplifier kernel
+*/
 
       if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       {
@@ -15939,8 +14966,8 @@ int main(int argc, char **argv)
       else
       {
         /**
-         * kernel amp source filename
-         */
+* kernel amp source filename
+*/
 
         char source_file[256] = { 0 };
 
@@ -15956,8 +14983,8 @@ int main(int argc, char **argv)
         }
 
         /**
-         * kernel amp cached filename
-         */
+* kernel amp cached filename
+*/
 
         char cached_file[256] = { 0 };
 
@@ -15973,8 +15000,8 @@ int main(int argc, char **argv)
         }
 
         /**
-         * kernel compile or load
-         */
+* kernel compile or load
+*/
 
         size_t *kernel_lengths = (size_t *)mymalloc(sizeof(size_t));
 
@@ -16008,15 +15035,15 @@ int main(int argc, char **argv)
           size_t build_log_size = 0;
 
           /*
-          CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+    CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-          if (CL_err != CL_SUCCESS)
-          {
-            log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+    if (CL_err != CL_SUCCESS)
+    {
+    log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
 
-            return -1;
-          }
-          */
+    return -1;
+    }
+    */
 
           hc_clGetProgramBuildInfo(data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
@@ -16129,8 +15156,8 @@ int main(int argc, char **argv)
       }
 
       /**
-       * global buffers
-       */
+* global buffers
+*/
 
       CL_err |= hc_clCreateBuffer(data.ocl, device_param->context, CL_MEM_READ_ONLY, size_pws, NULL, &device_param->d_pws_buf);
       CL_err |= hc_clCreateBuffer(data.ocl, device_param->context, CL_MEM_READ_ONLY, size_pws, NULL, &device_param->d_pws_amp_buf);
@@ -16181,8 +15208,8 @@ int main(int argc, char **argv)
       }
 
       /**
-       * special buffers
-       */
+* special buffers
+*/
 
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
@@ -16257,8 +15284,8 @@ int main(int argc, char **argv)
       }
 
       /**
-       * main host data
-       */
+* main host data
+*/
 
       pw_t *pws_buf = (pw_t *)mymalloc(size_pws);
 
@@ -16273,8 +15300,8 @@ int main(int argc, char **argv)
       device_param->hooks_buf = hooks_buf;
 
       /**
-       * kernel args
-       */
+* kernel args
+*/
 
       device_param->kernel_params_buf32[24] = bitmap_mask;
       device_param->kernel_params_buf32[25] = bitmap_shift1;
@@ -16401,8 +15428,8 @@ int main(int argc, char **argv)
       device_param->kernel_params_memset[2] = &device_param->kernel_params_memset_buf32[2];
 
       /**
-       * kernel name
-       */
+* kernel name
+*/
 
       size_t kernel_wgs_tmp;
 
@@ -16814,8 +15841,8 @@ int main(int argc, char **argv)
       run_kernel_bzero(device_param, device_param->d_result, size_results);
 
       /**
-       * special buffers
-       */
+* special buffers
+*/
 
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
@@ -16840,8 +15867,8 @@ int main(int argc, char **argv)
 #if defined(HAVE_HWMON)
 
       /**
-       * Store initial fanspeed if gpu_temp_retain is enabled
-       */
+* Store initial fanspeed if gpu_temp_retain is enabled
+*/
 
       if (gpu_temp_disable == 0)
       {
@@ -16905,8 +15932,8 @@ int main(int argc, char **argv)
     if (data.quiet == 0) log_info_nn("");
 
     /**
-     * In benchmark-mode, inform user which algorithm is checked
-     */
+* In benchmark-mode, inform user which algorithm is checked
+*/
 
     if (benchmark == 1)
     {
@@ -16924,16 +15951,16 @@ int main(int argc, char **argv)
     }
 
     /**
-     * keep track of the progress
-     */
+* keep track of the progress
+*/
 
     data.words_progress_done = (u64 *)mycalloc(data.salts_cnt, sizeof(u64));
     data.words_progress_rejected = (u64 *)mycalloc(data.salts_cnt, sizeof(u64));
     data.words_progress_restored = (u64 *)mycalloc(data.salts_cnt, sizeof(u64));
 
     /**
-     * open filehandles
-     */
+* open filehandles
+*/
 
 #if _WIN
     if (_setmode(_fileno(stdin), _O_BINARY) == -1)
@@ -16959,8 +15986,8 @@ int main(int argc, char **argv)
 #endif
 
     /**
-     * dictionary pad
-     */
+* dictionary pad
+*/
 
     segment_size *= (1024 * 1024);
 
@@ -17330,8 +16357,8 @@ int main(int argc, char **argv)
       else
       {
         /**
-         * generate full masks and charsets
-         */
+* generate full masks and charsets
+*/
 
         masks = (char **)mymalloc(sizeof(char *));
 
@@ -17734,8 +16761,8 @@ int main(int argc, char **argv)
     data.pw_max = pw_max;
 
     /**
-     * weak hash check
-     */
+* weak hash check
+*/
 
     if (weak_hash_threshold >= salts_cnt)
     {
@@ -17763,8 +16790,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * status and monitor threads
-     */
+* status and monitor threads
+*/
 
     if ((data.devices_status != STATUS_BYPASS) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
     {
@@ -17778,8 +16805,8 @@ int main(int argc, char **argv)
     data.shutdown_inner = 0;
 
     /**
-      * Outfile remove
-      */
+* Outfile remove
+*/
 
     if (keyspace == 0 && benchmark == 0 && stdout_flag == 0)
     {
@@ -17813,8 +16840,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * Inform the user if we got some hashes remove because of the pot file remove feature
-     */
+* Inform the user if we got some hashes remove because of the pot file remove feature
+*/
 
     if (data.quiet == 0)
     {
@@ -17828,8 +16855,8 @@ int main(int argc, char **argv)
     data.outfile_check_timer = outfile_check_timer;
 
     /**
-     * main loop
-     */
+* main loop
+*/
 
     char **induction_dictionaries = NULL;
 
@@ -17934,12 +16961,12 @@ int main(int argc, char **argv)
           }
 
           /**
-           * What follows is a very special case where "\," is within the mask field of a line in a .hcmask file only because otherwise (without the "\")
-           * it would be interpreted as a custom charset definition.
-           *
-           * We need to replace all "\," with just "," within the mask (but allow the special case "\\," which means "\" followed by ",")
-           * Note: "\\" is not needed to replace all "\" within the mask! The meaning of "\\" within a line containing the string "\\," is just to allow "\" followed by ","
-           */
+    * What follows is a very special case where "\," is within the mask field of a line in a .hcmask file only because otherwise (without the "\")
+    * it would be interpreted as a custom charset definition.
+    *
+    * We need to replace all "\," with just "," within the mask (but allow the special case "\\," which means "\" followed by ",")
+    * Note: "\\" is not needed to replace all "\" within the mask! The meaning of "\\" within a line containing the string "\\," is just to allow "\" followed by ","
+    */
 
           uint mask_len_cur = strlen(mask);
 
@@ -18119,8 +17146,8 @@ int main(int argc, char **argv)
       }
 
       /**
-       * prevent the user from using --skip/--limit together w/ maskfile and or dictfile
-       */
+* prevent the user from using --skip/--limit together w/ maskfile and or dictfile
+*/
 
       if (skip != 0 || limit != 0)
       {
@@ -18133,8 +17160,8 @@ int main(int argc, char **argv)
       }
 
       /**
-       * prevent the user from using --keyspace together w/ maskfile and or dictfile
-       */
+* prevent the user from using --keyspace together w/ maskfile and or dictfile
+*/
 
       if (keyspace == 1)
       {
@@ -18523,17 +17550,17 @@ int main(int argc, char **argv)
             css_cnt_r = 1;
 
             /* unfinished code?
-            int sum = css_buf[css_cnt_r - 1].cs_len;
+      int sum = css_buf[css_cnt_r - 1].cs_len;
 
-            for (uint i = 1; i < 4 && i < css_cnt; i++)
-            {
-              if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
+      for (uint i = 1; i < 4 && i < css_cnt; i++)
+      {
+      if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
 
-              css_cnt_r++;
+      css_cnt_r++;
 
-              sum *= css_buf[css_cnt_r - 1].cs_len;
-            }
-            */
+      sum *= css_buf[css_cnt_r - 1].cs_len;
+      }
+      */
           }
 
           css_cnt_l -= css_cnt_r;
@@ -18667,8 +17694,8 @@ int main(int argc, char **argv)
         }
 
         /*
-         * Update loopback file
-         */
+* Update loopback file
+*/
 
         if (loopback == 1)
         {
@@ -18684,8 +17711,8 @@ int main(int argc, char **argv)
         }
 
         /*
-         * Update dictionary statistic
-         */
+* Update dictionary statistic
+*/
 
         if (keyspace == 0)
         {
@@ -18702,8 +17729,8 @@ int main(int argc, char **argv)
         }
 
         /**
-         * create autotune threads
-         */
+* create autotune threads
+*/
 
         hc_thread_t *c_threads = (hc_thread_t *)mycalloc(data.devices_cnt, sizeof(hc_thread_t));
 
@@ -18722,8 +17749,8 @@ int main(int argc, char **argv)
         hc_thread_wait(data.devices_cnt, c_threads);
 
         /*
-         * Inform user about possible slow speeds
-         */
+* Inform user about possible slow speeds
+*/
 
         uint hardware_power_all = 0;
 
@@ -18761,8 +17788,8 @@ int main(int argc, char **argv)
         }
 
         /**
-         * create cracker threads
-         */
+* create cracker threads
+*/
 
         if ((data.devices_status != STATUS_BYPASS) && (data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
         {
@@ -19008,8 +18035,8 @@ int main(int argc, char **argv)
     }
 
     /**
-     * Clean up
-     */
+* Clean up
+*/
 
     for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
     {
