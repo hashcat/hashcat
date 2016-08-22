@@ -878,38 +878,11 @@ extern hc_thread_mutex_t mux_display;
 #define DGST_SIZE_8_25              (25 * sizeof (u64))    // 200
 
 #include "consts/parser.h"
+#include "consts/devices_statuses.h"
 
     /**
-     * status
+     * kernel types
      */
-
-#define STATUS_STARTING           0
-#define STATUS_INIT               1
-#define STATUS_RUNNING            2
-#define STATUS_PAUSED             3
-#define STATUS_EXHAUSTED          4
-#define STATUS_CRACKED            5
-#define STATUS_ABORTED            6
-#define STATUS_QUIT               7
-#define STATUS_BYPASS             8
-#define STATUS_STOP_AT_CHECKPOINT 9
-#define STATUS_AUTOTUNE           10
-
-#define ST_0000 "Initializing"
-#define ST_0001 "Starting"
-#define ST_0002 "Running"
-#define ST_0003 "Paused"
-#define ST_0004 "Exhausted"
-#define ST_0005 "Cracked"
-#define ST_0006 "Aborted"
-#define ST_0007 "Quit"
-#define ST_0008 "Bypass"
-#define ST_0009 "Running (stop at checkpoint)"
-#define ST_0010 "Autotuning"
-
-     /**
-      * kernel types
-      */
 
 #define KERN_RUN_MP          101
 #define KERN_RUN_MP_L        102
@@ -921,9 +894,9 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_RUN_23          2500
 #define KERN_RUN_3           3000
 
-      /*
-       * functions
-       */
+     /*
+      * functions
+      */
 
 u32 is_power_of_2(u32 v);
 
