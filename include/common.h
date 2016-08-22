@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <search.h>
 #include <fcntl.h>
+#include "numeric_types_abbreviations.h"
 
 #ifdef _POSIX
 #include <sys/time.h>
@@ -80,18 +81,6 @@ typedef void *XNVCTRL_LIB;
 #include <psapi.h>
 #include <io.h>
 
-typedef UINT8  uint8_t;
-typedef UINT16 uint16_t;
-typedef UINT32 uint32_t;
-typedef UINT64 uint64_t;
-typedef INT8   int8_t;
-typedef INT16  int16_t;
-typedef INT32  int32_t;
-typedef INT64  int64_t;
-
-typedef UINT32 uint;
-typedef UINT64 uint64_t;
-
 typedef HINSTANCE OCL_LIB;
 
 #ifdef HAVE_HWMON
@@ -104,13 +93,6 @@ typedef HINSTANCE XNVCTRL_LIB;
 #define mkdir(name,mode) mkdir (name)
 
 #endif // _WIN
-
-typedef uint8_t  u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-
-typedef uint32_t uint; // we need to get rid of this sooner or later, for consistency
 
 #define EXEC_CACHE    128
 
