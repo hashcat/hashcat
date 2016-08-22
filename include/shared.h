@@ -128,10 +128,10 @@ static inline int  CPU_ISSET(int num, cpu_set_t *cs) { return (cs->count & (1 <<
    * temperature management
    */
 
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
+#include "hwmon/ext_ADL.h"
+#include "hwmon/ext_nvapi.h"
+#include "hwmon/ext_nvml.h"
+#include "hwmon/ext_xnvctrl.h"
 
    /**
     * shared stuff
