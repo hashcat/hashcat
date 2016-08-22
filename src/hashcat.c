@@ -1412,10 +1412,12 @@ static int choose_kernel(hc_device_param_t *device_param, const uint attack_exec
 
       run_kernel(KERN_RUN_2, device_param, pws_cnt, true, slow_iteration);
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (
+        data.devices_status == STATUS_CRACKED ||
+        data.devices_status == STATUS_ABORTED ||
+        data.devices_status == STATUS_QUIT ||
+        data.devices_status == STATUS_BYPASS
+        ) break;
 
       /**
 * speed
@@ -1913,10 +1915,11 @@ static int run_cracker(hc_device_param_t *device_param, const uint pws_cnt)
 
     if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-    if (data.devices_status == STATUS_CRACKED) break;
-    if (data.devices_status == STATUS_ABORTED) break;
-    if (data.devices_status == STATUS_QUIT)    break;
-    if (data.devices_status == STATUS_BYPASS)  break;
+    if (data.devices_status == STATUS_CRACKED ||
+      data.devices_status == STATUS_ABORTED ||
+      data.devices_status == STATUS_QUIT ||
+      data.devices_status == STATUS_BYPASS
+      ) break;
 
     salt_t *salt_buf = &data.salts_buf[salt_pos];
 
@@ -1939,10 +1942,7 @@ static int run_cracker(hc_device_param_t *device_param, const uint pws_cnt)
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (data.devices_status == STATUS_CRACKED || data.devices_status == STATUS_ABORTED || data.devices_status == STATUS_QUIT || data.devices_status == STATUS_BYPASS) break;
 
       uint fast_iteration = 0;
 
@@ -2152,10 +2152,12 @@ static int run_cracker(hc_device_param_t *device_param, const uint pws_cnt)
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (
+        data.devices_status == STATUS_CRACKED ||
+        data.devices_status == STATUS_ABORTED ||
+        data.devices_status == STATUS_QUIT ||
+        data.devices_status == STATUS_BYPASS
+        ) break;
 
       /**
 * result
@@ -3360,10 +3362,12 @@ static void *thread_calc_stdin(void *p)
 
       words_cur++;
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (
+        data.devices_status == STATUS_CRACKED ||
+        data.devices_status == STATUS_ABORTED ||
+        data.devices_status == STATUS_QUIT ||
+        data.devices_status == STATUS_BYPASS
+        ) break;
     }
 
     hc_thread_mutex_unlock(mux_dispatcher);
@@ -16396,10 +16400,11 @@ if (kernel_accel_max < kernel_accel)
 
     for (uint maskpos = rd->maskpos; maskpos < maskcnt; maskpos++)
     {
-      if (data.devices_status == STATUS_CRACKED) continue;
-      if (data.devices_status == STATUS_ABORTED) continue;
-      if (data.devices_status == STATUS_QUIT)    continue;
-
+      if (
+        data.devices_status == STATUS_CRACKED ||
+        data.devices_status == STATUS_ABORTED ||
+        data.devices_status == STATUS_QUIT
+        ) continue;
       if (maskpos > rd->maskpos)
       {
         rd->dictpos = 0;
