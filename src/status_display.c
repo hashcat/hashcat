@@ -1,3 +1,4 @@
+
 #include <common.h>
 #include <shared.h>
 #include <bit_ops.h>
@@ -537,7 +538,7 @@ void status_display()
 
   double ms_running = 0;
 
-  hc_timer_get(data.timer_running, ms_running);
+  ms_running = hc_timer_get(data.timer_running);
 
   double ms_paused = data.ms_paused;
 
@@ -545,14 +546,14 @@ void status_display()
   {
     double ms_paused_tmp = 0;
 
-    hc_timer_get(data.timer_paused, ms_paused_tmp);
+    ms_paused_tmp = hc_timer_get(data.timer_paused);
 
     ms_paused += ms_paused_tmp;
   }
 
 #ifdef WIN
 
-  __time64_t sec_run = ms_running / 1000;
+  __time64_t sec_run = (__time64_t)(ms_running / 1000);
 
 #else
 
@@ -689,7 +690,7 @@ void status_display()
       {
         u64 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
 
-        u64 ms_left = (progress_left_relative_skip - progress_noneed) / hashes_all_ms;
+        u64 ms_left = (u64)((progress_left_relative_skip - progress_noneed) / hashes_all_ms);
 
         sec_etc = ms_left / 1000;
       }
@@ -789,7 +790,7 @@ void status_display()
 
     strncpy(display_dev_cur, "0.00", 4);
 
-    format_speed_display(hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof(display_dev_cur));
+    format_speed_display((float)hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof(display_dev_cur));
 
     log_info("Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
   }
@@ -798,7 +799,7 @@ void status_display()
 
   strncpy(display_all_cur, "0.00", 4);
 
-  format_speed_display(hashes_all_ms * 1000, display_all_cur, sizeof(display_all_cur));
+  format_speed_display((float)hashes_all_ms * 1000, display_all_cur, sizeof(display_all_cur));
 
   if (data.devices_active > 1) log_info("Speed.Dev.#*...: %9sH/s", display_all_cur);
 
@@ -839,10 +840,11 @@ void status_display()
     }
 
     double ms_real = ms_running - ms_paused;
+    float cpt = (float)(data.cpt_total / (ms_real / 1000));
 
-    float cpt_avg_min = (float)data.cpt_total / ((ms_real / 1000) / 60);
-    float cpt_avg_hour = (float)data.cpt_total / ((ms_real / 1000) / 3600);
-    float cpt_avg_day = (float)data.cpt_total / ((ms_real / 1000) / 86400);
+    float cpt_avg_min = cpt / 60;
+    float cpt_avg_hour = cpt_avg_min / 60;
+    float cpt_avg_day = cpt_avg_hour / 24;
 
     if ((data.cpt_start + 86400) < now)
     {
