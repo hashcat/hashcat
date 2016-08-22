@@ -170,12 +170,6 @@ char *strhashtype(const uint hash_mode);
 char *strstatus(const uint threads_status);
 void status();
 
-void *mycalloc(size_t nmemb, size_t size);
-void myfree(void *ptr);
-void *mymalloc(size_t size);
-void *myrealloc(void *ptr, size_t oldsz, size_t add);
-char *mystrdup(const char *s);
-
 char *logfile_generate_topid();
 char *logfile_generate_subid();
 void logfile_append(const char *fmt, ...);
