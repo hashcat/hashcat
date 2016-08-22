@@ -12,64 +12,12 @@
 #include "common.h"
 #include "inc_hash_constants.h"
 #include "hc_concurrency.h"
+#include "dynload.h"
+
 
  /**
-  * libraries stuff
+  * system stuff
   */
-
-#ifdef _WIN
-#define hc_dlopen LoadLibrary
-#define hc_dlclose FreeLibrary
-#define hc_dlsym GetProcAddress
-#else
-#define hc_dlopen dlopen
-#define hc_dlclose dlclose
-#define hc_dlsym dlsym
-#endif
-
-#define HC_LOAD_FUNC2(ptr,name,type,var,libname,noerr) \
-  ptr->name = (type) hc_dlsym (ptr->var, #name); \
-  if (noerr != -1) { \
-    if (!ptr->name) { \
-      if (noerr == 1) { \
-        log_error ("ERROR: %s is missing from %s shared library.", #name, #libname); \
-        exit (-1); \
-      } else { \
-        log_info ("WARNING: %s is missing from %s shared library.", #name, #libname); \
-        return -1; \
-      } \
-    } \
-  }
-
-#define HC_LOAD_FUNC(ptr,name,type,libname,noerr) \
-  ptr->name = (type) hc_dlsym (ptr->lib, #name); \
-  if (noerr != -1) { \
-    if (!ptr->name) { \
-      if (noerr == 1) { \
-        log_error ("ERROR: %s is missing from %s shared library.", #name, #libname); \
-        exit (-1); \
-      } else { \
-        log_info ("WARNING: %s is missing from %s shared library.", #name, #libname); \
-        return -1; \
-      } \
-    } \
-  }
-
-#define HC_LOAD_ADDR(ptr,name,type,func,addr,libname,noerr) \
-  ptr->name = (type) (*ptr->func) (addr); \
-  if (!ptr->name) { \
-    if (noerr == 1) { \
-      log_error ("ERROR: %s at address %08x is missing from %s shared library.", #name, addr, #libname); \
-      exit (-1); \
-    } else { \
-      log_error ("WARNING: %s at address %08x is missing from %s shared library.", #name, addr, #libname); \
-      return -1; \
-    } \
-  }
-
-  /**
-   * system stuff
-   */
 
 #ifdef _WIN
 #define hc_sleep(x) Sleep ((x) * 1000);
@@ -79,18 +27,18 @@
 
 #include "ext_OpenCL.h"
 
-   /**
-    * temperature management
-    */
+  /**
+   * temperature management
+   */
 
 #include "hwmon/ext_ADL.h"
 #include "hwmon/ext_nvapi.h"
 #include "hwmon/ext_nvml.h"
 #include "hwmon/ext_xnvctrl.h"
 
-    /**
-     * shared stuff
-     */
+   /**
+    * shared stuff
+    */
 
 #define ETC_MAX                 (60 * 60 * 24 * 365 * 10)
 
@@ -125,9 +73,9 @@
 #include "rp_cpu.h"
 #include "inc_rp.h"
 
-     /**
-      * valid project specific global stuff
-      */
+    /**
+     * valid project specific global stuff
+     */
 
 extern const uint  VERSION_BIN;
 extern const uint  RESTORE_MIN;
