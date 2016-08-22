@@ -1,15 +1,17 @@
 #include <config.h>
 
-/**
-* thermal
-*/
-
 #ifdef HAVE_HWMON
+#include <hc_global_data_t.h>
+#include <hc_global.h>
 #include <hwmon.h>
+#include <shared.h>
+#include <consts/devices_vendors.h>
+#include <logging.h>
 
-int get_adapters_num_adl(void *adl, int *iNumberAdapters)
+
+int get_adapters_num_adl(ADL_PTR *adl, int *iNumberAdapters)
 {
-  if (hm_ADL_Adapter_NumberOfAdapters_Get((ADL_PTR *)adl, iNumberAdapters) != ADL_OK) return -1;
+  if (hm_ADL_Adapter_NumberOfAdapters_Get(adl, iNumberAdapters) != ADL_OK) return -1;
 
   if (iNumberAdapters == 0)
   {
@@ -57,7 +59,7 @@ int hm_show_performance_level(HM_LIB hm_dll, int iAdapterIndex)
 }
 */
 
-LPAdapterInfo hm_get_adapter_info_adl(void *adl, int iNumberAdapters)
+LPAdapterInfo hm_get_adapter_info_adl(ADL_PTR *adl, int iNumberAdapters)
 {
   size_t AdapterInfoSize = iNumberAdapters * sizeof(AdapterInfo);
 
@@ -263,7 +265,7 @@ u32 *hm_get_list_valid_adl_adapters(int iNumberAdapters, int *num_adl_adapters, 
   return adl_adapters;
 }
 
-int hm_check_fanspeed_control(void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
+int hm_check_fanspeed_control(ADL_PTR *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
   // loop through all valid devices
 
@@ -331,7 +333,7 @@ int hm_check_fanspeed_control(void *adl, hm_attrs_t *hm_device, u32 *valid_adl_d
   return 0;
 }
 
-int hm_get_overdrive_version(void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
+int hm_get_overdrive_version(ADL_PTR *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
   for (int i = 0; i < num_adl_adapters; i++)
   {
@@ -845,4 +847,4 @@ int hm_set_fanspeed_with_device_id_xnvctrl(const uint device_id, const int fansp
   return -1;
 }
 
-#endif // HAVE_HWMON
+#endif
