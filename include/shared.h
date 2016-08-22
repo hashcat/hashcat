@@ -854,240 +854,13 @@ extern hc_thread_mutex_t mux_display;
 #define HASH_TYPE_KRB5TGS        50
 #define HASH_TYPE_STDOUT         51
 
-#define KERN_TYPE_MD5                 0
-#define KERN_TYPE_MD5_PWSLT           10
-#define KERN_TYPE_MD5_SLTPW           20
-#define KERN_TYPE_MD5_PWUSLT          30
-#define KERN_TYPE_MD5_SLTPWU          40
-#define KERN_TYPE_HMACMD5_PW          50
-#define KERN_TYPE_HMACMD5_SLT         60
-#define KERN_TYPE_SHA1                100
-#define KERN_TYPE_SHA1_PWSLT          110
-#define KERN_TYPE_SHA1_SLTPW          120
-#define KERN_TYPE_SHA1_PWUSLT         130
-#define KERN_TYPE_SHA1_SLTPWU         140
-#define KERN_TYPE_HMACSHA1_PW         150
-#define KERN_TYPE_HMACSHA1_SLT        160
-#define KERN_TYPE_MYSQL               200
-#define KERN_TYPE_MYSQL41             300
-#define KERN_TYPE_PHPASS              400
-#define KERN_TYPE_MD5CRYPT            500
-#define KERN_TYPE_MD4                 900
-#define KERN_TYPE_MD4_PWU             1000
-#define KERN_TYPE_MD44_PWUSLT         1100
-#define KERN_TYPE_SHA256              1400
-#define KERN_TYPE_SHA256_PWSLT        1410
-#define KERN_TYPE_SHA256_SLTPW        1420
-#define KERN_TYPE_SHA256_PWUSLT       1430
-#define KERN_TYPE_SHA256_SLTPWU       1440
-#define KERN_TYPE_HMACSHA256_PW       1450
-#define KERN_TYPE_HMACSHA256_SLT      1460
-#define KERN_TYPE_DESCRYPT            1500
-#define KERN_TYPE_APR1CRYPT           1600
-#define KERN_TYPE_SHA512              1700
-#define KERN_TYPE_SHA512_PWSLT        1710
-#define KERN_TYPE_SHA512_SLTPW        1720
-#define KERN_TYPE_SHA512_PWSLTU       1730
-#define KERN_TYPE_SHA512_SLTPWU       1740
-#define KERN_TYPE_HMACSHA512_PW       1750
-#define KERN_TYPE_HMACSHA512_SLT      1760
-#define KERN_TYPE_SHA512CRYPT         1800
-#define KERN_TYPE_STDOUT              2000
-#define KERN_TYPE_DCC2                2100
-#define KERN_TYPE_MD5PIX              2400
-#define KERN_TYPE_MD5ASA              2410
-#define KERN_TYPE_WPA                 2500
-#define KERN_TYPE_MD55                2600
-#define KERN_TYPE_MD55_PWSLT1         2610
-#define KERN_TYPE_MD55_PWSLT2         2710
-#define KERN_TYPE_MD55_SLTPW          2810
-#define KERN_TYPE_LM                  3000
-#define KERN_TYPE_ORACLEH             3100
-#define KERN_TYPE_BCRYPT              3200
-#define KERN_TYPE_MD5_SLT_MD5_PW      3710
-#define KERN_TYPE_MD5_SLT_PW_SLT      3800
-#define KERN_TYPE_MD5U5               4300
-#define KERN_TYPE_MD5U5_PWSLT1        4310
-#define KERN_TYPE_MD5_SHA1            4400
-#define KERN_TYPE_SHA11               4500
-#define KERN_TYPE_SHA1_MD5            4700
-#define KERN_TYPE_MD5_CHAP            4800
-#define KERN_TYPE_SHA1_SLT_PW_SLT     4900
-#define KERN_TYPE_KECCAK              5000
-#define KERN_TYPE_MD5H                5100
-#define KERN_TYPE_PSAFE3              5200
-#define KERN_TYPE_IKEPSK_MD5          5300
-#define KERN_TYPE_IKEPSK_SHA1         5400
-#define KERN_TYPE_NETNTLMv1           5500
-#define KERN_TYPE_NETNTLMv2           5600
-#define KERN_TYPE_ANDROIDPIN          5800
-#define KERN_TYPE_RIPEMD160           6000
-#define KERN_TYPE_WHIRLPOOL           6100
-#define KERN_TYPE_TCRIPEMD160_XTS512  6211
-#define KERN_TYPE_TCRIPEMD160_XTS1024 6212
-#define KERN_TYPE_TCRIPEMD160_XTS1536 6213
-#define KERN_TYPE_TCSHA512_XTS512     6221
-#define KERN_TYPE_TCSHA512_XTS1024    6222
-#define KERN_TYPE_TCSHA512_XTS1536    6223
-#define KERN_TYPE_TCWHIRLPOOL_XTS512  6231
-#define KERN_TYPE_TCWHIRLPOOL_XTS1024 6232
-#define KERN_TYPE_TCWHIRLPOOL_XTS1536 6233
-#define KERN_TYPE_VCSHA256_XTS512     13751
-#define KERN_TYPE_VCSHA256_XTS1024    13752
-#define KERN_TYPE_VCSHA256_XTS1536    13753
-#define KERN_TYPE_MD5AIX              6300
-#define KERN_TYPE_SHA256AIX           6400
-#define KERN_TYPE_SHA512AIX           6500
-#define KERN_TYPE_AGILEKEY            6600
-#define KERN_TYPE_SHA1AIX             6700
-#define KERN_TYPE_LASTPASS            6800
-#define KERN_TYPE_GOST                6900
-#define KERN_TYPE_PBKDF2_SHA512       7100
-#define KERN_TYPE_RAKP                7300
-#define KERN_TYPE_SHA256CRYPT         7400
-#define KERN_TYPE_KRB5PA              7500
-#define KERN_TYPE_SHA1_SLT_SHA1_PW    7600
-#define KERN_TYPE_SAPB                7700
-#define KERN_TYPE_SAPG                7800
-#define KERN_TYPE_DRUPAL7             7900
-#define KERN_TYPE_SYBASEASE           8000
-#define KERN_TYPE_NETSCALER           8100
-#define KERN_TYPE_CLOUDKEY            8200
-#define KERN_TYPE_NSEC3               8300
-#define KERN_TYPE_WBB3                8400
-#define KERN_TYPE_RACF                8500
-#define KERN_TYPE_LOTUS5              8600
-#define KERN_TYPE_LOTUS6              8700
-#define KERN_TYPE_ANDROIDFDE          8800
-#define KERN_TYPE_SCRYPT              8900
-#define KERN_TYPE_PSAFE2              9000
-#define KERN_TYPE_LOTUS8              9100
-#define KERN_TYPE_OFFICE2007          9400
-#define KERN_TYPE_OFFICE2010          9500
-#define KERN_TYPE_OFFICE2013          9600
-#define KERN_TYPE_OLDOFFICE01         9700
-#define KERN_TYPE_OLDOFFICE01CM1      9710
-#define KERN_TYPE_OLDOFFICE01CM2      9720
-#define KERN_TYPE_OLDOFFICE34         9800
-#define KERN_TYPE_OLDOFFICE34CM1      9810
-#define KERN_TYPE_OLDOFFICE34CM2      9820
-#define KERN_TYPE_RADMIN2             9900
-#define KERN_TYPE_SIPHASH             10100
-#define KERN_TYPE_SAPH_SHA1           10300
-#define KERN_TYPE_PDF11               10400
-#define KERN_TYPE_PDF11CM1            10410
-#define KERN_TYPE_PDF11CM2            10420
-#define KERN_TYPE_PDF14               10500
-#define KERN_TYPE_PDF17L8             10700
-#define KERN_TYPE_SHA384              10800
-#define KERN_TYPE_PBKDF2_SHA256       10900
-#define KERN_TYPE_PRESTASHOP          11000
-#define KERN_TYPE_POSTGRESQL_AUTH     11100
-#define KERN_TYPE_MYSQL_AUTH          11200
-#define KERN_TYPE_BITCOIN_WALLET      11300
-#define KERN_TYPE_SIP_AUTH            11400
-#define KERN_TYPE_CRC32               11500
-#define KERN_TYPE_SEVEN_ZIP           11600
-#define KERN_TYPE_GOST_2012SBOG_256   11700
-#define KERN_TYPE_GOST_2012SBOG_512   11800
-#define KERN_TYPE_PBKDF2_MD5          11900
-#define KERN_TYPE_PBKDF2_SHA1         12000
-#define KERN_TYPE_ECRYPTFS            12200
-#define KERN_TYPE_ORACLET             12300
-#define KERN_TYPE_BSDICRYPT           12400
-#define KERN_TYPE_RAR3                12500
-#define KERN_TYPE_CF10                12600
-#define KERN_TYPE_MYWALLET            12700
-#define KERN_TYPE_MS_DRSR             12800
-#define KERN_TYPE_ANDROIDFDE_SAMSUNG  12900
-#define KERN_TYPE_RAR5                13000
-#define KERN_TYPE_KRB5TGS             13100
-#define KERN_TYPE_AXCRYPT             13200
-#define KERN_TYPE_SHA1_AXCRYPT        13300
-#define KERN_TYPE_KEEPASS             13400
-#define KERN_TYPE_PSTOKEN             13500
-#define KERN_TYPE_ZIP2                13600
-#define KERN_TYPE_WIN8PHONE           13800
-#define KERN_TYPE_OPENCART            13900
+#include "consts/kernel_types.h"
+#include "consts/signatures.h"
 
    /**
     * signatures
     */
 
-#define SIGNATURE_PHPASS1         "$P$"
-#define SIGNATURE_PHPASS2         "$H$"
-#define SIGNATURE_MD5CRYPT        "$1$"
-#define SIGNATURE_BCRYPT1         "$2a$"
-#define SIGNATURE_BCRYPT2         "$2x$"
-#define SIGNATURE_BCRYPT3         "$2y$"
-#define SIGNATURE_SHA512CRYPT     "$6$"
-#define SIGNATURE_MD5APR1         "$apr1$"
-#define SIGNATURE_MSSQL           "0x0100"
-#define SIGNATURE_MSSQL2012       "0x0200"
-#define SIGNATURE_SHA1B64         "{SHA}"
-#define SIGNATURE_SSHA1B64_lower  "{ssha}"
-#define SIGNATURE_SSHA1B64_upper  "{SSHA}"
-#define SIGNATURE_EPISERVER       "$episerver$*0*"
-#define SIGNATURE_EPISERVER4      "$episerver$*1*"
-#define SIGNATURE_PSAFE3          "PWS3"
-#define SIGNATURE_TRUECRYPT       "TRUE"
-#define SIGNATURE_MD5AIX          "{smd5}"
-#define SIGNATURE_SHA1AIX         "{ssha1}"
-#define SIGNATURE_SHA256AIX       "{ssha256}"
-#define SIGNATURE_SHA512AIX       "{ssha512}"
-#define SIGNATURE_SHA256CRYPT     "$5$"
-#define SIGNATURE_SHA512OSX       "$ml$"
-#define SIGNATURE_SHA512GRUB      "grub.pbkdf2.sha512."
-#define SIGNATURE_SHA512B64S      "{SSHA512}"
-#define SIGNATURE_KRB5PA          "$krb5pa$23"
-#define SIGNATURE_DRUPAL7         "$S$"
-#define SIGNATURE_SYBASEASE       "0xc007"
-#define SIGNATURE_NETSCALER       "1"
-#define SIGNATURE_DCC2            "$DCC2$"
-#define SIGNATURE_RACF            "$racf$"
-#define SIGNATURE_PHPS            "$PHPS$"
-#define SIGNATURE_MEDIAWIKI_B     "$B$"
-#define SIGNATURE_ANDROIDFDE      "$fde$"
-#define SIGNATURE_SCRYPT          "SCRYPT"
-#define SIGNATURE_CISCO8          "$8$"
-#define SIGNATURE_CISCO9          "$9$"
-#define SIGNATURE_OFFICE2007      "$office$"
-#define SIGNATURE_OFFICE2010      "$office$"
-#define SIGNATURE_OFFICE2013      "$office$"
-#define SIGNATURE_OLDOFFICE0      "$oldoffice$0"
-#define SIGNATURE_OLDOFFICE1      "$oldoffice$1"
-#define SIGNATURE_OLDOFFICE3      "$oldoffice$3"
-#define SIGNATURE_OLDOFFICE4      "$oldoffice$4"
-#define SIGNATURE_DJANGOSHA1      "sha1$"
-#define SIGNATURE_DJANGOPBKDF2    "pbkdf2_sha256$"
-#define SIGNATURE_CRAM_MD5        "$cram_md5$"
-#define SIGNATURE_SAPH_SHA1       "{x-issha, "
-#define SIGNATURE_PDF             "$pdf$"
-#define SIGNATURE_PBKDF2_SHA256   "sha256:"
-#define SIGNATURE_POSTGRESQL_AUTH "$postgres$"
-#define SIGNATURE_MYSQL_AUTH      "$mysqlna$"
-#define SIGNATURE_BITCOIN_WALLET  "$bitcoin$"
-#define SIGNATURE_SIP_AUTH        "$sip$*"
-#define SIGNATURE_SEVEN_ZIP       "$7z$"
-#define SIGNATURE_PBKDF2_MD5      "md5:"
-#define SIGNATURE_PBKDF2_SHA1     "sha1:"
-#define SIGNATURE_PBKDF2_SHA512   "sha512:"
-#define SIGNATURE_ECRYPTFS        "$ecryptfs$"
-#define SIGNATURE_BSDICRYPT       "_"
-#define SIGNATURE_RAR3            "$RAR3$"
-#define SIGNATURE_MYWALLET        "$blockchain$"
-#define SIGNATURE_MS_DRSR         "v1;PPH1_MD4"
-#define SIGNATURE_RAR5            "$rar5$"
-#define SIGNATURE_KRB5TGS         "$krb5tgs$23"
-#define SIGNATURE_AXCRYPT         "$axcrypt$*1"
-#define SIGNATURE_AXCRYPT_SHA1    "$axcrypt_sha1"
-#define SIGNATURE_KEEPASS         "$keepass$"
-#define SIGNATURE_ZIP2_START      "$zip2$"
-#define SIGNATURE_ZIP2_STOP       "$/zip2$"
-
-    /**
-     * Default iteration numbers
-     */
 
 #define ROUNDS_PHPASS             (1 << 11) // $P$B
 #define ROUNDS_DCC2               10240
@@ -1144,9 +917,9 @@ extern hc_thread_mutex_t mux_display;
 #define ROUNDS_ZIP2               1000
 #define ROUNDS_STDOUT             0
 
-     /**
-      * salt types
-      */
+    /**
+     * salt types
+     */
 
 #define SALT_TYPE_NONE        1
 #define SALT_TYPE_EMBEDDED    2
@@ -1154,9 +927,9 @@ extern hc_thread_mutex_t mux_display;
 #define SALT_TYPE_EXTERN      4
 #define SALT_TYPE_VIRTUAL     5
 
-      /**
-       * optimizer options
-       */
+     /**
+      * optimizer options
+      */
 
 #define OPTI_TYPE_ZERO_BYTE         (1 <<  1)
 #define OPTI_TYPE_PRECOMPUTE_INIT   (1 <<  2)
@@ -1198,9 +971,9 @@ extern hc_thread_mutex_t mux_display;
 #define OPTI_STR_USES_BITS_32       "Uses-32-Bit"
 #define OPTI_STR_USES_BITS_64       "Uses-64-Bit"
 
-       /**
-        * hash options
-        */
+      /**
+       * hash options
+       */
 
 #define OPTS_TYPE_PT_UNICODE        (1 <<  0)
 #define OPTS_TYPE_PT_UPPER          (1 <<  1)
@@ -1230,9 +1003,9 @@ extern hc_thread_mutex_t mux_display;
 #define OPTS_TYPE_HOOK12            (1 << 25)
 #define OPTS_TYPE_HOOK23            (1 << 26)
 
-        /**
-         * digests
-         */
+       /**
+        * digests
+        */
 
 #define DGST_SIZE_4_2               (2  * sizeof (uint))   // 8
 #define DGST_SIZE_4_4               (4  * sizeof (uint))   // 16
@@ -1246,9 +1019,9 @@ extern hc_thread_mutex_t mux_display;
 #define DGST_SIZE_8_16              (16 * sizeof (u64))    // 128 !!!
 #define DGST_SIZE_8_25              (25 * sizeof (u64))    // 200
 
-         /**
-          * parser
-          */
+        /**
+         * parser
+         */
 
 #define PARSER_OK                   0
 #define PARSER_COMMENT             -1
@@ -1290,9 +1063,9 @@ extern hc_thread_mutex_t mux_display;
 #define PA_017 "Invalid SIP directive, only MD5 is supported"
 #define PA_255 "Unknown error"
 
-          /**
-           * status
-           */
+         /**
+          * status
+          */
 
 #define STATUS_STARTING           0
 #define STATUS_INIT               1
@@ -1318,9 +1091,9 @@ extern hc_thread_mutex_t mux_display;
 #define ST_0009 "Running (stop at checkpoint)"
 #define ST_0010 "Autotuning"
 
-           /**
-            * kernel types
-            */
+          /**
+           * kernel types
+           */
 
 #define KERN_RUN_MP          101
 #define KERN_RUN_MP_L        102
@@ -1332,9 +1105,9 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_RUN_23          2500
 #define KERN_RUN_3           3000
 
-            /*
-             * functions
-             */
+           /*
+            * functions
+            */
 
 u32 is_power_of_2(u32 v);
 
