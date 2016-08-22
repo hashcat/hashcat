@@ -877,53 +877,11 @@ extern hc_thread_mutex_t mux_display;
 #define DGST_SIZE_8_16              (16 * sizeof (u64))    // 128 !!!
 #define DGST_SIZE_8_25              (25 * sizeof (u64))    // 200
 
+#include "consts/parser.h"
+
     /**
-     * parser
+     * status
      */
-
-#define PARSER_OK                   0
-#define PARSER_COMMENT             -1
-#define PARSER_GLOBAL_ZERO         -2
-#define PARSER_GLOBAL_LENGTH       -3
-#define PARSER_HASH_LENGTH         -4
-#define PARSER_HASH_VALUE          -5
-#define PARSER_SALT_LENGTH         -6
-#define PARSER_SALT_VALUE          -7
-#define PARSER_SALT_ITERATION      -8
-#define PARSER_SEPARATOR_UNMATCHED -9
-#define PARSER_SIGNATURE_UNMATCHED -10
-#define PARSER_HCCAP_FILE_SIZE     -11
-#define PARSER_HCCAP_EAPOL_SIZE    -12
-#define PARSER_PSAFE2_FILE_SIZE    -13
-#define PARSER_PSAFE3_FILE_SIZE    -14
-#define PARSER_TC_FILE_SIZE        -15
-#define PARSER_VC_FILE_SIZE        -16
-#define PARSER_SIP_AUTH_DIRECTIVE  -17
-#define PARSER_UNKNOWN_ERROR       -255
-
-#define PA_000 "OK"
-#define PA_001 "Ignored due to comment"
-#define PA_002 "Ignored due to zero length"
-#define PA_003 "Line-length exception"
-#define PA_004 "Hash-length exception"
-#define PA_005 "Hash-value exception"
-#define PA_006 "Salt-length exception"
-#define PA_007 "Salt-value exception"
-#define PA_008 "Salt-iteration count exception"
-#define PA_009 "Separator unmatched"
-#define PA_010 "Signature unmatched"
-#define PA_011 "Invalid hccap filesize"
-#define PA_012 "Invalid eapol size"
-#define PA_013 "Invalid psafe2 filesize"
-#define PA_014 "Invalid psafe3 filesize"
-#define PA_015 "Invalid truecrypt filesize"
-#define PA_016 "Invalid veracrypt filesize"
-#define PA_017 "Invalid SIP directive, only MD5 is supported"
-#define PA_255 "Unknown error"
-
-     /**
-      * status
-      */
 
 #define STATUS_STARTING           0
 #define STATUS_INIT               1
@@ -949,9 +907,9 @@ extern hc_thread_mutex_t mux_display;
 #define ST_0009 "Running (stop at checkpoint)"
 #define ST_0010 "Autotuning"
 
-      /**
-       * kernel types
-       */
+     /**
+      * kernel types
+      */
 
 #define KERN_RUN_MP          101
 #define KERN_RUN_MP_L        102
@@ -963,9 +921,9 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_RUN_23          2500
 #define KERN_RUN_3           3000
 
-       /*
-        * functions
-        */
+      /*
+       * functions
+       */
 
 u32 is_power_of_2(u32 v);
 
