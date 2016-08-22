@@ -856,70 +856,11 @@ extern hc_thread_mutex_t mux_display;
 
 #include "consts/kernel_types.h"
 #include "consts/signatures.h"
+#include "consts/rounds_count.h"
 
    /**
     * signatures
     */
-
-
-#define ROUNDS_PHPASS             (1 << 11) // $P$B
-#define ROUNDS_DCC2               10240
-#define ROUNDS_WPA2               4096
-#define ROUNDS_BCRYPT             (1 << 5)
-#define ROUNDS_PSAFE3             2048
-#define ROUNDS_ANDROIDPIN         1024
-#define ROUNDS_TRUECRYPT_1K       1000
-#define ROUNDS_TRUECRYPT_2K       2000
-#define ROUNDS_VERACRYPT_200000   200000
-#define ROUNDS_VERACRYPT_500000   500000
-#define ROUNDS_VERACRYPT_327661   327661
-#define ROUNDS_VERACRYPT_655331   655331
-#define ROUNDS_SHA1AIX            (1 << 6)
-#define ROUNDS_SHA256AIX          (1 << 6)
-#define ROUNDS_SHA512AIX          (1 << 6)
-#define ROUNDS_MD5CRYPT           1000
-#define ROUNDS_SHA256CRYPT        5000
-#define ROUNDS_SHA512CRYPT        5000
-#define ROUNDS_GRUB               10000
-#define ROUNDS_SHA512OSX          35000
-#define ROUNDS_AGILEKEY           1000
-#define ROUNDS_LASTPASS           500
-#define ROUNDS_DRUPAL7            (1 << 14) // $S$C
-#define ROUNDS_CLOUDKEY           40000
-#define ROUNDS_NSEC3              1
-#define ROUNDS_ANDROIDFDE         2000
-#define ROUNDS_PSAFE2             1000
-#define ROUNDS_LOTUS8             5000
-#define ROUNDS_CISCO8             20000
-#define ROUNDS_OFFICE2007         50000
-#define ROUNDS_OFFICE2010         100000
-#define ROUNDS_OFFICE2013         100000
-#define ROUNDS_DJANGOPBKDF2       20000
-#define ROUNDS_SAPH_SHA1          1024
-#define ROUNDS_PDF14              (50 + 20)
-#define ROUNDS_PDF17L8            64
-#define ROUNDS_PBKDF2_SHA256      1000
-#define ROUNDS_BITCOIN_WALLET     200000
-#define ROUNDS_SEVEN_ZIP          (1 << 19)
-#define ROUNDS_PBKDF2_MD5         1000
-#define ROUNDS_PBKDF2_SHA1        1000
-#define ROUNDS_PBKDF2_SHA512      1000
-#define ROUNDS_ECRYPTFS           65536
-#define ROUNDS_ORACLET            4096
-#define ROUNDS_BSDICRYPT          2900
-#define ROUNDS_RAR3               262144
-#define ROUNDS_MYWALLET           10
-#define ROUNDS_MS_DRSR            100
-#define ROUNDS_ANDROIDFDE_SAMSUNG 4096
-#define ROUNDS_RAR5               (1 << 15)
-#define ROUNDS_AXCRYPT            10000
-#define ROUNDS_KEEPASS            6000
-#define ROUNDS_ZIP2               1000
-#define ROUNDS_STDOUT             0
-
-    /**
-     * salt types
-     */
 
 #define SALT_TYPE_NONE        1
 #define SALT_TYPE_EMBEDDED    2
@@ -927,9 +868,9 @@ extern hc_thread_mutex_t mux_display;
 #define SALT_TYPE_EXTERN      4
 #define SALT_TYPE_VIRTUAL     5
 
-     /**
-      * optimizer options
-      */
+    /**
+     * optimizer options
+     */
 
 #define OPTI_TYPE_ZERO_BYTE         (1 <<  1)
 #define OPTI_TYPE_PRECOMPUTE_INIT   (1 <<  2)
@@ -971,9 +912,9 @@ extern hc_thread_mutex_t mux_display;
 #define OPTI_STR_USES_BITS_32       "Uses-32-Bit"
 #define OPTI_STR_USES_BITS_64       "Uses-64-Bit"
 
-      /**
-       * hash options
-       */
+     /**
+      * hash options
+      */
 
 #define OPTS_TYPE_PT_UNICODE        (1 <<  0)
 #define OPTS_TYPE_PT_UPPER          (1 <<  1)
@@ -1003,9 +944,9 @@ extern hc_thread_mutex_t mux_display;
 #define OPTS_TYPE_HOOK12            (1 << 25)
 #define OPTS_TYPE_HOOK23            (1 << 26)
 
-       /**
-        * digests
-        */
+      /**
+       * digests
+       */
 
 #define DGST_SIZE_4_2               (2  * sizeof (uint))   // 8
 #define DGST_SIZE_4_4               (4  * sizeof (uint))   // 16
@@ -1019,9 +960,9 @@ extern hc_thread_mutex_t mux_display;
 #define DGST_SIZE_8_16              (16 * sizeof (u64))    // 128 !!!
 #define DGST_SIZE_8_25              (25 * sizeof (u64))    // 200
 
-        /**
-         * parser
-         */
+       /**
+        * parser
+        */
 
 #define PARSER_OK                   0
 #define PARSER_COMMENT             -1
@@ -1063,9 +1004,9 @@ extern hc_thread_mutex_t mux_display;
 #define PA_017 "Invalid SIP directive, only MD5 is supported"
 #define PA_255 "Unknown error"
 
-         /**
-          * status
-          */
+        /**
+         * status
+         */
 
 #define STATUS_STARTING           0
 #define STATUS_INIT               1
@@ -1091,9 +1032,9 @@ extern hc_thread_mutex_t mux_display;
 #define ST_0009 "Running (stop at checkpoint)"
 #define ST_0010 "Autotuning"
 
-          /**
-           * kernel types
-           */
+         /**
+          * kernel types
+          */
 
 #define KERN_RUN_MP          101
 #define KERN_RUN_MP_L        102
@@ -1105,9 +1046,9 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_RUN_23          2500
 #define KERN_RUN_3           3000
 
-           /*
-            * functions
-            */
+          /*
+           * functions
+           */
 
 u32 is_power_of_2(u32 v);
 
