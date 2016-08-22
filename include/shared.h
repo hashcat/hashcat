@@ -76,25 +76,14 @@
     /**
      * valid project specific global stuff
      */
-
-extern const uint  VERSION_BIN;
-extern const uint  RESTORE_MIN;
-
-extern const char *USAGE_MINI[];
-extern const char *USAGE_BIG[];
-
-extern const char *PROMPT;
-
-extern int SUPPRESS_OUTPUT;
-
-extern hc_thread_mutex_t mux_display;
+#include "hc_global.h"
 
 #include "consts/hash_names.h"
 #include "consts/outfile_formats.h"
 
-/**
- * algo specific
- */
+     /**
+      * algo specific
+      */
 
 #include "consts/display_lengths.h"
 #include "consts/hash_types.h"
@@ -108,9 +97,9 @@ extern hc_thread_mutex_t mux_display;
 #include "consts/parser.h"
 #include "consts/devices_statuses.h"
 
- /**
-  * kernel types
-  */
+      /**
+       * kernel types
+       */
 
 #define KERN_RUN_MP          101
 #define KERN_RUN_MP_L        102
@@ -122,9 +111,9 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_RUN_23          2500
 #define KERN_RUN_3           3000
 
-  /*
-   * functions
-   */
+       /*
+        * functions
+        */
 
 u8  hex_convert(const u8 c);
 u8  hex_to_u8(const u8 hex[2]);
