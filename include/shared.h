@@ -218,19 +218,11 @@ extern int SUPPRESS_OUTPUT;
 extern hc_thread_mutex_t mux_display;
 
 #include "consts/hash_names.h"
+#include "consts/outfile_formats.h"
 
- /**
-  * Outfile formats
-  */
-
-#define OUTFILE_FMT_HASH      (1 << 0)
-#define OUTFILE_FMT_PLAIN     (1 << 1)
-#define OUTFILE_FMT_HEXPLAIN  (1 << 2)
-#define OUTFILE_FMT_CRACKPOS  (1 << 3)
-
-  /**
-   * algo specific
-   */
+/**
+ * algo specific
+ */
 
 #define DISPLAY_LEN_MIN_0     32
 #define DISPLAY_LEN_MAX_0     32
@@ -653,9 +645,9 @@ extern hc_thread_mutex_t mux_display;
 #include "consts/optimizer_options.h"
 #include "consts/hash_options.h"
 
-   /**
-    * digests
-    */
+ /**
+  * digests
+  */
 
 #define DGST_SIZE_4_2               (2  * sizeof (uint))   // 8
 #define DGST_SIZE_4_4               (4  * sizeof (uint))   // 16
@@ -672,9 +664,9 @@ extern hc_thread_mutex_t mux_display;
 #include "consts/parser.h"
 #include "consts/devices_statuses.h"
 
-    /**
-     * kernel types
-     */
+  /**
+   * kernel types
+   */
 
 #define KERN_RUN_MP          101
 #define KERN_RUN_MP_L        102
@@ -686,9 +678,9 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_RUN_23          2500
 #define KERN_RUN_3           3000
 
-     /*
-      * functions
-      */
+   /*
+    * functions
+    */
 
 u32 is_power_of_2(u32 v);
 
