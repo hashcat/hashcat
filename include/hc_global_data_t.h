@@ -1,5 +1,21 @@
 #pragma once
-typedef struct
+#include "config.h"
+#include "common.h"
+#include "types.h"
+#include "shared.h"
+#include "consts/devices_statuses.h"
+#include "consts/hash_options.h"
+#include "consts/optimizer_options.h"
+#include "consts/hash_types.h"
+#include "consts/salt_types.h"
+#include "consts/kernel_types.h"
+#include "consts/hashcat_modes.h"
+#include "hc_device_param_t.h"
+#include "hc_concurrency.h"
+#include "ext_OpenCL.h"
+#include "hwmon.h"
+
+typedef struct hc_global_data_t_
 {
   /**
   * threads
