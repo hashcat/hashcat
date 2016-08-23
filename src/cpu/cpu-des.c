@@ -1,7 +1,15 @@
+#include <cpu/cpu-des.h>
+#include <bit_ops.h>
 /**
  * Author......: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
+
+
+u32 BOX(u32 v, u8 i, const u32 S[8][64]);
+inline u32 BOX(u32 v, u8 i, const u32 S[8][64]) {
+  return S[i][v];
+}
 
 void _des_keysetup(u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_skb[8][64])
 {
@@ -10,12 +18,12 @@ void _des_keysetup(u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_skb[8][64])
 
   u32 tt;
 
-  PERM_OP(d, c, tt, 4, 0x0f0f0f0f);
-  HPERM_OP(c, tt, 2, 0xcccc0000);
-  HPERM_OP(d, tt, 2, 0xcccc0000);
-  PERM_OP(d, c, tt, 1, 0x55555555);
-  PERM_OP(c, d, tt, 8, 0x00ff00ff);
-  PERM_OP(d, c, tt, 1, 0x55555555);
+  PERM_OP(&d, &c, &tt, 4, 0x0f0f0f0f);
+  HPERM_OP(&c, &tt, 2, 0xcccc0000);
+  HPERM_OP(&d, &tt, 2, 0xcccc0000);
+  PERM_OP(&d, &c, &tt, 1, 0x55555555);
+  PERM_OP(&c, &d, &tt, 8, 0x00ff00ff);
+  PERM_OP(&d, &c, &tt, 1, 0x55555555);
 
   d = ((d & 0x000000ff) << 16)
     | ((d & 0x0000ff00) << 0)
@@ -37,8 +45,6 @@ void _des_keysetup(u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_skb[8][64])
     c = c & 0x0fffffff;
     d = d & 0x0fffffff;
 
-#define BOX(v,i,S) (S)[(i)][(v)]
-
     u32 s = BOX(((c >> 0) & 0x3f), 0, s_skb)
       | BOX((((c >> 6) & 0x03)
         | ((c >> 7) & 0x3c)), 1, s_skb)
@@ -48,12 +54,14 @@ void _des_keysetup(u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_skb[8][64])
         | ((c >> 21) & 0x06)
         | ((c >> 22) & 0x38)), 3, s_skb);
 
-    u32 t = BOX(((d >> 0) & 0x3f), 4, s_skb)
-      | BOX((((d >> 7) & 0x03)
-        | ((d >> 8) & 0x3c)), 5, s_skb)
-      | BOX((((d >> 15) & 0x3f)), 6, s_skb)
-      | BOX((((d >> 21) & 0x0f)
-        | ((d >> 22) & 0x30)), 7, s_skb);
+    u32 s = BOX(((c >> 0) & 0x3f), 0, s_skb)
+      | BOX((((c >> 6) & 0x03)
+        | ((c >> 7) & 0x3c)), 1, s_skb)
+      | BOX((((c >> 13) & 0x0f)
+        | ((c >> 14) & 0x30)), 2, s_skb)
+      | BOX((((c >> 20) & 0x01)
+        | ((c >> 21) & 0x06)
+        | ((c >> 22) & 0x38)), 3, s_skb);
 
     Kc[i] = ((t << 16) | (s & 0x0000ffff));
     Kd[i] = ((s >> 16) | (t & 0xffff0000));
@@ -70,7 +78,7 @@ void _des_encrypt(u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_SPtrans[8][64
 
   u32 tt;
 
-  IP(r, l, tt);
+  IP(&r, &l, &tt);
 
   r = rotl32(r, 3u);
   l = rotl32(l, 3u);
@@ -99,7 +107,7 @@ void _des_encrypt(u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_SPtrans[8][64
   l = rotl32(l, 29u);
   r = rotl32(r, 29u);
 
-  FP(r, l, tt);
+  FP(&r, &l, &tt);
 
   data[0] = l;
   data[1] = r;
