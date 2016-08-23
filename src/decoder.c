@@ -1,3 +1,11 @@
+//#include <shared.h>
+#include <common.h>
+#include <converter.h>
+#include <cpu/cpu-aes.h>
+#include <consts/display_lengths.h>
+#include <decoder.h>
+#include <bit_ops.h>
+
 /**
 * decoder
 */
@@ -44,7 +52,7 @@ static void AES128_decrypt_cbc(const u32 key[4], const u32 iv[4], const u32 in[1
   }
 }
 
-static void juniper_decrypt_hash(char *in, char *out)
+void juniper_decrypt_hash(char *in, char *out)
 {
   // base64 decode
 
