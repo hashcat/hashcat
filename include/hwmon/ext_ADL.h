@@ -14,25 +14,30 @@
 #if defined(HAVE_HWMON)
 
 #include <common.h>
+//#include <shared.h>
+
+
 
  /**
   * Declarations from adl_sdk.h and subheaders
   */
 
-#define ADL_OK                                  0
-#define ADL_ERR                                -1
-#define ADL_ERR_NOT_SUPPORTED                  -8
+typedef enum ADL_ {
+  ADL_OK = 0,
+  ADL_ERR = -1,
+  ADL_ERR_NOT_SUPPORTED = -8,
 
-#define ADL_MAX_PATH                            256
+  ADL_MAX_PATH = 256,
 
-#define ADL_DL_FANCTRL_SUPPORTS_PERCENT_READ    1
-#define ADL_DL_FANCTRL_SUPPORTS_PERCENT_WRITE   2
-#define ADL_DL_FANCTRL_SPEED_TYPE_PERCENT       1
-#define ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED  1
+  ADL_DL_FANCTRL_SUPPORTS_PERCENT_READ = 1,
+  ADL_DL_FANCTRL_SUPPORTS_PERCENT_WRITE = 2,
+  ADL_DL_FANCTRL_SPEED_TYPE_PERCENT = 1,
+  ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED = 1,
 
-#define ADL_OD6_SETSTATE_PERFORMANCE            0x00000001
-#define ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE 0x00000004
-#define ADL_OD6_FANSPEED_TYPE_PERCENT           0x00000001
+  ADL_OD6_SETSTATE_PERFORMANCE = 0x00000001,
+  ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE = 0x00000004,
+  ADL_OD6_FANSPEED_TYPE_PERCENT = 0x00000001
+} ADL;
 
 typedef struct AdapterInfo
 {
@@ -310,7 +315,7 @@ typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET) (int, int *
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET) (int, ADLOD6ParameterRange *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_FANSPEED_RESET) (int);
 
-typedef struct
+typedef struct hm_adl_lib_t_
 {
   ADL_LIB lib;
 
@@ -351,7 +356,7 @@ typedef struct
 
 } hm_adl_lib_t;
 
-#define ADL_PTR hm_adl_lib_t
+typedef hm_adl_lib_t ADL_PTR;
 
 int adl_init(ADL_PTR *lib);
 void adl_close(ADL_PTR *lib);
