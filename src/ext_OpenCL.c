@@ -6,6 +6,9 @@
  */
 
 #include <ext_OpenCL.h>
+#include <dynload.h>
+#include <mem_alloc.h>
+#include <logging.h>
 
 const char *val2cstr_cl(cl_int CL_err)
 {
