@@ -1,4 +1,3 @@
-
 #include <common.h>
 #include <shared.h>
 #include <bit_ops.h>
@@ -422,30 +421,30 @@ void status_display()
     {
       if ((data.hash_mode >= 6200) && (data.hash_mode <= 6299))
       {
-        log_info("Hash.Target....: File (%s)", data.hashfile);
-      }
-      else if ((data.hash_mode >= 13700) && (data.hash_mode <= 13799))
-      {
-        log_info("Hash.Target....: File (%s)", data.hashfile);
-      }
-      else
-      {
-        char out_buf[HCBUFSIZ] = { 0 };
-
-        ascii_digest(out_buf, 0, 0);
-
-        // limit length
-        if (strlen(out_buf) > 40)
-        {
-          out_buf[41] = '.';
-          out_buf[42] = '.';
-          out_buf[43] = '.';
-          out_buf[44] = 0;
-        }
-
-        log_info("Hash.Target....: %s", out_buf);
-      }
+      log_info("Hash.Target....: File (%s)", data.hashfile);
     }
+    else if ((data.hash_mode >= 13700) && (data.hash_mode <= 13799))
+    {
+      log_info("Hash.Target....: File (%s)", data.hashfile);
+    }
+    else
+    {
+      char out_buf[HCBUFSIZ] = { 0 };
+
+      ascii_digest(out_buf, 0, 0);
+
+      // limit length
+      if (strlen(out_buf) > 40)
+      {
+        out_buf[41] = '.';
+        out_buf[42] = '.';
+        out_buf[43] = '.';
+        out_buf[44] = 0;
+      }
+
+      log_info("Hash.Target....: %s", out_buf);
+    }
+  }
     break;
     }
   }
@@ -653,7 +652,7 @@ void status_display()
     case ATTACK_KERN_BF:
       progress_skip *= data.bfs_cnt;
       break;
-    }
+  }
   }
 
   if (data.limit)
@@ -670,7 +669,7 @@ void status_display()
     case ATTACK_KERN_BF:
       progress_end *= data.bfs_cnt;
       break;
-    }
+  }
   }
 
   u64 progress_cur_relative_skip = progress_cur - progress_skip;
