@@ -1,4 +1,11 @@
 #pragma once
+#include "config.h"
+#include "common.h"
+#include "shared.h"
+//#include "types.h"
+#include "ext_OpenCL.h"
+#include "hc_concurrency.h"
+
 typedef struct hc_device_param__
 {
   cl_device_id      device;
