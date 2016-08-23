@@ -174,6 +174,4 @@ typedef struct hc_device_param__
 
   u32     kernel_params_amp_buf32[PARAMCNT];
   u32     kernel_params_memset_buf32[PARAMCNT];
-};
-
-typedef struct __hc_device_param hc_device_param_t;
+} hc_device_param_t;
