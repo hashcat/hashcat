@@ -64,7 +64,7 @@ typedef cl_int(CL_API_CALL *OCL_CLRELEASEPROGRAM)          (cl_program);
 typedef cl_int(CL_API_CALL *OCL_CLSETKERNELARG)            (cl_kernel, cl_uint, size_t, const void *);
 typedef cl_int(CL_API_CALL *OCL_CLWAITFOREVENTS)           (cl_uint, const cl_event *);
 
-typedef struct
+typedef struct hc_opencl_lib_t_
 {
   OCL_LIB lib;
 
@@ -103,7 +103,7 @@ typedef struct
 
 } hc_opencl_lib_t;
 
-#define OCL_PTR hc_opencl_lib_t
+typedef hc_opencl_lib_t OCL_PTR;
 
 const char *val2cstr_cl(cl_int CL_err);
 
