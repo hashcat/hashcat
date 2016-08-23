@@ -2,6 +2,8 @@
 /**
 * libraries stuff
 */
+#include "config.h"
+#include "common.h"
 #ifdef _WIN
 inline HMODULE hc_dlopen(LPCSTR lpLibFileName) {
   return LoadLibraryA(lpLibFileName);
@@ -13,6 +15,7 @@ inline FARPROC hc_dlsym(HMODULE hModule, LPCSTR lpProcName) {
   return GetProcAddress(hModule, lpProcName);
 }
 #else
+#include <dlfcn.h>
 inline void * hc_dlopen(const char * fileName, int flag) {
   return dlopen(fileName, flag);
 }
