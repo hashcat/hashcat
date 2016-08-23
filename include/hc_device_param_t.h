@@ -1,5 +1,5 @@
 #pragma once
-struct __hc_device_param
+typedef struct hc_device_param__
 {
   cl_device_id      device;
   cl_device_type    device_type;
