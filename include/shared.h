@@ -1148,35 +1148,35 @@ extern hc_thread_mutex_t mux_display;
  * salt types
  */
 
-#define SALT_TYPE_NONE        1
-#define SALT_TYPE_EMBEDDED    2
-#define SALT_TYPE_INTERN      3
-#define SALT_TYPE_EXTERN      4
-#define SALT_TYPE_VIRTUAL     5
+#define SALT_TYPE_NONE        1u
+#define SALT_TYPE_EMBEDDED    2u
+#define SALT_TYPE_INTERN      3u
+#define SALT_TYPE_EXTERN      4u
+#define SALT_TYPE_VIRTUAL     5u
 
 /**
  * optimizer options
  */
 
-#define OPTI_TYPE_ZERO_BYTE         (1 <<  1)
-#define OPTI_TYPE_PRECOMPUTE_INIT   (1 <<  2)
-#define OPTI_TYPE_PRECOMPUTE_MERKLE (1 <<  3)
-#define OPTI_TYPE_PRECOMPUTE_PERMUT (1 <<  4)
-#define OPTI_TYPE_MEET_IN_MIDDLE    (1 <<  5)
-#define OPTI_TYPE_EARLY_SKIP        (1 <<  6)
-#define OPTI_TYPE_NOT_SALTED        (1 <<  7)
-#define OPTI_TYPE_NOT_ITERATED      (1 <<  8)
-#define OPTI_TYPE_PREPENDED_SALT    (1 <<  9)
-#define OPTI_TYPE_APPENDED_SALT     (1 << 10)
-#define OPTI_TYPE_SINGLE_HASH       (1 << 11)
-#define OPTI_TYPE_SINGLE_SALT       (1 << 12)
-#define OPTI_TYPE_BRUTE_FORCE       (1 << 13)
-#define OPTI_TYPE_RAW_HASH          (1 << 14)
-#define OPTI_TYPE_SLOW_HASH_SIMD    (1 << 15)
-#define OPTI_TYPE_USES_BITS_8       (1 << 16)
-#define OPTI_TYPE_USES_BITS_16      (1 << 17)
-#define OPTI_TYPE_USES_BITS_32      (1 << 18)
-#define OPTI_TYPE_USES_BITS_64      (1 << 19)
+#define OPTI_TYPE_ZERO_BYTE         (1u <<  1)
+#define OPTI_TYPE_PRECOMPUTE_INIT   (1u <<  2)
+#define OPTI_TYPE_PRECOMPUTE_MERKLE (1u <<  3)
+#define OPTI_TYPE_PRECOMPUTE_PERMUT (1u <<  4)
+#define OPTI_TYPE_MEET_IN_MIDDLE    (1u <<  5)
+#define OPTI_TYPE_EARLY_SKIP        (1u <<  6)
+#define OPTI_TYPE_NOT_SALTED        (1u <<  7)
+#define OPTI_TYPE_NOT_ITERATED      (1u <<  8)
+#define OPTI_TYPE_PREPENDED_SALT    (1u <<  9)
+#define OPTI_TYPE_APPENDED_SALT     (1u << 10)
+#define OPTI_TYPE_SINGLE_HASH       (1u << 11)
+#define OPTI_TYPE_SINGLE_SALT       (1u << 12)
+#define OPTI_TYPE_BRUTE_FORCE       (1u << 13)
+#define OPTI_TYPE_RAW_HASH          (1u << 14)
+#define OPTI_TYPE_SLOW_HASH_SIMD    (1u << 15)
+#define OPTI_TYPE_USES_BITS_8       (1u << 16)
+#define OPTI_TYPE_USES_BITS_16      (1u << 17)
+#define OPTI_TYPE_USES_BITS_32      (1u << 18)
+#define OPTI_TYPE_USES_BITS_64      (1u << 19)
 
 #define OPTI_STR_ZERO_BYTE          "Zero-Byte"
 #define OPTI_STR_PRECOMPUTE_INIT    "Precompute-Init"
@@ -1202,33 +1202,33 @@ extern hc_thread_mutex_t mux_display;
  * hash options
  */
 
-#define OPTS_TYPE_PT_UNICODE        (1 <<  0)
-#define OPTS_TYPE_PT_UPPER          (1 <<  1)
-#define OPTS_TYPE_PT_LOWER          (1 <<  2)
-#define OPTS_TYPE_PT_ADD01          (1 <<  3)
-#define OPTS_TYPE_PT_ADD02          (1 <<  4)
-#define OPTS_TYPE_PT_ADD80          (1 <<  5)
-#define OPTS_TYPE_PT_ADDBITS14      (1 <<  6)
-#define OPTS_TYPE_PT_ADDBITS15      (1 <<  7)
-#define OPTS_TYPE_PT_GENERATE_LE    (1 <<  8)
-#define OPTS_TYPE_PT_GENERATE_BE    (1 <<  9)
-#define OPTS_TYPE_PT_NEVERCRACK     (1 << 10) // if we want all possible results
-#define OPTS_TYPE_PT_BITSLICE       (1 << 11)
-#define OPTS_TYPE_ST_UNICODE        (1 << 12)
-#define OPTS_TYPE_ST_UPPER          (1 << 13)
-#define OPTS_TYPE_ST_LOWER          (1 << 14)
-#define OPTS_TYPE_ST_ADD01          (1 << 15)
-#define OPTS_TYPE_ST_ADD02          (1 << 16)
-#define OPTS_TYPE_ST_ADD80          (1 << 17)
-#define OPTS_TYPE_ST_ADDBITS14      (1 << 18)
-#define OPTS_TYPE_ST_ADDBITS15      (1 << 19)
-#define OPTS_TYPE_ST_GENERATE_LE    (1 << 20)
-#define OPTS_TYPE_ST_GENERATE_BE    (1 << 21)
-#define OPTS_TYPE_ST_HEX            (1 << 22)
-#define OPTS_TYPE_ST_BASE64         (1 << 23)
-#define OPTS_TYPE_HASH_COPY         (1 << 24)
-#define OPTS_TYPE_HOOK12            (1 << 25)
-#define OPTS_TYPE_HOOK23            (1 << 26)
+#define OPTS_TYPE_PT_UNICODE        (1u <<  0)
+#define OPTS_TYPE_PT_UPPER          (1u <<  1)
+#define OPTS_TYPE_PT_LOWER          (1u <<  2)
+#define OPTS_TYPE_PT_ADD01          (1u <<  3)
+#define OPTS_TYPE_PT_ADD02          (1u <<  4)
+#define OPTS_TYPE_PT_ADD80          (1u <<  5)
+#define OPTS_TYPE_PT_ADDBITS14      (1u <<  6)
+#define OPTS_TYPE_PT_ADDBITS15      (1u <<  7)
+#define OPTS_TYPE_PT_GENERATE_LE    (1u <<  8)
+#define OPTS_TYPE_PT_GENERATE_BE    (1u <<  9)
+#define OPTS_TYPE_PT_NEVERCRACK     (1u << 10) // if we want all possible results
+#define OPTS_TYPE_PT_BITSLICE       (1u << 11)
+#define OPTS_TYPE_ST_UNICODE        (1u << 12)
+#define OPTS_TYPE_ST_UPPER          (1u << 13)
+#define OPTS_TYPE_ST_LOWER          (1u << 14)
+#define OPTS_TYPE_ST_ADD01          (1u << 15)
+#define OPTS_TYPE_ST_ADD02          (1u << 16)
+#define OPTS_TYPE_ST_ADD80          (1u << 17)
+#define OPTS_TYPE_ST_ADDBITS14      (1u << 18)
+#define OPTS_TYPE_ST_ADDBITS15      (1u << 19)
+#define OPTS_TYPE_ST_GENERATE_LE    (1u << 20)
+#define OPTS_TYPE_ST_GENERATE_BE    (1u << 21)
+#define OPTS_TYPE_ST_HEX            (1u << 22)
+#define OPTS_TYPE_ST_BASE64         (1u << 23)
+#define OPTS_TYPE_HASH_COPY         (1u << 24)
+#define OPTS_TYPE_HOOK12            (1u << 25)
+#define OPTS_TYPE_HOOK23            (1u << 26)
 
 /**
  * digests
