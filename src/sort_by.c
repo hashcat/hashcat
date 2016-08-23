@@ -1,4 +1,4 @@
-#pragma once
+#include <sort_by.h>
 #include <types.h>
 #include <hc_global_data_t.h>
 #include <hc_global.h>
