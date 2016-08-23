@@ -1,4 +1,8 @@
 #pragma once
+#include "config.h"
+#include "common.h"
+#include "hc_concurrency.h"
+#include "hc_global_data_t.h"
 
 /**
 * valid project specific global stuff
