@@ -5,7 +5,7 @@
 
 #ifndef TYPES_H
 #define TYPES_H
-
+//#include "shared.h"
 #ifdef _WIN
 #define EOL "\r\n"
 #else
@@ -842,8 +842,6 @@ typedef struct
 
 } bitmap_result_t;
 
-#define CPT_BUF 0x20000
-
 typedef struct
 {
   uint   cracked;
@@ -852,7 +850,7 @@ typedef struct
 } cpt_t;
 
 /*
-typedef struct
+typedef struct plain_t_
 {
   uint plain_buf[16];
   uint plain_len;

@@ -6,9 +6,6 @@
 extern const uint  VERSION_BIN;
 extern const uint  RESTORE_MIN;
 
-extern const char *USAGE_MINI[];
-extern const char *USAGE_BIG[];
-
 extern const char *PROMPT;
 
 extern int SUPPRESS_OUTPUT;
