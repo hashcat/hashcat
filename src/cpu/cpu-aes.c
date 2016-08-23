@@ -2,6 +2,8 @@
  * Author......: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
+#include <cpu/cpu-aes.h>
+#include <bit_ops.h>
 
 static const u32 te0[256] =
 {
