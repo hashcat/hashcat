@@ -1,8 +1,10 @@
 #pragma once
+#include "config.h"
+#include "common.h"
+
 /**
 * types
 */
-
 #ifdef _WIN
 typedef LARGE_INTEGER     hc_timer_t;
 typedef HANDLE            hc_thread_t;
