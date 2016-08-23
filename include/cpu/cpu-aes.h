@@ -6,6 +6,8 @@
 #ifndef AES_H
 #define AES_H
 
+#include <common.h>
+
  /* AES context.  */
 typedef struct aes_context
 {
