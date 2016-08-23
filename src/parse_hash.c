@@ -242,7 +242,7 @@ int lm_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint tt;
 
-  IP(digest[0], digest[1], tt);
+  IP(&digest[0], &digest[1], &tt);
 
   digest[0] = digest[0];
   digest[1] = digest[1];
@@ -1103,7 +1103,7 @@ int descrypt_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint tt;
 
-  IP(digest[0], digest[1], tt);
+  IP(&digest[0], &digest[1], &tt);
 
   digest[2] = 0;
   digest[3] = 0;
@@ -1606,15 +1606,15 @@ int netntlmv1_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   u32 tt;
 
-  IP(digest[0], digest[1], tt);
-  IP(digest[2], digest[3], tt);
+  IP(&digest[0], &digest[1], &tt);
+  IP(&digest[2], &digest[3], &tt);
 
   digest[0] = rotr32(digest[0], 29);
   digest[1] = rotr32(digest[1], 29);
   digest[2] = rotr32(digest[2], 29);
   digest[3] = rotr32(digest[3], 29);
 
-  IP(salt->salt_buf[0], salt->salt_buf[1], tt);
+  IP(&salt->salt_buf[0], &salt->salt_buf[1], &tt);
 
   salt->salt_buf[0] = rotl32(salt->salt_buf[0], 3);
   salt->salt_buf[1] = rotl32(salt->salt_buf[1], 3);
@@ -4638,7 +4638,7 @@ int rakp_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint saltbuf_len = hashbuf_pos - saltbuf_pos;
 
-  if (saltbuf_len < 64) return (PARSER_SALT_LENGTH);
+  if (saltbuf_len <  64) return (PARSER_SALT_LENGTH);
   if (saltbuf_len > 512) return (PARSER_SALT_LENGTH);
 
   if (saltbuf_len & 1) return (PARSER_SALT_LENGTH); // muss gerade sein wegen hex
@@ -4822,7 +4822,7 @@ int cloudkey_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   const uint databuf_len = input_len - hashbuf_len - 1 - saltbuf_len - 1 - iteration_len - 1;
 
-  if (databuf_len < 1) return (PARSER_SALT_LENGTH);
+  if (databuf_len <    1) return (PARSER_SALT_LENGTH);
   if (databuf_len > 2048) return (PARSER_SALT_LENGTH);
 
   databuf_pos++;
@@ -5030,19 +5030,19 @@ int wbb3_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
   return (PARSER_OK);
 }
 
-int opencart_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
+int opencart_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 {
   if ((input_len < DISPLAY_LEN_MIN_13900) || (input_len > DISPLAY_LEN_MAX_13900)) return (PARSER_GLOBAL_LENGTH);
 
-  u32 *digest = (u32 *)hash_buf->digest;
+  u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
-  digest[0] = hex_to_u32((const u8 *)&input_buf[0]);
-  digest[1] = hex_to_u32((const u8 *)&input_buf[8]);
-  digest[2] = hex_to_u32((const u8 *)&input_buf[16]);
-  digest[3] = hex_to_u32((const u8 *)&input_buf[24]);
-  digest[4] = hex_to_u32((const u8 *)&input_buf[32]);
+  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
 
   if (input_buf[40] != data.separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -5050,9 +5050,9 @@ int opencart_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *salt_buf = input_buf + 40 + 1;
 
-  char *salt_buf_ptr = (char *)salt->salt_buf;
+  char *salt_buf_ptr = (char *) salt->salt_buf;
 
-  salt_len = parse_and_store_salt(salt_buf_ptr, salt_buf, salt_len);
+  salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len);
 
   if ((salt_len != 9) || (salt_len == UINT_MAX)) return (PARSER_SALT_LENGTH);
 
@@ -5127,7 +5127,7 @@ int racf_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint tt;
 
-  IP(salt->salt_buf_pc[0], salt->salt_buf_pc[1], tt);
+  IP(&salt->salt_buf_pc[0], &salt->salt_buf_pc[1], &tt);
 
   salt->salt_buf_pc[0] = rotl32(salt->salt_buf_pc[0], 3u);
   salt->salt_buf_pc[1] = rotl32(salt->salt_buf_pc[1], 3u);
@@ -5138,7 +5138,7 @@ int racf_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
   digest[0] = byte_swap_32(digest[0]);
   digest[1] = byte_swap_32(digest[1]);
 
-  IP(digest[0], digest[1], tt);
+  IP(&digest[0], &digest[1], &tt);
 
   digest[0] = rotr32(digest[0], 29);
   digest[1] = rotr32(digest[1], 29);
@@ -7106,7 +7106,7 @@ int saph_sha1_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint salt_len = decoded_len - 20;
 
-  if (salt_len < 4) return (PARSER_SALT_LENGTH);
+  if (salt_len <  4) return (PARSER_SALT_LENGTH);
   if (salt_len > 16) return (PARSER_SALT_LENGTH);
 
   memcpy(&salt->salt_buf, tmp_buf + 20, salt_len);
@@ -8021,13 +8021,13 @@ int pdf17l8_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
   const uint u_len = atoi(u_len_pos);
   const uint o_len = atoi(o_len_pos);
 
-  if (V_len > 6) return (PARSER_SALT_LENGTH);
-  if (R_len > 6) return (PARSER_SALT_LENGTH);
-  if (P_len > 6) return (PARSER_SALT_LENGTH);
+  if (V_len      > 6) return (PARSER_SALT_LENGTH);
+  if (R_len      > 6) return (PARSER_SALT_LENGTH);
+  if (P_len      > 6) return (PARSER_SALT_LENGTH);
   if (id_len_len > 6) return (PARSER_SALT_LENGTH);
-  if (u_len_len > 6) return (PARSER_SALT_LENGTH);
-  if (o_len_len > 6) return (PARSER_SALT_LENGTH);
-  if (bits_len > 6) return (PARSER_SALT_LENGTH);
+  if (u_len_len  > 6) return (PARSER_SALT_LENGTH);
+  if (o_len_len  > 6) return (PARSER_SALT_LENGTH);
+  if (bits_len   > 6) return (PARSER_SALT_LENGTH);
   if (enc_md_len > 6) return (PARSER_SALT_LENGTH);
 
   if ((id_len * 2) != id_buf_len) return (PARSER_SALT_VALUE);
@@ -8086,7 +8086,7 @@ int pbkdf2_sha256_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   u32 iter = atoi(iter_pos);
 
-  if (iter < 1) return (PARSER_SALT_ITERATION);
+  if (iter <      1) return (PARSER_SALT_ITERATION);
   if (iter > 999999) return (PARSER_SALT_ITERATION);
 
   // first is *raw* salt
@@ -9248,7 +9248,7 @@ int pbkdf2_md5_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   u32 iter = atoi(iter_pos);
 
-  if (iter < 1) return (PARSER_SALT_ITERATION);
+  if (iter <      1) return (PARSER_SALT_ITERATION);
   if (iter > 999999) return (PARSER_SALT_ITERATION);
 
   // first is *raw* salt
@@ -9330,7 +9330,7 @@ int pbkdf2_sha1_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   u32 iter = atoi(iter_pos);
 
-  if (iter < 1) return (PARSER_SALT_ITERATION);
+  if (iter <      1) return (PARSER_SALT_ITERATION);
   if (iter > 999999) return (PARSER_SALT_ITERATION);
 
   // first is *raw* salt
@@ -9417,7 +9417,7 @@ int pbkdf2_sha512_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   u32 iter = atoi(iter_pos);
 
-  if (iter < 1) return (PARSER_SALT_ITERATION);
+  if (iter <      1) return (PARSER_SALT_ITERATION);
   if (iter > 999999) return (PARSER_SALT_ITERATION);
 
   // first is *raw* salt
@@ -9584,7 +9584,7 @@ int bsdicrypt_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint tt;
 
-  IP(digest[0], digest[1], tt);
+  IP(&digest[0], &digest[1], &tt);
 
   digest[0] = rotr32(digest[0], 31);
   digest[1] = rotr32(digest[1], 31);

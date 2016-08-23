@@ -43,18 +43,18 @@ void ascii_digest(char *out_buf, uint salt_pos, uint digest_pos)
     switch (hash_type)
     {
     case HASH_TYPE_DESCRYPT:
-      FP(digest_buf[1], digest_buf[0], tt);
+      FP(&digest_buf[1], &digest_buf[0], &tt);
       break;
 
     case HASH_TYPE_DESRACF:
       digest_buf[0] = rotl32(digest_buf[0], 29);
       digest_buf[1] = rotl32(digest_buf[1], 29);
 
-      FP(digest_buf[1], digest_buf[0], tt);
+      FP(&digest_buf[1], &digest_buf[0], &tt);
       break;
 
     case HASH_TYPE_LM:
-      FP(digest_buf[1], digest_buf[0], tt);
+      FP(&digest_buf[1], &digest_buf[0], &tt);
       break;
 
     case HASH_TYPE_NETNTLM:
@@ -63,15 +63,15 @@ void ascii_digest(char *out_buf, uint salt_pos, uint digest_pos)
       digest_buf[2] = rotl32(digest_buf[2], 29);
       digest_buf[3] = rotl32(digest_buf[3], 29);
 
-      FP(digest_buf[1], digest_buf[0], tt);
-      FP(digest_buf[3], digest_buf[2], tt);
+      FP(&digest_buf[1], &digest_buf[0], &tt);
+      FP(&digest_buf[3], &digest_buf[2], &tt);
       break;
 
     case HASH_TYPE_BSDICRYPT:
       digest_buf[0] = rotl32(digest_buf[0], 31);
       digest_buf[1] = rotl32(digest_buf[1], 31);
 
-      FP(digest_buf[1], digest_buf[0], tt);
+      FP(&digest_buf[1], &digest_buf[0], &tt);
       break;
     }
   }
