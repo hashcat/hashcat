@@ -4584,7 +4584,7 @@ void set_cpu_affinity (char *cpu_affinity)
       }
 
       #ifdef _WIN
-      aff_mask |= 1u << (cpu_id - 1);
+      aff_mask |= 1 << (cpu_id - 1);
       #elif _POSIX
       CPU_SET ((cpu_id - 1), &cpuset);
       #endif
@@ -5508,7 +5508,7 @@ uint setup_opencl_platforms_filter (char *opencl_platforms)
         exit (-1);
       }
 
-      opencl_platforms_filter |= 1u << (platform - 1);
+      opencl_platforms_filter |= 1 << (platform - 1);
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
@@ -5543,7 +5543,7 @@ u32 setup_devices_filter (char *opencl_devices)
         exit (-1);
       }
 
-      devices_filter |= 1u << (device_id - 1);
+      devices_filter |= 1 << (device_id - 1);
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
@@ -5578,7 +5578,7 @@ cl_device_type setup_device_types_filter (char *opencl_device_types)
         exit (-1);
       }
 
-      device_types_filter |= 1u << device_type;
+      device_types_filter |= 1 << device_type;
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
@@ -5993,6 +5993,8 @@ char *strhashtype (const uint hash_mode)
     case  1450: return ((char *) HT_01450); break;
     case  1460: return ((char *) HT_01460); break;
     case  1500: return ((char *) HT_01500); break;
+    case  1510: return ((char *) HT_01510); break;
+    case  1530: return ((char *) HT_01530); break;
     case  1600: return ((char *) HT_01600); break;
     case  1700: return ((char *) HT_01700); break;
     case  1710: return ((char *) HT_01710); break;
@@ -6202,6 +6204,13 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
     switch (hash_type)
     {
       case HASH_TYPE_DESCRYPT:
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+
+      case HASH_TYPE_DES:
+        digest_buf[0] = rotl32 (digest_buf[0], 29);
+        digest_buf[1] = rotl32 (digest_buf[1], 29);
+
         FP (digest_buf[1], digest_buf[0], tt);
         break;
 
@@ -6720,6 +6729,14 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
     snprintf (out_buf + 2, len-1-2, "%s", ptr_plain);
 
     out_buf[13] = 0;
+  }
+    else if (hash_mode == 1510)
+  {
+    snprintf (out_buf, len-1, "%s:%08X%08X", (char *) salt.salt_buf, digest_buf[0], digest_buf[1]);
+  }
+    else if (hash_mode == 1530)
+  {
+    snprintf (out_buf, len-1, "%s:%08X%08X", (char *) salt.salt_buf, digest_buf[0], digest_buf[1]);
   }
   else if (hash_mode == 1600)
   {
@@ -10100,7 +10117,7 @@ int bcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *iter_pos = input_buf + 4;
 
-  salt->salt_iter = 1u << atoi (iter_pos);
+  salt->salt_iter = 1 << atoi (iter_pos);
 
   char *salt_pos = strchr (iter_pos, '$');
 
@@ -10836,7 +10853,7 @@ int phpass_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *iter_pos = input_buf + 3;
 
-  uint salt_iter = 1u << itoa64_to_int (iter_pos[0]);
+  uint salt_iter = 1 << itoa64_to_int (iter_pos[0]);
 
   if (salt_iter > 0x80000000) return (PARSER_SALT_ITERATION);
 
@@ -11060,6 +11077,8 @@ int descrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   return (PARSER_OK);
 }
+
+
 
 int md4_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 {
@@ -13446,7 +13465,7 @@ int sha1aix_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_sign[0] = atoi (salt_iter);
 
-  salt->salt_iter = (1u << atoi (salt_iter)) - 1;
+  salt->salt_iter = (1 << atoi (salt_iter)) - 1;
 
   hash_pos++;
 
@@ -13495,7 +13514,7 @@ int sha256aix_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_sign[0] = atoi (salt_iter);
 
-  salt->salt_iter = (1u << atoi (salt_iter)) - 1;
+  salt->salt_iter = (1 << atoi (salt_iter)) - 1;
 
   hash_pos++;
 
@@ -13547,7 +13566,7 @@ int sha512aix_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_sign[0] = atoi (salt_iter);
 
-  salt->salt_iter = (1u << atoi (salt_iter)) - 1;
+  salt->salt_iter = (1 << atoi (salt_iter)) - 1;
 
   hash_pos++;
 
@@ -14480,7 +14499,7 @@ int drupal7_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *iter_pos = input_buf + 3;
 
-  uint salt_iter = 1u << itoa64_to_int (iter_pos[0]);
+  uint salt_iter = 1 << itoa64_to_int (iter_pos[0]);
 
   if (salt_iter > 0x80000000) return (PARSER_SALT_ITERATION);
 
@@ -15098,6 +15117,79 @@ int racf_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   return (PARSER_OK);
 }
 
+int des_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if (data.opts_type & OPTS_TYPE_ST_HEX)
+  {
+    if ((input_len < DISPLAY_LEN_MIN_1510H) || (input_len > DISPLAY_LEN_MAX_1510H)) return (PARSER_GLOBAL_LENGTH);
+  }
+  else
+  {
+    if ((input_len < DISPLAY_LEN_MIN_1510) || (input_len > DISPLAY_LEN_MAX_1510)) return (PARSER_GLOBAL_LENGTH);
+  }
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  char *salt_pos = input_buf;
+
+  char *digest_pos = strchr (salt_pos, ':');
+
+  if (input_buf[8] != data.separator) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint salt_len = digest_pos - salt_pos;
+
+  if (salt_len > 8) return (PARSER_SALT_LENGTH);
+
+  uint hash_len = input_len - 1 - salt_len;
+
+  if (hash_len != 16) return (PARSER_HASH_LENGTH);
+
+  digest_pos++;
+
+  char *salt_buf_ptr    = (char *) salt->salt_buf;
+  char *salt_buf_pc_ptr = (char *) salt->salt_buf_pc;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len = salt_len;
+  for (uint i = 0; i < salt_len; i++)
+  {
+    salt_buf_pc_ptr[i] = salt_buf_ptr[i];
+  }
+  for (uint i = salt_len; i < 8; i++)
+  {
+    salt_buf_pc_ptr[i] = 0x40;
+  }
+
+  uint tt;
+
+  salt->salt_buf_pc[0] = byte_swap_32 (salt->salt_buf_pc[0]);
+  salt->salt_buf_pc[1] = byte_swap_32 (salt->salt_buf_pc[1]);
+
+  IP (salt->salt_buf_pc[0], salt->salt_buf_pc[1], tt);
+
+  salt->salt_buf_pc[0] = rotl32 (salt->salt_buf_pc[0], 3u);
+  salt->salt_buf_pc[1] = rotl32 (salt->salt_buf_pc[1], 3u);
+
+  digest[0] = hex_to_u32 ((const u8 *) &digest_pos[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &digest_pos[ 8]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+
+  IP (digest[0], digest[1], tt);
+
+  digest[0] = rotr32 (digest[0], 29);
+  digest[1] = rotr32 (digest[1], 29);
+  digest[2] = 0;
+  digest[3] = 0;
+
+  return (PARSER_OK);
+}
 int lotus5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 {
   if ((input_len < DISPLAY_LEN_MIN_8600) || (input_len > DISPLAY_LEN_MAX_8600)) return (PARSER_GLOBAL_LENGTH);
@@ -19092,7 +19184,7 @@ int seven_zip_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_sign[0] = iter;
 
-  salt->salt_iter = 1u << iter;
+  salt->salt_iter = 1 << iter;
 
   /**
    * digest
@@ -19711,7 +19803,7 @@ int rar5_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_sign[0] = iterations;
 
-  salt->salt_iter = ((1u << iterations) + 32) - 1;
+  salt->salt_iter = ((1 << iterations) + 32) - 1;
 
   /**
    * digest buf
