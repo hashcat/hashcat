@@ -11,7 +11,7 @@ static const unsigned int
 COMPTIME = 1471824637u;
 
 #define HAVE_HWMON
-
+/* #undef _POSIX */
 enum HASHCAT_CONFIG_ {
   ETC_MAX = 60 * 60 * 24 * 365 * 10,
   DEVICES_MAX = 128,

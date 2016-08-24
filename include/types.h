@@ -1,9 +1,8 @@
-#pragma once
 /**
  * Author......: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
-
+#pragma once
 #ifndef TYPES_H
 #define TYPES_H
  //#include "shared.h"

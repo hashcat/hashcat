@@ -6,7 +6,7 @@
 #include "ext_OpenCL.h"
 #include "hc_concurrency.h"
 
-typedef struct hc_device_param__
+typedef struct hc_device_param_t_
 {
   cl_device_id      device;
   cl_device_type    device_type;
