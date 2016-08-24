@@ -30,8 +30,6 @@
 #include <CL/cl.h>
 #endif
 
-#include <shared.h>
-
 typedef cl_int(CL_API_CALL *OCL_CLBUILDPROGRAM)            (cl_program, cl_uint, const cl_device_id *, const char *, void (CL_CALLBACK *)(cl_program, void *), void *);
 typedef cl_mem(CL_API_CALL *OCL_CLCREATEBUFFER)            (cl_context, cl_mem_flags, size_t, void *, cl_int *);
 typedef cl_command_queue(CL_API_CALL *OCL_CLCREATECOMMANDQUEUE)      (cl_context, cl_device_id, cl_command_queue_properties, cl_int *);
