@@ -10,6 +10,7 @@
 #ifndef EXT_ADL_H
 #define EXT_ADL_H
 
+#include <config.h>
 #if defined(HAVE_HWMON)
 
 #include <common.h>
