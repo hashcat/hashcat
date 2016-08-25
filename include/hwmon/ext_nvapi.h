@@ -42,8 +42,8 @@ typedef char NvAPI_LongString[NVAPI_LONG_STRING_MAX];
 typedef char NvAPI_ShortString[NVAPI_SHORT_STRING_MAX];
 
 #ifdef __cplusplus
-inline template<typeName1, typeName2> NvU32 MAKE_NVAPI_VERSION_(typeName2 ver);
-template<typeName1, typeName2> NvU32 MAKE_NVAPI_VERSION_(typeName2 ver) {
+template<typeName1, typeName2> NvU32 MAKE_NVAPI_VERSION_(typeName2 ver);
+inline template<typeName1, typeName2> NvU32 MAKE_NVAPI_VERSION_(typeName2 ver) {
   return (sizeof(typeName) | (ver << 16));
 }
 #define MAKE_NVAPI_VERSION(typeName, ver) MAKE_NVAPI_VERSION_(ver)
