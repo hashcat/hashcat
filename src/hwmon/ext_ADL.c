@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 #include <config.h>
-
+#ifdef HAVE_HWMON
 #include <hwmon/ext_ADL.h>
 #include <dynload.h>
 #include <mem_alloc.h>
@@ -608,3 +608,5 @@ int hm_ADL_Overdrive6_FanSpeed_Reset(ADL_PTR *adl, int iAdapterIndex)
 
   return (ADL_rc);
 }
+
+#endif
