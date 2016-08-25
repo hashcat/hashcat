@@ -2,8 +2,12 @@
  * Author......: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
+#include <config.h>
 
 #include <hwmon/ext_ADL.h>
+#include <dynload.h>
+#include <mem_alloc.h>
+#include <logging.h>
 
 int adl_init(ADL_PTR *adl)
 {
