@@ -4,8 +4,13 @@
  *
  * License.....: MIT
  */
+#include <config.h>
 
 #include <hwmon/ext_nvml.h>
+#include <dynload.h>
+#include <logging.h>
+#include <hc_global_data_t.h>
+#include <hc_global.h>
 
 int nvml_init(NVML_PTR *nvml)
 {

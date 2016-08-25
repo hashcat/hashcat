@@ -3,7 +3,14 @@
  * License.....: MIT
  */
 
+#include <config.h>
+
+
 #include <hwmon/ext_xnvctrl.h>
+#include <mem_alloc.h>
+#include <dynload.h>
+#include <logging.h>
+#include <hc_global.h>
 
 int xnvctrl_init(XNVCTRL_PTR *xnvctrl)
 {

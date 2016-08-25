@@ -4,8 +4,11 @@
  *
  * License.....: MIT
  */
+#include <config.h>
 
 #include <hwmon/ext_nvapi.h>
+#include <dynload.h>
+#include <logging.h>
 
 int nvapi_init(NVAPI_PTR *nvapi)
 {
