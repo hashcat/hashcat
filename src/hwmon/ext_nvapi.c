@@ -5,7 +5,7 @@
  * License.....: MIT
  */
 
-#include <ext_nvapi.h>
+#include <hwmon/ext_nvapi.h>
 
 int nvapi_init(NVAPI_PTR *nvapi)
 {

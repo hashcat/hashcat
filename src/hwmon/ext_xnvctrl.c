@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-#include <ext_xnvctrl.h>
+#include <hwmon/ext_xnvctrl.h>
 
 int xnvctrl_init(XNVCTRL_PTR *xnvctrl)
 {

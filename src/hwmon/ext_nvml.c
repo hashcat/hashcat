@@ -5,7 +5,7 @@
  * License.....: MIT
  */
 
-#include <ext_nvml.h>
+#include <hwmon/ext_nvml.h>
 
 int nvml_init(NVML_PTR *nvml)
 {
