@@ -5,6 +5,7 @@
 
 #include <config.h>
 
+#ifdef HAVE_HWMON
 
 #include <hwmon/ext_xnvctrl.h>
 #include <mem_alloc.h>
@@ -220,3 +221,5 @@ int set_fan_speed_target(XNVCTRL_PTR *xnvctrl, int gpu, int val)
 
   return 0;
 }
+
+#endif

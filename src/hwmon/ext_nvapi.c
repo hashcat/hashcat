@@ -5,7 +5,7 @@
  * License.....: MIT
  */
 #include <config.h>
-
+#ifdef HAVE_HWMON
 #include <hwmon/ext_nvapi.h>
 #include <dynload.h>
 #include <logging.h>
@@ -204,4 +204,5 @@ void __GSHandlerCheck()
 {
 }
 
+#endif
 #endif

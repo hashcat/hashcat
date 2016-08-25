@@ -6,6 +6,7 @@
  */
 #include <config.h>
 
+#ifdef HAVE_HWMON
 #include <hwmon/ext_nvml.h>
 #include <dynload.h>
 #include <logging.h>
@@ -470,3 +471,5 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimit(NVML_PTR *nvml, int skip_
 
   return nvml_rc;
 }
+
+#endif
