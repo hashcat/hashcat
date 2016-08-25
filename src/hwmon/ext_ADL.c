@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-#include <ext_ADL.h>
+#include <hwmon/ext_ADL.h>
 
 int adl_init(ADL_PTR *adl)
 {
