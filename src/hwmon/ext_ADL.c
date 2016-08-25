@@ -18,7 +18,7 @@ int adl_init(ADL_PTR *adl)
   {
     adl->lib = hc_dlopen("atiadlxy.dll");
   }
-#elif _POSIX
+#elif defined(_POSIX)
   adl->lib = hc_dlopen("libatiadlxx.so", RTLD_NOW);
 #endif
 
