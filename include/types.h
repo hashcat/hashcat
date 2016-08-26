@@ -745,13 +745,13 @@ typedef struct
 {
   u64    cnt;
 
-  #ifdef _POSIX
+#ifdef _POSIX
   struct stat stat;
-  #endif
+#endif
 
-  #ifdef _WIN
+#ifdef _WIN
   struct __stat64 stat;
-  #endif
+#endif
 
 } dictstat_t;
 
@@ -1179,13 +1179,13 @@ typedef struct
    * hardware watchdog
    */
 
-  #ifdef HAVE_HWMON
+#ifdef HAVE_HWMON
   void      *hm_adl;
   void      *hm_nvml;
   void      *hm_nvapi;
   void      *hm_xnvctrl;
   hm_attrs_t hm_device[DEVICES_MAX];
-  #endif
+#endif
 
   /**
    * hashes
@@ -1300,11 +1300,11 @@ typedef struct
   uint    dgst_pos2;
   uint    dgst_pos3;
 
-  #ifdef HAVE_HWMON
+#ifdef HAVE_HWMON
   uint    gpu_temp_disable;
   uint    gpu_temp_abort;
   uint    gpu_temp_retain;
-  #endif
+#endif
 
   char  **rp_files;
   uint    rp_files_cnt;
@@ -1356,9 +1356,9 @@ typedef struct
   hashinfo_t **hash_info;
   uint    username;
 
-  int (*sort_by_digest) (const void *, const void *);
+  int(*sort_by_digest) (const void *, const void *);
 
-  int (*parse_func)     (char *, uint, hash_t *);
+  int(*parse_func)     (char *, uint, hash_t *);
 
 } hc_global_data_t;
 

@@ -42,7 +42,7 @@
 #define RULE_OP_REJECT_EQUAL_AT         '='
 #define RULE_OP_REJECT_CONTAINS         '%'
 
-/* hashcat only */
+ /* hashcat only */
 #define RULE_OP_MANGLE_SWITCH_FIRST     'k'
 #define RULE_OP_MANGLE_SWITCH_LAST      'K'
 #define RULE_OP_MANGLE_SWITCH_AT        '*'

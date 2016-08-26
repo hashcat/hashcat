@@ -33,9 +33,9 @@
 #endif
 
 #ifdef _SIPHASH_
-/**
- * SipHash Constants
- */
+ /**
+  * SipHash Constants
+  */
 
 #define SIPHASHM_0 0x736f6d6570736575
 #define SIPHASHM_1 0x646f72616e646f6d
@@ -44,9 +44,9 @@
 #endif
 
 #if defined _BCRYPT_ || defined _PSAFE2_
-/**
- * bcrypt Constants
- */
+  /**
+   * bcrypt Constants
+   */
 
 #define BCRYPTM_0 0x4F727068u
 #define BCRYPTM_1 0x65616E42u
@@ -57,9 +57,9 @@
 #endif
 
 #if defined _SHA1_ || defined _SAPG_ || defined _OFFICE2007_ || defined _OFFICE2010_ || defined _OLDOFFICE34_ || defined _ANDROIDFDE_ || defined _DCC2_ || defined _WPA_ || defined _MD5_SHA1_ || defined _SHA1_MD5_ || defined _PSAFE2_ || defined _LOTUS8_ || defined _PBKDF2_SHA1_ || defined _RAR3_ || defined _SHA256_SHA1_ || defined _ZIP2_ || defined _AXCRYPT_
-/**
- * SHA1 Constants
- */
+   /**
+    * SHA1 Constants
+    */
 
 #define SHA1M_A 0x67452301u
 #define SHA1M_B 0xefcdab89u
@@ -74,9 +74,9 @@
 #endif
 
 #if defined _SHA256_ || defined _PDF17L8_ || defined _SEVEN_ZIP_ || defined _ANDROIDFDE_ || defined _CLOUDKEY_ || defined _SCRYPT_ || defined _PBKDF2_SHA256_ || defined _SHA256_SHA1_ || defined _MS_DRSR_ || defined _ANDROIDFDE_SAMSUNG_ || defined _RAR5_ || defined _KEEPASS_
-/**
- * SHA256 Constants
- */
+    /**
+     * SHA256 Constants
+     */
 
 #define SHA256M_A 0x6a09e667u
 #define SHA256M_B 0xbb67ae85u
@@ -154,9 +154,9 @@
 #endif
 
 #if defined _MD4_ || defined _DCC2_ || defined _NETNTLMV2_ || defined _KRB5PA_ || defined _MS_DRSR_ || defined _KRB5TGS_
-/**
- * MD4 Constants
- */
+     /**
+      * MD4 Constants
+      */
 
 #define MD4M_A 0x67452301u
 #define MD4M_B 0xefcdab89u
@@ -182,9 +182,9 @@
 #endif
 
 #if defined _MD5_ || defined _MD5H_ || defined _SAPB_ || defined _OLDOFFICE01_ || defined _WPA_ || defined _MD5_SHA1_ || defined _SHA1_MD5_ || defined _NETNTLMV2_ || defined _KRB5PA_  || defined _PBKDF2_MD5_ || defined _KRB5TGS_
-/**
- * MD5 Constants
- */
+      /**
+       * MD5 Constants
+       */
 
 #define MD5M_A 0x67452301u
 #define MD5M_B 0xefcdab89u
@@ -275,9 +275,9 @@
 #endif
 
 #if defined _SHA384_ || defined _PDF17L8_
-/**
- * SHA384 Constants (64 bits)
- */
+       /**
+        * SHA384 Constants (64 bits)
+        */
 
 #define SHA384M_A 0xcbbb9d5dc1059ed8
 #define SHA384M_B 0x629a292a367cd507
@@ -372,9 +372,9 @@
 #endif
 
 #if defined _SHA512_ || defined _CLOUDKEY_ || defined _OFFICE2013_ || defined _PDF17L8_ || defined _PBKDF2_SHA512_
-/**
- * SHA512 Constants (64 bits)
- */
+        /**
+         * SHA512 Constants (64 bits)
+         */
 
 #define SHA512M_A 0x6a09e667f3bcc908
 #define SHA512M_B 0xbb67ae8584caa73b
@@ -472,9 +472,9 @@
 #endif
 
 #ifdef _RIPEMD160_
-/**
- * RIPEMD160 Constants
- */
+         /**
+          * RIPEMD160 Constants
+          */
 
 #define RIPEMD160M_A 0x67452301u
 #define RIPEMD160M_B 0xefcdab89u
@@ -666,9 +666,9 @@
 #endif
 
 #ifdef _KECCAK_
-/**
- * KECCAK Constants
- */
+          /**
+           * KECCAK Constants
+           */
 
 #define KECCAK_RNDC_00 0x0000000000000001
 #define KECCAK_RNDC_01 0x0000000000008082
@@ -749,9 +749,9 @@
 #endif
 
 #ifdef _MYSQL323_
-/**
- * MYSQL323 Constants
- */
+           /**
+            * MYSQL323 Constants
+            */
 
 #define MYSQL323_A 0x50305735
 #define MYSQL323_B 0x12345671

@@ -53,7 +53,7 @@
 #define RULE_OP_REJECT_CONTAINS         '%'
 #define RULE_OP_REJECT_MEMORY           'Q'
 
-/* hashcat only */
+ /* hashcat only */
 #define RULE_OP_MANGLE_SWITCH_FIRST     'k'
 #define RULE_OP_MANGLE_SWITCH_LAST      'K'
 #define RULE_OP_MANGLE_SWITCH_AT        '*'
