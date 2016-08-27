@@ -1032,7 +1032,7 @@ void status_display ()
 
       if (data.maskcnt > 1)
       {
-        float mask_percentage = (float) data.maskpos / (float) data.maskcnt;
+        double mask_percentage = (double) data.maskpos / (double) data.maskcnt;
 
         tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " (%.02f%%)", mask_percentage * 100);
       }
@@ -1525,8 +1525,8 @@ void status_display ()
 
   if (data.devices_active > 1) log_info ("Speed.Dev.#*...: %9sH/s", display_all_cur);
 
-  const float digests_percent = (float) data.digests_done / data.digests_cnt;
-  const float salts_percent   = (float) data.salts_done   / data.salts_cnt;
+  const double digests_percent = (double) data.digests_done / data.digests_cnt;
+  const double salts_percent   = (double) data.salts_done   / data.salts_cnt;
 
   log_info ("Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", data.digests_done, data.digests_cnt, digests_percent * 100, data.salts_done, data.salts_cnt, salts_percent * 100);
 
@@ -1563,9 +1563,9 @@ void status_display ()
 
     double ms_real = ms_running - ms_paused;
 
-    float cpt_avg_min  = (float) data.cpt_total / ((ms_real / 1000) / 60);
-    float cpt_avg_hour = (float) data.cpt_total / ((ms_real / 1000) / 3600);
-    float cpt_avg_day  = (float) data.cpt_total / ((ms_real / 1000) / 86400);
+    double cpt_avg_min  = (double) data.cpt_total / ((ms_real / 1000) / 60);
+    double cpt_avg_hour = (double) data.cpt_total / ((ms_real / 1000) / 3600);
+    double cpt_avg_day  = (double) data.cpt_total / ((ms_real / 1000) / 86400);
 
     if ((data.cpt_start + 86400) < now)
     {
@@ -1609,20 +1609,20 @@ void status_display ()
 
   u64 restore_total = data.words_base;
 
-  float percent_restore = 0;
+  double percent_restore = 0;
 
-  if (restore_total != 0) percent_restore = (float) restore_point / (float) restore_total;
+  if (restore_total != 0) percent_restore = (double) restore_point / (double) restore_total;
 
   if (progress_end_relative_skip)
   {
     if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
     {
-      float percent_finished = (float) progress_cur_relative_skip / (float) progress_end_relative_skip;
-      float percent_rejected = 0.0;
+      double percent_finished = (double) progress_cur_relative_skip / (double) progress_end_relative_skip;
+      double percent_rejected = 0.0;
 
       if (progress_cur)
       {
-        percent_rejected = (float) (all_rejected) / (float) progress_cur;
+        percent_rejected = (double) (all_rejected) / (double) progress_cur;
       }
 
       log_info ("Progress.......: %llu/%llu (%.02f%%)", (unsigned long long int) progress_cur_relative_skip, (unsigned long long int) progress_end_relative_skip, percent_finished * 100);
@@ -1641,12 +1641,12 @@ void status_display ()
   {
     if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
     {
-      log_info ("Progress.......: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
-      log_info ("Rejected.......: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
+      log_info ("Progress.......: %llu/%llu (%.02f%%)", 0ull, 0ull, 100);
+      log_info ("Rejected.......: %llu/%llu (%.02f%%)", 0ull, 0ull, 100);
 
       if (data.restore_disable == 0)
       {
-        log_info ("Restore.Point..: %llu/%llu (%.02f%%)", (u64) 0, (u64) 0, (float) 100);
+        log_info ("Restore.Point..: %llu/%llu (%.02f%%)", 0ull, 0ull, 100);
       }
     }
     else
@@ -4517,7 +4517,7 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
 
     if ((now - prev) == 0) continue;
 
-    float percent = (float) comp / (float) d.stat.st_size;
+    double percent = (double) comp / (double) d.stat.st_size;
 
     if (data.quiet == 0) log_info_nn ("Generating dictionary stats for %s: %llu bytes (%.2f%%), %llu words, %llu keyspace", dictfile, (unsigned long long int) comp, percent * 100, (unsigned long long int) cnt2, (unsigned long long int) cnt);
 
@@ -4720,8 +4720,8 @@ static void *thread_monitor (void *p)
 
             last_temp_check_time = temp_check_time;
 
-            float Kp = 1.8;
-            float Ki = 0.005;
+            float Kp = 1.8f;
+            float Ki = 0.005f;
             float Kd = 6;
 
             // PID controller (3-term controller: proportional - Kp, integral - Ki, derivative - Kd)
@@ -6059,16 +6059,16 @@ char *strhlfmt (const uint hashfile_format)
 {
   switch (hashfile_format)
   {
-    case HLFMT_HASHCAT:  return ((char *) HLFMT_TEXT_HASHCAT);  break;
-    case HLFMT_PWDUMP:   return ((char *) HLFMT_TEXT_PWDUMP);   break;
-    case HLFMT_PASSWD:   return ((char *) HLFMT_TEXT_PASSWD);   break;
-    case HLFMT_SHADOW:   return ((char *) HLFMT_TEXT_SHADOW);   break;
-    case HLFMT_DCC:      return ((char *) HLFMT_TEXT_DCC);      break;
-    case HLFMT_DCC2:     return ((char *) HLFMT_TEXT_DCC2);     break;
-    case HLFMT_NETNTLM1: return ((char *) HLFMT_TEXT_NETNTLM1); break;
-    case HLFMT_NETNTLM2: return ((char *) HLFMT_TEXT_NETNTLM2); break;
-    case HLFMT_NSLDAP:   return ((char *) HLFMT_TEXT_NSLDAP);   break;
-    case HLFMT_NSLDAPS:  return ((char *) HLFMT_TEXT_NSLDAPS);  break;
+    case HLFMT_HASHCAT:  return ((char *) HLFMT_TEXT_HASHCAT);
+    case HLFMT_PWDUMP:   return ((char *) HLFMT_TEXT_PWDUMP);
+    case HLFMT_PASSWD:   return ((char *) HLFMT_TEXT_PASSWD);
+    case HLFMT_SHADOW:   return ((char *) HLFMT_TEXT_SHADOW);
+    case HLFMT_DCC:      return ((char *) HLFMT_TEXT_DCC);
+    case HLFMT_DCC2:     return ((char *) HLFMT_TEXT_DCC2);
+    case HLFMT_NETNTLM1: return ((char *) HLFMT_TEXT_NETNTLM1);
+    case HLFMT_NETNTLM2: return ((char *) HLFMT_TEXT_NETNTLM2);
+    case HLFMT_NSLDAP:   return ((char *) HLFMT_TEXT_NSLDAP);
+    case HLFMT_NSLDAPS:  return ((char *) HLFMT_TEXT_NSLDAPS);
   }
 
   return ((char *) "Unknown");
@@ -6679,7 +6679,7 @@ int main (int argc, char **argv)
 
   char cpath[1024] = { 0 };
 
-  #if _WIN
+  #ifdef _WIN
 
   snprintf (cpath, sizeof (cpath) - 1, "%s\\OpenCL\\", shared_dir);
 
@@ -6717,7 +6717,7 @@ int main (int argc, char **argv)
     putenv (tmp);
   }
 
-  #if _WIN
+  #ifdef _WIN
 
   naive_replace (cpath_real, '\\', '/');
 
@@ -12848,7 +12848,7 @@ int main (int argc, char **argv)
 
               hash_t *lm_hash_right = &hashes_buf[hashes_cnt];
 
-              if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((float) hashes_cnt / hashes_avail) * 100);
+              if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
 
               hashes_cnt++;
 
@@ -12868,7 +12868,7 @@ int main (int argc, char **argv)
                 continue;
               }
 
-              if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((float) hashes_cnt / hashes_avail) * 100);
+              if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
 
               if (show == 1) handle_show_request (pot, pot_cnt, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
               if (left == 1) handle_left_request (pot, pot_cnt, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
@@ -12887,7 +12887,7 @@ int main (int argc, char **argv)
               continue;
             }
 
-            if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((float) hashes_cnt / hashes_avail) * 100);
+            if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
 
             if (show == 1) handle_show_request (pot, pot_cnt, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
             if (left == 1) handle_left_request (pot, pot_cnt, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
@@ -14976,7 +14976,7 @@ int main (int argc, char **argv)
 
         char *device_name_chksum = (char *) mymalloc (INFOSZ);
 
-        #if __x86_64__
+        #ifdef __x86_64__
         snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
         #else
         snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
@@ -15691,8 +15691,8 @@ int main (int argc, char **argv)
               int engine_clock_max = caps.sEngineClockRange.iMax * 0.6666;
               int memory_clock_max = caps.sMemoryClockRange.iMax * 0.6250;
 
-              int warning_trigger_engine = (int) (0.25 * (float) engine_clock_max);
-              int warning_trigger_memory = (int) (0.25 * (float) memory_clock_max);
+              int warning_trigger_engine = (int) (0.25 * (double) engine_clock_max);
+              int warning_trigger_memory = (int) (0.25 * (double) memory_clock_max);
 
               int engine_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
               int memory_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
@@ -16302,7 +16302,7 @@ int main (int argc, char **argv)
 
       char build_opts[1024] = { 0 };
 
-      #if _WIN
+      #ifdef _WIN
       snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", cpath_real);
       #else
       snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", cpath_real);
@@ -17821,7 +17821,7 @@ int main (int argc, char **argv)
      * open filehandles
      */
 
-    #if _WIN
+    #ifdef _WIN
     if (_setmode (_fileno (stdin), _O_BINARY) == -1)
     {
       log_error ("ERROR: %s: %s", "stdin", strerror (errno));

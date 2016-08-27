@@ -106,7 +106,7 @@ int log_final (FILE *fp, const char *fmt, va_list ap)
 
   int max_len = (int) sizeof (s);
 
-  int len = vsnprintf (s, max_len, fmt, ap);
+  int len = vsnprintf (s, (size_t)max_len, fmt, ap);
 
   if (len > max_len) len = max_len;
 
@@ -473,7 +473,7 @@ int base32_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
     out_ptr += 8;
   }
 
-  int out_len = (int) (((0.5 + (float) in_len) * 8) / 5); // ceil (in_len * 8 / 5)
+  int out_len = (int) (((0.5 + (double) in_len) * 8) / 5); // ceil (in_len * 8 / 5)
 
   while (out_len % 8)
   {
@@ -540,7 +540,7 @@ int base64_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
     out_ptr += 4;
   }
 
-  int out_len = (int) (((0.5 + (float) in_len) * 8) / 6); // ceil (in_len * 8 / 6)
+  int out_len = (int) (((0.5 + (double) in_len) * 8) / 6); // ceil (in_len * 8 / 6)
 
   while (out_len % 4)
   {
@@ -2646,7 +2646,7 @@ char *logfile_generate_subid ()
  * system
  */
 
-#if F_SETLKW
+#ifdef F_SETLKW
 void lock_file (FILE *fp)
 {
   struct flock lock;
@@ -3583,7 +3583,7 @@ void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt)
   {
     uint u = in_buf[i] & 0xff;
 
-    if (data.opts_type & OPTS_TYPE_PT_UPPER) u = toupper (u);
+    if (data.opts_type & OPTS_TYPE_PT_UPPER) u = (uint) toupper (u);
 
     if (css_uniq[u] == 1) continue;
 
@@ -4545,12 +4545,12 @@ int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t *cpu_se
 
 void set_cpu_affinity (char *cpu_affinity)
 {
-  #ifdef _WIN
+  #if   defined(_WIN)
   DWORD_PTR aff_mask = 0;
-  #elif __FreeBSD__
+  #elif defined(__FreeBSD__)
   cpuset_t cpuset;
   CPU_ZERO (&cpuset);
-  #elif _POSIX
+  #elif defined(_POSIX)
   cpu_set_t cpuset;
   CPU_ZERO (&cpuset);
   #endif
@@ -4594,13 +4594,13 @@ void set_cpu_affinity (char *cpu_affinity)
     free (devices);
   }
 
-  #ifdef _WIN
+  #if   defined( _WIN)
   SetProcessAffinityMask (GetCurrentProcess (), aff_mask);
   SetThreadAffinityMask (GetCurrentThread (), aff_mask);
-  #elif __FreeBSD__
+  #elif defined(__FreeBSD__)
   pthread_t thread = pthread_self ();
   pthread_setaffinity_np (thread, sizeof (cpuset_t), &cpuset);
-  #elif _POSIX
+  #elif defined(_POSIX)
   pthread_t thread = pthread_self ();
   pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset);
   #endif
@@ -5456,7 +5456,7 @@ void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int inpu
 
   // only show the hash part which is still not cracked
 
-  uint user_len = input_len - 32u;
+  uint user_len = (uint)input_len - 32u;
 
   char *hash_output = (char *) mymalloc (33);
 
@@ -5661,7 +5661,7 @@ void format_timer_display (struct tm *tm, char *buf, size_t len)
   }
 }
 
-void format_speed_display (float val, char *buf, size_t len)
+void format_speed_display (double val, char *buf, size_t len)
 {
   if (val <= 0)
   {
@@ -5890,25 +5890,25 @@ char *stroptitype (const uint opti_type)
 {
   switch (opti_type)
   {
-    case OPTI_TYPE_ZERO_BYTE:         return ((char *) OPTI_STR_ZERO_BYTE);         break;
-    case OPTI_TYPE_PRECOMPUTE_INIT:   return ((char *) OPTI_STR_PRECOMPUTE_INIT);   break;
-    case OPTI_TYPE_PRECOMPUTE_MERKLE: return ((char *) OPTI_STR_PRECOMPUTE_MERKLE); break;
-    case OPTI_TYPE_PRECOMPUTE_PERMUT: return ((char *) OPTI_STR_PRECOMPUTE_PERMUT); break;
-    case OPTI_TYPE_MEET_IN_MIDDLE:    return ((char *) OPTI_STR_MEET_IN_MIDDLE);    break;
-    case OPTI_TYPE_EARLY_SKIP:        return ((char *) OPTI_STR_EARLY_SKIP);        break;
-    case OPTI_TYPE_NOT_SALTED:        return ((char *) OPTI_STR_NOT_SALTED);        break;
-    case OPTI_TYPE_NOT_ITERATED:      return ((char *) OPTI_STR_NOT_ITERATED);      break;
-    case OPTI_TYPE_PREPENDED_SALT:    return ((char *) OPTI_STR_PREPENDED_SALT);    break;
-    case OPTI_TYPE_APPENDED_SALT:     return ((char *) OPTI_STR_APPENDED_SALT);     break;
-    case OPTI_TYPE_SINGLE_HASH:       return ((char *) OPTI_STR_SINGLE_HASH);       break;
-    case OPTI_TYPE_SINGLE_SALT:       return ((char *) OPTI_STR_SINGLE_SALT);       break;
-    case OPTI_TYPE_BRUTE_FORCE:       return ((char *) OPTI_STR_BRUTE_FORCE);       break;
-    case OPTI_TYPE_RAW_HASH:          return ((char *) OPTI_STR_RAW_HASH);          break;
-    case OPTI_TYPE_SLOW_HASH_SIMD:    return ((char *) OPTI_STR_SLOW_HASH_SIMD);    break;
-    case OPTI_TYPE_USES_BITS_8:       return ((char *) OPTI_STR_USES_BITS_8);       break;
-    case OPTI_TYPE_USES_BITS_16:      return ((char *) OPTI_STR_USES_BITS_16);      break;
-    case OPTI_TYPE_USES_BITS_32:      return ((char *) OPTI_STR_USES_BITS_32);      break;
-    case OPTI_TYPE_USES_BITS_64:      return ((char *) OPTI_STR_USES_BITS_64);      break;
+    case OPTI_TYPE_ZERO_BYTE:         return ((char *) OPTI_STR_ZERO_BYTE);
+    case OPTI_TYPE_PRECOMPUTE_INIT:   return ((char *) OPTI_STR_PRECOMPUTE_INIT);
+    case OPTI_TYPE_PRECOMPUTE_MERKLE: return ((char *) OPTI_STR_PRECOMPUTE_MERKLE);
+    case OPTI_TYPE_PRECOMPUTE_PERMUT: return ((char *) OPTI_STR_PRECOMPUTE_PERMUT);
+    case OPTI_TYPE_MEET_IN_MIDDLE:    return ((char *) OPTI_STR_MEET_IN_MIDDLE);
+    case OPTI_TYPE_EARLY_SKIP:        return ((char *) OPTI_STR_EARLY_SKIP);
+    case OPTI_TYPE_NOT_SALTED:        return ((char *) OPTI_STR_NOT_SALTED);
+    case OPTI_TYPE_NOT_ITERATED:      return ((char *) OPTI_STR_NOT_ITERATED);
+    case OPTI_TYPE_PREPENDED_SALT:    return ((char *) OPTI_STR_PREPENDED_SALT);
+    case OPTI_TYPE_APPENDED_SALT:     return ((char *) OPTI_STR_APPENDED_SALT);
+    case OPTI_TYPE_SINGLE_HASH:       return ((char *) OPTI_STR_SINGLE_HASH);
+    case OPTI_TYPE_SINGLE_SALT:       return ((char *) OPTI_STR_SINGLE_SALT);
+    case OPTI_TYPE_BRUTE_FORCE:       return ((char *) OPTI_STR_BRUTE_FORCE);
+    case OPTI_TYPE_RAW_HASH:          return ((char *) OPTI_STR_RAW_HASH);
+    case OPTI_TYPE_SLOW_HASH_SIMD:    return ((char *) OPTI_STR_SLOW_HASH_SIMD);
+    case OPTI_TYPE_USES_BITS_8:       return ((char *) OPTI_STR_USES_BITS_8);
+    case OPTI_TYPE_USES_BITS_16:      return ((char *) OPTI_STR_USES_BITS_16);
+    case OPTI_TYPE_USES_BITS_32:      return ((char *) OPTI_STR_USES_BITS_32);
+    case OPTI_TYPE_USES_BITS_64:      return ((char *) OPTI_STR_USES_BITS_64);
   }
 
   return (NULL);
@@ -5918,23 +5918,23 @@ char *strparser (const uint parser_status)
 {
   switch (parser_status)
   {
-    case PARSER_OK:                   return ((char *) PA_000); break;
-    case PARSER_COMMENT:              return ((char *) PA_001); break;
-    case PARSER_GLOBAL_ZERO:          return ((char *) PA_002); break;
-    case PARSER_GLOBAL_LENGTH:        return ((char *) PA_003); break;
-    case PARSER_HASH_LENGTH:          return ((char *) PA_004); break;
-    case PARSER_HASH_VALUE:           return ((char *) PA_005); break;
-    case PARSER_SALT_LENGTH:          return ((char *) PA_006); break;
-    case PARSER_SALT_VALUE:           return ((char *) PA_007); break;
-    case PARSER_SALT_ITERATION:       return ((char *) PA_008); break;
-    case PARSER_SEPARATOR_UNMATCHED:  return ((char *) PA_009); break;
-    case PARSER_SIGNATURE_UNMATCHED:  return ((char *) PA_010); break;
-    case PARSER_HCCAP_FILE_SIZE:      return ((char *) PA_011); break;
-    case PARSER_HCCAP_EAPOL_SIZE:     return ((char *) PA_012); break;
-    case PARSER_PSAFE2_FILE_SIZE:     return ((char *) PA_013); break;
-    case PARSER_PSAFE3_FILE_SIZE:     return ((char *) PA_014); break;
-    case PARSER_TC_FILE_SIZE:         return ((char *) PA_015); break;
-    case PARSER_SIP_AUTH_DIRECTIVE:   return ((char *) PA_016); break;
+    case PARSER_OK:                   return ((char *) PA_000);
+    case PARSER_COMMENT:              return ((char *) PA_001);
+    case PARSER_GLOBAL_ZERO:          return ((char *) PA_002);
+    case PARSER_GLOBAL_LENGTH:        return ((char *) PA_003);
+    case PARSER_HASH_LENGTH:          return ((char *) PA_004);
+    case PARSER_HASH_VALUE:           return ((char *) PA_005);
+    case PARSER_SALT_LENGTH:          return ((char *) PA_006);
+    case PARSER_SALT_VALUE:           return ((char *) PA_007);
+    case PARSER_SALT_ITERATION:       return ((char *) PA_008);
+    case PARSER_SEPARATOR_UNMATCHED:  return ((char *) PA_009);
+    case PARSER_SIGNATURE_UNMATCHED:  return ((char *) PA_010);
+    case PARSER_HCCAP_FILE_SIZE:      return ((char *) PA_011);
+    case PARSER_HCCAP_EAPOL_SIZE:     return ((char *) PA_012);
+    case PARSER_PSAFE2_FILE_SIZE:     return ((char *) PA_013);
+    case PARSER_PSAFE3_FILE_SIZE:     return ((char *) PA_014);
+    case PARSER_TC_FILE_SIZE:         return ((char *) PA_015);
+    case PARSER_SIP_AUTH_DIRECTIVE:   return ((char *) PA_016);
   }
 
   return ((char *) PA_255);
@@ -5944,210 +5944,210 @@ char *strhashtype (const uint hash_mode)
 {
   switch (hash_mode)
   {
-    case     0: return ((char *) HT_00000); break;
-    case    10: return ((char *) HT_00010); break;
-    case    11: return ((char *) HT_00011); break;
-    case    12: return ((char *) HT_00012); break;
-    case    20: return ((char *) HT_00020); break;
-    case    21: return ((char *) HT_00021); break;
-    case    22: return ((char *) HT_00022); break;
-    case    23: return ((char *) HT_00023); break;
-    case    30: return ((char *) HT_00030); break;
-    case    40: return ((char *) HT_00040); break;
-    case    50: return ((char *) HT_00050); break;
-    case    60: return ((char *) HT_00060); break;
-    case   100: return ((char *) HT_00100); break;
-    case   101: return ((char *) HT_00101); break;
-    case   110: return ((char *) HT_00110); break;
-    case   111: return ((char *) HT_00111); break;
-    case   112: return ((char *) HT_00112); break;
-    case   120: return ((char *) HT_00120); break;
-    case   121: return ((char *) HT_00121); break;
-    case   122: return ((char *) HT_00122); break;
-    case   124: return ((char *) HT_00124); break;
-    case   125: return ((char *) HT_00125); break;
-    case   130: return ((char *) HT_00130); break;
-    case   131: return ((char *) HT_00131); break;
-    case   132: return ((char *) HT_00132); break;
-    case   133: return ((char *) HT_00133); break;
-    case   140: return ((char *) HT_00140); break;
-    case   141: return ((char *) HT_00141); break;
-    case   150: return ((char *) HT_00150); break;
-    case   160: return ((char *) HT_00160); break;
-    case   200: return ((char *) HT_00200); break;
-    case   300: return ((char *) HT_00300); break;
-    case   400: return ((char *) HT_00400); break;
-    case   500: return ((char *) HT_00500); break;
-    case   501: return ((char *) HT_00501); break;
-    case   900: return ((char *) HT_00900); break;
-    case   910: return ((char *) HT_00910); break;
-    case  1000: return ((char *) HT_01000); break;
-    case  1100: return ((char *) HT_01100); break;
-    case  1400: return ((char *) HT_01400); break;
-    case  1410: return ((char *) HT_01410); break;
-    case  1420: return ((char *) HT_01420); break;
-    case  1421: return ((char *) HT_01421); break;
-    case  1430: return ((char *) HT_01430); break;
-    case  1440: return ((char *) HT_01440); break;
-    case  1441: return ((char *) HT_01441); break;
-    case  1450: return ((char *) HT_01450); break;
-    case  1460: return ((char *) HT_01460); break;
-    case  1500: return ((char *) HT_01500); break;
-    case  1600: return ((char *) HT_01600); break;
-    case  1700: return ((char *) HT_01700); break;
-    case  1710: return ((char *) HT_01710); break;
-    case  1711: return ((char *) HT_01711); break;
-    case  1720: return ((char *) HT_01720); break;
-    case  1722: return ((char *) HT_01722); break;
-    case  1730: return ((char *) HT_01730); break;
-    case  1731: return ((char *) HT_01731); break;
-    case  1740: return ((char *) HT_01740); break;
-    case  1750: return ((char *) HT_01750); break;
-    case  1760: return ((char *) HT_01760); break;
-    case  1800: return ((char *) HT_01800); break;
-    case  2100: return ((char *) HT_02100); break;
-    case  2400: return ((char *) HT_02400); break;
-    case  2410: return ((char *) HT_02410); break;
-    case  2500: return ((char *) HT_02500); break;
-    case  2600: return ((char *) HT_02600); break;
-    case  2611: return ((char *) HT_02611); break;
-    case  2612: return ((char *) HT_02612); break;
-    case  2711: return ((char *) HT_02711); break;
-    case  2811: return ((char *) HT_02811); break;
-    case  3000: return ((char *) HT_03000); break;
-    case  3100: return ((char *) HT_03100); break;
-    case  3200: return ((char *) HT_03200); break;
-    case  3710: return ((char *) HT_03710); break;
-    case  3711: return ((char *) HT_03711); break;
-    case  3800: return ((char *) HT_03800); break;
-    case  4300: return ((char *) HT_04300); break;
-    case  4400: return ((char *) HT_04400); break;
-    case  4500: return ((char *) HT_04500); break;
-    case  4700: return ((char *) HT_04700); break;
-    case  4800: return ((char *) HT_04800); break;
-    case  4900: return ((char *) HT_04900); break;
-    case  5000: return ((char *) HT_05000); break;
-    case  5100: return ((char *) HT_05100); break;
-    case  5200: return ((char *) HT_05200); break;
-    case  5300: return ((char *) HT_05300); break;
-    case  5400: return ((char *) HT_05400); break;
-    case  5500: return ((char *) HT_05500); break;
-    case  5600: return ((char *) HT_05600); break;
-    case  5700: return ((char *) HT_05700); break;
-    case  5800: return ((char *) HT_05800); break;
-    case  6000: return ((char *) HT_06000); break;
-    case  6100: return ((char *) HT_06100); break;
-    case  6211: return ((char *) HT_06211); break;
-    case  6212: return ((char *) HT_06212); break;
-    case  6213: return ((char *) HT_06213); break;
-    case  6221: return ((char *) HT_06221); break;
-    case  6222: return ((char *) HT_06222); break;
-    case  6223: return ((char *) HT_06223); break;
-    case  6231: return ((char *) HT_06231); break;
-    case  6232: return ((char *) HT_06232); break;
-    case  6233: return ((char *) HT_06233); break;
-    case  6241: return ((char *) HT_06241); break;
-    case  6242: return ((char *) HT_06242); break;
-    case  6243: return ((char *) HT_06243); break;
-    case  6300: return ((char *) HT_06300); break;
-    case  6400: return ((char *) HT_06400); break;
-    case  6500: return ((char *) HT_06500); break;
-    case  6600: return ((char *) HT_06600); break;
-    case  6700: return ((char *) HT_06700); break;
-    case  6800: return ((char *) HT_06800); break;
-    case  6900: return ((char *) HT_06900); break;
-    case  7100: return ((char *) HT_07100); break;
-    case  7200: return ((char *) HT_07200); break;
-    case  7300: return ((char *) HT_07300); break;
-    case  7400: return ((char *) HT_07400); break;
-    case  7500: return ((char *) HT_07500); break;
-    case  7600: return ((char *) HT_07600); break;
-    case  7700: return ((char *) HT_07700); break;
-    case  7800: return ((char *) HT_07800); break;
-    case  7900: return ((char *) HT_07900); break;
-    case  8000: return ((char *) HT_08000); break;
-    case  8100: return ((char *) HT_08100); break;
-    case  8200: return ((char *) HT_08200); break;
-    case  8300: return ((char *) HT_08300); break;
-    case  8400: return ((char *) HT_08400); break;
-    case  8500: return ((char *) HT_08500); break;
-    case  8600: return ((char *) HT_08600); break;
-    case  8700: return ((char *) HT_08700); break;
-    case  8800: return ((char *) HT_08800); break;
-    case  8900: return ((char *) HT_08900); break;
-    case  9000: return ((char *) HT_09000); break;
-    case  9100: return ((char *) HT_09100); break;
-    case  9200: return ((char *) HT_09200); break;
-    case  9300: return ((char *) HT_09300); break;
-    case  9400: return ((char *) HT_09400); break;
-    case  9500: return ((char *) HT_09500); break;
-    case  9600: return ((char *) HT_09600); break;
-    case  9700: return ((char *) HT_09700); break;
-    case  9710: return ((char *) HT_09710); break;
-    case  9720: return ((char *) HT_09720); break;
-    case  9800: return ((char *) HT_09800); break;
-    case  9810: return ((char *) HT_09810); break;
-    case  9820: return ((char *) HT_09820); break;
-    case  9900: return ((char *) HT_09900); break;
-    case 10000: return ((char *) HT_10000); break;
-    case 10100: return ((char *) HT_10100); break;
-    case 10200: return ((char *) HT_10200); break;
-    case 10300: return ((char *) HT_10300); break;
-    case 10400: return ((char *) HT_10400); break;
-    case 10410: return ((char *) HT_10410); break;
-    case 10420: return ((char *) HT_10420); break;
-    case 10500: return ((char *) HT_10500); break;
-    case 10600: return ((char *) HT_10600); break;
-    case 10700: return ((char *) HT_10700); break;
-    case 10800: return ((char *) HT_10800); break;
-    case 10900: return ((char *) HT_10900); break;
-    case 11000: return ((char *) HT_11000); break;
-    case 11100: return ((char *) HT_11100); break;
-    case 11200: return ((char *) HT_11200); break;
-    case 11300: return ((char *) HT_11300); break;
-    case 11400: return ((char *) HT_11400); break;
-    case 11500: return ((char *) HT_11500); break;
-    case 11600: return ((char *) HT_11600); break;
-    case 11700: return ((char *) HT_11700); break;
-    case 11800: return ((char *) HT_11800); break;
-    case 11900: return ((char *) HT_11900); break;
-    case 12000: return ((char *) HT_12000); break;
-    case 12100: return ((char *) HT_12100); break;
-    case 12200: return ((char *) HT_12200); break;
-    case 12300: return ((char *) HT_12300); break;
-    case 12400: return ((char *) HT_12400); break;
-    case 12500: return ((char *) HT_12500); break;
-    case 12600: return ((char *) HT_12600); break;
-    case 12700: return ((char *) HT_12700); break;
-    case 12800: return ((char *) HT_12800); break;
-    case 12900: return ((char *) HT_12900); break;
-    case 13000: return ((char *) HT_13000); break;
-    case 13100: return ((char *) HT_13100); break;
-    case 13200: return ((char *) HT_13200); break;
-    case 13300: return ((char *) HT_13300); break;
-    case 13400: return ((char *) HT_13400); break;
-    case 13500: return ((char *) HT_13500); break;
-    case 13600: return ((char *) HT_13600); break;
-    case 13711: return ((char *) HT_13711); break;
-    case 13712: return ((char *) HT_13712); break;
-    case 13713: return ((char *) HT_13713); break;
-    case 13721: return ((char *) HT_13721); break;
-    case 13722: return ((char *) HT_13722); break;
-    case 13723: return ((char *) HT_13723); break;
-    case 13731: return ((char *) HT_13731); break;
-    case 13732: return ((char *) HT_13732); break;
-    case 13733: return ((char *) HT_13733); break;
-    case 13741: return ((char *) HT_13741); break;
-    case 13742: return ((char *) HT_13742); break;
-    case 13743: return ((char *) HT_13743); break;
-    case 13751: return ((char *) HT_13751); break;
-    case 13752: return ((char *) HT_13752); break;
-    case 13753: return ((char *) HT_13753); break;
-    case 13761: return ((char *) HT_13761); break;
-    case 13762: return ((char *) HT_13762); break;
-    case 13763: return ((char *) HT_13763); break;
-    case 13800: return ((char *) HT_13800); break;
-    case 13900: return ((char *) HT_13900); break;
+    case     0: return ((char *) HT_00000);
+    case    10: return ((char *) HT_00010);
+    case    11: return ((char *) HT_00011);
+    case    12: return ((char *) HT_00012);
+    case    20: return ((char *) HT_00020);
+    case    21: return ((char *) HT_00021);
+    case    22: return ((char *) HT_00022);
+    case    23: return ((char *) HT_00023);
+    case    30: return ((char *) HT_00030);
+    case    40: return ((char *) HT_00040);
+    case    50: return ((char *) HT_00050);
+    case    60: return ((char *) HT_00060);
+    case   100: return ((char *) HT_00100);
+    case   101: return ((char *) HT_00101);
+    case   110: return ((char *) HT_00110);
+    case   111: return ((char *) HT_00111);
+    case   112: return ((char *) HT_00112);
+    case   120: return ((char *) HT_00120);
+    case   121: return ((char *) HT_00121);
+    case   122: return ((char *) HT_00122);
+    case   124: return ((char *) HT_00124);
+    case   125: return ((char *) HT_00125);
+    case   130: return ((char *) HT_00130);
+    case   131: return ((char *) HT_00131);
+    case   132: return ((char *) HT_00132);
+    case   133: return ((char *) HT_00133);
+    case   140: return ((char *) HT_00140);
+    case   141: return ((char *) HT_00141);
+    case   150: return ((char *) HT_00150);
+    case   160: return ((char *) HT_00160);
+    case   200: return ((char *) HT_00200);
+    case   300: return ((char *) HT_00300);
+    case   400: return ((char *) HT_00400);
+    case   500: return ((char *) HT_00500);
+    case   501: return ((char *) HT_00501);
+    case   900: return ((char *) HT_00900);
+    case   910: return ((char *) HT_00910);
+    case  1000: return ((char *) HT_01000);
+    case  1100: return ((char *) HT_01100);
+    case  1400: return ((char *) HT_01400);
+    case  1410: return ((char *) HT_01410);
+    case  1420: return ((char *) HT_01420);
+    case  1421: return ((char *) HT_01421);
+    case  1430: return ((char *) HT_01430);
+    case  1440: return ((char *) HT_01440);
+    case  1441: return ((char *) HT_01441);
+    case  1450: return ((char *) HT_01450);
+    case  1460: return ((char *) HT_01460);
+    case  1500: return ((char *) HT_01500);
+    case  1600: return ((char *) HT_01600);
+    case  1700: return ((char *) HT_01700);
+    case  1710: return ((char *) HT_01710);
+    case  1711: return ((char *) HT_01711);
+    case  1720: return ((char *) HT_01720);
+    case  1722: return ((char *) HT_01722);
+    case  1730: return ((char *) HT_01730);
+    case  1731: return ((char *) HT_01731);
+    case  1740: return ((char *) HT_01740);
+    case  1750: return ((char *) HT_01750);
+    case  1760: return ((char *) HT_01760);
+    case  1800: return ((char *) HT_01800);
+    case  2100: return ((char *) HT_02100);
+    case  2400: return ((char *) HT_02400);
+    case  2410: return ((char *) HT_02410);
+    case  2500: return ((char *) HT_02500);
+    case  2600: return ((char *) HT_02600);
+    case  2611: return ((char *) HT_02611);
+    case  2612: return ((char *) HT_02612);
+    case  2711: return ((char *) HT_02711);
+    case  2811: return ((char *) HT_02811);
+    case  3000: return ((char *) HT_03000);
+    case  3100: return ((char *) HT_03100);
+    case  3200: return ((char *) HT_03200);
+    case  3710: return ((char *) HT_03710);
+    case  3711: return ((char *) HT_03711);
+    case  3800: return ((char *) HT_03800);
+    case  4300: return ((char *) HT_04300);
+    case  4400: return ((char *) HT_04400);
+    case  4500: return ((char *) HT_04500);
+    case  4700: return ((char *) HT_04700);
+    case  4800: return ((char *) HT_04800);
+    case  4900: return ((char *) HT_04900);
+    case  5000: return ((char *) HT_05000);
+    case  5100: return ((char *) HT_05100);
+    case  5200: return ((char *) HT_05200);
+    case  5300: return ((char *) HT_05300);
+    case  5400: return ((char *) HT_05400);
+    case  5500: return ((char *) HT_05500);
+    case  5600: return ((char *) HT_05600);
+    case  5700: return ((char *) HT_05700);
+    case  5800: return ((char *) HT_05800);
+    case  6000: return ((char *) HT_06000);
+    case  6100: return ((char *) HT_06100);
+    case  6211: return ((char *) HT_06211);
+    case  6212: return ((char *) HT_06212);
+    case  6213: return ((char *) HT_06213);
+    case  6221: return ((char *) HT_06221);
+    case  6222: return ((char *) HT_06222);
+    case  6223: return ((char *) HT_06223);
+    case  6231: return ((char *) HT_06231);
+    case  6232: return ((char *) HT_06232);
+    case  6233: return ((char *) HT_06233);
+    case  6241: return ((char *) HT_06241);
+    case  6242: return ((char *) HT_06242);
+    case  6243: return ((char *) HT_06243);
+    case  6300: return ((char *) HT_06300);
+    case  6400: return ((char *) HT_06400);
+    case  6500: return ((char *) HT_06500);
+    case  6600: return ((char *) HT_06600);
+    case  6700: return ((char *) HT_06700);
+    case  6800: return ((char *) HT_06800);
+    case  6900: return ((char *) HT_06900);
+    case  7100: return ((char *) HT_07100);
+    case  7200: return ((char *) HT_07200);
+    case  7300: return ((char *) HT_07300);
+    case  7400: return ((char *) HT_07400);
+    case  7500: return ((char *) HT_07500);
+    case  7600: return ((char *) HT_07600);
+    case  7700: return ((char *) HT_07700);
+    case  7800: return ((char *) HT_07800);
+    case  7900: return ((char *) HT_07900);
+    case  8000: return ((char *) HT_08000);
+    case  8100: return ((char *) HT_08100);
+    case  8200: return ((char *) HT_08200);
+    case  8300: return ((char *) HT_08300);
+    case  8400: return ((char *) HT_08400);
+    case  8500: return ((char *) HT_08500);
+    case  8600: return ((char *) HT_08600);
+    case  8700: return ((char *) HT_08700);
+    case  8800: return ((char *) HT_08800);
+    case  8900: return ((char *) HT_08900);
+    case  9000: return ((char *) HT_09000);
+    case  9100: return ((char *) HT_09100);
+    case  9200: return ((char *) HT_09200);
+    case  9300: return ((char *) HT_09300);
+    case  9400: return ((char *) HT_09400);
+    case  9500: return ((char *) HT_09500);
+    case  9600: return ((char *) HT_09600);
+    case  9700: return ((char *) HT_09700);
+    case  9710: return ((char *) HT_09710);
+    case  9720: return ((char *) HT_09720);
+    case  9800: return ((char *) HT_09800);
+    case  9810: return ((char *) HT_09810);
+    case  9820: return ((char *) HT_09820);
+    case  9900: return ((char *) HT_09900);
+    case 10000: return ((char *) HT_10000);
+    case 10100: return ((char *) HT_10100);
+    case 10200: return ((char *) HT_10200);
+    case 10300: return ((char *) HT_10300);
+    case 10400: return ((char *) HT_10400);
+    case 10410: return ((char *) HT_10410);
+    case 10420: return ((char *) HT_10420);
+    case 10500: return ((char *) HT_10500);
+    case 10600: return ((char *) HT_10600);
+    case 10700: return ((char *) HT_10700);
+    case 10800: return ((char *) HT_10800);
+    case 10900: return ((char *) HT_10900);
+    case 11000: return ((char *) HT_11000);
+    case 11100: return ((char *) HT_11100);
+    case 11200: return ((char *) HT_11200);
+    case 11300: return ((char *) HT_11300);
+    case 11400: return ((char *) HT_11400);
+    case 11500: return ((char *) HT_11500);
+    case 11600: return ((char *) HT_11600);
+    case 11700: return ((char *) HT_11700);
+    case 11800: return ((char *) HT_11800);
+    case 11900: return ((char *) HT_11900);
+    case 12000: return ((char *) HT_12000);
+    case 12100: return ((char *) HT_12100);
+    case 12200: return ((char *) HT_12200);
+    case 12300: return ((char *) HT_12300);
+    case 12400: return ((char *) HT_12400);
+    case 12500: return ((char *) HT_12500);
+    case 12600: return ((char *) HT_12600);
+    case 12700: return ((char *) HT_12700);
+    case 12800: return ((char *) HT_12800);
+    case 12900: return ((char *) HT_12900);
+    case 13000: return ((char *) HT_13000);
+    case 13100: return ((char *) HT_13100);
+    case 13200: return ((char *) HT_13200);
+    case 13300: return ((char *) HT_13300);
+    case 13400: return ((char *) HT_13400);
+    case 13500: return ((char *) HT_13500);
+    case 13600: return ((char *) HT_13600);
+    case 13711: return ((char *) HT_13711);
+    case 13712: return ((char *) HT_13712);
+    case 13713: return ((char *) HT_13713);
+    case 13721: return ((char *) HT_13721);
+    case 13722: return ((char *) HT_13722);
+    case 13723: return ((char *) HT_13723);
+    case 13731: return ((char *) HT_13731);
+    case 13732: return ((char *) HT_13732);
+    case 13733: return ((char *) HT_13733);
+    case 13741: return ((char *) HT_13741);
+    case 13742: return ((char *) HT_13742);
+    case 13743: return ((char *) HT_13743);
+    case 13751: return ((char *) HT_13751);
+    case 13752: return ((char *) HT_13752);
+    case 13753: return ((char *) HT_13753);
+    case 13761: return ((char *) HT_13761);
+    case 13762: return ((char *) HT_13762);
+    case 13763: return ((char *) HT_13763);
+    case 13800: return ((char *) HT_13800);
+    case 13900: return ((char *) HT_13900);
   }
 
   return ((char *) "Unknown");
@@ -6157,17 +6157,17 @@ char *strstatus (const uint devices_status)
 {
   switch (devices_status)
   {
-    case  STATUS_INIT:               return ((char *) ST_0000); break;
-    case  STATUS_STARTING:           return ((char *) ST_0001); break;
-    case  STATUS_RUNNING:            return ((char *) ST_0002); break;
-    case  STATUS_PAUSED:             return ((char *) ST_0003); break;
-    case  STATUS_EXHAUSTED:          return ((char *) ST_0004); break;
-    case  STATUS_CRACKED:            return ((char *) ST_0005); break;
-    case  STATUS_ABORTED:            return ((char *) ST_0006); break;
-    case  STATUS_QUIT:               return ((char *) ST_0007); break;
-    case  STATUS_BYPASS:             return ((char *) ST_0008); break;
-    case  STATUS_STOP_AT_CHECKPOINT: return ((char *) ST_0009); break;
-    case  STATUS_AUTOTUNE:           return ((char *) ST_0010); break;
+    case  STATUS_INIT:               return ((char *) ST_0000);
+    case  STATUS_STARTING:           return ((char *) ST_0001);
+    case  STATUS_RUNNING:            return ((char *) ST_0002);
+    case  STATUS_PAUSED:             return ((char *) ST_0003);
+    case  STATUS_EXHAUSTED:          return ((char *) ST_0004);
+    case  STATUS_CRACKED:            return ((char *) ST_0005);
+    case  STATUS_ABORTED:            return ((char *) ST_0006);
+    case  STATUS_QUIT:               return ((char *) ST_0007);
+    case  STATUS_BYPASS:             return ((char *) ST_0008);
+    case  STATUS_STOP_AT_CHECKPOINT: return ((char *) ST_0009);
+    case  STATUS_AUTOTUNE:           return ((char *) ST_0010);
   }
 
   return ((char *) "Unknown");
@@ -21177,7 +21177,6 @@ int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule)
 
       case RULE_OP_MANGLE_TOGGLECASE_REC:
         return -1;
-        break;
 
       case RULE_OP_MANGLE_DUPECHAR_FIRST:
         SET_NAME    (rule, rule_buf[rule_pos]);
@@ -21253,7 +21252,6 @@ int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule)
 
       default:
         return -1;
-        break;
     }
   }
 
@@ -21397,7 +21395,6 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
 
       case RULE_OP_MANGLE_TOGGLECASE_REC:
         return -1;
-        break;
 
       case RULE_OP_MANGLE_DUPECHAR_FIRST:
         rule_buf[rule_pos] = rule_cmd;
@@ -21473,11 +21470,9 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
 
       case 0:
         return rule_pos - 1;
-        break;
 
       default:
         return -1;
-        break;
     }
   }
 
@@ -22365,7 +22360,6 @@ int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, 
 
       default:
         return (RULE_RC_SYNTAX_ERROR);
-        break;
     }
   }
 

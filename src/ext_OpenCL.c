@@ -67,9 +67,9 @@ int ocl_init (OCL_PTR *ocl)
 
   memset (ocl, 0, sizeof (hc_opencl_lib_t));
 
-  #ifdef _WIN
+  #if   defined(_WIN)
   ocl->lib = hc_dlopen ("OpenCL");
-  #elif __APPLE__
+  #elif defined(__APPLE__)
   ocl->lib = hc_dlopen ("/System/Library/Frameworks/OpenCL.framework/OpenCL", RTLD_NOW);
   #else
   ocl->lib = hc_dlopen ("libOpenCL.so", RTLD_NOW);
