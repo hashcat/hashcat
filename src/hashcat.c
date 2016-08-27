@@ -6059,16 +6059,16 @@ char *strhlfmt (const uint hashfile_format)
 {
   switch (hashfile_format)
   {
-    case HLFMT_HASHCAT:  return ((char *) HLFMT_TEXT_HASHCAT);  break;
-    case HLFMT_PWDUMP:   return ((char *) HLFMT_TEXT_PWDUMP);   break;
-    case HLFMT_PASSWD:   return ((char *) HLFMT_TEXT_PASSWD);   break;
-    case HLFMT_SHADOW:   return ((char *) HLFMT_TEXT_SHADOW);   break;
-    case HLFMT_DCC:      return ((char *) HLFMT_TEXT_DCC);      break;
-    case HLFMT_DCC2:     return ((char *) HLFMT_TEXT_DCC2);     break;
-    case HLFMT_NETNTLM1: return ((char *) HLFMT_TEXT_NETNTLM1); break;
-    case HLFMT_NETNTLM2: return ((char *) HLFMT_TEXT_NETNTLM2); break;
-    case HLFMT_NSLDAP:   return ((char *) HLFMT_TEXT_NSLDAP);   break;
-    case HLFMT_NSLDAPS:  return ((char *) HLFMT_TEXT_NSLDAPS);  break;
+    case HLFMT_HASHCAT:  return ((char *) HLFMT_TEXT_HASHCAT);
+    case HLFMT_PWDUMP:   return ((char *) HLFMT_TEXT_PWDUMP);
+    case HLFMT_PASSWD:   return ((char *) HLFMT_TEXT_PASSWD);
+    case HLFMT_SHADOW:   return ((char *) HLFMT_TEXT_SHADOW);
+    case HLFMT_DCC:      return ((char *) HLFMT_TEXT_DCC);
+    case HLFMT_DCC2:     return ((char *) HLFMT_TEXT_DCC2);
+    case HLFMT_NETNTLM1: return ((char *) HLFMT_TEXT_NETNTLM1);
+    case HLFMT_NETNTLM2: return ((char *) HLFMT_TEXT_NETNTLM2);
+    case HLFMT_NSLDAP:   return ((char *) HLFMT_TEXT_NSLDAP);
+    case HLFMT_NSLDAPS:  return ((char *) HLFMT_TEXT_NSLDAPS);
   }
 
   return ((char *) "Unknown");
