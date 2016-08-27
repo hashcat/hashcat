@@ -1413,7 +1413,7 @@ u64 mydivc64 (const u64 dividend, const u64 divisor);
 void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos);
 void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos);
 
-void format_speed_display (float val, char *buf, size_t len);
+void format_speed_display (double val, char *buf, size_t len);
 void format_timer_display (struct tm *tm, char *buf, size_t len);
 void lowercase (u8 *buf, int len);
 void uppercase (u8 *buf, int len);
