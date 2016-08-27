@@ -106,7 +106,7 @@ int log_final (FILE *fp, const char *fmt, va_list ap)
 
   int max_len = (int) sizeof (s);
 
-  int len = vsnprintf (s, max_len, fmt, ap);
+  int len = vsnprintf (s, (size_t)max_len, fmt, ap);
 
   if (len > max_len) len = max_len;
 
@@ -3583,7 +3583,7 @@ void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt)
   {
     uint u = in_buf[i] & 0xff;
 
-    if (data.opts_type & OPTS_TYPE_PT_UPPER) u = toupper (u);
+    if (data.opts_type & OPTS_TYPE_PT_UPPER) u = (uint) toupper (u);
 
     if (css_uniq[u] == 1) continue;
 
@@ -5456,7 +5456,7 @@ void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int inpu
 
   // only show the hash part which is still not cracked
 
-  uint user_len = input_len - 32u;
+  uint user_len = (uint)input_len - 32u;
 
   char *hash_output = (char *) mymalloc (33);
 
