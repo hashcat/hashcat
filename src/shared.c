@@ -2646,7 +2646,7 @@ char *logfile_generate_subid ()
  * system
  */
 
-#if F_SETLKW
+#ifdef F_SETLKW
 void lock_file (FILE *fp)
 {
   struct flock lock;
@@ -4545,12 +4545,12 @@ int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t *cpu_se
 
 void set_cpu_affinity (char *cpu_affinity)
 {
-  #ifdef _WIN
+  #if   defined(_WIN)
   DWORD_PTR aff_mask = 0;
-  #elif __FreeBSD__
+  #elif defined(__FreeBSD__)
   cpuset_t cpuset;
   CPU_ZERO (&cpuset);
-  #elif _POSIX
+  #elif defined(_POSIX)
   cpu_set_t cpuset;
   CPU_ZERO (&cpuset);
   #endif
@@ -4594,13 +4594,13 @@ void set_cpu_affinity (char *cpu_affinity)
     free (devices);
   }
 
-  #ifdef _WIN
+  #if   defined( _WIN)
   SetProcessAffinityMask (GetCurrentProcess (), aff_mask);
   SetThreadAffinityMask (GetCurrentThread (), aff_mask);
-  #elif __FreeBSD__
+  #elif defined(__FreeBSD__)
   pthread_t thread = pthread_self ();
   pthread_setaffinity_np (thread, sizeof (cpuset_t), &cpuset);
-  #elif _POSIX
+  #elif defined(_POSIX)
   pthread_t thread = pthread_self ();
   pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset);
   #endif

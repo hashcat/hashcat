@@ -1437,7 +1437,7 @@ char *logfile_generate_topid ();
 char *logfile_generate_subid ();
 void logfile_append (const char *fmt, ...);
 
-#if F_SETLKW
+#ifdef F_SETLKW
 void lock_file (FILE *fp);
 void unlock_file (FILE *fp);
 #else

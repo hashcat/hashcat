@@ -6679,7 +6679,7 @@ int main (int argc, char **argv)
 
   char cpath[1024] = { 0 };
 
-  #if _WIN
+  #ifdef _WIN
 
   snprintf (cpath, sizeof (cpath) - 1, "%s\\OpenCL\\", shared_dir);
 
@@ -6717,7 +6717,7 @@ int main (int argc, char **argv)
     putenv (tmp);
   }
 
-  #if _WIN
+  #ifdef _WIN
 
   naive_replace (cpath_real, '\\', '/');
 
@@ -14976,7 +14976,7 @@ int main (int argc, char **argv)
 
         char *device_name_chksum = (char *) mymalloc (INFOSZ);
 
-        #if __x86_64__
+        #ifdef __x86_64__
         snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
         #else
         snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
@@ -16302,7 +16302,7 @@ int main (int argc, char **argv)
 
       char build_opts[1024] = { 0 };
 
-      #if _WIN
+      #ifdef _WIN
       snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", cpath_real);
       #else
       snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", cpath_real);
@@ -17821,7 +17821,7 @@ int main (int argc, char **argv)
      * open filehandles
      */
 
-    #if _WIN
+    #ifdef _WIN
     if (_setmode (_fileno (stdin), _O_BINARY) == -1)
     {
       log_error ("ERROR: %s: %s", "stdin", strerror (errno));
