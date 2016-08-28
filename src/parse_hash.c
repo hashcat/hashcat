@@ -25,7 +25,7 @@ uint parse_and_store_salt(char *out, char *in, uint salt_len)
 {
   u8 tmp[256] = { 0 };
 
-  if (salt_len > sizeof(tmp))
+  if (salt_len + ((data.opts_type & OPTS_TYPE_ST_ADD80) !=0 ) + ((data.opts_type & OPTS_TYPE_ST_ADD01) != 0) > sizeof(tmp))
   {
     return UINT_MAX;
   }
