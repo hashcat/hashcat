@@ -1,4 +1,5 @@
 #pragma once
+#include "common.h"
 typedef struct rar5_t_
 {
   uint iv[4];
