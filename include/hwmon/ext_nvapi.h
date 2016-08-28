@@ -34,7 +34,15 @@ typedef char NvAPI_String[NVAPI_GENERIC_STRING_MAX];
 typedef char NvAPI_LongString[NVAPI_LONG_STRING_MAX];
 typedef char NvAPI_ShortString[NVAPI_SHORT_STRING_MAX];
 
+#ifdef __cplusplus
+inline template<typeName1, typeName2> NvU32 MAKE_NVAPI_VERSION_(typeName2 ver);
+template<typeName1, typeName2> NvU32 MAKE_NVAPI_VERSION_(typeName2 ver) {
+  return (sizeof(typeName) | (ver << 16));
+}
+#define MAKE_NVAPI_VERSION(typeName, ver) MAKE_NVAPI_VERSION_(ver)
+#else
 #define MAKE_NVAPI_VERSION(typeName,ver) (NvU32)(sizeof(typeName) | ((ver)<<16))
+#endif
 
 #define NVAPI_MAX_PHYSICAL_GPUS     64
 #define NVAPI_MAX_COOLER_PER_GPU    20
