@@ -14,9 +14,9 @@ int nvapi_init (NVAPI_PTR *nvapi)
   memset (nvapi, 0, sizeof (NVAPI_PTR));
 
   #ifdef _WIN
-  #if   defined(__x86_64__)
+  #if   defined(WIN64)
   nvapi->lib = hc_dlopen ("nvapi64.dll");
-  #elif defined(__x86__)
+  #elif defined(WIN32)
   nvapi->lib = hc_dlopen ("nvapi.dll");
   #endif
   #else
