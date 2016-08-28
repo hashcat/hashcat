@@ -57,7 +57,7 @@ int nvml_init(NVML_PTR *nvml)
     myfree(Buffer);
   }
 
-#elif _POSIX
+#elif defined(_POSIX)
   nvml->lib = hc_dlopen("libnvidia-ml.so", RTLD_NOW);
 #endif
 

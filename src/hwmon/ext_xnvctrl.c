@@ -16,7 +16,7 @@ int xnvctrl_init(XNVCTRL_PTR *xnvctrl)
   // unsupport platform?
   return -1;
 
-#elif _POSIX
+#elif defined(_POSIX)
 
   xnvctrl->lib_x11 = dlopen("libX11.so", RTLD_LAZY);
 
@@ -55,7 +55,7 @@ void xnvctrl_close(XNVCTRL_PTR *xnvctrl)
 {
   if (xnvctrl)
   {
-#if _POSIX
+#ifdef _POSIX
 
     if (xnvctrl->lib_x11)
     {
