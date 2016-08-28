@@ -316,40 +316,44 @@ static const u32 c_skb[8][64] =
   }
 };
 
-#define PERM_OP(a,b,tt,n,m) \
-{                           \
-  tt = a >> n;              \
-  tt = tt ^ b;              \
-  tt = tt & m;              \
-  b = b ^ tt;               \
-  tt = tt << n;             \
-  a = a ^ tt;               \
+void PERM_OP(u32 *a, u32 *b, u32 *tt, u8 n, int m);
+inline void PERM_OP(u32 *a, u32 *b, u32 *tt, u8 n, int m)
+{
+  *tt = *a >> n;
+  *tt = *tt ^ *b;
+  *tt = *tt & m;
+  *b = *b ^ *tt;
+  *tt = *tt << n;
+  *a = *a ^ *tt;
 }
 
-#define HPERM_OP(a,tt,n,m)  \
-{                           \
-  tt = a << (16 + n);       \
-  tt = tt ^ a;              \
-  tt = tt & m;              \
-  a  = a ^ tt;              \
-  tt = tt >> (16 + n);      \
-  a  = a ^ tt;              \
+void HPERM_OP(u32 *a, u32 *tt, u8 n, int m);
+inline void HPERM_OP(u32 *a, u32 *tt, u8 n, int m)
+{
+  *tt = *a << (16 + n);
+  *tt = *tt ^ *a;
+  *tt = *tt & m;
+  *a = *a ^ *tt;
+  *tt = *tt >> (16 + n);
+  *a = *a ^ *tt;
 }
 
-#define IP(l,r,tt)                     \
-{                                      \
-  PERM_OP (r, l, tt,  4, 0x0f0f0f0f);  \
-  PERM_OP (l, r, tt, 16, 0x0000ffff);  \
-  PERM_OP (r, l, tt,  2, 0x33333333);  \
-  PERM_OP (l, r, tt,  8, 0x00ff00ff);  \
-  PERM_OP (r, l, tt,  1, 0x55555555);  \
+void IP(u32 *l, u32 *r, u32 *tt);
+inline void IP(u32 *l, u32 *r, u32 *tt)
+{
+  PERM_OP(r, l, tt, 4, 0x0f0f0f0f);
+  PERM_OP(l, r, tt, 16, 0x0000ffff);
+  PERM_OP(r, l, tt, 2, 0x33333333);
+  PERM_OP(l, r, tt, 8, 0x00ff00ff);
+  PERM_OP(r, l, tt, 1, 0x55555555);
 }
 
-#define FP(l,r,tt)                     \
-{                                      \
-  PERM_OP (l, r, tt,  1, 0x55555555);  \
-  PERM_OP (r, l, tt,  8, 0x00ff00ff);  \
-  PERM_OP (l, r, tt,  2, 0x33333333);  \
-  PERM_OP (r, l, tt, 16, 0x0000ffff);  \
-  PERM_OP (l, r, tt,  4, 0x0f0f0f0f);  \
+void FP(u32 *l, u32 *r, u32 *tt);
+inline void FP(u32 *l, u32 *r, u32 *tt)
+{
+  PERM_OP(l, r, tt, 1, 0x55555555);
+  PERM_OP(r, l, tt, 8, 0x00ff00ff);
+  PERM_OP(l, r, tt, 2, 0x33333333);
+  PERM_OP(r, l, tt, 16, 0x0000ffff);
+  PERM_OP(l, r, tt, 4, 0x0f0f0f0f);
 }
