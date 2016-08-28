@@ -263,13 +263,19 @@ typedef struct ADLOD6PowerControlInfo
   int iExtMask;
 } ADLOD6PowerControlInfo;
 
-#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
-#define ADL_API_CALL __stdcall
+#ifdef __MSC_VER
+#define ADL_API_CALL __cdecl
+#elif defined(_POSIX)
+#define ADL_API_CALL __attribute__((cdecl))
 #else
 #define ADL_API_CALL
 #endif
 
-typedef void* (ADL_API_CALL *ADL_MAIN_MALLOC_CALLBACK)(int);
+#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+typedef void* (__stdcall *ADL_MAIN_MALLOC_CALLBACK)(int);
+#else
+typedef void* (*ADL_MAIN_MALLOC_CALLBACK)(int);
+#endif
 
 /*
  * End of declarations from adl_sdk.h and subheaders
