@@ -14,13 +14,19 @@
 #if defined(HAVE_HWMON)
 
 #include <common.h>
-//#include <shared.h>
+ //#include <shared.h>
 
 
+#ifdef _POSIX
+typedef void *ADL_LIB;
+#endif
+#ifdef _WIN
+typedef HINSTANCE ADL_LIB;
+#endif
 
- /**
-  * Declarations from adl_sdk.h and subheaders
-  */
+/**
+ * Declarations from adl_sdk.h and subheaders
+ */
 
 typedef enum ADL_ {
   ADL_OK = 0,

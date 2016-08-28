@@ -196,6 +196,13 @@ typedef nvmlReturn_t(*NVML_API_CALL NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAI
 typedef nvmlReturn_t(*NVML_API_CALL NVML_DEVICE_SET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int);
 typedef nvmlReturn_t(*NVML_API_CALL NVML_DEVICE_GET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int *);
 
+#ifdef _POSIX
+typedef void *NVML_LIB;
+#endif
+#ifdef _WIN
+typedef HINSTANCE NVML_LIB;
+#endif
+
 typedef struct
 {
   NVML_LIB lib;

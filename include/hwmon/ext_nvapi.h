@@ -230,6 +230,13 @@ typedef NvPhysicalGpuHandle HM_ADAPTER_NVAPI;
 #define NVAPI_API_CALL
 #endif
 
+#ifdef _POSIX
+typedef void *NVAPI_LIB;
+#endif
+#ifdef _WIN
+typedef HINSTANCE NVAPI_LIB;
+#endif
+
 typedef int *(*NVAPI_API_CALL NVAPI_QUERYINTERFACE) (uint);
 typedef int(*NVAPI_API_CALL NVAPI_INITIALIZE) (void);
 typedef int(*NVAPI_API_CALL NVAPI_UNLOAD) (void);
