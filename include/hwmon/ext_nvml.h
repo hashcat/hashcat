@@ -176,8 +176,8 @@ typedef nvmlDevice_t HM_ADAPTER_NVML;
 #endif
 
 typedef const char * (*NVML_API_CALL NVML_ERROR_STRING) (nvmlReturn_t);
-typedef int(*NVML_API_CALL NVML_INIT) (void);
-typedef int(*NVML_API_CALL NVML_SHUTDOWN) (void);
+typedef nvmlReturn_t(*NVML_API_CALL NVML_INIT) (void);
+typedef nvmlReturn_t(*NVML_API_CALL NVML_SHUTDOWN) (void);
 typedef nvmlReturn_t(*NVML_API_CALL NVML_DEVICE_GET_NAME) (nvmlDevice_t, char *, unsigned int);
 typedef nvmlReturn_t(*NVML_API_CALL NVML_DEVICE_GET_HANDLE_BY_INDEX) (unsigned int, nvmlDevice_t *);
 typedef nvmlReturn_t(*NVML_API_CALL NVML_DEVICE_GET_TEMPERATURE) (nvmlDevice_t, nvmlTemperatureSensors_t, unsigned int *);

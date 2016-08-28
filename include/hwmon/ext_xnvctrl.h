@@ -23,10 +23,12 @@ typedef HINSTANCE XNVCTRL_LIB;
  * Stuff from X11/Xlib.h
  */
 
+typedef void *(*XOPENDISPLAY)  (char *);
+typedef int(*XCLOSEDISPLAY) (void *);
 
- /**
-  * Declarations from NVCtrl.h
-  */
+/**
+ * Declarations from NVCtrl.h
+ */
 typedef enum NV_CTRL_ {
   NV_CTRL_TARGET_TYPE_GPU = 1,
   NV_CTRL_TARGET_TYPE_COOLER = 5, /* e.g., fan */
@@ -51,11 +53,7 @@ typedef enum NV_CTRL_ {
  * hashcat stuff from here
  */
 
-
-
 typedef int HM_ADAPTER_XNVCTRL;
-
-#include <shared.h>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
 #define XNVCTRL_API_CALL __stdcall
