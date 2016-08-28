@@ -1,4 +1,3 @@
-#pragma once
 /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
  *               Gabriele Gristina <matrix@hashcat.net>
@@ -26,9 +25,16 @@ typedef   signed long NvS32;
 
 NV_DECLARE_HANDLE(NvPhysicalGpuHandle);            // A single physical GPU
 
-#define NVAPI_GENERIC_STRING_MAX    4096
-#define NVAPI_LONG_STRING_MAX       256
-#define NVAPI_SHORT_STRING_MAX      64
+typedef enum NVAPI__ {
+  NVAPI_GENERIC_STRING_MAX = 4096,
+  NVAPI_LONG_STRING_MAX = 256,
+  NVAPI_SHORT_STRING_MAX = 64,
+  NVAPI_MAX_PHYSICAL_GPUS = 64,
+  NVAPI_MAX_COOLER_PER_GPU = 20,
+
+  GPU_COOLER_LEVELS_VER = 0x10000,
+}NVAPI_;
+
 
 typedef char NvAPI_String[NVAPI_GENERIC_STRING_MAX];
 typedef char NvAPI_LongString[NVAPI_LONG_STRING_MAX];
@@ -44,10 +50,6 @@ template<typeName1, typeName2> NvU32 MAKE_NVAPI_VERSION_(typeName2 ver) {
 #define MAKE_NVAPI_VERSION(typeName,ver) (NvU32)(sizeof(typeName) | ((ver)<<16))
 #endif
 
-#define NVAPI_MAX_PHYSICAL_GPUS     64
-#define NVAPI_MAX_COOLER_PER_GPU    20
-
-#define GPU_COOLER_LEVELS_VER    0x10000
 
 typedef enum _NvAPI_Status
 {

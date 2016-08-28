@@ -21,33 +21,37 @@ typedef HINSTANCE XNVCTRL_LIB;
 
 /**
  * Stuff from X11/Xlib.h
-typedef void *(*XOPENDISPLAY)  (char *);
-typedef int(*XCLOSEDISPLAY) (void *);
-typedef void *(*XOPENDISPLAY)  (char *);
-typedef int(*XCLOSEDISPLAY) (void *);
-
-/**
- * Declarations from NVCtrl.h
-#define NV_CTRL_TARGET_TYPE_GPU            1
-#define NV_CTRL_TARGET_TYPE_COOLER         5 /* e.g., fan */
-
-#define NV_CTRL_GPU_COOLER_MANUAL_CONTROL                       319 /* RW-G */
-#define NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE                   0
-#define NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE                    1
-
-#define NV_CTRL_THERMAL_COOLER_CURRENT_LEVEL                    417 /* R--C */
-#define NV_CTRL_THERMAL_COOLER_LEVEL                            320 /* RW-C */
-
-/*
- * NV_CTRL_GPU_CORE_THRESHOLD reflects the temperature at which the
- * GPU is throttled to prevent overheating.
  */
 
-#define NV_CTRL_GPU_CORE_THRESHOLD                              61  /* R--G */
 
  /**
-  * hashcat stuff from here
+  * Declarations from NVCtrl.h
   */
+typedef enum NV_CTRL_ {
+  NV_CTRL_TARGET_TYPE_GPU = 1,
+  NV_CTRL_TARGET_TYPE_COOLER = 5, /* e.g., fan */
+
+
+  NV_CTRL_GPU_COOLER_MANUAL_CONTROL = 319, /* RW-G */
+  NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE = 0,
+  NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE = 1,
+
+  NV_CTRL_THERMAL_COOLER_CURRENT_LEVEL = 417, /* R--C */
+  NV_CTRL_THERMAL_COOLER_LEVEL = 320, /* RW-C */
+
+  /*
+   * NV_CTRL_GPU_CORE_THRESHOLD reflects the temperature at which the
+   * GPU is throttled to prevent overheating.
+   */
+
+  NV_CTRL_GPU_CORE_THRESHOLD = 61  /* R--G */
+} NV_CTRL;
+
+/**
+ * hashcat stuff from here
+ */
+
+
 
 typedef int HM_ADAPTER_XNVCTRL;
 
