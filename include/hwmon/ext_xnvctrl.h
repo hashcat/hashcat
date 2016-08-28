@@ -8,7 +8,6 @@
 
 #include <config.h>
 #if defined(HAVE_HWMON)
-
 #include <common.h>
  //#include <shared.h>
 #ifdef _POSIX

@@ -14,9 +14,6 @@
 #include <dirent.h>
 
 #include "common.h"
-#include "inc_hash_constants.h"
-#include "hc_concurrency.h"
-#include "dynload.h"
 
 
  /**
@@ -25,7 +22,8 @@
 
 
 #include "types.h"
-
+#include "mem_alloc.h"
+#include "hc_device_param_t.h"
 
 
  /**
@@ -42,17 +40,6 @@ inline void hc_sleep(uint32_t x) { sleep(x); }
 
 /**
  * kernel types
-#include "consts/display_lengths.h"
-#include "consts/hash_types.h"
-#include "consts/kernel_types.h"
-#include "consts/signatures.h"
-#include "consts/rounds_count.h"
-#include "consts/salt_types.h"
-#include "consts/optimizer_options.h"
-#include "consts/hash_options.h"
-#include "consts/digest_sizes.h"
-#include "consts/parser.h"
-#include "consts/devices_statuses.h"
  */
 typedef enum KERN_RUN_ {
   KERN_RUN_MP = 101,
@@ -82,7 +69,7 @@ uint count_lines(FILE *fd);
 
 void *rulefind(const void *key, void *base, int nmemb, size_t size, int(*compar) (const void *, const void *));
 
-#include "sort_by.h"
+
 
 void format_debug(char * debug_file, uint debug_mode, unsigned char *orig_plain_ptr, uint orig_plain_len, unsigned char *mod_plain_ptr, uint mod_plain_len, char *rule_buf, int rule_len);
 void format_plain(FILE *fp, unsigned char *plain_ptr, uint plain_len, uint outfile_autohex);
@@ -119,6 +106,7 @@ char *strstatus(const uint threads_status);
 void status();
 
 
+
 #if F_SETLKW
 void lock_file(FILE *fp);
 void unlock_file(FILE *fp);
@@ -133,7 +121,9 @@ inline void unlock_file(FILE *fp) {}
 void fsync(int fd);
 #endif
 
-#include "hwmon.h"
+double get_avg_exec_time(hc_device_param_t *device_param, const int last_num_entries);
+int gidd_to_pw_t(hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
+void clear_prompt();
 
 void myabort();
 void myquit();
@@ -143,10 +133,13 @@ void set_cpu_affinity(char *cpu_affinity);
 void usage_mini_print(const char *progname);
 void usage_big_print(const char *progname);
 
+
+
 void tuning_db_destroy(tuning_db_t *tuning_db);
 tuning_db_t *tuning_db_alloc(FILE *fp);
 tuning_db_t *tuning_db_init(const char *tuning_db_file);
 tuning_db_entry_t *tuning_db_search(tuning_db_t *tuning_db, hc_device_param_t *device_param, int attack_mode, int hash_type);
+
 
 
 void naive_replace(char *s, const u8 key_char, const u8 replace_char);
@@ -166,7 +159,8 @@ void            check_checkpoint();
 
 BOOL WINAPI sigHandler_default(DWORD sig);
 BOOL WINAPI sigHandler_benchmark(DWORD sig);
-void hc_signal(BOOL WINAPI(callback) (DWORD sig));
+typedef BOOL(WINAPI *winapi_callback) (DWORD sig);
+void hc_signal(winapi_callback callback);
 
 #else
 
@@ -176,10 +170,11 @@ void hc_signal(void c(int));
 
 #endif
 
-bool class_num(u8 c);
-bool class_lower(u8 c);
-bool class_upper(u8 c);
-bool class_alpha(u8 c);
+bool class_num(const u8 c);
+bool class_lower(const u8 c);
+bool class_upper(const u8 c);
+bool class_alpha(const u8 c);
+int conv_ctoi(const u8 c);
 
 
 int cpu_rule_to_kernel_rule(char *rule_buf, uint rule_len, kernel_rule_t *rule);
@@ -188,18 +183,5 @@ int kernel_rule_to_cpu_rule(char *rule_buf, kernel_rule_t *rule);
 void *thread_device_watch(void *p);
 void *thread_keypress(void *p);
 void *thread_runtime(void *p);
-
-/**
- * checksum for use on cpu
- */
-
-#include "cpu-crc32.h"
-#include "cpu-md5.h"
-
- /**
-  * ciphers for use on cpu
-  */
-
-#include "cpu-aes.h"
 
 #endif // SHARED_H
