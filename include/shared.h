@@ -7,8 +7,11 @@
  * License.....: MIT
  */
 
+
 #ifndef SHARED_H
 #define SHARED_H
+#include "config.h"
+#include <dirent.h>
 
 #include "common.h"
 #include "inc_hash_constants.h"
@@ -17,8 +20,8 @@
 
 
  /**
-  * system stuff
-  */
+ * shared stuff
+ */
 
 #ifdef _WIN
 #define hc_sleep(x) Sleep ((x) * 1000);
@@ -26,40 +29,18 @@
 #define hc_sleep(x) sleep ((x));
 #endif
 
-#include "ext_OpenCL.h"
-
-  /**
-   * temperature management
-   */
-
-#include "hwmon/ext_ADL.h"
-#include "hwmon/ext_nvapi.h"
-#include "hwmon/ext_nvml.h"
-#include "hwmon/ext_xnvctrl.h"
-
-   /**
-    * shared stuff
-    */
-#include "config.h"
-
-#include "consts/devices_vendors.h"
-
 #include "types.h"
-#include "rp_cpu.h"
-#include "inc_rp.h"
 
-    /**
-     * valid project specific global stuff
-     */
-#include "hc_global.h"
 
-#include "consts/hash_names.h"
-#include "consts/outfile_formats.h"
 
-     /**
-      * algo specific
-      */
+ /**
+  * system stuff
+  */
 
+
+
+/**
+ * kernel types
 #include "consts/display_lengths.h"
 #include "consts/hash_types.h"
 #include "consts/kernel_types.h"
@@ -71,25 +52,16 @@
 #include "consts/digest_sizes.h"
 #include "consts/parser.h"
 #include "consts/devices_statuses.h"
+ */
 
-      /**
-       * kernel types
-       */
 
-#define KERN_RUN_MP          101
-#define KERN_RUN_MP_L        102
-#define KERN_RUN_MP_R        103
-
+/*
+ * functions
 #define KERN_RUN_1           1000
 #define KERN_RUN_12          1500
 #define KERN_RUN_2           2000
 #define KERN_RUN_23          2500
 #define KERN_RUN_3           3000
-
-       /*
-        * functions
-        */
-
 u8  hex_convert(const u8 c);
 u8  hex_to_u8(const u8 hex[2]);
 u32 hex_to_u32(const u8 hex[8]);
