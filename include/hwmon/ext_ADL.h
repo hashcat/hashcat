@@ -285,7 +285,7 @@ typedef int HM_ADAPTER_ADL;
 
 #include <shared.h>
 
-typedef struct
+typedef struct ADLOD6MemClockState_
 {
   ADLOD6StateInfo state;
   ADLOD6PerformanceLevel level;

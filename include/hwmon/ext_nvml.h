@@ -203,7 +203,7 @@ typedef void *NVML_LIB;
 typedef HINSTANCE NVML_LIB;
 #endif
 
-typedef struct
+typedef struct hm_nvml_lib_t_
 {
   NVML_LIB lib;
 
@@ -230,7 +230,7 @@ typedef struct
 
 } hm_nvml_lib_t;
 
-#define NVML_PTR hm_nvml_lib_t
+typedef hm_nvml_lib_t NVML_PTR;
 
 int nvml_init(NVML_PTR *lib);
 void nvml_close(NVML_PTR *lib);

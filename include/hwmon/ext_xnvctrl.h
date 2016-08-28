@@ -66,7 +66,7 @@ typedef int HM_ADAPTER_XNVCTRL;
 typedef int(*XNVCTRL_API_CALL XNVCTRLQUERYTARGETATTRIBUTE) (void *, int, int, unsigned int, unsigned int, int *);
 typedef void(*XNVCTRL_API_CALL XNVCTRLSETTARGETATTRIBUTE)   (void *, int, int, unsigned int, unsigned int, int);
 
-typedef struct
+typedef struct hm_xnvctrl_lib_t_
 {
   void *dpy;
 
@@ -81,7 +81,7 @@ typedef struct
 
 } hm_xnvctrl_lib_t;
 
-#define XNVCTRL_PTR hm_xnvctrl_lib_t
+typedef hm_xnvctrl_lib_t XNVCTRL_PTR;
 
 int  xnvctrl_init(XNVCTRL_PTR *xnvctrl);
 void xnvctrl_close(XNVCTRL_PTR *xnvctrl);

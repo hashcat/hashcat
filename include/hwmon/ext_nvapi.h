@@ -173,7 +173,7 @@ typedef enum _NvAPI_Status
   NVAPI_FIRMWARE_REVISION_NOT_SUPPORTED = -200,    // The device's firmware is not supported.
 } NvAPI_Status;
 
-typedef struct
+typedef struct NV_GPU_PERF_POLICIES_INFO_PARAMS_V1_
 {
   // total size (of memset) is always: 76 = 0x4c
 
@@ -186,7 +186,7 @@ typedef struct
 
 } NV_GPU_PERF_POLICIES_INFO_PARAMS_V1;
 
-typedef struct
+typedef struct NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1_
 {
   // total size (of memset) is always: 1360 = 0x550
 
@@ -202,14 +202,14 @@ typedef struct
 
 } NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1;
 
-typedef struct
+typedef struct NvLevel_
 {
   NvS32 Level;
   NvS32 Policy;
 
 } NvLevel;
 
-typedef struct
+typedef struct NV_GPU_COOLER_LEVELS_
 {
   NvU32    Version;
   NvLevel  Levels[NVAPI_MAX_COOLER_PER_GPU];
@@ -257,7 +257,7 @@ typedef int(*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESSTATUS) (NvPhysicalGpuHandl
 typedef int(*NVAPI_API_CALL NVAPI_GPU_SETCOOLERLEVELS) (NvPhysicalGpuHandle, NvU32, NV_GPU_COOLER_LEVELS *);
 typedef int(*NVAPI_API_CALL NVAPI_GPU_RESTORECOOLERSETTINGS) (NvPhysicalGpuHandle, NvU32);
 
-typedef struct
+typedef struct hm_nvapi_lib_t_
 {
   NVAPI_LIB lib;
 
@@ -273,7 +273,7 @@ typedef struct
 
 } hm_nvapi_lib_t;
 
-#define NVAPI_PTR hm_nvapi_lib_t
+typedef hm_nvapi_lib_t NVAPI_PTR;
 
 int nvapi_init(NVAPI_PTR *nvapi);
 void nvapi_close(NVAPI_PTR *nvapi);
