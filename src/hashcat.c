@@ -1,10 +1,10 @@
 /**
-* Authors.....: Jens Steube <jens.steube@gmail.com>
-*               Gabriele Gristina <matrix@hashcat.net>
-*               magnum <john.magnum@hushmail.com>
-*
-* License.....: MIT
-*/
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *               magnum <john.magnum@hushmail.com>
+ *
+ * License.....: MIT
+ */
 
 #ifdef __APPLE__
 #include <stdio.h>
@@ -47,11 +47,11 @@
 #include <check_hash.h>
 #include <hlfmt.h>
 
-const char *PROGNAME = "hashcat";
-const uint  VERSION_BIN = 310;
 const uint  RESTORE_MIN = 300;
 
 double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
+
+hc_global_data_t data;
 
 typedef enum INCR_ {
   INCR_RULES = 10000,
@@ -128,29 +128,22 @@ static const char RULE_BUF_L[] = ":";
 static const char RULE_BUF_R[] = ":";
 static const char SEPARATOR = ':';
 
-#define MIN(a,b) (((a) < (b)) ? (a) : (b))
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
-
-#define MAX_CUT_TRIES           4
-
-#define MAX_DICTSTAT            10000
-
 
 #define NVIDIA_100PERCENTCPU_WORKAROUND 100
 
 #define global_free(attr)       \
-  {                               \
-    myfree ((void *) data.attr);  \
-    \
-    data.attr = NULL;             \
-  }
+{                               \
+  myfree ((void *) data.attr);  \
+                                \
+  data.attr = NULL;             \
+}
 
 #define local_free(attr)  \
-  {                         \
-    myfree ((void *) attr); \
-    \
-    attr = NULL;            \
-  }
+{                         \
+  myfree ((void *) attr); \
+                          \
+  attr = NULL;            \
+}
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
 #define HC_API_CALL __stdcall
@@ -161,13 +154,14 @@ static const char SEPARATOR = ':';
 #include <default_benchmark_algorithms.h>
 
 /**
-* types
-*/
+ * types
+ */
+
 static void(*get_next_word_func) (char *, u32, u32 *, u32 *);
 
 /**
-* globals
-*/
+ * globals
+ */
 
 static unsigned int full01 = 0x01010101;
 static unsigned int full80 = 0x80808080;
@@ -185,8 +179,8 @@ const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => 
 
 #include <consts/help_texts.h>
 /**
-* hashcat specific functions
-*/
+ * hashcat specific functions
+ */
 
 
 static double get_avg_exec_time(hc_device_param_t *device_param, const int last_num_entries)
@@ -261,8 +255,7 @@ static void status_benchmark_automate()
 
 static void status_benchmark()
 {
-  if (data.devices_status == STATUS_INIT ||
-    data.devices_status == STATUS_STARTING) return;
+  if (data.devices_status == STATUS_INIT || data.devices_status == STATUS_STARTING)     return;
 
   if (data.shutdown_inner == 1) return;
 
@@ -555,7 +548,7 @@ static int check_cracked(hc_device_param_t *device_param, const uint salt_pos)
 
 // stolen from princeprocessor ;)
 
-typedef struct
+typedef struct out_t_
 {
   FILE *fp;
 
@@ -1995,7 +1988,12 @@ static int run_cracker(hc_device_param_t *device_param, const uint pws_cnt)
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-      if (data.devices_status == STATUS_CRACKED || data.devices_status == STATUS_ABORTED || data.devices_status == STATUS_QUIT || data.devices_status == STATUS_BYPASS) break;
+      if (data.devices_status == STATUS_CRACKED ||
+        data.devices_status == STATUS_ABORTED ||
+        data.devices_status == STATUS_QUIT ||
+        data.devices_status == STATUS_BYPASS
+        )
+        break;
 
       uint fast_iteration = 0;
 
@@ -2222,7 +2220,8 @@ static int run_cracker(hc_device_param_t *device_param, const uint pws_cnt)
         data.devices_status == STATUS_ABORTED ||
         data.devices_status == STATUS_QUIT ||
         data.devices_status == STATUS_BYPASS
-        ) break;
+        )
+        break;
 
       /**
        * result
@@ -3447,10 +3446,12 @@ static void *thread_calc_stdin(void *p)
 
     hc_thread_mutex_unlock(mux_dispatcher);
 
-    if (data.devices_status == STATUS_CRACKED ||
+    if (
+      data.devices_status == STATUS_CRACKED ||
       data.devices_status == STATUS_ABORTED ||
       data.devices_status == STATUS_QUIT ||
-      data.devices_status == STATUS_BYPASS) break;
+      data.devices_status == STATUS_BYPASS
+      ) break;
 
     // flush
 
@@ -3526,10 +3527,12 @@ static void *thread_calc(void *p)
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-      if (data.devices_status == STATUS_CRACKED ||
+      if (
+        data.devices_status == STATUS_CRACKED ||
         data.devices_status == STATUS_ABORTED ||
         data.devices_status == STATUS_QUIT ||
-        data.devices_status == STATUS_BYPASS) break;
+        data.devices_status == STATUS_BYPASS
+        ) break;
 
       if (data.benchmark == 1) break;
 
@@ -3701,26 +3704,32 @@ static void *thread_calc(void *p)
 
           if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-          if (data.devices_status == STATUS_CRACKED ||
+          if (
+            data.devices_status == STATUS_CRACKED ||
             data.devices_status == STATUS_ABORTED ||
             data.devices_status == STATUS_QUIT ||
-            data.devices_status == STATUS_BYPASS) break;
+            data.devices_status == STATUS_BYPASS
+            ) break;
         }
 
         if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-        if (data.devices_status == STATUS_CRACKED ||
+        if (
+          data.devices_status == STATUS_CRACKED ||
           data.devices_status == STATUS_ABORTED ||
           data.devices_status == STATUS_QUIT ||
-          data.devices_status == STATUS_BYPASS) break;
+          data.devices_status == STATUS_BYPASS
+          ) break;
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-      if (data.devices_status == STATUS_CRACKED ||
+      if (
+        data.devices_status == STATUS_CRACKED ||
         data.devices_status == STATUS_ABORTED ||
         data.devices_status == STATUS_QUIT ||
-        data.devices_status == STATUS_BYPASS) break;
+        data.devices_status == STATUS_BYPASS
+        ) break;
 
       //
       // flush
@@ -3751,10 +3760,12 @@ static void *thread_calc(void *p)
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-      if (data.devices_status == STATUS_CRACKED ||
+      if (
+        data.devices_status == STATUS_CRACKED ||
         data.devices_status == STATUS_ABORTED ||
         data.devices_status == STATUS_QUIT ||
-        data.devices_status == STATUS_BYPASS) break;
+        data.devices_status == STATUS_BYPASS
+        ) break;
 
       if (words_fin == 0) break;
 
@@ -3863,12 +3874,12 @@ static void weak_hash_check(hc_device_param_t *device_param, const uint salt_pos
 
 #include "hlfmt.h"
 
+
 /**
  * some further helper function
  */
 
  // wrapper around mymalloc for ADL
-
 #if defined(HAVE_HWMON)
 void *HC_API_CALL ADL_Main_Memory_Alloc(const int iSize)
 {
@@ -4428,7 +4439,7 @@ int main(int argc, char **argv)
 
   snprintf(cpath, sizeof(cpath) - 1, "%s\\OpenCL\\", shared_dir);
 
-  char *cpath_real = mymalloc(MAX_PATH);
+  char *cpath_real = (char *)mymalloc(MAX_PATH);
 
   if (GetFullPathName(cpath, MAX_PATH, cpath_real, NULL) == 0)
   {
@@ -4441,7 +4452,7 @@ int main(int argc, char **argv)
 
   snprintf(cpath, sizeof(cpath) - 1, "%s/OpenCL/", shared_dir);
 
-  char *cpath_real = mymalloc(PATH_MAX);
+  char *cpath_real = (char *)mymalloc(PATH_MAX);
 
   if (realpath(cpath, cpath_real) == NULL)
   {
@@ -5464,19 +5475,6 @@ int main(int argc, char **argv)
     data.topid = topid;
   }
 
-  // logfile_append() checks for logfile_disable internally to make it easier from here
-
-#define logfile_top_msg(msg)            logfile_append ("%s\t%s",           data.topid,             (msg));
-#define logfile_sub_msg(msg)            logfile_append ("%s\t%s\t%s",       data.topid, data.subid, (msg));
-#define logfile_top_var_uint64(var,val) logfile_append ("%s\t%s\t%llu",     data.topid,             (var), (val));
-#define logfile_sub_var_uint64(var,val) logfile_append ("%s\t%s\t%s\t%llu", data.topid, data.subid, (var), (val));
-#define logfile_top_var_uint(var,val)   logfile_append ("%s\t%s\t%u",       data.topid,             (var), (val));
-#define logfile_sub_var_uint(var,val)   logfile_append ("%s\t%s\t%s\t%u",   data.topid, data.subid, (var), (val));
-#define logfile_top_var_char(var,val)   logfile_append ("%s\t%s\t%c",       data.topid,             (var), (val));
-#define logfile_sub_var_char(var,val)   logfile_append ("%s\t%s\t%s\t%c",   data.topid, data.subid, (var), (val));
-#define logfile_top_var_string(var,val) if ((val) != NULL) logfile_append ("%s\t%s\t%s",       data.topid,             (var), (val));
-#define logfile_sub_var_string(var,val) if ((val) != NULL) logfile_append ("%s\t%s\t%s\t%s",   data.topid, data.subid, (var), (val));
-
 #define logfile_top_uint64(var)         logfile_top_var_uint64 (#var, (var));
 #define logfile_sub_uint64(var)         logfile_sub_var_uint64 (#var, (var));
 #define logfile_top_uint(var)           logfile_top_var_uint   (#var, (var));
@@ -5710,7 +5708,7 @@ int main(int argc, char **argv)
 
   if (benchmark == 1 && hash_mode_chgd == 0) algorithm_max = NUM_DEFAULT_BENCHMARK_ALGORITHMS;
 
-  for (algorithm_pos = 0; algorithm_pos < algorithm_max; algorithm_pos++)
+  for (algorithm_pos = 0; algorithm_pos < algorithm_max; ++algorithm_pos)
   {
     /*
      * We need to reset 'rd' in benchmark mode otherwise when the user hits 'bypass'
@@ -11116,7 +11114,7 @@ int main(int argc, char **argv)
           fclose(tmp_hashfile_fp);
         }
 
-        if (tmp_outfile_fp && tmp_outfile_fp)
+        if (tmp_outfile_fp)
         {
           tmpstat_outfile.st_mode = 0;
           tmpstat_outfile.st_nlink = 0;
@@ -12614,7 +12612,7 @@ int main(int argc, char **argv)
           return -1;
         }
 
-        char *device_extensions = mymalloc(device_extensions_size + 1);
+        char *device_extensions = (char*)mymalloc(device_extensions_size + 1);
 
         CL_err = hc_clGetDeviceInfo(data.ocl, device_param->device, CL_DEVICE_EXTENSIONS, device_extensions_size, device_extensions, NULL);
 
@@ -14114,12 +14112,15 @@ int main(int argc, char **argv)
 
       char build_opts_new[1024] = { 0 };
 
+      snprintf(
+        build_opts_new, sizeof(build_opts_new) - 1,
 #ifdef DEBUG
-      snprintf(build_opts_new, sizeof(build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32)device_param->device_type, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, data.dgst_size / 4, kern_type);
+        "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1",
 #else
-      snprintf(build_opts_new, sizeof(build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1 -w", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32)device_param->device_type, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, data.dgst_size / 4, kern_type);
+        "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1 -w",
 #endif
-
+        build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32)device_param->device_type, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, data.dgst_size / 4, kern_type
+        );
       strncpy(build_opts, build_opts_new, sizeof(build_opts));
 
 #ifdef DEBUG
@@ -14214,12 +14215,13 @@ int main(int argc, char **argv)
 
             hc_clGetProgramBuildInfo(data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
+
+            if (
 #ifdef DEBUG
-            if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
-#else
-            if (CL_err != CL_SUCCESS)
+              (build_log_size != 0) ||
 #endif
-            {
+              (CL_err != CL_SUCCESS)
+              ) {
               char *build_log = (char *)mymalloc(build_log_size + 1);
 
               CL_err = hc_clGetProgramBuildInfo(data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
@@ -14354,12 +14356,13 @@ int main(int argc, char **argv)
 
           hc_clGetProgramBuildInfo(data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
+
+          if (
 #ifdef DEBUG
-          if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
-#else
-          if (CL_err != CL_SUCCESS)
+            (build_log_size != 0) ||
 #endif
-          {
+            (CL_err != CL_SUCCESS)
+            ) {
             char *build_log = (char *)mymalloc(build_log_size + 1);
 
             CL_err = hc_clGetProgramBuildInfo(data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
@@ -14477,12 +14480,12 @@ int main(int argc, char **argv)
 
           hc_clGetProgramBuildInfo(data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
+          if (
 #ifdef DEBUG
-          if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
-#else
-          if (CL_err != CL_SUCCESS)
+            (build_log_size != 0) ||
 #endif
-          {
+            (CL_err != CL_SUCCESS)
+            ) {
             char *build_log = (char *)mymalloc(build_log_size + 1);
 
             CL_err = hc_clGetProgramBuildInfo(data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
@@ -14658,12 +14661,13 @@ int main(int argc, char **argv)
 
           hc_clGetProgramBuildInfo(data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
+
+          if (
 #ifdef DEBUG
-          if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
-#else
-          if (CL_err != CL_SUCCESS)
+            (build_log_size != 0) ||
 #endif
-          {
+            (CL_err != CL_SUCCESS)
+            ) {
             char *build_log = (char *)mymalloc(build_log_size + 1);
 
             CL_err = hc_clGetProgramBuildInfo(data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
@@ -16711,7 +16715,7 @@ int main(int argc, char **argv)
               local_free(dictfiles[i]);
             }
 
-            for (uint pw_len = MAX(1, pw_min); pw_len <= pw_max; pw_len++)
+            for (uint pw_len = MAX(1, pw_min); pw_len <= pw_max; ++pw_len)
             {
               char *l1_filename = mp_get_truncated_mask(mask, strlen(mask), pw_len);
 
@@ -16771,10 +16775,10 @@ int main(int argc, char **argv)
         }
       }
 
+
       /**
        * prevent the user from using --keyspace together w/ maskfile and or dictfile
        */
-
       if (keyspace == 1)
       {
         if ((maskcnt > 1) || (dictcnt > 1))
@@ -16787,9 +16791,11 @@ int main(int argc, char **argv)
 
       for (uint dictpos = rd->dictpos; dictpos < dictcnt; dictpos++)
       {
-        if (data.devices_status == STATUS_CRACKED ||
+        if (
+          data.devices_status == STATUS_CRACKED ||
           data.devices_status == STATUS_ABORTED ||
-          data.devices_status == STATUS_QUIT) continue;
+          data.devices_status == STATUS_QUIT
+          ) continue;
 
         rd->dictpos = dictpos;
 
@@ -17568,14 +17574,18 @@ int main(int argc, char **argv)
 
         // finalize task
 
-        if (data.devices_status == STATUS_CRACKED ||
+        if (
+          data.devices_status == STATUS_CRACKED ||
           data.devices_status == STATUS_ABORTED ||
-          data.devices_status == STATUS_QUIT) break;
+          data.devices_status == STATUS_QUIT
+          ) break;
       }
 
-      if (data.devices_status == STATUS_CRACKED ||
+      if (
+        data.devices_status == STATUS_CRACKED ||
         data.devices_status == STATUS_ABORTED ||
-        data.devices_status == STATUS_QUIT) break;
+        data.devices_status == STATUS_QUIT
+        ) break;
     }
 
     // problems could occur if already at startup everything was cracked (because of .pot file reading etc), we must set some variables here to avoid NULL pointers
@@ -17999,7 +18009,7 @@ int main(int argc, char **argv)
 
   data.shutdown_outer = 1;
 
-  for (uint thread_idx = 0; thread_idx < outer_threads_cnt; thread_idx++)
+  for (uint thread_idx = 0; thread_idx < outer_threads_cnt; ++thread_idx)
   {
     hc_thread_wait(1, &outer_threads[thread_idx]);
   }
@@ -18097,9 +18107,11 @@ int main(int argc, char **argv)
 
   if (data.ocl) ocl_close(data.ocl);
 
-  if (data.devices_status == STATUS_ABORTED ||
+  if (
+    data.devices_status == STATUS_ABORTED ||
     data.devices_status == STATUS_QUIT ||
-    data.devices_status == STATUS_STOP_AT_CHECKPOINT) return 2;
+    data.devices_status == STATUS_STOP_AT_CHECKPOINT
+    ) return 2;
   if (data.devices_status == STATUS_EXHAUSTED)          return 1;
   if (data.devices_status == STATUS_CRACKED)            return 0;
 
