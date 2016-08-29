@@ -232,8 +232,8 @@ static void status_benchmark_automate()
 
 static void status_benchmark()
 {
-  if (data.devices_status == STATUS_INIT)     return;
-  if (data.devices_status == STATUS_STARTING) return;
+  if (data.devices_status == STATUS_INIT ||
+    data.devices_status == STATUS_STARTING) return;
 
   if (data.shutdown_inner == 1) return;
 
@@ -3372,10 +3372,10 @@ static void *thread_calc_stdin(void *p)
 
     hc_thread_mutex_unlock(mux_dispatcher);
 
-    if (data.devices_status == STATUS_CRACKED) break;
-    if (data.devices_status == STATUS_ABORTED) break;
-    if (data.devices_status == STATUS_QUIT)    break;
-    if (data.devices_status == STATUS_BYPASS)  break;
+    if (data.devices_status == STATUS_CRACKED ||
+      data.devices_status == STATUS_ABORTED ||
+      data.devices_status == STATUS_QUIT ||
+      data.devices_status == STATUS_BYPASS) break;
 
     // flush
 
@@ -3393,11 +3393,11 @@ static void *thread_calc_stdin(void *p)
 still required?
 if (attack_kern == ATTACK_KERN_STRAIGHT)
 {
-  run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
+run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
 }
 else if (attack_kern == ATTACK_KERN_COMBI)
 {
-  run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
+run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
 }
 */
     }
@@ -3451,10 +3451,10 @@ run_kernel_bzero (device_param, device_param->d_bfs_c, device_param->size_bfs);
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (data.devices_status == STATUS_CRACKED ||
+        data.devices_status == STATUS_ABORTED ||
+        data.devices_status == STATUS_QUIT ||
+        data.devices_status == STATUS_BYPASS) break;
 
       if (data.benchmark == 1) break;
 
@@ -3626,26 +3626,26 @@ run_kernel_bzero (device_param, device_param->d_bfs_c, device_param->size_bfs);
 
           if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-          if (data.devices_status == STATUS_CRACKED) break;
-          if (data.devices_status == STATUS_ABORTED) break;
-          if (data.devices_status == STATUS_QUIT)    break;
-          if (data.devices_status == STATUS_BYPASS)  break;
+          if (data.devices_status == STATUS_CRACKED ||
+            data.devices_status == STATUS_ABORTED ||
+            data.devices_status == STATUS_QUIT ||
+            data.devices_status == STATUS_BYPASS) break;
         }
 
         if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-        if (data.devices_status == STATUS_CRACKED) break;
-        if (data.devices_status == STATUS_ABORTED) break;
-        if (data.devices_status == STATUS_QUIT)    break;
-        if (data.devices_status == STATUS_BYPASS)  break;
+        if (data.devices_status == STATUS_CRACKED ||
+          data.devices_status == STATUS_ABORTED ||
+          data.devices_status == STATUS_QUIT ||
+          data.devices_status == STATUS_BYPASS) break;
       }
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (data.devices_status == STATUS_CRACKED ||
+        data.devices_status == STATUS_ABORTED ||
+        data.devices_status == STATUS_QUIT ||
+        data.devices_status == STATUS_BYPASS) break;
 
       //
       // flush
@@ -3676,10 +3676,10 @@ run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_comb
 
       if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint();
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (data.devices_status == STATUS_CRACKED ||
+        data.devices_status == STATUS_ABORTED ||
+        data.devices_status == STATUS_QUIT ||
+        data.devices_status == STATUS_BYPASS) break;
 
       if (words_fin == 0) break;
 
@@ -9652,7 +9652,7 @@ int main(int argc, char **argv)
         if (tmpstat.st_mtime < COMPTIME)
         {
           /* with v0.15 the format changed so we have to ensure user is using a good version
-    since there is no version-header in the dictstat file */
+since there is no version-header in the dictstat file */
 
           fclose(dictstat_fp);
 
@@ -12740,11 +12740,11 @@ continue;
               if (data.attack_mode == ATTACK_MODE_STRAIGHT)
               {
                 /**
-      * the workaround is not a friend of rule based attacks
-      * the words from the wordlist combined with fast and slow rules cause
-      * fluctuations which cause inaccurate wait time estimations
-      * using a reduced damping percentage almost compensates this
-      */
+* the workaround is not a friend of rule based attacks
+* the words from the wordlist combined with fast and slow rules cause
+* fluctuations which cause inaccurate wait time estimations
+* using a reduced damping percentage almost compensates this
+*/
 
                 device_param->nvidia_spin_damp = 64;
               }
@@ -12843,26 +12843,26 @@ continue;
           }
 
           /* turns out pocl still creates segfaults (because of llvm)
-    if (device_type & CL_DEVICE_TYPE_CPU)
-    {
-    if (platform_vendor_id == VENDOR_ID_AMD)
-    {
-    if (force == 0)
-    {
-    log_info ("");
-    log_info ("ATTENTION! OpenCL support for CPU of catalyst driver is not reliable.");
-    log_info ("You are STRONGLY encouraged not to use it");
-    log_info ("You can use --force to override this but do not post error reports if you do so");
-    log_info ("A good alternative is the free pocl >= v0.13, but make sure to use a LLVM >= v3.8");
-    log_info ("");
+if (device_type & CL_DEVICE_TYPE_CPU)
+{
+if (platform_vendor_id == VENDOR_ID_AMD)
+{
+if (force == 0)
+{
+log_info ("");
+log_info ("ATTENTION! OpenCL support for CPU of catalyst driver is not reliable.");
+log_info ("You are STRONGLY encouraged not to use it");
+log_info ("You can use --force to override this but do not post error reports if you do so");
+log_info ("A good alternative is the free pocl >= v0.13, but make sure to use a LLVM >= v3.8");
+log_info ("");
 
-    return -1;
-    }
-    }
-    }
-    */
+return -1;
+}
+}
+}
+*/
 
-    /**
+/**
 * kernel accel and loops tuning db adjustment
 */
 
@@ -12916,8 +12916,8 @@ continue;
           }
 
           /**
-    * activate device
-    */
+* activate device
+*/
 
           devices_active++;
         }
@@ -13285,12 +13285,12 @@ continue;
         if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
         {
           /**
-    * Temporary fix:
-    * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
-    * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
-    * were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
-    * Driver / ADL bug?
-    */
+* Temporary fix:
+* with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
+* otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
+* were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
+* Driver / ADL bug?
+*/
 
           if (data.hm_device[device_id].od_version == 6)
           {
@@ -13945,9 +13945,9 @@ continue;
       /*
 if (kernel_accel_max < kernel_accel)
 {
-  if (quiet == 0) log_info ("- Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
+if (quiet == 0) log_info ("- Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
 
-  device_param->kernel_accel = kernel_accel_max;
+device_param->kernel_accel = kernel_accel_max;
 }
 */
 
@@ -14120,15 +14120,15 @@ if (kernel_accel_max < kernel_accel)
             size_t build_log_size = 0;
 
             /*
-    CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-    if (CL_err != CL_SUCCESS)
-    {
-      log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+if (CL_err != CL_SUCCESS)
+{
+log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
 
-      return -1;
-    }
-    */
+return -1;
+}
+*/
 
             hc_clGetProgramBuildInfo(data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
@@ -14260,15 +14260,15 @@ if (kernel_accel_max < kernel_accel)
           size_t build_log_size = 0;
 
           /*
-    CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-    if (CL_err != CL_SUCCESS)
-    {
-    log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+if (CL_err != CL_SUCCESS)
+{
+log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
 
-    return -1;
-    }
-    */
+return -1;
+}
+*/
 
           hc_clGetProgramBuildInfo(data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
@@ -14383,15 +14383,15 @@ if (kernel_accel_max < kernel_accel)
           size_t build_log_size = 0;
 
           /*
-    CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-    if (CL_err != CL_SUCCESS)
-    {
-    log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+if (CL_err != CL_SUCCESS)
+{
+log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
 
-    return -1;
-    }
-    */
+return -1;
+}
+*/
 
           hc_clGetProgramBuildInfo(data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
@@ -14564,15 +14564,15 @@ if (kernel_accel_max < kernel_accel)
           size_t build_log_size = 0;
 
           /*
-    CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
+CL_err = hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-    if (CL_err != CL_SUCCESS)
-    {
-    log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
+if (CL_err != CL_SUCCESS)
+{
+log_error ("ERROR: clGetProgramBuildInfo(): %s\n", val2cstr_cl (CL_err));
 
-    return -1;
-    }
-    */
+return -1;
+}
+*/
 
           hc_clGetProgramBuildInfo(data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
@@ -16491,12 +16491,12 @@ if (kernel_accel_max < kernel_accel)
           }
 
           /**
-    * What follows is a very special case where "\," is within the mask field of a line in a .hcmask file only because otherwise (without the "\")
-    * it would be interpreted as a custom charset definition.
-    *
-    * We need to replace all "\," with just "," within the mask (but allow the special case "\\," which means "\" followed by ",")
-    * Note: "\\" is not needed to replace all "\" within the mask! The meaning of "\\" within a line containing the string "\\," is just to allow "\" followed by ","
-    */
+* What follows is a very special case where "\," is within the mask field of a line in a .hcmask file only because otherwise (without the "\")
+* it would be interpreted as a custom charset definition.
+*
+* We need to replace all "\," with just "," within the mask (but allow the special case "\\," which means "\" followed by ",")
+* Note: "\\" is not needed to replace all "\" within the mask! The meaning of "\\" within a line containing the string "\\," is just to allow "\" followed by ","
+*/
 
           uint mask_len_cur = strlen(mask);
 
@@ -16705,9 +16705,9 @@ if (kernel_accel_max < kernel_accel)
 
       for (uint dictpos = rd->dictpos; dictpos < dictcnt; dictpos++)
       {
-        if (data.devices_status == STATUS_CRACKED) continue;
-        if (data.devices_status == STATUS_ABORTED) continue;
-        if (data.devices_status == STATUS_QUIT)    continue;
+        if (data.devices_status == STATUS_CRACKED ||
+          data.devices_status == STATUS_ABORTED ||
+          data.devices_status == STATUS_QUIT) continue;
 
         rd->dictpos = dictpos;
 
@@ -17080,17 +17080,17 @@ if (kernel_accel_max < kernel_accel)
             css_cnt_r = 1;
 
             /* unfinished code?
-      int sum = css_buf[css_cnt_r - 1].cs_len;
+int sum = css_buf[css_cnt_r - 1].cs_len;
 
-      for (uint i = 1; i < 4 && i < css_cnt; i++)
-      {
-      if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
+for (uint i = 1; i < 4 && i < css_cnt; i++)
+{
+if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
 
-      css_cnt_r++;
+css_cnt_r++;
 
-      sum *= css_buf[css_cnt_r - 1].cs_len;
-      }
-      */
+sum *= css_buf[css_cnt_r - 1].cs_len;
+}
+*/
           }
 
           css_cnt_l -= css_cnt_r;
@@ -17471,14 +17471,14 @@ if (kernel_accel_max < kernel_accel)
 
         // finalize task
 
-        if (data.devices_status == STATUS_CRACKED) break;
-        if (data.devices_status == STATUS_ABORTED) break;
-        if (data.devices_status == STATUS_QUIT)    break;
+        if (data.devices_status == STATUS_CRACKED ||
+          data.devices_status == STATUS_ABORTED ||
+          data.devices_status == STATUS_QUIT) break;
       }
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
+      if (data.devices_status == STATUS_CRACKED ||
+        data.devices_status == STATUS_ABORTED ||
+        data.devices_status == STATUS_QUIT) break;
     }
 
     // problems could occur if already at startup everything was cracked (because of .pot file reading etc), we must set some variables here to avoid NULL pointers
@@ -18000,11 +18000,11 @@ if (kernel_accel_max < kernel_accel)
 
   if (data.ocl) ocl_close(data.ocl);
 
-  if (data.devices_status == STATUS_ABORTED)            return 2;
-  if (data.devices_status == STATUS_QUIT)               return 2;
-  if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) return 2;
-  if (data.devices_status == STATUS_EXHAUSTED)          return 1;
-  if (data.devices_status == STATUS_CRACKED)            return 0;
+  if (data.devices_status == STATUS_ABORTED ||
+    data.devices_status == STATUS_QUIT ||
+    data.devices_status == STATUS_STOP_AT_CHECKPOINT) return 2;
+  if (data.devices_status == STATUS_EXHAUSTED) return 1;
+  if (data.devices_status == STATUS_CRACKED) return 0;
 
   return -1;
 }
