@@ -3238,7 +3238,7 @@ BOOL WINAPI sigHandler_benchmark(DWORD sig)
   return FALSE;
 }
 
-void hc_signal(BOOL WINAPI(callback) (DWORD))
+void hc_signal(winapi_callback callback)
 {
   if (callback == NULL)
   {
