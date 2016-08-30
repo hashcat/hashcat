@@ -5,7 +5,7 @@
 #pragma once
 #ifndef TYPES_H
 #define TYPES_H
- //#include "shared.h"
+#include "common.h"
 #include "brute_targets.h"
 
 #ifdef _WIN
@@ -279,9 +279,6 @@ typedef struct tuning_db_t_
   int                entry_cnt;
 
 } tuning_db_t;
-
-#include "hc_device_param_t.h"
-#include "hc_global_data_t.h"
 
 #endif
 
