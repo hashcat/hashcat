@@ -1,4 +1,4 @@
-#include <filenames_generators.h>
+#include "filenames_generators.h"
 
 static void generate_source_kernel_filename(const uint attack_exec, const uint attack_kern, const uint kern_type, char *shared_dir, char *source_file)
 {
