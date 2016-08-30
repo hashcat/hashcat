@@ -397,35 +397,7 @@ static uint convert_from_hex(char *line_buf, const uint line_len)
   return (line_len);
 }
 
-static void clear_prompt()
-{
-  fputc('\r', stdout);
 
-  for (size_t i = 0; i < strlen(PROMPT); i++)
-  {
-    fputc(' ', stdout);
-  }
-
-  fputc('\r', stdout);
-
-  fflush(stdout);
-}
-
-static int gidd_to_pw_t(hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
-{
-  cl_int CL_err = hc_clEnqueueReadBuffer(data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, gidd * sizeof(pw_t), sizeof(pw_t), pw, 0, NULL, NULL);
-
-  if (CL_err != CL_SUCCESS)
-  {
-    log_error("ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl(CL_err));
-
-    return -1;
-  }
-
-  return 0;
-}
-
-#include <check_hash.h>
 
 static int check_cracked(hc_device_param_t *device_param, const uint salt_pos)
 {
