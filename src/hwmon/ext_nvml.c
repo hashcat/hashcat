@@ -12,9 +12,9 @@
 #include <hc_global_data_t.h>
 #include <hc_global.h>
 
-nvmlReturn_t nvml_init(NVML_PTR *nvml)
+int nvml_init(NVML_PTR *nvml)
 {
-  if (!nvml) return (nvmlReturn_t)-1;
+  if (!nvml) return -1;
 
   memset(nvml, 0, sizeof(NVML_PTR));
 
