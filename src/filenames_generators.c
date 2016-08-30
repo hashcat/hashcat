@@ -4,12 +4,17 @@ static void generate_source_kernel_filename(const ATTACK_EXEC_SIDE_KERNEL attack
 {
   if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    if (attack_kern == ATTACK_KERN_STRAIGHT)
+    switch (attack_kern) {
+    case ATTACK_KERN_STRAIGHT:
       snprintf(source_file, 255, "%s/OpenCL/m%05d_a0.cl", shared_dir, (int)kern_type);
-    else if (attack_kern == ATTACK_KERN_COMBI)
+      break;
+    case ATTACK_KERN_COMBI:
       snprintf(source_file, 255, "%s/OpenCL/m%05d_a1.cl", shared_dir, (int)kern_type);
-    else if (attack_kern == ATTACK_KERN_BF)
+      break;
+    case ATTACK_KERN_BF:
       snprintf(source_file, 255, "%s/OpenCL/m%05d_a3.cl", shared_dir, (int)kern_type);
+      break;
+    }
   }
   else
     snprintf(source_file, 255, "%s/OpenCL/m%05d.cl", shared_dir, (int)kern_type);
@@ -19,12 +24,17 @@ static void generate_cached_kernel_filename(const ATTACK_EXEC_SIDE_KERNEL attack
 {
   if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    if (attack_kern == ATTACK_KERN_STRAIGHT)
+    switch (attack_kern) {
+    case ATTACK_KERN_STRAIGHT:
       snprintf(cached_file, 255, "%s/kernels/m%05d_a0.%s.kernel", profile_dir, (int)kern_type, device_name_chksum);
-    else if (attack_kern == ATTACK_KERN_COMBI)
+      break;
+    case ATTACK_KERN_COMBI:
       snprintf(cached_file, 255, "%s/kernels/m%05d_a1.%s.kernel", profile_dir, (int)kern_type, device_name_chksum);
-    else if (attack_kern == ATTACK_KERN_BF)
+      break;
+    case ATTACK_KERN_BF:
       snprintf(cached_file, 255, "%s/kernels/m%05d_a3.%s.kernel", profile_dir, (int)kern_type, device_name_chksum);
+      break;
+    }
   }
   else
   {
