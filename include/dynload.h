@@ -4,24 +4,31 @@
 */
 #include "config.h"
 #include "common.h"
+
 #ifdef _WIN
+HMODULE hc_dlopen(LPCSTR lpLibFileName);
 inline HMODULE hc_dlopen(LPCSTR lpLibFileName) {
   return LoadLibraryA(lpLibFileName);
 }
+BOOL hc_dlclose(HMODULE hLibModule);
 inline BOOL hc_dlclose(HMODULE hLibModule){
   return FreeLibrary(hLibModule);
 }
+FARPROC hc_dlsym(HMODULE hModule, LPCSTR lpProcName);
 inline FARPROC hc_dlsym(HMODULE hModule, LPCSTR lpProcName) {
   return GetProcAddress(hModule, lpProcName);
 }
 #else
 #include <dlfcn.h>
+void * hc_dlopen(const char * fileName, int flag);
 inline void * hc_dlopen(const char * fileName, int flag) {
   return dlopen(fileName, flag);
 }
+void * hc_dlsym(void * module, const char * symbol);
 inline int hc_dlclose(void * handle){
   return dlclose(handle);
 }
+int hc_dlclose(void * handle);
 inline void * hc_dlsym(void * module, const char * symbol) {
   return dlsym(module, symbol);
 }
