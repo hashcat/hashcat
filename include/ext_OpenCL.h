@@ -9,7 +9,7 @@
 #ifndef EXT_OPENCL_H
 #define EXT_OPENCL_H
 
-#include <common.h>
+#include "common.h"
 
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
