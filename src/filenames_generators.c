@@ -1,6 +1,6 @@
 #include "filenames_generators.h"
 
-static void generate_source_kernel_filename(const uint attack_exec, const uint attack_kern, const uint kern_type, char *shared_dir, char *source_file)
+static void generate_source_kernel_filename(const ATTACK_EXEC_SIDE_KERNEL attack_exec, const ATTACK_KERN attack_kern, const uint kern_type, const char *shared_dir, char *source_file)
 {
   if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
@@ -15,7 +15,7 @@ static void generate_source_kernel_filename(const uint attack_exec, const uint a
     snprintf(source_file, 255, "%s/OpenCL/m%05d.cl", shared_dir, (int)kern_type);
 }
 
-static void generate_cached_kernel_filename(const uint attack_exec, const uint attack_kern, const uint kern_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
+static void generate_cached_kernel_filename(const ATTACK_EXEC_SIDE_KERNEL attack_exec, const ATTACK_KERN attack_kern, const uint kern_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
 {
   if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
@@ -32,7 +32,7 @@ static void generate_cached_kernel_filename(const uint attack_exec, const uint a
   }
 }
 
-static void generate_source_kernel_mp_filename(const uint opti_type, const uint opts_type, char *shared_dir, char *source_file)
+static void generate_source_kernel_mp_filename(const OPTI_TYPE opti_type, const OPTS_TYPE opts_type, char *shared_dir, char *source_file)
 {
   if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
   {
@@ -44,7 +44,7 @@ static void generate_source_kernel_mp_filename(const uint opti_type, const uint 
   }
 }
 
-static void generate_cached_kernel_mp_filename(const uint opti_type, const uint opts_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
+static void generate_cached_kernel_mp_filename(const OPTI_TYPE opti_type, const OPTS_TYPE opts_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
 {
   if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
   {
@@ -56,12 +56,12 @@ static void generate_cached_kernel_mp_filename(const uint opti_type, const uint 
   }
 }
 
-static void generate_source_kernel_amp_filename(const uint attack_kern, char *shared_dir, char *source_file)
+static void generate_source_kernel_amp_filename(const ATTACK_KERN attack_kern, char *shared_dir, char *source_file)
 {
   snprintf(source_file, 255, "%s/OpenCL/amp_a%d.cl", shared_dir, attack_kern);
 }
 
-static void generate_cached_kernel_amp_filename(const uint attack_kern, char *profile_dir, const char *device_name_chksum, char *cached_file)
+static void generate_cached_kernel_amp_filename(const ATTACK_KERN attack_kern, char *profile_dir, const char *device_name_chksum, char *cached_file)
 {
   snprintf(cached_file, 255, "%s/kernels/amp_a%d.%s.kernel", profile_dir, attack_kern, device_name_chksum);
 }
