@@ -3793,8 +3793,11 @@ static void weak_hash_check(hc_device_param_t *device_param, const uint salt_pos
 {
   if (!device_param)
   {
+#ifdef __cplusplus
     log_error("ERROR: %s : Invalid argument", __func__);
-
+#else
+    log_error("ERROR: %s : Invalid argument", __FUNCTION__);
+#endif
     exit(-1);
   }
 
