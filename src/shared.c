@@ -2422,7 +2422,7 @@ void ResumeThreads()
 
   double ms_paused;
 
-  hc_timer_get(data.timer_paused, ms_paused);
+  ms_paused = hc_timer_get(data.timer_paused);
 
   data.ms_paused += ms_paused;
 
