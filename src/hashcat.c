@@ -19,6 +19,8 @@
 #include <getopt.h>
 #include <bit_ops.h>
 #include <rp_kernel_on_cpu.h>
+#include <hc_global_data_t.h>
+#include <hc_global.h>
 #include <consts/hash_types.h>
 #include <consts/kernel_types.h>
 #include <consts/digest_sizes.h>
@@ -30,22 +32,23 @@
 #include <consts/optimizer_options.h>
 #include <consts/devices_vendors.h>
 #include <consts/hashcat_modes.h>
+#include <consts/help_texts.h>
+#include <cpu_rules.h>
 #include <cpu/cpu-md5.h>
 #include <converter.h>
-#include <cpu_rules.h>
 #include <logfile.h>
 #include <sort_by.h>
 #include <parse_hash.h>
+#include <check_hash.h>
 #include <mask_processor.h>
 #include <stat_processor.h>
 #include <logging.h>
-#include <hc_global_data_t.h>
-#include <hc_global.h>
 #include <hc_device_param_t.h>
 #include <status_display.h>
 #include <filenames_generators.h>
-#include <check_hash.h>
 #include <hlfmt.h>
+#include <default_benchmark_algorithms.h>
+#include <filenames_generators.h>
 
 const uint  RESTORE_MIN = 300;
 
@@ -151,7 +154,6 @@ static const char SEPARATOR = ':';
 #define HC_API_CALL
 #endif
 
-#include <default_benchmark_algorithms.h>
 
 /**
  * types
@@ -351,7 +353,6 @@ static void status_benchmark()
  * hashcat -only- functions
  */
 
-#include <filenames_generators.h>
 
 static uint convert_from_hex(char *line_buf, const uint line_len)
 {
@@ -3875,7 +3876,6 @@ static void weak_hash_check(hc_device_param_t *device_param, const uint salt_pos
   data.kernel_rules_buf[0].cmds[0] = cmd0_rule_old;
 }
 
-#include "hlfmt.h"
 
 
 /**
