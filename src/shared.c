@@ -1380,7 +1380,11 @@ void format_output(FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const 
   if (outfile_format & OUTFILE_FMT_CRACKPOS)
   {
 #ifdef _WIN
+#ifdef _MSC_VER
+    fprintf(out_fp, "%llu", crackpos);
+#else
     __mingw_fprintf(out_fp, "%llu", crackpos);
+#endif
 #endif
 
 #ifdef _POSIX
