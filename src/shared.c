@@ -2731,6 +2731,7 @@ void read_restore(const char *eff_restore_file, restore_data_t *rd)
   rd->argv = (char **)mycalloc(rd->argc, sizeof(char *));
 
   char *buf = (char *)mymalloc(HCBUFSIZ);
+  assert(buf);
 
   for (uint i = 0; i < rd->argc; ++i)
   {
