@@ -1433,8 +1433,8 @@ void handle_show_request(pot_t *pot, uint pot_cnt, char *input_buf, int input_le
   }
 }
 
-#define LM_WEAK_HASH    "\x4e\xcf\x0d\x0c\x0a\xe2\xfb\xc1"
-#define LM_MASKED_PLAIN "[notfound]"
+static const char LM_WEAK_HASH[] = "\x4e\xcf\x0d\x0c\x0a\xe2\xfb\xc1";
+static const char LM_MASKED_PLAIN[] = "[notfound]";
 
 void handle_show_request_lm(pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int(*sort_by_pot) (const void *, const void *), FILE *out_fp)
 {
