@@ -6148,6 +6148,8 @@ char *strhashtype (const uint hash_mode)
     case 13763: return ((char *) HT_13763);
     case 13800: return ((char *) HT_13800);
     case 13900: return ((char *) HT_13900);
+    case 14000: return ((char *) HT_14000);
+    case 14100: return ((char *) HT_14100);
   }
 
   return ((char *) "Unknown");
@@ -6201,6 +6203,10 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
 
     switch (hash_type)
     {
+      case HASH_TYPE_DES:
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+
       case HASH_TYPE_DESCRYPT:
         FP (digest_buf[1], digest_buf[0], tt);
         break;
@@ -8878,6 +8884,14 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
       digest_buf[6],
       digest_buf[7],
       buf);
+  }
+  else if (hash_mode == 14000)
+  {
+    snprintf (out_buf, len - 1, "%08x%08x:%s", digest_buf[0], digest_buf[1], (char *) salt.salt_buf);
+  }
+  else if (hash_mode == 14100)
+  {
+    snprintf (out_buf, len - 1, "%08x%08x:%s", digest_buf[0], digest_buf[1], (char *) salt.salt_buf);
   }
   else
   {
@@ -15092,6 +15106,61 @@ int racf_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   digest[0] = rotr32 (digest[0], 29);
   digest[1] = rotr32 (digest[1], 29);
+  digest[2] = 0;
+  digest[3] = 0;
+
+  return (PARSER_OK);
+}
+
+int des_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
+{
+  if ((input_len < DISPLAY_LEN_MIN_14000) || (input_len > DISPLAY_LEN_MAX_14000)) return (PARSER_GLOBAL_LENGTH);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  char *digest_pos = input_buf;
+
+  char *salt_pos = strchr (digest_pos, ':');
+
+  if (input_buf[16] != data.separator) return (PARSER_SEPARATOR_UNMATCHED);
+
+  uint salt_len = salt_pos - digest_pos;
+
+  if (salt_len != 16) return (PARSER_SALT_LENGTH);
+
+  uint hash_len = input_len - 1 - salt_len;
+
+  if (hash_len != 16) return (PARSER_HASH_LENGTH);
+
+  salt_pos++;
+
+  char *salt_buf_ptr = (char *) salt->salt_buf;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len = salt_len;
+
+  uint tt;
+
+  salt->salt_buf_pc[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf_pc[1] = byte_swap_32 (salt->salt_buf[1]);
+
+  IP (salt->salt_buf_pc[0], salt->salt_buf_pc[1], tt);
+
+  digest[0] = hex_to_u32 ((const u8 *) &digest_pos[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &digest_pos[ 8]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+
+  IP (digest[0], digest[1], tt);
+
+  digest[0] = digest[0];
+  digest[1] = digest[1];
   digest[2] = 0;
   digest[3] = 0;
 

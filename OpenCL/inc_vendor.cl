@@ -128,6 +128,12 @@
 #if KERN_TYPE == 13723
 #undef _unroll
 #endif
+#if KERN_TYPE == 14000
+#undef _unroll
+#endif
+#if KERN_TYPE == 14100
+#undef _unroll
+#endif
 
 #endif
 #endif

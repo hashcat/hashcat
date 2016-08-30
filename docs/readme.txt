@@ -45,6 +45,8 @@ NVidia users require NVidia drivers 346.59 or later (recommended 367.27 or later
 - SipHash
 - RipeMD160
 - Whirlpool
+- DES (PT = $salt, key = $pass)
+- 3DES (PT = $salt, key = $pass)
 - GOST R 34.11-94
 - GOST R 34.11-2012 (Streebog) 256-bit
 - GOST R 34.11-2012 (Streebog) 512-bit

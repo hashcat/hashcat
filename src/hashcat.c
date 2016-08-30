@@ -154,7 +154,7 @@ double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 
 #define MAX_DICTSTAT            10000
 
-#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 144
+#define NUM_DEFAULT_BENCHMARK_ALGORITHMS 146
 
 #define NVIDIA_100PERCENTCPU_WORKAROUND 100
 
@@ -194,6 +194,8 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   6900,
   11700,
   11800,
+  14000,
+  14100,
   400,
   8900,
   11900,
@@ -499,6 +501,8 @@ const char *USAGE_BIG[] =
   "   1460 | HMAC-SHA256 (key = $salt)                        | Raw Hash, Authenticated",
   "   1750 | HMAC-SHA512 (key = $pass)                        | Raw Hash, Authenticated",
   "   1760 | HMAC-SHA512 (key = $salt)                        | Raw Hash, Authenticated",
+  "  14000 | DES (PT = $salt, key = $pass)                    | Raw Cipher, Known-Plaintext attack",
+  "  14100 | 3DES (PT = $salt, key = $pass)                   | Raw Cipher, Known-Plaintext attack",
   "    400 | phpass                                           | Generic KDF",
   "   8900 | scrypt                                           | Generic KDF",
   "  11900 | PBKDF2-HMAC-MD5                                  | Generic KDF",
@@ -6999,7 +7003,7 @@ int main (int argc, char **argv)
     return -1;
   }
 
-  if (hash_mode_chgd && hash_mode > 13900) // just added to remove compiler warnings for hash_mode_chgd
+  if (hash_mode_chgd && hash_mode > 14100) // just added to remove compiler warnings for hash_mode_chgd
   {
     log_error ("ERROR: Invalid hash-type specified");
 
@@ -11794,6 +11798,43 @@ int main (int argc, char **argv)
                    dgst_pos3   = 1;
                    break;
 
+      case 14000:  hash_type   = HASH_TYPE_DES;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_PT_BITSLICE
+                               | OPTS_TYPE_ST_GENERATE_LE
+                               | OPTS_TYPE_ST_HEX;
+                   kern_type   = KERN_TYPE_DES;
+                   dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
+                   parse_func  = des_parse_hash;
+                   sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_PERMUT;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
+      case 14100:  hash_type   = HASH_TYPE_DES;
+                   salt_type   = SALT_TYPE_EMBEDDED;
+                   attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+                   opts_type   = OPTS_TYPE_PT_GENERATE_LE
+                               | OPTS_TYPE_ST_GENERATE_LE
+                               | OPTS_TYPE_ST_HEX;
+                   kern_type   = KERN_TYPE_3DES;
+                   dgst_size   = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
+                   parse_func  = des_parse_hash;
+                   sort_by_digest = sort_by_digest_4_4; // originally sort_by_digest_4_2
+                   opti_type   = OPTI_TYPE_ZERO_BYTE
+                               | OPTI_TYPE_PRECOMPUTE_PERMUT;
+                   dgst_pos0   = 0;
+                   dgst_pos1   = 1;
+                   dgst_pos2   = 2;
+                   dgst_pos3   = 3;
+                   break;
+
       default:     usage_mini_print (PROGNAME); return -1;
     }
 
@@ -12285,6 +12326,12 @@ int main (int argc, char **argv)
       case 12500: if (pw_max > 20) pw_max = 20;
                   break;
       case 12800: if (pw_max > 24) pw_max = 24;
+                  break;
+      case 14000: if (pw_min <  8) pw_min =  8;
+                  if (pw_max >  8) pw_max =  8;
+                  break;
+      case 14100: if (pw_min < 24) pw_min = 24;
+                  if (pw_max > 24) pw_max = 24;
                   break;
     }
 
@@ -12978,6 +13025,11 @@ int main (int argc, char **argv)
                       break;
           case 12600: hashes_buf[0].salt->salt_len = 64;
                       break;
+          case 14000: hashes_buf[0].salt->salt_len = 8;
+                      break;
+          case 14100: hashes_buf[0].salt->salt_len = 8;
+                      break;
+
         }
 
         // special esalt handling
@@ -15871,8 +15923,10 @@ int main (int argc, char **argv)
 
       if (hash_mode ==  1500) kernel_threads = 64; // DES
       if (hash_mode ==  3000) kernel_threads = 64; // DES
+      if (hash_mode ==  3100) kernel_threads = 64; // DES
       if (hash_mode ==  3200) kernel_threads = 8;  // Blowfish
       if (hash_mode ==  7500) kernel_threads = 64; // RC4
+      if (hash_mode ==  8500) kernel_threads = 64; // DES
       if (hash_mode ==  9000) kernel_threads = 8;  // Blowfish
       if (hash_mode ==  9700) kernel_threads = 64; // RC4
       if (hash_mode ==  9710) kernel_threads = 64; // RC4
@@ -15882,6 +15936,8 @@ int main (int argc, char **argv)
       if (hash_mode == 10410) kernel_threads = 64; // RC4
       if (hash_mode == 10500) kernel_threads = 64; // RC4
       if (hash_mode == 13100) kernel_threads = 64; // RC4
+      if (hash_mode == 14000) kernel_threads = 64; // DES
+      if (hash_mode == 14100) kernel_threads = 64; // DES
 
       device_param->kernel_threads = kernel_threads;
 
@@ -16065,6 +16121,22 @@ int main (int argc, char **argv)
       if (hash_mode == 12500)
       {
         const u32 kernel_loops_fixed = ROUNDS_RAR3 / 16;
+
+        device_param->kernel_loops_min = kernel_loops_fixed;
+        device_param->kernel_loops_max = kernel_loops_fixed;
+      }
+
+      if (hash_mode == 14000 && attack_mode == ATTACK_MODE_BF)
+      {
+        const u32 kernel_loops_fixed = 1024;
+
+        device_param->kernel_loops_min = kernel_loops_fixed;
+        device_param->kernel_loops_max = kernel_loops_fixed;
+      }
+
+      if (hash_mode == 14100 && attack_mode == ATTACK_MODE_BF)
+      {
+        const u32 kernel_loops_fixed = 1024;
 
         device_param->kernel_loops_min = kernel_loops_fixed;
         device_param->kernel_loops_max = kernel_loops_fixed;

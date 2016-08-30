@@ -370,6 +370,8 @@ extern hc_thread_mutex_t mux_display;
 #define HT_13600  "WinZip"
 #define HT_13800  "Windows 8+ phone PIN/Password"
 #define HT_13900  "OpenCart"
+#define HT_14000  "DES (PT = $salt, key = $pass)"
+#define HT_14100  "3DES (PT = $salt, key = $pass)"
 
 #define HT_00011  "Joomla < 2.5.18"
 #define HT_00012  "PostgreSQL"
@@ -736,6 +738,10 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MAX_13800  64 + 1 + 256
 #define DISPLAY_LEN_MIN_13900 40 + 1 + 9
 #define DISPLAY_LEN_MAX_13900 40 + 1 + 9
+#define DISPLAY_LEN_MIN_14000  16 + 1 + 16
+#define DISPLAY_LEN_MAX_14000  16 + 1 + 16
+#define DISPLAY_LEN_MIN_14100  16 + 1 + 16
+#define DISPLAY_LEN_MAX_14100  16 + 1 + 16
 
 #define DISPLAY_LEN_MIN_11    32 + 1 + 16
 #define DISPLAY_LEN_MAX_11    32 + 1 + 32
@@ -853,6 +859,7 @@ extern hc_thread_mutex_t mux_display;
 #define HASH_TYPE_RAR3HP         49
 #define HASH_TYPE_KRB5TGS        50
 #define HASH_TYPE_STDOUT         51
+#define HASH_TYPE_DES            52
 
 #define KERN_TYPE_MD5                 0
 #define KERN_TYPE_MD5_PWSLT           10
@@ -1009,6 +1016,8 @@ extern hc_thread_mutex_t mux_display;
 #define KERN_TYPE_ZIP2                13600
 #define KERN_TYPE_WIN8PHONE           13800
 #define KERN_TYPE_OPENCART            13900
+#define KERN_TYPE_DES                 14000
+#define KERN_TYPE_3DES                14100
 
 /**
  * signatures
@@ -1522,6 +1531,7 @@ int cisco4_parse_hash             (char *input_buf, uint input_len, hash_t *hash
 int dcc_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf);
 int dcc2_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf);
 int descrypt_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf);
+int des_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf);
 int episerver_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf);
 int ipb2_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf);
 int joomla_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf);
