@@ -1044,7 +1044,6 @@ char *get_install_dir(const char *progname)
 
 char *get_profile_dir(const char *homedir)
 {
-#define DOT_HASHCAT ".hashcat"
 
   size_t len = strlen(homedir) + 1 + strlen(DOT_HASHCAT) + 1;
 
@@ -1057,7 +1056,6 @@ char *get_profile_dir(const char *homedir)
 
 char *get_session_dir(const char *profile_dir)
 {
-#define SESSIONS_FOLDER "sessions"
 
   size_t len = strlen(profile_dir) + 1 + strlen(SESSIONS_FOLDER) + 1;
 
