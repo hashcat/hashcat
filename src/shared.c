@@ -22,16 +22,17 @@
   * ciphers for use on cpu
   */
 
-#include "cpu-des.c"
-#include "cpu-aes.c"
+#include <cpu/cpu-des.h>
+#include <cpu/cpu-aes.h>
 
   /**
    * hashes for use on cpu
    */
 
-#include "cpu-md5.c"
-#include "cpu-sha1.c"
-#include "cpu-sha256.c"
+#include <cpu/cpu-crc32.h>
+#include <cpu/cpu-md5.h>
+#include <cpu/cpu-sha1.h>
+#include <cpu/cpu-sha256.h>
 
    /**
     * logging
@@ -45,6 +46,9 @@
 #include <decoder.h>
 #include <tty.h>
 #include <logfile.h>
+#include <rp_cpu.h>
+#include <consts/help_texts.h>
+#include <sort_by.h>
 
     /**
      * system
@@ -1319,6 +1323,8 @@ void format_plain(FILE *fp, unsigned char *plain_ptr, uint plain_len, uint outfi
   }
 }
 
+#include <consts/outfile_formats.h>
+
 void format_output(FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const uint plain_len, const u64 crackpos, unsigned char *username, const uint user_len)
 {
   uint outfile_format = data.outfile_format;
@@ -2075,6 +2081,8 @@ char *stroptitype(const uint opti_type)
   return (NULL);
 }
 
+#include <consts/parser.h>
+
 char *strparser(const uint parser_status)
 {
   switch (parser_status)
@@ -2100,6 +2108,8 @@ char *strparser(const uint parser_status)
 
   return ((char *)PA_255);
 }
+
+#include <consts/hash_names.h>
 
 char *strhashtype(const uint hash_mode)
 {
@@ -3160,7 +3170,7 @@ tuning_db_entry_t *tuning_db_search(tuning_db_t *tuning_db, hc_device_param_t *d
   return entry;
 }
 
-
+//#include "parser.c"
 
 /**
  * parallel running threads
@@ -3898,5 +3908,3 @@ int kernel_rule_to_cpu_rule(char *rule_buf, kernel_rule_t *rule)
 
   return -1;
 }
-
-#include "cpu_rules.h"
