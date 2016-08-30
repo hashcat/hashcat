@@ -45,14 +45,6 @@ void _des_keysetup(u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_skb[8][64])
     c = c & 0x0fffffff;
     d = d & 0x0fffffff;
 
-    u32 s = BOX(((c >> 0) & 0x3f), 0, s_skb)
-      | BOX((((c >> 6) & 0x03)
-        | ((c >> 7) & 0x3c)), 1, s_skb)
-      | BOX((((c >> 13) & 0x0f)
-        | ((c >> 14) & 0x30)), 2, s_skb)
-      | BOX((((c >> 20) & 0x01)
-        | ((c >> 21) & 0x06)
-        | ((c >> 22) & 0x38)), 3, s_skb);
 
     u32 s = BOX(((c >> 0) & 0x3f), 0, s_skb)
       | BOX((((c >> 6) & 0x03)
@@ -62,6 +54,13 @@ void _des_keysetup(u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_skb[8][64])
       | BOX((((c >> 20) & 0x01)
         | ((c >> 21) & 0x06)
         | ((c >> 22) & 0x38)), 3, s_skb);
+
+    u32 t = BOX(((d >> 0) & 0x3f), 4, s_skb)
+      | BOX((((d >> 7) & 0x03)
+        | ((d >> 8) & 0x3c)), 5, s_skb)
+      | BOX((((d >> 15) & 0x3f)), 6, s_skb)
+      | BOX((((d >> 21) & 0x0f)
+        | ((d >> 22) & 0x30)), 7, s_skb);
 
     Kc[i] = ((t << 16) | (s & 0x0000ffff));
     Kd[i] = ((s >> 16) | (t & 0xffff0000));
@@ -91,13 +90,13 @@ void _des_encrypt(u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_SPtrans[8][64
     u32 t = Kd[i] ^ rotl32(r, 28u);
 
     l ^= BOX(((u >> 2) & 0x3f), 0, s_SPtrans)
-      | BOX(((u >> 10) & 0x3f), 2, s_SPtrans)
-      | BOX(((u >> 18) & 0x3f), 4, s_SPtrans)
-      | BOX(((u >> 26) & 0x3f), 6, s_SPtrans)
-      | BOX(((t >> 2) & 0x3f), 1, s_SPtrans)
-      | BOX(((t >> 10) & 0x3f), 3, s_SPtrans)
-      | BOX(((t >> 18) & 0x3f), 5, s_SPtrans)
-      | BOX(((t >> 26) & 0x3f), 7, s_SPtrans);
+       | BOX(((u >> 10) & 0x3f), 2, s_SPtrans)
+       | BOX(((u >> 18) & 0x3f), 4, s_SPtrans)
+       | BOX(((u >> 26) & 0x3f), 6, s_SPtrans)
+       | BOX(((t >> 2) & 0x3f), 1, s_SPtrans)
+       | BOX(((t >> 10) & 0x3f), 3, s_SPtrans)
+       | BOX(((t >> 18) & 0x3f), 5, s_SPtrans)
+       | BOX(((t >> 26) & 0x3f), 7, s_SPtrans);
 
     tt = l;
     l = r;
