@@ -16,8 +16,36 @@
 
 #include <common.h>
 #include <shared.h>
-#include <rp_kernel_on_cpu.h>
 #include <getopt.h>
+#include <bit_ops.h>
+#include <rp_kernel_on_cpu.h>
+#include <consts/hash_types.h>
+#include <consts/kernel_types.h>
+#include <consts/digest_sizes.h>
+#include <consts/hash_options.h>
+#include <consts/salt_types.h>
+#include <consts/outfile_formats.h>
+#include <consts/parser.h>
+#include <consts/rounds_count.h>
+#include <consts/optimizer_options.h>
+#include <consts/devices_vendors.h>
+#include <consts/hashcat_modes.h>
+#include <cpu/cpu-md5.h>
+#include <converter.h>
+#include <cpu_rules.h>
+#include <logfile.h>
+#include <sort_by.h>
+#include <parse_hash.h>
+#include <mask_processor.h>
+#include <stat_processor.h>
+#include <logging.h>
+#include <hc_global_data_t.h>
+#include <hc_global.h>
+#include <hc_device_param_t.h>
+#include <status_display.h>
+#include <filenames_generators.h>
+#include <check_hash.h>
+#include <hlfmt.h>
 
 const char *PROGNAME = "hashcat";
 const uint  VERSION_BIN = 310;
@@ -130,6 +158,7 @@ static const char SEPARATOR = ':';
 #define HC_API_CALL
 #endif
 
+#include <default_benchmark_algorithms.h>
 
 /**
 * types
