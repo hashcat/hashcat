@@ -24,6 +24,9 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+#ifdef __cplusplus
+#include <algorithm>
+#endif
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
@@ -130,9 +133,58 @@ int log_out(FILE *fp, const char *fmt, ...);
 int log_info(const char *fmt, ...);
 int log_error(const char *fmt, ...);
 
-#define MIN(a,b) (((a) < (b)) ? (a) : (b))
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+///use this to disable c++ impl in favor of c ones
+#define NO_CPP_MIN_MAX_VowdDc6V5vjFhdGy //it does not compile :(
+//#define NO_CPP_CEIL_VowdDc6V5vjFhdGy
 
-#define CEIL(a) ((a - (int) (a)) > 0 ? a + 1 : a)
+#ifndef MAX
+  #if defined(__cplusplus) && ! defined(NO_CPP_MIN_MAX_VowdDc6V5vjFhdGy)
+    template<typename T1, typename T2, typename T3> constexpr T3 MAX(T1 a, T2 b);//WTF, it doesn't work
+    template<typename T1, typename T2, typename T3> constexpr inline T3 MAX(T1 a, T2 b) {
+      return (a > b ? a : b);
+    }
+  #else
+    #ifdef __max
+      #define MAX(a,b) __max(a,b)
+    #else
+     #define MAX(a,b) ((a)>(b)?(a):(b))
+    #endif
+  #endif
+#endif
+
+#ifndef MIN
+  #if defined(__cplusplus) && ! defined(NO_CPP_MIN_MAX_VowdDc6V5vjFhdGy)
+    template<typename T1, typename T2, typename T3> constexpr T3 MIN(T1 a, T2 b);
+    template<typename T1, typename T2, typename T3> constexpr inline T3 MIN(T1 a, T2 b) {
+      return (T3)(a < b ? a : b);
+    }
+  #else
+    #ifdef __min
+      #define MIN(a,b) __min(a,b)
+    #else
+      #define MIN(a,b) ((a)<(b)?(a):(b))
+    #endif
+  #endif
+#endif
+
+
+#if defined(__cplusplus) && ! defined(NO_CPP_CEIL_VowdDc6V5vjFhdGy)
+  template<typename T> T CEIL(T a);
+  template<typename T> inline T CEIL(T a) {
+    switch (sizeof(T)) {
+    case sizeof(float) :
+      return std::ceilf((float)a);
+    case sizeof(double) :
+      return std::ceill((double)a);
+    default:
+      return ((a - (int)(a)) > 0 ? a + 1 : a);
+    }
+  }
+#else
+  #define CEIL(a) ((a - (int) (a)) > 0 ? a + 1 : a)
+#endif
+
+#undef NO_CPP_MIN_MAX_VowdDc6V5vjFhdGy
+#undef NO_CPP_CEIL_VowdDc6V5vjFhdGy
 
 #endif // COMMON_H
