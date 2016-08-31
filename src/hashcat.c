@@ -24,7 +24,7 @@ static const char *PROGNAME            = "hashcat";
 const uint  VERSION_BIN         = 310;
 const uint  RESTORE_MIN         = 300;
 
-double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
+static double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 
 #define INCR_RULES              10000
 #define INCR_SALTS              100000
@@ -342,10 +342,10 @@ static unsigned int full80 = 0x80808080;
 
 int SUPPRESS_OUTPUT = 0;
 
-hc_thread_mutex_t mux_adl;
-hc_thread_mutex_t mux_counter;
-hc_thread_mutex_t mux_dispatcher;
-hc_thread_mutex_t mux_display;
+static hc_thread_mutex_t mux_adl;
+static hc_thread_mutex_t mux_counter;
+static hc_thread_mutex_t mux_dispatcher;
+       hc_thread_mutex_t mux_display;
 
 hc_global_data_t data;
 
