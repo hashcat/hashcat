@@ -8,6 +8,7 @@ hashcat
 *.log
 *.dSYM
 # deps/**
+include/config.h
 kernels/**
 lib/*.a
 obj/*.o

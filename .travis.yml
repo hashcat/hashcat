@@ -2,19 +2,32 @@ os:
   - linux
   - osx
 dist: trusty
+sudo: required
 language:
   - c
   - cpp
+addons:
+  apt:
+    packages:
+    - debian-keyring
+    - aria2
+    - opencl-headers
 before_install:
-  - git clone --depth 1 --recurse-submodules https://cmake.org/cmake.git cmake_build
-  - cd cmake_build
-  - cmake .
-  - make
-  - sudo make install
+  - mkdir cmake_dist
+  - cd cmake_dist
+  - aria2c -o cmake.tar.gz https://cmake.org/files/v3.6/cmake-3.6.1-Linux-x86_64.tar.gz
+  - aria2c -o hashes.txt https://cmake.org/files/v3.6/cmake-3.6.1-SHA-256.txt
+  - aria2c -o hashes.txt.asc https://cmake.org/files/v3.6/cmake-3.6.1-SHA-256.txt.asc
+  - sudo apt-get remove aria2
+  - gpg --recv-keys --keyserver hkp://pgp.mit.edu 34921684
+  - gpg --verify hashes.txt.asc
+  - grep -i $(sha256sum cmake.tar.gz | grep -i -P "^[0-9a-f]+" -o) hashes.txt
+  - tar --restrict -xf cmake.tar.gz
+  - mv -r "$(tar -t -f cmake.tar.gz | head -1 | grep -P -o ^.+?(?=/))" .
+  - rm cmake.tar.gz hashes.txt hashes.txt.asc
+  - chmod -R +x bin
   - cd ..
-  - rm -rfdv ./cmake_build
 install:
-  - git submodule update --recursive
 compiler:
   - clang
   - gcc
@@ -22,6 +35,5 @@ compiler:
 script:
   - mkdir ./build
   - cd build
-  - cmake ../
+  - ..cmake_dist/bin/cmake ../
   - make
-
