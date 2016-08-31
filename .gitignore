@@ -7,7 +7,8 @@ hashcat
 *.pot
 *.log
 *.dSYM
-deps/**
+# deps/**
+include/config.h
 kernels/**
 lib/*.a
 obj/*.o
