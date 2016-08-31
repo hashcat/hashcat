@@ -1355,7 +1355,7 @@ void dump_hex (const u8 *s, const int sz);
 
 void truecrypt_crc32 (const char *filename, u8 keytab[64]);
 
-char *get_exec_path   ();
+char *get_exec_path   (void);
 char *get_install_dir (const char *progname);
 char *get_profile_dir (const char *homedir);
 char *get_session_dir (const char *profile_dir);
@@ -1433,8 +1433,8 @@ void *mymalloc (size_t size);
 void *myrealloc (void *ptr, size_t oldsz, size_t add);
 char *mystrdup (const char *s);
 
-char *logfile_generate_topid ();
-char *logfile_generate_subid ();
+char *logfile_generate_topid (void);
+char *logfile_generate_subid (void);
 void logfile_append (const char *fmt, ...);
 
 #ifdef F_SETLKW
@@ -1486,8 +1486,8 @@ int hm_set_fanspeed_with_device_id_xnvctrl   (const uint device_id, const int fa
 void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value);
 #endif // HAVE_HWMON
 
-void myabort ();
-void myquit ();
+void myabort (void);
+void myquit  (void);
 
 void set_cpu_affinity (char *cpu_affinity);
 
@@ -1678,13 +1678,13 @@ void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_cha
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
 
-u64 get_lowest_words_done ();
+u64 get_lowest_words_done (void);
 
 restore_data_t *init_restore  (int argc, char **argv);
 void            read_restore  (const char *eff_restore_file, restore_data_t *rd);
 void            write_restore (const char *new_restore_file, restore_data_t *rd);
-void            cycle_restore ();
-void            check_checkpoint ();
+void            cycle_restore (void);
+void            check_checkpoint (void);
 
 #ifdef WIN
 
@@ -1746,8 +1746,8 @@ void *thread_device_watch (void *p);
 void *thread_keypress     (void *p);
 void *thread_runtime      (void *p);
 
-void status_display ();
-void status_display_machine_readable ();
+void status_display (void);
+void status_display_machine_readable (void);
 
 /**
  * checksum for use on cpu
