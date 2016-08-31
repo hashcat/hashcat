@@ -2943,6 +2943,18 @@ static void *thread_monitor(void *p)
   return (p);
 }
 
+#ifdef _POSIX
+typedef struct stat statT;
+#endif
+
+#ifdef _WIN
+#ifdef _MSC_VER
+typedef struct _stat64 statT;
+#else
+typedef struct stat64 statT;
+#endif
+#endif
+
 static void *thread_outfile_remove(void *p)
 {
   // some hash-dependent constants
@@ -3053,16 +3065,12 @@ static void *thread_outfile_remove(void *p)
             if (fp != NULL)
             {
               //hc_thread_mutex_lock (mux_display);
-
+              statT outfile_stat;
 #ifdef _POSIX
-              struct stat outfile_stat;
-
               fstat(fileno(fp), &outfile_stat);
 #endif
 
 #ifdef _WIN
-              struct stat64 outfile_stat;
-
               _fstat64(fileno(fp), &outfile_stat);
 #endif
 
@@ -9710,15 +9718,12 @@ int main(int argc, char **argv)
 
       if (dictstat_fp)
       {
+        statT tmpstat;
 #ifdef _POSIX
-        struct stat tmpstat;
-
         fstat(fileno(dictstat_fp), &tmpstat);
 #endif
 
 #ifdef _WIN
-        struct stat64 tmpstat;
-
         _fstat64(fileno(dictstat_fp), &tmpstat);
 #endif
 
@@ -11078,15 +11083,8 @@ int main(int argc, char **argv)
     {
       if (data.hashfile != NULL)
       {
-#ifdef _POSIX
-        struct stat tmpstat_outfile;
-        struct stat tmpstat_hashfile;
-#endif
-
-#ifdef _WIN
-        struct stat64 tmpstat_outfile;
-        struct stat64 tmpstat_hashfile;
-#endif
+        statT tmpstat_outfile;
+        statT tmpstat_hashfile;
 
         FILE *tmp_outfile_fp = fopen(data.outfile, "r");
 
@@ -11152,7 +11150,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef _WIN
-          if (memcmp(&tmpstat_outfile, &tmpstat_hashfile, sizeof(struct stat64)) == 0)
+          if (memcmp(&tmpstat_outfile, &tmpstat_hashfile, sizeof(statT)) == 0)
           {
             log_error("ERROR: Hashfile and Outfile are not allowed to point to the same file");
 
