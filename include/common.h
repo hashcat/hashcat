@@ -22,10 +22,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <errno.h>
-#include <getopt.h>
 #include <math.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <time.h>
 #include <unistd.h>
 #include <signal.h>
@@ -33,13 +31,15 @@
 #include <sys/types.h>
 #include <search.h>
 #include <fcntl.h>
+#include <assert.h>
+#include <sys/time.h>
+
 #include "numeric_types_abbreviations.h"
 
 #ifdef _POSIX
-#include <sys/time.h>
+
 #include <pthread.h>
 #include <semaphore.h>
-#include <dlfcn.h>
 #include <pwd.h>
 #include <limits.h>
 
