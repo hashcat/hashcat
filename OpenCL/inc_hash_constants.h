@@ -7,7 +7,6 @@
 #define COMBINATOR_MODE_BASE_LEFT  10001
 #define COMBINATOR_MODE_BASE_RIGHT 10002
 
-#ifdef SHARED_H
 #define _BCRYPT_
 #define _SHA1_
 #define _SHA256_
@@ -31,8 +30,7 @@
 #define _RAR3_
 #define _ZIP2_
 #define _AXCRYPT_
-#endif
-
+//#endif
 #ifdef _SIPHASH_
  /**
   * SipHash Constants
