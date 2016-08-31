@@ -4,9 +4,6 @@
  * License.....: MIT
  */
 
-#define COMBINATOR_MODE_BASE_LEFT  10001
-#define COMBINATOR_MODE_BASE_RIGHT 10002
-
 #define _BCRYPT_
 #define _SHA1_
 #define _SHA256_
