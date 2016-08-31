@@ -118,9 +118,6 @@ char *strhashtype(const uint hash_mode);
 char *strstatus(const uint threads_status);
 void status();
 
-char *logfile_generate_topid();
-char *logfile_generate_subid();
-void logfile_append(const char *fmt, ...);
 
 #if F_SETLKW
 void lock_file(FILE *fp);
