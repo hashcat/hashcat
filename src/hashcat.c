@@ -54,7 +54,6 @@ const uint  RESTORE_MIN = 300;
 
 double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 
-hc_global_data_t data;
 
 typedef enum INCR_ {
   INCR_RULES = 10000,
