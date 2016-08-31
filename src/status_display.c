@@ -146,7 +146,7 @@ void status_display_machine_readable()
   * temperature
   */
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
   if (data.gpu_temp_disable == 0)
   {
     fprintf(out, "TEMP\t");
@@ -166,7 +166,7 @@ void status_display_machine_readable()
 
     hc_thread_mutex_unlock(mux_adl);
   }
-#endif // HAVE_HWMON
+#endif // WITH_HWMON
 
   /**
   * flush
@@ -941,7 +941,7 @@ void status_display()
     }
   }
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
 
   if (
     data.devices_status == STATUS_EXHAUSTED ||
@@ -1034,5 +1034,5 @@ void status_display()
     hc_thread_mutex_unlock(mux_adl);
   }
 
-#endif // HAVE_HWMON
+#endif // WITH_HWMON
 }

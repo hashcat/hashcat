@@ -9,7 +9,7 @@
 #define EXT_NVAPI_H
 
 #include <config.h>
-#if defined(HAVE_HWMON)
+#if defined(WITH_HWMON)
 
 #include <common.h>
 
@@ -289,6 +289,6 @@ int hm_NvAPI_GPU_GetPerfPoliciesStatus(NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPh
 int hm_NvAPI_GPU_SetCoolerLevels(NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels);
 int hm_NvAPI_GPU_RestoreCoolerSettings(NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex);
 
-#endif // HAVE_HWMON
+#endif // WITH_HWMON
 
 #endif // EXT_NVAPI_H

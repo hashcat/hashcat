@@ -1,6 +1,6 @@
 #include <config.h>
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
 #include <hc_global_data_t.h>
 #include <hc_global.h>
 #include <hwmon.h>

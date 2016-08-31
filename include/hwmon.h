@@ -3,7 +3,7 @@
 * temperature management
 */
 #include "config.h"
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
 #include "common.h"
 #include "types.h"
 #include "hwmon/ext_ADL.h"

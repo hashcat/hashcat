@@ -7,7 +7,7 @@
 #define EXT_XNVCTRL_H
 
 #include <config.h>
-#if defined(HAVE_HWMON)
+#if defined(WITH_HWMON)
 #include <common.h>
  //#include <shared.h>
 #ifdef _POSIX
@@ -95,6 +95,6 @@ int get_fan_speed_current(XNVCTRL_PTR *xnvctrl, int gpu, int *val);
 int get_fan_speed_target(XNVCTRL_PTR *xnvctrl, int gpu, int *val);
 int set_fan_speed_target(XNVCTRL_PTR *xnvctrl, int gpu, int  val);
 
-#endif // HAVE_HWMON
+#endif // WITH_HWMON
 
 #endif // EXT_XNVCTRL_H

@@ -5,7 +5,7 @@
  * License.....: MIT
  */
 #include <config.h>
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
 #include <hwmon/ext_nvapi.h>
 #include <dynload.h>
 #include <logging.h>

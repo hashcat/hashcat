@@ -80,7 +80,7 @@ typedef struct hc_global_data_t_
   * hardware watchdog
   */
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
   ADL_PTR      *hm_adl;
   NVML_PTR      *hm_nvml;
   NVAPI_PTR      *hm_nvapi;
@@ -202,7 +202,7 @@ typedef struct hc_global_data_t_
   uint    dgst_pos2;
   uint    dgst_pos3;
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
   uint    gpu_temp_disable;
   uint    gpu_temp_abort;
   uint    gpu_temp_retain;

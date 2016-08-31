@@ -5,7 +5,7 @@
 
 #include <config.h>
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
 
 #include <hwmon/ext_xnvctrl.h>
 #include <mem_alloc.h>

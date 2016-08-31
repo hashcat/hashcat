@@ -75,7 +75,7 @@ static const char *USAGE_BIG[] =
   " -u, --kernel-loops            | Num  | Manual workload tuning, set innerloop step size to X | -u 256",
   "     --nvidia-spin-damp        | Num  | Workaround NVidias CPU burning loop bug, in percent  | --nvidia-spin-damp=50",
   "     --gpu-temp-disable        |      | Disable temperature and fanspeed reads and triggers  |",
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
   "     --gpu-temp-abort          | Num  | Abort if GPU temperature reaches X degrees celsius   | --gpu-temp-abort=100",
   "     --gpu-temp-retain         | Num  | Try to retain GPU temperature at X degrees celsius   | --gpu-temp-retain=95",
   "     --powertune-enable        |      | Enable power tuning, restores settings when finished |",

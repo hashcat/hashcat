@@ -11,7 +11,7 @@
 #define EXT_ADL_H
 
 #include <config.h>
-#if defined(HAVE_HWMON)
+#if defined(WITH_HWMON)
 
 #include <common.h>
  //#include <shared.h>
@@ -406,6 +406,6 @@ int hm_ADL_Overdrive6_TargetTemperatureData_Get(ADL_PTR *adl, int iAdapterIndex,
 int hm_ADL_Overdrive6_TargetTemperatureRangeInfo_Get(ADL_PTR *adl, int iAdapterIndex, ADLOD6ParameterRange *lpTargetTemperatureInfo);
 int hm_ADL_Overdrive6_FanSpeed_Reset(ADL_PTR *adl, int iAdapterIndex);
 
-#endif // HAVE_HWMON
+#endif // WITH_HWMON
 
 #endif // EXT_ADL_H

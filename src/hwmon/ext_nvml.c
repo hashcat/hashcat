@@ -6,7 +6,7 @@
  */
 #include <config.h>
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
 #include <hwmon/ext_nvml.h>
 #include <dynload.h>
 #include <logging.h>

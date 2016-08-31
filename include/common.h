@@ -80,7 +80,7 @@ int hc_mkdir(char const* name, int mode);
 #include <sys/ioctl.h>
 #endif
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
 #ifdef __APPLE__
 #define __stdcall
 #endif

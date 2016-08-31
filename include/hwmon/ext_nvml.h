@@ -10,7 +10,7 @@
 #define EXT_NVML_H
 
 #include <config.h>
-#if defined(HAVE_HWMON)
+#if defined(WITH_HWMON)
 
 #include <common.h>
 
@@ -256,6 +256,6 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints(NVML_PTR *nvml
 nvmlReturn_t hm_NVML_nvmlDeviceSetPowerManagementLimit(NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int limit);
 nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimit(NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int *limit);
 
-#endif // HAVE_HWMON
+#endif // WITH_HWMON
 
 #endif // EXT_NVML_H

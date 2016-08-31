@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 #include <config.h>
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
 #include <hwmon/ext_ADL.h>
 #include <dynload.h>
 #include <mem_alloc.h>

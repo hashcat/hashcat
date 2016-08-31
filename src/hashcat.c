@@ -2599,7 +2599,7 @@ static void *thread_monitor(void *p)
   uint remove_left = data.remove_timer;
   uint status_left = data.status_timer;
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
   uint hwmon_check = 0;
 
   int slowdown_warnings = 0;
@@ -2619,7 +2619,7 @@ static void *thread_monitor(void *p)
   int fan_speed_max = 100;
 
   time_t last_temp_check_time;
-#endif // HAVE_HWMON
+#endif // WITH_HWMON
 
   uint sleep_time = 1;
 
@@ -2643,7 +2643,7 @@ static void *thread_monitor(void *p)
     status_check = 1;
   }
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
   if (data.gpu_temp_disable == 0)
   {
     time(&last_temp_check_time);
@@ -2654,7 +2654,7 @@ static void *thread_monitor(void *p)
 
   if ((runtime_check == 0) && (remove_check == 0) && (status_check == 0) && (restore_check == 0))
   {
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
     if (hwmon_check == 0)
 #endif
       return (p);
@@ -2666,7 +2666,7 @@ static void *thread_monitor(void *p)
 
     if (data.devices_status != STATUS_RUNNING) continue;
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
 
     if (hwmon_check == 1)
     {
@@ -2829,7 +2829,7 @@ static void *thread_monitor(void *p)
 
       hc_thread_mutex_unlock(mux_adl);
     }
-#endif // HAVE_HWMON
+#endif // WITH_HWMON
 
     if (restore_check == 1)
     {
@@ -2902,7 +2902,7 @@ static void *thread_monitor(void *p)
     }
   }
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
   myfree(fan_speed_chgd);
 
   myfree(temp_diff_old);
@@ -3854,7 +3854,7 @@ static void weak_hash_check(hc_device_param_t *device_param, const uint salt_pos
  */
 
  // wrapper around mymalloc for ADL
-#if defined(HAVE_HWMON)
+#if defined(WITH_HWMON)
 void *HC_API_CALL ADL_Main_Memory_Alloc(const int iSize)
 {
   return mymalloc(iSize);
@@ -4090,7 +4090,7 @@ int main(int argc, char **argv)
   uint  kernel_loops = KERNEL_LOOPS;
   uint  nvidia_spin_damp = NVIDIA_SPIN_DAMP;
   uint  gpu_temp_disable = GPU_TEMP_DISABLE;
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
   uint  gpu_temp_abort = GPU_TEMP_ABORT;
   uint  gpu_temp_retain = GPU_TEMP_RETAIN;
   uint  powertune_enable = POWERTUNE_ENABLE;
@@ -4249,11 +4249,11 @@ int main(int argc, char **argv)
     {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
     {"nvidia-spin-damp",          required_argument, 0, IDX_NVIDIA_SPIN_DAMP},
     {"gpu-temp-disable",          no_argument,       0, IDX_GPU_TEMP_DISABLE},
-      #ifdef HAVE_HWMON
+      #ifdef WITH_HWMON
     {"gpu-temp-abort",            required_argument, 0, IDX_GPU_TEMP_ABORT},
     {"gpu-temp-retain",           required_argument, 0, IDX_GPU_TEMP_RETAIN},
     {"powertune-enable",          no_argument,       0, IDX_POWERTUNE_ENABLE},
-    #endif // HAVE_HWMON
+    #endif // WITH_HWMON
     {"logfile-disable",           no_argument,       0, IDX_LOGFILE_DISABLE},
     {"truecrypt-keyfiles",        required_argument, 0, IDX_TRUECRYPT_KEYFILES},
     {"veracrypt-keyfiles",        required_argument, 0, IDX_VERACRYPT_KEYFILES},
@@ -4634,11 +4634,11 @@ int main(int argc, char **argv)
     case IDX_NVIDIA_SPIN_DAMP:          nvidia_spin_damp = atoi(optarg);
       nvidia_spin_damp_chgd = 1;              break;
     case IDX_GPU_TEMP_DISABLE:          gpu_temp_disable = 1;              break;
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
     case IDX_GPU_TEMP_ABORT:            gpu_temp_abort = atoi(optarg);  break;
     case IDX_GPU_TEMP_RETAIN:           gpu_temp_retain = atoi(optarg);  break;
     case IDX_POWERTUNE_ENABLE:          powertune_enable = 1;              break;
-#endif // HAVE_HWMON
+#endif // WITH_HWMON
     case IDX_LOGFILE_DISABLE:           logfile_disable = 1;              break;
     case IDX_TRUECRYPT_KEYFILES:        truecrypt_keyfiles = optarg;         break;
     case IDX_VERACRYPT_KEYFILES:        veracrypt_keyfiles = optarg;         break;
@@ -5402,7 +5402,7 @@ int main(int argc, char **argv)
   data.custom_charset_2 = custom_charset_2;
   data.custom_charset_3 = custom_charset_3;
   data.custom_charset_4 = custom_charset_4;
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
   data.powertune_enable = powertune_enable;
 #endif
   data.logfile_disable = logfile_disable;
@@ -5472,7 +5472,7 @@ int main(int argc, char **argv)
   logfile_top_uint(kernel_loops);
   logfile_top_uint(nvidia_spin_damp);
   logfile_top_uint(gpu_temp_disable);
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
   logfile_top_uint(gpu_temp_abort);
   logfile_top_uint(gpu_temp_retain);
 #endif
@@ -5495,7 +5495,7 @@ int main(int argc, char **argv)
   logfile_top_uint(outfile_format);
   logfile_top_uint(potfile_disable);
   logfile_top_string(potfile_path);
-#if defined(HAVE_HWMON)
+#if defined(WITH_HWMON)
   logfile_top_uint(powertune_enable);
 #endif
   logfile_top_uint(scrypt_tmto);
@@ -5594,7 +5594,7 @@ int main(int argc, char **argv)
     gpu_temp_disable = 1;
     outfile_check_timer = 0;
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
     if (powertune_enable == 1)
     {
       gpu_temp_disable = 0;
@@ -13008,7 +13008,7 @@ int main(int argc, char **argv)
      * HM devices: init
      */
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
     hm_attrs_t hm_adapters_adl[DEVICES_MAX];
     hm_attrs_t hm_adapters_nvapi[DEVICES_MAX];
     hm_attrs_t hm_adapters_nvml[DEVICES_MAX];
@@ -13241,7 +13241,7 @@ int main(int argc, char **argv)
        * Watchdog and Temperature balance
        */
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
       if (gpu_temp_disable == 0 && data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl == NULL)
       {
         log_info("Watchdog: Hardware Monitoring Interface not found on your system");
@@ -13269,7 +13269,7 @@ int main(int argc, char **argv)
 #endif
     }
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
 
     /**
      * HM devices: copy
@@ -13504,7 +13504,7 @@ int main(int argc, char **argv)
       hc_thread_mutex_unlock(mux_adl);
     }
 
-#endif // HAVE_HWMON
+#endif // WITH_HWMON
 
 #ifdef DEBUG
     if (benchmark == 1) log_info("Hashmode: %d", data.hash_mode);
@@ -15453,7 +15453,7 @@ int main(int argc, char **argv)
         run_kernel_bzero(device_param, device_param->d_markov_css_buf, size_markov_css);
       }
 
-#if defined(HAVE_HWMON)
+#if defined(WITH_HWMON)
 
       /**
        * Store initial fanspeed if gpu_temp_retain is enabled
@@ -15515,7 +15515,7 @@ int main(int argc, char **argv)
         }
       }
 
-#endif // HAVE_HWMON
+#endif // WITH_HWMON
     }
 
     if (data.quiet == 0) log_info_nn("");
@@ -17756,7 +17756,7 @@ int main(int argc, char **argv)
 
     // reset default fan speed
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
     if (gpu_temp_disable == 0)
     {
       if (gpu_temp_retain != 0)
@@ -17909,7 +17909,7 @@ int main(int argc, char **argv)
         data.hm_adl = NULL;
       }
     }
-#endif // HAVE_HWMON
+#endif // WITH_HWMON
 
     // free memory
 
@@ -17948,7 +17948,7 @@ int main(int argc, char **argv)
     local_free(bitmap_s2_c);
     local_free(bitmap_s2_d);
 
-#ifdef HAVE_HWMON
+#ifdef WITH_HWMON
     local_free(od_clock_mem_status);
     local_free(od_power_control_status);
     local_free(nvml_power_limit);
