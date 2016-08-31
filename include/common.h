@@ -10,6 +10,11 @@
 #define COMMON_H
 #include "config.h"
 
+#ifdef _WINDOWS
+#define _WIN 1
+#define WIN 1
+#endif // _WINDOWS
+
 #define _POSIX_SOURCE
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
