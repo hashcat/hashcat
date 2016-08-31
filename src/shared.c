@@ -2020,7 +2020,7 @@ char **scan_directory(const char *path)
     }
 
     closedir(d);
-    }
+  }
   else if (errno == ENOTDIR)
   {
     files = (char **)myrealloc(files, num_files * sizeof(char *), sizeof(char *));
@@ -2039,7 +2039,7 @@ char **scan_directory(const char *path)
   myfree(tmp_path);
 
   return (files);
-  }
+}
 
 int count_dictionaries(char **dictionary_files)
 {
