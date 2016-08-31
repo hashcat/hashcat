@@ -23,11 +23,6 @@
  * shared stuff
  */
 
-#ifdef _WIN
-#define hc_sleep(x) Sleep ((x) * 1000);
-#elif _POSIX
-#define hc_sleep(x) sleep ((x));
-#endif
 
 #include "types.h"
 
@@ -37,6 +32,12 @@
   * system stuff
   */
 
+#ifdef _WIN
+inline void hc_sleep(DWORD x) { Sleep(x * 1000); }
+#elif defined(_POSIX)
+void hc_sleep(uint32_t x);
+inline void hc_sleep(uint32_t x) { sleep(x); }
+#endif
 
 
 /**
@@ -125,8 +126,10 @@ void logfile_append(const char *fmt, ...);
 void lock_file(FILE *fp);
 void unlock_file(FILE *fp);
 #else
-#define lock_file(dummy) {}
-#define unlock_file(dummy) {}
+void lock_file(FILE *fp);
+inline void lock_file(FILE *fp) {}
+void unlock_file(FILE *fp);
+inline void unlock_file(FILE *fp) {}
 #endif
 
 #ifdef _WIN
