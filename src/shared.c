@@ -3100,7 +3100,7 @@ tuning_db_entry_t *tuning_db_search(tuning_db_t *tuning_db, hc_device_param_t *d
 
   a.device_name = device_name_nospace;
 
-  tuning_db_alias_t *alias = bsearch(&a, tuning_db->alias_buf, tuning_db->alias_cnt, sizeof(tuning_db_alias_t), sort_by_tuning_db_alias);
+  tuning_db_alias_t *alias = (tuning_db_alias_t*)bsearch(&a, tuning_db->alias_buf, tuning_db->alias_cnt, sizeof(tuning_db_alias_t), sort_by_tuning_db_alias);
 
   char *alias_name = (alias == NULL) ? NULL : alias->alias_name;
 
@@ -3125,7 +3125,7 @@ tuning_db_entry_t *tuning_db_search(tuning_db_t *tuning_db, hc_device_param_t *d
     s.attack_mode = (i & 2) ? -1 : attack_mode;
     s.hash_type = (i & 4) ? -1 : hash_type;
 
-    entry = bsearch(&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof(tuning_db_entry_t), sort_by_tuning_db_entry);
+    entry = (tuning_db_entry_t*)bsearch(&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof(tuning_db_entry_t), sort_by_tuning_db_entry);
 
     if (entry != NULL) break;
 
@@ -3139,7 +3139,7 @@ tuning_db_entry_t *tuning_db_search(tuning_db_t *tuning_db, hc_device_param_t *d
       {
         s.device_name = alias_name;
 
-        entry = bsearch(&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof(tuning_db_entry_t), sort_by_tuning_db_entry);
+        entry = (tuning_db_entry_t*)bsearch(&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof(tuning_db_entry_t), sort_by_tuning_db_entry);
 
         if (entry != NULL) break;
       }
@@ -3159,7 +3159,7 @@ tuning_db_entry_t *tuning_db_search(tuning_db_t *tuning_db, hc_device_param_t *d
         s.device_name = "DEVICE_TYPE_ACCELERATOR";
       }
 
-      entry = bsearch(&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof(tuning_db_entry_t), sort_by_tuning_db_entry);
+      entry = (tuning_db_entry_t*)bsearch(&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof(tuning_db_entry_t), sort_by_tuning_db_entry);
 
       if (entry != NULL) break;
     }
