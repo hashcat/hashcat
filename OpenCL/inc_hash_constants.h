@@ -57,9 +57,8 @@ typedef enum bcrypt_constants_{
    /**
     * SHA1 Constants
     */
+
 typedef enum SHA1_constants_ {
-
-
   SHA1M_A = 0x67452301u,
   SHA1M_B = 0xefcdab89u,
   SHA1M_C = 0x98badcfeu,
