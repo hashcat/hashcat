@@ -42,6 +42,15 @@
 
 #include "numeric_types_abbreviations.h"
 
+#ifndef __cplusplus
+/* The C++ standard denies redefinition of keywords, 
+but this is nededed for VS Ñ compiler which doesn't have inline keyword but has __inline
+*/
+#ifdef _MSC_VER
+#define inline __inline
+#endif
+#endif
+
 #ifdef _POSIX
 
 #include <pthread.h>
