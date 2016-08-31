@@ -4024,7 +4024,7 @@ int main(int argc, char **argv)
   uint  force = FORCE;
   uint  runtime = RUNTIME;
   uint  hash_mode = HASH_MODE;
-  uint  attack_mode = ATTACK_MODE;
+  ATTACK_MODE  attack_mode = DEFAULT_ATTACK_MODE;
   uint  markov_disable = MARKOV_DISABLE;
   uint  markov_classic = MARKOV_CLASSIC;
   uint  markov_threshold = MARKOV_THRESHOLD;
@@ -4575,7 +4575,7 @@ int main(int argc, char **argv)
       hash_mode_chgd = 1;              break;
     case IDX_RUNTIME:                   runtime = atoi(optarg);
       runtime_chgd = 1;              break;
-    case IDX_ATTACK_MODE:               attack_mode = atoi(optarg);
+    case IDX_ATTACK_MODE:               attack_mode = (ATTACK_MODE)atoi(optarg);
       attack_mode_chgd = 1;              break;
     case IDX_RP_FILE:                   rp_files[rp_files_cnt++] = optarg;         break;
     case IDX_RP_GEN:                    rp_gen = atoi(optarg);  break;
@@ -4944,7 +4944,7 @@ int main(int argc, char **argv)
     }
   }
 
-  uint attack_kern = ATTACK_KERN_NONE;
+  ATTACK_KERN attack_kern = ATTACK_KERN_NONE;
 
   switch (attack_mode)
   {
@@ -5616,7 +5616,7 @@ int main(int argc, char **argv)
    * status, monitor and outfile remove threads
    */
 
-  uint wordlist_mode = ((optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
+  WL_MODE wordlist_mode = ((optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
 
   data.wordlist_mode = wordlist_mode;
 
@@ -5650,14 +5650,14 @@ int main(int argc, char **argv)
    * config
    */
 
-  uint hash_type = 0;
-  uint salt_type = 0;
-  uint attack_exec = 0;
-  uint opts_type = 0;
-  uint kern_type = 0;
+  HASH_TYPE hash_type = HASH_TYPE_INVALID;
+  SALT_TYPE salt_type = SALT_TYPE_INVALID;
+  ATTACK_EXEC_SIDE_KERNEL attack_exec = ATTACK_EXEC_SIDE_KERNEL_INVALID;
+  OPTS_TYPE opts_type = OPTS_TYPE_INVALID;
+  KERN_TYPE kern_type = KERN_TYPE_MD5;
   uint dgst_size = 0;
   uint esalt_size = 0;
-  uint opti_type = 0;
+  OPTI_TYPE opti_type = OPTI_TYPE_INVALID;
   uint dgst_pos0 = -1;
   uint dgst_pos1 = -1;
   uint dgst_pos2 = -1;
@@ -10031,8 +10031,8 @@ int main(int argc, char **argv)
      * load hashes, part I: find input mode, count hashes
      */
 
-    uint hashlist_mode = 0;
-    uint hashlist_format = HLFMT_HASHCAT;
+    HL_MODE hashlist_mode = (HL_MODE)0;
+    HLFMT hashlist_format = HLFMT_HASHCAT;
 
     uint hashes_avail = 0;
 
@@ -11641,7 +11641,7 @@ int main(int argc, char **argv)
     if (attack_mode == ATTACK_MODE_BF)
       opti_type = (OPTI_TYPE)(opti_type | OPTI_TYPE_BRUTE_FORCE);
 
-    data.opti_type = opti_type;
+    data.opti_type = (OPTI_TYPE)opti_type;
 
     if (opti_type & OPTI_TYPE_BRUTE_FORCE)
     {
