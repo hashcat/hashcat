@@ -1108,7 +1108,7 @@ void truecrypt_crc32(const char *filename, u8 keytab[64])
     exit(-1);
   }
 
-#define MAX_KEY_SIZE (1024 * 1024)
+  const size_t MAX_KEY_SIZE = (1024 * 1024);
 
   u8 *buf = (u8 *)mymalloc(MAX_KEY_SIZE + 1);
 
