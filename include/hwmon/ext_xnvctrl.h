@@ -1,12 +1,12 @@
-#pragma once
 /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
-
+#pragma once
 #ifndef EXT_XNVCTRL_H
 #define EXT_XNVCTRL_H
 
+#include <config.h>
 #if defined(HAVE_HWMON)
 
 #include <common.h>

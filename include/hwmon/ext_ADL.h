@@ -283,8 +283,6 @@ typedef void* (*ADL_MAIN_MALLOC_CALLBACK)(int);
 
 typedef int HM_ADAPTER_ADL;
 
-#include <shared.h>
-
 typedef struct ADLOD6MemClockState_
 {
   ADLOD6StateInfo state;

@@ -1,4 +1,3 @@
-#pragma once
 /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
  *               Gabriele Gristina <matrix@hashcat.net>
@@ -6,10 +5,11 @@
  *
  * License.....: MIT
  */
-
+#pragma once
 #ifndef EXT_NVML_H
 #define EXT_NVML_H
 
+#include <config.h>
 #if defined(HAVE_HWMON)
 
 #include <common.h>

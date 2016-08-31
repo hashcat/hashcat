@@ -4,10 +4,11 @@
  *
  * License.....: MIT
  */
-
+#pragma once
 #ifndef EXT_NVAPI_H
 #define EXT_NVAPI_H
 
+#include <config.h>
 #if defined(HAVE_HWMON)
 
 #include <common.h>
