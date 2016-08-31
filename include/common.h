@@ -80,13 +80,7 @@ int hc_mkdir(char const* name, int mode);
 #include <sys/ioctl.h>
 #endif
 
-typedef void *OCL_LIB;
-
 #ifdef HAVE_HWMON
-typedef void *ADL_LIB;
-typedef void *NVAPI_LIB;
-typedef void *NVML_LIB;
-typedef void *XNVCTRL_LIB;
 #ifdef __APPLE__
 #define __stdcall
 #endif
@@ -106,15 +100,6 @@ inline int hc_mkdir(char const* name, int mode) {
 #include <tchar.h>
 #include <psapi.h>
 #include <io.h>
-
-typedef HINSTANCE OCL_LIB;
-
-#ifdef HAVE_HWMON
-typedef HINSTANCE ADL_LIB;
-typedef HINSTANCE NVAPI_LIB;
-typedef HINSTANCE NVML_LIB;
-typedef HINSTANCE XNVCTRL_LIB;
-#endif
 
 inline int hc_mkdir(char const* name, int mode) {
   return _mkdir(name);
