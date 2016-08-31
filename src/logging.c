@@ -12,7 +12,7 @@ int log_final(FILE *fp, const char *fmt, va_list ap)
   {
     fputc('\r', fp);
 
-    for (int i = 0; i < last_len; i++)
+    for (int i = 0; i < last_len; ++i)
     {
       fputc(' ', fp);
     }

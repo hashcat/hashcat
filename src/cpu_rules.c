@@ -42,7 +42,7 @@ int mangle_lrest(char arr[BLOCK_SIZE], int arr_len)
 {
   int pos;
 
-  for (pos = 0; pos < arr_len; pos++) MANGLE_LOWER_AT(arr, pos);
+  for (pos = 0; pos < arr_len; ++pos) MANGLE_LOWER_AT(arr, pos);
 
   return (arr_len);
 }
@@ -51,7 +51,7 @@ int mangle_urest(char arr[BLOCK_SIZE], int arr_len)
 {
   int pos;
 
-  for (pos = 0; pos < arr_len; pos++) MANGLE_UPPER_AT(arr, pos);
+  for (pos = 0; pos < arr_len; ++pos) MANGLE_UPPER_AT(arr, pos);
 
   return (arr_len);
 }
@@ -60,7 +60,7 @@ int mangle_trest(char arr[BLOCK_SIZE], int arr_len)
 {
   int pos;
 
-  for (pos = 0; pos < arr_len; pos++) MANGLE_TOGGLE_AT(arr, pos);
+  for (pos = 0; pos < arr_len; ++pos) MANGLE_TOGGLE_AT(arr, pos);
 
   return (arr_len);
 }
@@ -70,7 +70,7 @@ int mangle_reverse(char arr[BLOCK_SIZE], int arr_len)
   int l;
   int r;
 
-  for (l = 0; l < arr_len; l++)
+  for (l = 0; l < arr_len; ++l)
   {
     r = arr_len - 1 - l;
 
@@ -99,7 +99,7 @@ int mangle_double_times(char arr[BLOCK_SIZE], int arr_len, int times)
 
   int i;
 
-  for (i = 0; i < times; i++)
+  for (i = 0; i < times; ++i)
   {
     memcpy(&arr[arr_len], arr, orig_len);
 
@@ -138,7 +138,7 @@ int mangle_rotate_right(char arr[BLOCK_SIZE], int arr_len)
   int l;
   int r;
 
-  for (l = 0, r = arr_len - 1; l < r; l++)
+  for (l = 0, r = arr_len - 1; l < r; ++l)
   {
     MANGLE_SWITCH(arr, l, r);
   }
@@ -177,7 +177,7 @@ int mangle_delete_at(char arr[BLOCK_SIZE], int arr_len, int upos)
 
   int arr_pos;
 
-  for (arr_pos = upos; arr_pos < arr_len - 1; arr_pos++)
+  for (arr_pos = upos; arr_pos < arr_len - 1; ++arr_pos)
   {
     arr[arr_pos] = arr[arr_pos + 1];
   }
@@ -193,7 +193,7 @@ int mangle_extract(char arr[BLOCK_SIZE], int arr_len, int upos, int ulen)
 
   int arr_pos;
 
-  for (arr_pos = 0; arr_pos < ulen; arr_pos++)
+  for (arr_pos = 0; arr_pos < ulen; ++arr_pos)
   {
     arr[arr_pos] = arr[upos + arr_pos];
   }
@@ -209,7 +209,7 @@ int mangle_omit(char arr[BLOCK_SIZE], int arr_len, int upos, int ulen)
 
   int arr_pos;
 
-  for (arr_pos = upos; arr_pos < arr_len - ulen; arr_pos++)
+  for (arr_pos = upos; arr_pos < arr_len - ulen; ++arr_pos)
   {
     arr[arr_pos] = arr[arr_pos + ulen];
   }
@@ -278,7 +278,7 @@ int mangle_replace(char arr[BLOCK_SIZE], int arr_len, char oldc, char newc)
 {
   int arr_pos;
 
-  for (arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  for (arr_pos = 0; arr_pos < arr_len; ++arr_pos)
   {
     if (arr[arr_pos] != oldc) continue;
 
@@ -294,7 +294,7 @@ int mangle_purgechar(char arr[BLOCK_SIZE], int arr_len, char c)
 
   int ret_len;
 
-  for (ret_len = 0, arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  for (ret_len = 0, arr_pos = 0; arr_pos < arr_len; ++arr_pos)
   {
     if (arr[arr_pos] == c) continue;
 
@@ -318,7 +318,7 @@ int mangle_dupeblock_prepend(char arr[BLOCK_SIZE], int arr_len, int ulen)
 
   int i;
 
-  for (i = 0; i < ulen; i++)
+  for (i = 0; i < ulen; ++i)
   {
     char c = cs[i];
 
@@ -338,7 +338,7 @@ int mangle_dupeblock_append(char arr[BLOCK_SIZE], int arr_len, int ulen)
 
   int i;
 
-  for (i = 0; i < ulen; i++)
+  for (i = 0; i < ulen; ++i)
   {
     char c = arr[upos + i];
 
@@ -357,7 +357,7 @@ int mangle_dupechar_at(char arr[BLOCK_SIZE], int arr_len, int upos, int ulen)
 
   int i;
 
-  for (i = 0; i < ulen; i++)
+  for (i = 0; i < ulen; ++i)
   {
     arr_len = mangle_insert(arr, arr_len, upos, c);
   }
@@ -443,7 +443,7 @@ int mangle_title(char arr[BLOCK_SIZE], int arr_len)
 
   int pos;
 
-  for (pos = 0; pos < arr_len; pos++)
+  for (pos = 0; pos < arr_len; ++pos)
   {
     if (arr[pos] == ' ')
     {
@@ -475,7 +475,7 @@ int generate_random_rule(char rule_buf[RP_RULE_BUFSIZ], u32 rp_gen_func_min, u32
 
   u32 rule_pos = 0;
 
-  for (j = 0; j < rp_gen_num; j++)
+  for (j = 0; j < rp_gen_num; ++j)
   {
     u32 r = 0;
     u32 p1 = 0;
@@ -587,7 +587,7 @@ int _old_apply_rule(char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, c
 
   int rule_pos;
 
-  for (rule_pos = 0; rule_pos < rule_len; rule_pos++)
+  for (rule_pos = 0; rule_pos < rule_len; ++rule_pos)
   {
     int upos, upos2;
     int ulen;
@@ -889,7 +889,7 @@ int _old_apply_rule(char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, c
       NEXT_RPTOI(rule, rule_pos, upos);
       if ((upos + 1) > out_len) return (RULE_RC_REJECT_ERROR);
       NEXT_RULEPOS(rule_pos);
-      int c; int cnt; for (c = 0, cnt = 0; c < out_len; c++) if (out[c] == rule[rule_pos]) cnt++;
+      int c; int cnt; for (c = 0, cnt = 0; c < out_len; ++c) if (out[c] == rule[rule_pos]) cnt++;
       if (cnt < upos) return (RULE_RC_REJECT_ERROR);
       break;
 

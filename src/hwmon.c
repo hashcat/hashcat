@@ -48,7 +48,7 @@ int hm_show_performance_level(HM_LIB hm_dll, int iAdapterIndex)
 
   if (hm_ADL_Overdrive_ODPerformanceLevels_Get(hm_dll, iAdapterIndex, 0, lpOdPerformanceLevels) != ADL_OK) return -1;
 
-  for (int j = 0; j < lpOdParameters.iNumberOfPerformanceLevels; j++)
+  for (int j = 0; j < lpOdParameters.iNumberOfPerformanceLevels; ++j)
     log_info("[DEBUG] %s, adapter %d, level %d : engine %d, memory %d, voltage: %d",
       __func__, iAdapterIndex, j,
       lpOdPerformanceLevels->aLevels[j].iEngineClock / 100, lpOdPerformanceLevels->aLevels[j].iMemoryClock / 100, lpOdPerformanceLevels->aLevels[j].iVddc);
@@ -90,7 +90,7 @@ int hm_get_adapter_index_nvml(HM_ADAPTER_NVML nvmlGPUHandle[DEVICES_MAX])
 {
   int pGpuCount = 0;
 
-  for (uint i = 0; i < DEVICES_MAX; i++)
+  for (uint i = 0; i < DEVICES_MAX; ++i)
   {
     if (hm_NVML_nvmlDeviceGetHandleByIndex(data.hm_nvml, 1, i, &nvmlGPUHandle[i]) != NVML_SUCCESS) break;
 
@@ -120,7 +120,7 @@ int hm_get_opencl_device_index(hm_attrs_t *hm_device, uint num_adl_adapters, int
 {
   u32 idx = -1;
 
-  for (uint i = 0; i < num_adl_adapters; i++)
+  for (uint i = 0; i < num_adl_adapters; ++i)
   {
     int opencl_bus_num = hm_device[i].busid;
     int opencl_dev_num = hm_device[i].devid;
@@ -140,7 +140,7 @@ int hm_get_opencl_device_index(hm_attrs_t *hm_device, uint num_adl_adapters, int
 
 void hm_get_opencl_busid_devid(hm_attrs_t *hm_device, uint opencl_num_devices, cl_device_id *devices)
 {
-  for (uint i = 0; i < opencl_num_devices; i++)
+  for (uint i = 0; i < opencl_num_devices; ++i)
   {
     cl_device_topology_amd device_topology;
 
@@ -156,9 +156,9 @@ void hm_sort_adl_adapters_by_busid_devid(u32 *valid_adl_device_list, int num_adl
 {
   // basically bubble sort
 
-  for (int i = 0; i < num_adl_adapters; i++)
+  for (int i = 0; i < num_adl_adapters; ++i)
   {
-    for (int j = 0; j < num_adl_adapters - 1; j++)
+    for (int j = 0; j < num_adl_adapters - 1; ++j)
     {
       // get info of adapter [x]
 
@@ -210,7 +210,7 @@ u32 *hm_get_list_valid_adl_adapters(int iNumberAdapters, int *num_adl_adapters, 
   int *bus_numbers = NULL;
   int *device_numbers = NULL;
 
-  for (int i = 0; i < iNumberAdapters; i++)
+  for (int i = 0; i < iNumberAdapters; ++i)
   {
     AdapterInfo info = lpAdapterInfo[i];
 
@@ -227,7 +227,7 @@ u32 *hm_get_list_valid_adl_adapters(int iNumberAdapters, int *num_adl_adapters, 
 
     int found = 0;
 
-    for (int pos = 0; pos < *num_adl_adapters; pos++)
+    for (int pos = 0; pos < *num_adl_adapters; ++pos)
     {
       if ((bus_numbers[pos] == info.iBusNumber) && (device_numbers[pos] == info.iDeviceNumber))
       {
@@ -269,7 +269,7 @@ int hm_check_fanspeed_control(ADL_PTR *adl, hm_attrs_t *hm_device, u32 *valid_ad
 {
   // loop through all valid devices
 
-  for (int i = 0; i < num_adl_adapters; i++)
+  for (int i = 0; i < num_adl_adapters; ++i)
   {
     u32 adapter_index = valid_adl_device_list[i];
 
@@ -335,7 +335,7 @@ int hm_check_fanspeed_control(ADL_PTR *adl, hm_attrs_t *hm_device, u32 *valid_ad
 
 int hm_get_overdrive_version(ADL_PTR *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
-  for (int i = 0; i < num_adl_adapters; i++)
+  for (int i = 0; i < num_adl_adapters; ++i)
   {
     u32 adapter_index = valid_adl_device_list[i];
 
@@ -367,7 +367,7 @@ int hm_get_overdrive_version(ADL_PTR *adl, hm_attrs_t *hm_device, u32 *valid_adl
 
 int hm_get_adapter_index_adl(hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
-  for (int i = 0; i < num_adl_adapters; i++)
+  for (int i = 0; i < num_adl_adapters; ++i)
   {
     u32 adapter_index = valid_adl_device_list[i];
 

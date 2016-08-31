@@ -141,7 +141,7 @@ int tty_getchar()
 
   FlushConsoleInputBuffer(stdinHandle);
 
-  for (uint i = 0; i < num; i++)
+  for (uint i = 0; i < num; ++i)
   {
     if (buf[i].EventType != KEY_EVENT) continue;
 

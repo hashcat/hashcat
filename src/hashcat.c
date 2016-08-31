@@ -194,7 +194,7 @@ static double get_avg_exec_time(hc_device_param_t *device_param, const int last_
 
   int exec_ms_cnt = 0;
 
-  for (int i = 0; i < last_num_entries; i++)
+  for (int i = 0; i < last_num_entries; ++i)
   {
     double exec_ms = device_param->exec_ms[(exec_pos + i) % EXEC_CACHE];
 
@@ -218,7 +218,7 @@ static void status_benchmark_automate()
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -230,7 +230,7 @@ static void status_benchmark_automate()
 
   double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -244,7 +244,7 @@ static void status_benchmark_automate()
     }
   }
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -270,7 +270,7 @@ static void status_benchmark()
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -284,7 +284,7 @@ static void status_benchmark()
 
   double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -306,7 +306,7 @@ static void status_benchmark()
 
   double exec_all_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -317,7 +317,7 @@ static void status_benchmark()
     exec_all_ms[device_id] = exec_ms_avg;
   }
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -436,7 +436,7 @@ static int check_cracked(hc_device_param_t *device_param, const uint salt_pos)
 
     hc_thread_mutex_lock(mux_display);
 
-    for (uint i = 0; i < num_cracked; i++)
+    for (uint i = 0; i < num_cracked; ++i)
     {
       const uint hash_pos = cracked[i].hash_pos;
 
@@ -587,15 +587,15 @@ static void process_stdout(hc_device_param_t *device_param, const uint pws_cnt)
   {
     pw_t pw;
 
-    for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
+    for (uint gidvid = 0; gidvid < pws_cnt; ++gidvid)
     {
       gidd_to_pw_t(device_param, gidvid, &pw);
 
       const uint pos = device_param->innerloop_pos;
 
-      for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
+      for (uint il_pos = 0; il_pos < il_cnt; ++il_pos)
       {
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 8; ++i)
         {
           plain_buf[i] = pw.i[i];
         }
@@ -615,13 +615,13 @@ static void process_stdout(hc_device_param_t *device_param, const uint pws_cnt)
   {
     pw_t pw;
 
-    for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
+    for (uint gidvid = 0; gidvid < pws_cnt; ++gidvid)
     {
       gidd_to_pw_t(device_param, gidvid, &pw);
 
-      for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
+      for (uint il_pos = 0; il_pos < il_cnt; ++il_pos)
       {
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 8; ++i)
         {
           plain_buf[i] = pw.i[i];
         }
@@ -656,9 +656,9 @@ static void process_stdout(hc_device_param_t *device_param, const uint pws_cnt)
   break;
   case ATTACK_MODE_BF:
   {
-    for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
+    for (uint gidvid = 0; gidvid < pws_cnt; ++gidvid)
     {
-      for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
+      for (uint il_pos = 0; il_pos < il_cnt; ++il_pos)
       {
         u64 l_off = device_param->kernel_params_mp_l_buf64[3] + gidvid;
         u64 r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
@@ -683,13 +683,13 @@ static void process_stdout(hc_device_param_t *device_param, const uint pws_cnt)
   {
     pw_t pw;
 
-    for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
+    for (uint gidvid = 0; gidvid < pws_cnt; ++gidvid)
     {
       gidd_to_pw_t(device_param, gidvid, &pw);
 
-      for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
+      for (uint il_pos = 0; il_pos < il_cnt; ++il_pos)
       {
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 8; ++i)
         {
           plain_buf[i] = pw.i[i];
         }
@@ -714,13 +714,13 @@ static void process_stdout(hc_device_param_t *device_param, const uint pws_cnt)
   {
     pw_t pw;
 
-    for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
+    for (uint gidvid = 0; gidvid < pws_cnt; ++gidvid)
     {
       gidd_to_pw_t(device_param, gidvid, &pw);
 
-      for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
+      for (uint il_pos = 0; il_pos < il_cnt; ++il_pos)
       {
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 8; ++i)
         {
           plain_buf[i] = pw.i[i];
         }
@@ -777,13 +777,13 @@ static void save_hash()
     exit(-1);
   }
 
-  for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+  for (uint salt_pos = 0; salt_pos < data.salts_cnt; ++salt_pos)
   {
     if (data.salts_shown[salt_pos] == 1) continue;
 
     salt_t *salt_buf = &data.salts_buf[salt_pos];
 
-    for (uint digest_pos = 0; digest_pos < salt_buf->digests_cnt; digest_pos++)
+    for (uint digest_pos = 0; digest_pos < salt_buf->digests_cnt; ++digest_pos)
     {
       uint idx = salt_buf->digests_offset + digest_pos;
 
@@ -797,7 +797,7 @@ static void save_hash()
 
           uint i;
 
-          for (i = 0; i < user->user_len; i++) fputc(user->user_name[i], fp);
+          for (i = 0; i < user->user_len; ++i) fputc(user->user_name[i], fp);
 
           fputc(separator, fp);
         }
@@ -1514,7 +1514,7 @@ static int run_copy(hc_device_param_t *device_param, const uint pws_cnt)
       {
         if (data.opts_type & OPTS_TYPE_PT_ADD01)
         {
-          for (u32 i = 0; i < pws_cnt; i++)
+          for (u32 i = 0; i < pws_cnt; ++i)
           {
             const u32 pw_len = device_param->pws_buf[i].pw_len;
 
@@ -1525,7 +1525,7 @@ static int run_copy(hc_device_param_t *device_param, const uint pws_cnt)
         }
         else if (data.opts_type & OPTS_TYPE_PT_ADD80)
         {
-          for (u32 i = 0; i < pws_cnt; i++)
+          for (u32 i = 0; i < pws_cnt; ++i)
           {
             const u32 pw_len = device_param->pws_buf[i].pw_len;
 
@@ -1541,7 +1541,7 @@ static int run_copy(hc_device_param_t *device_param, const uint pws_cnt)
     {
       if (data.opts_type & OPTS_TYPE_PT_ADD01)
       {
-        for (u32 i = 0; i < pws_cnt; i++)
+        for (u32 i = 0; i < pws_cnt; ++i)
         {
           const u32 pw_len = device_param->pws_buf[i].pw_len;
 
@@ -1552,7 +1552,7 @@ static int run_copy(hc_device_param_t *device_param, const uint pws_cnt)
       }
       else if (data.opts_type & OPTS_TYPE_PT_ADD80)
       {
-        for (u32 i = 0; i < pws_cnt; i++)
+        for (u32 i = 0; i < pws_cnt; ++i)
         {
           const u32 pw_len = device_param->pws_buf[i].pw_len;
 
@@ -1658,7 +1658,7 @@ static int autotune(hc_device_param_t *device_param)
   }
   else
   {
-    for (u32 i = 0; i < kernel_power_max; i++)
+    for (u32 i = 0; i < kernel_power_max; ++i)
     {
       device_param->pws_buf[i].i[0] = i;
       device_param->pws_buf[i].i[1] = 0x01234567;
@@ -1702,7 +1702,7 @@ static int autotune(hc_device_param_t *device_param)
     {
       double exec_ms = try_run(device_param, kernel_accel_min, kernel_loops);
 
-      for (int i = 0; i < VERIFIER_CNT; i++)
+      for (int i = 0; i < VERIFIER_CNT; ++i)
       {
         double exec_ms_v = try_run(device_param, kernel_accel_min, kernel_loops);
 
@@ -1717,7 +1717,7 @@ static int autotune(hc_device_param_t *device_param)
 
   if (kernel_accel_min < kernel_accel_max)
   {
-    for (int i = 0; i < STEPS_CNT; i++)
+    for (int i = 0; i < STEPS_CNT; ++i)
     {
       const u32 kernel_accel_try = 1u << i;
 
@@ -1726,7 +1726,7 @@ static int autotune(hc_device_param_t *device_param)
 
       double exec_ms = try_run(device_param, kernel_accel_try, kernel_loops);
 
-      for (int i = 0; i < VERIFIER_CNT; i++)
+      for (int i = 0; i < VERIFIER_CNT; ++i)
       {
         double exec_ms_v = try_run(device_param, kernel_accel_try, kernel_loops);
 
@@ -1749,7 +1749,7 @@ static int autotune(hc_device_param_t *device_param)
 
   double exec_ms_pre_final = try_run(device_param, kernel_accel, kernel_loops);
 
-  for (int i = 0; i < VERIFIER_CNT; i++)
+  for (int i = 0; i < VERIFIER_CNT; ++i)
   {
     double exec_ms_pre_final_v = try_run(device_param, kernel_accel, kernel_loops);
 
@@ -1763,7 +1763,7 @@ static int autotune(hc_device_param_t *device_param)
     u32 kernel_accel_orig = kernel_accel;
     u32 kernel_loops_orig = kernel_loops;
 
-    for (u32 f = 1; f < 1024; f++)
+    for (u32 f = 1; f < 1024; ++f)
     {
       const u32 kernel_accel_try = (float)kernel_accel_orig * f;
       const u32 kernel_loops_try = (float)kernel_loops_orig / f;
@@ -1779,7 +1779,7 @@ static int autotune(hc_device_param_t *device_param)
 
       double exec_ms = try_run(device_param, kernel_accel_try, kernel_loops_try);
 
-      for (int i = 0; i < VERIFIER_CNT; i++)
+      for (int i = 0; i < VERIFIER_CNT; ++i)
       {
         double exec_ms_v = try_run(device_param, kernel_accel_try, kernel_loops_try);
 
@@ -1927,7 +1927,7 @@ static int run_cracker(hc_device_param_t *device_param, const uint pws_cnt)
 
   // loop start: most outer loop = salt iteration, then innerloops (if multi)
 
-  for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+  for (uint salt_pos = 0; salt_pos < data.salts_cnt; ++salt_pos)
   {
     while (data.devices_status == STATUS_PAUSED) hc_sleep(1);
 
@@ -2066,7 +2066,7 @@ static int run_cracker(hc_device_param_t *device_param, const uint pws_cnt)
           i++;
         }
 
-        for (uint j = i; j < innerloop_left; j++)
+        for (uint j = i; j < innerloop_left; ++j)
         {
           device_param->combs_buf[j].i[0] = 0;
           device_param->combs_buf[j].i[1] = 0;
@@ -2672,7 +2672,7 @@ static void *thread_monitor(void *p)
     {
       hc_thread_mutex_lock(mux_adl);
 
-      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
       {
         hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -2739,7 +2739,7 @@ static void *thread_monitor(void *p)
 
       if (Ta == 0) Ta = 1;
 
-      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
       {
         hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -2994,13 +2994,13 @@ static void *thread_outfile_remove(void *p)
             {
               out_info_new = (outfile_data_t *)mycalloc(out_cnt_new, sizeof(outfile_data_t));
 
-              for (int i = 0; i < out_cnt_new; i++)
+              for (int i = 0; i < out_cnt_new; ++i)
               {
                 out_info_new[i].file_name = out_files_new[i];
 
                 // check if there are files that we have seen/checked before (and not changed)
 
-                for (int j = 0; j < out_cnt; j++)
+                for (int j = 0; j < out_cnt; ++j)
                 {
                   if (strcmp(out_info[j].file_name, out_info_new[i].file_name) == 0)
                   {
@@ -3029,7 +3029,7 @@ static void *thread_outfile_remove(void *p)
             folder_mtime = outfile_check_stat.st_mtime;
           }
 
-          for (int j = 0; j < out_cnt; j++)
+          for (int j = 0; j < out_cnt; ++j)
           {
             FILE *fp = fopen(out_info[j].file_name, "rb");
 
@@ -3082,13 +3082,13 @@ static void *thread_outfile_remove(void *p)
 
                   if (parser_status == PARSER_OK)
                   {
-                    for (uint salt_pos = 0; (found == 0) && (salt_pos < data.salts_cnt); salt_pos++)
+                    for (uint salt_pos = 0; (found == 0) && (salt_pos < data.salts_cnt); ++salt_pos)
                     {
                       if (data.salts_shown[salt_pos] == 1) continue;
 
                       salt_t *salt_buf = &data.salts_buf[salt_pos];
 
-                      for (uint digest_pos = 0; (found == 0) && (digest_pos < salt_buf->digests_cnt); digest_pos++)
+                      for (uint digest_pos = 0; (found == 0) && (digest_pos < salt_buf->digests_cnt); ++digest_pos)
                       {
                         uint idx = salt_buf->digests_offset + digest_pos;
 
@@ -3393,7 +3393,7 @@ static void *thread_calc_stdin(void *p)
         {
           hc_thread_mutex_lock(mux_counter);
 
-          for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+          for (uint salt_pos = 0; salt_pos < data.salts_cnt; ++salt_pos)
           {
             data.words_progress_rejected[salt_pos] += data.kernel_rules_cnt;
           }
@@ -3640,7 +3640,7 @@ static void *thread_calc(void *p)
 
               hc_thread_mutex_lock(mux_counter);
 
-              for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+              for (uint salt_pos = 0; salt_pos < data.salts_cnt; ++salt_pos)
               {
                 data.words_progress_rejected[salt_pos] += data.kernel_rules_cnt;
               }
@@ -3661,7 +3661,7 @@ static void *thread_calc(void *p)
 
               hc_thread_mutex_lock(mux_counter);
 
-              for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+              for (uint salt_pos = 0; salt_pos < data.salts_cnt; ++salt_pos)
               {
                 data.words_progress_rejected[salt_pos] += data.combs_cnt;
               }
@@ -3875,7 +3875,7 @@ static uint generate_bitmaps(const uint digests_cnt, const uint dgst_size, const
   memset(bitmap_c, 0, bitmap_size);
   memset(bitmap_d, 0, bitmap_size);
 
-  for (uint i = 0; i < digests_cnt; i++)
+  for (uint i = 0; i < digests_cnt; ++i)
   {
     uint *digest_ptr = (uint *)digests_buf_ptr;
 
@@ -9837,7 +9837,7 @@ int main(int argc, char **argv)
         {
           uint pos = 0;
 
-          for (pos = 0; pos < INCR_POT; pos++)
+          for (pos = 0; pos < INCR_POT; ++pos)
           {
             if ((pot_cnt + pos) >= pot_avail) break;
 
@@ -10161,7 +10161,7 @@ int main(int argc, char **argv)
     {
       u32 hash_pos;
 
-      for (hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
+      for (hash_pos = 0; hash_pos < hashes_avail; ++hash_pos)
       {
         hashinfo_t *hash_info = (hashinfo_t *)mymalloc(sizeof(hashinfo_t));
 
@@ -10193,7 +10193,7 @@ int main(int argc, char **argv)
       salts_buf = (salt_t *)mycalloc(1, sizeof(salt_t));
     }
 
-    for (uint hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
+    for (uint hash_pos = 0; hash_pos < hashes_avail; ++hash_pos)
     {
       hashes_buf[hash_pos].digest = ((char *)digests_buf) + (hash_pos * dgst_size);
 
@@ -11016,7 +11016,7 @@ int main(int argc, char **argv)
 
     if (show == 1 || left == 1)
     {
-      for (uint i = 0; i < pot_cnt; i++)
+      for (uint i = 0; i < pot_cnt; ++i)
       {
         pot_t *pot_ptr = &pot[i];
 
@@ -11152,7 +11152,7 @@ int main(int argc, char **argv)
 
     hashes_cnt = 1;
 
-    for (uint hashes_pos = 1; hashes_pos < hashes_cnt_orig; hashes_pos++)
+    for (uint hashes_pos = 1; hashes_pos < hashes_cnt_orig; ++hashes_pos)
     {
       if (isSalted)
       {
@@ -11420,7 +11420,7 @@ int main(int argc, char **argv)
       {
         uint user_pos;
 
-        for (user_pos = 0; user_pos < hashes_cnt; user_pos++)
+        for (user_pos = 0; user_pos < hashes_cnt; ++user_pos)
         {
           hash_info[user_pos] = (hashinfo_t*)mycalloc(hashes_cnt, sizeof(hashinfo_t));
 
@@ -11472,7 +11472,7 @@ int main(int argc, char **argv)
 
     // copy from inner loop
 
-    for (uint hashes_pos = 1; hashes_pos < hashes_cnt; hashes_pos++)
+    for (uint hashes_pos = 1; hashes_pos < hashes_cnt; ++hashes_pos)
     {
       if (isSalted)
       {
@@ -11514,7 +11514,7 @@ int main(int argc, char **argv)
       }
     }
 
-    for (uint salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
+    for (uint salt_pos = 0; salt_pos < salts_cnt; ++salt_pos)
     {
       salt_t *salt_buf = &salts_buf_new[salt_pos];
 
@@ -11711,7 +11711,7 @@ int main(int argc, char **argv)
     uint bitmap_mask;
     uint bitmap_size;
 
-    for (bitmap_bits = bitmap_min; bitmap_bits < bitmap_max; bitmap_bits++)
+    for (bitmap_bits = bitmap_min; bitmap_bits < bitmap_max; ++bitmap_bits)
     {
       if (data.quiet == 0) log_info_nn("Generating bitmap tables with %u bits...", bitmap_bits);
 
@@ -11770,7 +11770,7 @@ int main(int argc, char **argv)
 
     int rule_len = 0;
 
-    for (uint i = 0; i < rp_files_cnt; i++)
+    for (uint i = 0; i < rp_files_cnt; ++i)
     {
       uint kernel_rules_avail = 0;
 
@@ -11871,7 +11871,7 @@ int main(int argc, char **argv)
 
         repeats[0] = kernel_rules_cnt;
 
-        for (uint i = 0; i < rp_files_cnt; i++)
+        for (uint i = 0; i < rp_files_cnt; ++i)
         {
           kernel_rules_cnt *= all_kernel_rules_cnt[i];
 
@@ -11882,13 +11882,13 @@ int main(int argc, char **argv)
 
         memset(kernel_rules_buf, 0, kernel_rules_cnt * sizeof(kernel_rule_t));
 
-        for (uint i = 0; i < kernel_rules_cnt; i++)
+        for (uint i = 0; i < kernel_rules_cnt; ++i)
         {
           uint out_pos = 0;
 
           kernel_rule_t *out = &kernel_rules_buf[i];
 
-          for (uint j = 0; j < rp_files_cnt; j++)
+          for (uint j = 0; j < rp_files_cnt; ++j)
           {
             uint in_off = (i / repeats[j]) % all_kernel_rules_cnt[j];
             uint in_pos;
@@ -12017,7 +12017,7 @@ int main(int argc, char **argv)
 
       cl_device_type device_types_all = 0;
 
-      for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
+      for (uint platform_id = 0; platform_id < platforms_cnt; ++platform_id)
       {
         if ((opencl_platforms_filter & (1u << platform_id)) == 0) continue;
 
@@ -12036,7 +12036,7 @@ int main(int argc, char **argv)
           continue;
         }
 
-        for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
+        for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; ++platform_devices_id)
         {
           cl_device_id device = platform_devices[platform_devices_id];
 
@@ -12091,7 +12091,7 @@ int main(int argc, char **argv)
 
     uint devices_active = 0;
 
-    for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
+    for (uint platform_id = 0; platform_id < platforms_cnt; ++platform_id)
     {
       cl_int CL_err = CL_SUCCESS;
 
@@ -12174,7 +12174,7 @@ int main(int argc, char **argv)
 
             char line[256] = { 0 };
 
-            for (int i = 0; i < len; i++) line[i] = '=';
+            for (int i = 0; i < len; ++i) line[i] = '=';
 
             log_info(line);
           }
@@ -12194,7 +12194,7 @@ int main(int argc, char **argv)
       if (platform_skipped == 1) continue;
       if (platform_skipped == 2) continue;
 
-      for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
+      for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; ++platform_devices_id)
       {
         size_t param_value_size = 0;
 
@@ -13046,12 +13046,12 @@ int main(int argc, char **argv)
 
           int tmp_out = 0;
 
-          for (int i = 0; i < tmp_in; i++)
+          for (int i = 0; i < tmp_in; ++i)
           {
             hm_adapters_nvml[tmp_out++].nvml = nvmlGPUHandle[i];
           }
 
-          for (int i = 0; i < tmp_out; i++)
+          for (int i = 0; i < tmp_out; ++i)
           {
             unsigned int speed;
 
@@ -13079,7 +13079,7 @@ int main(int argc, char **argv)
 
           int tmp_out = 0;
 
-          for (int i = 0; i < tmp_in; i++)
+          for (int i = 0; i < tmp_in; ++i)
           {
             hm_adapters_nvapi[tmp_out++].nvapi = nvGPUHandle[i];
           }
@@ -13095,7 +13095,7 @@ int main(int argc, char **argv)
       {
         if (hm_XNVCTRL_XOpenDisplay(data.hm_xnvctrl) == 0)
         {
-          for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+          for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
           {
             hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -13229,7 +13229,7 @@ int main(int argc, char **argv)
       {
         log_info("Applicable Optimizers:");
 
-        for (uint i = 0; i < 32; i++)
+        for (uint i = 0; i < 32; ++i)
         {
           const uint opti_bit = 1u << i;
 
@@ -13277,7 +13277,7 @@ int main(int argc, char **argv)
 
     if (gpu_temp_disable == 0)
     {
-      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
       {
         hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -13319,7 +13319,7 @@ int main(int argc, char **argv)
     {
       hc_thread_mutex_lock(mux_adl);
 
-      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
       {
         hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -13512,7 +13512,7 @@ int main(int argc, char **argv)
 
     if (data.quiet == 0) log_info_nn("Initializing device kernels and memory...");
 
-    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+    for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
     {
       cl_int CL_err = CL_SUCCESS;
 
@@ -13642,7 +13642,7 @@ int main(int argc, char **argv)
         const u32 scrypt_r = data.salts_buf[0].scrypt_r;
         const u32 scrypt_p = data.salts_buf[0].scrypt_p;
 
-        for (uint i = 1; i < salts_cnt; i++)
+        for (uint i = 1; i < salts_cnt; ++i)
         {
           if ((data.salts_buf[i].scrypt_N != scrypt_N)
             || (data.salts_buf[i].scrypt_r != scrypt_r)
@@ -13697,7 +13697,7 @@ int main(int argc, char **argv)
 
         uint tmto;
 
-        for (tmto = tmto_start; tmto < tmto_stop; tmto++)
+        for (tmto = tmto_start; tmto < tmto_stop; ++tmto)
         {
           size_scrypt = (128 * scrypt_r) * scrypt_N;
 
@@ -13719,7 +13719,7 @@ int main(int argc, char **argv)
             continue;
           }
 
-          for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
+          for (uint salts_pos = 0; salts_pos < data.salts_cnt; ++salts_pos)
           {
             data.scrypt_tmto_final = tmto;
           }
@@ -14057,7 +14057,7 @@ int main(int argc, char **argv)
         "inc_vendor.cl",
       };
 
-      for (int i = 0; i < files_cnt; i++)
+      for (int i = 0; i < files_cnt; ++i)
       {
         FILE *fd = fopen(files_names[i], "r");
 
@@ -15216,7 +15216,7 @@ int main(int argc, char **argv)
         return -1;
       }
 
-      for (uint i = 0; i <= 23; i++)
+      for (uint i = 0; i <= 23; ++i)
       {
         CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel1, i, sizeof(cl_mem), device_param->kernel_params[i]);
         CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel2, i, sizeof(cl_mem), device_param->kernel_params[i]);
@@ -15233,7 +15233,7 @@ int main(int argc, char **argv)
         }
       }
 
-      for (uint i = 24; i <= 34; i++)
+      for (uint i = 24; i <= 34; ++i)
       {
         CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel1, i, sizeof(cl_uint), device_param->kernel_params[i]);
         CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel2, i, sizeof(cl_uint), device_param->kernel_params[i]);
@@ -15390,7 +15390,7 @@ int main(int argc, char **argv)
       }
       else
       {
-        for (uint i = 0; i < 5; i++)
+        for (uint i = 0; i < 5; ++i)
         {
           CL_err = hc_clSetKernelArg(data.ocl, device_param->kernel_amp, i, sizeof(cl_mem), device_param->kernel_params_amp[i]);
 
@@ -15402,7 +15402,7 @@ int main(int argc, char **argv)
           }
         }
 
-        for (uint i = 5; i < 7; i++)
+        for (uint i = 5; i < 7; ++i)
         {
           CL_err = hc_clSetKernelArg(data.ocl, device_param->kernel_amp, i, sizeof(cl_uint), device_param->kernel_params_amp[i]);
 
@@ -15605,7 +15605,7 @@ int main(int argc, char **argv)
       {
         int wls_left = myargc - (optind + 1);
 
-        for (int i = 0; i < wls_left; i++)
+        for (int i = 0; i < wls_left; ++i)
         {
           char *l0_filename = myargv[optind + 1 + i];
 
@@ -15647,7 +15647,7 @@ int main(int argc, char **argv)
             {
               qsort(dictionary_files, count_dictionaries(dictionary_files), sizeof(char *), sort_by_stringptr);
 
-              for (int d = 0; dictionary_files[d] != NULL; d++)
+              for (int d = 0; dictionary_files[d] != NULL; ++d)
               {
                 char *l1_filename = dictionary_files[d];
 
@@ -15856,7 +15856,7 @@ int main(int argc, char **argv)
 
             uint masks_avail = INCR_MASKS;
 
-            for (int i = 0; i < wls_left; i++)
+            for (int i = 0; i < wls_left; ++i)
             {
               if (i != 0)
               {
@@ -16068,7 +16068,7 @@ int main(int argc, char **argv)
 
       int wls_left = myargc - (optind + 2);
 
-      for (int i = 0; i < wls_left; i++)
+      for (int i = 0; i < wls_left; ++i)
       {
         char *filename = myargv[optind + 1 + i];
 
@@ -16110,7 +16110,7 @@ int main(int argc, char **argv)
           {
             qsort(dictionary_files, count_dictionaries(dictionary_files), sizeof(char *), sort_by_stringptr);
 
-            for (int d = 0; dictionary_files[d] != NULL; d++)
+            for (int d = 0; dictionary_files[d] != NULL; ++d)
             {
               char *l1_filename = dictionary_files[d];
 
@@ -16152,7 +16152,7 @@ int main(int argc, char **argv)
         uint mask_min = increment_min; // we can't reject smaller masks here
         uint mask_max = (increment_max < pw_max) ? increment_max : pw_max;
 
-        for (uint mask_cur = mask_min; mask_cur <= mask_max; mask_cur++)
+        for (uint mask_cur = mask_min; mask_cur <= mask_max; ++mask_cur)
         {
           char *cur_mask = mp_get_truncated_mask(mask, strlen(mask), mask_cur);
 
@@ -16247,7 +16247,7 @@ int main(int argc, char **argv)
 
       int wls_left = myargc - (optind + 2);
 
-      for (int i = 0; i < wls_left; i++)
+      for (int i = 0; i < wls_left; ++i)
       {
         char *filename = myargv[optind + 2 + i];
 
@@ -16289,7 +16289,7 @@ int main(int argc, char **argv)
           {
             qsort(dictionary_files, count_dictionaries(dictionary_files), sizeof(char *), sort_by_stringptr);
 
-            for (int d = 0; dictionary_files[d] != NULL; d++)
+            for (int d = 0; dictionary_files[d] != NULL; ++d)
             {
               char *l1_filename = dictionary_files[d];
 
@@ -16331,7 +16331,7 @@ int main(int argc, char **argv)
         uint mask_min = increment_min; // we can't reject smaller masks here
         uint mask_max = (increment_max < pw_max) ? increment_max : pw_max;
 
-        for (uint mask_cur = mask_min; mask_cur <= mask_max; mask_cur++)
+        for (uint mask_cur = mask_min; mask_cur <= mask_max; ++mask_cur)
         {
           char *cur_mask = mp_get_truncated_mask(mask, strlen(mask), mask_cur);
 
@@ -16357,7 +16357,7 @@ int main(int argc, char **argv)
     {
       hc_device_param_t *device_param = NULL;
 
-      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
       {
         device_param = &data.devices_param[device_id];
 
@@ -16368,7 +16368,7 @@ int main(int argc, char **argv)
 
       if (data.quiet == 0) log_info_nn("Checking for weak hashes...");
 
-      for (uint salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
+      for (uint salt_pos = 0; salt_pos < salts_cnt; ++salt_pos)
       {
         weak_hash_check(device_param, salt_pos);
       }
@@ -16458,7 +16458,7 @@ int main(int argc, char **argv)
 
     data.maskcnt = maskcnt;
 
-    for (uint maskpos = rd->maskpos; maskpos < maskcnt; maskpos++)
+    for (uint maskpos = rd->maskpos; maskpos < maskcnt; ++maskpos)
     {
       if (
         data.devices_status == STATUS_CRACKED ||
@@ -16488,7 +16488,7 @@ int main(int argc, char **argv)
 
           uint separator_cnt;
 
-          for (separator_cnt = 0; separator_cnt < 4; separator_cnt++)
+          for (separator_cnt = 0; separator_cnt < 4; ++separator_cnt)
           {
             str_ptr = strstr(mask + mask_offset, ",");
 
@@ -16624,7 +16624,7 @@ int main(int argc, char **argv)
 
           // args
 
-          for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+          for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
           {
             hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -16656,9 +16656,9 @@ int main(int argc, char **argv)
 
             cl_int CL_err = CL_SUCCESS;
 
-            for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp, i, sizeof(cl_mem), (void *)device_param->kernel_params_mp[i]);
-            for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp, i, sizeof(cl_ulong), (void *)device_param->kernel_params_mp[i]);
-            for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp, i, sizeof(cl_uint), (void *)device_param->kernel_params_mp[i]);
+            for (uint i = 0; i < 3; ++i) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp, i, sizeof(cl_mem), (void *)device_param->kernel_params_mp[i]);
+            for (uint i = 3; i < 4; ++i) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp, i, sizeof(cl_ulong), (void *)device_param->kernel_params_mp[i]);
+            for (uint i = 4; i < 8; ++i) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp, i, sizeof(cl_uint), (void *)device_param->kernel_params_mp[i]);
 
             if (CL_err != CL_SUCCESS)
             {
@@ -16684,7 +16684,7 @@ int main(int argc, char **argv)
 
           if (increment)
           {
-            for (uint i = 0; i < dictcnt; i++)
+            for (uint i = 0; i < dictcnt; ++i)
             {
               local_free(dictfiles[i]);
             }
@@ -16763,7 +16763,7 @@ int main(int argc, char **argv)
         }
       }
 
-      for (uint dictpos = rd->dictpos; dictpos < dictcnt; dictpos++)
+      for (uint dictpos = rd->dictpos; dictpos < dictcnt; ++dictpos)
       {
         if (
           data.devices_status == STATUS_CRACKED ||
@@ -16811,7 +16811,7 @@ int main(int argc, char **argv)
 
         data.words_cur = rd->words_cur;
 
-        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+        for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
         {
           hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -16862,7 +16862,7 @@ int main(int argc, char **argv)
 
             logfile_sub_string(dictfile);
 
-            for (uint i = 0; i < rp_files_cnt; i++)
+            for (uint i = 0; i < rp_files_cnt; ++i)
             {
               logfile_sub_var_string("rulefile", rp_files[i]);
             }
@@ -17147,7 +17147,7 @@ int main(int argc, char **argv)
             /* unfinished code?
             int sum = css_buf[css_cnt_r - 1].cs_len;
 
-            for (uint i = 1; i < 4 && i < css_cnt; i++)
+            for (uint i = 1; i < 4 && i < css_cnt; ++i)
             {
               if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
 
@@ -17162,7 +17162,7 @@ int main(int argc, char **argv)
 
           data.bfs_cnt = sp_get_sum(0, css_cnt_r, root_css_buf);
 
-          for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+          for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
           {
             hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -17196,13 +17196,13 @@ int main(int argc, char **argv)
 
             cl_int CL_err = CL_SUCCESS;
 
-            for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp_l, i, sizeof(cl_mem), (void *)device_param->kernel_params_mp_l[i]);
-            for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp_l, i, sizeof(cl_ulong), (void *)device_param->kernel_params_mp_l[i]);
-            for (uint i = 4; i < 9; i++) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp_l, i, sizeof(cl_uint), (void *)device_param->kernel_params_mp_l[i]);
+            for (uint i = 0; i < 3; ++i) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp_l, i, sizeof(cl_mem), (void *)device_param->kernel_params_mp_l[i]);
+            for (uint i = 3; i < 4; ++i) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp_l, i, sizeof(cl_ulong), (void *)device_param->kernel_params_mp_l[i]);
+            for (uint i = 4; i < 9; ++i) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp_l, i, sizeof(cl_uint), (void *)device_param->kernel_params_mp_l[i]);
 
-            for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp_r, i, sizeof(cl_mem), (void *)device_param->kernel_params_mp_r[i]);
-            for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp_r, i, sizeof(cl_ulong), (void *)device_param->kernel_params_mp_r[i]);
-            for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp_r, i, sizeof(cl_uint), (void *)device_param->kernel_params_mp_r[i]);
+            for (uint i = 0; i < 3; ++i) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp_r, i, sizeof(cl_mem), (void *)device_param->kernel_params_mp_r[i]);
+            for (uint i = 3; i < 4; ++i) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp_r, i, sizeof(cl_ulong), (void *)device_param->kernel_params_mp_r[i]);
+            for (uint i = 4; i < 8; ++i) CL_err |= hc_clSetKernelArg(data.ocl, device_param->kernel_mp_r, i, sizeof(cl_uint), (void *)device_param->kernel_params_mp_r[i]);
 
             if (CL_err != CL_SUCCESS)
             {
@@ -17275,7 +17275,7 @@ int main(int argc, char **argv)
           switch (data.attack_kern) {
           case ATTACK_KERN_STRAIGHT:
           {
-            for (uint i = 0; i < data.salts_cnt; i++)
+            for (uint i = 0; i < data.salts_cnt; ++i)
             {
               data.words_progress_restored[i] = data.words_cur * data.kernel_rules_cnt;
             }
@@ -17283,7 +17283,7 @@ int main(int argc, char **argv)
           break;
           case ATTACK_KERN_COMBI:
           {
-            for (uint i = 0; i < data.salts_cnt; i++)
+            for (uint i = 0; i < data.salts_cnt; ++i)
             {
               data.words_progress_restored[i] = data.words_cur * data.combs_cnt;
             }
@@ -17291,7 +17291,7 @@ int main(int argc, char **argv)
           break;
           case ATTACK_KERN_BF:
           {
-            for (uint i = 0; i < data.salts_cnt; i++)
+            for (uint i = 0; i < data.salts_cnt; ++i)
             {
               data.words_progress_restored[i] = data.words_cur * data.bfs_cnt;
             }
@@ -17346,7 +17346,7 @@ int main(int argc, char **argv)
           data.devices_status = STATUS_AUTOTUNE;
         }
 
-        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+        for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
         {
           hc_device_param_t *device_param = &devices_param[device_id];
 
@@ -17363,7 +17363,7 @@ int main(int argc, char **argv)
 
         uint kernel_power_all = 0;
 
-        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+        for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
         {
           hc_device_param_t *device_param = &devices_param[device_id];
 
@@ -17434,7 +17434,7 @@ int main(int argc, char **argv)
 
         data.prepare_time += runtime_start - prepare_start;
 
-        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+        for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
         {
           hc_device_param_t *device_param = &devices_param[device_id];
 
@@ -17603,7 +17603,7 @@ int main(int argc, char **argv)
 
     // if cracked / aborted remove last induction dictionary
 
-    for (int file_pos = 0; file_pos < induction_dictionaries_cnt; file_pos++)
+    for (int file_pos = 0; file_pos < induction_dictionaries_cnt; ++file_pos)
     {
       struct stat induct_stat;
 
@@ -17617,7 +17617,7 @@ int main(int argc, char **argv)
 
     data.shutdown_inner = 1;
 
-    for (uint thread_idx = 0; thread_idx < inner_threads_cnt; thread_idx++)
+    for (uint thread_idx = 0; thread_idx < inner_threads_cnt; ++thread_idx)
     {
       hc_thread_wait(1, &inner_threads[thread_idx]);
     }
@@ -17649,7 +17649,7 @@ int main(int argc, char **argv)
      * Clean up
      */
 
-    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+    for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
     {
       hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -17763,7 +17763,7 @@ int main(int argc, char **argv)
       {
         hc_thread_mutex_lock(mux_adl);
 
-        for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+        for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
         {
           hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -17802,7 +17802,7 @@ int main(int argc, char **argv)
     {
       hc_thread_mutex_lock(mux_adl);
 
-      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
       {
         hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -17917,7 +17917,7 @@ int main(int argc, char **argv)
 
     local_free(dictstat_base);
 
-    for (uint pot_pos = 0; pot_pos < pot_cnt; pot_pos++)
+    for (uint pot_pos = 0; pot_pos < pot_cnt; ++pot_pos)
     {
       pot_t *pot_ptr = &pot[pot_pos];
 

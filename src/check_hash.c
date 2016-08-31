@@ -51,7 +51,7 @@ void check_hash(hc_device_param_t *device_param, plain_t *plain)
 
     gidd_to_pw_t(device_param, gidvid, &pw);
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 16; ++i)
     {
       plain_buf[i] = pw.i[i];
     }
@@ -98,7 +98,7 @@ void check_hash(hc_device_param_t *device_param, plain_t *plain)
 
     gidd_to_pw_t(device_param, gidvid, &pw);
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 16; ++i)
     {
       plain_buf[i] = pw.i[i];
     }
@@ -158,7 +158,7 @@ void check_hash(hc_device_param_t *device_param, plain_t *plain)
 
     gidd_to_pw_t(device_param, gidvid, &pw);
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 16; ++i)
     {
       plain_buf[i] = pw.i[i];
     }
@@ -190,7 +190,7 @@ void check_hash(hc_device_param_t *device_param, plain_t *plain)
 
     gidd_to_pw_t(device_param, gidvid, &pw);
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 16; ++i)
     {
       plain_buf[i] = pw.i[i];
     }

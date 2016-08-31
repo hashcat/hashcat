@@ -13,7 +13,7 @@ u64 sp_get_sum(uint start, uint stop, cs_t *root_css_buf)
 
   uint i;
 
-  for (i = start; i < stop; i++)
+  for (i = start; i < stop; ++i)
   {
     sum *= root_css_buf[i].cs_len;
   }
@@ -29,7 +29,7 @@ void sp_exec(u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, ui
 
   uint i;
 
-  for (i = start; i < stop; i++)
+  for (i = start; i < stop; ++i)
   {
     const u64 m = v % cs->cs_len;
     const u64 d = v / cs->cs_len;
@@ -68,7 +68,7 @@ void sp_setup_tbl(const char *shared_dir, char *hcstat, uint disable, uint class
 
   u64 *root_stats_buf_by_pos[SP_PW_MAX];
 
-  for (i = 0; i < SP_PW_MAX; i++)
+  for (i = 0; i < SP_PW_MAX; ++i)
   {
     root_stats_buf_by_pos[i] = root_stats_ptr;
 
@@ -81,9 +81,9 @@ void sp_setup_tbl(const char *shared_dir, char *hcstat, uint disable, uint class
 
   u64 *markov_stats_buf_by_key[SP_PW_MAX][CHARSIZ];
 
-  for (i = 0; i < SP_PW_MAX; i++)
+  for (i = 0; i < SP_PW_MAX; ++i)
   {
-    for (j = 0; j < CHARSIZ; j++)
+    for (j = 0; j < CHARSIZ; ++j)
     {
       markov_stats_buf_by_key[i][j] = markov_stats_ptr;
 
@@ -147,25 +147,25 @@ void sp_setup_tbl(const char *shared_dir, char *hcstat, uint disable, uint class
   {
     /* Add all stats to first position */
 
-    for (i = 1; i < SP_PW_MAX; i++)
+    for (i = 1; i < SP_PW_MAX; ++i)
     {
       u64 *out = root_stats_buf_by_pos[0];
       u64 *in = root_stats_buf_by_pos[i];
 
-      for (j = 0; j < CHARSIZ; j++)
+      for (j = 0; j < CHARSIZ; ++j)
       {
         *out++ += *in++;
       }
     }
 
-    for (i = 1; i < SP_PW_MAX; i++)
+    for (i = 1; i < SP_PW_MAX; ++i)
     {
       u64 *out = markov_stats_buf_by_key[0][0];
       u64 *in = markov_stats_buf_by_key[i][0];
 
-      for (j = 0; j < CHARSIZ; j++)
+      for (j = 0; j < CHARSIZ; ++j)
       {
-        for (k = 0; k < CHARSIZ; k++)
+        for (k = 0; k < CHARSIZ; ++k)
         {
           *out++ += *in++;
         }
@@ -174,12 +174,12 @@ void sp_setup_tbl(const char *shared_dir, char *hcstat, uint disable, uint class
 
     /* copy them to all pw_positions */
 
-    for (i = 1; i < SP_PW_MAX; i++)
+    for (i = 1; i < SP_PW_MAX; ++i)
     {
       memcpy(root_stats_buf_by_pos[i], root_stats_buf_by_pos[0], CHARSIZ * sizeof(u64));
     }
 
-    for (i = 1; i < SP_PW_MAX; i++)
+    for (i = 1; i < SP_PW_MAX; ++i)
     {
       memcpy(markov_stats_buf_by_key[i][0], markov_stats_buf_by_key[0][0], CHARSIZ * CHARSIZ * sizeof(u64));
     }
@@ -192,7 +192,7 @@ void sp_setup_tbl(const char *shared_dir, char *hcstat, uint disable, uint class
 
   hcstat_table_t *root_table_buf_by_pos[SP_PW_MAX];
 
-  for (i = 0; i < SP_PW_MAX; i++)
+  for (i = 0; i < SP_PW_MAX; ++i)
   {
     root_table_buf_by_pos[i] = root_table_ptr;
 
@@ -203,9 +203,9 @@ void sp_setup_tbl(const char *shared_dir, char *hcstat, uint disable, uint class
 
   hcstat_table_t *markov_table_buf_by_key[SP_PW_MAX][CHARSIZ];
 
-  for (i = 0; i < SP_PW_MAX; i++)
+  for (i = 0; i < SP_PW_MAX; ++i)
   {
-    for (j = 0; j < CHARSIZ; j++)
+    for (j = 0; j < CHARSIZ; ++j)
     {
       markov_table_buf_by_key[i][j] = markov_table_ptr;
 
@@ -217,7 +217,7 @@ void sp_setup_tbl(const char *shared_dir, char *hcstat, uint disable, uint class
   * Convert hcstat to tables
   */
 
-  for (i = 0; i < SP_ROOT_CNT; i++)
+  for (i = 0; i < SP_ROOT_CNT; ++i)
   {
     uint key = i % CHARSIZ;
 
@@ -225,7 +225,7 @@ void sp_setup_tbl(const char *shared_dir, char *hcstat, uint disable, uint class
     root_table_buf[i].val = root_stats_buf[i];
   }
 
-  for (i = 0; i < SP_MARKOV_CNT; i++)
+  for (i = 0; i < SP_MARKOV_CNT; ++i)
   {
     uint key = i % CHARSIZ;
 
@@ -240,14 +240,14 @@ void sp_setup_tbl(const char *shared_dir, char *hcstat, uint disable, uint class
   * Finally sort them
   */
 
-  for (i = 0; i < SP_PW_MAX; i++)
+  for (i = 0; i < SP_PW_MAX; ++i)
   {
     qsort(root_table_buf_by_pos[i], CHARSIZ, sizeof(hcstat_table_t), sp_comp_val);
   }
 
-  for (i = 0; i < SP_PW_MAX; i++)
+  for (i = 0; i < SP_PW_MAX; ++i)
   {
-    for (j = 0; j < CHARSIZ; j++)
+    for (j = 0; j < CHARSIZ; ++j)
     {
       qsort(markov_table_buf_by_key[i][j], CHARSIZ, sizeof(hcstat_table_t), sp_comp_val);
     }
@@ -260,7 +260,7 @@ void sp_tbl_to_css(hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_
   * Convert tables to css
   */
 
-  for (uint i = 0; i < SP_ROOT_CNT; i++)
+  for (uint i = 0; i < SP_ROOT_CNT; ++i)
   {
     uint pw_pos = i / CHARSIZ;
 
@@ -281,7 +281,7 @@ void sp_tbl_to_css(hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_
   * Convert table to css
   */
 
-  for (uint i = 0; i < SP_MARKOV_CNT; i++)
+  for (uint i = 0; i < SP_MARKOV_CNT; ++i)
   {
     uint c = i / CHARSIZ;
 
@@ -301,15 +301,15 @@ void sp_tbl_to_css(hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_
   }
 
   /*
-  for (uint i = 0; i < 8; i++)
+  for (uint i = 0; i < 8; ++i)
   {
-  for (uint j = 0x20; j < 0x80; j++)
+  for (uint j = 0x20; j < 0x80; ++j)
   {
   cs_t *ptr = &markov_css_buf[(i * CHARSIZ) + j];
 
   printf ("pos:%u key:%u len:%u\n", i, j, ptr->cs_len);
 
-  for (uint k = 0; k < 10; k++)
+  for (uint k = 0; k < 10; ++k)
   {
   printf ("  %u\n",  ptr->cs_buf[k]);
   }
@@ -332,7 +332,7 @@ void sp_stretch_root(hcstat_table_t *in, hcstat_table_t *out)
 
     out++;
 
-    for (uint j = 1; j < CHARSIZ; j++)
+    for (uint j = 1; j < CHARSIZ; ++j)
     {
       out->key = j;
       out->val = 0;
@@ -351,14 +351,14 @@ void sp_stretch_markov(hcstat_table_t *in, hcstat_table_t *out)
     out += CHARSIZ * CHARSIZ;
     in += CHARSIZ * CHARSIZ;
 
-    for (uint j = 0; j < CHARSIZ; j++)
+    for (uint j = 0; j < CHARSIZ; ++j)
     {
       out->key = 0;
       out->val = 1;
 
       out++;
 
-      for (uint k = 1; k < CHARSIZ; k++)
+      for (uint k = 1; k < CHARSIZ; ++k)
       {
         out->key = k;
         out->val = 0;

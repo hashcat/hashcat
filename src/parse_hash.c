@@ -116,7 +116,7 @@ uint parse_and_store_salt(char *out, char *in, uint salt_len)
 
     if (len % 4) max++;
 
-    for (u32 i = 0; i < max; i++)
+    for (u32 i = 0; i < max; ++i)
     {
       tmp_uint[i] = byte_swap_32(tmp_uint[i]);
     }
@@ -430,7 +430,7 @@ int netscreen_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
   char sig[6] = { 'n', 'r', 'c', 's', 't', 'n' };
   int  pos[6] = { 0,   6,  12,  17,  23,  29 };
 
-  for (int i = 0, j = 0, k = 0; i < 30; i++)
+  for (int i = 0, j = 0, k = 0; i < 30; ++i)
   {
     if (i == pos[j])
     {
@@ -696,7 +696,7 @@ int wpa_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
     memcpy(pke_ptr + 67, in.nonce1, 32);
   }
 
-  for (int i = 0; i < 25; i++)
+  for (int i = 0; i < 25; ++i)
   {
     wpa->pke[i] = byte_swap_32(wpa->pke[i]);
   }
@@ -740,7 +740,7 @@ int wpa_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
     digest[2] = byte_swap_32(digest[2]);
     digest[3] = byte_swap_32(digest[3]);
 
-    for (int i = 0; i < 64; i++)
+    for (int i = 0; i < 64; ++i)
     {
       wpa->eapol[i] = byte_swap_32(wpa->eapol[i]);
     }
@@ -750,8 +750,8 @@ int wpa_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
   uint32_t c0 = 0;
   uint32_t c1 = 0;
 
-  for (uint i = 0; i < sizeof(in.essid) / sizeof(uint32_t); i++) c0 ^= *p0++;
-  for (uint i = 0; i < sizeof(wpa->pke) / sizeof(wpa->pke[0]); i++) c1 ^= wpa->pke[i];
+  for (uint i = 0; i < sizeof(in.essid) / sizeof(uint32_t); ++i) c0 ^= *p0++;
+  for (uint i = 0; i < sizeof(wpa->pke) / sizeof(wpa->pke[0]); ++i) c1 ^= wpa->pke[i];
 
   salt->salt_buf[10] = c0;
   salt->salt_buf[11] = c1;
@@ -1472,13 +1472,13 @@ int netntlmv1_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
   * handle username and domainname
   */
 
-  for (uint i = 0; i < user_len; i++)
+  for (uint i = 0; i < user_len; ++i)
   {
     *userdomain_ptr++ = user_pos[i];
     *userdomain_ptr++ = 0;
   }
 
-  for (uint i = 0; i < domain_len; i++)
+  for (uint i = 0; i < domain_len; ++i)
   {
     *userdomain_ptr++ = domain_pos[i];
     *userdomain_ptr++ = 0;
@@ -1573,7 +1573,7 @@ int netntlmv1_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   /* precompute netntlmv1 exploit start */
 
-  for (uint i = 0; i < 0x10000; i++)
+  for (uint i = 0; i < 0x10000; ++i)
   {
     uint key_md4[2] = { i, 0 };
     uint key_des[2] = { 0, 0 };
@@ -1710,13 +1710,13 @@ int netntlmv2_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
   * handle username and domainname
   */
 
-  for (uint i = 0; i < user_len; i++)
+  for (uint i = 0; i < user_len; ++i)
   {
     *userdomain_ptr++ = toupper(user_pos[i]);
     *userdomain_ptr++ = 0;
   }
 
-  for (uint i = 0; i < domain_len; i++)
+  for (uint i = 0; i < domain_len; ++i)
   {
     *userdomain_ptr++ = domain_pos[i];
     *userdomain_ptr++ = 0;
@@ -2873,7 +2873,7 @@ int keccak_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint keccak_mdlen = input_len / 2;
 
-  for (uint i = 0; i < keccak_mdlen / 8; i++)
+  for (uint i = 0; i < keccak_mdlen / 8; ++i)
   {
     digest[i] = hex_to_u64((const u8 *)&input_buf[i * 16]);
 
@@ -2911,7 +2911,7 @@ int ikepsk_md5_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   size_t i;
 
-  for (i = 1; i < 9; i++)
+  for (i = 1; i < 9; ++i)
   {
     in_off[i] = strtok(NULL, ":");
 
@@ -2998,7 +2998,7 @@ int ikepsk_sha1_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   size_t i;
 
-  for (i = 1; i < 9; i++)
+  for (i = 1; i < 9; ++i)
   {
     in_off[i] = strtok(NULL, ":");
 
@@ -4037,7 +4037,7 @@ int sha512grub_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint i;
 
-  for (i = 0; i < salt_len; i++)
+  for (i = 0; i < salt_len; ++i)
   {
     salt_buf_ptr[i] = hex_to_u8((const u8 *)&salt_pos[i * 2]);
   }
@@ -4410,7 +4410,7 @@ int sapb_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint user_len = 0;
 
-  for (uint i = 0; i < salt_len; i++)
+  for (uint i = 0; i < salt_len; ++i)
   {
     if (salt_pos[i] == ' ') continue;
 
@@ -4480,7 +4480,7 @@ int sapg_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   uint user_len = 0;
 
-  for (uint i = 0; i < salt_len; i++)
+  for (uint i = 0; i < salt_len; ++i)
   {
     if (salt_pos[i] == ' ') continue;
 
@@ -4664,7 +4664,7 @@ int rakp_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   rakp->salt_len = j;
 
-  for (i = 0; i < 64; i++)
+  for (i = 0; i < 64; ++i)
   {
     rakp->salt_buf[i] = byte_swap_32(rakp->salt_buf[i]);
   }
@@ -4875,7 +4875,7 @@ int cloudkey_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   *databuf_ptr++ = 0x80;
 
-  for (uint i = 0; i < 512; i++)
+  for (uint i = 0; i < 512; ++i)
   {
     cloudkey->data_buf[i] = byte_swap_32(cloudkey->data_buf[i]);
   }
@@ -4966,7 +4966,7 @@ int nsec3_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   char *len_ptr = NULL;
 
-  for (uint i = 0; i < domainbuf_len; i++)
+  for (uint i = 0; i < domainbuf_len; ++i)
   {
     if (salt_buf_pc_ptr[i] == '.')
     {
@@ -5116,11 +5116,11 @@ int racf_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt->salt_len = salt_len;
 
-  for (uint i = 0; i < salt_len; i++)
+  for (uint i = 0; i < salt_len; ++i)
   {
     salt_buf_pc_ptr[i] = ascii_to_ebcdic[(int)salt_buf_ptr[i]];
   }
-  for (uint i = salt_len; i < 8; i++)
+  for (uint i = salt_len; i < 8; ++i)
   {
     salt_buf_pc_ptr[i] = 0x40;
   }
@@ -10146,7 +10146,7 @@ int keepass_parse_hash(char *input_buf, uint input_len, hash_t *hash_buf)
 
     if (real_contents_len != keepass->contents_len * 2) return (PARSER_SALT_LENGTH);
 
-    for (i = 0; i < contents_len; i++)
+    for (i = 0; i < contents_len; ++i)
       keepass->contents[i] = hex_to_u32((const u8 *)&contents_pos[i * 8]);
   }
   else if (keepass->version == 2)

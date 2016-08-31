@@ -209,7 +209,7 @@ int base32_decode(u8(*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
     out_ptr += 5;
   }
 
-  for (int i = 0; i < in_len; i++)
+  for (int i = 0; i < in_len; ++i)
   {
     if (in_buf[i] != '=') continue;
 
@@ -284,7 +284,7 @@ int base64_decode(u8(*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
     out_ptr += 3;
   }
 
-  for (int i = 0; i < in_len; i++)
+  for (int i = 0; i < in_len; ++i)
   {
     if (in_buf[i] != '=') continue;
 

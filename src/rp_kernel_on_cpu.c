@@ -1191,7 +1191,7 @@ static u32 rule_op_mangle_dupeword_times(const u32 p0, const u32 p1, u32 buf0[4]
   tib41[2] = buf1[2];
   tib41[3] = buf1[3];
 
-  for (u32 i = 0; i < p0; i++)
+  for (u32 i = 0; i < p0; ++i)
   {
     append_block8(out_len, buf0, buf1, buf0, buf1, tib40, tib41);
 
@@ -1621,7 +1621,7 @@ static u32 rule_op_mangle_truncate_at(const u32 p0, const u32 p1, u32 buf0[4], u
 
 static u32 rule_op_mangle_replace(const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
-  for (u32 i = 0; i < in_len; i++)
+  for (u32 i = 0; i < in_len; ++i)
   {
     switch (i)
     {
@@ -1683,7 +1683,7 @@ static u32 rule_op_mangle_purgechar(const u32 p0, const u32 p1, u32 buf0[4], u32
   u8 *in = (u8 *)buf_in;
   u8 *out = (u8 *)buf_out;
 
-  for (u32 pos = 0; pos < in_len; pos++)
+  for (u32 pos = 0; pos < in_len; ++pos)
   {
     if (in[pos] == (u8)p0) continue;
 
@@ -1924,7 +1924,7 @@ static u32 rule_op_mangle_dupechar_last(const u32 p0, const u32 p1, u32 buf0[4],
 
   u32 out_len = in_len;
 
-  for (u32 i = 0; i < p0; i++)
+  for (u32 i = 0; i < p0; ++i)
   {
     append_block1(out_len, buf0, buf1, tmp);
 
@@ -2536,7 +2536,7 @@ static u32 rule_op_mangle_title(const u32 p0, const u32 p1, u32 buf0[4], u32 buf
 
   buf0[0] &= ~(0x00000020 & generate_cmask(buf0[0]));
 
-  for (u32 i = 0; i < in_len; i++)
+  for (u32 i = 0; i < in_len; ++i)
   {
     u32 tmp0 = 0;
     u32 tmp1 = 0;
@@ -2699,7 +2699,7 @@ u32 apply_rules(u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len)
 {
   u32 out_len = len;
 
-  for (u32 i = 0; cmds[i] != 0; i++)
+  for (u32 i = 0; cmds[i] != 0; ++i)
   {
     const u32 cmd = cmds[i];
 

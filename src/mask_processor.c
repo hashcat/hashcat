@@ -20,14 +20,14 @@ void mp_css_to_uniq_tbl(uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHARS
     exit(-1);
   }
 
-  for (uint css_pos = 0; css_pos < css_cnt; css_pos++)
+  for (uint css_pos = 0; css_pos < css_cnt; ++css_pos)
   {
     uint *uniq_tbl = uniq_tbls[css_pos];
 
     uint *cs_buf = css[css_pos].cs_buf;
     uint  cs_len = css[css_pos].cs_len;
 
-    for (uint cs_pos = 0; cs_pos < cs_len; cs_pos++)
+    for (uint cs_pos = 0; cs_pos < cs_len; ++cs_pos)
     {
       uint c = cs_buf[cs_pos] & 0xff;
 
@@ -46,14 +46,14 @@ void mp_add_cs_buf(uint *in_buf, size_t in_len, cs_t *css, int css_cnt)
 
   size_t i;
 
-  for (i = 0; i < cs->cs_len; i++)
+  for (i = 0; i < cs->cs_len; ++i)
   {
     const uint u = cs->cs_buf[i];
 
     css_uniq[u] = 1;
   }
 
-  for (i = 0; i < in_len; i++)
+  for (i = 0; i < in_len; ++i)
   {
     uint u = in_buf[i] & 0xff;
 
@@ -75,7 +75,7 @@ void mp_expand(char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, int mp_u
 {
   size_t in_pos;
 
-  for (in_pos = 0; in_pos < in_len; in_pos++)
+  for (in_pos = 0; in_pos < in_len; ++in_pos)
   {
     uint p0 = in_buf[in_pos] & 0xff;
 
@@ -162,7 +162,7 @@ u64 mp_get_sum(uint css_cnt, cs_t *css)
 {
   u64 sum = 1;
 
-  for (uint css_pos = 0; css_pos < css_cnt; css_pos++)
+  for (uint css_pos = 0; css_pos < css_cnt; ++css_pos)
   {
     sum *= css[css_pos].cs_len;
   }
@@ -279,7 +279,7 @@ cs_t *mp_gen_css(char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, ui
 
 void mp_exec(u64 val, char *buf, cs_t *css, int css_cnt)
 {
-  for (int i = 0; i < css_cnt; i++)
+  for (int i = 0; i < css_cnt; ++i)
   {
     uint len = css[i].cs_len;
     u64 next = val / len;
@@ -309,36 +309,36 @@ void mp_setup_sys(cs_t *mp_sys)
   uint chr;
   uint donec[CHARSIZ] = { 0 };
 
-  for (pos = 0, chr = 'a'; chr <= 'z'; chr++) {
+  for (pos = 0, chr = 'a'; chr <= 'z'; ++chr) {
     donec[chr] = 1;
     mp_sys[0].cs_buf[pos++] = chr;
     mp_sys[0].cs_len = pos;
   }
 
-  for (pos = 0, chr = 'A'; chr <= 'Z'; chr++) {
+  for (pos = 0, chr = 'A'; chr <= 'Z'; ++chr) {
     donec[chr] = 1;
     mp_sys[1].cs_buf[pos++] = chr;
     mp_sys[1].cs_len = pos;
   }
 
-  for (pos = 0, chr = '0'; chr <= '9'; chr++) {
+  for (pos = 0, chr = '0'; chr <= '9'; ++chr) {
     donec[chr] = 1;
     mp_sys[2].cs_buf[pos++] = chr;
     mp_sys[2].cs_len = pos;
   }
 
-  for (pos = 0, chr = 0x20; chr <= 0x7e; chr++) {
+  for (pos = 0, chr = 0x20; chr <= 0x7e; ++chr) {
     if (donec[chr]) continue;
     mp_sys[3].cs_buf[pos++] = chr;
     mp_sys[3].cs_len = pos;
   }
 
-  for (pos = 0, chr = 0x20; chr <= 0x7e; chr++) {
+  for (pos = 0, chr = 0x20; chr <= 0x7e; ++chr) {
     mp_sys[4].cs_buf[pos++] = chr;
     mp_sys[4].cs_len = pos;
   }
 
-  for (pos = 0, chr = 0x00; chr <= 0xff; chr++) {
+  for (pos = 0, chr = 0x00; chr <= 0xff; ++chr) {
     mp_sys[5].cs_buf[pos++] = chr;
     mp_sys[5].cs_len = pos;
   }

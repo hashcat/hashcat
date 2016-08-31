@@ -138,7 +138,7 @@ int hm_show_performance_level (HM_LIB hm_dll, int iAdapterIndex)
 
   if (hm_ADL_Overdrive_ODPerformanceLevels_Get (hm_dll, iAdapterIndex, 0, lpOdPerformanceLevels) != ADL_OK) return -1;
 
-  for (int j = 0; j < lpOdParameters.iNumberOfPerformanceLevels; j++)
+  for (int j = 0; j < lpOdParameters.iNumberOfPerformanceLevels; ++j)
     log_info ("[DEBUG] %s, adapter %d, level %d : engine %d, memory %d, voltage: %d",
     __func__, iAdapterIndex, j,
     lpOdPerformanceLevels->aLevels[j].iEngineClock / 100, lpOdPerformanceLevels->aLevels[j].iMemoryClock / 100, lpOdPerformanceLevels->aLevels[j].iVddc);
@@ -180,7 +180,7 @@ int hm_get_adapter_index_nvml(HM_ADAPTER_NVML nvmlGPUHandle[DEVICES_MAX])
 {
   int pGpuCount = 0;
 
-  for (uint i = 0; i < DEVICES_MAX; i++)
+  for (uint i = 0; i < DEVICES_MAX; ++i)
   {
     if (hm_NVML_nvmlDeviceGetHandleByIndex(data.hm_nvml, 1, i, &nvmlGPUHandle[i]) != NVML_SUCCESS) break;
 
@@ -210,7 +210,7 @@ int hm_get_opencl_device_index (hm_attrs_t *hm_device, uint num_adl_adapters, in
 {
   u32 idx = -1;
 
-  for (uint i = 0; i < num_adl_adapters; i++)
+  for (uint i = 0; i < num_adl_adapters; ++i)
   {
     int opencl_bus_num = hm_device[i].busid;
     int opencl_dev_num = hm_device[i].devid;
@@ -230,7 +230,7 @@ int hm_get_opencl_device_index (hm_attrs_t *hm_device, uint num_adl_adapters, in
 
 void hm_get_opencl_busid_devid (hm_attrs_t *hm_device, uint opencl_num_devices, cl_device_id *devices)
 {
-  for (uint i = 0; i < opencl_num_devices; i++)
+  for (uint i = 0; i < opencl_num_devices; ++i)
   {
     cl_device_topology_amd device_topology;
 
@@ -246,9 +246,9 @@ void hm_sort_adl_adapters_by_busid_devid(u32 *valid_adl_device_list, int num_adl
 {
   // basically bubble sort
 
-  for (int i = 0; i < num_adl_adapters; i++)
+  for (int i = 0; i < num_adl_adapters; ++i)
   {
-    for (int j = 0; j < num_adl_adapters - 1; j++)
+    for (int j = 0; j < num_adl_adapters - 1; ++j)
     {
       // get info of adapter [x]
 
@@ -300,7 +300,7 @@ u32 *hm_get_list_valid_adl_adapters(int iNumberAdapters, int *num_adl_adapters, 
   int *bus_numbers = NULL;
   int *device_numbers = NULL;
 
-  for (int i = 0; i < iNumberAdapters; i++)
+  for (int i = 0; i < iNumberAdapters; ++i)
   {
     AdapterInfo info = lpAdapterInfo[i];
 
@@ -317,7 +317,7 @@ u32 *hm_get_list_valid_adl_adapters(int iNumberAdapters, int *num_adl_adapters, 
 
     int found = 0;
 
-    for (int pos = 0; pos < *num_adl_adapters; pos++)
+    for (int pos = 0; pos < *num_adl_adapters; ++pos)
     {
       if ((bus_numbers[pos] == info.iBusNumber) && (device_numbers[pos] == info.iDeviceNumber))
       {
@@ -359,7 +359,7 @@ int hm_check_fanspeed_control(void *adl, hm_attrs_t *hm_device, u32 *valid_adl_d
 {
   // loop through all valid devices
 
-  for (int i = 0; i < num_adl_adapters; i++)
+  for (int i = 0; i < num_adl_adapters; ++i)
   {
     u32 adapter_index = valid_adl_device_list[i];
 
@@ -425,7 +425,7 @@ int hm_check_fanspeed_control(void *adl, hm_attrs_t *hm_device, u32 *valid_adl_d
 
 int hm_get_overdrive_version(void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
-  for (int i = 0; i < num_adl_adapters; i++)
+  for (int i = 0; i < num_adl_adapters; ++i)
   {
     u32 adapter_index = valid_adl_device_list[i];
 
@@ -457,7 +457,7 @@ int hm_get_overdrive_version(void *adl, hm_attrs_t *hm_device, u32 *valid_adl_de
 
 int hm_get_adapter_index_adl(hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
-  for (int i = 0; i < num_adl_adapters; i++)
+  for (int i = 0; i < num_adl_adapters; ++i)
   {
     u32 adapter_index = valid_adl_device_list[i];
 
@@ -945,7 +945,7 @@ int hm_set_fanspeed_with_device_id_xnvctrl(const uint device_id, const int fansp
 
 void dump_hex(const u8 *s, const int sz)
 {
-  for (int i = 0; i < sz; i++)
+  for (int i = 0; i < sz; ++i)
   {
     log_info_nn("%02x ", s[i]);
   }
@@ -955,12 +955,12 @@ void dump_hex(const u8 *s, const int sz)
 
 void usage_mini_print(const char *progname)
 {
-  for (uint i = 0; USAGE_MINI[i] != NULL; i++) log_info(USAGE_MINI[i], progname);
+  for (uint i = 0; USAGE_MINI[i] != NULL; ++i) log_info(USAGE_MINI[i], progname);
 }
 
 void usage_big_print(const char *progname)
 {
-  for (uint i = 0; USAGE_BIG[i] != NULL; i++) log_info(USAGE_BIG[i], progname);
+  for (uint i = 0; USAGE_BIG[i] != NULL; ++i) log_info(USAGE_BIG[i], progname);
 }
 
 char *get_exec_path()
@@ -1082,7 +1082,7 @@ uint count_lines(FILE *fd)
 
     size_t i;
 
-    for (i = 0; i < nread; i++)
+    for (i = 0; i < nread; ++i)
     {
       if (prev == '\n') cnt++;
 
@@ -1118,7 +1118,7 @@ void truecrypt_crc32(const char *filename, u8 keytab[64])
 
   int kpos = 0;
 
-  for (int fpos = 0; fpos < nread; fpos++)
+  for (int fpos = 0; fpos < nread; ++fpos)
   {
     crc = crc32tab[(crc ^ buf[fpos]) & 0xff] ^ (crc >> 8);
 
@@ -1138,7 +1138,7 @@ int pthread_setaffinity_np(pthread_t thread, size_t cpu_size, cpu_set_t *cpu_set
 {
   int core;
 
-  for (core = 0; core < (8 * (int)cpu_size); core++)
+  for (core = 0; core < (8 * (int)cpu_size); ++core)
     if (CPU_ISSET(core, cpu_set)) break;
 
   thread_affinity_policy_data_t policy = { core };
@@ -1286,7 +1286,7 @@ void format_plain(FILE *fp, unsigned char *plain_ptr, uint plain_len, uint outfi
 
   if (outfile_autohex == 1)
   {
-    for (uint i = 0; i < plain_len; i++)
+    for (uint i = 0; i < plain_len; ++i)
     {
       if (plain_ptr[i] < 0x20)
       {
@@ -1308,7 +1308,7 @@ void format_plain(FILE *fp, unsigned char *plain_ptr, uint plain_len, uint outfi
   {
     fprintf(fp, "$HEX[");
 
-    for (uint i = 0; i < plain_len; i++)
+    for (uint i = 0; i < plain_len; ++i)
     {
       fprintf(fp, "%02x", plain_ptr[i]);
     }
@@ -1342,7 +1342,7 @@ void format_output(FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const 
   {
     if (username != NULL)
     {
-      for (uint i = 0; i < user_len; i++)
+      for (uint i = 0; i < user_len; ++i)
       {
         fprintf(out_fp, "%c", username[i]);
       }
@@ -1366,7 +1366,7 @@ void format_output(FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const 
 
   if (outfile_format & OUTFILE_FMT_HEXPLAIN)
   {
-    for (uint i = 0; i < plain_len; i++)
+    for (uint i = 0; i < plain_len; ++i)
     {
       fprintf(out_fp, "%02x", plain_ptr[i]);
     }
@@ -1866,12 +1866,12 @@ void format_speed_display(float val, char *buf, size_t len)
 
 void lowercase(u8 *buf, int len)
 {
-  for (int i = 0; i < len; i++) buf[i] = tolower(buf[i]);
+  for (int i = 0; i < len; ++i) buf[i] = tolower(buf[i]);
 }
 
 void uppercase(u8 *buf, int len)
 {
-  for (int i = 0; i < len; i++) buf[i] = toupper(buf[i]);
+  for (int i = 0; i < len; ++i) buf[i] = toupper(buf[i]);
 }
 
 int fgetl(FILE *fp, char *line_buf)
@@ -2047,7 +2047,7 @@ int count_dictionaries(char **dictionary_files)
 
   int cnt = 0;
 
-  for (int d = 0; dictionary_files[d] != NULL; d++)
+  for (int d = 0; dictionary_files[d] != NULL; ++d)
   {
     cnt++;
   }
@@ -2365,7 +2365,7 @@ void to_hccap_t(hccap_t *hccap, uint salt_pos, uint digest_pos)
   {
     uint eapol_tmp[64] = { 0 };
 
-    for (uint i = 0; i < 64; i++)
+    for (uint i = 0; i < 64; ++i)
     {
       eapol_tmp[i] = byte_swap_32(wpa->eapol[i]);
     }
@@ -2492,7 +2492,7 @@ void naive_replace(char *s, const u8 key_char, const u8 replace_char)
 {
   const size_t len = strlen(s);
 
-  for (size_t in = 0; in < len; in++)
+  for (size_t in = 0; in < len; ++in)
   {
     const u8 c = s[in];
 
@@ -2557,7 +2557,7 @@ void load_kernel(const char *kernel_file, int num_devices, size_t *kernel_length
 
     buf[st.st_size] = 0;
 
-    for (int i = 0; i < num_devices; i++)
+    for (int i = 0; i < num_devices; ++i)
     {
       kernel_lengths[i] = (size_t)st.st_size;
 
@@ -2732,7 +2732,7 @@ void read_restore(const char *eff_restore_file, restore_data_t *rd)
 
   char *buf = (char *)mymalloc(HCBUFSIZ);
 
-  for (uint i = 0; i < rd->argc; i++)
+  for (uint i = 0; i < rd->argc; ++i)
   {
     if (fgets(buf, HCBUFSIZ - 1, fp) == NULL)
     {
@@ -2769,7 +2769,7 @@ u64 get_lowest_words_done()
 {
   u64 words_cur = -1;
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -2815,7 +2815,7 @@ void write_restore(const char *new_restore_file, restore_data_t *rd)
 
   fwrite(rd, sizeof(restore_data_t), 1, fp);
 
-  for (uint i = 0; i < rd->argc; i++)
+  for (uint i = 0; i < rd->argc; ++i)
   {
     fprintf(fp, "%s", rd->argv[i]);
     fputc('\n', fp);
@@ -2875,7 +2875,7 @@ void tuning_db_destroy(tuning_db_t *tuning_db)
 {
   int i;
 
-  for (i = 0; i < tuning_db->alias_cnt; i++)
+  for (i = 0; i < tuning_db->alias_cnt; ++i)
   {
     tuning_db_alias_t *alias = &tuning_db->alias_buf[i];
 
@@ -2883,7 +2883,7 @@ void tuning_db_destroy(tuning_db_t *tuning_db)
     myfree(alias->alias_name);
   }
 
-  for (i = 0; i < tuning_db->entry_cnt; i++)
+  for (i = 0; i < tuning_db->entry_cnt; ++i)
   {
     tuning_db_entry_t *entry = &tuning_db->entry_buf[i];
 
@@ -3089,7 +3089,7 @@ tuning_db_entry_t *tuning_db_search(tuning_db_t *tuning_db, hc_device_param_t *d
 
   int i;
 
-  for (i = 0; i < device_name_length; i++)
+  for (i = 0; i < device_name_length; ++i)
   {
     if (device_name_nospace[i] == ' ') device_name_nospace[i] = '_';
   }
@@ -3119,7 +3119,7 @@ tuning_db_entry_t *tuning_db_search(tuning_db_t *tuning_db, hc_device_param_t *d
 
   // this will produce all 2^3 combinations required
 
-  for (i = 0; i < 8; i++)
+  for (i = 0; i < 8; ++i)
   {
     s.device_name = (i & 1) ? "*" : device_name_nospace;
     s.attack_mode = (i & 2) ? -1 : attack_mode;

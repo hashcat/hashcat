@@ -40,7 +40,7 @@ void status_display_machine_readable()
 
   fprintf(out, "SPEED\t");
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -49,7 +49,7 @@ void status_display_machine_readable()
     u64    speed_cnt = 0;
     double speed_ms = 0;
 
-    for (int i = 0; i < SPEED_CACHE; i++)
+    for (int i = 0; i < SPEED_CACHE; ++i)
     {
       speed_cnt += device_param->speed_cnt[i];
       speed_ms += device_param->speed_ms[i];
@@ -67,7 +67,7 @@ void status_display_machine_readable()
 
   fprintf(out, "EXEC_RUNTIME\t");
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -96,7 +96,7 @@ void status_display_machine_readable()
   u64 all_rejected = 0;
   u64 all_restored = 0;
 
-  for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+  for (uint salt_pos = 0; salt_pos < data.salts_cnt; ++salt_pos)
   {
     all_done += data.words_progress_done[salt_pos];
     all_rejected += data.words_progress_rejected[salt_pos];
@@ -153,7 +153,7 @@ void status_display_machine_readable()
 
     hc_thread_mutex_lock(mux_adl);
 
-    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+    for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
     {
       hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -213,7 +213,7 @@ void status_display()
   {
     uint i;
 
-    for (i = 0, tmp_len = 0; i < data.rp_files_cnt - 1 && tmp_len < sizeof(tmp_buf); i++)
+    for (i = 0, tmp_len = 0; i < data.rp_files_cnt - 1 && tmp_len < sizeof(tmp_buf); ++i)
     {
       tmp_len += snprintf(tmp_buf + tmp_len, sizeof(tmp_buf) - tmp_len, "File (%s), ", data.rp_files[i]);
     }
@@ -475,7 +475,7 @@ void status_display()
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -484,7 +484,7 @@ void status_display()
     speed_cnt[device_id] = 0;
     speed_ms[device_id] = 0;
 
-    for (int i = 0; i < SPEED_CACHE; i++)
+    for (int i = 0; i < SPEED_CACHE; ++i)
     {
       speed_cnt[device_id] += device_param->speed_cnt[i];
       speed_ms[device_id] += device_param->speed_ms[i];
@@ -498,7 +498,7 @@ void status_display()
 
   double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -520,7 +520,7 @@ void status_display()
 
   double exec_all_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -613,7 +613,7 @@ void status_display()
 
   u64 progress_noneed = 0;
 
-  for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+  for (uint salt_pos = 0; salt_pos < data.salts_cnt; ++salt_pos)
   {
     all_done += data.words_progress_done[salt_pos];
     all_rejected += data.words_progress_rejected[salt_pos];
@@ -779,7 +779,7 @@ void status_display()
     }
   }
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
   {
     hc_device_param_t *device_param = &data.devices_param[device_id];
 
@@ -817,7 +817,7 @@ void status_display()
     int cpt_cur_hour = 0;
     int cpt_cur_day = 0;
 
-    for (int i = 0; i < CPT_BUF; i++)
+    for (int i = 0; i < CPT_BUF; ++i)
     {
       const uint   cracked = data.cpt_buf[i].cracked;
       const time_t timestamp = data.cpt_buf[i].timestamp;
@@ -954,7 +954,7 @@ void status_display()
   {
     hc_thread_mutex_lock(mux_adl);
 
-    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+    for (uint device_id = 0; device_id < data.devices_cnt; ++device_id)
     {
       hc_device_param_t *device_param = &data.devices_param[device_id];
 

@@ -34,7 +34,7 @@ void _des_keysetup(u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_skb[8][64])
 
   int i;
 
-  for (i = 0; i < 16; i++)
+  for (i = 0; i < 16; ++i)
   {
     const u32 shifts3s0[16] = { 1,  1,  2,  2,  2,  2,  2,  2,  1,  2,  2,  2,  2,  2,  2,  1 };
     const u32 shifts3s1[16] = { 27, 27, 26, 26, 26, 26, 26, 26, 27, 26, 26, 26, 26, 26, 26, 27 };
@@ -84,7 +84,7 @@ void _des_encrypt(u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_SPtrans[8][64
 
   int i;
 
-  for (i = 0; i < 16; i++)
+  for (i = 0; i < 16; ++i)
   {
     u32 u = Kc[i] ^ r;
     u32 t = Kd[i] ^ rotl32(r, 28u);

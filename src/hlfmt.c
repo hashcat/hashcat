@@ -39,7 +39,7 @@ void hlfmt_user_hashcat(char *line_buf, int line_len, char **userbuf_pos, int *u
 
   int sep_cnt = 0;
 
-  for (int i = 0; i < line_len; i++)
+  for (int i = 0; i < line_len; ++i)
   {
     if (line_buf[i] == data.separator)
     {
@@ -69,7 +69,7 @@ int hlfmt_detect_pwdump(char *line_buf, int line_len)
   int sep2_len = 0;
   int sep3_len = 0;
 
-  for (int i = 0; i < line_len; i++)
+  for (int i = 0; i < line_len; ++i)
   {
     if (line_buf[i] == ':')
     {
@@ -94,7 +94,7 @@ void hlfmt_hash_pwdump(char *line_buf, int line_len, char **hashbuf_pos, int *ha
 
   int sep_cnt = 0;
 
-  for (int i = 0; i < line_len; i++)
+  for (int i = 0; i < line_len; ++i)
   {
     if (line_buf[i] == ':')
     {
@@ -134,7 +134,7 @@ void hlfmt_user_pwdump(char *line_buf, int line_len, char **userbuf_pos, int *us
 
   int sep_cnt = 0;
 
-  for (int i = 0; i < line_len; i++)
+  for (int i = 0; i < line_len; ++i)
   {
     if (line_buf[i] == ':')
     {
@@ -164,7 +164,7 @@ int hlfmt_detect_passwd(char *line_buf, int line_len)
   char sep5_first = 0;
   char sep6_first = 0;
 
-  for (int i = 0; i < line_len; i++)
+  for (int i = 0; i < line_len; ++i)
   {
     if (line_buf[i] == ':')
     {
@@ -189,7 +189,7 @@ void hlfmt_hash_passwd(char *line_buf, int line_len, char **hashbuf_pos, int *ha
 
   int sep_cnt = 0;
 
-  for (int i = 0; i < line_len; i++)
+  for (int i = 0; i < line_len; ++i)
   {
     if (line_buf[i] == ':')
     {
@@ -217,7 +217,7 @@ void hlfmt_user_passwd(char *line_buf, int line_len, char **userbuf_pos, int *us
 
   int sep_cnt = 0;
 
-  for (int i = 0; i < line_len; i++)
+  for (int i = 0; i < line_len; ++i)
   {
     if (line_buf[i] == ':')
     {
@@ -244,7 +244,7 @@ int hlfmt_detect_shadow(char *line_buf, int line_len)
 {
   int sep_cnt = 0;
 
-  for (int i = 0; i < line_len; i++)
+  for (int i = 0; i < line_len; ++i)
   {
     if (line_buf[i] == ':') sep_cnt++;
   }
@@ -339,7 +339,7 @@ HLFMT hlfmt_detect(FILE *fp, uint max_check)
 
   HLFMT hashlist_format = HLFMT_HASHCAT;
 
-  for (int i = 1; i < HLFMTS_CNT; i++)
+  for (int i = 1; i < HLFMTS_CNT; ++i)
   {
     if (formats_cnt[i - 1] >= formats_cnt[i]) continue;
 

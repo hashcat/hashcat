@@ -141,38 +141,38 @@ void ascii_digest(char *out_buf, uint salt_pos, uint digest_pos)
   {
     switch (dgst_size) {
     case DGST_SIZE_4_2:
-      for (int i = 0; i < 2; i++) digest_buf[i] = byte_swap_32(digest_buf[i]);
+      for (int i = 0; i < 2; ++i) digest_buf[i] = byte_swap_32(digest_buf[i]);
       break;
     case DGST_SIZE_4_4:
-      for (int i = 0; i < 4; i++) digest_buf[i] = byte_swap_32(digest_buf[i]);
+      for (int i = 0; i < 4; ++i) digest_buf[i] = byte_swap_32(digest_buf[i]);
       break;
     case DGST_SIZE_4_5:
-      for (int i = 0; i < 5; i++) digest_buf[i] = byte_swap_32(digest_buf[i]);
+      for (int i = 0; i < 5; ++i) digest_buf[i] = byte_swap_32(digest_buf[i]);
       break;
     case DGST_SIZE_4_6:
-      for (int i = 0; i < 6; i++) digest_buf[i] = byte_swap_32(digest_buf[i]);
+      for (int i = 0; i < 6; ++i) digest_buf[i] = byte_swap_32(digest_buf[i]);
       break;
     case DGST_SIZE_4_8:
-      for (int i = 0; i < 8; i++) digest_buf[i] = byte_swap_32(digest_buf[i]);
+      for (int i = 0; i < 8; ++i) digest_buf[i] = byte_swap_32(digest_buf[i]);
       break;
     case DGST_SIZE_4_16:
     //case DGST_SIZE_8_8: // same size, same result :)
       switch (hash_type) {
       case HASH_TYPE_WHIRLPOOL:
       case HASH_TYPE_GOST:
-        for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32(digest_buf[i]);
+        for (int i = 0; i < 16; ++i) digest_buf[i] = byte_swap_32(digest_buf[i]);
         break;
       case HASH_TYPE_SHA384:
       case HASH_TYPE_SHA512:
-        for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64(digest_buf64[i]);
+        for (int i = 0; i < 8; ++i) digest_buf64[i] = byte_swap_64(digest_buf64[i]);
         break;
       }
       break;
     case DGST_SIZE_4_64:
-      for (int i = 0; i < 64; i++) digest_buf[i] = byte_swap_32(digest_buf[i]);
+      for (int i = 0; i < 64; ++i) digest_buf[i] = byte_swap_32(digest_buf[i]);
       break;
     case DGST_SIZE_8_25:
-      for (int i = 0; i < 25; i++) digest_buf64[i] = byte_swap_64(digest_buf64[i]);
+      for (int i = 0; i < 25; ++i) digest_buf64[i] = byte_swap_64(digest_buf64[i]);
       break;
     }
   }
@@ -226,7 +226,7 @@ void ascii_digest(char *out_buf, uint salt_pos, uint digest_pos)
 
       if (len % 4) max++;
 
-      for (uint i = 0; i < max; i++)
+      for (uint i = 0; i < max; ++i)
       {
         salt.salt_buf[i] = byte_swap_32(salt.salt_buf[i]);
       }
@@ -835,7 +835,7 @@ void ascii_digest(char *out_buf, uint salt_pos, uint digest_pos)
 
     uint ikepsk_msg_len = ikepsk->msg_len / 4;
 
-    for (uint i = 0; i < ikepsk_msg_len; i++)
+    for (uint i = 0; i < ikepsk_msg_len; ++i)
     {
       if ((i == 32) || (i == 64) || (i == 66) || (i == 68) || (i == 108))
       {
@@ -855,7 +855,7 @@ void ascii_digest(char *out_buf, uint salt_pos, uint digest_pos)
 
     uint ikepsk_nr_len = ikepsk->nr_len / 4;
 
-    for (uint i = 0; i < ikepsk_nr_len; i++)
+    for (uint i = 0; i < ikepsk_nr_len; ++i)
     {
       if ((i == 0) || (i == 5))
       {
@@ -873,7 +873,7 @@ void ascii_digest(char *out_buf, uint salt_pos, uint digest_pos)
 
     // digest_buf
 
-    for (uint i = 0; i < 4; i++)
+    for (uint i = 0; i < 4; ++i)
     {
       if (i == 0)
       {
@@ -903,7 +903,7 @@ void ascii_digest(char *out_buf, uint salt_pos, uint digest_pos)
 
     uint ikepsk_msg_len = ikepsk->msg_len / 4;
 
-    for (uint i = 0; i < ikepsk_msg_len; i++)
+    for (uint i = 0; i < ikepsk_msg_len; ++i)
     {
       if ((i == 32) || (i == 64) || (i == 66) || (i == 68) || (i == 108))
       {
@@ -923,7 +923,7 @@ void ascii_digest(char *out_buf, uint salt_pos, uint digest_pos)
 
     uint ikepsk_nr_len = ikepsk->nr_len / 4;
 
-    for (uint i = 0; i < ikepsk_nr_len; i++)
+    for (uint i = 0; i < ikepsk_nr_len; ++i)
     {
       if ((i == 0) || (i == 5))
       {
@@ -941,7 +941,7 @@ void ascii_digest(char *out_buf, uint salt_pos, uint digest_pos)
 
     // digest_buf
 
-    for (uint i = 0; i < 5; i++)
+    for (uint i = 0; i < 5; ++i)
     {
       if (i == 0)
       {
@@ -1459,7 +1459,7 @@ void ascii_digest(char *out_buf, uint salt_pos, uint digest_pos)
 
     memcpy(domain_buf_c, (char *)salt.salt_buf_pc, salt_pc_len);
 
-    for (uint i = 0; i < salt_pc_len; i++)
+    for (uint i = 0; i < salt_pc_len; ++i)
     {
       const char next = domain_buf_c[i];
 
