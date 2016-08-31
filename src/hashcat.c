@@ -1435,7 +1435,7 @@ static int choose_kernel(hc_device_param_t *device_param, const uint attack_exec
 
       double speed_ms;
 
-      hc_timer_get(device_param->timer_speed, speed_ms);
+      speed_ms = hc_timer_get(device_param->timer_speed);
 
       const u32 speed_pos = device_param->speed_pos;
 
@@ -2222,7 +2222,7 @@ static int run_cracker(hc_device_param_t *device_param, const uint pws_cnt)
 
       double speed_ms;
 
-      hc_timer_get(device_param->timer_speed, speed_ms);
+      speed_ms = hc_timer_get(device_param->timer_speed);
 
       hc_timer_set(&device_param->timer_speed);
 
