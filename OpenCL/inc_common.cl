@@ -7,6 +7,18 @@
  * pure scalar functions
  */
 
+inline int ffz (const u32 v)
+{
+  for (int i = 0; i < 32; i++)
+  {
+    if ((v >> i) & 1) continue;
+
+    return i;
+  }
+
+  return -1;
+}
+
 inline int hash_comp (const u32 d1[4], __global u32 *d2)
 {
   if (d1[3] > d2[DGST_R3]) return ( 1);

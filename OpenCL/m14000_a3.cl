@@ -2194,7 +2194,7 @@ void m14000m (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global co
 
       if (tmpResult == 0xffffffff) continue;
 
-      const u32 slice = 31 - clz (~tmpResult);
+      const u32 slice = ffz (tmpResult);
 
       const u32 r0 = search[0];
       const u32 r1 = search[1];
@@ -2214,8 +2214,8 @@ void m14000m (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global co
     #endif
     for (int i = 0; i < 32; i++)
     {
-      out0[i] = out[ 0 + 31 - i];
-      out1[i] = out[32 + 31 - i];
+      out0[i] = out[ 0 + i];
+      out1[i] = out[32 + i];
     }
 
     transpose32c (out0);
@@ -2226,8 +2226,8 @@ void m14000m (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global co
     #endif
     for (int slice = 0; slice < 32; slice++)
     {
-      const u32 r0 = out0[31 - slice];
-      const u32 r1 = out1[31 - slice];
+      const u32 r0 = out0[slice];
+      const u32 r1 = out1[slice];
       const u32 r2 = 0;
       const u32 r3 = 0;
 
@@ -2684,7 +2684,7 @@ void m14000s (__global pw_t *pws, __global kernel_rule_t *rules_buf, __global co
 
   if (tmpResult == 0xffffffff) return;
 
-  const u32 slice = 31 - clz (~tmpResult);
+  const u32 slice = ffz (tmpResult);
 
   #include COMPARE_S
 }
