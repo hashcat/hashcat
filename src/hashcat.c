@@ -19,7 +19,8 @@
 #include <rp_kernel_on_cpu.h>
 #include <getopt.h>
 
-const char *PROGNAME            = "hashcat";
+static const char *PROGNAME            = "hashcat";
+
 const uint  VERSION_BIN         = 310;
 const uint  RESTORE_MIN         = 300;
 
@@ -2931,9 +2932,9 @@ static int run_kernel (const uint kern_run, hc_device_param_t *device_param, con
       {
         switch (kern_run)
         {
-          case KERN_RUN_1: if (device_param->exec_us_prev1[iteration] > 0) usleep ((__useconds_t)(device_param->exec_us_prev1[iteration] * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_2: if (device_param->exec_us_prev2[iteration] > 0) usleep ((__useconds_t)(device_param->exec_us_prev2[iteration] * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_3: if (device_param->exec_us_prev3[iteration] > 0) usleep ((__useconds_t)(device_param->exec_us_prev3[iteration] * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_1: if (device_param->exec_us_prev1[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev1[iteration] * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_2: if (device_param->exec_us_prev2[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev2[iteration] * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_3: if (device_param->exec_us_prev3[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev3[iteration] * device_param->nvidia_spin_damp)); break;
         }
       }
     }
@@ -6055,7 +6056,7 @@ static void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char
   }
 }
 
-char *strhlfmt (const uint hashfile_format)
+static char *strhlfmt (const uint hashfile_format)
 {
   switch (hashfile_format)
   {
@@ -6125,7 +6126,7 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 // wrapper around mymalloc for ADL
 
 #if defined(HAVE_HWMON)
-void *HC_API_CALL ADL_Main_Memory_Alloc (const int iSize)
+static void *HC_API_CALL ADL_Main_Memory_Alloc (const int iSize)
 {
   return mymalloc (iSize);
 }
@@ -6182,7 +6183,7 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
  */
 
 #ifdef WIN
-void SetConsoleWindowSize (const int x)
+static void SetConsoleWindowSize (const int x)
 {
   HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
 

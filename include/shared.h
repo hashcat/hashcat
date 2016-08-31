@@ -1746,17 +1746,23 @@ void *thread_device_watch (void *p);
 void *thread_keypress     (void *p);
 void *thread_runtime      (void *p);
 
+void status_display ();
+void status_display_machine_readable ();
+
 /**
  * checksum for use on cpu
  */
 
 #include "cpu-crc32.h"
 #include "cpu-md5.h"
+#include "cpu-sha1.h"
+#include "cpu-sha256.h"
 
 /**
  * ciphers for use on cpu
  */
 
 #include "cpu-aes.h"
+#include "cpu-des.h"
 
 #endif // SHARED_H
