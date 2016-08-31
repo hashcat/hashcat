@@ -20,6 +20,7 @@
 #define _FILE_OFFSET_BITS 64
 #define _CRT_SECURE_NO_WARNINGS
 
+#define NOMINMAX 1
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
