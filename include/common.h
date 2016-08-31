@@ -110,14 +110,6 @@ inline int hc_mkdir(char const* name, int mode) {
  * functions
  */
 
-int log_out_nn(FILE *fp, const char *fmt, ...);
-int log_info_nn(const char *fmt, ...);
-int log_error_nn(const char *fmt, ...);
-
-int log_out(FILE *fp, const char *fmt, ...);
-int log_info(const char *fmt, ...);
-int log_error(const char *fmt, ...);
-
 ///use this to disable c++ impl in favor of c ones
 #define NO_CPP_MIN_MAX_VowdDc6V5vjFhdGy //it does not compile :(
 //#define NO_CPP_CEIL_VowdDc6V5vjFhdGy
