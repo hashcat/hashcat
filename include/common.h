@@ -51,6 +51,8 @@ but this is nededed for VS Ñ compiler which doesn't have inline keyword but has 
 #endif
 #endif
 
+int hc_mkdir(char const* name, int mode);
+
 #ifdef _POSIX
 
 #include <pthread.h>
@@ -87,6 +89,10 @@ typedef void *XNVCTRL_LIB;
 #endif
 #endif
 
+inline int hc_mkdir(char const* name, int mode) {
+  return mkdir(name, mode);
+}
+
 #endif // _POSIX
 
 #ifdef _WIN
@@ -107,8 +113,9 @@ typedef HINSTANCE NVML_LIB;
 typedef HINSTANCE XNVCTRL_LIB;
 #endif
 
-#define mkdir(name,mode) mkdir (name)
-
+inline int hc_mkdir(char const* name, int mode) {
+  return _mkdir(name);
+}
 #endif // _WIN
 
 /**

@@ -4307,8 +4307,8 @@ int main(int argc, char **argv)
     session_dir = get_session_dir(profile_dir);
     shared_dir = strdup(SHARED_FOLDER);
 
-    mkdir(profile_dir, 0700);
-    mkdir(session_dir, 0700);
+    hc_mkdir(profile_dir, 0700);
+    hc_mkdir(session_dir, 0700);
   }
   else
   {
@@ -4406,7 +4406,7 @@ int main(int argc, char **argv)
 
   snprintf(kernels_folder, kernels_folder_size - 1, "%s/kernels", profile_dir);
 
-  mkdir(kernels_folder, 0700);
+  hc_mkdir(kernels_folder, 0700);
 
   myfree(kernels_folder);
 
@@ -5193,7 +5193,7 @@ int main(int argc, char **argv)
           }
         }
 
-        if (mkdir(induction_directory, 0700) == -1)
+        if (hc_mkdir(induction_directory, 0700) == -1)
         {
           log_error("ERROR: %s: %s", induction_directory, strerror(errno));
 
@@ -5263,7 +5263,7 @@ int main(int argc, char **argv)
     }
     else if (outfile_check_dir == NULL)
     {
-      if (mkdir(outfile_check_directory, 0700) == -1)
+      if (hc_mkdir(outfile_check_directory, 0700) == -1)
       {
         log_error("ERROR: %s: %s", outfile_check_directory, strerror(errno));
 
