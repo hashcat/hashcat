@@ -53,19 +53,21 @@
 #include "consts/parser.h"
 #include "consts/devices_statuses.h"
  */
+typedef enum KERN_RUN_ {
+  KERN_RUN_MP = 101,
+  KERN_RUN_MP_L = 102,
+  KERN_RUN_MP_R = 103,
 
+  KERN_RUN_1 = 1000,
+  KERN_RUN_12 = 1500,
+  KERN_RUN_2 = 2000,
+  KERN_RUN_23 = 2500,
+  KERN_RUN_3 = 3000
+} KERN_RUN;
 
 /*
  * functions
-#define KERN_RUN_1           1000
-#define KERN_RUN_12          1500
-#define KERN_RUN_2           2000
-#define KERN_RUN_23          2500
-#define KERN_RUN_3           3000
-u8  hex_convert(const u8 c);
-u8  hex_to_u8(const u8 hex[2]);
-u32 hex_to_u32(const u8 hex[8]);
-u64 hex_to_u64(const u8 hex[16]);
+ */
 
 void dump_hex(const u8 *s, const int sz);
 
