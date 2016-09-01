@@ -19,11 +19,12 @@
 #include <rp_kernel_on_cpu.h>
 #include <getopt.h>
 
-const char *PROGNAME            = "hashcat";
+static const char *PROGNAME            = "hashcat";
+
 const uint  VERSION_BIN         = 310;
 const uint  RESTORE_MIN         = 300;
 
-double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
+static double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
 
 #define INCR_RULES              10000
 #define INCR_SALTS              100000
@@ -343,10 +344,10 @@ static unsigned int full80 = 0x80808080;
 
 int SUPPRESS_OUTPUT = 0;
 
-hc_thread_mutex_t mux_adl;
-hc_thread_mutex_t mux_counter;
-hc_thread_mutex_t mux_dispatcher;
-hc_thread_mutex_t mux_display;
+static hc_thread_mutex_t mux_adl;
+static hc_thread_mutex_t mux_counter;
+static hc_thread_mutex_t mux_dispatcher;
+       hc_thread_mutex_t mux_display;
 
 hc_global_data_t data;
 
@@ -773,7 +774,7 @@ static double get_avg_exec_time (hc_device_param_t *device_param, const int last
   {
     double exec_ms = device_param->exec_ms[(exec_pos + i) % EXEC_CACHE];
 
-    if (exec_ms)
+    if (exec_ms > 0)
     {
       exec_ms_sum += exec_ms;
 
@@ -1249,7 +1250,7 @@ void status_display ()
 
     hashes_dev_ms[device_id] = 0;
 
-    if (speed_ms[device_id])
+    if (speed_ms[device_id] > 0)
     {
       hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
 
@@ -1295,11 +1296,11 @@ void status_display ()
 
   #ifdef WIN
 
-  __time64_t sec_run = ms_running / 1000;
+  __time64_t sec_run = (__time64_t) ms_running / 1000;
 
   #else
 
-  time_t sec_run = ms_running / 1000;
+  time_t sec_run =     (time_t)     ms_running / 1000;
 
   #endif
 
@@ -1412,11 +1413,11 @@ void status_display ()
       time_t sec_etc = 0;
       #endif
 
-      if (hashes_all_ms)
+      if (hashes_all_ms > 0)
       {
         u64 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
 
-        u64 ms_left = (progress_left_relative_skip - progress_noneed) / hashes_all_ms;
+        u64 ms_left = (u64) ((progress_left_relative_skip - progress_noneed) / hashes_all_ms);
 
         sec_etc = ms_left / 1000;
       }
@@ -1786,7 +1787,7 @@ static void status_benchmark_automate ()
 
     hashes_dev_ms[device_id] = 0;
 
-    if (speed_ms[device_id])
+    if (speed_ms[device_id] > 0)
     {
       hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
     }
@@ -1841,7 +1842,7 @@ static void status_benchmark ()
 
     hashes_dev_ms[device_id] = 0;
 
-    if (speed_ms[device_id])
+    if (speed_ms[device_id] > 0)
     {
       hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
 
@@ -2899,7 +2900,7 @@ static int run_kernel (const uint kern_run, hc_device_param_t *device_param, con
     {
       if (data.opti_type & OPTI_TYPE_SLOW_HASH_SIMD)
       {
-        num_elements = CEIL ((float) num_elements / device_param->vector_width);
+        num_elements = CEIL (num_elements / device_param->vector_width);
       }
     }
 
@@ -2927,7 +2928,7 @@ static int run_kernel (const uint kern_run, hc_device_param_t *device_param, con
     return -1;
   }
 
-  if (device_param->nvidia_spin_damp)
+  if (device_param->nvidia_spin_damp > 0)
   {
     if (data.devices_status == STATUS_RUNNING)
     {
@@ -2935,9 +2936,9 @@ static int run_kernel (const uint kern_run, hc_device_param_t *device_param, con
       {
         switch (kern_run)
         {
-          case KERN_RUN_1: if (device_param->exec_us_prev1[iteration]) usleep (device_param->exec_us_prev1[iteration] * device_param->nvidia_spin_damp); break;
-          case KERN_RUN_2: if (device_param->exec_us_prev2[iteration]) usleep (device_param->exec_us_prev2[iteration] * device_param->nvidia_spin_damp); break;
-          case KERN_RUN_3: if (device_param->exec_us_prev3[iteration]) usleep (device_param->exec_us_prev3[iteration] * device_param->nvidia_spin_damp); break;
+          case KERN_RUN_1: if (device_param->exec_us_prev1[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev1[iteration] * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_2: if (device_param->exec_us_prev2[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev2[iteration] * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_3: if (device_param->exec_us_prev3[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev3[iteration] * device_param->nvidia_spin_damp)); break;
         }
       }
     }
@@ -3409,7 +3410,7 @@ static int choose_kernel (hc_device_param_t *device_param, const uint attack_exe
 
       const float iter_part = (float) (loop_pos + loop_left) / iter;
 
-      const u64 perf_sum_all = pws_cnt * iter_part;
+      const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
 
       double speed_ms;
 
@@ -3745,8 +3746,8 @@ static int autotune (hc_device_param_t *device_param)
 
     for (u32 f = 1; f < 1024; f++)
     {
-      const u32 kernel_accel_try = (float) kernel_accel_orig * f;
-      const u32 kernel_loops_try = (float) kernel_loops_orig / f;
+      const u32 kernel_accel_try = kernel_accel_orig * f;
+      const u32 kernel_loops_try = kernel_loops_orig / f;
 
       if (kernel_accel_try > kernel_accel_max) break;
       if (kernel_loops_try < kernel_loops_min) break;
@@ -3786,7 +3787,7 @@ static int autotune (hc_device_param_t *device_param)
   {
     // this is safe to not overflow kernel_accel_max because of accel_left
 
-    kernel_accel = (double) kernel_accel * exec_accel_min;
+    kernel_accel *= (u32) exec_accel_min;
   }
 
   // reset them fake words
@@ -5213,7 +5214,7 @@ static u32 get_power (hc_device_param_t *device_param)
   {
     const double device_factor = (double) device_param->hardware_power / data.hardware_power_all;
 
-    const u64 words_left_device = CEIL ((double) kernel_power_final * device_factor);
+    const u64 words_left_device = (u64) CEIL (kernel_power_final * device_factor);
 
     // work should be at least the hardware power available without any accelerator
 
@@ -6059,7 +6060,7 @@ static void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char
   }
 }
 
-char *strhlfmt (const uint hashfile_format)
+static char *strhlfmt (const uint hashfile_format)
 {
   switch (hashfile_format)
   {
@@ -6129,7 +6130,7 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 // wrapper around mymalloc for ADL
 
 #if defined(HAVE_HWMON)
-void *HC_API_CALL ADL_Main_Memory_Alloc (const int iSize)
+static void *HC_API_CALL ADL_Main_Memory_Alloc (const int iSize)
 {
   return mymalloc (iSize);
 }
@@ -6186,7 +6187,7 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
  */
 
 #ifdef WIN
-void SetConsoleWindowSize (const int x)
+static void SetConsoleWindowSize (const int x)
 {
   HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
 
@@ -15740,11 +15741,11 @@ int main (int argc, char **argv)
                 return -1;
               }
 
-              int engine_clock_max = caps.sEngineClockRange.iMax * 0.6666;
-              int memory_clock_max = caps.sMemoryClockRange.iMax * 0.6250;
+              int engine_clock_max =       (int) (0.6666 * caps.sEngineClockRange.iMax);
+              int memory_clock_max =       (int) (0.6250 * caps.sMemoryClockRange.iMax);
 
-              int warning_trigger_engine = (int) (0.25 * (double) engine_clock_max);
-              int warning_trigger_memory = (int) (0.25 * (double) memory_clock_max);
+              int warning_trigger_engine = (int) (0.25   * engine_clock_max);
+              int warning_trigger_memory = (int) (0.25   * memory_clock_max);
 
               int engine_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
               int memory_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;

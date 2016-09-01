@@ -86,9 +86,9 @@ u64 byte_swap_64 (const u64 n)
  * logging
  */
 
-int last_len = 0;
+static int last_len = 0;
 
-int log_final (FILE *fp, const char *fmt, va_list ap)
+static int log_final (FILE *fp, const char *fmt, va_list ap)
 {
   if (last_len)
   {
@@ -229,7 +229,8 @@ int log_error (const char *fmt, ...)
  * converter
  */
 
-u8 int_to_base32 (const u8 c)
+#if 0 //unused
+static u8 int_to_base32 (const u8 c)
 {
   static const u8 tbl[0x20] =
   {
@@ -240,15 +241,16 @@ u8 int_to_base32 (const u8 c)
   return tbl[c];
 }
 
-u8 base32_to_int (const u8 c)
+static u8 base32_to_int (const u8 c)
 {
        if ((c >= 'A') && (c <= 'Z')) return c - 'A';
   else if ((c >= '2') && (c <= '7')) return c - '2' + 26;
 
   return 0;
 }
+#endif
 
-u8 int_to_itoa32 (const u8 c)
+static u8 int_to_itoa32 (const u8 c)
 {
   static const u8 tbl[0x20] =
   {
@@ -259,7 +261,7 @@ u8 int_to_itoa32 (const u8 c)
   return tbl[c];
 }
 
-u8 itoa32_to_int (const u8 c)
+static u8 itoa32_to_int (const u8 c)
 {
        if ((c >= '0') && (c <= '9')) return c - '0';
   else if ((c >= 'a') && (c <= 'v')) return c - 'a' + 10;
@@ -267,7 +269,7 @@ u8 itoa32_to_int (const u8 c)
   return 0;
 }
 
-u8 int_to_itoa64 (const u8 c)
+static u8 int_to_itoa64 (const u8 c)
 {
   static const u8 tbl[0x40] =
   {
@@ -280,7 +282,7 @@ u8 int_to_itoa64 (const u8 c)
   return tbl[c];
 }
 
-u8 itoa64_to_int (const u8 c)
+static u8 itoa64_to_int (const u8 c)
 {
   static const u8 tbl[0x100] =
   {
@@ -305,7 +307,7 @@ u8 itoa64_to_int (const u8 c)
   return tbl[c];
 }
 
-u8 int_to_base64 (const u8 c)
+static u8 int_to_base64 (const u8 c)
 {
   static const u8 tbl[0x40] =
   {
@@ -318,7 +320,7 @@ u8 int_to_base64 (const u8 c)
   return tbl[c];
 }
 
-u8 base64_to_int (const u8 c)
+static u8 base64_to_int (const u8 c)
 {
   static const u8 tbl[0x100] =
   {
@@ -343,7 +345,7 @@ u8 base64_to_int (const u8 c)
   return tbl[c];
 }
 
-u8 int_to_bf64 (const u8 c)
+static u8 int_to_bf64 (const u8 c)
 {
   static const u8 tbl[0x40] =
   {
@@ -356,7 +358,7 @@ u8 int_to_bf64 (const u8 c)
   return tbl[c];
 }
 
-u8 bf64_to_int (const u8 c)
+static u8 bf64_to_int (const u8 c)
 {
   static const u8 tbl[0x100] =
   {
@@ -381,7 +383,7 @@ u8 bf64_to_int (const u8 c)
   return tbl[c];
 }
 
-u8 int_to_lotus64 (const u8 c)
+static u8 int_to_lotus64 (const u8 c)
 {
        if (c  < 10) return '0' + c;
   else if (c  < 36) return 'A' + c - 10;
@@ -392,7 +394,7 @@ u8 int_to_lotus64 (const u8 c)
   return 0;
 }
 
-u8 lotus64_to_int (const u8 c)
+static u8 lotus64_to_int (const u8 c)
 {
        if ((c >= '0') && (c <= '9')) return c - '0';
   else if ((c >= 'A') && (c <= 'Z')) return c - 'A' + 10;
@@ -404,7 +406,7 @@ u8 lotus64_to_int (const u8 c)
   return 0;
 }
 
-int base32_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
+static int base32_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
 {
   const u8 *in_ptr = in_buf;
 
@@ -443,7 +445,7 @@ int base32_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
   return out_len;
 }
 
-int base32_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
+static int base32_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
 {
   const u8 *in_ptr = in_buf;
 
@@ -485,7 +487,7 @@ int base32_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
   return out_len;
 }
 
-int base64_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
+static int base64_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
 {
   const u8 *in_ptr = in_buf;
 
@@ -518,7 +520,7 @@ int base64_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
   return out_len;
 }
 
-int base64_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
+static int base64_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
 {
   const u8 *in_ptr = in_buf;
 
@@ -552,7 +554,7 @@ int base64_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
   return out_len;
 }
 
-int is_valid_hex_char (const u8 c)
+static int is_valid_hex_char (const u8 c)
 {
   if ((c >= '0') && (c <= '9')) return 1;
   if ((c >= 'A') && (c <= 'F')) return 1;
@@ -616,7 +618,7 @@ u64 hex_to_u64 (const u8 hex[16])
   return (v);
 }
 
-void bin_to_hex_lower (const u32 v, u8 hex[8])
+static void bin_to_hex_lower (const u32 v, u8 hex[8])
 {
   hex[0] = v >> 28 & 15;
   hex[1] = v >> 24 & 15;
@@ -718,7 +720,7 @@ static void juniper_decrypt_hash (char *in, char *out)
   AES128_decrypt_cbc (juniper_key, juniper_iv, in_ptr, out_ptr);
 }
 
-void phpass_decode (u8 digest[16], u8 buf[22])
+static void phpass_decode (u8 digest[16], u8 buf[22])
 {
   int l;
 
@@ -773,7 +775,7 @@ void phpass_decode (u8 digest[16], u8 buf[22])
   digest[15] = (l >>  0) & 0xff;
 }
 
-void phpass_encode (u8 digest[16], u8 buf[22])
+static void phpass_encode (u8 digest[16], u8 buf[22])
 {
   int l;
 
@@ -818,7 +820,7 @@ void phpass_encode (u8 digest[16], u8 buf[22])
   buf[21] = int_to_itoa64 (l & 0x3f);
 }
 
-void md5crypt_decode (u8 digest[16], u8 buf[22])
+static void md5crypt_decode (u8 digest[16], u8 buf[22])
 {
   int l;
 
@@ -873,7 +875,7 @@ void md5crypt_decode (u8 digest[16], u8 buf[22])
   digest[11] = (l >>  0) & 0xff;
 }
 
-void md5crypt_encode (u8 digest[16], u8 buf[22])
+static void md5crypt_encode (u8 digest[16], u8 buf[22])
 {
   int l;
 
@@ -918,7 +920,7 @@ void md5crypt_encode (u8 digest[16], u8 buf[22])
   buf[21] = int_to_itoa64 (l & 0x3f); l >>= 6;
 }
 
-void sha512crypt_decode (u8 digest[64], u8 buf[86])
+static void sha512crypt_decode (u8 digest[64], u8 buf[86])
 {
   int l;
 
@@ -1117,7 +1119,7 @@ void sha512crypt_decode (u8 digest[64], u8 buf[86])
   digest[63] = (l >>  0) & 0xff;
 }
 
-void sha512crypt_encode (u8 digest[64], u8 buf[86])
+static void sha512crypt_encode (u8 digest[64], u8 buf[86])
 {
   int l;
 
@@ -1274,7 +1276,7 @@ void sha512crypt_encode (u8 digest[64], u8 buf[86])
   buf[85] = int_to_itoa64 (l & 0x3f); l >>= 6;
 }
 
-void sha1aix_decode (u8 digest[20], u8 buf[27])
+static void sha1aix_decode (u8 digest[20], u8 buf[27])
 {
   int l;
 
@@ -1340,7 +1342,7 @@ void sha1aix_decode (u8 digest[20], u8 buf[27])
   digest[18] = (l >> 16) & 0xff;
 }
 
-void sha1aix_encode (u8 digest[20], u8 buf[27])
+static void sha1aix_encode (u8 digest[20], u8 buf[27])
 {
   int l;
 
@@ -1393,7 +1395,7 @@ void sha1aix_encode (u8 digest[20], u8 buf[27])
   buf[26] = int_to_itoa64 (l & 0x3f);
 }
 
-void sha256aix_decode (u8 digest[32], u8 buf[43])
+static void sha256aix_decode (u8 digest[32], u8 buf[43])
 {
   int l;
 
@@ -1496,7 +1498,7 @@ void sha256aix_decode (u8 digest[32], u8 buf[43])
   digest[30] = (l >> 16) & 0xff;
 }
 
-void sha256aix_encode (u8 digest[32], u8 buf[43])
+static void sha256aix_encode (u8 digest[32], u8 buf[43])
 {
   int l;
 
@@ -1577,7 +1579,7 @@ void sha256aix_encode (u8 digest[32], u8 buf[43])
   buf[42] = int_to_itoa64 (l & 0x3f);
 }
 
-void sha512aix_decode (u8 digest[64], u8 buf[86])
+static void sha512aix_decode (u8 digest[64], u8 buf[86])
 {
   int l;
 
@@ -1776,7 +1778,7 @@ void sha512aix_decode (u8 digest[64], u8 buf[86])
   digest[63] = (l >> 16) & 0xff;
 }
 
-void sha512aix_encode (u8 digest[64], u8 buf[86])
+static void sha512aix_encode (u8 digest[64], u8 buf[86])
 {
   int l;
 
@@ -1933,7 +1935,7 @@ void sha512aix_encode (u8 digest[64], u8 buf[86])
   buf[85] = int_to_itoa64 (l & 0x3f); l >>= 6;
 }
 
-void sha256crypt_decode (u8 digest[32], u8 buf[43])
+static void sha256crypt_decode (u8 digest[32], u8 buf[43])
 {
   int l;
 
@@ -2035,7 +2037,7 @@ void sha256crypt_decode (u8 digest[32], u8 buf[43])
   digest[30] = (l >>  0) & 0xff;
 }
 
-void sha256crypt_encode (u8 digest[32], u8 buf[43])
+static void sha256crypt_encode (u8 digest[32], u8 buf[43])
 {
   int l;
 
@@ -2116,7 +2118,7 @@ void sha256crypt_encode (u8 digest[32], u8 buf[43])
   buf[42] = int_to_itoa64 (l & 0x3f);
 }
 
-void drupal7_decode (u8 digest[64], u8 buf[44])
+static void drupal7_decode (u8 digest[64], u8 buf[44])
 {
   int l;
 
@@ -2252,7 +2254,7 @@ void drupal7_decode (u8 digest[64], u8 buf[44])
   digest[63] = 0;
 }
 
-void drupal7_encode (u8 digest[64], u8 buf[43])
+static void drupal7_encode (u8 digest[64], u8 buf[43])
 {
   int l;
 
@@ -2342,7 +2344,7 @@ void drupal7_encode (u8 digest[64], u8 buf[43])
 static struct termios savemodes;
 static int havemodes = 0;
 
-int tty_break()
+static int tty_break()
 {
   struct termios modmodes;
 
@@ -2358,7 +2360,7 @@ int tty_break()
   return tcsetattr (fileno (stdin), TCSANOW, &modmodes);
 }
 
-int tty_getchar()
+static int tty_getchar()
 {
   fd_set rfds;
 
@@ -2379,7 +2381,7 @@ int tty_getchar()
   return getchar();
 }
 
-int tty_fix()
+static int tty_fix()
 {
   if (!havemodes) return 0;
 
@@ -2439,7 +2441,7 @@ int tty_fix()
 #ifdef WIN
 static DWORD saveMode = 0;
 
-int tty_break()
+static int tty_break()
 {
   HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
 
@@ -2449,7 +2451,7 @@ int tty_break()
   return 0;
 }
 
-int tty_getchar()
+static int tty_getchar()
 {
   HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
 
@@ -2489,7 +2491,7 @@ int tty_getchar()
   return 0;
 }
 
-int tty_fix()
+static int tty_fix()
 {
   HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
 
@@ -2569,7 +2571,7 @@ char *mystrdup (const char *s)
   return (b);
 }
 
-FILE *logfile_open (char *logfile)
+static FILE *logfile_open (char *logfile)
 {
   FILE *fp = fopen (logfile, "ab");
 
@@ -2581,7 +2583,7 @@ FILE *logfile_open (char *logfile)
   return fp;
 }
 
-void logfile_close (FILE *fp)
+static void logfile_close (FILE *fp)
 {
   if (fp == stdout) return;
 
@@ -2609,7 +2611,7 @@ void logfile_append (const char *fmt, ...)
   logfile_close (fp);
 }
 
-int logfile_generate_id ()
+static int logfile_generate_id ()
 {
   const int n = rand ();
 
@@ -2834,7 +2836,7 @@ void hm_get_opencl_busid_devid (hm_attrs_t *hm_device, uint opencl_num_devices, 
 }
 */
 
-void hm_sort_adl_adapters_by_busid_devid (u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
+static void hm_sort_adl_adapters_by_busid_devid (u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
   // basically bubble sort
 
@@ -3562,7 +3564,7 @@ void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHAR
   }
 }
 
-void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt)
+static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt)
 {
   cs_t *cs = &css[css_cnt];
 
@@ -3597,7 +3599,7 @@ void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt)
   myfree (css_uniq);
 }
 
-void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, int mp_usr_offset, int interpret)
+static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, int mp_usr_offset, int interpret)
 {
   size_t in_pos;
 
@@ -5036,7 +5038,7 @@ int sort_by_digest_p0p1 (const void *v1, const void *v2)
   return 0;
 }
 
-int sort_by_tuning_db_alias (const void *v1, const void *v2)
+static int sort_by_tuning_db_alias (const void *v1, const void *v2)
 {
   const tuning_db_alias_t *t1 = (const tuning_db_alias_t *) v1;
   const tuning_db_alias_t *t2 = (const tuning_db_alias_t *) v2;
@@ -5048,7 +5050,7 @@ int sort_by_tuning_db_alias (const void *v1, const void *v2)
   return 0;
 }
 
-int sort_by_tuning_db_entry (const void *v1, const void *v2)
+static int sort_by_tuning_db_entry (const void *v1, const void *v2)
 {
   const tuning_db_entry_t *t1 = (const tuning_db_entry_t *) v1;
   const tuning_db_entry_t *t2 = (const tuning_db_entry_t *) v2;
@@ -9214,7 +9216,7 @@ void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos)
   }
 }
 
-void SuspendThreads ()
+static void SuspendThreads ()
 {
   if (data.devices_status != STATUS_RUNNING) return;
 
@@ -9225,7 +9227,7 @@ void SuspendThreads ()
   log_info ("Paused");
 }
 
-void ResumeThreads ()
+static void ResumeThreads ()
 {
   if (data.devices_status != STATUS_PAUSED) return;
 
@@ -9240,14 +9242,14 @@ void ResumeThreads ()
   log_info ("Resumed");
 }
 
-void bypass ()
+static void bypass ()
 {
   data.devices_status = STATUS_BYPASS;
 
   log_info ("Next dictionary / mask in queue selected, bypassing current one");
 }
 
-void stop_at_checkpoint ()
+static void stop_at_checkpoint ()
 {
   if (data.devices_status != STATUS_STOP_AT_CHECKPOINT)
   {
@@ -9985,7 +9987,7 @@ tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, hc_device_param_t *
  * parser
  */
 
-uint parse_and_store_salt (char *out, char *in, uint salt_len)
+static uint parse_and_store_salt (char *out, char *in, uint salt_len)
 {
   u8 tmp[256] = { 0 };
 
@@ -11329,7 +11331,7 @@ int md5asa_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   return (PARSER_OK);
 }
 
-void transform_netntlmv1_key (const u8 *nthash, u8 *key)
+static void transform_netntlmv1_key (const u8 *nthash, u8 *key)
 {
   key[0] =                    (nthash[0] >> 0);
   key[1] = (nthash[0] << 7) | (nthash[1] >> 1);
@@ -21068,7 +21070,7 @@ bool class_alpha (const u8 c)
   return (class_lower (c) || class_upper (c));
 }
 
-int conv_ctoi (const u8 c)
+static int conv_ctoi (const u8 c)
 {
   if (class_num (c))
   {
@@ -21082,7 +21084,7 @@ int conv_ctoi (const u8 c)
   return -1;
 }
 
-int conv_itoc (const u8 c)
+static int conv_itoc (const u8 c)
 {
   if (c < 10)
   {
@@ -21765,7 +21767,7 @@ int mangle_insert (char arr[BLOCK_SIZE], int arr_len, int upos, char c)
   return (arr_len + 1);
 }
 
-int mangle_insert_multi (char arr[BLOCK_SIZE], int arr_len, int arr_pos, char arr2[BLOCK_SIZE], int arr2_len, int arr2_pos, int arr2_cpy)
+static int mangle_insert_multi (char arr[BLOCK_SIZE], int arr_len, int arr_pos, char arr2[BLOCK_SIZE], int arr2_len, int arr2_pos, int arr2_cpy)
 {
   if ((arr_len + arr2_cpy) > BLOCK_SIZE) return (RULE_RC_REJECT_ERROR);
 
