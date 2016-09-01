@@ -1,0 +1,35 @@
+#define APSTUDIO_READONLY_SYMBOLS
+#include "winres.h"
+#undef APSTUDIO_READONLY_SYMBOLS
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION @VERSION_MAJOR@,@VERSION_MINOR@,@VERSION_PATCH@,@VERSION_TWEAK@
+ PRODUCTVERSION @VERSION_MAJOR@,@VERSION_MINOR@,@VERSION_PATCH@,@VERSION_TWEAK@
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040004b0"
+        BEGIN
+            VALUE "FileDescription", "hashcat is the world's fastest and most advanced password recovery utility, supporting five unique modes of attack for over 160 highly-optimized hashing algorithms. hashcat currently supports CPU's, GPU's other hardware-accelerators on Linux, Windows and OSX, and has facilities to help enable distributed password cracking."
+            VALUE "FileVersion", "@VERSION_TAG@"
+            VALUE "InternalName", "@PACKAGE_NAME@"
+            VALUE "LegalCopyright", "@LICENSE_TEXT@"
+            VALUE "ProductName", "@PACKAGE_NAME@"
+            VALUE "ProductVersion", "@VERSION_TAG@"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x400, 1200
+    END
+END
+IDI_ICON1 ICON "hashcat-icon.ico"

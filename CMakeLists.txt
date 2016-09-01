@@ -32,15 +32,23 @@ string(REGEX MATCHALL "[0-9]+" PARSED_VER ${VERSION})
 list(LENGTH PARSED_VER PARSED_VER_LEN)
 if(PARSED_VER_LEN GREATER 0)
   list(GET PARSED_VER 0 VERSION_MAJOR)
+else()
+  set(VERSION_MAJOR 0)
 endif()
 if(PARSED_VER_LEN GREATER 1)
   list(GET PARSED_VER 1 VERSION_MINOR)
+else()
+  set(VERSION_MINOR 0)
 endif()
 if(PARSED_VER_LEN GREATER 2)
   list(GET PARSED_VER 2 VERSION_PATCH)
+else()
+  set(VERSION_PATCH 0)
 endif()
 if(PARSED_VER_LEN GREATER 3)
   list(GET PARSED_VER 3 VERSION_TWEAK)
+else()
+  set(VERSION_TWEAK 0)
 endif()
 
 set(VERSION_BIN "${VERSION_MAJOR}${VERSION_MINOR}${VERSION_PATCH}")
@@ -128,7 +136,6 @@ endif() # darwin
 
 if(LINUX)
   set(POSIX TRUE)
-  set(WITH_HWMON TRUE)
   set(CMAKE_EXE_LINKER_FLAGS "-lpthread -ldl ${CMAKE_EXE_LINKER_FLAGS}")
 endif() # linux
 
@@ -137,19 +144,24 @@ if(FREEBSD)
   set(CMAKE_EXE_LINKER_FLAGS "-lpthread ${LDFLAGS}")
 endif() # freebsd
 
-if(WINDOWS)
+if(WINDOWS OR MINGW OR LINUX)
   set(WITH_HWMON TRUE)
-endif() # windows
+endif()
 
 if(MINGW)
   # force MinGW-w64 in 32bit mode
-  set(CMAKE_C_FLAGS "-m32 ${CMAKE_C_FLAGS}")
-  set(CMAKE_MODULE_LINKER_FLAGS "-m32 -Wl,--enable-stdcall-fixup ${CMAKE_SHARED_LINKER_FLAGS}")
-  set(CMAKE_SHARED_LINKER_FLAGS "-m32 -Wl,--enable-stdcall-fixup ${CMAKE_SHARED_LINKER_FLAGS}")
-  set(CMAKE_EXE_LINKER_FLAGS "-m32 -Wl,--enable-stdcall-fixup ${CMAKE_EXE_LINKER_FLAGS}")
-  set(CMAKE_RC_FLAGS "--target=pe-i386 --output-format=coff ${CMAKE_RC_FLAGS}")
-  set(WITH_HWMON TRUE)
+  #add_compile_options(hashcat PUBLIC "-m32")
+  #set_target_properties(hashcat PROPERTIES COMPILE_FLAGS "-m32")
+  #set_target_properties(hashcat PROPERTIES LINK_FLAGS "-m32 -Wl,--enable-stdcall-fixup")
+  #set_target_properties(hashcat PROPERTIES RC_FLAGS "--target=pe-i386 --output-format=coff")
 endif(MINGW)
+
+if(MSVC)
+  #add_compile_options("/GL /Qvec-report:1 /Qpar-report:1") # it causes compilation error due flag conflict
+  #set_target_properties(hashcat PROPERTIES COMPILE_FLAGS "/GL /Qvec-report:1 /Qpar-report:1")
+  #set_target_properties(hashcat PROPERTIES LINK_FLAGS "/LTCG")
+endif(MSVC)
+
 
 if(MSVC)
   set(nixShims4Windows_DIR "${deps_Dir}/nixShims4Windows")
@@ -162,23 +174,56 @@ endif(MSVC)
 set(Include_dir "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(Source_dir "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(OpenCL_Proj_DIR "${CMAKE_CURRENT_SOURCE_DIR}/OpenCL")
+set(masks_DIR "${CMAKE_CURRENT_SOURCE_DIR}/masks")
+set(rules_DIR "${CMAKE_CURRENT_SOURCE_DIR}/rules")
+set(charsets_DIR "${CMAKE_CURRENT_SOURCE_DIR}/charsets")
+set(resource_DIR "${CMAKE_CURRENT_SOURCE_DIR}/res")
 set(CMake_Misc_Dir "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include_directories(${Include_dir} ${OpenCL_Proj_DIR} ${shimIncludeDirs})
 file(GLOB_RECURSE SRCFILES "${Source_dir}/*.c")
 
+if(MSVC)
+  #making resource file
+  set(rc_script "${resource_DIR}/hashcat.rc")
+  set(rc_script_proto "${CMake_Misc_Dir}/hashcat.rc.in")
+  set(license_file "${CMAKE_CURRENT_SOURCE_DIR}/docs/license.txt")
+  file(READ ${license_file} LICENSE_TEXT)
+  string(REPLACE "\"" "\"\"" LICENSE_TEXT ${LICENSE_TEXT})
+  string(REPLACE "\r\n" "\n" LICENSE_TEXT ${LICENSE_TEXT})
+  string(REPLACE "\n" "\\r\\n" LICENSE_TEXT ${LICENSE_TEXT})
+  message(STATUS "generating resources: ${rc_script_proto} -> ${rc_script}")
+  configure_file(${rc_script_proto} ${rc_script})
+  file(GLOB_RECURSE resource_files "${resource_DIR}/*.rc" "${resource_DIR}/*.ico")
+endif(MSVC)
+
 if(MSVC_IDE)
    file(GLOB_RECURSE HDRFILES "${Include_dir}/*.h")
+   file(GLOB_RECURSE OpenCL_Kernels "${OpenCL_Proj_DIR}/*.cl")
+   file(GLOB_RECURSE masks_files "${masks_DIR}/*.hcmask")
+   file(GLOB_RECURSE rules_files "${rules_DIR}/*.rule")
 endif()
 
-add_executable(hashcat "${shimSources}" "${SRCFILES}" "${HDRFILES}")
+add_executable(hashcat "${shimSources}" "${SRCFILES}" "${HDRFILES}" "${OpenCL_Kernels}" "${masks_files}" "${rules_files}" "${resource_files}")
+
+if(MSVC_IDE)
+   source_group("misc\\OpenCL" FILES  ${OpenCL_Kernels})
+   source_group("misc\\masks" FILES  ${masks_files})
+   source_group("misc\\rules" FILES  ${rules_files})
+   source_group("res" FILES  ${resource_files})
+   source_group("Header Files\\cpu" REGULAR_EXPRESSION "cpu-[a-zA-Z0-9]+\.h")
+   source_group("Header Files\\hwmon" REGULAR_EXPRESSION "hwmon/[a-zA-Z0-9_-]+\.h")
+   source_group("Source Files\\cpu" REGULAR_EXPRESSION "cpu-[a-zA-Z0-9]+\.c")
+   source_group("Source Files\\hwmon" REGULAR_EXPRESSION "hwmon/[a-zA-Z0-9_-]+\.c")
+endif()
 
 if(MSVC)
-  #set_source_files_properties(${shimSources} ${SRCFILES} PROPERTIES LANGUAGE CXX)
+  set_source_files_properties(${shimSources} ${SRCFILES} PROPERTIES LANGUAGE CXX)
 else(MSVC)
   #set_source_files_properties(${shimSources} ${SRCFILES} PROPERTIES LANGUAGE CXX)
 endif(MSVC)
 
+#target_compile_features(hashcat PUBLIC cxx_decltype_auto)
 
 
 # config.h
