@@ -756,7 +756,7 @@ typedef enum keccak_constants
   KECCAK_ROTC_22=20u,
   KECCAK_ROTC_23=44u,
 
-} ripemd160_constants_t;
+} keccak_constants_t;
 
 #endif
 
