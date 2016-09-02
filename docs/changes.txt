@@ -1,6 +1,12 @@
 * changes v3.00 -> v3.xx:
 
 ##
+## Improvements
+##
+
+- Allow loading of bcrypt hashes with signature $2b$ (February 2014)
+
+##
 ## Algorithms
 ##
 

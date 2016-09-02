@@ -10106,7 +10106,7 @@ int bcrypt_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 {
   if ((input_len < DISPLAY_LEN_MIN_3200) || (input_len > DISPLAY_LEN_MAX_3200)) return (PARSER_GLOBAL_LENGTH);
 
-  if ((memcmp (SIGNATURE_BCRYPT1, input_buf, 4)) && (memcmp (SIGNATURE_BCRYPT2, input_buf, 4)) && (memcmp (SIGNATURE_BCRYPT3, input_buf, 4))) return (PARSER_SIGNATURE_UNMATCHED);
+  if ((memcmp (SIGNATURE_BCRYPT1, input_buf, 4)) && (memcmp (SIGNATURE_BCRYPT2, input_buf, 4)) && (memcmp (SIGNATURE_BCRYPT3, input_buf, 4)) && (memcmp (SIGNATURE_BCRYPT4, input_buf, 4))) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
