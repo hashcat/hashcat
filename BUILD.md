@@ -19,7 +19,8 @@ $ git clone https://github.com/hashcat/hashcat.git
 Get a copy of the **OpenCL Headers** repository
 
 ```sh
-$ git submodule update --recursive
+$ git submodule init
+$ git submodule update
 ```
 
 Run "make"

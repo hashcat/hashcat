@@ -3,7 +3,8 @@ os:
   - osx
 language: c
 install:
-  - git submodule update --recursive
+  - git submodule init
+  - git submodule update
 compiler:
   - clang
   - gcc
