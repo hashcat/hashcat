@@ -19,8 +19,7 @@ $ git clone https://github.com/hashcat/hashcat.git
 Get a copy of the **OpenCL Headers** repository
 
 ```sh
-$ mkdir -p deps/OpenCL-Headers
-$ git clone https://github.com/KhronosGroup/OpenCL-Headers deps/OpenCL-Headers/CL
+$ git submodule update --recursive
 ```
 
 Run "make"
