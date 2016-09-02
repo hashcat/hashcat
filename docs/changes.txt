@@ -6,6 +6,7 @@
 
 - Use .gitmodules to handle OpenCL headers depency
 - Allow loading of bcrypt hashes with signature $2b$ (February 2014)
+- Replaced uints with enums types
 
 ##
 ## Algorithms
