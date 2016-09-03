@@ -6,7 +6,8 @@
 
 - Use .gitmodules to handle OpenCL headers depency
 - Allow loading of bcrypt hashes with signature $2b$ (February 2014)
-- Replaced uints with enums types
+- Replaced some uint macros with enums types
+- Abort session after NUM seconds of --runtime but do not count time in pause mode
 
 ##
 ## Algorithms

@@ -1300,7 +1300,7 @@ void status_display ()
 
   #else
 
-  time_t sec_run =     (time_t)     ms_running / 1000;
+  time_t sec_run = (time_t) ms_running / 1000;
 
   #endif
 
@@ -1473,13 +1473,13 @@ void status_display ()
 
             #ifdef WIN
 
-            __time64_t runtime_left = data.proc_start + data.runtime + data.prepare_time - runtime_cur;
+            __time64_t runtime_left = data.proc_start + data.runtime + data.prepare_time + (ms_paused / 1000) - runtime_cur;
 
             tmp = _gmtime64 (&runtime_left);
 
             #else
 
-            time_t runtime_left = data.proc_start + data.runtime + data.prepare_time - runtime_cur;
+            time_t runtime_left = data.proc_start + data.runtime + data.prepare_time  + (ms_paused / 1000) - runtime_cur;
 
             tmp = gmtime (&runtime_left);
 
@@ -4796,11 +4796,22 @@ static void *thread_monitor (void *p)
 
     if ((runtime_check == 1) && (data.runtime_start > 0))
     {
+      double ms_paused = data.ms_paused;
+
+      if (data.devices_status == STATUS_PAUSED)
+      {
+        double ms_paused_tmp = 0;
+
+        hc_timer_get (data.timer_paused, ms_paused_tmp);
+
+        ms_paused += ms_paused_tmp;
+      }
+
       time_t runtime_cur;
 
       time (&runtime_cur);
 
-      int runtime_left = data.proc_start + data.runtime + data.prepare_time - runtime_cur;
+      int runtime_left = data.proc_start + data.runtime + data.prepare_time + (ms_paused / 1000) - runtime_cur;
 
       if (runtime_left <= 0)
       {
