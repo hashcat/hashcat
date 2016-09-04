@@ -5537,7 +5537,7 @@ static void *thread_calc (void *p)
       u64 words_off = 0;
       u64 words_fin = 0;
 
-      u64 max = -1u;
+      u64 max = -1llu;
 
       while (max)
       {

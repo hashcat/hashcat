@@ -9578,7 +9578,7 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
 
 u64 get_lowest_words_done ()
 {
-  u64 words_cur = -1u;
+  u64 words_cur = -1llu;
 
   for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
   {
