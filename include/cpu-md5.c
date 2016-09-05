@@ -29,17 +29,29 @@
    (a) += (b); \
   }
 
+#define S11 7
+#define S12 12
+#define S13 17
+#define S14 22
+#define S21 5
+#define S22 9
+#define S23 14
+#define S24 20
+#define S31 4
+#define S32 11
+#define S33 16
+#define S34 23
+#define S41 6
+#define S42 10
+#define S43 15
+#define S44 21
+
 void md5_64 (uint block[16], uint digest[4])
 {
   uint a = digest[0];
   uint b = digest[1];
   uint c = digest[2];
   uint d = digest[3];
-
-  #define S11 7
-  #define S12 12
-  #define S13 17
-  #define S14 22
 
   FF ( a, b, c, d, block[ 0], S11, 0xd76aa478);
   FF ( d, a, b, c, block[ 1], S12, 0xe8c7b756);
@@ -58,11 +70,6 @@ void md5_64 (uint block[16], uint digest[4])
   FF ( c, d, a, b, block[14], S13, 0xa679438e);
   FF ( b, c, d, a, block[15], S14, 0x49b40821);
 
-  #define S21 5
-  #define S22 9
-  #define S23 14
-  #define S24 20
-
   GG ( a, b, c, d, block[ 1], S21, 0xf61e2562);
   GG ( d, a, b, c, block[ 6], S22, 0xc040b340);
   GG ( c, d, a, b, block[11], S23, 0x265e5a51);
@@ -80,11 +87,6 @@ void md5_64 (uint block[16], uint digest[4])
   GG ( c, d, a, b, block[ 7], S23, 0x676f02d9);
   GG ( b, c, d, a, block[12], S24, 0x8d2a4c8a);
 
-  #define S31 4
-  #define S32 11
-  #define S33 16
-  #define S34 23
-
   HH ( a, b, c, d, block[ 5], S31, 0xfffa3942);
   HH ( d, a, b, c, block[ 8], S32, 0x8771f681);
   HH ( c, d, a, b, block[11], S33, 0x6d9d6122);
@@ -101,11 +103,6 @@ void md5_64 (uint block[16], uint digest[4])
   HH ( d, a, b, c, block[12], S32, 0xe6db99e5);
   HH ( c, d, a, b, block[15], S33, 0x1fa27cf8);
   HH ( b, c, d, a, block[ 2], S34, 0xc4ac5665);
-
-  #define S41 6
-  #define S42 10
-  #define S43 15
-  #define S44 21
 
   II ( a, b, c, d, block[ 0], S41, 0xf4292244);
   II ( d, a, b, c, block[ 7], S42, 0x432aff97);
@@ -198,11 +195,6 @@ void md5_complete_no_limit (uint digest[4], uint *plain, uint plain_len)
      * md5 ()
      */
 
-    #define S11 7
-    #define S12 12
-    #define S13 17
-    #define S14 22
-
     FF ( a, b, c, d, block[ 0], S11, 0xd76aa478);
     FF ( d, a, b, c, block[ 1], S12, 0xe8c7b756);
     FF ( c, d, a, b, block[ 2], S13, 0x242070db);
@@ -219,11 +211,6 @@ void md5_complete_no_limit (uint digest[4], uint *plain, uint plain_len)
     FF ( d, a, b, c, block[13], S12, 0xfd987193);
     FF ( c, d, a, b, block[14], S13, 0xa679438e);
     FF ( b, c, d, a, block[15], S14, 0x49b40821);
-
-    #define S21 5
-    #define S22 9
-    #define S23 14
-    #define S24 20
 
     GG ( a, b, c, d, block[ 1], S21, 0xf61e2562);
     GG ( d, a, b, c, block[ 6], S22, 0xc040b340);
@@ -242,11 +229,6 @@ void md5_complete_no_limit (uint digest[4], uint *plain, uint plain_len)
     GG ( c, d, a, b, block[ 7], S23, 0x676f02d9);
     GG ( b, c, d, a, block[12], S24, 0x8d2a4c8a);
 
-    #define S31 4
-    #define S32 11
-    #define S33 16
-    #define S34 23
-
     HH ( a, b, c, d, block[ 5], S31, 0xfffa3942);
     HH ( d, a, b, c, block[ 8], S32, 0x8771f681);
     HH ( c, d, a, b, block[11], S33, 0x6d9d6122);
@@ -263,11 +245,6 @@ void md5_complete_no_limit (uint digest[4], uint *plain, uint plain_len)
     HH ( d, a, b, c, block[12], S32, 0xe6db99e5);
     HH ( c, d, a, b, block[15], S33, 0x1fa27cf8);
     HH ( b, c, d, a, block[ 2], S34, 0xc4ac5665);
-
-    #define S41 6
-    #define S42 10
-    #define S43 15
-    #define S44 21
 
     II ( a, b, c, d, block[ 0], S41, 0xf4292244);
     II ( d, a, b, c, block[ 7], S42, 0x432aff97);

@@ -353,6 +353,8 @@ static const u32 c_skb[8][64] =
   PERM_OP (l, r, tt,  4, 0x0f0f0f0f);  \
 }
 
+#define BOX(v,i,S) (S)[(i)][(v)]
+
 void _des_keysetup (u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_skb[8][64])
 {
   u32 c = data[0];
@@ -386,8 +388,6 @@ void _des_keysetup (u32 data[2], u32 Kc[16], u32 Kd[16], const u32 s_skb[8][64])
 
     c = c & 0x0fffffff;
     d = d & 0x0fffffff;
-
-    #define BOX(v,i,S) (S)[(i)][(v)]
 
     u32 s = BOX ((( c >>  0) & 0x3f),  0, s_skb)
           | BOX ((((c >>  6) & 0x03)

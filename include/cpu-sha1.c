@@ -3,6 +3,19 @@
  * License.....: MIT
  */
 
+#define SHA1_F0(x,y,z) ((z) ^ ((x) & ((y) ^ (z))))
+#define SHA1_F1(x,y,z) ((x) ^ (y) ^ (z))
+#define SHA1_F2(x,y,z) (((x) & (y)) | ((z) & ((x) ^ (y))))
+
+#define SHA1_STEP(f,a,b,c,d,e,x)    \
+{                                   \
+  e += K;                           \
+  e += x;                           \
+  e += f (b, c, d);                 \
+  e += rotl32 (a,  5u);             \
+  b  = rotl32 (b, 30u);             \
+}
+
 void sha1_64 (uint block[16], uint digest[5])
 {
   u32 A = digest[0];
@@ -27,19 +40,6 @@ void sha1_64 (uint block[16], uint digest[5])
   u32 wd_t = block[13];
   u32 we_t = block[14];
   u32 wf_t = block[15];
-
-  #define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
-  #define SHA1_F1(x,y,z)  ((x) ^ (y) ^ (z))
-  #define SHA1_F2(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
-
-  #define SHA1_STEP(f,a,b,c,d,e,x)    \
-  {                                   \
-    e += K;                           \
-    e += x;                           \
-    e += f (b, c, d);                 \
-    e += rotl32 (a,  5u);             \
-    b  = rotl32 (b, 30u);             \
-  }
 
   #undef K
   #define K SHA1C00
