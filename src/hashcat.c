@@ -14,17 +14,18 @@
 #include <stdio.h>
 #endif
 
-#include <common.h>
-#include <shared.h>
-#include <rp_kernel_on_cpu.h>
-#include <getopt.h>
+#include "common.h"
+#include "bitops.h"
+#include "shared.h"
+#include "rp_kernel_on_cpu.h"
+#include "getopt.h"
 
-static const char *PROGNAME            = "hashcat";
+static const char *PROGNAME     = "hashcat";
 
 const uint  VERSION_BIN         = 310;
 const uint  RESTORE_MIN         = 300;
 
-static double TARGET_MS_PROFILE[4]     = { 2, 12, 96, 480 };
+static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 
 #define INCR_RULES              10000
 #define INCR_SALTS              100000
