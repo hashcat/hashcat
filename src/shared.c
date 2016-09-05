@@ -6,177 +6,29 @@
  * License.....: MIT
  */
 
-#ifdef __APPLE__
-#include <stdio.h>
-#endif
-
-#ifdef __FreeBSD__
-#include <stdio.h>
-#include <pthread_np.h>
-#endif
-
-#include "shared.h"
+#include "common.h"
+#include "types_int.h"
 #include "bitops.h"
-
-#include <limits.h>
-
-/**
- * ciphers for use on cpu
- */
-
-#include "cpu-des.c"
-#include "cpu-aes.c"
-
-/**
- * hashes for use on cpu
- */
-
-#include "cpu-md5.c"
-#include "cpu-sha1.c"
-#include "cpu-sha256.c"
-
-/**
- * logging
- */
-
-static int last_len = 0;
-
-static int log_final (FILE *fp, const char *fmt, va_list ap)
-{
-  if (last_len)
-  {
-    fputc ('\r', fp);
-
-    for (int i = 0; i < last_len; i++)
-    {
-      fputc (' ', fp);
-    }
-
-    fputc ('\r', fp);
-  }
-
-  char s[4096] = { 0 };
-
-  int max_len = (int) sizeof (s);
-
-  int len = vsnprintf (s, (size_t)max_len, fmt, ap);
-
-  if (len > max_len) len = max_len;
-
-  fwrite (s, len, 1, fp);
-
-  fflush (fp);
-
-  last_len = len;
-
-  return len;
-}
-
-int log_out_nn (FILE *fp, const char *fmt, ...)
-{
-  if (SUPPRESS_OUTPUT) return 0;
-
-  va_list ap;
-
-  va_start (ap, fmt);
-
-  const int len = log_final (fp, fmt, ap);
-
-  va_end (ap);
-
-  return len;
-}
-
-int log_info_nn (const char *fmt, ...)
-{
-  if (SUPPRESS_OUTPUT) return 0;
-
-  va_list ap;
-
-  va_start (ap, fmt);
-
-  const int len = log_final (stdout, fmt, ap);
-
-  va_end (ap);
-
-  return len;
-}
-
-int log_error_nn (const char *fmt, ...)
-{
-  if (SUPPRESS_OUTPUT) return 0;
-
-  va_list ap;
-
-  va_start (ap, fmt);
-
-  const int len = log_final (stderr, fmt, ap);
-
-  va_end (ap);
-
-  return len;
-}
-
-int log_out (FILE *fp, const char *fmt, ...)
-{
-  if (SUPPRESS_OUTPUT) return 0;
-
-  va_list ap;
-
-  va_start (ap, fmt);
-
-  const int len = log_final (fp, fmt, ap);
-
-  va_end (ap);
-
-  fputc ('\n', fp);
-
-  last_len = 0;
-
-  return len;
-}
-
-int log_info (const char *fmt, ...)
-{
-  if (SUPPRESS_OUTPUT) return 0;
-
-  va_list ap;
-
-  va_start (ap, fmt);
-
-  const int len = log_final (stdout, fmt, ap);
-
-  va_end (ap);
-
-  fputc ('\n', stdout);
-
-  last_len = 0;
-
-  return len;
-}
-
-int log_error (const char *fmt, ...)
-{
-  if (SUPPRESS_OUTPUT) return 0;
-
-  fputc ('\n', stderr);
-  fputc ('\n', stderr);
-
-  va_list ap;
-
-  va_start (ap, fmt);
-
-  const int len = log_final (stderr, fmt, ap);
-
-  va_end (ap);
-
-  fputc ('\n', stderr);
-  fputc ('\n', stderr);
-
-  last_len = 0;
-
-  return len;
-}
+#include "memory.h"
+#include "logging.h"
+#include "ext_OpenCL.h"
+#include "ext_ADL.h"
+#include "ext_nvapi.h"
+#include "ext_nvml.h"
+#include "ext_xnvctrl.h"
+#include "cpu_aes.h"
+#include "cpu_crc32.h"
+#include "cpu_des.h"
+#include "cpu_md5.h"
+#include "cpu_sha1.h"
+#include "cpu_sha256.h"
+#include "thread.h"
+#include "timer.h"
+#include "types.h"
+#include "rp_cpu.h"
+#include "rp_kernel_on_cpu.h"
+#include "inc_hash_constants.h"
+#include "shared.h"
 
 /**
  * converter
@@ -2455,74 +2307,8 @@ static int tty_fix()
 #endif
 
 /**
- * mem alloc
+ * logfile
  */
-
-#define MSG_ENOMEM "Insufficient memory available"
-
-void *mycalloc (size_t nmemb, size_t size)
-{
-  void *p = calloc (nmemb, size);
-
-  if (p == NULL)
-  {
-    log_error ("ERROR: %s", MSG_ENOMEM);
-
-    exit (-1);
-  }
-
-  return (p);
-}
-
-void *mymalloc (size_t size)
-{
-  void *p = malloc (size);
-
-  if (p == NULL)
-  {
-    log_error ("ERROR: %s", MSG_ENOMEM);
-
-    exit (-1);
-  }
-
-  memset (p, 0, size);
-
-  return (p);
-}
-
-void myfree (void *ptr)
-{
-  if (ptr == NULL) return;
-
-  free (ptr);
-}
-
-void *myrealloc (void *ptr, size_t oldsz, size_t add)
-{
-  void *p = realloc (ptr, oldsz + add);
-
-  if (p == NULL)
-  {
-    log_error ("ERROR: %s", MSG_ENOMEM);
-
-    exit (-1);
-  }
-
-  memset ((char *) p + oldsz, 0, add);
-
-  return (p);
-}
-
-char *mystrdup (const char *s)
-{
-  const size_t len = strlen (s);
-
-  char *b = (char *) mymalloc (len + 1);
-
-  memcpy (b, s, len);
-
-  return (b);
-}
 
 static FILE *logfile_open (char *logfile)
 {
@@ -4334,8 +4120,6 @@ char *get_exec_path ()
   const int len = strlen (exec_path);
 
   #elif __FreeBSD__
-
-  #include <sys/sysctl.h>
 
   int mib[4];
   mib[0] = CTL_KERN;
@@ -11478,10 +11262,10 @@ int netntlmv1_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
       uint dgst[4] = { 0 };
 
-      dgst[0] = MAGIC_A;
-      dgst[1] = MAGIC_B;
-      dgst[2] = MAGIC_C;
-      dgst[3] = MAGIC_D;
+      dgst[0] = MD5M_A;
+      dgst[1] = MD5M_B;
+      dgst[2] = MD5M_C;
+      dgst[3] = MD5M_D;
 
       md5_64 (w, dgst);
 
@@ -12032,7 +11816,7 @@ int ipb2_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
 
   salt_pc_block[14] = salt_len * 8;
 
-  uint salt_pc_digest[4] = { MAGIC_A, MAGIC_B, MAGIC_C, MAGIC_D };
+  uint salt_pc_digest[4] = { MD5M_A, MD5M_B, MD5M_C, MD5M_D };
 
   md5_64 (salt_pc_block, salt_pc_digest);
 

@@ -6,7 +6,10 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-function"
 
-#include <rp_kernel_on_cpu.h>
+#include "common.h"
+#include "types_int.h"
+#include "rp_cpu.h"
+#include "rp_kernel_on_cpu.h"
 
 static u32 generate_cmask (u32 buf)
 {

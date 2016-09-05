@@ -3,6 +3,8 @@
  * License.....: MIT
  */
 
+#pragma once
+
 static const uint crc32tab[256] =
 {
   0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,

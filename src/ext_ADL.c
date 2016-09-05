@@ -3,7 +3,11 @@
  * License.....: MIT
  */
 
-#include <ext_ADL.h>
+#include "common.h"
+#include "logging.h"
+#include "memory.h"
+#include "dynloader.h"
+#include "ext_ADL.h"
 
 int adl_init (ADL_PTR *adl)
 {
@@ -11,14 +15,14 @@ int adl_init (ADL_PTR *adl)
 
   memset (adl, 0, sizeof (ADL_PTR));
 
-  #if defined( _WIN)
+  #if defined (_WIN)
   adl->lib = hc_dlopen ("atiadlxx.dll");
 
   if (!adl->lib)
   {
     adl->lib = hc_dlopen ("atiadlxy.dll");
   }
-  #elif defined(_POSIX)
+  #elif defined (_POSIX)
   adl->lib = hc_dlopen ("libatiadlxx.so", RTLD_NOW);
   #endif
 

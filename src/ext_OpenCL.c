@@ -5,7 +5,11 @@
  * License.....: MIT
  */
 
-#include <ext_OpenCL.h>
+#include "common.h"
+#include "logging.h"
+#include "memory.h"
+#include "dynloader.h"
+#include "ext_OpenCL.h"
 
 const char *val2cstr_cl (cl_int CL_err)
 {

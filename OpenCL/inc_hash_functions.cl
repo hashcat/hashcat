@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#if defined _MD4_ || defined _DCC2_ || defined _NETNTLMV2_ || defined _KRB5PA_ || defined _MS_DRSR_ || defined _KRB5TGS_
-
 #define MD4_F_S(x,y,z)  (((x) & (y)) | ((~(x)) & (z)))
 #define MD4_G_S(x,y,z)  (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
 #define MD4_H_S(x,y,z)  ((x) ^ (y) ^ (z))
@@ -55,10 +53,6 @@
   a += f (b, c, d);                 \
   a  = rotl32 (a, s);               \
 }
-
-#endif
-
-#if defined _MD5_ || defined _MD5H_ || defined _SAPB_ || defined _OLDOFFICE01_ || defined _WPA_ || defined _MD5_SHA1_ || defined _SHA1_MD5_ || defined _NETNTLMV2_ || defined _KRB5PA_ || defined _PBKDF2_MD5_ || defined _KRB5TGS_
 
 #define MD5_F_S(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
 #define MD5_G_S(x,y,z)  ((y) ^ ((z) & ((x) ^ (y))))
@@ -117,9 +111,6 @@
   a  = rotl32 (a, s);               \
   a += b;                           \
 }
-#endif
-
-#if defined _SHA1_ || defined _SAPG_ || defined _OFFICE2007_ || defined _OFFICE2010_ || defined _OLDOFFICE34_ || defined _ANDROIDFDE_ || defined _DCC2_ || defined _WPA_ || defined _MD5_SHA1_ || defined _SHA1_MD5_ || defined _PSAFE2_ || defined _LOTUS8_ || defined _PBKDF2_SHA1_ || defined _RAR3_ || defined _SHA256_SHA1_ || defined _ZIP2_ || defined _AXCRYPT_
 
 #ifdef IS_NV
 #define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
@@ -191,9 +182,6 @@
   e += K;                           \
   b  = rotl32 (b, 30u);             \
 }
-#endif
-
-#if defined _SHA256_ || defined _PDF17L8_ || defined _SEVEN_ZIP_ || defined _ANDROIDFDE_ || defined _CLOUDKEY_ || defined _SCRYPT_ || defined _PBKDF2_SHA256_  || defined _SHA256_SHA1_ || defined _MS_DRSR_ || defined _ANDROIDFDE_SAMSUNG_ || defined _RAR5_ || defined _KEEPASS_
 
 #define SHIFT_RIGHT_32(x,n) ((x) >> (n))
 
@@ -254,10 +242,6 @@
 
 #define SHA256_EXPAND(x,y,z,w) (SHA256_S1 (x) + y + SHA256_S0 (z) + w)
 
-#endif
-
-#if defined _SHA384_ || defined _PDF17L8_
-
 #define SHIFT_RIGHT_64(x,n) ((x) >> (n))
 
 #define SHA384_S0(x) (rotr64 ((x), 28) ^ rotr64 ((x), 34) ^ rotr64 ((x), 39))
@@ -295,9 +279,6 @@
 }
 
 #define SHA384_EXPAND(x,y,z,w) (SHA384_S3 (x) + y + SHA384_S2 (z) + w)
-#endif
-
-#if defined _SHA512_ || defined _CLOUDKEY_ || defined _OFFICE2013_ || defined _PDF17L8_ || defined _PBKDF2_SHA512_
 
 #define SHIFT_RIGHT_64(x,n) ((x) >> (n))
 
@@ -354,9 +335,6 @@
 }
 
 #define SHA512_EXPAND(x,y,z,w) (SHA512_S3 (x) + y + SHA512_S2 (z) + w)
-#endif
-
-#ifdef _RIPEMD160_
 
 #ifdef IS_NV
 #define RIPEMD160_F(x,y,z)    ((x) ^ (y) ^ (z))
@@ -409,5 +387,3 @@
   a += e;                                 \
   c  = rotl32 (c, 10u);                   \
 }
-
-#endif

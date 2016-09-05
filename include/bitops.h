@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include "common.h"
-
 u32 is_power_of_2 (const u32 v);
 
 u32 rotl32 (const u32 a, const u32 n);

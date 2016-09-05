@@ -5,10 +5,32 @@
  * License.....: MIT
  */
 
-#ifndef EXT_OPENCL_H
-#define EXT_OPENCL_H
+#pragma once
 
-#include <common.h>
+#define CL_PLATFORMS_MAX        16
+
+static const char CL_VENDOR_AMD[]           = "Advanced Micro Devices, Inc.";
+static const char CL_VENDOR_AMD_USE_INTEL[] = "GenuineIntel";
+static const char CL_VENDOR_APPLE[]         = "Apple";
+static const char CL_VENDOR_INTEL_BEIGNET[] = "Intel";
+static const char CL_VENDOR_INTEL_SDK[]     = "Intel(R) Corporation";
+static const char CL_VENDOR_MESA[]          = "Mesa";
+static const char CL_VENDOR_NV[]            = "NVIDIA Corporation";
+static const char CL_VENDOR_POCL[]          = "The pocl project";
+
+typedef enum vendor_id
+{
+  VENDOR_ID_AMD           = (1 << 0),
+  VENDOR_ID_APPLE         = (1 << 1),
+  VENDOR_ID_INTEL_BEIGNET = (1 << 2),
+  VENDOR_ID_INTEL_SDK     = (1 << 3),
+  VENDOR_ID_MESA          = (1 << 4),
+  VENDOR_ID_NV            = (1 << 5),
+  VENDOR_ID_POCL          = (1 << 6),
+  VENDOR_ID_AMD_USE_INTEL = (1 << 7),
+  VENDOR_ID_GENERIC       = (1 << 31)
+
+} vendor_id_t;
 
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
@@ -28,8 +50,6 @@
 #ifdef __FreeBSD__
 #include <CL/cl.h>
 #endif
-
-#include <shared.h>
 
 typedef cl_int           (CL_API_CALL *OCL_CLBUILDPROGRAM)            (cl_program, cl_uint, const cl_device_id *, const char *, void (CL_CALLBACK *)(cl_program, void *), void *);
 typedef cl_mem           (CL_API_CALL *OCL_CLCREATEBUFFER)            (cl_context, cl_mem_flags, size_t, void *, cl_int *);
@@ -63,6 +83,12 @@ typedef cl_int           (CL_API_CALL *OCL_CLRELEASEMEMOBJECT)        (cl_mem);
 typedef cl_int           (CL_API_CALL *OCL_CLRELEASEPROGRAM)          (cl_program);
 typedef cl_int           (CL_API_CALL *OCL_CLSETKERNELARG)            (cl_kernel, cl_uint, size_t, const void *);
 typedef cl_int           (CL_API_CALL *OCL_CLWAITFOREVENTS)           (cl_uint, const cl_event *);
+
+#ifdef _POSIX
+typedef void *OCL_LIB;
+#else
+typedef HINSTANCE OCL_LIB;
+#endif
 
 typedef struct
 {
@@ -103,7 +129,7 @@ typedef struct
 
 } hc_opencl_lib_t;
 
-#define OCL_PTR hc_opencl_lib_t
+typedef hc_opencl_lib_t OCL_PTR;
 
 const char *val2cstr_cl (cl_int CL_err);
 
@@ -142,5 +168,3 @@ cl_int hc_clReleaseMemObject        (OCL_PTR *ocl, cl_mem mem);
 cl_int hc_clReleaseProgram          (OCL_PTR *ocl, cl_program program);
 cl_int hc_clSetKernelArg            (OCL_PTR *ocl, cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value);
 cl_int hc_clWaitForEvents           (OCL_PTR *ocl, cl_uint num_events, const cl_event *event_list);
-
-#endif

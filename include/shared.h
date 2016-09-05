@@ -6,45 +6,47 @@
  * License.....: MIT
  */
 
-#ifndef SHARED_H
-#define SHARED_H
+#pragma once
 
-#include "common.h"
-#include "inc_hash_constants.h"
+#include <errno.h>
+#include <getopt.h>
+#include <ctype.h>
+#include <dirent.h>
+#include <time.h>
+#include <unistd.h>
+#include <signal.h>
+#include <search.h>
+#include <fcntl.h>
+#include <limits.h>
 
 /**
- * thread management
+ * OS specific includes
  */
 
-#ifdef _WIN
-#define hc_timer_get(a,r)           { hc_timer_t hr_freq; QueryPerformanceFrequency (&hr_freq); hc_timer_t hr_tmp; hc_timer_set (&hr_tmp); (r) = (double) ((double) (hr_tmp.QuadPart - (a).QuadPart) / (double) (hr_freq.QuadPart / 1000)); }
-#define hc_timer_set(a)             { QueryPerformanceCounter ((a)); }
-#elif _POSIX
-#define hc_timer_get(a,r)           { hc_timer_t hr_tmp; hc_timer_set (&hr_tmp); (r) = (double) (((hr_tmp.tv_sec - (a).tv_sec) * 1000) + ((double) (hr_tmp.tv_usec - (a).tv_usec) / 1000)); }
-#define hc_timer_set(a)             { gettimeofday ((a), NULL); }
-#endif
+#ifdef _POSIX
+#include <pthread.h>
+#include <dlfcn.h>
+#include <pwd.h>
+#include <limits.h>
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <sys/sysctl.h>
+#endif // _POSIX
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#include <mach/mach.h>
+#endif // __APPLE__
 
 #ifdef _WIN
-#define hc_thread_create(t,f,a)     t = CreateThread (NULL, 0, (LPTHREAD_START_ROUTINE) &f, a, 0, NULL)
-#define hc_thread_wait(n,a)         for (uint i = 0; i < n; i++) WaitForSingleObject ((a)[i], INFINITE)
-#define hc_thread_exit(t)           ExitThread (t)
+#include <windows.h>
+#include <psapi.h>
+#include <io.h>
+#endif // _WIN
 
-#define hc_thread_mutex_lock(m)     EnterCriticalSection      (&m)
-#define hc_thread_mutex_unlock(m)   LeaveCriticalSection      (&m)
-#define hc_thread_mutex_init(m)     InitializeCriticalSection (&m)
-#define hc_thread_mutex_delete(m)   DeleteCriticalSection     (&m)
-
-#elif _POSIX
-
-#define hc_thread_create(t,f,a)     pthread_create (&t, NULL, f, a)
-#define hc_thread_wait(n,a)         for (uint i = 0; i < n; i++) pthread_join ((a)[i], NULL)
-#define hc_thread_exit(t)           pthread_exit (&t)
-
-#define hc_thread_mutex_lock(m)     pthread_mutex_lock     (&m)
-#define hc_thread_mutex_unlock(m)   pthread_mutex_unlock   (&m)
-#define hc_thread_mutex_init(m)     pthread_mutex_init     (&m, NULL)
-#define hc_thread_mutex_delete(m)   pthread_mutex_destroy  (&m)
-#endif
+/**
+ * unsorted
+ */
 
 #ifdef __APPLE__
 typedef struct cpu_set
@@ -58,63 +60,6 @@ static inline void CPU_SET   (int num, cpu_set_t *cs) { cs->count |= (1 << num);
 static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 << num)); }
 #endif
 
-/**
- * libraries stuff
- */
-
-#ifdef _WIN
-#define hc_dlopen LoadLibrary
-#define hc_dlclose FreeLibrary
-#define hc_dlsym GetProcAddress
-#else
-#define hc_dlopen dlopen
-#define hc_dlclose dlclose
-#define hc_dlsym dlsym
-#endif
-
-#define HC_LOAD_FUNC2(ptr,name,type,var,libname,noerr) \
-  ptr->name = (type) hc_dlsym (ptr->var, #name); \
-  if (noerr != -1) { \
-    if (!ptr->name) { \
-      if (noerr == 1) { \
-        log_error ("ERROR: %s is missing from %s shared library.", #name, #libname); \
-        exit (-1); \
-      } else { \
-        log_info ("WARNING: %s is missing from %s shared library.", #name, #libname); \
-        return -1; \
-      } \
-    } \
-  }
-
-#define HC_LOAD_FUNC(ptr,name,type,libname,noerr) \
-  ptr->name = (type) hc_dlsym (ptr->lib, #name); \
-  if (noerr != -1) { \
-    if (!ptr->name) { \
-      if (noerr == 1) { \
-        log_error ("ERROR: %s is missing from %s shared library.", #name, #libname); \
-        exit (-1); \
-      } else { \
-        log_info ("WARNING: %s is missing from %s shared library.", #name, #libname); \
-        return -1; \
-      } \
-    } \
-  }
-
-#define HC_LOAD_ADDR(ptr,name,type,func,addr,libname,noerr) \
-  ptr->name = (type) (*ptr->func) (addr); \
-  if (!ptr->name) { \
-    if (noerr == 1) { \
-      log_error ("ERROR: %s at address %08x is missing from %s shared library.", #name, addr, #libname); \
-      exit (-1); \
-    } else { \
-      log_error ("WARNING: %s at address %08x is missing from %s shared library.", #name, addr, #libname); \
-      return -1; \
-    } \
-  }
-
-/**
- * system stuff
- */
 
 #ifdef _WIN
 #define hc_sleep(x) Sleep ((x) * 1000);
@@ -122,49 +67,7 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 #define hc_sleep(x) sleep ((x));
 #endif
 
-#include "ext_OpenCL.h"
-
-/**
- * temperature management
- */
-
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
-
-/**
- * shared stuff
- */
-
 #define ETC_MAX                 (60 * 60 * 24 * 365 * 10)
-
-#define DEVICES_MAX             128
-
-#define CL_PLATFORMS_MAX        16
-
-static const char CL_VENDOR_AMD[]           = "Advanced Micro Devices, Inc.";
-static const char CL_VENDOR_AMD_USE_INTEL[] = "GenuineIntel";
-static const char CL_VENDOR_APPLE[]         = "Apple";
-static const char CL_VENDOR_INTEL_BEIGNET[] = "Intel";
-static const char CL_VENDOR_INTEL_SDK[]     = "Intel(R) Corporation";
-static const char CL_VENDOR_MESA[]          = "Mesa";
-static const char CL_VENDOR_NV[]            = "NVIDIA Corporation";
-static const char CL_VENDOR_POCL[]          = "The pocl project";
-
-typedef enum vendor_id
-{
-  VENDOR_ID_AMD           = (1 << 0),
-  VENDOR_ID_APPLE         = (1 << 1),
-  VENDOR_ID_INTEL_BEIGNET = (1 << 2),
-  VENDOR_ID_INTEL_SDK     = (1 << 3),
-  VENDOR_ID_MESA          = (1 << 4),
-  VENDOR_ID_NV            = (1 << 5),
-  VENDOR_ID_POCL          = (1 << 6),
-  VENDOR_ID_AMD_USE_INTEL = (1 << 7),
-  VENDOR_ID_GENERIC       = (1 << 31)
-
-} vendor_id_t;
 
 #define BLOCK_SIZE              64
 
@@ -188,24 +91,6 @@ typedef enum vendor_id
 #define POTFILE_FILENAME        "hashcat.pot"
 
 /**
- * types
- */
-
-#ifdef _WIN
-typedef LARGE_INTEGER     hc_timer_t;
-typedef HANDLE            hc_thread_t;
-typedef CRITICAL_SECTION  hc_thread_mutex_t;
-#elif _POSIX
-typedef struct timeval    hc_timer_t;
-typedef pthread_t         hc_thread_t;
-typedef pthread_mutex_t   hc_thread_mutex_t;
-#endif
-
-#include "types.h"
-#include "rp_cpu.h"
-#include "inc_rp.h"
-
-/**
  * valid project specific global stuff
  */
 
@@ -216,8 +101,6 @@ extern const char *USAGE_MINI[];
 extern const char *USAGE_BIG[];
 
 extern const char *PROMPT;
-
-extern int SUPPRESS_OUTPUT;
 
 extern hc_thread_mutex_t mux_display;
 
@@ -1481,12 +1364,6 @@ char *strhashtype (const uint hash_mode);
 char *strstatus (const uint threads_status);
 void status ();
 
-void *mycalloc (size_t nmemb, size_t size);
-void myfree (void *ptr);
-void *mymalloc (size_t size);
-void *myrealloc (void *ptr, size_t oldsz, size_t add);
-char *mystrdup (const char *s);
-
 char *logfile_generate_topid (void);
 char *logfile_generate_subid (void);
 void logfile_append (const char *fmt, ...);
@@ -1803,21 +1680,3 @@ void *thread_runtime      (void *p);
 
 void status_display (void);
 void status_display_machine_readable (void);
-
-/**
- * checksum for use on cpu
- */
-
-#include "cpu-crc32.h"
-#include "cpu-md5.h"
-#include "cpu-sha1.h"
-#include "cpu-sha256.h"
-
-/**
- * ciphers for use on cpu
- */
-
-#include "cpu-aes.h"
-#include "cpu-des.h"
-
-#endif // SHARED_H

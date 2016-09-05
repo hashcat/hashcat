@@ -5,7 +5,11 @@
  * License.....: MIT
  */
 
-#include <ext_nvapi.h>
+#include "common.h"
+#include "logging.h"
+#include "memory.h"
+#include "dynloader.h"
+#include "ext_nvapi.h"
 
 int nvapi_init (NVAPI_PTR *nvapi)
 {
@@ -14,9 +18,9 @@ int nvapi_init (NVAPI_PTR *nvapi)
   memset (nvapi, 0, sizeof (NVAPI_PTR));
 
   #ifdef _WIN
-  #if   defined(WIN64)
+  #if   defined (WIN64)
   nvapi->lib = hc_dlopen ("nvapi64.dll");
-  #elif defined(WIN32)
+  #elif defined (WIN32)
   nvapi->lib = hc_dlopen ("nvapi.dll");
   #endif
   #else

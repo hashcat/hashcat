@@ -3,59 +3,42 @@
  * License.....: MIT
  */
 
-#define SHIFT_RIGHT_32(x,n) ((x) >> (n))
+#define IS_GENERIC
 
-#define SHA256_S0(x) (rotl32 ((x), 25u) ^ rotl32 ((x), 14u) ^ SHIFT_RIGHT_32 ((x),  3u))
-#define SHA256_S1(x) (rotl32 ((x), 15u) ^ rotl32 ((x), 13u) ^ SHIFT_RIGHT_32 ((x), 10u))
-#define SHA256_S2(x) (rotl32 ((x), 30u) ^ rotl32 ((x), 19u) ^ rotl32 ((x), 10u))
-#define SHA256_S3(x) (rotl32 ((x), 26u) ^ rotl32 ((x), 21u) ^ rotl32 ((x),  7u))
+#include "common.h"
+#include "types_int.h"
+#include "bitops.h"
+#include "inc_hash_constants.h"
+#include "inc_hash_functions.cl"
+#include "cpu_sha256.h"
 
-#define SHA256_F0(x,y,z) (((x) & (y)) | ((z) & ((x) ^ (y))))
-#define SHA256_F1(x,y,z) ((z) ^ ((x) & ((y) ^ (z))))
-
-#define SHA256_F0o(x,y,z) (SHA256_F0 ((x), (y), (z)))
-#define SHA256_F1o(x,y,z) (SHA256_F1 ((x), (y), (z)))
-
-#define SHA256_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
-{                                               \
-  h += K;                                       \
-  h += x;                                       \
-  h += SHA256_S3 (e);                           \
-  h += F1 (e,f,g);                              \
-  d += h;                                       \
-  h += SHA256_S2 (a);                           \
-  h += F0 (a,b,c);                              \
-}
-
-#define SHA256_EXPAND(x,y,z,w) (SHA256_S1 (x) + y + SHA256_S0 (z) + w)
-
-void sha256_64 (uint block[16], uint digest[8])
+void sha256_64 (u32 block[16], u32 digest[8])
 {
-  uint w0_t = block[ 0];
-  uint w1_t = block[ 1];
-  uint w2_t = block[ 2];
-  uint w3_t = block[ 3];
-  uint w4_t = block[ 4];
-  uint w5_t = block[ 5];
-  uint w6_t = block[ 6];
-  uint w7_t = block[ 7];
-  uint w8_t = block[ 8];
-  uint w9_t = block[ 9];
-  uint wa_t = block[10];
-  uint wb_t = block[11];
-  uint wc_t = block[12];
-  uint wd_t = block[13];
-  uint we_t = block[14];
-  uint wf_t = block[15];
+  u32 w0_t = block[ 0];
+  u32 w1_t = block[ 1];
+  u32 w2_t = block[ 2];
+  u32 w3_t = block[ 3];
+  u32 w4_t = block[ 4];
+  u32 w5_t = block[ 5];
+  u32 w6_t = block[ 6];
+  u32 w7_t = block[ 7];
+  u32 w8_t = block[ 8];
+  u32 w9_t = block[ 9];
+  u32 wa_t = block[10];
+  u32 wb_t = block[11];
+  u32 wc_t = block[12];
+  u32 wd_t = block[13];
+  u32 we_t = block[14];
+  u32 wf_t = block[15];
 
-  uint a = digest[0];
-  uint b = digest[1];
-  uint c = digest[2];
-  uint d = digest[3];
-  uint e = digest[4];
-  uint f = digest[5];
-  uint g = digest[6];
-  uint h = digest[7];
+  u32 a = digest[0];
+  u32 b = digest[1];
+  u32 c = digest[2];
+  u32 d = digest[3];
+  u32 e = digest[4];
+  u32 f = digest[5];
+  u32 g = digest[6];
+  u32 h = digest[7];
 
   SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w0_t, SHA256C00);
   SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w1_t, SHA256C01);

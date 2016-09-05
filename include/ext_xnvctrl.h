@@ -3,12 +3,7 @@
  * License.....: MIT
  */
 
-#ifndef EXT_XNVCTRL_H
-#define EXT_XNVCTRL_H
-
-#if defined(HAVE_HWMON)
-
-#include <common.h>
+#pragma once
 
 /**
  * Stuff from X11/Xlib.h
@@ -44,8 +39,6 @@ typedef int   (*XCLOSEDISPLAY) (void *);
 
 typedef int HM_ADAPTER_XNVCTRL;
 
-#include <shared.h>
-
 #if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
 #define XNVCTRL_API_CALL __stdcall
 #else
@@ -54,6 +47,12 @@ typedef int HM_ADAPTER_XNVCTRL;
 
 typedef int  (*XNVCTRL_API_CALL XNVCTRLQUERYTARGETATTRIBUTE) (void *, int, int, unsigned int, unsigned int, int *);
 typedef void (*XNVCTRL_API_CALL XNVCTRLSETTARGETATTRIBUTE)   (void *, int, int, unsigned int, unsigned int, int);
+
+#ifdef _POSIX
+typedef void *XNVCTRL_LIB;
+#else
+typedef HINSTANCE XNVCTRL_LIB;
+#endif
 
 typedef struct
 {
@@ -70,7 +69,7 @@ typedef struct
 
 } hm_xnvctrl_lib_t;
 
-#define XNVCTRL_PTR hm_xnvctrl_lib_t
+typedef hm_xnvctrl_lib_t XNVCTRL_PTR;
 
 int  xnvctrl_init         (XNVCTRL_PTR *xnvctrl);
 void xnvctrl_close        (XNVCTRL_PTR *xnvctrl);
@@ -86,7 +85,3 @@ int set_fan_control       (XNVCTRL_PTR *xnvctrl, int gpu, int  val);
 int get_fan_speed_current (XNVCTRL_PTR *xnvctrl, int gpu, int *val);
 int get_fan_speed_target  (XNVCTRL_PTR *xnvctrl, int gpu, int *val);
 int set_fan_speed_target  (XNVCTRL_PTR *xnvctrl, int gpu, int  val);
-
-#endif // HAVE_HWMON
-
-#endif // EXT_XNVCTRL_H

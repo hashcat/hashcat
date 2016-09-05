@@ -6,12 +6,7 @@
  * License.....: MIT
  */
 
-#ifndef EXT_NVML_H
-#define EXT_NVML_H
-
-#if defined(HAVE_HWMON)
-
-#include <common.h>
+#pragma once
 
 /**
  * Declarations from nvml.h
@@ -166,8 +161,6 @@ typedef enum nvmlGom_enum
 
 typedef nvmlDevice_t HM_ADAPTER_NVML;
 
-#include <shared.h>
-
 #if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
 #define NVML_API_CALL __stdcall
 #else
@@ -194,6 +187,12 @@ typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_OPERATIONMODE) (nvmlDevice_
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS) (nvmlDevice_t, unsigned int *, unsigned int *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int *);
+
+#ifdef _POSIX
+typedef void *NVML_LIB;
+#else
+typedef HINSTANCE NVML_LIB;
+#endif
 
 typedef struct
 {
@@ -222,7 +221,7 @@ typedef struct
 
 } hm_nvml_lib_t;
 
-#define NVML_PTR hm_nvml_lib_t
+typedef hm_nvml_lib_t NVML_PTR;
 
 int nvml_init (NVML_PTR *lib);
 void nvml_close (NVML_PTR *lib);
@@ -247,7 +246,3 @@ nvmlReturn_t hm_NVML_nvmlDeviceSetGpuOperationMode (NVML_PTR *nvml, int, nvmlDev
 nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (NVML_PTR *nvml, int, nvmlDevice_t device, unsigned int *minLimit, unsigned int *maxLimit);
 nvmlReturn_t hm_NVML_nvmlDeviceSetPowerManagementLimit (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int limit);
 nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimit (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int *limit);
-
-#endif // HAVE_HWMON
-
-#endif // EXT_NVML_H

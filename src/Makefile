@@ -165,7 +165,7 @@ LFLAGS_CROSS_WIN         := -lpsapi
 ## Objects
 ##
 
-NATIVE_OBJS              := obj/bitops.NATIVE.o obj/ext_OpenCL.NATIVE.o obj/shared.NATIVE.o obj/rp_kernel_on_cpu.NATIVE.o
+NATIVE_OBJS              := obj/memory.NATIVE.o obj/logging.NATIVE.o obj/cpu_aes.NATIVE.o obj/cpu_des.NATIVE.o obj/cpu_md5.NATIVE.o obj/cpu_sha1.NATIVE.o obj/cpu_sha256.NATIVE.o obj/bitops.NATIVE.o obj/bitops.NATIVE.o obj/ext_OpenCL.NATIVE.o obj/shared.NATIVE.o obj/rp_kernel_on_cpu.NATIVE.o
 
 ifeq ($(UNAME),Linux)
 NATIVE_OBJS              += obj/ext_ADL.NATIVE.o
@@ -174,8 +174,8 @@ NATIVE_OBJS              += obj/ext_nvml.NATIVE.o
 NATIVE_OBJS              += obj/ext_xnvctrl.NATIVE.o
 endif
 
-LINUX_32_OBJS            := obj/bitops.LINUX.32.o obj/ext_OpenCL.LINUX.32.o obj/shared.LINUX.32.o obj/rp_kernel_on_cpu.LINUX.32.o obj/ext_ADL.LINUX.32.o obj/ext_nvml.LINUX.32.o obj/ext_nvapi.LINUX.32.o obj/ext_xnvctrl.LINUX.32.o
-LINUX_64_OBJS            := obj/bitops.LINUX.64.o obj/ext_OpenCL.LINUX.64.o obj/shared.LINUX.64.o obj/rp_kernel_on_cpu.LINUX.64.o obj/ext_ADL.LINUX.64.o obj/ext_nvml.LINUX.64.o obj/ext_nvapi.LINUX.64.o obj/ext_xnvctrl.LINUX.64.o
+LINUX_32_OBJS            := obj/memory.LINUX.32.o obj/logging.LINUX.32.o obj/cpu_aes.LINUX.32.o obj/cpu_des.LINUX.32.o obj/cpu_md5.LINUX.32.o obj/cpu_sha1.LINUX.32.o obj/cpu_sha256.LINUX.32.o obj/bitops.LINUX.32.o obj/ext_OpenCL.LINUX.32.o obj/shared.LINUX.32.o obj/rp_kernel_on_cpu.LINUX.32.o obj/ext_ADL.LINUX.32.o obj/ext_nvml.LINUX.32.o obj/ext_nvapi.LINUX.32.o obj/ext_xnvctrl.LINUX.32.o
+LINUX_64_OBJS            := obj/memory.LINUX.64.o obj/logging.LINUX.64.o obj/cpu_aes.LINUX.64.o obj/cpu_des.LINUX.64.o obj/cpu_md5.LINUX.64.o obj/cpu_sha1.LINUX.64.o obj/cpu_sha256.LINUX.64.o obj/bitops.LINUX.64.o obj/ext_OpenCL.LINUX.64.o obj/shared.LINUX.64.o obj/rp_kernel_on_cpu.LINUX.64.o obj/ext_ADL.LINUX.64.o obj/ext_nvml.LINUX.64.o obj/ext_nvapi.LINUX.64.o obj/ext_xnvctrl.LINUX.64.o
 
 # Windows CRT file globbing:
 
@@ -185,8 +185,8 @@ CRT_GLOB_INCLUDE_FOLDER  := $(dir $(lastword $(MAKEFILE_LIST)))
 
 include $(CRT_GLOB_INCLUDE_FOLDER)/win_file_globbing.mk
 
-WIN_32_OBJS              := obj/bitops.WIN.32.o obj/ext_OpenCL.WIN.32.o obj/shared.WIN.32.o obj/rp_kernel_on_cpu.WIN.32.o obj/ext_ADL.WIN.32.o obj/ext_nvml.WIN.32.o obj/ext_nvapi.WIN.32.o obj/ext_xnvctrl.WIN.32.o $(CRT_GLOB_32)
-WIN_64_OBJS              := obj/bitops.WIN.64.o obj/ext_OpenCL.WIN.64.o obj/shared.WIN.64.o obj/rp_kernel_on_cpu.WIN.64.o obj/ext_ADL.WIN.64.o obj/ext_nvml.WIN.64.o obj/ext_nvapi.WIN.64.o obj/ext_xnvctrl.WIN.64.o $(CRT_GLOB_64)
+WIN_32_OBJS              := obj/memory.WIN.32.o obj/logging.WIN.32.o obj/cpu_aes.WIN.32.o obj/cpu_des.WIN.32.o obj/cpu_md5.WIN.32.o obj/cpu_sha1.WIN.32.o obj/cpu_sha256.WIN.32.o obj/bitops.WIN.32.o obj/ext_OpenCL.WIN.32.o obj/shared.WIN.32.o obj/rp_kernel_on_cpu.WIN.32.o obj/ext_ADL.WIN.32.o obj/ext_nvml.WIN.32.o obj/ext_nvapi.WIN.32.o obj/ext_xnvctrl.WIN.32.o $(CRT_GLOB_32)
+WIN_64_OBJS              := obj/memory.WIN.64.o obj/logging.WIN.64.o obj/cpu_aes.WIN.64.o obj/cpu_des.WIN.64.o obj/cpu_md5.WIN.64.o obj/cpu_sha1.WIN.64.o obj/cpu_sha256.WIN.64.o obj/bitops.WIN.64.o obj/ext_OpenCL.WIN.64.o obj/shared.WIN.64.o obj/rp_kernel_on_cpu.WIN.64.o obj/ext_ADL.WIN.64.o obj/ext_nvml.WIN.64.o obj/ext_nvapi.WIN.64.o obj/ext_xnvctrl.WIN.64.o $(CRT_GLOB_64)
 
 ##
 ## Targets: Global

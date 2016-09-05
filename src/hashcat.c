@@ -6,19 +6,29 @@
  * License.....: MIT
  */
 
-#ifdef __APPLE__
-#include <stdio.h>
-#endif
-
-#ifdef __FreeBSD__
-#include <stdio.h>
-#endif
-
 #include "common.h"
+#include "types_int.h"
 #include "bitops.h"
-#include "shared.h"
+#include "memory.h"
+#include "logging.h"
+#include "ext_OpenCL.h"
+#include "ext_ADL.h"
+#include "ext_nvapi.h"
+#include "ext_nvml.h"
+#include "ext_xnvctrl.h"
+#include "cpu_aes.h"
+#include "cpu_crc32.h"
+#include "cpu_des.h"
+#include "cpu_md5.h"
+#include "cpu_sha1.h"
+#include "cpu_sha256.h"
+#include "thread.h"
+#include "timer.h"
+#include "types.h"
+#include "rp_cpu.h"
 #include "rp_kernel_on_cpu.h"
-#include "getopt.h"
+#include "inc_hash_constants.h"
+#include "shared.h"
 
 static const char *PROGNAME     = "hashcat";
 
@@ -178,8 +188,10 @@ typedef enum combinator_mode
 
 } combinator_mode_t;
 
-#define MIN(a,b) (((a) < (b)) ? (a) : (b))
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+
+#ifdef _WIN
+#define mkdir(name,mode) mkdir (name)
+#endif
 
 #define MAX_CUT_TRIES           4
 
@@ -372,7 +384,7 @@ static void (*get_next_word_func) (char *, u32, u32 *, u32 *);
 static unsigned int full01 = 0x01010101;
 static unsigned int full80 = 0x80808080;
 
-int SUPPRESS_OUTPUT = 0;
+extern int SUPPRESS_OUTPUT;
 
 static hc_thread_mutex_t mux_adl;
 static hc_thread_mutex_t mux_counter;

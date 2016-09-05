@@ -5,7 +5,11 @@
  * License.....: MIT
  */
 
-#include <ext_nvml.h>
+#include "common.h"
+#include "logging.h"
+#include "memory.h"
+#include "dynloader.h"
+#include "ext_nvml.h"
 
 int nvml_init (NVML_PTR *nvml)
 {
@@ -34,8 +38,8 @@ int nvml_init (NVML_PTR *nvml)
       }
       else
       {
-        if (data.quiet == 0)
-          log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
+        //if (data.quiet == 0)
+        //  log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
 
         return -1;
       }
@@ -44,8 +48,8 @@ int nvml_init (NVML_PTR *nvml)
     }
     else
     {
-      if (data.quiet == 0)
-        log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
+      //if (data.quiet == 0)
+      //  log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
 
       return -1;
     }
@@ -63,8 +67,8 @@ int nvml_init (NVML_PTR *nvml)
 
   if (!nvml->lib)
   {
-    if (data.quiet == 0)
-      log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
+    //if (data.quiet == 0)
+    //  log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
 
     return -1;
   }

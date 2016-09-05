@@ -3,8 +3,11 @@
  * License.....: MIT
  */
 
-#ifndef TYPES_H
-#define TYPES_H
+#pragma once
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #ifdef _WIN
 #define EOL "\r\n"
@@ -1363,6 +1366,3 @@ typedef struct
 } hc_global_data_t;
 
 extern hc_global_data_t data;
-
-#endif
-

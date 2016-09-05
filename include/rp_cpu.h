@@ -1,7 +1,9 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
+
+#pragma once
 
 #define RP_RULE_BUFSIZ  0x100
 

@@ -6,12 +6,9 @@
  * License.....: MIT
  */
 
-#ifndef EXT_ADL_H
-#define EXT_ADL_H
+#pragma once
 
-#if defined(HAVE_HWMON)
-
-#include <common.h>
+#include <string.h>
 
 /**
  * Declarations from adl_sdk.h and subheaders
@@ -264,8 +261,6 @@ typedef void* (ADL_API_CALL *ADL_MAIN_MALLOC_CALLBACK )( int );
 
 typedef int HM_ADAPTER_ADL;
 
-#include <shared.h>
-
 typedef struct
 {
   ADLOD6StateInfo state;
@@ -308,6 +303,12 @@ typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET) (int, int *
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET) (int, ADLOD6ParameterRange *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_FANSPEED_RESET) (int);
 
+#ifdef _POSIX
+typedef void *ADL_LIB;
+#else
+typedef HINSTANCE ADL_LIB;
+#endif
+
 typedef struct
 {
   ADL_LIB lib;
@@ -349,9 +350,9 @@ typedef struct
 
 } hm_adl_lib_t;
 
-#define ADL_PTR hm_adl_lib_t
+typedef hm_adl_lib_t ADL_PTR;
 
-int adl_init (ADL_PTR *lib);
+int  adl_init  (ADL_PTR *lib);
 void adl_close (ADL_PTR *lib);
 
 int hm_ADL_Main_Control_Destroy (ADL_PTR *adl);
@@ -388,7 +389,3 @@ int hm_ADL_Overdrive6_PowerControl_Caps (ADL_PTR *adl, int iAdapterIndex, int *l
 int hm_ADL_Overdrive6_TargetTemperatureData_Get (ADL_PTR *adl, int iAdapterIndex, int *cur_temp, int *default_temp);
 int hm_ADL_Overdrive6_TargetTemperatureRangeInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6ParameterRange *lpTargetTemperatureInfo);
 int hm_ADL_Overdrive6_FanSpeed_Reset (ADL_PTR *adl, int iAdapterIndex);
-
-#endif // HAVE_HWMON
-
-#endif // EXT_ADL_H

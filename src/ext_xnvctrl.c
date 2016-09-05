@@ -3,7 +3,11 @@
  * License.....: MIT
  */
 
-#include <ext_xnvctrl.h>
+#include "common.h"
+#include "logging.h"
+#include "memory.h"
+#include "dynloader.h"
+#include "ext_xnvctrl.h"
 
 int xnvctrl_init (XNVCTRL_PTR *xnvctrl)
 {
@@ -11,20 +15,20 @@ int xnvctrl_init (XNVCTRL_PTR *xnvctrl)
 
   memset (xnvctrl, 0, sizeof (XNVCTRL_PTR));
 
-  #if   defined(_WIN)
+  #if defined (_WIN)
 
   // unsupport platform?
   return -1;
 
-  #elif defined(_POSIX)
+  #elif defined (_POSIX)
 
   xnvctrl->lib_x11 = dlopen ("libX11.so", RTLD_LAZY);
 
   if (xnvctrl->lib_x11 == NULL)
   {
-    if (data.quiet == 0) log_info ("WARNING: Failed loading the X11 library: %s", dlerror());
-    if (data.quiet == 0) log_info ("         Please install libx11-dev package.");
-    if (data.quiet == 0) log_info ("");
+    //if (data.quiet == 0) log_info ("WARNING: Failed loading the X11 library: %s", dlerror());
+    //if (data.quiet == 0) log_info ("         Please install libx11-dev package.");
+    //if (data.quiet == 0) log_info ("");
 
     return -1;
   }
@@ -33,9 +37,9 @@ int xnvctrl_init (XNVCTRL_PTR *xnvctrl)
 
   if (xnvctrl->lib_xnvctrl == NULL)
   {
-    if (data.quiet == 0) log_info ("WARNING: Failed loading the XNVCTRL library: %s", dlerror());
-    if (data.quiet == 0) log_info ("         Please install libxnvctrl-dev package.");
-    if (data.quiet == 0) log_info ("");
+    //if (data.quiet == 0) log_info ("WARNING: Failed loading the XNVCTRL library: %s", dlerror());
+    //if (data.quiet == 0) log_info ("         Please install libxnvctrl-dev package.");
+    //if (data.quiet == 0) log_info ("");
 
     return -1;
   }
