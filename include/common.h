@@ -89,9 +89,6 @@ typedef INT16  int16_t;
 typedef INT32  int32_t;
 typedef INT64  int64_t;
 
-typedef UINT32 uint;
-typedef UINT64 uint64_t;
-
 typedef HINSTANCE OCL_LIB;
 
 #ifdef HAVE_HWMON
