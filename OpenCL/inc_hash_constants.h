@@ -3,9 +3,6 @@
  * License.....: MIT
  */
 
-#define COMBINATOR_MODE_BASE_LEFT  10001
-#define COMBINATOR_MODE_BASE_RIGHT 10002
-
 #ifdef SHARED_H
 #define _AXCRYPT_
 #define _BCRYPT_
