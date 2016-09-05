@@ -143,24 +143,28 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 
 #define CL_PLATFORMS_MAX        16
 
-#define CL_VENDOR_AMD           "Advanced Micro Devices, Inc."
-#define CL_VENDOR_AMD_USE_INTEL "GenuineIntel"
-#define CL_VENDOR_APPLE         "Apple"
-#define CL_VENDOR_INTEL_BEIGNET "Intel"
-#define CL_VENDOR_INTEL_SDK     "Intel(R) Corporation"
-#define CL_VENDOR_MESA          "Mesa"
-#define CL_VENDOR_NV            "NVIDIA Corporation"
-#define CL_VENDOR_POCL          "The pocl project"
+static const char CL_VENDOR_AMD[]           = "Advanced Micro Devices, Inc.";
+static const char CL_VENDOR_AMD_USE_INTEL[] = "GenuineIntel";
+static const char CL_VENDOR_APPLE[]         = "Apple";
+static const char CL_VENDOR_INTEL_BEIGNET[] = "Intel";
+static const char CL_VENDOR_INTEL_SDK[]     = "Intel(R) Corporation";
+static const char CL_VENDOR_MESA[]          = "Mesa";
+static const char CL_VENDOR_NV[]            = "NVIDIA Corporation";
+static const char CL_VENDOR_POCL[]          = "The pocl project";
 
-#define VENDOR_ID_AMD           (1u << 0)
-#define VENDOR_ID_APPLE         (1u << 1)
-#define VENDOR_ID_INTEL_BEIGNET (1u << 2)
-#define VENDOR_ID_INTEL_SDK     (1u << 3)
-#define VENDOR_ID_MESA          (1u << 4)
-#define VENDOR_ID_NV            (1u << 5)
-#define VENDOR_ID_POCL          (1u << 6)
-#define VENDOR_ID_AMD_USE_INTEL (1u << 7)
-#define VENDOR_ID_GENERIC       (1u << 31)
+typedef enum vendor_id
+{
+  VENDOR_ID_AMD           = (1 << 0),
+  VENDOR_ID_APPLE         = (1 << 1),
+  VENDOR_ID_INTEL_BEIGNET = (1 << 2),
+  VENDOR_ID_INTEL_SDK     = (1 << 3),
+  VENDOR_ID_MESA          = (1 << 4),
+  VENDOR_ID_NV            = (1 << 5),
+  VENDOR_ID_POCL          = (1 << 6),
+  VENDOR_ID_AMD_USE_INTEL = (1 << 7),
+  VENDOR_ID_GENERIC       = (1 << 31)
+
+} vendor_id_t;
 
 #define BLOCK_SIZE              64
 
@@ -221,222 +225,226 @@ extern hc_thread_mutex_t mux_display;
  * Strings
  */
 
-#define HT_00000  "MD5"
-#define HT_00010  "md5($pass.$salt)"
-#define HT_00020  "md5($salt.$pass)"
-#define HT_00030  "md5(unicode($pass).$salt)"
-#define HT_00040  "md5($salt.unicode($pass))"
-#define HT_00050  "HMAC-MD5 (key = $pass)"
-#define HT_00060  "HMAC-MD5 (key = $salt)"
-#define HT_00100  "SHA1"
-#define HT_00110  "sha1($pass.$salt)"
-#define HT_00120  "sha1($salt.$pass)"
-#define HT_00130  "sha1(unicode($pass).$salt)"
-#define HT_00140  "sha1($salt.unicode($pass))"
-#define HT_00150  "HMAC-SHA1 (key = $pass)"
-#define HT_00160  "HMAC-SHA1 (key = $salt)"
-#define HT_00200  "MySQL323"
-#define HT_00300  "MySQL4.1/MySQL5"
-#define HT_00400  "phpass, MD5(Wordpress), MD5(phpBB3), MD5(Joomla)"
-#define HT_00500  "md5crypt, MD5(Unix), FreeBSD MD5, Cisco-IOS MD5"
-#define HT_00501  "Juniper IVE"
-#define HT_00900  "MD4"
-#define HT_00910  "md4($pass.$salt)"
-#define HT_01000  "NTLM"
-#define HT_01100  "Domain Cached Credentials (DCC), MS Cache"
-#define HT_01400  "SHA256"
-#define HT_01410  "sha256($pass.$salt)"
-#define HT_01420  "sha256($salt.$pass)"
-#define HT_01430  "sha256(unicode($pass).$salt)"
-#define HT_01440  "sha256($salt.$pass)"
-#define HT_01450  "HMAC-SHA256 (key = $pass)"
-#define HT_01460  "HMAC-SHA256 (key = $salt)"
-#define HT_01500  "descrypt, DES(Unix), Traditional DES"
-#define HT_01600  "md5apr1, MD5(APR), Apache MD5"
-#define HT_01700  "SHA512"
-#define HT_01710  "sha512($pass.$salt)"
-#define HT_01720  "sha512($salt.$pass)"
-#define HT_01730  "sha512(unicode($pass).$salt)"
-#define HT_01740  "sha512($salt.unicode($pass))"
-#define HT_01750  "HMAC-SHA512 (key = $pass)"
-#define HT_01760  "HMAC-SHA512 (key = $salt)"
-#define HT_01800  "sha512crypt, SHA512(Unix)"
-#define HT_02100  "Domain Cached Credentials 2 (DCC2), MS Cache 2"
-#define HT_02400  "Cisco-PIX MD5"
-#define HT_02410  "Cisco-ASA MD5"
-#define HT_02500  "WPA/WPA2"
-#define HT_02600  "Double MD5"
-#define HT_03000  "LM"
-#define HT_03100  "Oracle H: Type (Oracle 7+)"
-#define HT_03200  "bcrypt, Blowfish(OpenBSD)"
-#define HT_03710  "md5($salt.md5($pass))"
-#define HT_03711  "Mediawiki B type"
-#define HT_03800  "md5($salt.$pass.$salt)"
-#define HT_04300  "md5(strtoupper(md5($pass)))"
-#define HT_04400  "md5(sha1($pass))"
-#define HT_04500  "Double SHA1"
-#define HT_04700  "sha1(md5($pass))"
-#define HT_04800  "MD5(Chap), iSCSI CHAP authentication"
-#define HT_04900  "sha1($salt.$pass.$salt)"
-#define HT_05000  "SHA-3(Keccak)"
-#define HT_05100  "Half MD5"
-#define HT_05200  "Password Safe v3"
-#define HT_05300  "IKE-PSK MD5"
-#define HT_05400  "IKE-PSK SHA1"
-#define HT_05500  "NetNTLMv1-VANILLA / NetNTLMv1+ESS"
-#define HT_05600  "NetNTLMv2"
-#define HT_05700  "Cisco-IOS SHA256"
-#define HT_05800  "Android PIN"
-#define HT_06000  "RipeMD160"
-#define HT_06100  "Whirlpool"
-#define HT_06300  "AIX {smd5}"
-#define HT_06400  "AIX {ssha256}"
-#define HT_06500  "AIX {ssha512}"
-#define HT_06600  "1Password, agilekeychain"
-#define HT_06700  "AIX {ssha1}"
-#define HT_06800  "Lastpass"
-#define HT_06900  "GOST R 34.11-94"
-#define HT_07100  "OSX v10.8+"
-#define HT_07200  "GRUB 2"
-#define HT_07300  "IPMI2 RAKP HMAC-SHA1"
-#define HT_07400  "sha256crypt, SHA256(Unix)"
-#define HT_07500  "Kerberos 5 AS-REQ Pre-Auth etype 23"
-#define HT_07600  "Redmine Project Management Web App"
-#define HT_07700  "SAP CODVN B (BCODE)"
-#define HT_07800  "SAP CODVN F/G (PASSCODE)"
-#define HT_07900  "Drupal7"
-#define HT_08000  "Sybase ASE"
-#define HT_08100  "Citrix NetScaler"
-#define HT_08200  "1Password, cloudkeychain"
-#define HT_08300  "DNSSEC (NSEC3)"
-#define HT_08400  "WBB3, Woltlab Burning Board 3"
-#define HT_08500  "RACF"
-#define HT_08600  "Lotus Notes/Domino 5"
-#define HT_08700  "Lotus Notes/Domino 6"
-#define HT_08800  "Android FDE <= 4.3"
-#define HT_08900  "scrypt"
-#define HT_09000  "Password Safe v2"
-#define HT_09100  "Lotus Notes/Domino 8"
-#define HT_09200  "Cisco $8$"
-#define HT_09300  "Cisco $9$"
-#define HT_09400  "Office 2007"
-#define HT_09500  "Office 2010"
-#define HT_09600  "Office 2013"
-#define HT_09700  "MS Office <= 2003 MD5 + RC4, oldoffice$0, oldoffice$1"
-#define HT_09710  "MS Office <= 2003 MD5 + RC4, collision-mode #1"
-#define HT_09720  "MS Office <= 2003 MD5 + RC4, collision-mode #2"
-#define HT_09800  "MS Office <= 2003 SHA1 + RC4, oldoffice$3, oldoffice$4"
-#define HT_09810  "MS Office <= 2003 SHA1 + RC4, collision-mode #1"
-#define HT_09820  "MS Office <= 2003 SHA1 + RC4, collision-mode #2"
-#define HT_09900  "Radmin2"
-#define HT_10000  "Django (PBKDF2-SHA256)"
-#define HT_10100  "SipHash"
-#define HT_10200  "Cram MD5"
-#define HT_10300  "SAP CODVN H (PWDSALTEDHASH) iSSHA-1"
-#define HT_10400  "PDF 1.1 - 1.3 (Acrobat 2 - 4)"
-#define HT_10410  "PDF 1.1 - 1.3 (Acrobat 2 - 4) + collider-mode #1"
-#define HT_10420  "PDF 1.1 - 1.3 (Acrobat 2 - 4) + collider-mode #2"
-#define HT_10500  "PDF 1.4 - 1.6 (Acrobat 5 - 8)"
-#define HT_10600  "PDF 1.7 Level 3 (Acrobat 9)"
-#define HT_10700  "PDF 1.7 Level 8 (Acrobat 10 - 11)"
-#define HT_10800  "SHA384"
-#define HT_10900  "PBKDF2-HMAC-SHA256"
-#define HT_11000  "PrestaShop"
-#define HT_11100  "PostgreSQL Challenge-Response Authentication (MD5)"
-#define HT_11200  "MySQL Challenge-Response Authentication (SHA1)"
-#define HT_11300  "Bitcoin/Litecoin wallet.dat"
-#define HT_11400  "SIP digest authentication (MD5)"
-#define HT_11500  "CRC32"
-#define HT_11600  "7-Zip"
-#define HT_11700  "GOST R 34.11-2012 (Streebog) 256-bit"
-#define HT_11800  "GOST R 34.11-2012 (Streebog) 512-bit"
-#define HT_11900  "PBKDF2-HMAC-MD5"
-#define HT_12000  "PBKDF2-HMAC-SHA1"
-#define HT_12100  "PBKDF2-HMAC-SHA512"
-#define HT_12200  "eCryptfs"
-#define HT_12300  "Oracle T: Type (Oracle 12+)"
-#define HT_12400  "BSDiCrypt, Extended DES"
-#define HT_12500  "RAR3-hp"
-#define HT_12600  "ColdFusion 10+"
-#define HT_12700  "Blockchain, My Wallet"
-#define HT_12800  "MS-AzureSync PBKDF2-HMAC-SHA256"
-#define HT_12900  "Android FDE (Samsung DEK)"
-#define HT_13000  "RAR5"
-#define HT_13100  "Kerberos 5 TGS-REP etype 23"
-#define HT_13200  "AxCrypt"
-#define HT_13300  "AxCrypt in memory SHA1"
-#define HT_13400  "Keepass 1 (AES/Twofish) and Keepass 2 (AES)"
-#define HT_13500  "PeopleSoft PS_TOKEN"
-#define HT_13600  "WinZip"
-#define HT_13800  "Windows 8+ phone PIN/Password"
-#define HT_13900  "OpenCart"
-#define HT_14000  "DES (PT = $salt, key = $pass)"
-#define HT_14100  "3DES (PT = $salt, key = $pass)"
+static const char HT_00000[] = "MD5";
+static const char HT_00010[] = "md5($pass.$salt)";
+static const char HT_00020[] = "md5($salt.$pass)";
+static const char HT_00030[] = "md5(unicode($pass).$salt)";
+static const char HT_00040[] = "md5($salt.unicode($pass))";
+static const char HT_00050[] = "HMAC-MD5 (key = $pass)";
+static const char HT_00060[] = "HMAC-MD5 (key = $salt)";
+static const char HT_00100[] = "SHA1";
+static const char HT_00110[] = "sha1($pass.$salt)";
+static const char HT_00120[] = "sha1($salt.$pass)";
+static const char HT_00130[] = "sha1(unicode($pass).$salt)";
+static const char HT_00140[] = "sha1($salt.unicode($pass))";
+static const char HT_00150[] = "HMAC-SHA1 (key = $pass)";
+static const char HT_00160[] = "HMAC-SHA1 (key = $salt)";
+static const char HT_00200[] = "MySQL323";
+static const char HT_00300[] = "MySQL4.1/MySQL5";
+static const char HT_00400[] = "phpass, MD5(Wordpress), MD5(phpBB3), MD5(Joomla)";
+static const char HT_00500[] = "md5crypt, MD5(Unix), FreeBSD MD5, Cisco-IOS MD5";
+static const char HT_00501[] = "Juniper IVE";
+static const char HT_00900[] = "MD4";
+static const char HT_00910[] = "md4($pass.$salt)";
+static const char HT_01000[] = "NTLM";
+static const char HT_01100[] = "Domain Cached Credentials (DCC), MS Cache";
+static const char HT_01400[] = "SHA256";
+static const char HT_01410[] = "sha256($pass.$salt)";
+static const char HT_01420[] = "sha256($salt.$pass)";
+static const char HT_01430[] = "sha256(unicode($pass).$salt)";
+static const char HT_01440[] = "sha256($salt.$pass)";
+static const char HT_01450[] = "HMAC-SHA256 (key = $pass)";
+static const char HT_01460[] = "HMAC-SHA256 (key = $salt)";
+static const char HT_01500[] = "descrypt, DES(Unix), Traditional DES";
+static const char HT_01600[] = "md5apr1, MD5(APR), Apache MD5";
+static const char HT_01700[] = "SHA512";
+static const char HT_01710[] = "sha512($pass.$salt)";
+static const char HT_01720[] = "sha512($salt.$pass)";
+static const char HT_01730[] = "sha512(unicode($pass).$salt)";
+static const char HT_01740[] = "sha512($salt.unicode($pass))";
+static const char HT_01750[] = "HMAC-SHA512 (key = $pass)";
+static const char HT_01760[] = "HMAC-SHA512 (key = $salt)";
+static const char HT_01800[] = "sha512crypt, SHA512(Unix)";
+static const char HT_02100[] = "Domain Cached Credentials 2 (DCC2), MS Cache 2";
+static const char HT_02400[] = "Cisco-PIX MD5";
+static const char HT_02410[] = "Cisco-ASA MD5";
+static const char HT_02500[] = "WPA/WPA2";
+static const char HT_02600[] = "Double MD5";
+static const char HT_03000[] = "LM";
+static const char HT_03100[] = "Oracle H: Type (Oracle 7+)";
+static const char HT_03200[] = "bcrypt, Blowfish(OpenBSD)";
+static const char HT_03710[] = "md5($salt.md5($pass))";
+static const char HT_03711[] = "Mediawiki B type";
+static const char HT_03800[] = "md5($salt.$pass.$salt)";
+static const char HT_04300[] = "md5(strtoupper(md5($pass)))";
+static const char HT_04400[] = "md5(sha1($pass))";
+static const char HT_04500[] = "Double SHA1";
+static const char HT_04700[] = "sha1(md5($pass))";
+static const char HT_04800[] = "MD5(Chap), iSCSI CHAP authentication";
+static const char HT_04900[] = "sha1($salt.$pass.$salt)";
+static const char HT_05000[] = "SHA-3(Keccak)";
+static const char HT_05100[] = "Half MD5";
+static const char HT_05200[] = "Password Safe v3";
+static const char HT_05300[] = "IKE-PSK MD5";
+static const char HT_05400[] = "IKE-PSK SHA1";
+static const char HT_05500[] = "NetNTLMv1-VANILLA / NetNTLMv1+ESS";
+static const char HT_05600[] = "NetNTLMv2";
+static const char HT_05700[] = "Cisco-IOS SHA256";
+static const char HT_05800[] = "Android PIN";
+static const char HT_06000[] = "RipeMD160";
+static const char HT_06100[] = "Whirlpool";
+static const char HT_06300[] = "AIX {smd5}";
+static const char HT_06400[] = "AIX {ssha256}";
+static const char HT_06500[] = "AIX {ssha512}";
+static const char HT_06600[] = "1Password, agilekeychain";
+static const char HT_06700[] = "AIX {ssha1}";
+static const char HT_06800[] = "Lastpass";
+static const char HT_06900[] = "GOST R 34.11-94";
+static const char HT_07100[] = "OSX v10.8+";
+static const char HT_07200[] = "GRUB 2";
+static const char HT_07300[] = "IPMI2 RAKP HMAC-SHA1";
+static const char HT_07400[] = "sha256crypt, SHA256(Unix)";
+static const char HT_07500[] = "Kerberos 5 AS-REQ Pre-Auth etype 23";
+static const char HT_07600[] = "Redmine Project Management Web App";
+static const char HT_07700[] = "SAP CODVN B (BCODE)";
+static const char HT_07800[] = "SAP CODVN F/G (PASSCODE)";
+static const char HT_07900[] = "Drupal7";
+static const char HT_08000[] = "Sybase ASE";
+static const char HT_08100[] = "Citrix NetScaler";
+static const char HT_08200[] = "1Password, cloudkeychain";
+static const char HT_08300[] = "DNSSEC (NSEC3)";
+static const char HT_08400[] = "WBB3, Woltlab Burning Board 3";
+static const char HT_08500[] = "RACF";
+static const char HT_08600[] = "Lotus Notes/Domino 5";
+static const char HT_08700[] = "Lotus Notes/Domino 6";
+static const char HT_08800[] = "Android FDE <= 4.3";
+static const char HT_08900[] = "scrypt";
+static const char HT_09000[] = "Password Safe v2";
+static const char HT_09100[] = "Lotus Notes/Domino 8";
+static const char HT_09200[] = "Cisco $8$";
+static const char HT_09300[] = "Cisco $9$";
+static const char HT_09400[] = "Office 2007";
+static const char HT_09500[] = "Office 2010";
+static const char HT_09600[] = "Office 2013";
+static const char HT_09700[] = "MS Office <= 2003 MD5 + RC4, oldoffice$0, oldoffice$1";
+static const char HT_09710[] = "MS Office <= 2003 MD5 + RC4, collision-mode #1";
+static const char HT_09720[] = "MS Office <= 2003 MD5 + RC4, collision-mode #2";
+static const char HT_09800[] = "MS Office <= 2003 SHA1 + RC4, oldoffice$3, oldoffice$4";
+static const char HT_09810[] = "MS Office <= 2003 SHA1 + RC4, collision-mode #1";
+static const char HT_09820[] = "MS Office <= 2003 SHA1 + RC4, collision-mode #2";
+static const char HT_09900[] = "Radmin2";
+static const char HT_10000[] = "Django (PBKDF2-SHA256)";
+static const char HT_10100[] = "SipHash";
+static const char HT_10200[] = "Cram MD5";
+static const char HT_10300[] = "SAP CODVN H (PWDSALTEDHASH) iSSHA-1";
+static const char HT_10400[] = "PDF 1.1 - 1.3 (Acrobat 2 - 4)";
+static const char HT_10410[] = "PDF 1.1 - 1.3 (Acrobat 2 - 4) + collider-mode #1";
+static const char HT_10420[] = "PDF 1.1 - 1.3 (Acrobat 2 - 4) + collider-mode #2";
+static const char HT_10500[] = "PDF 1.4 - 1.6 (Acrobat 5 - 8)";
+static const char HT_10600[] = "PDF 1.7 Level 3 (Acrobat 9)";
+static const char HT_10700[] = "PDF 1.7 Level 8 (Acrobat 10 - 11)";
+static const char HT_10800[] = "SHA384";
+static const char HT_10900[] = "PBKDF2-HMAC-SHA256";
+static const char HT_11000[] = "PrestaShop";
+static const char HT_11100[] = "PostgreSQL Challenge-Response Authentication (MD5)";
+static const char HT_11200[] = "MySQL Challenge-Response Authentication (SHA1)";
+static const char HT_11300[] = "Bitcoin/Litecoin wallet.dat";
+static const char HT_11400[] = "SIP digest authentication (MD5)";
+static const char HT_11500[] = "CRC32";
+static const char HT_11600[] = "7-Zip";
+static const char HT_11700[] = "GOST R 34.11-2012 (Streebog) 256-bit";
+static const char HT_11800[] = "GOST R 34.11-2012 (Streebog) 512-bit";
+static const char HT_11900[] = "PBKDF2-HMAC-MD5";
+static const char HT_12000[] = "PBKDF2-HMAC-SHA1";
+static const char HT_12100[] = "PBKDF2-HMAC-SHA512";
+static const char HT_12200[] = "eCryptfs";
+static const char HT_12300[] = "Oracle T: Type (Oracle 12+)";
+static const char HT_12400[] = "BSDiCrypt, Extended DES";
+static const char HT_12500[] = "RAR3-hp";
+static const char HT_12600[] = "ColdFusion 10+";
+static const char HT_12700[] = "Blockchain, My Wallet";
+static const char HT_12800[] = "MS-AzureSync PBKDF2-HMAC-SHA256";
+static const char HT_12900[] = "Android FDE (Samsung DEK)";
+static const char HT_13000[] = "RAR5";
+static const char HT_13100[] = "Kerberos 5 TGS-REP etype 23";
+static const char HT_13200[] = "AxCrypt";
+static const char HT_13300[] = "AxCrypt in memory SHA1";
+static const char HT_13400[] = "Keepass 1 (AES/Twofish) and Keepass 2 (AES)";
+static const char HT_13500[] = "PeopleSoft PS_TOKEN";
+static const char HT_13600[] = "WinZip";
+static const char HT_13800[] = "Windows 8+ phone PIN/Password";
+static const char HT_13900[] = "OpenCart";
+static const char HT_14000[] = "DES (PT = $salt, key = $pass)";
+static const char HT_14100[] = "3DES (PT = $salt, key = $pass)";
 
-#define HT_00011  "Joomla < 2.5.18"
-#define HT_00012  "PostgreSQL"
-#define HT_00021  "osCommerce, xt:Commerce"
-#define HT_00022  "Juniper Netscreen/SSG (ScreenOS)"
-#define HT_00023  "Skype"
-#define HT_00101  "SHA-1(Base64), nsldap, Netscape LDAP SHA"
-#define HT_00111  "SSHA-1(Base64), nsldaps, Netscape LDAP SSHA"
-#define HT_00112  "Oracle S: Type (Oracle 11+)"
-#define HT_00121  "SMF > v1.1"
-#define HT_00122  "OSX v10.4, v10.5, v10.6"
-#define HT_00124  "Django (SHA-1)"
-#define HT_00125  "ArubaOS"
-#define HT_00131  "MSSQL(2000)"
-#define HT_00132  "MSSQL(2005)"
-#define HT_00133  "PeopleSoft"
-#define HT_00141  "EPiServer 6.x < v4"
-#define HT_01421  "hMailServer"
-#define HT_01441  "EPiServer 6.x > v4"
-#define HT_01711  "SSHA-512(Base64), LDAP {SSHA512}"
-#define HT_01722  "OSX v10.7"
-#define HT_01731  "MSSQL(2012)"
-#define HT_02611  "vBulletin < v3.8.5"
-#define HT_02612  "PHPS"
-#define HT_02711  "vBulletin > v3.8.5"
-#define HT_02811  "IPB2+, MyBB1.2+"
-#define HT_06211  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit"
-#define HT_06212  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit"
-#define HT_06213  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit"
-#define HT_06221  "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit"
-#define HT_06222  "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit"
-#define HT_06223  "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit"
-#define HT_06231  "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 512 bit"
-#define HT_06232  "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 1024 bit"
-#define HT_06233  "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 1536 bit"
-#define HT_06241  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit + boot-mode"
-#define HT_06242  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit + boot-mode"
-#define HT_06243  "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit + boot-mode"
-#define HT_13711  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit"
-#define HT_13712  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit"
-#define HT_13713  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit"
-#define HT_13721  "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit"
-#define HT_13722  "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit"
-#define HT_13723  "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit"
-#define HT_13731  "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 512 bit"
-#define HT_13732  "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1024 bit"
-#define HT_13733  "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1536 bit"
-#define HT_13741  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit + boot-mode"
-#define HT_13742  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit + boot-mode"
-#define HT_13743  "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit + boot-mode"
-#define HT_13751  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit"
-#define HT_13752  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit"
-#define HT_13753  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit"
-#define HT_13761  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit + boot-mode"
-#define HT_13762  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit + boot-mode"
-#define HT_13763  "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit + boot-mode"
+static const char HT_00011[] = "Joomla < 2.5.18";
+static const char HT_00012[] = "PostgreSQL";
+static const char HT_00021[] = "osCommerce, xt:Commerce";
+static const char HT_00022[] = "Juniper Netscreen/SSG (ScreenOS)";
+static const char HT_00023[] = "Skype";
+static const char HT_00101[] = "SHA-1(Base64), nsldap, Netscape LDAP SHA";
+static const char HT_00111[] = "SSHA-1(Base64), nsldaps, Netscape LDAP SSHA";
+static const char HT_00112[] = "Oracle S: Type (Oracle 11+)";
+static const char HT_00121[] = "SMF > v1.1";
+static const char HT_00122[] = "OSX v10.4, v10.5, v10.6";
+static const char HT_00124[] = "Django (SHA-1)";
+static const char HT_00125[] = "ArubaOS";
+static const char HT_00131[] = "MSSQL(2000)";
+static const char HT_00132[] = "MSSQL(2005)";
+static const char HT_00133[] = "PeopleSoft";
+static const char HT_00141[] = "EPiServer 6.x < v4";
+static const char HT_01421[] = "hMailServer";
+static const char HT_01441[] = "EPiServer 6.x > v4";
+static const char HT_01711[] = "SSHA-512(Base64), LDAP {SSHA512}";
+static const char HT_01722[] = "OSX v10.7";
+static const char HT_01731[] = "MSSQL(2012)";
+static const char HT_02611[] = "vBulletin < v3.8.5";
+static const char HT_02612[] = "PHPS";
+static const char HT_02711[] = "vBulletin > v3.8.5";
+static const char HT_02811[] = "IPB2+, MyBB1.2+";
+static const char HT_06211[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit";
+static const char HT_06212[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit";
+static const char HT_06213[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit";
+static const char HT_06221[] = "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit";
+static const char HT_06222[] = "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit";
+static const char HT_06223[] = "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit";
+static const char HT_06231[] = "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 512 bit";
+static const char HT_06232[] = "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 1024 bit";
+static const char HT_06233[] = "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 1536 bit";
+static const char HT_06241[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit + boot-mode";
+static const char HT_06242[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit + boot-mode";
+static const char HT_06243[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit + boot-mode";
+static const char HT_13711[] = "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit";
+static const char HT_13712[] = "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit";
+static const char HT_13713[] = "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit";
+static const char HT_13721[] = "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit";
+static const char HT_13722[] = "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit";
+static const char HT_13723[] = "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit";
+static const char HT_13731[] = "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 512 bit";
+static const char HT_13732[] = "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1024 bit";
+static const char HT_13733[] = "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1536 bit";
+static const char HT_13741[] = "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit + boot-mode";
+static const char HT_13742[] = "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit + boot-mode";
+static const char HT_13743[] = "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit + boot-mode";
+static const char HT_13751[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit";
+static const char HT_13752[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit";
+static const char HT_13753[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit";
+static const char HT_13761[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit + boot-mode";
+static const char HT_13762[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit + boot-mode";
+static const char HT_13763[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit + boot-mode";
 
 /**
  * Outfile formats
  */
 
-#define OUTFILE_FMT_HASH      (1 << 0)
-#define OUTFILE_FMT_PLAIN     (1 << 1)
-#define OUTFILE_FMT_HEXPLAIN  (1 << 2)
-#define OUTFILE_FMT_CRACKPOS  (1 << 3)
+typedef enum outfile_fmt
+{
+  OUTFILE_FMT_HASH      = (1 << 0),
+  OUTFILE_FMT_PLAIN     = (1 << 1),
+  OUTFILE_FMT_HEXPLAIN  = (1 << 2),
+  OUTFILE_FMT_CRACKPOS  = (1 << 3)
+
+} outfile_fmt_t;
 
 /**
  * algo specific
@@ -808,292 +816,300 @@ extern hc_thread_mutex_t mux_display;
 #define DISPLAY_LEN_MIN_7600  40 + 1 + 32
 #define DISPLAY_LEN_MAX_7600  40 + 1 + 32
 
-#define HASH_TYPE_MD4          1
-#define HASH_TYPE_MD5          2
-#define HASH_TYPE_MD5H         3
-#define HASH_TYPE_SHA1         4
-#define HASH_TYPE_SHA256       5
-#define HASH_TYPE_SHA384       6
-#define HASH_TYPE_SHA512       7
-#define HASH_TYPE_DCC2         8
-#define HASH_TYPE_WPA          9
-#define HASH_TYPE_LM           10
-#define HASH_TYPE_DESCRYPT     11
-#define HASH_TYPE_ORACLEH      12
-#define HASH_TYPE_DESRACF      13
-#define HASH_TYPE_BCRYPT       14
-#define HASH_TYPE_KECCAK       15
-#define HASH_TYPE_NETNTLM      16
-#define HASH_TYPE_RIPEMD160    17
-#define HASH_TYPE_WHIRLPOOL    18
-#define HASH_TYPE_AES          19
-#define HASH_TYPE_GOST         20
-#define HASH_TYPE_KRB5PA       21
-#define HASH_TYPE_SAPB         22
-#define HASH_TYPE_SAPG         23
-#define HASH_TYPE_MYSQL        24
-#define HASH_TYPE_LOTUS5       25
-#define HASH_TYPE_LOTUS6       26
-#define HASH_TYPE_ANDROIDFDE   27
-#define HASH_TYPE_SCRYPT       28
-#define HASH_TYPE_LOTUS8       29
-#define HASH_TYPE_OFFICE2007   30
-#define HASH_TYPE_OFFICE2010   31
-#define HASH_TYPE_OFFICE2013   32
-#define HASH_TYPE_OLDOFFICE01  33
-#define HASH_TYPE_OLDOFFICE34  34
-#define HASH_TYPE_SIPHASH      35
-#define HASH_TYPE_PDFU16       36
-#define HASH_TYPE_PDFU32       37
-#define HASH_TYPE_PBKDF2_SHA256  38
-#define HASH_TYPE_BITCOIN_WALLET 39
-#define HASH_TYPE_CRC32          40
-#define HASH_TYPE_GOST_2012SBOG_256  41
-#define HASH_TYPE_GOST_2012SBOG_512  42
-#define HASH_TYPE_PBKDF2_MD5     43
-#define HASH_TYPE_PBKDF2_SHA1    44
-#define HASH_TYPE_PBKDF2_SHA512  45
-#define HASH_TYPE_ECRYPTFS       46
-#define HASH_TYPE_ORACLET        47
-#define HASH_TYPE_BSDICRYPT      48
-#define HASH_TYPE_RAR3HP         49
-#define HASH_TYPE_KRB5TGS        50
-#define HASH_TYPE_STDOUT         51
-#define HASH_TYPE_DES            52
+typedef enum hash_type
+{
+  HASH_TYPE_MD4                 = 1,
+  HASH_TYPE_MD5                 = 2,
+  HASH_TYPE_MD5H                = 3,
+  HASH_TYPE_SHA1                = 4,
+  HASH_TYPE_SHA256              = 5,
+  HASH_TYPE_SHA384              = 6,
+  HASH_TYPE_SHA512              = 7,
+  HASH_TYPE_DCC2                = 8,
+  HASH_TYPE_WPA                 = 9,
+  HASH_TYPE_LM                  = 10,
+  HASH_TYPE_DESCRYPT            = 11,
+  HASH_TYPE_ORACLEH             = 12,
+  HASH_TYPE_DESRACF             = 13,
+  HASH_TYPE_BCRYPT              = 14,
+  HASH_TYPE_KECCAK              = 15,
+  HASH_TYPE_NETNTLM             = 16,
+  HASH_TYPE_RIPEMD160           = 17,
+  HASH_TYPE_WHIRLPOOL           = 18,
+  HASH_TYPE_AES                 = 19,
+  HASH_TYPE_GOST                = 20,
+  HASH_TYPE_KRB5PA              = 21,
+  HASH_TYPE_SAPB                = 22,
+  HASH_TYPE_SAPG                = 23,
+  HASH_TYPE_MYSQL               = 24,
+  HASH_TYPE_LOTUS5              = 25,
+  HASH_TYPE_LOTUS6              = 26,
+  HASH_TYPE_ANDROIDFDE          = 27,
+  HASH_TYPE_SCRYPT              = 28,
+  HASH_TYPE_LOTUS8              = 29,
+  HASH_TYPE_OFFICE2007          = 30,
+  HASH_TYPE_OFFICE2010          = 31,
+  HASH_TYPE_OFFICE2013          = 32,
+  HASH_TYPE_OLDOFFICE01         = 33,
+  HASH_TYPE_OLDOFFICE34         = 34,
+  HASH_TYPE_SIPHASH             = 35,
+  HASH_TYPE_PDFU16              = 36,
+  HASH_TYPE_PDFU32              = 37,
+  HASH_TYPE_PBKDF2_SHA256       = 38,
+  HASH_TYPE_BITCOIN_WALLET      = 39,
+  HASH_TYPE_CRC32               = 40,
+  HASH_TYPE_GOST_2012SBOG_256   = 41,
+  HASH_TYPE_GOST_2012SBOG_512   = 42,
+  HASH_TYPE_PBKDF2_MD5          = 43,
+  HASH_TYPE_PBKDF2_SHA1         = 44,
+  HASH_TYPE_PBKDF2_SHA512       = 45,
+  HASH_TYPE_ECRYPTFS            = 46,
+  HASH_TYPE_ORACLET             = 47,
+  HASH_TYPE_BSDICRYPT           = 48,
+  HASH_TYPE_RAR3HP              = 49,
+  HASH_TYPE_KRB5TGS             = 50,
+  HASH_TYPE_STDOUT              = 51,
+  HASH_TYPE_DES                 = 52
 
-#define KERN_TYPE_MD5                 0
-#define KERN_TYPE_MD5_PWSLT           10
-#define KERN_TYPE_MD5_SLTPW           20
-#define KERN_TYPE_MD5_PWUSLT          30
-#define KERN_TYPE_MD5_SLTPWU          40
-#define KERN_TYPE_HMACMD5_PW          50
-#define KERN_TYPE_HMACMD5_SLT         60
-#define KERN_TYPE_SHA1                100
-#define KERN_TYPE_SHA1_PWSLT          110
-#define KERN_TYPE_SHA1_SLTPW          120
-#define KERN_TYPE_SHA1_PWUSLT         130
-#define KERN_TYPE_SHA1_SLTPWU         140
-#define KERN_TYPE_HMACSHA1_PW         150
-#define KERN_TYPE_HMACSHA1_SLT        160
-#define KERN_TYPE_MYSQL               200
-#define KERN_TYPE_MYSQL41             300
-#define KERN_TYPE_PHPASS              400
-#define KERN_TYPE_MD5CRYPT            500
-#define KERN_TYPE_MD4                 900
-#define KERN_TYPE_MD4_PWU             1000
-#define KERN_TYPE_MD44_PWUSLT         1100
-#define KERN_TYPE_SHA256              1400
-#define KERN_TYPE_SHA256_PWSLT        1410
-#define KERN_TYPE_SHA256_SLTPW        1420
-#define KERN_TYPE_SHA256_PWUSLT       1430
-#define KERN_TYPE_SHA256_SLTPWU       1440
-#define KERN_TYPE_HMACSHA256_PW       1450
-#define KERN_TYPE_HMACSHA256_SLT      1460
-#define KERN_TYPE_DESCRYPT            1500
-#define KERN_TYPE_APR1CRYPT           1600
-#define KERN_TYPE_SHA512              1700
-#define KERN_TYPE_SHA512_PWSLT        1710
-#define KERN_TYPE_SHA512_SLTPW        1720
-#define KERN_TYPE_SHA512_PWSLTU       1730
-#define KERN_TYPE_SHA512_SLTPWU       1740
-#define KERN_TYPE_HMACSHA512_PW       1750
-#define KERN_TYPE_HMACSHA512_SLT      1760
-#define KERN_TYPE_SHA512CRYPT         1800
-#define KERN_TYPE_STDOUT              2000
-#define KERN_TYPE_DCC2                2100
-#define KERN_TYPE_MD5PIX              2400
-#define KERN_TYPE_MD5ASA              2410
-#define KERN_TYPE_WPA                 2500
-#define KERN_TYPE_MD55                2600
-#define KERN_TYPE_MD55_PWSLT1         2610
-#define KERN_TYPE_MD55_PWSLT2         2710
-#define KERN_TYPE_MD55_SLTPW          2810
-#define KERN_TYPE_LM                  3000
-#define KERN_TYPE_ORACLEH             3100
-#define KERN_TYPE_BCRYPT              3200
-#define KERN_TYPE_MD5_SLT_MD5_PW      3710
-#define KERN_TYPE_MD5_SLT_PW_SLT      3800
-#define KERN_TYPE_MD5U5               4300
-#define KERN_TYPE_MD5U5_PWSLT1        4310
-#define KERN_TYPE_MD5_SHA1            4400
-#define KERN_TYPE_SHA11               4500
-#define KERN_TYPE_SHA1_MD5            4700
-#define KERN_TYPE_MD5_CHAP            4800
-#define KERN_TYPE_SHA1_SLT_PW_SLT     4900
-#define KERN_TYPE_KECCAK              5000
-#define KERN_TYPE_MD5H                5100
-#define KERN_TYPE_PSAFE3              5200
-#define KERN_TYPE_IKEPSK_MD5          5300
-#define KERN_TYPE_IKEPSK_SHA1         5400
-#define KERN_TYPE_NETNTLMv1           5500
-#define KERN_TYPE_NETNTLMv2           5600
-#define KERN_TYPE_ANDROIDPIN          5800
-#define KERN_TYPE_RIPEMD160           6000
-#define KERN_TYPE_WHIRLPOOL           6100
-#define KERN_TYPE_TCRIPEMD160_XTS512  6211
-#define KERN_TYPE_TCRIPEMD160_XTS1024 6212
-#define KERN_TYPE_TCRIPEMD160_XTS1536 6213
-#define KERN_TYPE_TCSHA512_XTS512     6221
-#define KERN_TYPE_TCSHA512_XTS1024    6222
-#define KERN_TYPE_TCSHA512_XTS1536    6223
-#define KERN_TYPE_TCWHIRLPOOL_XTS512  6231
-#define KERN_TYPE_TCWHIRLPOOL_XTS1024 6232
-#define KERN_TYPE_TCWHIRLPOOL_XTS1536 6233
-#define KERN_TYPE_VCSHA256_XTS512     13751
-#define KERN_TYPE_VCSHA256_XTS1024    13752
-#define KERN_TYPE_VCSHA256_XTS1536    13753
-#define KERN_TYPE_MD5AIX              6300
-#define KERN_TYPE_SHA256AIX           6400
-#define KERN_TYPE_SHA512AIX           6500
-#define KERN_TYPE_AGILEKEY            6600
-#define KERN_TYPE_SHA1AIX             6700
-#define KERN_TYPE_LASTPASS            6800
-#define KERN_TYPE_GOST                6900
-#define KERN_TYPE_PBKDF2_SHA512       7100
-#define KERN_TYPE_RAKP                7300
-#define KERN_TYPE_SHA256CRYPT         7400
-#define KERN_TYPE_KRB5PA              7500
-#define KERN_TYPE_SHA1_SLT_SHA1_PW    7600
-#define KERN_TYPE_SAPB                7700
-#define KERN_TYPE_SAPG                7800
-#define KERN_TYPE_DRUPAL7             7900
-#define KERN_TYPE_SYBASEASE           8000
-#define KERN_TYPE_NETSCALER           8100
-#define KERN_TYPE_CLOUDKEY            8200
-#define KERN_TYPE_NSEC3               8300
-#define KERN_TYPE_WBB3                8400
-#define KERN_TYPE_RACF                8500
-#define KERN_TYPE_LOTUS5              8600
-#define KERN_TYPE_LOTUS6              8700
-#define KERN_TYPE_ANDROIDFDE          8800
-#define KERN_TYPE_SCRYPT              8900
-#define KERN_TYPE_PSAFE2              9000
-#define KERN_TYPE_LOTUS8              9100
-#define KERN_TYPE_OFFICE2007          9400
-#define KERN_TYPE_OFFICE2010          9500
-#define KERN_TYPE_OFFICE2013          9600
-#define KERN_TYPE_OLDOFFICE01         9700
-#define KERN_TYPE_OLDOFFICE01CM1      9710
-#define KERN_TYPE_OLDOFFICE01CM2      9720
-#define KERN_TYPE_OLDOFFICE34         9800
-#define KERN_TYPE_OLDOFFICE34CM1      9810
-#define KERN_TYPE_OLDOFFICE34CM2      9820
-#define KERN_TYPE_RADMIN2             9900
-#define KERN_TYPE_SIPHASH             10100
-#define KERN_TYPE_SAPH_SHA1           10300
-#define KERN_TYPE_PDF11               10400
-#define KERN_TYPE_PDF11CM1            10410
-#define KERN_TYPE_PDF11CM2            10420
-#define KERN_TYPE_PDF14               10500
-#define KERN_TYPE_PDF17L8             10700
-#define KERN_TYPE_SHA384              10800
-#define KERN_TYPE_PBKDF2_SHA256       10900
-#define KERN_TYPE_PRESTASHOP          11000
-#define KERN_TYPE_POSTGRESQL_AUTH     11100
-#define KERN_TYPE_MYSQL_AUTH          11200
-#define KERN_TYPE_BITCOIN_WALLET      11300
-#define KERN_TYPE_SIP_AUTH            11400
-#define KERN_TYPE_CRC32               11500
-#define KERN_TYPE_SEVEN_ZIP           11600
-#define KERN_TYPE_GOST_2012SBOG_256   11700
-#define KERN_TYPE_GOST_2012SBOG_512   11800
-#define KERN_TYPE_PBKDF2_MD5          11900
-#define KERN_TYPE_PBKDF2_SHA1         12000
-#define KERN_TYPE_ECRYPTFS            12200
-#define KERN_TYPE_ORACLET             12300
-#define KERN_TYPE_BSDICRYPT           12400
-#define KERN_TYPE_RAR3                12500
-#define KERN_TYPE_CF10                12600
-#define KERN_TYPE_MYWALLET            12700
-#define KERN_TYPE_MS_DRSR             12800
-#define KERN_TYPE_ANDROIDFDE_SAMSUNG  12900
-#define KERN_TYPE_RAR5                13000
-#define KERN_TYPE_KRB5TGS             13100
-#define KERN_TYPE_AXCRYPT             13200
-#define KERN_TYPE_SHA1_AXCRYPT        13300
-#define KERN_TYPE_KEEPASS             13400
-#define KERN_TYPE_PSTOKEN             13500
-#define KERN_TYPE_ZIP2                13600
-#define KERN_TYPE_WIN8PHONE           13800
-#define KERN_TYPE_OPENCART            13900
-#define KERN_TYPE_DES                 14000
-#define KERN_TYPE_3DES                14100
+} hash_type_t;
+
+typedef enum kern_type
+{
+  KERN_TYPE_MD5                 = 0,
+  KERN_TYPE_MD5_PWSLT           = 10,
+  KERN_TYPE_MD5_SLTPW           = 20,
+  KERN_TYPE_MD5_PWUSLT          = 30,
+  KERN_TYPE_MD5_SLTPWU          = 40,
+  KERN_TYPE_HMACMD5_PW          = 50,
+  KERN_TYPE_HMACMD5_SLT         = 60,
+  KERN_TYPE_SHA1                = 100,
+  KERN_TYPE_SHA1_PWSLT          = 110,
+  KERN_TYPE_SHA1_SLTPW          = 120,
+  KERN_TYPE_SHA1_PWUSLT         = 130,
+  KERN_TYPE_SHA1_SLTPWU         = 140,
+  KERN_TYPE_HMACSHA1_PW         = 150,
+  KERN_TYPE_HMACSHA1_SLT        = 160,
+  KERN_TYPE_MYSQL               = 200,
+  KERN_TYPE_MYSQL41             = 300,
+  KERN_TYPE_PHPASS              = 400,
+  KERN_TYPE_MD5CRYPT            = 500,
+  KERN_TYPE_MD4                 = 900,
+  KERN_TYPE_MD4_PWU             = 1000,
+  KERN_TYPE_MD44_PWUSLT         = 1100,
+  KERN_TYPE_SHA256              = 1400,
+  KERN_TYPE_SHA256_PWSLT        = 1410,
+  KERN_TYPE_SHA256_SLTPW        = 1420,
+  KERN_TYPE_SHA256_PWUSLT       = 1430,
+  KERN_TYPE_SHA256_SLTPWU       = 1440,
+  KERN_TYPE_HMACSHA256_PW       = 1450,
+  KERN_TYPE_HMACSHA256_SLT      = 1460,
+  KERN_TYPE_DESCRYPT            = 1500,
+  KERN_TYPE_APR1CRYPT           = 1600,
+  KERN_TYPE_SHA512              = 1700,
+  KERN_TYPE_SHA512_PWSLT        = 1710,
+  KERN_TYPE_SHA512_SLTPW        = 1720,
+  KERN_TYPE_SHA512_PWSLTU       = 1730,
+  KERN_TYPE_SHA512_SLTPWU       = 1740,
+  KERN_TYPE_HMACSHA512_PW       = 1750,
+  KERN_TYPE_HMACSHA512_SLT      = 1760,
+  KERN_TYPE_SHA512CRYPT         = 1800,
+  KERN_TYPE_STDOUT              = 2000,
+  KERN_TYPE_DCC2                = 2100,
+  KERN_TYPE_MD5PIX              = 2400,
+  KERN_TYPE_MD5ASA              = 2410,
+  KERN_TYPE_WPA                 = 2500,
+  KERN_TYPE_MD55                = 2600,
+  KERN_TYPE_MD55_PWSLT1         = 2610,
+  KERN_TYPE_MD55_PWSLT2         = 2710,
+  KERN_TYPE_MD55_SLTPW          = 2810,
+  KERN_TYPE_LM                  = 3000,
+  KERN_TYPE_ORACLEH             = 3100,
+  KERN_TYPE_BCRYPT              = 3200,
+  KERN_TYPE_MD5_SLT_MD5_PW      = 3710,
+  KERN_TYPE_MD5_SLT_PW_SLT      = 3800,
+  KERN_TYPE_MD5U5               = 4300,
+  KERN_TYPE_MD5U5_PWSLT1        = 4310,
+  KERN_TYPE_MD5_SHA1            = 4400,
+  KERN_TYPE_SHA11               = 4500,
+  KERN_TYPE_SHA1_MD5            = 4700,
+  KERN_TYPE_MD5_CHAP            = 4800,
+  KERN_TYPE_SHA1_SLT_PW_SLT     = 4900,
+  KERN_TYPE_KECCAK              = 5000,
+  KERN_TYPE_MD5H                = 5100,
+  KERN_TYPE_PSAFE3              = 5200,
+  KERN_TYPE_IKEPSK_MD5          = 5300,
+  KERN_TYPE_IKEPSK_SHA1         = 5400,
+  KERN_TYPE_NETNTLMv1           = 5500,
+  KERN_TYPE_NETNTLMv2           = 5600,
+  KERN_TYPE_ANDROIDPIN          = 5800,
+  KERN_TYPE_RIPEMD160           = 6000,
+  KERN_TYPE_WHIRLPOOL           = 6100,
+  KERN_TYPE_TCRIPEMD160_XTS512  = 6211,
+  KERN_TYPE_TCRIPEMD160_XTS1024 = 6212,
+  KERN_TYPE_TCRIPEMD160_XTS1536 = 6213,
+  KERN_TYPE_TCSHA512_XTS512     = 6221,
+  KERN_TYPE_TCSHA512_XTS1024    = 6222,
+  KERN_TYPE_TCSHA512_XTS1536    = 6223,
+  KERN_TYPE_TCWHIRLPOOL_XTS512  = 6231,
+  KERN_TYPE_TCWHIRLPOOL_XTS1024 = 6232,
+  KERN_TYPE_TCWHIRLPOOL_XTS1536 = 6233,
+  KERN_TYPE_VCSHA256_XTS512     = 13751,
+  KERN_TYPE_VCSHA256_XTS1024    = 13752,
+  KERN_TYPE_VCSHA256_XTS1536    = 13753,
+  KERN_TYPE_MD5AIX              = 6300,
+  KERN_TYPE_SHA256AIX           = 6400,
+  KERN_TYPE_SHA512AIX           = 6500,
+  KERN_TYPE_AGILEKEY            = 6600,
+  KERN_TYPE_SHA1AIX             = 6700,
+  KERN_TYPE_LASTPASS            = 6800,
+  KERN_TYPE_GOST                = 6900,
+  KERN_TYPE_PBKDF2_SHA512       = 7100,
+  KERN_TYPE_RAKP                = 7300,
+  KERN_TYPE_SHA256CRYPT         = 7400,
+  KERN_TYPE_KRB5PA              = 7500,
+  KERN_TYPE_SHA1_SLT_SHA1_PW    = 7600,
+  KERN_TYPE_SAPB                = 7700,
+  KERN_TYPE_SAPG                = 7800,
+  KERN_TYPE_DRUPAL7             = 7900,
+  KERN_TYPE_SYBASEASE           = 8000,
+  KERN_TYPE_NETSCALER           = 8100,
+  KERN_TYPE_CLOUDKEY            = 8200,
+  KERN_TYPE_NSEC3               = 8300,
+  KERN_TYPE_WBB3                = 8400,
+  KERN_TYPE_RACF                = 8500,
+  KERN_TYPE_LOTUS5              = 8600,
+  KERN_TYPE_LOTUS6              = 8700,
+  KERN_TYPE_ANDROIDFDE          = 8800,
+  KERN_TYPE_SCRYPT              = 8900,
+  KERN_TYPE_PSAFE2              = 9000,
+  KERN_TYPE_LOTUS8              = 9100,
+  KERN_TYPE_OFFICE2007          = 9400,
+  KERN_TYPE_OFFICE2010          = 9500,
+  KERN_TYPE_OFFICE2013          = 9600,
+  KERN_TYPE_OLDOFFICE01         = 9700,
+  KERN_TYPE_OLDOFFICE01CM1      = 9710,
+  KERN_TYPE_OLDOFFICE01CM2      = 9720,
+  KERN_TYPE_OLDOFFICE34         = 9800,
+  KERN_TYPE_OLDOFFICE34CM1      = 9810,
+  KERN_TYPE_OLDOFFICE34CM2      = 9820,
+  KERN_TYPE_RADMIN2             = 9900,
+  KERN_TYPE_SIPHASH             = 10100,
+  KERN_TYPE_SAPH_SHA1           = 10300,
+  KERN_TYPE_PDF11               = 10400,
+  KERN_TYPE_PDF11CM1            = 10410,
+  KERN_TYPE_PDF11CM2            = 10420,
+  KERN_TYPE_PDF14               = 10500,
+  KERN_TYPE_PDF17L8             = 10700,
+  KERN_TYPE_SHA384              = 10800,
+  KERN_TYPE_PBKDF2_SHA256       = 10900,
+  KERN_TYPE_PRESTASHOP          = 11000,
+  KERN_TYPE_POSTGRESQL_AUTH     = 11100,
+  KERN_TYPE_MYSQL_AUTH          = 11200,
+  KERN_TYPE_BITCOIN_WALLET      = 11300,
+  KERN_TYPE_SIP_AUTH            = 11400,
+  KERN_TYPE_CRC32               = 11500,
+  KERN_TYPE_SEVEN_ZIP           = 11600,
+  KERN_TYPE_GOST_2012SBOG_256   = 11700,
+  KERN_TYPE_GOST_2012SBOG_512   = 11800,
+  KERN_TYPE_PBKDF2_MD5          = 11900,
+  KERN_TYPE_PBKDF2_SHA1         = 12000,
+  KERN_TYPE_ECRYPTFS            = 12200,
+  KERN_TYPE_ORACLET             = 12300,
+  KERN_TYPE_BSDICRYPT           = 12400,
+  KERN_TYPE_RAR3                = 12500,
+  KERN_TYPE_CF10                = 12600,
+  KERN_TYPE_MYWALLET            = 12700,
+  KERN_TYPE_MS_DRSR             = 12800,
+  KERN_TYPE_ANDROIDFDE_SAMSUNG  = 12900,
+  KERN_TYPE_RAR5                = 13000,
+  KERN_TYPE_KRB5TGS             = 13100,
+  KERN_TYPE_AXCRYPT             = 13200,
+  KERN_TYPE_SHA1_AXCRYPT        = 13300,
+  KERN_TYPE_KEEPASS             = 13400,
+  KERN_TYPE_PSTOKEN             = 13500,
+  KERN_TYPE_ZIP2                = 13600,
+  KERN_TYPE_WIN8PHONE           = 13800,
+  KERN_TYPE_OPENCART            = 13900,
+  KERN_TYPE_DES                 = 14000,
+  KERN_TYPE_3DES                = 14100
+
+} kern_type_t;
 
 /**
  * signatures
  */
 
-#define SIGNATURE_PHPASS1         "$P$"
-#define SIGNATURE_PHPASS2         "$H$"
-#define SIGNATURE_MD5CRYPT        "$1$"
-#define SIGNATURE_BCRYPT1         "$2a$"
-#define SIGNATURE_BCRYPT2         "$2b$"
-#define SIGNATURE_BCRYPT3         "$2x$"
-#define SIGNATURE_BCRYPT4         "$2y$"
-#define SIGNATURE_SHA512CRYPT     "$6$"
-#define SIGNATURE_MD5APR1         "$apr1$"
-#define SIGNATURE_MSSQL           "0x0100"
-#define SIGNATURE_MSSQL2012       "0x0200"
-#define SIGNATURE_SHA1B64         "{SHA}"
-#define SIGNATURE_SSHA1B64_lower  "{ssha}"
-#define SIGNATURE_SSHA1B64_upper  "{SSHA}"
-#define SIGNATURE_EPISERVER       "$episerver$*0*"
-#define SIGNATURE_EPISERVER4      "$episerver$*1*"
-#define SIGNATURE_PSAFE3          "PWS3"
-#define SIGNATURE_TRUECRYPT       "TRUE"
-#define SIGNATURE_MD5AIX          "{smd5}"
-#define SIGNATURE_SHA1AIX         "{ssha1}"
-#define SIGNATURE_SHA256AIX       "{ssha256}"
-#define SIGNATURE_SHA512AIX       "{ssha512}"
-#define SIGNATURE_SHA256CRYPT     "$5$"
-#define SIGNATURE_SHA512OSX       "$ml$"
-#define SIGNATURE_SHA512GRUB      "grub.pbkdf2.sha512."
-#define SIGNATURE_SHA512B64S      "{SSHA512}"
-#define SIGNATURE_KRB5PA          "$krb5pa$23"
-#define SIGNATURE_DRUPAL7         "$S$"
-#define SIGNATURE_SYBASEASE       "0xc007"
-#define SIGNATURE_NETSCALER       "1"
-#define SIGNATURE_DCC2            "$DCC2$"
-#define SIGNATURE_RACF            "$racf$"
-#define SIGNATURE_PHPS            "$PHPS$"
-#define SIGNATURE_MEDIAWIKI_B     "$B$"
-#define SIGNATURE_ANDROIDFDE      "$fde$"
-#define SIGNATURE_SCRYPT          "SCRYPT"
-#define SIGNATURE_CISCO8          "$8$"
-#define SIGNATURE_CISCO9          "$9$"
-#define SIGNATURE_OFFICE2007      "$office$"
-#define SIGNATURE_OFFICE2010      "$office$"
-#define SIGNATURE_OFFICE2013      "$office$"
-#define SIGNATURE_OLDOFFICE0      "$oldoffice$0"
-#define SIGNATURE_OLDOFFICE1      "$oldoffice$1"
-#define SIGNATURE_OLDOFFICE3      "$oldoffice$3"
-#define SIGNATURE_OLDOFFICE4      "$oldoffice$4"
-#define SIGNATURE_DJANGOSHA1      "sha1$"
-#define SIGNATURE_DJANGOPBKDF2    "pbkdf2_sha256$"
-#define SIGNATURE_CRAM_MD5        "$cram_md5$"
-#define SIGNATURE_SAPH_SHA1       "{x-issha, "
-#define SIGNATURE_PDF             "$pdf$"
-#define SIGNATURE_PBKDF2_SHA256   "sha256:"
-#define SIGNATURE_POSTGRESQL_AUTH "$postgres$"
-#define SIGNATURE_MYSQL_AUTH      "$mysqlna$"
-#define SIGNATURE_BITCOIN_WALLET  "$bitcoin$"
-#define SIGNATURE_SIP_AUTH        "$sip$*"
-#define SIGNATURE_SEVEN_ZIP       "$7z$"
-#define SIGNATURE_PBKDF2_MD5      "md5:"
-#define SIGNATURE_PBKDF2_SHA1     "sha1:"
-#define SIGNATURE_PBKDF2_SHA512   "sha512:"
-#define SIGNATURE_ECRYPTFS        "$ecryptfs$"
-#define SIGNATURE_BSDICRYPT       "_"
-#define SIGNATURE_RAR3            "$RAR3$"
-#define SIGNATURE_MYWALLET        "$blockchain$"
-#define SIGNATURE_MS_DRSR         "v1;PPH1_MD4"
-#define SIGNATURE_RAR5            "$rar5$"
-#define SIGNATURE_KRB5TGS         "$krb5tgs$23"
-#define SIGNATURE_AXCRYPT         "$axcrypt$*1"
-#define SIGNATURE_AXCRYPT_SHA1    "$axcrypt_sha1"
-#define SIGNATURE_KEEPASS         "$keepass$"
-#define SIGNATURE_ZIP2_START      "$zip2$"
-#define SIGNATURE_ZIP2_STOP       "$/zip2$"
+static const char SIGNATURE_ANDROIDFDE[]      = "$fde$";
+static const char SIGNATURE_AXCRYPT[]         = "$axcrypt$*1";
+static const char SIGNATURE_AXCRYPT_SHA1[]    = "$axcrypt_sha1";
+static const char SIGNATURE_BCRYPT1[]         = "$2a$";
+static const char SIGNATURE_BCRYPT2[]         = "$2b$";
+static const char SIGNATURE_BCRYPT3[]         = "$2x$";
+static const char SIGNATURE_BCRYPT4[]         = "$2y$";
+static const char SIGNATURE_BITCOIN_WALLET[]  = "$bitcoin$";
+static const char SIGNATURE_BSDICRYPT[]       = "_";
+static const char SIGNATURE_CISCO8[]          = "$8$";
+static const char SIGNATURE_CISCO9[]          = "$9$";
+static const char SIGNATURE_CRAM_MD5[]        = "$cram_md5$";
+static const char SIGNATURE_DCC2[]            = "$DCC2$";
+static const char SIGNATURE_DJANGOPBKDF2[]    = "pbkdf2_sha256$";
+static const char SIGNATURE_DJANGOSHA1[]      = "sha1$";
+static const char SIGNATURE_DRUPAL7[]         = "$S$";
+static const char SIGNATURE_ECRYPTFS[]        = "$ecryptfs$";
+static const char SIGNATURE_EPISERVER4[]      = "$episerver$*1*";
+static const char SIGNATURE_EPISERVER[]       = "$episerver$*0*";
+static const char SIGNATURE_KEEPASS[]         = "$keepass$";
+static const char SIGNATURE_KRB5PA[]          = "$krb5pa$23";
+static const char SIGNATURE_KRB5TGS[]         = "$krb5tgs$23";
+static const char SIGNATURE_MD5AIX[]          = "{smd5}";
+static const char SIGNATURE_MD5APR1[]         = "$apr1$";
+static const char SIGNATURE_MD5CRYPT[]        = "$1$";
+static const char SIGNATURE_MEDIAWIKI_B[]     = "$B$";
+static const char SIGNATURE_MS_DRSR[]         = "v1;PPH1_MD4";
+static const char SIGNATURE_MSSQL[]           = "0x0100";
+static const char SIGNATURE_MSSQL2012[]       = "0x0200";
+static const char SIGNATURE_MYSQL_AUTH[]      = "$mysqlna$";
+static const char SIGNATURE_MYWALLET[]        = "$blockchain$";
+static const char SIGNATURE_NETSCALER[]       = "1";
+static const char SIGNATURE_OFFICE2007[]      = "$office$";
+static const char SIGNATURE_OFFICE2010[]      = "$office$";
+static const char SIGNATURE_OFFICE2013[]      = "$office$";
+static const char SIGNATURE_OLDOFFICE0[]      = "$oldoffice$0";
+static const char SIGNATURE_OLDOFFICE1[]      = "$oldoffice$1";
+static const char SIGNATURE_OLDOFFICE3[]      = "$oldoffice$3";
+static const char SIGNATURE_OLDOFFICE4[]      = "$oldoffice$4";
+static const char SIGNATURE_PBKDF2_MD5[]      = "md5:";
+static const char SIGNATURE_PBKDF2_SHA1[]     = "sha1:";
+static const char SIGNATURE_PBKDF2_SHA256[]   = "sha256:";
+static const char SIGNATURE_PBKDF2_SHA512[]   = "sha512:";
+static const char SIGNATURE_PDF[]             = "$pdf$";
+static const char SIGNATURE_PHPASS1[]         = "$P$";
+static const char SIGNATURE_PHPASS2[]         = "$H$";
+static const char SIGNATURE_PHPS[]            = "$PHPS$";
+static const char SIGNATURE_POSTGRESQL_AUTH[] = "$postgres$";
+static const char SIGNATURE_PSAFE3[]          = "PWS3";
+static const char SIGNATURE_RACF[]            = "$racf$";
+static const char SIGNATURE_RAR3[]            = "$RAR3$";
+static const char SIGNATURE_RAR5[]            = "$rar5$";
+static const char SIGNATURE_SAPH_SHA1[]       = "{x-issha, ";
+static const char SIGNATURE_SCRYPT[]          = "SCRYPT";
+static const char SIGNATURE_SEVEN_ZIP[]       = "$7z$";
+static const char SIGNATURE_SHA1AIX[]         = "{ssha1}";
+static const char SIGNATURE_SHA1B64[]         = "{SHA}";
+static const char SIGNATURE_SHA256AIX[]       = "{ssha256}";
+static const char SIGNATURE_SHA256CRYPT[]     = "$5$";
+static const char SIGNATURE_SHA512AIX[]       = "{ssha512}";
+static const char SIGNATURE_SHA512B64S[]      = "{SSHA512}";
+static const char SIGNATURE_SHA512CRYPT[]     = "$6$";
+static const char SIGNATURE_SHA512GRUB[]      = "grub.pbkdf2.sha512.";
+static const char SIGNATURE_SHA512OSX[]       = "$ml$";
+static const char SIGNATURE_SIP_AUTH[]        = "$sip$*";
+static const char SIGNATURE_SSHA1B64_lower[]  = "{ssha}";
+static const char SIGNATURE_SSHA1B64_upper[]  = "{SSHA}";
+static const char SIGNATURE_SYBASEASE[]       = "0xc007";
+static const char SIGNATURE_TRUECRYPT[]       = "TRUE";
+static const char SIGNATURE_ZIP2_START[]      = "$zip2$";
+static const char SIGNATURE_ZIP2_STOP[]       = "$/zip2$";
 
 /**
  * Default iteration numbers
@@ -1158,87 +1174,99 @@ extern hc_thread_mutex_t mux_display;
  * salt types
  */
 
-#define SALT_TYPE_NONE        1u
-#define SALT_TYPE_EMBEDDED    2u
-#define SALT_TYPE_INTERN      3u
-#define SALT_TYPE_EXTERN      4u
-#define SALT_TYPE_VIRTUAL     5u
+typedef enum salt_type
+{
+  SALT_TYPE_NONE     = 1,
+  SALT_TYPE_EMBEDDED = 2,
+  SALT_TYPE_INTERN   = 3,
+  SALT_TYPE_EXTERN   = 4,
+  SALT_TYPE_VIRTUAL  = 5
+
+} salt_type_t;
 
 /**
  * optimizer options
  */
 
-#define OPTI_TYPE_ZERO_BYTE         (1u <<  1)
-#define OPTI_TYPE_PRECOMPUTE_INIT   (1u <<  2)
-#define OPTI_TYPE_PRECOMPUTE_MERKLE (1u <<  3)
-#define OPTI_TYPE_PRECOMPUTE_PERMUT (1u <<  4)
-#define OPTI_TYPE_MEET_IN_MIDDLE    (1u <<  5)
-#define OPTI_TYPE_EARLY_SKIP        (1u <<  6)
-#define OPTI_TYPE_NOT_SALTED        (1u <<  7)
-#define OPTI_TYPE_NOT_ITERATED      (1u <<  8)
-#define OPTI_TYPE_PREPENDED_SALT    (1u <<  9)
-#define OPTI_TYPE_APPENDED_SALT     (1u << 10)
-#define OPTI_TYPE_SINGLE_HASH       (1u << 11)
-#define OPTI_TYPE_SINGLE_SALT       (1u << 12)
-#define OPTI_TYPE_BRUTE_FORCE       (1u << 13)
-#define OPTI_TYPE_RAW_HASH          (1u << 14)
-#define OPTI_TYPE_SLOW_HASH_SIMD    (1u << 15)
-#define OPTI_TYPE_USES_BITS_8       (1u << 16)
-#define OPTI_TYPE_USES_BITS_16      (1u << 17)
-#define OPTI_TYPE_USES_BITS_32      (1u << 18)
-#define OPTI_TYPE_USES_BITS_64      (1u << 19)
+typedef enum opti_type
+{
+  OPTI_TYPE_ZERO_BYTE         = (1 <<  1),
+  OPTI_TYPE_PRECOMPUTE_INIT   = (1 <<  2),
+  OPTI_TYPE_PRECOMPUTE_MERKLE = (1 <<  3),
+  OPTI_TYPE_PRECOMPUTE_PERMUT = (1 <<  4),
+  OPTI_TYPE_MEET_IN_MIDDLE    = (1 <<  5),
+  OPTI_TYPE_EARLY_SKIP        = (1 <<  6),
+  OPTI_TYPE_NOT_SALTED        = (1 <<  7),
+  OPTI_TYPE_NOT_ITERATED      = (1 <<  8),
+  OPTI_TYPE_PREPENDED_SALT    = (1 <<  9),
+  OPTI_TYPE_APPENDED_SALT     = (1 << 10),
+  OPTI_TYPE_SINGLE_HASH       = (1 << 11),
+  OPTI_TYPE_SINGLE_SALT       = (1 << 12),
+  OPTI_TYPE_BRUTE_FORCE       = (1 << 13),
+  OPTI_TYPE_RAW_HASH          = (1 << 14),
+  OPTI_TYPE_SLOW_HASH_SIMD    = (1 << 15),
+  OPTI_TYPE_USES_BITS_8       = (1 << 16),
+  OPTI_TYPE_USES_BITS_16      = (1 << 17),
+  OPTI_TYPE_USES_BITS_32      = (1 << 18),
+  OPTI_TYPE_USES_BITS_64      = (1 << 19)
 
-#define OPTI_STR_ZERO_BYTE          "Zero-Byte"
-#define OPTI_STR_PRECOMPUTE_INIT    "Precompute-Init"
-#define OPTI_STR_PRECOMPUTE_MERKLE  "Precompute-Merkle-Demgard"
-#define OPTI_STR_PRECOMPUTE_PERMUT  "Precompute-Final-Permutation"
-#define OPTI_STR_MEET_IN_MIDDLE     "Meet-In-The-Middle"
-#define OPTI_STR_EARLY_SKIP         "Early-Skip"
-#define OPTI_STR_NOT_SALTED         "Not-Salted"
-#define OPTI_STR_NOT_ITERATED       "Not-Iterated"
-#define OPTI_STR_PREPENDED_SALT     "Prepended-Salt"
-#define OPTI_STR_APPENDED_SALT      "Appended-Salt"
-#define OPTI_STR_SINGLE_HASH        "Single-Hash"
-#define OPTI_STR_SINGLE_SALT        "Single-Salt"
-#define OPTI_STR_BRUTE_FORCE        "Brute-Force"
-#define OPTI_STR_RAW_HASH           "Raw-Hash"
-#define OPTI_STR_SLOW_HASH_SIMD     "Slow-Hash-SIMD"
-#define OPTI_STR_USES_BITS_8        "Uses-8-Bit"
-#define OPTI_STR_USES_BITS_16       "Uses-16-Bit"
-#define OPTI_STR_USES_BITS_32       "Uses-32-Bit"
-#define OPTI_STR_USES_BITS_64       "Uses-64-Bit"
+} opti_type_t;
+
+static const char OPTI_STR_ZERO_BYTE[]         = "Zero-Byte";
+static const char OPTI_STR_PRECOMPUTE_INIT[]   = "Precompute-Init";
+static const char OPTI_STR_PRECOMPUTE_MERKLE[] = "Precompute-Merkle-Demgard";
+static const char OPTI_STR_PRECOMPUTE_PERMUT[] = "Precompute-Final-Permutation";
+static const char OPTI_STR_MEET_IN_MIDDLE[]    = "Meet-In-The-Middle";
+static const char OPTI_STR_EARLY_SKIP[]        = "Early-Skip";
+static const char OPTI_STR_NOT_SALTED[]        = "Not-Salted";
+static const char OPTI_STR_NOT_ITERATED[]      = "Not-Iterated";
+static const char OPTI_STR_PREPENDED_SALT[]    = "Prepended-Salt";
+static const char OPTI_STR_APPENDED_SALT[]     = "Appended-Salt";
+static const char OPTI_STR_SINGLE_HASH[]       = "Single-Hash";
+static const char OPTI_STR_SINGLE_SALT[]       = "Single-Salt";
+static const char OPTI_STR_BRUTE_FORCE[]       = "Brute-Force";
+static const char OPTI_STR_RAW_HASH[]          = "Raw-Hash";
+static const char OPTI_STR_SLOW_HASH_SIMD[]    = "Slow-Hash-SIMD";
+static const char OPTI_STR_USES_BITS_8[]       = "Uses-8-Bit";
+static const char OPTI_STR_USES_BITS_16[]      = "Uses-16-Bit";
+static const char OPTI_STR_USES_BITS_32[]      = "Uses-32-Bit";
+static const char OPTI_STR_USES_BITS_64[]      = "Uses-64-Bit";
 
 /**
  * hash options
  */
 
-#define OPTS_TYPE_PT_UNICODE        (1u <<  0)
-#define OPTS_TYPE_PT_UPPER          (1u <<  1)
-#define OPTS_TYPE_PT_LOWER          (1u <<  2)
-#define OPTS_TYPE_PT_ADD01          (1u <<  3)
-#define OPTS_TYPE_PT_ADD02          (1u <<  4)
-#define OPTS_TYPE_PT_ADD80          (1u <<  5)
-#define OPTS_TYPE_PT_ADDBITS14      (1u <<  6)
-#define OPTS_TYPE_PT_ADDBITS15      (1u <<  7)
-#define OPTS_TYPE_PT_GENERATE_LE    (1u <<  8)
-#define OPTS_TYPE_PT_GENERATE_BE    (1u <<  9)
-#define OPTS_TYPE_PT_NEVERCRACK     (1u << 10) // if we want all possible results
-#define OPTS_TYPE_PT_BITSLICE       (1u << 11)
-#define OPTS_TYPE_ST_UNICODE        (1u << 12)
-#define OPTS_TYPE_ST_UPPER          (1u << 13)
-#define OPTS_TYPE_ST_LOWER          (1u << 14)
-#define OPTS_TYPE_ST_ADD01          (1u << 15)
-#define OPTS_TYPE_ST_ADD02          (1u << 16)
-#define OPTS_TYPE_ST_ADD80          (1u << 17)
-#define OPTS_TYPE_ST_ADDBITS14      (1u << 18)
-#define OPTS_TYPE_ST_ADDBITS15      (1u << 19)
-#define OPTS_TYPE_ST_GENERATE_LE    (1u << 20)
-#define OPTS_TYPE_ST_GENERATE_BE    (1u << 21)
-#define OPTS_TYPE_ST_HEX            (1u << 22)
-#define OPTS_TYPE_ST_BASE64         (1u << 23)
-#define OPTS_TYPE_HASH_COPY         (1u << 24)
-#define OPTS_TYPE_HOOK12            (1u << 25)
-#define OPTS_TYPE_HOOK23            (1u << 26)
+typedef enum opts_type
+{
+  OPTS_TYPE_PT_UNICODE        = (1 <<  0),
+  OPTS_TYPE_PT_UPPER          = (1 <<  1),
+  OPTS_TYPE_PT_LOWER          = (1 <<  2),
+  OPTS_TYPE_PT_ADD01          = (1 <<  3),
+  OPTS_TYPE_PT_ADD02          = (1 <<  4),
+  OPTS_TYPE_PT_ADD80          = (1 <<  5),
+  OPTS_TYPE_PT_ADDBITS14      = (1 <<  6),
+  OPTS_TYPE_PT_ADDBITS15      = (1 <<  7),
+  OPTS_TYPE_PT_GENERATE_LE    = (1 <<  8),
+  OPTS_TYPE_PT_GENERATE_BE    = (1 <<  9),
+  OPTS_TYPE_PT_NEVERCRACK     = (1 << 10), // if we want all possible results
+  OPTS_TYPE_PT_BITSLICE       = (1 << 11),
+  OPTS_TYPE_ST_UNICODE        = (1 << 12),
+  OPTS_TYPE_ST_UPPER          = (1 << 13),
+  OPTS_TYPE_ST_LOWER          = (1 << 14),
+  OPTS_TYPE_ST_ADD01          = (1 << 15),
+  OPTS_TYPE_ST_ADD02          = (1 << 16),
+  OPTS_TYPE_ST_ADD80          = (1 << 17),
+  OPTS_TYPE_ST_ADDBITS14      = (1 << 18),
+  OPTS_TYPE_ST_ADDBITS15      = (1 << 19),
+  OPTS_TYPE_ST_GENERATE_LE    = (1 << 20),
+  OPTS_TYPE_ST_GENERATE_BE    = (1 << 21),
+  OPTS_TYPE_ST_HEX            = (1 << 22),
+  OPTS_TYPE_ST_BASE64         = (1 << 23),
+  OPTS_TYPE_HASH_COPY         = (1 << 24),
+  OPTS_TYPE_HOOK12            = (1 << 25),
+  OPTS_TYPE_HOOK23            = (1 << 26)
+
+} opts_type_t;
 
 /**
  * digests
@@ -1260,87 +1288,103 @@ extern hc_thread_mutex_t mux_display;
  * parser
  */
 
-#define PARSER_OK                   0
-#define PARSER_COMMENT             -1
-#define PARSER_GLOBAL_ZERO         -2
-#define PARSER_GLOBAL_LENGTH       -3
-#define PARSER_HASH_LENGTH         -4
-#define PARSER_HASH_VALUE          -5
-#define PARSER_SALT_LENGTH         -6
-#define PARSER_SALT_VALUE          -7
-#define PARSER_SALT_ITERATION      -8
-#define PARSER_SEPARATOR_UNMATCHED -9
-#define PARSER_SIGNATURE_UNMATCHED -10
-#define PARSER_HCCAP_FILE_SIZE     -11
-#define PARSER_HCCAP_EAPOL_SIZE    -12
-#define PARSER_PSAFE2_FILE_SIZE    -13
-#define PARSER_PSAFE3_FILE_SIZE    -14
-#define PARSER_TC_FILE_SIZE        -15
-#define PARSER_VC_FILE_SIZE        -16
-#define PARSER_SIP_AUTH_DIRECTIVE  -17
-#define PARSER_UNKNOWN_ERROR       -255
+typedef enum parser_rc
+{
+  PARSER_OK                  = 0,
+  PARSER_COMMENT             = -1,
+  PARSER_GLOBAL_ZERO         = -2,
+  PARSER_GLOBAL_LENGTH       = -3,
+  PARSER_HASH_LENGTH         = -4,
+  PARSER_HASH_VALUE          = -5,
+  PARSER_SALT_LENGTH         = -6,
+  PARSER_SALT_VALUE          = -7,
+  PARSER_SALT_ITERATION      = -8,
+  PARSER_SEPARATOR_UNMATCHED = -9,
+  PARSER_SIGNATURE_UNMATCHED = -10,
+  PARSER_HCCAP_FILE_SIZE     = -11,
+  PARSER_HCCAP_EAPOL_SIZE    = -12,
+  PARSER_PSAFE2_FILE_SIZE    = -13,
+  PARSER_PSAFE3_FILE_SIZE    = -14,
+  PARSER_TC_FILE_SIZE        = -15,
+  PARSER_VC_FILE_SIZE        = -16,
+  PARSER_SIP_AUTH_DIRECTIVE  = -17,
+  PARSER_UNKNOWN_ERROR       = -255
 
-#define PA_000 "OK"
-#define PA_001 "Ignored due to comment"
-#define PA_002 "Ignored due to zero length"
-#define PA_003 "Line-length exception"
-#define PA_004 "Hash-length exception"
-#define PA_005 "Hash-value exception"
-#define PA_006 "Salt-length exception"
-#define PA_007 "Salt-value exception"
-#define PA_008 "Salt-iteration count exception"
-#define PA_009 "Separator unmatched"
-#define PA_010 "Signature unmatched"
-#define PA_011 "Invalid hccap filesize"
-#define PA_012 "Invalid eapol size"
-#define PA_013 "Invalid psafe2 filesize"
-#define PA_014 "Invalid psafe3 filesize"
-#define PA_015 "Invalid truecrypt filesize"
-#define PA_016 "Invalid veracrypt filesize"
-#define PA_017 "Invalid SIP directive, only MD5 is supported"
-#define PA_255 "Unknown error"
+} parser_rc_t;
+
+static const char PA_000[] = "OK";
+static const char PA_001[] = "Ignored due to comment";
+static const char PA_002[] = "Ignored due to zero length";
+static const char PA_003[] = "Line-length exception";
+static const char PA_004[] = "Hash-length exception";
+static const char PA_005[] = "Hash-value exception";
+static const char PA_006[] = "Salt-length exception";
+static const char PA_007[] = "Salt-value exception";
+static const char PA_008[] = "Salt-iteration count exception";
+static const char PA_009[] = "Separator unmatched";
+static const char PA_010[] = "Signature unmatched";
+static const char PA_011[] = "Invalid hccap filesize";
+static const char PA_012[] = "Invalid eapol size";
+static const char PA_013[] = "Invalid psafe2 filesize";
+static const char PA_014[] = "Invalid psafe3 filesize";
+static const char PA_015[] = "Invalid truecrypt filesize";
+static const char PA_016[] = "Invalid veracrypt filesize";
+static const char PA_017[] = "Invalid SIP directive, only MD5 is supported";
+static const char PA_255[] = "Unknown error";
 
 /**
  * status
  */
 
-#define STATUS_STARTING           0
-#define STATUS_INIT               1
-#define STATUS_RUNNING            2
-#define STATUS_PAUSED             3
-#define STATUS_EXHAUSTED          4
-#define STATUS_CRACKED            5
-#define STATUS_ABORTED            6
-#define STATUS_QUIT               7
-#define STATUS_BYPASS             8
-#define STATUS_STOP_AT_CHECKPOINT 9
-#define STATUS_AUTOTUNE           10
+typedef enum status_rc
+{
+   STATUS_STARTING           = 0,
+   STATUS_INIT               = 1,
+   STATUS_RUNNING            = 2,
+   STATUS_PAUSED             = 3,
+   STATUS_EXHAUSTED          = 4,
+   STATUS_CRACKED            = 5,
+   STATUS_ABORTED            = 6,
+   STATUS_QUIT               = 7,
+   STATUS_BYPASS             = 8,
+   STATUS_STOP_AT_CHECKPOINT = 9,
+   STATUS_AUTOTUNE           = 10
 
-#define ST_0000 "Initializing"
-#define ST_0001 "Starting"
-#define ST_0002 "Running"
-#define ST_0003 "Paused"
-#define ST_0004 "Exhausted"
-#define ST_0005 "Cracked"
-#define ST_0006 "Aborted"
-#define ST_0007 "Quit"
-#define ST_0008 "Bypass"
-#define ST_0009 "Running (stop at checkpoint)"
-#define ST_0010 "Autotuning"
+} status_rc_t;
+
+static const char ST_0000[] = "Initializing";
+static const char ST_0001[] = "Starting";
+static const char ST_0002[] = "Running";
+static const char ST_0003[] = "Paused";
+static const char ST_0004[] = "Exhausted";
+static const char ST_0005[] = "Cracked";
+static const char ST_0006[] = "Aborted";
+static const char ST_0007[] = "Quit";
+static const char ST_0008[] = "Bypass";
+static const char ST_0009[] = "Running (stop at checkpoint)";
+static const char ST_0010[] = "Autotuning";
 
 /**
  * kernel types
  */
 
-#define KERN_RUN_MP          101
-#define KERN_RUN_MP_L        102
-#define KERN_RUN_MP_R        103
+typedef enum kern_run
+{
+  KERN_RUN_1    = 1000,
+  KERN_RUN_12   = 1500,
+  KERN_RUN_2    = 2000,
+  KERN_RUN_23   = 2500,
+  KERN_RUN_3    = 3000
 
-#define KERN_RUN_1           1000
-#define KERN_RUN_12          1500
-#define KERN_RUN_2           2000
-#define KERN_RUN_23          2500
-#define KERN_RUN_3           3000
+} kern_run_t;
+
+typedef enum kern_run_mp
+{
+  KERN_RUN_MP   = 101,
+  KERN_RUN_MP_L = 102,
+  KERN_RUN_MP_R = 103
+
+} kern_run_mp_t;
 
 /*
  * functions
