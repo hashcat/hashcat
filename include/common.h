@@ -80,6 +80,7 @@ typedef void *XNVCTRL_LIB;
 #include <psapi.h>
 #include <io.h>
 
+#ifndef _BASETSD_H
 typedef UINT8  uint8_t;
 typedef UINT16 uint16_t;
 typedef UINT32 uint32_t;
@@ -88,6 +89,7 @@ typedef INT8   int8_t;
 typedef INT16  int16_t;
 typedef INT32  int32_t;
 typedef INT64  int64_t;
+#endif
 
 typedef HINSTANCE OCL_LIB;
 
