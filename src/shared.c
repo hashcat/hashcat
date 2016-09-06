@@ -30,6 +30,10 @@
 #include "inc_hash_constants.h"
 #include "shared.h"
 
+#ifdef __APPLE__
+#include <stdio.h>
+#endif
+
 /**
  * converter
  */

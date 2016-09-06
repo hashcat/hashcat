@@ -6,6 +6,10 @@
 #include "common.h"
 #include "logging.h"
 
+#ifdef __APPLE__
+#include <stdio.h>
+#endif
+
 int SUPPRESS_OUTPUT = 0;
 
 static int last_len = 0;
