@@ -26,11 +26,311 @@
 #include "types.h"
 #include "hwmon.h"
 #include "mpsp.h"
+#include "rp_cpu.h"
 #include "data.h"
 #include "interface.h"
 
 extern hc_global_data_t data;
 
+static const char PA_000[] = "OK";
+static const char PA_001[] = "Ignored due to comment";
+static const char PA_002[] = "Ignored due to zero length";
+static const char PA_003[] = "Line-length exception";
+static const char PA_004[] = "Hash-length exception";
+static const char PA_005[] = "Hash-value exception";
+static const char PA_006[] = "Salt-length exception";
+static const char PA_007[] = "Salt-value exception";
+static const char PA_008[] = "Salt-iteration count exception";
+static const char PA_009[] = "Separator unmatched";
+static const char PA_010[] = "Signature unmatched";
+static const char PA_011[] = "Invalid hccap filesize";
+static const char PA_012[] = "Invalid eapol size";
+static const char PA_013[] = "Invalid psafe2 filesize";
+static const char PA_014[] = "Invalid psafe3 filesize";
+static const char PA_015[] = "Invalid truecrypt filesize";
+static const char PA_016[] = "Invalid veracrypt filesize";
+static const char PA_017[] = "Invalid SIP directive, only MD5 is supported";
+static const char PA_255[] = "Unknown error";
+
+static const char HT_00000[] = "MD5";
+static const char HT_00010[] = "md5($pass.$salt)";
+static const char HT_00020[] = "md5($salt.$pass)";
+static const char HT_00030[] = "md5(unicode($pass).$salt)";
+static const char HT_00040[] = "md5($salt.unicode($pass))";
+static const char HT_00050[] = "HMAC-MD5 (key = $pass)";
+static const char HT_00060[] = "HMAC-MD5 (key = $salt)";
+static const char HT_00100[] = "SHA1";
+static const char HT_00110[] = "sha1($pass.$salt)";
+static const char HT_00120[] = "sha1($salt.$pass)";
+static const char HT_00130[] = "sha1(unicode($pass).$salt)";
+static const char HT_00140[] = "sha1($salt.unicode($pass))";
+static const char HT_00150[] = "HMAC-SHA1 (key = $pass)";
+static const char HT_00160[] = "HMAC-SHA1 (key = $salt)";
+static const char HT_00200[] = "MySQL323";
+static const char HT_00300[] = "MySQL4.1/MySQL5";
+static const char HT_00400[] = "phpass, MD5(Wordpress), MD5(phpBB3), MD5(Joomla)";
+static const char HT_00500[] = "md5crypt, MD5(Unix), FreeBSD MD5, Cisco-IOS MD5";
+static const char HT_00501[] = "Juniper IVE";
+static const char HT_00900[] = "MD4";
+static const char HT_00910[] = "md4($pass.$salt)";
+static const char HT_01000[] = "NTLM";
+static const char HT_01100[] = "Domain Cached Credentials (DCC), MS Cache";
+static const char HT_01400[] = "SHA256";
+static const char HT_01410[] = "sha256($pass.$salt)";
+static const char HT_01420[] = "sha256($salt.$pass)";
+static const char HT_01430[] = "sha256(unicode($pass).$salt)";
+static const char HT_01440[] = "sha256($salt.$pass)";
+static const char HT_01450[] = "HMAC-SHA256 (key = $pass)";
+static const char HT_01460[] = "HMAC-SHA256 (key = $salt)";
+static const char HT_01500[] = "descrypt, DES(Unix), Traditional DES";
+static const char HT_01600[] = "md5apr1, MD5(APR), Apache MD5";
+static const char HT_01700[] = "SHA512";
+static const char HT_01710[] = "sha512($pass.$salt)";
+static const char HT_01720[] = "sha512($salt.$pass)";
+static const char HT_01730[] = "sha512(unicode($pass).$salt)";
+static const char HT_01740[] = "sha512($salt.unicode($pass))";
+static const char HT_01750[] = "HMAC-SHA512 (key = $pass)";
+static const char HT_01760[] = "HMAC-SHA512 (key = $salt)";
+static const char HT_01800[] = "sha512crypt, SHA512(Unix)";
+static const char HT_02100[] = "Domain Cached Credentials 2 (DCC2), MS Cache 2";
+static const char HT_02400[] = "Cisco-PIX MD5";
+static const char HT_02410[] = "Cisco-ASA MD5";
+static const char HT_02500[] = "WPA/WPA2";
+static const char HT_02600[] = "Double MD5";
+static const char HT_03000[] = "LM";
+static const char HT_03100[] = "Oracle H: Type (Oracle 7+)";
+static const char HT_03200[] = "bcrypt, Blowfish(OpenBSD)";
+static const char HT_03710[] = "md5($salt.md5($pass))";
+static const char HT_03711[] = "Mediawiki B type";
+static const char HT_03800[] = "md5($salt.$pass.$salt)";
+static const char HT_04300[] = "md5(strtoupper(md5($pass)))";
+static const char HT_04400[] = "md5(sha1($pass))";
+static const char HT_04500[] = "Double SHA1";
+static const char HT_04700[] = "sha1(md5($pass))";
+static const char HT_04800[] = "MD5(Chap), iSCSI CHAP authentication";
+static const char HT_04900[] = "sha1($salt.$pass.$salt)";
+static const char HT_05000[] = "SHA-3(Keccak)";
+static const char HT_05100[] = "Half MD5";
+static const char HT_05200[] = "Password Safe v3";
+static const char HT_05300[] = "IKE-PSK MD5";
+static const char HT_05400[] = "IKE-PSK SHA1";
+static const char HT_05500[] = "NetNTLMv1-VANILLA / NetNTLMv1+ESS";
+static const char HT_05600[] = "NetNTLMv2";
+static const char HT_05700[] = "Cisco-IOS SHA256";
+static const char HT_05800[] = "Android PIN";
+static const char HT_06000[] = "RipeMD160";
+static const char HT_06100[] = "Whirlpool";
+static const char HT_06300[] = "AIX {smd5}";
+static const char HT_06400[] = "AIX {ssha256}";
+static const char HT_06500[] = "AIX {ssha512}";
+static const char HT_06600[] = "1Password, agilekeychain";
+static const char HT_06700[] = "AIX {ssha1}";
+static const char HT_06800[] = "Lastpass";
+static const char HT_06900[] = "GOST R 34.11-94";
+static const char HT_07100[] = "OSX v10.8+";
+static const char HT_07200[] = "GRUB 2";
+static const char HT_07300[] = "IPMI2 RAKP HMAC-SHA1";
+static const char HT_07400[] = "sha256crypt, SHA256(Unix)";
+static const char HT_07500[] = "Kerberos 5 AS-REQ Pre-Auth etype 23";
+static const char HT_07600[] = "Redmine Project Management Web App";
+static const char HT_07700[] = "SAP CODVN B (BCODE)";
+static const char HT_07800[] = "SAP CODVN F/G (PASSCODE)";
+static const char HT_07900[] = "Drupal7";
+static const char HT_08000[] = "Sybase ASE";
+static const char HT_08100[] = "Citrix NetScaler";
+static const char HT_08200[] = "1Password, cloudkeychain";
+static const char HT_08300[] = "DNSSEC (NSEC3)";
+static const char HT_08400[] = "WBB3, Woltlab Burning Board 3";
+static const char HT_08500[] = "RACF";
+static const char HT_08600[] = "Lotus Notes/Domino 5";
+static const char HT_08700[] = "Lotus Notes/Domino 6";
+static const char HT_08800[] = "Android FDE <= 4.3";
+static const char HT_08900[] = "scrypt";
+static const char HT_09000[] = "Password Safe v2";
+static const char HT_09100[] = "Lotus Notes/Domino 8";
+static const char HT_09200[] = "Cisco $8$";
+static const char HT_09300[] = "Cisco $9$";
+static const char HT_09400[] = "Office 2007";
+static const char HT_09500[] = "Office 2010";
+static const char HT_09600[] = "Office 2013";
+static const char HT_09700[] = "MS Office <= 2003 MD5 + RC4, oldoffice$0, oldoffice$1";
+static const char HT_09710[] = "MS Office <= 2003 MD5 + RC4, collision-mode #1";
+static const char HT_09720[] = "MS Office <= 2003 MD5 + RC4, collision-mode #2";
+static const char HT_09800[] = "MS Office <= 2003 SHA1 + RC4, oldoffice$3, oldoffice$4";
+static const char HT_09810[] = "MS Office <= 2003 SHA1 + RC4, collision-mode #1";
+static const char HT_09820[] = "MS Office <= 2003 SHA1 + RC4, collision-mode #2";
+static const char HT_09900[] = "Radmin2";
+static const char HT_10000[] = "Django (PBKDF2-SHA256)";
+static const char HT_10100[] = "SipHash";
+static const char HT_10200[] = "Cram MD5";
+static const char HT_10300[] = "SAP CODVN H (PWDSALTEDHASH) iSSHA-1";
+static const char HT_10400[] = "PDF 1.1 - 1.3 (Acrobat 2 - 4)";
+static const char HT_10410[] = "PDF 1.1 - 1.3 (Acrobat 2 - 4) + collider-mode #1";
+static const char HT_10420[] = "PDF 1.1 - 1.3 (Acrobat 2 - 4) + collider-mode #2";
+static const char HT_10500[] = "PDF 1.4 - 1.6 (Acrobat 5 - 8)";
+static const char HT_10600[] = "PDF 1.7 Level 3 (Acrobat 9)";
+static const char HT_10700[] = "PDF 1.7 Level 8 (Acrobat 10 - 11)";
+static const char HT_10800[] = "SHA384";
+static const char HT_10900[] = "PBKDF2-HMAC-SHA256";
+static const char HT_11000[] = "PrestaShop";
+static const char HT_11100[] = "PostgreSQL Challenge-Response Authentication (MD5)";
+static const char HT_11200[] = "MySQL Challenge-Response Authentication (SHA1)";
+static const char HT_11300[] = "Bitcoin/Litecoin wallet.dat";
+static const char HT_11400[] = "SIP digest authentication (MD5)";
+static const char HT_11500[] = "CRC32";
+static const char HT_11600[] = "7-Zip";
+static const char HT_11700[] = "GOST R 34.11-2012 (Streebog) 256-bit";
+static const char HT_11800[] = "GOST R 34.11-2012 (Streebog) 512-bit";
+static const char HT_11900[] = "PBKDF2-HMAC-MD5";
+static const char HT_12000[] = "PBKDF2-HMAC-SHA1";
+static const char HT_12100[] = "PBKDF2-HMAC-SHA512";
+static const char HT_12200[] = "eCryptfs";
+static const char HT_12300[] = "Oracle T: Type (Oracle 12+)";
+static const char HT_12400[] = "BSDiCrypt, Extended DES";
+static const char HT_12500[] = "RAR3-hp";
+static const char HT_12600[] = "ColdFusion 10+";
+static const char HT_12700[] = "Blockchain, My Wallet";
+static const char HT_12800[] = "MS-AzureSync PBKDF2-HMAC-SHA256";
+static const char HT_12900[] = "Android FDE (Samsung DEK)";
+static const char HT_13000[] = "RAR5";
+static const char HT_13100[] = "Kerberos 5 TGS-REP etype 23";
+static const char HT_13200[] = "AxCrypt";
+static const char HT_13300[] = "AxCrypt in memory SHA1";
+static const char HT_13400[] = "Keepass 1 (AES/Twofish) and Keepass 2 (AES)";
+static const char HT_13500[] = "PeopleSoft PS_TOKEN";
+static const char HT_13600[] = "WinZip";
+static const char HT_13800[] = "Windows 8+ phone PIN/Password";
+static const char HT_13900[] = "OpenCart";
+static const char HT_14000[] = "DES (PT = $salt, key = $pass)";
+static const char HT_14100[] = "3DES (PT = $salt, key = $pass)";
+
+static const char HT_00011[] = "Joomla < 2.5.18";
+static const char HT_00012[] = "PostgreSQL";
+static const char HT_00021[] = "osCommerce, xt:Commerce";
+static const char HT_00022[] = "Juniper Netscreen/SSG (ScreenOS)";
+static const char HT_00023[] = "Skype";
+static const char HT_00101[] = "SHA-1(Base64), nsldap, Netscape LDAP SHA";
+static const char HT_00111[] = "SSHA-1(Base64), nsldaps, Netscape LDAP SSHA";
+static const char HT_00112[] = "Oracle S: Type (Oracle 11+)";
+static const char HT_00121[] = "SMF > v1.1";
+static const char HT_00122[] = "OSX v10.4, v10.5, v10.6";
+static const char HT_00124[] = "Django (SHA-1)";
+static const char HT_00125[] = "ArubaOS";
+static const char HT_00131[] = "MSSQL(2000)";
+static const char HT_00132[] = "MSSQL(2005)";
+static const char HT_00133[] = "PeopleSoft";
+static const char HT_00141[] = "EPiServer 6.x < v4";
+static const char HT_01421[] = "hMailServer";
+static const char HT_01441[] = "EPiServer 6.x > v4";
+static const char HT_01711[] = "SSHA-512(Base64), LDAP {SSHA512}";
+static const char HT_01722[] = "OSX v10.7";
+static const char HT_01731[] = "MSSQL(2012)";
+static const char HT_02611[] = "vBulletin < v3.8.5";
+static const char HT_02612[] = "PHPS";
+static const char HT_02711[] = "vBulletin > v3.8.5";
+static const char HT_02811[] = "IPB2+, MyBB1.2+";
+static const char HT_06211[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit";
+static const char HT_06212[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit";
+static const char HT_06213[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit";
+static const char HT_06221[] = "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit";
+static const char HT_06222[] = "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit";
+static const char HT_06223[] = "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit";
+static const char HT_06231[] = "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 512 bit";
+static const char HT_06232[] = "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 1024 bit";
+static const char HT_06233[] = "TrueCrypt PBKDF2-HMAC-Whirlpool + XTS 1536 bit";
+static const char HT_06241[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit + boot-mode";
+static const char HT_06242[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit + boot-mode";
+static const char HT_06243[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit + boot-mode";
+static const char HT_13711[] = "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit";
+static const char HT_13712[] = "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit";
+static const char HT_13713[] = "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit";
+static const char HT_13721[] = "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit";
+static const char HT_13722[] = "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit";
+static const char HT_13723[] = "VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit";
+static const char HT_13731[] = "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 512 bit";
+static const char HT_13732[] = "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1024 bit";
+static const char HT_13733[] = "VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1536 bit";
+static const char HT_13741[] = "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit + boot-mode";
+static const char HT_13742[] = "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit + boot-mode";
+static const char HT_13743[] = "VeraCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit + boot-mode";
+static const char HT_13751[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit";
+static const char HT_13752[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit";
+static const char HT_13753[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit";
+static const char HT_13761[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit + boot-mode";
+static const char HT_13762[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit + boot-mode";
+static const char HT_13763[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit + boot-mode";
+
+static const char SIGNATURE_ANDROIDFDE[]      = "$fde$";
+static const char SIGNATURE_AXCRYPT[]         = "$axcrypt$*1";
+static const char SIGNATURE_AXCRYPT_SHA1[]    = "$axcrypt_sha1";
+static const char SIGNATURE_BCRYPT1[]         = "$2a$";
+static const char SIGNATURE_BCRYPT2[]         = "$2b$";
+static const char SIGNATURE_BCRYPT3[]         = "$2x$";
+static const char SIGNATURE_BCRYPT4[]         = "$2y$";
+static const char SIGNATURE_BITCOIN_WALLET[]  = "$bitcoin$";
+static const char SIGNATURE_BSDICRYPT[]       = "_";
+static const char SIGNATURE_CISCO8[]          = "$8$";
+static const char SIGNATURE_CISCO9[]          = "$9$";
+static const char SIGNATURE_CRAM_MD5[]        = "$cram_md5$";
+static const char SIGNATURE_DCC2[]            = "$DCC2$";
+static const char SIGNATURE_DJANGOPBKDF2[]    = "pbkdf2_sha256$";
+static const char SIGNATURE_DJANGOSHA1[]      = "sha1$";
+static const char SIGNATURE_DRUPAL7[]         = "$S$";
+static const char SIGNATURE_ECRYPTFS[]        = "$ecryptfs$";
+static const char SIGNATURE_EPISERVER4[]      = "$episerver$*1*";
+static const char SIGNATURE_EPISERVER[]       = "$episerver$*0*";
+static const char SIGNATURE_KEEPASS[]         = "$keepass$";
+static const char SIGNATURE_KRB5PA[]          = "$krb5pa$23";
+static const char SIGNATURE_KRB5TGS[]         = "$krb5tgs$23";
+static const char SIGNATURE_MD5AIX[]          = "{smd5}";
+static const char SIGNATURE_MD5APR1[]         = "$apr1$";
+static const char SIGNATURE_MD5CRYPT[]        = "$1$";
+static const char SIGNATURE_MEDIAWIKI_B[]     = "$B$";
+static const char SIGNATURE_MS_DRSR[]         = "v1;PPH1_MD4";
+static const char SIGNATURE_MSSQL[]           = "0x0100";
+static const char SIGNATURE_MSSQL2012[]       = "0x0200";
+static const char SIGNATURE_MYSQL_AUTH[]      = "$mysqlna$";
+static const char SIGNATURE_MYWALLET[]        = "$blockchain$";
+static const char SIGNATURE_NETSCALER[]       = "1";
+static const char SIGNATURE_OFFICE2007[]      = "$office$";
+static const char SIGNATURE_OFFICE2010[]      = "$office$";
+static const char SIGNATURE_OFFICE2013[]      = "$office$";
+static const char SIGNATURE_OLDOFFICE0[]      = "$oldoffice$0";
+static const char SIGNATURE_OLDOFFICE1[]      = "$oldoffice$1";
+static const char SIGNATURE_OLDOFFICE3[]      = "$oldoffice$3";
+static const char SIGNATURE_OLDOFFICE4[]      = "$oldoffice$4";
+static const char SIGNATURE_PBKDF2_MD5[]      = "md5:";
+static const char SIGNATURE_PBKDF2_SHA1[]     = "sha1:";
+static const char SIGNATURE_PBKDF2_SHA256[]   = "sha256:";
+static const char SIGNATURE_PBKDF2_SHA512[]   = "sha512:";
+static const char SIGNATURE_PDF[]             = "$pdf$";
+static const char SIGNATURE_PHPASS1[]         = "$P$";
+static const char SIGNATURE_PHPASS2[]         = "$H$";
+static const char SIGNATURE_PHPS[]            = "$PHPS$";
+static const char SIGNATURE_POSTGRESQL_AUTH[] = "$postgres$";
+static const char SIGNATURE_PSAFE3[]          = "PWS3";
+static const char SIGNATURE_RACF[]            = "$racf$";
+static const char SIGNATURE_RAR3[]            = "$RAR3$";
+static const char SIGNATURE_RAR5[]            = "$rar5$";
+static const char SIGNATURE_SAPH_SHA1[]       = "{x-issha, ";
+static const char SIGNATURE_SCRYPT[]          = "SCRYPT";
+static const char SIGNATURE_SEVEN_ZIP[]       = "$7z$";
+static const char SIGNATURE_SHA1AIX[]         = "{ssha1}";
+static const char SIGNATURE_SHA1B64[]         = "{SHA}";
+static const char SIGNATURE_SHA256AIX[]       = "{ssha256}";
+static const char SIGNATURE_SHA256CRYPT[]     = "$5$";
+static const char SIGNATURE_SHA512AIX[]       = "{ssha512}";
+static const char SIGNATURE_SHA512B64S[]      = "{SSHA512}";
+static const char SIGNATURE_SHA512CRYPT[]     = "$6$";
+static const char SIGNATURE_SHA512GRUB[]      = "grub.pbkdf2.sha512.";
+static const char SIGNATURE_SHA512OSX[]       = "$ml$";
+static const char SIGNATURE_SIP_AUTH[]        = "$sip$*";
+static const char SIGNATURE_SSHA1B64_lower[]  = "{ssha}";
+static const char SIGNATURE_SSHA1B64_upper[]  = "{SSHA}";
+static const char SIGNATURE_SYBASEASE[]       = "0xc007";
+static const char SIGNATURE_TRUECRYPT[]       = "TRUE";
+static const char SIGNATURE_ZIP2_START[]      = "$zip2$";
+static const char SIGNATURE_ZIP2_STOP[]       = "$/zip2$";
 
 /**
  * decoder / encoder
@@ -3251,11 +3551,11 @@ int netntlmv1_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
     uint Kc[16] = { 0 };
     uint Kd[16] = { 0 };
 
-    _des_keysetup (key_des, Kc, Kd, c_skb);
+    _des_keysetup (key_des, Kc, Kd);
 
     uint data3[2] = { salt->salt_buf[0], salt->salt_buf[1] };
 
-    _des_encrypt (data3, Kc, Kd, c_SPtrans);
+    _des_encrypt (data3, Kc, Kd);
 
     if (data3[0] != digest_tmp[0]) continue;
     if (data3[1] != digest_tmp[1]) continue;
@@ -12827,44 +13127,6 @@ void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos)
   {
     memcpy (hccap->keymic, digest_ptr, 16);
   }
-}
-
-void truecrypt_crc32 (const char *filename, u8 keytab[64])
-{
-  uint crc = ~0u;
-
-  FILE *fd = fopen (filename, "rb");
-
-  if (fd == NULL)
-  {
-    log_error ("%s: %s", filename, strerror (errno));
-
-    exit (-1);
-  }
-
-  #define MAX_KEY_SIZE (1024 * 1024)
-
-  u8 *buf = (u8 *) mymalloc (MAX_KEY_SIZE + 1);
-
-  int nread = fread (buf, sizeof (u8), MAX_KEY_SIZE, fd);
-
-  fclose (fd);
-
-  int kpos = 0;
-
-  for (int fpos = 0; fpos < nread; fpos++)
-  {
-    crc = crc32tab[(crc ^ buf[fpos]) & 0xff] ^ (crc >> 8);
-
-    keytab[kpos++] += (crc >> 24) & 0xff;
-    keytab[kpos++] += (crc >> 16) & 0xff;
-    keytab[kpos++] += (crc >>  8) & 0xff;
-    keytab[kpos++] += (crc >>  0) & 0xff;
-
-    if (kpos >= 64) kpos = 0;
-  }
-
-  myfree (buf);
 }
 
 void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)

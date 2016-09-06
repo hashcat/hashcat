@@ -218,20 +218,6 @@ typedef struct
 
 typedef struct
 {
-  uint len;
-
-  char buf[0x100];
-
-} cpu_rule_t;
-
-typedef struct
-{
-  uint cmds[0x100];
-
-} kernel_rule_t;
-
-typedef struct
-{
   u32 i[16];
 
   u32 pw_len;

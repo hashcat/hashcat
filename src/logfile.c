@@ -14,6 +14,7 @@
 #include "types.h"
 #include "memory.h"
 #include "hwmon.h"
+#include "rp_cpu.h"
 #include "mpsp.h"
 #include "data.h"
 #include "logfile.h"

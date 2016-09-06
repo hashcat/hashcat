@@ -19,6 +19,9 @@
 
 #define HCBUFSIZ      0x50000 // general large space buffer size in case the size is unknown at compile-time
 
+#define BLOCK_SIZE              64
+
+
 #define EXPECTED_ITERATIONS 10000
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))

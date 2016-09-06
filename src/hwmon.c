@@ -16,6 +16,7 @@
 #include "types.h"
 #include "hwmon.h"
 #include "mpsp.h"
+#include "rp_cpu.h"
 #include "data.h"
 
 extern hc_global_data_t data;

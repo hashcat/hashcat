@@ -18,8 +18,8 @@
 #include "types.h"
 #include "hwmon.h"
 #include "mpsp.h"
-#include "data.h"
 #include "rp_cpu.h"
+#include "data.h"
 #include "shared.h"
 
 extern hc_global_data_t data;

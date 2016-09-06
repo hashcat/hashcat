@@ -13604,7 +13604,7 @@ int main (int argc, char **argv)
 
       do
       {
-        truecrypt_crc32 (keyfile, (u8 *) keyfile_buf);
+        cpu_crc32 (keyfile, (u8 *) keyfile_buf);
 
       } while ((keyfile = strtok (NULL, ",")) != NULL);
 
@@ -13621,7 +13621,7 @@ int main (int argc, char **argv)
 
       do
       {
-        truecrypt_crc32 (keyfile, (u8 *) keyfile_buf);
+        cpu_crc32 (keyfile, (u8 *) keyfile_buf);
 
       } while ((keyfile = strtok (NULL, ",")) != NULL);
 

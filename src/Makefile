@@ -165,7 +165,7 @@ LFLAGS_CROSS_WIN         := -lpsapi
 ## Objects
 ##
 
-NATIVE_OBJS              := obj/usage.NATIVE.o obj/mpsp.NATIVE.o obj/hwmon.NATIVE.o obj/terminal.NATIVE.o obj/logfile.NATIVE.o obj/data.NATIVE.o obj/convert.NATIVE.o obj/memory.NATIVE.o obj/logging.NATIVE.o obj/cpu_aes.NATIVE.o obj/cpu_des.NATIVE.o obj/cpu_md5.NATIVE.o obj/cpu_sha1.NATIVE.o obj/cpu_sha256.NATIVE.o obj/bitops.NATIVE.o obj/bitops.NATIVE.o obj/ext_OpenCL.NATIVE.o obj/shared.NATIVE.o obj/rp_kernel_on_cpu.NATIVE.o obj/interface.NATIVE.o 
+NATIVE_OBJS              := obj/rp_cpu.NATIVE.o obj/cpu_crc32.NATIVE.o obj/usage.NATIVE.o obj/mpsp.NATIVE.o obj/hwmon.NATIVE.o obj/terminal.NATIVE.o obj/logfile.NATIVE.o obj/data.NATIVE.o obj/convert.NATIVE.o obj/memory.NATIVE.o obj/logging.NATIVE.o obj/cpu_aes.NATIVE.o obj/cpu_des.NATIVE.o obj/cpu_md5.NATIVE.o obj/cpu_sha1.NATIVE.o obj/cpu_sha256.NATIVE.o obj/bitops.NATIVE.o obj/bitops.NATIVE.o obj/ext_OpenCL.NATIVE.o obj/shared.NATIVE.o obj/rp_kernel_on_cpu.NATIVE.o obj/interface.NATIVE.o 
 
 ifeq ($(UNAME),Linux)
 NATIVE_OBJS              += obj/ext_ADL.NATIVE.o
@@ -174,8 +174,8 @@ NATIVE_OBJS              += obj/ext_nvml.NATIVE.o
 NATIVE_OBJS              += obj/ext_xnvctrl.NATIVE.o
 endif
 
-LINUX_32_OBJS            := obj/usage.LINUX.32.o obj/mpsp.LINUX.32.o obj/hwmon.LINUX.32.o obj/terminal.LINUX.32.o obj/logfile.LINUX.32.o obj/data.LINUX.32.o obj/convert.LINUX.32.o obj/memory.LINUX.32.o obj/logging.LINUX.32.o obj/cpu_aes.LINUX.32.o obj/cpu_des.LINUX.32.o obj/cpu_md5.LINUX.32.o obj/cpu_sha1.LINUX.32.o obj/cpu_sha256.LINUX.32.o obj/bitops.LINUX.32.o obj/ext_OpenCL.LINUX.32.o obj/shared.LINUX.32.o obj/rp_kernel_on_cpu.LINUX.32.o obj/ext_ADL.LINUX.32.o obj/ext_nvml.LINUX.32.o obj/ext_nvapi.LINUX.32.o obj/ext_xnvctrl.LINUX.32.o obj/interface.LINUX.32.o
-LINUX_64_OBJS            := obj/usage.LINUX.64.o obj/mpsp.LINUX.64.o obj/hwmon.LINUX.64.o obj/terminal.LINUX.64.o obj/logfile.LINUX.64.o obj/data.LINUX.64.o obj/convert.LINUX.64.o obj/memory.LINUX.64.o obj/logging.LINUX.64.o obj/cpu_aes.LINUX.64.o obj/cpu_des.LINUX.64.o obj/cpu_md5.LINUX.64.o obj/cpu_sha1.LINUX.64.o obj/cpu_sha256.LINUX.64.o obj/bitops.LINUX.64.o obj/ext_OpenCL.LINUX.64.o obj/shared.LINUX.64.o obj/rp_kernel_on_cpu.LINUX.64.o obj/ext_ADL.LINUX.64.o obj/ext_nvml.LINUX.64.o obj/ext_nvapi.LINUX.64.o obj/ext_xnvctrl.LINUX.64.o obj/interface.LINUX.64.o
+LINUX_32_OBJS            := obj/rp_cpu.LINUX.32.o obj/cpu_crc32.LINUX.32.o obj/usage.LINUX.32.o obj/mpsp.LINUX.32.o obj/hwmon.LINUX.32.o obj/terminal.LINUX.32.o obj/logfile.LINUX.32.o obj/data.LINUX.32.o obj/convert.LINUX.32.o obj/memory.LINUX.32.o obj/logging.LINUX.32.o obj/cpu_aes.LINUX.32.o obj/cpu_des.LINUX.32.o obj/cpu_md5.LINUX.32.o obj/cpu_sha1.LINUX.32.o obj/cpu_sha256.LINUX.32.o obj/bitops.LINUX.32.o obj/ext_OpenCL.LINUX.32.o obj/shared.LINUX.32.o obj/rp_kernel_on_cpu.LINUX.32.o obj/ext_ADL.LINUX.32.o obj/ext_nvml.LINUX.32.o obj/ext_nvapi.LINUX.32.o obj/ext_xnvctrl.LINUX.32.o obj/interface.LINUX.32.o
+LINUX_64_OBJS            := obj/rp_cpu.LINUX.64.o obj/cpu_crc32.LINUX.64.o obj/usage.LINUX.64.o obj/mpsp.LINUX.64.o obj/hwmon.LINUX.64.o obj/terminal.LINUX.64.o obj/logfile.LINUX.64.o obj/data.LINUX.64.o obj/convert.LINUX.64.o obj/memory.LINUX.64.o obj/logging.LINUX.64.o obj/cpu_aes.LINUX.64.o obj/cpu_des.LINUX.64.o obj/cpu_md5.LINUX.64.o obj/cpu_sha1.LINUX.64.o obj/cpu_sha256.LINUX.64.o obj/bitops.LINUX.64.o obj/ext_OpenCL.LINUX.64.o obj/shared.LINUX.64.o obj/rp_kernel_on_cpu.LINUX.64.o obj/ext_ADL.LINUX.64.o obj/ext_nvml.LINUX.64.o obj/ext_nvapi.LINUX.64.o obj/ext_xnvctrl.LINUX.64.o obj/interface.LINUX.64.o
 
 # Windows CRT file globbing:
 
@@ -185,8 +185,8 @@ CRT_GLOB_INCLUDE_FOLDER  := $(dir $(lastword $(MAKEFILE_LIST)))
 
 include $(CRT_GLOB_INCLUDE_FOLDER)/win_file_globbing.mk
 
-WIN_32_OBJS              := obj/usage.WIN.32.o obj/mpsp.WIN.32.o obj/hwmon.WIN.32.o obj/terminal.WIN.32.o obj/logfile.WIN.32.o obj/data.WIN.32.o obj/convert.WIN.32.o obj/memory.WIN.32.o obj/logging.WIN.32.o obj/cpu_aes.WIN.32.o obj/cpu_des.WIN.32.o obj/cpu_md5.WIN.32.o obj/cpu_sha1.WIN.32.o obj/cpu_sha256.WIN.32.o obj/bitops.WIN.32.o obj/ext_OpenCL.WIN.32.o obj/shared.WIN.32.o obj/rp_kernel_on_cpu.WIN.32.o obj/ext_ADL.WIN.32.o obj/ext_nvml.WIN.32.o obj/ext_nvapi.WIN.32.o obj/ext_xnvctrl.WIN.32.o obj/interface.WIN.32.o $(CRT_GLOB_32)
-WIN_64_OBJS              := obj/usage.WIN.64.o obj/mpsp.WIN.64.o obj/hwmon.WIN.64.o obj/terminal.WIN.64.o obj/logfile.WIN.64.o obj/data.WIN.64.o obj/convert.WIN.64.o obj/memory.WIN.64.o obj/logging.WIN.64.o obj/cpu_aes.WIN.64.o obj/cpu_des.WIN.64.o obj/cpu_md5.WIN.64.o obj/cpu_sha1.WIN.64.o obj/cpu_sha256.WIN.64.o obj/bitops.WIN.64.o obj/ext_OpenCL.WIN.64.o obj/shared.WIN.64.o obj/rp_kernel_on_cpu.WIN.64.o obj/ext_ADL.WIN.64.o obj/ext_nvml.WIN.64.o obj/ext_nvapi.WIN.64.o obj/ext_xnvctrl.WIN.64.o obj/interface.WIN.64.o $(CRT_GLOB_64)
+WIN_32_OBJS              := obj/rp_cpu.WIN.32.o obj/cpu_crc32.WIN.32.o obj/usage.WIN.32.o obj/mpsp.WIN.32.o obj/hwmon.WIN.32.o obj/terminal.WIN.32.o obj/logfile.WIN.32.o obj/data.WIN.32.o obj/convert.WIN.32.o obj/memory.WIN.32.o obj/logging.WIN.32.o obj/cpu_aes.WIN.32.o obj/cpu_des.WIN.32.o obj/cpu_md5.WIN.32.o obj/cpu_sha1.WIN.32.o obj/cpu_sha256.WIN.32.o obj/bitops.WIN.32.o obj/ext_OpenCL.WIN.32.o obj/shared.WIN.32.o obj/rp_kernel_on_cpu.WIN.32.o obj/ext_ADL.WIN.32.o obj/ext_nvml.WIN.32.o obj/ext_nvapi.WIN.32.o obj/ext_xnvctrl.WIN.32.o obj/interface.WIN.32.o $(CRT_GLOB_32)
+WIN_64_OBJS              := obj/rp_cpu.WIN.64.o obj/cpu_crc32.WIN.64.o obj/usage.WIN.64.o obj/mpsp.WIN.64.o obj/hwmon.WIN.64.o obj/terminal.WIN.64.o obj/logfile.WIN.64.o obj/data.WIN.64.o obj/convert.WIN.64.o obj/memory.WIN.64.o obj/logging.WIN.64.o obj/cpu_aes.WIN.64.o obj/cpu_des.WIN.64.o obj/cpu_md5.WIN.64.o obj/cpu_sha1.WIN.64.o obj/cpu_sha256.WIN.64.o obj/bitops.WIN.64.o obj/ext_OpenCL.WIN.64.o obj/shared.WIN.64.o obj/rp_kernel_on_cpu.WIN.64.o obj/ext_ADL.WIN.64.o obj/ext_nvml.WIN.64.o obj/ext_nvapi.WIN.64.o obj/ext_xnvctrl.WIN.64.o obj/interface.WIN.64.o $(CRT_GLOB_64)
 
 ##
 ## Targets: Global
