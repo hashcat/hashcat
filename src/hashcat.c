@@ -6,6 +6,11 @@
  * License.....: MIT
  */
 
+#ifdef __APPLE__
+#include <stdio.h>
+#include <string.h>
+#endif
+
 #include "common.h"
 #include "types_int.h"
 #include "types.h"
@@ -14101,9 +14106,11 @@ int main (int argc, char **argv)
      */
 
     int need_adl     = 0;
-    int need_nvapi   = 0;
     int need_nvml    = 0;
+    #ifndef __APPLE__
+    int need_nvapi   = 0;
     int need_xnvctrl = 0;
+    #endif
 
     hc_device_param_t *devices_param = (hc_device_param_t *) mycalloc (DEVICES_MAX, sizeof (hc_device_param_t));
 

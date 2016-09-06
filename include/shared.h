@@ -27,7 +27,9 @@
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
+#ifndef __APPLE__
 #include <sys/sysctl.h>
+#endif // __APPLE__
 #endif // _POSIX
 
 #ifdef __APPLE__

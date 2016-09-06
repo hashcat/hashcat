@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -13,6 +15,9 @@
 
 #ifdef _POSIX
 #include <termios.h>
+#ifdef __APPLE__
+#include <sys/ioctl.h>
+#endif // __APPLE__
 #endif // _POSIX
 
 #ifdef _WIN

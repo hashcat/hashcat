@@ -1,5 +1,7 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
 
@@ -18,6 +20,8 @@
 #include "mpsp.h"
 #include "rp_cpu.h"
 #include "data.h"
+
+#ifdef HAVE_HWMON
 
 extern hc_global_data_t data;
 
@@ -858,3 +862,5 @@ int hm_set_fanspeed_with_device_id_xnvctrl (const uint device_id, const int fans
 
   return -1;
 }
+
+#endif // HAVE_HWMON
