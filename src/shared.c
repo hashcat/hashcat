@@ -4296,7 +4296,7 @@ void set_cpu_affinity (char *cpu_affinity)
 
   if (cpu_affinity)
   {
-    char *devices = strdup (cpu_affinity);
+    char *devices = mystrdup (cpu_affinity);
 
     char *next = strtok (devices, ",");
 
@@ -4330,7 +4330,7 @@ void set_cpu_affinity (char *cpu_affinity)
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
-    free (devices);
+    myfree (devices);
   }
 
   #if   defined( _WIN)
@@ -5232,7 +5232,7 @@ uint setup_opencl_platforms_filter (char *opencl_platforms)
 
   if (opencl_platforms)
   {
-    char *platforms = strdup (opencl_platforms);
+    char *platforms = mystrdup (opencl_platforms);
 
     char *next = strtok (platforms, ",");
 
@@ -5251,7 +5251,7 @@ uint setup_opencl_platforms_filter (char *opencl_platforms)
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
-    free (platforms);
+    myfree (platforms);
   }
   else
   {
@@ -5267,7 +5267,7 @@ u32 setup_devices_filter (char *opencl_devices)
 
   if (opencl_devices)
   {
-    char *devices = strdup (opencl_devices);
+    char *devices = mystrdup (opencl_devices);
 
     char *next = strtok (devices, ",");
 
@@ -5286,7 +5286,7 @@ u32 setup_devices_filter (char *opencl_devices)
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
-    free (devices);
+    myfree (devices);
   }
   else
   {
@@ -5302,7 +5302,7 @@ cl_device_type setup_device_types_filter (char *opencl_device_types)
 
   if (opencl_device_types)
   {
-    char *device_types = strdup (opencl_device_types);
+    char *device_types = mystrdup (opencl_device_types);
 
     char *next = strtok (device_types, ",");
 
@@ -5321,7 +5321,7 @@ cl_device_type setup_device_types_filter (char *opencl_device_types)
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
-    free (device_types);
+    myfree (device_types);
   }
   else
   {
@@ -8050,9 +8050,9 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
       public_key_buf
     );
 
-    free (cry_master_buf);
-    free (ckey_buf);
-    free (public_key_buf);
+    myfree (cry_master_buf);
+    myfree (ckey_buf);
+    myfree (public_key_buf);
   }
   else if (hash_mode == 11400)
   {
@@ -8096,7 +8096,7 @@ void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos)
       seven_zip->unpack_size,
       data_buf);
 
-    free (data_buf);
+    myfree (data_buf);
   }
   else if (hash_mode == 11700)
   {
@@ -9631,7 +9631,7 @@ tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, hc_device_param_t *
 
   // first we need to convert all spaces in the device_name to underscore
 
-  char *device_name_nospace = strdup (device_param->device_name);
+  char *device_name_nospace = mystrdup (device_param->device_name);
 
   int device_name_length = strlen (device_name_nospace);
 
@@ -13411,7 +13411,7 @@ int agilekey_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf)
   salt->salt_buf[10] = byte_swap_32 (tmp[6]);
   salt->salt_buf[11] = byte_swap_32 (tmp[7]);
 
-  free (tmp);
+  myfree (tmp);
 
   for (uint i = 0, j = 0; i < 1040; i += 1, j += 2)
   {
