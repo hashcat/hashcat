@@ -117,8 +117,6 @@ void md5_64 (u32 block[16], u32 digest[4])
 
 // only use this when really, really needed, SLOW
 
-#include <string.h>
-
 void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len)
 {
   u32 a = MD5M_A;
