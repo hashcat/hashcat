@@ -195,20 +195,6 @@ typedef struct
 
 typedef struct
 {
-  uint key;
-  u64  val;
-
-} hcstat_table_t;
-
-typedef struct
-{
-  uint cs_buf[0x100];
-  uint cs_len;
-
-} cs_t;
-
-typedef struct
-{
   char    plain_buf[256];
   int     plain_len;
 

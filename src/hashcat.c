@@ -33,6 +33,7 @@
 #include "interface.h"
 #include "shared.h"
 #include "hwmon.h"
+#include "mpsp.h"
 #include "data.h"
 
 #include <search.h>

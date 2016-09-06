@@ -25,6 +25,7 @@
 #include "timer.h"
 #include "types.h"
 #include "hwmon.h"
+#include "mpsp.h"
 #include "data.h"
 #include "interface.h"
 

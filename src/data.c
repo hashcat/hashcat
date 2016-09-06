@@ -13,6 +13,7 @@
 #include "timer.h"
 #include "types.h"
 #include "hwmon.h"
+#include "mpsp.h"
 #include "data.h"
 
 hc_global_data_t data;
