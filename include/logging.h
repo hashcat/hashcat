@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _LOGGING_H
+#define _LOGGING_H
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -15,3 +16,5 @@ int log_error_nn (const char *fmt, ...);
 int log_out (FILE *fp, const char *fmt, ...);
 int log_info (const char *fmt, ...);
 int log_error (const char *fmt, ...);
+
+#endif
