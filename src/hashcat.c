@@ -12,6 +12,7 @@
 #include "memory.h"
 #include "convert.h"
 #include "logging.h"
+#include "logfile.h"
 #include "ext_OpenCL.h"
 #include "ext_ADL.h"
 #include "ext_nvapi.h"

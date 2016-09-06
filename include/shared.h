@@ -203,10 +203,6 @@ char *stroptitype (const uint opti_type);
 char *strstatus (const uint threads_status);
 void status ();
 
-char *logfile_generate_topid (void);
-char *logfile_generate_subid (void);
-void logfile_append (const char *fmt, ...);
-
 #ifdef F_SETLKW
 void lock_file (FILE *fp);
 void unlock_file (FILE *fp);
