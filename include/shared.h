@@ -24,7 +24,6 @@
 #include <dlfcn.h>
 #include <pwd.h>
 #include <limits.h>
-#include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/sysctl.h>
 #endif // _POSIX
