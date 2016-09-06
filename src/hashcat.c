@@ -10,6 +10,7 @@
 #include "types_int.h"
 #include "bitops.h"
 #include "memory.h"
+#include "convert.h"
 #include "logging.h"
 #include "ext_OpenCL.h"
 #include "ext_ADL.h"
@@ -28,7 +29,14 @@
 #include "rp_cpu.h"
 #include "rp_kernel_on_cpu.h"
 #include "inc_hash_constants.h"
+#include "interface.h"
 #include "shared.h"
+#include "data.h"
+
+#include <search.h>
+#include <getopt.h>
+
+extern hc_global_data_t data;
 
 static const char *PROGNAME     = "hashcat";
 
@@ -188,6 +196,23 @@ typedef enum combinator_mode
 
 } combinator_mode_t;
 
+typedef enum kern_run
+{
+  KERN_RUN_1    = 1000,
+  KERN_RUN_12   = 1500,
+  KERN_RUN_2    = 2000,
+  KERN_RUN_23   = 2500,
+  KERN_RUN_3    = 3000
+
+} kern_run_t;
+
+typedef enum kern_run_mp
+{
+  KERN_RUN_MP   = 101,
+  KERN_RUN_MP_L = 102,
+  KERN_RUN_MP_R = 103
+
+} kern_run_mp_t;
 
 #ifdef _WIN
 #define mkdir(name,mode) mkdir (name)

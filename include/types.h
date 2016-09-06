@@ -15,6 +15,137 @@
 #define EOL "\n"
 #endif
 
+/**
+ * Outfile formats
+ */
+
+typedef enum outfile_fmt
+{
+  OUTFILE_FMT_HASH      = (1 << 0),
+  OUTFILE_FMT_PLAIN     = (1 << 1),
+  OUTFILE_FMT_HEXPLAIN  = (1 << 2),
+  OUTFILE_FMT_CRACKPOS  = (1 << 3)
+
+} outfile_fmt_t;
+
+/**
+ * salt types
+ */
+
+typedef enum salt_type
+{
+  SALT_TYPE_NONE     = 1,
+  SALT_TYPE_EMBEDDED = 2,
+  SALT_TYPE_INTERN   = 3,
+  SALT_TYPE_EXTERN   = 4,
+  SALT_TYPE_VIRTUAL  = 5
+
+} salt_type_t;
+
+/**
+ * optimizer options
+ */
+
+typedef enum opti_type
+{
+  OPTI_TYPE_ZERO_BYTE         = (1 <<  1),
+  OPTI_TYPE_PRECOMPUTE_INIT   = (1 <<  2),
+  OPTI_TYPE_PRECOMPUTE_MERKLE = (1 <<  3),
+  OPTI_TYPE_PRECOMPUTE_PERMUT = (1 <<  4),
+  OPTI_TYPE_MEET_IN_MIDDLE    = (1 <<  5),
+  OPTI_TYPE_EARLY_SKIP        = (1 <<  6),
+  OPTI_TYPE_NOT_SALTED        = (1 <<  7),
+  OPTI_TYPE_NOT_ITERATED      = (1 <<  8),
+  OPTI_TYPE_PREPENDED_SALT    = (1 <<  9),
+  OPTI_TYPE_APPENDED_SALT     = (1 << 10),
+  OPTI_TYPE_SINGLE_HASH       = (1 << 11),
+  OPTI_TYPE_SINGLE_SALT       = (1 << 12),
+  OPTI_TYPE_BRUTE_FORCE       = (1 << 13),
+  OPTI_TYPE_RAW_HASH          = (1 << 14),
+  OPTI_TYPE_SLOW_HASH_SIMD    = (1 << 15),
+  OPTI_TYPE_USES_BITS_8       = (1 << 16),
+  OPTI_TYPE_USES_BITS_16      = (1 << 17),
+  OPTI_TYPE_USES_BITS_32      = (1 << 18),
+  OPTI_TYPE_USES_BITS_64      = (1 << 19)
+
+} opti_type_t;
+
+/**
+ * hash options
+ */
+
+typedef enum opts_type
+{
+  OPTS_TYPE_PT_UNICODE        = (1 <<  0),
+  OPTS_TYPE_PT_UPPER          = (1 <<  1),
+  OPTS_TYPE_PT_LOWER          = (1 <<  2),
+  OPTS_TYPE_PT_ADD01          = (1 <<  3),
+  OPTS_TYPE_PT_ADD02          = (1 <<  4),
+  OPTS_TYPE_PT_ADD80          = (1 <<  5),
+  OPTS_TYPE_PT_ADDBITS14      = (1 <<  6),
+  OPTS_TYPE_PT_ADDBITS15      = (1 <<  7),
+  OPTS_TYPE_PT_GENERATE_LE    = (1 <<  8),
+  OPTS_TYPE_PT_GENERATE_BE    = (1 <<  9),
+  OPTS_TYPE_PT_NEVERCRACK     = (1 << 10), // if we want all possible results
+  OPTS_TYPE_PT_BITSLICE       = (1 << 11),
+  OPTS_TYPE_ST_UNICODE        = (1 << 12),
+  OPTS_TYPE_ST_UPPER          = (1 << 13),
+  OPTS_TYPE_ST_LOWER          = (1 << 14),
+  OPTS_TYPE_ST_ADD01          = (1 << 15),
+  OPTS_TYPE_ST_ADD02          = (1 << 16),
+  OPTS_TYPE_ST_ADD80          = (1 << 17),
+  OPTS_TYPE_ST_ADDBITS14      = (1 << 18),
+  OPTS_TYPE_ST_ADDBITS15      = (1 << 19),
+  OPTS_TYPE_ST_GENERATE_LE    = (1 << 20),
+  OPTS_TYPE_ST_GENERATE_BE    = (1 << 21),
+  OPTS_TYPE_ST_HEX            = (1 << 22),
+  OPTS_TYPE_ST_BASE64         = (1 << 23),
+  OPTS_TYPE_HASH_COPY         = (1 << 24),
+  OPTS_TYPE_HOOK12            = (1 << 25),
+  OPTS_TYPE_HOOK23            = (1 << 26)
+
+} opts_type_t;
+
+/**
+ * digests
+ */
+
+typedef enum dgst_size
+{
+  DGST_SIZE_4_2  = (2  * sizeof (uint)),   // 8
+  DGST_SIZE_4_4  = (4  * sizeof (uint)),   // 16
+  DGST_SIZE_4_5  = (5  * sizeof (uint)),   // 20
+  DGST_SIZE_4_6  = (6  * sizeof (uint)),   // 24
+  DGST_SIZE_4_8  = (8  * sizeof (uint)),   // 32
+  DGST_SIZE_4_16 = (16 * sizeof (uint)),   // 64 !!!
+  DGST_SIZE_4_32 = (32 * sizeof (uint)),   // 128 !!!
+  DGST_SIZE_4_64 = (64 * sizeof (uint)),   // 256
+  DGST_SIZE_8_8  = (8  * sizeof (u64)),    // 64 !!!
+  DGST_SIZE_8_16 = (16 * sizeof (u64)),    // 128 !!!
+  DGST_SIZE_8_25 = (25 * sizeof (u64))     // 200
+
+} dgst_size_t;
+
+/**
+ * status
+ */
+
+typedef enum status_rc
+{
+   STATUS_STARTING           = 0,
+   STATUS_INIT               = 1,
+   STATUS_RUNNING            = 2,
+   STATUS_PAUSED             = 3,
+   STATUS_EXHAUSTED          = 4,
+   STATUS_CRACKED            = 5,
+   STATUS_ABORTED            = 6,
+   STATUS_QUIT               = 7,
+   STATUS_BYPASS             = 8,
+   STATUS_STOP_AT_CHECKPOINT = 9,
+   STATUS_AUTOTUNE           = 10
+
+} status_rc_t;
+
 typedef struct
 {
   uint salt_buf[16];
@@ -37,639 +168,6 @@ typedef struct
   uint scrypt_p;
 
 } salt_t;
-
-typedef struct
-{
-  uint iv[4];
-
-} rar5_t;
-
-typedef struct
-{
-  int  V;
-  int  R;
-  int  P;
-
-  int  enc_md;
-
-  uint id_buf[8];
-  uint u_buf[32];
-  uint o_buf[32];
-
-  int  id_len;
-  int  o_len;
-  int  u_len;
-
-  uint rc4key[2];
-  uint rc4data[2];
-
-} pdf_t;
-
-typedef struct
-{
-  uint pke[25];
-  uint eapol[64];
-  int  eapol_size;
-  int  keyver;
-  u8   orig_mac1[6];
-  u8   orig_mac2[6];
-  u8   orig_nonce1[32];
-  u8   orig_nonce2[32];
-
-} wpa_t;
-
-typedef struct
-{
-  uint cry_master_buf[64];
-  uint ckey_buf[64];
-  uint public_key_buf[64];
-
-  uint cry_master_len;
-  uint ckey_len;
-  uint public_key_len;
-
-} bitcoin_wallet_t;
-
-typedef struct
-{
-  uint salt_buf[30];
-  uint salt_len;
-
-  uint esalt_buf[38];
-  uint esalt_len;
-
-} sip_t;
-
-typedef struct
-{
-  uint data[384];
-
-} androidfde_t;
-
-typedef struct
-{
-  uint nr_buf[16];
-  uint nr_len;
-
-  uint msg_buf[128];
-  uint msg_len;
-
-} ikepsk_t;
-
-typedef struct
-{
-  uint user_len;
-  uint domain_len;
-  uint srvchall_len;
-  uint clichall_len;
-
-  uint userdomain_buf[64];
-  uint chall_buf[256];
-
-} netntlm_t;
-
-typedef struct
-{
-  uint user[16];
-  uint realm[16];
-  uint salt[32];
-  uint timestamp[16];
-  uint checksum[4];
-
-} krb5pa_t;
-
-typedef struct
-{
-  uint account_info[512];
-  uint checksum[4];
-  uint edata2[2560];
-  uint edata2_len;
-
-} krb5tgs_t;
-
-typedef struct
-{
-  u32 version;
-  u32 algorithm;
-
-  /* key-file handling */
-  u32 keyfile_len;
-  u32 keyfile[8];
-
-  u32 final_random_seed[8];
-  u32 transf_random_seed[8];
-  u32 enc_iv[4];
-  u32 contents_hash[8];
-
-  /* specific to version 1 */
-  u32 contents_len;
-  u32 contents[75000];
-
-  /* specific to version 2 */
-  u32 expected_bytes[8];
-
-} keepass_t;
-
-typedef struct
-{
-  uint salt_buf[16];
-  uint data_buf[112];
-  uint keyfile_buf[16];
-  uint signature;
-
-} tc_t;
-
-typedef struct
-{
-  uint salt_buf[16];
-
-} pbkdf2_md5_t;
-
-typedef struct
-{
-  uint salt_buf[16];
-
-} pbkdf2_sha1_t;
-
-typedef struct
-{
-  uint salt_buf[16];
-
-} pbkdf2_sha256_t;
-
-typedef struct
-{
-  uint salt_buf[32];
-
-} pbkdf2_sha512_t;
-
-typedef struct
-{
-  u8   cipher[1040];
-
-} agilekey_t;
-
-typedef struct
-{
-  uint salt_buf[128];
-  uint salt_len;
-
-} rakp_t;
-
-typedef struct
-{
-  uint data_len;
-  uint data_buf[512];
-
-} cloudkey_t;
-
-typedef struct
-{
-  uint encryptedVerifier[4];
-  uint encryptedVerifierHash[5];
-
-  uint keySize;
-
-} office2007_t;
-
-typedef struct
-{
-  uint encryptedVerifier[4];
-  uint encryptedVerifierHash[8];
-
-} office2010_t;
-
-typedef struct
-{
-  uint encryptedVerifier[4];
-  uint encryptedVerifierHash[8];
-
-} office2013_t;
-
-typedef struct
-{
-  uint version;
-  uint encryptedVerifier[4];
-  uint encryptedVerifierHash[4];
-  uint rc4key[2];
-
-} oldoffice01_t;
-
-typedef struct
-{
-  uint version;
-  uint encryptedVerifier[4];
-  uint encryptedVerifierHash[5];
-  uint rc4key[2];
-
-} oldoffice34_t;
-
-typedef struct
-{
-  u32 salt_buf[128];
-  u32 salt_len;
-
-  u32 pc_digest[5];
-  u32 pc_offset;
-
-} pstoken_t;
-
-typedef struct
-{
-  u32 type;
-  u32 mode;
-  u32 magic;
-  u32 salt_len;
-  u32 salt_buf[4];
-  u32 verify_bytes;
-  u32 compress_length;
-  u32 data_len;
-  u32 data_buf[2048];
-  u32 auth_len;
-  u32 auth_buf[4];
-
-} zip2_t;
-
-typedef struct
-{
-  uint salt_buf[32];
-
-} win8phone_t;
-
-typedef struct
-{
-  uint digest[4];
-  uint out[4];
-
-} pdf14_tmp_t;
-
-typedef struct
-{
-  union
-  {
-    uint dgst32[16];
-    u64  dgst64[8];
-  } d;
-
-  uint dgst_len;
-  uint W_len;
-
-} pdf17l8_tmp_t;
-
-typedef struct
-{
-  uint digest_buf[4];
-
-} phpass_tmp_t;
-
-typedef struct
-{
-  uint digest_buf[4];
-
-} md5crypt_tmp_t;
-
-typedef struct
-{
-  u64  l_alt_result[8];
-
-  u64  l_p_bytes[2];
-  u64  l_s_bytes[2];
-
-} sha512crypt_tmp_t;
-
-typedef struct
-{
-  uint alt_result[8];
-
-  uint p_bytes[4];
-  uint s_bytes[4];
-
-} sha256crypt_tmp_t;
-
-typedef struct
-{
-  uint ipad[5];
-  uint opad[5];
-
-  uint dgst[10];
-  uint out[10];
-
-} wpa_tmp_t;
-
-typedef struct
-{
-  u64  dgst[8];
-
-} bitcoin_wallet_tmp_t;
-
-typedef struct
-{
-  uint ipad[5];
-  uint opad[5];
-
-  uint dgst[5];
-  uint out[4];
-
-} dcc2_tmp_t;
-
-typedef struct
-{
-  uint E[18];
-
-  uint P[18];
-
-  uint S0[256];
-  uint S1[256];
-  uint S2[256];
-  uint S3[256];
-
-} bcrypt_tmp_t;
-
-typedef struct
-{
-  uint digest[2];
-
-  uint P[18];
-
-  uint S0[256];
-  uint S1[256];
-  uint S2[256];
-  uint S3[256];
-
-} pwsafe2_tmp_t;
-
-typedef struct
-{
-  uint digest_buf[8];
-
-} pwsafe3_tmp_t;
-
-typedef struct
-{
-  uint digest_buf[5];
-
-} androidpin_tmp_t;
-
-typedef struct
-{
-  uint ipad[5];
-  uint opad[5];
-
-  uint dgst[10];
-  uint out[10];
-
-} androidfde_tmp_t;
-
-typedef struct
-{
-  uint ipad[16];
-  uint opad[16];
-
-  uint dgst[64];
-  uint out[64];
-
-} tc_tmp_t;
-
-typedef struct
-{
-  u64  ipad[8];
-  u64  opad[8];
-
-  u64  dgst[32];
-  u64  out[32];
-
-} tc64_tmp_t;
-
-typedef struct
-{
-  uint ipad[5];
-  uint opad[5];
-
-  uint dgst[5];
-  uint out[5];
-
-} agilekey_tmp_t;
-
-typedef struct
-{
-  uint ipad[5];
-  uint opad[5];
-
-  uint dgst1[5];
-  uint out1[5];
-
-  uint dgst2[5];
-  uint out2[5];
-
-} mywallet_tmp_t;
-
-typedef struct
-{
-  uint ipad[5];
-  uint opad[5];
-
-  uint dgst[5];
-  uint out[5];
-
-} sha1aix_tmp_t;
-
-typedef struct
-{
-  uint ipad[8];
-  uint opad[8];
-
-  uint dgst[8];
-  uint out[8];
-
-} sha256aix_tmp_t;
-
-typedef struct
-{
-  u64  ipad[8];
-  u64  opad[8];
-
-  u64  dgst[8];
-  u64  out[8];
-
-} sha512aix_tmp_t;
-
-typedef struct
-{
-  uint ipad[8];
-  uint opad[8];
-
-  uint dgst[8];
-  uint out[8];
-
-} lastpass_tmp_t;
-
-typedef struct
-{
-  u64  digest_buf[8];
-
-} drupal7_tmp_t;
-
-typedef struct
-{
-  uint ipad[5];
-  uint opad[5];
-
-  uint dgst[5];
-  uint out[5];
-
-} lotus8_tmp_t;
-
-typedef struct
-{
-  uint out[5];
-
-} office2007_tmp_t;
-
-typedef struct
-{
-  uint out[5];
-
-} office2010_tmp_t;
-
-typedef struct
-{
-  u64  out[8];
-
-} office2013_tmp_t;
-
-typedef struct
-{
-  uint digest_buf[5];
-
-} saph_sha1_tmp_t;
-
-typedef struct
-{
-  u32  ipad[4];
-  u32  opad[4];
-
-  u32  dgst[32];
-  u32  out[32];
-
-} pbkdf2_md5_tmp_t;
-
-typedef struct
-{
-  u32  ipad[5];
-  u32  opad[5];
-
-  u32  dgst[32];
-  u32  out[32];
-
-} pbkdf2_sha1_tmp_t;
-
-typedef struct
-{
-  u32  ipad[8];
-  u32  opad[8];
-
-  u32  dgst[32];
-  u32  out[32];
-
-} pbkdf2_sha256_tmp_t;
-
-typedef struct
-{
-  u64  ipad[8];
-  u64  opad[8];
-
-  u64  dgst[16];
-  u64  out[16];
-
-} pbkdf2_sha512_tmp_t;
-
-typedef struct
-{
-  u64  out[8];
-
-} ecryptfs_tmp_t;
-
-typedef struct
-{
-  u64  ipad[8];
-  u64  opad[8];
-
-  u64  dgst[16];
-  u64  out[16];
-
-} oraclet_tmp_t;
-
-typedef struct
-{
-  uint block[16];
-
-  uint dgst[8];
-
-  uint block_len;
-  uint final_len;
-
-} seven_zip_tmp_t;
-
-typedef struct
-{
-  uint Kc[16];
-  uint Kd[16];
-
-  uint iv[2];
-
-} bsdicrypt_tmp_t;
-
-typedef struct
-{
-  uint dgst[17][5];
-
-} rar3_tmp_t;
-
-typedef struct
-{
-  uint user[16];
-
-} cram_md5_t;
-
-typedef struct
-{
-  uint iv_buf[4];
-  uint iv_len;
-
-  uint salt_buf[4];
-  uint salt_len;
-
-  uint crc;
-
-  uint data_buf[96];
-  uint data_len;
-
-  uint unpack_size;
-
-} seven_zip_t;
-
-typedef struct
-{
-  u32 KEK[4];
-  u32 lsb[4];
-  u32 cipher[4];
-
-} axcrypt_tmp_t;
-
-typedef struct
-{
-  u32 tmp_digest[8];
-
-} keepass_tmp_t;
-
-typedef struct
-{
-  u32  random[2];
-  u32  hash[5];
-  u32  salt[5];   // unused, but makes better valid check
-  u32  iv[2];     // unused, but makes better valid check
-
-} psafe2_hdr;
 
 typedef struct
 {
@@ -708,32 +206,6 @@ typedef struct
   uint cs_len;
 
 } cs_t;
-
-typedef struct
-{
-  char essid[36];
-
-  u8   mac1[6];
-  u8   mac2[6];
-  u8   nonce1[32];
-  u8   nonce2[32];
-
-  u8   eapol[256];
-  int  eapol_size;
-
-  int  keyver;
-  u8   keymic[16];
-
-} hccap_t;
-
-typedef struct
-{
-  char signature[4];
-  u32  salt_buf[8];
-  u32  iterations;
-  u32  hash_buf[8];
-
-} psafe3_t;
 
 typedef struct
 {
@@ -1116,253 +588,3 @@ typedef struct
 
 } hm_attrs_t;
 #endif // HAVE_HWMON
-
-typedef struct
-{
-  /**
-   * threads
-   */
-
-  uint    devices_status;
-  uint    devices_cnt;
-  uint    devices_active;
-
-  hc_device_param_t *devices_param;
-
-  uint    shutdown_inner;
-  uint    shutdown_outer;
-
-  /**
-   * workload specific
-   */
-
-  uint    hardware_power_all;
-  uint    kernel_power_all;
-  u64     kernel_power_final; // we save that so that all divisions are done from the same base
-
-  /**
-   * attack specific
-   */
-
-  uint    wordlist_mode;
-  uint    hashlist_mode;
-  uint    hashlist_format;
-
-  uint    attack_mode;
-  uint    attack_kern;
-  uint    attack_exec;
-
-  uint    kernel_rules_cnt;
-
-  kernel_rule_t *kernel_rules_buf;
-
-  uint    combs_mode;
-  uint    combs_cnt;
-
-  uint    bfs_cnt;
-
-  uint    css_cnt;
-  cs_t   *css_buf;
-
-  cs_t   *root_css_buf;
-  cs_t   *markov_css_buf;
-
-  char   *rule_buf_l;
-  char   *rule_buf_r;
-  int     rule_len_l;
-  int     rule_len_r;
-
-  /**
-   * opencl library stuff
-   */
-
-  void   *ocl;
-
-  /**
-   * hardware watchdog
-   */
-
-  #ifdef HAVE_HWMON
-  void      *hm_adl;
-  void      *hm_nvml;
-  void      *hm_nvapi;
-  void      *hm_xnvctrl;
-  hm_attrs_t hm_device[DEVICES_MAX];
-  #endif
-
-  /**
-   * hashes
-   */
-
-  uint    digests_cnt;
-  uint    digests_done;
-  uint    digests_saved;
-
-  void   *digests_buf;
-  uint   *digests_shown;
-  uint   *digests_shown_tmp;
-
-  uint    salts_cnt;
-  uint    salts_done;
-
-  salt_t *salts_buf;
-  uint   *salts_shown;
-
-  void   *esalts_buf;
-
-  uint    scrypt_tmp_size;
-  uint    scrypt_tmto_final;
-
-  /**
-   * logging
-   */
-
-  uint    logfile_disable;
-  char   *logfile;
-  char   *topid;
-  char   *subid;
-
-  /**
-   * crack-per-time
-   */
-
-  cpt_t   cpt_buf[CPT_BUF];
-  int     cpt_pos;
-  time_t  cpt_start;
-  u64     cpt_total;
-
-  /**
-   * user
-   */
-
-  char   *dictfile;
-  char   *dictfile2;
-  char   *mask;
-  uint    maskcnt;
-  uint    maskpos;
-  char   *session;
-  char    separator;
-  char   *hashfile;
-  char   *homedir;
-  char   *install_dir;
-  char   *profile_dir;
-  char   *session_dir;
-  char   *shared_dir;
-  char   *outfile;
-  uint    outfile_format;
-  uint    outfile_autohex;
-  uint    outfile_check_timer;
-  char   *eff_restore_file;
-  char   *new_restore_file;
-  char   *induction_directory;
-  char   *outfile_check_directory;
-  uint    loopback;
-  char   *loopback_file;
-  uint    restore;
-  uint    restore_timer;
-  uint    restore_disable;
-  uint    status;
-  uint    status_timer;
-  uint    machine_readable;
-  uint    quiet;
-  uint    force;
-  uint    benchmark;
-  uint    runtime;
-  uint    remove;
-  uint    remove_timer;
-  uint    debug_mode;
-  char   *debug_file;
-  uint    hex_charset;
-  uint    hex_salt;
-  uint    hex_wordlist;
-  uint    pw_min;
-  uint    pw_max;
-  uint    powertune_enable;
-  uint    scrypt_tmto;
-  uint    segment_size;
-  char   *truecrypt_keyfiles;
-  char   *veracrypt_keyfiles;
-  uint    veracrypt_pim;
-  uint    workload_profile;
-  char   *custom_charset_1;
-  char   *custom_charset_2;
-  char   *custom_charset_3;
-  char   *custom_charset_4;
-
-  uint    hash_mode;
-  uint    hash_type;
-  uint    kern_type;
-  uint    opts_type;
-  uint    salt_type;
-  uint    esalt_size;
-  uint    isSalted;
-  uint    dgst_size;
-  uint    opti_type;
-  uint    dgst_pos0;
-  uint    dgst_pos1;
-  uint    dgst_pos2;
-  uint    dgst_pos3;
-
-  #ifdef HAVE_HWMON
-  uint    gpu_temp_disable;
-  uint    gpu_temp_abort;
-  uint    gpu_temp_retain;
-  #endif
-
-  char  **rp_files;
-  uint    rp_files_cnt;
-  uint    rp_gen;
-  uint    rp_gen_seed;
-
-  FILE   *pot_fp;
-
-  /**
-   * used for restore
-   */
-
-  u64     skip;
-  u64     limit;
-
-  restore_data_t *rd;
-
-  u64     checkpoint_cur_words;     // used for the "stop at next checkpoint" feature
-
-  /**
-   * status, timer
-   */
-
-  time_t  runtime_start;
-  time_t  runtime_stop;
-
-  time_t  prepare_time;
-
-  time_t  proc_start;
-  time_t  proc_stop;
-
-  u64     words_cnt;
-  u64     words_cur;
-  u64     words_base;
-
-  u64    *words_progress_done;      // progress number of words done     per salt
-  u64    *words_progress_rejected;  // progress number of words rejected per salt
-  u64    *words_progress_restored;  // progress number of words restored per salt
-
-  hc_timer_t timer_running;         // timer on current dict
-  hc_timer_t timer_paused;          // timer on current dict
-
-  double  ms_paused;                // timer on current dict
-
-  /**
-    * hash_info and username
-    */
-
-  hashinfo_t **hash_info;
-  uint    username;
-
-  int (*sort_by_digest) (const void *, const void *);
-
-  int (*parse_func)     (char *, uint, hash_t *);
-
-} hc_global_data_t;
-
-extern hc_global_data_t data;

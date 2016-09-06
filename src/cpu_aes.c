@@ -629,3 +629,47 @@ void AES_decrypt (AES_KEY *aes_key, const u8 *input, u8 *output)
     AES256_decrypt ((const u32 *) input, (u32 *) output, aes_key->rdk);
   }
 }
+
+// helper
+
+void AES128_decrypt_cbc (const u32 key[4], const u32 iv[4], const u32 in[16], u32 out[16])
+{
+  AES_KEY skey;
+
+  AES_set_decrypt_key ((const u8 *) key, 128, &skey);
+
+  u32 _iv[4] = { 0 };
+
+  _iv[0] = iv[0];
+  _iv[1] = iv[1];
+  _iv[2] = iv[2];
+  _iv[3] = iv[3];
+
+  for (int i = 0; i < 16; i += 4)
+  {
+    u32 _in[4] = { 0 };
+    u32 _out[4] = { 0 };
+
+    _in[0] = in[i + 0];
+    _in[1] = in[i + 1];
+    _in[2] = in[i + 2];
+    _in[3] = in[i + 3];
+
+    AES_decrypt (&skey, (const u8 *) _in, (u8 *) _out);
+
+    _out[0] ^= _iv[0];
+    _out[1] ^= _iv[1];
+    _out[2] ^= _iv[2];
+    _out[3] ^= _iv[3];
+
+    out[i + 0] = _out[0];
+    out[i + 1] = _out[1];
+    out[i + 2] = _out[2];
+    out[i + 3] = _out[3];
+
+    _iv[0] = _in[0];
+    _iv[1] = _in[1];
+    _iv[2] = _in[2];
+    _iv[3] = _in[3];
+  }
+}
