@@ -27,6 +27,7 @@
 #include "cpu_sha256.h"
 #include "thread.h"
 #include "timer.h"
+#include "locking.h"
 #include "types.h"
 #include "rp_cpu.h"
 #include "rp_kernel_on_cpu.h"

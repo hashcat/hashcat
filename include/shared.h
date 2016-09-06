@@ -25,6 +25,7 @@
 #include <dlfcn.h>
 #include <pwd.h>
 #include <limits.h>
+#include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/sysctl.h>
 #endif // _POSIX
@@ -187,13 +188,6 @@ char *stroptitype (const uint opti_type);
 char *strstatus (const uint threads_status);
 void status ();
 
-#ifdef F_SETLKW
-void lock_file (FILE *fp);
-void unlock_file (FILE *fp);
-#else
-#define lock_file(dummy) {}
-#define unlock_file(dummy) {}
-#endif
 
 #ifdef _WIN
 void fsync (int fd);
