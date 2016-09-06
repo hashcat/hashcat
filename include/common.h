@@ -29,6 +29,9 @@
 
 #define DEVICES_MAX   128
 
+#define PARAMCNT    64
+
+
 #define CEIL(a) ((a - (int) (a)) > 0 ? a + 1 : a)
 
 #ifdef __APPLE__

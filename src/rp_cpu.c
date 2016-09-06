@@ -5,6 +5,8 @@
 
 #include "common.h"
 #include "types_int.h"
+#include "types.h"
+#include "timer.h"
 #include "memory.h"
 #include "logging.h"
 #include "ext_OpenCL.h"
@@ -14,8 +16,6 @@
 #include "ext_xnvctrl.h"
 #include "convert.h"
 #include "thread.h"
-#include "timer.h"
-#include "types.h"
 #include "rp_cpu.h"
 #include "terminal.h"
 #include "hwmon.h"

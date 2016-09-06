@@ -5,6 +5,8 @@
 
 #include "common.h"
 #include "types_int.h"
+#include "types.h"
+#include "timer.h"
 #include "bitops.h"
 #include "memory.h"
 #include "convert.h"
@@ -22,8 +24,6 @@
 #include "cpu_sha256.h"
 #include "rp_kernel_on_cpu.h"
 #include "inc_hash_constants.h"
-#include "timer.h"
-#include "types.h"
 #include "hwmon.h"
 #include "mpsp.h"
 #include "rp_cpu.h"

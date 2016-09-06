@@ -6,8 +6,11 @@
  */
 
 #include "common.h"
-#include "logging.h"
+#include "types_int.h"
+#include "types.h"
 #include "memory.h"
+#include "logging.h"
+#include "timer.h"
 #include "dynloader.h"
 #include "ext_OpenCL.h"
 

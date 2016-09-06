@@ -126,8 +126,6 @@ static const char ST_0010[] = "Autotuning";
  * functions
  */
 
-uint count_lines (FILE *fd);
-
 void *rulefind (const void *key, void *base, int nmemb, size_t size, int (*compar) (const void *, const void *));
 
 int sort_by_u32          (const void *p1, const void *p2);
@@ -179,8 +177,7 @@ u64 mydivc64 (const u64 dividend, const u64 divisor);
 
 void format_speed_display (double val, char *buf, size_t len);
 void format_timer_display (struct tm *tm, char *buf, size_t len);
-int fgetl (FILE *fp, char *line_buf);
-int in_superchop (char *buf);
+
 char **scan_directory (const char *path);
 int count_dictionaries (char **dictionary_files);
 
@@ -198,10 +195,6 @@ void myquit  (void);
 
 void set_cpu_affinity (char *cpu_affinity);
 
-void tuning_db_destroy (tuning_db_t *tuning_db);
-tuning_db_t *tuning_db_alloc (FILE *fp);
-tuning_db_t *tuning_db_init (const char *tuning_db_file);
-tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, hc_device_param_t *device_param, int attack_mode, int hash_type);
 
 void naive_replace (char *s, const u8 key_char, const u8 replace_char);
 void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char);
