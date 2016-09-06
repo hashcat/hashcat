@@ -10,6 +10,7 @@
 #include "types_int.h"
 #include "bitops.h"
 #include "memory.h"
+#include "folder.h"
 #include "convert.h"
 #include "logging.h"
 #include "logfile.h"

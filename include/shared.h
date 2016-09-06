@@ -124,11 +124,6 @@ static const char ST_0010[] = "Autotuning";
  * functions
  */
 
-char *get_exec_path   (void);
-char *get_install_dir (const char *progname);
-char *get_profile_dir (const char *homedir);
-char *get_session_dir (const char *profile_dir);
-
 uint count_lines (FILE *fd);
 
 void *rulefind (const void *key, void *base, int nmemb, size_t size, int (*compar) (const void *, const void *));
