@@ -38,6 +38,8 @@
 
 extern hc_global_data_t data;
 
+extern int SUPPRESS_OUTPUT;
+
 static const char *PROGNAME     = "hashcat";
 
 const uint  VERSION_BIN         = 310;
@@ -409,14 +411,11 @@ static void (*get_next_word_func) (char *, u32, u32 *, u32 *);
 static unsigned int full01 = 0x01010101;
 static unsigned int full80 = 0x80808080;
 
-extern int SUPPRESS_OUTPUT;
 
 static hc_thread_mutex_t mux_adl;
 static hc_thread_mutex_t mux_counter;
 static hc_thread_mutex_t mux_dispatcher;
        hc_thread_mutex_t mux_display;
-
-hc_global_data_t data;
 
 const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
 
