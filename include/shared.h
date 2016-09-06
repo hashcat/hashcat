@@ -84,9 +84,6 @@ static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 <
 extern const uint  VERSION_BIN;
 extern const uint  RESTORE_MIN;
 
-extern const char *USAGE_MINI[];
-extern const char *USAGE_BIG[];
-
 extern const char *PROMPT;
 
 extern hc_thread_mutex_t mux_display;
@@ -132,6 +129,7 @@ char *get_exec_path   (void);
 char *get_install_dir (const char *progname);
 char *get_profile_dir (const char *homedir);
 char *get_session_dir (const char *profile_dir);
+
 uint count_lines (FILE *fd);
 
 void *rulefind (const void *key, void *base, int nmemb, size_t size, int (*compar) (const void *, const void *));
@@ -210,9 +208,6 @@ void myabort (void);
 void myquit  (void);
 
 void set_cpu_affinity (char *cpu_affinity);
-
-void usage_mini_print (const char *progname);
-void usage_big_print  (const char *progname);
 
 void tuning_db_destroy (tuning_db_t *tuning_db);
 tuning_db_t *tuning_db_alloc (FILE *fp);

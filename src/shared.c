@@ -76,25 +76,7 @@ void fsync (int fd)
  * mixed shared functions
  */
 
-void dump_hex (const u8 *s, const int sz)
-{
-  for (int i = 0; i < sz; i++)
-  {
-    log_info_nn ("%02x ", s[i]);
-  }
 
-  log_info ("");
-}
-
-void usage_mini_print (const char *progname)
-{
-  for (uint i = 0; USAGE_MINI[i] != NULL; i++) log_info (USAGE_MINI[i], progname);
-}
-
-void usage_big_print (const char *progname)
-{
-  for (uint i = 0; USAGE_BIG[i] != NULL; i++) log_info (USAGE_BIG[i], progname);
-}
 
 char *get_exec_path ()
 {

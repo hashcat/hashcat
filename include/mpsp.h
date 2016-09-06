@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <ctype.h>
 
 #define CHARSIZ       0x100
 
