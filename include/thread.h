@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _THREAD_H
+#define _THREAD_H
 
 #ifdef _POSIX
 #include <pthread.h>
@@ -44,3 +45,5 @@ typedef pthread_mutex_t   hc_thread_mutex_t;
 #define hc_thread_mutex_delete(m)   pthread_mutex_destroy  (&m)
 
 #endif
+
+#endif // _THREAD_H

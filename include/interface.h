@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _INTERFACE_H
+#define _INTERFACE_H
 
 #include <stdio.h>
 #include <string.h>
@@ -1528,3 +1529,5 @@ void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos);
 void truecrypt_crc32 (const char *filename, u8 keytab[64]);
 
 void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos);
+
+#endif // _INTERFACE_H

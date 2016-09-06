@@ -6,7 +6,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _SHARED_H
+#define _SHARED_H
 
 #include <errno.h>
 #include <dirent.h>
@@ -241,3 +242,5 @@ void *thread_runtime      (void *p);
 
 void status_display (void);
 void status_display_machine_readable (void);
+
+#endif // _SHARED_H

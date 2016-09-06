@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _BITOPS_H
+#define _BITOPS_H
 
 u32 is_power_of_2 (const u32 v);
 
@@ -14,3 +15,5 @@ u64 rotr64 (const u64 a, const u64 n);
 
 u32 byte_swap_32 (const u32 n);
 u64 byte_swap_64 (const u64 n);
+
+#endif // _BITOPS_H

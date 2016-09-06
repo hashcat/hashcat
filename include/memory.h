@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _MEMORY_H
+#define _MEMORY_H
 
 #include <string.h>
 #include <stdlib.h>
@@ -15,3 +16,5 @@ void myfree (void *ptr);
 void *mymalloc (size_t size);
 void *myrealloc (void *ptr, size_t oldsz, size_t add);
 char *mystrdup (const char *s);
+
+#endif // _MEMORY_H

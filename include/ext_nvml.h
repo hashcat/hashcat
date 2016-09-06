@@ -6,7 +6,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _NVML_H
+#define _NVML_H
 
 /**
  * Declarations from nvml.h
@@ -246,3 +247,5 @@ nvmlReturn_t hm_NVML_nvmlDeviceSetGpuOperationMode (NVML_PTR *nvml, int, nvmlDev
 nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (NVML_PTR *nvml, int, nvmlDevice_t device, unsigned int *minLimit, unsigned int *maxLimit);
 nvmlReturn_t hm_NVML_nvmlDeviceSetPowerManagementLimit (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int limit);
 nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimit (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int *limit);
+
+#endif // _NVML_H

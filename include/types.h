@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _TYPES_H
+#define _TYPES_H
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -544,3 +545,5 @@ struct __hc_device_param
 };
 
 typedef struct __hc_device_param hc_device_param_t;
+
+#endif // _TYPES_H

@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _DYNLOADER_H
+#define _DYNLOADER_H
 
 #include <stdlib.h>
 
@@ -67,3 +68,5 @@
       return -1; \
     } \
   }
+
+#endif // _DYNALOADER_H

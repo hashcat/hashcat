@@ -5,7 +5,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _COMMON_H
+#define _COMMON_H
 
 #define _POSIX_SOURCE
 #define _GNU_SOURCE
@@ -20,7 +21,6 @@
 #define HCBUFSIZ      0x50000 // general large space buffer size in case the size is unknown at compile-time
 
 #define BLOCK_SIZE              64
-
 
 #define EXPECTED_ITERATIONS 10000
 
@@ -38,3 +38,5 @@
 #ifdef _WIN
 #define WIN32_LEAN_AND_MEAN
 #endif
+
+#endif // _COMMON_H

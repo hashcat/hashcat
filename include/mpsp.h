@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _MPSP_H
+#define _MPSP_H
 
 #include <stdio.h>
 #include <errno.h>
@@ -48,3 +49,5 @@ void sp_setup_tbl (const char *install_dir, char *hcstat, uint disable, uint cla
 void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, uint threshold, uint uniq_tbls[SP_PW_MAX][CHARSIZ]);
 void sp_stretch_markov (hcstat_table_t *in, hcstat_table_t *out);
 void sp_stretch_root (hcstat_table_t *in, hcstat_table_t *out);
+
+#endif // _MPSP_H

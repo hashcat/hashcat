@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _TERMINAL_H
+#define _TERMINAL_H
 
 #include <stdio.h>
 #include <sys/time.h>
@@ -21,3 +22,5 @@
 int tty_break();
 int tty_getchar();
 int tty_fix();
+
+#endif // _TERMINAL_H

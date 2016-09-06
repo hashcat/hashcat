@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _CONVERT_H
+#define _CONVERT_H
 
 #include <ctype.h>
 
@@ -41,3 +42,5 @@ int base64_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
 
 void lowercase (u8 *buf, int len);
 void uppercase (u8 *buf, int len);
+
+#endif // _CONVERT_H

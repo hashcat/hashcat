@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _RP_CPU_H
+#define _RP_CPU_H
 
 #include <string.h>
 
@@ -91,3 +92,5 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);
 int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], u32 rp_gen_func_min, u32 rp_gen_func_max);
 
 int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, char out[BLOCK_SIZE]);
+
+#endif // _RP_CPU_H

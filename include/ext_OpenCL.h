@@ -5,7 +5,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _EXT_OPENCL_H
+#define _EXT_OPENCL_H
 
 #define CL_PLATFORMS_MAX 16
 
@@ -168,3 +169,5 @@ cl_int hc_clReleaseMemObject        (OCL_PTR *ocl, cl_mem mem);
 cl_int hc_clReleaseProgram          (OCL_PTR *ocl, cl_program program);
 cl_int hc_clSetKernelArg            (OCL_PTR *ocl, cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value);
 cl_int hc_clWaitForEvents           (OCL_PTR *ocl, cl_uint num_events, const cl_event *event_list);
+
+#endif // _EXT_OPENCL_H

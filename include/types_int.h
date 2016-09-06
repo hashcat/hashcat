@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _TYPES_INT_H
+#define _TYPES_INT_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -29,3 +30,5 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 
 typedef uint32_t uint; // we need to get rid of this sooner or later, for consistency
+
+#endif // _TYPES_INT_H

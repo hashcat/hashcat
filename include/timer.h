@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _TIMER_H
+#define _TIMER_H
 
 #ifdef _POSIX
 #include <sys/time.h>
@@ -27,3 +28,5 @@ typedef struct timeval hc_timer_t;
 #define hc_timer_set(a)   { gettimeofday ((a), NULL); }
 
 #endif
+
+#endif // _TIMER_H

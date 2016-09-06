@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _HWMON_H
+#define _HWMON_H
 
 typedef struct
 {
@@ -52,3 +53,5 @@ int hm_set_fanspeed_with_device_id_nvapi     (const uint device_id, const int fa
 int hm_set_fanspeed_with_device_id_xnvctrl   (const uint device_id, const int fanspeed);
 
 void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value);
+
+#endif // _HWMON_H

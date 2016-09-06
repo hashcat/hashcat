@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _DATA_H
+#define _DATA_H
 
 typedef struct
 {
@@ -252,3 +253,5 @@ typedef struct
   int (*parse_func)     (char *, uint, hash_t *);
 
 } hc_global_data_t;
+
+#endif // _DATA_H

@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _CPU_DES_H
+#define _CPU_DES_H
 
 #define PERM_OP(a,b,tt,n,m) \
 {                           \
@@ -45,3 +46,5 @@
 
 void _des_keysetup (u32 data[2], u32 Kc[16], u32 Kd[16]);
 void _des_encrypt (u32 data[2], u32 Kc[16], u32 Kd[16]);
+
+#endif // _CPU_DES_H

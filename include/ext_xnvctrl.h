@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _EXT_XNVCTRL_H
+#define _EXT_XNVCTRL_H
 
 /**
  * Stuff from X11/Xlib.h
@@ -85,3 +86,5 @@ int set_fan_control       (XNVCTRL_PTR *xnvctrl, int gpu, int  val);
 int get_fan_speed_current (XNVCTRL_PTR *xnvctrl, int gpu, int *val);
 int get_fan_speed_target  (XNVCTRL_PTR *xnvctrl, int gpu, int *val);
 int set_fan_speed_target  (XNVCTRL_PTR *xnvctrl, int gpu, int  val);
+
+#endif // _EXT_XNVCTRL_H

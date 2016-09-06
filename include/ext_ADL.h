@@ -6,7 +6,8 @@
  * License.....: MIT
  */
 
-#pragma once
+#ifndef _EXT_ADL_H
+#define _EXT_ADL_H
 
 #include <string.h>
 
@@ -389,3 +390,5 @@ int hm_ADL_Overdrive6_PowerControl_Caps (ADL_PTR *adl, int iAdapterIndex, int *l
 int hm_ADL_Overdrive6_TargetTemperatureData_Get (ADL_PTR *adl, int iAdapterIndex, int *cur_temp, int *default_temp);
 int hm_ADL_Overdrive6_TargetTemperatureRangeInfo_Get (ADL_PTR *adl, int iAdapterIndex, ADLOD6ParameterRange *lpTargetTemperatureInfo);
 int hm_ADL_Overdrive6_FanSpeed_Reset (ADL_PTR *adl, int iAdapterIndex);
+
+#endif // _EXT_ADL_H
