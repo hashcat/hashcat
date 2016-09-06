@@ -13,6 +13,7 @@
 #include "timer.h"
 #include "types.h"
 #include "memory.h"
+#include "hwmon.h"
 #include "data.h"
 #include "logfile.h"
 

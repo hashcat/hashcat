@@ -24,6 +24,7 @@
 #include "inc_hash_constants.h"
 #include "timer.h"
 #include "types.h"
+#include "hwmon.h"
 #include "data.h"
 #include "interface.h"
 

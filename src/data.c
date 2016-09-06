@@ -12,6 +12,7 @@
 #include "ext_xnvctrl.h"
 #include "timer.h"
 #include "types.h"
+#include "hwmon.h"
 #include "data.h"
 
 hc_global_data_t data;

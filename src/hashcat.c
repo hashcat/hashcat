@@ -32,6 +32,7 @@
 #include "inc_hash_constants.h"
 #include "interface.h"
 #include "shared.h"
+#include "hwmon.h"
 #include "data.h"
 
 #include <search.h>

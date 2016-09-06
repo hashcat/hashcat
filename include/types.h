@@ -572,19 +572,3 @@ struct __hc_device_param
 };
 
 typedef struct __hc_device_param hc_device_param_t;
-
-#ifdef HAVE_HWMON
-typedef struct
-{
-  HM_ADAPTER_ADL     adl;
-  HM_ADAPTER_NVML    nvml;
-  HM_ADAPTER_NVAPI   nvapi;
-  HM_ADAPTER_XNVCTRL xnvctrl;
-
-  int od_version;
-
-  int fan_get_supported;
-  int fan_set_supported;
-
-} hm_attrs_t;
-#endif // HAVE_HWMON
