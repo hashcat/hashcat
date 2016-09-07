@@ -252,21 +252,7 @@ typedef struct
 
 } comb_t;
 
-typedef struct
-{
-  u32  version_bin;
-  char cwd[256];
-  u32  pid;
 
-  u32  dictpos;
-  u32  maskpos;
-
-  u64  words_cur;
-
-  u32  argc;
-  char **argv;
-
-} restore_data_t;
 
 typedef struct
 {

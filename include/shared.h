@@ -63,9 +63,6 @@
  * valid project specific global stuff
  */
 
-extern const uint  VERSION_BIN;
-extern const uint  RESTORE_MIN;
-
 extern const char *PROMPT;
 
 extern hc_thread_mutex_t mux_display;
@@ -139,12 +136,8 @@ void myquit  (void);
 void naive_replace (char *s, const u8 key_char, const u8 replace_char);
 void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char);
 
-u64 get_lowest_words_done (void);
 
-restore_data_t *init_restore  (int argc, char **argv);
-void            read_restore  (const char *eff_restore_file, restore_data_t *rd);
-void            write_restore (const char *new_restore_file, restore_data_t *rd);
-void            cycle_restore (void);
+
 void            check_checkpoint (void);
 
 #ifdef _WIN

@@ -26,6 +26,7 @@
 #include "mpsp.h"
 #include "rp_cpu.h"
 #include "opencl.h"
+#include "restore.h"
 #include "data.h"
 #include "shared.h"
 #include "rp_cpu.h"

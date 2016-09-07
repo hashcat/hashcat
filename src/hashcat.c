@@ -57,6 +57,7 @@
 #include "shared.h"
 #include "hwmon.h"
 #include "mpsp.h"
+#include "restore.h"
 #include "data.h"
 #include "affinity.h"
 #include "bitmap.h"
@@ -66,10 +67,8 @@ extern hc_global_data_t data;
 
 extern int SUPPRESS_OUTPUT;
 
-static const char *PROGNAME     = "hashcat";
 
-const uint  VERSION_BIN         = 310;
-const uint  RESTORE_MIN         = 300;
+static const char *PROGNAME = "hashcat";
 
 static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 
@@ -86,9 +85,7 @@ static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 #define MARKOV_CLASSIC          0
 #define BENCHMARK               0
 #define STDOUT_FLAG             0
-#define RESTORE                 0
-#define RESTORE_TIMER           60
-#define RESTORE_DISABLE         0
+
 #define STATUS                  0
 #define STATUS_TIMER            10
 #define MACHINE_READABLE        0
@@ -6529,7 +6526,7 @@ int main (int argc, char **argv)
   {
     read_restore (eff_restore_file, rd);
 
-    if (rd->version_bin < RESTORE_MIN)
+    if (rd->version < RESTORE_VERSION_MIN)
     {
       log_error ("ERROR: Incompatible restore-file version");
 
