@@ -6,6 +6,10 @@
  * License.....: MIT
  */
 
+#ifdef __APPLE__
+#include <stdio.h>
+#endif
+
 #include "common.h"
 
 #include <stdio.h>
