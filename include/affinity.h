@@ -10,7 +10,13 @@
 
 #ifdef _POSIX
 #include <pthread.h>
+#include <sys/sysctl.h>
 #endif // _POSIX
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#include <mach/mach.h>
+#endif // __APPLE__
 
 #ifdef _WIN
 #include <windows.h>

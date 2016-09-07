@@ -29,13 +29,8 @@
 #include <sys/sysctl.h>
 #endif // _POSIX
 
-#ifdef __APPLE__
-#include <mach-o/dyld.h>
-#include <mach/mach.h>
-#endif // __APPLE__
-
 #ifdef _WIN
-//#include <windows.h>
+#include <windows.h>
 #include <psapi.h>
 #include <io.h>
 #endif // _WIN
