@@ -20,13 +20,13 @@
  * OS specific includes
  */
 
-#ifdef _POSIX
+#if defined (_POSIX)
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/sysctl.h>
 #endif // _POSIX
 
-#ifdef _WIN
+#if defined (_WIN)
 #include <windows.h>
 #endif // _WIN
 
@@ -37,9 +37,9 @@
 
 
 
-#ifdef _WIN
+#if defined (_WIN)
 #define hc_sleep(x) Sleep ((x) * 1000);
-#elif _POSIX
+#elif defined (_POSIX)
 #define hc_sleep(x) sleep ((x));
 #endif
 
@@ -136,7 +136,7 @@ void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_cha
 
 void            check_checkpoint (void);
 
-#ifdef _WIN
+#if defined (_WIN)
 
 BOOL WINAPI sigHandler_default   (DWORD sig);
 BOOL WINAPI sigHandler_benchmark (DWORD sig);

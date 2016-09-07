@@ -59,7 +59,7 @@ void xnvctrl_close (XNVCTRL_PTR *xnvctrl)
 {
   if (xnvctrl)
   {
-    #ifdef _POSIX
+    #if defined (_POSIX)
 
     if (xnvctrl->lib_x11)
     {

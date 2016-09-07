@@ -10,12 +10,12 @@
 #include <unistd.h>
 #include <errno.h>
 
-#ifdef _POSIX
+#if defined (_POSIX)
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif // _POSIX
 
-#ifdef _WIN
+#if defined (_WIN)
 #include <windows.h>
 #include <psapi.h>
 #endif // _WIN

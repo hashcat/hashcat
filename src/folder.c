@@ -5,7 +5,7 @@
  * License.....: MIT
  */
 
-#ifdef __APPLE__
+#if defined (__APPLE__)
 #include <stdio.h>
 #endif
 
@@ -13,7 +13,7 @@
 #include "memory.h"
 #include "folder.h"
 
-#ifdef __APPLE__
+#if defined (__APPLE__)
 #include "types_int.h"
 #include "logging.h"
 #endif
@@ -152,7 +152,7 @@ char **scan_directory (const char *path)
 
   if ((d = opendir (tmp_path)) != NULL)
   {
-    #ifdef __APPLE__
+    #if defined (__APPLE__)
 
     struct dirent e;
 

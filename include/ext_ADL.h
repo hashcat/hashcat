@@ -304,7 +304,7 @@ typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET) (int, int *
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET) (int, ADLOD6ParameterRange *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_FANSPEED_RESET) (int);
 
-#ifdef _POSIX
+#if defined (_POSIX)
 typedef void *ADL_LIB;
 #else
 typedef HINSTANCE ADL_LIB;

@@ -13,14 +13,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#ifdef _POSIX
+#if defined (_POSIX)
 #include <termios.h>
-#ifdef __APPLE__
+#if defined (__APPLE__)
 #include <sys/ioctl.h>
 #endif // __APPLE__
 #endif // _POSIX
 
-#ifdef _WIN
+#if defined (_WIN)
 #include <windows.h>
 #endif // _WIN
 

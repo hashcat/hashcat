@@ -71,7 +71,7 @@ typedef struct
    * hardware watchdog
    */
 
-  #ifdef HAVE_HWMON
+  #if defined (HAVE_HWMON)
   void      *hm_adl;
   void      *hm_nvml;
   void      *hm_nvapi;
@@ -192,7 +192,7 @@ typedef struct
   uint    dgst_pos2;
   uint    dgst_pos3;
 
-  #ifdef HAVE_HWMON
+  #if defined (HAVE_HWMON)
   uint    gpu_temp_disable;
   uint    gpu_temp_abort;
   uint    gpu_temp_retain;

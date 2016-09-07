@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-#ifdef __APPLE__
+#if defined (__APPLE__)
 #include <stdio.h>
 #endif
 
@@ -13,7 +13,7 @@
 #include "logging.h"
 #include "affinity.h"
 
-#ifdef __APPLE__
+#if defined (__APPLE__)
 static void CPU_ZERO (cpu_set_t *cs)
 {
   cs->count = 0;
@@ -77,9 +77,9 @@ void set_cpu_affinity (char *cpu_affinity)
 
       if (cpu_id == 0)
       {
-        #ifdef _WIN
+        #if defined (_WIN)
         aff_mask = 0;
-        #elif _POSIX
+        #elif defined (_POSIX)
         CPU_ZERO (&cpuset);
         #endif
 
@@ -93,9 +93,9 @@ void set_cpu_affinity (char *cpu_affinity)
         exit (-1);
       }
 
-      #ifdef _WIN
+      #if defined (_WIN)
       aff_mask |= 1u << (cpu_id - 1);
-      #elif _POSIX
+      #elif defined (_POSIX)
       CPU_SET ((cpu_id - 1), &cpuset);
       #endif
 

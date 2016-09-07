@@ -6,7 +6,7 @@
 #include "common.h"
 #include "terminal.h"
 
-#ifdef __linux__
+#if defined (__linux__)
 static struct termios savemodes;
 static int havemodes = 0;
 
@@ -104,7 +104,7 @@ int tty_fix()
 }
 #endif
 
-#ifdef _WIN
+#if defined (_WIN)
 static DWORD saveMode = 0;
 
 int tty_break()

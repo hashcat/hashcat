@@ -7,7 +7,7 @@
 #include "logging.h"
 #include "locking.h"
 
-#ifdef F_SETLKW
+#if defined (F_SETLKW)
 
 void lock_file (FILE *fp)
 {

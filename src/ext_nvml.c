@@ -17,7 +17,7 @@ int nvml_init (NVML_PTR *nvml)
 
   memset (nvml, 0, sizeof (NVML_PTR));
 
-  #ifdef _WIN
+  #if defined (_WIN)
   nvml->lib = hc_dlopen ("nvml.dll");
 
   if (!nvml->lib)
@@ -61,7 +61,7 @@ int nvml_init (NVML_PTR *nvml)
     myfree (Buffer);
   }
 
-  #elif _POSIX
+  #elif defined (_POSIX)
   nvml->lib = hc_dlopen ("libnvidia-ml.so", RTLD_NOW);
   #endif
 

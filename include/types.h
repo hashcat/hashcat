@@ -13,7 +13,7 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#ifdef _WIN
+#if defined (_WIN)
 #define EOL "\r\n"
 #else
 #define EOL "\n"
@@ -210,11 +210,11 @@ typedef struct
 {
   u64    cnt;
 
-  #ifdef _POSIX
+  #if defined (_POSIX)
   struct stat stat;
   #endif
 
-  #ifdef _WIN
+  #if defined (_WIN)
   struct __stat64 stat;
   #endif
 

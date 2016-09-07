@@ -10,14 +10,14 @@
 #include <dirent.h>
 #include <unistd.h>
 
-#ifdef _POSIX
+#if defined (_POSIX)
 #include <sys/types.h>
-#ifdef __APPLE__
+#if defined (__APPLE__)
 #include <mach-o/dyld.h>
 #endif // __APPLE__
 #endif // _POSIX
 
-#ifdef _WIN
+#if defined (_WIN)
 #include <windows.h>
 #endif
 

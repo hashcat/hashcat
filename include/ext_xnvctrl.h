@@ -49,7 +49,7 @@ typedef int HM_ADAPTER_XNVCTRL;
 typedef int  (*XNVCTRL_API_CALL XNVCTRLQUERYTARGETATTRIBUTE) (void *, int, int, unsigned int, unsigned int, int *);
 typedef void (*XNVCTRL_API_CALL XNVCTRLSETTARGETATTRIBUTE)   (void *, int, int, unsigned int, unsigned int, int);
 
-#ifdef _POSIX
+#if defined (_POSIX)
 typedef void *XNVCTRL_LIB;
 #else
 typedef HINSTANCE XNVCTRL_LIB;

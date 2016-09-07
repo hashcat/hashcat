@@ -6,7 +6,7 @@
  * License.....: MIT
  */
 
-#ifdef __APPLE__
+#if defined (__APPLE__)
 #include <stdio.h>
 #endif
 
@@ -20,7 +20,7 @@
 #include <getopt.h>
 #include <inttypes.h>
 
-#ifdef _POSIX
+#if defined (_POSIX)
 #include <pthread.h>
 #include <pwd.h>
 #endif // _POSIX
@@ -270,7 +270,7 @@ static const char ST_0009[] = "Running (stop at checkpoint)";
 static const char ST_0010[] = "Autotuning";
 
 
-#ifdef _WIN
+#if defined (_WIN)
 #define mkdir(name,mode) mkdir (name)
 #endif
 
@@ -666,7 +666,7 @@ void status_display_machine_readable ()
    * temperature
    */
 
-  #ifdef HAVE_HWMON
+  #if defined (HAVE_HWMON)
   if (data.gpu_temp_disable == 0)
   {
     fprintf (out, "TEMP\t");
@@ -1059,7 +1059,7 @@ void status_display ()
     ms_paused += ms_paused_tmp;
   }
 
-  #ifdef _WIN
+  #if defined (_WIN)
 
   __time64_t sec_run = (__time64_t) ms_running / 1000;
 
@@ -1077,7 +1077,7 @@ void status_display ()
 
     struct tm *tmp = NULL;
 
-    #ifdef _WIN
+    #if defined (_WIN)
 
     tmp = _gmtime64 (&sec_run);
 
@@ -1172,7 +1172,7 @@ void status_display ()
   {
     if (data.devices_status != STATUS_CRACKED)
     {
-      #ifdef _WIN
+      #if defined (_WIN)
       __time64_t sec_etc = 0;
       #else
       time_t sec_etc = 0;
@@ -1205,7 +1205,7 @@ void status_display ()
 
         struct tm *tmp = NULL;
 
-        #ifdef _WIN
+        #if defined (_WIN)
         tmp = _gmtime64 (&sec_etc);
         #else
         tmp = gmtime (&sec_etc);
@@ -1236,7 +1236,7 @@ void status_display ()
 
             time (&runtime_cur);
 
-            #ifdef _WIN
+            #if defined (_WIN)
 
             __time64_t runtime_left = data.proc_start + data.runtime + data.prepare_time + (ms_paused / 1000) - runtime_cur;
 
@@ -1433,7 +1433,7 @@ void status_display ()
     }
   }
 
-  #ifdef HAVE_HWMON
+  #if defined (HAVE_HWMON)
 
   if (data.devices_status == STATUS_EXHAUSTED)  return;
   if (data.devices_status == STATUS_CRACKED)    return;
@@ -3590,7 +3590,7 @@ static int autotune (hc_device_param_t *device_param)
 
   device_param->kernel_power = kernel_power;
 
-  #ifdef DEBUG
+  #if defined (DEBUG)
 
   if (data.quiet == 0)
   {
@@ -3619,14 +3619,14 @@ static int run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 
   uint speed_pos = device_param->speed_pos;
 
-  #ifdef _POSIX
+  #if defined (_POSIX)
   if (device_param->timer_speed.tv_sec == 0)
   {
     hc_timer_set (&device_param->timer_speed);
   }
   #endif
 
-  #ifdef _WIN
+  #if defined (_WIN)
   if (device_param->timer_speed.QuadPart == 0)
   {
     hc_timer_set (&device_param->timer_speed);
@@ -4157,11 +4157,11 @@ static void get_next_word (wl_data_t *wl_data, FILE *fd, char **out_buf, uint *o
   get_next_word (wl_data, fd, out_buf, out_len);
 }
 
-#ifdef _POSIX
+#if defined (_POSIX)
 static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t *dictstat_base, size_t *dictstat_nmemb)
 #endif
 
-#ifdef _WIN
+#if defined (_WIN)
 static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t *dictstat_base, uint *dictstat_nmemb)
 #endif
 {
@@ -4171,11 +4171,11 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
 
   d.cnt = 0;
 
-  #ifdef _POSIX
+  #if defined (_POSIX)
   fstat (fileno (fd), &d.stat);
   #endif
 
-  #ifdef _WIN
+  #if defined (_WIN)
   _fstat64 (fileno (fd), &d.stat);
   #endif
 
@@ -4186,7 +4186,7 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
   d.stat.st_rdev    = 0;
   d.stat.st_atime   = 0;
 
-  #ifdef _POSIX
+  #if defined (_POSIX)
   d.stat.st_blksize = 0;
   d.stat.st_blocks  = 0;
   #endif
@@ -4315,7 +4315,7 @@ static void *thread_monitor (void *p)
   uint remove_left  = data.remove_timer;
   uint status_left  = data.status_timer;
 
-  #ifdef HAVE_HWMON
+  #if defined (HAVE_HWMON)
   uint hwmon_check = 0;
 
   int slowdown_warnings = 0;
@@ -4359,7 +4359,7 @@ static void *thread_monitor (void *p)
     status_check = 1;
   }
 
-  #ifdef HAVE_HWMON
+  #if defined (HAVE_HWMON)
   if (data.gpu_temp_disable == 0)
   {
     time (&last_temp_check_time);
@@ -4370,7 +4370,7 @@ static void *thread_monitor (void *p)
 
   if ((runtime_check == 0) && (remove_check == 0) && (status_check == 0) && (restore_check == 0))
   {
-    #ifdef HAVE_HWMON
+    #if defined (HAVE_HWMON)
     if (hwmon_check == 0)
     #endif
     return (p);
@@ -4382,7 +4382,7 @@ static void *thread_monitor (void *p)
 
     if (data.devices_status != STATUS_RUNNING) continue;
 
-    #ifdef HAVE_HWMON
+    #if defined (HAVE_HWMON)
 
     if (hwmon_check == 1)
     {
@@ -4524,11 +4524,11 @@ static void *thread_monitor (void *p)
                   }
                   else if (device_param->device_vendor_id == VENDOR_ID_NV)
                   {
-                    #ifdef _WIN
+                    #if defined (_WIN)
                     hm_set_fanspeed_with_device_id_nvapi (device_id, fan_speed_new, 1);
                     #endif
 
-                    #ifdef __linux__
+                    #if defined (__linux__)
                     hm_set_fanspeed_with_device_id_xnvctrl (device_id, fan_speed_new);
                     #endif
                   }
@@ -4629,7 +4629,7 @@ static void *thread_monitor (void *p)
     }
   }
 
-  #ifdef HAVE_HWMON
+  #if defined (HAVE_HWMON)
   myfree (fan_speed_chgd);
 
   myfree (temp_diff_old);
@@ -4752,13 +4752,13 @@ static void *thread_outfile_remove (void *p)
             {
               //hc_thread_mutex_lock (mux_display);
 
-              #ifdef _POSIX
+              #if defined (_POSIX)
               struct stat outfile_stat;
 
               fstat (fileno (fp), &outfile_stat);
               #endif
 
-              #ifdef _WIN
+              #if defined (_WIN)
               struct stat64 outfile_stat;
 
               _fstat64 (fileno (fp), &outfile_stat);
@@ -5916,7 +5916,7 @@ static void *HC_API_CALL ADL_Main_Memory_Alloc (const int iSize)
  * main
  */
 
-#ifdef _WIN
+#if defined (_WIN)
 static void SetConsoleWindowSize (const int x)
 {
   HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
@@ -5944,7 +5944,7 @@ static void SetConsoleWindowSize (const int x)
 
 int main (int argc, char **argv)
 {
-  #ifdef _WIN
+  #if defined (_WIN)
   SetConsoleWindowSize (132);
   #endif
 
@@ -6095,7 +6095,7 @@ int main (int argc, char **argv)
   uint  kernel_loops              = KERNEL_LOOPS;
   uint  nvidia_spin_damp          = NVIDIA_SPIN_DAMP;
   uint  gpu_temp_disable          = GPU_TEMP_DISABLE;
-  #ifdef HAVE_HWMON
+  #if defined (HAVE_HWMON)
   uint  gpu_temp_abort            = GPU_TEMP_ABORT;
   uint  gpu_temp_retain           = GPU_TEMP_RETAIN;
   uint  powertune_enable          = POWERTUNE_ENABLE;
@@ -6254,7 +6254,7 @@ int main (int argc, char **argv)
     {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
     {"nvidia-spin-damp",          required_argument, 0, IDX_NVIDIA_SPIN_DAMP},
     {"gpu-temp-disable",          no_argument,       0, IDX_GPU_TEMP_DISABLE},
-    #ifdef HAVE_HWMON
+    #if defined (HAVE_HWMON)
     {"gpu-temp-abort",            required_argument, 0, IDX_GPU_TEMP_ABORT},
     {"gpu-temp-retain",           required_argument, 0, IDX_GPU_TEMP_RETAIN},
     {"powertune-enable",          no_argument,       0, IDX_POWERTUNE_ENABLE},
@@ -6414,7 +6414,7 @@ int main (int argc, char **argv)
 
   char cpath[1024] = { 0 };
 
-  #ifdef _WIN
+  #if defined (_WIN)
 
   snprintf (cpath, sizeof (cpath) - 1, "%s\\OpenCL\\", shared_dir);
 
@@ -6452,7 +6452,7 @@ int main (int argc, char **argv)
     putenv (tmp);
   }
 
-  #ifdef _WIN
+  #if defined (_WIN)
 
   naive_replace (cpath_real, '\\', '/');
 
@@ -6536,9 +6536,9 @@ int main (int argc, char **argv)
     myargc = rd->argc;
     myargv = rd->argv;
 
-    #ifdef _POSIX
+    #if defined (_POSIX)
     rd->pid = getpid ();
-    #elif _WIN
+    #elif defined (_WIN)
     rd->pid = GetCurrentProcessId ();
     #endif
   }
@@ -6639,7 +6639,7 @@ int main (int argc, char **argv)
       case IDX_NVIDIA_SPIN_DAMP:          nvidia_spin_damp          = atoi (optarg);
                                           nvidia_spin_damp_chgd     = 1;              break;
       case IDX_GPU_TEMP_DISABLE:          gpu_temp_disable          = 1;              break;
-      #ifdef HAVE_HWMON
+      #if defined (HAVE_HWMON)
       case IDX_GPU_TEMP_ABORT:            gpu_temp_abort            = atoi (optarg);  break;
       case IDX_GPU_TEMP_RETAIN:           gpu_temp_retain           = atoi (optarg);  break;
       case IDX_POWERTUNE_ENABLE:          powertune_enable          = 1;              break;
@@ -7401,7 +7401,7 @@ int main (int argc, char **argv)
   data.custom_charset_2        = custom_charset_2;
   data.custom_charset_3        = custom_charset_3;
   data.custom_charset_4        = custom_charset_4;
-  #ifdef HAVE_HWMON
+  #if defined (HAVE_HWMONO)
   data.powertune_enable        = powertune_enable;
   #endif
   data.logfile_disable         = logfile_disable;
@@ -7484,7 +7484,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (kernel_loops);
   logfile_top_uint   (nvidia_spin_damp);
   logfile_top_uint   (gpu_temp_disable);
-  #ifdef HAVE_HWMON
+  #if defined (HAVE_HWMON)
   logfile_top_uint   (gpu_temp_abort);
   logfile_top_uint   (gpu_temp_retain);
   #endif
@@ -7606,7 +7606,7 @@ int main (int argc, char **argv)
     gpu_temp_disable      = 1;
     outfile_check_timer   = 0;
 
-    #ifdef HAVE_HWMON
+    #if defined (HAVE_HWMON)
     if (powertune_enable == 1)
     {
       gpu_temp_disable = 0;
@@ -11719,11 +11719,11 @@ int main (int argc, char **argv)
 
     dictstat_t *dictstat_base = (dictstat_t *) mycalloc (MAX_DICTSTAT, sizeof (dictstat_t));
 
-    #ifdef _POSIX
+    #if defined (_POSIX)
     size_t dictstat_nmemb = 0;
     #endif
 
-    #ifdef _WIN
+    #if defined (_WIN)
     uint   dictstat_nmemb = 0;
     #endif
 
@@ -11739,13 +11739,13 @@ int main (int argc, char **argv)
 
       if (dictstat_fp)
       {
-        #ifdef _POSIX
+        #if defined (_POSIX)
         struct stat tmpstat;
 
         fstat (fileno (dictstat_fp), &tmpstat);
         #endif
 
-        #ifdef _WIN
+        #if defined (_WIN)
         struct stat64 tmpstat;
 
         _fstat64 (fileno (dictstat_fp), &tmpstat);
@@ -13118,12 +13118,12 @@ int main (int argc, char **argv)
     {
       if (data.hashfile != NULL)
       {
-        #ifdef _POSIX
+        #if defined (_POSIX)
         struct stat tmpstat_outfile;
         struct stat tmpstat_hashfile;
         #endif
 
-        #ifdef _WIN
+        #if defined (_WIN)
         struct stat64 tmpstat_outfile;
         struct stat64 tmpstat_hashfile;
         #endif
@@ -13132,11 +13132,11 @@ int main (int argc, char **argv)
 
         if (tmp_outfile_fp)
         {
-          #ifdef _POSIX
+          #if defined (_POSIX)
           fstat (fileno (tmp_outfile_fp), &tmpstat_outfile);
           #endif
 
-          #ifdef _WIN
+          #if defined (_WIN)
           _fstat64 (fileno (tmp_outfile_fp), &tmpstat_outfile);
           #endif
 
@@ -13147,11 +13147,11 @@ int main (int argc, char **argv)
 
         if (tmp_hashfile_fp)
         {
-          #ifdef _POSIX
+          #if defined (_POSIX)
           fstat (fileno (tmp_hashfile_fp), &tmpstat_hashfile);
           #endif
 
-          #ifdef _WIN
+          #if defined (_WIN)
           _fstat64 (fileno (tmp_hashfile_fp), &tmpstat_hashfile);
           #endif
 
@@ -13174,7 +13174,7 @@ int main (int argc, char **argv)
           tmpstat_hashfile.st_rdev    = 0;
           tmpstat_hashfile.st_atime   = 0;
 
-          #ifdef _POSIX
+          #if defined (_POSIX)
           tmpstat_outfile.st_blksize  = 0;
           tmpstat_outfile.st_blocks   = 0;
 
@@ -13182,7 +13182,7 @@ int main (int argc, char **argv)
           tmpstat_hashfile.st_blocks  = 0;
           #endif
 
-          #ifdef _POSIX
+          #if defined (_POSIX)
           if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (struct stat)) == 0)
           {
             log_error ("ERROR: Hashfile and Outfile are not allowed to point to the same file");
@@ -13191,7 +13191,7 @@ int main (int argc, char **argv)
           }
           #endif
 
-          #ifdef _WIN
+          #if defined (_WIN)
           if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (struct stat64)) == 0)
           {
             log_error ("ERROR: Hashfile and Outfile are not allowed to point to the same file");
@@ -14761,7 +14761,7 @@ int main (int argc, char **argv)
 
         char *device_name_chksum = (char *) mymalloc (INFOSZ);
 
-        #ifdef __x86_64__
+        #if defined (__x86_64__)
         snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
         #else
         snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
@@ -14788,11 +14788,11 @@ int main (int argc, char **argv)
           {
             need_nvml = 1;
 
-            #ifdef __linux__
+            #if defined (__linux__)
             need_xnvctrl = 1;
             #endif
 
-            #ifdef _WIN
+            #if defined (_WIN)
             need_nvapi = 1;
             #endif
           }
@@ -14938,7 +14938,7 @@ int main (int argc, char **argv)
                 log_info ("ATTENTION! Unsupported or incorrectly installed Catalyst driver detected!");
                 log_info ("You are STRONGLY encouraged to use the official supported catalyst driver");
                 log_info ("See hashcat's homepage for official supported catalyst drivers");
-                #ifdef _WIN
+                #if defined (_WIN)
                 log_info ("Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
                 #endif
                 log_info ("You can use --force to override this but do not post error reports if you do so");
@@ -15080,7 +15080,7 @@ int main (int argc, char **argv)
      * HM devices: init
      */
 
-    #ifdef HAVE_HWMON
+    #if defined (HAVE_HWMON)
     hm_attrs_t hm_adapters_adl[DEVICES_MAX];
     hm_attrs_t hm_adapters_nvapi[DEVICES_MAX];
     hm_attrs_t hm_adapters_nvml[DEVICES_MAX];
@@ -15313,7 +15313,7 @@ int main (int argc, char **argv)
        * Watchdog and Temperature balance
        */
 
-      #ifdef HAVE_HWMON
+      #if defined (HAVE_HWMON)
       if (gpu_temp_disable == 0 && data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl == NULL)
       {
         log_info ("Watchdog: Hardware Monitoring Interface not found on your system");
@@ -15341,7 +15341,7 @@ int main (int argc, char **argv)
       #endif
     }
 
-    #ifdef HAVE_HWMON
+    #if defined (HAVE_HWMON)
 
     /**
      * HM devices: copy
@@ -15578,7 +15578,7 @@ int main (int argc, char **argv)
 
     #endif // HAVE_HWMON
 
-    #ifdef DEBUG
+    #if defined (DEBUG)
     if (benchmark == 1) log_info ("Hashmode: %d", data.hash_mode);
     #endif
 
@@ -16107,7 +16107,7 @@ int main (int argc, char **argv)
 
       char build_opts[1024] = { 0 };
 
-      #ifdef _WIN
+      #if defined (_WIN)
       snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", cpath_real);
       #else
       snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", cpath_real);
@@ -16167,7 +16167,7 @@ int main (int argc, char **argv)
 
       char build_opts_new[1024] = { 0 };
 
-      #ifdef DEBUG
+      #if defined (DEBUG)
       snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, data.dgst_size / 4, kern_type);
       #else
       snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1 -w", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, data.dgst_size / 4, kern_type);
@@ -16175,7 +16175,7 @@ int main (int argc, char **argv)
 
       strncpy (build_opts, build_opts_new, sizeof (build_opts));
 
-      #ifdef DEBUG
+      #if defined (DEBUG)
       log_info ("- Device #%u: build_opts '%s'\n", device_id + 1, build_opts);
       #endif
 
@@ -16267,7 +16267,7 @@ int main (int argc, char **argv)
 
             hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-            #ifdef DEBUG
+            #if defined (DEBUG)
             if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
             #else
             if (CL_err != CL_SUCCESS)
@@ -16326,7 +16326,7 @@ int main (int argc, char **argv)
           }
           else
           {
-            #ifdef DEBUG
+            #if defined (DEBUG)
             log_info ("- Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
             #endif
 
@@ -16353,7 +16353,7 @@ int main (int argc, char **argv)
         }
         else
         {
-          #ifdef DEBUG
+          #if defined (DEBUG)
           log_info ("- Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
           #endif
 
@@ -16407,7 +16407,7 @@ int main (int argc, char **argv)
 
           hc_clGetProgramBuildInfo (data.ocl, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-          #ifdef DEBUG
+          #if defined (DEBUG)
           if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
           #else
           if (CL_err != CL_SUCCESS)
@@ -16530,7 +16530,7 @@ int main (int argc, char **argv)
 
           hc_clGetProgramBuildInfo (data.ocl, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-          #ifdef DEBUG
+          #if defined (DEBUG)
           if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
           #else
           if (CL_err != CL_SUCCESS)
@@ -16589,7 +16589,7 @@ int main (int argc, char **argv)
         }
         else
         {
-          #ifdef DEBUG
+          #if defined (DEBUG)
           log_info ("- Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
           #endif
 
@@ -16711,7 +16711,7 @@ int main (int argc, char **argv)
 
           hc_clGetProgramBuildInfo (data.ocl, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
 
-          #ifdef DEBUG
+          #if defined (DEBUG)
           if ((build_log_size != 0) || (CL_err != CL_SUCCESS))
           #else
           if (CL_err != CL_SUCCESS)
@@ -16770,7 +16770,7 @@ int main (int argc, char **argv)
         }
         else
         {
-          #ifdef DEBUG
+          #if defined (DEBUG)
           if (quiet == 0) log_info ("- Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
           #endif
 
@@ -17560,11 +17560,11 @@ int main (int argc, char **argv)
               }
               else if (device_param->device_vendor_id == VENDOR_ID_NV)
               {
-                #ifdef __linux__
+                #if defined (__linux__)
                 rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
                 #endif
 
-                #ifdef _WIN
+                #if defined (_WIN)
                 rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, 1);
                 #endif
               }
@@ -17626,7 +17626,7 @@ int main (int argc, char **argv)
      * open filehandles
      */
 
-    #ifdef _WIN
+    #if defined (_WIN)
     if (_setmode (_fileno (stdin), _O_BINARY) == -1)
     {
       log_error ("ERROR: %s: %s", "stdin", strerror (errno));
@@ -19809,7 +19809,7 @@ int main (int argc, char **argv)
 
     // reset default fan speed
 
-    #ifdef HAVE_HWMON
+    #if defined (HAVE_HWMON)
     if (gpu_temp_disable == 0)
     {
       if (gpu_temp_retain != 0)
@@ -19832,11 +19832,11 @@ int main (int argc, char **argv)
             }
             else if (device_param->device_vendor_id == VENDOR_ID_NV)
             {
-              #ifdef __linux__
+              #if defined (__linux__)
               rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE);
               #endif
 
-              #ifdef _WIN
+              #if defined (_WIN)
               rc = hm_set_fanspeed_with_device_id_nvapi (device_id, 100, 0);
               #endif
             }
@@ -20001,7 +20001,7 @@ int main (int argc, char **argv)
     local_free (bitmap_s2_c);
     local_free (bitmap_s2_d);
 
-    #ifdef HAVE_HWMON
+    #if defined (HAVE_HWMON)
     local_free (od_clock_mem_status);
     local_free (od_power_control_status);
     local_free (nvml_power_limit);

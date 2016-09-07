@@ -9,9 +9,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#ifdef _WIN
+#if defined (_WIN)
 #include <windows.h>
-#ifdef _BASETSD_H
+#if defined (_BASETSD_H)
 #else
 typedef UINT8  uint8_t;
 typedef UINT16 uint16_t;

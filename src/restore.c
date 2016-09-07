@@ -24,7 +24,7 @@
 
 extern hc_global_data_t data;
 
-#ifdef _WIN
+#if defined (_WIN)
 static void fsync (int fd)
 {
   HANDLE h = (HANDLE) _get_osfhandle (fd);
@@ -86,7 +86,7 @@ restore_data_t *init_restore (int argc, char **argv)
 
         int pidbin_len = -1;
 
-        #ifdef _POSIX
+        #if defined (_POSIX)
         snprintf (pidbin, HCBUFSIZ - 1, "/proc/%d/cmdline", rd->pid);
 
         FILE *fd = fopen (pidbin, "rb");
@@ -115,7 +115,7 @@ restore_data_t *init_restore (int argc, char **argv)
           }
         }
 
-        #elif _WIN
+        #elif defined (_WIN)
         HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, rd->pid);
 
         char *pidbin2 = (char *) mymalloc (HCBUFSIZ);
@@ -158,9 +158,9 @@ restore_data_t *init_restore (int argc, char **argv)
 
   rd->version = RESTORE_VERSION_CUR;
 
-  #ifdef _POSIX
+  #if defined (_POSIX)
   rd->pid = getpid ();
-  #elif _WIN
+  #elif defined (_WIN)
   rd->pid = GetCurrentProcessId ();
   #endif
 

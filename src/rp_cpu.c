@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-#ifdef __APPLE__
+#if defined (__APPLE__)
 #include <stdio.h>
 #endif
 

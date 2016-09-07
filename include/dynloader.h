@@ -8,18 +8,18 @@
 
 #include <stdlib.h>
 
-#ifdef _POSIX
+#if defined (_POSIX)
 #include <dlfcn.h>
-#ifdef __APPLE__
+#if defined (__APPLE__)
 #include <mach-o/dyld.h>
 #endif // __APPLE__
 #endif // _POSIX
 
-#ifdef _WIN
+#if defined (_WIN)
 #include <windows.h>
 #endif // _WIN
 
-#ifdef _WIN
+#if defined (_WIN)
 #define hc_dlopen  LoadLibrary
 #define hc_dlclose FreeLibrary
 #define hc_dlsym   GetProcAddress

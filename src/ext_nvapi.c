@@ -17,7 +17,7 @@ int nvapi_init (NVAPI_PTR *nvapi)
 
   memset (nvapi, 0, sizeof (NVAPI_PTR));
 
-  #ifdef _WIN
+  #if defined (_WIN)
   #if   defined (WIN64)
   nvapi->lib = hc_dlopen ("nvapi64.dll");
   #elif defined (WIN32)
@@ -194,7 +194,7 @@ int hm_NvAPI_GPU_RestoreCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hP
   return NvAPI_rc;
 }
 
-#ifdef __MINGW64__
+#if defined (__MINGW64__)
 
 void __security_check_cookie (uintptr_t _StackCookie)
 {

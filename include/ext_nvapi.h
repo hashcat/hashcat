@@ -233,7 +233,7 @@ typedef int (*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESSTATUS) (NvPhysicalGpuHand
 typedef int (*NVAPI_API_CALL NVAPI_GPU_SETCOOLERLEVELS) (NvPhysicalGpuHandle, NvU32, NV_GPU_COOLER_LEVELS *);
 typedef int (*NVAPI_API_CALL NVAPI_GPU_RESTORECOOLERSETTINGS) (NvPhysicalGpuHandle, NvU32);
 
-#ifdef _POSIX
+#if defined (_POSIX)
 typedef void *NVAPI_LIB;
 #else
 typedef HINSTANCE NVAPI_LIB;

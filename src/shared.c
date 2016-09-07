@@ -6,7 +6,7 @@
  * License.....: MIT
  */
 
-#ifdef __APPLE__
+#if defined (__APPLE__)
 #include <stdio.h>
 #endif
 
@@ -251,7 +251,7 @@ int sort_by_dictstat (const void *s1, const void *s2)
   dictstat_t *d1 = (dictstat_t *) s1;
   dictstat_t *d2 = (dictstat_t *) s2;
 
-  #ifdef __linux__
+  #if defined (__linux__)
   d2->stat.st_atim = d1->stat.st_atim;
   #else
   d2->stat.st_atime = d1->stat.st_atime;
@@ -1119,7 +1119,7 @@ void check_checkpoint ()
  * parallel running threads
  */
 
-#ifdef _WIN
+#if defined (_WIN)
 
 BOOL WINAPI sigHandler_default (DWORD sig)
 {
@@ -1239,7 +1239,7 @@ void *thread_keypress (void *p)
     if (ch ==  0) continue;
 
     //https://github.com/hashcat/hashcat/issues/302
-    //#ifdef _POSIX
+    //#if defined (_POSIX)
     //if (ch != '\n')
     //#endif
 
@@ -1326,7 +1326,7 @@ void *thread_keypress (void *p)
     }
 
     //https://github.com/hashcat/hashcat/issues/302
-    //#ifdef _POSIX
+    //#if defined (_POSIX)
     //if (ch != '\n')
     //#endif
 

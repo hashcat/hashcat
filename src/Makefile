@@ -113,14 +113,14 @@ BINARY_NATIVE            := $(PROG_NAME)
 
 ifeq ($(UNAME),Darwin)
 export MACOSX_DEPLOYMENT_TARGET=10.9
-CFLAGS_NATIVE            := -D_POSIX
+CFLAGS_NATIVE            :=
 CFLAGS_NATIVE            += $(CFLAGS)
 LFLAGS_NATIVE            := -lpthread
 LFLAGS_NATIVE            += $(LDFLAGS)
 endif # darwin
 
 ifeq ($(UNAME),Linux)
-CFLAGS_NATIVE            := -D_POSIX
+CFLAGS_NATIVE            :=
 ifndef DEBUG
 CFLAGS_NATIVE            += -s
 endif
@@ -131,7 +131,7 @@ LFLAGS_NATIVE            += $(LDFLAGS)
 endif # linux
 
 ifeq ($(UNAME),FreeBSD)
-CFLAGS_NATIVE            := -D_POSIX
+CFLAGS_NATIVE            :=
 CFLAGS_NATIVE            += $(CFLAGS)
 LFLAGS_NATIVE            := -lpthread
 LFLAGS_NATIVE            += $(LDFLAGS)
@@ -141,7 +141,7 @@ endif # freebsd
 ## Cross compilation target
 ##
 
-CFLAGS_CROSS_LINUX       := -D_POSIX
+CFLAGS_CROSS_LINUX       :=
 ifndef DEBUG
 CFLAGS_CROSS_LINUX       += -s
 endif
@@ -149,7 +149,7 @@ CFLAGS_CROSS_LINUX       += $(CFLAGS)
 CFLAGS_CROSS_LINUX       += -DHAVE_HWMON
 
 #CFLAGS_CROSS_WIN         := -D_WIN -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
-CFLAGS_CROSS_WIN         := -D_WIN
+CFLAGS_CROSS_WIN         :=
 ifndef DEBUG
 CFLAGS_CROSS_WIN         += -s
 endif

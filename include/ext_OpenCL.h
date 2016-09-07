@@ -11,19 +11,19 @@
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 
-#ifdef __APPLE__
+#if defined (__APPLE__)
 #include <OpenCL/cl.h>
 #endif
 
-#ifdef _WIN
+#if defined (_WIN)
 #include <CL/cl.h>
 #endif
 
-#ifdef __linux__
+#if defined (__linux__)
 #include <CL/cl.h>
 #endif
 
-#ifdef __FreeBSD__
+#if defined (__FreeBSD__)
 #include <CL/cl.h>
 #endif
 
@@ -62,7 +62,7 @@ typedef cl_int           (CL_API_CALL *OCL_CLRELEASEPROGRAM)          (cl_progra
 typedef cl_int           (CL_API_CALL *OCL_CLSETKERNELARG)            (cl_kernel, cl_uint, size_t, const void *);
 typedef cl_int           (CL_API_CALL *OCL_CLWAITFOREVENTS)           (cl_uint, const cl_event *);
 
-#ifdef _POSIX
+#if defined (_POSIX)
 typedef void *OCL_LIB;
 #else
 typedef HINSTANCE OCL_LIB;
