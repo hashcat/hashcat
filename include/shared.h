@@ -10,7 +10,6 @@
 #define _SHARED_H
 
 #include <errno.h>
-#include <dirent.h>
 #include <time.h>
 #include <unistd.h>
 #include <signal.h>
@@ -21,9 +20,6 @@
  */
 
 #ifdef _POSIX
-//#include <pthread.h>
-//#include <dlfcn.h>
-//#include <limits.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/sysctl.h>
@@ -162,8 +158,6 @@ u64 mydivc64 (const u64 dividend, const u64 divisor);
 void format_speed_display (double val, char *buf, size_t len);
 void format_timer_display (struct tm *tm, char *buf, size_t len);
 
-char **scan_directory (const char *path);
-int count_dictionaries (char **dictionary_files);
 
 char *stroptitype (const uint opti_type);
 char *strstatus (const uint threads_status);
