@@ -11,6 +11,7 @@
 #include "memory.h"
 #include "filehandling.h"
 #include "ext_OpenCL.h"
+#include "opencl.h"
 #include "tuningdb.h"
 
 static int sort_by_tuning_db_alias (const void *v1, const void *v2)

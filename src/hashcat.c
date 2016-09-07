@@ -45,6 +45,7 @@
 #include "cpu_sha1.h"
 #include "cpu_sha256.h"
 #include "filehandling.h"
+#include "opencl.h"
 #include "tuningdb.h"
 #include "thread.h"
 #include "locking.h"

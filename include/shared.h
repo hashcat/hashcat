@@ -146,10 +146,6 @@ void handle_left_request (pot_t *pot, uint pot_cnt, char *input_buf, int input_l
 void handle_show_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp);
 void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp);
 
-u32            setup_opencl_platforms_filter (char *opencl_platforms);
-u32            setup_devices_filter          (char *opencl_devices);
-cl_device_type setup_device_types_filter     (char *opencl_device_types);
-
 u32 get_random_num (const u32 min, const u32 max);
 
 u32 mydivc32 (const u32 dividend, const u32 divisor);

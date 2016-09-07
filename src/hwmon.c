@@ -19,6 +19,7 @@
 #include "hwmon.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
+#include "opencl.h"
 #include "data.h"
 
 #ifdef HAVE_HWMON
