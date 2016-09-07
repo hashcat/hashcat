@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <inttypes.h>
 
 /**
  * OS specific includes
@@ -147,7 +148,7 @@ void            write_restore (const char *new_restore_file, restore_data_t *rd)
 void            cycle_restore (void);
 void            check_checkpoint (void);
 
-#ifdef WIN
+#ifdef _WIN
 
 BOOL WINAPI sigHandler_default   (DWORD sig);
 BOOL WINAPI sigHandler_benchmark (DWORD sig);

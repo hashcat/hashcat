@@ -91,7 +91,7 @@ int ocl_init (OCL_PTR *ocl)
     log_info ("You're probably missing the \"ocl-icd-libopencl1\" package (Debian/Ubuntu)");
     log_info ("  sudo apt-get install ocl-icd-libopencl1");
     log_info ("");
-    #elif defined (WIN)
+    #elif defined (_WIN)
     log_info ("You're probably missing the OpenCL runtime installation");
     log_info ("  AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)");
     log_info ("  Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)");

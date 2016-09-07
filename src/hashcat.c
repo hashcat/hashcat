@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <search.h>
 #include <getopt.h>
+#include <inttypes.h>
 
 #ifdef _POSIX
 #include <pthread.h>
@@ -585,7 +586,7 @@ void status_display_machine_readable ()
     speed_cnt  /= SPEED_CACHE;
     speed_ms   /= SPEED_CACHE;
 
-    fprintf (out, "%llu\t%f\t", (unsigned long long int) speed_cnt, speed_ms);
+    fprintf (out, "%" PRIu64 "\t%f\t", speed_cnt, speed_ms);
   }
 
   /**
@@ -611,7 +612,7 @@ void status_display_machine_readable ()
 
   u64 words_cur = get_lowest_words_done ();
 
-  fprintf (out, "CURKU\t%llu\t", (unsigned long long int) words_cur);
+  fprintf (out, "CURKU\t%" PRIu64 "\t", words_cur);
 
   /**
    * counter
@@ -656,7 +657,7 @@ void status_display_machine_readable ()
   u64 progress_cur_relative_skip = progress_cur - progress_skip;
   u64 progress_end_relative_skip = progress_end - progress_skip;
 
-  fprintf (out, "PROGRESS\t%llu\t%llu\t", (unsigned long long int) progress_cur_relative_skip, (unsigned long long int) progress_end_relative_skip);
+  fprintf (out, "PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", progress_cur_relative_skip, progress_end_relative_skip);
 
   /**
    * cracks
@@ -1062,7 +1063,7 @@ void status_display ()
     ms_paused += ms_paused_tmp;
   }
 
-  #ifdef WIN
+  #ifdef _WIN
 
   __time64_t sec_run = (__time64_t) ms_running / 1000;
 
@@ -1080,7 +1081,7 @@ void status_display ()
 
     struct tm *tmp = NULL;
 
-    #ifdef WIN
+    #ifdef _WIN
 
     tmp = _gmtime64 (&sec_run);
 
@@ -1175,7 +1176,7 @@ void status_display ()
   {
     if (data.devices_status != STATUS_CRACKED)
     {
-      #ifdef WIN
+      #ifdef _WIN
       __time64_t sec_etc = 0;
       #else
       time_t sec_etc = 0;
@@ -1208,7 +1209,7 @@ void status_display ()
 
         struct tm *tmp = NULL;
 
-        #ifdef WIN
+        #ifdef _WIN
         tmp = _gmtime64 (&sec_etc);
         #else
         tmp = gmtime (&sec_etc);
@@ -1239,7 +1240,7 @@ void status_display ()
 
             time (&runtime_cur);
 
-            #ifdef WIN
+            #ifdef _WIN
 
             __time64_t runtime_left = data.proc_start + data.runtime + data.prepare_time + (ms_paused / 1000) - runtime_cur;
 
@@ -1342,7 +1343,7 @@ void status_display ()
 
     if ((data.cpt_start + 86400) < now)
     {
-      log_info ("Recovered/Time.: CUR:%llu,%llu,%llu AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      log_info ("Recovered/Time.: CUR:%" PRIu64 ",%" PRIu64 ",%" PRIu64 " AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_cur_hour,
         cpt_cur_day,
@@ -1352,7 +1353,7 @@ void status_display ()
     }
     else if ((data.cpt_start + 3600) < now)
     {
-      log_info ("Recovered/Time.: CUR:%llu,%llu,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      log_info ("Recovered/Time.: CUR:%" PRIu64 ",%" PRIu64 ",N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_cur_hour,
         cpt_avg_min,
@@ -1361,7 +1362,7 @@ void status_display ()
     }
     else if ((data.cpt_start + 60) < now)
     {
-      log_info ("Recovered/Time.: CUR:%llu,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      log_info ("Recovered/Time.: CUR:%" PRIu64 ",N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_avg_min,
         cpt_avg_hour,
@@ -1398,14 +1399,14 @@ void status_display ()
         percent_rejected = (double) (all_rejected) / (double) progress_cur;
       }
 
-      log_info ("Progress.......: %llu/%llu (%.02f%%)", (unsigned long long int) progress_cur_relative_skip, (unsigned long long int) progress_end_relative_skip, percent_finished * 100);
-      log_info ("Rejected.......: %llu/%llu (%.02f%%)", (unsigned long long int) all_rejected,               (unsigned long long int) progress_cur_relative_skip, percent_rejected * 100);
+      log_info ("Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", progress_cur_relative_skip, progress_end_relative_skip, percent_finished * 100);
+      log_info ("Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", all_rejected,               progress_cur_relative_skip, percent_rejected * 100);
 
       if (data.restore_disable == 0)
       {
         if (percent_finished != 1)
         {
-          log_info ("Restore.Point..: %llu/%llu (%.02f%%)", (unsigned long long int) restore_point, (unsigned long long int) restore_total, percent_restore * 100);
+          log_info ("Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", restore_point, restore_total, percent_restore * 100);
         }
       }
     }
@@ -1414,24 +1415,24 @@ void status_display ()
   {
     if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
     {
-      log_info ("Progress.......: %llu/%llu (%.02f%%)", 0ull, 0ull, 100);
-      log_info ("Rejected.......: %llu/%llu (%.02f%%)", 0ull, 0ull, 100);
+      log_info ("Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
+      log_info ("Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
 
       if (data.restore_disable == 0)
       {
-        log_info ("Restore.Point..: %llu/%llu (%.02f%%)", 0ull, 0ull, 100);
+        log_info ("Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
       }
     }
     else
     {
-      log_info ("Progress.......: %llu", (unsigned long long int) progress_cur_relative_skip);
-      log_info ("Rejected.......: %llu", (unsigned long long int) all_rejected);
+      log_info ("Progress.......: %" PRIu64 "", progress_cur_relative_skip);
+      log_info ("Rejected.......: %" PRIu64 "", all_rejected);
 
       // --restore not allowed if stdin is used -- really? why?
 
       //if (data.restore_disable == 0)
       //{
-      //  log_info ("Restore.Point..: %llu", (unsigned long long int) restore_point);
+      //  log_info ("Restore.Point..: %" PRIu64 "", restore_point);
       //}
     }
   }
@@ -1567,7 +1568,7 @@ static void status_benchmark_automate ()
 
     if (device_param->skipped) continue;
 
-    log_info ("%u:%u:%llu", device_id + 1, data.hash_mode, (unsigned long long int) (hashes_dev_ms[device_id] * 1000));
+    log_info ("%u:%u:%" PRIu64 "", device_id + 1, data.hash_mode, (hashes_dev_ms[device_id] * 1000));
   }
 }
 
@@ -4215,7 +4216,7 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
         keyspace *= data.combs_cnt;
       }
 
-      if (data.quiet == 0) log_info ("Cache-hit dictionary stats %s: %llu bytes, %llu words, %llu keyspace", dictfile, (unsigned long long int) d.stat.st_size, (unsigned long long int) cnt, (unsigned long long int) keyspace);
+      if (data.quiet == 0) log_info ("Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cnt, keyspace);
       if (data.quiet == 0) log_info ("");
 
       hc_signal (sigHandler_default);
@@ -4292,12 +4293,12 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
 
     double percent = (double) comp / (double) d.stat.st_size;
 
-    if (data.quiet == 0) log_info_nn ("Generating dictionary stats for %s: %llu bytes (%.2f%%), %llu words, %llu keyspace", dictfile, (unsigned long long int) comp, percent * 100, (unsigned long long int) cnt2, (unsigned long long int) cnt);
+    if (data.quiet == 0) log_info_nn ("Generating dictionary stats for %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, percent * 100, cnt2, cnt);
 
     time (&prev);
   }
 
-  if (data.quiet == 0) log_info ("Generated dictionary stats for %s: %llu bytes, %llu words, %llu keyspace", dictfile, (unsigned long long int) comp, (unsigned long long int) cnt2, (unsigned long long int) cnt);
+  if (data.quiet == 0) log_info ("Generated dictionary stats for %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, cnt2, cnt);
   if (data.quiet == 0) log_info ("");
 
   lsearch (&d, dictstat_base, dictstat_nmemb, sizeof (dictstat_t), sort_by_dictstat);
@@ -4527,7 +4528,7 @@ static void *thread_monitor (void *p)
                   }
                   else if (device_param->device_vendor_id == VENDOR_ID_NV)
                   {
-                    #ifdef WIN
+                    #ifdef _WIN
                     hm_set_fanspeed_with_device_id_nvapi (device_id, fan_speed_new, 1);
                     #endif
 
@@ -5965,7 +5966,7 @@ static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, cons
  * main
  */
 
-#ifdef WIN
+#ifdef _WIN
 static void SetConsoleWindowSize (const int x)
 {
   HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
@@ -5993,7 +5994,7 @@ static void SetConsoleWindowSize (const int x)
 
 int main (int argc, char **argv)
 {
-  #ifdef WIN
+  #ifdef _WIN
   SetConsoleWindowSize (132);
   #endif
 
@@ -7501,8 +7502,8 @@ int main (int argc, char **argv)
 
   #define logfile_top_msg(msg)            logfile_append ("%s\t%s",           data.topid,             (msg));
   #define logfile_sub_msg(msg)            logfile_append ("%s\t%s\t%s",       data.topid, data.subid, (msg));
-  #define logfile_top_var_uint64(var,val) logfile_append ("%s\t%s\t%llu",     data.topid,             (var), (val));
-  #define logfile_sub_var_uint64(var,val) logfile_append ("%s\t%s\t%s\t%llu", data.topid, data.subid, (var), (val));
+  #define logfile_top_var_uint64(var,val) logfile_append ("%s\t%s\t%" PRIu64 "",     data.topid,             (var), (val));
+  #define logfile_sub_var_uint64(var,val) logfile_append ("%s\t%s\t%s\t%" PRIu64 "", data.topid, data.subid, (var), (val));
   #define logfile_top_var_uint(var,val)   logfile_append ("%s\t%s\t%u",       data.topid,             (var), (val));
   #define logfile_sub_var_uint(var,val)   logfile_append ("%s\t%s\t%s\t%u",   data.topid, data.subid, (var), (val));
   #define logfile_top_var_char(var,val)   logfile_append ("%s\t%s\t%c",       data.topid,             (var), (val));
@@ -14841,7 +14842,7 @@ int main (int argc, char **argv)
             need_xnvctrl = 1;
             #endif
 
-            #ifdef WIN
+            #ifdef _WIN
             need_nvapi = 1;
             #endif
           }
@@ -15859,7 +15860,7 @@ int main (int argc, char **argv)
           return -1;
         }
 
-        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %llu\n", data.scrypt_tmto_final, (unsigned long long int) size_scrypt);
+        if (quiet == 0) log_info ("SCRYPT tmto optimizer value set to: %u, mem: %" PRIu64 "\n", data.scrypt_tmto_final, size_scrypt);
       }
 
       size_t size_scrypt4 = size_scrypt / 4;
@@ -17613,7 +17614,7 @@ int main (int argc, char **argv)
                 rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
                 #endif
 
-                #ifdef WIN
+                #ifdef _WIN
                 rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, 1);
                 #endif
               }
@@ -19369,7 +19370,7 @@ int main (int argc, char **argv)
 
         if (keyspace == 1)
         {
-          log_info ("%llu", (unsigned long long int) words_base);
+          log_info ("%" PRIu64 "", words_base);
 
           return 0;
         }
@@ -19885,7 +19886,7 @@ int main (int argc, char **argv)
               rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE);
               #endif
 
-              #ifdef WIN
+              #ifdef _WIN
               rc = hm_set_fanspeed_with_device_id_nvapi (device_id, 100, 0);
               #endif
             }

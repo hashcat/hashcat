@@ -104,7 +104,7 @@ int tty_fix()
 }
 #endif
 
-#ifdef WIN
+#ifdef _WIN
 static DWORD saveMode = 0;
 
 int tty_break()

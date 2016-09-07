@@ -233,7 +233,7 @@ u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adapters,
 
     if (strlen (info.strUDID) < 1) continue;
 
-    #ifdef WIN
+    #ifdef _WIN
     if (info.iVendorID !=   1002) continue;
     #else
     if (info.iVendorID != 0x1002) continue;

@@ -8,10 +8,8 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
-#define _POSIX_SOURCE
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
-#define _CRT_SECURE_NO_WARNINGS
 
 #define EXEC_CACHE    128
 

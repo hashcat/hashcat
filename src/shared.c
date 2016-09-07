@@ -609,17 +609,7 @@ void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const
 
   if (outfile_format & OUTFILE_FMT_CRACKPOS)
   {
-    #ifdef _WIN
-    __mingw_fprintf (out_fp, "%llu", crackpos);
-    #endif
-
-    #ifdef _POSIX
-    #ifdef __x86_64__
-    fprintf (out_fp, "%lu", (unsigned long) crackpos);
-    #else
-    fprintf (out_fp, "%llu", crackpos);
-    #endif
-    #endif
+    fprintf (out_fp, "%" PRIu64, crackpos);
   }
 
   fputs (EOL, out_fp);
@@ -1406,7 +1396,7 @@ void check_checkpoint ()
  * parallel running threads
  */
 
-#ifdef WIN
+#ifdef _WIN
 
 BOOL WINAPI sigHandler_default (DWORD sig)
 {

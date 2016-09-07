@@ -15,7 +15,7 @@
 #include <OpenCL/cl.h>
 #endif
 
-#ifdef WIN
+#ifdef _WIN
 #include <CL/cl.h>
 #endif
 

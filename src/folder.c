@@ -24,7 +24,7 @@ char *get_exec_path ()
 
   char *exec_path = (char *) mymalloc (exec_path_len);
 
-  #ifdef __linux__
+  #if defined (__linux__)
 
   char tmp[32] = { 0 };
 
@@ -32,11 +32,11 @@ char *get_exec_path ()
 
   const int len = readlink (tmp, exec_path, exec_path_len - 1);
 
-  #elif WIN
+  #elif defined (_WIN)
 
   const int len = GetModuleFileName (NULL, exec_path, exec_path_len - 1);
 
-  #elif __APPLE__
+  #elif defined (__APPLE__)
 
   uint size = exec_path_len;
 
@@ -49,7 +49,7 @@ char *get_exec_path ()
 
   const int len = strlen (exec_path);
 
-  #elif __FreeBSD__
+  #elif defined (__FreeBSD__)
 
   int mib[4];
   mib[0] = CTL_KERN;
