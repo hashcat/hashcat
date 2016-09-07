@@ -48,8 +48,6 @@
 
 #define INFOSZ                  CHARSIZ
 
-#define TUNING_DB_FILE          "hashcat.hctune"
-
 #define INDUCT_DIR              "induct"
 #define OUTFILES_DIR            "outfiles"
 

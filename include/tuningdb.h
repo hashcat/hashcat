@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <errno.h>
 
+#define TUNING_DB_FILE "hashcat.hctune"
+
 typedef struct
 {
   char *device_name;
