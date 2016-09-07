@@ -14,6 +14,21 @@
 #include "affinity.h"
 
 #ifdef __APPLE__
+static void CPU_ZERO (cpu_set_t *cs)
+{
+  cs->count = 0;
+}
+
+static void CPU_SET (int num, cpu_set_t *cs)
+{
+  cs->count |= (1 << num);
+}
+
+static int CPU_ISSET (int num, cpu_set_t *cs)
+{
+  return (cs->count & (1 << num));
+}
+
 static int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t *cpu_set)
 {
   int core;
@@ -35,21 +50,6 @@ static int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t 
   }
 
   return rc;
-}
-
-static void CPU_ZERO (cpu_set_t *cs)
-{
-  cs->count = 0;
-}
-
-static void CPU_SET (int num, cpu_set_t *cs)
-{
-  cs->count |= (1 << num);
-}
-
-static int  CPU_ISSET (int num, cpu_set_t *cs)
-{
-  return (cs->count & (1 << num));
 }
 #endif
 

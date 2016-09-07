@@ -3,6 +3,10 @@
  * License.....: MIT
  */
 
+#ifdef __APPLE__
+#include <stdio.h>
+#endif
+
 #include "common.h"
 #include "types_int.h"
 #include "types.h"
