@@ -28,8 +28,6 @@
 
 #ifdef _WIN
 #include <windows.h>
-#include <psapi.h>
-#include <io.h>
 #endif // _WIN
 
 /**

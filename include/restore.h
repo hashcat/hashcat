@@ -17,6 +17,7 @@
 
 #ifdef _WIN
 #include <windows.h>
+#include <psapi.h>
 #endif // _WIN
 
 #define RESTORE         0
