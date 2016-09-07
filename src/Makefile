@@ -94,7 +94,7 @@ VERSION_TAG              := $(shell test -d .git && git describe --tags --dirty=
 ## Compiler flags
 ##
 
-CFLAGS                   += -pipe -W -Wall -Iinclude/ -IOpenCL/ -I$(OPENCL_HEADERS_KHRONOS)/
+CFLAGS                   += -pipe -W -Wall -std=c99 -Iinclude/ -IOpenCL/ -I$(OPENCL_HEADERS_KHRONOS)/
 
 ifndef DEBUG
 CFLAGS                   += -O2
