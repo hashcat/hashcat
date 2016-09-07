@@ -1,11 +1,22 @@
 /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
+
+#ifdef __APPLE__
+#include <stdio.h>
+#endif
 
 #include "common.h"
 #include "memory.h"
 #include "folder.h"
+
+#ifdef __APPLE__
+#include "types_int.h"
+#include "logging.h"
+#endif
 
 char *get_exec_path ()
 {

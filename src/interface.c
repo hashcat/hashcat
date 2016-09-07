@@ -1,7 +1,13 @@
 /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
+
+#ifdef __APPLE__
+#include <stdio.h>
+#endif
 
 #include "common.h"
 #include "types_int.h"
@@ -49,7 +55,7 @@ static const char PA_013[] = "Invalid psafe2 filesize";
 static const char PA_014[] = "Invalid psafe3 filesize";
 static const char PA_015[] = "Invalid truecrypt filesize";
 static const char PA_016[] = "Invalid veracrypt filesize";
-static const char PA_017[] = "Invalid SIP directive, only MD5 is supported";
+//static const char PA_017[] = "Invalid SIP directive, only MD5 is supported";
 static const char PA_255[] = "Unknown error";
 
 static const char HT_00000[] = "MD5";
@@ -328,7 +334,7 @@ static const char SIGNATURE_SIP_AUTH[]        = "$sip$*";
 static const char SIGNATURE_SSHA1B64_lower[]  = "{ssha}";
 static const char SIGNATURE_SSHA1B64_upper[]  = "{SSHA}";
 static const char SIGNATURE_SYBASEASE[]       = "0xc007";
-static const char SIGNATURE_TRUECRYPT[]       = "TRUE";
+//static const char SIGNATURE_TRUECRYPT[]       = "TRUE";
 static const char SIGNATURE_ZIP2_START[]      = "$zip2$";
 static const char SIGNATURE_ZIP2_STOP[]       = "$/zip2$";
 

@@ -1,16 +1,19 @@
 /**
  * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
-
-#pragma once
 
 #include <stdio.h>
 #include <unistd.h>
 
 #ifdef _POSIX
 #include <sys/types.h>
-#endif
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif // __APPLE__
+#endif // _POSIX
 
 #ifdef _WIN
 #include <windows.h>

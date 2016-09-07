@@ -1,7 +1,13 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Gabriele Gristina <matrix@hashcat.net>
+ *
  * License.....: MIT
  */
+
+#ifdef __APPLE__
+#include <stdio.h>
+#endif
 
 #include "common.h"
 #include "types_int.h"
