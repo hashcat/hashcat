@@ -3,6 +3,10 @@
  * License.....: MIT
  */
 
+#ifdef __APPLE__
+#include <stdio.h>
+#endif
+
 #include "common.h"
 #include "types_int.h"
 #include "memory.h"
@@ -14,19 +18,20 @@ static int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t 
 {
   int core;
 
-  for (core = 0; core < (8 * (int)cpu_size); core++)
-    if (CPU_ISSET(core, cpu_set)) break;
+  for (core = 0; core < (8 * (int) cpu_size); core++)
+  {
+    if (CPU_ISSET (core, cpu_set)) break;
+  }
 
   thread_affinity_policy_data_t policy = { core };
 
   const int rc = thread_policy_set (pthread_mach_thread_np (thread), THREAD_AFFINITY_POLICY, (thread_policy_t) &policy, 1);
 
-  if (data.quiet == 0)
+  if (rc != KERN_SUCCESS)
   {
-    if (rc != KERN_SUCCESS)
-    {
-      log_error ("ERROR: %s : %d", "thread_policy_set()", rc);
-    }
+    log_error ("ERROR: %s : %d", "thread_policy_set()", rc);
+
+    exit (-1);
   }
 
   return rc;

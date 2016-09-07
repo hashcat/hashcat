@@ -41,7 +41,7 @@ extern hc_global_data_t data;
 
 
 #ifdef WIN
-void fsync (int fd)
+static void fsync (int fd)
 {
   HANDLE h = (HANDLE) _get_osfhandle (fd);
 

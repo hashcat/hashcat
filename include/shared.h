@@ -170,9 +170,6 @@ char *strstatus (const uint threads_status);
 void status ();
 
 
-#ifdef _WIN
-void fsync (int fd);
-#endif
 
 void myabort (void);
 void myquit  (void);

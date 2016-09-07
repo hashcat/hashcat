@@ -7,6 +7,7 @@
 #define _AFFINITY_H
 
 #include <stdlib.h>
+#include <stdarg.h>
 
 #ifdef _POSIX
 #include <pthread.h>
