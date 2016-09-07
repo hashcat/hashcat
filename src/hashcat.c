@@ -6,12 +6,20 @@
  * License.....: MIT
  */
 
-#ifdef __APPLE__
+#include "common.h"
+
 #include <stdio.h>
 #include <string.h>
-#endif
+#include <stdlib.h>
+#include <unistd.h>
+#include <search.h>
+#include <getopt.h>
 
-#include "common.h"
+#ifdef _POSIX
+#include <pthread.h>
+#include <pwd.h>
+#endif // _POSIX
+
 #include "types_int.h"
 #include "types.h"
 #include "timer.h"
@@ -44,10 +52,8 @@
 #include "hwmon.h"
 #include "mpsp.h"
 #include "data.h"
+#include "affinity.h"
 #include "usage.h"
-
-#include <search.h>
-#include <getopt.h>
 
 extern hc_global_data_t data;
 
@@ -6331,7 +6337,7 @@ int main (int argc, char **argv)
 
     profile_dir = get_profile_dir (homedir);
     session_dir = get_session_dir (profile_dir);
-    shared_dir  = strdup (SHARED_FOLDER);
+    shared_dir  = mystrdup (SHARED_FOLDER);
 
     mkdir (profile_dir, 0700);
     mkdir (session_dir, 0700);
@@ -13607,7 +13613,7 @@ int main (int argc, char **argv)
     {
       uint *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
 
-      char *keyfiles = strdup (truecrypt_keyfiles);
+      char *keyfiles = mystrdup (truecrypt_keyfiles);
 
       char *keyfile = strtok (keyfiles, ",");
 
@@ -13624,7 +13630,7 @@ int main (int argc, char **argv)
     {
       uint *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
 
-      char *keyfiles = strdup (veracrypt_keyfiles);
+      char *keyfiles = mystrdup (veracrypt_keyfiles);
 
       char *keyfile = strtok (keyfiles, ",");
 
@@ -17698,7 +17704,7 @@ int main (int argc, char **argv)
 
                   dictcnt++;
 
-                  dictfiles[dictcnt - 1] = strdup (l1_filename);
+                  dictfiles[dictcnt - 1] = mystrdup (l1_filename);
                 }
               }
             }
@@ -18161,7 +18167,7 @@ int main (int argc, char **argv)
 
                 dictcnt++;
 
-                dictfiles[dictcnt - 1] = strdup (l1_filename);
+                dictfiles[dictcnt - 1] = mystrdup (l1_filename);
               }
             }
           }
@@ -18340,7 +18346,7 @@ int main (int argc, char **argv)
 
                 dictcnt++;
 
-                dictfiles[dictcnt - 1] = strdup (l1_filename);
+                dictfiles[dictcnt - 1] = mystrdup (l1_filename);
               }
             }
           }

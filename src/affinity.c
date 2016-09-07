@@ -1,0 +1,112 @@
+/**
+ * Author......: Jens Steube <jens.steube@gmail.com>
+ * License.....: MIT
+ */
+
+#include "common.h"
+#include "types_int.h"
+#include "memory.h"
+#include "logging.h"
+#include "affinity.h"
+
+#ifdef __APPLE__
+static int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t *cpu_set)
+{
+  int core;
+
+  for (core = 0; core < (8 * (int)cpu_size); core++)
+    if (CPU_ISSET(core, cpu_set)) break;
+
+  thread_affinity_policy_data_t policy = { core };
+
+  const int rc = thread_policy_set (pthread_mach_thread_np (thread), THREAD_AFFINITY_POLICY, (thread_policy_t) &policy, 1);
+
+  if (data.quiet == 0)
+  {
+    if (rc != KERN_SUCCESS)
+    {
+      log_error ("ERROR: %s : %d", "thread_policy_set()", rc);
+    }
+  }
+
+  return rc;
+}
+
+static void CPU_ZERO (cpu_set_t *cs)
+{
+  cs->count = 0;
+}
+
+static void CPU_SET (int num, cpu_set_t *cs)
+{
+  cs->count |= (1 << num);
+}
+
+static int  CPU_ISSET (int num, cpu_set_t *cs)
+{
+  return (cs->count & (1 << num));
+}
+#endif
+
+void set_cpu_affinity (char *cpu_affinity)
+{
+  #if   defined(_WIN)
+  DWORD_PTR aff_mask = 0;
+  #elif defined(__FreeBSD__)
+  cpuset_t cpuset;
+  CPU_ZERO (&cpuset);
+  #elif defined(_POSIX)
+  cpu_set_t cpuset;
+  CPU_ZERO (&cpuset);
+  #endif
+
+  if (cpu_affinity)
+  {
+    char *devices = mystrdup (cpu_affinity);
+
+    char *next = strtok (devices, ",");
+
+    do
+    {
+      uint cpu_id = atoi (next);
+
+      if (cpu_id == 0)
+      {
+        #ifdef _WIN
+        aff_mask = 0;
+        #elif _POSIX
+        CPU_ZERO (&cpuset);
+        #endif
+
+        break;
+      }
+
+      if (cpu_id > 32)
+      {
+        log_error ("ERROR: Invalid cpu_id %u specified", cpu_id);
+
+        exit (-1);
+      }
+
+      #ifdef _WIN
+      aff_mask |= 1u << (cpu_id - 1);
+      #elif _POSIX
+      CPU_SET ((cpu_id - 1), &cpuset);
+      #endif
+
+    } while ((next = strtok (NULL, ",")) != NULL);
+
+    myfree (devices);
+  }
+
+  #if   defined( _WIN)
+  SetProcessAffinityMask (GetCurrentProcess (), aff_mask);
+  SetThreadAffinityMask (GetCurrentThread (), aff_mask);
+  #elif defined(__FreeBSD__)
+  pthread_t thread = pthread_self ();
+  pthread_setaffinity_np (thread, sizeof (cpuset_t), &cpuset);
+  #elif defined(_POSIX)
+  pthread_t thread = pthread_self ();
+  pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset);
+  #endif
+}

@@ -21,15 +21,12 @@
  */
 
 #ifdef _POSIX
-#include <pthread.h>
-#include <dlfcn.h>
-#include <pwd.h>
-#include <limits.h>
+//#include <pthread.h>
+//#include <dlfcn.h>
+//#include <limits.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#ifndef __APPLE__
 #include <sys/sysctl.h>
-#endif // __APPLE__
 #endif // _POSIX
 
 #ifdef __APPLE__
@@ -38,7 +35,7 @@
 #endif // __APPLE__
 
 #ifdef _WIN
-#include <windows.h>
+//#include <windows.h>
 #include <psapi.h>
 #include <io.h>
 #endif // _WIN
@@ -47,17 +44,7 @@
  * unsorted
  */
 
-#ifdef __APPLE__
-typedef struct cpu_set
-{
-  uint32_t count;
 
-} cpu_set_t;
-
-static inline void CPU_ZERO  (cpu_set_t *cs)          { cs->count = 0; }
-static inline void CPU_SET   (int num, cpu_set_t *cs) { cs->count |= (1 << num); }
-static inline int  CPU_ISSET (int num, cpu_set_t *cs) { return (cs->count & (1 << num)); }
-#endif
 
 
 #ifdef _WIN
@@ -195,7 +182,7 @@ void fsync (int fd);
 void myabort (void);
 void myquit  (void);
 
-void set_cpu_affinity (char *cpu_affinity);
+
 
 
 void naive_replace (char *s, const u8 key_char, const u8 replace_char);
