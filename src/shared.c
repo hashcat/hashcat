@@ -35,28 +35,6 @@
 
 extern hc_global_data_t data;
 
-/**
- * system
- */
-
-
-
-#ifdef WIN
-static void fsync (int fd)
-{
-  HANDLE h = (HANDLE) _get_osfhandle (fd);
-
-  FlushFileBuffers (h);
-}
-#endif
-
-
-/**
- * mixed shared functions
- */
-
-
-
 void *rulefind (const void *key, void *base, int nmemb, size_t size, int (*compar) (const void *, const void *))
 {
   char *element, *end;
@@ -1008,53 +986,6 @@ void format_speed_display (double val, char *buf, size_t len)
 
 
 
-char *stroptitype (const uint opti_type)
-{
-  switch (opti_type)
-  {
-    case OPTI_TYPE_ZERO_BYTE:         return ((char *) OPTI_STR_ZERO_BYTE);
-    case OPTI_TYPE_PRECOMPUTE_INIT:   return ((char *) OPTI_STR_PRECOMPUTE_INIT);
-    case OPTI_TYPE_PRECOMPUTE_MERKLE: return ((char *) OPTI_STR_PRECOMPUTE_MERKLE);
-    case OPTI_TYPE_PRECOMPUTE_PERMUT: return ((char *) OPTI_STR_PRECOMPUTE_PERMUT);
-    case OPTI_TYPE_MEET_IN_MIDDLE:    return ((char *) OPTI_STR_MEET_IN_MIDDLE);
-    case OPTI_TYPE_EARLY_SKIP:        return ((char *) OPTI_STR_EARLY_SKIP);
-    case OPTI_TYPE_NOT_SALTED:        return ((char *) OPTI_STR_NOT_SALTED);
-    case OPTI_TYPE_NOT_ITERATED:      return ((char *) OPTI_STR_NOT_ITERATED);
-    case OPTI_TYPE_PREPENDED_SALT:    return ((char *) OPTI_STR_PREPENDED_SALT);
-    case OPTI_TYPE_APPENDED_SALT:     return ((char *) OPTI_STR_APPENDED_SALT);
-    case OPTI_TYPE_SINGLE_HASH:       return ((char *) OPTI_STR_SINGLE_HASH);
-    case OPTI_TYPE_SINGLE_SALT:       return ((char *) OPTI_STR_SINGLE_SALT);
-    case OPTI_TYPE_BRUTE_FORCE:       return ((char *) OPTI_STR_BRUTE_FORCE);
-    case OPTI_TYPE_RAW_HASH:          return ((char *) OPTI_STR_RAW_HASH);
-    case OPTI_TYPE_SLOW_HASH_SIMD:    return ((char *) OPTI_STR_SLOW_HASH_SIMD);
-    case OPTI_TYPE_USES_BITS_8:       return ((char *) OPTI_STR_USES_BITS_8);
-    case OPTI_TYPE_USES_BITS_16:      return ((char *) OPTI_STR_USES_BITS_16);
-    case OPTI_TYPE_USES_BITS_32:      return ((char *) OPTI_STR_USES_BITS_32);
-    case OPTI_TYPE_USES_BITS_64:      return ((char *) OPTI_STR_USES_BITS_64);
-  }
-
-  return (NULL);
-}
-
-char *strstatus (const uint devices_status)
-{
-  switch (devices_status)
-  {
-    case  STATUS_INIT:               return ((char *) ST_0000);
-    case  STATUS_STARTING:           return ((char *) ST_0001);
-    case  STATUS_RUNNING:            return ((char *) ST_0002);
-    case  STATUS_PAUSED:             return ((char *) ST_0003);
-    case  STATUS_EXHAUSTED:          return ((char *) ST_0004);
-    case  STATUS_CRACKED:            return ((char *) ST_0005);
-    case  STATUS_ABORTED:            return ((char *) ST_0006);
-    case  STATUS_QUIT:               return ((char *) ST_0007);
-    case  STATUS_BYPASS:             return ((char *) ST_0008);
-    case  STATUS_STOP_AT_CHECKPOINT: return ((char *) ST_0009);
-    case  STATUS_AUTOTUNE:           return ((char *) ST_0010);
-  }
-
-  return ((char *) "Unknown");
-}
 
 static void SuspendThreads ()
 {
@@ -1181,63 +1112,6 @@ void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_cha
   strncpy (s, s_escaped, s_max - 1);
 }
 
-void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources)
-{
-  FILE *fp = fopen (kernel_file, "rb");
-
-  if (fp != NULL)
-  {
-    struct stat st;
-
-    memset (&st, 0, sizeof (st));
-
-    stat (kernel_file, &st);
-
-    u8 *buf = (u8 *) mymalloc (st.st_size + 1);
-
-    size_t num_read = fread (buf, sizeof (u8), st.st_size, fp);
-
-    if (num_read != (size_t) st.st_size)
-    {
-      log_error ("ERROR: %s: %s", kernel_file, strerror (errno));
-
-      exit (-1);
-    }
-
-    fclose (fp);
-
-    buf[st.st_size] = 0;
-
-    for (int i = 0; i < num_devices; i++)
-    {
-      kernel_lengths[i] = (size_t) st.st_size;
-
-      kernel_sources[i] = buf;
-    }
-  }
-  else
-  {
-    log_error ("ERROR: %s: %s", kernel_file, strerror (errno));
-
-    exit (-1);
-  }
-
-  return;
-}
-
-void writeProgramBin (char *dst, u8 *binary, size_t binary_size)
-{
-  if (binary_size > 0)
-  {
-    FILE *fp = fopen (dst, "wb");
-
-    lock_file (fp);
-    fwrite (binary, sizeof (u8), binary_size, fp);
-
-    fflush (fp);
-    fclose (fp);
-  }
-}
 
 /**
  * restore
@@ -1441,6 +1315,15 @@ u64 get_lowest_words_done ()
 
   return words_cur;
 }
+
+#ifdef _WIN
+static void fsync (int fd)
+{
+  HANDLE h = (HANDLE) _get_osfhandle (fd);
+
+  FlushFileBuffers (h);
+}
+#endif
 
 void write_restore (const char *new_restore_file, restore_data_t *rd)
 {

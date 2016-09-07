@@ -10,6 +10,7 @@
 #include "types.h"
 #include "memory.h"
 #include "logging.h"
+#include "locking.h"
 #include "ext_OpenCL.h"
 #include "timer.h"
 #include "opencl.h"
@@ -120,4 +121,62 @@ cl_device_type setup_device_types_filter (char *opencl_device_types)
   }
 
   return device_types_filter;
+}
+
+void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources)
+{
+  FILE *fp = fopen (kernel_file, "rb");
+
+  if (fp != NULL)
+  {
+    struct stat st;
+
+    memset (&st, 0, sizeof (st));
+
+    stat (kernel_file, &st);
+
+    u8 *buf = (u8 *) mymalloc (st.st_size + 1);
+
+    size_t num_read = fread (buf, sizeof (u8), st.st_size, fp);
+
+    if (num_read != (size_t) st.st_size)
+    {
+      log_error ("ERROR: %s: %s", kernel_file, strerror (errno));
+
+      exit (-1);
+    }
+
+    fclose (fp);
+
+    buf[st.st_size] = 0;
+
+    for (int i = 0; i < num_devices; i++)
+    {
+      kernel_lengths[i] = (size_t) st.st_size;
+
+      kernel_sources[i] = buf;
+    }
+  }
+  else
+  {
+    log_error ("ERROR: %s: %s", kernel_file, strerror (errno));
+
+    exit (-1);
+  }
+
+  return;
+}
+
+void writeProgramBin (char *dst, u8 *binary, size_t binary_size)
+{
+  if (binary_size > 0)
+  {
+    FILE *fp = fopen (dst, "wb");
+
+    lock_file (fp);
+    fwrite (binary, sizeof (u8), binary_size, fp);
+
+    fflush (fp);
+    fclose (fp);
+  }
 }

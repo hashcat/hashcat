@@ -240,6 +240,39 @@ typedef enum kern_run_mp
 
 } kern_run_mp_t;
 
+static const char OPTI_STR_ZERO_BYTE[]         = "Zero-Byte";
+static const char OPTI_STR_PRECOMPUTE_INIT[]   = "Precompute-Init";
+static const char OPTI_STR_PRECOMPUTE_MERKLE[] = "Precompute-Merkle-Demgard";
+static const char OPTI_STR_PRECOMPUTE_PERMUT[] = "Precompute-Final-Permutation";
+static const char OPTI_STR_MEET_IN_MIDDLE[]    = "Meet-In-The-Middle";
+static const char OPTI_STR_EARLY_SKIP[]        = "Early-Skip";
+static const char OPTI_STR_NOT_SALTED[]        = "Not-Salted";
+static const char OPTI_STR_NOT_ITERATED[]      = "Not-Iterated";
+static const char OPTI_STR_PREPENDED_SALT[]    = "Prepended-Salt";
+static const char OPTI_STR_APPENDED_SALT[]     = "Appended-Salt";
+static const char OPTI_STR_SINGLE_HASH[]       = "Single-Hash";
+static const char OPTI_STR_SINGLE_SALT[]       = "Single-Salt";
+static const char OPTI_STR_BRUTE_FORCE[]       = "Brute-Force";
+static const char OPTI_STR_RAW_HASH[]          = "Raw-Hash";
+static const char OPTI_STR_SLOW_HASH_SIMD[]    = "Slow-Hash-SIMD";
+static const char OPTI_STR_USES_BITS_8[]       = "Uses-8-Bit";
+static const char OPTI_STR_USES_BITS_16[]      = "Uses-16-Bit";
+static const char OPTI_STR_USES_BITS_32[]      = "Uses-32-Bit";
+static const char OPTI_STR_USES_BITS_64[]      = "Uses-64-Bit";
+
+static const char ST_0000[] = "Initializing";
+static const char ST_0001[] = "Starting";
+static const char ST_0002[] = "Running";
+static const char ST_0003[] = "Paused";
+static const char ST_0004[] = "Exhausted";
+static const char ST_0005[] = "Cracked";
+static const char ST_0006[] = "Aborted";
+static const char ST_0007[] = "Quit";
+static const char ST_0008[] = "Bypass";
+static const char ST_0009[] = "Running (stop at checkpoint)";
+static const char ST_0010[] = "Autotuning";
+
+
 #ifdef _WIN
 #define mkdir(name,mode) mkdir (name)
 #endif
@@ -446,6 +479,54 @@ const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => 
 /**
  * hashcat specific functions
  */
+
+char *strstatus (const uint devices_status)
+{
+  switch (devices_status)
+  {
+    case  STATUS_INIT:               return ((char *) ST_0000);
+    case  STATUS_STARTING:           return ((char *) ST_0001);
+    case  STATUS_RUNNING:            return ((char *) ST_0002);
+    case  STATUS_PAUSED:             return ((char *) ST_0003);
+    case  STATUS_EXHAUSTED:          return ((char *) ST_0004);
+    case  STATUS_CRACKED:            return ((char *) ST_0005);
+    case  STATUS_ABORTED:            return ((char *) ST_0006);
+    case  STATUS_QUIT:               return ((char *) ST_0007);
+    case  STATUS_BYPASS:             return ((char *) ST_0008);
+    case  STATUS_STOP_AT_CHECKPOINT: return ((char *) ST_0009);
+    case  STATUS_AUTOTUNE:           return ((char *) ST_0010);
+  }
+
+  return ((char *) "Unknown");
+}
+
+char *stroptitype (const uint opti_type)
+{
+  switch (opti_type)
+  {
+    case OPTI_TYPE_ZERO_BYTE:         return ((char *) OPTI_STR_ZERO_BYTE);
+    case OPTI_TYPE_PRECOMPUTE_INIT:   return ((char *) OPTI_STR_PRECOMPUTE_INIT);
+    case OPTI_TYPE_PRECOMPUTE_MERKLE: return ((char *) OPTI_STR_PRECOMPUTE_MERKLE);
+    case OPTI_TYPE_PRECOMPUTE_PERMUT: return ((char *) OPTI_STR_PRECOMPUTE_PERMUT);
+    case OPTI_TYPE_MEET_IN_MIDDLE:    return ((char *) OPTI_STR_MEET_IN_MIDDLE);
+    case OPTI_TYPE_EARLY_SKIP:        return ((char *) OPTI_STR_EARLY_SKIP);
+    case OPTI_TYPE_NOT_SALTED:        return ((char *) OPTI_STR_NOT_SALTED);
+    case OPTI_TYPE_NOT_ITERATED:      return ((char *) OPTI_STR_NOT_ITERATED);
+    case OPTI_TYPE_PREPENDED_SALT:    return ((char *) OPTI_STR_PREPENDED_SALT);
+    case OPTI_TYPE_APPENDED_SALT:     return ((char *) OPTI_STR_APPENDED_SALT);
+    case OPTI_TYPE_SINGLE_HASH:       return ((char *) OPTI_STR_SINGLE_HASH);
+    case OPTI_TYPE_SINGLE_SALT:       return ((char *) OPTI_STR_SINGLE_SALT);
+    case OPTI_TYPE_BRUTE_FORCE:       return ((char *) OPTI_STR_BRUTE_FORCE);
+    case OPTI_TYPE_RAW_HASH:          return ((char *) OPTI_STR_RAW_HASH);
+    case OPTI_TYPE_SLOW_HASH_SIMD:    return ((char *) OPTI_STR_SLOW_HASH_SIMD);
+    case OPTI_TYPE_USES_BITS_8:       return ((char *) OPTI_STR_USES_BITS_8);
+    case OPTI_TYPE_USES_BITS_16:      return ((char *) OPTI_STR_USES_BITS_16);
+    case OPTI_TYPE_USES_BITS_32:      return ((char *) OPTI_STR_USES_BITS_32);
+    case OPTI_TYPE_USES_BITS_64:      return ((char *) OPTI_STR_USES_BITS_64);
+  }
+
+  return (NULL);
+}
 
 static double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
 {

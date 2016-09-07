@@ -69,37 +69,8 @@ extern const char *PROMPT;
 
 extern hc_thread_mutex_t mux_display;
 
-static const char OPTI_STR_ZERO_BYTE[]         = "Zero-Byte";
-static const char OPTI_STR_PRECOMPUTE_INIT[]   = "Precompute-Init";
-static const char OPTI_STR_PRECOMPUTE_MERKLE[] = "Precompute-Merkle-Demgard";
-static const char OPTI_STR_PRECOMPUTE_PERMUT[] = "Precompute-Final-Permutation";
-static const char OPTI_STR_MEET_IN_MIDDLE[]    = "Meet-In-The-Middle";
-static const char OPTI_STR_EARLY_SKIP[]        = "Early-Skip";
-static const char OPTI_STR_NOT_SALTED[]        = "Not-Salted";
-static const char OPTI_STR_NOT_ITERATED[]      = "Not-Iterated";
-static const char OPTI_STR_PREPENDED_SALT[]    = "Prepended-Salt";
-static const char OPTI_STR_APPENDED_SALT[]     = "Appended-Salt";
-static const char OPTI_STR_SINGLE_HASH[]       = "Single-Hash";
-static const char OPTI_STR_SINGLE_SALT[]       = "Single-Salt";
-static const char OPTI_STR_BRUTE_FORCE[]       = "Brute-Force";
-static const char OPTI_STR_RAW_HASH[]          = "Raw-Hash";
-static const char OPTI_STR_SLOW_HASH_SIMD[]    = "Slow-Hash-SIMD";
-static const char OPTI_STR_USES_BITS_8[]       = "Uses-8-Bit";
-static const char OPTI_STR_USES_BITS_16[]      = "Uses-16-Bit";
-static const char OPTI_STR_USES_BITS_32[]      = "Uses-32-Bit";
-static const char OPTI_STR_USES_BITS_64[]      = "Uses-64-Bit";
 
-static const char ST_0000[] = "Initializing";
-static const char ST_0001[] = "Starting";
-static const char ST_0002[] = "Running";
-static const char ST_0003[] = "Paused";
-static const char ST_0004[] = "Exhausted";
-static const char ST_0005[] = "Cracked";
-static const char ST_0006[] = "Aborted";
-static const char ST_0007[] = "Quit";
-static const char ST_0008[] = "Bypass";
-static const char ST_0009[] = "Running (stop at checkpoint)";
-static const char ST_0010[] = "Autotuning";
+
 
 
 /*
@@ -155,8 +126,6 @@ void format_speed_display (double val, char *buf, size_t len);
 void format_timer_display (struct tm *tm, char *buf, size_t len);
 
 
-char *stroptitype (const uint opti_type);
-char *strstatus (const uint threads_status);
 void status ();
 
 
@@ -169,8 +138,6 @@ void myquit  (void);
 
 void naive_replace (char *s, const u8 key_char, const u8 replace_char);
 void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char);
-void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
-void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
 
 u64 get_lowest_words_done (void);
 
