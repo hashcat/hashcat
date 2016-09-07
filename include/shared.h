@@ -86,7 +86,6 @@ int sort_by_cpu_rule     (const void *p1, const void *p2);
 int sort_by_kernel_rule  (const void *p1, const void *p2);
 int sort_by_stringptr    (const void *p1, const void *p2);
 int sort_by_dictstat     (const void *s1, const void *s2);
-int sort_by_bitmap       (const void *s1, const void *s2);
 
 int sort_by_pot          (const void *v1, const void *v2);
 int sort_by_hash         (const void *v1, const void *v2);

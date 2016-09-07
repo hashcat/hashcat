@@ -286,13 +286,6 @@ typedef struct
 
 } wl_data_t;
 
-typedef struct
-{
-  uint bitmap_shift;
-  uint collisions;
-
-} bitmap_result_t;
-
 #define CPT_BUF 0x20000
 
 typedef struct

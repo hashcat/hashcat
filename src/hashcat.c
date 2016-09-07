@@ -59,6 +59,7 @@
 #include "mpsp.h"
 #include "data.h"
 #include "affinity.h"
+#include "bitmap.h"
 #include "usage.h"
 
 extern hc_global_data_t data;
@@ -124,8 +125,6 @@ static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 #define INCREMENT_MIN           1
 #define INCREMENT_MAX           PW_MAX
 #define SEPARATOR               ':'
-#define BITMAP_MIN              16
-#define BITMAP_MAX              24
 #define NVIDIA_SPIN_DAMP        100
 #define GPU_TEMP_DISABLE        0
 #define GPU_TEMP_ABORT          90
@@ -5915,52 +5914,6 @@ static void *HC_API_CALL ADL_Main_Memory_Alloc (const int iSize)
   return mymalloc (iSize);
 }
 #endif
-
-static uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, const uint dgst_shifts, char *digests_buf_ptr, const uint bitmap_mask, const uint bitmap_size, uint *bitmap_a, uint *bitmap_b, uint *bitmap_c, uint *bitmap_d, const u64 collisions_max)
-{
-  u64 collisions = 0;
-
-  const uint dgst_pos0 = data.dgst_pos0;
-  const uint dgst_pos1 = data.dgst_pos1;
-  const uint dgst_pos2 = data.dgst_pos2;
-  const uint dgst_pos3 = data.dgst_pos3;
-
-  memset (bitmap_a, 0, bitmap_size);
-  memset (bitmap_b, 0, bitmap_size);
-  memset (bitmap_c, 0, bitmap_size);
-  memset (bitmap_d, 0, bitmap_size);
-
-  for (uint i = 0; i < digests_cnt; i++)
-  {
-    uint *digest_ptr = (uint *) digests_buf_ptr;
-
-    digests_buf_ptr += dgst_size;
-
-    const uint val0 = 1u << (digest_ptr[dgst_pos0] & 0x1f);
-    const uint val1 = 1u << (digest_ptr[dgst_pos1] & 0x1f);
-    const uint val2 = 1u << (digest_ptr[dgst_pos2] & 0x1f);
-    const uint val3 = 1u << (digest_ptr[dgst_pos3] & 0x1f);
-
-    const uint idx0 = (digest_ptr[dgst_pos0] >> dgst_shifts) & bitmap_mask;
-    const uint idx1 = (digest_ptr[dgst_pos1] >> dgst_shifts) & bitmap_mask;
-    const uint idx2 = (digest_ptr[dgst_pos2] >> dgst_shifts) & bitmap_mask;
-    const uint idx3 = (digest_ptr[dgst_pos3] >> dgst_shifts) & bitmap_mask;
-
-    if (bitmap_a[idx0] & val0) collisions++;
-    if (bitmap_b[idx1] & val1) collisions++;
-    if (bitmap_c[idx2] & val2) collisions++;
-    if (bitmap_d[idx3] & val3) collisions++;
-
-    bitmap_a[idx0] |= val0;
-    bitmap_b[idx1] |= val1;
-    bitmap_c[idx2] |= val2;
-    bitmap_d[idx3] |= val3;
-
-    if (collisions >= collisions_max) return 0x7fffffff;
-  }
-
-  return collisions;
-}
 
 /**
  * main
@@ -13843,8 +13796,8 @@ int main (int argc, char **argv)
 
       if ((hashes_cnt & bitmap_mask) == hashes_cnt) break;
 
-      if (generate_bitmaps (digests_cnt, dgst_size, bitmap_shift1, (char *) data.digests_buf, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, digests_cnt / 2) == 0x7fffffff) continue;
-      if (generate_bitmaps (digests_cnt, dgst_size, bitmap_shift2, (char *) data.digests_buf, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, digests_cnt / 2) == 0x7fffffff) continue;
+      if (generate_bitmaps (digests_cnt, dgst_size, bitmap_shift1, (char *) data.digests_buf, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, digests_cnt / 2) == 0x7fffffff) continue;
+      if (generate_bitmaps (digests_cnt, dgst_size, bitmap_shift2, (char *) data.digests_buf, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, digests_cnt / 2) == 0x7fffffff) continue;
 
       break;
     }
@@ -13855,8 +13808,8 @@ int main (int argc, char **argv)
 
     bitmap_size = bitmap_nums * sizeof (uint);
 
-    generate_bitmaps (digests_cnt, dgst_size, bitmap_shift1, (char *) data.digests_buf, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, -1ul);
-    generate_bitmaps (digests_cnt, dgst_size, bitmap_shift2, (char *) data.digests_buf, bitmap_mask, bitmap_size, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d, -1ul);
+    generate_bitmaps (digests_cnt, dgst_size, bitmap_shift1, (char *) data.digests_buf, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, -1ul);
+    generate_bitmaps (digests_cnt, dgst_size, bitmap_shift2, (char *) data.digests_buf, data.dgst_pos0, data.dgst_pos1, data.dgst_pos2, data.dgst_pos3, bitmap_mask, bitmap_size, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d, -1ul);
 
     /**
      * prepare quick rule

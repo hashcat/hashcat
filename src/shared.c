@@ -259,13 +259,6 @@ int sort_by_dictstat (const void *s1, const void *s2)
   return memcmp (&d1->stat, &d2->stat, sizeof (struct stat));
 }
 
-int sort_by_bitmap (const void *p1, const void *p2)
-{
-  const bitmap_result_t *b1 = (const bitmap_result_t *) p1;
-  const bitmap_result_t *b2 = (const bitmap_result_t *) p2;
-
-  return b1->collisions - b2->collisions;
-}
 
 int sort_by_digest_4_2 (const void *v1, const void *v2)
 {
