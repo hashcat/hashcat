@@ -1494,3 +1494,18 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
 
   return -1;
 }
+
+int run_rule_engine (const int rule_len, const char *rule_buf)
+{
+  if (rule_len == 0)
+  {
+    return 0;
+  }
+  else if (rule_len == 1)
+  {
+    if (rule_buf[0] == RULE_OP_MANGLE_NOOP) return 0;
+  }
+
+  return 1;
+}
+

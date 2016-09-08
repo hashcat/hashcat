@@ -93,4 +93,6 @@ int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, 
 int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule);
 int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);
 
+int run_rule_engine (const int rule_len, const char *rule_buf);
+
 #endif // _RP_CPU_H

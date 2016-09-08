@@ -331,15 +331,7 @@ typedef struct
 
 } outfile_data_t;
 
-typedef struct
-{
-  char *buf;
-  u32  incr;
-  u32  avail;
-  u32  cnt;
-  u32  pos;
 
-} wl_data_t;
 
 #define CPT_BUF 0x20000
 
