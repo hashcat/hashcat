@@ -37,11 +37,7 @@
 
 
 
-#if defined (_WIN)
-#define hc_sleep(x) Sleep ((x) * 1000);
-#elif defined (_POSIX)
-#define hc_sleep(x) sleep ((x));
-#endif
+
 
 #define ETC_MAX                 (60 * 60 * 24 * 365 * 10)
 
@@ -66,6 +62,8 @@ u64 mydivc64 (const u64 dividend, const u64 divisor);
 
 void naive_replace (char *s, const u8 key_char, const u8 replace_char);
 void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char);
+
+void hc_sleep (const int sec);
 
 
 
