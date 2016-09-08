@@ -41,9 +41,6 @@
 
 #define DEVICES_MAX   128
 
-
-
-
 #define CEIL(a) ((a - (int) (a)) > 0 ? a + 1 : a)
 
 #if defined (__APPLE__)
@@ -58,6 +55,12 @@
 
 #if defined (_WIN)
 #define WIN32_LEAN_AND_MEAN
+#endif
+
+#if defined (_WIN)
+#define EOL "\r\n"
+#else
+#define EOL "\n"
 #endif
 
 #endif // _COMMON_H

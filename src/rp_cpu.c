@@ -176,445 +176,6 @@ static int conv_itoc (const u8 c)
 #define GET_P0_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >>  8) & 0xff)
 #define GET_P1_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >> 16) & 0xff)
 
-int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule)
-{
-  uint rule_pos;
-  uint rule_cnt;
-
-  for (rule_pos = 0, rule_cnt = 0; rule_pos < rule_len && rule_cnt < MAX_KERNEL_RULES; rule_pos++, rule_cnt++)
-  {
-    switch (rule_buf[rule_pos])
-    {
-      case ' ':
-        rule_cnt--;
-        break;
-
-      case RULE_OP_MANGLE_NOOP:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_LREST:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_UREST:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_LREST_UFIRST:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_UREST_LFIRST:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_TREST:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_TOGGLE_AT:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_REVERSE:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_DUPEWORD:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_DUPEWORD_TIMES:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_REFLECT:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_ROTATE_LEFT:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_ROTATE_RIGHT:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_APPEND:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        SET_P0   (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_PREPEND:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        SET_P0   (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_DELETE_FIRST:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_DELETE_LAST:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_DELETE_AT:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_EXTRACT:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        SET_P1_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_OMIT:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        SET_P1_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_INSERT:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        SET_P1      (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_OVERSTRIKE:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        SET_P1      (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_TRUNCATE_AT:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_REPLACE:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        SET_P0   (rule, rule_buf[rule_pos]);
-        SET_P1   (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_PURGECHAR:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        SET_P0   (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_TOGGLECASE_REC:
-        return -1;
-
-      case RULE_OP_MANGLE_DUPECHAR_FIRST:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_DUPECHAR_LAST:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_DUPECHAR_ALL:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_SWITCH_FIRST:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_SWITCH_LAST:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_SWITCH_AT:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        SET_P1_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_CHR_SHIFTL:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_CHR_SHIFTR:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_CHR_INCR:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_CHR_DECR:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_REPLACE_NP1:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_REPLACE_NM1:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_DUPEBLOCK_FIRST:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_DUPEBLOCK_LAST:
-        SET_NAME    (rule, rule_buf[rule_pos]);
-        SET_P0_CONV (rule, rule_buf[rule_pos]);
-        break;
-
-      case RULE_OP_MANGLE_TITLE:
-        SET_NAME (rule, rule_buf[rule_pos]);
-        break;
-
-      default:
-        return -1;
-    }
-  }
-
-  if (rule_pos < rule_len) return -1;
-
-  return 0;
-}
-
-int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
-{
-  uint rule_cnt;
-  uint rule_pos;
-  uint rule_len = HCBUFSIZ_LARGE - 1; // maximum possible len
-
-  char rule_cmd;
-
-  for (rule_cnt = 0, rule_pos = 0; rule_pos < rule_len && rule_cnt < MAX_KERNEL_RULES; rule_pos++, rule_cnt++)
-  {
-    GET_NAME (rule);
-
-    if (rule_cnt > 0) rule_buf[rule_pos++] = ' ';
-
-    switch (rule_cmd)
-    {
-      case RULE_OP_MANGLE_NOOP:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_LREST:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_UREST:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_LREST_UFIRST:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_UREST_LFIRST:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_TREST:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_TOGGLE_AT:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_REVERSE:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_DUPEWORD:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_DUPEWORD_TIMES:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_REFLECT:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_ROTATE_LEFT:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_ROTATE_RIGHT:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_APPEND:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0 (rule);
-        break;
-
-      case RULE_OP_MANGLE_PREPEND:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0 (rule);
-        break;
-
-      case RULE_OP_MANGLE_DELETE_FIRST:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_DELETE_LAST:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_DELETE_AT:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_EXTRACT:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        GET_P1_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_OMIT:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        GET_P1_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_INSERT:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        GET_P1      (rule);
-        break;
-
-      case RULE_OP_MANGLE_OVERSTRIKE:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        GET_P1      (rule);
-        break;
-
-      case RULE_OP_MANGLE_TRUNCATE_AT:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_REPLACE:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0 (rule);
-        GET_P1 (rule);
-        break;
-
-      case RULE_OP_MANGLE_PURGECHAR:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0 (rule);
-        break;
-
-      case RULE_OP_MANGLE_TOGGLECASE_REC:
-        return -1;
-
-      case RULE_OP_MANGLE_DUPECHAR_FIRST:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_DUPECHAR_LAST:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_DUPECHAR_ALL:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_SWITCH_FIRST:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_SWITCH_LAST:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case RULE_OP_MANGLE_SWITCH_AT:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        GET_P1_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_CHR_SHIFTL:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_CHR_SHIFTR:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_CHR_INCR:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_CHR_DECR:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_REPLACE_NP1:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_REPLACE_NM1:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_DUPEBLOCK_FIRST:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_DUPEBLOCK_LAST:
-        rule_buf[rule_pos] = rule_cmd;
-        GET_P0_CONV (rule);
-        break;
-
-      case RULE_OP_MANGLE_TITLE:
-        rule_buf[rule_pos] = rule_cmd;
-        break;
-
-      case 0:
-        return rule_pos - 1;
-
-      default:
-        return -1;
-    }
-  }
-
-  if (rule_cnt > 0)
-  {
-    return rule_pos;
-  }
-
-  return -1;
-}
-
 #define NEXT_RULEPOS(rp)      if (++(rp) == rule_len) return (RULE_RC_SYNTAX_ERROR)
 #define NEXT_RPTOI(r,rp,up)   if (((up) = conv_ctoi ((r)[(rp)])) == -1) return (RULE_RC_SYNTAX_ERROR)
 
@@ -1493,4 +1054,443 @@ int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, 
   memset (out + out_len, 0, BLOCK_SIZE - out_len);
 
   return (out_len);
+}
+
+int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule)
+{
+  uint rule_pos;
+  uint rule_cnt;
+
+  for (rule_pos = 0, rule_cnt = 0; rule_pos < rule_len && rule_cnt < MAX_KERNEL_RULES; rule_pos++, rule_cnt++)
+  {
+    switch (rule_buf[rule_pos])
+    {
+      case ' ':
+        rule_cnt--;
+        break;
+
+      case RULE_OP_MANGLE_NOOP:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_LREST:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_UREST:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_LREST_UFIRST:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_UREST_LFIRST:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_TREST:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_TOGGLE_AT:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_REVERSE:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_DUPEWORD:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_DUPEWORD_TIMES:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_REFLECT:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_ROTATE_LEFT:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_ROTATE_RIGHT:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_APPEND:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        SET_P0   (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_PREPEND:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        SET_P0   (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_DELETE_FIRST:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_DELETE_LAST:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_DELETE_AT:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_EXTRACT:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        SET_P1_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_OMIT:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        SET_P1_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_INSERT:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        SET_P1      (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_OVERSTRIKE:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        SET_P1      (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_TRUNCATE_AT:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        SET_P0   (rule, rule_buf[rule_pos]);
+        SET_P1   (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_PURGECHAR:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        SET_P0   (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_TOGGLECASE_REC:
+        return -1;
+
+      case RULE_OP_MANGLE_DUPECHAR_FIRST:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_DUPECHAR_LAST:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_DUPECHAR_ALL:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_SWITCH_FIRST:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_SWITCH_LAST:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_SWITCH_AT:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        SET_P1_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_CHR_SHIFTL:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_CHR_SHIFTR:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_CHR_INCR:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_CHR_DECR:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE_NP1:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE_NM1:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_DUPEBLOCK_FIRST:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_DUPEBLOCK_LAST:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_TITLE:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      default:
+        return -1;
+    }
+  }
+
+  if (rule_pos < rule_len) return -1;
+
+  return 0;
+}
+
+int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
+{
+  uint rule_cnt;
+  uint rule_pos;
+  uint rule_len = HCBUFSIZ_LARGE - 1; // maximum possible len
+
+  char rule_cmd;
+
+  for (rule_cnt = 0, rule_pos = 0; rule_pos < rule_len && rule_cnt < MAX_KERNEL_RULES; rule_pos++, rule_cnt++)
+  {
+    GET_NAME (rule);
+
+    if (rule_cnt > 0) rule_buf[rule_pos++] = ' ';
+
+    switch (rule_cmd)
+    {
+      case RULE_OP_MANGLE_NOOP:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_LREST:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_UREST:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_LREST_UFIRST:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_UREST_LFIRST:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_TREST:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_TOGGLE_AT:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_REVERSE:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_DUPEWORD:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_DUPEWORD_TIMES:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_REFLECT:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_ROTATE_LEFT:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_ROTATE_RIGHT:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_APPEND:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0 (rule);
+        break;
+
+      case RULE_OP_MANGLE_PREPEND:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0 (rule);
+        break;
+
+      case RULE_OP_MANGLE_DELETE_FIRST:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_DELETE_LAST:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_DELETE_AT:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_EXTRACT:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        GET_P1_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_OMIT:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        GET_P1_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_INSERT:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        GET_P1      (rule);
+        break;
+
+      case RULE_OP_MANGLE_OVERSTRIKE:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        GET_P1      (rule);
+        break;
+
+      case RULE_OP_MANGLE_TRUNCATE_AT:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0 (rule);
+        GET_P1 (rule);
+        break;
+
+      case RULE_OP_MANGLE_PURGECHAR:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0 (rule);
+        break;
+
+      case RULE_OP_MANGLE_TOGGLECASE_REC:
+        return -1;
+
+      case RULE_OP_MANGLE_DUPECHAR_FIRST:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_DUPECHAR_LAST:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_DUPECHAR_ALL:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_SWITCH_FIRST:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_SWITCH_LAST:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_SWITCH_AT:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        GET_P1_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_CHR_SHIFTL:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_CHR_SHIFTR:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_CHR_INCR:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_CHR_DECR:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE_NP1:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE_NM1:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_DUPEBLOCK_FIRST:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_DUPEBLOCK_LAST:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        break;
+
+      case RULE_OP_MANGLE_TITLE:
+        rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case 0:
+        return rule_pos - 1;
+
+      default:
+        return -1;
+    }
+  }
+
+  if (rule_cnt > 0)
+  {
+    return rule_pos;
+  }
+
+  return -1;
 }

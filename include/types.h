@@ -13,11 +13,6 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#if defined (_WIN)
-#define EOL "\r\n"
-#else
-#define EOL "\n"
-#endif
 
 /**
  * Outfile formats
@@ -43,16 +38,16 @@ typedef enum hl_mode
 
 typedef enum hlfmt_name
 {
-   HLFMT_HASHCAT  = 0,
-   HLFMT_PWDUMP   = 1,
-   HLFMT_PASSWD   = 2,
-   HLFMT_SHADOW   = 3,
-   HLFMT_DCC      = 4,
-   HLFMT_DCC2     = 5,
-   HLFMT_NETNTLM1 = 7,
-   HLFMT_NETNTLM2 = 8,
-   HLFMT_NSLDAP   = 9,
-   HLFMT_NSLDAPS  = 10
+  HLFMT_HASHCAT  = 0,
+  HLFMT_PWDUMP   = 1,
+  HLFMT_PASSWD   = 2,
+  HLFMT_SHADOW   = 3,
+  HLFMT_DCC      = 4,
+  HLFMT_DCC2     = 5,
+  HLFMT_NETNTLM1 = 7,
+  HLFMT_NETNTLM2 = 8,
+  HLFMT_NSLDAP   = 9,
+  HLFMT_NSLDAPS  = 10
 
 } hlfmt_name_t;
 
