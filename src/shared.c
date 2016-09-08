@@ -6,35 +6,9 @@
  * License.....: MIT
  */
 
-#if defined (__APPLE__)
-#include <stdio.h>
-#endif
-
 #include "common.h"
 #include "types_int.h"
-#include "types.h"
-#include "timer.h"
-#include "memory.h"
-#include "logging.h"
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
-#include "convert.h"
-#include "locking.h"
-#include "thread.h"
-#include "rp_cpu.h"
-#include "hwmon.h"
-#include "mpsp.h"
-#include "rp_cpu.h"
-#include "opencl.h"
-#include "restore.h"
-#include "data.h"
-#include "status.h"
 #include "shared.h"
-
-extern hc_global_data_t data;
 
 u32 get_random_num (const u32 min, const u32 max)
 {

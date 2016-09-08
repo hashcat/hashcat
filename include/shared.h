@@ -9,30 +9,9 @@
 #ifndef _SHARED_H
 #define _SHARED_H
 
-#include <errno.h>
-#include <time.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <inttypes.h>
-
-/**
- * OS specific includes
- */
-
-#if defined (_POSIX)
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <sys/sysctl.h>
-#endif // _POSIX
-
-#if defined (_WIN)
-#include <windows.h>
-#endif // _WIN
-
-/**
- * functions ok for shared
- */
 
 u32 get_random_num (const u32 min, const u32 max);
 

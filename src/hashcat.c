@@ -19,6 +19,7 @@
 #include <search.h>
 #include <getopt.h>
 #include <inttypes.h>
+#include <signal.h>
 
 #if defined (_POSIX)
 #include <pthread.h>
