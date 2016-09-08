@@ -56,20 +56,23 @@
 #define POTFILE_FILENAME        "hashcat.pot"
 
 /**
- * valid project specific global stuff
+ * functions ok for shared
  */
 
-extern const char *PROMPT;
+u32 get_random_num (const u32 min, const u32 max);
+
+u32 mydivc32 (const u32 dividend, const u32 divisor);
+u64 mydivc64 (const u64 dividend, const u64 divisor);
+
+void naive_replace (char *s, const u8 key_char, const u8 replace_char);
+void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char);
 
 
 
-/*
- * functions
+/**
+ * sort out
  */
 
-double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries);
-
-void *rulefind (const void *key, void *base, int nmemb, size_t size, int (*compar) (const void *, const void *));
 
 int sort_by_u32          (const void *p1, const void *p2);
 int sort_by_mtime        (const void *p1, const void *p2);
@@ -108,45 +111,6 @@ void handle_left_request (pot_t *pot, uint pot_cnt, char *input_buf, int input_l
 void handle_show_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp);
 void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp);
 
-u32 get_random_num (const u32 min, const u32 max);
-
-u32 mydivc32 (const u32 dividend, const u32 divisor);
-u64 mydivc64 (const u64 dividend, const u64 divisor);
-
-void format_speed_display (double val, char *buf, size_t len);
-void format_timer_display (struct tm *tm, char *buf, size_t len);
-
-
-void status ();
-
-
-
-void myabort (void);
-void myquit  (void);
-
-
-
-
-void naive_replace (char *s, const u8 key_char, const u8 replace_char);
-void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char);
-
-
-
-void check_checkpoint (void);
-
-#if defined (_WIN)
-
-BOOL WINAPI sigHandler_default   (DWORD sig);
-BOOL WINAPI sigHandler_benchmark (DWORD sig);
-void hc_signal (BOOL WINAPI (callback) (DWORD sig));
-
-#else
-
-void sigHandler_default   (int sig);
-void sigHandler_benchmark (int sig);
-void hc_signal (void c (int));
-
-#endif
 
 
 #endif // _SHARED_H

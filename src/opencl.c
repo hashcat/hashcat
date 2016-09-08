@@ -180,3 +180,30 @@ void writeProgramBin (char *dst, u8 *binary, size_t binary_size)
     fclose (fp);
   }
 }
+
+double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
+{
+  int exec_pos = (int) device_param->exec_pos - last_num_entries;
+
+  if (exec_pos < 0) exec_pos += EXEC_CACHE;
+
+  double exec_ms_sum = 0;
+
+  int exec_ms_cnt = 0;
+
+  for (int i = 0; i < last_num_entries; i++)
+  {
+    double exec_ms = device_param->exec_ms[(exec_pos + i) % EXEC_CACHE];
+
+    if (exec_ms > 0)
+    {
+      exec_ms_sum += exec_ms;
+
+      exec_ms_cnt++;
+    }
+  }
+
+  if (exec_ms_cnt == 0) return 0;
+
+  return exec_ms_sum / exec_ms_cnt;
+}

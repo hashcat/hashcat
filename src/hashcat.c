@@ -377,7 +377,7 @@ const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => 
 
 
 
-char *stroptitype (const uint opti_type)
+static char *stroptitype (const uint opti_type)
 {
   switch (opti_type)
   {
@@ -405,6 +405,131 @@ char *stroptitype (const uint opti_type)
   return (NULL);
 }
 
+
+static void myabort ()
+{
+  data.devices_status = STATUS_ABORTED;
+}
+
+static void myquit ()
+{
+  data.devices_status = STATUS_QUIT;
+}
+
+static void check_checkpoint ()
+{
+  // if (data.restore_disable == 1) break;  (this is already implied by previous checks)
+
+  u64 words_cur = get_lowest_words_done ();
+
+  if (words_cur != data.checkpoint_cur_words)
+  {
+    myabort ();
+  }
+}
+
+#if defined (_WIN)
+
+static BOOL WINAPI sigHandler_default (DWORD sig)
+{
+  switch (sig)
+  {
+    case CTRL_CLOSE_EVENT:
+
+      /*
+       * special case see: https://stackoverflow.com/questions/3640633/c-setconsolectrlhandler-routine-issue/5610042#5610042
+       * if the user interacts w/ the user-interface (GUI/cmd), we need to do the finalization job within this signal handler
+       * function otherwise it is too late (e.g. after returning from this function)
+       */
+
+      myabort ();
+
+      SetConsoleCtrlHandler (NULL, TRUE);
+
+      hc_sleep (10);
+
+      return TRUE;
+
+    case CTRL_C_EVENT:
+    case CTRL_LOGOFF_EVENT:
+    case CTRL_SHUTDOWN_EVENT:
+
+      myabort ();
+
+      SetConsoleCtrlHandler (NULL, TRUE);
+
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+static BOOL WINAPI sigHandler_benchmark (DWORD sig)
+{
+  switch (sig)
+  {
+    case CTRL_CLOSE_EVENT:
+
+      myquit ();
+
+      SetConsoleCtrlHandler (NULL, TRUE);
+
+      hc_sleep (10);
+
+      return TRUE;
+
+    case CTRL_C_EVENT:
+    case CTRL_LOGOFF_EVENT:
+    case CTRL_SHUTDOWN_EVENT:
+
+      myquit ();
+
+      SetConsoleCtrlHandler (NULL, TRUE);
+
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+static void hc_signal (BOOL WINAPI (callback) (DWORD))
+{
+  if (callback == NULL)
+  {
+    SetConsoleCtrlHandler ((PHANDLER_ROUTINE) callback, FALSE);
+  }
+  else
+  {
+    SetConsoleCtrlHandler ((PHANDLER_ROUTINE) callback, TRUE);
+  }
+}
+
+#else
+
+static void sigHandler_default (int sig)
+{
+  myabort ();
+
+  signal (sig, NULL);
+}
+
+static void sigHandler_benchmark (int sig)
+{
+  myquit ();
+
+  signal (sig, NULL);
+}
+
+static void hc_signal (void (callback) (int))
+{
+  if (callback == NULL) callback = SIG_DFL;
+
+  signal (SIGINT,  callback);
+  signal (SIGTERM, callback);
+  signal (SIGABRT, callback);
+}
+
+#endif
 
 
 
@@ -12794,15 +12919,6 @@ int main (int argc, char **argv)
 
           continue;
         }
-
-        /* its so slow
-        if (rulefind (&kernel_rules_buf[kernel_rules_cnt], kernel_rules_buf, kernel_rules_cnt, sizeof (kernel_rule_t), sort_by_kernel_rule))
-        {
-          log_info ("Duplicate rule for use on OpenCL device in file %s in line %u: %s", rp_file, rule_line, rule_buf);
-
-          continue;
-        }
-        */
 
         kernel_rules_cnt++;
       }

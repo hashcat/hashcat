@@ -43,7 +43,82 @@ extern hc_thread_mutex_t mux_hwmon;
 
 hc_thread_mutex_t mux_display;
 
-char *strstatus (const uint devices_status)
+static void format_timer_display (struct tm *tm, char *buf, size_t len)
+{
+  const char *time_entities_s[] = { "year",  "day",  "hour",  "min",  "sec"  };
+  const char *time_entities_m[] = { "years", "days", "hours", "mins", "secs" };
+
+  if (tm->tm_year - 70)
+  {
+    char *time_entity1 = ((tm->tm_year - 70) == 1) ? (char *) time_entities_s[0] : (char *) time_entities_m[0];
+    char *time_entity2 = ( tm->tm_yday       == 1) ? (char *) time_entities_s[1] : (char *) time_entities_m[1];
+
+    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_year - 70, time_entity1, tm->tm_yday, time_entity2);
+  }
+  else if (tm->tm_yday)
+  {
+    char *time_entity1 = (tm->tm_yday == 1) ? (char *) time_entities_s[1] : (char *) time_entities_m[1];
+    char *time_entity2 = (tm->tm_hour == 1) ? (char *) time_entities_s[2] : (char *) time_entities_m[2];
+
+    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_yday, time_entity1, tm->tm_hour, time_entity2);
+  }
+  else if (tm->tm_hour)
+  {
+    char *time_entity1 = (tm->tm_hour == 1) ? (char *) time_entities_s[2] : (char *) time_entities_m[2];
+    char *time_entity2 = (tm->tm_min  == 1) ? (char *) time_entities_s[3] : (char *) time_entities_m[3];
+
+    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_hour, time_entity1, tm->tm_min, time_entity2);
+  }
+  else if (tm->tm_min)
+  {
+    char *time_entity1 = (tm->tm_min == 1) ? (char *) time_entities_s[3] : (char *) time_entities_m[3];
+    char *time_entity2 = (tm->tm_sec == 1) ? (char *) time_entities_s[4] : (char *) time_entities_m[4];
+
+    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_min, time_entity1, tm->tm_sec, time_entity2);
+  }
+  else
+  {
+    char *time_entity1 = (tm->tm_sec == 1) ? (char *) time_entities_s[4] : (char *) time_entities_m[4];
+
+    snprintf (buf, len - 1, "%d %s", tm->tm_sec, time_entity1);
+  }
+}
+
+static void format_speed_display (double val, char *buf, size_t len)
+{
+  if (val <= 0)
+  {
+    buf[0] = '0';
+    buf[1] = ' ';
+    buf[2] = 0;
+
+    return;
+  }
+
+  char units[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
+
+  uint level = 0;
+
+  while (val > 99999)
+  {
+    val /= 1000;
+
+    level++;
+  }
+
+  /* generate output */
+
+  if (level == 0)
+  {
+    snprintf (buf, len - 1, "%.0f ", val);
+  }
+  else
+  {
+    snprintf (buf, len - 1, "%.1f %c", val, units[level]);
+  }
+}
+
+static char *strstatus (const uint devices_status)
 {
   switch (devices_status)
   {

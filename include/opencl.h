@@ -221,3 +221,6 @@ cl_device_type setup_device_types_filter (char *opencl_device_types);
 
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
+
+double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries);
+

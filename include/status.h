@@ -28,15 +28,9 @@ typedef enum status_rc
 
 } status_rc_t;
 
-char *strstatus (const uint devices_status);
-
 void status_display_machine_readable ();
-
 void status_display ();
-
 void status_benchmark_automate ();
-
 void status_benchmark ();
-
 
 #endif // _STATUS_H

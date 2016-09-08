@@ -35,48 +35,78 @@
 #include "shared.h"
 
 extern hc_global_data_t data;
-extern hc_thread_mutex_t mux_display;
 
-double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
+u32 get_random_num (const u32 min, const u32 max)
 {
-  int exec_pos = (int) device_param->exec_pos - last_num_entries;
+  if (min == max) return (min);
 
-  if (exec_pos < 0) exec_pos += EXEC_CACHE;
+  return ((rand () % (max - min)) + min);
+}
 
-  double exec_ms_sum = 0;
+u32 mydivc32 (const u32 dividend, const u32 divisor)
+{
+  u32 quotient = dividend / divisor;
 
-  int exec_ms_cnt = 0;
+  if (dividend % divisor) quotient++;
 
-  for (int i = 0; i < last_num_entries; i++)
+  return quotient;
+}
+
+u64 mydivc64 (const u64 dividend, const u64 divisor)
+{
+  u64 quotient = dividend / divisor;
+
+  if (dividend % divisor) quotient++;
+
+  return quotient;
+}
+
+void naive_replace (char *s, const u8 key_char, const u8 replace_char)
+{
+  const size_t len = strlen (s);
+
+  for (size_t in = 0; in < len; in++)
   {
-    double exec_ms = device_param->exec_ms[(exec_pos + i) % EXEC_CACHE];
+    const u8 c = s[in];
 
-    if (exec_ms > 0)
+    if (c == key_char)
     {
-      exec_ms_sum += exec_ms;
-
-      exec_ms_cnt++;
+      s[in] = replace_char;
     }
   }
-
-  if (exec_ms_cnt == 0) return 0;
-
-  return exec_ms_sum / exec_ms_cnt;
 }
 
-
-void *rulefind (const void *key, void *base, int nmemb, size_t size, int (*compar) (const void *, const void *))
+void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char)
 {
-  char *element, *end;
+  char s_escaped[1024] = { 0 };
 
-  end = (char *) base + nmemb * size;
+  size_t s_escaped_max = sizeof (s_escaped);
 
-  for (element = (char *) base; element < end; element += size)
-    if (!compar (element, key))
-      return element;
+  const size_t len = strlen (s);
 
-  return NULL;
+  for (size_t in = 0, out = 0; in < len; in++, out++)
+  {
+    const u8 c = s[in];
+
+    if (c == key_char)
+    {
+      s_escaped[out] = escape_char;
+
+      out++;
+    }
+
+    if (out == s_escaped_max - 2) break;
+
+    s_escaped[out] = c;
+  }
+
+  strncpy (s, s_escaped, s_max - 1);
 }
+
+
+
+// need to sort out from here
+
 
 int sort_by_u32 (const void *v1, const void *v2)
 {
@@ -894,289 +924,3 @@ void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int inpu
 
   if (weak_hash_found == 1) myfree (pot_right_ptr);
 }
-
-
-u32 get_random_num (const u32 min, const u32 max)
-{
-  if (min == max) return (min);
-
-  return ((rand () % (max - min)) + min);
-}
-
-u32 mydivc32 (const u32 dividend, const u32 divisor)
-{
-  u32 quotient = dividend / divisor;
-
-  if (dividend % divisor) quotient++;
-
-  return quotient;
-}
-
-u64 mydivc64 (const u64 dividend, const u64 divisor)
-{
-  u64 quotient = dividend / divisor;
-
-  if (dividend % divisor) quotient++;
-
-  return quotient;
-}
-
-void format_timer_display (struct tm *tm, char *buf, size_t len)
-{
-  const char *time_entities_s[] = { "year",  "day",  "hour",  "min",  "sec"  };
-  const char *time_entities_m[] = { "years", "days", "hours", "mins", "secs" };
-
-  if (tm->tm_year - 70)
-  {
-    char *time_entity1 = ((tm->tm_year - 70) == 1) ? (char *) time_entities_s[0] : (char *) time_entities_m[0];
-    char *time_entity2 = ( tm->tm_yday       == 1) ? (char *) time_entities_s[1] : (char *) time_entities_m[1];
-
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_year - 70, time_entity1, tm->tm_yday, time_entity2);
-  }
-  else if (tm->tm_yday)
-  {
-    char *time_entity1 = (tm->tm_yday == 1) ? (char *) time_entities_s[1] : (char *) time_entities_m[1];
-    char *time_entity2 = (tm->tm_hour == 1) ? (char *) time_entities_s[2] : (char *) time_entities_m[2];
-
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_yday, time_entity1, tm->tm_hour, time_entity2);
-  }
-  else if (tm->tm_hour)
-  {
-    char *time_entity1 = (tm->tm_hour == 1) ? (char *) time_entities_s[2] : (char *) time_entities_m[2];
-    char *time_entity2 = (tm->tm_min  == 1) ? (char *) time_entities_s[3] : (char *) time_entities_m[3];
-
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_hour, time_entity1, tm->tm_min, time_entity2);
-  }
-  else if (tm->tm_min)
-  {
-    char *time_entity1 = (tm->tm_min == 1) ? (char *) time_entities_s[3] : (char *) time_entities_m[3];
-    char *time_entity2 = (tm->tm_sec == 1) ? (char *) time_entities_s[4] : (char *) time_entities_m[4];
-
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_min, time_entity1, tm->tm_sec, time_entity2);
-  }
-  else
-  {
-    char *time_entity1 = (tm->tm_sec == 1) ? (char *) time_entities_s[4] : (char *) time_entities_m[4];
-
-    snprintf (buf, len - 1, "%d %s", tm->tm_sec, time_entity1);
-  }
-}
-
-void format_speed_display (double val, char *buf, size_t len)
-{
-  if (val <= 0)
-  {
-    buf[0] = '0';
-    buf[1] = ' ';
-    buf[2] = 0;
-
-    return;
-  }
-
-  char units[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
-
-  uint level = 0;
-
-  while (val > 99999)
-  {
-    val /= 1000;
-
-    level++;
-  }
-
-  /* generate output */
-
-  if (level == 0)
-  {
-    snprintf (buf, len - 1, "%.0f ", val);
-  }
-  else
-  {
-    snprintf (buf, len - 1, "%.1f %c", val, units[level]);
-  }
-}
-
-
-
-
-
-
-
-void myabort ()
-{
-  data.devices_status = STATUS_ABORTED;
-}
-
-void myquit ()
-{
-  data.devices_status = STATUS_QUIT;
-}
-
-void naive_replace (char *s, const u8 key_char, const u8 replace_char)
-{
-  const size_t len = strlen (s);
-
-  for (size_t in = 0; in < len; in++)
-  {
-    const u8 c = s[in];
-
-    if (c == key_char)
-    {
-      s[in] = replace_char;
-    }
-  }
-}
-
-void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char)
-{
-  char s_escaped[1024] = { 0 };
-
-  size_t s_escaped_max = sizeof (s_escaped);
-
-  const size_t len = strlen (s);
-
-  for (size_t in = 0, out = 0; in < len; in++, out++)
-  {
-    const u8 c = s[in];
-
-    if (c == key_char)
-    {
-      s_escaped[out] = escape_char;
-
-      out++;
-    }
-
-    if (out == s_escaped_max - 2) break;
-
-    s_escaped[out] = c;
-  }
-
-  strncpy (s, s_escaped, s_max - 1);
-}
-
-
-/**
- * restore
- */
-
-void check_checkpoint ()
-{
-  // if (data.restore_disable == 1) break;  (this is already implied by previous checks)
-
-  u64 words_cur = get_lowest_words_done ();
-
-  if (words_cur != data.checkpoint_cur_words)
-  {
-    myabort ();
-  }
-}
-
-
-
-/**
- * parallel running threads
- */
-
-#if defined (_WIN)
-
-BOOL WINAPI sigHandler_default (DWORD sig)
-{
-  switch (sig)
-  {
-    case CTRL_CLOSE_EVENT:
-
-      /*
-       * special case see: https://stackoverflow.com/questions/3640633/c-setconsolectrlhandler-routine-issue/5610042#5610042
-       * if the user interacts w/ the user-interface (GUI/cmd), we need to do the finalization job within this signal handler
-       * function otherwise it is too late (e.g. after returning from this function)
-       */
-
-      myabort ();
-
-      SetConsoleCtrlHandler (NULL, TRUE);
-
-      hc_sleep (10);
-
-      return TRUE;
-
-    case CTRL_C_EVENT:
-    case CTRL_LOGOFF_EVENT:
-    case CTRL_SHUTDOWN_EVENT:
-
-      myabort ();
-
-      SetConsoleCtrlHandler (NULL, TRUE);
-
-      return TRUE;
-  }
-
-  return FALSE;
-}
-
-BOOL WINAPI sigHandler_benchmark (DWORD sig)
-{
-  switch (sig)
-  {
-    case CTRL_CLOSE_EVENT:
-
-      myquit ();
-
-      SetConsoleCtrlHandler (NULL, TRUE);
-
-      hc_sleep (10);
-
-      return TRUE;
-
-    case CTRL_C_EVENT:
-    case CTRL_LOGOFF_EVENT:
-    case CTRL_SHUTDOWN_EVENT:
-
-      myquit ();
-
-      SetConsoleCtrlHandler (NULL, TRUE);
-
-      return TRUE;
-  }
-
-  return FALSE;
-}
-
-void hc_signal (BOOL WINAPI (callback) (DWORD))
-{
-  if (callback == NULL)
-  {
-    SetConsoleCtrlHandler ((PHANDLER_ROUTINE) callback, FALSE);
-  }
-  else
-  {
-    SetConsoleCtrlHandler ((PHANDLER_ROUTINE) callback, TRUE);
-  }
-}
-
-#else
-
-void sigHandler_default (int sig)
-{
-  myabort ();
-
-  signal (sig, NULL);
-}
-
-void sigHandler_benchmark (int sig)
-{
-  myquit ();
-
-  signal (sig, NULL);
-}
-
-void hc_signal (void (callback) (int))
-{
-  if (callback == NULL) callback = SIG_DFL;
-
-  signal (SIGINT,  callback);
-  signal (SIGTERM, callback);
-  signal (SIGABRT, callback);
-}
-
-#endif
-
