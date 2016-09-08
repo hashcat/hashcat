@@ -275,19 +275,7 @@ typedef struct
 
 } pot_t;
 
-typedef struct
-{
-  u64    cnt;
 
-  #if defined (_POSIX)
-  struct stat stat;
-  #endif
-
-  #if defined (_WIN)
-  struct __stat64 stat;
-  #endif
-
-} dictstat_t;
 
 typedef struct
 {

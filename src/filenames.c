@@ -8,6 +8,11 @@
 #include "types.h"
 #include "filenames.h"
 
+void generate_dictstat_filename (char *profile_dir, char *dictstat_filename)
+{
+  snprintf (dictstat_filename, HCBUFSIZ_TINY - 1, "%s/hashcat.dictstat", profile_dir);
+}
+
 void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *shared_dir, char *source_file)
 {
   if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)

@@ -69,6 +69,7 @@
 #include "filenames.h"
 #include "stdout.h"
 #include "wordlist.h"
+#include "dictstat.h"
 
 extern hc_global_data_t data;
 
@@ -182,13 +183,13 @@ static const char OPTI_STR_USES_BITS_64[]      = "Uses-64-Bit";
 #define OUTFILES_DIR            "outfiles"
 
 #define LOOPBACK_FILE           "hashcat.loopback"
-#define DICTSTAT_FILENAME       "hashcat.dictstat"
+
 #define POTFILE_FILENAME        "hashcat.pot"
 
 
 #define MAX_CUT_TRIES           4
 
-#define MAX_DICTSTAT            10000
+
 
 #define NUM_DEFAULT_BENCHMARK_ALGORITHMS 146
 
@@ -582,19 +583,7 @@ int sort_by_stringptr (const void *p1, const void *p2)
   return strcmp (*s1, *s2);
 }
 
-int sort_by_dictstat (const void *s1, const void *s2)
-{
-  dictstat_t *d1 = (dictstat_t *) s1;
-  dictstat_t *d2 = (dictstat_t *) s2;
 
-  #if defined (__linux__)
-  d2->stat.st_atim = d1->stat.st_atim;
-  #else
-  d2->stat.st_atime = d1->stat.st_atime;
-  #endif
-
-  return memcmp (&d1->stat, &d2->stat, sizeof (struct stat));
-}
 
 
 int sort_by_digest_4_2 (const void *v1, const void *v2)
@@ -10610,15 +10599,15 @@ int main (int argc, char **argv)
     uint   dictstat_nmemb = 0;
     #endif
 
-    char dictstat[256] = { 0 };
+    char dictstat_filename[HCBUFSIZ_TINY];
 
     FILE *dictstat_fp = NULL;
 
     if (keyspace == 0)
     {
-      snprintf (dictstat, sizeof (dictstat) - 1, "%s/%s", profile_dir, DICTSTAT_FILENAME);
+      generate_dictstat_filename (profile_dir, dictstat_filename);
 
-      dictstat_fp = fopen (dictstat, "rb");
+      dictstat_fp = fopen (dictstat_filename, "rb");
 
       if (dictstat_fp)
       {
@@ -10641,7 +10630,7 @@ int main (int argc, char **argv)
 
           fclose (dictstat_fp);
 
-          unlink (dictstat);
+          unlink (dictstat_filename);
         }
         else
         {
@@ -10655,7 +10644,7 @@ int main (int argc, char **argv)
 
             if (dictstat_nmemb == (MAX_DICTSTAT - 1000))
             {
-              log_error ("ERROR: There are too many entries in the %s database. You have to remove/rename it.", dictstat);
+              log_error ("ERROR: There are too many entries in the %s database. You have to remove/rename it.", dictstat_filename);
 
               return -1;
             }
@@ -18254,7 +18243,7 @@ int main (int argc, char **argv)
 
         if (keyspace == 0)
         {
-          dictstat_fp = fopen (dictstat, "wb");
+          dictstat_fp = fopen (dictstat_filename, "wb");
 
           if (dictstat_fp)
           {
