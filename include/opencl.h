@@ -226,3 +226,4 @@ void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
 
 double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries);
 
+int gidd_to_pw_t (hc_device_param_t *device_param, const u64 gidd, pw_t *pw);

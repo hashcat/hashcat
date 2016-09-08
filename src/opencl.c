@@ -12,8 +12,20 @@
 #include "logging.h"
 #include "locking.h"
 #include "ext_OpenCL.h"
+#include "ext_ADL.h"
+#include "ext_nvapi.h"
+#include "ext_nvml.h"
+#include "ext_xnvctrl.h"
+#include "rp_cpu.h"
 #include "timer.h"
 #include "opencl.h"
+#include "shared.h"
+#include "hwmon.h"
+#include "mpsp.h"
+#include "restore.h"
+#include "data.h"
+
+extern hc_global_data_t data;
 
 uint setup_opencl_platforms_filter (char *opencl_platforms)
 {
@@ -206,4 +218,18 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
   if (exec_ms_cnt == 0) return 0;
 
   return exec_ms_sum / exec_ms_cnt;
+}
+
+int gidd_to_pw_t (hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
+{
+  cl_int CL_err = hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, gidd * sizeof (pw_t), sizeof (pw_t), pw, 0, NULL, NULL);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    log_error ("ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
 }
