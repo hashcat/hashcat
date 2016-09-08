@@ -773,11 +773,13 @@ void status_display ()
         sec_etc = ms_left / 1000;
       }
 
+      #define SEC10YEARS (60 * 60 * 24 * 365 * 10)
+
       if (sec_etc == 0)
       {
         //log_info ("Time.Estimated.: 0 secs");
       }
-      else if ((u64) sec_etc > ETC_MAX)
+      else if ((u64) sec_etc > SEC10YEARS)
       {
         log_info ("Time.Estimated.: > 10 Years");
       }
