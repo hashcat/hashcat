@@ -6,6 +6,32 @@
 #include "common.h"
 #include "terminal.h"
 
+#if defined (_WIN)
+void SetConsoleWindowSize (const int x)
+{
+  HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
+
+  if (h == INVALID_HANDLE_VALUE) return;
+
+  CONSOLE_SCREEN_BUFFER_INFO bufferInfo;
+
+  if (!GetConsoleScreenBufferInfo (h, &bufferInfo)) return;
+
+  SMALL_RECT *sr = &bufferInfo.srWindow;
+
+  sr->Right = MAX (sr->Right, x - 1);
+
+  COORD co;
+
+  co.X = sr->Right + 1;
+  co.Y = 9999;
+
+  if (!SetConsoleScreenBufferSize (h, co)) return;
+
+  if (!SetConsoleWindowInfo (h, TRUE, sr)) return;
+}
+#endif
+
 #if defined (__linux__)
 static struct termios savemodes;
 static int havemodes = 0;

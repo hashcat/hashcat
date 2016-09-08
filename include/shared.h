@@ -61,15 +61,13 @@
 
 extern const char *PROMPT;
 
-extern hc_thread_mutex_t mux_display;
-
-
-
 
 
 /*
  * functions
  */
+
+double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries);
 
 void *rulefind (const void *key, void *base, int nmemb, size_t size, int (*compar) (const void *, const void *));
 
@@ -134,7 +132,7 @@ void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_cha
 
 
 
-void            check_checkpoint (void);
+void check_checkpoint (void);
 
 #if defined (_WIN)
 
@@ -150,11 +148,5 @@ void hc_signal (void c (int));
 
 #endif
 
-void *thread_device_watch (void *p);
-void *thread_keypress     (void *p);
-void *thread_runtime      (void *p);
-
-void status_display (void);
-void status_display_machine_readable (void);
 
 #endif // _SHARED_H

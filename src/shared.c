@@ -25,16 +25,45 @@
 #include "locking.h"
 #include "thread.h"
 #include "rp_cpu.h"
-#include "terminal.h"
 #include "hwmon.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
 #include "opencl.h"
 #include "restore.h"
 #include "data.h"
+#include "status.h"
 #include "shared.h"
 
 extern hc_global_data_t data;
+extern hc_thread_mutex_t mux_display;
+
+double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
+{
+  int exec_pos = (int) device_param->exec_pos - last_num_entries;
+
+  if (exec_pos < 0) exec_pos += EXEC_CACHE;
+
+  double exec_ms_sum = 0;
+
+  int exec_ms_cnt = 0;
+
+  for (int i = 0; i < last_num_entries; i++)
+  {
+    double exec_ms = device_param->exec_ms[(exec_pos + i) % EXEC_CACHE];
+
+    if (exec_ms > 0)
+    {
+      exec_ms_sum += exec_ms;
+
+      exec_ms_cnt++;
+    }
+  }
+
+  if (exec_ms_cnt == 0) return 0;
+
+  return exec_ms_sum / exec_ms_cnt;
+}
+
 
 void *rulefind (const void *key, void *base, int nmemb, size_t size, int (*compar) (const void *, const void *))
 {
@@ -971,78 +1000,7 @@ void format_speed_display (double val, char *buf, size_t len)
 
 
 
-static void SuspendThreads ()
-{
-  if (data.devices_status != STATUS_RUNNING) return;
 
-  hc_timer_set (&data.timer_paused);
-
-  data.devices_status = STATUS_PAUSED;
-
-  log_info ("Paused");
-}
-
-static void ResumeThreads ()
-{
-  if (data.devices_status != STATUS_PAUSED) return;
-
-  double ms_paused;
-
-  hc_timer_get (data.timer_paused, ms_paused);
-
-  data.ms_paused += ms_paused;
-
-  data.devices_status = STATUS_RUNNING;
-
-  log_info ("Resumed");
-}
-
-static void bypass ()
-{
-  data.devices_status = STATUS_BYPASS;
-
-  log_info ("Next dictionary / mask in queue selected, bypassing current one");
-}
-
-static void stop_at_checkpoint ()
-{
-  if (data.devices_status != STATUS_STOP_AT_CHECKPOINT)
-  {
-    if (data.devices_status != STATUS_RUNNING) return;
-  }
-
-  // this feature only makes sense if --restore-disable was not specified
-
-  if (data.restore_disable == 1)
-  {
-    log_info ("WARNING: This feature is disabled when --restore-disable is specified");
-
-    return;
-  }
-
-  // check if monitoring of Restore Point updates should be enabled or disabled
-
-  if (data.devices_status != STATUS_STOP_AT_CHECKPOINT)
-  {
-    data.devices_status = STATUS_STOP_AT_CHECKPOINT;
-
-    // save the current restore point value
-
-    data.checkpoint_cur_words = get_lowest_words_done ();
-
-    log_info ("Checkpoint enabled: Will quit at next Restore Point update");
-  }
-  else
-  {
-    data.devices_status = STATUS_RUNNING;
-
-    // reset the global value for checkpoint checks
-
-    data.checkpoint_cur_words = 0;
-
-    log_info ("Checkpoint disabled: Restore Point updates will no longer be monitored");
-  }
-}
 
 void myabort ()
 {
@@ -1222,118 +1180,3 @@ void hc_signal (void (callback) (int))
 
 #endif
 
-void status_display ();
-
-void *thread_keypress (void *p)
-{
-  uint quiet = data.quiet;
-
-  tty_break();
-
-  while (data.shutdown_outer == 0)
-  {
-    int ch = tty_getchar();
-
-    if (ch == -1) break;
-
-    if (ch ==  0) continue;
-
-    //https://github.com/hashcat/hashcat/issues/302
-    //#if defined (_POSIX)
-    //if (ch != '\n')
-    //#endif
-
-    hc_thread_mutex_lock (mux_display);
-
-    log_info ("");
-
-    switch (ch)
-    {
-      case 's':
-      case '\r':
-      case '\n':
-
-        log_info ("");
-
-        status_display ();
-
-        log_info ("");
-
-        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-        if (quiet == 0) fflush (stdout);
-
-        break;
-
-      case 'b':
-
-        log_info ("");
-
-        bypass ();
-
-        log_info ("");
-
-        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-        if (quiet == 0) fflush (stdout);
-
-        break;
-
-      case 'p':
-
-        log_info ("");
-
-        SuspendThreads ();
-
-        log_info ("");
-
-        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-        if (quiet == 0) fflush (stdout);
-
-        break;
-
-      case 'r':
-
-        log_info ("");
-
-        ResumeThreads ();
-
-        log_info ("");
-
-        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-        if (quiet == 0) fflush (stdout);
-
-        break;
-
-      case 'c':
-
-        log_info ("");
-
-        stop_at_checkpoint ();
-
-        log_info ("");
-
-        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-        if (quiet == 0) fflush (stdout);
-
-        break;
-
-      case 'q':
-
-        log_info ("");
-
-        myabort ();
-
-        break;
-    }
-
-    //https://github.com/hashcat/hashcat/issues/302
-    //#if defined (_POSIX)
-    //if (ch != '\n')
-    //#endif
-
-    hc_thread_mutex_unlock (mux_display);
-  }
-
-  tty_fix();
-
-  return (p);
-}

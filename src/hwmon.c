@@ -21,9 +21,12 @@
 #include "rp_cpu.h"
 #include "restore.h"
 #include "opencl.h"
+#include "thread.h"
 #include "data.h"
 
 #if defined (HAVE_HWMON)
+
+hc_thread_mutex_t mux_hwmon;
 
 extern hc_global_data_t data;
 

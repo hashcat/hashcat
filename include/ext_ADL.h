@@ -356,6 +356,8 @@ typedef hm_adl_lib_t ADL_PTR;
 int  adl_init  (ADL_PTR *lib);
 void adl_close (ADL_PTR *lib);
 
+void *HC_API_CALL ADL_Main_Memory_Alloc (const int iSize);
+
 int hm_ADL_Main_Control_Destroy (ADL_PTR *adl);
 int hm_ADL_Main_Control_Create (ADL_PTR *adl, ADL_MAIN_MALLOC_CALLBACK callback, int iEnumConnectedAdapters);
 int hm_ADL_Adapter_NumberOfAdapters_Get (ADL_PTR *adl, int *lpNumAdapters);

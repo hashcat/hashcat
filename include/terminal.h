@@ -24,6 +24,10 @@
 #include <windows.h>
 #endif // _WIN
 
+#if defined (_WIN)
+void SetConsoleWindowSize (const int x);
+#endif
+
 int tty_break();
 int tty_getchar();
 int tty_fix();

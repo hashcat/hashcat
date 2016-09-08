@@ -48,6 +48,12 @@
 #define __stdcall
 #endif
 
+#if defined (_WIN32) || defined (__WIN32__) || defined (__CYGWIN__)
+#define HC_API_CALL __stdcall
+#else
+#define HC_API_CALL
+#endif
+
 #if defined (_WIN)
 #define WIN32_LEAN_AND_MEAN
 #endif

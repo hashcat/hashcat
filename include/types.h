@@ -23,6 +23,94 @@
  * Outfile formats
  */
 
+
+typedef enum wl_mode
+{
+  WL_MODE_STDIN = 1,
+  WL_MODE_FILE  = 2,
+  WL_MODE_MASK  = 3
+
+} wl_mode_t;
+
+typedef enum hl_mode
+{
+  HL_MODE_FILE  = 4,
+  HL_MODE_ARG   = 5
+
+} hl_mode_t;
+
+#define HLFMTS_CNT 11
+
+typedef enum hlfmt_name
+{
+   HLFMT_HASHCAT  = 0,
+   HLFMT_PWDUMP   = 1,
+   HLFMT_PASSWD   = 2,
+   HLFMT_SHADOW   = 3,
+   HLFMT_DCC      = 4,
+   HLFMT_DCC2     = 5,
+   HLFMT_NETNTLM1 = 7,
+   HLFMT_NETNTLM2 = 8,
+   HLFMT_NSLDAP   = 9,
+   HLFMT_NSLDAPS  = 10
+
+} hlfmt_name_t;
+
+typedef enum attack_mode
+{
+  ATTACK_MODE_STRAIGHT  = 0,
+  ATTACK_MODE_COMBI     = 1,
+  ATTACK_MODE_TOGGLE    = 2,
+  ATTACK_MODE_BF        = 3,
+  ATTACK_MODE_PERM      = 4,
+  ATTACK_MODE_TABLE     = 5,
+  ATTACK_MODE_HYBRID1   = 6,
+  ATTACK_MODE_HYBRID2   = 7,
+  ATTACK_MODE_NONE      = 100
+
+} attack_mode_t;
+
+typedef enum attack_kern
+{
+  ATTACK_KERN_STRAIGHT  = 0,
+  ATTACK_KERN_COMBI     = 1,
+  ATTACK_KERN_BF        = 3,
+  ATTACK_KERN_NONE      = 100
+
+} attack_kern_t;
+
+typedef enum attack_exec
+{
+  ATTACK_EXEC_OUTSIDE_KERNEL = 10,
+  ATTACK_EXEC_INSIDE_KERNEL  = 11
+
+} attack_exec_t;
+
+typedef enum combinator_mode
+{
+  COMBINATOR_MODE_BASE_LEFT  = 10001,
+  COMBINATOR_MODE_BASE_RIGHT = 10002
+
+} combinator_mode_t;
+
+typedef enum kern_run
+{
+  KERN_RUN_1    = 1000,
+  KERN_RUN_12   = 1500,
+  KERN_RUN_2    = 2000,
+  KERN_RUN_23   = 2500,
+  KERN_RUN_3    = 3000
+
+} kern_run_t;
+
+typedef enum kern_run_mp
+{
+  KERN_RUN_MP   = 101,
+  KERN_RUN_MP_L = 102,
+  KERN_RUN_MP_R = 103
+
+} kern_run_mp_t;
+
 typedef enum outfile_fmt
 {
   OUTFILE_FMT_HASH      = (1 << 0),
@@ -134,21 +222,7 @@ typedef enum dgst_size
  * status
  */
 
-typedef enum status_rc
-{
-   STATUS_STARTING           = 0,
-   STATUS_INIT               = 1,
-   STATUS_RUNNING            = 2,
-   STATUS_PAUSED             = 3,
-   STATUS_EXHAUSTED          = 4,
-   STATUS_CRACKED            = 5,
-   STATUS_ABORTED            = 6,
-   STATUS_QUIT               = 7,
-   STATUS_BYPASS             = 8,
-   STATUS_STOP_AT_CHECKPOINT = 9,
-   STATUS_AUTOTUNE           = 10
 
-} status_rc_t;
 
 typedef struct
 {
