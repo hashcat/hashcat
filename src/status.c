@@ -22,7 +22,7 @@
 #include "opencl.h"
 #include "restore.h"
 #include "data.h"
-#include "shared.h"
+//#include "shared.h"
 #include "interface.h"
 #include "status.h"
 

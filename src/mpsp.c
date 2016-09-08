@@ -29,7 +29,7 @@
 #include "opencl.h"
 #include "restore.h"
 #include "data.h"
-#include "shared.h"
+//#include "shared.h"
 
 extern hc_global_data_t data;
 
