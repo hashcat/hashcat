@@ -73,3 +73,23 @@ void generate_cached_kernel_amp_filename (const uint attack_kern, char *profile_
 {
   snprintf (cached_file, 255, "%s/kernels/amp_a%d.%s.kernel", profile_dir, attack_kern, device_name_chksum);
 }
+
+char *filename_from_filepath (char *filepath)
+{
+  char *ptr = NULL;
+
+  if ((ptr = strrchr (filepath, '/')) != NULL)
+  {
+    ptr++;
+  }
+  else if ((ptr = strrchr (filepath, '\\')) != NULL)
+  {
+    ptr++;
+  }
+  else
+  {
+    ptr = filepath;
+  }
+
+  return ptr;
+}

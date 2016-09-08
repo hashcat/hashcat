@@ -15,4 +15,6 @@ void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_t
 void generate_source_kernel_amp_filename (const uint attack_kern, char *shared_dir, char *source_file);
 void generate_cached_kernel_amp_filename (const uint attack_kern, char *profile_dir, const char *device_name_chksum, char *cached_file);
 
+char *filename_from_filepath (char *filepath);
+
 #endif // _FILENAMES_H

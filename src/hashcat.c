@@ -1360,25 +1360,7 @@ static void hc_signal (void (callback) (int))
  */
 
 
-static char *filename_from_filepath (char *filepath)
-{
-  char *ptr = NULL;
 
-  if ((ptr = strrchr (filepath, '/')) != NULL)
-  {
-    ptr++;
-  }
-  else if ((ptr = strrchr (filepath, '\\')) != NULL)
-  {
-    ptr++;
-  }
-  else
-  {
-    ptr = filepath;
-  }
-
-  return ptr;
-}
 
 static uint convert_from_hex (char *line_buf, const uint line_len)
 {
