@@ -24,9 +24,9 @@
 #include "thread.h"
 #include "data.h"
 
-#if defined (HAVE_HWMON)
-
 hc_thread_mutex_t mux_hwmon;
+
+#if defined (HAVE_HWMON)
 
 extern hc_global_data_t data;
 

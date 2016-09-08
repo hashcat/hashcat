@@ -23,14 +23,16 @@
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 
-#define EXEC_CACHE    128
+#define EXEC_CACHE      128
 
-#define SPEED_CACHE   128
-#define SPEED_MAXAGE  4096
+#define SPEED_CACHE     128
+#define SPEED_MAXAGE    4096
 
-#define HCBUFSIZ      0x50000 // general large space buffer size in case the size is unknown at compile-time
+// general buffer size in case the size is unknown at compile-time
+#define HCBUFSIZ_TINY   0x100
+#define HCBUFSIZ_LARGE  0x50000
 
-#define BLOCK_SIZE              64
+#define BLOCK_SIZE      64
 
 #define EXPECTED_ITERATIONS 10000
 
@@ -39,7 +41,7 @@
 
 #define DEVICES_MAX   128
 
-#define PARAMCNT    64
+
 
 
 #define CEIL(a) ((a - (int) (a)) > 0 ? a + 1 : a)

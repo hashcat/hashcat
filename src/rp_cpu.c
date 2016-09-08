@@ -395,7 +395,7 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
 {
   uint rule_cnt;
   uint rule_pos;
-  uint rule_len = HCBUFSIZ - 1; // maximum possible len
+  uint rule_len = HCBUFSIZ_LARGE - 1; // maximum possible len
 
   char rule_cmd;
 

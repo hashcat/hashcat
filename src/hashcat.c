@@ -711,7 +711,7 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 
   // hash
 
-  char out_buf[HCBUFSIZ] = { 0 };
+  char out_buf[HCBUFSIZ_LARGE] = { 0 };
 
   const u32 salt_pos    = plain->salt_pos;
   const u32 digest_pos  = plain->digest_pos;  // relative
@@ -1424,7 +1424,7 @@ static void save_hash ()
           fputc (separator, fp);
         }
 
-        char out_buf[HCBUFSIZ]; // scratch buffer
+        char out_buf[HCBUFSIZ_LARGE]; // scratch buffer
 
         out_buf[0] = 0;
 
@@ -2483,7 +2483,7 @@ static int autotune (hc_device_param_t *device_param)
 
 static int run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
 {
-  char *line_buf = (char *) mymalloc (HCBUFSIZ);
+  char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
   // init speed timer
 
@@ -3642,11 +3642,11 @@ static void *thread_outfile_remove (void *p)
 
               fseek (fp, out_info[j].seek, SEEK_SET);
 
-              char *line_buf = (char *) mymalloc (HCBUFSIZ);
+              char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
               while (!feof (fp))
               {
-                char *ptr = fgets (line_buf, HCBUFSIZ - 1, fp);
+                char *ptr = fgets (line_buf, HCBUFSIZ_LARGE - 1, fp);
 
                 if (ptr == NULL) break;
 
@@ -3996,7 +3996,7 @@ static void *thread_calc_stdin (void *p)
 
   if (device_param->skipped) return NULL;
 
-  char *buf = (char *) mymalloc (HCBUFSIZ);
+  char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
   const uint attack_kern = data.attack_kern;
 
@@ -4015,7 +4015,7 @@ static void *thread_calc_stdin (void *p)
 
     while (words_cur < device_param->kernel_power)
     {
-      char *line_buf = fgets (buf, HCBUFSIZ - 1, stdin);
+      char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
 
       if (line_buf == NULL) break;
 
@@ -4923,7 +4923,7 @@ static uint hlfmt_detect (FILE *fp, uint max_check)
 
   uint num_check = 0;
 
-  char *line_buf = (char *) mymalloc (HCBUFSIZ);
+  char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
   while (!feof (fp))
   {
@@ -10882,7 +10882,7 @@ int main (int argc, char **argv)
 
       uint line_num = 0;
 
-      char *line_buf = (char *) mymalloc (HCBUFSIZ);
+      char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
       while (!feof (pot_fp))
       {
@@ -11547,7 +11547,7 @@ int main (int argc, char **argv)
 
         uint line_num = 0;
 
-        char *line_buf = (char *) mymalloc (HCBUFSIZ);
+        char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
         while (!feof (fp))
         {
@@ -12298,17 +12298,17 @@ int main (int argc, char **argv)
 
         if (fp != NULL)
         {
-          char *line_buf = (char *) mymalloc (HCBUFSIZ);
+          char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
           // to be safe work with a copy (because of line_len loop, i etc)
           // moved up here because it's easier to handle continue case
           // it's just 64kb
 
-          char *line_buf_cpy = (char *) mymalloc (HCBUFSIZ);
+          char *line_buf_cpy = (char *) mymalloc (HCBUFSIZ_LARGE);
 
           while (!feof (fp))
           {
-            char *ptr = fgets (line_buf, HCBUFSIZ - 1, fp);
+            char *ptr = fgets (line_buf, HCBUFSIZ_LARGE - 1, fp);
 
             if (ptr == NULL) break;
 
@@ -12348,7 +12348,7 @@ int main (int argc, char **argv)
                   // here we have in line_buf: ESSID:MAC1:MAC2   (without the plain)
                   // manipulate salt_buf
 
-                  memset (line_buf_cpy, 0, HCBUFSIZ);
+                  memset (line_buf_cpy, 0, HCBUFSIZ_LARGE);
                   memcpy (line_buf_cpy, line_buf, i);
 
                   char *mac2_pos = strrchr (line_buf_cpy, ':');
@@ -12852,7 +12852,7 @@ int main (int argc, char **argv)
       all_kernel_rules_buf = (kernel_rule_t **) mycalloc (rp_files_cnt, sizeof (kernel_rule_t *));
     }
 
-    char *rule_buf = (char *) mymalloc (HCBUFSIZ);
+    char *rule_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
     int rule_len = 0;
 
@@ -12882,7 +12882,7 @@ int main (int argc, char **argv)
 
       while (!feof (fp))
       {
-        memset (rule_buf, 0, HCBUFSIZ);
+        memset (rule_buf, 0, HCBUFSIZ_LARGE);
 
         rule_len = fgetl (fp, rule_buf);
 
@@ -13001,7 +13001,7 @@ int main (int argc, char **argv)
             kernel_rules_avail += INCR_RULES;
           }
 
-          memset (rule_buf, 0, HCBUFSIZ);
+          memset (rule_buf, 0, HCBUFSIZ_LARGE);
 
           rule_len = (int) generate_random_rule (rule_buf, rp_gen_func_min, rp_gen_func_max);
 
@@ -13176,7 +13176,7 @@ int main (int argc, char **argv)
 
       cl_platform_id platform = platforms[platform_id];
 
-      char platform_vendor[INFOSZ] = { 0 };
+      char platform_vendor[HCBUFSIZ_TINY] = { 0 };
 
       CL_err = hc_clGetPlatformInfo (data.ocl, platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
 
@@ -13766,19 +13766,19 @@ int main (int argc, char **argv)
 
         // device_name_chksum
 
-        char *device_name_chksum = (char *) mymalloc (INFOSZ);
+        char *device_name_chksum = (char *) mymalloc (HCBUFSIZ_TINY);
 
         #if defined (__x86_64__)
-        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+        snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
         #else
-        snprintf (device_name_chksum, INFOSZ - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
+        snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, COMPTIME);
         #endif
 
         uint device_name_digest[4] = { 0 };
 
         md5_64 ((uint *) device_name_chksum, device_name_digest);
 
-        snprintf (device_name_chksum, INFOSZ - 1, "%08x", device_name_digest[0]);
+        snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%08x", device_name_digest[0]);
 
         device_param->device_name_chksum = device_name_chksum;
 
@@ -16965,11 +16965,11 @@ int main (int argc, char **argv)
                   return -1;
                 }
 
-                char *line_buf = (char *) mymalloc (HCBUFSIZ);
+                char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
                 while (!feof (mask_fp))
                 {
-                  memset (line_buf, 0, HCBUFSIZ);
+                  memset (line_buf, 0, HCBUFSIZ_LARGE);
 
                   int line_len = fgetl (mask_fp, line_buf);
 
@@ -17106,13 +17106,13 @@ int main (int argc, char **argv)
             return -1;
           }
 
-          char *line_buf = (char *) mymalloc (HCBUFSIZ);
+          char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
           uint masks_avail = 1;
 
           while (!feof (mask_fp))
           {
-            memset (line_buf, 0, HCBUFSIZ);
+            memset (line_buf, 0, HCBUFSIZ_LARGE);
 
             int line_len = fgetl (mask_fp, line_buf);
 
@@ -17285,13 +17285,13 @@ int main (int argc, char **argv)
             return -1;
           }
 
-          char *line_buf = (char *) mymalloc (HCBUFSIZ);
+          char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
           uint masks_avail = 1;
 
           while (!feof (mask_fp))
           {
-            memset (line_buf, 0, HCBUFSIZ);
+            memset (line_buf, 0, HCBUFSIZ_LARGE);
 
             int line_len = fgetl (mask_fp, line_buf);
 

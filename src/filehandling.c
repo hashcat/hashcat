@@ -12,13 +12,13 @@ uint count_lines (FILE *fd)
 {
   uint cnt = 0;
 
-  char *buf = (char *) mymalloc (HCBUFSIZ + 1);
+  char *buf = (char *) mymalloc (HCBUFSIZ_LARGE + 1);
 
   char prev = '\n';
 
   while (!feof (fd))
   {
-    size_t nread = fread (buf, sizeof (char), HCBUFSIZ, fd);
+    size_t nread = fread (buf, sizeof (char), HCBUFSIZ_LARGE, fd);
 
     if (nread < 1) continue;
 
@@ -51,7 +51,7 @@ int fgetl (FILE *fp, char *line_buf)
 
     line_len++;
 
-    if (line_len == HCBUFSIZ) line_len--;
+    if (line_len == HCBUFSIZ_LARGE) line_len--;
 
     if (c == '\n') break;
   }

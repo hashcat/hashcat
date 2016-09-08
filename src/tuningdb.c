@@ -107,11 +107,11 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
 
   int line_num = 0;
 
-  char *buf = (char *) mymalloc (HCBUFSIZ);
+  char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
   while (!feof (fp))
   {
-    char *line_buf = fgets (buf, HCBUFSIZ - 1, fp);
+    char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, fp);
 
     if (line_buf == NULL) break;
 

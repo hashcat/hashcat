@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <errno.h>
 
+#define PARAMCNT 64
+
 static const char CL_VENDOR_AMD[]           = "Advanced Micro Devices, Inc.";
 static const char CL_VENDOR_AMD_USE_INTEL[] = "GenuineIntel";
 static const char CL_VENDOR_APPLE[]         = "Apple";

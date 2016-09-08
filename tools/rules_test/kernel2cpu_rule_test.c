@@ -57,9 +57,9 @@ int main (int argc, char **argv)
 {
   FILE *fp = stdin;
 
-  char *rule_buf = (char *) malloc (HCBUFSIZ);
+  char *rule_buf = (char *) malloc (HCBUFSIZ_LARGE);
 
-  char *line_buf = (char *) malloc (HCBUFSIZ);
+  char *line_buf = (char *) malloc (HCBUFSIZ_LARGE);
 
   int rp_gen_func_min = RP_GEN_FUNC_MIN;
   int rp_gen_func_max = RP_GEN_FUNC_MAX;
@@ -72,7 +72,7 @@ int main (int argc, char **argv)
 
     if (feof (fp)) break;
 
-    char *line_ptr = fgets (line_buf, HCBUFSIZ - 1, fp);
+    char *line_ptr = fgets (line_buf, HCBUFSIZ_LARGE - 1, fp);
 
     if (line_ptr == NULL) continue;
 
@@ -114,7 +114,7 @@ int main (int argc, char **argv)
       }
       else
       {
-        strncpy (rule_buf, argv[1], HCBUFSIZ - 1);
+        strncpy (rule_buf, argv[1], HCBUFSIZ_LARGE - 1);
 
         rule_len = strlen (rule_buf);
       }

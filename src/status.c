@@ -527,7 +527,7 @@ void status_display ()
     }
     else
     {
-      char out_buf[HCBUFSIZ] = { 0 };
+      char out_buf[HCBUFSIZ_LARGE] = { 0 };
 
       ascii_digest (out_buf, 0, 0);
 

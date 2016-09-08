@@ -82,18 +82,18 @@ restore_data_t *init_restore (int argc, char **argv)
 
       if (rd->pid)
       {
-        char *pidbin = (char *) mymalloc (HCBUFSIZ);
+        char *pidbin = (char *) mymalloc (HCBUFSIZ_LARGE);
 
         int pidbin_len = -1;
 
         #if defined (_POSIX)
-        snprintf (pidbin, HCBUFSIZ - 1, "/proc/%d/cmdline", rd->pid);
+        snprintf (pidbin, HCBUFSIZ_LARGE - 1, "/proc/%d/cmdline", rd->pid);
 
         FILE *fd = fopen (pidbin, "rb");
 
         if (fd)
         {
-          pidbin_len = fread (pidbin, 1, HCBUFSIZ, fd);
+          pidbin_len = fread (pidbin, 1, HCBUFSIZ_LARGE, fd);
 
           pidbin[pidbin_len] = 0;
 
@@ -118,12 +118,12 @@ restore_data_t *init_restore (int argc, char **argv)
         #elif defined (_WIN)
         HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, rd->pid);
 
-        char *pidbin2 = (char *) mymalloc (HCBUFSIZ);
+        char *pidbin2 = (char *) mymalloc (HCBUFSIZ_LARGE);
 
         int pidbin2_len = -1;
 
-        pidbin_len = GetModuleFileName (NULL, pidbin, HCBUFSIZ);
-        pidbin2_len = GetModuleFileNameEx (hProcess, NULL, pidbin2, HCBUFSIZ);
+        pidbin_len = GetModuleFileName (NULL, pidbin, HCBUFSIZ_LARGE);
+        pidbin2_len = GetModuleFileNameEx (hProcess, NULL, pidbin2, HCBUFSIZ_LARGE);
 
         pidbin[pidbin_len] = 0;
         pidbin2[pidbin2_len] = 0;
@@ -197,11 +197,11 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
 
   rd->argv = (char **) mycalloc (rd->argc, sizeof (char *));
 
-  char *buf = (char *) mymalloc (HCBUFSIZ);
+  char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
   for (uint i = 0; i < rd->argc; i++)
   {
-    if (fgets (buf, HCBUFSIZ - 1, fp) == NULL)
+    if (fgets (buf, HCBUFSIZ_LARGE - 1, fp) == NULL)
     {
       log_error ("ERROR: Can't read %s", eff_restore_file);
 
