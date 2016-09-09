@@ -408,13 +408,6 @@ int sort_by_digest_p0p1 (const void *v1, const void *v2)
   return 0;
 }
 
-int sort_by_u32 (const void *v1, const void *v2)
-{
-  const u32 *s1 = (const u32 *) v1;
-  const u32 *s2 = (const u32 *) v2;
-
-  return *s1 - *s2;
-}
 
 int sort_by_salt (const void *v1, const void *v2)
 {
@@ -579,22 +572,6 @@ int sort_by_mtime (const void *p1, const void *p2)
   struct stat s2; stat (*f2, &s2);
 
   return s2.st_mtime - s1.st_mtime;
-}
-
-int sort_by_cpu_rule (const void *p1, const void *p2)
-{
-  const cpu_rule_t *r1 = (const cpu_rule_t *) p1;
-  const cpu_rule_t *r2 = (const cpu_rule_t *) p2;
-
-  return memcmp (r1, r2, sizeof (cpu_rule_t));
-}
-
-int sort_by_kernel_rule (const void *p1, const void *p2)
-{
-  const kernel_rule_t *r1 = (const kernel_rule_t *) p1;
-  const kernel_rule_t *r2 = (const kernel_rule_t *) p2;
-
-  return memcmp (r1, r2, sizeof (kernel_rule_t));
 }
 
 int sort_by_stringptr (const void *p1, const void *p2)
