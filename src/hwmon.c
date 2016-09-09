@@ -23,6 +23,7 @@
 #include "restore.h"
 #include "opencl.h"
 #include "thread.h"
+#include "potfile.h"
 #include "data.h"
 
 hc_thread_mutex_t mux_hwmon;

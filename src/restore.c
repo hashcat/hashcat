@@ -21,6 +21,7 @@
 #include "mpsp.h"
 #include "opencl.h"
 #include "restore.h"
+#include "potfile.h"
 #include "data.h"
 
 extern hc_global_data_t data;

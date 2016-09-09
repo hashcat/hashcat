@@ -23,6 +23,7 @@
 #include "opencl.h"
 #include "restore.h"
 #include "interface.h"
+#include "potfile.h"
 #include "data.h"
 //#include "shared.h"
 #include "status.h"

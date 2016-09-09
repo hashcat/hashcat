@@ -26,6 +26,7 @@
 #include "hwmon.h"
 #include "mpsp.h"
 #include "restore.h"
+#include "potfile.h"
 #include "data.h"
 #include "wordlist.h"
 

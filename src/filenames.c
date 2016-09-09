@@ -6,6 +6,7 @@
 #include "common.h"
 #include "types_int.h"
 #include "types.h"
+#include "interface.h"
 #include "filenames.h"
 
 void generate_dictstat_filename (char *profile_dir, char *dictstat_filename)

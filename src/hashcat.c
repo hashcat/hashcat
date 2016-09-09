@@ -60,6 +60,7 @@
 #include "hwmon.h"
 #include "mpsp.h"
 #include "restore.h"
+#include "potfile.h"
 #include "data.h"
 #include "affinity.h"
 #include "bitmap.h"
@@ -185,8 +186,6 @@ static const char OPTI_STR_USES_BITS_64[]      = "Uses-64-Bit";
 #define OUTFILES_DIR            "outfiles"
 
 #define LOOPBACK_FILE           "hashcat.loopback"
-
-#define POTFILE_FILENAME        "hashcat.pot"
 
 
 #define MAX_CUT_TRIES           4
@@ -1177,7 +1176,6 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 {
   char *outfile    = data.outfile;
   uint  quiet      = data.quiet;
-  FILE *pot_fp     = data.pot_fp;
   uint  loopback   = data.loopback;
   uint  debug_mode = data.debug_mode;
   char *debug_file = data.debug_file;
@@ -1411,19 +1409,21 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 
   // if enabled, update also the potfile
 
-  if (pot_fp)
+  potfile_ctx_t *potfile_ctx = data.potfile_ctx;
+
+  if (potfile_ctx->fp)
   {
-    lock_file (pot_fp);
+    //lock_file (potfile_ctx->fp);
 
-    fprintf (pot_fp, "%s:", out_buf);
+    fprintf (potfile_ctx->fp, "%s:", out_buf);
 
-    format_plain (pot_fp, plain_ptr, plain_len, 1);
+    format_plain (potfile_ctx->fp, plain_ptr, plain_len, 1);
 
-    fputc ('\n', pot_fp);
+    fputc ('\n', potfile_ctx->fp);
 
-    fflush (pot_fp);
+    fflush (potfile_ctx->fp);
 
-    unlock_file (pot_fp);
+    //unlock_file (potfile_ctx->fp);
   }
 
   // outfile
@@ -6422,53 +6422,28 @@ int main (int argc, char **argv)
      * dictstat
      */
 
-    dictstat_ctx_t dictstat_ctx;
+    dictstat_ctx_t *dictstat_ctx = mymalloc (sizeof (dictstat_ctx_t));
 
-    dictstat_init (&dictstat_ctx, profile_dir);
+    dictstat_init (dictstat_ctx, profile_dir);
 
     if (keyspace == 0)
     {
-      dictstat_read (&dictstat_ctx);
+      dictstat_read (dictstat_ctx);
     }
 
     /**
-     * potfile
+     * outfile
      */
 
-    char potfile[256] = { 0 };
-
-    if (potfile_path == NULL)
-    {
-      snprintf (potfile, sizeof (potfile) - 1, "%s/%s", profile_dir, POTFILE_FILENAME);
-    }
-    else
-    {
-      strncpy (potfile, potfile_path, sizeof (potfile) - 1);
-    }
-
-    data.pot_fp = NULL;
-
     FILE *out_fp = NULL;
-    FILE *pot_fp = NULL;
 
     if (show == 1 || left == 1)
     {
-      pot_fp = fopen (potfile, "rb");
-
-      if (pot_fp == NULL)
-      {
-        log_error ("ERROR: %s: %s", potfile, strerror (errno));
-
-        return -1;
-      }
-
       if (outfile != NULL)
       {
         if ((out_fp = fopen (outfile, "ab")) == NULL)
         {
           log_error ("ERROR: %s: %s", outfile, strerror (errno));
-
-          fclose (pot_fp);
 
           return -1;
         }
@@ -6478,22 +6453,16 @@ int main (int argc, char **argv)
         out_fp = stdout;
       }
     }
-    else
-    {
-      if (potfile_disable == 0)
-      {
-        pot_fp = fopen (potfile, "ab");
 
-        if (pot_fp == NULL)
-        {
-          log_error ("ERROR: %s: %s", potfile, strerror (errno));
+    /**
+     * potfile
+     */
 
-          return -1;
-        }
+    potfile_ctx_t *potfile_ctx = mymalloc (sizeof (potfile_ctx_t));
 
-        data.pot_fp = pot_fp;
-      }
-    }
+    data.potfile_ctx = potfile_ctx;
+
+    potfile_init (potfile_ctx, profile_dir, potfile_path);
 
     pot_t *pot = NULL;
 
@@ -6504,9 +6473,13 @@ int main (int argc, char **argv)
     {
       SUPPRESS_OUTPUT = 1;
 
-      pot_avail = count_lines (pot_fp);
+      int rc = potfile_read_open (potfile_ctx);
 
-      rewind (pot_fp);
+      if (rc == -1) return -1;
+
+      pot_avail = count_lines (potfile_ctx->fp);
+
+      rewind (potfile_ctx->fp);
 
       pot = (pot_t *) mycalloc (pot_avail, sizeof (pot_t));
 
@@ -6516,11 +6489,11 @@ int main (int argc, char **argv)
 
       char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
-      while (!feof (pot_fp))
+      while (!feof (potfile_ctx->fp))
       {
         line_num++;
 
-        int line_len = fgetl (pot_fp, line_buf);
+        int line_len = fgetl (potfile_ctx->fp, line_buf);
 
         if (line_len == 0) continue;
 
@@ -6629,9 +6602,9 @@ int main (int argc, char **argv)
         pot_cnt++;
       }
 
-      myfree (line_buf);
+      potfile_read_close (potfile_ctx);
 
-      fclose (pot_fp);
+      myfree (line_buf);
 
       SUPPRESS_OUTPUT = 0;
 
@@ -7926,9 +7899,9 @@ int main (int argc, char **argv)
           !((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799)) &&
           (hashconfig->hash_mode != 9000))
       {
-        FILE *fp = fopen (potfile, "rb");
+        potfile_read_open (potfile_ctx);
 
-        if (fp != NULL)
+        if (potfile_ctx->fp != NULL)
         {
           char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -7938,9 +7911,9 @@ int main (int argc, char **argv)
 
           char *line_buf_cpy = (char *) mymalloc (HCBUFSIZ_LARGE);
 
-          while (!feof (fp))
+          while (!feof (potfile_ctx->fp))
           {
-            char *ptr = fgets (line_buf, HCBUFSIZ_LARGE - 1, fp);
+            char *ptr = fgets (line_buf, HCBUFSIZ_LARGE - 1, potfile_ctx->fp);
 
             if (ptr == NULL) break;
 
@@ -8074,7 +8047,7 @@ int main (int argc, char **argv)
 
           myfree (line_buf);
 
-          fclose (fp);
+          potfile_read_close (potfile_ctx);
         }
       }
 
@@ -12471,7 +12444,7 @@ int main (int argc, char **argv)
 
       data.quiet = 1;
 
-      const u64 words1_cnt = count_words (wl_data, fp1, dictfile1, &dictstat_ctx);
+      const u64 words1_cnt = count_words (wl_data, fp1, dictfile1, dictstat_ctx);
 
       data.quiet = quiet;
 
@@ -12489,7 +12462,7 @@ int main (int argc, char **argv)
 
       data.quiet = 1;
 
-      const u64 words2_cnt = count_words (wl_data, fp2, dictfile2, &dictstat_ctx);
+      const u64 words2_cnt = count_words (wl_data, fp2, dictfile2, dictstat_ctx);
 
       data.quiet = quiet;
 
@@ -13155,6 +13128,8 @@ int main (int argc, char **argv)
 
     data.outfile_check_timer = outfile_check_timer;
 
+    potfile_write_open (potfile_ctx);
+
     /**
      * main loop
      */
@@ -13585,7 +13560,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            data.words_cnt = count_words (wl_data, fd2, dictfile, &dictstat_ctx);
+            data.words_cnt = count_words (wl_data, fd2, dictfile, dictstat_ctx);
 
             fclose (fd2);
 
@@ -13616,7 +13591,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            data.words_cnt = count_words (wl_data, fd2, dictfile, &dictstat_ctx);
+            data.words_cnt = count_words (wl_data, fd2, dictfile, dictstat_ctx);
 
             fclose (fd2);
           }
@@ -13631,7 +13606,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            data.words_cnt = count_words (wl_data, fd2, dictfile2, &dictstat_ctx);
+            data.words_cnt = count_words (wl_data, fd2, dictfile2, dictstat_ctx);
 
             fclose (fd2);
           }
@@ -13672,7 +13647,7 @@ int main (int argc, char **argv)
             return -1;
           }
 
-          data.words_cnt = count_words (wl_data, fd2, dictfile, &dictstat_ctx);
+          data.words_cnt = count_words (wl_data, fd2, dictfile, dictstat_ctx);
 
           fclose (fd2);
 
@@ -14017,7 +13992,7 @@ int main (int argc, char **argv)
 
         if (keyspace == 0)
         {
-          dictstat_write (&dictstat_ctx);
+          dictstat_write (dictstat_ctx);
         }
 
         /**
@@ -14594,8 +14569,6 @@ int main (int argc, char **argv)
 
     // free memory
 
-    dictstat_destroy (&dictstat_ctx);
-
     local_free (masks);
 
     for (uint pot_pos = 0; pot_pos < pot_cnt; pot_pos++)
@@ -14613,6 +14586,12 @@ int main (int argc, char **argv)
     }
 
     local_free (pot);
+
+    potfile_write_close (potfile_ctx);
+
+    potfile_destroy (potfile_ctx);
+
+    dictstat_destroy (dictstat_ctx);
 
     local_free (all_kernel_rules_cnt);
     local_free (all_kernel_rules_buf);
@@ -14654,8 +14633,6 @@ int main (int argc, char **argv)
     global_free (words_progress_done);
     global_free (words_progress_rejected);
     global_free (words_progress_restored);
-
-    if (pot_fp) fclose (pot_fp);
 
     if (data.devices_status == STATUS_QUIT) break;
   }

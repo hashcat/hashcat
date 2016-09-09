@@ -18,6 +18,7 @@
 #include "rp_cpu.h"
 #include "restore.h"
 #include "opencl.h"
+#include "potfile.h"
 #include "data.h"
 
 hc_global_data_t data;

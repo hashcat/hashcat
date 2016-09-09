@@ -178,6 +178,8 @@ typedef struct
 
   hashconfig_t *hashconfig;
 
+  potfile_ctx_t *potfile_ctx;
+
   #if defined (HAVE_HWMON)
   uint    gpu_temp_disable;
   uint    gpu_temp_abort;
@@ -188,8 +190,6 @@ typedef struct
   uint    rp_files_cnt;
   uint    rp_gen;
   uint    rp_gen_seed;
-
-  FILE   *pot_fp;
 
   /**
    * used for restore

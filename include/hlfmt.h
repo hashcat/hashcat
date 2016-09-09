@@ -8,6 +8,21 @@
 
 #include <stdio.h>
 
+typedef enum hlfmt_name
+{
+  HLFMT_HASHCAT  = 0,
+  HLFMT_PWDUMP   = 1,
+  HLFMT_PASSWD   = 2,
+  HLFMT_SHADOW   = 3,
+  HLFMT_DCC      = 4,
+  HLFMT_DCC2     = 5,
+  HLFMT_NETNTLM1 = 7,
+  HLFMT_NETNTLM2 = 8,
+  HLFMT_NSLDAP   = 9,
+  HLFMT_NSLDAPS  = 10
+
+} hlfmt_name_t;
+
 char *strhlfmt (const uint hashfile_format);
 
 void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, hashconfig_t *hashconfig);
