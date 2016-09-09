@@ -24,6 +24,7 @@
 #include "filehandling.h"
 #include "thread.h"
 #include "hwmon.h"
+#include "interface.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
 #include "opencl.h"
@@ -60,7 +61,7 @@ void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHAR
   }
 }
 
-static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt)
+static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt, hashconfig_t *hashconfig)
 {
   cs_t *cs = &css[css_cnt];
 
@@ -81,7 +82,7 @@ static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt)
   {
     uint u = in_buf[i] & 0xff;
 
-    if (data.opts_type & OPTS_TYPE_PT_UPPER) u = (uint) toupper (u);
+    if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER) u = (uint) toupper (u);
 
     if (css_uniq[u] == 1) continue;
 
@@ -95,7 +96,7 @@ static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt)
   myfree (css_uniq);
 }
 
-static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, int mp_usr_offset, int interpret)
+static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, int mp_usr_offset, int interpret, hashconfig_t *hashconfig)
 {
   size_t in_pos;
 
@@ -113,31 +114,31 @@ static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, 
 
       switch (p1)
       {
-        case 'l': mp_add_cs_buf (mp_sys[0].cs_buf, mp_sys[0].cs_len, mp_usr, mp_usr_offset);
+        case 'l': mp_add_cs_buf (mp_sys[0].cs_buf, mp_sys[0].cs_len, mp_usr, mp_usr_offset, hashconfig);
                   break;
-        case 'u': mp_add_cs_buf (mp_sys[1].cs_buf, mp_sys[1].cs_len, mp_usr, mp_usr_offset);
+        case 'u': mp_add_cs_buf (mp_sys[1].cs_buf, mp_sys[1].cs_len, mp_usr, mp_usr_offset, hashconfig);
                   break;
-        case 'd': mp_add_cs_buf (mp_sys[2].cs_buf, mp_sys[2].cs_len, mp_usr, mp_usr_offset);
+        case 'd': mp_add_cs_buf (mp_sys[2].cs_buf, mp_sys[2].cs_len, mp_usr, mp_usr_offset, hashconfig);
                   break;
-        case 's': mp_add_cs_buf (mp_sys[3].cs_buf, mp_sys[3].cs_len, mp_usr, mp_usr_offset);
+        case 's': mp_add_cs_buf (mp_sys[3].cs_buf, mp_sys[3].cs_len, mp_usr, mp_usr_offset, hashconfig);
                   break;
-        case 'a': mp_add_cs_buf (mp_sys[4].cs_buf, mp_sys[4].cs_len, mp_usr, mp_usr_offset);
+        case 'a': mp_add_cs_buf (mp_sys[4].cs_buf, mp_sys[4].cs_len, mp_usr, mp_usr_offset, hashconfig);
                   break;
-        case 'b': mp_add_cs_buf (mp_sys[5].cs_buf, mp_sys[5].cs_len, mp_usr, mp_usr_offset);
+        case 'b': mp_add_cs_buf (mp_sys[5].cs_buf, mp_sys[5].cs_len, mp_usr, mp_usr_offset, hashconfig);
                   break;
         case '1': if (mp_usr[0].cs_len == 0) { log_error ("ERROR: Custom-charset 1 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[0].cs_buf, mp_usr[0].cs_len, mp_usr, mp_usr_offset);
+                  mp_add_cs_buf (mp_usr[0].cs_buf, mp_usr[0].cs_len, mp_usr, mp_usr_offset, hashconfig);
                   break;
         case '2': if (mp_usr[1].cs_len == 0) { log_error ("ERROR: Custom-charset 2 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[1].cs_buf, mp_usr[1].cs_len, mp_usr, mp_usr_offset);
+                  mp_add_cs_buf (mp_usr[1].cs_buf, mp_usr[1].cs_len, mp_usr, mp_usr_offset, hashconfig);
                   break;
         case '3': if (mp_usr[2].cs_len == 0) { log_error ("ERROR: Custom-charset 3 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[2].cs_buf, mp_usr[2].cs_len, mp_usr, mp_usr_offset);
+                  mp_add_cs_buf (mp_usr[2].cs_buf, mp_usr[2].cs_len, mp_usr, mp_usr_offset, hashconfig);
                   break;
         case '4': if (mp_usr[3].cs_len == 0) { log_error ("ERROR: Custom-charset 4 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[3].cs_buf, mp_usr[3].cs_len, mp_usr, mp_usr_offset);
+                  mp_add_cs_buf (mp_usr[3].cs_buf, mp_usr[3].cs_len, mp_usr, mp_usr_offset, hashconfig);
                   break;
-        case '?': mp_add_cs_buf (&p0, 1, mp_usr, mp_usr_offset);
+        case '?': mp_add_cs_buf (&p0, 1, mp_usr, mp_usr_offset, hashconfig);
                   break;
         default:  log_error ("Syntax error: %s", in_buf);
                   exit (-1);
@@ -170,13 +171,13 @@ static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, 
         chr  = hex_convert (p1) << 0;
         chr |= hex_convert (p0) << 4;
 
-        mp_add_cs_buf (&chr, 1, mp_usr, mp_usr_offset);
+        mp_add_cs_buf (&chr, 1, mp_usr, mp_usr_offset, hashconfig);
       }
       else
       {
         uint chr = p0;
 
-        mp_add_cs_buf (&chr, 1, mp_usr, mp_usr_offset);
+        mp_add_cs_buf (&chr, 1, mp_usr, mp_usr_offset, hashconfig);
       }
     }
   }
@@ -194,7 +195,7 @@ u64 mp_get_sum (uint css_cnt, cs_t *css)
   return (sum);
 }
 
-cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, uint *css_cnt)
+cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, uint *css_cnt, hashconfig_t *hashconfig)
 {
   cs_t *css = (cs_t *) mycalloc (256, sizeof (cs_t));
 
@@ -217,31 +218,31 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
 
       switch (p1)
       {
-        case 'l': mp_add_cs_buf (mp_sys[0].cs_buf, mp_sys[0].cs_len, css, css_pos);
+        case 'l': mp_add_cs_buf (mp_sys[0].cs_buf, mp_sys[0].cs_len, css, css_pos, hashconfig);
                   break;
-        case 'u': mp_add_cs_buf (mp_sys[1].cs_buf, mp_sys[1].cs_len, css, css_pos);
+        case 'u': mp_add_cs_buf (mp_sys[1].cs_buf, mp_sys[1].cs_len, css, css_pos, hashconfig);
                   break;
-        case 'd': mp_add_cs_buf (mp_sys[2].cs_buf, mp_sys[2].cs_len, css, css_pos);
+        case 'd': mp_add_cs_buf (mp_sys[2].cs_buf, mp_sys[2].cs_len, css, css_pos, hashconfig);
                   break;
-        case 's': mp_add_cs_buf (mp_sys[3].cs_buf, mp_sys[3].cs_len, css, css_pos);
+        case 's': mp_add_cs_buf (mp_sys[3].cs_buf, mp_sys[3].cs_len, css, css_pos, hashconfig);
                   break;
-        case 'a': mp_add_cs_buf (mp_sys[4].cs_buf, mp_sys[4].cs_len, css, css_pos);
+        case 'a': mp_add_cs_buf (mp_sys[4].cs_buf, mp_sys[4].cs_len, css, css_pos, hashconfig);
                   break;
-        case 'b': mp_add_cs_buf (mp_sys[5].cs_buf, mp_sys[5].cs_len, css, css_pos);
+        case 'b': mp_add_cs_buf (mp_sys[5].cs_buf, mp_sys[5].cs_len, css, css_pos, hashconfig);
                   break;
         case '1': if (mp_usr[0].cs_len == 0) { log_error ("ERROR: Custom-charset 1 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[0].cs_buf, mp_usr[0].cs_len, css, css_pos);
+                  mp_add_cs_buf (mp_usr[0].cs_buf, mp_usr[0].cs_len, css, css_pos, hashconfig);
                   break;
         case '2': if (mp_usr[1].cs_len == 0) { log_error ("ERROR: Custom-charset 2 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[1].cs_buf, mp_usr[1].cs_len, css, css_pos);
+                  mp_add_cs_buf (mp_usr[1].cs_buf, mp_usr[1].cs_len, css, css_pos, hashconfig);
                   break;
         case '3': if (mp_usr[2].cs_len == 0) { log_error ("ERROR: Custom-charset 3 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[2].cs_buf, mp_usr[2].cs_len, css, css_pos);
+                  mp_add_cs_buf (mp_usr[2].cs_buf, mp_usr[2].cs_len, css, css_pos, hashconfig);
                   break;
         case '4': if (mp_usr[3].cs_len == 0) { log_error ("ERROR: Custom-charset 4 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[3].cs_buf, mp_usr[3].cs_len, css, css_pos);
+                  mp_add_cs_buf (mp_usr[3].cs_buf, mp_usr[3].cs_len, css, css_pos, hashconfig);
                   break;
-        case '?': mp_add_cs_buf (&chr, 1, css, css_pos);
+        case '?': mp_add_cs_buf (&chr, 1, css, css_pos, hashconfig);
                   break;
         default:  log_error ("ERROR: Syntax error: %s", mask_buf);
                   exit (-1);
@@ -278,13 +279,13 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
         chr |= hex_convert (p1) << 0;
         chr |= hex_convert (p0) << 4;
 
-        mp_add_cs_buf (&chr, 1, css, css_pos);
+        mp_add_cs_buf (&chr, 1, css, css_pos, hashconfig);
       }
       else
       {
         uint chr = p0;
 
-        mp_add_cs_buf (&chr, 1, css, css_pos);
+        mp_add_cs_buf (&chr, 1, css, css_pos, hashconfig);
       }
     }
   }
@@ -356,13 +357,13 @@ void mp_setup_sys (cs_t *mp_sys)
                                                   mp_sys[5].cs_len = pos; }
 }
 
-void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index)
+void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index, hashconfig_t *hashconfig)
 {
   FILE *fp = fopen (buf, "rb");
 
   if (fp == NULL || feof (fp)) // feof() in case if file is empty
   {
-    mp_expand (buf, strlen (buf), mp_sys, mp_usr, index, 1);
+    mp_expand (buf, strlen (buf), mp_sys, mp_usr, index, 1, hashconfig);
   }
   else
   {
@@ -378,11 +379,11 @@ void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index)
     {
       log_info ("WARNING: Charset file corrupted");
 
-      mp_expand (buf, strlen (buf), mp_sys, mp_usr, index, 1);
+      mp_expand (buf, strlen (buf), mp_sys, mp_usr, index, 1, hashconfig);
     }
     else
     {
-      mp_expand (mp_file, len, mp_sys, mp_usr, index, 0);
+      mp_expand (mp_file, len, mp_sys, mp_usr, index, 0, hashconfig);
     }
   }
 }

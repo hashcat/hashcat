@@ -17,6 +17,7 @@
 #include "thread.h"
 #include "rp_cpu.h"
 #include "hwmon.h"
+#include "interface.h"
 #include "mpsp.h"
 #include "opencl.h"
 #include "restore.h"

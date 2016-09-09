@@ -24,6 +24,7 @@
 #include "interface.h"
 #include "shared.h"
 #include "hwmon.h"
+#include "interface.h"
 #include "mpsp.h"
 #include "restore.h"
 #include "data.h"

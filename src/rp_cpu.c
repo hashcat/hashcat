@@ -23,6 +23,7 @@
 #include "rp_cpu.h"
 #include "terminal.h"
 #include "hwmon.h"
+#include "interface.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
 #include "opencl.h"

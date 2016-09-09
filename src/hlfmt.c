@@ -46,7 +46,7 @@ static const char HLFMT_TEXT_NSLDAPS[]  = "nsldaps";
 
 // hlfmt hashcat
 
-static void hlfmt_hash_hashcat (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_hashcat (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, hashconfig_t *hashconfig)
 {
   if (data.username == 0)
   {
@@ -60,7 +60,7 @@ static void hlfmt_hash_hashcat (char *line_buf, int line_len, char **hashbuf_pos
 
     for (int i = 0; i < line_len; i++, pos++, len--)
     {
-      if (line_buf[i] == data.separator)
+      if (line_buf[i] == hashconfig->separator)
       {
         pos++;
 
@@ -75,7 +75,7 @@ static void hlfmt_hash_hashcat (char *line_buf, int line_len, char **hashbuf_pos
   }
 }
 
-static void hlfmt_user_hashcat (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_hashcat (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len, hashconfig_t *hashconfig)
 {
   char *pos = NULL;
   int   len = 0;
@@ -84,7 +84,7 @@ static void hlfmt_user_hashcat (char *line_buf, int line_len, char **userbuf_pos
 
   for (int i = 0; i < line_len; i++)
   {
-    if (line_buf[i] == data.separator)
+    if (line_buf[i] == hashconfig->separator)
     {
       sep_cnt++;
 
@@ -130,7 +130,7 @@ static int hlfmt_detect_pwdump (char *line_buf, int line_len)
   return 0;
 }
 
-static void hlfmt_hash_pwdump (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_pwdump (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, hashconfig_t *hashconfig)
 {
   char *pos = NULL;
   int   len = 0;
@@ -146,7 +146,7 @@ static void hlfmt_hash_pwdump (char *line_buf, int line_len, char **hashbuf_pos,
       continue;
     }
 
-    if (data.hash_mode == 1000)
+    if (hashconfig->hash_mode == 1000)
     {
       if (sep_cnt == 3)
       {
@@ -155,7 +155,7 @@ static void hlfmt_hash_pwdump (char *line_buf, int line_len, char **hashbuf_pos,
         len++;
       }
     }
-    else if (data.hash_mode == 3000)
+    else if (hashconfig->hash_mode == 3000)
     {
       if (sep_cnt == 2)
       {
@@ -328,34 +328,34 @@ char *strhlfmt (const uint hashfile_format)
   return ((char *) "Unknown");
 }
 
-void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
+void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, hashconfig_t *hashconfig)
 {
   switch (hashfile_format)
   {
-    case HLFMT_HASHCAT: hlfmt_hash_hashcat (line_buf, line_len, hashbuf_pos, hashbuf_len); break;
-    case HLFMT_PWDUMP:  hlfmt_hash_pwdump  (line_buf, line_len, hashbuf_pos, hashbuf_len); break;
-    case HLFMT_PASSWD:  hlfmt_hash_passwd  (line_buf, line_len, hashbuf_pos, hashbuf_len); break;
-    case HLFMT_SHADOW:  hlfmt_hash_shadow  (line_buf, line_len, hashbuf_pos, hashbuf_len); break;
+    case HLFMT_HASHCAT: hlfmt_hash_hashcat (line_buf, line_len, hashbuf_pos, hashbuf_len, hashconfig); break;
+    case HLFMT_PWDUMP:  hlfmt_hash_pwdump  (line_buf, line_len, hashbuf_pos, hashbuf_len, hashconfig); break;
+    case HLFMT_PASSWD:  hlfmt_hash_passwd  (line_buf, line_len, hashbuf_pos, hashbuf_len);             break;
+    case HLFMT_SHADOW:  hlfmt_hash_shadow  (line_buf, line_len, hashbuf_pos, hashbuf_len);             break;
   }
 }
 
-void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
+void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len, hashconfig_t *hashconfig)
 {
   switch (hashfile_format)
   {
-    case HLFMT_HASHCAT: hlfmt_user_hashcat (line_buf, line_len, userbuf_pos, userbuf_len); break;
-    case HLFMT_PWDUMP:  hlfmt_user_pwdump  (line_buf, line_len, userbuf_pos, userbuf_len); break;
-    case HLFMT_PASSWD:  hlfmt_user_passwd  (line_buf, line_len, userbuf_pos, userbuf_len); break;
-    case HLFMT_SHADOW:  hlfmt_user_shadow  (line_buf, line_len, userbuf_pos, userbuf_len); break;
+    case HLFMT_HASHCAT: hlfmt_user_hashcat (line_buf, line_len, userbuf_pos, userbuf_len, hashconfig); break;
+    case HLFMT_PWDUMP:  hlfmt_user_pwdump  (line_buf, line_len, userbuf_pos, userbuf_len);             break;
+    case HLFMT_PASSWD:  hlfmt_user_passwd  (line_buf, line_len, userbuf_pos, userbuf_len);             break;
+    case HLFMT_SHADOW:  hlfmt_user_shadow  (line_buf, line_len, userbuf_pos, userbuf_len);             break;
   }
 }
 
-uint hlfmt_detect (FILE *fp, uint max_check)
+uint hlfmt_detect (FILE *fp, uint max_check, hashconfig_t *hashconfig)
 {
   // Exception: those formats are wrongly detected as HLFMT_SHADOW, prevent it
 
-  if (data.hash_mode == 5300) return HLFMT_HASHCAT;
-  if (data.hash_mode == 5400) return HLFMT_HASHCAT;
+  if (hashconfig->hash_mode == 5300) return HLFMT_HASHCAT;
+  if (hashconfig->hash_mode == 5400) return HLFMT_HASHCAT;
 
   uint *formats_cnt = (uint *) mycalloc (HLFMTS_CNT, sizeof (uint));
 

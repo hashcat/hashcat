@@ -17,6 +17,7 @@
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
 #include "hwmon.h"
+#include "interface.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
 #include "restore.h"

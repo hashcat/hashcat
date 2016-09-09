@@ -39,7 +39,6 @@ typedef struct
 
   uint    attack_mode;
   uint    attack_kern;
-  uint    attack_exec;
 
   uint    kernel_rules_cnt;
 
@@ -130,7 +129,6 @@ typedef struct
   uint    maskcnt;
   uint    maskpos;
   char   *session;
-  char    separator;
   char   *hashfile;
   char   *homedir;
   char   *install_dir;
@@ -178,19 +176,7 @@ typedef struct
   char   *custom_charset_3;
   char   *custom_charset_4;
 
-  uint    hash_mode;
-  uint    hash_type;
-  uint    kern_type;
-  uint    opts_type;
-  uint    salt_type;
-  uint    esalt_size;
-  uint    isSalted;
-  uint    dgst_size;
-  uint    opti_type;
-  uint    dgst_pos0;
-  uint    dgst_pos1;
-  uint    dgst_pos2;
-  uint    dgst_pos3;
+  hashconfig_t *hashconfig;
 
   #if defined (HAVE_HWMON)
   uint    gpu_temp_disable;
@@ -247,10 +233,6 @@ typedef struct
 
   hashinfo_t **hash_info;
   uint    username;
-
-  int (*sort_by_digest) (const void *, const void *);
-
-  int (*parse_func)     (char *, uint, hash_t *);
 
 } hc_global_data_t;
 

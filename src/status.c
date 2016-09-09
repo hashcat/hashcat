@@ -18,12 +18,13 @@
 #include "rp_cpu.h"
 #include "terminal.h"
 #include "hwmon.h"
+#include "interface.h"
 #include "mpsp.h"
 #include "opencl.h"
 #include "restore.h"
+#include "interface.h"
 #include "data.h"
 //#include "shared.h"
-#include "interface.h"
 #include "status.h"
 
 static const char ST_0000[] = "Initializing";
@@ -287,6 +288,13 @@ void status_display ()
   if (data.devices_status == STATUS_INIT)     return;
   if (data.devices_status == STATUS_STARTING) return;
 
+  hashconfig_t *hashconfig  = data.hashconfig;
+  void         *digests_buf = data.digests_buf;
+  salt_t       *salts_buf   = data.salts_buf;
+  void         *esalts_buf  = data.esalts_buf;
+  hashinfo_t  **hash_info   = data.hash_info;
+  char         *hashfile    = data.hashfile;
+
   // in this case some required buffers are free'd, ascii_digest() would run into segfault
   if (data.shutdown_inner == 1) return;
 
@@ -305,7 +313,7 @@ void status_display ()
 
   char *status_type = strstatus (data.devices_status);
 
-  uint hash_mode = data.hash_mode;
+  uint hash_mode = hashconfig->hash_mode;
 
   char *hash_type = strhashtype (hash_mode); // not a bug
 
@@ -373,15 +381,15 @@ void status_display ()
 
       if (mask_len > 0)
       {
-        if (data.opti_type & OPTI_TYPE_SINGLE_HASH)
+        if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
         {
-          if (data.opti_type & OPTI_TYPE_APPENDED_SALT)
+          if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
           {
             mask_len -= data.salts_buf[0].salt_len;
           }
         }
 
-        if (data.opts_type & OPTS_TYPE_PT_UNICODE) mask_len /= 2;
+        if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE) mask_len /= 2;
 
         tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " [%i]", mask_len);
       }
@@ -490,7 +498,7 @@ void status_display ()
 
   if (data.digests_cnt == 1)
   {
-    if (data.hash_mode == 2500)
+    if (hashconfig->hash_mode == 2500)
     {
       wpa_t *wpa = (wpa_t *) data.esalts_buf;
 
@@ -509,19 +517,19 @@ void status_display ()
                 wpa->orig_mac2[4],
                 wpa->orig_mac2[5]);
     }
-    else if (data.hash_mode == 5200)
+    else if (hashconfig->hash_mode == 5200)
     {
       log_info ("Hash.Target....: File (%s)", data.hashfile);
     }
-    else if (data.hash_mode == 9000)
+    else if (hashconfig->hash_mode == 9000)
     {
       log_info ("Hash.Target....: File (%s)", data.hashfile);
     }
-    else if ((data.hash_mode >= 6200) && (data.hash_mode <= 6299))
+    else if ((hashconfig->hash_mode >= 6200) && (hashconfig->hash_mode <= 6299))
     {
       log_info ("Hash.Target....: File (%s)", data.hashfile);
     }
-    else if ((data.hash_mode >= 13700) && (data.hash_mode <= 13799))
+    else if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799))
     {
       log_info ("Hash.Target....: File (%s)", data.hashfile);
     }
@@ -529,7 +537,7 @@ void status_display ()
     {
       char out_buf[HCBUFSIZ_LARGE] = { 0 };
 
-      ascii_digest (out_buf, 0, 0);
+      ascii_digest (out_buf, 0, 0, hashconfig, digests_buf, salts_buf, esalts_buf, hash_info, hashfile);
 
       // limit length
       if (strlen (out_buf) > 40)
@@ -545,13 +553,13 @@ void status_display ()
   }
   else
   {
-    if (data.hash_mode == 3000)
+    if (hashconfig->hash_mode == 3000)
     {
       char out_buf1[32] = { 0 };
       char out_buf2[32] = { 0 };
 
-      ascii_digest (out_buf1, 0, 0);
-      ascii_digest (out_buf2, 0, 1);
+      ascii_digest (out_buf1, 0, 0, hashconfig, digests_buf, salts_buf, esalts_buf, hash_info, hashfile);
+      ascii_digest (out_buf2, 0, 1, hashconfig, digests_buf, salts_buf, esalts_buf, hash_info, hashfile);
 
       log_info ("Hash.Target....: %s, %s", out_buf1, out_buf2);
     }
@@ -1117,6 +1125,8 @@ void status_display ()
 
 void status_benchmark_automate ()
 {
+  hashconfig_t *hashconfig = data.hashconfig;
+
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
 
@@ -1152,7 +1162,7 @@ void status_benchmark_automate ()
 
     if (device_param->skipped) continue;
 
-    log_info ("%u:%u:%" PRIu64 "", device_id + 1, data.hash_mode, (hashes_dev_ms[device_id] * 1000));
+    log_info ("%u:%u:%" PRIu64 "", device_id + 1, hashconfig->hash_mode, (hashes_dev_ms[device_id] * 1000));
   }
 }
 
