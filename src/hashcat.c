@@ -84,6 +84,8 @@ static const char *PROGNAME = "hashcat";
 
 static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 
+const int comptime = COMPTIME;
+
 #define INCR_RULES              10000
 #define INCR_SALTS              100000
 #define INCR_MASKS              1000
@@ -3279,13 +3281,7 @@ static int run_cracker (hc_device_param_t *device_param, const uint pws_cnt)
   return 0;
 }
 
-#if defined (_POSIX)
-static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t *dictstat_base, size_t *dictstat_nmemb)
-#endif
-
-#if defined (_WIN)
-static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t *dictstat_base, uint *dictstat_nmemb)
-#endif
+static u64 count_words (wl_data_t *wl_data, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx)
 {
   hc_signal (NULL);
 
@@ -3315,15 +3311,13 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
 
   if (d.stat.st_size == 0) return 0;
 
-  dictstat_t *d_cache = (dictstat_t *) lfind (&d, dictstat_base, dictstat_nmemb, sizeof (dictstat_t), sort_by_dictstat);
+  const u64 cached_cnt = dictstat_find (dictstat_ctx, &d);
 
   if (run_rule_engine (data.rule_len_l, data.rule_buf_l) == 0)
   {
-    if (d_cache)
+    if (cached_cnt)
     {
-      u64 cnt = d_cache->cnt;
-
-      u64 keyspace = cnt;
+      u64 keyspace = cached_cnt;
 
       if (data.attack_kern == ATTACK_KERN_STRAIGHT)
       {
@@ -3334,7 +3328,7 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
         keyspace *= data.combs_cnt;
       }
 
-      if (data.quiet == 0) log_info ("Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cnt, keyspace);
+      if (data.quiet == 0) log_info ("Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cached_cnt, keyspace);
       if (data.quiet == 0) log_info ("");
 
       hc_signal (sigHandler_default);
@@ -3419,7 +3413,7 @@ static u64 count_words (wl_data_t *wl_data, FILE *fd, char *dictfile, dictstat_t
   if (data.quiet == 0) log_info ("Generated dictionary stats for %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, cnt2, cnt);
   if (data.quiet == 0) log_info ("");
 
-  lsearch (&d, dictstat_base, dictstat_nmemb, sizeof (dictstat_t), sort_by_dictstat);
+  dictstat_append (dictstat_ctx, &d);
 
   hc_signal (sigHandler_default);
 
@@ -10589,70 +10583,13 @@ int main (int argc, char **argv)
      * dictstat
      */
 
-    dictstat_t *dictstat_base = (dictstat_t *) mycalloc (MAX_DICTSTAT, sizeof (dictstat_t));
+    dictstat_ctx_t dictstat_ctx;
 
-    #if defined (_POSIX)
-    size_t dictstat_nmemb = 0;
-    #endif
-
-    #if defined (_WIN)
-    uint   dictstat_nmemb = 0;
-    #endif
-
-    char dictstat_filename[HCBUFSIZ_TINY];
-
-    FILE *dictstat_fp = NULL;
+    dictstat_init (&dictstat_ctx, profile_dir);
 
     if (keyspace == 0)
     {
-      generate_dictstat_filename (profile_dir, dictstat_filename);
-
-      dictstat_fp = fopen (dictstat_filename, "rb");
-
-      if (dictstat_fp)
-      {
-        #if defined (_POSIX)
-        struct stat tmpstat;
-
-        fstat (fileno (dictstat_fp), &tmpstat);
-        #endif
-
-        #if defined (_WIN)
-        struct stat64 tmpstat;
-
-        _fstat64 (fileno (dictstat_fp), &tmpstat);
-        #endif
-
-        if (tmpstat.st_mtime < COMPTIME)
-        {
-          /* with v0.15 the format changed so we have to ensure user is using a good version
-             since there is no version-header in the dictstat file */
-
-          fclose (dictstat_fp);
-
-          unlink (dictstat_filename);
-        }
-        else
-        {
-          while (!feof (dictstat_fp))
-          {
-            dictstat_t d;
-
-            if (fread (&d, sizeof (dictstat_t), 1, dictstat_fp) == 0) continue;
-
-            lsearch (&d, dictstat_base, &dictstat_nmemb, sizeof (dictstat_t), sort_by_dictstat);
-
-            if (dictstat_nmemb == (MAX_DICTSTAT - 1000))
-            {
-              log_error ("ERROR: There are too many entries in the %s database. You have to remove/rename it.", dictstat_filename);
-
-              return -1;
-            }
-          }
-
-          fclose (dictstat_fp);
-        }
-      }
+      dictstat_read (&dictstat_ctx);
     }
 
     /**
@@ -16697,7 +16634,7 @@ int main (int argc, char **argv)
 
       data.quiet = 1;
 
-      const u64 words1_cnt = count_words (wl_data, fp1, dictfile1, dictstat_base, &dictstat_nmemb);
+      const u64 words1_cnt = count_words (wl_data, fp1, dictfile1, &dictstat_ctx);
 
       data.quiet = quiet;
 
@@ -16715,7 +16652,7 @@ int main (int argc, char **argv)
 
       data.quiet = 1;
 
-      const u64 words2_cnt = count_words (wl_data, fp2, dictfile2, dictstat_base, &dictstat_nmemb);
+      const u64 words2_cnt = count_words (wl_data, fp2, dictfile2, &dictstat_ctx);
 
       data.quiet = quiet;
 
@@ -17811,7 +17748,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            data.words_cnt = count_words (wl_data, fd2, dictfile, dictstat_base, &dictstat_nmemb);
+            data.words_cnt = count_words (wl_data, fd2, dictfile, &dictstat_ctx);
 
             fclose (fd2);
 
@@ -17842,7 +17779,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            data.words_cnt = count_words (wl_data, fd2, dictfile, dictstat_base, &dictstat_nmemb);
+            data.words_cnt = count_words (wl_data, fd2, dictfile, &dictstat_ctx);
 
             fclose (fd2);
           }
@@ -17857,7 +17794,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            data.words_cnt = count_words (wl_data, fd2, dictfile2, dictstat_base, &dictstat_nmemb);
+            data.words_cnt = count_words (wl_data, fd2, dictfile2, &dictstat_ctx);
 
             fclose (fd2);
           }
@@ -17898,7 +17835,7 @@ int main (int argc, char **argv)
             return -1;
           }
 
-          data.words_cnt = count_words (wl_data, fd2, dictfile, dictstat_base, &dictstat_nmemb);
+          data.words_cnt = count_words (wl_data, fd2, dictfile, &dictstat_ctx);
 
           fclose (fd2);
 
@@ -18243,16 +18180,7 @@ int main (int argc, char **argv)
 
         if (keyspace == 0)
         {
-          dictstat_fp = fopen (dictstat_filename, "wb");
-
-          if (dictstat_fp)
-          {
-            lock_file (dictstat_fp);
-
-            fwrite (dictstat_base, sizeof (dictstat_t), dictstat_nmemb, dictstat_fp);
-
-            fclose (dictstat_fp);
-          }
+          dictstat_write (&dictstat_ctx);
         }
 
         /**
@@ -18829,9 +18757,9 @@ int main (int argc, char **argv)
 
     // free memory
 
-    local_free (masks);
+    dictstat_destroy (&dictstat_ctx);
 
-    local_free (dictstat_base);
+    local_free (masks);
 
     for (uint pot_pos = 0; pot_pos < pot_cnt; pot_pos++)
     {
