@@ -13,11 +13,7 @@
 #include <sys/stat.h>
 #include <string.h>
 
-
-/**
- * Outfile formats
- */
-
+#define OUTFILES_DIR "outfiles"
 
 typedef enum wl_mode
 {
@@ -34,8 +30,14 @@ typedef enum hl_mode
 
 } hl_mode_t;
 
-#define HLFMTS_CNT 11
 
+typedef struct
+{
+  char   *file_name;
+  long   seek;
+  time_t ctime;
+
+} outfile_data_t;
 
 
 typedef enum attack_mode
@@ -86,14 +88,7 @@ typedef enum kern_run_mp
 
 } kern_run_mp_t;
 
-typedef enum outfile_fmt
-{
-  OUTFILE_FMT_HASH      = (1 << 0),
-  OUTFILE_FMT_PLAIN     = (1 << 1),
-  OUTFILE_FMT_HEXPLAIN  = (1 << 2),
-  OUTFILE_FMT_CRACKPOS  = (1 << 3)
 
-} outfile_fmt_t;
 
 /**
  * status
@@ -186,13 +181,7 @@ typedef struct
 
 
 
-typedef struct
-{
-  char   *file_name;
-  long   seek;
-  time_t ctime;
 
-} outfile_data_t;
 
 
 
@@ -204,15 +193,6 @@ typedef struct
   time_t timestamp;
 
 } cpt_t;
-
-/*
-typedef struct
-{
-  uint plain_buf[16];
-  uint plain_len;
-
-} plain_t;
-*/
 
 typedef struct
 {

@@ -23,6 +23,7 @@
 #include "restore.h"
 #include "opencl.h"
 #include "thread.h"
+#include "outfile.h"
 #include "potfile.h"
 #include "data.h"
 

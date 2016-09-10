@@ -60,6 +60,7 @@
 #include "hwmon.h"
 #include "mpsp.h"
 #include "restore.h"
+#include "outfile.h"
 #include "potfile.h"
 #include "data.h"
 #include "affinity.h"
@@ -99,6 +100,7 @@ const int comptime = COMPTIME;
 #define MARKOV_CLASSIC          0
 #define BENCHMARK               0
 
+#define OUTFILE_CHECK_TIMER     5
 #define MACHINE_READABLE        0
 #define LOOPBACK                0
 #define WEAK_HASH_THRESHOLD     100
@@ -122,9 +124,6 @@ const int comptime = COMPTIME;
 #define HEX_CHARSET             0
 #define HEX_SALT                0
 #define HEX_WORDLIST            0
-#define OUTFILE_FORMAT          3
-#define OUTFILE_AUTOHEX         1
-#define OUTFILE_CHECK_TIMER     5
 #define ATTACK_MODE             0
 #define HASH_MODE               0
 #define SEGMENT_SIZE            32
@@ -181,7 +180,7 @@ static const char OPTI_STR_USES_BITS_64[]      = "Uses-64-Bit";
 
 
 #define INDUCT_DIR              "induct"
-#define OUTFILES_DIR            "outfiles"
+
 
 #define LOOPBACK_FILE           "hashcat.loopback"
 
@@ -488,160 +487,135 @@ int sort_by_stringptr (const void *p1, const void *p2)
   return strcmp (*s1, *s2);
 }
 
+typedef struct
+{
+  FILE *fp;
+
+} loopback_ctx_t;
 
 
-
-
-
-void format_plain (FILE *fp, unsigned char *plain_ptr, uint plain_len, uint outfile_autohex)
+void loopback_format_plain (loopback_ctx_t *loopback_ctx, const unsigned char *plain_ptr, const uint plain_len)
 {
   int needs_hexify = 0;
 
-  if (outfile_autohex == 1)
+  for (uint i = 0; i < plain_len; i++)
   {
-    for (uint i = 0; i < plain_len; i++)
+    if (plain_ptr[i] < 0x20)
     {
-      if (plain_ptr[i] < 0x20)
-      {
-        needs_hexify = 1;
+      needs_hexify = 1;
 
-        break;
-      }
+      break;
+    }
 
-      if (plain_ptr[i] > 0x7f)
-      {
-        needs_hexify = 1;
+    if (plain_ptr[i] > 0x7f)
+    {
+      needs_hexify = 1;
 
-        break;
-      }
+      break;
     }
   }
 
   if (needs_hexify == 1)
   {
-    fprintf (fp, "$HEX[");
+    fprintf (loopback_ctx->fp, "$HEX[");
 
     for (uint i = 0; i < plain_len; i++)
     {
-      fprintf (fp, "%02x", plain_ptr[i]);
+      fprintf (loopback_ctx->fp, "%02x", plain_ptr[i]);
     }
 
-    fprintf (fp, "]");
+    fprintf (loopback_ctx->fp, "]");
   }
   else
   {
-    fwrite (plain_ptr, plain_len, 1, fp);
+    fwrite (plain_ptr, plain_len, 1, loopback_ctx->fp);
   }
 }
+
+
+
+typedef struct
+{
+  FILE *fp;
+
+} debug_ctx_t;
+
+
+void debug_format_plain (debug_ctx_t *debug_ctx, const unsigned char *plain_ptr, const uint plain_len)
+{
+  int needs_hexify = 0;
+
+  for (uint i = 0; i < plain_len; i++)
+  {
+    if (plain_ptr[i] < 0x20)
+    {
+      needs_hexify = 1;
+
+      break;
+    }
+
+    if (plain_ptr[i] > 0x7f)
+    {
+      needs_hexify = 1;
+
+      break;
+    }
+  }
+
+  if (needs_hexify == 1)
+  {
+    fprintf (debug_ctx->fp, "$HEX[");
+
+    for (uint i = 0; i < plain_len; i++)
+    {
+      fprintf (debug_ctx->fp, "%02x", plain_ptr[i]);
+    }
+
+    fprintf (debug_ctx->fp, "]");
+  }
+  else
+  {
+    fwrite (plain_ptr, plain_len, 1, debug_ctx->fp);
+  }
+}
+
 
 void format_debug (char *debug_file, uint debug_mode, unsigned char *orig_plain_ptr, uint orig_plain_len, unsigned char *mod_plain_ptr, uint mod_plain_len, char *rule_buf, int rule_len)
 {
-  uint outfile_autohex = data.outfile_autohex;
-
   unsigned char *rule_ptr = (unsigned char *) rule_buf;
 
-  FILE *debug_fp = NULL;
+  debug_ctx_t debug_ctx;
 
-  if (debug_file != NULL)
-  {
-    debug_fp = fopen (debug_file, "ab");
+  debug_ctx.fp = fopen (debug_file, "ab");
 
-    lock_file (debug_fp);
-  }
-  else
+  if (debug_ctx.fp == NULL)
   {
-    debug_fp = stderr;
+    log_error ("ERROR: Could not open debug-file for writing");
+
+    return;
   }
 
-  if (debug_fp == NULL)
+  if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4))
   {
-    log_info ("WARNING: Could not open debug-file for writing");
+    debug_format_plain (&debug_ctx, orig_plain_ptr, orig_plain_len);
+
+    if ((debug_mode == 3) || (debug_mode == 4)) fputc (':', debug_ctx.fp);
   }
-  else
+
+  fwrite (rule_ptr, rule_len, 1, debug_ctx.fp);
+
+  if (debug_mode == 4)
   {
-    if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4))
-    {
-      format_plain (debug_fp, orig_plain_ptr, orig_plain_len, outfile_autohex);
+    fputc (':', debug_ctx.fp);
 
-      if ((debug_mode == 3) || (debug_mode == 4)) fputc (':', debug_fp);
-    }
-
-    fwrite (rule_ptr, rule_len, 1, debug_fp);
-
-    if (debug_mode == 4)
-    {
-      fputc (':', debug_fp);
-
-      format_plain (debug_fp, mod_plain_ptr, mod_plain_len, outfile_autohex);
-    }
-
-    fputc  ('\n', debug_fp);
-
-    if (debug_file != NULL) fclose (debug_fp);
+    debug_format_plain (&debug_ctx, mod_plain_ptr, mod_plain_len);
   }
+
+  fputc  ('\n', debug_ctx.fp);
+
+  fclose (debug_ctx.fp);
 }
 
-void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const uint plain_len, const u64 crackpos, unsigned char *username, const uint user_len, const hashconfig_t *hashconfig)
-{
-  uint outfile_format = data.outfile_format;
-
-  char separator = hashconfig->separator;
-
-  if (outfile_format & OUTFILE_FMT_HASH)
-  {
-    fprintf (out_fp, "%s", out_buf);
-
-    if (outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
-    {
-      fputc (separator, out_fp);
-    }
-  }
-  else if (data.username)
-  {
-    if (username != NULL)
-    {
-      for (uint i = 0; i < user_len; i++)
-      {
-        fprintf (out_fp, "%c", username[i]);
-      }
-
-      if (outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
-      {
-        fputc (separator, out_fp);
-      }
-    }
-  }
-
-  if (outfile_format & OUTFILE_FMT_PLAIN)
-  {
-    format_plain (out_fp, plain_ptr, plain_len, data.outfile_autohex);
-
-    if (outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
-    {
-      fputc (separator, out_fp);
-    }
-  }
-
-  if (outfile_format & OUTFILE_FMT_HEXPLAIN)
-  {
-    for (uint i = 0; i < plain_len; i++)
-    {
-      fprintf (out_fp, "%02x", plain_ptr[i]);
-    }
-
-    if (outfile_format & (OUTFILE_FMT_CRACKPOS))
-    {
-      fputc (separator, out_fp);
-    }
-  }
-
-  if (outfile_format & OUTFILE_FMT_CRACKPOS)
-  {
-    fprintf (out_fp, "%" PRIu64, crackpos);
-  }
-
-  fputs (EOL, out_fp);
-}
 
 static char *stroptitype (const uint opti_type)
 {
@@ -804,6 +778,13 @@ static void hc_signal (void (callback) (int))
  */
 
 
+static void send_prompt ()
+{
+  fprintf (stdout, "%s", PROMPT);
+
+  fflush (stdout);
+}
+
 static void clear_prompt ()
 {
   fputc ('\r', stdout);
@@ -820,7 +801,6 @@ static void clear_prompt ()
 
 static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 {
-  char *outfile    = data.outfile;
   uint  quiet      = data.quiet;
   uint  loopback   = data.loopback;
   uint  debug_mode = data.debug_mode;
@@ -1063,46 +1043,25 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
     potfile_write_append (potfile_ctx, out_buf, plain_ptr, plain_len);
   }
 
-  // outfile
+  // outfile, can be either to file or stdout
+  // if an error occurs opening the file, send to stdout as fallback
+  // the fp gets opened for each cracked hash so that the user can modify (move) the outfile while hashcat runs
 
-  FILE *out_fp = NULL;
+  outfile_ctx_t *outfile_ctx = data.outfile_ctx;
 
-  if (outfile != NULL)
+  outfile_write_open (outfile_ctx);
+
+  if (outfile_ctx->filename == NULL) if (quiet == 0) clear_prompt ();
+
+  outfile_write (outfile_ctx, out_buf, plain_ptr, plain_len, crackpos, NULL, 0, hashconfig);
+
+  outfile_write_close (outfile_ctx);
+
+  if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
   {
-    if ((out_fp = fopen (outfile, "ab")) == NULL)
+    if ((data.devices_status != STATUS_CRACKED) && (data.status != 1))
     {
-      log_error ("ERROR: %s: %s", outfile, strerror (errno));
-
-      out_fp = stdout;
-    }
-
-    lock_file (out_fp);
-  }
-  else
-  {
-    out_fp = stdout;
-
-    if (quiet == 0) clear_prompt ();
-  }
-
-  format_output (out_fp, out_buf, plain_ptr, plain_len, crackpos, NULL, 0, hashconfig);
-
-  if (outfile != NULL)
-  {
-    if (out_fp != stdout)
-    {
-      fclose (out_fp);
-    }
-  }
-  else
-  {
-    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
-    {
-      if ((data.devices_status != STATUS_CRACKED) && (data.status != 1))
-      {
-        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-        if (quiet == 0) fflush (stdout);
-      }
+      if (outfile_ctx->filename == NULL) if (quiet == 0) send_prompt ();
     }
   }
 
@@ -1112,17 +1071,17 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
   {
     char *loopback_file = data.loopback_file;
 
-    FILE *fb_fp = NULL;
+    loopback_ctx_t loopback_ctx;
 
-    if ((fb_fp = fopen (loopback_file, "ab")) != NULL)
+    loopback_ctx.fp = fopen (loopback_file, "ab");
+
+    if (loopback_ctx.fp != NULL)
     {
-      lock_file (fb_fp);
+      loopback_format_plain (&loopback_ctx, plain_ptr, plain_len);
 
-      format_plain (fb_fp, plain_ptr, plain_len, 1);
+      fputc ('\n', loopback_ctx.fp);
 
-      fputc ('\n', fb_fp);
-
-      fclose (fb_fp);
+      fclose (loopback_ctx.fp);
     }
   }
 
@@ -5727,9 +5686,7 @@ int main (int argc, char **argv)
   data.debug_file              = debug_file;
   data.username                = username;
   data.quiet                   = quiet;
-  data.outfile                 = outfile;
-  data.outfile_format          = outfile_format;
-  data.outfile_autohex         = outfile_autohex;
+
   data.hex_charset             = hex_charset;
   data.hex_salt                = hex_salt;
   data.hex_wordlist            = hex_wordlist;
@@ -6079,23 +6036,15 @@ int main (int argc, char **argv)
      * outfile
      */
 
-    FILE *out_fp = NULL;
+    outfile_ctx_t *outfile_ctx = mymalloc (sizeof (outfile_ctx_t));
+
+    data.outfile_ctx = outfile_ctx;
+
+    outfile_init (outfile_ctx, outfile, outfile_format, outfile_autohex);
 
     if (show == 1 || left == 1)
     {
-      if (outfile != NULL)
-      {
-        if ((out_fp = fopen (outfile, "ab")) == NULL)
-        {
-          log_error ("ERROR: %s: %s", outfile, strerror (errno));
-
-          return -1;
-        }
-      }
-      else
-      {
-        out_fp = stdout;
-      }
+      outfile_write_open (outfile_ctx);
     }
 
     /**
@@ -6556,8 +6505,8 @@ int main (int argc, char **argv)
                 tmp_salt->salt_len += 1 + 12 + 1 + 12;
               }
 
-              if (show == 1) potfile_show_request (potfile_ctx, hashconfig, (char *) hashes_buf[hashes_cnt].salt->salt_buf, hashes_buf[hashes_cnt].salt->salt_len, &hashes_buf[hashes_cnt], sort_by_salt_buf, out_fp);
-              if (left == 1) potfile_left_request (potfile_ctx, hashconfig, (char *) hashes_buf[hashes_cnt].salt->salt_buf, hashes_buf[hashes_cnt].salt->salt_len, &hashes_buf[hashes_cnt], sort_by_salt_buf, out_fp);
+              if (show == 1) potfile_show_request (potfile_ctx, hashconfig, outfile_ctx, (char *) hashes_buf[hashes_cnt].salt->salt_buf, hashes_buf[hashes_cnt].salt->salt_len, &hashes_buf[hashes_cnt], sort_by_salt_buf);
+              if (left == 1) potfile_left_request (potfile_ctx, hashconfig, outfile_ctx, (char *) hashes_buf[hashes_cnt].salt->salt_buf, hashes_buf[hashes_cnt].salt->salt_len, &hashes_buf[hashes_cnt], sort_by_salt_buf);
 
               hashes_cnt++;
             }
@@ -6604,8 +6553,8 @@ int main (int argc, char **argv)
 
               if ((lm_hash_left != NULL) && (lm_hash_right != NULL))
               {
-                if (show == 1) potfile_show_request_lm (potfile_ctx, hashconfig, input_buf, input_len, lm_hash_left, lm_hash_right, sort_by_pot, out_fp);
-                if (left == 1) potfile_left_request_lm (potfile_ctx, hashconfig, input_buf, input_len, lm_hash_left, lm_hash_right, sort_by_pot, out_fp);
+                if (show == 1) potfile_show_request_lm (potfile_ctx, hashconfig, outfile_ctx, input_buf, input_len, lm_hash_left, lm_hash_right, sort_by_pot);
+                if (left == 1) potfile_left_request_lm (potfile_ctx, hashconfig, outfile_ctx, input_buf, input_len, lm_hash_left, lm_hash_right, sort_by_pot);
               }
             }
             else
@@ -6614,8 +6563,8 @@ int main (int argc, char **argv)
 
               if (parser_status == PARSER_OK)
               {
-                if (show == 1) potfile_show_request (potfile_ctx, hashconfig, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
-                if (left == 1) potfile_left_request (potfile_ctx, hashconfig, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
+                if (show == 1) potfile_show_request (potfile_ctx, hashconfig, outfile_ctx, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot);
+                if (left == 1) potfile_left_request (potfile_ctx, hashconfig, outfile_ctx, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot);
               }
 
               if (parser_status == PARSER_OK)
@@ -6634,8 +6583,8 @@ int main (int argc, char **argv)
 
             if (parser_status == PARSER_OK)
             {
-              if (show == 1) potfile_show_request (potfile_ctx, hashconfig, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
-              if (left == 1) potfile_left_request (potfile_ctx, hashconfig, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
+              if (show == 1) potfile_show_request (potfile_ctx, hashconfig, outfile_ctx, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot);
+              if (left == 1) potfile_left_request (potfile_ctx, hashconfig, outfile_ctx, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot);
             }
 
             if (parser_status == PARSER_OK)
@@ -6765,8 +6714,8 @@ int main (int argc, char **argv)
 
               // show / left
 
-              if (show == 1) potfile_show_request_lm (potfile_ctx, hashconfig, line_buf, line_len, lm_hash_left, lm_hash_right, sort_by_pot, out_fp);
-              if (left == 1) potfile_left_request_lm (potfile_ctx, hashconfig, line_buf, line_len, lm_hash_left, lm_hash_right, sort_by_pot, out_fp);
+              if (show == 1) potfile_show_request_lm (potfile_ctx, hashconfig, outfile_ctx, line_buf, line_len, lm_hash_left, lm_hash_right, sort_by_pot);
+              if (left == 1) potfile_left_request_lm (potfile_ctx, hashconfig, outfile_ctx, line_buf, line_len, lm_hash_left, lm_hash_right, sort_by_pot);
             }
             else
             {
@@ -6781,8 +6730,8 @@ int main (int argc, char **argv)
 
               if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
 
-              if (show == 1) potfile_show_request (potfile_ctx, hashconfig, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
-              if (left == 1) potfile_left_request (potfile_ctx, hashconfig, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
+              if (show == 1) potfile_show_request (potfile_ctx, hashconfig, outfile_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
+              if (left == 1) potfile_left_request (potfile_ctx, hashconfig, outfile_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
 
               hashes_cnt++;
             }
@@ -6800,8 +6749,8 @@ int main (int argc, char **argv)
 
             if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
 
-            if (show == 1) potfile_show_request (potfile_ctx, hashconfig, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
-            if (left == 1) potfile_left_request (potfile_ctx, hashconfig, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
+            if (show == 1) potfile_show_request (potfile_ctx, hashconfig, outfile_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
+            if (left == 1) potfile_left_request (potfile_ctx, hashconfig, outfile_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
 
             hashes_cnt++;
           }
@@ -6812,8 +6761,6 @@ int main (int argc, char **argv)
         fclose (fp);
 
         if (data.quiet == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_avail, hashes_avail, 100.00);
-
-        if ((out_fp != NULL) && (out_fp != stdout)) fclose (out_fp);
       }
     }
     else
@@ -7212,6 +7159,8 @@ int main (int argc, char **argv)
 
     if (show == 1 || left == 1)
     {
+      outfile_write_close (outfile_ctx);
+
       potfile_hash_free (potfile_ctx, hashconfig);
 
       if (data.quiet == 0) log_info_nn ("");
@@ -7233,9 +7182,11 @@ int main (int argc, char **argv)
      * Sanity check for hashfile vs outfile (should not point to the same physical file)
      */
 
-    if (data.outfile != NULL)
+    if (outfile != NULL)
     {
-      if (data.hashfile != NULL)
+      char *hashfile = data.hashfile;
+
+      if (hashfile != NULL)
       {
         #if defined (_POSIX)
         struct stat tmpstat_outfile;
@@ -7247,7 +7198,7 @@ int main (int argc, char **argv)
         struct stat64 tmpstat_hashfile;
         #endif
 
-        FILE *tmp_outfile_fp = fopen (data.outfile, "r");
+        FILE *tmp_outfile_fp = fopen (outfile, "r");
 
         if (tmp_outfile_fp)
         {
@@ -7262,7 +7213,7 @@ int main (int argc, char **argv)
           fclose (tmp_outfile_fp);
         }
 
-        FILE *tmp_hashfile_fp = fopen (data.hashfile, "r");
+        FILE *tmp_hashfile_fp = fopen (hashfile, "r");
 
         if (tmp_hashfile_fp)
         {
@@ -13878,6 +13829,8 @@ int main (int argc, char **argv)
     // free memory
 
     local_free (masks);
+
+    outfile_destroy (outfile_ctx);
 
     potfile_write_close (potfile_ctx);
 

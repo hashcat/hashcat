@@ -18,6 +18,7 @@
 #include "rp_cpu.h"
 #include "restore.h"
 #include "opencl.h"
+#include "outfile.h"
 #include "potfile.h"
 #include "data.h"
 

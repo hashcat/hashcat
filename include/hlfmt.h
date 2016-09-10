@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 
+#define HLFMTS_CNT 11
+
 typedef enum hlfmt_name
 {
   HLFMT_HASHCAT  = 0,

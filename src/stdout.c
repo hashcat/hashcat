@@ -27,6 +27,7 @@
 #include "interface.h"
 #include "mpsp.h"
 #include "restore.h"
+#include "outfile.h"
 #include "potfile.h"
 #include "data.h"
 #include "stdout.h"
@@ -62,15 +63,19 @@ void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
   out.fp = stdout;
 
-  if (data.outfile != NULL)
+  // i think this section can be optimized now that we have outfile_ctx
+
+  char *filename = data.outfile_ctx->filename;
+
+  if (filename != NULL)
   {
-    if ((out.fp = fopen (data.outfile, "ab")) != NULL)
+    if ((out.fp = fopen (filename, "ab")) != NULL)
     {
       lock_file (out.fp);
     }
     else
     {
-      log_error ("ERROR: %s: %s", data.outfile, strerror (errno));
+      log_error ("ERROR: %s: %s", filename, strerror (errno));
 
       out.fp = stdout;
     }

@@ -135,9 +135,7 @@ typedef struct
   char   *profile_dir;
   char   *session_dir;
   char   *shared_dir;
-  char   *outfile;
-  uint    outfile_format;
-  uint    outfile_autohex;
+
   uint    outfile_check_timer;
   char   *eff_restore_file;
   char   *new_restore_file;
@@ -177,6 +175,8 @@ typedef struct
   char   *custom_charset_4;
 
   hashconfig_t *hashconfig;
+
+  outfile_ctx_t *outfile_ctx;
 
   potfile_ctx_t *potfile_ctx;
 

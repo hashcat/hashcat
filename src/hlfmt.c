@@ -28,6 +28,7 @@
 #include "hwmon.h"
 #include "mpsp.h"
 #include "restore.h"
+#include "outfile.h"
 #include "potfile.h"
 #include "data.h"
 #include "hlfmt.h"

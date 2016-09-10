@@ -11,13 +11,12 @@
 #include "logging.h"
 #include "interface.h"
 #include "filehandling.h"
+#include "outfile.h"
 #include "potfile.h"
 
 // get rid of this later
 int sort_by_hash (const void *v1, const void *v2);
 int sort_by_hash_no_salt (const void *v1, const void *v2);
-void format_plain (FILE *fp, unsigned char *plain_ptr, uint plain_len, uint outfile_autohex);
-void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const uint plain_len, const u64 crackpos, unsigned char *username, const uint user_len, const hashconfig_t *hashconfig);
 // get rid of this later
 
 int sort_by_pot (const void *v1, const void *v2)
@@ -127,6 +126,44 @@ void potfile_init (potfile_ctx_t *potfile_ctx, const char *profile_dir, const ch
   potfile_ctx->pot_cnt          = 0;
   potfile_ctx->pot_avail        = 0;
   potfile_ctx->pot_hashes_avail = 0;
+}
+
+void potfile_format_plain (potfile_ctx_t *potfile_ctx, const unsigned char *plain_ptr, const uint plain_len)
+{
+  int needs_hexify = 0;
+
+  for (uint i = 0; i < plain_len; i++)
+  {
+    if (plain_ptr[i] < 0x20)
+    {
+      needs_hexify = 1;
+
+      break;
+    }
+
+    if (plain_ptr[i] > 0x7f)
+    {
+      needs_hexify = 1;
+
+      break;
+    }
+  }
+
+  if (needs_hexify == 1)
+  {
+    fprintf (potfile_ctx->fp, "$HEX[");
+
+    for (uint i = 0; i < plain_len; i++)
+    {
+      fprintf (potfile_ctx->fp, "%02x", plain_ptr[i]);
+    }
+
+    fprintf (potfile_ctx->fp, "]");
+  }
+  else
+  {
+    fwrite (plain_ptr, plain_len, 1, potfile_ctx->fp);
+  }
 }
 
 int potfile_read_open (potfile_ctx_t *potfile_ctx)
@@ -276,7 +313,7 @@ void potfile_write_append (potfile_ctx_t *potfile_ctx, const char *out_buf, u8 *
 
   fprintf (fp, "%s:", out_buf);
 
-  format_plain (fp, plain_ptr, plain_len, 1);
+  potfile_format_plain (potfile_ctx, plain_ptr, plain_len);
 
   fputc ('\n', fp);
 
@@ -333,7 +370,7 @@ void potfile_hash_free (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconf
   }
 }
 
-void potfile_show_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *), FILE *out_fp)
+void potfile_show_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *))
 {
   pot_t pot_key;
 
@@ -365,11 +402,12 @@ void potfile_show_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashc
     }
 
     // do output the line
-    format_output (out_fp, input_buf, (unsigned char *) pot_ptr->plain_buf, pot_ptr->plain_len, 0, username, user_len, hashconfig);
+
+    outfile_write (outfile_ctx, input_buf, (const unsigned char *) pot_ptr->plain_buf, pot_ptr->plain_len, 0, username, user_len, hashconfig);
   }
 }
 
-void potfile_left_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *), FILE *out_fp)
+void potfile_left_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *))
 {
   pot_t pot_key;
 
@@ -383,11 +421,11 @@ void potfile_left_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashc
 
     input_buf[input_len] = 0;
 
-    format_output (out_fp, input_buf, NULL, 0, 0, NULL, 0, hashconfig);
+    outfile_write (outfile_ctx, input_buf, NULL, 0, 0, NULL, 0, hashconfig);
   }
 }
 
-void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp)
+void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *))
 {
   // left
 
@@ -499,7 +537,7 @@ void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
 
   // do output the line
 
-  format_output (out_fp, input_buf, (unsigned char *) pot_ptr.plain_buf, pot_ptr.plain_len, 0, username, user_len, hashconfig);
+  outfile_write (outfile_ctx, input_buf, (unsigned char *) pot_ptr.plain_buf, pot_ptr.plain_len, 0, username, user_len, hashconfig);
 
   if (weak_hash_found == 1) myfree (pot_right_ptr);
 
@@ -507,7 +545,7 @@ void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
   if (right_part_masked == 1) myfree (pot_right_ptr);
 }
 
-void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp)
+void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *))
 {
   // left
 
@@ -580,7 +618,7 @@ void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
     hash_output[user_len + 16] = 0;
   }
 
-  format_output (out_fp, hash_output, NULL, 0, 0, NULL, 0, hashconfig);
+  outfile_write (outfile_ctx, hash_output, NULL, 0, 0, NULL, 0, hashconfig);
 
   myfree (hash_output);
 
