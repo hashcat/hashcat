@@ -581,7 +581,7 @@ void format_debug (char *debug_file, uint debug_mode, unsigned char *orig_plain_
   }
 }
 
-void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const uint plain_len, const u64 crackpos, unsigned char *username, const uint user_len, hashconfig_t *hashconfig)
+void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const uint plain_len, const u64 crackpos, unsigned char *username, const uint user_len, const hashconfig_t *hashconfig)
 {
   uint outfile_format = data.outfile_format;
 
@@ -6556,8 +6556,8 @@ int main (int argc, char **argv)
                 tmp_salt->salt_len += 1 + 12 + 1 + 12;
               }
 
-              if (show == 1) handle_show_request (potfile_ctx->pot, potfile_ctx->pot_cnt, (char *) hashes_buf[hashes_cnt].salt->salt_buf, hashes_buf[hashes_cnt].salt->salt_len, &hashes_buf[hashes_cnt], sort_by_salt_buf, out_fp, hashconfig);
-              if (left == 1) handle_left_request (potfile_ctx->pot, potfile_ctx->pot_cnt, (char *) hashes_buf[hashes_cnt].salt->salt_buf, hashes_buf[hashes_cnt].salt->salt_len, &hashes_buf[hashes_cnt], sort_by_salt_buf, out_fp, hashconfig);
+              if (show == 1) potfile_show_request (potfile_ctx, hashconfig, (char *) hashes_buf[hashes_cnt].salt->salt_buf, hashes_buf[hashes_cnt].salt->salt_len, &hashes_buf[hashes_cnt], sort_by_salt_buf, out_fp);
+              if (left == 1) potfile_left_request (potfile_ctx, hashconfig, (char *) hashes_buf[hashes_cnt].salt->salt_buf, hashes_buf[hashes_cnt].salt->salt_len, &hashes_buf[hashes_cnt], sort_by_salt_buf, out_fp);
 
               hashes_cnt++;
             }
@@ -6604,8 +6604,8 @@ int main (int argc, char **argv)
 
               if ((lm_hash_left != NULL) && (lm_hash_right != NULL))
               {
-                if (show == 1) handle_show_request_lm (potfile_ctx->pot, potfile_ctx->pot_cnt, input_buf, input_len, lm_hash_left, lm_hash_right, sort_by_pot, out_fp, hashconfig);
-                if (left == 1) handle_left_request_lm (potfile_ctx->pot, potfile_ctx->pot_cnt, input_buf, input_len, lm_hash_left, lm_hash_right, sort_by_pot, out_fp, hashconfig);
+                if (show == 1) potfile_show_request_lm (potfile_ctx, hashconfig, input_buf, input_len, lm_hash_left, lm_hash_right, sort_by_pot, out_fp);
+                if (left == 1) potfile_left_request_lm (potfile_ctx, hashconfig, input_buf, input_len, lm_hash_left, lm_hash_right, sort_by_pot, out_fp);
               }
             }
             else
@@ -6614,8 +6614,8 @@ int main (int argc, char **argv)
 
               if (parser_status == PARSER_OK)
               {
-                if (show == 1) handle_show_request (potfile_ctx->pot, potfile_ctx->pot_cnt, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp, hashconfig);
-                if (left == 1) handle_left_request (potfile_ctx->pot, potfile_ctx->pot_cnt, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp, hashconfig);
+                if (show == 1) potfile_show_request (potfile_ctx, hashconfig, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
+                if (left == 1) potfile_left_request (potfile_ctx, hashconfig, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
               }
 
               if (parser_status == PARSER_OK)
@@ -6634,8 +6634,8 @@ int main (int argc, char **argv)
 
             if (parser_status == PARSER_OK)
             {
-              if (show == 1) handle_show_request (potfile_ctx->pot, potfile_ctx->pot_cnt, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp, hashconfig);
-              if (left == 1) handle_left_request (potfile_ctx->pot, potfile_ctx->pot_cnt, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp, hashconfig);
+              if (show == 1) potfile_show_request (potfile_ctx, hashconfig, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
+              if (left == 1) potfile_left_request (potfile_ctx, hashconfig, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
             }
 
             if (parser_status == PARSER_OK)
@@ -6765,8 +6765,8 @@ int main (int argc, char **argv)
 
               // show / left
 
-              if (show == 1) handle_show_request_lm (potfile_ctx->pot, potfile_ctx->pot_cnt, line_buf, line_len, lm_hash_left, lm_hash_right, sort_by_pot, out_fp, hashconfig);
-              if (left == 1) handle_left_request_lm (potfile_ctx->pot, potfile_ctx->pot_cnt, line_buf, line_len, lm_hash_left, lm_hash_right, sort_by_pot, out_fp, hashconfig);
+              if (show == 1) potfile_show_request_lm (potfile_ctx, hashconfig, line_buf, line_len, lm_hash_left, lm_hash_right, sort_by_pot, out_fp);
+              if (left == 1) potfile_left_request_lm (potfile_ctx, hashconfig, line_buf, line_len, lm_hash_left, lm_hash_right, sort_by_pot, out_fp);
             }
             else
             {
@@ -6781,8 +6781,8 @@ int main (int argc, char **argv)
 
               if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
 
-              if (show == 1) handle_show_request (potfile_ctx->pot, potfile_ctx->pot_cnt, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp, hashconfig);
-              if (left == 1) handle_left_request (potfile_ctx->pot, potfile_ctx->pot_cnt, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp, hashconfig);
+              if (show == 1) potfile_show_request (potfile_ctx, hashconfig, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
+              if (left == 1) potfile_left_request (potfile_ctx, hashconfig, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
 
               hashes_cnt++;
             }
@@ -6800,8 +6800,8 @@ int main (int argc, char **argv)
 
             if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
 
-            if (show == 1) handle_show_request (potfile_ctx->pot, potfile_ctx->pot_cnt, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp, hashconfig);
-            if (left == 1) handle_left_request (potfile_ctx->pot, potfile_ctx->pot_cnt, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp, hashconfig);
+            if (show == 1) potfile_show_request (potfile_ctx, hashconfig, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
+            if (left == 1) potfile_left_request (potfile_ctx, hashconfig, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot, out_fp);
 
             hashes_cnt++;
           }

@@ -17,7 +17,7 @@
 int sort_by_hash (const void *v1, const void *v2);
 int sort_by_hash_no_salt (const void *v1, const void *v2);
 void format_plain (FILE *fp, unsigned char *plain_ptr, uint plain_len, uint outfile_autohex);
-void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const uint plain_len, const u64 crackpos, unsigned char *username, const uint user_len, hashconfig_t *hashconfig);
+void format_output (FILE *out_fp, char *out_buf, unsigned char *plain_ptr, const uint plain_len, const u64 crackpos, unsigned char *username, const uint user_len, const hashconfig_t *hashconfig);
 // get rid of this later
 
 int sort_by_pot (const void *v1, const void *v2)
@@ -106,260 +106,6 @@ int sort_by_hash_t_salt_hccap (const void *v1, const void *v2)
   }
 
   return 0;
-}
-
-void handle_show_request (pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *), FILE *out_fp, hashconfig_t *hashconfig)
-{
-  pot_t pot_key;
-
-  pot_key.hash.salt   = hashes_buf->salt;
-  pot_key.hash.digest = hashes_buf->digest;
-
-  pot_t *pot_ptr = (pot_t *) bsearch (&pot_key, pot, pot_cnt, sizeof (pot_t), sort_by_pot);
-
-  if (pot_ptr)
-  {
-    log_info_nn ("");
-
-    input_buf[input_len] = 0;
-
-    // user
-    unsigned char *username = NULL;
-    uint user_len = 0;
-
-    if (hashes_buf->hash_info)
-    {
-      user_t *user = hashes_buf->hash_info->user;
-
-      if (user)
-      {
-        username = (unsigned char *) (user->user_name);
-
-        user_len = user->user_len;
-      }
-    }
-
-    // do output the line
-    format_output (out_fp, input_buf, (unsigned char *) pot_ptr->plain_buf, pot_ptr->plain_len, 0, username, user_len, hashconfig);
-  }
-}
-
-void handle_left_request (pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *), FILE *out_fp, hashconfig_t *hashconfig)
-{
-  pot_t pot_key;
-
-  memcpy (&pot_key.hash, hashes_buf, sizeof (hash_t));
-
-  pot_t *pot_ptr = (pot_t *) bsearch (&pot_key, pot, pot_cnt, sizeof (pot_t), sort_by_pot);
-
-  if (pot_ptr == NULL)
-  {
-    log_info_nn ("");
-
-    input_buf[input_len] = 0;
-
-    format_output (out_fp, input_buf, NULL, 0, 0, NULL, 0, hashconfig);
-  }
-}
-
-void handle_show_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp, hashconfig_t *hashconfig)
-{
-  // left
-
-  pot_t pot_left_key;
-
-  pot_left_key.hash.salt   = hash_left->salt;
-  pot_left_key.hash.digest = hash_left->digest;
-
-  pot_t *pot_left_ptr = (pot_t *) bsearch (&pot_left_key, pot, pot_cnt, sizeof (pot_t), sort_by_pot);
-
-  // right
-
-  uint weak_hash_found = 0;
-
-  pot_t pot_right_key;
-
-  pot_right_key.hash.salt   = hash_right->salt;
-  pot_right_key.hash.digest = hash_right->digest;
-
-  pot_t *pot_right_ptr = (pot_t *) bsearch (&pot_right_key, pot, pot_cnt, sizeof (pot_t), sort_by_pot);
-
-  if (pot_right_ptr == NULL)
-  {
-    // special case, if "weak hash"
-
-    if (memcmp (hash_right->digest, LM_WEAK_HASH, 8) == 0)
-    {
-      weak_hash_found = 1;
-
-      pot_right_ptr = (pot_t *) mycalloc (1, sizeof (pot_t));
-
-      // in theory this is not needed, but we are paranoia:
-
-      memset (pot_right_ptr->plain_buf, 0, sizeof (pot_right_ptr->plain_buf));
-      pot_right_ptr->plain_len = 0;
-    }
-  }
-
-  if ((pot_left_ptr == NULL) && (pot_right_ptr == NULL))
-  {
-    if (weak_hash_found == 1) myfree (pot_right_ptr); // this shouldn't happen at all: if weak_hash_found == 1, than pot_right_ptr is not NULL for sure
-
-    return;
-  }
-
-  // at least one half was found:
-
-  log_info_nn ("");
-
-  input_buf[input_len] = 0;
-
-  // user
-
-  unsigned char *username = NULL;
-  uint user_len = 0;
-
-  if (hash_left->hash_info)
-  {
-    user_t *user = hash_left->hash_info->user;
-
-    if (user)
-    {
-      username = (unsigned char *) (user->user_name);
-
-      user_len = user->user_len;
-    }
-  }
-
-  // mask the part which was not found
-
-  uint left_part_masked  = 0;
-  uint right_part_masked = 0;
-
-  uint mask_plain_len = strlen (LM_MASKED_PLAIN);
-
-  if (pot_left_ptr == NULL)
-  {
-    left_part_masked = 1;
-
-    pot_left_ptr = (pot_t *) mycalloc (1, sizeof (pot_t));
-
-    memset (pot_left_ptr->plain_buf, 0, sizeof (pot_left_ptr->plain_buf));
-
-    memcpy (pot_left_ptr->plain_buf, LM_MASKED_PLAIN, mask_plain_len);
-    pot_left_ptr->plain_len = mask_plain_len;
-  }
-
-  if (pot_right_ptr == NULL)
-  {
-    right_part_masked = 1;
-
-    pot_right_ptr = (pot_t *) mycalloc (1, sizeof (pot_t));
-
-    memset (pot_right_ptr->plain_buf, 0, sizeof (pot_right_ptr->plain_buf));
-
-    memcpy (pot_right_ptr->plain_buf, LM_MASKED_PLAIN, mask_plain_len);
-    pot_right_ptr->plain_len = mask_plain_len;
-  }
-
-  // create the pot_ptr out of pot_left_ptr and pot_right_ptr
-
-  pot_t pot_ptr;
-
-  pot_ptr.plain_len = pot_left_ptr->plain_len + pot_right_ptr->plain_len;
-
-  memcpy (pot_ptr.plain_buf, pot_left_ptr->plain_buf, pot_left_ptr->plain_len);
-
-  memcpy (pot_ptr.plain_buf + pot_left_ptr->plain_len, pot_right_ptr->plain_buf, pot_right_ptr->plain_len);
-
-  // do output the line
-
-  format_output (out_fp, input_buf, (unsigned char *) pot_ptr.plain_buf, pot_ptr.plain_len, 0, username, user_len, hashconfig);
-
-  if (weak_hash_found == 1) myfree (pot_right_ptr);
-
-  if (left_part_masked  == 1) myfree (pot_left_ptr);
-  if (right_part_masked == 1) myfree (pot_right_ptr);
-}
-
-void handle_left_request_lm (pot_t *pot, uint pot_cnt, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp, hashconfig_t *hashconfig)
-{
-  // left
-
-  pot_t pot_left_key;
-
-  memcpy (&pot_left_key.hash, hash_left, sizeof (hash_t));
-
-  pot_t *pot_left_ptr = (pot_t *) bsearch (&pot_left_key, pot, pot_cnt, sizeof (pot_t), sort_by_pot);
-
-  // right
-
-  pot_t pot_right_key;
-
-  memcpy (&pot_right_key.hash, hash_right, sizeof (hash_t));
-
-  pot_t *pot_right_ptr = (pot_t *) bsearch (&pot_right_key, pot, pot_cnt, sizeof (pot_t), sort_by_pot);
-
-  uint weak_hash_found = 0;
-
-  if (pot_right_ptr == NULL)
-  {
-    // special case, if "weak hash"
-
-    if (memcmp (hash_right->digest, LM_WEAK_HASH, 8) == 0)
-    {
-      weak_hash_found = 1;
-
-      // we just need that pot_right_ptr is not a NULL pointer
-
-      pot_right_ptr = (pot_t *) mycalloc (1, sizeof (pot_t));
-    }
-  }
-
-  if ((pot_left_ptr != NULL) && (pot_right_ptr != NULL))
-  {
-    if (weak_hash_found == 1) myfree (pot_right_ptr);
-
-    return;
-  }
-
-  // ... at least one part was not cracked
-
-  log_info_nn ("");
-
-  input_buf[input_len] = 0;
-
-  // only show the hash part which is still not cracked
-
-  uint user_len = (uint)input_len - 32u;
-
-  char *hash_output = (char *) mymalloc (33);
-
-  memcpy (hash_output, input_buf, input_len);
-
-  if (pot_left_ptr != NULL)
-  {
-    // only show right part (because left part was already found)
-
-    memcpy (hash_output + user_len, input_buf + user_len + 16, 16);
-
-    hash_output[user_len + 16] = 0;
-  }
-
-  if (pot_right_ptr != NULL)
-  {
-    // only show left part (because right part was already found)
-
-    memcpy (hash_output + user_len, input_buf + user_len, 16);
-
-    hash_output[user_len + 16] = 0;
-  }
-
-  format_output (out_fp, hash_output, NULL, 0, 0, NULL, 0, hashconfig);
-
-  myfree (hash_output);
-
-  if (weak_hash_found == 1) myfree (pot_right_ptr);
 }
 
 void potfile_init (potfile_ctx_t *potfile_ctx, const char *profile_dir, const char *potfile_path)
@@ -585,6 +331,260 @@ void potfile_hash_free (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconf
       myfree (hashes_buf->esalt);
     }
   }
+}
+
+void potfile_show_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *), FILE *out_fp)
+{
+  pot_t pot_key;
+
+  pot_key.hash.salt   = hashes_buf->salt;
+  pot_key.hash.digest = hashes_buf->digest;
+
+  pot_t *pot_ptr = (pot_t *) bsearch (&pot_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+
+  if (pot_ptr)
+  {
+    log_info_nn ("");
+
+    input_buf[input_len] = 0;
+
+    // user
+    unsigned char *username = NULL;
+    uint user_len = 0;
+
+    if (hashes_buf->hash_info)
+    {
+      user_t *user = hashes_buf->hash_info->user;
+
+      if (user)
+      {
+        username = (unsigned char *) (user->user_name);
+
+        user_len = user->user_len;
+      }
+    }
+
+    // do output the line
+    format_output (out_fp, input_buf, (unsigned char *) pot_ptr->plain_buf, pot_ptr->plain_len, 0, username, user_len, hashconfig);
+  }
+}
+
+void potfile_left_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *), FILE *out_fp)
+{
+  pot_t pot_key;
+
+  memcpy (&pot_key.hash, hashes_buf, sizeof (hash_t));
+
+  pot_t *pot_ptr = (pot_t *) bsearch (&pot_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+
+  if (pot_ptr == NULL)
+  {
+    log_info_nn ("");
+
+    input_buf[input_len] = 0;
+
+    format_output (out_fp, input_buf, NULL, 0, 0, NULL, 0, hashconfig);
+  }
+}
+
+void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp)
+{
+  // left
+
+  pot_t pot_left_key;
+
+  pot_left_key.hash.salt   = hash_left->salt;
+  pot_left_key.hash.digest = hash_left->digest;
+
+  pot_t *pot_left_ptr = (pot_t *) bsearch (&pot_left_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+
+  // right
+
+  uint weak_hash_found = 0;
+
+  pot_t pot_right_key;
+
+  pot_right_key.hash.salt   = hash_right->salt;
+  pot_right_key.hash.digest = hash_right->digest;
+
+  pot_t *pot_right_ptr = (pot_t *) bsearch (&pot_right_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+
+  if (pot_right_ptr == NULL)
+  {
+    // special case, if "weak hash"
+
+    if (memcmp (hash_right->digest, LM_WEAK_HASH, 8) == 0)
+    {
+      weak_hash_found = 1;
+
+      pot_right_ptr = (pot_t *) mycalloc (1, sizeof (pot_t));
+
+      // in theory this is not needed, but we are paranoia:
+
+      memset (pot_right_ptr->plain_buf, 0, sizeof (pot_right_ptr->plain_buf));
+      pot_right_ptr->plain_len = 0;
+    }
+  }
+
+  if ((pot_left_ptr == NULL) && (pot_right_ptr == NULL))
+  {
+    if (weak_hash_found == 1) myfree (pot_right_ptr); // this shouldn't happen at all: if weak_hash_found == 1, than pot_right_ptr is not NULL for sure
+
+    return;
+  }
+
+  // at least one half was found:
+
+  log_info_nn ("");
+
+  input_buf[input_len] = 0;
+
+  // user
+
+  unsigned char *username = NULL;
+  uint user_len = 0;
+
+  if (hash_left->hash_info)
+  {
+    user_t *user = hash_left->hash_info->user;
+
+    if (user)
+    {
+      username = (unsigned char *) (user->user_name);
+
+      user_len = user->user_len;
+    }
+  }
+
+  // mask the part which was not found
+
+  uint left_part_masked  = 0;
+  uint right_part_masked = 0;
+
+  uint mask_plain_len = strlen (LM_MASKED_PLAIN);
+
+  if (pot_left_ptr == NULL)
+  {
+    left_part_masked = 1;
+
+    pot_left_ptr = (pot_t *) mycalloc (1, sizeof (pot_t));
+
+    memset (pot_left_ptr->plain_buf, 0, sizeof (pot_left_ptr->plain_buf));
+
+    memcpy (pot_left_ptr->plain_buf, LM_MASKED_PLAIN, mask_plain_len);
+    pot_left_ptr->plain_len = mask_plain_len;
+  }
+
+  if (pot_right_ptr == NULL)
+  {
+    right_part_masked = 1;
+
+    pot_right_ptr = (pot_t *) mycalloc (1, sizeof (pot_t));
+
+    memset (pot_right_ptr->plain_buf, 0, sizeof (pot_right_ptr->plain_buf));
+
+    memcpy (pot_right_ptr->plain_buf, LM_MASKED_PLAIN, mask_plain_len);
+    pot_right_ptr->plain_len = mask_plain_len;
+  }
+
+  // create the pot_ptr out of pot_left_ptr and pot_right_ptr
+
+  pot_t pot_ptr;
+
+  pot_ptr.plain_len = pot_left_ptr->plain_len + pot_right_ptr->plain_len;
+
+  memcpy (pot_ptr.plain_buf, pot_left_ptr->plain_buf, pot_left_ptr->plain_len);
+
+  memcpy (pot_ptr.plain_buf + pot_left_ptr->plain_len, pot_right_ptr->plain_buf, pot_right_ptr->plain_len);
+
+  // do output the line
+
+  format_output (out_fp, input_buf, (unsigned char *) pot_ptr.plain_buf, pot_ptr.plain_len, 0, username, user_len, hashconfig);
+
+  if (weak_hash_found == 1) myfree (pot_right_ptr);
+
+  if (left_part_masked  == 1) myfree (pot_left_ptr);
+  if (right_part_masked == 1) myfree (pot_right_ptr);
+}
+
+void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *), FILE *out_fp)
+{
+  // left
+
+  pot_t pot_left_key;
+
+  memcpy (&pot_left_key.hash, hash_left, sizeof (hash_t));
+
+  pot_t *pot_left_ptr = (pot_t *) bsearch (&pot_left_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+
+  // right
+
+  pot_t pot_right_key;
+
+  memcpy (&pot_right_key.hash, hash_right, sizeof (hash_t));
+
+  pot_t *pot_right_ptr = (pot_t *) bsearch (&pot_right_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+
+  uint weak_hash_found = 0;
+
+  if (pot_right_ptr == NULL)
+  {
+    // special case, if "weak hash"
+
+    if (memcmp (hash_right->digest, LM_WEAK_HASH, 8) == 0)
+    {
+      weak_hash_found = 1;
+
+      // we just need that pot_right_ptr is not a NULL pointer
+
+      pot_right_ptr = (pot_t *) mycalloc (1, sizeof (pot_t));
+    }
+  }
+
+  if ((pot_left_ptr != NULL) && (pot_right_ptr != NULL))
+  {
+    if (weak_hash_found == 1) myfree (pot_right_ptr);
+
+    return;
+  }
+
+  // ... at least one part was not cracked
+
+  log_info_nn ("");
+
+  input_buf[input_len] = 0;
+
+  // only show the hash part which is still not cracked
+
+  uint user_len = (uint)input_len - 32u;
+
+  char *hash_output = (char *) mymalloc (33);
+
+  memcpy (hash_output, input_buf, input_len);
+
+  if (pot_left_ptr != NULL)
+  {
+    // only show right part (because left part was already found)
+
+    memcpy (hash_output + user_len, input_buf + user_len + 16, 16);
+
+    hash_output[user_len + 16] = 0;
+  }
+
+  if (pot_right_ptr != NULL)
+  {
+    // only show left part (because right part was already found)
+
+    memcpy (hash_output + user_len, input_buf + user_len, 16);
+
+    hash_output[user_len + 16] = 0;
+  }
+
+  format_output (out_fp, hash_output, NULL, 0, 0, NULL, 0, hashconfig);
+
+  myfree (hash_output);
+
+  if (weak_hash_found == 1) myfree (pot_right_ptr);
 }
 
 int potfile_remove_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, const hash_t *hashes_buf, const uint hashes_cnt)
