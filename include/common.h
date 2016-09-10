@@ -41,6 +41,9 @@
 
 #define DEVICES_MAX   128
 
+#define MAX_CUT_TRIES 4
+
+
 #define CEIL(a) ((a - (int) (a)) > 0 ? a + 1 : a)
 
 #if defined (__APPLE__)
