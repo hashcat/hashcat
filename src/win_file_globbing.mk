@@ -1,6 +1,5 @@
 ##
-## Authors.....: Philipp Schmidt <philsmd@hashcat.net>
-##
+## Author......: See docs/credits.txt
 ## License.....: MIT
 ##
 

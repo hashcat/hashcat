@@ -1,0 +1,60 @@
+# hashcat and its predecessors has been developed and is maintained by:
+
+Jens "atom" Steube <jens.steube@gmail.com> (@hashcat)
+
+# The following persons made code contributions to hashcat:
+
+Philipp "philsmd" Schmidt <philsmd@hashcat.net> (@philsmd)
+
+* Multiple kernel modules
+* Hardware monitor maintainance
+* Test Suite maintainance
+* Makefile
+* Potfile feature
+* Maskfile feature
+* Induction directory feature
+* Loopback file feature
+* Userinput sanity checks
+
+Gabriele "matrix" Gristina <matrix@hashcat.net> (@gm4tr1x)
+
+* Apple OSX port
+* Hardware monitor initial code base
+* Test suite initial code base
+
+Jean-Christophe "Fist0urs" Delaunay <jean-christophe.delaunay@synacktiv.com> (@Fist0urs)
+
+* Kerberos TGS Rep enctype 23 kernel module
+* AxCrypt kernel module
+* KeePass kernel module
+
+Other contributors to hashcat
+
+* A full list and their commits can be found here: 
+  https://github.com/hashcat/hashcat/graphs/contributors
+
+# Furthermore the following persons helped the project:
+
+Martin "purehate" Bos <purehate@derbycon.com> (@cantcomputer)
+
+* For the first person presenting hashcat in his talks and tutorials to a larger audience
+* For pushing hashcat to Kali
+
+Jeremi "epixoip" Gosney <jgosney@sagittahpc.com (@jmgosney)
+
+* For his continious work pushing hashcat to run on large clusters
+* For moderating hashcat forum
+* For helping tons of new users find their way into the hashcat universe
+
+Per Thorsheim <per@thorsheim.net> (@thorsheim)
+
+* For running the "PasswordsCon" conference, first of its kind
+* For convincing me to speak publicly about my work
+
+Rick "Minga" Redman and KoreLogic <mingakore@gmail.com> (@CrackMeIfYouCan)
+
+* For running the "Crack Me If You Can" password cracking contest, first of its kind
+* For pushing password cracking techniques forward
+
+!!! All the package maintainer of hashcat !!!
+

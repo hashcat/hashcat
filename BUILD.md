@@ -3,10 +3,7 @@ hashcat build documentation
 # Revision:
 * 1.3
 
-# Authors:
-* Gabriele Gristina <<matrix@hashcat.net>>
-* Christoph Heuwieser <<dropdead@hashcat.net>>
-* magnum <<john.magnum@hushmail.com>>
+# Author: see docs/credits.txt
 
 # Building hashcat for Linux and OSX
 

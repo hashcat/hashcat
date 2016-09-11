@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 ##
-## Author......: Jens Steube <jens.steube@gmail.com>
+## Author......: See docs/credits.txt
 ## License.....: MIT
 ##
 

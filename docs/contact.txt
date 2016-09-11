@@ -1,3 +1,2 @@
 web: https://hashcat.net
-email: atom@hashcat.net
 irc: freenode #hashcat

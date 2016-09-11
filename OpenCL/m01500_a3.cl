@@ -1,5 +1,5 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Author......: See docs/credits.txt
  * License.....: MIT
  * NOTE........: sboxes for maxwell were taken from DeepLearningJohnDoe, license below
  *             : sboxes for others were takes fron JtR, license below

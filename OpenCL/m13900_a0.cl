@@ -1,8 +1,5 @@
 /**
- * Authors.....: Jens Steube <jens.steube@gmail.com>
- *               magnum <john.magnum@hushmail.com>
- *               Michael Sprecher <sprecher.m@gmail.com>
- *
+ * Author......: See docs/credits.txt
  * License.....: MIT
  */
 
@@ -215,7 +212,7 @@ __kernel void m13900_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
   salt_buf0[0] = swap32_S (salt_bufs[salt_pos].salt_buf[0]);
   salt_buf0[1] = swap32_S (salt_bufs[salt_pos].salt_buf[1]);
   salt_buf0[2] = swap32_S (salt_bufs[salt_pos].salt_buf[2]);
-  
+
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
   /**

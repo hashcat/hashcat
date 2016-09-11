@@ -1,9 +1,5 @@
 /**
- * Authors.....: Jens Steube <jens.steube@gmail.com>
- *               Gabriele Gristina <matrix@hashcat.net>
- *               magnum <john.magnum@hushmail.com>
- *               Michael Sprecher <sprecher.m@gmail.com>
- *
+ * Author......: See docs/credits.txt
  * License.....: MIT
  */
 

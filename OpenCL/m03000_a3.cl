@@ -1,7 +1,8 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
+ * Author......: See docs/credits.txt
  * License.....: MIT
- * NOTE........: sboxes were taken from JtR, license below
+ * NOTE........: sboxes for maxwell were taken from DeepLearningJohnDoe, license below
+ *             : sboxes for others were takes fron JtR, license below
  */
 
 #define _DES_

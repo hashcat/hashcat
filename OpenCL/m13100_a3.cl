@@ -1,8 +1,5 @@
 /**
- * Authors......: Jens Steube <jens.steube@gmail.com>
- *                Fist0urs <eddy.maaalou@gmail.com>
- *                Gabriele Gristina <matrix@hashcat.net>
- *
+ * Author......: see docs/credits.txt
  * License.....: MIT
  */
 

@@ -1,8 +1,5 @@
 ##
-## Authors.....: Jens Steube <jens.steube@gmail.com>
-##               Gabriele Gristina <matrix@hashcat.net>
-##               magnum <john.magnum@hushmail.com>
-##
+## Author......: See docs/credits.txt
 ## License.....: MIT
 ##
 

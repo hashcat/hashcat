@@ -8,6 +8,8 @@
 - Allow loading of bcrypt hashes with signature $2b$ (February 2014)
 - Replaced some uint macros with enums types
 - Abort session after NUM seconds of --runtime but do not count time in pause mode
+- Added docs/credits.txt
+- Added docs/team.txt
 
 ##
 ## Algorithms

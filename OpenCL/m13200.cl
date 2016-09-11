@@ -1,7 +1,5 @@
 /**
- * Authors......: Jens Steube <jens.steube@gmail.com>
- * Authors......: Fist0urs   <eddy.maaalou@gmail.com>
-
+ * Author......: See docs/credits.txt
  * License.....: MIT
  */
 

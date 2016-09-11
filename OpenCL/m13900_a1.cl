@@ -1,6 +1,5 @@
 /**
- * Author......: Jens Steube <jens.steube@gmail.com>
- *               Michael Sprecher <sprecher.m@gmail.com>
+ * Author......: See docs/credits.txt
  * License.....: MIT
  */
 
