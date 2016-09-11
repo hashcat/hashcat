@@ -18,6 +18,17 @@
 #define SP_ROOT_CNT   (SP_PW_MAX * CHARSIZ)
 #define SP_MARKOV_CNT (SP_PW_MAX * CHARSIZ * CHARSIZ)
 
+#define MARKOV_THRESHOLD  0
+#define MARKOV_DISABLE    0
+#define MARKOV_CLASSIC    0
+
+#define HEX_CHARSET       0
+#define INCR_MASKS        1000
+
+#define INCREMENT         0
+#define INCREMENT_MIN     1
+#define INCREMENT_MAX     PW_MAX
+
 typedef struct
 {
   uint cs_buf[0x100];

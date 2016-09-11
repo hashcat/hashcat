@@ -6,6 +6,10 @@
 #ifndef _HWMON_H
 #define _HWMON_H
 
+#define GPU_TEMP_DISABLE  0
+#define GPU_TEMP_ABORT    90
+#define GPU_TEMP_RETAIN   75
+
 typedef struct
 {
   HM_ADAPTER_ADL     adl;

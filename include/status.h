@@ -9,8 +9,9 @@
 #include <stdio.h>
 #include <inttypes.h>
 
-#define STATUS       0
-#define STATUS_TIMER 10
+#define STATUS            0
+#define STATUS_TIMER      10
+#define MACHINE_READABLE  0
 
 typedef enum status_rc
 {

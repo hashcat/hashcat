@@ -6,6 +6,8 @@
 #include "common.h"
 #include "terminal.h"
 
+const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
+
 #if defined (_WIN)
 void SetConsoleWindowSize (const int x)
 {

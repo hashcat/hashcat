@@ -12,6 +12,10 @@
 #include <errno.h>
 #include <limits.h>
 
+#define HASH_MODE 0
+#define HEX_SALT  0
+#define SEPARATOR ':'
+
 /**
  * weak hashes shutcut
  */

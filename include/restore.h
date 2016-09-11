@@ -20,12 +20,16 @@
 #include <psapi.h>
 #endif // _WIN
 
-#define RESTORE         0
-#define RESTORE_TIMER   60
-#define RESTORE_DISABLE 0
+#define RESTORE             0
+#define RESTORE_TIMER       60
+#define RESTORE_DISABLE     0
 
 #define RESTORE_VERSION_MIN 320
 #define RESTORE_VERSION_CUR 320
+
+#define SKIP                0
+#define LIMIT               0
+#define KEYSPACE            0
 
 typedef struct
 {

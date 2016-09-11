@@ -24,6 +24,8 @@
 #include <windows.h>
 #endif // _WIN
 
+#define QUIET 0
+
 #if defined (_WIN)
 void SetConsoleWindowSize (const int x);
 #endif

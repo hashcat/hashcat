@@ -82,129 +82,25 @@ extern hc_thread_mutex_t mux_display;
 
 extern void (*get_next_word_func) (char *, u32, u32 *, u32 *);
 
+extern const char *PROMPT;
+
+extern const unsigned int full01;
+extern const unsigned int full80;
+
 static const char *PROGNAME = "hashcat";
 
 static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 
 const int comptime = COMPTIME;
 
-#define INCR_RULES              10000
-#define INCR_SALTS              100000
-#define INCR_MASKS              1000
-
-#define USAGE                   0
-#define VERSION                 0
-#define QUIET                   0
-#define MARKOV_THRESHOLD        0
-#define MARKOV_DISABLE          0
-#define MARKOV_CLASSIC          0
-#define BENCHMARK               0
-
-#define OUTFILE_CHECK_TIMER     5
-#define MACHINE_READABLE        0
-#define LOOPBACK                0
-#define WEAK_HASH_THRESHOLD     100
-#define SHOW                    0
-#define LEFT                    0
-#define USERNAME                0
-#define REMOVE                  0
-#define REMOVE_TIMER            60
-#define SKIP                    0
-#define LIMIT                   0
-#define KEYSPACE                0
-#define DEBUG_MODE              0
-#define RP_GEN                  0
-#define RP_GEN_FUNC_MIN         1
-#define RP_GEN_FUNC_MAX         4
-#define RP_GEN_SEED             0
-#define RULE_BUF_L              ":"
-#define RULE_BUF_R              ":"
 #define FORCE                   0
-#define RUNTIME                 0
-#define HEX_CHARSET             0
-#define HEX_SALT                0
-#define HEX_WORDLIST            0
-#define ATTACK_MODE             0
-#define HASH_MODE               0
-#define SEGMENT_SIZE            32
-#define INCREMENT               0
-#define INCREMENT_MIN           1
-#define INCREMENT_MAX           PW_MAX
-#define SEPARATOR               ':'
-#define NVIDIA_SPIN_DAMP        100
-#define GPU_TEMP_DISABLE        0
-#define GPU_TEMP_ABORT          90
-#define GPU_TEMP_RETAIN         75
-#define WORKLOAD_PROFILE        2
-#define KERNEL_ACCEL            0
-#define KERNEL_LOOPS            0
-#define KERNEL_RULES            1024
-#define KERNEL_COMBS            1024
-#define KERNEL_BFS              1024
-#define KERNEL_THREADS_MAX      256
-#define KERNEL_THREADS_MAX_CPU  1
-#define POWERTUNE_ENABLE        0
-#define LOGFILE_DISABLE         0
-#define SCRYPT_TMTO             0
-#define OPENCL_VECTOR_WIDTH     0
 
+// version
+#define VERSION                 0
 
-
-static const char OPTI_STR_ZERO_BYTE[]         = "Zero-Byte";
-static const char OPTI_STR_PRECOMPUTE_INIT[]   = "Precompute-Init";
-static const char OPTI_STR_PRECOMPUTE_MERKLE[] = "Precompute-Merkle-Demgard";
-static const char OPTI_STR_PRECOMPUTE_PERMUT[] = "Precompute-Final-Permutation";
-static const char OPTI_STR_MEET_IN_MIDDLE[]    = "Meet-In-The-Middle";
-static const char OPTI_STR_EARLY_SKIP[]        = "Early-Skip";
-static const char OPTI_STR_NOT_SALTED[]        = "Not-Salted";
-static const char OPTI_STR_NOT_ITERATED[]      = "Not-Iterated";
-static const char OPTI_STR_PREPENDED_SALT[]    = "Prepended-Salt";
-static const char OPTI_STR_APPENDED_SALT[]     = "Appended-Salt";
-static const char OPTI_STR_SINGLE_HASH[]       = "Single-Hash";
-static const char OPTI_STR_SINGLE_SALT[]       = "Single-Salt";
-static const char OPTI_STR_BRUTE_FORCE[]       = "Brute-Force";
-static const char OPTI_STR_RAW_HASH[]          = "Raw-Hash";
-static const char OPTI_STR_SLOW_HASH_SIMD[]    = "Slow-Hash-SIMD";
-static const char OPTI_STR_USES_BITS_8[]       = "Uses-8-Bit";
-static const char OPTI_STR_USES_BITS_16[]      = "Uses-16-Bit";
-static const char OPTI_STR_USES_BITS_32[]      = "Uses-32-Bit";
-static const char OPTI_STR_USES_BITS_64[]      = "Uses-64-Bit";
-
-
-
-#if defined (_WIN)
-#define mkdir(name,mode) mkdir (name)
-#endif
-
-
-
-
-#define INDUCT_DIR              "induct"
-
-
-#define LOOPBACK_FILE           "hashcat.loopback"
-
-
-
-
+// benchmark
+#define BENCHMARK               0
 #define NUM_DEFAULT_BENCHMARK_ALGORITHMS 146
-
-#define NVIDIA_100PERCENTCPU_WORKAROUND 100
-
-#define global_free(attr)       \
-{                               \
-  myfree ((void *) data.attr);  \
-                                \
-  data.attr = NULL;             \
-}
-
-#define local_free(attr)  \
-{                         \
-  myfree ((void *) attr); \
-                          \
-  attr = NULL;            \
-}
-
 static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
 {
   900,
@@ -355,6 +251,113 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
   125
 };
 
+// outfile_check
+#define OUTFILE_CHECK_TIMER     5
+
+// loopback
+#define LOOPBACK                0
+#define LOOPBACK_FILE           "hashcat.loopback"
+
+// hashlist
+#define WEAK_HASH_THRESHOLD     100
+#define USERNAME                0
+
+// remove
+#define REMOVE                  0
+#define REMOVE_TIMER            60
+
+// debug_mode
+#define DEBUG_MODE              0
+
+// runtime
+#define RUNTIME                 0
+
+// attack_mode
+#define ATTACK_MODE             0
+
+// workaround
+#define NVIDIA_SPIN_DAMP        100
+
+// workload
+#define WORKLOAD_PROFILE        2
+#define SCRYPT_TMTO             0
+#define KERNEL_ACCEL            0
+#define KERNEL_LOOPS            0
+
+// kernel
+#define KERNEL_RULES            1024
+#define KERNEL_COMBS            1024
+#define KERNEL_BFS              1024
+#define KERNEL_THREADS_MAX      256
+#define KERNEL_THREADS_MAX_CPU  1
+static const char OPTI_STR_ZERO_BYTE[]         = "Zero-Byte";
+static const char OPTI_STR_PRECOMPUTE_INIT[]   = "Precompute-Init";
+static const char OPTI_STR_PRECOMPUTE_MERKLE[] = "Precompute-Merkle-Demgard";
+static const char OPTI_STR_PRECOMPUTE_PERMUT[] = "Precompute-Final-Permutation";
+static const char OPTI_STR_MEET_IN_MIDDLE[]    = "Meet-In-The-Middle";
+static const char OPTI_STR_EARLY_SKIP[]        = "Early-Skip";
+static const char OPTI_STR_NOT_SALTED[]        = "Not-Salted";
+static const char OPTI_STR_NOT_ITERATED[]      = "Not-Iterated";
+static const char OPTI_STR_PREPENDED_SALT[]    = "Prepended-Salt";
+static const char OPTI_STR_APPENDED_SALT[]     = "Appended-Salt";
+static const char OPTI_STR_SINGLE_HASH[]       = "Single-Hash";
+static const char OPTI_STR_SINGLE_SALT[]       = "Single-Salt";
+static const char OPTI_STR_BRUTE_FORCE[]       = "Brute-Force";
+static const char OPTI_STR_RAW_HASH[]          = "Raw-Hash";
+static const char OPTI_STR_SLOW_HASH_SIMD[]    = "Slow-Hash-SIMD";
+static const char OPTI_STR_USES_BITS_8[]       = "Uses-8-Bit";
+static const char OPTI_STR_USES_BITS_16[]      = "Uses-16-Bit";
+static const char OPTI_STR_USES_BITS_32[]      = "Uses-32-Bit";
+static const char OPTI_STR_USES_BITS_64[]      = "Uses-64-Bit";
+
+// powertune
+#define POWERTUNE_ENABLE        0
+
+// autotune
+#define OPENCL_VECTOR_WIDTH     0
+
+// induct
+#define INDUCT_DIR              "induct"
+
+//
+
+
+
+
+
+
+#if defined (_WIN)
+#define mkdir(name,mode) mkdir (name)
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define global_free(attr)       \
+{                               \
+  myfree ((void *) data.attr);  \
+                                \
+  data.attr = NULL;             \
+}
+
+#define local_free(attr)  \
+{                         \
+  myfree ((void *) attr); \
+                          \
+  attr = NULL;            \
+}
+
+
+
 /**
  * types
  */
@@ -365,8 +368,6 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
  * globals
  */
 
-static unsigned int full01 = 0x01010101;
-static unsigned int full80 = 0x80808080;
 
 
 
@@ -374,7 +375,7 @@ static hc_thread_mutex_t mux_counter;
 static hc_thread_mutex_t mux_dispatcher;
 
 
-const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
+
 
 /**
  * hashcat specific functions

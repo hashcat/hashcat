@@ -6,6 +6,9 @@
 #ifndef _WORDLIST_H
 #define _WORDLIST_H
 
+#define HEX_WORDLIST 0
+#define SEGMENT_SIZE 32
+
 typedef struct
 {
   char *buf;
