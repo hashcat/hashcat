@@ -82,8 +82,6 @@ extern hc_thread_mutex_t mux_display;
 
 extern void (*get_next_word_func) (char *, u32, u32 *, u32 *);
 
-extern const char *PROMPT;
-
 extern const unsigned int full01;
 extern const unsigned int full80;
 
@@ -93,7 +91,7 @@ static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 
 const int comptime = COMPTIME;
 
-#define FORCE                   0
+#define FORCE 0
 
 // version
 #define VERSION                 0
@@ -257,6 +255,50 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
 // loopback
 #define LOOPBACK                0
 #define LOOPBACK_FILE           "hashcat.loopback"
+typedef struct
+{
+  FILE *fp;
+
+} loopback_ctx_t;
+
+
+void loopback_format_plain (loopback_ctx_t *loopback_ctx, const unsigned char *plain_ptr, const uint plain_len)
+{
+  int needs_hexify = 0;
+
+  for (uint i = 0; i < plain_len; i++)
+  {
+    if (plain_ptr[i] < 0x20)
+    {
+      needs_hexify = 1;
+
+      break;
+    }
+
+    if (plain_ptr[i] > 0x7f)
+    {
+      needs_hexify = 1;
+
+      break;
+    }
+  }
+
+  if (needs_hexify == 1)
+  {
+    fprintf (loopback_ctx->fp, "$HEX[");
+
+    for (uint i = 0; i < plain_len; i++)
+    {
+      fprintf (loopback_ctx->fp, "%02x", plain_ptr[i]);
+    }
+
+    fprintf (loopback_ctx->fp, "]");
+  }
+  else
+  {
+    fwrite (plain_ptr, plain_len, 1, loopback_ctx->fp);
+  }
+}
 
 // hashlist
 #define WEAK_HASH_THRESHOLD     100
@@ -268,6 +310,87 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
 
 // debug_mode
 #define DEBUG_MODE              0
+typedef struct
+{
+  FILE *fp;
+
+} debug_ctx_t;
+
+
+void debug_format_plain (debug_ctx_t *debug_ctx, const unsigned char *plain_ptr, const uint plain_len)
+{
+  int needs_hexify = 0;
+
+  for (uint i = 0; i < plain_len; i++)
+  {
+    if (plain_ptr[i] < 0x20)
+    {
+      needs_hexify = 1;
+
+      break;
+    }
+
+    if (plain_ptr[i] > 0x7f)
+    {
+      needs_hexify = 1;
+
+      break;
+    }
+  }
+
+  if (needs_hexify == 1)
+  {
+    fprintf (debug_ctx->fp, "$HEX[");
+
+    for (uint i = 0; i < plain_len; i++)
+    {
+      fprintf (debug_ctx->fp, "%02x", plain_ptr[i]);
+    }
+
+    fprintf (debug_ctx->fp, "]");
+  }
+  else
+  {
+    fwrite (plain_ptr, plain_len, 1, debug_ctx->fp);
+  }
+}
+
+
+void format_debug (char *debug_file, uint debug_mode, unsigned char *orig_plain_ptr, uint orig_plain_len, unsigned char *mod_plain_ptr, uint mod_plain_len, char *rule_buf, int rule_len)
+{
+  unsigned char *rule_ptr = (unsigned char *) rule_buf;
+
+  debug_ctx_t debug_ctx;
+
+  debug_ctx.fp = fopen (debug_file, "ab");
+
+  if (debug_ctx.fp == NULL)
+  {
+    log_error ("ERROR: Could not open debug-file for writing");
+
+    return;
+  }
+
+  if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4))
+  {
+    debug_format_plain (&debug_ctx, orig_plain_ptr, orig_plain_len);
+
+    if ((debug_mode == 3) || (debug_mode == 4)) fputc (':', debug_ctx.fp);
+  }
+
+  fwrite (rule_ptr, rule_len, 1, debug_ctx.fp);
+
+  if (debug_mode == 4)
+  {
+    fputc (':', debug_ctx.fp);
+
+    debug_format_plain (&debug_ctx, mod_plain_ptr, mod_plain_len);
+  }
+
+  fputc  ('\n', debug_ctx.fp);
+
+  fclose (debug_ctx.fp);
+}
 
 // runtime
 #define RUNTIME                 0
@@ -275,21 +398,17 @@ static uint default_benchmark_algorithms[NUM_DEFAULT_BENCHMARK_ALGORITHMS] =
 // attack_mode
 #define ATTACK_MODE             0
 
-// workaround
-#define NVIDIA_SPIN_DAMP        100
-
-// workload
-#define WORKLOAD_PROFILE        2
-#define SCRYPT_TMTO             0
+// kernel
 #define KERNEL_ACCEL            0
 #define KERNEL_LOOPS            0
-
-// kernel
 #define KERNEL_RULES            1024
 #define KERNEL_COMBS            1024
 #define KERNEL_BFS              1024
 #define KERNEL_THREADS_MAX      256
 #define KERNEL_THREADS_MAX_CPU  1
+#define WORKLOAD_PROFILE        2
+#define SCRYPT_TMTO             0
+#define NVIDIA_SPIN_DAMP        100
 static const char OPTI_STR_ZERO_BYTE[]         = "Zero-Byte";
 static const char OPTI_STR_PRECOMPUTE_INIT[]   = "Precompute-Init";
 static const char OPTI_STR_PRECOMPUTE_MERKLE[] = "Precompute-Merkle-Demgard";
@@ -309,6 +428,33 @@ static const char OPTI_STR_USES_BITS_8[]       = "Uses-8-Bit";
 static const char OPTI_STR_USES_BITS_16[]      = "Uses-16-Bit";
 static const char OPTI_STR_USES_BITS_32[]      = "Uses-32-Bit";
 static const char OPTI_STR_USES_BITS_64[]      = "Uses-64-Bit";
+static char *stroptitype (const uint opti_type)
+{
+  switch (opti_type)
+  {
+    case OPTI_TYPE_ZERO_BYTE:         return ((char *) OPTI_STR_ZERO_BYTE);
+    case OPTI_TYPE_PRECOMPUTE_INIT:   return ((char *) OPTI_STR_PRECOMPUTE_INIT);
+    case OPTI_TYPE_PRECOMPUTE_MERKLE: return ((char *) OPTI_STR_PRECOMPUTE_MERKLE);
+    case OPTI_TYPE_PRECOMPUTE_PERMUT: return ((char *) OPTI_STR_PRECOMPUTE_PERMUT);
+    case OPTI_TYPE_MEET_IN_MIDDLE:    return ((char *) OPTI_STR_MEET_IN_MIDDLE);
+    case OPTI_TYPE_EARLY_SKIP:        return ((char *) OPTI_STR_EARLY_SKIP);
+    case OPTI_TYPE_NOT_SALTED:        return ((char *) OPTI_STR_NOT_SALTED);
+    case OPTI_TYPE_NOT_ITERATED:      return ((char *) OPTI_STR_NOT_ITERATED);
+    case OPTI_TYPE_PREPENDED_SALT:    return ((char *) OPTI_STR_PREPENDED_SALT);
+    case OPTI_TYPE_APPENDED_SALT:     return ((char *) OPTI_STR_APPENDED_SALT);
+    case OPTI_TYPE_SINGLE_HASH:       return ((char *) OPTI_STR_SINGLE_HASH);
+    case OPTI_TYPE_SINGLE_SALT:       return ((char *) OPTI_STR_SINGLE_SALT);
+    case OPTI_TYPE_BRUTE_FORCE:       return ((char *) OPTI_STR_BRUTE_FORCE);
+    case OPTI_TYPE_RAW_HASH:          return ((char *) OPTI_STR_RAW_HASH);
+    case OPTI_TYPE_SLOW_HASH_SIMD:    return ((char *) OPTI_STR_SLOW_HASH_SIMD);
+    case OPTI_TYPE_USES_BITS_8:       return ((char *) OPTI_STR_USES_BITS_8);
+    case OPTI_TYPE_USES_BITS_16:      return ((char *) OPTI_STR_USES_BITS_16);
+    case OPTI_TYPE_USES_BITS_32:      return ((char *) OPTI_STR_USES_BITS_32);
+    case OPTI_TYPE_USES_BITS_64:      return ((char *) OPTI_STR_USES_BITS_64);
+  }
+
+  return (NULL);
+}
 
 // powertune
 #define POWERTUNE_ENABLE        0
@@ -488,163 +634,13 @@ int sort_by_stringptr (const void *p1, const void *p2)
   return strcmp (*s1, *s2);
 }
 
-typedef struct
-{
-  FILE *fp;
-
-} loopback_ctx_t;
-
-
-void loopback_format_plain (loopback_ctx_t *loopback_ctx, const unsigned char *plain_ptr, const uint plain_len)
-{
-  int needs_hexify = 0;
-
-  for (uint i = 0; i < plain_len; i++)
-  {
-    if (plain_ptr[i] < 0x20)
-    {
-      needs_hexify = 1;
-
-      break;
-    }
-
-    if (plain_ptr[i] > 0x7f)
-    {
-      needs_hexify = 1;
-
-      break;
-    }
-  }
-
-  if (needs_hexify == 1)
-  {
-    fprintf (loopback_ctx->fp, "$HEX[");
-
-    for (uint i = 0; i < plain_len; i++)
-    {
-      fprintf (loopback_ctx->fp, "%02x", plain_ptr[i]);
-    }
-
-    fprintf (loopback_ctx->fp, "]");
-  }
-  else
-  {
-    fwrite (plain_ptr, plain_len, 1, loopback_ctx->fp);
-  }
-}
 
 
 
-typedef struct
-{
-  FILE *fp;
-
-} debug_ctx_t;
 
 
-void debug_format_plain (debug_ctx_t *debug_ctx, const unsigned char *plain_ptr, const uint plain_len)
-{
-  int needs_hexify = 0;
-
-  for (uint i = 0; i < plain_len; i++)
-  {
-    if (plain_ptr[i] < 0x20)
-    {
-      needs_hexify = 1;
-
-      break;
-    }
-
-    if (plain_ptr[i] > 0x7f)
-    {
-      needs_hexify = 1;
-
-      break;
-    }
-  }
-
-  if (needs_hexify == 1)
-  {
-    fprintf (debug_ctx->fp, "$HEX[");
-
-    for (uint i = 0; i < plain_len; i++)
-    {
-      fprintf (debug_ctx->fp, "%02x", plain_ptr[i]);
-    }
-
-    fprintf (debug_ctx->fp, "]");
-  }
-  else
-  {
-    fwrite (plain_ptr, plain_len, 1, debug_ctx->fp);
-  }
-}
 
 
-void format_debug (char *debug_file, uint debug_mode, unsigned char *orig_plain_ptr, uint orig_plain_len, unsigned char *mod_plain_ptr, uint mod_plain_len, char *rule_buf, int rule_len)
-{
-  unsigned char *rule_ptr = (unsigned char *) rule_buf;
-
-  debug_ctx_t debug_ctx;
-
-  debug_ctx.fp = fopen (debug_file, "ab");
-
-  if (debug_ctx.fp == NULL)
-  {
-    log_error ("ERROR: Could not open debug-file for writing");
-
-    return;
-  }
-
-  if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4))
-  {
-    debug_format_plain (&debug_ctx, orig_plain_ptr, orig_plain_len);
-
-    if ((debug_mode == 3) || (debug_mode == 4)) fputc (':', debug_ctx.fp);
-  }
-
-  fwrite (rule_ptr, rule_len, 1, debug_ctx.fp);
-
-  if (debug_mode == 4)
-  {
-    fputc (':', debug_ctx.fp);
-
-    debug_format_plain (&debug_ctx, mod_plain_ptr, mod_plain_len);
-  }
-
-  fputc  ('\n', debug_ctx.fp);
-
-  fclose (debug_ctx.fp);
-}
-
-
-static char *stroptitype (const uint opti_type)
-{
-  switch (opti_type)
-  {
-    case OPTI_TYPE_ZERO_BYTE:         return ((char *) OPTI_STR_ZERO_BYTE);
-    case OPTI_TYPE_PRECOMPUTE_INIT:   return ((char *) OPTI_STR_PRECOMPUTE_INIT);
-    case OPTI_TYPE_PRECOMPUTE_MERKLE: return ((char *) OPTI_STR_PRECOMPUTE_MERKLE);
-    case OPTI_TYPE_PRECOMPUTE_PERMUT: return ((char *) OPTI_STR_PRECOMPUTE_PERMUT);
-    case OPTI_TYPE_MEET_IN_MIDDLE:    return ((char *) OPTI_STR_MEET_IN_MIDDLE);
-    case OPTI_TYPE_EARLY_SKIP:        return ((char *) OPTI_STR_EARLY_SKIP);
-    case OPTI_TYPE_NOT_SALTED:        return ((char *) OPTI_STR_NOT_SALTED);
-    case OPTI_TYPE_NOT_ITERATED:      return ((char *) OPTI_STR_NOT_ITERATED);
-    case OPTI_TYPE_PREPENDED_SALT:    return ((char *) OPTI_STR_PREPENDED_SALT);
-    case OPTI_TYPE_APPENDED_SALT:     return ((char *) OPTI_STR_APPENDED_SALT);
-    case OPTI_TYPE_SINGLE_HASH:       return ((char *) OPTI_STR_SINGLE_HASH);
-    case OPTI_TYPE_SINGLE_SALT:       return ((char *) OPTI_STR_SINGLE_SALT);
-    case OPTI_TYPE_BRUTE_FORCE:       return ((char *) OPTI_STR_BRUTE_FORCE);
-    case OPTI_TYPE_RAW_HASH:          return ((char *) OPTI_STR_RAW_HASH);
-    case OPTI_TYPE_SLOW_HASH_SIMD:    return ((char *) OPTI_STR_SLOW_HASH_SIMD);
-    case OPTI_TYPE_USES_BITS_8:       return ((char *) OPTI_STR_USES_BITS_8);
-    case OPTI_TYPE_USES_BITS_16:      return ((char *) OPTI_STR_USES_BITS_16);
-    case OPTI_TYPE_USES_BITS_32:      return ((char *) OPTI_STR_USES_BITS_32);
-    case OPTI_TYPE_USES_BITS_64:      return ((char *) OPTI_STR_USES_BITS_64);
-  }
-
-  return (NULL);
-}
 
 
 static void myabort ()
@@ -779,26 +775,7 @@ static void hc_signal (void (callback) (int))
  */
 
 
-static void send_prompt ()
-{
-  fprintf (stdout, "%s", PROMPT);
 
-  fflush (stdout);
-}
-
-static void clear_prompt ()
-{
-  fputc ('\r', stdout);
-
-  for (size_t i = 0; i < strlen (PROMPT); i++)
-  {
-    fputc (' ', stdout);
-  }
-
-  fputc ('\r', stdout);
-
-  fflush (stdout);
-}
 
 static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 {
@@ -1102,9 +1079,7 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 
     if ((quiet == 0) && (debug_file == NULL))
     {
-      fprintf (stdout, "%s", PROMPT);
-
-      fflush (stdout);
+      send_prompt ();
     }
   }
 }
@@ -2951,8 +2926,7 @@ static void *thread_monitor (void *p)
                   log_info ("");
                 }
 
-                if (data.quiet == 0) fprintf (stdout, "%s", PROMPT);
-                if (data.quiet == 0) fflush (stdout);
+                if (data.quiet == 0) send_prompt ();
 
                 slowdown_warnings++;
               }
@@ -3473,9 +3447,7 @@ static void set_kernel_power_final (const u64 kernel_power_final)
     log_info ("INFO: approaching final keyspace, workload adjusted");
     log_info ("");
 
-    fprintf (stdout, "%s", PROMPT);
-
-    fflush (stdout);
+    send_prompt ();
   }
 
   data.kernel_power_final = kernel_power_final;
@@ -4079,8 +4051,7 @@ static void *thread_keypress (void *p)
 
         log_info ("");
 
-        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-        if (quiet == 0) fflush (stdout);
+        if (quiet == 0) send_prompt ();
 
         break;
 
@@ -4092,8 +4063,7 @@ static void *thread_keypress (void *p)
 
         log_info ("");
 
-        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-        if (quiet == 0) fflush (stdout);
+        if (quiet == 0) send_prompt ();
 
         break;
 
@@ -4105,8 +4075,7 @@ static void *thread_keypress (void *p)
 
         log_info ("");
 
-        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-        if (quiet == 0) fflush (stdout);
+        if (quiet == 0) send_prompt ();
 
         break;
 
@@ -4118,8 +4087,7 @@ static void *thread_keypress (void *p)
 
         log_info ("");
 
-        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-        if (quiet == 0) fflush (stdout);
+        if (quiet == 0) send_prompt ();
 
         break;
 
@@ -4131,8 +4099,7 @@ static void *thread_keypress (void *p)
 
         log_info ("");
 
-        if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-        if (quiet == 0) fflush (stdout);
+        if (quiet == 0) send_prompt ();
 
         break;
 
@@ -13336,8 +13303,7 @@ int main (int argc, char **argv)
         {
           if ((quiet == 0) && (status == 0) && (benchmark == 0))
           {
-            if (quiet == 0) fprintf (stdout, "%s", PROMPT);
-            if (quiet == 0) fflush (stdout);
+            if (quiet == 0) send_prompt ();
           }
         }
         else if (wordlist_mode == WL_MODE_STDIN)

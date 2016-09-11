@@ -8,6 +8,27 @@
 
 const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
 
+void send_prompt ()
+{
+  fprintf (stdout, "%s", PROMPT);
+
+  fflush (stdout);
+}
+
+void clear_prompt ()
+{
+  fputc ('\r', stdout);
+
+  for (size_t i = 0; i < strlen (PROMPT); i++)
+  {
+    fputc (' ', stdout);
+  }
+
+  fputc ('\r', stdout);
+
+  fflush (stdout);
+}
+
 #if defined (_WIN)
 void SetConsoleWindowSize (const int x)
 {

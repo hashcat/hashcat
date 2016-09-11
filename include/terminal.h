@@ -9,6 +9,7 @@
 #define _TERMINAL_H
 
 #include <stdio.h>
+#include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -25,6 +26,9 @@
 #endif // _WIN
 
 #define QUIET 0
+
+void send_prompt ();
+void clear_prompt ();
 
 #if defined (_WIN)
 void SetConsoleWindowSize (const int x);
