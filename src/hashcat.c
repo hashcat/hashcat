@@ -87,8 +87,6 @@ extern const unsigned int full80;
 
 static const char *PROGNAME = "hashcat";
 
-static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
-
 const int comptime = COMPTIME;
 
 #define FORCE 0
@@ -260,8 +258,6 @@ typedef struct
   FILE *fp;
 
 } loopback_ctx_t;
-
-
 void loopback_format_plain (loopback_ctx_t *loopback_ctx, const unsigned char *plain_ptr, const uint plain_len)
 {
   int needs_hexify = 0;
@@ -300,9 +296,98 @@ void loopback_format_plain (loopback_ctx_t *loopback_ctx, const unsigned char *p
   }
 }
 
-// hashlist
+// weak hash
 #define WEAK_HASH_THRESHOLD     100
+
+// hashes
 #define USERNAME                0
+int sort_by_digest_p0p1 (const void *v1, const void *v2)
+{
+  const u32 *d1 = (const u32 *) v1;
+  const u32 *d2 = (const u32 *) v2;
+
+  const uint dgst_pos0 = data.hashconfig->dgst_pos0;
+  const uint dgst_pos1 = data.hashconfig->dgst_pos1;
+  const uint dgst_pos2 = data.hashconfig->dgst_pos2;
+  const uint dgst_pos3 = data.hashconfig->dgst_pos3;
+
+  if (d1[dgst_pos3] > d2[dgst_pos3]) return ( 1);
+  if (d1[dgst_pos3] < d2[dgst_pos3]) return -1;
+  if (d1[dgst_pos2] > d2[dgst_pos2]) return ( 1);
+  if (d1[dgst_pos2] < d2[dgst_pos2]) return -1;
+  if (d1[dgst_pos1] > d2[dgst_pos1]) return ( 1);
+  if (d1[dgst_pos1] < d2[dgst_pos1]) return -1;
+  if (d1[dgst_pos0] > d2[dgst_pos0]) return ( 1);
+  if (d1[dgst_pos0] < d2[dgst_pos0]) return -1;
+
+  return 0;
+}
+
+int sort_by_salt (const void *v1, const void *v2)
+{
+  const salt_t *s1 = (const salt_t *) v1;
+  const salt_t *s2 = (const salt_t *) v2;
+
+  const int res1 = s1->salt_len - s2->salt_len;
+
+  if (res1 != 0) return (res1);
+
+  const int res2 = s1->salt_iter - s2->salt_iter;
+
+  if (res2 != 0) return (res2);
+
+  uint n;
+
+  n = 16;
+
+  while (n--)
+  {
+    if (s1->salt_buf[n] > s2->salt_buf[n]) return ( 1);
+    if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
+  }
+
+  n = 8;
+
+  while (n--)
+  {
+    if (s1->salt_buf_pc[n] > s2->salt_buf_pc[n]) return ( 1);
+    if (s1->salt_buf_pc[n] < s2->salt_buf_pc[n]) return -1;
+  }
+
+  return 0;
+}
+int sort_by_hash (const void *v1, const void *v2)
+{
+  const hash_t *h1 = (const hash_t *) v1;
+  const hash_t *h2 = (const hash_t *) v2;
+
+  if (data.hashconfig->is_salted)
+  {
+    const salt_t *s1 = h1->salt;
+    const salt_t *s2 = h2->salt;
+
+    int res = sort_by_salt (s1, s2);
+
+    if (res != 0) return (res);
+  }
+
+  const void *d1 = h1->digest;
+  const void *d2 = h2->digest;
+
+  return sort_by_digest_p0p1 (d1, d2);
+}
+int sort_by_hash_no_salt (const void *v1, const void *v2)
+{
+  const hash_t *h1 = (const hash_t *) v1;
+  const hash_t *h2 = (const hash_t *) v2;
+
+  const void *d1 = h1->digest;
+  const void *d2 = h2->digest;
+
+  return sort_by_digest_p0p1 (d1, d2);
+}
+
+
 
 // remove
 #define REMOVE                  0
@@ -461,160 +546,10 @@ static char *stroptitype (const uint opti_type)
 
 // autotune
 #define OPENCL_VECTOR_WIDTH     0
+static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 
 // induct
 #define INDUCT_DIR              "induct"
-
-//
-
-
-
-
-
-
-#if defined (_WIN)
-#define mkdir(name,mode) mkdir (name)
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define global_free(attr)       \
-{                               \
-  myfree ((void *) data.attr);  \
-                                \
-  data.attr = NULL;             \
-}
-
-#define local_free(attr)  \
-{                         \
-  myfree ((void *) attr); \
-                          \
-  attr = NULL;            \
-}
-
-
-
-/**
- * types
- */
-
-
-
-/**
- * globals
- */
-
-
-
-
-static hc_thread_mutex_t mux_counter;
-static hc_thread_mutex_t mux_dispatcher;
-
-
-
-
-/**
- * hashcat specific functions
- */
-
-int sort_by_digest_p0p1 (const void *v1, const void *v2)
-{
-  const u32 *d1 = (const u32 *) v1;
-  const u32 *d2 = (const u32 *) v2;
-
-  const uint dgst_pos0 = data.hashconfig->dgst_pos0;
-  const uint dgst_pos1 = data.hashconfig->dgst_pos1;
-  const uint dgst_pos2 = data.hashconfig->dgst_pos2;
-  const uint dgst_pos3 = data.hashconfig->dgst_pos3;
-
-  if (d1[dgst_pos3] > d2[dgst_pos3]) return ( 1);
-  if (d1[dgst_pos3] < d2[dgst_pos3]) return -1;
-  if (d1[dgst_pos2] > d2[dgst_pos2]) return ( 1);
-  if (d1[dgst_pos2] < d2[dgst_pos2]) return -1;
-  if (d1[dgst_pos1] > d2[dgst_pos1]) return ( 1);
-  if (d1[dgst_pos1] < d2[dgst_pos1]) return -1;
-  if (d1[dgst_pos0] > d2[dgst_pos0]) return ( 1);
-  if (d1[dgst_pos0] < d2[dgst_pos0]) return -1;
-
-  return 0;
-}
-
-int sort_by_salt (const void *v1, const void *v2)
-{
-  const salt_t *s1 = (const salt_t *) v1;
-  const salt_t *s2 = (const salt_t *) v2;
-
-  const int res1 = s1->salt_len - s2->salt_len;
-
-  if (res1 != 0) return (res1);
-
-  const int res2 = s1->salt_iter - s2->salt_iter;
-
-  if (res2 != 0) return (res2);
-
-  uint n;
-
-  n = 16;
-
-  while (n--)
-  {
-    if (s1->salt_buf[n] > s2->salt_buf[n]) return ( 1);
-    if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
-  }
-
-  n = 8;
-
-  while (n--)
-  {
-    if (s1->salt_buf_pc[n] > s2->salt_buf_pc[n]) return ( 1);
-    if (s1->salt_buf_pc[n] < s2->salt_buf_pc[n]) return -1;
-  }
-
-  return 0;
-}
-
-int sort_by_hash_no_salt (const void *v1, const void *v2)
-{
-  const hash_t *h1 = (const hash_t *) v1;
-  const hash_t *h2 = (const hash_t *) v2;
-
-  const void *d1 = h1->digest;
-  const void *d2 = h2->digest;
-
-  return sort_by_digest_p0p1 (d1, d2);
-}
-
-int sort_by_hash (const void *v1, const void *v2)
-{
-  const hash_t *h1 = (const hash_t *) v1;
-  const hash_t *h2 = (const hash_t *) v2;
-
-  if (data.hashconfig->is_salted)
-  {
-    const salt_t *s1 = h1->salt;
-    const salt_t *s2 = h2->salt;
-
-    int res = sort_by_salt (s1, s2);
-
-    if (res != 0) return (res);
-  }
-
-  const void *d1 = h1->digest;
-  const void *d2 = h2->digest;
-
-  return sort_by_digest_p0p1 (d1, d2);
-}
-
 int sort_by_mtime (const void *p1, const void *p2)
 {
   const char **f1 = (const char **) p1;
@@ -626,43 +561,16 @@ int sort_by_mtime (const void *p1, const void *p2)
   return s2.st_mtime - s1.st_mtime;
 }
 
-int sort_by_stringptr (const void *p1, const void *p2)
-{
-  const char **s1 = (const char **) p1;
-  const char **s2 = (const char **) p2;
-
-  return strcmp (*s1, *s2);
-}
-
-
-
-
-
-
-
-
-
-
+// thread
+static hc_thread_mutex_t mux_dispatcher;
+static hc_thread_mutex_t mux_counter;
 static void myabort ()
 {
   data.devices_status = STATUS_ABORTED;
 }
-
 static void myquit ()
 {
   data.devices_status = STATUS_QUIT;
-}
-
-static void check_checkpoint ()
-{
-  // if (data.restore_disable == 1) break;  (this is already implied by previous checks)
-
-  u64 words_cur = get_lowest_words_done ();
-
-  if (words_cur != data.checkpoint_cur_words)
-  {
-    myabort ();
-  }
 }
 
 #if defined (_WIN)
@@ -768,11 +676,58 @@ static void hc_signal (void (callback) (int))
 
 #endif
 
+// restore
+static void check_checkpoint ()
+{
+  // if (data.restore_disable == 1) break;  (this is already implied by previous checks)
+
+  u64 words_cur = get_lowest_words_done ();
+
+  if (words_cur != data.checkpoint_cur_words)
+  {
+    myabort ();
+  }
+}
 
 
-/**
- * hashcat -only- functions
- */
+// data
+#define global_free(attr)       \
+{                               \
+  myfree ((void *) data.attr);  \
+                                \
+  data.attr = NULL;             \
+}
+
+#define local_free(attr)  \
+{                         \
+  myfree ((void *) attr); \
+                          \
+  attr = NULL;            \
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

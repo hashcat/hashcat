@@ -24,6 +24,12 @@
 #define DOT_HASHCAT     ".hashcat"
 #define SESSIONS_FOLDER "sessions"
 
+#if defined (_WIN)
+#define mkdir(name,mode) mkdir (name)
+#endif
+
+int sort_by_stringptr (const void *p1, const void *p2);
+
 char *get_exec_path   (void);
 char *get_install_dir (const char *progname);
 char *get_profile_dir (const char *homedir);

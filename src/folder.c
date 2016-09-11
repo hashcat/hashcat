@@ -18,6 +18,14 @@
 #include "logging.h"
 #endif
 
+int sort_by_stringptr (const void *p1, const void *p2)
+{
+  const char **s1 = (const char **) p1;
+  const char **s2 = (const char **) p2;
+
+  return strcmp (*s1, *s2);
+}
+
 char *get_exec_path ()
 {
   int exec_path_len = 1024;
