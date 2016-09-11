@@ -72,6 +72,20 @@
 #include "stdout.h"
 #include "wordlist.h"
 #include "dictstat.h"
+#include "version.h"
+#include "benchmark.h"
+#include "outfile_check.h"
+#include "loopback.h"
+#include "weak_hash.h"
+#include "hash_management.h"
+#include "remove.h"
+#include "debugfile.h"
+#include "runtime.h"
+#include "attack_mode.h"
+#include "kernel.h"
+#include "powertune.h"
+#include "autotune.h"
+#include "induct.h"
 
 extern hc_global_data_t data;
 
@@ -296,10 +310,10 @@ void loopback_format_plain (loopback_ctx_t *loopback_ctx, const unsigned char *p
   }
 }
 
-// weak hash
+// weak_hash
 #define WEAK_HASH_THRESHOLD     100
 
-// hashes
+// hash_management
 #define USERNAME                0
 int sort_by_digest_p0p1 (const void *v1, const void *v2)
 {
@@ -322,7 +336,6 @@ int sort_by_digest_p0p1 (const void *v1, const void *v2)
 
   return 0;
 }
-
 int sort_by_salt (const void *v1, const void *v2)
 {
   const salt_t *s1 = (const salt_t *) v1;
@@ -388,7 +401,6 @@ int sort_by_hash_no_salt (const void *v1, const void *v2)
 }
 
 
-
 // remove
 #define REMOVE                  0
 #define REMOVE_TIMER            60
@@ -400,8 +412,6 @@ typedef struct
   FILE *fp;
 
 } debug_ctx_t;
-
-
 void debug_format_plain (debug_ctx_t *debug_ctx, const unsigned char *plain_ptr, const uint plain_len)
 {
   int needs_hexify = 0;
@@ -439,8 +449,6 @@ void debug_format_plain (debug_ctx_t *debug_ctx, const unsigned char *plain_ptr,
     fwrite (plain_ptr, plain_len, 1, debug_ctx->fp);
   }
 }
-
-
 void format_debug (char *debug_file, uint debug_mode, unsigned char *orig_plain_ptr, uint orig_plain_len, unsigned char *mod_plain_ptr, uint mod_plain_len, char *rule_buf, int rule_len)
 {
   unsigned char *rule_ptr = (unsigned char *) rule_buf;

@@ -8,7 +8,10 @@
 
 #if defined (_POSIX)
 #include <sys/time.h>
-#else
+#endif
+
+#if defined (_WIN)
+#include <windows.h>
 #endif
 
 #if defined (_WIN)
