@@ -6815,77 +6815,12 @@ int main (int argc, char **argv)
 
     local_free (hashes_buf);
 
-    /**
-     * special modification not set from parser
-     */
+    char *optional_param1 = NULL;
 
-    switch (hashconfig->hash_mode)
-    {
-      case  6211: salts_buf->truecrypt_mdlen = 1 * 512; break;
-      case  6212: salts_buf->truecrypt_mdlen = 2 * 512; break;
-      case  6213: salts_buf->truecrypt_mdlen = 3 * 512; break;
-      case  6221: salts_buf->truecrypt_mdlen = 1 * 512; break;
-      case  6222: salts_buf->truecrypt_mdlen = 2 * 512; break;
-      case  6223: salts_buf->truecrypt_mdlen = 3 * 512; break;
-      case  6231: salts_buf->truecrypt_mdlen = 1 * 512; break;
-      case  6232: salts_buf->truecrypt_mdlen = 2 * 512; break;
-      case  6233: salts_buf->truecrypt_mdlen = 3 * 512; break;
-      case  6241: salts_buf->truecrypt_mdlen = 1 * 512; break;
-      case  6242: salts_buf->truecrypt_mdlen = 2 * 512; break;
-      case  6243: salts_buf->truecrypt_mdlen = 3 * 512; break;
-      case 13711: salts_buf->truecrypt_mdlen = 1 * 512; break;
-      case 13712: salts_buf->truecrypt_mdlen = 2 * 512; break;
-      case 13713: salts_buf->truecrypt_mdlen = 3 * 512; break;
-      case 13721: salts_buf->truecrypt_mdlen = 1 * 512; break;
-      case 13722: salts_buf->truecrypt_mdlen = 2 * 512; break;
-      case 13723: salts_buf->truecrypt_mdlen = 3 * 512; break;
-      case 13731: salts_buf->truecrypt_mdlen = 1 * 512; break;
-      case 13732: salts_buf->truecrypt_mdlen = 2 * 512; break;
-      case 13733: salts_buf->truecrypt_mdlen = 3 * 512; break;
-      case 13741: salts_buf->truecrypt_mdlen = 1 * 512; break;
-      case 13742: salts_buf->truecrypt_mdlen = 2 * 512; break;
-      case 13743: salts_buf->truecrypt_mdlen = 3 * 512; break;
-      case 13751: salts_buf->truecrypt_mdlen = 1 * 512; break;
-      case 13752: salts_buf->truecrypt_mdlen = 2 * 512; break;
-      case 13753: salts_buf->truecrypt_mdlen = 3 * 512; break;
-      case 13761: salts_buf->truecrypt_mdlen = 1 * 512; break;
-      case 13762: salts_buf->truecrypt_mdlen = 2 * 512; break;
-      case 13763: salts_buf->truecrypt_mdlen = 3 * 512; break;
-    }
+    if (truecrypt_keyfiles) optional_param1 = truecrypt_keyfiles;
+    if (veracrypt_keyfiles) optional_param1 = veracrypt_keyfiles;
 
-    if (truecrypt_keyfiles)
-    {
-      uint *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
-
-      char *keyfiles = mystrdup (truecrypt_keyfiles);
-
-      char *keyfile = strtok (keyfiles, ",");
-
-      do
-      {
-        cpu_crc32 (keyfile, (u8 *) keyfile_buf);
-
-      } while ((keyfile = strtok (NULL, ",")) != NULL);
-
-      free (keyfiles);
-    }
-
-    if (veracrypt_keyfiles)
-    {
-      uint *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
-
-      char *keyfiles = mystrdup (veracrypt_keyfiles);
-
-      char *keyfile = strtok (keyfiles, ",");
-
-      do
-      {
-        cpu_crc32 (keyfile, (u8 *) keyfile_buf);
-
-      } while ((keyfile = strtok (NULL, ",")) != NULL);
-
-      free (keyfiles);
-    }
+    hashconfig_general_defaults (hashconfig, salts_buf, salts_cnt, esalts_buf, optional_param1);
 
     data.digests_cnt        = digests_cnt;
     data.digests_done       = digests_done;
