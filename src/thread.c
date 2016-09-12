@@ -25,6 +25,7 @@
 #include "loopback.h"
 #include "status.h"
 #include "data.h"
+#include "shared.h"
 
 extern hc_global_data_t data;
 
