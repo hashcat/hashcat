@@ -30,6 +30,7 @@
 #include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
+#include "loopback.h"
 #include "data.h"
 #include "wordlist.h"
 

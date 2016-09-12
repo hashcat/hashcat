@@ -59,6 +59,7 @@
 #include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
+#include "loopback.h"
 #include "data.h"
 #include "affinity.h"
 #include "bitmap.h"
@@ -72,7 +73,6 @@
 #include "version.h"
 #include "benchmark.h"
 #include "outfile_check.h"
-#include "loopback.h"
 #include "weak_hash.h"
 #include "hash_management.h"
 #include "remove.h"
@@ -110,51 +110,6 @@ const int comptime = COMPTIME;
 // outfile_check
 #define OUTFILE_CHECK_TIMER     5
 
-// loopback
-#define LOOPBACK                0
-#define LOOPBACK_FILE           "hashcat.loopback"
-typedef struct
-{
-  FILE *fp;
-
-} loopback_ctx_t;
-void loopback_format_plain (loopback_ctx_t *loopback_ctx, const unsigned char *plain_ptr, const uint plain_len)
-{
-  int needs_hexify = 0;
-
-  for (uint i = 0; i < plain_len; i++)
-  {
-    if (plain_ptr[i] < 0x20)
-    {
-      needs_hexify = 1;
-
-      break;
-    }
-
-    if (plain_ptr[i] > 0x7f)
-    {
-      needs_hexify = 1;
-
-      break;
-    }
-  }
-
-  if (needs_hexify == 1)
-  {
-    fprintf (loopback_ctx->fp, "$HEX[");
-
-    for (uint i = 0; i < plain_len; i++)
-    {
-      fprintf (loopback_ctx->fp, "%02x", plain_ptr[i]);
-    }
-
-    fprintf (loopback_ctx->fp, "]");
-  }
-  else
-  {
-    fwrite (plain_ptr, plain_len, 1, loopback_ctx->fp);
-  }
-}
 
 // weak_hash
 #define WEAK_HASH_THRESHOLD     100
@@ -479,7 +434,6 @@ static void check_checkpoint ()
 static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 {
   uint  quiet      = data.quiet;
-  uint  loopback   = data.loopback;
   uint  debug_mode = data.debug_mode;
   char *debug_file = data.debug_file;
 
@@ -742,24 +696,13 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
     }
   }
 
-  // loopback
+  // if enabled, update also the loopback file
 
-  if (loopback)
+  loopback_ctx_t *loopback_ctx = data.loopback_ctx;
+
+  if (loopback_ctx->fp)
   {
-    char *loopback_file = data.loopback_file;
-
-    loopback_ctx_t loopback_ctx;
-
-    loopback_ctx.fp = fopen (loopback_file, "ab");
-
-    if (loopback_ctx.fp != NULL)
-    {
-      loopback_format_plain (&loopback_ctx, plain_ptr, plain_len);
-
-      fputc ('\n', loopback_ctx.fp);
-
-      fclose (loopback_ctx.fp);
-    }
+    loopback_write_append (loopback_ctx, plain_ptr, plain_len);
   }
 
   // (rule) debug mode
@@ -5112,14 +5055,6 @@ int main (int argc, char **argv)
   data.induction_directory = induction_directory;
 
   /**
-   * loopback
-   */
-
-  size_t loopback_size = strlen (session_dir) + 1 + session_size + strlen (LOOPBACK_FILE) + 12;
-
-  char *loopback_file = (char *) mymalloc (loopback_size);
-
-  /**
    * tuning db
    */
 
@@ -5599,6 +5534,16 @@ int main (int argc, char **argv)
 
       SUPPRESS_OUTPUT = 0;
     }
+
+    /**
+     * loopback
+     */
+
+    loopback_ctx_t *loopback_ctx = mymalloc (sizeof (loopback_ctx_t));
+
+    data.loopback_ctx = loopback_ctx;
+
+    loopback_init (loopback_ctx);
 
     /**
      * word len
@@ -12227,29 +12172,21 @@ int main (int argc, char **argv)
         }
 
         /*
-         * Update loopback file
-         */
-
-        if (loopback == 1)
-        {
-          time_t now;
-
-          time (&now);
-
-          uint random_num = get_random_num (0, 9999);
-
-          snprintf (loopback_file, loopback_size - 1, "%s/%s.%d_%i", induction_directory, LOOPBACK_FILE, (int) now, random_num);
-
-          data.loopback_file = loopback_file;
-        }
-
-        /*
          * Update dictionary statistic
          */
 
         if (keyspace == 0)
         {
           dictstat_write (dictstat_ctx);
+        }
+
+        /**
+         * Update loopback file
+         */
+
+        if (loopback == 1)
+        {
+          loopback_write_open (loopback_ctx, induction_directory);
         }
 
         /**
@@ -12428,6 +12365,15 @@ int main (int argc, char **argv)
           // yeah, this next statement is a little hack to make sure that --loopback runs correctly (because with it we guarantee that the loop iterates one more time)
 
           dictpos--;
+        }
+
+        /**
+         * Update loopback file
+         */
+
+        if (loopback == 1)
+        {
+          loopback_write_close (loopback_ctx);
         }
 
         time_t runtime_stop;
@@ -12835,6 +12781,8 @@ int main (int argc, char **argv)
 
     dictstat_destroy (dictstat_ctx);
 
+    loopback_destroy (loopback_ctx);
+
     local_free (all_kernel_rules_cnt);
     local_free (all_kernel_rules_buf);
 
@@ -12909,12 +12857,6 @@ int main (int argc, char **argv)
   // tuning db
 
   tuning_db_destroy (tuning_db);
-
-  // loopback
-
-  local_free (loopback_file);
-
-  if (loopback == 1) unlink (loopback_file);
 
   // induction directory
 

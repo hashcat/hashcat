@@ -22,6 +22,7 @@
 #include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
+#include "loopback.h"
 #include "status.h"
 #include "data.h"
 

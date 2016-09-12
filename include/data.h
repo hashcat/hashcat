@@ -142,7 +142,7 @@ typedef struct
   char   *induction_directory;
   char   *outfile_check_directory;
   uint    loopback;
-  char   *loopback_file;
+
   uint    restore;
   uint    restore_timer;
   uint    restore_disable;
@@ -177,8 +177,8 @@ typedef struct
   hashconfig_t *hashconfig;
 
   outfile_ctx_t *outfile_ctx;
-
   potfile_ctx_t *potfile_ctx;
+  loopback_ctx_t *loopback_ctx;
 
   #if defined (HAVE_HWMON)
   uint    gpu_temp_disable;

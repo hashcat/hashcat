@@ -24,6 +24,7 @@
 #include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
+#include "loopback.h"
 #include "data.h"
 
 extern hc_global_data_t data;

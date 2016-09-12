@@ -20,6 +20,7 @@
 #include "opencl.h"
 #include "outfile.h"
 #include "potfile.h"
+#include "loopback.h"
 #include "data.h"
 
 hc_global_data_t data;
