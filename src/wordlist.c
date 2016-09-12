@@ -24,6 +24,8 @@
 #include "interface.h"
 #include "shared.h"
 #include "hwmon.h"
+#include "thread.h"
+#include "dictstat.h"
 #include "mpsp.h"
 #include "restore.h"
 #include "outfile.h"
@@ -281,4 +283,143 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
   //
   //  return;
   //}
+}
+
+u64 count_words (wl_data_t *wl_data, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx)
+{
+  hc_signal (NULL);
+
+  dictstat_t d;
+
+  d.cnt = 0;
+
+  #if defined (_POSIX)
+  fstat (fileno (fd), &d.stat);
+  #endif
+
+  #if defined (_WIN)
+  _fstat64 (fileno (fd), &d.stat);
+  #endif
+
+  d.stat.st_mode    = 0;
+  d.stat.st_nlink   = 0;
+  d.stat.st_uid     = 0;
+  d.stat.st_gid     = 0;
+  d.stat.st_rdev    = 0;
+  d.stat.st_atime   = 0;
+
+  #if defined (_POSIX)
+  d.stat.st_blksize = 0;
+  d.stat.st_blocks  = 0;
+  #endif
+
+  if (d.stat.st_size == 0) return 0;
+
+  const u64 cached_cnt = dictstat_find (dictstat_ctx, &d);
+
+  if (run_rule_engine (data.rule_len_l, data.rule_buf_l) == 0)
+  {
+    if (cached_cnt)
+    {
+      u64 keyspace = cached_cnt;
+
+      if (data.attack_kern == ATTACK_KERN_STRAIGHT)
+      {
+        keyspace *= data.kernel_rules_cnt;
+      }
+      else if (data.attack_kern == ATTACK_KERN_COMBI)
+      {
+        keyspace *= data.combs_cnt;
+      }
+
+      if (data.quiet == 0) log_info ("Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cached_cnt, keyspace);
+      if (data.quiet == 0) log_info ("");
+
+      hc_signal (sigHandler_default);
+
+      return (keyspace);
+    }
+  }
+
+  time_t now  = 0;
+  time_t prev = 0;
+
+  u64 comp = 0;
+  u64 cnt  = 0;
+  u64 cnt2 = 0;
+
+  while (!feof (fd))
+  {
+    load_segment (wl_data, fd);
+
+    comp += wl_data->cnt;
+
+    u32 i = 0;
+
+    while (i < wl_data->cnt)
+    {
+      u32 len;
+      u32 off;
+
+      get_next_word_func (wl_data->buf + i, wl_data->cnt - i, &len, &off);
+
+      if (run_rule_engine (data.rule_len_l, data.rule_buf_l))
+      {
+        char rule_buf_out[BLOCK_SIZE] = { 0 };
+
+        int rule_len_out = -1;
+
+        if (len < BLOCK_SIZE)
+        {
+          rule_len_out = _old_apply_rule (data.rule_buf_l, data.rule_len_l, wl_data->buf + i, len, rule_buf_out);
+        }
+
+        if (rule_len_out < 0)
+        {
+          len = PW_MAX1;
+        }
+        else
+        {
+          len = rule_len_out;
+        }
+      }
+
+      if (len < PW_MAX1)
+      {
+        if (data.attack_kern == ATTACK_KERN_STRAIGHT)
+        {
+          cnt += data.kernel_rules_cnt;
+        }
+        else if (data.attack_kern == ATTACK_KERN_COMBI)
+        {
+          cnt += data.combs_cnt;
+        }
+
+        d.cnt++;
+      }
+
+      i += off;
+
+      cnt2++;
+    }
+
+    time (&now);
+
+    if ((now - prev) == 0) continue;
+
+    double percent = (double) comp / (double) d.stat.st_size;
+
+    if (data.quiet == 0) log_info_nn ("Generating dictionary stats for %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, percent * 100, cnt2, cnt);
+
+    time (&prev);
+  }
+
+  if (data.quiet == 0) log_info ("Generated dictionary stats for %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, cnt2, cnt);
+  if (data.quiet == 0) log_info ("");
+
+  dictstat_append (dictstat_ctx, &d);
+
+  hc_signal (sigHandler_default);
+
+  return (cnt);
 }

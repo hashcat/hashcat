@@ -6,6 +6,8 @@
 #ifndef _THREAD_H
 #define _THREAD_H
 
+#include <signal.h>
+
 #if defined (_POSIX)
 #include <pthread.h>
 #include <semaphore.h>
@@ -45,5 +47,22 @@ typedef pthread_mutex_t   hc_thread_mutex_t;
 #define hc_thread_mutex_delete(m)   pthread_mutex_destroy  (&m)
 
 #endif
+
+#if defined (_WIN)
+
+BOOL WINAPI sigHandler_default (DWORD sig);
+BOOL WINAPI sigHandler_benchmark (DWORD sig);
+void hc_signal (BOOL WINAPI (callback) (DWORD));
+
+#else
+
+void sigHandler_default (int sig);
+void sigHandler_benchmark (int sig);
+void hc_signal (void (callback) (int));
+
+#endif
+
+void myabort ();
+void myquit ();
 
 #endif // _THREAD_H
