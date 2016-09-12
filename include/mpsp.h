@@ -45,6 +45,7 @@ typedef struct
 
 void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHARSIZ]);
 void mp_cut_at (char *mask, uint max);
+uint mp_get_length (char *mask);
 void mp_exec (u64 val, char *buf, cs_t *css, int css_cnt);
 cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, uint *css_cnt, hashconfig_t *hashconfig);
 u64  mp_get_sum (uint css_cnt, cs_t *css);

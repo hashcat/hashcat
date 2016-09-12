@@ -19857,3 +19857,423 @@ int hashconfig_init (hashconfig_t *hashconfig, const uint hash_mode, const char 
   return 0;
 }
 
+void hashconfig_destroy (hashconfig_t *hashconfig)
+{
+  myfree (hashconfig);
+}
+
+uint hashconfig_general_pw_min (hashconfig_t *hashconfig)
+{
+  uint pw_min = PW_MIN;
+
+  switch (hashconfig->hash_mode)
+  {
+    case  2500: pw_min = 8;
+                break;
+    case  9710: pw_min = 5;
+                break;
+    case  9810: pw_min = 5;
+                break;
+    case 10410: pw_min = 5;
+                break;
+    case 14000: pw_min = 8;
+                break;
+    case 14100: pw_min = 24;
+                break;
+  }
+
+  return pw_min;
+}
+
+uint hashconfig_general_pw_max (hashconfig_t *hashconfig)
+{
+  uint pw_max = PW_MAX;
+
+  switch (hashconfig->hash_mode)
+  {
+    case   125: pw_max = 32;
+                break;
+    case   400: pw_max = 40;
+                break;
+    case   500: pw_max = 16;
+                break;
+    case  1500: pw_max = 8;
+                break;
+    case  1600: pw_max = 16;
+                break;
+    case  1800: pw_max = 16;
+                break;
+    case  2100: pw_max = 16;
+                break;
+    case  3000: pw_max = 7;
+                break;
+    case  5200: pw_max = 24;
+                break;
+    case  5800: pw_max = 16;
+                break;
+    case  6300: pw_max = 16;
+                break;
+    case  7400: pw_max = 16;
+                break;
+    case  7700: pw_max = 8;
+                break;
+    case  7900: pw_max = 48;
+                break;
+    case  8500: pw_max = 8;
+                break;
+    case  8600: pw_max = 16;
+                break;
+    case  9710: pw_max = 5;
+                break;
+    case  9810: pw_max = 5;
+                break;
+    case 10410: pw_max = 5;
+                break;
+    case 10300: pw_max = 40;
+                break;
+    case 10500: pw_max = 40;
+                break;
+    case 10700: pw_max = 16;
+                break;
+    case 11300: pw_max = 40;
+                break;
+    case 11600: pw_max = 32;
+                break;
+    case 12500: pw_max = 20;
+                break;
+    case 12800: pw_max = 24;
+                break;
+    case 14000: pw_max = 8;
+                break;
+    case 14100: pw_max = 24;
+                break;
+  }
+
+  return pw_max;
+}
+
+void hashconfig_benchmark_defaults (hashconfig_t *hashconfig, salt_t *salt, void *esalt)
+{
+  if (hashconfig->is_salted)
+  {
+    salt->salt_len = 8;
+
+    // special salt handling
+
+    switch (hashconfig->hash_mode)
+    {
+      case  1500: salt->salt_len    = 2;
+                  salt->salt_buf[0] = 388; // pure magic
+                  break;
+      case  1731: salt->salt_len = 4;
+                  break;
+      case  2410: salt->salt_len = 4;
+                  break;
+      case  2500: memcpy (salt->salt_buf, "hashcat.net", 11);
+                  break;
+      case  3100: salt->salt_len = 1;
+                  break;
+      case  5000: salt->keccak_mdlen = 32;
+                  break;
+      case  5800: salt->salt_len = 16;
+                  break;
+      case  6800: salt->salt_len = 32;
+                  break;
+      case  8400: salt->salt_len = 40;
+                  break;
+      case  8800: salt->salt_len = 16;
+                  break;
+      case  8900: salt->salt_len = 16;
+                  salt->scrypt_N = 1024;
+                  salt->scrypt_r = 1;
+                  salt->scrypt_p = 1;
+                  break;
+      case  9100: salt->salt_len = 16;
+                  break;
+      case  9300: salt->salt_len = 14;
+                  salt->scrypt_N = 16384;
+                  salt->scrypt_r = 1;
+                  salt->scrypt_p = 1;
+                  break;
+      case  9400: salt->salt_len = 16;
+                  break;
+      case  9500: salt->salt_len = 16;
+                  break;
+      case  9600: salt->salt_len = 16;
+                  break;
+      case  9700: salt->salt_len = 16;
+                  break;
+      case  9710: salt->salt_len = 16;
+                  break;
+      case  9720: salt->salt_len = 16;
+                  break;
+      case  9800: salt->salt_len = 16;
+                  break;
+      case  9810: salt->salt_len = 16;
+                  break;
+      case  9820: salt->salt_len = 16;
+                  break;
+      case 10300: salt->salt_len = 12;
+                  break;
+      case 11500: salt->salt_len = 4;
+                  break;
+      case 11600: salt->salt_len = 4;
+                  break;
+      case 12400: salt->salt_len = 4;
+                  break;
+      case 12500: salt->salt_len = 8;
+                  break;
+      case 12600: salt->salt_len = 64;
+                  break;
+      case 14000: salt->salt_len = 8;
+                  break;
+      case 14100: salt->salt_len = 8;
+                  break;
+    }
+
+    // special esalt handling
+
+    switch (hashconfig->hash_mode)
+    {
+      case  2500: ((wpa_t *)     esalt)->eapol_size   = 128;
+                  break;
+      case  5300: ((ikepsk_t *)  esalt)->nr_len       = 1;
+                  ((ikepsk_t *)  esalt)->msg_len      = 1;
+                  break;
+      case  5400: ((ikepsk_t *)  esalt)->nr_len       = 1;
+                  ((ikepsk_t *)  esalt)->msg_len      = 1;
+                  break;
+      case  5500: ((netntlm_t *) esalt)->user_len     = 1;
+                  ((netntlm_t *) esalt)->domain_len   = 1;
+                  ((netntlm_t *) esalt)->srvchall_len = 1;
+                  ((netntlm_t *) esalt)->clichall_len = 1;
+                  break;
+      case  5600: ((netntlm_t *) esalt)->user_len     = 1;
+                  ((netntlm_t *) esalt)->domain_len   = 1;
+                  ((netntlm_t *) esalt)->srvchall_len = 1;
+                  ((netntlm_t *) esalt)->clichall_len = 1;
+                  break;
+      case  7300: ((rakp_t *)    esalt)->salt_len     = 32;
+                  break;
+      case 10400: ((pdf_t *)     esalt)->id_len       = 16;
+                  ((pdf_t *)     esalt)->o_len        = 32;
+                  ((pdf_t *)     esalt)->u_len        = 32;
+                  break;
+      case 10410: ((pdf_t *)     esalt)->id_len       = 16;
+                  ((pdf_t *)     esalt)->o_len        = 32;
+                  ((pdf_t *)     esalt)->u_len        = 32;
+                  break;
+      case 10420: ((pdf_t *)     esalt)->id_len       = 16;
+                  ((pdf_t *)     esalt)->o_len        = 32;
+                  ((pdf_t *)     esalt)->u_len        = 32;
+                  break;
+      case 10500: ((pdf_t *)     esalt)->id_len       = 16;
+                  ((pdf_t *)     esalt)->o_len        = 32;
+                  ((pdf_t *)     esalt)->u_len        = 32;
+                  break;
+      case 10600: ((pdf_t *)     esalt)->id_len       = 16;
+                  ((pdf_t *)     esalt)->o_len        = 127;
+                  ((pdf_t *)     esalt)->u_len        = 127;
+                  break;
+      case 10700: ((pdf_t *)     esalt)->id_len       = 16;
+                  ((pdf_t *)     esalt)->o_len        = 127;
+                  ((pdf_t *)     esalt)->u_len        = 127;
+                  break;
+      case 11600: ((seven_zip_t *) esalt)->iv_len      = 16;
+                  ((seven_zip_t *) esalt)->data_len    = 112;
+                  ((seven_zip_t *) esalt)->unpack_size = 112;
+                  break;
+      case 13400: ((keepass_t *) esalt)->version      = 2;
+                  break;
+      case 13500: ((pstoken_t *) esalt)->salt_len     = 113;
+                  break;
+      case 13600: ((zip2_t *)    esalt)->salt_len     = 16;
+                  ((zip2_t *)    esalt)->data_len     = 32;
+                  ((zip2_t *)    esalt)->mode         = 3;
+                  break;
+    }
+  }
+
+  // set default iterations
+
+  switch (hashconfig->hash_mode)
+  {
+    case   400:  salt->salt_iter = ROUNDS_PHPASS;
+                 break;
+    case   500:  salt->salt_iter = ROUNDS_MD5CRYPT;
+                 break;
+    case   501:  salt->salt_iter = ROUNDS_MD5CRYPT;
+                 break;
+    case  1600:  salt->salt_iter = ROUNDS_MD5CRYPT;
+                 break;
+    case  1800:  salt->salt_iter = ROUNDS_SHA512CRYPT;
+                 break;
+    case  2100:  salt->salt_iter = ROUNDS_DCC2;
+                 break;
+    case  2500:  salt->salt_iter = ROUNDS_WPA2;
+                 break;
+    case  3200:  salt->salt_iter = ROUNDS_BCRYPT;
+                 break;
+    case  5200:  salt->salt_iter = ROUNDS_PSAFE3;
+                 break;
+    case  5800:  salt->salt_iter = ROUNDS_ANDROIDPIN - 1;
+                 break;
+    case  6211:  salt->salt_iter = ROUNDS_TRUECRYPT_2K;
+                 break;
+    case  6212:  salt->salt_iter = ROUNDS_TRUECRYPT_2K;
+                 break;
+    case  6213:  salt->salt_iter = ROUNDS_TRUECRYPT_2K;
+                 break;
+    case  6221:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                 break;
+    case  6222:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                 break;
+    case  6223:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                 break;
+    case  6231:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                 break;
+    case  6232:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                 break;
+    case  6233:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                 break;
+    case  6241:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                 break;
+    case  6242:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                 break;
+    case  6243:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+                 break;
+    case  6300:  salt->salt_iter = ROUNDS_MD5CRYPT;
+                 break;
+    case  6400:  salt->salt_iter = ROUNDS_SHA256AIX;
+                 break;
+    case  6500:  salt->salt_iter = ROUNDS_SHA512AIX;
+                 break;
+    case  6700:  salt->salt_iter = ROUNDS_SHA1AIX;
+                 break;
+    case  6600:  salt->salt_iter = ROUNDS_AGILEKEY;
+                 break;
+    case  6800:  salt->salt_iter = ROUNDS_LASTPASS;
+                 break;
+    case  7100:  salt->salt_iter = ROUNDS_SHA512OSX;
+                 break;
+    case  7200:  salt->salt_iter = ROUNDS_GRUB;
+                 break;
+    case  7400:  salt->salt_iter = ROUNDS_SHA256CRYPT;
+                 break;
+    case  7900:  salt->salt_iter = ROUNDS_DRUPAL7;
+                 break;
+    case  8200:  salt->salt_iter = ROUNDS_CLOUDKEY;
+                 break;
+    case  8300:  salt->salt_iter = ROUNDS_NSEC3;
+                 break;
+    case  8800:  salt->salt_iter = ROUNDS_ANDROIDFDE;
+                 break;
+    case  8900:  salt->salt_iter = 1;
+                 break;
+    case  9000:  salt->salt_iter = ROUNDS_PSAFE2;
+                 break;
+    case  9100:  salt->salt_iter = ROUNDS_LOTUS8;
+                 break;
+    case  9200:  salt->salt_iter = ROUNDS_CISCO8;
+                 break;
+    case  9300:  salt->salt_iter = 1;
+                 break;
+    case  9400:  salt->salt_iter = ROUNDS_OFFICE2007;
+                 break;
+    case  9500:  salt->salt_iter = ROUNDS_OFFICE2010;
+                 break;
+    case  9600:  salt->salt_iter = ROUNDS_OFFICE2013;
+                 break;
+    case 10000:  salt->salt_iter = ROUNDS_DJANGOPBKDF2;
+                 break;
+    case 10300:  salt->salt_iter = ROUNDS_SAPH_SHA1 - 1;
+                 break;
+    case 10500:  salt->salt_iter = ROUNDS_PDF14;
+                 break;
+    case 10700:  salt->salt_iter = ROUNDS_PDF17L8;
+                 break;
+    case 10900:  salt->salt_iter = ROUNDS_PBKDF2_SHA256 - 1;
+                 break;
+    case 11300:  salt->salt_iter = ROUNDS_BITCOIN_WALLET - 1;
+                 break;
+    case 11600:  salt->salt_iter = ROUNDS_SEVEN_ZIP;
+                 break;
+    case 11900:  salt->salt_iter = ROUNDS_PBKDF2_MD5 - 1;
+                 break;
+    case 12000:  salt->salt_iter = ROUNDS_PBKDF2_SHA1 - 1;
+                 break;
+    case 12100:  salt->salt_iter = ROUNDS_PBKDF2_SHA512 - 1;
+                 break;
+    case 12200:  salt->salt_iter = ROUNDS_ECRYPTFS - 1;
+                 break;
+    case 12300:  salt->salt_iter = ROUNDS_ORACLET - 1;
+                 break;
+    case 12400:  salt->salt_iter = ROUNDS_BSDICRYPT - 1;
+                 break;
+    case 12500:  salt->salt_iter = ROUNDS_RAR3;
+                 break;
+    case 12700:  salt->salt_iter = ROUNDS_MYWALLET;
+                 break;
+    case 12800:  salt->salt_iter = ROUNDS_MS_DRSR - 1;
+                 break;
+    case 12900:  salt->salt_iter = ROUNDS_ANDROIDFDE_SAMSUNG - 1;
+                 break;
+    case 13000:  salt->salt_iter = ROUNDS_RAR5 - 1;
+                 break;
+    case 13200:  salt->salt_iter = ROUNDS_AXCRYPT;
+                 break;
+    case 13400:  salt->salt_iter = ROUNDS_KEEPASS;
+                 break;
+    case 13600:  salt->salt_iter = ROUNDS_ZIP2;
+                 break;
+    case 13711:  salt->salt_iter = ROUNDS_VERACRYPT_655331;
+                 break;
+    case 13712:  salt->salt_iter = ROUNDS_VERACRYPT_655331;
+                 break;
+    case 13713:  salt->salt_iter = ROUNDS_VERACRYPT_655331;
+                 break;
+    case 13721:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                 break;
+    case 13722:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                 break;
+    case 13723:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                 break;
+    case 13731:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                 break;
+    case 13732:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                 break;
+    case 13733:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                 break;
+    case 13741:  salt->salt_iter = ROUNDS_VERACRYPT_327661;
+                 break;
+    case 13742:  salt->salt_iter = ROUNDS_VERACRYPT_327661;
+                 break;
+    case 13743:  salt->salt_iter = ROUNDS_VERACRYPT_327661;
+                 break;
+    case 13751:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                 break;
+    case 13752:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                 break;
+    case 13753:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+                 break;
+    case 13761:  salt->salt_iter = ROUNDS_VERACRYPT_200000;
+                 break;
+    case 13762:  salt->salt_iter = ROUNDS_VERACRYPT_200000;
+                 break;
+    case 13763:  salt->salt_iter = ROUNDS_VERACRYPT_200000;
+                 break;
+  }
+}
+
+char *hashconfig_benchmark_mask (hashconfig_t *hashconfig)
+{
+  char *mask = "?b?b?b?b?b?b?b";
+
+  switch (hashconfig->hash_mode)
+  {
+    case 12500: mask = "?b?b?b?b?b";
+                break;
+  }
+
+  return mask;
+}

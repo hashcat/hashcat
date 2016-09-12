@@ -12,9 +12,13 @@
 #include <errno.h>
 #include <limits.h>
 
-#define HASH_MODE 0
-#define HEX_SALT  0
-#define SEPARATOR ':'
+#define PW_MIN      0
+#define PW_MAX      54
+#define PW_MAX1     (PW_MAX + 1)
+
+#define HASH_MODE   0
+#define HEX_SALT    0
+#define SEPARATOR   ':'
 
 /**
  * weak hashes shutcut
@@ -1661,6 +1665,11 @@ void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos, hashconfig_t *h
 
 void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos, hashconfig_t *hashconfig, void *digests_buf, salt_t *salts_buf, void *esalts_buf, hashinfo_t **hash_info, char *hashfile);
 
-int hashconfig_init (hashconfig_t *hashconfig, const uint hash_mode, const char separator, const uint hex_salt);
+int   hashconfig_init                (hashconfig_t *hashconfig, const uint hash_mode, const char separator, const uint hex_salt);
+void  hashconfig_destroy             (hashconfig_t *hashconfig);
+uint  hashconfig_general_pw_min      (hashconfig_t *hashconfig);
+uint  hashconfig_general_pw_max      (hashconfig_t *hashconfig);
+void  hashconfig_benchmark_defaults  (hashconfig_t *hashconfig, salt_t *salt, void *esalt);
+char *hashconfig_benchmark_mask      (hashconfig_t *hashconfig);
 
 #endif // _INTERFACE_H

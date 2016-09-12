@@ -318,6 +318,22 @@ void mp_exec (u64 val, char *buf, cs_t *css, int css_cnt)
   }
 }
 
+uint mp_get_length (char *mask)
+{
+  uint len = 0;
+
+  uint mask_len = strlen (mask);
+
+  for (uint i = 0; i < mask_len; i++)
+  {
+    if (mask[i] == '?') i++;
+
+    len++;
+  }
+
+  return len;
+}
+
 void mp_cut_at (char *mask, uint max)
 {
   uint i;
