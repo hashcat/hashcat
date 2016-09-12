@@ -32,12 +32,12 @@ Xanadrel (@Xanadrel): Developing LC, the "Team hashcat" hash management tool
 
 * Active and former member
 
-abaco         alotdv        atom          blandyuk      blaz
-BlowCane      chancas       coolbry95     dakykilla     deutsch_
-dropdead      epixoip       evilmog       gpufreak      hashtka
-Hydraze       J0hnnyBrav0   K9            kontrast23    legion
-m3g9tr0n      minga         NullMode      N|IGHT5       NSAKEY
-philsmd       purehate      radix         Rolf          rurapenthe
-s3in!c        SuperJames    Szul          tehnlulz      The_Mechanic
-ToXiC         undeath       unix-ninja    xan           xmisery
-
+abaco           alotdv          atom            blandyuk        blaz
+BlowCane        chancas         coolbry95       dakykilla       deutsch_
+dropdead        epixoip         evilmog         gpufreak        hashtka
+Hydraze         J0hnnyBrav0     K9              kontrast23      legion
+matrix          m3g9tr0n        minga           NullMode        N|IGHT5
+NSAKEY          philsmd         purehate        radix           Rolf
+rurapenthe      s3in!c          SuperJames      Szul            tehnlulz
+The_Mechanic    ToXiC           undeath         unix-ninja      xan
+xmisery

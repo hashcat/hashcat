@@ -9,7 +9,7 @@ Philipp "philsmd" Schmidt <philsmd@hashcat.net> (@philsmd)
 * Multiple kernel modules
 * Hardware monitor maintainance
 * Test Suite maintainance
-* Makefile
+* Makefile maintainance
 * Potfile feature
 * Maskfile feature
 * Induction directory feature
@@ -21,6 +21,10 @@ Gabriele "matrix" Gristina <matrix@hashcat.net> (@gm4tr1x)
 * Apple OSX port
 * Hardware monitor initial code base
 * Test suite initial code base
+* Makefiles initial code base
+* Multithreading initial code base
+* Benchmarks initial code base
+* Offline OpenCL Kernel Compiler support
 
 Jean-Christophe "Fist0urs" Delaunay <jean-christophe.delaunay@synacktiv.com> (@Fist0urs)
 
@@ -30,7 +34,7 @@ Jean-Christophe "Fist0urs" Delaunay <jean-christophe.delaunay@synacktiv.com> (@F
 
 Other contributors to hashcat
 
-* A full list and their commits can be found here: 
+* A full list and their commits can be found here:
   https://github.com/hashcat/hashcat/graphs/contributors
 
 # Furthermore the following persons helped the project:
