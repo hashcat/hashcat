@@ -102,8 +102,7 @@ const int comptime = COMPTIME;
 
 #define FORCE 0
 
-// version
-#define VERSION                 0
+
 
 // benchmark
 #define BENCHMARK               0
