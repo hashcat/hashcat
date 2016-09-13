@@ -1852,9 +1852,7 @@ static int autotune (hc_device_param_t *device_param, hashconfig_t *hashconfig)
               device_param->device_id + 1, kernel_accel,
               device_param->device_id + 1, kernel_loops);
 
-    fprintf (stdout, "%s", PROMPT);
-
-    fflush (stdout);
+    send_prompt ();
   }
 
   #endif
