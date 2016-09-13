@@ -71,7 +71,7 @@ static const char *USAGE_BIG[] =
   " -b, --benchmark               |      | Run benchmark                                        |",
   " -c, --segment-size            | Num  | Sets size in MB to cache from the wordfile to X      | -c 32",
   "     --bitmap-min              | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24",
-  "     --bitmap-max              | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-min=24",
+  "     --bitmap-max              | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-max=24",
   "     --cpu-affinity            | Str  | Locks to CPU devices, separate with comma            | --cpu-affinity=1,2,3",
   "     --opencl-platforms        | Str  | OpenCL platforms to use, separate with comma         | --opencl-platforms=2",
   " -d, --opencl-devices          | Str  | OpenCL devices to use, separate with comma           | -d 1",
