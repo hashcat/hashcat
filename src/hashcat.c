@@ -11171,6 +11171,12 @@ int main (int argc, char **argv)
      * weak hash check
      */
 
+    potfile_write_open (potfile_ctx);
+
+    /**
+     * weak hash check
+     */
+
     if (weak_hash_threshold >= salts_cnt)
     {
       hc_device_param_t *device_param = NULL;
@@ -11260,8 +11266,6 @@ int main (int argc, char **argv)
         else                            log_info ("INFO: Removed %d hashes found in potfile\n", potfile_remove_cracks);
       }
     }
-
-    potfile_write_open (potfile_ctx);
 
     char **induction_dictionaries = NULL;
 
