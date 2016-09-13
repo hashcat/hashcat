@@ -5,7 +5,7 @@
 
 #if defined (__APPLE__)
 #include <stdio.h>
-#endif
+#endif // __APPLE__
 
 #include "common.h"
 
@@ -59,6 +59,7 @@
 #include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
+#include "debugfile.h"
 #include "loopback.h"
 #include "data.h"
 #include "affinity.h"
@@ -206,85 +207,6 @@ int sort_by_hash_no_salt (const void *v1, const void *v2)
 #define REMOVE                  0
 #define REMOVE_TIMER            60
 
-// debug_mode
-#define DEBUG_MODE              0
-typedef struct
-{
-  FILE *fp;
-
-} debug_ctx_t;
-void debug_format_plain (debug_ctx_t *debug_ctx, const unsigned char *plain_ptr, const uint plain_len)
-{
-  int needs_hexify = 0;
-
-  for (uint i = 0; i < plain_len; i++)
-  {
-    if (plain_ptr[i] < 0x20)
-    {
-      needs_hexify = 1;
-
-      break;
-    }
-
-    if (plain_ptr[i] > 0x7f)
-    {
-      needs_hexify = 1;
-
-      break;
-    }
-  }
-
-  if (needs_hexify == 1)
-  {
-    fprintf (debug_ctx->fp, "$HEX[");
-
-    for (uint i = 0; i < plain_len; i++)
-    {
-      fprintf (debug_ctx->fp, "%02x", plain_ptr[i]);
-    }
-
-    fprintf (debug_ctx->fp, "]");
-  }
-  else
-  {
-    fwrite (plain_ptr, plain_len, 1, debug_ctx->fp);
-  }
-}
-void format_debug (char *debug_file, uint debug_mode, unsigned char *orig_plain_ptr, uint orig_plain_len, unsigned char *mod_plain_ptr, uint mod_plain_len, char *rule_buf, int rule_len)
-{
-  unsigned char *rule_ptr = (unsigned char *) rule_buf;
-
-  debug_ctx_t debug_ctx;
-
-  debug_ctx.fp = fopen (debug_file, "ab");
-
-  if (debug_ctx.fp == NULL)
-  {
-    log_error ("ERROR: Could not open debug-file for writing");
-
-    return;
-  }
-
-  if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4))
-  {
-    debug_format_plain (&debug_ctx, orig_plain_ptr, orig_plain_len);
-
-    if ((debug_mode == 3) || (debug_mode == 4)) fputc (':', debug_ctx.fp);
-  }
-
-  fwrite (rule_ptr, rule_len, 1, debug_ctx.fp);
-
-  if (debug_mode == 4)
-  {
-    fputc (':', debug_ctx.fp);
-
-    debug_format_plain (&debug_ctx, mod_plain_ptr, mod_plain_len);
-  }
-
-  fputc  ('\n', debug_ctx.fp);
-
-  fclose (debug_ctx.fp);
-}
 
 // runtime
 #define RUNTIME                 0
@@ -433,15 +355,20 @@ static void check_checkpoint ()
 
 static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 {
-  uint  quiet      = data.quiet;
-  uint  debug_mode = data.debug_mode;
-  char *debug_file = data.debug_file;
+  debugfile_ctx_t *debugfile_ctx = data.debugfile_ctx;
+  loopback_ctx_t  *loopback_ctx  = data.loopback_ctx;
+  outfile_ctx_t   *outfile_ctx   = data.outfile_ctx;
+  potfile_ctx_t   *potfile_ctx   = data.potfile_ctx;
 
-  char debug_rule_buf[BLOCK_SIZE] = { 0 };
-  int  debug_rule_len  = 0; // -1 error
-  uint debug_plain_len = 0;
+  uint quiet = data.quiet;
 
-  u8 debug_plain_ptr[BLOCK_SIZE] = { 0 };
+  // debugfile
+
+  u8  debug_rule_buf[BLOCK_SIZE] = { 0 };
+  u32 debug_rule_len  = 0; // -1 error
+
+  u8  debug_plain_ptr[BLOCK_SIZE] = { 0 };
+  u32 debug_plain_len = 0;
 
   // hash
 
@@ -486,6 +413,8 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 
     const uint off = device_param->innerloop_pos + il_pos;
 
+    const uint debug_mode = debugfile_ctx->mode;
+
     if (debug_mode > 0)
     {
       debug_rule_len = 0;
@@ -495,7 +424,7 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
       {
         memset (debug_rule_buf, 0, sizeof (debug_rule_buf));
 
-        debug_rule_len = kernel_rule_to_cpu_rule (debug_rule_buf, &data.kernel_rules_buf[off]);
+        debug_rule_len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &data.kernel_rules_buf[off]);
       }
 
       // save plain
@@ -667,9 +596,8 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
   // if enabled, update also the potfile
   // no need for locking, we're in a mutex protected function
 
-  potfile_ctx_t *potfile_ctx = data.potfile_ctx;
 
-  if (potfile_ctx->fp)
+  if (potfile_ctx->fp != NULL)
   {
     potfile_write_append (potfile_ctx, out_buf, plain_ptr, plain_len);
   }
@@ -678,7 +606,6 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
   // if an error occurs opening the file, send to stdout as fallback
   // the fp gets opened for each cracked hash so that the user can modify (move) the outfile while hashcat runs
 
-  outfile_ctx_t *outfile_ctx = data.outfile_ctx;
 
   outfile_write_open (outfile_ctx);
 
@@ -698,30 +625,23 @@ static void check_hash (hc_device_param_t *device_param, plain_t *plain)
 
   // if enabled, update also the loopback file
 
-  loopback_ctx_t *loopback_ctx = data.loopback_ctx;
 
-  if (loopback_ctx->fp)
+  if (loopback_ctx->fp != NULL)
   {
     loopback_write_append (loopback_ctx, plain_ptr, plain_len);
   }
 
-  // (rule) debug mode
+  // if enabled, update also the (rule) debug file
 
-  // the next check implies that:
-  // - (data.attack_mode == ATTACK_MODE_STRAIGHT)
-  // - debug_mode > 0
-
-  if ((debug_plain_len > 0) || (debug_rule_len > 0))
+  if (debugfile_ctx->fp != NULL)
   {
-    if (debug_rule_len < 0) debug_rule_len = 0;
+    // the next check implies that:
+    // - (data.attack_mode == ATTACK_MODE_STRAIGHT)
+    // - debug_mode > 0
 
-    if ((quiet == 0) && (debug_file == NULL)) clear_prompt ();
-
-    format_debug (debug_file, debug_mode, debug_plain_ptr, debug_plain_len, plain_ptr, plain_len, debug_rule_buf, debug_rule_len);
-
-    if ((quiet == 0) && (debug_file == NULL))
+    if ((debug_plain_len > 0) || (debug_rule_len > 0))
     {
-      send_prompt ();
+      debugfile_write_append (debugfile_ctx, debug_rule_buf, debug_rule_len, debug_plain_ptr, debug_plain_len, plain_ptr, plain_len);
     }
   }
 }
@@ -5145,8 +5065,7 @@ int main (int argc, char **argv)
   data.runtime                 = runtime;
   data.remove                  = remove;
   data.remove_timer            = remove_timer;
-  data.debug_mode              = debug_mode;
-  data.debug_file              = debug_file;
+
   data.username                = username;
   data.quiet                   = quiet;
 
@@ -5544,6 +5463,16 @@ int main (int argc, char **argv)
     data.loopback_ctx = loopback_ctx;
 
     loopback_init (loopback_ctx);
+
+    /**
+     * debugfile
+     */
+
+    debugfile_ctx_t *debugfile_ctx = mymalloc (sizeof (debugfile_ctx_t));
+
+    data.debugfile_ctx = debugfile_ctx;
+
+    debugfile_init (debugfile_ctx, debug_mode, debug_file);
 
     /**
      * word len
@@ -12772,6 +12701,8 @@ int main (int argc, char **argv)
     // free memory
 
     local_free (masks);
+
+    debugfile_destroy (debugfile_ctx);
 
     outfile_destroy (outfile_ctx);
 

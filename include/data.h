@@ -155,8 +155,7 @@ typedef struct
   uint    runtime;
   uint    remove;
   uint    remove_timer;
-  uint    debug_mode;
-  char   *debug_file;
+
   uint    hex_charset;
   uint    hex_salt;
   uint    hex_wordlist;
@@ -176,9 +175,10 @@ typedef struct
 
   hashconfig_t *hashconfig;
 
-  outfile_ctx_t *outfile_ctx;
-  potfile_ctx_t *potfile_ctx;
-  loopback_ctx_t *loopback_ctx;
+  outfile_ctx_t   *outfile_ctx;
+  potfile_ctx_t   *potfile_ctx;
+  loopback_ctx_t  *loopback_ctx;
+  debugfile_ctx_t *debugfile_ctx;
 
   #if defined (HAVE_HWMON)
   uint    gpu_temp_disable;
