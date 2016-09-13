@@ -32,6 +32,8 @@ int debugfile_init (debugfile_ctx_t *debugfile_ctx, const uint debug_mode, const
 
 void debugfile_destroy (debugfile_ctx_t *debugfile_ctx)
 {
+  if (debugfile_ctx->fp == NULL) return;
+
   fclose (debugfile_ctx->fp);
 }
 
