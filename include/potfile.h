@@ -17,24 +17,25 @@
 
 typedef struct
 {
-  char    plain_buf[HCBUFSIZ_TINY];
-  int     plain_len;
+  char     plain_buf[HCBUFSIZ_TINY];
+  int      plain_len;
 
-  hash_t  hash;
+  hash_t   hash;
 
 } pot_t;
 
 typedef struct
 {
-  FILE *fp;
+  int      disable;
 
-  char *filename;
+  FILE    *fp;
+  char    *filename;
 
-  pot_t *pot;
+  pot_t   *pot;
 
-  uint pot_cnt;
-  uint pot_avail;
-  uint pot_hashes_avail;
+  uint     pot_cnt;
+  uint     pot_avail;
+  uint     pot_hashes_avail;
 
 } potfile_ctx_t;
 
@@ -43,7 +44,7 @@ int sort_by_salt_buf          (const void *v1, const void *v2);
 int sort_by_hash_t_salt       (const void *v1, const void *v2);
 int sort_by_hash_t_salt_hccap (const void *v1, const void *v2);
 
-void potfile_init             (potfile_ctx_t *potfile_ctx, const char *profile_dir, const char *potfile_path);
+void potfile_init             (potfile_ctx_t *potfile_ctx, const char *profile_dir, const char *potfile_path, const uint potfile_disable);
 void potfile_format_plain     (potfile_ctx_t *potfile_ctx, const unsigned char *plain_ptr, const uint plain_len);
 int  potfile_read_open        (potfile_ctx_t *potfile_ctx);
 void potfile_read_parse       (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig);

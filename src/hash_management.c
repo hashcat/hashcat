@@ -374,14 +374,9 @@ void check_hash (hc_device_param_t *device_param, plain_t *plain)
     }
   }
 
-  // if enabled, update also the potfile
   // no need for locking, we're in a mutex protected function
 
-
-  if (potfile_ctx->fp != NULL)
-  {
-    potfile_write_append (potfile_ctx, out_buf, plain_ptr, plain_len);
-  }
+  potfile_write_append (potfile_ctx, out_buf, plain_ptr, plain_len);
 
   // outfile, can be either to file or stdout
   // if an error occurs opening the file, send to stdout as fallback

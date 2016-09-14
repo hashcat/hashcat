@@ -107,8 +107,12 @@ int sort_by_hash_t_salt_hccap (const void *v1, const void *v2)
   return 0;
 }
 
-void potfile_init (potfile_ctx_t *potfile_ctx, const char *profile_dir, const char *potfile_path)
+void potfile_init (potfile_ctx_t *potfile_ctx, const char *profile_dir, const char *potfile_path, const uint potfile_disable)
 {
+  potfile_ctx->disable = potfile_disable;
+
+  if (potfile_ctx->disable == 1) return;
+
   potfile_ctx->fp = NULL;
 
   potfile_ctx->filename = (char *) mymalloc (HCBUFSIZ_TINY);
@@ -130,6 +134,8 @@ void potfile_init (potfile_ctx_t *potfile_ctx, const char *profile_dir, const ch
 
 void potfile_format_plain (potfile_ctx_t *potfile_ctx, const unsigned char *plain_ptr, const uint plain_len)
 {
+  if (potfile_ctx->disable == 1) return;
+
   int needs_hexify = 0;
 
   for (uint i = 0; i < plain_len; i++)
@@ -168,6 +174,8 @@ void potfile_format_plain (potfile_ctx_t *potfile_ctx, const unsigned char *plai
 
 int potfile_read_open (potfile_ctx_t *potfile_ctx)
 {
+  if (potfile_ctx->disable == 1) return 0;
+
   potfile_ctx->fp = fopen (potfile_ctx->filename, "rb");
 
   if (potfile_ctx->fp == NULL)
@@ -182,6 +190,8 @@ int potfile_read_open (potfile_ctx_t *potfile_ctx)
 
 void potfile_read_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig)
 {
+  if (potfile_ctx->disable == 1) return;
+
   potfile_ctx->pot_avail = count_lines (potfile_ctx->fp);
 
   potfile_ctx->pot = (pot_t *) mycalloc (potfile_ctx->pot_avail, sizeof (pot_t));
@@ -285,11 +295,15 @@ void potfile_read_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashcon
 
 void potfile_read_close (potfile_ctx_t *potfile_ctx)
 {
+  if (potfile_ctx->disable == 1) return;
+
   fclose (potfile_ctx->fp);
 }
 
 int potfile_write_open (potfile_ctx_t *potfile_ctx)
 {
+  if (potfile_ctx->disable == 1) return 0;
+
   potfile_ctx->fp = fopen (potfile_ctx->filename, "ab");
 
   if (potfile_ctx->fp == NULL)
@@ -304,11 +318,15 @@ int potfile_write_open (potfile_ctx_t *potfile_ctx)
 
 void potfile_write_close (potfile_ctx_t *potfile_ctx)
 {
+  if (potfile_ctx->disable == 1) return;
+
   fclose (potfile_ctx->fp);
 }
 
 void potfile_write_append (potfile_ctx_t *potfile_ctx, const char *out_buf, u8 *plain_ptr, unsigned int plain_len)
 {
+  if (potfile_ctx->disable == 1) return;
+
   FILE *fp = potfile_ctx->fp;
 
   fprintf (fp, "%s:", out_buf);
@@ -322,6 +340,8 @@ void potfile_write_append (potfile_ctx_t *potfile_ctx, const char *out_buf, u8 *
 
 void potfile_hash_alloc (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, const uint num)
 {
+  if (potfile_ctx->disable == 1) return;
+
   uint pos = 0;
 
   for (pos = 0; pos < num; pos++)
@@ -350,6 +370,8 @@ void potfile_hash_alloc (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashcon
 
 void potfile_hash_free (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig)
 {
+  if (potfile_ctx->disable == 1) return;
+
   for (uint i = 0; i < potfile_ctx->pot_cnt; i++)
   {
     pot_t *pot_ptr = &potfile_ctx->pot[i];
@@ -372,6 +394,8 @@ void potfile_hash_free (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconf
 
 void potfile_show_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *))
 {
+  if (potfile_ctx->disable == 1) return;
+
   pot_t pot_key;
 
   pot_key.hash.salt   = hashes_buf->salt;
@@ -409,6 +433,8 @@ void potfile_show_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashc
 
 void potfile_left_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *))
 {
+  if (potfile_ctx->disable == 1) return;
+
   pot_t pot_key;
 
   memcpy (&pot_key.hash, hashes_buf, sizeof (hash_t));
@@ -427,6 +453,8 @@ void potfile_left_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashc
 
 void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *))
 {
+  if (potfile_ctx->disable == 1) return;
+
   // left
 
   pot_t pot_left_key;
@@ -547,6 +575,8 @@ void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
 
 void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *))
 {
+  if (potfile_ctx->disable == 1) return;
+
   // left
 
   pot_t pot_left_key;
@@ -627,6 +657,8 @@ void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
 
 int potfile_remove_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, const hash_t *hashes_buf, const uint hashes_cnt)
 {
+  if (potfile_ctx->disable == 1) return 0;
+
   // no solution for these special hash types (for instane because they use hashfile in output etc)
 
   if  (hashconfig->hash_mode == 5200)
@@ -833,5 +865,7 @@ int potfile_remove_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashco
 
 void potfile_destroy (potfile_ctx_t *potfile_ctx)
 {
+  if (potfile_ctx->disable == 1) return;
+
   myfree (potfile_ctx->filename);
 }

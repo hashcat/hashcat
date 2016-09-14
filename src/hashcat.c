@@ -3639,13 +3639,13 @@ int main (int argc, char **argv)
 
     data.potfile_ctx = potfile_ctx;
 
-    potfile_init (potfile_ctx, profile_dir, potfile_path);
+    potfile_init (potfile_ctx, profile_dir, potfile_path, potfile_disable);
 
     if (show == 1 || left == 1)
     {
       SUPPRESS_OUTPUT = 1;
 
-      int rc = potfile_read_open (potfile_ctx);
+      const int rc = potfile_read_open (potfile_ctx);
 
       if (rc == -1) return -1;
 
