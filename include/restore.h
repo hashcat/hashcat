@@ -57,4 +57,8 @@ void write_restore (const char *new_restore_file, restore_data_t *rd);
 
 void cycle_restore ();
 
+void check_checkpoint ();
+
+void stop_at_checkpoint ();
+
 #endif // _RESTORE_H

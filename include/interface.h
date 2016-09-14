@@ -1658,6 +1658,7 @@ int opencart_parse_hash           (char *input_buf, uint input_len, hash_t *hash
  * output functions
  */
 
+char *stroptitype (const uint opti_type);
 char *strhashtype (const uint hash_mode);
 char *strparser (const uint parser_status);
 

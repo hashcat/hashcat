@@ -6,6 +6,7 @@
 #include "common.h"
 #include "types_int.h"
 #include "types.h"
+#include "interface.h"
 #include "timer.h"
 #include "logging.h"
 #include "memory.h"

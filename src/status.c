@@ -6,6 +6,7 @@
 #include "common.h"
 #include "types_int.h"
 #include "types.h"
+#include "interface.h"
 #include "timer.h"
 #include "memory.h"
 #include "logging.h"
@@ -18,11 +19,9 @@
 #include "rp_cpu.h"
 #include "terminal.h"
 #include "hwmon.h"
-#include "interface.h"
 #include "mpsp.h"
 #include "opencl.h"
 #include "restore.h"
-#include "interface.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
@@ -47,6 +46,7 @@ extern hc_global_data_t  data;
 extern hc_thread_mutex_t mux_hwmon;
 
 hc_thread_mutex_t mux_display;
+hc_thread_mutex_t mux_counter;
 
 static void format_timer_display (struct tm *tm, char *buf, size_t len)
 {
@@ -141,6 +141,33 @@ static char *strstatus (const uint devices_status)
   }
 
   return ((char *) "Unknown");
+}
+
+double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
+{
+  int exec_pos = (int) device_param->exec_pos - last_num_entries;
+
+  if (exec_pos < 0) exec_pos += EXEC_CACHE;
+
+  double exec_ms_sum = 0;
+
+  int exec_ms_cnt = 0;
+
+  for (int i = 0; i < last_num_entries; i++)
+  {
+    double exec_ms = device_param->exec_ms[(exec_pos + i) % EXEC_CACHE];
+
+    if (exec_ms > 0)
+    {
+      exec_ms_sum += exec_ms;
+
+      exec_ms_cnt++;
+    }
+  }
+
+  if (exec_ms_cnt == 0) return 0;
+
+  return exec_ms_sum / exec_ms_cnt;
 }
 
 void status_display_machine_readable ()

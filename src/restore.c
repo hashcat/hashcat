@@ -6,6 +6,7 @@
 #include "common.h"
 #include "types_int.h"
 #include "types.h"
+#include "interface.h"
 #include "timer.h"
 #include "memory.h"
 #include "logging.h"
@@ -17,7 +18,6 @@
 #include "thread.h"
 #include "rp_cpu.h"
 #include "hwmon.h"
-#include "interface.h"
 #include "mpsp.h"
 #include "opencl.h"
 #include "restore.h"
@@ -25,6 +25,7 @@
 #include "potfile.h"
 #include "debugfile.h"
 #include "loopback.h"
+#include "status.h"
 #include "data.h"
 
 extern hc_global_data_t data;
@@ -298,5 +299,57 @@ void cycle_restore ()
   if (rename (new_restore_file, eff_restore_file))
   {
     log_info ("WARN: Rename file '%s' to '%s': %s", new_restore_file, eff_restore_file, strerror (errno));
+  }
+}
+
+void check_checkpoint ()
+{
+  // if (data.restore_disable == 1) break;  (this is already implied by previous checks)
+
+  u64 words_cur = get_lowest_words_done ();
+
+  if (words_cur != data.checkpoint_cur_words)
+  {
+    myabort ();
+  }
+}
+
+void stop_at_checkpoint ()
+{
+  if (data.devices_status != STATUS_STOP_AT_CHECKPOINT)
+  {
+    if (data.devices_status != STATUS_RUNNING) return;
+  }
+
+  // this feature only makes sense if --restore-disable was not specified
+
+  if (data.restore_disable == 1)
+  {
+    log_info ("WARNING: This feature is disabled when --restore-disable is specified");
+
+    return;
+  }
+
+  // check if monitoring of Restore Point updates should be enabled or disabled
+
+  if (data.devices_status != STATUS_STOP_AT_CHECKPOINT)
+  {
+    data.devices_status = STATUS_STOP_AT_CHECKPOINT;
+
+    // save the current restore point value
+
+    data.checkpoint_cur_words = get_lowest_words_done ();
+
+    log_info ("Checkpoint enabled: Will quit at next Restore Point update");
+  }
+  else
+  {
+    data.devices_status = STATUS_RUNNING;
+
+    // reset the global value for checkpoint checks
+
+    data.checkpoint_cur_words = 0;
+
+    log_info ("Checkpoint disabled: Restore Point updates will no longer be monitored");
   }
 }

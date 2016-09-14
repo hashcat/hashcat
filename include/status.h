@@ -29,6 +29,8 @@ typedef enum status_rc
 
 } status_rc_t;
 
+double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries);
+
 void status_display_machine_readable ();
 void status_display ();
 void status_benchmark_automate ();

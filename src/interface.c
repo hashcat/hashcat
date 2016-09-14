@@ -23,6 +23,26 @@
 #include "cpu_sha256.h"
 #include "interface.h"
 
+static const char OPTI_STR_ZERO_BYTE[]         = "Zero-Byte";
+static const char OPTI_STR_PRECOMPUTE_INIT[]   = "Precompute-Init";
+static const char OPTI_STR_PRECOMPUTE_MERKLE[] = "Precompute-Merkle-Demgard";
+static const char OPTI_STR_PRECOMPUTE_PERMUT[] = "Precompute-Final-Permutation";
+static const char OPTI_STR_MEET_IN_MIDDLE[]    = "Meet-In-The-Middle";
+static const char OPTI_STR_EARLY_SKIP[]        = "Early-Skip";
+static const char OPTI_STR_NOT_SALTED[]        = "Not-Salted";
+static const char OPTI_STR_NOT_ITERATED[]      = "Not-Iterated";
+static const char OPTI_STR_PREPENDED_SALT[]    = "Prepended-Salt";
+static const char OPTI_STR_APPENDED_SALT[]     = "Appended-Salt";
+static const char OPTI_STR_SINGLE_HASH[]       = "Single-Hash";
+static const char OPTI_STR_SINGLE_SALT[]       = "Single-Salt";
+static const char OPTI_STR_BRUTE_FORCE[]       = "Brute-Force";
+static const char OPTI_STR_RAW_HASH[]          = "Raw-Hash";
+static const char OPTI_STR_SLOW_HASH_SIMD[]    = "Slow-Hash-SIMD";
+static const char OPTI_STR_USES_BITS_8[]       = "Uses-8-Bit";
+static const char OPTI_STR_USES_BITS_16[]      = "Uses-16-Bit";
+static const char OPTI_STR_USES_BITS_32[]      = "Uses-32-Bit";
+static const char OPTI_STR_USES_BITS_64[]      = "Uses-64-Bit";
+
 static const char PA_000[] = "OK";
 static const char PA_001[] = "Ignored due to comment";
 static const char PA_002[] = "Ignored due to zero length";
@@ -12820,6 +12840,34 @@ int win8phone_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf, con
 /**
  * output
  */
+
+char *stroptitype (const uint opti_type)
+{
+  switch (opti_type)
+  {
+    case OPTI_TYPE_ZERO_BYTE:         return ((char *) OPTI_STR_ZERO_BYTE);
+    case OPTI_TYPE_PRECOMPUTE_INIT:   return ((char *) OPTI_STR_PRECOMPUTE_INIT);
+    case OPTI_TYPE_PRECOMPUTE_MERKLE: return ((char *) OPTI_STR_PRECOMPUTE_MERKLE);
+    case OPTI_TYPE_PRECOMPUTE_PERMUT: return ((char *) OPTI_STR_PRECOMPUTE_PERMUT);
+    case OPTI_TYPE_MEET_IN_MIDDLE:    return ((char *) OPTI_STR_MEET_IN_MIDDLE);
+    case OPTI_TYPE_EARLY_SKIP:        return ((char *) OPTI_STR_EARLY_SKIP);
+    case OPTI_TYPE_NOT_SALTED:        return ((char *) OPTI_STR_NOT_SALTED);
+    case OPTI_TYPE_NOT_ITERATED:      return ((char *) OPTI_STR_NOT_ITERATED);
+    case OPTI_TYPE_PREPENDED_SALT:    return ((char *) OPTI_STR_PREPENDED_SALT);
+    case OPTI_TYPE_APPENDED_SALT:     return ((char *) OPTI_STR_APPENDED_SALT);
+    case OPTI_TYPE_SINGLE_HASH:       return ((char *) OPTI_STR_SINGLE_HASH);
+    case OPTI_TYPE_SINGLE_SALT:       return ((char *) OPTI_STR_SINGLE_SALT);
+    case OPTI_TYPE_BRUTE_FORCE:       return ((char *) OPTI_STR_BRUTE_FORCE);
+    case OPTI_TYPE_RAW_HASH:          return ((char *) OPTI_STR_RAW_HASH);
+    case OPTI_TYPE_SLOW_HASH_SIMD:    return ((char *) OPTI_STR_SLOW_HASH_SIMD);
+    case OPTI_TYPE_USES_BITS_8:       return ((char *) OPTI_STR_USES_BITS_8);
+    case OPTI_TYPE_USES_BITS_16:      return ((char *) OPTI_STR_USES_BITS_16);
+    case OPTI_TYPE_USES_BITS_32:      return ((char *) OPTI_STR_USES_BITS_32);
+    case OPTI_TYPE_USES_BITS_64:      return ((char *) OPTI_STR_USES_BITS_64);
+  }
+
+  return (NULL);
+}
 
 char *strhashtype (const uint hash_mode)
 {

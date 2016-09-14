@@ -11,6 +11,18 @@
 
 #define PARAMCNT 64
 
+
+#define KERNEL_ACCEL            0
+#define KERNEL_LOOPS            0
+#define KERNEL_RULES            1024
+#define KERNEL_COMBS            1024
+#define KERNEL_BFS              1024
+#define KERNEL_THREADS_MAX      256
+#define KERNEL_THREADS_MAX_CPU  1
+#define WORKLOAD_PROFILE        2
+#define SCRYPT_TMTO             0
+#define NVIDIA_SPIN_DAMP        100
+
 static const char CL_VENDOR_AMD[]           = "Advanced Micro Devices, Inc.";
 static const char CL_VENDOR_AMD_USE_INTEL[] = "GenuineIntel";
 static const char CL_VENDOR_APPLE[]         = "Apple";
@@ -222,6 +234,16 @@ cl_device_type setup_device_types_filter (char *opencl_device_types);
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
 
-double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries);
-
 int gidd_to_pw_t (hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
+
+int choose_kernel (hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration);
+int run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num, const uint event_update, const uint iteration, hashconfig_t *hashconfig);
+int run_kernel_mp (const uint kern_run, hc_device_param_t *device_param, const uint num);
+int run_kernel_tm (hc_device_param_t *device_param);
+int run_kernel_amp (hc_device_param_t *device_param, const uint num);
+int run_kernel_memset (hc_device_param_t *device_param, cl_mem buf, const uint value, const uint num);
+int run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const size_t size);
+
+int run_copy (hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint pws_cnt);
+
+int run_cracker (hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint pws_cnt);
