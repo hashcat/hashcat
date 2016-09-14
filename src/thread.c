@@ -30,6 +30,8 @@
 
 extern hc_global_data_t data;
 
+hc_thread_mutex_t mux_dispatcher;
+
 #if defined (_WIN)
 
 BOOL WINAPI sigHandler_default (DWORD sig)

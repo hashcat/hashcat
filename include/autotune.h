@@ -6,4 +6,8 @@
 #ifndef _AUTOTUNE_H
 #define _AUTOTUNE_H
 
+#define OPENCL_VECTOR_WIDTH     0
+
+int autotune (hc_device_param_t *device_param, hashconfig_t *hashconfig);
+
 #endif // _AUTOTUNE_H
