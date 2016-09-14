@@ -3683,17 +3683,6 @@ int main (int argc, char **argv)
     uint pw_min = hashconfig_general_pw_min (hashconfig);
     uint pw_max = hashconfig_general_pw_max (hashconfig);
 
-    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-    {
-      switch (attack_kern)
-      {
-        case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
-                                    break;
-        case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
-                                    break;
-      }
-    }
-
     /**
      * charsets : keep them together for more easy maintainnce
      */
@@ -4986,6 +4975,48 @@ int main (int argc, char **argv)
       log_error ("ERROR: No valid rules left");
 
       return -1;
+    }
+
+    /**
+     * If we have a NOOP rule then we can process words from wordlists > length 32 for slow hashes
+     */
+
+    int has_noop = 0;
+
+    for (uint kernel_rules_pos = 0; kernel_rules_pos < kernel_rules_cnt; kernel_rules_pos++)
+    {
+      if (kernel_rules_buf[kernel_rules_pos].cmds[0] != RULE_OP_MANGLE_NOOP) continue;
+      if (kernel_rules_buf[kernel_rules_pos].cmds[1] != 0)                   continue;
+
+      has_noop = 1;
+    }
+
+    if (has_noop == 0)
+    {
+      switch (attack_kern)
+      {
+        case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
+                                    break;
+        case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
+                                    break;
+      }
+    }
+    else
+    {
+      if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+      {
+        switch (attack_kern)
+        {
+          case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
+                                      break;
+          case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
+                                      break;
+        }
+      }
+      else
+      {
+        // in this case we can process > 32
+      }
     }
 
     /**
