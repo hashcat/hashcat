@@ -65,4 +65,11 @@ void hc_signal (void (callback) (int));
 void myabort ();
 void myquit ();
 
+void SuspendThreads ();
+void ResumeThreads ();
+
+void bypass ();
+
+uint get_work (hc_device_param_t *device_param, const u64 max);
+
 #endif // _THREAD_H

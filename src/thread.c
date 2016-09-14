@@ -8,6 +8,7 @@
 #include "types.h"
 #include "interface.h"
 #include "timer.h"
+#include "logging.h"
 #include "ext_OpenCL.h"
 #include "ext_ADL.h"
 #include "ext_nvapi.h"
@@ -143,4 +144,108 @@ void myabort ()
 void myquit ()
 {
   data.devices_status = STATUS_QUIT;
+}
+
+void SuspendThreads ()
+{
+  if (data.devices_status != STATUS_RUNNING) return;
+
+  hc_timer_set (&data.timer_paused);
+
+  data.devices_status = STATUS_PAUSED;
+
+  log_info ("Paused");
+}
+
+void ResumeThreads ()
+{
+  if (data.devices_status != STATUS_PAUSED) return;
+
+  double ms_paused;
+
+  hc_timer_get (data.timer_paused, ms_paused);
+
+  data.ms_paused += ms_paused;
+
+  data.devices_status = STATUS_RUNNING;
+
+  log_info ("Resumed");
+}
+
+void bypass ()
+{
+  data.devices_status = STATUS_BYPASS;
+
+  log_info ("Next dictionary / mask in queue selected, bypassing current one");
+}
+
+static void set_kernel_power_final (const u64 kernel_power_final)
+{
+  if (data.quiet == 0)
+  {
+    clear_prompt ();
+
+    //log_info ("");
+
+    log_info ("INFO: approaching final keyspace, workload adjusted");
+    log_info ("");
+
+    send_prompt ();
+  }
+
+  data.kernel_power_final = kernel_power_final;
+}
+
+static u32 get_power (hc_device_param_t *device_param)
+{
+  const u64 kernel_power_final = data.kernel_power_final;
+
+  if (kernel_power_final)
+  {
+    const double device_factor = (double) device_param->hardware_power / data.hardware_power_all;
+
+    const u64 words_left_device = (u64) CEIL (kernel_power_final * device_factor);
+
+    // work should be at least the hardware power available without any accelerator
+
+    const u64 work = MAX (words_left_device, device_param->hardware_power);
+
+    return work;
+  }
+
+  return device_param->kernel_power;
+}
+
+uint get_work (hc_device_param_t *device_param, const u64 max)
+{
+  hc_thread_mutex_lock (mux_dispatcher);
+
+  const u64 words_cur  = data.words_cur;
+  const u64 words_base = (data.limit == 0) ? data.words_base : MIN (data.limit, data.words_base);
+
+  device_param->words_off = words_cur;
+
+  const u64 kernel_power_all = data.kernel_power_all;
+
+  const u64 words_left = words_base - words_cur;
+
+  if (words_left < kernel_power_all)
+  {
+    if (data.kernel_power_final == 0)
+    {
+      set_kernel_power_final (words_left);
+    }
+  }
+
+  const u32 kernel_power = get_power (device_param);
+
+  uint work = MIN (words_left, kernel_power);
+
+  work = MIN (work, max);
+
+  data.words_cur += work;
+
+  hc_thread_mutex_unlock (mux_dispatcher);
+
+  return work;
 }
