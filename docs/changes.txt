@@ -10,6 +10,7 @@
 - Abort session after NUM seconds of --runtime but do not count time in pause mode
 - Added docs/credits.txt
 - Added docs/team.txt
+- Allow words of length > 32 in wordlists for -a 0 for slow hashes if no rules are in use or a : rule is in the rulefile
 
 ##
 ## Algorithms
