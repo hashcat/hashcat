@@ -108,9 +108,6 @@ const int comptime = COMPTIME;
 
 
 
-// outfile_check
-#define OUTFILE_CHECK_TIMER     5
-
 
 // weak_hash
 #define WEAK_HASH_THRESHOLD     100
