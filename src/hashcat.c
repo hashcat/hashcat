@@ -83,6 +83,7 @@
 #include "powertune.h"
 #include "autotune.h"
 #include "induct.h"
+#include "dispatch.h"
 
 extern hc_global_data_t data;
 

@@ -70,9 +70,4 @@ void ResumeThreads ();
 
 void bypass ();
 
-uint get_work (hc_device_param_t *device_param, const u64 max);
-
-void *thread_calc_stdin (void *p);
-void *thread_calc (void *p);
-
 #endif // _THREAD_H
