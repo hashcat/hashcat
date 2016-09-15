@@ -8,4 +8,6 @@
 
 #define OUTFILE_CHECK_TIMER 5
 
+void *thread_outfile_remove (void *p);
+
 #endif // _OUTFILE_CHECK_H
