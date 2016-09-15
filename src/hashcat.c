@@ -746,18 +746,6 @@ static void *thread_outfile_remove (void *p)
   return (p);
 }
 
-static void *thread_autotune (void *p)
-{
-  hc_device_param_t *device_param = (hc_device_param_t *) p;
-
-  if (device_param->skipped) return NULL;
-
-  hashconfig_t *hashconfig = data.hashconfig;
-
-  autotune (device_param, hashconfig);
-
-  return NULL;
-}
 
 static void *thread_calc_stdin (void *p)
 {

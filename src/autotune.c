@@ -309,3 +309,17 @@ int autotune (hc_device_param_t *device_param, hashconfig_t *hashconfig)
 
   return 0;
 }
+
+void *thread_autotune (void *p)
+{
+  hc_device_param_t *device_param = (hc_device_param_t *) p;
+
+  if (device_param->skipped) return NULL;
+
+  hashconfig_t *hashconfig = data.hashconfig;
+
+  autotune (device_param, hashconfig);
+
+  return NULL;
+}
+
