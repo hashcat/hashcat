@@ -25,6 +25,7 @@
 #include "loopback.h"
 #include "data.h"
 #include "status.h"
+#include "terminal.h"
 #include "autotune.h"
 
 extern hc_global_data_t data;
