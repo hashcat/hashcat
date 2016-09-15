@@ -224,25 +224,71 @@ struct __hc_device_param
   u32     kernel_params_memset_buf32[PARAMCNT];
 };
 
-uint setup_opencl_platforms_filter (char *opencl_platforms);
-u32 setup_devices_filter (char *opencl_devices);
-cl_device_type setup_device_types_filter (char *opencl_device_types);
+typedef struct
+{
+  int                 disable;
+
+  void               *ocl;
+
+  cl_uint             platforms_cnt;
+  cl_platform_id     *platforms;
+
+  cl_uint             platform_devices_cnt;
+  cl_device_id       *platform_devices;
+
+  u32                 devices_cnt;
+  u32                 devices_active;
+
+  hc_device_param_t  *devices_param;
+
+  u32                 devices_status;
+
+  u32                 opencl_platforms_filter;
+  u32                 devices_filter;
+  cl_device_type      device_types_filter;
+
+  u32                 opencl_vector_width;
+  u32                 opencl_vector_width_chgd;
+
+  u32                 nvidia_spin_damp;
+  u32                 nvidia_spin_damp_chgd;
+
+  uint                kernel_loops;
+  uint                kernel_loops_chgd;
+
+  uint                kernel_accel;
+  uint                kernel_accel_chgd;
+
+  uint                workload_profile;
+
+  int                 need_adl;
+  int                 need_nvml;
+  int                 need_nvapi;
+  int                 need_xnvctrl;
+
+} opencl_ctx_t;
 
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
 
-int gidd_to_pw_t (hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
+int gidd_to_pw_t (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 
-int choose_kernel (hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration);
-int run_kernel (const uint kern_run, hc_device_param_t *device_param, const uint num, const uint event_update, const uint iteration, hashconfig_t *hashconfig);
-int run_kernel_mp (const uint kern_run, hc_device_param_t *device_param, const uint num);
-int run_kernel_tm (hc_device_param_t *device_param);
-int run_kernel_amp (hc_device_param_t *device_param, const uint num);
-int run_kernel_memset (hc_device_param_t *device_param, cl_mem buf, const uint value, const uint num);
-int run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const size_t size);
+int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration);
+int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint num, const uint event_update, const uint iteration, hashconfig_t *hashconfig);
+int run_kernel_mp (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint num);
+int run_kernel_tm (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param);
+int run_kernel_amp (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint num);
+int run_kernel_memset (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cl_mem buf, const uint value, const uint num);
+int run_kernel_bzero (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cl_mem buf, const size_t size);
 
-int run_copy (hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint pws_cnt);
+int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint pws_cnt);
 
-int run_cracker (hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint pws_cnt);
+int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint pws_cnt);
+
+int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const char *opencl_platforms, const char *opencl_devices, const char *opencl_device_types, const uint opencl_vector_width, const uint opencl_vector_width_chgd, const uint nvidia_spin_damp, const uint nvidia_spin_damp_chgd, const uint workload_profile, const uint kernel_accel, const uint kernel_accel_chgd, const uint kernel_loops, const uint kernel_loops_chgd, const uint keyspace, const uint stdout_flag);
+void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx);
+
+int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const tuning_db_t *tuning_db, const uint attack_mode, const uint quiet, const uint force, const uint benchmark, const uint machine_readable, const uint algorithm_pos);
+void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx);
 
 #endif // _OPENCL_H

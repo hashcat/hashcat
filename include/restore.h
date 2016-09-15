@@ -47,18 +47,18 @@ typedef struct
 
 } restore_data_t;
 
-u64 get_lowest_words_done ();
+u64 get_lowest_words_done (opencl_ctx_t *opencl_ctx);
 
 restore_data_t *init_restore (int argc, char **argv);
 
 void read_restore (const char *eff_restore_file, restore_data_t *rd);
 
-void write_restore (const char *new_restore_file, restore_data_t *rd);
+void write_restore (opencl_ctx_t *opencl_ctx, const char *new_restore_file, restore_data_t *rd);
 
-void cycle_restore ();
+void cycle_restore (opencl_ctx_t *opencl_ctx);
 
-void check_checkpoint ();
+void check_checkpoint (opencl_ctx_t *opencl_ctx);
 
-void stop_at_checkpoint ();
+void stop_at_checkpoint (opencl_ctx_t *opencl_ctx);
 
 #endif // _RESTORE_H

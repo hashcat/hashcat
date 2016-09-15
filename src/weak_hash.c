@@ -14,11 +14,12 @@
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
-#include "hwmon.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
-#include "restore.h"
+#include "tuningdb.h"
 #include "opencl.h"
+#include "hwmon.h"
+#include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
@@ -29,7 +30,7 @@
 
 extern hc_global_data_t data;
 
-void weak_hash_check (hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint salt_pos)
+void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint salt_pos)
 {
   if (device_param == NULL)
   {
@@ -63,11 +64,11 @@ void weak_hash_check (hc_device_param_t *device_param, hashconfig_t *hashconfig,
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    run_kernel (KERN_RUN_1, device_param, 1, false, 0, hashconfig);
+    run_kernel (KERN_RUN_1, opencl_ctx, device_param, 1, false, 0, hashconfig);
   }
   else
   {
-    run_kernel (KERN_RUN_1, device_param, 1, false, 0, hashconfig);
+    run_kernel (KERN_RUN_1, opencl_ctx, device_param, 1, false, 0, hashconfig);
 
     uint loop_step = 16;
 
@@ -82,17 +83,17 @@ void weak_hash_check (hc_device_param_t *device_param, hashconfig_t *hashconfig,
       device_param->kernel_params_buf32[28] = loop_pos;
       device_param->kernel_params_buf32[29] = loop_left;
 
-      run_kernel (KERN_RUN_2, device_param, 1, false, 0, hashconfig);
+      run_kernel (KERN_RUN_2, opencl_ctx, device_param, 1, false, 0, hashconfig);
     }
 
-    run_kernel (KERN_RUN_3, device_param, 1, false, 0, hashconfig);
+    run_kernel (KERN_RUN_3, opencl_ctx, device_param, 1, false, 0, hashconfig);
   }
 
   /**
    * result
    */
 
-  check_cracked (device_param, salt_pos, hashconfig);
+  check_cracked (opencl_ctx, device_param, salt_pos, hashconfig);
 
   /**
    * cleanup

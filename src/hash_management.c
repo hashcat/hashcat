@@ -15,11 +15,13 @@
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
-#include "hwmon.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
-#include "restore.h"
+#include "tuningdb.h"
 #include "opencl.h"
+#include "hwmon.h"
+#include "restore.h"
+#include "thread.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
@@ -27,7 +29,6 @@
 #include "data.h"
 #include "terminal.h"
 #include "status.h"
-#include "thread.h"
 #include "rp_kernel_on_cpu.h"
 #include "hash_management.h"
 
@@ -222,7 +223,7 @@ void save_hash ()
   unlink (old_hashfile);
 }
 
-void check_hash (hc_device_param_t *device_param, plain_t *plain)
+void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, plain_t *plain)
 {
   debugfile_ctx_t *debugfile_ctx = data.debugfile_ctx;
   loopback_ctx_t  *loopback_ctx  = data.loopback_ctx;
@@ -271,7 +272,7 @@ void check_hash (hc_device_param_t *device_param, plain_t *plain)
   {
     pw_t pw;
 
-    gidd_to_pw_t (device_param, gidvid, &pw);
+    gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
 
     for (int i = 0; i < 16; i++)
     {
@@ -319,7 +320,7 @@ void check_hash (hc_device_param_t *device_param, plain_t *plain)
   {
     pw_t pw;
 
-    gidd_to_pw_t (device_param, gidvid, &pw);
+    gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
 
     for (int i = 0; i < 16; i++)
     {
@@ -377,7 +378,7 @@ void check_hash (hc_device_param_t *device_param, plain_t *plain)
   {
     pw_t pw;
 
-    gidd_to_pw_t (device_param, gidvid, &pw);
+    gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
 
     for (int i = 0; i < 16; i++)
     {
@@ -408,7 +409,7 @@ void check_hash (hc_device_param_t *device_param, plain_t *plain)
   {
     pw_t pw;
 
-    gidd_to_pw_t (device_param, gidvid, &pw);
+    gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
 
     for (int i = 0; i < 16; i++)
     {
@@ -481,7 +482,7 @@ void check_hash (hc_device_param_t *device_param, plain_t *plain)
 
   if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
   {
-    if ((data.devices_status != STATUS_CRACKED) && (data.status != 1))
+    if ((opencl_ctx->devices_status != STATUS_CRACKED) && (data.status != 1))
     {
       if (outfile_ctx->filename == NULL) if (quiet == 0) send_prompt ();
     }
@@ -510,7 +511,7 @@ void check_hash (hc_device_param_t *device_param, plain_t *plain)
   }
 }
 
-int check_cracked (hc_device_param_t *device_param, const uint salt_pos, hashconfig_t *hashconfig)
+int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint salt_pos, hashconfig_t *hashconfig)
 {
   salt_t *salt_buf = &data.salts_buf[salt_pos];
 
@@ -518,7 +519,7 @@ int check_cracked (hc_device_param_t *device_param, const uint salt_pos, hashcon
 
   cl_int CL_err;
 
-  CL_err = hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
+  CL_err = hc_clEnqueueReadBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
 
   if (CL_err != CL_SUCCESS)
   {
@@ -535,7 +536,7 @@ int check_cracked (hc_device_param_t *device_param, const uint salt_pos, hashcon
 
     plain_t *cracked = (plain_t *) mycalloc (num_cracked, sizeof (plain_t));
 
-    CL_err = hc_clEnqueueReadBuffer (data.ocl, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
+    CL_err = hc_clEnqueueReadBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
 
     if (CL_err != CL_SUCCESS)
     {
@@ -572,9 +573,9 @@ int check_cracked (hc_device_param_t *device_param, const uint salt_pos, hashcon
         }
       }
 
-      if (data.salts_done == data.salts_cnt) data.devices_status = STATUS_CRACKED;
+      if (data.salts_done == data.salts_cnt) opencl_ctx->devices_status = STATUS_CRACKED;
 
-      check_hash (device_param, &cracked[i]);
+      check_hash (opencl_ctx, device_param, &cracked[i]);
     }
 
     hc_thread_mutex_unlock (mux_display);
@@ -605,7 +606,7 @@ int check_cracked (hc_device_param_t *device_param, const uint salt_pos, hashcon
 
       memset (data.digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (uint));
 
-      CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
+      CL_err = hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &data.digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
 
       if (CL_err != CL_SUCCESS)
       {
@@ -617,7 +618,7 @@ int check_cracked (hc_device_param_t *device_param, const uint salt_pos, hashcon
 
     num_cracked = 0;
 
-    CL_err = hc_clEnqueueWriteBuffer (data.ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
+    CL_err = hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
 
     if (CL_err != CL_SUCCESS)
     {
@@ -629,5 +630,3 @@ int check_cracked (hc_device_param_t *device_param, const uint salt_pos, hashcon
 
   return 0;
 }
-
-

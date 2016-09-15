@@ -15,11 +15,12 @@
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
-#include "hwmon.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
-#include "restore.h"
+#include "tuningdb.h"
 #include "opencl.h"
+#include "hwmon.h"
+#include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
@@ -36,6 +37,8 @@ extern hc_global_data_t data;
 void *thread_outfile_remove (void *p)
 {
   // some hash-dependent constants
+
+  opencl_ctx_t *opencl_ctx = data.opencl_ctx;
 
   hashconfig_t *hashconfig = data.hashconfig;
 
@@ -72,7 +75,7 @@ void *thread_outfile_remove (void *p)
   {
     hc_sleep (1);
 
-    if (data.devices_status != STATUS_RUNNING) continue;
+    if (opencl_ctx->devices_status != STATUS_RUNNING) continue;
 
     check_left--;
 
@@ -278,23 +281,23 @@ void *thread_outfile_remove (void *p)
 
                             data.salts_done++;
 
-                            if (data.salts_done == data.salts_cnt) data.devices_status = STATUS_CRACKED;
+                            if (data.salts_done == data.salts_cnt) opencl_ctx->devices_status = STATUS_CRACKED;
                           }
                         }
                       }
 
-                      if (data.devices_status == STATUS_CRACKED) break;
+                      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
                     }
                   }
 
                   if (found) break;
 
-                  if (data.devices_status == STATUS_CRACKED) break;
+                  if (opencl_ctx->devices_status == STATUS_CRACKED) break;
 
                   iter--;
                 }
 
-                if (data.devices_status == STATUS_CRACKED) break;
+                if (opencl_ctx->devices_status == STATUS_CRACKED) break;
               }
 
               myfree (line_buf);

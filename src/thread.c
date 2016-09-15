@@ -16,13 +16,14 @@
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
+#include "tuningdb.h"
 #include "opencl.h"
+#include "hwmon.h"
+#include "restore.h"
 #include "thread.h"
 #include "rp_cpu.h"
 #include "terminal.h"
-#include "hwmon.h"
 #include "mpsp.h"
-#include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
@@ -50,7 +51,7 @@ BOOL WINAPI sigHandler_default (DWORD sig)
        * function otherwise it is too late (e.g. after returning from this function)
        */
 
-      myabort ();
+      myabort (data.opencl_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -62,7 +63,7 @@ BOOL WINAPI sigHandler_default (DWORD sig)
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
 
-      myabort ();
+      myabort (data.opencl_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -78,7 +79,7 @@ BOOL WINAPI sigHandler_benchmark (DWORD sig)
   {
     case CTRL_CLOSE_EVENT:
 
-      myquit ();
+      myquit (data.opencl_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -90,7 +91,7 @@ BOOL WINAPI sigHandler_benchmark (DWORD sig)
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
 
-      myquit ();
+      myquit (data.opencl_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -116,14 +117,14 @@ void hc_signal (BOOL WINAPI (callback) (DWORD))
 
 void sigHandler_default (int sig)
 {
-  myabort ();
+  myabort (data.opencl_ctx);
 
   signal (sig, NULL);
 }
 
 void sigHandler_benchmark (int sig)
 {
-  myquit ();
+  myquit (data.opencl_ctx);
 
   signal (sig, NULL);
 }
@@ -139,30 +140,30 @@ void hc_signal (void (callback) (int))
 
 #endif
 
-void myabort ()
+void myabort (opencl_ctx_t *opencl_ctx)
 {
-  data.devices_status = STATUS_ABORTED;
+  opencl_ctx->devices_status = STATUS_ABORTED;
 }
 
-void myquit ()
+void myquit (opencl_ctx_t *opencl_ctx)
 {
-  data.devices_status = STATUS_QUIT;
+  opencl_ctx->devices_status = STATUS_QUIT;
 }
 
-void SuspendThreads ()
+void SuspendThreads (opencl_ctx_t *opencl_ctx)
 {
-  if (data.devices_status != STATUS_RUNNING) return;
+  if (opencl_ctx->devices_status != STATUS_RUNNING) return;
 
   hc_timer_set (&data.timer_paused);
 
-  data.devices_status = STATUS_PAUSED;
+  opencl_ctx->devices_status = STATUS_PAUSED;
 
   log_info ("Paused");
 }
 
-void ResumeThreads ()
+void ResumeThreads (opencl_ctx_t *opencl_ctx)
 {
-  if (data.devices_status != STATUS_PAUSED) return;
+  if (opencl_ctx->devices_status != STATUS_PAUSED) return;
 
   double ms_paused;
 
@@ -170,14 +171,14 @@ void ResumeThreads ()
 
   data.ms_paused += ms_paused;
 
-  data.devices_status = STATUS_RUNNING;
+  opencl_ctx->devices_status = STATUS_RUNNING;
 
   log_info ("Resumed");
 }
 
-void bypass ()
+void bypass (opencl_ctx_t *opencl_ctx)
 {
-  data.devices_status = STATUS_BYPASS;
+  opencl_ctx->devices_status = STATUS_BYPASS;
 
   log_info ("Next dictionary / mask in queue selected, bypassing current one");
 }

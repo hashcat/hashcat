@@ -31,6 +31,6 @@ typedef struct
 
 } out_t;
 
-void process_stdout (hc_device_param_t *device_param, const uint pws_cnt);
+void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint pws_cnt);
 
 #endif // _STDOUT_H

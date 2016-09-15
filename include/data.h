@@ -26,11 +26,9 @@ typedef struct
    * threads
    */
 
-  uint    devices_status;
-  uint    devices_cnt;
-  uint    devices_active;
 
-  hc_device_param_t *devices_param;
+
+  opencl_ctx_t *opencl_ctx;
 
   uint    shutdown_inner;
   uint    shutdown_outer;
@@ -73,12 +71,6 @@ typedef struct
   char   *rule_buf_r;
   int     rule_len_l;
   int     rule_len_r;
-
-  /**
-   * opencl library stuff
-   */
-
-  void   *ocl;
 
   /**
    * hardware watchdog
@@ -181,7 +173,7 @@ typedef struct
   char   *truecrypt_keyfiles;
   char   *veracrypt_keyfiles;
   uint    veracrypt_pim;
-  uint    workload_profile;
+
   char   *custom_charset_1;
   char   *custom_charset_2;
   char   *custom_charset_3;

@@ -15,11 +15,12 @@
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
-#include "hwmon.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
-#include "restore.h"
+#include "tuningdb.h"
 #include "opencl.h"
+#include "hwmon.h"
+#include "restore.h"
 #include "thread.h"
 #include "outfile.h"
 #include "potfile.h"
@@ -413,11 +414,11 @@ int hm_get_adapter_index_adl (hm_attrs_t *hm_device, u32 *valid_adl_device_list,
   return num_adl_adapters;
 }
 
-int hm_get_threshold_slowdown_with_device_id (const uint device_id)
+int hm_get_threshold_slowdown_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id)
 {
-  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_adl)
     {
@@ -439,7 +440,7 @@ int hm_get_threshold_slowdown_with_device_id (const uint device_id)
     }
   }
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     int target = 0;
 
@@ -451,11 +452,11 @@ int hm_get_threshold_slowdown_with_device_id (const uint device_id)
   return -1;
 }
 
-int hm_get_threshold_shutdown_with_device_id (const uint device_id)
+int hm_get_threshold_shutdown_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id)
 {
-  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_adl)
     {
@@ -470,7 +471,7 @@ int hm_get_threshold_shutdown_with_device_id (const uint device_id)
     }
   }
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     int target = 0;
 
@@ -482,11 +483,11 @@ int hm_get_threshold_shutdown_with_device_id (const uint device_id)
   return -1;
 }
 
-int hm_get_temperature_with_device_id (const uint device_id)
+int hm_get_temperature_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id)
 {
-  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_adl)
     {
@@ -511,7 +512,7 @@ int hm_get_temperature_with_device_id (const uint device_id)
     }
   }
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     int temperature = 0;
 
@@ -523,13 +524,13 @@ int hm_get_temperature_with_device_id (const uint device_id)
   return -1;
 }
 
-int hm_get_fanpolicy_with_device_id (const uint device_id)
+int hm_get_fanpolicy_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id)
 {
-  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   if (data.hm_device[device_id].fan_get_supported == 1)
   {
-    if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+    if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
     {
       if (data.hm_adl)
       {
@@ -553,7 +554,7 @@ int hm_get_fanpolicy_with_device_id (const uint device_id)
       }
     }
 
-    if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+    if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
     {
       return 1;
     }
@@ -562,13 +563,13 @@ int hm_get_fanpolicy_with_device_id (const uint device_id)
   return -1;
 }
 
-int hm_get_fanspeed_with_device_id (const uint device_id)
+int hm_get_fanspeed_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id)
 {
-  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
   if (data.hm_device[device_id].fan_get_supported == 1)
   {
-    if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+    if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
     {
       if (data.hm_adl)
       {
@@ -599,7 +600,7 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
       }
     }
 
-    if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+    if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
     {
       int speed = 0;
 
@@ -612,11 +613,11 @@ int hm_get_fanspeed_with_device_id (const uint device_id)
   return -1;
 }
 
-int hm_get_buslanes_with_device_id (const uint device_id)
+int hm_get_buslanes_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id)
 {
-  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_adl)
     {
@@ -630,7 +631,7 @@ int hm_get_buslanes_with_device_id (const uint device_id)
     }
   }
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     unsigned int currLinkWidth;
 
@@ -642,11 +643,11 @@ int hm_get_buslanes_with_device_id (const uint device_id)
   return -1;
 }
 
-int hm_get_utilization_with_device_id (const uint device_id)
+int hm_get_utilization_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id)
 {
-  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_adl)
     {
@@ -660,7 +661,7 @@ int hm_get_utilization_with_device_id (const uint device_id)
     }
   }
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     nvmlUtilization_t utilization;
 
@@ -672,11 +673,11 @@ int hm_get_utilization_with_device_id (const uint device_id)
   return -1;
 }
 
-int hm_get_memoryspeed_with_device_id (const uint device_id)
+int hm_get_memoryspeed_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id)
 {
-  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_adl)
     {
@@ -690,7 +691,7 @@ int hm_get_memoryspeed_with_device_id (const uint device_id)
     }
   }
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     unsigned int clock;
 
@@ -702,11 +703,11 @@ int hm_get_memoryspeed_with_device_id (const uint device_id)
   return -1;
 }
 
-int hm_get_corespeed_with_device_id (const uint device_id)
+int hm_get_corespeed_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id)
 {
-  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
     if (data.hm_adl)
     {
@@ -720,7 +721,7 @@ int hm_get_corespeed_with_device_id (const uint device_id)
     }
   }
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     unsigned int clock;
 
@@ -732,16 +733,16 @@ int hm_get_corespeed_with_device_id (const uint device_id)
   return -1;
 }
 
-int hm_get_throttle_with_device_id (const uint device_id)
+int hm_get_throttle_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id)
 {
-  if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
+  if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
 
   }
 
-  if (data.devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
     unsigned long long clocksThrottleReasons = 0;
     unsigned long long supportedThrottleReasons = 0;

@@ -15,12 +15,13 @@
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
+#include "tuningdb.h"
 #include "opencl.h"
+#include "hwmon.h"
+#include "restore.h"
 #include "thread.h"
 #include "rp_cpu.h"
-#include "hwmon.h"
 #include "mpsp.h"
-#include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
@@ -39,13 +40,13 @@ static void fsync (int fd)
 }
 #endif
 
-u64 get_lowest_words_done ()
+u64 get_lowest_words_done (opencl_ctx_t *opencl_ctx)
 {
   u64 words_cur = -1llu;
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -238,9 +239,9 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
   }
 }
 
-void write_restore (const char *new_restore_file, restore_data_t *rd)
+void write_restore (opencl_ctx_t *opencl_ctx, const char *new_restore_file, restore_data_t *rd)
 {
-  u64 words_cur = get_lowest_words_done ();
+  u64 words_cur = get_lowest_words_done (opencl_ctx);
 
   rd->words_cur = words_cur;
 
@@ -275,14 +276,14 @@ void write_restore (const char *new_restore_file, restore_data_t *rd)
   fclose (fp);
 }
 
-void cycle_restore ()
+void cycle_restore (opencl_ctx_t *opencl_ctx)
 {
   const char *eff_restore_file = data.eff_restore_file;
   const char *new_restore_file = data.new_restore_file;
 
   restore_data_t *rd = data.rd;
 
-  write_restore (new_restore_file, rd);
+  write_restore (opencl_ctx, new_restore_file, rd);
 
   struct stat st;
 
@@ -302,23 +303,23 @@ void cycle_restore ()
   }
 }
 
-void check_checkpoint ()
+void check_checkpoint (opencl_ctx_t *opencl_ctx)
 {
   // if (data.restore_disable == 1) break;  (this is already implied by previous checks)
 
-  u64 words_cur = get_lowest_words_done ();
+  u64 words_cur = get_lowest_words_done (opencl_ctx);
 
   if (words_cur != data.checkpoint_cur_words)
   {
-    myabort ();
+    myabort (opencl_ctx);
   }
 }
 
-void stop_at_checkpoint ()
+void stop_at_checkpoint (opencl_ctx_t *opencl_ctx)
 {
-  if (data.devices_status != STATUS_STOP_AT_CHECKPOINT)
+  if (opencl_ctx->devices_status != STATUS_STOP_AT_CHECKPOINT)
   {
-    if (data.devices_status != STATUS_RUNNING) return;
+    if (opencl_ctx->devices_status != STATUS_RUNNING) return;
   }
 
   // this feature only makes sense if --restore-disable was not specified
@@ -332,19 +333,19 @@ void stop_at_checkpoint ()
 
   // check if monitoring of Restore Point updates should be enabled or disabled
 
-  if (data.devices_status != STATUS_STOP_AT_CHECKPOINT)
+  if (opencl_ctx->devices_status != STATUS_STOP_AT_CHECKPOINT)
   {
-    data.devices_status = STATUS_STOP_AT_CHECKPOINT;
+    opencl_ctx->devices_status = STATUS_STOP_AT_CHECKPOINT;
 
     // save the current restore point value
 
-    data.checkpoint_cur_words = get_lowest_words_done ();
+    data.checkpoint_cur_words = get_lowest_words_done (opencl_ctx);
 
     log_info ("Checkpoint enabled: Will quit at next Restore Point update");
   }
   else
   {
-    data.devices_status = STATUS_RUNNING;
+    opencl_ctx->devices_status = STATUS_RUNNING;
 
     // reset the global value for checkpoint checks
 

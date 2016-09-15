@@ -17,15 +17,16 @@
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
+#include "tuningdb.h"
 #include "opencl.h"
+#include "hwmon.h"
+#include "restore.h"
 #include "thread.h"
 #include "locking.h"
 #include "rp_cpu.h"
 #include "rp_kernel_on_cpu.h"
 #include "shared.h"
-#include "hwmon.h"
 #include "mpsp.h"
-#include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
@@ -58,7 +59,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
   }
 }
 
-void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
+void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint pws_cnt)
 {
   out_t out;
 
@@ -98,7 +99,7 @@ void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
     for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
-      gidd_to_pw_t (device_param, gidvid, &pw);
+      gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
 
       const uint pos = device_param->innerloop_pos;
 
@@ -125,7 +126,7 @@ void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
     for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
-      gidd_to_pw_t (device_param, gidvid, &pw);
+      gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
 
       for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
       {
@@ -191,7 +192,7 @@ void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
     for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
-      gidd_to_pw_t (device_param, gidvid, &pw);
+      gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
 
       for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
       {
@@ -221,7 +222,7 @@ void process_stdout (hc_device_param_t *device_param, const uint pws_cnt)
 
     for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
-      gidd_to_pw_t (device_param, gidvid, &pw);
+      gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
 
       for (uint il_pos = 0; il_pos < il_cnt; il_pos++)
       {

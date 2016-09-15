@@ -16,13 +16,14 @@
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
+#include "tuningdb.h"
 #include "opencl.h"
+#include "hwmon.h"
+#include "restore.h"
 #include "thread.h"
 #include "rp_cpu.h"
 #include "terminal.h"
-#include "hwmon.h"
 #include "mpsp.h"
-#include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
@@ -118,13 +119,15 @@ void *thread_calc_stdin (void *p)
 
   if (device_param->skipped) return NULL;
 
+  opencl_ctx_t *opencl_ctx = data.opencl_ctx;
+
   hashconfig_t *hashconfig = data.hashconfig;
 
   char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
   const uint attack_kern = data.attack_kern;
 
-  while ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+  while ((opencl_ctx->devices_status != STATUS_CRACKED) && (opencl_ctx->devices_status != STATUS_ABORTED) && (opencl_ctx->devices_status != STATUS_QUIT))
   {
     hc_thread_mutex_lock (mux_dispatcher);
 
@@ -194,18 +197,18 @@ void *thread_calc_stdin (void *p)
 
       words_cur++;
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
+      if (opencl_ctx->devices_status == STATUS_ABORTED) break;
+      if (opencl_ctx->devices_status == STATUS_QUIT)    break;
+      if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
     }
 
     hc_thread_mutex_unlock (mux_dispatcher);
 
-    if (data.devices_status == STATUS_CRACKED) break;
-    if (data.devices_status == STATUS_ABORTED) break;
-    if (data.devices_status == STATUS_QUIT)    break;
-    if (data.devices_status == STATUS_BYPASS)  break;
+    if (opencl_ctx->devices_status == STATUS_CRACKED) break;
+    if (opencl_ctx->devices_status == STATUS_ABORTED) break;
+    if (opencl_ctx->devices_status == STATUS_QUIT)    break;
+    if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
 
     // flush
 
@@ -213,9 +216,9 @@ void *thread_calc_stdin (void *p)
 
     if (pws_cnt)
     {
-      run_copy (device_param, hashconfig, pws_cnt);
+      run_copy (opencl_ctx, device_param, hashconfig, pws_cnt);
 
-      run_cracker (device_param, hashconfig, pws_cnt);
+      run_cracker (opencl_ctx, device_param, hashconfig, pws_cnt);
 
       device_param->pws_cnt = 0;
 
@@ -223,11 +226,11 @@ void *thread_calc_stdin (void *p)
       still required?
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
+        run_kernel_bzero (opencl_ctx, device_param, device_param->d_rules_c, device_param->size_rules_c);
       }
       else if (attack_kern == ATTACK_KERN_COMBI)
       {
-        run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
+        run_kernel_bzero (opencl_ctx, device_param, device_param->d_combs_c, device_param->size_combs);
       }
       */
     }
@@ -247,6 +250,8 @@ void *thread_calc (void *p)
 
   if (device_param->skipped) return NULL;
 
+  opencl_ctx_t *opencl_ctx = data.opencl_ctx;
+
   hashconfig_t *hashconfig = data.hashconfig;
 
   const uint attack_mode = data.attack_mode;
@@ -254,7 +259,7 @@ void *thread_calc (void *p)
 
   if (attack_mode == ATTACK_MODE_BF)
   {
-    while ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+    while ((opencl_ctx->devices_status != STATUS_CRACKED) && (opencl_ctx->devices_status != STATUS_ABORTED) && (opencl_ctx->devices_status != STATUS_QUIT))
     {
       const uint work = get_work (device_param, -1u);
 
@@ -269,9 +274,9 @@ void *thread_calc (void *p)
 
       if (pws_cnt)
       {
-        run_copy (device_param, hashconfig, pws_cnt);
+        run_copy (opencl_ctx, device_param, hashconfig, pws_cnt);
 
-        run_cracker (device_param, hashconfig, pws_cnt);
+        run_cracker (opencl_ctx, device_param, hashconfig, pws_cnt);
 
         device_param->pws_cnt = 0;
 
@@ -281,12 +286,12 @@ void *thread_calc (void *p)
         */
       }
 
-      if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+      if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
+      if (opencl_ctx->devices_status == STATUS_ABORTED) break;
+      if (opencl_ctx->devices_status == STATUS_QUIT)    break;
+      if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
 
       if (data.benchmark == 1) break;
 
@@ -366,7 +371,7 @@ void *thread_calc (void *p)
 
     u64 words_cur = 0;
 
-    while ((data.devices_status != STATUS_CRACKED) && (data.devices_status != STATUS_ABORTED) && (data.devices_status != STATUS_QUIT))
+    while ((opencl_ctx->devices_status != STATUS_CRACKED) && (opencl_ctx->devices_status != STATUS_ABORTED) && (opencl_ctx->devices_status != STATUS_QUIT))
     {
       u64 words_off = 0;
       u64 words_fin = 0;
@@ -456,28 +461,28 @@ void *thread_calc (void *p)
 
           pw_add (device_param, (u8 *) line_buf, line_len);
 
-          if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+          if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
 
-          if (data.devices_status == STATUS_CRACKED) break;
-          if (data.devices_status == STATUS_ABORTED) break;
-          if (data.devices_status == STATUS_QUIT)    break;
-          if (data.devices_status == STATUS_BYPASS)  break;
+          if (opencl_ctx->devices_status == STATUS_CRACKED) break;
+          if (opencl_ctx->devices_status == STATUS_ABORTED) break;
+          if (opencl_ctx->devices_status == STATUS_QUIT)    break;
+          if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
         }
 
-        if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+        if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
 
-        if (data.devices_status == STATUS_CRACKED) break;
-        if (data.devices_status == STATUS_ABORTED) break;
-        if (data.devices_status == STATUS_QUIT)    break;
-        if (data.devices_status == STATUS_BYPASS)  break;
+        if (opencl_ctx->devices_status == STATUS_CRACKED) break;
+        if (opencl_ctx->devices_status == STATUS_ABORTED) break;
+        if (opencl_ctx->devices_status == STATUS_QUIT)    break;
+        if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
       }
 
-      if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+      if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
+      if (opencl_ctx->devices_status == STATUS_ABORTED) break;
+      if (opencl_ctx->devices_status == STATUS_QUIT)    break;
+      if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
 
       //
       // flush
@@ -487,9 +492,9 @@ void *thread_calc (void *p)
 
       if (pws_cnt)
       {
-        run_copy (device_param, hashconfig, pws_cnt);
+        run_copy (opencl_ctx, device_param, hashconfig, pws_cnt);
 
-        run_cracker (device_param, hashconfig, pws_cnt);
+        run_cracker (opencl_ctx, device_param, hashconfig, pws_cnt);
 
         device_param->pws_cnt = 0;
 
@@ -506,12 +511,12 @@ void *thread_calc (void *p)
         */
       }
 
-      if (data.devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint ();
+      if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
 
-      if (data.devices_status == STATUS_CRACKED) break;
-      if (data.devices_status == STATUS_ABORTED) break;
-      if (data.devices_status == STATUS_QUIT)    break;
-      if (data.devices_status == STATUS_BYPASS)  break;
+      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
+      if (opencl_ctx->devices_status == STATUS_ABORTED) break;
+      if (opencl_ctx->devices_status == STATUS_QUIT)    break;
+      if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
 
       if (words_fin == 0) break;
 

@@ -15,11 +15,13 @@
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
-#include "hwmon.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
-#include "restore.h"
+#include "tuningdb.h"
 #include "opencl.h"
+#include "hwmon.h"
+#include "restore.h"
+#include "thread.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
@@ -28,8 +30,6 @@
 #include "status.h"
 #include "shared.h"
 #include "terminal.h"
-#include "hwmon.h"
-#include "thread.h"
 #include "monitor.h"
 #include "hash_management.h"
 
@@ -49,6 +49,8 @@ void *thread_monitor (void *p)
   uint remove_left  = data.remove_timer;
   uint status_left  = data.status_timer;
 
+  opencl_ctx_t *opencl_ctx = data.opencl_ctx;
+
   #if defined (HAVE_HWMON)
   uint hwmon_check = 0;
 
@@ -56,12 +58,12 @@ void *thread_monitor (void *p)
 
   // these variables are mainly used for fan control
 
-  int *fan_speed_chgd = (int *) mycalloc (data.devices_cnt, sizeof (int));
+  int *fan_speed_chgd = (int *) mycalloc (opencl_ctx->devices_cnt, sizeof (int));
 
   // temperature controller "loopback" values
 
-  int *temp_diff_old = (int *) mycalloc (data.devices_cnt, sizeof (int));
-  int *temp_diff_sum = (int *) mycalloc (data.devices_cnt, sizeof (int));
+  int *temp_diff_old = (int *) mycalloc (opencl_ctx->devices_cnt, sizeof (int));
+  int *temp_diff_sum = (int *) mycalloc (opencl_ctx->devices_cnt, sizeof (int));
 
   int temp_threshold = 1; // degrees celcius
 
@@ -114,7 +116,7 @@ void *thread_monitor (void *p)
   {
     hc_sleep (sleep_time);
 
-    if (data.devices_status != STATUS_RUNNING) continue;
+    if (opencl_ctx->devices_status != STATUS_RUNNING) continue;
 
     #if defined (HAVE_HWMON)
 
@@ -122,9 +124,9 @@ void *thread_monitor (void *p)
     {
       hc_thread_mutex_lock (mux_hwmon);
 
-      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
-        hc_device_param_t *device_param = &data.devices_param[device_id];
+        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
         if (device_param->skipped) continue;
 
@@ -188,21 +190,21 @@ void *thread_monitor (void *p)
 
       if (Ta == 0) Ta = 1;
 
-      for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
-        hc_device_param_t *device_param = &data.devices_param[device_id];
+        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
         if (device_param->skipped) continue;
 
-        if ((data.devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+        if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
-        const int temperature = hm_get_temperature_with_device_id (device_id);
+        const int temperature = hm_get_temperature_with_device_id (opencl_ctx, device_id);
 
         if (temperature > (int) data.gpu_temp_abort)
         {
           log_error ("ERROR: Temperature limit on GPU %d reached, aborting...", device_id + 1);
 
-          if (data.devices_status != STATUS_QUIT) myabort ();
+          if (opencl_ctx->devices_status != STATUS_QUIT) myabort (opencl_ctx);
 
           break;
         }
@@ -233,7 +235,7 @@ void *thread_monitor (void *p)
 
             if (abs (fan_diff_required) >= temp_threshold)
             {
-              const int fan_speed_cur = hm_get_fanspeed_with_device_id (device_id);
+              const int fan_speed_cur = hm_get_fanspeed_with_device_id (opencl_ctx, device_id);
 
               int fan_speed_level = fan_speed_cur;
 
@@ -286,7 +288,7 @@ void *thread_monitor (void *p)
 
       if (restore_left == 0)
       {
-        if (data.restore_disable == 0) cycle_restore ();
+        if (data.restore_disable == 0) cycle_restore (opencl_ctx);
 
         restore_left = data.restore_timer;
       }
@@ -296,7 +298,7 @@ void *thread_monitor (void *p)
     {
       double ms_paused = data.ms_paused;
 
-      if (data.devices_status == STATUS_PAUSED)
+      if (opencl_ctx->devices_status == STATUS_PAUSED)
       {
         double ms_paused_tmp = 0;
 
@@ -318,7 +320,7 @@ void *thread_monitor (void *p)
           if (data.quiet == 0) log_info ("\nNOTE: Runtime limit reached, aborting...\n");
         }
 
-        if (data.devices_status != STATUS_QUIT) myabort ();
+        if (opencl_ctx->devices_status != STATUS_QUIT) myabort (opencl_ctx);
       }
     }
 
@@ -351,7 +353,7 @@ void *thread_monitor (void *p)
 
         if (data.quiet == 0) log_info ("");
 
-        status_display ();
+        status_display (opencl_ctx);
 
         if (data.quiet == 0) log_info ("");
 

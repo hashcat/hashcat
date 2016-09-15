@@ -15,19 +15,19 @@
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
+#include "tuningdb.h"
 #include "opencl.h"
+#include "hwmon.h"
+#include "restore.h"
 #include "thread.h"
 #include "rp_cpu.h"
 #include "terminal.h"
-#include "hwmon.h"
 #include "mpsp.h"
-#include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
 #include "loopback.h"
 #include "data.h"
-//#include "shared.h"
 #include "status.h"
 
 static const char ST_0000[] = "Initializing";
@@ -170,11 +170,11 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
   return exec_ms_sum / exec_ms_cnt;
 }
 
-void status_display_machine_readable ()
+void status_display_machine_readable (opencl_ctx_t *opencl_ctx)
 {
   FILE *out = stdout;
 
-  fprintf (out, "STATUS\t%u\t", data.devices_status);
+  fprintf (out, "STATUS\t%u\t", opencl_ctx->devices_status);
 
   /**
    * speed new
@@ -182,9 +182,9 @@ void status_display_machine_readable ()
 
   fprintf (out, "SPEED\t");
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -209,9 +209,9 @@ void status_display_machine_readable ()
 
   fprintf (out, "EXEC_RUNTIME\t");
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -224,7 +224,7 @@ void status_display_machine_readable ()
    * words_cur
    */
 
-  u64 words_cur = get_lowest_words_done ();
+  u64 words_cur = get_lowest_words_done (opencl_ctx);
 
   fprintf (out, "CURKU\t%" PRIu64 "\t", words_cur);
 
@@ -291,13 +291,13 @@ void status_display_machine_readable ()
 
     hc_thread_mutex_lock (mux_hwmon);
 
-    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
     {
-      hc_device_param_t *device_param = &data.devices_param[device_id];
+      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
       if (device_param->skipped) continue;
 
-      int temp = hm_get_temperature_with_device_id (device_id);
+      int temp = hm_get_temperature_with_device_id (opencl_ctx, device_id);
 
       fprintf (out, "%d\t", temp);
     }
@@ -314,10 +314,10 @@ void status_display_machine_readable ()
   fflush (out);
 }
 
-void status_display ()
+void status_display (opencl_ctx_t *opencl_ctx)
 {
-  if (data.devices_status == STATUS_INIT)     return;
-  if (data.devices_status == STATUS_STARTING) return;
+  if (opencl_ctx->devices_status == STATUS_INIT)     return;
+  if (opencl_ctx->devices_status == STATUS_STARTING) return;
 
   hashconfig_t *hashconfig  = data.hashconfig;
   void         *digests_buf = data.digests_buf;
@@ -331,7 +331,7 @@ void status_display ()
 
   if (data.machine_readable == 1)
   {
-    status_display_machine_readable ();
+    status_display_machine_readable (opencl_ctx);
 
     return;
   }
@@ -342,7 +342,7 @@ void status_display ()
 
   log_info ("Session.Name...: %s", data.session);
 
-  char *status_type = strstatus (data.devices_status);
+  char *status_type = strstatus (opencl_ctx->devices_status);
 
   uint hash_mode = hashconfig->hash_mode;
 
@@ -609,9 +609,9 @@ void status_display ()
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -632,9 +632,9 @@ void status_display ()
 
   double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -654,9 +654,9 @@ void status_display ()
 
   double exec_all_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -675,7 +675,7 @@ void status_display ()
 
   double ms_paused = data.ms_paused;
 
-  if (data.devices_status == STATUS_PAUSED)
+  if (opencl_ctx->devices_status == STATUS_PAUSED)
   {
     double ms_paused_tmp = 0;
 
@@ -795,7 +795,7 @@ void status_display ()
 
   if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
   {
-    if (data.devices_status != STATUS_CRACKED)
+    if (opencl_ctx->devices_status != STATUS_CRACKED)
     {
       #if defined (_WIN)
       __time64_t sec_etc = 0;
@@ -899,9 +899,9 @@ void status_display ()
     }
   }
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -920,7 +920,7 @@ void status_display ()
 
   format_speed_display (hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
-  if (data.devices_active > 1) log_info ("Speed.Dev.#*...: %9sH/s", display_all_cur);
+  if (opencl_ctx->devices_active > 1) log_info ("Speed.Dev.#*...: %9sH/s", display_all_cur);
 
   const double digests_percent = (double) data.digests_done / data.digests_cnt;
   const double salts_percent   = (double) data.salts_done   / data.salts_cnt;
@@ -1002,7 +1002,7 @@ void status_display ()
 
   // Restore point
 
-  u64 restore_point = get_lowest_words_done ();
+  u64 restore_point = get_lowest_words_done (opencl_ctx);
 
   u64 restore_total = data.words_base;
 
@@ -1062,28 +1062,28 @@ void status_display ()
 
   #if defined (HAVE_HWMON)
 
-  if (data.devices_status == STATUS_EXHAUSTED)  return;
-  if (data.devices_status == STATUS_CRACKED)    return;
-  if (data.devices_status == STATUS_ABORTED)    return;
-  if (data.devices_status == STATUS_QUIT)       return;
+  if (opencl_ctx->devices_status == STATUS_EXHAUSTED)  return;
+  if (opencl_ctx->devices_status == STATUS_CRACKED)    return;
+  if (opencl_ctx->devices_status == STATUS_ABORTED)    return;
+  if (opencl_ctx->devices_status == STATUS_QUIT)       return;
 
   if (data.gpu_temp_disable == 0)
   {
     hc_thread_mutex_lock (mux_hwmon);
 
-    for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
     {
-      hc_device_param_t *device_param = &data.devices_param[device_id];
+      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
       if (device_param->skipped) continue;
 
-      const int num_temperature = hm_get_temperature_with_device_id (device_id);
-      const int num_fanspeed    = hm_get_fanspeed_with_device_id    (device_id);
-      const int num_utilization = hm_get_utilization_with_device_id (device_id);
-      const int num_corespeed   = hm_get_corespeed_with_device_id   (device_id);
-      const int num_memoryspeed = hm_get_memoryspeed_with_device_id (device_id);
-      const int num_buslanes    = hm_get_buslanes_with_device_id    (device_id);
-      const int num_throttle    = hm_get_throttle_with_device_id    (device_id);
+      const int num_temperature = hm_get_temperature_with_device_id (opencl_ctx, device_id);
+      const int num_fanspeed    = hm_get_fanspeed_with_device_id    (opencl_ctx, device_id);
+      const int num_utilization = hm_get_utilization_with_device_id (opencl_ctx, device_id);
+      const int num_corespeed   = hm_get_corespeed_with_device_id   (opencl_ctx, device_id);
+      const int num_memoryspeed = hm_get_memoryspeed_with_device_id (opencl_ctx, device_id);
+      const int num_buslanes    = hm_get_buslanes_with_device_id    (opencl_ctx, device_id);
+      const int num_throttle    = hm_get_throttle_with_device_id    (opencl_ctx, device_id);
 
       char output_buf[256] = { 0 };
 
@@ -1154,16 +1154,16 @@ void status_display ()
   #endif // HAVE_HWMON
 }
 
-void status_benchmark_automate ()
+void status_benchmark_automate (opencl_ctx_t *opencl_ctx)
 {
   hashconfig_t *hashconfig = data.hashconfig;
 
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -1173,9 +1173,9 @@ void status_benchmark_automate ()
 
   double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -1187,9 +1187,9 @@ void status_benchmark_automate ()
     }
   }
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -1197,16 +1197,16 @@ void status_benchmark_automate ()
   }
 }
 
-void status_benchmark ()
+void status_benchmark (opencl_ctx_t *opencl_ctx)
 {
-  if (data.devices_status == STATUS_INIT)     return;
-  if (data.devices_status == STATUS_STARTING) return;
+  if (opencl_ctx->devices_status == STATUS_INIT)     return;
+  if (opencl_ctx->devices_status == STATUS_STARTING) return;
 
   if (data.shutdown_inner == 1) return;
 
   if (data.machine_readable == 1)
   {
-    status_benchmark_automate ();
+    status_benchmark_automate (opencl_ctx);
 
     return;
   }
@@ -1214,9 +1214,9 @@ void status_benchmark ()
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -1228,9 +1228,9 @@ void status_benchmark ()
 
   double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -1250,9 +1250,9 @@ void status_benchmark ()
 
   double exec_all_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -1261,9 +1261,9 @@ void status_benchmark ()
     exec_all_ms[device_id] = exec_ms_avg;
   }
 
-  for (uint device_id = 0; device_id < data.devices_cnt; device_id++)
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &data.devices_param[device_id];
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
@@ -1273,7 +1273,7 @@ void status_benchmark ()
 
     format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
-    if (data.devices_active >= 10)
+    if (opencl_ctx->devices_active >= 10)
     {
       log_info ("Speed.Dev.#%d: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
     }
@@ -1289,5 +1289,5 @@ void status_benchmark ()
 
   format_speed_display (hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
-  if (data.devices_active > 1) log_info ("Speed.Dev.#*.: %9sH/s", display_all_cur);
+  if (opencl_ctx->devices_active > 1) log_info ("Speed.Dev.#*.: %9sH/s", display_all_cur);
 }

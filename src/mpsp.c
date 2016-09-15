@@ -21,18 +21,18 @@
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
 #include "filehandling.h"
+#include "tuningdb.h"
 #include "opencl.h"
-#include "thread.h"
 #include "hwmon.h"
+#include "restore.h"
+#include "thread.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
-#include "restore.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
 #include "loopback.h"
 #include "data.h"
-//#include "shared.h"
 
 extern hc_global_data_t data;
 

@@ -8,6 +8,6 @@
 
 #define WEAK_HASH_THRESHOLD 100
 
-void weak_hash_check (hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint salt_pos);
+void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint salt_pos);
 
 #endif // _WEAK_HASH_H

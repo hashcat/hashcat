@@ -42,16 +42,16 @@ int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_
 // int hm_get_device_num (void *adl, HM_ADAPTER_ADL hm_adapter_index, int *hm_device_num);
 // void hm_get_opencl_busid_devid (hm_attrs_t *hm_device, uint opencl_num_devices, cl_device_id *devices);
 
-int hm_get_threshold_slowdown_with_device_id (const uint device_id);
-int hm_get_threshold_shutdown_with_device_id (const uint device_id);
-int hm_get_temperature_with_device_id        (const uint device_id);
-int hm_get_fanspeed_with_device_id           (const uint device_id);
-int hm_get_fanpolicy_with_device_id          (const uint device_id);
-int hm_get_buslanes_with_device_id           (const uint device_id);
-int hm_get_utilization_with_device_id        (const uint device_id);
-int hm_get_memoryspeed_with_device_id        (const uint device_id);
-int hm_get_corespeed_with_device_id          (const uint device_id);
-int hm_get_throttle_with_device_id           (const uint device_id);
+int hm_get_threshold_slowdown_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_threshold_shutdown_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_temperature_with_device_id        (opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_fanspeed_with_device_id           (opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_fanpolicy_with_device_id          (opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_buslanes_with_device_id           (opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_utilization_with_device_id        (opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_memoryspeed_with_device_id        (opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_corespeed_with_device_id          (opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_throttle_with_device_id           (opencl_ctx_t *opencl_ctx, const uint device_id);
 int hm_set_fanspeed_with_device_id_adl       (const uint device_id, const int fanspeed, const int fanpolicy);
 int hm_set_fanspeed_with_device_id_nvapi     (const uint device_id, const int fanspeed, const int fanpolicy);
 int hm_set_fanspeed_with_device_id_xnvctrl   (const uint device_id, const int fanspeed);

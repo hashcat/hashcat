@@ -14,17 +14,18 @@
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
-#include "hwmon.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
-#include "restore.h"
+#include "tuningdb.h"
 #include "opencl.h"
+#include "hwmon.h"
+#include "restore.h"
+#include "thread.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
 #include "loopback.h"
 #include "data.h"
-#include "thread.h"
 #include "status.h"
 #include "terminal.h"
 
@@ -57,6 +58,8 @@ void clear_prompt ()
 
 void *thread_keypress (void *p)
 {
+  opencl_ctx_t *opencl_ctx = data.opencl_ctx;
+
   uint quiet = data.quiet;
 
   tty_break();
@@ -86,7 +89,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        status_display ();
+        status_display (opencl_ctx);
 
         log_info ("");
 
@@ -98,7 +101,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        bypass ();
+        bypass (opencl_ctx);
 
         log_info ("");
 
@@ -110,7 +113,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        SuspendThreads ();
+        SuspendThreads (opencl_ctx);
 
         log_info ("");
 
@@ -122,7 +125,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        ResumeThreads ();
+        ResumeThreads (opencl_ctx);
 
         log_info ("");
 
@@ -134,7 +137,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        stop_at_checkpoint ();
+        stop_at_checkpoint (opencl_ctx);
 
         log_info ("");
 
@@ -146,7 +149,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        myabort ();
+        myabort (opencl_ctx);
 
         break;
     }

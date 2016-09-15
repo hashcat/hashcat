@@ -15,8 +15,8 @@ int sort_by_hash_no_salt (const void *v1, const void *v2);
 
 void save_hash ();
 
-void check_hash (hc_device_param_t *device_param, plain_t *plain);
+void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, plain_t *plain);
 
-int check_cracked (hc_device_param_t *device_param, const uint salt_pos, hashconfig_t *hashconfig);
+int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint salt_pos, hashconfig_t *hashconfig);
 
 #endif // _HASH_MANAGEMENT_H

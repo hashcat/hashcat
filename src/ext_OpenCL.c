@@ -141,9 +141,9 @@ void ocl_close (OCL_PTR *ocl)
   if (ocl)
   {
     if (ocl->lib)
+    {
       hc_dlclose (ocl->lib);
-
-    myfree (ocl);
+    }
   }
 }
 

@@ -12,8 +12,8 @@
 #include "memory.h"
 #include "filehandling.h"
 #include "ext_OpenCL.h"
-#include "opencl.h"
 #include "tuningdb.h"
+#include "opencl.h"
 
 static int sort_by_tuning_db_alias (const void *v1, const void *v2)
 {
@@ -255,13 +255,13 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
   return tuning_db;
 }
 
-tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, hc_device_param_t *device_param, int attack_mode, int hash_type)
+tuning_db_entry_t *tuning_db_search (const tuning_db_t *tuning_db, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_type)
 {
   static tuning_db_entry_t s;
 
   // first we need to convert all spaces in the device_name to underscore
 
-  char *device_name_nospace = mystrdup (device_param->device_name);
+  char *device_name_nospace = mystrdup (device_name);
 
   int device_name_length = strlen (device_name_nospace);
 
@@ -324,15 +324,15 @@ tuning_db_entry_t *tuning_db_search (tuning_db_t *tuning_db, hc_device_param_t *
 
       // or by device type
 
-      if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+      if (device_type & CL_DEVICE_TYPE_CPU)
       {
         s.device_name = "DEVICE_TYPE_CPU";
       }
-      else if (device_param->device_type & CL_DEVICE_TYPE_GPU)
+      else if (device_type & CL_DEVICE_TYPE_GPU)
       {
         s.device_name = "DEVICE_TYPE_GPU";
       }
-      else if (device_param->device_type & CL_DEVICE_TYPE_ACCELERATOR)
+      else if (device_type & CL_DEVICE_TYPE_ACCELERATOR)
       {
         s.device_name = "DEVICE_TYPE_ACCELERATOR";
       }
