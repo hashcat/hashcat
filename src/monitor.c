@@ -31,6 +31,7 @@
 #include "hwmon.h"
 #include "thread.h"
 #include "monitor.h"
+#include "hash_management.h"
 
 extern hc_global_data_t data;
 
