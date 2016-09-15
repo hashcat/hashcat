@@ -4,7 +4,33 @@
  */
 
 #include "common.h"
+#include "types_int.h"
+#include "types.h"
+#include "logging.h"
+#include "interface.h"
+#include "timer.h"
+#include "ext_OpenCL.h"
+#include "ext_ADL.h"
+#include "ext_nvapi.h"
+#include "ext_nvml.h"
+#include "ext_xnvctrl.h"
+#include "hwmon.h"
+#include "mpsp.h"
+#include "rp_cpu.h"
+#include "restore.h"
+#include "opencl.h"
+#include "outfile.h"
+#include "potfile.h"
+#include "debugfile.h"
+#include "loopback.h"
+#include "data.h"
+#include "thread.h"
+#include "status.h"
 #include "terminal.h"
+
+extern hc_global_data_t data;
+
+extern hc_thread_mutex_t mux_display;
 
 const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
 
@@ -27,6 +53,115 @@ void clear_prompt ()
   fputc ('\r', stdout);
 
   fflush (stdout);
+}
+
+void *thread_keypress (void *p)
+{
+  uint quiet = data.quiet;
+
+  tty_break();
+
+  while (data.shutdown_outer == 0)
+  {
+    int ch = tty_getchar();
+
+    if (ch == -1) break;
+
+    if (ch ==  0) continue;
+
+    //https://github.com/hashcat/hashcat/issues/302
+    //#if defined (_POSIX)
+    //if (ch != '\n')
+    //#endif
+
+    hc_thread_mutex_lock (mux_display);
+
+    log_info ("");
+
+    switch (ch)
+    {
+      case 's':
+      case '\r':
+      case '\n':
+
+        log_info ("");
+
+        status_display ();
+
+        log_info ("");
+
+        if (quiet == 0) send_prompt ();
+
+        break;
+
+      case 'b':
+
+        log_info ("");
+
+        bypass ();
+
+        log_info ("");
+
+        if (quiet == 0) send_prompt ();
+
+        break;
+
+      case 'p':
+
+        log_info ("");
+
+        SuspendThreads ();
+
+        log_info ("");
+
+        if (quiet == 0) send_prompt ();
+
+        break;
+
+      case 'r':
+
+        log_info ("");
+
+        ResumeThreads ();
+
+        log_info ("");
+
+        if (quiet == 0) send_prompt ();
+
+        break;
+
+      case 'c':
+
+        log_info ("");
+
+        stop_at_checkpoint ();
+
+        log_info ("");
+
+        if (quiet == 0) send_prompt ();
+
+        break;
+
+      case 'q':
+
+        log_info ("");
+
+        myabort ();
+
+        break;
+    }
+
+    //https://github.com/hashcat/hashcat/issues/302
+    //#if defined (_POSIX)
+    //if (ch != '\n')
+    //#endif
+
+    hc_thread_mutex_unlock (mux_display);
+  }
+
+  tty_fix();
+
+  return (p);
 }
 
 #if defined (_WIN)

@@ -28,6 +28,8 @@
 void send_prompt ();
 void clear_prompt ();
 
+void *thread_keypress (void *p);
+
 #if defined (_WIN)
 void SetConsoleWindowSize (const int x);
 #endif
