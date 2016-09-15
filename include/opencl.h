@@ -11,7 +11,6 @@
 
 #define PARAMCNT 64
 
-
 #define KERNEL_ACCEL            0
 #define KERNEL_LOOPS            0
 #define KERNEL_RULES            1024
@@ -225,8 +224,6 @@ struct __hc_device_param
   u32     kernel_params_memset_buf32[PARAMCNT];
 };
 
-#endif // _OPENCL_H
-
 uint setup_opencl_platforms_filter (char *opencl_platforms);
 u32 setup_devices_filter (char *opencl_devices);
 cl_device_type setup_device_types_filter (char *opencl_device_types);
@@ -247,3 +244,5 @@ int run_kernel_bzero (hc_device_param_t *device_param, cl_mem buf, const size_t 
 int run_copy (hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint pws_cnt);
 
 int run_cracker (hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint pws_cnt);
+
+#endif // _OPENCL_H
