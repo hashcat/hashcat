@@ -37,6 +37,8 @@ __kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global kernel_r
     pws_amp[gid].i[14] = pws[gid].i[14];
     pws_amp[gid].i[15] = pws[gid].i[15];
 
+    pws_amp[gid].pw_len = pws[gid].pw_len;
+
     return;
   }
 
