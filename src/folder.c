@@ -8,11 +8,11 @@
 #endif
 
 #include "common.h"
+#include "types.h"
 #include "memory.h"
 #include "folder.h"
 
 #if defined (__APPLE__)
-#include "types_int.h"
 #include "logging.h"
 #endif
 

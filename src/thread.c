@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "memory.h"
 #include "filehandling.h"
@@ -20,6 +19,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
+#include "hash_management.h"
 #include "thread.h"
 #include "rp_cpu.h"
 #include "terminal.h"

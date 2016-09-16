@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "interface.h"
 #include "timer.h"
@@ -14,6 +13,7 @@
 #include "ext_OpenCL.h"
 #include "tuningdb.h"
 #include "opencl.h"
+#include "hash_management.h"
 
 static int sort_by_tuning_db_alias (const void *v1, const void *v2)
 {

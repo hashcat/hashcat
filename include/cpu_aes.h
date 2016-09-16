@@ -6,18 +6,6 @@
 #ifndef _CPU_AES_H
 #define _CPU_AES_H
 
-/* AES context.  */
-typedef struct aes_context
-{
-  u32 bits;
-
-  u32 rek[60];
-  u32 rdk[60];
-
-} aes_context_t;
-
-typedef aes_context_t aes_ctx;
-
 #define AES_KEY aes_ctx
 void AES_set_encrypt_key (const u8 *key, int keysize, AES_KEY *aes_key);
 void AES_set_decrypt_key (const u8 *key, int keysize, AES_KEY *aes_key);

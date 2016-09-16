@@ -31,22 +31,6 @@
 #define LIMIT               0
 #define KEYSPACE            0
 
-typedef struct
-{
-  int  version;
-  char cwd[256];
-  u32  pid;
-
-  u32  dictpos;
-  u32  maskpos;
-
-  u64  words_cur;
-
-  u32  argc;
-  char **argv;
-
-} restore_data_t;
-
 u64 get_lowest_words_done (opencl_ctx_t *opencl_ctx);
 
 restore_data_t *init_restore (int argc, char **argv);

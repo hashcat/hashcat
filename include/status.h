@@ -31,9 +31,9 @@ typedef enum status_rc
 
 double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries);
 
-void status_display_machine_readable (opencl_ctx_t *opencl_ctx);
-void status_display (opencl_ctx_t *opencl_ctx);
-void status_benchmark_automate (opencl_ctx_t *opencl_ctx);
-void status_benchmark (opencl_ctx_t *opencl_ctx);
+void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *hashes);
+void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes);
+void status_benchmark_automate (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig);
+void status_benchmark (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig);
 
 #endif // _STATUS_H

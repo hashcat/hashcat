@@ -4,7 +4,7 @@
  */
 
 #include "common.h"
-#include "types_int.h"
+#include "types.h"
 #include "shared.h"
 
 u32 get_random_num (const u32 min, const u32 max)

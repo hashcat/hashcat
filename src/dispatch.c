@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "memory.h"
 #include "filehandling.h"
@@ -20,6 +19,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
+#include "hash_management.h"
 #include "thread.h"
 #include "rp_cpu.h"
 #include "terminal.h"
@@ -122,6 +122,7 @@ void *thread_calc_stdin (void *p)
   opencl_ctx_t *opencl_ctx = data.opencl_ctx;
 
   hashconfig_t *hashconfig = data.hashconfig;
+  hashes_t     *hashes     = data.hashes;
 
   char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -182,7 +183,7 @@ void *thread_calc_stdin (void *p)
         {
           hc_thread_mutex_lock (mux_counter);
 
-          for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+          for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
           {
             data.words_progress_rejected[salt_pos] += data.kernel_rules_cnt;
           }
@@ -218,7 +219,7 @@ void *thread_calc_stdin (void *p)
     {
       run_copy (opencl_ctx, device_param, hashconfig, pws_cnt);
 
-      run_cracker (opencl_ctx, device_param, hashconfig, pws_cnt);
+      run_cracker (opencl_ctx, device_param, hashconfig, hashes, pws_cnt);
 
       device_param->pws_cnt = 0;
 
@@ -253,6 +254,7 @@ void *thread_calc (void *p)
   opencl_ctx_t *opencl_ctx = data.opencl_ctx;
 
   hashconfig_t *hashconfig = data.hashconfig;
+  hashes_t     *hashes     = data.hashes;
 
   const uint attack_mode = data.attack_mode;
   const uint attack_kern = data.attack_kern;
@@ -276,7 +278,7 @@ void *thread_calc (void *p)
       {
         run_copy (opencl_ctx, device_param, hashconfig, pws_cnt);
 
-        run_cracker (opencl_ctx, device_param, hashconfig, pws_cnt);
+        run_cracker (opencl_ctx, device_param, hashconfig, hashes, pws_cnt);
 
         device_param->pws_cnt = 0;
 
@@ -427,7 +429,7 @@ void *thread_calc (void *p)
 
               hc_thread_mutex_lock (mux_counter);
 
-              for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+              for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
               {
                 data.words_progress_rejected[salt_pos] += data.kernel_rules_cnt;
               }
@@ -448,7 +450,7 @@ void *thread_calc (void *p)
 
               hc_thread_mutex_lock (mux_counter);
 
-              for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+              for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
               {
                 data.words_progress_rejected[salt_pos] += data.combs_cnt;
               }
@@ -494,7 +496,7 @@ void *thread_calc (void *p)
       {
         run_copy (opencl_ctx, device_param, hashconfig, pws_cnt);
 
-        run_cracker (opencl_ctx, device_param, hashconfig, pws_cnt);
+        run_cracker (opencl_ctx, device_param, hashconfig, hashes, pws_cnt);
 
         device_param->pws_cnt = 0;
 

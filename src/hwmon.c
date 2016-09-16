@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "interface.h"
 #include "timer.h"
@@ -21,6 +20,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
+#include "hash_management.h"
 #include "thread.h"
 #include "outfile.h"
 #include "potfile.h"

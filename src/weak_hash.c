@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "interface.h"
 #include "timer.h"
@@ -20,17 +19,17 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
+#include "hash_management.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
 #include "loopback.h"
 #include "data.h"
-#include "hash_management.h"
 #include "weak_hash.h"
 
 extern hc_global_data_t data;
 
-void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint salt_pos)
+void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, const uint salt_pos)
 {
   if (device_param == NULL)
   {
@@ -39,7 +38,7 @@ void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param,
     exit (-1);
   }
 
-  salt_t *salt_buf = &data.salts_buf[salt_pos];
+  salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
   device_param->kernel_params_buf32[27] = salt_pos;
   device_param->kernel_params_buf32[30] = 1;
@@ -93,7 +92,7 @@ void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param,
    * result
    */
 
-  check_cracked (opencl_ctx, device_param, salt_pos, hashconfig);
+  check_cracked (opencl_ctx, device_param, hashconfig, hashes, salt_pos);
 
   /**
    * cleanup

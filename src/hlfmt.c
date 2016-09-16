@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "interface.h"
 #include "timer.h"
@@ -23,6 +22,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
+#include "hash_management.h"
 #include "thread.h"
 #include "filehandling.h"
 #include "rp_cpu.h"
@@ -51,7 +51,7 @@ static const char HLFMT_TEXT_NSLDAPS[]  = "nsldaps";
 
 // hlfmt hashcat
 
-static void hlfmt_hash_hashcat (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, hashconfig_t *hashconfig)
+static void hlfmt_hash_hashcat (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, const hashconfig_t *hashconfig)
 {
   if (data.username == 0)
   {
@@ -80,7 +80,7 @@ static void hlfmt_hash_hashcat (char *line_buf, int line_len, char **hashbuf_pos
   }
 }
 
-static void hlfmt_user_hashcat (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len, hashconfig_t *hashconfig)
+static void hlfmt_user_hashcat (char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len, const hashconfig_t *hashconfig)
 {
   char *pos = NULL;
   int   len = 0;
@@ -135,7 +135,7 @@ static int hlfmt_detect_pwdump (char *line_buf, int line_len)
   return 0;
 }
 
-static void hlfmt_hash_pwdump (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, hashconfig_t *hashconfig)
+static void hlfmt_hash_pwdump (char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, const hashconfig_t *hashconfig)
 {
   char *pos = NULL;
   int   len = 0;
@@ -333,7 +333,7 @@ char *strhlfmt (const uint hashfile_format)
   return ((char *) "Unknown");
 }
 
-void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, hashconfig_t *hashconfig)
+void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, const hashconfig_t *hashconfig)
 {
   switch (hashfile_format)
   {
@@ -344,7 +344,7 @@ void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hash
   }
 }
 
-void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len, hashconfig_t *hashconfig)
+void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len, const hashconfig_t *hashconfig)
 {
   switch (hashfile_format)
   {
@@ -355,7 +355,7 @@ void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char **user
   }
 }
 
-uint hlfmt_detect (FILE *fp, uint max_check, hashconfig_t *hashconfig)
+uint hlfmt_detect (FILE *fp, uint max_check, const hashconfig_t *hashconfig)
 {
   // Exception: those formats are wrongly detected as HLFMT_SHADOW, prevent it
 

@@ -7,7 +7,7 @@
 #pragma GCC diagnostic ignored "-Wunused-function"
 
 #include "common.h"
-#include "types_int.h"
+#include "types.h"
 #include "rp_cpu.h"
 #include "rp_kernel_on_cpu.h"
 

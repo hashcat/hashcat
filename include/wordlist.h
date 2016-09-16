@@ -9,16 +9,6 @@
 #define HEX_WORDLIST 0
 #define SEGMENT_SIZE 32
 
-typedef struct
-{
-  char *buf;
-  u32  incr;
-  u32  avail;
-  u32  cnt;
-  u32  pos;
-
-} wl_data_t;
-
 uint convert_from_hex (char *line_buf, const uint line_len);
 
 void load_segment (wl_data_t *wl_data, FILE *fd);

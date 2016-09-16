@@ -4,10 +4,10 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "logging.h"
 #include "interface.h"
+#include "hash_management.h"
 #include "outfile.h"
 
 void outfile_init (outfile_ctx_t *outfile_ctx, char *outfile, const uint outfile_format, const uint outfile_autohex)
@@ -155,3 +155,101 @@ void outfile_write (outfile_ctx_t *outfile_ctx, const char *out_buf, const unsig
 
   fputs (EOL, outfile_ctx->fp);
 }
+
+int outfile_and_hashfile (outfile_ctx_t *outfile_ctx, hashes_t *hashes)
+{
+  char *outfile = outfile_ctx->filename;
+
+  if (outfile == NULL) return 0;
+
+  char *hashfile = hashes->hashfile;
+
+  if (hashfile == NULL) return 0;
+
+  #if defined (_POSIX)
+  struct stat tmpstat_outfile;
+  struct stat tmpstat_hashfile;
+  #endif
+
+  #if defined (_WIN)
+  struct stat64 tmpstat_outfile;
+  struct stat64 tmpstat_hashfile;
+  #endif
+
+  FILE *tmp_outfile_fp = fopen (outfile, "r");
+
+  if (tmp_outfile_fp)
+  {
+    #if defined (_POSIX)
+    fstat (fileno (tmp_outfile_fp), &tmpstat_outfile);
+    #endif
+
+    #if defined (_WIN)
+    _fstat64 (fileno (tmp_outfile_fp), &tmpstat_outfile);
+    #endif
+
+    fclose (tmp_outfile_fp);
+  }
+
+  FILE *tmp_hashfile_fp = fopen (hashfile, "r");
+
+  if (tmp_hashfile_fp)
+  {
+    #if defined (_POSIX)
+    fstat (fileno (tmp_hashfile_fp), &tmpstat_hashfile);
+    #endif
+
+    #if defined (_WIN)
+    _fstat64 (fileno (tmp_hashfile_fp), &tmpstat_hashfile);
+    #endif
+
+    fclose (tmp_hashfile_fp);
+  }
+
+  if (tmp_outfile_fp && tmp_outfile_fp)
+  {
+    tmpstat_outfile.st_mode     = 0;
+    tmpstat_outfile.st_nlink    = 0;
+    tmpstat_outfile.st_uid      = 0;
+    tmpstat_outfile.st_gid      = 0;
+    tmpstat_outfile.st_rdev     = 0;
+    tmpstat_outfile.st_atime    = 0;
+
+    tmpstat_hashfile.st_mode    = 0;
+    tmpstat_hashfile.st_nlink   = 0;
+    tmpstat_hashfile.st_uid     = 0;
+    tmpstat_hashfile.st_gid     = 0;
+    tmpstat_hashfile.st_rdev    = 0;
+    tmpstat_hashfile.st_atime   = 0;
+
+    #if defined (_POSIX)
+    tmpstat_outfile.st_blksize  = 0;
+    tmpstat_outfile.st_blocks   = 0;
+
+    tmpstat_hashfile.st_blksize = 0;
+    tmpstat_hashfile.st_blocks  = 0;
+    #endif
+
+    #if defined (_POSIX)
+    if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (struct stat)) == 0)
+    {
+      log_error ("ERROR: Hashfile and Outfile are not allowed to point to the same file");
+
+      return -1;
+    }
+    #endif
+
+    #if defined (_WIN)
+    if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (struct stat64)) == 0)
+    {
+      log_error ("ERROR: Hashfile and Outfile are not allowed to point to the same file");
+
+      return -1;
+    }
+    #endif
+  }
+
+  return 0;
+}
+
+

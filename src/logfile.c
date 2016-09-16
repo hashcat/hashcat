@@ -8,7 +8,6 @@
 #endif
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "interface.h"
 #include "timer.h"
@@ -17,7 +16,6 @@
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
-#include "types.h"
 #include "memory.h"
 #include "rp_cpu.h"
 #include "mpsp.h"
@@ -25,6 +23,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
+#include "hash_management.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"

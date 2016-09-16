@@ -4,9 +4,9 @@
  */
 
 #include "common.h"
+#include "types.h"
 #include "memory.h"
 #include "logging.h"
-#include "types_int.h"
 #include "cpu_crc32.h"
 
 static const uint crc32tab[256] =

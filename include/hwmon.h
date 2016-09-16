@@ -10,20 +10,6 @@
 #define GPU_TEMP_ABORT    90
 #define GPU_TEMP_RETAIN   75
 
-typedef struct
-{
-  HM_ADAPTER_ADL     adl;
-  HM_ADAPTER_NVML    nvml;
-  HM_ADAPTER_NVAPI   nvapi;
-  HM_ADAPTER_XNVCTRL xnvctrl;
-
-  int od_version;
-
-  int fan_get_supported;
-  int fan_set_supported;
-
-} hm_attrs_t;
-
 int get_adapters_num_adl (void *adl, int *iNumberAdapters);
 
 int hm_get_adapter_index_adl (hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);

@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "logging.h"
 #include "memory.h"
@@ -21,6 +20,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
+#include "hash_management.h"
 #include "thread.h"
 #include "outfile.h"
 #include "potfile.h"
@@ -31,7 +31,6 @@
 #include "shared.h"
 #include "terminal.h"
 #include "monitor.h"
-#include "hash_management.h"
 
 extern hc_global_data_t data;
 
@@ -50,6 +49,8 @@ void *thread_monitor (void *p)
   uint status_left  = data.status_timer;
 
   opencl_ctx_t *opencl_ctx = data.opencl_ctx;
+  hashconfig_t *hashconfig = data.hashconfig;
+  hashes_t     *hashes     = data.hashes;
 
   #if defined (HAVE_HWMON)
   uint hwmon_check = 0;
@@ -85,7 +86,7 @@ void *thread_monitor (void *p)
     restore_check = 1;
   }
 
-  if ((data.remove == 1) && (data.hashlist_mode == HL_MODE_FILE))
+  if ((data.remove == 1) && (hashes->hashlist_mode == HL_MODE_FILE))
   {
     remove_check = 1;
   }
@@ -330,9 +331,9 @@ void *thread_monitor (void *p)
 
       if (remove_left == 0)
       {
-        if (data.digests_saved != data.digests_done)
+        if (hashes->digests_saved != hashes->digests_done)
         {
-          data.digests_saved = data.digests_done;
+          hashes->digests_saved = hashes->digests_done;
 
           save_hash ();
         }
@@ -353,7 +354,7 @@ void *thread_monitor (void *p)
 
         if (data.quiet == 0) log_info ("");
 
-        status_display (opencl_ctx);
+        status_display (opencl_ctx, hashconfig, hashes);
 
         if (data.quiet == 0) log_info ("");
 

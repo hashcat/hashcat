@@ -4,7 +4,7 @@
  */
 
 #include "common.h"
-#include "types_int.h"
+#include "types.h"
 #include "convert.h"
 
 int is_valid_hex_char (const u8 c)

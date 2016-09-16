@@ -4,7 +4,7 @@
  */
 
 #include "common.h"
-#include "types_int.h"
+#include "types.h"
 #include "bitops.h"
 
 u32 is_power_of_2 (const u32 v)

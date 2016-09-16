@@ -8,7 +8,6 @@
 #endif
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "bitops.h"
 #include "memory.h"
@@ -13110,11 +13109,15 @@ char *strparser (const uint parser_status)
   return ((char *) PA_255);
 }
 
-void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos, hashconfig_t *hashconfig, void *digests_buf, salt_t *salts_buf, void *esalts_buf)
+void to_hccap_t (hccap_t *hccap, const uint salt_pos, const uint digest_pos, const hashconfig_t *hashconfig, const hashes_t *hashes)
 {
+  const void   *digests_buf = hashes->digests_buf;
+  const salt_t *salts_buf   = hashes->salts_buf;
+  const void   *esalts_buf  = hashes->esalts_buf;
+
   memset (hccap, 0, sizeof (hccap_t));
 
-  salt_t *salt = &salts_buf[salt_pos];
+  const salt_t *salt = &salts_buf[salt_pos];
 
   memcpy (hccap->essid, salt->salt_buf, salt->salt_len);
 
@@ -13169,14 +13172,20 @@ void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos, hashconfig_t *h
   }
 }
 
-void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos, hashconfig_t *hashconfig, void *digests_buf, salt_t *salts_buf, void *esalts_buf, hashinfo_t **hash_info, char *hashfile)
+void ascii_digest (char *out_buf, const uint salt_pos, const uint digest_pos, const hashconfig_t *hashconfig, const hashes_t *hashes)
 {
-  uint hash_type = hashconfig->hash_type;
-  uint hash_mode = hashconfig->hash_mode;
-  uint salt_type = hashconfig->salt_type;
-  uint opts_type = hashconfig->opts_type;
-  uint opti_type = hashconfig->opti_type;
-  uint dgst_size = hashconfig->dgst_size;
+  void        *digests_buf = hashes->digests_buf;
+  salt_t      *salts_buf   = hashes->salts_buf;
+  void        *esalts_buf  = hashes->esalts_buf;
+  hashinfo_t **hash_info   = hashes->hash_info;
+  char        *hashfile    = hashes->hashfile;
+
+  const uint hash_type = hashconfig->hash_type;
+  const uint hash_mode = hashconfig->hash_mode;
+  const uint salt_type = hashconfig->salt_type;
+  const uint opts_type = hashconfig->opts_type;
+  const uint opti_type = hashconfig->opti_type;
+  const uint dgst_size = hashconfig->dgst_size;
 
   uint len = 4096;
 
@@ -20000,13 +20009,16 @@ uint hashconfig_general_pw_max (hashconfig_t *hashconfig)
   return pw_max;
 }
 
-void hashconfig_general_defaults (hashconfig_t *hashconfig, salt_t *salts_buf, const int salts_cnt, void *esalts_buf, char *optional_param1)
+void hashconfig_general_defaults (hashconfig_t *hashconfig, hashes_t *hashes, char *optional_param1)
 {
+  salt_t *salts_buf  = hashes->salts_buf;
+  void   *esalts_buf = hashes->esalts_buf;
+
   /**
    * special modification not set from parser
    */
 
-  for (int salts_pos = 0; salts_pos < salts_cnt; salts_pos++)
+  for (uint salts_pos = 0; salts_pos < hashes->salts_cnt; salts_pos++)
   {
     switch (hashconfig->hash_mode)
     {

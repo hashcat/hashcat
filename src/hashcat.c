@@ -23,7 +23,6 @@
 #include <pwd.h>
 #endif // _POSIX
 
-#include "types_int.h"
 #include "types.h"
 #include "interface.h"
 #include "timer.h"
@@ -49,6 +48,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
+#include "hash_management.h"
 #include "thread.h"
 #include "locking.h"
 #include "rp_cpu.h"
@@ -75,7 +75,6 @@
 #include "benchmark.h"
 #include "outfile_check.h"
 #include "weak_hash.h"
-#include "hash_management.h"
 #include "remove.h"
 #include "debugfile.h"
 #include "runtime.h"
@@ -107,7 +106,6 @@ static const char PROGNAME[] = "hashcat";
 const int comptime = COMPTIME;
 
 #define FORCE 0
-
 
 int main (int argc, char **argv)
 {
@@ -1834,12 +1832,13 @@ int main (int argc, char **argv)
       data.quiet = quiet;
     }
 
-    int rc = hashconfig_init (hashconfig, hash_mode, separator, hex_salt);
+    /**
+     * setup variables and buffers depending on hash_mode
+     */
 
-    if (rc == -1)
-    {
-      return -1;
-    }
+    const int rc_hashconfig = hashconfig_init (hashconfig, hash_mode, separator, hex_salt);
+
+    if (rc_hashconfig == -1) return -1;
 
     /**
      * choose dictionary parser
@@ -1899,9 +1898,7 @@ int main (int argc, char **argv)
     {
       SUPPRESS_OUTPUT = 1;
 
-      const int rc = potfile_read_open (potfile_ctx);
-
-      if (rc == -1) return -1;
+      potfile_read_open  (potfile_ctx);
 
       potfile_read_parse (potfile_ctx, hashconfig);
 
@@ -1952,603 +1949,35 @@ int main (int argc, char **argv)
     if (custom_charset_4) mp_setup_usr (mp_sys, mp_usr, custom_charset_4, 3, hashconfig);
 
     /**
-     * load hashes, part I: find input mode, count hashes
+     * load hashes, stage 1
      */
 
-    uint hashlist_mode   = 0;
-    uint hashlist_format = HLFMT_HASHCAT;
+    hashes_t *hashes = (hashes_t *) mymalloc (sizeof (hashes_t));
 
-    uint hashes_avail = 0;
+    data.hashes = hashes;
 
-    if ((benchmark == 0) && (stdout_flag == 0))
+    const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, myargv[optind], keyspace, quiet, benchmark, stdout_flag, username, remove, show, left);
+
+    if (rc_hashes_init_stage1 == -1) return -1;
+
+    logfile_top_var_string ("hashfile", hashes->hashfile);
+
+    logfile_top_uint (hashes->hashlist_mode);
+    logfile_top_uint (hashes->hashlist_format);
+
+    if ((keyspace == 0) && (stdout_flag == 0))
     {
-      struct stat f;
-
-      hashlist_mode = (stat (myargv[optind], &f) == 0) ? HL_MODE_FILE : HL_MODE_ARG;
-
-      if ((hashconfig->hash_mode == 2500) ||
-          (hashconfig->hash_mode == 5200) ||
-          ((hashconfig->hash_mode >=  6200) && (hashconfig->hash_mode <=  6299)) ||
-          ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799)) ||
-          (hashconfig->hash_mode == 9000))
+      if (hashes->hashes_cnt == 0)
       {
-        hashlist_mode = HL_MODE_ARG;
+        log_error ("ERROR: No hashes loaded");
 
-        char *hashfile = myargv[optind];
-
-        data.hashfile = hashfile;
-
-        logfile_top_var_string ("target", hashfile);
-      }
-
-      if (hashlist_mode == HL_MODE_ARG)
-      {
-        if (hashconfig->hash_mode == 2500)
-        {
-          struct stat st;
-
-          if (stat (data.hashfile, &st) == -1)
-          {
-            log_error ("ERROR: %s: %s", data.hashfile, strerror (errno));
-
-            return -1;
-          }
-
-          hashes_avail = st.st_size / sizeof (hccap_t);
-        }
-        else
-        {
-          hashes_avail = 1;
-        }
-      }
-      else if (hashlist_mode == HL_MODE_FILE)
-      {
-        char *hashfile = myargv[optind];
-
-        data.hashfile = hashfile;
-
-        logfile_top_var_string ("target", hashfile);
-
-        FILE *fp = NULL;
-
-        if ((fp = fopen (hashfile, "rb")) == NULL)
-        {
-          log_error ("ERROR: %s: %s", hashfile, strerror (errno));
-
-          return -1;
-        }
-
-        if (data.quiet == 0) log_info_nn ("Counting lines in %s", hashfile);
-
-        hashes_avail = count_lines (fp);
-
-        rewind (fp);
-
-        if (hashes_avail == 0)
-        {
-          log_error ("ERROR: hashfile is empty or corrupt");
-
-          fclose (fp);
-
-          return -1;
-        }
-
-        hashlist_format = hlfmt_detect (fp, 100, hashconfig); // 100 = max numbers to "scan". could be hashes_avail, too
-
-        if ((remove == 1) && (hashlist_format != HLFMT_HASHCAT))
-        {
-          log_error ("ERROR: remove not supported in native hashfile-format mode");
-
-          fclose (fp);
-
-          return -1;
-        }
-
-        fclose (fp);
-      }
-    }
-    else
-    {
-      hashlist_mode = HL_MODE_ARG;
-
-      hashes_avail = 1;
-    }
-
-    if (hashconfig->hash_mode == 3000) hashes_avail *= 2;
-
-    data.hashlist_mode   = hashlist_mode;
-    data.hashlist_format = hashlist_format;
-
-    logfile_top_uint (hashlist_mode);
-    logfile_top_uint (hashlist_format);
-
-    /**
-     * load hashes, part II: allocate required memory, set pointers
-     */
-
-    hash_t *hashes_buf  = NULL;
-    void   *digests_buf = NULL;
-    salt_t *salts_buf   = NULL;
-    void   *esalts_buf  = NULL;
-
-    hashes_buf = (hash_t *) mycalloc (hashes_avail, sizeof (hash_t));
-
-    digests_buf = (void *) mycalloc (hashes_avail, hashconfig->dgst_size);
-
-    if ((username && (remove || show)) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
-    {
-      u32 hash_pos;
-
-      for (hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
-      {
-        hashinfo_t *hash_info = (hashinfo_t *) mymalloc (sizeof (hashinfo_t));
-
-        hashes_buf[hash_pos].hash_info = hash_info;
-
-        if (username && (remove || show || left))
-        {
-          hash_info->user = (user_t*) mymalloc (sizeof (user_t));
-        }
-
-        if (benchmark)
-        {
-          hash_info->orighash = (char *) mymalloc (256);
-        }
-      }
-    }
-
-    if (hashconfig->is_salted)
-    {
-      salts_buf = (salt_t *) mycalloc (hashes_avail, sizeof (salt_t));
-
-      if (hashconfig->esalt_size)
-      {
-        esalts_buf = (void *) mycalloc (hashes_avail, hashconfig->esalt_size);
-      }
-    }
-    else
-    {
-      salts_buf = (salt_t *) mycalloc (1, sizeof (salt_t));
-    }
-
-    for (uint hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
-    {
-      hashes_buf[hash_pos].digest = ((char *) digests_buf) + (hash_pos * hashconfig->dgst_size);
-
-      if (hashconfig->is_salted)
-      {
-        hashes_buf[hash_pos].salt = &salts_buf[hash_pos];
-
-        if (hashconfig->esalt_size)
-        {
-          hashes_buf[hash_pos].esalt = ((char *) esalts_buf) + (hash_pos * hashconfig->esalt_size);
-        }
-      }
-      else
-      {
-        hashes_buf[hash_pos].salt = &salts_buf[0];
+        return -1;
       }
     }
 
     /**
-     * load hashes, part III: parse hashes or generate them if benchmark
+     * If this was show/left request we're done here
      */
-
-    uint hashes_cnt = 0;
-
-    if (benchmark == 0)
-    {
-      if (keyspace == 1)
-      {
-        // useless to read hash file for keyspace, cheat a little bit w/ optind
-      }
-      else if (stdout_flag == 1)
-      {
-        // useless to read hash file for stdout, cheat a little bit w/ optind
-      }
-      else if (hashes_avail == 0)
-      {
-      }
-      else if (hashlist_mode == HL_MODE_ARG)
-      {
-        char *input_buf = myargv[optind];
-
-        uint input_len = strlen (input_buf);
-
-        logfile_top_var_string ("target", input_buf);
-
-        char *hash_buf = NULL;
-        int   hash_len = 0;
-
-        hlfmt_hash (hashlist_format, input_buf, input_len, &hash_buf, &hash_len, hashconfig);
-
-        bool hash_fmt_error = 0;
-
-        if (hash_len < 1)     hash_fmt_error = 1;
-        if (hash_buf == NULL) hash_fmt_error = 1;
-
-        if (hash_fmt_error)
-        {
-          log_info ("WARNING: Failed to parse hashes using the '%s' format", strhlfmt (hashlist_format));
-        }
-        else
-        {
-          if (hashconfig->opts_type & OPTS_TYPE_HASH_COPY)
-          {
-            hashinfo_t *hash_info_tmp = hashes_buf[hashes_cnt].hash_info;
-
-            hash_info_tmp->orighash = mystrdup (hash_buf);
-          }
-
-          if (hashconfig->is_salted)
-          {
-            memset (hashes_buf[0].salt, 0, sizeof (salt_t));
-          }
-
-          int parser_status = PARSER_OK;
-
-          if (hashconfig->hash_mode == 2500)
-          {
-            if (hash_len == 0)
-            {
-              log_error ("ERROR: hccap file not specified");
-
-              return -1;
-            }
-
-            hashlist_mode = HL_MODE_FILE;
-
-            data.hashlist_mode = hashlist_mode;
-
-            FILE *fp = fopen (hash_buf, "rb");
-
-            if (fp == NULL)
-            {
-              log_error ("ERROR: %s: %s", hash_buf, strerror (errno));
-
-              return -1;
-            }
-
-            if (hashes_avail < 1)
-            {
-              log_error ("ERROR: hccap file is empty or corrupt");
-
-              fclose (fp);
-
-              return -1;
-            }
-
-            uint hccap_size = sizeof (hccap_t);
-
-            char *in = (char *) mymalloc (hccap_size);
-
-            while (!feof (fp))
-            {
-              int n = fread (in, hccap_size, 1, fp);
-
-              if (n != 1)
-              {
-                if (hashes_cnt < 1) parser_status = PARSER_HCCAP_FILE_SIZE;
-
-                break;
-              }
-
-              parser_status = hashconfig->parse_func (in, hccap_size, &hashes_buf[hashes_cnt], hashconfig);
-
-              if (parser_status != PARSER_OK)
-              {
-                log_info ("WARNING: Hash '%s': %s", hash_buf, strparser (parser_status));
-
-                continue;
-              }
-
-              // hack: append MAC1 and MAC2 s.t. in --show and --left the line matches with the .pot file format (i.e. ESSID:MAC1:MAC2)
-
-              if ((show == 1) || (left == 1))
-              {
-                salt_t *tmp_salt = hashes_buf[hashes_cnt].salt;
-
-                char *salt_ptr = (char *) tmp_salt->salt_buf;
-
-                int cur_pos = tmp_salt->salt_len;
-                int rem_len = sizeof (hashes_buf[hashes_cnt].salt->salt_buf) - cur_pos;
-
-                wpa_t *wpa = (wpa_t *) hashes_buf[hashes_cnt].esalt;
-
-                // do the appending task
-
-                snprintf (salt_ptr + cur_pos,
-                          rem_len,
-                          ":%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x",
-                          wpa->orig_mac1[0],
-                          wpa->orig_mac1[1],
-                          wpa->orig_mac1[2],
-                          wpa->orig_mac1[3],
-                          wpa->orig_mac1[4],
-                          wpa->orig_mac1[5],
-                          wpa->orig_mac2[0],
-                          wpa->orig_mac2[1],
-                          wpa->orig_mac2[2],
-                          wpa->orig_mac2[3],
-                          wpa->orig_mac2[4],
-                          wpa->orig_mac2[5]);
-
-                // memset () the remaining part of the salt
-
-                cur_pos = tmp_salt->salt_len + 1 + 12 + 1 + 12;
-                rem_len = sizeof (hashes_buf[hashes_cnt].salt->salt_buf) - cur_pos;
-
-                if (rem_len > 0) memset (salt_ptr + cur_pos, 0, rem_len);
-
-                tmp_salt->salt_len += 1 + 12 + 1 + 12;
-              }
-
-              if (show == 1) potfile_show_request (potfile_ctx, hashconfig, outfile_ctx, (char *) hashes_buf[hashes_cnt].salt->salt_buf, hashes_buf[hashes_cnt].salt->salt_len, &hashes_buf[hashes_cnt], sort_by_salt_buf);
-              if (left == 1) potfile_left_request (potfile_ctx, hashconfig, outfile_ctx, (char *) hashes_buf[hashes_cnt].salt->salt_buf, hashes_buf[hashes_cnt].salt->salt_len, &hashes_buf[hashes_cnt], sort_by_salt_buf);
-
-              hashes_cnt++;
-            }
-
-            fclose (fp);
-
-            myfree (in);
-          }
-          else if (hashconfig->hash_mode == 3000)
-          {
-            if (hash_len == 32)
-            {
-              parser_status = hashconfig->parse_func (hash_buf, 16, &hashes_buf[hashes_cnt], hashconfig);
-
-              hash_t *lm_hash_left = NULL;
-
-              if (parser_status == PARSER_OK)
-              {
-                lm_hash_left = &hashes_buf[hashes_cnt];
-
-                hashes_cnt++;
-              }
-              else
-              {
-                log_info ("WARNING: Hash '%s': %s", input_buf, strparser (parser_status));
-              }
-
-              parser_status = hashconfig->parse_func (hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
-
-              hash_t *lm_hash_right = NULL;
-
-              if (parser_status == PARSER_OK)
-              {
-                lm_hash_right = &hashes_buf[hashes_cnt];
-
-                hashes_cnt++;
-              }
-              else
-              {
-                log_info ("WARNING: Hash '%s': %s", input_buf, strparser (parser_status));
-              }
-
-              // show / left
-
-              if ((lm_hash_left != NULL) && (lm_hash_right != NULL))
-              {
-                if (show == 1) potfile_show_request_lm (potfile_ctx, hashconfig, outfile_ctx, input_buf, input_len, lm_hash_left, lm_hash_right, sort_by_pot);
-                if (left == 1) potfile_left_request_lm (potfile_ctx, hashconfig, outfile_ctx, input_buf, input_len, lm_hash_left, lm_hash_right, sort_by_pot);
-              }
-            }
-            else
-            {
-              parser_status = hashconfig->parse_func (hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
-
-              if (parser_status == PARSER_OK)
-              {
-                if (show == 1) potfile_show_request (potfile_ctx, hashconfig, outfile_ctx, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot);
-                if (left == 1) potfile_left_request (potfile_ctx, hashconfig, outfile_ctx, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot);
-              }
-
-              if (parser_status == PARSER_OK)
-              {
-                hashes_cnt++;
-              }
-              else
-              {
-                log_info ("WARNING: Hash '%s': %s", input_buf, strparser (parser_status));
-              }
-            }
-          }
-          else
-          {
-            parser_status = hashconfig->parse_func (hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
-
-            if (parser_status == PARSER_OK)
-            {
-              if (show == 1) potfile_show_request (potfile_ctx, hashconfig, outfile_ctx, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot);
-              if (left == 1) potfile_left_request (potfile_ctx, hashconfig, outfile_ctx, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot);
-            }
-
-            if (parser_status == PARSER_OK)
-            {
-              hashes_cnt++;
-            }
-            else
-            {
-              log_info ("WARNING: Hash '%s': %s", input_buf, strparser (parser_status));
-            }
-          }
-        }
-      }
-      else if (hashlist_mode == HL_MODE_FILE)
-      {
-        char *hashfile = data.hashfile;
-
-        FILE *fp;
-
-        if ((fp = fopen (hashfile, "rb")) == NULL)
-        {
-          log_error ("ERROR: %s: %s", hashfile, strerror (errno));
-
-          return -1;
-        }
-
-        uint line_num = 0;
-
-        char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
-
-        while (!feof (fp))
-        {
-          line_num++;
-
-          int line_len = fgetl (fp, line_buf);
-
-          if (line_len == 0) continue;
-
-          char *hash_buf = NULL;
-          int   hash_len = 0;
-
-          hlfmt_hash (hashlist_format, line_buf, line_len, &hash_buf, &hash_len, hashconfig);
-
-          bool hash_fmt_error = 0;
-
-          if (hash_len < 1)     hash_fmt_error = 1;
-          if (hash_buf == NULL) hash_fmt_error = 1;
-
-          if (hash_fmt_error)
-          {
-            log_info ("WARNING: failed to parse hashes using the '%s' format", strhlfmt (hashlist_format));
-
-            continue;
-          }
-
-          if (username)
-          {
-            char *user_buf = NULL;
-            int   user_len = 0;
-
-            hlfmt_user (hashlist_format, line_buf, line_len, &user_buf, &user_len, hashconfig);
-
-            if (remove || show)
-            {
-              user_t **user = &hashes_buf[hashes_cnt].hash_info->user;
-
-              *user = (user_t *) mymalloc (sizeof (user_t));
-
-              user_t *user_ptr = *user;
-
-              if (user_buf != NULL)
-              {
-                user_ptr->user_name = mystrdup (user_buf);
-              }
-              else
-              {
-                user_ptr->user_name = mystrdup ("");
-              }
-
-              user_ptr->user_len = user_len;
-            }
-          }
-
-          if (hashconfig->opts_type & OPTS_TYPE_HASH_COPY)
-          {
-            hashinfo_t *hash_info_tmp = hashes_buf[hashes_cnt].hash_info;
-
-            hash_info_tmp->orighash = mystrdup (hash_buf);
-          }
-
-          if (hashconfig->is_salted)
-          {
-            memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
-          }
-
-          if (hashconfig->hash_mode == 3000)
-          {
-            if (hash_len == 32)
-            {
-              int parser_status = hashconfig->parse_func (hash_buf, 16, &hashes_buf[hashes_cnt], hashconfig);
-
-              if (parser_status < PARSER_GLOBAL_ZERO)
-              {
-                log_info ("WARNING: Hashfile '%s' on line %u (%s): %s", data.hashfile, line_num, line_buf, strparser (parser_status));
-
-                continue;
-              }
-
-              hash_t *lm_hash_left = &hashes_buf[hashes_cnt];
-
-              hashes_cnt++;
-
-              parser_status = hashconfig->parse_func (hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
-
-              if (parser_status < PARSER_GLOBAL_ZERO)
-              {
-                log_info ("WARNING: Hashfile '%s' on line %u (%s): %s", data.hashfile, line_num, line_buf, strparser (parser_status));
-
-                continue;
-              }
-
-              hash_t *lm_hash_right = &hashes_buf[hashes_cnt];
-
-              if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
-
-              hashes_cnt++;
-
-              // show / left
-
-              if (show == 1) potfile_show_request_lm (potfile_ctx, hashconfig, outfile_ctx, line_buf, line_len, lm_hash_left, lm_hash_right, sort_by_pot);
-              if (left == 1) potfile_left_request_lm (potfile_ctx, hashconfig, outfile_ctx, line_buf, line_len, lm_hash_left, lm_hash_right, sort_by_pot);
-            }
-            else
-            {
-              int parser_status = hashconfig->parse_func (hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
-
-              if (parser_status < PARSER_GLOBAL_ZERO)
-              {
-                log_info ("WARNING: Hashfile '%s' on line %u (%s): %s", data.hashfile, line_num, line_buf, strparser (parser_status));
-
-                continue;
-              }
-
-              if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
-
-              if (show == 1) potfile_show_request (potfile_ctx, hashconfig, outfile_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
-              if (left == 1) potfile_left_request (potfile_ctx, hashconfig, outfile_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
-
-              hashes_cnt++;
-            }
-          }
-          else
-          {
-            int parser_status = hashconfig->parse_func (hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
-
-            if (parser_status < PARSER_GLOBAL_ZERO)
-            {
-              log_info ("WARNING: Hashfile '%s' on line %u (%s): %s", data.hashfile, line_num, line_buf, strparser (parser_status));
-
-              continue;
-            }
-
-            if (data.quiet == 0) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
-
-            if (show == 1) potfile_show_request (potfile_ctx, hashconfig, outfile_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
-            if (left == 1) potfile_left_request (potfile_ctx, hashconfig, outfile_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
-
-            hashes_cnt++;
-          }
-        }
-
-        myfree (line_buf);
-
-        fclose (fp);
-
-        if (data.quiet == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_avail, hashes_avail, 100.00);
-      }
-    }
-    else
-    {
-      hashconfig_benchmark_defaults (hashconfig, hashes_buf[0].salt, hashes_buf[0].esalt);
-
-      data.hashfile = "-";
-
-      hashes_cnt = 1;
-    }
 
     if (show == 1 || left == 1)
     {
@@ -2561,151 +1990,13 @@ int main (int argc, char **argv)
       return 0;
     }
 
-    if ((keyspace == 0) && (stdout_flag == 0))
-    {
-      if (hashes_cnt == 0)
-      {
-        log_error ("ERROR: No hashes loaded");
-
-        return -1;
-      }
-    }
-
     /**
      * Sanity check for hashfile vs outfile (should not point to the same physical file)
      */
 
-    if (outfile != NULL)
-    {
-      char *hashfile = data.hashfile;
+    const int rc_outfile_and_hashfile = outfile_and_hashfile (outfile_ctx, hashes);
 
-      if (hashfile != NULL)
-      {
-        #if defined (_POSIX)
-        struct stat tmpstat_outfile;
-        struct stat tmpstat_hashfile;
-        #endif
-
-        #if defined (_WIN)
-        struct stat64 tmpstat_outfile;
-        struct stat64 tmpstat_hashfile;
-        #endif
-
-        FILE *tmp_outfile_fp = fopen (outfile, "r");
-
-        if (tmp_outfile_fp)
-        {
-          #if defined (_POSIX)
-          fstat (fileno (tmp_outfile_fp), &tmpstat_outfile);
-          #endif
-
-          #if defined (_WIN)
-          _fstat64 (fileno (tmp_outfile_fp), &tmpstat_outfile);
-          #endif
-
-          fclose (tmp_outfile_fp);
-        }
-
-        FILE *tmp_hashfile_fp = fopen (hashfile, "r");
-
-        if (tmp_hashfile_fp)
-        {
-          #if defined (_POSIX)
-          fstat (fileno (tmp_hashfile_fp), &tmpstat_hashfile);
-          #endif
-
-          #if defined (_WIN)
-          _fstat64 (fileno (tmp_hashfile_fp), &tmpstat_hashfile);
-          #endif
-
-          fclose (tmp_hashfile_fp);
-        }
-
-        if (tmp_outfile_fp && tmp_outfile_fp)
-        {
-          tmpstat_outfile.st_mode     = 0;
-          tmpstat_outfile.st_nlink    = 0;
-          tmpstat_outfile.st_uid      = 0;
-          tmpstat_outfile.st_gid      = 0;
-          tmpstat_outfile.st_rdev     = 0;
-          tmpstat_outfile.st_atime    = 0;
-
-          tmpstat_hashfile.st_mode    = 0;
-          tmpstat_hashfile.st_nlink   = 0;
-          tmpstat_hashfile.st_uid     = 0;
-          tmpstat_hashfile.st_gid     = 0;
-          tmpstat_hashfile.st_rdev    = 0;
-          tmpstat_hashfile.st_atime   = 0;
-
-          #if defined (_POSIX)
-          tmpstat_outfile.st_blksize  = 0;
-          tmpstat_outfile.st_blocks   = 0;
-
-          tmpstat_hashfile.st_blksize = 0;
-          tmpstat_hashfile.st_blocks  = 0;
-          #endif
-
-          #if defined (_POSIX)
-          if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (struct stat)) == 0)
-          {
-            log_error ("ERROR: Hashfile and Outfile are not allowed to point to the same file");
-
-            return -1;
-          }
-          #endif
-
-          #if defined (_WIN)
-          if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (struct stat64)) == 0)
-          {
-            log_error ("ERROR: Hashfile and Outfile are not allowed to point to the same file");
-
-            return -1;
-          }
-          #endif
-        }
-      }
-    }
-
-    /**
-     * Remove duplicates
-     */
-
-    if (data.quiet == 0) log_info_nn ("Removing duplicate hashes...");
-
-    if (hashconfig->is_salted)
-    {
-      qsort (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash);
-    }
-    else
-    {
-      qsort (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt);
-    }
-
-    uint hashes_cnt_orig = hashes_cnt;
-
-    hashes_cnt = 1;
-
-    for (uint hashes_pos = 1; hashes_pos < hashes_cnt_orig; hashes_pos++)
-    {
-      if (hashconfig->is_salted)
-      {
-        if (sort_by_salt (hashes_buf[hashes_pos].salt, hashes_buf[hashes_pos - 1].salt) == 0)
-        {
-          if (sort_by_digest_p0p1 (hashes_buf[hashes_pos].digest, hashes_buf[hashes_pos - 1].digest) == 0) continue;
-        }
-      }
-      else
-      {
-        if (sort_by_digest_p0p1 (hashes_buf[hashes_pos].digest, hashes_buf[hashes_pos - 1].digest) == 0) continue;
-      }
-
-      if (hashes_pos > hashes_cnt)
-      {
-        memcpy (&hashes_buf[hashes_cnt], &hashes_buf[hashes_pos], sizeof (hash_t));
-      }
-
-      hashes_cnt++;
-    }
+    if (rc_outfile_and_hashfile == -1) return -1;
 
     /**
      * Potfile removes
@@ -2717,203 +2008,35 @@ int main (int argc, char **argv)
     {
       if (data.quiet == 0) log_info_nn ("Comparing hashes with potfile entries...");
 
-      potfile_remove_cracks = potfile_remove_parse (potfile_ctx, hashconfig, hashes_buf, hashes_cnt);
+      potfile_remove_cracks = potfile_remove_parse (potfile_ctx, hashconfig, hashes);
     }
 
     /**
-     * Now generate all the buffers required for later
+     * load hashes, stage 2
      */
 
-    void   *digests_buf_new = (void *) mycalloc (hashes_avail, hashconfig->dgst_size);
+    uint hashes_cnt_orig = hashes->hashes_cnt;
 
-    salt_t *salts_buf_new  = NULL;
-    void   *esalts_buf_new = NULL;
+    const int rc_hashes_init_stage2 = hashes_init_stage2 (hashes, hashconfig, opencl_ctx, username, remove, show);
 
-    if (hashconfig->is_salted)
-    {
-      salts_buf_new = (salt_t *) mycalloc (hashes_avail, sizeof (salt_t));
+    if (rc_hashes_init_stage2 == -1) return -1;
 
-      if (hashconfig->esalt_size)
-      {
-        esalts_buf_new = (void *) mycalloc (hashes_avail, hashconfig->esalt_size);
-      }
-    }
-    else
-    {
-      salts_buf_new = (salt_t *) mycalloc (1, sizeof (salt_t));
-    }
-
-    if (data.quiet == 0) log_info_nn ("Structuring salts for cracking task...");
-
-    uint digests_cnt  = hashes_cnt;
-    uint digests_done = 0;
-
-    size_t size_digests = digests_cnt * hashconfig->dgst_size;
-    size_t size_shown   = digests_cnt * sizeof (uint);
-
-    uint *digests_shown     = (uint *) mymalloc (size_shown);
-    uint *digests_shown_tmp = (uint *) mymalloc (size_shown);
-
-    uint salts_cnt   = 0;
-    uint salts_done  = 0;
-
-    hashinfo_t **hash_info = NULL;
-
-    if ((username && (remove || show)) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
-    {
-      hash_info = (hashinfo_t **) mymalloc (hashes_cnt * sizeof (hashinfo_t *));
-
-      if (username && (remove || show))
-      {
-        uint user_pos;
-
-        for (user_pos = 0; user_pos < hashes_cnt; user_pos++)
-        {
-          hash_info[user_pos] = (hashinfo_t*) mycalloc (hashes_cnt, sizeof (hashinfo_t));
-
-          hash_info[user_pos]->user = (user_t*) mymalloc (sizeof (user_t));
-        }
-      }
-    }
-
-    uint *salts_shown = (uint *) mymalloc (size_shown);
-
-    salt_t *salt_buf;
-
-    {
-      // copied from inner loop
-
-      salt_buf = &salts_buf_new[salts_cnt];
-
-      memcpy (salt_buf, hashes_buf[0].salt, sizeof (salt_t));
-
-      if (hashconfig->esalt_size)
-      {
-        memcpy (((char *) esalts_buf_new) + (salts_cnt * hashconfig->esalt_size), hashes_buf[0].esalt, hashconfig->esalt_size);
-      }
-
-      salt_buf->digests_cnt    = 0;
-      salt_buf->digests_done   = 0;
-      salt_buf->digests_offset = 0;
-
-      salts_cnt++;
-    }
-
-    if (hashes_buf[0].cracked == 1)
-    {
-      digests_shown[0] = 1;
-
-      digests_done++;
-
-      salt_buf->digests_done++;
-    }
-
-    salt_buf->digests_cnt++;
-
-    memcpy (((char *) digests_buf_new) + (0 * hashconfig->dgst_size), hashes_buf[0].digest, hashconfig->dgst_size);
-
-    if ((username && (remove || show)) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
-    {
-      hash_info[0] = hashes_buf[0].hash_info;
-    }
-
-    // copy from inner loop
-
-    for (uint hashes_pos = 1; hashes_pos < hashes_cnt; hashes_pos++)
-    {
-      if (hashconfig->is_salted)
-      {
-        if (sort_by_salt (hashes_buf[hashes_pos].salt, hashes_buf[hashes_pos - 1].salt) != 0)
-        {
-          salt_buf = &salts_buf_new[salts_cnt];
-
-          memcpy (salt_buf, hashes_buf[hashes_pos].salt, sizeof (salt_t));
-
-          if (hashconfig->esalt_size)
-          {
-            memcpy (((char *) esalts_buf_new) + (salts_cnt * hashconfig->esalt_size), hashes_buf[hashes_pos].esalt, hashconfig->esalt_size);
-          }
-
-          salt_buf->digests_cnt    = 0;
-          salt_buf->digests_done   = 0;
-          salt_buf->digests_offset = hashes_pos;
-
-          salts_cnt++;
-        }
-      }
-
-      if (hashes_buf[hashes_pos].cracked == 1)
-      {
-        digests_shown[hashes_pos] = 1;
-
-        digests_done++;
-
-        salt_buf->digests_done++;
-      }
-
-      salt_buf->digests_cnt++;
-
-      memcpy (((char *) digests_buf_new) + (hashes_pos * hashconfig->dgst_size), hashes_buf[hashes_pos].digest, hashconfig->dgst_size);
-
-      if ((username && (remove || show)) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
-      {
-        hash_info[hashes_pos] = hashes_buf[hashes_pos].hash_info;
-      }
-    }
-
-    for (uint salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
-    {
-      salt_t *salt_buf = &salts_buf_new[salt_pos];
-
-      if (salt_buf->digests_done == salt_buf->digests_cnt)
-      {
-        salts_shown[salt_pos] = 1;
-
-        salts_done++;
-      }
-
-      if (salts_done == salts_cnt) opencl_ctx->devices_status = STATUS_CRACKED;
-    }
-
-    local_free (digests_buf);
-    local_free (salts_buf);
-    local_free (esalts_buf);
-
-    digests_buf = digests_buf_new;
-    salts_buf   = salts_buf_new;
-    esalts_buf  = esalts_buf_new;
-
-    local_free (hashes_buf);
+    /**
+     * Automatic Optimizers
+     */
 
     char *optional_param1 = NULL;
 
     if (truecrypt_keyfiles) optional_param1 = truecrypt_keyfiles;
     if (veracrypt_keyfiles) optional_param1 = veracrypt_keyfiles;
 
-    hashconfig_general_defaults (hashconfig, salts_buf, salts_cnt, esalts_buf, optional_param1);
+    hashconfig_general_defaults (hashconfig, hashes, optional_param1);
 
-    data.digests_cnt        = digests_cnt;
-    data.digests_done       = digests_done;
-    data.digests_buf        = digests_buf;
-    data.digests_shown      = digests_shown;
-    data.digests_shown_tmp  = digests_shown_tmp;
 
-    data.salts_cnt          = salts_cnt;
-    data.salts_done         = salts_done;
-    data.salts_buf          = salts_buf;
-    data.salts_shown        = salts_shown;
-
-    data.esalts_buf         = esalts_buf;
-    data.hash_info          = hash_info;
-
-    /**
-     * Automatic Optimizers
-     */
-
-    if (salts_cnt == 1)
+    if (hashes->salts_cnt == 1)
       hashconfig->opti_type |= OPTI_TYPE_SINGLE_SALT;
 
-    if (digests_cnt == 1)
+    if (hashes->digests_cnt == 1)
       hashconfig->opti_type |= OPTI_TYPE_SINGLE_HASH;
 
     if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -2963,7 +2086,7 @@ int main (int argc, char **argv)
     {
       force_jit_compilation = 8900;
     }
-    else if (hashconfig->hash_mode == 1500 && attack_mode == ATTACK_MODE_BF && data.salts_cnt == 1)
+    else if (hashconfig->hash_mode == 1500 && attack_mode == ATTACK_MODE_BF && hashes->salts_cnt == 1)
     {
       force_jit_compilation = 1500;
     }
@@ -3001,10 +2124,10 @@ int main (int argc, char **argv)
 
       bitmap_size = bitmap_nums * sizeof (uint);
 
-      if ((hashes_cnt & bitmap_mask) == hashes_cnt) break;
+      if ((hashes->digests_cnt & bitmap_mask) == hashes->digests_cnt) break;
 
-      if (generate_bitmaps (digests_cnt, hashconfig->dgst_size, bitmap_shift1, (char *) data.digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, digests_cnt / 2) == 0x7fffffff) continue;
-      if (generate_bitmaps (digests_cnt, hashconfig->dgst_size, bitmap_shift2, (char *) data.digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, digests_cnt / 2) == 0x7fffffff) continue;
+      if (generate_bitmaps (hashes->digests_cnt, hashconfig->dgst_size, bitmap_shift1, (char *) hashes->digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, hashes->digests_cnt / 2) == 0x7fffffff) continue;
+      if (generate_bitmaps (hashes->digests_cnt, hashconfig->dgst_size, bitmap_shift2, (char *) hashes->digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, hashes->digests_cnt / 2) == 0x7fffffff) continue;
 
       break;
     }
@@ -3015,8 +2138,8 @@ int main (int argc, char **argv)
 
     bitmap_size = bitmap_nums * sizeof (uint);
 
-    generate_bitmaps (digests_cnt, hashconfig->dgst_size, bitmap_shift1, (char *) data.digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, -1ul);
-    generate_bitmaps (digests_cnt, hashconfig->dgst_size, bitmap_shift2, (char *) data.digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d, -1ul);
+    generate_bitmaps (hashes->digests_cnt, hashconfig->dgst_size, bitmap_shift1, (char *) hashes->digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, -1ul);
+    generate_bitmaps (hashes->digests_cnt, hashconfig->dgst_size, bitmap_shift2, (char *) hashes->digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d, -1ul);
 
     /**
      * prepare quick rule
@@ -3489,7 +2612,7 @@ int main (int argc, char **argv)
 
     if (data.quiet == 0)
     {
-      log_info ("Hashes: %u hashes; %u unique digests, %u unique salts", hashes_cnt_orig, digests_cnt, salts_cnt);
+      log_info ("Hashes: %u digests; %u unique digests, %u unique salts", hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
 
       log_info ("Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_bits, bitmap_nums, bitmap_mask, bitmap_size, bitmap_shift1, bitmap_shift2);
 
@@ -3894,9 +3017,11 @@ int main (int argc, char **argv)
       size_t size_rules   = kernel_rules_cnt * sizeof (kernel_rule_t);
       size_t size_rules_c = KERNEL_RULES     * sizeof (kernel_rule_t);
 
-      size_t size_plains  = digests_cnt * sizeof (plain_t);
-      size_t size_salts   = salts_cnt   * sizeof (salt_t);
-      size_t size_esalts  = salts_cnt   * hashconfig->esalt_size;
+      size_t size_plains  = hashes->digests_cnt * sizeof (plain_t);
+      size_t size_salts   = hashes->salts_cnt   * sizeof (salt_t);
+      size_t size_esalts  = hashes->salts_cnt   * hashconfig->esalt_size;
+      size_t size_shown   = hashes->digests_cnt * sizeof (uint);
+      size_t size_digests = hashes->digests_cnt * hashconfig->dgst_size;
 
       device_param->size_plains   = size_plains;
       device_param->size_digests  = size_digests;
@@ -3915,15 +3040,15 @@ int main (int argc, char **argv)
       {
         // we need to check that all hashes have the same scrypt settings
 
-        const u32 scrypt_N = data.salts_buf[0].scrypt_N;
-        const u32 scrypt_r = data.salts_buf[0].scrypt_r;
-        const u32 scrypt_p = data.salts_buf[0].scrypt_p;
+        const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
+        const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
+        const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
 
-        for (uint i = 1; i < salts_cnt; i++)
+        for (uint i = 1; i < hashes->salts_cnt; i++)
         {
-          if ((data.salts_buf[i].scrypt_N != scrypt_N)
-           || (data.salts_buf[i].scrypt_r != scrypt_r)
-           || (data.salts_buf[i].scrypt_p != scrypt_p))
+          if ((hashes->salts_buf[i].scrypt_N != scrypt_N)
+           || (hashes->salts_buf[i].scrypt_r != scrypt_r)
+           || (hashes->salts_buf[i].scrypt_p != scrypt_p))
           {
             log_error ("ERROR: Mixed scrypt settings not supported");
 
@@ -3996,7 +3121,7 @@ int main (int argc, char **argv)
             continue;
           }
 
-          for (uint salts_pos = 0; salts_pos < data.salts_cnt; salts_pos++)
+          for (uint salts_pos = 0; salts_pos < hashes->salts_cnt; salts_pos++)
           {
             data.scrypt_tmto_final = tmto;
           }
@@ -4092,7 +3217,7 @@ int main (int argc, char **argv)
         }
         else
         {
-          innerloop_cnt = data.salts_buf[0].salt_iter;
+          innerloop_cnt = hashes->salts_buf[0].salt_iter;
         }
 
         if ((innerloop_cnt >= device_param->kernel_loops_min) &&
@@ -4573,11 +3698,11 @@ int main (int argc, char **argv)
 
           if (force_jit_compilation == 1500)
           {
-            snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DDESCRYPT_SALT=%u", build_opts, data.salts_buf[0].salt_buf[0]);
+            snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DDESCRYPT_SALT=%u", build_opts, hashes->salts_buf[0].salt_buf[0]);
           }
           else if (force_jit_compilation == 8900)
           {
-            snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%u -DSCRYPT_TMP_ELEM=%u", build_opts, data.salts_buf[0].scrypt_N, data.salts_buf[0].scrypt_r, data.salts_buf[0].scrypt_p, 1 << data.scrypt_tmto_final, data.scrypt_tmp_size / 16);
+            snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%u -DSCRYPT_TMP_ELEM=%u", build_opts, hashes->salts_buf[0].scrypt_N, hashes->salts_buf[0].scrypt_r, hashes->salts_buf[0].scrypt_p, 1 << data.scrypt_tmto_final, data.scrypt_tmp_size / 16);
           }
           else
           {
@@ -5014,10 +4139,10 @@ int main (int argc, char **argv)
 
       if (benchmark == 1)
       {
-        ((uint *) digests_buf)[0] = -1u;
-        ((uint *) digests_buf)[1] = -1u;
-        ((uint *) digests_buf)[2] = -1u;
-        ((uint *) digests_buf)[3] = -1u;
+        ((uint *) hashes->digests_buf)[0] = -1u;
+        ((uint *) hashes->digests_buf)[1] = -1u;
+        ((uint *) hashes->digests_buf)[2] = -1u;
+        ((uint *) hashes->digests_buf)[3] = -1u;
       }
 
       /**
@@ -5061,9 +4186,9 @@ int main (int argc, char **argv)
       CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s2_b,    CL_TRUE, 0, bitmap_size,  bitmap_s2_b,        0, NULL, NULL);
       CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s2_c,    CL_TRUE, 0, bitmap_size,  bitmap_s2_c,        0, NULL, NULL);
       CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s2_d,    CL_TRUE, 0, bitmap_size,  bitmap_s2_d,        0, NULL, NULL);
-      CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_digests_buf,    CL_TRUE, 0, size_digests, data.digests_buf,   0, NULL, NULL);
-      CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_digests_shown,  CL_TRUE, 0, size_shown,   data.digests_shown, 0, NULL, NULL);
-      CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_salt_bufs,      CL_TRUE, 0, size_salts,   data.salts_buf,     0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_digests_buf,    CL_TRUE, 0, size_digests, hashes->digests_buf,   0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_digests_shown,  CL_TRUE, 0, size_shown,   hashes->digests_shown, 0, NULL, NULL);
+      CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_salt_bufs,      CL_TRUE, 0, size_salts,   hashes->salts_buf,     0, NULL, NULL);
 
       if (CL_err != CL_SUCCESS)
       {
@@ -5138,7 +4263,7 @@ int main (int argc, char **argv)
           return -1;
         }
 
-        CL_err = hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_esalt_bufs, CL_TRUE, 0, size_esalts, data.esalts_buf, 0, NULL, NULL);
+        CL_err = hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_esalt_bufs, CL_TRUE, 0, size_esalts, hashes->esalts_buf, 0, NULL, NULL);
 
         if (CL_err != CL_SUCCESS)
         {
@@ -5819,9 +4944,9 @@ int main (int argc, char **argv)
      * keep track of the progress
      */
 
-    data.words_progress_done     = (u64 *) mycalloc (data.salts_cnt, sizeof (u64));
-    data.words_progress_rejected = (u64 *) mycalloc (data.salts_cnt, sizeof (u64));
-    data.words_progress_restored = (u64 *) mycalloc (data.salts_cnt, sizeof (u64));
+    data.words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+    data.words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+    data.words_progress_restored = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
 
     /**
      * open filehandles
@@ -6624,7 +5749,7 @@ int main (int argc, char **argv)
      * weak hash check
      */
 
-    if (weak_hash_threshold >= salts_cnt)
+    if (weak_hash_threshold >= hashes->salts_cnt)
     {
       hc_device_param_t *device_param = NULL;
 
@@ -6639,9 +5764,9 @@ int main (int argc, char **argv)
 
       if (data.quiet == 0) log_info_nn ("Checking for weak hashes...");
 
-      for (uint salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
+      for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
       {
-        weak_hash_check (opencl_ctx, device_param, hashconfig, salt_pos);
+        weak_hash_check (opencl_ctx, device_param, hashconfig, hashes, salt_pos);
       }
 
       // Display hack, guarantee that there is at least one \r before real start
@@ -7048,9 +6173,9 @@ int main (int argc, char **argv)
           opencl_ctx->devices_status = STATUS_INIT;
         }
 
-        memset (data.words_progress_done,     0, data.salts_cnt * sizeof (u64));
-        memset (data.words_progress_rejected, 0, data.salts_cnt * sizeof (u64));
-        memset (data.words_progress_restored, 0, data.salts_cnt * sizeof (u64));
+        memset (data.words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
+        memset (data.words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
+        memset (data.words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
 
         memset (data.cpt_buf, 0, CPT_BUF * sizeof (cpt_t));
 
@@ -7308,8 +6433,8 @@ int main (int argc, char **argv)
           {
             if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
             {
-              uint  salt_len = (uint)   data.salts_buf[0].salt_len;
-              char *salt_buf = (char *) data.salts_buf[0].salt_buf;
+              uint  salt_len = (uint)   hashes->salts_buf[0].salt_len;
+              char *salt_buf = (char *) hashes->salts_buf[0].salt_buf;
 
               uint css_cnt_salt = css_cnt + salt_len;
 
@@ -7528,21 +6653,21 @@ int main (int argc, char **argv)
         {
           if (data.attack_kern == ATTACK_KERN_STRAIGHT)
           {
-            for (uint i = 0; i < data.salts_cnt; i++)
+            for (uint i = 0; i < hashes->salts_cnt; i++)
             {
               data.words_progress_restored[i] = data.words_cur * data.kernel_rules_cnt;
             }
           }
           else if (data.attack_kern == ATTACK_KERN_COMBI)
           {
-            for (uint i = 0; i < data.salts_cnt; i++)
+            for (uint i = 0; i < hashes->salts_cnt; i++)
             {
               data.words_progress_restored[i] = data.words_cur * data.combs_cnt;
             }
           }
           else if (data.attack_kern == ATTACK_KERN_BF)
           {
-            for (uint i = 0; i < data.salts_cnt; i++)
+            for (uint i = 0; i < hashes->salts_cnt; i++)
             {
               data.words_progress_restored[i] = data.words_cur * data.bfs_cnt;
             }
@@ -7708,7 +6833,7 @@ int main (int argc, char **argv)
 
         if (benchmark == 1)
         {
-          status_benchmark (opencl_ctx);
+          status_benchmark (opencl_ctx, hashconfig);
 
           if (machine_readable == 0)
           {
@@ -7723,7 +6848,7 @@ int main (int argc, char **argv)
 
             log_info ("");
 
-            status_display (opencl_ctx);
+            status_display (opencl_ctx, hashconfig, hashes);
 
             log_info ("");
           }
@@ -7731,7 +6856,7 @@ int main (int argc, char **argv)
           {
             if (status == 1)
             {
-              status_display (opencl_ctx);
+              status_display (opencl_ctx, hashconfig, hashes);
             }
           }
         }
@@ -7876,7 +7001,7 @@ int main (int argc, char **argv)
 
     // finally save left hashes
 
-    if ((hashlist_mode == HL_MODE_FILE) && (remove == 1) && (data.digests_saved != data.digests_done))
+    if ((hashes->hashlist_mode == HL_MODE_FILE) && (remove == 1) && (hashes->digests_saved != hashes->digests_done))
     {
       save_hash (opencl_ctx);
     }
@@ -8191,14 +7316,7 @@ int main (int argc, char **argv)
     global_free (root_css_buf);
     global_free (markov_css_buf);
 
-    global_free (digests_buf);
-    global_free (digests_shown);
-    global_free (digests_shown_tmp);
-
-    global_free (salts_buf);
-    global_free (salts_shown);
-
-    global_free (esalts_buf);
+    hashes_destroy (hashes);
 
     global_free (words_progress_done);
     global_free (words_progress_rejected);

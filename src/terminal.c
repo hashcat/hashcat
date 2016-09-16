@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "logging.h"
 #include "interface.h"
@@ -20,6 +19,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
+#include "hash_management.h"
 #include "thread.h"
 #include "outfile.h"
 #include "potfile.h"
@@ -59,6 +59,8 @@ void clear_prompt ()
 void *thread_keypress (void *p)
 {
   opencl_ctx_t *opencl_ctx = data.opencl_ctx;
+  hashconfig_t *hashconfig = data.hashconfig;
+  hashes_t     *hashes     = data.hashes;
 
   uint quiet = data.quiet;
 
@@ -89,7 +91,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        status_display (opencl_ctx);
+        status_display (opencl_ctx, hashconfig, hashes);
 
         log_info ("");
 

@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "convert.h"
 #include "memory.h"
@@ -192,6 +191,8 @@ void potfile_read_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashcon
 {
   if (potfile_ctx->disable == 1) return;
 
+  if (potfile_ctx->fp == NULL) return;
+
   potfile_ctx->pot_avail = count_lines (potfile_ctx->fp);
 
   potfile_ctx->pot = (pot_t *) mycalloc (potfile_ctx->pot_avail, sizeof (pot_t));
@@ -296,6 +297,8 @@ void potfile_read_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashcon
 void potfile_read_close (potfile_ctx_t *potfile_ctx)
 {
   if (potfile_ctx->disable == 1) return;
+
+  if (potfile_ctx->fp == NULL) return;
 
   fclose (potfile_ctx->fp);
 }
@@ -655,9 +658,12 @@ void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
   if (weak_hash_found == 1) myfree (pot_right_ptr);
 }
 
-int potfile_remove_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, const hash_t *hashes_buf, const uint hashes_cnt)
+int potfile_remove_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes)
 {
   if (potfile_ctx->disable == 1) return 0;
+
+  hash_t *hashes_buf = hashes->hashes_buf;
+  uint    hashes_cnt = hashes->hashes_cnt;
 
   // no solution for these special hash types (for instane because they use hashfile in output etc)
 

@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "timer.h"
 #include "memory.h"
@@ -21,6 +20,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
+#include "hash_management.h"
 #include "thread.h"
 #include "status.h"
 #include "stdout.h"
@@ -36,7 +36,6 @@
 #include "convert.h"
 #include "dictstat.h"
 #include "wordlist.h"
-#include "hash_management.h"
 
 extern hc_global_data_t data;
 
@@ -940,7 +939,7 @@ int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
   return 0;
 }
 
-int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint pws_cnt)
+int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, const uint pws_cnt)
 {
   char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -992,7 +991,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
   // loop start: most outer loop = salt iteration, then innerloops (if multi)
 
-  for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+  for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
     while (opencl_ctx->devices_status == STATUS_PAUSED) hc_sleep (1);
 
@@ -1003,7 +1002,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
     if (opencl_ctx->devices_status == STATUS_QUIT)    break;
     if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
 
-    salt_t *salt_buf = &data.salts_buf[salt_pos];
+    salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
     device_param->kernel_params_buf32[27] = salt_pos;
     device_param->kernel_params_buf32[31] = salt_buf->digests_cnt;
@@ -1053,7 +1052,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
         continue;
       }
 
-      if (data.salts_shown[salt_pos] == 1)
+      if (hashes->salts_shown[salt_pos] == 1)
       {
         data.words_progress_done[salt_pos] += (u64) pws_cnt * (u64) innerloop_left;
 
@@ -1248,7 +1247,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       if (data.benchmark == 0)
       {
-        check_cracked (opencl_ctx, device_param, salt_pos, hashconfig);
+        check_cracked (opencl_ctx, device_param, hashconfig, hashes, salt_pos);
       }
 
       /**

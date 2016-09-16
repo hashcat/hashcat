@@ -22,15 +22,6 @@
 
 #define STDOUT_FLAG 0
 
-typedef struct
-{
-  FILE *fp;
-
-  char  buf[BUFSIZ];
-  int   len;
-
-} out_t;
-
 void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint pws_cnt);
 
 #endif // _STDOUT_H

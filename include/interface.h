@@ -28,34 +28,6 @@
 #define LM_MASKED_PLAIN "[notfound]"
 
 /**
- * types
- */
-
-struct _hashconfig
-{
-  char  separator;
-
-  uint  hash_mode;
-  uint  hash_type;
-  uint  salt_type;
-  uint  attack_exec;
-  uint  opts_type;
-  uint  kern_type;
-  uint  dgst_size;
-  uint  esalt_size;
-  uint  opti_type;
-  uint  is_salted;
-  uint  dgst_pos0;
-  uint  dgst_pos1;
-  uint  dgst_pos2;
-  uint  dgst_pos3;
-
-  int (*parse_func) (char *, uint, hash_t *, const struct _hashconfig *);
-};
-
-typedef struct _hashconfig hashconfig_t;
-
-/**
  * option types
  */
 
@@ -1660,17 +1632,17 @@ int opencart_parse_hash           (char *input_buf, uint input_len, hash_t *hash
 
 char *stroptitype (const uint opti_type);
 char *strhashtype (const uint hash_mode);
-char *strparser (const uint parser_status);
+char *strparser   (const uint parser_status);
 
-void to_hccap_t (hccap_t *hccap, uint salt_pos, uint digest_pos, hashconfig_t *hashconfig, void *digests_buf, salt_t *salts_buf, void *esalts_buf);
+void to_hccap_t (hccap_t *hccap, const uint salt_pos, const uint digest_pos, const hashconfig_t *hashconfig, const hashes_t *hashes);
 
-void ascii_digest (char *out_buf, uint salt_pos, uint digest_pos, hashconfig_t *hashconfig, void *digests_buf, salt_t *salts_buf, void *esalts_buf, hashinfo_t **hash_info, char *hashfile);
+void ascii_digest (char *out_buf, const uint salt_pos, const uint digest_pos, const hashconfig_t *hashconfig, const hashes_t *hashes);
 
 int   hashconfig_init                (hashconfig_t *hashconfig, const uint hash_mode, const char separator, const uint hex_salt);
 void  hashconfig_destroy             (hashconfig_t *hashconfig);
 uint  hashconfig_general_pw_min      (hashconfig_t *hashconfig);
 uint  hashconfig_general_pw_max      (hashconfig_t *hashconfig);
-void  hashconfig_general_defaults    (hashconfig_t *hashconfig, salt_t *salts_buf, const int salts_cnt, void *esalts_buf, char *optional_param1);
+void  hashconfig_general_defaults    (hashconfig_t *hashconfig, hashes_t *hashes, char *optional_param1);
 void  hashconfig_benchmark_defaults  (hashconfig_t *hashconfig, salt_t *salt, void *esalt);
 char *hashconfig_benchmark_mask      (hashconfig_t *hashconfig);
 

@@ -6,7 +6,7 @@
 #define IS_GENERIC
 
 #include "common.h"
-#include "types_int.h"
+#include "types.h"
 #include "bitops.h"
 #include "inc_hash_constants.h"
 #include "inc_hash_functions.cl"

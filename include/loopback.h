@@ -14,13 +14,6 @@
 #define LOOPBACK        0
 #define LOOPBACK_FILE   "hashcat.loopback"
 
-typedef struct
-{
-  FILE *fp;
-  char *filename;
-
-} loopback_ctx_t;
-
 void loopback_init          (loopback_ctx_t *loopback_ctx);
 void loopback_destroy       (loopback_ctx_t *loopback_ctx);
 int  loopback_write_open    (loopback_ctx_t *loopback_ctx, const char *induction_directory);

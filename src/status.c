@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "interface.h"
 #include "timer.h"
@@ -19,6 +18,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
+#include "hash_management.h"
 #include "thread.h"
 #include "rp_cpu.h"
 #include "terminal.h"
@@ -170,7 +170,7 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
   return exec_ms_sum / exec_ms_cnt;
 }
 
-void status_display_machine_readable (opencl_ctx_t *opencl_ctx)
+void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *hashes)
 {
   FILE *out = stdout;
 
@@ -232,13 +232,13 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx)
    * counter
    */
 
-  u64 progress_total = data.words_cnt * data.salts_cnt;
+  u64 progress_total = data.words_cnt * hashes->salts_cnt;
 
   u64 all_done     = 0;
   u64 all_rejected = 0;
   u64 all_restored = 0;
 
-  for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+  for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
     all_done     += data.words_progress_done[salt_pos];
     all_rejected += data.words_progress_rejected[salt_pos];
@@ -252,7 +252,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx)
 
   if (data.skip)
   {
-    progress_skip = MIN (data.skip, data.words_base) * data.salts_cnt;
+    progress_skip = MIN (data.skip, data.words_base) * hashes->salts_cnt;
 
     if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
     else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
@@ -261,7 +261,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx)
 
   if (data.limit)
   {
-    progress_end = MIN (data.limit, data.words_base) * data.salts_cnt;
+    progress_end = MIN (data.limit, data.words_base) * hashes->salts_cnt;
 
     if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
     else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
@@ -277,8 +277,8 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx)
    * cracks
    */
 
-  fprintf (out, "RECHASH\t%u\t%u\t", data.digests_done, data.digests_cnt);
-  fprintf (out, "RECSALT\t%u\t%u\t", data.salts_done,   data.salts_cnt);
+  fprintf (out, "RECHASH\t%u\t%u\t", hashes->digests_done, hashes->digests_cnt);
+  fprintf (out, "RECSALT\t%u\t%u\t", hashes->salts_done,   hashes->salts_cnt);
 
   /**
    * temperature
@@ -314,24 +314,17 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx)
   fflush (out);
 }
 
-void status_display (opencl_ctx_t *opencl_ctx)
+void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)     return;
   if (opencl_ctx->devices_status == STATUS_STARTING) return;
-
-  hashconfig_t *hashconfig  = data.hashconfig;
-  void         *digests_buf = data.digests_buf;
-  salt_t       *salts_buf   = data.salts_buf;
-  void         *esalts_buf  = data.esalts_buf;
-  hashinfo_t  **hash_info   = data.hash_info;
-  char         *hashfile    = data.hashfile;
 
   // in this case some required buffers are free'd, ascii_digest() would run into segfault
   if (data.shutdown_inner == 1) return;
 
   if (data.machine_readable == 1)
   {
-    status_display_machine_readable (opencl_ctx);
+    status_display_machine_readable (opencl_ctx, hashes);
 
     return;
   }
@@ -416,7 +409,7 @@ void status_display (opencl_ctx_t *opencl_ctx)
         {
           if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
           {
-            mask_len -= data.salts_buf[0].salt_len;
+            mask_len -= hashes->salts_buf[0].salt_len;
           }
         }
 
@@ -527,14 +520,14 @@ void status_display (opencl_ctx_t *opencl_ctx)
     }
   }
 
-  if (data.digests_cnt == 1)
+  if (hashes->digests_cnt == 1)
   {
     if (hashconfig->hash_mode == 2500)
     {
-      wpa_t *wpa = (wpa_t *) data.esalts_buf;
+      wpa_t *wpa = (wpa_t *) hashes->esalts_buf;
 
       log_info ("Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
-                (char *) data.salts_buf[0].salt_buf,
+                (char *) hashes->salts_buf[0].salt_buf,
                 wpa->orig_mac1[0],
                 wpa->orig_mac1[1],
                 wpa->orig_mac1[2],
@@ -550,25 +543,25 @@ void status_display (opencl_ctx_t *opencl_ctx)
     }
     else if (hashconfig->hash_mode == 5200)
     {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
+      log_info ("Hash.Target....: File (%s)", hashes->hashfile);
     }
     else if (hashconfig->hash_mode == 9000)
     {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
+      log_info ("Hash.Target....: File (%s)", hashes->hashfile);
     }
     else if ((hashconfig->hash_mode >= 6200) && (hashconfig->hash_mode <= 6299))
     {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
+      log_info ("Hash.Target....: File (%s)", hashes->hashfile);
     }
     else if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799))
     {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
+      log_info ("Hash.Target....: File (%s)", hashes->hashfile);
     }
     else
     {
       char out_buf[HCBUFSIZ_LARGE] = { 0 };
 
-      ascii_digest (out_buf, 0, 0, hashconfig, digests_buf, salts_buf, esalts_buf, hash_info, hashfile);
+      ascii_digest (out_buf, 0, 0, hashconfig, hashes);
 
       // limit length
       if (strlen (out_buf) > 40)
@@ -589,14 +582,14 @@ void status_display (opencl_ctx_t *opencl_ctx)
       char out_buf1[32] = { 0 };
       char out_buf2[32] = { 0 };
 
-      ascii_digest (out_buf1, 0, 0, hashconfig, digests_buf, salts_buf, esalts_buf, hash_info, hashfile);
-      ascii_digest (out_buf2, 0, 1, hashconfig, digests_buf, salts_buf, esalts_buf, hash_info, hashfile);
+      ascii_digest (out_buf1, 0, 0, hashconfig, hashes);
+      ascii_digest (out_buf2, 0, 1, hashconfig, hashes);
 
       log_info ("Hash.Target....: %s, %s", out_buf1, out_buf2);
     }
     else
     {
-      log_info ("Hash.Target....: File (%s)", data.hashfile);
+      log_info ("Hash.Target....: File (%s)", hashes->hashfile);
     }
   }
 
@@ -739,7 +732,7 @@ void status_display (opencl_ctx_t *opencl_ctx)
    * counters
    */
 
-  u64 progress_total = data.words_cnt * data.salts_cnt;
+  u64 progress_total = data.words_cnt * hashes->salts_cnt;
 
   u64 all_done     = 0;
   u64 all_rejected = 0;
@@ -747,7 +740,7 @@ void status_display (opencl_ctx_t *opencl_ctx)
 
   u64 progress_noneed = 0;
 
-  for (uint salt_pos = 0; salt_pos < data.salts_cnt; salt_pos++)
+  for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
     all_done     += data.words_progress_done[salt_pos];
     all_rejected += data.words_progress_rejected[salt_pos];
@@ -755,7 +748,7 @@ void status_display (opencl_ctx_t *opencl_ctx)
 
     // Important for ETA only
 
-    if (data.salts_shown[salt_pos] == 1)
+    if (hashes->salts_shown[salt_pos] == 1)
     {
       const u64 all = data.words_progress_done[salt_pos]
                     + data.words_progress_rejected[salt_pos]
@@ -774,7 +767,7 @@ void status_display (opencl_ctx_t *opencl_ctx)
 
   if (data.skip)
   {
-    progress_skip = MIN (data.skip, data.words_base) * data.salts_cnt;
+    progress_skip = MIN (data.skip, data.words_base) * hashes->salts_cnt;
 
     if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
     else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
@@ -783,7 +776,7 @@ void status_display (opencl_ctx_t *opencl_ctx)
 
   if (data.limit)
   {
-    progress_end = MIN (data.limit, data.words_base) * data.salts_cnt;
+    progress_end = MIN (data.limit, data.words_base) * hashes->salts_cnt;
 
     if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
     else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
@@ -922,14 +915,14 @@ void status_display (opencl_ctx_t *opencl_ctx)
 
   if (opencl_ctx->devices_active > 1) log_info ("Speed.Dev.#*...: %9sH/s", display_all_cur);
 
-  const double digests_percent = (double) data.digests_done / data.digests_cnt;
-  const double salts_percent   = (double) data.salts_done   / data.salts_cnt;
+  const double digests_percent = (double) hashes->digests_done / hashes->digests_cnt;
+  const double salts_percent   = (double) hashes->salts_done   / hashes->salts_cnt;
 
-  log_info ("Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", data.digests_done, data.digests_cnt, digests_percent * 100, data.salts_done, data.salts_cnt, salts_percent * 100);
+  log_info ("Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", hashes->digests_done, hashes->digests_cnt, digests_percent * 100, hashes->salts_done, hashes->salts_cnt, salts_percent * 100);
 
   // crack-per-time
 
-  if (data.digests_cnt > 100)
+  if (hashes->digests_cnt > 100)
   {
     time_t now = time (NULL);
 
@@ -1154,10 +1147,8 @@ void status_display (opencl_ctx_t *opencl_ctx)
   #endif // HAVE_HWMON
 }
 
-void status_benchmark_automate (opencl_ctx_t *opencl_ctx)
+void status_benchmark_automate (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
 {
-  hashconfig_t *hashconfig = data.hashconfig;
-
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
 
@@ -1197,7 +1188,7 @@ void status_benchmark_automate (opencl_ctx_t *opencl_ctx)
   }
 }
 
-void status_benchmark (opencl_ctx_t *opencl_ctx)
+void status_benchmark (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)     return;
   if (opencl_ctx->devices_status == STATUS_STARTING) return;
@@ -1206,7 +1197,7 @@ void status_benchmark (opencl_ctx_t *opencl_ctx)
 
   if (data.machine_readable == 1)
   {
-    status_benchmark_automate (opencl_ctx);
+    status_benchmark_automate (opencl_ctx, hashconfig);
 
     return;
   }

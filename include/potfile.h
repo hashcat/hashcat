@@ -15,30 +15,6 @@
 
 #define INCR_POT 1000
 
-typedef struct
-{
-  char     plain_buf[HCBUFSIZ_TINY];
-  int      plain_len;
-
-  hash_t   hash;
-
-} pot_t;
-
-typedef struct
-{
-  int      disable;
-
-  FILE    *fp;
-  char    *filename;
-
-  pot_t   *pot;
-
-  uint     pot_cnt;
-  uint     pot_avail;
-  uint     pot_hashes_avail;
-
-} potfile_ctx_t;
-
 int sort_by_pot               (const void *v1, const void *v2);
 int sort_by_salt_buf          (const void *v1, const void *v2);
 int sort_by_hash_t_salt       (const void *v1, const void *v2);
@@ -58,7 +34,7 @@ void potfile_show_request     (potfile_ctx_t *potfile_ctx, const hashconfig_t *h
 void potfile_left_request     (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *));
 void potfile_show_request_lm  (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *));
 void potfile_left_request_lm  (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *));
-int  potfile_remove_parse     (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, const hash_t *hashes_buf, const uint hashes_cnt);
+int  potfile_remove_parse     (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes);
 void potfile_destroy          (potfile_ctx_t *potfile_ctx);
 
 #endif // _POTFILE_H

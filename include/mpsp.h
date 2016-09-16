@@ -29,20 +29,6 @@
 #define INCREMENT_MIN     1
 #define INCREMENT_MAX     PW_MAX
 
-typedef struct
-{
-  uint cs_buf[0x100];
-  uint cs_len;
-
-} cs_t;
-
-typedef struct
-{
-  uint key;
-  u64  val;
-
-} hcstat_table_t;
-
 void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHARSIZ]);
 void mp_cut_at (char *mask, uint max);
 uint mp_get_length (char *mask);

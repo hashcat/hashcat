@@ -22,22 +22,12 @@ typedef enum outfile_fmt
 
 } outfile_fmt_t;
 
-typedef struct
-{
-  char *filename;
-
-  FILE *fp;
-
-  uint  outfile_format;
-  uint  outfile_autohex;
-
-} outfile_ctx_t;
-
-void outfile_init         (outfile_ctx_t *outfile_ctx, char *outfile, const uint outfile_format, const uint outfile_autohex);
-void outfile_destroy      (outfile_ctx_t *outfile_ctx);
-void outfile_format_plain (outfile_ctx_t *outfile_ctx, const unsigned char *plain_ptr, const uint plain_len);
-void outfile_write_open   (outfile_ctx_t *outfile_ctx);
-void outfile_write_close  (outfile_ctx_t *outfile_ctx);
-void outfile_write        (outfile_ctx_t *outfile_ctx, const char *out_buf, const unsigned char *plain_ptr, const uint plain_len, const u64 crackpos, const unsigned char *username, const uint user_len, const hashconfig_t *hashconfig);
+void outfile_init           (outfile_ctx_t *outfile_ctx, char *outfile, const uint outfile_format, const uint outfile_autohex);
+void outfile_destroy        (outfile_ctx_t *outfile_ctx);
+void outfile_format_plain   (outfile_ctx_t *outfile_ctx, const unsigned char *plain_ptr, const uint plain_len);
+void outfile_write_open     (outfile_ctx_t *outfile_ctx);
+void outfile_write_close    (outfile_ctx_t *outfile_ctx);
+void outfile_write          (outfile_ctx_t *outfile_ctx, const char *out_buf, const unsigned char *plain_ptr, const uint plain_len, const u64 crackpos, const unsigned char *username, const uint user_len, const hashconfig_t *hashconfig);
+int  outfile_and_hashfile   (outfile_ctx_t *outfile_ctx, hashes_t *hashes);
 
 #endif // _OUTFILE_H

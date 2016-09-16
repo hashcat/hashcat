@@ -4,7 +4,7 @@
  */
 
 #include "common.h"
-#include "types_int.h"
+#include "types.h"
 #include "memory.h"
 #include "logging.h"
 #include "dynloader.h"

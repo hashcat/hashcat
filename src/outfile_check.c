@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "types_int.h"
 #include "types.h"
 #include "memory.h"
 #include "interface.h"
@@ -21,6 +20,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
+#include "hash_management.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "debugfile.h"
@@ -29,7 +29,6 @@
 #include "status.h"
 #include "convert.h"
 #include "shared.h"
-#include "hash_management.h"
 #include "outfile_check.h"
 
 extern hc_global_data_t data;
@@ -39,8 +38,8 @@ void *thread_outfile_remove (void *p)
   // some hash-dependent constants
 
   opencl_ctx_t *opencl_ctx = data.opencl_ctx;
-
   hashconfig_t *hashconfig = data.hashconfig;
+  hashes_t     *hashes     = data.hashes;
 
   uint dgst_size  = hashconfig->dgst_size;
   uint is_salted  = hashconfig->is_salted;
@@ -193,17 +192,17 @@ void *thread_outfile_remove (void *p)
 
                   if (parser_status == PARSER_OK)
                   {
-                    for (uint salt_pos = 0; (found == 0) && (salt_pos < data.salts_cnt); salt_pos++)
+                    for (uint salt_pos = 0; (found == 0) && (salt_pos < hashes->salts_cnt); salt_pos++)
                     {
-                      if (data.salts_shown[salt_pos] == 1) continue;
+                      if (hashes->salts_shown[salt_pos] == 1) continue;
 
-                      salt_t *salt_buf = &data.salts_buf[salt_pos];
+                      salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
                       for (uint digest_pos = 0; (found == 0) && (digest_pos < salt_buf->digests_cnt); digest_pos++)
                       {
                         uint idx = salt_buf->digests_offset + digest_pos;
 
-                        if (data.digests_shown[idx] == 1) continue;
+                        if (hashes->digests_shown[idx] == 1) continue;
 
                         uint cracked = 0;
 
@@ -227,7 +226,7 @@ void *thread_outfile_remove (void *p)
                             char *mac1_pos = line_buf + salt_buf->salt_len + 1;
                             char *mac2_pos = mac1_pos + 12 + 1;
 
-                            wpa_t *wpas = (wpa_t *) data.esalts_buf;
+                            wpa_t *wpas = (wpa_t *) hashes->esalts_buf;
                             wpa_t *wpa  = &wpas[salt_pos];
 
                             // compare hex string(s) vs binary MAC address(es)
@@ -258,9 +257,9 @@ void *thread_outfile_remove (void *p)
                         }
                         else
                         {
-                          char *digests_buf_ptr = (char *) data.digests_buf;
+                          char *digests_buf_ptr = (char *) hashes->digests_buf;
 
-                          memcpy (digest_buf, digests_buf_ptr + (data.salts_buf[salt_pos].digests_offset * dgst_size) + (digest_pos * dgst_size), dgst_size);
+                          memcpy (digest_buf, digests_buf_ptr + (hashes->salts_buf[salt_pos].digests_offset * dgst_size) + (digest_pos * dgst_size), dgst_size);
 
                           cracked = (sort_by_digest_p0p1 (digest_buf, hash_buf.digest) == 0);
                         }
@@ -269,19 +268,19 @@ void *thread_outfile_remove (void *p)
                         {
                           found = 1;
 
-                          data.digests_shown[idx] = 1;
+                          hashes->digests_shown[idx] = 1;
 
-                          data.digests_done++;
+                          hashes->digests_done++;
 
                           salt_buf->digests_done++;
 
                           if (salt_buf->digests_done == salt_buf->digests_cnt)
                           {
-                            data.salts_shown[salt_pos] = 1;
+                            hashes->salts_shown[salt_pos] = 1;
 
-                            data.salts_done++;
+                            hashes->salts_done++;
 
-                            if (data.salts_done == data.salts_cnt) opencl_ctx->devices_status = STATUS_CRACKED;
+                            if (hashes->salts_done == hashes->salts_cnt) opencl_ctx->devices_status = STATUS_CRACKED;
                           }
                         }
                       }

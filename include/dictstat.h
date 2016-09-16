@@ -17,34 +17,6 @@
 
 #define MAX_DICTSTAT 10000
 
-typedef struct
-{
-  u64 cnt;
-
-  #if defined (_POSIX)
-  struct stat stat;
-  #endif
-
-  #if defined (_WIN)
-  struct __stat64 stat;
-  #endif
-
-} dictstat_t;
-
-typedef struct
-{
-  char *filename;
-
-  dictstat_t *base;
-
-  #if defined (_POSIX)
-  size_t cnt;
-  #else
-  uint   cnt;
-  #endif
-
-} dictstat_ctx_t;
-
 int sort_by_dictstat (const void *s1, const void *s2);
 
 void dictstat_init    (dictstat_ctx_t *dictstat_ctx, char *profile_dir);

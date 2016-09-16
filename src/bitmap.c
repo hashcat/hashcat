@@ -4,7 +4,7 @@
  */
 
 #include "common.h"
-#include "types_int.h"
+#include "types.h"
 #include "bitmap.h"
 
 int sort_by_bitmap (const void *p1, const void *p2)

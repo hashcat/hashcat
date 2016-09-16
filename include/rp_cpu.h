@@ -80,20 +80,6 @@
 #define RULE_BUF_R              ":"
 #define INCR_RULES              10000
 
-typedef struct
-{
-  uint len;
-
-  char buf[0x100];
-
-} cpu_rule_t;
-
-typedef struct
-{
-  uint cmds[0x100];
-
-} kernel_rule_t;
-
 int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], u32 rp_gen_func_min, u32 rp_gen_func_max);
 
 int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, char out[BLOCK_SIZE]);

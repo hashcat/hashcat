@@ -23,14 +23,6 @@
 #include <windows.h>
 #endif // _WIN
 
-#if defined (__APPLE__)
-typedef struct cpu_set
-{
-  uint32_t count;
-
-} cpu_set_t;
-#endif
-
 void set_cpu_affinity (char *cpu_affinity);
 
 #endif // _AFFINITY_H
