@@ -1225,6 +1225,15 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
 
   hashes->hashes_cnt = hashes_cnt;
 
+  if (hashconfig->is_salted)
+  {
+    qsort (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash);
+  }
+  else
+  {
+    qsort (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt);
+  }
+
   return 0;
 }
 
@@ -1238,15 +1247,6 @@ int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, opencl
    */
 
   if (data.quiet == 0) log_info_nn ("Removing duplicate hashes...");
-
-  if (hashconfig->is_salted)
-  {
-    qsort (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash);
-  }
-  else
-  {
-    qsort (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt);
-  }
 
   hashes_cnt = 1;
 

@@ -1841,35 +1841,6 @@ int main (int argc, char **argv)
     if (rc_hashconfig == -1) return -1;
 
     /**
-     * choose dictionary parser
-     */
-
-    get_next_word_func = get_next_word_std;
-
-    if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-    {
-      get_next_word_func = get_next_word_uc;
-    }
-
-    if (hashconfig->hash_type == HASH_TYPE_LM) // yes that's fine that way
-    {
-      get_next_word_func = get_next_word_lm;
-    }
-
-    /**
-     * dictstat
-     */
-
-    dictstat_ctx_t *dictstat_ctx = mymalloc (sizeof (dictstat_ctx_t));
-
-    dictstat_init (dictstat_ctx, profile_dir);
-
-    if (keyspace == 0)
-    {
-      dictstat_read (dictstat_ctx);
-    }
-
-    /**
      * outfile
      */
 
@@ -1879,10 +1850,13 @@ int main (int argc, char **argv)
 
     outfile_init (outfile_ctx, outfile, outfile_format, outfile_autohex);
 
-    if (show == 1 || left == 1)
-    {
-      outfile_write_open (outfile_ctx);
-    }
+    /**
+     * Sanity check for hashfile vs outfile (should not point to the same physical file)
+     */
+
+    const int rc_outfile_and_hashfile = outfile_and_hashfile (outfile_ctx, myargv[optind]);
+
+    if (rc_outfile_and_hashfile == -1) return -1;
 
     /**
      * potfile
@@ -1896,6 +1870,8 @@ int main (int argc, char **argv)
 
     if (show == 1 || left == 1)
     {
+      outfile_write_open (outfile_ctx);
+
       SUPPRESS_OUTPUT = 1;
 
       potfile_read_open  (potfile_ctx);
@@ -1906,47 +1882,6 @@ int main (int argc, char **argv)
 
       SUPPRESS_OUTPUT = 0;
     }
-
-    /**
-     * loopback
-     */
-
-    loopback_ctx_t *loopback_ctx = mymalloc (sizeof (loopback_ctx_t));
-
-    data.loopback_ctx = loopback_ctx;
-
-    loopback_init (loopback_ctx);
-
-    /**
-     * debugfile
-     */
-
-    debugfile_ctx_t *debugfile_ctx = mymalloc (sizeof (debugfile_ctx_t));
-
-    data.debugfile_ctx = debugfile_ctx;
-
-    debugfile_init (debugfile_ctx, debug_mode, debug_file);
-
-    /**
-     * word len
-     */
-
-    uint pw_min = hashconfig_general_pw_min (hashconfig);
-    uint pw_max = hashconfig_general_pw_max (hashconfig);
-
-    /**
-     * charsets : keep them together for more easy maintainnce
-     */
-
-    cs_t mp_sys[6] = { { { 0 }, 0 } };
-    cs_t mp_usr[4] = { { { 0 }, 0 } };
-
-    mp_setup_sys (mp_sys);
-
-    if (custom_charset_1) mp_setup_usr (mp_sys, mp_usr, custom_charset_1, 0, hashconfig);
-    if (custom_charset_2) mp_setup_usr (mp_sys, mp_usr, custom_charset_2, 1, hashconfig);
-    if (custom_charset_3) mp_setup_usr (mp_sys, mp_usr, custom_charset_3, 2, hashconfig);
-    if (custom_charset_4) mp_setup_usr (mp_sys, mp_usr, custom_charset_4, 3, hashconfig);
 
     /**
      * load hashes, stage 1
@@ -1975,10 +1910,6 @@ int main (int argc, char **argv)
       }
     }
 
-    /**
-     * If this was show/left request we're done here
-     */
-
     if (show == 1 || left == 1)
     {
       outfile_write_close (outfile_ctx);
@@ -1989,14 +1920,6 @@ int main (int argc, char **argv)
 
       return 0;
     }
-
-    /**
-     * Sanity check for hashfile vs outfile (should not point to the same physical file)
-     */
-
-    const int rc_outfile_and_hashfile = outfile_and_hashfile (outfile_ctx, hashes);
-
-    if (rc_outfile_and_hashfile == -1) return -1;
 
     /**
      * Potfile removes
@@ -2071,6 +1994,76 @@ int main (int argc, char **argv)
         }
       }
     }
+
+    /**
+     * choose dictionary parser
+     */
+
+    get_next_word_func = get_next_word_std;
+
+    if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+    {
+      get_next_word_func = get_next_word_uc;
+    }
+
+    if (hashconfig->hash_type == HASH_TYPE_LM) // yes that's fine that way
+    {
+      get_next_word_func = get_next_word_lm;
+    }
+
+    /**
+     * dictstat
+     */
+
+    dictstat_ctx_t *dictstat_ctx = mymalloc (sizeof (dictstat_ctx_t));
+
+    dictstat_init (dictstat_ctx, profile_dir);
+
+    if (keyspace == 0)
+    {
+      dictstat_read (dictstat_ctx);
+    }
+
+    /**
+     * loopback
+     */
+
+    loopback_ctx_t *loopback_ctx = mymalloc (sizeof (loopback_ctx_t));
+
+    data.loopback_ctx = loopback_ctx;
+
+    loopback_init (loopback_ctx);
+
+    /**
+     * debugfile
+     */
+
+    debugfile_ctx_t *debugfile_ctx = mymalloc (sizeof (debugfile_ctx_t));
+
+    data.debugfile_ctx = debugfile_ctx;
+
+    debugfile_init (debugfile_ctx, debug_mode, debug_file);
+
+    /**
+     * word len
+     */
+
+    uint pw_min = hashconfig_general_pw_min (hashconfig);
+    uint pw_max = hashconfig_general_pw_max (hashconfig);
+
+    /**
+     * charsets : keep them together for more easy maintainnce
+     */
+
+    cs_t mp_sys[6] = { { { 0 }, 0 } };
+    cs_t mp_usr[4] = { { { 0 }, 0 } };
+
+    mp_setup_sys (mp_sys);
+
+    if (custom_charset_1) mp_setup_usr (mp_sys, mp_usr, custom_charset_1, 0, hashconfig);
+    if (custom_charset_2) mp_setup_usr (mp_sys, mp_usr, custom_charset_2, 1, hashconfig);
+    if (custom_charset_3) mp_setup_usr (mp_sys, mp_usr, custom_charset_3, 2, hashconfig);
+    if (custom_charset_4) mp_setup_usr (mp_sys, mp_usr, custom_charset_4, 3, hashconfig);
 
     /**
      * Some algorithm, like descrypt, can benefit from JIT compilation

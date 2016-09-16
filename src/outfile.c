@@ -156,15 +156,13 @@ void outfile_write (outfile_ctx_t *outfile_ctx, const char *out_buf, const unsig
   fputs (EOL, outfile_ctx->fp);
 }
 
-int outfile_and_hashfile (outfile_ctx_t *outfile_ctx, hashes_t *hashes)
+int outfile_and_hashfile (outfile_ctx_t *outfile_ctx, const char *hashfile)
 {
+  if (hashfile == NULL) return 0;
+
   char *outfile = outfile_ctx->filename;
 
   if (outfile == NULL) return 0;
-
-  char *hashfile = hashes->hashfile;
-
-  if (hashfile == NULL) return 0;
 
   #if defined (_POSIX)
   struct stat tmpstat_outfile;
