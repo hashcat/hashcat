@@ -5413,13 +5413,15 @@ int main (int argc, char **argv)
   if (quiet == 0) log_info_nn ("Started: %s", ctime (&proc_start));
   if (quiet == 0) log_info_nn ("Stopped: %s", ctime (&proc_stop));
 
+  u32 rc_final = -1;
+
+  if (opencl_ctx->devices_status == STATUS_ABORTED)            rc_final = 2;
+  if (opencl_ctx->devices_status == STATUS_QUIT)               rc_final = 2;
+  if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) rc_final = 2;
+  if (opencl_ctx->devices_status == STATUS_EXHAUSTED)          rc_final = 1;
+  if (opencl_ctx->devices_status == STATUS_CRACKED)            rc_final = 0;
+
   opencl_ctx_destroy (opencl_ctx);
 
-  if (opencl_ctx->devices_status == STATUS_ABORTED)            return 2;
-  if (opencl_ctx->devices_status == STATUS_QUIT)               return 2;
-  if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) return 2;
-  if (opencl_ctx->devices_status == STATUS_EXHAUSTED)          return 1;
-  if (opencl_ctx->devices_status == STATUS_CRACKED)            return 0;
-
-  return -1;
+  return rc_final;
 }
