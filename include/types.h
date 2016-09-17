@@ -482,10 +482,10 @@ typedef struct
 
   void               *ocl;
 
-  cl_uint              platforms_cnt;
+  cl_uint             platforms_cnt;
   cl_platform_id     *platforms;
 
-  cl_uint              platform_devices_cnt;
+  cl_uint             platform_devices_cnt;
   cl_device_id       *platform_devices;
 
   u32                 devices_cnt;
@@ -517,6 +517,8 @@ typedef struct
   int                 need_nvml;
   int                 need_nvapi;
   int                 need_xnvctrl;
+
+  int                 force_jit_compilation;
 
 } opencl_ctx_t;
 
@@ -733,6 +735,50 @@ typedef struct
 
 typedef struct
 {
+  bool            quiet;
+  bool            force;
+  bool            benchmark;
+
+  u32             scrypt_tmto;
+
+  char           *cwd;
+  char           *install_dir;
+  char           *profile_dir;
+  char           *session_dir;
+  char           *shared_dir;
+  char           *cpath_real;
+
+  u32             wordlist_mode;
+
+  char           *rule_buf_l;
+  char           *rule_buf_r;
+  int             rule_len_l;
+  int             rule_len_r;
+
+  u32             kernel_rules_cnt;
+  kernel_rule_t  *kernel_rules_buf;
+
+  u32             attack_mode;
+  u32             attack_kern;
+
+  u32             bitmap_size;
+  u32             bitmap_mask;
+  u32             bitmap_shift1;
+  u32             bitmap_shift2;
+
+  u32            *bitmap_s1_a;
+  u32            *bitmap_s1_b;
+  u32            *bitmap_s1_c;
+  u32            *bitmap_s1_d;
+  u32            *bitmap_s2_a;
+  u32            *bitmap_s2_b;
+  u32            *bitmap_s2_c;
+  u32            *bitmap_s2_d;
+
+} session_ctx_t;
+
+typedef struct
+{
   /**
    * threads
    */
@@ -795,13 +841,6 @@ typedef struct
   #endif
 
   /**
-   * hashes
-   */
-
-  u32     scrypt_tmp_size;
-  u32     scrypt_tmto_final;
-
-  /**
    * logging
    */
 
@@ -830,7 +869,6 @@ typedef struct
   u32     maskpos;
   char   *session;
 
-  char   *homedir;
   char   *install_dir;
   char   *profile_dir;
   char   *session_dir;
@@ -880,6 +918,7 @@ typedef struct
   potfile_ctx_t   *potfile_ctx;
   loopback_ctx_t  *loopback_ctx;
   debugfile_ctx_t *debugfile_ctx;
+  session_ctx_t   *session_ctx;
 
   #if defined (HAVE_HWMON)
   u32     gpu_temp_disable;
