@@ -1497,7 +1497,7 @@ void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
   myfree (opencl_ctx);
 }
 
-int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const tuning_db_t *tuning_db, const uint attack_mode, const bool quiet, const bool force, const bool benchmark, const bool machine_readable, const uint algorithm_pos)
+int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const tuning_db_t *tuning_db, const uint attack_mode, const bool quiet, const bool force, const bool benchmark, const bool opencl_info, const bool machine_readable, const uint algorithm_pos)
 {
   if (opencl_ctx->disable == 1) return 0;
 
@@ -1518,6 +1518,10 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashc
   u32 devices_cnt = 0;
 
   u32 devices_active = 0;
+
+  if (opencl_info) {
+    fprintf(stdout, "OpenCL Info:\n");
+  }
 
   for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
   {
@@ -1590,6 +1594,33 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashc
       //return -1;
 
       platform_skipped = 2;
+    }
+
+    if (opencl_info)
+    {
+      char platform_name[HCBUFSIZ_TINY] = { 0 };
+
+      CL_err = hc_clGetPlatformInfo (opencl_ctx->ocl, platform, CL_PLATFORM_NAME, HCBUFSIZ_TINY, platform_name, NULL);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clGetPlatformInfo(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
+
+      char platform_version[HCBUFSIZ_TINY] = { 0 };
+
+      CL_err = hc_clGetPlatformInfo (opencl_ctx->ocl, platform, CL_PLATFORM_VERSION, sizeof (platform_version), platform_version, NULL);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clGetPlatformInfo(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
+
+      fprintf (stdout, "\nPlatform ID #%u\n  Vendor   : %s\n  Name     : %s\n  Version  : %s\n\n", platform_id, platform_vendor, platform_name, platform_version);
     }
 
     if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
@@ -1795,8 +1826,6 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashc
       }
 
       device_param->opencl_v12 = device_opencl_version[9] > '1' || device_opencl_version[11] >= '2';
-
-      myfree (device_opencl_version);
 
       // vector_width
 
@@ -2229,6 +2258,21 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashc
 
       // display results
 
+      if (opencl_info)
+      {
+        char *format = "  Device ID #%u\n    Type           : %s\n    Vendor ID      : %u\n    Vendor         : %s\n    Name           : %s\n    Processor(s)   : %u\n    Clock          : %u\n    Memory         : %lu/%lu MB allocatable\n    OpenCL Version : %s\n\n";
+
+        fprintf(stdout, format, device_id,
+                ((device_type & CL_DEVICE_TYPE_CPU) ? "Cpu" : ((device_type & CL_DEVICE_TYPE_GPU) ? "Gpu" : "Accelerator")),
+                device_vendor_id, device_vendor,
+                device_name, device_processors,
+                device_maxclock_frequency,
+                device_maxmem_alloc/1024/1024, device_global_mem/1024/1024,
+                device_opencl_version);
+      }
+
+      myfree (device_opencl_version);
+
       if ((benchmark == 1 || quiet == 0) && (algorithm_pos == 0))
       {
         if (machine_readable == 0)
@@ -2407,6 +2451,11 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashc
         log_info ("");
       }
     }
+  }
+
+  if (opencl_info)
+  {
+    exit(0);
   }
 
   if (devices_active == 0)

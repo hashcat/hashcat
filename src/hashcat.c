@@ -248,6 +248,7 @@ int main (int argc, char **argv)
   uint  increment_min             = INCREMENT_MIN;
   uint  increment_max             = INCREMENT_MAX;
   char *cpu_affinity              = NULL;
+  bool  opencl_info               = 0;
   char *opencl_devices            = NULL;
   char *opencl_platforms          = NULL;
   char *opencl_device_types       = NULL;
@@ -330,6 +331,7 @@ int main (int argc, char **argv)
   #define IDX_MARKOV_THRESHOLD          't'
   #define IDX_MARKOV_HCSTAT             0xff24
   #define IDX_CPU_AFFINITY              0xff25
+  #define IDX_OPENCL_INFO               'I'
   #define IDX_OPENCL_DEVICES            'd'
   #define IDX_OPENCL_PLATFORMS          0xff72
   #define IDX_OPENCL_DEVICE_TYPES       'D'
@@ -356,7 +358,7 @@ int main (int argc, char **argv)
   #define IDX_CUSTOM_CHARSET_3          '3'
   #define IDX_CUSTOM_CHARSET_4          '4'
 
-  char short_options[] = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:ibw:";
+  char short_options[] = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:";
 
   struct option long_options[] =
   {
@@ -410,6 +412,7 @@ int main (int argc, char **argv)
     {"markov-threshold",          required_argument, 0, IDX_MARKOV_THRESHOLD},
     {"markov-hcstat",             required_argument, 0, IDX_MARKOV_HCSTAT},
     {"cpu-affinity",              required_argument, 0, IDX_CPU_AFFINITY},
+    {"opencl-info",               no_argument,       0, IDX_OPENCL_INFO},
     {"opencl-devices",            required_argument, 0, IDX_OPENCL_DEVICES},
     {"opencl-platforms",          required_argument, 0, IDX_OPENCL_PLATFORMS},
     {"opencl-device-types",       required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
@@ -790,6 +793,7 @@ int main (int argc, char **argv)
       case IDX_HEX_SALT:                  hex_salt                  = 1;              break;
       case IDX_HEX_WORDLIST:              hex_wordlist              = 1;              break;
       case IDX_CPU_AFFINITY:              cpu_affinity              = optarg;         break;
+      case IDX_OPENCL_INFO:               opencl_info               = 1;              break;
       case IDX_OPENCL_DEVICES:            opencl_devices            = optarg;         break;
       case IDX_OPENCL_PLATFORMS:          opencl_platforms          = optarg;         break;
       case IDX_OPENCL_DEVICE_TYPES:       opencl_device_types       = optarg;         break;
@@ -839,6 +843,17 @@ int main (int argc, char **argv)
     log_error ("ERROR: Invalid argument specified");
 
     return -1;
+  }
+
+  if (opencl_info)
+  {
+    quiet = 1;
+    gpu_temp_disable = 1;
+    potfile_disable = 1;
+    restore_disable = 1;
+    markov_disable = 1;
+    logfile_disable = 1;
+    stdout_flag = 1;
   }
 
   /**
@@ -1701,6 +1716,13 @@ int main (int argc, char **argv)
 
   data.opencl_ctx = opencl_ctx;
 
+  if (opencl_info)
+  {
+    opencl_platforms = NULL;
+    opencl_devices = NULL;
+    opencl_device_types = strdup("1,2,3");
+  }
+
   opencl_ctx_init (opencl_ctx, opencl_platforms, opencl_devices, opencl_device_types, opencl_vector_width, opencl_vector_width_chgd, nvidia_spin_damp, nvidia_spin_damp_chgd, workload_profile, kernel_accel, kernel_accel_chgd, kernel_loops, kernel_loops_chgd, keyspace, stdout_flag);
 
   /**
@@ -1892,7 +1914,7 @@ int main (int argc, char **argv)
 
     data.hashes = hashes;
 
-    const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, myargv[optind], keyspace, quiet, benchmark, stdout_flag, username, remove, show, left);
+    const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, myargv[optind], keyspace, quiet, benchmark, opencl_info, stdout_flag, username, remove, show, left);
 
     if (rc_hashes_init_stage1 == -1) return -1;
 
@@ -2390,7 +2412,7 @@ int main (int argc, char **argv)
       }
     }
 
-    const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, hashconfig, tuning_db, attack_mode, quiet, force, benchmark, machine_readable, algorithm_pos);
+    const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, hashconfig, tuning_db, attack_mode, quiet, force, benchmark, opencl_info, machine_readable, algorithm_pos);
 
     if (rc_devices_init == -1) return -1;
 

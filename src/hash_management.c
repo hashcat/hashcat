@@ -626,7 +626,7 @@ int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, ha
   return 0;
 }
 
-int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfile_ctx_t *potfile_ctx, outfile_ctx_t *outfile_ctx, char *hash_or_file, const uint keyspace, const uint quiet, const uint benchmark, const uint stdout_flag, const uint username, const uint remove, const uint show, const uint left)
+int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfile_ctx_t *potfile_ctx, outfile_ctx_t *outfile_ctx, char *hash_or_file, const uint keyspace, const uint quiet, const uint benchmark, const bool opencl_info, const uint stdout_flag, const uint username, const uint remove, const uint show, const uint left)
 {
   /**
    * load hashes, part I: find input mode, count hashes
@@ -811,7 +811,7 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
 
   uint hashes_cnt = 0;
 
-  if (benchmark == 0)
+  if (benchmark == 0 && !opencl_info)
   {
     if (keyspace == 1)
     {
