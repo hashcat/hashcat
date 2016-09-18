@@ -172,6 +172,11 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
 
 void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *hashes)
 {
+  if (opencl_ctx->devices_status == STATUS_INIT)     return;
+  if (opencl_ctx->devices_status == STATUS_STARTING) return;
+
+  if (hashes == NULL) return;
+
   FILE *out = stdout;
 
   fprintf (out, "STATUS\t%u\t", opencl_ctx->devices_status);
@@ -318,6 +323,9 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 {
   if (opencl_ctx->devices_status == STATUS_INIT)     return;
   if (opencl_ctx->devices_status == STATUS_STARTING) return;
+
+  if (hashconfig == NULL) return;
+  if (hashes     == NULL) return;
 
   // in this case some required buffers are free'd, ascii_digest() would run into segfault
   if (data.shutdown_inner == 1) return;
@@ -1149,6 +1157,11 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
 void status_benchmark_automate (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
 {
+  if (opencl_ctx->devices_status == STATUS_INIT)     return;
+  if (opencl_ctx->devices_status == STATUS_STARTING) return;
+
+  if (hashconfig == NULL) return;
+
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
 
@@ -1192,6 +1205,8 @@ void status_benchmark (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)     return;
   if (opencl_ctx->devices_status == STATUS_STARTING) return;
+
+  if (hashconfig == NULL) return;
 
   if (data.shutdown_inner == 1) return;
 
