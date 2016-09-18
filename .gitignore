@@ -2,6 +2,7 @@
 *.bin
 *.app
 hashcat
+*.potfile
 *.restore
 *.dictstat
 *.pot
