@@ -1723,7 +1723,11 @@ int main (int argc, char **argv)
     opencl_device_types = strdup("1,2,3");
   }
 
-  opencl_ctx_init (opencl_ctx, opencl_platforms, opencl_devices, opencl_device_types, opencl_vector_width, opencl_vector_width_chgd, nvidia_spin_damp, nvidia_spin_damp_chgd, workload_profile, kernel_accel, kernel_accel_chgd, kernel_loops, kernel_loops_chgd, keyspace, stdout_flag);
+  if (opencl_ctx_init (opencl_ctx, opencl_platforms, opencl_devices, opencl_device_types, opencl_vector_width, opencl_vector_width_chgd, nvidia_spin_damp, nvidia_spin_damp_chgd, workload_profile, kernel_accel, kernel_accel_chgd, kernel_loops, kernel_loops_chgd, keyspace, stdout_flag) != 0)
+  {
+    log_error ("ERROR: opencl_ctx_init() failed.");
+    return -1;
+  }
 
   /**
    * benchmark
@@ -2412,9 +2416,11 @@ int main (int argc, char **argv)
       }
     }
 
-    const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, hashconfig, tuning_db, attack_mode, quiet, force, benchmark, opencl_info, machine_readable, algorithm_pos);
-
-    if (rc_devices_init == -1) return -1;
+    if (opencl_ctx_devices_init (opencl_ctx, hashconfig, tuning_db, attack_mode, quiet, force, benchmark, opencl_info, machine_readable, algorithm_pos) != 0)
+    {
+      log_error ("ERROR: opencl_ctx_devices_init() failed.");
+      return -1;
+    }
 
     /**
      * HM devices: init
