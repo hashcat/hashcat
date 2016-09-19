@@ -1786,6 +1786,11 @@ int main (int argc, char **argv)
 
   uint wordlist_mode = ((optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
 
+  if (attack_mode == ATTACK_MODE_BF)
+  {
+    wordlist_mode = WL_MODE_MASK;
+  }
+
   data.wordlist_mode = wordlist_mode;
 
   if (wordlist_mode == WL_MODE_STDIN)
@@ -3430,15 +3435,11 @@ int main (int argc, char **argv)
           mp_setup_usr (mp_sys, mp_usr, custom_charset_2, 1, hashconfig);
           mp_setup_usr (mp_sys, mp_usr, custom_charset_3, 2, hashconfig);
 
-          masks[maskcnt] = mystrdup ("?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d");
+          maskcnt = 1;
 
-          wordlist_mode = WL_MODE_MASK;
-
-          data.wordlist_mode = wordlist_mode;
+          masks[maskcnt - 1] = mystrdup ("?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d");
 
           increment = 1;
-
-          maskcnt = 1;
         }
       }
       else
@@ -3457,10 +3458,6 @@ int main (int argc, char **argv)
         maskcnt = 1;
 
         masks[maskcnt - 1] = mystrdup (mask);
-
-        wordlist_mode = WL_MODE_MASK;
-
-        data.wordlist_mode = wordlist_mode;
 
         increment = 1;
       }
