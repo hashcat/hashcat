@@ -128,7 +128,7 @@ void *thread_calc_stdin (void *p)
 
   const uint attack_kern = data.attack_kern;
 
-  while ((opencl_ctx->devices_status != STATUS_CRACKED) && (opencl_ctx->devices_status != STATUS_ABORTED) && (opencl_ctx->devices_status != STATUS_QUIT))
+  while (opencl_ctx->run_thread_level1 == true)
   {
     hc_thread_mutex_lock (mux_dispatcher);
 
@@ -198,18 +198,12 @@ void *thread_calc_stdin (void *p)
 
       words_cur++;
 
-      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-      if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-      if (opencl_ctx->devices_status == STATUS_QUIT)    break;
-      if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
+      while (opencl_ctx->run_thread_level1 == false) break;
     }
 
     hc_thread_mutex_unlock (mux_dispatcher);
 
-    if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-    if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-    if (opencl_ctx->devices_status == STATUS_QUIT)    break;
-    if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
+    while (opencl_ctx->run_thread_level1 == false) break;
 
     // flush
 
@@ -261,7 +255,7 @@ void *thread_calc (void *p)
 
   if (attack_mode == ATTACK_MODE_BF)
   {
-    while ((opencl_ctx->devices_status != STATUS_CRACKED) && (opencl_ctx->devices_status != STATUS_ABORTED) && (opencl_ctx->devices_status != STATUS_QUIT))
+    while (opencl_ctx->run_thread_level1 == true)
     {
       const uint work = get_work (device_param, -1u);
 
@@ -288,12 +282,7 @@ void *thread_calc (void *p)
         */
       }
 
-      if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
-
-      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-      if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-      if (opencl_ctx->devices_status == STATUS_QUIT)    break;
-      if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
+      if (opencl_ctx->run_thread_level1 == false) break;
 
       if (data.benchmark == 1) break;
 
@@ -373,7 +362,7 @@ void *thread_calc (void *p)
 
     u64 words_cur = 0;
 
-    while ((opencl_ctx->devices_status != STATUS_CRACKED) && (opencl_ctx->devices_status != STATUS_ABORTED) && (opencl_ctx->devices_status != STATUS_QUIT))
+    while (opencl_ctx->run_thread_level1 == true)
     {
       u64 words_off = 0;
       u64 words_fin = 0;
@@ -463,28 +452,13 @@ void *thread_calc (void *p)
 
           pw_add (device_param, (u8 *) line_buf, line_len);
 
-          if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
-
-          if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-          if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-          if (opencl_ctx->devices_status == STATUS_QUIT)    break;
-          if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
+          if (opencl_ctx->run_thread_level1 == false) break;
         }
 
-        if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
-
-        if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-        if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-        if (opencl_ctx->devices_status == STATUS_QUIT)    break;
-        if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
+        if (opencl_ctx->run_thread_level1 == false) break;
       }
 
-      if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
-
-      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-      if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-      if (opencl_ctx->devices_status == STATUS_QUIT)    break;
-      if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
+      if (opencl_ctx->run_thread_level1 == false) break;
 
       //
       // flush
@@ -513,12 +487,7 @@ void *thread_calc (void *p)
         */
       }
 
-      if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
-
-      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-      if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-      if (opencl_ctx->devices_status == STATUS_QUIT)    break;
-      if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
+      if (opencl_ctx->run_thread_level1 == false) break;
 
       if (words_fin == 0) break;
 

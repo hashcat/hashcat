@@ -568,7 +568,7 @@ int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, ha
         }
       }
 
-      if (hashes->salts_done == hashes->salts_cnt) opencl_ctx->devices_status = STATUS_CRACKED;
+      if (hashes->salts_done == hashes->salts_cnt) mycracked (opencl_ctx);
 
       check_hash (opencl_ctx, device_param, &cracked[i]);
     }
@@ -1422,7 +1422,7 @@ int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, opencl
       salts_done++;
     }
 
-    if (salts_done == salts_cnt) opencl_ctx->devices_status = STATUS_CRACKED;
+    if (salts_done == salts_cnt) mycracked (opencl_ctx);
   }
 
   myfree (hashes->digests_buf);

@@ -62,12 +62,12 @@ void hc_signal (void (callback) (int));
 
 #endif
 
+void mycracked (opencl_ctx_t *opencl_ctx);
 void myabort (opencl_ctx_t *opencl_ctx);
 void myquit (opencl_ctx_t *opencl_ctx);
+void bypass (opencl_ctx_t *opencl_ctx);
 
 void SuspendThreads (opencl_ctx_t *opencl_ctx);
 void ResumeThreads (opencl_ctx_t *opencl_ctx);
-
-void bypass (opencl_ctx_t *opencl_ctx);
 
 #endif // _THREAD_H

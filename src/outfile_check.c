@@ -29,6 +29,7 @@
 #include "status.h"
 #include "convert.h"
 #include "shared.h"
+#include "thread.h"
 #include "outfile_check.h"
 
 extern hc_global_data_t data;
@@ -280,7 +281,7 @@ void *thread_outfile_remove (void *p)
 
                             hashes->salts_done++;
 
-                            if (hashes->salts_done == hashes->salts_cnt) opencl_ctx->devices_status = STATUS_CRACKED;
+                            if (hashes->salts_done == hashes->salts_cnt) mycracked (opencl_ctx);
                           }
                         }
                       }

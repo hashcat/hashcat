@@ -140,14 +140,58 @@ void hc_signal (void (callback) (int))
 
 #endif
 
+void mycracked (opencl_ctx_t *opencl_ctx)
+{
+  if (opencl_ctx->devices_status != STATUS_RUNNING) return;
+
+  opencl_ctx->devices_status = STATUS_CRACKED;
+
+  opencl_ctx->run_main_level1   = false;
+  opencl_ctx->run_main_level2   = false;
+  opencl_ctx->run_main_level3   = false;
+  opencl_ctx->run_thread_level1 = false;
+  opencl_ctx->run_thread_level2 = false;
+}
+
 void myabort (opencl_ctx_t *opencl_ctx)
 {
+  if (opencl_ctx->devices_status != STATUS_RUNNING) return;
+
   opencl_ctx->devices_status = STATUS_ABORTED;
+
+  opencl_ctx->run_main_level1   = false;
+  opencl_ctx->run_main_level2   = false;
+  opencl_ctx->run_main_level3   = false;
+  opencl_ctx->run_thread_level1 = false;
+  opencl_ctx->run_thread_level2 = false;
 }
 
 void myquit (opencl_ctx_t *opencl_ctx)
 {
+  if (opencl_ctx->devices_status != STATUS_RUNNING) return;
+
   opencl_ctx->devices_status = STATUS_QUIT;
+
+  opencl_ctx->run_main_level1   = false;
+  opencl_ctx->run_main_level2   = false;
+  opencl_ctx->run_main_level3   = false;
+  opencl_ctx->run_thread_level1 = false;
+  opencl_ctx->run_thread_level2 = false;
+}
+
+void bypass (opencl_ctx_t *opencl_ctx)
+{
+  if (opencl_ctx->devices_status != STATUS_RUNNING) return;
+
+  opencl_ctx->devices_status = STATUS_BYPASS;
+
+  opencl_ctx->run_main_level1   = true;
+  opencl_ctx->run_main_level2   = true;
+  opencl_ctx->run_main_level3   = true;
+  opencl_ctx->run_thread_level1 = false;
+  opencl_ctx->run_thread_level2 = false;
+
+  log_info ("Next dictionary / mask in queue selected, bypassing current one");
 }
 
 void SuspendThreads (opencl_ctx_t *opencl_ctx)
@@ -174,11 +218,4 @@ void ResumeThreads (opencl_ctx_t *opencl_ctx)
   opencl_ctx->devices_status = STATUS_RUNNING;
 
   log_info ("Resumed");
-}
-
-void bypass (opencl_ctx_t *opencl_ctx)
-{
-  opencl_ctx->devices_status = STATUS_BYPASS;
-
-  log_info ("Next dictionary / mask in queue selected, bypassing current one");
 }

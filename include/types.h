@@ -493,6 +493,12 @@ typedef struct
 
   hc_device_param_t  *devices_param;
 
+  bool                run_main_level1;
+  bool                run_main_level2;
+  bool                run_main_level3;
+  bool                run_thread_level1;
+  bool                run_thread_level2;
+
   u32                 devices_status;
 
   u32                 opencl_platforms_filter;
@@ -939,8 +945,6 @@ typedef struct
   u64     limit;
 
   restore_data_t *rd;
-
-  u64     checkpoint_cur_words;     // used for the "stop at next checkpoint" feature
 
   /**
    * status, timer

@@ -847,13 +847,13 @@ int main (int argc, char **argv)
 
   if (opencl_info)
   {
-    quiet = 1;
-    gpu_temp_disable = 1;
-    potfile_disable = 1;
-    restore_disable = 1;
-    markov_disable = 1;
-    logfile_disable = 1;
-    stdout_flag = 1;
+    quiet             = 1;
+    gpu_temp_disable  = 1;
+    potfile_disable   = 1;
+    restore_disable   = 1;
+    markov_disable    = 1;
+    logfile_disable   = 1;
+    //stdout_flag       = 1;
   }
 
   /**
@@ -1304,6 +1304,13 @@ int main (int argc, char **argv)
     opencl_vector_width   = 1;
   }
 
+  if (opencl_info == true)
+  {
+    opencl_platforms    = NULL;
+    opencl_devices      = NULL;
+    opencl_device_types = mystrdup ("1,2,3");
+  }
+
   if (remove_timer_chgd == 1)
   {
     if (remove == 0)
@@ -1584,7 +1591,6 @@ int main (int argc, char **argv)
   data.veracrypt_pim           = veracrypt_pim;
   data.scrypt_tmto             = scrypt_tmto;
 
-
   /**
    * cpu affinity
    */
@@ -1716,16 +1722,12 @@ int main (int argc, char **argv)
 
   data.opencl_ctx = opencl_ctx;
 
-  if (opencl_info)
-  {
-    opencl_platforms = NULL;
-    opencl_devices = NULL;
-    opencl_device_types = strdup("1,2,3");
-  }
+  const int rc_opencl_init = opencl_ctx_init (opencl_ctx, opencl_platforms, opencl_devices, opencl_device_types, opencl_vector_width, opencl_vector_width_chgd, nvidia_spin_damp, nvidia_spin_damp_chgd, workload_profile, kernel_accel, kernel_accel_chgd, kernel_loops, kernel_loops_chgd, keyspace, stdout_flag);
 
-  if (opencl_ctx_init (opencl_ctx, opencl_platforms, opencl_devices, opencl_device_types, opencl_vector_width, opencl_vector_width_chgd, nvidia_spin_damp, nvidia_spin_damp_chgd, workload_profile, kernel_accel, kernel_accel_chgd, kernel_loops, kernel_loops_chgd, keyspace, stdout_flag) != 0)
+  if (rc_opencl_init == -1)
   {
-    log_error ("ERROR: opencl_ctx_init() failed.");
+    log_error ("ERROR: opencl_ctx_init() failed");
+
     return -1;
   }
 
@@ -1829,6 +1831,14 @@ int main (int argc, char **argv)
 
   for (algorithm_pos = 0; algorithm_pos < algorithm_max; algorithm_pos++)
   {
+    opencl_ctx->devices_status = STATUS_INIT;
+
+    //opencl_ctx->run_main_level1   = true;
+    opencl_ctx->run_main_level2   = true;
+    opencl_ctx->run_main_level3   = true;
+    opencl_ctx->run_thread_level1 = true;
+    opencl_ctx->run_thread_level2 = true;
+
     /*
      * We need to reset 'rd' in benchmark mode otherwise when the user hits 'bypass'
      * the following algos are skipped entirely
@@ -1981,7 +1991,6 @@ int main (int argc, char **argv)
     if (veracrypt_keyfiles) optional_param1 = veracrypt_keyfiles;
 
     hashconfig_general_defaults (hashconfig, hashes, optional_param1);
-
 
     if (hashes->salts_cnt == 1)
       hashconfig->opti_type |= OPTI_TYPE_SINGLE_SALT;
@@ -3866,11 +3875,6 @@ int main (int argc, char **argv)
      * status and monitor threads
      */
 
-    if ((opencl_ctx->devices_status != STATUS_BYPASS) && (opencl_ctx->devices_status != STATUS_CRACKED) && (opencl_ctx->devices_status != STATUS_ABORTED) && (opencl_ctx->devices_status != STATUS_QUIT))
-    {
-      opencl_ctx->devices_status = STATUS_STARTING;
-    }
-
     uint inner_threads_cnt = 0;
 
     hc_thread_t *inner_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
@@ -3891,9 +3895,9 @@ int main (int argc, char **argv)
       {
         if (data.outfile_check_directory != NULL)
         {
-          if ((hashconfig->hash_mode != 5200) &&
-              !((hashconfig->hash_mode >=  6200) && (hashconfig->hash_mode <=  6299)) &&
-              !((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799)) &&
+          if ((hashconfig->hash_mode !=  5200) &&
+            !((hashconfig->hash_mode >=  6200) && (hashconfig->hash_mode <=  6299)) &&
+            !((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799)) &&
               (hashconfig->hash_mode != 9000))
           {
             hc_thread_create (inner_threads[inner_threads_cnt], thread_outfile_remove, NULL);
@@ -3940,9 +3944,11 @@ int main (int argc, char **argv)
 
     for (uint maskpos = rd->maskpos; maskpos < maskcnt; maskpos++)
     {
-      if (opencl_ctx->devices_status == STATUS_CRACKED) continue;
-      if (opencl_ctx->devices_status == STATUS_ABORTED) continue;
-      if (opencl_ctx->devices_status == STATUS_QUIT)    continue;
+      //opencl_ctx->run_main_level1   = true;
+      //opencl_ctx->run_main_level2   = true;
+      opencl_ctx->run_main_level3   = true;
+      opencl_ctx->run_thread_level1 = true;
+      opencl_ctx->run_thread_level2 = true;
 
       if (maskpos > rd->maskpos)
       {
@@ -4244,9 +4250,13 @@ int main (int argc, char **argv)
 
       for (uint dictpos = rd->dictpos; dictpos < dictcnt; dictpos++)
       {
-        if (opencl_ctx->devices_status == STATUS_CRACKED) continue;
-        if (opencl_ctx->devices_status == STATUS_ABORTED) continue;
-        if (opencl_ctx->devices_status == STATUS_QUIT)    continue;
+        if (opencl_ctx->run_main_level3 == false) break;
+
+        //opencl_ctx->run_main_level1   = true;
+        //opencl_ctx->run_main_level2   = true;
+        //opencl_ctx->run_main_level3   = true;
+        opencl_ctx->run_thread_level1 = true;
+        opencl_ctx->run_thread_level2 = true;
 
         rd->dictpos = dictpos;
 
@@ -4255,11 +4265,6 @@ int main (int argc, char **argv)
         data.subid = subid;
 
         logfile_sub_msg ("START");
-
-        if ((opencl_ctx->devices_status != STATUS_BYPASS) && (opencl_ctx->devices_status != STATUS_CRACKED) && (opencl_ctx->devices_status != STATUS_ABORTED) && (opencl_ctx->devices_status != STATUS_QUIT))
-        {
-          opencl_ctx->devices_status = STATUS_INIT;
-        }
 
         memset (data.words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
         memset (data.words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
@@ -4819,10 +4824,7 @@ int main (int argc, char **argv)
 
         hc_thread_t *c_threads = (hc_thread_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
 
-        if ((opencl_ctx->devices_status != STATUS_BYPASS) && (opencl_ctx->devices_status != STATUS_CRACKED) && (opencl_ctx->devices_status != STATUS_ABORTED) && (opencl_ctx->devices_status != STATUS_QUIT))
-        {
-          opencl_ctx->devices_status = STATUS_AUTOTUNE;
-        }
+        opencl_ctx->devices_status = STATUS_AUTOTUNE;
 
         for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
         {
@@ -4876,10 +4878,7 @@ int main (int argc, char **argv)
          * create cracker threads
          */
 
-        if ((opencl_ctx->devices_status != STATUS_BYPASS) && (opencl_ctx->devices_status != STATUS_CRACKED) && (opencl_ctx->devices_status != STATUS_ABORTED) && (opencl_ctx->devices_status != STATUS_QUIT))
-        {
-          opencl_ctx->devices_status = STATUS_RUNNING;
-        }
+        opencl_ctx->devices_status = STATUS_RUNNING;
 
         if (initial_restore_done == 0)
         {
@@ -4929,7 +4928,10 @@ int main (int argc, char **argv)
 
         local_free (c_threads);
 
-        if ((opencl_ctx->devices_status != STATUS_BYPASS) && (opencl_ctx->devices_status != STATUS_CRACKED) && (opencl_ctx->devices_status != STATUS_ABORTED) && (opencl_ctx->devices_status != STATUS_QUIT))
+        if ((opencl_ctx->devices_status != STATUS_CRACKED)
+         && (opencl_ctx->devices_status != STATUS_ABORTED)
+         && (opencl_ctx->devices_status != STATUS_QUIT)
+         && (opencl_ctx->devices_status != STATUS_BYPASS))
         {
           opencl_ctx->devices_status = STATUS_EXHAUSTED;
         }
@@ -5015,33 +5017,12 @@ int main (int argc, char **argv)
 
         global_free (subid);
 
-        // from this point we handle bypass as running
-
-        if (opencl_ctx->devices_status == STATUS_BYPASS)
-        {
-          opencl_ctx->devices_status = STATUS_RUNNING;
-        }
-
-        // and overwrite benchmark aborts as well
-
-        if (data.benchmark == 1)
-        {
-          if (opencl_ctx->devices_status == STATUS_ABORTED)
-          {
-            opencl_ctx->devices_status = STATUS_RUNNING;
-          }
-        }
-
         // finalize task
 
-        if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-        if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-        if (opencl_ctx->devices_status == STATUS_QUIT)    break;
+        if (opencl_ctx->run_main_level3 == false) break;
       }
 
-      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-      if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-      if (opencl_ctx->devices_status == STATUS_QUIT)    break;
+      if (opencl_ctx->run_main_level2 == false) break;
     }
 
     // problems could occur if already at startup everything was cracked (because of .pot file reading etc), we must set some variables here to avoid NULL pointers
@@ -5288,6 +5269,8 @@ int main (int argc, char **argv)
     }
     #endif // HAVE_HWMON
 
+    if (opencl_ctx->run_main_level1 == false) break;
+
     // free memory
 
     opencl_session_destroy (opencl_ctx);
@@ -5329,8 +5312,6 @@ int main (int argc, char **argv)
     local_free (nvml_power_limit);
     #endif
 
-    opencl_ctx_devices_destroy (opencl_ctx);
-
     global_free (kernel_rules_buf);
 
     global_free (root_css_buf);
@@ -5341,8 +5322,6 @@ int main (int argc, char **argv)
     global_free (words_progress_done);
     global_free (words_progress_rejected);
     global_free (words_progress_restored);
-
-    if (opencl_ctx->devices_status == STATUS_QUIT) break;
   }
 
   // wait for outer threads
@@ -5443,11 +5422,10 @@ int main (int argc, char **argv)
 
   u32 rc_final = -1;
 
-  if (opencl_ctx->devices_status == STATUS_ABORTED)            rc_final = 2;
-  if (opencl_ctx->devices_status == STATUS_QUIT)               rc_final = 2;
-  if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) rc_final = 2;
-  if (opencl_ctx->devices_status == STATUS_EXHAUSTED)          rc_final = 1;
-  if (opencl_ctx->devices_status == STATUS_CRACKED)            rc_final = 0;
+  if (opencl_ctx->devices_status == STATUS_ABORTED)   rc_final = 2;
+  if (opencl_ctx->devices_status == STATUS_QUIT)      rc_final = 2;
+  if (opencl_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
+  if (opencl_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
 
   opencl_ctx_destroy (opencl_ctx);
 

@@ -30,18 +30,6 @@
 #include "data.h"
 #include "status.h"
 
-static const char ST_0000[] = "Initializing";
-static const char ST_0001[] = "Starting";
-static const char ST_0002[] = "Running";
-static const char ST_0003[] = "Paused";
-static const char ST_0004[] = "Exhausted";
-static const char ST_0005[] = "Cracked";
-static const char ST_0006[] = "Aborted";
-static const char ST_0007[] = "Quit";
-static const char ST_0008[] = "Bypass";
-static const char ST_0009[] = "Running (stop at checkpoint)";
-static const char ST_0010[] = "Autotuning";
-
 extern hc_global_data_t  data;
 extern hc_thread_mutex_t mux_hwmon;
 
@@ -123,26 +111,6 @@ static void format_speed_display (double val, char *buf, size_t len)
   }
 }
 
-static char *strstatus (const uint devices_status)
-{
-  switch (devices_status)
-  {
-    case  STATUS_INIT:               return ((char *) ST_0000);
-    case  STATUS_STARTING:           return ((char *) ST_0001);
-    case  STATUS_RUNNING:            return ((char *) ST_0002);
-    case  STATUS_PAUSED:             return ((char *) ST_0003);
-    case  STATUS_EXHAUSTED:          return ((char *) ST_0004);
-    case  STATUS_CRACKED:            return ((char *) ST_0005);
-    case  STATUS_ABORTED:            return ((char *) ST_0006);
-    case  STATUS_QUIT:               return ((char *) ST_0007);
-    case  STATUS_BYPASS:             return ((char *) ST_0008);
-    case  STATUS_STOP_AT_CHECKPOINT: return ((char *) ST_0009);
-    case  STATUS_AUTOTUNE:           return ((char *) ST_0010);
-  }
-
-  return ((char *) "Unknown");
-}
-
 double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
 {
   int exec_pos = (int) device_param->exec_pos - last_num_entries;
@@ -172,10 +140,12 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
 
 void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *hashes)
 {
-  if (opencl_ctx->devices_status == STATUS_INIT)     return;
-  if (opencl_ctx->devices_status == STATUS_STARTING) return;
+  if (opencl_ctx->devices_status == STATUS_INIT)
+  {
+    log_error ("ERROR: status view is not available during initialization phase");
 
-  if (hashes == NULL) return;
+    return;
+  }
 
   FILE *out = stdout;
 
@@ -321,11 +291,12 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
 
 void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes)
 {
-  if (opencl_ctx->devices_status == STATUS_INIT)     return;
-  if (opencl_ctx->devices_status == STATUS_STARTING) return;
+  if (opencl_ctx->devices_status == STATUS_INIT)
+  {
+    log_error ("ERROR: status view is not available during initialization phase");
 
-  if (hashconfig == NULL) return;
-  if (hashes     == NULL) return;
+    return;
+  }
 
   // in this case some required buffers are free'd, ascii_digest() would run into segfault
   if (data.shutdown_inner == 1) return;
@@ -1063,10 +1034,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
   #if defined (HAVE_HWMON)
 
-  if (opencl_ctx->devices_status == STATUS_EXHAUSTED)  return;
-  if (opencl_ctx->devices_status == STATUS_CRACKED)    return;
-  if (opencl_ctx->devices_status == STATUS_ABORTED)    return;
-  if (opencl_ctx->devices_status == STATUS_QUIT)       return;
+  if (opencl_ctx->run_main_level1 == false) return;
 
   if (data.gpu_temp_disable == 0)
   {
@@ -1157,10 +1125,12 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
 void status_benchmark_automate (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
 {
-  if (opencl_ctx->devices_status == STATUS_INIT)     return;
-  if (opencl_ctx->devices_status == STATUS_STARTING) return;
+  if (opencl_ctx->devices_status == STATUS_INIT)
+  {
+    log_error ("ERROR: status view is not available during initialization phase");
 
-  if (hashconfig == NULL) return;
+    return;
+  }
 
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
@@ -1203,10 +1173,12 @@ void status_benchmark_automate (opencl_ctx_t *opencl_ctx, const hashconfig_t *ha
 
 void status_benchmark (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
 {
-  if (opencl_ctx->devices_status == STATUS_INIT)     return;
-  if (opencl_ctx->devices_status == STATUS_STARTING) return;
+  if (opencl_ctx->devices_status == STATUS_INIT)
+  {
+    log_error ("ERROR: status view is not available during initialization phase");
 
-  if (hashconfig == NULL) return;
+    return;
+  }
 
   if (data.shutdown_inner == 1) return;
 

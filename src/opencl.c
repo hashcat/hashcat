@@ -17,6 +17,7 @@
 #include "cpu_md5.h"
 #include "interface.h"
 #include "tuningdb.h"
+#include "thread.h"
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
@@ -44,6 +45,24 @@ extern hc_thread_mutex_t mux_counter;
 extern hc_thread_mutex_t mux_hwmon;
 
 extern const int comptime;
+
+char *strstatus (const uint devices_status)
+{
+  switch (devices_status)
+  {
+    case  STATUS_INIT:      return ((char *) ST_0000);
+    case  STATUS_AUTOTUNE:  return ((char *) ST_0001);
+    case  STATUS_RUNNING:   return ((char *) ST_0002);
+    case  STATUS_PAUSED:    return ((char *) ST_0003);
+    case  STATUS_EXHAUSTED: return ((char *) ST_0004);
+    case  STATUS_CRACKED:   return ((char *) ST_0005);
+    case  STATUS_ABORTED:   return ((char *) ST_0006);
+    case  STATUS_QUIT:      return ((char *) ST_0007);
+    case  STATUS_BYPASS:    return ((char *) ST_0008);
+  }
+
+  return ((char *) "Uninitialized! Bug!");
+}
 
 static uint setup_opencl_platforms_filter (const char *opencl_platforms)
 {
@@ -318,10 +337,7 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, ha
 
       run_kernel (KERN_RUN_2, opencl_ctx, device_param, pws_cnt, true, slow_iteration, hashconfig);
 
-      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-      if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-      if (opencl_ctx->devices_status == STATUS_QUIT)    break;
-      if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
+      while (opencl_ctx->run_thread_level2 == false) break;
 
       /**
        * speed
@@ -343,7 +359,7 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, ha
 
       if (data.benchmark == 1)
       {
-        if (speed_ms > 4096) opencl_ctx->devices_status = STATUS_ABORTED;
+        if (speed_ms > 4096) myabort (opencl_ctx);
       }
     }
 
@@ -979,30 +995,11 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
                    + device_param->kernel_params_mp_l_buf32[5];
   }
 
-  // iteration type
-
-  uint innerloop_step = 0;
-  uint innerloop_cnt  = 0;
-
-  if      (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)   innerloop_step = device_param->kernel_loops;
-  else                                                             innerloop_step = 1;
-
-  if      (data.attack_kern == ATTACK_KERN_STRAIGHT) innerloop_cnt  = data.kernel_rules_cnt;
-  else if (data.attack_kern == ATTACK_KERN_COMBI)    innerloop_cnt  = data.combs_cnt;
-  else if (data.attack_kern == ATTACK_KERN_BF)       innerloop_cnt  = data.bfs_cnt;
-
   // loop start: most outer loop = salt iteration, then innerloops (if multi)
 
   for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
     while (opencl_ctx->devices_status == STATUS_PAUSED) hc_sleep (1);
-
-    if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
-
-    if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-    if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-    if (opencl_ctx->devices_status == STATUS_QUIT)    break;
-    if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
 
     salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
@@ -1017,18 +1014,23 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
       rewind (combs_fp);
     }
 
+    // iteration type
+
+    uint innerloop_step = 0;
+    uint innerloop_cnt  = 0;
+
+    if   (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) innerloop_step = device_param->kernel_loops;
+    else                                                        innerloop_step = 1;
+
+    if      (data.attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt  = data.kernel_rules_cnt;
+    else if (data.attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt  = data.combs_cnt;
+    else if (data.attack_kern == ATTACK_KERN_BF)        innerloop_cnt  = data.bfs_cnt;
+
     // innerloops
 
     for (uint innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
     {
       while (opencl_ctx->devices_status == STATUS_PAUSED) hc_sleep (1);
-
-      if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
-
-      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-      if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-      if (opencl_ctx->devices_status == STATUS_QUIT)    break;
-      if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
 
       uint fast_iteration = 0;
 
@@ -1236,13 +1238,6 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       if (rc == -1) return -1;
 
-      if (opencl_ctx->devices_status == STATUS_STOP_AT_CHECKPOINT) check_checkpoint (opencl_ctx);
-
-      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
-      if (opencl_ctx->devices_status == STATUS_ABORTED) break;
-      if (opencl_ctx->devices_status == STATUS_QUIT)    break;
-      if (opencl_ctx->devices_status == STATUS_BYPASS)  break;
-
       /**
        * result
        */
@@ -1296,7 +1291,11 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
        */
 
       if (data.benchmark == 1) break;
+
+      if (opencl_ctx->run_thread_level2 == false) break;
     }
+
+    if (opencl_ctx->run_thread_level2 == false) break;
   }
 
   device_param->speed_pos = speed_pos;
@@ -1315,6 +1314,12 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const char *opencl_platforms, con
     return 0;
   }
 
+  opencl_ctx->devices_status            = STATUS_INIT;
+  opencl_ctx->run_main_level1           = true;
+  opencl_ctx->run_main_level2           = true;
+  opencl_ctx->run_main_level3           = true;
+  opencl_ctx->run_thread_level1         = true;
+  opencl_ctx->run_thread_level2         = true;
   opencl_ctx->opencl_vector_width_chgd  = opencl_vector_width_chgd;
   opencl_ctx->opencl_vector_width       = opencl_vector_width;
   opencl_ctx->nvidia_spin_damp_chgd     = nvidia_spin_damp_chgd;
@@ -1519,8 +1524,9 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashc
 
   u32 devices_active = 0;
 
-  if (opencl_info) {
-    fprintf(stdout, "OpenCL Info:\n");
+  if (opencl_info)
+  {
+    fprintf (stdout, "OpenCL Info:\n");
   }
 
   for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)

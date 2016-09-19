@@ -303,25 +303,8 @@ void cycle_restore (opencl_ctx_t *opencl_ctx)
   }
 }
 
-void check_checkpoint (opencl_ctx_t *opencl_ctx)
-{
-  // if (data.restore_disable == 1) break;  (this is already implied by previous checks)
-
-  u64 words_cur = get_lowest_words_done (opencl_ctx);
-
-  if (words_cur != data.checkpoint_cur_words)
-  {
-    myabort (opencl_ctx);
-  }
-}
-
 void stop_at_checkpoint (opencl_ctx_t *opencl_ctx)
 {
-  if (opencl_ctx->devices_status != STATUS_STOP_AT_CHECKPOINT)
-  {
-    if (opencl_ctx->devices_status != STATUS_RUNNING) return;
-  }
-
   // this feature only makes sense if --restore-disable was not specified
 
   if (data.restore_disable == 1)
@@ -331,25 +314,25 @@ void stop_at_checkpoint (opencl_ctx_t *opencl_ctx)
     return;
   }
 
-  // check if monitoring of Restore Point updates should be enabled or disabled
+  if (opencl_ctx->devices_status != STATUS_RUNNING) return;
 
-  if (opencl_ctx->devices_status != STATUS_STOP_AT_CHECKPOINT)
+  if ((opencl_ctx->run_thread_level1 == true) && (opencl_ctx->run_thread_level2 == true))
   {
-    opencl_ctx->devices_status = STATUS_STOP_AT_CHECKPOINT;
-
-    // save the current restore point value
-
-    data.checkpoint_cur_words = get_lowest_words_done (opencl_ctx);
+    opencl_ctx->run_main_level1   = false;
+    opencl_ctx->run_main_level2   = false;
+    opencl_ctx->run_main_level3   = false;
+    opencl_ctx->run_thread_level1 = false;
+    opencl_ctx->run_thread_level2 = true;
 
     log_info ("Checkpoint enabled: Will quit at next Restore Point update");
   }
   else
   {
-    opencl_ctx->devices_status = STATUS_RUNNING;
-
-    // reset the global value for checkpoint checks
-
-    data.checkpoint_cur_words = 0;
+    opencl_ctx->run_main_level1   = true;
+    opencl_ctx->run_main_level2   = true;
+    opencl_ctx->run_main_level3   = true;
+    opencl_ctx->run_thread_level1 = true;
+    opencl_ctx->run_thread_level2 = true;
 
     log_info ("Checkpoint disabled: Restore Point updates will no longer be monitored");
   }

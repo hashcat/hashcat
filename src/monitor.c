@@ -117,7 +117,7 @@ void *thread_monitor (void *p)
   {
     hc_sleep (sleep_time);
 
-    if (opencl_ctx->devices_status != STATUS_RUNNING) continue;
+    if (opencl_ctx->devices_status == STATUS_INIT) continue;
 
     #if defined (HAVE_HWMON)
 
@@ -205,7 +205,7 @@ void *thread_monitor (void *p)
         {
           log_error ("ERROR: Temperature limit on GPU %d reached, aborting...", device_id + 1);
 
-          if (opencl_ctx->devices_status != STATUS_QUIT) myabort (opencl_ctx);
+          myabort (opencl_ctx);
 
           break;
         }
@@ -321,7 +321,7 @@ void *thread_monitor (void *p)
           if (data.quiet == 0) log_info ("\nNOTE: Runtime limit reached, aborting...\n");
         }
 
-        if (opencl_ctx->devices_status != STATUS_QUIT) myabort (opencl_ctx);
+        myabort (opencl_ctx);
       }
     }
 

@@ -43,6 +43,32 @@ typedef enum vendor_id
 
 } vendor_id_t;
 
+typedef enum status_rc
+{
+   STATUS_INIT            = 0,
+   STATUS_AUTOTUNE        = 1,
+   STATUS_RUNNING         = 2,
+   STATUS_PAUSED          = 3,
+   STATUS_EXHAUSTED       = 4,
+   STATUS_CRACKED         = 5,
+   STATUS_ABORTED         = 6,
+   STATUS_QUIT            = 7,
+   STATUS_BYPASS          = 8,
+
+} status_rc_t;
+
+static const char ST_0000[] = "Initializing";
+static const char ST_0001[] = "Autotuning";
+static const char ST_0002[] = "Running";
+static const char ST_0003[] = "Paused";
+static const char ST_0004[] = "Exhausted";
+static const char ST_0005[] = "Cracked";
+static const char ST_0006[] = "Aborted";
+static const char ST_0007[] = "Quit";
+static const char ST_0008[] = "Bypass";
+
+char *strstatus (const uint devices_status);
+
 void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
 void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
 

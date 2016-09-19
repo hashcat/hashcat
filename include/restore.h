@@ -41,8 +41,6 @@ void write_restore (opencl_ctx_t *opencl_ctx, const char *new_restore_file, rest
 
 void cycle_restore (opencl_ctx_t *opencl_ctx);
 
-void check_checkpoint (opencl_ctx_t *opencl_ctx);
-
 void stop_at_checkpoint (opencl_ctx_t *opencl_ctx);
 
 #endif // _RESTORE_H
