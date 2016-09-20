@@ -74,11 +74,20 @@ void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_cha
   strncpy (s, s_escaped, s_max - 1);
 }
 
+void hc_sleep_ms (const int msec)
+{
+  #if defined (_WIN)
+  Sleep (msec);
+  #else
+  usleep (msec * 1000);
+  #endif
+}
+
 void hc_sleep (const int sec)
 {
   #if defined (_WIN)
-  #define sleep(x) Sleep ((x) * 1000)
-  #endif
-
+  Sleep (sec * 1000);
+  #else
   sleep (sec);
+  #endif
 }

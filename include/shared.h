@@ -18,6 +18,7 @@ u64 mydivc64 (const u64 dividend, const u64 divisor);
 void naive_replace (char *s, const u8 key_char, const u8 replace_char);
 void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char);
 
-void hc_sleep (const int sec);
+void hc_sleep_ms (const int msec);
+void hc_sleep    (const int sec);
 
 #endif // _SHARED_H

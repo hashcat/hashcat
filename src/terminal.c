@@ -27,6 +27,7 @@
 #include "loopback.h"
 #include "data.h"
 #include "status.h"
+#include "shared.h"
 #include "terminal.h"
 
 extern hc_global_data_t data;
@@ -59,16 +60,19 @@ void clear_prompt ()
 void *thread_keypress (void *p)
 {
   opencl_ctx_t *opencl_ctx = data.opencl_ctx;
+
+  while (opencl_ctx->devices_status == STATUS_INIT) hc_sleep_ms (100);
+
   hashconfig_t *hashconfig = data.hashconfig;
   hashes_t     *hashes     = data.hashes;
 
   uint quiet = data.quiet;
 
-  tty_break();
+  tty_break ();
 
   while (data.shutdown_outer == 0)
   {
-    int ch = tty_getchar();
+    int ch = tty_getchar ();
 
     if (ch == -1) break;
 
@@ -164,7 +168,7 @@ void *thread_keypress (void *p)
     hc_thread_mutex_unlock (mux_display);
   }
 
-  tty_fix();
+  tty_fix ();
 
   return (p);
 }
