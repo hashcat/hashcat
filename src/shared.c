@@ -7,6 +7,11 @@
 #include "types.h"
 #include "shared.h"
 
+bool is_power_of_2 (const u32 v)
+{
+  return (v && !(v & (v - 1)));
+}
+
 u32 get_random_num (const u32 min, const u32 max)
 {
   if (min == max) return (min);

@@ -676,6 +676,14 @@ int main (int argc, char **argv)
     return -1;
   }
 
+  const int rc_user_options_parse = user_options_parse (user_options, myargc, myargv);
+
+  if (rc_user_options_parse == -1) return -1;
+
+
+  // set some user option automatically
+  // depends on some other user option
+
   if (opencl_info)
   {
     quiet             = 1;
@@ -686,6 +694,112 @@ int main (int argc, char **argv)
     logfile_disable   = 1;
     //stdout_flag       = 1;
   }
+
+
+  u32 attack_kern = ATTACK_KERN_NONE;
+
+  switch (attack_mode)
+  {
+    case ATTACK_MODE_STRAIGHT: attack_kern = ATTACK_KERN_STRAIGHT; break;
+    case ATTACK_MODE_COMBI:    attack_kern = ATTACK_KERN_COMBI;    break;
+    case ATTACK_MODE_BF:       attack_kern = ATTACK_KERN_BF;       break;
+    case ATTACK_MODE_HYBRID1:  attack_kern = ATTACK_KERN_COMBI;    break;
+    case ATTACK_MODE_HYBRID2:  attack_kern = ATTACK_KERN_COMBI;    break;
+  }
+
+  if (left == 1)
+  {
+    outfile_format = OUTFILE_FMT_HASH;
+  }
+
+  if (show == 1 || left == 1)
+  {
+    attack_mode = ATTACK_MODE_NONE;
+  }
+
+
+  if (benchmark == 1)
+  {
+
+  }
+  else
+  {
+    if (stdout_flag == 1) // no hash here
+    {
+      optind--;
+    }
+
+    if (keyspace == 1)
+    {
+      int num_additional_params = 1;
+
+      if (attack_kern == ATTACK_KERN_COMBI)
+      {
+        num_additional_params = 2;
+      }
+
+      int keyspace_wordlist_specified = myargc - optind - num_additional_params;
+
+      if (keyspace_wordlist_specified == 0) optind--;
+    }
+  }
+
+  if (skip != 0 && limit != 0)
+  {
+    limit += skip;
+  }
+
+  if (keyspace == 1)
+  {
+    potfile_disable = 1;
+
+    restore_disable = 1;
+
+    restore = 0;
+
+    weak_hash_threshold = 0;
+
+    quiet = 1;
+  }
+
+  if (stdout_flag == 1)
+  {
+    status_timer          = 0;
+    restore_timer         = 0;
+    restore_disable       = 1;
+    restore               = 0;
+    potfile_disable       = 1;
+    weak_hash_threshold   = 0;
+    gpu_temp_disable      = 1;
+    hash_mode             = 2000;
+    quiet                 = 1;
+    outfile_format        = OUTFILE_FMT_PLAIN;
+    kernel_accel          = 1024;
+    kernel_loops          = 1024;
+    force                 = 1;
+    outfile_check_timer   = 0;
+    session               = "stdout";
+    opencl_vector_width   = 1;
+  }
+
+  if (opencl_info == true)
+  {
+    opencl_platforms    = NULL;
+    opencl_devices      = NULL;
+    opencl_device_types = mystrdup ("1,2,3");
+  }
+
+  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+  {
+    weak_hash_threshold = 0;
+  }
+
+
+
+  const int rc_user_options_sanity = user_options_sanity (user_options, myargc, myargv, attack_kern);
+
+  if (rc_user_options_sanity == -1) return -1;
+
 
   /**
    * Inform user things getting started,
@@ -733,514 +847,6 @@ int main (int argc, char **argv)
       }
     }
   }
-
-  /**
-   * sanity check
-   */
-
-  if (attack_mode > 7)
-  {
-    log_error ("ERROR: Invalid attack-mode specified");
-
-    return -1;
-  }
-
-  if (runtime_chgd && runtime == 0) // just added to remove compiler warnings for runtime_chgd
-  {
-    log_error ("ERROR: Invalid runtime specified");
-
-    return -1;
-  }
-
-  if (hash_mode_chgd && hash_mode > 14100) // just added to remove compiler warnings for hash_mode_chgd
-  {
-    log_error ("ERROR: Invalid hash-type specified");
-
-    return -1;
-  }
-
-  // renamed hash modes
-
-  if (hash_mode_chgd)
-  {
-    int n = -1;
-
-    switch (hash_mode)
-    {
-      case 123: n = 124;
-                break;
-    }
-
-    if (n >= 0)
-    {
-      log_error ("Old -m specified, use -m %d instead", n);
-
-      return -1;
-    }
-  }
-
-  if (username == 1)
-  {
-    if ((hash_mode == 2500) || (hash_mode == 5200) || ((hash_mode >= 6200) && (hash_mode <= 6299)) || ((hash_mode >= 13700) && (hash_mode <= 13799)))
-    {
-      log_error ("ERROR: Mixing support for user names and hashes of type %s is not supported", strhashtype (hash_mode));
-
-      return -1;
-    }
-  }
-
-  if (outfile_format > 16)
-  {
-    log_error ("ERROR: Invalid outfile-format specified");
-
-    return -1;
-  }
-
-  if (left == 1)
-  {
-    if (outfile_format_chgd == 1)
-    {
-      if (outfile_format > 1)
-      {
-        log_error ("ERROR: Mixing outfile-format > 1 with left parameter is not allowed");
-
-        return -1;
-      }
-    }
-    else
-    {
-      outfile_format = OUTFILE_FMT_HASH;
-    }
-  }
-
-  if (show == 1)
-  {
-    if (outfile_format_chgd == 1)
-    {
-      if ((outfile_format > 7) && (outfile_format < 16))
-      {
-        log_error ("ERROR: Mixing outfile-format > 7 with show parameter is not allowed");
-
-        return -1;
-      }
-    }
-  }
-
-  if (increment_min < INCREMENT_MIN)
-  {
-    log_error ("ERROR: Invalid increment-min specified");
-
-    return -1;
-  }
-
-  if (increment_max > INCREMENT_MAX)
-  {
-    log_error ("ERROR: Invalid increment-max specified");
-
-    return -1;
-  }
-
-  if (increment_min > increment_max)
-  {
-    log_error ("ERROR: Invalid increment-min specified");
-
-    return -1;
-  }
-
-  if ((increment == 1) && (attack_mode == ATTACK_MODE_STRAIGHT))
-  {
-    log_error ("ERROR: Increment is not allowed in attack-mode 0");
-
-    return -1;
-  }
-
-  if ((increment == 0) && (increment_min_chgd == 1))
-  {
-    log_error ("ERROR: Increment-min is only supported combined with increment switch");
-
-    return -1;
-  }
-
-  if ((increment == 0) && (increment_max_chgd == 1))
-  {
-    log_error ("ERROR: Increment-max is only supported combined with increment switch");
-
-    return -1;
-  }
-
-  if (rp_files_cnt && rp_gen)
-  {
-    log_error ("ERROR: Use of both rules-file and rules-generate is not supported");
-
-    return -1;
-  }
-
-  if (rp_files_cnt || rp_gen)
-  {
-    if (attack_mode != ATTACK_MODE_STRAIGHT)
-    {
-      log_error ("ERROR: Use of rules-file or rules-generate only allowed in attack-mode 0");
-
-      return -1;
-    }
-  }
-
-  if (rp_gen_func_min > rp_gen_func_max)
-  {
-    log_error ("ERROR: Invalid rp-gen-func-min specified");
-
-    return -1;
-  }
-
-  if (kernel_accel_chgd == 1)
-  {
-    if (force == 0)
-    {
-      log_info ("The manual use of the -n option (or --kernel-accel) is outdated");
-      log_info ("Please consider using the -w option instead");
-      log_info ("You can use --force to override this but do not post error reports if you do so");
-      log_info ("");
-
-      return -1;
-    }
-
-    if (kernel_accel < 1)
-    {
-      log_error ("ERROR: Invalid kernel-accel specified");
-
-      return -1;
-    }
-
-    if (kernel_accel > 1024)
-    {
-      log_error ("ERROR: Invalid kernel-accel specified");
-
-      return -1;
-    }
-  }
-
-  if (kernel_loops_chgd == 1)
-  {
-    if (force == 0)
-    {
-      log_info ("The manual use of the -u option (or --kernel-loops) is outdated");
-      log_info ("Please consider using the -w option instead");
-      log_info ("You can use --force to override this but do not post error reports if you do so");
-      log_info ("");
-
-      return -1;
-    }
-
-    if (kernel_loops < 1)
-    {
-      log_error ("ERROR: Invalid kernel-loops specified");
-
-      return -1;
-    }
-
-    if (kernel_loops > 1024)
-    {
-      log_error ("ERROR: Invalid kernel-loops specified");
-
-      return -1;
-    }
-  }
-
-  if ((workload_profile < 1) || (workload_profile > 4))
-  {
-    log_error ("ERROR: workload-profile %i not available", workload_profile);
-
-    return -1;
-  }
-
-  if (opencl_vector_width_chgd && (!is_power_of_2(opencl_vector_width) || opencl_vector_width > 16))
-  {
-    log_error ("ERROR: opencl-vector-width %i not allowed", opencl_vector_width);
-
-    return -1;
-  }
-
-  if (show == 1 || left == 1)
-  {
-    attack_mode = ATTACK_MODE_NONE;
-
-    if (remove == 1)
-    {
-      log_error ("ERROR: Mixing remove parameter not allowed with show parameter or left parameter");
-
-      return -1;
-    }
-
-    if (potfile_disable == 1)
-    {
-      log_error ("ERROR: Mixing potfile-disable parameter not allowed with show parameter or left parameter");
-
-      return -1;
-    }
-  }
-
-  if (show == 1)
-  {
-    if (outfile_autohex == 0)
-    {
-      log_error ("ERROR: Mixing outfile-autohex-disable parameter not allowed with show parameter");
-
-      return -1;
-    }
-  }
-
-  uint attack_kern = ATTACK_KERN_NONE;
-
-  switch (attack_mode)
-  {
-    case ATTACK_MODE_STRAIGHT: attack_kern = ATTACK_KERN_STRAIGHT; break;
-    case ATTACK_MODE_COMBI:    attack_kern = ATTACK_KERN_COMBI;    break;
-    case ATTACK_MODE_BF:       attack_kern = ATTACK_KERN_BF;       break;
-    case ATTACK_MODE_HYBRID1:  attack_kern = ATTACK_KERN_COMBI;    break;
-    case ATTACK_MODE_HYBRID2:  attack_kern = ATTACK_KERN_COMBI;    break;
-  }
-
-  if (benchmark == 1)
-  {
-    if (myargv[optind] != 0)
-    {
-      log_error ("ERROR: Invalid argument for benchmark mode specified");
-
-      return -1;
-    }
-
-    if (attack_mode_chgd == 1)
-    {
-      if (attack_mode != ATTACK_MODE_BF)
-      {
-        log_error ("ERROR: Only attack-mode 3 allowed in benchmark mode");
-
-        return -1;
-      }
-    }
-  }
-  else
-  {
-    if (stdout_flag == 1) // no hash here
-    {
-      optind--;
-    }
-
-    if (keyspace == 1)
-    {
-      int num_additional_params = 1;
-
-      if (attack_kern == ATTACK_KERN_COMBI)
-      {
-        num_additional_params = 2;
-      }
-
-      int keyspace_wordlist_specified = myargc - optind - num_additional_params;
-
-      if (keyspace_wordlist_specified == 0) optind--;
-    }
-
-    if (attack_kern == ATTACK_KERN_NONE)
-    {
-      if ((optind + 1) != myargc)
-      {
-        usage_mini_print (myargv[0]);
-
-        return -1;
-      }
-    }
-    else if (attack_kern == ATTACK_KERN_STRAIGHT)
-    {
-      if ((optind + 1) > myargc)
-      {
-        usage_mini_print (myargv[0]);
-
-        return -1;
-      }
-    }
-    else if (attack_kern == ATTACK_KERN_COMBI)
-    {
-      if ((optind + 3) != myargc)
-      {
-        usage_mini_print (myargv[0]);
-
-        return -1;
-      }
-    }
-    else if (attack_kern == ATTACK_KERN_BF)
-    {
-      if ((optind + 1) > myargc)
-      {
-        usage_mini_print (myargv[0]);
-
-        return -1;
-      }
-    }
-    else
-    {
-      usage_mini_print (myargv[0]);
-
-      return -1;
-    }
-  }
-
-  if (skip != 0 && limit != 0)
-  {
-    limit += skip;
-  }
-
-  if (keyspace == 1)
-  {
-    if (show == 1)
-    {
-      log_error ("ERROR: Combining show parameter with keyspace parameter is not allowed");
-
-      return -1;
-    }
-    else if (left == 1)
-    {
-      log_error ("ERROR: Combining left parameter with keyspace parameter is not allowed");
-
-      return -1;
-    }
-
-    potfile_disable = 1;
-
-    restore_disable = 1;
-
-    restore = 0;
-
-    weak_hash_threshold = 0;
-
-    quiet = 1;
-  }
-
-  if (stdout_flag == 1)
-  {
-    status_timer          = 0;
-    restore_timer         = 0;
-    restore_disable       = 1;
-    restore               = 0;
-    potfile_disable       = 1;
-    weak_hash_threshold   = 0;
-    gpu_temp_disable      = 1;
-    hash_mode             = 2000;
-    quiet                 = 1;
-    outfile_format        = OUTFILE_FMT_PLAIN;
-    kernel_accel          = 1024;
-    kernel_loops          = 1024;
-    force                 = 1;
-    outfile_check_timer   = 0;
-    session               = "stdout";
-    opencl_vector_width   = 1;
-  }
-
-  if (opencl_info == true)
-  {
-    opencl_platforms    = NULL;
-    opencl_devices      = NULL;
-    opencl_device_types = mystrdup ("1,2,3");
-  }
-
-  if (remove_timer_chgd == 1)
-  {
-    if (remove == 0)
-    {
-      log_error ("ERROR: Parameter remove-timer require parameter remove enabled");
-
-      return -1;
-    }
-
-    if (remove_timer < 1)
-    {
-      log_error ("ERROR: Parameter remove-timer must have a value greater than or equal to 1");
-
-      return -1;
-    }
-  }
-
-  if (loopback == 1)
-  {
-    if (attack_mode == ATTACK_MODE_STRAIGHT)
-    {
-      if ((rp_files_cnt == 0) && (rp_gen == 0))
-      {
-        log_error ("ERROR: Parameter loopback not allowed without rules-file or rules-generate");
-
-        return -1;
-      }
-    }
-    else
-    {
-      log_error ("ERROR: Parameter loopback allowed in attack-mode 0 only");
-
-      return -1;
-    }
-  }
-
-  if (debug_mode > 0)
-  {
-    if (attack_mode != ATTACK_MODE_STRAIGHT)
-    {
-      log_error ("ERROR: Parameter debug-mode option is only available with attack-mode 0");
-
-      return -1;
-    }
-
-    if ((rp_files_cnt == 0) && (rp_gen == 0))
-    {
-      log_error ("ERROR: Parameter debug-mode not allowed without rules-file or rules-generate");
-
-      return -1;
-    }
-  }
-
-  if (debug_mode > 4)
-  {
-    log_error ("ERROR: Invalid debug-mode specified");
-
-    return -1;
-  }
-
-  if (debug_file != NULL)
-  {
-    if (debug_mode < 1)
-    {
-      log_error ("ERROR: Parameter debug-file requires parameter debug-mode to be set");
-
-      return -1;
-    }
-  }
-
-  if (induction_dir != NULL)
-  {
-    if (attack_mode == ATTACK_MODE_BF)
-    {
-      log_error ("ERROR: Parameter induction-dir not allowed with brute-force attacks");
-
-      return -1;
-    }
-  }
-
-  if (attack_mode != ATTACK_MODE_STRAIGHT)
-  {
-    if ((weak_hash_threshold != WEAK_HASH_THRESHOLD) && (weak_hash_threshold != 0))
-    {
-      log_error ("ERROR: setting --weak-hash-threshold allowed only in straight-attack mode");
-
-      return -1;
-    }
-
-    weak_hash_threshold = 0;
-  }
-
-  if (nvidia_spin_damp > 100)
-  {
-    log_error ("ERROR: setting --nvidia-spin-damp must be between 0 and 100 (inclusive)");
-
-    return -1;
-  }
-
 
   /**
    * induction directory

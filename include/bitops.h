@@ -6,8 +6,6 @@
 #ifndef _BITOPS_H
 #define _BITOPS_H
 
-u32 is_power_of_2 (const u32 v);
-
 u32 rotl32 (const u32 a, const u32 n);
 u32 rotr32 (const u32 a, const u32 n);
 u64 rotl64 (const u64 a, const u64 n);

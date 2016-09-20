@@ -7,11 +7,6 @@
 #include "types.h"
 #include "bitops.h"
 
-u32 is_power_of_2 (const u32 v)
-{
-  return (v && !(v & (v - 1)));
-}
-
 u32 rotl32 (const u32 a, const u32 n)
 {
   return ((a << n) | (a >> (32 - n)));

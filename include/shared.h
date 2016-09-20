@@ -10,6 +10,8 @@
 #include <string.h>
 #include <unistd.h>
 
+bool is_power_of_2 (const u32 v);
+
 u32 get_random_num (const u32 min, const u32 max);
 
 u32 mydivc32 (const u32 dividend, const u32 divisor);
