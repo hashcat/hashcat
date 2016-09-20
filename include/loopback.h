@@ -11,7 +11,6 @@
 #include <errno.h>
 #include <time.h>
 
-#define LOOPBACK        0
 #define LOOPBACK_FILE   "hashcat.loopback"
 
 void loopback_init          (loopback_ctx_t *loopback_ctx);

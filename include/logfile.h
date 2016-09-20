@@ -11,8 +11,6 @@
 #include <stdarg.h>
 #include <time.h>
 
-#define LOGFILE_DISABLE 0
-
 // logfile_append() checks for logfile_disable internally to make it easier from here
 
 #define logfile_top_msg(msg)                               logfile_append ("%s\t%s",                  data.topid,             (msg));

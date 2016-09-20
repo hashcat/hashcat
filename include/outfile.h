@@ -10,9 +10,6 @@
 #include <time.h>
 #include <inttypes.h>
 
-#define OUTFILE_FORMAT  3
-#define OUTFILE_AUTOHEX 1
-
 typedef enum outfile_fmt
 {
   OUTFILE_FMT_HASH      = (1 << 0),

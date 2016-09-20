@@ -752,6 +752,92 @@ typedef struct
 
 typedef struct
 {
+  bool  usage;
+  bool  version;
+  bool  quiet;
+  bool  benchmark;
+  bool  stdout_flag;
+  bool  show;
+  bool  left;
+  bool  username;
+  bool  remove;
+  u32   remove_timer;
+  u64   skip;
+  u64   limit;
+  bool  force;
+  bool  keyspace;
+  bool  potfile_disable;
+  char *potfile_path;
+  u32   debug_mode;
+  char *debug_file;
+  char *induction_dir;
+  char *outfile_check_dir;
+  u32   runtime;
+  u32   hash_mode;
+  u32   attack_mode;
+  char *outfile;
+  u32   outfile_format;
+  bool  outfile_autohex;
+  u32   outfile_check_timer;
+  bool  restore;
+  u32   restore_timer;
+  bool  restore_disable;
+  bool  status;
+  u32   status_timer;
+  bool  machine_readable;
+  bool  loopback;
+  u32   weak_hash_threshold;
+  char *session;
+  bool  hex_charset;
+  bool  hex_salt;
+  bool  hex_wordlist;
+  u32   rp_gen;
+  u32   rp_gen_func_min;
+  u32   rp_gen_func_max;
+  u32   rp_gen_seed;
+  char *rule_buf_l;
+  char *rule_buf_r;
+  bool  increment;
+  u32   increment_min;
+  u32   increment_max;
+  char *cpu_affinity;
+  bool  opencl_info;
+  char *opencl_devices;
+  char *opencl_platforms;
+  char *opencl_device_types;
+  u32   opencl_vector_width;
+  char *truecrypt_keyfiles;
+  char *veracrypt_keyfiles;
+  u32   veracrypt_pim;
+  u32   workload_profile;
+  u32   kernel_accel;
+  u32   kernel_loops;
+  u32   nvidia_spin_damp;
+  bool  gpu_temp_disable;
+  #if defined (HAVE_HWMON)
+  u32   gpu_temp_abort;
+  u32   gpu_temp_retain;
+  bool  powertune_enable;
+  #endif
+  bool  logfile_disable;
+  u32   segment_size;
+  u32   scrypt_tmto;
+  char  separator;
+  u32   bitmap_min;
+  u32   bitmap_max;
+  bool  markov_disable;
+  bool  markov_classic;
+  u32   markov_threshold;
+  char *markov_hcstat;
+  char *custom_charset_1;
+  char *custom_charset_2;
+  char *custom_charset_3;
+  char *custom_charset_4;
+
+} user_options_t;
+
+typedef struct
+{
   bool            quiet;
   bool            force;
   bool            benchmark;

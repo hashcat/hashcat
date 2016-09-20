@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <search.h>
-#include <getopt.h>
 #include <inttypes.h>
 #include <signal.h>
 
@@ -85,6 +84,7 @@
 #include "dispatch.h"
 #include "monitor.h"
 #include "session.h"
+#include "user_options.h"
 
 extern hc_global_data_t data;
 
@@ -104,7 +104,6 @@ static const char PROGNAME[] = "hashcat";
 
 const int comptime = COMPTIME;
 
-#define FORCE 0
 
 int main (int argc, char **argv)
 {
@@ -191,6 +190,12 @@ int main (int argc, char **argv)
    * commandline parameters
    */
 
+  user_options_t *user_options = (user_options_t *) mymalloc (sizeof (user_options_t));
+
+  user_options_init (user_options);
+
+  //data.user_options = user_options;
+
   uint  usage                     = USAGE;
   uint  version                   = VERSION;
   uint  quiet                     = QUIET;
@@ -272,176 +277,6 @@ int main (int argc, char **argv)
   char *custom_charset_2          = NULL;
   char *custom_charset_3          = NULL;
   char *custom_charset_4          = NULL;
-
-  #define IDX_HELP                      'h'
-  #define IDX_VERSION                   'V'
-  #define IDX_VERSION_LOWER             'v'
-  #define IDX_QUIET                     0xff02
-  #define IDX_SHOW                      0xff03
-  #define IDX_LEFT                      0xff04
-  #define IDX_REMOVE                    0xff05
-  #define IDX_REMOVE_TIMER              0xff37
-  #define IDX_SKIP                      's'
-  #define IDX_LIMIT                     'l'
-  #define IDX_KEYSPACE                  0xff35
-  #define IDX_POTFILE_DISABLE           0xff06
-  #define IDX_POTFILE_PATH              0xffe0
-  #define IDX_DEBUG_MODE                0xff43
-  #define IDX_DEBUG_FILE                0xff44
-  #define IDX_INDUCTION_DIR             0xff46
-  #define IDX_OUTFILE_CHECK_DIR         0xff47
-  #define IDX_USERNAME                  0xff07
-  #define IDX_FORCE                     0xff08
-  #define IDX_RUNTIME                   0xff09
-  #define IDX_BENCHMARK                 'b'
-  #define IDX_STDOUT_FLAG               0xff77
-  #define IDX_HASH_MODE                 'm'
-  #define IDX_ATTACK_MODE               'a'
-  #define IDX_RP_FILE                   'r'
-  #define IDX_RP_GEN                    'g'
-  #define IDX_RP_GEN_FUNC_MIN           0xff10
-  #define IDX_RP_GEN_FUNC_MAX           0xff11
-  #define IDX_RP_GEN_SEED               0xff34
-  #define IDX_RULE_BUF_L                'j'
-  #define IDX_RULE_BUF_R                'k'
-  #define IDX_INCREMENT                 'i'
-  #define IDX_INCREMENT_MIN             0xff12
-  #define IDX_INCREMENT_MAX             0xff13
-  #define IDX_OUTFILE                   'o'
-  #define IDX_OUTFILE_FORMAT            0xff14
-  #define IDX_OUTFILE_AUTOHEX_DISABLE   0xff39
-  #define IDX_OUTFILE_CHECK_TIMER       0xff45
-  #define IDX_RESTORE                   0xff15
-  #define IDX_RESTORE_DISABLE           0xff27
-  #define IDX_STATUS                    0xff17
-  #define IDX_STATUS_TIMER              0xff18
-  #define IDX_MACHINE_READABLE          0xff50
-  #define IDX_LOOPBACK                  0xff38
-  #define IDX_WEAK_HASH_THRESHOLD       0xff42
-  #define IDX_SESSION                   0xff19
-  #define IDX_HEX_CHARSET               0xff20
-  #define IDX_HEX_SALT                  0xff21
-  #define IDX_HEX_WORDLIST              0xff40
-  #define IDX_MARKOV_DISABLE            0xff22
-  #define IDX_MARKOV_CLASSIC            0xff23
-  #define IDX_MARKOV_THRESHOLD          't'
-  #define IDX_MARKOV_HCSTAT             0xff24
-  #define IDX_CPU_AFFINITY              0xff25
-  #define IDX_OPENCL_INFO               'I'
-  #define IDX_OPENCL_DEVICES            'd'
-  #define IDX_OPENCL_PLATFORMS          0xff72
-  #define IDX_OPENCL_DEVICE_TYPES       'D'
-  #define IDX_OPENCL_VECTOR_WIDTH       0xff74
-  #define IDX_WORKLOAD_PROFILE          'w'
-  #define IDX_KERNEL_ACCEL              'n'
-  #define IDX_KERNEL_LOOPS              'u'
-  #define IDX_NVIDIA_SPIN_DAMP          0xff79
-  #define IDX_GPU_TEMP_DISABLE          0xff29
-  #define IDX_GPU_TEMP_ABORT            0xff30
-  #define IDX_GPU_TEMP_RETAIN           0xff31
-  #define IDX_POWERTUNE_ENABLE          0xff41
-  #define IDX_LOGFILE_DISABLE           0xff51
-  #define IDX_TRUECRYPT_KEYFILES        0xff52
-  #define IDX_VERACRYPT_KEYFILES        0xff53
-  #define IDX_VERACRYPT_PIM             0xff54
-  #define IDX_SCRYPT_TMTO               0xff61
-  #define IDX_SEGMENT_SIZE              'c'
-  #define IDX_SEPARATOR                 'p'
-  #define IDX_BITMAP_MIN                0xff70
-  #define IDX_BITMAP_MAX                0xff71
-  #define IDX_CUSTOM_CHARSET_1          '1'
-  #define IDX_CUSTOM_CHARSET_2          '2'
-  #define IDX_CUSTOM_CHARSET_3          '3'
-  #define IDX_CUSTOM_CHARSET_4          '4'
-
-  char short_options[] = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:";
-
-  struct option long_options[] =
-  {
-    {"help",                      no_argument,       0, IDX_HELP},
-    {"version",                   no_argument,       0, IDX_VERSION},
-    {"quiet",                     no_argument,       0, IDX_QUIET},
-    {"show",                      no_argument,       0, IDX_SHOW},
-    {"left",                      no_argument,       0, IDX_LEFT},
-    {"username",                  no_argument,       0, IDX_USERNAME},
-    {"remove",                    no_argument,       0, IDX_REMOVE},
-    {"remove-timer",              required_argument, 0, IDX_REMOVE_TIMER},
-    {"skip",                      required_argument, 0, IDX_SKIP},
-    {"limit",                     required_argument, 0, IDX_LIMIT},
-    {"keyspace",                  no_argument,       0, IDX_KEYSPACE},
-    {"potfile-disable",           no_argument,       0, IDX_POTFILE_DISABLE},
-    {"potfile-path",              required_argument, 0, IDX_POTFILE_PATH},
-    {"debug-mode",                required_argument, 0, IDX_DEBUG_MODE},
-    {"debug-file",                required_argument, 0, IDX_DEBUG_FILE},
-    {"induction-dir",             required_argument, 0, IDX_INDUCTION_DIR},
-    {"outfile-check-dir",         required_argument, 0, IDX_OUTFILE_CHECK_DIR},
-    {"force",                     no_argument,       0, IDX_FORCE},
-    {"benchmark",                 no_argument,       0, IDX_BENCHMARK},
-    {"stdout",                    no_argument,       0, IDX_STDOUT_FLAG},
-    {"restore",                   no_argument,       0, IDX_RESTORE},
-    {"restore-disable",           no_argument,       0, IDX_RESTORE_DISABLE},
-    {"status",                    no_argument,       0, IDX_STATUS},
-    {"status-timer",              required_argument, 0, IDX_STATUS_TIMER},
-    {"machine-readable",          no_argument,       0, IDX_MACHINE_READABLE},
-    {"loopback",                  no_argument,       0, IDX_LOOPBACK},
-    {"weak-hash-threshold",       required_argument, 0, IDX_WEAK_HASH_THRESHOLD},
-    {"session",                   required_argument, 0, IDX_SESSION},
-    {"runtime",                   required_argument, 0, IDX_RUNTIME},
-    {"generate-rules",            required_argument, 0, IDX_RP_GEN},
-    {"generate-rules-func-min",   required_argument, 0, IDX_RP_GEN_FUNC_MIN},
-    {"generate-rules-func-max",   required_argument, 0, IDX_RP_GEN_FUNC_MAX},
-    {"generate-rules-seed",       required_argument, 0, IDX_RP_GEN_SEED},
-    {"rule-left",                 required_argument, 0, IDX_RULE_BUF_L},
-    {"rule-right",                required_argument, 0, IDX_RULE_BUF_R},
-    {"hash-type",                 required_argument, 0, IDX_HASH_MODE},
-    {"attack-mode",               required_argument, 0, IDX_ATTACK_MODE},
-    {"rules-file",                required_argument, 0, IDX_RP_FILE},
-    {"outfile",                   required_argument, 0, IDX_OUTFILE},
-    {"outfile-format",            required_argument, 0, IDX_OUTFILE_FORMAT},
-    {"outfile-autohex-disable",   no_argument,       0, IDX_OUTFILE_AUTOHEX_DISABLE},
-    {"outfile-check-timer",       required_argument, 0, IDX_OUTFILE_CHECK_TIMER},
-    {"hex-charset",               no_argument,       0, IDX_HEX_CHARSET},
-    {"hex-salt",                  no_argument,       0, IDX_HEX_SALT},
-    {"hex-wordlist",              no_argument,       0, IDX_HEX_WORDLIST},
-    {"markov-disable",            no_argument,       0, IDX_MARKOV_DISABLE},
-    {"markov-classic",            no_argument,       0, IDX_MARKOV_CLASSIC},
-    {"markov-threshold",          required_argument, 0, IDX_MARKOV_THRESHOLD},
-    {"markov-hcstat",             required_argument, 0, IDX_MARKOV_HCSTAT},
-    {"cpu-affinity",              required_argument, 0, IDX_CPU_AFFINITY},
-    {"opencl-info",               no_argument,       0, IDX_OPENCL_INFO},
-    {"opencl-devices",            required_argument, 0, IDX_OPENCL_DEVICES},
-    {"opencl-platforms",          required_argument, 0, IDX_OPENCL_PLATFORMS},
-    {"opencl-device-types",       required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
-    {"opencl-vector-width",       required_argument, 0, IDX_OPENCL_VECTOR_WIDTH},
-    {"workload-profile",          required_argument, 0, IDX_WORKLOAD_PROFILE},
-    {"kernel-accel",              required_argument, 0, IDX_KERNEL_ACCEL},
-    {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
-    {"nvidia-spin-damp",          required_argument, 0, IDX_NVIDIA_SPIN_DAMP},
-    {"gpu-temp-disable",          no_argument,       0, IDX_GPU_TEMP_DISABLE},
-    #if defined (HAVE_HWMON)
-    {"gpu-temp-abort",            required_argument, 0, IDX_GPU_TEMP_ABORT},
-    {"gpu-temp-retain",           required_argument, 0, IDX_GPU_TEMP_RETAIN},
-    {"powertune-enable",          no_argument,       0, IDX_POWERTUNE_ENABLE},
-    #endif // HAVE_HWMON
-    {"logfile-disable",           no_argument,       0, IDX_LOGFILE_DISABLE},
-    {"truecrypt-keyfiles",        required_argument, 0, IDX_TRUECRYPT_KEYFILES},
-    {"veracrypt-keyfiles",        required_argument, 0, IDX_VERACRYPT_KEYFILES},
-    {"veracrypt-pim",             required_argument, 0, IDX_VERACRYPT_PIM},
-    {"segment-size",              required_argument, 0, IDX_SEGMENT_SIZE},
-    {"scrypt-tmto",               required_argument, 0, IDX_SCRYPT_TMTO},
-    {"seperator",                 required_argument, 0, IDX_SEPARATOR},
-    {"separator",                 required_argument, 0, IDX_SEPARATOR},
-    {"bitmap-min",                required_argument, 0, IDX_BITMAP_MIN},
-    {"bitmap-max",                required_argument, 0, IDX_BITMAP_MAX},
-    {"increment",                 no_argument,       0, IDX_INCREMENT},
-    {"increment-min",             required_argument, 0, IDX_INCREMENT_MIN},
-    {"increment-max",             required_argument, 0, IDX_INCREMENT_MAX},
-    {"custom-charset1",           required_argument, 0, IDX_CUSTOM_CHARSET_1},
-    {"custom-charset2",           required_argument, 0, IDX_CUSTOM_CHARSET_2},
-    {"custom-charset3",           required_argument, 0, IDX_CUSTOM_CHARSET_3},
-    {"custom-charset4",           required_argument, 0, IDX_CUSTOM_CHARSET_4},
-    {0, 0, 0, 0}
-  };
 
   uint rp_files_cnt = 0;
 

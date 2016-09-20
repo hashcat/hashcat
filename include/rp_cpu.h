@@ -72,12 +72,6 @@
 #define RULE_OP_MANGLE_DUPEBLOCK_LAST   'Y'
 #define RULE_OP_MANGLE_TITLE            'E'
 
-#define RP_GEN                  0
-#define RP_GEN_FUNC_MIN         1
-#define RP_GEN_FUNC_MAX         4
-#define RP_GEN_SEED             0
-#define RULE_BUF_L              ":"
-#define RULE_BUF_R              ":"
 #define INCR_RULES              10000
 
 int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], u32 rp_gen_func_min, u32 rp_gen_func_max);

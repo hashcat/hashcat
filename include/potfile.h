@@ -9,10 +9,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-#define SHOW            0
-#define LEFT            0
-#define POTFILE_DISABLE 0
-
 #define INCR_POT 1000
 
 int sort_by_pot               (const void *v1, const void *v2);

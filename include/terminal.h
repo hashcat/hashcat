@@ -23,8 +23,6 @@
 #include <windows.h>
 #endif // _WIN
 
-#define QUIET 0
-
 void send_prompt ();
 void clear_prompt ();
 

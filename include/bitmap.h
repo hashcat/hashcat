@@ -8,9 +8,6 @@
 
 #include <string.h>
 
-#define BITMAP_MIN 16
-#define BITMAP_MAX 24
-
 int sort_by_bitmap (const void *s1, const void *s2);
 
 uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, const uint dgst_shifts, char *digests_buf_ptr, const uint dgst_pos0, const uint dgst_pos1, const uint dgst_pos2, const uint dgst_pos3, const uint bitmap_mask, const uint bitmap_size, uint *bitmap_a, uint *bitmap_b, uint *bitmap_c, uint *bitmap_d, const u64 collisions_max);

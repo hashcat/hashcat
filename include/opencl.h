@@ -9,17 +9,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-#define KERNEL_ACCEL            0
-#define KERNEL_LOOPS            0
-#define KERNEL_RULES            1024
-#define KERNEL_COMBS            1024
-#define KERNEL_BFS              1024
-#define KERNEL_THREADS_MAX      256
-#define KERNEL_THREADS_MAX_CPU  1
-#define WORKLOAD_PROFILE        2
-#define SCRYPT_TMTO             0
-#define NVIDIA_SPIN_DAMP        100
-
 static const char CL_VENDOR_AMD[]           = "Advanced Micro Devices, Inc.";
 static const char CL_VENDOR_AMD_USE_INTEL[] = "GenuineIntel";
 static const char CL_VENDOR_APPLE[]         = "Apple";
@@ -28,6 +17,16 @@ static const char CL_VENDOR_INTEL_SDK[]     = "Intel(R) Corporation";
 static const char CL_VENDOR_MESA[]          = "Mesa";
 static const char CL_VENDOR_NV[]            = "NVIDIA Corporation";
 static const char CL_VENDOR_POCL[]          = "The pocl project";
+
+typedef enum amplifier_count
+{
+  KERNEL_BFS              = 1024,
+  KERNEL_COMBS            = 1024,
+  KERNEL_RULES            = 1024,
+  KERNEL_THREADS_MAX      = 256,
+  KERNEL_THREADS_MAX_CPU  = 1
+
+} amplifier_count_t;
 
 typedef enum vendor_id
 {

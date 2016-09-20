@@ -16,10 +16,6 @@
 #define PW_MAX      54
 #define PW_MAX1     (PW_MAX + 1)
 
-#define HASH_MODE   0
-#define HEX_SALT    0
-#define SEPARATOR   ':'
-
 /**
  * weak hashes shutcut
  */

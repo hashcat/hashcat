@@ -18,16 +18,7 @@
 #define SP_ROOT_CNT   (SP_PW_MAX * CHARSIZ)
 #define SP_MARKOV_CNT (SP_PW_MAX * CHARSIZ * CHARSIZ)
 
-#define MARKOV_THRESHOLD  0
-#define MARKOV_DISABLE    0
-#define MARKOV_CLASSIC    0
-
-#define HEX_CHARSET       0
-#define INCR_MASKS        1000
-
-#define INCREMENT         0
-#define INCREMENT_MIN     1
-#define INCREMENT_MAX     PW_MAX
+#define INCR_MASKS    1000
 
 void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHARSIZ]);
 void mp_cut_at (char *mask, uint max);

@@ -8,8 +8,6 @@
 
 #include <stdio.h>
 
-#define DEBUG_MODE 0
-
 int  debugfile_init         (debugfile_ctx_t *debugfile_ctx, const uint debug_mode, const char *debug_file);
 void debugfile_destroy      (debugfile_ctx_t *debugfile_ctx);
 void debugfile_format_plain (debugfile_ctx_t *debugfile_ctx, const u8 *plain_ptr, const u32 plain_len);

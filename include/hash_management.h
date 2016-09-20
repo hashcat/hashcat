@@ -6,8 +6,6 @@
 #ifndef _HASH_MANAGEMENT_H
 #define _HASH_MANAGEMENT_H
 
-#define USERNAME 0
-
 int sort_by_digest_p0p1  (const void *v1, const void *v2);
 int sort_by_salt         (const void *v1, const void *v2);
 int sort_by_hash         (const void *v1, const void *v2);

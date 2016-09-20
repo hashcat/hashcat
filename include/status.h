@@ -9,10 +9,6 @@
 #include <stdio.h>
 #include <inttypes.h>
 
-#define STATUS            0
-#define STATUS_TIMER      10
-#define MACHINE_READABLE  0
-
 double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries);
 
 void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *hashes);

@@ -6,6 +6,4 @@
 #ifndef _RUNTIME_H
 #define _RUNTIME_H
 
-#define RUNTIME 0
-
 #endif // _RUNTIME_H
