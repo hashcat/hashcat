@@ -40,7 +40,6 @@
 
 extern hc_global_data_t data;
 
-extern hc_thread_mutex_t mux_counter;
 extern hc_thread_mutex_t mux_hwmon;
 
 extern const int comptime;
@@ -1252,11 +1251,11 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       u64 perf_sum_all = (u64) pws_cnt * (u64) innerloop_left;
 
-      hc_thread_mutex_lock (mux_counter);
+      hc_thread_mutex_lock (opencl_ctx->mux_counter);
 
       data.words_progress_done[salt_pos] += perf_sum_all;
 
-      hc_thread_mutex_unlock (mux_counter);
+      hc_thread_mutex_unlock (opencl_ctx->mux_counter);
 
       /**
        * speed
@@ -1314,6 +1313,7 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const char *opencl_platforms, con
   }
 
   hc_thread_mutex_init (opencl_ctx->mux_dispatcher);
+  hc_thread_mutex_init (opencl_ctx->mux_counter);
 
   opencl_ctx->devices_status            = STATUS_INIT;
   opencl_ctx->run_main_level1           = true;
@@ -1500,6 +1500,7 @@ void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
 
   myfree (opencl_ctx->platform_devices);
 
+  hc_thread_mutex_delete (opencl_ctx->mux_counter);
   hc_thread_mutex_delete (opencl_ctx->mux_dispatcher);
 
   myfree (opencl_ctx);

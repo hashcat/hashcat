@@ -535,6 +535,7 @@ typedef struct
   int                 force_jit_compilation;
 
   hc_thread_mutex_t   mux_dispatcher;
+  hc_thread_mutex_t   mux_counter;
 
 } opencl_ctx_t;
 

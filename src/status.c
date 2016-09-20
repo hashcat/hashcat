@@ -34,7 +34,6 @@ extern hc_global_data_t  data;
 extern hc_thread_mutex_t mux_hwmon;
 
 hc_thread_mutex_t mux_display;
-hc_thread_mutex_t mux_counter;
 
 static void format_timer_display (struct tm *tm, char *buf, size_t len)
 {

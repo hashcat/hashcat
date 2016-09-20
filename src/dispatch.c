@@ -38,8 +38,6 @@
 
 extern hc_global_data_t data;
 
-extern hc_thread_mutex_t mux_counter;
-
 static void set_kernel_power_final (const u64 kernel_power_final)
 {
   if (data.quiet == 0)
@@ -179,14 +177,14 @@ void *thread_calc_stdin (void *p)
       {
         if ((line_len < data.pw_min) || (line_len > data.pw_max))
         {
-          hc_thread_mutex_lock (mux_counter);
+          hc_thread_mutex_lock (opencl_ctx->mux_counter);
 
           for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
           {
             data.words_progress_rejected[salt_pos] += data.kernel_rules_cnt;
           }
 
-          hc_thread_mutex_unlock (mux_counter);
+          hc_thread_mutex_unlock (opencl_ctx->mux_counter);
 
           continue;
         }
@@ -414,14 +412,14 @@ void *thread_calc (void *p)
             {
               max++;
 
-              hc_thread_mutex_lock (mux_counter);
+              hc_thread_mutex_lock (opencl_ctx->mux_counter);
 
               for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
               {
                 data.words_progress_rejected[salt_pos] += data.kernel_rules_cnt;
               }
 
-              hc_thread_mutex_unlock (mux_counter);
+              hc_thread_mutex_unlock (opencl_ctx->mux_counter);
 
               continue;
             }
@@ -435,14 +433,14 @@ void *thread_calc (void *p)
             {
               max++;
 
-              hc_thread_mutex_lock (mux_counter);
+              hc_thread_mutex_lock (opencl_ctx->mux_counter);
 
               for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
               {
                 data.words_progress_rejected[salt_pos] += data.combs_cnt;
               }
 
-              hc_thread_mutex_unlock (mux_counter);
+              hc_thread_mutex_unlock (opencl_ctx->mux_counter);
 
               continue;
             }
