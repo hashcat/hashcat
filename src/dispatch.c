@@ -16,11 +16,11 @@
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
 #include "tuningdb.h"
+#include "thread.h"
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
 #include "hash_management.h"
-#include "thread.h"
 #include "rp_cpu.h"
 #include "terminal.h"
 #include "mpsp.h"
@@ -39,8 +39,6 @@
 extern hc_global_data_t data;
 
 extern hc_thread_mutex_t mux_counter;
-
-hc_thread_mutex_t mux_dispatcher;
 
 static void set_kernel_power_final (const u64 kernel_power_final)
 {
@@ -79,9 +77,9 @@ static u32 get_power (hc_device_param_t *device_param)
   return device_param->kernel_power;
 }
 
-static uint get_work (hc_device_param_t *device_param, const u64 max)
+static uint get_work (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const u64 max)
 {
-  hc_thread_mutex_lock (mux_dispatcher);
+  hc_thread_mutex_lock (opencl_ctx->mux_dispatcher);
 
   const u64 words_cur  = data.words_cur;
   const u64 words_base = (data.limit == 0) ? data.words_base : MIN (data.limit, data.words_base);
@@ -108,7 +106,7 @@ static uint get_work (hc_device_param_t *device_param, const u64 max)
 
   data.words_cur += work;
 
-  hc_thread_mutex_unlock (mux_dispatcher);
+  hc_thread_mutex_unlock (opencl_ctx->mux_dispatcher);
 
   return work;
 }
@@ -130,11 +128,11 @@ void *thread_calc_stdin (void *p)
 
   while (opencl_ctx->run_thread_level1 == true)
   {
-    hc_thread_mutex_lock (mux_dispatcher);
+    hc_thread_mutex_lock (opencl_ctx->mux_dispatcher);
 
     if (feof (stdin) != 0)
     {
-      hc_thread_mutex_unlock (mux_dispatcher);
+      hc_thread_mutex_unlock (opencl_ctx->mux_dispatcher);
 
       break;
     }
@@ -201,7 +199,7 @@ void *thread_calc_stdin (void *p)
       while (opencl_ctx->run_thread_level1 == false) break;
     }
 
-    hc_thread_mutex_unlock (mux_dispatcher);
+    hc_thread_mutex_unlock (opencl_ctx->mux_dispatcher);
 
     while (opencl_ctx->run_thread_level1 == false) break;
 
@@ -257,7 +255,7 @@ void *thread_calc (void *p)
   {
     while (opencl_ctx->run_thread_level1 == true)
     {
-      const uint work = get_work (device_param, -1u);
+      const uint work = get_work (opencl_ctx, device_param, -1u);
 
       if (work == 0) break;
 
@@ -371,7 +369,7 @@ void *thread_calc (void *p)
 
       while (max)
       {
-        const uint work = get_work (device_param, max);
+        const uint work = get_work (opencl_ctx, device_param, max);
 
         if (work == 0) break;
 

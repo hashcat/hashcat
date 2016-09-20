@@ -45,12 +45,22 @@ typedef uint32_t uint; // we need to get rid of this sooner or later, for consis
 // timer
 
 #if defined (_WIN)
-typedef LARGE_INTEGER  hc_timer_t;
+typedef LARGE_INTEGER     hc_timer_t;
 #elif defined (_POSIX)
-typedef struct timeval hc_timer_t;
+typedef struct timeval    hc_timer_t;
 #endif
 
+// thread
 
+#if defined (_WIN)
+typedef HANDLE            hc_thread_t;
+typedef CRITICAL_SECTION  hc_thread_mutex_t;
+#elif defined (_POSIX)
+typedef pthread_t         hc_thread_t;
+typedef pthread_mutex_t   hc_thread_mutex_t;
+#endif
+
+// enums
 
 typedef enum wl_mode
 {
@@ -67,7 +77,6 @@ typedef enum hl_mode
 
 } hl_mode_t;
 
-
 typedef struct
 {
   char   *file_name;
@@ -75,7 +84,6 @@ typedef struct
   time_t ctime;
 
 } outfile_data_t;
-
 
 typedef enum attack_mode
 {
@@ -526,6 +534,8 @@ typedef struct
 
   int                 force_jit_compilation;
 
+  hc_thread_mutex_t   mux_dispatcher;
+
 } opencl_ctx_t;
 
 #if defined (__APPLE__)
@@ -788,8 +798,6 @@ typedef struct
   /**
    * threads
    */
-
-
 
   opencl_ctx_t *opencl_ctx;
 

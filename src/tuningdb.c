@@ -12,6 +12,7 @@
 #include "filehandling.h"
 #include "ext_OpenCL.h"
 #include "tuningdb.h"
+#include "thread.h"
 #include "opencl.h"
 #include "hash_management.h"
 

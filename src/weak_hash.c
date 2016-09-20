@@ -16,6 +16,7 @@
 #include "mpsp.h"
 #include "rp_cpu.h"
 #include "tuningdb.h"
+#include "thread.h"
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"

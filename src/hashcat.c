@@ -45,11 +45,11 @@
 #include "cpu_sha256.h"
 #include "filehandling.h"
 #include "tuningdb.h"
+#include "thread.h"
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
 #include "hash_management.h"
-#include "thread.h"
 #include "locking.h"
 #include "rp_cpu.h"
 #include "rp_kernel_on_cpu.h"
@@ -93,7 +93,6 @@ extern int SUPPRESS_OUTPUT;
 extern hc_thread_mutex_t mux_hwmon;
 extern hc_thread_mutex_t mux_display;
 extern hc_thread_mutex_t mux_counter;
-extern hc_thread_mutex_t mux_dispatcher;
 
 extern void (*get_next_word_func) (char *, u32, u32 *, u32 *);
 
@@ -186,7 +185,6 @@ int main (int argc, char **argv)
   int    myargc = argc;
   char **myargv = argv;
 
-  hc_thread_mutex_init (mux_dispatcher);
   hc_thread_mutex_init (mux_counter);
   hc_thread_mutex_init (mux_display);
   hc_thread_mutex_init (mux_hwmon);
@@ -5334,7 +5332,6 @@ int main (int argc, char **argv)
 
   // destroy others mutex
 
-  hc_thread_mutex_delete (mux_dispatcher);
   hc_thread_mutex_delete (mux_counter);
   hc_thread_mutex_delete (mux_display);
   hc_thread_mutex_delete (mux_hwmon);

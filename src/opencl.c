@@ -22,7 +22,6 @@
 #include "hwmon.h"
 #include "restore.h"
 #include "hash_management.h"
-#include "thread.h"
 #include "status.h"
 #include "stdout.h"
 #include "mpsp.h"
@@ -1314,6 +1313,8 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const char *opencl_platforms, con
     return 0;
   }
 
+  hc_thread_mutex_init (opencl_ctx->mux_dispatcher);
+
   opencl_ctx->devices_status            = STATUS_INIT;
   opencl_ctx->run_main_level1           = true;
   opencl_ctx->run_main_level2           = true;
@@ -1498,6 +1499,8 @@ void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
   myfree (opencl_ctx->platforms);
 
   myfree (opencl_ctx->platform_devices);
+
+  hc_thread_mutex_delete (opencl_ctx->mux_dispatcher);
 
   myfree (opencl_ctx);
 }
