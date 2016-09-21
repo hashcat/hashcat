@@ -407,14 +407,10 @@ int main (int argc, char **argv)
   uint  rp_gen_func_max           = RP_GEN_FUNC_MAX;
   char *truecrypt_keyfiles        = NULL;
   char *veracrypt_keyfiles        = NULL;
-  #if defined (HAVE_HWMON)
-  uint  powertune_enable          = POWERTUNE_ENABLE;
-  #endif
   uint  segment_size              = SEGMENT_SIZE;
 
   if (1)
   {
-    powertune_enable        = user_options->powertune_enable;
     rp_gen_func_max = user_options->rp_gen_func_max;
     rp_gen_func_min = user_options->rp_gen_func_min;
     rp_gen  = user_options->rp_gen;
@@ -1710,7 +1706,7 @@ int main (int argc, char **argv)
      * powertune on user request
      */
 
-    if (powertune_enable == 1)
+    if (user_options->powertune_enable == true)
     {
       hc_thread_mutex_lock (mux_hwmon);
 
@@ -4114,7 +4110,7 @@ int main (int argc, char **argv)
 
     // reset power tuning
 
-    if (powertune_enable == 1)
+    if (user_options->powertune_enable == true)
     {
       hc_thread_mutex_lock (mux_hwmon);
 
