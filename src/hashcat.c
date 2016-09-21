@@ -401,18 +401,12 @@ int main (int argc, char **argv)
   // temporarily start
 
   char *session                   = NULL;
-  uint  rp_gen                    = RP_GEN;
-  uint  rp_gen_func_min           = RP_GEN_FUNC_MIN;
-  uint  rp_gen_func_max           = RP_GEN_FUNC_MAX;
   char *truecrypt_keyfiles        = NULL;
   char *veracrypt_keyfiles        = NULL;
   uint  segment_size              = SEGMENT_SIZE;
 
   if (1)
   {
-    rp_gen_func_max = user_options->rp_gen_func_max;
-    rp_gen_func_min = user_options->rp_gen_func_min;
-    rp_gen  = user_options->rp_gen;
     segment_size    = user_options->segment_size;
     session = user_options->session;
     truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
@@ -1303,11 +1297,11 @@ int main (int argc, char **argv)
 
         local_free (repeats);
       }
-      else if (rp_gen)
+      else if (user_options->rp_gen)
       {
         uint kernel_rules_avail = 0;
 
-        while (kernel_rules_cnt < rp_gen)
+        while (kernel_rules_cnt < user_options->rp_gen)
         {
           if (kernel_rules_avail == kernel_rules_cnt)
           {
@@ -1318,7 +1312,7 @@ int main (int argc, char **argv)
 
           memset (rule_buf, 0, HCBUFSIZ_LARGE);
 
-          rule_len = (int) generate_random_rule (rule_buf, rp_gen_func_min, rp_gen_func_max);
+          rule_len = (int) generate_random_rule (rule_buf, user_options->rp_gen_func_min, user_options->rp_gen_func_max);
 
           if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1) continue;
 
