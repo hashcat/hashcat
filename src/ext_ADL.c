@@ -28,7 +28,7 @@ int adl_init (ADL_PTR *adl)
 
   if (!adl->lib)
   {
-    //if (data.quiet == 0)
+    //if (data.quiet == false)
     //  log_info ("WARNING: load ADL library failed, proceed without ADL HWMon enabled.");
 
     return -1;

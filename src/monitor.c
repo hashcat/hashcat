@@ -154,7 +154,7 @@ void *thread_monitor (void *p)
             {
               if (slowdown_warnings < 3)
               {
-                if (data.quiet == 0) clear_prompt ();
+                if (data.quiet == false) clear_prompt ();
 
                 log_info ("WARNING: Drivers temperature threshold hit on GPU #%d, expect performance to drop...", device_id + 1);
 
@@ -163,7 +163,7 @@ void *thread_monitor (void *p)
                   log_info ("");
                 }
 
-                if (data.quiet == 0) send_prompt ();
+                if (data.quiet == false) send_prompt ();
 
                 slowdown_warnings++;
               }
@@ -287,7 +287,7 @@ void *thread_monitor (void *p)
     {
       restore_left--;
 
-      if (restore_left == 0)
+      if (restore_left == false)
       {
         if (data.restore_disable == 0) cycle_restore (opencl_ctx);
 
@@ -316,9 +316,9 @@ void *thread_monitor (void *p)
 
       if (runtime_left <= 0)
       {
-        if (data.benchmark == 0)
+        if (data.benchmark == false)
         {
-          if (data.quiet == 0) log_info ("\nNOTE: Runtime limit reached, aborting...\n");
+          if (data.quiet == false) log_info ("\nNOTE: Runtime limit reached, aborting...\n");
         }
 
         myabort (opencl_ctx);
@@ -329,7 +329,7 @@ void *thread_monitor (void *p)
     {
       remove_left--;
 
-      if (remove_left == 0)
+      if (remove_left == false)
       {
         if (hashes->digests_saved != hashes->digests_done)
         {
@@ -346,17 +346,17 @@ void *thread_monitor (void *p)
     {
       status_left--;
 
-      if (status_left == 0)
+      if (status_left == false)
       {
         hc_thread_mutex_lock (mux_display);
 
-        if (data.quiet == 0) clear_prompt ();
+        if (data.quiet == false) clear_prompt ();
 
-        if (data.quiet == 0) log_info ("");
+        if (data.quiet == false) log_info ("");
 
         status_display (opencl_ctx, hashconfig, hashes);
 
-        if (data.quiet == 0) log_info ("");
+        if (data.quiet == false) log_info ("");
 
         hc_thread_mutex_unlock (mux_display);
 

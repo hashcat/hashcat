@@ -100,8 +100,6 @@ extern const unsigned int full80;
 
 extern const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
-static const char PROGNAME[] = "hashcat";
-
 const int comptime = COMPTIME;
 
 
@@ -198,14 +196,11 @@ int main (int argc, char **argv)
 
   uint  usage                     = USAGE;
   uint  version                   = VERSION;
-  uint  quiet                     = QUIET;
   uint  benchmark                 = BENCHMARK;
   uint  stdout_flag               = STDOUT_FLAG;
   uint  show                      = SHOW;
   uint  left                      = LEFT;
-  uint  username                  = USERNAME;
   uint  remove                    = REMOVE;
-  uint  remove_timer              = REMOVE_TIMER;
   u64   skip                      = SKIP;
   u64   limit                     = LIMIT;
   uint  keyspace                  = KEYSPACE;
@@ -215,8 +210,6 @@ int main (int argc, char **argv)
   char *debug_file                = NULL;
   char *induction_dir             = NULL;
   char *outfile_check_dir         = NULL;
-  uint  force                     = FORCE;
-  uint  runtime                   = RUNTIME;
   uint  hash_mode                 = HASH_MODE;
   uint  attack_mode               = ATTACK_MODE;
   uint  markov_disable            = MARKOV_DISABLE;
@@ -236,40 +229,30 @@ int main (int argc, char **argv)
   uint  loopback                  = LOOPBACK;
   uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   char *session                   = NULL;
-  uint  hex_charset               = HEX_CHARSET;
   uint  hex_salt                  = HEX_SALT;
-  uint  hex_wordlist              = HEX_WORDLIST;
   uint  rp_gen                    = RP_GEN;
   uint  rp_gen_func_min           = RP_GEN_FUNC_MIN;
   uint  rp_gen_func_max           = RP_GEN_FUNC_MAX;
-  uint  rp_gen_seed               = RP_GEN_SEED;
   char *rule_buf_l                = (char *) RULE_BUF_L;
   char *rule_buf_r                = (char *) RULE_BUF_R;
   uint  increment                 = INCREMENT;
   uint  increment_min             = INCREMENT_MIN;
   uint  increment_max             = INCREMENT_MAX;
-  char *cpu_affinity              = NULL;
-  bool  opencl_info               = 0;
-  char *opencl_devices            = NULL;
-  char *opencl_platforms          = NULL;
-  char *opencl_device_types       = NULL;
-  uint  opencl_vector_width       = OPENCL_VECTOR_WIDTH;
+
+
+
+
   char *truecrypt_keyfiles        = NULL;
   char *veracrypt_keyfiles        = NULL;
-  uint  veracrypt_pim             = 0;
-  uint  workload_profile          = WORKLOAD_PROFILE;
-  uint  kernel_accel              = KERNEL_ACCEL;
-  uint  kernel_loops              = KERNEL_LOOPS;
-  uint  nvidia_spin_damp          = NVIDIA_SPIN_DAMP;
+
+
   uint  gpu_temp_disable          = GPU_TEMP_DISABLE;
   #if defined (HAVE_HWMON)
   uint  gpu_temp_abort            = GPU_TEMP_ABORT;
   uint  gpu_temp_retain           = GPU_TEMP_RETAIN;
   uint  powertune_enable          = POWERTUNE_ENABLE;
   #endif
-  uint  logfile_disable           = LOGFILE_DISABLE;
   uint  segment_size              = SEGMENT_SIZE;
-  uint  scrypt_tmto               = SCRYPT_TMTO;
   char  separator                 = SEPARATOR;
   uint  bitmap_min                = BITMAP_MIN;
   uint  bitmap_max                = BITMAP_MAX;
@@ -495,16 +478,16 @@ int main (int argc, char **argv)
   data.eff_restore_file = eff_restore_file;
   data.new_restore_file = new_restore_file;
 
-  if (((show == 1) || (left == 1)) && (restore == 1))
+  if (((show == true) || (left == true)) && (restore == true))
   {
-    if (show == 1) log_error ("ERROR: Mixing --restore parameter and --show is not supported");
+    if (show == true) log_error ("ERROR: Mixing --restore parameter and --show is not supported");
     else           log_error ("ERROR: Mixing --restore parameter and --left is not supported");
 
     return -1;
   }
 
   // this allows the user to use --show and --left while cracking (i.e. while another instance of hashcat is running)
-  if ((show == 1) || (left == 1))
+  if ((show == true) || (left == true))
   {
     restore_disable = 1;
 
@@ -521,7 +504,7 @@ int main (int argc, char **argv)
    * restore file
    */
 
-  if (restore == 1)
+  if (restore == true)
   {
     read_restore (eff_restore_file, rd);
 
@@ -543,138 +526,10 @@ int main (int argc, char **argv)
   }
 
   uint hash_mode_chgd           = 0;
-  uint runtime_chgd             = 0;
-  uint kernel_loops_chgd        = 0;
-  uint kernel_accel_chgd        = 0;
-  uint nvidia_spin_damp_chgd    = 0;
-  uint attack_mode_chgd         = 0;
-  uint outfile_format_chgd      = 0;
-  uint rp_gen_seed_chgd         = 0;
-  uint remove_timer_chgd        = 0;
-  uint increment_min_chgd       = 0;
-  uint increment_max_chgd       = 0;
-  uint workload_profile_chgd    = 0;
-  uint opencl_vector_width_chgd = 0;
 
-  optind = 1;
-  optopt = 0;
-  option_index = 0;
 
-  while (((c = getopt_long (myargc, myargv, short_options, long_options, &option_index)) != -1) && optopt == 0)
-  {
-    switch (c)
-    {
-    //case IDX_HELP:                      usage                     = 1;              break;
-    //case IDX_VERSION:                   version                   = 1;              break;
-    //case IDX_RESTORE:                   restore                   = 1;              break;
-      case IDX_QUIET:                     quiet                     = 1;              break;
-    //case IDX_SHOW:                      show                      = 1;              break;
-      case IDX_SHOW:                                                                  break;
-    //case IDX_LEFT:                      left                      = 1;              break;
-      case IDX_LEFT:                                                                  break;
-      case IDX_USERNAME:                  username                  = 1;              break;
-      case IDX_REMOVE:                    remove                    = 1;              break;
-      case IDX_REMOVE_TIMER:              remove_timer              = atoi (optarg);
-                                          remove_timer_chgd         = 1;              break;
-      case IDX_POTFILE_DISABLE:           potfile_disable           = 1;              break;
-      case IDX_POTFILE_PATH:              potfile_path              = optarg;         break;
-      case IDX_DEBUG_MODE:                debug_mode                = atoi (optarg);  break;
-      case IDX_DEBUG_FILE:                debug_file                = optarg;         break;
-      case IDX_INDUCTION_DIR:             induction_dir             = optarg;         break;
-      case IDX_OUTFILE_CHECK_DIR:         outfile_check_dir         = optarg;         break;
-      case IDX_FORCE:                     force                     = 1;              break;
-      case IDX_SKIP:                      skip                      = atoll (optarg); break;
-      case IDX_LIMIT:                     limit                     = atoll (optarg); break;
-      case IDX_KEYSPACE:                  keyspace                  = 1;              break;
-      case IDX_BENCHMARK:                 benchmark                 = 1;              break;
-      case IDX_STDOUT_FLAG:               stdout_flag               = 1;              break;
-      case IDX_RESTORE:                                                               break;
-      case IDX_RESTORE_DISABLE:           restore_disable           = 1;              break;
-      case IDX_STATUS:                    status                    = 1;              break;
-      case IDX_STATUS_TIMER:              status_timer              = atoi (optarg);  break;
-      case IDX_MACHINE_READABLE:          machine_readable          = 1;              break;
-      case IDX_LOOPBACK:                  loopback                  = 1;              break;
-      case IDX_WEAK_HASH_THRESHOLD:       weak_hash_threshold       = atoi (optarg);  break;
-    //case IDX_SESSION:                   session                   = optarg;         break;
-      case IDX_SESSION:                                                               break;
-      case IDX_HASH_MODE:                 hash_mode                 = atoi (optarg);
-                                          hash_mode_chgd            = 1;              break;
-      case IDX_RUNTIME:                   runtime                   = atoi (optarg);
-                                          runtime_chgd              = 1;              break;
-      case IDX_ATTACK_MODE:               attack_mode               = atoi (optarg);
-                                          attack_mode_chgd          = 1;              break;
-      case IDX_RP_FILE:                   rp_files[rp_files_cnt++]  = optarg;         break;
-      case IDX_RP_GEN:                    rp_gen                    = atoi (optarg);  break;
-      case IDX_RP_GEN_FUNC_MIN:           rp_gen_func_min           = atoi (optarg);  break;
-      case IDX_RP_GEN_FUNC_MAX:           rp_gen_func_max           = atoi (optarg);  break;
-      case IDX_RP_GEN_SEED:               rp_gen_seed               = atoi (optarg);
-                                          rp_gen_seed_chgd          = 1;              break;
-      case IDX_RULE_BUF_L:                rule_buf_l                = optarg;         break;
-      case IDX_RULE_BUF_R:                rule_buf_r                = optarg;         break;
-      case IDX_MARKOV_DISABLE:            markov_disable            = 1;              break;
-      case IDX_MARKOV_CLASSIC:            markov_classic            = 1;              break;
-      case IDX_MARKOV_THRESHOLD:          markov_threshold          = atoi (optarg);  break;
-      case IDX_MARKOV_HCSTAT:             markov_hcstat             = optarg;         break;
-      case IDX_OUTFILE:                   outfile                   = optarg;         break;
-      case IDX_OUTFILE_FORMAT:            outfile_format            = atoi (optarg);
-                                          outfile_format_chgd       = 1;              break;
-      case IDX_OUTFILE_AUTOHEX_DISABLE:   outfile_autohex           = 0;              break;
-      case IDX_OUTFILE_CHECK_TIMER:       outfile_check_timer       = atoi (optarg);  break;
-      case IDX_HEX_CHARSET:               hex_charset               = 1;              break;
-      case IDX_HEX_SALT:                  hex_salt                  = 1;              break;
-      case IDX_HEX_WORDLIST:              hex_wordlist              = 1;              break;
-      case IDX_CPU_AFFINITY:              cpu_affinity              = optarg;         break;
-      case IDX_OPENCL_INFO:               opencl_info               = 1;              break;
-      case IDX_OPENCL_DEVICES:            opencl_devices            = optarg;         break;
-      case IDX_OPENCL_PLATFORMS:          opencl_platforms          = optarg;         break;
-      case IDX_OPENCL_DEVICE_TYPES:       opencl_device_types       = optarg;         break;
-      case IDX_OPENCL_VECTOR_WIDTH:       opencl_vector_width       = atoi (optarg);
-                                          opencl_vector_width_chgd  = 1;              break;
-      case IDX_WORKLOAD_PROFILE:          workload_profile          = atoi (optarg);
-                                          workload_profile_chgd     = 1;              break;
-      case IDX_KERNEL_ACCEL:              kernel_accel              = atoi (optarg);
-                                          kernel_accel_chgd         = 1;              break;
-      case IDX_KERNEL_LOOPS:              kernel_loops              = atoi (optarg);
-                                          kernel_loops_chgd         = 1;              break;
-      case IDX_NVIDIA_SPIN_DAMP:          nvidia_spin_damp          = atoi (optarg);
-                                          nvidia_spin_damp_chgd     = 1;              break;
-      case IDX_GPU_TEMP_DISABLE:          gpu_temp_disable          = 1;              break;
-      #if defined (HAVE_HWMON)
-      case IDX_GPU_TEMP_ABORT:            gpu_temp_abort            = atoi (optarg);  break;
-      case IDX_GPU_TEMP_RETAIN:           gpu_temp_retain           = atoi (optarg);  break;
-      case IDX_POWERTUNE_ENABLE:          powertune_enable          = 1;              break;
-      #endif // HAVE_HWMON
-      case IDX_LOGFILE_DISABLE:           logfile_disable           = 1;              break;
-      case IDX_TRUECRYPT_KEYFILES:        truecrypt_keyfiles        = optarg;         break;
-      case IDX_VERACRYPT_KEYFILES:        veracrypt_keyfiles        = optarg;         break;
-      case IDX_VERACRYPT_PIM:             veracrypt_pim             = atoi (optarg);  break;
-      case IDX_SEGMENT_SIZE:              segment_size              = atoi (optarg);  break;
-      case IDX_SCRYPT_TMTO:               scrypt_tmto               = atoi (optarg);  break;
-      case IDX_SEPARATOR:                 separator                 = optarg[0];      break;
-      case IDX_BITMAP_MIN:                bitmap_min                = atoi (optarg);  break;
-      case IDX_BITMAP_MAX:                bitmap_max                = atoi (optarg);  break;
-      case IDX_INCREMENT:                 increment                 = 1;              break;
-      case IDX_INCREMENT_MIN:             increment_min             = atoi (optarg);
-                                          increment_min_chgd        = 1;              break;
-      case IDX_INCREMENT_MAX:             increment_max             = atoi (optarg);
-                                          increment_max_chgd        = 1;              break;
-      case IDX_CUSTOM_CHARSET_1:          custom_charset_1          = optarg;         break;
-      case IDX_CUSTOM_CHARSET_2:          custom_charset_2          = optarg;         break;
-      case IDX_CUSTOM_CHARSET_3:          custom_charset_3          = optarg;         break;
-      case IDX_CUSTOM_CHARSET_4:          custom_charset_4          = optarg;         break;
 
-      default:
-        log_error ("ERROR: Invalid argument specified");
-        return -1;
-    }
-  }
 
-  if (optopt != 0)
-  {
-    log_error ("ERROR: Invalid argument specified");
-
-    return -1;
-  }
 
   const int rc_user_options_parse = user_options_parse (user_options, myargc, myargv);
 
@@ -690,6 +545,142 @@ int main (int argc, char **argv)
 
   if (rc_user_options_sanity == -1) return -1;
 
+  // temporarily start
+
+
+
+  if (1)
+  {
+    attack_mode     = user_options->attack_mode;
+    benchmark       = user_options->benchmark;
+    bitmap_max      = user_options->bitmap_max;
+    bitmap_min      = user_options->bitmap_min;
+    custom_charset_1        = user_options->custom_charset_1;
+    custom_charset_2        = user_options->custom_charset_2;
+    custom_charset_3        = user_options->custom_charset_3;
+    custom_charset_4        = user_options->custom_charset_4;
+    debug_file      = user_options->debug_file;
+    debug_mode      = user_options->debug_mode;
+
+    gpu_temp_abort  = user_options->gpu_temp_abort;
+    gpu_temp_disable        = user_options->gpu_temp_disable;
+    gpu_temp_retain = user_options->gpu_temp_retain;
+    hash_mode_chgd  = user_options->hash_mode_chgd;
+    hash_mode       = user_options->hash_mode;
+
+    hex_salt        = user_options->hex_salt;
+
+    increment_max   = user_options->increment_max;
+    increment_min   = user_options->increment_min;
+    increment       = user_options->increment;
+    induction_dir   = user_options->induction_dir;
+
+
+
+
+    keyspace        = user_options->keyspace;
+    left    = user_options->left;
+    limit   = user_options->limit;
+
+    loopback        = user_options->loopback;
+    machine_readable        = user_options->machine_readable;
+    markov_classic  = user_options->markov_classic;
+    markov_disable  = user_options->markov_disable;
+    markov_hcstat   = user_options->markov_hcstat;
+    markov_threshold        = user_options->markov_threshold;
+
+
+
+
+
+
+
+
+    outfile_autohex = user_options->outfile_autohex;
+    outfile_check_dir       = user_options->outfile_check_dir;
+    outfile_check_timer     = user_options->outfile_check_timer;
+    outfile_format  = user_options->outfile_format;
+    outfile = user_options->outfile;
+    potfile_disable = user_options->potfile_disable;
+    potfile_path    = user_options->potfile_path;
+    powertune_enable        = user_options->powertune_enable;
+
+
+    remove  = user_options->remove;
+    restore_disable = user_options->restore_disable;
+    restore_timer   = user_options->restore_timer;
+    restore = user_options->restore;
+    rp_files_cnt    = user_options->rp_files_cnt;
+    rp_files        = user_options->rp_files;
+    rp_gen_func_max = user_options->rp_gen_func_max;
+    rp_gen_func_min = user_options->rp_gen_func_min;
+
+    rp_gen  = user_options->rp_gen;
+    rule_buf_l      = user_options->rule_buf_l;
+    rule_buf_r      = user_options->rule_buf_r;
+
+
+    segment_size    = user_options->segment_size;
+    separator       = user_options->separator;
+    session = user_options->session;
+    show    = user_options->show;
+    skip    = user_options->skip;
+    status_timer    = user_options->status_timer;
+    status  = user_options->status;
+    stdout_flag     = user_options->stdout_flag;
+    truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
+    usage   = user_options->usage;
+
+    veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
+
+    version = user_options->version;
+    weak_hash_threshold     = user_options->weak_hash_threshold;
+
+
+    data.restore                 = user_options->restore;
+    data.restore_timer           = user_options->restore_timer;
+    data.restore_disable         = user_options->restore_disable;
+    data.status                  = user_options->status;
+    data.status_timer            = user_options->status_timer;
+    data.machine_readable        = user_options->machine_readable;
+    data.loopback                = user_options->loopback;
+    data.runtime                 = user_options->runtime;
+    data.remove                  = user_options->remove;
+    data.remove_timer            = user_options->remove_timer;
+    data.username                = user_options->username;
+
+    data.hex_charset             = user_options->hex_charset;
+    data.hex_salt                = user_options->hex_salt;
+    data.hex_wordlist            = user_options->hex_wordlist;
+    data.rp_files                = user_options->rp_files;
+    data.rp_files_cnt            = user_options->rp_files_cnt;
+    data.rp_gen                  = user_options->rp_gen;
+    data.rp_gen_seed             = user_options->rp_gen_seed;
+    data.force                   = user_options->force;
+    data.benchmark               = user_options->benchmark;
+    data.skip                    = user_options->skip;
+    data.limit                   = user_options->limit;
+    data.custom_charset_1        = user_options->custom_charset_1;
+    data.custom_charset_2        = user_options->custom_charset_2;
+    data.custom_charset_3        = user_options->custom_charset_3;
+    data.custom_charset_4        = user_options->custom_charset_4;
+    #if defined (HAVE_HWMONO)
+    data.powertune_enable        = user_options->powertune_enable;
+    #endif
+    data.logfile_disable         = user_options->logfile_disable;
+    data.truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
+    data.veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
+    data.veracrypt_pim           = user_options->veracrypt_pim;
+    data.scrypt_tmto             = user_options->scrypt_tmto;
+
+    //wordlist_mode = user_options_extra->wordlist_mode;
+    //attack_kern   = user_options_extra->attack_kern;
+
+
+    //data.wordlist_mode = wordlist_mode;
+    //data.attack_kern   = attack_kern;
+
+  }
 
   /**
    * Inform user things getting started,
@@ -697,11 +688,11 @@ int main (int argc, char **argv)
    * - we do not need to check algorithm_pos
    */
 
-  if (quiet == 0)
+  if (user_options->quiet == false)
   {
-    if (benchmark == 1)
+    if (benchmark == true)
     {
-      if (machine_readable == 0)
+      if (machine_readable == false)
       {
         log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
         log_info ("");
@@ -711,22 +702,22 @@ int main (int argc, char **argv)
         log_info ("# %s (%s) %s", PROGNAME, VERSION_TAG, ctime (&proc_start));
       }
     }
-    else if (restore == 1)
+    else if (restore == true)
     {
       log_info ("%s (%s) starting in restore-mode...", PROGNAME, VERSION_TAG);
       log_info ("");
     }
-    else if (stdout_flag == 1)
+    else if (stdout_flag == true)
     {
       // do nothing
     }
-    else if (keyspace == 1)
+    else if (keyspace == true)
     {
       // do nothing
     }
     else
     {
-      if ((show == 1) || (left == 1))
+      if ((show == true) || (left == true))
       {
         // do nothing
       }
@@ -746,54 +737,57 @@ int main (int argc, char **argv)
 
   if (attack_mode != ATTACK_MODE_BF)
   {
-    if (induction_dir == NULL)
+    if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
     {
-      induction_directory = (char *) mymalloc (session_size);
-
-      snprintf (induction_directory, session_size - 1, "%s/%s.%s", session_dir, session, INDUCT_DIR);
-
-      // create induction folder if it does not already exist
-
-      if (keyspace == 0)
+      if (induction_dir == NULL)
       {
-        if (rmdir (induction_directory) == -1)
+        induction_directory = (char *) mymalloc (session_size);
+
+        snprintf (induction_directory, session_size - 1, "%s/%s.%s", session_dir, session, INDUCT_DIR);
+
+        // create induction folder if it does not already exist
+
+        if (keyspace == false)
         {
-          if (errno == ENOENT)
+          if (rmdir (induction_directory) == -1)
           {
-            // good, we can ignore
-          }
-          else if (errno == ENOTEMPTY)
-          {
-            char *induction_directory_mv = (char *) mymalloc (session_size);
-
-            snprintf (induction_directory_mv, session_size - 1, "%s/%s.induct.%d", session_dir, session, (int) proc_start);
-
-            if (rename (induction_directory, induction_directory_mv) != 0)
+            if (errno == ENOENT)
             {
-              log_error ("ERROR: Rename directory %s to %s: %s", induction_directory, induction_directory_mv, strerror (errno));
+              // good, we can ignore
+            }
+            else if (errno == ENOTEMPTY)
+            {
+              char *induction_directory_mv = (char *) mymalloc (session_size);
+
+              snprintf (induction_directory_mv, session_size - 1, "%s/%s.induct.%d", session_dir, session, (int) proc_start);
+
+              if (rename (induction_directory, induction_directory_mv) != 0)
+              {
+                log_error ("ERROR: Rename directory %s to %s: %s", induction_directory, induction_directory_mv, strerror (errno));
+
+                return -1;
+              }
+            }
+            else
+            {
+              log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
 
               return -1;
             }
           }
-          else
+
+          if (mkdir (induction_directory, 0700) == -1)
           {
             log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
 
             return -1;
           }
         }
-
-        if (mkdir (induction_directory, 0700) == -1)
-        {
-          log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
-
-          return -1;
-        }
       }
-    }
-    else
-    {
-      induction_directory = induction_dir;
+      else
+      {
+        induction_directory = induction_dir;
+      }
     }
   }
 
@@ -815,21 +809,19 @@ int main (int argc, char **argv)
 
   char *outfile_check_directory = NULL;
 
-  if (outfile_check_dir == NULL)
+  if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
   {
-    outfile_check_directory = (char *) mymalloc (session_size);
+    if (outfile_check_dir == NULL)
+    {
+      outfile_check_directory = (char *) mymalloc (session_size);
 
-    snprintf (outfile_check_directory, session_size - 1, "%s/%s.%s", session_dir, session, OUTFILES_DIR);
-  }
-  else
-  {
-    outfile_check_directory = outfile_check_dir;
-  }
+      snprintf (outfile_check_directory, session_size - 1, "%s/%s.%s", session_dir, session, OUTFILES_DIR);
+    }
+    else
+    {
+      outfile_check_directory = outfile_check_dir;
+    }
 
-  data.outfile_check_directory = outfile_check_directory;
-
-  if (keyspace == 0)
-  {
     struct stat outfile_check_stat;
 
     if (stat (outfile_check_directory, &outfile_check_stat) == 0)
@@ -854,99 +846,37 @@ int main (int argc, char **argv)
     }
   }
 
-  /**
-   * special other stuff
-   */
-
-  if (hash_mode == 9710)
-  {
-    outfile_format      = 5;
-    outfile_format_chgd = 1;
-  }
-
-  if (hash_mode == 9810)
-  {
-    outfile_format      = 5;
-    outfile_format_chgd = 1;
-  }
-
-  if (hash_mode == 10410)
-  {
-    outfile_format      = 5;
-    outfile_format_chgd = 1;
-  }
-
-  /**
-   * store stuff
-   */
-
-  data.restore                 = restore;
-  data.restore_timer           = restore_timer;
-  data.restore_disable         = restore_disable;
-  data.status                  = status;
-  data.status_timer            = status_timer;
-  data.machine_readable        = machine_readable;
-  data.loopback                = loopback;
-  data.runtime                 = runtime;
-  data.remove                  = remove;
-  data.remove_timer            = remove_timer;
-
-  data.username                = username;
-  data.quiet                   = quiet;
-
-  data.hex_charset             = hex_charset;
-  data.hex_salt                = hex_salt;
-  data.hex_wordlist            = hex_wordlist;
-  data.rp_files                = rp_files;
-  data.rp_files_cnt            = rp_files_cnt;
-  data.rp_gen                  = rp_gen;
-  data.rp_gen_seed             = rp_gen_seed;
-  data.force                   = force;
-  data.benchmark               = benchmark;
-  data.skip                    = skip;
-  data.limit                   = limit;
-  data.custom_charset_1        = custom_charset_1;
-  data.custom_charset_2        = custom_charset_2;
-  data.custom_charset_3        = custom_charset_3;
-  data.custom_charset_4        = custom_charset_4;
-  #if defined (HAVE_HWMONO)
-  data.powertune_enable        = powertune_enable;
-  #endif
-  data.logfile_disable         = logfile_disable;
-  data.truecrypt_keyfiles      = truecrypt_keyfiles;
-  data.veracrypt_keyfiles      = veracrypt_keyfiles;
-  data.veracrypt_pim           = veracrypt_pim;
-  data.scrypt_tmto             = scrypt_tmto;
+  data.outfile_check_directory = outfile_check_directory;
 
   /**
    * cpu affinity
    */
 
-  if (cpu_affinity)
+  if (user_options->cpu_affinity)
   {
-    set_cpu_affinity (cpu_affinity);
+    set_cpu_affinity (user_options->cpu_affinity);
   }
 
-  if (rp_gen_seed_chgd == 0)
+  if (user_options->rp_gen_seed_chgd == false)
   {
-    srand (proc_start);
+    srand (user_options->rp_gen_seed);
   }
   else
   {
-    srand (rp_gen_seed);
+    srand (proc_start);
   }
 
   /**
    * logfile init
    */
 
-  if (logfile_disable == 0)
+  if (user_options->logfile_disable == 0)
   {
-    size_t logfile_size = strlen (session_dir) + 1 + strlen (session) + 32;
+    size_t logfile_size = strlen (session_dir) + 1 + strlen (user_options->session) + 32;
 
     char *logfile = (char *) mymalloc (logfile_size);
 
-    snprintf (logfile, logfile_size - 1, "%s/%s.log", session_dir, session);
+    snprintf (logfile, logfile_size - 1, "%s/%s.log", session_dir, user_options->session);
 
     data.logfile = logfile;
 
@@ -1048,7 +978,7 @@ int main (int argc, char **argv)
 
   data.opencl_ctx = opencl_ctx;
 
-  const int rc_opencl_init = opencl_ctx_init (opencl_ctx, opencl_platforms, opencl_devices, opencl_device_types, opencl_vector_width, opencl_vector_width_chgd, nvidia_spin_damp, nvidia_spin_damp_chgd, workload_profile, kernel_accel, kernel_accel_chgd, kernel_loops, kernel_loops_chgd, keyspace, stdout_flag);
+  const int rc_opencl_init = opencl_ctx_init (opencl_ctx, user_options);
 
   if (rc_opencl_init == -1)
   {
@@ -1061,7 +991,7 @@ int main (int argc, char **argv)
    * benchmark
    */
 
-  if (benchmark == 1)
+  if (benchmark == true)
   {
     /**
      * disable useless stuff for benchmark
@@ -1072,7 +1002,7 @@ int main (int argc, char **argv)
     restore_disable       = 1;
     potfile_disable       = 1;
     weak_hash_threshold   = 0;
-    nvidia_spin_damp      = 0;
+
     gpu_temp_disable      = 1;
     outfile_check_timer   = 0;
 
@@ -1094,13 +1024,6 @@ int main (int argc, char **argv)
 
     attack_mode = ATTACK_MODE_BF;
     user_options_extra->attack_kern = ATTACK_KERN_BF;
-
-    if (workload_profile_chgd == 0)
-    {
-      workload_profile = 3;
-
-      opencl_ctx->workload_profile = workload_profile;
-    }
   }
 
   data.attack_mode = attack_mode;
@@ -1123,7 +1046,7 @@ int main (int argc, char **argv)
   {
     // enable status (in stdin mode) whenever we do not use --stdout together with an outfile
 
-    if      (stdout_flag == 0) status = 1;
+    if      (stdout_flag == false) status = 1;
     else if (outfile != NULL)  status = 1;
 
     data.status = status;
@@ -1135,7 +1058,7 @@ int main (int argc, char **argv)
 
   data.shutdown_outer = 0;
 
-  if (keyspace == 0 && benchmark == 0 && stdout_flag == 0)
+  if (keyspace == false && benchmark == false && stdout_flag == false)
   {
     if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
     {
@@ -1158,7 +1081,7 @@ int main (int argc, char **argv)
 
   const int *algorithms = DEFAULT_BENCHMARK_ALGORITHMS_BUF;
 
-  if (benchmark == 1 && hash_mode_chgd == 0) algorithm_max = DEFAULT_BENCHMARK_ALGORITHMS_CNT;
+  if (benchmark == true && hash_mode_chgd == false) algorithm_max = DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 
   for (algorithm_pos = 0; algorithm_pos < algorithm_max; algorithm_pos++)
   {
@@ -1188,16 +1111,14 @@ int main (int argc, char **argv)
      * update hash_mode in case of multihash benchmark
      */
 
-    if (benchmark == 1)
+    if (benchmark == true)
     {
-      if (hash_mode_chgd == 0)
+      if (hash_mode_chgd == false)
       {
         hash_mode = algorithms[algorithm_pos];
       }
 
-      quiet = 1;
-
-      data.quiet = quiet;
+      user_options->quiet = true;
     }
 
     /**
@@ -1236,7 +1157,7 @@ int main (int argc, char **argv)
 
     potfile_init (potfile_ctx, profile_dir, potfile_path, potfile_disable);
 
-    if (show == 1 || left == 1)
+    if (show == true || left == true)
     {
       outfile_write_open (outfile_ctx);
 
@@ -1259,7 +1180,7 @@ int main (int argc, char **argv)
 
     data.hashes = hashes;
 
-    const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, myargv[user_options_extra->optind], keyspace, quiet, benchmark, opencl_info, stdout_flag, username, remove, show, left);
+    const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, user_options, myargv[user_options_extra->optind]);
 
     if (rc_hashes_init_stage1 == -1) return -1;
 
@@ -1268,7 +1189,7 @@ int main (int argc, char **argv)
     logfile_top_uint (hashes->hashlist_mode);
     logfile_top_uint (hashes->hashlist_format);
 
-    if ((keyspace == 0) && (stdout_flag == 0))
+    if ((user_options->keyspace == false) && (user_options->stdout_flag == false) && (user_options->opencl_info == false))
     {
       if (hashes->hashes_cnt == 0)
       {
@@ -1278,13 +1199,13 @@ int main (int argc, char **argv)
       }
     }
 
-    if (show == 1 || left == 1)
+    if (show == true || left == true)
     {
       outfile_write_close (outfile_ctx);
 
       potfile_hash_free (potfile_ctx, hashconfig);
 
-      if (data.quiet == 0) log_info_nn ("");
+      if (user_options->quiet == false) log_info_nn ("");
 
       return 0;
     }
@@ -1297,7 +1218,7 @@ int main (int argc, char **argv)
 
     if (potfile_disable == 0)
     {
-      if (data.quiet == 0) log_info_nn ("Comparing hashes with potfile entries...");
+      if (user_options->quiet == false) log_info_nn ("Comparing hashes with potfile entries...");
 
       potfile_remove_cracks = potfile_remove_parse (potfile_ctx, hashconfig, hashes);
     }
@@ -1308,7 +1229,7 @@ int main (int argc, char **argv)
 
     uint hashes_cnt_orig = hashes->hashes_cnt;
 
-    const int rc_hashes_init_stage2 = hashes_init_stage2 (hashes, hashconfig, opencl_ctx, username, remove, show);
+    const int rc_hashes_init_stage2 = hashes_init_stage2 (hashes, hashconfig, opencl_ctx, user_options);
 
     if (rc_hashes_init_stage2 == -1) return -1;
 
@@ -1386,7 +1307,7 @@ int main (int argc, char **argv)
 
     dictstat_init (dictstat_ctx, profile_dir);
 
-    if (keyspace == 0)
+    if (keyspace == false)
     {
       dictstat_read (dictstat_ctx);
     }
@@ -1476,7 +1397,7 @@ int main (int argc, char **argv)
 
     for (bitmap_bits = bitmap_min; bitmap_bits < bitmap_max; bitmap_bits++)
     {
-      if (data.quiet == 0) log_info_nn ("Generating bitmap tables with %u bits...", bitmap_bits);
+      if (user_options->quiet == false) log_info_nn ("Generating bitmap tables with %u bits...", bitmap_bits);
 
       bitmap_nums = 1u << bitmap_bits;
 
@@ -1756,7 +1677,7 @@ int main (int argc, char **argv)
       }
     }
 
-    const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, hashconfig, tuning_db, attack_mode, quiet, force, benchmark, opencl_info, machine_readable, algorithm_pos);
+    const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, hashconfig, tuning_db, user_options, algorithm_pos);
 
     if (rc_devices_init == -1)
     {
@@ -1962,7 +1883,7 @@ int main (int argc, char **argv)
      * enable custom signal handler(s)
      */
 
-    if (benchmark == 0)
+    if (benchmark == false)
     {
       hc_signal (sigHandler_default);
     }
@@ -1975,7 +1896,7 @@ int main (int argc, char **argv)
      * inform the user
      */
 
-    if (data.quiet == 0)
+    if (user_options->quiet == false)
     {
       log_info ("Hashes: %u digests; %u unique digests, %u unique salts", hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
 
@@ -2026,7 +1947,7 @@ int main (int argc, char **argv)
         log_info ("Watchdog: Temperature retain trigger set to %uc", gpu_temp_retain);
       }
 
-      if (data.quiet == 0) log_info ("");
+      if (user_options->quiet == false) log_info ("");
       #endif
     }
 
@@ -2268,20 +2189,20 @@ int main (int argc, char **argv)
     #endif // HAVE_HWMON
 
     #if defined (DEBUG)
-    if (benchmark == 1) log_info ("Hashmode: %d", hashconfig->hash_mode);
+    if (benchmark == true) log_info ("Hashmode: %d", hashconfig->hash_mode);
     #endif
 
-    if (data.quiet == 0) log_info_nn ("Initializing device kernels and memory...");
+    if (user_options->quiet == false) log_info_nn ("Initializing device kernels and memory...");
 
     session_ctx_t *session_ctx = (session_ctx_t *) mymalloc (sizeof (session_ctx_t));
 
     data.session_ctx = session_ctx;
 
-    session_ctx_init (session_ctx, quiet, force, benchmark, scrypt_tmto, cwd, install_dir, profile_dir, session_dir, shared_dir, cpath_real, wordlist_mode, rule_buf_l, rule_buf_r, rule_len_l, rule_len_r, kernel_rules_cnt, kernel_rules_buf, attack_mode, user_options_extra->attack_kern, bitmap_size, bitmap_mask, bitmap_shift1, bitmap_shift2, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d);
+    session_ctx_init (session_ctx, cwd, install_dir, profile_dir, session_dir, shared_dir, cpath_real, wordlist_mode, kernel_rules_cnt, kernel_rules_buf, bitmap_size, bitmap_mask, bitmap_shift1, bitmap_shift2, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d);
 
-    opencl_session_begin (opencl_ctx, hashconfig, hashes, session_ctx);
+    opencl_session_begin (opencl_ctx, hashconfig, hashes, session_ctx, user_options, user_options_extra);
 
-    if (data.quiet == 0) log_info_nn ("");
+    if (user_options->quiet == false) log_info_nn ("");
 
     /**
      * Store initial fanspeed if gpu_temp_retain is enabled
@@ -2356,13 +2277,13 @@ int main (int argc, char **argv)
      * In benchmark-mode, inform user which algorithm is checked
      */
 
-    if (benchmark == 1)
+    if (benchmark == true)
     {
-      if (machine_readable == 0)
+      if (machine_readable == false)
       {
-        quiet = 0;
+        //quiet = 0;
 
-        data.quiet = quiet;
+        //user_options->quiet = quiet;
 
         char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
 
@@ -2464,7 +2385,7 @@ int main (int argc, char **argv)
           {
             // do not allow --keyspace w/ a directory
 
-            if (keyspace == 1)
+            if (keyspace == true)
             {
               log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
@@ -2589,11 +2510,11 @@ int main (int argc, char **argv)
 
       data.combs_cnt = 1;
 
-      data.quiet = 1;
+      //user_options->quiet = 1;
 
       const u64 words1_cnt = count_words (wl_data, fp1, dictfile1, dictstat_ctx);
 
-      data.quiet = quiet;
+      //user_options->quiet = quiet;
 
       if (words1_cnt == 0)
       {
@@ -2607,11 +2528,11 @@ int main (int argc, char **argv)
 
       data.combs_cnt = 1;
 
-      data.quiet = 1;
+      //user_options->quiet = 1;
 
       const u64 words2_cnt = count_words (wl_data, fp2, dictfile2, dictstat_ctx);
 
-      data.quiet = quiet;
+      //user_options->quiet = quiet;
 
       if (words2_cnt == 0)
       {
@@ -2666,7 +2587,7 @@ int main (int argc, char **argv)
 
       maskcnt = 0;
 
-      if (benchmark == 0)
+      if (benchmark == false)
       {
         mask = myargv[user_options_extra->optind + 1];
 
@@ -2908,7 +2829,7 @@ int main (int argc, char **argv)
         {
           // do not allow --keyspace w/ a directory
 
-          if (keyspace == 1)
+          if (keyspace == true)
           {
             log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
@@ -3087,7 +3008,7 @@ int main (int argc, char **argv)
         {
           // do not allow --keyspace w/ a directory
 
-          if (keyspace == 1)
+          if (keyspace == true)
           {
             log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
@@ -3185,7 +3106,7 @@ int main (int argc, char **argv)
         break;
       }
 
-      if (data.quiet == 0) log_info_nn ("Checking for weak hashes...");
+      if (user_options->quiet == false) log_info_nn ("Checking for weak hashes...");
 
       for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
       {
@@ -3194,7 +3115,7 @@ int main (int argc, char **argv)
 
       // Display hack, guarantee that there is at least one \r before real start
 
-      //if (data.quiet == 0) log_info ("");
+      //if (user_options->quiet == false) log_info ("");
     }
 
     /**
@@ -3211,7 +3132,7 @@ int main (int argc, char **argv)
       * Outfile remove
       */
 
-    if (keyspace == 0 && benchmark == 0 && stdout_flag == 0)
+    if (keyspace == false && benchmark == false && stdout_flag == false)
     {
       hc_thread_create (inner_threads[inner_threads_cnt], thread_monitor, NULL);
 
@@ -3248,7 +3169,7 @@ int main (int argc, char **argv)
      * main loop
      */
 
-    if (data.quiet == 0)
+    if (user_options->quiet == false)
     {
       if (potfile_remove_cracks > 0)
       {
@@ -3533,7 +3454,7 @@ int main (int argc, char **argv)
 
       if (attack_mode != ATTACK_MODE_BF)
       {
-        if (keyspace == 0)
+        if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
         {
           induction_dictionaries = scan_directory (induction_directory);
 
@@ -3564,7 +3485,7 @@ int main (int argc, char **argv)
        * prevent the user from using --keyspace together w/ maskfile and or dictfile
        */
 
-      if (keyspace == 1)
+      if (keyspace == true)
       {
         if ((maskcnt > 1) || (dictcnt > 1))
         {
@@ -3604,7 +3525,7 @@ int main (int argc, char **argv)
 
         data.cpt_total = 0;
 
-        if (data.restore == 0)
+        if (data.restore == false)
         {
           rd->words_cur = skip;
 
@@ -4054,7 +3975,7 @@ int main (int argc, char **argv)
 
         data.words_base = words_base;
 
-        if (keyspace == 1)
+        if (keyspace == true)
         {
           log_info ("%" PRIu64 "", words_base);
 
@@ -4097,7 +4018,7 @@ int main (int argc, char **argv)
          * Update dictionary statistic
          */
 
-        if (keyspace == 0)
+        if (keyspace == false)
         {
           dictstat_write (dictstat_ctx);
         }
@@ -4186,7 +4107,7 @@ int main (int argc, char **argv)
         {
           if (data.words_base < kernel_power_all)
           {
-            if (quiet == 0)
+            if (user_options->quiet == false)
             {
               clear_prompt ();
 
@@ -4217,15 +4138,15 @@ int main (int argc, char **argv)
 
         if ((wordlist_mode == WL_MODE_FILE) || (wordlist_mode == WL_MODE_MASK))
         {
-          if ((quiet == 0) && (status == 0) && (benchmark == 0))
+          if ((user_options->quiet == false) && (status == 0) && (benchmark == false))
           {
-            if (quiet == 0) send_prompt ();
+            if (user_options->quiet == false) send_prompt ();
           }
         }
         else if (wordlist_mode == WL_MODE_STDIN)
         {
-          if (data.quiet == 0) log_info ("Starting attack in stdin mode...");
-          if (data.quiet == 0) log_info ("");
+          if (user_options->quiet == false) log_info ("Starting attack in stdin mode...");
+          if (user_options->quiet == false) log_info ("");
         }
 
         time_t runtime_start;
@@ -4275,23 +4196,26 @@ int main (int argc, char **argv)
 
         if (attack_mode != ATTACK_MODE_BF)
         {
-          induction_dictionaries = scan_directory (induction_directory);
+          if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
+          {
+            induction_dictionaries = scan_directory (induction_directory);
 
-          induction_dictionaries_cnt = count_dictionaries (induction_dictionaries);
+            induction_dictionaries_cnt = count_dictionaries (induction_dictionaries);
+          }
         }
 
-        if (benchmark == 1)
+        if (benchmark == true)
         {
           status_benchmark (opencl_ctx, hashconfig);
 
-          if (machine_readable == 0)
+          if (machine_readable == false)
           {
             log_info ("");
           }
         }
         else
         {
-          if (quiet == 0)
+          if (user_options->quiet == false)
           {
             clear_prompt ();
 
@@ -4683,28 +4607,25 @@ int main (int argc, char **argv)
 
   if (induction_dir == NULL)
   {
-    if (attack_mode != ATTACK_MODE_BF)
+    if (rmdir (induction_directory) == -1)
     {
-      if (rmdir (induction_directory) == -1)
+      if (errno == ENOENT)
       {
-        if (errno == ENOENT)
-        {
-          // good, we can ignore
-        }
-        else if (errno == ENOTEMPTY)
-        {
-          // good, we can ignore
-        }
-        else
-        {
-          log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
-
-          return -1;
-        }
+        // good, we can ignore
       }
+      else if (errno == ENOTEMPTY)
+      {
+        // good, we can ignore
+      }
+      else
+      {
+        log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
 
-      local_free (induction_directory);
+        return -1;
+      }
     }
+
+    local_free (induction_directory);
   }
 
   // outfile-check directory
@@ -4741,8 +4662,8 @@ int main (int argc, char **argv)
 
   logfile_top_msg ("STOP");
 
-  if (quiet == 0) log_info_nn ("Started: %s", ctime (&proc_start));
-  if (quiet == 0) log_info_nn ("Stopped: %s", ctime (&proc_stop));
+  if (user_options->quiet == false) log_info_nn ("Started: %s", ctime (&proc_start));
+  if (user_options->quiet == false) log_info_nn ("Stopped: %s", ctime (&proc_stop));
 
   u32 rc_final = -1;
 

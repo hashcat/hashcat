@@ -79,7 +79,7 @@ void *thread_outfile_remove (void *p)
 
     check_left--;
 
-    if (check_left == 0)
+    if (check_left == false)
     {
       struct stat outfile_check_stat;
 

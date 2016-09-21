@@ -27,7 +27,7 @@ int nvapi_init (NVAPI_PTR *nvapi)
 
   if (!nvapi->lib)
   {
-    //if (data.quiet == 0)
+    //if (data.quiet == false)
     //  log_info ("WARNING: load NVAPI library failed, proceed without NVAPI HWMon enabled.");
 
     return -1;

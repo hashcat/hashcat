@@ -6,6 +6,8 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#define PROGNAME "hashcat"
+
 #if   defined (__linux__)
 #define _POSIX
 #elif defined (__APPLE__)

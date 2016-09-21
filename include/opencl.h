@@ -85,13 +85,13 @@ int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
 
 int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, const uint pws_cnt);
 
-int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const char *opencl_platforms, const char *opencl_devices, const char *opencl_device_types, const uint opencl_vector_width, const uint opencl_vector_width_chgd, const uint nvidia_spin_damp, const uint nvidia_spin_damp_chgd, const uint workload_profile, const uint kernel_accel, const uint kernel_accel_chgd, const uint kernel_loops, const uint kernel_loops_chgd, const uint keyspace, const uint stdout_flag);
+int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_options);
 void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx);
 
-int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const tuning_db_t *tuning_db, const uint attack_mode, const bool quiet, const bool force, const bool benchmark, const bool opencl_info, const bool machine_readable, const uint algorithm_pos);
+int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const tuning_db_t *tuning_db, const user_options_t *user_options, const uint algorithm_pos);
 void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx);
 
-int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const session_ctx_t *session_ctx);
+int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const session_ctx_t *session_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra);
 int opencl_session_destroy (opencl_ctx_t *opencl_ctx);
 
 #endif // _OPENCL_H

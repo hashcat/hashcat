@@ -32,8 +32,6 @@
 
 extern hc_global_data_t data;
 
-static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
-
 static double try_run (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const u32 kernel_accel, const u32 kernel_loops)
 {
   const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads * kernel_accel;
@@ -58,7 +56,7 @@ static double try_run (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param
 
 int autotune (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig)
 {
-  const double target_ms = TARGET_MS_PROFILE[opencl_ctx->workload_profile - 1];
+  const double target_ms = opencl_ctx->target_ms;
 
   const u32 kernel_accel_min = device_param->kernel_accel_min;
   const u32 kernel_accel_max = device_param->kernel_accel_max;
@@ -296,7 +294,7 @@ int autotune (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
 
   #if defined (DEBUG)
 
-  if (data.quiet == 0)
+  if (data.quiet == false)
   {
     clear_prompt ();
 

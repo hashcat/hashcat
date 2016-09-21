@@ -99,7 +99,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        if (quiet == 0) send_prompt ();
+        if (quiet == false) send_prompt ();
 
         break;
 
@@ -111,7 +111,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        if (quiet == 0) send_prompt ();
+        if (quiet == false) send_prompt ();
 
         break;
 
@@ -123,7 +123,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        if (quiet == 0) send_prompt ();
+        if (quiet == false) send_prompt ();
 
         break;
 
@@ -135,7 +135,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        if (quiet == 0) send_prompt ();
+        if (quiet == false) send_prompt ();
 
         break;
 
@@ -147,7 +147,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        if (quiet == 0) send_prompt ();
+        if (quiet == false) send_prompt ();
 
         break;
 

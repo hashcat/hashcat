@@ -513,19 +513,7 @@ typedef struct
   u32                 devices_filter;
   cl_device_type      device_types_filter;
 
-  u32                 opencl_vector_width;
-  u32                 opencl_vector_width_chgd;
-
-  u32                 nvidia_spin_damp;
-  u32                 nvidia_spin_damp_chgd;
-
-  u32                 kernel_loops;
-  u32                 kernel_loops_chgd;
-
-  u32                 kernel_accel;
-  u32                 kernel_accel_chgd;
-
-  u32                 workload_profile;
+  double              target_ms;
 
   int                 need_adl;
   int                 need_nvml;
@@ -856,18 +844,16 @@ typedef struct
 typedef struct
 {
   u32 attack_kern;
+
+  u32 rule_len_r;
+  u32 rule_len_l;
+
   int optind;
 
 } user_options_extra_t;
 
 typedef struct
 {
-  bool            quiet;
-  bool            force;
-  bool            benchmark;
-
-  u32             scrypt_tmto;
-
   char           *cwd;
   char           *install_dir;
   char           *profile_dir;
@@ -877,16 +863,8 @@ typedef struct
 
   u32             wordlist_mode;
 
-  char           *rule_buf_l;
-  char           *rule_buf_r;
-  int             rule_len_l;
-  int             rule_len_r;
-
   u32             kernel_rules_cnt;
   kernel_rule_t  *kernel_rules_buf;
-
-  u32             attack_mode;
-  u32             attack_kern;
 
   u32             bitmap_size;
   u32             bitmap_mask;

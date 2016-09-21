@@ -300,7 +300,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
   // in this case some required buffers are free'd, ascii_digest() would run into segfault
   if (data.shutdown_inner == 1) return;
 
-  if (data.machine_readable == 1)
+  if (data.machine_readable == true)
   {
     status_display_machine_readable (opencl_ctx, hashes);
 
@@ -1144,7 +1144,7 @@ void status_benchmark_automate (opencl_ctx_t *opencl_ctx, const hashconfig_t *ha
     speed_ms[device_id]  = device_param->speed_ms[0];
   }
 
-  double hashes_dev_ms[DEVICES_MAX] = { 0 };
+  u64 hashes_dev_ms[DEVICES_MAX] = { 0 };
 
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -1181,7 +1181,7 @@ void status_benchmark (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
 
   if (data.shutdown_inner == 1) return;
 
-  if (data.machine_readable == 1)
+  if (data.machine_readable == true)
   {
     status_benchmark_automate (opencl_ctx, hashconfig);
 

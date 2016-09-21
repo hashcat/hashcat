@@ -40,7 +40,7 @@ extern hc_global_data_t data;
 
 static void set_kernel_power_final (const u64 kernel_power_final)
 {
-  if (data.quiet == 0)
+  if (data.quiet == false)
   {
     clear_prompt ();
 
@@ -280,7 +280,7 @@ void *thread_calc (void *p)
 
       if (opencl_ctx->run_thread_level1 == false) break;
 
-      if (data.benchmark == 1) break;
+      if (data.benchmark == true) break;
 
       device_param->words_done = words_fin;
     }

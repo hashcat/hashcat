@@ -239,55 +239,57 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
   {
     user_options->show                = false;
     user_options->left                = false;
-    user_options->quiet               = true;
     user_options->gpu_temp_disable    = true;
     user_options->potfile_disable     = true;
+    user_options->powertune_enable    = false;
     user_options->restore             = false;
     user_options->restore_disable     = true;
     user_options->restore_timer       = 0;
     user_options->markov_disable      = true;
     user_options->logfile_disable     = true;
     user_options->weak_hash_threshold = 0;
+    user_options->nvidia_spin_damp    = 0;
     user_options->status              = false;
     user_options->status_timer        = 0;
     user_options->outfile_check_timer = 0;
   }
 
-  if (user_options->opencl_info == true)
+  if (user_options->benchmark == true)
   {
-    user_options->session = "opencl_info";
+    user_options->attack_mode         = ATTACK_MODE_BF;
+    user_options->session             = "benchmark";
+
+    if (user_options->workload_profile_chgd == false)
+    {
+      user_options->workload_profile = 3;
+    }
   }
 
   if (user_options->keyspace == true)
   {
-    user_options->session = "keyspace";
-  }
-
-  if (user_options->benchmark == true)
-  {
-    user_options->session = "benchmark";
+    user_options->session             = "keyspace";
+    user_options->quiet               = true;
   }
 
   if (user_options->stdout_flag == true)
   {
-    user_options->session = "stdout";
-  }
-
-  if (user_options->opencl_info == true)
-  {
-    user_options->opencl_platforms    = NULL;
-    user_options->opencl_devices      = NULL;
-    user_options->opencl_device_types = mystrdup ("1,2,3");
-  }
-
-  if (user_options->stdout_flag == true)
-  {
+    user_options->session             = "stdout";
+    user_options->quiet               = true;
     user_options->hash_mode           = 2000;
     user_options->outfile_format      = OUTFILE_FMT_PLAIN;
     user_options->force               = true;
     user_options->kernel_accel        = 1024;
     user_options->kernel_loops        = 1024;
     user_options->opencl_vector_width = 1;
+  }
+
+  if (user_options->opencl_info == true)
+  {
+    user_options->session             = "opencl_info";
+    user_options->quiet               = true;
+    user_options->opencl_platforms    = NULL;
+    user_options->opencl_devices      = NULL;
+    user_options->opencl_device_types = mystrdup ("1,2,3");
   }
 
   if (user_options->left == true)
@@ -310,12 +312,40 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
     user_options->weak_hash_threshold = 0;
   }
 
+  if (user_options->hash_mode == 9710)
+  {
+    user_options->outfile_format      = 5;
+    user_options->outfile_format_chgd = 1;
+  }
+
+  if (user_options->hash_mode == 9810)
+  {
+    user_options->outfile_format      = 5;
+    user_options->outfile_format_chgd = 1;
+  }
+
+  if (user_options->hash_mode == 10410)
+  {
+    user_options->outfile_format      = 5;
+    user_options->outfile_format_chgd = 1;
+  }
+
+  if (user_options->session == NULL)
+  {
+    user_options->session = (char *) PROGNAME;
+  }
+
   return 0;
 }
 
 int user_options_sanity (user_options_t *user_options, int myargc, char **myargv, user_options_extra_t *user_options_extra)
 {
-  if (user_options->attack_mode > 7)
+  if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+   && (user_options->attack_mode != ATTACK_MODE_COMBI)
+   && (user_options->attack_mode != ATTACK_MODE_BF)
+   && (user_options->attack_mode != ATTACK_MODE_HYBRID1)
+   && (user_options->attack_mode != ATTACK_MODE_HYBRID2)
+   && (user_options->attack_mode != ATTACK_MODE_NONE))
   {
     log_error ("ERROR: Invalid attack-mode specified");
 
@@ -336,7 +366,7 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
     return -1;
   }
 
-  if (user_options->username == 1)
+  if (user_options->username == true)
   {
     if  ((user_options->hash_mode == 2500)
      ||  (user_options->hash_mode == 5200)
@@ -356,7 +386,7 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
     return -1;
   }
 
-  if (user_options->left == 1)
+  if (user_options->left == true)
   {
     if (user_options->outfile_format_chgd == true)
     {
@@ -366,7 +396,7 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
     }
   }
 
-  if (user_options->show == 1)
+  if (user_options->show == true)
   {
     if (user_options->outfile_format_chgd == true)
     {
@@ -397,35 +427,35 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
     return -1;
   }
 
-  if ((user_options->increment == 1) && (user_options->attack_mode == ATTACK_MODE_STRAIGHT))
+  if ((user_options->increment == true) && (user_options->attack_mode == ATTACK_MODE_STRAIGHT))
   {
     log_error ("ERROR: Increment is not allowed in attack-mode 0");
 
     return -1;
   }
 
-  if ((user_options->increment == 0) && (user_options->increment_min_chgd == true))
+  if ((user_options->increment == true) && (user_options->increment_min_chgd == true))
   {
     log_error ("ERROR: Increment-min is only supported combined with increment switch");
 
     return -1;
   }
 
-  if ((user_options->increment == 0) && (user_options->increment_max_chgd == true))
+  if ((user_options->increment == true) && (user_options->increment_max_chgd == true))
   {
     log_error ("ERROR: Increment-max is only supported combined with increment switch");
 
     return -1;
   }
 
-  if (user_options->rp_files_cnt && user_options->rp_gen)
+  if (user_options->rp_files_cnt > 0 && user_options->rp_gen == true)
   {
     log_error ("ERROR: Use of both rules-file and rules-generate is not supported");
 
     return -1;
   }
 
-  if (user_options->rp_files_cnt || user_options->rp_gen)
+  if (user_options->rp_files_cnt > 0 || user_options->rp_gen == true)
   {
     if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
     {
@@ -444,7 +474,7 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
 
   if (user_options->kernel_accel_chgd == true)
   {
-    if (user_options->force == 0)
+    if (user_options->force == false)
     {
       log_info ("The manual use of the -n option (or --kernel-accel) is outdated");
       log_info ("Please consider using the -w option instead");
@@ -471,7 +501,7 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
 
   if (user_options->kernel_loops_chgd == true)
   {
-    if (user_options->force == 0)
+    if (user_options->force == false)
     {
       log_info ("The manual use of the -u option (or --kernel-loops) is outdated");
       log_info ("Please consider using the -w option instead");
@@ -503,23 +533,26 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
     return -1;
   }
 
-  if (user_options->opencl_vector_width_chgd == true && (!is_power_of_2 (user_options->opencl_vector_width) || user_options->opencl_vector_width > 16))
+  if (user_options->opencl_vector_width_chgd == true)
   {
-    log_error ("ERROR: opencl-vector-width %i not allowed", user_options->opencl_vector_width);
+    if (is_power_of_2 (user_options->opencl_vector_width) == false || user_options->opencl_vector_width > 16)
+    {
+      log_error ("ERROR: opencl-vector-width %i not allowed", user_options->opencl_vector_width);
 
-    return -1;
+      return -1;
+    }
   }
 
-  if (user_options->show == 1 || user_options->left == 1)
+  if (user_options->show == true || user_options->left == true)
   {
-    if (user_options->remove == 1)
+    if (user_options->remove == true)
     {
       log_error ("ERROR: Mixing remove parameter not allowed with show parameter or left parameter");
 
       return -1;
     }
 
-    if (user_options->potfile_disable == 1)
+    if (user_options->potfile_disable == true)
     {
       log_error ("ERROR: Mixing potfile-disable parameter not allowed with show parameter or left parameter");
 
@@ -527,9 +560,9 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
     }
   }
 
-  if (user_options->show == 1)
+  if (user_options->show == true)
   {
-    if (user_options->outfile_autohex == 0)
+    if (user_options->outfile_autohex == false)
     {
       log_error ("ERROR: Mixing outfile-autohex-disable parameter not allowed with show parameter");
 
@@ -537,15 +570,15 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
     }
   }
 
-  if (user_options->keyspace == 1)
+  if (user_options->keyspace == true)
   {
-    if (user_options->show == 1)
+    if (user_options->show == true)
     {
       log_error ("ERROR: Combining show parameter with keyspace parameter is not allowed");
 
       return -1;
     }
-    else if (user_options->left == 1)
+    else if (user_options->left == true)
     {
       log_error ("ERROR: Combining left parameter with keyspace parameter is not allowed");
 
@@ -555,7 +588,7 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
 
   if (user_options->remove_timer_chgd == true)
   {
-    if (user_options->remove == 0)
+    if (user_options->remove == false)
     {
       log_error ("ERROR: Parameter remove-timer require parameter remove enabled");
 
@@ -570,7 +603,7 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
     }
   }
 
-  if (user_options->loopback == 1)
+  if (user_options->loopback == true)
   {
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
@@ -651,9 +684,9 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
     return -1;
   }
 
-  if (user_options->benchmark == 1)
+  if (user_options->benchmark == true)
   {
-    if (myargv[optind] != 0)
+    if (myargv[optind] != NULL)
     {
       log_error ("ERROR: Invalid argument for benchmark mode specified");
 
@@ -668,6 +701,15 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
 
         return -1;
       }
+    }
+  }
+  else if (user_options->opencl_info == true)
+  {
+    if (user_options_extra->optind != myargc)
+    {
+      usage_mini_print (myargv[0]);
+
+      return -1;
     }
   }
   else
@@ -734,18 +776,18 @@ int user_options_extra_init (user_options_t *user_options, int myargc, char **my
 
   user_options_extra->optind = optind;
 
-  if (user_options->benchmark == 1)
+  if (user_options->benchmark == true)
   {
 
   }
   else
   {
-    if (user_options->stdout_flag == 1) // no hash here
+    if (user_options->stdout_flag == true) // no hash here
     {
       user_options_extra->optind--;
     }
 
-    if (user_options->keyspace == 1)
+    if (user_options->keyspace == true)
     {
       int num_additional_params = 1;
 
@@ -759,6 +801,28 @@ int user_options_extra_init (user_options_t *user_options, int myargc, char **my
       if (keyspace_wordlist_specified == 0) user_options_extra->optind--;
     }
   }
+
+  user_options_extra->rule_len_l = (int) strlen (user_options->rule_buf_l);
+  user_options_extra->rule_len_r = (int) strlen (user_options->rule_buf_r);
+
+  /*
+  user_options_extra->wordlist_mode = ((user_options_extra->optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
+
+  if (user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    user_options_extra->wordlist_mode = WL_MODE_MASK;
+  }
+  */
+
+  /* still needed?
+  if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
+  {
+    // enable status (in stdin mode) whenever we do not use --stdout together with an outfile
+
+    if      (user_options->stdout_flag == true) user_options->status = true;
+    else if (user_options->outfile)             user_options->status = true;
+  }
+  */
 
   return 0;
 }
