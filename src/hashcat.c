@@ -400,13 +400,11 @@ int main (int argc, char **argv)
 
   // temporarily start
 
-  char *session                   = NULL;
   char *truecrypt_keyfiles        = NULL;
   char *veracrypt_keyfiles        = NULL;
 
   if (1)
   {
-    session = user_options->session;
     truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
     veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
 
@@ -532,7 +530,7 @@ int main (int argc, char **argv)
       {
         induction_directory = (char *) mymalloc (HCBUFSIZ_TINY);
 
-        snprintf (induction_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", session_dir, session, INDUCT_DIR);
+        snprintf (induction_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", session_dir, user_options->session, INDUCT_DIR);
 
         // create induction folder if it does not already exist
 
@@ -548,7 +546,7 @@ int main (int argc, char **argv)
             {
               char *induction_directory_mv = (char *) mymalloc (HCBUFSIZ_TINY);
 
-              snprintf (induction_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", session_dir, session, (int) proc_start);
+              snprintf (induction_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", session_dir, user_options->session, (int) proc_start);
 
               if (rename (induction_directory, induction_directory_mv) != 0)
               {
@@ -661,11 +659,9 @@ int main (int argc, char **argv)
 
   if (user_options->logfile_disable == 0)
   {
-    size_t logfile_size = strlen (session_dir) + 1 + strlen (user_options->session) + 32;
+    char *logfile = (char *) mymalloc (HCBUFSIZ_TINY);
 
-    char *logfile = (char *) mymalloc (logfile_size);
-
-    snprintf (logfile, logfile_size - 1, "%s/%s.log", session_dir, user_options->session);
+    snprintf (logfile, HCBUFSIZ_TINY - 1, "%s/%s.log", session_dir, user_options->session);
 
     data.logfile = logfile;
 
