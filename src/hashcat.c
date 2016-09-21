@@ -400,7 +400,6 @@ int main (int argc, char **argv)
 
   // temporarily start
 
-  uint  loopback                  = LOOPBACK;
   uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   char *session                   = NULL;
   uint  rp_gen                    = RP_GEN;
@@ -415,7 +414,6 @@ int main (int argc, char **argv)
 
   if (1)
   {
-    loopback        = user_options->loopback;
     powertune_enable        = user_options->powertune_enable;
     rp_gen_func_max = user_options->rp_gen_func_max;
     rp_gen_func_min = user_options->rp_gen_func_min;
@@ -433,7 +431,6 @@ int main (int argc, char **argv)
     data.status                  = user_options->status;
     data.status_timer            = user_options->status_timer;
     data.machine_readable        = user_options->machine_readable;
-    data.loopback                = user_options->loopback;
     data.runtime                 = user_options->runtime;
     data.remove                  = user_options->remove;
     data.remove_timer            = user_options->remove_timer;
@@ -3738,7 +3735,7 @@ int main (int argc, char **argv)
          * Update loopback file
          */
 
-        if (loopback == 1)
+        if (user_options->loopback == true)
         {
           loopback_write_open (loopback_ctx, induction_directory);
         }
