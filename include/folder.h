@@ -15,6 +15,11 @@
 #endif // __APPLE__
 #endif // _POSIX
 
+#if defined (_POSIX)
+#include <sys/types.h>
+#include <pwd.h>
+#endif
+
 #if defined (_WIN)
 #include <windows.h>
 #endif
@@ -36,3 +41,6 @@ char *get_session_dir (const char *profile_dir);
 int count_dictionaries (char **dictionary_files);
 
 char **scan_directory (const char *path);
+
+int  folder_config_init    (folder_config_t *folder_config, const char *install_folder, const char *shared_folder);
+void folder_config_destroy (folder_config_t *folder_config);

@@ -146,22 +146,6 @@ int main (int argc, char **argv)
   umask (077);
 
   /**
-   * There's some buggy OpenCL runtime that do not support -I.
-   * A workaround is to chdir() to the OpenCL folder,
-   * then compile the kernels,
-   * then chdir() back to where we came from so we need to save it first
-   */
-
-  char cwd[1024];
-
-  if (getcwd (cwd, sizeof (cwd) - 1) == NULL)
-  {
-    log_error ("ERROR: getcwd(): %s", strerror (errno));
-
-    return -1;
-  }
-
-  /**
    * Real init
    */
 
@@ -180,149 +164,29 @@ int main (int argc, char **argv)
   hc_thread_mutex_init (mux_display);
   hc_thread_mutex_init (mux_hwmon);
 
-
   /**
-   * folders, as discussed on https://github.com/hashcat/hashcat/issues/20
+   * folder
    */
 
-  char *exec_path = get_exec_path ();
+  folder_config_t *folder_config = (folder_config_t *) mymalloc (sizeof (folder_config_t));
 
-  #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
+  char *install_folder = NULL;
+  char *shared_folder  = NULL;
 
-  char *resolved_install_folder = realpath (INSTALL_FOLDER, NULL);
-  char *resolved_exec_path      = realpath (exec_path, NULL);
-
-  if (resolved_install_folder == NULL)
-  {
-    log_error ("ERROR: %s: %s", resolved_install_folder, strerror (errno));
-
-    return -1;
-  }
-
-  if (resolved_exec_path == NULL)
-  {
-    log_error ("ERROR: %s: %s", resolved_exec_path, strerror (errno));
-
-    return -1;
-  }
-
-  char *install_dir = get_install_dir (resolved_exec_path);
-  char *profile_dir = NULL;
-  char *session_dir = NULL;
-  char *shared_dir  = NULL;
-
-  if (strcmp (install_dir, resolved_install_folder) == 0)
-  {
-    struct passwd *pw = getpwuid (getuid ());
-
-    const char *homedir = pw->pw_dir;
-
-    profile_dir = get_profile_dir (homedir);
-    session_dir = get_session_dir (profile_dir);
-    shared_dir  = mystrdup (SHARED_FOLDER);
-
-    mkdir (profile_dir, 0700);
-    mkdir (session_dir, 0700);
-  }
-  else
-  {
-    profile_dir = install_dir;
-    session_dir = install_dir;
-    shared_dir  = install_dir;
-  }
-
-  myfree (resolved_install_folder);
-  myfree (resolved_exec_path);
-
-  #else
-
-  char *install_dir = get_install_dir (exec_path);
-  char *profile_dir = install_dir;
-  char *session_dir = install_dir;
-  char *shared_dir  = install_dir;
-
+  #if defined (INSTALL_FOLDER)
+  install_folder = INSTALL_FOLDER;
   #endif
 
-  data.install_dir = install_dir;
-  data.profile_dir = profile_dir;
-  data.session_dir = session_dir;
-  data.shared_dir  = shared_dir;
-
-  myfree (exec_path);
-
-  /**
-   * There's alot of problem related to bad support -I parameters when building the kernel.
-   * Each OpenCL runtime handles it slightly different.
-   * The most problematic is with new AMD drivers on Windows, which can not handle quote characters!
-   * The best workaround found so far is to modify the TMP variable (only inside hashcat process) before the runtime is load
-   */
-
-  char cpath[1024] = { 0 };
-
-  #if defined (_WIN)
-
-  snprintf (cpath, sizeof (cpath) - 1, "%s\\OpenCL\\", shared_dir);
-
-  char *cpath_real = mymalloc (MAX_PATH);
-
-  if (GetFullPathName (cpath, MAX_PATH, cpath_real, NULL) == 0)
-  {
-    log_error ("ERROR: %s: %s", cpath, "GetFullPathName()");
-
-    return -1;
-  }
-
-  #else
-
-  snprintf (cpath, sizeof (cpath) - 1, "%s/OpenCL/", shared_dir);
-
-  char *cpath_real = mymalloc (PATH_MAX);
-
-  if (realpath (cpath, cpath_real) == NULL)
-  {
-    log_error ("ERROR: %s: %s", cpath, strerror (errno));
-
-    return -1;
-  }
-
+  #if defined (SHARED_FOLDER)
+  shared_folder = SHARED_FOLDER;
   #endif
 
-  //if (getenv ("TMP") == NULL)
-  if (1)
-  {
-    char tmp[1000];
+  folder_config_init (folder_config, install_folder, shared_folder);
 
-    snprintf (tmp, sizeof (tmp) - 1, "TMP=%s", cpath_real);
-
-    putenv (tmp);
-  }
-
-  #if defined (_WIN)
-
-  naive_replace (cpath_real, '\\', '/');
-
-  // not escaping here, windows using quotes later
-  // naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
-
-  #else
-
-  naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
-
-  #endif
-
-  /**
-   * kernel cache, we need to make sure folder exist
-   */
-
-  int kernels_folder_size = strlen (profile_dir) + 1 + 7 + 1 + 1;
-
-  char *kernels_folder = (char *) mymalloc (kernels_folder_size);
-
-  snprintf (kernels_folder, kernels_folder_size - 1, "%s/kernels", profile_dir);
-
-  mkdir (kernels_folder, 0700);
-
-  myfree (kernels_folder);
+  data.install_dir = folder_config->install_dir;
+  data.profile_dir = folder_config->profile_dir;
+  data.session_dir = folder_config->session_dir;
+  data.shared_dir  = folder_config->shared_dir;
 
   /**
    * commandline parameters
@@ -526,7 +390,7 @@ int main (int argc, char **argv)
       {
         induction_directory = (char *) mymalloc (HCBUFSIZ_TINY);
 
-        snprintf (induction_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", session_dir, user_options->session, INDUCT_DIR);
+        snprintf (induction_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", folder_config->session_dir, user_options->session, INDUCT_DIR);
 
         // create induction folder if it does not already exist
 
@@ -542,7 +406,7 @@ int main (int argc, char **argv)
             {
               char *induction_directory_mv = (char *) mymalloc (HCBUFSIZ_TINY);
 
-              snprintf (induction_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", session_dir, user_options->session, (int) proc_start);
+              snprintf (induction_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) proc_start);
 
               if (rename (induction_directory, induction_directory_mv) != 0)
               {
@@ -582,7 +446,7 @@ int main (int argc, char **argv)
 
   char tuning_db_file[256] = { 0 };
 
-  snprintf (tuning_db_file, sizeof (tuning_db_file) - 1, "%s/%s", shared_dir, TUNING_DB_FILE);
+  snprintf (tuning_db_file, sizeof (tuning_db_file) - 1, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
 
   tuning_db_t *tuning_db = tuning_db_init (tuning_db_file);
 
@@ -598,7 +462,7 @@ int main (int argc, char **argv)
     {
       outfile_check_directory = (char *) mymalloc (HCBUFSIZ_TINY);
 
-      snprintf (outfile_check_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", session_dir, user_options->session, OUTFILES_DIR);
+      snprintf (outfile_check_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", folder_config->session_dir, user_options->session, OUTFILES_DIR);
     }
     else
     {
@@ -657,7 +521,7 @@ int main (int argc, char **argv)
   {
     char *logfile = (char *) mymalloc (HCBUFSIZ_TINY);
 
-    snprintf (logfile, HCBUFSIZ_TINY - 1, "%s/%s.log", session_dir, user_options->session);
+    snprintf (logfile, HCBUFSIZ_TINY - 1, "%s/%s.log", folder_config->session_dir, user_options->session);
 
     data.logfile = logfile;
 
@@ -870,7 +734,7 @@ int main (int argc, char **argv)
 
     data.potfile_ctx = potfile_ctx;
 
-    potfile_init (potfile_ctx, profile_dir, user_options->potfile_path, user_options->potfile_disable);
+    potfile_init (potfile_ctx, folder_config->profile_dir, user_options->potfile_path, user_options->potfile_disable);
 
     if (user_options->show == true || user_options->left == true)
     {
@@ -1015,7 +879,7 @@ int main (int argc, char **argv)
 
     dictstat_ctx_t *dictstat_ctx = mymalloc (sizeof (dictstat_ctx_t));
 
-    dictstat_init (dictstat_ctx, profile_dir);
+    dictstat_init (dictstat_ctx, folder_config->profile_dir);
 
     if (user_options->keyspace == false)
     {
@@ -1885,9 +1749,9 @@ int main (int argc, char **argv)
 
     data.session_ctx = session_ctx;
 
-    session_ctx_init (session_ctx, cwd, install_dir, profile_dir, session_dir, shared_dir, cpath_real, kernel_rules_cnt, kernel_rules_buf, bitmap_size, bitmap_mask, bitmap_shift1, bitmap_shift2, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d);
+    session_ctx_init (session_ctx, kernel_rules_cnt, kernel_rules_buf, bitmap_size, bitmap_mask, bitmap_shift1, bitmap_shift2, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d);
 
-    opencl_session_begin (opencl_ctx, hashconfig, hashes, session_ctx, user_options, user_options_extra);
+    opencl_session_begin (opencl_ctx, hashconfig, hashes, session_ctx, user_options, user_options_extra, folder_config);
 
     if (user_options->quiet == false) log_info_nn ("");
 
@@ -3019,7 +2883,7 @@ int main (int argc, char **argv)
           if (root_table_buf   == NULL) root_table_buf   = (hcstat_table_t *) mycalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
           if (markov_table_buf == NULL) markov_table_buf = (hcstat_table_t *) mycalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
 
-          sp_setup_tbl (shared_dir, user_options->markov_hcstat, user_options->markov_disable, user_options->markov_classic, root_table_buf, markov_table_buf);
+          sp_setup_tbl (folder_config->shared_dir, user_options->markov_hcstat, user_options->markov_disable, user_options->markov_classic, root_table_buf, markov_table_buf);
 
           cs_t *root_css_buf   = (cs_t *) mycalloc (SP_PW_MAX,           sizeof (cs_t));
           cs_t *markov_css_buf = (cs_t *) mycalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
@@ -3488,7 +3352,7 @@ int main (int argc, char **argv)
           if (root_table_buf   == NULL) root_table_buf   = (hcstat_table_t *) mycalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
           if (markov_table_buf == NULL) markov_table_buf = (hcstat_table_t *) mycalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
 
-          sp_setup_tbl (shared_dir, user_options->markov_hcstat, user_options->markov_disable, user_options->markov_classic, root_table_buf, markov_table_buf);
+          sp_setup_tbl (folder_config->shared_dir, user_options->markov_hcstat, user_options->markov_disable, user_options->markov_classic, root_table_buf, markov_table_buf);
 
           cs_t *root_css_buf   = (cs_t *) mycalloc (SP_PW_MAX,           sizeof (cs_t));
           cs_t *markov_css_buf = (cs_t *) mycalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
@@ -4351,6 +4215,8 @@ int main (int argc, char **argv)
   if (opencl_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
 
   opencl_ctx_destroy (opencl_ctx);
+
+  folder_config_destroy (folder_config);
 
   return rc_final;
 }

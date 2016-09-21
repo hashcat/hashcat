@@ -857,13 +857,6 @@ typedef struct
 
 typedef struct
 {
-  char           *cwd;
-  char           *install_dir;
-  char           *profile_dir;
-  char           *session_dir;
-  char           *shared_dir;
-  char           *cpath_real;
-
   u32             kernel_rules_cnt;
   kernel_rule_t  *kernel_rules_buf;
 
@@ -882,6 +875,17 @@ typedef struct
   u32            *bitmap_s2_d;
 
 } session_ctx_t;
+
+typedef struct
+{
+  char *cwd;
+  char *install_dir;
+  char *profile_dir;
+  char *session_dir;
+  char *shared_dir;
+  char *cpath_real;
+
+} folder_config_t;
 
 typedef struct
 {

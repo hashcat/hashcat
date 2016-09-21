@@ -2518,7 +2518,7 @@ void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
   opencl_ctx->need_xnvctrl   = 0;
 }
 
-int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const session_ctx_t *session_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra)
+int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const session_ctx_t *session_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config)
 {
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -3013,9 +3013,9 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
      * default building options
      */
 
-    if (chdir (session_ctx->cpath_real) == -1)
+    if (chdir (folder_config->cpath_real) == -1)
     {
-      log_error ("ERROR: %s: %s", session_ctx->cpath_real, strerror (errno));
+      log_error ("ERROR: %s: %s", folder_config->cpath_real, strerror (errno));
 
       return -1;
     }
@@ -3023,9 +3023,9 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
     char build_opts[1024] = { 0 };
 
     #if defined (_WIN)
-    snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", session_ctx->cpath_real);
+    snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", folder_config->cpath_real);
     #else
-    snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", session_ctx->cpath_real);
+    snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", folder_config->cpath_real);
     #endif
 
     // include check
@@ -3105,7 +3105,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
       char source_file[256] = { 0 };
 
-      generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, session_ctx->shared_dir, source_file);
+      generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, folder_config->shared_dir, source_file);
 
       struct stat sst;
 
@@ -3122,7 +3122,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
       char cached_file[256] = { 0 };
 
-      generate_cached_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, session_ctx->profile_dir, device_name_chksum, cached_file);
+      generate_cached_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, folder_config->profile_dir, device_name_chksum, cached_file);
 
       int cached = 1;
 
@@ -3369,7 +3369,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
       char source_file[256] = { 0 };
 
-      generate_source_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, session_ctx->shared_dir, source_file);
+      generate_source_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, folder_config->shared_dir, source_file);
 
       struct stat sst;
 
@@ -3386,7 +3386,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
       char cached_file[256] = { 0 };
 
-      generate_cached_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, session_ctx->profile_dir, device_name_chksum, cached_file);
+      generate_cached_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, folder_config->profile_dir, device_name_chksum, cached_file);
 
       int cached = 1;
 
@@ -3550,7 +3550,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
       char source_file[256] = { 0 };
 
-      generate_source_kernel_amp_filename (user_options_extra->attack_kern, session_ctx->shared_dir, source_file);
+      generate_source_kernel_amp_filename (user_options_extra->attack_kern, folder_config->shared_dir, source_file);
 
       struct stat sst;
 
@@ -3567,7 +3567,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
       char cached_file[256] = { 0 };
 
-      generate_cached_kernel_amp_filename (user_options_extra->attack_kern, session_ctx->profile_dir, device_name_chksum, cached_file);
+      generate_cached_kernel_amp_filename (user_options_extra->attack_kern, folder_config->profile_dir, device_name_chksum, cached_file);
 
       int cached = 1;
 
@@ -3717,9 +3717,9 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
     // return back to the folder we came from initially (workaround)
 
-    if (chdir (session_ctx->cwd) == -1)
+    if (chdir (folder_config->cwd) == -1)
     {
-      log_error ("ERROR: %s: %s", session_ctx->cwd, strerror (errno));
+      log_error ("ERROR: %s: %s", folder_config->cwd, strerror (errno));
 
       return -1;
     }

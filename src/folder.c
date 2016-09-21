@@ -10,6 +10,8 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
+#include "logging.h"
+#include "shared.h"
 #include "folder.h"
 
 #if defined (__APPLE__)
@@ -103,22 +105,18 @@ char *get_install_dir (const char *progname)
 
 char *get_profile_dir (const char *homedir)
 {
-  size_t len = strlen (homedir) + 1 + strlen (DOT_HASHCAT) + 1;
+  char *profile_dir = (char *) mymalloc (HCBUFSIZ_TINY + 1);
 
-  char *profile_dir = (char *) mymalloc (len + 1);
-
-  snprintf (profile_dir, len, "%s/%s", homedir, DOT_HASHCAT);
+  snprintf (profile_dir, HCBUFSIZ_TINY - 1, "%s/%s", homedir, DOT_HASHCAT);
 
   return profile_dir;
 }
 
 char *get_session_dir (const char *profile_dir)
 {
-  size_t len = strlen (profile_dir) + 1 + strlen (SESSIONS_FOLDER) + 1;
+  char *session_dir = (char *) mymalloc (HCBUFSIZ_TINY);
 
-  char *session_dir = (char *) mymalloc (len + 1);
-
-  snprintf (session_dir, len, "%s/%s", profile_dir, SESSIONS_FOLDER);
+  snprintf (session_dir, HCBUFSIZ_TINY - 1, "%s/%s", profile_dir, SESSIONS_FOLDER);
 
   return session_dir;
 }
@@ -234,4 +232,189 @@ char **scan_directory (const char *path)
   myfree (tmp_path);
 
   return (files);
+}
+
+int folder_config_init (folder_config_t *folder_config, const char *install_folder, const char *shared_folder)
+{
+  /**
+   * There's some buggy OpenCL runtime that do not support -I.
+   * A workaround is to chdir() to the OpenCL folder,
+   * then compile the kernels,
+   * then chdir() back to where we came from so we need to save it first
+   */
+
+  char *cwd = (char *) mymalloc (HCBUFSIZ_TINY);
+
+  if (getcwd (cwd, HCBUFSIZ_TINY - 1) == NULL)
+  {
+    log_error ("ERROR: getcwd(): %s", strerror (errno));
+
+    return -1;
+  }
+
+  /**
+   * folders, as discussed on https://github.com/hashcat/hashcat/issues/20
+   */
+
+  char *exec_path = get_exec_path ();
+
+  #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
+
+  char *resolved_install_folder = realpath (install_folder, NULL);
+  char *resolved_exec_path      = realpath (exec_path, NULL);
+
+  if (resolved_install_folder == NULL)
+  {
+    log_error ("ERROR: %s: %s", resolved_install_folder, strerror (errno));
+
+    return -1;
+  }
+
+  if (resolved_exec_path == NULL)
+  {
+    log_error ("ERROR: %s: %s", resolved_exec_path, strerror (errno));
+
+    return -1;
+  }
+
+  char *install_dir = get_install_dir (resolved_exec_path);
+  char *profile_dir = NULL;
+  char *session_dir = NULL;
+  char *shared_dir  = NULL;
+
+  if (strcmp (install_dir, resolved_install_folder) == 0)
+  {
+    struct passwd *pw = getpwuid (getuid ());
+
+    const char *homedir = pw->pw_dir;
+
+    profile_dir = get_profile_dir (homedir);
+    session_dir = get_session_dir (profile_dir);
+    shared_dir  = mystrdup (shared_folder);
+
+    mkdir (profile_dir, 0700);
+    mkdir (session_dir, 0700);
+  }
+  else
+  {
+    profile_dir = install_dir;
+    session_dir = install_dir;
+    shared_dir  = install_dir;
+  }
+
+  myfree (resolved_install_folder);
+  myfree (resolved_exec_path);
+
+  #else
+
+  if (install_folder == NULL) install_folder = NULL; // make compiler happy
+  if (shared_folder  == NULL) shared_folder  = NULL; // make compiler happy
+
+  char *install_dir = get_install_dir (exec_path);
+  char *profile_dir = install_dir;
+  char *session_dir = install_dir;
+  char *shared_dir  = install_dir;
+
+  #endif
+
+  myfree (exec_path);
+
+  /**
+   * There's alot of problem related to bad support -I parameters when building the kernel.
+   * Each OpenCL runtime handles it slightly different.
+   * The most problematic is with new AMD drivers on Windows, which can not handle quote characters!
+   * The best workaround found so far is to modify the TMP variable (only inside hashcat process) before the runtime is load
+   */
+
+  char *cpath = (char *) mymalloc (HCBUFSIZ_TINY);
+
+  #if defined (_WIN)
+
+  snprintf (cpath, HCBUFSIZ_TINY - 1, "%s\\OpenCL\\", shared_dir);
+
+  char *cpath_real = (char *) mymalloc (HCBUFSIZ_TINY);
+
+  if (GetFullPathName (cpath, HCBUFSIZ_TINY - 1, cpath_real, NULL) == 0)
+  {
+    log_error ("ERROR: %s: %s", cpath, "GetFullPathName()");
+
+    return -1;
+  }
+
+  #else
+
+  snprintf (cpath, HCBUFSIZ_TINY - 1, "%s/OpenCL/", shared_dir);
+
+  char *cpath_real = (char *) mymalloc (PATH_MAX);
+
+  if (realpath (cpath, cpath_real) == NULL)
+  {
+    log_error ("ERROR: %s: %s", cpath, strerror (errno));
+
+    return -1;
+  }
+
+  #endif
+
+  myfree (cpath);
+
+  //if (getenv ("TMP") == NULL)
+  if (1)
+  {
+    char tmp[1000];
+
+    snprintf (tmp, sizeof (tmp) - 1, "TMP=%s", cpath_real);
+
+    putenv (tmp);
+  }
+
+  #if defined (_WIN)
+
+  naive_replace (cpath_real, '\\', '/');
+
+  // not escaping here, windows using quotes later
+  // naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
+
+  #else
+
+  naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
+
+  #endif
+
+  /**
+   * kernel cache, we need to make sure folder exist
+   */
+
+  char *kernels_folder = (char *) mymalloc (HCBUFSIZ_TINY);
+
+  snprintf (kernels_folder, HCBUFSIZ_TINY - 1, "%s/kernels", profile_dir);
+
+  mkdir (kernels_folder, 0700);
+
+  myfree (kernels_folder);
+
+  /**
+   * store for later use
+   */
+
+  folder_config->cwd          = cwd;
+  folder_config->install_dir  = install_dir;
+  folder_config->profile_dir  = profile_dir;
+  folder_config->session_dir  = session_dir;
+  folder_config->shared_dir   = shared_dir;
+  folder_config->cpath_real   = cpath_real;
+
+  return 0;
+}
+
+void folder_config_destroy (folder_config_t *folder_config)
+{
+  myfree (folder_config->cwd);
+
+  folder_config->cwd          = NULL;
+  folder_config->install_dir  = NULL;
+  folder_config->profile_dir  = NULL;
+  folder_config->session_dir  = NULL;
+  folder_config->shared_dir   = NULL;
+  folder_config->cpath_real   = NULL;
 }

@@ -7,15 +7,8 @@
 #include "types.h"
 #include "session.h"
 
-void session_ctx_init (session_ctx_t *session_ctx, char *cwd, char *install_dir, char *profile_dir, char *session_dir, char *shared_dir, char *cpath_real, const u32 kernel_rules_cnt, kernel_rule_t *kernel_rules_buf,const u32 bitmap_size, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, u32 *bitmap_s1_a, u32 *bitmap_s1_b, u32 *bitmap_s1_c, u32 *bitmap_s1_d, u32 *bitmap_s2_a, u32 *bitmap_s2_b, u32  *bitmap_s2_c, u32 *bitmap_s2_d)
+void session_ctx_init (session_ctx_t *session_ctx, const u32 kernel_rules_cnt, kernel_rule_t *kernel_rules_buf, const u32 bitmap_size, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, u32 *bitmap_s1_a, u32 *bitmap_s1_b, u32 *bitmap_s1_c, u32 *bitmap_s1_d, u32 *bitmap_s2_a, u32 *bitmap_s2_b, u32  *bitmap_s2_c, u32 *bitmap_s2_d)
 {
-  session_ctx->cwd              = cwd;
-  session_ctx->install_dir      = install_dir;
-  session_ctx->profile_dir      = profile_dir;
-  session_ctx->session_dir      = session_dir;
-  session_ctx->shared_dir       = shared_dir;
-  session_ctx->cpath_real       = cpath_real;
-
   session_ctx->kernel_rules_cnt = kernel_rules_cnt;
   session_ctx->kernel_rules_buf = kernel_rules_buf;
 
@@ -36,13 +29,6 @@ void session_ctx_init (session_ctx_t *session_ctx, char *cwd, char *install_dir,
 
 void session_ctx_destroy (session_ctx_t *session_ctx)
 {
-  session_ctx->cwd              = NULL;
-  session_ctx->install_dir      = NULL;
-  session_ctx->profile_dir      = NULL;
-  session_ctx->session_dir      = NULL;
-  session_ctx->shared_dir       = NULL;
-  session_ctx->cpath_real       = NULL;
-
   session_ctx->kernel_rules_buf = NULL;
   session_ctx->kernel_rules_cnt = 0;
 
