@@ -400,7 +400,6 @@ int main (int argc, char **argv)
 
   // temporarily start
 
-  uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   char *session                   = NULL;
   uint  rp_gen                    = RP_GEN;
   uint  rp_gen_func_min           = RP_GEN_FUNC_MIN;
@@ -418,7 +417,6 @@ int main (int argc, char **argv)
     session = user_options->session;
     truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
     veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
-    weak_hash_threshold     = user_options->weak_hash_threshold;
 
     data.attack_mode             = user_options->attack_mode;
     data.restore                 = user_options->restore;
@@ -458,8 +456,8 @@ int main (int argc, char **argv)
     data.rule_buf_r = user_options->rule_buf_r;
 
 
-    data.rule_len_l = user_options_extra->rule_len_l;
-    data.rule_len_r = user_options_extra->rule_len_r;
+    data.rule_len_l    = user_options_extra->rule_len_l;
+    data.rule_len_r    = user_options_extra->rule_len_r;
     data.wordlist_mode = user_options_extra->wordlist_mode;
     data.attack_kern   = user_options_extra->attack_kern;
 
@@ -2801,7 +2799,7 @@ int main (int argc, char **argv)
      * weak hash check
      */
 
-    if (weak_hash_threshold >= hashes->salts_cnt)
+    if (user_options->weak_hash_threshold >= hashes->salts_cnt)
     {
       hc_device_param_t *device_param = NULL;
 
