@@ -10,9 +10,9 @@
 #include "hash_management.h"
 #include "outfile.h"
 
-void outfile_init (outfile_ctx_t *outfile_ctx, char *outfile, const uint outfile_format, const uint outfile_autohex)
+void outfile_init (outfile_ctx_t *outfile_ctx, const user_options_t *user_options)
 {
-  if (outfile == NULL)
+  if (user_options->outfile == NULL)
   {
     outfile_ctx->fp       = stdout;
     outfile_ctx->filename = NULL;
@@ -20,11 +20,11 @@ void outfile_init (outfile_ctx_t *outfile_ctx, char *outfile, const uint outfile
   else
   {
     outfile_ctx->fp       = NULL;
-    outfile_ctx->filename = outfile;
+    outfile_ctx->filename = user_options->outfile;
   }
 
-  outfile_ctx->outfile_format   = outfile_format;
-  outfile_ctx->outfile_autohex  = outfile_autohex;
+  outfile_ctx->outfile_format   = user_options->outfile_format;
+  outfile_ctx->outfile_autohex  = user_options->outfile_autohex;
 }
 
 void outfile_destroy (outfile_ctx_t *outfile_ctx)
@@ -37,29 +37,29 @@ void outfile_destroy (outfile_ctx_t *outfile_ctx)
 
 void outfile_format_plain (outfile_ctx_t *outfile_ctx, const unsigned char *plain_ptr, const uint plain_len)
 {
-  int needs_hexify = 0;
+  bool needs_hexify = false;
 
-  if (outfile_ctx->outfile_autohex == 1)
+  if (outfile_ctx->outfile_autohex == true)
   {
     for (uint i = 0; i < plain_len; i++)
     {
       if (plain_ptr[i] < 0x20)
       {
-        needs_hexify = 1;
+        needs_hexify = true;
 
         break;
       }
 
       if (plain_ptr[i] > 0x7f)
       {
-        needs_hexify = 1;
+        needs_hexify = true;
 
         break;
       }
     }
   }
 
-  if (needs_hexify == 1)
+  if (needs_hexify == true)
   {
     fprintf (outfile_ctx->fp, "$HEX[");
 

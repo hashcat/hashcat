@@ -102,7 +102,6 @@ extern const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
 const int comptime = COMPTIME;
 
-
 int main (int argc, char **argv)
 {
   #if defined (_WIN)
@@ -401,10 +400,6 @@ int main (int argc, char **argv)
 
   // temporarily start
 
-  char *outfile                   = NULL;
-  uint  outfile_format            = OUTFILE_FORMAT;
-  uint  outfile_autohex           = OUTFILE_AUTOHEX;
-  uint  outfile_check_timer       = OUTFILE_CHECK_TIMER;
   uint  status                    = STATUS;
   uint  loopback                  = LOOPBACK;
   uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
@@ -422,10 +417,6 @@ int main (int argc, char **argv)
   if (1)
   {
     loopback        = user_options->loopback;
-    outfile_autohex = user_options->outfile_autohex;
-    outfile_check_timer     = user_options->outfile_check_timer;
-    outfile_format  = user_options->outfile_format;
-    outfile = user_options->outfile;
     powertune_enable        = user_options->powertune_enable;
     rp_gen_func_max = user_options->rp_gen_func_max;
     rp_gen_func_min = user_options->rp_gen_func_min;
@@ -631,7 +622,7 @@ int main (int argc, char **argv)
     {
       outfile_check_directory = (char *) mymalloc (HCBUFSIZ_TINY);
 
-      snprintf (outfile_check_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", session_dir, session, OUTFILES_DIR);
+      snprintf (outfile_check_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", session_dir, user_options->session, OUTFILES_DIR);
     }
     else
     {
@@ -887,7 +878,7 @@ int main (int argc, char **argv)
 
     data.outfile_ctx = outfile_ctx;
 
-    outfile_init (outfile_ctx, outfile, outfile_format, outfile_autohex);
+    outfile_init (outfile_ctx, user_options);
 
     /**
      * Sanity check for hashfile vs outfile (should not point to the same physical file)
@@ -2864,7 +2855,7 @@ int main (int argc, char **argv)
 
       inner_threads_cnt++;
 
-      if (outfile_check_timer != 0)
+      if (user_options->outfile_check_timer != 0)
       {
         if (data.outfile_check_directory != NULL)
         {
@@ -2879,17 +2870,17 @@ int main (int argc, char **argv)
           }
           else
           {
-            outfile_check_timer = 0;
+            user_options->outfile_check_timer = 0;
           }
         }
         else
         {
-          outfile_check_timer = 0;
+          user_options->outfile_check_timer = 0;
         }
       }
     }
 
-    data.outfile_check_timer = outfile_check_timer;
+    data.outfile_check_timer = user_options->outfile_check_timer;
 
     /**
      * main loop

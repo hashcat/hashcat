@@ -19,7 +19,7 @@ typedef enum outfile_fmt
 
 } outfile_fmt_t;
 
-void outfile_init           (outfile_ctx_t *outfile_ctx, char *outfile, const uint outfile_format, const uint outfile_autohex);
+void outfile_init           (outfile_ctx_t *outfile_ctx, const user_options_t *user_options);
 void outfile_destroy        (outfile_ctx_t *outfile_ctx);
 void outfile_format_plain   (outfile_ctx_t *outfile_ctx, const unsigned char *plain_ptr, const uint plain_len);
 void outfile_write_open     (outfile_ctx_t *outfile_ctx);
