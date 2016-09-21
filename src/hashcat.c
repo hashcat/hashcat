@@ -403,8 +403,6 @@ int main (int argc, char **argv)
   // temporarily start
 
 
-  u64   skip                      = SKIP;
-  u64   limit                     = LIMIT;
   uint  keyspace                  = KEYSPACE;
   uint  potfile_disable           = POTFILE_DISABLE;
   char *potfile_path              = NULL;
@@ -457,7 +455,6 @@ int main (int argc, char **argv)
     increment       = user_options->increment;
     induction_dir   = user_options->induction_dir;
     keyspace        = user_options->keyspace;
-    limit   = user_options->limit;
     loopback        = user_options->loopback;
     markov_classic  = user_options->markov_classic;
     markov_disable  = user_options->markov_disable;
@@ -477,7 +474,6 @@ int main (int argc, char **argv)
     segment_size    = user_options->segment_size;
     separator       = user_options->separator;
     session = user_options->session;
-    skip    = user_options->skip;
     status  = user_options->status;
     truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
     veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
@@ -3259,7 +3255,7 @@ int main (int argc, char **argv)
        * prevent the user from using --skip/--limit together w/ maskfile and or dictfile
        */
 
-      if (skip != 0 || limit != 0)
+      if (user_options->skip != 0 || user_options->limit != 0)
       {
         if ((maskcnt > 1) || (dictcnt > 1))
         {
@@ -3273,7 +3269,7 @@ int main (int argc, char **argv)
        * prevent the user from using --keyspace together w/ maskfile and or dictfile
        */
 
-      if (keyspace == true)
+      if (user_options->keyspace == true)
       {
         if ((maskcnt > 1) || (dictcnt > 1))
         {
@@ -3315,9 +3311,9 @@ int main (int argc, char **argv)
 
         if (data.restore == false)
         {
-          rd->words_cur = skip;
+          rd->words_cur = user_options->skip;
 
-          skip = 0;
+          user_options->skip = 0;
 
           data.skip = 0;
         }
@@ -4255,11 +4251,11 @@ int main (int argc, char **argv)
 
         if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
         {
-          unsigned int limit = nvml_power_limit[device_id];
+          unsigned int power_limit = nvml_power_limit[device_id];
 
-          if (limit > 0)
+          if (power_limit > 0)
           {
-            hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].nvml, limit);
+            hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].nvml, power_limit);
           }
         }
       }
