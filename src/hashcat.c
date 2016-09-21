@@ -211,7 +211,6 @@ int main (int argc, char **argv)
   char *induction_dir             = NULL;
   char *outfile_check_dir         = NULL;
   uint  hash_mode                 = HASH_MODE;
-  uint  attack_mode               = ATTACK_MODE;
   uint  markov_disable            = MARKOV_DISABLE;
   uint  markov_classic            = MARKOV_CLASSIC;
   uint  markov_threshold          = MARKOV_THRESHOLD;
@@ -221,10 +220,8 @@ int main (int argc, char **argv)
   uint  outfile_autohex           = OUTFILE_AUTOHEX;
   uint  outfile_check_timer       = OUTFILE_CHECK_TIMER;
   uint  restore                   = RESTORE;
-  uint  restore_timer             = RESTORE_TIMER;
   uint  restore_disable           = RESTORE_DISABLE;
   uint  status                    = STATUS;
-  uint  status_timer              = STATUS_TIMER;
   uint  machine_readable          = MACHINE_READABLE;
   uint  loopback                  = LOOPBACK;
   uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
@@ -238,14 +235,8 @@ int main (int argc, char **argv)
   uint  increment                 = INCREMENT;
   uint  increment_min             = INCREMENT_MIN;
   uint  increment_max             = INCREMENT_MAX;
-
-
-
-
   char *truecrypt_keyfiles        = NULL;
   char *veracrypt_keyfiles        = NULL;
-
-
   uint  gpu_temp_disable          = GPU_TEMP_DISABLE;
   #if defined (HAVE_HWMON)
   uint  gpu_temp_abort            = GPU_TEMP_ABORT;
@@ -551,7 +542,7 @@ int main (int argc, char **argv)
 
   if (1)
   {
-    attack_mode     = user_options->attack_mode;
+
     benchmark       = user_options->benchmark;
     bitmap_max      = user_options->bitmap_max;
     bitmap_min      = user_options->bitmap_min;
@@ -590,7 +581,6 @@ int main (int argc, char **argv)
     powertune_enable        = user_options->powertune_enable;
     remove  = user_options->remove;
     restore_disable = user_options->restore_disable;
-    restore_timer   = user_options->restore_timer;
     restore = user_options->restore;
     rp_files_cnt    = user_options->rp_files_cnt;
     rp_files        = user_options->rp_files;
@@ -604,7 +594,6 @@ int main (int argc, char **argv)
     session = user_options->session;
     show    = user_options->show;
     skip    = user_options->skip;
-    status_timer    = user_options->status_timer;
     status  = user_options->status;
     stdout_flag     = user_options->stdout_flag;
     truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
@@ -1279,7 +1268,7 @@ int main (int argc, char **argv)
     {
       opencl_ctx->force_jit_compilation = 8900;
     }
-    else if (hashconfig->hash_mode == 1500 && attack_mode == ATTACK_MODE_BF && hashes->salts_cnt == 1)
+    else if (hashconfig->hash_mode == 1500 && user_options->attack_mode == ATTACK_MODE_BF && hashes->salts_cnt == 1)
     {
       opencl_ctx->force_jit_compilation = 1500;
     }
@@ -3117,7 +3106,7 @@ int main (int argc, char **argv)
       rd->maskpos  = maskpos;
       data.maskpos = maskpos;
 
-      if (user_options->attack_mode == ATTACK_MODE_HYBRID1 || attack_mode == ATTACK_MODE_HYBRID2 || attack_mode == ATTACK_MODE_BF)
+      if (user_options->attack_mode == ATTACK_MODE_HYBRID1 || user_options->attack_mode == ATTACK_MODE_HYBRID2 || user_options->attack_mode == ATTACK_MODE_BF)
       {
         char *mask = masks[maskpos];
 
@@ -4204,7 +4193,7 @@ int main (int argc, char **argv)
       }
     }
     // NOTE: combi is okay because it is already set beforehand
-    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1 || attack_mode == ATTACK_MODE_HYBRID2)
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1 || user_options->attack_mode == ATTACK_MODE_HYBRID2)
     {
       if (data.dictfile == NULL)
       {
