@@ -4547,6 +4547,8 @@ int opencl_session_destroy (opencl_ctx_t *opencl_ctx)
 
       return -1;
     }
+
+    memset (device_param, 0, sizeof (hc_device_param_t));
   }
 
   return 0;
