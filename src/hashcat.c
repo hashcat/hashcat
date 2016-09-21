@@ -403,8 +403,6 @@ int main (int argc, char **argv)
   // temporarily start
 
 
-  uint  potfile_disable           = POTFILE_DISABLE;
-  char *potfile_path              = NULL;
   uint  debug_mode                = DEBUG_MODE;
   char *debug_file                = NULL;
   char *induction_dir             = NULL;
@@ -463,8 +461,6 @@ int main (int argc, char **argv)
     outfile_check_timer     = user_options->outfile_check_timer;
     outfile_format  = user_options->outfile_format;
     outfile = user_options->outfile;
-    potfile_disable = user_options->potfile_disable;
-    potfile_path    = user_options->potfile_path;
     powertune_enable        = user_options->powertune_enable;
     rp_gen_func_max = user_options->rp_gen_func_max;
     rp_gen_func_min = user_options->rp_gen_func_min;
@@ -950,7 +946,7 @@ int main (int argc, char **argv)
 
     data.potfile_ctx = potfile_ctx;
 
-    potfile_init (potfile_ctx, profile_dir, potfile_path, potfile_disable);
+    potfile_init (potfile_ctx, profile_dir, user_options->potfile_path, user_options->potfile_disable);
 
     if (user_options->show == true || user_options->left == true)
     {
@@ -1011,7 +1007,7 @@ int main (int argc, char **argv)
 
     int potfile_remove_cracks = 0;
 
-    if (potfile_disable == 0)
+    if (user_options->potfile_disable == 0)
     {
       if (user_options->quiet == false) log_info_nn ("Comparing hashes with potfile entries...");
 
