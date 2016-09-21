@@ -10,6 +10,7 @@
 #include "interface.h"
 #include "shared.h"
 #include "usage.h"
+#include "outfile.h"
 #include "user_options.h"
 
 void user_options_init (user_options_t *user_options)
@@ -229,10 +230,90 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
     return -1;
   }
 
+  // some options can influence or overwrite other options
+
+  if (user_options->opencl_info == true
+   || user_options->keyspace    == true
+   || user_options->benchmark   == true
+   || user_options->stdout_flag == true)
+  {
+    user_options->show                = false;
+    user_options->left                = false;
+    user_options->quiet               = true;
+    user_options->gpu_temp_disable    = true;
+    user_options->potfile_disable     = true;
+    user_options->restore             = false;
+    user_options->restore_disable     = true;
+    user_options->restore_timer       = 0;
+    user_options->markov_disable      = true;
+    user_options->logfile_disable     = true;
+    user_options->weak_hash_threshold = 0;
+    user_options->status              = false;
+    user_options->status_timer        = 0;
+    user_options->outfile_check_timer = 0;
+  }
+
+  if (user_options->opencl_info == true)
+  {
+    user_options->session = "opencl_info";
+  }
+
+  if (user_options->keyspace == true)
+  {
+    user_options->session = "keyspace";
+  }
+
+  if (user_options->benchmark == true)
+  {
+    user_options->session = "benchmark";
+  }
+
+  if (user_options->stdout_flag == true)
+  {
+    user_options->session = "stdout";
+  }
+
+  if (user_options->opencl_info == true)
+  {
+    user_options->opencl_platforms    = NULL;
+    user_options->opencl_devices      = NULL;
+    user_options->opencl_device_types = mystrdup ("1,2,3");
+  }
+
+  if (user_options->stdout_flag == true)
+  {
+    user_options->hash_mode           = 2000;
+    user_options->outfile_format      = OUTFILE_FMT_PLAIN;
+    user_options->force               = true;
+    user_options->kernel_accel        = 1024;
+    user_options->kernel_loops        = 1024;
+    user_options->opencl_vector_width = 1;
+  }
+
+  if (user_options->left == true)
+  {
+    user_options->outfile_format = OUTFILE_FMT_HASH;
+  }
+
+  if (user_options->show == true || user_options->left == true)
+  {
+    user_options->attack_mode = ATTACK_MODE_NONE;
+  }
+
+  if (user_options->skip != 0 && user_options->limit != 0)
+  {
+    user_options->limit += user_options->skip;
+  }
+
+  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+  {
+    user_options->weak_hash_threshold = 0;
+  }
+
   return 0;
 }
 
-int user_options_sanity (user_options_t *user_options, int myargc, char **myargv, const u32 attack_kern)
+int user_options_sanity (user_options_t *user_options, int myargc, char **myargv, user_options_extra_t *user_options_extra)
 {
   if (user_options->attack_mode > 7)
   {
@@ -591,36 +672,36 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
   }
   else
   {
-    if (attack_kern == ATTACK_KERN_NONE)
+    if (user_options_extra->attack_kern == ATTACK_KERN_NONE)
     {
-      if ((optind + 1) != myargc)
+      if ((user_options_extra->optind + 1) != myargc)
       {
         usage_mini_print (myargv[0]);
 
         return -1;
       }
     }
-    else if (attack_kern == ATTACK_KERN_STRAIGHT)
+    else if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
     {
-      if ((optind + 1) > myargc)
+      if ((user_options_extra->optind + 1) > myargc)
       {
         usage_mini_print (myargv[0]);
 
         return -1;
       }
     }
-    else if (attack_kern == ATTACK_KERN_COMBI)
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
-      if ((optind + 3) != myargc)
+      if ((user_options_extra->optind + 3) != myargc)
       {
         usage_mini_print (myargv[0]);
 
         return -1;
       }
     }
-    else if (attack_kern == ATTACK_KERN_BF)
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
     {
-      if ((optind + 1) > myargc)
+      if ((user_options_extra->optind + 1) > myargc)
       {
         usage_mini_print (myargv[0]);
 
@@ -632,6 +713,50 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
       usage_mini_print (myargv[0]);
 
       return -1;
+    }
+  }
+
+  return 0;
+}
+
+int user_options_extra_init (user_options_t *user_options, int myargc, char **myargv, user_options_extra_t *user_options_extra)
+{
+  user_options_extra->attack_kern = ATTACK_KERN_NONE;
+
+  switch (user_options->attack_mode)
+  {
+    case ATTACK_MODE_STRAIGHT: user_options_extra->attack_kern = ATTACK_KERN_STRAIGHT; break;
+    case ATTACK_MODE_COMBI:    user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
+    case ATTACK_MODE_BF:       user_options_extra->attack_kern = ATTACK_KERN_BF;       break;
+    case ATTACK_MODE_HYBRID1:  user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
+    case ATTACK_MODE_HYBRID2:  user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
+  }
+
+  user_options_extra->optind = optind;
+
+  if (user_options->benchmark == 1)
+  {
+
+  }
+  else
+  {
+    if (user_options->stdout_flag == 1) // no hash here
+    {
+      user_options_extra->optind--;
+    }
+
+    if (user_options->keyspace == 1)
+    {
+      int num_additional_params = 1;
+
+      if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+      {
+        num_additional_params = 2;
+      }
+
+      int keyspace_wordlist_specified = myargc - user_options_extra->optind - num_additional_params;
+
+      if (keyspace_wordlist_specified == 0) user_options_extra->optind--;
     }
   }
 

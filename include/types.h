@@ -852,6 +852,14 @@ typedef struct
 
 } user_options_t;
 
+
+typedef struct
+{
+  u32 attack_kern;
+  int optind;
+
+} user_options_extra_t;
+
 typedef struct
 {
   bool            quiet;

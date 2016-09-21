@@ -680,123 +680,13 @@ int main (int argc, char **argv)
 
   if (rc_user_options_parse == -1) return -1;
 
+  user_options_extra_t *user_options_extra = (user_options_extra_t *) mymalloc (sizeof (user_options_extra_t));
 
-  // set some user option automatically
-  // depends on some other user option
+  const int rc_user_options_extra_init = user_options_extra_init (user_options, myargc, myargv, user_options_extra);
 
-  if (opencl_info)
-  {
-    quiet             = 1;
-    gpu_temp_disable  = 1;
-    potfile_disable   = 1;
-    restore_disable   = 1;
-    markov_disable    = 1;
-    logfile_disable   = 1;
-    //stdout_flag       = 1;
-  }
+  if (rc_user_options_extra_init == -1) return -1;
 
-
-  u32 attack_kern = ATTACK_KERN_NONE;
-
-  switch (attack_mode)
-  {
-    case ATTACK_MODE_STRAIGHT: attack_kern = ATTACK_KERN_STRAIGHT; break;
-    case ATTACK_MODE_COMBI:    attack_kern = ATTACK_KERN_COMBI;    break;
-    case ATTACK_MODE_BF:       attack_kern = ATTACK_KERN_BF;       break;
-    case ATTACK_MODE_HYBRID1:  attack_kern = ATTACK_KERN_COMBI;    break;
-    case ATTACK_MODE_HYBRID2:  attack_kern = ATTACK_KERN_COMBI;    break;
-  }
-
-  if (left == 1)
-  {
-    outfile_format = OUTFILE_FMT_HASH;
-  }
-
-  if (show == 1 || left == 1)
-  {
-    attack_mode = ATTACK_MODE_NONE;
-  }
-
-
-  if (benchmark == 1)
-  {
-
-  }
-  else
-  {
-    if (stdout_flag == 1) // no hash here
-    {
-      optind--;
-    }
-
-    if (keyspace == 1)
-    {
-      int num_additional_params = 1;
-
-      if (attack_kern == ATTACK_KERN_COMBI)
-      {
-        num_additional_params = 2;
-      }
-
-      int keyspace_wordlist_specified = myargc - optind - num_additional_params;
-
-      if (keyspace_wordlist_specified == 0) optind--;
-    }
-  }
-
-  if (skip != 0 && limit != 0)
-  {
-    limit += skip;
-  }
-
-  if (keyspace == 1)
-  {
-    potfile_disable = 1;
-
-    restore_disable = 1;
-
-    restore = 0;
-
-    weak_hash_threshold = 0;
-
-    quiet = 1;
-  }
-
-  if (stdout_flag == 1)
-  {
-    status_timer          = 0;
-    restore_timer         = 0;
-    restore_disable       = 1;
-    restore               = 0;
-    potfile_disable       = 1;
-    weak_hash_threshold   = 0;
-    gpu_temp_disable      = 1;
-    hash_mode             = 2000;
-    quiet                 = 1;
-    outfile_format        = OUTFILE_FMT_PLAIN;
-    kernel_accel          = 1024;
-    kernel_loops          = 1024;
-    force                 = 1;
-    outfile_check_timer   = 0;
-    session               = "stdout";
-    opencl_vector_width   = 1;
-  }
-
-  if (opencl_info == true)
-  {
-    opencl_platforms    = NULL;
-    opencl_devices      = NULL;
-    opencl_device_types = mystrdup ("1,2,3");
-  }
-
-  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
-  {
-    weak_hash_threshold = 0;
-  }
-
-
-
-  const int rc_user_options_sanity = user_options_sanity (user_options, myargc, myargv, attack_kern);
+  const int rc_user_options_sanity = user_options_sanity (user_options, myargc, myargv, user_options_extra);
 
   if (rc_user_options_sanity == -1) return -1;
 
@@ -1067,89 +957,88 @@ int main (int argc, char **argv)
 
   logfile_top_msg ("START");
 
-  logfile_top_uint   (attack_mode);
-  logfile_top_uint   (attack_kern);
-  logfile_top_uint   (benchmark);
-  logfile_top_uint   (stdout_flag);
-  logfile_top_uint   (bitmap_min);
-  logfile_top_uint   (bitmap_max);
-  logfile_top_uint   (debug_mode);
-  logfile_top_uint   (force);
-  logfile_top_uint   (kernel_accel);
-  logfile_top_uint   (kernel_loops);
-  logfile_top_uint   (nvidia_spin_damp);
-  logfile_top_uint   (gpu_temp_disable);
+  logfile_top_uint   (user_options->attack_mode);
+  logfile_top_uint   (user_options->benchmark);
+  logfile_top_uint   (user_options->stdout_flag);
+  logfile_top_uint   (user_options->bitmap_min);
+  logfile_top_uint   (user_options->bitmap_max);
+  logfile_top_uint   (user_options->debug_mode);
+  logfile_top_uint   (user_options->force);
+  logfile_top_uint   (user_options->kernel_accel);
+  logfile_top_uint   (user_options->kernel_loops);
+  logfile_top_uint   (user_options->nvidia_spin_damp);
+  logfile_top_uint   (user_options->gpu_temp_disable);
   #if defined (HAVE_HWMON)
-  logfile_top_uint   (gpu_temp_abort);
-  logfile_top_uint   (gpu_temp_retain);
+  logfile_top_uint   (user_options->gpu_temp_abort);
+  logfile_top_uint   (user_options->gpu_temp_retain);
   #endif
-  logfile_top_uint   (hash_mode);
-  logfile_top_uint   (hex_charset);
-  logfile_top_uint   (hex_salt);
-  logfile_top_uint   (hex_wordlist);
-  logfile_top_uint   (increment);
-  logfile_top_uint   (increment_max);
-  logfile_top_uint   (increment_min);
-  logfile_top_uint   (keyspace);
-  logfile_top_uint   (left);
-  logfile_top_uint   (logfile_disable);
-  logfile_top_uint   (loopback);
-  logfile_top_uint   (markov_classic);
-  logfile_top_uint   (markov_disable);
-  logfile_top_uint   (markov_threshold);
-  logfile_top_uint   (outfile_autohex);
-  logfile_top_uint   (outfile_check_timer);
-  logfile_top_uint   (outfile_format);
-  logfile_top_uint   (potfile_disable);
-  logfile_top_string (potfile_path);
+  logfile_top_uint   (user_options->hash_mode);
+  logfile_top_uint   (user_options->hex_charset);
+  logfile_top_uint   (user_options->hex_salt);
+  logfile_top_uint   (user_options->hex_wordlist);
+  logfile_top_uint   (user_options->increment);
+  logfile_top_uint   (user_options->increment_max);
+  logfile_top_uint   (user_options->increment_min);
+  logfile_top_uint   (user_options->keyspace);
+  logfile_top_uint   (user_options->left);
+  logfile_top_uint   (user_options->logfile_disable);
+  logfile_top_uint   (user_options->loopback);
+  logfile_top_uint   (user_options->markov_classic);
+  logfile_top_uint   (user_options->markov_disable);
+  logfile_top_uint   (user_options->markov_threshold);
+  logfile_top_uint   (user_options->outfile_autohex);
+  logfile_top_uint   (user_options->outfile_check_timer);
+  logfile_top_uint   (user_options->outfile_format);
+  logfile_top_uint   (user_options->potfile_disable);
+  logfile_top_string (user_options->potfile_path);
   #if defined(HAVE_HWMON)
-  logfile_top_uint   (powertune_enable);
+  logfile_top_uint   (user_options->powertune_enable);
   #endif
-  logfile_top_uint   (scrypt_tmto);
-  logfile_top_uint   (quiet);
-  logfile_top_uint   (remove);
-  logfile_top_uint   (remove_timer);
-  logfile_top_uint   (restore);
-  logfile_top_uint   (restore_disable);
-  logfile_top_uint   (restore_timer);
-  logfile_top_uint   (rp_gen);
-  logfile_top_uint   (rp_gen_func_max);
-  logfile_top_uint   (rp_gen_func_min);
-  logfile_top_uint   (rp_gen_seed);
-  logfile_top_uint   (runtime);
-  logfile_top_uint   (segment_size);
-  logfile_top_uint   (show);
-  logfile_top_uint   (status);
-  logfile_top_uint   (machine_readable);
-  logfile_top_uint   (status_timer);
-  logfile_top_uint   (usage);
-  logfile_top_uint   (username);
-  logfile_top_uint   (version);
-  logfile_top_uint   (weak_hash_threshold);
-  logfile_top_uint   (workload_profile);
-  logfile_top_uint64 (limit);
-  logfile_top_uint64 (skip);
-  logfile_top_char   (separator);
-  logfile_top_string (cpu_affinity);
-  logfile_top_string (custom_charset_1);
-  logfile_top_string (custom_charset_2);
-  logfile_top_string (custom_charset_3);
-  logfile_top_string (custom_charset_4);
-  logfile_top_string (debug_file);
-  logfile_top_string (opencl_devices);
-  logfile_top_string (opencl_platforms);
-  logfile_top_string (opencl_device_types);
-  logfile_top_uint   (opencl_vector_width);
-  logfile_top_string (induction_dir);
-  logfile_top_string (markov_hcstat);
-  logfile_top_string (outfile);
-  logfile_top_string (outfile_check_dir);
-  logfile_top_string (rule_buf_l);
-  logfile_top_string (rule_buf_r);
-  logfile_top_string (session);
-  logfile_top_string (truecrypt_keyfiles);
-  logfile_top_string (veracrypt_keyfiles);
-  logfile_top_uint   (veracrypt_pim);
+  logfile_top_uint   (user_options->scrypt_tmto);
+  logfile_top_uint   (user_options->quiet);
+  logfile_top_uint   (user_options->remove);
+  logfile_top_uint   (user_options->remove_timer);
+  logfile_top_uint   (user_options->restore);
+  logfile_top_uint   (user_options->restore_disable);
+  logfile_top_uint   (user_options->restore_timer);
+  logfile_top_uint   (user_options->rp_gen);
+  logfile_top_uint   (user_options->rp_gen_func_max);
+  logfile_top_uint   (user_options->rp_gen_func_min);
+  logfile_top_uint   (user_options->rp_gen_seed);
+  logfile_top_uint   (user_options->runtime);
+  logfile_top_uint   (user_options->segment_size);
+  logfile_top_uint   (user_options->show);
+  logfile_top_uint   (user_options->status);
+  logfile_top_uint   (user_options->machine_readable);
+  logfile_top_uint   (user_options->status_timer);
+  logfile_top_uint   (user_options->usage);
+  logfile_top_uint   (user_options->username);
+  logfile_top_uint   (user_options->version);
+  logfile_top_uint   (user_options->weak_hash_threshold);
+  logfile_top_uint   (user_options->workload_profile);
+  logfile_top_uint64 (user_options->limit);
+  logfile_top_uint64 (user_options->skip);
+  logfile_top_char   (user_options->separator);
+  logfile_top_string (user_options->cpu_affinity);
+  logfile_top_string (user_options->custom_charset_1);
+  logfile_top_string (user_options->custom_charset_2);
+  logfile_top_string (user_options->custom_charset_3);
+  logfile_top_string (user_options->custom_charset_4);
+  logfile_top_string (user_options->debug_file);
+  logfile_top_string (user_options->opencl_devices);
+  logfile_top_string (user_options->opencl_platforms);
+  logfile_top_string (user_options->opencl_device_types);
+  logfile_top_uint   (user_options->opencl_vector_width);
+  logfile_top_string (user_options->induction_dir);
+  logfile_top_string (user_options->markov_hcstat);
+  logfile_top_string (user_options->outfile);
+  logfile_top_string (user_options->outfile_check_dir);
+  logfile_top_string (user_options->rule_buf_l);
+  logfile_top_string (user_options->rule_buf_r);
+  logfile_top_string (user_options->session);
+  logfile_top_string (user_options->truecrypt_keyfiles);
+  logfile_top_string (user_options->veracrypt_keyfiles);
+  logfile_top_uint   (user_options->veracrypt_pim);
 
   /**
    * Init OpenCL library loader
@@ -1204,7 +1093,7 @@ int main (int argc, char **argv)
      */
 
     attack_mode = ATTACK_MODE_BF;
-    attack_kern = ATTACK_KERN_BF;
+    user_options_extra->attack_kern = ATTACK_KERN_BF;
 
     if (workload_profile_chgd == 0)
     {
@@ -1215,13 +1104,13 @@ int main (int argc, char **argv)
   }
 
   data.attack_mode = attack_mode;
-  data.attack_kern = attack_kern;
+  data.attack_kern = user_options_extra->attack_kern;
 
   /**
    * status, monitor and outfile remove threads
    */
 
-  uint wordlist_mode = ((optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
+  uint wordlist_mode = ((user_options_extra->optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
 
   if (attack_mode == ATTACK_MODE_BF)
   {
@@ -1333,7 +1222,7 @@ int main (int argc, char **argv)
      * Sanity check for hashfile vs outfile (should not point to the same physical file)
      */
 
-    const int rc_outfile_and_hashfile = outfile_and_hashfile (outfile_ctx, myargv[optind]);
+    const int rc_outfile_and_hashfile = outfile_and_hashfile (outfile_ctx, myargv[user_options_extra->optind]);
 
     if (rc_outfile_and_hashfile == -1) return -1;
 
@@ -1370,7 +1259,7 @@ int main (int argc, char **argv)
 
     data.hashes = hashes;
 
-    const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, myargv[optind], keyspace, quiet, benchmark, opencl_info, stdout_flag, username, remove, show, left);
+    const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, myargv[user_options_extra->optind], keyspace, quiet, benchmark, opencl_info, stdout_flag, username, remove, show, left);
 
     if (rc_hashes_init_stage1 == -1) return -1;
 
@@ -1841,7 +1730,7 @@ int main (int argc, char **argv)
 
     if (has_noop == 0)
     {
-      switch (attack_kern)
+      switch (user_options_extra->attack_kern)
       {
         case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
                                     break;
@@ -1853,7 +1742,7 @@ int main (int argc, char **argv)
     {
       if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       {
-        switch (attack_kern)
+        switch (user_options_extra->attack_kern)
         {
           case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
                                       break;
@@ -1867,9 +1756,12 @@ int main (int argc, char **argv)
       }
     }
 
-    if (opencl_ctx_devices_init (opencl_ctx, hashconfig, tuning_db, attack_mode, quiet, force, benchmark, opencl_info, machine_readable, algorithm_pos) != 0)
+    const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, hashconfig, tuning_db, attack_mode, quiet, force, benchmark, opencl_info, machine_readable, algorithm_pos);
+
+    if (rc_devices_init == -1)
     {
-      log_error ("ERROR: opencl_ctx_devices_init() failed.");
+      log_error ("ERROR: opencl_ctx_devices_init() failed");
+
       return -1;
     }
 
@@ -2385,7 +2277,7 @@ int main (int argc, char **argv)
 
     data.session_ctx = session_ctx;
 
-    session_ctx_init (session_ctx, quiet, force, benchmark, scrypt_tmto, cwd, install_dir, profile_dir, session_dir, shared_dir, cpath_real, wordlist_mode, rule_buf_l, rule_buf_r, rule_len_l, rule_len_r, kernel_rules_cnt, kernel_rules_buf, attack_mode, attack_kern, bitmap_size, bitmap_mask, bitmap_shift1, bitmap_shift2, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d);
+    session_ctx_init (session_ctx, quiet, force, benchmark, scrypt_tmto, cwd, install_dir, profile_dir, session_dir, shared_dir, cpath_real, wordlist_mode, rule_buf_l, rule_buf_r, rule_len_l, rule_len_r, kernel_rules_cnt, kernel_rules_buf, attack_mode, user_options_extra->attack_kern, bitmap_size, bitmap_mask, bitmap_shift1, bitmap_shift2, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d);
 
     opencl_session_begin (opencl_ctx, hashconfig, hashes, session_ctx);
 
@@ -2543,11 +2435,11 @@ int main (int argc, char **argv)
     {
       if (wordlist_mode == WL_MODE_FILE)
       {
-        int wls_left = myargc - (optind + 1);
+        int wls_left = myargc - (user_options_extra->optind + 1);
 
         for (int i = 0; i < wls_left; i++)
         {
-          char *l0_filename = myargv[optind + 1 + i];
+          char *l0_filename = myargv[user_options_extra->optind + 1 + i];
 
           struct stat l0_stat;
 
@@ -2631,8 +2523,8 @@ int main (int argc, char **argv)
     {
       // display
 
-      char *dictfile1 = myargv[optind + 1 + 0];
-      char *dictfile2 = myargv[optind + 1 + 1];
+      char *dictfile1 = myargv[user_options_extra->optind + 1 + 0];
+      char *dictfile2 = myargv[user_options_extra->optind + 1 + 1];
 
       // find the bigger dictionary and use as base
 
@@ -2776,11 +2668,11 @@ int main (int argc, char **argv)
 
       if (benchmark == 0)
       {
-        mask = myargv[optind + 1];
+        mask = myargv[user_options_extra->optind + 1];
 
         masks = (char **) mymalloc (INCR_MASKS * sizeof (char *));
 
-        if ((optind + 2) <= myargc)
+        if ((user_options_extra->optind + 2) <= myargc)
         {
           struct stat file_stat;
 
@@ -2792,7 +2684,7 @@ int main (int argc, char **argv)
           }
           else
           {
-            int wls_left = myargc - (optind + 1);
+            int wls_left = myargc - (user_options_extra->optind + 1);
 
             uint masks_avail = INCR_MASKS;
 
@@ -2800,7 +2692,7 @@ int main (int argc, char **argv)
             {
               if (i != 0)
               {
-                mask = myargv[optind + 1 + i];
+                mask = myargv[user_options_extra->optind + 1 + i];
 
                 if (stat (mask, &file_stat) == -1)
                 {
@@ -2987,11 +2879,11 @@ int main (int argc, char **argv)
 
       // base
 
-      int wls_left = myargc - (optind + 2);
+      int wls_left = myargc - (user_options_extra->optind + 2);
 
       for (int i = 0; i < wls_left; i++)
       {
-        char *filename = myargv[optind + 1 + i];
+        char *filename = myargv[user_options_extra->optind + 1 + i];
 
         struct stat file_stat;
 
@@ -3093,7 +2985,7 @@ int main (int argc, char **argv)
 
       // display
 
-      char *mask = myargv[optind + 1 + 0];
+      char *mask = myargv[user_options_extra->optind + 1 + 0];
 
       maskcnt = 0;
 
@@ -3166,11 +3058,11 @@ int main (int argc, char **argv)
 
       // base
 
-      int wls_left = myargc - (optind + 2);
+      int wls_left = myargc - (user_options_extra->optind + 2);
 
       for (int i = 0; i < wls_left; i++)
       {
-        char *filename = myargv[optind + 2 + i];
+        char *filename = myargv[user_options_extra->optind + 2 + i];
 
         struct stat file_stat;
 
@@ -4138,21 +4030,21 @@ int main (int argc, char **argv)
 
         u64 words_base = data.words_cnt;
 
-        if (data.attack_kern == ATTACK_KERN_STRAIGHT)
+        if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
         {
           if (data.kernel_rules_cnt)
           {
             words_base /= data.kernel_rules_cnt;
           }
         }
-        else if (data.attack_kern == ATTACK_KERN_COMBI)
+        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
           if (data.combs_cnt)
           {
             words_base /= data.combs_cnt;
           }
         }
-        else if (data.attack_kern == ATTACK_KERN_BF)
+        else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
         {
           if (data.bfs_cnt)
           {
@@ -4178,21 +4070,21 @@ int main (int argc, char **argv)
 
         if (data.words_cur)
         {
-          if (data.attack_kern == ATTACK_KERN_STRAIGHT)
+          if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
           {
             for (uint i = 0; i < hashes->salts_cnt; i++)
             {
               data.words_progress_restored[i] = data.words_cur * data.kernel_rules_cnt;
             }
           }
-          else if (data.attack_kern == ATTACK_KERN_COMBI)
+          else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
           {
             for (uint i = 0; i < hashes->salts_cnt; i++)
             {
               data.words_progress_restored[i] = data.words_cur * data.combs_cnt;
             }
           }
-          else if (data.attack_kern == ATTACK_KERN_BF)
+          else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
           {
             for (uint i = 0; i < hashes->salts_cnt; i++)
             {
@@ -4235,9 +4127,9 @@ int main (int argc, char **argv)
 
             if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
             {
-              if      (session_ctx->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = data.kernel_rules_cnt;
-              else if (session_ctx->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = data.combs_cnt;
-              else if (session_ctx->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = data.bfs_cnt;
+              if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = data.kernel_rules_cnt;
+              else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = data.combs_cnt;
+              else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = data.bfs_cnt;
             }
             else
             {

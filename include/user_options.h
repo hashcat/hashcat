@@ -254,6 +254,8 @@ void user_options_destroy (user_options_t *user_options);
 
 int user_options_parse (user_options_t *user_options, int myargc, char **myargv);
 
-int user_options_sanity (user_options_t *user_options, int myargc, char **myargv, const u32 attack_kern);
+int user_options_sanity (user_options_t *user_options, int myargc, char **myargv, user_options_extra_t *user_options_extra);
+
+int user_options_extra_init (user_options_t *user_options, int myargc, char **myargv, user_options_extra_t *user_options_extra);
 
 #endif // _USER_OPTIONS_H
