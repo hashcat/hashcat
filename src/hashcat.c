@@ -401,7 +401,6 @@ int main (int argc, char **argv)
 
   // temporarily start
 
-  char *outfile_check_dir         = NULL;
   uint  hash_mode                 = HASH_MODE;
   uint  markov_disable            = MARKOV_DISABLE;
   uint  markov_classic            = MARKOV_CLASSIC;
@@ -443,7 +442,6 @@ int main (int argc, char **argv)
     markov_hcstat   = user_options->markov_hcstat;
     markov_threshold        = user_options->markov_threshold;
     outfile_autohex = user_options->outfile_autohex;
-    outfile_check_dir       = user_options->outfile_check_dir;
     outfile_check_timer     = user_options->outfile_check_timer;
     outfile_format  = user_options->outfile_format;
     outfile = user_options->outfile;
@@ -649,7 +647,7 @@ int main (int argc, char **argv)
 
   if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
   {
-    if (outfile_check_dir == NULL)
+    if (user_options->outfile_check_dir == NULL)
     {
       outfile_check_directory = (char *) mymalloc (HCBUFSIZ_TINY);
 
@@ -657,7 +655,7 @@ int main (int argc, char **argv)
     }
     else
     {
-      outfile_check_directory = outfile_check_dir;
+      outfile_check_directory = user_options->outfile_check_dir;
     }
 
     struct stat outfile_check_stat;
@@ -673,7 +671,7 @@ int main (int argc, char **argv)
         return -1;
       }
     }
-    else if (outfile_check_dir == NULL)
+    else if (user_options->outfile_check_dir == NULL)
     {
       if (mkdir (outfile_check_directory, 0700) == -1)
       {
