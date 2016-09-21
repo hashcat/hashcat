@@ -403,11 +403,9 @@ int main (int argc, char **argv)
   char *session                   = NULL;
   char *truecrypt_keyfiles        = NULL;
   char *veracrypt_keyfiles        = NULL;
-  uint  segment_size              = SEGMENT_SIZE;
 
   if (1)
   {
-    segment_size    = user_options->segment_size;
     session = user_options->session;
     truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
     veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
@@ -446,6 +444,7 @@ int main (int argc, char **argv)
     data.veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
     data.veracrypt_pim           = user_options->veracrypt_pim;
     data.scrypt_tmto             = user_options->scrypt_tmto;
+    data.segment_size            = user_options->segment_size;
     data.rule_buf_l = user_options->rule_buf_l;
     data.rule_buf_r = user_options->rule_buf_r;
 
@@ -2032,15 +2031,11 @@ int main (int argc, char **argv)
      * dictionary pad
      */
 
-    segment_size *= (1024 * 1024);
-
-    data.segment_size = segment_size;
-
     wl_data_t *wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
 
-    wl_data->buf   = (char *) mymalloc (segment_size);
-    wl_data->avail = segment_size;
-    wl_data->incr  = segment_size;
+    wl_data->buf   = (char *) mymalloc (user_options->segment_size);
+    wl_data->avail = user_options->segment_size;
+    wl_data->incr  = user_options->segment_size;
     wl_data->cnt   = 0;
     wl_data->pos   = 0;
 

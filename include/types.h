@@ -837,6 +837,7 @@ typedef struct
   bool   rp_gen_seed_chgd;
   bool   runtime_chgd;
   bool   workload_profile_chgd;
+  bool   segment_size_chgd;
 
 } user_options_t;
 

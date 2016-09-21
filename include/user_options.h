@@ -56,7 +56,7 @@ typedef enum user_options_defaults
   RP_GEN_SEED             = 0,
   RUNTIME                 = 0,
   SCRYPT_TMTO             = 0,
-  SEGMENT_SIZE            = 32,
+  SEGMENT_SIZE            = 33554432,
   SEPARATOR               = ':',
   SHOW                    = 0,
   SKIP                    = 0,

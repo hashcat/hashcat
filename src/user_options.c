@@ -202,7 +202,8 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
       case IDX_TRUECRYPT_KEYFILES:        user_options->truecrypt_keyfiles        = optarg;         break;
       case IDX_VERACRYPT_KEYFILES:        user_options->veracrypt_keyfiles        = optarg;         break;
       case IDX_VERACRYPT_PIM:             user_options->veracrypt_pim             = atoi (optarg);  break;
-      case IDX_SEGMENT_SIZE:              user_options->segment_size              = atoi (optarg);  break;
+      case IDX_SEGMENT_SIZE:              user_options->segment_size              = atoi (optarg);
+                                          user_options->segment_size_chgd         = true;           break;
       case IDX_SCRYPT_TMTO:               user_options->scrypt_tmto               = atoi (optarg);  break;
       case IDX_SEPARATOR:                 user_options->separator                 = optarg[0];      break;
       case IDX_BITMAP_MIN:                user_options->bitmap_min                = atoi (optarg);  break;
@@ -351,6 +352,11 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
   if (user_options->markov_threshold == 0)
   {
     user_options->markov_threshold = 0x100;
+  }
+
+  if (user_options->segment_size_chgd == true)
+  {
+    user_options->segment_size = user_options->segment_size * (1024 * 1024);
   }
 
   return 0;
