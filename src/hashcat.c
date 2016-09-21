@@ -403,7 +403,6 @@ int main (int argc, char **argv)
   // temporarily start
 
 
-  uint  keyspace                  = KEYSPACE;
   uint  potfile_disable           = POTFILE_DISABLE;
   char *potfile_path              = NULL;
   uint  debug_mode                = DEBUG_MODE;
@@ -454,7 +453,6 @@ int main (int argc, char **argv)
     increment_min   = user_options->increment_min;
     increment       = user_options->increment;
     induction_dir   = user_options->induction_dir;
-    keyspace        = user_options->keyspace;
     loopback        = user_options->loopback;
     markov_classic  = user_options->markov_classic;
     markov_disable  = user_options->markov_disable;
@@ -605,7 +603,7 @@ int main (int argc, char **argv)
 
         // create induction folder if it does not already exist
 
-        if (keyspace == false)
+        if (user_options->keyspace == false)
         {
           if (rmdir (induction_directory) == -1)
           {
@@ -1104,7 +1102,7 @@ int main (int argc, char **argv)
 
     dictstat_init (dictstat_ctx, profile_dir);
 
-    if (keyspace == false)
+    if (user_options->keyspace == false)
     {
       dictstat_read (dictstat_ctx);
     }
@@ -2169,7 +2167,7 @@ int main (int argc, char **argv)
           {
             // do not allow --keyspace w/ a directory
 
-            if (keyspace == true)
+            if (user_options->keyspace == true)
             {
               log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
@@ -2613,7 +2611,7 @@ int main (int argc, char **argv)
         {
           // do not allow --keyspace w/ a directory
 
-          if (keyspace == true)
+          if (user_options->keyspace == true)
           {
             log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
@@ -2792,7 +2790,7 @@ int main (int argc, char **argv)
         {
           // do not allow --keyspace w/ a directory
 
-          if (keyspace == true)
+          if (user_options->keyspace == true)
           {
             log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
 
@@ -3759,7 +3757,7 @@ int main (int argc, char **argv)
 
         data.words_base = words_base;
 
-        if (keyspace == true)
+        if (user_options->keyspace == true)
         {
           log_info ("%" PRIu64 "", words_base);
 
@@ -3802,7 +3800,7 @@ int main (int argc, char **argv)
          * Update dictionary statistic
          */
 
-        if (keyspace == false)
+        if (user_options->keyspace == false)
         {
           dictstat_write (dictstat_ctx);
         }
