@@ -13,6 +13,9 @@
 #include "outfile.h"
 #include "user_options.h"
 
+static char RULE_BUF_R[] = ":";
+static char RULE_BUF_L[] = ":";
+
 void user_options_init (user_options_t *user_options)
 {
   user_options->attack_mode               = ATTACK_MODE;

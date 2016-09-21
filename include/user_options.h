@@ -71,9 +71,6 @@ typedef enum user_options_defaults
 
 } user_options_defaults_t;
 
-static char RULE_BUF_R[] = ":";
-static char RULE_BUF_L[] = ":";
-
 typedef enum user_options_map
 {
   IDX_ATTACK_MODE              = 'a',

@@ -229,8 +229,6 @@ int main (int argc, char **argv)
   uint  rp_gen                    = RP_GEN;
   uint  rp_gen_func_min           = RP_GEN_FUNC_MIN;
   uint  rp_gen_func_max           = RP_GEN_FUNC_MAX;
-  char *rule_buf_l                = (char *) RULE_BUF_L;
-  char *rule_buf_r                = (char *) RULE_BUF_R;
   uint  increment                 = INCREMENT;
   uint  increment_min             = INCREMENT_MIN;
   uint  increment_max             = INCREMENT_MAX;
@@ -244,8 +242,6 @@ int main (int argc, char **argv)
   #endif
   uint  segment_size              = SEGMENT_SIZE;
   char  separator                 = SEPARATOR;
-  uint  bitmap_min                = BITMAP_MIN;
-  uint  bitmap_max                = BITMAP_MAX;
   char *custom_charset_1          = NULL;
   char *custom_charset_2          = NULL;
   char *custom_charset_3          = NULL;
@@ -536,8 +532,6 @@ int main (int argc, char **argv)
 
   if (1)
   {
-    bitmap_max      = user_options->bitmap_max;
-    bitmap_min      = user_options->bitmap_min;
     custom_charset_1        = user_options->custom_charset_1;
     custom_charset_2        = user_options->custom_charset_2;
     custom_charset_3        = user_options->custom_charset_3;
@@ -578,8 +572,6 @@ int main (int argc, char **argv)
     rp_gen_func_max = user_options->rp_gen_func_max;
     rp_gen_func_min = user_options->rp_gen_func_min;
     rp_gen  = user_options->rp_gen;
-    rule_buf_l      = user_options->rule_buf_l;
-    rule_buf_r      = user_options->rule_buf_r;
     segment_size    = user_options->segment_size;
     separator       = user_options->separator;
     session = user_options->session;
@@ -629,7 +621,12 @@ int main (int argc, char **argv)
     data.veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
     data.veracrypt_pim           = user_options->veracrypt_pim;
     data.scrypt_tmto             = user_options->scrypt_tmto;
+    data.rule_buf_l = user_options->rule_buf_l;
+    data.rule_buf_r = user_options->rule_buf_r;
 
+
+    data.rule_len_l = user_options_extra->rule_len_l;
+    data.rule_len_r = user_options_extra->rule_len_r;
     data.wordlist_mode = user_options_extra->wordlist_mode;
     data.attack_kern   = user_options_extra->attack_kern;
 
@@ -1271,23 +1268,23 @@ int main (int argc, char **argv)
     const uint bitmap_shift1 = 5;
     const uint bitmap_shift2 = 13;
 
-    if (bitmap_max < bitmap_min) bitmap_max = bitmap_min;
+    if (user_options->bitmap_max < user_options->bitmap_min) user_options->bitmap_max = user_options->bitmap_min;
 
-    uint *bitmap_s1_a = (uint *) mymalloc ((1u << bitmap_max) * sizeof (uint));
-    uint *bitmap_s1_b = (uint *) mymalloc ((1u << bitmap_max) * sizeof (uint));
-    uint *bitmap_s1_c = (uint *) mymalloc ((1u << bitmap_max) * sizeof (uint));
-    uint *bitmap_s1_d = (uint *) mymalloc ((1u << bitmap_max) * sizeof (uint));
-    uint *bitmap_s2_a = (uint *) mymalloc ((1u << bitmap_max) * sizeof (uint));
-    uint *bitmap_s2_b = (uint *) mymalloc ((1u << bitmap_max) * sizeof (uint));
-    uint *bitmap_s2_c = (uint *) mymalloc ((1u << bitmap_max) * sizeof (uint));
-    uint *bitmap_s2_d = (uint *) mymalloc ((1u << bitmap_max) * sizeof (uint));
+    uint *bitmap_s1_a = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
+    uint *bitmap_s1_b = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
+    uint *bitmap_s1_c = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
+    uint *bitmap_s1_d = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
+    uint *bitmap_s2_a = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
+    uint *bitmap_s2_b = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
+    uint *bitmap_s2_c = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
+    uint *bitmap_s2_d = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
 
     uint bitmap_bits;
     uint bitmap_nums;
     uint bitmap_mask;
     uint bitmap_size;
 
-    for (bitmap_bits = bitmap_min; bitmap_bits < bitmap_max; bitmap_bits++)
+    for (bitmap_bits = user_options->bitmap_min; bitmap_bits < user_options->bitmap_max; bitmap_bits++)
     {
       if (user_options->quiet == false) log_info_nn ("Generating bitmap tables with %u bits...", bitmap_bits);
 
@@ -1313,19 +1310,6 @@ int main (int argc, char **argv)
 
     generate_bitmaps (hashes->digests_cnt, hashconfig->dgst_size, bitmap_shift1, (char *) hashes->digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, -1ul);
     generate_bitmaps (hashes->digests_cnt, hashconfig->dgst_size, bitmap_shift2, (char *) hashes->digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d, -1ul);
-
-    /**
-     * prepare quick rule
-     */
-
-    data.rule_buf_l = rule_buf_l;
-    data.rule_buf_r = rule_buf_r;
-
-    int rule_len_l = (int) strlen (rule_buf_l);
-    int rule_len_r = (int) strlen (rule_buf_r);
-
-    data.rule_len_l = rule_len_l;
-    data.rule_len_r = rule_len_r;
 
     /**
      * load rules
