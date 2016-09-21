@@ -402,52 +402,54 @@ int main (int argc, char **argv)
 
   if (1)
   {
-    data.attack_mode             = user_options->attack_mode;
-    data.restore                 = user_options->restore;
-    data.restore_timer           = user_options->restore_timer;
-    data.restore_disable         = user_options->restore_disable;
-    data.status                  = user_options->status;
-    data.status_timer            = user_options->status_timer;
-    data.machine_readable        = user_options->machine_readable;
-    data.runtime                 = user_options->runtime;
-    data.remove                  = user_options->remove;
-    data.remove_timer            = user_options->remove_timer;
-    data.username                = user_options->username;
-    data.hex_charset             = user_options->hex_charset;
-    data.hex_salt                = user_options->hex_salt;
-    data.hex_wordlist            = user_options->hex_wordlist;
-    data.rp_files                = user_options->rp_files;
-    data.rp_files_cnt            = user_options->rp_files_cnt;
-    data.rp_gen                  = user_options->rp_gen;
-    data.rp_gen_seed             = user_options->rp_gen_seed;
-    data.force                   = user_options->force;
-    data.benchmark               = user_options->benchmark;
-    data.skip                    = user_options->skip;
-    data.limit                   = user_options->limit;
-    data.custom_charset_1        = user_options->custom_charset_1;
-    data.custom_charset_2        = user_options->custom_charset_2;
-    data.custom_charset_3        = user_options->custom_charset_3;
-    data.custom_charset_4        = user_options->custom_charset_4;
-    #if defined (HAVE_HWMONO)
-    data.powertune_enable        = user_options->powertune_enable;
-    #endif
-    data.logfile_disable         = user_options->logfile_disable;
-    data.truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
-    data.veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
-    data.veracrypt_pim           = user_options->veracrypt_pim;
-    data.scrypt_tmto             = user_options->scrypt_tmto;
-    data.segment_size            = user_options->segment_size;
+    data.attack_mode = user_options->attack_mode;
+    data.benchmark = user_options->benchmark;
+    data.custom_charset_1 = user_options->custom_charset_1;
+    data.custom_charset_2 = user_options->custom_charset_2;
+    data.custom_charset_3 = user_options->custom_charset_3;
+    data.custom_charset_4 = user_options->custom_charset_4;
+    data.force = user_options->force;
+    data.gpu_temp_abort = user_options->gpu_temp_abort;
+    data.gpu_temp_disable = user_options->gpu_temp_disable;
+    data.gpu_temp_retain = user_options->gpu_temp_retain;
+    data.hex_charset = user_options->hex_charset;
+    data.hex_salt = user_options->hex_salt;
+    data.hex_wordlist = user_options->hex_wordlist;
+    data.limit = user_options->limit;
+    data.logfile_disable = user_options->logfile_disable;
+    data.loopback = user_options->loopback;
+    data.machine_readable = user_options->machine_readable;
+    data.outfile_check_timer = user_options->outfile_check_timer;
+    data.powertune_enable = user_options->powertune_enable;
+    data.quiet = user_options->quiet;
+    data.remove = user_options->remove;
+    data.remove_timer = user_options->remove_timer;
+    data.restore = user_options->restore;
+    data.restore_disable = user_options->restore_disable;
+    data.restore_timer = user_options->restore_timer;
+    data.rp_files = user_options->rp_files;
+    data.rp_files_cnt = user_options->rp_files_cnt;
+    data.rp_gen = user_options->rp_gen;
+    data.rp_gen_seed = user_options->rp_gen_seed;
     data.rule_buf_l = user_options->rule_buf_l;
     data.rule_buf_r = user_options->rule_buf_r;
+    data.runtime = user_options->runtime;
+    data.scrypt_tmto = user_options->scrypt_tmto;
+    data.segment_size = user_options->segment_size;
+    data.session = user_options->session;
+    data.skip = user_options->skip;
+    data.status = user_options->status;
+    data.status_timer = user_options->status_timer;
+    data.truecrypt_keyfiles = user_options->truecrypt_keyfiles;
+    data.username = user_options->username;
+    data.veracrypt_keyfiles = user_options->veracrypt_keyfiles;
+    data.veracrypt_pim = user_options->veracrypt_pim;
 
-
-    data.rule_len_l    = user_options_extra->rule_len_l;
-    data.rule_len_r    = user_options_extra->rule_len_r;
+    data.rule_len_l = user_options_extra->rule_len_l;
+    data.rule_len_r = user_options_extra->rule_len_r;
     data.wordlist_mode = user_options_extra->wordlist_mode;
-    data.attack_kern   = user_options_extra->attack_kern;
-
+    data.attack_kern = user_options_extra->attack_kern;
   }
-
 
   if (user_options->version)
   {
