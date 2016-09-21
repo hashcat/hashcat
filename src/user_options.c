@@ -16,7 +16,7 @@
 static char RULE_BUF_R[] = ":";
 static char RULE_BUF_L[] = ":";
 
-void user_options_init (user_options_t *user_options)
+void user_options_init (user_options_t *user_options, int myargc, char **myargv)
 {
   user_options->attack_mode               = ATTACK_MODE;
   user_options->benchmark                 = BENCHMARK;
@@ -83,7 +83,7 @@ void user_options_init (user_options_t *user_options)
   user_options->scrypt_tmto               = SCRYPT_TMTO;
   user_options->segment_size              = SEGMENT_SIZE;
   user_options->separator                 = SEPARATOR;
-  user_options->session                   = NULL;
+  user_options->session                   = PROGNAME;
   user_options->show                      = SHOW;
   user_options->skip                      = SKIP;
   user_options->status                    = STATUS;
@@ -98,7 +98,7 @@ void user_options_init (user_options_t *user_options)
   user_options->weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
-  user_options->rp_files                  = NULL;
+  user_options->rp_files                  = (char **) mycalloc (myargc, sizeof (char *));;
 }
 
 void user_options_destroy (user_options_t *user_options)
@@ -312,6 +312,14 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
     user_options->attack_mode = ATTACK_MODE_NONE;
   }
 
+  // this allows the user to use --show and --left while cracking (i.e. while another instance of hashcat is running)
+  if (user_options->show == true || user_options->left == true)
+  {
+    user_options->restore_disable = true;
+
+    user_options->restore = false;
+  }
+
   if (user_options->skip != 0 && user_options->limit != 0)
   {
     user_options->limit += user_options->skip;
@@ -338,11 +346,6 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
   {
     user_options->outfile_format      = 5;
     user_options->outfile_format_chgd = 1;
-  }
-
-  if (user_options->session == NULL)
-  {
-    user_options->session = (char *) PROGNAME;
   }
 
   return 0;

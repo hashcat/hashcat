@@ -245,7 +245,7 @@ static const struct option long_options[] =
   {0, 0, 0, 0}
 };
 
-void user_options_init (user_options_t *user_options);
+void user_options_init (user_options_t *user_options, int myargc, char **myargv);
 
 void user_options_destroy (user_options_t *user_options);
 

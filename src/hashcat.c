@@ -178,133 +178,15 @@ int main (int argc, char **argv)
 
   time (&prepare_start);
 
-  int    myargc = argc;
-  char **myargv = argv;
-
   hc_thread_mutex_init (mux_display);
   hc_thread_mutex_init (mux_hwmon);
 
-  /**
-   * commandline parameters
-   */
-
-  user_options_t *user_options = (user_options_t *) mymalloc (sizeof (user_options_t));
-
-  user_options_init (user_options);
-
-  //data.user_options = user_options;
-
-  uint  usage                     = USAGE;
-  uint  version                   = VERSION;
-  uint  stdout_flag               = STDOUT_FLAG;
-  uint  show                      = SHOW;
-  uint  left                      = LEFT;
-  uint  remove                    = REMOVE;
-  u64   skip                      = SKIP;
-  u64   limit                     = LIMIT;
-  uint  keyspace                  = KEYSPACE;
-  uint  potfile_disable           = POTFILE_DISABLE;
-  char *potfile_path              = NULL;
-  uint  debug_mode                = DEBUG_MODE;
-  char *debug_file                = NULL;
-  char *induction_dir             = NULL;
-  char *outfile_check_dir         = NULL;
-  uint  hash_mode                 = HASH_MODE;
-  uint  markov_disable            = MARKOV_DISABLE;
-  uint  markov_classic            = MARKOV_CLASSIC;
-  uint  markov_threshold          = MARKOV_THRESHOLD;
-  char *markov_hcstat             = NULL;
-  char *outfile                   = NULL;
-  uint  outfile_format            = OUTFILE_FORMAT;
-  uint  outfile_autohex           = OUTFILE_AUTOHEX;
-  uint  outfile_check_timer       = OUTFILE_CHECK_TIMER;
-  uint  restore                   = RESTORE;
-  uint  restore_disable           = RESTORE_DISABLE;
-  uint  status                    = STATUS;
-  uint  machine_readable          = MACHINE_READABLE;
-  uint  loopback                  = LOOPBACK;
-  uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
-  char *session                   = NULL;
-  uint  hex_salt                  = HEX_SALT;
-  uint  rp_gen                    = RP_GEN;
-  uint  rp_gen_func_min           = RP_GEN_FUNC_MIN;
-  uint  rp_gen_func_max           = RP_GEN_FUNC_MAX;
-  uint  increment                 = INCREMENT;
-  uint  increment_min             = INCREMENT_MIN;
-  uint  increment_max             = INCREMENT_MAX;
-  char *truecrypt_keyfiles        = NULL;
-  char *veracrypt_keyfiles        = NULL;
-  uint  gpu_temp_disable          = GPU_TEMP_DISABLE;
-  #if defined (HAVE_HWMON)
-  uint  gpu_temp_abort            = GPU_TEMP_ABORT;
-  uint  gpu_temp_retain           = GPU_TEMP_RETAIN;
-  uint  powertune_enable          = POWERTUNE_ENABLE;
-  #endif
-  uint  segment_size              = SEGMENT_SIZE;
-  char  separator                 = SEPARATOR;
-
-  uint rp_files_cnt = 0;
-
-  char **rp_files = (char **) mycalloc (argc, sizeof (char *));
-
-  int option_index = 0;
-  int c = -1;
-
-  optind = 1;
-  optopt = 0;
-
-  while (((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1) && optopt == 0)
-  {
-    switch (c)
-    {
-      case IDX_HELP:          usage   = 1;      break;
-      case IDX_VERSION:
-      case IDX_VERSION_LOWER: version = 1;      break;
-      case IDX_RESTORE:       restore = 1;      break;
-      case IDX_SESSION:       session = optarg; break;
-      case IDX_SHOW:          show    = 1;      break;
-      case IDX_LEFT:          left    = 1;      break;
-      case '?':               return -1;
-    }
-  }
-
-  if (optopt != 0)
-  {
-    log_error ("ERROR: Invalid argument specified");
-
-    return -1;
-  }
-
-  /**
-   * exit functions
-   */
-
-  if (version)
-  {
-    log_info ("%s", VERSION_TAG);
-
-    return 0;
-  }
-
-  if (usage)
-  {
-    usage_big_print (PROGNAME);
-
-    return 0;
-  }
-
-  /**
-   * session needs to be set, always!
-   */
-
-  if (session == NULL) session = (char *) PROGNAME;
 
   /**
    * folders, as discussed on https://github.com/hashcat/hashcat/issues/20
    */
 
   char *exec_path = get_exec_path ();
-
 
   #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
 
@@ -444,39 +326,46 @@ int main (int argc, char **argv)
   myfree (kernels_folder);
 
   /**
+   * commandline parameters
+   */
+
+  user_options_t *user_options = (user_options_t *) mymalloc (sizeof (user_options_t));
+
+  user_options_init (user_options, argc, argv);
+
+  const int rc_user_options_parse1 = user_options_parse (user_options, argc, argv);
+
+  if (rc_user_options_parse1 == -1) return -1;
+
+  if (user_options->version)
+  {
+    log_info ("%s", VERSION_TAG);
+
+    return 0;
+  }
+
+  if (user_options->usage)
+  {
+    usage_big_print (PROGNAME);
+
+    return 0;
+  }
+
+  /**
    * session
    */
 
-  size_t session_size = strlen (session_dir) + 1 + strlen (session) + 32;
+  data.session         = user_options->session;
+  data.restore_disable = user_options->restore_disable;
 
-  data.session = session;
+  char *eff_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
+  char *new_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
 
-  char *eff_restore_file = (char *) mymalloc (session_size);
-  char *new_restore_file = (char *) mymalloc (session_size);
-
-  snprintf (eff_restore_file, session_size - 1, "%s/%s.restore",     data.session_dir, session);
-  snprintf (new_restore_file, session_size - 1, "%s/%s.restore.new", data.session_dir, session);
+  snprintf (eff_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore",     data.session_dir, user_options->session);
+  snprintf (new_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore.new", data.session_dir, user_options->session);
 
   data.eff_restore_file = eff_restore_file;
   data.new_restore_file = new_restore_file;
-
-  if (((show == true) || (left == true)) && (restore == true))
-  {
-    if (show == true) log_error ("ERROR: Mixing --restore parameter and --show is not supported");
-    else           log_error ("ERROR: Mixing --restore parameter and --left is not supported");
-
-    return -1;
-  }
-
-  // this allows the user to use --show and --left while cracking (i.e. while another instance of hashcat is running)
-  if ((show == true) || (left == true))
-  {
-    restore_disable = 1;
-
-    restore = 0;
-  }
-
-  data.restore_disable = restore_disable;
 
   restore_data_t *rd = init_restore (argc, argv);
 
@@ -486,7 +375,10 @@ int main (int argc, char **argv)
    * restore file
    */
 
-  if (restore == true)
+  int    myargc = argc;
+  char **myargv = argv;
+
+  if (user_options->restore == true)
   {
     read_restore (eff_restore_file, rd);
 
@@ -507,10 +399,9 @@ int main (int argc, char **argv)
     #endif
   }
 
+  const int rc_user_options_parse2 = user_options_parse (user_options, myargc, myargv);
 
-  const int rc_user_options_parse = user_options_parse (user_options, myargc, myargv);
-
-  if (rc_user_options_parse == -1) return -1;
+  if (rc_user_options_parse2 == -1) return -1;
 
   user_options_extra_t *user_options_extra = (user_options_extra_t *) mymalloc (sizeof (user_options_extra_t));
 
@@ -522,9 +413,57 @@ int main (int argc, char **argv)
 
   if (rc_user_options_sanity == -1) return -1;
 
+
   // temporarily start
 
 
+
+  uint  stdout_flag               = STDOUT_FLAG;
+  uint  show                      = SHOW;
+  uint  left                      = LEFT;
+  uint  remove                    = REMOVE;
+  u64   skip                      = SKIP;
+  u64   limit                     = LIMIT;
+  uint  keyspace                  = KEYSPACE;
+  uint  potfile_disable           = POTFILE_DISABLE;
+  char *potfile_path              = NULL;
+  uint  debug_mode                = DEBUG_MODE;
+  char *debug_file                = NULL;
+  char *induction_dir             = NULL;
+  char *outfile_check_dir         = NULL;
+  uint  hash_mode                 = HASH_MODE;
+  uint  markov_disable            = MARKOV_DISABLE;
+  uint  markov_classic            = MARKOV_CLASSIC;
+  uint  markov_threshold          = MARKOV_THRESHOLD;
+  char *markov_hcstat             = NULL;
+  char *outfile                   = NULL;
+  uint  outfile_format            = OUTFILE_FORMAT;
+  uint  outfile_autohex           = OUTFILE_AUTOHEX;
+  uint  outfile_check_timer       = OUTFILE_CHECK_TIMER;
+  uint  restore                   = RESTORE;
+
+  uint  status                    = STATUS;
+  uint  machine_readable          = MACHINE_READABLE;
+  uint  loopback                  = LOOPBACK;
+  uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
+  char *session                   = NULL;
+  uint  hex_salt                  = HEX_SALT;
+  uint  rp_gen                    = RP_GEN;
+  uint  rp_gen_func_min           = RP_GEN_FUNC_MIN;
+  uint  rp_gen_func_max           = RP_GEN_FUNC_MAX;
+  uint  increment                 = INCREMENT;
+  uint  increment_min             = INCREMENT_MIN;
+  uint  increment_max             = INCREMENT_MAX;
+  char *truecrypt_keyfiles        = NULL;
+  char *veracrypt_keyfiles        = NULL;
+  uint  gpu_temp_disable          = GPU_TEMP_DISABLE;
+  #if defined (HAVE_HWMON)
+  uint  gpu_temp_abort            = GPU_TEMP_ABORT;
+  uint  gpu_temp_retain           = GPU_TEMP_RETAIN;
+  uint  powertune_enable          = POWERTUNE_ENABLE;
+  #endif
+  uint  segment_size              = SEGMENT_SIZE;
+  char  separator                 = SEPARATOR;
 
   if (1)
   {
@@ -557,10 +496,8 @@ int main (int argc, char **argv)
     potfile_path    = user_options->potfile_path;
     powertune_enable        = user_options->powertune_enable;
     remove  = user_options->remove;
-    restore_disable = user_options->restore_disable;
+
     restore = user_options->restore;
-    rp_files_cnt    = user_options->rp_files_cnt;
-    rp_files        = user_options->rp_files;
     rp_gen_func_max = user_options->rp_gen_func_max;
     rp_gen_func_min = user_options->rp_gen_func_min;
     rp_gen  = user_options->rp_gen;
@@ -572,9 +509,9 @@ int main (int argc, char **argv)
     status  = user_options->status;
     stdout_flag     = user_options->stdout_flag;
     truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
-    usage   = user_options->usage;
+
     veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
-    version = user_options->version;
+
     weak_hash_threshold     = user_options->weak_hash_threshold;
 
 
@@ -683,9 +620,9 @@ int main (int argc, char **argv)
     {
       if (induction_dir == NULL)
       {
-        induction_directory = (char *) mymalloc (session_size);
+        induction_directory = (char *) mymalloc (HCBUFSIZ_TINY);
 
-        snprintf (induction_directory, session_size - 1, "%s/%s.%s", session_dir, session, INDUCT_DIR);
+        snprintf (induction_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", session_dir, session, INDUCT_DIR);
 
         // create induction folder if it does not already exist
 
@@ -699,9 +636,9 @@ int main (int argc, char **argv)
             }
             else if (errno == ENOTEMPTY)
             {
-              char *induction_directory_mv = (char *) mymalloc (session_size);
+              char *induction_directory_mv = (char *) mymalloc (HCBUFSIZ_TINY);
 
-              snprintf (induction_directory_mv, session_size - 1, "%s/%s.induct.%d", session_dir, session, (int) proc_start);
+              snprintf (induction_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", session_dir, session, (int) proc_start);
 
               if (rename (induction_directory, induction_directory_mv) != 0)
               {
@@ -755,9 +692,9 @@ int main (int argc, char **argv)
   {
     if (outfile_check_dir == NULL)
     {
-      outfile_check_directory = (char *) mymalloc (session_size);
+      outfile_check_directory = (char *) mymalloc (HCBUFSIZ_TINY);
 
-      snprintf (outfile_check_directory, session_size - 1, "%s/%s.%s", session_dir, session, OUTFILES_DIR);
+      snprintf (outfile_check_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", session_dir, session, OUTFILES_DIR);
     }
     else
     {
@@ -1311,18 +1248,18 @@ int main (int argc, char **argv)
 
     kernel_rule_t **all_kernel_rules_buf = NULL;
 
-    if (rp_files_cnt)
+    if (user_options->rp_files_cnt)
     {
-      all_kernel_rules_cnt = (uint *) mycalloc (rp_files_cnt, sizeof (uint));
+      all_kernel_rules_cnt = (uint *) mycalloc (user_options->rp_files_cnt, sizeof (uint));
 
-      all_kernel_rules_buf = (kernel_rule_t **) mycalloc (rp_files_cnt, sizeof (kernel_rule_t *));
+      all_kernel_rules_buf = (kernel_rule_t **) mycalloc (user_options->rp_files_cnt, sizeof (kernel_rule_t *));
     }
 
     char *rule_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
     int rule_len = 0;
 
-    for (uint i = 0; i < rp_files_cnt; i++)
+    for (uint i = 0; i < user_options->rp_files_cnt; i++)
     {
       uint kernel_rules_avail = 0;
 
@@ -1330,7 +1267,7 @@ int main (int argc, char **argv)
 
       kernel_rule_t *kernel_rules_buf = NULL;
 
-      char *rp_file = rp_files[i];
+      char *rp_file = user_options->rp_files[i];
 
       char in[BLOCK_SIZE]  = { 0 };
       char out[BLOCK_SIZE] = { 0 };
@@ -1406,15 +1343,15 @@ int main (int argc, char **argv)
 
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
-      if (rp_files_cnt)
+      if (user_options->rp_files_cnt)
       {
         kernel_rules_cnt = 1;
 
-        uint *repeats = (uint *) mycalloc (rp_files_cnt + 1, sizeof (uint));
+        uint *repeats = (uint *) mycalloc (user_options->rp_files_cnt + 1, sizeof (uint));
 
         repeats[0] = kernel_rules_cnt;
 
-        for (uint i = 0; i < rp_files_cnt; i++)
+        for (uint i = 0; i < user_options->rp_files_cnt; i++)
         {
           kernel_rules_cnt *= all_kernel_rules_cnt[i];
 
@@ -1431,7 +1368,7 @@ int main (int argc, char **argv)
 
           kernel_rule_t *out = &kernel_rules_buf[i];
 
-          for (uint j = 0; j < rp_files_cnt; j++)
+          for (uint j = 0; j < user_options->rp_files_cnt; j++)
           {
             uint in_off = (i / repeats[j]) % all_kernel_rules_cnt[j];
             uint in_pos;
@@ -1484,7 +1421,7 @@ int main (int argc, char **argv)
      * generate NOP rules
      */
 
-    if ((rp_files_cnt == 0) && (rp_gen == 0))
+    if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
     {
       kernel_rules_buf = (kernel_rule_t *) mymalloc (sizeof (kernel_rule_t));
 
@@ -3459,9 +3396,9 @@ int main (int argc, char **argv)
 
             logfile_sub_string (dictfile);
 
-            for (uint i = 0; i < rp_files_cnt; i++)
+            for (uint i = 0; i < user_options->rp_files_cnt; i++)
             {
-              logfile_sub_var_string ("rulefile", rp_files[i]);
+              logfile_sub_var_string ("rulefile", user_options->rp_files[i]);
             }
 
             FILE *fd2 = fopen (dictfile, "rb");
