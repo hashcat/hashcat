@@ -4473,7 +4473,7 @@ int main (int argc, char **argv)
 
   // induction directory
 
-  if (induction_dir == NULL)
+  if (induction_dir != NULL)
   {
     if (rmdir (induction_directory) == -1)
     {
@@ -4498,7 +4498,7 @@ int main (int argc, char **argv)
 
   // outfile-check directory
 
-  if (outfile_check_dir == NULL)
+  if (outfile_check_dir != NULL)
   {
     if (rmdir (outfile_check_directory) == -1)
     {
