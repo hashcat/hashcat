@@ -16158,9 +16158,9 @@ void ascii_digest (char *out_buf, const uint salt_pos, const uint digest_pos, co
 
 #pragma GCC diagnostic pop
 
-int hashconfig_init (hashconfig_t *hashconfig, const uint hash_mode, const char separator, const uint hex_salt)
+int hashconfig_init (hashconfig_t *hashconfig, const user_options_t *user_options)
 {
-  hashconfig->hash_mode       = hash_mode;
+  hashconfig->hash_mode       = user_options->hash_mode;
   hashconfig->hash_type       = 0;
   hashconfig->salt_type       = 0;
   hashconfig->attack_exec     = 0;
@@ -16175,7 +16175,7 @@ int hashconfig_init (hashconfig_t *hashconfig, const uint hash_mode, const char 
   hashconfig->dgst_pos2       = 0;
   hashconfig->dgst_pos3       = 0;
   hashconfig->parse_func      = NULL;
-  hashconfig->separator       = separator;
+  hashconfig->separator       = user_options->separator;
 
   switch (hashconfig->hash_mode)
   {
@@ -19813,7 +19813,7 @@ int hashconfig_init (hashconfig_t *hashconfig, const uint hash_mode, const char 
                  return -1;
   }
 
-  if (hex_salt)
+  if (user_options->hex_salt)
   {
     if (hashconfig->salt_type == SALT_TYPE_INTERN)
     {

@@ -401,7 +401,6 @@ int main (int argc, char **argv)
 
   // temporarily start
 
-  uint  hash_mode                 = HASH_MODE;
   uint  markov_disable            = MARKOV_DISABLE;
   uint  markov_classic            = MARKOV_CLASSIC;
   uint  markov_threshold          = MARKOV_THRESHOLD;
@@ -414,28 +413,18 @@ int main (int argc, char **argv)
   uint  loopback                  = LOOPBACK;
   uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   char *session                   = NULL;
-  uint  hex_salt                  = HEX_SALT;
   uint  rp_gen                    = RP_GEN;
   uint  rp_gen_func_min           = RP_GEN_FUNC_MIN;
   uint  rp_gen_func_max           = RP_GEN_FUNC_MAX;
-  uint  increment                 = INCREMENT;
-  uint  increment_min             = INCREMENT_MIN;
-  uint  increment_max             = INCREMENT_MAX;
   char *truecrypt_keyfiles        = NULL;
   char *veracrypt_keyfiles        = NULL;
   #if defined (HAVE_HWMON)
   uint  powertune_enable          = POWERTUNE_ENABLE;
   #endif
   uint  segment_size              = SEGMENT_SIZE;
-  char  separator                 = SEPARATOR;
 
   if (1)
   {
-    hash_mode       = user_options->hash_mode;
-    hex_salt        = user_options->hex_salt;
-    increment_max   = user_options->increment_max;
-    increment_min   = user_options->increment_min;
-    increment       = user_options->increment;
     loopback        = user_options->loopback;
     markov_classic  = user_options->markov_classic;
     markov_disable  = user_options->markov_disable;
@@ -450,7 +439,6 @@ int main (int argc, char **argv)
     rp_gen_func_min = user_options->rp_gen_func_min;
     rp_gen  = user_options->rp_gen;
     segment_size    = user_options->segment_size;
-    separator       = user_options->separator;
     session = user_options->session;
     status  = user_options->status;
     truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
@@ -885,7 +873,7 @@ int main (int argc, char **argv)
     {
       if (user_options->hash_mode_chgd == false)
       {
-        hash_mode = algorithms[algorithm_pos];
+        user_options->hash_mode = algorithms[algorithm_pos];
       }
 
       user_options->quiet = true;
@@ -895,7 +883,7 @@ int main (int argc, char **argv)
      * setup variables and buffers depending on hash_mode
      */
 
-    const int rc_hashconfig = hashconfig_init (hashconfig, hash_mode, separator, hex_salt);
+    const int rc_hashconfig = hashconfig_init (hashconfig, user_options);
 
     if (rc_hashconfig == -1) return -1;
 
@@ -2436,7 +2424,7 @@ int main (int argc, char **argv)
 
           masks[maskcnt - 1] = mystrdup ("?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d");
 
-          increment = 1;
+          user_options->increment = true;
         }
       }
       else
@@ -2456,16 +2444,15 @@ int main (int argc, char **argv)
 
         masks[maskcnt - 1] = mystrdup (mask);
 
-        increment = 1;
+        user_options->increment = true;
       }
 
       dictfiles = (char **) mycalloc (pw_max, sizeof (char *));
 
-      if (increment)
+      if (user_options->increment == true)
       {
-        if (increment_min > pw_min) pw_min = increment_min;
-
-        if (increment_max < pw_max) pw_max = increment_max;
+        if (user_options->increment_min > pw_min) pw_min = user_options->increment_min;
+        if (user_options->increment_max < pw_max) pw_max = user_options->increment_max;
       }
     }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
@@ -2626,12 +2613,12 @@ int main (int argc, char **argv)
         return -1;
       }
 
-      if (increment)
+      if (user_options->increment == true)
       {
         maskcnt = 0;
 
-        uint mask_min = increment_min; // we can't reject smaller masks here
-        uint mask_max = (increment_max < pw_max) ? increment_max : pw_max;
+        uint mask_min = user_options->increment_min; // we can't reject smaller masks here
+        uint mask_max = (user_options->increment_max < pw_max) ? user_options->increment_max : pw_max;
 
         for (uint mask_cur = mask_min; mask_cur <= mask_max; mask_cur++)
         {
@@ -2805,12 +2792,12 @@ int main (int argc, char **argv)
         return -1;
       }
 
-      if (increment)
+      if (user_options->increment == true)
       {
         maskcnt = 0;
 
-        uint mask_min = increment_min; // we can't reject smaller masks here
-        uint mask_max = (increment_max < pw_max) ? increment_max : pw_max;
+        uint mask_min = user_options->increment_min; // we can't reject smaller masks here
+        uint mask_max = (user_options->increment_max < pw_max) ? user_options->increment_max : pw_max;
 
         for (uint mask_cur = mask_min; mask_cur <= mask_max; mask_cur++)
         {
@@ -3161,7 +3148,7 @@ int main (int argc, char **argv)
         {
           dictcnt = 0;  // number of "sub-masks", i.e. when using incremental mode
 
-          if (increment)
+          if (user_options->increment == true)
           {
             for (uint i = 0; i < dictcnt; i++)
             {

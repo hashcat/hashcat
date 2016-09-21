@@ -1634,7 +1634,7 @@ void to_hccap_t (hccap_t *hccap, const uint salt_pos, const uint digest_pos, con
 
 void ascii_digest (char *out_buf, const uint salt_pos, const uint digest_pos, const hashconfig_t *hashconfig, const hashes_t *hashes);
 
-int   hashconfig_init                (hashconfig_t *hashconfig, const uint hash_mode, const char separator, const uint hex_salt);
+int   hashconfig_init                (hashconfig_t *hashconfig, const user_options_t *user_options);
 void  hashconfig_destroy             (hashconfig_t *hashconfig);
 uint  hashconfig_general_pw_min      (hashconfig_t *hashconfig);
 uint  hashconfig_general_pw_max      (hashconfig_t *hashconfig);
