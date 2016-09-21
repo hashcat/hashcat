@@ -400,14 +400,8 @@ int main (int argc, char **argv)
 
   // temporarily start
 
-  char *truecrypt_keyfiles        = NULL;
-  char *veracrypt_keyfiles        = NULL;
-
   if (1)
   {
-    truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
-    veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
-
     data.attack_mode             = user_options->attack_mode;
     data.restore                 = user_options->restore;
     data.restore_timer           = user_options->restore_timer;
@@ -956,12 +950,7 @@ int main (int argc, char **argv)
      * Automatic Optimizers
      */
 
-    char *optional_param1 = NULL;
-
-    if (truecrypt_keyfiles) optional_param1 = truecrypt_keyfiles;
-    if (veracrypt_keyfiles) optional_param1 = veracrypt_keyfiles;
-
-    hashconfig_general_defaults (hashconfig, hashes, optional_param1);
+    hashconfig_general_defaults (hashconfig, hashes, user_options);
 
     if (hashes->salts_cnt == 1)
       hashconfig->opti_type |= OPTI_TYPE_SINGLE_SALT;

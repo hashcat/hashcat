@@ -356,7 +356,7 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
 
   if (user_options->segment_size_chgd == true)
   {
-    user_options->segment_size = user_options->segment_size * (1024 * 1024);
+    user_options->segment_size *= (1024 * 1024);
   }
 
   return 0;

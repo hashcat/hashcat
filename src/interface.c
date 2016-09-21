@@ -20009,7 +20009,7 @@ uint hashconfig_general_pw_max (hashconfig_t *hashconfig)
   return pw_max;
 }
 
-void hashconfig_general_defaults (hashconfig_t *hashconfig, hashes_t *hashes, char *optional_param1)
+void hashconfig_general_defaults (hashconfig_t *hashconfig, hashes_t *hashes, const user_options_t *user_options)
 {
   salt_t *salts_buf  = hashes->salts_buf;
   void   *esalts_buf = hashes->esalts_buf;
@@ -20054,6 +20054,11 @@ void hashconfig_general_defaults (hashconfig_t *hashconfig, hashes_t *hashes, ch
       case 13763: salts_buf[salts_pos].truecrypt_mdlen = 3 * 512; break;
     }
   }
+
+  char *optional_param1 = NULL;
+
+  if (user_options->truecrypt_keyfiles) optional_param1 = user_options->truecrypt_keyfiles;
+  if (user_options->veracrypt_keyfiles) optional_param1 = user_options->veracrypt_keyfiles;
 
   if (optional_param1)
   {
