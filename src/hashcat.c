@@ -403,7 +403,6 @@ int main (int argc, char **argv)
   // temporarily start
 
 
-  uint  remove                    = REMOVE;
   u64   skip                      = SKIP;
   u64   limit                     = LIMIT;
   uint  keyspace                  = KEYSPACE;
@@ -472,7 +471,6 @@ int main (int argc, char **argv)
     potfile_disable = user_options->potfile_disable;
     potfile_path    = user_options->potfile_path;
     powertune_enable        = user_options->powertune_enable;
-    remove  = user_options->remove;
     rp_gen_func_max = user_options->rp_gen_func_max;
     rp_gen_func_min = user_options->rp_gen_func_min;
     rp_gen  = user_options->rp_gen;
@@ -4143,7 +4141,7 @@ int main (int argc, char **argv)
 
     // finally save left hashes
 
-    if ((hashes->hashlist_mode == HL_MODE_FILE) && (remove == 1) && (hashes->digests_saved != hashes->digests_done))
+    if ((hashes->hashlist_mode == HL_MODE_FILE) && (user_options->remove == 1) && (hashes->digests_saved != hashes->digests_done))
     {
       save_hash (opencl_ctx);
     }
