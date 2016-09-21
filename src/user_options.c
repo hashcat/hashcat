@@ -697,6 +697,16 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
     return -1;
   }
 
+  if ((user_options->gpu_temp_abort != 0) && (user_options->gpu_temp_retain != 0))
+  {
+    if (user_options->gpu_temp_abort < user_options->gpu_temp_retain)
+    {
+      log_error ("ERROR: Invalid values for gpu-temp-abort. Parameter gpu-temp-abort is less than gpu-temp-retain.");
+
+      return -1;
+    }
+  }
+
   if (user_options->benchmark == true)
   {
     if (myargv[optind] != NULL)

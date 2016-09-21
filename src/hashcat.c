@@ -426,10 +426,7 @@ int main (int argc, char **argv)
   uint  increment_max             = INCREMENT_MAX;
   char *truecrypt_keyfiles        = NULL;
   char *veracrypt_keyfiles        = NULL;
-  uint  gpu_temp_disable          = GPU_TEMP_DISABLE;
   #if defined (HAVE_HWMON)
-  uint  gpu_temp_abort            = GPU_TEMP_ABORT;
-  uint  gpu_temp_retain           = GPU_TEMP_RETAIN;
   uint  powertune_enable          = POWERTUNE_ENABLE;
   #endif
   uint  segment_size              = SEGMENT_SIZE;
@@ -437,9 +434,6 @@ int main (int argc, char **argv)
 
   if (1)
   {
-    gpu_temp_abort  = user_options->gpu_temp_abort;
-    gpu_temp_disable        = user_options->gpu_temp_disable;
-    gpu_temp_retain = user_options->gpu_temp_retain;
     hash_mode       = user_options->hash_mode;
     hex_salt        = user_options->hex_salt;
     increment_max   = user_options->increment_max;
@@ -744,11 +738,6 @@ int main (int argc, char **argv)
   logfile_top_uint   (user_options->kernel_accel);
   logfile_top_uint   (user_options->kernel_loops);
   logfile_top_uint   (user_options->nvidia_spin_damp);
-  logfile_top_uint   (user_options->gpu_temp_disable);
-  #if defined (HAVE_HWMON)
-  logfile_top_uint   (user_options->gpu_temp_abort);
-  logfile_top_uint   (user_options->gpu_temp_retain);
-  #endif
   logfile_top_uint   (user_options->hash_mode);
   logfile_top_uint   (user_options->hex_charset);
   logfile_top_uint   (user_options->hex_salt);
@@ -1474,7 +1463,7 @@ int main (int argc, char **argv)
     memset (hm_adapters_nvml,    0, sizeof (hm_adapters_nvml));
     memset (hm_adapters_xnvctrl, 0, sizeof (hm_adapters_xnvctrl));
 
-    if (gpu_temp_disable == 0)
+    if (user_options->gpu_temp_disable == false)
     {
       ADL_PTR     *adl     = (ADL_PTR *)     mymalloc (sizeof (ADL_PTR));
       NVAPI_PTR   *nvapi   = (NVAPI_PTR *)   mymalloc (sizeof (NVAPI_PTR));
@@ -1613,7 +1602,7 @@ int main (int argc, char **argv)
 
       if (data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl == NULL)
       {
-        gpu_temp_disable = 1;
+        user_options->gpu_temp_disable = true;
       }
     }
 
@@ -1631,25 +1620,15 @@ int main (int argc, char **argv)
      * User-defined GPU temp handling
      */
 
-    if (gpu_temp_disable == 1)
+    if (user_options->gpu_temp_disable == true)
     {
-      gpu_temp_abort  = 0;
-      gpu_temp_retain = 0;
+      user_options->gpu_temp_abort  = 0;
+      user_options->gpu_temp_retain = 0;
     }
 
-    if ((gpu_temp_abort != 0) && (gpu_temp_retain != 0))
-    {
-      if (gpu_temp_abort < gpu_temp_retain)
-      {
-        log_error ("ERROR: Invalid values for gpu-temp-abort. Parameter gpu-temp-abort is less than gpu-temp-retain.");
-
-        return -1;
-      }
-    }
-
-    data.gpu_temp_disable = gpu_temp_disable;
-    data.gpu_temp_abort   = gpu_temp_abort;
-    data.gpu_temp_retain  = gpu_temp_retain;
+    data.gpu_temp_disable = user_options->gpu_temp_disable;
+    data.gpu_temp_abort   = user_options->gpu_temp_abort;
+    data.gpu_temp_retain  = user_options->gpu_temp_retain;
     #endif
 
     /**
@@ -1697,27 +1676,27 @@ int main (int argc, char **argv)
        */
 
       #if defined (HAVE_HWMON)
-      if (gpu_temp_disable == 0 && data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl == NULL)
+      if (user_options->gpu_temp_disable == false && data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl == NULL)
       {
         log_info ("Watchdog: Hardware Monitoring Interface not found on your system");
       }
 
-      if (gpu_temp_abort == 0)
+      if (user_options->gpu_temp_abort == 0)
       {
         log_info ("Watchdog: Temperature abort trigger disabled");
       }
       else
       {
-        log_info ("Watchdog: Temperature abort trigger set to %uc", gpu_temp_abort);
+        log_info ("Watchdog: Temperature abort trigger set to %uc", user_options->gpu_temp_abort);
       }
 
-      if (gpu_temp_retain == 0)
+      if (user_options->gpu_temp_retain == 0)
       {
         log_info ("Watchdog: Temperature retain trigger disabled");
       }
       else
       {
-        log_info ("Watchdog: Temperature retain trigger set to %uc", gpu_temp_retain);
+        log_info ("Watchdog: Temperature retain trigger set to %uc", user_options->gpu_temp_retain);
       }
 
       if (user_options->quiet == false) log_info ("");
@@ -1730,7 +1709,7 @@ int main (int argc, char **argv)
      * HM devices: copy
      */
 
-    if (gpu_temp_disable == 0)
+    if (user_options->gpu_temp_disable == false)
     {
       for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
@@ -1989,9 +1968,9 @@ int main (int argc, char **argv)
 
       if (device_param->skipped) continue;
 
-      if (gpu_temp_disable == 1) continue;
+      if (user_options->gpu_temp_disable == true) continue;
 
-      if (gpu_temp_retain == 0) continue;
+      if (user_options->gpu_temp_retain == 0) continue;
 
       hc_thread_mutex_lock (mux_hwmon);
 
@@ -4138,9 +4117,9 @@ int main (int argc, char **argv)
     // reset default fan speed
 
     #if defined (HAVE_HWMON)
-    if (gpu_temp_disable == 0)
+    if (user_options->gpu_temp_disable == false)
     {
-      if (gpu_temp_retain != 0)
+      if (user_options->gpu_temp_retain != 0)
       {
         hc_thread_mutex_lock (mux_hwmon);
 
@@ -4252,7 +4231,7 @@ int main (int argc, char **argv)
       hc_thread_mutex_unlock (mux_hwmon);
     }
 
-    if (gpu_temp_disable == 0)
+    if (user_options->gpu_temp_disable == false)
     {
       if (data.hm_nvml)
       {
