@@ -401,10 +401,6 @@ int main (int argc, char **argv)
 
   // temporarily start
 
-  uint  markov_disable            = MARKOV_DISABLE;
-  uint  markov_classic            = MARKOV_CLASSIC;
-  uint  markov_threshold          = MARKOV_THRESHOLD;
-  char *markov_hcstat             = NULL;
   char *outfile                   = NULL;
   uint  outfile_format            = OUTFILE_FORMAT;
   uint  outfile_autohex           = OUTFILE_AUTOHEX;
@@ -426,10 +422,6 @@ int main (int argc, char **argv)
   if (1)
   {
     loopback        = user_options->loopback;
-    markov_classic  = user_options->markov_classic;
-    markov_disable  = user_options->markov_disable;
-    markov_hcstat   = user_options->markov_hcstat;
-    markov_threshold        = user_options->markov_threshold;
     outfile_autohex = user_options->outfile_autohex;
     outfile_check_timer     = user_options->outfile_check_timer;
     outfile_format  = user_options->outfile_format;
@@ -3071,9 +3063,7 @@ int main (int argc, char **argv)
           if (root_table_buf   == NULL) root_table_buf   = (hcstat_table_t *) mycalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
           if (markov_table_buf == NULL) markov_table_buf = (hcstat_table_t *) mycalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
 
-          sp_setup_tbl (shared_dir, markov_hcstat, markov_disable, markov_classic, root_table_buf, markov_table_buf);
-
-          markov_threshold = (markov_threshold != 0) ? markov_threshold : CHARSIZ;
+          sp_setup_tbl (shared_dir, user_options->markov_hcstat, user_options->markov_disable, user_options->markov_classic, root_table_buf, markov_table_buf);
 
           cs_t *root_css_buf   = (cs_t *) mycalloc (SP_PW_MAX,           sizeof (cs_t));
           cs_t *markov_css_buf = (cs_t *) mycalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
@@ -3081,7 +3071,7 @@ int main (int argc, char **argv)
           data.root_css_buf   = root_css_buf;
           data.markov_css_buf = markov_css_buf;
 
-          sp_tbl_to_css (root_table_buf, markov_table_buf, root_css_buf, markov_css_buf, markov_threshold, uniq_tbls);
+          sp_tbl_to_css (root_table_buf, markov_table_buf, root_css_buf, markov_css_buf, user_options->markov_threshold, uniq_tbls);
 
           data.combs_cnt = sp_get_sum (0, css_cnt, root_css_buf);
 
@@ -3542,9 +3532,7 @@ int main (int argc, char **argv)
           if (root_table_buf   == NULL) root_table_buf   = (hcstat_table_t *) mycalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
           if (markov_table_buf == NULL) markov_table_buf = (hcstat_table_t *) mycalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
 
-          sp_setup_tbl (shared_dir, markov_hcstat, markov_disable, markov_classic, root_table_buf, markov_table_buf);
-
-          markov_threshold = (markov_threshold != 0) ? markov_threshold : CHARSIZ;
+          sp_setup_tbl (shared_dir, user_options->markov_hcstat, user_options->markov_disable, user_options->markov_classic, root_table_buf, markov_table_buf);
 
           cs_t *root_css_buf   = (cs_t *) mycalloc (SP_PW_MAX,           sizeof (cs_t));
           cs_t *markov_css_buf = (cs_t *) mycalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
@@ -3552,7 +3540,7 @@ int main (int argc, char **argv)
           data.root_css_buf   = root_css_buf;
           data.markov_css_buf = markov_css_buf;
 
-          sp_tbl_to_css (root_table_buf, markov_table_buf, root_css_buf, markov_css_buf, markov_threshold, uniq_tbls);
+          sp_tbl_to_css (root_table_buf, markov_table_buf, root_css_buf, markov_css_buf, user_options->markov_threshold, uniq_tbls);
 
           data.words_cnt = sp_get_sum (0, css_cnt, root_css_buf);
 

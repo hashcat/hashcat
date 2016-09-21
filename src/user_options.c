@@ -348,6 +348,11 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
     user_options->outfile_format_chgd = 1;
   }
 
+  if (user_options->markov_threshold == 0)
+  {
+    user_options->markov_threshold = 0x100;
+  }
+
   return 0;
 }
 
