@@ -402,9 +402,6 @@ int main (int argc, char **argv)
 
   // temporarily start
 
-
-  uint  debug_mode                = DEBUG_MODE;
-  char *debug_file                = NULL;
   char *induction_dir             = NULL;
   char *outfile_check_dir         = NULL;
   uint  hash_mode                 = HASH_MODE;
@@ -440,8 +437,6 @@ int main (int argc, char **argv)
 
   if (1)
   {
-    debug_file      = user_options->debug_file;
-    debug_mode      = user_options->debug_mode;
     gpu_temp_abort  = user_options->gpu_temp_abort;
     gpu_temp_disable        = user_options->gpu_temp_disable;
     gpu_temp_retain = user_options->gpu_temp_retain;
@@ -1121,7 +1116,7 @@ int main (int argc, char **argv)
 
     data.debugfile_ctx = debugfile_ctx;
 
-    debugfile_init (debugfile_ctx, debug_mode, debug_file);
+    debugfile_init (debugfile_ctx, user_options->debug_mode, user_options->debug_file);
 
     /**
      * word len
