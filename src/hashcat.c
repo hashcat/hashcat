@@ -403,9 +403,6 @@ int main (int argc, char **argv)
   // temporarily start
 
 
-
-  uint  show                      = SHOW;
-  uint  left                      = LEFT;
   uint  remove                    = REMOVE;
   u64   skip                      = SKIP;
   u64   limit                     = LIMIT;
@@ -461,7 +458,6 @@ int main (int argc, char **argv)
     increment       = user_options->increment;
     induction_dir   = user_options->induction_dir;
     keyspace        = user_options->keyspace;
-    left    = user_options->left;
     limit   = user_options->limit;
     loopback        = user_options->loopback;
     markov_classic  = user_options->markov_classic;
@@ -483,7 +479,6 @@ int main (int argc, char **argv)
     segment_size    = user_options->segment_size;
     separator       = user_options->separator;
     session = user_options->session;
-    show    = user_options->show;
     skip    = user_options->skip;
     status  = user_options->status;
     truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
@@ -965,7 +960,7 @@ int main (int argc, char **argv)
 
     potfile_init (potfile_ctx, profile_dir, potfile_path, potfile_disable);
 
-    if (show == true || left == true)
+    if (user_options->show == true || user_options->left == true)
     {
       outfile_write_open (outfile_ctx);
 
@@ -1007,7 +1002,7 @@ int main (int argc, char **argv)
       }
     }
 
-    if (show == true || left == true)
+    if (user_options->show == true || user_options->left == true)
     {
       outfile_write_close (outfile_ctx);
 
