@@ -399,10 +399,8 @@ int main (int argc, char **argv)
 
   if (rc_user_options_sanity == -1) return -1;
 
-
   // temporarily start
 
-  char *induction_dir             = NULL;
   char *outfile_check_dir         = NULL;
   uint  hash_mode                 = HASH_MODE;
   uint  markov_disable            = MARKOV_DISABLE;
@@ -439,7 +437,6 @@ int main (int argc, char **argv)
     increment_max   = user_options->increment_max;
     increment_min   = user_options->increment_min;
     increment       = user_options->increment;
-    induction_dir   = user_options->induction_dir;
     loopback        = user_options->loopback;
     markov_classic  = user_options->markov_classic;
     markov_disable  = user_options->markov_disable;
@@ -580,7 +577,7 @@ int main (int argc, char **argv)
   {
     if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
     {
-      if (induction_dir == NULL)
+      if (user_options->induction_dir == NULL)
       {
         induction_directory = (char *) mymalloc (HCBUFSIZ_TINY);
 
@@ -627,7 +624,7 @@ int main (int argc, char **argv)
       }
       else
       {
-        induction_directory = induction_dir;
+        induction_directory = user_options->induction_dir;
       }
     }
   }
@@ -4357,7 +4354,7 @@ int main (int argc, char **argv)
 
   // induction directory
 
-  if (induction_dir != NULL)
+  if (induction_directory != NULL)
   {
     if (rmdir (induction_directory) == -1)
     {
@@ -4382,7 +4379,7 @@ int main (int argc, char **argv)
 
   // outfile-check directory
 
-  if (outfile_check_dir != NULL)
+  if (outfile_check_directory != NULL)
   {
     if (rmdir (outfile_check_directory) == -1)
     {
