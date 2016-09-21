@@ -848,6 +848,8 @@ typedef struct
   u32 rule_len_r;
   u32 rule_len_l;
 
+  u32 wordlist_mode;
+
   int optind;
 
 } user_options_extra_t;
@@ -860,8 +862,6 @@ typedef struct
   char           *session_dir;
   char           *shared_dir;
   char           *cpath_real;
-
-  u32             wordlist_mode;
 
   u32             kernel_rules_cnt;
   kernel_rule_t  *kernel_rules_buf;

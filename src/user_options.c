@@ -263,6 +263,13 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
     {
       user_options->workload_profile = 3;
     }
+
+    #if defined (HAVE_HWMON)
+    if (user_options->powertune_enable == true)
+    {
+      user_options->gpu_temp_disable = false;
+    }
+    #endif
   }
 
   if (user_options->keyspace == true)
@@ -805,14 +812,12 @@ int user_options_extra_init (user_options_t *user_options, int myargc, char **my
   user_options_extra->rule_len_l = (int) strlen (user_options->rule_buf_l);
   user_options_extra->rule_len_r = (int) strlen (user_options->rule_buf_r);
 
-  /*
   user_options_extra->wordlist_mode = ((user_options_extra->optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     user_options_extra->wordlist_mode = WL_MODE_MASK;
   }
-  */
 
   /* still needed?
   if (user_options_extra->wordlist_mode == WL_MODE_STDIN)

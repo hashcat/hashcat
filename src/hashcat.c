@@ -561,41 +561,25 @@ int main (int argc, char **argv)
     custom_charset_4        = user_options->custom_charset_4;
     debug_file      = user_options->debug_file;
     debug_mode      = user_options->debug_mode;
-
     gpu_temp_abort  = user_options->gpu_temp_abort;
     gpu_temp_disable        = user_options->gpu_temp_disable;
     gpu_temp_retain = user_options->gpu_temp_retain;
     hash_mode_chgd  = user_options->hash_mode_chgd;
     hash_mode       = user_options->hash_mode;
-
     hex_salt        = user_options->hex_salt;
-
     increment_max   = user_options->increment_max;
     increment_min   = user_options->increment_min;
     increment       = user_options->increment;
     induction_dir   = user_options->induction_dir;
-
-
-
-
     keyspace        = user_options->keyspace;
     left    = user_options->left;
     limit   = user_options->limit;
-
     loopback        = user_options->loopback;
     machine_readable        = user_options->machine_readable;
     markov_classic  = user_options->markov_classic;
     markov_disable  = user_options->markov_disable;
     markov_hcstat   = user_options->markov_hcstat;
     markov_threshold        = user_options->markov_threshold;
-
-
-
-
-
-
-
-
     outfile_autohex = user_options->outfile_autohex;
     outfile_check_dir       = user_options->outfile_check_dir;
     outfile_check_timer     = user_options->outfile_check_timer;
@@ -604,8 +588,6 @@ int main (int argc, char **argv)
     potfile_disable = user_options->potfile_disable;
     potfile_path    = user_options->potfile_path;
     powertune_enable        = user_options->powertune_enable;
-
-
     remove  = user_options->remove;
     restore_disable = user_options->restore_disable;
     restore_timer   = user_options->restore_timer;
@@ -614,12 +596,9 @@ int main (int argc, char **argv)
     rp_files        = user_options->rp_files;
     rp_gen_func_max = user_options->rp_gen_func_max;
     rp_gen_func_min = user_options->rp_gen_func_min;
-
     rp_gen  = user_options->rp_gen;
     rule_buf_l      = user_options->rule_buf_l;
     rule_buf_r      = user_options->rule_buf_r;
-
-
     segment_size    = user_options->segment_size;
     separator       = user_options->separator;
     session = user_options->session;
@@ -630,13 +609,12 @@ int main (int argc, char **argv)
     stdout_flag     = user_options->stdout_flag;
     truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
     usage   = user_options->usage;
-
     veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
-
     version = user_options->version;
     weak_hash_threshold     = user_options->weak_hash_threshold;
 
 
+    data.attack_mode             = user_options->attack_mode;
     data.restore                 = user_options->restore;
     data.restore_timer           = user_options->restore_timer;
     data.restore_disable         = user_options->restore_disable;
@@ -648,7 +626,6 @@ int main (int argc, char **argv)
     data.remove                  = user_options->remove;
     data.remove_timer            = user_options->remove_timer;
     data.username                = user_options->username;
-
     data.hex_charset             = user_options->hex_charset;
     data.hex_salt                = user_options->hex_salt;
     data.hex_wordlist            = user_options->hex_wordlist;
@@ -673,12 +650,8 @@ int main (int argc, char **argv)
     data.veracrypt_pim           = user_options->veracrypt_pim;
     data.scrypt_tmto             = user_options->scrypt_tmto;
 
-    //wordlist_mode = user_options_extra->wordlist_mode;
-    //attack_kern   = user_options_extra->attack_kern;
-
-
-    //data.wordlist_mode = wordlist_mode;
-    //data.attack_kern   = attack_kern;
+    data.wordlist_mode = user_options_extra->wordlist_mode;
+    data.attack_kern   = user_options_extra->attack_kern;
 
   }
 
@@ -735,7 +708,7 @@ int main (int argc, char **argv)
 
   char *induction_directory = NULL;
 
-  if (attack_mode != ATTACK_MODE_BF)
+  if (user_options->attack_mode != ATTACK_MODE_BF)
   {
     if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
     {
@@ -988,69 +961,8 @@ int main (int argc, char **argv)
   }
 
   /**
-   * benchmark
-   */
-
-  if (benchmark == true)
-  {
-    /**
-     * disable useless stuff for benchmark
-     */
-
-    status_timer          = 0;
-    restore_timer         = 0;
-    restore_disable       = 1;
-    potfile_disable       = 1;
-    weak_hash_threshold   = 0;
-
-    gpu_temp_disable      = 1;
-    outfile_check_timer   = 0;
-
-    #if defined (HAVE_HWMON)
-    if (powertune_enable == 1)
-    {
-      gpu_temp_disable = 0;
-    }
-    #endif
-
-    data.status_timer         = status_timer;
-    data.restore_timer        = restore_timer;
-    data.restore_disable      = restore_disable;
-    data.outfile_check_timer  = outfile_check_timer;
-
-    /**
-     * force attack mode to be bruteforce
-     */
-
-    attack_mode = ATTACK_MODE_BF;
-    user_options_extra->attack_kern = ATTACK_KERN_BF;
-  }
-
-  data.attack_mode = attack_mode;
-  data.attack_kern = user_options_extra->attack_kern;
-
-  /**
    * status, monitor and outfile remove threads
    */
-
-  uint wordlist_mode = ((user_options_extra->optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
-
-  if (attack_mode == ATTACK_MODE_BF)
-  {
-    wordlist_mode = WL_MODE_MASK;
-  }
-
-  data.wordlist_mode = wordlist_mode;
-
-  if (wordlist_mode == WL_MODE_STDIN)
-  {
-    // enable status (in stdin mode) whenever we do not use --stdout together with an outfile
-
-    if      (stdout_flag == false) status = 1;
-    else if (outfile != NULL)  status = 1;
-
-    data.status = status;
-  }
 
   uint outer_threads_cnt = 0;
 
@@ -1060,7 +972,7 @@ int main (int argc, char **argv)
 
   if (keyspace == false && benchmark == false && stdout_flag == false)
   {
-    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
+    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
       hc_thread_create (outer_threads[outer_threads_cnt], thread_keypress, NULL);
 
@@ -1253,7 +1165,7 @@ int main (int argc, char **argv)
     if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       hashconfig->opti_type |= OPTI_TYPE_NOT_ITERATED;
 
-    if (attack_mode == ATTACK_MODE_BF)
+    if (user_options->attack_mode == ATTACK_MODE_BF)
       hashconfig->opti_type |= OPTI_TYPE_BRUTE_FORCE;
 
     if (hashconfig->opti_type & OPTI_TYPE_BRUTE_FORCE)
@@ -1536,7 +1448,7 @@ int main (int argc, char **argv)
 
     kernel_rule_t *kernel_rules_buf = NULL;
 
-    if (attack_mode == ATTACK_MODE_STRAIGHT)
+    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
       if (rp_files_cnt)
       {
@@ -1902,7 +1814,7 @@ int main (int argc, char **argv)
 
       log_info ("Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_bits, bitmap_nums, bitmap_mask, bitmap_size, bitmap_shift1, bitmap_shift2);
 
-      if (attack_mode == ATTACK_MODE_STRAIGHT)
+      if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
       {
         log_info ("Rules: %u", kernel_rules_cnt);
       }
@@ -2198,7 +2110,7 @@ int main (int argc, char **argv)
 
     data.session_ctx = session_ctx;
 
-    session_ctx_init (session_ctx, cwd, install_dir, profile_dir, session_dir, shared_dir, cpath_real, wordlist_mode, kernel_rules_cnt, kernel_rules_buf, bitmap_size, bitmap_mask, bitmap_shift1, bitmap_shift2, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d);
+    session_ctx_init (session_ctx, cwd, install_dir, profile_dir, session_dir, shared_dir, cpath_real, kernel_rules_cnt, kernel_rules_buf, bitmap_size, bitmap_mask, bitmap_shift1, bitmap_shift2, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d);
 
     opencl_session_begin (opencl_ctx, hashconfig, hashes, session_ctx, user_options, user_options_extra);
 
@@ -2352,9 +2264,9 @@ int main (int argc, char **argv)
 
     uint   mask_from_file = 0;
 
-    if (attack_mode == ATTACK_MODE_STRAIGHT)
+    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
-      if (wordlist_mode == WL_MODE_FILE)
+      if (user_options_extra->wordlist_mode == WL_MODE_FILE)
       {
         int wls_left = myargc - (user_options_extra->optind + 1);
 
@@ -2435,12 +2347,12 @@ int main (int argc, char **argv)
           return -1;
         }
       }
-      else if (wordlist_mode == WL_MODE_STDIN)
+      else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
       {
         dictcnt = 1;
       }
     }
-    else if (attack_mode == ATTACK_MODE_COMBI)
+    else if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
       // display
 
@@ -2581,7 +2493,7 @@ int main (int argc, char **argv)
         data.rule_len_r = tmpi;
       }
     }
-    else if (attack_mode == ATTACK_MODE_BF)
+    else if (user_options->attack_mode == ATTACK_MODE_BF)
     {
       char *mask = NULL;
 
@@ -2721,7 +2633,7 @@ int main (int argc, char **argv)
         if (increment_max < pw_max) pw_max = increment_max;
       }
     }
-    else if (attack_mode == ATTACK_MODE_HYBRID1)
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
     {
       data.combs_mode = COMBINATOR_MODE_BASE_LEFT;
 
@@ -2900,7 +2812,7 @@ int main (int argc, char **argv)
         }
       }
     }
-    else if (attack_mode == ATTACK_MODE_HYBRID2)
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
     {
       data.combs_mode = COMBINATOR_MODE_BASE_RIGHT;
 
@@ -3205,7 +3117,7 @@ int main (int argc, char **argv)
       rd->maskpos  = maskpos;
       data.maskpos = maskpos;
 
-      if (attack_mode == ATTACK_MODE_HYBRID1 || attack_mode == ATTACK_MODE_HYBRID2 || attack_mode == ATTACK_MODE_BF)
+      if (user_options->attack_mode == ATTACK_MODE_HYBRID1 || attack_mode == ATTACK_MODE_HYBRID2 || attack_mode == ATTACK_MODE_BF)
       {
         char *mask = masks[maskpos];
 
@@ -3313,7 +3225,7 @@ int main (int argc, char **argv)
           mask[mask_out_pos] = '\0';
         }
 
-        if ((attack_mode == ATTACK_MODE_HYBRID1) || (attack_mode == ATTACK_MODE_HYBRID2))
+        if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
         {
           if (maskpos > 0)
           {
@@ -3372,14 +3284,14 @@ int main (int argc, char **argv)
             device_param->kernel_params_mp_buf32[6] = 0;
             device_param->kernel_params_mp_buf32[7] = 0;
 
-            if (attack_mode == ATTACK_MODE_HYBRID1)
+            if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
             {
               if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_buf32[5] = full01;
               if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_buf32[5] = full80;
               if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
               if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_buf32[7] = 1;
             }
-            else if (attack_mode == ATTACK_MODE_HYBRID2)
+            else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
             {
               device_param->kernel_params_mp_buf32[5] = 0;
               device_param->kernel_params_mp_buf32[6] = 0;
@@ -3410,7 +3322,7 @@ int main (int argc, char **argv)
             }
           }
         }
-        else if (attack_mode == ATTACK_MODE_BF)
+        else if (user_options->attack_mode == ATTACK_MODE_BF)
         {
           dictcnt = 0;  // number of "sub-masks", i.e. when using incremental mode
 
@@ -3452,7 +3364,7 @@ int main (int argc, char **argv)
 
       // induction_dictionaries_cnt = 0; // implied
 
-      if (attack_mode != ATTACK_MODE_BF)
+      if (user_options->attack_mode != ATTACK_MODE_BF)
       {
         if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
         {
@@ -3572,9 +3484,9 @@ int main (int argc, char **argv)
 
         // figure out some workload
 
-        if (attack_mode == ATTACK_MODE_STRAIGHT)
+        if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
         {
-          if (data.wordlist_mode == WL_MODE_FILE)
+          if (user_options_extra->wordlist_mode == WL_MODE_FILE)
           {
             char *dictfile = NULL;
 
@@ -3617,7 +3529,7 @@ int main (int argc, char **argv)
             }
           }
         }
-        else if (attack_mode == ATTACK_MODE_COMBI)
+        else if (user_options->attack_mode == ATTACK_MODE_COMBI)
         {
           char *dictfile  = data.dictfile;
           char *dictfile2 = data.dictfile2;
@@ -3663,7 +3575,7 @@ int main (int argc, char **argv)
             continue;
           }
         }
-        else if ((attack_mode == ATTACK_MODE_HYBRID1) || (attack_mode == ATTACK_MODE_HYBRID2))
+        else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
         {
           char *dictfile = NULL;
 
@@ -3703,7 +3615,7 @@ int main (int argc, char **argv)
             continue;
           }
         }
-        else if (attack_mode == ATTACK_MODE_BF)
+        else if (user_options->attack_mode == ATTACK_MODE_BF)
         {
           local_free (css_buf);
           local_free (data.root_css_buf);
@@ -4103,7 +4015,7 @@ int main (int argc, char **argv)
 
         data.kernel_power_all = kernel_power_all;
 
-        if ((wordlist_mode == WL_MODE_FILE) || (wordlist_mode == WL_MODE_MASK))
+        if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
         {
           if (data.words_base < kernel_power_all)
           {
@@ -4136,14 +4048,14 @@ int main (int argc, char **argv)
 
         hc_timer_set (&data.timer_running);
 
-        if ((wordlist_mode == WL_MODE_FILE) || (wordlist_mode == WL_MODE_MASK))
+        if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
         {
           if ((user_options->quiet == false) && (status == 0) && (benchmark == false))
           {
             if (user_options->quiet == false) send_prompt ();
           }
         }
-        else if (wordlist_mode == WL_MODE_STDIN)
+        else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
         {
           if (user_options->quiet == false) log_info ("Starting attack in stdin mode...");
           if (user_options->quiet == false) log_info ("");
@@ -4161,7 +4073,7 @@ int main (int argc, char **argv)
         {
           hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-          if (wordlist_mode == WL_MODE_STDIN)
+          if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
           {
             hc_thread_create (c_threads[device_id], thread_calc_stdin, device_param);
           }
@@ -4194,7 +4106,7 @@ int main (int argc, char **argv)
 
         free (induction_dictionaries);
 
-        if (attack_mode != ATTACK_MODE_BF)
+        if (user_options->attack_mode != ATTACK_MODE_BF)
         {
           if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
           {
@@ -4276,9 +4188,9 @@ int main (int argc, char **argv)
     }
 
     // problems could occur if already at startup everything was cracked (because of .pot file reading etc), we must set some variables here to avoid NULL pointers
-    if (attack_mode == ATTACK_MODE_STRAIGHT)
+    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
-      if (data.wordlist_mode == WL_MODE_FILE)
+      if (user_options_extra->wordlist_mode == WL_MODE_FILE)
       {
         if (data.dictfile == NULL)
         {
@@ -4292,7 +4204,7 @@ int main (int argc, char **argv)
       }
     }
     // NOTE: combi is okay because it is already set beforehand
-    else if (attack_mode == ATTACK_MODE_HYBRID1 || attack_mode == ATTACK_MODE_HYBRID2)
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1 || attack_mode == ATTACK_MODE_HYBRID2)
     {
       if (data.dictfile == NULL)
       {
@@ -4304,7 +4216,7 @@ int main (int argc, char **argv)
         }
       }
     }
-    else if (attack_mode == ATTACK_MODE_BF)
+    else if (user_options->attack_mode == ATTACK_MODE_BF)
     {
       if (data.mask == NULL)
       {
