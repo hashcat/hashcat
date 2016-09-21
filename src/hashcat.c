@@ -337,20 +337,6 @@ int main (int argc, char **argv)
 
   if (rc_user_options_parse1 == -1) return -1;
 
-  if (user_options->version)
-  {
-    log_info ("%s", VERSION_TAG);
-
-    return 0;
-  }
-
-  if (user_options->usage)
-  {
-    usage_big_print (PROGNAME);
-
-    return 0;
-  }
-
   /**
    * session
    */
@@ -418,7 +404,6 @@ int main (int argc, char **argv)
 
 
 
-  uint  stdout_flag               = STDOUT_FLAG;
   uint  show                      = SHOW;
   uint  left                      = LEFT;
   uint  remove                    = REMOVE;
@@ -440,10 +425,7 @@ int main (int argc, char **argv)
   uint  outfile_format            = OUTFILE_FORMAT;
   uint  outfile_autohex           = OUTFILE_AUTOHEX;
   uint  outfile_check_timer       = OUTFILE_CHECK_TIMER;
-  uint  restore                   = RESTORE;
-
   uint  status                    = STATUS;
-  uint  machine_readable          = MACHINE_READABLE;
   uint  loopback                  = LOOPBACK;
   uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   char *session                   = NULL;
@@ -482,7 +464,6 @@ int main (int argc, char **argv)
     left    = user_options->left;
     limit   = user_options->limit;
     loopback        = user_options->loopback;
-    machine_readable        = user_options->machine_readable;
     markov_classic  = user_options->markov_classic;
     markov_disable  = user_options->markov_disable;
     markov_hcstat   = user_options->markov_hcstat;
@@ -496,8 +477,6 @@ int main (int argc, char **argv)
     potfile_path    = user_options->potfile_path;
     powertune_enable        = user_options->powertune_enable;
     remove  = user_options->remove;
-
-    restore = user_options->restore;
     rp_gen_func_max = user_options->rp_gen_func_max;
     rp_gen_func_min = user_options->rp_gen_func_min;
     rp_gen  = user_options->rp_gen;
@@ -507,13 +486,9 @@ int main (int argc, char **argv)
     show    = user_options->show;
     skip    = user_options->skip;
     status  = user_options->status;
-    stdout_flag     = user_options->stdout_flag;
     truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
-
     veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
-
     weak_hash_threshold     = user_options->weak_hash_threshold;
-
 
     data.attack_mode             = user_options->attack_mode;
     data.restore                 = user_options->restore;
@@ -561,6 +536,21 @@ int main (int argc, char **argv)
 
   }
 
+
+  if (user_options->version)
+  {
+    log_info ("%s", VERSION_TAG);
+
+    return 0;
+  }
+
+  if (user_options->usage)
+  {
+    usage_big_print (PROGNAME);
+
+    return 0;
+  }
+
   /**
    * Inform user things getting started,
    * - this is giving us a visual header before preparations start, so we do not need to clear them afterwards
@@ -571,7 +561,7 @@ int main (int argc, char **argv)
   {
     if (user_options->benchmark == true)
     {
-      if (machine_readable == false)
+      if (user_options->machine_readable == false)
       {
         log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
         log_info ("");
@@ -581,22 +571,22 @@ int main (int argc, char **argv)
         log_info ("# %s (%s) %s", PROGNAME, VERSION_TAG, ctime (&proc_start));
       }
     }
-    else if (restore == true)
+    else if (user_options->restore == true)
     {
       log_info ("%s (%s) starting in restore-mode...", PROGNAME, VERSION_TAG);
       log_info ("");
     }
-    else if (stdout_flag == true)
+    else if (user_options->stdout_flag == true)
     {
       // do nothing
     }
-    else if (keyspace == true)
+    else if (user_options->keyspace == true)
     {
       // do nothing
     }
     else
     {
-      if ((show == true) || (left == true))
+      if ((user_options->show == true) || (user_options->left == true))
       {
         // do nothing
       }
