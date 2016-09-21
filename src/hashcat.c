@@ -242,10 +242,6 @@ int main (int argc, char **argv)
   #endif
   uint  segment_size              = SEGMENT_SIZE;
   char  separator                 = SEPARATOR;
-  char *custom_charset_1          = NULL;
-  char *custom_charset_2          = NULL;
-  char *custom_charset_3          = NULL;
-  char *custom_charset_4          = NULL;
 
   uint rp_files_cnt = 0;
 
@@ -532,10 +528,6 @@ int main (int argc, char **argv)
 
   if (1)
   {
-    custom_charset_1        = user_options->custom_charset_1;
-    custom_charset_2        = user_options->custom_charset_2;
-    custom_charset_3        = user_options->custom_charset_3;
-    custom_charset_4        = user_options->custom_charset_4;
     debug_file      = user_options->debug_file;
     debug_mode      = user_options->debug_mode;
     gpu_temp_abort  = user_options->gpu_temp_abort;
@@ -1237,10 +1229,10 @@ int main (int argc, char **argv)
 
     mp_setup_sys (mp_sys);
 
-    if (custom_charset_1) mp_setup_usr (mp_sys, mp_usr, custom_charset_1, 0, hashconfig);
-    if (custom_charset_2) mp_setup_usr (mp_sys, mp_usr, custom_charset_2, 1, hashconfig);
-    if (custom_charset_3) mp_setup_usr (mp_sys, mp_usr, custom_charset_3, 2, hashconfig);
-    if (custom_charset_4) mp_setup_usr (mp_sys, mp_usr, custom_charset_4, 3, hashconfig);
+    if (user_options->custom_charset_1) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig);
+    if (user_options->custom_charset_2) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig);
+    if (user_options->custom_charset_3) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig);
+    if (user_options->custom_charset_4) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_4, 3, hashconfig);
 
     /**
      * Some algorithm, like descrypt, can benefit from JIT compilation
@@ -2553,13 +2545,13 @@ int main (int argc, char **argv)
         }
         else
         {
-          custom_charset_1 = (char *) "?l?d?u";
-          custom_charset_2 = (char *) "?l?d";
-          custom_charset_3 = (char *) "?l?d*!$@_";
+          user_options->custom_charset_1 = (char *) "?l?d?u";
+          user_options->custom_charset_2 = (char *) "?l?d";
+          user_options->custom_charset_3 = (char *) "?l?d*!$@_";
 
-          mp_setup_usr (mp_sys, mp_usr, custom_charset_1, 0, hashconfig);
-          mp_setup_usr (mp_sys, mp_usr, custom_charset_2, 1, hashconfig);
-          mp_setup_usr (mp_sys, mp_usr, custom_charset_3, 2, hashconfig);
+          mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig);
+          mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig);
+          mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig);
 
           maskcnt = 1;
 
@@ -3129,29 +3121,29 @@ int main (int argc, char **argv)
               case 0:
                 mp_reset_usr (mp_usr, 0);
 
-                custom_charset_1 = mask;
-                mp_setup_usr (mp_sys, mp_usr, custom_charset_1, 0, hashconfig);
+                user_options->custom_charset_1 = mask;
+                mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig);
                 break;
 
               case 1:
                 mp_reset_usr (mp_usr, 1);
 
-                custom_charset_2 = mask;
-                mp_setup_usr (mp_sys, mp_usr, custom_charset_2, 1, hashconfig);
+                user_options->custom_charset_2 = mask;
+                mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig);
                 break;
 
               case 2:
                 mp_reset_usr (mp_usr, 2);
 
-                custom_charset_3 = mask;
-                mp_setup_usr (mp_sys, mp_usr, custom_charset_3, 2, hashconfig);
+                user_options->custom_charset_3 = mask;
+                mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig);
                 break;
 
               case 3:
                 mp_reset_usr (mp_usr, 3);
 
-                custom_charset_4 = mask;
-                mp_setup_usr (mp_sys, mp_usr, custom_charset_4, 3, hashconfig);
+                user_options->custom_charset_4 = mask;
+                mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_4, 3, hashconfig);
                 break;
             }
 
