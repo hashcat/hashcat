@@ -400,7 +400,6 @@ int main (int argc, char **argv)
 
   // temporarily start
 
-  uint  status                    = STATUS;
   uint  loopback                  = LOOPBACK;
   uint  weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   char *session                   = NULL;
@@ -423,7 +422,6 @@ int main (int argc, char **argv)
     rp_gen  = user_options->rp_gen;
     segment_size    = user_options->segment_size;
     session = user_options->session;
-    status  = user_options->status;
     truecrypt_keyfiles      = user_options->truecrypt_keyfiles;
     veracrypt_keyfiles      = user_options->veracrypt_keyfiles;
     weak_hash_threshold     = user_options->weak_hash_threshold;
@@ -3940,7 +3938,7 @@ int main (int argc, char **argv)
           }
           else
           {
-            if (status == 1)
+            if (user_options->status == true)
             {
               status_display (opencl_ctx, hashconfig, hashes);
             }
@@ -3960,7 +3958,7 @@ int main (int argc, char **argv)
          * Update loopback file
          */
 
-        if (loopback == 1)
+        if (user_options->loopback == true)
         {
           loopback_write_close (loopback_ctx);
         }
