@@ -196,7 +196,6 @@ int main (int argc, char **argv)
 
   uint  usage                     = USAGE;
   uint  version                   = VERSION;
-  uint  benchmark                 = BENCHMARK;
   uint  stdout_flag               = STDOUT_FLAG;
   uint  show                      = SHOW;
   uint  left                      = LEFT;
@@ -516,11 +515,6 @@ int main (int argc, char **argv)
     #endif
   }
 
-  uint hash_mode_chgd           = 0;
-
-
-
-
 
   const int rc_user_options_parse = user_options_parse (user_options, myargc, myargv);
 
@@ -542,8 +536,6 @@ int main (int argc, char **argv)
 
   if (1)
   {
-
-    benchmark       = user_options->benchmark;
     bitmap_max      = user_options->bitmap_max;
     bitmap_min      = user_options->bitmap_min;
     custom_charset_1        = user_options->custom_charset_1;
@@ -555,7 +547,6 @@ int main (int argc, char **argv)
     gpu_temp_abort  = user_options->gpu_temp_abort;
     gpu_temp_disable        = user_options->gpu_temp_disable;
     gpu_temp_retain = user_options->gpu_temp_retain;
-    hash_mode_chgd  = user_options->hash_mode_chgd;
     hash_mode       = user_options->hash_mode;
     hex_salt        = user_options->hex_salt;
     increment_max   = user_options->increment_max;
@@ -652,7 +643,7 @@ int main (int argc, char **argv)
 
   if (user_options->quiet == false)
   {
-    if (benchmark == true)
+    if (user_options->benchmark == true)
     {
       if (machine_readable == false)
       {
@@ -959,7 +950,7 @@ int main (int argc, char **argv)
 
   data.shutdown_outer = 0;
 
-  if (keyspace == false && benchmark == false && stdout_flag == false)
+  if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false)
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
@@ -982,7 +973,7 @@ int main (int argc, char **argv)
 
   const int *algorithms = DEFAULT_BENCHMARK_ALGORITHMS_BUF;
 
-  if (benchmark == true && hash_mode_chgd == false) algorithm_max = DEFAULT_BENCHMARK_ALGORITHMS_CNT;
+  if (user_options->benchmark == true && user_options->hash_mode_chgd == false) algorithm_max = DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 
   for (algorithm_pos = 0; algorithm_pos < algorithm_max; algorithm_pos++)
   {
@@ -1012,9 +1003,9 @@ int main (int argc, char **argv)
      * update hash_mode in case of multihash benchmark
      */
 
-    if (benchmark == true)
+    if (user_options->benchmark == true)
     {
-      if (hash_mode_chgd == false)
+      if (user_options->hash_mode_chgd == false)
       {
         hash_mode = algorithms[algorithm_pos];
       }
@@ -1784,7 +1775,7 @@ int main (int argc, char **argv)
      * enable custom signal handler(s)
      */
 
-    if (benchmark == false)
+    if (user_options->benchmark == false)
     {
       hc_signal (sigHandler_default);
     }
@@ -2090,7 +2081,7 @@ int main (int argc, char **argv)
     #endif // HAVE_HWMON
 
     #if defined (DEBUG)
-    if (benchmark == true) log_info ("Hashmode: %d", hashconfig->hash_mode);
+    if (user_options->benchmark == true) log_info ("Hashmode: %d", hashconfig->hash_mode);
     #endif
 
     if (user_options->quiet == false) log_info_nn ("Initializing device kernels and memory...");
@@ -2178,9 +2169,9 @@ int main (int argc, char **argv)
      * In benchmark-mode, inform user which algorithm is checked
      */
 
-    if (benchmark == true)
+    if (user_options->benchmark == true)
     {
-      if (machine_readable == false)
+      if (user_options->machine_readable == false)
       {
         //quiet = 0;
 
@@ -2488,7 +2479,7 @@ int main (int argc, char **argv)
 
       maskcnt = 0;
 
-      if (benchmark == false)
+      if (user_options->benchmark == false)
       {
         mask = myargv[user_options_extra->optind + 1];
 
@@ -3033,7 +3024,7 @@ int main (int argc, char **argv)
       * Outfile remove
       */
 
-    if (keyspace == false && benchmark == false && stdout_flag == false)
+    if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false)
     {
       hc_thread_create (inner_threads[inner_threads_cnt], thread_monitor, NULL);
 
@@ -4039,7 +4030,7 @@ int main (int argc, char **argv)
 
         if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
         {
-          if ((user_options->quiet == false) && (status == 0) && (benchmark == false))
+          if ((user_options->quiet == false) && (user_options->status == false) && (user_options->benchmark == false))
           {
             if (user_options->quiet == false) send_prompt ();
           }
@@ -4105,11 +4096,11 @@ int main (int argc, char **argv)
           }
         }
 
-        if (benchmark == true)
+        if (user_options->benchmark == true)
         {
           status_benchmark (opencl_ctx, hashconfig);
 
-          if (machine_readable == false)
+          if (user_options->machine_readable == false)
           {
             log_info ("");
           }
