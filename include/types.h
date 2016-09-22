@@ -979,8 +979,6 @@ typedef struct
   u32     force;
   u32     benchmark;
   u32     runtime;
-  u32     remove;
-  u32     remove_timer;
   u32     hex_charset;
   u32     hex_salt;
   u32     hex_wordlist;

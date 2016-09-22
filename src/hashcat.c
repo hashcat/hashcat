@@ -282,8 +282,6 @@ int main (int argc, char **argv)
     data.outfile_check_timer = user_options->outfile_check_timer;
     data.powertune_enable = user_options->powertune_enable;
     data.quiet = user_options->quiet;
-    data.remove = user_options->remove;
-    data.remove_timer = user_options->remove_timer;
     data.runtime = user_options->runtime;
     data.scrypt_tmto = user_options->scrypt_tmto;
     data.segment_size = user_options->segment_size;
