@@ -680,13 +680,13 @@ typedef struct
 {
   u32  len;
 
-  char buf[0x100];
+  char buf[32];
 
 } cpu_rule_t;
 
 typedef struct
 {
-  u32  cmds[0x100];
+  u32  cmds[32];
 
 } kernel_rule_t;
 
@@ -1034,7 +1034,7 @@ typedef struct
 
 } hc_global_data_t;
 
-#define RULES_MAX   256
+#define RULES_MAX   32
 #define PW_DICTMAX  31
 #define PW_DICTMAX1 (PW_DICTMAX + 1)
 

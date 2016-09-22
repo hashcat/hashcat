@@ -1318,7 +1318,7 @@ typedef struct
 
 typedef struct
 {
-  u32 cmds[0x100];
+  u32 cmds[32];
 
 } kernel_rule_t;
 
