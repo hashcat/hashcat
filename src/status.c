@@ -286,7 +286,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
   fflush (out);
 }
 
-void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes)
+void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const user_options_t *user_options)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -353,6 +353,11 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
    * show input
    */
 
+  char *custom_charset_1 = user_options->custom_charset_1;
+  char *custom_charset_2 = user_options->custom_charset_2;
+  char *custom_charset_3 = user_options->custom_charset_3;
+  char *custom_charset_4 = user_options->custom_charset_4;
+
   if (data.attack_mode == ATTACK_MODE_STRAIGHT)
   {
     if (data.wordlist_mode == WL_MODE_FILE)
@@ -403,31 +408,14 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
       log_info ("Input.Mode.....: %s", tmp_buf);
 
-      if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
+      if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
       {
-        char *custom_charset_1 = data.custom_charset_1;
-        char *custom_charset_2 = data.custom_charset_2;
-        char *custom_charset_3 = data.custom_charset_3;
-        char *custom_charset_4 = data.custom_charset_4;
+        if (custom_charset_1 == NULL) custom_charset_1 = "Undefined";
+        if (custom_charset_2 == NULL) custom_charset_2 = "Undefined";
+        if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
+        if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-        if (custom_charset_1 == NULL)
-        {
-          custom_charset_1 = "Undefined";
-        }
-        if (custom_charset_2 == NULL)
-        {
-          custom_charset_2 = "Undefined";
-        }
-        if (custom_charset_3 == NULL)
-        {
-          custom_charset_3 = "Undefined";
-        }
-        if (custom_charset_4 == NULL)
-        {
-          custom_charset_4 = "Undefined";
-        }
-
-        log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+        log_info ("Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
       }
     }
 
@@ -437,62 +425,30 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
   {
     if (data.dictfile != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
     if (data.mask     != NULL) log_info ("Input.Right....: Mask (%s) [%i]", data.mask, data.css_cnt);
-    if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
+
+    if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
     {
-      char *custom_charset_1 = data.custom_charset_1;
-      char *custom_charset_2 = data.custom_charset_2;
-      char *custom_charset_3 = data.custom_charset_3;
-      char *custom_charset_4 = data.custom_charset_4;
+      if (custom_charset_1 == NULL) custom_charset_1 = "Undefined";
+      if (custom_charset_2 == NULL) custom_charset_2 = "Undefined";
+      if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
+      if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-      if (custom_charset_1 == NULL)
-      {
-        custom_charset_1 = "Undefined";
-      }
-      if (custom_charset_2 == NULL)
-      {
-        custom_charset_2 = "Undefined";
-      }
-      if (custom_charset_3 == NULL)
-      {
-        custom_charset_3 = "Undefined";
-      }
-      if (custom_charset_4 == NULL)
-      {
-        custom_charset_4 = "Undefined";
-      }
-
-      log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+      log_info ("Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
     }
   }
   else if (data.attack_mode == ATTACK_MODE_HYBRID2)
   {
     if (data.mask     != NULL) log_info ("Input.Left.....: Mask (%s) [%i]", data.mask, data.css_cnt);
     if (data.dictfile != NULL) log_info ("Input.Right....: File (%s)", data.dictfile);
-    if (data.custom_charset_1 || data.custom_charset_2 || data.custom_charset_3 || data.custom_charset_4)
+
+    if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
     {
-      char *custom_charset_1 = data.custom_charset_1;
-      char *custom_charset_2 = data.custom_charset_2;
-      char *custom_charset_3 = data.custom_charset_3;
-      char *custom_charset_4 = data.custom_charset_4;
+      if (custom_charset_1 == NULL) custom_charset_1 = "Undefined";
+      if (custom_charset_2 == NULL) custom_charset_2 = "Undefined";
+      if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
+      if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-      if (custom_charset_1 == NULL)
-      {
-        custom_charset_1 = "Undefined";
-      }
-      if (custom_charset_2 == NULL)
-      {
-        custom_charset_2 = "Undefined";
-      }
-      if (custom_charset_3 == NULL)
-      {
-        custom_charset_3 = "Undefined";
-      }
-      if (custom_charset_4 == NULL)
-      {
-        custom_charset_4 = "Undefined";
-      }
-
-      log_info ("Custom.Chars...: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+      log_info ("Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
     }
   }
 

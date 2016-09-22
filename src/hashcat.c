@@ -280,10 +280,6 @@ int main (int argc, char **argv)
   {
     data.attack_mode = user_options->attack_mode;
     data.benchmark = user_options->benchmark;
-    data.custom_charset_1 = user_options->custom_charset_1;
-    data.custom_charset_2 = user_options->custom_charset_2;
-    data.custom_charset_3 = user_options->custom_charset_3;
-    data.custom_charset_4 = user_options->custom_charset_4;
     data.force = user_options->force;
     data.gpu_temp_abort = user_options->gpu_temp_abort;
     data.gpu_temp_disable = user_options->gpu_temp_disable;
@@ -3740,7 +3736,7 @@ int main (int argc, char **argv)
 
             log_info ("");
 
-            status_display (opencl_ctx, hashconfig, hashes);
+            status_display (opencl_ctx, hashconfig, hashes, user_options);
 
             log_info ("");
           }
@@ -3748,7 +3744,7 @@ int main (int argc, char **argv)
           {
             if (user_options->status == true)
             {
-              status_display (opencl_ctx, hashconfig, hashes);
+              status_display (opencl_ctx, hashconfig, hashes, user_options);
             }
           }
         }

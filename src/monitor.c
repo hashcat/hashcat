@@ -342,7 +342,7 @@ void *thread_monitor (void *p)
 
         if (user_options->quiet == false) log_info ("");
 
-        status_display (opencl_ctx, hashconfig, hashes);
+        status_display (opencl_ctx, hashconfig, hashes, user_options);
 
         if (user_options->quiet == false) log_info ("");
 

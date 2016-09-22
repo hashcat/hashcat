@@ -1007,11 +1007,6 @@ typedef struct
   char   *veracrypt_keyfiles;
   u32     veracrypt_pim;
 
-  char   *custom_charset_1;
-  char   *custom_charset_2;
-  char   *custom_charset_3;
-  char   *custom_charset_4;
-
   hashconfig_t          *hashconfig;
   hashes_t              *hashes;
   user_options_t        *user_options;

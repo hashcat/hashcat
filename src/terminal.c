@@ -63,8 +63,9 @@ void *thread_keypress (void *p)
 
   while (opencl_ctx->devices_status == STATUS_INIT) hc_sleep_ms (100);
 
-  hashconfig_t *hashconfig = data.hashconfig;
-  hashes_t     *hashes     = data.hashes;
+  user_options_t *user_options = data.user_options;
+  hashconfig_t   *hashconfig   = data.hashconfig;
+  hashes_t       *hashes       = data.hashes;
 
   uint quiet = data.quiet;
 
@@ -95,7 +96,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        status_display (opencl_ctx, hashconfig, hashes);
+        status_display (opencl_ctx, hashconfig, hashes, user_options);
 
         log_info ("");
 
