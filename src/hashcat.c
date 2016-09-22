@@ -271,7 +271,6 @@ int main (int argc, char **argv)
   if (1)
   {
     data.attack_mode = user_options->attack_mode;
-    data.benchmark = user_options->benchmark;
     data.force = user_options->force;
     data.hex_charset = user_options->hex_charset;
     data.hex_salt = user_options->hex_salt;

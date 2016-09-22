@@ -282,7 +282,7 @@ void *thread_calc (void *p)
 
       if (opencl_ctx->run_thread_level1 == false) break;
 
-      if (data.benchmark == true) break;
+      if (user_options->benchmark == true) break;
 
       device_param->words_done = words_fin;
     }

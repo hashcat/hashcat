@@ -244,7 +244,7 @@ int gidd_to_pw_t (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, con
   return 0;
 }
 
-int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration)
+int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, hashconfig_t *hashconfig, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration)
 {
   cl_int CL_err = CL_SUCCESS;
 
@@ -357,7 +357,7 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, ha
 
       device_param->speed_ms[speed_pos] = speed_ms;
 
-      if (data.benchmark == true)
+      if (user_options->benchmark == true)
       {
         if (speed_ms > 4096) myabort (opencl_ctx);
       }
@@ -1229,12 +1229,12 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
         }
       }
 
-      if (data.benchmark == true)
+      if (user_options->benchmark == true)
       {
         hc_timer_set (&device_param->timer_speed);
       }
 
-      int rc = choose_kernel (opencl_ctx, device_param, hashconfig, hashconfig->attack_exec, data.attack_mode, hashconfig->opts_type, salt_buf, highest_pw_len, pws_cnt, fast_iteration);
+      int rc = choose_kernel (opencl_ctx, device_param, user_options, hashconfig, hashconfig->attack_exec, data.attack_mode, hashconfig->opts_type, salt_buf, highest_pw_len, pws_cnt, fast_iteration);
 
       if (rc == -1) return -1;
 
@@ -1242,7 +1242,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
        * result
        */
 
-      if (data.benchmark == false)
+      if (user_options->benchmark == false)
       {
         check_cracked (opencl_ctx, device_param, user_options, hashconfig, hashes, salt_pos);
       }
@@ -1290,7 +1290,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
        * benchmark
        */
 
-      if (data.benchmark == true) break;
+      if (user_options->benchmark == true) break;
 
       if (opencl_ctx->run_thread_level2 == false) break;
     }
