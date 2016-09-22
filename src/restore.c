@@ -66,11 +66,11 @@ u64 get_lowest_words_done (opencl_ctx_t *opencl_ctx)
   return words_cur;
 }
 
-restore_data_t *init_restore (int argc, char **argv)
+restore_data_t *init_restore (int argc, char **argv, const user_options_t *user_options)
 {
   restore_data_t *rd = (restore_data_t *) mymalloc (sizeof (restore_data_t));
 
-  if (data.restore_disable == 0)
+  if (user_options->restore_disable == false)
   {
     FILE *fp = fopen (data.eff_restore_file, "rb");
 
@@ -303,11 +303,11 @@ void cycle_restore (opencl_ctx_t *opencl_ctx)
   }
 }
 
-void stop_at_checkpoint (opencl_ctx_t *opencl_ctx)
+void stop_at_checkpoint (opencl_ctx_t *opencl_ctx, const user_options_t *user_options)
 {
   // this feature only makes sense if --restore-disable was not specified
 
-  if (data.restore_disable == 1)
+  if (user_options->restore_disable == true)
   {
     log_info ("WARNING: This feature is disabled when --restore-disable is specified");
 

@@ -145,7 +145,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        stop_at_checkpoint (opencl_ctx);
+        stop_at_checkpoint (opencl_ctx, user_options);
 
         log_info ("");
 

@@ -971,9 +971,7 @@ typedef struct
   char   *induction_directory;
   char   *outfile_check_directory;
   u32     loopback;
-  u32     restore;
-  u32     restore_timer;
-  u32     restore_disable;
+
   u32     status;
   u32     status_timer;
   u32     machine_readable;

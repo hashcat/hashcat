@@ -209,9 +209,6 @@ int main (int argc, char **argv)
    * session
    */
 
-  data.session         = user_options->session;
-  data.restore_disable = user_options->restore_disable;
-
   char *eff_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
   char *new_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
 
@@ -221,7 +218,7 @@ int main (int argc, char **argv)
   data.eff_restore_file = eff_restore_file;
   data.new_restore_file = new_restore_file;
 
-  restore_data_t *rd = init_restore (argc, argv);
+  restore_data_t *rd = init_restore (argc, argv, user_options);
 
   data.rd = rd;
 
@@ -287,9 +284,6 @@ int main (int argc, char **argv)
     data.quiet = user_options->quiet;
     data.remove = user_options->remove;
     data.remove_timer = user_options->remove_timer;
-    data.restore = user_options->restore;
-    data.restore_disable = user_options->restore_disable;
-    data.restore_timer = user_options->restore_timer;
     data.runtime = user_options->runtime;
     data.scrypt_tmto = user_options->scrypt_tmto;
     data.segment_size = user_options->segment_size;
@@ -668,7 +662,7 @@ int main (int argc, char **argv)
     {
       local_free (rd);
 
-      rd = init_restore (argc, argv);
+      rd = init_restore (argc, argv, user_options);
 
       data.rd = rd;
     }
@@ -3679,8 +3673,6 @@ int main (int argc, char **argv)
         logfile_sub_var_uint ("status-after-work", opencl_ctx->devices_status);
 
         user_options->restore = false;
-
-        data.restore = false;
 
         if (induction_dictionaries_cnt)
         {
