@@ -959,7 +959,6 @@ typedef struct
   char   *mask;
   u32     maskcnt;
   u32     maskpos;
-  u32     wordlist_mode;
   char   *eff_restore_file;
   char   *new_restore_file;
   char   *induction_directory;

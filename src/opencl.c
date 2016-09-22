@@ -1244,7 +1244,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       if (user_options->benchmark == false)
       {
-        check_cracked (opencl_ctx, device_param, user_options, hashconfig, hashes, salt_pos);
+        check_cracked (opencl_ctx, device_param, user_options, user_options_extra, hashconfig, hashes, salt_pos);
       }
 
       /**

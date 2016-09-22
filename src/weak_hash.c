@@ -30,7 +30,7 @@
 
 extern hc_global_data_t data;
 
-void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, hashconfig_t *hashconfig, hashes_t *hashes, const uint salt_pos)
+void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, hashconfig_t *hashconfig, hashes_t *hashes, const uint salt_pos)
 {
   if (device_param == NULL)
   {
@@ -93,7 +93,7 @@ void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param,
    * result
    */
 
-  check_cracked (opencl_ctx, device_param, user_options, hashconfig, hashes, salt_pos);
+  check_cracked (opencl_ctx, device_param, user_options, user_options_extra, hashconfig, hashes, salt_pos);
 
   /**
    * cleanup

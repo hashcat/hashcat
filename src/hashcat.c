@@ -276,8 +276,6 @@ int main (int argc, char **argv)
     data.hex_salt = user_options->hex_salt;
     data.logfile_disable = user_options->logfile_disable;
     data.quiet = user_options->quiet;
-
-    data.wordlist_mode = user_options_extra->wordlist_mode;
     data.attack_kern = user_options_extra->attack_kern;
   }
 
@@ -2586,7 +2584,7 @@ int main (int argc, char **argv)
 
       for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
       {
-        weak_hash_check (opencl_ctx, device_param, user_options, hashconfig, hashes, salt_pos);
+        weak_hash_check (opencl_ctx, device_param, user_options, user_options_extra, hashconfig, hashes, salt_pos);
       }
 
       // Display hack, guarantee that there is at least one \r before real start
