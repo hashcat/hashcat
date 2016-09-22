@@ -972,8 +972,6 @@ typedef struct
   char   *outfile_check_directory;
   u32     loopback;
 
-  u32     status;
-  u32     status_timer;
   u32     machine_readable;
   u32     quiet;
   u32     force;

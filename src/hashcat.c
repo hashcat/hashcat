@@ -286,8 +286,6 @@ int main (int argc, char **argv)
     data.scrypt_tmto = user_options->scrypt_tmto;
     data.segment_size = user_options->segment_size;
     data.session = user_options->session;
-    data.status = user_options->status;
-    data.status_timer = user_options->status_timer;
     data.truecrypt_keyfiles = user_options->truecrypt_keyfiles;
     data.veracrypt_keyfiles = user_options->veracrypt_keyfiles;
     data.veracrypt_pim = user_options->veracrypt_pim;
@@ -2601,7 +2599,7 @@ int main (int argc, char **argv)
 
       for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
       {
-        weak_hash_check (opencl_ctx, device_param, hashconfig, hashes, salt_pos);
+        weak_hash_check (opencl_ctx, device_param, user_options, hashconfig, hashes, salt_pos);
       }
 
       // Display hack, guarantee that there is at least one \r before real start
