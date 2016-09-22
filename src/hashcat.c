@@ -205,6 +205,20 @@ int main (int argc, char **argv)
 
   if (rc_user_options_parse1 == -1) return -1;
 
+  if (user_options->version == true)
+  {
+    log_info ("%s", VERSION_TAG);
+
+    return 0;
+  }
+
+  if (user_options->usage == true)
+  {
+    usage_big_print (PROGNAME);
+
+    return 0;
+  }
+
   /**
    * session
    */
@@ -265,20 +279,6 @@ int main (int argc, char **argv)
   const int rc_user_options_sanity = user_options_sanity (user_options, myargc, myargv, user_options_extra);
 
   if (rc_user_options_sanity == -1) return -1;
-
-  if (user_options->version)
-  {
-    log_info ("%s", VERSION_TAG);
-
-    return 0;
-  }
-
-  if (user_options->usage)
-  {
-    usage_big_print (PROGNAME);
-
-    return 0;
-  }
 
   /**
    * Inform user things getting started,
