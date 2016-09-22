@@ -260,7 +260,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
 
   unsigned int plain_len = 0;
 
-  if (data.attack_mode == ATTACK_MODE_STRAIGHT)
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
     pw_t pw;
 
@@ -308,7 +308,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
 
     if (plain_len > data.pw_max) plain_len = data.pw_max;
   }
-  else if (data.attack_mode == ATTACK_MODE_COMBI)
+  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
     pw_t pw;
 
@@ -346,7 +346,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
       if (plain_len > data.pw_max) plain_len = data.pw_max;
     }
   }
-  else if (data.attack_mode == ATTACK_MODE_BF)
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     u64 l_off = device_param->kernel_params_mp_l_buf64[3] + gidvid;
     u64 r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
@@ -366,7 +366,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
     crackpos *= data.bfs_cnt;
     crackpos += device_param->innerloop_pos + il_pos;
   }
-  else if (data.attack_mode == ATTACK_MODE_HYBRID1)
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
     pw_t pw;
 
@@ -397,7 +397,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
       if (plain_len > data.pw_max) plain_len = data.pw_max;
     }
   }
-  else if (data.attack_mode == ATTACK_MODE_HYBRID2)
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
     pw_t pw;
 
@@ -431,7 +431,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
     }
   }
 
-  if (data.attack_mode == ATTACK_MODE_BF)
+  if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     if (hashconfig->opti_type & OPTI_TYPE_BRUTE_FORCE) // lots of optimizations can happen here
     {
@@ -493,7 +493,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
   if (debugfile_ctx->fp != NULL)
   {
     // the next check implies that:
-    // - (data.attack_mode == ATTACK_MODE_STRAIGHT)
+    // - (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     // - debug_mode > 0
 
     if ((debug_plain_len > 0) || (debug_rule_len > 0))

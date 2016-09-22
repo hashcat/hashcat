@@ -436,7 +436,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
       log_info ("Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
     }
   }
-  else if (data.attack_mode == ATTACK_MODE_HYBRID2)
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
     if (data.mask     != NULL) log_info ("Input.Left.....: Mask (%s) [%i]", data.mask, data.css_cnt);
     if (data.dictfile != NULL) log_info ("Input.Right....: File (%s)", data.dictfile);

@@ -208,7 +208,7 @@ void *thread_calc_stdin (void *p)
 
     if (pws_cnt)
     {
-      run_copy (opencl_ctx, device_param, hashconfig, pws_cnt);
+      run_copy (opencl_ctx, device_param, hashconfig, user_options, pws_cnt);
 
       run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, pws_cnt);
 
@@ -248,7 +248,7 @@ void *thread_calc (void *p)
   hashes_t             *hashes             = data.hashes;
   opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
 
-  const uint attack_mode = data.attack_mode;
+  const uint attack_mode = user_options->attack_mode;
   const uint attack_kern = data.attack_kern;
 
   if (attack_mode == ATTACK_MODE_BF)
@@ -268,7 +268,7 @@ void *thread_calc (void *p)
 
       if (pws_cnt)
       {
-        run_copy (opencl_ctx, device_param, hashconfig, pws_cnt);
+        run_copy (opencl_ctx, device_param, hashconfig, user_options, pws_cnt);
 
         run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, pws_cnt);
 
@@ -460,7 +460,7 @@ void *thread_calc (void *p)
 
       if (pws_cnt)
       {
-        run_copy (opencl_ctx, device_param, hashconfig, pws_cnt);
+        run_copy (opencl_ctx, device_param, hashconfig, user_options, pws_cnt);
 
         run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, pws_cnt);
 

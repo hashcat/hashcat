@@ -20,6 +20,6 @@
 #include <pwd.h>
 #endif // _POSIX
 
-void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint pws_cnt);
+void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const uint pws_cnt);
 
 #endif // _STDOUT_H

@@ -270,7 +270,6 @@ int main (int argc, char **argv)
 
   if (1)
   {
-    data.attack_mode = user_options->attack_mode;
     data.force = user_options->force;
     data.quiet = user_options->quiet;
     data.attack_kern = user_options_extra->attack_kern;

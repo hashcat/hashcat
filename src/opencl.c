@@ -250,7 +250,7 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
   if (hashconfig->hash_mode == 2000)
   {
-    process_stdout (opencl_ctx, device_param, pws_cnt);
+    process_stdout (opencl_ctx, device_param, user_options, pws_cnt);
 
     return 0;
   }
@@ -280,26 +280,26 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
     if (highest_pw_len < 16)
     {
-      run_kernel (KERN_RUN_1, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig);
+      run_kernel (KERN_RUN_1, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig, user_options);
     }
     else if (highest_pw_len < 32)
     {
-      run_kernel (KERN_RUN_2, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig);
+      run_kernel (KERN_RUN_2, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig, user_options);
     }
     else
     {
-      run_kernel (KERN_RUN_3, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig);
+      run_kernel (KERN_RUN_3, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig, user_options);
     }
   }
   else
   {
     run_kernel_amp (opencl_ctx, device_param, pws_cnt);
 
-    run_kernel (KERN_RUN_1, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig);
+    run_kernel (KERN_RUN_1, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options);
 
     if (opts_type & OPTS_TYPE_HOOK12)
     {
-      run_kernel (KERN_RUN_12, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig);
+      run_kernel (KERN_RUN_12, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options);
 
       CL_err = hc_clEnqueueReadBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -335,7 +335,7 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
       device_param->kernel_params_buf32[28] = loop_pos;
       device_param->kernel_params_buf32[29] = loop_left;
 
-      run_kernel (KERN_RUN_2, opencl_ctx, device_param, pws_cnt, true, slow_iteration, hashconfig);
+      run_kernel (KERN_RUN_2, opencl_ctx, device_param, pws_cnt, true, slow_iteration, hashconfig, user_options);
 
       while (opencl_ctx->run_thread_level2 == false) break;
 
@@ -365,7 +365,7 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
     if (opts_type & OPTS_TYPE_HOOK23)
     {
-      run_kernel (KERN_RUN_23, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig);
+      run_kernel (KERN_RUN_23, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options);
 
       CL_err = hc_clEnqueueReadBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -388,13 +388,13 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
       }
     }
 
-    run_kernel (KERN_RUN_3, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig);
+    run_kernel (KERN_RUN_3, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options);
   }
 
   return 0;
 }
 
-int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint num, const uint event_update, const uint iteration, hashconfig_t *hashconfig)
+int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint num, const uint event_update, const uint iteration, hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   cl_int CL_err = CL_SUCCESS;
 
@@ -439,7 +439,7 @@ int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t
 
   cl_event event;
 
-  if ((hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE) && (data.attack_mode == ATTACK_MODE_BF))
+  if ((hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE) && (user_options->attack_mode == ATTACK_MODE_BF))
   {
     const size_t global_work_size[3] = { num_elements,        32, 1 };
     const size_t local_work_size[3]  = { kernel_threads / 32, 32, 1 };
@@ -865,7 +865,7 @@ int run_kernel_bzero (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param,
   return run_kernel_memset (opencl_ctx, device_param, buf, 0, size);
 }
 
-int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const uint pws_cnt)
+int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, const uint pws_cnt)
 {
   cl_int CL_err = CL_SUCCESS;
 
@@ -882,7 +882,7 @@ int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
   }
   else if (data.attack_kern == ATTACK_KERN_COMBI)
   {
-    if (data.attack_mode == ATTACK_MODE_COMBI)
+    if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
       if (data.combs_mode == COMBINATOR_MODE_BASE_RIGHT)
       {
@@ -910,7 +910,7 @@ int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
         }
       }
     }
-    else if (data.attack_mode == ATTACK_MODE_HYBRID2)
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
     {
       if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
       {
@@ -1009,7 +1009,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
     FILE *combs_fp = device_param->combs_fp;
 
-    if (data.attack_mode == ATTACK_MODE_COMBI)
+    if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
       rewind (combs_fp);
     }
@@ -1065,7 +1065,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       // initialize amplifiers
 
-      if (data.attack_mode == ATTACK_MODE_COMBI)
+      if (user_options->attack_mode == ATTACK_MODE_COMBI)
       {
         uint i = 0;
 
@@ -1146,7 +1146,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
         innerloop_left = i;
       }
-      else if (data.attack_mode == ATTACK_MODE_BF)
+      else if (user_options->attack_mode == ATTACK_MODE_BF)
       {
         u64 off = innerloop_pos;
 
@@ -1154,7 +1154,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
         run_kernel_mp (KERN_RUN_MP_R, opencl_ctx, device_param, innerloop_left);
       }
-      else if (data.attack_mode == ATTACK_MODE_HYBRID1)
+      else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
       {
         u64 off = innerloop_pos;
 
@@ -1162,7 +1162,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
         run_kernel_mp (KERN_RUN_MP, opencl_ctx, device_param, innerloop_left);
       }
-      else if (data.attack_mode == ATTACK_MODE_HYBRID2)
+      else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
       {
         u64 off = innerloop_pos;
 
@@ -1173,7 +1173,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       // copy amplifiers
 
-      if (data.attack_mode == ATTACK_MODE_STRAIGHT)
+      if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
       {
         cl_int CL_err = hc_clEnqueueCopyBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, innerloop_pos * sizeof (kernel_rule_t), 0, innerloop_left * sizeof (kernel_rule_t), 0, NULL, NULL);
 
@@ -1184,7 +1184,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
           return -1;
         }
       }
-      else if (data.attack_mode == ATTACK_MODE_COMBI)
+      else if (user_options->attack_mode == ATTACK_MODE_COMBI)
       {
         cl_int CL_err = hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (comb_t), device_param->combs_buf, 0, NULL, NULL);
 
@@ -1195,7 +1195,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
           return -1;
         }
       }
-      else if (data.attack_mode == ATTACK_MODE_BF)
+      else if (user_options->attack_mode == ATTACK_MODE_BF)
       {
         cl_int CL_err = hc_clEnqueueCopyBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bfs, device_param->d_bfs_c, 0, 0, innerloop_left * sizeof (bf_t), 0, NULL, NULL);
 
@@ -1206,7 +1206,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
           return -1;
         }
       }
-      else if (data.attack_mode == ATTACK_MODE_HYBRID1)
+      else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
       {
         cl_int CL_err = hc_clEnqueueCopyBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
 
@@ -1217,7 +1217,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
           return -1;
         }
       }
-      else if (data.attack_mode == ATTACK_MODE_HYBRID2)
+      else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
       {
         cl_int CL_err = hc_clEnqueueCopyBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
 
@@ -1234,7 +1234,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
         hc_timer_set (&device_param->timer_speed);
       }
 
-      int rc = choose_kernel (opencl_ctx, device_param, user_options, hashconfig, hashconfig->attack_exec, data.attack_mode, hashconfig->opts_type, salt_buf, highest_pw_len, pws_cnt, fast_iteration);
+      int rc = choose_kernel (opencl_ctx, device_param, user_options, hashconfig, hashconfig->attack_exec, user_options->attack_mode, hashconfig->opts_type, salt_buf, highest_pw_len, pws_cnt, fast_iteration);
 
       if (rc == -1) return -1;
 

@@ -59,7 +59,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
   }
 }
 
-void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint pws_cnt)
+void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const uint pws_cnt)
 {
   out_t out;
 
@@ -93,7 +93,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
 
   const uint il_cnt = device_param->kernel_params_buf32[30]; // ugly, i know
 
-  if (data.attack_mode == ATTACK_MODE_STRAIGHT)
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
     pw_t pw;
 
@@ -120,7 +120,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
       }
     }
   }
-  else if (data.attack_mode == ATTACK_MODE_COMBI)
+  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
     pw_t pw;
 
@@ -162,7 +162,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
       }
     }
   }
-  else if (data.attack_mode == ATTACK_MODE_BF)
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     for (uint gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
@@ -186,7 +186,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
       }
     }
   }
-  else if (data.attack_mode == ATTACK_MODE_HYBRID1)
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
     pw_t pw;
 
@@ -216,7 +216,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
       }
     }
   }
-  else if (data.attack_mode == ATTACK_MODE_HYBRID2)
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
     pw_t pw;
 
