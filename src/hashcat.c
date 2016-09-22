@@ -277,7 +277,6 @@ int main (int argc, char **argv)
     data.hex_salt = user_options->hex_salt;
     data.hex_wordlist = user_options->hex_wordlist;
     data.logfile_disable = user_options->logfile_disable;
-    data.machine_readable = user_options->machine_readable;
     data.powertune_enable = user_options->powertune_enable;
     data.quiet = user_options->quiet;
     data.runtime = user_options->runtime;
