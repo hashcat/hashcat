@@ -278,8 +278,6 @@ int main (int argc, char **argv)
     data.logfile_disable = user_options->logfile_disable;
     data.quiet = user_options->quiet;
     data.truecrypt_keyfiles = user_options->truecrypt_keyfiles;
-    data.veracrypt_keyfiles = user_options->veracrypt_keyfiles;
-    data.veracrypt_pim = user_options->veracrypt_pim;
 
     data.wordlist_mode = user_options_extra->wordlist_mode;
     data.attack_kern = user_options_extra->attack_kern;

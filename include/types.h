@@ -977,8 +977,7 @@ typedef struct
   u32     pw_min;
   u32     pw_max;
   char   *truecrypt_keyfiles;
-  char   *veracrypt_keyfiles;
-  u32     veracrypt_pim;
+
 
   opencl_ctx_t          *opencl_ctx;
   hashconfig_t          *hashconfig;
