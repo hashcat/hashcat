@@ -905,6 +905,14 @@ typedef struct
 
 typedef struct
 {
+  bool enabled;
+
+  char *root_directory;
+
+} outcheck_ctx_t;
+
+typedef struct
+{
   /**
    * threads
    */
@@ -976,7 +984,6 @@ typedef struct
   u32     maskpos;
   char   *eff_restore_file;
   char   *new_restore_file;
-  char   *outfile_check_directory;
   u32     pw_min;
   u32     pw_max;
 
@@ -992,6 +999,7 @@ typedef struct
   session_ctx_t         *session_ctx;
   bitmap_ctx_t          *bitmap_ctx;
   induct_ctx_t          *induct_ctx;
+  outcheck_ctx_t        *outcheck_ctx;
 
   /**
    * used for restore

@@ -176,8 +176,6 @@ int main (int argc, char **argv)
    * folder
    */
 
-  folder_config_t *folder_config = (folder_config_t *) mymalloc (sizeof (folder_config_t));
-
   char *install_folder = NULL;
   char *shared_folder  = NULL;
 
@@ -188,6 +186,8 @@ int main (int argc, char **argv)
   #if defined (SHARED_FOLDER)
   shared_folder = SHARED_FOLDER;
   #endif
+
+  folder_config_t *folder_config = (folder_config_t *) mymalloc (sizeof (folder_config_t));
 
   folder_config_init (folder_config, install_folder, shared_folder);
 
@@ -328,6 +328,16 @@ int main (int argc, char **argv)
   }
 
   /**
+   * tuning db
+   */
+
+  char tuning_db_file[256] = { 0 };
+
+  snprintf (tuning_db_file, sizeof (tuning_db_file) - 1, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
+
+  tuning_db_t *tuning_db = tuning_db_init (tuning_db_file);
+
+  /**
    * induction directory
    */
 
@@ -340,59 +350,16 @@ int main (int argc, char **argv)
   if (rc_induct_ctx_init == -1) return -1;
 
   /**
-   * tuning db
-   */
-
-  char tuning_db_file[256] = { 0 };
-
-  snprintf (tuning_db_file, sizeof (tuning_db_file) - 1, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
-
-  tuning_db_t *tuning_db = tuning_db_init (tuning_db_file);
-
-  /**
    * outfile-check directory
    */
 
-  char *outfile_check_directory = NULL;
+  outcheck_ctx_t *outcheck_ctx = (outcheck_ctx_t *) mymalloc (sizeof (outcheck_ctx_t));
 
-  if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
-  {
-    if (user_options->outfile_check_dir == NULL)
-    {
-      outfile_check_directory = (char *) mymalloc (HCBUFSIZ_TINY);
+  data.outcheck_ctx = outcheck_ctx;
 
-      snprintf (outfile_check_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", folder_config->session_dir, user_options->session, OUTFILES_DIR);
-    }
-    else
-    {
-      outfile_check_directory = user_options->outfile_check_dir;
-    }
+  const int rc_outcheck_ctx_init = outcheck_ctx_init (outcheck_ctx, user_options, folder_config);
 
-    struct stat outfile_check_stat;
-
-    if (stat (outfile_check_directory, &outfile_check_stat) == 0)
-    {
-      uint is_dir = S_ISDIR (outfile_check_stat.st_mode);
-
-      if (is_dir == 0)
-      {
-        log_error ("ERROR: Directory specified in outfile-check '%s' is not a valid directory", outfile_check_directory);
-
-        return -1;
-      }
-    }
-    else if (user_options->outfile_check_dir == NULL)
-    {
-      if (mkdir (outfile_check_directory, 0700) == -1)
-      {
-        log_error ("ERROR: %s: %s", outfile_check_directory, strerror (errno));
-
-        return -1;
-      }
-    }
-  }
-
-  data.outfile_check_directory = outfile_check_directory;
+  if (rc_outcheck_ctx_init == -1) return -1;
 
   /**
    * cpu affinity
@@ -2491,28 +2458,11 @@ int main (int argc, char **argv)
 
       inner_threads_cnt++;
 
-      if (user_options->outfile_check_timer != 0)
+      if (outcheck_ctx->enabled == true)
       {
-        if (data.outfile_check_directory != NULL)
-        {
-          if ((hashconfig->hash_mode !=  5200) &&
-            !((hashconfig->hash_mode >=  6200) && (hashconfig->hash_mode <=  6299)) &&
-            !((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799)) &&
-              (hashconfig->hash_mode != 9000))
-          {
-            hc_thread_create (inner_threads[inner_threads_cnt], thread_outfile_remove, NULL);
+        hc_thread_create (inner_threads[inner_threads_cnt], thread_outfile_remove, NULL);
 
-            inner_threads_cnt++;
-          }
-          else
-          {
-            user_options->outfile_check_timer = 0;
-          }
-        }
-        else
-        {
-          user_options->outfile_check_timer = 0;
-        }
+        inner_threads_cnt++;
       }
     }
 
@@ -3907,28 +3857,9 @@ int main (int argc, char **argv)
 
   // outfile-check directory
 
-  if (outfile_check_directory != NULL)
-  {
-    if (rmdir (outfile_check_directory) == -1)
-    {
-      if (errno == ENOENT)
-      {
-        // good, we can ignore
-      }
-      else if (errno == ENOTEMPTY)
-      {
-        // good, we can ignore
-      }
-      else
-      {
-        log_error ("ERROR: %s: %s", outfile_check_directory, strerror (errno));
+  outcheck_ctx_destroy (outcheck_ctx);
 
-        return -1;
-      }
-    }
-
-    local_free (outfile_check_directory);
-  }
+  // shutdown
 
   time_t proc_stop;
 

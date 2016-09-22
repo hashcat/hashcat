@@ -6,6 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
+#include "logging.h"
 #include "interface.h"
 #include "timer.h"
 #include "folder.h"
@@ -39,9 +40,10 @@ void *thread_outfile_remove (void *p)
   // some hash-dependent constants
 
   user_options_t *user_options = data.user_options;
-  opencl_ctx_t   *opencl_ctx   = data.opencl_ctx;
   hashconfig_t   *hashconfig   = data.hashconfig;
   hashes_t       *hashes       = data.hashes;
+  outcheck_ctx_t *outcheck_ctx = data.outcheck_ctx;
+  opencl_ctx_t   *opencl_ctx   = data.opencl_ctx;
 
   uint dgst_size  = hashconfig->dgst_size;
   uint is_salted  = hashconfig->is_salted;
@@ -49,8 +51,8 @@ void *thread_outfile_remove (void *p)
   uint hash_mode  = hashconfig->hash_mode;
   char separator  = hashconfig->separator;
 
-  char *outfile_dir        = data.outfile_check_directory;
-  uint outfile_check_timer = user_options->outfile_check_timer;
+  char *root_directory      = outcheck_ctx->root_directory;
+  uint  outfile_check_timer = user_options->outfile_check_timer;
 
   // buffers
   hash_t hash_buf = { 0, 0, 0, 0, 0 };
@@ -80,11 +82,11 @@ void *thread_outfile_remove (void *p)
 
     check_left--;
 
-    if (check_left == false)
+    if (check_left == 0)
     {
       struct stat outfile_check_stat;
 
-      if (stat (outfile_dir, &outfile_check_stat) == 0)
+      if (stat (root_directory, &outfile_check_stat) == 0)
       {
         uint is_dir = S_ISDIR (outfile_check_stat.st_mode);
 
@@ -92,7 +94,7 @@ void *thread_outfile_remove (void *p)
         {
           if (outfile_check_stat.st_mtime > folder_mtime)
           {
-            char **out_files_new = scan_directory (outfile_dir);
+            char **out_files_new = scan_directory (root_directory);
 
             int out_cnt_new = count_dictionaries (out_files_new);
 
@@ -330,4 +332,90 @@ void *thread_outfile_remove (void *p)
   p = NULL;
 
   return (p);
+}
+
+int outcheck_ctx_init (outcheck_ctx_t *outcheck_ctx, const user_options_t *user_options, const folder_config_t *folder_config)
+{
+  outcheck_ctx->enabled = false;
+
+  if (user_options->keyspace    == true) return 0;
+  if (user_options->benchmark   == true) return 0;
+  if (user_options->opencl_info == true) return 0;
+
+  if (user_options->outfile_check_timer == 0) return 0;
+
+  if ((user_options->hash_mode ==  5200) ||
+     ((user_options->hash_mode >=  6200) && (user_options->hash_mode <=  6299)) ||
+     ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799)) ||
+      (user_options->hash_mode ==  9000)) return 0;
+
+  if (user_options->outfile_check_dir == NULL)
+  {
+    outcheck_ctx->root_directory = (char *) mymalloc (HCBUFSIZ_TINY);
+
+    snprintf (outcheck_ctx->root_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", folder_config->session_dir, user_options->session, OUTFILES_DIR);
+  }
+  else
+  {
+    outcheck_ctx->root_directory = user_options->outfile_check_dir;
+  }
+
+  struct stat outfile_check_stat;
+
+  if (stat (outcheck_ctx->root_directory, &outfile_check_stat) == 0)
+  {
+    const uint is_dir = S_ISDIR (outfile_check_stat.st_mode);
+
+    if (is_dir == 0)
+    {
+      log_error ("ERROR: Directory specified in outfile-check '%s' is not a valid directory", outcheck_ctx->root_directory);
+
+      return -1;
+    }
+  }
+  else
+  {
+    if (mkdir (outcheck_ctx->root_directory, 0700) == -1)
+    {
+      log_error ("ERROR: %s: %s", outcheck_ctx->root_directory, strerror (errno));
+
+      return -1;
+    }
+  }
+
+  outcheck_ctx->enabled = true;
+
+  return 0;
+}
+
+void outcheck_ctx_destroy (outcheck_ctx_t *outcheck_ctx)
+{
+  if (outcheck_ctx->enabled == false)
+  {
+    myfree (outcheck_ctx);
+
+    return;
+  }
+
+  if (rmdir (outcheck_ctx->root_directory) == -1)
+  {
+    if (errno == ENOENT)
+    {
+      // good, we can ignore
+    }
+    else if (errno == ENOTEMPTY)
+    {
+      // good, we can ignore
+    }
+    else
+    {
+      log_error ("ERROR: %s: %s", outcheck_ctx->root_directory, strerror (errno));
+
+      //return -1;
+    }
+  }
+
+  myfree (outcheck_ctx->root_directory);
+
+  myfree (outcheck_ctx);
 }
