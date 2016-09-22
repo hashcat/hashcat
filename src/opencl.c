@@ -359,7 +359,7 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
       if (user_options->benchmark == true)
       {
-        if (speed_ms > 4096) myabort (opencl_ctx);
+        if (speed_ms > 4096) return -1;
       }
     }
 
