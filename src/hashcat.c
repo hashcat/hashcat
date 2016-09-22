@@ -272,7 +272,6 @@ int main (int argc, char **argv)
   {
     data.attack_mode = user_options->attack_mode;
     data.force = user_options->force;
-    data.hex_charset = user_options->hex_charset;
     data.hex_salt = user_options->hex_salt;
     data.logfile_disable = user_options->logfile_disable;
     data.quiet = user_options->quiet;
@@ -868,10 +867,10 @@ int main (int argc, char **argv)
 
     mp_setup_sys (mp_sys);
 
-    if (user_options->custom_charset_1) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig);
-    if (user_options->custom_charset_2) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig);
-    if (user_options->custom_charset_3) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig);
-    if (user_options->custom_charset_4) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_4, 3, hashconfig);
+    if (user_options->custom_charset_1) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
+    if (user_options->custom_charset_2) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
+    if (user_options->custom_charset_3) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
+    if (user_options->custom_charset_4) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
 
     /**
      * Some algorithm, like descrypt, can benefit from JIT compilation
@@ -2156,9 +2155,9 @@ int main (int argc, char **argv)
           user_options->custom_charset_2 = (char *) "?l?d";
           user_options->custom_charset_3 = (char *) "?l?d*!$@_";
 
-          mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig);
-          mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig);
-          mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig);
+          mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
+          mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
+          mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
 
           maskcnt = 1;
 
@@ -2362,7 +2361,7 @@ int main (int argc, char **argv)
 
         for (uint mask_cur = mask_min; mask_cur <= mask_max; mask_cur++)
         {
-          char *cur_mask = mp_get_truncated_mask (mask, strlen (mask), mask_cur);
+          char *cur_mask = mp_get_truncated_mask (mask, strlen (mask), mask_cur, user_options);
 
           if (cur_mask == NULL) break;
 
@@ -2541,7 +2540,7 @@ int main (int argc, char **argv)
 
         for (uint mask_cur = mask_min; mask_cur <= mask_max; mask_cur++)
         {
-          char *cur_mask = mp_get_truncated_mask (mask, strlen (mask), mask_cur);
+          char *cur_mask = mp_get_truncated_mask (mask, strlen (mask), mask_cur, user_options);
 
           if (cur_mask == NULL) break;
 
@@ -2726,28 +2725,28 @@ int main (int argc, char **argv)
                 mp_reset_usr (mp_usr, 0);
 
                 user_options->custom_charset_1 = mask;
-                mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig);
+                mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
                 break;
 
               case 1:
                 mp_reset_usr (mp_usr, 1);
 
                 user_options->custom_charset_2 = mask;
-                mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig);
+                mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
                 break;
 
               case 2:
                 mp_reset_usr (mp_usr, 2);
 
                 user_options->custom_charset_3 = mask;
-                mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig);
+                mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
                 break;
 
               case 3:
                 mp_reset_usr (mp_usr, 3);
 
                 user_options->custom_charset_4 = mask;
-                mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_4, 3, hashconfig);
+                mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
                 break;
             }
 
@@ -2796,7 +2795,7 @@ int main (int argc, char **argv)
             local_free (masks[maskpos - 1]);
           }
 
-          css_buf = mp_gen_css (mask, strlen (mask), mp_sys, mp_usr, &css_cnt, hashconfig);
+          css_buf = mp_gen_css (mask, strlen (mask), mp_sys, mp_usr, &css_cnt, hashconfig, user_options);
 
           data.mask = mask;
           data.css_cnt = css_cnt;
@@ -2893,7 +2892,7 @@ int main (int argc, char **argv)
 
             for (uint pw_len = MAX (1, pw_min); pw_len <= pw_max; pw_len++)
             {
-              char *l1_filename = mp_get_truncated_mask (mask, strlen (mask), pw_len);
+              char *l1_filename = mp_get_truncated_mask (mask, strlen (mask), pw_len, user_options);
 
               if (l1_filename == NULL) break;
 
@@ -3183,7 +3182,7 @@ int main (int argc, char **argv)
 
           // base
 
-          css_buf = mp_gen_css (mask, strlen (mask), mp_sys, mp_usr, &css_cnt, hashconfig);
+          css_buf = mp_gen_css (mask, strlen (mask), mp_sys, mp_usr, &css_cnt, hashconfig, user_options);
 
           if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
           {

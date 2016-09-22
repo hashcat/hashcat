@@ -102,7 +102,7 @@ static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt, 
   myfree (css_uniq);
 }
 
-static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, int mp_usr_offset, int interpret, hashconfig_t *hashconfig)
+static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, int mp_usr_offset, int interpret, hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   size_t in_pos;
 
@@ -152,7 +152,7 @@ static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, 
     }
     else
     {
-      if (data.hex_charset)
+      if (user_options->hex_charset == true)
       {
         in_pos++;
 
@@ -201,7 +201,7 @@ u64 mp_get_sum (uint css_cnt, cs_t *css)
   return (sum);
 }
 
-cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, uint *css_cnt, hashconfig_t *hashconfig)
+cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, uint *css_cnt, hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   cs_t *css = (cs_t *) mycalloc (256, sizeof (cs_t));
 
@@ -256,7 +256,7 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
     }
     else
     {
-      if (data.hex_charset)
+      if (user_options->hex_charset == true)
       {
         mask_pos++;
 
@@ -379,13 +379,13 @@ void mp_setup_sys (cs_t *mp_sys)
                                                   mp_sys[5].cs_len = pos; }
 }
 
-void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index, hashconfig_t *hashconfig)
+void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index, hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   FILE *fp = fopen (buf, "rb");
 
   if (fp == NULL || feof (fp)) // feof() in case if file is empty
   {
-    mp_expand (buf, strlen (buf), mp_sys, mp_usr, index, 1, hashconfig);
+    mp_expand (buf, strlen (buf), mp_sys, mp_usr, index, 1, hashconfig, user_options);
   }
   else
   {
@@ -401,11 +401,11 @@ void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index, hashconfig
     {
       log_info ("WARNING: Charset file corrupted");
 
-      mp_expand (buf, strlen (buf), mp_sys, mp_usr, index, 1, hashconfig);
+      mp_expand (buf, strlen (buf), mp_sys, mp_usr, index, 1, hashconfig, user_options);
     }
     else
     {
-      mp_expand (mp_file, len, mp_sys, mp_usr, index, 0, hashconfig);
+      mp_expand (mp_file, len, mp_sys, mp_usr, index, 0, hashconfig, user_options);
     }
   }
 }
@@ -417,7 +417,7 @@ void mp_reset_usr (cs_t *mp_usr, uint index)
   memset (mp_usr[index].cs_buf, 0, sizeof (mp_usr[index].cs_buf));
 }
 
-char *mp_get_truncated_mask (char *mask_buf, size_t mask_len, uint len)
+char *mp_get_truncated_mask (char *mask_buf, size_t mask_len, uint len, const user_options_t *user_options)
 {
   char *new_mask_buf = (char *) mymalloc (256);
 
@@ -443,7 +443,7 @@ char *mp_get_truncated_mask (char *mask_buf, size_t mask_len, uint len)
     }
     else
     {
-      if (data.hex_charset)
+      if (user_options->hex_charset == true)
       {
         mask_pos++;
 
