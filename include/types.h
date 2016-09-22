@@ -841,7 +841,6 @@ typedef struct
 
 } user_options_t;
 
-
 typedef struct
 {
   u32 attack_kern;
@@ -966,7 +965,6 @@ typedef struct
 
 
   u32     quiet;
-  u32     force;
   u32     pw_min;
   u32     pw_max;
 

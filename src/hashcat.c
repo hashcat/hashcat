@@ -270,7 +270,6 @@ int main (int argc, char **argv)
 
   if (1)
   {
-    data.force = user_options->force;
     data.quiet = user_options->quiet;
   }
 
