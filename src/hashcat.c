@@ -284,7 +284,6 @@ int main (int argc, char **argv)
     data.runtime = user_options->runtime;
     data.scrypt_tmto = user_options->scrypt_tmto;
     data.segment_size = user_options->segment_size;
-    data.session = user_options->session;
     data.truecrypt_keyfiles = user_options->truecrypt_keyfiles;
     data.veracrypt_keyfiles = user_options->veracrypt_keyfiles;
     data.veracrypt_pim = user_options->veracrypt_pim;

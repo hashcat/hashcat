@@ -954,23 +954,22 @@ typedef struct
    * user
    */
 
-
-  u32     wordlist_mode;
-
-  u32     attack_mode;
-  u32     attack_kern;
   char   *dictfile;
   char   *dictfile2;
   char   *mask;
   u32     maskcnt;
   u32     maskpos;
-  char   *session;
-  u32     outfile_check_timer;
+  u32     wordlist_mode;
   char   *eff_restore_file;
   char   *new_restore_file;
   char   *induction_directory;
   char   *outfile_check_directory;
 
+
+
+  u32     attack_mode;
+  u32     attack_kern;
+  u32     outfile_check_timer;
   u32     machine_readable;
   u32     quiet;
   u32     force;
