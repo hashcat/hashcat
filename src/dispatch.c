@@ -241,10 +241,10 @@ void *thread_calc (void *p)
 
   if (device_param->skipped) return NULL;
 
-  opencl_ctx_t *opencl_ctx = data.opencl_ctx;
-
-  hashconfig_t *hashconfig = data.hashconfig;
-  hashes_t     *hashes     = data.hashes;
+  opencl_ctx_t   *opencl_ctx   = data.opencl_ctx;
+  user_options_t *user_options = data.user_options;
+  hashconfig_t   *hashconfig   = data.hashconfig;
+  hashes_t       *hashes       = data.hashes;
 
   const uint attack_mode = data.attack_mode;
   const uint attack_kern = data.attack_kern;
@@ -287,8 +287,6 @@ void *thread_calc (void *p)
   }
   else
   {
-    const uint segment_size = data.segment_size;
-
     char *dictfile = data.dictfile;
 
     if (attack_mode == ATTACK_MODE_COMBI)
@@ -350,11 +348,7 @@ void *thread_calc (void *p)
 
     wl_data_t *wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
 
-    wl_data->buf   = (char *) mymalloc (segment_size);
-    wl_data->avail = segment_size;
-    wl_data->incr  = segment_size;
-    wl_data->cnt   = 0;
-    wl_data->pos   = 0;
+    wl_data_init (wl_data, user_options, hashconfig);
 
     u64 words_cur = 0;
 
@@ -495,8 +489,7 @@ void *thread_calc (void *p)
       fclose (device_param->combs_fp);
     }
 
-    free (wl_data->buf);
-    free (wl_data);
+    wl_data_destroy (wl_data);
 
     fclose (fd);
   }

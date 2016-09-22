@@ -37,8 +37,6 @@
 
 extern hc_global_data_t data;
 
-void (*get_next_word_func) (char *, u32, u32 *, u32 *);
-
 uint convert_from_hex (char *line_buf, const uint line_len)
 {
   if (line_len & 1) return (line_len); // not in hex
@@ -212,7 +210,7 @@ void get_next_word (wl_data_t *wl_data, FILE *fd, char **out_buf, uint *out_len)
 
     char *ptr = wl_data->buf + wl_data->pos;
 
-    get_next_word_func (ptr, wl_data->cnt - wl_data->pos, &len, &off);
+    wl_data->func (ptr, wl_data->cnt - wl_data->pos, &len, &off);
 
     wl_data->pos += off;
 
@@ -363,7 +361,7 @@ u64 count_words (wl_data_t *wl_data, FILE *fd, const char *dictfile, dictstat_ct
       u32 len;
       u32 off;
 
-      get_next_word_func (wl_data->buf + i, wl_data->cnt - i, &len, &off);
+      wl_data->func (wl_data->buf + i, wl_data->cnt - i, &len, &off);
 
       if (run_rule_engine (data.rule_len_l, data.rule_buf_l))
       {
@@ -424,4 +422,43 @@ u64 count_words (wl_data_t *wl_data, FILE *fd, const char *dictfile, dictstat_ct
   hc_signal (sigHandler_default);
 
   return (cnt);
+}
+
+void wl_data_init (wl_data_t *wl_data, const user_options_t *user_options, const hashconfig_t *hashconfig)
+{
+  wl_data->buf   = (char *) mymalloc (user_options->segment_size);
+  wl_data->avail = user_options->segment_size;
+  wl_data->incr  = user_options->segment_size;
+  wl_data->cnt   = 0;
+  wl_data->pos   = 0;
+
+  /**
+   * choose dictionary parser
+   */
+
+  wl_data->func = get_next_word_std;
+
+  if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+  {
+    wl_data->func = get_next_word_uc;
+  }
+
+  if (hashconfig->hash_type == HASH_TYPE_LM) // yes that's fine that way
+  {
+    wl_data->func = get_next_word_lm;
+  }
+}
+
+void wl_data_destroy (wl_data_t *wl_data)
+{
+  myfree (wl_data->buf);
+
+  wl_data->func  = NULL;
+  wl_data->buf   = NULL;
+  wl_data->avail = 0;
+  wl_data->incr  = 0;
+  wl_data->cnt   = 0;
+  wl_data->pos   = 0;
+
+  myfree (wl_data);
 }

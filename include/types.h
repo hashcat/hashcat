@@ -736,6 +736,8 @@ typedef struct
   u32  cnt;
   u32  pos;
 
+  void (*func) (char *, u32, u32 *, u32 *);
+
 } wl_data_t;
 
 typedef struct
@@ -1015,14 +1017,15 @@ typedef struct
   char   *custom_charset_3;
   char   *custom_charset_4;
 
-  hashconfig_t *hashconfig;
-  hashes_t     *hashes;
-
-  outfile_ctx_t   *outfile_ctx;
-  potfile_ctx_t   *potfile_ctx;
-  loopback_ctx_t  *loopback_ctx;
-  debugfile_ctx_t *debugfile_ctx;
-  session_ctx_t   *session_ctx;
+  hashconfig_t          *hashconfig;
+  hashes_t              *hashes;
+  user_options_t        *user_options;
+  user_options_extra_t  *user_options_extra;
+  outfile_ctx_t         *outfile_ctx;
+  potfile_ctx_t         *potfile_ctx;
+  loopback_ctx_t        *loopback_ctx;
+  debugfile_ctx_t       *debugfile_ctx;
+  session_ctx_t         *session_ctx;
 
   u32     gpu_temp_disable;
   u32     gpu_temp_abort;

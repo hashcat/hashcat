@@ -93,8 +93,6 @@ extern int SUPPRESS_OUTPUT;
 extern hc_thread_mutex_t mux_hwmon;
 extern hc_thread_mutex_t mux_display;
 
-extern void (*get_next_word_func) (char *, u32, u32 *, u32 *);
-
 extern const unsigned int full01;
 extern const unsigned int full80;
 
@@ -102,16 +100,8 @@ extern const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
 const int comptime = COMPTIME;
 
-int main (int argc, char **argv)
+static void setup_environment_variables ()
 {
-  #if defined (_WIN)
-  SetConsoleWindowSize (132);
-  #endif
-
-  /**
-   * To help users a bit
-   */
-
   char *compute = getenv ("COMPUTE");
 
   if (compute)
@@ -142,8 +132,26 @@ int main (int argc, char **argv)
 
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
+}
 
+static void setup_umask ()
+{
   umask (077);
+}
+
+int main (int argc, char **argv)
+{
+  #if defined (_WIN)
+  SetConsoleWindowSize (132);
+  #endif
+
+  /**
+   * To help users a bit
+   */
+
+  setup_environment_variables ();
+
+  setup_umask ();
 
   /**
    * Real init
@@ -193,6 +201,8 @@ int main (int argc, char **argv)
    */
 
   user_options_t *user_options = (user_options_t *) mymalloc (sizeof (user_options_t));
+
+  data.user_options = user_options;
 
   user_options_init (user_options, argc, argv);
 
@@ -253,6 +263,8 @@ int main (int argc, char **argv)
   if (rc_user_options_parse2 == -1) return -1;
 
   user_options_extra_t *user_options_extra = (user_options_extra_t *) mymalloc (sizeof (user_options_extra_t));
+
+  data.user_options_extra = user_options_extra;
 
   const int rc_user_options_extra_init = user_options_extra_init (user_options, myargc, myargv, user_options_extra);
 
@@ -853,22 +865,6 @@ int main (int argc, char **argv)
           }
         }
       }
-    }
-
-    /**
-     * choose dictionary parser
-     */
-
-    get_next_word_func = get_next_word_std;
-
-    if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-    {
-      get_next_word_func = get_next_word_uc;
-    }
-
-    if (hashconfig->hash_type == HASH_TYPE_LM) // yes that's fine that way
-    {
-      get_next_word_func = get_next_word_lm;
     }
 
     /**
@@ -1872,11 +1868,7 @@ int main (int argc, char **argv)
 
     wl_data_t *wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
 
-    wl_data->buf   = (char *) mymalloc (user_options->segment_size);
-    wl_data->avail = user_options->segment_size;
-    wl_data->incr  = user_options->segment_size;
-    wl_data->cnt   = 0;
-    wl_data->pos   = 0;
+    wl_data_init (wl_data, user_options, hashconfig);
 
     cs_t  *css_buf   = NULL;
     uint   css_cnt   = 0;
@@ -4069,11 +4061,10 @@ int main (int argc, char **argv)
 
     loopback_destroy (loopback_ctx);
 
+    wl_data_destroy (wl_data);
+
     local_free (all_kernel_rules_cnt);
     local_free (all_kernel_rules_buf);
-
-    local_free (wl_data->buf);
-    local_free (wl_data);
 
     local_free (bitmap_s1_a);
     local_free (bitmap_s1_b);

@@ -20,4 +20,7 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
 
 u64 count_words (wl_data_t *wl_data, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx);
 
+void wl_data_init (wl_data_t *wl_data, const user_options_t *user_options, const hashconfig_t *hashconfig);
+void wl_data_destroy (wl_data_t *wl_data);
+
 #endif // _WORDLIST_H
