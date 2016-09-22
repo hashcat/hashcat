@@ -4,21 +4,20 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <dirent.h>
 #include <unistd.h>
-
-#if defined (_POSIX)
-#include <sys/types.h>
-#if defined (__APPLE__)
-#include <mach-o/dyld.h>
-#endif // __APPLE__
-#endif // _POSIX
+#include <limits.h>
 
 #if defined (_POSIX)
 #include <sys/types.h>
 #include <pwd.h>
 #endif
+
+#if defined (__APPLE__)
+#include <mach-o/dyld.h>
+#endif // __APPLE__
 
 #if defined (_WIN)
 #include <windows.h>

@@ -18,6 +18,8 @@ static char RULE_BUF_L[] = ":";
 
 void user_options_init (user_options_t *user_options, int myargc, char **myargv)
 {
+  if (myargv == NULL) myargv = NULL; // because compiler warning
+
   user_options->attack_mode               = ATTACK_MODE;
   user_options->benchmark                 = BENCHMARK;
   user_options->bitmap_max                = BITMAP_MAX;
@@ -98,7 +100,7 @@ void user_options_init (user_options_t *user_options, int myargc, char **myargv)
   user_options->weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
-  user_options->rp_files                  = (char **) mycalloc (myargc, sizeof (char *));;
+  user_options->rp_files                  = (char **) mycalloc (myargc, sizeof (char *));
 }
 
 void user_options_destroy (user_options_t *user_options)
@@ -800,6 +802,8 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
 
 int user_options_extra_init (user_options_t *user_options, int myargc, char **myargv, user_options_extra_t *user_options_extra)
 {
+  if (myargv == NULL) myargv = NULL; // because compiler warning
+
   user_options_extra->attack_kern = ATTACK_KERN_NONE;
 
   switch (user_options->attack_mode)
