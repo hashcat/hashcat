@@ -294,7 +294,7 @@ int autotune (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
 
   #if defined (DEBUG)
 
-  if (data.quiet == false)
+  if (user_options->quiet == false)
   {
     clear_prompt ();
 

@@ -36,7 +36,7 @@ int nvml_init (NVML_PTR *nvml)
       }
       else
       {
-        //if (data.quiet == false)
+        //if (user_options->quiet == false)
         //  log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
 
         return -1;
@@ -46,7 +46,7 @@ int nvml_init (NVML_PTR *nvml)
     }
     else
     {
-      //if (data.quiet == false)
+      //if (user_options->quiet == false)
       //  log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
 
       return -1;
@@ -65,7 +65,7 @@ int nvml_init (NVML_PTR *nvml)
 
   if (!nvml->lib)
   {
-    //if (data.quiet == false)
+    //if (user_options->quiet == false)
     //  log_info ("WARNING: NVML library load failed, proceed without NVML HWMon enabled.");
 
     return -1;

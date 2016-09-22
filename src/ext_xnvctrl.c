@@ -26,9 +26,9 @@ int xnvctrl_init (XNVCTRL_PTR *xnvctrl)
 
   if (xnvctrl->lib_x11 == NULL)
   {
-    //if (data.quiet == false) log_info ("WARNING: Failed loading the X11 library: %s", dlerror());
-    //if (data.quiet == false) log_info ("         Please install libx11-dev package.");
-    //if (data.quiet == false) log_info ("");
+    //if (user_options->quiet == false) log_info ("WARNING: Failed loading the X11 library: %s", dlerror());
+    //if (user_options->quiet == false) log_info ("         Please install libx11-dev package.");
+    //if (user_options->quiet == false) log_info ("");
 
     return -1;
   }
@@ -37,9 +37,9 @@ int xnvctrl_init (XNVCTRL_PTR *xnvctrl)
 
   if (xnvctrl->lib_xnvctrl == NULL)
   {
-    //if (data.quiet == false) log_info ("WARNING: Failed loading the XNVCTRL library: %s", dlerror());
-    //if (data.quiet == false) log_info ("         Please install libxnvctrl-dev package.");
-    //if (data.quiet == false) log_info ("");
+    //if (user_options->quiet == false) log_info ("WARNING: Failed loading the XNVCTRL library: %s", dlerror());
+    //if (user_options->quiet == false) log_info ("         Please install libxnvctrl-dev package.");
+    //if (user_options->quiet == false) log_info ("");
 
     return -1;
   }

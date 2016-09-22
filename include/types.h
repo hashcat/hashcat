@@ -961,13 +961,8 @@ typedef struct
   char   *new_restore_file;
   char   *induction_directory;
   char   *outfile_check_directory;
-
-
-
-  u32     quiet;
   u32     pw_min;
   u32     pw_max;
-
 
   opencl_ctx_t          *opencl_ctx;
   hashconfig_t          *hashconfig;

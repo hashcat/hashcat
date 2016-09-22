@@ -266,13 +266,6 @@ int main (int argc, char **argv)
 
   if (rc_user_options_sanity == -1) return -1;
 
-  // temporarily start
-
-  if (1)
-  {
-    data.quiet = user_options->quiet;
-  }
-
   if (user_options->version)
   {
     log_info ("%s", VERSION_TAG);
@@ -1758,10 +1751,6 @@ int main (int argc, char **argv)
     {
       if (user_options->machine_readable == false)
       {
-        //quiet = 0;
-
-        //user_options->quiet = quiet;
-
         char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
 
         log_info ("Hashtype: %s", hash_type);
@@ -1979,11 +1968,7 @@ int main (int argc, char **argv)
 
       data.combs_cnt = 1;
 
-      //user_options->quiet = 1;
-
       const u64 words1_cnt = count_words (wl_data, user_options, user_options_extra, fp1, dictfile1, dictstat_ctx);
-
-      //user_options->quiet = quiet;
 
       if (words1_cnt == 0)
       {
@@ -1997,11 +1982,7 @@ int main (int argc, char **argv)
 
       data.combs_cnt = 1;
 
-      //user_options->quiet = 1;
-
       const u64 words2_cnt = count_words (wl_data, user_options, user_options_extra, fp2, dictfile2, dictstat_ctx);
-
-      //user_options->quiet = quiet;
 
       if (words2_cnt == 0)
       {
@@ -2580,10 +2561,6 @@ int main (int argc, char **argv)
       {
         weak_hash_check (opencl_ctx, device_param, user_options, user_options_extra, hashconfig, hashes, salt_pos);
       }
-
-      // Display hack, guarantee that there is at least one \r before real start
-
-      //if (user_options->quiet == false) log_info ("");
     }
 
     /**

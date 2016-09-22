@@ -38,9 +38,9 @@
 
 extern hc_global_data_t data;
 
-static void set_kernel_power_final (const u64 kernel_power_final)
+static void set_kernel_power_final (const user_options_t *user_options, const u64 kernel_power_final)
 {
-  if (data.quiet == false)
+  if (user_options->quiet == false)
   {
     clear_prompt ();
 
@@ -92,7 +92,7 @@ static uint get_work (opencl_ctx_t *opencl_ctx, const user_options_t *user_optio
   {
     if (data.kernel_power_final == 0)
     {
-      set_kernel_power_final (words_left);
+      set_kernel_power_final (user_options, words_left);
     }
   }
 

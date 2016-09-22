@@ -68,7 +68,7 @@ void *thread_keypress (void *p)
   hashconfig_t         *hashconfig         = data.hashconfig;
   hashes_t             *hashes             = data.hashes;
 
-  uint quiet = data.quiet;
+  uint quiet = user_options->quiet;
 
   tty_break ();
 

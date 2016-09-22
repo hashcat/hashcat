@@ -332,8 +332,8 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
         keyspace *= data.combs_cnt;
       }
 
-      if (data.quiet == false) log_info ("Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cached_cnt, keyspace);
-      if (data.quiet == false) log_info ("");
+      if (user_options->quiet == false) log_info ("Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cached_cnt, keyspace);
+      if (user_options->quiet == false) log_info ("");
 
       hc_signal (sigHandler_default);
 
@@ -409,13 +409,13 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
 
     double percent = (double) comp / (double) d.stat.st_size;
 
-    if (data.quiet == false) log_info_nn ("Generating dictionary stats for %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, percent * 100, cnt2, cnt);
+    if (user_options->quiet == false) log_info_nn ("Generating dictionary stats for %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, percent * 100, cnt2, cnt);
 
     time (&prev);
   }
 
-  if (data.quiet == false) log_info ("Generated dictionary stats for %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, cnt2, cnt);
-  if (data.quiet == false) log_info ("");
+  if (user_options->quiet == false) log_info ("Generated dictionary stats for %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, cnt2, cnt);
+  if (user_options->quiet == false) log_info ("");
 
   dictstat_append (dictstat_ctx, &d);
 

@@ -234,7 +234,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
   const u32 gidvid      = plain->gidvid;
   const u32 il_pos      = plain->il_pos;
 
-  const uint quiet = data.quiet;
+  const uint quiet = user_options->quiet;
 
   // debugfile
 
