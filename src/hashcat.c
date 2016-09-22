@@ -277,7 +277,6 @@ int main (int argc, char **argv)
     data.hex_wordlist = user_options->hex_wordlist;
     data.logfile_disable = user_options->logfile_disable;
     data.quiet = user_options->quiet;
-    data.truecrypt_keyfiles = user_options->truecrypt_keyfiles;
 
     data.wordlist_mode = user_options_extra->wordlist_mode;
     data.attack_kern = user_options_extra->attack_kern;

@@ -976,7 +976,6 @@ typedef struct
   u32     hex_wordlist;
   u32     pw_min;
   u32     pw_max;
-  char   *truecrypt_keyfiles;
 
 
   opencl_ctx_t          *opencl_ctx;
