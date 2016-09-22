@@ -38,9 +38,10 @@ void *thread_outfile_remove (void *p)
 {
   // some hash-dependent constants
 
-  opencl_ctx_t *opencl_ctx = data.opencl_ctx;
-  hashconfig_t *hashconfig = data.hashconfig;
-  hashes_t     *hashes     = data.hashes;
+  user_options_t *user_options = data.user_options;
+  opencl_ctx_t   *opencl_ctx   = data.opencl_ctx;
+  hashconfig_t   *hashconfig   = data.hashconfig;
+  hashes_t       *hashes       = data.hashes;
 
   uint dgst_size  = hashconfig->dgst_size;
   uint is_salted  = hashconfig->is_salted;
@@ -49,7 +50,7 @@ void *thread_outfile_remove (void *p)
   char separator  = hashconfig->separator;
 
   char *outfile_dir        = data.outfile_check_directory;
-  uint outfile_check_timer = data.outfile_check_timer;
+  uint outfile_check_timer = user_options->outfile_check_timer;
 
   // buffers
   hash_t hash_buf = { 0, 0, 0, 0, 0 };
