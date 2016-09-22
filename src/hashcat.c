@@ -272,7 +272,6 @@ int main (int argc, char **argv)
   {
     data.attack_mode = user_options->attack_mode;
     data.force = user_options->force;
-    data.logfile_disable = user_options->logfile_disable;
     data.quiet = user_options->quiet;
     data.attack_kern = user_options_extra->attack_kern;
   }

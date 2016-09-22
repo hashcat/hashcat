@@ -936,7 +936,6 @@ typedef struct
    * logging
    */
 
-  u32     logfile_disable;
   char   *logfile;
   char   *topid;
   char   *subid;

@@ -53,9 +53,9 @@ static void logfile_close (FILE *fp)
   fclose (fp);
 }
 
-void logfile_append (const char *fmt, ...)
+void logfile_append (const user_options_t *user_options, const char *fmt, ...)
 {
-  if (data.logfile_disable == 1) return;
+  if (user_options->logfile_disable == true) return;
 
   FILE *fp = logfile_open (data.logfile);
 
