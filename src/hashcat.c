@@ -901,6 +901,8 @@ int main (int argc, char **argv)
      * merge rules or automatic rule generator
      */
 
+printf ("%u\n", user_options->rp_files_cnt);
+
     uint kernel_rules_cnt = 0;
 
     kernel_rule_t *kernel_rules_buf = NULL;
