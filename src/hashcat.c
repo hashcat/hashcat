@@ -1114,7 +1114,7 @@ int main (int argc, char **argv)
       data.hm_nvml    = NULL;
       data.hm_xnvctrl = NULL;
 
-      if ((opencl_ctx->need_nvml == 1) && (nvml_init (nvml) == 0))
+      if ((opencl_ctx->need_nvml == true) && (nvml_init (nvml) == 0))
       {
         data.hm_nvml = nvml;
       }
@@ -1147,7 +1147,7 @@ int main (int argc, char **argv)
         }
       }
 
-      if ((opencl_ctx->need_nvapi == 1) && (nvapi_init (nvapi) == 0))
+      if ((opencl_ctx->need_nvapi == true) && (nvapi_init (nvapi) == 0))
       {
         data.hm_nvapi = nvapi;
       }
@@ -1169,7 +1169,7 @@ int main (int argc, char **argv)
         }
       }
 
-      if ((opencl_ctx->need_xnvctrl == 1) && (xnvctrl_init (xnvctrl) == 0))
+      if ((opencl_ctx->need_xnvctrl == true) && (xnvctrl_init (xnvctrl) == 0))
       {
         data.hm_xnvctrl = xnvctrl;
       }
@@ -1193,7 +1193,7 @@ int main (int argc, char **argv)
         }
       }
 
-      if ((opencl_ctx->need_adl == 1) && (adl_init (adl) == 0))
+      if ((opencl_ctx->need_adl == true) && (adl_init (adl) == 0))
       {
         data.hm_adl = adl;
       }
@@ -1535,16 +1535,16 @@ int main (int argc, char **argv)
 
           unsigned int limit;
 
-          int powertune_supported = 0;
+          bool powertune_supported = false;
 
           if (hm_NVML_nvmlDeviceGetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].nvml, &limit) == NVML_SUCCESS)
           {
-            powertune_supported = 1;
+            powertune_supported = true;
           }
 
           // if backup worked, activate the maximum allowed
 
-          if (powertune_supported != 0)
+          if (powertune_supported == true)
           {
             unsigned int minLimit;
             unsigned int maxLimit;
@@ -1600,7 +1600,7 @@ int main (int argc, char **argv)
 
           hc_thread_mutex_lock (mux_hwmon);
 
-          if (data.hm_device[device_id].fan_get_supported == 1)
+          if (data.hm_device[device_id].fan_get_supported == true)
           {
             const int fanspeed  = hm_get_fanspeed_with_device_id  (opencl_ctx, device_id);
             const int fanpolicy = hm_get_fanpolicy_with_device_id (opencl_ctx, device_id);
@@ -1610,7 +1610,7 @@ int main (int argc, char **argv)
 
             if (fanpolicy == 1)
             {
-              data.hm_device[device_id].fan_set_supported = 1;
+              data.hm_device[device_id].fan_set_supported = true;
 
               int rc = -1;
 
@@ -2556,7 +2556,7 @@ int main (int argc, char **argv)
       {
         char *mask = masks[maskpos];
 
-        if (mask_from_file == 1)
+        if (mask_from_file == true)
         {
           if (mask[0] == '\\' && mask[1] == '#') mask++; // escaped comment sign (sharp) "\#"
 
@@ -3663,7 +3663,7 @@ int main (int argc, char **argv)
 
     // finally save left hashes
 
-    if ((hashes->hashlist_mode == HL_MODE_FILE) && (user_options->remove == 1) && (hashes->digests_saved != hashes->digests_done))
+    if ((hashes->hashlist_mode == HL_MODE_FILE) && (user_options->remove == true) && (hashes->digests_saved != hashes->digests_done))
     {
       save_hash (user_options, hashconfig, hashes);
     }
@@ -3686,7 +3686,7 @@ int main (int argc, char **argv)
 
           if (device_param->skipped) continue;
 
-          if (data.hm_device[device_id].fan_set_supported == 1)
+          if (data.hm_device[device_id].fan_set_supported == true)
           {
             int rc = -1;
 
@@ -3853,6 +3853,8 @@ int main (int argc, char **argv)
 
     bitmap_ctx_destroy (bitmap_ctx);
 
+    hashes_destroy (hashes);
+
     local_free (all_kernel_rules_cnt);
     local_free (all_kernel_rules_buf);
 
@@ -3864,8 +3866,6 @@ int main (int argc, char **argv)
 
     global_free (root_css_buf);
     global_free (markov_css_buf);
-
-    hashes_destroy (hashes);
 
     global_free (words_progress_done);
     global_free (words_progress_rejected);
