@@ -281,9 +281,6 @@ int main (int argc, char **argv)
     data.attack_mode = user_options->attack_mode;
     data.benchmark = user_options->benchmark;
     data.force = user_options->force;
-    data.gpu_temp_abort = user_options->gpu_temp_abort;
-    data.gpu_temp_disable = user_options->gpu_temp_disable;
-    data.gpu_temp_retain = user_options->gpu_temp_retain;
     data.hex_charset = user_options->hex_charset;
     data.hex_salt = user_options->hex_salt;
     data.hex_wordlist = user_options->hex_wordlist;
@@ -1402,10 +1399,6 @@ int main (int argc, char **argv)
       user_options->gpu_temp_abort  = 0;
       user_options->gpu_temp_retain = 0;
     }
-
-    data.gpu_temp_disable = user_options->gpu_temp_disable;
-    data.gpu_temp_abort   = user_options->gpu_temp_abort;
-    data.gpu_temp_retain  = user_options->gpu_temp_retain;
 
     /**
      * enable custom signal handler(s)

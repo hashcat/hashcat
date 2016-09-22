@@ -1017,10 +1017,6 @@ typedef struct
   debugfile_ctx_t       *debugfile_ctx;
   session_ctx_t         *session_ctx;
 
-  u32     gpu_temp_disable;
-  u32     gpu_temp_abort;
-  u32     gpu_temp_retain;
-
   /**
    * used for restore
    */
