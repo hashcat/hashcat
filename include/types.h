@@ -965,7 +965,6 @@ typedef struct
 
 
 
-  u32     attack_kern;
   u32     quiet;
   u32     force;
   u32     pw_min;

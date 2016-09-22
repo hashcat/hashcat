@@ -137,7 +137,7 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
   return exec_ms_sum / exec_ms_cnt;
 }
 
-void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *hashes, const user_options_t *user_options)
+void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *hashes, const user_options_t *user_options, const user_options_extra_t *user_options_extra)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -228,18 +228,18 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
   {
     progress_skip = MIN (user_options->skip, data.words_base) * hashes->salts_cnt;
 
-    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
-    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
-    else if (data.attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
+    if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
   }
 
   if (user_options->limit)
   {
     progress_end = MIN (user_options->limit, data.words_base) * hashes->salts_cnt;
 
-    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
-    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
-    else if (data.attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
+    if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
   }
 
   u64 progress_cur_relative_skip = progress_cur - progress_skip;
@@ -300,7 +300,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
   if (user_options->machine_readable == true)
   {
-    status_display_machine_readable (opencl_ctx, hashes, user_options);
+    status_display_machine_readable (opencl_ctx, hashes, user_options, user_options_extra);
 
     return;
   }
@@ -701,18 +701,18 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
   {
     progress_skip = MIN (user_options->skip, data.words_base) * hashes->salts_cnt;
 
-    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
-    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
-    else if (data.attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
+    if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= data.kernel_rules_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
   }
 
   if (user_options->limit)
   {
     progress_end = MIN (user_options->limit, data.words_base) * hashes->salts_cnt;
 
-    if      (data.attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
-    else if (data.attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
-    else if (data.attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
+    if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= data.kernel_rules_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
   }
 
   u64 progress_cur_relative_skip = progress_cur - progress_skip;

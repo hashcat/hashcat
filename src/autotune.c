@@ -54,7 +54,7 @@ static double try_run (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param
   return exec_ms_prev;
 }
 
-int autotune (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options)
+int autotune (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra)
 {
   const double target_ms = opencl_ctx->target_ms;
 
@@ -96,7 +96,7 @@ int autotune (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
 
   const u32 kernel_power_max = device_param->device_processors * device_param->kernel_threads * kernel_accel_max;
 
-  if (data.attack_kern == ATTACK_KERN_BF)
+  if (user_options_extra->attack_kern == ATTACK_KERN_BF)
   {
     run_kernel_memset (opencl_ctx, device_param, device_param->d_pws_buf, 7, kernel_power_max * sizeof (pw_t));
   }
@@ -317,11 +317,12 @@ void *thread_autotune (void *p)
 
   if (device_param->skipped) return NULL;
 
-  user_options_t *user_options = data.user_options;
-  hashconfig_t   *hashconfig   = data.hashconfig;
-  opencl_ctx_t   *opencl_ctx   = data.opencl_ctx;
+  user_options_t       *user_options       = data.user_options;
+  user_options_extra_t *user_options_extra = data.user_options_extra;
+  hashconfig_t         *hashconfig         = data.hashconfig;
+  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
 
-  autotune (opencl_ctx, device_param, hashconfig, user_options);
+  autotune (opencl_ctx, device_param, hashconfig, user_options, user_options_extra);
 
   return NULL;
 }

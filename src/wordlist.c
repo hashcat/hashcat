@@ -323,11 +323,11 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
     {
       u64 keyspace = cached_cnt;
 
-      if (data.attack_kern == ATTACK_KERN_STRAIGHT)
+      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
       {
         keyspace *= data.kernel_rules_cnt;
       }
-      else if (data.attack_kern == ATTACK_KERN_COMBI)
+      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
         keyspace *= data.combs_cnt;
       }
@@ -386,11 +386,11 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
 
       if (len < PW_MAX1)
       {
-        if (data.attack_kern == ATTACK_KERN_STRAIGHT)
+        if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
         {
           cnt += data.kernel_rules_cnt;
         }
-        else if (data.attack_kern == ATTACK_KERN_COMBI)
+        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
           cnt += data.combs_cnt;
         }

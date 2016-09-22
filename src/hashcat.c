@@ -272,7 +272,6 @@ int main (int argc, char **argv)
   {
     data.force = user_options->force;
     data.quiet = user_options->quiet;
-    data.attack_kern = user_options_extra->attack_kern;
   }
 
   if (user_options->version)
