@@ -146,7 +146,7 @@ void *thread_calc_stdin (void *p)
 
       uint line_len = in_superchop (line_buf);
 
-      line_len = convert_from_hex (line_buf, line_len);
+      line_len = convert_from_hex (line_buf, line_len, user_options);
 
       // post-process rule engine
 
@@ -381,7 +381,7 @@ void *thread_calc (void *p)
         {
           get_next_word (wl_data, user_options, user_options_extra, fd, &line_buf, &line_len);
 
-          line_len = convert_from_hex (line_buf, line_len);
+          line_len = convert_from_hex (line_buf, line_len, user_options);
 
           // post-process rule engine
 

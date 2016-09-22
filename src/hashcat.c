@@ -274,7 +274,6 @@ int main (int argc, char **argv)
     data.force = user_options->force;
     data.hex_charset = user_options->hex_charset;
     data.hex_salt = user_options->hex_salt;
-    data.hex_wordlist = user_options->hex_wordlist;
     data.logfile_disable = user_options->logfile_disable;
     data.quiet = user_options->quiet;
 

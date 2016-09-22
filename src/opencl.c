@@ -1077,7 +1077,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
           if (line_len >= PW_MAX1) continue;
 
-          line_len = convert_from_hex (line_buf, line_len);
+          line_len = convert_from_hex (line_buf, line_len, user_options);
 
           char *line_buf_new = line_buf;
 

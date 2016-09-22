@@ -37,11 +37,11 @@
 
 extern hc_global_data_t data;
 
-uint convert_from_hex (char *line_buf, const uint line_len)
+uint convert_from_hex (char *line_buf, const uint line_len, const user_options_t *user_options)
 {
   if (line_len & 1) return (line_len); // not in hex
 
-  if (data.hex_wordlist == 1)
+  if (user_options->hex_wordlist == true)
   {
     uint i;
     uint j;

@@ -973,7 +973,6 @@ typedef struct
   u32     force;
   u32     hex_charset;
   u32     hex_salt;
-  u32     hex_wordlist;
   u32     pw_min;
   u32     pw_max;
 
