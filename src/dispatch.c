@@ -75,12 +75,12 @@ static u32 get_power (hc_device_param_t *device_param)
   return device_param->kernel_power;
 }
 
-static uint get_work (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const u64 max)
+static uint get_work (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, hc_device_param_t *device_param, const u64 max)
 {
   hc_thread_mutex_lock (opencl_ctx->mux_dispatcher);
 
   const u64 words_cur  = data.words_cur;
-  const u64 words_base = (data.limit == 0) ? data.words_base : MIN (data.limit, data.words_base);
+  const u64 words_base = (user_options->limit == 0) ? data.words_base : MIN (user_options->limit, data.words_base);
 
   device_param->words_off = words_cur;
 
@@ -255,7 +255,7 @@ void *thread_calc (void *p)
   {
     while (opencl_ctx->run_thread_level1 == true)
     {
-      const uint work = get_work (opencl_ctx, device_param, -1u);
+      const uint work = get_work (opencl_ctx, user_options, device_param, -1u);
 
       if (work == 0) break;
 
@@ -363,7 +363,7 @@ void *thread_calc (void *p)
 
       while (max)
       {
-        const uint work = get_work (opencl_ctx, device_param, max);
+        const uint work = get_work (opencl_ctx, user_options, device_param, max);
 
         if (work == 0) break;
 

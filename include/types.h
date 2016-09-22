@@ -1030,9 +1030,6 @@ typedef struct
    * used for restore
    */
 
-  u64     skip;
-  u64     limit;
-
   restore_data_t *rd;
 
   /**

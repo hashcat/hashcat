@@ -287,7 +287,6 @@ int main (int argc, char **argv)
     data.hex_charset = user_options->hex_charset;
     data.hex_salt = user_options->hex_salt;
     data.hex_wordlist = user_options->hex_wordlist;
-    data.limit = user_options->limit;
     data.logfile_disable = user_options->logfile_disable;
     data.loopback = user_options->loopback;
     data.machine_readable = user_options->machine_readable;
@@ -307,7 +306,6 @@ int main (int argc, char **argv)
     data.scrypt_tmto = user_options->scrypt_tmto;
     data.segment_size = user_options->segment_size;
     data.session = user_options->session;
-    data.skip = user_options->skip;
     data.status = user_options->status;
     data.status_timer = user_options->status_timer;
     data.truecrypt_keyfiles = user_options->truecrypt_keyfiles;
@@ -3045,8 +3043,6 @@ int main (int argc, char **argv)
           rd->words_cur = user_options->skip;
 
           user_options->skip = 0;
-
-          data.skip = 0;
         }
 
         data.ms_paused = 0;
