@@ -976,7 +976,6 @@ typedef struct
   u32     hex_wordlist;
   u32     pw_min;
   u32     pw_max;
-  u32     scrypt_tmto;
   u32     segment_size;
   char   *truecrypt_keyfiles;
   char   *veracrypt_keyfiles;
