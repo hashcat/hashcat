@@ -1060,12 +1060,6 @@ typedef struct
 
   double  ms_paused;                // timer on current dict
 
-  /**
-    * hash_info and username
-    */
-
-  hashinfo_t **hash_info;
-
 } hc_global_data_t;
 
 #define RULES_MAX   256

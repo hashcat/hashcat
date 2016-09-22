@@ -164,7 +164,7 @@ void save_hash (const user_options_t *user_options, const hashconfig_t *hashconf
       {
         if (user_options->username == 1)
         {
-          user_t *user = data.hash_info[idx]->user;
+          user_t *user = hashes->hash_info[idx]->user;
 
           uint i;
 
