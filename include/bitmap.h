@@ -10,6 +10,7 @@
 
 int sort_by_bitmap (const void *s1, const void *s2);
 
-uint generate_bitmaps (const uint digests_cnt, const uint dgst_size, const uint dgst_shifts, char *digests_buf_ptr, const uint dgst_pos0, const uint dgst_pos1, const uint dgst_pos2, const uint dgst_pos3, const uint bitmap_mask, const uint bitmap_size, uint *bitmap_a, uint *bitmap_b, uint *bitmap_c, uint *bitmap_d, const u64 collisions_max);
+void bitmap_ctx_init (bitmap_ctx_t *bitmap_ctx, const user_options_t *user_options, const hashconfig_t *hashconfig, const hashes_t *hashes);
+void bitmap_ctx_destroy (bitmap_ctx_t *bitmap_ctx);
 
 #endif // _BITMAP_H

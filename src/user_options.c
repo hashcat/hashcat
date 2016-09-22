@@ -494,6 +494,13 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
     }
   }
 
+  if (user_options->bitmap_min > user_options->bitmap_max)
+  {
+    log_error ("ERROR: Invalid bitmap-min specified");
+
+    return -1;
+  }
+
   if (user_options->rp_gen_func_min > user_options->rp_gen_func_max)
   {
     log_error ("ERROR: Invalid rp-gen-func-min specified");

@@ -91,7 +91,7 @@ void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx);
 int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const tuning_db_t *tuning_db, const user_options_t *user_options, const uint algorithm_pos);
 void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx);
 
-int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const session_ctx_t *session_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config);
+int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const session_ctx_t *session_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx);
 int opencl_session_destroy (opencl_ctx_t *opencl_ctx);
 
 #endif // _OPENCL_H

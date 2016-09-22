@@ -2518,7 +2518,7 @@ void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
   opencl_ctx->need_xnvctrl   = 0;
 }
 
-int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const session_ctx_t *session_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config)
+int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const session_ctx_t *session_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx)
 {
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -2940,14 +2940,14 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
       if (size_hooks > device_param->device_maxmem_alloc) memory_limit_hit = 1;
 
       const u64 size_total
-        = session_ctx->bitmap_size
-        + session_ctx->bitmap_size
-        + session_ctx->bitmap_size
-        + session_ctx->bitmap_size
-        + session_ctx->bitmap_size
-        + session_ctx->bitmap_size
-        + session_ctx->bitmap_size
-        + session_ctx->bitmap_size
+        = bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
         + size_bfs
         + size_combs
         + size_digests
@@ -3742,14 +3742,14 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
     CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   size_pws,     NULL, &device_param->d_pws_amp_buf);
     CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_WRITE,  size_tmps,    NULL, &device_param->d_tmps);
     CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_WRITE,  size_hooks,   NULL, &device_param->d_hooks);
-    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   session_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s1_a);
-    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   session_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s1_b);
-    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   session_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s1_c);
-    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   session_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s1_d);
-    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   session_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s2_a);
-    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   session_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s2_b);
-    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   session_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s2_c);
-    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   session_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s2_d);
+    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s1_a);
+    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s1_b);
+    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s1_c);
+    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s1_d);
+    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s2_a);
+    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s2_b);
+    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s2_c);
+    CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   bitmap_ctx->bitmap_size,  NULL, &device_param->d_bitmap_s2_d);
     CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_WRITE,  size_plains,  NULL, &device_param->d_plain_bufs);
     CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_ONLY,   size_digests, NULL, &device_param->d_digests_buf);
     CL_err |= hc_clCreateBuffer (opencl_ctx->ocl, device_param->context, CL_MEM_READ_WRITE,  size_shown,   NULL, &device_param->d_digests_shown);
@@ -3767,14 +3767,14 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
       return -1;
     }
 
-    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s1_a,    CL_TRUE, 0, session_ctx->bitmap_size,  session_ctx->bitmap_s1_a,        0, NULL, NULL);
-    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s1_b,    CL_TRUE, 0, session_ctx->bitmap_size,  session_ctx->bitmap_s1_b,        0, NULL, NULL);
-    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s1_c,    CL_TRUE, 0, session_ctx->bitmap_size,  session_ctx->bitmap_s1_c,        0, NULL, NULL);
-    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s1_d,    CL_TRUE, 0, session_ctx->bitmap_size,  session_ctx->bitmap_s1_d,        0, NULL, NULL);
-    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s2_a,    CL_TRUE, 0, session_ctx->bitmap_size,  session_ctx->bitmap_s2_a,        0, NULL, NULL);
-    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s2_b,    CL_TRUE, 0, session_ctx->bitmap_size,  session_ctx->bitmap_s2_b,        0, NULL, NULL);
-    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s2_c,    CL_TRUE, 0, session_ctx->bitmap_size,  session_ctx->bitmap_s2_c,        0, NULL, NULL);
-    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s2_d,    CL_TRUE, 0, session_ctx->bitmap_size,  session_ctx->bitmap_s2_d,        0, NULL, NULL);
+    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s1_a,    CL_TRUE, 0, bitmap_ctx->bitmap_size,  bitmap_ctx->bitmap_s1_a,        0, NULL, NULL);
+    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s1_b,    CL_TRUE, 0, bitmap_ctx->bitmap_size,  bitmap_ctx->bitmap_s1_b,        0, NULL, NULL);
+    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s1_c,    CL_TRUE, 0, bitmap_ctx->bitmap_size,  bitmap_ctx->bitmap_s1_c,        0, NULL, NULL);
+    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s1_d,    CL_TRUE, 0, bitmap_ctx->bitmap_size,  bitmap_ctx->bitmap_s1_d,        0, NULL, NULL);
+    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s2_a,    CL_TRUE, 0, bitmap_ctx->bitmap_size,  bitmap_ctx->bitmap_s2_a,        0, NULL, NULL);
+    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s2_b,    CL_TRUE, 0, bitmap_ctx->bitmap_size,  bitmap_ctx->bitmap_s2_b,        0, NULL, NULL);
+    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s2_c,    CL_TRUE, 0, bitmap_ctx->bitmap_size,  bitmap_ctx->bitmap_s2_c,        0, NULL, NULL);
+    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_bitmap_s2_d,    CL_TRUE, 0, bitmap_ctx->bitmap_size,  bitmap_ctx->bitmap_s2_d,        0, NULL, NULL);
     CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_digests_buf,    CL_TRUE, 0, size_digests, hashes->digests_buf,   0, NULL, NULL);
     CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_digests_shown,  CL_TRUE, 0, size_shown,   hashes->digests_shown, 0, NULL, NULL);
     CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_salt_bufs,      CL_TRUE, 0, size_salts,   hashes->salts_buf,     0, NULL, NULL);
@@ -3882,9 +3882,9 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
      * kernel args
      */
 
-    device_param->kernel_params_buf32[24] = session_ctx->bitmap_mask;
-    device_param->kernel_params_buf32[25] = session_ctx->bitmap_shift1;
-    device_param->kernel_params_buf32[26] = session_ctx->bitmap_shift2;
+    device_param->kernel_params_buf32[24] = bitmap_ctx->bitmap_mask;
+    device_param->kernel_params_buf32[25] = bitmap_ctx->bitmap_shift1;
+    device_param->kernel_params_buf32[26] = bitmap_ctx->bitmap_shift2;
     device_param->kernel_params_buf32[27] = 0; // salt_pos
     device_param->kernel_params_buf32[28] = 0; // loop_pos
     device_param->kernel_params_buf32[29] = 0; // loop_cnt

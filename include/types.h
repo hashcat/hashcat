@@ -859,21 +859,27 @@ typedef struct
   u32             kernel_rules_cnt;
   kernel_rule_t  *kernel_rules_buf;
 
-  u32             bitmap_size;
-  u32             bitmap_mask;
-  u32             bitmap_shift1;
-  u32             bitmap_shift2;
-
-  u32            *bitmap_s1_a;
-  u32            *bitmap_s1_b;
-  u32            *bitmap_s1_c;
-  u32            *bitmap_s1_d;
-  u32            *bitmap_s2_a;
-  u32            *bitmap_s2_b;
-  u32            *bitmap_s2_c;
-  u32            *bitmap_s2_d;
-
 } session_ctx_t;
+
+typedef struct
+{
+  u32   bitmap_bits;
+  u32   bitmap_nums;
+  u32   bitmap_size;
+  u32   bitmap_mask;
+  u32   bitmap_shift1;
+  u32   bitmap_shift2;
+
+  u32  *bitmap_s1_a;
+  u32  *bitmap_s1_b;
+  u32  *bitmap_s1_c;
+  u32  *bitmap_s1_d;
+  u32  *bitmap_s2_a;
+  u32  *bitmap_s2_b;
+  u32  *bitmap_s2_c;
+  u32  *bitmap_s2_d;
+
+} bitmap_ctx_t;
 
 typedef struct
 {
@@ -974,6 +980,7 @@ typedef struct
   loopback_ctx_t        *loopback_ctx;
   debugfile_ctx_t       *debugfile_ctx;
   session_ctx_t         *session_ctx;
+  bitmap_ctx_t          *bitmap_ctx;
 
   /**
    * used for restore

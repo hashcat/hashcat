@@ -807,6 +807,16 @@ int main (int argc, char **argv)
     }
 
     /**
+     * bitmaps
+     */
+
+    bitmap_ctx_t *bitmap_ctx = (bitmap_ctx_t *) mymalloc (sizeof (bitmap_ctx_t));
+
+    data.bitmap_ctx = bitmap_ctx;
+
+    bitmap_ctx_init (bitmap_ctx, user_options, hashconfig, hashes);
+
+    /**
      * dictstat
      */
 
@@ -878,56 +888,6 @@ int main (int argc, char **argv)
     {
       opencl_ctx->force_jit_compilation = 1500;
     }
-
-    /**
-     * generate bitmap tables
-     */
-
-    const uint bitmap_shift1 = 5;
-    const uint bitmap_shift2 = 13;
-
-    if (user_options->bitmap_max < user_options->bitmap_min) user_options->bitmap_max = user_options->bitmap_min;
-
-    uint *bitmap_s1_a = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
-    uint *bitmap_s1_b = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
-    uint *bitmap_s1_c = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
-    uint *bitmap_s1_d = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
-    uint *bitmap_s2_a = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
-    uint *bitmap_s2_b = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
-    uint *bitmap_s2_c = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
-    uint *bitmap_s2_d = (uint *) mymalloc ((1u << user_options->bitmap_max) * sizeof (uint));
-
-    uint bitmap_bits;
-    uint bitmap_nums;
-    uint bitmap_mask;
-    uint bitmap_size;
-
-    for (bitmap_bits = user_options->bitmap_min; bitmap_bits < user_options->bitmap_max; bitmap_bits++)
-    {
-      if (user_options->quiet == false) log_info_nn ("Generating bitmap tables with %u bits...", bitmap_bits);
-
-      bitmap_nums = 1u << bitmap_bits;
-
-      bitmap_mask = bitmap_nums - 1;
-
-      bitmap_size = bitmap_nums * sizeof (uint);
-
-      if ((hashes->digests_cnt & bitmap_mask) == hashes->digests_cnt) break;
-
-      if (generate_bitmaps (hashes->digests_cnt, hashconfig->dgst_size, bitmap_shift1, (char *) hashes->digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, hashes->digests_cnt / 2) == 0x7fffffff) continue;
-      if (generate_bitmaps (hashes->digests_cnt, hashconfig->dgst_size, bitmap_shift2, (char *) hashes->digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, hashes->digests_cnt / 2) == 0x7fffffff) continue;
-
-      break;
-    }
-
-    bitmap_nums = 1u << bitmap_bits;
-
-    bitmap_mask = bitmap_nums - 1;
-
-    bitmap_size = bitmap_nums * sizeof (uint);
-
-    generate_bitmaps (hashes->digests_cnt, hashconfig->dgst_size, bitmap_shift1, (char *) hashes->digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, -1ul);
-    generate_bitmaps (hashes->digests_cnt, hashconfig->dgst_size, bitmap_shift2, (char *) hashes->digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d, -1ul);
 
     /**
      * load rules
@@ -1378,7 +1338,7 @@ int main (int argc, char **argv)
     {
       log_info ("Hashes: %u digests; %u unique digests, %u unique salts", hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
 
-      log_info ("Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_bits, bitmap_nums, bitmap_mask, bitmap_size, bitmap_shift1, bitmap_shift2);
+      log_info ("Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_shift1, bitmap_ctx->bitmap_shift2);
 
       if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
       {
@@ -1670,9 +1630,9 @@ int main (int argc, char **argv)
 
     data.session_ctx = session_ctx;
 
-    session_ctx_init (session_ctx, kernel_rules_cnt, kernel_rules_buf, bitmap_size, bitmap_mask, bitmap_shift1, bitmap_shift2, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, bitmap_s2_a, bitmap_s2_b, bitmap_s2_c, bitmap_s2_d);
+    session_ctx_init (session_ctx, kernel_rules_cnt, kernel_rules_buf);
 
-    opencl_session_begin (opencl_ctx, hashconfig, hashes, session_ctx, user_options, user_options_extra, folder_config);
+    opencl_session_begin (opencl_ctx, hashconfig, hashes, session_ctx, user_options, user_options_extra, folder_config, bitmap_ctx);
 
     if (user_options->quiet == false) log_info_nn ("");
 
@@ -3978,17 +3938,10 @@ int main (int argc, char **argv)
 
     wl_data_destroy (wl_data);
 
+    bitmap_ctx_destroy (bitmap_ctx);
+
     local_free (all_kernel_rules_cnt);
     local_free (all_kernel_rules_buf);
-
-    local_free (bitmap_s1_a);
-    local_free (bitmap_s1_b);
-    local_free (bitmap_s1_c);
-    local_free (bitmap_s1_d);
-    local_free (bitmap_s2_a);
-    local_free (bitmap_s2_b);
-    local_free (bitmap_s2_c);
-    local_free (bitmap_s2_d);
 
     local_free (od_clock_mem_status);
     local_free (od_power_control_status);
