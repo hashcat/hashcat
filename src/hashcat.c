@@ -317,7 +317,6 @@ int main (int argc, char **argv)
     data.status = user_options->status;
     data.status_timer = user_options->status_timer;
     data.truecrypt_keyfiles = user_options->truecrypt_keyfiles;
-    data.username = user_options->username;
     data.veracrypt_keyfiles = user_options->veracrypt_keyfiles;
     data.veracrypt_pim = user_options->veracrypt_pim;
 
@@ -3877,7 +3876,7 @@ int main (int argc, char **argv)
 
     if ((hashes->hashlist_mode == HL_MODE_FILE) && (user_options->remove == 1) && (hashes->digests_saved != hashes->digests_done))
     {
-      save_hash (opencl_ctx);
+      save_hash (user_options, hashconfig, hashes);
     }
 
     /**

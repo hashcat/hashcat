@@ -1075,7 +1075,6 @@ typedef struct
     */
 
   hashinfo_t **hash_info;
-  u32     username;
 
 } hc_global_data_t;
 

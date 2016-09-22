@@ -39,22 +39,51 @@ extern hc_thread_mutex_t mux_hwmon;
 
 void *thread_monitor (void *p)
 {
-  uint runtime_check = 0;
-  uint remove_check  = 0;
-  uint status_check  = 0;
-  uint restore_check = 0;
+  opencl_ctx_t   *opencl_ctx   = data.opencl_ctx;
+  hashconfig_t   *hashconfig   = data.hashconfig;
+  hashes_t       *hashes       = data.hashes;
+  user_options_t *user_options = data.user_options;
 
-  uint restore_left = data.restore_timer;
-  uint remove_left  = data.remove_timer;
-  uint status_left  = data.status_timer;
+  bool runtime_check = false;
+  bool remove_check  = false;
+  bool status_check  = false;
+  bool restore_check = false;
+  bool hwmon_check   = false;
 
-  opencl_ctx_t *opencl_ctx = data.opencl_ctx;
-  hashconfig_t *hashconfig = data.hashconfig;
-  hashes_t     *hashes     = data.hashes;
+  const int sleep_time        = 1;
+  const int temp_threshold    = 1;  // degrees celcius
+  const int fan_speed_min     = 15; // in percentage
+  const int fan_speed_max     = 100;
 
-  uint hwmon_check = 0;
+  if (user_options->runtime)
+  {
+    runtime_check = true;
+  }
 
-  int slowdown_warnings = 0;
+  if (user_options->restore_timer)
+  {
+    restore_check = true;
+  }
+
+  if ((user_options->remove == true) && (hashes->hashlist_mode == HL_MODE_FILE))
+  {
+    remove_check = true;
+  }
+
+  if (user_options->status == true)
+  {
+    status_check = true;
+  }
+
+  if (user_options->gpu_temp_disable == false)
+  {
+    hwmon_check = true;
+  }
+
+  if ((runtime_check == false) && (remove_check == false) && (status_check == false) && (restore_check == false) && (hwmon_check == false))
+  {
+    return (p);
+  }
 
   // these variables are mainly used for fan control
 
@@ -65,48 +94,15 @@ void *thread_monitor (void *p)
   int *temp_diff_old = (int *) mycalloc (opencl_ctx->devices_cnt, sizeof (int));
   int *temp_diff_sum = (int *) mycalloc (opencl_ctx->devices_cnt, sizeof (int));
 
-  int temp_threshold = 1; // degrees celcius
-
-  int fan_speed_min =  15; // in percentage
-  int fan_speed_max = 100;
-
   time_t last_temp_check_time;
 
-  uint sleep_time = 1;
+  time (&last_temp_check_time);
 
-  if (data.runtime)
-  {
-    runtime_check = 1;
-  }
+  u32 slowdown_warnings = 0;
 
-  if (data.restore_timer)
-  {
-    restore_check = 1;
-  }
-
-  if ((data.remove == 1) && (hashes->hashlist_mode == HL_MODE_FILE))
-  {
-    remove_check = 1;
-  }
-
-  if (data.status == 1)
-  {
-    status_check = 1;
-  }
-
-  if (data.gpu_temp_disable == 0)
-  {
-    time (&last_temp_check_time);
-
-    hwmon_check = 1;
-  }
-
-  if ((runtime_check == 0) && (remove_check == 0) && (status_check == 0) && (restore_check == 0))
-  {
-    if (hwmon_check == 0)
-
-    return (p);
-  }
+  u32 restore_left = user_options->restore_timer;
+  u32 remove_left  = user_options->remove_timer;
+  u32 status_left  = user_options->status_timer;
 
   while (data.shutdown_inner == 0)
   {
@@ -114,7 +110,7 @@ void *thread_monitor (void *p)
 
     if (opencl_ctx->devices_status == STATUS_INIT) continue;
 
-    if (hwmon_check == 1)
+    if (hwmon_check == true)
     {
       hc_thread_mutex_lock (mux_hwmon);
 
@@ -147,7 +143,7 @@ void *thread_monitor (void *p)
             {
               if (slowdown_warnings < 3)
               {
-                if (data.quiet == false) clear_prompt ();
+                if (user_options->quiet == false) clear_prompt ();
 
                 log_info ("WARNING: Drivers temperature threshold hit on GPU #%d, expect performance to drop...", device_id + 1);
 
@@ -156,7 +152,7 @@ void *thread_monitor (void *p)
                   log_info ("");
                 }
 
-                if (data.quiet == false) send_prompt ();
+                if (user_options->quiet == false) send_prompt ();
 
                 slowdown_warnings++;
               }
@@ -172,7 +168,7 @@ void *thread_monitor (void *p)
       hc_thread_mutex_unlock (mux_hwmon);
     }
 
-    if (hwmon_check == 1)
+    if (hwmon_check == true)
     {
       hc_thread_mutex_lock (mux_hwmon);
 
@@ -194,7 +190,7 @@ void *thread_monitor (void *p)
 
         const int temperature = hm_get_temperature_with_device_id (opencl_ctx, device_id);
 
-        if (temperature > (int) data.gpu_temp_abort)
+        if (temperature > (int) user_options->gpu_temp_abort)
         {
           log_error ("ERROR: Temperature limit on GPU %d reached, aborting...", device_id + 1);
 
@@ -203,7 +199,7 @@ void *thread_monitor (void *p)
           break;
         }
 
-        const int gpu_temp_retain = data.gpu_temp_retain;
+        const u32 gpu_temp_retain = user_options->gpu_temp_retain;
 
         if (gpu_temp_retain)
         {
@@ -275,19 +271,19 @@ void *thread_monitor (void *p)
       hc_thread_mutex_unlock (mux_hwmon);
     }
 
-    if (restore_check == 1)
+    if (restore_check == true)
     {
       restore_left--;
 
-      if (restore_left == false)
+      if (restore_left == 0)
       {
-        if (data.restore_disable == 0) cycle_restore (opencl_ctx);
+        if (user_options->restore_disable == 0) cycle_restore (opencl_ctx);
 
-        restore_left = data.restore_timer;
+        restore_left = user_options->restore_timer;
       }
     }
 
-    if ((runtime_check == 1) && (data.runtime_start > 0))
+    if ((runtime_check == true) && (data.runtime_start > 0))
     {
       double ms_paused = data.ms_paused;
 
@@ -308,51 +304,51 @@ void *thread_monitor (void *p)
 
       if (runtime_left <= 0)
       {
-        if (data.benchmark == false)
+        if (user_options->benchmark == false)
         {
-          if (data.quiet == false) log_info ("\nNOTE: Runtime limit reached, aborting...\n");
+          if (user_options->quiet == false) log_info ("\nNOTE: Runtime limit reached, aborting...\n");
         }
 
         myabort (opencl_ctx);
       }
     }
 
-    if (remove_check == 1)
+    if (remove_check == true)
     {
       remove_left--;
 
-      if (remove_left == false)
+      if (remove_left == 0)
       {
         if (hashes->digests_saved != hashes->digests_done)
         {
           hashes->digests_saved = hashes->digests_done;
 
-          save_hash ();
+          save_hash (user_options, hashconfig, hashes);
         }
 
-        remove_left = data.remove_timer;
+        remove_left = user_options->remove_timer;
       }
     }
 
-    if (status_check == 1)
+    if (status_check == true)
     {
       status_left--;
 
-      if (status_left == false)
+      if (status_left == 0)
       {
         hc_thread_mutex_lock (mux_display);
 
-        if (data.quiet == false) clear_prompt ();
+        if (user_options->quiet == false) clear_prompt ();
 
-        if (data.quiet == false) log_info ("");
+        if (user_options->quiet == false) log_info ("");
 
         status_display (opencl_ctx, hashconfig, hashes);
 
-        if (data.quiet == false) log_info ("");
+        if (user_options->quiet == false) log_info ("");
 
         hc_thread_mutex_unlock (mux_display);
 
-        status_left = data.status_timer;
+        status_left = user_options->status_timer;
       }
     }
   }

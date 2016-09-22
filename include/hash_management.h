@@ -11,7 +11,7 @@ int sort_by_salt         (const void *v1, const void *v2);
 int sort_by_hash         (const void *v1, const void *v2);
 int sort_by_hash_no_salt (const void *v1, const void *v2);
 
-void save_hash ();
+void save_hash (const user_options_t *user_options, const hashconfig_t *hashconfig, const hashes_t *hashes);
 
 void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, plain_t *plain);
 

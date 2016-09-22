@@ -27,7 +27,7 @@ typedef enum hlfmt_name
 
 char *strhlfmt (const uint hashfile_format);
 
-void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, const hashconfig_t *hashconfig);
+void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, const hashconfig_t *hashconfig, const user_options_t *user_options);
 void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len, const hashconfig_t *hashconfig);
 
 uint hlfmt_detect (FILE *fp, uint max_check, const hashconfig_t *hashconfig);

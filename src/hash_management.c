@@ -125,11 +125,8 @@ int sort_by_hash_no_salt (const void *v1, const void *v2)
   return sort_by_digest_p0p1 (d1, d2);
 }
 
-void save_hash ()
+void save_hash (const user_options_t *user_options, const hashconfig_t *hashconfig, const hashes_t *hashes)
 {
-  hashconfig_t *hashconfig  = data.hashconfig;
-  hashes_t     *hashes      = data.hashes;
-
   char *hashfile = hashes->hashfile;
 
   char new_hashfile[256] = { 0 };
@@ -165,7 +162,7 @@ void save_hash ()
 
       if (hashconfig->hash_mode != 2500)
       {
-        if (data.username == 1)
+        if (user_options->username == 1)
         {
           user_t *user = data.hash_info[idx]->user;
 
@@ -843,7 +840,7 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
       char *hash_buf = NULL;
       int   hash_len = 0;
 
-      hlfmt_hash (hashlist_format, input_buf, input_len, &hash_buf, &hash_len, hashconfig);
+      hlfmt_hash (hashlist_format, input_buf, input_len, &hash_buf, &hash_len, hashconfig, user_options);
 
       bool hash_fmt_error = 0;
 
@@ -1087,7 +1084,7 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
         char *hash_buf = NULL;
         int   hash_len = 0;
 
-        hlfmt_hash (hashlist_format, line_buf, line_len, &hash_buf, &hash_len, hashconfig);
+        hlfmt_hash (hashlist_format, line_buf, line_len, &hash_buf, &hash_len, hashconfig, user_options);
 
         bool hash_fmt_error = 0;
 
