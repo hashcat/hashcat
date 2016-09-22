@@ -191,11 +191,6 @@ int main (int argc, char **argv)
 
   folder_config_init (folder_config, install_folder, shared_folder);
 
-  data.install_dir = folder_config->install_dir;
-  data.profile_dir = folder_config->profile_dir;
-  data.session_dir = folder_config->session_dir;
-  data.shared_dir  = folder_config->shared_dir;
-
   /**
    * commandline parameters
    */
@@ -220,8 +215,8 @@ int main (int argc, char **argv)
   char *eff_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
   char *new_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
 
-  snprintf (eff_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore",     data.session_dir, user_options->session);
-  snprintf (new_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore.new", data.session_dir, user_options->session);
+  snprintf (eff_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore",     folder_config->session_dir, user_options->session);
+  snprintf (new_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore.new", folder_config->session_dir, user_options->session);
 
   data.eff_restore_file = eff_restore_file;
   data.new_restore_file = new_restore_file;

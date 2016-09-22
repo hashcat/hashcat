@@ -893,8 +893,6 @@ typedef struct
    * threads
    */
 
-  opencl_ctx_t *opencl_ctx;
-
   u32     shutdown_inner;
   u32     shutdown_outer;
 
@@ -910,14 +908,7 @@ typedef struct
    * attack specific
    */
 
-  u32     wordlist_mode;
-
-
-  u32     attack_mode;
-  u32     attack_kern;
-
-  u32     kernel_rules_cnt;
-
+  u32            kernel_rules_cnt;
   kernel_rule_t *kernel_rules_buf;
 
   u32     combs_mode;
@@ -963,25 +954,23 @@ typedef struct
    * user
    */
 
+
+  u32     wordlist_mode;
+
+  u32     attack_mode;
+  u32     attack_kern;
   char   *dictfile;
   char   *dictfile2;
   char   *mask;
   u32     maskcnt;
   u32     maskpos;
   char   *session;
-
-  char   *install_dir;
-  char   *profile_dir;
-  char   *session_dir;
-  char   *shared_dir;
-
   u32     outfile_check_timer;
   char   *eff_restore_file;
   char   *new_restore_file;
   char   *induction_directory;
   char   *outfile_check_directory;
   u32     loopback;
-
   u32     restore;
   u32     restore_timer;
   u32     restore_disable;
@@ -994,7 +983,6 @@ typedef struct
   u32     runtime;
   u32     remove;
   u32     remove_timer;
-
   u32     hex_charset;
   u32     hex_salt;
   u32     hex_wordlist;
@@ -1007,6 +995,7 @@ typedef struct
   char   *veracrypt_keyfiles;
   u32     veracrypt_pim;
 
+  opencl_ctx_t          *opencl_ctx;
   hashconfig_t          *hashconfig;
   hashes_t              *hashes;
   user_options_t        *user_options;
