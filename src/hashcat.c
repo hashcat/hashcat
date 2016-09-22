@@ -278,7 +278,6 @@ int main (int argc, char **argv)
     data.logfile_disable = user_options->logfile_disable;
     data.powertune_enable = user_options->powertune_enable;
     data.quiet = user_options->quiet;
-    data.runtime = user_options->runtime;
     data.scrypt_tmto = user_options->scrypt_tmto;
     data.segment_size = user_options->segment_size;
     data.truecrypt_keyfiles = user_options->truecrypt_keyfiles;

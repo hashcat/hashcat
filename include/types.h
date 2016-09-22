@@ -971,7 +971,6 @@ typedef struct
   u32     attack_kern;
   u32     quiet;
   u32     force;
-  u32     runtime;
   u32     hex_charset;
   u32     hex_salt;
   u32     hex_wordlist;

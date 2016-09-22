@@ -301,7 +301,7 @@ void *thread_monitor (void *p)
 
       time (&runtime_cur);
 
-      int runtime_left = data.proc_start + data.runtime + data.prepare_time + (ms_paused / 1000) - runtime_cur;
+      int runtime_left = data.proc_start + user_options->runtime + data.prepare_time + (ms_paused / 1000) - runtime_cur;
 
       if (runtime_left <= 0)
       {
