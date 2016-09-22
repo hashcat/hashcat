@@ -258,7 +258,6 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
    * temperature
    */
 
-  #if defined (HAVE_HWMON)
   if (data.gpu_temp_disable == 0)
   {
     fprintf (out, "TEMP\t");
@@ -278,7 +277,6 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
 
     hc_thread_mutex_unlock (mux_hwmon);
   }
-  #endif // HAVE_HWMON
 
   /**
    * flush
@@ -1031,8 +1029,6 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
     }
   }
 
-  #if defined (HAVE_HWMON)
-
   if (opencl_ctx->run_main_level1 == false) return;
 
   if (data.gpu_temp_disable == 0)
@@ -1118,8 +1114,6 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
     hc_thread_mutex_unlock (mux_hwmon);
   }
-
-  #endif // HAVE_HWMON
 }
 
 void status_benchmark_automate (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)

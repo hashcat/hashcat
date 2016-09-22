@@ -220,11 +220,9 @@ static const struct option long_options[] =
   {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
   {"nvidia-spin-damp",          required_argument, 0, IDX_NVIDIA_SPIN_DAMP},
   {"gpu-temp-disable",          no_argument,       0, IDX_GPU_TEMP_DISABLE},
-  #if defined (HAVE_HWMON)
   {"gpu-temp-abort",            required_argument, 0, IDX_GPU_TEMP_ABORT},
   {"gpu-temp-retain",           required_argument, 0, IDX_GPU_TEMP_RETAIN},
   {"powertune-enable",          no_argument,       0, IDX_POWERTUNE_ENABLE},
-  #endif // HAVE_HWMON
   {"logfile-disable",           no_argument,       0, IDX_LOGFILE_DISABLE},
   {"truecrypt-keyfiles",        required_argument, 0, IDX_TRUECRYPT_KEYFILES},
   {"veracrypt-keyfiles",        required_argument, 0, IDX_VERACRYPT_KEYFILES},

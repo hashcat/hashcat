@@ -802,11 +802,9 @@ typedef struct
   u32    kernel_loops;
   u32    nvidia_spin_damp;
   bool   gpu_temp_disable;
-  #if defined (HAVE_HWMON)
   u32    gpu_temp_abort;
   u32    gpu_temp_retain;
   bool   powertune_enable;
-  #endif
   bool   logfile_disable;
   u32    segment_size;
   u32    scrypt_tmto;
@@ -940,13 +938,11 @@ typedef struct
    * hardware watchdog
    */
 
-  #if defined (HAVE_HWMON)
   void      *hm_adl;
   void      *hm_nvml;
   void      *hm_nvapi;
   void      *hm_xnvctrl;
   hm_attrs_t hm_device[DEVICES_MAX];
-  #endif
 
   /**
    * logging
@@ -1028,11 +1024,9 @@ typedef struct
   debugfile_ctx_t *debugfile_ctx;
   session_ctx_t   *session_ctx;
 
-  #if defined (HAVE_HWMON)
   u32     gpu_temp_disable;
   u32     gpu_temp_abort;
   u32     gpu_temp_retain;
-  #endif
 
   char  **rp_files;
   u32     rp_files_cnt;

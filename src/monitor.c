@@ -52,7 +52,6 @@ void *thread_monitor (void *p)
   hashconfig_t *hashconfig = data.hashconfig;
   hashes_t     *hashes     = data.hashes;
 
-  #if defined (HAVE_HWMON)
   uint hwmon_check = 0;
 
   int slowdown_warnings = 0;
@@ -72,7 +71,6 @@ void *thread_monitor (void *p)
   int fan_speed_max = 100;
 
   time_t last_temp_check_time;
-  #endif // HAVE_HWMON
 
   uint sleep_time = 1;
 
@@ -96,20 +94,17 @@ void *thread_monitor (void *p)
     status_check = 1;
   }
 
-  #if defined (HAVE_HWMON)
   if (data.gpu_temp_disable == 0)
   {
     time (&last_temp_check_time);
 
     hwmon_check = 1;
   }
-  #endif
 
   if ((runtime_check == 0) && (remove_check == 0) && (status_check == 0) && (restore_check == 0))
   {
-    #if defined (HAVE_HWMON)
     if (hwmon_check == 0)
-    #endif
+
     return (p);
   }
 
@@ -118,8 +113,6 @@ void *thread_monitor (void *p)
     hc_sleep (sleep_time);
 
     if (opencl_ctx->devices_status == STATUS_INIT) continue;
-
-    #if defined (HAVE_HWMON)
 
     if (hwmon_check == 1)
     {
@@ -281,7 +274,6 @@ void *thread_monitor (void *p)
 
       hc_thread_mutex_unlock (mux_hwmon);
     }
-    #endif // HAVE_HWMON
 
     if (restore_check == 1)
     {
@@ -365,12 +357,10 @@ void *thread_monitor (void *p)
     }
   }
 
-  #if defined (HAVE_HWMON)
   myfree (fan_speed_chgd);
 
   myfree (temp_diff_old);
   myfree (temp_diff_sum);
-  #endif
 
   p = NULL;
 

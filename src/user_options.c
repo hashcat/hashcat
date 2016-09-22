@@ -193,11 +193,9 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
       case IDX_NVIDIA_SPIN_DAMP:          user_options->nvidia_spin_damp          = atoi (optarg);
                                           user_options->nvidia_spin_damp_chgd     = true;           break;
       case IDX_GPU_TEMP_DISABLE:          user_options->gpu_temp_disable          = true;           break;
-      #if defined (HAVE_HWMON)
       case IDX_GPU_TEMP_ABORT:            user_options->gpu_temp_abort            = atoi (optarg);  break;
       case IDX_GPU_TEMP_RETAIN:           user_options->gpu_temp_retain           = atoi (optarg);  break;
       case IDX_POWERTUNE_ENABLE:          user_options->powertune_enable          = true;           break;
-      #endif // HAVE_HWMON
       case IDX_LOGFILE_DISABLE:           user_options->logfile_disable           = true;           break;
       case IDX_TRUECRYPT_KEYFILES:        user_options->truecrypt_keyfiles        = optarg;         break;
       case IDX_VERACRYPT_KEYFILES:        user_options->veracrypt_keyfiles        = optarg;         break;
@@ -234,6 +232,13 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
     return -1;
   }
 
+  #if !defined (HAVE_HWMON)
+  user_options->powertune_enable = false;
+  user_options->gpu_temp_disable = true;
+  user_options->gpu_temp_abort   = 0;
+  user_options->gpu_temp_retain  = 0;
+  #endif // HAVE_HWMON
+
   // some options can influence or overwrite other options
 
   if (user_options->opencl_info == true
@@ -268,12 +273,10 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
       user_options->workload_profile = 3;
     }
 
-    #if defined (HAVE_HWMON)
     if (user_options->powertune_enable == true)
     {
       user_options->gpu_temp_disable = false;
     }
-    #endif
   }
 
   if (user_options->keyspace == true)

@@ -561,9 +561,7 @@ int main (int argc, char **argv)
   logfile_top_uint   (user_options->outfile_format);
   logfile_top_uint   (user_options->potfile_disable);
   logfile_top_string (user_options->potfile_path);
-  #if defined(HAVE_HWMON)
   logfile_top_uint   (user_options->powertune_enable);
-  #endif
   logfile_top_uint   (user_options->scrypt_tmto);
   logfile_top_uint   (user_options->quiet);
   logfile_top_uint   (user_options->remove);
@@ -1251,7 +1249,6 @@ int main (int argc, char **argv)
      * HM devices: init
      */
 
-    #if defined (HAVE_HWMON)
     hm_attrs_t hm_adapters_adl[DEVICES_MAX];
     hm_attrs_t hm_adapters_nvapi[DEVICES_MAX];
     hm_attrs_t hm_adapters_nvml[DEVICES_MAX];
@@ -1428,7 +1425,6 @@ int main (int argc, char **argv)
     data.gpu_temp_disable = user_options->gpu_temp_disable;
     data.gpu_temp_abort   = user_options->gpu_temp_abort;
     data.gpu_temp_retain  = user_options->gpu_temp_retain;
-    #endif
 
     /**
      * enable custom signal handler(s)
@@ -1474,7 +1470,6 @@ int main (int argc, char **argv)
        * Watchdog and Temperature balance
        */
 
-      #if defined (HAVE_HWMON)
       if (user_options->gpu_temp_disable == false && data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl == NULL)
       {
         log_info ("Watchdog: Hardware Monitoring Interface not found on your system");
@@ -1499,10 +1494,7 @@ int main (int argc, char **argv)
       }
 
       if (user_options->quiet == false) log_info ("");
-      #endif
     }
-
-    #if defined (HAVE_HWMON)
 
     /**
      * HM devices: copy
@@ -1737,8 +1729,6 @@ int main (int argc, char **argv)
       hc_thread_mutex_unlock (mux_hwmon);
     }
 
-    #endif // HAVE_HWMON
-
     #if defined (DEBUG)
     if (user_options->benchmark == true) log_info ("Hashmode: %d", hashconfig->hash_mode);
     #endif
@@ -1759,70 +1749,68 @@ int main (int argc, char **argv)
      * Store initial fanspeed if gpu_temp_retain is enabled
      */
 
-    #if defined(HAVE_HWMON)
-
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    if (user_options->gpu_temp_disable == false)
     {
-      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-      if (device_param->skipped) continue;
-
-      if (user_options->gpu_temp_disable == true) continue;
-
-      if (user_options->gpu_temp_retain == 0) continue;
-
-      hc_thread_mutex_lock (mux_hwmon);
-
-      if (data.hm_device[device_id].fan_get_supported == 1)
+      if (user_options->gpu_temp_retain)
       {
-        const int fanspeed  = hm_get_fanspeed_with_device_id  (opencl_ctx, device_id);
-        const int fanpolicy = hm_get_fanpolicy_with_device_id (opencl_ctx, device_id);
-
-        // we also set it to tell the OS we take control over the fan and it's automatic controller
-        // if it was set to automatic. we do not control user-defined fanspeeds.
-
-        if (fanpolicy == 1)
+        for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
         {
-          data.hm_device[device_id].fan_set_supported = 1;
+          hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-          int rc = -1;
+          if (device_param->skipped) continue;
 
-          if (device_param->device_vendor_id == VENDOR_ID_AMD)
+          hc_thread_mutex_lock (mux_hwmon);
+
+          if (data.hm_device[device_id].fan_get_supported == 1)
           {
-            rc = hm_set_fanspeed_with_device_id_adl (device_id, fanspeed, 1);
-          }
-          else if (device_param->device_vendor_id == VENDOR_ID_NV)
-          {
-            #if defined (__linux__)
-            rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
-            #endif
+            const int fanspeed  = hm_get_fanspeed_with_device_id  (opencl_ctx, device_id);
+            const int fanpolicy = hm_get_fanpolicy_with_device_id (opencl_ctx, device_id);
 
-            #if defined (_WIN)
-            rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, 1);
-            #endif
+            // we also set it to tell the OS we take control over the fan and it's automatic controller
+            // if it was set to automatic. we do not control user-defined fanspeeds.
+
+            if (fanpolicy == 1)
+            {
+              data.hm_device[device_id].fan_set_supported = 1;
+
+              int rc = -1;
+
+              if (device_param->device_vendor_id == VENDOR_ID_AMD)
+              {
+                rc = hm_set_fanspeed_with_device_id_adl (device_id, fanspeed, 1);
+              }
+              else if (device_param->device_vendor_id == VENDOR_ID_NV)
+              {
+                #if defined (__linux__)
+                rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
+                #endif
+
+                #if defined (_WIN)
+                rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, 1);
+                #endif
+              }
+
+              if (rc == 0)
+              {
+                data.hm_device[device_id].fan_set_supported = 1;
+              }
+              else
+              {
+                log_info ("WARNING: Failed to set initial fan speed for device #%u", device_id + 1);
+
+                data.hm_device[device_id].fan_set_supported = 0;
+              }
+            }
+            else
+            {
+              data.hm_device[device_id].fan_set_supported = 0;
+            }
           }
 
-          if (rc == 0)
-          {
-            data.hm_device[device_id].fan_set_supported = 1;
-          }
-          else
-          {
-            log_info ("WARNING: Failed to set initial fan speed for device #%u", device_id + 1);
-
-            data.hm_device[device_id].fan_set_supported = 0;
-          }
-        }
-        else
-        {
-          data.hm_device[device_id].fan_set_supported = 0;
+          hc_thread_mutex_unlock (mux_hwmon);
         }
       }
-
-      hc_thread_mutex_unlock (mux_hwmon);
     }
-
-    #endif // HAVE_HWMON
 
     /**
      * In benchmark-mode, inform user which algorithm is checked
@@ -3906,10 +3894,9 @@ int main (int argc, char **argv)
 
     // reset default fan speed
 
-    #if defined (HAVE_HWMON)
     if (user_options->gpu_temp_disable == false)
     {
-      if (user_options->gpu_temp_retain != 0)
+      if (user_options->gpu_temp_retain)
       {
         hc_thread_mutex_lock (mux_hwmon);
 
@@ -4059,7 +4046,6 @@ int main (int argc, char **argv)
         data.hm_adl = NULL;
       }
     }
-    #endif // HAVE_HWMON
 
     if (opencl_ctx->run_main_level1 == false) break;
 
@@ -4098,11 +4084,9 @@ int main (int argc, char **argv)
     local_free (bitmap_s2_c);
     local_free (bitmap_s2_d);
 
-    #if defined (HAVE_HWMON)
     local_free (od_clock_mem_status);
     local_free (od_power_control_status);
     local_free (nvml_power_limit);
-    #endif
 
     global_free (kernel_rules_buf);
 

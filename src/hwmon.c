@@ -30,8 +30,6 @@
 
 hc_thread_mutex_t mux_hwmon;
 
-#if defined (HAVE_HWMON)
-
 extern hc_global_data_t data;
 
 int get_adapters_num_adl (void *adl, int *iNumberAdapters)
@@ -871,5 +869,3 @@ int hm_set_fanspeed_with_device_id_xnvctrl (const uint device_id, const int fans
 
   return -1;
 }
-
-#endif // HAVE_HWMON
