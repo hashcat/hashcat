@@ -264,6 +264,8 @@ int main (int argc, char **argv)
     #endif
   }
 
+  user_options_init (user_options, myargc, myargv);
+
   const int rc_user_options_parse2 = user_options_parse (user_options, myargc, myargv);
 
   if (rc_user_options_parse2 == -1) return -1;
