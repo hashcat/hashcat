@@ -970,7 +970,6 @@ typedef struct
   char   *new_restore_file;
   char   *induction_directory;
   char   *outfile_check_directory;
-  u32     loopback;
 
   u32     machine_readable;
   u32     quiet;
