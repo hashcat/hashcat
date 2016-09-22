@@ -894,6 +894,17 @@ typedef struct
 
 typedef struct
 {
+  bool enabled;
+
+  char *root_directory;
+
+  char **induction_dictionaries;
+  int    induction_dictionaries_cnt;
+
+} induct_ctx_t;
+
+typedef struct
+{
   /**
    * threads
    */
@@ -965,7 +976,6 @@ typedef struct
   u32     maskpos;
   char   *eff_restore_file;
   char   *new_restore_file;
-  char   *induction_directory;
   char   *outfile_check_directory;
   u32     pw_min;
   u32     pw_max;
@@ -981,6 +991,7 @@ typedef struct
   debugfile_ctx_t       *debugfile_ctx;
   session_ctx_t         *session_ctx;
   bitmap_ctx_t          *bitmap_ctx;
+  induct_ctx_t          *induct_ctx;
 
   /**
    * used for restore

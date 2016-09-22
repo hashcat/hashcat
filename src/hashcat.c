@@ -331,65 +331,13 @@ int main (int argc, char **argv)
    * induction directory
    */
 
-  char *induction_directory = NULL;
+  induct_ctx_t *induct_ctx = (induct_ctx_t *) mymalloc (sizeof (induct_ctx_t));
 
-  if (user_options->attack_mode != ATTACK_MODE_BF)
-  {
-    if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
-    {
-      if (user_options->induction_dir == NULL)
-      {
-        induction_directory = (char *) mymalloc (HCBUFSIZ_TINY);
+  data.induct_ctx = induct_ctx;
 
-        snprintf (induction_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", folder_config->session_dir, user_options->session, INDUCT_DIR);
+  const int rc_induct_ctx_init = induct_ctx_init (induct_ctx, user_options, folder_config, proc_start);
 
-        // create induction folder if it does not already exist
-
-        if (user_options->keyspace == false)
-        {
-          if (rmdir (induction_directory) == -1)
-          {
-            if (errno == ENOENT)
-            {
-              // good, we can ignore
-            }
-            else if (errno == ENOTEMPTY)
-            {
-              char *induction_directory_mv = (char *) mymalloc (HCBUFSIZ_TINY);
-
-              snprintf (induction_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) proc_start);
-
-              if (rename (induction_directory, induction_directory_mv) != 0)
-              {
-                log_error ("ERROR: Rename directory %s to %s: %s", induction_directory, induction_directory_mv, strerror (errno));
-
-                return -1;
-              }
-            }
-            else
-            {
-              log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
-
-              return -1;
-            }
-          }
-
-          if (mkdir (induction_directory, 0700) == -1)
-          {
-            log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
-
-            return -1;
-          }
-        }
-      }
-      else
-      {
-        induction_directory = user_options->induction_dir;
-      }
-    }
-  }
-
-  data.induction_directory = induction_directory;
+  if (rc_induct_ctx_init == -1) return -1;
 
   /**
    * tuning db
@@ -2581,10 +2529,6 @@ int main (int argc, char **argv)
       }
     }
 
-    char **induction_dictionaries = NULL;
-
-    int induction_dictionaries_cnt = 0;
-
     hcstat_table_t *root_table_buf   = NULL;
     hcstat_table_t *markov_table_buf = NULL;
 
@@ -2849,24 +2793,11 @@ int main (int argc, char **argv)
         }
       }
 
-      free (induction_dictionaries);
+      /**
+       * update induction directory scan
+       */
 
-      // induction_dictionaries_cnt = 0; // implied
-
-      if (user_options->attack_mode != ATTACK_MODE_BF)
-      {
-        if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
-        {
-          induction_dictionaries = scan_directory (induction_directory);
-
-          induction_dictionaries_cnt = count_dictionaries (induction_dictionaries);
-        }
-      }
-
-      if (induction_dictionaries_cnt)
-      {
-        qsort (induction_dictionaries, induction_dictionaries_cnt, sizeof (char *), sort_by_mtime);
-      }
+      induct_ctx_scan (induct_ctx);
 
       /**
        * prevent the user from using --skip/--limit together w/ maskfile and or dictfile
@@ -2977,9 +2908,9 @@ int main (int argc, char **argv)
           {
             char *dictfile = NULL;
 
-            if (induction_dictionaries_cnt)
+            if (induct_ctx->induction_dictionaries_cnt)
             {
-              dictfile = induction_dictionaries[0];
+              dictfile = induct_ctx->induction_dictionaries[0];
             }
             else
             {
@@ -3066,9 +2997,9 @@ int main (int argc, char **argv)
         {
           char *dictfile = NULL;
 
-          if (induction_dictionaries_cnt)
+          if (induct_ctx->induction_dictionaries_cnt)
           {
-            dictfile = induction_dictionaries[0];
+            dictfile = induct_ctx->induction_dictionaries[0];
           }
           else
           {
@@ -3426,7 +3357,7 @@ int main (int argc, char **argv)
 
         if (user_options->loopback == true)
         {
-          loopback_write_open (loopback_ctx, induction_directory);
+          loopback_write_open (loopback_ctx, induct_ctx->root_directory);
         }
 
         /**
@@ -3584,22 +3515,14 @@ int main (int argc, char **argv)
 
         user_options->restore = false;
 
-        if (induction_dictionaries_cnt)
+        if (induct_ctx->induction_dictionaries_cnt)
         {
-          unlink (induction_dictionaries[0]);
+          unlink (induct_ctx->induction_dictionaries[0]);
         }
 
-        free (induction_dictionaries);
+        myfree (induct_ctx->induction_dictionaries);
 
-        if (user_options->attack_mode != ATTACK_MODE_BF)
-        {
-          if ((user_options->keyspace == false) && (user_options->benchmark == false) && (user_options->opencl_info == false))
-          {
-            induction_dictionaries = scan_directory (induction_directory);
-
-            induction_dictionaries_cnt = count_dictionaries (induction_dictionaries);
-          }
-        }
+        induct_ctx_scan (induct_ctx);
 
         if (user_options->benchmark == true)
         {
@@ -3631,10 +3554,8 @@ int main (int argc, char **argv)
           }
         }
 
-        if (induction_dictionaries_cnt)
+        if (induct_ctx->induction_dictionaries_cnt)
         {
-          qsort (induction_dictionaries, induction_dictionaries_cnt, sizeof (char *), sort_by_mtime);
-
           // yeah, this next statement is a little hack to make sure that --loopback runs correctly (because with it we guarantee that the loop iterates one more time)
 
           dictpos--;
@@ -3713,15 +3634,7 @@ int main (int argc, char **argv)
 
     // if cracked / aborted remove last induction dictionary
 
-    for (int file_pos = 0; file_pos < induction_dictionaries_cnt; file_pos++)
-    {
-      struct stat induct_stat;
-
-      if (stat (induction_dictionaries[file_pos], &induct_stat) == 0)
-      {
-        unlink (induction_dictionaries[file_pos]);
-      }
-    }
+    induct_ctx_cleanup (induct_ctx);
 
     // wait for inner threads
 
@@ -3990,28 +3903,7 @@ int main (int argc, char **argv)
 
   // induction directory
 
-  if (induction_directory != NULL)
-  {
-    if (rmdir (induction_directory) == -1)
-    {
-      if (errno == ENOENT)
-      {
-        // good, we can ignore
-      }
-      else if (errno == ENOTEMPTY)
-      {
-        // good, we can ignore
-      }
-      else
-      {
-        log_error ("ERROR: %s: %s", induction_directory, strerror (errno));
-
-        return -1;
-      }
-    }
-
-    local_free (induction_directory);
-  }
+  induct_ctx_destroy (induct_ctx);
 
   // outfile-check directory
 
