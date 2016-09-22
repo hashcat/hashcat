@@ -201,7 +201,7 @@ void get_next_word_std (char *buf, u32 sz, u32 *len, u32 *off)
   *len = sz;
 }
 
-void get_next_word (wl_data_t *wl_data, FILE *fd, char **out_buf, uint *out_len)
+void get_next_word (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, FILE *fd, char **out_buf, uint *out_len)
 {
   while (wl_data->pos < wl_data->cnt)
   {
@@ -214,7 +214,7 @@ void get_next_word (wl_data_t *wl_data, FILE *fd, char **out_buf, uint *out_len)
 
     wl_data->pos += off;
 
-    if (run_rule_engine (data.rule_len_l, data.rule_buf_l))
+    if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
     {
       char rule_buf_out[BLOCK_SIZE] = { 0 };
 
@@ -222,7 +222,7 @@ void get_next_word (wl_data_t *wl_data, FILE *fd, char **out_buf, uint *out_len)
 
       if (len < BLOCK_SIZE)
       {
-        rule_len_out = _old_apply_rule (data.rule_buf_l, data.rule_len_l, ptr, len, rule_buf_out);
+        rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, len, rule_buf_out);
       }
 
       if (rule_len_out < 0)
@@ -258,7 +258,7 @@ void get_next_word (wl_data_t *wl_data, FILE *fd, char **out_buf, uint *out_len)
 
   load_segment (wl_data, fd);
 
-  get_next_word (wl_data, fd, out_buf, out_len);
+  get_next_word (wl_data, user_options, user_options_extra, fd, out_buf, out_len);
 }
 
 void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len)
@@ -285,7 +285,7 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
   //}
 }
 
-u64 count_words (wl_data_t *wl_data, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx)
+u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx)
 {
   hc_signal (NULL);
 
@@ -317,7 +317,7 @@ u64 count_words (wl_data_t *wl_data, FILE *fd, const char *dictfile, dictstat_ct
 
   const u64 cached_cnt = dictstat_find (dictstat_ctx, &d);
 
-  if (run_rule_engine (data.rule_len_l, data.rule_buf_l) == 0)
+  if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l) == 0)
   {
     if (cached_cnt)
     {
@@ -363,7 +363,7 @@ u64 count_words (wl_data_t *wl_data, FILE *fd, const char *dictfile, dictstat_ct
 
       wl_data->func (wl_data->buf + i, wl_data->cnt - i, &len, &off);
 
-      if (run_rule_engine (data.rule_len_l, data.rule_buf_l))
+      if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
       {
         char rule_buf_out[BLOCK_SIZE] = { 0 };
 
@@ -371,7 +371,7 @@ u64 count_words (wl_data_t *wl_data, FILE *fd, const char *dictfile, dictstat_ct
 
         if (len < BLOCK_SIZE)
         {
-          rule_len_out = _old_apply_rule (data.rule_buf_l, data.rule_len_l, wl_data->buf + i, len, rule_buf_out);
+          rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, wl_data->buf + i, len, rule_buf_out);
         }
 
         if (rule_len_out < 0)

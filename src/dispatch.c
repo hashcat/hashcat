@@ -115,10 +115,11 @@ void *thread_calc_stdin (void *p)
 
   if (device_param->skipped) return NULL;
 
-  opencl_ctx_t *opencl_ctx = data.opencl_ctx;
-
-  hashconfig_t *hashconfig = data.hashconfig;
-  hashes_t     *hashes     = data.hashes;
+  user_options_t       *user_options       = data.user_options;
+  user_options_extra_t *user_options_extra = data.user_options_extra;
+  hashconfig_t         *hashconfig         = data.hashconfig;
+  hashes_t             *hashes             = data.hashes;
+  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
 
   char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -149,7 +150,7 @@ void *thread_calc_stdin (void *p)
 
       // post-process rule engine
 
-      if (run_rule_engine (data.rule_len_l, data.rule_buf_l))
+      if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
       {
         char rule_buf_out[BLOCK_SIZE] = { 0 };
 
@@ -157,7 +158,7 @@ void *thread_calc_stdin (void *p)
 
         if (line_len < BLOCK_SIZE)
         {
-          rule_len_out = _old_apply_rule (data.rule_buf_l, data.rule_len_l, line_buf, line_len, rule_buf_out);
+          rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, line_buf, line_len, rule_buf_out);
         }
 
         if (rule_len_out < 0) continue;
@@ -209,7 +210,7 @@ void *thread_calc_stdin (void *p)
     {
       run_copy (opencl_ctx, device_param, hashconfig, pws_cnt);
 
-      run_cracker (opencl_ctx, device_param, hashconfig, hashes, pws_cnt);
+      run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, pws_cnt);
 
       device_param->pws_cnt = 0;
 
@@ -241,10 +242,11 @@ void *thread_calc (void *p)
 
   if (device_param->skipped) return NULL;
 
-  opencl_ctx_t   *opencl_ctx   = data.opencl_ctx;
-  user_options_t *user_options = data.user_options;
-  hashconfig_t   *hashconfig   = data.hashconfig;
-  hashes_t       *hashes       = data.hashes;
+  user_options_t       *user_options       = data.user_options;
+  user_options_extra_t *user_options_extra = data.user_options_extra;
+  hashconfig_t         *hashconfig         = data.hashconfig;
+  hashes_t             *hashes             = data.hashes;
+  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
 
   const uint attack_mode = data.attack_mode;
   const uint attack_kern = data.attack_kern;
@@ -268,7 +270,7 @@ void *thread_calc (void *p)
       {
         run_copy (opencl_ctx, device_param, hashconfig, pws_cnt);
 
-        run_cracker (opencl_ctx, device_param, hashconfig, hashes, pws_cnt);
+        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, pws_cnt);
 
         device_param->pws_cnt = 0;
 
@@ -373,17 +375,17 @@ void *thread_calc (void *p)
         char *line_buf;
         uint  line_len;
 
-        for ( ; words_cur < words_off; words_cur++) get_next_word (wl_data, fd, &line_buf, &line_len);
+        for ( ; words_cur < words_off; words_cur++) get_next_word (wl_data, user_options, user_options_extra, fd, &line_buf, &line_len);
 
         for ( ; words_cur < words_fin; words_cur++)
         {
-          get_next_word (wl_data, fd, &line_buf, &line_len);
+          get_next_word (wl_data, user_options, user_options_extra, fd, &line_buf, &line_len);
 
           line_len = convert_from_hex (line_buf, line_len);
 
           // post-process rule engine
 
-          if (run_rule_engine (data.rule_len_l, data.rule_buf_l))
+          if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
           {
             char rule_buf_out[BLOCK_SIZE] = { 0 };
 
@@ -391,7 +393,7 @@ void *thread_calc (void *p)
 
             if (line_len < BLOCK_SIZE)
             {
-              rule_len_out = _old_apply_rule (data.rule_buf_l, data.rule_len_l, line_buf, line_len, rule_buf_out);
+              rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, line_buf, line_len, rule_buf_out);
             }
 
             if (rule_len_out < 0) continue;
@@ -460,7 +462,7 @@ void *thread_calc (void *p)
       {
         run_copy (opencl_ctx, device_param, hashconfig, pws_cnt);
 
-        run_cracker (opencl_ctx, device_param, hashconfig, hashes, pws_cnt);
+        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, pws_cnt);
 
         device_param->pws_cnt = 0;
 

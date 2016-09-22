@@ -957,7 +957,7 @@ int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
   return 0;
 }
 
-int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, const uint pws_cnt)
+int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const uint pws_cnt)
 {
   char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -1081,11 +1081,11 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
           char *line_buf_new = line_buf;
 
-          if (run_rule_engine (data.rule_len_r, data.rule_buf_r))
+          if (run_rule_engine (user_options_extra->rule_len_r, user_options->rule_buf_r))
           {
             char rule_buf_out[BLOCK_SIZE] = { 0 };
 
-            int rule_len_out = _old_apply_rule (data.rule_buf_r, data.rule_len_r, line_buf, line_len, rule_buf_out);
+            int rule_len_out = _old_apply_rule (user_options->rule_buf_r, user_options_extra->rule_len_r, line_buf, line_len, rule_buf_out);
 
             if (rule_len_out < 0)
             {

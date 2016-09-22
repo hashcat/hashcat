@@ -931,11 +931,6 @@ typedef struct
   cs_t   *root_css_buf;
   cs_t   *markov_css_buf;
 
-  char   *rule_buf_l;
-  char   *rule_buf_r;
-  int     rule_len_l;
-  int     rule_len_r;
-
   /**
    * hardware watchdog
    */

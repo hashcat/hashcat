@@ -307,8 +307,6 @@ int main (int argc, char **argv)
     data.rp_files_cnt = user_options->rp_files_cnt;
     data.rp_gen = user_options->rp_gen;
     data.rp_gen_seed = user_options->rp_gen_seed;
-    data.rule_buf_l = user_options->rule_buf_l;
-    data.rule_buf_r = user_options->rule_buf_r;
     data.runtime = user_options->runtime;
     data.scrypt_tmto = user_options->scrypt_tmto;
     data.segment_size = user_options->segment_size;
@@ -320,8 +318,6 @@ int main (int argc, char **argv)
     data.veracrypt_keyfiles = user_options->veracrypt_keyfiles;
     data.veracrypt_pim = user_options->veracrypt_pim;
 
-    data.rule_len_l = user_options_extra->rule_len_l;
-    data.rule_len_r = user_options_extra->rule_len_r;
     data.wordlist_mode = user_options_extra->wordlist_mode;
     data.attack_kern = user_options_extra->attack_kern;
   }
@@ -2038,7 +2034,7 @@ int main (int argc, char **argv)
 
       //user_options->quiet = 1;
 
-      const u64 words1_cnt = count_words (wl_data, fp1, dictfile1, dictstat_ctx);
+      const u64 words1_cnt = count_words (wl_data, user_options, user_options_extra, fp1, dictfile1, dictstat_ctx);
 
       //user_options->quiet = quiet;
 
@@ -2056,7 +2052,7 @@ int main (int argc, char **argv)
 
       //user_options->quiet = 1;
 
-      const u64 words2_cnt = count_words (wl_data, fp2, dictfile2, dictstat_ctx);
+      const u64 words2_cnt = count_words (wl_data, user_options, user_options_extra, fp2, dictfile2, dictstat_ctx);
 
       //user_options->quiet = quiet;
 
@@ -2096,15 +2092,15 @@ int main (int argc, char **argv)
 
         // we also have to switch wordlist related rules!
 
-        char *tmpc = data.rule_buf_l;
+        char *tmpc = user_options->rule_buf_l;
 
-        data.rule_buf_l = data.rule_buf_r;
-        data.rule_buf_r = tmpc;
+        user_options->rule_buf_l = user_options->rule_buf_r;
+        user_options->rule_buf_r = tmpc;
 
-        int   tmpi = data.rule_len_l;
+        int   tmpi = user_options_extra->rule_len_l;
 
-        data.rule_len_l = data.rule_len_r;
-        data.rule_len_r = tmpi;
+        user_options_extra->rule_len_l = user_options_extra->rule_len_r;
+        user_options_extra->rule_len_r = tmpi;
       }
     }
     else if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -3048,7 +3044,7 @@ int main (int argc, char **argv)
 
         data.cpt_total = 0;
 
-        if (data.restore == false)
+        if (user_options->restore == false)
         {
           rd->words_cur = user_options->skip;
 
@@ -3128,7 +3124,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            data.words_cnt = count_words (wl_data, fd2, dictfile, dictstat_ctx);
+            data.words_cnt = count_words (wl_data, user_options, user_options_extra, fd2, dictfile, dictstat_ctx);
 
             fclose (fd2);
 
@@ -3159,7 +3155,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            data.words_cnt = count_words (wl_data, fd2, dictfile, dictstat_ctx);
+            data.words_cnt = count_words (wl_data, user_options, user_options_extra, fd2, dictfile, dictstat_ctx);
 
             fclose (fd2);
           }
@@ -3174,7 +3170,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            data.words_cnt = count_words (wl_data, fd2, dictfile2, dictstat_ctx);
+            data.words_cnt = count_words (wl_data, user_options, user_options_extra, fd2, dictfile2, dictstat_ctx);
 
             fclose (fd2);
           }
@@ -3215,7 +3211,7 @@ int main (int argc, char **argv)
             return -1;
           }
 
-          data.words_cnt = count_words (wl_data, fd2, dictfile, dictstat_ctx);
+          data.words_cnt = count_words (wl_data, user_options, user_options_extra, fd2, dictfile, dictstat_ctx);
 
           fclose (fd2);
 
@@ -3650,7 +3646,7 @@ int main (int argc, char **argv)
 
         if (initial_restore_done == 0)
         {
-          if (data.restore_disable == 0) cycle_restore (opencl_ctx);
+          if (user_options->restore_disable == false) cycle_restore (opencl_ctx);
 
           initial_restore_done = 1;
         }
@@ -3706,7 +3702,9 @@ int main (int argc, char **argv)
 
         logfile_sub_var_uint ("status-after-work", opencl_ctx->devices_status);
 
-        data.restore = 0;
+        user_options->restore = false;
+
+        data.restore = false;
 
         if (induction_dictionaries_cnt)
         {
@@ -3859,7 +3857,7 @@ int main (int argc, char **argv)
     local_free (inner_threads);
 
     // we dont need restore file anymore
-    if (data.restore_disable == 0)
+    if (user_options->restore_disable == false)
     {
       if ((opencl_ctx->devices_status == STATUS_EXHAUSTED) || (opencl_ctx->devices_status == STATUS_CRACKED))
       {
