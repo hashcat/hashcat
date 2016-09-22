@@ -39,10 +39,11 @@ extern hc_thread_mutex_t mux_hwmon;
 
 void *thread_monitor (void *p)
 {
-  opencl_ctx_t   *opencl_ctx   = data.opencl_ctx;
-  hashconfig_t   *hashconfig   = data.hashconfig;
-  hashes_t       *hashes       = data.hashes;
-  user_options_t *user_options = data.user_options;
+  user_options_t       *user_options       = data.user_options;
+  user_options_extra_t *user_options_extra = data.user_options_extra;
+  hashconfig_t         *hashconfig         = data.hashconfig;
+  hashes_t             *hashes             = data.hashes;
+  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
 
   bool runtime_check = false;
   bool remove_check  = false;
@@ -342,7 +343,7 @@ void *thread_monitor (void *p)
 
         if (user_options->quiet == false) log_info ("");
 
-        status_display (opencl_ctx, hashconfig, hashes, user_options);
+        status_display (opencl_ctx, hashconfig, hashes, user_options, user_options_extra);
 
         if (user_options->quiet == false) log_info ("");
 

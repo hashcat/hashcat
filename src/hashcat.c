@@ -298,10 +298,6 @@ int main (int argc, char **argv)
     data.restore = user_options->restore;
     data.restore_disable = user_options->restore_disable;
     data.restore_timer = user_options->restore_timer;
-    data.rp_files = user_options->rp_files;
-    data.rp_files_cnt = user_options->rp_files_cnt;
-    data.rp_gen = user_options->rp_gen;
-    data.rp_gen_seed = user_options->rp_gen_seed;
     data.runtime = user_options->runtime;
     data.scrypt_tmto = user_options->scrypt_tmto;
     data.segment_size = user_options->segment_size;
@@ -3717,7 +3713,7 @@ int main (int argc, char **argv)
 
         if (user_options->benchmark == true)
         {
-          status_benchmark (opencl_ctx, hashconfig);
+          status_benchmark (opencl_ctx, hashconfig, user_options);
 
           if (user_options->machine_readable == false)
           {
@@ -3732,7 +3728,7 @@ int main (int argc, char **argv)
 
             log_info ("");
 
-            status_display (opencl_ctx, hashconfig, hashes, user_options);
+            status_display (opencl_ctx, hashconfig, hashes, user_options, user_options_extra);
 
             log_info ("");
           }
@@ -3740,7 +3736,7 @@ int main (int argc, char **argv)
           {
             if (user_options->status == true)
             {
-              status_display (opencl_ctx, hashconfig, hashes, user_options);
+              status_display (opencl_ctx, hashconfig, hashes, user_options, user_options_extra);
             }
           }
         }

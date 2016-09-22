@@ -258,7 +258,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
    * temperature
    */
 
-  if (data.gpu_temp_disable == 0)
+  if (user_options->gpu_temp_disable == false)
   {
     fprintf (out, "TEMP\t");
 
@@ -286,7 +286,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
   fflush (out);
 }
 
-void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const user_options_t *user_options)
+void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const user_options_t *user_options, const user_options_extra_t *user_options_extra)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -298,7 +298,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
   // in this case some required buffers are free'd, ascii_digest() would run into segfault
   if (data.shutdown_inner == 1) return;
 
-  if (data.machine_readable == true)
+  if (user_options->machine_readable == true)
   {
     status_display_machine_readable (opencl_ctx, hashes, user_options);
 
@@ -309,7 +309,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
   uint tmp_len = 0;
 
-  log_info ("Session.Name...: %s", data.session);
+  log_info ("Session.Name...: %s", user_options->session);
 
   char *status_type = strstatus (opencl_ctx->devices_status);
 
@@ -323,29 +323,29 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
    * show rules
    */
 
-  if (data.rp_files_cnt)
+  if (user_options->rp_files_cnt)
   {
     uint i;
 
-    for (i = 0, tmp_len = 0; i < data.rp_files_cnt - 1 && tmp_len < sizeof (tmp_buf); i++)
+    for (i = 0, tmp_len = 0; i < user_options->rp_files_cnt - 1 && tmp_len < sizeof (tmp_buf); i++)
     {
-      tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s), ", data.rp_files[i]);
+      tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s), ", user_options->rp_files[i]);
     }
 
-    snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s)", data.rp_files[i]);
+    snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s)", user_options->rp_files[i]);
 
     log_info ("Rules.Type.....: %s", tmp_buf);
 
     tmp_len = 0;
   }
 
-  if (data.rp_gen)
+  if (user_options->rp_gen)
   {
-    log_info ("Rules.Type.....: Generated (%u)", data.rp_gen);
+    log_info ("Rules.Type.....: Generated (%u)", user_options->rp_gen);
 
-    if (data.rp_gen_seed)
+    if (user_options->rp_gen_seed)
     {
-      log_info ("Rules.Seed.....: %u", data.rp_gen_seed);
+      log_info ("Rules.Seed.....: %u", user_options->rp_gen_seed);
     }
   }
 
@@ -358,23 +358,23 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
   char *custom_charset_3 = user_options->custom_charset_3;
   char *custom_charset_4 = user_options->custom_charset_4;
 
-  if (data.attack_mode == ATTACK_MODE_STRAIGHT)
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
-    if (data.wordlist_mode == WL_MODE_FILE)
+    if (user_options_extra->wordlist_mode == WL_MODE_FILE)
     {
       if (data.dictfile != NULL) log_info ("Input.Mode.....: File (%s)", data.dictfile);
     }
-    else if (data.wordlist_mode == WL_MODE_STDIN)
+    else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
     {
       log_info ("Input.Mode.....: Pipe");
     }
   }
-  else if (data.attack_mode == ATTACK_MODE_COMBI)
+  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
     if (data.dictfile  != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
     if (data.dictfile2 != NULL) log_info ("Input.Right....: File (%s)", data.dictfile2);
   }
-  else if (data.attack_mode == ATTACK_MODE_BF)
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     char *mask = data.mask;
 
@@ -421,7 +421,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
     tmp_len = 0;
   }
-  else if (data.attack_mode == ATTACK_MODE_HYBRID1)
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
     if (data.dictfile != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
     if (data.mask     != NULL) log_info ("Input.Right....: Mask (%s) [%i]", data.mask, data.css_cnt);
@@ -718,7 +718,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
   u64 progress_cur_relative_skip = progress_cur - progress_skip;
   u64 progress_end_relative_skip = progress_end - progress_skip;
 
-  if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
+  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
     if (opencl_ctx->devices_status != STATUS_CRACKED)
     {
@@ -782,7 +782,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
           if (etc[etc_len - 1] == '\n') etc[etc_len - 1] = 0;
           if (etc[etc_len - 2] == '\r') etc[etc_len - 2] = 0;
 
-          if (data.runtime)
+          if (user_options->runtime)
           {
             time_t runtime_cur;
 
@@ -790,13 +790,13 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
             #if defined (_WIN)
 
-            __time64_t runtime_left = data.proc_start + data.runtime + data.prepare_time + (ms_paused / 1000) - runtime_cur;
+            __time64_t runtime_left = data.proc_start + user_options->runtime + data.prepare_time + (ms_paused / 1000) - runtime_cur;
 
             tmp = _gmtime64 (&runtime_left);
 
             #else
 
-            time_t runtime_left = data.proc_start + data.runtime + data.prepare_time  + (ms_paused / 1000) - runtime_cur;
+            time_t runtime_left = data.proc_start + user_options->runtime + data.prepare_time  + (ms_paused / 1000) - runtime_cur;
 
             tmp = gmtime (&runtime_left);
 
@@ -937,7 +937,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
   if (progress_end_relative_skip)
   {
-    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
+    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
       double percent_finished = (double) progress_cur_relative_skip / (double) progress_end_relative_skip;
       double percent_rejected = 0.0;
@@ -950,7 +950,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
       log_info ("Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", progress_cur_relative_skip, progress_end_relative_skip, percent_finished * 100);
       log_info ("Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", all_rejected,               progress_cur_relative_skip, percent_rejected * 100);
 
-      if (data.restore_disable == 0)
+      if (user_options->restore_disable == false)
       {
         if (percent_finished != 1)
         {
@@ -961,12 +961,12 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
   }
   else
   {
-    if ((data.wordlist_mode == WL_MODE_FILE) || (data.wordlist_mode == WL_MODE_MASK))
+    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
       log_info ("Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
       log_info ("Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
 
-      if (data.restore_disable == 0)
+      if (user_options->restore_disable == false)
       {
         log_info ("Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
       }
@@ -978,7 +978,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
       // --restore not allowed if stdin is used -- really? why?
 
-      //if (data.restore_disable == 0)
+      //if (user_options->restore_disable == false)
       //{
       //  log_info ("Restore.Point..: %" PRIu64 "", restore_point);
       //}
@@ -987,7 +987,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
   if (opencl_ctx->run_main_level1 == false) return;
 
-  if (data.gpu_temp_disable == 0)
+  if (user_options->gpu_temp_disable == false)
   {
     hc_thread_mutex_lock (mux_hwmon);
 
@@ -1120,7 +1120,7 @@ void status_benchmark_automate (opencl_ctx_t *opencl_ctx, const hashconfig_t *ha
   }
 }
 
-void status_benchmark (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
+void status_benchmark (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -1131,7 +1131,7 @@ void status_benchmark (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
 
   if (data.shutdown_inner == 1) return;
 
-  if (data.machine_readable == true)
+  if (user_options->machine_readable == true)
   {
     status_benchmark_automate (opencl_ctx, hashconfig);
 

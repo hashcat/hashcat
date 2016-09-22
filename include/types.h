@@ -1021,11 +1021,6 @@ typedef struct
   u32     gpu_temp_abort;
   u32     gpu_temp_retain;
 
-  char  **rp_files;
-  u32     rp_files_cnt;
-  u32     rp_gen;
-  u32     rp_gen_seed;
-
   /**
    * used for restore
    */
