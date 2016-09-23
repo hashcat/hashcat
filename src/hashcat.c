@@ -369,15 +369,6 @@ int main (int argc, char **argv)
     set_cpu_affinity (user_options->cpu_affinity);
   }
 
-  if (user_options->rp_gen_seed_chgd == false)
-  {
-    srand (user_options->rp_gen_seed);
-  }
-  else
-  {
-    srand (proc_start);
-  }
-
   /**
    * logfile init
    */
@@ -801,6 +792,19 @@ int main (int argc, char **argv)
     else if (hashconfig->hash_mode == 1500 && user_options->attack_mode == ATTACK_MODE_BF && hashes->salts_cnt == 1)
     {
       opencl_ctx->force_jit_compilation = 1500;
+    }
+
+    /**
+     * prepare seeding for random number generator used from random rules generator
+     */
+
+    if (user_options->rp_gen_seed_chgd == true)
+    {
+      srand (user_options->rp_gen_seed);
+    }
+    else
+    {
+      srand (proc_start);
     }
 
     /**
