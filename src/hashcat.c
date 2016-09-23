@@ -427,12 +427,8 @@ int main (int argc, char **argv)
   }
 
   /**
-   * config
+   * outer loop
    */
-
-  hashconfig_t *hashconfig = (hashconfig_t *) mymalloc (sizeof (hashconfig_t));
-
-  data.hashconfig = hashconfig;
 
   uint algorithm_pos = 0;
   uint algorithm_max = 1;
@@ -482,6 +478,10 @@ int main (int argc, char **argv)
     /**
      * setup variables and buffers depending on hash_mode
      */
+
+    hashconfig_t *hashconfig = (hashconfig_t *) mymalloc (sizeof (hashconfig_t));
+
+    data.hashconfig = hashconfig;
 
     const int rc_hashconfig = hashconfig_init (hashconfig, user_options);
 
@@ -3689,6 +3689,8 @@ int main (int argc, char **argv)
 
     hashes_destroy (hashes);
 
+    hashconfig_destroy (hashconfig);
+
     local_free (all_kernel_rules_cnt);
     local_free (all_kernel_rules_buf);
 
@@ -3729,13 +3731,15 @@ int main (int argc, char **argv)
 
   local_free (rd);
 
-  hashconfig_destroy (hashconfig);
-
   tuning_db_destroy (tuning_db);
 
   induct_ctx_destroy (induct_ctx);
 
   outcheck_ctx_destroy (outcheck_ctx);
+
+  folder_config_destroy (folder_config);
+
+  user_options_extra_destroy (user_options_extra);
 
   time_t proc_stop;
 
@@ -3753,6 +3757,8 @@ int main (int argc, char **argv)
   if (user_options->quiet == false) log_info_nn ("Started: %s", ctime (&proc_start));
   if (user_options->quiet == false) log_info_nn ("Stopped: %s", ctime (&proc_stop));
 
+  user_options_destroy (user_options);
+
   u32 rc_final = -1;
 
   if (opencl_ctx->devices_status == STATUS_ABORTED)   rc_final = 2;
@@ -3761,12 +3767,6 @@ int main (int argc, char **argv)
   if (opencl_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
 
   opencl_ctx_destroy (opencl_ctx);
-
-  folder_config_destroy (folder_config);
-
-  user_options_extra_destroy (user_options_extra);
-
-  user_options_destroy (user_options);
 
   return rc_final;
 }
