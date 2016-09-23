@@ -412,25 +412,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   if (user_options->custom_charset_4) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
 
   /**
-   * Some algorithm, like descrypt, can benefit from JIT compilation
-   */
-
-  opencl_ctx->force_jit_compilation = -1;
-
-  if (hashconfig->hash_mode == 8900)
-  {
-    opencl_ctx->force_jit_compilation = 8900;
-  }
-  else if (hashconfig->hash_mode == 9300)
-  {
-    opencl_ctx->force_jit_compilation = 8900;
-  }
-  else if (hashconfig->hash_mode == 1500 && user_options->attack_mode == ATTACK_MODE_BF && hashes->salts_cnt == 1)
-  {
-    opencl_ctx->force_jit_compilation = 1500;
-  }
-
-  /**
    * load rules
    */
 

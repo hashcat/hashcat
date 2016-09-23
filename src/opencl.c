@@ -2415,6 +2415,25 @@ void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
 
 int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const session_ctx_t *session_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx, const tuning_db_t *tuning_db)
 {
+  /**
+   * Some algorithm, like descrypt, can benefit from JIT compilation
+   */
+
+  opencl_ctx->force_jit_compilation = -1;
+
+  if (hashconfig->hash_mode == 8900)
+  {
+    opencl_ctx->force_jit_compilation = 8900;
+  }
+  else if (hashconfig->hash_mode == 9300)
+  {
+    opencl_ctx->force_jit_compilation = 8900;
+  }
+  else if (hashconfig->hash_mode == 1500 && user_options->attack_mode == ATTACK_MODE_BF && hashes->salts_cnt == 1)
+  {
+    opencl_ctx->force_jit_compilation = 1500;
+  }
+
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     cl_int CL_err = CL_SUCCESS;
