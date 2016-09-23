@@ -308,20 +308,6 @@ int main (int argc, char **argv)
   }
 
   /**
-   * logfile init
-   */
-
-  logfile_ctx_t *logfile_ctx = (logfile_ctx_t *) mymalloc (sizeof (logfile_ctx_t));
-
-  data.logfile_ctx = logfile_ctx;
-
-  logfile_init (logfile_ctx, user_options, folder_config);
-
-  logfile_generate_topid (logfile_ctx);
-
-  logfile_top_msg ("START");
-
-  /**
    * process user input
    */
 
@@ -336,6 +322,20 @@ int main (int argc, char **argv)
   const int rc_user_options_sanity = user_options_sanity (user_options, myargc, myargv, user_options_extra);
 
   if (rc_user_options_sanity == -1) return -1;
+
+  /**
+   * logfile init
+   */
+
+  logfile_ctx_t *logfile_ctx = (logfile_ctx_t *) mymalloc (sizeof (logfile_ctx_t));
+
+  data.logfile_ctx = logfile_ctx;
+
+  logfile_init (logfile_ctx, user_options, folder_config);
+
+  logfile_generate_topid (logfile_ctx);
+
+  logfile_top_msg ("START");
 
   user_options_logger (user_options, logfile_ctx);
 
@@ -3724,26 +3724,18 @@ int main (int argc, char **argv)
 
   // free memory
 
-  local_free (hashconfig);
-
   local_free (eff_restore_file);
   local_free (new_restore_file);
 
   local_free (rd);
 
-  // tuning db
+  hashconfig_destroy (hashconfig);
 
   tuning_db_destroy (tuning_db);
 
-  // induction directory
-
   induct_ctx_destroy (induct_ctx);
 
-  // outfile-check directory
-
   outcheck_ctx_destroy (outcheck_ctx);
-
-  // shutdown
 
   time_t proc_stop;
 
@@ -3755,6 +3747,8 @@ int main (int argc, char **argv)
   logfile_top_msg ("STOP");
 
   logfile_destroy (logfile_ctx);
+
+  // shutdown
 
   if (user_options->quiet == false) log_info_nn ("Started: %s", ctime (&proc_start));
   if (user_options->quiet == false) log_info_nn ("Stopped: %s", ctime (&proc_stop));
@@ -3769,6 +3763,10 @@ int main (int argc, char **argv)
   opencl_ctx_destroy (opencl_ctx);
 
   folder_config_destroy (folder_config);
+
+  user_options_extra_destroy (user_options_extra);
+
+  user_options_destroy (user_options);
 
   return rc_final;
 }

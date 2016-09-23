@@ -874,6 +874,11 @@ int user_options_extra_init (user_options_t *user_options, int myargc, char **my
   return 0;
 }
 
+void user_options_extra_destroy (user_options_extra_t *user_options_extra)
+{
+  myfree (user_options_extra);
+}
+
 void user_options_logger (const user_options_t *user_options, const logfile_ctx_t *logfile_ctx)
 {
   logfile_top_uint   (user_options->benchmark);
