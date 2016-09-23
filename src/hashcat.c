@@ -146,6 +146,38 @@ static void setup_console ()
   #endif
 }
 
+static void welcome_screen (user_options_t *user_options, const time_t *proc_start)
+{
+  if (user_options->quiet       == true) return;
+  if (user_options->keyspace    == true) return;
+  if (user_options->stdout_flag == true) return;
+  if (user_options->show        == true) return;
+  if (user_options->left        == true) return;
+
+  if (user_options->benchmark == true)
+  {
+    if (user_options->machine_readable == false)
+    {
+      log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
+      log_info ("");
+    }
+    else
+    {
+      log_info ("# %s (%s) %s", PROGNAME, VERSION_TAG, ctime (proc_start));
+    }
+  }
+  else if (user_options->restore == true)
+  {
+    log_info ("%s (%s) starting in restore-mode...", PROGNAME, VERSION_TAG);
+    log_info ("");
+  }
+  else
+  {
+    log_info ("%s (%s) starting...", PROGNAME, VERSION_TAG);
+    log_info ("");
+  }
+}
+
 int main (int argc, char **argv)
 {
   /**
@@ -206,23 +238,9 @@ int main (int argc, char **argv)
 
   user_options_init (user_options, argc, argv);
 
-  const int rc_user_options_parse1 = user_options_parse (user_options, argc, argv);
+  const int rc_user_options_parse = user_options_parse (user_options, argc, argv);
 
-  if (rc_user_options_parse1 == -1) return -1;
-
-  if (user_options->version == true)
-  {
-    log_info ("%s", VERSION_TAG);
-
-    return 0;
-  }
-
-  if (user_options->usage == true)
-  {
-    usage_big_print (PROGNAME);
-
-    return 0;
-  }
+  if (rc_user_options_parse == -1) return -1;
 
   /**
    * session
@@ -267,13 +285,27 @@ int main (int argc, char **argv)
     #elif defined (_WIN)
     rd->pid = GetCurrentProcessId ();
     #endif
+
+    user_options_init (user_options, myargc, myargv);
+
+    const int rc_user_options_parse = user_options_parse (user_options, myargc, myargv);
+
+    if (rc_user_options_parse == -1) return -1;
   }
 
-  user_options_init (user_options, myargc, myargv);
+  if (user_options->version == true)
+  {
+    log_info ("%s", VERSION_TAG);
 
-  const int rc_user_options_parse2 = user_options_parse (user_options, myargc, myargv);
+    return 0;
+  }
 
-  if (rc_user_options_parse2 == -1) return -1;
+  if (user_options->usage == true)
+  {
+    usage_big_print (PROGNAME);
+
+    return 0;
+  }
 
   user_options_extra_t *user_options_extra = (user_options_extra_t *) mymalloc (sizeof (user_options_extra_t));
 
@@ -290,49 +322,9 @@ int main (int argc, char **argv)
   /**
    * Inform user things getting started,
    * - this is giving us a visual header before preparations start, so we do not need to clear them afterwards
-   * - we do not need to check algorithm_pos
    */
 
-  if (user_options->quiet == false)
-  {
-    if (user_options->benchmark == true)
-    {
-      if (user_options->machine_readable == false)
-      {
-        log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
-        log_info ("");
-      }
-      else
-      {
-        log_info ("# %s (%s) %s", PROGNAME, VERSION_TAG, ctime (&proc_start));
-      }
-    }
-    else if (user_options->restore == true)
-    {
-      log_info ("%s (%s) starting in restore-mode...", PROGNAME, VERSION_TAG);
-      log_info ("");
-    }
-    else if (user_options->stdout_flag == true)
-    {
-      // do nothing
-    }
-    else if (user_options->keyspace == true)
-    {
-      // do nothing
-    }
-    else
-    {
-      if ((user_options->show == true) || (user_options->left == true))
-      {
-        // do nothing
-      }
-      else
-      {
-        log_info ("%s (%s) starting...", PROGNAME, VERSION_TAG);
-        log_info ("");
-      }
-    }
-  }
+  welcome_screen (user_options, &proc_start);
 
   /**
    * tuning db
@@ -390,7 +382,7 @@ int main (int argc, char **argv)
    * logfile init
    */
 
-  if (user_options->logfile_disable == 0)
+  if (user_options->logfile_disable == false)
   {
     char *logfile = (char *) mymalloc (HCBUFSIZ_TINY);
 
