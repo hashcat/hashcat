@@ -1499,7 +1499,7 @@ void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
   myfree (opencl_ctx);
 }
 
-int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const tuning_db_t *tuning_db, const user_options_t *user_options, const uint algorithm_pos)
+int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_options)
 {
   if (opencl_ctx->disable == 1) return 0;
 
@@ -1626,7 +1626,7 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashc
       fprintf (stdout, "\nPlatform ID #%u\n  Vendor   : %s\n  Name     : %s\n  Version  : %s\n\n", platform_id, platform_vendor, platform_name, platform_version);
     }
 
-    if ((user_options->benchmark == true || user_options->quiet == false) && (algorithm_pos == 0))
+    if ((user_options->benchmark == true || user_options->quiet == false))
     {
       if (user_options->machine_readable == false)
       {
@@ -1829,55 +1829,6 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashc
       }
 
       device_param->opencl_v12 = device_opencl_version[9] > '1' || device_opencl_version[11] >= '2';
-
-      // vector_width
-
-      cl_uint vector_width;
-
-      if (user_options->opencl_vector_width_chgd == false)
-      {
-        // tuning db
-
-        tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
-
-        if (tuningdb_entry == NULL || tuningdb_entry->vector_width == -1)
-        {
-          if (hashconfig->opti_type & OPTI_TYPE_USES_BITS_64)
-          {
-            CL_err = hc_clGetDeviceInfo (opencl_ctx->ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
-
-            if (CL_err != CL_SUCCESS)
-            {
-              log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
-
-              return -1;
-            }
-          }
-          else
-          {
-            CL_err = hc_clGetDeviceInfo (opencl_ctx->ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
-
-            if (CL_err != CL_SUCCESS)
-            {
-              log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
-
-              return -1;
-            }
-          }
-        }
-        else
-        {
-          vector_width = (cl_uint) tuningdb_entry->vector_width;
-        }
-      }
-      else
-      {
-        vector_width = user_options->opencl_vector_width;
-      }
-
-      if (vector_width > 16) vector_width = 16;
-
-      device_param->vector_width = vector_width;
 
       // max_compute_units
 
@@ -2107,11 +2058,8 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashc
         {
           if (user_options->force == 0)
           {
-            if (algorithm_pos == 0)
-            {
-              log_info ("- Device #%u: WARNING: Not a native Intel OpenCL runtime, expect massive speed loss", device_id + 1);
-              log_info ("             You can use --force to override this but do not post error reports if you do so");
-            }
+            log_info ("- Device #%u: WARNING: Not a native Intel OpenCL runtime, expect massive speed loss", device_id + 1);
+            log_info ("             You can use --force to override this but do not post error reports if you do so");
 
             device_param->skipped = 1;
           }
@@ -2276,7 +2224,7 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashc
 
       myfree (device_opencl_version);
 
-      if ((user_options->benchmark == true || user_options->quiet == false) && (algorithm_pos == 0))
+      if ((user_options->benchmark == true || user_options->quiet == false))
       {
         if (user_options->machine_readable == false)
         {
@@ -2383,59 +2331,6 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashc
         */
 
         /**
-         * kernel accel and loops tuning db adjustment
-         */
-
-        device_param->kernel_accel_min = 1;
-        device_param->kernel_accel_max = 1024;
-
-        device_param->kernel_loops_min = 1;
-        device_param->kernel_loops_max = 1024;
-
-        tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
-
-        if (tuningdb_entry != NULL)
-        {
-          u32 _kernel_accel = tuningdb_entry->kernel_accel;
-          u32 _kernel_loops = tuningdb_entry->kernel_loops;
-
-          if (_kernel_accel)
-          {
-            device_param->kernel_accel_min = _kernel_accel;
-            device_param->kernel_accel_max = _kernel_accel;
-          }
-
-          if (_kernel_loops)
-          {
-            if (user_options->workload_profile == 1)
-            {
-              _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
-            }
-            else if (user_options->workload_profile == 2)
-            {
-              _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
-            }
-
-            device_param->kernel_loops_min = _kernel_loops;
-            device_param->kernel_loops_max = _kernel_loops;
-          }
-        }
-
-        // commandline parameters overwrite tuningdb entries
-
-        if (user_options->kernel_accel_chgd == true)
-        {
-          device_param->kernel_accel_min = user_options->kernel_accel;
-          device_param->kernel_accel_max = user_options->kernel_accel;
-        }
-
-        if (user_options->kernel_loops_chgd == true)
-        {
-          device_param->kernel_loops_min = user_options->kernel_loops;
-          device_param->kernel_loops_max = user_options->kernel_loops;
-        }
-
-        /**
          * activate device
          */
 
@@ -2447,7 +2342,7 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashc
       devices_cnt++;
     }
 
-    if ((user_options->benchmark == true || user_options->quiet == false) && (algorithm_pos == 0))
+    if ((user_options->benchmark == true || user_options->quiet == false))
     {
       if (user_options->machine_readable == false)
       {
@@ -2518,7 +2413,7 @@ void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
   opencl_ctx->need_xnvctrl   = 0;
 }
 
-int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const session_ctx_t *session_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx)
+int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const session_ctx_t *session_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx, const tuning_db_t *tuning_db)
 {
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -2531,6 +2426,109 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
+
+    // vector_width
+
+    cl_uint vector_width;
+
+    if (user_options->opencl_vector_width_chgd == false)
+    {
+      // tuning db
+
+      tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
+
+      if (tuningdb_entry == NULL || tuningdb_entry->vector_width == -1)
+      {
+        if (hashconfig->opti_type & OPTI_TYPE_USES_BITS_64)
+        {
+          CL_err = hc_clGetDeviceInfo (opencl_ctx->ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, sizeof (vector_width), &vector_width, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
+        }
+        else
+        {
+          CL_err = hc_clGetDeviceInfo (opencl_ctx->ocl, device_param->device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,  sizeof (vector_width), &vector_width, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clGetDeviceInfo(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
+        }
+      }
+      else
+      {
+        vector_width = (cl_uint) tuningdb_entry->vector_width;
+      }
+    }
+    else
+    {
+      vector_width = user_options->opencl_vector_width;
+    }
+
+    if (vector_width > 16) vector_width = 16;
+
+    device_param->vector_width = vector_width;
+
+    /**
+     * kernel accel and loops tuning db adjustment
+     */
+
+    device_param->kernel_accel_min = 1;
+    device_param->kernel_accel_max = 1024;
+
+    device_param->kernel_loops_min = 1;
+    device_param->kernel_loops_max = 1024;
+
+    tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
+
+    if (tuningdb_entry != NULL)
+    {
+      u32 _kernel_accel = tuningdb_entry->kernel_accel;
+      u32 _kernel_loops = tuningdb_entry->kernel_loops;
+
+      if (_kernel_accel)
+      {
+        device_param->kernel_accel_min = _kernel_accel;
+        device_param->kernel_accel_max = _kernel_accel;
+      }
+
+      if (_kernel_loops)
+      {
+        if (user_options->workload_profile == 1)
+        {
+          _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
+        }
+        else if (user_options->workload_profile == 2)
+        {
+          _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
+        }
+
+        device_param->kernel_loops_min = _kernel_loops;
+        device_param->kernel_loops_max = _kernel_loops;
+      }
+    }
+
+    // commandline parameters overwrite tuningdb entries
+
+    if (user_options->kernel_accel_chgd == true)
+    {
+      device_param->kernel_accel_min = user_options->kernel_accel;
+      device_param->kernel_accel_max = user_options->kernel_accel;
+    }
+
+    if (user_options->kernel_loops_chgd == true)
+    {
+      device_param->kernel_loops_min = user_options->kernel_loops;
+      device_param->kernel_loops_max = user_options->kernel_loops;
+    }
+
 
     /**
      * device properties
@@ -4548,7 +4546,57 @@ int opencl_session_destroy (opencl_ctx_t *opencl_ctx)
       return -1;
     }
 
-    memset (device_param, 0, sizeof (hc_device_param_t));
+    device_param->pws_buf           = NULL;
+    device_param->combs_buf         = NULL;
+    device_param->hooks_buf         = NULL;
+
+    device_param->d_pws_buf         = NULL;
+    device_param->d_pws_amp_buf     = NULL;
+    device_param->d_rules           = NULL;
+    device_param->d_rules_c         = NULL;
+    device_param->d_combs           = NULL;
+    device_param->d_combs_c         = NULL;
+    device_param->d_bfs             = NULL;
+    device_param->d_bfs_c           = NULL;
+    device_param->d_bitmap_s1_a     = NULL;
+    device_param->d_bitmap_s1_b     = NULL;
+    device_param->d_bitmap_s1_c     = NULL;
+    device_param->d_bitmap_s1_d     = NULL;
+    device_param->d_bitmap_s2_a     = NULL;
+    device_param->d_bitmap_s2_b     = NULL;
+    device_param->d_bitmap_s2_c     = NULL;
+    device_param->d_bitmap_s2_d     = NULL;
+    device_param->d_plain_bufs      = NULL;
+    device_param->d_digests_buf     = NULL;
+    device_param->d_digests_shown   = NULL;
+    device_param->d_salt_bufs       = NULL;
+    device_param->d_esalt_bufs      = NULL;
+    device_param->d_tmps            = NULL;
+    device_param->d_hooks           = NULL;
+    device_param->d_result          = NULL;
+    device_param->d_scryptV0_buf    = NULL;
+    device_param->d_scryptV1_buf    = NULL;
+    device_param->d_scryptV2_buf    = NULL;
+    device_param->d_scryptV3_buf    = NULL;
+    device_param->d_root_css_buf    = NULL;
+    device_param->d_markov_css_buf  = NULL;
+    device_param->d_tm_c            = NULL;
+    device_param->kernel1           = NULL;
+    device_param->kernel12          = NULL;
+    device_param->kernel2           = NULL;
+    device_param->kernel23          = NULL;
+    device_param->kernel3           = NULL;
+    device_param->kernel_mp         = NULL;
+    device_param->kernel_mp_l       = NULL;
+    device_param->kernel_mp_r       = NULL;
+    device_param->kernel_tm         = NULL;
+    device_param->kernel_amp        = NULL;
+    device_param->kernel_memset     = NULL;
+    device_param->program           = NULL;
+    device_param->program_mp        = NULL;
+    device_param->program_amp       = NULL;
+    device_param->command_queue     = NULL;
+    device_param->context           = NULL;
   }
 
   return 0;

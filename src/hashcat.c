@@ -407,6 +407,19 @@ int main (int argc, char **argv)
   }
 
   /**
+   * Init OpenCL devices
+   */
+
+  const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, user_options);
+
+  if (rc_devices_init == -1)
+  {
+    log_error ("ERROR: opencl_ctx_devices_init() failed");
+
+    return -1;
+  }
+
+  /**
    * status, monitor and outfile remove threads
    */
 
@@ -934,15 +947,6 @@ int main (int argc, char **argv)
       }
     }
 
-    const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, hashconfig, tuning_db, user_options, algorithm_pos);
-
-    if (rc_devices_init == -1)
-    {
-      log_error ("ERROR: opencl_ctx_devices_init() failed");
-
-      return -1;
-    }
-
     /**
      * HM devices: init
      */
@@ -1435,7 +1439,7 @@ int main (int argc, char **argv)
 
     session_ctx_init (session_ctx, kernel_rules_cnt, kernel_rules_buf);
 
-    opencl_session_begin (opencl_ctx, hashconfig, hashes, session_ctx, user_options, user_options_extra, folder_config, bitmap_ctx);
+    opencl_session_begin (opencl_ctx, hashconfig, hashes, session_ctx, user_options, user_options_extra, folder_config, bitmap_ctx, tuning_db);
 
     if (user_options->quiet == false) log_info_nn ("");
 
@@ -3667,8 +3671,6 @@ int main (int argc, char **argv)
 
     opencl_session_destroy (opencl_ctx);
 
-    opencl_ctx_devices_destroy (opencl_ctx);
-
     local_free (masks);
 
     debugfile_destroy (debugfile_ctx);
@@ -3740,6 +3742,8 @@ int main (int argc, char **argv)
   folder_config_destroy (folder_config);
 
   user_options_extra_destroy (user_options_extra);
+
+  opencl_ctx_devices_destroy (opencl_ctx);
 
   time_t proc_stop;
 
