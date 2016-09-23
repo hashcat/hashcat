@@ -253,4 +253,6 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
 
 int user_options_extra_init (user_options_t *user_options, int myargc, char **myargv, user_options_extra_t *user_options_extra);
 
+void user_options_logger (const user_options_t *user_options, const logfile_ctx_t *logfile_ctx);
+
 #endif // _USER_OPTIONS_H

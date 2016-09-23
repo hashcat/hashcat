@@ -7,6 +7,7 @@
 #include "types.h"
 #include "memory.h"
 #include "logging.h"
+#include "logfile.h"
 #include "interface.h"
 #include "shared.h"
 #include "usage.h"
@@ -871,4 +872,89 @@ int user_options_extra_init (user_options_t *user_options, int myargc, char **my
   */
 
   return 0;
+}
+
+void user_options_logger (const user_options_t *user_options, const logfile_ctx_t *logfile_ctx)
+{
+  logfile_top_uint   (user_options->benchmark);
+  logfile_top_uint   (user_options->force);
+  logfile_top_uint   (user_options->gpu_temp_disable);
+  logfile_top_uint   (user_options->hex_charset);
+  logfile_top_uint   (user_options->hex_salt);
+  logfile_top_uint   (user_options->hex_wordlist);
+  logfile_top_uint   (user_options->increment);
+  logfile_top_uint   (user_options->keyspace);
+  logfile_top_uint   (user_options->left);
+  logfile_top_uint   (user_options->logfile_disable);
+  logfile_top_uint   (user_options->loopback);
+  logfile_top_uint   (user_options->machine_readable);
+  logfile_top_uint   (user_options->markov_classic);
+  logfile_top_uint   (user_options->markov_disable);
+  logfile_top_uint   (user_options->opencl_info);
+  logfile_top_uint   (user_options->outfile_autohex);
+  logfile_top_uint   (user_options->potfile_disable);
+  logfile_top_uint   (user_options->powertune_enable);
+  logfile_top_uint   (user_options->quiet);
+  logfile_top_uint   (user_options->remove);
+  logfile_top_uint   (user_options->restore);
+  logfile_top_uint   (user_options->restore_disable);
+  logfile_top_uint   (user_options->show);
+  logfile_top_uint   (user_options->status);
+  logfile_top_uint   (user_options->stdout_flag);
+  logfile_top_uint   (user_options->usage);
+  logfile_top_uint   (user_options->username);
+  logfile_top_uint   (user_options->version);
+  logfile_top_uint   (user_options->attack_mode);
+  logfile_top_uint   (user_options->bitmap_max);
+  logfile_top_uint   (user_options->bitmap_min);
+  logfile_top_uint   (user_options->debug_mode);
+  logfile_top_uint   (user_options->gpu_temp_abort);
+  logfile_top_uint   (user_options->gpu_temp_retain);
+  logfile_top_uint   (user_options->hash_mode);
+  logfile_top_uint   (user_options->increment_max);
+  logfile_top_uint   (user_options->increment_min);
+  logfile_top_uint   (user_options->kernel_accel);
+  logfile_top_uint   (user_options->kernel_loops);
+  logfile_top_uint   (user_options->markov_threshold);
+  logfile_top_uint   (user_options->nvidia_spin_damp);
+  logfile_top_uint   (user_options->opencl_vector_width);
+  logfile_top_uint   (user_options->outfile_check_timer);
+  logfile_top_uint   (user_options->outfile_format);
+  logfile_top_uint   (user_options->remove_timer);
+  logfile_top_uint   (user_options->restore_timer);
+  logfile_top_uint   (user_options->rp_files_cnt);
+  logfile_top_uint   (user_options->rp_gen);
+  logfile_top_uint   (user_options->rp_gen_func_max);
+  logfile_top_uint   (user_options->rp_gen_func_min);
+  logfile_top_uint   (user_options->rp_gen_seed);
+  logfile_top_uint   (user_options->runtime);
+  logfile_top_uint   (user_options->scrypt_tmto);
+  logfile_top_uint   (user_options->segment_size);
+  logfile_top_uint   (user_options->status_timer);
+  logfile_top_uint   (user_options->veracrypt_pim);
+  logfile_top_uint   (user_options->weak_hash_threshold);
+  logfile_top_uint   (user_options->workload_profile);
+  logfile_top_uint64 (user_options->limit);
+  logfile_top_uint64 (user_options->skip);
+  logfile_top_string (user_options->cpu_affinity);
+  logfile_top_string (user_options->custom_charset_1);
+  logfile_top_string (user_options->custom_charset_2);
+  logfile_top_string (user_options->custom_charset_3);
+  logfile_top_string (user_options->custom_charset_4);
+  logfile_top_string (user_options->debug_file);
+  logfile_top_string (user_options->induction_dir);
+  logfile_top_string (user_options->markov_hcstat);
+  logfile_top_string (user_options->opencl_devices);
+  logfile_top_string (user_options->opencl_device_types);
+  logfile_top_string (user_options->opencl_platforms);
+  logfile_top_string (user_options->outfile);
+  logfile_top_string (user_options->outfile_check_dir);
+  logfile_top_string (user_options->potfile_path);
+  logfile_top_string (user_options->rp_files[0]);
+  logfile_top_string (user_options->rule_buf_l);
+  logfile_top_string (user_options->rule_buf_r);
+  logfile_top_char   (user_options->separator);
+  logfile_top_string (user_options->session);
+  logfile_top_string (user_options->truecrypt_keyfiles);
+  logfile_top_string (user_options->veracrypt_keyfiles);
 }

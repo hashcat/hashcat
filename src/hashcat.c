@@ -307,6 +307,24 @@ int main (int argc, char **argv)
     return 0;
   }
 
+  /**
+   * logfile init
+   */
+
+  logfile_ctx_t *logfile_ctx = (logfile_ctx_t *) mymalloc (sizeof (logfile_ctx_t));
+
+  data.logfile_ctx = logfile_ctx;
+
+  logfile_init (logfile_ctx, user_options, folder_config);
+
+  logfile_generate_topid (logfile_ctx);
+
+  logfile_top_msg ("START");
+
+  /**
+   * process user input
+   */
+
   user_options_extra_t *user_options_extra = (user_options_extra_t *) mymalloc (sizeof (user_options_extra_t));
 
   data.user_options_extra = user_options_extra;
@@ -318,6 +336,8 @@ int main (int argc, char **argv)
   const int rc_user_options_sanity = user_options_sanity (user_options, myargc, myargv, user_options_extra);
 
   if (rc_user_options_sanity == -1) return -1;
+
+  user_options_logger (user_options, logfile_ctx);
 
   /**
    * Inform user things getting started,
@@ -368,101 +388,6 @@ int main (int argc, char **argv)
   {
     set_cpu_affinity (user_options->cpu_affinity);
   }
-
-  /**
-   * logfile init
-   */
-
-  if (user_options->logfile_disable == false)
-  {
-    char *logfile = (char *) mymalloc (HCBUFSIZ_TINY);
-
-    snprintf (logfile, HCBUFSIZ_TINY - 1, "%s/%s.log", folder_config->session_dir, user_options->session);
-
-    data.logfile = logfile;
-
-    char *topid = logfile_generate_topid ();
-
-    data.topid = topid;
-  }
-
-  logfile_top_msg ("START");
-
-  logfile_top_uint   (user_options->attack_mode);
-  logfile_top_uint   (user_options->benchmark);
-  logfile_top_uint   (user_options->stdout_flag);
-  logfile_top_uint   (user_options->bitmap_min);
-  logfile_top_uint   (user_options->bitmap_max);
-  logfile_top_uint   (user_options->debug_mode);
-  logfile_top_uint   (user_options->force);
-  logfile_top_uint   (user_options->kernel_accel);
-  logfile_top_uint   (user_options->kernel_loops);
-  logfile_top_uint   (user_options->nvidia_spin_damp);
-  logfile_top_uint   (user_options->hash_mode);
-  logfile_top_uint   (user_options->hex_charset);
-  logfile_top_uint   (user_options->hex_salt);
-  logfile_top_uint   (user_options->hex_wordlist);
-  logfile_top_uint   (user_options->increment);
-  logfile_top_uint   (user_options->increment_max);
-  logfile_top_uint   (user_options->increment_min);
-  logfile_top_uint   (user_options->keyspace);
-  logfile_top_uint   (user_options->left);
-  logfile_top_uint   (user_options->logfile_disable);
-  logfile_top_uint   (user_options->loopback);
-  logfile_top_uint   (user_options->markov_classic);
-  logfile_top_uint   (user_options->markov_disable);
-  logfile_top_uint   (user_options->markov_threshold);
-  logfile_top_uint   (user_options->outfile_autohex);
-  logfile_top_uint   (user_options->outfile_check_timer);
-  logfile_top_uint   (user_options->outfile_format);
-  logfile_top_uint   (user_options->potfile_disable);
-  logfile_top_string (user_options->potfile_path);
-  logfile_top_uint   (user_options->powertune_enable);
-  logfile_top_uint   (user_options->scrypt_tmto);
-  logfile_top_uint   (user_options->quiet);
-  logfile_top_uint   (user_options->remove);
-  logfile_top_uint   (user_options->remove_timer);
-  logfile_top_uint   (user_options->restore);
-  logfile_top_uint   (user_options->restore_disable);
-  logfile_top_uint   (user_options->restore_timer);
-  logfile_top_uint   (user_options->rp_gen);
-  logfile_top_uint   (user_options->rp_gen_func_max);
-  logfile_top_uint   (user_options->rp_gen_func_min);
-  logfile_top_uint   (user_options->rp_gen_seed);
-  logfile_top_uint   (user_options->runtime);
-  logfile_top_uint   (user_options->segment_size);
-  logfile_top_uint   (user_options->show);
-  logfile_top_uint   (user_options->status);
-  logfile_top_uint   (user_options->machine_readable);
-  logfile_top_uint   (user_options->status_timer);
-  logfile_top_uint   (user_options->usage);
-  logfile_top_uint   (user_options->username);
-  logfile_top_uint   (user_options->version);
-  logfile_top_uint   (user_options->weak_hash_threshold);
-  logfile_top_uint   (user_options->workload_profile);
-  logfile_top_uint64 (user_options->limit);
-  logfile_top_uint64 (user_options->skip);
-  logfile_top_char   (user_options->separator);
-  logfile_top_string (user_options->cpu_affinity);
-  logfile_top_string (user_options->custom_charset_1);
-  logfile_top_string (user_options->custom_charset_2);
-  logfile_top_string (user_options->custom_charset_3);
-  logfile_top_string (user_options->custom_charset_4);
-  logfile_top_string (user_options->debug_file);
-  logfile_top_string (user_options->opencl_devices);
-  logfile_top_string (user_options->opencl_platforms);
-  logfile_top_string (user_options->opencl_device_types);
-  logfile_top_uint   (user_options->opencl_vector_width);
-  logfile_top_string (user_options->induction_dir);
-  logfile_top_string (user_options->markov_hcstat);
-  logfile_top_string (user_options->outfile);
-  logfile_top_string (user_options->outfile_check_dir);
-  logfile_top_string (user_options->rule_buf_l);
-  logfile_top_string (user_options->rule_buf_r);
-  logfile_top_string (user_options->session);
-  logfile_top_string (user_options->truecrypt_keyfiles);
-  logfile_top_string (user_options->veracrypt_keyfiles);
-  logfile_top_uint   (user_options->veracrypt_pim);
 
   /**
    * Init OpenCL library loader
@@ -617,11 +542,6 @@ int main (int argc, char **argv)
 
     if (rc_hashes_init_stage1 == -1) return -1;
 
-    logfile_top_var_string ("hashfile", hashes->hashfile);
-
-    logfile_top_uint (hashes->hashlist_mode);
-    logfile_top_uint (hashes->hashlist_format);
-
     if ((user_options->keyspace == false) && (user_options->stdout_flag == false) && (user_options->opencl_info == false))
     {
       if (hashes->hashes_cnt == 0)
@@ -657,59 +577,24 @@ int main (int argc, char **argv)
     }
 
     /**
-     * load hashes, stage 2
+     * load hashes, stage 2, remove duplicates, build base structure
      */
 
-    uint hashes_cnt_orig = hashes->hashes_cnt;
+    const u32 hashes_cnt_orig = hashes->hashes_cnt;
 
     const int rc_hashes_init_stage2 = hashes_init_stage2 (hashes, hashconfig, opencl_ctx, user_options);
 
     if (rc_hashes_init_stage2 == -1) return -1;
 
     /**
-     * Automatic Optimizers
+     * load hashes, stage 3, automatic Optimizers
      */
 
-    hashconfig_general_defaults (hashconfig, hashes, user_options);
+    const int rc_hashes_init_stage3 = hashes_init_stage3 (hashes, hashconfig, user_options);
 
-    if (hashes->salts_cnt == 1)
-      hashconfig->opti_type |= OPTI_TYPE_SINGLE_SALT;
+    if (rc_hashes_init_stage3 == -1) return -1;
 
-    if (hashes->digests_cnt == 1)
-      hashconfig->opti_type |= OPTI_TYPE_SINGLE_HASH;
-
-    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-      hashconfig->opti_type |= OPTI_TYPE_NOT_ITERATED;
-
-    if (user_options->attack_mode == ATTACK_MODE_BF)
-      hashconfig->opti_type |= OPTI_TYPE_BRUTE_FORCE;
-
-    if (hashconfig->opti_type & OPTI_TYPE_BRUTE_FORCE)
-    {
-      if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
-      {
-        if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
-        {
-          if (hashconfig->opts_type & OPTS_TYPE_ST_ADD80)
-          {
-            hashconfig->opts_type &= ~OPTS_TYPE_ST_ADD80;
-            hashconfig->opts_type |=  OPTS_TYPE_PT_ADD80;
-          }
-
-          if (hashconfig->opts_type & OPTS_TYPE_ST_ADDBITS14)
-          {
-            hashconfig->opts_type &= ~OPTS_TYPE_ST_ADDBITS14;
-            hashconfig->opts_type |=  OPTS_TYPE_PT_ADDBITS14;
-          }
-
-          if (hashconfig->opts_type & OPTS_TYPE_ST_ADDBITS15)
-          {
-            hashconfig->opts_type &= ~OPTS_TYPE_ST_ADDBITS15;
-            hashconfig->opts_type |=  OPTS_TYPE_PT_ADDBITS15;
-          }
-        }
-      }
-    }
+    hashes_logger (hashes, logfile_ctx);
 
     /**
      * bitmaps
@@ -2792,9 +2677,7 @@ int main (int argc, char **argv)
 
         rd->dictpos = dictpos;
 
-        char *subid = logfile_generate_subid ();
-
-        data.subid = subid;
+        logfile_generate_subid (logfile_ctx);
 
         logfile_sub_msg ("START");
 
@@ -3536,8 +3419,6 @@ int main (int argc, char **argv)
 
         logfile_sub_msg ("STOP");
 
-        global_free (subid);
-
         // finalize task
 
         if (opencl_ctx->run_main_level3 == false) break;
@@ -3872,6 +3753,8 @@ int main (int argc, char **argv)
   logfile_top_uint (proc_stop);
 
   logfile_top_msg ("STOP");
+
+  logfile_destroy (logfile_ctx);
 
   if (user_options->quiet == false) log_info_nn ("Started: %s", ctime (&proc_start));
   if (user_options->quiet == false) log_info_nn ("Stopped: %s", ctime (&proc_stop));

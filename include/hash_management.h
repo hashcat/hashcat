@@ -19,7 +19,10 @@ int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
 int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfile_ctx_t *potfile_ctx, outfile_ctx_t *outfile_ctx, user_options_t *user_options, char *hash_or_file);
 int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, opencl_ctx_t *opencl_ctx, user_options_t *user_options);
+int hashes_init_stage3 (hashes_t *hashes, hashconfig_t *hashconfig, user_options_t *user_options);
 
 void hashes_destroy (hashes_t *hashes);
+
+void hashes_logger (const hashes_t *hashes, const logfile_ctx_t *logfile_ctx);
 
 #endif // _HASH_MANAGEMENT_H

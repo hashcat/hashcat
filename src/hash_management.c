@@ -9,6 +9,7 @@
 #include "timer.h"
 #include "memory.h"
 #include "logging.h"
+#include "logfile.h"
 #include "ext_OpenCL.h"
 #include "ext_ADL.h"
 #include "ext_nvapi.h"
@@ -1450,6 +1451,52 @@ int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, opencl
   return 0;
 }
 
+int hashes_init_stage3 (hashes_t *hashes, hashconfig_t *hashconfig, user_options_t *user_options)
+{
+  hashconfig_general_defaults (hashconfig, hashes, user_options);
+
+  if (hashes->salts_cnt == 1)
+    hashconfig->opti_type |= OPTI_TYPE_SINGLE_SALT;
+
+  if (hashes->digests_cnt == 1)
+    hashconfig->opti_type |= OPTI_TYPE_SINGLE_HASH;
+
+  if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    hashconfig->opti_type |= OPTI_TYPE_NOT_ITERATED;
+
+  if (user_options->attack_mode == ATTACK_MODE_BF)
+    hashconfig->opti_type |= OPTI_TYPE_BRUTE_FORCE;
+
+  if (hashconfig->opti_type & OPTI_TYPE_BRUTE_FORCE)
+  {
+    if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
+      {
+        if (hashconfig->opts_type & OPTS_TYPE_ST_ADD80)
+        {
+          hashconfig->opts_type &= ~OPTS_TYPE_ST_ADD80;
+          hashconfig->opts_type |=  OPTS_TYPE_PT_ADD80;
+        }
+
+        if (hashconfig->opts_type & OPTS_TYPE_ST_ADDBITS14)
+        {
+          hashconfig->opts_type &= ~OPTS_TYPE_ST_ADDBITS14;
+          hashconfig->opts_type |=  OPTS_TYPE_PT_ADDBITS14;
+        }
+
+        if (hashconfig->opts_type & OPTS_TYPE_ST_ADDBITS15)
+        {
+          hashconfig->opts_type &= ~OPTS_TYPE_ST_ADDBITS15;
+          hashconfig->opts_type |=  OPTS_TYPE_PT_ADDBITS15;
+        }
+      }
+    }
+  }
+
+  return 0;
+}
+
 void hashes_destroy (hashes_t *hashes)
 {
   myfree (hashes->digests_buf);
@@ -1486,4 +1533,16 @@ void hashes_destroy (hashes_t *hashes)
   hashes->hashes_buf        = NULL;
 
   hashes->hash_info         = NULL;
+}
+
+void hashes_logger (const hashes_t *hashes, const logfile_ctx_t *logfile_ctx)
+{
+  logfile_top_string (hashes->hashfile);
+  logfile_top_uint   (hashes->hashlist_mode);
+  logfile_top_uint   (hashes->hashlist_format);
+  logfile_top_uint   (hashes->hashes_cnt);
+  logfile_top_uint   (hashes->digests_cnt);
+  logfile_top_uint   (hashes->digests_done);
+  logfile_top_uint   (hashes->salts_cnt);
+  logfile_top_uint   (hashes->salts_done);
 }

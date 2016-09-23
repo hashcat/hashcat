@@ -188,6 +188,16 @@ typedef struct
 
 typedef struct
 {
+  bool  enabled;
+
+  char *logfile;
+  char *topid;
+  char *subid;
+
+} logfile_ctx_t;
+
+typedef struct
+{
   char   *hashfile;
 
   u32     hashlist_mode;
@@ -957,14 +967,6 @@ typedef struct
   hm_attrs_t hm_device[DEVICES_MAX];
 
   /**
-   * logging
-   */
-
-  char   *logfile;
-  char   *topid;
-  char   *subid;
-
-  /**
    * crack-per-time
    */
 
@@ -1000,6 +1002,7 @@ typedef struct
   bitmap_ctx_t          *bitmap_ctx;
   induct_ctx_t          *induct_ctx;
   outcheck_ctx_t        *outcheck_ctx;
+  logfile_ctx_t         *logfile_ctx;
 
   /**
    * used for restore

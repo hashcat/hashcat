@@ -9,55 +9,43 @@
 
 #include "common.h"
 #include "types.h"
-#include "interface.h"
-#include "timer.h"
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
 #include "memory.h"
-#include "rp_cpu.h"
-#include "mpsp.h"
-#include "tuningdb.h"
-#include "thread.h"
-#include "opencl.h"
-#include "hwmon.h"
-#include "restore.h"
-#include "hash_management.h"
-#include "outfile.h"
-#include "potfile.h"
-#include "debugfile.h"
-#include "loopback.h"
-#include "data.h"
 #include "logfile.h"
 
-extern hc_global_data_t data;
-
-static FILE *logfile_open (char *logfile)
+static int logfile_generate_id ()
 {
-  FILE *fp = fopen (logfile, "ab");
+  const int n = rand ();
 
-  if (fp == NULL)
-  {
-    fp = stdout;
-  }
+  time_t t;
 
-  return fp;
+  time (&t);
+
+  return t + n;
 }
 
-static void logfile_close (FILE *fp)
+void logfile_generate_topid (logfile_ctx_t *logfile_ctx)
 {
-  if (fp == stdout) return;
+  if (logfile_ctx->enabled == false) return;
 
-  fclose (fp);
+  const int id = logfile_generate_id ();
+
+  snprintf (logfile_ctx->topid, 1 + 16, "TOP%08x", id);
 }
 
-void logfile_append (const user_options_t *user_options, const char *fmt, ...)
+void logfile_generate_subid (logfile_ctx_t *logfile_ctx)
 {
-  if (user_options->logfile_disable == true) return;
+  if (logfile_ctx->enabled == false) return;
 
-  FILE *fp = logfile_open (data.logfile);
+  const int id = logfile_generate_id ();
+
+  snprintf (logfile_ctx->subid, 1 + 16, "SUB%08x", id);
+}
+
+void logfile_append (const logfile_ctx_t *logfile_ctx, const char *fmt, ...)
+{
+  if (logfile_ctx->enabled == false) return;
+
+  FILE *fp = fopen (logfile_ctx->logfile, "ab");
 
   va_list ap;
 
@@ -71,38 +59,30 @@ void logfile_append (const user_options_t *user_options, const char *fmt, ...)
 
   fflush (fp);
 
-  logfile_close (fp);
+  fclose (fp);
 }
 
-static int logfile_generate_id ()
+void logfile_init (logfile_ctx_t *logfile_ctx, const user_options_t *user_options, const folder_config_t *folder_config)
 {
-  const int n = rand ();
+  if (user_options->logfile_disable == true) return;
 
-  time_t t;
+  logfile_ctx->logfile = (char *) mymalloc (HCBUFSIZ_TINY);
 
-  time (&t);
+  snprintf (logfile_ctx->logfile, HCBUFSIZ_TINY - 1, "%s/%s.log", folder_config->session_dir, user_options->session);
 
-  return t + n;
+  logfile_ctx->subid = (char *) mymalloc (HCBUFSIZ_TINY);
+  logfile_ctx->topid = (char *) mymalloc (HCBUFSIZ_TINY);
+
+  logfile_ctx->enabled = true;
 }
 
-char *logfile_generate_topid ()
+void logfile_destroy (logfile_ctx_t *logfile_ctx)
 {
-  const int id = logfile_generate_id ();
+  if (logfile_ctx->enabled == false) return;
 
-  char *topid = (char *) mymalloc (1 + 16 + 1);
+  myfree (logfile_ctx->logfile);
+  myfree (logfile_ctx->topid);
+  myfree (logfile_ctx->subid);
 
-  snprintf (topid, 1 + 16, "TOP%08x", id);
-
-  return topid;
-}
-
-char *logfile_generate_subid ()
-{
-  const int id = logfile_generate_id ();
-
-  char *subid = (char *) mymalloc (1 + 16 + 1);
-
-  snprintf (subid, 1 + 16, "SUB%08x", id);
-
-  return subid;
+  myfree (logfile_ctx);
 }
