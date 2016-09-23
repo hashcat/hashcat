@@ -139,15 +139,20 @@ static void setup_umask ()
   umask (077);
 }
 
-int main (int argc, char **argv)
+static void setup_console ()
 {
   #if defined (_WIN)
   SetConsoleWindowSize (132);
   #endif
+}
 
+int main (int argc, char **argv)
+{
   /**
    * To help users a bit
    */
+
+  setup_console ();
 
   setup_environment_variables ();
 
