@@ -147,8 +147,6 @@ static void check_running_process (restore_ctx_t *restore_ctx)
 
 void init_restore (restore_ctx_t *restore_ctx)
 {
-  if (restore_ctx->enabled == false) return;
-
   restore_data_t *rd = (restore_data_t *) mymalloc (sizeof (restore_data_t));
 
   restore_ctx->rd = rd;
@@ -345,8 +343,6 @@ int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, 
 {
   restore_ctx->enabled = false;
 
-  if (user_options->restore_disable == true) return 0;
-
   char *eff_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
   char *new_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
 
@@ -359,9 +355,11 @@ int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, 
   restore_ctx->eff_restore_file = eff_restore_file;
   restore_ctx->new_restore_file = new_restore_file;
 
-  restore_ctx->enabled = true;
-
   init_restore (restore_ctx);
+
+  if (user_options->restore_disable == true) return 0;
+
+  restore_ctx->enabled = true;
 
   if (user_options->restore == true)
   {
@@ -397,8 +395,6 @@ int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, 
 
 void restore_ctx_destroy (restore_ctx_t *restore_ctx)
 {
-  if (restore_ctx->enabled == false) return;
-
   restore_ctx->argc = 0;
   restore_ctx->argv = NULL;
 
