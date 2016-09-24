@@ -35,6 +35,16 @@ extern hc_thread_mutex_t mux_hwmon;
 
 hc_thread_mutex_t mux_display;
 
+static const char ST_0000[] = "Initializing";
+static const char ST_0001[] = "Autotuning";
+static const char ST_0002[] = "Running";
+static const char ST_0003[] = "Paused";
+static const char ST_0004[] = "Exhausted";
+static const char ST_0005[] = "Cracked";
+static const char ST_0006[] = "Aborted";
+static const char ST_0007[] = "Quit";
+static const char ST_0008[] = "Bypass";
+
 static void format_timer_display (struct tm *tm, char *buf, size_t len)
 {
   const char *time_entities_s[] = { "year",  "day",  "hour",  "min",  "sec"  };
@@ -110,6 +120,23 @@ static void format_speed_display (double val, char *buf, size_t len)
   }
 }
 
+static char *strstatus (const uint devices_status)
+{
+  switch (devices_status)
+  {
+    case  STATUS_INIT:      return ((char *) ST_0000);
+    case  STATUS_AUTOTUNE:  return ((char *) ST_0001);
+    case  STATUS_RUNNING:   return ((char *) ST_0002);
+    case  STATUS_PAUSED:    return ((char *) ST_0003);
+    case  STATUS_EXHAUSTED: return ((char *) ST_0004);
+    case  STATUS_CRACKED:   return ((char *) ST_0005);
+    case  STATUS_ABORTED:   return ((char *) ST_0006);
+    case  STATUS_QUIT:      return ((char *) ST_0007);
+    case  STATUS_BYPASS:    return ((char *) ST_0008);
+  }
+
+  return ((char *) "Uninitialized! Bug!");
+}
 double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
 {
   int exec_pos = (int) device_param->exec_pos - last_num_entries;

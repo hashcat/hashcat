@@ -30,7 +30,6 @@
 #include "potfile.h"
 #include "debugfile.h"
 #include "loopback.h"
-#include "filenames.h"
 #include "data.h"
 #include "shared.h"
 #include "filehandling.h"
@@ -46,22 +45,70 @@ extern const int comptime;
 
 static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 
-char *strstatus (const uint devices_status)
+static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *shared_dir, char *source_file)
 {
-  switch (devices_status)
+  if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    case  STATUS_INIT:      return ((char *) ST_0000);
-    case  STATUS_AUTOTUNE:  return ((char *) ST_0001);
-    case  STATUS_RUNNING:   return ((char *) ST_0002);
-    case  STATUS_PAUSED:    return ((char *) ST_0003);
-    case  STATUS_EXHAUSTED: return ((char *) ST_0004);
-    case  STATUS_CRACKED:   return ((char *) ST_0005);
-    case  STATUS_ABORTED:   return ((char *) ST_0006);
-    case  STATUS_QUIT:      return ((char *) ST_0007);
-    case  STATUS_BYPASS:    return ((char *) ST_0008);
+    if (attack_kern == ATTACK_KERN_STRAIGHT)
+      snprintf (source_file, 255, "%s/OpenCL/m%05d_a0.cl", shared_dir, (int) kern_type);
+    else if (attack_kern == ATTACK_KERN_COMBI)
+      snprintf (source_file, 255, "%s/OpenCL/m%05d_a1.cl", shared_dir, (int) kern_type);
+    else if (attack_kern == ATTACK_KERN_BF)
+      snprintf (source_file, 255, "%s/OpenCL/m%05d_a3.cl", shared_dir, (int) kern_type);
   }
+  else
+    snprintf (source_file, 255, "%s/OpenCL/m%05d.cl", shared_dir, (int) kern_type);
+}
 
-  return ((char *) "Uninitialized! Bug!");
+static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
+{
+  if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  {
+    if (attack_kern == ATTACK_KERN_STRAIGHT)
+      snprintf (cached_file, 255, "%s/kernels/m%05d_a0.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+    else if (attack_kern == ATTACK_KERN_COMBI)
+      snprintf (cached_file, 255, "%s/kernels/m%05d_a1.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+    else if (attack_kern == ATTACK_KERN_BF)
+      snprintf (cached_file, 255, "%s/kernels/m%05d_a3.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+  }
+  else
+  {
+    snprintf (cached_file, 255, "%s/kernels/m%05d.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+  }
+}
+
+static void generate_source_kernel_mp_filename (const uint opti_type, const uint opts_type, char *shared_dir, char *source_file)
+{
+  if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
+  {
+    snprintf (source_file, 255, "%s/OpenCL/markov_be.cl", shared_dir);
+  }
+  else
+  {
+    snprintf (source_file, 255, "%s/OpenCL/markov_le.cl", shared_dir);
+  }
+}
+
+static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
+{
+  if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
+  {
+    snprintf (cached_file, 255, "%s/kernels/markov_be.%s.kernel", profile_dir, device_name_chksum);
+  }
+  else
+  {
+    snprintf (cached_file, 255, "%s/kernels/markov_le.%s.kernel", profile_dir, device_name_chksum);
+  }
+}
+
+static void generate_source_kernel_amp_filename (const uint attack_kern, char *shared_dir, char *source_file)
+{
+  snprintf (source_file, 255, "%s/OpenCL/amp_a%d.cl", shared_dir, attack_kern);
+}
+
+static void generate_cached_kernel_amp_filename (const uint attack_kern, char *profile_dir, const char *device_name_chksum, char *cached_file)
+{
+  snprintf (cached_file, 255, "%s/kernels/amp_a%d.%s.kernel", profile_dir, attack_kern, device_name_chksum);
 }
 
 static uint setup_opencl_platforms_filter (const char *opencl_platforms)

@@ -6,7 +6,6 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "filenames.h"
 #include "logging.h"
 #include "dictstat.h"
 
@@ -40,7 +39,7 @@ void dictstat_init (dictstat_ctx_t *dictstat_ctx, const user_options_t *user_opt
   dictstat_ctx->cnt      = 0;
   dictstat_ctx->enabled  = true;
 
-  generate_dictstat_filename (folder_config->profile_dir, dictstat_ctx->filename);
+  snprintf (dictstat_ctx->filename, HCBUFSIZ_TINY - 1, "%s/hashcat.dictstat", folder_config->profile_dir);
 }
 
 void dictstat_destroy (dictstat_ctx_t *dictstat_ctx)

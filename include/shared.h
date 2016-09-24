@@ -17,6 +17,8 @@ u32 get_random_num (const u32 min, const u32 max);
 u32 mydivc32 (const u32 dividend, const u32 divisor);
 u64 mydivc64 (const u64 dividend, const u64 divisor);
 
+char *filename_from_filepath (char *filepath);
+
 void naive_replace (char *s, const u8 key_char, const u8 replace_char);
 void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char);
 

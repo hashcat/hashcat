@@ -37,6 +37,26 @@ u64 mydivc64 (const u64 dividend, const u64 divisor)
   return quotient;
 }
 
+char *filename_from_filepath (char *filepath)
+{
+  char *ptr = NULL;
+
+  if ((ptr = strrchr (filepath, '/')) != NULL)
+  {
+    ptr++;
+  }
+  else if ((ptr = strrchr (filepath, '\\')) != NULL)
+  {
+    ptr++;
+  }
+  else
+  {
+    ptr = filepath;
+  }
+
+  return ptr;
+}
+
 void naive_replace (char *s, const u8 key_char, const u8 replace_char)
 {
   const size_t len = strlen (s);
