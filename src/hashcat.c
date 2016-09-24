@@ -203,7 +203,7 @@ static void setup_seeding (const user_options_t *user_options, const time_t proc
   }
 }
 
-static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, rules_ctx_t *rules_ctx, dictstat_ctx_t *dictstat_ctx, opencl_ctx_t *opencl_ctx)
+static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, rules_ctx_t *rules_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx)
 {
   opencl_ctx->devices_status = STATUS_INIT;
 
@@ -349,16 +349,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   data.bitmap_ctx = bitmap_ctx;
 
   bitmap_ctx_init (bitmap_ctx, user_options, hashconfig, hashes);
-
-  /**
-   * loopback
-   */
-
-  loopback_ctx_t *loopback_ctx = mymalloc (sizeof (loopback_ctx_t));
-
-  data.loopback_ctx = loopback_ctx;
-
-  loopback_init (loopback_ctx);
 
   /**
    * debugfile
@@ -3170,8 +3160,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   potfile_write_close (potfile_ctx);
 
-  loopback_destroy (loopback_ctx);
-
   wl_data_destroy (wl_data);
 
   bitmap_ctx_destroy (bitmap_ctx);
@@ -3437,6 +3425,16 @@ int main (int argc, char **argv)
   dictstat_init (dictstat_ctx, user_options, folder_config);
 
   /**
+   * loopback init
+   */
+
+  loopback_ctx_t *loopback_ctx = mymalloc (sizeof (loopback_ctx_t));
+
+  data.loopback_ctx = loopback_ctx;
+
+  loopback_init (loopback_ctx);
+
+  /**
    * cpu affinity
    */
 
@@ -3517,7 +3515,7 @@ int main (int argc, char **argv)
 
     if (user_options->hash_mode_chgd == true)
     {
-      const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, opencl_ctx);
+      const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
 
       if (rc == -1) return -1;
     }
@@ -3527,7 +3525,7 @@ int main (int argc, char **argv)
       {
         user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
 
-        const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, opencl_ctx);
+        const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
 
         if (rc == -1) return -1;
       }
@@ -3535,7 +3533,7 @@ int main (int argc, char **argv)
   }
   else
   {
-    const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, opencl_ctx);
+    const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
 
     if (rc == -1) return -1;
   }
@@ -3566,6 +3564,8 @@ int main (int argc, char **argv)
   rules_ctx_destroy (rules_ctx);
 
   tuning_db_destroy (tuning_db);
+
+  loopback_destroy (loopback_ctx);
 
   dictstat_destroy (dictstat_ctx);
 
