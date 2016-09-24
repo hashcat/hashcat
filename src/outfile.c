@@ -249,5 +249,3 @@ int outfile_and_hashfile (outfile_ctx_t *outfile_ctx, const char *hashfile)
 
   return 0;
 }
-
-

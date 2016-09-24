@@ -1307,12 +1307,11 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
 int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_options)
 {
-  if (user_options->keyspace == true)
-  {
-    opencl_ctx->disable = true;
+  opencl_ctx->disable = true;
 
-    return 0;
-  }
+  if (user_options->show     == true) return 0;
+  if (user_options->left     == true) return 0;
+  if (user_options->keyspace == true) return 0;
 
   hc_thread_mutex_init (opencl_ctx->mux_dispatcher);
   hc_thread_mutex_init (opencl_ctx->mux_counter);
@@ -1476,6 +1475,8 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
   opencl_ctx->platform_devices_cnt  = platform_devices_cnt;
   opencl_ctx->platform_devices      = platform_devices;
 
+  opencl_ctx->disable               = false;
+
   return 0;
 }
 
@@ -1501,7 +1502,7 @@ void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
 
 int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_options)
 {
-  if (opencl_ctx->disable == 1) return 0;
+  if (opencl_ctx->disable == true) return 0;
 
   /**
    * OpenCL devices: simply push all devices from all platforms into the same device array

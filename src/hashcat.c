@@ -147,7 +147,7 @@ static void setup_console ()
   #endif
 }
 
-static void welcome_screen (user_options_t *user_options, const time_t *proc_start)
+static void welcome_screen (const user_options_t *user_options, const time_t *proc_start)
 {
   if (user_options->quiet       == true) return;
   if (user_options->keyspace    == true) return;
@@ -177,6 +177,18 @@ static void welcome_screen (user_options_t *user_options, const time_t *proc_sta
     log_info ("%s (%s) starting...", PROGNAME, VERSION_TAG);
     log_info ("");
   }
+}
+
+static void goodbye_screen (const user_options_t *user_options, const time_t *proc_start, const time_t *proc_stop)
+{
+  if (user_options->quiet       == true) return;
+  if (user_options->keyspace    == true) return;
+  if (user_options->stdout_flag == true) return;
+  if (user_options->show        == true) return;
+  if (user_options->left        == true) return;
+
+  if (user_options->quiet == false) log_info_nn ("Started: %s", ctime (proc_start));
+  if (user_options->quiet == false) log_info_nn ("Stopped: %s", ctime (proc_stop));
 }
 
 static void setup_seeding (const user_options_t *user_options, const time_t proc_start)
@@ -3574,10 +3586,7 @@ int main (int argc, char **argv)
 
   logfile_destroy (logfile_ctx);
 
-  // shutdown
-
-  if (user_options->quiet == false) log_info_nn ("Started: %s", ctime (&proc_start));
-  if (user_options->quiet == false) log_info_nn ("Stopped: %s", ctime (&proc_stop));
+  goodbye_screen (user_options, &proc_start, &proc_stop);
 
   user_options_destroy (user_options);
 
