@@ -139,11 +139,46 @@ static void setup_umask ()
   umask (077);
 }
 
-static void setup_console ()
+static int setup_console ()
 {
   #if defined (_WIN)
   SetConsoleWindowSize (132);
+
+  if (_setmode (_fileno (stdin), _O_BINARY) == -1)
+  {
+    log_error ("ERROR: %s: %s", "stdin", strerror (errno));
+
+    return -1;
+  }
+
+  if (_setmode (_fileno (stdout), _O_BINARY) == -1)
+  {
+    log_error ("ERROR: %s: %s", "stdout", strerror (errno));
+
+    return -1;
+  }
+
+  if (_setmode (_fileno (stderr), _O_BINARY) == -1)
+  {
+    log_error ("ERROR: %s: %s", "stderr", strerror (errno));
+
+    return -1;
+  }
   #endif
+
+  return 0;
+}
+
+static void setup_seeding (const user_options_t *user_options, const time_t *proc_start)
+{
+  if (user_options->rp_gen_seed_chgd == true)
+  {
+    srand (user_options->rp_gen_seed);
+  }
+  else
+  {
+    srand (*proc_start);
+  }
 }
 
 static void welcome_screen (const user_options_t *user_options, const time_t *proc_start)
@@ -188,18 +223,6 @@ static void goodbye_screen (const user_options_t *user_options, const time_t *pr
 
   if (user_options->quiet == false) log_info_nn ("Started: %s", ctime (proc_start));
   if (user_options->quiet == false) log_info_nn ("Stopped: %s", ctime (proc_stop));
-}
-
-static void setup_seeding (const user_options_t *user_options, const time_t proc_start)
-{
-  if (user_options->rp_gen_seed_chgd == true)
-  {
-    srand (user_options->rp_gen_seed);
-  }
-  else
-  {
-    srand (proc_start);
-  }
 }
 
 static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, rules_ctx_t *rules_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx)
@@ -999,33 +1022,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   data.words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
   data.words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
   data.words_progress_restored = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-
-  /**
-   * open filehandles
-   */
-
-  #if defined (_WIN)
-  if (_setmode (_fileno (stdin), _O_BINARY) == -1)
-  {
-    log_error ("ERROR: %s: %s", "stdin", strerror (errno));
-
-    return -1;
-  }
-
-  if (_setmode (_fileno (stdout), _O_BINARY) == -1)
-  {
-    log_error ("ERROR: %s: %s", "stdout", strerror (errno));
-
-    return -1;
-  }
-
-  if (_setmode (_fileno (stderr), _O_BINARY) == -1)
-  {
-    log_error ("ERROR: %s: %s", "stderr", strerror (errno));
-
-    return -1;
-  }
-  #endif
 
   /**
    * dictstat
@@ -3175,7 +3171,9 @@ int main (int argc, char **argv)
    * To help users a bit
    */
 
-  setup_console ();
+  const int rc_console = setup_console ();
+
+  if (rc_console == -1) return -1;
 
   setup_environment_variables ();
 
@@ -3314,7 +3312,7 @@ int main (int argc, char **argv)
    * prepare seeding for random number generator, required by logfile and rules generator
    */
 
-  setup_seeding (user_options, proc_start);
+  setup_seeding (user_options, &proc_start);
 
   /**
    * logfile init
