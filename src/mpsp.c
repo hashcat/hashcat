@@ -9,36 +9,10 @@
 
 #include "common.h"
 #include "types.h"
-#include "interface.h"
-#include "timer.h"
-#include "memory.h"
-#include "logging.h"
-#include "convert.h"
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
-#include "filehandling.h"
-#include "tuningdb.h"
-#include "thread.h"
-#include "opencl.h"
-#include "hwmon.h"
-#include "restore.h"
-#include "hash_management.h"
 #include "mpsp.h"
-#include "rp_cpu.h"
-#include "outfile.h"
-#include "potfile.h"
-#include "debugfile.h"
-#include "loopback.h"
-#include "data.h"
-
-extern hc_global_data_t data;
 
 const unsigned int full01 = 0x01010101;
 const unsigned int full80 = 0x80808080;
-
 
 void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHARSIZ])
 {
