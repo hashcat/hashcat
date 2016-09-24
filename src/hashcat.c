@@ -76,7 +76,6 @@
 #include "outfile_check.h"
 #include "weak_hash.h"
 #include "remove.h"
-#include "debugfile.h"
 #include "runtime.h"
 #include "attack_mode.h"
 #include "powertune.h"
@@ -349,16 +348,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   data.bitmap_ctx = bitmap_ctx;
 
   bitmap_ctx_init (bitmap_ctx, user_options, hashconfig, hashes);
-
-  /**
-   * debugfile
-   */
-
-  debugfile_ctx_t *debugfile_ctx = mymalloc (sizeof (debugfile_ctx_t));
-
-  data.debugfile_ctx = debugfile_ctx;
-
-  debugfile_init (debugfile_ctx, user_options->debug_mode, user_options->debug_file);
 
   /**
    * word len
@@ -3156,8 +3145,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   local_free (masks);
 
-  debugfile_destroy (debugfile_ctx);
-
   potfile_write_close (potfile_ctx);
 
   wl_data_destroy (wl_data);
@@ -3435,6 +3422,16 @@ int main (int argc, char **argv)
   loopback_init (loopback_ctx);
 
   /**
+   * debugfile init
+   */
+
+  debugfile_ctx_t *debugfile_ctx = mymalloc (sizeof (debugfile_ctx_t));
+
+  data.debugfile_ctx = debugfile_ctx;
+
+  debugfile_init (debugfile_ctx, user_options->debug_mode, user_options->debug_file);
+
+  /**
    * cpu affinity
    */
 
@@ -3560,6 +3557,8 @@ int main (int argc, char **argv)
   local_free (new_restore_file);
 
   local_free (rd);
+
+  debugfile_destroy (debugfile_ctx);
 
   rules_ctx_destroy (rules_ctx);
 
