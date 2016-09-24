@@ -203,7 +203,7 @@ static void setup_seeding (const user_options_t *user_options, const time_t proc
   }
 }
 
-static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, rules_ctx_t *rules_ctx, opencl_ctx_t *opencl_ctx)
+static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, rules_ctx_t *rules_ctx, dictstat_ctx_t *dictstat_ctx, opencl_ctx_t *opencl_ctx)
 {
   opencl_ctx->devices_status = STATUS_INIT;
 
@@ -349,19 +349,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   data.bitmap_ctx = bitmap_ctx;
 
   bitmap_ctx_init (bitmap_ctx, user_options, hashconfig, hashes);
-
-  /**
-   * dictstat
-   */
-
-  dictstat_ctx_t *dictstat_ctx = mymalloc (sizeof (dictstat_ctx_t));
-
-  dictstat_init (dictstat_ctx, folder_config->profile_dir);
-
-  if (user_options->keyspace == false)
-  {
-    dictstat_read (dictstat_ctx);
-  }
 
   /**
    * loopback
@@ -1060,6 +1047,12 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
     return -1;
   }
   #endif
+
+  /**
+   * dictstat
+   */
+
+  dictstat_read (dictstat_ctx);
 
   /**
    * dictionary pad
@@ -2689,10 +2682,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
        * Update dictionary statistic
        */
 
-      if (user_options->keyspace == false)
-      {
-        dictstat_write (dictstat_ctx);
-      }
+      dictstat_write (dictstat_ctx);
 
       /**
        * Update loopback file
@@ -3180,8 +3170,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   potfile_write_close (potfile_ctx);
 
-  dictstat_destroy (dictstat_ctx);
-
   loopback_destroy (loopback_ctx);
 
   wl_data_destroy (wl_data);
@@ -3441,6 +3429,14 @@ int main (int argc, char **argv)
   potfile_init (potfile_ctx, folder_config->profile_dir, user_options->potfile_path, user_options->potfile_disable);
 
   /**
+   * dictstat init
+   */
+
+  dictstat_ctx_t *dictstat_ctx = mymalloc (sizeof (dictstat_ctx_t));
+
+  dictstat_init (dictstat_ctx, user_options, folder_config);
+
+  /**
    * cpu affinity
    */
 
@@ -3521,7 +3517,7 @@ int main (int argc, char **argv)
 
     if (user_options->hash_mode_chgd == true)
     {
-      const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, opencl_ctx);
+      const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, opencl_ctx);
 
       if (rc == -1) return -1;
     }
@@ -3531,7 +3527,7 @@ int main (int argc, char **argv)
       {
         user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
 
-        const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, opencl_ctx);
+        const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, opencl_ctx);
 
         if (rc == -1) return -1;
       }
@@ -3539,7 +3535,7 @@ int main (int argc, char **argv)
   }
   else
   {
-    const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, opencl_ctx);
+    const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, opencl_ctx);
 
     if (rc == -1) return -1;
   }
@@ -3571,9 +3567,11 @@ int main (int argc, char **argv)
 
   tuning_db_destroy (tuning_db);
 
-  induct_ctx_destroy (induct_ctx);
+  dictstat_destroy (dictstat_ctx);
 
   potfile_destroy (potfile_ctx);
+
+  induct_ctx_destroy (induct_ctx);
 
   outfile_destroy (outfile_ctx);
 

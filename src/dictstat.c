@@ -26,23 +26,35 @@ int sort_by_dictstat (const void *s1, const void *s2)
   return memcmp (&d1->stat, &d2->stat, sizeof (struct stat));
 }
 
-void dictstat_init (dictstat_ctx_t *dictstat_ctx, char *profile_dir)
+void dictstat_init (dictstat_ctx_t *dictstat_ctx, const user_options_t *user_options, const folder_config_t *folder_config)
 {
+  dictstat_ctx->enabled = false;
+
+  if (user_options->show      == true) return;
+  if (user_options->left      == true) return;
+  if (user_options->keyspace  == true) return;
+  if (user_options->benchmark == true) return;
+
   dictstat_ctx->filename = (char *)       mymalloc (HCBUFSIZ_TINY);
   dictstat_ctx->base     = (dictstat_t *) mycalloc (MAX_DICTSTAT, sizeof (dictstat_t));
   dictstat_ctx->cnt      = 0;
+  dictstat_ctx->enabled  = true;
 
-  generate_dictstat_filename (profile_dir, dictstat_ctx->filename);
+  generate_dictstat_filename (folder_config->profile_dir, dictstat_ctx->filename);
 }
 
 void dictstat_destroy (dictstat_ctx_t *dictstat_ctx)
 {
+  if (dictstat_ctx->enabled == false) return;
+
   myfree (dictstat_ctx->filename);
   myfree (dictstat_ctx->base);
 }
 
 void dictstat_read (dictstat_ctx_t *dictstat_ctx)
 {
+  if (dictstat_ctx->enabled == false) return;
+
   FILE *fp = fopen (dictstat_ctx->filename, "rb");
 
   if (fp == NULL)
@@ -99,6 +111,8 @@ void dictstat_read (dictstat_ctx_t *dictstat_ctx)
 
 int dictstat_write (dictstat_ctx_t *dictstat_ctx)
 {
+  if (dictstat_ctx->enabled == false) return 0;
+
   FILE *fp = fopen (dictstat_ctx->filename, "wb");
 
   if (fp == NULL)
@@ -117,6 +131,8 @@ int dictstat_write (dictstat_ctx_t *dictstat_ctx)
 
 u64 dictstat_find (dictstat_ctx_t *dictstat_ctx, dictstat_t *d)
 {
+  if (dictstat_ctx->enabled == false) return 0;
+
   dictstat_t *d_cache = (dictstat_t *) lfind (d, dictstat_ctx->base, &dictstat_ctx->cnt, sizeof (dictstat_t), sort_by_dictstat);
 
   if (d_cache == NULL) return 0;
@@ -126,6 +142,8 @@ u64 dictstat_find (dictstat_ctx_t *dictstat_ctx, dictstat_t *d)
 
 void dictstat_append (dictstat_ctx_t *dictstat_ctx, dictstat_t *d)
 {
+  if (dictstat_ctx->enabled == false) return;
+
   if (dictstat_ctx->cnt == MAX_DICTSTAT)
   {
     log_error ("ERROR: There are too many entries in the %s database. You have to remove/rename it.", dictstat_ctx->filename);

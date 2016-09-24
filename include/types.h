@@ -775,6 +775,8 @@ typedef struct
 
 typedef struct
 {
+  bool enabled;
+
   char *filename;
 
   dictstat_t *base;
