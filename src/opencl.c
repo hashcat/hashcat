@@ -1380,7 +1380,6 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
 
   if (platforms_cnt == 0)
   {
-    log_info ("");
     log_info ("ATTENTION! No OpenCL compatible platform found");
     log_info ("");
     log_info ("You're probably missing the OpenCL runtime installation");
@@ -2276,7 +2275,6 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
 
             if (catalyst_broken == 1)
             {
-              log_info ("");
               log_info ("ATTENTION! The Catalyst driver installed on your system is known to be broken!");
               log_info ("It passes over cracked hashes and will not report them as cracked");
               log_info ("You are STRONGLY encouraged not to use it");
@@ -2288,7 +2286,6 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
 
             if (catalyst_warn == 1)
             {
-              log_info ("");
               log_info ("ATTENTION! Unsupported or incorrectly installed Catalyst driver detected!");
               log_info ("You are STRONGLY encouraged to use the official supported catalyst driver");
               log_info ("See hashcat's homepage for official supported catalyst drivers");
@@ -2305,8 +2302,8 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
           {
             if (device_param->kernel_exec_timeout != 0)
             {
-              if (user_options->quiet == false) log_info ("- Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
-              if (user_options->quiet == false) log_info ("             See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
+              log_info ("- Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
+              log_info ("             See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
             }
           }
         }
@@ -2318,7 +2315,6 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
           {
             if (user_options->force == 0)
             {
-              log_info ("");
               log_info ("ATTENTION! OpenCL support for CPU of catalyst driver is not reliable.");
               log_info ("You are STRONGLY encouraged not to use it");
               log_info ("You can use --force to override this but do not post error reports if you do so");
@@ -2742,14 +2738,14 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
         if ((size_scrypt / 4) > device_param->device_maxmem_alloc)
         {
-          if (user_options->quiet == false) log_info ("WARNING: Not enough single-block device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+          log_info ("WARNING: Not enough single-block device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
 
           continue;
         }
 
         if (size_scrypt > device_param->device_global_mem)
         {
-          if (user_options->quiet == false) log_info ("WARNING: Not enough total device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+          log_info ("WARNING: Not enough total device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
 
           continue;
         }

@@ -221,8 +221,8 @@ static void goodbye_screen (const user_options_t *user_options, const time_t *pr
   if (user_options->show        == true) return;
   if (user_options->left        == true) return;
 
-  if (user_options->quiet == false) log_info_nn ("Started: %s", ctime (proc_start));
-  if (user_options->quiet == false) log_info_nn ("Stopped: %s", ctime (proc_stop));
+  log_info_nn ("Started: %s", ctime (proc_start));
+  log_info_nn ("Stopped: %s", ctime (proc_stop));
 }
 
 static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, rules_ctx_t *rules_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx)
@@ -324,7 +324,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
     potfile_hash_free (potfile_ctx, hashconfig);
 
-    if (user_options->quiet == false) log_info_nn ("");
+    //if (user_options->quiet == false) log_info_nn ("");
 
     return 0;
   }
@@ -640,6 +640,8 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
       log_info ("Rules: %u", rules_ctx->kernel_rules_cnt);
     }
 
+    if (user_options->quiet == false) log_info ("");
+
     if (hashconfig->opti_type)
     {
       log_info ("Applicable Optimizers:");
@@ -651,6 +653,8 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
         if (hashconfig->opti_type & opti_bit) log_info ("* %s", stroptitype (opti_bit));
       }
     }
+
+    if (user_options->quiet == false) log_info ("");
 
     /**
      * Watchdog and Temperature balance
@@ -1835,8 +1839,16 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   {
     if (potfile_remove_cracks > 0)
     {
-      if (potfile_remove_cracks == 1) log_info ("INFO: Removed 1 hash found in potfile\n");
-      else                            log_info ("INFO: Removed %d hashes found in potfile\n", potfile_remove_cracks);
+      if (potfile_remove_cracks == 1)
+      {
+        log_info ("INFO: Removed 1 hash found in potfile");
+        log_info ("");
+      }
+      else
+      {
+        log_info ("INFO: Removed %d hashes found in potfile", potfile_remove_cracks);
+        log_info ("");
+      }
     }
   }
 
@@ -2836,18 +2848,13 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
       {
         status_benchmark (opencl_ctx, hashconfig, user_options);
 
-        if (user_options->machine_readable == false)
-        {
-          log_info ("");
-        }
+        log_info ("");
       }
       else
       {
         if (user_options->quiet == false)
         {
           clear_prompt ();
-
-          log_info ("");
 
           status_display (opencl_ctx, hashconfig, hashes, user_options, user_options_extra, rules_ctx);
 
@@ -2858,6 +2865,8 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
           if (user_options->status == true)
           {
             status_display (opencl_ctx, hashconfig, hashes, user_options, user_options_extra, rules_ctx);
+
+            log_info ("");
           }
         }
       }
@@ -3543,6 +3552,11 @@ int main (int argc, char **argv)
   }
 
   local_free (outer_threads);
+
+  if (user_options->benchmark == true)
+  {
+    user_options->quiet = false;
+  }
 
   // destroy others mutex
 
