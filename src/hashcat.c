@@ -203,7 +203,7 @@ static void setup_seeding (const user_options_t *user_options, const time_t proc
   }
 }
 
-static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, rules_ctx_t *rules_ctx, opencl_ctx_t *opencl_ctx)
+static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, rules_ctx_t *rules_ctx, opencl_ctx_t *opencl_ctx)
 {
   opencl_ctx->devices_status = STATUS_INIT;
 
@@ -252,14 +252,8 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   if (rc_hashconfig == -1) return -1;
 
   /**
-   * potfile
+   * potfile show/left depends on hash_mode, so it's called here first time
    */
-
-  potfile_ctx_t *potfile_ctx = mymalloc (sizeof (potfile_ctx_t));
-
-  data.potfile_ctx = potfile_ctx;
-
-  potfile_init (potfile_ctx, folder_config->profile_dir, user_options->potfile_path, user_options->potfile_disable);
 
   if (user_options->show == true || user_options->left == true)
   {
@@ -297,6 +291,10 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
       return -1;
     }
   }
+
+  /**
+   * potfile show/left final
+   */
 
   if (user_options->show == true || user_options->left == true)
   {
@@ -1803,7 +1801,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   data.pw_max = pw_max;
 
   /**
-   * weak hash check
+   * weak hash check is the first to write to potfile, so open it for writing from here
    */
 
   potfile_write_open (potfile_ctx);
@@ -3182,8 +3180,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   potfile_write_close (potfile_ctx);
 
-  potfile_destroy (potfile_ctx);
-
   dictstat_destroy (dictstat_ctx);
 
   loopback_destroy (loopback_ctx);
@@ -3433,6 +3429,18 @@ int main (int argc, char **argv)
   if (rc_outfile_and_hashfile == -1) return -1;
 
   /**
+   * potfile init
+   * this is only setting path because potfile can be used in read and write mode depending on user options
+   * plus it depends on hash_mode, so we continue using it in outer_loop
+   */
+
+  potfile_ctx_t *potfile_ctx = mymalloc (sizeof (potfile_ctx_t));
+
+  data.potfile_ctx = potfile_ctx;
+
+  potfile_init (potfile_ctx, folder_config->profile_dir, user_options->potfile_path, user_options->potfile_disable);
+
+  /**
    * cpu affinity
    */
 
@@ -3513,7 +3521,7 @@ int main (int argc, char **argv)
 
     if (user_options->hash_mode_chgd == true)
     {
-      const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, rules_ctx, opencl_ctx);
+      const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, opencl_ctx);
 
       if (rc == -1) return -1;
     }
@@ -3523,7 +3531,7 @@ int main (int argc, char **argv)
       {
         user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
 
-        const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, rules_ctx, opencl_ctx);
+        const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, opencl_ctx);
 
         if (rc == -1) return -1;
       }
@@ -3531,7 +3539,7 @@ int main (int argc, char **argv)
   }
   else
   {
-    const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, rules_ctx, opencl_ctx);
+    const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, opencl_ctx);
 
     if (rc == -1) return -1;
   }
@@ -3564,6 +3572,8 @@ int main (int argc, char **argv)
   tuning_db_destroy (tuning_db);
 
   induct_ctx_destroy (induct_ctx);
+
+  potfile_destroy (potfile_ctx);
 
   outfile_destroy (outfile_ctx);
 
