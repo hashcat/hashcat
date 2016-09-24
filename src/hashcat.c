@@ -2951,7 +2951,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
     hc_thread_wait (1, &inner_threads[thread_idx]);
   }
 
-  local_free (inner_threads);
+  myfree (inner_threads);
 
   // we dont need restore file anymore
   if (user_options->restore_disable == false)
@@ -3133,13 +3133,9 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
     }
   }
 
-  if (opencl_ctx->run_main_level1 == false) return -1;
-
   // free memory
 
   opencl_session_destroy (opencl_ctx);
-
-  local_free (masks);
 
   potfile_write_close (potfile_ctx);
 
@@ -3150,6 +3146,8 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   hashes_destroy (hashes);
 
   hashconfig_destroy (hashconfig);
+
+  local_free (masks);
 
   local_free (od_clock_mem_status);
   local_free (od_power_control_status);
@@ -3523,6 +3521,8 @@ int main (int argc, char **argv)
         const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
 
         if (rc == -1) return -1;
+
+        if (opencl_ctx->run_main_level1 == false) break;
       }
     }
   }
