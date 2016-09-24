@@ -63,13 +63,14 @@ void *thread_keypress (void *p)
 
   while (opencl_ctx->devices_status == STATUS_INIT) hc_sleep_ms (100);
 
+  restore_ctx_t        *restore_ctx        = data.restore_ctx;
   user_options_t       *user_options       = data.user_options;
   user_options_extra_t *user_options_extra = data.user_options_extra;
   hashconfig_t         *hashconfig         = data.hashconfig;
   hashes_t             *hashes             = data.hashes;
   rules_ctx_t          *rules_ctx          = data.rules_ctx;
 
-  uint quiet = user_options->quiet;
+  const bool quiet = user_options->quiet;
 
   tty_break ();
 
@@ -98,7 +99,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        status_display (opencl_ctx, hashconfig, hashes, user_options, user_options_extra, rules_ctx);
+        status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx);
 
         log_info ("");
 
@@ -146,7 +147,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        stop_at_checkpoint (opencl_ctx, user_options);
+        stop_at_checkpoint (restore_ctx, opencl_ctx);
 
         log_info ("");
 

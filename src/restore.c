@@ -5,31 +5,10 @@
 
 #include "common.h"
 #include "types.h"
-#include "interface.h"
-#include "timer.h"
 #include "memory.h"
 #include "logging.h"
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
-#include "tuningdb.h"
-#include "thread.h"
-#include "opencl.h"
-#include "hwmon.h"
+#include "user_options.h"
 #include "restore.h"
-#include "hash_management.h"
-#include "rp_cpu.h"
-#include "mpsp.h"
-#include "outfile.h"
-#include "potfile.h"
-#include "debugfile.h"
-#include "loopback.h"
-#include "status.h"
-#include "data.h"
-
-extern hc_global_data_t data;
 
 #if defined (_WIN)
 static void fsync (int fd)
@@ -40,8 +19,12 @@ static void fsync (int fd)
 }
 #endif
 
-u64 get_lowest_words_done (opencl_ctx_t *opencl_ctx)
+u64 get_lowest_words_done (const restore_ctx_t *restore_ctx, const opencl_ctx_t *opencl_ctx)
 {
+  if (restore_ctx->enabled == false) return 0;
+
+  restore_data_t *rd = restore_ctx->rd;
+
   u64 words_cur = -1llu;
 
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
@@ -61,109 +44,121 @@ u64 get_lowest_words_done (opencl_ctx_t *opencl_ctx)
   // the attack is running therefore we should stick to rd->words_cur.
   // Note that -s influences rd->words_cur we should keep a close look on that.
 
-  if (words_cur < data.rd->words_cur) words_cur = data.rd->words_cur;
+  if (words_cur < rd->words_cur) words_cur = rd->words_cur;
 
   return words_cur;
 }
 
-restore_data_t *init_restore (int argc, char **argv, const user_options_t *user_options)
+static void check_running_process (restore_ctx_t *restore_ctx)
 {
+  char *eff_restore_file = restore_ctx->eff_restore_file;
+
+  FILE *fp = fopen (eff_restore_file, "rb");
+
+  if (fp == NULL) return;
+
   restore_data_t *rd = (restore_data_t *) mymalloc (sizeof (restore_data_t));
 
-  if (user_options->restore_disable == false)
+  const size_t nread = fread (rd, sizeof (restore_data_t), 1, fp);
+
+  if (nread != 1)
   {
-    FILE *fp = fopen (data.eff_restore_file, "rb");
+    log_error ("ERROR: Cannot read %s", eff_restore_file);
 
-    if (fp)
+    exit (-1);
+  }
+
+  fclose (fp);
+
+  if (rd->pid)
+  {
+    char *pidbin = (char *) mymalloc (HCBUFSIZ_LARGE);
+
+    int pidbin_len = -1;
+
+    #if defined (_POSIX)
+    snprintf (pidbin, HCBUFSIZ_LARGE - 1, "/proc/%d/cmdline", rd->pid);
+
+    FILE *fd = fopen (pidbin, "rb");
+
+    if (fd)
     {
-      size_t nread = fread (rd, sizeof (restore_data_t), 1, fp);
+      pidbin_len = fread (pidbin, 1, HCBUFSIZ_LARGE, fd);
 
-      if (nread != 1)
+      pidbin[pidbin_len] = 0;
+
+      fclose (fd);
+
+      char *argv0_r = strrchr (restore_ctx->argv[0], '/');
+
+      char *pidbin_r = strrchr (pidbin, '/');
+
+      if (argv0_r == NULL) argv0_r = restore_ctx->argv[0];
+
+      if (pidbin_r == NULL) pidbin_r = pidbin;
+
+      if (strcmp (argv0_r, pidbin_r) == 0)
       {
-        log_error ("ERROR: Cannot read %s", data.eff_restore_file);
-
-        exit (-1);
-      }
-
-      fclose (fp);
-
-      if (rd->pid)
-      {
-        char *pidbin = (char *) mymalloc (HCBUFSIZ_LARGE);
-
-        int pidbin_len = -1;
-
-        #if defined (_POSIX)
-        snprintf (pidbin, HCBUFSIZ_LARGE - 1, "/proc/%d/cmdline", rd->pid);
-
-        FILE *fd = fopen (pidbin, "rb");
-
-        if (fd)
-        {
-          pidbin_len = fread (pidbin, 1, HCBUFSIZ_LARGE, fd);
-
-          pidbin[pidbin_len] = 0;
-
-          fclose (fd);
-
-          char *argv0_r = strrchr (argv[0], '/');
-
-          char *pidbin_r = strrchr (pidbin, '/');
-
-          if (argv0_r == NULL) argv0_r = argv[0];
-
-          if (pidbin_r == NULL) pidbin_r = pidbin;
-
-          if (strcmp (argv0_r, pidbin_r) == 0)
-          {
-            log_error ("ERROR: Already an instance %s running on pid %d", pidbin, rd->pid);
-
-            exit (-1);
-          }
-        }
-
-        #elif defined (_WIN)
-        HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, rd->pid);
-
-        char *pidbin2 = (char *) mymalloc (HCBUFSIZ_LARGE);
-
-        int pidbin2_len = -1;
-
-        pidbin_len = GetModuleFileName (NULL, pidbin, HCBUFSIZ_LARGE);
-        pidbin2_len = GetModuleFileNameEx (hProcess, NULL, pidbin2, HCBUFSIZ_LARGE);
-
-        pidbin[pidbin_len] = 0;
-        pidbin2[pidbin2_len] = 0;
-
-        if (pidbin2_len)
-        {
-          if (strcmp (pidbin, pidbin2) == 0)
-          {
-            log_error ("ERROR: Already an instance %s running on pid %d", pidbin2, rd->pid);
-
-            exit (-1);
-          }
-        }
-
-        myfree (pidbin2);
-
-        #endif
-
-        myfree (pidbin);
-      }
-
-      if (rd->version < RESTORE_VERSION_MIN)
-      {
-        log_error ("ERROR: Cannot use outdated %s. Please remove it.", data.eff_restore_file);
+        log_error ("ERROR: Already an instance %s running on pid %d", pidbin, rd->pid);
 
         exit (-1);
       }
     }
+
+    #elif defined (_WIN)
+    HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, rd->pid);
+
+    char *pidbin2 = (char *) mymalloc (HCBUFSIZ_LARGE);
+
+    int pidbin2_len = -1;
+
+    pidbin_len = GetModuleFileName (NULL, pidbin, HCBUFSIZ_LARGE);
+    pidbin2_len = GetModuleFileNameEx (hProcess, NULL, pidbin2, HCBUFSIZ_LARGE);
+
+    pidbin[pidbin_len] = 0;
+    pidbin2[pidbin2_len] = 0;
+
+    if (pidbin2_len)
+    {
+      if (strcmp (pidbin, pidbin2) == 0)
+      {
+        log_error ("ERROR: Already an instance %s running on pid %d", pidbin2, rd->pid);
+
+        exit (-1);
+      }
+    }
+
+    myfree (pidbin2);
+
+    #endif
+
+    myfree (pidbin);
   }
 
-  memset (rd, 0, sizeof (restore_data_t));
+  if (rd->version < RESTORE_VERSION_MIN)
+  {
+    log_error ("ERROR: Cannot use outdated %s. Please remove it.", eff_restore_file);
+
+    exit (-1);
+  }
+
+  myfree (rd);
+}
+
+void init_restore (restore_ctx_t *restore_ctx)
+{
+  if (restore_ctx->enabled == false) return;
+
+  restore_data_t *rd = (restore_data_t *) mymalloc (sizeof (restore_data_t));
+
+  restore_ctx->rd = rd;
+
+  check_running_process (restore_ctx);
 
   rd->version = RESTORE_VERSION_CUR;
+
+  rd->argc = restore_ctx->argc;
+  rd->argv = restore_ctx->argv;
 
   #if defined (_POSIX)
   rd->pid = getpid ();
@@ -173,19 +168,18 @@ restore_data_t *init_restore (int argc, char **argv, const user_options_t *user_
 
   if (getcwd (rd->cwd, 255) == NULL)
   {
-    myfree (rd);
+    log_error ("ERROR: getcwd(): %s", strerror (errno));
 
-    return (NULL);
+    exit (-1);
   }
-
-  rd->argc = argc;
-  rd->argv = argv;
-
-  return (rd);
 }
 
-void read_restore (const char *eff_restore_file, restore_data_t *rd)
+void read_restore (restore_ctx_t *restore_ctx)
 {
+  if (restore_ctx->enabled == false) return;
+
+  char *eff_restore_file = restore_ctx->eff_restore_file;
+
   FILE *fp = fopen (eff_restore_file, "rb");
 
   if (fp == NULL)
@@ -194,6 +188,8 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
 
     exit (-1);
   }
+
+  restore_data_t *rd = restore_ctx->rd;
 
   if (fread (rd, sizeof (restore_data_t), 1, fp) != 1)
   {
@@ -239,11 +235,17 @@ void read_restore (const char *eff_restore_file, restore_data_t *rd)
   }
 }
 
-void write_restore (opencl_ctx_t *opencl_ctx, const char *new_restore_file, restore_data_t *rd)
+void write_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx)
 {
-  u64 words_cur = get_lowest_words_done (opencl_ctx);
+  if (restore_ctx->enabled == false) return;
+
+  const u64 words_cur = get_lowest_words_done (restore_ctx, opencl_ctx);
+
+  restore_data_t *rd = restore_ctx->rd;
 
   rd->words_cur = words_cur;
+
+  char *new_restore_file = restore_ctx->new_restore_file;
 
   FILE *fp = fopen (new_restore_file, "wb");
 
@@ -266,6 +268,7 @@ void write_restore (opencl_ctx_t *opencl_ctx, const char *new_restore_file, rest
   for (uint i = 0; i < rd->argc; i++)
   {
     fprintf (fp, "%s", rd->argv[i]);
+
     fputc ('\n', fp);
   }
 
@@ -276,14 +279,14 @@ void write_restore (opencl_ctx_t *opencl_ctx, const char *new_restore_file, rest
   fclose (fp);
 }
 
-void cycle_restore (opencl_ctx_t *opencl_ctx)
+void cycle_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx)
 {
-  const char *eff_restore_file = data.eff_restore_file;
-  const char *new_restore_file = data.new_restore_file;
+  if (restore_ctx->enabled == false) return;
 
-  restore_data_t *rd = data.rd;
+  const char *eff_restore_file = restore_ctx->eff_restore_file;
+  const char *new_restore_file = restore_ctx->new_restore_file;
 
-  write_restore (opencl_ctx, new_restore_file, rd);
+  write_restore (restore_ctx, opencl_ctx);
 
   struct stat st;
 
@@ -303,11 +306,11 @@ void cycle_restore (opencl_ctx_t *opencl_ctx)
   }
 }
 
-void stop_at_checkpoint (opencl_ctx_t *opencl_ctx, const user_options_t *user_options)
+void stop_at_checkpoint (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx)
 {
   // this feature only makes sense if --restore-disable was not specified
 
-  if (user_options->restore_disable == true)
+  if (restore_ctx->enabled == false)
   {
     log_info ("WARNING: This feature is disabled when --restore-disable is specified");
 
@@ -336,4 +339,73 @@ void stop_at_checkpoint (opencl_ctx_t *opencl_ctx, const user_options_t *user_op
 
     log_info ("Checkpoint disabled: Restore Point updates will no longer be monitored");
   }
+}
+
+int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, const folder_config_t *folder_config, int argc, char **argv)
+{
+  restore_ctx->enabled = false;
+
+  if (user_options->restore_disable == true) return 0;
+
+  char *eff_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
+  char *new_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
+
+  snprintf (eff_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore",     folder_config->session_dir, user_options->session);
+  snprintf (new_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore.new", folder_config->session_dir, user_options->session);
+
+  restore_ctx->argc = argc;
+  restore_ctx->argv = argv;
+
+  restore_ctx->eff_restore_file = eff_restore_file;
+  restore_ctx->new_restore_file = new_restore_file;
+
+  restore_ctx->enabled = true;
+
+  init_restore (restore_ctx);
+
+  if (user_options->restore == true)
+  {
+    read_restore (restore_ctx);
+
+    restore_data_t *rd = restore_ctx->rd;
+
+    if (rd->version < RESTORE_VERSION_MIN)
+    {
+      log_error ("ERROR: Incompatible restore-file version");
+
+      return -1;
+    }
+
+    #if defined (_POSIX)
+    rd->pid = getpid ();
+    #elif defined (_WIN)
+    rd->pid = GetCurrentProcessId ();
+    #endif
+
+    restore_ctx->argc = rd->argc;
+    restore_ctx->argv = rd->argv;
+
+    user_options_init (user_options);
+
+    const int rc_user_options_parse = user_options_parse (user_options, rd->argc, rd->argv);
+
+    if (rc_user_options_parse == -1) return -1;
+  }
+
+  return 0;
+}
+
+void restore_ctx_destroy (restore_ctx_t *restore_ctx)
+{
+  if (restore_ctx->enabled == false) return;
+
+  restore_ctx->argc = 0;
+  restore_ctx->argv = NULL;
+
+  myfree (restore_ctx->rd);
+
+  myfree (restore_ctx->eff_restore_file);
+  myfree (restore_ctx->new_restore_file);
+
+  myfree (restore_ctx);
 }

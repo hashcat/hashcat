@@ -23,6 +23,10 @@
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 
+#define PW_MIN      0
+#define PW_MAX      54
+#define PW_MAX1     (PW_MAX + 1)
+
 #define EXEC_CACHE      128
 
 #define SPEED_CACHE     128

@@ -224,7 +224,7 @@ static void goodbye_screen (const user_options_t *user_options, const time_t *pr
   log_info_nn ("Stopped: %s", ctime (proc_stop));
 }
 
-static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, rules_ctx_t *rules_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx)
+static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, rules_ctx_t *rules_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx)
 {
   opencl_ctx->devices_status = STATUS_INIT;
 
@@ -251,6 +251,9 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
     data.rd = rd;
   }
   */
+
+  int    myargc = restore_ctx->argc;
+  char **myargv = restore_ctx->argv;
 
   /**
    * setup prepare timer
@@ -1854,11 +1857,12 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   hcstat_table_t *root_table_buf   = NULL;
   hcstat_table_t *markov_table_buf = NULL;
 
-  uint initial_restore_done = 0;
+  // still needed?
+  // bool initial_restore_done = false;
 
   data.maskcnt = maskcnt;
 
-  restore_data_t *rd = data.rd;
+  restore_data_t *rd = restore_ctx->rd;
 
   for (uint maskpos = rd->maskpos; maskpos < maskcnt; maskpos++)
   {
@@ -2179,9 +2183,18 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
       data.cpt_total = 0;
 
-      if (user_options->restore == false)
+      data.words_cur = 0;
+
+      if (rd->words_cur)
       {
-        rd->words_cur = user_options->skip;
+        data.words_cur = rd->words_cur;
+
+        user_options->skip = 0;
+      }
+
+      if (user_options->skip)
+      {
+        data.words_cur = user_options->skip;
 
         user_options->skip = 0;
       }
@@ -2189,8 +2202,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
       data.ms_paused = 0;
 
       data.kernel_power_final = 0;
-
-      data.words_cur = rd->words_cur;
 
       for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
@@ -2772,14 +2783,16 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
        * create cracker threads
        */
 
-      opencl_ctx->devices_status = STATUS_RUNNING;
-
-      if (initial_restore_done == 0)
+      /* still needed ?
+      if (initial_restore_done == false)
       {
-        if (user_options->restore_disable == false) cycle_restore (opencl_ctx);
+        if (user_options->restore_disable == false) cycle_restore (restore_ctx, opencl_ctx);
 
-        initial_restore_done = 1;
+        initial_restore_done = true;
       }
+      */
+
+      opencl_ctx->devices_status = STATUS_RUNNING;
 
       hc_timer_set (&data.timer_running);
 
@@ -2830,9 +2843,12 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
         opencl_ctx->devices_status = STATUS_EXHAUSTED;
       }
 
-      logfile_sub_var_uint ("status-after-work", opencl_ctx->devices_status);
+      if (opencl_ctx->devices_status == STATUS_EXHAUSTED)
+      {
+        rd->words_cur = 0;
+      }
 
-      user_options->restore = false;
+      logfile_sub_var_uint ("status-after-work", opencl_ctx->devices_status);
 
       if (induct_ctx->induction_dictionaries_cnt)
       {
@@ -2855,7 +2871,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
         {
           clear_prompt ();
 
-          status_display (opencl_ctx, hashconfig, hashes, user_options, user_options_extra, rules_ctx);
+          status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx);
 
           log_info ("");
         }
@@ -2863,7 +2879,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
         {
           if (user_options->status == true)
           {
-            status_display (opencl_ctx, hashconfig, hashes, user_options, user_options_extra, rules_ctx);
+            status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx);
 
             log_info ("");
           }
@@ -2962,16 +2978,23 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   myfree (inner_threads);
 
   // we dont need restore file anymore
-  if (user_options->restore_disable == false)
+  if (restore_ctx->enabled == true)
   {
     if ((opencl_ctx->devices_status == STATUS_EXHAUSTED) || (opencl_ctx->devices_status == STATUS_CRACKED))
     {
-      unlink (data.eff_restore_file);
-      unlink (data.new_restore_file);
+      if (opencl_ctx->run_thread_level1 == true) // this is to check for [c]heckpoint
+      {
+        unlink (restore_ctx->eff_restore_file);
+        unlink (restore_ctx->new_restore_file);
+      }
+      else
+      {
+        cycle_restore (restore_ctx, opencl_ctx);
+      }
     }
     else
     {
-      cycle_restore (opencl_ctx);
+      cycle_restore (restore_ctx, opencl_ctx);
     }
   }
 
@@ -3227,62 +3250,15 @@ int main (int argc, char **argv)
 
   data.user_options = user_options;
 
-  user_options_init (user_options, argc, argv);
+  user_options_init (user_options);
 
   const int rc_user_options_parse = user_options_parse (user_options, argc, argv);
 
   if (rc_user_options_parse == -1) return -1;
 
   /**
-   * session
+   * some early exits
    */
-
-  char *eff_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
-  char *new_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
-
-  snprintf (eff_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore",     folder_config->session_dir, user_options->session);
-  snprintf (new_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore.new", folder_config->session_dir, user_options->session);
-
-  data.eff_restore_file = eff_restore_file;
-  data.new_restore_file = new_restore_file;
-
-  restore_data_t *rd = init_restore (argc, argv, user_options);
-
-  data.rd = rd;
-
-  /**
-   * restore file
-   */
-
-  int    myargc = argc;
-  char **myargv = argv;
-
-  if (user_options->restore == true)
-  {
-    read_restore (eff_restore_file, rd);
-
-    if (rd->version < RESTORE_VERSION_MIN)
-    {
-      log_error ("ERROR: Incompatible restore-file version");
-
-      return -1;
-    }
-
-    myargc = rd->argc;
-    myargv = rd->argv;
-
-    #if defined (_POSIX)
-    rd->pid = getpid ();
-    #elif defined (_WIN)
-    rd->pid = GetCurrentProcessId ();
-    #endif
-
-    user_options_init (user_options, myargc, myargv);
-
-    const int rc_user_options_parse = user_options_parse (user_options, myargc, myargv);
-
-    if (rc_user_options_parse == -1) return -1;
-  }
 
   if (user_options->version == true)
   {
@@ -3299,6 +3275,18 @@ int main (int argc, char **argv)
   }
 
   /**
+   * restore
+   */
+
+  restore_ctx_t *restore_ctx = (restore_ctx_t *) mymalloc (sizeof (restore_ctx_t));
+
+  data.restore_ctx = restore_ctx;
+
+  const int rc_restore_init = restore_ctx_init (restore_ctx, user_options, folder_config, argc, argv);
+
+  if (rc_restore_init == -1) return -1;
+
+  /**
    * process user input
    */
 
@@ -3306,11 +3294,11 @@ int main (int argc, char **argv)
 
   data.user_options_extra = user_options_extra;
 
-  const int rc_user_options_extra_init = user_options_extra_init (user_options, myargc, myargv, user_options_extra);
+  const int rc_user_options_extra_init = user_options_extra_init (user_options, restore_ctx, user_options_extra);
 
   if (rc_user_options_extra_init == -1) return -1;
 
-  const int rc_user_options_sanity = user_options_sanity (user_options, myargc, myargv, user_options_extra);
+  const int rc_user_options_sanity = user_options_sanity (user_options, restore_ctx, user_options_extra);
 
   if (rc_user_options_sanity == -1) return -1;
 
@@ -3391,7 +3379,7 @@ int main (int argc, char **argv)
    * Sanity check for hashfile vs outfile (should not point to the same physical file)
    */
 
-  const int rc_outfile_and_hashfile = outfile_and_hashfile (outfile_ctx, myargv[user_options_extra->optind]);
+  const int rc_outfile_and_hashfile = outfile_and_hashfile (outfile_ctx, restore_ctx->argv[user_options_extra->optind]);
 
   if (rc_outfile_and_hashfile == -1) return -1;
 
@@ -3516,7 +3504,7 @@ int main (int argc, char **argv)
 
     if (user_options->hash_mode_chgd == true)
     {
-      const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
+      const int rc = outer_loop (user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
 
       if (rc == -1) return -1;
     }
@@ -3526,7 +3514,7 @@ int main (int argc, char **argv)
       {
         user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
 
-        const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
+        const int rc = outer_loop (user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
 
         if (rc == -1) return -1;
 
@@ -3536,7 +3524,7 @@ int main (int argc, char **argv)
   }
   else
   {
-    const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
+    const int rc = outer_loop (user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
 
     if (rc == -1) return -1;
   }
@@ -3564,11 +3552,6 @@ int main (int argc, char **argv)
 
   // free memory
 
-  local_free (eff_restore_file);
-  local_free (new_restore_file);
-
-  local_free (rd);
-
   debugfile_destroy (debugfile_ctx);
 
   rules_ctx_destroy (rules_ctx);
@@ -3592,6 +3575,8 @@ int main (int argc, char **argv)
   user_options_extra_destroy (user_options_extra);
 
   opencl_ctx_devices_destroy (opencl_ctx);
+
+  restore_ctx_destroy (restore_ctx);
 
   time_t proc_stop;
 

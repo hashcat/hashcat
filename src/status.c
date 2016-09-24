@@ -164,7 +164,7 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
   return exec_ms_sum / exec_ms_cnt;
 }
 
-void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *hashes, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx)
+void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -225,7 +225,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
    * words_cur
    */
 
-  u64 words_cur = get_lowest_words_done (opencl_ctx);
+  u64 words_cur = get_lowest_words_done (restore_ctx, opencl_ctx);
 
   fprintf (out, "CURKU\t%" PRIu64 "\t", words_cur);
 
@@ -313,7 +313,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
   fflush (out);
 }
 
-void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx)
+void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -327,7 +327,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
   if (user_options->machine_readable == true)
   {
-    status_display_machine_readable (opencl_ctx, hashes, user_options, user_options_extra, rules_ctx);
+    status_display_machine_readable (opencl_ctx, hashes, restore_ctx, user_options, user_options_extra, rules_ctx);
 
     return;
   }
@@ -954,7 +954,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
   // Restore point
 
-  u64 restore_point = get_lowest_words_done (opencl_ctx);
+  u64 restore_point = get_lowest_words_done (restore_ctx, opencl_ctx);
 
   u64 restore_total = data.words_base;
 

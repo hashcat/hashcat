@@ -12,10 +12,6 @@
 #include <errno.h>
 #include <limits.h>
 
-#define PW_MIN      0
-#define PW_MAX      54
-#define PW_MAX1     (PW_MAX + 1)
-
 /**
  * weak hashes shutcut
  */

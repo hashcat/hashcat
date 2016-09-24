@@ -877,6 +877,20 @@ typedef struct
 
 typedef struct
 {
+  bool    enabled;
+
+  int     argc;
+  char  **argv;
+
+  char   *eff_restore_file;
+  char   *new_restore_file;
+
+  restore_data_t *rd;
+
+} restore_ctx_t;
+
+typedef struct
+{
   u32  len;
 
   char buf[32];
@@ -1175,8 +1189,6 @@ typedef struct
   char   *mask;
   u32     maskcnt;
   u32     maskpos;
-  char   *eff_restore_file;
-  char   *new_restore_file;
   u32     pw_min;
   u32     pw_max;
 
@@ -1195,12 +1207,7 @@ typedef struct
   outcheck_ctx_t        *outcheck_ctx;
   logfile_ctx_t         *logfile_ctx;
   rules_ctx_t           *rules_ctx;
-
-  /**
-   * used for restore
-   */
-
-  restore_data_t *rd;
+  restore_ctx_t         *restore_ctx;
 
   /**
    * status, timer

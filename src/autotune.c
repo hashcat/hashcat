@@ -9,6 +9,7 @@
 #include "logging.h"
 #include "opencl.h"
 #include "status.h"
+#include "terminal.h"
 #include "autotune.h"
 
 extern hc_global_data_t data;

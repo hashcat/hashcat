@@ -17,10 +17,8 @@
 static char RULE_BUF_R[] = ":";
 static char RULE_BUF_L[] = ":";
 
-void user_options_init (user_options_t *user_options, int myargc, char **myargv)
+void user_options_init (user_options_t *user_options)
 {
-  if (myargv == NULL) myargv = NULL; // because compiler warning
-
   user_options->attack_mode               = ATTACK_MODE;
   user_options->benchmark                 = BENCHMARK;
   user_options->bitmap_max                = BITMAP_MAX;
@@ -101,7 +99,7 @@ void user_options_init (user_options_t *user_options, int myargc, char **myargv)
   user_options->weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
-  user_options->rp_files                  = (char **) mycalloc (myargc, sizeof (char *));
+  user_options->rp_files                  = (char **) mycalloc (256, sizeof (char *));
 }
 
 void user_options_destroy (user_options_t *user_options)
@@ -111,7 +109,7 @@ void user_options_destroy (user_options_t *user_options)
   myfree (user_options);
 }
 
-int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
+int user_options_parse (user_options_t *user_options, int argc, char **argv)
 {
   int c = -1;
 
@@ -120,7 +118,7 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
 
   int option_index = 0;
 
-  while (((c = getopt_long (myargc, myargv, short_options, long_options, &option_index)) != -1) && optopt == 0)
+  while (((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1) && optopt == 0)
   {
     switch (c)
     {
@@ -369,7 +367,7 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
   return 0;
 }
 
-int user_options_sanity (user_options_t *user_options, int myargc, char **myargv, user_options_extra_t *user_options_extra)
+int user_options_sanity (user_options_t *user_options, restore_ctx_t *restore_ctx, user_options_extra_t *user_options_extra)
 {
   if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
    && (user_options->attack_mode != ATTACK_MODE_COMBI)
@@ -734,7 +732,7 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
 
   if (user_options->benchmark == true)
   {
-    if (myargv[optind] != NULL)
+    if (restore_ctx->argv[optind] != NULL)
     {
       log_error ("ERROR: Invalid argument for benchmark mode specified");
 
@@ -753,9 +751,9 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
   }
   else if (user_options->opencl_info == true)
   {
-    if (user_options_extra->optind != myargc)
+    if (user_options_extra->optind != restore_ctx->argc)
     {
-      usage_mini_print (myargv[0]);
+      usage_mini_print (restore_ctx->argv[0]);
 
       return -1;
     }
@@ -764,43 +762,43 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
   {
     if (user_options_extra->attack_kern == ATTACK_KERN_NONE)
     {
-      if ((user_options_extra->optind + 1) != myargc)
+      if ((user_options_extra->optind + 1) != restore_ctx->argc)
       {
-        usage_mini_print (myargv[0]);
+        usage_mini_print (restore_ctx->argv[0]);
 
         return -1;
       }
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
     {
-      if ((user_options_extra->optind + 1) > myargc)
+      if ((user_options_extra->optind + 1) > restore_ctx->argc)
       {
-        usage_mini_print (myargv[0]);
+        usage_mini_print (restore_ctx->argv[0]);
 
         return -1;
       }
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
-      if ((user_options_extra->optind + 3) != myargc)
+      if ((user_options_extra->optind + 3) != restore_ctx->argc)
       {
-        usage_mini_print (myargv[0]);
+        usage_mini_print (restore_ctx->argv[0]);
 
         return -1;
       }
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
     {
-      if ((user_options_extra->optind + 1) > myargc)
+      if ((user_options_extra->optind + 1) > restore_ctx->argc)
       {
-        usage_mini_print (myargv[0]);
+        usage_mini_print (restore_ctx->argv[0]);
 
         return -1;
       }
     }
     else
     {
-      usage_mini_print (myargv[0]);
+      usage_mini_print (restore_ctx->argv[0]);
 
       return -1;
     }
@@ -809,10 +807,8 @@ int user_options_sanity (user_options_t *user_options, int myargc, char **myargv
   return 0;
 }
 
-int user_options_extra_init (user_options_t *user_options, int myargc, char **myargv, user_options_extra_t *user_options_extra)
+int user_options_extra_init (user_options_t *user_options, restore_ctx_t *restore_ctx, user_options_extra_t *user_options_extra)
 {
-  if (myargv == NULL) myargv = NULL; // because compiler warning
-
   user_options_extra->attack_kern = ATTACK_KERN_NONE;
 
   switch (user_options->attack_mode)
@@ -846,7 +842,7 @@ int user_options_extra_init (user_options_t *user_options, int myargc, char **my
         num_additional_params = 2;
       }
 
-      int keyspace_wordlist_specified = myargc - user_options_extra->optind - num_additional_params;
+      int keyspace_wordlist_specified = restore_ctx->argc - user_options_extra->optind - num_additional_params;
 
       if (keyspace_wordlist_specified == 0) user_options_extra->optind--;
     }
@@ -855,7 +851,7 @@ int user_options_extra_init (user_options_t *user_options, int myargc, char **my
   user_options_extra->rule_len_l = (int) strlen (user_options->rule_buf_l);
   user_options_extra->rule_len_r = (int) strlen (user_options->rule_buf_r);
 
-  user_options_extra->wordlist_mode = ((user_options_extra->optind + 1) < myargc) ? WL_MODE_FILE : WL_MODE_STDIN;
+  user_options_extra->wordlist_mode = ((user_options_extra->optind + 1) < restore_ctx->argc) ? WL_MODE_FILE : WL_MODE_STDIN;
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {

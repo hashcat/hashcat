@@ -243,15 +243,15 @@ static const struct option long_options[] =
   {0, 0, 0, 0}
 };
 
-void user_options_init (user_options_t *user_options, int myargc, char **myargv);
+void user_options_init (user_options_t *user_options);
 
 void user_options_destroy (user_options_t *user_options);
 
-int user_options_parse (user_options_t *user_options, int myargc, char **myargv);
+int user_options_parse (user_options_t *user_options, int argc, char **argv);
 
-int user_options_sanity (user_options_t *user_options, int myargc, char **myargv, user_options_extra_t *user_options_extra);
+int user_options_sanity (user_options_t *user_options, restore_ctx_t *restore_ctx, user_options_extra_t *user_options_extra);
 
-int user_options_extra_init (user_options_t *user_options, int myargc, char **myargv, user_options_extra_t *user_options_extra);
+int user_options_extra_init (user_options_t *user_options, restore_ctx_t *restore_ctx, user_options_extra_t *user_options_extra);
 
 void user_options_extra_destroy (user_options_extra_t *user_options_extra);
 
