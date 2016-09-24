@@ -191,7 +191,7 @@ static void setup_seeding (const user_options_t *user_options, const time_t proc
   }
 }
 
-static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, rules_ctx_t *rules_ctx, opencl_ctx_t *opencl_ctx)
+static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, rules_ctx_t *rules_ctx, opencl_ctx_t *opencl_ctx)
 {
   opencl_ctx->devices_status = STATUS_INIT;
 
@@ -238,24 +238,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   const int rc_hashconfig = hashconfig_init (hashconfig, user_options);
 
   if (rc_hashconfig == -1) return -1;
-
-  /**
-   * outfile
-   */
-
-  outfile_ctx_t *outfile_ctx = mymalloc (sizeof (outfile_ctx_t));
-
-  data.outfile_ctx = outfile_ctx;
-
-  outfile_init (outfile_ctx, user_options);
-
-  /**
-   * Sanity check for hashfile vs outfile (should not point to the same physical file)
-   */
-
-  const int rc_outfile_and_hashfile = outfile_and_hashfile (outfile_ctx, myargv[user_options_extra->optind]);
-
-  if (rc_outfile_and_hashfile == -1) return -1;
 
   /**
    * potfile
@@ -3186,8 +3168,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   debugfile_destroy (debugfile_ctx);
 
-  outfile_destroy (outfile_ctx);
-
   potfile_write_close (potfile_ctx);
 
   potfile_destroy (potfile_ctx);
@@ -3423,6 +3403,24 @@ int main (int argc, char **argv)
   if (rc_outcheck_ctx_init == -1) return -1;
 
   /**
+   * outfile itself
+   */
+
+  outfile_ctx_t *outfile_ctx = mymalloc (sizeof (outfile_ctx_t));
+
+  data.outfile_ctx = outfile_ctx;
+
+  outfile_init (outfile_ctx, user_options);
+
+  /**
+   * Sanity check for hashfile vs outfile (should not point to the same physical file)
+   */
+
+  const int rc_outfile_and_hashfile = outfile_and_hashfile (outfile_ctx, myargv[user_options_extra->optind]);
+
+  if (rc_outfile_and_hashfile == -1) return -1;
+
+  /**
    * cpu affinity
    */
 
@@ -3474,7 +3472,7 @@ int main (int argc, char **argv)
   }
 
   /**
-   * status, monitor and outfile remove threads
+   * keypress thread
    */
 
   uint outer_threads_cnt = 0;
@@ -3503,7 +3501,7 @@ int main (int argc, char **argv)
 
     if (user_options->hash_mode_chgd == true)
     {
-      const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, rules_ctx, opencl_ctx);
+      const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, rules_ctx, opencl_ctx);
 
       if (rc == -1) return -1;
     }
@@ -3513,7 +3511,7 @@ int main (int argc, char **argv)
       {
         user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
 
-        const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, rules_ctx, opencl_ctx);
+        const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, rules_ctx, opencl_ctx);
 
         if (rc == -1) return -1;
       }
@@ -3521,7 +3519,7 @@ int main (int argc, char **argv)
   }
   else
   {
-    const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, rules_ctx, opencl_ctx);
+    const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, rules_ctx, opencl_ctx);
 
     if (rc == -1) return -1;
   }
@@ -3554,6 +3552,8 @@ int main (int argc, char **argv)
   tuning_db_destroy (tuning_db);
 
   induct_ctx_destroy (induct_ctx);
+
+  outfile_destroy (outfile_ctx);
 
   outcheck_ctx_destroy (outcheck_ctx);
 
