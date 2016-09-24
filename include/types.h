@@ -62,6 +62,44 @@ typedef pthread_mutex_t   hc_thread_mutex_t;
 
 // enums
 
+typedef enum amplifier_count
+{
+  KERNEL_BFS              = 1024,
+  KERNEL_COMBS            = 1024,
+  KERNEL_RULES            = 1024,
+  KERNEL_THREADS_MAX      = 256,
+  KERNEL_THREADS_MAX_CPU  = 1
+
+} amplifier_count_t;
+
+typedef enum vendor_id
+{
+  VENDOR_ID_AMD           = (1 << 0),
+  VENDOR_ID_APPLE         = (1 << 1),
+  VENDOR_ID_INTEL_BEIGNET = (1 << 2),
+  VENDOR_ID_INTEL_SDK     = (1 << 3),
+  VENDOR_ID_MESA          = (1 << 4),
+  VENDOR_ID_NV            = (1 << 5),
+  VENDOR_ID_POCL          = (1 << 6),
+  VENDOR_ID_AMD_USE_INTEL = (1 << 7),
+  VENDOR_ID_GENERIC       = (1 << 31)
+
+} vendor_id_t;
+
+typedef enum status_rc
+{
+   STATUS_INIT            = 0,
+   STATUS_AUTOTUNE        = 1,
+   STATUS_RUNNING         = 2,
+   STATUS_PAUSED          = 3,
+   STATUS_EXHAUSTED       = 4,
+   STATUS_CRACKED         = 5,
+   STATUS_ABORTED         = 6,
+   STATUS_QUIT            = 7,
+   STATUS_BYPASS          = 8,
+
+} status_rc_t;
+
 typedef enum wl_mode
 {
   WL_MODE_STDIN = 1,
@@ -186,6 +224,95 @@ typedef enum rule_functions
   RULE_OP_MANGLE_TITLE           = 'E',
 
 } rule_functions_t;
+
+typedef enum salt_type
+{
+  SALT_TYPE_NONE     = 1,
+  SALT_TYPE_EMBEDDED = 2,
+  SALT_TYPE_INTERN   = 3,
+  SALT_TYPE_EXTERN   = 4,
+  SALT_TYPE_VIRTUAL  = 5
+
+} salt_type_t;
+
+typedef enum opti_type
+{
+  OPTI_TYPE_ZERO_BYTE         = (1 <<  1),
+  OPTI_TYPE_PRECOMPUTE_INIT   = (1 <<  2),
+  OPTI_TYPE_PRECOMPUTE_MERKLE = (1 <<  3),
+  OPTI_TYPE_PRECOMPUTE_PERMUT = (1 <<  4),
+  OPTI_TYPE_MEET_IN_MIDDLE    = (1 <<  5),
+  OPTI_TYPE_EARLY_SKIP        = (1 <<  6),
+  OPTI_TYPE_NOT_SALTED        = (1 <<  7),
+  OPTI_TYPE_NOT_ITERATED      = (1 <<  8),
+  OPTI_TYPE_PREPENDED_SALT    = (1 <<  9),
+  OPTI_TYPE_APPENDED_SALT     = (1 << 10),
+  OPTI_TYPE_SINGLE_HASH       = (1 << 11),
+  OPTI_TYPE_SINGLE_SALT       = (1 << 12),
+  OPTI_TYPE_BRUTE_FORCE       = (1 << 13),
+  OPTI_TYPE_RAW_HASH          = (1 << 14),
+  OPTI_TYPE_SLOW_HASH_SIMD    = (1 << 15),
+  OPTI_TYPE_USES_BITS_8       = (1 << 16),
+  OPTI_TYPE_USES_BITS_16      = (1 << 17),
+  OPTI_TYPE_USES_BITS_32      = (1 << 18),
+  OPTI_TYPE_USES_BITS_64      = (1 << 19)
+
+} opti_type_t;
+
+typedef enum opts_type
+{
+  OPTS_TYPE_PT_UNICODE        = (1 <<  0),
+  OPTS_TYPE_PT_UPPER          = (1 <<  1),
+  OPTS_TYPE_PT_LOWER          = (1 <<  2),
+  OPTS_TYPE_PT_ADD01          = (1 <<  3),
+  OPTS_TYPE_PT_ADD02          = (1 <<  4),
+  OPTS_TYPE_PT_ADD80          = (1 <<  5),
+  OPTS_TYPE_PT_ADDBITS14      = (1 <<  6),
+  OPTS_TYPE_PT_ADDBITS15      = (1 <<  7),
+  OPTS_TYPE_PT_GENERATE_LE    = (1 <<  8),
+  OPTS_TYPE_PT_GENERATE_BE    = (1 <<  9),
+  OPTS_TYPE_PT_NEVERCRACK     = (1 << 10), // if we want all possible results
+  OPTS_TYPE_PT_BITSLICE       = (1 << 11),
+  OPTS_TYPE_ST_UNICODE        = (1 << 12),
+  OPTS_TYPE_ST_UPPER          = (1 << 13),
+  OPTS_TYPE_ST_LOWER          = (1 << 14),
+  OPTS_TYPE_ST_ADD01          = (1 << 15),
+  OPTS_TYPE_ST_ADD02          = (1 << 16),
+  OPTS_TYPE_ST_ADD80          = (1 << 17),
+  OPTS_TYPE_ST_ADDBITS14      = (1 << 18),
+  OPTS_TYPE_ST_ADDBITS15      = (1 << 19),
+  OPTS_TYPE_ST_GENERATE_LE    = (1 << 20),
+  OPTS_TYPE_ST_GENERATE_BE    = (1 << 21),
+  OPTS_TYPE_ST_HEX            = (1 << 22),
+  OPTS_TYPE_ST_BASE64         = (1 << 23),
+  OPTS_TYPE_HASH_COPY         = (1 << 24),
+  OPTS_TYPE_HOOK12            = (1 << 25),
+  OPTS_TYPE_HOOK23            = (1 << 26)
+
+} opts_type_t;
+
+typedef enum dgst_size
+{
+  DGST_SIZE_4_2  = (2  * sizeof (uint)),   // 8
+  DGST_SIZE_4_4  = (4  * sizeof (uint)),   // 16
+  DGST_SIZE_4_5  = (5  * sizeof (uint)),   // 20
+  DGST_SIZE_4_6  = (6  * sizeof (uint)),   // 24
+  DGST_SIZE_4_8  = (8  * sizeof (uint)),   // 32
+  DGST_SIZE_4_16 = (16 * sizeof (uint)),   // 64 !!!
+  DGST_SIZE_4_32 = (32 * sizeof (uint)),   // 128 !!!
+  DGST_SIZE_4_64 = (64 * sizeof (uint)),   // 256
+  DGST_SIZE_8_8  = (8  * sizeof (u64)),    // 64 !!!
+  DGST_SIZE_8_16 = (16 * sizeof (u64)),    // 128 !!!
+  DGST_SIZE_8_25 = (25 * sizeof (u64))     // 200
+
+} dgst_size_t;
+
+typedef enum attack_exec
+{
+  ATTACK_EXEC_OUTSIDE_KERNEL = 10,
+  ATTACK_EXEC_INSIDE_KERNEL  = 11
+
+} attack_exec_t;
 
 /**
  * structs
@@ -926,8 +1053,6 @@ typedef struct
 
 typedef struct
 {
-  u32             kernel_rules_cnt;
-  kernel_rule_t  *kernel_rules_buf;
 
 } session_ctx_t;
 
@@ -983,6 +1108,13 @@ typedef struct
 
 typedef struct
 {
+  u32             kernel_rules_cnt;
+  kernel_rule_t  *kernel_rules_buf;
+
+} rules_ctx_t;
+
+typedef struct
+{
   /**
    * threads
    */
@@ -1001,9 +1133,6 @@ typedef struct
   /**
    * attack specific
    */
-
-  u32            kernel_rules_cnt;
-  kernel_rule_t *kernel_rules_buf;
 
   u32     combs_mode;
   u32     combs_cnt;
@@ -1063,6 +1192,7 @@ typedef struct
   induct_ctx_t          *induct_ctx;
   outcheck_ctx_t        *outcheck_ctx;
   logfile_ctx_t         *logfile_ctx;
+  rules_ctx_t           *rules_ctx;
 
   /**
    * used for restore
@@ -1097,7 +1227,6 @@ typedef struct
 
 } hc_global_data_t;
 
-#define RULES_MAX   32
 #define PW_DICTMAX  31
 #define PW_DICTMAX1 (PW_DICTMAX + 1)
 

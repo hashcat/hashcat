@@ -163,7 +163,7 @@ LFLAGS_CROSS_WIN         := -lpsapi
 ## Objects
 ##
 
-OBJS_ALL                 := affinity attack_mode autotune benchmark bitmap bitops common convert cpu_aes cpu_crc32 cpu_des cpu_md5 cpu_sha1 cpu_sha256 data debugfile dictstat dispatch dynloader ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_xnvctrl filehandling filenames folder hash_management hlfmt hwmon induct interface locking logfile logging loopback memory monitor mpsp opencl outfile_check outfile potfile powertune remove restore rp rp_cpu rp_kernel_on_cpu runtime session shared status stdout terminal thread timer tuningdb usage user_options version weak_hash wordlist
+OBJS_ALL                 := affinity attack_mode autotune benchmark bitmap bitops common convert cpu_aes cpu_crc32 cpu_des cpu_md5 cpu_sha1 cpu_sha256 data debugfile dictstat dispatch dynloader ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_xnvctrl filehandling filenames folder hash_management hlfmt hwmon induct interface locking logfile logging loopback memory monitor mpsp opencl outfile_check outfile potfile powertune remove restore rp rp_cpu rp_kernel_on_cpu runtime shared status stdout terminal thread timer tuningdb usage user_options version weak_hash wordlist
 
 NATIVE_OBJS              := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.o)
 

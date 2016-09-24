@@ -191,7 +191,7 @@ static void setup_seeding (const user_options_t *user_options, const time_t proc
   }
 }
 
-static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, opencl_ctx_t *opencl_ctx)
+static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, int myargc, char **myargv, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, rules_ctx_t *rules_ctx, opencl_ctx_t *opencl_ctx)
 {
   opencl_ctx->devices_status = STATUS_INIT;
 
@@ -399,229 +399,15 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   uint pw_max = hashconfig_general_pw_max (hashconfig);
 
   /**
-   * charsets : keep them together for more easy maintainnce
-   */
-
-  cs_t mp_sys[6] = { { { 0 }, 0 } };
-  cs_t mp_usr[4] = { { { 0 }, 0 } };
-
-  mp_setup_sys (mp_sys);
-
-  if (user_options->custom_charset_1) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
-  if (user_options->custom_charset_2) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
-  if (user_options->custom_charset_3) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
-  if (user_options->custom_charset_4) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
-
-  /**
-   * load rules
-   */
-
-  uint *all_kernel_rules_cnt = NULL;
-
-  kernel_rule_t **all_kernel_rules_buf = NULL;
-
-  if (user_options->rp_files_cnt)
-  {
-    all_kernel_rules_cnt = (uint *) mycalloc (user_options->rp_files_cnt, sizeof (uint));
-
-    all_kernel_rules_buf = (kernel_rule_t **) mycalloc (user_options->rp_files_cnt, sizeof (kernel_rule_t *));
-  }
-
-  char *rule_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
-
-  int rule_len = 0;
-
-  for (uint i = 0; i < user_options->rp_files_cnt; i++)
-  {
-    uint kernel_rules_avail = 0;
-
-    uint kernel_rules_cnt = 0;
-
-    kernel_rule_t *kernel_rules_buf = NULL;
-
-    char *rp_file = user_options->rp_files[i];
-
-    char in[BLOCK_SIZE]  = { 0 };
-    char out[BLOCK_SIZE] = { 0 };
-
-    FILE *fp = NULL;
-
-    uint rule_line = 0;
-
-    if ((fp = fopen (rp_file, "rb")) == NULL)
-    {
-      log_error ("ERROR: %s: %s", rp_file, strerror (errno));
-
-      return -1;
-    }
-
-    while (!feof (fp))
-    {
-      memset (rule_buf, 0, HCBUFSIZ_LARGE);
-
-      rule_len = fgetl (fp, rule_buf);
-
-      rule_line++;
-
-      if (rule_len == 0) continue;
-
-      if (rule_buf[0] == '#') continue;
-
-      if (kernel_rules_avail == kernel_rules_cnt)
-      {
-        kernel_rules_buf = (kernel_rule_t *) myrealloc (kernel_rules_buf, kernel_rules_avail * sizeof (kernel_rule_t), INCR_RULES * sizeof (kernel_rule_t));
-
-        kernel_rules_avail += INCR_RULES;
-      }
-
-      memset (in,  0, BLOCK_SIZE);
-      memset (out, 0, BLOCK_SIZE);
-
-      int result = _old_apply_rule (rule_buf, rule_len, in, 1, out);
-
-      if (result == -1)
-      {
-        log_info ("WARNING: Skipping invalid or unsupported rule in file %s on line %u: %s", rp_file, rule_line, rule_buf);
-
-        continue;
-      }
-
-      if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1)
-      {
-        log_info ("WARNING: Cannot convert rule for use on OpenCL device in file %s on line %u: %s", rp_file, rule_line, rule_buf);
-
-        memset (&kernel_rules_buf[kernel_rules_cnt], 0, sizeof (kernel_rule_t)); // needs to be cleared otherwise we could have some remaining data
-
-        continue;
-      }
-
-      kernel_rules_cnt++;
-    }
-
-    fclose (fp);
-
-    all_kernel_rules_cnt[i] = kernel_rules_cnt;
-
-    all_kernel_rules_buf[i] = kernel_rules_buf;
-  }
-
-  /**
-   * merge rules or automatic rule generator
-   */
-
-  uint kernel_rules_cnt = 0;
-
-  kernel_rule_t *kernel_rules_buf = NULL;
-
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    if (user_options->rp_files_cnt)
-    {
-      kernel_rules_cnt = 1;
-
-      uint *repeats = (uint *) mycalloc (user_options->rp_files_cnt + 1, sizeof (uint));
-
-      repeats[0] = kernel_rules_cnt;
-
-      for (uint i = 0; i < user_options->rp_files_cnt; i++)
-      {
-        kernel_rules_cnt *= all_kernel_rules_cnt[i];
-
-        repeats[i + 1] = kernel_rules_cnt;
-      }
-
-      kernel_rules_buf = (kernel_rule_t *) mycalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
-
-      memset (kernel_rules_buf, 0, kernel_rules_cnt * sizeof (kernel_rule_t));
-
-      for (uint i = 0; i < kernel_rules_cnt; i++)
-      {
-        uint out_pos = 0;
-
-        kernel_rule_t *out = &kernel_rules_buf[i];
-
-        for (uint j = 0; j < user_options->rp_files_cnt; j++)
-        {
-          uint in_off = (i / repeats[j]) % all_kernel_rules_cnt[j];
-          uint in_pos;
-
-          kernel_rule_t *in = &all_kernel_rules_buf[j][in_off];
-
-          for (in_pos = 0; in->cmds[in_pos]; in_pos++, out_pos++)
-          {
-            if (out_pos == RULES_MAX - 1)
-            {
-              // log_info ("WARNING: Truncating chaining of rule %d and rule %d as maximum number of function calls per rule exceeded", i, in_off);
-
-              break;
-            }
-
-            out->cmds[out_pos] = in->cmds[in_pos];
-          }
-        }
-      }
-
-      local_free (repeats);
-    }
-    else if (user_options->rp_gen)
-    {
-      uint kernel_rules_avail = 0;
-
-      while (kernel_rules_cnt < user_options->rp_gen)
-      {
-        if (kernel_rules_avail == kernel_rules_cnt)
-        {
-          kernel_rules_buf = (kernel_rule_t *) myrealloc (kernel_rules_buf, kernel_rules_avail * sizeof (kernel_rule_t), INCR_RULES * sizeof (kernel_rule_t));
-
-          kernel_rules_avail += INCR_RULES;
-        }
-
-        memset (rule_buf, 0, HCBUFSIZ_LARGE);
-
-        rule_len = (int) generate_random_rule (rule_buf, user_options->rp_gen_func_min, user_options->rp_gen_func_max);
-
-        if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1) continue;
-
-        kernel_rules_cnt++;
-      }
-    }
-  }
-
-  myfree (rule_buf);
-
-  /**
-   * generate NOP rules
-   */
-
-  if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
-  {
-    kernel_rules_buf = (kernel_rule_t *) mymalloc (sizeof (kernel_rule_t));
-
-    kernel_rules_buf[kernel_rules_cnt].cmds[0] = RULE_OP_MANGLE_NOOP;
-
-    kernel_rules_cnt++;
-  }
-
-  data.kernel_rules_cnt = kernel_rules_cnt;
-  data.kernel_rules_buf = kernel_rules_buf;
-
-  if (kernel_rules_cnt == 0)
-  {
-    log_error ("ERROR: No valid rules left");
-
-    return -1;
-  }
-
-  /**
    * If we have a NOOP rule then we can process words from wordlists > length 32 for slow hashes
    */
 
   int has_noop = 0;
 
-  for (uint kernel_rules_pos = 0; kernel_rules_pos < kernel_rules_cnt; kernel_rules_pos++)
+  for (uint kernel_rules_pos = 0; kernel_rules_pos < rules_ctx->kernel_rules_cnt; kernel_rules_pos++)
   {
-    if (kernel_rules_buf[kernel_rules_pos].cmds[0] != RULE_OP_MANGLE_NOOP) continue;
-    if (kernel_rules_buf[kernel_rules_pos].cmds[1] != 0)                   continue;
+    if (rules_ctx->kernel_rules_buf[kernel_rules_pos].cmds[0] != RULE_OP_MANGLE_NOOP) continue;
+    if (rules_ctx->kernel_rules_buf[kernel_rules_pos].cmds[1] != 0)                   continue;
 
     has_noop = 1;
   }
@@ -653,6 +439,20 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
       // in this case we can process > 32
     }
   }
+
+  /**
+   * charsets : keep them together for more easy maintainnce
+   */
+
+  cs_t mp_sys[6] = { { { 0 }, 0 } };
+  cs_t mp_usr[4] = { { { 0 }, 0 } };
+
+  mp_setup_sys (mp_sys);
+
+  if (user_options->custom_charset_1) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
+  if (user_options->custom_charset_2) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
+  if (user_options->custom_charset_3) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
+  if (user_options->custom_charset_4) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
 
   /**
    * HM devices: init
@@ -856,7 +656,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
-      log_info ("Rules: %u", kernel_rules_cnt);
+      log_info ("Rules: %u", rules_ctx->kernel_rules_cnt);
     }
 
     if (hashconfig->opti_type)
@@ -1140,13 +940,15 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   if (user_options->quiet == false) log_info_nn ("Initializing device kernels and memory...");
 
+  /*
   session_ctx_t *session_ctx = (session_ctx_t *) mymalloc (sizeof (session_ctx_t));
 
   data.session_ctx = session_ctx;
 
-  session_ctx_init (session_ctx, kernel_rules_cnt, kernel_rules_buf);
+  session_ctx_init (session_ctx);
+  */
 
-  opencl_session_begin (opencl_ctx, hashconfig, hashes, session_ctx, user_options, user_options_extra, folder_config, bitmap_ctx, tuning_db);
+  opencl_session_begin (opencl_ctx, hashconfig, hashes, rules_ctx, user_options, user_options_extra, folder_config, bitmap_ctx, tuning_db);
 
   if (user_options->quiet == false) log_info_nn ("");
 
@@ -1442,7 +1244,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
     data.combs_cnt = 1;
 
-    const u64 words1_cnt = count_words (wl_data, user_options, user_options_extra, fp1, dictfile1, dictstat_ctx);
+    const u64 words1_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fp1, dictfile1, dictstat_ctx);
 
     if (words1_cnt == 0)
     {
@@ -1456,7 +1258,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
     data.combs_cnt = 1;
 
-    const u64 words2_cnt = count_words (wl_data, user_options, user_options_extra, fp2, dictfile2, dictstat_ctx);
+    const u64 words2_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fp2, dictfile2, dictstat_ctx);
 
     if (words2_cnt == 0)
     {
@@ -2033,7 +1835,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
     for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
     {
-      weak_hash_check (opencl_ctx, device_param, user_options, user_options_extra, hashconfig, hashes, salt_pos);
+      weak_hash_check (opencl_ctx, device_param, user_options, user_options_extra, rules_ctx, hashconfig, hashes, salt_pos);
     }
   }
 
@@ -2484,7 +2286,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
             return -1;
           }
 
-          data.words_cnt = count_words (wl_data, user_options, user_options_extra, fd2, dictfile, dictstat_ctx);
+          data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile, dictstat_ctx);
 
           fclose (fd2);
 
@@ -2515,7 +2317,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
             return -1;
           }
 
-          data.words_cnt = count_words (wl_data, user_options, user_options_extra, fd2, dictfile, dictstat_ctx);
+          data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile, dictstat_ctx);
 
           fclose (fd2);
         }
@@ -2530,7 +2332,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
             return -1;
           }
 
-          data.words_cnt = count_words (wl_data, user_options, user_options_extra, fd2, dictfile2, dictstat_ctx);
+          data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile2, dictstat_ctx);
 
           fclose (fd2);
         }
@@ -2571,7 +2373,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
           return -1;
         }
 
-        data.words_cnt = count_words (wl_data, user_options, user_options_extra, fd2, dictfile, dictstat_ctx);
+        data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile, dictstat_ctx);
 
         fclose (fd2);
 
@@ -2830,9 +2632,9 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
       if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        if (data.kernel_rules_cnt)
+        if (rules_ctx->kernel_rules_cnt)
         {
-          words_base /= data.kernel_rules_cnt;
+          words_base /= rules_ctx->kernel_rules_cnt;
         }
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
@@ -2872,7 +2674,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
         {
           for (uint i = 0; i < hashes->salts_cnt; i++)
           {
-            data.words_progress_restored[i] = data.words_cur * data.kernel_rules_cnt;
+            data.words_progress_restored[i] = data.words_cur * rules_ctx->kernel_rules_cnt;
           }
         }
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
@@ -2925,7 +2727,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
           if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
           {
-            if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = data.kernel_rules_cnt;
+            if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = rules_ctx->kernel_rules_cnt;
             else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = data.combs_cnt;
             else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = data.bfs_cnt;
           }
@@ -3090,7 +2892,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
           log_info ("");
 
-          status_display (opencl_ctx, hashconfig, hashes, user_options, user_options_extra);
+          status_display (opencl_ctx, hashconfig, hashes, user_options, user_options_extra, rules_ctx);
 
           log_info ("");
         }
@@ -3098,7 +2900,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
         {
           if (user_options->status == true)
           {
-            status_display (opencl_ctx, hashconfig, hashes, user_options, user_options_extra);
+            status_display (opencl_ctx, hashconfig, hashes, user_options, user_options_extra, rules_ctx);
           }
         }
       }
@@ -3402,14 +3204,9 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   hashconfig_destroy (hashconfig);
 
-  local_free (all_kernel_rules_cnt);
-  local_free (all_kernel_rules_buf);
-
   local_free (od_clock_mem_status);
   local_free (od_power_control_status);
   local_free (nvml_power_limit);
-
-  global_free (kernel_rules_buf);
 
   global_free (root_css_buf);
   global_free (markov_css_buf);
@@ -3635,6 +3432,18 @@ int main (int argc, char **argv)
   }
 
   /**
+   * rules
+   */
+
+  rules_ctx_t *rules_ctx = (rules_ctx_t *) mymalloc (sizeof (rules_ctx_t));
+
+  data.rules_ctx = rules_ctx;
+
+  const int rc_rules_init = rules_ctx_init (rules_ctx, user_options);
+
+  if (rc_rules_init == -1) return -1;
+
+  /**
    * Init OpenCL library loader
    */
 
@@ -3694,7 +3503,7 @@ int main (int argc, char **argv)
 
     if (user_options->hash_mode_chgd == true)
     {
-      const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, opencl_ctx);
+      const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, rules_ctx, opencl_ctx);
 
       if (rc == -1) return -1;
     }
@@ -3704,7 +3513,7 @@ int main (int argc, char **argv)
       {
         user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
 
-        const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, opencl_ctx);
+        const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, rules_ctx, opencl_ctx);
 
         if (rc == -1) return -1;
       }
@@ -3712,7 +3521,7 @@ int main (int argc, char **argv)
   }
   else
   {
-    const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, opencl_ctx);
+    const int rc = outer_loop (user_options, user_options_extra, myargc, myargv, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, rules_ctx, opencl_ctx);
 
     if (rc == -1) return -1;
   }
@@ -3739,6 +3548,8 @@ int main (int argc, char **argv)
   local_free (new_restore_file);
 
   local_free (rd);
+
+  rules_ctx_destroy (rules_ctx);
 
   tuning_db_destroy (tuning_db);
 

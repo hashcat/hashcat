@@ -12,7 +12,8 @@
 
 #define INCR_RULES 10000
 
-#define MAX_KERNEL_RULES 31
+#define RULES_MAX   32
+#define MAX_KERNEL_RULES (RULES_MAX - 1)
 
 bool class_num   (const u8 c);
 bool class_lower (const u8 c);
@@ -26,5 +27,8 @@ int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], u32 rp_gen_func_min, u3
 
 int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule);
 int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);
+
+int rules_ctx_init (rules_ctx_t *rules_ctx, const user_options_t *user_options);
+void rules_ctx_destroy (rules_ctx_t *rules_ctx);
 
 #endif // _RP_H

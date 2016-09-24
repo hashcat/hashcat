@@ -244,13 +244,13 @@ int gidd_to_pw_t (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, con
   return 0;
 }
 
-int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, hashconfig_t *hashconfig, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration)
+int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const rules_ctx_t *rules_ctx, hashconfig_t *hashconfig, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration)
 {
   cl_int CL_err = CL_SUCCESS;
 
   if (hashconfig->hash_mode == 2000)
   {
-    process_stdout (opencl_ctx, device_param, user_options, pws_cnt);
+    process_stdout (opencl_ctx, device_param, user_options, rules_ctx, pws_cnt);
 
     return 0;
   }
@@ -957,7 +957,7 @@ int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
   return 0;
 }
 
-int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const uint pws_cnt)
+int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx, const uint pws_cnt)
 {
   char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -1022,7 +1022,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
     if   (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) innerloop_step = device_param->kernel_loops;
     else                                                        innerloop_step = 1;
 
-    if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt  = data.kernel_rules_cnt;
+    if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt  = rules_ctx->kernel_rules_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt  = data.combs_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt  = data.bfs_cnt;
 
@@ -1234,7 +1234,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
         hc_timer_set (&device_param->timer_speed);
       }
 
-      int rc = choose_kernel (opencl_ctx, device_param, user_options, hashconfig, hashconfig->attack_exec, user_options->attack_mode, hashconfig->opts_type, salt_buf, highest_pw_len, pws_cnt, fast_iteration);
+      int rc = choose_kernel (opencl_ctx, device_param, user_options, rules_ctx, hashconfig, hashconfig->attack_exec, user_options->attack_mode, hashconfig->opts_type, salt_buf, highest_pw_len, pws_cnt, fast_iteration);
 
       if (rc == -1) return -1;
 
@@ -1244,7 +1244,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       if (user_options->benchmark == false)
       {
-        check_cracked (opencl_ctx, device_param, user_options, user_options_extra, hashconfig, hashes, salt_pos);
+        check_cracked (opencl_ctx, device_param, user_options, user_options_extra, rules_ctx, hashconfig, hashes, salt_pos);
       }
 
       /**
@@ -2413,7 +2413,7 @@ void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
   opencl_ctx->need_xnvctrl   = 0;
 }
 
-int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const session_ctx_t *session_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx, const tuning_db_t *tuning_db)
+int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const rules_ctx_t *rules_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx, const tuning_db_t *tuning_db)
 {
   /**
    * Some algorithm, like descrypt, can benefit from JIT compilation
@@ -2643,8 +2643,8 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
     device_param->size_results = size_results;
 
-    size_t size_rules   = session_ctx->kernel_rules_cnt * sizeof (kernel_rule_t);
-    size_t size_rules_c = KERNEL_RULES                  * sizeof (kernel_rule_t);
+    size_t size_rules   = rules_ctx->kernel_rules_cnt * sizeof (kernel_rule_t);
+    size_t size_rules_c = KERNEL_RULES                * sizeof (kernel_rule_t);
 
     size_t size_plains  = hashes->digests_cnt * sizeof (plain_t);
     size_t size_salts   = hashes->salts_cnt   * sizeof (salt_t);
@@ -3819,7 +3819,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
         return -1;
       }
 
-      CL_err = hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_rules, CL_TRUE, 0, size_rules, session_ctx->kernel_rules_buf, 0, NULL, NULL);
+      CL_err = hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_rules, CL_TRUE, 0, size_rules, rules_ctx->kernel_rules_buf, 0, NULL, NULL);
 
       if (CL_err != CL_SUCCESS)
       {

@@ -9,8 +9,12 @@
 
 #include "common.h"
 #include "types.h"
+#include "memory.h"
+#include "logging.h"
 #include "shared.h"
+#include "filehandling.h"
 #include "rp.h"
+#include "rp_cpu.h"
 
 static const char grp_op_nop[] =
 {
@@ -695,4 +699,222 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
   }
 
   return -1;
+}
+
+int rules_ctx_init (rules_ctx_t *rules_ctx, const user_options_t *user_options)
+{
+  /**
+   * load rules
+   */
+
+  uint *all_kernel_rules_cnt = NULL;
+
+  kernel_rule_t **all_kernel_rules_buf = NULL;
+
+  if (user_options->rp_files_cnt)
+  {
+    all_kernel_rules_cnt = (uint *) mycalloc (user_options->rp_files_cnt, sizeof (uint));
+
+    all_kernel_rules_buf = (kernel_rule_t **) mycalloc (user_options->rp_files_cnt, sizeof (kernel_rule_t *));
+  }
+
+  char *rule_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+
+  int rule_len = 0;
+
+  for (uint i = 0; i < user_options->rp_files_cnt; i++)
+  {
+    uint kernel_rules_avail = 0;
+
+    uint kernel_rules_cnt = 0;
+
+    kernel_rule_t *kernel_rules_buf = NULL;
+
+    char *rp_file = user_options->rp_files[i];
+
+    char in[BLOCK_SIZE]  = { 0 };
+    char out[BLOCK_SIZE] = { 0 };
+
+    FILE *fp = NULL;
+
+    uint rule_line = 0;
+
+    if ((fp = fopen (rp_file, "rb")) == NULL)
+    {
+      log_error ("ERROR: %s: %s", rp_file, strerror (errno));
+
+      return -1;
+    }
+
+    while (!feof (fp))
+    {
+      memset (rule_buf, 0, HCBUFSIZ_LARGE);
+
+      rule_len = fgetl (fp, rule_buf);
+
+      rule_line++;
+
+      if (rule_len == 0) continue;
+
+      if (rule_buf[0] == '#') continue;
+
+      if (kernel_rules_avail == kernel_rules_cnt)
+      {
+        kernel_rules_buf = (kernel_rule_t *) myrealloc (kernel_rules_buf, kernel_rules_avail * sizeof (kernel_rule_t), INCR_RULES * sizeof (kernel_rule_t));
+
+        kernel_rules_avail += INCR_RULES;
+      }
+
+      memset (in,  0, BLOCK_SIZE);
+      memset (out, 0, BLOCK_SIZE);
+
+      int result = _old_apply_rule (rule_buf, rule_len, in, 1, out);
+
+      if (result == -1)
+      {
+        log_info ("WARNING: Skipping invalid or unsupported rule in file %s on line %u: %s", rp_file, rule_line, rule_buf);
+
+        continue;
+      }
+
+      if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1)
+      {
+        log_info ("WARNING: Cannot convert rule for use on OpenCL device in file %s on line %u: %s", rp_file, rule_line, rule_buf);
+
+        memset (&kernel_rules_buf[kernel_rules_cnt], 0, sizeof (kernel_rule_t)); // needs to be cleared otherwise we could have some remaining data
+
+        continue;
+      }
+
+      kernel_rules_cnt++;
+    }
+
+    fclose (fp);
+
+    all_kernel_rules_cnt[i] = kernel_rules_cnt;
+
+    all_kernel_rules_buf[i] = kernel_rules_buf;
+  }
+
+  /**
+   * merge rules or automatic rule generator
+   */
+
+  uint kernel_rules_cnt = 0;
+
+  kernel_rule_t *kernel_rules_buf = NULL;
+
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    if (user_options->rp_files_cnt)
+    {
+      kernel_rules_cnt = 1;
+
+      uint *repeats = (uint *) mycalloc (user_options->rp_files_cnt + 1, sizeof (uint));
+
+      repeats[0] = kernel_rules_cnt;
+
+      for (uint i = 0; i < user_options->rp_files_cnt; i++)
+      {
+        kernel_rules_cnt *= all_kernel_rules_cnt[i];
+
+        repeats[i + 1] = kernel_rules_cnt;
+      }
+
+      kernel_rules_buf = (kernel_rule_t *) mycalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
+
+      memset (kernel_rules_buf, 0, kernel_rules_cnt * sizeof (kernel_rule_t));
+
+      for (uint i = 0; i < kernel_rules_cnt; i++)
+      {
+        uint out_pos = 0;
+
+        kernel_rule_t *out = &kernel_rules_buf[i];
+
+        for (uint j = 0; j < user_options->rp_files_cnt; j++)
+        {
+          uint in_off = (i / repeats[j]) % all_kernel_rules_cnt[j];
+          uint in_pos;
+
+          kernel_rule_t *in = &all_kernel_rules_buf[j][in_off];
+
+          for (in_pos = 0; in->cmds[in_pos]; in_pos++, out_pos++)
+          {
+            if (out_pos == RULES_MAX - 1)
+            {
+              // log_info ("WARNING: Truncating chaining of rule %d and rule %d as maximum number of function calls per rule exceeded", i, in_off);
+
+              break;
+            }
+
+            out->cmds[out_pos] = in->cmds[in_pos];
+          }
+        }
+      }
+
+      myfree (repeats);
+    }
+    else if (user_options->rp_gen)
+    {
+      uint kernel_rules_avail = 0;
+
+      while (kernel_rules_cnt < user_options->rp_gen)
+      {
+        if (kernel_rules_avail == kernel_rules_cnt)
+        {
+          kernel_rules_buf = (kernel_rule_t *) myrealloc (kernel_rules_buf, kernel_rules_avail * sizeof (kernel_rule_t), INCR_RULES * sizeof (kernel_rule_t));
+
+          kernel_rules_avail += INCR_RULES;
+        }
+
+        memset (rule_buf, 0, HCBUFSIZ_LARGE);
+
+        rule_len = (int) generate_random_rule (rule_buf, user_options->rp_gen_func_min, user_options->rp_gen_func_max);
+
+        if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1) continue;
+
+        kernel_rules_cnt++;
+      }
+    }
+  }
+
+  myfree (rule_buf);
+
+  /**
+   * generate NOP rules
+   */
+
+  if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
+  {
+    kernel_rules_buf = (kernel_rule_t *) mymalloc (sizeof (kernel_rule_t));
+
+    kernel_rules_buf[kernel_rules_cnt].cmds[0] = RULE_OP_MANGLE_NOOP;
+
+    kernel_rules_cnt++;
+  }
+
+  rules_ctx->kernel_rules_cnt = kernel_rules_cnt;
+  rules_ctx->kernel_rules_buf = kernel_rules_buf;
+
+  if (kernel_rules_cnt == 0)
+  {
+    log_error ("ERROR: No valid rules left");
+
+    return -1;
+  }
+
+  myfree (all_kernel_rules_cnt);
+  myfree (all_kernel_rules_buf);
+
+  return 0;
+}
+
+void rules_ctx_destroy (rules_ctx_t *rules_ctx)
+{
+  myfree (rules_ctx->kernel_rules_buf);
+
+  rules_ctx->kernel_rules_buf = NULL;
+  rules_ctx->kernel_rules_cnt = 0;
+
+  myfree (rules_ctx);
 }

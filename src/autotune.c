@@ -5,29 +5,10 @@
 
 #include "common.h"
 #include "types.h"
-#include "logging.h"
-#include "interface.h"
-#include "timer.h"
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
-#include "mpsp.h"
-#include "rp_cpu.h"
-#include "tuningdb.h"
-#include "thread.h"
-#include "opencl.h"
-#include "hwmon.h"
-#include "restore.h"
-#include "hash_management.h"
-#include "outfile.h"
-#include "potfile.h"
-#include "debugfile.h"
-#include "loopback.h"
 #include "data.h"
+#include "logging.h"
+#include "opencl.h"
 #include "status.h"
-#include "terminal.h"
 #include "autotune.h"
 
 extern hc_global_data_t data;
@@ -54,7 +35,7 @@ static double try_run (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param
   return exec_ms_prev;
 }
 
-int autotune (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra)
+int autotune (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx)
 {
   const double target_ms = opencl_ctx->target_ms;
 
@@ -121,7 +102,7 @@ int autotune (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    if (data.kernel_rules_cnt > 1)
+    if (rules_ctx->kernel_rules_cnt > 1)
     {
       cl_int CL_err = hc_clEnqueueCopyBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL);
 
@@ -320,10 +301,10 @@ void *thread_autotune (void *p)
   user_options_t       *user_options       = data.user_options;
   user_options_extra_t *user_options_extra = data.user_options_extra;
   hashconfig_t         *hashconfig         = data.hashconfig;
+  rules_ctx_t          *rules_ctx          = data.rules_ctx;
   opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
 
-  autotune (opencl_ctx, device_param, hashconfig, user_options, user_options_extra);
+  autotune (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, rules_ctx);
 
   return NULL;
 }
-
