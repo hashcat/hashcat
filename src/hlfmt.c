@@ -5,38 +5,9 @@
 
 #include "common.h"
 #include "types.h"
-#include "interface.h"
-#include "timer.h"
-#include "bitops.h"
 #include "memory.h"
-#include "folder.h"
-#include "convert.h"
-#include "logging.h"
-#include "logfile.h"
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
-#include "tuningdb.h"
-#include "thread.h"
-#include "opencl.h"
-#include "hwmon.h"
-#include "restore.h"
-#include "hash_management.h"
 #include "filehandling.h"
-#include "rp_cpu.h"
-#include "inc_hash_constants.h"
-#include "shared.h"
-#include "mpsp.h"
-#include "outfile.h"
-#include "potfile.h"
-#include "debugfile.h"
-#include "loopback.h"
-#include "data.h"
 #include "hlfmt.h"
-
-extern hc_global_data_t data;
 
 static const char HLFMT_TEXT_HASHCAT[]  = "native hashcat";
 static const char HLFMT_TEXT_PWDUMP[]   = "pwdump";
