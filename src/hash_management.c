@@ -31,6 +31,8 @@
 #include "data.h"
 #include "terminal.h"
 #include "status.h"
+#include "rp.h"
+#include "rp_cpu.h"
 #include "rp_kernel_on_cpu.h"
 #include "hlfmt.h"
 

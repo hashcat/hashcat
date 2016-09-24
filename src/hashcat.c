@@ -50,6 +50,7 @@
 #include "restore.h"
 #include "hash_management.h"
 #include "locking.h"
+#include "rp.h"
 #include "rp_cpu.h"
 #include "rp_kernel_on_cpu.h"
 #include "terminal.h"

@@ -8,7 +8,6 @@
 
 #include "common.h"
 #include "types.h"
-#include "rp_cpu.h"
 #include "rp_kernel_on_cpu.h"
 
 static u32 generate_cmask (u32 buf)

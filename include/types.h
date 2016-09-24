@@ -77,14 +77,6 @@ typedef enum hl_mode
 
 } hl_mode_t;
 
-typedef struct
-{
-  char   *file_name;
-  long   seek;
-  time_t ctime;
-
-} outfile_data_t;
-
 typedef enum attack_mode
 {
   ATTACK_MODE_STRAIGHT  = 0,
@@ -133,7 +125,67 @@ typedef enum kern_run_mp
 
 } kern_run_mp_t;
 
+typedef enum rule_functions
+{
+  RULE_OP_MANGLE_NOOP            = ':',
+  RULE_OP_MANGLE_LREST           = 'l',
+  RULE_OP_MANGLE_UREST           = 'u',
+  RULE_OP_MANGLE_LREST_UFIRST    = 'c',
+  RULE_OP_MANGLE_UREST_LFIRST    = 'C',
+  RULE_OP_MANGLE_TREST           = 't',
+  RULE_OP_MANGLE_TOGGLE_AT       = 'T',
+  RULE_OP_MANGLE_REVERSE         = 'r',
+  RULE_OP_MANGLE_DUPEWORD        = 'd',
+  RULE_OP_MANGLE_DUPEWORD_TIMES  = 'p',
+  RULE_OP_MANGLE_REFLECT         = 'f',
+  RULE_OP_MANGLE_ROTATE_LEFT     = '{',
+  RULE_OP_MANGLE_ROTATE_RIGHT    = '}',
+  RULE_OP_MANGLE_APPEND          = '$',
+  RULE_OP_MANGLE_PREPEND         = '^',
+  RULE_OP_MANGLE_DELETE_FIRST    = '[',
+  RULE_OP_MANGLE_DELETE_LAST     = ']',
+  RULE_OP_MANGLE_DELETE_AT       = 'D',
+  RULE_OP_MANGLE_EXTRACT         = 'x',
+  RULE_OP_MANGLE_OMIT            = 'O',
+  RULE_OP_MANGLE_INSERT          = 'i',
+  RULE_OP_MANGLE_OVERSTRIKE      = 'o',
+  RULE_OP_MANGLE_TRUNCATE_AT     = '\'',
+  RULE_OP_MANGLE_REPLACE         = 's',
+  RULE_OP_MANGLE_PURGECHAR       = '@',
+  RULE_OP_MANGLE_TOGGLECASE_REC  = 'a',
+  RULE_OP_MANGLE_DUPECHAR_FIRST  = 'z',
+  RULE_OP_MANGLE_DUPECHAR_LAST   = 'Z',
+  RULE_OP_MANGLE_DUPECHAR_ALL    = 'q',
+  RULE_OP_MANGLE_EXTRACT_MEMORY  = 'X',
+  RULE_OP_MANGLE_APPEND_MEMORY   = '4',
+  RULE_OP_MANGLE_PREPEND_MEMORY  = '6',
 
+  RULE_OP_MEMORIZE_WORD          = 'M',
+
+  RULE_OP_REJECT_LESS            = '<',
+  RULE_OP_REJECT_GREATER         = '>',
+  RULE_OP_REJECT_CONTAIN         = '!',
+  RULE_OP_REJECT_NOT_CONTAIN     = '/',
+  RULE_OP_REJECT_EQUAL_FIRST     = '(',
+  RULE_OP_REJECT_EQUAL_LAST      = ')',
+  RULE_OP_REJECT_EQUAL_AT        = '=',
+  RULE_OP_REJECT_CONTAINS        = '%',
+  RULE_OP_REJECT_MEMORY          = 'Q',
+
+  RULE_OP_MANGLE_SWITCH_FIRST    = 'k',
+  RULE_OP_MANGLE_SWITCH_LAST     = 'K',
+  RULE_OP_MANGLE_SWITCH_AT       = '*',
+  RULE_OP_MANGLE_CHR_SHIFTL      = 'L',
+  RULE_OP_MANGLE_CHR_SHIFTR      = 'R',
+  RULE_OP_MANGLE_CHR_INCR        = '+',
+  RULE_OP_MANGLE_CHR_DECR        = '-',
+  RULE_OP_MANGLE_REPLACE_NP1     = '.',
+  RULE_OP_MANGLE_REPLACE_NM1     = ',',
+  RULE_OP_MANGLE_DUPEBLOCK_FIRST = 'y',
+  RULE_OP_MANGLE_DUPEBLOCK_LAST  = 'Y',
+  RULE_OP_MANGLE_TITLE           = 'E',
+
+} rule_functions_t;
 
 /**
  * structs
@@ -185,6 +237,14 @@ typedef struct
   hashinfo_t *hash_info;
 
 } hash_t;
+
+typedef struct
+{
+  char   *file_name;
+  long   seek;
+  time_t ctime;
+
+} outfile_data_t;
 
 typedef struct
 {
