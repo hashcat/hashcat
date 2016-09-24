@@ -268,8 +268,8 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
 
   if (user_options->benchmark == true)
   {
-    user_options->attack_mode         = ATTACK_MODE_BF;
     user_options->session             = "benchmark";
+    user_options->attack_mode         = ATTACK_MODE_BF;
 
     if (user_options->workload_profile_chgd == false)
     {
@@ -317,6 +317,7 @@ int user_options_parse (user_options_t *user_options, int myargc, char **myargv)
   if (user_options->show == true || user_options->left == true)
   {
     user_options->attack_mode = ATTACK_MODE_NONE;
+    user_options->quiet       = true;
   }
 
   // this allows the user to use --show and --left while cracking (i.e. while another instance of hashcat is running)
