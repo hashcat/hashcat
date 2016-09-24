@@ -9,6 +9,10 @@
 
 #include "common.h"
 #include "types.h"
+#include "memory.h"
+#include "logging.h"
+#include "convert.h"
+#include "filehandling.h"
 #include "mpsp.h"
 
 const unsigned int full01 = 0x01010101;
