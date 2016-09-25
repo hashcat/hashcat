@@ -866,7 +866,7 @@ typedef struct
   u32  pid;
 
   u32  dictpos;
-  u32  maskpos;
+  u32  masks_pos;
 
   u64  words_cur;
 
@@ -1116,6 +1116,33 @@ typedef struct
 
 typedef struct
 {
+  cs_t   mp_sys[6];
+  cs_t   mp_usr[4];
+
+  u32    bfs_cnt;
+
+  cs_t  *css_buf;
+  u32    css_cnt;
+
+  hcstat_table_t *root_table_buf;
+  hcstat_table_t *markov_table_buf;
+
+  cs_t  *root_css_buf;
+  cs_t  *markov_css_buf;
+
+  bool   mask_from_file;
+
+  char **masks;
+  u32    masks_pos;
+  u32    masks_cnt;
+  u32    masks_avail;
+
+  char *mask;
+
+} mask_ctx_t;
+
+typedef struct
+{
   bool enabled;
 
   char *root_directory;
@@ -1153,14 +1180,6 @@ typedef struct
   u32     combs_mode;
   u32     combs_cnt;
 
-  u32     bfs_cnt;
-
-  u32     css_cnt;
-  cs_t   *css_buf;
-
-  cs_t   *root_css_buf;
-  cs_t   *markov_css_buf;
-
   /**
    * hardware watchdog
    */
@@ -1186,9 +1205,6 @@ typedef struct
 
   char   *dictfile;
   char   *dictfile2;
-  char   *mask;
-  u32     maskcnt;
-  u32     maskpos;
   u32     pw_min;
   u32     pw_max;
 
@@ -1208,6 +1224,7 @@ typedef struct
   logfile_ctx_t         *logfile_ctx;
   rules_ctx_t           *rules_ctx;
   restore_ctx_t         *restore_ctx;
+  mask_ctx_t            *mask_ctx;
 
   /**
    * status, timer

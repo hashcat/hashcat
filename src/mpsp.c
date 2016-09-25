@@ -13,6 +13,7 @@
 #include "logging.h"
 #include "convert.h"
 #include "filehandling.h"
+#include "interface.h"
 #include "mpsp.h"
 
 const unsigned int full01 = 0x01010101;
@@ -45,7 +46,7 @@ void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHAR
   }
 }
 
-static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt, hashconfig_t *hashconfig)
+static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt, const hashconfig_t *hashconfig)
 {
   cs_t *cs = &css[css_cnt];
 
@@ -80,7 +81,7 @@ static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt, 
   myfree (css_uniq);
 }
 
-static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, int mp_usr_offset, int interpret, hashconfig_t *hashconfig, const user_options_t *user_options)
+static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, int mp_usr_offset, int interpret, const hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   size_t in_pos;
 
@@ -179,7 +180,7 @@ u64 mp_get_sum (uint css_cnt, cs_t *css)
   return (sum);
 }
 
-cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, uint *css_cnt, hashconfig_t *hashconfig, const user_options_t *user_options)
+cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, uint *css_cnt, const hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   cs_t *css = (cs_t *) mycalloc (256, sizeof (cs_t));
 
@@ -357,7 +358,7 @@ void mp_setup_sys (cs_t *mp_sys)
                                                   mp_sys[5].cs_len = pos; }
 }
 
-void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index, hashconfig_t *hashconfig, const user_options_t *user_options)
+void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index, const hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   FILE *fp = fopen (buf, "rb");
 
@@ -395,7 +396,7 @@ void mp_reset_usr (cs_t *mp_usr, uint index)
   memset (mp_usr[index].cs_buf, 0, sizeof (mp_usr[index].cs_buf));
 }
 
-char *mp_get_truncated_mask (char *mask_buf, size_t mask_len, uint len, const user_options_t *user_options)
+static char *mp_get_truncated_mask (const char *mask_buf, const size_t mask_len, const uint len, const user_options_t *user_options)
 {
   char *new_mask_buf = (char *) mymalloc (256);
 
@@ -816,4 +817,288 @@ void sp_stretch_markov (hcstat_table_t *in, hcstat_table_t *out)
       }
     }
   }
+}
+
+static void mask_append_final (mask_ctx_t *mask_ctx, const char *mask)
+{
+  if (mask_ctx->masks_avail == mask_ctx->masks_cnt)
+  {
+    mask_ctx->masks = (char **) myrealloc (mask_ctx->masks, mask_ctx->masks_avail * sizeof (char *), INCR_MASKS * sizeof (char *));
+
+    mask_ctx->masks_avail += INCR_MASKS;
+  }
+
+  mask_ctx->masks[mask_ctx->masks_cnt] = mystrdup (mask);
+
+  mask_ctx->masks_cnt++;
+}
+
+static void mask_append (mask_ctx_t *mask_ctx, const user_options_t *user_options, const char *mask)
+{
+  if (user_options->increment == true)
+  {
+    for (uint mask_len = user_options->increment_min; mask_len <= user_options->increment_max; mask_len++)
+    {
+      char *mask_truncated = mp_get_truncated_mask (mask, strlen (mask), mask_len, user_options);
+
+      if (mask_truncated == NULL) break;
+
+      mask_append_final (mask_ctx, mask_truncated);
+    }
+  }
+  else
+  {
+    mask_append_final (mask_ctx, mask);
+  }
+}
+
+int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const restore_ctx_t *restore_ctx, const hashconfig_t *hashconfig)
+{
+  memset (mask_ctx, 0, sizeof (mask_ctx_t));
+
+  mask_ctx->root_table_buf   = (hcstat_table_t *) mycalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
+  mask_ctx->markov_table_buf = (hcstat_table_t *) mycalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
+
+  sp_setup_tbl (folder_config->shared_dir, user_options->markov_hcstat, user_options->markov_disable, user_options->markov_classic, mask_ctx->root_table_buf, mask_ctx->markov_table_buf);
+
+  mask_ctx->root_css_buf   = (cs_t *) mycalloc (SP_PW_MAX,           sizeof (cs_t));
+  mask_ctx->markov_css_buf = (cs_t *) mycalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
+
+  mask_ctx->css_cnt = 0;
+  mask_ctx->css_buf = NULL;
+
+  mask_ctx->mask_from_file = false;
+
+  mask_ctx->masks     = NULL;
+  mask_ctx->masks_pos = 0;
+  mask_ctx->masks_cnt = 0;
+
+  mp_setup_sys (mask_ctx->mp_sys);
+
+  if (user_options->custom_charset_1) mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
+  if (user_options->custom_charset_2) mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
+  if (user_options->custom_charset_3) mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
+  if (user_options->custom_charset_4) mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
+
+  if (user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    if (user_options->benchmark == false)
+    {
+      if ((user_options_extra->optind + 2) <= restore_ctx->argc)
+      {
+        char *arg = restore_ctx->argv[user_options_extra->optind + 1];
+
+        struct stat file_stat;
+
+        if (stat (arg, &file_stat) == -1)
+        {
+          mask_append (mask_ctx, user_options, arg);
+        }
+        else
+        {
+          mask_ctx->mask_from_file = true;
+
+          int arg_left = restore_ctx->argc - (user_options_extra->optind + 1);
+
+          for (int i = 0; i < arg_left; i++)
+          {
+            arg = restore_ctx->argv[user_options_extra->optind + 1 + i];
+
+            if (stat (arg, &file_stat) == -1)
+            {
+              log_error ("ERROR: %s: %s", arg, strerror (errno));
+
+              return -1;
+            }
+
+            if (S_ISREG (file_stat.st_mode))
+            {
+              FILE *mask_fp = fopen (arg, "r");
+
+              if (mask_fp == NULL)
+              {
+                log_error ("ERROR: %s: %s", arg, strerror (errno));
+
+                return -1;
+              }
+
+              char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+
+              while (!feof (mask_fp))
+              {
+                const int line_len = fgetl (mask_fp, line_buf);
+
+                if (line_len == 0) continue;
+
+                if (line_buf[0] == '#') continue;
+
+                mask_append (mask_ctx, user_options, line_buf);
+              }
+
+              myfree (line_buf);
+
+              fclose (mask_fp);
+            }
+            else
+            {
+              log_error ("ERROR: %s: unsupported file-type", arg);
+
+              return -1;
+            }
+          }
+        }
+      }
+      else
+      {
+        const char *mask = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
+
+        mask_append (mask_ctx, user_options, mask);
+      }
+    }
+    else
+    {
+      const char *mask = hashconfig_benchmark_mask (hashconfig);
+
+      mask_append (mask_ctx, user_options, mask);
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  {
+    // display
+
+    char *arg = restore_ctx->argv[restore_ctx->argc - 1];
+
+    // mod
+
+    struct stat file_stat;
+
+    if (stat (arg, &file_stat) == -1)
+    {
+      mask_append (mask_ctx, user_options, arg);
+    }
+    else
+    {
+      if (S_ISREG (file_stat.st_mode))
+      {
+        mask_ctx->mask_from_file = true;
+
+        FILE *mask_fp = fopen (arg, "r");
+
+        if (mask_fp == NULL)
+        {
+          log_error ("ERROR: %s: %s", arg, strerror (errno));
+
+          return -1;
+        }
+
+        char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+
+        while (!feof (mask_fp))
+        {
+          const int line_len = fgetl (mask_fp, line_buf);
+
+          if (line_len == 0) continue;
+
+          if (line_buf[0] == '#') continue;
+
+          mask_append (mask_ctx, user_options, line_buf);
+        }
+
+        myfree (line_buf);
+
+        fclose (mask_fp);
+      }
+      else
+      {
+        log_error ("ERROR: %s: unsupported file-type", arg);
+
+        return -1;
+      }
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  {
+    // display
+
+    char *arg = restore_ctx->argv[user_options_extra->optind + 1];
+
+    // mod
+
+    struct stat file_stat;
+
+    if (stat (arg, &file_stat) == -1)
+    {
+      mask_append (mask_ctx, user_options, arg);
+    }
+    else
+    {
+      if (S_ISREG (file_stat.st_mode))
+      {
+        mask_ctx->mask_from_file = true;
+
+        FILE *mask_fp = fopen (arg, "r");
+
+        if (mask_fp == NULL)
+        {
+          log_error ("ERROR: %s: %s", arg, strerror (errno));
+
+          return -1;
+        }
+
+        char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+
+        while (!feof (mask_fp))
+        {
+          const int line_len = fgetl (mask_fp, line_buf);
+
+          if (line_len == 0) continue;
+
+          if (line_buf[0] == '#') continue;
+
+          mask_append (mask_ctx, user_options, line_buf);
+        }
+
+        myfree (line_buf);
+
+        fclose (mask_fp);
+      }
+      else
+      {
+        log_error ("ERROR: %s: unsupported file-type", arg);
+
+        return -1;
+      }
+    }
+  }
+
+  if (mask_ctx->masks_cnt == 0)
+  {
+    log_error ("ERROR: Invalid mask");
+
+    return -1;
+  }
+
+  mask_ctx->mask = mask_ctx->masks[0];
+
+  return 0;
+}
+
+void mask_ctx_destroy (mask_ctx_t *mask_ctx)
+{
+  myfree (mask_ctx->css_buf);
+
+  myfree (mask_ctx->root_css_buf);
+  myfree (mask_ctx->markov_css_buf);
+
+  myfree (mask_ctx->root_table_buf);
+  myfree (mask_ctx->markov_table_buf);
+
+  for (u32 mask_pos = 0; mask_pos < mask_ctx->masks_cnt; mask_pos++)
+  {
+    myfree (mask_ctx->masks[mask_pos]);
+  }
+
+  myfree (mask_ctx->masks);
+
+  myfree (mask_ctx);
 }

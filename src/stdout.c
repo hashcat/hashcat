@@ -59,7 +59,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
   }
 }
 
-void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const rules_ctx_t *rules_ctx, const uint pws_cnt)
+void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const rules_ctx_t *rules_ctx, const mask_ctx_t *mask_ctx, const uint pws_cnt)
 {
   out_t out;
 
@@ -177,10 +177,10 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
         uint l_stop = device_param->kernel_params_mp_l_buf32[4];
         uint r_stop = device_param->kernel_params_mp_r_buf32[4];
 
-        sp_exec (l_off, (char *) plain_ptr + l_start, data.root_css_buf, data.markov_css_buf, l_start, l_start + l_stop);
-        sp_exec (r_off, (char *) plain_ptr + r_start, data.root_css_buf, data.markov_css_buf, r_start, r_start + r_stop);
+        sp_exec (l_off, (char *) plain_ptr + l_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, l_start, l_start + l_stop);
+        sp_exec (r_off, (char *) plain_ptr + r_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, r_start, r_start + r_stop);
 
-        plain_len = data.css_cnt;
+        plain_len = mask_ctx->css_cnt;
 
         out_push (&out, plain_ptr, plain_len);
       }
@@ -208,7 +208,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
         uint start = 0;
         uint stop  = device_param->kernel_params_mp_buf32[4];
 
-        sp_exec (off, (char *) plain_ptr + plain_len, data.root_css_buf, data.markov_css_buf, start, start + stop);
+        sp_exec (off, (char *) plain_ptr + plain_len, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
 
         plain_len += start + stop;
 
@@ -240,7 +240,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
 
         memmove (plain_ptr + stop, plain_ptr, plain_len);
 
-        sp_exec (off, (char *) plain_ptr, data.root_css_buf, data.markov_css_buf, start, start + stop);
+        sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
 
         plain_len += start + stop;
 

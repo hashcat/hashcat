@@ -419,15 +419,13 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
    * charsets : keep them together for more easy maintainnce
    */
 
-  cs_t mp_sys[6] = { { { 0 }, 0 } };
-  cs_t mp_usr[4] = { { { 0 }, 0 } };
+  mask_ctx_t *mask_ctx = (mask_ctx_t *) mymalloc (sizeof (mask_ctx_t));
 
-  mp_setup_sys (mp_sys);
+  data.mask_ctx = mask_ctx;
 
-  if (user_options->custom_charset_1) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
-  if (user_options->custom_charset_2) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
-  if (user_options->custom_charset_3) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
-  if (user_options->custom_charset_4) mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
+  const int rc_mask_init = mask_ctx_init (mask_ctx, user_options, user_options_extra, folder_config, restore_ctx, hashconfig);
+
+  if (rc_mask_init == -1) return -1;
 
   /**
    * HM devices: init
@@ -1035,14 +1033,8 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   wl_data_init (wl_data, user_options, hashconfig);
 
-  cs_t  *css_buf   = NULL;
-  uint   css_cnt   = 0;
   uint   dictcnt   = 0;
-  uint   maskcnt   = 1;
-  char **masks     = NULL;
   char **dictfiles = NULL;
-
-  uint   mask_from_file = 0;
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
@@ -1267,219 +1259,30 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
-    char *mask = NULL;
-
-    maskcnt = 0;
-
-    if (user_options->benchmark == false)
+    if (user_options->benchmark == true)
     {
-      mask = myargv[user_options_extra->optind + 1];
-
-      masks = (char **) mymalloc (INCR_MASKS * sizeof (char *));
-
-      if ((user_options_extra->optind + 2) <= myargc)
-      {
-        struct stat file_stat;
-
-        if (stat (mask, &file_stat) == -1)
-        {
-          maskcnt = 1;
-
-          masks[maskcnt - 1] = mystrdup (mask);
-        }
-        else
-        {
-          int wls_left = myargc - (user_options_extra->optind + 1);
-
-          uint masks_avail = INCR_MASKS;
-
-          for (int i = 0; i < wls_left; i++)
-          {
-            if (i != 0)
-            {
-              mask = myargv[user_options_extra->optind + 1 + i];
-
-              if (stat (mask, &file_stat) == -1)
-              {
-                log_error ("ERROR: %s: %s", mask, strerror (errno));
-
-                return -1;
-              }
-            }
-
-            uint is_file = S_ISREG (file_stat.st_mode);
-
-            if (is_file == 1)
-            {
-              FILE *mask_fp;
-
-              if ((mask_fp = fopen (mask, "r")) == NULL)
-              {
-                log_error ("ERROR: %s: %s", mask, strerror (errno));
-
-                return -1;
-              }
-
-              char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
-
-              while (!feof (mask_fp))
-              {
-                memset (line_buf, 0, HCBUFSIZ_LARGE);
-
-                int line_len = fgetl (mask_fp, line_buf);
-
-                if (line_len == 0) continue;
-
-                if (line_buf[0] == '#') continue;
-
-                if (masks_avail == maskcnt)
-                {
-                  masks = (char **) myrealloc (masks, masks_avail * sizeof (char *), INCR_MASKS * sizeof (char *));
-
-                  masks_avail += INCR_MASKS;
-                }
-
-                masks[maskcnt] = mystrdup (line_buf);
-
-                maskcnt++;
-              }
-
-              myfree (line_buf);
-
-              fclose (mask_fp);
-            }
-            else
-            {
-              log_error ("ERROR: %s: unsupported file-type", mask);
-
-              return -1;
-            }
-          }
-
-          mask_from_file = 1;
-        }
-      }
-      else
-      {
-        user_options->custom_charset_1 = (char *) "?l?d?u";
-        user_options->custom_charset_2 = (char *) "?l?d";
-        user_options->custom_charset_3 = (char *) "?l?d*!$@_";
-
-        mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
-        mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
-        mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
-
-        maskcnt = 1;
-
-        masks[maskcnt - 1] = mystrdup ("?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d");
-
-        user_options->increment = true;
-      }
-    }
-    else
-    {
-      /**
-       * generate full masks and charsets
-       */
-
-      mask = hashconfig_benchmark_mask (hashconfig);
-
-      pw_min = mp_get_length (mask);
+      pw_min = mp_get_length (mask_ctx->mask);
       pw_max = pw_min;
-
-      masks = (char **) mymalloc (sizeof (char *));
-
-      maskcnt = 1;
-
-      masks[maskcnt - 1] = mystrdup (mask);
-
-      user_options->increment = true;
     }
 
-    dictfiles = (char **) mycalloc (pw_max, sizeof (char *));
-
+    /* i think we can do this better
     if (user_options->increment == true)
     {
       if (user_options->increment_min > pw_min) pw_min = user_options->increment_min;
       if (user_options->increment_max < pw_max) pw_max = user_options->increment_max;
     }
+    */
+
+    dictfiles = (char **) mycalloc (1, sizeof (char *));
+    dictfiles[0] = "DUMMY";
+
+    dictcnt = 1;
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
     data.combs_mode = COMBINATOR_MODE_BASE_LEFT;
 
-    // display
-
-    char *mask = myargv[myargc - 1];
-
-    maskcnt = 0;
-
-    masks = (char **) mymalloc (1 * sizeof (char *));
-
-    // mod
-
-    struct stat file_stat;
-
-    if (stat (mask, &file_stat) == -1)
-    {
-      maskcnt = 1;
-
-      masks[maskcnt - 1] = mystrdup (mask);
-    }
-    else
-    {
-      uint is_file = S_ISREG (file_stat.st_mode);
-
-      if (is_file == 1)
-      {
-        FILE *mask_fp;
-
-        if ((mask_fp = fopen (mask, "r")) == NULL)
-        {
-          log_error ("ERROR: %s: %s", mask, strerror (errno));
-
-          return -1;
-        }
-
-        char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
-
-        uint masks_avail = 1;
-
-        while (!feof (mask_fp))
-        {
-          memset (line_buf, 0, HCBUFSIZ_LARGE);
-
-          int line_len = fgetl (mask_fp, line_buf);
-
-          if (line_len == 0) continue;
-
-          if (line_buf[0] == '#') continue;
-
-          if (masks_avail == maskcnt)
-          {
-            masks = (char **) myrealloc (masks, masks_avail * sizeof (char *), INCR_MASKS * sizeof (char *));
-
-            masks_avail += INCR_MASKS;
-          }
-
-          masks[maskcnt] = mystrdup (line_buf);
-
-          maskcnt++;
-        }
-
-        myfree (line_buf);
-
-        fclose (mask_fp);
-
-        mask_from_file = 1;
-      }
-      else
-      {
-        maskcnt = 1;
-
-        masks[maskcnt - 1] = mystrdup (mask);
-      }
-    }
+    // mod -- moved to mpsp.c
 
     // base
 
@@ -1561,104 +1364,12 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
       return -1;
     }
-
-    if (user_options->increment == true)
-    {
-      maskcnt = 0;
-
-      uint mask_min = user_options->increment_min; // we can't reject smaller masks here
-      uint mask_max = (user_options->increment_max < pw_max) ? user_options->increment_max : pw_max;
-
-      for (uint mask_cur = mask_min; mask_cur <= mask_max; mask_cur++)
-      {
-        char *cur_mask = mp_get_truncated_mask (mask, strlen (mask), mask_cur, user_options);
-
-        if (cur_mask == NULL) break;
-
-        masks[maskcnt] = cur_mask;
-
-        maskcnt++;
-
-        masks = (char **) myrealloc (masks, maskcnt * sizeof (char *), sizeof (char *));
-      }
-    }
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
     data.combs_mode = COMBINATOR_MODE_BASE_RIGHT;
 
-    // display
-
-    char *mask = myargv[user_options_extra->optind + 1 + 0];
-
-    maskcnt = 0;
-
-    masks = (char **) mymalloc (1 * sizeof (char *));
-
-    // mod
-
-    struct stat file_stat;
-
-    if (stat (mask, &file_stat) == -1)
-    {
-      maskcnt = 1;
-
-      masks[maskcnt - 1] = mystrdup (mask);
-    }
-    else
-    {
-      uint is_file = S_ISREG (file_stat.st_mode);
-
-      if (is_file == 1)
-      {
-        FILE *mask_fp;
-
-        if ((mask_fp = fopen (mask, "r")) == NULL)
-        {
-          log_error ("ERROR: %s: %s", mask, strerror (errno));
-
-          return -1;
-        }
-
-        char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
-
-        uint masks_avail = 1;
-
-        while (!feof (mask_fp))
-        {
-          memset (line_buf, 0, HCBUFSIZ_LARGE);
-
-          int line_len = fgetl (mask_fp, line_buf);
-
-          if (line_len == 0) continue;
-
-          if (line_buf[0] == '#') continue;
-
-          if (masks_avail == maskcnt)
-          {
-            masks = (char **) myrealloc (masks, masks_avail * sizeof (char *), INCR_MASKS * sizeof (char *));
-
-            masks_avail += INCR_MASKS;
-          }
-
-          masks[maskcnt] = mystrdup (line_buf);
-
-          maskcnt++;
-        }
-
-        myfree (line_buf);
-
-        fclose (mask_fp);
-
-        mask_from_file = 1;
-      }
-      else
-      {
-        maskcnt = 1;
-
-        masks[maskcnt - 1] = mystrdup (mask);
-      }
-    }
+    // mod -- moved to mpsp.c
 
     // base
 
@@ -1739,27 +1450,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
       log_error ("ERROR: No usable dictionary file found.");
 
       return -1;
-    }
-
-    if (user_options->increment == true)
-    {
-      maskcnt = 0;
-
-      uint mask_min = user_options->increment_min; // we can't reject smaller masks here
-      uint mask_max = (user_options->increment_max < pw_max) ? user_options->increment_max : pw_max;
-
-      for (uint mask_cur = mask_min; mask_cur <= mask_max; mask_cur++)
-      {
-        char *cur_mask = mp_get_truncated_mask (mask, strlen (mask), mask_cur, user_options);
-
-        if (cur_mask == NULL) break;
-
-        masks[maskcnt] = cur_mask;
-
-        maskcnt++;
-
-        masks = (char **) myrealloc (masks, maskcnt * sizeof (char *), sizeof (char *));
-      }
     }
   }
 
@@ -1846,17 +1536,15 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
     }
   }
 
-  hcstat_table_t *root_table_buf   = NULL;
-  hcstat_table_t *markov_table_buf = NULL;
-
   // still needed?
   // bool initial_restore_done = false;
 
-  data.maskcnt = maskcnt;
+  // still needed?
+  // mask_ctx->masks_cnt = maskcnt;
 
   restore_data_t *rd = restore_ctx->rd;
 
-  for (uint maskpos = rd->maskpos; maskpos < maskcnt; maskpos++)
+  for (uint masks_pos = rd->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
   {
     //opencl_ctx->run_main_level1   = true;
     //opencl_ctx->run_main_level2   = true;
@@ -1864,21 +1552,22 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
     opencl_ctx->run_thread_level1 = true;
     opencl_ctx->run_thread_level2 = true;
 
-    if (maskpos > rd->maskpos)
+    if (masks_pos > rd->masks_pos)
     {
       rd->dictpos = 0;
     }
 
-    rd->maskpos  = maskpos;
-    data.maskpos = maskpos;
+    rd->masks_pos = masks_pos;
+
+    mask_ctx->masks_pos = masks_pos;
 
     if (user_options->attack_mode == ATTACK_MODE_HYBRID1 || user_options->attack_mode == ATTACK_MODE_HYBRID2 || user_options->attack_mode == ATTACK_MODE_BF)
     {
-      char *mask = masks[maskpos];
+      mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-      if (mask_from_file == true)
+      if (mask_ctx->mask_from_file == true)
       {
-        if (mask[0] == '\\' && mask[1] == '#') mask++; // escaped comment sign (sharp) "\#"
+        if (mask_ctx->mask[0] == '\\' && mask_ctx->mask[1] == '#') mask_ctx->mask++; // escaped comment sign (sharp) "\#"
 
         char *str_ptr;
         uint  str_pos;
@@ -1889,17 +1578,17 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
         for (separator_cnt = 0; separator_cnt < 4; separator_cnt++)
         {
-          str_ptr = strstr (mask + mask_offset, ",");
+          str_ptr = strstr (mask_ctx->mask + mask_offset, ",");
 
           if (str_ptr == NULL) break;
 
-          str_pos = str_ptr - mask;
+          str_pos = str_ptr - mask_ctx->mask;
 
           // escaped separator, i.e. "\,"
 
           if (str_pos > 0)
           {
-            if (mask[str_pos - 1] == '\\')
+            if (mask_ctx->mask[str_pos - 1] == '\\')
             {
               separator_cnt --;
 
@@ -1913,40 +1602,44 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
           mask_offset = 0;
 
-          mask[str_pos] = '\0';
+          mask_ctx->mask[str_pos] = 0;
 
           switch (separator_cnt)
           {
             case 0:
-              mp_reset_usr (mp_usr, 0);
+              mp_reset_usr (mask_ctx->mp_usr, 0);
 
-              user_options->custom_charset_1 = mask;
-              mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
+              user_options->custom_charset_1 = mask_ctx->mask;
+
+              mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
               break;
 
             case 1:
-              mp_reset_usr (mp_usr, 1);
+              mp_reset_usr (mask_ctx->mp_usr, 1);
 
-              user_options->custom_charset_2 = mask;
-              mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
+              user_options->custom_charset_2 = mask_ctx->mask;
+
+              mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
               break;
 
             case 2:
-              mp_reset_usr (mp_usr, 2);
+              mp_reset_usr (mask_ctx->mp_usr, 2);
 
-              user_options->custom_charset_3 = mask;
-              mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
+              user_options->custom_charset_3 = mask_ctx->mask;
+
+              mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
               break;
 
             case 3:
-              mp_reset_usr (mp_usr, 3);
+              mp_reset_usr (mask_ctx->mp_usr, 3);
 
-              user_options->custom_charset_4 = mask;
-              mp_setup_usr (mp_sys, mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
+              user_options->custom_charset_4 = mask_ctx->mask;
+
+              mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
               break;
           }
 
-          mask = mask + str_pos + 1;
+          mask_ctx->mask += str_pos + 1;
         }
 
         /**
@@ -1957,14 +1650,14 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
          * Note: "\\" is not needed to replace all "\" within the mask! The meaning of "\\" within a line containing the string "\\," is just to allow "\" followed by ","
          */
 
-        uint mask_len_cur = strlen (mask);
+        uint mask_len_cur = strlen (mask_ctx->mask);
 
         uint mask_out_pos = 0;
         char mask_prev = 0;
 
         for (uint mask_iter = 0; mask_iter < mask_len_cur; mask_iter++, mask_out_pos++)
         {
-          if (mask[mask_iter] == ',')
+          if (mask_ctx->mask[mask_iter] == ',')
           {
             if (mask_prev == '\\')
             {
@@ -1972,52 +1665,25 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
             }
           }
 
-          mask_prev = mask[mask_iter];
+          mask_prev = mask_ctx->mask[mask_iter];
 
-          mask[mask_out_pos] = mask[mask_iter];
+          mask_ctx->mask[mask_out_pos] = mask_ctx->mask[mask_iter];
         }
 
-        mask[mask_out_pos] = '\0';
+        mask_ctx->mask[mask_out_pos] = 0;
       }
 
       if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
       {
-        if (maskpos > 0)
-        {
-          local_free (css_buf);
-          local_free (data.root_css_buf);
-          local_free (data.markov_css_buf);
-
-          local_free (masks[maskpos - 1]);
-        }
-
-        css_buf = mp_gen_css (mask, strlen (mask), mp_sys, mp_usr, &css_cnt, hashconfig, user_options);
-
-        data.mask = mask;
-        data.css_cnt = css_cnt;
-        data.css_buf = css_buf;
+        mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
 
         uint uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
 
-        mp_css_to_uniq_tbl (css_cnt, css_buf, uniq_tbls);
+        mp_css_to_uniq_tbl (mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-        if (root_table_buf   == NULL) root_table_buf   = (hcstat_table_t *) mycalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
-        if (markov_table_buf == NULL) markov_table_buf = (hcstat_table_t *) mycalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
+        sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
 
-        sp_setup_tbl (folder_config->shared_dir, user_options->markov_hcstat, user_options->markov_disable, user_options->markov_classic, root_table_buf, markov_table_buf);
-
-        cs_t *root_css_buf   = (cs_t *) mycalloc (SP_PW_MAX,           sizeof (cs_t));
-        cs_t *markov_css_buf = (cs_t *) mycalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
-
-        data.root_css_buf   = root_css_buf;
-        data.markov_css_buf = markov_css_buf;
-
-        sp_tbl_to_css (root_table_buf, markov_table_buf, root_css_buf, markov_css_buf, user_options->markov_threshold, uniq_tbls);
-
-        data.combs_cnt = sp_get_sum (0, css_cnt, root_css_buf);
-
-        local_free (root_table_buf);
-        local_free (markov_table_buf);
+        data.combs_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
 
         // args
 
@@ -2032,7 +1698,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
           device_param->kernel_params_mp[2] = &device_param->d_markov_css_buf;
 
           device_param->kernel_params_mp_buf64[3] = 0;
-          device_param->kernel_params_mp_buf32[4] = css_cnt;
+          device_param->kernel_params_mp_buf32[4] = mask_ctx->css_cnt;
           device_param->kernel_params_mp_buf32[5] = 0;
           device_param->kernel_params_mp_buf32[6] = 0;
           device_param->kernel_params_mp_buf32[7] = 0;
@@ -2064,8 +1730,8 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
             return -1;
           }
 
-          CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   root_css_buf,   0, NULL, NULL);
-          CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, markov_css_buf, 0, NULL, NULL);
+          CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL);
+          CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL);
 
           if (CL_err != CL_SUCCESS)
           {
@@ -2077,38 +1743,215 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
       }
       else if (user_options->attack_mode == ATTACK_MODE_BF)
       {
-        dictcnt = 0;  // number of "sub-masks", i.e. when using incremental mode
+        mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
 
-        if (user_options->increment == true)
+        if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
         {
-          for (uint i = 0; i < dictcnt; i++)
+          u32 css_cnt_unicode = mask_ctx->css_cnt * 2;
+
+          cs_t *css_buf_unicode = (cs_t *) mycalloc (css_cnt_unicode, sizeof (cs_t));
+
+          for (uint i = 0, j = 0; i < mask_ctx->css_cnt; i += 1, j += 2)
           {
-            local_free (dictfiles[i]);
+            memcpy (&css_buf_unicode[j + 0], &mask_ctx->css_buf[i], sizeof (cs_t));
+
+            css_buf_unicode[j + 1].cs_buf[0] = 0;
+            css_buf_unicode[j + 1].cs_len    = 1;
           }
 
-          for (uint pw_len = MAX (1, pw_min); pw_len <= pw_max; pw_len++)
+          myfree (mask_ctx->css_buf);
+
+          mask_ctx->css_buf = css_buf_unicode;
+          mask_ctx->css_cnt = css_cnt_unicode;
+        }
+
+        // check if mask is not too large or too small for pw_min/pw_max  (*2 if unicode)
+
+        uint mask_min = pw_min;
+        uint mask_max = pw_max;
+
+        if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
+        {
+          mask_min *= 2;
+          mask_max *= 2;
+        }
+
+        if ((mask_ctx->css_cnt < mask_min) || (mask_ctx->css_cnt > mask_max))
+        {
+          if (mask_ctx->css_cnt < mask_min)
           {
-            char *l1_filename = mp_get_truncated_mask (mask, strlen (mask), pw_len, user_options);
+            log_info ("WARNING: Skipping mask '%s' because it is smaller than the minimum password length", mask_ctx->mask);
+          }
 
-            if (l1_filename == NULL) break;
+          if (mask_ctx->css_cnt > mask_max)
+          {
+            log_info ("WARNING: Skipping mask '%s' because it is larger than the maximum password length", mask_ctx->mask);
+          }
 
-            dictcnt++;
+          // skip to next mask
 
-            dictfiles[dictcnt - 1] = l1_filename;
+          logfile_sub_msg ("STOP");
+
+          continue;
+        }
+
+        u32 css_cnt_orig = mask_ctx->css_cnt;
+
+        if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
+        {
+          if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
+          {
+            uint  salt_len = (uint)   hashes->salts_buf[0].salt_len;
+            char *salt_buf = (char *) hashes->salts_buf[0].salt_buf;
+
+            uint css_cnt_salt = mask_ctx->css_cnt + salt_len;
+
+            cs_t *css_buf_salt = (cs_t *) mycalloc (css_cnt_salt, sizeof (cs_t));
+
+            memcpy (css_buf_salt, mask_ctx->css_buf, mask_ctx->css_cnt * sizeof (cs_t));
+
+            for (uint i = 0, j = mask_ctx->css_cnt; i < salt_len; i++, j++)
+            {
+              css_buf_salt[j].cs_buf[0] = salt_buf[i];
+              css_buf_salt[j].cs_len    = 1;
+            }
+
+            myfree (mask_ctx->css_buf);
+
+            mask_ctx->css_buf = css_buf_salt;
+            mask_ctx->css_cnt = css_cnt_salt;
+          }
+        }
+
+        uint uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
+
+        mp_css_to_uniq_tbl (mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
+
+        sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+
+        data.words_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
+
+        // copy + args
+
+        uint css_cnt_l = mask_ctx->css_cnt;
+        uint css_cnt_r;
+
+        if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+        {
+          if (css_cnt_orig < 6)
+          {
+            css_cnt_r = 1;
+          }
+          else if (css_cnt_orig == 6)
+          {
+            css_cnt_r = 2;
+          }
+          else
+          {
+            if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
+            {
+              if (css_cnt_orig == 8 || css_cnt_orig == 10)
+              {
+                css_cnt_r = 2;
+              }
+              else
+              {
+                css_cnt_r = 4;
+              }
+            }
+            else
+            {
+              if ((mask_ctx->css_buf[0].cs_len * mask_ctx->css_buf[1].cs_len * mask_ctx->css_buf[2].cs_len) > 256)
+              {
+                css_cnt_r = 3;
+              }
+              else
+              {
+                css_cnt_r = 4;
+              }
+            }
           }
         }
         else
         {
-          dictcnt++;
+          css_cnt_r = 1;
 
-          dictfiles[dictcnt - 1] = mask;
+          /* unfinished code?
+          int sum = css_buf[css_cnt_r - 1].cs_len;
+
+          for (uint i = 1; i < 4 && i < css_cnt; i++)
+          {
+            if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
+
+            css_cnt_r++;
+
+            sum *= css_buf[css_cnt_r - 1].cs_len;
+          }
+          */
         }
 
-        if (dictcnt == 0)
-        {
-          log_error ("ERROR: Mask is too small");
+        css_cnt_l -= css_cnt_r;
 
-          return -1;
+        mask_ctx->bfs_cnt = sp_get_sum (0, css_cnt_r, mask_ctx->root_css_buf);
+
+        for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+        {
+          hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+          if (device_param->skipped) continue;
+
+          device_param->kernel_params_mp_l[0] = &device_param->d_pws_buf;
+          device_param->kernel_params_mp_l[1] = &device_param->d_root_css_buf;
+          device_param->kernel_params_mp_l[2] = &device_param->d_markov_css_buf;
+
+          device_param->kernel_params_mp_l_buf64[3] = 0;
+          device_param->kernel_params_mp_l_buf32[4] = css_cnt_l;
+          device_param->kernel_params_mp_l_buf32[5] = css_cnt_r;
+          device_param->kernel_params_mp_l_buf32[6] = 0;
+          device_param->kernel_params_mp_l_buf32[7] = 0;
+          device_param->kernel_params_mp_l_buf32[8] = 0;
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_l_buf32[6] = full01;
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_l_buf32[6] = full80;
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_l_buf32[7] = 1;
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_l_buf32[8] = 1;
+
+          device_param->kernel_params_mp_r[0] = &device_param->d_bfs;
+          device_param->kernel_params_mp_r[1] = &device_param->d_root_css_buf;
+          device_param->kernel_params_mp_r[2] = &device_param->d_markov_css_buf;
+
+          device_param->kernel_params_mp_r_buf64[3] = 0;
+          device_param->kernel_params_mp_r_buf32[4] = css_cnt_r;
+          device_param->kernel_params_mp_r_buf32[5] = 0;
+          device_param->kernel_params_mp_r_buf32[6] = 0;
+          device_param->kernel_params_mp_r_buf32[7] = 0;
+
+          cl_int CL_err = CL_SUCCESS;
+
+          for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_l[i]);
+          for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
+          for (uint i = 4; i < 9; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
+
+          for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_r[i]);
+          for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]);
+          for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
+
+          CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL);
+          CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS)
+          {
+            log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+            return -1;
+          }
         }
       }
     }
@@ -2125,7 +1968,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
     if (user_options->skip != 0 || user_options->limit != 0)
     {
-      if ((maskcnt > 1) || (dictcnt > 1))
+      if ((mask_ctx->masks_cnt > 1) || (dictcnt > 1))
       {
         log_error ("ERROR: --skip/--limit are not supported with --increment or mask files");
 
@@ -2139,7 +1982,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
     if (user_options->keyspace == true)
     {
-      if ((maskcnt > 1) || (dictcnt > 1))
+      if ((mask_ctx->masks_cnt > 1) || (dictcnt > 1))
       {
         log_error ("ERROR: --keyspace is not supported with --increment or mask files");
 
@@ -2333,10 +2176,8 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
         data.dictfile = dictfile;
 
-        char *mask = data.mask;
-
         logfile_sub_string (dictfile);
-        logfile_sub_string (mask);
+        logfile_sub_string (mask_ctx->mask);
 
         FILE *fd2 = fopen (dictfile, "rb");
 
@@ -2360,246 +2201,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
       }
       else if (user_options->attack_mode == ATTACK_MODE_BF)
       {
-        local_free (css_buf);
-        local_free (data.root_css_buf);
-        local_free (data.markov_css_buf);
-
-        char *mask = dictfiles[dictpos];
-
-        logfile_sub_string (mask);
-
-        // base
-
-        css_buf = mp_gen_css (mask, strlen (mask), mp_sys, mp_usr, &css_cnt, hashconfig, user_options);
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
-        {
-          uint css_cnt_unicode = css_cnt * 2;
-
-          cs_t *css_buf_unicode = (cs_t *) mycalloc (css_cnt_unicode, sizeof (cs_t));
-
-          for (uint i = 0, j = 0; i < css_cnt; i += 1, j += 2)
-          {
-            memcpy (&css_buf_unicode[j + 0], &css_buf[i], sizeof (cs_t));
-
-            css_buf_unicode[j + 1].cs_buf[0] = 0;
-            css_buf_unicode[j + 1].cs_len    = 1;
-          }
-
-          free (css_buf);
-
-          css_buf = css_buf_unicode;
-          css_cnt = css_cnt_unicode;
-        }
-
-        // check if mask is not too large or too small for pw_min/pw_max  (*2 if unicode)
-
-        uint mask_min = pw_min;
-        uint mask_max = pw_max;
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
-        {
-          mask_min *= 2;
-          mask_max *= 2;
-        }
-
-        if ((css_cnt < mask_min) || (css_cnt > mask_max))
-        {
-          if (css_cnt < mask_min)
-          {
-            log_info ("WARNING: Skipping mask '%s' because it is smaller than the minimum password length", mask);
-          }
-
-          if (css_cnt > mask_max)
-          {
-            log_info ("WARNING: Skipping mask '%s' because it is larger than the maximum password length", mask);
-          }
-
-          // skip to next mask
-
-          logfile_sub_msg ("STOP");
-
-          continue;
-        }
-
-        uint save_css_cnt = css_cnt;
-
-        if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
-        {
-          if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
-          {
-            uint  salt_len = (uint)   hashes->salts_buf[0].salt_len;
-            char *salt_buf = (char *) hashes->salts_buf[0].salt_buf;
-
-            uint css_cnt_salt = css_cnt + salt_len;
-
-            cs_t *css_buf_salt = (cs_t *) mycalloc (css_cnt_salt, sizeof (cs_t));
-
-            memcpy (css_buf_salt, css_buf, css_cnt * sizeof (cs_t));
-
-            for (uint i = 0, j = css_cnt; i < salt_len; i++, j++)
-            {
-              css_buf_salt[j].cs_buf[0] = salt_buf[i];
-              css_buf_salt[j].cs_len    = 1;
-            }
-
-            free (css_buf);
-
-            css_buf = css_buf_salt;
-            css_cnt = css_cnt_salt;
-          }
-        }
-
-        data.mask = mask;
-        data.css_cnt = css_cnt;
-        data.css_buf = css_buf;
-
-        if (maskpos > 0 && dictpos == 0) free (masks[maskpos - 1]);
-
-        uint uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
-
-        mp_css_to_uniq_tbl (css_cnt, css_buf, uniq_tbls);
-
-        if (root_table_buf   == NULL) root_table_buf   = (hcstat_table_t *) mycalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
-        if (markov_table_buf == NULL) markov_table_buf = (hcstat_table_t *) mycalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
-
-        sp_setup_tbl (folder_config->shared_dir, user_options->markov_hcstat, user_options->markov_disable, user_options->markov_classic, root_table_buf, markov_table_buf);
-
-        cs_t *root_css_buf   = (cs_t *) mycalloc (SP_PW_MAX,           sizeof (cs_t));
-        cs_t *markov_css_buf = (cs_t *) mycalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
-
-        data.root_css_buf   = root_css_buf;
-        data.markov_css_buf = markov_css_buf;
-
-        sp_tbl_to_css (root_table_buf, markov_table_buf, root_css_buf, markov_css_buf, user_options->markov_threshold, uniq_tbls);
-
-        data.words_cnt = sp_get_sum (0, css_cnt, root_css_buf);
-
-        local_free (root_table_buf);
-        local_free (markov_table_buf);
-
-        // copy + args
-
-        uint css_cnt_l = css_cnt;
-        uint css_cnt_r;
-
-        if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-        {
-          if (save_css_cnt < 6)
-          {
-            css_cnt_r = 1;
-          }
-          else if (save_css_cnt == 6)
-          {
-            css_cnt_r = 2;
-          }
-          else
-          {
-            if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
-            {
-              if (save_css_cnt == 8 || save_css_cnt == 10)
-              {
-                css_cnt_r = 2;
-              }
-              else
-              {
-                css_cnt_r = 4;
-              }
-            }
-            else
-            {
-              if ((css_buf[0].cs_len * css_buf[1].cs_len * css_buf[2].cs_len) > 256)
-              {
-                css_cnt_r = 3;
-              }
-              else
-              {
-                css_cnt_r = 4;
-              }
-            }
-          }
-        }
-        else
-        {
-          css_cnt_r = 1;
-
-          /* unfinished code?
-          int sum = css_buf[css_cnt_r - 1].cs_len;
-
-          for (uint i = 1; i < 4 && i < css_cnt; i++)
-          {
-            if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
-
-            css_cnt_r++;
-
-            sum *= css_buf[css_cnt_r - 1].cs_len;
-          }
-          */
-        }
-
-        css_cnt_l -= css_cnt_r;
-
-        data.bfs_cnt = sp_get_sum (0, css_cnt_r, root_css_buf);
-
-        for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-        {
-          hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-          if (device_param->skipped) continue;
-
-          device_param->kernel_params_mp_l[0] = &device_param->d_pws_buf;
-          device_param->kernel_params_mp_l[1] = &device_param->d_root_css_buf;
-          device_param->kernel_params_mp_l[2] = &device_param->d_markov_css_buf;
-
-          device_param->kernel_params_mp_l_buf64[3] = 0;
-          device_param->kernel_params_mp_l_buf32[4] = css_cnt_l;
-          device_param->kernel_params_mp_l_buf32[5] = css_cnt_r;
-          device_param->kernel_params_mp_l_buf32[6] = 0;
-          device_param->kernel_params_mp_l_buf32[7] = 0;
-          device_param->kernel_params_mp_l_buf32[8] = 0;
-
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_l_buf32[6] = full01;
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_l_buf32[6] = full80;
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_l_buf32[7] = 1;
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_l_buf32[8] = 1;
-
-          device_param->kernel_params_mp_r[0] = &device_param->d_bfs;
-          device_param->kernel_params_mp_r[1] = &device_param->d_root_css_buf;
-          device_param->kernel_params_mp_r[2] = &device_param->d_markov_css_buf;
-
-          device_param->kernel_params_mp_r_buf64[3] = 0;
-          device_param->kernel_params_mp_r_buf32[4] = css_cnt_r;
-          device_param->kernel_params_mp_r_buf32[5] = 0;
-          device_param->kernel_params_mp_r_buf32[6] = 0;
-          device_param->kernel_params_mp_r_buf32[7] = 0;
-
-          cl_int CL_err = CL_SUCCESS;
-
-          for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_l[i]);
-          for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
-          for (uint i = 4; i < 9; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
-
-          for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_r[i]);
-          for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]);
-          for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]);
-
-          if (CL_err != CL_SUCCESS)
-          {
-            log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
-
-            return -1;
-          }
-
-          CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   root_css_buf,   0, NULL, NULL);
-          CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, markov_css_buf, 0, NULL, NULL);
-
-          if (CL_err != CL_SUCCESS)
-          {
-            log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
-
-            return -1;
-          }
-        }
+        logfile_sub_string (mask_ctx->mask);
       }
 
       u64 words_base = data.words_cnt;
@@ -2620,9 +2222,9 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
       {
-        if (data.bfs_cnt)
+        if (mask_ctx->bfs_cnt)
         {
-          words_base /= data.bfs_cnt;
+          words_base /= mask_ctx->bfs_cnt;
         }
       }
 
@@ -2662,7 +2264,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
         {
           for (uint i = 0; i < hashes->salts_cnt; i++)
           {
-            data.words_progress_restored[i] = data.words_cur * data.bfs_cnt;
+            data.words_progress_restored[i] = data.words_cur * mask_ctx->bfs_cnt;
           }
         }
       }
@@ -2700,7 +2302,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
           {
             if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = rules_ctx->kernel_rules_cnt;
             else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = data.combs_cnt;
-            else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = data.bfs_cnt;
+            else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = mask_ctx->bfs_cnt;
           }
           else
           {
@@ -2863,7 +2465,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
         {
           clear_prompt ();
 
-          status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx);
+          status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx, mask_ctx);
 
           log_info ("");
         }
@@ -2871,7 +2473,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
         {
           if (user_options->status == true)
           {
-            status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx);
+            status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx, mask_ctx);
 
             log_info ("");
           }
@@ -2946,11 +2548,11 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
-    if (data.mask == NULL)
+    if (mask_ctx->mask == NULL)
     {
       hc_timer_set (&data.timer_running);
 
-      data.mask = masks[0];
+      mask_ctx->mask = mask_ctx->masks[0];
     }
   }
 
@@ -3166,18 +2768,15 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   bitmap_ctx_destroy (bitmap_ctx);
 
+  mask_ctx_destroy (mask_ctx);
+
   hashes_destroy (hashes);
 
   hashconfig_destroy (hashconfig);
 
-  local_free (masks);
-
   local_free (od_clock_mem_status);
   local_free (od_power_control_status);
   local_free (nvml_power_limit);
-
-  global_free (root_css_buf);
-  global_free (markov_css_buf);
 
   global_free (words_progress_done);
   global_free (words_progress_rejected);

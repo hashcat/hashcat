@@ -255,7 +255,6 @@ int user_options_parse (user_options_t *user_options, int argc, char **argv)
     user_options->restore             = false;
     user_options->restore_disable     = true;
     user_options->restore_timer       = 0;
-    user_options->markov_disable      = true;
     user_options->logfile_disable     = true;
     user_options->weak_hash_threshold = 0;
     user_options->nvidia_spin_damp    = 0;
@@ -268,6 +267,7 @@ int user_options_parse (user_options_t *user_options, int argc, char **argv)
   {
     user_options->session             = "benchmark";
     user_options->attack_mode         = ATTACK_MODE_BF;
+    user_options->increment           = false;
 
     if (user_options->workload_profile_chgd == false)
     {
@@ -867,6 +867,26 @@ int user_options_extra_init (user_options_t *user_options, restore_ctx_t *restor
     else if (user_options->outfile)             user_options->status = true;
   }
   */
+
+  // default mask
+
+  if (user_options->benchmark == false)
+  {
+    if ((user_options_extra->optind + 2) <= restore_ctx->argc)
+    {
+      // user provides mask
+    }
+    else
+    {
+      // prepare default mask charset
+
+      user_options->custom_charset_1 = (char *) "?l?d?u";
+      user_options->custom_charset_2 = (char *) "?l?d";
+      user_options->custom_charset_3 = (char *) "?l?d*!$@_";
+
+      user_options->increment = true;
+    }
+  }
 
   return 0;
 }

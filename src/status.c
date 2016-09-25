@@ -164,7 +164,7 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
   return exec_ms_sum / exec_ms_cnt;
 }
 
-void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx)
+void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx, const mask_ctx_t *mask_ctx)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -257,7 +257,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
 
     if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= rules_ctx->kernel_rules_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= mask_ctx->bfs_cnt;
   }
 
   if (user_options->limit)
@@ -266,7 +266,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
 
     if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= rules_ctx->kernel_rules_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_end  *= mask_ctx->bfs_cnt;
   }
 
   u64 progress_cur_relative_skip = progress_cur - progress_skip;
@@ -313,7 +313,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
   fflush (out);
 }
 
-void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx)
+void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx, const mask_ctx_t *mask_ctx)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -327,7 +327,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
   if (user_options->machine_readable == true)
   {
-    status_display_machine_readable (opencl_ctx, hashes, restore_ctx, user_options, user_options_extra, rules_ctx);
+    status_display_machine_readable (opencl_ctx, hashes, restore_ctx, user_options, user_options_extra, rules_ctx, mask_ctx);
 
     return;
   }
@@ -403,11 +403,11 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
-    char *mask = data.mask;
+    char *mask = mask_ctx->mask;
 
     if (mask != NULL)
     {
-      uint mask_len = data.css_cnt;
+      uint mask_len = mask_ctx->css_cnt;
 
       tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "Mask (%s)", mask);
 
@@ -426,9 +426,9 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
         tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " [%i]", mask_len);
       }
 
-      if (data.maskcnt > 1)
+      if (mask_ctx->masks_cnt > 1)
       {
-        double mask_percentage = (double) data.maskpos / (double) data.maskcnt;
+        double mask_percentage = (double) mask_ctx->masks_pos / (double) mask_ctx->masks_cnt;
 
         tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " (%.02f%%)", mask_percentage * 100);
       }
@@ -450,8 +450,8 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
-    if (data.dictfile != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
-    if (data.mask     != NULL) log_info ("Input.Right....: Mask (%s) [%i]", data.mask, data.css_cnt);
+    if (data.dictfile  != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
+    if (mask_ctx->mask != NULL) log_info ("Input.Right....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
 
     if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
     {
@@ -465,7 +465,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (data.mask     != NULL) log_info ("Input.Left.....: Mask (%s) [%i]", data.mask, data.css_cnt);
+    if (mask_ctx->mask     != NULL) log_info ("Input.Left.....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
     if (data.dictfile != NULL) log_info ("Input.Right....: File (%s)", data.dictfile);
 
     if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
@@ -730,7 +730,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
     if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= rules_ctx->kernel_rules_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= data.combs_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= data.bfs_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= mask_ctx->bfs_cnt;
   }
 
   if (user_options->limit)
@@ -739,7 +739,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
     if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= rules_ctx->kernel_rules_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_end  *= data.combs_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_end  *= data.bfs_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_end  *= mask_ctx->bfs_cnt;
   }
 
   u64 progress_cur_relative_skip = progress_cur - progress_skip;

@@ -1542,7 +1542,7 @@ void  hashconfig_destroy             (hashconfig_t *hashconfig);
 uint  hashconfig_general_pw_min      (hashconfig_t *hashconfig);
 uint  hashconfig_general_pw_max      (hashconfig_t *hashconfig);
 void  hashconfig_general_defaults    (hashconfig_t *hashconfig, hashes_t *hashes, const user_options_t *user_options);
-void  hashconfig_benchmark_defaults  (hashconfig_t *hashconfig, salt_t *salt, void *esalt);
-char *hashconfig_benchmark_mask      (hashconfig_t *hashconfig);
+void  hashconfig_benchmark_defaults  (const hashconfig_t *hashconfig, salt_t *salt, void *esalt);
+char *hashconfig_benchmark_mask      (const hashconfig_t *hashconfig);
 
 #endif // _INTERFACE_H

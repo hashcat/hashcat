@@ -121,6 +121,7 @@ void *thread_calc_stdin (void *p)
   hashes_t             *hashes             = data.hashes;
   rules_ctx_t          *rules_ctx          = data.rules_ctx;
   opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
+  mask_ctx_t           *mask_ctx           = data.mask_ctx;
 
   char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -211,7 +212,7 @@ void *thread_calc_stdin (void *p)
     {
       run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, pws_cnt);
 
-      run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, rules_ctx, pws_cnt);
+      run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, rules_ctx, mask_ctx, pws_cnt);
 
       device_param->pws_cnt = 0;
 
@@ -247,8 +248,9 @@ void *thread_calc (void *p)
   user_options_extra_t *user_options_extra = data.user_options_extra;
   hashconfig_t         *hashconfig         = data.hashconfig;
   hashes_t             *hashes             = data.hashes;
-  rules_ctx_t          *rules_ctx          = data.rules_ctx;
   opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
+  rules_ctx_t          *rules_ctx          = data.rules_ctx;
+  mask_ctx_t           *mask_ctx           = data.mask_ctx;
 
   const uint attack_mode = user_options->attack_mode;
   const uint attack_kern = user_options_extra->attack_kern;
@@ -272,7 +274,7 @@ void *thread_calc (void *p)
       {
         run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, pws_cnt);
 
-        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, rules_ctx, pws_cnt);
+        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, rules_ctx, mask_ctx, pws_cnt);
 
         device_param->pws_cnt = 0;
 
@@ -464,7 +466,7 @@ void *thread_calc (void *p)
       {
         run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, pws_cnt);
 
-        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, rules_ctx, pws_cnt);
+        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, rules_ctx, mask_ctx, pws_cnt);
 
         device_param->pws_cnt = 0;
 

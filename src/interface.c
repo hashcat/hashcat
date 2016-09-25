@@ -20080,7 +20080,7 @@ void hashconfig_general_defaults (hashconfig_t *hashconfig, hashes_t *hashes, co
   }
 }
 
-void hashconfig_benchmark_defaults (hashconfig_t *hashconfig, salt_t *salt, void *esalt)
+void hashconfig_benchmark_defaults (const hashconfig_t *hashconfig, salt_t *salt, void *esalt)
 {
   if (hashconfig->is_salted)
   {
@@ -20393,7 +20393,7 @@ void hashconfig_benchmark_defaults (hashconfig_t *hashconfig, salt_t *salt, void
   }
 }
 
-char *hashconfig_benchmark_mask (hashconfig_t *hashconfig)
+char *hashconfig_benchmark_mask (const hashconfig_t *hashconfig)
 {
   char *mask = "?b?b?b?b?b?b?b";
 
