@@ -31,4 +31,6 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);
 int rules_ctx_init (rules_ctx_t *rules_ctx, const user_options_t *user_options);
 void rules_ctx_destroy (rules_ctx_t *rules_ctx);
 
+bool rules_ctx_has_noop (rules_ctx_t *rules_ctx);
+
 #endif // _RP_H

@@ -918,3 +918,16 @@ void rules_ctx_destroy (rules_ctx_t *rules_ctx)
 
   myfree (rules_ctx);
 }
+
+bool rules_ctx_has_noop (rules_ctx_t *rules_ctx)
+{
+  for (uint kernel_rules_pos = 0; kernel_rules_pos < rules_ctx->kernel_rules_cnt; kernel_rules_pos++)
+  {
+    if (rules_ctx->kernel_rules_buf[kernel_rules_pos].cmds[0] != RULE_OP_MANGLE_NOOP) continue;
+    if (rules_ctx->kernel_rules_buf[kernel_rules_pos].cmds[1] != 0)                   continue;
+
+    return true;
+  }
+
+  return false;
+}

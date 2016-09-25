@@ -385,17 +385,9 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
    * If we have a NOOP rule then we can process words from wordlists > length 32 for slow hashes
    */
 
-  int has_noop = 0;
+  const bool has_noop = rules_ctx_has_noop (rules_ctx);
 
-  for (uint kernel_rules_pos = 0; kernel_rules_pos < rules_ctx->kernel_rules_cnt; kernel_rules_pos++)
-  {
-    if (rules_ctx->kernel_rules_buf[kernel_rules_pos].cmds[0] != RULE_OP_MANGLE_NOOP) continue;
-    if (rules_ctx->kernel_rules_buf[kernel_rules_pos].cmds[1] != 0)                   continue;
-
-    has_noop = 1;
-  }
-
-  if (has_noop == 0)
+  if (has_noop == false)
   {
     switch (user_options_extra->attack_kern)
     {
@@ -3309,6 +3301,13 @@ int main (int argc, char **argv)
   setup_seeding (user_options, &proc_start);
 
   /**
+   * Inform user things getting started,
+   * - this is giving us a visual header before preparations start, so we do not need to clear them afterwards
+   */
+
+  welcome_screen (user_options, &proc_start);
+
+  /**
    * logfile init
    */
 
@@ -3323,13 +3322,6 @@ int main (int argc, char **argv)
   logfile_top_msg ("START");
 
   user_options_logger (user_options, logfile_ctx);
-
-  /**
-   * Inform user things getting started,
-   * - this is giving us a visual header before preparations start, so we do not need to clear them afterwards
-   */
-
-  welcome_screen (user_options, &proc_start);
 
   /**
    * tuning db
