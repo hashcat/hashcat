@@ -1844,189 +1844,12 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   if (rc_mask_init == -1) return -1;
 
   /**
-   * HM devices: init
-   */
-
-  hm_attrs_t hm_adapters_adl[DEVICES_MAX];
-  hm_attrs_t hm_adapters_nvapi[DEVICES_MAX];
-  hm_attrs_t hm_adapters_nvml[DEVICES_MAX];
-  hm_attrs_t hm_adapters_xnvctrl[DEVICES_MAX];
-
-  memset (hm_adapters_adl,     0, sizeof (hm_adapters_adl));
-  memset (hm_adapters_nvapi,   0, sizeof (hm_adapters_nvapi));
-  memset (hm_adapters_nvml,    0, sizeof (hm_adapters_nvml));
-  memset (hm_adapters_xnvctrl, 0, sizeof (hm_adapters_xnvctrl));
-
-  if (user_options->gpu_temp_disable == false)
-  {
-    ADL_PTR     *adl     = (ADL_PTR *)     mymalloc (sizeof (ADL_PTR));
-    NVAPI_PTR   *nvapi   = (NVAPI_PTR *)   mymalloc (sizeof (NVAPI_PTR));
-    NVML_PTR    *nvml    = (NVML_PTR *)    mymalloc (sizeof (NVML_PTR));
-    XNVCTRL_PTR *xnvctrl = (XNVCTRL_PTR *) mymalloc (sizeof (XNVCTRL_PTR));
-
-    data.hm_adl     = NULL;
-    data.hm_nvapi   = NULL;
-    data.hm_nvml    = NULL;
-    data.hm_xnvctrl = NULL;
-
-    if ((opencl_ctx->need_nvml == true) && (nvml_init (nvml) == 0))
-    {
-      data.hm_nvml = nvml;
-    }
-
-    if (data.hm_nvml)
-    {
-      if (hm_NVML_nvmlInit (data.hm_nvml) == NVML_SUCCESS)
-      {
-        HM_ADAPTER_NVML nvmlGPUHandle[DEVICES_MAX] = { 0 };
-
-        int tmp_in = hm_get_adapter_index_nvml (nvmlGPUHandle);
-
-        int tmp_out = 0;
-
-        for (int i = 0; i < tmp_in; i++)
-        {
-          hm_adapters_nvml[tmp_out++].nvml = nvmlGPUHandle[i];
-        }
-
-        for (int i = 0; i < tmp_out; i++)
-        {
-          unsigned int speed;
-
-          if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nvml, 0, hm_adapters_nvml[i].nvml, &speed) == NVML_SUCCESS) hm_adapters_nvml[i].fan_get_supported = 1;
-
-          // doesn't seem to create any advantages
-          //hm_NVML_nvmlDeviceSetComputeMode (data.hm_nvml, 1, hm_adapters_nvml[i].nvml, NVML_COMPUTEMODE_EXCLUSIVE_PROCESS);
-          //hm_NVML_nvmlDeviceSetGpuOperationMode (data.hm_nvml, 1, hm_adapters_nvml[i].nvml, NVML_GOM_ALL_ON);
-        }
-      }
-    }
-
-    if ((opencl_ctx->need_nvapi == true) && (nvapi_init (nvapi) == 0))
-    {
-      data.hm_nvapi = nvapi;
-    }
-
-    if (data.hm_nvapi)
-    {
-      if (hm_NvAPI_Initialize (data.hm_nvapi) == NVAPI_OK)
-      {
-        HM_ADAPTER_NVAPI nvGPUHandle[DEVICES_MAX] = { 0 };
-
-        int tmp_in = hm_get_adapter_index_nvapi (nvGPUHandle);
-
-        int tmp_out = 0;
-
-        for (int i = 0; i < tmp_in; i++)
-        {
-          hm_adapters_nvapi[tmp_out++].nvapi = nvGPUHandle[i];
-        }
-      }
-    }
-
-    if ((opencl_ctx->need_xnvctrl == true) && (xnvctrl_init (xnvctrl) == 0))
-    {
-      data.hm_xnvctrl = xnvctrl;
-    }
-
-    if (data.hm_xnvctrl)
-    {
-      if (hm_XNVCTRL_XOpenDisplay (data.hm_xnvctrl) == 0)
-      {
-        for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-        {
-          hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-          if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
-
-          hm_adapters_xnvctrl[device_id].xnvctrl = device_id;
-
-          int speed = 0;
-
-          if (get_fan_speed_current (data.hm_xnvctrl, device_id, &speed) == 0) hm_adapters_xnvctrl[device_id].fan_get_supported = 1;
-        }
-      }
-    }
-
-    if ((opencl_ctx->need_adl == true) && (adl_init (adl) == 0))
-    {
-      data.hm_adl = adl;
-    }
-
-    if (data.hm_adl)
-    {
-      if (hm_ADL_Main_Control_Create (data.hm_adl, ADL_Main_Memory_Alloc, 0) == ADL_OK)
-      {
-        // total number of adapters
-
-        int hm_adapters_num;
-
-        if (get_adapters_num_adl (data.hm_adl, &hm_adapters_num) != 0) return -1;
-
-        // adapter info
-
-        LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_adl (data.hm_adl, hm_adapters_num);
-
-        if (lpAdapterInfo == NULL) return -1;
-
-        // get a list (of ids of) valid/usable adapters
-
-        int num_adl_adapters = 0;
-
-        u32 *valid_adl_device_list = hm_get_list_valid_adl_adapters (hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
-
-        if (num_adl_adapters > 0)
-        {
-          hc_thread_mutex_lock (mux_hwmon);
-
-          // hm_get_opencl_busid_devid (hm_adapters_adl, devices_all_cnt, devices_all);
-
-          hm_get_adapter_index_adl (hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-
-          hm_get_overdrive_version  (data.hm_adl, hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-          hm_check_fanspeed_control (data.hm_adl, hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-
-          hc_thread_mutex_unlock (mux_hwmon);
-        }
-
-        myfree (valid_adl_device_list);
-        myfree (lpAdapterInfo);
-      }
-    }
-
-    if (data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl == NULL)
-    {
-      user_options->gpu_temp_disable = true;
-    }
-  }
-
-  /**
-   * OpenCL devices: allocate buffer for device specific information
-   */
-
-  ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (opencl_ctx->devices_cnt, sizeof (ADLOD6MemClockState));
-
-  int *od_power_control_status = (int *) mycalloc (opencl_ctx->devices_cnt, sizeof (int));
-
-  unsigned int *nvml_power_limit = (unsigned int *) mycalloc (opencl_ctx->devices_cnt, sizeof (unsigned int));
-
-  /**
    * Wordlist allocate buffer
    */
 
   wl_data_t *wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
 
   wl_data_init (wl_data, user_options, hashconfig);
-
-  /**
-   * User-defined GPU temp handling
-   */
-
-  if (user_options->gpu_temp_disable == true)
-  {
-    user_options->gpu_temp_abort  = 0;
-    user_options->gpu_temp_retain = 0;
-  }
 
   /**
    * enable custom signal handler(s)
@@ -2102,239 +1925,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
     if (user_options->quiet == false) log_info ("");
   }
 
-  /**
-   * HM devices: copy
-   */
-
-  if (user_options->gpu_temp_disable == false)
-  {
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-    {
-      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-      if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
-
-      if (device_param->skipped) continue;
-
-      const uint platform_devices_id = device_param->platform_devices_id;
-
-      if (device_param->device_vendor_id == VENDOR_ID_AMD)
-      {
-        data.hm_device[device_id].adl               = hm_adapters_adl[platform_devices_id].adl;
-        data.hm_device[device_id].nvapi             = 0;
-        data.hm_device[device_id].nvml              = 0;
-        data.hm_device[device_id].xnvctrl           = 0;
-        data.hm_device[device_id].od_version        = hm_adapters_adl[platform_devices_id].od_version;
-        data.hm_device[device_id].fan_get_supported = hm_adapters_adl[platform_devices_id].fan_get_supported;
-        data.hm_device[device_id].fan_set_supported = 0;
-      }
-
-      if (device_param->device_vendor_id == VENDOR_ID_NV)
-      {
-        data.hm_device[device_id].adl               = 0;
-        data.hm_device[device_id].nvapi             = hm_adapters_nvapi[platform_devices_id].nvapi;
-        data.hm_device[device_id].nvml              = hm_adapters_nvml[platform_devices_id].nvml;
-        data.hm_device[device_id].xnvctrl           = hm_adapters_xnvctrl[platform_devices_id].xnvctrl;
-        data.hm_device[device_id].od_version        = 0;
-        data.hm_device[device_id].fan_get_supported = hm_adapters_nvml[platform_devices_id].fan_get_supported;
-        data.hm_device[device_id].fan_set_supported = 0;
-      }
-    }
-  }
-
-  /**
-   * powertune on user request
-   */
-
-  if (user_options->powertune_enable == true)
-  {
-    hc_thread_mutex_lock (mux_hwmon);
-
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-    {
-      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-      if (device_param->skipped) continue;
-
-      if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
-      {
-        /**
-         * Temporary fix:
-         * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
-         * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
-         * were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
-         * Driver / ADL bug?
-         */
-
-        if (data.hm_device[device_id].od_version == 6)
-        {
-          int ADL_rc;
-
-          // check powertune capabilities first, if not available then skip device
-
-          int powertune_supported = 0;
-
-          if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (data.hm_adl, data.hm_device[device_id].adl, &powertune_supported)) != ADL_OK)
-          {
-            log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
-
-            return -1;
-          }
-
-          // first backup current value, we will restore it later
-
-          if (powertune_supported != 0)
-          {
-            // powercontrol settings
-
-            ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
-
-            if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_adl, data.hm_device[device_id].adl, &powertune)) == ADL_OK)
-            {
-              ADL_rc = hm_ADL_Overdrive_PowerControl_Get (data.hm_adl, data.hm_device[device_id].adl, &od_power_control_status[device_id]);
-            }
-
-            if (ADL_rc != ADL_OK)
-            {
-              log_error ("ERROR: Failed to get current ADL PowerControl settings");
-
-              return -1;
-            }
-
-            if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adl, powertune.iMaxValue)) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to set new ADL PowerControl values");
-
-              return -1;
-            }
-
-            // clocks
-
-            memset (&od_clock_mem_status[device_id], 0, sizeof (ADLOD6MemClockState));
-
-            od_clock_mem_status[device_id].state.iNumberOfPerformanceLevels = 2;
-
-            if ((ADL_rc = hm_ADL_Overdrive_StateInfo_Get (data.hm_adl, data.hm_device[device_id].adl, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to get ADL memory and engine clock frequency");
-
-              return -1;
-            }
-
-            // Query capabilities only to see if profiles were not "damaged", if so output a warning but do accept the users profile settings
-
-            ADLOD6Capabilities caps = {0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0, 0};
-
-            if ((ADL_rc = hm_ADL_Overdrive_Capabilities_Get (data.hm_adl, data.hm_device[device_id].adl, &caps)) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to get ADL device capabilities");
-
-              return -1;
-            }
-
-            int engine_clock_max =       (int) (0.6666 * caps.sEngineClockRange.iMax);
-            int memory_clock_max =       (int) (0.6250 * caps.sMemoryClockRange.iMax);
-
-            int warning_trigger_engine = (int) (0.25   * engine_clock_max);
-            int warning_trigger_memory = (int) (0.25   * memory_clock_max);
-
-            int engine_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
-            int memory_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
-
-            // warning if profile has too low max values
-
-            if ((engine_clock_max - engine_clock_profile_max) > warning_trigger_engine)
-            {
-              log_info ("WARN: The custom profile seems to have too low maximum engine clock values. You therefore may not reach full performance");
-            }
-
-            if ((memory_clock_max - memory_clock_profile_max) > warning_trigger_memory)
-            {
-              log_info ("WARN: The custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
-            }
-
-            ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
-
-            performance_state->iNumberOfPerformanceLevels = 2;
-
-            performance_state->aLevels[0].iEngineClock = engine_clock_profile_max;
-            performance_state->aLevels[1].iEngineClock = engine_clock_profile_max;
-            performance_state->aLevels[0].iMemoryClock = memory_clock_profile_max;
-            performance_state->aLevels[1].iMemoryClock = memory_clock_profile_max;
-
-            if ((ADL_rc = hm_ADL_Overdrive_State_Set (data.hm_adl, data.hm_device[device_id].adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
-            {
-              log_info ("ERROR: Failed to set ADL performance state");
-
-              return -1;
-            }
-
-            local_free (performance_state);
-          }
-
-          // set powertune value only
-
-          if (powertune_supported != 0)
-          {
-            // powertune set
-            ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
-
-            if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_adl, data.hm_device[device_id].adl, &powertune)) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to get current ADL PowerControl settings");
-
-              return -1;
-            }
-
-            if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adl, powertune.iMaxValue)) != ADL_OK)
-            {
-              log_error ("ERROR: Failed to set new ADL PowerControl values");
-
-              return -1;
-            }
-          }
-        }
-      }
-
-      if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
-      {
-        // first backup current value, we will restore it later
-
-        unsigned int limit;
-
-        bool powertune_supported = false;
-
-        if (hm_NVML_nvmlDeviceGetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].nvml, &limit) == NVML_SUCCESS)
-        {
-          powertune_supported = true;
-        }
-
-        // if backup worked, activate the maximum allowed
-
-        if (powertune_supported == true)
-        {
-          unsigned int minLimit;
-          unsigned int maxLimit;
-
-          if (hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (data.hm_nvml, 0, data.hm_device[device_id].nvml, &minLimit, &maxLimit) == NVML_SUCCESS)
-          {
-            if (maxLimit > 0)
-            {
-              if (hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].nvml, maxLimit) == NVML_SUCCESS)
-              {
-                // now we can be sure we need to reset later
-
-                nvml_power_limit[device_id] = limit;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    hc_thread_mutex_unlock (mux_hwmon);
-  }
-
   #if defined (DEBUG)
   if (user_options->benchmark == true) log_info ("Hashmode: %d", hashconfig->hash_mode);
   #endif
@@ -2352,73 +1942,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   opencl_session_begin (opencl_ctx, hashconfig, hashes, rules_ctx, user_options, user_options_extra, folder_config, bitmap_ctx, tuning_db);
 
   if (user_options->quiet == false) log_info_nn ("");
-
-  /**
-   * Store initial fanspeed if gpu_temp_retain is enabled
-   */
-
-  if (user_options->gpu_temp_disable == false)
-  {
-    if (user_options->gpu_temp_retain)
-    {
-      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-      {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-        if (device_param->skipped) continue;
-
-        hc_thread_mutex_lock (mux_hwmon);
-
-        if (data.hm_device[device_id].fan_get_supported == true)
-        {
-          const int fanspeed  = hm_get_fanspeed_with_device_id  (opencl_ctx, device_id);
-          const int fanpolicy = hm_get_fanpolicy_with_device_id (opencl_ctx, device_id);
-
-          // we also set it to tell the OS we take control over the fan and it's automatic controller
-          // if it was set to automatic. we do not control user-defined fanspeeds.
-
-          if (fanpolicy == 1)
-          {
-            data.hm_device[device_id].fan_set_supported = true;
-
-            int rc = -1;
-
-            if (device_param->device_vendor_id == VENDOR_ID_AMD)
-            {
-              rc = hm_set_fanspeed_with_device_id_adl (device_id, fanspeed, 1);
-            }
-            else if (device_param->device_vendor_id == VENDOR_ID_NV)
-            {
-              #if defined (__linux__)
-              rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
-              #endif
-
-              #if defined (_WIN)
-              rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, 1);
-              #endif
-            }
-
-            if (rc == 0)
-            {
-              data.hm_device[device_id].fan_set_supported = 1;
-            }
-            else
-            {
-              log_info ("WARNING: Failed to set initial fan speed for device #%u", device_id + 1);
-
-              data.hm_device[device_id].fan_set_supported = 0;
-            }
-          }
-          else
-          {
-            data.hm_device[device_id].fan_set_supported = 0;
-          }
-        }
-
-        hc_thread_mutex_unlock (mux_hwmon);
-      }
-    }
-  }
 
   /**
    * In benchmark-mode, inform user which algorithm is checked
@@ -2638,163 +2161,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
    * Clean up
    */
 
-  // reset default fan speed
-
-  if (user_options->gpu_temp_disable == false)
-  {
-    if (user_options->gpu_temp_retain)
-    {
-      hc_thread_mutex_lock (mux_hwmon);
-
-      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-      {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-        if (device_param->skipped) continue;
-
-        if (data.hm_device[device_id].fan_set_supported == true)
-        {
-          int rc = -1;
-
-          if (device_param->device_vendor_id == VENDOR_ID_AMD)
-          {
-            rc = hm_set_fanspeed_with_device_id_adl (device_id, 100, 0);
-          }
-          else if (device_param->device_vendor_id == VENDOR_ID_NV)
-          {
-            #if defined (__linux__)
-            rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE);
-            #endif
-
-            #if defined (_WIN)
-            rc = hm_set_fanspeed_with_device_id_nvapi (device_id, 100, 0);
-            #endif
-          }
-
-          if (rc == -1) log_info ("WARNING: Failed to restore default fan speed and policy for device #%", device_id + 1);
-        }
-      }
-
-      hc_thread_mutex_unlock (mux_hwmon);
-    }
-  }
-
-  // reset power tuning
-
-  if (user_options->powertune_enable == true)
-  {
-    hc_thread_mutex_lock (mux_hwmon);
-
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-    {
-      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-      if (device_param->skipped) continue;
-
-      if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
-      {
-        if (data.hm_device[device_id].od_version == 6)
-        {
-          // check powertune capabilities first, if not available then skip device
-
-          int powertune_supported = 0;
-
-          if ((hm_ADL_Overdrive6_PowerControl_Caps (data.hm_adl, data.hm_device[device_id].adl, &powertune_supported)) != ADL_OK)
-          {
-            log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
-
-            return -1;
-          }
-
-          if (powertune_supported != 0)
-          {
-            // powercontrol settings
-
-            if ((hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adl, od_power_control_status[device_id])) != ADL_OK)
-            {
-              log_info ("ERROR: Failed to restore the ADL PowerControl values");
-
-              return -1;
-            }
-
-            // clocks
-
-            ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
-
-            performance_state->iNumberOfPerformanceLevels = 2;
-
-            performance_state->aLevels[0].iEngineClock = od_clock_mem_status[device_id].state.aLevels[0].iEngineClock;
-            performance_state->aLevels[1].iEngineClock = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
-            performance_state->aLevels[0].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[0].iMemoryClock;
-            performance_state->aLevels[1].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
-
-            if ((hm_ADL_Overdrive_State_Set (data.hm_adl, data.hm_device[device_id].adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
-            {
-              log_info ("ERROR: Failed to restore ADL performance state");
-
-              return -1;
-            }
-
-            local_free (performance_state);
-          }
-        }
-      }
-
-      if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
-      {
-        unsigned int power_limit = nvml_power_limit[device_id];
-
-        if (power_limit > 0)
-        {
-          hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].nvml, power_limit);
-        }
-      }
-    }
-
-    hc_thread_mutex_unlock (mux_hwmon);
-  }
-
-  if (user_options->gpu_temp_disable == false)
-  {
-    if (data.hm_nvml)
-    {
-      hm_NVML_nvmlShutdown (data.hm_nvml);
-
-      nvml_close (data.hm_nvml);
-
-      data.hm_nvml = NULL;
-    }
-
-    if (data.hm_nvapi)
-    {
-      hm_NvAPI_Unload (data.hm_nvapi);
-
-      nvapi_close (data.hm_nvapi);
-
-      data.hm_nvapi = NULL;
-    }
-
-    if (data.hm_xnvctrl)
-    {
-      hm_XNVCTRL_XCloseDisplay (data.hm_xnvctrl);
-
-      xnvctrl_close (data.hm_xnvctrl);
-
-      data.hm_xnvctrl = NULL;
-    }
-
-    if (data.hm_adl)
-    {
-      hm_ADL_Main_Control_Destroy (data.hm_adl);
-
-      adl_close (data.hm_adl);
-
-      data.hm_adl = NULL;
-    }
-  }
-
-  // free memory
-
   opencl_session_destroy (opencl_ctx);
 
   potfile_write_close (potfile_ctx);
@@ -2808,10 +2174,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   hashconfig_destroy (hashconfig);
 
   wl_data_destroy (wl_data);
-
-  local_free (od_clock_mem_status);
-  local_free (od_power_control_status);
-  local_free (nvml_power_limit);
 
   return 0;
 }
@@ -3097,6 +2459,484 @@ int main (int argc, char **argv)
   }
 
   /**
+   * HM devices: init
+   */
+
+  hm_attrs_t hm_adapters_adl[DEVICES_MAX];
+  hm_attrs_t hm_adapters_nvapi[DEVICES_MAX];
+  hm_attrs_t hm_adapters_nvml[DEVICES_MAX];
+  hm_attrs_t hm_adapters_xnvctrl[DEVICES_MAX];
+
+  memset (hm_adapters_adl,     0, sizeof (hm_adapters_adl));
+  memset (hm_adapters_nvapi,   0, sizeof (hm_adapters_nvapi));
+  memset (hm_adapters_nvml,    0, sizeof (hm_adapters_nvml));
+  memset (hm_adapters_xnvctrl, 0, sizeof (hm_adapters_xnvctrl));
+
+  if (user_options->gpu_temp_disable == false)
+  {
+    ADL_PTR     *adl     = (ADL_PTR *)     mymalloc (sizeof (ADL_PTR));
+    NVAPI_PTR   *nvapi   = (NVAPI_PTR *)   mymalloc (sizeof (NVAPI_PTR));
+    NVML_PTR    *nvml    = (NVML_PTR *)    mymalloc (sizeof (NVML_PTR));
+    XNVCTRL_PTR *xnvctrl = (XNVCTRL_PTR *) mymalloc (sizeof (XNVCTRL_PTR));
+
+    data.hm_adl     = NULL;
+    data.hm_nvapi   = NULL;
+    data.hm_nvml    = NULL;
+    data.hm_xnvctrl = NULL;
+
+    if ((opencl_ctx->need_nvml == true) && (nvml_init (nvml) == 0))
+    {
+      data.hm_nvml = nvml;
+    }
+
+    if (data.hm_nvml)
+    {
+      if (hm_NVML_nvmlInit (data.hm_nvml) == NVML_SUCCESS)
+      {
+        HM_ADAPTER_NVML nvmlGPUHandle[DEVICES_MAX] = { 0 };
+
+        int tmp_in = hm_get_adapter_index_nvml (nvmlGPUHandle);
+
+        int tmp_out = 0;
+
+        for (int i = 0; i < tmp_in; i++)
+        {
+          hm_adapters_nvml[tmp_out++].nvml = nvmlGPUHandle[i];
+        }
+
+        for (int i = 0; i < tmp_out; i++)
+        {
+          unsigned int speed;
+
+          if (hm_NVML_nvmlDeviceGetFanSpeed (data.hm_nvml, 0, hm_adapters_nvml[i].nvml, &speed) == NVML_SUCCESS) hm_adapters_nvml[i].fan_get_supported = 1;
+
+          // doesn't seem to create any advantages
+          //hm_NVML_nvmlDeviceSetComputeMode (data.hm_nvml, 1, hm_adapters_nvml[i].nvml, NVML_COMPUTEMODE_EXCLUSIVE_PROCESS);
+          //hm_NVML_nvmlDeviceSetGpuOperationMode (data.hm_nvml, 1, hm_adapters_nvml[i].nvml, NVML_GOM_ALL_ON);
+        }
+      }
+    }
+
+    if ((opencl_ctx->need_nvapi == true) && (nvapi_init (nvapi) == 0))
+    {
+      data.hm_nvapi = nvapi;
+    }
+
+    if (data.hm_nvapi)
+    {
+      if (hm_NvAPI_Initialize (data.hm_nvapi) == NVAPI_OK)
+      {
+        HM_ADAPTER_NVAPI nvGPUHandle[DEVICES_MAX] = { 0 };
+
+        int tmp_in = hm_get_adapter_index_nvapi (nvGPUHandle);
+
+        int tmp_out = 0;
+
+        for (int i = 0; i < tmp_in; i++)
+        {
+          hm_adapters_nvapi[tmp_out++].nvapi = nvGPUHandle[i];
+        }
+      }
+    }
+
+    if ((opencl_ctx->need_xnvctrl == true) && (xnvctrl_init (xnvctrl) == 0))
+    {
+      data.hm_xnvctrl = xnvctrl;
+    }
+
+    if (data.hm_xnvctrl)
+    {
+      if (hm_XNVCTRL_XOpenDisplay (data.hm_xnvctrl) == 0)
+      {
+        for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+        {
+          hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+          if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
+          hm_adapters_xnvctrl[device_id].xnvctrl = device_id;
+
+          int speed = 0;
+
+          if (get_fan_speed_current (data.hm_xnvctrl, device_id, &speed) == 0) hm_adapters_xnvctrl[device_id].fan_get_supported = 1;
+        }
+      }
+    }
+
+    if ((opencl_ctx->need_adl == true) && (adl_init (adl) == 0))
+    {
+      data.hm_adl = adl;
+    }
+
+    if (data.hm_adl)
+    {
+      if (hm_ADL_Main_Control_Create (data.hm_adl, ADL_Main_Memory_Alloc, 0) == ADL_OK)
+      {
+        // total number of adapters
+
+        int hm_adapters_num;
+
+        if (get_adapters_num_adl (data.hm_adl, &hm_adapters_num) != 0) return -1;
+
+        // adapter info
+
+        LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_adl (data.hm_adl, hm_adapters_num);
+
+        if (lpAdapterInfo == NULL) return -1;
+
+        // get a list (of ids of) valid/usable adapters
+
+        int num_adl_adapters = 0;
+
+        u32 *valid_adl_device_list = hm_get_list_valid_adl_adapters (hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
+
+        if (num_adl_adapters > 0)
+        {
+          hc_thread_mutex_lock (mux_hwmon);
+
+          // hm_get_opencl_busid_devid (hm_adapters_adl, devices_all_cnt, devices_all);
+
+          hm_get_adapter_index_adl (hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+
+          hm_get_overdrive_version  (data.hm_adl, hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+          hm_check_fanspeed_control (data.hm_adl, hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
+
+          hc_thread_mutex_unlock (mux_hwmon);
+        }
+
+        myfree (valid_adl_device_list);
+        myfree (lpAdapterInfo);
+      }
+    }
+
+    if (data.hm_adl == NULL && data.hm_nvml == NULL && data.hm_xnvctrl == NULL)
+    {
+      user_options->gpu_temp_disable = true;
+    }
+  }
+
+  /**
+   * User-defined GPU temp handling
+   */
+
+  if (user_options->gpu_temp_disable == true)
+  {
+    user_options->gpu_temp_abort  = 0;
+    user_options->gpu_temp_retain = 0;
+  }
+
+  /**
+   * OpenCL devices: allocate buffer for device specific information
+   */
+
+  ADLOD6MemClockState *od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (opencl_ctx->devices_cnt, sizeof (ADLOD6MemClockState));
+
+  int *od_power_control_status = (int *) mycalloc (opencl_ctx->devices_cnt, sizeof (int));
+
+  unsigned int *nvml_power_limit = (unsigned int *) mycalloc (opencl_ctx->devices_cnt, sizeof (unsigned int));
+
+
+  /**
+   * HM devices: copy
+   */
+
+  if (user_options->gpu_temp_disable == false)
+  {
+    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    {
+      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+      if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
+      if (device_param->skipped) continue;
+
+      const uint platform_devices_id = device_param->platform_devices_id;
+
+      if (device_param->device_vendor_id == VENDOR_ID_AMD)
+      {
+        data.hm_device[device_id].adl               = hm_adapters_adl[platform_devices_id].adl;
+        data.hm_device[device_id].nvapi             = 0;
+        data.hm_device[device_id].nvml              = 0;
+        data.hm_device[device_id].xnvctrl           = 0;
+        data.hm_device[device_id].od_version        = hm_adapters_adl[platform_devices_id].od_version;
+        data.hm_device[device_id].fan_get_supported = hm_adapters_adl[platform_devices_id].fan_get_supported;
+        data.hm_device[device_id].fan_set_supported = 0;
+      }
+
+      if (device_param->device_vendor_id == VENDOR_ID_NV)
+      {
+        data.hm_device[device_id].adl               = 0;
+        data.hm_device[device_id].nvapi             = hm_adapters_nvapi[platform_devices_id].nvapi;
+        data.hm_device[device_id].nvml              = hm_adapters_nvml[platform_devices_id].nvml;
+        data.hm_device[device_id].xnvctrl           = hm_adapters_xnvctrl[platform_devices_id].xnvctrl;
+        data.hm_device[device_id].od_version        = 0;
+        data.hm_device[device_id].fan_get_supported = hm_adapters_nvml[platform_devices_id].fan_get_supported;
+        data.hm_device[device_id].fan_set_supported = 0;
+      }
+    }
+  }
+
+  /**
+   * powertune on user request
+   */
+
+  if (user_options->powertune_enable == true)
+  {
+    hc_thread_mutex_lock (mux_hwmon);
+
+    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    {
+      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+      if (device_param->skipped) continue;
+
+      if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+      {
+        /**
+         * Temporary fix:
+         * with AMD r9 295x cards it seems that we need to set the powertune value just AFTER the ocl init stuff
+         * otherwise after hc_clCreateContext () etc, powertune value was set back to "normal" and cards unfortunately
+         * were not working @ full speed (setting hm_ADL_Overdrive_PowerControl_Set () here seems to fix the problem)
+         * Driver / ADL bug?
+         */
+
+        if (data.hm_device[device_id].od_version == 6)
+        {
+          int ADL_rc;
+
+          // check powertune capabilities first, if not available then skip device
+
+          int powertune_supported = 0;
+
+          if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (data.hm_adl, data.hm_device[device_id].adl, &powertune_supported)) != ADL_OK)
+          {
+            log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
+
+            return -1;
+          }
+
+          // first backup current value, we will restore it later
+
+          if (powertune_supported != 0)
+          {
+            // powercontrol settings
+
+            ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
+
+            if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_adl, data.hm_device[device_id].adl, &powertune)) == ADL_OK)
+            {
+              ADL_rc = hm_ADL_Overdrive_PowerControl_Get (data.hm_adl, data.hm_device[device_id].adl, &od_power_control_status[device_id]);
+            }
+
+            if (ADL_rc != ADL_OK)
+            {
+              log_error ("ERROR: Failed to get current ADL PowerControl settings");
+
+              return -1;
+            }
+
+            if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adl, powertune.iMaxValue)) != ADL_OK)
+            {
+              log_error ("ERROR: Failed to set new ADL PowerControl values");
+
+              return -1;
+            }
+
+            // clocks
+
+            memset (&od_clock_mem_status[device_id], 0, sizeof (ADLOD6MemClockState));
+
+            od_clock_mem_status[device_id].state.iNumberOfPerformanceLevels = 2;
+
+            if ((ADL_rc = hm_ADL_Overdrive_StateInfo_Get (data.hm_adl, data.hm_device[device_id].adl, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &od_clock_mem_status[device_id])) != ADL_OK)
+            {
+              log_error ("ERROR: Failed to get ADL memory and engine clock frequency");
+
+              return -1;
+            }
+
+            // Query capabilities only to see if profiles were not "damaged", if so output a warning but do accept the users profile settings
+
+            ADLOD6Capabilities caps = {0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0, 0};
+
+            if ((ADL_rc = hm_ADL_Overdrive_Capabilities_Get (data.hm_adl, data.hm_device[device_id].adl, &caps)) != ADL_OK)
+            {
+              log_error ("ERROR: Failed to get ADL device capabilities");
+
+              return -1;
+            }
+
+            int engine_clock_max =       (int) (0.6666 * caps.sEngineClockRange.iMax);
+            int memory_clock_max =       (int) (0.6250 * caps.sMemoryClockRange.iMax);
+
+            int warning_trigger_engine = (int) (0.25   * engine_clock_max);
+            int warning_trigger_memory = (int) (0.25   * memory_clock_max);
+
+            int engine_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
+            int memory_clock_profile_max = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
+
+            // warning if profile has too low max values
+
+            if ((engine_clock_max - engine_clock_profile_max) > warning_trigger_engine)
+            {
+              log_info ("WARN: The custom profile seems to have too low maximum engine clock values. You therefore may not reach full performance");
+            }
+
+            if ((memory_clock_max - memory_clock_profile_max) > warning_trigger_memory)
+            {
+              log_info ("WARN: The custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
+            }
+
+            ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
+
+            performance_state->iNumberOfPerformanceLevels = 2;
+
+            performance_state->aLevels[0].iEngineClock = engine_clock_profile_max;
+            performance_state->aLevels[1].iEngineClock = engine_clock_profile_max;
+            performance_state->aLevels[0].iMemoryClock = memory_clock_profile_max;
+            performance_state->aLevels[1].iMemoryClock = memory_clock_profile_max;
+
+            if ((ADL_rc = hm_ADL_Overdrive_State_Set (data.hm_adl, data.hm_device[device_id].adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+            {
+              log_info ("ERROR: Failed to set ADL performance state");
+
+              return -1;
+            }
+
+            local_free (performance_state);
+          }
+
+          // set powertune value only
+
+          if (powertune_supported != 0)
+          {
+            // powertune set
+            ADLOD6PowerControlInfo powertune = {0, 0, 0, 0, 0};
+
+            if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (data.hm_adl, data.hm_device[device_id].adl, &powertune)) != ADL_OK)
+            {
+              log_error ("ERROR: Failed to get current ADL PowerControl settings");
+
+              return -1;
+            }
+
+            if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adl, powertune.iMaxValue)) != ADL_OK)
+            {
+              log_error ("ERROR: Failed to set new ADL PowerControl values");
+
+              return -1;
+            }
+          }
+        }
+      }
+
+      if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+      {
+        // first backup current value, we will restore it later
+
+        unsigned int limit;
+
+        bool powertune_supported = false;
+
+        if (hm_NVML_nvmlDeviceGetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].nvml, &limit) == NVML_SUCCESS)
+        {
+          powertune_supported = true;
+        }
+
+        // if backup worked, activate the maximum allowed
+
+        if (powertune_supported == true)
+        {
+          unsigned int minLimit;
+          unsigned int maxLimit;
+
+          if (hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (data.hm_nvml, 0, data.hm_device[device_id].nvml, &minLimit, &maxLimit) == NVML_SUCCESS)
+          {
+            if (maxLimit > 0)
+            {
+              if (hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].nvml, maxLimit) == NVML_SUCCESS)
+              {
+                // now we can be sure we need to reset later
+
+                nvml_power_limit[device_id] = limit;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    hc_thread_mutex_unlock (mux_hwmon);
+  }
+
+  /**
+   * Store initial fanspeed if gpu_temp_retain is enabled
+   */
+
+  if (user_options->gpu_temp_disable == false)
+  {
+    if (user_options->gpu_temp_retain)
+    {
+      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      {
+        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+        if (device_param->skipped) continue;
+
+        hc_thread_mutex_lock (mux_hwmon);
+
+        if (data.hm_device[device_id].fan_get_supported == true)
+        {
+          const int fanspeed  = hm_get_fanspeed_with_device_id  (opencl_ctx, device_id);
+          const int fanpolicy = hm_get_fanpolicy_with_device_id (opencl_ctx, device_id);
+
+          // we also set it to tell the OS we take control over the fan and it's automatic controller
+          // if it was set to automatic. we do not control user-defined fanspeeds.
+
+          if (fanpolicy == 1)
+          {
+            data.hm_device[device_id].fan_set_supported = true;
+
+            int rc = -1;
+
+            if (device_param->device_vendor_id == VENDOR_ID_AMD)
+            {
+              rc = hm_set_fanspeed_with_device_id_adl (device_id, fanspeed, 1);
+            }
+            else if (device_param->device_vendor_id == VENDOR_ID_NV)
+            {
+              #if defined (__linux__)
+              rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
+              #endif
+
+              #if defined (_WIN)
+              rc = hm_set_fanspeed_with_device_id_nvapi (device_id, fanspeed, 1);
+              #endif
+            }
+
+            if (rc == 0)
+            {
+              data.hm_device[device_id].fan_set_supported = 1;
+            }
+            else
+            {
+              log_info ("WARNING: Failed to set initial fan speed for device #%u", device_id + 1);
+
+              data.hm_device[device_id].fan_set_supported = 0;
+            }
+          }
+          else
+          {
+            data.hm_device[device_id].fan_set_supported = 0;
+          }
+        }
+
+        hc_thread_mutex_unlock (mux_hwmon);
+      }
+    }
+  }
+
+  /**
    * keypress thread
    */
 
@@ -3167,12 +3007,171 @@ int main (int argc, char **argv)
     user_options->quiet = false;
   }
 
+  // reset default fan speed
+
+  if (user_options->gpu_temp_disable == false)
+  {
+    if (user_options->gpu_temp_retain)
+    {
+      hc_thread_mutex_lock (mux_hwmon);
+
+      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      {
+        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+        if (device_param->skipped) continue;
+
+        if (data.hm_device[device_id].fan_set_supported == true)
+        {
+          int rc = -1;
+
+          if (device_param->device_vendor_id == VENDOR_ID_AMD)
+          {
+            rc = hm_set_fanspeed_with_device_id_adl (device_id, 100, 0);
+          }
+          else if (device_param->device_vendor_id == VENDOR_ID_NV)
+          {
+            #if defined (__linux__)
+            rc = set_fan_control (data.hm_xnvctrl, data.hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE);
+            #endif
+
+            #if defined (_WIN)
+            rc = hm_set_fanspeed_with_device_id_nvapi (device_id, 100, 0);
+            #endif
+          }
+
+          if (rc == -1) log_info ("WARNING: Failed to restore default fan speed and policy for device #%", device_id + 1);
+        }
+      }
+
+      hc_thread_mutex_unlock (mux_hwmon);
+    }
+  }
+
+  // reset power tuning
+
+  if (user_options->powertune_enable == true)
+  {
+    hc_thread_mutex_lock (mux_hwmon);
+
+    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    {
+      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+      if (device_param->skipped) continue;
+
+      if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+      {
+        if (data.hm_device[device_id].od_version == 6)
+        {
+          // check powertune capabilities first, if not available then skip device
+
+          int powertune_supported = 0;
+
+          if ((hm_ADL_Overdrive6_PowerControl_Caps (data.hm_adl, data.hm_device[device_id].adl, &powertune_supported)) != ADL_OK)
+          {
+            log_error ("ERROR: Failed to get ADL PowerControl Capabilities");
+
+            return -1;
+          }
+
+          if (powertune_supported != 0)
+          {
+            // powercontrol settings
+
+            if ((hm_ADL_Overdrive_PowerControl_Set (data.hm_adl, data.hm_device[device_id].adl, od_power_control_status[device_id])) != ADL_OK)
+            {
+              log_info ("ERROR: Failed to restore the ADL PowerControl values");
+
+              return -1;
+            }
+
+            // clocks
+
+            ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
+
+            performance_state->iNumberOfPerformanceLevels = 2;
+
+            performance_state->aLevels[0].iEngineClock = od_clock_mem_status[device_id].state.aLevels[0].iEngineClock;
+            performance_state->aLevels[1].iEngineClock = od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
+            performance_state->aLevels[0].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[0].iMemoryClock;
+            performance_state->aLevels[1].iMemoryClock = od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;
+
+            if ((hm_ADL_Overdrive_State_Set (data.hm_adl, data.hm_device[device_id].adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) != ADL_OK)
+            {
+              log_info ("ERROR: Failed to restore ADL performance state");
+
+              return -1;
+            }
+
+            local_free (performance_state);
+          }
+        }
+      }
+
+      if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+      {
+        unsigned int power_limit = nvml_power_limit[device_id];
+
+        if (power_limit > 0)
+        {
+          hm_NVML_nvmlDeviceSetPowerManagementLimit (data.hm_nvml, 0, data.hm_device[device_id].nvml, power_limit);
+        }
+      }
+    }
+
+    hc_thread_mutex_unlock (mux_hwmon);
+  }
+
+  if (user_options->gpu_temp_disable == false)
+  {
+    if (data.hm_nvml)
+    {
+      hm_NVML_nvmlShutdown (data.hm_nvml);
+
+      nvml_close (data.hm_nvml);
+
+      data.hm_nvml = NULL;
+    }
+
+    if (data.hm_nvapi)
+    {
+      hm_NvAPI_Unload (data.hm_nvapi);
+
+      nvapi_close (data.hm_nvapi);
+
+      data.hm_nvapi = NULL;
+    }
+
+    if (data.hm_xnvctrl)
+    {
+      hm_XNVCTRL_XCloseDisplay (data.hm_xnvctrl);
+
+      xnvctrl_close (data.hm_xnvctrl);
+
+      data.hm_xnvctrl = NULL;
+    }
+
+    if (data.hm_adl)
+    {
+      hm_ADL_Main_Control_Destroy (data.hm_adl);
+
+      adl_close (data.hm_adl);
+
+      data.hm_adl = NULL;
+    }
+  }
+
   // destroy others mutex
 
   hc_thread_mutex_delete (mux_display);
   hc_thread_mutex_delete (mux_hwmon);
 
   // free memory
+
+  myfree (od_clock_mem_status);
+  myfree (od_power_control_status);
+  myfree (nvml_power_limit);
 
   debugfile_destroy (debugfile_ctx);
 
