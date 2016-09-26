@@ -463,14 +463,14 @@ int user_options_sanity (user_options_t *user_options, restore_ctx_t *restore_ct
     return -1;
   }
 
-  if ((user_options->increment == true) && (user_options->increment_min_chgd == true))
+  if ((user_options->increment == false) && (user_options->increment_min_chgd == true))
   {
     log_error ("ERROR: Increment-min is only supported combined with increment switch");
 
     return -1;
   }
 
-  if ((user_options->increment == true) && (user_options->increment_max_chgd == true))
+  if ((user_options->increment == false) && (user_options->increment_max_chgd == true))
   {
     log_error ("ERROR: Increment-max is only supported combined with increment switch");
 
@@ -856,6 +856,26 @@ int user_options_extra_init (user_options_t *user_options, restore_ctx_t *restor
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     user_options_extra->wordlist_mode = WL_MODE_MASK;
+
+    // default mask
+
+    if (user_options->benchmark == false)
+    {
+      if ((user_options_extra->optind + 2) <= restore_ctx->argc)
+      {
+        // user provides mask
+      }
+      else
+      {
+        // prepare default mask charset
+
+        user_options->custom_charset_1 = (char *) "?l?d?u";
+        user_options->custom_charset_2 = (char *) "?l?d";
+        user_options->custom_charset_3 = (char *) "?l?d*!$@_";
+
+        user_options->increment = true;
+      }
+    }
   }
 
   /* still needed?
@@ -867,26 +887,6 @@ int user_options_extra_init (user_options_t *user_options, restore_ctx_t *restor
     else if (user_options->outfile)             user_options->status = true;
   }
   */
-
-  // default mask
-
-  if (user_options->benchmark == false)
-  {
-    if ((user_options_extra->optind + 2) <= restore_ctx->argc)
-    {
-      // user provides mask
-    }
-    else
-    {
-      // prepare default mask charset
-
-      user_options->custom_charset_1 = (char *) "?l?d?u";
-      user_options->custom_charset_2 = (char *) "?l?d";
-      user_options->custom_charset_3 = (char *) "?l?d*!$@_";
-
-      user_options->increment = true;
-    }
-  }
 
   return 0;
 }

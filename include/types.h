@@ -1235,6 +1235,7 @@ typedef struct
   time_t  runtime_start;
   time_t  runtime_stop;
 
+  time_t  prepare_start;
   time_t  prepare_time;
 
   time_t  proc_start;

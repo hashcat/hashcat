@@ -224,6 +224,1468 @@ static void goodbye_screen (const user_options_t *user_options, const time_t *pr
   log_info_nn ("Stopped: %s", ctime (proc_stop));
 }
 
+static int inner1_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, rules_ctx_t *rules_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, hashes_t *hashes, mask_ctx_t *mask_ctx, wl_data_t *wl_data)
+{
+  //opencl_ctx->run_main_level1   = true;
+  //opencl_ctx->run_main_level2   = true;
+  opencl_ctx->run_main_level3   = true;
+  opencl_ctx->run_thread_level1 = true;
+  opencl_ctx->run_thread_level2 = true;
+
+  /**
+   * word len
+   */
+
+  uint pw_min = hashconfig_general_pw_min (hashconfig);
+  uint pw_max = hashconfig_general_pw_max (hashconfig);
+
+  /**
+   * If we have a NOOP rule then we can process words from wordlists > length 32 for slow hashes
+   */
+
+  const bool has_noop = rules_ctx_has_noop (rules_ctx);
+
+  if (has_noop == false)
+  {
+    switch (user_options_extra->attack_kern)
+    {
+      case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
+                                  break;
+      case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
+                                  break;
+    }
+  }
+  else
+  {
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      switch (user_options_extra->attack_kern)
+      {
+        case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
+                                    break;
+        case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
+                                    break;
+      }
+    }
+    else
+    {
+      // in this case we can process > 32
+    }
+  }
+
+  /**
+   * Init mask stuff
+   */
+
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID1 || user_options->attack_mode == ATTACK_MODE_HYBRID2 || user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
+
+    if (mask_ctx->mask_from_file == true)
+    {
+      if (mask_ctx->mask[0] == '\\' && mask_ctx->mask[1] == '#') mask_ctx->mask++; // escaped comment sign (sharp) "\#"
+
+      char *str_ptr;
+      uint  str_pos;
+
+      uint mask_offset = 0;
+
+      uint separator_cnt;
+
+      for (separator_cnt = 0; separator_cnt < 4; separator_cnt++)
+      {
+        str_ptr = strstr (mask_ctx->mask + mask_offset, ",");
+
+        if (str_ptr == NULL) break;
+
+        str_pos = str_ptr - mask_ctx->mask;
+
+        // escaped separator, i.e. "\,"
+
+        if (str_pos > 0)
+        {
+          if (mask_ctx->mask[str_pos - 1] == '\\')
+          {
+            separator_cnt --;
+
+            mask_offset = str_pos + 1;
+
+            continue;
+          }
+        }
+
+        // reset the offset
+
+        mask_offset = 0;
+
+        mask_ctx->mask[str_pos] = 0;
+
+        switch (separator_cnt)
+        {
+          case 0:
+            mp_reset_usr (mask_ctx->mp_usr, 0);
+
+            user_options->custom_charset_1 = mask_ctx->mask;
+
+            mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
+            break;
+
+          case 1:
+            mp_reset_usr (mask_ctx->mp_usr, 1);
+
+            user_options->custom_charset_2 = mask_ctx->mask;
+
+            mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
+            break;
+
+          case 2:
+            mp_reset_usr (mask_ctx->mp_usr, 2);
+
+            user_options->custom_charset_3 = mask_ctx->mask;
+
+            mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
+            break;
+
+          case 3:
+            mp_reset_usr (mask_ctx->mp_usr, 3);
+
+            user_options->custom_charset_4 = mask_ctx->mask;
+
+            mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
+            break;
+        }
+
+        mask_ctx->mask += str_pos + 1;
+      }
+
+      /**
+       * What follows is a very special case where "\," is within the mask field of a line in a .hcmask file only because otherwise (without the "\")
+       * it would be interpreted as a custom charset definition.
+       *
+       * We need to replace all "\," with just "," within the mask (but allow the special case "\\," which means "\" followed by ",")
+       * Note: "\\" is not needed to replace all "\" within the mask! The meaning of "\\" within a line containing the string "\\," is just to allow "\" followed by ","
+       */
+
+      uint mask_len_cur = strlen (mask_ctx->mask);
+
+      uint mask_out_pos = 0;
+      char mask_prev = 0;
+
+      for (uint mask_iter = 0; mask_iter < mask_len_cur; mask_iter++, mask_out_pos++)
+      {
+        if (mask_ctx->mask[mask_iter] == ',')
+        {
+          if (mask_prev == '\\')
+          {
+            mask_out_pos -= 1; // this means: skip the previous "\"
+          }
+        }
+
+        mask_prev = mask_ctx->mask[mask_iter];
+
+        mask_ctx->mask[mask_out_pos] = mask_ctx->mask[mask_iter];
+      }
+
+      mask_ctx->mask[mask_out_pos] = 0;
+    }
+
+    if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+    {
+      mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
+
+      uint uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
+
+      mp_css_to_uniq_tbl (mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
+
+      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+
+      data.combs_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
+
+      // args
+
+      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      {
+        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+        if (device_param->skipped) continue;
+
+        device_param->kernel_params_mp[0] = &device_param->d_combs;
+        device_param->kernel_params_mp[1] = &device_param->d_root_css_buf;
+        device_param->kernel_params_mp[2] = &device_param->d_markov_css_buf;
+
+        device_param->kernel_params_mp_buf64[3] = 0;
+        device_param->kernel_params_mp_buf32[4] = mask_ctx->css_cnt;
+        device_param->kernel_params_mp_buf32[5] = 0;
+        device_param->kernel_params_mp_buf32[6] = 0;
+        device_param->kernel_params_mp_buf32[7] = 0;
+
+        if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+        {
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_buf32[5] = full01;
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_buf32[5] = full80;
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_buf32[7] = 1;
+        }
+        else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+        {
+          device_param->kernel_params_mp_buf32[5] = 0;
+          device_param->kernel_params_mp_buf32[6] = 0;
+          device_param->kernel_params_mp_buf32[7] = 0;
+        }
+
+        cl_int CL_err = CL_SUCCESS;
+
+        for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp[i]);
+        for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp[i]);
+        for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp[i]);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
+
+        CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL);
+        CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_BF)
+    {
+      mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
+
+      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
+      {
+        u32 css_cnt_unicode = mask_ctx->css_cnt * 2;
+
+        cs_t *css_buf_unicode = (cs_t *) mycalloc (css_cnt_unicode, sizeof (cs_t));
+
+        for (uint i = 0, j = 0; i < mask_ctx->css_cnt; i += 1, j += 2)
+        {
+          memcpy (&css_buf_unicode[j + 0], &mask_ctx->css_buf[i], sizeof (cs_t));
+
+          css_buf_unicode[j + 1].cs_buf[0] = 0;
+          css_buf_unicode[j + 1].cs_len    = 1;
+        }
+
+        myfree (mask_ctx->css_buf);
+
+        mask_ctx->css_buf = css_buf_unicode;
+        mask_ctx->css_cnt = css_cnt_unicode;
+      }
+
+      // check if mask is not too large or too small for pw_min/pw_max  (*2 if unicode)
+
+      uint mask_min = pw_min;
+      uint mask_max = pw_max;
+
+      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
+      {
+        mask_min *= 2;
+        mask_max *= 2;
+      }
+
+      if ((mask_ctx->css_cnt < mask_min) || (mask_ctx->css_cnt > mask_max))
+      {
+        if (mask_ctx->css_cnt < mask_min)
+        {
+          log_info ("WARNING: Skipping mask '%s' because it is smaller than the minimum password length", mask_ctx->mask);
+        }
+
+        if (mask_ctx->css_cnt > mask_max)
+        {
+          log_info ("WARNING: Skipping mask '%s' because it is larger than the maximum password length", mask_ctx->mask);
+        }
+
+        // skip to next mask
+
+        logfile_sub_msg ("STOP");
+
+        return 0;
+      }
+
+      u32 css_cnt_orig = mask_ctx->css_cnt;
+
+      if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
+      {
+        if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
+        {
+          uint  salt_len = (uint)   hashes->salts_buf[0].salt_len;
+          char *salt_buf = (char *) hashes->salts_buf[0].salt_buf;
+
+          uint css_cnt_salt = mask_ctx->css_cnt + salt_len;
+
+          cs_t *css_buf_salt = (cs_t *) mycalloc (css_cnt_salt, sizeof (cs_t));
+
+          memcpy (css_buf_salt, mask_ctx->css_buf, mask_ctx->css_cnt * sizeof (cs_t));
+
+          for (uint i = 0, j = mask_ctx->css_cnt; i < salt_len; i++, j++)
+          {
+            css_buf_salt[j].cs_buf[0] = salt_buf[i];
+            css_buf_salt[j].cs_len    = 1;
+          }
+
+          myfree (mask_ctx->css_buf);
+
+          mask_ctx->css_buf = css_buf_salt;
+          mask_ctx->css_cnt = css_cnt_salt;
+        }
+      }
+
+      uint uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
+
+      mp_css_to_uniq_tbl (mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
+
+      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+
+      data.words_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
+
+      // copy + args
+
+      uint css_cnt_l = mask_ctx->css_cnt;
+      uint css_cnt_r;
+
+      if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+      {
+        if (css_cnt_orig < 6)
+        {
+          css_cnt_r = 1;
+        }
+        else if (css_cnt_orig == 6)
+        {
+          css_cnt_r = 2;
+        }
+        else
+        {
+          if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
+          {
+            if (css_cnt_orig == 8 || css_cnt_orig == 10)
+            {
+              css_cnt_r = 2;
+            }
+            else
+            {
+              css_cnt_r = 4;
+            }
+          }
+          else
+          {
+            if ((mask_ctx->css_buf[0].cs_len * mask_ctx->css_buf[1].cs_len * mask_ctx->css_buf[2].cs_len) > 256)
+            {
+              css_cnt_r = 3;
+            }
+            else
+            {
+              css_cnt_r = 4;
+            }
+          }
+        }
+      }
+      else
+      {
+        css_cnt_r = 1;
+
+        /* unfinished code?
+        int sum = css_buf[css_cnt_r - 1].cs_len;
+
+        for (uint i = 1; i < 4 && i < css_cnt; i++)
+        {
+          if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
+
+          css_cnt_r++;
+
+          sum *= css_buf[css_cnt_r - 1].cs_len;
+        }
+        */
+      }
+
+      css_cnt_l -= css_cnt_r;
+
+      mask_ctx->bfs_cnt = sp_get_sum (0, css_cnt_r, mask_ctx->root_css_buf);
+
+      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      {
+        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+        if (device_param->skipped) continue;
+
+        device_param->kernel_params_mp_l[0] = &device_param->d_pws_buf;
+        device_param->kernel_params_mp_l[1] = &device_param->d_root_css_buf;
+        device_param->kernel_params_mp_l[2] = &device_param->d_markov_css_buf;
+
+        device_param->kernel_params_mp_l_buf64[3] = 0;
+        device_param->kernel_params_mp_l_buf32[4] = css_cnt_l;
+        device_param->kernel_params_mp_l_buf32[5] = css_cnt_r;
+        device_param->kernel_params_mp_l_buf32[6] = 0;
+        device_param->kernel_params_mp_l_buf32[7] = 0;
+        device_param->kernel_params_mp_l_buf32[8] = 0;
+
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_l_buf32[6] = full01;
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_l_buf32[6] = full80;
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_l_buf32[7] = 1;
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_l_buf32[8] = 1;
+
+        device_param->kernel_params_mp_r[0] = &device_param->d_bfs;
+        device_param->kernel_params_mp_r[1] = &device_param->d_root_css_buf;
+        device_param->kernel_params_mp_r[2] = &device_param->d_markov_css_buf;
+
+        device_param->kernel_params_mp_r_buf64[3] = 0;
+        device_param->kernel_params_mp_r_buf32[4] = css_cnt_r;
+        device_param->kernel_params_mp_r_buf32[5] = 0;
+        device_param->kernel_params_mp_r_buf32[6] = 0;
+        device_param->kernel_params_mp_r_buf32[7] = 0;
+
+        cl_int CL_err = CL_SUCCESS;
+
+        for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_l[i]);
+        for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
+        for (uint i = 4; i < 9; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
+
+        for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_r[i]);
+        for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]);
+        for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
+
+        CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL);
+        CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS)
+        {
+          log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+          return -1;
+        }
+      }
+    }
+  }
+
+  /**
+   * update induction directory scan
+   */
+
+  induct_ctx_scan (induct_ctx);
+
+  /**
+   * dictstat read
+   */
+
+  dictstat_read (dictstat_ctx);
+
+  /**
+   * dictionary pad
+   */
+
+  uint   dictcnt   = 0;
+  char **dictfiles = NULL;
+
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    if (user_options_extra->wordlist_mode == WL_MODE_FILE)
+    {
+      int wls_left = restore_ctx->argc - (user_options_extra->optind + 1);
+
+      for (int i = 0; i < wls_left; i++)
+      {
+        char *l0_filename = restore_ctx->argv[user_options_extra->optind + 1 + i];
+
+        struct stat l0_stat;
+
+        if (stat (l0_filename, &l0_stat) == -1)
+        {
+          log_error ("ERROR: %s: %s", l0_filename, strerror (errno));
+
+          return -1;
+        }
+
+        uint is_dir = S_ISDIR (l0_stat.st_mode);
+
+        if (is_dir == 0)
+        {
+          dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
+
+          dictcnt++;
+
+          dictfiles[dictcnt - 1] = l0_filename;
+        }
+        else
+        {
+          // do not allow --keyspace w/ a directory
+
+          if (user_options->keyspace == true)
+          {
+            log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
+
+            return -1;
+          }
+
+          char **dictionary_files = NULL;
+
+          dictionary_files = scan_directory (l0_filename);
+
+          if (dictionary_files != NULL)
+          {
+            qsort (dictionary_files, count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
+
+            for (int d = 0; dictionary_files[d] != NULL; d++)
+            {
+              char *l1_filename = dictionary_files[d];
+
+              struct stat l1_stat;
+
+              if (stat (l1_filename, &l1_stat) == -1)
+              {
+                log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
+
+                return -1;
+              }
+
+              if (S_ISREG (l1_stat.st_mode))
+              {
+                dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
+
+                dictcnt++;
+
+                dictfiles[dictcnt - 1] = mystrdup (l1_filename);
+              }
+            }
+          }
+
+          local_free (dictionary_files);
+        }
+      }
+
+      if (dictcnt < 1)
+      {
+        log_error ("ERROR: No usable dictionary file found.");
+
+        return -1;
+      }
+    }
+    else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
+    {
+      dictcnt = 1;
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+  {
+    // display
+
+    char *dictfile1 = restore_ctx->argv[user_options_extra->optind + 1 + 0];
+    char *dictfile2 = restore_ctx->argv[user_options_extra->optind + 1 + 1];
+
+    // find the bigger dictionary and use as base
+
+    FILE *fp1 = NULL;
+    FILE *fp2 = NULL;
+
+    struct stat tmp_stat;
+
+    if ((fp1 = fopen (dictfile1, "rb")) == NULL)
+    {
+      log_error ("ERROR: %s: %s", dictfile1, strerror (errno));
+
+      return -1;
+    }
+
+    if (stat (dictfile1, &tmp_stat) == -1)
+    {
+      log_error ("ERROR: %s: %s", dictfile1, strerror (errno));
+
+      fclose (fp1);
+
+      return -1;
+    }
+
+    if (S_ISDIR (tmp_stat.st_mode))
+    {
+      log_error ("ERROR: %s must be a regular file", dictfile1, strerror (errno));
+
+      fclose (fp1);
+
+      return -1;
+    }
+
+    if ((fp2 = fopen (dictfile2, "rb")) == NULL)
+    {
+      log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
+
+      fclose (fp1);
+
+      return -1;
+    }
+
+    if (stat (dictfile2, &tmp_stat) == -1)
+    {
+      log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
+
+      fclose (fp1);
+      fclose (fp2);
+
+      return -1;
+    }
+
+    if (S_ISDIR (tmp_stat.st_mode))
+    {
+      log_error ("ERROR: %s must be a regular file", dictfile2, strerror (errno));
+
+      fclose (fp1);
+      fclose (fp2);
+
+      return -1;
+    }
+
+    data.combs_cnt = 1;
+
+    const u64 words1_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fp1, dictfile1, dictstat_ctx);
+
+    if (words1_cnt == 0)
+    {
+      log_error ("ERROR: %s: empty file", dictfile1);
+
+      fclose (fp1);
+      fclose (fp2);
+
+      return -1;
+    }
+
+    data.combs_cnt = 1;
+
+    const u64 words2_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fp2, dictfile2, dictstat_ctx);
+
+    if (words2_cnt == 0)
+    {
+      log_error ("ERROR: %s: empty file", dictfile2);
+
+      fclose (fp1);
+      fclose (fp2);
+
+      return -1;
+    }
+
+    fclose (fp1);
+    fclose (fp2);
+
+    data.dictfile  = dictfile1;
+    data.dictfile2 = dictfile2;
+
+    if (words1_cnt >= words2_cnt)
+    {
+      data.combs_cnt  = words2_cnt;
+      data.combs_mode = COMBINATOR_MODE_BASE_LEFT;
+
+      dictfiles = &data.dictfile;
+
+      dictcnt = 1;
+    }
+    else
+    {
+      data.combs_cnt  = words1_cnt;
+      data.combs_mode = COMBINATOR_MODE_BASE_RIGHT;
+
+      dictfiles = &data.dictfile2;
+
+      dictcnt = 1;
+
+      // we also have to switch wordlist related rules!
+
+      char *tmpc = user_options->rule_buf_l;
+
+      user_options->rule_buf_l = user_options->rule_buf_r;
+      user_options->rule_buf_r = tmpc;
+
+      int   tmpi = user_options_extra->rule_len_l;
+
+      user_options_extra->rule_len_l = user_options_extra->rule_len_r;
+      user_options_extra->rule_len_r = tmpi;
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    if (user_options->benchmark == true)
+    {
+      pw_min = mp_get_length (mask_ctx->mask);
+      pw_max = pw_min;
+    }
+
+    /* i think we can do this better
+    if (user_options->increment == true)
+    {
+      if (user_options->increment_min > pw_min) pw_min = user_options->increment_min;
+      if (user_options->increment_max < pw_max) pw_max = user_options->increment_max;
+    }
+    */
+
+    dictfiles = (char **) mycalloc (1, sizeof (char *));
+    dictfiles[0] = "DUMMY";
+
+    dictcnt = 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  {
+    data.combs_mode = COMBINATOR_MODE_BASE_LEFT;
+
+    // mod -- moved to mpsp.c
+
+    // base
+
+    int wls_left = restore_ctx->argc - (user_options_extra->optind + 2);
+
+    for (int i = 0; i < wls_left; i++)
+    {
+      char *filename = restore_ctx->argv[user_options_extra->optind + 1 + i];
+
+      struct stat file_stat;
+
+      if (stat (filename, &file_stat) == -1)
+      {
+        log_error ("ERROR: %s: %s", filename, strerror (errno));
+
+        return -1;
+      }
+
+      uint is_dir = S_ISDIR (file_stat.st_mode);
+
+      if (is_dir == 0)
+      {
+        dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
+
+        dictcnt++;
+
+        dictfiles[dictcnt - 1] = filename;
+      }
+      else
+      {
+        // do not allow --keyspace w/ a directory
+
+        if (user_options->keyspace == true)
+        {
+          log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
+
+          return -1;
+        }
+
+        char **dictionary_files = NULL;
+
+        dictionary_files = scan_directory (filename);
+
+        if (dictionary_files != NULL)
+        {
+          qsort (dictionary_files, count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
+
+          for (int d = 0; dictionary_files[d] != NULL; d++)
+          {
+            char *l1_filename = dictionary_files[d];
+
+            struct stat l1_stat;
+
+            if (stat (l1_filename, &l1_stat) == -1)
+            {
+              log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
+
+              return -1;
+            }
+
+            if (S_ISREG (l1_stat.st_mode))
+            {
+              dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
+
+              dictcnt++;
+
+              dictfiles[dictcnt - 1] = mystrdup (l1_filename);
+            }
+          }
+        }
+
+        local_free (dictionary_files);
+      }
+    }
+
+    if (dictcnt < 1)
+    {
+      log_error ("ERROR: No usable dictionary file found.");
+
+      return -1;
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  {
+    data.combs_mode = COMBINATOR_MODE_BASE_RIGHT;
+
+    // mod -- moved to mpsp.c
+
+    // base
+
+    int wls_left = restore_ctx->argc - (user_options_extra->optind + 2);
+
+    for (int i = 0; i < wls_left; i++)
+    {
+      char *filename = restore_ctx->argv[user_options_extra->optind + 2 + i];
+
+      struct stat file_stat;
+
+      if (stat (filename, &file_stat) == -1)
+      {
+        log_error ("ERROR: %s: %s", filename, strerror (errno));
+
+        return -1;
+      }
+
+      uint is_dir = S_ISDIR (file_stat.st_mode);
+
+      if (is_dir == 0)
+      {
+        dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
+
+        dictcnt++;
+
+        dictfiles[dictcnt - 1] = filename;
+      }
+      else
+      {
+        // do not allow --keyspace w/ a directory
+
+        if (user_options->keyspace == true)
+        {
+          log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
+
+          return -1;
+        }
+
+        char **dictionary_files = NULL;
+
+        dictionary_files = scan_directory (filename);
+
+        if (dictionary_files != NULL)
+        {
+          qsort (dictionary_files, count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
+
+          for (int d = 0; dictionary_files[d] != NULL; d++)
+          {
+            char *l1_filename = dictionary_files[d];
+
+            struct stat l1_stat;
+
+            if (stat (l1_filename, &l1_stat) == -1)
+            {
+              log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
+
+              return -1;
+            }
+
+            if (S_ISREG (l1_stat.st_mode))
+            {
+              dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
+
+              dictcnt++;
+
+              dictfiles[dictcnt - 1] = mystrdup (l1_filename);
+            }
+          }
+        }
+
+        local_free (dictionary_files);
+      }
+    }
+
+    if (dictcnt < 1)
+    {
+      log_error ("ERROR: No usable dictionary file found.");
+
+      return -1;
+    }
+  }
+
+  data.pw_min = pw_min;
+  data.pw_max = pw_max;
+
+  /**
+   * prevent the user from using --skip/--limit together w/ maskfile and or dictfile
+   */
+
+  if (user_options->skip != 0 || user_options->limit != 0)
+  {
+    if ((mask_ctx->masks_cnt > 1) || (dictcnt > 1))
+    {
+      log_error ("ERROR: --skip/--limit are not supported with --increment or mask files");
+
+      return -1;
+    }
+  }
+
+  /**
+   * prevent the user from using --keyspace together w/ maskfile and or dictfile
+   */
+
+  if (user_options->keyspace == true)
+  {
+    if ((mask_ctx->masks_cnt > 1) || (dictcnt > 1))
+    {
+      log_error ("ERROR: --keyspace is not supported with --increment or mask files");
+
+      return -1;
+    }
+  }
+
+  /**
+   * keep track of the progress
+   */
+
+  data.words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+  data.words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+  data.words_progress_restored = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+
+  /**
+   * main inner loop
+   */
+
+  restore_data_t *rd = restore_ctx->rd;
+
+  for (uint dictpos = rd->dictpos; dictpos < dictcnt; dictpos++)
+  {
+    if (opencl_ctx->run_main_level3 == false) break;
+
+    //opencl_ctx->run_main_level1   = true;
+    //opencl_ctx->run_main_level2   = true;
+    //opencl_ctx->run_main_level3   = true;
+    opencl_ctx->run_thread_level1 = true;
+    opencl_ctx->run_thread_level2 = true;
+
+    rd->dictpos = dictpos;
+
+    logfile_generate_subid (logfile_ctx);
+
+    logfile_sub_msg ("START");
+
+    memset (data.words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
+    memset (data.words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
+    memset (data.words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
+
+    memset (data.cpt_buf, 0, CPT_BUF * sizeof (cpt_t));
+
+    data.cpt_pos = 0;
+
+    data.cpt_start = time (NULL);
+
+    data.cpt_total = 0;
+
+    data.words_cur = 0;
+
+    if (rd->words_cur)
+    {
+      data.words_cur = rd->words_cur;
+
+      user_options->skip = 0;
+    }
+
+    if (user_options->skip)
+    {
+      data.words_cur = user_options->skip;
+
+      user_options->skip = 0;
+    }
+
+    data.ms_paused = 0;
+
+    data.kernel_power_final = 0;
+
+    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    {
+      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+      if (device_param->skipped) continue;
+
+      device_param->speed_pos = 0;
+
+      memset (device_param->speed_cnt, 0, SPEED_CACHE * sizeof (u64));
+      memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (double));
+
+      device_param->exec_pos = 0;
+
+      memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
+
+      device_param->outerloop_pos  = 0;
+      device_param->outerloop_left = 0;
+      device_param->innerloop_pos  = 0;
+      device_param->innerloop_left = 0;
+
+      // some more resets:
+
+      if (device_param->pws_buf) memset (device_param->pws_buf, 0, device_param->size_pws);
+
+      device_param->pws_cnt = 0;
+
+      device_param->words_off  = 0;
+      device_param->words_done = 0;
+    }
+
+    // figure out some workload
+
+    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+    {
+      if (user_options_extra->wordlist_mode == WL_MODE_FILE)
+      {
+        char *dictfile = NULL;
+
+        if (induct_ctx->induction_dictionaries_cnt)
+        {
+          dictfile = induct_ctx->induction_dictionaries[0];
+        }
+        else
+        {
+          dictfile = dictfiles[dictpos];
+        }
+
+        data.dictfile = dictfile;
+
+        logfile_sub_string (dictfile);
+
+        for (uint i = 0; i < user_options->rp_files_cnt; i++)
+        {
+          logfile_sub_var_string ("rulefile", user_options->rp_files[i]);
+        }
+
+        FILE *fd2 = fopen (dictfile, "rb");
+
+        if (fd2 == NULL)
+        {
+          log_error ("ERROR: %s: %s", dictfile, strerror (errno));
+
+          return -1;
+        }
+
+        data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile, dictstat_ctx);
+
+        fclose (fd2);
+
+        if (data.words_cnt == 0)
+        {
+          logfile_sub_msg ("STOP");
+
+          continue;
+        }
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+    {
+      char *dictfile  = data.dictfile;
+      char *dictfile2 = data.dictfile2;
+
+      logfile_sub_string (dictfile);
+      logfile_sub_string (dictfile2);
+
+      if (data.combs_mode == COMBINATOR_MODE_BASE_LEFT)
+      {
+        FILE *fd2 = fopen (dictfile, "rb");
+
+        if (fd2 == NULL)
+        {
+          log_error ("ERROR: %s: %s", dictfile, strerror (errno));
+
+          return -1;
+        }
+
+        data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile, dictstat_ctx);
+
+        fclose (fd2);
+      }
+      else if (data.combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+      {
+        FILE *fd2 = fopen (dictfile2, "rb");
+
+        if (fd2 == NULL)
+        {
+          log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
+
+          return -1;
+        }
+
+        data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile2, dictstat_ctx);
+
+        fclose (fd2);
+      }
+
+      if (data.words_cnt == 0)
+      {
+        logfile_sub_msg ("STOP");
+
+        continue;
+      }
+    }
+    else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+    {
+      char *dictfile = NULL;
+
+      if (induct_ctx->induction_dictionaries_cnt)
+      {
+        dictfile = induct_ctx->induction_dictionaries[0];
+      }
+      else
+      {
+        dictfile = dictfiles[dictpos];
+      }
+
+      data.dictfile = dictfile;
+
+      logfile_sub_string (dictfile);
+      logfile_sub_string (mask_ctx->mask);
+
+      FILE *fd2 = fopen (dictfile, "rb");
+
+      if (fd2 == NULL)
+      {
+        log_error ("ERROR: %s: %s", dictfile, strerror (errno));
+
+        return -1;
+      }
+
+      data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile, dictstat_ctx);
+
+      fclose (fd2);
+
+      if (data.words_cnt == 0)
+      {
+        logfile_sub_msg ("STOP");
+
+        continue;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_BF)
+    {
+      logfile_sub_string (mask_ctx->mask);
+    }
+
+    u64 words_base = data.words_cnt;
+
+    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    {
+      if (rules_ctx->kernel_rules_cnt)
+      {
+        words_base /= rules_ctx->kernel_rules_cnt;
+      }
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+    {
+      if (data.combs_cnt)
+      {
+        words_base /= data.combs_cnt;
+      }
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+    {
+      if (mask_ctx->bfs_cnt)
+      {
+        words_base /= mask_ctx->bfs_cnt;
+      }
+    }
+
+    data.words_base = words_base;
+
+    if (user_options->keyspace == true)
+    {
+      log_info ("%" PRIu64 "", words_base);
+
+      return 0;
+    }
+
+    if (data.words_cur > data.words_base)
+    {
+      log_error ("ERROR: Restore value greater keyspace");
+
+      return -1;
+    }
+
+    if (data.words_cur)
+    {
+      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+      {
+        for (uint i = 0; i < hashes->salts_cnt; i++)
+        {
+          data.words_progress_restored[i] = data.words_cur * rules_ctx->kernel_rules_cnt;
+        }
+      }
+      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+      {
+        for (uint i = 0; i < hashes->salts_cnt; i++)
+        {
+          data.words_progress_restored[i] = data.words_cur * data.combs_cnt;
+        }
+      }
+      else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+      {
+        for (uint i = 0; i < hashes->salts_cnt; i++)
+        {
+          data.words_progress_restored[i] = data.words_cur * mask_ctx->bfs_cnt;
+        }
+      }
+    }
+
+    /*
+     * Update dictionary statistic
+     */
+
+    dictstat_write (dictstat_ctx);
+
+    /**
+     * Update loopback file
+     */
+
+    if (user_options->loopback == true)
+    {
+      loopback_write_open (loopback_ctx, induct_ctx->root_directory);
+    }
+
+    /**
+     * some algorithms have a maximum kernel-loops count
+     */
+
+    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    {
+      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+      if (device_param->skipped) continue;
+
+      if (device_param->kernel_loops_min < device_param->kernel_loops_max)
+      {
+        u32 innerloop_cnt = 0;
+
+        if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+        {
+          if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = rules_ctx->kernel_rules_cnt;
+          else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = data.combs_cnt;
+          else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = mask_ctx->bfs_cnt;
+        }
+        else
+        {
+          innerloop_cnt = hashes->salts_buf[0].salt_iter;
+        }
+
+        if ((innerloop_cnt >= device_param->kernel_loops_min) &&
+            (innerloop_cnt <= device_param->kernel_loops_max))
+        {
+          device_param->kernel_loops_max = innerloop_cnt;
+        }
+      }
+    }
+
+    /**
+     * create autotune threads
+     */
+
+    hc_thread_t *c_threads = (hc_thread_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
+
+    opencl_ctx->devices_status = STATUS_AUTOTUNE;
+
+    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    {
+      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+      hc_thread_create (c_threads[device_id], thread_autotune, device_param);
+    }
+
+    hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
+
+    /*
+     * Inform user about possible slow speeds
+     */
+
+    uint hardware_power_all = 0;
+
+    uint kernel_power_all = 0;
+
+    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    {
+      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+      hardware_power_all += device_param->hardware_power;
+
+      kernel_power_all += device_param->kernel_power;
+    }
+
+    data.hardware_power_all = hardware_power_all; // hardware_power_all is the same as kernel_power_all but without the influence of kernel_accel on the devices
+
+    data.kernel_power_all = kernel_power_all;
+
+    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+    {
+      if (data.words_base < kernel_power_all)
+      {
+        if (user_options->quiet == false)
+        {
+          clear_prompt ();
+
+          log_info ("ATTENTION!");
+          log_info ("  The wordlist or mask you are using is too small.");
+          log_info ("  Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
+          log_info ("  The cracking speed will drop.");
+          log_info ("  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
+          log_info ("");
+        }
+      }
+    }
+
+    /**
+     * create cracker threads
+     */
+
+    /* still needed ?
+    if (initial_restore_done == false)
+    {
+      if (user_options->restore_disable == false) cycle_restore (restore_ctx, opencl_ctx);
+
+      initial_restore_done = true;
+    }
+    */
+
+    opencl_ctx->devices_status = STATUS_RUNNING;
+
+    hc_timer_set (&data.timer_running);
+
+    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+    {
+      if ((user_options->quiet == false) && (user_options->status == false) && (user_options->benchmark == false))
+      {
+        if (user_options->quiet == false) send_prompt ();
+      }
+    }
+    else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
+    {
+      if (user_options->quiet == false) log_info ("Starting attack in stdin mode...");
+      if (user_options->quiet == false) log_info ("");
+    }
+
+    time_t runtime_start;
+
+    time (&runtime_start);
+
+    data.runtime_start = runtime_start;
+
+    data.prepare_time = runtime_start - data.prepare_start;
+
+    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    {
+      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+      if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
+      {
+        hc_thread_create (c_threads[device_id], thread_calc_stdin, device_param);
+      }
+      else
+      {
+        hc_thread_create (c_threads[device_id], thread_calc, device_param);
+      }
+    }
+
+    hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
+
+    local_free (c_threads);
+
+    if ((opencl_ctx->devices_status != STATUS_CRACKED)
+     && (opencl_ctx->devices_status != STATUS_ABORTED)
+     && (opencl_ctx->devices_status != STATUS_QUIT)
+     && (opencl_ctx->devices_status != STATUS_BYPASS))
+    {
+      opencl_ctx->devices_status = STATUS_EXHAUSTED;
+    }
+
+    if (opencl_ctx->devices_status == STATUS_EXHAUSTED)
+    {
+      rd->words_cur = 0;
+    }
+
+    logfile_sub_var_uint ("status-after-work", opencl_ctx->devices_status);
+
+    if (induct_ctx->induction_dictionaries_cnt)
+    {
+      unlink (induct_ctx->induction_dictionaries[0]);
+    }
+
+    myfree (induct_ctx->induction_dictionaries);
+
+    induct_ctx_scan (induct_ctx);
+
+    if (user_options->benchmark == true)
+    {
+      status_benchmark (opencl_ctx, hashconfig, user_options);
+
+      log_info ("");
+    }
+    else
+    {
+      if (user_options->quiet == false)
+      {
+        clear_prompt ();
+
+        status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx, mask_ctx);
+
+        log_info ("");
+      }
+      else
+      {
+        if (user_options->status == true)
+        {
+          status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx, mask_ctx);
+
+          log_info ("");
+        }
+      }
+    }
+
+    if (induct_ctx->induction_dictionaries_cnt)
+    {
+      // yeah, this next statement is a little hack to make sure that --loopback runs correctly (because with it we guarantee that the loop iterates one more time)
+
+      dictpos--;
+    }
+
+    /**
+     * Update loopback file
+     */
+
+    if (user_options->loopback == true)
+    {
+      loopback_write_close (loopback_ctx);
+    }
+
+    time_t runtime_stop;
+
+    time (&runtime_stop);
+
+    data.runtime_stop = runtime_stop;
+
+    logfile_sub_uint (runtime_start);
+    logfile_sub_uint (runtime_stop);
+
+    time (&data.prepare_start);
+
+    logfile_sub_msg ("STOP");
+
+    // finalize task
+
+    if (opencl_ctx->run_main_level3 == false) break;
+  }
+
+  // free memory
+
+  global_free (words_progress_done);
+  global_free (words_progress_rejected);
+  global_free (words_progress_restored);
+
+  return 0;
+}
+
 static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, rules_ctx_t *rules_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx)
 {
   opencl_ctx->devices_status = STATUS_INIT;
@@ -252,16 +1714,11 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   }
   */
 
-  int    myargc = restore_ctx->argc;
-  char **myargv = restore_ctx->argv;
-
   /**
    * setup prepare timer
    */
 
-  time_t prepare_start;
-
-  time (&prepare_start);
+  time (&data.prepare_start);
 
   /**
    * setup variables and buffers depending on hash_mode
@@ -302,7 +1759,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   data.hashes = hashes;
 
-  const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, user_options, myargv[user_options_extra->optind]);
+  const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, user_options, restore_ctx->argv[user_options_extra->optind]);
 
   if (rc_hashes_init_stage1 == -1) return -1;
 
@@ -373,47 +1830,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   data.bitmap_ctx = bitmap_ctx;
 
   bitmap_ctx_init (bitmap_ctx, user_options, hashconfig, hashes);
-
-  /**
-   * word len
-   */
-
-  uint pw_min = hashconfig_general_pw_min (hashconfig);
-  uint pw_max = hashconfig_general_pw_max (hashconfig);
-
-  /**
-   * If we have a NOOP rule then we can process words from wordlists > length 32 for slow hashes
-   */
-
-  const bool has_noop = rules_ctx_has_noop (rules_ctx);
-
-  if (has_noop == false)
-  {
-    switch (user_options_extra->attack_kern)
-    {
-      case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
-                                  break;
-      case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
-                                  break;
-    }
-  }
-  else
-  {
-    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-    {
-      switch (user_options_extra->attack_kern)
-      {
-        case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
-                                    break;
-        case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
-                                    break;
-      }
-    }
-    else
-    {
-      // in this case we can process > 32
-    }
-  }
 
   /**
    * charsets : keep them together for more easy maintainnce
@@ -593,6 +2009,14 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   int *od_power_control_status = (int *) mycalloc (opencl_ctx->devices_cnt, sizeof (int));
 
   unsigned int *nvml_power_limit = (unsigned int *) mycalloc (opencl_ctx->devices_cnt, sizeof (unsigned int));
+
+  /**
+   * Wordlist allocate buffer
+   */
+
+  wl_data_t *wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
+
+  wl_data_init (wl_data, user_options, hashconfig);
 
   /**
    * User-defined GPU temp handling
@@ -1012,451 +2436,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   }
 
   /**
-   * keep track of the progress
-   */
-
-  data.words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-  data.words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-  data.words_progress_restored = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-
-  /**
-   * dictstat
-   */
-
-  dictstat_read (dictstat_ctx);
-
-  /**
-   * dictionary pad
-   */
-
-  wl_data_t *wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
-
-  wl_data_init (wl_data, user_options, hashconfig);
-
-  uint   dictcnt   = 0;
-  char **dictfiles = NULL;
-
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    if (user_options_extra->wordlist_mode == WL_MODE_FILE)
-    {
-      int wls_left = myargc - (user_options_extra->optind + 1);
-
-      for (int i = 0; i < wls_left; i++)
-      {
-        char *l0_filename = myargv[user_options_extra->optind + 1 + i];
-
-        struct stat l0_stat;
-
-        if (stat (l0_filename, &l0_stat) == -1)
-        {
-          log_error ("ERROR: %s: %s", l0_filename, strerror (errno));
-
-          return -1;
-        }
-
-        uint is_dir = S_ISDIR (l0_stat.st_mode);
-
-        if (is_dir == 0)
-        {
-          dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
-
-          dictcnt++;
-
-          dictfiles[dictcnt - 1] = l0_filename;
-        }
-        else
-        {
-          // do not allow --keyspace w/ a directory
-
-          if (user_options->keyspace == true)
-          {
-            log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
-
-            return -1;
-          }
-
-          char **dictionary_files = NULL;
-
-          dictionary_files = scan_directory (l0_filename);
-
-          if (dictionary_files != NULL)
-          {
-            qsort (dictionary_files, count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
-
-            for (int d = 0; dictionary_files[d] != NULL; d++)
-            {
-              char *l1_filename = dictionary_files[d];
-
-              struct stat l1_stat;
-
-              if (stat (l1_filename, &l1_stat) == -1)
-              {
-                log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
-
-                return -1;
-              }
-
-              if (S_ISREG (l1_stat.st_mode))
-              {
-                dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
-
-                dictcnt++;
-
-                dictfiles[dictcnt - 1] = mystrdup (l1_filename);
-              }
-            }
-          }
-
-          local_free (dictionary_files);
-        }
-      }
-
-      if (dictcnt < 1)
-      {
-        log_error ("ERROR: No usable dictionary file found.");
-
-        return -1;
-      }
-    }
-    else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
-    {
-      dictcnt = 1;
-    }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
-  {
-    // display
-
-    char *dictfile1 = myargv[user_options_extra->optind + 1 + 0];
-    char *dictfile2 = myargv[user_options_extra->optind + 1 + 1];
-
-    // find the bigger dictionary and use as base
-
-    FILE *fp1 = NULL;
-    FILE *fp2 = NULL;
-
-    struct stat tmp_stat;
-
-    if ((fp1 = fopen (dictfile1, "rb")) == NULL)
-    {
-      log_error ("ERROR: %s: %s", dictfile1, strerror (errno));
-
-      return -1;
-    }
-
-    if (stat (dictfile1, &tmp_stat) == -1)
-    {
-      log_error ("ERROR: %s: %s", dictfile1, strerror (errno));
-
-      fclose (fp1);
-
-      return -1;
-    }
-
-    if (S_ISDIR (tmp_stat.st_mode))
-    {
-      log_error ("ERROR: %s must be a regular file", dictfile1, strerror (errno));
-
-      fclose (fp1);
-
-      return -1;
-    }
-
-    if ((fp2 = fopen (dictfile2, "rb")) == NULL)
-    {
-      log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
-
-      fclose (fp1);
-
-      return -1;
-    }
-
-    if (stat (dictfile2, &tmp_stat) == -1)
-    {
-      log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
-
-      fclose (fp1);
-      fclose (fp2);
-
-      return -1;
-    }
-
-    if (S_ISDIR (tmp_stat.st_mode))
-    {
-      log_error ("ERROR: %s must be a regular file", dictfile2, strerror (errno));
-
-      fclose (fp1);
-      fclose (fp2);
-
-      return -1;
-    }
-
-    data.combs_cnt = 1;
-
-    const u64 words1_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fp1, dictfile1, dictstat_ctx);
-
-    if (words1_cnt == 0)
-    {
-      log_error ("ERROR: %s: empty file", dictfile1);
-
-      fclose (fp1);
-      fclose (fp2);
-
-      return -1;
-    }
-
-    data.combs_cnt = 1;
-
-    const u64 words2_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fp2, dictfile2, dictstat_ctx);
-
-    if (words2_cnt == 0)
-    {
-      log_error ("ERROR: %s: empty file", dictfile2);
-
-      fclose (fp1);
-      fclose (fp2);
-
-      return -1;
-    }
-
-    fclose (fp1);
-    fclose (fp2);
-
-    data.dictfile  = dictfile1;
-    data.dictfile2 = dictfile2;
-
-    if (words1_cnt >= words2_cnt)
-    {
-      data.combs_cnt  = words2_cnt;
-      data.combs_mode = COMBINATOR_MODE_BASE_LEFT;
-
-      dictfiles = &data.dictfile;
-
-      dictcnt = 1;
-    }
-    else
-    {
-      data.combs_cnt  = words1_cnt;
-      data.combs_mode = COMBINATOR_MODE_BASE_RIGHT;
-
-      dictfiles = &data.dictfile2;
-
-      dictcnt = 1;
-
-      // we also have to switch wordlist related rules!
-
-      char *tmpc = user_options->rule_buf_l;
-
-      user_options->rule_buf_l = user_options->rule_buf_r;
-      user_options->rule_buf_r = tmpc;
-
-      int   tmpi = user_options_extra->rule_len_l;
-
-      user_options_extra->rule_len_l = user_options_extra->rule_len_r;
-      user_options_extra->rule_len_r = tmpi;
-    }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_BF)
-  {
-    if (user_options->benchmark == true)
-    {
-      pw_min = mp_get_length (mask_ctx->mask);
-      pw_max = pw_min;
-    }
-
-    /* i think we can do this better
-    if (user_options->increment == true)
-    {
-      if (user_options->increment_min > pw_min) pw_min = user_options->increment_min;
-      if (user_options->increment_max < pw_max) pw_max = user_options->increment_max;
-    }
-    */
-
-    dictfiles = (char **) mycalloc (1, sizeof (char *));
-    dictfiles[0] = "DUMMY";
-
-    dictcnt = 1;
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-  {
-    data.combs_mode = COMBINATOR_MODE_BASE_LEFT;
-
-    // mod -- moved to mpsp.c
-
-    // base
-
-    int wls_left = myargc - (user_options_extra->optind + 2);
-
-    for (int i = 0; i < wls_left; i++)
-    {
-      char *filename = myargv[user_options_extra->optind + 1 + i];
-
-      struct stat file_stat;
-
-      if (stat (filename, &file_stat) == -1)
-      {
-        log_error ("ERROR: %s: %s", filename, strerror (errno));
-
-        return -1;
-      }
-
-      uint is_dir = S_ISDIR (file_stat.st_mode);
-
-      if (is_dir == 0)
-      {
-        dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
-
-        dictcnt++;
-
-        dictfiles[dictcnt - 1] = filename;
-      }
-      else
-      {
-        // do not allow --keyspace w/ a directory
-
-        if (user_options->keyspace == true)
-        {
-          log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
-
-          return -1;
-        }
-
-        char **dictionary_files = NULL;
-
-        dictionary_files = scan_directory (filename);
-
-        if (dictionary_files != NULL)
-        {
-          qsort (dictionary_files, count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
-
-          for (int d = 0; dictionary_files[d] != NULL; d++)
-          {
-            char *l1_filename = dictionary_files[d];
-
-            struct stat l1_stat;
-
-            if (stat (l1_filename, &l1_stat) == -1)
-            {
-              log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
-
-              return -1;
-            }
-
-            if (S_ISREG (l1_stat.st_mode))
-            {
-              dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
-
-              dictcnt++;
-
-              dictfiles[dictcnt - 1] = mystrdup (l1_filename);
-            }
-          }
-        }
-
-        local_free (dictionary_files);
-      }
-    }
-
-    if (dictcnt < 1)
-    {
-      log_error ("ERROR: No usable dictionary file found.");
-
-      return -1;
-    }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    data.combs_mode = COMBINATOR_MODE_BASE_RIGHT;
-
-    // mod -- moved to mpsp.c
-
-    // base
-
-    int wls_left = myargc - (user_options_extra->optind + 2);
-
-    for (int i = 0; i < wls_left; i++)
-    {
-      char *filename = myargv[user_options_extra->optind + 2 + i];
-
-      struct stat file_stat;
-
-      if (stat (filename, &file_stat) == -1)
-      {
-        log_error ("ERROR: %s: %s", filename, strerror (errno));
-
-        return -1;
-      }
-
-      uint is_dir = S_ISDIR (file_stat.st_mode);
-
-      if (is_dir == 0)
-      {
-        dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
-
-        dictcnt++;
-
-        dictfiles[dictcnt - 1] = filename;
-      }
-      else
-      {
-        // do not allow --keyspace w/ a directory
-
-        if (user_options->keyspace == true)
-        {
-          log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
-
-          return -1;
-        }
-
-        char **dictionary_files = NULL;
-
-        dictionary_files = scan_directory (filename);
-
-        if (dictionary_files != NULL)
-        {
-          qsort (dictionary_files, count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
-
-          for (int d = 0; dictionary_files[d] != NULL; d++)
-          {
-            char *l1_filename = dictionary_files[d];
-
-            struct stat l1_stat;
-
-            if (stat (l1_filename, &l1_stat) == -1)
-            {
-              log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
-
-              return -1;
-            }
-
-            if (S_ISREG (l1_stat.st_mode))
-            {
-              dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
-
-              dictcnt++;
-
-              dictfiles[dictcnt - 1] = mystrdup (l1_filename);
-            }
-          }
-        }
-
-        local_free (dictionary_files);
-      }
-    }
-
-    if (dictcnt < 1)
-    {
-      log_error ("ERROR: No usable dictionary file found.");
-
-      return -1;
-    }
-  }
-
-  data.pw_min = pw_min;
-  data.pw_max = pw_max;
-
-  /**
    * weak hash check is the first to write to potfile, so open it for writing from here
    */
 
@@ -1544,979 +2523,34 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   restore_data_t *rd = restore_ctx->rd;
 
-  for (uint masks_pos = rd->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
+  if (mask_ctx->masks_cnt)
   {
-    //opencl_ctx->run_main_level1   = true;
-    //opencl_ctx->run_main_level2   = true;
-    opencl_ctx->run_main_level3   = true;
-    opencl_ctx->run_thread_level1 = true;
-    opencl_ctx->run_thread_level2 = true;
-
-    if (masks_pos > rd->masks_pos)
+    for (uint masks_pos = rd->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
     {
-      rd->dictpos = 0;
+      if (masks_pos > rd->masks_pos)
+      {
+        rd->dictpos = 0;
+      }
+
+      rd->masks_pos = masks_pos;
+
+      mask_ctx->masks_pos = masks_pos;
+
+      const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hashconfig, hashes, mask_ctx, wl_data);
+
+      if (rc_inner1_loop == -1) return -1;
+
+      if (opencl_ctx->run_main_level2 == false) break;
     }
-
-    rd->masks_pos = masks_pos;
-
-    mask_ctx->masks_pos = masks_pos;
-
-    if (user_options->attack_mode == ATTACK_MODE_HYBRID1 || user_options->attack_mode == ATTACK_MODE_HYBRID2 || user_options->attack_mode == ATTACK_MODE_BF)
-    {
-      mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
-
-      if (mask_ctx->mask_from_file == true)
-      {
-        if (mask_ctx->mask[0] == '\\' && mask_ctx->mask[1] == '#') mask_ctx->mask++; // escaped comment sign (sharp) "\#"
-
-        char *str_ptr;
-        uint  str_pos;
-
-        uint mask_offset = 0;
-
-        uint separator_cnt;
-
-        for (separator_cnt = 0; separator_cnt < 4; separator_cnt++)
-        {
-          str_ptr = strstr (mask_ctx->mask + mask_offset, ",");
-
-          if (str_ptr == NULL) break;
-
-          str_pos = str_ptr - mask_ctx->mask;
-
-          // escaped separator, i.e. "\,"
-
-          if (str_pos > 0)
-          {
-            if (mask_ctx->mask[str_pos - 1] == '\\')
-            {
-              separator_cnt --;
-
-              mask_offset = str_pos + 1;
-
-              continue;
-            }
-          }
-
-          // reset the offset
-
-          mask_offset = 0;
-
-          mask_ctx->mask[str_pos] = 0;
-
-          switch (separator_cnt)
-          {
-            case 0:
-              mp_reset_usr (mask_ctx->mp_usr, 0);
-
-              user_options->custom_charset_1 = mask_ctx->mask;
-
-              mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
-              break;
-
-            case 1:
-              mp_reset_usr (mask_ctx->mp_usr, 1);
-
-              user_options->custom_charset_2 = mask_ctx->mask;
-
-              mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
-              break;
-
-            case 2:
-              mp_reset_usr (mask_ctx->mp_usr, 2);
-
-              user_options->custom_charset_3 = mask_ctx->mask;
-
-              mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
-              break;
-
-            case 3:
-              mp_reset_usr (mask_ctx->mp_usr, 3);
-
-              user_options->custom_charset_4 = mask_ctx->mask;
-
-              mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
-              break;
-          }
-
-          mask_ctx->mask += str_pos + 1;
-        }
-
-        /**
-         * What follows is a very special case where "\," is within the mask field of a line in a .hcmask file only because otherwise (without the "\")
-         * it would be interpreted as a custom charset definition.
-         *
-         * We need to replace all "\," with just "," within the mask (but allow the special case "\\," which means "\" followed by ",")
-         * Note: "\\" is not needed to replace all "\" within the mask! The meaning of "\\" within a line containing the string "\\," is just to allow "\" followed by ","
-         */
-
-        uint mask_len_cur = strlen (mask_ctx->mask);
-
-        uint mask_out_pos = 0;
-        char mask_prev = 0;
-
-        for (uint mask_iter = 0; mask_iter < mask_len_cur; mask_iter++, mask_out_pos++)
-        {
-          if (mask_ctx->mask[mask_iter] == ',')
-          {
-            if (mask_prev == '\\')
-            {
-              mask_out_pos -= 1; // this means: skip the previous "\"
-            }
-          }
-
-          mask_prev = mask_ctx->mask[mask_iter];
-
-          mask_ctx->mask[mask_out_pos] = mask_ctx->mask[mask_iter];
-        }
-
-        mask_ctx->mask[mask_out_pos] = 0;
-      }
-
-      if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
-      {
-        mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
-
-        uint uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
-
-        mp_css_to_uniq_tbl (mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
-
-        sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
-
-        data.combs_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
-
-        // args
-
-        for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-        {
-          hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-          if (device_param->skipped) continue;
-
-          device_param->kernel_params_mp[0] = &device_param->d_combs;
-          device_param->kernel_params_mp[1] = &device_param->d_root_css_buf;
-          device_param->kernel_params_mp[2] = &device_param->d_markov_css_buf;
-
-          device_param->kernel_params_mp_buf64[3] = 0;
-          device_param->kernel_params_mp_buf32[4] = mask_ctx->css_cnt;
-          device_param->kernel_params_mp_buf32[5] = 0;
-          device_param->kernel_params_mp_buf32[6] = 0;
-          device_param->kernel_params_mp_buf32[7] = 0;
-
-          if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-          {
-            if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_buf32[5] = full01;
-            if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_buf32[5] = full80;
-            if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
-            if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_buf32[7] = 1;
-          }
-          else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-          {
-            device_param->kernel_params_mp_buf32[5] = 0;
-            device_param->kernel_params_mp_buf32[6] = 0;
-            device_param->kernel_params_mp_buf32[7] = 0;
-          }
-
-          cl_int CL_err = CL_SUCCESS;
-
-          for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp[i]);
-          for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp[i]);
-          for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp[i]);
-
-          if (CL_err != CL_SUCCESS)
-          {
-            log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
-
-            return -1;
-          }
-
-          CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL);
-          CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL);
-
-          if (CL_err != CL_SUCCESS)
-          {
-            log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
-
-            return -1;
-          }
-        }
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_BF)
-      {
-        mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
-        {
-          u32 css_cnt_unicode = mask_ctx->css_cnt * 2;
-
-          cs_t *css_buf_unicode = (cs_t *) mycalloc (css_cnt_unicode, sizeof (cs_t));
-
-          for (uint i = 0, j = 0; i < mask_ctx->css_cnt; i += 1, j += 2)
-          {
-            memcpy (&css_buf_unicode[j + 0], &mask_ctx->css_buf[i], sizeof (cs_t));
-
-            css_buf_unicode[j + 1].cs_buf[0] = 0;
-            css_buf_unicode[j + 1].cs_len    = 1;
-          }
-
-          myfree (mask_ctx->css_buf);
-
-          mask_ctx->css_buf = css_buf_unicode;
-          mask_ctx->css_cnt = css_cnt_unicode;
-        }
-
-        // check if mask is not too large or too small for pw_min/pw_max  (*2 if unicode)
-
-        uint mask_min = pw_min;
-        uint mask_max = pw_max;
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
-        {
-          mask_min *= 2;
-          mask_max *= 2;
-        }
-
-        if ((mask_ctx->css_cnt < mask_min) || (mask_ctx->css_cnt > mask_max))
-        {
-          if (mask_ctx->css_cnt < mask_min)
-          {
-            log_info ("WARNING: Skipping mask '%s' because it is smaller than the minimum password length", mask_ctx->mask);
-          }
-
-          if (mask_ctx->css_cnt > mask_max)
-          {
-            log_info ("WARNING: Skipping mask '%s' because it is larger than the maximum password length", mask_ctx->mask);
-          }
-
-          // skip to next mask
-
-          logfile_sub_msg ("STOP");
-
-          continue;
-        }
-
-        u32 css_cnt_orig = mask_ctx->css_cnt;
-
-        if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
-        {
-          if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
-          {
-            uint  salt_len = (uint)   hashes->salts_buf[0].salt_len;
-            char *salt_buf = (char *) hashes->salts_buf[0].salt_buf;
-
-            uint css_cnt_salt = mask_ctx->css_cnt + salt_len;
-
-            cs_t *css_buf_salt = (cs_t *) mycalloc (css_cnt_salt, sizeof (cs_t));
-
-            memcpy (css_buf_salt, mask_ctx->css_buf, mask_ctx->css_cnt * sizeof (cs_t));
-
-            for (uint i = 0, j = mask_ctx->css_cnt; i < salt_len; i++, j++)
-            {
-              css_buf_salt[j].cs_buf[0] = salt_buf[i];
-              css_buf_salt[j].cs_len    = 1;
-            }
-
-            myfree (mask_ctx->css_buf);
-
-            mask_ctx->css_buf = css_buf_salt;
-            mask_ctx->css_cnt = css_cnt_salt;
-          }
-        }
-
-        uint uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
-
-        mp_css_to_uniq_tbl (mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
-
-        sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
-
-        data.words_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
-
-        // copy + args
-
-        uint css_cnt_l = mask_ctx->css_cnt;
-        uint css_cnt_r;
-
-        if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-        {
-          if (css_cnt_orig < 6)
-          {
-            css_cnt_r = 1;
-          }
-          else if (css_cnt_orig == 6)
-          {
-            css_cnt_r = 2;
-          }
-          else
-          {
-            if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
-            {
-              if (css_cnt_orig == 8 || css_cnt_orig == 10)
-              {
-                css_cnt_r = 2;
-              }
-              else
-              {
-                css_cnt_r = 4;
-              }
-            }
-            else
-            {
-              if ((mask_ctx->css_buf[0].cs_len * mask_ctx->css_buf[1].cs_len * mask_ctx->css_buf[2].cs_len) > 256)
-              {
-                css_cnt_r = 3;
-              }
-              else
-              {
-                css_cnt_r = 4;
-              }
-            }
-          }
-        }
-        else
-        {
-          css_cnt_r = 1;
-
-          /* unfinished code?
-          int sum = css_buf[css_cnt_r - 1].cs_len;
-
-          for (uint i = 1; i < 4 && i < css_cnt; i++)
-          {
-            if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
-
-            css_cnt_r++;
-
-            sum *= css_buf[css_cnt_r - 1].cs_len;
-          }
-          */
-        }
-
-        css_cnt_l -= css_cnt_r;
-
-        mask_ctx->bfs_cnt = sp_get_sum (0, css_cnt_r, mask_ctx->root_css_buf);
-
-        for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-        {
-          hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-          if (device_param->skipped) continue;
-
-          device_param->kernel_params_mp_l[0] = &device_param->d_pws_buf;
-          device_param->kernel_params_mp_l[1] = &device_param->d_root_css_buf;
-          device_param->kernel_params_mp_l[2] = &device_param->d_markov_css_buf;
-
-          device_param->kernel_params_mp_l_buf64[3] = 0;
-          device_param->kernel_params_mp_l_buf32[4] = css_cnt_l;
-          device_param->kernel_params_mp_l_buf32[5] = css_cnt_r;
-          device_param->kernel_params_mp_l_buf32[6] = 0;
-          device_param->kernel_params_mp_l_buf32[7] = 0;
-          device_param->kernel_params_mp_l_buf32[8] = 0;
-
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_l_buf32[6] = full01;
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_l_buf32[6] = full80;
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_l_buf32[7] = 1;
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_l_buf32[8] = 1;
-
-          device_param->kernel_params_mp_r[0] = &device_param->d_bfs;
-          device_param->kernel_params_mp_r[1] = &device_param->d_root_css_buf;
-          device_param->kernel_params_mp_r[2] = &device_param->d_markov_css_buf;
-
-          device_param->kernel_params_mp_r_buf64[3] = 0;
-          device_param->kernel_params_mp_r_buf32[4] = css_cnt_r;
-          device_param->kernel_params_mp_r_buf32[5] = 0;
-          device_param->kernel_params_mp_r_buf32[6] = 0;
-          device_param->kernel_params_mp_r_buf32[7] = 0;
-
-          cl_int CL_err = CL_SUCCESS;
-
-          for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_l[i]);
-          for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
-          for (uint i = 4; i < 9; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
-
-          for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_r[i]);
-          for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]);
-          for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]);
-
-          if (CL_err != CL_SUCCESS)
-          {
-            log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
-
-            return -1;
-          }
-
-          CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL);
-          CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL);
-
-          if (CL_err != CL_SUCCESS)
-          {
-            log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
-
-            return -1;
-          }
-        }
-      }
-    }
-
-    /**
-     * update induction directory scan
-     */
-
-    induct_ctx_scan (induct_ctx);
-
-    /**
-     * prevent the user from using --skip/--limit together w/ maskfile and or dictfile
-     */
-
-    if (user_options->skip != 0 || user_options->limit != 0)
-    {
-      if ((mask_ctx->masks_cnt > 1) || (dictcnt > 1))
-      {
-        log_error ("ERROR: --skip/--limit are not supported with --increment or mask files");
-
-        return -1;
-      }
-    }
-
-    /**
-     * prevent the user from using --keyspace together w/ maskfile and or dictfile
-     */
-
-    if (user_options->keyspace == true)
-    {
-      if ((mask_ctx->masks_cnt > 1) || (dictcnt > 1))
-      {
-        log_error ("ERROR: --keyspace is not supported with --increment or mask files");
-
-        return -1;
-      }
-    }
-
-    for (uint dictpos = rd->dictpos; dictpos < dictcnt; dictpos++)
-    {
-      if (opencl_ctx->run_main_level3 == false) break;
-
-      //opencl_ctx->run_main_level1   = true;
-      //opencl_ctx->run_main_level2   = true;
-      //opencl_ctx->run_main_level3   = true;
-      opencl_ctx->run_thread_level1 = true;
-      opencl_ctx->run_thread_level2 = true;
-
-      rd->dictpos = dictpos;
-
-      logfile_generate_subid (logfile_ctx);
-
-      logfile_sub_msg ("START");
-
-      memset (data.words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
-      memset (data.words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
-      memset (data.words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
-
-      memset (data.cpt_buf, 0, CPT_BUF * sizeof (cpt_t));
-
-      data.cpt_pos = 0;
-
-      data.cpt_start = time (NULL);
-
-      data.cpt_total = 0;
-
-      data.words_cur = 0;
-
-      if (rd->words_cur)
-      {
-        data.words_cur = rd->words_cur;
-
-        user_options->skip = 0;
-      }
-
-      if (user_options->skip)
-      {
-        data.words_cur = user_options->skip;
-
-        user_options->skip = 0;
-      }
-
-      data.ms_paused = 0;
-
-      data.kernel_power_final = 0;
-
-      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-      {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-        if (device_param->skipped) continue;
-
-        device_param->speed_pos = 0;
-
-        memset (device_param->speed_cnt, 0, SPEED_CACHE * sizeof (u64));
-        memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (double));
-
-        device_param->exec_pos = 0;
-
-        memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
-
-        device_param->outerloop_pos  = 0;
-        device_param->outerloop_left = 0;
-        device_param->innerloop_pos  = 0;
-        device_param->innerloop_left = 0;
-
-        // some more resets:
-
-        if (device_param->pws_buf) memset (device_param->pws_buf, 0, device_param->size_pws);
-
-        device_param->pws_cnt = 0;
-
-        device_param->words_off  = 0;
-        device_param->words_done = 0;
-      }
-
-      // figure out some workload
-
-      if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-      {
-        if (user_options_extra->wordlist_mode == WL_MODE_FILE)
-        {
-          char *dictfile = NULL;
-
-          if (induct_ctx->induction_dictionaries_cnt)
-          {
-            dictfile = induct_ctx->induction_dictionaries[0];
-          }
-          else
-          {
-            dictfile = dictfiles[dictpos];
-          }
-
-          data.dictfile = dictfile;
-
-          logfile_sub_string (dictfile);
-
-          for (uint i = 0; i < user_options->rp_files_cnt; i++)
-          {
-            logfile_sub_var_string ("rulefile", user_options->rp_files[i]);
-          }
-
-          FILE *fd2 = fopen (dictfile, "rb");
-
-          if (fd2 == NULL)
-          {
-            log_error ("ERROR: %s: %s", dictfile, strerror (errno));
-
-            return -1;
-          }
-
-          data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile, dictstat_ctx);
-
-          fclose (fd2);
-
-          if (data.words_cnt == 0)
-          {
-            logfile_sub_msg ("STOP");
-
-            continue;
-          }
-        }
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_COMBI)
-      {
-        char *dictfile  = data.dictfile;
-        char *dictfile2 = data.dictfile2;
-
-        logfile_sub_string (dictfile);
-        logfile_sub_string (dictfile2);
-
-        if (data.combs_mode == COMBINATOR_MODE_BASE_LEFT)
-        {
-          FILE *fd2 = fopen (dictfile, "rb");
-
-          if (fd2 == NULL)
-          {
-            log_error ("ERROR: %s: %s", dictfile, strerror (errno));
-
-            return -1;
-          }
-
-          data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile, dictstat_ctx);
-
-          fclose (fd2);
-        }
-        else if (data.combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-        {
-          FILE *fd2 = fopen (dictfile2, "rb");
-
-          if (fd2 == NULL)
-          {
-            log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
-
-            return -1;
-          }
-
-          data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile2, dictstat_ctx);
-
-          fclose (fd2);
-        }
-
-        if (data.words_cnt == 0)
-        {
-          logfile_sub_msg ("STOP");
-
-          continue;
-        }
-      }
-      else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
-      {
-        char *dictfile = NULL;
-
-        if (induct_ctx->induction_dictionaries_cnt)
-        {
-          dictfile = induct_ctx->induction_dictionaries[0];
-        }
-        else
-        {
-          dictfile = dictfiles[dictpos];
-        }
-
-        data.dictfile = dictfile;
-
-        logfile_sub_string (dictfile);
-        logfile_sub_string (mask_ctx->mask);
-
-        FILE *fd2 = fopen (dictfile, "rb");
-
-        if (fd2 == NULL)
-        {
-          log_error ("ERROR: %s: %s", dictfile, strerror (errno));
-
-          return -1;
-        }
-
-        data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile, dictstat_ctx);
-
-        fclose (fd2);
-
-        if (data.words_cnt == 0)
-        {
-          logfile_sub_msg ("STOP");
-
-          continue;
-        }
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_BF)
-      {
-        logfile_sub_string (mask_ctx->mask);
-      }
-
-      u64 words_base = data.words_cnt;
-
-      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-      {
-        if (rules_ctx->kernel_rules_cnt)
-        {
-          words_base /= rules_ctx->kernel_rules_cnt;
-        }
-      }
-      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-      {
-        if (data.combs_cnt)
-        {
-          words_base /= data.combs_cnt;
-        }
-      }
-      else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-      {
-        if (mask_ctx->bfs_cnt)
-        {
-          words_base /= mask_ctx->bfs_cnt;
-        }
-      }
-
-      data.words_base = words_base;
-
-      if (user_options->keyspace == true)
-      {
-        log_info ("%" PRIu64 "", words_base);
-
-        return 0;
-      }
-
-      if (data.words_cur > data.words_base)
-      {
-        log_error ("ERROR: Restore value greater keyspace");
-
-        return -1;
-      }
-
-      if (data.words_cur)
-      {
-        if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-        {
-          for (uint i = 0; i < hashes->salts_cnt; i++)
-          {
-            data.words_progress_restored[i] = data.words_cur * rules_ctx->kernel_rules_cnt;
-          }
-        }
-        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-        {
-          for (uint i = 0; i < hashes->salts_cnt; i++)
-          {
-            data.words_progress_restored[i] = data.words_cur * data.combs_cnt;
-          }
-        }
-        else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-        {
-          for (uint i = 0; i < hashes->salts_cnt; i++)
-          {
-            data.words_progress_restored[i] = data.words_cur * mask_ctx->bfs_cnt;
-          }
-        }
-      }
-
-      /*
-       * Update dictionary statistic
-       */
-
-      dictstat_write (dictstat_ctx);
-
-      /**
-       * Update loopback file
-       */
-
-      if (user_options->loopback == true)
-      {
-        loopback_write_open (loopback_ctx, induct_ctx->root_directory);
-      }
-
-      /**
-       * some algorithms have a maximum kernel-loops count
-       */
-
-      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-      {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-        if (device_param->skipped) continue;
-
-        if (device_param->kernel_loops_min < device_param->kernel_loops_max)
-        {
-          u32 innerloop_cnt = 0;
-
-          if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-          {
-            if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = rules_ctx->kernel_rules_cnt;
-            else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = data.combs_cnt;
-            else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = mask_ctx->bfs_cnt;
-          }
-          else
-          {
-            innerloop_cnt = hashes->salts_buf[0].salt_iter;
-          }
-
-          if ((innerloop_cnt >= device_param->kernel_loops_min) &&
-              (innerloop_cnt <= device_param->kernel_loops_max))
-          {
-            device_param->kernel_loops_max = innerloop_cnt;
-          }
-        }
-      }
-
-      /**
-       * create autotune threads
-       */
-
-      hc_thread_t *c_threads = (hc_thread_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
-
-      opencl_ctx->devices_status = STATUS_AUTOTUNE;
-
-      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-      {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-        hc_thread_create (c_threads[device_id], thread_autotune, device_param);
-      }
-
-      hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
-
-      /*
-       * Inform user about possible slow speeds
-       */
-
-      uint hardware_power_all = 0;
-
-      uint kernel_power_all = 0;
-
-      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-      {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-        hardware_power_all += device_param->hardware_power;
-
-        kernel_power_all += device_param->kernel_power;
-      }
-
-      data.hardware_power_all = hardware_power_all; // hardware_power_all is the same as kernel_power_all but without the influence of kernel_accel on the devices
-
-      data.kernel_power_all = kernel_power_all;
-
-      if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-      {
-        if (data.words_base < kernel_power_all)
-        {
-          if (user_options->quiet == false)
-          {
-            clear_prompt ();
-
-            log_info ("ATTENTION!");
-            log_info ("  The wordlist or mask you are using is too small.");
-            log_info ("  Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
-            log_info ("  The cracking speed will drop.");
-            log_info ("  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
-            log_info ("");
-          }
-        }
-      }
-
-      /**
-       * create cracker threads
-       */
-
-      /* still needed ?
-      if (initial_restore_done == false)
-      {
-        if (user_options->restore_disable == false) cycle_restore (restore_ctx, opencl_ctx);
-
-        initial_restore_done = true;
-      }
-      */
-
-      opencl_ctx->devices_status = STATUS_RUNNING;
-
-      hc_timer_set (&data.timer_running);
-
-      if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-      {
-        if ((user_options->quiet == false) && (user_options->status == false) && (user_options->benchmark == false))
-        {
-          if (user_options->quiet == false) send_prompt ();
-        }
-      }
-      else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
-      {
-        if (user_options->quiet == false) log_info ("Starting attack in stdin mode...");
-        if (user_options->quiet == false) log_info ("");
-      }
-
-      time_t runtime_start;
-
-      time (&runtime_start);
-
-      data.runtime_start = runtime_start;
-
-      data.prepare_time = runtime_start - prepare_start;
-
-      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-      {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-        if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
-        {
-          hc_thread_create (c_threads[device_id], thread_calc_stdin, device_param);
-        }
-        else
-        {
-          hc_thread_create (c_threads[device_id], thread_calc, device_param);
-        }
-      }
-
-      hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
-
-      local_free (c_threads);
-
-      if ((opencl_ctx->devices_status != STATUS_CRACKED)
-       && (opencl_ctx->devices_status != STATUS_ABORTED)
-       && (opencl_ctx->devices_status != STATUS_QUIT)
-       && (opencl_ctx->devices_status != STATUS_BYPASS))
-      {
-        opencl_ctx->devices_status = STATUS_EXHAUSTED;
-      }
-
-      if (opencl_ctx->devices_status == STATUS_EXHAUSTED)
-      {
-        rd->words_cur = 0;
-      }
-
-      logfile_sub_var_uint ("status-after-work", opencl_ctx->devices_status);
-
-      if (induct_ctx->induction_dictionaries_cnt)
-      {
-        unlink (induct_ctx->induction_dictionaries[0]);
-      }
-
-      myfree (induct_ctx->induction_dictionaries);
-
-      induct_ctx_scan (induct_ctx);
-
-      if (user_options->benchmark == true)
-      {
-        status_benchmark (opencl_ctx, hashconfig, user_options);
-
-        log_info ("");
-      }
-      else
-      {
-        if (user_options->quiet == false)
-        {
-          clear_prompt ();
-
-          status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx, mask_ctx);
-
-          log_info ("");
-        }
-        else
-        {
-          if (user_options->status == true)
-          {
-            status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx, mask_ctx);
-
-            log_info ("");
-          }
-        }
-      }
-
-      if (induct_ctx->induction_dictionaries_cnt)
-      {
-        // yeah, this next statement is a little hack to make sure that --loopback runs correctly (because with it we guarantee that the loop iterates one more time)
-
-        dictpos--;
-      }
-
-      /**
-       * Update loopback file
-       */
-
-      if (user_options->loopback == true)
-      {
-        loopback_write_close (loopback_ctx);
-      }
-
-      time_t runtime_stop;
-
-      time (&runtime_stop);
-
-      data.runtime_stop = runtime_stop;
-
-      logfile_sub_uint (runtime_start);
-      logfile_sub_uint (runtime_stop);
-
-      time (&prepare_start);
-
-      logfile_sub_msg ("STOP");
-
-      // finalize task
-
-      if (opencl_ctx->run_main_level3 == false) break;
-    }
-
-    if (opencl_ctx->run_main_level2 == false) break;
+  }
+  else
+  {
+    const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hashconfig, hashes, mask_ctx, wl_data);
+
+    if (rc_inner1_loop == -1) return -1;
   }
 
+  /* ???????? TODO
   // problems could occur if already at startup everything was cracked (because of .pot file reading etc), we must set some variables here to avoid NULL pointers
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
@@ -2555,6 +2589,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
       mask_ctx->mask = mask_ctx->masks[0];
     }
   }
+  */
 
   // if cracked / aborted remove last induction dictionary
 
@@ -2764,8 +2799,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   potfile_write_close (potfile_ctx);
 
-  wl_data_destroy (wl_data);
-
   bitmap_ctx_destroy (bitmap_ctx);
 
   mask_ctx_destroy (mask_ctx);
@@ -2774,13 +2807,11 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   hashconfig_destroy (hashconfig);
 
+  wl_data_destroy (wl_data);
+
   local_free (od_clock_mem_status);
   local_free (od_power_control_status);
   local_free (nvml_power_limit);
-
-  global_free (words_progress_done);
-  global_free (words_progress_rejected);
-  global_free (words_progress_restored);
 
   return 0;
 }
