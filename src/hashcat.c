@@ -1143,9 +1143,13 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
    * keep track of the progress
    */
 
-  data.words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-  data.words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-  data.words_progress_restored = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+  u64 *words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+  u64 *words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+  u64 *words_progress_restored = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+
+  data.words_progress_done     = words_progress_done;
+  data.words_progress_rejected = words_progress_rejected;
+  data.words_progress_restored = words_progress_restored;
 
   /**
    * main inner loop

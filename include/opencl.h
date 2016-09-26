@@ -18,8 +18,8 @@ static const char CL_VENDOR_MESA[]          = "Mesa";
 static const char CL_VENDOR_NV[]            = "NVIDIA Corporation";
 static const char CL_VENDOR_POCL[]          = "The pocl project";
 
-void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources);
-void writeProgramBin (char *dst, u8 *binary, size_t binary_size);
+void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, char **kernel_sources);
+void writeProgramBin (char *dst, char *binary, size_t binary_size);
 
 int gidd_to_pw_t (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 

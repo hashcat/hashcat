@@ -219,7 +219,7 @@ static cl_device_type setup_device_types_filter (const char *opencl_device_types
   return device_types_filter;
 }
 
-void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, const u8 **kernel_sources)
+void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, char **kernel_sources)
 {
   FILE *fp = fopen (kernel_file, "rb");
 
@@ -231,9 +231,9 @@ void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengt
 
     stat (kernel_file, &st);
 
-    u8 *buf = (u8 *) mymalloc (st.st_size + 1);
+    char *buf = (char *) mymalloc (st.st_size + 1);
 
-    size_t num_read = fread (buf, sizeof (u8), st.st_size, fp);
+    size_t num_read = fread (buf, sizeof (char), st.st_size, fp);
 
     if (num_read != (size_t) st.st_size)
     {
@@ -263,14 +263,14 @@ void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengt
   return;
 }
 
-void writeProgramBin (char *dst, u8 *binary, size_t binary_size)
+void writeProgramBin (char *dst, char *binary, size_t binary_size)
 {
   if (binary_size > 0)
   {
     FILE *fp = fopen (dst, "wb");
 
     lock_file (fp);
-    fwrite (binary, sizeof (u8), binary_size, fp);
+    fwrite (binary, sizeof (char), binary_size, fp);
 
     fflush (fp);
     fclose (fp);
@@ -3200,7 +3200,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
       size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
 
-      const u8 **kernel_sources = (const u8 **) mymalloc (sizeof (u8 *));
+      char **kernel_sources = (char **) mymalloc (sizeof (char *));
 
       if (opencl_ctx->force_jit_compilation == -1)
       {
@@ -3285,7 +3285,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
             return -1;
           }
 
-          u8 *binary = (u8 *) mymalloc (binary_size);
+          char *binary = (char *) mymalloc (binary_size);
 
           CL_err = hc_clGetProgramInfo (opencl_ctx->ocl, device_param->program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
@@ -3308,7 +3308,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
           load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
-          CL_err = hc_clCreateProgramWithBinary (opencl_ctx->ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL, &device_param->program);
+          CL_err = hc_clCreateProgramWithBinary (opencl_ctx->ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program);
 
           if (CL_err != CL_SUCCESS)
           {
@@ -3464,7 +3464,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
       size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
 
-      const u8 **kernel_sources = (const u8 **) mymalloc (sizeof (u8 *));
+      char **kernel_sources = (char **) mymalloc (sizeof (char *));
 
       if (cached == 0)
       {
@@ -3548,7 +3548,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
           return -1;
         }
 
-        u8 *binary = (u8 *) mymalloc (binary_size);
+        char *binary = (char *) mymalloc (binary_size);
 
         CL_err = hc_clGetProgramInfo (opencl_ctx->ocl, device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
@@ -3571,7 +3571,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
         load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
-        CL_err = hc_clCreateProgramWithBinary (opencl_ctx->ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL, &device_param->program_mp);
+        CL_err = hc_clCreateProgramWithBinary (opencl_ctx->ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program_mp);
 
         if (CL_err != CL_SUCCESS)
         {
@@ -3645,7 +3645,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
       size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
 
-      const u8 **kernel_sources = (const u8 **) mymalloc (sizeof (u8 *));
+      char **kernel_sources = (char **) mymalloc (sizeof (char *));
 
       if (cached == 0)
       {
@@ -3729,7 +3729,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
           return -1;
         }
 
-        u8 *binary = (u8 *) mymalloc (binary_size);
+        char *binary = (char *) mymalloc (binary_size);
 
         CL_err = hc_clGetProgramInfo (opencl_ctx->ocl, device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
@@ -3752,7 +3752,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
         load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
 
-        CL_err = hc_clCreateProgramWithBinary (opencl_ctx->ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const u8 **) kernel_sources, NULL, &device_param->program_amp);
+        CL_err = hc_clCreateProgramWithBinary (opencl_ctx->ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program_amp);
 
         if (CL_err != CL_SUCCESS)
         {
