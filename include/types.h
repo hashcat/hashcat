@@ -1121,7 +1121,7 @@ typedef struct
   cs_t   mp_sys[6];
   cs_t   mp_usr[4];
 
-  u32    bfs_cnt;
+  u64    bfs_cnt;
 
   cs_t  *css_buf;
   u32    css_cnt;

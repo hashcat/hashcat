@@ -706,6 +706,9 @@ void sp_setup_tbl (const char *shared_dir, char *hcstat, uint disable, uint clas
 
 void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, uint threshold, uint uniq_tbls[SP_PW_MAX][CHARSIZ])
 {
+  memset (root_css_buf,   0, SP_PW_MAX *           sizeof (cs_t));
+  memset (markov_css_buf, 0, SP_PW_MAX * CHARSIZ * sizeof (cs_t));
+
   /**
    * Convert tables to css
    */
