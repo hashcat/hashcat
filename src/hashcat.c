@@ -1632,6 +1632,8 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
       {
         clear_prompt ();
 
+        if (hashes->digests_saved != hashes->digests_done) log_info ("");
+
         status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx, mask_ctx);
 
         log_info ("");
