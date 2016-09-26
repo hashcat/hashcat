@@ -856,6 +856,14 @@ int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, con
 {
   memset (mask_ctx, 0, sizeof (mask_ctx_t));
 
+  mask_ctx->enabled = false;
+
+  if ((user_options->attack_mode != ATTACK_MODE_BF)
+   && (user_options->attack_mode != ATTACK_MODE_HYBRID1)
+   && (user_options->attack_mode != ATTACK_MODE_HYBRID2)) return 0;
+
+  mask_ctx->enabled = true;
+
   mask_ctx->root_table_buf   = (hcstat_table_t *) mycalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
   mask_ctx->markov_table_buf = (hcstat_table_t *) mycalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
 
@@ -1085,6 +1093,8 @@ int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, con
 
 void mask_ctx_destroy (mask_ctx_t *mask_ctx)
 {
+  if (mask_ctx->enabled == false) return;
+
   myfree (mask_ctx->css_buf);
 
   myfree (mask_ctx->root_css_buf);

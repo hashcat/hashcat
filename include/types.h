@@ -1116,6 +1116,8 @@ typedef struct
 
 typedef struct
 {
+  bool   enabled;
+
   cs_t   mp_sys[6];
   cs_t   mp_usr[4];
 
