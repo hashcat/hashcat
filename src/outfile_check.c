@@ -129,8 +129,8 @@ void *thread_outfile_remove (void *p)
               }
             }
 
-            local_free (out_info);
-            local_free (out_files);
+            myfree (out_info);
+            myfree (out_files);
 
             out_files = out_files_new;
             out_cnt   = out_cnt_new;
@@ -319,15 +319,15 @@ void *thread_outfile_remove (void *p)
     }
   }
 
-  if (esalt_size) local_free (hash_buf.esalt);
+  if (esalt_size) myfree (hash_buf.esalt);
 
-  if (is_salted)  local_free (hash_buf.salt);
+  if (is_salted)  myfree (hash_buf.salt);
 
-  local_free (hash_buf.digest);
+  myfree (hash_buf.digest);
 
-  local_free (out_info);
+  myfree (out_info);
 
-  local_free (out_files);
+  myfree (out_files);
 
   p = NULL;
 

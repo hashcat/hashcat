@@ -763,7 +763,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
             }
           }
 
-          local_free (dictionary_files);
+          myfree (dictionary_files);
         }
       }
 
@@ -1009,7 +1009,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
           }
         }
 
-        local_free (dictionary_files);
+        myfree (dictionary_files);
       }
     }
 
@@ -1096,7 +1096,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
           }
         }
 
-        local_free (dictionary_files);
+        myfree (dictionary_files);
       }
     }
 
@@ -1590,7 +1590,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
     hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
 
-    local_free (c_threads);
+    myfree (c_threads);
 
     if ((opencl_ctx->devices_status != STATUS_CRACKED)
      && (opencl_ctx->devices_status != STATUS_ABORTED)
@@ -1679,9 +1679,9 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
   // free memory
 
-  global_free (words_progress_done);
-  global_free (words_progress_rejected);
-  global_free (words_progress_restored);
+  myfree (words_progress_done);
+  myfree (words_progress_rejected);
+  myfree (words_progress_restored);
 
   return 0;
 }
@@ -1706,7 +1706,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   /*
   if (algorithm_pos > 0)
   {
-    local_free (rd);
+    myfree (rd);
 
     rd = init_restore (argc, argv, user_options);
 
@@ -2803,7 +2803,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            local_free (performance_state);
+            myfree (performance_state);
           }
 
           // set powertune value only
@@ -3000,7 +3000,7 @@ int main (int argc, char **argv)
     hc_thread_wait (1, &outer_threads[thread_idx]);
   }
 
-  local_free (outer_threads);
+  myfree (outer_threads);
 
   if (user_options->benchmark == true)
   {
@@ -3104,7 +3104,7 @@ int main (int argc, char **argv)
               return -1;
             }
 
-            local_free (performance_state);
+            myfree (performance_state);
           }
         }
       }

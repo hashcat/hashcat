@@ -3298,7 +3298,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
           writeProgramBin (cached_file, binary, binary_size);
 
-          local_free (binary);
+          myfree (binary);
         }
         else
         {
@@ -3413,9 +3413,9 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
         }
       }
 
-      local_free (kernel_lengths);
-      local_free (kernel_sources[0]);
-      local_free (kernel_sources);
+      myfree (kernel_lengths);
+      myfree (kernel_sources[0]);
+      myfree (kernel_sources);
     }
 
     /**
@@ -3561,7 +3561,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
         writeProgramBin (cached_file, binary, binary_size);
 
-        local_free (binary);
+        myfree (binary);
       }
       else
       {
@@ -3590,9 +3590,9 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
         }
       }
 
-      local_free (kernel_lengths);
-      local_free (kernel_sources[0]);
-      local_free (kernel_sources);
+      myfree (kernel_lengths);
+      myfree (kernel_sources[0]);
+      myfree (kernel_sources);
     }
 
     /**
@@ -3742,7 +3742,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
         writeProgramBin (cached_file, binary, binary_size);
 
-        local_free (binary);
+        myfree (binary);
       }
       else
       {
@@ -3771,9 +3771,9 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
         }
       }
 
-      local_free (kernel_lengths);
-      local_free (kernel_sources[0]);
-      local_free (kernel_sources);
+      myfree (kernel_lengths);
+      myfree (kernel_sources[0]);
+      myfree (kernel_sources);
     }
 
     // return back to the folder we came from initially (workaround)
