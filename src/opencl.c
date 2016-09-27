@@ -4003,9 +4003,9 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
     device_param->kernel_params_mp_buf32[7] = 0;
     device_param->kernel_params_mp_buf32[8] = 0;
 
-    device_param->kernel_params_mp[0] = NULL;
-    device_param->kernel_params_mp[1] = NULL;
-    device_param->kernel_params_mp[2] = NULL;
+    device_param->kernel_params_mp[0] = &device_param->d_combs;
+    device_param->kernel_params_mp[1] = &device_param->d_root_css_buf;
+    device_param->kernel_params_mp[2] = &device_param->d_markov_css_buf;
     device_param->kernel_params_mp[3] = &device_param->kernel_params_mp_buf64[3];
     device_param->kernel_params_mp[4] = &device_param->kernel_params_mp_buf32[4];
     device_param->kernel_params_mp[5] = &device_param->kernel_params_mp_buf32[5];
@@ -4021,9 +4021,9 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
     device_param->kernel_params_mp_l_buf32[8] = 0;
     device_param->kernel_params_mp_l_buf32[9] = 0;
 
-    device_param->kernel_params_mp_l[0] = NULL;
-    device_param->kernel_params_mp_l[1] = NULL;
-    device_param->kernel_params_mp_l[2] = NULL;
+    device_param->kernel_params_mp_l[0] = &device_param->d_pws_buf;
+    device_param->kernel_params_mp_l[1] = &device_param->d_root_css_buf;
+    device_param->kernel_params_mp_l[2] = &device_param->d_markov_css_buf;
     device_param->kernel_params_mp_l[3] = &device_param->kernel_params_mp_l_buf64[3];
     device_param->kernel_params_mp_l[4] = &device_param->kernel_params_mp_l_buf32[4];
     device_param->kernel_params_mp_l[5] = &device_param->kernel_params_mp_l_buf32[5];
@@ -4039,9 +4039,9 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
     device_param->kernel_params_mp_r_buf32[7] = 0;
     device_param->kernel_params_mp_r_buf32[8] = 0;
 
-    device_param->kernel_params_mp_r[0] = NULL;
-    device_param->kernel_params_mp_r[1] = NULL;
-    device_param->kernel_params_mp_r[2] = NULL;
+    device_param->kernel_params_mp_r[0] = &device_param->d_bfs;
+    device_param->kernel_params_mp_r[1] = &device_param->d_root_css_buf;
+    device_param->kernel_params_mp_r[2] = &device_param->d_markov_css_buf;
     device_param->kernel_params_mp_r[3] = &device_param->kernel_params_mp_r_buf64[3];
     device_param->kernel_params_mp_r[4] = &device_param->kernel_params_mp_r_buf32[4];
     device_param->kernel_params_mp_r[5] = &device_param->kernel_params_mp_r_buf32[5];
@@ -4513,12 +4513,12 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
        * prepare mp
        */
 
-      device_param->kernel_params_mp[0] = &device_param->d_combs;
-      device_param->kernel_params_mp[1] = &device_param->d_root_css_buf;
-      device_param->kernel_params_mp[2] = &device_param->d_markov_css_buf;
-
       if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
       {
+        device_param->kernel_params_mp_buf32[5] = 0;
+        device_param->kernel_params_mp_buf32[6] = 0;
+        device_param->kernel_params_mp_buf32[7] = 0;
+
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_buf32[5] = full01;
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_buf32[5] = full80;
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
@@ -4546,18 +4546,14 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
        * prepare mp_r and mp_l
        */
 
-      device_param->kernel_params_mp_l[0] = &device_param->d_pws_buf;
-      device_param->kernel_params_mp_l[1] = &device_param->d_root_css_buf;
-      device_param->kernel_params_mp_l[2] = &device_param->d_markov_css_buf;
+      device_param->kernel_params_mp_l_buf32[6] = 0;
+      device_param->kernel_params_mp_l_buf32[7] = 0;
+      device_param->kernel_params_mp_l_buf32[8] = 0;
 
       if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_l_buf32[6] = full01;
       if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_l_buf32[6] = full80;
       if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_l_buf32[7] = 1;
       if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_l_buf32[8] = 1;
-
-      device_param->kernel_params_mp_r[0] = &device_param->d_bfs;
-      device_param->kernel_params_mp_r[1] = &device_param->d_root_css_buf;
-      device_param->kernel_params_mp_r[2] = &device_param->d_markov_css_buf;
 
       for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp_l[i]);
       for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp_r[i]);
@@ -4742,9 +4738,6 @@ int opencl_session_update_mp (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mask_c
 
     device_param->kernel_params_mp_buf64[3] = 0;
     device_param->kernel_params_mp_buf32[4] = mask_ctx->css_cnt;
-    device_param->kernel_params_mp_buf32[5] = 0;
-    device_param->kernel_params_mp_buf32[6] = 0;
-    device_param->kernel_params_mp_buf32[7] = 0;
 
     cl_int CL_err = CL_SUCCESS;
 
@@ -4783,15 +4776,9 @@ int opencl_session_update_mp_rl (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mas
     device_param->kernel_params_mp_l_buf64[3] = 0;
     device_param->kernel_params_mp_l_buf32[4] = css_cnt_l;
     device_param->kernel_params_mp_l_buf32[5] = css_cnt_r;
-    device_param->kernel_params_mp_l_buf32[6] = 0;
-    device_param->kernel_params_mp_l_buf32[7] = 0;
-    device_param->kernel_params_mp_l_buf32[8] = 0;
 
     device_param->kernel_params_mp_r_buf64[3] = 0;
     device_param->kernel_params_mp_r_buf32[4] = css_cnt_r;
-    device_param->kernel_params_mp_r_buf32[5] = 0;
-    device_param->kernel_params_mp_r_buf32[6] = 0;
-    device_param->kernel_params_mp_r_buf32[7] = 0;
 
     cl_int CL_err = CL_SUCCESS;
 
