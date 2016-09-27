@@ -41,6 +41,6 @@ void  sp_stretch_root (hcstat_table_t *in, hcstat_table_t *out);
 int   mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const restore_ctx_t *restore_ctx, const hashconfig_t *hashconfig);
 void  mask_ctx_destroy (mask_ctx_t *mask_ctx);
 
-void  mask_ctx_parse_maskfile (mask_ctx_t *mask_ctx, user_options_t *user_options, const hashconfig_t *hashconfig);
+int   mask_ctx_parse_maskfile (mask_ctx_t *mask_ctx, user_options_t *user_options, const hashconfig_t *hashconfig);
 
 #endif // _MPSP_H

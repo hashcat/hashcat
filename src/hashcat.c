@@ -283,11 +283,13 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
     {
       // nothing yet
     }
-    if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+    else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
     {
       mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-      mask_ctx_parse_maskfile (mask_ctx, user_options, hashconfig);
+      const int rc_mask_file = mask_ctx_parse_maskfile (mask_ctx, user_options, hashconfig);
+
+      if (rc_mask_file == -1) return -1;
 
       mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
 
@@ -312,7 +314,9 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
   {
     mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-    mask_ctx_parse_maskfile (mask_ctx, user_options, hashconfig);
+    const int rc_mask_file = mask_ctx_parse_maskfile (mask_ctx, user_options, hashconfig);
+
+    if (rc_mask_file == -1) return -1;
 
     if (user_options->attack_mode == ATTACK_MODE_BF) // always true
     {

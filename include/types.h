@@ -819,6 +819,13 @@ typedef struct
 
 typedef struct
 {
+  char mf_buf[0x100];
+  int  mf_len;
+
+} mf_t;
+
+typedef struct
+{
   u32  key;
   u64  val;
 
@@ -1171,6 +1178,8 @@ typedef struct
   u32    masks_avail;
 
   char *mask;
+
+  mf_t  *mfs;
 
 } mask_ctx_t;
 
