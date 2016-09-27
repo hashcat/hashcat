@@ -428,7 +428,9 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
       if (mask_ctx->masks_cnt > 1)
       {
-        double mask_percentage = (double) mask_ctx->masks_pos / (double) mask_ctx->masks_cnt;
+        const int maks_pos_done = ((opencl_ctx->devices_status == STATUS_EXHAUSTED) && (opencl_ctx->run_main_level1 == true)) ? 1 : 0;
+
+        double mask_percentage = (double) (mask_ctx->masks_pos + maks_pos_done) / (double) mask_ctx->masks_cnt;
 
         tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " (%.02f%%)", mask_percentage * 100);
       }
