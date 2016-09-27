@@ -95,6 +95,7 @@ extern hc_thread_mutex_t mux_display;
 extern const unsigned int full01;
 extern const unsigned int full80;
 
+extern const int DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 extern const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
 const int comptime = COMPTIME;
@@ -2086,7 +2087,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   */
 
   // if cracked / aborted remove last induction dictionary
-
   induct_ctx_cleanup (induct_ctx);
 
   // wait for inner threads
@@ -2122,7 +2122,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   }
 
   // finally save left hashes
-
   if ((hashes->hashlist_mode == HL_MODE_FILE) && (user_options->remove == true) && (hashes->digests_saved != hashes->digests_done))
   {
     save_hash (user_options, hashconfig, hashes);
