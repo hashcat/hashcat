@@ -68,7 +68,8 @@ void *thread_keypress (void *p)
   user_options_extra_t *user_options_extra = data.user_options_extra;
   hashconfig_t         *hashconfig         = data.hashconfig;
   hashes_t             *hashes             = data.hashes;
-  straight_ctx_t          *straight_ctx          = data.straight_ctx;
+  straight_ctx_t       *straight_ctx       = data.straight_ctx;
+  combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
   mask_ctx_t           *mask_ctx           = data.mask_ctx;
 
   const bool quiet = user_options->quiet;
@@ -100,7 +101,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, mask_ctx);
+        status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
 
         log_info ("");
 

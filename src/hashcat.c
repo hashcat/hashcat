@@ -85,6 +85,7 @@
 #include "weak_hash.h"
 #include "wordlist.h"
 #include "straight.h"
+#include "combinator.h"
 
 extern hc_global_data_t data;
 
@@ -223,7 +224,7 @@ static void goodbye_screen (const user_options_t *user_options, const time_t *pr
   log_info_nn ("Stopped: %s", ctime (proc_stop));
 }
 
-static int inner1_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, hashes_t *hashes, wl_data_t *wl_data, straight_ctx_t *straight_ctx, mask_ctx_t *mask_ctx)
+static int inner1_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, hashes_t *hashes, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
 {
   //opencl_ctx->run_main_level1   = true;
   //opencl_ctx->run_main_level2   = true;
@@ -273,123 +274,21 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
   }
 
   /**
-   * Init mask stuff
+   * Update attack-mode specific stuff
    */
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID1 || user_options->attack_mode == ATTACK_MODE_HYBRID2 || user_options->attack_mode == ATTACK_MODE_BF)
+  if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
   {
-    mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
-
-    if (mask_ctx->mask_from_file == true)
+    if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
-      if (mask_ctx->mask[0] == '\\' && mask_ctx->mask[1] == '#') mask_ctx->mask++; // escaped comment sign (sharp) "\#"
-
-      char *str_ptr;
-      uint  str_pos;
-
-      uint mask_offset = 0;
-
-      uint separator_cnt;
-
-      for (separator_cnt = 0; separator_cnt < 4; separator_cnt++)
-      {
-        str_ptr = strstr (mask_ctx->mask + mask_offset, ",");
-
-        if (str_ptr == NULL) break;
-
-        str_pos = str_ptr - mask_ctx->mask;
-
-        // escaped separator, i.e. "\,"
-
-        if (str_pos > 0)
-        {
-          if (mask_ctx->mask[str_pos - 1] == '\\')
-          {
-            separator_cnt --;
-
-            mask_offset = str_pos + 1;
-
-            continue;
-          }
-        }
-
-        // reset the offset
-
-        mask_offset = 0;
-
-        mask_ctx->mask[str_pos] = 0;
-
-        switch (separator_cnt)
-        {
-          case 0:
-            mp_reset_usr (mask_ctx->mp_usr, 0);
-
-            user_options->custom_charset_1 = mask_ctx->mask;
-
-            mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
-            break;
-
-          case 1:
-            mp_reset_usr (mask_ctx->mp_usr, 1);
-
-            user_options->custom_charset_2 = mask_ctx->mask;
-
-            mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
-            break;
-
-          case 2:
-            mp_reset_usr (mask_ctx->mp_usr, 2);
-
-            user_options->custom_charset_3 = mask_ctx->mask;
-
-            mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
-            break;
-
-          case 3:
-            mp_reset_usr (mask_ctx->mp_usr, 3);
-
-            user_options->custom_charset_4 = mask_ctx->mask;
-
-            mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
-            break;
-        }
-
-        mask_ctx->mask += str_pos + 1;
-      }
-
-      /**
-       * What follows is a very special case where "\," is within the mask field of a line in a .hcmask file only because otherwise (without the "\")
-       * it would be interpreted as a custom charset definition.
-       *
-       * We need to replace all "\," with just "," within the mask (but allow the special case "\\," which means "\" followed by ",")
-       * Note: "\\" is not needed to replace all "\" within the mask! The meaning of "\\" within a line containing the string "\\," is just to allow "\" followed by ","
-       */
-
-      uint mask_len_cur = strlen (mask_ctx->mask);
-
-      uint mask_out_pos = 0;
-      char mask_prev = 0;
-
-      for (uint mask_iter = 0; mask_iter < mask_len_cur; mask_iter++, mask_out_pos++)
-      {
-        if (mask_ctx->mask[mask_iter] == ',')
-        {
-          if (mask_prev == '\\')
-          {
-            mask_out_pos -= 1; // this means: skip the previous "\"
-          }
-        }
-
-        mask_prev = mask_ctx->mask[mask_iter];
-
-        mask_ctx->mask[mask_out_pos] = mask_ctx->mask[mask_iter];
-      }
-
-      mask_ctx->mask[mask_out_pos] = 0;
+      // nothing yet
     }
-
     if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
     {
+      mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
+
+      mask_ctx_parse_maskfile (mask_ctx, user_options, hashconfig);
+
       mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
 
       uint uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
@@ -398,13 +297,24 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
       sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
 
-      data.combs_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
+      combinator_ctx->combs_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
 
       const int rc_update_mp = opencl_session_update_mp (opencl_ctx, mask_ctx);
 
       if (rc_update_mp == -1) return -1;
     }
-    else if (user_options->attack_mode == ATTACK_MODE_BF)
+
+    //const int rc_update_combinator = opencl_session_update_combinator (opencl_ctx, hashconfig, combinator_ctx);
+
+    //if (rc_update_combinator == -1) return -1;
+  }
+  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+  {
+    mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
+
+    mask_ctx_parse_maskfile (mask_ctx, user_options, hashconfig);
+
+    if (user_options->attack_mode == ATTACK_MODE_BF) // always true
     {
       mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
 
@@ -738,9 +648,9 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
       return -1;
     }
 
-    data.combs_cnt = 1;
+    combinator_ctx->combs_cnt = 1;
 
-    const u64 words1_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, fp1, dictfile1, dictstat_ctx);
+    const u64 words1_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fp1, dictfile1, dictstat_ctx);
 
     if (words1_cnt == 0)
     {
@@ -752,9 +662,9 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
       return -1;
     }
 
-    data.combs_cnt = 1;
+    combinator_ctx->combs_cnt = 1;
 
-    const u64 words2_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, fp2, dictfile2, dictstat_ctx);
+    const u64 words2_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fp2, dictfile2, dictstat_ctx);
 
     if (words2_cnt == 0)
     {
@@ -774,8 +684,8 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
     if (words1_cnt >= words2_cnt)
     {
-      data.combs_cnt  = words2_cnt;
-      data.combs_mode = COMBINATOR_MODE_BASE_LEFT;
+      combinator_ctx->combs_cnt  = words2_cnt;
+      combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
 
       dictfiles = &data.dictfile;
 
@@ -783,8 +693,8 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
     }
     else
     {
-      data.combs_cnt  = words1_cnt;
-      data.combs_mode = COMBINATOR_MODE_BASE_RIGHT;
+      combinator_ctx->combs_cnt  = words1_cnt;
+      combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
 
       dictfiles = &data.dictfile2;
 
@@ -802,6 +712,10 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
       user_options_extra->rule_len_l = user_options_extra->rule_len_r;
       user_options_extra->rule_len_r = tmpi;
     }
+
+    const int rc_update_combinator = opencl_session_update_combinator (opencl_ctx, hashconfig, combinator_ctx);
+
+    if (rc_update_combinator == -1) return -1;
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
@@ -826,7 +740,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
-    data.combs_mode = COMBINATOR_MODE_BASE_LEFT;
+    combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
 
     // mod -- moved to mpsp.c
 
@@ -910,10 +824,14 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
       return -1;
     }
+
+    const int rc_update_combinator = opencl_session_update_combinator (opencl_ctx, hashconfig, combinator_ctx);
+
+    if (rc_update_combinator == -1) return -1;
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    data.combs_mode = COMBINATOR_MODE_BASE_RIGHT;
+    combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
 
     // mod -- moved to mpsp.c
 
@@ -997,6 +915,10 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
       return -1;
     }
+
+    const int rc_update_combinator = opencl_session_update_combinator (opencl_ctx, hashconfig, combinator_ctx);
+
+    if (rc_update_combinator == -1) return -1;
   }
 
   data.pw_min = pw_min;
@@ -1121,7 +1043,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
           return -1;
         }
 
-        data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, fd2, dictfile, dictstat_ctx);
+        data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, dictfile, dictstat_ctx);
 
         fclose (fd2);
 
@@ -1141,7 +1063,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
       logfile_sub_string (dictfile);
       logfile_sub_string (dictfile2);
 
-      if (data.combs_mode == COMBINATOR_MODE_BASE_LEFT)
+      if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
       {
         FILE *fd2 = fopen (dictfile, "rb");
 
@@ -1152,11 +1074,11 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
           return -1;
         }
 
-        data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, fd2, dictfile, dictstat_ctx);
+        data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, dictfile, dictstat_ctx);
 
         fclose (fd2);
       }
-      else if (data.combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+      else if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
       {
         FILE *fd2 = fopen (dictfile2, "rb");
 
@@ -1167,7 +1089,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
           return -1;
         }
 
-        data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, fd2, dictfile2, dictstat_ctx);
+        data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, dictfile2, dictstat_ctx);
 
         fclose (fd2);
       }
@@ -1206,7 +1128,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
         return -1;
       }
 
-      data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, fd2, dictfile, dictstat_ctx);
+      data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, dictfile, dictstat_ctx);
 
       fclose (fd2);
 
@@ -1233,9 +1155,9 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
-      if (data.combs_cnt)
+      if (combinator_ctx->combs_cnt)
       {
-        words_base /= data.combs_cnt;
+        words_base /= combinator_ctx->combs_cnt;
       }
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
@@ -1275,7 +1197,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
       {
         for (uint i = 0; i < hashes->salts_cnt; i++)
         {
-          data.words_progress_restored[i] = data.words_cur * data.combs_cnt;
+          data.words_progress_restored[i] = data.words_cur * combinator_ctx->combs_cnt;
         }
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
@@ -1319,7 +1241,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
         if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
         {
           if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = straight_ctx->kernel_rules_cnt;
-          else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = data.combs_cnt;
+          else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = combinator_ctx->combs_cnt;
           else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = mask_ctx->bfs_cnt;
         }
         else
@@ -1485,7 +1407,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
         if (hashes->digests_saved != hashes->digests_done) log_info ("");
 
-        status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, mask_ctx);
+        status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
 
         log_info ("");
       }
@@ -1493,7 +1415,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
       {
         if (user_options->status == true)
         {
-          status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, mask_ctx);
+          status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
 
           log_info ("");
         }
@@ -1706,6 +1628,18 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   if (rc_straight_init == -1) return -1;
 
   /**
+   * straight mode init
+   */
+
+  combinator_ctx_t *combinator_ctx = (combinator_ctx_t *) mymalloc (sizeof (combinator_ctx_t));
+
+  data.combinator_ctx = combinator_ctx;
+
+  const int rc_combinator_init = combinator_ctx_init (combinator_ctx, user_options);
+
+  if (rc_combinator_init == -1) return -1;
+
+  /**
    * charsets : keep them together for more easy maintainnce
    */
 
@@ -1859,7 +1793,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
     for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
     {
-      weak_hash_check (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, hashconfig, hashes, salt_pos);
+      weak_hash_check (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, hashconfig, hashes, salt_pos);
     }
   }
 
@@ -1933,7 +1867,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
       mask_ctx->masks_pos = masks_pos;
 
-      const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hashconfig, hashes, wl_data, straight_ctx, mask_ctx);
+      const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hashconfig, hashes, wl_data, straight_ctx, combinator_ctx, mask_ctx);
 
       if (rc_inner1_loop == -1) return -1;
 
@@ -1942,7 +1876,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   }
   else
   {
-    const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hashconfig, hashes, wl_data, straight_ctx, mask_ctx);
+    const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hashconfig, hashes, wl_data, straight_ctx, combinator_ctx, mask_ctx);
 
     if (rc_inner1_loop == -1) return -1;
   }
@@ -2044,6 +1978,8 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   bitmap_ctx_destroy (bitmap_ctx);
 
   mask_ctx_destroy (mask_ctx);
+
+  combinator_ctx_destroy (combinator_ctx);
 
   straight_ctx_destroy (straight_ctx);
 

@@ -294,13 +294,13 @@ int gidd_to_pw_t (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, con
   return 0;
 }
 
-int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const mask_ctx_t *mask_ctx, hashconfig_t *hashconfig, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration)
+int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, hashconfig_t *hashconfig, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration)
 {
   cl_int CL_err = CL_SUCCESS;
 
   if (hashconfig->hash_mode == 2000)
   {
-    process_stdout (opencl_ctx, device_param, user_options, straight_ctx, mask_ctx, pws_cnt);
+    process_stdout (opencl_ctx, device_param, user_options, straight_ctx, combinator_ctx, mask_ctx, pws_cnt);
 
     return 0;
   }
@@ -450,7 +450,6 @@ int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t
 
   uint num_elements = num;
 
-  device_param->kernel_params_buf32[33] = data.combs_mode;
   device_param->kernel_params_buf32[34] = num;
 
   uint kernel_threads = device_param->kernel_threads;
@@ -771,7 +770,6 @@ int run_kernel_amp (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, c
 
   uint num_elements = num;
 
-  device_param->kernel_params_amp_buf32[5] = data.combs_mode;
   device_param->kernel_params_amp_buf32[6] = num_elements;
 
   // causes problems with special threads like in bcrypt
@@ -783,7 +781,6 @@ int run_kernel_amp (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, c
 
   cl_kernel kernel = device_param->kernel_amp;
 
-  CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, kernel, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
   CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, kernel, 6, sizeof (cl_uint), device_param->kernel_params_amp[6]);
 
   if (CL_err != CL_SUCCESS)
@@ -915,7 +912,7 @@ int run_kernel_bzero (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param,
   return run_kernel_memset (opencl_ctx, device_param, buf, 0, size);
 }
 
-int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const uint pws_cnt)
+int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const combinator_ctx_t *combinator_ctx, const uint pws_cnt)
 {
   cl_int CL_err = CL_SUCCESS;
 
@@ -934,7 +931,7 @@ int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
   {
     if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
-      if (data.combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+      if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
       {
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
         {
@@ -1007,7 +1004,7 @@ int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
   return 0;
 }
 
-int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const mask_ctx_t *mask_ctx, const uint pws_cnt)
+int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, const uint pws_cnt)
 {
   char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -1073,7 +1070,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
     else                                                        innerloop_step = 1;
 
     if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt  = straight_ctx->kernel_rules_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt  = data.combs_cnt;
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt  = combinator_ctx->combs_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt  = mask_ctx->bfs_cnt;
 
     // innerloops
@@ -1162,7 +1159,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
             uppercase (ptr, line_len);
           }
 
-          if (data.combs_mode == COMBINATOR_MODE_BASE_LEFT)
+          if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
           {
             if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
             {
@@ -1284,7 +1281,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
         hc_timer_set (&device_param->timer_speed);
       }
 
-      int rc = choose_kernel (opencl_ctx, device_param, user_options, straight_ctx, mask_ctx, hashconfig, hashconfig->attack_exec, user_options->attack_mode, hashconfig->opts_type, salt_buf, highest_pw_len, pws_cnt, fast_iteration);
+      int rc = choose_kernel (opencl_ctx, device_param, user_options, straight_ctx, combinator_ctx, mask_ctx, hashconfig, hashconfig->attack_exec, user_options->attack_mode, hashconfig->opts_type, salt_buf, highest_pw_len, pws_cnt, fast_iteration);
 
       if (rc == -1) return -1;
 
@@ -1294,7 +1291,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       if (user_options->benchmark == false)
       {
-        check_cracked (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, hashconfig, hashes, salt_pos);
+        check_cracked (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, hashconfig, hashes, salt_pos);
       }
 
       /**
@@ -4726,6 +4723,54 @@ void opencl_session_reset (opencl_ctx_t *opencl_ctx)
     device_param->words_off  = 0;
     device_param->words_done = 0;
   }
+}
+
+int opencl_session_update_combinator (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const combinator_ctx_t *combinator_ctx)
+{
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    // kernel_params
+
+    device_param->kernel_params_buf32[33] = combinator_ctx->combs_mode;
+
+    cl_int CL_err = CL_SUCCESS;
+
+    CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel1, 33, sizeof (cl_uint), device_param->kernel_params[33]);
+    CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel2, 33, sizeof (cl_uint), device_param->kernel_params[33]);
+    CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel3, 33, sizeof (cl_uint), device_param->kernel_params[33]);
+
+    if (hashconfig->opts_type & OPTS_TYPE_HOOK12) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel12, 33, sizeof (cl_uint), device_param->kernel_params[33]);
+    if (hashconfig->opts_type & OPTS_TYPE_HOOK23) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel23, 33, sizeof (cl_uint), device_param->kernel_params[33]);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
+
+    // kernel_params_amp
+
+    device_param->kernel_params_amp_buf32[5] = combinator_ctx->combs_mode;
+
+    if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+    {
+      CL_err = hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_amp, 5, sizeof (cl_mem), device_param->kernel_params_amp[5]);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
+    }
+  }
+
+  return 0;
 }
 
 int opencl_session_update_mp (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mask_ctx)

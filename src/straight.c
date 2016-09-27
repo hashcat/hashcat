@@ -19,9 +19,7 @@
 
 int straight_ctx_init (straight_ctx_t *straight_ctx, const user_options_t *user_options)
 {
-  /**
-   * rules
-   */
+  memset (straight_ctx, 0, sizeof (straight_ctx_t));
 
   straight_ctx->enabled = false;
 

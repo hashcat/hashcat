@@ -1112,3 +1112,110 @@ void mask_ctx_destroy (mask_ctx_t *mask_ctx)
 
   myfree (mask_ctx);
 }
+
+void mask_ctx_parse_maskfile (mask_ctx_t *mask_ctx, user_options_t *user_options, const hashconfig_t *hashconfig)
+{
+  if (mask_ctx->enabled == false) return;
+
+  if (mask_ctx->mask_from_file == false) return;
+
+  if (mask_ctx->mask[0] == '\\' && mask_ctx->mask[1] == '#') mask_ctx->mask++; // escaped comment sign (sharp) "\#"
+
+  char *str_ptr;
+  uint  str_pos;
+
+  uint mask_offset = 0;
+
+  uint separator_cnt;
+
+  for (separator_cnt = 0; separator_cnt < 4; separator_cnt++)
+  {
+    str_ptr = strstr (mask_ctx->mask + mask_offset, ",");
+
+    if (str_ptr == NULL) break;
+
+    str_pos = str_ptr - mask_ctx->mask;
+
+    // escaped separator, i.e. "\,"
+
+    if (str_pos > 0)
+    {
+      if (mask_ctx->mask[str_pos - 1] == '\\')
+      {
+        separator_cnt--;
+
+        mask_offset = str_pos + 1;
+
+        continue;
+      }
+    }
+
+    // reset the offset
+
+    mask_offset = 0;
+
+    mask_ctx->mask[str_pos] = 0;
+
+    switch (separator_cnt)
+    {
+      case 0:
+        user_options->custom_charset_1 = mask_ctx->mask;
+        mp_reset_usr (mask_ctx->mp_usr, 0);
+        mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
+        break;
+
+      case 1:
+        user_options->custom_charset_2 = mask_ctx->mask;
+        mp_reset_usr (mask_ctx->mp_usr, 1);
+        mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
+        break;
+
+      case 2:
+        user_options->custom_charset_3 = mask_ctx->mask;
+        mp_reset_usr (mask_ctx->mp_usr, 2);
+        mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
+        break;
+
+      case 3:
+        user_options->custom_charset_4 = mask_ctx->mask;
+        mp_reset_usr (mask_ctx->mp_usr, 3);
+        mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
+        break;
+    }
+
+    mask_ctx->mask += str_pos + 1;
+  }
+
+  /**
+   * What follows is a very special case where "\," is within the mask field of a line in a .hcmask file only because otherwise (without the "\")
+   * it would be interpreted as a custom charset definition.
+   *
+   * We need to replace all "\," with just "," within the mask (but allow the special case "\\," which means "\" followed by ",")
+   * Note: "\\" is not needed to replace all "\" within the mask! The meaning of "\\" within a line containing the string "\\," is just to allow "\" followed by ","
+   */
+
+  if (separator_cnt == 0) return;
+
+  uint mask_len_cur = strlen (mask_ctx->mask);
+
+  uint mask_out_pos = 0;
+
+  char mask_prev = 0;
+
+  for (uint mask_iter = 0; mask_iter < mask_len_cur; mask_iter++, mask_out_pos++)
+  {
+    if (mask_ctx->mask[mask_iter] == ',')
+    {
+      if (mask_prev == '\\')
+      {
+        mask_out_pos -= 1; // this means: skip the previous "\"
+      }
+    }
+
+    mask_prev = mask_ctx->mask[mask_iter];
+
+    mask_ctx->mask[mask_out_pos] = mask_ctx->mask[mask_iter];
+  }
+
+  mask_ctx->mask[mask_out_pos] = 0;
+}

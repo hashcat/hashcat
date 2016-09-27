@@ -1135,6 +1135,18 @@ typedef struct
 
 typedef struct
 {
+  bool enabled;
+
+  char *dictfile1;
+  char *dictfile2;
+
+  u32 combs_mode;
+  u32 combs_cnt;
+
+} combinator_ctx_t;
+
+typedef struct
+{
   bool   enabled;
 
   cs_t   mp_sys[6];
@@ -1180,13 +1192,6 @@ typedef struct
   u64     kernel_power_final; // we save that so that all divisions are done from the same base
 
   /**
-   * attack specific
-   */
-
-  u32     combs_mode;
-  u32     combs_cnt;
-
-  /**
    * hardware watchdog
    */
 
@@ -1230,6 +1235,7 @@ typedef struct
   logfile_ctx_t         *logfile_ctx;
   restore_ctx_t         *restore_ctx;
   straight_ctx_t        *straight_ctx;
+  combinator_ctx_t      *combinator_ctx;
   mask_ctx_t            *mask_ctx;
 
   /**

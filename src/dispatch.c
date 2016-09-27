@@ -119,9 +119,10 @@ void *thread_calc_stdin (void *p)
   user_options_extra_t *user_options_extra = data.user_options_extra;
   hashconfig_t         *hashconfig         = data.hashconfig;
   hashes_t             *hashes             = data.hashes;
-  straight_ctx_t          *straight_ctx          = data.straight_ctx;
-  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
+  straight_ctx_t       *straight_ctx       = data.straight_ctx;
+  combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
   mask_ctx_t           *mask_ctx           = data.mask_ctx;
+  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
 
   char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -210,9 +211,9 @@ void *thread_calc_stdin (void *p)
 
     if (pws_cnt)
     {
-      run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, pws_cnt);
+      run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, combinator_ctx, pws_cnt);
 
-      run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, straight_ctx, mask_ctx, pws_cnt);
+      run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx, pws_cnt);
 
       device_param->pws_cnt = 0;
 
@@ -248,9 +249,10 @@ void *thread_calc (void *p)
   user_options_extra_t *user_options_extra = data.user_options_extra;
   hashconfig_t         *hashconfig         = data.hashconfig;
   hashes_t             *hashes             = data.hashes;
-  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
-  straight_ctx_t          *straight_ctx          = data.straight_ctx;
+  straight_ctx_t       *straight_ctx       = data.straight_ctx;
+  combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
   mask_ctx_t           *mask_ctx           = data.mask_ctx;
+  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
 
   const uint attack_mode = user_options->attack_mode;
   const uint attack_kern = user_options_extra->attack_kern;
@@ -272,9 +274,9 @@ void *thread_calc (void *p)
 
       if (pws_cnt)
       {
-        run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, pws_cnt);
+        run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, combinator_ctx, pws_cnt);
 
-        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, straight_ctx, mask_ctx, pws_cnt);
+        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx, pws_cnt);
 
         device_param->pws_cnt = 0;
 
@@ -297,7 +299,7 @@ void *thread_calc (void *p)
 
     if (attack_mode == ATTACK_MODE_COMBI)
     {
-      if (data.combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+      if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
       {
         dictfile = data.dictfile2;
       }
@@ -314,7 +316,7 @@ void *thread_calc (void *p)
 
     if (attack_mode == ATTACK_MODE_COMBI)
     {
-      const uint combs_mode = data.combs_mode;
+      const uint combs_mode = combinator_ctx->combs_mode;
 
       if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
       {
@@ -437,7 +439,7 @@ void *thread_calc (void *p)
 
               for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
               {
-                data.words_progress_rejected[salt_pos] += data.combs_cnt;
+                data.words_progress_rejected[salt_pos] += combinator_ctx->combs_cnt;
               }
 
               hc_thread_mutex_unlock (opencl_ctx->mux_counter);
@@ -464,9 +466,9 @@ void *thread_calc (void *p)
 
       if (pws_cnt)
       {
-        run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, pws_cnt);
+        run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, combinator_ctx, pws_cnt);
 
-        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, straight_ctx, mask_ctx, pws_cnt);
+        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx, pws_cnt);
 
         device_param->pws_cnt = 0;
 

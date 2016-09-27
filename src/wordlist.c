@@ -285,7 +285,7 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
   //}
 }
 
-u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx)
+u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx)
 {
   hc_signal (NULL);
 
@@ -329,7 +329,7 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
-        keyspace *= data.combs_cnt;
+        keyspace *= combinator_ctx->combs_cnt;
       }
 
       if (user_options->quiet == false) log_info ("Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cached_cnt, keyspace);
@@ -392,7 +392,7 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
         }
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
-          cnt += data.combs_cnt;
+          cnt += combinator_ctx->combs_cnt;
         }
 
         d.cnt++;

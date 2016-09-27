@@ -59,7 +59,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
   }
 }
 
-void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const mask_ctx_t *mask_ctx, const uint pws_cnt)
+void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, const uint pws_cnt)
 {
   out_t out;
 
@@ -140,7 +140,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
         char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
         uint  comb_len =          device_param->combs_buf[il_pos].pw_len;
 
-        if (data.combs_mode == COMBINATOR_MODE_BASE_LEFT)
+        if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
         {
           memcpy (plain_ptr + plain_len, comb_buf, comb_len);
         }
