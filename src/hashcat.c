@@ -84,6 +84,7 @@
 #include "version.h"
 #include "weak_hash.h"
 #include "wordlist.h"
+#include "straight.h"
 
 extern hc_global_data_t data;
 
@@ -222,7 +223,7 @@ static void goodbye_screen (const user_options_t *user_options, const time_t *pr
   log_info_nn ("Stopped: %s", ctime (proc_stop));
 }
 
-static int inner1_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, rules_ctx_t *rules_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, hashes_t *hashes, mask_ctx_t *mask_ctx, wl_data_t *wl_data)
+static int inner1_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, hashes_t *hashes, wl_data_t *wl_data, straight_ctx_t *straight_ctx, mask_ctx_t *mask_ctx)
 {
   //opencl_ctx->run_main_level1   = true;
   //opencl_ctx->run_main_level2   = true;
@@ -241,7 +242,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
    * If we have a NOOP rule then we can process words from wordlists > length 32 for slow hashes
    */
 
-  const bool has_noop = rules_ctx_has_noop (rules_ctx);
+  const bool has_noop = kernel_rules_has_noop (straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt);
 
   if (has_noop == false)
   {
@@ -739,7 +740,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
     data.combs_cnt = 1;
 
-    const u64 words1_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fp1, dictfile1, dictstat_ctx);
+    const u64 words1_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, fp1, dictfile1, dictstat_ctx);
 
     if (words1_cnt == 0)
     {
@@ -753,7 +754,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
     data.combs_cnt = 1;
 
-    const u64 words2_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fp2, dictfile2, dictstat_ctx);
+    const u64 words2_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, fp2, dictfile2, dictstat_ctx);
 
     if (words2_cnt == 0)
     {
@@ -1120,7 +1121,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
           return -1;
         }
 
-        data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile, dictstat_ctx);
+        data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, fd2, dictfile, dictstat_ctx);
 
         fclose (fd2);
 
@@ -1151,7 +1152,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
           return -1;
         }
 
-        data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile, dictstat_ctx);
+        data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, fd2, dictfile, dictstat_ctx);
 
         fclose (fd2);
       }
@@ -1166,7 +1167,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
           return -1;
         }
 
-        data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile2, dictstat_ctx);
+        data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, fd2, dictfile2, dictstat_ctx);
 
         fclose (fd2);
       }
@@ -1205,7 +1206,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
         return -1;
       }
 
-      data.words_cnt = count_words (wl_data, user_options, user_options_extra, rules_ctx, fd2, dictfile, dictstat_ctx);
+      data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, fd2, dictfile, dictstat_ctx);
 
       fclose (fd2);
 
@@ -1225,9 +1226,9 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
     if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
     {
-      if (rules_ctx->kernel_rules_cnt)
+      if (straight_ctx->kernel_rules_cnt)
       {
-        words_base /= rules_ctx->kernel_rules_cnt;
+        words_base /= straight_ctx->kernel_rules_cnt;
       }
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
@@ -1267,7 +1268,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
       {
         for (uint i = 0; i < hashes->salts_cnt; i++)
         {
-          data.words_progress_restored[i] = data.words_cur * rules_ctx->kernel_rules_cnt;
+          data.words_progress_restored[i] = data.words_cur * straight_ctx->kernel_rules_cnt;
         }
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
@@ -1317,7 +1318,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
         if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
         {
-          if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = rules_ctx->kernel_rules_cnt;
+          if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = straight_ctx->kernel_rules_cnt;
           else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = data.combs_cnt;
           else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = mask_ctx->bfs_cnt;
         }
@@ -1484,7 +1485,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
         if (hashes->digests_saved != hashes->digests_done) log_info ("");
 
-        status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx, mask_ctx);
+        status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, mask_ctx);
 
         log_info ("");
       }
@@ -1492,7 +1493,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
       {
         if (user_options->status == true)
         {
-          status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx, mask_ctx);
+          status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, mask_ctx);
 
           log_info ("");
         }
@@ -1539,7 +1540,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
   return 0;
 }
 
-static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, rules_ctx_t *rules_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx)
+static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx)
 {
   opencl_ctx->devices_status = STATUS_INIT;
 
@@ -1685,6 +1686,26 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   bitmap_ctx_init (bitmap_ctx, user_options, hashconfig, hashes);
 
   /**
+   * Wordlist allocate buffer
+   */
+
+  wl_data_t *wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
+
+  wl_data_init (wl_data, user_options, hashconfig);
+
+  /**
+   * straight mode init
+   */
+
+  straight_ctx_t *straight_ctx = (straight_ctx_t *) mymalloc (sizeof (straight_ctx_t));
+
+  data.straight_ctx = straight_ctx;
+
+  const int rc_straight_init = straight_ctx_init (straight_ctx, user_options);
+
+  if (rc_straight_init == -1) return -1;
+
+  /**
    * charsets : keep them together for more easy maintainnce
    */
 
@@ -1695,14 +1716,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   const int rc_mask_init = mask_ctx_init (mask_ctx, user_options, user_options_extra, folder_config, restore_ctx, hashconfig);
 
   if (rc_mask_init == -1) return -1;
-
-  /**
-   * Wordlist allocate buffer
-   */
-
-  wl_data_t *wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
-
-  wl_data_init (wl_data, user_options, hashconfig);
 
   /**
    * enable custom signal handler(s)
@@ -1729,7 +1742,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
-      log_info ("Rules: %u", rules_ctx->kernel_rules_cnt);
+      log_info ("Rules: %u", straight_ctx->kernel_rules_cnt);
     }
 
     if (user_options->quiet == false) log_info ("");
@@ -1800,7 +1813,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   session_ctx_init (session_ctx);
   */
 
-  opencl_session_begin (opencl_ctx, hashconfig, hashes, rules_ctx, user_options, user_options_extra, folder_config, bitmap_ctx, tuning_db);
+  opencl_session_begin (opencl_ctx, hashconfig, hashes, straight_ctx, user_options, user_options_extra, folder_config, bitmap_ctx, tuning_db);
 
   if (user_options->quiet == false) log_info_nn ("");
 
@@ -1846,7 +1859,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
     for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
     {
-      weak_hash_check (opencl_ctx, device_param, user_options, user_options_extra, rules_ctx, hashconfig, hashes, salt_pos);
+      weak_hash_check (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, hashconfig, hashes, salt_pos);
     }
   }
 
@@ -1920,7 +1933,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
       mask_ctx->masks_pos = masks_pos;
 
-      const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hashconfig, hashes, mask_ctx, wl_data);
+      const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hashconfig, hashes, wl_data, straight_ctx, mask_ctx);
 
       if (rc_inner1_loop == -1) return -1;
 
@@ -1929,7 +1942,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   }
   else
   {
-    const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hashconfig, hashes, mask_ctx, wl_data);
+    const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hashconfig, hashes, wl_data, straight_ctx, mask_ctx);
 
     if (rc_inner1_loop == -1) return -1;
   }
@@ -2031,6 +2044,8 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   bitmap_ctx_destroy (bitmap_ctx);
 
   mask_ctx_destroy (mask_ctx);
+
+  straight_ctx_destroy (straight_ctx);
 
   hashes_destroy (hashes);
 
@@ -2278,18 +2293,6 @@ int main (int argc, char **argv)
   {
     set_cpu_affinity (user_options->cpu_affinity);
   }
-
-  /**
-   * rules
-   */
-
-  rules_ctx_t *rules_ctx = (rules_ctx_t *) mymalloc (sizeof (rules_ctx_t));
-
-  data.rules_ctx = rules_ctx;
-
-  const int rc_rules_init = rules_ctx_init (rules_ctx, user_options);
-
-  if (rc_rules_init == -1) return -1;
 
   /**
    * Init OpenCL library loader
@@ -2829,7 +2832,7 @@ int main (int argc, char **argv)
 
     if (user_options->hash_mode_chgd == true)
     {
-      const int rc = outer_loop (user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
+      const int rc = outer_loop (user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
 
       if (rc == -1) return -1;
     }
@@ -2839,7 +2842,7 @@ int main (int argc, char **argv)
       {
         user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
 
-        const int rc = outer_loop (user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
+        const int rc = outer_loop (user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
 
         if (rc == -1) return -1;
 
@@ -2849,7 +2852,7 @@ int main (int argc, char **argv)
   }
   else
   {
-    const int rc = outer_loop (user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, rules_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
+    const int rc = outer_loop (user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, dictstat_ctx, loopback_ctx, opencl_ctx);
 
     if (rc == -1) return -1;
   }
@@ -3037,8 +3040,6 @@ int main (int argc, char **argv)
   myfree (nvml_power_limit);
 
   debugfile_destroy (debugfile_ctx);
-
-  rules_ctx_destroy (rules_ctx);
 
   tuning_db_destroy (tuning_db);
 

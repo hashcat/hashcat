@@ -18,7 +18,7 @@ void get_next_word (wl_data_t *wl_data, const user_options_t *user_options, cons
 
 void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len);
 
-u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx);
+u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx);
 
 void wl_data_init (wl_data_t *wl_data, const user_options_t *user_options, const hashconfig_t *hashconfig);
 void wl_data_destroy (wl_data_t *wl_data);

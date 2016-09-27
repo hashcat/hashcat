@@ -222,7 +222,7 @@ void save_hash (const user_options_t *user_options, const hashconfig_t *hashconf
   unlink (old_hashfile);
 }
 
-void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx, plain_t *plain)
+void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, plain_t *plain)
 {
   debugfile_ctx_t *debugfile_ctx = data.debugfile_ctx;
   loopback_ctx_t  *loopback_ctx  = data.loopback_ctx;
@@ -290,7 +290,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
       {
         memset (debug_rule_buf, 0, sizeof (debug_rule_buf));
 
-        debug_rule_len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &rules_ctx->kernel_rules_buf[off]);
+        debug_rule_len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &straight_ctx->kernel_rules_buf[off]);
       }
 
       // save plain
@@ -304,10 +304,10 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
       }
     }
 
-    plain_len = apply_rules (rules_ctx->kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], plain_len);
+    plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], plain_len);
 
     crackpos += gidvid;
-    crackpos *= rules_ctx->kernel_rules_cnt;
+    crackpos *= straight_ctx->kernel_rules_cnt;
     crackpos += device_param->innerloop_pos + il_pos;
 
     if (plain_len > data.pw_max) plain_len = data.pw_max;
@@ -507,7 +507,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
   }
 }
 
-int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx, hashconfig_t *hashconfig, hashes_t *hashes, const uint salt_pos)
+int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, hashconfig_t *hashconfig, hashes_t *hashes, const uint salt_pos)
 {
   salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
@@ -571,7 +571,7 @@ int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
       if (hashes->salts_done == hashes->salts_cnt) mycracked (opencl_ctx);
 
-      check_hash (opencl_ctx, device_param, user_options, user_options_extra, rules_ctx, &cracked[i]);
+      check_hash (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, &cracked[i]);
     }
 
     hc_thread_mutex_unlock (mux_display);

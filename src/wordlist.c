@@ -285,7 +285,7 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
   //}
 }
 
-u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const rules_ctx_t *rules_ctx, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx)
+u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx)
 {
   hc_signal (NULL);
 
@@ -325,7 +325,7 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
 
       if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        keyspace *= rules_ctx->kernel_rules_cnt;
+        keyspace *= straight_ctx->kernel_rules_cnt;
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
@@ -388,7 +388,7 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
       {
         if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
         {
-          cnt += rules_ctx->kernel_rules_cnt;
+          cnt += straight_ctx->kernel_rules_cnt;
         }
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {

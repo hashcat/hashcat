@@ -23,14 +23,14 @@ bool class_alpha (const u8 c);
 int conv_ctoi (const u8 c);
 int conv_itoc (const u8 c);
 
-int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], u32 rp_gen_func_min, u32 rp_gen_func_max);
+int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], const u32 rp_gen_func_min, const u32 rp_gen_func_max);
 
 int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule);
 int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);
 
-int rules_ctx_init (rules_ctx_t *rules_ctx, const user_options_t *user_options);
-void rules_ctx_destroy (rules_ctx_t *rules_ctx);
+bool kernel_rules_has_noop (const kernel_rule_t *kernel_rules_buf, const u32 kernel_rules_cnt);
 
-bool rules_ctx_has_noop (rules_ctx_t *rules_ctx);
+int kernel_rules_load (kernel_rule_t **out_buf, u32 *out_cnt, const user_options_t *user_options);
+int kernel_rules_generate (kernel_rule_t **out_buf, u32 *out_cnt, const user_options_t *user_options);
 
 #endif // _RP_H

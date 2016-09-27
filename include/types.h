@@ -1116,6 +1116,25 @@ typedef struct
 
 typedef struct
 {
+  bool enabled;
+
+  char *root_directory;
+
+} outcheck_ctx_t;
+
+typedef struct
+{
+  bool enabled;
+
+  char *dictfile;
+
+  u32             kernel_rules_cnt;
+  kernel_rule_t  *kernel_rules_buf;
+
+} straight_ctx_t;
+
+typedef struct
+{
   bool   enabled;
 
   cs_t   mp_sys[6];
@@ -1142,21 +1161,6 @@ typedef struct
   char *mask;
 
 } mask_ctx_t;
-
-typedef struct
-{
-  bool enabled;
-
-  char *root_directory;
-
-} outcheck_ctx_t;
-
-typedef struct
-{
-  u32             kernel_rules_cnt;
-  kernel_rule_t  *kernel_rules_buf;
-
-} rules_ctx_t;
 
 typedef struct
 {
@@ -1224,8 +1228,8 @@ typedef struct
   induct_ctx_t          *induct_ctx;
   outcheck_ctx_t        *outcheck_ctx;
   logfile_ctx_t         *logfile_ctx;
-  rules_ctx_t           *rules_ctx;
   restore_ctx_t         *restore_ctx;
+  straight_ctx_t        *straight_ctx;
   mask_ctx_t            *mask_ctx;
 
   /**

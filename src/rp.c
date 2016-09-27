@@ -147,7 +147,7 @@ int conv_itoc (const u8 c)
   return -1;
 }
 
-int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], u32 rp_gen_func_min, u32 rp_gen_func_max)
+int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], const u32 rp_gen_func_min, const u32 rp_gen_func_max)
 {
   u32 rp_gen_num = get_random_num (rp_gen_func_min, rp_gen_func_max);
 
@@ -701,7 +701,20 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
   return -1;
 }
 
-int rules_ctx_init (rules_ctx_t *rules_ctx, const user_options_t *user_options)
+bool kernel_rules_has_noop (const kernel_rule_t *kernel_rules_buf, const u32 kernel_rules_cnt)
+{
+  for (uint kernel_rules_pos = 0; kernel_rules_pos < kernel_rules_cnt; kernel_rules_pos++)
+  {
+    if (kernel_rules_buf[kernel_rules_pos].cmds[0] != RULE_OP_MANGLE_NOOP) continue;
+    if (kernel_rules_buf[kernel_rules_pos].cmds[1] != 0)                   continue;
+
+    return true;
+  }
+
+  return false;
+}
+
+int kernel_rules_load (kernel_rule_t **out_buf, u32 *out_cnt, const user_options_t *user_options)
 {
   /**
    * load rules
@@ -748,8 +761,6 @@ int rules_ctx_init (rules_ctx_t *rules_ctx, const user_options_t *user_options)
 
     while (!feof (fp))
     {
-      memset (rule_buf, 0, HCBUFSIZ_LARGE);
-
       rule_len = fgetl (fp, rule_buf);
 
       rule_line++;
@@ -792,109 +803,58 @@ int rules_ctx_init (rules_ctx_t *rules_ctx, const user_options_t *user_options)
     fclose (fp);
 
     all_kernel_rules_cnt[i] = kernel_rules_cnt;
-
     all_kernel_rules_buf[i] = kernel_rules_buf;
-  }
-
-  /**
-   * merge rules or automatic rule generator
-   */
-
-  uint kernel_rules_cnt = 0;
-
-  kernel_rule_t *kernel_rules_buf = NULL;
-
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    if (user_options->rp_files_cnt)
-    {
-      kernel_rules_cnt = 1;
-
-      uint *repeats = (uint *) mycalloc (user_options->rp_files_cnt + 1, sizeof (uint));
-
-      repeats[0] = kernel_rules_cnt;
-
-      for (uint i = 0; i < user_options->rp_files_cnt; i++)
-      {
-        kernel_rules_cnt *= all_kernel_rules_cnt[i];
-
-        repeats[i + 1] = kernel_rules_cnt;
-      }
-
-      kernel_rules_buf = (kernel_rule_t *) mycalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
-
-      memset (kernel_rules_buf, 0, kernel_rules_cnt * sizeof (kernel_rule_t));
-
-      for (uint i = 0; i < kernel_rules_cnt; i++)
-      {
-        uint out_pos = 0;
-
-        kernel_rule_t *out = &kernel_rules_buf[i];
-
-        for (uint j = 0; j < user_options->rp_files_cnt; j++)
-        {
-          uint in_off = (i / repeats[j]) % all_kernel_rules_cnt[j];
-          uint in_pos;
-
-          kernel_rule_t *in = &all_kernel_rules_buf[j][in_off];
-
-          for (in_pos = 0; in->cmds[in_pos]; in_pos++, out_pos++)
-          {
-            if (out_pos == RULES_MAX - 1)
-            {
-              // log_info ("WARNING: Truncating chaining of rule %d and rule %d as maximum number of function calls per rule exceeded", i, in_off);
-
-              break;
-            }
-
-            out->cmds[out_pos] = in->cmds[in_pos];
-          }
-        }
-      }
-
-      myfree (repeats);
-    }
-    else if (user_options->rp_gen)
-    {
-      uint kernel_rules_avail = 0;
-
-      while (kernel_rules_cnt < user_options->rp_gen)
-      {
-        if (kernel_rules_avail == kernel_rules_cnt)
-        {
-          kernel_rules_buf = (kernel_rule_t *) myrealloc (kernel_rules_buf, kernel_rules_avail * sizeof (kernel_rule_t), INCR_RULES * sizeof (kernel_rule_t));
-
-          kernel_rules_avail += INCR_RULES;
-        }
-
-        memset (rule_buf, 0, HCBUFSIZ_LARGE);
-
-        rule_len = (int) generate_random_rule (rule_buf, user_options->rp_gen_func_min, user_options->rp_gen_func_max);
-
-        if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1) continue;
-
-        kernel_rules_cnt++;
-      }
-    }
   }
 
   myfree (rule_buf);
 
   /**
-   * generate NOP rules
+   * merge rules
    */
 
-  if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
+  uint kernel_rules_cnt = 1;
+
+  uint *repeats = (uint *) mycalloc (user_options->rp_files_cnt + 1, sizeof (uint));
+
+  repeats[0] = kernel_rules_cnt;
+
+  for (uint i = 0; i < user_options->rp_files_cnt; i++)
   {
-    kernel_rules_buf = (kernel_rule_t *) mymalloc (sizeof (kernel_rule_t));
+    kernel_rules_cnt *= all_kernel_rules_cnt[i];
 
-    kernel_rules_buf[kernel_rules_cnt].cmds[0] = RULE_OP_MANGLE_NOOP;
-
-    kernel_rules_cnt++;
+    repeats[i + 1] = kernel_rules_cnt;
   }
 
-  rules_ctx->kernel_rules_cnt = kernel_rules_cnt;
-  rules_ctx->kernel_rules_buf = kernel_rules_buf;
+  kernel_rule_t *kernel_rules_buf = (kernel_rule_t *) mycalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
+
+  for (uint i = 0; i < kernel_rules_cnt; i++)
+  {
+    uint out_pos = 0;
+
+    kernel_rule_t *out = &kernel_rules_buf[i];
+
+    for (uint j = 0; j < user_options->rp_files_cnt; j++)
+    {
+      uint in_off = (i / repeats[j]) % all_kernel_rules_cnt[j];
+      uint in_pos;
+
+      kernel_rule_t *in = &all_kernel_rules_buf[j][in_off];
+
+      for (in_pos = 0; in->cmds[in_pos]; in_pos++, out_pos++)
+      {
+        if (out_pos == RULES_MAX - 1)
+        {
+          // log_info ("WARNING: Truncating chaining of rule %d and rule %d as maximum number of function calls per rule exceeded", i, in_off);
+
+          break;
+        }
+
+        out->cmds[out_pos] = in->cmds[in_pos];
+      }
+    }
+  }
+
+  myfree (repeats);
 
   if (kernel_rules_cnt == 0)
   {
@@ -906,28 +866,32 @@ int rules_ctx_init (rules_ctx_t *rules_ctx, const user_options_t *user_options)
   myfree (all_kernel_rules_cnt);
   myfree (all_kernel_rules_buf);
 
+  *out_cnt = kernel_rules_cnt;
+  *out_buf = kernel_rules_buf;
+
   return 0;
 }
 
-void rules_ctx_destroy (rules_ctx_t *rules_ctx)
+int kernel_rules_generate (kernel_rule_t **out_buf, u32 *out_cnt, const user_options_t *user_options)
 {
-  myfree (rules_ctx->kernel_rules_buf);
+  u32            kernel_rules_cnt = 0;
+  kernel_rule_t *kernel_rules_buf = mycalloc (user_options->rp_gen, sizeof (kernel_rule_t));
 
-  rules_ctx->kernel_rules_buf = NULL;
-  rules_ctx->kernel_rules_cnt = 0;
+  char *rule_buf = (char *) mymalloc (RP_RULE_BUFSIZ);
 
-  myfree (rules_ctx);
-}
-
-bool rules_ctx_has_noop (rules_ctx_t *rules_ctx)
-{
-  for (uint kernel_rules_pos = 0; kernel_rules_pos < rules_ctx->kernel_rules_cnt; kernel_rules_pos++)
+  for (kernel_rules_cnt = 0; kernel_rules_cnt < user_options->rp_gen; kernel_rules_cnt++)
   {
-    if (rules_ctx->kernel_rules_buf[kernel_rules_pos].cmds[0] != RULE_OP_MANGLE_NOOP) continue;
-    if (rules_ctx->kernel_rules_buf[kernel_rules_pos].cmds[1] != 0)                   continue;
+    memset (rule_buf, 0, RP_RULE_BUFSIZ);
 
-    return true;
+    int rule_len = (int) generate_random_rule (rule_buf, user_options->rp_gen_func_min, user_options->rp_gen_func_max);
+
+    if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1) continue;
   }
 
-  return false;
+  myfree (rule_buf);
+
+  *out_cnt = kernel_rules_cnt;
+  *out_buf = kernel_rules_buf;
+
+  return 0;
 }

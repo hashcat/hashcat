@@ -45,7 +45,7 @@ void *thread_monitor (void *p)
   hashconfig_t         *hashconfig         = data.hashconfig;
   hashes_t             *hashes             = data.hashes;
   opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
-  rules_ctx_t          *rules_ctx          = data.rules_ctx;
+  straight_ctx_t          *straight_ctx          = data.straight_ctx;
   mask_ctx_t           *mask_ctx           = data.mask_ctx;
 
   bool runtime_check = false;
@@ -346,7 +346,7 @@ void *thread_monitor (void *p)
 
         if (user_options->quiet == false) log_info ("");
 
-        status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, rules_ctx, mask_ctx);
+        status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, mask_ctx);
 
         if (user_options->quiet == false) log_info ("");
 

@@ -59,7 +59,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
   }
 }
 
-void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const rules_ctx_t *rules_ctx, const mask_ctx_t *mask_ctx, const uint pws_cnt)
+void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const mask_ctx_t *mask_ctx, const uint pws_cnt)
 {
   out_t out;
 
@@ -112,7 +112,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
 
         plain_len = pw.pw_len;
 
-        plain_len = apply_rules (rules_ctx->kernel_rules_buf[pos + il_pos].cmds, &plain_buf[0], &plain_buf[4], plain_len);
+        plain_len = apply_rules (straight_ctx->kernel_rules_buf[pos + il_pos].cmds, &plain_buf[0], &plain_buf[4], plain_len);
 
         if (plain_len > data.pw_max) plain_len = data.pw_max;
 
