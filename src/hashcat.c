@@ -1205,35 +1205,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
     data.kernel_power_final = 0;
 
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-    {
-      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-      if (device_param->skipped) continue;
-
-      device_param->speed_pos = 0;
-
-      memset (device_param->speed_cnt, 0, SPEED_CACHE * sizeof (u64));
-      memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (double));
-
-      device_param->exec_pos = 0;
-
-      memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
-
-      device_param->outerloop_pos  = 0;
-      device_param->outerloop_left = 0;
-      device_param->innerloop_pos  = 0;
-      device_param->innerloop_left = 0;
-
-      // some more resets:
-
-      if (device_param->pws_buf) memset (device_param->pws_buf, 0, device_param->size_pws);
-
-      device_param->pws_cnt = 0;
-
-      device_param->words_off  = 0;
-      device_param->words_done = 0;
-    }
+    opencl_ctx_devices_reset (opencl_ctx);
 
     // figure out some workload
 
