@@ -1140,18 +1140,6 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
   }
 
   /**
-   * keep track of the progress
-   */
-
-  u64 *words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-  u64 *words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-  u64 *words_progress_restored = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-
-  data.words_progress_done     = words_progress_done;
-  data.words_progress_rejected = words_progress_rejected;
-  data.words_progress_restored = words_progress_restored;
-
-  /**
    * main inner loop
    */
 
@@ -1657,9 +1645,6 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
   // free memory
 
-  myfree (words_progress_done);
-  myfree (words_progress_rejected);
-  myfree (words_progress_restored);
 
   return 0;
 }
@@ -1909,6 +1894,14 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   if (user_options->quiet == false) log_info_nn ("Initializing device kernels and memory...");
 
+  u64 *words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+  u64 *words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+  u64 *words_progress_restored = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+
+  data.words_progress_done     = words_progress_done;
+  data.words_progress_rejected = words_progress_rejected;
+  data.words_progress_restored = words_progress_restored;
+
   /*
   session_ctx_t *session_ctx = (session_ctx_t *) mymalloc (sizeof (session_ctx_t));
 
@@ -2138,6 +2131,10 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   /**
    * Clean up
    */
+
+  myfree (words_progress_done);
+  myfree (words_progress_rejected);
+  myfree (words_progress_restored);
 
   opencl_session_destroy (opencl_ctx);
 
