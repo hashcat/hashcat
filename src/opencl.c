@@ -43,6 +43,9 @@ extern hc_thread_mutex_t mux_hwmon;
 
 extern const int comptime;
 
+static const u32 full01 = 0x01010101;
+static const u32 full80 = 0x80808080;
+
 static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 
 static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *shared_dir, char *source_file)
@@ -2457,39 +2460,6 @@ void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
   opencl_ctx->need_xnvctrl   = 0;
 }
 
-void opencl_ctx_devices_reset (opencl_ctx_t *opencl_ctx)
-{
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    device_param->speed_pos = 0;
-
-    memset (device_param->speed_cnt, 0, SPEED_CACHE * sizeof (u64));
-    memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (double));
-
-    device_param->exec_pos = 0;
-
-    memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
-
-    device_param->outerloop_pos  = 0;
-    device_param->outerloop_left = 0;
-    device_param->innerloop_pos  = 0;
-    device_param->innerloop_left = 0;
-
-    // some more resets:
-
-    if (device_param->pws_buf) memset (device_param->pws_buf, 0, device_param->size_pws);
-
-    device_param->pws_cnt = 0;
-
-    device_param->words_off  = 0;
-    device_param->words_done = 0;
-  }
-}
-
 int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const rules_ctx_t *rules_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx, const tuning_db_t *tuning_db)
 {
   /**
@@ -4536,12 +4506,75 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
       run_kernel_bzero (opencl_ctx, device_param, device_param->d_root_css_buf,   size_root_css);
       run_kernel_bzero (opencl_ctx, device_param, device_param->d_markov_css_buf, size_markov_css);
     }
+
+    if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+    {
+      /**
+       * prepare mp
+       */
+
+      device_param->kernel_params_mp[0] = &device_param->d_combs;
+      device_param->kernel_params_mp[1] = &device_param->d_root_css_buf;
+      device_param->kernel_params_mp[2] = &device_param->d_markov_css_buf;
+
+      if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+      {
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_buf32[5] = full01;
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_buf32[5] = full80;
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_buf32[7] = 1;
+      }
+      else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+      {
+        device_param->kernel_params_mp_buf32[5] = 0;
+        device_param->kernel_params_mp_buf32[6] = 0;
+        device_param->kernel_params_mp_buf32[7] = 0;
+      }
+
+      for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp[i]);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_BF)
+    {
+      /**
+       * prepare mp_r and mp_l
+       */
+
+      device_param->kernel_params_mp_l[0] = &device_param->d_pws_buf;
+      device_param->kernel_params_mp_l[1] = &device_param->d_root_css_buf;
+      device_param->kernel_params_mp_l[2] = &device_param->d_markov_css_buf;
+
+      if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_l_buf32[6] = full01;
+      if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_l_buf32[6] = full80;
+      if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_l_buf32[7] = 1;
+      if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_l_buf32[8] = 1;
+
+      device_param->kernel_params_mp_r[0] = &device_param->d_bfs;
+      device_param->kernel_params_mp_r[1] = &device_param->d_root_css_buf;
+      device_param->kernel_params_mp_r[2] = &device_param->d_markov_css_buf;
+
+      for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp_l[i]);
+      for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp_r[i]);
+
+      if (CL_err != CL_SUCCESS)
+      {
+        log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+        return -1;
+      }
+    }
   }
 
   return 0;
 }
 
-int opencl_session_destroy (opencl_ctx_t *opencl_ctx)
+void opencl_session_destroy (opencl_ctx_t *opencl_ctx)
 {
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -4587,59 +4620,29 @@ int opencl_session_destroy (opencl_ctx_t *opencl_ctx)
     if (device_param->d_markov_css_buf)   CL_err |= hc_clReleaseMemObject (opencl_ctx->ocl, device_param->d_markov_css_buf);
     if (device_param->d_tm_c)             CL_err |= hc_clReleaseMemObject (opencl_ctx->ocl, device_param->d_tm_c);
 
-    if (CL_err != CL_SUCCESS)
-    {
-      log_error ("ERROR: clReleaseMemObject(): %s\n", val2cstr_cl (CL_err));
+    if (device_param->kernel1)            CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel1);
+    if (device_param->kernel12)           CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel12);
+    if (device_param->kernel2)            CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel2);
+    if (device_param->kernel23)           CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel23);
+    if (device_param->kernel3)            CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel3);
+    if (device_param->kernel_mp)          CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel_mp);
+    if (device_param->kernel_mp_l)        CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel_mp_l);
+    if (device_param->kernel_mp_r)        CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel_mp_r);
+    if (device_param->kernel_tm)          CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel_tm);
+    if (device_param->kernel_amp)         CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel_amp);
+    if (device_param->kernel_memset)      CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel_memset);
 
-      return -1;
-    }
+    if (device_param->program)            CL_err |= hc_clReleaseProgram (opencl_ctx->ocl, device_param->program);
+    if (device_param->program_mp)         CL_err |= hc_clReleaseProgram (opencl_ctx->ocl, device_param->program_mp);
+    if (device_param->program_amp)        CL_err |= hc_clReleaseProgram (opencl_ctx->ocl, device_param->program_amp);
 
-    if (device_param->kernel1)        CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel1);
-    if (device_param->kernel12)       CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel12);
-    if (device_param->kernel2)        CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel2);
-    if (device_param->kernel23)       CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel23);
-    if (device_param->kernel3)        CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel3);
-    if (device_param->kernel_mp)      CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel_mp);
-    if (device_param->kernel_mp_l)    CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel_mp_l);
-    if (device_param->kernel_mp_r)    CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel_mp_r);
-    if (device_param->kernel_tm)      CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel_tm);
-    if (device_param->kernel_amp)     CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel_amp);
-    if (device_param->kernel_memset)  CL_err |= hc_clReleaseKernel (opencl_ctx->ocl, device_param->kernel_memset);
+    if (device_param->command_queue)      CL_err |= hc_clReleaseCommandQueue (opencl_ctx->ocl, device_param->command_queue);
 
-    if (CL_err != CL_SUCCESS)
-    {
-      log_error ("ERROR: clReleaseKernel(): %s\n", val2cstr_cl (CL_err));
-
-      return -1;
-    }
-
-    if (device_param->program)     CL_err |= hc_clReleaseProgram (opencl_ctx->ocl, device_param->program);
-    if (device_param->program_mp)  CL_err |= hc_clReleaseProgram (opencl_ctx->ocl, device_param->program_mp);
-    if (device_param->program_amp) CL_err |= hc_clReleaseProgram (opencl_ctx->ocl, device_param->program_amp);
-
-    if (CL_err != CL_SUCCESS)
-    {
-      log_error ("ERROR: clReleaseProgram(): %s\n", val2cstr_cl (CL_err));
-
-      return -1;
-    }
-
-    if (device_param->command_queue) CL_err |= hc_clReleaseCommandQueue (opencl_ctx->ocl, device_param->command_queue);
-
-    if (CL_err != CL_SUCCESS)
-    {
-      log_error ("ERROR: clReleaseCommandQueue(): %s\n", val2cstr_cl (CL_err));
-
-      return -1;
-    }
-
-    if (device_param->context) CL_err |= hc_clReleaseContext (opencl_ctx->ocl, device_param->context);
+    if (device_param->context)            CL_err |= hc_clReleaseContext (opencl_ctx->ocl, device_param->context);
 
     if (CL_err != CL_SUCCESS)
     {
       log_error ("ERROR: hc_clReleaseContext(): %s\n", val2cstr_cl (CL_err));
-
-      return -1;
     }
 
     device_param->pws_buf           = NULL;
@@ -4693,6 +4696,127 @@ int opencl_session_destroy (opencl_ctx_t *opencl_ctx)
     device_param->program_amp       = NULL;
     device_param->command_queue     = NULL;
     device_param->context           = NULL;
+  }
+}
+
+void opencl_session_reset (opencl_ctx_t *opencl_ctx)
+{
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    device_param->speed_pos = 0;
+
+    memset (device_param->speed_cnt, 0, SPEED_CACHE * sizeof (u64));
+    memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (double));
+
+    device_param->exec_pos = 0;
+
+    memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
+
+    device_param->outerloop_pos  = 0;
+    device_param->outerloop_left = 0;
+    device_param->innerloop_pos  = 0;
+    device_param->innerloop_left = 0;
+
+    // some more resets:
+
+    if (device_param->pws_buf) memset (device_param->pws_buf, 0, device_param->size_pws);
+
+    device_param->pws_cnt = 0;
+
+    device_param->words_off  = 0;
+    device_param->words_done = 0;
+  }
+}
+
+int opencl_session_update_mp (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mask_ctx)
+{
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    device_param->kernel_params_mp_buf64[3] = 0;
+    device_param->kernel_params_mp_buf32[4] = mask_ctx->css_cnt;
+    device_param->kernel_params_mp_buf32[5] = 0;
+    device_param->kernel_params_mp_buf32[6] = 0;
+    device_param->kernel_params_mp_buf32[7] = 0;
+
+    cl_int CL_err = CL_SUCCESS;
+
+    for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp[i]);
+    for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp[i]);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
+
+    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL);
+    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
+  }
+
+  return 0;
+}
+
+int opencl_session_update_mp_rl (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mask_ctx, const u32 css_cnt_l, const u32 css_cnt_r)
+{
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    device_param->kernel_params_mp_l_buf64[3] = 0;
+    device_param->kernel_params_mp_l_buf32[4] = css_cnt_l;
+    device_param->kernel_params_mp_l_buf32[5] = css_cnt_r;
+    device_param->kernel_params_mp_l_buf32[6] = 0;
+    device_param->kernel_params_mp_l_buf32[7] = 0;
+    device_param->kernel_params_mp_l_buf32[8] = 0;
+
+    device_param->kernel_params_mp_r_buf64[3] = 0;
+    device_param->kernel_params_mp_r_buf32[4] = css_cnt_r;
+    device_param->kernel_params_mp_r_buf32[5] = 0;
+    device_param->kernel_params_mp_r_buf32[6] = 0;
+    device_param->kernel_params_mp_r_buf32[7] = 0;
+
+    cl_int CL_err = CL_SUCCESS;
+
+    for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
+    for (uint i = 4; i < 9; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
+
+    for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]);
+    for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
+
+    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL);
+    CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL);
+
+    if (CL_err != CL_SUCCESS)
+    {
+      log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+
+      return -1;
+    }
   }
 
   return 0;

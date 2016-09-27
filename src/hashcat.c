@@ -92,9 +92,6 @@ extern int SUPPRESS_OUTPUT;
 extern hc_thread_mutex_t mux_hwmon;
 extern hc_thread_mutex_t mux_display;
 
-extern const unsigned int full01;
-extern const unsigned int full80;
-
 extern const int DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 extern const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
@@ -402,61 +399,9 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
       data.combs_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
 
-      // args
+      const int rc_update_mp = opencl_session_update_mp (opencl_ctx, mask_ctx);
 
-      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-      {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-        if (device_param->skipped) continue;
-
-        device_param->kernel_params_mp[0] = &device_param->d_combs;
-        device_param->kernel_params_mp[1] = &device_param->d_root_css_buf;
-        device_param->kernel_params_mp[2] = &device_param->d_markov_css_buf;
-
-        device_param->kernel_params_mp_buf64[3] = 0;
-        device_param->kernel_params_mp_buf32[4] = mask_ctx->css_cnt;
-        device_param->kernel_params_mp_buf32[5] = 0;
-        device_param->kernel_params_mp_buf32[6] = 0;
-        device_param->kernel_params_mp_buf32[7] = 0;
-
-        if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-        {
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_buf32[5] = full01;
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_buf32[5] = full80;
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_buf32[7] = 1;
-        }
-        else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-        {
-          device_param->kernel_params_mp_buf32[5] = 0;
-          device_param->kernel_params_mp_buf32[6] = 0;
-          device_param->kernel_params_mp_buf32[7] = 0;
-        }
-
-        cl_int CL_err = CL_SUCCESS;
-
-        for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp[i]);
-        for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp[i]);
-        for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp[i]);
-
-        if (CL_err != CL_SUCCESS)
-        {
-          log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
-
-          return -1;
-        }
-
-        CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL);
-        CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS)
-        {
-          log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
-
-          return -1;
-        }
-      }
+      if (rc_update_mp == -1) return -1;
     }
     else if (user_options->attack_mode == ATTACK_MODE_BF)
     {
@@ -611,65 +556,9 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
       mask_ctx->bfs_cnt = sp_get_sum (0, css_cnt_r, mask_ctx->root_css_buf);
 
-      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-      {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+      const int rc_update_mp_rl = opencl_session_update_mp_rl (opencl_ctx, mask_ctx, css_cnt_l, css_cnt_r);
 
-        if (device_param->skipped) continue;
-
-        device_param->kernel_params_mp_l[0] = &device_param->d_pws_buf;
-        device_param->kernel_params_mp_l[1] = &device_param->d_root_css_buf;
-        device_param->kernel_params_mp_l[2] = &device_param->d_markov_css_buf;
-
-        device_param->kernel_params_mp_l_buf64[3] = 0;
-        device_param->kernel_params_mp_l_buf32[4] = css_cnt_l;
-        device_param->kernel_params_mp_l_buf32[5] = css_cnt_r;
-        device_param->kernel_params_mp_l_buf32[6] = 0;
-        device_param->kernel_params_mp_l_buf32[7] = 0;
-        device_param->kernel_params_mp_l_buf32[8] = 0;
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_l_buf32[6] = full01;
-        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_l_buf32[6] = full80;
-        if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_l_buf32[7] = 1;
-        if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_l_buf32[8] = 1;
-
-        device_param->kernel_params_mp_r[0] = &device_param->d_bfs;
-        device_param->kernel_params_mp_r[1] = &device_param->d_root_css_buf;
-        device_param->kernel_params_mp_r[2] = &device_param->d_markov_css_buf;
-
-        device_param->kernel_params_mp_r_buf64[3] = 0;
-        device_param->kernel_params_mp_r_buf32[4] = css_cnt_r;
-        device_param->kernel_params_mp_r_buf32[5] = 0;
-        device_param->kernel_params_mp_r_buf32[6] = 0;
-        device_param->kernel_params_mp_r_buf32[7] = 0;
-
-        cl_int CL_err = CL_SUCCESS;
-
-        for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_l[i]);
-        for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
-        for (uint i = 4; i < 9; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
-
-        for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_mem),   (void *) device_param->kernel_params_mp_r[i]);
-        for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]);
-        for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]);
-
-        if (CL_err != CL_SUCCESS)
-        {
-          log_error ("ERROR: clSetKernelArg(): %s\n", val2cstr_cl (CL_err));
-
-          return -1;
-        }
-
-        CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL);
-        CL_err |= hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS)
-        {
-          log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
-
-          return -1;
-        }
-      }
+      if (rc_update_mp_rl == -1) return -1;
     }
   }
 
@@ -1194,7 +1083,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
     data.kernel_power_final = 0;
 
-    opencl_ctx_devices_reset (opencl_ctx);
+    opencl_session_reset (opencl_ctx);
 
     // figure out some workload
 

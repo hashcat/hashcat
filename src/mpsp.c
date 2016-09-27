@@ -16,9 +16,6 @@
 #include "interface.h"
 #include "mpsp.h"
 
-const unsigned int full01 = 0x01010101;
-const unsigned int full80 = 0x80808080;
-
 void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHARSIZ])
 {
   /* generates a lookup table where key is the char itself for fastest possible lookup performance */
