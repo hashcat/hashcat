@@ -36,6 +36,36 @@ extern hc_thread_mutex_t mux_display;
 
 const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
 
+int setup_console ()
+{
+  #if defined (_WIN)
+  SetConsoleWindowSize (132);
+
+  if (_setmode (_fileno (stdin), _O_BINARY) == -1)
+  {
+    log_error ("ERROR: %s: %s", "stdin", strerror (errno));
+
+    return -1;
+  }
+
+  if (_setmode (_fileno (stdout), _O_BINARY) == -1)
+  {
+    log_error ("ERROR: %s: %s", "stdout", strerror (errno));
+
+    return -1;
+  }
+
+  if (_setmode (_fileno (stderr), _O_BINARY) == -1)
+  {
+    log_error ("ERROR: %s: %s", "stderr", strerror (errno));
+
+    return -1;
+  }
+  #endif
+
+  return 0;
+}
+
 void send_prompt ()
 {
   fprintf (stdout, "%s", PROMPT);

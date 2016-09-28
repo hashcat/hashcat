@@ -130,36 +130,6 @@ static void setup_umask ()
   umask (077);
 }
 
-static int setup_console ()
-{
-  #if defined (_WIN)
-  SetConsoleWindowSize (132);
-
-  if (_setmode (_fileno (stdin), _O_BINARY) == -1)
-  {
-    log_error ("ERROR: %s: %s", "stdin", strerror (errno));
-
-    return -1;
-  }
-
-  if (_setmode (_fileno (stdout), _O_BINARY) == -1)
-  {
-    log_error ("ERROR: %s: %s", "stdout", strerror (errno));
-
-    return -1;
-  }
-
-  if (_setmode (_fileno (stderr), _O_BINARY) == -1)
-  {
-    log_error ("ERROR: %s: %s", "stderr", strerror (errno));
-
-    return -1;
-  }
-  #endif
-
-  return 0;
-}
-
 static void setup_seeding (const user_options_t *user_options, const time_t *proc_start)
 {
   if (user_options->rp_gen_seed_chgd == true)

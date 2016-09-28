@@ -23,6 +23,8 @@
 #include <windows.h>
 #endif // _WIN
 
+int setup_console ();
+
 void send_prompt ();
 void clear_prompt ();
 
