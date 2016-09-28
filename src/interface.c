@@ -20576,7 +20576,7 @@ char *hashconfig_benchmark_mask (const hashconfig_t *hashconfig)
                 break;
     case 14000: mask = "?b?b?b?b?b?b?bx";
                 break;
-    case 14100: mask = "?b?b?b?b?b?b?bx";
+    case 14100: mask = "?b?b?b?b?b?b?bxxxxxxxxxxxxxxxxx";
                 break;
     default:    mask = "?b?b?b?b?b?b?b";
                 break;

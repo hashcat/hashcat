@@ -2749,7 +2749,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
 
       scrypt_tmp_size = (128 * scrypt_r * scrypt_p);
 
-      hashconfig->tmp_size = scrypt_tmp_size; break;
+      hashconfig->tmp_size = scrypt_tmp_size;
 
       uint tmto_start = 0;
       uint tmto_stop  = 10;
