@@ -869,3 +869,47 @@ int hm_set_fanspeed_with_device_id_xnvctrl (const uint device_id, const int fans
 
   return -1;
 }
+
+int hwmon_ctx_init (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options)
+{
+  hwmon_ctx->enabled = false;
+
+  if (user_options->gpu_temp_disable == true) return 0;
+
+  hwmon_ctx->hm_adapters_adl      = (hm_attrs_t *) mycalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hwmon_ctx->hm_adapters_nvapi    = (hm_attrs_t *) mycalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hwmon_ctx->hm_adapters_nvml     = (hm_attrs_t *) mycalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hwmon_ctx->hm_adapters_xnvctrl  = (hm_attrs_t *) mycalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+
+  hwmon_ctx->hm_device = (hm_attrs_t *) mycalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+
+  hwmon_ctx->enabled = true;
+
+  return 0;
+}
+
+void hwmon_ctx_destroy (hwmon_ctx_t *hwmon_ctx)
+{
+  if (hwmon_ctx->enabled == false) return;
+
+  myfree (hwmon_ctx->hm_device);
+
+  myfree (hwmon_ctx->hm_adapters_adl);
+  myfree (hwmon_ctx->hm_adapters_nvapi);
+  myfree (hwmon_ctx->hm_adapters_nvml);
+  myfree (hwmon_ctx->hm_adapters_xnvctrl);
+
+  hwmon_ctx->hm_device = NULL;
+
+  hwmon_ctx->hm_adapters_adl     = NULL;
+  hwmon_ctx->hm_adapters_nvapi   = NULL;
+  hwmon_ctx->hm_adapters_nvml    = NULL;
+  hwmon_ctx->hm_adapters_xnvctrl = NULL;
+
+  hwmon_ctx->hm_adl     = NULL;
+  hwmon_ctx->hm_nvml    = NULL;
+  hwmon_ctx->hm_nvapi   = NULL;
+  hwmon_ctx->hm_xnvctrl = NULL;
+
+  myfree (hwmon_ctx);
+}

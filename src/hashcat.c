@@ -2219,6 +2219,19 @@ int main (int argc, char **argv)
    * HM devices: init
    */
 
+  hwmon_ctx_t *hwmon_ctx = (hwmon_ctx_t *) mymalloc (sizeof (hwmon_ctx_t));
+
+  data.hwmon_ctx = hwmon_ctx;
+
+  const int rc_hwmon_init = hwmon_ctx_init (hwmon_ctx, user_options);
+
+  if (rc_hwmon_init == -1)
+  {
+    log_error ("ERROR: hwmon_ctx_init() failed");
+
+    return -1;
+  }
+
   hm_attrs_t hm_adapters_adl[DEVICES_MAX];
   hm_attrs_t hm_adapters_nvapi[DEVICES_MAX];
   hm_attrs_t hm_adapters_nvml[DEVICES_MAX];
@@ -2951,6 +2964,8 @@ int main (int argc, char **argv)
   user_options_extra_destroy (user_options_extra);
 
   opencl_ctx_devices_destroy (opencl_ctx);
+
+  hwmon_ctx_destroy (hwmon_ctx);
 
   restore_ctx_destroy (restore_ctx);
 

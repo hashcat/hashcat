@@ -40,4 +40,7 @@ int hm_set_fanspeed_with_device_id_xnvctrl   (const uint device_id, const int fa
 
 void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value);
 
+int hwmon_ctx_init (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options);
+void hwmon_ctx_destroy (hwmon_ctx_t *hwmon_ctx);
+
 #endif // _HWMON_H

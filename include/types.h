@@ -1196,6 +1196,24 @@ typedef struct
 
 typedef struct
 {
+  bool  enabled;
+
+  void *hm_adl;
+  void *hm_nvml;
+  void *hm_nvapi;
+  void *hm_xnvctrl;
+
+  hm_attrs_t *hm_adapters_adl;
+  hm_attrs_t *hm_adapters_nvapi;
+  hm_attrs_t *hm_adapters_nvml;
+  hm_attrs_t *hm_adapters_xnvctrl;
+
+  hm_attrs_t *hm_device;
+
+} hwmon_ctx_t;
+
+typedef struct
+{
   /**
    * migrated
    */
@@ -1205,6 +1223,7 @@ typedef struct
   debugfile_ctx_t       *debugfile_ctx;
   hashconfig_t          *hashconfig;
   hashes_t              *hashes;
+  hwmon_ctx_t           *hwmon_ctx;
   induct_ctx_t          *induct_ctx;
   logfile_ctx_t         *logfile_ctx;
   loopback_ctx_t        *loopback_ctx;
