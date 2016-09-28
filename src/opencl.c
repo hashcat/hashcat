@@ -2641,33 +2641,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
      *                 there needs to be some upper limit, otherwise there's too much overhead
      */
 
-    uint kernel_threads = MIN (KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
-
-    if (hashconfig->hash_mode ==  8900) kernel_threads = 64; // Scrypt
-    if (hashconfig->hash_mode ==  9300) kernel_threads = 64; // Scrypt
-
-    if (device_param->device_type & CL_DEVICE_TYPE_CPU)
-    {
-      kernel_threads = KERNEL_THREADS_MAX_CPU;
-    }
-
-    if (hashconfig->hash_mode ==  1500) kernel_threads = 64; // DES
-    if (hashconfig->hash_mode ==  3000) kernel_threads = 64; // DES
-    if (hashconfig->hash_mode ==  3100) kernel_threads = 64; // DES
-    if (hashconfig->hash_mode ==  3200) kernel_threads = 8;  // Blowfish
-    if (hashconfig->hash_mode ==  7500) kernel_threads = 64; // RC4
-    if (hashconfig->hash_mode ==  8500) kernel_threads = 64; // DES
-    if (hashconfig->hash_mode ==  9000) kernel_threads = 8;  // Blowfish
-    if (hashconfig->hash_mode ==  9700) kernel_threads = 64; // RC4
-    if (hashconfig->hash_mode ==  9710) kernel_threads = 64; // RC4
-    if (hashconfig->hash_mode ==  9800) kernel_threads = 64; // RC4
-    if (hashconfig->hash_mode ==  9810) kernel_threads = 64; // RC4
-    if (hashconfig->hash_mode == 10400) kernel_threads = 64; // RC4
-    if (hashconfig->hash_mode == 10410) kernel_threads = 64; // RC4
-    if (hashconfig->hash_mode == 10500) kernel_threads = 64; // RC4
-    if (hashconfig->hash_mode == 13100) kernel_threads = 64; // RC4
-    if (hashconfig->hash_mode == 14000) kernel_threads = 64; // DES
-    if (hashconfig->hash_mode == 14100) kernel_threads = 64; // DES
+    u32 kernel_threads = hashconfig_kernel_thread_force (hashconfig, device_param);
 
     device_param->kernel_threads = kernel_threads;
 
