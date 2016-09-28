@@ -38,7 +38,7 @@
 
 extern hc_global_data_t data;
 
-static void set_kernel_power_final (const user_options_t *user_options, const u64 kernel_power_final)
+static void set_kernel_power_final (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, const u64 kernel_power_final)
 {
   if (user_options->quiet == false)
   {
@@ -52,16 +52,16 @@ static void set_kernel_power_final (const user_options_t *user_options, const u6
     send_prompt ();
   }
 
-  data.kernel_power_final = kernel_power_final;
+  opencl_ctx->kernel_power_final = kernel_power_final;
 }
 
-static u32 get_power (hc_device_param_t *device_param)
+static u32 get_power (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
 {
-  const u64 kernel_power_final = data.kernel_power_final;
+  const u64 kernel_power_final = opencl_ctx->kernel_power_final;
 
   if (kernel_power_final)
   {
-    const double device_factor = (double) device_param->hardware_power / data.hardware_power_all;
+    const double device_factor = (double) device_param->hardware_power / opencl_ctx->hardware_power_all;
 
     const u64 words_left_device = (u64) CEIL (kernel_power_final * device_factor);
 
@@ -84,19 +84,19 @@ static uint get_work (opencl_ctx_t *opencl_ctx, const user_options_t *user_optio
 
   device_param->words_off = words_cur;
 
-  const u64 kernel_power_all = data.kernel_power_all;
+  const u64 kernel_power_all = opencl_ctx->kernel_power_all;
 
   const u64 words_left = words_base - words_cur;
 
   if (words_left < kernel_power_all)
   {
-    if (data.kernel_power_final == 0)
+    if (opencl_ctx->kernel_power_final == 0)
     {
-      set_kernel_power_final (user_options, words_left);
+      set_kernel_power_final (opencl_ctx, user_options, words_left);
     }
   }
 
-  const u32 kernel_power = get_power (device_param);
+  const u32 kernel_power = get_power (opencl_ctx, device_param);
 
   uint work = MIN (words_left, kernel_power);
 

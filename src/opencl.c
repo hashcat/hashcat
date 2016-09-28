@@ -36,6 +36,7 @@
 #include "convert.h"
 #include "dictstat.h"
 #include "wordlist.h"
+#include "terminal.h"
 
 extern hc_global_data_t data;
 
@@ -2421,15 +2422,15 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
     }
   }
 
-  opencl_ctx->target_ms      = TARGET_MS_PROFILE[user_options->workload_profile - 1];
+  opencl_ctx->target_ms           = TARGET_MS_PROFILE[user_options->workload_profile - 1];
 
-  opencl_ctx->devices_cnt    = devices_cnt;
-  opencl_ctx->devices_active = devices_active;
+  opencl_ctx->devices_cnt         = devices_cnt;
+  opencl_ctx->devices_active      = devices_active;
 
-  opencl_ctx->need_adl       = need_adl;
-  opencl_ctx->need_nvml      = need_nvml;
-  opencl_ctx->need_nvapi     = need_nvapi;
-  opencl_ctx->need_xnvctrl   = need_xnvctrl;
+  opencl_ctx->need_adl            = need_adl;
+  opencl_ctx->need_nvml           = need_nvml;
+  opencl_ctx->need_nvapi          = need_nvapi;
+  opencl_ctx->need_xnvctrl        = need_xnvctrl;
 
   return 0;
 }
@@ -2457,6 +2458,42 @@ void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
   opencl_ctx->need_xnvctrl   = 0;
 }
 
+void opencl_ctx_devices_update_power (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra)
+{
+  u32 kernel_power_all = 0;
+
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    kernel_power_all += device_param->kernel_power;
+  }
+
+  opencl_ctx->kernel_power_all = kernel_power_all;
+
+  /*
+   * Inform user about possible slow speeds
+   */
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+  {
+    if (data.words_base < kernel_power_all)
+    {
+      if (user_options->quiet == false)
+      {
+        clear_prompt ();
+
+        log_info ("ATTENTION!");
+        log_info ("  The wordlist or mask you are using is too small.");
+        log_info ("  Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
+        log_info ("  The cracking speed will drop.");
+        log_info ("  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
+        log_info ("");
+      }
+    }
+  }
+}
+
 int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, const hashes_t *hashes, const straight_ctx_t *straight_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx, const tuning_db_t *tuning_db)
 {
   /**
@@ -2477,6 +2514,8 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
   {
     opencl_ctx->force_jit_compilation = 1500;
   }
+
+  u32 hardware_power_all = 0;
 
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -2646,6 +2685,8 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
     device_param->kernel_threads = kernel_threads;
 
     device_param->hardware_power = device_processors * kernel_threads;
+
+    hardware_power_all += device_param->hardware_power;
 
     /**
      * create input buffers on device : calculate size of fixed memory buffers
@@ -4403,6 +4444,8 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
     }
   }
 
+  opencl_ctx->hardware_power_all = hardware_power_all;
+
   return 0;
 }
 
@@ -4562,6 +4605,9 @@ void opencl_session_reset (opencl_ctx_t *opencl_ctx)
     device_param->words_off  = 0;
     device_param->words_done = 0;
   }
+
+  opencl_ctx->kernel_power_all   = 0;
+  opencl_ctx->kernel_power_final = 0;
 }
 
 int opencl_session_update_combinator (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const combinator_ctx_t *combinator_ctx)

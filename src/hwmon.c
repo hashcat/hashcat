@@ -753,7 +753,7 @@ int hm_get_throttle_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_
     clocksThrottleReasons &= ~nvmlClocksThrottleReasonApplicationsClocksSetting;
     clocksThrottleReasons &= ~nvmlClocksThrottleReasonUnknown;
 
-    if (data.kernel_power_final)
+    if (opencl_ctx->kernel_power_final)
     {
       clocksThrottleReasons &= ~nvmlClocksThrottleReasonHwSlowdown;
     }

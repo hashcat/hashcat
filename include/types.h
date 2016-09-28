@@ -701,6 +701,11 @@ typedef struct
 
   hc_device_param_t  *devices_param;
 
+  u32                 hardware_power_all;
+
+  u32                 kernel_power_all;
+  u64                 kernel_power_final; // we save that so that all divisions are done from the same base
+
   bool                run_main_level1;
   bool                run_main_level2;
   bool                run_main_level3;
@@ -1194,14 +1199,6 @@ typedef struct
 
   u32     shutdown_inner;
   u32     shutdown_outer;
-
-  /**
-   * workload specific
-   */
-
-  u32     hardware_power_all;
-  u32     kernel_power_all;
-  u64     kernel_power_final; // we save that so that all divisions are done from the same base
 
   /**
    * hardware watchdog

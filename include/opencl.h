@@ -36,11 +36,12 @@ int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
 
 int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, const uint pws_cnt);
 
-int  opencl_ctx_init              (opencl_ctx_t *opencl_ctx, const user_options_t *user_options);
-void opencl_ctx_destroy           (opencl_ctx_t *opencl_ctx);
+int  opencl_ctx_init                  (opencl_ctx_t *opencl_ctx, const user_options_t *user_options);
+void opencl_ctx_destroy               (opencl_ctx_t *opencl_ctx);
 
-int  opencl_ctx_devices_init      (opencl_ctx_t *opencl_ctx, const user_options_t *user_options);
-void opencl_ctx_devices_destroy   (opencl_ctx_t *opencl_ctx);
+int  opencl_ctx_devices_init          (opencl_ctx_t *opencl_ctx, const user_options_t *user_options);
+void opencl_ctx_devices_destroy       (opencl_ctx_t *opencl_ctx);
+void opencl_ctx_devices_update_power  (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra);
 
 int  opencl_session_begin             (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, const hashes_t *hashes, const straight_ctx_t *straight_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx, const tuning_db_t *tuning_db);
 void opencl_session_destroy           (opencl_ctx_t *opencl_ctx);

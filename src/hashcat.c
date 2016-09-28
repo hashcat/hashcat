@@ -1008,8 +1008,6 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
     data.ms_paused = 0;
 
-    data.kernel_power_final = 0;
-
     opencl_session_reset (opencl_ctx);
 
     // figure out some workload
@@ -1278,44 +1276,9 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
     hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
 
-    /*
-     * Inform user about possible slow speeds
-     */
+    // autotune modified kernel_accel, which modifies opencl_ctx->kernel_power_all
 
-    uint hardware_power_all = 0;
-
-    uint kernel_power_all = 0;
-
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-    {
-      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-      hardware_power_all += device_param->hardware_power;
-
-      kernel_power_all += device_param->kernel_power;
-    }
-
-    data.hardware_power_all = hardware_power_all; // hardware_power_all is the same as kernel_power_all but without the influence of kernel_accel on the devices
-
-    data.kernel_power_all = kernel_power_all;
-
-    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-    {
-      if (data.words_base < kernel_power_all)
-      {
-        if (user_options->quiet == false)
-        {
-          clear_prompt ();
-
-          log_info ("ATTENTION!");
-          log_info ("  The wordlist or mask you are using is too small.");
-          log_info ("  Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
-          log_info ("  The cracking speed will drop.");
-          log_info ("  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
-          log_info ("");
-        }
-      }
-    }
+    opencl_ctx_devices_update_power (opencl_ctx, user_options, user_options_extra);
 
     /**
      * create cracker threads
