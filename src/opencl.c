@@ -1672,7 +1672,7 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
         return -1;
       }
 
-      fprintf (stdout, "\nPlatform ID #%u\n  Vendor   : %s\n  Name     : %s\n  Version  : %s\n\n", platform_id, platform_vendor, platform_name, platform_version);
+      fprintf (stdout, "\nPlatform ID #%u\n  Vendor   : %s\n  Name     : %s\n  Version  : %s\n\n", platform_id + 1, platform_vendor, platform_name, platform_version);
     }
 
     if ((user_options->benchmark == true || user_options->quiet == false))
@@ -2262,8 +2262,8 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
       {
         char *format = "  Device ID #%u\n    Type           : %s\n    Vendor ID      : %u\n    Vendor         : %s\n    Name           : %s\n    Processor(s)   : %u\n    Clock          : %u\n    Memory         : %lu/%lu MB allocatable\n    OpenCL Version : %s\n\n";
 
-        fprintf(stdout, format, device_id,
-                ((device_type & CL_DEVICE_TYPE_CPU) ? "Cpu" : ((device_type & CL_DEVICE_TYPE_GPU) ? "Gpu" : "Accelerator")),
+        fprintf(stdout, format, device_id + 1,
+                ((device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")),
                 device_vendor_id, device_vendor,
                 device_name, device_processors,
                 device_maxclock_frequency,
