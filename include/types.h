@@ -1217,13 +1217,6 @@ typedef struct
   user_options_t        *user_options;
 
   /**
-   * threads
-   */
-
-  u32     shutdown_inner;
-  u32     shutdown_outer;
-
-  /**
    * hardware watchdog
    */
 

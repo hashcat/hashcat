@@ -1772,8 +1772,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   hc_thread_t *inner_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
-  data.shutdown_inner = 0;
-
   /**
     * Outfile remove
     */
@@ -1893,8 +1891,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   induct_ctx_cleanup (induct_ctx);
 
   // wait for inner threads
-
-  data.shutdown_inner = 1;
 
   for (uint thread_idx = 0; thread_idx < inner_threads_cnt; thread_idx++)
   {
@@ -2713,8 +2709,6 @@ int main (int argc, char **argv)
 
   hc_thread_t *outer_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
-  data.shutdown_outer = 0;
-
   if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false)
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
@@ -2761,8 +2755,6 @@ int main (int argc, char **argv)
   }
 
   // wait for outer threads
-
-  data.shutdown_outer = 1;
 
   for (uint thread_idx = 0; thread_idx < outer_threads_cnt; thread_idx++)
   {

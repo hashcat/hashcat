@@ -70,11 +70,11 @@ void *thread_outfile_remove (void *p)
 
   time_t folder_mtime = 0;
 
-  int  out_cnt = 0;
+  int out_cnt = 0;
 
   uint check_left = outfile_check_timer; // or 1 if we want to check it at startup
 
-  while (data.shutdown_inner == 0)
+  while (opencl_ctx->run_main_level2 == true)
   {
     hc_sleep (1);
 
@@ -319,9 +319,9 @@ void *thread_outfile_remove (void *p)
     }
   }
 
-  if (esalt_size) myfree (hash_buf.esalt);
+  myfree (hash_buf.esalt);
 
-  if (is_salted)  myfree (hash_buf.salt);
+  myfree (hash_buf.salt);
 
   myfree (hash_buf.digest);
 
