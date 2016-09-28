@@ -9,26 +9,21 @@
 
 #include "common.h"
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <search.h>
-#include <inttypes.h>
-#include <signal.h>
-
-#if defined (_POSIX)
-#include <pthread.h>
-#include <pwd.h>
-#endif // _POSIX
+// basic tools
 
 #include "types.h"
+#include "memory.h"
+#include "logging.h"
+
+// features
+
 #include "affinity.h"
 #include "attack_mode.h"
 #include "autotune.h"
 #include "benchmark.h"
 #include "bitmap.h"
 #include "bitops.h"
+#include "combinator.h"
 #include "convert.h"
 #include "cpu_aes.h"
 #include "cpu_crc32.h"
@@ -55,9 +50,7 @@
 #include "interface.h"
 #include "locking.h"
 #include "logfile.h"
-#include "logging.h"
 #include "loopback.h"
-#include "memory.h"
 #include "monitor.h"
 #include "mpsp.h"
 #include "opencl.h"
@@ -67,14 +60,15 @@
 #include "powertune.h"
 #include "remove.h"
 #include "restore.h"
-#include "rp_cpu.h"
 #include "rp.h"
+#include "rp_cpu.h"
 #include "rp_kernel_on_cpu.h"
 #include "runtime.h"
 #include "session.h"
 #include "shared.h"
 #include "status.h"
 #include "stdout.h"
+#include "straight.h"
 #include "terminal.h"
 #include "thread.h"
 #include "timer.h"
@@ -84,8 +78,6 @@
 #include "version.h"
 #include "weak_hash.h"
 #include "wordlist.h"
-#include "straight.h"
-#include "combinator.h"
 
 extern hc_global_data_t data;
 
