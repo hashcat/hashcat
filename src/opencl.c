@@ -2457,7 +2457,7 @@ void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
   opencl_ctx->need_xnvctrl   = 0;
 }
 
-int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const straight_ctx_t *straight_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx, const tuning_db_t *tuning_db)
+int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, const hashes_t *hashes, const straight_ctx_t *straight_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx, const tuning_db_t *tuning_db)
 {
   /**
    * Some algorithm, like descrypt, can benefit from JIT compilation
@@ -2708,6 +2708,8 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
       scrypt_tmp_size = (128 * scrypt_r * scrypt_p);
 
+      hashconfig->tmp_size = scrypt_tmp_size; break;
+
       uint tmto_start = 0;
       uint tmto_stop  = 10;
 
@@ -2822,100 +2824,11 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
 
       // size_tmps
 
-      switch (hashconfig->hash_mode)
-      {
-        case   400: size_tmps = kernel_power_max * sizeof (phpass_tmp_t);          break;
-        case   500: size_tmps = kernel_power_max * sizeof (md5crypt_tmp_t);        break;
-        case   501: size_tmps = kernel_power_max * sizeof (md5crypt_tmp_t);        break;
-        case  1600: size_tmps = kernel_power_max * sizeof (md5crypt_tmp_t);        break;
-        case  1800: size_tmps = kernel_power_max * sizeof (sha512crypt_tmp_t);     break;
-        case  2100: size_tmps = kernel_power_max * sizeof (dcc2_tmp_t);            break;
-        case  2500: size_tmps = kernel_power_max * sizeof (wpa_tmp_t);             break;
-        case  3200: size_tmps = kernel_power_max * sizeof (bcrypt_tmp_t);          break;
-        case  5200: size_tmps = kernel_power_max * sizeof (pwsafe3_tmp_t);         break;
-        case  5800: size_tmps = kernel_power_max * sizeof (androidpin_tmp_t);      break;
-        case  6211: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case  6212: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case  6213: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case  6221: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
-        case  6222: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
-        case  6223: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
-        case  6231: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case  6232: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case  6233: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case  6241: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case  6242: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case  6243: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case  6300: size_tmps = kernel_power_max * sizeof (md5crypt_tmp_t);        break;
-        case  6400: size_tmps = kernel_power_max * sizeof (sha256aix_tmp_t);       break;
-        case  6500: size_tmps = kernel_power_max * sizeof (sha512aix_tmp_t);       break;
-        case  6600: size_tmps = kernel_power_max * sizeof (agilekey_tmp_t);        break;
-        case  6700: size_tmps = kernel_power_max * sizeof (sha1aix_tmp_t);         break;
-        case  6800: size_tmps = kernel_power_max * sizeof (lastpass_tmp_t);        break;
-        case  7100: size_tmps = kernel_power_max * sizeof (pbkdf2_sha512_tmp_t);   break;
-        case  7200: size_tmps = kernel_power_max * sizeof (pbkdf2_sha512_tmp_t);   break;
-        case  7400: size_tmps = kernel_power_max * sizeof (sha256crypt_tmp_t);     break;
-        case  7900: size_tmps = kernel_power_max * sizeof (drupal7_tmp_t);         break;
-        case  8200: size_tmps = kernel_power_max * sizeof (pbkdf2_sha512_tmp_t);   break;
-        case  8800: size_tmps = kernel_power_max * sizeof (androidfde_tmp_t);      break;
-        case  8900: size_tmps = kernel_power_max * scrypt_tmp_size;                break;
-        case  9000: size_tmps = kernel_power_max * sizeof (pwsafe2_tmp_t);         break;
-        case  9100: size_tmps = kernel_power_max * sizeof (lotus8_tmp_t);          break;
-        case  9200: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
-        case  9300: size_tmps = kernel_power_max * scrypt_tmp_size;                break;
-        case  9400: size_tmps = kernel_power_max * sizeof (office2007_tmp_t);      break;
-        case  9500: size_tmps = kernel_power_max * sizeof (office2010_tmp_t);      break;
-        case  9600: size_tmps = kernel_power_max * sizeof (office2013_tmp_t);      break;
-        case 10000: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
-        case 10200: size_tmps = kernel_power_max * sizeof (cram_md5_t);            break;
-        case 10300: size_tmps = kernel_power_max * sizeof (saph_sha1_tmp_t);       break;
-        case 10500: size_tmps = kernel_power_max * sizeof (pdf14_tmp_t);           break;
-        case 10700: size_tmps = kernel_power_max * sizeof (pdf17l8_tmp_t);         break;
-        case 10900: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
-        case 11300: size_tmps = kernel_power_max * sizeof (bitcoin_wallet_tmp_t);  break;
-        case 11600: size_tmps = kernel_power_max * sizeof (seven_zip_tmp_t);       break;
-        case 11900: size_tmps = kernel_power_max * sizeof (pbkdf2_md5_tmp_t);      break;
-        case 12000: size_tmps = kernel_power_max * sizeof (pbkdf2_sha1_tmp_t);     break;
-        case 12100: size_tmps = kernel_power_max * sizeof (pbkdf2_sha512_tmp_t);   break;
-        case 12200: size_tmps = kernel_power_max * sizeof (ecryptfs_tmp_t);        break;
-        case 12300: size_tmps = kernel_power_max * sizeof (oraclet_tmp_t);         break;
-        case 12400: size_tmps = kernel_power_max * sizeof (bsdicrypt_tmp_t);       break;
-        case 12500: size_tmps = kernel_power_max * sizeof (rar3_tmp_t);            break;
-        case 12700: size_tmps = kernel_power_max * sizeof (mywallet_tmp_t);        break;
-        case 12800: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
-        case 12900: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
-        case 13000: size_tmps = kernel_power_max * sizeof (pbkdf2_sha256_tmp_t);   break;
-        case 13200: size_tmps = kernel_power_max * sizeof (axcrypt_tmp_t);         break;
-        case 13400: size_tmps = kernel_power_max * sizeof (keepass_tmp_t);         break;
-        case 13600: size_tmps = kernel_power_max * sizeof (pbkdf2_sha1_tmp_t);     break;
-        case 13711: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13712: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13713: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13721: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
-        case 13722: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
-        case 13723: size_tmps = kernel_power_max * sizeof (tc64_tmp_t);            break;
-        case 13731: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13732: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13733: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13741: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13742: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13743: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13751: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13752: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13753: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13761: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13762: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-        case 13763: size_tmps = kernel_power_max * sizeof (tc_tmp_t);              break;
-      };
+      size_tmps = kernel_power_max * hashconfig->tmp_size;
 
       // size_hooks
 
-      if ((hashconfig->opts_type & OPTS_TYPE_HOOK12) || (hashconfig->opts_type & OPTS_TYPE_HOOK23))
-      {
-        switch (hashconfig->hash_mode)
-        {
-        }
-      }
+      size_hooks = kernel_power_max * hashconfig->hook_size;
 
       // now check if all device-memory sizes which depend on the kernel_accel_max amplifier are within its boundaries
       // if not, decrease amplifier and try again

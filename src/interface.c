@@ -16168,6 +16168,8 @@ int hashconfig_init (hashconfig_t *hashconfig, const user_options_t *user_option
   hashconfig->kern_type       = 0;
   hashconfig->dgst_size       = 0;
   hashconfig->esalt_size      = 0;
+  hashconfig->tmp_size        = 0;
+  hashconfig->hook_size       = 0;
   hashconfig->opti_type       = 0;
   hashconfig->is_salted       = 0;
   hashconfig->dgst_pos0       = 0;
@@ -19910,6 +19912,96 @@ int hashconfig_init (hashconfig_t *hashconfig, const user_options_t *user_option
     case 13763: hashconfig->esalt_size = sizeof (tc_t);             break;
     case 13800: hashconfig->esalt_size = sizeof (win8phone_t);      break;
   }
+
+  switch (hashconfig->hash_mode)
+  {
+    case   400: hashconfig->tmp_size = sizeof (phpass_tmp_t);          break;
+    case   500: hashconfig->tmp_size = sizeof (md5crypt_tmp_t);        break;
+    case   501: hashconfig->tmp_size = sizeof (md5crypt_tmp_t);        break;
+    case  1600: hashconfig->tmp_size = sizeof (md5crypt_tmp_t);        break;
+    case  1800: hashconfig->tmp_size = sizeof (sha512crypt_tmp_t);     break;
+    case  2100: hashconfig->tmp_size = sizeof (dcc2_tmp_t);            break;
+    case  2500: hashconfig->tmp_size = sizeof (wpa_tmp_t);             break;
+    case  3200: hashconfig->tmp_size = sizeof (bcrypt_tmp_t);          break;
+    case  5200: hashconfig->tmp_size = sizeof (pwsafe3_tmp_t);         break;
+    case  5800: hashconfig->tmp_size = sizeof (androidpin_tmp_t);      break;
+    case  6211: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case  6212: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case  6213: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case  6221: hashconfig->tmp_size = sizeof (tc64_tmp_t);            break;
+    case  6222: hashconfig->tmp_size = sizeof (tc64_tmp_t);            break;
+    case  6223: hashconfig->tmp_size = sizeof (tc64_tmp_t);            break;
+    case  6231: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case  6232: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case  6233: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case  6241: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case  6242: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case  6243: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case  6300: hashconfig->tmp_size = sizeof (md5crypt_tmp_t);        break;
+    case  6400: hashconfig->tmp_size = sizeof (sha256aix_tmp_t);       break;
+    case  6500: hashconfig->tmp_size = sizeof (sha512aix_tmp_t);       break;
+    case  6600: hashconfig->tmp_size = sizeof (agilekey_tmp_t);        break;
+    case  6700: hashconfig->tmp_size = sizeof (sha1aix_tmp_t);         break;
+    case  6800: hashconfig->tmp_size = sizeof (lastpass_tmp_t);        break;
+    case  7100: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);   break;
+    case  7200: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);   break;
+    case  7400: hashconfig->tmp_size = sizeof (sha256crypt_tmp_t);     break;
+    case  7900: hashconfig->tmp_size = sizeof (drupal7_tmp_t);         break;
+    case  8200: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);   break;
+    case  8800: hashconfig->tmp_size = sizeof (androidfde_tmp_t);      break;
+    case  9000: hashconfig->tmp_size = sizeof (pwsafe2_tmp_t);         break;
+    case  9100: hashconfig->tmp_size = sizeof (lotus8_tmp_t);          break;
+    case  9200: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
+    case  9400: hashconfig->tmp_size = sizeof (office2007_tmp_t);      break;
+    case  9500: hashconfig->tmp_size = sizeof (office2010_tmp_t);      break;
+    case  9600: hashconfig->tmp_size = sizeof (office2013_tmp_t);      break;
+    case 10000: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
+    case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);            break;
+    case 10300: hashconfig->tmp_size = sizeof (saph_sha1_tmp_t);       break;
+    case 10500: hashconfig->tmp_size = sizeof (pdf14_tmp_t);           break;
+    case 10700: hashconfig->tmp_size = sizeof (pdf17l8_tmp_t);         break;
+    case 10900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
+    case 11300: hashconfig->tmp_size = sizeof (bitcoin_wallet_tmp_t);  break;
+    case 11600: hashconfig->tmp_size = sizeof (seven_zip_tmp_t);       break;
+    case 11900: hashconfig->tmp_size = sizeof (pbkdf2_md5_tmp_t);      break;
+    case 12000: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);     break;
+    case 12100: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);   break;
+    case 12200: hashconfig->tmp_size = sizeof (ecryptfs_tmp_t);        break;
+    case 12300: hashconfig->tmp_size = sizeof (oraclet_tmp_t);         break;
+    case 12400: hashconfig->tmp_size = sizeof (bsdicrypt_tmp_t);       break;
+    case 12500: hashconfig->tmp_size = sizeof (rar3_tmp_t);            break;
+    case 12700: hashconfig->tmp_size = sizeof (mywallet_tmp_t);        break;
+    case 12800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
+    case 12900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
+    case 13000: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
+    case 13200: hashconfig->tmp_size = sizeof (axcrypt_tmp_t);         break;
+    case 13400: hashconfig->tmp_size = sizeof (keepass_tmp_t);         break;
+    case 13600: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);     break;
+    case 13711: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13712: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13713: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13721: hashconfig->tmp_size = sizeof (tc64_tmp_t);            break;
+    case 13722: hashconfig->tmp_size = sizeof (tc64_tmp_t);            break;
+    case 13723: hashconfig->tmp_size = sizeof (tc64_tmp_t);            break;
+    case 13731: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13732: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13733: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13741: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13742: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13743: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13751: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13752: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13753: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13761: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13762: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    case 13763: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
+    default   : hashconfig->tmp_size = 4;                              break;
+  };
+
+  switch (hashconfig->hash_mode)
+  {
+    default   : hashconfig->hook_size = 4;                             break;
+  };
 
   return 0;
 }

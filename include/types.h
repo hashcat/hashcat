@@ -424,13 +424,16 @@ struct _hashconfig
   u32   opts_type;
   u32   kern_type;
   u32   dgst_size;
-  u32   esalt_size;
   u32   opti_type;
-  u32   is_salted;
   u32   dgst_pos0;
   u32   dgst_pos1;
   u32   dgst_pos2;
   u32   dgst_pos3;
+
+  u32   is_salted;
+  u32   esalt_size;
+  u32   tmp_size;
+  u32   hook_size;
 
   int (*parse_func) (char *, u32, hash_t *, const struct _hashconfig *);
 };
