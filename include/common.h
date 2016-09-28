@@ -27,6 +27,9 @@
 #define PW_MAX      54
 #define PW_MAX1     (PW_MAX + 1)
 
+#define PW_DICTMAX  31
+#define PW_DICTMAX1 (PW_DICTMAX + 1)
+
 #define EXEC_CACHE      128
 
 #define SPEED_CACHE     128

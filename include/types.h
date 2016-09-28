@@ -1194,6 +1194,29 @@ typedef struct
 typedef struct
 {
   /**
+   * migrated
+   */
+
+  bitmap_ctx_t          *bitmap_ctx;
+  combinator_ctx_t      *combinator_ctx;
+  debugfile_ctx_t       *debugfile_ctx;
+  hashconfig_t          *hashconfig;
+  hashes_t              *hashes;
+  induct_ctx_t          *induct_ctx;
+  logfile_ctx_t         *logfile_ctx;
+  loopback_ctx_t        *loopback_ctx;
+  mask_ctx_t            *mask_ctx;
+  opencl_ctx_t          *opencl_ctx;
+  outcheck_ctx_t        *outcheck_ctx;
+  outfile_ctx_t         *outfile_ctx;
+  potfile_ctx_t         *potfile_ctx;
+  restore_ctx_t         *restore_ctx;
+  session_ctx_t         *session_ctx;
+  straight_ctx_t        *straight_ctx;
+  user_options_extra_t  *user_options_extra;
+  user_options_t        *user_options;
+
+  /**
    * threads
    */
 
@@ -1228,25 +1251,6 @@ typedef struct
   u32     pw_min;
   u32     pw_max;
 
-  opencl_ctx_t          *opencl_ctx;
-  hashconfig_t          *hashconfig;
-  hashes_t              *hashes;
-  user_options_t        *user_options;
-  user_options_extra_t  *user_options_extra;
-  outfile_ctx_t         *outfile_ctx;
-  potfile_ctx_t         *potfile_ctx;
-  loopback_ctx_t        *loopback_ctx;
-  debugfile_ctx_t       *debugfile_ctx;
-  session_ctx_t         *session_ctx;
-  bitmap_ctx_t          *bitmap_ctx;
-  induct_ctx_t          *induct_ctx;
-  outcheck_ctx_t        *outcheck_ctx;
-  logfile_ctx_t         *logfile_ctx;
-  restore_ctx_t         *restore_ctx;
-  straight_ctx_t        *straight_ctx;
-  combinator_ctx_t      *combinator_ctx;
-  mask_ctx_t            *mask_ctx;
-
   /**
    * status, timer
    */
@@ -1274,8 +1278,5 @@ typedef struct
   double  ms_paused;                // timer on current dict
 
 } hc_global_data_t;
-
-#define PW_DICTMAX  31
-#define PW_DICTMAX1 (PW_DICTMAX + 1)
 
 #endif // _TYPES_H
