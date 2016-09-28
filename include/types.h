@@ -809,8 +809,8 @@ typedef struct
 
   int od_version;
 
-  int fan_get_supported;
-  int fan_set_supported;
+  bool fan_get_supported;
+  bool fan_set_supported;
 
 } hm_attrs_t;
 
@@ -1210,6 +1210,11 @@ typedef struct
 
   hm_attrs_t *hm_device;
 
+  ADLOD6MemClockState *od_clock_mem_status;
+  int                 *od_power_control_status;
+  unsigned int        *nvml_power_limit;
+
+
 } hwmon_ctx_t;
 
 typedef struct
@@ -1244,16 +1249,6 @@ typedef struct
 
   u32     shutdown_inner;
   u32     shutdown_outer;
-
-  /**
-   * hardware watchdog
-   */
-
-  void      *hm_adl;
-  void      *hm_nvml;
-  void      *hm_nvapi;
-  void      *hm_xnvctrl;
-  hm_attrs_t hm_device[DEVICES_MAX];
 
   /**
    * crack-per-time

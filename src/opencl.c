@@ -40,8 +40,6 @@
 
 extern hc_global_data_t data;
 
-extern hc_thread_mutex_t mux_hwmon;
-
 extern const int comptime;
 
 static const u32 full01 = 0x01010101;
@@ -2262,13 +2260,16 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
       {
         char *format = "  Device ID #%u\n    Type           : %s\n    Vendor ID      : %u\n    Vendor         : %s\n    Name           : %s\n    Processor(s)   : %u\n    Clock          : %u\n    Memory         : %lu/%lu MB allocatable\n    OpenCL Version : %s\n\n";
 
-        fprintf(stdout, format, device_id + 1,
-                ((device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")),
-                device_vendor_id, device_vendor,
-                device_name, device_processors,
-                device_maxclock_frequency,
-                device_maxmem_alloc/1024/1024, device_global_mem/1024/1024,
-                device_opencl_version);
+        fprintf (stdout, format, device_id + 1,
+          ((device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")),
+          device_vendor_id,
+          device_vendor,
+          device_name,
+          device_processors,
+          device_maxclock_frequency,
+          device_maxmem_alloc / 1024 / 1024,
+          device_global_mem / 1024 / 1024,
+          device_opencl_version);
       }
 
       myfree (device_opencl_version);

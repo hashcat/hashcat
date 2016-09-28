@@ -6,41 +6,21 @@
 #ifndef _HWMON_H
 #define _HWMON_H
 
-int get_adapters_num_adl (void *adl, int *iNumberAdapters);
+int hm_get_threshold_slowdown_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_threshold_shutdown_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_temperature_with_device_id        (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_fanpolicy_with_device_id          (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_fanspeed_with_device_id           (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_buslanes_with_device_id           (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_utilization_with_device_id        (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_memoryspeed_with_device_id        (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_corespeed_with_device_id          (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_get_throttle_with_device_id           (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id);
+int hm_set_fanspeed_with_device_id_adl       (const hwmon_ctx_t *hwmon_ctx, const uint device_id, const int fanspeed, const int fanpolicy);
+int hm_set_fanspeed_with_device_id_nvapi     (const hwmon_ctx_t *hwmon_ctx, const uint device_id, const int fanspeed, const int fanpolicy);
+int hm_set_fanspeed_with_device_id_xnvctrl   (const hwmon_ctx_t *hwmon_ctx, const uint device_id, const int fanspeed);
 
-int hm_get_adapter_index_adl (hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
-
-int hm_get_adapter_index_nvapi (HM_ADAPTER_NVAPI nvapiGPUHandle[DEVICES_MAX]);
-
-int hm_get_adapter_index_nvml (HM_ADAPTER_NVML nvmlGPUHandle[DEVICES_MAX]);
-
-LPAdapterInfo hm_get_adapter_info_adl (void *adl, int iNumberAdapters);
-
-u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adapters, LPAdapterInfo lpAdapterInfo);
-
-int hm_get_overdrive_version  (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
-int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo);
-
-// int hm_get_device_num (void *adl, HM_ADAPTER_ADL hm_adapter_index, int *hm_device_num);
-// void hm_get_opencl_busid_devid (hm_attrs_t *hm_device, uint opencl_num_devices, cl_device_id *devices);
-
-int hm_get_threshold_slowdown_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id);
-int hm_get_threshold_shutdown_with_device_id (opencl_ctx_t *opencl_ctx, const uint device_id);
-int hm_get_temperature_with_device_id        (opencl_ctx_t *opencl_ctx, const uint device_id);
-int hm_get_fanspeed_with_device_id           (opencl_ctx_t *opencl_ctx, const uint device_id);
-int hm_get_fanpolicy_with_device_id          (opencl_ctx_t *opencl_ctx, const uint device_id);
-int hm_get_buslanes_with_device_id           (opencl_ctx_t *opencl_ctx, const uint device_id);
-int hm_get_utilization_with_device_id        (opencl_ctx_t *opencl_ctx, const uint device_id);
-int hm_get_memoryspeed_with_device_id        (opencl_ctx_t *opencl_ctx, const uint device_id);
-int hm_get_corespeed_with_device_id          (opencl_ctx_t *opencl_ctx, const uint device_id);
-int hm_get_throttle_with_device_id           (opencl_ctx_t *opencl_ctx, const uint device_id);
-int hm_set_fanspeed_with_device_id_adl       (const uint device_id, const int fanspeed, const int fanpolicy);
-int hm_set_fanspeed_with_device_id_nvapi     (const uint device_id, const int fanspeed, const int fanpolicy);
-int hm_set_fanspeed_with_device_id_xnvctrl   (const uint device_id, const int fanspeed);
-
-void hm_device_val_to_str (char *target_buf, int max_buf_size, char *suffix, int value);
-
-int hwmon_ctx_init (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options);
-void hwmon_ctx_destroy (hwmon_ctx_t *hwmon_ctx);
+int  hwmon_ctx_init    (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options, const opencl_ctx_t *opencl_ctx);
+void hwmon_ctx_destroy (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options, const opencl_ctx_t *opencl_ctx);
 
 #endif // _HWMON_H

@@ -720,6 +720,12 @@ int user_options_sanity (user_options_t *user_options, restore_ctx_t *restore_ct
     return -1;
   }
 
+  if (user_options->gpu_temp_disable == true)
+  {
+    user_options->gpu_temp_abort  = 0;
+    user_options->gpu_temp_retain = 0;
+  }
+
   if ((user_options->gpu_temp_abort != 0) && (user_options->gpu_temp_retain != 0))
   {
     if (user_options->gpu_temp_abort < user_options->gpu_temp_retain)

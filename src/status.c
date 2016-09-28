@@ -164,7 +164,7 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
   return exec_ms_sum / exec_ms_cnt;
 }
 
-void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
+void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -297,7 +297,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
 
       if (device_param->skipped) continue;
 
-      int temp = hm_get_temperature_with_device_id (opencl_ctx, device_id);
+      int temp = hm_get_temperature_with_device_id (hwmon_ctx, opencl_ctx, device_id);
 
       fprintf (out, "%d\t", temp);
     }
@@ -313,7 +313,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hashes_t *
   fflush (out);
 }
 
-void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
+void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -327,7 +327,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
   if (user_options->machine_readable == true)
   {
-    status_display_machine_readable (opencl_ctx, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
+    status_display_machine_readable (opencl_ctx, hwmon_ctx, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
 
     return;
   }
@@ -1026,13 +1026,13 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
 
       if (device_param->skipped) continue;
 
-      const int num_temperature = hm_get_temperature_with_device_id (opencl_ctx, device_id);
-      const int num_fanspeed    = hm_get_fanspeed_with_device_id    (opencl_ctx, device_id);
-      const int num_utilization = hm_get_utilization_with_device_id (opencl_ctx, device_id);
-      const int num_corespeed   = hm_get_corespeed_with_device_id   (opencl_ctx, device_id);
-      const int num_memoryspeed = hm_get_memoryspeed_with_device_id (opencl_ctx, device_id);
-      const int num_buslanes    = hm_get_buslanes_with_device_id    (opencl_ctx, device_id);
-      const int num_throttle    = hm_get_throttle_with_device_id    (opencl_ctx, device_id);
+      const int num_temperature = hm_get_temperature_with_device_id (hwmon_ctx, opencl_ctx, device_id);
+      const int num_fanspeed    = hm_get_fanspeed_with_device_id    (hwmon_ctx, opencl_ctx, device_id);
+      const int num_utilization = hm_get_utilization_with_device_id (hwmon_ctx, opencl_ctx, device_id);
+      const int num_corespeed   = hm_get_corespeed_with_device_id   (hwmon_ctx, opencl_ctx, device_id);
+      const int num_memoryspeed = hm_get_memoryspeed_with_device_id (hwmon_ctx, opencl_ctx, device_id);
+      const int num_buslanes    = hm_get_buslanes_with_device_id    (hwmon_ctx, opencl_ctx, device_id);
+      const int num_throttle    = hm_get_throttle_with_device_id    (hwmon_ctx, opencl_ctx, device_id);
 
       char output_buf[256] = { 0 };
 

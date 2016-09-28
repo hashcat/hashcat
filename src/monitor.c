@@ -48,6 +48,7 @@ void *thread_monitor (void *p)
   combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
   mask_ctx_t           *mask_ctx           = data.mask_ctx;
   opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
+  hwmon_ctx_t          *hwmon_ctx          = data.hwmon_ctx;
 
   bool runtime_check = false;
   bool remove_check  = false;
@@ -127,7 +128,7 @@ void *thread_monitor (void *p)
 
         if (device_param->device_vendor_id == VENDOR_ID_NV)
         {
-          if (data.hm_nvapi)
+          if (hwmon_ctx->hm_nvapi)
           {
             NV_GPU_PERF_POLICIES_INFO_PARAMS_V1   perfPolicies_info;
             NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 perfPolicies_status;
@@ -138,11 +139,11 @@ void *thread_monitor (void *p)
             perfPolicies_info.version   = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1, 1);
             perfPolicies_status.version = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1, 1);
 
-            hm_NvAPI_GPU_GetPerfPoliciesInfo (data.hm_nvapi, data.hm_device[device_id].nvapi, &perfPolicies_info);
+            hm_NvAPI_GPU_GetPerfPoliciesInfo (hwmon_ctx->hm_nvapi, hwmon_ctx->hm_device[device_id].nvapi, &perfPolicies_info);
 
             perfPolicies_status.info_value = perfPolicies_info.info_value;
 
-            hm_NvAPI_GPU_GetPerfPoliciesStatus (data.hm_nvapi, data.hm_device[device_id].nvapi, &perfPolicies_status);
+            hm_NvAPI_GPU_GetPerfPoliciesStatus (hwmon_ctx->hm_nvapi, hwmon_ctx->hm_device[device_id].nvapi, &perfPolicies_status);
 
             if (perfPolicies_status.throttle & 2)
             {
@@ -193,7 +194,7 @@ void *thread_monitor (void *p)
 
         if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
-        const int temperature = hm_get_temperature_with_device_id (opencl_ctx, device_id);
+        const int temperature = hm_get_temperature_with_device_id (hwmon_ctx, opencl_ctx, device_id);
 
         if (temperature > (int) user_options->gpu_temp_abort)
         {
@@ -208,7 +209,7 @@ void *thread_monitor (void *p)
 
         if (gpu_temp_retain)
         {
-          if (data.hm_device[device_id].fan_set_supported == 1)
+          if (hwmon_ctx->hm_device[device_id].fan_set_supported == 1)
           {
             int temp_cur = temperature;
 
@@ -230,7 +231,7 @@ void *thread_monitor (void *p)
 
             if (abs (fan_diff_required) >= temp_threshold)
             {
-              const int fan_speed_cur = hm_get_fanspeed_with_device_id (opencl_ctx, device_id);
+              const int fan_speed_cur = hm_get_fanspeed_with_device_id (hwmon_ctx, opencl_ctx, device_id);
 
               int fan_speed_level = fan_speed_cur;
 
@@ -250,16 +251,16 @@ void *thread_monitor (void *p)
                 {
                   if (device_param->device_vendor_id == VENDOR_ID_AMD)
                   {
-                    hm_set_fanspeed_with_device_id_adl (device_id, fan_speed_new, 1);
+                    hm_set_fanspeed_with_device_id_adl (hwmon_ctx, device_id, fan_speed_new, 1);
                   }
                   else if (device_param->device_vendor_id == VENDOR_ID_NV)
                   {
                     #if defined (_WIN)
-                    hm_set_fanspeed_with_device_id_nvapi (device_id, fan_speed_new, 1);
+                    hm_set_fanspeed_with_device_id_nvapi (hwmon_ctx, device_id, fan_speed_new, 1);
                     #endif
 
                     #if defined (__linux__)
-                    hm_set_fanspeed_with_device_id_xnvctrl (device_id, fan_speed_new);
+                    hm_set_fanspeed_with_device_id_xnvctrl (hwmon_ctx, device_id, fan_speed_new);
                     #endif
                   }
 
@@ -347,7 +348,7 @@ void *thread_monitor (void *p)
 
         if (user_options->quiet == false) log_info ("");
 
-        status_display (opencl_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
+        status_display (opencl_ctx, hwmon_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
 
         if (user_options->quiet == false) log_info ("");
 
