@@ -7,7 +7,7 @@
 #include "types.h"
 #include "memory.h"
 #include "logging.h"
-#include "data.h"
+#include "hwmon.h"
 
 hc_thread_mutex_t mux_hwmon;
 
@@ -666,7 +666,7 @@ int hm_get_throttle_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_c
   return -1;
 }
 
-int hm_set_fanspeed_with_device_id_adl (hwmon_ctx_t *hwmon_ctx, const uint device_id, const int fanspeed, const int fanpolicy)
+int hm_set_fanspeed_with_device_id_adl (const hwmon_ctx_t *hwmon_ctx, const uint device_id, const int fanspeed, const int fanpolicy)
 {
   if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
   {
@@ -724,7 +724,7 @@ int hm_set_fanspeed_with_device_id_adl (hwmon_ctx_t *hwmon_ctx, const uint devic
   return -1;
 }
 
-int hm_set_fanspeed_with_device_id_nvapi (hwmon_ctx_t *hwmon_ctx, const uint device_id, const int fanspeed, const int fanpolicy)
+int hm_set_fanspeed_with_device_id_nvapi (const hwmon_ctx_t *hwmon_ctx, const uint device_id, const int fanspeed, const int fanpolicy)
 {
   if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
   {
@@ -757,7 +757,7 @@ int hm_set_fanspeed_with_device_id_nvapi (hwmon_ctx_t *hwmon_ctx, const uint dev
   return -1;
 }
 
-int hm_set_fanspeed_with_device_id_xnvctrl (hwmon_ctx_t *hwmon_ctx, const uint device_id, const int fanspeed)
+int hm_set_fanspeed_with_device_id_xnvctrl (const hwmon_ctx_t *hwmon_ctx, const uint device_id, const int fanspeed)
 {
   if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
   {

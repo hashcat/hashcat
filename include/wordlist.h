@@ -6,6 +6,9 @@
 #ifndef _WORDLIST_H
 #define _WORDLIST_H
 
+#include <time.h>
+#include <inttypes.h>
+
 uint convert_from_hex (char *line_buf, const uint line_len, const user_options_t *user_options);
 
 void load_segment (wl_data_t *wl_data, FILE *fd);

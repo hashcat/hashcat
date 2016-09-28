@@ -5,37 +5,13 @@
 
 #include "common.h"
 #include "types.h"
-#include "interface.h"
-#include "timer.h"
 #include "memory.h"
-#include "convert.h"
 #include "logging.h"
-#include "logfile.h"
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
-#include "tuningdb.h"
-#include "thread.h"
-#include "opencl.h"
-#include "hwmon.h"
-#include "restore.h"
-#include "hash_management.h"
-#include "locking.h"
-#include "rp_cpu.h"
-#include "rp_kernel_on_cpu.h"
-#include "shared.h"
+#include "convert.h"
 #include "dictstat.h"
-#include "mpsp.h"
-#include "outfile.h"
-#include "potfile.h"
-#include "debugfile.h"
-#include "loopback.h"
-#include "data.h"
+#include "thread.h"
+#include "rp_cpu.h"
 #include "wordlist.h"
-
-extern hc_global_data_t data;
 
 uint convert_from_hex (char *line_buf, const uint line_len, const user_options_t *user_options)
 {
@@ -443,7 +419,7 @@ void wl_data_init (wl_data_t *wl_data, const user_options_t *user_options, const
     wl_data->func = get_next_word_uc;
   }
 
-  if (hashconfig->hash_type == HASH_TYPE_LM) // yes that's fine that way
+  if (hashconfig->hash_mode == 3000) // yes that's fine that way
   {
     wl_data->func = get_next_word_lm;
   }
