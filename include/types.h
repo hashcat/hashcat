@@ -1247,8 +1247,8 @@ typedef struct
    * threads
    */
 
-  u32     shutdown_inner;
-  u32     shutdown_outer;
+  bool shutdown_inner;
+  bool shutdown_outer;
 
   /**
    * crack-per-time

@@ -77,7 +77,7 @@ void *thread_keypress (void *p)
 
   tty_break ();
 
-  while (data.shutdown_outer == 0)
+  while (data.shutdown_outer == false)
   {
     int ch = tty_getchar ();
 

@@ -110,7 +110,7 @@ void *thread_monitor (void *p)
   u32 remove_left  = user_options->remove_timer;
   u32 status_left  = user_options->status_timer;
 
-  while (data.shutdown_inner == 0)
+  while (data.shutdown_inner == false)
   {
     hc_sleep (sleep_time);
 
