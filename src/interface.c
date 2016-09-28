@@ -20562,11 +20562,23 @@ void hashconfig_benchmark_defaults (const hashconfig_t *hashconfig, salt_t *salt
 
 char *hashconfig_benchmark_mask (const hashconfig_t *hashconfig)
 {
-  char *mask = "?b?b?b?b?b?b?b";
+  char *mask = NULL;
 
   switch (hashconfig->hash_mode)
   {
+    case  9710: mask = "?b?b?b?b?b";
+                break;
+    case  9810: mask = "?b?b?b?b?b";
+                break;
+    case 10410: mask = "?b?b?b?b?b";
+                break;
     case 12500: mask = "?b?b?b?b?b";
+                break;
+    case 14000: mask = "?b?b?b?b?b?b?bx";
+                break;
+    case 14100: mask = "?b?b?b?b?b?b?bx";
+                break;
+    default:    mask = "?b?b?b?b?b?b?b";
                 break;
   }
 
