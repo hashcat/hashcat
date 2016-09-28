@@ -89,102 +89,8 @@ extern hc_thread_mutex_t mux_display;
 extern const int DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 extern const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
-const int comptime = COMPTIME;
-
-static void setup_environment_variables ()
-{
-  char *compute = getenv ("COMPUTE");
-
-  if (compute)
-  {
-    static char display[100];
-
-    snprintf (display, sizeof (display) - 1, "DISPLAY=%s", compute);
-
-    putenv (display);
-  }
-  else
-  {
-    if (getenv ("DISPLAY") == NULL)
-      putenv ((char *) "DISPLAY=:0");
-  }
-
-  if (getenv ("GPU_MAX_ALLOC_PERCENT") == NULL)
-    putenv ((char *) "GPU_MAX_ALLOC_PERCENT=100");
-
-  if (getenv ("CPU_MAX_ALLOC_PERCENT") == NULL)
-    putenv ((char *) "CPU_MAX_ALLOC_PERCENT=100");
-
-  if (getenv ("GPU_USE_SYNC_OBJECTS") == NULL)
-    putenv ((char *) "GPU_USE_SYNC_OBJECTS=1");
-
-  if (getenv ("CUDA_CACHE_DISABLE") == NULL)
-    putenv ((char *) "CUDA_CACHE_DISABLE=1");
-
-  if (getenv ("POCL_KERNEL_CACHE") == NULL)
-    putenv ((char *) "POCL_KERNEL_CACHE=0");
-}
-
-static void setup_umask ()
-{
-  umask (077);
-}
-
-static void setup_seeding (const user_options_t *user_options, const time_t *proc_start)
-{
-  if (user_options->rp_gen_seed_chgd == true)
-  {
-    srand (user_options->rp_gen_seed);
-  }
-  else
-  {
-    srand (*proc_start);
-  }
-}
-
-static void welcome_screen (const user_options_t *user_options, const time_t *proc_start)
-{
-  if (user_options->quiet       == true) return;
-  if (user_options->keyspace    == true) return;
-  if (user_options->stdout_flag == true) return;
-  if (user_options->show        == true) return;
-  if (user_options->left        == true) return;
-
-  if (user_options->benchmark == true)
-  {
-    if (user_options->machine_readable == false)
-    {
-      log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, VERSION_TAG);
-      log_info ("");
-    }
-    else
-    {
-      log_info ("# %s (%s) %s", PROGNAME, VERSION_TAG, ctime (proc_start));
-    }
-  }
-  else if (user_options->restore == true)
-  {
-    log_info ("%s (%s) starting in restore-mode...", PROGNAME, VERSION_TAG);
-    log_info ("");
-  }
-  else
-  {
-    log_info ("%s (%s) starting...", PROGNAME, VERSION_TAG);
-    log_info ("");
-  }
-}
-
-static void goodbye_screen (const user_options_t *user_options, const time_t *proc_start, const time_t *proc_stop)
-{
-  if (user_options->quiet       == true) return;
-  if (user_options->keyspace    == true) return;
-  if (user_options->stdout_flag == true) return;
-  if (user_options->show        == true) return;
-  if (user_options->left        == true) return;
-
-  log_info_nn ("Started: %s", ctime (proc_start));
-  log_info_nn ("Stopped: %s", ctime (proc_stop));
-}
+const int   comptime    = COMPTIME;
+const char *version_tag = VERSION_TAG;
 
 static int inner1_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
 {
@@ -1317,7 +1223,10 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
     {
       status_benchmark (opencl_ctx, hashconfig, user_options);
 
-      log_info ("");
+      if (user_options->machine_readable == false)
+      {
+        log_info ("");
+      }
     }
     else
     {
@@ -2021,14 +1930,14 @@ int main (int argc, char **argv)
    * prepare seeding for random number generator, required by logfile and rules generator
    */
 
-  setup_seeding (user_options, &proc_start);
+  setup_seeding (user_options->rp_gen_seed_chgd, user_options->rp_gen_seed);
 
   /**
    * Inform user things getting started,
    * - this is giving us a visual header before preparations start, so we do not need to clear them afterwards
    */
 
-  welcome_screen (user_options, &proc_start);
+  welcome_screen (user_options, proc_start);
 
   /**
    * logfile init
@@ -2309,7 +2218,7 @@ int main (int argc, char **argv)
 
   logfile_destroy (logfile_ctx);
 
-  goodbye_screen (user_options, &proc_start, &proc_stop);
+  goodbye_screen (user_options, proc_start, proc_stop);
 
   user_options_destroy (user_options);
 

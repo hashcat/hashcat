@@ -34,7 +34,53 @@ extern hc_global_data_t data;
 
 extern hc_thread_mutex_t mux_display;
 
+extern const char *version_tag;
+
 const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
+
+void welcome_screen (const user_options_t *user_options, const time_t proc_start)
+{
+  if (user_options->quiet       == true) return;
+  if (user_options->keyspace    == true) return;
+  if (user_options->stdout_flag == true) return;
+  if (user_options->show        == true) return;
+  if (user_options->left        == true) return;
+
+  if (user_options->benchmark == true)
+  {
+    if (user_options->machine_readable == false)
+    {
+      log_info ("%s (%s) starting in benchmark-mode...", PROGNAME, version_tag);
+      log_info ("");
+    }
+    else
+    {
+      log_info ("# %s (%s) %s", PROGNAME, version_tag, ctime (&proc_start));
+    }
+  }
+  else if (user_options->restore == true)
+  {
+    log_info ("%s (%s) starting in restore-mode...", PROGNAME, version_tag);
+    log_info ("");
+  }
+  else
+  {
+    log_info ("%s (%s) starting...", PROGNAME, version_tag);
+    log_info ("");
+  }
+}
+
+void goodbye_screen (const user_options_t *user_options, const time_t proc_start, const time_t proc_stop)
+{
+  if (user_options->quiet       == true) return;
+  if (user_options->keyspace    == true) return;
+  if (user_options->stdout_flag == true) return;
+  if (user_options->show        == true) return;
+  if (user_options->left        == true) return;
+
+  log_info_nn ("Started: %s", ctime (&proc_start));
+  log_info_nn ("Stopped: %s", ctime (&proc_stop));
+}
 
 int setup_console ()
 {

@@ -116,3 +116,58 @@ void hc_sleep (const int sec)
   sleep (sec);
   #endif
 }
+
+void setup_environment_variables ()
+{
+  char *compute = getenv ("COMPUTE");
+
+  if (compute)
+  {
+    static char display[100];
+
+    snprintf (display, sizeof (display) - 1, "DISPLAY=%s", compute);
+
+    putenv (display);
+  }
+  else
+  {
+    if (getenv ("DISPLAY") == NULL)
+      putenv ((char *) "DISPLAY=:0");
+  }
+
+  if (getenv ("GPU_MAX_ALLOC_PERCENT") == NULL)
+    putenv ((char *) "GPU_MAX_ALLOC_PERCENT=100");
+
+  if (getenv ("CPU_MAX_ALLOC_PERCENT") == NULL)
+    putenv ((char *) "CPU_MAX_ALLOC_PERCENT=100");
+
+  if (getenv ("GPU_USE_SYNC_OBJECTS") == NULL)
+    putenv ((char *) "GPU_USE_SYNC_OBJECTS=1");
+
+  if (getenv ("CUDA_CACHE_DISABLE") == NULL)
+    putenv ((char *) "CUDA_CACHE_DISABLE=1");
+
+  if (getenv ("POCL_KERNEL_CACHE") == NULL)
+    putenv ((char *) "POCL_KERNEL_CACHE=0");
+}
+
+void setup_umask ()
+{
+  umask (077);
+}
+
+void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed)
+{
+  if (rp_gen_seed_chgd == true)
+  {
+    srand (rp_gen_seed);
+  }
+  else
+  {
+    time_t ts;
+
+    time (&ts);
+
+    srand (ts);
+  }
+}

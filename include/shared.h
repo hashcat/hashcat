@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 
 bool is_power_of_2 (const u32 v);
 
@@ -24,5 +25,9 @@ void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_cha
 
 void hc_sleep_ms (const int msec);
 void hc_sleep    (const int sec);
+
+void setup_environment_variables ();
+void setup_umask ();
+void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed);
 
 #endif // _SHARED_H

@@ -23,6 +23,9 @@
 #include <windows.h>
 #endif // _WIN
 
+void welcome_screen (const user_options_t *user_options, const time_t proc_start);
+void goodbye_screen (const user_options_t *user_options, const time_t proc_start, const time_t proc_stop);
+
 int setup_console ();
 
 void send_prompt ();
