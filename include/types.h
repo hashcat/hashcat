@@ -1203,17 +1203,11 @@ typedef struct
   void *hm_nvapi;
   void *hm_xnvctrl;
 
-  hm_attrs_t *hm_adapters_adl;
-  hm_attrs_t *hm_adapters_nvapi;
-  hm_attrs_t *hm_adapters_nvml;
-  hm_attrs_t *hm_adapters_xnvctrl;
-
   hm_attrs_t *hm_device;
 
   ADLOD6MemClockState *od_clock_mem_status;
   int                 *od_power_control_status;
   unsigned int        *nvml_power_limit;
-
 
 } hwmon_ctx_t;
 
