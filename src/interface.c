@@ -20566,6 +20566,8 @@ char *hashconfig_benchmark_mask (const hashconfig_t *hashconfig)
 
   switch (hashconfig->hash_mode)
   {
+    case  2500: mask = "?a?a?a?a?a?a?a?a";
+                break;
     case  9710: mask = "?b?b?b?b?b";
                 break;
     case  9810: mask = "?b?b?b?b?b";
