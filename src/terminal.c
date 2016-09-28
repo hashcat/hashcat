@@ -76,7 +76,7 @@ void *thread_keypress (void *p)
 
   tty_break ();
 
-  while (opencl_ctx->run_main_level1 == true)
+  while (data.shutdown_outer == 0)
   {
     int ch = tty_getchar ();
 

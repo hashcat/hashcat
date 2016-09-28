@@ -5,36 +5,12 @@
 
 #include "common.h"
 #include "types.h"
-#include "interface.h"
-#include "timer.h"
-#include "memory.h"
-#include "convert.h"
 #include "logging.h"
-#include "logfile.h"
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
-#include "tuningdb.h"
-#include "thread.h"
-#include "opencl.h"
-#include "hwmon.h"
-#include "restore.h"
-#include "hash_management.h"
 #include "locking.h"
-#include "rp_cpu.h"
 #include "rp_kernel_on_cpu.h"
-#include "shared.h"
 #include "mpsp.h"
-#include "outfile.h"
-#include "potfile.h"
-#include "debugfile.h"
-#include "loopback.h"
-#include "data.h"
+#include "opencl.h"
 #include "stdout.h"
-
-extern hc_global_data_t data;
 
 static void out_flush (out_t *out)
 {
@@ -59,7 +35,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
   }
 }
 
-void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, const uint pws_cnt)
+void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const hashconfig_t *hashconfig, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, const outfile_ctx_t *outfile_ctx, const uint pws_cnt)
 {
   out_t out;
 
@@ -67,7 +43,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
 
   // i think this section can be optimized now that we have outfile_ctx
 
-  char *filename = data.outfile_ctx->filename;
+  char *filename = outfile_ctx->filename;
 
   if (filename != NULL)
   {
@@ -114,7 +90,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
 
         plain_len = apply_rules (straight_ctx->kernel_rules_buf[pos + il_pos].cmds, &plain_buf[0], &plain_buf[4], plain_len);
 
-        if (plain_len > data.pw_max) plain_len = data.pw_max;
+        if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
 
         out_push (&out, plain_ptr, plain_len);
       }
@@ -153,9 +129,9 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
 
         plain_len += comb_len;
 
-        if (data.pw_max != PW_DICTMAX1)
+        if (hashconfig->pw_max != PW_DICTMAX1)
         {
-          if (plain_len > data.pw_max) plain_len = data.pw_max;
+          if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
         }
 
         out_push (&out, plain_ptr, plain_len);

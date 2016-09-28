@@ -323,7 +323,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, c
   }
 
   // in this case some required buffers are free'd, ascii_digest() would run into segfault
-  if (opencl_ctx->run_main_level2 == false) return;
+  if (data.shutdown_inner == 1) return;
 
   if (user_options->machine_readable == true)
   {
@@ -1158,7 +1158,7 @@ void status_benchmark (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig,
     return;
   }
 
-  if (opencl_ctx->run_main_level2 == false) return;
+  if (data.shutdown_inner == 1) return;
 
   if (user_options->machine_readable == true)
   {

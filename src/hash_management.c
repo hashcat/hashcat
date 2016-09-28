@@ -310,7 +310,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
     crackpos *= straight_ctx->kernel_rules_cnt;
     crackpos += device_param->innerloop_pos + il_pos;
 
-    if (plain_len > data.pw_max) plain_len = data.pw_max;
+    if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
@@ -345,9 +345,9 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
     crackpos *= combinator_ctx->combs_cnt;
     crackpos += device_param->innerloop_pos + il_pos;
 
-    if (data.pw_max != PW_DICTMAX1)
+    if (hashconfig->pw_max != PW_DICTMAX1)
     {
-      if (plain_len > data.pw_max) plain_len = data.pw_max;
+      if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -396,9 +396,9 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
     crackpos *= combinator_ctx->combs_cnt;
     crackpos += device_param->innerloop_pos + il_pos;
 
-    if (data.pw_max != PW_DICTMAX1)
+    if (hashconfig->pw_max != PW_DICTMAX1)
     {
-      if (plain_len > data.pw_max) plain_len = data.pw_max;
+      if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
@@ -429,9 +429,9 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
     crackpos *= combinator_ctx->combs_cnt;
     crackpos += device_param->innerloop_pos + il_pos;
 
-    if (data.pw_max != PW_DICTMAX1)
+    if (hashconfig->pw_max != PW_DICTMAX1)
     {
-      if (plain_len > data.pw_max) plain_len = data.pw_max;
+      if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
     }
   }
 

@@ -23,7 +23,7 @@ void writeProgramBin (char *dst, char *binary, size_t binary_size);
 
 int gidd_to_pw_t (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 
-int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, hashconfig_t *hashconfig, const uint attack_exec, const uint attack_mode, const uint opts_type, const salt_t *salt_buf, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration);
+int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, hashconfig_t *hashconfig, const hashes_t *hashes, const outfile_ctx_t *outfile_ctx, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration, const uint salt_pos);
 
 int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint num, const uint event_update, const uint iteration, hashconfig_t *hashconfig, const user_options_t *user_options);
 int run_kernel_mp (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint num);
@@ -34,7 +34,7 @@ int run_kernel_bzero (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param,
 
 int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const combinator_ctx_t *combinator_ctx, const uint pws_cnt);
 
-int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, const uint pws_cnt);
+int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, const outfile_ctx_t *outfile_ctx, const uint pws_cnt);
 
 int  opencl_ctx_init                  (opencl_ctx_t *opencl_ctx, const user_options_t *user_options);
 void opencl_ctx_destroy               (opencl_ctx_t *opencl_ctx);

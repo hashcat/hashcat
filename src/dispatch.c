@@ -123,6 +123,7 @@ void *thread_calc_stdin (void *p)
   combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
   mask_ctx_t           *mask_ctx           = data.mask_ctx;
   opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
+  outfile_ctx_t        *outfile_ctx        = data.outfile_ctx;
 
   char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -179,7 +180,7 @@ void *thread_calc_stdin (void *p)
 
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        if ((line_len < data.pw_min) || (line_len > data.pw_max))
+        if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
         {
           hc_thread_mutex_lock (opencl_ctx->mux_counter);
 
@@ -213,7 +214,7 @@ void *thread_calc_stdin (void *p)
     {
       run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, combinator_ctx, pws_cnt);
 
-      run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx, pws_cnt);
+      run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx, outfile_ctx, pws_cnt);
 
       device_param->pws_cnt = 0;
 
@@ -253,6 +254,7 @@ void *thread_calc (void *p)
   combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
   mask_ctx_t           *mask_ctx           = data.mask_ctx;
   opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
+  outfile_ctx_t        *outfile_ctx        = data.outfile_ctx;
 
   const uint attack_mode = user_options->attack_mode;
   const uint attack_kern = user_options_extra->attack_kern;
@@ -276,7 +278,7 @@ void *thread_calc (void *p)
       {
         run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, combinator_ctx, pws_cnt);
 
-        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx, pws_cnt);
+        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx, outfile_ctx, pws_cnt);
 
         device_param->pws_cnt = 0;
 
@@ -410,7 +412,7 @@ void *thread_calc (void *p)
 
           if (attack_kern == ATTACK_KERN_STRAIGHT)
           {
-            if ((line_len < data.pw_min) || (line_len > data.pw_max))
+            if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
             {
               max++;
 
@@ -428,10 +430,10 @@ void *thread_calc (void *p)
           }
           else if (attack_kern == ATTACK_KERN_COMBI)
           {
-            // do not check if minimum restriction is satisfied (line_len >= data.pw_min) here
+            // do not check if minimum restriction is satisfied (line_len >= hashconfig->pw_min) here
             // since we still need to combine the plains
 
-            if (line_len > data.pw_max)
+            if (line_len > hashconfig->pw_max)
             {
               max++;
 
@@ -468,7 +470,7 @@ void *thread_calc (void *p)
       {
         run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, combinator_ctx, pws_cnt);
 
-        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx, pws_cnt);
+        run_cracker (opencl_ctx, device_param, hashconfig, hashes, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx, outfile_ctx, pws_cnt);
 
         device_param->pws_cnt = 0;
 

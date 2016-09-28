@@ -435,6 +435,9 @@ struct _hashconfig
   u32   tmp_size;
   u32   hook_size;
 
+  u32   pw_min;
+  u32   pw_max;
+
   int (*parse_func) (char *, u32, hash_t *, const struct _hashconfig *);
 };
 
@@ -1217,6 +1220,13 @@ typedef struct
   user_options_t        *user_options;
 
   /**
+   * threads
+   */
+
+  u32     shutdown_inner;
+  u32     shutdown_outer;
+
+  /**
    * hardware watchdog
    */
 
@@ -1241,8 +1251,6 @@ typedef struct
 
   char   *dictfile;
   char   *dictfile2;
-  u32     pw_min;
-  u32     pw_max;
 
   /**
    * status, timer
