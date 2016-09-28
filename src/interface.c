@@ -19919,7 +19919,7 @@ void hashconfig_destroy (hashconfig_t *hashconfig)
   myfree (hashconfig);
 }
 
-u32 hashconfig_kernel_thread_force (const hashconfig_t *hashconfig, const hc_device_param_t *device_param)
+u32 hashconfig_enforce_kernel_threads (const hashconfig_t *hashconfig, const hc_device_param_t *device_param)
 {
   u32 kernel_threads = MIN (KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
 
@@ -19950,6 +19950,48 @@ u32 hashconfig_kernel_thread_force (const hashconfig_t *hashconfig, const hc_dev
   if (hashconfig->hash_mode == 14100) kernel_threads = 64; // DES
 
   return kernel_threads;
+}
+
+u32 hashconfig_enforce_kernel_loops (const hashconfig_t *hashconfig, const user_options_t *user_options)
+{
+  u32 kernel_loops_fixed = 0;
+
+  if (hashconfig->hash_mode == 1500 && user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    kernel_loops_fixed = 1024;
+  }
+
+  if (hashconfig->hash_mode == 3000 && user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    kernel_loops_fixed = 1024;
+  }
+
+  if (hashconfig->hash_mode == 8900)
+  {
+    kernel_loops_fixed = 1;
+  }
+
+  if (hashconfig->hash_mode == 9300)
+  {
+    kernel_loops_fixed = 1;
+  }
+
+  if (hashconfig->hash_mode == 12500)
+  {
+    kernel_loops_fixed = ROUNDS_RAR3 / 16;
+  }
+
+  if (hashconfig->hash_mode == 14000 && user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    kernel_loops_fixed = 1024;
+  }
+
+  if (hashconfig->hash_mode == 14100 && user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    kernel_loops_fixed = 1024;
+  }
+
+  return kernel_loops_fixed;
 }
 
 uint hashconfig_general_pw_min (hashconfig_t *hashconfig)

@@ -2641,7 +2641,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
      *                 there needs to be some upper limit, otherwise there's too much overhead
      */
 
-    u32 kernel_threads = hashconfig_kernel_thread_force (hashconfig, device_param);
+    u32 kernel_threads = hashconfig_enforce_kernel_threads (hashconfig, device_param);
 
     device_param->kernel_threads = kernel_threads;
 
@@ -2795,58 +2795,10 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconf
      * some algorithms need a fixed kernel-loops count
      */
 
-    if (hashconfig->hash_mode == 1500 && user_options->attack_mode == ATTACK_MODE_BF)
+    const u32 kernel_loops_fixed = hashconfig_enforce_kernel_loops (hashconfig, user_options);
+
+    if (kernel_loops_fixed != 0)
     {
-      const u32 kernel_loops_fixed = 1024;
-
-      device_param->kernel_loops_min = kernel_loops_fixed;
-      device_param->kernel_loops_max = kernel_loops_fixed;
-    }
-
-    if (hashconfig->hash_mode == 3000 && user_options->attack_mode == ATTACK_MODE_BF)
-    {
-      const u32 kernel_loops_fixed = 1024;
-
-      device_param->kernel_loops_min = kernel_loops_fixed;
-      device_param->kernel_loops_max = kernel_loops_fixed;
-    }
-
-    if (hashconfig->hash_mode == 8900)
-    {
-      const u32 kernel_loops_fixed = 1;
-
-      device_param->kernel_loops_min = kernel_loops_fixed;
-      device_param->kernel_loops_max = kernel_loops_fixed;
-    }
-
-    if (hashconfig->hash_mode == 9300)
-    {
-      const u32 kernel_loops_fixed = 1;
-
-      device_param->kernel_loops_min = kernel_loops_fixed;
-      device_param->kernel_loops_max = kernel_loops_fixed;
-    }
-
-    if (hashconfig->hash_mode == 12500)
-    {
-      const u32 kernel_loops_fixed = ROUNDS_RAR3 / 16;
-
-      device_param->kernel_loops_min = kernel_loops_fixed;
-      device_param->kernel_loops_max = kernel_loops_fixed;
-    }
-
-    if (hashconfig->hash_mode == 14000 && user_options->attack_mode == ATTACK_MODE_BF)
-    {
-      const u32 kernel_loops_fixed = 1024;
-
-      device_param->kernel_loops_min = kernel_loops_fixed;
-      device_param->kernel_loops_max = kernel_loops_fixed;
-    }
-
-    if (hashconfig->hash_mode == 14100 && user_options->attack_mode == ATTACK_MODE_BF)
-    {
-      const u32 kernel_loops_fixed = 1024;
-
       device_param->kernel_loops_min = kernel_loops_fixed;
       device_param->kernel_loops_max = kernel_loops_fixed;
     }
