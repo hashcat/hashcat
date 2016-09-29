@@ -5,32 +5,14 @@
 
 #include "common.h"
 #include "types.h"
-#include "interface.h"
-#include "timer.h"
 #include "memory.h"
 #include "logging.h"
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
-#include "tuningdb.h"
-#include "thread.h"
-#include "opencl.h"
-#include "hwmon.h"
 #include "restore.h"
-#include "hash_management.h"
-#include "rp_cpu.h"
-#include "terminal.h"
-#include "mpsp.h"
-#include "outfile.h"
-#include "potfile.h"
-#include "debugfile.h"
-#include "loopback.h"
-#include "data.h"
+#include "thread.h"
+#include "timer.h"
+#include "interface.h"
+#include "hwmon.h"
 #include "status.h"
-
-extern hc_global_data_t  data;
 
 static const char ST_0000[] = "Initializing";
 static const char ST_0001[] = "Autotuning";

@@ -7,6 +7,7 @@
 #define _STATUS_H
 
 #include <stdio.h>
+#include <time.h>
 #include <inttypes.h>
 
 double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries);
