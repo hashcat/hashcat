@@ -1514,6 +1514,8 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
         device_types_filter = CL_DEVICE_TYPE_CPU;
       }
     }
+
+    opencl_ctx->device_types_filter = device_types_filter;
   }
 
   opencl_ctx->platforms_cnt         = platforms_cnt;
