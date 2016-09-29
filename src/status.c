@@ -313,7 +313,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hwmon_ctx_
   fflush (out);
 }
 
-void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
+void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const cpt_ctx_t *cpt_ctx, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -893,8 +893,8 @@ void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, con
 
     for (int i = 0; i < CPT_BUF; i++)
     {
-      const uint   cracked   = data.cpt_buf[i].cracked;
-      const time_t timestamp = data.cpt_buf[i].timestamp;
+      const uint   cracked   = cpt_ctx->cpt_buf[i].cracked;
+      const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
       if ((timestamp + 60) > now)
       {
@@ -914,11 +914,11 @@ void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, con
 
     double ms_real = ms_running - ms_paused;
 
-    double cpt_avg_min  = (double) data.cpt_total / ((ms_real / 1000) / 60);
-    double cpt_avg_hour = (double) data.cpt_total / ((ms_real / 1000) / 3600);
-    double cpt_avg_day  = (double) data.cpt_total / ((ms_real / 1000) / 86400);
+    double cpt_avg_min  = (double) cpt_ctx->cpt_total / ((ms_real / 1000) / 60);
+    double cpt_avg_hour = (double) cpt_ctx->cpt_total / ((ms_real / 1000) / 3600);
+    double cpt_avg_day  = (double) cpt_ctx->cpt_total / ((ms_real / 1000) / 86400);
 
-    if ((data.cpt_start + 86400) < now)
+    if ((cpt_ctx->cpt_start + 86400) < now)
     {
       log_info ("Recovered/Time.: CUR:%" PRIu64 ",%" PRIu64 ",%" PRIu64 " AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
@@ -928,7 +928,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, con
         cpt_avg_hour,
         cpt_avg_day);
     }
-    else if ((data.cpt_start + 3600) < now)
+    else if ((cpt_ctx->cpt_start + 3600) < now)
     {
       log_info ("Recovered/Time.: CUR:%" PRIu64 ",%" PRIu64 ",N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
@@ -937,7 +937,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, con
         cpt_avg_hour,
         cpt_avg_day);
     }
-    else if ((data.cpt_start + 60) < now)
+    else if ((cpt_ctx->cpt_start + 60) < now)
     {
       log_info ("Recovered/Time.: CUR:%" PRIu64 ",N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,

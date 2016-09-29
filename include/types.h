@@ -14,6 +14,9 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
+#define CPT_BUF 0x20000
+#define PARAMCNT 64
+
 #if defined (_WIN)
 #include <windows.h>
 #if defined (_BASETSD_H)
@@ -475,8 +478,6 @@ typedef struct
 
 } comb_t;
 
-#define CPT_BUF 0x20000
-
 typedef struct
 {
   u32    cracked;
@@ -505,8 +506,6 @@ typedef struct
   u32  word_buf[1];
 
 } wordr_t;
-
-#define PARAMCNT 64
 
 typedef struct __hc_device_param hc_device_param_t;
 
@@ -1219,12 +1218,22 @@ typedef struct
 
 typedef struct
 {
+  cpt_t  *cpt_buf;
+  int     cpt_pos;
+  time_t  cpt_start;
+  u64     cpt_total;
+
+} cpt_ctx_t;
+
+typedef struct
+{
   /**
    * migrated
    */
 
   bitmap_ctx_t          *bitmap_ctx;
   combinator_ctx_t      *combinator_ctx;
+  cpt_ctx_t             *cpt_ctx;
   debugfile_ctx_t       *debugfile_ctx;
   hashconfig_t          *hashconfig;
   hashes_t              *hashes;
@@ -1249,15 +1258,6 @@ typedef struct
 
   bool shutdown_inner;
   bool shutdown_outer;
-
-  /**
-   * crack-per-time
-   */
-
-  cpt_t   cpt_buf[CPT_BUF];
-  int     cpt_pos;
-  time_t  cpt_start;
-  u64     cpt_total;
 
   /**
    * status, timer

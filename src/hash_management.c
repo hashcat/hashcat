@@ -507,7 +507,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
   }
 }
 
-int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, hashconfig_t *hashconfig, hashes_t *hashes, const uint salt_pos)
+int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, const uint salt_pos)
 {
   salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
@@ -582,14 +582,14 @@ int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
     {
       hc_thread_mutex_lock (mux_display);
 
-      data.cpt_buf[data.cpt_pos].timestamp = time (NULL);
-      data.cpt_buf[data.cpt_pos].cracked   = cpt_cracked;
+      cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].timestamp = time (NULL);
+      cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].cracked   = cpt_cracked;
 
-      data.cpt_pos++;
+      cpt_ctx->cpt_pos++;
 
-      data.cpt_total += cpt_cracked;
+      cpt_ctx->cpt_total += cpt_cracked;
 
-      if (data.cpt_pos == CPT_BUF) data.cpt_pos = 0;
+      if (cpt_ctx->cpt_pos == CPT_BUF) cpt_ctx->cpt_pos = 0;
 
       hc_thread_mutex_unlock (mux_display);
     }
