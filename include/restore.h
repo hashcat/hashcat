@@ -33,7 +33,7 @@ void write_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx);
 
 void cycle_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx);
 
-void stop_at_checkpoint (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx);
+void stop_at_checkpoint (restore_ctx_t *restore_ctx, status_ctx_t *status_ctx);
 
 int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, const folder_config_t *folder_config, int argc, char **argv);
 

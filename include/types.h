@@ -708,14 +708,6 @@ typedef struct
   u32                 kernel_power_all;
   u64                 kernel_power_final; // we save that so that all divisions are done from the same base
 
-  bool                run_main_level1;
-  bool                run_main_level2;
-  bool                run_main_level3;
-  bool                run_thread_level1;
-  bool                run_thread_level2;
-
-  u32                 devices_status;
-
   u32                 opencl_platforms_filter;
   u32                 devices_filter;
   cl_device_type      device_types_filter;
@@ -1227,6 +1219,14 @@ typedef struct
 
 typedef struct
 {
+  u32  devices_status;
+
+  bool run_main_level1;
+  bool run_main_level2;
+  bool run_main_level3;
+  bool run_thread_level1;
+  bool run_thread_level2;
+
   u64 *words_progress_done;      // progress number of words done     per salt
   u64 *words_progress_rejected;  // progress number of words rejected per salt
   u64 *words_progress_restored;  // progress number of words restored per salt
@@ -1284,8 +1284,6 @@ typedef struct
   u64     words_cnt;
   u64     words_cur;
   u64     words_base;
-
-
 
   hc_timer_t timer_running;         // timer on current dict
   hc_timer_t timer_paused;          // timer on current dict

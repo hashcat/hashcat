@@ -131,7 +131,7 @@ void *thread_calc_stdin (void *p)
 
   const uint attack_kern = user_options_extra->attack_kern;
 
-  while (opencl_ctx->run_thread_level1 == true)
+  while (status_ctx->run_thread_level1 == true)
   {
     hc_thread_mutex_lock (opencl_ctx->mux_dispatcher);
 
@@ -201,12 +201,12 @@ void *thread_calc_stdin (void *p)
 
       words_cur++;
 
-      while (opencl_ctx->run_thread_level1 == false) break;
+      while (status_ctx->run_thread_level1 == false) break;
     }
 
     hc_thread_mutex_unlock (opencl_ctx->mux_dispatcher);
 
-    while (opencl_ctx->run_thread_level1 == false) break;
+    while (status_ctx->run_thread_level1 == false) break;
 
     // flush
 
@@ -265,7 +265,7 @@ void *thread_calc (void *p)
 
   if (attack_mode == ATTACK_MODE_BF)
   {
-    while (opencl_ctx->run_thread_level1 == true)
+    while (status_ctx->run_thread_level1 == true)
     {
       const uint work = get_work (opencl_ctx, user_options, device_param, -1u);
 
@@ -292,7 +292,7 @@ void *thread_calc (void *p)
         */
       }
 
-      if (opencl_ctx->run_thread_level1 == false) break;
+      if (status_ctx->run_thread_level1 == false) break;
 
       if (user_options->benchmark == true) break;
 
@@ -370,7 +370,7 @@ void *thread_calc (void *p)
 
     u64 words_cur = 0;
 
-    while (opencl_ctx->run_thread_level1 == true)
+    while (status_ctx->run_thread_level1 == true)
     {
       u64 words_off = 0;
       u64 words_fin = 0;
@@ -460,13 +460,13 @@ void *thread_calc (void *p)
 
           pw_add (device_param, (u8 *) line_buf, line_len);
 
-          if (opencl_ctx->run_thread_level1 == false) break;
+          if (status_ctx->run_thread_level1 == false) break;
         }
 
-        if (opencl_ctx->run_thread_level1 == false) break;
+        if (status_ctx->run_thread_level1 == false) break;
       }
 
-      if (opencl_ctx->run_thread_level1 == false) break;
+      if (status_ctx->run_thread_level1 == false) break;
 
       //
       // flush
@@ -495,7 +495,7 @@ void *thread_calc (void *p)
         */
       }
 
-      if (opencl_ctx->run_thread_level1 == false) break;
+      if (status_ctx->run_thread_level1 == false) break;
 
       if (words_fin == 0) break;
 

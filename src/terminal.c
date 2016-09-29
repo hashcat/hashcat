@@ -135,21 +135,21 @@ void clear_prompt ()
 
 void *thread_keypress (void *p)
 {
-  opencl_ctx_t *opencl_ctx = data.opencl_ctx;
+  status_ctx_t         *status_ctx         = data.status_ctx;
 
-  while (opencl_ctx->devices_status == STATUS_INIT) hc_sleep_ms (100);
+  while (status_ctx->devices_status == STATUS_INIT) hc_sleep_ms (100);
 
-  restore_ctx_t        *restore_ctx        = data.restore_ctx;
-  user_options_t       *user_options       = data.user_options;
-  user_options_extra_t *user_options_extra = data.user_options_extra;
+  combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
+  cpt_ctx_t            *cpt_ctx            = data.cpt_ctx;
   hashconfig_t         *hashconfig         = data.hashconfig;
   hashes_t             *hashes             = data.hashes;
-  cpt_ctx_t            *cpt_ctx            = data.cpt_ctx;
-  straight_ctx_t       *straight_ctx       = data.straight_ctx;
-  combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
-  mask_ctx_t           *mask_ctx           = data.mask_ctx;
   hwmon_ctx_t          *hwmon_ctx          = data.hwmon_ctx;
-  status_ctx_t         *status_ctx         = data.status_ctx;
+  mask_ctx_t           *mask_ctx           = data.mask_ctx;
+  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
+  restore_ctx_t        *restore_ctx        = data.restore_ctx;
+  straight_ctx_t       *straight_ctx       = data.straight_ctx;
+  user_options_extra_t *user_options_extra = data.user_options_extra;
+  user_options_t       *user_options       = data.user_options;
 
   const bool quiet = user_options->quiet;
 
@@ -192,7 +192,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        bypass (opencl_ctx);
+        bypass (status_ctx);
 
         log_info ("");
 
@@ -204,7 +204,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        SuspendThreads (opencl_ctx);
+        SuspendThreads (status_ctx);
 
         log_info ("");
 
@@ -216,7 +216,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        ResumeThreads (opencl_ctx);
+        ResumeThreads (status_ctx);
 
         log_info ("");
 
@@ -228,7 +228,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        stop_at_checkpoint (restore_ctx, opencl_ctx);
+        stop_at_checkpoint (restore_ctx, status_ctx);
 
         log_info ("");
 
@@ -240,7 +240,7 @@ void *thread_keypress (void *p)
 
         log_info ("");
 
-        myabort (opencl_ctx);
+        myabort (status_ctx);
 
         break;
     }

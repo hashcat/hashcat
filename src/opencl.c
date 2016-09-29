@@ -293,8 +293,7 @@ int gidd_to_pw_t (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, con
   return 0;
 }
 
-
-int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, hashconfig_t *hashconfig, const hashes_t *hashes, const outfile_ctx_t *outfile_ctx, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration, const uint salt_pos)
+int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, hashconfig_t *hashconfig, const hashes_t *hashes, const outfile_ctx_t *outfile_ctx, status_ctx_t *status_ctx, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration, const uint salt_pos)
 {
   cl_int CL_err = CL_SUCCESS;
 
@@ -330,26 +329,26 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
     if (highest_pw_len < 16)
     {
-      run_kernel (KERN_RUN_1, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig, user_options);
+      run_kernel (KERN_RUN_1, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig, user_options, status_ctx);
     }
     else if (highest_pw_len < 32)
     {
-      run_kernel (KERN_RUN_2, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig, user_options);
+      run_kernel (KERN_RUN_2, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig, user_options, status_ctx);
     }
     else
     {
-      run_kernel (KERN_RUN_3, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig, user_options);
+      run_kernel (KERN_RUN_3, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig, user_options, status_ctx);
     }
   }
   else
   {
     run_kernel_amp (opencl_ctx, device_param, pws_cnt);
 
-    run_kernel (KERN_RUN_1, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options);
+    run_kernel (KERN_RUN_1, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options, status_ctx);
 
     if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
     {
-      run_kernel (KERN_RUN_12, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options);
+      run_kernel (KERN_RUN_12, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options, status_ctx);
 
       CL_err = hc_clEnqueueReadBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -385,9 +384,9 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
       device_param->kernel_params_buf32[28] = loop_pos;
       device_param->kernel_params_buf32[29] = loop_left;
 
-      run_kernel (KERN_RUN_2, opencl_ctx, device_param, pws_cnt, true, slow_iteration, hashconfig, user_options);
+      run_kernel (KERN_RUN_2, opencl_ctx, device_param, pws_cnt, true, slow_iteration, hashconfig, user_options, status_ctx);
 
-      while (opencl_ctx->run_thread_level2 == false) break;
+      while (status_ctx->run_thread_level2 == false) break;
 
       /**
        * speed
@@ -415,7 +414,7 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
     if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
     {
-      run_kernel (KERN_RUN_23, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options);
+      run_kernel (KERN_RUN_23, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options, status_ctx);
 
       CL_err = hc_clEnqueueReadBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -438,13 +437,13 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
       }
     }
 
-    run_kernel (KERN_RUN_3, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options);
+    run_kernel (KERN_RUN_3, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options, status_ctx);
   }
 
   return 0;
 }
 
-int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint num, const uint event_update, const uint iteration, hashconfig_t *hashconfig, const user_options_t *user_options)
+int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint num, const uint event_update, const uint iteration, hashconfig_t *hashconfig, const user_options_t *user_options, status_ctx_t *status_ctx)
 {
   cl_int CL_err = CL_SUCCESS;
 
@@ -538,7 +537,7 @@ int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t
 
   if (device_param->nvidia_spin_damp > 0)
   {
-    if (opencl_ctx->devices_status == STATUS_RUNNING)
+    if (status_ctx->devices_status == STATUS_RUNNING)
     {
       if (iteration < EXPECTED_ITERATIONS)
       {
@@ -576,7 +575,7 @@ int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t
 
   const double exec_us = (double) (time_end - time_start) / 1000;
 
-  if (opencl_ctx->devices_status == STATUS_RUNNING)
+  if (status_ctx->devices_status == STATUS_RUNNING)
   {
     if (iteration < EXPECTED_ITERATIONS)
     {
@@ -1046,7 +1045,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
   for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
-    while (opencl_ctx->devices_status == STATUS_PAUSED) hc_sleep (1);
+    while (status_ctx->devices_status == STATUS_PAUSED) hc_sleep (1);
 
     salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
@@ -1077,7 +1076,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
     for (uint innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
     {
-      while (opencl_ctx->devices_status == STATUS_PAUSED) hc_sleep (1);
+      while (status_ctx->devices_status == STATUS_PAUSED) hc_sleep (1);
 
       uint fast_iteration = 0;
 
@@ -1281,7 +1280,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
         hc_timer_set (&device_param->timer_speed);
       }
 
-      int rc = choose_kernel (opencl_ctx, device_param, user_options, straight_ctx, combinator_ctx, mask_ctx, hashconfig, hashes, outfile_ctx, highest_pw_len, pws_cnt, fast_iteration, salt_pos);
+      int rc = choose_kernel (opencl_ctx, device_param, user_options, straight_ctx, combinator_ctx, mask_ctx, hashconfig, hashes, outfile_ctx, status_ctx, highest_pw_len, pws_cnt, fast_iteration, salt_pos);
 
       if (rc == -1) return -1;
 
@@ -1291,7 +1290,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       if (user_options->benchmark == false)
       {
-        check_cracked (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, hashconfig, hashes, cpt_ctx, salt_pos);
+        check_cracked (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, hashconfig, hashes, cpt_ctx, status_ctx, salt_pos);
       }
 
       /**
@@ -1339,10 +1338,10 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       if (user_options->benchmark == true) break;
 
-      if (opencl_ctx->run_thread_level2 == false) break;
+      if (status_ctx->run_thread_level2 == false) break;
     }
 
-    if (opencl_ctx->run_thread_level2 == false) break;
+    if (status_ctx->run_thread_level2 == false) break;
   }
 
   device_param->speed_pos = speed_pos;
@@ -1362,13 +1361,6 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
 
   hc_thread_mutex_init (opencl_ctx->mux_dispatcher);
   hc_thread_mutex_init (opencl_ctx->mux_counter);
-
-  opencl_ctx->devices_status    = STATUS_INIT;
-  opencl_ctx->run_main_level1   = true;
-  opencl_ctx->run_main_level2   = true;
-  opencl_ctx->run_main_level3   = true;
-  opencl_ctx->run_thread_level1 = true;
-  opencl_ctx->run_thread_level2 = true;
 
   opencl_ctx->ocl = (OCL_PTR *) mymalloc (sizeof (OCL_PTR));
 

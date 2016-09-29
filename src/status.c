@@ -166,7 +166,7 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
 
 void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
 {
-  if (opencl_ctx->devices_status == STATUS_INIT)
+  if (status_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");
 
@@ -175,7 +175,7 @@ void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *op
 
   FILE *out = stdout;
 
-  fprintf (out, "STATUS\t%u\t", opencl_ctx->devices_status);
+  fprintf (out, "STATUS\t%u\t", status_ctx->devices_status);
 
   /**
    * speed new
@@ -315,7 +315,7 @@ void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *op
 
 void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const cpt_ctx_t *cpt_ctx, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
 {
-  if (opencl_ctx->devices_status == STATUS_INIT)
+  if (status_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");
 
@@ -338,7 +338,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   log_info ("Session.Name...: %s", user_options->session);
 
-  char *status_type = strstatus (opencl_ctx->devices_status);
+  char *status_type = strstatus (status_ctx->devices_status);
 
   uint hash_mode = hashconfig->hash_mode;
 
@@ -428,7 +428,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
       if (mask_ctx->masks_cnt > 1)
       {
-        const int maks_pos_done = ((opencl_ctx->devices_status == STATUS_EXHAUSTED) && (opencl_ctx->run_main_level1 == true)) ? 1 : 0;
+        const int maks_pos_done = ((status_ctx->devices_status == STATUS_EXHAUSTED) && (status_ctx->run_main_level1 == true)) ? 1 : 0;
 
         double mask_percentage = (double) (mask_ctx->masks_pos + maks_pos_done) / (double) mask_ctx->masks_cnt;
 
@@ -629,7 +629,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   double ms_paused = data.ms_paused;
 
-  if (opencl_ctx->devices_status == STATUS_PAUSED)
+  if (status_ctx->devices_status == STATUS_PAUSED)
   {
     double ms_paused_tmp = 0;
 
@@ -749,7 +749,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    if (opencl_ctx->devices_status != STATUS_CRACKED)
+    if (status_ctx->devices_status != STATUS_CRACKED)
     {
       #if defined (_WIN)
       __time64_t sec_etc = 0;
@@ -1014,7 +1014,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
     }
   }
 
-  if (opencl_ctx->run_main_level1 == false) return;
+  if (status_ctx->run_main_level1 == false) return;
 
   if (user_options->gpu_temp_disable == false)
   {
@@ -1105,7 +1105,7 @@ void status_benchmark_automate (status_ctx_t *status_ctx, opencl_ctx_t *opencl_c
 {
   if (status_ctx == NULL) status_ctx = status_ctx; // make gcc happy, for now...
 
-  if (opencl_ctx->devices_status == STATUS_INIT)
+  if (status_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");
 
@@ -1153,7 +1153,7 @@ void status_benchmark_automate (status_ctx_t *status_ctx, opencl_ctx_t *opencl_c
 
 void status_benchmark (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const user_options_t *user_options)
 {
-  if (opencl_ctx->devices_status == STATUS_INIT)
+  if (status_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");
 
@@ -1250,7 +1250,7 @@ void status_benchmark (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const
   if (opencl_ctx->devices_active > 1) log_info ("Speed.Dev.#*.: %9sH/s", display_all_cur);
 }
 
-int status_ctx_init (status_ctx_t *status_ctx, const hashes_t *hashes)
+int status_progress_init (status_ctx_t *status_ctx, const hashes_t *hashes)
 {
   status_ctx->words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
   status_ctx->words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
@@ -1259,19 +1259,36 @@ int status_ctx_init (status_ctx_t *status_ctx, const hashes_t *hashes)
   return 0;
 }
 
-void status_ctx_destroy (status_ctx_t *status_ctx)
+void status_progress_destroy (status_ctx_t *status_ctx)
 {
   myfree (status_ctx->words_progress_done);
   myfree (status_ctx->words_progress_rejected);
   myfree (status_ctx->words_progress_restored);
-
-  myfree (status_ctx);
 }
 
-void status_ctx_reset (status_ctx_t *status_ctx, const hashes_t *hashes)
+void status_progress_reset (status_ctx_t *status_ctx, const hashes_t *hashes)
 {
   memset (status_ctx->words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
   memset (status_ctx->words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
   memset (status_ctx->words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
 }
 
+int status_ctx_init (status_ctx_t *status_ctx)
+{
+  status_ctx->devices_status = STATUS_INIT;
+
+  status_ctx->run_main_level1   = true;
+  status_ctx->run_main_level2   = true;
+  status_ctx->run_main_level3   = true;
+  status_ctx->run_thread_level1 = true;
+  status_ctx->run_thread_level2 = true;
+
+  return 0;
+}
+
+void status_ctx_destroy (status_ctx_t *status_ctx)
+{
+
+
+  myfree (status_ctx);
+}

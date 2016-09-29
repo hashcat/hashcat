@@ -68,19 +68,19 @@ const char *version_tag = VERSION_TAG;
 
 // inner2_loop iterates through wordlists, then calls kernel execution
 
-static int inner2_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx, status_ctx_t *status_ctx)
+static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
 {
-  //opencl_ctx->run_main_level1   = true;
-  //opencl_ctx->run_main_level2   = true;
-  //opencl_ctx->run_main_level3   = true;
-  opencl_ctx->run_thread_level1 = true;
-  opencl_ctx->run_thread_level2 = true;
+  //status_ctx->run_main_level1   = true;
+  //status_ctx->run_main_level2   = true;
+  //status_ctx->run_main_level3   = true;
+  status_ctx->run_thread_level1 = true;
+  status_ctx->run_thread_level2 = true;
 
   logfile_generate_subid (logfile_ctx);
 
   logfile_sub_msg ("START");
 
-  status_ctx_reset (status_ctx, hashes);
+  status_progress_reset (status_ctx, hashes);
 
   data.words_cur = 0;
 
@@ -316,7 +316,7 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
 
   hc_thread_t *c_threads = (hc_thread_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
 
-  opencl_ctx->devices_status = STATUS_AUTOTUNE;
+  status_ctx->devices_status = STATUS_AUTOTUNE;
 
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -377,7 +377,7 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
    * create cracker threads
    */
 
-  opencl_ctx->devices_status = STATUS_RUNNING;
+  status_ctx->devices_status = STATUS_RUNNING;
 
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -399,15 +399,15 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
 
   // calculate final status
 
-  if ((opencl_ctx->devices_status != STATUS_CRACKED)
-   && (opencl_ctx->devices_status != STATUS_ABORTED)
-   && (opencl_ctx->devices_status != STATUS_QUIT)
-   && (opencl_ctx->devices_status != STATUS_BYPASS))
+  if ((status_ctx->devices_status != STATUS_CRACKED)
+   && (status_ctx->devices_status != STATUS_ABORTED)
+   && (status_ctx->devices_status != STATUS_QUIT)
+   && (status_ctx->devices_status != STATUS_BYPASS))
   {
-    opencl_ctx->devices_status = STATUS_EXHAUSTED;
+    status_ctx->devices_status = STATUS_EXHAUSTED;
   }
 
-  logfile_sub_var_uint ("status-after-work", opencl_ctx->devices_status);
+  logfile_sub_var_uint ("status-after-work", status_ctx->devices_status);
 
   // update some timer
 
@@ -426,7 +426,7 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
 
   // no more skip and restore from here
 
-  if (opencl_ctx->devices_status == STATUS_EXHAUSTED)
+  if (status_ctx->devices_status == STATUS_EXHAUSTED)
   {
     rd->words_cur = 0;
   }
@@ -482,11 +482,11 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
     {
       for (induct_ctx->induction_dictionaries_pos = 0; induct_ctx->induction_dictionaries_pos < induct_ctx->induction_dictionaries_cnt; induct_ctx->induction_dictionaries_pos++)
       {
-        const int rc_inner2_loop = inner2_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx, status_ctx);
+        const int rc_inner2_loop = inner2_loop (status_ctx, user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
 
         if (rc_inner2_loop == -1) return -1;
 
-        if (opencl_ctx->run_main_level3 == false) break;
+        if (status_ctx->run_main_level3 == false) break;
 
         unlink (induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos]);
       }
@@ -502,13 +502,13 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
 
 // inner1_loop iterates through masks, then calls inner2_loop
 
-static int inner1_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx, status_ctx_t *status_ctx)
+static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
 {
-  //opencl_ctx->run_main_level1   = true;
-  //opencl_ctx->run_main_level2   = true;
-  opencl_ctx->run_main_level3   = true;
-  opencl_ctx->run_thread_level1 = true;
-  opencl_ctx->run_thread_level2 = true;
+  //status_ctx->run_main_level1   = true;
+  //status_ctx->run_main_level2   = true;
+  status_ctx->run_main_level3   = true;
+  status_ctx->run_thread_level1 = true;
+  status_ctx->run_thread_level2 = true;
 
   /**
    * word len
@@ -1157,16 +1157,16 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
       straight_ctx->dicts_pos = dicts_pos;
 
-      const int rc_inner2_loop = inner2_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx, status_ctx);
+      const int rc_inner2_loop = inner2_loop (status_ctx, user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
 
       if (rc_inner2_loop == -1) return -1;
 
-      if (opencl_ctx->run_main_level3 == false) break;
+      if (status_ctx->run_main_level3 == false) break;
     }
   }
   else
   {
-    const int rc_inner2_loop = inner2_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx, status_ctx);
+    const int rc_inner2_loop = inner2_loop (status_ctx, user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
 
     if (rc_inner2_loop == -1) return -1;
   }
@@ -1176,15 +1176,15 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
 // outer_loop iterates through hash_modes (in benchmark mode)
 
-static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx)
+static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx)
 {
-  opencl_ctx->devices_status = STATUS_INIT;
+  status_ctx->devices_status = STATUS_INIT;
 
-  //opencl_ctx->run_main_level1   = true;
-  opencl_ctx->run_main_level2   = true;
-  opencl_ctx->run_main_level3   = true;
-  opencl_ctx->run_thread_level1 = true;
-  opencl_ctx->run_thread_level2 = true;
+  //status_ctx->run_main_level1   = true;
+  status_ctx->run_main_level2   = true;
+  status_ctx->run_main_level3   = true;
+  status_ctx->run_thread_level1 = true;
+  status_ctx->run_thread_level2 = true;
 
   /**
    * setup prepare timer
@@ -1279,7 +1279,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
   const u32 hashes_cnt_orig = hashes->hashes_cnt;
 
-  const int rc_hashes_init_stage2 = hashes_init_stage2 (hashes, hashconfig, opencl_ctx, user_options);
+  const int rc_hashes_init_stage2 = hashes_init_stage2 (hashes, hashconfig, user_options, status_ctx);
 
   if (rc_hashes_init_stage2 == -1) return -1;
 
@@ -1358,14 +1358,10 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   if (rc_mask_init == -1) return -1;
 
   /**
-   * status init
+   * status progress init; needs hashes that's why we have to do it here and separate from status_ctx_init
    */
 
-  status_ctx_t *status_ctx = (status_ctx_t *) mymalloc (sizeof (status_ctx_t));
-
-  data.status_ctx = status_ctx;
-
-  const int rc_status_init = status_ctx_init (status_ctx, hashes);
+  const int rc_status_init = status_progress_init (status_ctx, hashes);
 
   if (rc_status_init == -1) return -1;
 
@@ -1495,7 +1491,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
     for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
     {
-      weak_hash_check (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, hashconfig, hashes, cpt_ctx, salt_pos);
+      weak_hash_check (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, hashconfig, hashes, cpt_ctx, status_ctx, salt_pos);
     }
   }
 
@@ -1565,16 +1561,16 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
       mask_ctx->masks_pos = masks_pos;
 
-      const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx, status_ctx);
+      const int rc_inner1_loop = inner1_loop (status_ctx, user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
 
       if (rc_inner1_loop == -1) return -1;
 
-      if (opencl_ctx->run_main_level2 == false) break;
+      if (status_ctx->run_main_level2 == false) break;
     }
   }
   else
   {
-    const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx, status_ctx);
+    const int rc_inner1_loop = inner1_loop (status_ctx, user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
 
     if (rc_inner1_loop == -1) return -1;
   }
@@ -1593,9 +1589,9 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   // we dont need restore file anymore
   if (restore_ctx->enabled == true)
   {
-    if ((opencl_ctx->devices_status == STATUS_EXHAUSTED) || (opencl_ctx->devices_status == STATUS_CRACKED))
+    if ((status_ctx->devices_status == STATUS_EXHAUSTED) || (status_ctx->devices_status == STATUS_CRACKED))
     {
-      if (opencl_ctx->run_thread_level1 == true) // this is to check for [c]heckpoint
+      if (status_ctx->run_thread_level1 == true) // this is to check for [c]heckpoint
       {
         unlink (restore_ctx->eff_restore_file);
         unlink (restore_ctx->new_restore_file);
@@ -1621,7 +1617,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
    * Clean up
    */
 
-  status_ctx_destroy (status_ctx);
+  status_progress_destroy (status_ctx);
 
   opencl_session_destroy (opencl_ctx);
 
@@ -1674,6 +1670,18 @@ int main (int argc, char **argv)
 
   hc_thread_mutex_init (mux_display);
   hc_thread_mutex_init (mux_hwmon);
+
+  /**
+   * status init
+   */
+
+  status_ctx_t *status_ctx = (status_ctx_t *) mymalloc (sizeof (status_ctx_t));
+
+  data.status_ctx = status_ctx;
+
+  const int rc_status_init = status_ctx_init (status_ctx);
+
+  if (rc_status_init == -1) return -1;
 
   /**
    * folder
@@ -1961,7 +1969,7 @@ int main (int argc, char **argv)
 
     if (user_options->hash_mode_chgd == true)
     {
-      const int rc = outer_loop (user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx);
+      const int rc = outer_loop (status_ctx, user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx);
 
       if (rc == -1) return -1;
     }
@@ -1971,17 +1979,17 @@ int main (int argc, char **argv)
       {
         user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
 
-        const int rc = outer_loop (user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx);
+        const int rc = outer_loop (status_ctx, user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx);
 
         if (rc == -1) return -1;
 
-        if (opencl_ctx->run_main_level1 == false) break;
+        if (status_ctx->run_main_level1 == false) break;
       }
     }
   }
   else
   {
-    const int rc = outer_loop (user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx);
+    const int rc = outer_loop (status_ctx, user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx);
 
     if (rc == -1) return -1;
   }
@@ -2052,12 +2060,14 @@ int main (int argc, char **argv)
 
   u32 rc_final = -1;
 
-  if (opencl_ctx->devices_status == STATUS_ABORTED)   rc_final = 2;
-  if (opencl_ctx->devices_status == STATUS_QUIT)      rc_final = 2;
-  if (opencl_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
-  if (opencl_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
+  if (status_ctx->devices_status == STATUS_ABORTED)   rc_final = 2;
+  if (status_ctx->devices_status == STATUS_QUIT)      rc_final = 2;
+  if (status_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
+  if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
 
   opencl_ctx_destroy (opencl_ctx);
+
+  status_ctx_destroy (status_ctx);
 
   return rc_final;
 }

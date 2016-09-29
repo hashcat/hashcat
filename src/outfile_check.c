@@ -39,11 +39,11 @@ void *thread_outfile_remove (void *p)
 {
   // some hash-dependent constants
 
-  user_options_t *user_options = data.user_options;
   hashconfig_t   *hashconfig   = data.hashconfig;
   hashes_t       *hashes       = data.hashes;
   outcheck_ctx_t *outcheck_ctx = data.outcheck_ctx;
-  opencl_ctx_t   *opencl_ctx   = data.opencl_ctx;
+  status_ctx_t   *status_ctx   = data.status_ctx;
+  user_options_t *user_options = data.user_options;
 
   uint dgst_size  = hashconfig->dgst_size;
   uint is_salted  = hashconfig->is_salted;
@@ -78,7 +78,7 @@ void *thread_outfile_remove (void *p)
   {
     hc_sleep (1);
 
-    if (opencl_ctx->devices_status != STATUS_RUNNING) continue;
+    if (status_ctx->devices_status != STATUS_RUNNING) continue;
 
     check_left--;
 
@@ -284,23 +284,23 @@ void *thread_outfile_remove (void *p)
 
                             hashes->salts_done++;
 
-                            if (hashes->salts_done == hashes->salts_cnt) mycracked (opencl_ctx);
+                            if (hashes->salts_done == hashes->salts_cnt) mycracked (status_ctx);
                           }
                         }
                       }
 
-                      if (opencl_ctx->devices_status == STATUS_CRACKED) break;
+                      if (status_ctx->devices_status == STATUS_CRACKED) break;
                     }
                   }
 
                   if (found) break;
 
-                  if (opencl_ctx->devices_status == STATUS_CRACKED) break;
+                  if (status_ctx->devices_status == STATUS_CRACKED) break;
 
                   iter--;
                 }
 
-                if (opencl_ctx->devices_status == STATUS_CRACKED) break;
+                if (status_ctx->devices_status == STATUS_CRACKED) break;
               }
 
               myfree (line_buf);

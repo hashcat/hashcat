@@ -16,8 +16,11 @@ void status_display                  (status_ctx_t *status_ctx, opencl_ctx_t *op
 void status_benchmark_automate       (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig);
 void status_benchmark                (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const user_options_t *user_options);
 
-int  status_ctx_init    (status_ctx_t *status_ctx, const hashes_t *hashes);
+int  status_progress_init (status_ctx_t *status_ctx, const hashes_t *hashes);
+void status_progress_destroy (status_ctx_t *status_ctx);
+void status_progress_reset (status_ctx_t *status_ctx, const hashes_t *hashes);
+
+int  status_ctx_init (status_ctx_t *status_ctx);
 void status_ctx_destroy (status_ctx_t *status_ctx);
-void status_ctx_reset   (status_ctx_t *status_ctx, const hashes_t *hashes);
 
 #endif // _STATUS_H

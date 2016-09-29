@@ -6,6 +6,6 @@
 #ifndef _WEAK_HASH_H
 #define _WEAK_HASH_H
 
-void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, const uint salt_pos);
+void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, status_ctx_t *status_ctx, const uint salt_pos);
 
 #endif // _WEAK_HASH_H

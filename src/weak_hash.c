@@ -10,7 +10,7 @@
 #include "hash_management.h"
 #include "weak_hash.h"
 
-void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, const uint salt_pos)
+void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, status_ctx_t *status_ctx, const uint salt_pos)
 {
   salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
@@ -31,11 +31,11 @@ void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param,
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    run_kernel (KERN_RUN_1, opencl_ctx, device_param, 1, false, 0, hashconfig, user_options);
+    run_kernel (KERN_RUN_1, opencl_ctx, device_param, 1, false, 0, hashconfig, user_options, status_ctx);
   }
   else
   {
-    run_kernel (KERN_RUN_1, opencl_ctx, device_param, 1, false, 0, hashconfig, user_options);
+    run_kernel (KERN_RUN_1, opencl_ctx, device_param, 1, false, 0, hashconfig, user_options, status_ctx);
 
     uint loop_step = 16;
 
@@ -50,17 +50,17 @@ void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param,
       device_param->kernel_params_buf32[28] = loop_pos;
       device_param->kernel_params_buf32[29] = loop_left;
 
-      run_kernel (KERN_RUN_2, opencl_ctx, device_param, 1, false, 0, hashconfig, user_options);
+      run_kernel (KERN_RUN_2, opencl_ctx, device_param, 1, false, 0, hashconfig, user_options, status_ctx);
     }
 
-    run_kernel (KERN_RUN_3, opencl_ctx, device_param, 1, false, 0, hashconfig, user_options);
+    run_kernel (KERN_RUN_3, opencl_ctx, device_param, 1, false, 0, hashconfig, user_options, status_ctx);
   }
 
   /**
    * result
    */
 
-  check_cracked (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, hashconfig, hashes, cpt_ctx, salt_pos);
+  check_cracked (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, hashconfig, hashes, cpt_ctx, status_ctx, salt_pos);
 
   /**
    * cleanup

@@ -229,6 +229,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
   outfile_ctx_t   *outfile_ctx   = data.outfile_ctx;
   potfile_ctx_t   *potfile_ctx   = data.potfile_ctx;
   mask_ctx_t      *mask_ctx      = data.mask_ctx;
+  status_ctx_t    *status_ctx    = data.status_ctx;
 
   hashconfig_t *hashconfig  = data.hashconfig;
   hashes_t     *hashes      = data.hashes;
@@ -478,7 +479,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    if ((opencl_ctx->devices_status != STATUS_CRACKED) && (user_options->status != true))
+    if ((status_ctx->devices_status != STATUS_CRACKED) && (user_options->status != true))
     {
       if (outfile_ctx->filename == NULL) if (quiet == false) send_prompt ();
     }
@@ -507,7 +508,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
   }
 }
 
-int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, const uint salt_pos)
+int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, status_ctx_t *status_ctx, const uint salt_pos)
 {
   salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
@@ -569,7 +570,7 @@ int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
         }
       }
 
-      if (hashes->salts_done == hashes->salts_cnt) mycracked (opencl_ctx);
+      if (hashes->salts_done == hashes->salts_cnt) mycracked (status_ctx);
 
       check_hash (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, &cracked[i]);
     }
@@ -1240,7 +1241,7 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
   return 0;
 }
 
-int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, opencl_ctx_t *opencl_ctx, user_options_t *user_options)
+int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_options_t *user_options, status_ctx_t *status_ctx)
 {
   hash_t *hashes_buf = hashes->hashes_buf;
   uint    hashes_cnt = hashes->hashes_cnt;
@@ -1425,7 +1426,7 @@ int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, opencl
       salts_done++;
     }
 
-    if (salts_done == salts_cnt) mycracked (opencl_ctx);
+    if (salts_done == salts_cnt) mycracked (status_ctx);
   }
 
   myfree (hashes->digests_buf);
