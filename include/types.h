@@ -293,17 +293,17 @@ typedef enum opts_type
 
 typedef enum dgst_size
 {
-  DGST_SIZE_4_2  = (2  * sizeof (uint)),   // 8
-  DGST_SIZE_4_4  = (4  * sizeof (uint)),   // 16
-  DGST_SIZE_4_5  = (5  * sizeof (uint)),   // 20
-  DGST_SIZE_4_6  = (6  * sizeof (uint)),   // 24
-  DGST_SIZE_4_8  = (8  * sizeof (uint)),   // 32
-  DGST_SIZE_4_16 = (16 * sizeof (uint)),   // 64 !!!
-  DGST_SIZE_4_32 = (32 * sizeof (uint)),   // 128 !!!
-  DGST_SIZE_4_64 = (64 * sizeof (uint)),   // 256
-  DGST_SIZE_8_8  = (8  * sizeof (u64)),    // 64 !!!
-  DGST_SIZE_8_16 = (16 * sizeof (u64)),    // 128 !!!
-  DGST_SIZE_8_25 = (25 * sizeof (u64))     // 200
+  DGST_SIZE_4_2  = (2  * sizeof (u32)), // 8
+  DGST_SIZE_4_4  = (4  * sizeof (u32)), // 16
+  DGST_SIZE_4_5  = (5  * sizeof (u32)), // 20
+  DGST_SIZE_4_6  = (6  * sizeof (u32)), // 24
+  DGST_SIZE_4_8  = (8  * sizeof (u32)), // 32
+  DGST_SIZE_4_16 = (16 * sizeof (u32)), // 64 !!!
+  DGST_SIZE_4_32 = (32 * sizeof (u32)), // 128 !!!
+  DGST_SIZE_4_64 = (64 * sizeof (u32)), // 256
+  DGST_SIZE_8_8  = (8  * sizeof (u64)), // 64 !!!
+  DGST_SIZE_8_16 = (16 * sizeof (u64)), // 128 !!!
+  DGST_SIZE_8_25 = (25 * sizeof (u64))  // 200
 
 } dgst_size_t;
 
