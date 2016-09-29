@@ -9,8 +9,6 @@
 #include "logging.h"
 #include "hwmon.h"
 
-hc_thread_mutex_t mux_hwmon;
-
 static int get_adapters_num_adl (void *adl, int *iNumberAdapters)
 {
   if (hm_ADL_Adapter_NumberOfAdapters_Get ((ADL_PTR *) adl, iNumberAdapters) != ADL_OK) return -1;

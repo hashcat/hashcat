@@ -1317,13 +1317,13 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       // current speed
 
-      //hc_thread_mutex_lock (mux_display);
+      //hc_thread_mutex_lock (status_ctx->mux_display);
 
       device_param->speed_cnt[speed_pos] = perf_sum_all;
 
       device_param->speed_ms[speed_pos] = speed_ms;
 
-      //hc_thread_mutex_unlock (mux_display);
+      //hc_thread_mutex_unlock (status_ctx->mux_display);
 
       speed_pos++;
 

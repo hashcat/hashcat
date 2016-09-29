@@ -34,9 +34,6 @@
 
 extern hc_global_data_t data;
 
-extern hc_thread_mutex_t mux_display;
-extern hc_thread_mutex_t mux_hwmon;
-
 void *thread_monitor (void *p)
 {
   restore_ctx_t        *restore_ctx        = data.restore_ctx;
@@ -120,7 +117,7 @@ void *thread_monitor (void *p)
 
     if (hwmon_check == true)
     {
-      hc_thread_mutex_lock (mux_hwmon);
+      hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
       for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
@@ -173,12 +170,12 @@ void *thread_monitor (void *p)
         }
       }
 
-      hc_thread_mutex_unlock (mux_hwmon);
+      hc_thread_mutex_unlock (status_ctx->mux_hwmon);
     }
 
     if (hwmon_check == true)
     {
-      hc_thread_mutex_lock (mux_hwmon);
+      hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
       time_t temp_check_time;
 
@@ -276,7 +273,7 @@ void *thread_monitor (void *p)
         }
       }
 
-      hc_thread_mutex_unlock (mux_hwmon);
+      hc_thread_mutex_unlock (status_ctx->mux_hwmon);
     }
 
     if (restore_check == true)
@@ -344,7 +341,7 @@ void *thread_monitor (void *p)
 
       if (status_left == 0)
       {
-        hc_thread_mutex_lock (mux_display);
+        hc_thread_mutex_lock (status_ctx->mux_display);
 
         if (user_options->quiet == false) clear_prompt ();
 
@@ -354,7 +351,7 @@ void *thread_monitor (void *p)
 
         if (user_options->quiet == false) log_info ("");
 
-        hc_thread_mutex_unlock (mux_display);
+        hc_thread_mutex_unlock (status_ctx->mux_display);
 
         status_left = user_options->status_timer;
       }

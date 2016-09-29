@@ -38,8 +38,6 @@
 
 extern hc_global_data_t data;
 
-extern hc_thread_mutex_t mux_display;
-
 int sort_by_digest_p0p1 (const void *v1, const void *v2)
 {
   const u32 *d1 = (const u32 *) v1;
@@ -544,7 +542,7 @@ int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
     uint cpt_cracked = 0;
 
-    hc_thread_mutex_lock (mux_display);
+    hc_thread_mutex_lock (status_ctx->mux_display);
 
     for (uint i = 0; i < num_cracked; i++)
     {
@@ -575,13 +573,13 @@ int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
       check_hash (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, &cracked[i]);
     }
 
-    hc_thread_mutex_unlock (mux_display);
+    hc_thread_mutex_unlock (status_ctx->mux_display);
 
     myfree (cracked);
 
     if (cpt_cracked > 0)
     {
-      hc_thread_mutex_lock (mux_display);
+      hc_thread_mutex_lock (status_ctx->mux_display);
 
       cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].timestamp = time (NULL);
       cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].cracked   = cpt_cracked;
@@ -592,7 +590,7 @@ int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
       if (cpt_ctx->cpt_pos == CPT_BUF) cpt_ctx->cpt_pos = 0;
 
-      hc_thread_mutex_unlock (mux_display);
+      hc_thread_mutex_unlock (status_ctx->mux_display);
     }
 
     if (hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK)

@@ -31,9 +31,6 @@
 #include "status.h"
 
 extern hc_global_data_t  data;
-extern hc_thread_mutex_t mux_hwmon;
-
-hc_thread_mutex_t mux_display;
 
 static const char ST_0000[] = "Initializing";
 static const char ST_0001[] = "Autotuning";
@@ -289,7 +286,7 @@ void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *op
   {
     fprintf (out, "TEMP\t");
 
-    hc_thread_mutex_lock (mux_hwmon);
+    hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
     for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
     {
@@ -302,7 +299,7 @@ void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *op
       fprintf (out, "%d\t", temp);
     }
 
-    hc_thread_mutex_unlock (mux_hwmon);
+    hc_thread_mutex_unlock (status_ctx->mux_hwmon);
   }
 
   /**
@@ -1018,7 +1015,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   if (user_options->gpu_temp_disable == false)
   {
-    hc_thread_mutex_lock (mux_hwmon);
+    hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
     for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
     {
@@ -1097,7 +1094,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
       log_info ("HWMon.Dev.#%d...:%s", device_id + 1, output_buf);
     }
 
-    hc_thread_mutex_unlock (mux_hwmon);
+    hc_thread_mutex_unlock (status_ctx->mux_hwmon);
   }
 }
 

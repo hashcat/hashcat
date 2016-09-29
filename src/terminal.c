@@ -32,8 +32,6 @@
 
 extern hc_global_data_t data;
 
-extern hc_thread_mutex_t mux_display;
-
 extern const char *version_tag;
 
 const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
@@ -168,7 +166,7 @@ void *thread_keypress (void *p)
     //if (ch != '\n')
     //#endif
 
-    hc_thread_mutex_lock (mux_display);
+    hc_thread_mutex_lock (status_ctx->mux_display);
 
     log_info ("");
 
@@ -250,7 +248,7 @@ void *thread_keypress (void *p)
     //if (ch != '\n')
     //#endif
 
-    hc_thread_mutex_unlock (mux_display);
+    hc_thread_mutex_unlock (status_ctx->mux_display);
   }
 
   tty_fix ();

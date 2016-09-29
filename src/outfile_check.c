@@ -145,7 +145,7 @@ void *thread_outfile_remove (void *p)
 
             if (fp != NULL)
             {
-              //hc_thread_mutex_lock (mux_display);
+              //hc_thread_mutex_lock (status_ctx->mux_display);
 
               #if defined (_POSIX)
               struct stat outfile_stat;
@@ -307,7 +307,7 @@ void *thread_outfile_remove (void *p)
 
               out_info[j].seek = ftell (fp);
 
-              //hc_thread_mutex_unlock (mux_display);
+              //hc_thread_mutex_unlock (status_ctx->mux_display);
 
               fclose (fp);
             }
