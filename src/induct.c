@@ -21,7 +21,7 @@ static int sort_by_mtime (const void *p1, const void *p2)
   return s2.st_mtime - s1.st_mtime;
 }
 
-int induct_ctx_init (induct_ctx_t *induct_ctx, const user_options_t *user_options, const folder_config_t *folder_config, const time_t proc_start)
+int induct_ctx_init (induct_ctx_t *induct_ctx, const user_options_t *user_options, const folder_config_t *folder_config, const status_ctx_t *status_ctx)
 {
   induct_ctx->enabled = false;
 
@@ -47,7 +47,7 @@ int induct_ctx_init (induct_ctx_t *induct_ctx, const user_options_t *user_option
       {
         char *root_directory_mv = (char *) mymalloc (HCBUFSIZ_TINY);
 
-        snprintf (root_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) proc_start);
+        snprintf (root_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) status_ctx->proc_start);
 
         if (rename (root_directory, root_directory_mv) != 0)
         {

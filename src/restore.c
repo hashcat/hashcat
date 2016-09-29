@@ -40,7 +40,7 @@ u64 get_lowest_words_done (const restore_ctx_t *restore_ctx, const opencl_ctx_t 
 
   // It's possible that a device's workload isn't finished right after a restore-case.
   // In that case, this function would return 0 and overwrite the real restore point
-  // There's also data.words_cur which is set to rd->words_cur but it changes while
+  // There's also status_ctx->words_cur which is set to rd->words_cur but it changes while
   // the attack is running therefore we should stick to rd->words_cur.
   // Note that -s influences rd->words_cur we should keep a close look on that.
 

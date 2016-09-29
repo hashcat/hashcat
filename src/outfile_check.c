@@ -74,7 +74,7 @@ void *thread_outfile_remove (void *p)
 
   uint check_left = outfile_check_timer; // or 1 if we want to check it at startup
 
-  while (data.shutdown_inner == false)
+  while (status_ctx->shutdown_inner == false)
   {
     hc_sleep (1);
 

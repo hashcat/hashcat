@@ -57,9 +57,6 @@ extern hc_global_data_t data;
 
 extern int SUPPRESS_OUTPUT;
 
-extern hc_thread_mutex_t mux_hwmon;
-extern hc_thread_mutex_t mux_display;
-
 extern const int DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 extern const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
@@ -82,25 +79,25 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
   status_progress_reset (status_ctx, hashes);
 
-  data.words_cur = 0;
+  status_ctx->words_cur = 0;
 
   restore_data_t *rd = restore_ctx->rd;
 
   if (rd->words_cur)
   {
-    data.words_cur = rd->words_cur;
+    status_ctx->words_cur = rd->words_cur;
 
     user_options->skip = 0;
   }
 
   if (user_options->skip)
   {
-    data.words_cur = user_options->skip;
+    status_ctx->words_cur = user_options->skip;
 
     user_options->skip = 0;
   }
 
-  data.ms_paused = 0;
+  status_ctx->ms_paused = 0;
 
   opencl_session_reset (opencl_ctx);
 
@@ -137,11 +134,11 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
         return -1;
       }
 
-      data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, straight_ctx->dict, dictstat_ctx);
+      status_ctx->words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, straight_ctx->dict, dictstat_ctx);
 
       fclose (fd2);
 
-      if (data.words_cnt == 0)
+      if (status_ctx->words_cnt == 0)
       {
         logfile_sub_msg ("STOP");
 
@@ -165,7 +162,7 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
         return -1;
       }
 
-      data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, combinator_ctx->dict1, dictstat_ctx);
+      status_ctx->words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, combinator_ctx->dict1, dictstat_ctx);
 
       fclose (fd2);
     }
@@ -180,12 +177,12 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
         return -1;
       }
 
-      data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, combinator_ctx->dict2, dictstat_ctx);
+      status_ctx->words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, combinator_ctx->dict2, dictstat_ctx);
 
       fclose (fd2);
     }
 
-    if (data.words_cnt == 0)
+    if (status_ctx->words_cnt == 0)
     {
       logfile_sub_msg ("STOP");
 
@@ -215,11 +212,11 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
       return -1;
     }
 
-    data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, straight_ctx->dict, dictstat_ctx);
+    status_ctx->words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, straight_ctx->dict, dictstat_ctx);
 
     fclose (fd2);
 
-    if (data.words_cnt == 0)
+    if (status_ctx->words_cnt == 0)
     {
       logfile_sub_msg ("STOP");
 
@@ -231,7 +228,7 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
     logfile_sub_string (mask_ctx->mask);
   }
 
-  u64 words_base = data.words_cnt;
+  u64 words_base = status_ctx->words_cnt;
 
   if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
   {
@@ -255,7 +252,7 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
     }
   }
 
-  data.words_base = words_base;
+  status_ctx->words_base = words_base;
 
   if (user_options->keyspace == true)
   {
@@ -264,34 +261,34 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
     return 0;
   }
 
-  if (data.words_cur > data.words_base)
+  if (status_ctx->words_cur > status_ctx->words_base)
   {
     log_error ("ERROR: Restore value greater keyspace");
 
     return -1;
   }
 
-  if (data.words_cur)
+  if (status_ctx->words_cur)
   {
     if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
     {
       for (uint i = 0; i < hashes->salts_cnt; i++)
       {
-        status_ctx->words_progress_restored[i] = data.words_cur * straight_ctx->kernel_rules_cnt;
+        status_ctx->words_progress_restored[i] = status_ctx->words_cur * straight_ctx->kernel_rules_cnt;
       }
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
       for (uint i = 0; i < hashes->salts_cnt; i++)
       {
-        status_ctx->words_progress_restored[i] = data.words_cur * combinator_ctx->combs_cnt;
+        status_ctx->words_progress_restored[i] = status_ctx->words_cur * combinator_ctx->combs_cnt;
       }
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
     {
       for (uint i = 0; i < hashes->salts_cnt; i++)
       {
-        status_ctx->words_progress_restored[i] = data.words_cur * mask_ctx->bfs_cnt;
+        status_ctx->words_progress_restored[i] = status_ctx->words_cur * mask_ctx->bfs_cnt;
       }
     }
   }
@@ -331,7 +328,7 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
    * autotune modified kernel_accel, which modifies opencl_ctx->kernel_power_all
    */
 
-  opencl_ctx_devices_update_power (opencl_ctx, user_options, user_options_extra);
+  opencl_ctx_devices_update_power (opencl_ctx, user_options, user_options_extra, status_ctx);
 
   /**
    * Begin loopback recording
@@ -363,15 +360,15 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
    * Prepare cracking stats
    */
 
-  hc_timer_set (&data.timer_running);
+  hc_timer_set (&status_ctx->timer_running);
 
   time_t runtime_start;
 
   time (&runtime_start);
 
-  data.runtime_start = runtime_start;
+  status_ctx->runtime_start = runtime_start;
 
-  data.prepare_time = runtime_start - data.prepare_start;
+  status_ctx->prepare_time = runtime_start - status_ctx->prepare_start;
 
   /**
    * create cracker threads
@@ -415,12 +412,12 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
   time (&runtime_stop);
 
-  data.runtime_stop = runtime_stop;
+  status_ctx->runtime_stop = runtime_stop;
 
   logfile_sub_uint (runtime_start);
   logfile_sub_uint (runtime_stop);
 
-  time (&data.prepare_start);
+  time (&status_ctx->prepare_start);
 
   logfile_sub_msg ("STOP");
 
@@ -684,7 +681,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
       sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
 
-      data.words_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
+      status_ctx->words_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
 
       // copy + args
 
@@ -1190,7 +1187,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
    * setup prepare timer
    */
 
-  time (&data.prepare_start);
+  time (&status_ctx->prepare_start);
 
   /**
    * setup variables and buffers depending on hash_mode
@@ -1503,7 +1500,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   hc_thread_t *inner_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
-  data.shutdown_inner = false;
+  status_ctx->shutdown_inner = false;
 
   /**
     * Outfile remove
@@ -1577,7 +1574,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   // wait for inner threads
 
-  data.shutdown_inner = true;
+  status_ctx->shutdown_inner = true;
 
   for (uint thread_idx = 0; thread_idx < inner_threads_cnt; thread_idx++)
   {
@@ -1655,21 +1652,6 @@ int main (int argc, char **argv)
   setup_environment_variables ();
 
   setup_umask ();
-
-  /**
-   * Real init
-   */
-
-  memset (&data, 0, sizeof (hc_global_data_t));
-
-  time_t proc_start;
-
-  time (&proc_start);
-
-  data.proc_start = proc_start;
-
-  hc_thread_mutex_init (mux_display);
-  hc_thread_mutex_init (mux_hwmon);
 
   /**
    * status init
@@ -1773,7 +1755,7 @@ int main (int argc, char **argv)
    * - this is giving us a visual header before preparations start, so we do not need to clear them afterwards
    */
 
-  welcome_screen (user_options, proc_start);
+  welcome_screen (user_options, status_ctx);
 
   /**
    * logfile init
@@ -1809,7 +1791,7 @@ int main (int argc, char **argv)
 
   data.induct_ctx = induct_ctx;
 
-  const int rc_induct_ctx_init = induct_ctx_init (induct_ctx, user_options, folder_config, proc_start);
+  const int rc_induct_ctx_init = induct_ctx_init (induct_ctx, user_options, folder_config, status_ctx);
 
   if (rc_induct_ctx_init == -1) return -1;
 
@@ -1947,7 +1929,7 @@ int main (int argc, char **argv)
 
   hc_thread_t *outer_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
-  data.shutdown_outer = false;
+  status_ctx->shutdown_outer = false;
 
   if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false)
   {
@@ -1996,7 +1978,7 @@ int main (int argc, char **argv)
 
   // wait for outer threads
 
-  data.shutdown_outer = true;
+  status_ctx->shutdown_outer = true;
 
   for (uint thread_idx = 0; thread_idx < outer_threads_cnt; thread_idx++)
   {
@@ -2009,11 +1991,6 @@ int main (int argc, char **argv)
   {
     user_options->quiet = false;
   }
-
-  // destroy others mutex
-
-  hc_thread_mutex_delete (mux_display);
-  hc_thread_mutex_delete (mux_hwmon);
 
   // free memory
 
@@ -2041,20 +2018,20 @@ int main (int argc, char **argv)
 
   opencl_ctx_devices_destroy (opencl_ctx);
 
+  opencl_ctx_destroy (opencl_ctx);
+
   restore_ctx_destroy (restore_ctx);
 
-  time_t proc_stop;
+  time (&status_ctx->proc_stop);
 
-  time (&proc_stop);
-
-  logfile_top_uint (proc_start);
-  logfile_top_uint (proc_stop);
+  logfile_top_uint (status_ctx->proc_start);
+  logfile_top_uint (status_ctx->proc_stop);
 
   logfile_top_msg ("STOP");
 
   logfile_destroy (logfile_ctx);
 
-  goodbye_screen (user_options, proc_start, proc_stop);
+  goodbye_screen (user_options, status_ctx);
 
   user_options_destroy (user_options);
 
@@ -2064,8 +2041,6 @@ int main (int argc, char **argv)
   if (status_ctx->devices_status == STATUS_QUIT)      rc_final = 2;
   if (status_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
   if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
-
-  opencl_ctx_destroy (opencl_ctx);
 
   status_ctx_destroy (status_ctx);
 

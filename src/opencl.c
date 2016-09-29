@@ -1299,11 +1299,11 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       u64 perf_sum_all = (u64) pws_cnt * (u64) innerloop_left;
 
-      hc_thread_mutex_lock (opencl_ctx->mux_counter);
+      hc_thread_mutex_lock (status_ctx->mux_counter);
 
       status_ctx->words_progress_done[salt_pos] += perf_sum_all;
 
-      hc_thread_mutex_unlock (opencl_ctx->mux_counter);
+      hc_thread_mutex_unlock (status_ctx->mux_counter);
 
       /**
        * speed
@@ -1358,9 +1358,6 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
   if (user_options->show     == true) return 0;
   if (user_options->left     == true) return 0;
   if (user_options->keyspace == true) return 0;
-
-  hc_thread_mutex_init (opencl_ctx->mux_dispatcher);
-  hc_thread_mutex_init (opencl_ctx->mux_counter);
 
   opencl_ctx->ocl = (OCL_PTR *) mymalloc (sizeof (OCL_PTR));
 
@@ -1533,9 +1530,6 @@ void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
   myfree (opencl_ctx->platforms);
 
   myfree (opencl_ctx->platform_devices);
-
-  hc_thread_mutex_delete (opencl_ctx->mux_counter);
-  hc_thread_mutex_delete (opencl_ctx->mux_dispatcher);
 
   myfree (opencl_ctx);
 }
@@ -2454,7 +2448,7 @@ void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
   opencl_ctx->need_xnvctrl   = 0;
 }
 
-void opencl_ctx_devices_update_power (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra)
+void opencl_ctx_devices_update_power (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, status_ctx_t *status_ctx)
 {
   u32 kernel_power_all = 0;
 
@@ -2473,7 +2467,7 @@ void opencl_ctx_devices_update_power (opencl_ctx_t *opencl_ctx, const user_optio
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    if (data.words_base < kernel_power_all)
+    if (status_ctx->words_base < kernel_power_all)
     {
       if (user_options->quiet == false)
       {

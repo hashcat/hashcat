@@ -75,12 +75,12 @@ static u32 get_power (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
   return device_param->kernel_power;
 }
 
-static uint get_work (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, hc_device_param_t *device_param, const u64 max)
+static uint get_work (opencl_ctx_t *opencl_ctx, status_ctx_t *status_ctx, const user_options_t *user_options, hc_device_param_t *device_param, const u64 max)
 {
-  hc_thread_mutex_lock (opencl_ctx->mux_dispatcher);
+  hc_thread_mutex_lock (status_ctx->mux_dispatcher);
 
-  const u64 words_cur  = data.words_cur;
-  const u64 words_base = (user_options->limit == 0) ? data.words_base : MIN (user_options->limit, data.words_base);
+  const u64 words_cur  = status_ctx->words_cur;
+  const u64 words_base = (user_options->limit == 0) ? status_ctx->words_base : MIN (user_options->limit, status_ctx->words_base);
 
   device_param->words_off = words_cur;
 
@@ -102,9 +102,9 @@ static uint get_work (opencl_ctx_t *opencl_ctx, const user_options_t *user_optio
 
   work = MIN (work, max);
 
-  data.words_cur += work;
+  status_ctx->words_cur += work;
 
-  hc_thread_mutex_unlock (opencl_ctx->mux_dispatcher);
+  hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
   return work;
 }
@@ -133,11 +133,11 @@ void *thread_calc_stdin (void *p)
 
   while (status_ctx->run_thread_level1 == true)
   {
-    hc_thread_mutex_lock (opencl_ctx->mux_dispatcher);
+    hc_thread_mutex_lock (status_ctx->mux_dispatcher);
 
     if (feof (stdin) != 0)
     {
-      hc_thread_mutex_unlock (opencl_ctx->mux_dispatcher);
+      hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
       break;
     }
@@ -184,14 +184,14 @@ void *thread_calc_stdin (void *p)
       {
         if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
         {
-          hc_thread_mutex_lock (opencl_ctx->mux_counter);
+          hc_thread_mutex_lock (status_ctx->mux_counter);
 
           for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
           {
             status_ctx->words_progress_rejected[salt_pos] += straight_ctx->kernel_rules_cnt;
           }
 
-          hc_thread_mutex_unlock (opencl_ctx->mux_counter);
+          hc_thread_mutex_unlock (status_ctx->mux_counter);
 
           continue;
         }
@@ -204,7 +204,7 @@ void *thread_calc_stdin (void *p)
       while (status_ctx->run_thread_level1 == false) break;
     }
 
-    hc_thread_mutex_unlock (opencl_ctx->mux_dispatcher);
+    hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
     while (status_ctx->run_thread_level1 == false) break;
 
@@ -267,7 +267,7 @@ void *thread_calc (void *p)
   {
     while (status_ctx->run_thread_level1 == true)
     {
-      const uint work = get_work (opencl_ctx, user_options, device_param, -1u);
+      const uint work = get_work (opencl_ctx, status_ctx, user_options, device_param, -1u);
 
       if (work == 0) break;
 
@@ -379,7 +379,7 @@ void *thread_calc (void *p)
 
       while (max)
       {
-        const uint work = get_work (opencl_ctx, user_options, device_param, max);
+        const uint work = get_work (opencl_ctx, status_ctx, user_options, device_param, max);
 
         if (work == 0) break;
 
@@ -424,14 +424,14 @@ void *thread_calc (void *p)
             {
               max++;
 
-              hc_thread_mutex_lock (opencl_ctx->mux_counter);
+              hc_thread_mutex_lock (status_ctx->mux_counter);
 
               for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
               {
                 status_ctx->words_progress_rejected[salt_pos] += straight_ctx->kernel_rules_cnt;
               }
 
-              hc_thread_mutex_unlock (opencl_ctx->mux_counter);
+              hc_thread_mutex_unlock (status_ctx->mux_counter);
 
               continue;
             }
@@ -445,14 +445,14 @@ void *thread_calc (void *p)
             {
               max++;
 
-              hc_thread_mutex_lock (opencl_ctx->mux_counter);
+              hc_thread_mutex_lock (status_ctx->mux_counter);
 
               for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
               {
                 status_ctx->words_progress_rejected[salt_pos] += combinator_ctx->combs_cnt;
               }
 
-              hc_thread_mutex_unlock (opencl_ctx->mux_counter);
+              hc_thread_mutex_unlock (status_ctx->mux_counter);
 
               continue;
             }

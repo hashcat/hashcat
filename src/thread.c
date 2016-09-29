@@ -51,7 +51,7 @@ BOOL WINAPI sigHandler_default (DWORD sig)
        * function otherwise it is too late (e.g. after returning from this function)
        */
 
-      myabort (data.opencl_ctx);
+      myabort (data.status_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -63,7 +63,7 @@ BOOL WINAPI sigHandler_default (DWORD sig)
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
 
-      myabort (data.opencl_ctx);
+      myabort (data.status_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -79,7 +79,7 @@ BOOL WINAPI sigHandler_benchmark (DWORD sig)
   {
     case CTRL_CLOSE_EVENT:
 
-      myquit (data.opencl_ctx);
+      myquit (data.status_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -91,7 +91,7 @@ BOOL WINAPI sigHandler_benchmark (DWORD sig)
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
 
-      myquit (data.opencl_ctx);
+      myquit (data.status_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -198,7 +198,7 @@ void SuspendThreads (status_ctx_t *status_ctx)
 {
   if (status_ctx->devices_status != STATUS_RUNNING) return;
 
-  hc_timer_set (&data.timer_paused);
+  hc_timer_set (&status_ctx->timer_paused);
 
   status_ctx->devices_status = STATUS_PAUSED;
 
@@ -211,9 +211,9 @@ void ResumeThreads (status_ctx_t *status_ctx)
 
   double ms_paused;
 
-  hc_timer_get (data.timer_paused, ms_paused);
+  hc_timer_get (status_ctx->timer_paused, ms_paused);
 
-  data.ms_paused += ms_paused;
+  status_ctx->ms_paused += ms_paused;
 
   status_ctx->devices_status = STATUS_RUNNING;
 

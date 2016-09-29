@@ -112,7 +112,7 @@ void *thread_monitor (void *p)
   u32 remove_left  = user_options->remove_timer;
   u32 status_left  = user_options->status_timer;
 
-  while (data.shutdown_inner == false)
+  while (status_ctx->shutdown_inner == false)
   {
     hc_sleep (sleep_time);
 
@@ -291,15 +291,15 @@ void *thread_monitor (void *p)
       }
     }
 
-    if ((runtime_check == true) && (data.runtime_start > 0))
+    if ((runtime_check == true) && (status_ctx->runtime_start > 0))
     {
-      double ms_paused = data.ms_paused;
+      double ms_paused = status_ctx->ms_paused;
 
       if (status_ctx->devices_status == STATUS_PAUSED)
       {
         double ms_paused_tmp = 0;
 
-        hc_timer_get (data.timer_paused, ms_paused_tmp);
+        hc_timer_get (status_ctx->timer_paused, ms_paused_tmp);
 
         ms_paused += ms_paused_tmp;
       }
@@ -308,7 +308,7 @@ void *thread_monitor (void *p)
 
       time (&runtime_cur);
 
-      int runtime_left = data.proc_start + user_options->runtime + data.prepare_time + (ms_paused / 1000) - runtime_cur;
+      int runtime_left = status_ctx->proc_start + user_options->runtime + status_ctx->prepare_time + (ms_paused / 1000) - runtime_cur;
 
       if (runtime_left <= 0)
       {

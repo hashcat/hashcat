@@ -233,7 +233,7 @@ void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *op
    * counter
    */
 
-  u64 progress_total = data.words_cnt * hashes->salts_cnt;
+  u64 progress_total = status_ctx->words_cnt * hashes->salts_cnt;
 
   u64 all_done     = 0;
   u64 all_rejected = 0;
@@ -253,7 +253,7 @@ void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *op
 
   if (user_options->skip)
   {
-    progress_skip = MIN (user_options->skip, data.words_base) * hashes->salts_cnt;
+    progress_skip = MIN (user_options->skip, status_ctx->words_base) * hashes->salts_cnt;
 
     if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= straight_ctx->kernel_rules_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= combinator_ctx->combs_cnt;
@@ -262,7 +262,7 @@ void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *op
 
   if (user_options->limit)
   {
-    progress_end = MIN (user_options->limit, data.words_base) * hashes->salts_cnt;
+    progress_end = MIN (user_options->limit, status_ctx->words_base) * hashes->salts_cnt;
 
     if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= straight_ctx->kernel_rules_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_end  *= combinator_ctx->combs_cnt;
@@ -323,7 +323,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
   }
 
   // in this case some required buffers are free'd, ascii_digest() would run into segfault
-  if (data.shutdown_inner == 1) return;
+  if (status_ctx->shutdown_inner == 1) return;
 
   if (user_options->machine_readable == true)
   {
@@ -625,15 +625,15 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   double ms_running = 0;
 
-  hc_timer_get (data.timer_running, ms_running);
+  hc_timer_get (status_ctx->timer_running, ms_running);
 
-  double ms_paused = data.ms_paused;
+  double ms_paused = status_ctx->ms_paused;
 
   if (status_ctx->devices_status == STATUS_PAUSED)
   {
     double ms_paused_tmp = 0;
 
-    hc_timer_get (data.timer_paused, ms_paused_tmp);
+    hc_timer_get (status_ctx->timer_paused, ms_paused_tmp);
 
     ms_paused += ms_paused_tmp;
   }
@@ -674,7 +674,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
       format_timer_display (&tm_run, display_run, sizeof (tm_run));
 
-      char *start = ctime (&data.proc_start);
+      char *start = ctime (&status_ctx->proc_start);
 
       size_t start_len = strlen (start);
 
@@ -693,7 +693,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
    * counters
    */
 
-  u64 progress_total = data.words_cnt * hashes->salts_cnt;
+  u64 progress_total = status_ctx->words_cnt * hashes->salts_cnt;
 
   u64 all_done     = 0;
   u64 all_rejected = 0;
@@ -715,7 +715,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
                     + status_ctx->words_progress_rejected[salt_pos]
                     + status_ctx->words_progress_restored[salt_pos];
 
-      const u64 left = data.words_cnt - all;
+      const u64 left = status_ctx->words_cnt - all;
 
       progress_noneed += left;
     }
@@ -728,7 +728,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   if (user_options->skip)
   {
-    progress_skip = MIN (user_options->skip, data.words_base) * hashes->salts_cnt;
+    progress_skip = MIN (user_options->skip, status_ctx->words_base) * hashes->salts_cnt;
 
     if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= straight_ctx->kernel_rules_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= combinator_ctx->combs_cnt;
@@ -737,7 +737,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   if (user_options->limit)
   {
-    progress_end = MIN (user_options->limit, data.words_base) * hashes->salts_cnt;
+    progress_end = MIN (user_options->limit, status_ctx->words_base) * hashes->salts_cnt;
 
     if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= straight_ctx->kernel_rules_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_end  *= combinator_ctx->combs_cnt;
@@ -819,13 +819,13 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
             #if defined (_WIN)
 
-            __time64_t runtime_left = data.proc_start + user_options->runtime + data.prepare_time + (ms_paused / 1000) - runtime_cur;
+            __time64_t runtime_left = status_ctx->proc_start + user_options->runtime + status_ctx->prepare_time + (ms_paused / 1000) - runtime_cur;
 
             tmp = _gmtime64 (&runtime_left);
 
             #else
 
-            time_t runtime_left = data.proc_start + user_options->runtime + data.prepare_time  + (ms_paused / 1000) - runtime_cur;
+            time_t runtime_left = status_ctx->proc_start + user_options->runtime + status_ctx->prepare_time  + (ms_paused / 1000) - runtime_cur;
 
             tmp = gmtime (&runtime_left);
 
@@ -958,7 +958,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   u64 restore_point = get_lowest_words_done (restore_ctx, opencl_ctx);
 
-  u64 restore_total = data.words_base;
+  u64 restore_total = status_ctx->words_base;
 
   double percent_restore = 0;
 
@@ -1160,7 +1160,7 @@ void status_benchmark (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const
     return;
   }
 
-  if (data.shutdown_inner == 1) return;
+  if (status_ctx->shutdown_inner == 1) return;
 
   if (user_options->machine_readable == true)
   {
@@ -1283,12 +1283,22 @@ int status_ctx_init (status_ctx_t *status_ctx)
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
 
+  hc_thread_mutex_init (status_ctx->mux_dispatcher);
+  hc_thread_mutex_init (status_ctx->mux_counter);
+  hc_thread_mutex_init (status_ctx->mux_display);
+  hc_thread_mutex_init (status_ctx->mux_hwmon);
+
+  time (&status_ctx->proc_start);
+
   return 0;
 }
 
 void status_ctx_destroy (status_ctx_t *status_ctx)
 {
-
+  hc_thread_mutex_delete (status_ctx->mux_dispatcher);
+  hc_thread_mutex_delete (status_ctx->mux_counter);
+  hc_thread_mutex_delete (status_ctx->mux_display);
+  hc_thread_mutex_delete (status_ctx->mux_hwmon);
 
   myfree (status_ctx);
 }

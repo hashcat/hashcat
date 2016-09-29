@@ -721,9 +721,6 @@ typedef struct
 
   int                 force_jit_compilation;
 
-  hc_thread_mutex_t   mux_dispatcher;
-  hc_thread_mutex_t   mux_counter;
-
 } opencl_ctx_t;
 
 #if defined (__APPLE__)
@@ -1219,7 +1216,15 @@ typedef struct
 
 typedef struct
 {
+  /**
+   * main status
+   */
+
   u32  devices_status;
+
+  /**
+   * thread control
+   */
 
   bool run_main_level1;
   bool run_main_level2;
@@ -1227,18 +1232,52 @@ typedef struct
   bool run_thread_level1;
   bool run_thread_level2;
 
+  bool shutdown_inner;
+  bool shutdown_outer;
+
+  hc_thread_mutex_t mux_dispatcher;
+  hc_thread_mutex_t mux_counter;
+  hc_thread_mutex_t mux_hwmon;
+  hc_thread_mutex_t mux_display;
+
+  /**
+   * workload
+   */
+
+  u64  words_cnt;
+  u64  words_cur;
+  u64  words_base;
+
+  /**
+   * progress
+   */
+
   u64 *words_progress_done;      // progress number of words done     per salt
   u64 *words_progress_rejected;  // progress number of words rejected per salt
   u64 *words_progress_restored;  // progress number of words restored per salt
+
+  /**
+   * timer
+   */
+
+  time_t  runtime_start;
+  time_t  runtime_stop;
+
+  time_t  prepare_start;
+  time_t  prepare_time;
+
+  time_t  proc_start;
+  time_t  proc_stop;
+
+  hc_timer_t timer_running;         // timer on current dict
+  hc_timer_t timer_paused;          // timer on current dict
+
+  double  ms_paused;                // timer on current dict
 
 } status_ctx_t;
 
 typedef struct
 {
-  /**
-   * migrated
-   */
-
   bitmap_ctx_t          *bitmap_ctx;
   combinator_ctx_t      *combinator_ctx;
   cpt_ctx_t             *cpt_ctx;
@@ -1260,35 +1299,6 @@ typedef struct
   straight_ctx_t        *straight_ctx;
   user_options_extra_t  *user_options_extra;
   user_options_t        *user_options;
-
-  /**
-   * threads
-   */
-
-  bool shutdown_inner;
-  bool shutdown_outer;
-
-  /**
-   * status, timer
-   */
-
-  time_t  runtime_start;
-  time_t  runtime_stop;
-
-  time_t  prepare_start;
-  time_t  prepare_time;
-
-  time_t  proc_start;
-  time_t  proc_stop;
-
-  u64     words_cnt;
-  u64     words_cur;
-  u64     words_base;
-
-  hc_timer_t timer_running;         // timer on current dict
-  hc_timer_t timer_paused;          // timer on current dict
-
-  double  ms_paused;                // timer on current dict
 
 } hc_global_data_t;
 
