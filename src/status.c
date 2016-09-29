@@ -164,7 +164,7 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
   return exec_ms_sum / exec_ms_cnt;
 }
 
-void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
+void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -241,9 +241,9 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hwmon_ctx_
 
   for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
-    all_done     += data.words_progress_done[salt_pos];
-    all_rejected += data.words_progress_rejected[salt_pos];
-    all_restored += data.words_progress_restored[salt_pos];
+    all_done     += status_ctx->words_progress_done[salt_pos];
+    all_rejected += status_ctx->words_progress_rejected[salt_pos];
+    all_restored += status_ctx->words_progress_restored[salt_pos];
   }
 
   u64 progress_cur = all_restored + all_done + all_rejected;
@@ -313,7 +313,7 @@ void status_display_machine_readable (opencl_ctx_t *opencl_ctx, const hwmon_ctx_
   fflush (out);
 }
 
-void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const cpt_ctx_t *cpt_ctx, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
+void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const cpt_ctx_t *cpt_ctx, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -327,7 +327,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, con
 
   if (user_options->machine_readable == true)
   {
-    status_display_machine_readable (opencl_ctx, hwmon_ctx, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
+    status_display_machine_readable (status_ctx, opencl_ctx, hwmon_ctx, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
 
     return;
   }
@@ -703,17 +703,17 @@ void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, con
 
   for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
-    all_done     += data.words_progress_done[salt_pos];
-    all_rejected += data.words_progress_rejected[salt_pos];
-    all_restored += data.words_progress_restored[salt_pos];
+    all_done     += status_ctx->words_progress_done[salt_pos];
+    all_rejected += status_ctx->words_progress_rejected[salt_pos];
+    all_restored += status_ctx->words_progress_restored[salt_pos];
 
     // Important for ETA only
 
     if (hashes->salts_shown[salt_pos] == 1)
     {
-      const u64 all = data.words_progress_done[salt_pos]
-                    + data.words_progress_rejected[salt_pos]
-                    + data.words_progress_restored[salt_pos];
+      const u64 all = status_ctx->words_progress_done[salt_pos]
+                    + status_ctx->words_progress_rejected[salt_pos]
+                    + status_ctx->words_progress_restored[salt_pos];
 
       const u64 left = data.words_cnt - all;
 
@@ -1101,8 +1101,10 @@ void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, con
   }
 }
 
-void status_benchmark_automate (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
+void status_benchmark_automate (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
 {
+  if (status_ctx == NULL) status_ctx = status_ctx; // make gcc happy, for now...
+
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");
@@ -1149,7 +1151,7 @@ void status_benchmark_automate (opencl_ctx_t *opencl_ctx, const hashconfig_t *ha
   }
 }
 
-void status_benchmark (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const user_options_t *user_options)
+void status_benchmark (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   if (opencl_ctx->devices_status == STATUS_INIT)
   {
@@ -1162,7 +1164,7 @@ void status_benchmark (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig,
 
   if (user_options->machine_readable == true)
   {
-    status_benchmark_automate (opencl_ctx, hashconfig);
+    status_benchmark_automate (status_ctx, opencl_ctx, hashconfig);
 
     return;
   }
@@ -1247,3 +1249,29 @@ void status_benchmark (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig,
 
   if (opencl_ctx->devices_active > 1) log_info ("Speed.Dev.#*.: %9sH/s", display_all_cur);
 }
+
+int status_ctx_init (status_ctx_t *status_ctx, const hashes_t *hashes)
+{
+  status_ctx->words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+  status_ctx->words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+  status_ctx->words_progress_restored = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+
+  return 0;
+}
+
+void status_ctx_destroy (status_ctx_t *status_ctx)
+{
+  myfree (status_ctx->words_progress_done);
+  myfree (status_ctx->words_progress_rejected);
+  myfree (status_ctx->words_progress_restored);
+
+  myfree (status_ctx);
+}
+
+void status_ctx_reset (status_ctx_t *status_ctx, const hashes_t *hashes)
+{
+  memset (status_ctx->words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
+  memset (status_ctx->words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
+  memset (status_ctx->words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
+}
+

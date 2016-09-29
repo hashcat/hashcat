@@ -1227,6 +1227,14 @@ typedef struct
 
 typedef struct
 {
+  u64 *words_progress_done;      // progress number of words done     per salt
+  u64 *words_progress_rejected;  // progress number of words rejected per salt
+  u64 *words_progress_restored;  // progress number of words restored per salt
+
+} status_ctx_t;
+
+typedef struct
+{
   /**
    * migrated
    */
@@ -1247,6 +1255,7 @@ typedef struct
   outfile_ctx_t         *outfile_ctx;
   potfile_ctx_t         *potfile_ctx;
   restore_ctx_t         *restore_ctx;
+  status_ctx_t          *status_ctx;
   session_ctx_t         *session_ctx;
   straight_ctx_t        *straight_ctx;
   user_options_extra_t  *user_options_extra;
@@ -1276,9 +1285,7 @@ typedef struct
   u64     words_cur;
   u64     words_base;
 
-  u64    *words_progress_done;      // progress number of words done     per salt
-  u64    *words_progress_rejected;  // progress number of words rejected per salt
-  u64    *words_progress_restored;  // progress number of words restored per salt
+
 
   hc_timer_t timer_running;         // timer on current dict
   hc_timer_t timer_paused;          // timer on current dict

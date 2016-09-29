@@ -68,7 +68,7 @@ const char *version_tag = VERSION_TAG;
 
 // inner2_loop iterates through wordlists, then calls kernel execution
 
-static int inner2_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
+static int inner2_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx, status_ctx_t *status_ctx)
 {
   //opencl_ctx->run_main_level1   = true;
   //opencl_ctx->run_main_level2   = true;
@@ -80,9 +80,7 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
 
   logfile_sub_msg ("START");
 
-  memset (data.words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
-  memset (data.words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
-  memset (data.words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
+  status_ctx_reset (status_ctx, hashes);
 
   data.words_cur = 0;
 
@@ -279,21 +277,21 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
     {
       for (uint i = 0; i < hashes->salts_cnt; i++)
       {
-        data.words_progress_restored[i] = data.words_cur * straight_ctx->kernel_rules_cnt;
+        status_ctx->words_progress_restored[i] = data.words_cur * straight_ctx->kernel_rules_cnt;
       }
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
       for (uint i = 0; i < hashes->salts_cnt; i++)
       {
-        data.words_progress_restored[i] = data.words_cur * combinator_ctx->combs_cnt;
+        status_ctx->words_progress_restored[i] = data.words_cur * combinator_ctx->combs_cnt;
       }
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
     {
       for (uint i = 0; i < hashes->salts_cnt; i++)
       {
-        data.words_progress_restored[i] = data.words_cur * mask_ctx->bfs_cnt;
+        status_ctx->words_progress_restored[i] = data.words_cur * mask_ctx->bfs_cnt;
       }
     }
   }
@@ -444,7 +442,7 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
 
   if (user_options->benchmark == true)
   {
-    status_benchmark (opencl_ctx, hashconfig, user_options);
+    status_benchmark (status_ctx, opencl_ctx, hashconfig, user_options);
 
     if (user_options->machine_readable == false)
     {
@@ -459,7 +457,7 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
 
       if (hashes->digests_saved != hashes->digests_done) log_info ("");
 
-      status_display (opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
+      status_display (status_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
 
       log_info ("");
     }
@@ -467,7 +465,7 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
     {
       if (user_options->status == true)
       {
-        status_display (opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
+        status_display (status_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
 
         log_info ("");
       }
@@ -484,7 +482,7 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
     {
       for (induct_ctx->induction_dictionaries_pos = 0; induct_ctx->induction_dictionaries_pos < induct_ctx->induction_dictionaries_cnt; induct_ctx->induction_dictionaries_pos++)
       {
-        const int rc_inner2_loop = inner2_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
+        const int rc_inner2_loop = inner2_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx, status_ctx);
 
         if (rc_inner2_loop == -1) return -1;
 
@@ -504,7 +502,7 @@ static int inner2_loop (user_options_t *user_options, user_options_extra_t *user
 
 // inner1_loop iterates through masks, then calls inner2_loop
 
-static int inner1_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
+static int inner1_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx, status_ctx_t *status_ctx)
 {
   //opencl_ctx->run_main_level1   = true;
   //opencl_ctx->run_main_level2   = true;
@@ -1159,7 +1157,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
       straight_ctx->dicts_pos = dicts_pos;
 
-      const int rc_inner2_loop = inner2_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
+      const int rc_inner2_loop = inner2_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx, status_ctx);
 
       if (rc_inner2_loop == -1) return -1;
 
@@ -1168,7 +1166,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
   }
   else
   {
-    const int rc_inner2_loop = inner2_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
+    const int rc_inner2_loop = inner2_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx, status_ctx);
 
     if (rc_inner2_loop == -1) return -1;
   }
@@ -1187,24 +1185,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   opencl_ctx->run_main_level3   = true;
   opencl_ctx->run_thread_level1 = true;
   opencl_ctx->run_thread_level2 = true;
-
-  /*
-   * We need to reset 'rd' in benchmark mode otherwise when the user hits 'bypass'
-   * the following algos are skipped entirely
-   * still needed? there's no more bypass in benchmark mode
-   * also there's no signs of special benchmark handling in the branch
-   */
-
-  /*
-  if (algorithm_pos > 0)
-  {
-    myfree (rd);
-
-    rd = init_restore (argc, argv, user_options);
-
-    data.rd = rd;
-  }
-  */
 
   /**
    * setup prepare timer
@@ -1378,6 +1358,18 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   if (rc_mask_init == -1) return -1;
 
   /**
+   * status init
+   */
+
+  status_ctx_t *status_ctx = (status_ctx_t *) mymalloc (sizeof (status_ctx_t));
+
+  data.status_ctx = status_ctx;
+
+  const int rc_status_init = status_ctx_init (status_ctx, hashes);
+
+  if (rc_status_init == -1) return -1;
+
+  /**
    * enable custom signal handler(s)
    */
 
@@ -1456,22 +1448,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   #endif
 
   if (user_options->quiet == false) log_info_nn ("Initializing device kernels and memory...");
-
-  u64 *words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-  u64 *words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-  u64 *words_progress_restored = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-
-  data.words_progress_done     = words_progress_done;
-  data.words_progress_rejected = words_progress_rejected;
-  data.words_progress_restored = words_progress_restored;
-
-  /*
-  session_ctx_t *session_ctx = (session_ctx_t *) mymalloc (sizeof (session_ctx_t));
-
-  data.session_ctx = session_ctx;
-
-  session_ctx_init (session_ctx);
-  */
 
   opencl_session_begin (opencl_ctx, hashconfig, hashes, straight_ctx, user_options, user_options_extra, folder_config, bitmap_ctx, tuning_db);
 
@@ -1552,7 +1528,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   }
 
   /**
-   * main loop
+   * Tell user about cracked hashes by potfile
    */
 
   if (user_options->quiet == false)
@@ -1572,13 +1548,12 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
     }
   }
 
-  // still needed?
-  // mask_ctx->masks_cnt = maskcnt;
-
-  restore_data_t *rd = restore_ctx->rd;
+  // main call
 
   if (mask_ctx->masks_cnt)
   {
+    restore_data_t *rd = restore_ctx->rd;
+
     for (uint masks_pos = rd->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
     {
       if (masks_pos > rd->masks_pos)
@@ -1590,7 +1565,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
       mask_ctx->masks_pos = masks_pos;
 
-      const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
+      const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx, status_ctx);
 
       if (rc_inner1_loop == -1) return -1;
 
@@ -1599,7 +1574,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
   }
   else
   {
-    const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
+    const int rc_inner1_loop = inner1_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx, status_ctx);
 
     if (rc_inner1_loop == -1) return -1;
   }
@@ -1646,9 +1621,7 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
    * Clean up
    */
 
-  myfree (words_progress_done);
-  myfree (words_progress_rejected);
-  myfree (words_progress_restored);
+  status_ctx_destroy (status_ctx);
 
   opencl_session_destroy (opencl_ctx);
 
