@@ -65,6 +65,448 @@ extern const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 const int   comptime    = COMPTIME;
 const char *version_tag = VERSION_TAG;
 
+// inner2_loop iterates through wordlists, then calls kernel execution
+
+static int inner2_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
+{
+  //opencl_ctx->run_main_level1   = true;
+  //opencl_ctx->run_main_level2   = true;
+  //opencl_ctx->run_main_level3   = true;
+  opencl_ctx->run_thread_level1 = true;
+  opencl_ctx->run_thread_level2 = true;
+
+  logfile_generate_subid (logfile_ctx);
+
+  logfile_sub_msg ("START");
+
+  memset (data.words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
+  memset (data.words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
+  memset (data.words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
+
+  memset (data.cpt_buf, 0, CPT_BUF * sizeof (cpt_t));
+
+  data.cpt_total = 0;
+  data.cpt_pos   = 0;
+  data.cpt_start = time (NULL);
+
+  data.words_cur = 0;
+
+  restore_data_t *rd = restore_ctx->rd;
+
+  if (rd->words_cur)
+  {
+    data.words_cur = rd->words_cur;
+
+    user_options->skip = 0;
+  }
+
+  if (user_options->skip)
+  {
+    data.words_cur = user_options->skip;
+
+    user_options->skip = 0;
+  }
+
+  data.ms_paused = 0;
+
+  opencl_session_reset (opencl_ctx);
+
+  // figure out wordlist based workload
+
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    if (user_options_extra->wordlist_mode == WL_MODE_FILE)
+    {
+      if (induct_ctx->induction_dictionaries_cnt)
+      {
+        straight_ctx->dict = induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos];
+      }
+      else
+      {
+        straight_ctx->dict = straight_ctx->dicts[straight_ctx->dicts_pos];
+      }
+
+      logfile_sub_string (straight_ctx->dict);
+
+      for (uint i = 0; i < user_options->rp_files_cnt; i++)
+      {
+        logfile_sub_var_string ("rulefile", user_options->rp_files[i]);
+      }
+
+      FILE *fd2 = fopen (straight_ctx->dict, "rb");
+
+      if (fd2 == NULL)
+      {
+        log_error ("ERROR: %s: %s", straight_ctx->dict, strerror (errno));
+
+        return -1;
+      }
+
+      data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, straight_ctx->dict, dictstat_ctx);
+
+      fclose (fd2);
+
+      if (data.words_cnt == 0)
+      {
+        logfile_sub_msg ("STOP");
+
+        return 0;
+      }
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+  {
+    logfile_sub_string (combinator_ctx->dict1);
+    logfile_sub_string (combinator_ctx->dict2);
+
+    if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
+    {
+      FILE *fd2 = fopen (combinator_ctx->dict1, "rb");
+
+      if (fd2 == NULL)
+      {
+        log_error ("ERROR: %s: %s", combinator_ctx->dict1, strerror (errno));
+
+        return -1;
+      }
+
+      data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, combinator_ctx->dict1, dictstat_ctx);
+
+      fclose (fd2);
+    }
+    else if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+    {
+      FILE *fd2 = fopen (combinator_ctx->dict2, "rb");
+
+      if (fd2 == NULL)
+      {
+        log_error ("ERROR: %s: %s", combinator_ctx->dict2, strerror (errno));
+
+        return -1;
+      }
+
+      data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, combinator_ctx->dict2, dictstat_ctx);
+
+      fclose (fd2);
+    }
+
+    if (data.words_cnt == 0)
+    {
+      logfile_sub_msg ("STOP");
+
+      return 0;
+    }
+  }
+  else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+  {
+    if (induct_ctx->induction_dictionaries_cnt)
+    {
+      straight_ctx->dict = induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos];
+    }
+    else
+    {
+      straight_ctx->dict = straight_ctx->dicts[straight_ctx->dicts_pos];
+    }
+
+    logfile_sub_string (straight_ctx->dict);
+    logfile_sub_string (mask_ctx->mask);
+
+    FILE *fd2 = fopen (straight_ctx->dict, "rb");
+
+    if (fd2 == NULL)
+    {
+      log_error ("ERROR: %s: %s", straight_ctx->dict, strerror (errno));
+
+      return -1;
+    }
+
+    data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, straight_ctx->dict, dictstat_ctx);
+
+    fclose (fd2);
+
+    if (data.words_cnt == 0)
+    {
+      logfile_sub_msg ("STOP");
+
+      return 0;
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    logfile_sub_string (mask_ctx->mask);
+  }
+
+  u64 words_base = data.words_cnt;
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+  {
+    if (straight_ctx->kernel_rules_cnt)
+    {
+      words_base /= straight_ctx->kernel_rules_cnt;
+    }
+  }
+  else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+  {
+    if (combinator_ctx->combs_cnt)
+    {
+      words_base /= combinator_ctx->combs_cnt;
+    }
+  }
+  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+  {
+    if (mask_ctx->bfs_cnt)
+    {
+      words_base /= mask_ctx->bfs_cnt;
+    }
+  }
+
+  data.words_base = words_base;
+
+  if (user_options->keyspace == true)
+  {
+    log_info ("%" PRIu64 "", words_base);
+
+    return 0;
+  }
+
+  if (data.words_cur > data.words_base)
+  {
+    log_error ("ERROR: Restore value greater keyspace");
+
+    return -1;
+  }
+
+  if (data.words_cur)
+  {
+    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    {
+      for (uint i = 0; i < hashes->salts_cnt; i++)
+      {
+        data.words_progress_restored[i] = data.words_cur * straight_ctx->kernel_rules_cnt;
+      }
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+    {
+      for (uint i = 0; i < hashes->salts_cnt; i++)
+      {
+        data.words_progress_restored[i] = data.words_cur * combinator_ctx->combs_cnt;
+      }
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+    {
+      for (uint i = 0; i < hashes->salts_cnt; i++)
+      {
+        data.words_progress_restored[i] = data.words_cur * mask_ctx->bfs_cnt;
+      }
+    }
+  }
+
+  /*
+   * Update dictionary statistic
+   */
+
+  dictstat_write (dictstat_ctx);
+
+  /**
+   * limit kernel loops by the amplification count we have from:
+   * - straight_ctx, combinator_ctx or mask_ctx for fast hashes
+   * - hash iteration count for slow hashes
+   */
+
+  opencl_ctx_devices_kernel_loops (opencl_ctx, user_options_extra, hashconfig, hashes, straight_ctx, combinator_ctx, mask_ctx);
+
+  /**
+   * create autotune threads
+   */
+
+  hc_thread_t *c_threads = (hc_thread_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
+
+  opencl_ctx->devices_status = STATUS_AUTOTUNE;
+
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    hc_thread_create (c_threads[device_id], thread_autotune, device_param);
+  }
+
+  hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
+
+  /**
+   * autotune modified kernel_accel, which modifies opencl_ctx->kernel_power_all
+   */
+
+  opencl_ctx_devices_update_power (opencl_ctx, user_options, user_options_extra);
+
+  /**
+   * Begin loopback recording
+   */
+
+  if (user_options->loopback == true)
+  {
+    loopback_write_open (loopback_ctx, induct_ctx->root_directory);
+  }
+
+  /**
+   * Tell user we're about to start
+   */
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+  {
+    if ((user_options->quiet == false) && (user_options->status == false) && (user_options->benchmark == false))
+    {
+      if (user_options->quiet == false) send_prompt ();
+    }
+  }
+  else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
+  {
+    if (user_options->quiet == false) log_info ("Starting attack in stdin mode...");
+    if (user_options->quiet == false) log_info ("");
+  }
+
+  /**
+   * Prepare cracking stats
+   */
+
+  hc_timer_set (&data.timer_running);
+
+  time_t runtime_start;
+
+  time (&runtime_start);
+
+  data.runtime_start = runtime_start;
+
+  data.prepare_time = runtime_start - data.prepare_start;
+
+  /**
+   * create cracker threads
+   */
+
+  opencl_ctx->devices_status = STATUS_RUNNING;
+
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
+    {
+      hc_thread_create (c_threads[device_id], thread_calc_stdin, device_param);
+    }
+    else
+    {
+      hc_thread_create (c_threads[device_id], thread_calc, device_param);
+    }
+  }
+
+  hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
+
+  myfree (c_threads);
+
+  // calculate final status
+
+  if ((opencl_ctx->devices_status != STATUS_CRACKED)
+   && (opencl_ctx->devices_status != STATUS_ABORTED)
+   && (opencl_ctx->devices_status != STATUS_QUIT)
+   && (opencl_ctx->devices_status != STATUS_BYPASS))
+  {
+    opencl_ctx->devices_status = STATUS_EXHAUSTED;
+  }
+
+  logfile_sub_var_uint ("status-after-work", opencl_ctx->devices_status);
+
+  // update some timer
+
+  time_t runtime_stop;
+
+  time (&runtime_stop);
+
+  data.runtime_stop = runtime_stop;
+
+  logfile_sub_uint (runtime_start);
+  logfile_sub_uint (runtime_stop);
+
+  time (&data.prepare_start);
+
+  logfile_sub_msg ("STOP");
+
+  // no more skip and restore from here
+
+  if (opencl_ctx->devices_status == STATUS_EXHAUSTED)
+  {
+    rd->words_cur = 0;
+  }
+
+  // stop loopback recording
+
+  if (user_options->loopback == true)
+  {
+    loopback_write_close (loopback_ctx);
+  }
+
+  // print final status
+
+  if (user_options->benchmark == true)
+  {
+    status_benchmark (opencl_ctx, hashconfig, user_options);
+
+    if (user_options->machine_readable == false)
+    {
+      log_info ("");
+    }
+  }
+  else
+  {
+    if (user_options->quiet == false)
+    {
+      clear_prompt ();
+
+      if (hashes->digests_saved != hashes->digests_done) log_info ("");
+
+      status_display (opencl_ctx, hwmon_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
+
+      log_info ("");
+    }
+    else
+    {
+      if (user_options->status == true)
+      {
+        status_display (opencl_ctx, hwmon_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
+
+        log_info ("");
+      }
+    }
+  }
+
+  // New induction folder check
+
+  if (induct_ctx->induction_dictionaries_cnt == 0)
+  {
+    induct_ctx_scan (induct_ctx);
+
+    while (induct_ctx->induction_dictionaries_cnt)
+    {
+      for (induct_ctx->induction_dictionaries_pos = 0; induct_ctx->induction_dictionaries_pos < induct_ctx->induction_dictionaries_cnt; induct_ctx->induction_dictionaries_pos++)
+      {
+        const int rc_inner2_loop = inner2_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, wl_data, straight_ctx, combinator_ctx, mask_ctx);
+
+        if (rc_inner2_loop == -1) return -1;
+
+        if (opencl_ctx->run_main_level3 == false) break;
+
+        unlink (induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos]);
+      }
+
+      myfree (induct_ctx->induction_dictionaries);
+
+      induct_ctx_scan (induct_ctx);
+    }
+  }
+
+  return 0;
+}
+
+// inner1_loop iterates through masks, then calls inner2_loop
+
 static int inner1_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
 {
   //opencl_ctx->run_main_level1   = true;
@@ -319,12 +761,6 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
   }
 
   /**
-   * update induction directory scan
-   */
-
-  induct_ctx_scan (induct_ctx);
-
-  /**
    * dictstat read
    */
 
@@ -333,9 +769,6 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
   /**
    * dictionary pad
    */
-
-  uint   dictcnt   = 0;
-  char **dictfiles = NULL;
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
@@ -356,27 +789,8 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
           return -1;
         }
 
-        uint is_dir = S_ISDIR (l0_stat.st_mode);
-
-        if (is_dir == 0)
+        if (S_ISDIR (l0_stat.st_mode))
         {
-          dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
-
-          dictcnt++;
-
-          dictfiles[dictcnt - 1] = l0_filename;
-        }
-        else
-        {
-          // do not allow --keyspace w/ a directory
-
-          if (user_options->keyspace == true)
-          {
-            log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
-
-            return -1;
-          }
-
           char **dictionary_files = NULL;
 
           dictionary_files = scan_directory (l0_filename);
@@ -400,29 +814,25 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
               if (S_ISREG (l1_stat.st_mode))
               {
-                dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
-
-                dictcnt++;
-
-                dictfiles[dictcnt - 1] = mystrdup (l1_filename);
+                straight_append_dict (straight_ctx, l1_filename);
               }
             }
           }
 
           myfree (dictionary_files);
         }
+        else
+        {
+          straight_append_dict (straight_ctx, l0_filename);
+        }
       }
 
-      if (dictcnt < 1)
+      if (straight_ctx->dicts_cnt == 0)
       {
         log_error ("ERROR: No usable dictionary file found.");
 
         return -1;
       }
-    }
-    else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
-    {
-      dictcnt = 1;
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
@@ -524,26 +934,18 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
     fclose (fp1);
     fclose (fp2);
 
-    data.dictfile  = dictfile1;
-    data.dictfile2 = dictfile2;
+    combinator_ctx->dict1 = dictfile1;
+    combinator_ctx->dict2 = dictfile2;
 
     if (words1_cnt >= words2_cnt)
     {
-      combinator_ctx->combs_cnt  = words2_cnt;
       combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
-
-      dictfiles = &data.dictfile;
-
-      dictcnt = 1;
+      combinator_ctx->combs_cnt  = words2_cnt;
     }
     else
     {
-      combinator_ctx->combs_cnt  = words1_cnt;
       combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
-
-      dictfiles = &data.dictfile2;
-
-      dictcnt = 1;
+      combinator_ctx->combs_cnt  = words1_cnt;
 
       // we also have to switch wordlist related rules!
 
@@ -569,19 +971,6 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
       pw_min = mp_get_length (mask_ctx->mask);
       pw_max = pw_min;
     }
-
-    /* i think we can do this better
-    if (user_options->increment == true)
-    {
-      if (user_options->increment_min > pw_min) pw_min = user_options->increment_min;
-      if (user_options->increment_max < pw_max) pw_max = user_options->increment_max;
-    }
-    */
-
-    dictfiles = (char **) mycalloc (1, sizeof (char *));
-    dictfiles[0] = "DUMMY";
-
-    dictcnt = 1;
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
@@ -595,41 +984,22 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
     for (int i = 0; i < wls_left; i++)
     {
-      char *filename = restore_ctx->argv[user_options_extra->optind + 1 + i];
+      char *l0_filename = restore_ctx->argv[user_options_extra->optind + 1 + i];
 
-      struct stat file_stat;
+      struct stat l0_stat;
 
-      if (stat (filename, &file_stat) == -1)
+      if (stat (l0_filename, &l0_stat) == -1)
       {
-        log_error ("ERROR: %s: %s", filename, strerror (errno));
+        log_error ("ERROR: %s: %s", l0_filename, strerror (errno));
 
         return -1;
       }
 
-      uint is_dir = S_ISDIR (file_stat.st_mode);
-
-      if (is_dir == 0)
+      if (S_ISDIR (l0_stat.st_mode))
       {
-        dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
-
-        dictcnt++;
-
-        dictfiles[dictcnt - 1] = filename;
-      }
-      else
-      {
-        // do not allow --keyspace w/ a directory
-
-        if (user_options->keyspace == true)
-        {
-          log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
-
-          return -1;
-        }
-
         char **dictionary_files = NULL;
 
-        dictionary_files = scan_directory (filename);
+        dictionary_files = scan_directory (l0_filename);
 
         if (dictionary_files != NULL)
         {
@@ -650,20 +1020,20 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
             if (S_ISREG (l1_stat.st_mode))
             {
-              dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
-
-              dictcnt++;
-
-              dictfiles[dictcnt - 1] = mystrdup (l1_filename);
+              straight_append_dict (straight_ctx, l1_filename);
             }
           }
         }
 
         myfree (dictionary_files);
       }
+      else
+      {
+        straight_append_dict (straight_ctx, l0_filename);
+      }
     }
 
-    if (dictcnt < 1)
+    if (straight_ctx->dicts_cnt == 0)
     {
       log_error ("ERROR: No usable dictionary file found.");
 
@@ -686,41 +1056,22 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
     for (int i = 0; i < wls_left; i++)
     {
-      char *filename = restore_ctx->argv[user_options_extra->optind + 2 + i];
+      char *l0_filename = restore_ctx->argv[user_options_extra->optind + 2 + i];
 
-      struct stat file_stat;
+      struct stat l0_stat;
 
-      if (stat (filename, &file_stat) == -1)
+      if (stat (l0_filename, &l0_stat) == -1)
       {
-        log_error ("ERROR: %s: %s", filename, strerror (errno));
+        log_error ("ERROR: %s: %s", l0_filename, strerror (errno));
 
         return -1;
       }
 
-      uint is_dir = S_ISDIR (file_stat.st_mode);
-
-      if (is_dir == 0)
+      if (S_ISDIR (l0_stat.st_mode))
       {
-        dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
-
-        dictcnt++;
-
-        dictfiles[dictcnt - 1] = filename;
-      }
-      else
-      {
-        // do not allow --keyspace w/ a directory
-
-        if (user_options->keyspace == true)
-        {
-          log_error ("ERROR: Keyspace parameter is not allowed together with a directory");
-
-          return -1;
-        }
-
         char **dictionary_files = NULL;
 
-        dictionary_files = scan_directory (filename);
+        dictionary_files = scan_directory (l0_filename);
 
         if (dictionary_files != NULL)
         {
@@ -741,20 +1092,20 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
             if (S_ISREG (l1_stat.st_mode))
             {
-              dictfiles = (char **) myrealloc (dictfiles, dictcnt * sizeof (char *), sizeof (char *));
-
-              dictcnt++;
-
-              dictfiles[dictcnt - 1] = mystrdup (l1_filename);
+              straight_append_dict (straight_ctx, l1_filename);
             }
           }
         }
 
         myfree (dictionary_files);
       }
+      else
+      {
+        straight_append_dict (straight_ctx, l0_filename);
+      }
     }
 
-    if (dictcnt < 1)
+    if (straight_ctx->dicts_cnt == 0)
     {
       log_error ("ERROR: No usable dictionary file found.");
 
@@ -775,7 +1126,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
   if (user_options->skip != 0 || user_options->limit != 0)
   {
-    if ((mask_ctx->masks_cnt > 1) || (dictcnt > 1))
+    if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
     {
       log_error ("ERROR: --skip/--limit are not supported with --increment or mask files");
 
@@ -789,7 +1140,7 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
   if (user_options->keyspace == true)
   {
-    if ((mask_ctx->masks_cnt > 1) || (dictcnt > 1))
+    if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
     {
       log_error ("ERROR: --keyspace is not supported with --increment or mask files");
 
@@ -803,466 +1154,32 @@ static int inner1_loop (user_options_t *user_options, user_options_extra_t *user
 
   restore_data_t *rd = restore_ctx->rd;
 
-  for (uint dictpos = rd->dictpos; dictpos < dictcnt; dictpos++)
+  if (straight_ctx->dicts_cnt)
   {
-    if (opencl_ctx->run_main_level3 == false) break;
-
-    //opencl_ctx->run_main_level1   = true;
-    //opencl_ctx->run_main_level2   = true;
-    //opencl_ctx->run_main_level3   = true;
-    opencl_ctx->run_thread_level1 = true;
-    opencl_ctx->run_thread_level2 = true;
-
-    rd->dictpos = dictpos;
-
-    logfile_generate_subid (logfile_ctx);
-
-    logfile_sub_msg ("START");
-
-    memset (data.words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
-    memset (data.words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
-    memset (data.words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
-
-    memset (data.cpt_buf, 0, CPT_BUF * sizeof (cpt_t));
-
-    data.cpt_pos = 0;
-
-    data.cpt_start = time (NULL);
-
-    data.cpt_total = 0;
-
-    data.words_cur = 0;
-
-    if (rd->words_cur)
+    for (uint dicts_pos = rd->dictpos; dicts_pos < straight_ctx->dicts_cnt; dicts_pos++)
     {
-      data.words_cur = rd->words_cur;
+      rd->dictpos = dicts_pos;
 
-      user_options->skip = 0;
+      straight_ctx->dicts_pos = dicts_pos;
+
+      const int rc_inner2_loop = inner2_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, wl_data, straight_ctx, combinator_ctx, mask_ctx);
+
+      if (rc_inner2_loop == -1) return -1;
+
+      if (opencl_ctx->run_main_level3 == false) break;
     }
-
-    if (user_options->skip)
-    {
-      data.words_cur = user_options->skip;
-
-      user_options->skip = 0;
-    }
-
-    data.ms_paused = 0;
-
-    opencl_session_reset (opencl_ctx);
-
-    // figure out some workload
-
-    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-    {
-      if (user_options_extra->wordlist_mode == WL_MODE_FILE)
-      {
-        char *dictfile = NULL;
-
-        if (induct_ctx->induction_dictionaries_cnt)
-        {
-          dictfile = induct_ctx->induction_dictionaries[0];
-        }
-        else
-        {
-          dictfile = dictfiles[dictpos];
-        }
-
-        data.dictfile = dictfile;
-
-        logfile_sub_string (dictfile);
-
-        for (uint i = 0; i < user_options->rp_files_cnt; i++)
-        {
-          logfile_sub_var_string ("rulefile", user_options->rp_files[i]);
-        }
-
-        FILE *fd2 = fopen (dictfile, "rb");
-
-        if (fd2 == NULL)
-        {
-          log_error ("ERROR: %s: %s", dictfile, strerror (errno));
-
-          return -1;
-        }
-
-        data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, dictfile, dictstat_ctx);
-
-        fclose (fd2);
-
-        if (data.words_cnt == 0)
-        {
-          logfile_sub_msg ("STOP");
-
-          continue;
-        }
-      }
-    }
-    else if (user_options->attack_mode == ATTACK_MODE_COMBI)
-    {
-      char *dictfile  = data.dictfile;
-      char *dictfile2 = data.dictfile2;
-
-      logfile_sub_string (dictfile);
-      logfile_sub_string (dictfile2);
-
-      if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
-      {
-        FILE *fd2 = fopen (dictfile, "rb");
-
-        if (fd2 == NULL)
-        {
-          log_error ("ERROR: %s: %s", dictfile, strerror (errno));
-
-          return -1;
-        }
-
-        data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, dictfile, dictstat_ctx);
-
-        fclose (fd2);
-      }
-      else if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-      {
-        FILE *fd2 = fopen (dictfile2, "rb");
-
-        if (fd2 == NULL)
-        {
-          log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
-
-          return -1;
-        }
-
-        data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, dictfile2, dictstat_ctx);
-
-        fclose (fd2);
-      }
-
-      if (data.words_cnt == 0)
-      {
-        logfile_sub_msg ("STOP");
-
-        continue;
-      }
-    }
-    else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
-    {
-      char *dictfile = NULL;
-
-      if (induct_ctx->induction_dictionaries_cnt)
-      {
-        dictfile = induct_ctx->induction_dictionaries[0];
-      }
-      else
-      {
-        dictfile = dictfiles[dictpos];
-      }
-
-      data.dictfile = dictfile;
-
-      logfile_sub_string (dictfile);
-      logfile_sub_string (mask_ctx->mask);
-
-      FILE *fd2 = fopen (dictfile, "rb");
-
-      if (fd2 == NULL)
-      {
-        log_error ("ERROR: %s: %s", dictfile, strerror (errno));
-
-        return -1;
-      }
-
-      data.words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, dictfile, dictstat_ctx);
-
-      fclose (fd2);
-
-      if (data.words_cnt == 0)
-      {
-        logfile_sub_msg ("STOP");
-
-        continue;
-      }
-    }
-    else if (user_options->attack_mode == ATTACK_MODE_BF)
-    {
-      logfile_sub_string (mask_ctx->mask);
-    }
-
-    u64 words_base = data.words_cnt;
-
-    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-    {
-      if (straight_ctx->kernel_rules_cnt)
-      {
-        words_base /= straight_ctx->kernel_rules_cnt;
-      }
-    }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-    {
-      if (combinator_ctx->combs_cnt)
-      {
-        words_base /= combinator_ctx->combs_cnt;
-      }
-    }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-    {
-      if (mask_ctx->bfs_cnt)
-      {
-        words_base /= mask_ctx->bfs_cnt;
-      }
-    }
-
-    data.words_base = words_base;
-
-    if (user_options->keyspace == true)
-    {
-      log_info ("%" PRIu64 "", words_base);
-
-      return 0;
-    }
-
-    if (data.words_cur > data.words_base)
-    {
-      log_error ("ERROR: Restore value greater keyspace");
-
-      return -1;
-    }
-
-    if (data.words_cur)
-    {
-      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-      {
-        for (uint i = 0; i < hashes->salts_cnt; i++)
-        {
-          data.words_progress_restored[i] = data.words_cur * straight_ctx->kernel_rules_cnt;
-        }
-      }
-      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-      {
-        for (uint i = 0; i < hashes->salts_cnt; i++)
-        {
-          data.words_progress_restored[i] = data.words_cur * combinator_ctx->combs_cnt;
-        }
-      }
-      else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-      {
-        for (uint i = 0; i < hashes->salts_cnt; i++)
-        {
-          data.words_progress_restored[i] = data.words_cur * mask_ctx->bfs_cnt;
-        }
-      }
-    }
-
-    /*
-     * Update dictionary statistic
-     */
-
-    dictstat_write (dictstat_ctx);
-
-    /**
-     * Update loopback file
-     */
-
-    if (user_options->loopback == true)
-    {
-      loopback_write_open (loopback_ctx, induct_ctx->root_directory);
-    }
-
-    /**
-     * some algorithms have a maximum kernel-loops count
-     */
-
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-    {
-      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-      if (device_param->skipped) continue;
-
-      if (device_param->kernel_loops_min < device_param->kernel_loops_max)
-      {
-        u32 innerloop_cnt = 0;
-
-        if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-        {
-          if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = straight_ctx->kernel_rules_cnt;
-          else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = combinator_ctx->combs_cnt;
-          else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = mask_ctx->bfs_cnt;
-        }
-        else
-        {
-          innerloop_cnt = hashes->salts_buf[0].salt_iter;
-        }
-
-        if ((innerloop_cnt >= device_param->kernel_loops_min) &&
-            (innerloop_cnt <= device_param->kernel_loops_max))
-        {
-          device_param->kernel_loops_max = innerloop_cnt;
-        }
-      }
-    }
-
-    /**
-     * create autotune threads
-     */
-
-    hc_thread_t *c_threads = (hc_thread_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
-
-    opencl_ctx->devices_status = STATUS_AUTOTUNE;
-
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-    {
-      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-      hc_thread_create (c_threads[device_id], thread_autotune, device_param);
-    }
-
-    hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
-
-    // autotune modified kernel_accel, which modifies opencl_ctx->kernel_power_all
-
-    opencl_ctx_devices_update_power (opencl_ctx, user_options, user_options_extra);
-
-    /**
-     * create cracker threads
-     */
-
-    opencl_ctx->devices_status = STATUS_RUNNING;
-
-    hc_timer_set (&data.timer_running);
-
-    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-    {
-      if ((user_options->quiet == false) && (user_options->status == false) && (user_options->benchmark == false))
-      {
-        if (user_options->quiet == false) send_prompt ();
-      }
-    }
-    else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
-    {
-      if (user_options->quiet == false) log_info ("Starting attack in stdin mode...");
-      if (user_options->quiet == false) log_info ("");
-    }
-
-    time_t runtime_start;
-
-    time (&runtime_start);
-
-    data.runtime_start = runtime_start;
-
-    data.prepare_time = runtime_start - data.prepare_start;
-
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-    {
-      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-      if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
-      {
-        hc_thread_create (c_threads[device_id], thread_calc_stdin, device_param);
-      }
-      else
-      {
-        hc_thread_create (c_threads[device_id], thread_calc, device_param);
-      }
-    }
-
-    hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
-
-    myfree (c_threads);
-
-    if ((opencl_ctx->devices_status != STATUS_CRACKED)
-     && (opencl_ctx->devices_status != STATUS_ABORTED)
-     && (opencl_ctx->devices_status != STATUS_QUIT)
-     && (opencl_ctx->devices_status != STATUS_BYPASS))
-    {
-      opencl_ctx->devices_status = STATUS_EXHAUSTED;
-    }
-
-    if (opencl_ctx->devices_status == STATUS_EXHAUSTED)
-    {
-      rd->words_cur = 0;
-    }
-
-    logfile_sub_var_uint ("status-after-work", opencl_ctx->devices_status);
-
-    if (induct_ctx->induction_dictionaries_cnt)
-    {
-      unlink (induct_ctx->induction_dictionaries[0]);
-    }
-
-    myfree (induct_ctx->induction_dictionaries);
-
-    induct_ctx_scan (induct_ctx);
-
-    if (user_options->benchmark == true)
-    {
-      status_benchmark (opencl_ctx, hashconfig, user_options);
-
-      if (user_options->machine_readable == false)
-      {
-        log_info ("");
-      }
-    }
-    else
-    {
-      if (user_options->quiet == false)
-      {
-        clear_prompt ();
-
-        if (hashes->digests_saved != hashes->digests_done) log_info ("");
-
-        status_display (opencl_ctx, hwmon_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
-
-        log_info ("");
-      }
-      else
-      {
-        if (user_options->status == true)
-        {
-          status_display (opencl_ctx, hwmon_ctx, hashconfig, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
-
-          log_info ("");
-        }
-      }
-    }
-
-    if (induct_ctx->induction_dictionaries_cnt)
-    {
-      // yeah, this next statement is a little hack to make sure that --loopback runs correctly (because with it we guarantee that the loop iterates one more time)
-
-      dictpos--;
-    }
-
-    /**
-     * Update loopback file
-     */
-
-    if (user_options->loopback == true)
-    {
-      loopback_write_close (loopback_ctx);
-    }
-
-    time_t runtime_stop;
-
-    time (&runtime_stop);
-
-    data.runtime_stop = runtime_stop;
-
-    logfile_sub_uint (runtime_start);
-    logfile_sub_uint (runtime_stop);
-
-    time (&data.prepare_start);
-
-    logfile_sub_msg ("STOP");
-
-    // finalize task
-
-    if (opencl_ctx->run_main_level3 == false) break;
   }
+  else
+  {
+    const int rc_inner2_loop = inner2_loop (user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, wl_data, straight_ctx, combinator_ctx, mask_ctx);
 
-  // free memory
-
+    if (rc_inner2_loop == -1) return -1;
+  }
 
   return 0;
 }
+
+// outer_loop iterates through hash_modes (in benchmark mode)
 
 static int outer_loop (user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx)
 {
@@ -1679,50 +1596,6 @@ static int outer_loop (user_options_t *user_options, user_options_extra_t *user_
 
     if (rc_inner1_loop == -1) return -1;
   }
-
-  /* ???????? TODO
-  // problems could occur if already at startup everything was cracked (because of .pot file reading etc), we must set some variables here to avoid NULL pointers
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    if (user_options_extra->wordlist_mode == WL_MODE_FILE)
-    {
-      if (data.dictfile == NULL)
-      {
-        if (dictfiles != NULL)
-        {
-          data.dictfile = dictfiles[0];
-
-          hc_timer_set (&data.timer_running);
-        }
-      }
-    }
-  }
-  // NOTE: combi is okay because it is already set beforehand
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1 || user_options->attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    if (data.dictfile == NULL)
-    {
-      if (dictfiles != NULL)
-      {
-        hc_timer_set (&data.timer_running);
-
-        data.dictfile = dictfiles[0];
-      }
-    }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_BF)
-  {
-    if (mask_ctx->mask == NULL)
-    {
-      hc_timer_set (&data.timer_running);
-
-      mask_ctx->mask = mask_ctx->masks[0];
-    }
-  }
-  */
-
-  // if cracked / aborted remove last induction dictionary
-  induct_ctx_cleanup (induct_ctx);
 
   // wait for inner threads
 

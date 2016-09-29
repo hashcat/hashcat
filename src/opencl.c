@@ -2498,6 +2498,38 @@ void opencl_ctx_devices_update_power (opencl_ctx_t *opencl_ctx, const user_optio
   }
 }
 
+void opencl_ctx_devices_kernel_loops (opencl_ctx_t *opencl_ctx, const user_options_extra_t *user_options_extra, const hashconfig_t *hashconfig, const hashes_t *hashes, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
+{
+  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    if (device_param->kernel_loops_min < device_param->kernel_loops_max)
+    {
+      u32 innerloop_cnt = 0;
+
+      if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+      {
+        if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = straight_ctx->kernel_rules_cnt;
+        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = combinator_ctx->combs_cnt;
+        else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = mask_ctx->bfs_cnt;
+      }
+      else
+      {
+        innerloop_cnt = hashes->salts_buf[0].salt_iter;
+      }
+
+      if ((innerloop_cnt >= device_param->kernel_loops_min) &&
+          (innerloop_cnt <= device_param->kernel_loops_max))
+      {
+        device_param->kernel_loops_max = innerloop_cnt;
+      }
+    }
+  }
+}
+
 int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, const hashes_t *hashes, const straight_ctx_t *straight_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx, const tuning_db_t *tuning_db)
 {
   /**

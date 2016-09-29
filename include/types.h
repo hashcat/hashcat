@@ -1129,6 +1129,7 @@ typedef struct
 
   char **induction_dictionaries;
   int    induction_dictionaries_cnt;
+  int    induction_dictionaries_pos;
 
 } induct_ctx_t;
 
@@ -1144,10 +1145,15 @@ typedef struct
 {
   bool enabled;
 
-  char *dictfile;
-
   u32             kernel_rules_cnt;
   kernel_rule_t  *kernel_rules_buf;
+
+  char **dicts;
+  u32    dicts_pos;
+  u32    dicts_cnt;
+  u32    dicts_avail;
+
+  char *dict;
 
 } straight_ctx_t;
 
@@ -1155,8 +1161,8 @@ typedef struct
 {
   bool enabled;
 
-  char *dictfile1;
-  char *dictfile2;
+  char *dict1;
+  char *dict2;
 
   u32 combs_mode;
   u32 combs_cnt;
@@ -1252,13 +1258,6 @@ typedef struct
   int     cpt_pos;
   time_t  cpt_start;
   u64     cpt_total;
-
-  /**
-   * user
-   */
-
-  char   *dictfile;
-  char   *dictfile2;
 
   /**
    * status, timer

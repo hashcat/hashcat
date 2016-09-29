@@ -389,7 +389,7 @@ void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, con
   {
     if (user_options_extra->wordlist_mode == WL_MODE_FILE)
     {
-      if (data.dictfile != NULL) log_info ("Input.Mode.....: File (%s)", data.dictfile);
+      log_info ("Input.Mode.....: File (%s)", straight_ctx->dict);
     }
     else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
     {
@@ -398,8 +398,8 @@ void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, con
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
-    if (data.dictfile  != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
-    if (data.dictfile2 != NULL) log_info ("Input.Right....: File (%s)", data.dictfile2);
+    log_info ("Input.Left.....: File (%s)", combinator_ctx->dict1);
+    log_info ("Input.Right....: File (%s)", combinator_ctx->dict2);
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
@@ -452,8 +452,8 @@ void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, con
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
-    if (data.dictfile  != NULL) log_info ("Input.Left.....: File (%s)", data.dictfile);
-    if (mask_ctx->mask != NULL) log_info ("Input.Right....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
+    log_info ("Input.Left.....: File (%s)", straight_ctx->dict);
+    log_info ("Input.Right....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
 
     if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
     {
@@ -467,8 +467,8 @@ void status_display (opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, con
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (mask_ctx->mask     != NULL) log_info ("Input.Left.....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
-    if (data.dictfile != NULL) log_info ("Input.Right....: File (%s)", data.dictfile);
+    log_info ("Input.Left.....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
+    log_info ("Input.Right....: File (%s)", straight_ctx->dict);
 
     if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
     {

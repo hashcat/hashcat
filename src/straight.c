@@ -63,10 +63,31 @@ void straight_ctx_destroy (straight_ctx_t *straight_ctx)
 {
   if (straight_ctx->enabled == false) return;
 
+  for (u32 dict_pos = 0; dict_pos < straight_ctx->dicts_cnt; dict_pos++)
+  {
+    myfree (straight_ctx->dicts[dict_pos]);
+  }
+
+  myfree (straight_ctx->dicts);
+
   myfree (straight_ctx->kernel_rules_buf);
 
   straight_ctx->kernel_rules_buf = NULL;
   straight_ctx->kernel_rules_cnt = 0;
 
   myfree (straight_ctx);
+}
+
+void straight_append_dict (straight_ctx_t *straight_ctx, const char *dict)
+{
+  if (straight_ctx->dicts_avail == straight_ctx->dicts_cnt)
+  {
+    straight_ctx->dicts = (char **) myrealloc (straight_ctx->dicts, straight_ctx->dicts_avail * sizeof (char *), INCR_DICTS * sizeof (char *));
+
+    straight_ctx->dicts_avail += INCR_DICTS;
+  }
+
+  straight_ctx->dicts[straight_ctx->dicts_cnt] = mystrdup (dict);
+
+  straight_ctx->dicts_cnt++;
 }

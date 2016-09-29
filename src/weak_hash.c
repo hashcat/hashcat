@@ -5,30 +5,10 @@
 
 #include "common.h"
 #include "types.h"
-#include "interface.h"
-#include "timer.h"
 #include "logging.h"
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
-#include "mpsp.h"
-#include "rp_cpu.h"
-#include "tuningdb.h"
-#include "thread.h"
 #include "opencl.h"
-#include "hwmon.h"
-#include "restore.h"
 #include "hash_management.h"
-#include "outfile.h"
-#include "potfile.h"
-#include "debugfile.h"
-#include "loopback.h"
-#include "data.h"
 #include "weak_hash.h"
-
-extern hc_global_data_t data;
 
 void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, hashconfig_t *hashconfig, hashes_t *hashes, const uint salt_pos)
 {
@@ -47,12 +27,6 @@ void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param,
   device_param->kernel_params_buf32[32] = salt_buf->digests_offset;
   device_param->kernel_params_buf32[33] = 0;
   device_param->kernel_params_buf32[34] = 1;
-
-  char *dictfile_old = data.dictfile;
-
-  const char *weak_hash_check = "weak-hash-check";
-
-  data.dictfile = (char *) weak_hash_check;
 
   uint cmd0_rule_old = straight_ctx->kernel_rules_buf[0].cmds[0];
 
@@ -107,8 +81,6 @@ void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param,
   device_param->kernel_params_buf32[32] = 0;
   device_param->kernel_params_buf32[33] = 0;
   device_param->kernel_params_buf32[34] = 0;
-
-  data.dictfile = dictfile_old;
 
   straight_ctx->kernel_rules_buf[0].cmds[0] = cmd0_rule_old;
 }

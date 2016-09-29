@@ -297,13 +297,17 @@ void *thread_calc (void *p)
   }
   else
   {
-    char *dictfile = data.dictfile;
+    char *dictfile = straight_ctx->dict;
 
     if (attack_mode == ATTACK_MODE_COMBI)
     {
-      if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+      if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
       {
-        dictfile = data.dictfile2;
+        dictfile = combinator_ctx->dict1;
+      }
+      else
+      {
+        dictfile = combinator_ctx->dict2;
       }
     }
 
@@ -322,13 +326,13 @@ void *thread_calc (void *p)
 
       if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
       {
-        const char *dictfilec = data.dictfile2;
+        const char *dictfilec = combinator_ctx->dict2;
 
         FILE *combs_fp = fopen (dictfilec, "rb");
 
         if (combs_fp == NULL)
         {
-          log_error ("ERROR: %s: %s", dictfilec, strerror (errno));
+          log_error ("ERROR: %s: %s", combinator_ctx->dict2, strerror (errno));
 
           fclose (fd);
 
@@ -339,7 +343,7 @@ void *thread_calc (void *p)
       }
       else if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
       {
-        const char *dictfilec = data.dictfile;
+        const char *dictfilec = combinator_ctx->dict1;
 
         FILE *combs_fp = fopen (dictfilec, "rb");
 
