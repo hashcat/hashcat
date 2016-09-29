@@ -12,13 +12,6 @@
 
 void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, hashconfig_t *hashconfig, hashes_t *hashes, const uint salt_pos)
 {
-  if (device_param == NULL)
-  {
-    log_error ("ERROR: %s : Invalid argument", __func__);
-
-    exit (-1);
-  }
-
   salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
   device_param->kernel_params_buf32[27] = salt_pos;
