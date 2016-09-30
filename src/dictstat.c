@@ -29,15 +29,20 @@ void dictstat_init (dictstat_ctx_t *dictstat_ctx, const user_options_t *user_opt
 {
   dictstat_ctx->enabled = false;
 
-  if (user_options->show      == true) return;
-  if (user_options->left      == true) return;
-  if (user_options->keyspace  == true) return;
-  if (user_options->benchmark == true) return;
+  if (user_options->benchmark   == true) return;
+  if (user_options->keyspace    == true) return;
+  if (user_options->left        == true) return;
+  if (user_options->show        == true) return;
+  if (user_options->usage       == true) return;
+  if (user_options->version     == true) return;
+
+  if (user_options->attack_mode == ATTACK_MODE_BF) return;
+
+  dictstat_ctx->enabled  = true;
 
   dictstat_ctx->filename = (char *)       mymalloc (HCBUFSIZ_TINY);
   dictstat_ctx->base     = (dictstat_t *) mycalloc (MAX_DICTSTAT, sizeof (dictstat_t));
   dictstat_ctx->cnt      = 0;
-  dictstat_ctx->enabled  = true;
 
   snprintf (dictstat_ctx->filename, HCBUFSIZ_TINY - 1, "%s/hashcat.dictstat", folder_config->profile_dir);
 }
@@ -48,6 +53,8 @@ void dictstat_destroy (dictstat_ctx_t *dictstat_ctx)
 
   myfree (dictstat_ctx->filename);
   myfree (dictstat_ctx->base);
+
+  myfree (dictstat_ctx);
 }
 
 void dictstat_read (dictstat_ctx_t *dictstat_ctx)
