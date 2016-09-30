@@ -19,11 +19,14 @@
 
 int straight_ctx_init (straight_ctx_t *straight_ctx, const user_options_t *user_options)
 {
-  memset (straight_ctx, 0, sizeof (straight_ctx_t));
-
   straight_ctx->enabled = false;
 
-  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT) return 0;
+  if (user_options->left        == true) return 0;
+  if (user_options->show        == true) return 0;
+  if (user_options->usage       == true) return 0;
+  if (user_options->version     == true) return 0;
+
+  if (user_options->attack_mode == ATTACK_MODE_BF) return 0;
 
   straight_ctx->enabled = true;
 
