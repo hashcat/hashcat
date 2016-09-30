@@ -856,13 +856,15 @@ static void mask_append (mask_ctx_t *mask_ctx, const user_options_t *user_option
 
 int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const restore_ctx_t *restore_ctx, const hashconfig_t *hashconfig)
 {
-  memset (mask_ctx, 0, sizeof (mask_ctx_t));
-
   mask_ctx->enabled = false;
 
-  if ((user_options->attack_mode != ATTACK_MODE_BF)
-   && (user_options->attack_mode != ATTACK_MODE_HYBRID1)
-   && (user_options->attack_mode != ATTACK_MODE_HYBRID2)) return 0;
+  if (user_options->left        == true) return 0;
+  if (user_options->show        == true) return 0;
+  if (user_options->usage       == true) return 0;
+  if (user_options->version     == true) return 0;
+
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT) return 0;
+  if (user_options->attack_mode == ATTACK_MODE_COMBI)    return 0;
 
   mask_ctx->enabled = true;
 
