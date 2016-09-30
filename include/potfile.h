@@ -16,7 +16,7 @@ int sort_by_salt_buf          (const void *v1, const void *v2);
 int sort_by_hash_t_salt       (const void *v1, const void *v2);
 int sort_by_hash_t_salt_hccap (const void *v1, const void *v2);
 
-void potfile_init             (potfile_ctx_t *potfile_ctx, const char *profile_dir, const char *potfile_path, const uint potfile_disable);
+void potfile_init             (potfile_ctx_t *potfile_ctx, const user_options_t *user_options, const folder_config_t *folder_config);
 void potfile_format_plain     (potfile_ctx_t *potfile_ctx, const unsigned char *plain_ptr, const uint plain_len);
 int  potfile_read_open        (potfile_ctx_t *potfile_ctx);
 void potfile_read_parse       (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig);

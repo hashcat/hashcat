@@ -1835,7 +1835,7 @@ int main (int argc, char **argv)
 
   data.potfile_ctx = potfile_ctx;
 
-  potfile_init (potfile_ctx, folder_config->profile_dir, user_options->potfile_path, user_options->potfile_disable);
+  potfile_init (potfile_ctx, user_options, folder_config);
 
   /**
    * dictstat init

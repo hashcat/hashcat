@@ -904,7 +904,7 @@ typedef struct
 
 typedef struct
 {
-  int      disable;
+  bool     enabled;
 
   FILE    *fp;
   char    *filename;
