@@ -800,6 +800,8 @@ typedef aes_context_t aes_ctx;
 
 typedef struct
 {
+  bool enabled;
+
   FILE *fp;
   char *filename;
   u32   mode;
@@ -1128,6 +1130,8 @@ typedef struct
 
 typedef struct
 {
+  bool enabled;
+
   u32   bitmap_bits;
   u32   bitmap_nums;
   u32   bitmap_size;
@@ -1255,6 +1259,8 @@ typedef struct
 
 typedef struct
 {
+  bool enabled;
+
   cpt_t  *cpt_buf;
   int     cpt_pos;
   time_t  cpt_start;

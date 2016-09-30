@@ -60,6 +60,17 @@ static u32 generate_bitmaps (const u32 digests_cnt, const u32 dgst_size, const u
 
 void bitmap_ctx_init (bitmap_ctx_t *bitmap_ctx, const user_options_t *user_options, const hashconfig_t *hashconfig, const hashes_t *hashes)
 {
+  bitmap_ctx->enabled = false;
+
+  if (user_options->keyspace    == true) return;
+  if (user_options->left        == true) return;
+  if (user_options->show        == true) return;
+  if (user_options->stdout_flag == true) return;
+  if (user_options->usage       == true) return;
+  if (user_options->version     == true) return;
+
+  bitmap_ctx->enabled = true;
+
   /**
    * generate bitmap tables
    */
@@ -130,6 +141,8 @@ void bitmap_ctx_init (bitmap_ctx_t *bitmap_ctx, const user_options_t *user_optio
 
 void bitmap_ctx_destroy (bitmap_ctx_t *bitmap_ctx)
 {
+  if (bitmap_ctx->enabled == false) return;
+
   bitmap_ctx->bitmap_size   = 0;
   bitmap_ctx->bitmap_mask   = 0;
   bitmap_ctx->bitmap_shift1 = 0;

@@ -1308,7 +1308,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   data.cpt_ctx = cpt_ctx;
 
-  cpt_ctx_init (cpt_ctx);
+  cpt_ctx_init (cpt_ctx, user_options);
 
   /**
    * Wordlist allocate buffer
@@ -1863,7 +1863,7 @@ int main (int argc, char **argv)
 
   data.debugfile_ctx = debugfile_ctx;
 
-  debugfile_init (debugfile_ctx, user_options->debug_mode, user_options->debug_file);
+  debugfile_init (debugfile_ctx, user_options);
 
   /**
    * cpu affinity

@@ -5,26 +5,43 @@
 
 #include "common.h"
 #include "types.h"
+#include "memory.h"
 #include "logging.h"
 #include "debugfile.h"
 
-int debugfile_init (debugfile_ctx_t *debugfile_ctx, const uint debug_mode, const char *debug_file)
+int debugfile_init (debugfile_ctx_t *debugfile_ctx, const user_options_t *user_options)
 {
-  if (debug_mode == 0) return 0;
+  debugfile_ctx->enabled = false;
 
-  if (debug_file == NULL) return 0;
+  if (user_options->benchmark   == true) return 0;
+  if (user_options->keyspace    == true) return 0;
+  if (user_options->left        == true) return 0;
+  if (user_options->show        == true) return 0;
+  if (user_options->stdout_flag == true) return 0;
+  if (user_options->usage       == true) return 0;
+  if (user_options->version     == true) return 0;
+  if (user_options->debug_mode  == 0)    return 0;
 
-  debugfile_ctx->mode = debug_mode;
+  debugfile_ctx->enabled = true;
 
-  debugfile_ctx->filename = (char *) debug_file;
+  debugfile_ctx->mode = user_options->debug_mode;
 
-  debugfile_ctx->fp = fopen (debugfile_ctx->filename, "ab");
-
-  if (debugfile_ctx->fp == NULL)
+  if (debugfile_ctx->filename)
   {
-    log_error ("ERROR: Could not open debug-file for writing");
+    debugfile_ctx->filename = user_options->debug_file;
 
-    return -1;
+    debugfile_ctx->fp = fopen (debugfile_ctx->filename, "ab");
+
+    if (debugfile_ctx->fp == NULL)
+    {
+      log_error ("ERROR: Could not open debug-file for writing");
+
+      return -1;
+    }
+  }
+  else
+  {
+    debugfile_ctx->fp = stdout;
   }
 
   return 0;
@@ -32,13 +49,19 @@ int debugfile_init (debugfile_ctx_t *debugfile_ctx, const uint debug_mode, const
 
 void debugfile_destroy (debugfile_ctx_t *debugfile_ctx)
 {
-  if (debugfile_ctx->fp == NULL) return;
+  if (debugfile_ctx->enabled == false) return;
+
+  if (debugfile_ctx->filename == NULL) return;
 
   fclose (debugfile_ctx->fp);
+
+  myfree (debugfile_ctx);
 }
 
 void debugfile_format_plain (debugfile_ctx_t *debugfile_ctx, const u8 *plain_ptr, const u32 plain_len)
 {
+  if (debugfile_ctx->enabled == false) return;
+
   int needs_hexify = 0;
 
   for (uint i = 0; i < plain_len; i++)
@@ -77,6 +100,8 @@ void debugfile_format_plain (debugfile_ctx_t *debugfile_ctx, const u8 *plain_ptr
 
 void debugfile_write_append (debugfile_ctx_t *debugfile_ctx, const u8 *rule_buf, const u32 rule_len, const u8 *mod_plain_ptr, const u32 mod_plain_len, const u8 *orig_plain_ptr, const u32 orig_plain_len)
 {
+  if (debugfile_ctx->enabled == false) return;
+
   const uint debug_mode = debugfile_ctx->mode;
 
   if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4))
