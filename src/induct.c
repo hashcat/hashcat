@@ -25,11 +25,18 @@ int induct_ctx_init (induct_ctx_t *induct_ctx, const user_options_t *user_option
 {
   induct_ctx->enabled = false;
 
-  if (user_options->attack_mode == ATTACK_MODE_BF) return 0;
-
-  if (user_options->keyspace    == true) return 0;
   if (user_options->benchmark   == true) return 0;
-  if (user_options->opencl_info == true) return 0;
+  if (user_options->keyspace    == true) return 0;
+  if (user_options->left        == true) return 0;
+  if (user_options->show        == true) return 0;
+  if (user_options->stdout_flag == true) return 0;
+  if (user_options->usage       == true) return 0;
+  if (user_options->version     == true) return 0;
+
+  if (user_options->attack_mode == ATTACK_MODE_BF)    return 0;
+  if (user_options->attack_mode == ATTACK_MODE_COMBI) return 0;
+
+  induct_ctx->enabled = true;
 
   if (user_options->induction_dir == NULL)
   {
@@ -78,8 +85,6 @@ int induct_ctx_init (induct_ctx_t *induct_ctx, const user_options_t *user_option
     induct_ctx->root_directory = mystrdup (user_options->induction_dir);
   }
 
-  induct_ctx->enabled = true;
-
   return 0;
 }
 
@@ -111,12 +116,7 @@ void induct_ctx_cleanup (induct_ctx_t *induct_ctx)
 
 void induct_ctx_destroy (induct_ctx_t *induct_ctx)
 {
-  if (induct_ctx->enabled == false)
-  {
-    myfree (induct_ctx);
-
-    return;
-  }
+  if (induct_ctx->enabled == false) return;
 
   if (rmdir (induct_ctx->root_directory) == -1)
   {
