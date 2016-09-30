@@ -142,7 +142,7 @@ void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len)
 
   // init
 
-  int remaining_len = plain_len;
+  int remaining_len = (int) plain_len;
 
   // loop
 
@@ -155,11 +155,11 @@ void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len)
     int cur_len  = MIN (block_total_len, remaining_len);
     int copy_len = MAX (cur_len, 0);  // should never be negative of course
 
-    memcpy (block_ptr, plain_ptr, copy_len);
+    memcpy (block_ptr, plain_ptr, (size_t) copy_len);
 
     // clear the remaining bytes of the block
 
-    memset (block_ptr + copy_len, 0, block_total_len - copy_len);
+    memset (block_ptr + copy_len, 0, (size_t) block_total_len - (size_t) copy_len);
 
     /*
      * final block
@@ -171,7 +171,7 @@ void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len)
     {
       if (cur_len != block_total_len)
       {
-        block_ptr[copy_len] = 0x80;
+        block_ptr[copy_len] = (char) 0x80;
       }
     }
 
