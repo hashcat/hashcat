@@ -30,7 +30,7 @@
 #include "debugfile.h"
 #include "dictstat.h"
 #include "dispatch.h"
-#include "hash_management.h"
+#include "hashes.h"
 #include "hwmon.h"
 #include "induct.h"
 #include "interface.h"

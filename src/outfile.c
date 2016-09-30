@@ -7,7 +7,7 @@
 #include "types.h"
 #include "logging.h"
 #include "interface.h"
-#include "hash_management.h"
+#include "hashes.h"
 #include "outfile.h"
 
 void outfile_init (outfile_ctx_t *outfile_ctx, const user_options_t *user_options)

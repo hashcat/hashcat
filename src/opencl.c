@@ -22,7 +22,7 @@
 #include "interface.h"
 #include "wordlist.h"
 #include "shared.h"
-#include "hash_management.h"
+#include "hashes.h"
 #include "cpu_md5.h"
 #include "opencl.h"
 

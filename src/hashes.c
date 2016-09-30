@@ -22,7 +22,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
-#include "hash_management.h"
+#include "hashes.h"
 #include "filehandling.h"
 #include "outfile.h"
 #include "potfile.h"

@@ -20,7 +20,7 @@
 #include "opencl.h"
 #include "hwmon.h"
 #include "restore.h"
-#include "hash_management.h"
+#include "hashes.h"
 #include "rp_cpu.h"
 #include "terminal.h"
 #include "mpsp.h"
