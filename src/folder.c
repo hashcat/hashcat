@@ -46,7 +46,7 @@ char *get_exec_path ()
 
   #elif defined (__APPLE__)
 
-  size_t size = exec_path_len;
+  u32 size = (u32) exec_path_len;
 
   if (_NSGetExecutablePath (exec_path, &size) != 0)
   {
