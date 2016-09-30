@@ -178,8 +178,8 @@ CRT_GLOB_INCLUDE_FOLDER  := $(dir $(lastword $(MAKEFILE_LIST)))
 
 include $(CRT_GLOB_INCLUDE_FOLDER)/win_file_globbing.mk
 
-WIN_32_OBJS              := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.32.o)
-WIN_64_OBJS              := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o)
+WIN_32_OBJS              := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.32.o) $(CRT_GLOB_32)
+WIN_64_OBJS              := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o) $(CRT_GLOB_64)
 
 ##
 ## Targets: Global
