@@ -1525,6 +1525,8 @@ void hashes_destroy (hashes_t *hashes)
   hashes->hashes_buf        = NULL;
 
   hashes->hash_info         = NULL;
+
+  myfree (hashes);
 }
 
 void hashes_logger (const hashes_t *hashes, const logfile_ctx_t *logfile_ctx)

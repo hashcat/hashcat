@@ -141,7 +141,12 @@ void bitmap_ctx_init (bitmap_ctx_t *bitmap_ctx, const user_options_t *user_optio
 
 void bitmap_ctx_destroy (bitmap_ctx_t *bitmap_ctx)
 {
-  if (bitmap_ctx->enabled == false) return;
+  if (bitmap_ctx->enabled == false)
+  {
+    myfree (bitmap_ctx);
+
+    return;
+  }
 
   bitmap_ctx->bitmap_size   = 0;
   bitmap_ctx->bitmap_mask   = 0;

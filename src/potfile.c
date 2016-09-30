@@ -143,7 +143,12 @@ void potfile_init (potfile_ctx_t *potfile_ctx, const user_options_t *user_option
 
 void potfile_destroy (potfile_ctx_t *potfile_ctx)
 {
-  if (potfile_ctx->enabled == false) return;
+  if (potfile_ctx->enabled == false)
+  {
+    myfree (potfile_ctx);
+
+    return;
+  }
 
   myfree (potfile_ctx->filename);
 

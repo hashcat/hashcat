@@ -50,7 +50,12 @@ void dictstat_init (dictstat_ctx_t *dictstat_ctx, const user_options_t *user_opt
 
 void dictstat_destroy (dictstat_ctx_t *dictstat_ctx)
 {
-  if (dictstat_ctx->enabled == false) return;
+  if (dictstat_ctx->enabled == false)
+  {
+    myfree (dictstat_ctx);
+
+    return;
+  }
 
   myfree (dictstat_ctx->filename);
   myfree (dictstat_ctx->base);

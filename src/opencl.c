@@ -1507,7 +1507,12 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
 
 void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
 {
-  if (opencl_ctx->enabled == false) return;
+  if (opencl_ctx->enabled == false)
+  {
+    myfree (opencl_ctx);
+
+    return;
+  }
 
   myfree (opencl_ctx->devices_param);
 

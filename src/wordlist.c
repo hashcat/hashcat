@@ -439,7 +439,12 @@ void wl_data_init (wl_data_t *wl_data, const user_options_t *user_options, const
 
 void wl_data_destroy (wl_data_t *wl_data)
 {
-  if (wl_data->enabled == false) return;
+  if (wl_data->enabled == false)
+  {
+    myfree (wl_data);
+
+    return;
+  }
 
   myfree (wl_data->buf);
 

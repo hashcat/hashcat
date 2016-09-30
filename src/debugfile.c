@@ -50,11 +50,17 @@ int debugfile_init (debugfile_ctx_t *debugfile_ctx, const user_options_t *user_o
 
 void debugfile_destroy (debugfile_ctx_t *debugfile_ctx)
 {
-  if (debugfile_ctx->enabled == false) return;
+  if (debugfile_ctx->enabled == false)
+  {
+    myfree (debugfile_ctx);
 
-  if (debugfile_ctx->filename == NULL) return;
+    return;
+  }
 
-  fclose (debugfile_ctx->fp);
+  if (debugfile_ctx->filename)
+  {
+    fclose (debugfile_ctx->fp);
+  }
 
   myfree (debugfile_ctx);
 }

@@ -32,7 +32,12 @@ void loopback_init (loopback_ctx_t *loopback_ctx, const user_options_t *user_opt
 
 void loopback_destroy (loopback_ctx_t *loopback_ctx)
 {
-  if (loopback_ctx->enabled == false) return;
+  if (loopback_ctx->enabled == false)
+  {
+    myfree (loopback_ctx);
+
+    return;
+  }
 
   myfree (loopback_ctx->filename);
 

@@ -34,7 +34,12 @@ int cpt_ctx_init (cpt_ctx_t *cpt_ctx, const user_options_t *user_options)
 
 void cpt_ctx_destroy (cpt_ctx_t *cpt_ctx)
 {
-  if (cpt_ctx->enabled == false) return;
+  if (cpt_ctx->enabled == false)
+  {
+    myfree (cpt_ctx);
+
+    return;
+  }
 
   myfree (cpt_ctx->cpt_buf);
 

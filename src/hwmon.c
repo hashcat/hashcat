@@ -1269,7 +1269,12 @@ int hwmon_ctx_init (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options, 
 
 void hwmon_ctx_destroy (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options, const opencl_ctx_t *opencl_ctx)
 {
-  if (hwmon_ctx->enabled == false) return;
+  if (hwmon_ctx->enabled == false)
+  {
+    myfree (hwmon_ctx);
+
+    return;
+  }
 
   // reset default fan speed
 

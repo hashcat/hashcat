@@ -409,12 +409,16 @@ int folder_config_init (folder_config_t *folder_config, const char *install_fold
 
 void folder_config_destroy (folder_config_t *folder_config)
 {
+  myfree (folder_config->cpath_real);
   myfree (folder_config->cwd);
+  myfree (folder_config->install_dir);
 
+  folder_config->cpath_real   = NULL;
   folder_config->cwd          = NULL;
   folder_config->install_dir  = NULL;
   folder_config->profile_dir  = NULL;
   folder_config->session_dir  = NULL;
   folder_config->shared_dir   = NULL;
-  folder_config->cpath_real   = NULL;
+
+  myfree (folder_config);
 }

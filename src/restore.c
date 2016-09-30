@@ -406,12 +406,17 @@ void restore_ctx_destroy (restore_ctx_t *restore_ctx)
   myfree (restore_ctx->eff_restore_file);
   myfree (restore_ctx->new_restore_file);
 
-  if (restore_ctx->enabled == false) return;
+  myfree (restore_ctx->rd);
+
+  if (restore_ctx->enabled == false)
+  {
+    myfree (restore_ctx);
+
+    return;
+  }
 
   restore_ctx->argc = 0;
   restore_ctx->argv = NULL;
-
-  myfree (restore_ctx->rd);
 
   myfree (restore_ctx);
 }

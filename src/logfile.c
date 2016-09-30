@@ -78,7 +78,12 @@ void logfile_init (logfile_ctx_t *logfile_ctx, const user_options_t *user_option
 
 void logfile_destroy (logfile_ctx_t *logfile_ctx)
 {
-  if (logfile_ctx->enabled == false) return;
+  if (logfile_ctx->enabled == false)
+  {
+    myfree (logfile_ctx);
+
+    return;
+  }
 
   myfree (logfile_ctx->logfile);
   myfree (logfile_ctx->topid);

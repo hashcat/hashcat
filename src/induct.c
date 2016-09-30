@@ -117,7 +117,12 @@ void induct_ctx_cleanup (induct_ctx_t *induct_ctx)
 
 void induct_ctx_destroy (induct_ctx_t *induct_ctx)
 {
-  if (induct_ctx->enabled == false) return;
+  if (induct_ctx->enabled == false)
+  {
+    myfree (induct_ctx);
+
+    return;
+  }
 
   if (rmdir (induct_ctx->root_directory) == -1)
   {

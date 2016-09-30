@@ -65,7 +65,12 @@ int straight_ctx_init (straight_ctx_t *straight_ctx, const user_options_t *user_
 
 void straight_ctx_destroy (straight_ctx_t *straight_ctx)
 {
-  if (straight_ctx->enabled == false) return;
+  if (straight_ctx->enabled == false)
+  {
+    myfree (straight_ctx);
+
+    return;
+  }
 
   for (u32 dict_pos = 0; dict_pos < straight_ctx->dicts_cnt; dict_pos++)
   {

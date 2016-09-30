@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "logging.h"
 #include "timer.h"
+#include "shared.h"
 #include "thread.h"
 
 extern hc_global_data_t data;

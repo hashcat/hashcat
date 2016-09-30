@@ -241,7 +241,12 @@ int tuning_db_init (tuning_db_t *tuning_db, const user_options_t *user_options, 
 
 void tuning_db_destroy (tuning_db_t *tuning_db)
 {
-  if (tuning_db->enabled == false) return;
+  if (tuning_db->enabled == false)
+  {
+    myfree (tuning_db);
+
+    return;
+  }
 
   int i;
 
