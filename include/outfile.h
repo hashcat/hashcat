@@ -10,15 +10,6 @@
 #include <time.h>
 #include <inttypes.h>
 
-typedef enum outfile_fmt
-{
-  OUTFILE_FMT_HASH      = (1 << 0),
-  OUTFILE_FMT_PLAIN     = (1 << 1),
-  OUTFILE_FMT_HEXPLAIN  = (1 << 2),
-  OUTFILE_FMT_CRACKPOS  = (1 << 3)
-
-} outfile_fmt_t;
-
 void outfile_init           (outfile_ctx_t *outfile_ctx, const user_options_t *user_options);
 void outfile_destroy        (outfile_ctx_t *outfile_ctx);
 void outfile_format_plain   (outfile_ctx_t *outfile_ctx, const unsigned char *plain_ptr, const uint plain_len);

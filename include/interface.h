@@ -683,35 +683,7 @@ typedef struct
 } hccap_t;
 
 /**
- * parser
- */
-
-typedef enum parser_rc
-{
-  PARSER_OK                  = 0,
-  PARSER_COMMENT             = -1,
-  PARSER_GLOBAL_ZERO         = -2,
-  PARSER_GLOBAL_LENGTH       = -3,
-  PARSER_HASH_LENGTH         = -4,
-  PARSER_HASH_VALUE          = -5,
-  PARSER_SALT_LENGTH         = -6,
-  PARSER_SALT_VALUE          = -7,
-  PARSER_SALT_ITERATION      = -8,
-  PARSER_SEPARATOR_UNMATCHED = -9,
-  PARSER_SIGNATURE_UNMATCHED = -10,
-  PARSER_HCCAP_FILE_SIZE     = -11,
-  PARSER_HCCAP_EAPOL_SIZE    = -12,
-  PARSER_PSAFE2_FILE_SIZE    = -13,
-  PARSER_PSAFE3_FILE_SIZE    = -14,
-  PARSER_TC_FILE_SIZE        = -15,
-  PARSER_VC_FILE_SIZE        = -16,
-  PARSER_SIP_AUTH_DIRECTIVE  = -17,
-  PARSER_UNKNOWN_ERROR       = -255
-
-} parser_rc_t;
-
-/**
- * hashtypes cleartext
+ * hashtypes enums
  */
 
 typedef enum display_len
