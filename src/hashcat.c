@@ -55,10 +55,10 @@
 
 extern hc_global_data_t data;
 
-extern int SUPPRESS_OUTPUT;
+extern bool SUPPRESS_OUTPUT;
 
-extern const int DEFAULT_BENCHMARK_ALGORITHMS_CNT;
-extern const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
+extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_CNT;
+extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
 const int   comptime    = COMPTIME;
 const char *version_tag = VERSION_TAG;
@@ -653,8 +653,8 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
       {
         if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
         {
-          u32   salt_len = (u32)    hashes->salts_buf[0].salt_len;
-          char *salt_buf = (char *) hashes->salts_buf[0].salt_buf;
+          u32  salt_len = (u32)  hashes->salts_buf[0].salt_len;
+          u8  *salt_buf = (u8 *) hashes->salts_buf[0].salt_buf;
 
           u32 css_cnt_salt = mask_ctx->css_cnt + salt_len;
 
@@ -789,7 +789,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
           if (dictionary_files != NULL)
           {
-            qsort (dictionary_files, count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
+            qsort (dictionary_files, (size_t) count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
 
             for (int d = 0; dictionary_files[d] != NULL; d++)
             {
@@ -946,7 +946,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
       user_options->rule_buf_l = user_options->rule_buf_r;
       user_options->rule_buf_r = tmpc;
 
-      int   tmpi = user_options_extra->rule_len_l;
+      u32 tmpi = user_options_extra->rule_len_l;
 
       user_options_extra->rule_len_l = user_options_extra->rule_len_r;
       user_options_extra->rule_len_r = tmpi;
@@ -995,7 +995,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
         if (dictionary_files != NULL)
         {
-          qsort (dictionary_files, count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
+          qsort (dictionary_files, (size_t) count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
 
           for (int d = 0; dictionary_files[d] != NULL; d++)
           {
@@ -1067,7 +1067,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
         if (dictionary_files != NULL)
         {
-          qsort (dictionary_files, count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
+          qsort (dictionary_files, (size_t) count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
 
           for (int d = 0; dictionary_files[d] != NULL; d++)
           {
@@ -1209,7 +1209,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
   {
     outfile_write_open (outfile_ctx);
 
-    SUPPRESS_OUTPUT = 1;
+    SUPPRESS_OUTPUT = true;
 
     potfile_read_open  (potfile_ctx);
 
@@ -1217,7 +1217,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
     potfile_read_close (potfile_ctx);
 
-    SUPPRESS_OUTPUT = 0;
+    SUPPRESS_OUTPUT = false;
   }
 
   /**
@@ -1251,8 +1251,6 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
     outfile_write_close (outfile_ctx);
 
     potfile_hash_free (potfile_ctx, hashconfig);
-
-    //if (user_options->quiet == false) log_info_nn ("");
 
     return 0;
   }
@@ -1959,7 +1957,7 @@ int main (int argc, char **argv)
     }
     else
     {
-      for (int algorithm_pos = 0; algorithm_pos < DEFAULT_BENCHMARK_ALGORITHMS_CNT; algorithm_pos++)
+      for (u32 algorithm_pos = 0; algorithm_pos < DEFAULT_BENCHMARK_ALGORITHMS_CNT; algorithm_pos++)
       {
         user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
 
@@ -2037,7 +2035,7 @@ int main (int argc, char **argv)
 
   user_options_destroy (user_options);
 
-  u32 rc_final = -1;
+  int rc_final = -1;
 
   if (status_ctx->devices_status == STATUS_ABORTED)   rc_final = 2;
   if (status_ctx->devices_status == STATUS_QUIT)      rc_final = 2;

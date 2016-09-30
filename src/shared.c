@@ -16,7 +16,7 @@ u32 get_random_num (const u32 min, const u32 max)
 {
   if (min == max) return (min);
 
-  return ((rand () % (max - min)) + min);
+  return (((u32) rand () % (max - min)) + min);
 }
 
 u32 mydivc32 (const u32 dividend, const u32 divisor)
@@ -57,13 +57,13 @@ char *filename_from_filepath (char *filepath)
   return ptr;
 }
 
-void naive_replace (char *s, const u8 key_char, const u8 replace_char)
+void naive_replace (char *s, const char key_char, const char replace_char)
 {
   const size_t len = strlen (s);
 
   for (size_t in = 0; in < len; in++)
   {
-    const u8 c = s[in];
+    const char c = s[in];
 
     if (c == key_char)
     {
@@ -72,7 +72,7 @@ void naive_replace (char *s, const u8 key_char, const u8 replace_char)
   }
 }
 
-void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char)
+void naive_escape (char *s, size_t s_max, const char key_char, const char escape_char)
 {
   char s_escaped[1024] = { 0 };
 
@@ -82,7 +82,7 @@ void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_cha
 
   for (size_t in = 0, out = 0; in < len; in++, out++)
   {
-    const u8 c = s[in];
+    const char c = s[in];
 
     if (c == key_char)
     {
@@ -99,7 +99,7 @@ void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_cha
   strncpy (s, s_escaped, s_max - 1);
 }
 
-void hc_sleep_ms (const int msec)
+void hc_sleep_ms (const u32 msec)
 {
   #if defined (_WIN)
   Sleep (msec);
@@ -108,7 +108,7 @@ void hc_sleep_ms (const int msec)
   #endif
 }
 
-void hc_sleep (const int sec)
+void hc_sleep (const u32 sec)
 {
   #if defined (_WIN)
   Sleep (sec * 1000);

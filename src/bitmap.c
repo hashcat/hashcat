@@ -9,14 +9,6 @@
 #include "logging.h"
 #include "bitmap.h"
 
-int sort_by_bitmap (const void *p1, const void *p2)
-{
-  const bitmap_result_t *b1 = (const bitmap_result_t *) p1;
-  const bitmap_result_t *b2 = (const bitmap_result_t *) p2;
-
-  return b1->collisions - b2->collisions;
-}
-
 static u32 generate_bitmaps (const u32 digests_cnt, const u32 dgst_size, const u32 dgst_shifts, char *digests_buf_ptr, const u32 dgst_pos0, const u32 dgst_pos1, const u32 dgst_pos2, const u32 dgst_pos3, const u32 bitmap_mask, const u32 bitmap_size, u32 *bitmap_a, u32 *bitmap_b, u32 *bitmap_c, u32 *bitmap_d, const u64 collisions_max)
 {
   u64 collisions = 0;

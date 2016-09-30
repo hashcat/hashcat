@@ -1082,8 +1082,6 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
 void status_benchmark_automate (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
 {
-  if (status_ctx == NULL) status_ctx = status_ctx; // make gcc happy, for now...
-
   if (status_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");

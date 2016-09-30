@@ -73,7 +73,7 @@ void set_cpu_affinity (char *cpu_affinity)
 
     do
     {
-      uint cpu_id = atoi (next);
+      int cpu_id = atoi (next);
 
       if (cpu_id == 0)
       {

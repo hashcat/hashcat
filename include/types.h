@@ -77,29 +77,29 @@ typedef enum amplifier_count
 
 typedef enum vendor_id
 {
-  VENDOR_ID_AMD           = (1 << 0),
-  VENDOR_ID_APPLE         = (1 << 1),
-  VENDOR_ID_INTEL_BEIGNET = (1 << 2),
-  VENDOR_ID_INTEL_SDK     = (1 << 3),
-  VENDOR_ID_MESA          = (1 << 4),
-  VENDOR_ID_NV            = (1 << 5),
-  VENDOR_ID_POCL          = (1 << 6),
-  VENDOR_ID_AMD_USE_INTEL = (1 << 7),
-  VENDOR_ID_GENERIC       = (1 << 31)
+  VENDOR_ID_AMD           = (1u << 0),
+  VENDOR_ID_APPLE         = (1u << 1),
+  VENDOR_ID_INTEL_BEIGNET = (1u << 2),
+  VENDOR_ID_INTEL_SDK     = (1u << 3),
+  VENDOR_ID_MESA          = (1u << 4),
+  VENDOR_ID_NV            = (1u << 5),
+  VENDOR_ID_POCL          = (1u << 6),
+  VENDOR_ID_AMD_USE_INTEL = (1u << 7),
+  VENDOR_ID_GENERIC       = (1u << 31)
 
 } vendor_id_t;
 
 typedef enum status_rc
 {
-   STATUS_INIT            = 0,
-   STATUS_AUTOTUNE        = 1,
-   STATUS_RUNNING         = 2,
-   STATUS_PAUSED          = 3,
-   STATUS_EXHAUSTED       = 4,
-   STATUS_CRACKED         = 5,
-   STATUS_ABORTED         = 6,
-   STATUS_QUIT            = 7,
-   STATUS_BYPASS          = 8,
+  STATUS_INIT            = 0,
+  STATUS_AUTOTUNE        = 1,
+  STATUS_RUNNING         = 2,
+  STATUS_PAUSED          = 3,
+  STATUS_EXHAUSTED       = 4,
+  STATUS_CRACKED         = 5,
+  STATUS_ABORTED         = 6,
+  STATUS_QUIT            = 7,
+  STATUS_BYPASS          = 8,
 
 } status_rc_t;
 
@@ -240,57 +240,57 @@ typedef enum salt_type
 
 typedef enum opti_type
 {
-  OPTI_TYPE_ZERO_BYTE         = (1 <<  1),
-  OPTI_TYPE_PRECOMPUTE_INIT   = (1 <<  2),
-  OPTI_TYPE_PRECOMPUTE_MERKLE = (1 <<  3),
-  OPTI_TYPE_PRECOMPUTE_PERMUT = (1 <<  4),
-  OPTI_TYPE_MEET_IN_MIDDLE    = (1 <<  5),
-  OPTI_TYPE_EARLY_SKIP        = (1 <<  6),
-  OPTI_TYPE_NOT_SALTED        = (1 <<  7),
-  OPTI_TYPE_NOT_ITERATED      = (1 <<  8),
-  OPTI_TYPE_PREPENDED_SALT    = (1 <<  9),
-  OPTI_TYPE_APPENDED_SALT     = (1 << 10),
-  OPTI_TYPE_SINGLE_HASH       = (1 << 11),
-  OPTI_TYPE_SINGLE_SALT       = (1 << 12),
-  OPTI_TYPE_BRUTE_FORCE       = (1 << 13),
-  OPTI_TYPE_RAW_HASH          = (1 << 14),
-  OPTI_TYPE_SLOW_HASH_SIMD    = (1 << 15),
-  OPTI_TYPE_USES_BITS_8       = (1 << 16),
-  OPTI_TYPE_USES_BITS_16      = (1 << 17),
-  OPTI_TYPE_USES_BITS_32      = (1 << 18),
-  OPTI_TYPE_USES_BITS_64      = (1 << 19)
+  OPTI_TYPE_ZERO_BYTE         = (1u <<  1),
+  OPTI_TYPE_PRECOMPUTE_INIT   = (1u <<  2),
+  OPTI_TYPE_PRECOMPUTE_MERKLE = (1u <<  3),
+  OPTI_TYPE_PRECOMPUTE_PERMUT = (1u <<  4),
+  OPTI_TYPE_MEET_IN_MIDDLE    = (1u <<  5),
+  OPTI_TYPE_EARLY_SKIP        = (1u <<  6),
+  OPTI_TYPE_NOT_SALTED        = (1u <<  7),
+  OPTI_TYPE_NOT_ITERATED      = (1u <<  8),
+  OPTI_TYPE_PREPENDED_SALT    = (1u <<  9),
+  OPTI_TYPE_APPENDED_SALT     = (1u << 10),
+  OPTI_TYPE_SINGLE_HASH       = (1u << 11),
+  OPTI_TYPE_SINGLE_SALT       = (1u << 12),
+  OPTI_TYPE_BRUTE_FORCE       = (1u << 13),
+  OPTI_TYPE_RAW_HASH          = (1u << 14),
+  OPTI_TYPE_SLOW_HASH_SIMD    = (1u << 15),
+  OPTI_TYPE_USES_BITS_8       = (1u << 16),
+  OPTI_TYPE_USES_BITS_16      = (1u << 17),
+  OPTI_TYPE_USES_BITS_32      = (1u << 18),
+  OPTI_TYPE_USES_BITS_64      = (1u << 19)
 
 } opti_type_t;
 
 typedef enum opts_type
 {
-  OPTS_TYPE_PT_UNICODE        = (1 <<  0),
-  OPTS_TYPE_PT_UPPER          = (1 <<  1),
-  OPTS_TYPE_PT_LOWER          = (1 <<  2),
-  OPTS_TYPE_PT_ADD01          = (1 <<  3),
-  OPTS_TYPE_PT_ADD02          = (1 <<  4),
-  OPTS_TYPE_PT_ADD80          = (1 <<  5),
-  OPTS_TYPE_PT_ADDBITS14      = (1 <<  6),
-  OPTS_TYPE_PT_ADDBITS15      = (1 <<  7),
-  OPTS_TYPE_PT_GENERATE_LE    = (1 <<  8),
-  OPTS_TYPE_PT_GENERATE_BE    = (1 <<  9),
-  OPTS_TYPE_PT_NEVERCRACK     = (1 << 10), // if we want all possible results
-  OPTS_TYPE_PT_BITSLICE       = (1 << 11),
-  OPTS_TYPE_ST_UNICODE        = (1 << 12),
-  OPTS_TYPE_ST_UPPER          = (1 << 13),
-  OPTS_TYPE_ST_LOWER          = (1 << 14),
-  OPTS_TYPE_ST_ADD01          = (1 << 15),
-  OPTS_TYPE_ST_ADD02          = (1 << 16),
-  OPTS_TYPE_ST_ADD80          = (1 << 17),
-  OPTS_TYPE_ST_ADDBITS14      = (1 << 18),
-  OPTS_TYPE_ST_ADDBITS15      = (1 << 19),
-  OPTS_TYPE_ST_GENERATE_LE    = (1 << 20),
-  OPTS_TYPE_ST_GENERATE_BE    = (1 << 21),
-  OPTS_TYPE_ST_HEX            = (1 << 22),
-  OPTS_TYPE_ST_BASE64         = (1 << 23),
-  OPTS_TYPE_HASH_COPY         = (1 << 24),
-  OPTS_TYPE_HOOK12            = (1 << 25),
-  OPTS_TYPE_HOOK23            = (1 << 26)
+  OPTS_TYPE_PT_UNICODE        = (1u <<  0),
+  OPTS_TYPE_PT_UPPER          = (1u <<  1),
+  OPTS_TYPE_PT_LOWER          = (1u <<  2),
+  OPTS_TYPE_PT_ADD01          = (1u <<  3),
+  OPTS_TYPE_PT_ADD02          = (1u <<  4),
+  OPTS_TYPE_PT_ADD80          = (1u <<  5),
+  OPTS_TYPE_PT_ADDBITS14      = (1u <<  6),
+  OPTS_TYPE_PT_ADDBITS15      = (1u <<  7),
+  OPTS_TYPE_PT_GENERATE_LE    = (1u <<  8),
+  OPTS_TYPE_PT_GENERATE_BE    = (1u <<  9),
+  OPTS_TYPE_PT_NEVERCRACK     = (1u << 10), // if we want all possible results
+  OPTS_TYPE_PT_BITSLICE       = (1u << 11),
+  OPTS_TYPE_ST_UNICODE        = (1u << 12),
+  OPTS_TYPE_ST_UPPER          = (1u << 13),
+  OPTS_TYPE_ST_LOWER          = (1u << 14),
+  OPTS_TYPE_ST_ADD01          = (1u << 15),
+  OPTS_TYPE_ST_ADD02          = (1u << 16),
+  OPTS_TYPE_ST_ADD80          = (1u << 17),
+  OPTS_TYPE_ST_ADDBITS14      = (1u << 18),
+  OPTS_TYPE_ST_ADDBITS15      = (1u << 19),
+  OPTS_TYPE_ST_GENERATE_LE    = (1u << 20),
+  OPTS_TYPE_ST_GENERATE_BE    = (1u << 21),
+  OPTS_TYPE_ST_HEX            = (1u << 22),
+  OPTS_TYPE_ST_BASE64         = (1u << 23),
+  OPTS_TYPE_HASH_COPY         = (1u << 24),
+  OPTS_TYPE_HOOK12            = (1u << 25),
+  OPTS_TYPE_HOOK23            = (1u << 26)
 
 } opts_type_t;
 
@@ -334,10 +334,10 @@ typedef enum hlfmt_name
 
 typedef enum outfile_fmt
 {
-  OUTFILE_FMT_HASH      = (1 << 0),
-  OUTFILE_FMT_PLAIN     = (1 << 1),
-  OUTFILE_FMT_HEXPLAIN  = (1 << 2),
-  OUTFILE_FMT_CRACKPOS  = (1 << 3)
+  OUTFILE_FMT_HASH      = (1u << 0),
+  OUTFILE_FMT_PLAIN     = (1u << 1),
+  OUTFILE_FMT_HEXPLAIN  = (1u << 2),
+  OUTFILE_FMT_CRACKPOS  = (1u << 3)
 
 } outfile_fmt_t;
 
@@ -779,17 +779,10 @@ typedef struct cpu_set
 } cpu_set_t;
 #endif
 
-typedef struct
-{
-  u32 bitmap_shift;
-  u32 collisions;
-
-} bitmap_result_t;
-
 /* AES context.  */
 typedef struct aes_context
 {
-  u32 bits;
+  int bits;
 
   u32 rek[60];
   u32 rdk[60];

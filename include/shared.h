@@ -21,11 +21,11 @@ u64 mydivc64 (const u64 dividend, const u64 divisor);
 
 char *filename_from_filepath (char *filepath);
 
-void naive_replace (char *s, const u8 key_char, const u8 replace_char);
-void naive_escape (char *s, size_t s_max, const u8 key_char, const u8 escape_char);
+void naive_replace (char *s, const char key_char, const char replace_char);
+void naive_escape (char *s, size_t s_max, const char key_char, const char escape_char);
 
-void hc_sleep_ms (const int msec);
-void hc_sleep    (const int sec);
+void hc_sleep_ms (const u32 msec);
+void hc_sleep    (const u32 sec);
 
 void setup_environment_variables ();
 void setup_umask ();
