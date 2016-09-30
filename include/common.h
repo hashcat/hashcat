@@ -23,6 +23,7 @@
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 
+// don't try to simply change this, it will not work
 #define PW_MIN      0
 #define PW_MAX      54
 #define PW_MAX1     (PW_MAX + 1)

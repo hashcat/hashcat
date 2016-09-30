@@ -25,18 +25,13 @@
 #include "potfile.h"
 #include "debugfile.h"
 #include "loopback.h"
-#include "data.h"
 #include "status.h"
 #include "shared.h"
 #include "terminal.h"
 
-extern hc_global_data_t data;
-
-extern const char *version_tag;
-
 const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
 
-void welcome_screen (const user_options_t *user_options, const status_ctx_t *status_ctx)
+void welcome_screen (const user_options_t *user_options, const status_ctx_t *status_ctx, char *version_tag)
 {
   if (user_options->quiet       == true) return;
   if (user_options->keyspace    == true) return;
@@ -131,23 +126,24 @@ void clear_prompt ()
   fflush (stdout);
 }
 
-void *thread_keypress (void *p)
+static void keypress (hashcat_ctx_t *hashcat_ctx)
 {
-  status_ctx_t         *status_ctx         = data.status_ctx;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
+  // this is required, because some of the variables down there are not initialized at that point
   while (status_ctx->devices_status == STATUS_INIT) hc_sleep_ms (100);
 
-  combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
-  cpt_ctx_t            *cpt_ctx            = data.cpt_ctx;
-  hashconfig_t         *hashconfig         = data.hashconfig;
-  hashes_t             *hashes             = data.hashes;
-  hwmon_ctx_t          *hwmon_ctx          = data.hwmon_ctx;
-  mask_ctx_t           *mask_ctx           = data.mask_ctx;
-  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
-  restore_ctx_t        *restore_ctx        = data.restore_ctx;
-  straight_ctx_t       *straight_ctx       = data.straight_ctx;
-  user_options_extra_t *user_options_extra = data.user_options_extra;
-  user_options_t       *user_options       = data.user_options;
+  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  cpt_ctx_t            *cpt_ctx            = hashcat_ctx->cpt_ctx;
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
+  hwmon_ctx_t          *hwmon_ctx          = hashcat_ctx->hwmon_ctx;
+  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  restore_ctx_t        *restore_ctx        = hashcat_ctx->restore_ctx;
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
 
   const bool quiet = user_options->quiet;
 
@@ -252,8 +248,15 @@ void *thread_keypress (void *p)
   }
 
   tty_fix ();
+}
 
-  return (p);
+void *thread_keypress (void *p)
+{
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
+
+  keypress (hashcat_ctx);
+
+  return NULL;
 }
 
 #if defined (_WIN)

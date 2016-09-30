@@ -263,7 +263,7 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
 
 u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx)
 {
-  hc_signal (NULL);
+  //hc_signal (NULL);
 
   dictstat_t d;
 
@@ -311,7 +311,7 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
       if (user_options->quiet == false) log_info ("Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cached_cnt, keyspace);
       if (user_options->quiet == false) log_info ("");
 
-      hc_signal (sigHandler_default);
+      //hc_signal (sigHandler_default);
 
       return (keyspace);
     }
@@ -395,7 +395,7 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
 
   dictstat_append (dictstat_ctx, &d);
 
-  hc_signal (sigHandler_default);
+  //hc_signal (sigHandler_default);
 
   return (cnt);
 }
@@ -408,7 +408,7 @@ void wl_data_init (wl_data_t *wl_data, const user_options_t *user_options, const
   if (user_options->keyspace    == true) return;
   if (user_options->left        == true) return;
   if (user_options->opencl_info == true) return;
-  if (user_options->show        == true) return;
+//  if (user_options->show        == true) return;
   if (user_options->usage       == true) return;
   if (user_options->version     == true) return;
 

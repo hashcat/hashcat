@@ -9,8 +9,6 @@
 #include "logging.h"
 #include "dictstat.h"
 
-extern const int comptime;
-
 int sort_by_dictstat (const void *s1, const void *s2)
 {
   dictstat_t *d1 = (dictstat_t *) s1;
@@ -63,7 +61,7 @@ void dictstat_destroy (dictstat_ctx_t *dictstat_ctx)
   myfree (dictstat_ctx);
 }
 
-void dictstat_read (dictstat_ctx_t *dictstat_ctx)
+void dictstat_read (dictstat_ctx_t *dictstat_ctx, const int comptime)
 {
   if (dictstat_ctx->enabled == false) return;
 

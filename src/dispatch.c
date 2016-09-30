@@ -31,12 +31,9 @@
 #include "status.h"
 #include "dictstat.h"
 #include "wordlist.h"
-#include "data.h"
 #include "status.h"
 #include "shared.h"
 #include "dispatch.h"
-
-extern hc_global_data_t data;
 
 static void set_kernel_power_final (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, const u64 kernel_power_final)
 {
@@ -109,23 +106,16 @@ static uint get_work (opencl_ctx_t *opencl_ctx, status_ctx_t *status_ctx, const 
   return work;
 }
 
-void *thread_calc_stdin (void *p)
+static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
-  hc_device_param_t *device_param = (hc_device_param_t *) p;
-
-  if (device_param->skipped) return NULL;
-
-  user_options_t       *user_options       = data.user_options;
-  user_options_extra_t *user_options_extra = data.user_options_extra;
-  hashconfig_t         *hashconfig         = data.hashconfig;
-  hashes_t             *hashes             = data.hashes;
-  cpt_ctx_t            *cpt_ctx            = data.cpt_ctx;
-  straight_ctx_t       *straight_ctx       = data.straight_ctx;
-  combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
-  mask_ctx_t           *mask_ctx           = data.mask_ctx;
-  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
-  outfile_ctx_t        *outfile_ctx        = data.outfile_ctx;
-  status_ctx_t         *status_ctx         = data.status_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
   char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -216,7 +206,7 @@ void *thread_calc_stdin (void *p)
     {
       run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, combinator_ctx, pws_cnt);
 
-      run_cracker (opencl_ctx, device_param, hashconfig, hashes, cpt_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx, outfile_ctx, status_ctx, pws_cnt);
+      run_cracker (hashcat_ctx, device_param, pws_cnt);
 
       device_param->pws_cnt = 0;
 
@@ -238,27 +228,37 @@ void *thread_calc_stdin (void *p)
   device_param->kernel_loops = 0;
 
   myfree (buf);
+}
+
+void *thread_calc_stdin (void *p)
+{
+  thread_param_t *thread_param = (thread_param_t *) p;
+
+  hashcat_ctx_t *hashcat_ctx = thread_param->hashcat_ctx;
+
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  if (opencl_ctx->enabled == false) return NULL;
+
+  hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
+
+  if (device_param->skipped) return NULL;
+
+  calc_stdin (hashcat_ctx, device_param);
 
   return NULL;
 }
 
-void *thread_calc (void *p)
+static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
-  hc_device_param_t *device_param = (hc_device_param_t *) p;
-
-  if (device_param->skipped) return NULL;
-
-  user_options_t       *user_options       = data.user_options;
-  user_options_extra_t *user_options_extra = data.user_options_extra;
-  hashconfig_t         *hashconfig         = data.hashconfig;
-  hashes_t             *hashes             = data.hashes;
-  cpt_ctx_t            *cpt_ctx            = data.cpt_ctx;
-  straight_ctx_t       *straight_ctx       = data.straight_ctx;
-  combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
-  mask_ctx_t           *mask_ctx           = data.mask_ctx;
-  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
-  outfile_ctx_t        *outfile_ctx        = data.outfile_ctx;
-  status_ctx_t         *status_ctx         = data.status_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
   const uint attack_mode = user_options->attack_mode;
   const uint attack_kern = user_options_extra->attack_kern;
@@ -282,7 +282,7 @@ void *thread_calc (void *p)
       {
         run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, combinator_ctx, pws_cnt);
 
-        run_cracker (opencl_ctx, device_param, hashconfig, hashes, cpt_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx, outfile_ctx, status_ctx, pws_cnt);
+        run_cracker (hashcat_ctx, device_param, pws_cnt);
 
         device_param->pws_cnt = 0;
 
@@ -321,7 +321,7 @@ void *thread_calc (void *p)
     {
       log_error ("ERROR: %s: %s", dictfile, strerror (errno));
 
-      return NULL;
+      return;
     }
 
     if (attack_mode == ATTACK_MODE_COMBI)
@@ -340,7 +340,7 @@ void *thread_calc (void *p)
 
           fclose (fd);
 
-          return NULL;
+          return;
         }
 
         device_param->combs_fp = combs_fp;
@@ -357,7 +357,7 @@ void *thread_calc (void *p)
 
           fclose (fd);
 
-          return NULL;
+          return;
         }
 
         device_param->combs_fp = combs_fp;
@@ -478,7 +478,7 @@ void *thread_calc (void *p)
       {
         run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, combinator_ctx, pws_cnt);
 
-        run_cracker (opencl_ctx, device_param, hashconfig, hashes, cpt_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx, outfile_ctx, status_ctx, pws_cnt);
+        run_cracker (hashcat_ctx, device_param, pws_cnt);
 
         device_param->pws_cnt = 0;
 
@@ -514,6 +514,23 @@ void *thread_calc (void *p)
 
   device_param->kernel_accel = 0;
   device_param->kernel_loops = 0;
+}
+
+void *thread_calc (void *p)
+{
+  thread_param_t *thread_param = (thread_param_t *) p;
+
+  hashcat_ctx_t *hashcat_ctx = thread_param->hashcat_ctx;
+
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  if (opencl_ctx->enabled == false) return NULL;
+
+  hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
+
+  if (device_param->skipped) return NULL;
+
+  calc (hashcat_ctx, device_param);
 
   return NULL;
 }

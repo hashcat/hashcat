@@ -9,7 +9,6 @@
 #include "logging.h"
 #include "hashes.h"
 
-#include "data.h"
 #include "debugfile.h"
 #include "filehandling.h"
 #include "hlfmt.h"
@@ -26,17 +25,17 @@
 #include "thread.h"
 #include "timer.h"
 
-extern hc_global_data_t data;
-
-int sort_by_digest_p0p1 (const void *v1, const void *v2)
+int sort_by_digest_p0p1 (const void *v1, const void *v2, void *v3)
 {
   const u32 *d1 = (const u32 *) v1;
   const u32 *d2 = (const u32 *) v2;
 
-  const uint dgst_pos0 = data.hashconfig->dgst_pos0;
-  const uint dgst_pos1 = data.hashconfig->dgst_pos1;
-  const uint dgst_pos2 = data.hashconfig->dgst_pos2;
-  const uint dgst_pos3 = data.hashconfig->dgst_pos3;
+  hashconfig_t *hashconfig = (hashconfig_t *) v3;
+
+  const uint dgst_pos0 = hashconfig->dgst_pos0;
+  const uint dgst_pos1 = hashconfig->dgst_pos1;
+  const uint dgst_pos2 = hashconfig->dgst_pos2;
+  const uint dgst_pos3 = hashconfig->dgst_pos3;
 
   if (d1[dgst_pos3] > d2[dgst_pos3]) return  1;
   if (d1[dgst_pos3] < d2[dgst_pos3]) return -1;
@@ -84,12 +83,14 @@ int sort_by_salt (const void *v1, const void *v2)
   return 0;
 }
 
-int sort_by_hash (const void *v1, const void *v2)
+int sort_by_hash (const void *v1, const void *v2, void *v3)
 {
   const hash_t *h1 = (const hash_t *) v1;
   const hash_t *h2 = (const hash_t *) v2;
 
-  if (data.hashconfig->is_salted)
+  hashconfig_t *hashconfig = (hashconfig_t *) v3;
+
+  if (hashconfig->is_salted)
   {
     const salt_t *s1 = h1->salt;
     const salt_t *s2 = h2->salt;
@@ -102,10 +103,10 @@ int sort_by_hash (const void *v1, const void *v2)
   const void *d1 = h1->digest;
   const void *d2 = h2->digest;
 
-  return sort_by_digest_p0p1 (d1, d2);
+  return sort_by_digest_p0p1 (d1, d2, v3);
 }
 
-int sort_by_hash_no_salt (const void *v1, const void *v2)
+int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3)
 {
   const hash_t *h1 = (const hash_t *) v1;
   const hash_t *h2 = (const hash_t *) v2;
@@ -113,7 +114,7 @@ int sort_by_hash_no_salt (const void *v1, const void *v2)
   const void *d1 = h1->digest;
   const void *d2 = h2->digest;
 
-  return sort_by_digest_p0p1 (d1, d2);
+  return sort_by_digest_p0p1 (d1, d2, v3);
 }
 
 void save_hash (const user_options_t *user_options, const hashconfig_t *hashconfig, const hashes_t *hashes)
@@ -210,17 +211,21 @@ void save_hash (const user_options_t *user_options, const hashconfig_t *hashconf
   unlink (old_hashfile);
 }
 
-void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, plain_t *plain)
+void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain)
 {
-  debugfile_ctx_t *debugfile_ctx = data.debugfile_ctx;
-  loopback_ctx_t  *loopback_ctx  = data.loopback_ctx;
-  outfile_ctx_t   *outfile_ctx   = data.outfile_ctx;
-  potfile_ctx_t   *potfile_ctx   = data.potfile_ctx;
-  mask_ctx_t      *mask_ctx      = data.mask_ctx;
-  status_ctx_t    *status_ctx    = data.status_ctx;
-
-  hashconfig_t *hashconfig  = data.hashconfig;
-  hashes_t     *hashes      = data.hashes;
+  combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  debugfile_ctx_t       *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
+  hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t              *hashes             = hashcat_ctx->hashes;
+  loopback_ctx_t        *loopback_ctx       = hashcat_ctx->loopback_ctx;
+  mask_ctx_t            *mask_ctx           = hashcat_ctx->mask_ctx;
+  opencl_ctx_t          *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  outfile_ctx_t         *outfile_ctx        = hashcat_ctx->outfile_ctx;
+  potfile_ctx_t         *potfile_ctx        = hashcat_ctx->potfile_ctx;
+  status_ctx_t          *status_ctx         = hashcat_ctx->status_ctx;
+  straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_t        *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
   const u32 salt_pos    = plain->salt_pos;
   const u32 digest_pos  = plain->digest_pos;  // relative
@@ -493,8 +498,14 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
   }
 }
 
-int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, status_ctx_t *status_ctx, const uint salt_pos)
+int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const uint salt_pos)
 {
+  cpt_ctx_t             *cpt_ctx            = hashcat_ctx->cpt_ctx;
+  hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t              *hashes             = hashcat_ctx->hashes;
+  opencl_ctx_t          *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  status_ctx_t          *status_ctx         = hashcat_ctx->status_ctx;
+
   salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
   u32 num_cracked;
@@ -557,7 +568,7 @@ int check_cracked (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
       if (hashes->salts_done == hashes->salts_cnt) mycracked (status_ctx);
 
-      check_hash (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, &cracked[i]);
+      check_hash (hashcat_ctx, device_param, &cracked[i]);
     }
 
     hc_thread_mutex_unlock (status_ctx->mux_display);
@@ -1216,11 +1227,11 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
 
   if (hashconfig->is_salted)
   {
-    qsort (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash);
+    hc_qsort_r (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
   }
   else
   {
-    qsort (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt);
+    hc_qsort_r (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
   }
 
   return 0;
@@ -1245,12 +1256,12 @@ int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_o
     {
       if (sort_by_salt (hashes_buf[hashes_pos].salt, hashes_buf[hashes_pos - 1].salt) == 0)
       {
-        if (sort_by_digest_p0p1 (hashes_buf[hashes_pos].digest, hashes_buf[hashes_pos - 1].digest) == 0) continue;
+        if (sort_by_digest_p0p1 (hashes_buf[hashes_pos].digest, hashes_buf[hashes_pos - 1].digest, (void *) hashconfig) == 0) continue;
       }
     }
     else
     {
-      if (sort_by_digest_p0p1 (hashes_buf[hashes_pos].digest, hashes_buf[hashes_pos - 1].digest) == 0) continue;
+      if (sort_by_digest_p0p1 (hashes_buf[hashes_pos].digest, hashes_buf[hashes_pos - 1].digest, (void *) hashconfig) == 0) continue;
     }
 
     if (hashes_pos > hashes_cnt)

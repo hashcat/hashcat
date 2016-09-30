@@ -163,7 +163,7 @@ LFLAGS_CROSS_WIN         := -lpsapi
 ## Objects
 ##
 
-OBJS_ALL                 := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md5 cpu_sha1 cpu_sha256 data debugfile dictstat dispatch dynloader ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_xnvctrl filehandling folder hashes hlfmt hwmon induct interface locking logfile logging loopback memory monitor mpsp opencl outfile_check outfile potfile restore rp rp_cpu rp_kernel_on_cpu shared status stdout straight terminal thread timer tuningdb usage user_options weak_hash wordlist
+OBJS_ALL                 := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_xnvctrl filehandling folder hashcat hashes hlfmt hwmon induct interface locking logfile logging loopback memory monitor mpsp opencl outfile_check outfile potfile restore rp rp_cpu rp_kernel_on_cpu shared status stdout straight terminal thread timer tuningdb usage user_options weak_hash wordlist
 
 NATIVE_OBJS              := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.o)
 
@@ -257,8 +257,11 @@ uninstall:
 obj/%.NATIVE.o:   src/%.c
 	$(CC) $(CFLAGS_NATIVE) -c -o $@ $<
 
-hashcat:       src/hashcat.c $(NATIVE_OBJS)
-	$(CC) $(CFLAGS_NATIVE)    -o $(BINARY_NATIVE) $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+obj/hashcat.NATIVE.o:   src/hashcat.c
+	$(CC) $(CFLAGS_NATIVE) -c -o $@ $< -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+
+$(BINARY_NATIVE):       src/main.c $(NATIVE_OBJS)
+	$(CC) $(CFLAGS_NATIVE)    -o $(BINARY_NATIVE) $^ $(LFLAGS_NATIVE)
 
 ##
 ## cross compiled hashcat for binary release version
@@ -276,14 +279,26 @@ obj/%.WIN.32.o:   src/%.c
 obj/%.WIN.64.o:   src/%.c
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) -c -o $@ $<
 
-hashcat32.bin: src/hashcat.c $(LINUX_32_OBJS)
-	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+obj/hashcat.LINUX.32.o: src/hashcat.c
+	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32) -c -o $@ $< -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-hashcat64.bin: src/hashcat.c $(LINUX_64_OBJS)
-	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+obj/hashcat.LINUX.64.o: src/hashcat.c
+	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64) -c -o $@ $< -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-hashcat32.exe: src/hashcat.c $(WIN_32_OBJS)
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
+obj/hashcat.WIN.32.o:   src/hashcat.c
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32) -c -o $@ $< -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
-hashcat64.exe: src/hashcat.c $(WIN_64_OBJS)
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
+obj/hashcat.WIN.64.o:   src/hashcat.c
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) -c -o $@ $< -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
+
+hashcat32.bin: src/main.c $(LINUX_32_OBJS)
+	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_LINUX) 
+
+hashcat64.bin: src/main.c $(LINUX_64_OBJS)
+	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_LINUX)
+
+hashcat32.exe: src/main.c $(WIN_32_OBJS)
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_WIN)  
+
+hashcat64.exe: src/main.c $(WIN_64_OBJS)
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_WIN)

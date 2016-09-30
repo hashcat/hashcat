@@ -5,14 +5,11 @@
 
 #include "common.h"
 #include "types.h"
-#include "data.h"
 #include "logging.h"
 #include "opencl.h"
 #include "status.h"
 #include "terminal.h"
 #include "autotune.h"
-
-extern hc_global_data_t data;
 
 static double try_run (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, status_ctx_t *status_ctx, const u32 kernel_accel, const u32 kernel_loops)
 {
@@ -36,8 +33,15 @@ static double try_run (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param
   return exec_ms_prev;
 }
 
-int autotune (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, status_ctx_t *status_ctx)
+static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+
   const double target_ms = opencl_ctx->target_ms;
 
   const u32 kernel_accel_min = device_param->kernel_accel_min;
@@ -295,18 +299,19 @@ int autotune (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
 
 void *thread_autotune (void *p)
 {
-  hc_device_param_t *device_param = (hc_device_param_t *) p;
+  thread_param_t *thread_param = (thread_param_t *) p;
+
+  hashcat_ctx_t *hashcat_ctx = thread_param->hashcat_ctx;
+
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  if (opencl_ctx->enabled == false) return NULL;
+
+  hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
 
   if (device_param->skipped) return NULL;
 
-  user_options_t       *user_options       = data.user_options;
-  user_options_extra_t *user_options_extra = data.user_options_extra;
-  hashconfig_t         *hashconfig         = data.hashconfig;
-  straight_ctx_t       *straight_ctx       = data.straight_ctx;
-  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
-  status_ctx_t         *status_ctx         = data.status_ctx;
-
-  autotune (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, straight_ctx, status_ctx);
+  autotune (hashcat_ctx, device_param);
 
   return NULL;
 }

@@ -40,6 +40,7 @@
 
 #endif
 
+/*
 #if defined (_WIN)
 
 BOOL WINAPI sigHandler_default (DWORD sig);
@@ -53,6 +54,7 @@ void sigHandler_benchmark (int sig);
 void hc_signal (void (callback) (int));
 
 #endif
+*/
 
 void mycracked (status_ctx_t *status_ctx);
 void myabort (status_ctx_t *status_ctx);

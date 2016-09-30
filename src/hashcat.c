@@ -53,20 +53,31 @@
 #include "weak_hash.h"
 #include "wordlist.h"
 
-extern hc_global_data_t data;
-
-extern bool SUPPRESS_OUTPUT;
-
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
-const int   comptime    = COMPTIME;
-const char *version_tag = VERSION_TAG;
-
 // inner2_loop iterates through wordlists, then calls kernel execution
 
-static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
+static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 {
+  combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
+  cpt_ctx_t            *cpt_ctx             = hashcat_ctx->cpt_ctx;
+  dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
+  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  hashes_t             *hashes              = hashcat_ctx->hashes;
+  hwmon_ctx_t          *hwmon_ctx           = hashcat_ctx->hwmon_ctx;
+  induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
+  logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
+  loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
+  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
+  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
+  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
+  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+  wl_data_t            *wl_data             = hashcat_ctx->wl_data;
+
   //status_ctx->run_main_level1   = true;
   //status_ctx->run_main_level2   = true;
   //status_ctx->run_main_level3   = true;
@@ -311,15 +322,20 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
    * create autotune threads
    */
 
+  thread_param_t *threads_param = (thread_param_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (thread_param_t));
+
   hc_thread_t *c_threads = (hc_thread_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
 
   status_ctx->devices_status = STATUS_AUTOTUNE;
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    thread_param_t *thread_param = threads_param + device_id;
 
-    hc_thread_create (c_threads[device_id], thread_autotune, device_param);
+    thread_param->hashcat_ctx = hashcat_ctx;
+    thread_param->tid         = device_id;
+
+    hc_thread_create (c_threads[device_id], thread_autotune, thread_param);
   }
 
   hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
@@ -378,21 +394,26 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    thread_param_t *thread_param = threads_param + device_id;
+
+    thread_param->hashcat_ctx = hashcat_ctx;
+    thread_param->tid         = device_id;
 
     if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
     {
-      hc_thread_create (c_threads[device_id], thread_calc_stdin, device_param);
+      hc_thread_create (c_threads[device_id], thread_calc_stdin, thread_param);
     }
     else
     {
-      hc_thread_create (c_threads[device_id], thread_calc, device_param);
+      hc_thread_create (c_threads[device_id], thread_calc, thread_param);
     }
   }
 
   hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
 
   myfree (c_threads);
+
+  myfree (threads_param);
 
   // calculate final status
 
@@ -479,7 +500,7 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
     {
       for (induct_ctx->induction_dictionaries_pos = 0; induct_ctx->induction_dictionaries_pos < induct_ctx->induction_dictionaries_cnt; induct_ctx->induction_dictionaries_pos++)
       {
-        const int rc_inner2_loop = inner2_loop (status_ctx, user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
+        const int rc_inner2_loop = inner2_loop (hashcat_ctx);
 
         if (rc_inner2_loop == -1) return -1;
 
@@ -499,8 +520,22 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
 // inner1_loop iterates through masks, then calls inner2_loop
 
-static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, logfile_ctx_t *logfile_ctx, induct_ctx_t *induct_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, wl_data_t *wl_data, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
+static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 {
+  combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
+  dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
+  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  hashes_t             *hashes              = hashcat_ctx->hashes;
+  logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
+  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
+  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
+  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
+  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+  wl_data_t            *wl_data             = hashcat_ctx->wl_data;
+
   //status_ctx->run_main_level1   = true;
   //status_ctx->run_main_level2   = true;
   status_ctx->run_main_level3   = true;
@@ -756,7 +791,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
    * dictstat read
    */
 
-  dictstat_read (dictstat_ctx);
+  dictstat_read (dictstat_ctx, COMPTIME);
 
   /**
    * dictionary pad
@@ -1154,7 +1189,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
       straight_ctx->dicts_pos = dicts_pos;
 
-      const int rc_inner2_loop = inner2_loop (status_ctx, user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
+      const int rc_inner2_loop = inner2_loop (hashcat_ctx);
 
       if (rc_inner2_loop == -1) return -1;
 
@@ -1163,7 +1198,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
   }
   else
   {
-    const int rc_inner2_loop = inner2_loop (status_ctx, user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
+    const int rc_inner2_loop = inner2_loop (hashcat_ctx);
 
     if (rc_inner2_loop == -1) return -1;
   }
@@ -1173,8 +1208,21 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
 // outer_loop iterates through hash_modes (in benchmark mode)
 
-static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, user_options_extra_t *user_options_extra, restore_ctx_t *restore_ctx, folder_config_t *folder_config, logfile_ctx_t *logfile_ctx, tuning_db_t *tuning_db, induct_ctx_t *induct_ctx, outcheck_ctx_t *outcheck_ctx, outfile_ctx_t *outfile_ctx, potfile_ctx_t *potfile_ctx, dictstat_ctx_t *dictstat_ctx, loopback_ctx_t *loopback_ctx, opencl_ctx_t *opencl_ctx, hwmon_ctx_t *hwmon_ctx)
+static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 {
+  folder_config_t      *folder_config       = hashcat_ctx->folder_config;
+  hwmon_ctx_t          *hwmon_ctx           = hashcat_ctx->hwmon_ctx;
+  logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
+  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
+  outfile_ctx_t        *outfile_ctx         = hashcat_ctx->outfile_ctx;
+  potfile_ctx_t        *potfile_ctx         = hashcat_ctx->potfile_ctx;
+  restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
+  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
+  tuning_db_t          *tuning_db           = hashcat_ctx->tuning_db;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+
   status_ctx->devices_status = STATUS_INIT;
 
   //status_ctx->run_main_level1   = true;
@@ -1195,7 +1243,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   hashconfig_t *hashconfig = (hashconfig_t *) mymalloc (sizeof (hashconfig_t));
 
-  data.hashconfig = hashconfig;
+  hashcat_ctx->hashconfig = hashconfig;
 
   const int rc_hashconfig = hashconfig_init (hashconfig, user_options);
 
@@ -1209,15 +1257,11 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
   {
     outfile_write_open (outfile_ctx);
 
-    SUPPRESS_OUTPUT = true;
-
     potfile_read_open  (potfile_ctx);
 
     potfile_read_parse (potfile_ctx, hashconfig);
 
     potfile_read_close (potfile_ctx);
-
-    SUPPRESS_OUTPUT = false;
   }
 
   /**
@@ -1226,7 +1270,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   hashes_t *hashes = (hashes_t *) mymalloc (sizeof (hashes_t));
 
-  data.hashes = hashes;
+  hashcat_ctx->hashes = hashes;
 
   const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, user_options, restore_ctx->argv[user_options_extra->optind]);
 
@@ -1294,7 +1338,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   bitmap_ctx_t *bitmap_ctx = (bitmap_ctx_t *) mymalloc (sizeof (bitmap_ctx_t));
 
-  data.bitmap_ctx = bitmap_ctx;
+  hashcat_ctx->bitmap_ctx = bitmap_ctx;
 
   bitmap_ctx_init (bitmap_ctx, user_options, hashconfig, hashes);
 
@@ -1304,7 +1348,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   cpt_ctx_t *cpt_ctx = (cpt_ctx_t *) mymalloc (sizeof (cpt_ctx_t));
 
-  data.cpt_ctx = cpt_ctx;
+  hashcat_ctx->cpt_ctx = cpt_ctx;
 
   cpt_ctx_init (cpt_ctx, user_options);
 
@@ -1314,6 +1358,8 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   wl_data_t *wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
 
+  hashcat_ctx->wl_data = wl_data;
+
   wl_data_init (wl_data, user_options, hashconfig);
 
   /**
@@ -1322,7 +1368,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   straight_ctx_t *straight_ctx = (straight_ctx_t *) mymalloc (sizeof (straight_ctx_t));
 
-  data.straight_ctx = straight_ctx;
+  hashcat_ctx->straight_ctx = straight_ctx;
 
   const int rc_straight_init = straight_ctx_init (straight_ctx, user_options);
 
@@ -1334,7 +1380,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   combinator_ctx_t *combinator_ctx = (combinator_ctx_t *) mymalloc (sizeof (combinator_ctx_t));
 
-  data.combinator_ctx = combinator_ctx;
+  hashcat_ctx->combinator_ctx = combinator_ctx;
 
   const int rc_combinator_init = combinator_ctx_init (combinator_ctx, user_options);
 
@@ -1346,7 +1392,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   mask_ctx_t *mask_ctx = (mask_ctx_t *) mymalloc (sizeof (mask_ctx_t));
 
-  data.mask_ctx = mask_ctx;
+  hashcat_ctx->mask_ctx = mask_ctx;
 
   const int rc_mask_init = mask_ctx_init (mask_ctx, user_options, user_options_extra, folder_config, restore_ctx, hashconfig);
 
@@ -1362,8 +1408,11 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   /**
    * enable custom signal handler(s)
+   * currently disabled, because man page says:
+   *   The effects of signal() in a multithreaded process are unspecified.
    */
 
+  /*
   if (user_options->benchmark == false)
   {
     hc_signal (sigHandler_default);
@@ -1372,6 +1421,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
   {
     hc_signal (sigHandler_benchmark);
   }
+  */
 
   /**
    * inform the user
@@ -1486,7 +1536,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
     for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
     {
-      weak_hash_check (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, hashconfig, hashes, cpt_ctx, status_ctx, salt_pos);
+      weak_hash_check (hashcat_ctx, device_param, salt_pos);
     }
   }
 
@@ -1506,13 +1556,13 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false)
   {
-    hc_thread_create (inner_threads[inner_threads_cnt], thread_monitor, NULL);
+    hc_thread_create (inner_threads[inner_threads_cnt], thread_monitor, hashcat_ctx);
 
     inner_threads_cnt++;
 
     if (outcheck_ctx->enabled == true)
     {
-      hc_thread_create (inner_threads[inner_threads_cnt], thread_outfile_remove, NULL);
+      hc_thread_create (inner_threads[inner_threads_cnt], thread_outfile_remove, hashcat_ctx);
 
       inner_threads_cnt++;
     }
@@ -1556,7 +1606,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
       mask_ctx->masks_pos = masks_pos;
 
-      const int rc_inner1_loop = inner1_loop (status_ctx, user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
+      const int rc_inner1_loop = inner1_loop (hashcat_ctx);
 
       if (rc_inner1_loop == -1) return -1;
 
@@ -1565,7 +1615,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
   }
   else
   {
-    const int rc_inner1_loop = inner1_loop (status_ctx, user_options, user_options_extra, restore_ctx, logfile_ctx, induct_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, wl_data, straight_ctx, combinator_ctx, mask_ctx);
+    const int rc_inner1_loop = inner1_loop (hashcat_ctx);
 
     if (rc_inner1_loop == -1) return -1;
   }
@@ -1637,7 +1687,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
   return 0;
 }
 
-int main (int argc, char **argv)
+int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 {
   /**
    * To help users a bit
@@ -1657,7 +1707,7 @@ int main (int argc, char **argv)
 
   status_ctx_t *status_ctx = (status_ctx_t *) mymalloc (sizeof (status_ctx_t));
 
-  data.status_ctx = status_ctx;
+  hashcat_ctx->status_ctx = status_ctx;
 
   const int rc_status_init = status_ctx_init (status_ctx);
 
@@ -1680,6 +1730,8 @@ int main (int argc, char **argv)
 
   folder_config_t *folder_config = (folder_config_t *) mymalloc (sizeof (folder_config_t));
 
+  hashcat_ctx->folder_config = folder_config;
+
   folder_config_init (folder_config, install_folder, shared_folder);
 
   /**
@@ -1688,7 +1740,7 @@ int main (int argc, char **argv)
 
   user_options_t *user_options = (user_options_t *) mymalloc (sizeof (user_options_t));
 
-  data.user_options = user_options;
+  hashcat_ctx->user_options = user_options;
 
   user_options_init (user_options);
 
@@ -1720,7 +1772,7 @@ int main (int argc, char **argv)
 
   restore_ctx_t *restore_ctx = (restore_ctx_t *) mymalloc (sizeof (restore_ctx_t));
 
-  data.restore_ctx = restore_ctx;
+  hashcat_ctx->restore_ctx = restore_ctx;
 
   const int rc_restore_init = restore_ctx_init (restore_ctx, user_options, folder_config, argc, argv);
 
@@ -1732,7 +1784,7 @@ int main (int argc, char **argv)
 
   user_options_extra_t *user_options_extra = (user_options_extra_t *) mymalloc (sizeof (user_options_extra_t));
 
-  data.user_options_extra = user_options_extra;
+  hashcat_ctx->user_options_extra = user_options_extra;
 
   const int rc_user_options_extra_init = user_options_extra_init (user_options, restore_ctx, user_options_extra);
 
@@ -1753,7 +1805,7 @@ int main (int argc, char **argv)
    * - this is giving us a visual header before preparations start, so we do not need to clear them afterwards
    */
 
-  welcome_screen (user_options, status_ctx);
+  welcome_screen (user_options, status_ctx, VERSION_TAG);
 
   /**
    * logfile init
@@ -1761,7 +1813,7 @@ int main (int argc, char **argv)
 
   logfile_ctx_t *logfile_ctx = (logfile_ctx_t *) mymalloc (sizeof (logfile_ctx_t));
 
-  data.logfile_ctx = logfile_ctx;
+  hashcat_ctx->logfile_ctx = logfile_ctx;
 
   logfile_init (logfile_ctx, user_options, folder_config);
 
@@ -1777,7 +1829,7 @@ int main (int argc, char **argv)
 
   tuning_db_t *tuning_db = (tuning_db_t *) mymalloc (sizeof (tuning_db_t));
 
-  data.tuning_db = tuning_db;
+  hashcat_ctx->tuning_db = tuning_db;
 
   const int rc_tuning_db = tuning_db_init (tuning_db, user_options, folder_config);
 
@@ -1789,7 +1841,7 @@ int main (int argc, char **argv)
 
   induct_ctx_t *induct_ctx = (induct_ctx_t *) mymalloc (sizeof (induct_ctx_t));
 
-  data.induct_ctx = induct_ctx;
+  hashcat_ctx->induct_ctx = induct_ctx;
 
   const int rc_induct_ctx_init = induct_ctx_init (induct_ctx, user_options, folder_config, status_ctx);
 
@@ -1801,7 +1853,7 @@ int main (int argc, char **argv)
 
   outcheck_ctx_t *outcheck_ctx = (outcheck_ctx_t *) mymalloc (sizeof (outcheck_ctx_t));
 
-  data.outcheck_ctx = outcheck_ctx;
+  hashcat_ctx->outcheck_ctx = outcheck_ctx;
 
   const int rc_outcheck_ctx_init = outcheck_ctx_init (outcheck_ctx, user_options, folder_config);
 
@@ -1813,7 +1865,7 @@ int main (int argc, char **argv)
 
   outfile_ctx_t *outfile_ctx = mymalloc (sizeof (outfile_ctx_t));
 
-  data.outfile_ctx = outfile_ctx;
+  hashcat_ctx->outfile_ctx = outfile_ctx;
 
   outfile_init (outfile_ctx, user_options);
 
@@ -1833,7 +1885,7 @@ int main (int argc, char **argv)
 
   potfile_ctx_t *potfile_ctx = mymalloc (sizeof (potfile_ctx_t));
 
-  data.potfile_ctx = potfile_ctx;
+  hashcat_ctx->potfile_ctx = potfile_ctx;
 
   potfile_init (potfile_ctx, user_options, folder_config);
 
@@ -1843,6 +1895,8 @@ int main (int argc, char **argv)
 
   dictstat_ctx_t *dictstat_ctx = mymalloc (sizeof (dictstat_ctx_t));
 
+  hashcat_ctx->dictstat_ctx = dictstat_ctx;
+
   dictstat_init (dictstat_ctx, user_options, folder_config);
 
   /**
@@ -1851,7 +1905,7 @@ int main (int argc, char **argv)
 
   loopback_ctx_t *loopback_ctx = mymalloc (sizeof (loopback_ctx_t));
 
-  data.loopback_ctx = loopback_ctx;
+  hashcat_ctx->loopback_ctx = loopback_ctx;
 
   loopback_init (loopback_ctx, user_options);
 
@@ -1861,7 +1915,7 @@ int main (int argc, char **argv)
 
   debugfile_ctx_t *debugfile_ctx = mymalloc (sizeof (debugfile_ctx_t));
 
-  data.debugfile_ctx = debugfile_ctx;
+  hashcat_ctx->debugfile_ctx = debugfile_ctx;
 
   debugfile_init (debugfile_ctx, user_options);
 
@@ -1880,7 +1934,7 @@ int main (int argc, char **argv)
 
   opencl_ctx_t *opencl_ctx = (opencl_ctx_t *) mymalloc (sizeof (opencl_ctx_t));
 
-  data.opencl_ctx = opencl_ctx;
+  hashcat_ctx->opencl_ctx = opencl_ctx;
 
   const int rc_opencl_init = opencl_ctx_init (opencl_ctx, user_options);
 
@@ -1895,7 +1949,7 @@ int main (int argc, char **argv)
    * Init OpenCL devices
    */
 
-  const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, user_options);
+  const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, user_options, COMPTIME);
 
   if (rc_devices_init == -1)
   {
@@ -1910,7 +1964,7 @@ int main (int argc, char **argv)
 
   hwmon_ctx_t *hwmon_ctx = (hwmon_ctx_t *) mymalloc (sizeof (hwmon_ctx_t));
 
-  data.hwmon_ctx = hwmon_ctx;
+  hashcat_ctx->hwmon_ctx = hwmon_ctx;
 
   const int rc_hwmon_init = hwmon_ctx_init (hwmon_ctx, user_options, opencl_ctx);
 
@@ -1935,7 +1989,7 @@ int main (int argc, char **argv)
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
-      hc_thread_create (outer_threads[outer_threads_cnt], thread_keypress, NULL);
+      hc_thread_create (outer_threads[outer_threads_cnt], thread_keypress, hashcat_ctx);
 
       outer_threads_cnt++;
     }
@@ -1951,7 +2005,7 @@ int main (int argc, char **argv)
 
     if (user_options->hash_mode_chgd == true)
     {
-      const int rc = outer_loop (status_ctx, user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx);
+      const int rc = outer_loop (hashcat_ctx);
 
       if (rc == -1) return -1;
     }
@@ -1961,7 +2015,7 @@ int main (int argc, char **argv)
       {
         user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
 
-        const int rc = outer_loop (status_ctx, user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx);
+        const int rc = outer_loop (hashcat_ctx);
 
         if (rc == -1) return -1;
 
@@ -1971,7 +2025,7 @@ int main (int argc, char **argv)
   }
   else
   {
-    const int rc = outer_loop (status_ctx, user_options, user_options_extra, restore_ctx, folder_config, logfile_ctx, tuning_db, induct_ctx, outcheck_ctx, outfile_ctx, potfile_ctx, dictstat_ctx, loopback_ctx, opencl_ctx, hwmon_ctx);
+    const int rc = outer_loop (hashcat_ctx);
 
     if (rc == -1) return -1;
   }

@@ -14,11 +14,11 @@
 #include "potfile.h"
 
 // get rid of this later
-int sort_by_hash (const void *v1, const void *v2);
-int sort_by_hash_no_salt (const void *v1, const void *v2);
+int sort_by_hash         (const void *v1, const void *v2, void *v3);
+int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3);
 // get rid of this later
 
-int sort_by_pot (const void *v1, const void *v2)
+int sort_by_pot (const void *v1, const void *v2, void *v3)
 {
   const pot_t *p1 = (const pot_t *) v1;
   const pot_t *p2 = (const pot_t *) v2;
@@ -26,11 +26,13 @@ int sort_by_pot (const void *v1, const void *v2)
   const hash_t *h1 = &p1->hash;
   const hash_t *h2 = &p2->hash;
 
-  return sort_by_hash (h1, h2);
+  return sort_by_hash (h1, h2, v3);
 }
 
-int sort_by_salt_buf (const void *v1, const void *v2)
+int sort_by_salt_buf (const void *v1, const void *v2, void *v3)
 {
+  if (v3 == NULL) v3 = NULL; // make compiler happy
+
   const pot_t *p1 = (const pot_t *) v1;
   const pot_t *p2 = (const pot_t *) v2;
 
@@ -106,15 +108,74 @@ int sort_by_hash_t_salt_hccap (const void *v1, const void *v2)
   return 0;
 }
 
+void hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg)
+{
+  /*
+  **  ssort()  --  Fast, small, qsort()-compatible Shell sort
+  **
+  **  by Ray Gardner,  public domain   5/90
+  *  slightly modified to work with hashcat by Jens Steube
+  */
+
+	size_t wnel, gap, wgap, i, j, k;
+	char *a, *b, tmp;
+
+	wnel = size * nmemb;
+	for (gap = 0; ++gap < nmemb;)
+		gap *= 3;
+	while ((gap /= 3) != 0) {
+		wgap = size * gap;
+		for (i = wgap; i < wnel; i += size) {
+			for (j = i - wgap; ;j -= wgap) {
+				a = j + (char *)base;
+				b = a + wgap;
+				if ((*compar)(a, b, arg) <= 0)
+					break;
+				k = size;
+				do {
+					tmp = *a;
+					*a++ = *b;
+					*b++ = tmp;
+				} while (--k);
+				if (j < wgap)
+					break;
+			}
+		}
+	}
+}
+
+void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg)
+{
+  for (size_t l = 0, r = nmemb; r; r >>= 1)
+  {
+    const size_t m = r >> 1;
+
+    const size_t c = l + m;
+
+    const void *next = base + (c * size);
+
+    const int cmp = (*compar) (key, next, arg);
+
+    if (cmp > 0)
+    {
+      l += m + 1;
+
+      r--;
+    }
+
+    if (cmp == 0) return ((void *) next);
+  }
+
+  return (NULL);
+}
+
 void potfile_init (potfile_ctx_t *potfile_ctx, const user_options_t *user_options, const folder_config_t *folder_config)
 {
   potfile_ctx->enabled = false;
 
   if (user_options->benchmark       == true) return;
   if (user_options->keyspace        == true) return;
-  if (user_options->left            == true) return;
   if (user_options->opencl_info     == true) return;
-  if (user_options->show            == true) return;
   if (user_options->stdout_flag     == true) return;
   if (user_options->usage           == true) return;
   if (user_options->version         == true) return;
@@ -315,7 +376,7 @@ void potfile_read_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashcon
 
   myfree (line_buf);
 
-  qsort (potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+  hc_qsort_r (potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
 }
 
 void potfile_read_close (potfile_ctx_t *potfile_ctx)
@@ -421,7 +482,7 @@ void potfile_hash_free (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconf
   myfree (potfile_ctx->pot);
 }
 
-void potfile_show_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *))
+void potfile_show_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *, void *))
 {
   if (potfile_ctx->enabled == false) return;
 
@@ -430,7 +491,7 @@ void potfile_show_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashc
   pot_key.hash.salt   = hashes_buf->salt;
   pot_key.hash.digest = hashes_buf->digest;
 
-  pot_t *pot_ptr = (pot_t *) bsearch (&pot_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+  pot_t *pot_ptr = (pot_t *) hc_bsearch_r (&pot_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
 
   if (pot_ptr)
   {
@@ -460,7 +521,7 @@ void potfile_show_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashc
   }
 }
 
-void potfile_left_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *))
+void potfile_left_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *, void *))
 {
   if (potfile_ctx->enabled == false) return;
 
@@ -468,7 +529,7 @@ void potfile_left_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashc
 
   memcpy (&pot_key.hash, hashes_buf, sizeof (hash_t));
 
-  pot_t *pot_ptr = (pot_t *) bsearch (&pot_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+  pot_t *pot_ptr = (pot_t *) hc_bsearch_r (&pot_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
 
   if (pot_ptr == NULL)
   {
@@ -480,7 +541,7 @@ void potfile_left_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashc
   }
 }
 
-void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *))
+void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *, void *))
 {
   if (potfile_ctx->enabled == false) return;
 
@@ -491,7 +552,7 @@ void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
   pot_left_key.hash.salt   = hash_left->salt;
   pot_left_key.hash.digest = hash_left->digest;
 
-  pot_t *pot_left_ptr = (pot_t *) bsearch (&pot_left_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+  pot_t *pot_left_ptr = (pot_t *) hc_bsearch_r (&pot_left_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
 
   // right
 
@@ -502,7 +563,7 @@ void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
   pot_right_key.hash.salt   = hash_right->salt;
   pot_right_key.hash.digest = hash_right->digest;
 
-  pot_t *pot_right_ptr = (pot_t *) bsearch (&pot_right_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+  pot_t *pot_right_ptr = (pot_t *) hc_bsearch_r (&pot_right_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
 
   if (pot_right_ptr == NULL)
   {
@@ -602,7 +663,7 @@ void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
   if (right_part_masked == 1) myfree (pot_right_ptr);
 }
 
-void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *))
+void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, outfile_ctx_t *outfile_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *, void *))
 {
   if (potfile_ctx->enabled == false) return;
 
@@ -612,7 +673,7 @@ void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
 
   memcpy (&pot_left_key.hash, hash_left, sizeof (hash_t));
 
-  pot_t *pot_left_ptr = (pot_t *) bsearch (&pot_left_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+  pot_t *pot_left_ptr = (pot_t *) hc_bsearch_r (&pot_left_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
 
   // right
 
@@ -620,7 +681,7 @@ void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
 
   memcpy (&pot_right_key.hash, hash_right, sizeof (hash_t));
 
-  pot_t *pot_right_ptr = (pot_t *) bsearch (&pot_right_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot);
+  pot_t *pot_right_ptr = (pot_t *) hc_bsearch_r (&pot_right_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
 
   uint weak_hash_found = 0;
 
@@ -853,11 +914,11 @@ int potfile_remove_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashco
         {
           if (hashconfig->is_salted)
           {
-            found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash);
+            found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
           }
           else
           {
-            found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt);
+            found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
           }
         }
       }

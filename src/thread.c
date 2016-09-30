@@ -11,8 +11,7 @@
 #include "shared.h"
 #include "thread.h"
 
-extern hc_global_data_t data;
-
+/*
 #if defined (_WIN)
 
 BOOL WINAPI sigHandler_default (DWORD sig)
@@ -21,13 +20,13 @@ BOOL WINAPI sigHandler_default (DWORD sig)
   {
     case CTRL_CLOSE_EVENT:
 
-      /*
+       *
        * special case see: https://stackoverflow.com/questions/3640633/c-setconsolectrlhandler-routine-issue/5610042#5610042
        * if the user interacts w/ the user-interface (GUI/cmd), we need to do the finalization job within this signal handler
        * function otherwise it is too late (e.g. after returning from this function)
-       */
+       *
 
-      myabort (data.status_ctx);
+      myabort (hashcat_ctx->status_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -39,7 +38,7 @@ BOOL WINAPI sigHandler_default (DWORD sig)
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
 
-      myabort (data.status_ctx);
+      myabort (hashcat_ctx->status_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -55,7 +54,7 @@ BOOL WINAPI sigHandler_benchmark (DWORD sig)
   {
     case CTRL_CLOSE_EVENT:
 
-      myquit (data.status_ctx);
+      myquit (hashcat_ctx->status_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -67,7 +66,7 @@ BOOL WINAPI sigHandler_benchmark (DWORD sig)
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
 
-      myquit (data.status_ctx);
+      myquit (hashcat_ctx->status_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -93,14 +92,14 @@ void hc_signal (BOOL WINAPI (callback) (DWORD))
 
 void sigHandler_default (int sig)
 {
-  myabort (data.status_ctx);
+  myabort (hashcat_ctx->status_ctx);
 
   signal (sig, NULL);
 }
 
 void sigHandler_benchmark (int sig)
 {
-  myquit (data.status_ctx);
+  myquit (hashcat_ctx->status_ctx);
 
   signal (sig, NULL);
 }
@@ -115,6 +114,7 @@ void hc_signal (void (callback) (int))
 }
 
 #endif
+*/
 
 void mycracked (status_ctx_t *status_ctx)
 {

@@ -10,8 +10,15 @@
 #include "hashes.h"
 #include "weak_hash.h"
 
-void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, status_ctx_t *status_ctx, const uint salt_pos)
+void weak_hash_check (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const uint salt_pos)
 {
+  hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t              *hashes             = hashcat_ctx->hashes;
+  opencl_ctx_t          *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  status_ctx_t          *status_ctx         = hashcat_ctx->status_ctx;
+  straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_t        *user_options       = hashcat_ctx->user_options;
+
   salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
   device_param->kernel_params_buf32[27] = salt_pos;
@@ -60,7 +67,7 @@ void weak_hash_check (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param,
    * result
    */
 
-  check_cracked (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, hashconfig, hashes, cpt_ctx, status_ctx, salt_pos);
+  check_cracked (hashcat_ctx, device_param, salt_pos);
 
   /**
    * cleanup

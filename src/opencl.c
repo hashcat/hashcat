@@ -26,8 +26,6 @@
 #include "cpu_md5.h"
 #include "opencl.h"
 
-extern const int comptime;
-
 static const u32 full01 = 0x01010101;
 static const u32 full80 = 0x80808080;
 
@@ -989,8 +987,19 @@ int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
   return 0;
 }
 
-int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, hashes_t *hashes, cpt_ctx_t *cpt_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, const outfile_ctx_t *outfile_ctx, status_ctx_t *status_ctx, const uint pws_cnt)
+int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const uint pws_cnt)
 {
+  combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t              *hashes             = hashcat_ctx->hashes;
+  mask_ctx_t            *mask_ctx           = hashcat_ctx->mask_ctx;
+  opencl_ctx_t          *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  outfile_ctx_t         *outfile_ctx        = hashcat_ctx->outfile_ctx;
+  status_ctx_t          *status_ctx         = hashcat_ctx->status_ctx;
+  straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_t        *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+
   char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
   // init speed timer
@@ -1276,7 +1285,7 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
       if (user_options->benchmark == false)
       {
-        check_cracked (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, hashconfig, hashes, cpt_ctx, status_ctx, salt_pos);
+        check_cracked (hashcat_ctx, device_param, salt_pos);
       }
 
       /**
@@ -1527,7 +1536,7 @@ void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
   myfree (opencl_ctx);
 }
 
-int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_options)
+int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, const int comptime)
 {
   if (opencl_ctx->enabled == false) return 0;
 

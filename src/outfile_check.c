@@ -10,24 +10,21 @@
 #include "outfile_check.h"
 
 #include "convert.h"
-#include "data.h"
 #include "folder.h"
 #include "hashes.h"
 #include "interface.h"
 #include "shared.h"
 #include "thread.h"
 
-extern hc_global_data_t data;
-
-void *thread_outfile_remove (void *p)
+static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
 {
   // some hash-dependent constants
 
-  hashconfig_t   *hashconfig   = data.hashconfig;
-  hashes_t       *hashes       = data.hashes;
-  outcheck_ctx_t *outcheck_ctx = data.outcheck_ctx;
-  status_ctx_t   *status_ctx   = data.status_ctx;
-  user_options_t *user_options = data.user_options;
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  hashes_t       *hashes       = hashcat_ctx->hashes;
+  outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   uint dgst_size  = hashconfig->dgst_size;
   uint is_salted  = hashconfig->is_salted;
@@ -249,7 +246,7 @@ void *thread_outfile_remove (void *p)
 
                           memcpy (digest_buf, digests_buf_ptr + (hashes->salts_buf[salt_pos].digests_offset * dgst_size) + (digest_pos * dgst_size), dgst_size);
 
-                          cracked = (sort_by_digest_p0p1 (digest_buf, hash_buf.digest) == 0);
+                          cracked = (sort_by_digest_p0p1 (digest_buf, hash_buf.digest, hashconfig) == 0);
                         }
 
                         if (cracked == 1)
@@ -312,10 +309,15 @@ void *thread_outfile_remove (void *p)
   myfree (out_info);
 
   myfree (out_files);
+}
 
-  p = NULL;
+void *thread_outfile_remove (void *p)
+{
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
 
-  return (p);
+  outfile_remove (hashcat_ctx);
+
+  return NULL;
 }
 
 int outcheck_ctx_init (outcheck_ctx_t *outcheck_ctx, const user_options_t *user_options, const folder_config_t *folder_config)

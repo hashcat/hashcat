@@ -23,7 +23,7 @@
 #include <windows.h>
 #endif // _WIN
 
-void welcome_screen (const user_options_t *user_options, const status_ctx_t *status_ctx);
+void welcome_screen (const user_options_t *user_options, const status_ctx_t *status_ctx, char *version_tag);
 void goodbye_screen (const user_options_t *user_options, const status_ctx_t *status_ctx);
 
 int setup_console ();

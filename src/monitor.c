@@ -26,28 +26,25 @@
 #include "potfile.h"
 #include "debugfile.h"
 #include "loopback.h"
-#include "data.h"
 #include "status.h"
 #include "shared.h"
 #include "terminal.h"
 #include "monitor.h"
 
-extern hc_global_data_t data;
-
-void *thread_monitor (void *p)
+static void monitor (hashcat_ctx_t *hashcat_ctx)
 {
-  combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
-  cpt_ctx_t            *cpt_ctx            = data.cpt_ctx;
-  hashconfig_t         *hashconfig         = data.hashconfig;
-  hashes_t             *hashes             = data.hashes;
-  hwmon_ctx_t          *hwmon_ctx          = data.hwmon_ctx;
-  mask_ctx_t           *mask_ctx           = data.mask_ctx;
-  opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
-  restore_ctx_t        *restore_ctx        = data.restore_ctx;
-  status_ctx_t         *status_ctx         = data.status_ctx;
-  straight_ctx_t       *straight_ctx       = data.straight_ctx;
-  user_options_extra_t *user_options_extra = data.user_options_extra;
-  user_options_t       *user_options       = data.user_options;
+  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  cpt_ctx_t            *cpt_ctx            = hashcat_ctx->cpt_ctx;
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
+  hwmon_ctx_t          *hwmon_ctx          = hashcat_ctx->hwmon_ctx;
+  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  restore_ctx_t        *restore_ctx        = hashcat_ctx->restore_ctx;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
 
   bool runtime_check = false;
   bool remove_check  = false;
@@ -87,7 +84,7 @@ void *thread_monitor (void *p)
 
   if ((runtime_check == false) && (remove_check == false) && (status_check == false) && (restore_check == false) && (hwmon_check == false))
   {
-    return (p);
+    return;
   }
 
   // these variables are mainly used for fan control
@@ -362,8 +359,13 @@ void *thread_monitor (void *p)
 
   myfree (temp_diff_old);
   myfree (temp_diff_sum);
+}
 
-  p = NULL;
+void *thread_monitor (void *p)
+{
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
 
-  return (p);
+  monitor (hashcat_ctx);
+
+  return NULL;
 }

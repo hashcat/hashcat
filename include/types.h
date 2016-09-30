@@ -55,6 +55,10 @@ typedef struct timeval    hc_timer_t;
 
 // thread
 
+#if defined (_POSIX)
+#include <pthread.h>
+#endif
+
 #if defined (_WIN)
 typedef HANDLE            hc_thread_t;
 typedef CRITICAL_SECTION  hc_thread_mutex_t;
@@ -1330,6 +1334,8 @@ typedef struct
   combinator_ctx_t      *combinator_ctx;
   cpt_ctx_t             *cpt_ctx;
   debugfile_ctx_t       *debugfile_ctx;
+  dictstat_ctx_t        *dictstat_ctx;
+  folder_config_t       *folder_config;
   hashconfig_t          *hashconfig;
   hashes_t              *hashes;
   hwmon_ctx_t           *hwmon_ctx;
@@ -1347,7 +1353,16 @@ typedef struct
   tuning_db_t           *tuning_db;
   user_options_extra_t  *user_options_extra;
   user_options_t        *user_options;
+  wl_data_t             *wl_data;
 
-} hc_global_data_t;
+} hashcat_ctx_t;
+
+typedef struct
+{
+  u32 tid;
+
+  hashcat_ctx_t *hashcat_ctx;
+
+} thread_param_t;
 
 #endif // _TYPES_H
