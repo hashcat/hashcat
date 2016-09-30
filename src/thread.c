@@ -118,7 +118,7 @@ void hc_signal (void (callback) (int))
 
 void mycracked (status_ctx_t *status_ctx)
 {
-  if (status_ctx->devices_status != STATUS_RUNNING) return;
+  //if (status_ctx->devices_status != STATUS_RUNNING) return;
 
   status_ctx->devices_status = STATUS_CRACKED;
 
@@ -131,7 +131,8 @@ void mycracked (status_ctx_t *status_ctx)
 
 void myabort (status_ctx_t *status_ctx)
 {
-  if (status_ctx->devices_status != STATUS_RUNNING) return;
+  //those checks create problems in benchmark mode, it's simply too short of a timeframe where it's running as STATUS_RUNNING
+  //if (status_ctx->devices_status != STATUS_RUNNING) return;
 
   status_ctx->devices_status = STATUS_ABORTED;
 
@@ -144,7 +145,7 @@ void myabort (status_ctx_t *status_ctx)
 
 void myquit (status_ctx_t *status_ctx)
 {
-  if (status_ctx->devices_status != STATUS_RUNNING) return;
+  //if (status_ctx->devices_status != STATUS_RUNNING) return;
 
   status_ctx->devices_status = STATUS_QUIT;
 
@@ -157,7 +158,7 @@ void myquit (status_ctx_t *status_ctx)
 
 void bypass (status_ctx_t *status_ctx)
 {
-  if (status_ctx->devices_status != STATUS_RUNNING) return;
+  //if (status_ctx->devices_status != STATUS_RUNNING) return;
 
   status_ctx->devices_status = STATUS_BYPASS;
 
