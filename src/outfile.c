@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "types.h"
+#include "memory.h"
 #include "logging.h"
 #include "interface.h"
 #include "hashes.h"
@@ -33,6 +34,8 @@ void outfile_destroy (outfile_ctx_t *outfile_ctx)
   outfile_ctx->filename         = NULL;
   outfile_ctx->outfile_format   = 0;
   outfile_ctx->outfile_autohex  = 0;
+
+  myfree (outfile_ctx);
 }
 
 void outfile_format_plain (outfile_ctx_t *outfile_ctx, const unsigned char *plain_ptr, const uint plain_len)
