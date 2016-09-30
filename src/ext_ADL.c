@@ -85,7 +85,7 @@ void adl_close (ADL_PTR *adl)
 
 void *HC_API_CALL ADL_Main_Memory_Alloc (const int iSize)
 {
-  return mymalloc (iSize);
+  return mymalloc ((size_t) iSize);
 }
 
 int hm_ADL_Main_Control_Destroy (ADL_PTR *adl)

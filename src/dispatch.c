@@ -150,13 +150,13 @@ void *thread_calc_stdin (void *p)
 
       if (line_buf == NULL) break;
 
-      uint line_len = in_superchop (line_buf);
+      u32 line_len = (u32) in_superchop (line_buf);
 
       line_len = convert_from_hex (line_buf, line_len, user_options);
 
       // post-process rule engine
 
-      if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
+      if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
       {
         char rule_buf_out[BLOCK_SIZE] = { 0 };
 
@@ -164,13 +164,13 @@ void *thread_calc_stdin (void *p)
 
         if (line_len < BLOCK_SIZE)
         {
-          rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, line_buf, line_len, rule_buf_out);
+          rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
         }
 
         if (rule_len_out < 0) continue;
 
         line_buf = rule_buf_out;
-        line_len = rule_len_out;
+        line_len = (u32) rule_len_out;
       }
 
       if (line_len > PW_MAX)
@@ -197,7 +197,7 @@ void *thread_calc_stdin (void *p)
         }
       }
 
-      pw_add (device_param, (u8 *) line_buf, line_len);
+      pw_add (device_param, (u8 *) line_buf, (int) line_len);
 
       words_cur++;
 
@@ -401,7 +401,7 @@ void *thread_calc (void *p)
 
           // post-process rule engine
 
-          if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
+          if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
           {
             char rule_buf_out[BLOCK_SIZE] = { 0 };
 
@@ -409,13 +409,13 @@ void *thread_calc (void *p)
 
             if (line_len < BLOCK_SIZE)
             {
-              rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, line_buf, line_len, rule_buf_out);
+              rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
             }
 
             if (rule_len_out < 0) continue;
 
             line_buf = rule_buf_out;
-            line_len = rule_len_out;
+            line_len = (u32) rule_len_out;
           }
 
           if (attack_kern == ATTACK_KERN_STRAIGHT)
@@ -458,7 +458,7 @@ void *thread_calc (void *p)
             }
           }
 
-          pw_add (device_param, (u8 *) line_buf, line_len);
+          pw_add (device_param, (u8 *) line_buf, (int) line_len);
 
           if (status_ctx->run_thread_level1 == false) break;
         }

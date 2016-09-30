@@ -28,7 +28,7 @@ int sort_by_stringptr (const void *p1, const void *p2)
 
 char *get_exec_path ()
 {
-  int exec_path_len = 1024;
+  size_t exec_path_len = 1024;
 
   char *exec_path = (char *) mymalloc (exec_path_len);
 
@@ -46,7 +46,7 @@ char *get_exec_path ()
 
   #elif defined (__APPLE__)
 
-  uint size = exec_path_len;
+  size_t size = exec_path_len;
 
   if (_NSGetExecutablePath (exec_path, &size) != 0)
   {
@@ -55,11 +55,12 @@ char *get_exec_path ()
     exit (-1);
   }
 
-  const int len = strlen (exec_path);
+  const size_t len = strlen (exec_path);
 
   #elif defined (__FreeBSD__)
 
   int mib[4];
+
   mib[0] = CTL_KERN;
   mib[1] = KERN_PROC;
   mib[2] = KERN_PROC_PATHNAME;
@@ -68,7 +69,8 @@ char *get_exec_path ()
   char tmp[32] = { 0 };
 
   size_t size = exec_path_len;
-  sysctl(mib, 4, exec_path, &size, NULL, 0);
+
+  sysctl (mib, 4, exec_path, &size, NULL, 0);
 
   const int len = readlink (tmp, exec_path, exec_path_len - 1);
 
@@ -186,7 +188,7 @@ char **scan_directory (const char *path)
 
       if ((strcmp (de->d_name, ".") == 0) || (strcmp (de->d_name, "..") == 0)) continue;
 
-      int path_size = strlen (tmp_path) + 1 + strlen (de->d_name);
+      size_t path_size = strlen (tmp_path) + 1 + strlen (de->d_name);
 
       char *path_file = (char *) mymalloc (path_size + 1);
 
@@ -204,7 +206,7 @@ char **scan_directory (const char *path)
       }
       else
       {
-        files = (char **) myrealloc (files, num_files * sizeof (char *), sizeof (char *));
+        files = (char **) myrealloc (files, (size_t) num_files * sizeof (char *), sizeof (char *));
 
         num_files++;
 
@@ -216,14 +218,14 @@ char **scan_directory (const char *path)
   }
   else if (errno == ENOTDIR)
   {
-    files = (char **) myrealloc (files, num_files * sizeof (char *), sizeof (char *));
+    files = (char **) myrealloc (files, (size_t) num_files * sizeof (char *), sizeof (char *));
 
     num_files++;
 
     files[num_files - 1] = mystrdup (path);
   }
 
-  files = (char **) myrealloc (files, num_files * sizeof (char *), sizeof (char *));
+  files = (char **) myrealloc (files, (size_t) num_files * sizeof (char *), sizeof (char *));
 
   num_files++;
 
