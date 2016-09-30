@@ -207,7 +207,7 @@ static cl_device_type setup_device_types_filter (const char *opencl_device_types
   return device_types_filter;
 }
 
-void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengths, char **kernel_sources)
+static void read_kernel_binary (const char *kernel_file, int num_devices, size_t *kernel_lengths, char **kernel_sources)
 {
   FILE *fp = fopen (kernel_file, "rb");
 
@@ -251,7 +251,7 @@ void load_kernel (const char *kernel_file, int num_devices, size_t *kernel_lengt
   return;
 }
 
-void writeProgramBin (char *dst, char *binary, size_t binary_size)
+static void write_kernel_binary (char *dst, char *binary, size_t binary_size)
 {
   if (binary_size > 0)
   {
@@ -3111,7 +3111,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
         {
           if (user_options->quiet == false) log_info ("- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
 
-          load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+          read_kernel_binary (source_file, 1, kernel_lengths, kernel_sources);
 
           CL_err = hc_clCreateProgramWithSource (opencl_ctx->ocl, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program);
 
@@ -3199,7 +3199,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
             return -1;
           }
 
-          writeProgramBin (cached_file, binary, binary_size);
+          write_kernel_binary (cached_file, binary, binary_size);
 
           myfree (binary);
         }
@@ -3209,7 +3209,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
           log_info ("- Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
           #endif
 
-          load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
+          read_kernel_binary (cached_file, 1, kernel_lengths, kernel_sources);
 
           CL_err = hc_clCreateProgramWithBinary (opencl_ctx->ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program);
 
@@ -3236,7 +3236,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
         log_info ("- Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
         #endif
 
-        load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+        read_kernel_binary (source_file, 1, kernel_lengths, kernel_sources);
 
         CL_err = hc_clCreateProgramWithSource (opencl_ctx->ocl, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program);
 
@@ -3374,7 +3374,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
         if (user_options->quiet == false) log_info ("- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
         if (user_options->quiet == false) log_info ("");
 
-        load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+        read_kernel_binary (source_file, 1, kernel_lengths, kernel_sources);
 
         CL_err = hc_clCreateProgramWithSource (opencl_ctx->ocl, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program_mp);
 
@@ -3462,7 +3462,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
           return -1;
         }
 
-        writeProgramBin (cached_file, binary, binary_size);
+        write_kernel_binary (cached_file, binary, binary_size);
 
         myfree (binary);
       }
@@ -3472,7 +3472,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
         log_info ("- Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
         #endif
 
-        load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
+        read_kernel_binary (cached_file, 1, kernel_lengths, kernel_sources);
 
         CL_err = hc_clCreateProgramWithBinary (opencl_ctx->ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program_mp);
 
@@ -3555,7 +3555,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
         if (user_options->quiet == false) log_info ("- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
         if (user_options->quiet == false) log_info ("");
 
-        load_kernel (source_file, 1, kernel_lengths, kernel_sources);
+        read_kernel_binary (source_file, 1, kernel_lengths, kernel_sources);
 
         CL_err = hc_clCreateProgramWithSource (opencl_ctx->ocl, device_param->context, 1, (const char **) kernel_sources, NULL, &device_param->program_amp);
 
@@ -3643,7 +3643,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
           return -1;
         }
 
-        writeProgramBin (cached_file, binary, binary_size);
+        write_kernel_binary (cached_file, binary, binary_size);
 
         myfree (binary);
       }
@@ -3653,7 +3653,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
         if (user_options->quiet == false) log_info ("- Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
         #endif
 
-        load_kernel (cached_file, 1, kernel_lengths, kernel_sources);
+        read_kernel_binary (cached_file, 1, kernel_lengths, kernel_sources);
 
         CL_err = hc_clCreateProgramWithBinary (opencl_ctx->ocl, device_param->context, 1, &device_param->device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->program_amp);
 
