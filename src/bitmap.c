@@ -65,7 +65,6 @@ void bitmap_ctx_init (bitmap_ctx_t *bitmap_ctx, const user_options_t *user_optio
   if (user_options->keyspace    == true) return;
   if (user_options->left        == true) return;
   if (user_options->show        == true) return;
-  if (user_options->stdout_flag == true) return;
   if (user_options->usage       == true) return;
   if (user_options->version     == true) return;
 
