@@ -1339,11 +1339,13 @@ int run_cracker (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hash
 
 int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_options)
 {
-  opencl_ctx->disable = true;
+  opencl_ctx->enabled = false;
 
-  if (user_options->show     == true) return 0;
-  if (user_options->left     == true) return 0;
-  if (user_options->keyspace == true) return 0;
+  if (user_options->keyspace    == true) return 0;
+  if (user_options->left        == true) return 0;
+  if (user_options->show        == true) return 0;
+  if (user_options->usage       == true) return 0;
+  if (user_options->version     == true) return 0;
 
   opencl_ctx->ocl = (OCL_PTR *) mymalloc (sizeof (OCL_PTR));
 
@@ -1472,7 +1474,7 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
       }
     }
 
-    // In such a case, automatically enable CPU device type support, since it's disabled by default.
+    // In such a case, automatically enable cpu_md5CPU device type support, since it's disabled by default.
 
     if ((device_types_all & (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) == 0)
     {
@@ -1493,19 +1495,19 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
     opencl_ctx->device_types_filter = device_types_filter;
   }
 
+  opencl_ctx->enabled = true;
+
   opencl_ctx->platforms_cnt         = platforms_cnt;
   opencl_ctx->platforms             = platforms;
   opencl_ctx->platform_devices_cnt  = platform_devices_cnt;
   opencl_ctx->platform_devices      = platform_devices;
-
-  opencl_ctx->disable               = false;
 
   return 0;
 }
 
 void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
 {
-  if (opencl_ctx->disable == 1) return;
+  if (opencl_ctx->enabled == false) return;
 
   myfree (opencl_ctx->devices_param);
 
@@ -1522,7 +1524,7 @@ void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
 
 int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_options)
 {
-  if (opencl_ctx->disable == true) return 0;
+  if (opencl_ctx->enabled == false) return 0;
 
   /**
    * OpenCL devices: simply push all devices from all platforms into the same device array
@@ -2413,6 +2415,8 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
 
 void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
 {
+  if (opencl_ctx->enabled == false) return;
+
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
@@ -2436,6 +2440,8 @@ void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
 
 void opencl_ctx_devices_update_power (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, status_ctx_t *status_ctx)
 {
+  if (opencl_ctx->enabled == false) return;
+
   u32 kernel_power_all = 0;
 
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
@@ -2472,6 +2478,8 @@ void opencl_ctx_devices_update_power (opencl_ctx_t *opencl_ctx, const user_optio
 
 void opencl_ctx_devices_kernel_loops (opencl_ctx_t *opencl_ctx, const user_options_extra_t *user_options_extra, const hashconfig_t *hashconfig, const hashes_t *hashes, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
 {
+  if (opencl_ctx->enabled == false) return;
+
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
@@ -2504,6 +2512,8 @@ void opencl_ctx_devices_kernel_loops (opencl_ctx_t *opencl_ctx, const user_optio
 
 int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, const hashes_t *hashes, const straight_ctx_t *straight_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx, const tuning_db_t *tuning_db)
 {
+  if (opencl_ctx->enabled == false) return 0;
+
   /**
    * Some algorithm, like descrypt, can benefit from JIT compilation
    */
@@ -4459,6 +4469,8 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
 
 void opencl_session_destroy (opencl_ctx_t *opencl_ctx)
 {
+  if (opencl_ctx->enabled == false) return;
+
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
@@ -4584,6 +4596,8 @@ void opencl_session_destroy (opencl_ctx_t *opencl_ctx)
 
 void opencl_session_reset (opencl_ctx_t *opencl_ctx)
 {
+  if (opencl_ctx->enabled == false) return;
+
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
@@ -4620,6 +4634,8 @@ void opencl_session_reset (opencl_ctx_t *opencl_ctx)
 
 int opencl_session_update_combinator (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const combinator_ctx_t *combinator_ctx)
 {
+  if (opencl_ctx->enabled == false) return 0;
+
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
@@ -4668,6 +4684,8 @@ int opencl_session_update_combinator (opencl_ctx_t *opencl_ctx, const hashconfig
 
 int opencl_session_update_mp (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mask_ctx)
 {
+  if (opencl_ctx->enabled == false) return 0;
+
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
@@ -4705,6 +4723,8 @@ int opencl_session_update_mp (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mask_c
 
 int opencl_session_update_mp_rl (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mask_ctx, const u32 css_cnt_l, const u32 css_cnt_r)
 {
+  if (opencl_ctx->enabled == false) return 0;
+
   for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];

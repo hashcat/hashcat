@@ -736,7 +736,7 @@ struct __hc_device_param
 
 typedef struct
 {
-  int                 disable;
+  bool                enabled;
 
   void               *ocl;
 
