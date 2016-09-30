@@ -336,7 +336,7 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
   if (user_options->loopback == true)
   {
-    loopback_write_open (loopback_ctx, induct_ctx->root_directory);
+    loopback_write_open (loopback_ctx, induct_ctx);
   }
 
   /**
@@ -1853,7 +1853,7 @@ int main (int argc, char **argv)
 
   data.loopback_ctx = loopback_ctx;
 
-  loopback_init (loopback_ctx);
+  loopback_init (loopback_ctx, user_options);
 
   /**
    * debugfile init

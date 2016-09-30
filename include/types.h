@@ -854,6 +854,8 @@ typedef struct
 
 typedef struct
 {
+  bool enabled;
+
   FILE *fp;
   char *filename;
 
