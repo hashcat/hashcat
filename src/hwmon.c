@@ -800,11 +800,13 @@ int hwmon_ctx_init (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options, 
 {
   hwmon_ctx->enabled = false;
 
-  if (user_options->gpu_temp_disable == true) return 0;
-  if (user_options->show             == true) return 0;
-  if (user_options->left             == true) return 0;
-  if (user_options->keyspace         == true) return 0;
-  if (user_options->stdout_flag      == true) return 0;
+  if (user_options->keyspace          == true) return 0;
+  if (user_options->left              == true) return 0;
+  if (user_options->show              == true) return 0;
+  if (user_options->stdout_flag       == true) return 0;
+  if (user_options->usage             == true) return 0;
+  if (user_options->version           == true) return 0;
+  if (user_options->gpu_temp_disable  == true) return 0;
 
   hwmon_ctx->hm_device = (hm_attrs_t *) mycalloc (DEVICES_MAX, sizeof (hm_attrs_t));
 
