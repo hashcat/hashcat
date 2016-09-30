@@ -7,13 +7,13 @@
 #include "types.h"
 #include "convert.h"
 
-int is_valid_hex_char (const u8 c)
+bool is_valid_hex_char (const u8 c)
 {
-  if ((c >= '0') && (c <= '9')) return 1;
-  if ((c >= 'A') && (c <= 'F')) return 1;
-  if ((c >= 'a') && (c <= 'f')) return 1;
+  if ((c >= '0') && (c <= '9')) return true;
+  if ((c >= 'A') && (c <= 'F')) return true;
+  if ((c >= 'a') && (c <= 'f')) return true;
 
-  return 0;
+  return false;
 }
 
 u8 hex_convert (const u8 c)

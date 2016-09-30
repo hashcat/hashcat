@@ -212,7 +212,7 @@ void *thread_monitor (void *p)
           {
             int temp_cur = temperature;
 
-            int temp_diff_new = gpu_temp_retain - temp_cur;
+            int temp_diff_new = (int) gpu_temp_retain - temp_cur;
 
             temp_diff_sum[device_id] = temp_diff_sum[device_id] + temp_diff_new;
 

@@ -45,7 +45,7 @@ void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHAR
   }
 }
 
-static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt, const hashconfig_t *hashconfig)
+static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, uint css_cnt, const hashconfig_t *hashconfig)
 {
   cs_t *cs = &css[css_cnt];
 
@@ -80,7 +80,7 @@ static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, int css_cnt, 
   myfree (css_uniq);
 }
 
-static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, int mp_usr_offset, int interpret, const hashconfig_t *hashconfig, const user_options_t *user_options)
+static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, uint mp_usr_offset, int interpret, const hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   size_t in_pos;
 
@@ -143,7 +143,7 @@ static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, 
 
         uint p1 = in_buf[in_pos] & 0xff;
 
-        if ((is_valid_hex_char (p0) == 0) || (is_valid_hex_char (p1) == 0))
+        if ((is_valid_hex_char ((u8) p0) == false) || (is_valid_hex_char ((u8) p1) == false))
         {
           log_error ("ERROR: Invalid hex character detected in mask %s", in_buf);
 
@@ -152,8 +152,8 @@ static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, 
 
         uint chr = 0;
 
-        chr  = hex_convert (p1) << 0;
-        chr |= hex_convert (p0) << 4;
+        chr  = (uint) hex_convert ((u8) p1) << 0;
+        chr |= (uint) hex_convert ((u8) p0) << 4;
 
         mp_add_cs_buf (&chr, 1, mp_usr, mp_usr_offset, hashconfig);
       }
@@ -198,7 +198,7 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
 
       char p1 = mask_buf[mask_pos];
 
-      uint chr = p1;
+      uint chr = (uint) p1;
 
       switch (p1)
       {
@@ -251,7 +251,7 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
 
         // if they are not valid hex character, show an error:
 
-        if ((is_valid_hex_char (p0) == 0) || (is_valid_hex_char (p1) == 0))
+        if ((is_valid_hex_char ((u8) p0) == false) || (is_valid_hex_char ((u8) p1) == false))
         {
           log_error ("ERROR: Invalid hex character detected in mask %s", mask_buf);
 
@@ -260,14 +260,14 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
 
         uint chr = 0;
 
-        chr |= hex_convert (p1) << 0;
-        chr |= hex_convert (p0) << 4;
+        chr |= (uint) hex_convert ((u8) p1) << 0;
+        chr |= (uint) hex_convert ((u8) p0) << 4;
 
         mp_add_cs_buf (&chr, 1, css, css_pos, hashconfig);
       }
       else
       {
-        uint chr = p0;
+        uint chr = (uint) p0;
 
         mp_add_cs_buf (&chr, 1, css, css_pos, hashconfig);
       }
@@ -290,10 +290,10 @@ void mp_exec (u64 val, char *buf, cs_t *css, int css_cnt)
 {
   for (int i = 0; i < css_cnt; i++)
   {
-    uint len  = css[i].cs_len;
+    u32 len  = css[i].cs_len;
     u64 next = val / len;
-    uint pos  = val % len;
-    buf[i] = (char) css[i].cs_buf[pos] & 0xff;
+    u32 pos  = val % len;
+    buf[i] = (char) (css[i].cs_buf[pos] & 0xff);
     val = next;
   }
 }
@@ -369,7 +369,7 @@ void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index, const hash
   {
     char mp_file[1024] = { 0 };
 
-    size_t len = fread (mp_file, 1, sizeof (mp_file) - 1, fp);
+    int len = (int) fread (mp_file, 1, sizeof (mp_file) - 1, fp);
 
     fclose (fp);
 
@@ -383,7 +383,7 @@ void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index, const hash
     }
     else
     {
-      mp_expand (mp_file, len, mp_sys, mp_usr, index, 0, hashconfig, user_options);
+      mp_expand (mp_file, (size_t) len, mp_sys, mp_usr, index, 0, hashconfig, user_options);
     }
   }
 }
@@ -436,7 +436,7 @@ static char *mp_get_truncated_mask (const char *mask_buf, const size_t mask_len,
 
         // if they are not valid hex character, show an error:
 
-        if ((is_valid_hex_char (p0) == 0) || (is_valid_hex_char (p1) == 0))
+        if ((is_valid_hex_char ((u8) p0) == false) || (is_valid_hex_char ((u8) p1) == false))
         {
           log_error ("ERROR: Invalid hex character detected in mask: %s", mask_buf);
 

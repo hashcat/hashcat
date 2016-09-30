@@ -30,19 +30,19 @@ static int log_final (FILE *fp, const char *fmt, va_list ap)
 
   char s[4096] = { 0 };
 
-  int max_len = (int) sizeof (s);
+  const size_t max_len = sizeof (s);
 
-  int len = vsnprintf (s, (size_t)max_len, fmt, ap);
+  const int len = vsnprintf (s, max_len, fmt, ap);
 
-  if (len > max_len) len = max_len;
+  //if (len > max_len) len = max_len;
 
-  fwrite (s, len, 1, fp);
+  fwrite (s, (size_t) len, 1, fp);
 
   fflush (fp);
 
   last_len = len;
 
-  return len;
+  return last_len;
 }
 
 int log_out_nn (FILE *fp, const char *fmt, ...)

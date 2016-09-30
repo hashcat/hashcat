@@ -97,7 +97,7 @@ void induct_ctx_scan (induct_ctx_t *induct_ctx)
 
   induct_ctx->induction_dictionaries_cnt = count_dictionaries (induct_ctx->induction_dictionaries);
 
-  qsort (induct_ctx->induction_dictionaries, induct_ctx->induction_dictionaries_cnt, sizeof (char *), sort_by_mtime);
+  qsort (induct_ctx->induction_dictionaries, (size_t) induct_ctx->induction_dictionaries_cnt, sizeof (char *), sort_by_mtime);
 }
 
 void induct_ctx_cleanup (induct_ctx_t *induct_ctx)

@@ -384,7 +384,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
 
     if (hashconfig->pw_max != PW_DICTMAX1)
     {
-      if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
+      if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
@@ -417,7 +417,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
 
     if (hashconfig->pw_max != PW_DICTMAX1)
     {
-      if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
+      if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
     }
   }
 
@@ -435,7 +435,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
 
       if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
       {
-        for (uint i = 0, j = 0; i < plain_len; i += 2, j += 1)
+        for (int i = 0, j = 0; i < plain_len; i += 2, j += 1)
         {
           plain_ptr[j] = plain_ptr[i];
         }

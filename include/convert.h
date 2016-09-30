@@ -8,7 +8,7 @@
 
 #include <ctype.h>
 
-int is_valid_hex_char (const u8 c);
+bool is_valid_hex_char (const u8 c);
 
 u8 hex_convert (const u8 c);
 
