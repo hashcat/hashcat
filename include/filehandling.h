@@ -10,7 +10,7 @@
 #include <string.h>
 #include <errno.h>
 
-uint count_lines (FILE *fd);
+u64 count_lines (FILE *fd);
 
 int fgetl (FILE *fp, char *line_buf);
 

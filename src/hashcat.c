@@ -120,7 +120,7 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
       logfile_sub_string (straight_ctx->dict);
 
-      for (uint i = 0; i < user_options->rp_files_cnt; i++)
+      for (u32 i = 0; i < user_options->rp_files_cnt; i++)
       {
         logfile_sub_var_string ("rulefile", user_options->rp_files[i]);
       }
@@ -272,21 +272,21 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
   {
     if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
     {
-      for (uint i = 0; i < hashes->salts_cnt; i++)
+      for (u32 i = 0; i < hashes->salts_cnt; i++)
       {
         status_ctx->words_progress_restored[i] = status_ctx->words_cur * straight_ctx->kernel_rules_cnt;
       }
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
-      for (uint i = 0; i < hashes->salts_cnt; i++)
+      for (u32 i = 0; i < hashes->salts_cnt; i++)
       {
         status_ctx->words_progress_restored[i] = status_ctx->words_cur * combinator_ctx->combs_cnt;
       }
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
     {
-      for (uint i = 0; i < hashes->salts_cnt; i++)
+      for (u32 i = 0; i < hashes->salts_cnt; i++)
       {
         status_ctx->words_progress_restored[i] = status_ctx->words_cur * mask_ctx->bfs_cnt;
       }
@@ -315,7 +315,7 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
   status_ctx->devices_status = STATUS_AUTOTUNE;
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -376,7 +376,7 @@ static int inner2_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
   status_ctx->devices_status = STATUS_RUNNING;
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -511,8 +511,8 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
    * word len
    */
 
-  uint pw_min = hashconfig_general_pw_min (hashconfig);
-  uint pw_max = hashconfig_general_pw_max (hashconfig);
+  u32 pw_min = hashconfig_general_pw_min (hashconfig);
+  u32 pw_max = hashconfig_general_pw_max (hashconfig);
 
   /**
    * If we have a NOOP rule then we can process words from wordlists > length 32 for slow hashes
@@ -568,7 +568,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
       mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
 
-      uint uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
+      u32 uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
 
       mp_css_to_uniq_tbl (mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
@@ -603,7 +603,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
         cs_t *css_buf_unicode = (cs_t *) mycalloc (css_cnt_unicode, sizeof (cs_t));
 
-        for (uint i = 0, j = 0; i < mask_ctx->css_cnt; i += 1, j += 2)
+        for (u32 i = 0, j = 0; i < mask_ctx->css_cnt; i += 1, j += 2)
         {
           memcpy (&css_buf_unicode[j + 0], &mask_ctx->css_buf[i], sizeof (cs_t));
 
@@ -619,8 +619,8 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
       // check if mask is not too large or too small for pw_min/pw_max  (*2 if unicode)
 
-      uint mask_min = pw_min;
-      uint mask_max = pw_max;
+      u32 mask_min = pw_min;
+      u32 mask_max = pw_max;
 
       if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
       {
@@ -653,16 +653,16 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
       {
         if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
         {
-          uint  salt_len = (uint)   hashes->salts_buf[0].salt_len;
+          u32   salt_len = (u32)    hashes->salts_buf[0].salt_len;
           char *salt_buf = (char *) hashes->salts_buf[0].salt_buf;
 
-          uint css_cnt_salt = mask_ctx->css_cnt + salt_len;
+          u32 css_cnt_salt = mask_ctx->css_cnt + salt_len;
 
           cs_t *css_buf_salt = (cs_t *) mycalloc (css_cnt_salt, sizeof (cs_t));
 
           memcpy (css_buf_salt, mask_ctx->css_buf, mask_ctx->css_cnt * sizeof (cs_t));
 
-          for (uint i = 0, j = mask_ctx->css_cnt; i < salt_len; i++, j++)
+          for (u32 i = 0, j = mask_ctx->css_cnt; i < salt_len; i++, j++)
           {
             css_buf_salt[j].cs_buf[0] = salt_buf[i];
             css_buf_salt[j].cs_len    = 1;
@@ -675,7 +675,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
         }
       }
 
-      uint uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
+      u32 uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
 
       mp_css_to_uniq_tbl (mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
@@ -685,8 +685,8 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
       // copy + args
 
-      uint css_cnt_l = mask_ctx->css_cnt;
-      uint css_cnt_r;
+      u32 css_cnt_l = mask_ctx->css_cnt;
+      u32 css_cnt_r;
 
       if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       {
@@ -731,7 +731,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
         /* unfinished code?
         int sum = css_buf[css_cnt_r - 1].cs_len;
 
-        for (uint i = 1; i < 4 && i < css_cnt; i++)
+        for (u32 i = 1; i < 4 && i < css_cnt; i++)
         {
           if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
 
@@ -1148,7 +1148,7 @@ static int inner1_loop (status_ctx_t *status_ctx, user_options_t *user_options, 
 
   if (straight_ctx->dicts_cnt)
   {
-    for (uint dicts_pos = rd->dictpos; dicts_pos < straight_ctx->dicts_cnt; dicts_pos++)
+    for (u32 dicts_pos = rd->dictpos; dicts_pos < straight_ctx->dicts_cnt; dicts_pos++)
     {
       rd->dictpos = dicts_pos;
 
@@ -1396,9 +1396,9 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
     {
       log_info ("Applicable Optimizers:");
 
-      for (uint i = 0; i < 32; i++)
+      for (u32 i = 0; i < 32; i++)
       {
-        const uint opti_bit = 1u << i;
+        const u32 opti_bit = 1u << i;
 
         if (hashconfig->opti_type & opti_bit) log_info ("* %s", stroptitype (opti_bit));
       }
@@ -1475,7 +1475,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
   {
     hc_device_param_t *device_param = NULL;
 
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
     {
       device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1486,7 +1486,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
     if (user_options->quiet == false) log_info_nn ("Checking for weak hashes...");
 
-    for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+    for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
     {
       weak_hash_check (opencl_ctx, device_param, user_options, user_options_extra, straight_ctx, combinator_ctx, hashconfig, hashes, cpt_ctx, status_ctx, salt_pos);
     }
@@ -1496,7 +1496,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
    * status and monitor threads
    */
 
-  uint inner_threads_cnt = 0;
+  int inner_threads_cnt = 0;
 
   hc_thread_t *inner_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
@@ -1547,7 +1547,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
   {
     restore_data_t *rd = restore_ctx->rd;
 
-    for (uint masks_pos = rd->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
+    for (u32 masks_pos = rd->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
     {
       if (masks_pos > rd->masks_pos)
       {
@@ -1576,7 +1576,7 @@ static int outer_loop (status_ctx_t *status_ctx, user_options_t *user_options, u
 
   status_ctx->shutdown_inner = true;
 
-  for (uint thread_idx = 0; thread_idx < inner_threads_cnt; thread_idx++)
+  for (int thread_idx = 0; thread_idx < inner_threads_cnt; thread_idx++)
   {
     hc_thread_wait (1, &inner_threads[thread_idx]);
   }
@@ -1927,7 +1927,7 @@ int main (int argc, char **argv)
    * keypress thread
    */
 
-  uint outer_threads_cnt = 0;
+  int outer_threads_cnt = 0;
 
   hc_thread_t *outer_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
 
@@ -1982,7 +1982,7 @@ int main (int argc, char **argv)
 
   status_ctx->shutdown_outer = true;
 
-  for (uint thread_idx = 0; thread_idx < outer_threads_cnt; thread_idx++)
+  for (int thread_idx = 0; thread_idx < outer_threads_cnt; thread_idx++)
   {
     hc_thread_wait (1, &outer_threads[thread_idx]);
   }

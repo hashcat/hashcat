@@ -1006,12 +1006,12 @@ typedef struct
   bool enabled;
 
   char *buf;
-  u32  incr;
-  u32  avail;
-  u32  cnt;
-  u32  pos;
+  u64  incr;
+  u64  avail;
+  u64  cnt;
+  u64  pos;
 
-  void (*func) (char *, u32, u32 *, u32 *);
+  void (*func) (char *, u64, u64 *, u64 *);
 
 } wl_data_t;
 
@@ -1128,11 +1128,6 @@ typedef struct
   int optind;
 
 } user_options_extra_t;
-
-typedef struct
-{
-
-} session_ctx_t;
 
 typedef struct
 {
@@ -1355,7 +1350,6 @@ typedef struct
   potfile_ctx_t         *potfile_ctx;
   restore_ctx_t         *restore_ctx;
   status_ctx_t          *status_ctx;
-  session_ctx_t         *session_ctx;
   straight_ctx_t        *straight_ctx;
   tuning_db_t           *tuning_db;
   user_options_extra_t  *user_options_extra;

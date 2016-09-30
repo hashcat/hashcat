@@ -102,11 +102,11 @@ void load_segment (wl_data_t *wl_data, FILE *fd)
   return;
 }
 
-void get_next_word_lm (char *buf, u32 sz, u32 *len, u32 *off)
+void get_next_word_lm (char *buf, u64 sz, u64 *len, u64 *off)
 {
   char *ptr = buf;
 
-  for (u32 i = 0; i < sz; i++, ptr++)
+  for (u64 i = 0; i < sz; i++, ptr++)
   {
     if (*ptr >= 'a' && *ptr <= 'z') *ptr -= 0x20;
 
@@ -133,11 +133,11 @@ void get_next_word_lm (char *buf, u32 sz, u32 *len, u32 *off)
   *len = sz;
 }
 
-void get_next_word_uc (char *buf, u32 sz, u32 *len, u32 *off)
+void get_next_word_uc (char *buf, u64 sz, u64 *len, u64 *off)
 {
   char *ptr = buf;
 
-  for (u32 i = 0; i < sz; i++, ptr++)
+  for (u64 i = 0; i < sz; i++, ptr++)
   {
     if (*ptr >= 'a' && *ptr <= 'z') *ptr -= 0x20;
 
@@ -156,11 +156,11 @@ void get_next_word_uc (char *buf, u32 sz, u32 *len, u32 *off)
   *len = sz;
 }
 
-void get_next_word_std (char *buf, u32 sz, u32 *len, u32 *off)
+void get_next_word_std (char *buf, u64 sz, u64 *len, u64 *off)
 {
   char *ptr = buf;
 
-  for (u32 i = 0; i < sz; i++, ptr++)
+  for (u64 i = 0; i < sz; i++, ptr++)
   {
     if (*ptr != '\n') continue;
 
@@ -181,8 +181,8 @@ void get_next_word (wl_data_t *wl_data, const user_options_t *user_options, cons
 {
   while (wl_data->pos < wl_data->cnt)
   {
-    uint off;
-    uint len;
+    u64 off;
+    u64 len;
 
     char *ptr = wl_data->buf + wl_data->pos;
 
@@ -330,12 +330,12 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
 
     comp += wl_data->cnt;
 
-    u32 i = 0;
+    u64 i = 0;
 
     while (i < wl_data->cnt)
     {
-      u32 len;
-      u32 off;
+      u64 len;
+      u64 off;
 
       wl_data->func (wl_data->buf + i, wl_data->cnt - i, &len, &off);
 

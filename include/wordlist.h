@@ -13,9 +13,9 @@ uint convert_from_hex (char *line_buf, const uint line_len, const user_options_t
 
 void load_segment (wl_data_t *wl_data, FILE *fd);
 
-void get_next_word_lm  (char *buf, u32 sz, u32 *len, u32 *off);
-void get_next_word_uc  (char *buf, u32 sz, u32 *len, u32 *off);
-void get_next_word_std (char *buf, u32 sz, u32 *len, u32 *off);
+void get_next_word_lm  (char *buf, u64 sz, u64 *len, u64 *off);
+void get_next_word_uc  (char *buf, u64 sz, u64 *len, u64 *off);
+void get_next_word_std (char *buf, u64 sz, u64 *len, u64 *off);
 
 void get_next_word (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, FILE *fd, char **out_buf, uint *out_len);
 

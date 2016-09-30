@@ -8,9 +8,9 @@
 #include "memory.h"
 #include "filehandling.h"
 
-uint count_lines (FILE *fd)
+u64 count_lines (FILE *fd)
 {
-  uint cnt = 0;
+  u64 cnt = 0;
 
   char *buf = (char *) mymalloc (HCBUFSIZ_LARGE + 1);
 
