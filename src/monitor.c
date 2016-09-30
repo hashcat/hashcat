@@ -36,18 +36,18 @@ extern hc_global_data_t data;
 
 void *thread_monitor (void *p)
 {
-  restore_ctx_t        *restore_ctx        = data.restore_ctx;
-  user_options_t       *user_options       = data.user_options;
-  user_options_extra_t *user_options_extra = data.user_options_extra;
+  combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
+  cpt_ctx_t            *cpt_ctx            = data.cpt_ctx;
   hashconfig_t         *hashconfig         = data.hashconfig;
   hashes_t             *hashes             = data.hashes;
-  cpt_ctx_t            *cpt_ctx            = data.cpt_ctx;
-  straight_ctx_t       *straight_ctx       = data.straight_ctx;
-  combinator_ctx_t     *combinator_ctx     = data.combinator_ctx;
+  hwmon_ctx_t          *hwmon_ctx          = data.hwmon_ctx;
   mask_ctx_t           *mask_ctx           = data.mask_ctx;
   opencl_ctx_t         *opencl_ctx         = data.opencl_ctx;
-  hwmon_ctx_t          *hwmon_ctx          = data.hwmon_ctx;
+  restore_ctx_t        *restore_ctx        = data.restore_ctx;
   status_ctx_t         *status_ctx         = data.status_ctx;
+  straight_ctx_t       *straight_ctx       = data.straight_ctx;
+  user_options_extra_t *user_options_extra = data.user_options_extra;
+  user_options_t       *user_options       = data.user_options;
 
   bool runtime_check = false;
   bool remove_check  = false;
@@ -65,7 +65,7 @@ void *thread_monitor (void *p)
     runtime_check = true;
   }
 
-  if (user_options->restore_timer)
+  if (restore_ctx->enabled == true)
   {
     restore_check = true;
   }
@@ -80,7 +80,7 @@ void *thread_monitor (void *p)
     status_check = true;
   }
 
-  if (user_options->gpu_temp_disable == false)
+  if (hwmon_ctx->enabled == true)
   {
     hwmon_check = true;
   }
