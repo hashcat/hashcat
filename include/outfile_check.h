@@ -6,6 +6,9 @@
 #ifndef _OUTFILE_CHECK_H
 #define _OUTFILE_CHECK_H
 
+#include <unistd.h>
+#include <errno.h>
+
 #define OUTFILES_DIR "outfiles"
 
 void *thread_outfile_remove (void *p);
