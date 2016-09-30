@@ -991,6 +991,8 @@ typedef struct
 
 typedef struct
 {
+  bool enabled;
+
   tuning_db_alias_t *alias_buf;
   int                alias_cnt;
 
@@ -1353,6 +1355,7 @@ typedef struct
   status_ctx_t          *status_ctx;
   session_ctx_t         *session_ctx;
   straight_ctx_t        *straight_ctx;
+  tuning_db_t           *tuning_db;
   user_options_extra_t  *user_options_extra;
   user_options_t        *user_options;
 

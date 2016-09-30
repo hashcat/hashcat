@@ -1777,11 +1777,13 @@ int main (int argc, char **argv)
    * tuning db
    */
 
-  char tuning_db_file[256] = { 0 };
+  tuning_db_t *tuning_db = (tuning_db_t *) mymalloc (sizeof (tuning_db_t));
 
-  snprintf (tuning_db_file, sizeof (tuning_db_file) - 1, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
+  const int rc_tuning_db = tuning_db_init (tuning_db, user_options, folder_config);
 
-  tuning_db_t *tuning_db = tuning_db_init (tuning_db_file);
+  data.tuning_db = tuning_db;
+
+  if (rc_tuning_db == -1) return -1;
 
   /**
    * induction directory

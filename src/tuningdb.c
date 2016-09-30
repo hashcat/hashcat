@@ -50,34 +50,32 @@ static int sort_by_tuning_db_entry (const void *v1, const void *v2)
   return 0;
 }
 
-void tuning_db_destroy (tuning_db_t *tuning_db)
+int tuning_db_init (tuning_db_t *tuning_db, const user_options_t *user_options, const folder_config_t *folder_config)
 {
-  int i;
+  tuning_db->enabled = false;
 
-  for (i = 0; i < tuning_db->alias_cnt; i++)
+  if (user_options->keyspace    == true) return 0;
+  if (user_options->left        == true) return 0;
+  if (user_options->show        == true) return 0;
+  if (user_options->usage       == true) return 0;
+  if (user_options->version     == true) return 0;
+
+  tuning_db->enabled = true;
+
+  char *tuning_db_file = (char *) mymalloc (HCBUFSIZ_TINY);
+
+  snprintf (tuning_db_file, HCBUFSIZ_TINY - 1, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
+
+  FILE *fp = fopen (tuning_db_file, "rb");
+
+  if (fp == NULL)
   {
-    tuning_db_alias_t *alias = &tuning_db->alias_buf[i];
+    log_error ("%s: %s", tuning_db_file, strerror (errno));
 
-    myfree (alias->device_name);
-    myfree (alias->alias_name);
+    return -1;
   }
 
-  for (i = 0; i < tuning_db->entry_cnt; i++)
-  {
-    tuning_db_entry_t *entry = &tuning_db->entry_buf[i];
-
-    myfree (entry->device_name);
-  }
-
-  myfree (tuning_db->alias_buf);
-  myfree (tuning_db->entry_buf);
-
-  myfree (tuning_db);
-}
-
-tuning_db_t *tuning_db_alloc (FILE *fp)
-{
-  tuning_db_t *tuning_db = (tuning_db_t *) mymalloc (sizeof (tuning_db_t));
+  myfree (tuning_db_file);
 
   int num_lines = count_lines (fp);
 
@@ -88,22 +86,6 @@ tuning_db_t *tuning_db_alloc (FILE *fp)
 
   tuning_db->entry_buf = (tuning_db_entry_t *) mycalloc (num_lines + 1, sizeof (tuning_db_entry_t));
   tuning_db->entry_cnt = 0;
-
-  return tuning_db;
-}
-
-tuning_db_t *tuning_db_init (const char *tuning_db_file)
-{
-  FILE *fp = fopen (tuning_db_file, "rb");
-
-  if (fp == NULL)
-  {
-    log_error ("%s: %s", tuning_db_file, strerror (errno));
-
-    exit (-1);
-  }
-
-  tuning_db_t *tuning_db = tuning_db_alloc (fp);
 
   rewind (fp);
 
@@ -253,7 +235,34 @@ tuning_db_t *tuning_db_init (const char *tuning_db_file)
   qsort (tuning_db->alias_buf, tuning_db->alias_cnt, sizeof (tuning_db_alias_t), sort_by_tuning_db_alias);
   qsort (tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
 
-  return tuning_db;
+  return 0;
+}
+
+void tuning_db_destroy (tuning_db_t *tuning_db)
+{
+  if (tuning_db->enabled == false) return;
+
+  int i;
+
+  for (i = 0; i < tuning_db->alias_cnt; i++)
+  {
+    tuning_db_alias_t *alias = &tuning_db->alias_buf[i];
+
+    myfree (alias->device_name);
+    myfree (alias->alias_name);
+  }
+
+  for (i = 0; i < tuning_db->entry_cnt; i++)
+  {
+    tuning_db_entry_t *entry = &tuning_db->entry_buf[i];
+
+    myfree (entry->device_name);
+  }
+
+  myfree (tuning_db->alias_buf);
+  myfree (tuning_db->entry_buf);
+
+  myfree (tuning_db);
 }
 
 tuning_db_entry_t *tuning_db_search (const tuning_db_t *tuning_db, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_type)
