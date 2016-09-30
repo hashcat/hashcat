@@ -56,6 +56,7 @@ int tuning_db_init (tuning_db_t *tuning_db, const user_options_t *user_options, 
 
   if (user_options->keyspace    == true) return 0;
   if (user_options->left        == true) return 0;
+  if (user_options->opencl_info == true) return 0;
   if (user_options->show        == true) return 0;
   if (user_options->usage       == true) return 0;
   if (user_options->version     == true) return 0;

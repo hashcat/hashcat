@@ -32,6 +32,7 @@ void dictstat_init (dictstat_ctx_t *dictstat_ctx, const user_options_t *user_opt
   if (user_options->benchmark   == true) return;
   if (user_options->keyspace    == true) return;
   if (user_options->left        == true) return;
+  if (user_options->opencl_info == true) return;
   if (user_options->show        == true) return;
   if (user_options->usage       == true) return;
   if (user_options->version     == true) return;

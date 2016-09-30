@@ -859,6 +859,7 @@ int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, con
   mask_ctx->enabled = false;
 
   if (user_options->left        == true) return 0;
+  if (user_options->opencl_info == true) return 0;
   if (user_options->show        == true) return 0;
   if (user_options->usage       == true) return 0;
   if (user_options->version     == true) return 0;
