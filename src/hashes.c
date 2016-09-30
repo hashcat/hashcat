@@ -55,11 +55,11 @@ int sort_by_salt (const void *v1, const void *v2)
   const salt_t *s1 = (const salt_t *) v1;
   const salt_t *s2 = (const salt_t *) v2;
 
-  const int res1 = s1->salt_len - s2->salt_len;
+  const int res1 = (int) s1->salt_len - (int) s2->salt_len;
 
   if (res1 != 0) return (res1);
 
-  const int res2 = s1->salt_iter - s2->salt_iter;
+  const int res2 = (int) s1->salt_iter - (int) s2->salt_iter;
 
   if (res2 != 0) return (res2);
 
@@ -227,15 +227,13 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
   const u32 gidvid      = plain->gidvid;
   const u32 il_pos      = plain->il_pos;
 
-  const uint quiet = user_options->quiet;
-
   // debugfile
 
   u8  debug_rule_buf[BLOCK_SIZE] = { 0 };
-  u32 debug_rule_len  = 0; // -1 error
+  int debug_rule_len  = 0; // -1 error
 
   u8  debug_plain_ptr[BLOCK_SIZE] = { 0 };
-  u32 debug_plain_len = 0;
+  int debug_plain_len = 0;
 
   // hash
 
@@ -250,8 +248,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
   uint plain_buf[16] = { 0 };
 
   u8 *plain_ptr = (u8 *) plain_buf;
-
-  unsigned int plain_len = 0;
+  int plain_len = 0;
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
@@ -264,7 +261,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
       plain_buf[i] = pw.i[i];
     }
 
-    plain_len = pw.pw_len;
+    plain_len = (int) pw.pw_len;
 
     const uint off = device_param->innerloop_pos + il_pos;
 
@@ -287,19 +284,19 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
       {
         memset (debug_plain_ptr, 0, sizeof (debug_plain_ptr));
 
-        memcpy (debug_plain_ptr, plain_ptr, plain_len);
+        memcpy (debug_plain_ptr, plain_ptr, (size_t) plain_len);
 
         debug_plain_len = plain_len;
       }
     }
 
-    plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], plain_len);
+    plain_len = (int) apply_rules (straight_ctx->kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], (u32) plain_len);
 
     crackpos += gidvid;
     crackpos *= straight_ctx->kernel_rules_cnt;
     crackpos += device_param->innerloop_pos + il_pos;
 
-    if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
+    if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
@@ -312,18 +309,18 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
       plain_buf[i] = pw.i[i];
     }
 
-    plain_len = pw.pw_len;
+    plain_len = (int) pw.pw_len;
 
     char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
-    uint  comb_len =          device_param->combs_buf[il_pos].pw_len;
+    u32   comb_len =          device_param->combs_buf[il_pos].pw_len;
 
     if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      memcpy (plain_ptr + plain_len, comb_buf, comb_len);
+      memcpy (plain_ptr + plain_len, comb_buf, (size_t) comb_len);
     }
     else
     {
-      memmove (plain_ptr + comb_len, plain_ptr, plain_len);
+      memmove (plain_ptr + comb_len, plain_ptr, (size_t) plain_len);
 
       memcpy (plain_ptr, comb_buf, comb_len);
     }
@@ -336,7 +333,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
 
     if (hashconfig->pw_max != PW_DICTMAX1)
     {
-      if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
+      if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -353,7 +350,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
     sp_exec (l_off, (char *) plain_ptr + l_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, l_start, l_start + l_stop);
     sp_exec (r_off, (char *) plain_ptr + r_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, r_start, r_start + r_stop);
 
-    plain_len = mask_ctx->css_cnt;
+    plain_len = (int) mask_ctx->css_cnt;
 
     crackpos += gidvid;
     crackpos *= mask_ctx->bfs_cnt;
@@ -370,7 +367,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
       plain_buf[i] = pw.i[i];
     }
 
-    plain_len = pw.pw_len;
+    plain_len = (int) pw.pw_len;
 
     u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
 
@@ -401,7 +398,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
       plain_buf[i] = pw.i[i];
     }
 
-    plain_len = pw.pw_len;
+    plain_len = (int) pw.pw_len;
 
     u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
 
@@ -459,7 +456,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
 
   outfile_write_open (outfile_ctx);
 
-  if (outfile_ctx->filename == NULL) if (quiet == false) clear_prompt ();
+  if (outfile_ctx->filename == NULL) if (user_options->quiet == false) clear_prompt ();
 
   outfile_write (outfile_ctx, out_buf, plain_ptr, plain_len, crackpos, NULL, 0, hashconfig);
 
@@ -469,7 +466,7 @@ void check_hash (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cons
   {
     if ((status_ctx->devices_status != STATUS_CRACKED) && (user_options->status != true))
     {
-      if (outfile_ctx->filename == NULL) if (quiet == false) send_prompt ();
+      if (outfile_ctx->filename == NULL) if (user_options->quiet == false) send_prompt ();
     }
   }
 

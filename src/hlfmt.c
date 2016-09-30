@@ -356,9 +356,9 @@ uint hlfmt_detect (FILE *fp, uint max_check, const hashconfig_t *hashconfig)
 
   myfree (line_buf);
 
-  uint hashlist_format = HLFMT_HASHCAT;
+  u32 hashlist_format = HLFMT_HASHCAT;
 
-  for (int i = 1; i < HLFMTS_CNT; i++)
+  for (u32 i = 1; i < HLFMTS_CNT; i++)
   {
     if (formats_cnt[i - 1] >= formats_cnt[i]) continue;
 
