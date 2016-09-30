@@ -357,6 +357,13 @@ int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, 
 
   init_restore (restore_ctx);
 
+  if (user_options->benchmark       == true) return 0;
+  if (user_options->keyspace        == true) return 0;
+  if (user_options->left            == true) return 0;
+  if (user_options->show            == true) return 0;
+  if (user_options->stdout_flag     == true) return 0;
+  if (user_options->usage           == true) return 0;
+  if (user_options->version         == true) return 0;
   if (user_options->restore_disable == true) return 0;
 
   restore_ctx->enabled = true;
@@ -395,13 +402,15 @@ int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, 
 
 void restore_ctx_destroy (restore_ctx_t *restore_ctx)
 {
+  myfree (restore_ctx->eff_restore_file);
+  myfree (restore_ctx->new_restore_file);
+
+  if (restore_ctx->enabled == false) return;
+
   restore_ctx->argc = 0;
   restore_ctx->argv = NULL;
 
   myfree (restore_ctx->rd);
-
-  myfree (restore_ctx->eff_restore_file);
-  myfree (restore_ctx->new_restore_file);
 
   myfree (restore_ctx);
 }
