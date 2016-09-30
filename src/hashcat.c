@@ -1779,9 +1779,9 @@ int main (int argc, char **argv)
 
   tuning_db_t *tuning_db = (tuning_db_t *) mymalloc (sizeof (tuning_db_t));
 
-  const int rc_tuning_db = tuning_db_init (tuning_db, user_options, folder_config);
-
   data.tuning_db = tuning_db;
+
+  const int rc_tuning_db = tuning_db_init (tuning_db, user_options, folder_config);
 
   if (rc_tuning_db == -1) return -1;
 

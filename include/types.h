@@ -1003,6 +1003,8 @@ typedef struct
 
 typedef struct
 {
+  bool enabled;
+
   char *buf;
   u32  incr;
   u32  avail;

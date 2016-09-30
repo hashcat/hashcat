@@ -402,6 +402,17 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
 
 void wl_data_init (wl_data_t *wl_data, const user_options_t *user_options, const hashconfig_t *hashconfig)
 {
+  wl_data->enabled = false;
+
+  if (user_options->benchmark   == true) return;
+  if (user_options->keyspace    == true) return;
+  if (user_options->left        == true) return;
+  if (user_options->show        == true) return;
+  if (user_options->usage       == true) return;
+  if (user_options->version     == true) return;
+
+  wl_data->enabled = true;
+
   wl_data->buf   = (char *) mymalloc (user_options->segment_size);
   wl_data->avail = user_options->segment_size;
   wl_data->incr  = user_options->segment_size;
@@ -427,6 +438,8 @@ void wl_data_init (wl_data_t *wl_data, const user_options_t *user_options, const
 
 void wl_data_destroy (wl_data_t *wl_data)
 {
+  if (wl_data->enabled == false) return;
+
   myfree (wl_data->buf);
 
   wl_data->func  = NULL;
