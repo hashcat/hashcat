@@ -838,7 +838,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
     strncpy (display_dev_cur, "0.00", 4);
 
-    format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
+    format_speed_display ((double) hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
     log_info ("Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
   }
@@ -847,7 +847,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   strncpy (display_all_cur, "0.00", 4);
 
-  format_speed_display (hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
+  format_speed_display ((double) hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
   if (opencl_ctx->devices_active > 1) log_info ("Speed.Dev.#*...: %9sH/s", display_all_cur);
 
@@ -1202,7 +1202,7 @@ void status_benchmark (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const
 
     strncpy (display_dev_cur, "0.00", 4);
 
-    format_speed_display (hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
+    format_speed_display ((double) hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
     if (opencl_ctx->devices_active >= 10)
     {
@@ -1218,7 +1218,7 @@ void status_benchmark (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const
 
   strncpy (display_all_cur, "0.00", 4);
 
-  format_speed_display (hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
+  format_speed_display ((double) hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
   if (opencl_ctx->devices_active > 1) log_info ("Speed.Dev.#*.: %9sH/s", display_all_cur);
 }
