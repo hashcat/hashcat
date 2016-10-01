@@ -15,7 +15,8 @@
 #elif defined (__FreeBSD__)
 #define _POSIX
 #elif defined (_WIN32) || defined (_WIN64)
-#define _WIN
+#define _WIN 1
+#define WIN 1
 #else
 #error Your Operating System is not supported or detected
 #endif
