@@ -245,7 +245,9 @@ typedef struct ADLOD6PowerControlInfo
   int iExtMask;
 } ADLOD6PowerControlInfo;
 
-#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+#if defined (__MSC_VER)
+#define ADL_API_CALL __cdecl
+#elif defined (_WIN32) || defined (__WIN32__) || defined (__CYGWIN__)
 #define ADL_API_CALL __stdcall
 #else
 #define ADL_API_CALL
