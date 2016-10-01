@@ -559,9 +559,7 @@ typedef struct wordr
 
 } wordr_t;
 
-typedef struct __hc_device_param hc_device_param_t;
-
-struct __hc_device_param
+typedef struct hc_device_param
 {
   cl_device_id      device;
   cl_device_type    device_type;
@@ -736,7 +734,8 @@ struct __hc_device_param
 
   u32     kernel_params_amp_buf32[PARAMCNT];
   u32     kernel_params_memset_buf32[PARAMCNT];
-};
+
+} hc_device_param_t;
 
 typedef struct opencl_ctx
 {
