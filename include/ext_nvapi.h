@@ -259,13 +259,14 @@ int  nvapi_init  (NVAPI_PTR *nvapi);
 void nvapi_close (NVAPI_PTR *nvapi);
 
 int hm_NvAPI_QueryInterface (NVAPI_PTR *nvapi, unsigned int offset);
-int hm_NvAPI_Initialize (NVAPI_PTR *nvapi);
-int hm_NvAPI_Unload (NVAPI_PTR *nvapi);
 int hm_NvAPI_GetErrorMessage (NVAPI_PTR *nvapi, NvAPI_Status nr, NvAPI_ShortString szDesc);
-int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
-int hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info);
-int hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status);
-int hm_NvAPI_GPU_SetCoolerLevels (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels);
-int hm_NvAPI_GPU_RestoreCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex);
+
+NvAPI_Status hm_NvAPI_Initialize (NVAPI_PTR *nvapi);
+NvAPI_Status hm_NvAPI_Unload (NVAPI_PTR *nvapi);
+NvAPI_Status hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
+NvAPI_Status hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info);
+NvAPI_Status hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status);
+NvAPI_Status hm_NvAPI_GPU_SetCoolerLevels (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels);
+NvAPI_Status hm_NvAPI_GPU_RestoreCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex);
 
 #endif // _EXT_NVAPI_H

@@ -57,9 +57,16 @@ void nvapi_close (NVAPI_PTR *nvapi)
   }
 }
 
-int hm_NvAPI_Initialize (NVAPI_PTR *nvapi)
+int hm_NvAPI_GetErrorMessage (NVAPI_PTR *nvapi, NvAPI_Status NvAPI_rc, NvAPI_ShortString string)
 {
   if (!nvapi) return -1;
+
+  return nvapi->NvAPI_GetErrorMessage (NvAPI_rc, string);
+}
+
+NvAPI_Status hm_NvAPI_Initialize (NVAPI_PTR *nvapi)
+{
+  if (!nvapi) return (NvAPI_Status) -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_Initialize ();
 
@@ -77,9 +84,9 @@ int hm_NvAPI_Initialize (NVAPI_PTR *nvapi)
   return NvAPI_rc;
 }
 
-int hm_NvAPI_Unload (NVAPI_PTR *nvapi)
+NvAPI_Status hm_NvAPI_Unload (NVAPI_PTR *nvapi)
 {
-  if (!nvapi) return -1;
+  if (!nvapi) return (NvAPI_Status) -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_Unload ();
 
@@ -95,16 +102,9 @@ int hm_NvAPI_Unload (NVAPI_PTR *nvapi)
   return NvAPI_rc;
 }
 
-int hm_NvAPI_GetErrorMessage (NVAPI_PTR *nvapi, NvAPI_Status NvAPI_rc, NvAPI_ShortString string)
+NvAPI_Status hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount)
 {
-  if (!nvapi) return -1;
-
-  return nvapi->NvAPI_GetErrorMessage (NvAPI_rc, string);
-}
-
-int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount)
-{
-  if (!nvapi) return -1;
+  if (!nvapi) return (NvAPI_Status) -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_EnumPhysicalGPUs (nvGPUHandle, pGpuCount);
 
@@ -120,9 +120,9 @@ int hm_NvAPI_EnumPhysicalGPUs (NVAPI_PTR *nvapi, NvPhysicalGpuHandle nvGPUHandle
   return NvAPI_rc;
 }
 
-int hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info)
+NvAPI_Status hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info)
 {
-  if (!nvapi) return -1;
+  if (!nvapi) return (NvAPI_Status) -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetPerfPoliciesInfo (hPhysicalGpu, perfPolicies_info);
 
@@ -138,9 +138,9 @@ int hm_NvAPI_GPU_GetPerfPoliciesInfo (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhy
   return NvAPI_rc;
 }
 
-int hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status)
+NvAPI_Status hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status)
 {
-  if (!nvapi) return -1;
+  if (!nvapi) return (NvAPI_Status) -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetPerfPoliciesStatus (hPhysicalGpu, perfPolicies_status);
 
@@ -156,9 +156,9 @@ int hm_NvAPI_GPU_GetPerfPoliciesStatus (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hP
   return NvAPI_rc;
 }
 
-int hm_NvAPI_GPU_SetCoolerLevels (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels)
+NvAPI_Status hm_NvAPI_GPU_SetCoolerLevels (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels)
 {
-  if (!nvapi) return -1;
+  if (!nvapi) return (NvAPI_Status) -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_SetCoolerLevels (hPhysicalGpu, coolerIndex, pCoolerLevels);
 
@@ -174,9 +174,9 @@ int hm_NvAPI_GPU_SetCoolerLevels (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysica
   return NvAPI_rc;
 }
 
-int hm_NvAPI_GPU_RestoreCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex)
+NvAPI_Status hm_NvAPI_GPU_RestoreCoolerSettings (NVAPI_PTR *nvapi, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex)
 {
-  if (!nvapi) return -1;
+  if (!nvapi) return (NvAPI_Status) -1;
 
   NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_RestoreCoolerSettings (hPhysicalGpu, coolerIndex);
 
