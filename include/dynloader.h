@@ -15,18 +15,18 @@
 #endif // __APPLE__
 #endif // _POSIX
 
-#if defined (_WIN)
+#ifdef _WIN
 #include <windows.h>
-#endif // _WIN
+#endif
 
-#if defined (_WIN)
-#define hc_dlopen  LoadLibrary
-#define hc_dlclose FreeLibrary
-#define hc_dlsym   GetProcAddress
+#ifdef _WIN
+HMODULE hc_dlopen  (LPCSTR lpLibFileName);
+BOOL    hc_dlclose (HMODULE hLibModule);
+FARPROC hc_dlsym   (HMODULE hModule, LPCSTR lpProcName);
 #else
-#define hc_dlopen  dlopen
-#define hc_dlclose dlclose
-#define hc_dlsym   dlsym
+void *hc_dlopen  (const char *fileName, int flag);
+int   hc_dlclose (void *handle);
+void *hc_dlsym   (void *module, const char *symbol);
 #endif
 
 #define HC_LOAD_FUNC2(ptr,name,type,var,libname,noerr) \
