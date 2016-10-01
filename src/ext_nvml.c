@@ -115,7 +115,7 @@ const char *hm_NVML_nvmlErrorString (NVML_PTR *nvml, nvmlReturn_t nvml_rc)
 
 nvmlReturn_t hm_NVML_nvmlInit (NVML_PTR *nvml)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = (nvmlReturn_t)nvml->nvmlInit ();
 
@@ -131,7 +131,7 @@ nvmlReturn_t hm_NVML_nvmlInit (NVML_PTR *nvml)
 
 nvmlReturn_t hm_NVML_nvmlShutdown (NVML_PTR *nvml)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = (nvmlReturn_t)nvml->nvmlShutdown ();
 
@@ -147,7 +147,7 @@ nvmlReturn_t hm_NVML_nvmlShutdown (NVML_PTR *nvml)
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetName (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, char *name, unsigned int length)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetName (device, name, length);
 
@@ -166,7 +166,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetName (NVML_PTR *nvml, int skip_warnings, nvmlD
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetHandleByIndex (NVML_PTR *nvml, int skip_warnings, unsigned int index, nvmlDevice_t *device)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetHandleByIndex (index, device);
 
@@ -185,7 +185,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetHandleByIndex (NVML_PTR *nvml, int skip_warnin
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetTemperature (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, nvmlTemperatureSensors_t sensorType, unsigned int *temp)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetTemperature (device, sensorType, temp);
 
@@ -204,7 +204,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetTemperature (NVML_PTR *nvml, int skip_warnings
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetFanSpeed (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int *speed)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetFanSpeed (device, speed);
 
@@ -223,7 +223,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetFanSpeed (NVML_PTR *nvml, int skip_warnings, n
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetPowerUsage (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int *power)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetPowerUsage (device, power);
 
@@ -242,7 +242,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetPowerUsage (NVML_PTR *nvml, int skip_warnings,
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetUtilizationRates (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, nvmlUtilization_t *utilization)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetUtilizationRates (device, utilization);
 
@@ -261,7 +261,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetUtilizationRates (NVML_PTR *nvml, int skip_war
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetClockInfo (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, nvmlClockType_t type, unsigned int *clock)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetClockInfo (device, type, clock);
 
@@ -280,7 +280,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetClockInfo (NVML_PTR *nvml, int skip_warnings, 
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetTemperatureThreshold (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, nvmlTemperatureThresholds_t thresholdType, unsigned int *temp)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetTemperatureThreshold (device, thresholdType, temp);
 
@@ -299,7 +299,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetTemperatureThreshold (NVML_PTR *nvml, int skip
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int *currLinkGen)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetCurrPcieLinkGeneration (device, currLinkGen);
 
@@ -318,7 +318,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (NVML_PTR *nvml, int sk
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int *currLinkWidth)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetCurrPcieLinkWidth (device, currLinkWidth);
 
@@ -337,7 +337,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (NVML_PTR *nvml, int skip_wa
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned long long *clocksThrottleReasons)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetCurrentClocksThrottleReasons (device, clocksThrottleReasons);
 
@@ -356,7 +356,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (NVML_PTR *nvml, 
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned long long *supportedClocksThrottleReasons)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetSupportedClocksThrottleReasons (device, supportedClocksThrottleReasons);
 
@@ -375,7 +375,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (NVML_PTR *nvml
 
 nvmlReturn_t hm_NVML_nvmlDeviceSetComputeMode (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, nvmlComputeMode_t mode)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceSetComputeMode (device, mode);
 
@@ -394,7 +394,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceSetComputeMode (NVML_PTR *nvml, int skip_warnings
 
 nvmlReturn_t hm_NVML_nvmlDeviceSetGpuOperationMode (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, nvmlGpuOperationMode_t mode)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceSetGpuOperationMode (device, mode);
 
@@ -413,7 +413,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceSetGpuOperationMode (NVML_PTR *nvml, int skip_war
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int *minLimit, unsigned int *maxLimit)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetPowerManagementLimitConstraints (device, minLimit, maxLimit);
 
@@ -432,7 +432,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (NVML_PTR *nvm
 
 nvmlReturn_t hm_NVML_nvmlDeviceSetPowerManagementLimit (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int limit)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceSetPowerManagementLimit (device, limit);
 
@@ -451,7 +451,7 @@ nvmlReturn_t hm_NVML_nvmlDeviceSetPowerManagementLimit (NVML_PTR *nvml, int skip
 
 nvmlReturn_t hm_NVML_nvmlDeviceGetPowerManagementLimit (NVML_PTR *nvml, int skip_warnings, nvmlDevice_t device, unsigned int *limit)
 {
-  if (!nvml) return -1u;
+  if (!nvml) return (nvmlReturn_t) -1;
 
   nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetPowerManagementLimit (device, limit);
 
