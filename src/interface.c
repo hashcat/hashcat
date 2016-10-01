@@ -12800,7 +12800,7 @@ int win8phone_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf, con
 
   salt_t *salt = hash_buf->salt;
 
-  win8phone_t *esalt = hash_buf->esalt;
+  win8phone_t *esalt = (win8phone_t *) hash_buf->esalt;
 
   digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
