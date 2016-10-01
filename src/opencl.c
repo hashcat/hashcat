@@ -380,9 +380,7 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
       const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
 
-      double speed_ms;
-
-      hc_timer_get (device_param->timer_speed, speed_ms);
+      double speed_ms = hc_timer_get (device_param->timer_speed);
 
       const u32 speed_pos = device_param->speed_pos;
 
@@ -1304,9 +1302,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
        * speed
        */
 
-      double speed_ms;
-
-      hc_timer_get (device_param->timer_speed, speed_ms);
+      double speed_ms = hc_timer_get (device_param->timer_speed);
 
       hc_timer_set (&device_param->timer_speed);
 

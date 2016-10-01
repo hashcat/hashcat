@@ -186,9 +186,7 @@ void ResumeThreads (status_ctx_t *status_ctx)
 {
   if (status_ctx->devices_status != STATUS_PAUSED) return;
 
-  double ms_paused;
-
-  hc_timer_get (status_ctx->timer_paused, ms_paused);
+  double ms_paused = hc_timer_get (status_ctx->timer_paused);
 
   status_ctx->ms_paused += ms_paused;
 

@@ -6,16 +6,7 @@
 #ifndef _TIMER_H
 #define _TIMER_H
 
-#if defined (_WIN)
-
-#define hc_timer_get(a,r) { hc_timer_t hr_freq; QueryPerformanceFrequency (&hr_freq); hc_timer_t hr_tmp; hc_timer_set (&hr_tmp); (r) = (double) ((double) (hr_tmp.QuadPart - (a).QuadPart) / (double) (hr_freq.QuadPart / 1000)); }
-#define hc_timer_set(a)   { QueryPerformanceCounter ((a)); }
-
-#elif defined (_POSIX)
-
-#define hc_timer_get(a,r) { hc_timer_t hr_tmp; hc_timer_set (&hr_tmp); (r) = (double) (((hr_tmp.tv_sec - (a).tv_sec) * 1000) + ((double) (hr_tmp.tv_usec - (a).tv_usec) / 1000)); }
-#define hc_timer_set(a)   { gettimeofday ((a), NULL); }
-
-#endif
+void   hc_timer_set (hc_timer_t *a);
+double hc_timer_get (hc_timer_t a);
 
 #endif // _TIMER_H

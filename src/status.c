@@ -602,17 +602,13 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
    * timers
    */
 
-  double ms_running = 0;
-
-  hc_timer_get (status_ctx->timer_running, ms_running);
+  double ms_running = hc_timer_get (status_ctx->timer_running);
 
   double ms_paused = status_ctx->ms_paused;
 
   if (status_ctx->devices_status == STATUS_PAUSED)
   {
-    double ms_paused_tmp = 0;
-
-    hc_timer_get (status_ctx->timer_paused, ms_paused_tmp);
+    double ms_paused_tmp = hc_timer_get (status_ctx->timer_paused);
 
     ms_paused += ms_paused_tmp;
   }

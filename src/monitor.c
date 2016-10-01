@@ -291,9 +291,7 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
 
       if (status_ctx->devices_status == STATUS_PAUSED)
       {
-        double ms_paused_tmp = 0;
-
-        hc_timer_get (status_ctx->timer_paused, ms_paused_tmp);
+        double ms_paused_tmp = hc_timer_get (status_ctx->timer_paused);
 
         ms_paused += ms_paused_tmp;
       }
