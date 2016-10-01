@@ -259,7 +259,7 @@ typedef void* (ADL_API_CALL *ADL_MAIN_MALLOC_CALLBACK )( int );
 
 typedef int HM_ADAPTER_ADL;
 
-typedef struct
+typedef struct struct_ADLOD6MemClockState
 {
   ADLOD6StateInfo state;
   ADLOD6PerformanceLevel level;
@@ -307,7 +307,7 @@ typedef void *ADL_LIB;
 typedef HINSTANCE ADL_LIB;
 #endif
 
-typedef struct
+typedef struct hm_adl_lib
 {
   ADL_LIB lib;
 

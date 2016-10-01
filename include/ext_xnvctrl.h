@@ -55,7 +55,7 @@ typedef void *XNVCTRL_LIB;
 typedef HINSTANCE XNVCTRL_LIB;
 #endif
 
-typedef struct
+typedef struct hm_xnvctrl_lib
 {
   void *dpy;
 

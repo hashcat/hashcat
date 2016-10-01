@@ -373,7 +373,7 @@ typedef enum parser_rc
  * structs
  */
 
-typedef struct
+typedef struct salt
 {
   u32  salt_buf[16];
   u32  salt_buf_pc[8];
@@ -396,21 +396,21 @@ typedef struct
 
 } salt_t;
 
-typedef struct
+typedef struct user
 {
   char *user_name;
   u32   user_len;
 
 } user_t;
 
-typedef struct
+typedef struct hashinfo
 {
   user_t *user;
   char   *orighash;
 
 } hashinfo_t;
 
-typedef struct
+typedef struct hash
 {
   void       *digest;
   salt_t     *salt;
@@ -420,7 +420,7 @@ typedef struct
 
 } hash_t;
 
-typedef struct
+typedef struct outfile_data
 {
   char   *file_name;
   long   seek;
@@ -428,7 +428,7 @@ typedef struct
 
 } outfile_data_t;
 
-typedef struct
+typedef struct logfile_ctx
 {
   bool  enabled;
 
@@ -438,7 +438,7 @@ typedef struct
 
 } logfile_ctx_t;
 
-typedef struct
+typedef struct hashes
 {
   char   *hashfile;
 
@@ -468,7 +468,7 @@ typedef struct
 
 } hashes_t;
 
-struct _hashconfig
+struct hashconfig
 {
   char  separator;
 
@@ -493,12 +493,12 @@ struct _hashconfig
   u32   pw_min;
   u32   pw_max;
 
-  int (*parse_func) (char *, u32, hash_t *, const struct _hashconfig *);
+  int (*parse_func) (char *, u32, hash_t *, const struct hashconfig *);
 };
 
-typedef struct _hashconfig hashconfig_t;
+typedef struct hashconfig hashconfig_t;
 
-typedef struct
+typedef struct pw
 {
   u32 i[16];
 
@@ -510,19 +510,19 @@ typedef struct
 
 } pw_t;
 
-typedef struct
+typedef struct bf
 {
   u32  i;
 
 } bf_t;
 
-typedef struct
+typedef struct bs_word
 {
   u32  b[32];
 
 } bs_word_t;
 
-typedef struct
+typedef struct comb
 {
   u32  i[8];
 
@@ -530,14 +530,14 @@ typedef struct
 
 } comb_t;
 
-typedef struct
+typedef struct cpt
 {
   u32    cracked;
   time_t timestamp;
 
 } cpt_t;
 
-typedef struct
+typedef struct plain
 {
   u32  salt_pos;
   u32  digest_pos;
@@ -547,13 +547,13 @@ typedef struct
 
 } plain_t;
 
-typedef struct
+typedef struct wordl
 {
   u32  word_buf[16];
 
 } wordl_t;
 
-typedef struct
+typedef struct wordr
 {
   u32  word_buf[1];
 
@@ -738,7 +738,7 @@ struct __hc_device_param
   u32     kernel_params_memset_buf32[PARAMCNT];
 };
 
-typedef struct
+typedef struct opencl_ctx
 {
   bool                enabled;
 
@@ -795,7 +795,7 @@ typedef struct aes_context
 
 typedef aes_context_t aes_ctx;
 
-typedef struct
+typedef struct debugfile_ctx
 {
   bool enabled;
 
@@ -805,7 +805,7 @@ typedef struct
 
 } debugfile_ctx_t;
 
-typedef struct
+typedef struct dictstat
 {
   u64 cnt;
 
@@ -819,7 +819,7 @@ typedef struct
 
 } dictstat_t;
 
-typedef struct
+typedef struct dictstat_ctx
 {
   bool enabled;
 
@@ -835,7 +835,7 @@ typedef struct
 
 } dictstat_ctx_t;
 
-typedef struct
+typedef struct hm_attrs
 {
   HM_ADAPTER_ADL     adl;
   HM_ADAPTER_NVML    nvml;
@@ -849,7 +849,7 @@ typedef struct
 
 } hm_attrs_t;
 
-typedef struct
+typedef struct loopback_ctx
 {
   bool enabled;
 
@@ -858,28 +858,28 @@ typedef struct
 
 } loopback_ctx_t;
 
-typedef struct
+typedef struct cs
 {
   u32  cs_buf[0x100];
   u32  cs_len;
 
 } cs_t;
 
-typedef struct
+typedef struct mf
 {
   char mf_buf[0x100];
   int  mf_len;
 
 } mf_t;
 
-typedef struct
+typedef struct hcstat_table
 {
   u32  key;
   u64  val;
 
 } hcstat_table_t;
 
-typedef struct
+typedef struct outfile_ctx
 {
   char *filename;
 
@@ -890,7 +890,7 @@ typedef struct
 
 } outfile_ctx_t;
 
-typedef struct
+typedef struct pot
 {
   char     plain_buf[HCBUFSIZ_TINY];
   int      plain_len;
@@ -899,7 +899,7 @@ typedef struct
 
 } pot_t;
 
-typedef struct
+typedef struct potfile_ctx
 {
   bool     enabled;
 
@@ -914,7 +914,7 @@ typedef struct
 
 } potfile_ctx_t;
 
-typedef struct
+typedef struct restore_data
 {
   int  version;
   char cwd[256];
@@ -930,7 +930,7 @@ typedef struct
 
 } restore_data_t;
 
-typedef struct
+typedef struct restore_ctx
 {
   bool    enabled;
 
@@ -944,7 +944,7 @@ typedef struct
 
 } restore_ctx_t;
 
-typedef struct
+typedef struct cpu_rule
 {
   u32  len;
 
@@ -952,13 +952,13 @@ typedef struct
 
 } cpu_rule_t;
 
-typedef struct
+typedef struct kernel_rule
 {
   u32  cmds[32];
 
 } kernel_rule_t;
 
-typedef struct
+typedef struct out
 {
   FILE *fp;
 
@@ -967,14 +967,14 @@ typedef struct
 
 } out_t;
 
-typedef struct
+typedef struct tuning_db_alias
 {
   char *device_name;
   char *alias_name;
 
 } tuning_db_alias_t;
 
-typedef struct
+typedef struct tuning_db_entry
 {
   char *device_name;
   int   attack_mode;
@@ -986,7 +986,7 @@ typedef struct
 
 } tuning_db_entry_t;
 
-typedef struct
+typedef struct tuning_db
 {
   bool enabled;
 
@@ -998,7 +998,7 @@ typedef struct
 
 } tuning_db_t;
 
-typedef struct
+typedef struct wl_data
 {
   bool enabled;
 
@@ -1012,7 +1012,7 @@ typedef struct
 
 } wl_data_t;
 
-typedef struct
+typedef struct user_options
 {
   bool   usage;
   bool   version;
@@ -1113,7 +1113,7 @@ typedef struct
 
 } user_options_t;
 
-typedef struct
+typedef struct user_options_extra
 {
   u32 attack_kern;
 
@@ -1126,7 +1126,7 @@ typedef struct
 
 } user_options_extra_t;
 
-typedef struct
+typedef struct bitmap_ctx
 {
   bool enabled;
 
@@ -1148,7 +1148,7 @@ typedef struct
 
 } bitmap_ctx_t;
 
-typedef struct
+typedef struct folder_config
 {
   char *cwd;
   char *install_dir;
@@ -1159,7 +1159,7 @@ typedef struct
 
 } folder_config_t;
 
-typedef struct
+typedef struct induct_ctx
 {
   bool enabled;
 
@@ -1171,7 +1171,7 @@ typedef struct
 
 } induct_ctx_t;
 
-typedef struct
+typedef struct outcheck_ctx
 {
   bool enabled;
 
@@ -1179,7 +1179,7 @@ typedef struct
 
 } outcheck_ctx_t;
 
-typedef struct
+typedef struct straight_ctx
 {
   bool enabled;
 
@@ -1195,7 +1195,7 @@ typedef struct
 
 } straight_ctx_t;
 
-typedef struct
+typedef struct combinator_ctx
 {
   bool enabled;
 
@@ -1207,7 +1207,7 @@ typedef struct
 
 } combinator_ctx_t;
 
-typedef struct
+typedef struct mask_ctx
 {
   bool   enabled;
 
@@ -1238,7 +1238,7 @@ typedef struct
 
 } mask_ctx_t;
 
-typedef struct
+typedef struct hwmon_ctx
 {
   bool  enabled;
 
@@ -1255,7 +1255,7 @@ typedef struct
 
 } hwmon_ctx_t;
 
-typedef struct
+typedef struct cpt_ctx
 {
   bool enabled;
 
@@ -1266,7 +1266,7 @@ typedef struct
 
 } cpt_ctx_t;
 
-typedef struct
+typedef struct status_ctx
 {
   /**
    * main status
@@ -1328,7 +1328,7 @@ typedef struct
 
 } status_ctx_t;
 
-typedef struct
+typedef struct hashcat_ctx
 {
   bitmap_ctx_t          *bitmap_ctx;
   combinator_ctx_t      *combinator_ctx;
@@ -1357,7 +1357,7 @@ typedef struct
 
 } hashcat_ctx_t;
 
-typedef struct
+typedef struct thread_param
 {
   u32 tid;
 

@@ -192,7 +192,7 @@ typedef void *NVML_LIB;
 typedef HINSTANCE NVML_LIB;
 #endif
 
-typedef struct
+typedef struct hm_nvml_lib
 {
   NVML_LIB lib;
 

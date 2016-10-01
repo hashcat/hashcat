@@ -66,7 +66,7 @@ typedef void *OCL_LIB;
 typedef HINSTANCE OCL_LIB;
 #endif
 
-typedef struct
+typedef struct hc_opencl_lib
 {
   OCL_LIB lib;
 
