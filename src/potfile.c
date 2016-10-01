@@ -13,6 +13,14 @@
 #include "outfile.h"
 #include "potfile.h"
 
+#if defined (_WIN)
+#define __WINDOWS__
+#endif
+#include "sort_r.h"
+#if defined (_WIN)
+#undef __WINDOWS__
+#endif
+
 // get rid of this later
 int sort_by_hash         (const void *v1, const void *v2, void *v3);
 int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3);
@@ -110,38 +118,7 @@ int sort_by_hash_t_salt_hccap (const void *v1, const void *v2)
 
 void hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg)
 {
-  /*
-  **  ssort()  --  Fast, small, qsort()-compatible Shell sort
-  **
-  **  by Ray Gardner,  public domain   5/90
-  *  slightly modified to work with hashcat by Jens Steube
-  */
-
-	size_t wnel, gap, wgap, i, j, k;
-	char *a, *b, tmp;
-
-	wnel = size * nmemb;
-	for (gap = 0; ++gap < nmemb;)
-		gap *= 3;
-	while ((gap /= 3) != 0) {
-		wgap = size * gap;
-		for (i = wgap; i < wnel; i += size) {
-			for (j = i - wgap; ;j -= wgap) {
-				a = j + (char *)base;
-				b = a + wgap;
-				if ((*compar)(a, b, arg) <= 0)
-					break;
-				k = size;
-				do {
-					tmp = *a;
-					*a++ = *b;
-					*b++ = tmp;
-				} while (--k);
-				if (j < wgap)
-					break;
-			}
-		}
-	}
+  sort_r (base, nmemb, size, compar, arg);
 }
 
 void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg)
