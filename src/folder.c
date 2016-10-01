@@ -294,8 +294,8 @@ int folder_config_init (folder_config_t *folder_config, const char *install_fold
     session_dir = get_session_dir (profile_dir);
     shared_dir  = mystrdup (shared_folder);
 
-    mkdir (profile_dir, 0700);
-    mkdir (session_dir, 0700);
+    hc_mkdir (profile_dir, 0700);
+    hc_mkdir (session_dir, 0700);
   }
   else
   {
@@ -391,7 +391,7 @@ int folder_config_init (folder_config_t *folder_config, const char *install_fold
 
   snprintf (kernels_folder, HCBUFSIZ_TINY - 1, "%s/kernels", profile_dir);
 
-  mkdir (kernels_folder, 0700);
+  hc_mkdir (kernels_folder, 0700);
 
   myfree (kernels_folder);
 
@@ -423,4 +423,14 @@ void folder_config_destroy (folder_config_t *folder_config)
   folder_config->shared_dir   = NULL;
 
   myfree (folder_config);
+}
+
+int hc_mkdir (const char *name, int mode)
+{
+  #if defined (_WIN)
+  if (mode == 0) mode = 0; // makes compiler happy
+  return _mkdir (name);
+  #else
+  return mkdir (name, mode);
+  #endif
 }

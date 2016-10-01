@@ -21,14 +21,11 @@
 
 #if defined (_WIN)
 #include <windows.h>
+#include <direct.h>
 #endif
 
 #define DOT_HASHCAT     ".hashcat"
 #define SESSIONS_FOLDER "sessions"
-
-#if defined (_WIN)
-#define mkdir(name,mode) mkdir (name)
-#endif
 
 int sort_by_stringptr (const void *p1, const void *p2);
 
@@ -43,3 +40,5 @@ char **scan_directory (const char *path);
 
 int  folder_config_init    (folder_config_t *folder_config, const char *install_folder, const char *shared_folder);
 void folder_config_destroy (folder_config_t *folder_config);
+
+int hc_mkdir (const char *name, int mode);

@@ -361,7 +361,7 @@ int outcheck_ctx_init (outcheck_ctx_t *outcheck_ctx, const user_options_t *user_
   }
   else
   {
-    if (mkdir (outcheck_ctx->root_directory, 0700) == -1)
+    if (hc_mkdir (outcheck_ctx->root_directory, 0700) == -1)
     {
       log_error ("ERROR: %s: %s", outcheck_ctx->root_directory, strerror (errno));
 

@@ -72,7 +72,7 @@ int induct_ctx_init (induct_ctx_t *induct_ctx, const user_options_t *user_option
       }
     }
 
-    if (mkdir (root_directory, 0700) == -1)
+    if (hc_mkdir (root_directory, 0700) == -1)
     {
       log_error ("ERROR: %s: %s", root_directory, strerror (errno));
 
