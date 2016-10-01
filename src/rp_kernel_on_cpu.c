@@ -8,7 +8,13 @@
 
 #include "common.h"
 #include "types.h"
+#include "bitops.h"
 #include "rp_kernel_on_cpu.h"
+
+u32 swap_workaround (const u32 n)
+{
+  return byte_swap_32 (n);
+}
 
 static u32 generate_cmask (u32 buf)
 {
