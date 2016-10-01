@@ -74,15 +74,13 @@ void dictstat_read (dictstat_ctx_t *dictstat_ctx, const int comptime)
     return;
   }
 
-  #if defined (_POSIX)
-  struct stat tmpstat;
+  hc_stat tmpstat;
 
+  #if defined (_POSIX)
   fstat (fileno (fp), &tmpstat);
   #endif
 
   #if defined (_WIN)
-  struct stat64 tmpstat;
-
   _fstat64 (fileno (fp), &tmpstat);
   #endif
 

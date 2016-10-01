@@ -167,15 +167,8 @@ int outfile_and_hashfile (outfile_ctx_t *outfile_ctx, const char *hashfile)
 
   if (outfile == NULL) return 0;
 
-  #if defined (_POSIX)
-  struct stat tmpstat_outfile;
-  struct stat tmpstat_hashfile;
-  #endif
-
-  #if defined (_WIN)
-  struct stat64 tmpstat_outfile;
-  struct stat64 tmpstat_hashfile;
-  #endif
+  hc_stat tmpstat_outfile;
+  hc_stat tmpstat_hashfile;
 
   FILE *tmp_outfile_fp = fopen (outfile, "r");
 
@@ -231,23 +224,12 @@ int outfile_and_hashfile (outfile_ctx_t *outfile_ctx, const char *hashfile)
     tmpstat_hashfile.st_blocks  = 0;
     #endif
 
-    #if defined (_POSIX)
-    if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (struct stat)) == 0)
+    if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (hc_stat)) == 0)
     {
       log_error ("ERROR: Hashfile and Outfile are not allowed to point to the same file");
 
       return -1;
     }
-    #endif
-
-    #if defined (_WIN)
-    if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (struct stat64)) == 0)
-    {
-      log_error ("ERROR: Hashfile and Outfile are not allowed to point to the same file");
-
-      return -1;
-    }
-    #endif
   }
 
   return 0;

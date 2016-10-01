@@ -128,15 +128,13 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
             {
               //hc_thread_mutex_lock (status_ctx->mux_display);
 
-              #if defined (_POSIX)
-              struct stat outfile_stat;
+              hc_stat outfile_stat;
 
+              #if defined (_POSIX)
               fstat (fileno (fp), &outfile_stat);
               #endif
 
               #if defined (_WIN)
-              struct stat64 outfile_stat;
-
               _fstat64 (fileno (fp), &outfile_stat);
               #endif
 

@@ -67,6 +67,20 @@ typedef pthread_t         hc_thread_t;
 typedef pthread_mutex_t   hc_thread_mutex_t;
 #endif
 
+// stat
+
+#if defined (_POSIX)
+typedef struct stat hc_stat;
+#endif
+
+#if defined (_WIN)
+#if defined (_MSC_VER)
+typedef struct _stat64 hc_stat;
+#else
+typedef struct stat64 hc_stat;
+#endif
+#endif
+
 // enums
 
 typedef enum amplifier_count
