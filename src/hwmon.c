@@ -1269,12 +1269,7 @@ int hwmon_ctx_init (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options, 
 
 void hwmon_ctx_destroy (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options, const opencl_ctx_t *opencl_ctx)
 {
-  if (hwmon_ctx->enabled == false)
-  {
-    myfree (hwmon_ctx);
-
-    return;
-  }
+  if (hwmon_ctx->enabled == false) return;
 
   // reset default fan speed
 
@@ -1416,16 +1411,5 @@ void hwmon_ctx_destroy (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_optio
 
   myfree (hwmon_ctx->hm_device);
 
-  hwmon_ctx->nvml_power_limit        = NULL;
-  hwmon_ctx->od_power_control_status = NULL;
-  hwmon_ctx->od_clock_mem_status     = NULL;
-
-  hwmon_ctx->hm_device = NULL;
-
-  hwmon_ctx->hm_adl     = NULL;
-  hwmon_ctx->hm_nvml    = NULL;
-  hwmon_ctx->hm_nvapi   = NULL;
-  hwmon_ctx->hm_xnvctrl = NULL;
-
-  myfree (hwmon_ctx);
+  memset (hwmon_ctx, 0, sizeof (hwmon_ctx_t));
 }

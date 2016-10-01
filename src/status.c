@@ -1237,6 +1237,10 @@ void status_progress_destroy (status_ctx_t *status_ctx)
   myfree (status_ctx->words_progress_done);
   myfree (status_ctx->words_progress_rejected);
   myfree (status_ctx->words_progress_restored);
+
+  status_ctx->words_progress_done     = NULL;
+  status_ctx->words_progress_rejected = NULL;
+  status_ctx->words_progress_restored = NULL;
 }
 
 void status_progress_reset (status_ctx_t *status_ctx, const hashes_t *hashes)
@@ -1273,5 +1277,5 @@ void status_ctx_destroy (status_ctx_t *status_ctx)
   hc_thread_mutex_delete (status_ctx->mux_display);
   hc_thread_mutex_delete (status_ctx->mux_hwmon);
 
-  myfree (status_ctx);
+  memset (status_ctx, 0, sizeof (status_ctx_t));
 }

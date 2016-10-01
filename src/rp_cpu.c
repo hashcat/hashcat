@@ -15,22 +15,22 @@
 #define NEXT_RULEPOS(rp)      if (++(rp) == rule_len) return (RULE_RC_SYNTAX_ERROR)
 #define NEXT_RPTOI(r,rp,up)   if (((up) = conv_ctoi ((r)[(rp)])) == -1) return (RULE_RC_SYNTAX_ERROR)
 
-inline void MANGLE_TOGGLE_AT (char *arr, const int pos)
+static void MANGLE_TOGGLE_AT (char *arr, const int pos)
 {
   if (class_alpha (arr[pos])) arr[pos] ^= 0x20;
 }
 
-inline void MANGLE_LOWER_AT (char *arr, const int pos)
+static void MANGLE_LOWER_AT (char *arr, const int pos)
 {
   if (class_upper (arr[pos])) arr[pos] ^= 0x20;
 }
 
-inline void MANGLE_UPPER_AT (char *arr, const int pos)
+static void MANGLE_UPPER_AT (char *arr, const int pos)
 {
   if (class_lower (arr[pos])) arr[pos] ^= 0x20;
 }
 
-inline void MANGLE_SWITCH (char *arr, const int l, const int r)
+static void MANGLE_SWITCH (char *arr, const int l, const int r)
 {
   char c = arr[r];
   arr[r] = arr[l];

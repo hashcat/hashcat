@@ -20008,7 +20008,7 @@ int hashconfig_init (hashconfig_t *hashconfig, const user_options_t *user_option
 
 void hashconfig_destroy (hashconfig_t *hashconfig)
 {
-  myfree (hashconfig);
+  memset (hashconfig, 0, sizeof (hashconfig_t));
 }
 
 u32 hashconfig_enforce_kernel_threads (const hashconfig_t *hashconfig, const hc_device_param_t *device_param)

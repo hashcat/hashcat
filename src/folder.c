@@ -415,14 +415,7 @@ void folder_config_destroy (folder_config_t *folder_config)
   myfree (folder_config->cwd);
   myfree (folder_config->install_dir);
 
-  folder_config->cpath_real   = NULL;
-  folder_config->cwd          = NULL;
-  folder_config->install_dir  = NULL;
-  folder_config->profile_dir  = NULL;
-  folder_config->session_dir  = NULL;
-  folder_config->shared_dir   = NULL;
-
-  myfree (folder_config);
+  memset (folder_config, 0, sizeof (folder_config_t));
 }
 
 int hc_mkdir (const char *name, int mode)

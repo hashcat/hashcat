@@ -31,13 +31,7 @@ int combinator_ctx_init (combinator_ctx_t *combinator_ctx, const user_options_t 
 
 void combinator_ctx_destroy (combinator_ctx_t *combinator_ctx)
 {
-  if (combinator_ctx->enabled == false)
-  {
-    myfree (combinator_ctx);
+  if (combinator_ctx->enabled == false) return;
 
-    return;
-  }
-
-  myfree (combinator_ctx);
+  memset (combinator_ctx, 0, sizeof (combinator_ctx_t));
 }
-

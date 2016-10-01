@@ -439,21 +439,9 @@ void wl_data_init (wl_data_t *wl_data, const user_options_t *user_options, const
 
 void wl_data_destroy (wl_data_t *wl_data)
 {
-  if (wl_data->enabled == false)
-  {
-    myfree (wl_data);
-
-    return;
-  }
+  if (wl_data->enabled == false) return;
 
   myfree (wl_data->buf);
 
-  wl_data->func  = NULL;
-  wl_data->buf   = NULL;
-  wl_data->avail = 0;
-  wl_data->incr  = 0;
-  wl_data->cnt   = 0;
-  wl_data->pos   = 0;
-
-  myfree (wl_data);
+  memset (wl_data, 0, sizeof (wl_data_t));
 }

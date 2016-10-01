@@ -1512,12 +1512,7 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
 
 void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
 {
-  if (opencl_ctx->enabled == false)
-  {
-    myfree (opencl_ctx);
-
-    return;
-  }
+  if (opencl_ctx->enabled == false) return;
 
   myfree (opencl_ctx->devices_param);
 
@@ -1529,7 +1524,7 @@ void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
 
   myfree (opencl_ctx->platform_devices);
 
-  myfree (opencl_ctx);
+  memset (opencl_ctx, 0, sizeof (opencl_ctx_t));
 }
 
 int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, const int comptime)

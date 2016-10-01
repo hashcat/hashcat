@@ -408,15 +408,7 @@ void restore_ctx_destroy (restore_ctx_t *restore_ctx)
 
   myfree (restore_ctx->rd);
 
-  if (restore_ctx->enabled == false)
-  {
-    myfree (restore_ctx);
+  if (restore_ctx->enabled == false) return;
 
-    return;
-  }
-
-  restore_ctx->argc = 0;
-  restore_ctx->argv = NULL;
-
-  myfree (restore_ctx);
+  memset (restore_ctx, 0, sizeof (restore_ctx_t));
 }

@@ -133,17 +133,7 @@ void bitmap_ctx_init (bitmap_ctx_t *bitmap_ctx, const user_options_t *user_optio
 
 void bitmap_ctx_destroy (bitmap_ctx_t *bitmap_ctx)
 {
-  if (bitmap_ctx->enabled == false)
-  {
-    myfree (bitmap_ctx);
-
-    return;
-  }
-
-  bitmap_ctx->bitmap_size   = 0;
-  bitmap_ctx->bitmap_mask   = 0;
-  bitmap_ctx->bitmap_shift1 = 0;
-  bitmap_ctx->bitmap_shift2 = 0;
+  if (bitmap_ctx->enabled == false) return;
 
   myfree (bitmap_ctx->bitmap_s1_a);
   myfree (bitmap_ctx->bitmap_s1_b);
@@ -154,14 +144,5 @@ void bitmap_ctx_destroy (bitmap_ctx_t *bitmap_ctx)
   myfree (bitmap_ctx->bitmap_s2_c);
   myfree (bitmap_ctx->bitmap_s2_d);
 
-  bitmap_ctx->bitmap_s1_a = NULL;
-  bitmap_ctx->bitmap_s1_b = NULL;
-  bitmap_ctx->bitmap_s1_c = NULL;
-  bitmap_ctx->bitmap_s1_d = NULL;
-  bitmap_ctx->bitmap_s2_a = NULL;
-  bitmap_ctx->bitmap_s2_b = NULL;
-  bitmap_ctx->bitmap_s2_c = NULL;
-  bitmap_ctx->bitmap_s2_d = NULL;
-
-  myfree (bitmap_ctx);
+  memset (bitmap_ctx, 0, sizeof (bitmap_ctx_t));
 }

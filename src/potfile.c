@@ -181,16 +181,9 @@ void potfile_init (potfile_ctx_t *potfile_ctx, const user_options_t *user_option
 
 void potfile_destroy (potfile_ctx_t *potfile_ctx)
 {
-  if (potfile_ctx->enabled == false)
-  {
-    myfree (potfile_ctx);
+  if (potfile_ctx->enabled == false) return;
 
-    return;
-  }
-
-  myfree (potfile_ctx->filename);
-
-  myfree (potfile_ctx);
+  memset (potfile_ctx, 0, sizeof (potfile_ctx_t));
 }
 
 void potfile_format_plain (potfile_ctx_t *potfile_ctx, const unsigned char *plain_ptr, const uint plain_len)

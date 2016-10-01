@@ -56,6 +56,62 @@
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
+static void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx)
+{
+  hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          mymalloc (sizeof (bitmap_ctx_t));
+  hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      mymalloc (sizeof (combinator_ctx_t));
+  hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             mymalloc (sizeof (cpt_ctx_t));
+  hashcat_ctx->debugfile_ctx      = (debugfile_ctx_t *)       mymalloc (sizeof (debugfile_ctx_t));
+  hashcat_ctx->dictstat_ctx       = (dictstat_ctx_t *)        mymalloc (sizeof (dictstat_ctx_t));
+  hashcat_ctx->folder_config      = (folder_config_t *)       mymalloc (sizeof (folder_config_t));
+  hashcat_ctx->hashconfig         = (hashconfig_t *)          mymalloc (sizeof (hashconfig_t));
+  hashcat_ctx->hashes             = (hashes_t *)              mymalloc (sizeof (hashes_t));
+  hashcat_ctx->hwmon_ctx          = (hwmon_ctx_t *)           mymalloc (sizeof (hwmon_ctx_t));
+  hashcat_ctx->induct_ctx         = (induct_ctx_t *)          mymalloc (sizeof (induct_ctx_t));
+  hashcat_ctx->logfile_ctx        = (logfile_ctx_t *)         mymalloc (sizeof (logfile_ctx_t));
+  hashcat_ctx->loopback_ctx       = (loopback_ctx_t *)        mymalloc (sizeof (loopback_ctx_t));
+  hashcat_ctx->mask_ctx           = (mask_ctx_t *)            mymalloc (sizeof (mask_ctx_t));
+  hashcat_ctx->opencl_ctx         = (opencl_ctx_t *)          mymalloc (sizeof (opencl_ctx_t));
+  hashcat_ctx->outcheck_ctx       = (outcheck_ctx_t *)        mymalloc (sizeof (outcheck_ctx_t));
+  hashcat_ctx->outfile_ctx        = (outfile_ctx_t *)         mymalloc (sizeof (outfile_ctx_t));
+  hashcat_ctx->potfile_ctx        = (potfile_ctx_t *)         mymalloc (sizeof (potfile_ctx_t));
+  hashcat_ctx->restore_ctx        = (restore_ctx_t *)         mymalloc (sizeof (restore_ctx_t));
+  hashcat_ctx->status_ctx         = (status_ctx_t *)          mymalloc (sizeof (status_ctx_t));
+  hashcat_ctx->straight_ctx       = (straight_ctx_t *)        mymalloc (sizeof (straight_ctx_t));
+  hashcat_ctx->tuning_db          = (tuning_db_t *)           mymalloc (sizeof (tuning_db_t));
+  hashcat_ctx->user_options_extra = (user_options_extra_t *)  mymalloc (sizeof (user_options_extra_t));
+  hashcat_ctx->user_options       = (user_options_t *)        mymalloc (sizeof (user_options_t));
+  hashcat_ctx->wl_data            = (wl_data_t *)             mymalloc (sizeof (wl_data_t));
+}
+
+static void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
+{
+  myfree (hashcat_ctx->bitmap_ctx);
+  myfree (hashcat_ctx->combinator_ctx);
+  myfree (hashcat_ctx->cpt_ctx);
+  myfree (hashcat_ctx->debugfile_ctx);
+  myfree (hashcat_ctx->dictstat_ctx);
+  myfree (hashcat_ctx->folder_config);
+  myfree (hashcat_ctx->hashconfig);
+  myfree (hashcat_ctx->hashes);
+  myfree (hashcat_ctx->hwmon_ctx);
+  myfree (hashcat_ctx->induct_ctx);
+  myfree (hashcat_ctx->logfile_ctx);
+  myfree (hashcat_ctx->loopback_ctx);
+  myfree (hashcat_ctx->mask_ctx);
+  myfree (hashcat_ctx->opencl_ctx);
+  myfree (hashcat_ctx->outcheck_ctx);
+  myfree (hashcat_ctx->outfile_ctx);
+  myfree (hashcat_ctx->potfile_ctx);
+  myfree (hashcat_ctx->restore_ctx);
+  myfree (hashcat_ctx->status_ctx);
+  myfree (hashcat_ctx->straight_ctx);
+  myfree (hashcat_ctx->tuning_db);
+  myfree (hashcat_ctx->user_options_extra);
+  myfree (hashcat_ctx->user_options);
+  myfree (hashcat_ctx->wl_data);
+}
+
 // inner2_loop iterates through wordlists, then calls kernel execution
 
 static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
@@ -1210,18 +1266,26 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
 static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 {
+  bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
+  cpt_ctx_t            *cpt_ctx             = hashcat_ctx->cpt_ctx;
+  combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
   folder_config_t      *folder_config       = hashcat_ctx->folder_config;
+  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  hashes_t             *hashes              = hashcat_ctx->hashes;
   hwmon_ctx_t          *hwmon_ctx           = hashcat_ctx->hwmon_ctx;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
+  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
   opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
   outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
   outfile_ctx_t        *outfile_ctx         = hashcat_ctx->outfile_ctx;
   potfile_ctx_t        *potfile_ctx         = hashcat_ctx->potfile_ctx;
   restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
+  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
   tuning_db_t          *tuning_db           = hashcat_ctx->tuning_db;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
+  wl_data_t            *wl_data             = hashcat_ctx->wl_data;
 
   status_ctx->devices_status = STATUS_INIT;
 
@@ -1240,10 +1304,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   /**
    * setup variables and buffers depending on hash_mode
    */
-
-  hashconfig_t *hashconfig = (hashconfig_t *) mymalloc (sizeof (hashconfig_t));
-
-  hashcat_ctx->hashconfig = hashconfig;
 
   const int rc_hashconfig = hashconfig_init (hashconfig, user_options);
 
@@ -1267,10 +1327,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   /**
    * load hashes, stage 1
    */
-
-  hashes_t *hashes = (hashes_t *) mymalloc (sizeof (hashes_t));
-
-  hashcat_ctx->hashes = hashes;
 
   const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, user_options, restore_ctx->argv[user_options_extra->optind]);
 
@@ -1336,19 +1392,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * bitmaps
    */
 
-  bitmap_ctx_t *bitmap_ctx = (bitmap_ctx_t *) mymalloc (sizeof (bitmap_ctx_t));
-
-  hashcat_ctx->bitmap_ctx = bitmap_ctx;
-
   bitmap_ctx_init (bitmap_ctx, user_options, hashconfig, hashes);
 
   /**
    * cracks-per-time allocate buffer
    */
-
-  cpt_ctx_t *cpt_ctx = (cpt_ctx_t *) mymalloc (sizeof (cpt_ctx_t));
-
-  hashcat_ctx->cpt_ctx = cpt_ctx;
 
   cpt_ctx_init (cpt_ctx, user_options);
 
@@ -1356,19 +1404,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * Wordlist allocate buffer
    */
 
-  wl_data_t *wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
-
-  hashcat_ctx->wl_data = wl_data;
-
   wl_data_init (wl_data, user_options, hashconfig);
 
   /**
    * straight mode init
    */
-
-  straight_ctx_t *straight_ctx = (straight_ctx_t *) mymalloc (sizeof (straight_ctx_t));
-
-  hashcat_ctx->straight_ctx = straight_ctx;
 
   const int rc_straight_init = straight_ctx_init (straight_ctx, user_options);
 
@@ -1378,10 +1418,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * straight mode init
    */
 
-  combinator_ctx_t *combinator_ctx = (combinator_ctx_t *) mymalloc (sizeof (combinator_ctx_t));
-
-  hashcat_ctx->combinator_ctx = combinator_ctx;
-
   const int rc_combinator_init = combinator_ctx_init (combinator_ctx, user_options);
 
   if (rc_combinator_init == -1) return -1;
@@ -1389,10 +1425,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   /**
    * charsets : keep them together for more easy maintainnce
    */
-
-  mask_ctx_t *mask_ctx = (mask_ctx_t *) mymalloc (sizeof (mask_ctx_t));
-
-  hashcat_ctx->mask_ctx = mask_ctx;
 
   const int rc_mask_init = mask_ctx_init (mask_ctx, user_options, user_options_extra, folder_config, restore_ctx, hashconfig);
 
@@ -1702,12 +1734,31 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   setup_umask ();
 
   /**
-   * status init
+   * main init
    */
 
-  status_ctx_t *status_ctx = (status_ctx_t *) mymalloc (sizeof (status_ctx_t));
+  hashcat_ctx_init (hashcat_ctx);
 
-  hashcat_ctx->status_ctx = status_ctx;
+  debugfile_ctx_t      *debugfile_ctx       = hashcat_ctx->debugfile_ctx;
+  dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
+  folder_config_t      *folder_config       = hashcat_ctx->folder_config;
+  hwmon_ctx_t          *hwmon_ctx           = hashcat_ctx->hwmon_ctx;
+  induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
+  logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
+  loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
+  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
+  outfile_ctx_t        *outfile_ctx         = hashcat_ctx->outfile_ctx;
+  potfile_ctx_t        *potfile_ctx         = hashcat_ctx->potfile_ctx;
+  restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
+  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
+  tuning_db_t          *tuning_db           = hashcat_ctx->tuning_db;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+
+  /**
+   * status init
+   */
 
   const int rc_status_init = status_ctx_init (status_ctx);
 
@@ -1728,19 +1779,11 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   shared_folder = SHARED_FOLDER;
   #endif
 
-  folder_config_t *folder_config = (folder_config_t *) mymalloc (sizeof (folder_config_t));
-
-  hashcat_ctx->folder_config = folder_config;
-
   folder_config_init (folder_config, install_folder, shared_folder);
 
   /**
    * commandline parameters
    */
-
-  user_options_t *user_options = (user_options_t *) mymalloc (sizeof (user_options_t));
-
-  hashcat_ctx->user_options = user_options;
 
   user_options_init (user_options);
 
@@ -1770,10 +1813,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
    * restore
    */
 
-  restore_ctx_t *restore_ctx = (restore_ctx_t *) mymalloc (sizeof (restore_ctx_t));
-
-  hashcat_ctx->restore_ctx = restore_ctx;
-
   const int rc_restore_init = restore_ctx_init (restore_ctx, user_options, folder_config, argc, argv);
 
   if (rc_restore_init == -1) return -1;
@@ -1781,10 +1820,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   /**
    * process user input
    */
-
-  user_options_extra_t *user_options_extra = (user_options_extra_t *) mymalloc (sizeof (user_options_extra_t));
-
-  hashcat_ctx->user_options_extra = user_options_extra;
 
   const int rc_user_options_extra_init = user_options_extra_init (user_options, restore_ctx, user_options_extra);
 
@@ -1811,10 +1846,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
    * logfile init
    */
 
-  logfile_ctx_t *logfile_ctx = (logfile_ctx_t *) mymalloc (sizeof (logfile_ctx_t));
-
-  hashcat_ctx->logfile_ctx = logfile_ctx;
-
   logfile_init (logfile_ctx, user_options, folder_config);
 
   logfile_generate_topid (logfile_ctx);
@@ -1827,10 +1858,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
    * tuning db
    */
 
-  tuning_db_t *tuning_db = (tuning_db_t *) mymalloc (sizeof (tuning_db_t));
-
-  hashcat_ctx->tuning_db = tuning_db;
-
   const int rc_tuning_db = tuning_db_init (tuning_db, user_options, folder_config);
 
   if (rc_tuning_db == -1) return -1;
@@ -1838,10 +1865,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   /**
    * induction directory
    */
-
-  induct_ctx_t *induct_ctx = (induct_ctx_t *) mymalloc (sizeof (induct_ctx_t));
-
-  hashcat_ctx->induct_ctx = induct_ctx;
 
   const int rc_induct_ctx_init = induct_ctx_init (induct_ctx, user_options, folder_config, status_ctx);
 
@@ -1851,10 +1874,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
    * outfile-check directory
    */
 
-  outcheck_ctx_t *outcheck_ctx = (outcheck_ctx_t *) mymalloc (sizeof (outcheck_ctx_t));
-
-  hashcat_ctx->outcheck_ctx = outcheck_ctx;
-
   const int rc_outcheck_ctx_init = outcheck_ctx_init (outcheck_ctx, user_options, folder_config);
 
   if (rc_outcheck_ctx_init == -1) return -1;
@@ -1862,10 +1881,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   /**
    * outfile itself
    */
-
-  outfile_ctx_t *outfile_ctx = mymalloc (sizeof (outfile_ctx_t));
-
-  hashcat_ctx->outfile_ctx = outfile_ctx;
 
   outfile_init (outfile_ctx, user_options);
 
@@ -1883,19 +1898,11 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
    * plus it depends on hash_mode, so we continue using it in outer_loop
    */
 
-  potfile_ctx_t *potfile_ctx = mymalloc (sizeof (potfile_ctx_t));
-
-  hashcat_ctx->potfile_ctx = potfile_ctx;
-
   potfile_init (potfile_ctx, user_options, folder_config);
 
   /**
    * dictstat init
    */
-
-  dictstat_ctx_t *dictstat_ctx = mymalloc (sizeof (dictstat_ctx_t));
-
-  hashcat_ctx->dictstat_ctx = dictstat_ctx;
 
   dictstat_init (dictstat_ctx, user_options, folder_config);
 
@@ -1903,19 +1910,11 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
    * loopback init
    */
 
-  loopback_ctx_t *loopback_ctx = mymalloc (sizeof (loopback_ctx_t));
-
-  hashcat_ctx->loopback_ctx = loopback_ctx;
-
   loopback_init (loopback_ctx, user_options);
 
   /**
    * debugfile init
    */
-
-  debugfile_ctx_t *debugfile_ctx = mymalloc (sizeof (debugfile_ctx_t));
-
-  hashcat_ctx->debugfile_ctx = debugfile_ctx;
 
   debugfile_init (debugfile_ctx, user_options);
 
@@ -1931,10 +1930,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   /**
    * Init OpenCL library loader
    */
-
-  opencl_ctx_t *opencl_ctx = (opencl_ctx_t *) mymalloc (sizeof (opencl_ctx_t));
-
-  hashcat_ctx->opencl_ctx = opencl_ctx;
 
   const int rc_opencl_init = opencl_ctx_init (opencl_ctx, user_options);
 
@@ -1961,10 +1956,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   /**
    * HM devices: init
    */
-
-  hwmon_ctx_t *hwmon_ctx = (hwmon_ctx_t *) mymalloc (sizeof (hwmon_ctx_t));
-
-  hashcat_ctx->hwmon_ctx = hwmon_ctx;
 
   const int rc_hwmon_init = hwmon_ctx_init (hwmon_ctx, user_options, opencl_ctx);
 
@@ -2097,6 +2088,8 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
 
   status_ctx_destroy (status_ctx);
+
+  hashcat_ctx_destroy (hashcat_ctx);
 
   return rc_final;
 }

@@ -1119,7 +1119,7 @@ void mask_ctx_destroy (mask_ctx_t *mask_ctx)
 
   myfree (mask_ctx->mfs);
 
-  myfree (mask_ctx);
+  memset (mask_ctx, 0, sizeof (mask_ctx_t));
 }
 
 int mask_ctx_parse_maskfile (mask_ctx_t *mask_ctx, user_options_t *user_options, const hashconfig_t *hashconfig)

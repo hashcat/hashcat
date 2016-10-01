@@ -30,12 +30,7 @@ void outfile_init (outfile_ctx_t *outfile_ctx, const user_options_t *user_option
 
 void outfile_destroy (outfile_ctx_t *outfile_ctx)
 {
-  outfile_ctx->fp               = NULL;
-  outfile_ctx->filename         = NULL;
-  outfile_ctx->outfile_format   = 0;
-  outfile_ctx->outfile_autohex  = 0;
-
-  myfree (outfile_ctx);
+  memset (outfile_ctx, 0, sizeof (outfile_ctx_t));
 }
 
 void outfile_format_plain (outfile_ctx_t *outfile_ctx, const unsigned char *plain_ptr, const uint plain_len)

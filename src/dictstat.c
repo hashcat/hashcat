@@ -48,17 +48,12 @@ void dictstat_init (dictstat_ctx_t *dictstat_ctx, const user_options_t *user_opt
 
 void dictstat_destroy (dictstat_ctx_t *dictstat_ctx)
 {
-  if (dictstat_ctx->enabled == false)
-  {
-    myfree (dictstat_ctx);
-
-    return;
-  }
+  if (dictstat_ctx->enabled == false) return;
 
   myfree (dictstat_ctx->filename);
   myfree (dictstat_ctx->base);
 
-  myfree (dictstat_ctx);
+  memset (dictstat_ctx, 0, sizeof (dictstat_ctx_t));
 }
 
 void dictstat_read (dictstat_ctx_t *dictstat_ctx, const int comptime)

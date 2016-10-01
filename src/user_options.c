@@ -193,7 +193,7 @@ void user_options_destroy (user_options_t *user_options)
 {
   myfree (user_options->rp_files);
 
-  myfree (user_options);
+  memset (user_options, 0, sizeof (user_options_t));
 }
 
 int user_options_parse (user_options_t *user_options, int argc, char **argv)
@@ -986,7 +986,7 @@ int user_options_extra_init (user_options_t *user_options, restore_ctx_t *restor
 
 void user_options_extra_destroy (user_options_extra_t *user_options_extra)
 {
-  myfree (user_options_extra);
+  memset (user_options_extra, 0, sizeof (user_options_extra_t));
 }
 
 void user_options_logger (const user_options_t *user_options, const logfile_ctx_t *logfile_ctx)

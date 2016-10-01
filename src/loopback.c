@@ -32,16 +32,9 @@ void loopback_init (loopback_ctx_t *loopback_ctx, const user_options_t *user_opt
 
 void loopback_destroy (loopback_ctx_t *loopback_ctx)
 {
-  if (loopback_ctx->enabled == false)
-  {
-    myfree (loopback_ctx);
+  if (loopback_ctx->enabled == false) return;
 
-    return;
-  }
-
-  myfree (loopback_ctx->filename);
-
-  myfree (loopback_ctx);
+  memset (loopback_ctx, 0, sizeof (loopback_ctx_t));
 }
 
 int loopback_write_open (loopback_ctx_t *loopback_ctx, const induct_ctx_t *induct_ctx)

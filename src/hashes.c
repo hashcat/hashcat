@@ -1512,31 +1512,7 @@ void hashes_destroy (hashes_t *hashes)
 
   myfree (hashes->hash_info);
 
-  hashes->hashfile          = NULL;
-
-  hashes->hashlist_mode     = 0;
-  hashes->hashlist_format   = 0;
-
-  hashes->digests_cnt       = 0;
-  hashes->digests_done      = 0;
-  hashes->digests_saved     = 0;
-  hashes->digests_buf       = NULL;
-  hashes->digests_shown     = NULL;
-  hashes->digests_shown_tmp = NULL;
-
-  hashes->salts_cnt         = 0;
-  hashes->salts_done        = 0;
-  hashes->salts_buf         = NULL;
-  hashes->salts_shown       = NULL;
-
-  hashes->esalts_buf        = NULL;
-
-  hashes->hashes_cnt        = 0;
-  hashes->hashes_buf        = NULL;
-
-  hashes->hash_info         = NULL;
-
-  myfree (hashes);
+  memset (hashes, 0, sizeof (hashes_t));
 }
 
 void hashes_logger (const hashes_t *hashes, const logfile_ctx_t *logfile_ctx)

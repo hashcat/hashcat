@@ -374,12 +374,7 @@ int outcheck_ctx_init (outcheck_ctx_t *outcheck_ctx, const user_options_t *user_
 
 void outcheck_ctx_destroy (outcheck_ctx_t *outcheck_ctx)
 {
-  if (outcheck_ctx->enabled == false)
-  {
-    myfree (outcheck_ctx);
-
-    return;
-  }
+  if (outcheck_ctx->enabled == false) return;
 
   if (rmdir (outcheck_ctx->root_directory) == -1)
   {
@@ -401,5 +396,5 @@ void outcheck_ctx_destroy (outcheck_ctx_t *outcheck_ctx)
 
   myfree (outcheck_ctx->root_directory);
 
-  myfree (outcheck_ctx);
+  memset (outcheck_ctx, 0, sizeof (outcheck_ctx_t));
 }

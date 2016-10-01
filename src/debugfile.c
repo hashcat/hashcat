@@ -50,19 +50,14 @@ int debugfile_init (debugfile_ctx_t *debugfile_ctx, const user_options_t *user_o
 
 void debugfile_destroy (debugfile_ctx_t *debugfile_ctx)
 {
-  if (debugfile_ctx->enabled == false)
-  {
-    myfree (debugfile_ctx);
-
-    return;
-  }
+  if (debugfile_ctx->enabled == false) return;
 
   if (debugfile_ctx->filename)
   {
     fclose (debugfile_ctx->fp);
   }
 
-  myfree (debugfile_ctx);
+  memset (debugfile_ctx, 0, sizeof (debugfile_ctx_t));
 }
 
 void debugfile_format_plain (debugfile_ctx_t *debugfile_ctx, const u8 *plain_ptr, const u32 plain_len)

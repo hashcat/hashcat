@@ -241,12 +241,7 @@ int tuning_db_init (tuning_db_t *tuning_db, const user_options_t *user_options, 
 
 void tuning_db_destroy (tuning_db_t *tuning_db)
 {
-  if (tuning_db->enabled == false)
-  {
-    myfree (tuning_db);
-
-    return;
-  }
+  if (tuning_db->enabled == false) return;
 
   int i;
 
@@ -268,7 +263,7 @@ void tuning_db_destroy (tuning_db_t *tuning_db)
   myfree (tuning_db->alias_buf);
   myfree (tuning_db->entry_buf);
 
-  myfree (tuning_db);
+  memset (tuning_db, 0, sizeof (tuning_db_t));
 }
 
 tuning_db_entry_t *tuning_db_search (const tuning_db_t *tuning_db, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_type)

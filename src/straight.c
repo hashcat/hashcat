@@ -65,12 +65,7 @@ int straight_ctx_init (straight_ctx_t *straight_ctx, const user_options_t *user_
 
 void straight_ctx_destroy (straight_ctx_t *straight_ctx)
 {
-  if (straight_ctx->enabled == false)
-  {
-    myfree (straight_ctx);
-
-    return;
-  }
+  if (straight_ctx->enabled == false) return;
 
   for (u32 dict_pos = 0; dict_pos < straight_ctx->dicts_cnt; dict_pos++)
   {
@@ -81,10 +76,7 @@ void straight_ctx_destroy (straight_ctx_t *straight_ctx)
 
   myfree (straight_ctx->kernel_rules_buf);
 
-  straight_ctx->kernel_rules_buf = NULL;
-  straight_ctx->kernel_rules_cnt = 0;
-
-  myfree (straight_ctx);
+  memset (straight_ctx, 0, sizeof (straight_ctx_t));
 }
 
 void straight_append_dict (straight_ctx_t *straight_ctx, const char *dict)
