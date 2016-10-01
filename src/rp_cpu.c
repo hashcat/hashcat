@@ -15,13 +15,27 @@
 #define NEXT_RULEPOS(rp)      if (++(rp) == rule_len) return (RULE_RC_SYNTAX_ERROR)
 #define NEXT_RPTOI(r,rp,up)   if (((up) = conv_ctoi ((r)[(rp)])) == -1) return (RULE_RC_SYNTAX_ERROR)
 
-#define MANGLE_TOGGLE_AT(a,p) if (class_alpha ((a)[(p)])) (a)[(p)] ^= 0x20
-#define MANGLE_LOWER_AT(a,p)  if (class_upper ((a)[(p)])) (a)[(p)] ^= 0x20
-#define MANGLE_UPPER_AT(a,p)  if (class_lower ((a)[(p)])) (a)[(p)] ^= 0x20
+inline void MANGLE_TOGGLE_AT (char *arr, const int pos)
+{
+  if (class_alpha (arr[pos])) arr[pos] ^= 0x20;
+}
 
-/* #define MANGLE_SWITCH(a,l,r)  { char c = (l); arr[(r)] = arr[(l)]; arr[(l)] = c; } */
-/* #define MANGLE_SWITCH(a,l,r)  { char c = (l); (a)[(r)] = (a)[(l)]; (a)[(l)] = c; } */
-#define MANGLE_SWITCH(a,l,r)  { char c = (a)[(r)]; (a)[(r)] = (a)[(l)]; (a)[(l)] = c; }
+inline void MANGLE_LOWER_AT (char *arr, const int pos)
+{
+  if (class_upper (arr[pos])) arr[pos] ^= 0x20;
+}
+
+inline void MANGLE_UPPER_AT (char *arr, const int pos)
+{
+  if (class_lower (arr[pos])) arr[pos] ^= 0x20;
+}
+
+inline void MANGLE_SWITCH (char *arr, const int l, const int r)
+{
+  char c = arr[r];
+  arr[r] = arr[l];
+  arr[l] = c;
+}
 
 static int mangle_lrest (char arr[BLOCK_SIZE], int arr_len)
 {
