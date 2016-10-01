@@ -28,9 +28,9 @@ int nvml_init (NVML_PTR *nvml)
 
     HKEY hKey = 0;
 
-    if (RegOpenKeyEx (HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\NVIDIA Corporation\\Global\\NVSMI"), 0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS)
+    if (RegOpenKeyExA (HKEY_LOCAL_MACHINE, "SOFTWARE\\NVIDIA Corporation\\Global\\NVSMI", 0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS)
     {
-      if (RegQueryValueEx (hKey, TEXT("NVSMIPATH"), NULL, &Type, (PVOID) Buffer, &BufferSize) == ERROR_SUCCESS)
+      if (RegQueryValueExA (hKey, "NVSMIPATH", NULL, &Type, (LPBYTE)Buffer, &BufferSize) == ERROR_SUCCESS)
       {
         Buffer[BufferSize] = 0;
       }
