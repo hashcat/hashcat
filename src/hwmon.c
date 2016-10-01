@@ -9,9 +9,9 @@
 #include "logging.h"
 #include "hwmon.h"
 
-static int get_adapters_num_adl (void *adl, int *iNumberAdapters)
+static int get_adapters_num_adl (ADL_PTR *adl, int *iNumberAdapters)
 {
-  if (hm_ADL_Adapter_NumberOfAdapters_Get ((ADL_PTR *) adl, iNumberAdapters) != ADL_OK) return -1;
+  if (hm_ADL_Adapter_NumberOfAdapters_Get (adl, iNumberAdapters) != ADL_OK) return -1;
 
   if (iNumberAdapters == 0)
   {
@@ -23,13 +23,13 @@ static int get_adapters_num_adl (void *adl, int *iNumberAdapters)
   return 0;
 }
 
-static LPAdapterInfo hm_get_adapter_info_adl (void *adl, int iNumberAdapters)
+static LPAdapterInfo hm_get_adapter_info_adl (ADL_PTR *adl, int iNumberAdapters)
 {
   size_t AdapterInfoSize = iNumberAdapters * sizeof (AdapterInfo);
 
   LPAdapterInfo lpAdapterInfo = (LPAdapterInfo) mymalloc (AdapterInfoSize);
 
-  if (hm_ADL_Adapter_AdapterInfo_Get ((ADL_PTR *) adl, lpAdapterInfo, AdapterInfoSize) != ADL_OK) return NULL;
+  if (hm_ADL_Adapter_AdapterInfo_Get (adl, lpAdapterInfo, AdapterInfoSize) != ADL_OK) return NULL;
 
   return lpAdapterInfo;
 }
@@ -188,7 +188,7 @@ static u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_ad
   return adl_adapters;
 }
 
-static int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
+static int hm_check_fanspeed_control (ADL_PTR *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
   // loop through all valid devices
 
@@ -256,7 +256,7 @@ static int hm_check_fanspeed_control (void *adl, hm_attrs_t *hm_device, u32 *val
   return 0;
 }
 
-static int hm_get_overdrive_version (void *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
+static int hm_get_overdrive_version (ADL_PTR *adl, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
   for (int i = 0; i < num_adl_adapters; i++)
   {
