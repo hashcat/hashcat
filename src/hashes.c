@@ -1225,6 +1225,8 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
 
   hashes->hashes_cnt = hashes_cnt;
 
+  if (user_options->quiet == false) log_info_nn ("Sorting Hashes...");
+
   if (hashconfig->is_salted)
   {
     hc_qsort_r (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
