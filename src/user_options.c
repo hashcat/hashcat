@@ -320,12 +320,12 @@ int user_options_parse (user_options_t *user_options, int argc, char **argv)
     return -1;
   }
 
-  #if !defined (HAVE_HWMON)
+  #if !defined (WITH_HWMON)
   user_options->powertune_enable = false;
   user_options->gpu_temp_disable = true;
   user_options->gpu_temp_abort   = 0;
   user_options->gpu_temp_retain  = 0;
-  #endif // HAVE_HWMON
+  #endif // WITH_HWMON
 
   // some options can influence or overwrite other options
 
