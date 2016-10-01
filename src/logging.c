@@ -10,8 +10,6 @@
 #include "common.h"
 #include "logging.h"
 
-int SUPPRESS_OUTPUT = 0;
-
 static int last_len = 0;
 
 static int log_final (FILE *fp, const char *fmt, va_list ap)
@@ -47,8 +45,6 @@ static int log_final (FILE *fp, const char *fmt, va_list ap)
 
 int log_out_nn (FILE *fp, const char *fmt, ...)
 {
-  if (SUPPRESS_OUTPUT) return 0;
-
   va_list ap;
 
   va_start (ap, fmt);
@@ -62,8 +58,6 @@ int log_out_nn (FILE *fp, const char *fmt, ...)
 
 int log_info_nn (const char *fmt, ...)
 {
-  if (SUPPRESS_OUTPUT) return 0;
-
   va_list ap;
 
   va_start (ap, fmt);
@@ -77,8 +71,6 @@ int log_info_nn (const char *fmt, ...)
 
 int log_error_nn (const char *fmt, ...)
 {
-  if (SUPPRESS_OUTPUT) return 0;
-
   va_list ap;
 
   va_start (ap, fmt);
@@ -92,8 +84,6 @@ int log_error_nn (const char *fmt, ...)
 
 int log_out (FILE *fp, const char *fmt, ...)
 {
-  if (SUPPRESS_OUTPUT) return 0;
-
   va_list ap;
 
   va_start (ap, fmt);
@@ -111,8 +101,6 @@ int log_out (FILE *fp, const char *fmt, ...)
 
 int log_info (const char *fmt, ...)
 {
-  if (SUPPRESS_OUTPUT) return 0;
-
   va_list ap;
 
   va_start (ap, fmt);
@@ -130,8 +118,6 @@ int log_info (const char *fmt, ...)
 
 int log_error (const char *fmt, ...)
 {
-  if (SUPPRESS_OUTPUT) return 0;
-
   fputc ('\n', stderr);
   fputc ('\n', stderr);
 
