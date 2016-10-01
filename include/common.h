@@ -54,11 +54,15 @@
 
 #define CEIL(a) ((a - (int) (a)) > 0 ? a + 1 : a)
 
+#define NOMINMAX 1
+
 #if defined (__APPLE__)
 #define __stdcall
 #endif
 
-#if defined (_WIN32) || defined (__WIN32__) || defined (__CYGWIN__)
+#if defined (__MSC_VER)
+#define HC_API_CALL __cdecl
+#elif defined (_WIN32) || defined (__WIN32__) || defined (__CYGWIN__)
 #define HC_API_CALL __stdcall
 #else
 #define HC_API_CALL
