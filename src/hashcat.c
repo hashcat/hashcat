@@ -56,7 +56,7 @@
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
-static void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx)
+void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          mymalloc (sizeof (bitmap_ctx_t));
   hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      mymalloc (sizeof (combinator_ctx_t));
@@ -84,7 +84,7 @@ static void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx)
   hashcat_ctx->wl_data            = (wl_data_t *)             mymalloc (sizeof (wl_data_t));
 }
 
-static void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
+void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   myfree (hashcat_ctx->bitmap_ctx);
   myfree (hashcat_ctx->combinator_ctx);
@@ -847,7 +847,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
    * dictstat read
    */
 
-  dictstat_read (dictstat_ctx, COMPTIME);
+  dictstat_read (dictstat_ctx);
 
   /**
    * dictionary pad
@@ -1713,15 +1713,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
+int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_folder, int argc, char **argv, const int comptime)
 {
   /**
    * To help users a bit
    */
-
-  const int rc_console = setup_console ();
-
-  if (rc_console == -1) return -1;
 
   setup_environment_variables ();
 
@@ -1730,8 +1726,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   /**
    * main init
    */
-
-  hashcat_ctx_init (hashcat_ctx);
 
   debugfile_ctx_t      *debugfile_ctx       = hashcat_ctx->debugfile_ctx;
   dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
@@ -1762,50 +1756,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
    * folder
    */
 
-  char *install_folder = NULL;
-  char *shared_folder  = NULL;
-
-  #if defined (INSTALL_FOLDER)
-  install_folder = INSTALL_FOLDER;
-  #endif
-
-  #if defined (SHARED_FOLDER)
-  shared_folder = SHARED_FOLDER;
-  #endif
-
   folder_config_init (folder_config, install_folder, shared_folder);
-
-  /**
-   * commandline parameters
-   */
-
-  user_options_init (user_options);
-
-  const int rc_options_getopt = user_options_getopt (user_options, argc, argv);
-
-  if (rc_options_getopt == -1) return -1;
-
-  const int rc_options_sanity = user_options_sanity (user_options);
-
-  if (rc_options_sanity == -1) return -1;
-
-  /**
-   * some early exits
-   */
-
-  if (user_options->version == true)
-  {
-    log_info ("%s", VERSION_TAG);
-
-    return 0;
-  }
-
-  if (user_options->usage == true)
-  {
-    usage_big_print (PROGNAME);
-
-    return 0;
-  }
 
   /**
    * restore
@@ -1828,13 +1779,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
    */
 
   setup_seeding (user_options->rp_gen_seed_chgd, user_options->rp_gen_seed);
-
-  /**
-   * Inform user things getting started,
-   * - this is giving us a visual header before preparations start, so we do not need to clear them afterwards
-   */
-
-  welcome_screen (user_options, status_ctx, VERSION_TAG);
 
   /**
    * logfile init
@@ -1938,7 +1882,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
    * Init OpenCL devices
    */
 
-  const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, user_options, COMPTIME);
+  const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, user_options, comptime);
 
   if (rc_devices_init == -1)
   {
@@ -2070,8 +2014,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   logfile_destroy (logfile_ctx);
 
-  goodbye_screen (user_options, status_ctx);
-
   user_options_destroy (user_options);
 
   int rc_final = -1;
@@ -2082,8 +2024,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
 
   status_ctx_destroy (status_ctx);
-
-  hashcat_ctx_destroy (hashcat_ctx);
 
   return rc_final;
 }

@@ -31,7 +31,7 @@
 
 const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
 
-void welcome_screen (const user_options_t *user_options, const status_ctx_t *status_ctx, char *version_tag)
+void welcome_screen (const user_options_t *user_options, const time_t proc_start, const char *version_tag)
 {
   if (user_options->quiet       == true) return;
   if (user_options->keyspace    == true) return;
@@ -48,7 +48,7 @@ void welcome_screen (const user_options_t *user_options, const status_ctx_t *sta
     }
     else
     {
-      log_info ("# %s (%s) %s", PROGNAME, version_tag, ctime (&status_ctx->proc_start));
+      log_info ("# %s (%s) %s", PROGNAME, version_tag, ctime (&proc_start));
     }
   }
   else if (user_options->restore == true)
@@ -63,7 +63,7 @@ void welcome_screen (const user_options_t *user_options, const status_ctx_t *sta
   }
 }
 
-void goodbye_screen (const user_options_t *user_options, const status_ctx_t *status_ctx)
+void goodbye_screen (const user_options_t *user_options, const time_t proc_start, const time_t proc_stop)
 {
   if (user_options->quiet       == true) return;
   if (user_options->keyspace    == true) return;
@@ -71,8 +71,8 @@ void goodbye_screen (const user_options_t *user_options, const status_ctx_t *sta
   if (user_options->show        == true) return;
   if (user_options->left        == true) return;
 
-  log_info_nn ("Started: %s", ctime (&status_ctx->proc_start));
-  log_info_nn ("Stopped: %s", ctime (&status_ctx->proc_stop));
+  log_info_nn ("Started: %s", ctime (&proc_start));
+  log_info_nn ("Stopped: %s", ctime (&proc_stop));
 }
 
 int setup_console ()

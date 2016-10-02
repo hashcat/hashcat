@@ -56,7 +56,7 @@ void dictstat_destroy (dictstat_ctx_t *dictstat_ctx)
   memset (dictstat_ctx, 0, sizeof (dictstat_ctx_t));
 }
 
-void dictstat_read (dictstat_ctx_t *dictstat_ctx, const int comptime)
+void dictstat_read (dictstat_ctx_t *dictstat_ctx)
 {
   if (dictstat_ctx->enabled == false) return;
 
@@ -65,28 +65,6 @@ void dictstat_read (dictstat_ctx_t *dictstat_ctx, const int comptime)
   if (fp == NULL)
   {
     // first run, file does not exist, do not error out
-
-    return;
-  }
-
-  hc_stat tmpstat;
-
-  #if defined (_POSIX)
-  fstat (fileno (fp), &tmpstat);
-  #endif
-
-  #if defined (_WIN)
-  _fstat64 (fileno (fp), &tmpstat);
-  #endif
-
-  if (tmpstat.st_mtime < comptime)
-  {
-    /* with v0.15 the format changed so we have to ensure user is using a good version
-       since there is no version-header in the dictstat file */
-
-    fclose (fp);
-
-    unlink (dictstat_ctx->filename);
 
     return;
   }

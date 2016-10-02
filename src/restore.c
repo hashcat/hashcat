@@ -357,6 +357,9 @@ int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, 
 
   init_restore (restore_ctx);
 
+  if (argc ==    0) return 0;
+  if (argv == NULL) return 0;
+
   if (user_options->benchmark       == true) return 0;
   if (user_options->keyspace        == true) return 0;
   if (user_options->left            == true) return 0;

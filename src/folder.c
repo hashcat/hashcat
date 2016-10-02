@@ -262,6 +262,8 @@ int folder_config_init (folder_config_t *folder_config, const char *install_fold
 
   #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
 
+  if (install_folder == NULL) install_folder = "/"; // makes library use easier
+
   char *resolved_install_folder = realpath (install_folder, NULL);
   char *resolved_exec_path      = realpath (exec_path, NULL);
 
