@@ -1019,6 +1019,36 @@ void user_options_preprocess (user_options_t *user_options)
   {
     if (user_options->benchmark == false)
     {
+
+    }
+    else if (user_options->opencl_info == false)
+    {
+
+    }
+    else if (user_options->keyspace == false)
+    {
+      if (user_options->hc_argc == 0)
+      {
+        user_options->custom_charset_1 = DEF_MASK_CS_1;
+        user_options->custom_charset_2 = DEF_MASK_CS_2;
+        user_options->custom_charset_3 = DEF_MASK_CS_3;
+
+        user_options->increment = true;
+      }
+    }
+    else if (user_options->stdout_flag == false)
+    {
+      if (user_options->hc_argc == 0)
+      {
+        user_options->custom_charset_1 = DEF_MASK_CS_1;
+        user_options->custom_charset_2 = DEF_MASK_CS_2;
+        user_options->custom_charset_3 = DEF_MASK_CS_3;
+
+        user_options->increment = true;
+      }
+    }
+    else
+    {
       if (user_options->hc_argc == 1)
       {
         user_options->custom_charset_1 = DEF_MASK_CS_1;
