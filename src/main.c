@@ -72,7 +72,7 @@ int main (int argc, char **argv)
 
     if (user_options->version == true)
     {
-      printf ("%s", VERSION_TAG);
+      printf ("%s\n", VERSION_TAG);
 
       return 0;
     }

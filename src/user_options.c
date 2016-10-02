@@ -729,7 +729,15 @@ int user_options_sanity (const user_options_t *user_options)
 
   bool show_error = true;
 
-  if (user_options->benchmark == true)
+  if (user_options->version == true)
+  {
+    show_error = false;
+  }
+  else if (user_options->usage == true)
+  {
+    show_error = false;
+  }
+  else if (user_options->benchmark == true)
   {
     if (user_options->hc_argc == 0)
     {
