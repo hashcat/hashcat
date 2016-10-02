@@ -843,7 +843,7 @@ int user_options_sanity (const user_options_t *user_options)
     }
     else if (user_options->attack_mode == ATTACK_MODE_BF)
     {
-      if (user_options->hc_argc >= 2)
+      if (user_options->hc_argc >= 1)
       {
         show_error = false;
       }
