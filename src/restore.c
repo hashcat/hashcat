@@ -360,7 +360,7 @@ int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, 
   if (user_options->benchmark       == true) return 0;
   if (user_options->keyspace        == true) return 0;
   if (user_options->left            == true) return 0;
-  if (user_options->opencl_info == true) return 0;
+  if (user_options->opencl_info     == true) return 0;
   if (user_options->show            == true) return 0;
   if (user_options->stdout_flag     == true) return 0;
   if (user_options->usage           == true) return 0;
@@ -388,14 +388,15 @@ int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, 
     rd->pid = GetCurrentProcessId ();
     #endif
 
-    restore_ctx->argc = rd->argc;
-    restore_ctx->argv = rd->argv;
-
     user_options_init (user_options);
 
-    const int rc_user_options_parse = user_options_parse (user_options, rd->argc, rd->argv);
+    const int rc_options_getopt = user_options_getopt (user_options, rd->argc, rd->argv);
 
-    if (rc_user_options_parse == -1) return -1;
+    if (rc_options_getopt == -1) return -1;
+
+    const int rc_options_sanity = user_options_sanity (user_options);
+
+    if (rc_options_sanity == -1) return -1;
   }
 
   return 0;

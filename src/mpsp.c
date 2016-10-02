@@ -16,6 +16,8 @@
 #include "interface.h"
 #include "mpsp.h"
 
+static const char DEF_MASK[] = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
+
 #define MAX_MFS 5 // 4*charset, 1*mask
 
 void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHARSIZ])
@@ -854,7 +856,7 @@ static void mask_append (mask_ctx_t *mask_ctx, const user_options_t *user_option
   }
 }
 
-int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const restore_ctx_t *restore_ctx, const hashconfig_t *hashconfig)
+int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const hashconfig_t *hashconfig)
 {
   mask_ctx->enabled = false;
 
@@ -899,9 +901,9 @@ int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, con
   {
     if (user_options->benchmark == false)
     {
-      if ((user_options_extra->optind + 2) <= restore_ctx->argc)
+      if (user_options_extra->hc_workc)
       {
-        char *arg = restore_ctx->argv[user_options_extra->optind + 1];
+        char *arg = user_options_extra->hc_workv[0];
 
         struct stat file_stat;
 
@@ -913,11 +915,9 @@ int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, con
         {
           mask_ctx->mask_from_file = true;
 
-          int arg_left = restore_ctx->argc - (user_options_extra->optind + 1);
-
-          for (int i = 0; i < arg_left; i++)
+          for (int i = 0; i < user_options_extra->hc_workc; i++)
           {
-            arg = restore_ctx->argv[user_options_extra->optind + 1 + i];
+            arg = user_options_extra->hc_workv[i];
 
             if (stat (arg, &file_stat) == -1)
             {
@@ -965,7 +965,7 @@ int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, con
       }
       else
       {
-        const char *mask = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
+        const char *mask = DEF_MASK;
 
         mask_append (mask_ctx, user_options, mask);
       }
@@ -981,7 +981,7 @@ int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, con
   {
     // display
 
-    char *arg = restore_ctx->argv[restore_ctx->argc - 1];
+    char *arg = user_options_extra->hc_workv[user_options_extra->hc_workc - 1];
 
     // mod
 
@@ -1035,7 +1035,7 @@ int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, con
   {
     // display
 
-    char *arg = restore_ctx->argv[user_options_extra->optind + 1];
+    char *arg = user_options_extra->hc_workv[0];
 
     // mod
 

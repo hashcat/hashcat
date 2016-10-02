@@ -857,11 +857,9 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options_extra->wordlist_mode == WL_MODE_FILE)
     {
-      int wls_left = restore_ctx->argc - (user_options_extra->optind + 1);
-
-      for (int i = 0; i < wls_left; i++)
+      for (int i = 0; i < user_options_extra->hc_workc; i++)
       {
-        char *l0_filename = restore_ctx->argv[user_options_extra->optind + 1 + i];
+        char *l0_filename = user_options_extra->hc_workv[i];
 
         struct stat l0_stat;
 
@@ -922,8 +920,8 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   {
     // display
 
-    char *dictfile1 = restore_ctx->argv[user_options_extra->optind + 1 + 0];
-    char *dictfile2 = restore_ctx->argv[user_options_extra->optind + 1 + 1];
+    char *dictfile1 = user_options_extra->hc_workv[0];
+    char *dictfile2 = user_options_extra->hc_workv[1];
 
     // find the bigger dictionary and use as base
 
@@ -1063,11 +1061,9 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
     // base
 
-    int wls_left = restore_ctx->argc - (user_options_extra->optind + 2);
-
-    for (int i = 0; i < wls_left; i++)
+    for (int i = 0; i < user_options_extra->hc_workc - 1; i++)
     {
-      char *l0_filename = restore_ctx->argv[user_options_extra->optind + 1 + i];
+      char *l0_filename = user_options_extra->hc_workv[i];
 
       struct stat l0_stat;
 
@@ -1135,11 +1131,9 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
     // base
 
-    int wls_left = restore_ctx->argc - (user_options_extra->optind + 2);
-
-    for (int i = 0; i < wls_left; i++)
+    for (int i = 1; i < user_options_extra->hc_workc; i++)
     {
-      char *l0_filename = restore_ctx->argv[user_options_extra->optind + 2 + i];
+      char *l0_filename = user_options_extra->hc_workv[i];
 
       struct stat l0_stat;
 
@@ -1328,7 +1322,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * load hashes, stage 1
    */
 
-  const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, user_options, restore_ctx->argv[user_options_extra->optind]);
+  const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, user_options, user_options_extra->hc_hash);
 
   if (rc_hashes_init_stage1 == -1) return -1;
 
@@ -1426,7 +1420,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * charsets : keep them together for more easy maintainnce
    */
 
-  const int rc_mask_init = mask_ctx_init (mask_ctx, user_options, user_options_extra, folder_config, restore_ctx, hashconfig);
+  const int rc_mask_init = mask_ctx_init (mask_ctx, user_options, user_options_extra, folder_config, hashconfig);
 
   if (rc_mask_init == -1) return -1;
 
@@ -1787,9 +1781,13 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   user_options_init (user_options);
 
-  const int rc_user_options_parse = user_options_parse (user_options, argc, argv);
+  const int rc_options_getopt = user_options_getopt (user_options, argc, argv);
 
-  if (rc_user_options_parse == -1) return -1;
+  if (rc_options_getopt == -1) return -1;
+
+  const int rc_options_sanity = user_options_sanity (user_options);
+
+  if (rc_options_sanity == -1) return -1;
 
   /**
    * some early exits
@@ -1821,13 +1819,9 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
    * process user input
    */
 
-  const int rc_user_options_extra_init = user_options_extra_init (user_options, restore_ctx, user_options_extra);
+  user_options_preprocess (user_options);
 
-  if (rc_user_options_extra_init == -1) return -1;
-
-  const int rc_user_options_sanity = user_options_sanity (user_options, restore_ctx, user_options_extra);
-
-  if (rc_user_options_sanity == -1) return -1;
+  user_options_extra_init (user_options, user_options_extra);
 
   /**
    * prepare seeding for random number generator, required by logfile and rules generator
@@ -1888,7 +1882,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
    * Sanity check for hashfile vs outfile (should not point to the same physical file)
    */
 
-  const int rc_outfile_and_hashfile = outfile_and_hashfile (outfile_ctx, restore_ctx->argv[user_options_extra->optind]);
+  const int rc_outfile_and_hashfile = outfile_and_hashfile (outfile_ctx, user_options_extra->hc_hash);
 
   if (rc_outfile_and_hashfile == -1) return -1;
 

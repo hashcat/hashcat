@@ -123,6 +123,7 @@ typedef enum status_rc
 
 typedef enum wl_mode
 {
+  WL_MODE_NONE  = 0,
   WL_MODE_STDIN = 1,
   WL_MODE_FILE  = 2,
   WL_MODE_MASK  = 3
@@ -1124,6 +1125,11 @@ typedef struct user_options
   bool   workload_profile_chgd;
   bool   segment_size_chgd;
 
+  char  *hc_bin;
+
+  int    hc_argc;
+  char **hc_argv;
+
 } user_options_t;
 
 typedef struct user_options_extra
@@ -1135,7 +1141,10 @@ typedef struct user_options_extra
 
   u32 wordlist_mode;
 
-  int optind;
+  char  *hc_hash;   // can be filename or string
+
+  int    hc_workc;  // can be 0 in bf-mode = default mask
+  char **hc_workv;
 
 } user_options_extra_t;
 

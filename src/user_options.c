@@ -104,6 +104,10 @@ static const struct option long_options[] =
 static char RULE_BUF_R[] = ":";
 static char RULE_BUF_L[] = ":";
 
+static char DEF_MASK_CS_1[] = "?l?d?u";
+static char DEF_MASK_CS_2[] = "?l?d";
+static char DEF_MASK_CS_3[] = "?l?d*!$@_";
+
 void user_options_init (user_options_t *user_options)
 {
   user_options->attack_mode               = ATTACK_MODE;
@@ -187,6 +191,9 @@ void user_options_init (user_options_t *user_options)
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
   user_options->rp_files                  = (char **) mycalloc (256, sizeof (char *));
+  user_options->hc_bin                    = PROGNAME;
+  user_options->hc_argc                   = 0;
+  user_options->hc_argv                   = NULL;
 }
 
 void user_options_destroy (user_options_t *user_options)
@@ -196,7 +203,7 @@ void user_options_destroy (user_options_t *user_options)
   memset (user_options, 0, sizeof (user_options_t));
 }
 
-int user_options_parse (user_options_t *user_options, int argc, char **argv)
+int user_options_getopt (user_options_t *user_options, int argc, char **argv)
 {
   int c = -1;
 
@@ -320,142 +327,30 @@ int user_options_parse (user_options_t *user_options, int argc, char **argv)
     return -1;
   }
 
-  #if !defined (WITH_HWMON)
-  user_options->powertune_enable = false;
-  user_options->gpu_temp_disable = true;
-  user_options->gpu_temp_abort   = 0;
-  user_options->gpu_temp_retain  = 0;
-  #endif // WITH_HWMON
+  user_options->hc_bin = argv[0];
 
-  // some options can influence or overwrite other options
-
-  if (user_options->opencl_info == true
-   || user_options->keyspace    == true
-   || user_options->benchmark   == true
-   || user_options->stdout_flag == true)
-  {
-    user_options->show                = false;
-    user_options->left                = false;
-    user_options->gpu_temp_disable    = true;
-    user_options->potfile_disable     = true;
-    user_options->powertune_enable    = false;
-    user_options->restore             = false;
-    user_options->restore_disable     = true;
-    user_options->restore_timer       = 0;
-    user_options->logfile_disable     = true;
-    user_options->weak_hash_threshold = 0;
-    user_options->nvidia_spin_damp    = 0;
-    user_options->status              = false;
-    user_options->status_timer        = 0;
-    user_options->outfile_check_timer = 0;
-  }
-
-  if (user_options->benchmark == true)
-  {
-    user_options->session             = "benchmark";
-    user_options->attack_mode         = ATTACK_MODE_BF;
-    user_options->increment           = false;
-
-    if (user_options->workload_profile_chgd == false)
-    {
-      user_options->workload_profile = 3;
-    }
-
-    if (user_options->powertune_enable == true)
-    {
-      user_options->gpu_temp_disable = false;
-    }
-  }
-
-  if (user_options->keyspace == true)
-  {
-    user_options->session             = "keyspace";
-    user_options->quiet               = true;
-  }
-
-  if (user_options->stdout_flag == true)
-  {
-    user_options->session             = "stdout";
-    user_options->quiet               = true;
-    user_options->hash_mode           = 2000;
-    user_options->outfile_format      = OUTFILE_FMT_PLAIN;
-    user_options->force               = true;
-    user_options->kernel_accel        = 1024;
-    user_options->kernel_loops        = 1024;
-    user_options->opencl_vector_width = 1;
-  }
-
-  if (user_options->opencl_info == true)
-  {
-    user_options->session             = "opencl_info";
-    user_options->quiet               = true;
-    user_options->opencl_platforms    = NULL;
-    user_options->opencl_devices      = NULL;
-    user_options->opencl_device_types = mystrdup ("1,2,3");
-  }
-
-  if (user_options->left == true)
-  {
-    user_options->outfile_format = OUTFILE_FMT_HASH;
-  }
-
-  if (user_options->show == true || user_options->left == true)
-  {
-    user_options->attack_mode = ATTACK_MODE_NONE;
-    user_options->quiet       = true;
-  }
-
-  // this allows the user to use --show and --left while cracking (i.e. while another instance of hashcat is running)
-  if (user_options->show == true || user_options->left == true)
-  {
-    user_options->restore_disable = true;
-
-    user_options->restore = false;
-  }
-
-  if (user_options->skip != 0 && user_options->limit != 0)
-  {
-    user_options->limit += user_options->skip;
-  }
-
-  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
-  {
-    user_options->weak_hash_threshold = 0;
-  }
-
-  if (user_options->hash_mode == 9710)
-  {
-    user_options->outfile_format      = 5;
-    user_options->outfile_format_chgd = 1;
-  }
-
-  if (user_options->hash_mode == 9810)
-  {
-    user_options->outfile_format      = 5;
-    user_options->outfile_format_chgd = 1;
-  }
-
-  if (user_options->hash_mode == 10410)
-  {
-    user_options->outfile_format      = 5;
-    user_options->outfile_format_chgd = 1;
-  }
-
-  if (user_options->markov_threshold == 0)
-  {
-    user_options->markov_threshold = 0x100;
-  }
-
-  if (user_options->segment_size_chgd == true)
-  {
-    user_options->segment_size *= (1024 * 1024);
-  }
+  user_options->hc_argc = argc - optind;
+  user_options->hc_argv = argv + optind;
 
   return 0;
 }
 
-int user_options_sanity (user_options_t *user_options, restore_ctx_t *restore_ctx, user_options_extra_t *user_options_extra)
+int user_options_sanity (const user_options_t *user_options)
 {
+  if (user_options->hc_argc < 0)
+  {
+    log_error ("ERROR: hc_argc %d is invalid", user_options->hc_argc);
+
+    return -1;
+  }
+
+  if (user_options->hc_argv == NULL)
+  {
+    log_error ("ERROR: hc_argv is NULL");
+
+    return -1;
+  }
+
   if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
    && (user_options->attack_mode != ATTACK_MODE_COMBI)
    && (user_options->attack_mode != ATTACK_MODE_BF)
@@ -807,12 +702,6 @@ int user_options_sanity (user_options_t *user_options, restore_ctx_t *restore_ct
     return -1;
   }
 
-  if (user_options->gpu_temp_disable == true)
-  {
-    user_options->gpu_temp_abort  = 0;
-    user_options->gpu_temp_retain = 0;
-  }
-
   if ((user_options->gpu_temp_abort != 0) && (user_options->gpu_temp_retain != 0))
   {
     if (user_options->gpu_temp_abort < user_options->gpu_temp_retain)
@@ -825,13 +714,6 @@ int user_options_sanity (user_options_t *user_options, restore_ctx_t *restore_ct
 
   if (user_options->benchmark == true)
   {
-    if (restore_ctx->argv[optind] != NULL)
-    {
-      log_error ("ERROR: Invalid argument for benchmark mode specified");
-
-      return -1;
-    }
-
     if (user_options->attack_mode_chgd == true)
     {
       if (user_options->attack_mode != ATTACK_MODE_BF)
@@ -842,66 +724,317 @@ int user_options_sanity (user_options_t *user_options, restore_ctx_t *restore_ct
       }
     }
   }
+
+  // argc / argv checks
+
+  bool show_error = true;
+
+  if (user_options->benchmark == true)
+  {
+    if (user_options->hc_argc == 0)
+    {
+      show_error = false;
+    }
+  }
   else if (user_options->opencl_info == true)
   {
-    if (user_options_extra->optind != restore_ctx->argc)
+    if (user_options->hc_argc == 0)
     {
-      usage_mini_print (restore_ctx->argv[0]);
+      show_error = false;
+    }
+  }
+  else if (user_options->restore == true)
+  {
+    if (user_options->hc_argc == 0)
+    {
+      show_error = false;
+    }
+  }
+  else if (user_options->keyspace == true)
+  {
+    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+    {
+      if (user_options->hc_argc == 1)
+      {
+        show_error = false;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+    {
+      if (user_options->hc_argc == 2)
+      {
+        show_error = false;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_BF)
+    {
+      if (user_options->hc_argc == 1)
+      {
+        show_error = false;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+    {
+      if (user_options->hc_argc == 2)
+      {
+        show_error = false;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+    {
+      if (user_options->hc_argc == 2)
+      {
+        show_error = false;
+      }
+    }
+  }
+  else if (user_options->stdout_flag == true)
+  {
+    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+    {
+      // all argc possible because of stdin mode
 
-      return -1;
+      show_error = false;
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+    {
+      if (user_options->hc_argc == 2)
+      {
+        show_error = false;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_BF)
+    {
+      if (user_options->hc_argc >= 1)
+      {
+        show_error = false;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+    {
+      if (user_options->hc_argc >= 1)
+      {
+        show_error = false;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+    {
+      if (user_options->hc_argc >= 1)
+      {
+        show_error = false;
+      }
     }
   }
   else
   {
-    if (user_options_extra->attack_kern == ATTACK_KERN_NONE)
+    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
-      if ((user_options_extra->optind + 1) != restore_ctx->argc)
+      if (user_options->hc_argc >= 1)
       {
-        usage_mini_print (restore_ctx->argv[0]);
-
-        return -1;
+        show_error = false;
       }
     }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    else if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
-      if ((user_options_extra->optind + 1) > restore_ctx->argc)
+      if (user_options->hc_argc == 3)
       {
-        usage_mini_print (restore_ctx->argv[0]);
-
-        return -1;
+        show_error = false;
       }
     }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+    else if (user_options->attack_mode == ATTACK_MODE_BF)
     {
-      if ((user_options_extra->optind + 3) != restore_ctx->argc)
+      if (user_options->hc_argc >= 2)
       {
-        usage_mini_print (restore_ctx->argv[0]);
-
-        return -1;
+        show_error = false;
       }
     }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
     {
-      if ((user_options_extra->optind + 1) > restore_ctx->argc)
+      if (user_options->hc_argc >= 2)
       {
-        usage_mini_print (restore_ctx->argv[0]);
-
-        return -1;
+        show_error = false;
       }
     }
-    else
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
     {
-      usage_mini_print (restore_ctx->argv[0]);
-
-      return -1;
+      if (user_options->hc_argc >= 2)
+      {
+        show_error = false;
+      }
     }
+  }
+
+  if (show_error == true)
+  {
+    usage_mini_print (user_options->hc_bin);
+
+    return -1;
   }
 
   return 0;
 }
 
-int user_options_extra_init (user_options_t *user_options, restore_ctx_t *restore_ctx, user_options_extra_t *user_options_extra)
+void user_options_preprocess (user_options_t *user_options)
 {
+  #if !defined (WITH_HWMON)
+  user_options->powertune_enable = false;
+  user_options->gpu_temp_disable = true;
+  user_options->gpu_temp_abort   = 0;
+  user_options->gpu_temp_retain  = 0;
+  #endif // WITH_HWMON
+
+  // some options can influence or overwrite other options
+
+  if (user_options->opencl_info == true
+   || user_options->keyspace    == true
+   || user_options->benchmark   == true
+   || user_options->stdout_flag == true)
+  {
+    user_options->show                = false;
+    user_options->left                = false;
+    user_options->gpu_temp_disable    = true;
+    user_options->potfile_disable     = true;
+    user_options->powertune_enable    = false;
+    user_options->restore             = false;
+    user_options->restore_disable     = true;
+    user_options->restore_timer       = 0;
+    user_options->logfile_disable     = true;
+    user_options->weak_hash_threshold = 0;
+    user_options->nvidia_spin_damp    = 0;
+    user_options->status              = false;
+    user_options->status_timer        = 0;
+    user_options->outfile_check_timer = 0;
+  }
+
+  if (user_options->benchmark == true)
+  {
+    user_options->session             = "benchmark";
+    user_options->attack_mode         = ATTACK_MODE_BF;
+    user_options->increment           = false;
+
+    if (user_options->workload_profile_chgd == false)
+    {
+      user_options->workload_profile = 3;
+    }
+
+    if (user_options->powertune_enable == true)
+    {
+      user_options->gpu_temp_disable = false;
+    }
+  }
+
+  if (user_options->keyspace == true)
+  {
+    user_options->session             = "keyspace";
+    user_options->quiet               = true;
+  }
+
+  if (user_options->stdout_flag == true)
+  {
+    user_options->session             = "stdout";
+    user_options->quiet               = true;
+    user_options->hash_mode           = 2000;
+    user_options->outfile_format      = OUTFILE_FMT_PLAIN;
+    user_options->force               = true;
+    user_options->kernel_accel        = 1024;
+    user_options->kernel_loops        = 1024;
+    user_options->opencl_vector_width = 1;
+  }
+
+  if (user_options->opencl_info == true)
+  {
+    user_options->session             = "opencl_info";
+    user_options->quiet               = true;
+    user_options->opencl_platforms    = NULL;
+    user_options->opencl_devices      = NULL;
+    user_options->opencl_device_types = mystrdup ("1,2,3");
+  }
+
+  if (user_options->left == true)
+  {
+    user_options->outfile_format = OUTFILE_FMT_HASH;
+  }
+
+  if (user_options->show == true || user_options->left == true)
+  {
+    user_options->attack_mode = ATTACK_MODE_NONE;
+    user_options->quiet       = true;
+  }
+
+  // this allows the user to use --show and --left while cracking (i.e. while another instance of hashcat is running)
+  if (user_options->show == true || user_options->left == true)
+  {
+    user_options->restore_disable = true;
+
+    user_options->restore = false;
+  }
+
+  if (user_options->skip != 0 && user_options->limit != 0)
+  {
+    user_options->limit += user_options->skip;
+  }
+
+  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+  {
+    user_options->weak_hash_threshold = 0;
+  }
+
+  if (user_options->hash_mode == 9710)
+  {
+    user_options->outfile_format      = 5;
+    user_options->outfile_format_chgd = 1;
+  }
+
+  if (user_options->hash_mode == 9810)
+  {
+    user_options->outfile_format      = 5;
+    user_options->outfile_format_chgd = 1;
+  }
+
+  if (user_options->hash_mode == 10410)
+  {
+    user_options->outfile_format      = 5;
+    user_options->outfile_format_chgd = 1;
+  }
+
+  if (user_options->markov_threshold == 0)
+  {
+    user_options->markov_threshold = 0x100;
+  }
+
+  if (user_options->segment_size_chgd == true)
+  {
+    user_options->segment_size *= (1024 * 1024);
+  }
+
+  if (user_options->gpu_temp_disable == true)
+  {
+    user_options->gpu_temp_abort  = 0;
+    user_options->gpu_temp_retain = 0;
+  }
+
+  // default mask
+
+  if (user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    if (user_options->benchmark == false)
+    {
+      if (user_options->hc_argc == 1)
+      {
+        user_options->custom_charset_1 = DEF_MASK_CS_1;
+        user_options->custom_charset_2 = DEF_MASK_CS_2;
+        user_options->custom_charset_3 = DEF_MASK_CS_3;
+
+        user_options->increment = true;
+      }
+    }
+  }
+}
+
+void user_options_extra_init (const user_options_t *user_options, user_options_extra_t *user_options_extra)
+{
+  // attack-kern
+
   user_options_extra->attack_kern = ATTACK_KERN_NONE;
 
   switch (user_options->attack_mode)
@@ -913,75 +1046,58 @@ int user_options_extra_init (user_options_t *user_options, restore_ctx_t *restor
     case ATTACK_MODE_HYBRID2:  user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
   }
 
-  user_options_extra->optind = optind;
+  // rules
+
+  user_options_extra->rule_len_l = (int) strlen (user_options->rule_buf_l);
+  user_options_extra->rule_len_r = (int) strlen (user_options->rule_buf_r);
+
+  // wordlist_mode
+
+  user_options_extra->wordlist_mode = WL_MODE_NONE;
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+  {
+    user_options_extra->wordlist_mode = (user_options->hc_argc >= 2) ? WL_MODE_FILE : WL_MODE_STDIN;
+  }
+  else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+  {
+    user_options_extra->wordlist_mode = WL_MODE_FILE;
+  }
+  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+  {
+    user_options_extra->wordlist_mode = WL_MODE_MASK;
+  }
+
+  // hc_hash and hc_work*
+
+  user_options_extra->hc_hash  = NULL;
+  user_options_extra->hc_workv = NULL;
+  user_options_extra->hc_workc = 0;
 
   if (user_options->benchmark == true)
   {
 
   }
+  else if (user_options->opencl_info == true)
+  {
+
+  }
+  else if (user_options->keyspace == true)
+  {
+    user_options_extra->hc_workc = user_options->hc_argc;
+    user_options_extra->hc_workv = user_options->hc_argv;
+  }
+  else if (user_options->stdout_flag == true)
+  {
+    user_options_extra->hc_workc = user_options->hc_argc;
+    user_options_extra->hc_workv = user_options->hc_argv;
+  }
   else
   {
-    if (user_options->stdout_flag == true) // no hash here
-    {
-      user_options_extra->optind--;
-    }
-
-    if (user_options->keyspace == true)
-    {
-      int num_additional_params = 1;
-
-      if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-      {
-        num_additional_params = 2;
-      }
-
-      int keyspace_wordlist_specified = restore_ctx->argc - user_options_extra->optind - num_additional_params;
-
-      if (keyspace_wordlist_specified == 0) user_options_extra->optind--;
-    }
+    user_options_extra->hc_hash  = user_options->hc_argv[0];
+    user_options_extra->hc_workc = user_options->hc_argc - 1;
+    user_options_extra->hc_workv = user_options->hc_argv + 1;
   }
-
-  user_options_extra->rule_len_l = (int) strlen (user_options->rule_buf_l);
-  user_options_extra->rule_len_r = (int) strlen (user_options->rule_buf_r);
-
-  user_options_extra->wordlist_mode = ((user_options_extra->optind + 1) < restore_ctx->argc) ? WL_MODE_FILE : WL_MODE_STDIN;
-
-  if (user_options->attack_mode == ATTACK_MODE_BF)
-  {
-    user_options_extra->wordlist_mode = WL_MODE_MASK;
-
-    // default mask
-
-    if (user_options->benchmark == false)
-    {
-      if ((user_options_extra->optind + 2) <= restore_ctx->argc)
-      {
-        // user provides mask
-      }
-      else
-      {
-        // prepare default mask charset
-
-        user_options->custom_charset_1 = (char *) "?l?d?u";
-        user_options->custom_charset_2 = (char *) "?l?d";
-        user_options->custom_charset_3 = (char *) "?l?d*!$@_";
-
-        user_options->increment = true;
-      }
-    }
-  }
-
-  /* still needed?
-  if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
-  {
-    // enable status (in stdin mode) whenever we do not use --stdout together with an outfile
-
-    if      (user_options->stdout_flag == true) user_options->status = true;
-    else if (user_options->outfile)             user_options->status = true;
-  }
-  */
-
-  return 0;
 }
 
 void user_options_extra_destroy (user_options_extra_t *user_options_extra)

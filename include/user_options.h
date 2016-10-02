@@ -160,11 +160,13 @@ void user_options_init (user_options_t *user_options);
 
 void user_options_destroy (user_options_t *user_options);
 
-int user_options_parse (user_options_t *user_options, int argc, char **argv);
+int user_options_getopt (user_options_t *user_options, int argc, char **argv);
 
-int user_options_sanity (user_options_t *user_options, restore_ctx_t *restore_ctx, user_options_extra_t *user_options_extra);
+int user_options_sanity (const user_options_t *user_options);
 
-int user_options_extra_init (user_options_t *user_options, restore_ctx_t *restore_ctx, user_options_extra_t *user_options_extra);
+void user_options_preprocess (user_options_t *user_options);
+
+void user_options_extra_init (const user_options_t *user_options, user_options_extra_t *user_options_extra);
 
 void user_options_extra_destroy (user_options_extra_t *user_options_extra);
 
