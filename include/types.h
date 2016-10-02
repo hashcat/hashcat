@@ -934,7 +934,7 @@ typedef struct restore_data
   char cwd[256];
   u32  pid;
 
-  u32  dictpos;
+  u32  dicts_pos;
   u32  masks_pos;
 
   u64  words_cur;

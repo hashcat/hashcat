@@ -393,10 +393,6 @@ int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, 
     const int rc_options_getopt = user_options_getopt (user_options, rd->argc, rd->argv);
 
     if (rc_options_getopt == -1) return -1;
-
-    const int rc_options_sanity = user_options_sanity (user_options);
-
-    if (rc_options_sanity == -1) return -1;
   }
 
   return 0;

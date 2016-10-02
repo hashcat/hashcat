@@ -1233,9 +1233,9 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (straight_ctx->dicts_cnt)
   {
-    for (u32 dicts_pos = rd->dictpos; dicts_pos < straight_ctx->dicts_cnt; dicts_pos++)
+    for (u32 dicts_pos = rd->dicts_pos; dicts_pos < straight_ctx->dicts_cnt; dicts_pos++)
     {
-      rd->dictpos = dicts_pos;
+      rd->dicts_pos = dicts_pos;
 
       straight_ctx->dicts_pos = dicts_pos;
 
@@ -1625,7 +1625,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
     {
       if (masks_pos > rd->masks_pos)
       {
-        rd->dictpos = 0;
+        rd->dicts_pos = 0;
       }
 
       rd->masks_pos = masks_pos;
