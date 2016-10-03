@@ -4673,7 +4673,7 @@ int opencl_session_update_combinator (opencl_ctx_t *opencl_ctx, const hashconfig
 
     if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
     {
-      CL_err = hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_amp, 5, sizeof (cl_mem), device_param->kernel_params_amp[5]);
+      CL_err = hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_amp, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
 
       if (CL_err != CL_SUCCESS)
       {
