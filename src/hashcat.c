@@ -960,6 +960,29 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   if (rc_hashes_init_stage2 == -1) return -1;
 
   /**
+   * load hashes, stage 2: at this point we can check for all hashes cracked (by potfile)
+   */
+
+  if (status_ctx->devices_status == STATUS_CRACKED)
+  {
+    if (user_options->quiet == false)
+    {
+      log_info ("INFO: All hashes found in potfile! You can use --show to display them.");
+      log_info ("");
+      log_info ("INFO: No more hashes left to crack, exiting...");
+      log_info ("");
+    }
+
+    hashes_destroy (hashes);
+
+    hashconfig_destroy (hashconfig);
+
+    potfile_destroy (potfile_ctx);
+
+    return 0;
+  }
+
+  /**
    * load hashes, stage 3, automatic Optimizers
    */
 
