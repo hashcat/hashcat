@@ -842,6 +842,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 }
 
 // outer_loop iterates through hash_modes (in benchmark mode)
+// also initializes stuff that depend on hash mode
 
 static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 {

@@ -200,7 +200,8 @@ void user_options_destroy (user_options_t *user_options)
 {
   myfree (user_options->rp_files);
 
-  memset (user_options, 0, sizeof (user_options_t));
+  //do not reset this, it might be used from main.c
+  //memset (user_options, 0, sizeof (user_options_t));
 }
 
 int user_options_getopt (user_options_t *user_options, int argc, char **argv)
