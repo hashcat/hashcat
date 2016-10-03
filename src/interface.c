@@ -19836,6 +19836,10 @@ int hashconfig_init (hashconfig_t *hashconfig, const user_options_t *user_option
 
   hashconfig->is_salted = is_salted;
 
+  // esalt_size
+
+  hashconfig->esalt_size = 0;
+
   switch (hashconfig->hash_mode)
   {
     case  2500: hashconfig->esalt_size = sizeof (wpa_t);            break;
@@ -19912,6 +19916,10 @@ int hashconfig_init (hashconfig_t *hashconfig, const user_options_t *user_option
     case 13763: hashconfig->esalt_size = sizeof (tc_t);             break;
     case 13800: hashconfig->esalt_size = sizeof (win8phone_t);      break;
   }
+
+  // tmp_size
+
+  hashconfig->tmp_size = 4;
 
   switch (hashconfig->hash_mode)
   {
@@ -19995,13 +20003,100 @@ int hashconfig_init (hashconfig_t *hashconfig, const user_options_t *user_option
     case 13761: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
     case 13762: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
     case 13763: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
-    default   : hashconfig->tmp_size = 4;                              break;
   };
+
+  // hook_size
+
+  hashconfig->hook_size = 4;
 
   switch (hashconfig->hash_mode)
   {
-    default   : hashconfig->hook_size = 4;                             break;
   };
+
+  // pw_min
+
+  hashconfig->pw_max = PW_MIN;
+
+  switch (hashconfig->hash_mode)
+  {
+    case  2500: hashconfig->pw_min = 8;
+                break;
+    case  9710: hashconfig->pw_min = 5;
+                break;
+    case  9810: hashconfig->pw_min = 5;
+                break;
+    case 10410: hashconfig->pw_min = 5;
+                break;
+    case 14000: hashconfig->pw_min = 8;
+                break;
+    case 14100: hashconfig->pw_min = 24;
+                break;
+  }
+
+  // pw_max
+
+  hashconfig->pw_max = PW_MAX;
+
+  switch (hashconfig->hash_mode)
+  {
+    case   125: hashconfig->pw_max = 32;
+                break;
+    case   400: hashconfig->pw_max = 40;
+                break;
+    case   500: hashconfig->pw_max = 16;
+                break;
+    case  1500: hashconfig->pw_max = 8;
+                break;
+    case  1600: hashconfig->pw_max = 16;
+                break;
+    case  1800: hashconfig->pw_max = 16;
+                break;
+    case  2100: hashconfig->pw_max = 16;
+                break;
+    case  3000: hashconfig->pw_max = 7;
+                break;
+    case  5200: hashconfig->pw_max = 24;
+                break;
+    case  5800: hashconfig->pw_max = 16;
+                break;
+    case  6300: hashconfig->pw_max = 16;
+                break;
+    case  7400: hashconfig->pw_max = 16;
+                break;
+    case  7700: hashconfig->pw_max = 8;
+                break;
+    case  7900: hashconfig->pw_max = 48;
+                break;
+    case  8500: hashconfig->pw_max = 8;
+                break;
+    case  8600: hashconfig->pw_max = 16;
+                break;
+    case  9710: hashconfig->pw_max = 5;
+                break;
+    case  9810: hashconfig->pw_max = 5;
+                break;
+    case 10410: hashconfig->pw_max = 5;
+                break;
+    case 10300: hashconfig->pw_max = 40;
+                break;
+    case 10500: hashconfig->pw_max = 40;
+                break;
+    case 10700: hashconfig->pw_max = 16;
+                break;
+    case 11300: hashconfig->pw_max = 40;
+                break;
+    case 11600: hashconfig->pw_max = 32;
+                break;
+    case 12500: hashconfig->pw_max = 20;
+                break;
+    case 12800: hashconfig->pw_max = 24;
+                break;
+    case 14000: hashconfig->pw_max = 8;
+                break;
+    case 14100: hashconfig->pw_max = 24;
+                break;
+  }
+
 
   return 0;
 }
@@ -20084,96 +20179,6 @@ u32 hashconfig_enforce_kernel_loops (const hashconfig_t *hashconfig, const user_
   }
 
   return kernel_loops_fixed;
-}
-
-uint hashconfig_general_pw_min (hashconfig_t *hashconfig)
-{
-  uint pw_min = PW_MIN;
-
-  switch (hashconfig->hash_mode)
-  {
-    case  2500: pw_min = 8;
-                break;
-    case  9710: pw_min = 5;
-                break;
-    case  9810: pw_min = 5;
-                break;
-    case 10410: pw_min = 5;
-                break;
-    case 14000: pw_min = 8;
-                break;
-    case 14100: pw_min = 24;
-                break;
-  }
-
-  return pw_min;
-}
-
-uint hashconfig_general_pw_max (hashconfig_t *hashconfig)
-{
-  uint pw_max = PW_MAX;
-
-  switch (hashconfig->hash_mode)
-  {
-    case   125: pw_max = 32;
-                break;
-    case   400: pw_max = 40;
-                break;
-    case   500: pw_max = 16;
-                break;
-    case  1500: pw_max = 8;
-                break;
-    case  1600: pw_max = 16;
-                break;
-    case  1800: pw_max = 16;
-                break;
-    case  2100: pw_max = 16;
-                break;
-    case  3000: pw_max = 7;
-                break;
-    case  5200: pw_max = 24;
-                break;
-    case  5800: pw_max = 16;
-                break;
-    case  6300: pw_max = 16;
-                break;
-    case  7400: pw_max = 16;
-                break;
-    case  7700: pw_max = 8;
-                break;
-    case  7900: pw_max = 48;
-                break;
-    case  8500: pw_max = 8;
-                break;
-    case  8600: pw_max = 16;
-                break;
-    case  9710: pw_max = 5;
-                break;
-    case  9810: pw_max = 5;
-                break;
-    case 10410: pw_max = 5;
-                break;
-    case 10300: pw_max = 40;
-                break;
-    case 10500: pw_max = 40;
-                break;
-    case 10700: pw_max = 16;
-                break;
-    case 11300: pw_max = 40;
-                break;
-    case 11600: pw_max = 32;
-                break;
-    case 12500: pw_max = 20;
-                break;
-    case 12800: pw_max = 24;
-                break;
-    case 14000: pw_max = 8;
-                break;
-    case 14100: pw_max = 24;
-                break;
-  }
-
-  return pw_max;
 }
 
 void hashconfig_general_defaults (hashconfig_t *hashconfig, hashes_t *hashes, const user_options_t *user_options)

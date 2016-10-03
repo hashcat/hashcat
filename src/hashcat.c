@@ -256,6 +256,10 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
       return 0;
     }
   }
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    logfile_sub_string (mask_ctx->mask);
+  }
   else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
   {
     if (induct_ctx->induction_dictionaries_cnt)
@@ -289,10 +293,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
       return 0;
     }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_BF)
-  {
-    logfile_sub_string (mask_ctx->mask);
   }
 
   u64 words_base = status_ctx->words_cnt;
@@ -359,12 +359,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
       }
     }
   }
-
-  /*
-   * Update dictionary statistic
-   */
-
-  dictstat_write (dictstat_ctx);
 
   /**
    * limit kernel loops by the amplification count we have from:
@@ -579,7 +573,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
-  dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
   hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   hashes_t             *hashes              = hashcat_ctx->hashes;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
@@ -590,7 +583,6 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
-  wl_data_t            *wl_data             = hashcat_ctx->wl_data;
 
   //status_ctx->run_main_level1   = true;
   //status_ctx->run_main_level2   = true;
@@ -599,55 +591,30 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_thread_level2 = true;
 
   /**
-   * word len
+   * Update pw_min and pw_max according to next mask
    */
 
-  u32 pw_min = hashconfig_general_pw_min (hashconfig);
-  u32 pw_max = hashconfig_general_pw_max (hashconfig);
+  u32 pw_min = hashconfig->pw_min;
+  u32 pw_max = hashconfig->pw_max;
 
-  /**
-   * If we have a NOOP rule then we can process words from wordlists > length 32 for slow hashes
-   */
-
-  const bool has_noop = kernel_rules_has_noop (straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt);
-
-  if (has_noop == false)
+  if (user_options->benchmark == true)
   {
-    switch (user_options_extra->attack_kern)
-    {
-      case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
-                                  break;
-      case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
-                                  break;
-    }
-  }
-  else
-  {
-    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-    {
-      switch (user_options_extra->attack_kern)
-      {
-        case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
-                                    break;
-        case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
-                                    break;
-      }
-    }
-    else
-    {
-      // in this case we can process > 32
-    }
+    pw_min = mp_get_length (mask_ctx->mask);
+    pw_max = pw_min;
   }
 
+  hashconfig->pw_min = pw_min;
+  hashconfig->pw_max = pw_max;
+
   /**
-   * Update attack-mode specific stuff
+   * Update mask in attack-mode specific stuff
    */
 
   if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
   {
     if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
-      // nothing yet
+
     }
     else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
     {
@@ -672,9 +639,9 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
       if (rc_update_mp == -1) return -1;
     }
 
-    //const int rc_update_combinator = opencl_session_update_combinator (opencl_ctx, hashconfig, combinator_ctx);
+    const int rc_update_combinator = opencl_session_update_combinator (opencl_ctx, hashconfig, combinator_ctx);
 
-    //if (rc_update_combinator == -1) return -1;
+    if (rc_update_combinator == -1) return -1;
   }
   else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
   {
@@ -710,8 +677,8 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
       // check if mask is not too large or too small for pw_min/pw_max  (*2 if unicode)
 
-      u32 mask_min = pw_min;
-      u32 mask_max = pw_max;
+      u32 mask_min = hashconfig->pw_min;
+      u32 mask_max = hashconfig->pw_max;
 
       if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
       {
@@ -844,389 +811,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
-   * dictstat read
-   */
-
-  dictstat_read (dictstat_ctx);
-
-  /**
-   * dictionary pad
-   */
-
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    if (user_options_extra->wordlist_mode == WL_MODE_FILE)
-    {
-      for (int i = 0; i < user_options_extra->hc_workc; i++)
-      {
-        char *l0_filename = user_options_extra->hc_workv[i];
-
-        struct stat l0_stat;
-
-        if (stat (l0_filename, &l0_stat) == -1)
-        {
-          log_error ("ERROR: %s: %s", l0_filename, strerror (errno));
-
-          return -1;
-        }
-
-        if (S_ISDIR (l0_stat.st_mode))
-        {
-          char **dictionary_files = NULL;
-
-          dictionary_files = scan_directory (l0_filename);
-
-          if (dictionary_files != NULL)
-          {
-            qsort (dictionary_files, (size_t) count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
-
-            for (int d = 0; dictionary_files[d] != NULL; d++)
-            {
-              char *l1_filename = dictionary_files[d];
-
-              struct stat l1_stat;
-
-              if (stat (l1_filename, &l1_stat) == -1)
-              {
-                log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
-
-                return -1;
-              }
-
-              if (S_ISREG (l1_stat.st_mode))
-              {
-                straight_append_dict (straight_ctx, l1_filename);
-              }
-            }
-          }
-
-          myfree (dictionary_files);
-        }
-        else
-        {
-          straight_append_dict (straight_ctx, l0_filename);
-        }
-      }
-
-      if (straight_ctx->dicts_cnt == 0)
-      {
-        log_error ("ERROR: No usable dictionary file found.");
-
-        return -1;
-      }
-    }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
-  {
-    // display
-
-    char *dictfile1 = user_options_extra->hc_workv[0];
-    char *dictfile2 = user_options_extra->hc_workv[1];
-
-    // find the bigger dictionary and use as base
-
-    FILE *fp1 = NULL;
-    FILE *fp2 = NULL;
-
-    struct stat tmp_stat;
-
-    if ((fp1 = fopen (dictfile1, "rb")) == NULL)
-    {
-      log_error ("ERROR: %s: %s", dictfile1, strerror (errno));
-
-      return -1;
-    }
-
-    if (stat (dictfile1, &tmp_stat) == -1)
-    {
-      log_error ("ERROR: %s: %s", dictfile1, strerror (errno));
-
-      fclose (fp1);
-
-      return -1;
-    }
-
-    if (S_ISDIR (tmp_stat.st_mode))
-    {
-      log_error ("ERROR: %s must be a regular file", dictfile1, strerror (errno));
-
-      fclose (fp1);
-
-      return -1;
-    }
-
-    if ((fp2 = fopen (dictfile2, "rb")) == NULL)
-    {
-      log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
-
-      fclose (fp1);
-
-      return -1;
-    }
-
-    if (stat (dictfile2, &tmp_stat) == -1)
-    {
-      log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
-
-      fclose (fp1);
-      fclose (fp2);
-
-      return -1;
-    }
-
-    if (S_ISDIR (tmp_stat.st_mode))
-    {
-      log_error ("ERROR: %s must be a regular file", dictfile2, strerror (errno));
-
-      fclose (fp1);
-      fclose (fp2);
-
-      return -1;
-    }
-
-    combinator_ctx->combs_cnt = 1;
-
-    const u64 words1_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fp1, dictfile1, dictstat_ctx);
-
-    if (words1_cnt == 0)
-    {
-      log_error ("ERROR: %s: empty file", dictfile1);
-
-      fclose (fp1);
-      fclose (fp2);
-
-      return -1;
-    }
-
-    combinator_ctx->combs_cnt = 1;
-
-    const u64 words2_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fp2, dictfile2, dictstat_ctx);
-
-    if (words2_cnt == 0)
-    {
-      log_error ("ERROR: %s: empty file", dictfile2);
-
-      fclose (fp1);
-      fclose (fp2);
-
-      return -1;
-    }
-
-    fclose (fp1);
-    fclose (fp2);
-
-    combinator_ctx->dict1 = dictfile1;
-    combinator_ctx->dict2 = dictfile2;
-
-    if (words1_cnt >= words2_cnt)
-    {
-      combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
-      combinator_ctx->combs_cnt  = words2_cnt;
-    }
-    else
-    {
-      combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
-      combinator_ctx->combs_cnt  = words1_cnt;
-
-      // we also have to switch wordlist related rules!
-
-      char *tmpc = user_options->rule_buf_l;
-
-      user_options->rule_buf_l = user_options->rule_buf_r;
-      user_options->rule_buf_r = tmpc;
-
-      u32 tmpi = user_options_extra->rule_len_l;
-
-      user_options_extra->rule_len_l = user_options_extra->rule_len_r;
-      user_options_extra->rule_len_r = tmpi;
-    }
-
-    const int rc_update_combinator = opencl_session_update_combinator (opencl_ctx, hashconfig, combinator_ctx);
-
-    if (rc_update_combinator == -1) return -1;
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_BF)
-  {
-    if (user_options->benchmark == true)
-    {
-      pw_min = mp_get_length (mask_ctx->mask);
-      pw_max = pw_min;
-    }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-  {
-    combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
-
-    // mod -- moved to mpsp.c
-
-    // base
-
-    for (int i = 0; i < user_options_extra->hc_workc - 1; i++)
-    {
-      char *l0_filename = user_options_extra->hc_workv[i];
-
-      struct stat l0_stat;
-
-      if (stat (l0_filename, &l0_stat) == -1)
-      {
-        log_error ("ERROR: %s: %s", l0_filename, strerror (errno));
-
-        return -1;
-      }
-
-      if (S_ISDIR (l0_stat.st_mode))
-      {
-        char **dictionary_files = NULL;
-
-        dictionary_files = scan_directory (l0_filename);
-
-        if (dictionary_files != NULL)
-        {
-          qsort (dictionary_files, (size_t) count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
-
-          for (int d = 0; dictionary_files[d] != NULL; d++)
-          {
-            char *l1_filename = dictionary_files[d];
-
-            struct stat l1_stat;
-
-            if (stat (l1_filename, &l1_stat) == -1)
-            {
-              log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
-
-              return -1;
-            }
-
-            if (S_ISREG (l1_stat.st_mode))
-            {
-              straight_append_dict (straight_ctx, l1_filename);
-            }
-          }
-        }
-
-        myfree (dictionary_files);
-      }
-      else
-      {
-        straight_append_dict (straight_ctx, l0_filename);
-      }
-    }
-
-    if (straight_ctx->dicts_cnt == 0)
-    {
-      log_error ("ERROR: No usable dictionary file found.");
-
-      return -1;
-    }
-
-    const int rc_update_combinator = opencl_session_update_combinator (opencl_ctx, hashconfig, combinator_ctx);
-
-    if (rc_update_combinator == -1) return -1;
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
-
-    // mod -- moved to mpsp.c
-
-    // base
-
-    for (int i = 1; i < user_options_extra->hc_workc; i++)
-    {
-      char *l0_filename = user_options_extra->hc_workv[i];
-
-      struct stat l0_stat;
-
-      if (stat (l0_filename, &l0_stat) == -1)
-      {
-        log_error ("ERROR: %s: %s", l0_filename, strerror (errno));
-
-        return -1;
-      }
-
-      if (S_ISDIR (l0_stat.st_mode))
-      {
-        char **dictionary_files = NULL;
-
-        dictionary_files = scan_directory (l0_filename);
-
-        if (dictionary_files != NULL)
-        {
-          qsort (dictionary_files, (size_t) count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
-
-          for (int d = 0; dictionary_files[d] != NULL; d++)
-          {
-            char *l1_filename = dictionary_files[d];
-
-            struct stat l1_stat;
-
-            if (stat (l1_filename, &l1_stat) == -1)
-            {
-              log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
-
-              return -1;
-            }
-
-            if (S_ISREG (l1_stat.st_mode))
-            {
-              straight_append_dict (straight_ctx, l1_filename);
-            }
-          }
-        }
-
-        myfree (dictionary_files);
-      }
-      else
-      {
-        straight_append_dict (straight_ctx, l0_filename);
-      }
-    }
-
-    if (straight_ctx->dicts_cnt == 0)
-    {
-      log_error ("ERROR: No usable dictionary file found.");
-
-      return -1;
-    }
-
-    const int rc_update_combinator = opencl_session_update_combinator (opencl_ctx, hashconfig, combinator_ctx);
-
-    if (rc_update_combinator == -1) return -1;
-  }
-
-  hashconfig->pw_min = pw_min;
-  hashconfig->pw_max = pw_max;
-
-  /**
-   * prevent the user from using --skip/--limit together w/ maskfile and or dictfile
-   */
-
-  if (user_options->skip != 0 || user_options->limit != 0)
-  {
-    if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
-    {
-      log_error ("ERROR: --skip/--limit are not supported with --increment or mask files");
-
-      return -1;
-    }
-  }
-
-  /**
-   * prevent the user from using --keyspace together w/ maskfile and or dictfile
-   */
-
-  if (user_options->keyspace == true)
-  {
-    if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
-    {
-      log_error ("ERROR: --keyspace is not supported with --increment or mask files");
-
-      return -1;
-    }
-  }
-
-  /**
-   * main inner loop
+   * loop through wordlists
    */
 
   restore_data_t *rd = restore_ctx->rd;
@@ -1263,6 +848,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
   cpt_ctx_t            *cpt_ctx             = hashcat_ctx->cpt_ctx;
   combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
+  dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
   folder_config_t      *folder_config       = hashcat_ctx->folder_config;
   hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   hashes_t             *hashes              = hashcat_ctx->hashes;
@@ -1404,7 +990,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * straight mode init
    */
 
-  const int rc_straight_init = straight_ctx_init (straight_ctx, user_options);
+  const int rc_straight_init = straight_ctx_init (straight_ctx, user_options, user_options_extra, hashconfig);
 
   if (rc_straight_init == -1) return -1;
 
@@ -1412,7 +998,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * straight mode init
    */
 
-  const int rc_combinator_init = combinator_ctx_init (combinator_ctx, user_options);
+  const int rc_combinator_init = combinator_ctx_init (combinator_ctx, user_options, user_options_extra, straight_ctx, dictstat_ctx, wl_data);
 
   if (rc_combinator_init == -1) return -1;
 
@@ -1423,6 +1009,34 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   const int rc_mask_init = mask_ctx_init (mask_ctx, user_options, user_options_extra, folder_config, hashconfig);
 
   if (rc_mask_init == -1) return -1;
+
+  /**
+   * prevent the user from using --skip/--limit together w/ maskfile and or dictfile
+   */
+
+  if (user_options->skip != 0 || user_options->limit != 0)
+  {
+    if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
+    {
+      log_error ("ERROR: --skip/--limit are not supported with --increment or mask files");
+
+      return -1;
+    }
+  }
+
+  /**
+   * prevent the user from using --keyspace together w/ maskfile and or dictfile
+   */
+
+  if (user_options->keyspace == true)
+  {
+    if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
+    {
+      log_error ("ERROR: --keyspace is not supported with --increment or mask files");
+
+      return -1;
+    }
+  }
 
   /**
    * status progress init; needs hashes that's why we have to do it here and separate from status_ctx_init
@@ -1844,6 +1458,8 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   dictstat_init (dictstat_ctx, user_options, folder_config);
 
+  dictstat_read (dictstat_ctx);
+
   /**
    * loopback init
    */
@@ -1974,6 +1590,10 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   {
     user_options->quiet = false;
   }
+
+  // Update dictionary statistic
+
+  dictstat_write (dictstat_ctx);
 
   // free memory
 
