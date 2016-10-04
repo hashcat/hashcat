@@ -25,7 +25,7 @@ int conv_itoc (const u8 c);
 
 int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], const u32 rp_gen_func_min, const u32 rp_gen_func_max);
 
-int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule);
+int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule);
 int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);
 
 bool kernel_rules_has_noop (const kernel_rule_t *kernel_rules_buf, const u32 kernel_rules_cnt);

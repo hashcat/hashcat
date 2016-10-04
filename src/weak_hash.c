@@ -10,7 +10,7 @@
 #include "hashes.h"
 #include "weak_hash.h"
 
-void weak_hash_check (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const uint salt_pos)
+void weak_hash_check (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t              *hashes             = hashcat_ctx->hashes;
@@ -28,7 +28,7 @@ void weak_hash_check (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
   device_param->kernel_params_buf32[33] = 0;
   device_param->kernel_params_buf32[34] = 1;
 
-  uint cmd0_rule_old = straight_ctx->kernel_rules_buf[0].cmds[0];
+  u32 cmd0_rule_old = straight_ctx->kernel_rules_buf[0].cmds[0];
 
   straight_ctx->kernel_rules_buf[0].cmds[0] = 0;
 
@@ -44,13 +44,13 @@ void weak_hash_check (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
   {
     run_kernel (KERN_RUN_1, opencl_ctx, device_param, 1, false, 0, hashconfig, user_options, status_ctx);
 
-    uint loop_step = 16;
+    u32 loop_step = 16;
 
-    const uint iter = salt_buf->salt_iter;
+    const u32 iter = salt_buf->salt_iter;
 
-    for (uint loop_pos = 0; loop_pos < iter; loop_pos += loop_step)
+    for (u32 loop_pos = 0; loop_pos < iter; loop_pos += loop_step)
     {
-      uint loop_left = iter - loop_pos;
+      u32 loop_left = iter - loop_pos;
 
       loop_left = MIN (loop_left, loop_step);
 

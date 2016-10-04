@@ -54,7 +54,7 @@ static int hm_get_adapter_index_nvml (const hwmon_ctx_t *hwmon_ctx, HM_ADAPTER_N
 {
   int pGpuCount = 0;
 
-  for (uint i = 0; i < DEVICES_MAX; i++)
+  for (u32 i = 0; i < DEVICES_MAX; i++)
   {
     if (hm_NVML_nvmlDeviceGetHandleByIndex (hwmon_ctx->hm_nvml, 1, i, &nvmlGPUHandle[i]) != NVML_SUCCESS) break;
 
@@ -99,7 +99,7 @@ static void hm_sort_adl_adapters_by_busid_devid (u32 *valid_adl_device_list, int
       u32 bus_num_y = info_y.iBusNumber;
       u32 dev_num_y = info_y.iDeviceNumber;
 
-      uint need_swap = 0;
+      u32 need_swap = 0;
 
       if (bus_num_y < bus_num_x)
       {
@@ -312,7 +312,7 @@ static int hm_get_adapter_index_adl (hm_attrs_t *hm_device, u32 *valid_adl_devic
   return num_adl_adapters;
 }
 
-int hm_get_threshold_slowdown_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id)
+int hm_get_threshold_slowdown_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const u32 device_id)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -352,7 +352,7 @@ int hm_get_threshold_slowdown_with_device_id (const hwmon_ctx_t *hwmon_ctx, cons
   return -1;
 }
 
-int hm_get_threshold_shutdown_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id)
+int hm_get_threshold_shutdown_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const u32 device_id)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -385,7 +385,7 @@ int hm_get_threshold_shutdown_with_device_id (const hwmon_ctx_t *hwmon_ctx, cons
   return -1;
 }
 
-int hm_get_temperature_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id)
+int hm_get_temperature_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const u32 device_id)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -420,7 +420,7 @@ int hm_get_temperature_with_device_id (const hwmon_ctx_t *hwmon_ctx, const openc
   {
     int temperature = 0;
 
-    if (hm_NVML_nvmlDeviceGetTemperature (hwmon_ctx->hm_nvml, 1, hwmon_ctx->hm_device[device_id].nvml, NVML_TEMPERATURE_GPU, (uint *) &temperature) != NVML_SUCCESS) return -1;
+    if (hm_NVML_nvmlDeviceGetTemperature (hwmon_ctx->hm_nvml, 1, hwmon_ctx->hm_device[device_id].nvml, NVML_TEMPERATURE_GPU, (u32 *) &temperature) != NVML_SUCCESS) return -1;
 
     return temperature;
   }
@@ -428,7 +428,7 @@ int hm_get_temperature_with_device_id (const hwmon_ctx_t *hwmon_ctx, const openc
   return -1;
 }
 
-int hm_get_fanpolicy_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id)
+int hm_get_fanpolicy_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const u32 device_id)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -469,7 +469,7 @@ int hm_get_fanpolicy_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_
   return -1;
 }
 
-int hm_get_fanspeed_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id)
+int hm_get_fanspeed_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const u32 device_id)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -512,7 +512,7 @@ int hm_get_fanspeed_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_c
     {
       int speed = 0;
 
-      if (hm_NVML_nvmlDeviceGetFanSpeed (hwmon_ctx->hm_nvml, 0, hwmon_ctx->hm_device[device_id].nvml, (uint *) &speed) != NVML_SUCCESS) return -1;
+      if (hm_NVML_nvmlDeviceGetFanSpeed (hwmon_ctx->hm_nvml, 0, hwmon_ctx->hm_device[device_id].nvml, (u32 *) &speed) != NVML_SUCCESS) return -1;
 
       return speed;
     }
@@ -521,7 +521,7 @@ int hm_get_fanspeed_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_c
   return -1;
 }
 
-int hm_get_buslanes_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id)
+int hm_get_buslanes_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const u32 device_id)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -553,7 +553,7 @@ int hm_get_buslanes_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_c
   return -1;
 }
 
-int hm_get_utilization_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id)
+int hm_get_utilization_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const u32 device_id)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -585,7 +585,7 @@ int hm_get_utilization_with_device_id (const hwmon_ctx_t *hwmon_ctx, const openc
   return -1;
 }
 
-int hm_get_memoryspeed_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id)
+int hm_get_memoryspeed_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const u32 device_id)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -617,7 +617,7 @@ int hm_get_memoryspeed_with_device_id (const hwmon_ctx_t *hwmon_ctx, const openc
   return -1;
 }
 
-int hm_get_corespeed_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id)
+int hm_get_corespeed_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const u32 device_id)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -649,7 +649,7 @@ int hm_get_corespeed_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_
   return -1;
 }
 
-int hm_get_throttle_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const uint device_id)
+int hm_get_throttle_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_ctx_t *opencl_ctx, const u32 device_id)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -684,7 +684,7 @@ int hm_get_throttle_with_device_id (const hwmon_ctx_t *hwmon_ctx, const opencl_c
   return -1;
 }
 
-int hm_set_fanspeed_with_device_id_adl (const hwmon_ctx_t *hwmon_ctx, const uint device_id, const int fanspeed, const int fanpolicy)
+int hm_set_fanspeed_with_device_id_adl (const hwmon_ctx_t *hwmon_ctx, const u32 device_id, const int fanspeed, const int fanpolicy)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -744,7 +744,7 @@ int hm_set_fanspeed_with_device_id_adl (const hwmon_ctx_t *hwmon_ctx, const uint
   return -1;
 }
 
-int hm_set_fanspeed_with_device_id_nvapi (const hwmon_ctx_t *hwmon_ctx, const uint device_id, const int fanspeed, const int fanpolicy)
+int hm_set_fanspeed_with_device_id_nvapi (const hwmon_ctx_t *hwmon_ctx, const u32 device_id, const int fanspeed, const int fanpolicy)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -779,7 +779,7 @@ int hm_set_fanspeed_with_device_id_nvapi (const hwmon_ctx_t *hwmon_ctx, const ui
   return -1;
 }
 
-int hm_set_fanspeed_with_device_id_xnvctrl (const hwmon_ctx_t *hwmon_ctx, const uint device_id, const int fanspeed)
+int hm_set_fanspeed_with_device_id_xnvctrl (const hwmon_ctx_t *hwmon_ctx, const u32 device_id, const int fanspeed)
 {
   if (hwmon_ctx->enabled == false) return -1;
 
@@ -898,7 +898,7 @@ int hwmon_ctx_init (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options, 
   {
     if (hm_XNVCTRL_XOpenDisplay (hwmon_ctx->hm_xnvctrl) == 0)
     {
-      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
         hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -980,7 +980,7 @@ int hwmon_ctx_init (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options, 
    * HM devices: copy
    */
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -988,7 +988,7 @@ int hwmon_ctx_init (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options, 
 
     if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
-    const uint platform_devices_id = device_param->platform_devices_id;
+    const u32 platform_devices_id = device_param->platform_devices_id;
 
     if (device_param->device_vendor_id == VENDOR_ID_AMD)
     {
@@ -1022,7 +1022,7 @@ int hwmon_ctx_init (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options, 
    * powertune on user request
    */
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1210,7 +1210,7 @@ int hwmon_ctx_init (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_options, 
 
   if (user_options->gpu_temp_retain)
   {
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
     {
       hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1275,7 +1275,7 @@ void hwmon_ctx_destroy (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_optio
 
   if (user_options->gpu_temp_retain)
   {
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
     {
       hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1307,7 +1307,7 @@ void hwmon_ctx_destroy (hwmon_ctx_t *hwmon_ctx, const user_options_t *user_optio
 
   // reset power tuning
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 

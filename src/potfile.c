@@ -50,7 +50,7 @@ int sort_by_salt_buf (const void *v1, const void *v2, void *v3)
   const salt_t *s1 = h1->salt;
   const salt_t *s2 = h2->salt;
 
-  uint n = 16;
+  u32 n = 16;
 
   while (n--)
   {
@@ -70,7 +70,7 @@ int sort_by_hash_t_salt (const void *v1, const void *v2)
   const salt_t *s2 = h2->salt;
 
   // testphase: this should work
-  uint n = 16;
+  u32 n = 16;
 
   while (n--)
   {
@@ -79,11 +79,11 @@ int sort_by_hash_t_salt (const void *v1, const void *v2)
   }
 
   /* original code, seems buggy since salt_len can be very big (had a case with 131 len)
-     also it thinks salt_buf[x] is a char but its a uint so salt_len should be / 4
+     also it thinks salt_buf[x] is a char but its a u32 so salt_len should be / 4
   if (s1->salt_len > s2->salt_len) return ( 1);
   if (s1->salt_len < s2->salt_len) return -1;
 
-  uint n = s1->salt_len;
+  u32 n = s1->salt_len;
 
   while (n--)
   {
@@ -105,7 +105,7 @@ int sort_by_hash_t_salt_hccap (const void *v1, const void *v2)
 
   // last 2: salt_buf[10] and salt_buf[11] contain the digest (skip them)
 
-  uint n = 9; // 9 * 4 = 36 bytes (max length of ESSID)
+  u32 n = 9; // 9 * 4 = 36 bytes (max length of ESSID)
 
   while (n--)
   {
@@ -186,13 +186,13 @@ void potfile_destroy (potfile_ctx_t *potfile_ctx)
   memset (potfile_ctx, 0, sizeof (potfile_ctx_t));
 }
 
-void potfile_format_plain (potfile_ctx_t *potfile_ctx, const unsigned char *plain_ptr, const uint plain_len)
+void potfile_format_plain (potfile_ctx_t *potfile_ctx, const unsigned char *plain_ptr, const u32 plain_len)
 {
   if (potfile_ctx->enabled == false) return;
 
   bool needs_hexify = false;
 
-  for (uint i = 0; i < plain_len; i++)
+  for (u32 i = 0; i < plain_len; i++)
   {
     if (plain_ptr[i] < 0x20)
     {
@@ -213,7 +213,7 @@ void potfile_format_plain (potfile_ctx_t *potfile_ctx, const unsigned char *plai
   {
     fprintf (potfile_ctx->fp, "$HEX[");
 
-    for (uint i = 0; i < plain_len; i++)
+    for (u32 i = 0; i < plain_len; i++)
     {
       fprintf (potfile_ctx->fp, "%02x", plain_ptr[i]);
     }
@@ -256,7 +256,7 @@ void potfile_read_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashcon
 
   char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
-  for (uint line_num = 0; line_num < potfile_ctx->pot_avail; line_num++)
+  for (u32 line_num = 0; line_num < potfile_ctx->pot_avail; line_num++)
   {
     int line_len = fgetl (potfile_ctx->fp, line_buf);
 
@@ -396,11 +396,11 @@ void potfile_write_append (potfile_ctx_t *potfile_ctx, const char *out_buf, u8 *
   fflush (fp);
 }
 
-void potfile_hash_alloc (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, const uint num)
+void potfile_hash_alloc (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconfig, const u32 num)
 {
   if (potfile_ctx->enabled == false) return;
 
-  uint pos = 0;
+  u32 pos = 0;
 
   for (pos = 0; pos < num; pos++)
   {
@@ -430,7 +430,7 @@ void potfile_hash_free (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashconf
 {
   if (potfile_ctx->enabled == false) return;
 
-  for (uint i = 0; i < potfile_ctx->pot_cnt; i++)
+  for (u32 i = 0; i < potfile_ctx->pot_cnt; i++)
   {
     pot_t *pot_ptr = &potfile_ctx->pot[i];
 
@@ -471,7 +471,7 @@ void potfile_show_request (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashc
 
     // user
     unsigned char *username = NULL;
-    uint user_len = 0;
+    u32 user_len = 0;
 
     if (hashes_buf->hash_info)
     {
@@ -526,7 +526,7 @@ void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
 
   // right
 
-  uint weak_hash_found = 0;
+  u32 weak_hash_found = 0;
 
   pot_t pot_right_key;
 
@@ -568,7 +568,7 @@ void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
   // user
 
   unsigned char *username = NULL;
-  uint user_len = 0;
+  u32 user_len = 0;
 
   if (hash_left->hash_info)
   {
@@ -584,10 +584,10 @@ void potfile_show_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
 
   // mask the part which was not found
 
-  uint left_part_masked  = 0;
-  uint right_part_masked = 0;
+  u32 left_part_masked  = 0;
+  u32 right_part_masked = 0;
 
-  uint mask_plain_len = strlen (LM_MASKED_PLAIN);
+  u32 mask_plain_len = strlen (LM_MASKED_PLAIN);
 
   if (pot_left_ptr == NULL)
   {
@@ -653,7 +653,7 @@ void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
 
   pot_t *pot_right_ptr = (pot_t *) hc_bsearch_r (&pot_right_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
 
-  uint weak_hash_found = 0;
+  u32 weak_hash_found = 0;
 
   if (pot_right_ptr == NULL)
   {
@@ -684,7 +684,7 @@ void potfile_left_request_lm (potfile_ctx_t *potfile_ctx, const hashconfig_t *ha
 
   // only show the hash part which is still not cracked
 
-  uint user_len = (uint)input_len - 32u;
+  u32 user_len = (u32)input_len - 32u;
 
   char *hash_output = (char *) mymalloc (33);
 
@@ -720,7 +720,7 @@ int potfile_remove_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashco
   if (potfile_ctx->enabled == false) return 0;
 
   hash_t *hashes_buf = hashes->hashes_buf;
-  uint    hashes_cnt = hashes->hashes_cnt;
+  u32    hashes_cnt = hashes->hashes_cnt;
 
   // no solution for these special hash types (for instane because they use hashfile in output etc)
 
@@ -798,7 +798,7 @@ int potfile_remove_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashco
 
       if (hashconfig->hash_mode == 6800)
       {
-        if (i < 64) // 64 = 16 * uint in salt_buf[]
+        if (i < 64) // 64 = 16 * u32 in salt_buf[]
         {
           // manipulate salt_buf
           memcpy (hash_buf.salt->salt_buf, line_buf, i);
@@ -810,7 +810,7 @@ int potfile_remove_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashco
       }
       else if (hashconfig->hash_mode == 2500)
       {
-        if (i < 64) // 64 = 16 * uint in salt_buf[]
+        if (i < 64) // 64 = 16 * u32 in salt_buf[]
         {
           // here we have in line_buf: ESSID:MAC1:MAC2   (without the plain)
           // manipulate salt_buf
@@ -836,7 +836,7 @@ int potfile_remove_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashco
 
           if (strlen (mac1_pos) != 12) continue;
 
-          uint essid_length = mac1_pos - line_buf_cpy - 1;
+          u32 essid_length = mac1_pos - line_buf_cpy - 1;
 
           // here we need the ESSID
           memcpy (hash_buf.salt->salt_buf, line_buf_cpy, essid_length);
@@ -851,7 +851,7 @@ int potfile_remove_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashco
 
             // compare hex string(s) vs binary MAC address(es)
 
-            for (uint i = 0, j = 0; i < 6; i++, j += 2)
+            for (u32 i = 0, j = 0; i < 6; i++, j += 2)
             {
               if (wpa->orig_mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
               {
@@ -864,7 +864,7 @@ int potfile_remove_parse (potfile_ctx_t *potfile_ctx, const hashconfig_t *hashco
             // early skip ;)
             if (!found) continue;
 
-            for (uint i = 0, j = 0; i < 6; i++, j += 2)
+            for (u32 i = 0, j = 0; i < 6; i++, j += 2)
             {
               if (wpa->orig_mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
               {

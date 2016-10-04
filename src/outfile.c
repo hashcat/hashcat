@@ -33,13 +33,13 @@ void outfile_destroy (outfile_ctx_t *outfile_ctx)
   memset (outfile_ctx, 0, sizeof (outfile_ctx_t));
 }
 
-void outfile_format_plain (outfile_ctx_t *outfile_ctx, const unsigned char *plain_ptr, const uint plain_len)
+void outfile_format_plain (outfile_ctx_t *outfile_ctx, const unsigned char *plain_ptr, const u32 plain_len)
 {
   bool needs_hexify = false;
 
   if (outfile_ctx->outfile_autohex == true)
   {
-    for (uint i = 0; i < plain_len; i++)
+    for (u32 i = 0; i < plain_len; i++)
     {
       if (plain_ptr[i] < 0x20)
       {
@@ -61,7 +61,7 @@ void outfile_format_plain (outfile_ctx_t *outfile_ctx, const unsigned char *plai
   {
     fprintf (outfile_ctx->fp, "$HEX[");
 
-    for (uint i = 0; i < plain_len; i++)
+    for (u32 i = 0; i < plain_len; i++)
     {
       fprintf (outfile_ctx->fp, "%02x", plain_ptr[i]);
     }
@@ -96,7 +96,7 @@ void outfile_write_close (outfile_ctx_t *outfile_ctx)
   fclose (outfile_ctx->fp);
 }
 
-void outfile_write (outfile_ctx_t *outfile_ctx, const char *out_buf, const unsigned char *plain_ptr, const uint plain_len, const u64 crackpos, const unsigned char *username, const uint user_len, const hashconfig_t *hashconfig)
+void outfile_write (outfile_ctx_t *outfile_ctx, const char *out_buf, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, const hashconfig_t *hashconfig)
 {
   if (outfile_ctx->outfile_format & OUTFILE_FMT_HASH)
   {
@@ -111,7 +111,7 @@ void outfile_write (outfile_ctx_t *outfile_ctx, const char *out_buf, const unsig
   {
     if (username != NULL)
     {
-      for (uint i = 0; i < user_len; i++)
+      for (u32 i = 0; i < user_len; i++)
       {
         fprintf (outfile_ctx->fp, "%c", username[i]);
       }
@@ -135,7 +135,7 @@ void outfile_write (outfile_ctx_t *outfile_ctx, const char *out_buf, const unsig
 
   if (outfile_ctx->outfile_format & OUTFILE_FMT_HEXPLAIN)
   {
-    for (uint i = 0; i < plain_len; i++)
+    for (u32 i = 0; i < plain_len; i++)
     {
       fprintf (outfile_ctx->fp, "%02x", plain_ptr[i]);
     }

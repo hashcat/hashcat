@@ -32,10 +32,10 @@ int sort_by_digest_p0p1 (const void *v1, const void *v2, void *v3)
 
   hashconfig_t *hashconfig = (hashconfig_t *) v3;
 
-  const uint dgst_pos0 = hashconfig->dgst_pos0;
-  const uint dgst_pos1 = hashconfig->dgst_pos1;
-  const uint dgst_pos2 = hashconfig->dgst_pos2;
-  const uint dgst_pos3 = hashconfig->dgst_pos3;
+  const u32 dgst_pos0 = hashconfig->dgst_pos0;
+  const u32 dgst_pos1 = hashconfig->dgst_pos1;
+  const u32 dgst_pos2 = hashconfig->dgst_pos2;
+  const u32 dgst_pos3 = hashconfig->dgst_pos3;
 
   if (d1[dgst_pos3] > d2[dgst_pos3]) return  1;
   if (d1[dgst_pos3] < d2[dgst_pos3]) return -1;
@@ -62,7 +62,7 @@ int sort_by_salt (const void *v1, const void *v2)
 
   if (res2 != 0) return (res2);
 
-  uint n;
+  u32 n;
 
   n = 16;
 
@@ -140,15 +140,15 @@ void save_hash (const user_options_t *user_options, const hashconfig_t *hashconf
     exit (-1);
   }
 
-  for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+  for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
     if (hashes->salts_shown[salt_pos] == 1) continue;
 
     salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
-    for (uint digest_pos = 0; digest_pos < salt_buf->digests_cnt; digest_pos++)
+    for (u32 digest_pos = 0; digest_pos < salt_buf->digests_cnt; digest_pos++)
     {
-      uint idx = salt_buf->digests_offset + digest_pos;
+      u32 idx = salt_buf->digests_offset + digest_pos;
 
       if (hashes->digests_shown[idx] == 1) continue;
 
@@ -158,7 +158,7 @@ void save_hash (const user_options_t *user_options, const hashconfig_t *hashconf
         {
           user_t *user = hashes->hash_info[idx]->user;
 
-          uint i;
+          u32 i;
 
           for (i = 0; i < user->user_len; i++) fputc (user->user_name[i], fp);
 
@@ -250,7 +250,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   u64 crackpos = device_param->words_off;
 
-  uint plain_buf[16] = { 0 };
+  u32 plain_buf[16] = { 0 };
 
   u8 *plain_ptr = (u8 *) plain_buf;
   int plain_len = 0;
@@ -268,9 +268,9 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     plain_len = (int) pw.pw_len;
 
-    const uint off = device_param->innerloop_pos + il_pos;
+    const u32 off = device_param->innerloop_pos + il_pos;
 
-    const uint debug_mode = debugfile_ctx->mode;
+    const u32 debug_mode = debugfile_ctx->mode;
 
     if (debug_mode > 0)
     {
@@ -346,11 +346,11 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     u64 l_off = device_param->kernel_params_mp_l_buf64[3] + gidvid;
     u64 r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
 
-    uint l_start = device_param->kernel_params_mp_l_buf32[5];
-    uint r_start = device_param->kernel_params_mp_r_buf32[5];
+    u32 l_start = device_param->kernel_params_mp_l_buf32[5];
+    u32 r_start = device_param->kernel_params_mp_r_buf32[5];
 
-    uint l_stop = device_param->kernel_params_mp_l_buf32[4];
-    uint r_stop = device_param->kernel_params_mp_r_buf32[4];
+    u32 l_stop = device_param->kernel_params_mp_l_buf32[4];
+    u32 r_stop = device_param->kernel_params_mp_r_buf32[4];
 
     sp_exec (l_off, (char *) plain_ptr + l_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, l_start, l_start + l_stop);
     sp_exec (r_off, (char *) plain_ptr + r_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, r_start, r_start + r_stop);
@@ -376,8 +376,8 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
 
-    uint start = 0;
-    uint stop  = device_param->kernel_params_mp_buf32[4];
+    u32 start = 0;
+    u32 stop  = device_param->kernel_params_mp_buf32[4];
 
     sp_exec (off, (char *) plain_ptr + plain_len, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
 
@@ -407,8 +407,8 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
 
-    uint start = 0;
-    uint stop  = device_param->kernel_params_mp_buf32[4];
+    u32 start = 0;
+    u32 stop  = device_param->kernel_params_mp_buf32[4];
 
     memmove (plain_ptr + stop, plain_ptr, plain_len);
 
@@ -498,7 +498,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   }
 }
 
-int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const uint salt_pos)
+int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos)
 {
   cpt_ctx_t             *cpt_ctx            = hashcat_ctx->cpt_ctx;
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -538,13 +538,13 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       return -1;
     }
 
-    uint cpt_cracked = 0;
+    u32 cpt_cracked = 0;
 
     hc_thread_mutex_lock (status_ctx->mux_display);
 
-    for (uint i = 0; i < num_cracked; i++)
+    for (u32 i = 0; i < num_cracked; i++)
     {
-      const uint hash_pos = cracked[i].hash_pos;
+      const u32 hash_pos = cracked[i].hash_pos;
 
       if (hashes->digests_shown[hash_pos] == 1) continue;
 
@@ -597,9 +597,9 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       // otherwise host thinks again and again the hash was cracked
       // and returns invalid password each time
 
-      memset (hashes->digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (uint));
+      memset (hashes->digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (u32));
 
-      CL_err = hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (uint), salt_buf->digests_cnt * sizeof (uint), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
+      CL_err = hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
 
       if (CL_err != CL_SUCCESS)
       {
@@ -630,10 +630,10 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
    * load hashes, part I: find input mode, count hashes
    */
 
-  uint hashlist_mode   = 0;
-  uint hashlist_format = HLFMT_HASHCAT;
+  u32 hashlist_mode   = 0;
+  u32 hashlist_format = HLFMT_HASHCAT;
 
-  uint hashes_avail = 0;
+  u32 hashes_avail = 0;
 
   if ((user_options->benchmark == false) && (user_options->stdout_flag == false))
   {
@@ -779,7 +779,7 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
     salts_buf = (salt_t *) mycalloc (1, sizeof (salt_t));
   }
 
-  for (uint hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
+  for (u32 hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
   {
     hashes_buf[hash_pos].digest = ((char *) digests_buf) + (hash_pos * hashconfig->dgst_size);
 
@@ -807,7 +807,7 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
    * load hashes, part III: parse hashes or generate them if benchmark
    */
 
-  uint hashes_cnt = 0;
+  u32 hashes_cnt = 0;
 
   if (user_options->benchmark == true)
   {
@@ -836,7 +836,7 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
     {
       char *input_buf = hash_or_file;
 
-      uint input_len = strlen (input_buf);
+      u32 input_len = strlen (input_buf);
 
       char *hash_buf = NULL;
       int   hash_len = 0;
@@ -899,7 +899,7 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
             return -1;
           }
 
-          uint hccap_size = sizeof (hccap_t);
+          u32 hccap_size = sizeof (hccap_t);
 
           char *in = (char *) mymalloc (hccap_size);
 
@@ -1070,7 +1070,7 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
         return -1;
       }
 
-      uint line_num = 0;
+      u32 line_num = 0;
 
       char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -1242,7 +1242,7 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
 int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_options_t *user_options, status_ctx_t *status_ctx)
 {
   hash_t *hashes_buf = hashes->hashes_buf;
-  uint    hashes_cnt = hashes->hashes_cnt;
+  u32    hashes_cnt = hashes->hashes_cnt;
 
   /**
    * Remove duplicates
@@ -1252,7 +1252,7 @@ int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_o
 
   hashes_cnt = 1;
 
-  for (uint hashes_pos = 1; hashes_pos < hashes->hashes_cnt; hashes_pos++)
+  for (u32 hashes_pos = 1; hashes_pos < hashes->hashes_cnt; hashes_pos++)
   {
     if (hashconfig->is_salted)
     {
@@ -1300,14 +1300,14 @@ int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_o
 
   if (user_options->quiet == false) log_info_nn ("Structuring salts for cracking task...");
 
-  uint digests_cnt  = hashes_cnt;
-  uint digests_done = 0;
+  u32 digests_cnt  = hashes_cnt;
+  u32 digests_done = 0;
 
-  uint *digests_shown     = (uint *) mycalloc (digests_cnt, sizeof (uint));
-  uint *digests_shown_tmp = (uint *) mycalloc (digests_cnt, sizeof (uint));
+  u32 *digests_shown     = (u32 *) mycalloc (digests_cnt, sizeof (u32));
+  u32 *digests_shown_tmp = (u32 *) mycalloc (digests_cnt, sizeof (u32));
 
-  uint salts_cnt   = 0;
-  uint salts_done  = 0;
+  u32 salts_cnt   = 0;
+  u32 salts_done  = 0;
 
   hashinfo_t **hash_info = NULL;
 
@@ -1317,7 +1317,7 @@ int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_o
 
     if (user_options->username && (user_options->remove || user_options->show))
     {
-      uint user_pos;
+      u32 user_pos;
 
       for (user_pos = 0; user_pos < hashes_cnt; user_pos++)
       {
@@ -1328,7 +1328,7 @@ int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_o
     }
   }
 
-  uint *salts_shown = (uint *) mycalloc (digests_cnt, sizeof (uint));
+  u32 *salts_shown = (u32 *) mycalloc (digests_cnt, sizeof (u32));
 
   salt_t *salt_buf;
 
@@ -1371,7 +1371,7 @@ int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_o
 
   // copy from inner loop
 
-  for (uint hashes_pos = 1; hashes_pos < hashes_cnt; hashes_pos++)
+  for (u32 hashes_pos = 1; hashes_pos < hashes_cnt; hashes_pos++)
   {
     if (hashconfig->is_salted)
     {
@@ -1413,7 +1413,7 @@ int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_o
     }
   }
 
-  for (uint salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
+  for (u32 salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
   {
     salt_t *salt_buf = &salts_buf_new[salt_pos];
 

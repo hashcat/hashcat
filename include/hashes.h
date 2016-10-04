@@ -15,7 +15,7 @@ void save_hash (const user_options_t *user_options, const hashconfig_t *hashconf
 
 void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain);
 
-int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const uint salt_pos);
+int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos);
 
 int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfile_ctx_t *potfile_ctx, outfile_ctx_t *outfile_ctx, user_options_t *user_options, char *hash_or_file);
 int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_options_t *user_options, status_ctx_t *status_ctx);

@@ -37,8 +37,6 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-typedef uint32_t uint; // we need to get rid of this sooner or later, for consistency
-
 #include "ext_OpenCL.h"
 #include "ext_ADL.h"
 #include "ext_nvapi.h"

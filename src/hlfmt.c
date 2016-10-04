@@ -285,7 +285,7 @@ static void hlfmt_user_shadow (char *line_buf, int line_len, char **userbuf_pos,
 
 // hlfmt main
 
-char *strhlfmt (const uint hashfile_format)
+char *strhlfmt (const u32 hashfile_format)
 {
   switch (hashfile_format)
   {
@@ -304,7 +304,7 @@ char *strhlfmt (const uint hashfile_format)
   return ((char *) "Unknown");
 }
 
-void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, const hashconfig_t *hashconfig, const user_options_t *user_options)
+void hlfmt_hash (u32 hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len, const hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   switch (hashfile_format)
   {
@@ -315,7 +315,7 @@ void hlfmt_hash (uint hashfile_format, char *line_buf, int line_len, char **hash
   }
 }
 
-void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len, const hashconfig_t *hashconfig)
+void hlfmt_user (u32 hashfile_format, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len, const hashconfig_t *hashconfig)
 {
   switch (hashfile_format)
   {
@@ -326,16 +326,16 @@ void hlfmt_user (uint hashfile_format, char *line_buf, int line_len, char **user
   }
 }
 
-uint hlfmt_detect (FILE *fp, uint max_check, const hashconfig_t *hashconfig)
+u32 hlfmt_detect (FILE *fp, u32 max_check, const hashconfig_t *hashconfig)
 {
   // Exception: those formats are wrongly detected as HLFMT_SHADOW, prevent it
 
   if (hashconfig->hash_mode == 5300) return HLFMT_HASHCAT;
   if (hashconfig->hash_mode == 5400) return HLFMT_HASHCAT;
 
-  uint *formats_cnt = (uint *) mycalloc (HLFMTS_CNT, sizeof (uint));
+  u32 *formats_cnt = (u32 *) mycalloc (HLFMTS_CNT, sizeof (u32));
 
-  uint num_check = 0;
+  u32 num_check = 0;
 
   char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 

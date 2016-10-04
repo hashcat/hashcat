@@ -262,10 +262,10 @@ int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], const u32 rp_gen_func_m
 #define GET_P0_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >>  8) & 0xff)
 #define GET_P1_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >> 16) & 0xff)
 
-int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule)
+int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
 {
-  uint rule_pos;
-  uint rule_cnt;
+  u32 rule_pos;
+  u32 rule_cnt;
 
   for (rule_pos = 0, rule_cnt = 0; rule_pos < rule_len && rule_cnt < MAX_KERNEL_RULES; rule_pos++, rule_cnt++)
   {
@@ -479,9 +479,9 @@ int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule)
 
 int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
 {
-  uint rule_cnt;
-  uint rule_pos;
-  uint rule_len = HCBUFSIZ_LARGE - 1; // maximum possible len
+  u32 rule_cnt;
+  u32 rule_pos;
+  u32 rule_len = HCBUFSIZ_LARGE - 1; // maximum possible len
 
   char rule_cmd;
 
@@ -703,7 +703,7 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
 
 bool kernel_rules_has_noop (const kernel_rule_t *kernel_rules_buf, const u32 kernel_rules_cnt)
 {
-  for (uint kernel_rules_pos = 0; kernel_rules_pos < kernel_rules_cnt; kernel_rules_pos++)
+  for (u32 kernel_rules_pos = 0; kernel_rules_pos < kernel_rules_cnt; kernel_rules_pos++)
   {
     if (kernel_rules_buf[kernel_rules_pos].cmds[0] != RULE_OP_MANGLE_NOOP) continue;
     if (kernel_rules_buf[kernel_rules_pos].cmds[1] != 0)                   continue;
@@ -720,13 +720,13 @@ int kernel_rules_load (kernel_rule_t **out_buf, u32 *out_cnt, const user_options
    * load rules
    */
 
-  uint *all_kernel_rules_cnt = NULL;
+  u32 *all_kernel_rules_cnt = NULL;
 
   kernel_rule_t **all_kernel_rules_buf = NULL;
 
   if (user_options->rp_files_cnt)
   {
-    all_kernel_rules_cnt = (uint *) mycalloc (user_options->rp_files_cnt, sizeof (uint));
+    all_kernel_rules_cnt = (u32 *) mycalloc (user_options->rp_files_cnt, sizeof (u32));
 
     all_kernel_rules_buf = (kernel_rule_t **) mycalloc (user_options->rp_files_cnt, sizeof (kernel_rule_t *));
   }
@@ -735,11 +735,11 @@ int kernel_rules_load (kernel_rule_t **out_buf, u32 *out_cnt, const user_options
 
   int rule_len = 0;
 
-  for (uint i = 0; i < user_options->rp_files_cnt; i++)
+  for (u32 i = 0; i < user_options->rp_files_cnt; i++)
   {
-    uint kernel_rules_avail = 0;
+    u32 kernel_rules_avail = 0;
 
-    uint kernel_rules_cnt = 0;
+    u32 kernel_rules_cnt = 0;
 
     kernel_rule_t *kernel_rules_buf = NULL;
 
@@ -750,7 +750,7 @@ int kernel_rules_load (kernel_rule_t **out_buf, u32 *out_cnt, const user_options
 
     FILE *fp = NULL;
 
-    uint rule_line = 0;
+    u32 rule_line = 0;
 
     if ((fp = fopen (rp_file, "rb")) == NULL)
     {
@@ -812,13 +812,13 @@ int kernel_rules_load (kernel_rule_t **out_buf, u32 *out_cnt, const user_options
    * merge rules
    */
 
-  uint kernel_rules_cnt = 1;
+  u32 kernel_rules_cnt = 1;
 
-  uint *repeats = (uint *) mycalloc (user_options->rp_files_cnt + 1, sizeof (uint));
+  u32 *repeats = (u32 *) mycalloc (user_options->rp_files_cnt + 1, sizeof (u32));
 
   repeats[0] = kernel_rules_cnt;
 
-  for (uint i = 0; i < user_options->rp_files_cnt; i++)
+  for (u32 i = 0; i < user_options->rp_files_cnt; i++)
   {
     kernel_rules_cnt *= all_kernel_rules_cnt[i];
 
@@ -827,16 +827,16 @@ int kernel_rules_load (kernel_rule_t **out_buf, u32 *out_cnt, const user_options
 
   kernel_rule_t *kernel_rules_buf = (kernel_rule_t *) mycalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
 
-  for (uint i = 0; i < kernel_rules_cnt; i++)
+  for (u32 i = 0; i < kernel_rules_cnt; i++)
   {
-    uint out_pos = 0;
+    u32 out_pos = 0;
 
     kernel_rule_t *out = &kernel_rules_buf[i];
 
-    for (uint j = 0; j < user_options->rp_files_cnt; j++)
+    for (u32 j = 0; j < user_options->rp_files_cnt; j++)
     {
-      uint in_off = (i / repeats[j]) % all_kernel_rules_cnt[j];
-      uint in_pos;
+      u32 in_off = (i / repeats[j]) % all_kernel_rules_cnt[j];
+      u32 in_pos;
 
       kernel_rule_t *in = &all_kernel_rules_buf[j][in_off];
 
