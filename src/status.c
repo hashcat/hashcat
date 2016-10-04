@@ -907,11 +907,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       plain_ptr1[plain_len1 * 2] = 0;
       plain_ptr2[plain_len2 * 2] = 0;
 
-      log_info ("Guess.Pass.#%d..: $HEX[%s] -> $HEX[%s]", device_id + 1, plain_ptr1, plain_ptr2);
+      log_info ("Candidates.#%d..: $HEX[%s] -> $HEX[%s]", device_id + 1, plain_ptr1, plain_ptr2);
     }
     else
     {
-      log_info ("Guess.Pass.#%d..: %s -> %s", device_id + 1, plain_ptr1, plain_ptr2);
+      log_info ("Candidates.#%d..: %s -> %s", device_id + 1, plain_ptr1, plain_ptr2);
     }
   }
 
