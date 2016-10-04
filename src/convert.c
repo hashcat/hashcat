@@ -7,6 +7,38 @@
 #include "types.h"
 #include "convert.h"
 
+bool need_hexify (const u8 *buf, const int len)
+{
+  for (int i = 0; i < len; i++)
+  {
+    const u8 c = buf[i];
+
+    if (c < 0x20) return true;
+    if (c > 0x7f) return true;
+  }
+
+  return false;
+}
+
+void exec_hexify (const u8 *buf, const int len, u8 *out)
+{
+  for (int i = len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
+  {
+    const u8 v = buf[i];
+
+    u8 h0 = v >> 4 & 15;
+    u8 h1 = v >> 0 & 15;
+
+    u8 add;
+
+    h0 += 6; add = ((h0 & 0x10) >> 4) * 39; h0 += 42 + add;
+    h1 += 6; add = ((h1 & 0x10) >> 4) * 39; h1 += 42 + add;
+
+    out[j + 0] = h0;
+    out[j + 1] = h1;
+  }
+}
+
 bool is_valid_hex_char (const u8 c)
 {
   if ((c >= '0') && (c <= '9')) return true;

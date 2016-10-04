@@ -9,6 +9,7 @@
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
+#include "rp.h"
 #include "rp_kernel_on_cpu.h"
 
 u32 swap_workaround (const u32 n)

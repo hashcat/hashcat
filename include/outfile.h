@@ -10,6 +10,10 @@
 #include <time.h>
 #include <inttypes.h>
 
+void build_plain     (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len);
+void build_crackpos  (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u64 *out_pos);
+void build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u8 *debug_rule_buf, int *debug_rule_len, u8 *debug_plain_ptr, int *debug_plain_len);
+
 void outfile_init           (outfile_ctx_t *outfile_ctx, const user_options_t *user_options);
 void outfile_destroy        (outfile_ctx_t *outfile_ctx);
 void outfile_format_plain   (outfile_ctx_t *outfile_ctx, const unsigned char *plain_ptr, const u32 plain_len);

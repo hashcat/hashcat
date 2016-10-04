@@ -7,11 +7,13 @@
 #include "types.h"
 #include "memory.h"
 #include "logging.h"
+#include "convert.h"
 #include "restore.h"
 #include "thread.h"
 #include "timer.h"
 #include "interface.h"
 #include "hwmon.h"
+#include "outfile.h"
 #include "status.h"
 
 static const char ST_0000[] = "Initializing";
@@ -160,6 +162,13 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
   if (status_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");
+
+    return;
+  }
+
+  if (status_ctx->devices_status == STATUS_AUTOTUNE)
+  {
+    log_error ("ERROR: status view is not available during autotune phase");
 
     return;
   }
@@ -322,6 +331,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   if (status_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");
+
+    return;
+  }
+
+  if (status_ctx->devices_status == STATUS_AUTOTUNE)
+  {
+    log_error ("ERROR: status view is not available during autotune phase");
 
     return;
   }
@@ -859,7 +875,44 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-//    log_info ("Plain.Txt.#%d...: xxx", device_id + 1);
+    const u32 outerloop_first = 0;
+    const u32 outerloop_last  = (device_param->outerloop_left) ? device_param->outerloop_left - 1 : 0;
+
+    const u32 innerloop_first = 0;
+    const u32 innerloop_last  = (device_param->innerloop_left) ? device_param->innerloop_left - 1 : 0;
+
+    plain_t plain1 = { 0, 0, 0, outerloop_first, innerloop_first };
+    plain_t plain2 = { 0, 0, 0, outerloop_last,  innerloop_last  };
+
+    u32 plain_buf1[16] = { 0 };
+    u32 plain_buf2[16] = { 0 };
+
+    u8 *plain_ptr1 = (u8 *) plain_buf1;
+    u8 *plain_ptr2 = (u8 *) plain_buf2;
+
+    int plain_len1 = 0;
+    int plain_len2 = 0;
+
+    build_plain (hashcat_ctx, device_param, &plain1, plain_buf1, &plain_len1);
+    build_plain (hashcat_ctx, device_param, &plain2, plain_buf2, &plain_len2);
+
+    bool need_hex1 = need_hexify (plain_ptr1, plain_len1);
+    bool need_hex2 = need_hexify (plain_ptr2, plain_len2);
+
+    if ((need_hex1 == true) || (need_hex2 == true))
+    {
+      exec_hexify (plain_ptr1, plain_len1, plain_ptr1);
+      exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
+
+      plain_ptr1[plain_len1 * 2] = 0;
+      plain_ptr2[plain_len2 * 2] = 0;
+
+      log_info ("Guess.Pass.#%d..: $HEX[%s] -> $HEX[%s]", device_id + 1, plain_ptr1, plain_ptr2);
+    }
+    else
+    {
+      log_info ("Guess.Pass.#%d..: %s -> %s", device_id + 1, plain_ptr1, plain_ptr2);
+    }
   }
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
@@ -1123,6 +1176,13 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
+  if (status_ctx->devices_status == STATUS_AUTOTUNE)
+  {
+    log_error ("ERROR: status view is not available during autotune phase");
+
+    return;
+  }
+
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
 
@@ -1171,6 +1231,13 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
   if (status_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");
+
+    return;
+  }
+
+  if (status_ctx->devices_status == STATUS_AUTOTUNE)
+  {
+    log_error ("ERROR: status view is not available during autotune phase");
 
     return;
   }

@@ -1034,6 +1034,10 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                    + device_param->kernel_params_mp_l_buf32[5];
   }
 
+  // we make use of this in status view
+
+  device_param->outerloop_left = pws_cnt;
+
   // loop start: most outer loop = salt iteration, then innerloops (if multi)
 
   for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
