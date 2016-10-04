@@ -875,11 +875,14 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
+    if (device_param->outerloop_left == 0) continue; // not ready
+    if (device_param->innerloop_left == 0) continue;
+
     const u32 outerloop_first = 0;
-    const u32 outerloop_last  = (device_param->outerloop_left) ? device_param->outerloop_left - 1 : 0;
+    const u32 outerloop_last  = device_param->outerloop_left - 1;
 
     const u32 innerloop_first = 0;
-    const u32 innerloop_last  = (device_param->innerloop_left) ? device_param->innerloop_left - 1 : 0;
+    const u32 innerloop_last  = device_param->innerloop_left - 1;
 
     plain_t plain1 = { 0, 0, 0, outerloop_first, innerloop_first };
     plain_t plain2 = { 0, 0, 0, outerloop_last,  innerloop_last  };

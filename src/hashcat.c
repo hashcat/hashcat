@@ -139,6 +139,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
 
+  status_ctx->devices_status = STATUS_INIT;
+
   logfile_generate_subid (logfile_ctx);
 
   logfile_sub_msg ("START");
