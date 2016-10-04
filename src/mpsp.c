@@ -20,6 +20,94 @@ static const char DEF_MASK[] = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
 
 #define MAX_MFS 5 // 4*charset, 1*mask
 
+void mp_css_split_cnt (const mask_ctx_t *mask_ctx, const hashconfig_t *hashconfig, const u32 css_cnt_orig, u32 css_cnt_lr[2])
+{
+  u32 css_cnt_l = mask_ctx->css_cnt;
+  u32 css_cnt_r;
+
+  if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  {
+    if (css_cnt_orig < 6)
+    {
+      css_cnt_r = 1;
+    }
+    else if (css_cnt_orig == 6)
+    {
+      css_cnt_r = 2;
+    }
+    else
+    {
+      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
+      {
+        if (css_cnt_orig == 8 || css_cnt_orig == 10)
+        {
+          css_cnt_r = 2;
+        }
+        else
+        {
+          css_cnt_r = 4;
+        }
+      }
+      else
+      {
+        if ((mask_ctx->css_buf[0].cs_len * mask_ctx->css_buf[1].cs_len * mask_ctx->css_buf[2].cs_len) > 128)
+        {
+          css_cnt_r = 3;
+        }
+        else
+        {
+          css_cnt_r = 4;
+        }
+      }
+    }
+  }
+  else
+  {
+    css_cnt_r = 1;
+
+    /* unfinished code?
+    int sum = css_buf[css_cnt_r - 1].cs_len;
+
+    for (u32 i = 1; i < 4 && i < css_cnt; i++)
+    {
+      if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
+
+      css_cnt_r++;
+
+      sum *= css_buf[css_cnt_r - 1].cs_len;
+    }
+    */
+  }
+
+  css_cnt_l -= css_cnt_r;
+
+  css_cnt_lr[0] = css_cnt_l;
+  css_cnt_lr[1] = css_cnt_r;
+}
+
+void mp_css_append_salt (mask_ctx_t *mask_ctx, salt_t *salt_buf)
+{
+  u32  salt_len     = (u32)  salt_buf->salt_len;
+  u8  *salt_buf_ptr = (u8 *) salt_buf->salt_buf;
+
+  u32 css_cnt_salt = mask_ctx->css_cnt + salt_len;
+
+  cs_t *css_buf_salt = (cs_t *) mycalloc (css_cnt_salt, sizeof (cs_t));
+
+  memcpy (css_buf_salt, mask_ctx->css_buf, mask_ctx->css_cnt * sizeof (cs_t));
+
+  for (u32 i = 0, j = mask_ctx->css_cnt; i < salt_len; i++, j++)
+  {
+    css_buf_salt[j].cs_buf[0] = salt_buf_ptr[i];
+    css_buf_salt[j].cs_len    = 1;
+  }
+
+  myfree (mask_ctx->css_buf);
+
+  mask_ctx->css_buf = css_buf_salt;
+  mask_ctx->css_cnt = css_cnt_salt;
+}
+
 void mp_css_unicode_expand (mask_ctx_t *mask_ctx)
 {
   u32 css_cnt_unicode = mask_ctx->css_cnt * 2;

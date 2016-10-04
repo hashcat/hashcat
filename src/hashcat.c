@@ -655,11 +655,6 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
     {
       mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
 
-      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
-      {
-        mp_css_unicode_expand (mask_ctx);
-      }
-
       // check if mask is not too large or too small for pw_min/pw_max  (*2 if unicode)
 
       u32 mask_min = hashconfig->pw_min;
@@ -690,31 +685,18 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
         return 0;
       }
 
+      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
+      {
+        mp_css_unicode_expand (mask_ctx);
+      }
+
       u32 css_cnt_orig = mask_ctx->css_cnt;
 
       if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
       {
         if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
         {
-          u32  salt_len = (u32)  hashes->salts_buf[0].salt_len;
-          u8  *salt_buf = (u8 *) hashes->salts_buf[0].salt_buf;
-
-          u32 css_cnt_salt = mask_ctx->css_cnt + salt_len;
-
-          cs_t *css_buf_salt = (cs_t *) mycalloc (css_cnt_salt, sizeof (cs_t));
-
-          memcpy (css_buf_salt, mask_ctx->css_buf, mask_ctx->css_cnt * sizeof (cs_t));
-
-          for (u32 i = 0, j = mask_ctx->css_cnt; i < salt_len; i++, j++)
-          {
-            css_buf_salt[j].cs_buf[0] = salt_buf[i];
-            css_buf_salt[j].cs_len    = 1;
-          }
-
-          myfree (mask_ctx->css_buf);
-
-          mask_ctx->css_buf = css_buf_salt;
-          mask_ctx->css_cnt = css_cnt_salt;
+          mp_css_append_salt (mask_ctx, &hashes->salts_buf[0]);
         }
       }
 
@@ -728,68 +710,13 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
       // copy + args
 
-      u32 css_cnt_l = mask_ctx->css_cnt;
-      u32 css_cnt_r;
+      u32 css_cnt_lr[2];
 
-      if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-      {
-        if (css_cnt_orig < 6)
-        {
-          css_cnt_r = 1;
-        }
-        else if (css_cnt_orig == 6)
-        {
-          css_cnt_r = 2;
-        }
-        else
-        {
-          if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
-          {
-            if (css_cnt_orig == 8 || css_cnt_orig == 10)
-            {
-              css_cnt_r = 2;
-            }
-            else
-            {
-              css_cnt_r = 4;
-            }
-          }
-          else
-          {
-            if ((mask_ctx->css_buf[0].cs_len * mask_ctx->css_buf[1].cs_len * mask_ctx->css_buf[2].cs_len) > 256)
-            {
-              css_cnt_r = 3;
-            }
-            else
-            {
-              css_cnt_r = 4;
-            }
-          }
-        }
-      }
-      else
-      {
-        css_cnt_r = 1;
+      mp_css_split_cnt (mask_ctx, hashconfig, css_cnt_orig, css_cnt_lr);
 
-        /* unfinished code?
-        int sum = css_buf[css_cnt_r - 1].cs_len;
+      mask_ctx->bfs_cnt = sp_get_sum (0, css_cnt_lr[1], mask_ctx->root_css_buf);
 
-        for (u32 i = 1; i < 4 && i < css_cnt; i++)
-        {
-          if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
-
-          css_cnt_r++;
-
-          sum *= css_buf[css_cnt_r - 1].cs_len;
-        }
-        */
-      }
-
-      css_cnt_l -= css_cnt_r;
-
-      mask_ctx->bfs_cnt = sp_get_sum (0, css_cnt_r, mask_ctx->root_css_buf);
-
-      const int rc_update_mp_rl = opencl_session_update_mp_rl (opencl_ctx, mask_ctx, css_cnt_l, css_cnt_r);
+      const int rc_update_mp_rl = opencl_session_update_mp_rl (opencl_ctx, mask_ctx, css_cnt_lr[0], css_cnt_lr[1]);
 
       if (rc_update_mp_rl == -1) return -1;
     }
