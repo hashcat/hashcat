@@ -22,7 +22,7 @@ bool need_hexify (const u8 *buf, const int len)
 
 void exec_hexify (const u8 *buf, const int len, u8 *out)
 {
-  const int max_len = (len >= 32) ? 32 : len;
+  const int max_len = (len >= 31) ? 31 : len;
 
   for (int i = max_len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
   {
@@ -39,6 +39,8 @@ void exec_hexify (const u8 *buf, const int len, u8 *out)
     out[j + 0] = h0;
     out[j + 1] = h1;
   }
+
+  out[max_len * 2] = 0;
 }
 
 bool is_valid_hex_char (const u8 c)
