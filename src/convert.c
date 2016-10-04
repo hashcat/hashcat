@@ -22,7 +22,9 @@ bool need_hexify (const u8 *buf, const int len)
 
 void exec_hexify (const u8 *buf, const int len, u8 *out)
 {
-  for (int i = len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
+  const int max_len = (len >= 32) ? 32 : len;
+
+  for (int i = max_len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
   {
     const u8 v = buf[i];
 
