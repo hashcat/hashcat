@@ -31,7 +31,7 @@ static const u32 full80 = 0x80808080;
 
 static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
 
-static void generate_source_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *shared_dir, char *source_file)
+static void generate_source_kernel_filename (const u32 attack_exec, const u32 attack_kern, const u32 kern_type, char *shared_dir, char *source_file)
 {
   if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
@@ -46,7 +46,7 @@ static void generate_source_kernel_filename (const uint attack_exec, const uint 
     snprintf (source_file, 255, "%s/OpenCL/m%05d.cl", shared_dir, (int) kern_type);
 }
 
-static void generate_cached_kernel_filename (const uint attack_exec, const uint attack_kern, const uint kern_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
+static void generate_cached_kernel_filename (const u32 attack_exec, const u32 attack_kern, const u32 kern_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
 {
   if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
@@ -63,7 +63,7 @@ static void generate_cached_kernel_filename (const uint attack_exec, const uint 
   }
 }
 
-static void generate_source_kernel_mp_filename (const uint opti_type, const uint opts_type, char *shared_dir, char *source_file)
+static void generate_source_kernel_mp_filename (const u32 opti_type, const u32 opts_type, char *shared_dir, char *source_file)
 {
   if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
   {
@@ -75,7 +75,7 @@ static void generate_source_kernel_mp_filename (const uint opti_type, const uint
   }
 }
 
-static void generate_cached_kernel_mp_filename (const uint opti_type, const uint opts_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
+static void generate_cached_kernel_mp_filename (const u32 opti_type, const u32 opts_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
 {
   if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
   {
@@ -87,19 +87,19 @@ static void generate_cached_kernel_mp_filename (const uint opti_type, const uint
   }
 }
 
-static void generate_source_kernel_amp_filename (const uint attack_kern, char *shared_dir, char *source_file)
+static void generate_source_kernel_amp_filename (const u32 attack_kern, char *shared_dir, char *source_file)
 {
   snprintf (source_file, 255, "%s/OpenCL/amp_a%d.cl", shared_dir, attack_kern);
 }
 
-static void generate_cached_kernel_amp_filename (const uint attack_kern, char *profile_dir, const char *device_name_chksum, char *cached_file)
+static void generate_cached_kernel_amp_filename (const u32 attack_kern, char *profile_dir, const char *device_name_chksum, char *cached_file)
 {
   snprintf (cached_file, 255, "%s/kernels/amp_a%d.%s.kernel", profile_dir, attack_kern, device_name_chksum);
 }
 
-static uint setup_opencl_platforms_filter (const char *opencl_platforms)
+static u32 setup_opencl_platforms_filter (const char *opencl_platforms)
 {
-  uint opencl_platforms_filter = 0;
+  u32 opencl_platforms_filter = 0;
 
   if (opencl_platforms)
   {
@@ -277,7 +277,7 @@ int gidd_to_pw_t (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, con
   return 0;
 }
 
-int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, hashconfig_t *hashconfig, const hashes_t *hashes, const outfile_ctx_t *outfile_ctx, status_ctx_t *status_ctx, const uint highest_pw_len, const uint pws_cnt, const uint fast_iteration, const uint salt_pos)
+int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, hashconfig_t *hashconfig, const hashes_t *hashes, const outfile_ctx_t *outfile_ctx, status_ctx_t *status_ctx, const u32 highest_pw_len, const u32 pws_cnt, const u32 fast_iteration, const u32 salt_pos)
 {
   cl_int CL_err = CL_SUCCESS;
 
@@ -294,7 +294,7 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
     {
       if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
       {
-        const uint size_tm = 32 * sizeof (bs_word_t);
+        const u32 size_tm = 32 * sizeof (bs_word_t);
 
         run_kernel_bzero (opencl_ctx, device_param, device_param->d_tm_c, size_tm);
 
@@ -355,13 +355,13 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
       }
     }
 
-    uint iter = hashes->salts_buf[salt_pos].salt_iter;
+    u32 iter = hashes->salts_buf[salt_pos].salt_iter;
 
-    uint loop_step = device_param->kernel_loops;
+    u32 loop_step = device_param->kernel_loops;
 
-    for (uint loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
+    for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
     {
-      uint loop_left = iter - loop_pos;
+      u32 loop_left = iter - loop_pos;
 
       loop_left = MIN (loop_left, loop_step);
 
@@ -425,15 +425,15 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
   return 0;
 }
 
-int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint num, const uint event_update, const uint iteration, hashconfig_t *hashconfig, const user_options_t *user_options, status_ctx_t *status_ctx)
+int run_kernel (const u32 kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const u32 num, const u32 event_update, const u32 iteration, hashconfig_t *hashconfig, const user_options_t *user_options, status_ctx_t *status_ctx)
 {
   cl_int CL_err = CL_SUCCESS;
 
-  uint num_elements = num;
+  u32 num_elements = num;
 
   device_param->kernel_params_buf32[34] = num;
 
-  uint kernel_threads = device_param->kernel_threads;
+  u32 kernel_threads = device_param->kernel_threads;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -572,7 +572,7 @@ int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t
 
   if (event_update)
   {
-    uint exec_pos = device_param->exec_pos;
+    u32 exec_pos = device_param->exec_pos;
 
     device_param->exec_ms[exec_pos] = exec_us / 1000;
 
@@ -607,11 +607,11 @@ int run_kernel (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t
   return 0;
 }
 
-int run_kernel_mp (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint num)
+int run_kernel_mp (const u32 kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const u32 num)
 {
   cl_int CL_err = CL_SUCCESS;
 
-  uint num_elements = num;
+  u32 num_elements = num;
 
   switch (kern_run)
   {
@@ -621,9 +621,9 @@ int run_kernel_mp (const uint kern_run, opencl_ctx_t *opencl_ctx, hc_device_para
   }
 
   // causes problems with special threads like in bcrypt
-  // const uint kernel_threads = device_param->kernel_threads;
+  // const u32 kernel_threads = device_param->kernel_threads;
 
-  uint kernel_threads = device_param->kernel_threads;
+  u32 kernel_threads = device_param->kernel_threads;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -706,9 +706,9 @@ int run_kernel_tm (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
 {
   cl_int CL_err = CL_SUCCESS;
 
-  const uint num_elements = 1024; // fixed
+  const u32 num_elements = 1024; // fixed
 
-  uint kernel_threads = 32;
+  u32 kernel_threads = 32;
 
   cl_kernel kernel = device_param->kernel_tm;
 
@@ -745,18 +745,18 @@ int run_kernel_tm (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
   return 0;
 }
 
-int run_kernel_amp (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const uint num)
+int run_kernel_amp (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const u32 num)
 {
   cl_int CL_err = CL_SUCCESS;
 
-  uint num_elements = num;
+  u32 num_elements = num;
 
   device_param->kernel_params_amp_buf32[6] = num_elements;
 
   // causes problems with special threads like in bcrypt
-  // const uint kernel_threads = device_param->kernel_threads;
+  // const u32 kernel_threads = device_param->kernel_threads;
 
-  uint kernel_threads = device_param->kernel_threads;
+  u32 kernel_threads = device_param->kernel_threads;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -804,7 +804,7 @@ int run_kernel_amp (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, c
   return 0;
 }
 
-int run_kernel_memset (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cl_mem buf, const uint value, const uint num)
+int run_kernel_memset (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u32 num)
 {
   cl_int CL_err = CL_SUCCESS;
 
@@ -816,9 +816,9 @@ int run_kernel_memset (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param
     device_param->kernel_params_memset_buf32[1] = value;
     device_param->kernel_params_memset_buf32[2] = num16d;
 
-    uint kernel_threads = device_param->kernel_threads;
+    u32 kernel_threads = device_param->kernel_threads;
 
-    uint num_elements = num16d;
+    u32 num_elements = num16d;
 
     while (num_elements % kernel_threads) num_elements++;
 
@@ -893,7 +893,7 @@ int run_kernel_bzero (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param,
   return run_kernel_memset (opencl_ctx, device_param, buf, 0, size);
 }
 
-int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const combinator_ctx_t *combinator_ctx, const uint pws_cnt)
+int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const combinator_ctx_t *combinator_ctx, const u32 pws_cnt)
 {
   cl_int CL_err = CL_SUCCESS;
 
@@ -985,7 +985,7 @@ int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
   return 0;
 }
 
-int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const uint pws_cnt)
+int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 pws_cnt)
 {
   combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -1002,7 +1002,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   // init speed timer
 
-  uint speed_pos = device_param->speed_pos;
+  u32 speed_pos = device_param->speed_pos;
 
   #if defined (_POSIX)
   if (device_param->timer_speed.tv_sec == 0)
@@ -1020,7 +1020,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   // find higest password length, this is for optimization stuff
 
-  uint highest_pw_len = 0;
+  u32 highest_pw_len = 0;
 
   if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
   {
@@ -1036,7 +1036,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   // loop start: most outer loop = salt iteration, then innerloops (if multi)
 
-  for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+  for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
     while (status_ctx->devices_status == STATUS_PAUSED) hc_sleep (1);
 
@@ -1055,8 +1055,8 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
     // iteration type
 
-    uint innerloop_step = 0;
-    uint innerloop_cnt  = 0;
+    u32 innerloop_step = 0;
+    u32 innerloop_cnt  = 0;
 
     if   (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) innerloop_step = device_param->kernel_loops;
     else                                                        innerloop_step = 1;
@@ -1067,13 +1067,13 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
     // innerloops
 
-    for (uint innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
+    for (u32 innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
     {
       while (status_ctx->devices_status == STATUS_PAUSED) hc_sleep (1);
 
-      uint fast_iteration = 0;
+      u32 fast_iteration = 0;
 
-      uint innerloop_left = innerloop_cnt - innerloop_pos;
+      u32 innerloop_left = innerloop_cnt - innerloop_pos;
 
       if (innerloop_left > innerloop_step)
       {
@@ -1106,7 +1106,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
       if (user_options->attack_mode == ATTACK_MODE_COMBI)
       {
-        uint i = 0;
+        u32 i = 0;
 
         while (i < innerloop_left)
         {
@@ -1169,7 +1169,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
           i++;
         }
 
-        for (uint j = i; j < innerloop_left; j++)
+        for (u32 j = i; j < innerloop_left; j++)
         {
           device_param->combs_buf[j].i[0] = 0;
           device_param->combs_buf[j].i[1] = 0;
@@ -1420,9 +1420,9 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
     return -1;
   }
 
-  if (opencl_platforms_filter != (uint) -1)
+  if (opencl_platforms_filter != (u32) -1)
   {
-    uint platform_cnt_mask = ~(((uint) -1 >> platforms_cnt) << platforms_cnt);
+    u32 platform_cnt_mask = ~(((u32) -1 >> platforms_cnt) << platforms_cnt);
 
     if (opencl_platforms_filter > platform_cnt_mask)
     {
@@ -1441,7 +1441,7 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
 
     cl_device_type device_types_all = 0;
 
-    for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
+    for (u32 platform_id = 0; platform_id < platforms_cnt; platform_id++)
     {
       if ((opencl_platforms_filter & (1u << platform_id)) == 0) continue;
 
@@ -1460,7 +1460,7 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
         continue;
       }
 
-      for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
+      for (u32 platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
       {
         cl_device_id device = platform_devices[platform_devices_id];
 
@@ -1554,7 +1554,7 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
     fprintf (stdout, "OpenCL Info:\n");
   }
 
-  for (uint platform_id = 0; platform_id < platforms_cnt; platform_id++)
+  for (u32 platform_id = 0; platform_id < platforms_cnt; platform_id++)
   {
     cl_int CL_err = CL_SUCCESS;
 
@@ -1614,7 +1614,7 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
       platform_vendor_id = VENDOR_ID_GENERIC;
     }
 
-    uint platform_skipped = ((opencl_ctx->opencl_platforms_filter & (1u << platform_id)) == 0);
+    u32 platform_skipped = ((opencl_ctx->opencl_platforms_filter & (1u << platform_id)) == 0);
 
     CL_err = hc_clGetDeviceIDs (opencl_ctx->ocl, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
 
@@ -1686,11 +1686,11 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
 
     hc_device_param_t *devices_param = opencl_ctx->devices_param;
 
-    for (uint platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
+    for (u32 platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
     {
       size_t param_value_size = 0;
 
-      const uint device_id = devices_cnt;
+      const u32 device_id = devices_cnt;
 
       hc_device_param_t *device_param = &devices_param[device_id];
 
@@ -2133,9 +2133,9 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
       snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime);
       #endif
 
-      uint device_name_digest[4] = { 0 };
+      u32 device_name_digest[4] = { 0 };
 
-      md5_64 ((uint *) device_name_chksum, device_name_digest);
+      md5_64 ((u32 *) device_name_chksum, device_name_digest);
 
       snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%08x", device_name_digest[0]);
 
@@ -2393,9 +2393,9 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
 
   // additional check to see if the user has chosen a device that is not within the range of available devices (i.e. larger than devices_cnt)
 
-  if (opencl_ctx->devices_filter != (uint) -1)
+  if (opencl_ctx->devices_filter != (u32) -1)
   {
-    const uint devices_cnt_mask = ~(((uint) -1 >> devices_cnt) << devices_cnt);
+    const u32 devices_cnt_mask = ~(((u32) -1 >> devices_cnt) << devices_cnt);
 
     if (opencl_ctx->devices_filter > devices_cnt_mask)
     {
@@ -2422,7 +2422,7 @@ void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
 {
   if (opencl_ctx->enabled == false) return;
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -2449,7 +2449,7 @@ void opencl_ctx_devices_update_power (opencl_ctx_t *opencl_ctx, const user_optio
 
   u32 kernel_power_all = 0;
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -2485,7 +2485,7 @@ void opencl_ctx_devices_kernel_loops (opencl_ctx_t *opencl_ctx, const user_optio
 {
   if (opencl_ctx->enabled == false) return;
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -2540,7 +2540,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
 
   u32 hardware_power_all = 0;
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     cl_int CL_err = CL_SUCCESS;
 
@@ -2721,7 +2721,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
     device_param->size_root_css   = size_root_css;
     device_param->size_markov_css = size_markov_css;
 
-    size_t size_results = sizeof (uint);
+    size_t size_results = sizeof (u32);
 
     device_param->size_results = size_results;
 
@@ -2731,7 +2731,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
     size_t size_plains  = hashes->digests_cnt * sizeof (plain_t);
     size_t size_salts   = hashes->salts_cnt   * sizeof (salt_t);
     size_t size_esalts  = hashes->salts_cnt   * hashconfig->esalt_size;
-    size_t size_shown   = hashes->digests_cnt * sizeof (uint);
+    size_t size_shown   = hashes->digests_cnt * sizeof (u32);
     size_t size_digests = hashes->digests_cnt * hashconfig->dgst_size;
 
     device_param->size_plains   = size_plains;
@@ -2758,7 +2758,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
       const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
       const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
 
-      for (uint i = 1; i < hashes->salts_cnt; i++)
+      for (u32 i = 1; i < hashes->salts_cnt; i++)
       {
         if ((hashes->salts_buf[i].scrypt_N != scrypt_N)
          || (hashes->salts_buf[i].scrypt_r != scrypt_r)
@@ -2774,8 +2774,8 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
 
       hashconfig->tmp_size = scrypt_tmp_size;
 
-      uint tmto_start = 0;
-      uint tmto_stop  = 10;
+      u32 tmto_start = 0;
+      u32 tmto_stop  = 10;
 
       if (user_options->scrypt_tmto)
       {
@@ -2813,7 +2813,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
       device_param->kernel_accel_min = 1;
       device_param->kernel_accel_max = 8;
 
-      uint tmto;
+      u32 tmto;
 
       for (tmto = tmto_start; tmto < tmto_stop; tmto++)
       {
@@ -2837,7 +2837,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
           continue;
         }
 
-        for (uint salts_pos = 0; salts_pos < hashes->salts_cnt; salts_pos++)
+        for (u32 salts_pos = 0; salts_pos < hashes->salts_cnt; salts_pos++)
         {
           scrypt_tmto_final = tmto;
         }
@@ -3692,10 +3692,10 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
 
     if (user_options->benchmark == true)
     {
-      ((uint *) hashes->digests_buf)[0] = -1u;
-      ((uint *) hashes->digests_buf)[1] = -1u;
-      ((uint *) hashes->digests_buf)[2] = -1u;
-      ((uint *) hashes->digests_buf)[3] = -1u;
+      ((u32 *) hashes->digests_buf)[0] = -1u;
+      ((u32 *) hashes->digests_buf)[1] = -1u;
+      ((u32 *) hashes->digests_buf)[2] = -1u;
+      ((u32 *) hashes->digests_buf)[3] = -1u;
     }
 
     /**
@@ -4170,7 +4170,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
       return -1;
     }
 
-    for (uint i = 0; i <= 23; i++)
+    for (u32 i = 0; i <= 23; i++)
     {
       CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel1, i, sizeof (cl_mem), device_param->kernel_params[i]);
       CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel2, i, sizeof (cl_mem), device_param->kernel_params[i]);
@@ -4187,7 +4187,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
       }
     }
 
-    for (uint i = 24; i <= 34; i++)
+    for (u32 i = 24; i <= 34; i++)
     {
       CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel1, i, sizeof (cl_uint), device_param->kernel_params[i]);
       CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel2, i, sizeof (cl_uint), device_param->kernel_params[i]);
@@ -4344,7 +4344,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
     }
     else
     {
-      for (uint i = 0; i < 5; i++)
+      for (u32 i = 0; i < 5; i++)
       {
         CL_err = hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_amp, i, sizeof (cl_mem), device_param->kernel_params_amp[i]);
 
@@ -4356,7 +4356,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
         }
       }
 
-      for (uint i = 5; i < 7; i++)
+      for (u32 i = 5; i < 7; i++)
       {
         CL_err = hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_amp, i, sizeof (cl_uint), device_param->kernel_params_amp[i]);
 
@@ -4431,7 +4431,7 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
         device_param->kernel_params_mp_buf32[7] = 0;
       }
 
-      for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp[i]);
+      for (u32 i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp[i]);
 
       if (CL_err != CL_SUCCESS)
       {
@@ -4455,8 +4455,8 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
       if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_l_buf32[7] = 1;
       if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_l_buf32[8] = 1;
 
-      for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp_l[i]);
-      for (uint i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp_r[i]);
+      for (u32 i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp_l[i]);
+      for (u32 i = 0; i < 3; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp_r[i]);
 
       if (CL_err != CL_SUCCESS)
       {
@@ -4476,7 +4476,7 @@ void opencl_session_destroy (opencl_ctx_t *opencl_ctx)
 {
   if (opencl_ctx->enabled == false) return;
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -4603,7 +4603,7 @@ void opencl_session_reset (opencl_ctx_t *opencl_ctx)
 {
   if (opencl_ctx->enabled == false) return;
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -4641,7 +4641,7 @@ int opencl_session_update_combinator (opencl_ctx_t *opencl_ctx, const hashconfig
 {
   if (opencl_ctx->enabled == false) return 0;
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -4691,7 +4691,7 @@ int opencl_session_update_mp (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mask_c
 {
   if (opencl_ctx->enabled == false) return 0;
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -4702,8 +4702,8 @@ int opencl_session_update_mp (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mask_c
 
     cl_int CL_err = CL_SUCCESS;
 
-    for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp[i]);
-    for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp[i]);
+    for (u32 i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp[i]);
+    for (u32 i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp[i]);
 
     if (CL_err != CL_SUCCESS)
     {
@@ -4730,7 +4730,7 @@ int opencl_session_update_mp_rl (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mas
 {
   if (opencl_ctx->enabled == false) return 0;
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -4745,11 +4745,11 @@ int opencl_session_update_mp_rl (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mas
 
     cl_int CL_err = CL_SUCCESS;
 
-    for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
-    for (uint i = 4; i < 9; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
+    for (u32 i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]);
+    for (u32 i = 4; i < 9; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]);
 
-    for (uint i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]);
-    for (uint i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]);
+    for (u32 i = 3; i < 4; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]);
+    for (u32 i = 4; i < 8; i++) CL_err |= hc_clSetKernelArg (opencl_ctx->ocl, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]);
 
     if (CL_err != CL_SUCCESS)
     {

@@ -13,14 +13,14 @@
 #include "rp_cpu.h"
 #include "wordlist.h"
 
-uint convert_from_hex (char *line_buf, const uint line_len, const user_options_t *user_options)
+u32 convert_from_hex (char *line_buf, const u32 line_len, const user_options_t *user_options)
 {
   if (line_len & 1) return (line_len); // not in hex
 
   if (user_options->hex_wordlist == true)
   {
-    uint i;
-    uint j;
+    u32 i;
+    u32 j;
 
     for (i = 0, j = 0; j < line_len; i += 1, j += 2)
     {
@@ -40,8 +40,8 @@ uint convert_from_hex (char *line_buf, const uint line_len, const user_options_t
     if (line_buf[4]            != '[') return (line_len);
     if (line_buf[line_len - 1] != ']') return (line_len);
 
-    uint i;
-    uint j;
+    u32 i;
+    u32 j;
 
     for (i = 0, j = 5; j < line_len - 1; i += 1, j += 2)
     {
@@ -177,7 +177,7 @@ void get_next_word_std (char *buf, u64 sz, u64 *len, u64 *off)
   *len = sz;
 }
 
-void get_next_word (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, FILE *fd, char **out_buf, uint *out_len)
+void get_next_word (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, FILE *fd, char **out_buf, u32 *out_len)
 {
   while (wl_data->pos < wl_data->cnt)
   {

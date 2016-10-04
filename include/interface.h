@@ -25,7 +25,7 @@
 
 typedef struct rar5
 {
-  uint iv[4];
+  u32 iv[4];
 
 } rar5_t;
 
@@ -37,23 +37,23 @@ typedef struct pdf
 
   int  enc_md;
 
-  uint id_buf[8];
-  uint u_buf[32];
-  uint o_buf[32];
+  u32 id_buf[8];
+  u32 u_buf[32];
+  u32 o_buf[32];
 
   int  id_len;
   int  o_len;
   int  u_len;
 
-  uint rc4key[2];
-  uint rc4data[2];
+  u32 rc4key[2];
+  u32 rc4data[2];
 
 } pdf_t;
 
 typedef struct wpa
 {
-  uint pke[25];
-  uint eapol[64];
+  u32 pke[25];
+  u32 eapol[64];
   int  eapol_size;
   int  keyver;
   u8   orig_mac1[6];
@@ -65,70 +65,70 @@ typedef struct wpa
 
 typedef struct bitcoin_wallet
 {
-  uint cry_master_buf[64];
-  uint ckey_buf[64];
-  uint public_key_buf[64];
+  u32 cry_master_buf[64];
+  u32 ckey_buf[64];
+  u32 public_key_buf[64];
 
-  uint cry_master_len;
-  uint ckey_len;
-  uint public_key_len;
+  u32 cry_master_len;
+  u32 ckey_len;
+  u32 public_key_len;
 
 } bitcoin_wallet_t;
 
 typedef struct sip
 {
-  uint salt_buf[30];
-  uint salt_len;
+  u32 salt_buf[30];
+  u32 salt_len;
 
-  uint esalt_buf[38];
-  uint esalt_len;
+  u32 esalt_buf[38];
+  u32 esalt_len;
 
 } sip_t;
 
 typedef struct androidfde
 {
-  uint data[384];
+  u32 data[384];
 
 } androidfde_t;
 
 typedef struct ikepsk
 {
-  uint nr_buf[16];
-  uint nr_len;
+  u32 nr_buf[16];
+  u32 nr_len;
 
-  uint msg_buf[128];
-  uint msg_len;
+  u32 msg_buf[128];
+  u32 msg_len;
 
 } ikepsk_t;
 
 typedef struct netntlm
 {
-  uint user_len;
-  uint domain_len;
-  uint srvchall_len;
-  uint clichall_len;
+  u32 user_len;
+  u32 domain_len;
+  u32 srvchall_len;
+  u32 clichall_len;
 
-  uint userdomain_buf[64];
-  uint chall_buf[256];
+  u32 userdomain_buf[64];
+  u32 chall_buf[256];
 
 } netntlm_t;
 
 typedef struct krb5pa
 {
-  uint user[16];
-  uint realm[16];
-  uint salt[32];
-  uint timestamp[16];
-  uint checksum[4];
+  u32 user[16];
+  u32 realm[16];
+  u32 salt[32];
+  u32 timestamp[16];
+  u32 checksum[4];
 
 } krb5pa_t;
 
 typedef struct krb5tgs
 {
-  uint account_info[512];
-  uint checksum[4];
-  uint edata2[2560];
-  uint edata2_len;
+  u32 account_info[512];
+  u32 checksum[4];
+  u32 edata2[2560];
+  u32 edata2_len;
 
 } krb5tgs_t;
 
@@ -157,34 +157,34 @@ typedef struct keepass
 
 typedef struct tc
 {
-  uint salt_buf[16];
-  uint data_buf[112];
-  uint keyfile_buf[16];
-  uint signature;
+  u32 salt_buf[16];
+  u32 data_buf[112];
+  u32 keyfile_buf[16];
+  u32 signature;
 
 } tc_t;
 
 typedef struct pbkdf2_md5
 {
-  uint salt_buf[16];
+  u32 salt_buf[16];
 
 } pbkdf2_md5_t;
 
 typedef struct pbkdf2_sha1
 {
-  uint salt_buf[16];
+  u32 salt_buf[16];
 
 } pbkdf2_sha1_t;
 
 typedef struct pbkdf2_sha256
 {
-  uint salt_buf[16];
+  u32 salt_buf[16];
 
 } pbkdf2_sha256_t;
 
 typedef struct pbkdf2_sha512
 {
-  uint salt_buf[32];
+  u32 salt_buf[32];
 
 } pbkdf2_sha512_t;
 
@@ -196,56 +196,56 @@ typedef struct agilekey
 
 typedef struct rakp
 {
-  uint salt_buf[128];
-  uint salt_len;
+  u32 salt_buf[128];
+  u32 salt_len;
 
 } rakp_t;
 
 typedef struct cloudkey
 {
-  uint data_len;
-  uint data_buf[512];
+  u32 data_len;
+  u32 data_buf[512];
 
 } cloudkey_t;
 
 typedef struct office2007
 {
-  uint encryptedVerifier[4];
-  uint encryptedVerifierHash[5];
+  u32 encryptedVerifier[4];
+  u32 encryptedVerifierHash[5];
 
-  uint keySize;
+  u32 keySize;
 
 } office2007_t;
 
 typedef struct office2010
 {
-  uint encryptedVerifier[4];
-  uint encryptedVerifierHash[8];
+  u32 encryptedVerifier[4];
+  u32 encryptedVerifierHash[8];
 
 } office2010_t;
 
 typedef struct office2013
 {
-  uint encryptedVerifier[4];
-  uint encryptedVerifierHash[8];
+  u32 encryptedVerifier[4];
+  u32 encryptedVerifierHash[8];
 
 } office2013_t;
 
 typedef struct oldoffice01
 {
-  uint version;
-  uint encryptedVerifier[4];
-  uint encryptedVerifierHash[4];
-  uint rc4key[2];
+  u32 version;
+  u32 encryptedVerifier[4];
+  u32 encryptedVerifierHash[4];
+  u32 rc4key[2];
 
 } oldoffice01_t;
 
 typedef struct oldoffice34
 {
-  uint version;
-  uint encryptedVerifier[4];
-  uint encryptedVerifierHash[5];
-  uint rc4key[2];
+  u32 version;
+  u32 encryptedVerifier[4];
+  u32 encryptedVerifierHash[5];
+  u32 rc4key[2];
 
 } oldoffice34_t;
 
@@ -277,7 +277,7 @@ typedef struct zip2
 
 typedef struct win8phone
 {
-  uint salt_buf[32];
+  u32 salt_buf[32];
 
 } win8phone_t;
 
@@ -292,8 +292,8 @@ typedef struct psafe3
 
 typedef struct pdf14_tmp
 {
-  uint digest[4];
-  uint out[4];
+  u32 digest[4];
+  u32 out[4];
 
 } pdf14_tmp_t;
 
@@ -301,24 +301,24 @@ typedef struct pdf17l8_tmp
 {
   union
   {
-    uint dgst32[16];
+    u32 dgst32[16];
     u64  dgst64[8];
   } d;
 
-  uint dgst_len;
-  uint W_len;
+  u32 dgst_len;
+  u32 W_len;
 
 } pdf17l8_tmp_t;
 
 typedef struct phpass_tmp
 {
-  uint digest_buf[4];
+  u32 digest_buf[4];
 
 } phpass_tmp_t;
 
 typedef struct md5crypt_tmp
 {
-  uint digest_buf[4];
+  u32 digest_buf[4];
 
 } md5crypt_tmp_t;
 
@@ -333,20 +333,20 @@ typedef struct sha512crypt_tmp
 
 typedef struct sha256crypt_tmp
 {
-  uint alt_result[8];
+  u32 alt_result[8];
 
-  uint p_bytes[4];
-  uint s_bytes[4];
+  u32 p_bytes[4];
+  u32 s_bytes[4];
 
 } sha256crypt_tmp_t;
 
 typedef struct wpa_tmp
 {
-  uint ipad[5];
-  uint opad[5];
+  u32 ipad[5];
+  u32 opad[5];
 
-  uint dgst[10];
-  uint out[10];
+  u32 dgst[10];
+  u32 out[10];
 
 } wpa_tmp_t;
 
@@ -358,69 +358,69 @@ typedef struct bitcoin_wallet_tmp
 
 typedef struct dcc2_tmp
 {
-  uint ipad[5];
-  uint opad[5];
+  u32 ipad[5];
+  u32 opad[5];
 
-  uint dgst[5];
-  uint out[4];
+  u32 dgst[5];
+  u32 out[4];
 
 } dcc2_tmp_t;
 
 typedef struct bcrypt_tmp
 {
-  uint E[18];
+  u32 E[18];
 
-  uint P[18];
+  u32 P[18];
 
-  uint S0[256];
-  uint S1[256];
-  uint S2[256];
-  uint S3[256];
+  u32 S0[256];
+  u32 S1[256];
+  u32 S2[256];
+  u32 S3[256];
 
 } bcrypt_tmp_t;
 
 typedef struct pwsafe2_tmp
 {
-  uint digest[2];
+  u32 digest[2];
 
-  uint P[18];
+  u32 P[18];
 
-  uint S0[256];
-  uint S1[256];
-  uint S2[256];
-  uint S3[256];
+  u32 S0[256];
+  u32 S1[256];
+  u32 S2[256];
+  u32 S3[256];
 
 } pwsafe2_tmp_t;
 
 typedef struct pwsafe3_tmp
 {
-  uint digest_buf[8];
+  u32 digest_buf[8];
 
 } pwsafe3_tmp_t;
 
 typedef struct androidpin_tmp
 {
-  uint digest_buf[5];
+  u32 digest_buf[5];
 
 } androidpin_tmp_t;
 
 typedef struct androidfde_tmp
 {
-  uint ipad[5];
-  uint opad[5];
+  u32 ipad[5];
+  u32 opad[5];
 
-  uint dgst[10];
-  uint out[10];
+  u32 dgst[10];
+  u32 out[10];
 
 } androidfde_tmp_t;
 
 typedef struct tc_tmp
 {
-  uint ipad[16];
-  uint opad[16];
+  u32 ipad[16];
+  u32 opad[16];
 
-  uint dgst[64];
-  uint out[64];
+  u32 dgst[64];
+  u32 out[64];
 
 } tc_tmp_t;
 
@@ -436,44 +436,44 @@ typedef struct tc64_tmp
 
 typedef struct agilekey_tmp
 {
-  uint ipad[5];
-  uint opad[5];
+  u32 ipad[5];
+  u32 opad[5];
 
-  uint dgst[5];
-  uint out[5];
+  u32 dgst[5];
+  u32 out[5];
 
 } agilekey_tmp_t;
 
 typedef struct mywallet_tmp
 {
-  uint ipad[5];
-  uint opad[5];
+  u32 ipad[5];
+  u32 opad[5];
 
-  uint dgst1[5];
-  uint out1[5];
+  u32 dgst1[5];
+  u32 out1[5];
 
-  uint dgst2[5];
-  uint out2[5];
+  u32 dgst2[5];
+  u32 out2[5];
 
 } mywallet_tmp_t;
 
 typedef struct sha1aix_tmp
 {
-  uint ipad[5];
-  uint opad[5];
+  u32 ipad[5];
+  u32 opad[5];
 
-  uint dgst[5];
-  uint out[5];
+  u32 dgst[5];
+  u32 out[5];
 
 } sha1aix_tmp_t;
 
 typedef struct sha256aix_tmp
 {
-  uint ipad[8];
-  uint opad[8];
+  u32 ipad[8];
+  u32 opad[8];
 
-  uint dgst[8];
-  uint out[8];
+  u32 dgst[8];
+  u32 out[8];
 
 } sha256aix_tmp_t;
 
@@ -489,11 +489,11 @@ typedef struct sha512aix_tmp
 
 typedef struct lastpass_tmp
 {
-  uint ipad[8];
-  uint opad[8];
+  u32 ipad[8];
+  u32 opad[8];
 
-  uint dgst[8];
-  uint out[8];
+  u32 dgst[8];
+  u32 out[8];
 
 } lastpass_tmp_t;
 
@@ -505,23 +505,23 @@ typedef struct drupal7_tmp
 
 typedef struct lotus8_tmp
 {
-  uint ipad[5];
-  uint opad[5];
+  u32 ipad[5];
+  u32 opad[5];
 
-  uint dgst[5];
-  uint out[5];
+  u32 dgst[5];
+  u32 out[5];
 
 } lotus8_tmp_t;
 
 typedef struct office2007_tmp
 {
-  uint out[5];
+  u32 out[5];
 
 } office2007_tmp_t;
 
 typedef struct office2010_tmp
 {
-  uint out[5];
+  u32 out[5];
 
 } office2010_tmp_t;
 
@@ -533,7 +533,7 @@ typedef struct office2013_tmp
 
 typedef struct saph_sha1_tmp
 {
-  uint digest_buf[5];
+  u32 digest_buf[5];
 
 } saph_sha1_tmp_t;
 
@@ -595,50 +595,50 @@ typedef struct oraclet_tmp
 
 typedef struct seven_zip_tmp
 {
-  uint block[16];
+  u32 block[16];
 
-  uint dgst[8];
+  u32 dgst[8];
 
-  uint block_len;
-  uint final_len;
+  u32 block_len;
+  u32 final_len;
 
 } seven_zip_tmp_t;
 
 typedef struct bsdicrypt_tmp
 {
-  uint Kc[16];
-  uint Kd[16];
+  u32 Kc[16];
+  u32 Kd[16];
 
-  uint iv[2];
+  u32 iv[2];
 
 } bsdicrypt_tmp_t;
 
 typedef struct rar3_tmp
 {
-  uint dgst[17][5];
+  u32 dgst[17][5];
 
 } rar3_tmp_t;
 
 typedef struct cram_md5
 {
-  uint user[16];
+  u32 user[16];
 
 } cram_md5_t;
 
 typedef struct seven_zip
 {
-  uint iv_buf[4];
-  uint iv_len;
+  u32 iv_buf[4];
+  u32 iv_len;
 
-  uint salt_buf[4];
-  uint salt_len;
+  u32 salt_buf[4];
+  u32 salt_len;
 
-  uint crc;
+  u32 crc;
 
-  uint data_buf[96];
-  uint data_len;
+  u32 data_buf[96];
+  u32 data_len;
 
-  uint unpack_size;
+  u32 unpack_size;
 
 } seven_zip_t;
 
@@ -1340,174 +1340,174 @@ typedef enum rounds_count
  * input functions
  */
 
-int bcrypt_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int cisco4_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int dcc_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int dcc2_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int descrypt_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int des_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int episerver_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int ipb2_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int joomla_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int postgresql_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int netscreen_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int keccak_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int lm_parse_hash                 (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int md4_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int md4s_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int md5_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int md5s_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int md5half_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int md5md5_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int md5pix_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int md5asa_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int md5apr1_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int md5crypt_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int mssql2000_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int mssql2005_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int netntlmv1_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int netntlmv2_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int oracleh_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int oracles_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int oraclet_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int osc_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int arubaos_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int osx1_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int osx512_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int phpass_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha1_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha1b64_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha1b64s_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha1s_parse_hash              (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha256_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha256s_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha384_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha512_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha512s_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha512crypt_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int smf_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int vb3_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int vb30_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int wpa_parse_hash                (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int psafe2_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int psafe3_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int ikepsk_md5_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int ikepsk_sha1_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int androidpin_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int ripemd160_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int whirlpool_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int truecrypt_parse_hash_1k       (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int truecrypt_parse_hash_2k       (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int md5aix_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha256aix_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha512aix_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int agilekey_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha1aix_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int lastpass_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int gost_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha256crypt_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int mssql2012_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha512osx_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int episerver4_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha512grub_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha512b64s_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int hmacsha1_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int hmacsha256_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int hmacsha512_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int hmacmd5_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int krb5pa_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int krb5tgs_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sapb_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sapg_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int drupal7_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sybasease_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int mysql323_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int rakp_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int netscaler_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int chap_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int cloudkey_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int nsec3_parse_hash              (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int wbb3_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int racf_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int lotus5_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int lotus6_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int lotus8_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int hmailserver_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int phps_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int mediawiki_b_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int peoplesoft_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int skype_parse_hash              (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int androidfde_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int scrypt_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int juniper_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int cisco8_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int cisco9_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int office2007_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int office2010_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int office2013_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int oldoffice01_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int oldoffice01cm1_parse_hash     (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int oldoffice01cm2_parse_hash     (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int oldoffice34_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int oldoffice34cm1_parse_hash     (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int oldoffice34cm2_parse_hash     (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int radmin2_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int djangosha1_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int djangopbkdf2_parse_hash       (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int siphash_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int crammd5_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int saph_sha1_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int redmine_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int pdf11_parse_hash              (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int pdf11cm1_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int pdf11cm2_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int pdf14_parse_hash              (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int pdf17l3_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int pdf17l8_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int pbkdf2_sha256_parse_hash      (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int prestashop_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int postgresql_auth_parse_hash    (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int mysql_auth_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int bitcoin_wallet_parse_hash     (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sip_auth_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int crc32_parse_hash              (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int seven_zip_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int gost2012sbog_256_parse_hash   (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int gost2012sbog_512_parse_hash   (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int pbkdf2_md5_parse_hash         (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int pbkdf2_sha1_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int pbkdf2_sha512_parse_hash      (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int ecryptfs_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int bsdicrypt_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int rar3hp_parse_hash             (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int rar5_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int cf10_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int mywallet_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int ms_drsr_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int androidfde_samsung_parse_hash (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int axcrypt_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int sha1axcrypt_parse_hash        (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int keepass_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int pstoken_parse_hash            (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int zip2_parse_hash               (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int veracrypt_parse_hash_200000   (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int veracrypt_parse_hash_500000   (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int veracrypt_parse_hash_327661   (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int veracrypt_parse_hash_655331   (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int win8phone_parse_hash          (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
-int opencart_parse_hash           (char *input_buf, uint input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int bcrypt_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int cisco4_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int dcc_parse_hash                (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int dcc2_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int descrypt_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int des_parse_hash                (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int episerver_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int ipb2_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int joomla_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int postgresql_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int netscreen_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int keccak_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int lm_parse_hash                 (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int md4_parse_hash                (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int md4s_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int md5_parse_hash                (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int md5s_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int md5half_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int md5md5_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int md5pix_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int md5asa_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int md5apr1_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int md5crypt_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int mssql2000_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int mssql2005_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int netntlmv1_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int netntlmv2_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int oracleh_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int oracles_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int oraclet_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int osc_parse_hash                (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int arubaos_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int osx1_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int osx512_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int phpass_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha1_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha1b64_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha1b64s_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha1s_parse_hash              (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha256_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha256s_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha384_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha512_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha512s_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha512crypt_parse_hash        (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int smf_parse_hash                (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int vb3_parse_hash                (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int vb30_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int wpa_parse_hash                (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int psafe2_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int psafe3_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int ikepsk_md5_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int ikepsk_sha1_parse_hash        (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int androidpin_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int ripemd160_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int whirlpool_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int truecrypt_parse_hash_1k       (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int truecrypt_parse_hash_2k       (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int md5aix_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha256aix_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha512aix_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int agilekey_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha1aix_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int lastpass_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int gost_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha256crypt_parse_hash        (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int mssql2012_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha512osx_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int episerver4_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha512grub_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha512b64s_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int hmacsha1_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int hmacsha256_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int hmacsha512_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int hmacmd5_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int krb5pa_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int krb5tgs_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sapb_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sapg_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int drupal7_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sybasease_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int mysql323_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int rakp_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int netscaler_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int chap_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int cloudkey_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int nsec3_parse_hash              (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int wbb3_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int racf_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int lotus5_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int lotus6_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int lotus8_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int hmailserver_parse_hash        (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int phps_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int mediawiki_b_parse_hash        (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int peoplesoft_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int skype_parse_hash              (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int androidfde_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int scrypt_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int juniper_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int cisco8_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int cisco9_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int office2007_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int office2010_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int office2013_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int oldoffice01_parse_hash        (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int oldoffice01cm1_parse_hash     (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int oldoffice01cm2_parse_hash     (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int oldoffice34_parse_hash        (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int oldoffice34cm1_parse_hash     (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int oldoffice34cm2_parse_hash     (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int radmin2_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int djangosha1_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int djangopbkdf2_parse_hash       (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int siphash_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int crammd5_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int saph_sha1_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int redmine_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int pdf11_parse_hash              (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int pdf11cm1_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int pdf11cm2_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int pdf14_parse_hash              (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int pdf17l3_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int pdf17l8_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int pbkdf2_sha256_parse_hash      (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int prestashop_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int postgresql_auth_parse_hash    (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int mysql_auth_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int bitcoin_wallet_parse_hash     (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sip_auth_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int crc32_parse_hash              (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int seven_zip_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int gost2012sbog_256_parse_hash   (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int gost2012sbog_512_parse_hash   (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int pbkdf2_md5_parse_hash         (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int pbkdf2_sha1_parse_hash        (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int pbkdf2_sha512_parse_hash      (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int ecryptfs_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int bsdicrypt_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int rar3hp_parse_hash             (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int rar5_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int cf10_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int mywallet_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int ms_drsr_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int androidfde_samsung_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int axcrypt_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int sha1axcrypt_parse_hash        (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int keepass_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int pstoken_parse_hash            (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int zip2_parse_hash               (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int veracrypt_parse_hash_200000   (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int veracrypt_parse_hash_500000   (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int veracrypt_parse_hash_327661   (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int veracrypt_parse_hash_655331   (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int win8phone_parse_hash          (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
+int opencart_parse_hash           (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig);
 
 /**
  * output functions
  */
 
-char *stroptitype (const uint opti_type);
-char *strhashtype (const uint hash_mode);
-char *strparser   (const uint parser_status);
+char *stroptitype (const u32 opti_type);
+char *strhashtype (const u32 hash_mode);
+char *strparser   (const u32 parser_status);
 
-void to_hccap_t (hccap_t *hccap, const uint salt_pos, const uint digest_pos, const hashconfig_t *hashconfig, const hashes_t *hashes);
+void to_hccap_t (hccap_t *hccap, const u32 salt_pos, const u32 digest_pos, const hashconfig_t *hashconfig, const hashes_t *hashes);
 
-void ascii_digest (char *out_buf, const uint salt_pos, const uint digest_pos, const hashconfig_t *hashconfig, const hashes_t *hashes);
+void ascii_digest (char *out_buf, const u32 salt_pos, const u32 digest_pos, const hashconfig_t *hashconfig, const hashes_t *hashes);
 
 int     hashconfig_init                   (hashconfig_t *hashconfig, const user_options_t *user_options);
 void    hashconfig_destroy                (hashconfig_t *hashconfig);

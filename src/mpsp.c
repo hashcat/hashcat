@@ -20,7 +20,7 @@ static const char DEF_MASK[] = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
 
 #define MAX_MFS 5 // 4*charset, 1*mask
 
-void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHARSIZ])
+void mp_css_to_uniq_tbl (u32 css_cnt, cs_t *css, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
 {
   /* generates a lookup table where key is the char itself for fastest possible lookup performance */
 
@@ -31,44 +31,44 @@ void mp_css_to_uniq_tbl (uint css_cnt, cs_t *css, uint uniq_tbls[SP_PW_MAX][CHAR
     exit (-1);
   }
 
-  for (uint css_pos = 0; css_pos < css_cnt; css_pos++)
+  for (u32 css_pos = 0; css_pos < css_cnt; css_pos++)
   {
-    uint *uniq_tbl = uniq_tbls[css_pos];
+    u32 *uniq_tbl = uniq_tbls[css_pos];
 
-    uint *cs_buf = css[css_pos].cs_buf;
-    uint  cs_len = css[css_pos].cs_len;
+    u32 *cs_buf = css[css_pos].cs_buf;
+    u32  cs_len = css[css_pos].cs_len;
 
-    for (uint cs_pos = 0; cs_pos < cs_len; cs_pos++)
+    for (u32 cs_pos = 0; cs_pos < cs_len; cs_pos++)
     {
-      uint c = cs_buf[cs_pos] & 0xff;
+      u32 c = cs_buf[cs_pos] & 0xff;
 
       uniq_tbl[c] = 1;
     }
   }
 }
 
-static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, uint css_cnt, const hashconfig_t *hashconfig)
+static void mp_add_cs_buf (u32 *in_buf, size_t in_len, cs_t *css, u32 css_cnt, const hashconfig_t *hashconfig)
 {
   cs_t *cs = &css[css_cnt];
 
-  size_t css_uniq_sz = CHARSIZ * sizeof (uint);
+  size_t css_uniq_sz = CHARSIZ * sizeof (u32);
 
-  uint *css_uniq = (uint *) mymalloc (css_uniq_sz);
+  u32 *css_uniq = (u32 *) mymalloc (css_uniq_sz);
 
   size_t i;
 
   for (i = 0; i < cs->cs_len; i++)
   {
-    const uint u = cs->cs_buf[i];
+    const u32 u = cs->cs_buf[i];
 
     css_uniq[u] = 1;
   }
 
   for (i = 0; i < in_len; i++)
   {
-    uint u = in_buf[i] & 0xff;
+    u32 u = in_buf[i] & 0xff;
 
-    if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER) u = (uint) toupper (u);
+    if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER) u = (u32) toupper (u);
 
     if (css_uniq[u] == 1) continue;
 
@@ -82,13 +82,13 @@ static void mp_add_cs_buf (uint *in_buf, size_t in_len, cs_t *css, uint css_cnt,
   myfree (css_uniq);
 }
 
-static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, uint mp_usr_offset, int interpret, const hashconfig_t *hashconfig, const user_options_t *user_options)
+static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, u32 mp_usr_offset, int interpret, const hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   size_t in_pos;
 
   for (in_pos = 0; in_pos < in_len; in_pos++)
   {
-    uint p0 = in_buf[in_pos] & 0xff;
+    u32 p0 = in_buf[in_pos] & 0xff;
 
     if (interpret == 1 && p0 == '?')
     {
@@ -96,7 +96,7 @@ static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, 
 
       if (in_pos == in_len) break;
 
-      uint p1 = in_buf[in_pos] & 0xff;
+      u32 p1 = in_buf[in_pos] & 0xff;
 
       switch (p1)
       {
@@ -143,7 +143,7 @@ static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, 
           exit (-1);
         }
 
-        uint p1 = in_buf[in_pos] & 0xff;
+        u32 p1 = in_buf[in_pos] & 0xff;
 
         if ((is_valid_hex_char ((u8) p0) == false) || (is_valid_hex_char ((u8) p1) == false))
         {
@@ -152,16 +152,16 @@ static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, 
           exit (-1);
         }
 
-        uint chr = 0;
+        u32 chr = 0;
 
-        chr  = (uint) hex_convert ((u8) p1) << 0;
-        chr |= (uint) hex_convert ((u8) p0) << 4;
+        chr  = (u32) hex_convert ((u8) p1) << 0;
+        chr |= (u32) hex_convert ((u8) p0) << 4;
 
         mp_add_cs_buf (&chr, 1, mp_usr, mp_usr_offset, hashconfig);
       }
       else
       {
-        uint chr = p0;
+        u32 chr = p0;
 
         mp_add_cs_buf (&chr, 1, mp_usr, mp_usr_offset, hashconfig);
       }
@@ -169,11 +169,11 @@ static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, 
   }
 }
 
-u64 mp_get_sum (uint css_cnt, cs_t *css)
+u64 mp_get_sum (u32 css_cnt, cs_t *css)
 {
   u64 sum = 1;
 
-  for (uint css_pos = 0; css_pos < css_cnt; css_pos++)
+  for (u32 css_pos = 0; css_pos < css_cnt; css_pos++)
   {
     sum *= css[css_pos].cs_len;
   }
@@ -181,12 +181,12 @@ u64 mp_get_sum (uint css_cnt, cs_t *css)
   return (sum);
 }
 
-cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, uint *css_cnt, const hashconfig_t *hashconfig, const user_options_t *user_options)
+cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u32 *css_cnt, const hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   cs_t *css = (cs_t *) mycalloc (256, sizeof (cs_t));
 
-  uint mask_pos;
-  uint css_pos;
+  u32 mask_pos;
+  u32 css_pos;
 
   for (mask_pos = 0, css_pos = 0; mask_pos < mask_len; mask_pos++, css_pos++)
   {
@@ -200,7 +200,7 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
 
       char p1 = mask_buf[mask_pos];
 
-      uint chr = (uint) p1;
+      u32 chr = (u32) p1;
 
       switch (p1)
       {
@@ -260,16 +260,16 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
           exit (-1);
         }
 
-        uint chr = 0;
+        u32 chr = 0;
 
-        chr |= (uint) hex_convert ((u8) p1) << 0;
-        chr |= (uint) hex_convert ((u8) p0) << 4;
+        chr |= (u32) hex_convert ((u8) p1) << 0;
+        chr |= (u32) hex_convert ((u8) p0) << 4;
 
         mp_add_cs_buf (&chr, 1, css, css_pos, hashconfig);
       }
       else
       {
-        uint chr = (uint) p0;
+        u32 chr = (u32) p0;
 
         mp_add_cs_buf (&chr, 1, css, css_pos, hashconfig);
       }
@@ -300,13 +300,13 @@ void mp_exec (u64 val, char *buf, cs_t *css, int css_cnt)
   }
 }
 
-uint mp_get_length (char *mask)
+u32 mp_get_length (char *mask)
 {
-  uint len = 0;
+  u32 len = 0;
 
-  uint mask_len = strlen (mask);
+  u32 mask_len = strlen (mask);
 
-  for (uint i = 0; i < mask_len; i++)
+  for (u32 i = 0; i < mask_len; i++)
   {
     if (mask[i] == '?') i++;
 
@@ -316,11 +316,11 @@ uint mp_get_length (char *mask)
   return len;
 }
 
-void mp_cut_at (char *mask, uint max)
+void mp_cut_at (char *mask, u32 max)
 {
-  uint i;
-  uint j;
-  uint mask_len = strlen (mask);
+  u32 i;
+  u32 j;
+  u32 mask_len = strlen (mask);
 
   for (i = 0, j = 0; i < mask_len && j < max; i++, j++)
   {
@@ -332,9 +332,9 @@ void mp_cut_at (char *mask, uint max)
 
 void mp_setup_sys (cs_t *mp_sys)
 {
-  uint pos;
-  uint chr;
-  uint donec[CHARSIZ] = { 0 };
+  u32 pos;
+  u32 chr;
+  u32 donec[CHARSIZ] = { 0 };
 
   for (pos = 0, chr =  'a'; chr <=  'z'; chr++) { donec[chr] = 1;
                                                   mp_sys[0].cs_buf[pos++] = chr;
@@ -359,7 +359,7 @@ void mp_setup_sys (cs_t *mp_sys)
                                                   mp_sys[5].cs_len = pos; }
 }
 
-void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index, const hashconfig_t *hashconfig, const user_options_t *user_options)
+void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, u32 index, const hashconfig_t *hashconfig, const user_options_t *user_options)
 {
   FILE *fp = fopen (buf, "rb");
 
@@ -390,20 +390,20 @@ void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, uint index, const hash
   }
 }
 
-void mp_reset_usr (cs_t *mp_usr, uint index)
+void mp_reset_usr (cs_t *mp_usr, u32 index)
 {
   mp_usr[index].cs_len = 0;
 
   memset (mp_usr[index].cs_buf, 0, sizeof (mp_usr[index].cs_buf));
 }
 
-static char *mp_get_truncated_mask (const char *mask_buf, const size_t mask_len, const uint len, const user_options_t *user_options)
+static char *mp_get_truncated_mask (const char *mask_buf, const size_t mask_len, const u32 len, const user_options_t *user_options)
 {
   char *new_mask_buf = (char *) mymalloc (256);
 
-  uint mask_pos;
+  u32 mask_pos;
 
-  uint css_pos;
+  u32 css_pos;
 
   for (mask_pos = 0, css_pos = 0; mask_pos < mask_len; mask_pos++, css_pos++)
   {
@@ -457,11 +457,11 @@ static char *mp_get_truncated_mask (const char *mask_buf, const size_t mask_len,
   return (NULL);
 }
 
-u64 sp_get_sum (uint start, uint stop, cs_t *root_css_buf)
+u64 sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf)
 {
   u64 sum = 1;
 
-  uint i;
+  u32 i;
 
   for (i = start; i < stop; i++)
   {
@@ -471,13 +471,13 @@ u64 sp_get_sum (uint start, uint stop, cs_t *root_css_buf)
   return (sum);
 }
 
-void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, uint start, uint stop)
+void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop)
 {
   u64 v = ctx;
 
   cs_t *cs = &root_css_buf[start];
 
-  uint i;
+  u32 i;
 
   for (i = start; i < stop; i++)
   {
@@ -486,7 +486,7 @@ void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u
 
     v = d;
 
-    const uint k = cs->cs_buf[m];
+    const u32 k = cs->cs_buf[m];
 
     pw_buf[i - start] = (char) k;
 
@@ -502,11 +502,11 @@ int sp_comp_val (const void *p1, const void *p2)
   return b2->val - b1->val;
 }
 
-void sp_setup_tbl (const char *shared_dir, char *hcstat, uint disable, uint classic, hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf)
+void sp_setup_tbl (const char *shared_dir, char *hcstat, u32 disable, u32 classic, hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf)
 {
-  uint i;
-  uint j;
-  uint k;
+  u32 i;
+  u32 j;
+  u32 k;
 
   /**
    * Initialize hcstats
@@ -670,7 +670,7 @@ void sp_setup_tbl (const char *shared_dir, char *hcstat, uint disable, uint clas
 
   for (i = 0; i < SP_ROOT_CNT; i++)
   {
-    uint key = i % CHARSIZ;
+    u32 key = i % CHARSIZ;
 
     root_table_buf[i].key = key;
     root_table_buf[i].val = root_stats_buf[i];
@@ -678,7 +678,7 @@ void sp_setup_tbl (const char *shared_dir, char *hcstat, uint disable, uint clas
 
   for (i = 0; i < SP_MARKOV_CNT; i++)
   {
-    uint key = i % CHARSIZ;
+    u32 key = i % CHARSIZ;
 
     markov_table_buf[i].key = key;
     markov_table_buf[i].val = markov_stats_buf[i];
@@ -705,7 +705,7 @@ void sp_setup_tbl (const char *shared_dir, char *hcstat, uint disable, uint clas
   }
 }
 
-void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, uint threshold, uint uniq_tbls[SP_PW_MAX][CHARSIZ])
+void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
 {
   memset (root_css_buf,   0, SP_PW_MAX *           sizeof (cs_t));
   memset (markov_css_buf, 0, SP_PW_MAX * CHARSIZ * sizeof (cs_t));
@@ -714,15 +714,15 @@ void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table
    * Convert tables to css
    */
 
-  for (uint i = 0; i < SP_ROOT_CNT; i++)
+  for (u32 i = 0; i < SP_ROOT_CNT; i++)
   {
-    uint pw_pos = i / CHARSIZ;
+    u32 pw_pos = i / CHARSIZ;
 
     cs_t *cs = &root_css_buf[pw_pos];
 
     if (cs->cs_len == threshold) continue;
 
-    uint key = root_table_buf[i].key;
+    u32 key = root_table_buf[i].key;
 
     if (uniq_tbls[pw_pos][key] == 0) continue;
 
@@ -735,17 +735,17 @@ void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table
    * Convert table to css
    */
 
-  for (uint i = 0; i < SP_MARKOV_CNT; i++)
+  for (u32 i = 0; i < SP_MARKOV_CNT; i++)
   {
-    uint c = i / CHARSIZ;
+    u32 c = i / CHARSIZ;
 
     cs_t *cs = &markov_css_buf[c];
 
     if (cs->cs_len == threshold) continue;
 
-    uint pw_pos = c / CHARSIZ;
+    u32 pw_pos = c / CHARSIZ;
 
-    uint key = markov_table_buf[i].key;
+    u32 key = markov_table_buf[i].key;
 
     if ((pw_pos + 1) < SP_PW_MAX) if (uniq_tbls[pw_pos + 1][key] == 0) continue;
 
@@ -755,15 +755,15 @@ void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table
   }
 
   /*
-  for (uint i = 0; i < 8; i++)
+  for (u32 i = 0; i < 8; i++)
   {
-    for (uint j = 0x20; j < 0x80; j++)
+    for (u32 j = 0x20; j < 0x80; j++)
     {
       cs_t *ptr = &markov_css_buf[(i * CHARSIZ) + j];
 
       printf ("pos:%u key:%u len:%u\n", i, j, ptr->cs_len);
 
-      for (uint k = 0; k < 10; k++)
+      for (u32 k = 0; k < 10; k++)
       {
         printf ("  %u\n",  ptr->cs_buf[k]);
       }
@@ -774,7 +774,7 @@ void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table
 
 void sp_stretch_root (hcstat_table_t *in, hcstat_table_t *out)
 {
-  for (uint i = 0; i < SP_PW_MAX; i += 2)
+  for (u32 i = 0; i < SP_PW_MAX; i += 2)
   {
     memcpy (out, in, CHARSIZ * sizeof (hcstat_table_t));
 
@@ -786,7 +786,7 @@ void sp_stretch_root (hcstat_table_t *in, hcstat_table_t *out)
 
     out++;
 
-    for (uint j = 1; j < CHARSIZ; j++)
+    for (u32 j = 1; j < CHARSIZ; j++)
     {
       out->key = j;
       out->val = 0;
@@ -798,21 +798,21 @@ void sp_stretch_root (hcstat_table_t *in, hcstat_table_t *out)
 
 void sp_stretch_markov (hcstat_table_t *in, hcstat_table_t *out)
 {
-  for (uint i = 0; i < SP_PW_MAX; i += 2)
+  for (u32 i = 0; i < SP_PW_MAX; i += 2)
   {
     memcpy (out, in, CHARSIZ * CHARSIZ * sizeof (hcstat_table_t));
 
     out += CHARSIZ * CHARSIZ;
     in  += CHARSIZ * CHARSIZ;
 
-    for (uint j = 0; j < CHARSIZ; j++)
+    for (u32 j = 0; j < CHARSIZ; j++)
     {
       out->key = 0;
       out->val = 1;
 
       out++;
 
-      for (uint k = 1; k < CHARSIZ; k++)
+      for (u32 k = 1; k < CHARSIZ; k++)
       {
         out->key = k;
         out->val = 0;
@@ -841,7 +841,7 @@ static void mask_append (mask_ctx_t *mask_ctx, const user_options_t *user_option
 {
   if (user_options->increment == true)
   {
-    for (uint mask_len = user_options->increment_min; mask_len <= user_options->increment_max; mask_len++)
+    for (u32 mask_len = user_options->increment_min; mask_len <= user_options->increment_max; mask_len++)
     {
       char *mask_truncated = mp_get_truncated_mask (mask, strlen (mask), mask_len, user_options);
 

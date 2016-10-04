@@ -9,7 +9,7 @@
 #include <time.h>
 #include <inttypes.h>
 
-uint convert_from_hex (char *line_buf, const uint line_len, const user_options_t *user_options);
+u32 convert_from_hex (char *line_buf, const u32 line_len, const user_options_t *user_options);
 
 void load_segment (wl_data_t *wl_data, FILE *fd);
 
@@ -17,7 +17,7 @@ void get_next_word_lm  (char *buf, u64 sz, u64 *len, u64 *off);
 void get_next_word_uc  (char *buf, u64 sz, u64 *len, u64 *off);
 void get_next_word_std (char *buf, u64 sz, u64 *len, u64 *off);
 
-void get_next_word (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, FILE *fd, char **out_buf, uint *out_len);
+void get_next_word (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, FILE *fd, char **out_buf, u32 *out_len);
 
 void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len);
 
