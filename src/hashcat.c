@@ -660,12 +660,6 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
       u32 mask_min = hashconfig->pw_min;
       u32 mask_max = hashconfig->pw_max;
 
-      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
-      {
-        mask_min *= 2;
-        mask_max *= 2;
-      }
-
       if ((mask_ctx->css_cnt < mask_min) || (mask_ctx->css_cnt > mask_max))
       {
         if (mask_ctx->css_cnt < mask_min)
@@ -683,6 +677,12 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
         logfile_sub_msg ("STOP");
 
         return 0;
+      }
+
+      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
+      {
+        mask_min *= 2;
+        mask_max *= 2;
       }
 
       if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)

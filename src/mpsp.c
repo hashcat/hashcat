@@ -50,7 +50,7 @@ void mp_css_split_cnt (const mask_ctx_t *mask_ctx, const hashconfig_t *hashconfi
       }
       else
       {
-        if ((mask_ctx->css_buf[0].cs_len * mask_ctx->css_buf[1].cs_len * mask_ctx->css_buf[2].cs_len) > 128)
+        if ((mask_ctx->css_buf[0].cs_len * mask_ctx->css_buf[1].cs_len * mask_ctx->css_buf[2].cs_len) > 256)
         {
           css_cnt_r = 3;
         }
