@@ -1088,7 +1088,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * weak hash check is the first to write to potfile, so open it for writing from here
    */
 
-  potfile_write_open (potfile_ctx);
+  const int rc_potfile_write = potfile_write_open (potfile_ctx);
+
+  if (rc_potfile_write == -1) return -1;
 
   /**
    * weak hash check
