@@ -9,11 +9,6 @@
 #include "memory.h"
 #include "interface.h"
 #include "timer.h"
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
 #include "mpsp.h"
 #include "rp_cpu.h"
 #include "tuningdb.h"
@@ -279,7 +274,7 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
 
       if (restore_left == 0)
       {
-        if (user_options->restore_disable == 0) cycle_restore (restore_ctx, opencl_ctx);
+        cycle_restore (restore_ctx, opencl_ctx);
 
         restore_left = user_options->restore_timer;
       }
@@ -351,6 +346,23 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
         status_left = user_options->status_timer;
       }
     }
+  }
+
+  // final round of save_hash
+
+  if (remove_check == true)
+  {
+    if (hashes->digests_saved != hashes->digests_done)
+    {
+      save_hash (user_options, hashconfig, hashes);
+    }
+  }
+
+  // final round of cycle_restore
+
+  if (restore_check == true)
+  {
+    cycle_restore (restore_ctx, opencl_ctx);
   }
 
   myfree (fan_speed_chgd);

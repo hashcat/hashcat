@@ -1207,33 +1207,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   myfree (inner_threads);
 
-  // we dont need restore file anymore
-  if (restore_ctx->enabled == true)
-  {
-    if ((status_ctx->devices_status == STATUS_EXHAUSTED) || (status_ctx->devices_status == STATUS_CRACKED))
-    {
-      if (status_ctx->run_thread_level1 == true) // this is to check for [c]heckpoint
-      {
-        unlink (restore_ctx->eff_restore_file);
-        unlink (restore_ctx->new_restore_file);
-      }
-      else
-      {
-        cycle_restore (restore_ctx, opencl_ctx);
-      }
-    }
-    else
-    {
-      cycle_restore (restore_ctx, opencl_ctx);
-    }
-  }
-
-  // finally save left hashes
-  if ((hashes->hashlist_mode == HL_MODE_FILE) && (user_options->remove == true) && (hashes->digests_saved != hashes->digests_done))
-  {
-    save_hash (user_options, hashconfig, hashes);
-  }
-
   /**
    * Clean up
    */
@@ -1527,7 +1500,11 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
     user_options->quiet = false;
   }
 
-  // Update dictionary statistic
+  // if exhausted or cracked, unlink the restore file
+
+  unlink_restore (restore_ctx, status_ctx);
+
+  // final update dictionary cache
 
   dictstat_write (dictstat_ctx);
 

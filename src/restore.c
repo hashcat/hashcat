@@ -288,8 +288,6 @@ void cycle_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx)
 
   struct stat st;
 
-  memset (&st, 0, sizeof(st));
-
   if (stat (eff_restore_file, &st) == 0)
   {
     if (unlink (eff_restore_file))
@@ -301,6 +299,18 @@ void cycle_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx)
   if (rename (new_restore_file, eff_restore_file))
   {
     log_info ("WARN: Rename file '%s' to '%s': %s", new_restore_file, eff_restore_file, strerror (errno));
+  }
+}
+
+void unlink_restore (restore_ctx_t *restore_ctx, status_ctx_t *status_ctx)
+{
+  if ((status_ctx->devices_status == STATUS_EXHAUSTED) || (status_ctx->devices_status == STATUS_CRACKED))
+  {
+    if (status_ctx->run_thread_level1 == true) // this is to check for [c]heckpoint
+    {
+      unlink (restore_ctx->eff_restore_file);
+      unlink (restore_ctx->new_restore_file);
+    }
   }
 }
 
