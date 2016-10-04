@@ -121,7 +121,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
   hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   hashes_t             *hashes              = hashcat_ctx->hashes;
-  hwmon_ctx_t          *hwmon_ctx           = hashcat_ctx->hwmon_ctx;
   induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
@@ -510,7 +509,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->benchmark == true)
   {
-    status_benchmark (status_ctx, opencl_ctx, hashconfig, user_options);
+    status_benchmark (hashcat_ctx);
 
     if (user_options->machine_readable == false)
     {
@@ -525,7 +524,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (hashes->digests_saved != hashes->digests_done) log_info ("");
 
-      status_display (status_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
+      status_display (hashcat_ctx);
 
       log_info ("");
     }
@@ -533,7 +532,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     {
       if (user_options->status == true)
       {
-        status_display (status_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
+        status_display (hashcat_ctx);
 
         log_info ("");
       }

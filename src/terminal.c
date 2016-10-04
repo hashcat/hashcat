@@ -117,16 +117,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
   // this is required, because some of the variables down there are not initialized at that point
   while (status_ctx->devices_status == STATUS_INIT) hc_sleep_ms (100);
 
-  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  cpt_ctx_t            *cpt_ctx            = hashcat_ctx->cpt_ctx;
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  hashes_t             *hashes             = hashcat_ctx->hashes;
-  hwmon_ctx_t          *hwmon_ctx          = hashcat_ctx->hwmon_ctx;
-  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
-  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
   restore_ctx_t        *restore_ctx        = hashcat_ctx->restore_ctx;
-  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
 
   const bool quiet = user_options->quiet;
@@ -158,7 +149,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
         log_info ("");
 
-        status_display (status_ctx, opencl_ctx, hwmon_ctx, hashconfig, hashes, cpt_ctx, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
+        status_display (hashcat_ctx);
 
         log_info ("");
 

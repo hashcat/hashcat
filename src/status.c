@@ -116,6 +116,7 @@ static char *strstatus (const u32 devices_status)
 
   return ((char *) "Uninitialized! Bug!");
 }
+
 double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
 {
   int exec_pos = (int) device_param->exec_pos - last_num_entries;
@@ -143,8 +144,19 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
   return exec_ms_sum / exec_ms_cnt;
 }
 
-void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, const hashes_t *hashes, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
+void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 {
+  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
+  hwmon_ctx_t          *hwmon_ctx          = hashcat_ctx->hwmon_ctx;
+  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  restore_ctx_t        *restore_ctx        = hashcat_ctx->restore_ctx;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+
   if (status_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");
@@ -292,8 +304,21 @@ void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *op
   fflush (out);
 }
 
-void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hwmon_ctx_t *hwmon_ctx, const hashconfig_t *hashconfig, const hashes_t *hashes, const cpt_ctx_t *cpt_ctx, const restore_ctx_t *restore_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx)
+void status_display (hashcat_ctx_t *hashcat_ctx)
 {
+  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  cpt_ctx_t            *cpt_ctx            = hashcat_ctx->cpt_ctx;
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
+  hwmon_ctx_t          *hwmon_ctx          = hashcat_ctx->hwmon_ctx;
+  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  restore_ctx_t        *restore_ctx        = hashcat_ctx->restore_ctx;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+
   if (status_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");
@@ -306,7 +331,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   if (user_options->machine_readable == true)
   {
-    status_display_machine_readable (status_ctx, opencl_ctx, hwmon_ctx, hashes, restore_ctx, user_options, user_options_extra, straight_ctx, combinator_ctx, mask_ctx);
+    status_display_machine_readable (hashcat_ctx);
 
     return;
   }
@@ -834,6 +859,15 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
     if (device_param->skipped) continue;
 
+//    log_info ("Plain.Txt.#%d...: xxx", device_id + 1);
+  }
+
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
     char display_dev_cur[16] = { 0 };
 
     strncpy (display_dev_cur, "0.00", 4);
@@ -1076,8 +1110,12 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
   }
 }
 
-void status_benchmark_automate (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig)
+void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+
   if (status_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");
@@ -1124,8 +1162,12 @@ void status_benchmark_automate (status_ctx_t *status_ctx, opencl_ctx_t *opencl_c
   }
 }
 
-void status_benchmark (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const user_options_t *user_options)
+void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 {
+  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+
   if (status_ctx->devices_status == STATUS_INIT)
   {
     log_error ("ERROR: status view is not available during initialization phase");
@@ -1137,7 +1179,7 @@ void status_benchmark (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const
 
   if (user_options->machine_readable == true)
   {
-    status_benchmark_automate (status_ctx, opencl_ctx, hashconfig);
+    status_benchmark_automate (hashcat_ctx);
 
     return;
   }
