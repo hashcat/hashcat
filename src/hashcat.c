@@ -657,22 +657,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
       {
-        u32 css_cnt_unicode = mask_ctx->css_cnt * 2;
-
-        cs_t *css_buf_unicode = (cs_t *) mycalloc (css_cnt_unicode, sizeof (cs_t));
-
-        for (u32 i = 0, j = 0; i < mask_ctx->css_cnt; i += 1, j += 2)
-        {
-          memcpy (&css_buf_unicode[j + 0], &mask_ctx->css_buf[i], sizeof (cs_t));
-
-          css_buf_unicode[j + 1].cs_buf[0] = 0;
-          css_buf_unicode[j + 1].cs_len    = 1;
-        }
-
-        myfree (mask_ctx->css_buf);
-
-        mask_ctx->css_buf = css_buf_unicode;
-        mask_ctx->css_cnt = css_cnt_unicode;
+        mp_css_unicode_expand (mask_ctx);
       }
 
       // check if mask is not too large or too small for pw_min/pw_max  (*2 if unicode)

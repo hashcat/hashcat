@@ -20,6 +20,26 @@ static const char DEF_MASK[] = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
 
 #define MAX_MFS 5 // 4*charset, 1*mask
 
+void mp_css_unicode_expand (mask_ctx_t *mask_ctx)
+{
+  u32 css_cnt_unicode = mask_ctx->css_cnt * 2;
+
+  cs_t *css_buf_unicode = (cs_t *) mycalloc (css_cnt_unicode, sizeof (cs_t));
+
+  for (u32 i = 0, j = 0; i < mask_ctx->css_cnt; i += 1, j += 2)
+  {
+    memcpy (&css_buf_unicode[j + 0], &mask_ctx->css_buf[i], sizeof (cs_t));
+
+    css_buf_unicode[j + 1].cs_buf[0] = 0;
+    css_buf_unicode[j + 1].cs_len    = 1;
+  }
+
+  myfree (mask_ctx->css_buf);
+
+  mask_ctx->css_buf = css_buf_unicode;
+  mask_ctx->css_cnt = css_cnt_unicode;
+}
+
 void mp_css_to_uniq_tbl (u32 css_cnt, cs_t *css, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
 {
   /* generates a lookup table where key is the char itself for fastest possible lookup performance */

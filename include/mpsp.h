@@ -20,9 +20,10 @@
 
 #define INCR_MASKS    1000
 
+void  mp_css_unicode_expand (mask_ctx_t *mask_ctx);
 void  mp_css_to_uniq_tbl (u32 css_cnt, cs_t *css, u32 uniq_tbls[SP_PW_MAX][CHARSIZ]);
 void  mp_cut_at (char *mask, u32 max);
-u32  mp_get_length (char *mask);
+u32   mp_get_length (char *mask);
 void  mp_exec (u64 val, char *buf, cs_t *css, int css_cnt);
 cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u32 *css_cnt, const hashconfig_t *hashconfig, const user_options_t *user_options);
 u64   mp_get_sum (u32 css_cnt, cs_t *css);
