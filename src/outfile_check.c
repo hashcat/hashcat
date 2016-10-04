@@ -26,14 +26,14 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  uint dgst_size  = hashconfig->dgst_size;
-  uint is_salted  = hashconfig->is_salted;
-  uint esalt_size = hashconfig->esalt_size;
-  uint hash_mode  = hashconfig->hash_mode;
+  u32  dgst_size  = hashconfig->dgst_size;
+  u32  is_salted  = hashconfig->is_salted;
+  u32  esalt_size = hashconfig->esalt_size;
+  u32  hash_mode  = hashconfig->hash_mode;
   char separator  = hashconfig->separator;
 
   char *root_directory      = outcheck_ctx->root_directory;
-  uint  outfile_check_timer = user_options->outfile_check_timer;
+  u32   outfile_check_timer = user_options->outfile_check_timer;
 
   // buffers
   hash_t hash_buf = { 0, 0, 0, 0, 0 };
@@ -43,7 +43,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
   if (is_salted)  hash_buf.salt =  (salt_t *) mymalloc (sizeof (salt_t));
   if (esalt_size) hash_buf.esalt = (void   *) mymalloc (esalt_size);
 
-  uint digest_buf[64] = { 0 };
+  u32 digest_buf[64] = { 0 };
 
   outfile_data_t *out_info = NULL;
 
@@ -53,7 +53,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
   int out_cnt = 0;
 
-  uint check_left = outfile_check_timer; // or 1 if we want to check it at startup
+  u32 check_left = outfile_check_timer; // or 1 if we want to check it at startup
 
   while (status_ctx->shutdown_inner == false)
   {
@@ -69,7 +69,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
       if (stat (root_directory, &outfile_check_stat) == 0)
       {
-        uint is_dir = S_ISDIR (outfile_check_stat.st_mode);
+        u32 is_dir = S_ISDIR (outfile_check_stat.st_mode);
 
         if (is_dir == 1)
         {
@@ -160,7 +160,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
                 int iter = MAX_CUT_TRIES;
 
-                for (uint i = line_len - 1; i && iter; i--, line_len--)
+                for (u32 i = line_len - 1; i && iter; i--, line_len--)
                 {
                   if (line_buf[i] != separator) continue;
 
@@ -171,23 +171,23 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
                     parser_status = hashconfig->parse_func (line_buf, line_len - 1, &hash_buf, hashconfig);
                   }
 
-                  uint found = 0;
+                  u32 found = 0;
 
                   if (parser_status == PARSER_OK)
                   {
-                    for (uint salt_pos = 0; (found == 0) && (salt_pos < hashes->salts_cnt); salt_pos++)
+                    for (u32 salt_pos = 0; (found == 0) && (salt_pos < hashes->salts_cnt); salt_pos++)
                     {
                       if (hashes->salts_shown[salt_pos] == 1) continue;
 
                       salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
-                      for (uint digest_pos = 0; (found == 0) && (digest_pos < salt_buf->digests_cnt); digest_pos++)
+                      for (u32 digest_pos = 0; (found == 0) && (digest_pos < salt_buf->digests_cnt); digest_pos++)
                       {
-                        uint idx = salt_buf->digests_offset + digest_pos;
+                        u32 idx = salt_buf->digests_offset + digest_pos;
 
                         if (hashes->digests_shown[idx] == 1) continue;
 
-                        uint cracked = 0;
+                        u32 cracked = 0;
 
                         if (hash_mode == 6800)
                         {
@@ -214,7 +214,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
                             // compare hex string(s) vs binary MAC address(es)
 
-                            for (uint i = 0, j = 0; i < 6; i++, j += 2)
+                            for (u32 i = 0, j = 0; i < 6; i++, j += 2)
                             {
                               if (wpa->orig_mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
                               {
@@ -227,7 +227,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
                             // early skip ;)
                             if (!cracked) continue;
 
-                            for (uint i = 0, j = 0; i < 6; i++, j += 2)
+                            for (u32 i = 0, j = 0; i < 6; i++, j += 2)
                             {
                               if (wpa->orig_mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
                               {
@@ -348,7 +348,7 @@ int outcheck_ctx_init (outcheck_ctx_t *outcheck_ctx, const user_options_t *user_
 
   if (stat (outcheck_ctx->root_directory, &outfile_check_stat) == 0)
   {
-    const uint is_dir = S_ISDIR (outfile_check_stat.st_mode);
+    const u32 is_dir = S_ISDIR (outfile_check_stat.st_mode);
 
     if (is_dir == 0)
     {

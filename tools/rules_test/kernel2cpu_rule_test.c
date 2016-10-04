@@ -89,7 +89,7 @@ int main (int argc, char **argv)
      * generate random rule and apply it afterwards
      */
 
-    uint max;
+    u32 max;
 
     if (argc < 2)
     {
@@ -100,7 +100,7 @@ int main (int argc, char **argv)
       max = 1;
     }
 
-    uint i;
+    u32 i;
 
     for (i = 0; i < max; i++)
     {

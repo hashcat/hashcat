@@ -25,9 +25,9 @@ extern int max_len;
 #define GET_P0_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >>  8) & 0xff)
 #define GET_P1_CONV(rule)      INCR_POS; rule_buf[rule_pos] = conv_itoc (((rule)->cmds[rule_cnt] >> 16) & 0xff)
 
-void gen_cmask (const u8 *word, u8 *cmask, const uint len)
+void gen_cmask (const u8 *word, u8 *cmask, const u32 len)
 {
-  uint i;
+  u32 i;
 
   for (i = 0; i < len; i++)
   {
@@ -929,10 +929,10 @@ int apply_rule_cpu (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, c
   return (out_len);
 }
 
-int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule)
+int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
 {
-  uint rule_pos;
-  uint rule_cnt;
+  u32 rule_pos;
+  u32 rule_cnt;
 
   for (rule_pos = 0, rule_cnt = 0; rule_pos < rule_len && rule_cnt < MAX_GPU_RULES; rule_pos++, rule_cnt++)
   {
@@ -1197,11 +1197,11 @@ char conv_itoc (char c)
   return (char) (-1);
 }
 
-uint get_random_num (uint min, uint max)
+u32 get_random_num (u32 min, u32 max)
 {
   if (min == max) return (min);
 
-  uint data;
+  u32 data;
 
   FILE *fp = fopen("/dev/urandom", "rb");
 

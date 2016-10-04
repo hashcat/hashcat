@@ -66,7 +66,7 @@ void debugfile_format_plain (debugfile_ctx_t *debugfile_ctx, const u8 *plain_ptr
 
   int needs_hexify = 0;
 
-  for (uint i = 0; i < plain_len; i++)
+  for (u32 i = 0; i < plain_len; i++)
   {
     if (plain_ptr[i] < 0x20)
     {
@@ -87,7 +87,7 @@ void debugfile_format_plain (debugfile_ctx_t *debugfile_ctx, const u8 *plain_ptr
   {
     fprintf (debugfile_ctx->fp, "$HEX[");
 
-    for (uint i = 0; i < plain_len; i++)
+    for (u32 i = 0; i < plain_len; i++)
     {
       fprintf (debugfile_ctx->fp, "%02x", plain_ptr[i]);
     }
@@ -104,7 +104,7 @@ void debugfile_write_append (debugfile_ctx_t *debugfile_ctx, const u8 *rule_buf,
 {
   if (debugfile_ctx->enabled == false) return;
 
-  const uint debug_mode = debugfile_ctx->mode;
+  const u32 debug_mode = debugfile_ctx->mode;
 
   if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4))
   {

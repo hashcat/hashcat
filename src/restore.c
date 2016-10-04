@@ -27,7 +27,7 @@ u64 get_lowest_words_done (const restore_ctx_t *restore_ctx, const opencl_ctx_t 
 
   u64 words_cur = -1llu;
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -200,7 +200,7 @@ void read_restore (restore_ctx_t *restore_ctx)
 
   char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
-  for (uint i = 0; i < rd->argc; i++)
+  for (u32 i = 0; i < rd->argc; i++)
   {
     if (fgets (buf, HCBUFSIZ_LARGE - 1, fp) == NULL)
     {
@@ -263,7 +263,7 @@ void write_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx)
 
   fwrite (rd, sizeof (restore_data_t), 1, fp);
 
-  for (uint i = 0; i < rd->argc; i++)
+  for (u32 i = 0; i < rd->argc; i++)
   {
     fprintf (fp, "%s", rd->argv[i]);
 

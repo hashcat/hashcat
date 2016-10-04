@@ -72,7 +72,7 @@ static u32 get_power (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
   return device_param->kernel_power;
 }
 
-static uint get_work (opencl_ctx_t *opencl_ctx, status_ctx_t *status_ctx, const user_options_t *user_options, hc_device_param_t *device_param, const u64 max)
+static u32 get_work (opencl_ctx_t *opencl_ctx, status_ctx_t *status_ctx, const user_options_t *user_options, hc_device_param_t *device_param, const u64 max)
 {
   hc_thread_mutex_lock (status_ctx->mux_dispatcher);
 
@@ -95,7 +95,7 @@ static uint get_work (opencl_ctx_t *opencl_ctx, status_ctx_t *status_ctx, const 
 
   const u32 kernel_power = get_power (opencl_ctx, device_param);
 
-  uint work = MIN (words_left, kernel_power);
+  u32 work = MIN (words_left, kernel_power);
 
   work = MIN (work, max);
 
@@ -119,7 +119,7 @@ static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
 
   char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
-  const uint attack_kern = user_options_extra->attack_kern;
+  const u32 attack_kern = user_options_extra->attack_kern;
 
   while (status_ctx->run_thread_level1 == true)
   {
@@ -132,7 +132,7 @@ static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
       break;
     }
 
-    uint words_cur = 0;
+    u32 words_cur = 0;
 
     while (words_cur < device_param->kernel_power)
     {
@@ -176,7 +176,7 @@ static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
         {
           hc_thread_mutex_lock (status_ctx->mux_counter);
 
-          for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+          for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
           {
             status_ctx->words_progress_rejected[salt_pos] += straight_ctx->kernel_rules_cnt;
           }
@@ -200,7 +200,7 @@ static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
 
     // flush
 
-    const uint pws_cnt = device_param->pws_cnt;
+    const u32 pws_cnt = device_param->pws_cnt;
 
     if (pws_cnt)
     {
@@ -260,21 +260,21 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
-  const uint attack_mode = user_options->attack_mode;
-  const uint attack_kern = user_options_extra->attack_kern;
+  const u32 attack_mode = user_options->attack_mode;
+  const u32 attack_kern = user_options_extra->attack_kern;
 
   if (attack_mode == ATTACK_MODE_BF)
   {
     while (status_ctx->run_thread_level1 == true)
     {
-      const uint work = get_work (opencl_ctx, status_ctx, user_options, device_param, -1u);
+      const u32 work = get_work (opencl_ctx, status_ctx, user_options, device_param, -1u);
 
       if (work == 0) break;
 
       const u64 words_off = device_param->words_off;
       const u64 words_fin = words_off + work;
 
-      const uint pws_cnt = work;
+      const u32 pws_cnt = work;
 
       device_param->pws_cnt = pws_cnt;
 
@@ -326,7 +326,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     if (attack_mode == ATTACK_MODE_COMBI)
     {
-      const uint combs_mode = combinator_ctx->combs_mode;
+      const u32 combs_mode = combinator_ctx->combs_mode;
 
       if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
       {
@@ -379,7 +379,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       while (max)
       {
-        const uint work = get_work (opencl_ctx, status_ctx, user_options, device_param, max);
+        const u32 work = get_work (opencl_ctx, status_ctx, user_options, device_param, max);
 
         if (work == 0) break;
 
@@ -389,7 +389,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         words_fin = words_off + work;
 
         char *line_buf;
-        uint  line_len;
+        u32   line_len;
 
         for ( ; words_cur < words_off; words_cur++) get_next_word (wl_data, user_options, user_options_extra, fd, &line_buf, &line_len);
 
@@ -426,7 +426,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
               hc_thread_mutex_lock (status_ctx->mux_counter);
 
-              for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+              for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
               {
                 status_ctx->words_progress_rejected[salt_pos] += straight_ctx->kernel_rules_cnt;
               }
@@ -447,7 +447,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
               hc_thread_mutex_lock (status_ctx->mux_counter);
 
-              for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+              for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
               {
                 status_ctx->words_progress_rejected[salt_pos] += combinator_ctx->combs_cnt;
               }
@@ -472,7 +472,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       // flush
       //
 
-      const uint pws_cnt = device_param->pws_cnt;
+      const u32 pws_cnt = device_param->pws_cnt;
 
       if (pws_cnt)
       {

@@ -102,7 +102,7 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
     {
       hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
-      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
         hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -164,11 +164,11 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
 
       time (&temp_check_time);
 
-      uint Ta = temp_check_time - last_temp_check_time; // set Ta = sleep_time; is not good enough (see --remove etc)
+      u32 Ta = temp_check_time - last_temp_check_time; // set Ta = sleep_time; is not good enough (see --remove etc)
 
       if (Ta == 0) Ta = 1;
 
-      for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
         hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 

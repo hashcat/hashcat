@@ -17,7 +17,7 @@
 
 typedef struct
 {
-  uint cmds[256];
+  u32 cmds[256];
 
 } kernel_rule_t;
 
@@ -54,7 +54,7 @@ int mangle_chr_decr (u8 arr[BLOCK_SIZE], int arr_len, int upos);
 int mangle_title (char arr[BLOCK_SIZE], int arr_len);
 int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], u32 rp_gen_func_min, u32 rp_gen_func_max);
 int apply_rule_cpu (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, char out[BLOCK_SIZE]);
-int cpu_rule_to_kernel_rule (char *rule_buf, uint rule_len, kernel_rule_t *rule);
+int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule);
 
 bool class_num (char c);
 bool class_lower (char c);
@@ -64,8 +64,8 @@ bool class_alpha (char c);
 char conv_ctoi (char c);
 char conv_itoc (char c);
 
-uint get_random_num (uint min, uint max);
+u32 get_random_num (u32 min, u32 max);
 
-void gen_cmask (const u8 *word, u8 *cmask, const uint len);
+void gen_cmask (const u8 *word, u8 *cmask, const u32 len);
 
 #endif

@@ -47,7 +47,7 @@ int loopback_write_open (loopback_ctx_t *loopback_ctx, const induct_ctx_t *induc
 
   time (&now);
 
-  const uint random_num = get_random_num (0, 9999);
+  const u32 random_num = get_random_num (0, 9999);
 
   snprintf (loopback_ctx->filename, HCBUFSIZ_TINY - 1, "%s/%s.%d_%u", induct_ctx->root_directory, LOOPBACK_FILE, (int) now, random_num);
 
@@ -87,7 +87,7 @@ void loopback_format_plain (loopback_ctx_t *loopback_ctx, const u8 *plain_ptr, c
 
   int needs_hexify = 0;
 
-  for (uint i = 0; i < plain_len; i++)
+  for (u32 i = 0; i < plain_len; i++)
   {
     if (plain_ptr[i] < 0x20)
     {
@@ -108,7 +108,7 @@ void loopback_format_plain (loopback_ctx_t *loopback_ctx, const u8 *plain_ptr, c
   {
     fprintf (loopback_ctx->fp, "$HEX[");
 
-    for (uint i = 0; i < plain_len; i++)
+    for (u32 i = 0; i < plain_len; i++)
     {
       fprintf (loopback_ctx->fp, "%02x", plain_ptr[i]);
     }

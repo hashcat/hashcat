@@ -78,7 +78,7 @@ static void format_speed_display (double val, char *buf, size_t len)
 
   char units[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
 
-  uint level = 0;
+  u32 level = 0;
 
   while (val > 99999)
   {
@@ -99,7 +99,7 @@ static void format_speed_display (double val, char *buf, size_t len)
   }
 }
 
-static char *strstatus (const uint devices_status)
+static char *strstatus (const u32 devices_status)
 {
   switch (devices_status)
   {
@@ -162,7 +162,7 @@ void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *op
 
   fprintf (out, "SPEED\t");
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -189,7 +189,7 @@ void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *op
 
   fprintf (out, "EXEC_RUNTIME\t");
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -218,7 +218,7 @@ void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *op
   u64 all_rejected = 0;
   u64 all_restored = 0;
 
-  for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+  for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
     all_done     += status_ctx->words_progress_done[salt_pos];
     all_rejected += status_ctx->words_progress_rejected[salt_pos];
@@ -270,7 +270,7 @@ void status_display_machine_readable (status_ctx_t *status_ctx, opencl_ctx_t *op
 
     hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
     {
       hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -313,13 +313,13 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   char tmp_buf[1000] = { 0 };
 
-  uint tmp_len = 0;
+  u32 tmp_len = 0;
 
   log_info ("Session.Name...: %s", user_options->session);
 
   char *status_type = strstatus (status_ctx->devices_status);
 
-  uint hash_mode = hashconfig->hash_mode;
+  u32 hash_mode = hashconfig->hash_mode;
 
   char *hash_type = strhashtype (hash_mode); // not a bug
 
@@ -331,7 +331,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   if (user_options->rp_files_cnt)
   {
-    uint i;
+    u32 i;
 
     for (i = 0, tmp_len = 0; i < user_options->rp_files_cnt - 1 && tmp_len < sizeof (tmp_buf); i++)
     {
@@ -386,7 +386,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
     if (mask != NULL)
     {
-      uint mask_len = mask_ctx->css_cnt;
+      u32 mask_len = mask_ctx->css_cnt;
 
       tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "Mask (%s)", mask);
 
@@ -542,7 +542,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -565,7 +565,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -587,7 +587,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   double exec_all_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -676,7 +676,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
   u64 progress_noneed = 0;
 
-  for (uint salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+  for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
     all_done     += status_ctx->words_progress_done[salt_pos];
     all_rejected += status_ctx->words_progress_rejected[salt_pos];
@@ -828,7 +828,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
     }
   }
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -868,7 +868,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
 
     for (int i = 0; i < CPT_BUF; i++)
     {
-      const uint   cracked   = cpt_ctx->cpt_buf[i].cracked;
+      const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
       const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
       if ((timestamp + 60) > now)
@@ -995,7 +995,7 @@ void status_display (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const h
   {
     hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
-    for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
     {
       hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1088,7 +1088,7 @@ void status_benchmark_automate (status_ctx_t *status_ctx, opencl_ctx_t *opencl_c
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1100,7 +1100,7 @@ void status_benchmark_automate (status_ctx_t *status_ctx, opencl_ctx_t *opencl_c
 
   u64 hashes_dev_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1114,7 +1114,7 @@ void status_benchmark_automate (status_ctx_t *status_ctx, opencl_ctx_t *opencl_c
     }
   }
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1145,7 +1145,7 @@ void status_benchmark (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const
   u64    speed_cnt[DEVICES_MAX] = { 0 };
   double speed_ms[DEVICES_MAX]  = { 0 };
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1159,7 +1159,7 @@ void status_benchmark (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const
 
   double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1181,7 +1181,7 @@ void status_benchmark (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const
 
   double exec_all_ms[DEVICES_MAX] = { 0 };
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1192,7 +1192,7 @@ void status_benchmark (status_ctx_t *status_ctx, opencl_ctx_t *opencl_ctx, const
     exec_all_ms[device_id] = exec_ms_avg;
   }
 
-  for (uint device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 

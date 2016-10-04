@@ -9,7 +9,7 @@
 #include "logging.h"
 #include "cpu_crc32.h"
 
-static const uint crc32tab[256] =
+static const u32 crc32tab[256] =
 {
   0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
   0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
@@ -79,7 +79,7 @@ static const uint crc32tab[256] =
 
 void cpu_crc32 (const char *filename, u8 keytab[64])
 {
-  uint crc = ~0u;
+  u32 crc = ~0u;
 
   FILE *fd = fopen (filename, "rb");
 
