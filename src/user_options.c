@@ -1026,15 +1026,15 @@ void user_options_preprocess (user_options_t *user_options)
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {
-    if (user_options->benchmark == false)
+    if (user_options->benchmark == true)
     {
 
     }
-    else if (user_options->opencl_info == false)
+    else if (user_options->opencl_info == true)
     {
 
     }
-    else if (user_options->keyspace == false)
+    else if (user_options->keyspace == true)
     {
       if (user_options->hc_argc == 0)
       {
@@ -1045,7 +1045,7 @@ void user_options_preprocess (user_options_t *user_options)
         user_options->increment = true;
       }
     }
-    else if (user_options->stdout_flag == false)
+    else if (user_options->stdout_flag == true)
     {
       if (user_options->hc_argc == 0)
       {
