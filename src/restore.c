@@ -304,13 +304,16 @@ void cycle_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx)
 
 void unlink_restore (restore_ctx_t *restore_ctx, status_ctx_t *status_ctx)
 {
-  if ((status_ctx->devices_status == STATUS_EXHAUSTED) || (status_ctx->devices_status == STATUS_CRACKED))
+  if ((status_ctx->devices_status == STATUS_EXHAUSTED) && (status_ctx->run_thread_level1 == true)) // this is to check for [c]heckpoint
   {
-    if (status_ctx->run_thread_level1 == true) // this is to check for [c]heckpoint
-    {
-      unlink (restore_ctx->eff_restore_file);
-      unlink (restore_ctx->new_restore_file);
-    }
+    unlink (restore_ctx->eff_restore_file);
+    unlink (restore_ctx->new_restore_file);
+  }
+
+  if (status_ctx->devices_status == STATUS_CRACKED)
+  {
+    unlink (restore_ctx->eff_restore_file);
+    unlink (restore_ctx->new_restore_file);
   }
 }
 
