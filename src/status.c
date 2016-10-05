@@ -869,56 +869,66 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  if (status_ctx->run_main_level1 == true)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    if ((device_param->outerloop_left == 0) || (device_param->innerloop_left == 0))
+    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
     {
-      log_info ("Candidates.#%d..: [Copying/Generating]", device_id + 1);
+      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-      continue;
-    }
+      if (device_param->skipped) continue;
 
-    const u32 outerloop_first = 0;
-    const u32 outerloop_last  = device_param->outerloop_left - 1;
+      if ((device_param->outerloop_left == 0) || (device_param->innerloop_left == 0))
+      {
+        if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+        {
+          log_info ("Candidates.#%d..: [Generating]", device_id + 1);
+        }
+        else
+        {
+          log_info ("Candidates.#%d..: [Copying]", device_id + 1);
+        }
 
-    const u32 innerloop_first = 0;
-    const u32 innerloop_last  = device_param->innerloop_left - 1;
+        continue;
+      }
 
-    plain_t plain1 = { 0, 0, 0, outerloop_first, innerloop_first };
-    plain_t plain2 = { 0, 0, 0, outerloop_last,  innerloop_last  };
+      const u32 outerloop_first = 0;
+      const u32 outerloop_last  = device_param->outerloop_left - 1;
 
-    u32 plain_buf1[16] = { 0 };
-    u32 plain_buf2[16] = { 0 };
+      const u32 innerloop_first = 0;
+      const u32 innerloop_last  = device_param->innerloop_left - 1;
 
-    u8 *plain_ptr1 = (u8 *) plain_buf1;
-    u8 *plain_ptr2 = (u8 *) plain_buf2;
+      plain_t plain1 = { 0, 0, 0, outerloop_first, innerloop_first };
+      plain_t plain2 = { 0, 0, 0, outerloop_last,  innerloop_last  };
 
-    int plain_len1 = 0;
-    int plain_len2 = 0;
+      u32 plain_buf1[16] = { 0 };
+      u32 plain_buf2[16] = { 0 };
 
-    build_plain (hashcat_ctx, device_param, &plain1, plain_buf1, &plain_len1);
-    build_plain (hashcat_ctx, device_param, &plain2, plain_buf2, &plain_len2);
+      u8 *plain_ptr1 = (u8 *) plain_buf1;
+      u8 *plain_ptr2 = (u8 *) plain_buf2;
 
-    bool need_hex1 = need_hexify (plain_ptr1, plain_len1);
-    bool need_hex2 = need_hexify (plain_ptr2, plain_len2);
+      int plain_len1 = 0;
+      int plain_len2 = 0;
 
-    if ((need_hex1 == true) || (need_hex2 == true))
-    {
-      exec_hexify (plain_ptr1, plain_len1, plain_ptr1);
-      exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
+      build_plain (hashcat_ctx, device_param, &plain1, plain_buf1, &plain_len1);
+      build_plain (hashcat_ctx, device_param, &plain2, plain_buf2, &plain_len2);
 
-      plain_ptr1[plain_len1 * 2] = 0;
-      plain_ptr2[plain_len2 * 2] = 0;
+      bool need_hex1 = need_hexify (plain_ptr1, plain_len1);
+      bool need_hex2 = need_hexify (plain_ptr2, plain_len2);
 
-      log_info ("Candidates.#%d..: $HEX[%s] -> $HEX[%s]", device_id + 1, plain_ptr1, plain_ptr2);
-    }
-    else
-    {
-      log_info ("Candidates.#%d..: %s -> %s", device_id + 1, plain_ptr1, plain_ptr2);
+      if ((need_hex1 == true) || (need_hex2 == true))
+      {
+        exec_hexify (plain_ptr1, plain_len1, plain_ptr1);
+        exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
+
+        plain_ptr1[plain_len1 * 2] = 0;
+        plain_ptr2[plain_len2 * 2] = 0;
+
+        log_info ("Candidates.#%d..: $HEX[%s] -> $HEX[%s]", device_id + 1, plain_ptr1, plain_ptr2);
+      }
+      else
+      {
+        log_info ("Candidates.#%d..: %s -> %s", device_id + 1, plain_ptr1, plain_ptr2);
+      }
     }
   }
 
