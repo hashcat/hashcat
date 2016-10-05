@@ -3529,8 +3529,8 @@ int netntlmv1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
     {
       u32 w[16] = { 0 };
 
-      w[ 0] = netntlm->chall_buf[6];
-      w[ 1] = netntlm->chall_buf[7];
+      w[ 0] = salt->salt_buf[0];
+      w[ 1] = salt->salt_buf[1];
       w[ 2] = netntlm->chall_buf[0];
       w[ 3] = netntlm->chall_buf[1];
       w[ 4] = 0x80;
