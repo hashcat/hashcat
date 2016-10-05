@@ -26,6 +26,8 @@ int combinator_ctx_init (combinator_ctx_t *combinator_ctx, user_options_t *user_
 
   combinator_ctx->enabled = true;
 
+  combinator_ctx->scratch_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
     // nothing to do
@@ -174,6 +176,8 @@ int combinator_ctx_init (combinator_ctx_t *combinator_ctx, user_options_t *user_
 void combinator_ctx_destroy (combinator_ctx_t *combinator_ctx)
 {
   if (combinator_ctx->enabled == false) return;
+
+  myfree (combinator_ctx->scratch_buf);
 
   memset (combinator_ctx, 0, sizeof (combinator_ctx_t));
 }

@@ -1219,6 +1219,8 @@ typedef struct combinator_ctx
 {
   bool enabled;
 
+  char *scratch_buf;
+
   char *dict1;
   char *dict2;
 

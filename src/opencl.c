@@ -998,8 +998,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   user_options_t        *user_options       = hashcat_ctx->user_options;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
-  char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
-
   // init speed timer
 
   u32 speed_pos = device_param->speed_pos;
@@ -1111,6 +1109,8 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
       if (user_options->attack_mode == ATTACK_MODE_COMBI)
       {
+        char *line_buf = combinator_ctx->scratch_buf;
+
         u32 i = 0;
 
         while (i < innerloop_left)
@@ -1347,8 +1347,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   device_param->outerloop_left = 0;
 
   device_param->speed_pos = speed_pos;
-
-  myfree (line_buf);
 
   return 0;
 }

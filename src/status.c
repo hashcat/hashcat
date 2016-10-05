@@ -875,8 +875,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-    if (device_param->outerloop_left == 0) continue; // not ready
-    if (device_param->innerloop_left == 0) continue;
+    if ((device_param->outerloop_left == 0) || (device_param->innerloop_left == 0))
+    {
+      log_info ("Candidates.#%d..: [Copying/Generating]", device_id + 1);
+
+      continue;
+    }
 
     const u32 outerloop_first = 0;
     const u32 outerloop_last  = device_param->outerloop_left - 1;
