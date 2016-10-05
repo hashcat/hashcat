@@ -1036,6 +1036,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   // we make use of this in status view
 
+  device_param->outerloop_pos  = 0;
   device_param->outerloop_left = pws_cnt;
 
   // loop start: most outer loop = salt iteration, then innerloops (if multi)
@@ -1336,8 +1337,14 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       if (status_ctx->run_thread_level2 == false) break;
     }
 
+    device_param->innerloop_pos  = 0;
+    device_param->innerloop_left = 0;
+
     if (status_ctx->run_thread_level2 == false) break;
   }
+
+  device_param->outerloop_pos  = 0;
+  device_param->outerloop_left = 0;
 
   device_param->speed_pos = speed_pos;
 
