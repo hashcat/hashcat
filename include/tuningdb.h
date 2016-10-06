@@ -11,9 +11,9 @@
 
 #define TUNING_DB_FILE "hashcat.hctune"
 
-int  tuning_db_init    (tuning_db_t *tuning_db, const user_options_t *user_options, const folder_config_t *folder_config);
-void tuning_db_destroy (tuning_db_t *tuning_db);
+int  tuning_db_init    (hashcat_ctx_t *hashcat_ctx);
+void tuning_db_destroy (hashcat_ctx_t *hashcat_ctx);
 
-tuning_db_entry_t *tuning_db_search (const tuning_db_t *tuning_db, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_type);
+tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_type);
 
 #endif // _TUNINGDB_H

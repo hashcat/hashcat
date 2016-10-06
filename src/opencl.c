@@ -2581,7 +2581,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
   hashes_t             *hashes              = hashcat_ctx->hashes;
   opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
   straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
-  tuning_db_t          *tuning_db           = hashcat_ctx->tuning_db;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
 
@@ -2628,7 +2627,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       // tuning db
 
-      tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
+      tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
 
       if (tuningdb_entry == NULL || tuningdb_entry->vector_width == -1)
       {
@@ -2679,7 +2678,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_loops_min = 1;
     device_param->kernel_loops_max = 1024;
 
-    tuning_db_entry_t *tuningdb_entry = tuning_db_search (tuning_db, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
+    tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
 
     if (tuningdb_entry != NULL)
     {

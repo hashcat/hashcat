@@ -1241,7 +1241,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
-  tuning_db_t          *tuning_db           = hashcat_ctx->tuning_db;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
 
@@ -1297,7 +1296,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * tuning db
    */
 
-  const int rc_tuning_db = tuning_db_init (tuning_db, user_options, folder_config);
+  const int rc_tuning_db = tuning_db_init (hashcat_ctx);
 
   if (rc_tuning_db == -1) return -1;
 
@@ -1490,7 +1489,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   debugfile_destroy (hashcat_ctx);
 
-  tuning_db_destroy (tuning_db);
+  tuning_db_destroy (hashcat_ctx);
 
   loopback_destroy (loopback_ctx);
 

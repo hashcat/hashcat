@@ -50,8 +50,12 @@ static int sort_by_tuning_db_entry (const void *v1, const void *v2)
   return 0;
 }
 
-int tuning_db_init (tuning_db_t *tuning_db, const user_options_t *user_options, const folder_config_t *folder_config)
+int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 {
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  tuning_db_t     *tuning_db     = hashcat_ctx->tuning_db;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
+
   tuning_db->enabled = false;
 
   if (user_options->keyspace    == true) return 0;
@@ -239,8 +243,10 @@ int tuning_db_init (tuning_db_t *tuning_db, const user_options_t *user_options, 
   return 0;
 }
 
-void tuning_db_destroy (tuning_db_t *tuning_db)
+void tuning_db_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  tuning_db_t *tuning_db = hashcat_ctx->tuning_db;
+
   if (tuning_db->enabled == false) return;
 
   int i;
@@ -266,8 +272,10 @@ void tuning_db_destroy (tuning_db_t *tuning_db)
   memset (tuning_db, 0, sizeof (tuning_db_t));
 }
 
-tuning_db_entry_t *tuning_db_search (const tuning_db_t *tuning_db, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_type)
+tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_type)
 {
+  tuning_db_t *tuning_db = hashcat_ctx->tuning_db;
+
   static tuning_db_entry_t s;
 
   // first we need to convert all spaces in the device_name to underscore
