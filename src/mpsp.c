@@ -964,8 +964,14 @@ static void mask_append (mask_ctx_t *mask_ctx, const user_options_t *user_option
   }
 }
 
-int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const hashconfig_t *hashconfig)
+int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
+  folder_config_t      *folder_config       = hashcat_ctx->folder_config;
+  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+
   mask_ctx->enabled = false;
 
   if (user_options->left        == true) return 0;
@@ -1206,8 +1212,10 @@ int mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, con
   return 0;
 }
 
-void mask_ctx_destroy (mask_ctx_t *mask_ctx)
+void mask_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
   if (mask_ctx->enabled == false) return;
 
   myfree (mask_ctx->css_buf);
@@ -1230,8 +1238,12 @@ void mask_ctx_destroy (mask_ctx_t *mask_ctx)
   memset (mask_ctx, 0, sizeof (mask_ctx_t));
 }
 
-int mask_ctx_parse_maskfile (mask_ctx_t *mask_ctx, user_options_t *user_options, const hashconfig_t *hashconfig)
+int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   if (mask_ctx->enabled == false) return 0;
 
   if (mask_ctx->mask_from_file == false) return 0;

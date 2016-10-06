@@ -41,9 +41,8 @@ void  sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_tabl
 void  sp_stretch_markov (hcstat_table_t *in, hcstat_table_t *out);
 void  sp_stretch_root (hcstat_table_t *in, hcstat_table_t *out);
 
-int   mask_ctx_init (mask_ctx_t *mask_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const hashconfig_t *hashconfig);
-void  mask_ctx_destroy (mask_ctx_t *mask_ctx);
-
-int   mask_ctx_parse_maskfile (mask_ctx_t *mask_ctx, user_options_t *user_options, const hashconfig_t *hashconfig);
+int   mask_ctx_init           (hashcat_ctx_t *hashcat_ctx);
+void  mask_ctx_destroy        (hashcat_ctx_t *hashcat_ctx);
+int   mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _MPSP_H

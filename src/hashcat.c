@@ -621,7 +621,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
     {
       mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-      const int rc_mask_file = mask_ctx_parse_maskfile (mask_ctx, user_options, hashconfig);
+      const int rc_mask_file = mask_ctx_parse_maskfile (hashcat_ctx);
 
       if (rc_mask_file == -1) return -1;
 
@@ -648,7 +648,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   {
     mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-    const int rc_mask_file = mask_ctx_parse_maskfile (mask_ctx, user_options, hashconfig);
+    const int rc_mask_file = mask_ctx_parse_maskfile (hashcat_ctx);
 
     if (rc_mask_file == -1) return -1;
 
@@ -941,7 +941,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * charsets : keep them together for more easy maintainnce
    */
 
-  const int rc_mask_init = mask_ctx_init (mask_ctx, user_options, user_options_extra, folder_config, hashconfig);
+  const int rc_mask_init = mask_ctx_init (hashcat_ctx);
 
   if (rc_mask_init == -1) return -1;
 
@@ -1220,7 +1220,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   bitmap_ctx_destroy (hashcat_ctx);
 
-  mask_ctx_destroy (mask_ctx);
+  mask_ctx_destroy (hashcat_ctx);
 
   combinator_ctx_destroy (hashcat_ctx);
 
