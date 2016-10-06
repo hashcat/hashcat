@@ -188,7 +188,7 @@ static void potfile_format_plain (hashcat_ctx_t *hashcat_ctx, const unsigned cha
   }
 }
 
-void potfile_init (hashcat_ctx_t *hashcat_ctx)
+int potfile_init (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
   potfile_ctx_t   *potfile_ctx   = hashcat_ctx->potfile_ctx;
@@ -196,13 +196,13 @@ void potfile_init (hashcat_ctx_t *hashcat_ctx)
 
   potfile_ctx->enabled = false;
 
-  if (user_options->benchmark       == true) return;
-  if (user_options->keyspace        == true) return;
-  if (user_options->opencl_info     == true) return;
-  if (user_options->stdout_flag     == true) return;
-  if (user_options->usage           == true) return;
-  if (user_options->version         == true) return;
-  if (user_options->potfile_disable == true) return;
+  if (user_options->benchmark       == true) return 0;
+  if (user_options->keyspace        == true) return 0;
+  if (user_options->opencl_info     == true) return 0;
+  if (user_options->stdout_flag     == true) return 0;
+  if (user_options->usage           == true) return 0;
+  if (user_options->version         == true) return 0;
+  if (user_options->potfile_disable == true) return 0;
 
   potfile_ctx->enabled = true;
 
@@ -219,10 +219,18 @@ void potfile_init (hashcat_ctx_t *hashcat_ctx)
     potfile_ctx->fp       = NULL;
   }
 
+  const int rc = potfile_write_open (hashcat_ctx);
+
+  if (rc == -1) return -1;
+
+  potfile_write_close (hashcat_ctx);
+
   potfile_ctx->pot              = NULL;
   potfile_ctx->pot_cnt          = 0;
   potfile_ctx->pot_avail        = 0;
   potfile_ctx->pot_hashes_avail = 0;
+
+  return 0;
 }
 
 void potfile_destroy (hashcat_ctx_t *hashcat_ctx)

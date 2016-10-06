@@ -1252,7 +1252,9 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * folder
    */
 
-  folder_config_init (hashcat_ctx, install_folder, shared_folder);
+  const int rc_folder_config_init = folder_config_init (hashcat_ctx, install_folder, shared_folder);
+
+  if (rc_folder_config_init == -1) return -1;
 
   /**
    * restore
@@ -1280,7 +1282,9 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * logfile init
    */
 
-  logfile_init (hashcat_ctx);
+  const int rc_logfile_init = logfile_init (hashcat_ctx);
+
+  if (rc_logfile_init == -1) return -1;
 
   logfile_generate_topid (hashcat_ctx);
 
@@ -1316,7 +1320,9 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * outfile itself
    */
 
-  outfile_init (hashcat_ctx);
+  const int rc_outfile_init = outfile_init (hashcat_ctx);
+
+  if (rc_outfile_init == -1) return -1;
 
   /**
    * Sanity check for hashfile vs outfile (should not point to the same physical file)
@@ -1332,13 +1338,16 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * plus it depends on hash_mode, so we continue using it in outer_loop
    */
 
-  potfile_init (hashcat_ctx);
+  const int rc_potfile_init = potfile_init (hashcat_ctx);
 
+  if (rc_potfile_init == -1) return -1;
   /**
    * dictstat init
    */
 
-  dictstat_init (hashcat_ctx);
+  const int rc_dictstat_init = dictstat_init (hashcat_ctx);
+
+  if (rc_dictstat_init == -1) return -1;
 
   dictstat_read (hashcat_ctx);
 
@@ -1346,13 +1355,17 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * loopback init
    */
 
-  loopback_init (hashcat_ctx);
+  const int rc_loopback_init = loopback_init (hashcat_ctx);
+
+  if (rc_loopback_init == -1) return -1;
 
   /**
    * debugfile init
    */
 
-  debugfile_init (hashcat_ctx);
+  const int rc_debugfile_init = debugfile_init (hashcat_ctx);
+
+  if (rc_debugfile_init == -1) return -1;
 
   /**
    * cpu affinity
@@ -1369,12 +1382,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   const int rc_opencl_init = opencl_ctx_init (hashcat_ctx);
 
-  if (rc_opencl_init == -1)
-  {
-    log_error ("ERROR: opencl_ctx_init() failed");
-
-    return -1;
-  }
+  if (rc_opencl_init == -1) return -1;
 
   /**
    * Init OpenCL devices
@@ -1382,25 +1390,14 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   const int rc_devices_init = opencl_ctx_devices_init (hashcat_ctx, comptime);
 
-  if (rc_devices_init == -1)
-  {
-    log_error ("ERROR: opencl_ctx_devices_init() failed");
-
-    return -1;
-  }
-
+  if (rc_devices_init == -1) return -1;
   /**
    * HM devices: init
    */
 
   const int rc_hwmon_init = hwmon_ctx_init (hashcat_ctx);
 
-  if (rc_hwmon_init == -1)
-  {
-    log_error ("ERROR: hwmon_ctx_init() failed");
-
-    return -1;
-  }
+  if (rc_hwmon_init == -1) return -1;
 
   /**
    * keypress thread

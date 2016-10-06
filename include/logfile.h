@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <time.h>
+#include <errno.h>
 
 // logfile_append() checks for logfile_disable internally to make it easier from here
 
@@ -36,7 +37,7 @@
 void logfile_generate_topid (hashcat_ctx_t *hashcat_ctx);
 void logfile_generate_subid (hashcat_ctx_t *hashcat_ctx);
 void logfile_append         (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...);
-void logfile_init           (hashcat_ctx_t *hashcat_ctx);
+int  logfile_init           (hashcat_ctx_t *hashcat_ctx);
 void logfile_destroy        (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _LOGFILE_H

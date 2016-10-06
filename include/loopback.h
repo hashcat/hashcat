@@ -13,7 +13,7 @@
 
 static const char LOOPBACK_FILE[] = "hashcat.loopback";
 
-void loopback_init          (hashcat_ctx_t *hashcat_ctx);
+int  loopback_init          (hashcat_ctx_t *hashcat_ctx);
 void loopback_destroy       (hashcat_ctx_t *hashcat_ctx);
 int  loopback_write_open    (hashcat_ctx_t *hashcat_ctx);
 void loopback_write_close   (hashcat_ctx_t *hashcat_ctx);

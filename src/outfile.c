@@ -299,7 +299,7 @@ static void outfile_format_plain (hashcat_ctx_t *hashcat_ctx, const unsigned cha
   }
 }
 
-void outfile_init (hashcat_ctx_t *hashcat_ctx)
+int outfile_init (hashcat_ctx_t *hashcat_ctx)
 {
   outfile_ctx_t  *outfile_ctx  = hashcat_ctx->outfile_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
@@ -317,6 +317,12 @@ void outfile_init (hashcat_ctx_t *hashcat_ctx)
 
   outfile_ctx->outfile_format   = user_options->outfile_format;
   outfile_ctx->outfile_autohex  = user_options->outfile_autohex;
+
+  const int rc = outfile_write_open (hashcat_ctx);
+
+  if (rc == -1) return -1;
+
+  return 0;
 }
 
 void outfile_destroy (hashcat_ctx_t *hashcat_ctx)
@@ -326,11 +332,11 @@ void outfile_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (outfile_ctx, 0, sizeof (outfile_ctx_t));
 }
 
-void outfile_write_open (hashcat_ctx_t *hashcat_ctx)
+int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
 {
   outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
 
-  if (outfile_ctx->filename == NULL) return;
+  if (outfile_ctx->filename == NULL) return 0;
 
   outfile_ctx->fp = fopen (outfile_ctx->filename, "ab");
 
@@ -338,9 +344,10 @@ void outfile_write_open (hashcat_ctx_t *hashcat_ctx)
   {
     log_error ("ERROR: %s: %s", outfile_ctx->filename, strerror (errno));
 
-    outfile_ctx->fp       = stdout;
-    outfile_ctx->filename = NULL;
+    return -1;
   }
+
+  return 0;
 }
 
 void outfile_write_close (hashcat_ctx_t *hashcat_ctx)

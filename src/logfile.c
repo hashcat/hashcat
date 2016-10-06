@@ -10,6 +10,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
+#include "logging.h"
 #include "logfile.h"
 
 static int logfile_generate_id ()
@@ -68,13 +69,13 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   fclose (fp);
 }
 
-void logfile_init (hashcat_ctx_t *hashcat_ctx)
+int logfile_init (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
   logfile_ctx_t   *logfile_ctx   = hashcat_ctx->logfile_ctx;
   user_options_t  *user_options  = hashcat_ctx->user_options;
 
-  if (user_options->logfile_disable == true) return;
+  if (user_options->logfile_disable == true) return 0;
 
   logfile_ctx->logfile = (char *) mymalloc (HCBUFSIZ_TINY);
 
@@ -84,6 +85,19 @@ void logfile_init (hashcat_ctx_t *hashcat_ctx)
   logfile_ctx->topid = (char *) mymalloc (HCBUFSIZ_TINY);
 
   logfile_ctx->enabled = true;
+
+  FILE *fp = fopen (logfile_ctx->logfile, "wb");
+
+  if (fp == NULL)
+  {
+    log_error ("ERROR: %s: %s", logfile_ctx->logfile, strerror (errno));
+
+    return -1;
+  }
+
+  fclose (fp);
+
+  return 0;
 }
 
 void logfile_destroy (hashcat_ctx_t *hashcat_ctx)

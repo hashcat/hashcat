@@ -23,7 +23,7 @@ int sort_by_dictstat (const void *s1, const void *s2)
   return memcmp (&d1->stat, &d2->stat, sizeof (struct stat));
 }
 
-void dictstat_init (hashcat_ctx_t *hashcat_ctx)
+int dictstat_init (hashcat_ctx_t *hashcat_ctx)
 {
   dictstat_ctx_t  *dictstat_ctx  = hashcat_ctx->dictstat_ctx;
   folder_config_t *folder_config = hashcat_ctx->folder_config;
@@ -31,23 +31,35 @@ void dictstat_init (hashcat_ctx_t *hashcat_ctx)
 
   dictstat_ctx->enabled = false;
 
-  if (user_options->benchmark   == true) return;
-  if (user_options->keyspace    == true) return;
-  if (user_options->left        == true) return;
-  if (user_options->opencl_info == true) return;
-  if (user_options->show        == true) return;
-  if (user_options->usage       == true) return;
-  if (user_options->version     == true) return;
+  if (user_options->benchmark   == true) return 0;
+  if (user_options->keyspace    == true) return 0;
+  if (user_options->left        == true) return 0;
+  if (user_options->opencl_info == true) return 0;
+  if (user_options->show        == true) return 0;
+  if (user_options->usage       == true) return 0;
+  if (user_options->version     == true) return 0;
 
-  if (user_options->attack_mode == ATTACK_MODE_BF) return;
+  if (user_options->attack_mode == ATTACK_MODE_BF) return 0;
 
   dictstat_ctx->enabled  = true;
-
   dictstat_ctx->filename = (char *)       mymalloc (HCBUFSIZ_TINY);
   dictstat_ctx->base     = (dictstat_t *) mycalloc (MAX_DICTSTAT, sizeof (dictstat_t));
   dictstat_ctx->cnt      = 0;
 
   snprintf (dictstat_ctx->filename, HCBUFSIZ_TINY - 1, "%s/hashcat.dictstat", folder_config->profile_dir);
+
+  FILE *fp = fopen (dictstat_ctx->filename, "wb");
+
+  if (fp == NULL)
+  {
+    log_error ("ERROR: %s: %s", dictstat_ctx->filename, strerror (errno));
+
+    return -1;
+  }
+
+  fclose (fp);
+
+  return 0;
 }
 
 void dictstat_destroy (hashcat_ctx_t *hashcat_ctx)

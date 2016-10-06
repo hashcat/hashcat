@@ -19,7 +19,7 @@
 
 int sort_by_dictstat (const void *s1, const void *s2);
 
-void dictstat_init    (hashcat_ctx_t *hashcat_ctx);
+int  dictstat_init    (hashcat_ctx_t *hashcat_ctx);
 void dictstat_destroy (hashcat_ctx_t *hashcat_ctx);
 void dictstat_read    (hashcat_ctx_t *hashcat_ctx);
 int  dictstat_write   (hashcat_ctx_t *hashcat_ctx);

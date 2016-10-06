@@ -20,7 +20,7 @@ int sort_by_hash_t_salt_hccap (const void *v1, const void *v2);
 void  hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
 void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
 
-void potfile_init             (hashcat_ctx_t *hashcat_ctx);
+int  potfile_init             (hashcat_ctx_t *hashcat_ctx);
 int  potfile_read_open        (hashcat_ctx_t *hashcat_ctx);
 void potfile_read_parse       (hashcat_ctx_t *hashcat_ctx);
 void potfile_read_close       (hashcat_ctx_t *hashcat_ctx);
