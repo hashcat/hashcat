@@ -21,7 +21,6 @@ void build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, p
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t              *hashes             = hashcat_ctx->hashes;
   mask_ctx_t            *mask_ctx           = hashcat_ctx->mask_ctx;
-  opencl_ctx_t          *opencl_ctx         = hashcat_ctx->opencl_ctx;
   straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_t        *user_options       = hashcat_ctx->user_options;
 
@@ -36,7 +35,7 @@ void build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, p
   {
     pw_t pw;
 
-    gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
+    gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
     for (int i = 0; i < 16; i++)
     {
@@ -55,7 +54,7 @@ void build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, p
   {
     pw_t pw;
 
-    gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
+    gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
     for (int i = 0; i < 16; i++)
     {
@@ -105,7 +104,7 @@ void build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, p
   {
     pw_t pw;
 
-    gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
+    gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
     for (int i = 0; i < 16; i++)
     {
@@ -132,7 +131,7 @@ void build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, p
   {
     pw_t pw;
 
-    gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
+    gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
     for (int i = 0; i < 16; i++)
     {
@@ -222,7 +221,6 @@ void build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 void build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u8 *debug_rule_buf, int *debug_rule_len, u8 *debug_plain_ptr, int *debug_plain_len)
 {
   debugfile_ctx_t       *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
-  opencl_ctx_t          *opencl_ctx         = hashcat_ctx->opencl_ctx;
   straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_t        *user_options       = hashcat_ctx->user_options;
 
@@ -237,7 +235,7 @@ void build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
   pw_t pw;
 
-  gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
+  gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
   int plain_len = (int) pw.pw_len;
 

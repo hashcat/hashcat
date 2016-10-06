@@ -13,10 +13,7 @@
 
 static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
 {
-  hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
-  opencl_ctx_t    *opencl_ctx   = hashcat_ctx->opencl_ctx;
-  status_ctx_t    *status_ctx   = hashcat_ctx->status_ctx;
-  user_options_t  *user_options = hashcat_ctx->user_options;
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
   const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads * kernel_accel;
 
@@ -26,11 +23,11 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    run_kernel (KERN_RUN_1, opencl_ctx, device_param, kernel_power_try, true, 0, hashconfig, user_options, status_ctx);
+    run_kernel (hashcat_ctx, device_param, KERN_RUN_1, kernel_power_try, true, 0);
   }
   else
   {
-    run_kernel (KERN_RUN_2, opencl_ctx, device_param, kernel_power_try, true, 0, hashconfig, user_options, status_ctx);
+    run_kernel (hashcat_ctx, device_param, KERN_RUN_2, kernel_power_try, true, 0);
   }
 
   const double exec_ms_prev = get_avg_exec_time (device_param, 1);
@@ -87,7 +84,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   if (user_options_extra->attack_kern == ATTACK_KERN_BF)
   {
-    run_kernel_memset (opencl_ctx, device_param, device_param->d_pws_buf, 7, kernel_power_max * sizeof (pw_t));
+    run_kernel_memset (hashcat_ctx, device_param, device_param->d_pws_buf, 7, kernel_power_max * sizeof (pw_t));
   }
   else
   {
@@ -124,7 +121,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   }
   else
   {
-    run_kernel_amp (opencl_ctx, device_param, kernel_power_max);
+    run_kernel_amp (hashcat_ctx, device_param, kernel_power_max);
   }
 
   #define VERIFIER_CNT 1
@@ -255,11 +252,11 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
   */
 
-  run_kernel_memset (opencl_ctx, device_param, device_param->d_pws_buf, 0, kernel_power_max * sizeof (pw_t));
+  run_kernel_memset (hashcat_ctx, device_param, device_param->d_pws_buf, 0, kernel_power_max * sizeof (pw_t));
 
   if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
   {
-    run_kernel_memset (opencl_ctx, device_param, device_param->d_pws_amp_buf, 0, kernel_power_max * sizeof (pw_t));
+    run_kernel_memset (hashcat_ctx, device_param, device_param->d_pws_amp_buf, 0, kernel_power_max * sizeof (pw_t));
   }
 
   // reset timer

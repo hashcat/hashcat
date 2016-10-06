@@ -113,8 +113,6 @@ static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t             *hashes             = hashcat_ctx->hashes;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
-  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
   char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
@@ -204,7 +202,7 @@ static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
 
     if (pws_cnt)
     {
-      run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, combinator_ctx, pws_cnt);
+      run_copy (hashcat_ctx, device_param, pws_cnt);
 
       run_cracker (hashcat_ctx, device_param, pws_cnt);
 
@@ -280,7 +278,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (pws_cnt)
       {
-        run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, combinator_ctx, pws_cnt);
+        run_copy (hashcat_ctx, device_param, pws_cnt);
 
         run_cracker (hashcat_ctx, device_param, pws_cnt);
 
@@ -476,7 +474,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (pws_cnt)
       {
-        run_copy (opencl_ctx, device_param, hashconfig, user_options, user_options_extra, combinator_ctx, pws_cnt);
+        run_copy (hashcat_ctx, device_param, pws_cnt);
 
         run_cracker (hashcat_ctx, device_param, pws_cnt);
 

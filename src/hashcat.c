@@ -118,7 +118,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
   dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
-  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   hashes_t             *hashes              = hashcat_ctx->hashes;
   induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
@@ -166,7 +165,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->ms_paused = 0;
 
-  opencl_session_reset (opencl_ctx);
+  opencl_session_reset (hashcat_ctx);
 
   cpt_ctx_reset (hashcat_ctx);
 
@@ -366,7 +365,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * - hash iteration count for slow hashes
    */
 
-  opencl_ctx_devices_kernel_loops (opencl_ctx, user_options_extra, hashconfig, hashes, straight_ctx, combinator_ctx, mask_ctx);
+  opencl_ctx_devices_kernel_loops (hashcat_ctx);
 
   /**
    * create autotune threads
@@ -394,7 +393,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * autotune modified kernel_accel, which modifies opencl_ctx->kernel_power_all
    */
 
-  opencl_ctx_devices_update_power (opencl_ctx, user_options, user_options_extra, status_ctx);
+  opencl_ctx_devices_update_power (hashcat_ctx);
 
   /**
    * Begin loopback recording
@@ -577,7 +576,6 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   hashes_t             *hashes              = hashcat_ctx->hashes;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
-  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
   restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
   straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
@@ -634,12 +632,12 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
       combinator_ctx->combs_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
 
-      const int rc_update_mp = opencl_session_update_mp (opencl_ctx, mask_ctx);
+      const int rc_update_mp = opencl_session_update_mp (hashcat_ctx);
 
       if (rc_update_mp == -1) return -1;
     }
 
-    const int rc_update_combinator = opencl_session_update_combinator (opencl_ctx, hashconfig, combinator_ctx);
+    const int rc_update_combinator = opencl_session_update_combinator (hashcat_ctx);
 
     if (rc_update_combinator == -1) return -1;
   }
@@ -716,7 +714,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
       mask_ctx->bfs_cnt = sp_get_sum (0, css_cnt_lr[1], mask_ctx->root_css_buf);
 
-      const int rc_update_mp_rl = opencl_session_update_mp_rl (opencl_ctx, mask_ctx, css_cnt_lr[0], css_cnt_lr[1]);
+      const int rc_update_mp_rl = opencl_session_update_mp_rl (hashcat_ctx, css_cnt_lr[0], css_cnt_lr[1]);
 
       if (rc_update_mp_rl == -1) return -1;
     }
@@ -759,7 +757,6 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 {
   bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
-  folder_config_t      *folder_config       = hashcat_ctx->folder_config;
   hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   hashes_t             *hashes              = hashcat_ctx->hashes;
   hwmon_ctx_t          *hwmon_ctx           = hashcat_ctx->hwmon_ctx;
@@ -771,8 +768,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
   straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
-  tuning_db_t          *tuning_db           = hashcat_ctx->tuning_db;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
   wl_data_t            *wl_data             = hashcat_ctx->wl_data;
 
@@ -1062,7 +1057,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->quiet == false) log_info_nn ("Initializing device kernels and memory...");
 
-  opencl_session_begin (opencl_ctx, hashconfig, hashes, straight_ctx, user_options, user_options_extra, folder_config, bitmap_ctx, tuning_db);
+  opencl_session_begin (hashcat_ctx);
 
   if (user_options->quiet == false) log_info_nn ("");
 
@@ -1211,7 +1206,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_progress_destroy (hashcat_ctx);
 
-  opencl_session_destroy (opencl_ctx);
+  opencl_session_destroy (hashcat_ctx);
 
   potfile_write_close (potfile_ctx);
 
@@ -1253,7 +1248,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
-  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
   outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
   outfile_ctx_t        *outfile_ctx         = hashcat_ctx->outfile_ctx;
   potfile_ctx_t        *potfile_ctx         = hashcat_ctx->potfile_ctx;
@@ -1390,7 +1384,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * Init OpenCL library loader
    */
 
-  const int rc_opencl_init = opencl_ctx_init (opencl_ctx, user_options);
+  const int rc_opencl_init = opencl_ctx_init (hashcat_ctx);
 
   if (rc_opencl_init == -1)
   {
@@ -1403,7 +1397,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * Init OpenCL devices
    */
 
-  const int rc_devices_init = opencl_ctx_devices_init (opencl_ctx, user_options, comptime);
+  const int rc_devices_init = opencl_ctx_devices_init (hashcat_ctx, comptime);
 
   if (rc_devices_init == -1)
   {
@@ -1528,9 +1522,9 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   hwmon_ctx_destroy (hashcat_ctx);
 
-  opencl_ctx_devices_destroy (opencl_ctx);
+  opencl_ctx_devices_destroy (hashcat_ctx);
 
-  opencl_ctx_destroy (opencl_ctx);
+  opencl_ctx_destroy (hashcat_ctx);
 
   restore_ctx_destroy (restore_ctx);
 

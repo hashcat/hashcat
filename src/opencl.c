@@ -263,8 +263,10 @@ static void write_kernel_binary (char *dst, char *binary, size_t binary_size)
   }
 }
 
-int gidd_to_pw_t (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
+int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
 {
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
   cl_int CL_err = hc_clEnqueueReadBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, gidd * sizeof (pw_t), sizeof (pw_t), pw, 0, NULL, NULL);
 
   if (CL_err != CL_SUCCESS)
@@ -277,13 +279,19 @@ int gidd_to_pw_t (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, con
   return 0;
 }
 
-int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, hashconfig_t *hashconfig, const hashes_t *hashes, const outfile_ctx_t *outfile_ctx, status_ctx_t *status_ctx, const u32 highest_pw_len, const u32 pws_cnt, const u32 fast_iteration, const u32 salt_pos)
+int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u32 pws_cnt, const u32 fast_iteration, const u32 salt_pos)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  hashes_t       *hashes       = hashcat_ctx->hashes;
+  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   cl_int CL_err = CL_SUCCESS;
 
   if (hashconfig->hash_mode == 2000)
   {
-    process_stdout (opencl_ctx, device_param, user_options, hashconfig, straight_ctx, combinator_ctx, mask_ctx, outfile_ctx, pws_cnt);
+    process_stdout (hashcat_ctx, device_param, pws_cnt);
 
     return 0;
   }
@@ -296,9 +304,9 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
       {
         const u32 size_tm = 32 * sizeof (bs_word_t);
 
-        run_kernel_bzero (opencl_ctx, device_param, device_param->d_tm_c, size_tm);
+        run_kernel_bzero (hashcat_ctx, device_param, device_param->d_tm_c, size_tm);
 
-        run_kernel_tm (opencl_ctx, device_param);
+        run_kernel_tm (hashcat_ctx, device_param);
 
         CL_err = hc_clEnqueueCopyBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_tm_c, device_param->d_bfs_c, 0, 0, size_tm, 0, NULL, NULL);
 
@@ -313,26 +321,26 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
     if (highest_pw_len < 16)
     {
-      run_kernel (KERN_RUN_1, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig, user_options, status_ctx);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_1, pws_cnt, true, fast_iteration);
     }
     else if (highest_pw_len < 32)
     {
-      run_kernel (KERN_RUN_2, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig, user_options, status_ctx);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_cnt, true, fast_iteration);
     }
     else
     {
-      run_kernel (KERN_RUN_3, opencl_ctx, device_param, pws_cnt, true, fast_iteration, hashconfig, user_options, status_ctx);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_3,pws_cnt, true, fast_iteration);
     }
   }
   else
   {
-    run_kernel_amp (opencl_ctx, device_param, pws_cnt);
+    run_kernel_amp (hashcat_ctx, device_param, pws_cnt);
 
-    run_kernel (KERN_RUN_1, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options, status_ctx);
+    run_kernel (hashcat_ctx, device_param, KERN_RUN_1, pws_cnt, false, 0);
 
     if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
     {
-      run_kernel (KERN_RUN_12, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options, status_ctx);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_12, pws_cnt, false, 0);
 
       CL_err = hc_clEnqueueReadBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -368,7 +376,7 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
       device_param->kernel_params_buf32[28] = loop_pos;
       device_param->kernel_params_buf32[29] = loop_left;
 
-      run_kernel (KERN_RUN_2, opencl_ctx, device_param, pws_cnt, true, slow_iteration, hashconfig, user_options, status_ctx);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_cnt, true, slow_iteration);
 
       while (status_ctx->run_thread_level2 == false) break;
 
@@ -396,7 +404,7 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
 
     if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
     {
-      run_kernel (KERN_RUN_23, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options, status_ctx);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_23, pws_cnt, false, 0);
 
       CL_err = hc_clEnqueueReadBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -419,14 +427,19 @@ int choose_kernel (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, co
       }
     }
 
-    run_kernel (KERN_RUN_3, opencl_ctx, device_param, pws_cnt, false, 0, hashconfig, user_options, status_ctx);
+    run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, false, 0);
   }
 
   return 0;
 }
 
-int run_kernel (const u32 kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const u32 num, const u32 event_update, const u32 iteration, hashconfig_t *hashconfig, const user_options_t *user_options, status_ctx_t *status_ctx)
+int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u32 num, const u32 event_update, const u32 iteration)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   cl_int CL_err = CL_SUCCESS;
 
   u32 num_elements = num;
@@ -607,8 +620,10 @@ int run_kernel (const u32 kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t 
   return 0;
 }
 
-int run_kernel_mp (const u32 kern_run, opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const u32 num)
+int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u32 num)
 {
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
   cl_int CL_err = CL_SUCCESS;
 
   u32 num_elements = num;
@@ -702,8 +717,10 @@ int run_kernel_mp (const u32 kern_run, opencl_ctx_t *opencl_ctx, hc_device_param
   return 0;
 }
 
-int run_kernel_tm (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
+int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
   cl_int CL_err = CL_SUCCESS;
 
   const u32 num_elements = 1024; // fixed
@@ -745,8 +762,10 @@ int run_kernel_tm (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
   return 0;
 }
 
-int run_kernel_amp (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const u32 num)
+int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 num)
 {
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
   cl_int CL_err = CL_SUCCESS;
 
   u32 num_elements = num;
@@ -804,8 +823,10 @@ int run_kernel_amp (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, c
   return 0;
 }
 
-int run_kernel_memset (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u32 num)
+int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u32 num)
 {
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
   cl_int CL_err = CL_SUCCESS;
 
   const u32 num16d = num / 16;
@@ -888,13 +909,19 @@ int run_kernel_memset (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param
   return 0;
 }
 
-int run_kernel_bzero (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, cl_mem buf, const size_t size)
+int run_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const size_t size)
 {
-  return run_kernel_memset (opencl_ctx, device_param, buf, 0, size);
+  return run_kernel_memset (hashcat_ctx, device_param, buf, 0, size);
 }
 
-int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const combinator_ctx_t *combinator_ctx, const u32 pws_cnt)
+int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 pws_cnt)
 {
+  combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
+  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+
   cl_int CL_err = CL_SUCCESS;
 
   if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
@@ -979,7 +1006,7 @@ int run_copy (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashcon
 
     device_param->kernel_params_mp_l_buf64[3] = off;
 
-    run_kernel_mp (KERN_RUN_MP_L, opencl_ctx, device_param, pws_cnt);
+    run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP_L, pws_cnt);
   }
 
   return 0;
@@ -992,7 +1019,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   hashes_t              *hashes             = hashcat_ctx->hashes;
   mask_ctx_t            *mask_ctx           = hashcat_ctx->mask_ctx;
   opencl_ctx_t          *opencl_ctx         = hashcat_ctx->opencl_ctx;
-  outfile_ctx_t         *outfile_ctx        = hashcat_ctx->outfile_ctx;
   status_ctx_t          *status_ctx         = hashcat_ctx->status_ctx;
   straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_t        *user_options       = hashcat_ctx->user_options;
@@ -1196,7 +1222,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
         device_param->kernel_params_mp_r_buf64[3] = off;
 
-        run_kernel_mp (KERN_RUN_MP_R, opencl_ctx, device_param, innerloop_left);
+        run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP_R, innerloop_left);
       }
       else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
       {
@@ -1204,7 +1230,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
         device_param->kernel_params_mp_buf64[3] = off;
 
-        run_kernel_mp (KERN_RUN_MP, opencl_ctx, device_param, innerloop_left);
+        run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left);
       }
       else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
       {
@@ -1212,7 +1238,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
         device_param->kernel_params_mp_buf64[3] = off;
 
-        run_kernel_mp (KERN_RUN_MP, opencl_ctx, device_param, innerloop_left);
+        run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left);
       }
 
       // copy amplifiers
@@ -1278,7 +1304,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
         hc_timer_set (&device_param->timer_speed);
       }
 
-      int rc = choose_kernel (opencl_ctx, device_param, user_options, straight_ctx, combinator_ctx, mask_ctx, hashconfig, hashes, outfile_ctx, status_ctx, highest_pw_len, pws_cnt, fast_iteration, salt_pos);
+      int rc = choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_cnt, fast_iteration, salt_pos);
 
       if (rc == -1) return -1;
 
@@ -1351,8 +1377,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   return 0;
 }
 
-int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_options)
+int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
+  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   opencl_ctx->enabled = false;
 
   if (user_options->keyspace    == true) return 0;
@@ -1519,8 +1548,10 @@ int opencl_ctx_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_option
   return 0;
 }
 
-void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
+void opencl_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
   if (opencl_ctx->enabled == false) return;
 
   myfree (opencl_ctx->devices_param);
@@ -1536,8 +1567,11 @@ void opencl_ctx_destroy (opencl_ctx_t *opencl_ctx)
   memset (opencl_ctx, 0, sizeof (opencl_ctx_t));
 }
 
-int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, const int comptime)
+int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 {
+  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   if (opencl_ctx->enabled == false) return 0;
 
   /**
@@ -2427,8 +2461,10 @@ int opencl_ctx_devices_init (opencl_ctx_t *opencl_ctx, const user_options_t *use
   return 0;
 }
 
-void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
+void opencl_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
   if (opencl_ctx->enabled == false) return;
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
@@ -2452,8 +2488,13 @@ void opencl_ctx_devices_destroy (opencl_ctx_t *opencl_ctx)
   opencl_ctx->need_xnvctrl   = 0;
 }
 
-void opencl_ctx_devices_update_power (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, status_ctx_t *status_ctx)
+void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
 {
+  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+
   if (opencl_ctx->enabled == false) return;
 
   u32 kernel_power_all = 0;
@@ -2490,8 +2531,16 @@ void opencl_ctx_devices_update_power (opencl_ctx_t *opencl_ctx, const user_optio
   }
 }
 
-void opencl_ctx_devices_kernel_loops (opencl_ctx_t *opencl_ctx, const user_options_extra_t *user_options_extra, const hashconfig_t *hashconfig, const hashes_t *hashes, straight_ctx_t *straight_ctx, combinator_ctx_t *combinator_ctx, mask_ctx_t *mask_ctx)
+void opencl_ctx_devices_kernel_loops (hashcat_ctx_t *hashcat_ctx)
 {
+  combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
+  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  hashes_t             *hashes              = hashcat_ctx->hashes;
+  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
+  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+
   if (opencl_ctx->enabled == false) return;
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
@@ -2524,8 +2573,18 @@ void opencl_ctx_devices_kernel_loops (opencl_ctx_t *opencl_ctx, const user_optio
   }
 }
 
-int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, const hashes_t *hashes, const straight_ctx_t *straight_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const folder_config_t *folder_config, const bitmap_ctx_t *bitmap_ctx, const tuning_db_t *tuning_db)
+int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 {
+  bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
+  folder_config_t      *folder_config       = hashcat_ctx->folder_config;
+  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  hashes_t             *hashes              = hashcat_ctx->hashes;
+  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
+  tuning_db_t          *tuning_db           = hashcat_ctx->tuning_db;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+
   if (opencl_ctx->enabled == false) return 0;
 
   /**
@@ -4385,12 +4444,12 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
 
     // zero some data buffers
 
-    run_kernel_bzero (opencl_ctx, device_param, device_param->d_pws_buf,        size_pws);
-    run_kernel_bzero (opencl_ctx, device_param, device_param->d_pws_amp_buf,    size_pws);
-    run_kernel_bzero (opencl_ctx, device_param, device_param->d_tmps,           size_tmps);
-    run_kernel_bzero (opencl_ctx, device_param, device_param->d_hooks,          size_hooks);
-    run_kernel_bzero (opencl_ctx, device_param, device_param->d_plain_bufs,     size_plains);
-    run_kernel_bzero (opencl_ctx, device_param, device_param->d_result,         size_results);
+    run_kernel_bzero (hashcat_ctx, device_param, device_param->d_pws_buf,        size_pws);
+    run_kernel_bzero (hashcat_ctx, device_param, device_param->d_pws_amp_buf,    size_pws);
+    run_kernel_bzero (hashcat_ctx, device_param, device_param->d_tmps,           size_tmps);
+    run_kernel_bzero (hashcat_ctx, device_param, device_param->d_hooks,          size_hooks);
+    run_kernel_bzero (hashcat_ctx, device_param, device_param->d_plain_bufs,     size_plains);
+    run_kernel_bzero (hashcat_ctx, device_param, device_param->d_result,         size_results);
 
     /**
      * special buffers
@@ -4398,22 +4457,22 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
 
     if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
     {
-      run_kernel_bzero (opencl_ctx, device_param, device_param->d_rules_c, size_rules_c);
+      run_kernel_bzero (hashcat_ctx, device_param, device_param->d_rules_c, size_rules_c);
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
-      run_kernel_bzero (opencl_ctx, device_param, device_param->d_combs,          size_combs);
-      run_kernel_bzero (opencl_ctx, device_param, device_param->d_combs_c,        size_combs);
-      run_kernel_bzero (opencl_ctx, device_param, device_param->d_root_css_buf,   size_root_css);
-      run_kernel_bzero (opencl_ctx, device_param, device_param->d_markov_css_buf, size_markov_css);
+      run_kernel_bzero (hashcat_ctx, device_param, device_param->d_combs,          size_combs);
+      run_kernel_bzero (hashcat_ctx, device_param, device_param->d_combs_c,        size_combs);
+      run_kernel_bzero (hashcat_ctx, device_param, device_param->d_root_css_buf,   size_root_css);
+      run_kernel_bzero (hashcat_ctx, device_param, device_param->d_markov_css_buf, size_markov_css);
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
     {
-      run_kernel_bzero (opencl_ctx, device_param, device_param->d_bfs,            size_bfs);
-      run_kernel_bzero (opencl_ctx, device_param, device_param->d_bfs_c,          size_bfs);
-      run_kernel_bzero (opencl_ctx, device_param, device_param->d_tm_c,           size_tm);
-      run_kernel_bzero (opencl_ctx, device_param, device_param->d_root_css_buf,   size_root_css);
-      run_kernel_bzero (opencl_ctx, device_param, device_param->d_markov_css_buf, size_markov_css);
+      run_kernel_bzero (hashcat_ctx, device_param, device_param->d_bfs,            size_bfs);
+      run_kernel_bzero (hashcat_ctx, device_param, device_param->d_bfs_c,          size_bfs);
+      run_kernel_bzero (hashcat_ctx, device_param, device_param->d_tm_c,           size_tm);
+      run_kernel_bzero (hashcat_ctx, device_param, device_param->d_root_css_buf,   size_root_css);
+      run_kernel_bzero (hashcat_ctx, device_param, device_param->d_markov_css_buf, size_markov_css);
     }
 
     if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
@@ -4481,8 +4540,10 @@ int opencl_session_begin (opencl_ctx_t *opencl_ctx, hashconfig_t *hashconfig, co
   return 0;
 }
 
-void opencl_session_destroy (opencl_ctx_t *opencl_ctx)
+void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
   if (opencl_ctx->enabled == false) return;
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
@@ -4608,8 +4669,10 @@ void opencl_session_destroy (opencl_ctx_t *opencl_ctx)
   }
 }
 
-void opencl_session_reset (opencl_ctx_t *opencl_ctx)
+void opencl_session_reset (hashcat_ctx_t *hashcat_ctx)
 {
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
   if (opencl_ctx->enabled == false) return;
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
@@ -4646,8 +4709,12 @@ void opencl_session_reset (opencl_ctx_t *opencl_ctx)
   opencl_ctx->kernel_power_final = 0;
 }
 
-int opencl_session_update_combinator (opencl_ctx_t *opencl_ctx, const hashconfig_t *hashconfig, const combinator_ctx_t *combinator_ctx)
+int opencl_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
 {
+  combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
+  hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
+  opencl_ctx_t     *opencl_ctx     = hashcat_ctx->opencl_ctx;
+
   if (opencl_ctx->enabled == false) return 0;
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
@@ -4696,8 +4763,11 @@ int opencl_session_update_combinator (opencl_ctx_t *opencl_ctx, const hashconfig
   return 0;
 }
 
-int opencl_session_update_mp (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mask_ctx)
+int opencl_session_update_mp (hashcat_ctx_t *hashcat_ctx)
 {
+  mask_ctx_t   *mask_ctx   = hashcat_ctx->mask_ctx;
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
   if (opencl_ctx->enabled == false) return 0;
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
@@ -4735,8 +4805,11 @@ int opencl_session_update_mp (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mask_c
   return 0;
 }
 
-int opencl_session_update_mp_rl (opencl_ctx_t *opencl_ctx, const mask_ctx_t *mask_ctx, const u32 css_cnt_l, const u32 css_cnt_r)
+int opencl_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r)
 {
+  mask_ctx_t   *mask_ctx   = hashcat_ctx->mask_ctx;
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
   if (opencl_ctx->enabled == false) return 0;
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)

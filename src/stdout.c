@@ -35,8 +35,15 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
   }
 }
 
-void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, const user_options_t *user_options, const hashconfig_t *hashconfig, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, const mask_ctx_t *mask_ctx, const outfile_ctx_t *outfile_ctx, const u32 pws_cnt)
+void process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 pws_cnt)
 {
+  combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
+  hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
+  mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
+  outfile_ctx_t    *outfile_ctx    = hashcat_ctx->outfile_ctx;
+  straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
+  user_options_t   *user_options   = hashcat_ctx->user_options;
+
   out_t out;
 
   out.fp = stdout;
@@ -75,7 +82,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
 
     for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
-      gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
+      gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
       const u32 pos = device_param->innerloop_pos;
 
@@ -102,7 +109,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
 
     for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
-      gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
+      gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
@@ -168,7 +175,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
 
     for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
-      gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
+      gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
@@ -198,7 +205,7 @@ void process_stdout (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, 
 
     for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
-      gidd_to_pw_t (opencl_ctx, device_param, gidvid, &pw);
+      gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
