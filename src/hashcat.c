@@ -120,7 +120,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   hashes_t             *hashes              = hashcat_ctx->hashes;
   induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
-  loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
   mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
   opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
   restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
@@ -399,7 +398,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->loopback == true)
   {
-    loopback_write_open (loopback_ctx, induct_ctx);
+    loopback_write_open (hashcat_ctx);
   }
 
   /**
@@ -500,7 +499,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->loopback == true)
   {
-    loopback_write_close (loopback_ctx);
+    loopback_write_close (hashcat_ctx);
   }
 
   // print final status
@@ -1237,7 +1236,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    */
 
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
-  loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
@@ -1348,7 +1346,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * loopback init
    */
 
-  loopback_init (loopback_ctx, user_options);
+  loopback_init (hashcat_ctx);
 
   /**
    * debugfile init
@@ -1489,7 +1487,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   tuning_db_destroy (hashcat_ctx);
 
-  loopback_destroy (loopback_ctx);
+  loopback_destroy (hashcat_ctx);
 
   dictstat_destroy (hashcat_ctx);
 

@@ -11,14 +11,13 @@
 #include <errno.h>
 #include <time.h>
 
-#define LOOPBACK_FILE   "hashcat.loopback"
+static const char LOOPBACK_FILE[] = "hashcat.loopback";
 
-void loopback_init          (loopback_ctx_t *loopback_ctx, const user_options_t *user_options);
-void loopback_destroy       (loopback_ctx_t *loopback_ctx);
-int  loopback_write_open    (loopback_ctx_t *loopback_ctx, const induct_ctx_t *induct_ctx);
-void loopback_write_close   (loopback_ctx_t *loopback_ctx);
-void loopback_format_plain  (loopback_ctx_t *loopback_ctx, const u8 *plain_ptr, const unsigned int plain_len);
-void loopback_write_append  (loopback_ctx_t *loopback_ctx, const u8 *plain_ptr, const unsigned int plain_len);
-void loopback_write_unlink  (loopback_ctx_t *loopback_ctx);
+void loopback_init          (hashcat_ctx_t *hashcat_ctx);
+void loopback_destroy       (hashcat_ctx_t *hashcat_ctx);
+int  loopback_write_open    (hashcat_ctx_t *hashcat_ctx);
+void loopback_write_close   (hashcat_ctx_t *hashcat_ctx);
+void loopback_write_append  (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, const unsigned int plain_len);
+void loopback_write_unlink  (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _LOOPBACK_H

@@ -289,7 +289,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   if (loopback_ctx->fp != NULL)
   {
-    loopback_write_append (loopback_ctx, plain_ptr, plain_len);
+    loopback_write_append (hashcat_ctx, plain_ptr, plain_len);
   }
 
   // if enabled, update also the (rule) debug file
