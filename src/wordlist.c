@@ -272,7 +272,6 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
 u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  dictstat_ctx_t       *dictstat_ctx       = hashcat_ctx->dictstat_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
@@ -306,7 +305,7 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
 
   if (d.stat.st_size == 0) return 0;
 
-  const u64 cached_cnt = dictstat_find (dictstat_ctx, &d);
+  const u64 cached_cnt = dictstat_find (hashcat_ctx, &d);
 
   if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l) == 0)
   {
@@ -408,7 +407,7 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
   if (user_options->quiet == false) log_info ("Generated dictionary stats for %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, cnt2, cnt);
   if (user_options->quiet == false) log_info ("");
 
-  dictstat_append (dictstat_ctx, &d);
+  dictstat_append (hashcat_ctx, &d);
 
   //hc_signal (sigHandler_default);
 

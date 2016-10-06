@@ -23,8 +23,12 @@ int sort_by_dictstat (const void *s1, const void *s2)
   return memcmp (&d1->stat, &d2->stat, sizeof (struct stat));
 }
 
-void dictstat_init (dictstat_ctx_t *dictstat_ctx, const user_options_t *user_options, const folder_config_t *folder_config)
+void dictstat_init (hashcat_ctx_t *hashcat_ctx)
 {
+  dictstat_ctx_t  *dictstat_ctx  = hashcat_ctx->dictstat_ctx;
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
+
   dictstat_ctx->enabled = false;
 
   if (user_options->benchmark   == true) return;
@@ -46,8 +50,10 @@ void dictstat_init (dictstat_ctx_t *dictstat_ctx, const user_options_t *user_opt
   snprintf (dictstat_ctx->filename, HCBUFSIZ_TINY - 1, "%s/hashcat.dictstat", folder_config->profile_dir);
 }
 
-void dictstat_destroy (dictstat_ctx_t *dictstat_ctx)
+void dictstat_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
+
   if (dictstat_ctx->enabled == false) return;
 
   myfree (dictstat_ctx->filename);
@@ -56,8 +62,10 @@ void dictstat_destroy (dictstat_ctx_t *dictstat_ctx)
   memset (dictstat_ctx, 0, sizeof (dictstat_ctx_t));
 }
 
-void dictstat_read (dictstat_ctx_t *dictstat_ctx)
+void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 {
+  dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
+
   if (dictstat_ctx->enabled == false) return;
 
   FILE *fp = fopen (dictstat_ctx->filename, "rb");
@@ -90,8 +98,10 @@ void dictstat_read (dictstat_ctx_t *dictstat_ctx)
   fclose (fp);
 }
 
-int dictstat_write (dictstat_ctx_t *dictstat_ctx)
+int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 {
+  dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
+
   if (dictstat_ctx->enabled == false) return 0;
 
   FILE *fp = fopen (dictstat_ctx->filename, "wb");
@@ -110,8 +120,10 @@ int dictstat_write (dictstat_ctx_t *dictstat_ctx)
   return 0;
 }
 
-u64 dictstat_find (dictstat_ctx_t *dictstat_ctx, dictstat_t *d)
+u64 dictstat_find (hashcat_ctx_t *hashcat_ctx, dictstat_t *d)
 {
+  dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
+
   if (dictstat_ctx->enabled == false) return 0;
 
   dictstat_t *d_cache = (dictstat_t *) lfind (d, dictstat_ctx->base, &dictstat_ctx->cnt, sizeof (dictstat_t), sort_by_dictstat);
@@ -121,8 +133,10 @@ u64 dictstat_find (dictstat_ctx_t *dictstat_ctx, dictstat_t *d)
   return d_cache->cnt;
 }
 
-void dictstat_append (dictstat_ctx_t *dictstat_ctx, dictstat_t *d)
+void dictstat_append (hashcat_ctx_t *hashcat_ctx, dictstat_t *d)
 {
+  dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
+
   if (dictstat_ctx->enabled == false) return;
 
   if (dictstat_ctx->cnt == MAX_DICTSTAT)

@@ -1236,8 +1236,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * main init
    */
 
-  dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
-  folder_config_t      *folder_config       = hashcat_ctx->folder_config;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
@@ -1342,9 +1340,9 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * dictstat init
    */
 
-  dictstat_init (dictstat_ctx, user_options, folder_config);
+  dictstat_init (hashcat_ctx);
 
-  dictstat_read (dictstat_ctx);
+  dictstat_read (hashcat_ctx);
 
   /**
    * loopback init
@@ -1483,7 +1481,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   // final update dictionary cache
 
-  dictstat_write (dictstat_ctx);
+  dictstat_write (hashcat_ctx);
 
   // free memory
 
@@ -1493,7 +1491,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   loopback_destroy (loopback_ctx);
 
-  dictstat_destroy (dictstat_ctx);
+  dictstat_destroy (hashcat_ctx);
 
   potfile_destroy (hashcat_ctx);
 
