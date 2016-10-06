@@ -318,8 +318,12 @@ void *thread_outfile_remove (void *p)
   return NULL;
 }
 
-int outcheck_ctx_init (outcheck_ctx_t *outcheck_ctx, const user_options_t *user_options, const folder_config_t *folder_config)
+int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  outcheck_ctx_t  *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
+
   outcheck_ctx->enabled = false;
 
   if (user_options->keyspace    == true) return 0;
@@ -372,8 +376,10 @@ int outcheck_ctx_init (outcheck_ctx_t *outcheck_ctx, const user_options_t *user_
   return 0;
 }
 
-void outcheck_ctx_destroy (outcheck_ctx_t *outcheck_ctx)
+void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
+
   if (outcheck_ctx->enabled == false) return;
 
   if (rmdir (outcheck_ctx->root_directory) == -1)

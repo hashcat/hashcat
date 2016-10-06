@@ -1241,7 +1241,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
-  outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
   tuning_db_t          *tuning_db           = hashcat_ctx->tuning_db;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
@@ -1315,7 +1314,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * outfile-check directory
    */
 
-  const int rc_outcheck_ctx_init = outcheck_ctx_init (outcheck_ctx, user_options, folder_config);
+  const int rc_outcheck_ctx_init = outcheck_ctx_init (hashcat_ctx);
 
   if (rc_outcheck_ctx_init == -1) return -1;
 
@@ -1504,7 +1503,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   outfile_destroy (hashcat_ctx);
 
-  outcheck_ctx_destroy (outcheck_ctx);
+  outcheck_ctx_destroy (hashcat_ctx);
 
   folder_config_destroy (hashcat_ctx);
 

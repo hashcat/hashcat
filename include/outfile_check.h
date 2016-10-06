@@ -13,7 +13,7 @@
 
 void *thread_outfile_remove (void *p);
 
-int outcheck_ctx_init (outcheck_ctx_t *outcheck_ctx, const user_options_t *user_options, const folder_config_t *folder_config);
-void outcheck_ctx_destroy (outcheck_ctx_t *outcheck_ctx);
+int  outcheck_ctx_init    (hashcat_ctx_t *hashcat_ctx);
+void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _OUTFILE_CHECK_H
