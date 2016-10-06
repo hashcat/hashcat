@@ -118,17 +118,18 @@ void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
 static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 {
-  combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
-  hashes_t             *hashes              = hashcat_ctx->hashes;
-  induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
-  logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
-  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
-  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
-  restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
-  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
-  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options        = hashcat_ctx->user_options;
+  const combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
+  const hashes_t             *hashes              = hashcat_ctx->hashes;
+  const logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
+  const mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
+  const opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  const restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
+  const user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+
+        induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
+        status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
+        straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
+        user_options_t       *user_options        = hashcat_ctx->user_options;
 
   //status_ctx->run_main_level1   = true;
   //status_ctx->run_main_level2   = true;
@@ -293,35 +294,13 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  u64 words_base = status_ctx->words_cnt;
+  // words_base
 
-  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-  {
-    if (straight_ctx->kernel_rules_cnt)
-    {
-      words_base /= straight_ctx->kernel_rules_cnt;
-    }
-  }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-  {
-    if (combinator_ctx->combs_cnt)
-    {
-      words_base /= combinator_ctx->combs_cnt;
-    }
-  }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-  {
-    if (mask_ctx->bfs_cnt)
-    {
-      words_base /= mask_ctx->bfs_cnt;
-    }
-  }
-
-  status_ctx->words_base = words_base;
+  status_ctx->words_base = status_words_base_calculate (hashcat_ctx, status_ctx->words_cnt);
 
   if (user_options->keyspace == true)
   {
-    log_info ("%" PRIu64 "", words_base);
+    log_info ("%" PRIu64 "", status_ctx->words_base);
 
     return 0;
   }

@@ -12,6 +12,8 @@
 
 double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries);
 
+u64  status_words_base_calculate      (hashcat_ctx_t *hashcat_ctx, const u64 words_cnt);
+
 void status_display_machine_readable  (hashcat_ctx_t *hashcat_ctx);
 void status_display                   (hashcat_ctx_t *hashcat_ctx);
 void status_benchmark_automate        (hashcat_ctx_t *hashcat_ctx);
