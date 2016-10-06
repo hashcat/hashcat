@@ -296,7 +296,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   // words_base
 
-  status_ctx->words_base = status_words_base_calculate (hashcat_ctx, status_ctx->words_cnt);
+  status_ctx->words_base = status_ctx->words_cnt / user_options_extra_amplifier (hashcat_ctx);
 
   if (user_options->keyspace == true)
   {
@@ -314,26 +314,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->words_cur)
   {
-    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    const u64 progress_restored = status_ctx->words_cur * user_options_extra_amplifier (hashcat_ctx);
+
+    for (u32 i = 0; i < hashes->salts_cnt; i++)
     {
-      for (u32 i = 0; i < hashes->salts_cnt; i++)
-      {
-        status_ctx->words_progress_restored[i] = status_ctx->words_cur * straight_ctx->kernel_rules_cnt;
-      }
-    }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-    {
-      for (u32 i = 0; i < hashes->salts_cnt; i++)
-      {
-        status_ctx->words_progress_restored[i] = status_ctx->words_cur * combinator_ctx->combs_cnt;
-      }
-    }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-    {
-      for (u32 i = 0; i < hashes->salts_cnt; i++)
-      {
-        status_ctx->words_progress_restored[i] = status_ctx->words_cur * mask_ctx->bfs_cnt;
-      }
+      status_ctx->words_progress_restored[i] = progress_restored;
     }
   }
 

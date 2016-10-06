@@ -146,40 +146,6 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
   return exec_ms_sum / exec_ms_cnt;
 }
 
-u64 status_words_base_calculate (hashcat_ctx_t *hashcat_ctx, const u64 words_cnt)
-{
-  const combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  const mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
-  const straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
-  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-
-  u64 words_base = words_cnt;
-
-  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-  {
-    if (straight_ctx->kernel_rules_cnt)
-    {
-      words_base /= straight_ctx->kernel_rules_cnt;
-    }
-  }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-  {
-    if (combinator_ctx->combs_cnt)
-    {
-      words_base /= combinator_ctx->combs_cnt;
-    }
-  }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-  {
-    if (mask_ctx->bfs_cnt)
-    {
-      words_base /= mask_ctx->bfs_cnt;
-    }
-  }
-
-  return words_base;
-}
-
 void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
