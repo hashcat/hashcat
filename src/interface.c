@@ -16158,8 +16158,11 @@ void ascii_digest (char *out_buf, const u32 salt_pos, const u32 digest_pos, cons
 
 #pragma GCC diagnostic pop
 
-int hashconfig_init (hashconfig_t *hashconfig, const user_options_t *user_options)
+int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   hashconfig->hash_mode       = user_options->hash_mode;
   hashconfig->hash_type       = 0;
   hashconfig->salt_type       = 0;
@@ -20101,13 +20104,17 @@ int hashconfig_init (hashconfig_t *hashconfig, const user_options_t *user_option
   return 0;
 }
 
-void hashconfig_destroy (hashconfig_t *hashconfig)
+void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
   memset (hashconfig, 0, sizeof (hashconfig_t));
 }
 
-u32 hashconfig_enforce_kernel_threads (const hashconfig_t *hashconfig, const hc_device_param_t *device_param)
+u32 hashconfig_enforce_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
 {
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
   u32 kernel_threads = MIN (KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
 
   if (hashconfig->hash_mode ==  8900) kernel_threads = 64; // Scrypt
@@ -20139,8 +20146,11 @@ u32 hashconfig_enforce_kernel_threads (const hashconfig_t *hashconfig, const hc_
   return kernel_threads;
 }
 
-u32 hashconfig_enforce_kernel_loops (const hashconfig_t *hashconfig, const user_options_t *user_options)
+u32 hashconfig_enforce_kernel_loops (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   u32 kernel_loops_fixed = 0;
 
   if (hashconfig->hash_mode == 1500 && user_options->attack_mode == ATTACK_MODE_BF)
@@ -20181,8 +20191,12 @@ u32 hashconfig_enforce_kernel_loops (const hashconfig_t *hashconfig, const user_
   return kernel_loops_fixed;
 }
 
-void hashconfig_general_defaults (hashconfig_t *hashconfig, hashes_t *hashes, const user_options_t *user_options)
+void hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  hashes_t       *hashes       = hashcat_ctx->hashes;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   salt_t *salts_buf  = hashes->salts_buf;
   void   *esalts_buf = hashes->esalts_buf;
 
@@ -20252,8 +20266,10 @@ void hashconfig_general_defaults (hashconfig_t *hashconfig, hashes_t *hashes, co
   }
 }
 
-void hashconfig_benchmark_defaults (const hashconfig_t *hashconfig, salt_t *salt, void *esalt)
+void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt)
 {
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
   if (hashconfig->is_salted)
   {
     salt->salt_len = 8;
@@ -20565,8 +20581,10 @@ void hashconfig_benchmark_defaults (const hashconfig_t *hashconfig, salt_t *salt
   }
 }
 
-char *hashconfig_benchmark_mask (const hashconfig_t *hashconfig)
+char *hashconfig_benchmark_mask (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
   char *mask = NULL;
 
   switch (hashconfig->hash_mode)

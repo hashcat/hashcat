@@ -1086,7 +1086,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      const char *mask = hashconfig_benchmark_mask (hashconfig);
+      const char *mask = hashconfig_benchmark_mask (hashcat_ctx);
 
       mask_append (mask_ctx, user_options, mask);
     }

@@ -627,7 +627,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->benchmark == true)
   {
-    hashconfig_benchmark_defaults ((hashconfig_t *) hashconfig, hashes_buf[0].salt, hashes_buf[0].esalt);
+    hashconfig_benchmark_defaults (hashcat_ctx, hashes_buf[0].salt, hashes_buf[0].esalt);
 
     hashes->hashfile = "-";
 
@@ -1280,7 +1280,7 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
   hashes_t       *hashes       = hashcat_ctx->hashes;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  hashconfig_general_defaults (hashconfig, hashes, user_options);
+  hashconfig_general_defaults (hashcat_ctx);
 
   if (hashes->salts_cnt == 1)
     hashconfig->opti_type |= OPTI_TYPE_SINGLE_SALT;

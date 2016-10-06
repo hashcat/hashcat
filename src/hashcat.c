@@ -787,7 +787,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * setup variables and buffers depending on hash_mode
    */
 
-  const int rc_hashconfig = hashconfig_init (hashconfig, user_options);
+  const int rc_hashconfig = hashconfig_init (hashcat_ctx);
 
   if (rc_hashconfig == -1) return -1;
 
@@ -874,7 +874,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
     hashes_destroy (hashcat_ctx);
 
-    hashconfig_destroy (hashconfig);
+    hashconfig_destroy (hashcat_ctx);
 
     potfile_destroy (hashcat_ctx);
 
@@ -1216,7 +1216,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   hashes_destroy (hashcat_ctx);
 
-  hashconfig_destroy (hashconfig);
+  hashconfig_destroy (hashcat_ctx);
 
   wl_data_destroy (wl_data);
 

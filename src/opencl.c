@@ -2771,7 +2771,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      *                 there needs to be some upper limit, otherwise there's too much overhead
      */
 
-    u32 kernel_threads = hashconfig_enforce_kernel_threads (hashconfig, device_param);
+    u32 kernel_threads = hashconfig_enforce_kernel_threads (hashcat_ctx, device_param);
 
     device_param->kernel_threads = kernel_threads;
 
@@ -2929,7 +2929,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * some algorithms need a fixed kernel-loops count
      */
 
-    const u32 kernel_loops_fixed = hashconfig_enforce_kernel_loops (hashconfig, user_options);
+    const u32 kernel_loops_fixed = hashconfig_enforce_kernel_loops (hashcat_ctx);
 
     if (kernel_loops_fixed != 0)
     {
