@@ -1349,8 +1349,11 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
   if (opencl_ctx->devices_active > 1) log_info ("Speed.Dev.#*.: %9sH/s", display_all_cur);
 }
 
-int status_progress_init (status_ctx_t *status_ctx, const hashes_t *hashes)
+int status_progress_init (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  hashes_t     *hashes     = hashcat_ctx->hashes;
+
   status_ctx->words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
   status_ctx->words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
   status_ctx->words_progress_restored = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
@@ -1358,8 +1361,10 @@ int status_progress_init (status_ctx_t *status_ctx, const hashes_t *hashes)
   return 0;
 }
 
-void status_progress_destroy (status_ctx_t *status_ctx)
+void status_progress_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   myfree (status_ctx->words_progress_done);
   myfree (status_ctx->words_progress_rejected);
   myfree (status_ctx->words_progress_restored);
@@ -1369,15 +1374,20 @@ void status_progress_destroy (status_ctx_t *status_ctx)
   status_ctx->words_progress_restored = NULL;
 }
 
-void status_progress_reset (status_ctx_t *status_ctx, const hashes_t *hashes)
+void status_progress_reset (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  hashes_t     *hashes     = hashcat_ctx->hashes;
+
   memset (status_ctx->words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
   memset (status_ctx->words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
   memset (status_ctx->words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
 }
 
-int status_ctx_init (status_ctx_t *status_ctx)
+int status_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   status_ctx->devices_status = STATUS_INIT;
 
   status_ctx->run_main_level1   = true;
@@ -1396,8 +1406,10 @@ int status_ctx_init (status_ctx_t *status_ctx)
   return 0;
 }
 
-void status_ctx_destroy (status_ctx_t *status_ctx)
+void status_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   hc_thread_mutex_delete (status_ctx->mux_dispatcher);
   hc_thread_mutex_delete (status_ctx->mux_counter);
   hc_thread_mutex_delete (status_ctx->mux_display);

@@ -145,7 +145,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   logfile_sub_msg ("START");
 
-  status_progress_reset (status_ctx, hashes);
+  status_progress_reset (hashcat_ctx);
 
   status_ctx->words_cur = 0;
 
@@ -979,7 +979,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * status progress init; needs hashes that's why we have to do it here and separate from status_ctx_init
    */
 
-  const int rc_status_init = status_progress_init (status_ctx, hashes);
+  const int rc_status_init = status_progress_init (hashcat_ctx);
 
   if (rc_status_init == -1) return -1;
 
@@ -1214,7 +1214,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * Clean up
    */
 
-  status_progress_destroy (status_ctx);
+  status_progress_destroy (hashcat_ctx);
 
   opencl_session_destroy (opencl_ctx);
 
@@ -1274,7 +1274,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * status init
    */
 
-  const int rc_status_init = status_ctx_init (status_ctx);
+  const int rc_status_init = status_ctx_init (hashcat_ctx);
 
   if (rc_status_init == -1) return -1;
 
@@ -1559,7 +1559,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   if (status_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
   if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
 
-  status_ctx_destroy (status_ctx);
+  status_ctx_destroy (hashcat_ctx);
 
   return rc_final;
 }
