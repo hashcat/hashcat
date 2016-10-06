@@ -117,7 +117,6 @@ void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
-  cpt_ctx_t            *cpt_ctx             = hashcat_ctx->cpt_ctx;
   dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
   hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   hashes_t             *hashes              = hashcat_ctx->hashes;
@@ -169,7 +168,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   opencl_session_reset (opencl_ctx);
 
-  cpt_ctx_reset (cpt_ctx);
+  cpt_ctx_reset (hashcat_ctx);
 
   // figure out wordlist based workload
 
@@ -760,7 +759,6 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 {
   bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
-  cpt_ctx_t            *cpt_ctx             = hashcat_ctx->cpt_ctx;
   folder_config_t      *folder_config       = hashcat_ctx->folder_config;
   hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   hashes_t             *hashes              = hashcat_ctx->hashes;
@@ -913,7 +911,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * cracks-per-time allocate buffer
    */
 
-  cpt_ctx_init (cpt_ctx, user_options);
+  cpt_ctx_init (hashcat_ctx);
 
   /**
    * Wordlist allocate buffer
@@ -1232,7 +1230,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   wl_data_destroy (wl_data);
 
-  cpt_ctx_destroy (cpt_ctx);
+  cpt_ctx_destroy (hashcat_ctx);
 
   return 0;
 }

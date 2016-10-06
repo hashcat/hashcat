@@ -9,8 +9,11 @@
 #include "logging.h"
 #include "cpt.h"
 
-int cpt_ctx_init (cpt_ctx_t *cpt_ctx, const user_options_t *user_options)
+int cpt_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
+  cpt_ctx_t      *cpt_ctx      = hashcat_ctx->cpt_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   cpt_ctx->enabled = false;
 
   if (user_options->keyspace    == true) return 0;
@@ -32,8 +35,10 @@ int cpt_ctx_init (cpt_ctx_t *cpt_ctx, const user_options_t *user_options)
   return 0;
 }
 
-void cpt_ctx_destroy (cpt_ctx_t *cpt_ctx)
+void cpt_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+
   if (cpt_ctx->enabled == false) return;
 
   myfree (cpt_ctx->cpt_buf);
@@ -41,8 +46,10 @@ void cpt_ctx_destroy (cpt_ctx_t *cpt_ctx)
   memset (cpt_ctx, 0, sizeof (cpt_ctx_t));
 }
 
-void cpt_ctx_reset (cpt_ctx_t *cpt_ctx)
+void cpt_ctx_reset (hashcat_ctx_t *hashcat_ctx)
 {
+  cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+
   if (cpt_ctx->enabled == false) return;
 
   memset (cpt_ctx->cpt_buf, 0, CPT_BUF * sizeof (cpt_t));

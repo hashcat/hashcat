@@ -10,8 +10,8 @@
 #include <errno.h>
 #include <time.h>
 
-int  cpt_ctx_init    (cpt_ctx_t *cpt_ctx, const user_options_t *user_options);
-void cpt_ctx_destroy (cpt_ctx_t *cpt_ctx);
-void cpt_ctx_reset   (cpt_ctx_t *cpt_ctx);
+int  cpt_ctx_init    (hashcat_ctx_t *hashcat_ctx);
+void cpt_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
+void cpt_ctx_reset   (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _CPT_H
