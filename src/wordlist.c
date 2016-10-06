@@ -13,8 +13,10 @@
 #include "rp_cpu.h"
 #include "wordlist.h"
 
-u32 convert_from_hex (char *line_buf, const u32 line_len, const user_options_t *user_options)
+u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line_len)
 {
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
   if (line_len & 1) return (line_len); // not in hex
 
   if (user_options->hex_wordlist == true)
@@ -56,8 +58,10 @@ u32 convert_from_hex (char *line_buf, const u32 line_len, const user_options_t *
   return (line_len);
 }
 
-void load_segment (wl_data_t *wl_data, FILE *fd)
+void load_segment (hashcat_ctx_t *hashcat_ctx, FILE *fd)
 {
+  wl_data_t *wl_data = hashcat_ctx->wl_data;
+
   // NOTE: use (never changing) ->incr here instead of ->avail otherwise the buffer gets bigger and bigger
 
   wl_data->pos = 0;
@@ -177,8 +181,12 @@ void get_next_word_std (char *buf, u64 sz, u64 *len, u64 *off)
   *len = sz;
 }
 
-void get_next_word (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, FILE *fd, char **out_buf, u32 *out_len)
+void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *out_len)
 {
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  wl_data_t            *wl_data            = hashcat_ctx->wl_data;
+
   while (wl_data->pos < wl_data->cnt)
   {
     u64 off;
@@ -232,9 +240,9 @@ void get_next_word (wl_data_t *wl_data, const user_options_t *user_options, cons
     return;
   }
 
-  load_segment (wl_data, fd);
+  load_segment (hashcat_ctx, fd);
 
-  get_next_word (wl_data, user_options, user_options_extra, fd, out_buf, out_len);
+  get_next_word (hashcat_ctx, fd, out_buf, out_len);
 }
 
 void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len)
@@ -261,8 +269,15 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
   //}
 }
 
-u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx)
+u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
 {
+  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  dictstat_ctx_t       *dictstat_ctx       = hashcat_ctx->dictstat_ctx;
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  wl_data_t            *wl_data            = hashcat_ctx->wl_data;
+
   //hc_signal (NULL);
 
   dictstat_t d;
@@ -326,7 +341,7 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
 
   while (!feof (fd))
   {
-    load_segment (wl_data, fd);
+    load_segment (hashcat_ctx, fd);
 
     comp += wl_data->cnt;
 
@@ -400,15 +415,18 @@ u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const u
   return (cnt);
 }
 
-void wl_data_init (wl_data_t *wl_data, const user_options_t *user_options, const hashconfig_t *hashconfig)
+void wl_data_init (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  user_options_t *user_options = hashcat_ctx->user_options;
+  wl_data_t      *wl_data      = hashcat_ctx->wl_data;
+
   wl_data->enabled = false;
 
   if (user_options->benchmark   == true) return;
   if (user_options->keyspace    == true) return;
   if (user_options->left        == true) return;
   if (user_options->opencl_info == true) return;
-//  if (user_options->show        == true) return;
   if (user_options->usage       == true) return;
   if (user_options->version     == true) return;
 
@@ -437,8 +455,10 @@ void wl_data_init (wl_data_t *wl_data, const user_options_t *user_options, const
   }
 }
 
-void wl_data_destroy (wl_data_t *wl_data)
+void wl_data_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  wl_data_t *wl_data = hashcat_ctx->wl_data;
+
   if (wl_data->enabled == false) return;
 
   myfree (wl_data->buf);

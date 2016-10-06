@@ -117,7 +117,6 @@ void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
-  dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
   hashes_t             *hashes              = hashcat_ctx->hashes;
   induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
@@ -129,7 +128,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
-  wl_data_t            *wl_data             = hashcat_ctx->wl_data;
 
   //status_ctx->run_main_level1   = true;
   //status_ctx->run_main_level2   = true;
@@ -200,7 +198,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      status_ctx->words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, straight_ctx->dict, dictstat_ctx);
+      status_ctx->words_cnt = count_words (hashcat_ctx, fd2, straight_ctx->dict);
 
       fclose (fd2);
 
@@ -228,7 +226,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      status_ctx->words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, combinator_ctx->dict1, dictstat_ctx);
+      status_ctx->words_cnt = count_words (hashcat_ctx, fd2, combinator_ctx->dict1);
 
       fclose (fd2);
     }
@@ -243,7 +241,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      status_ctx->words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, combinator_ctx->dict2, dictstat_ctx);
+      status_ctx->words_cnt = count_words (hashcat_ctx, fd2, combinator_ctx->dict2);
 
       fclose (fd2);
     }
@@ -282,7 +280,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    status_ctx->words_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fd2, straight_ctx->dict, dictstat_ctx);
+    status_ctx->words_cnt = count_words (hashcat_ctx, fd2, straight_ctx->dict);
 
     fclose (fd2);
 
@@ -767,7 +765,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
   straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
   user_options_t       *user_options        = hashcat_ctx->user_options;
-  wl_data_t            *wl_data             = hashcat_ctx->wl_data;
 
   status_ctx->devices_status = STATUS_INIT;
 
@@ -907,7 +904,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * Wordlist allocate buffer
    */
 
-  wl_data_init (wl_data, user_options, hashconfig);
+  wl_data_init (hashcat_ctx);
 
   /**
    * straight mode init
@@ -1218,7 +1215,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   hashconfig_destroy (hashcat_ctx);
 
-  wl_data_destroy (wl_data);
+  wl_data_destroy (hashcat_ctx);
 
   cpt_ctx_destroy (hashcat_ctx);
 

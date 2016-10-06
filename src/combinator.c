@@ -13,11 +13,8 @@
 int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
-  dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
-  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
-  wl_data_t            *wl_data             = hashcat_ctx->wl_data;
 
   combinator_ctx->enabled = false;
 
@@ -109,7 +106,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     combinator_ctx->combs_cnt = 1;
 
-    const u64 words1_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fp1, dictfile1, dictstat_ctx);
+    const u64 words1_cnt = count_words (hashcat_ctx, fp1, dictfile1);
 
     if (words1_cnt == 0)
     {
@@ -123,7 +120,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     combinator_ctx->combs_cnt = 1;
 
-    const u64 words2_cnt = count_words (wl_data, user_options, user_options_extra, straight_ctx, combinator_ctx, fp2, dictfile2, dictstat_ctx);
+    const u64 words2_cnt = count_words (hashcat_ctx, fp2, dictfile2);
 
     if (words2_cnt == 0)
     {

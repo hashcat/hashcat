@@ -9,21 +9,18 @@
 #include <time.h>
 #include <inttypes.h>
 
-u32 convert_from_hex (char *line_buf, const u32 line_len, const user_options_t *user_options);
+u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line_len);
 
-void load_segment (wl_data_t *wl_data, FILE *fd);
+void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len);
 
 void get_next_word_lm  (char *buf, u64 sz, u64 *len, u64 *off);
 void get_next_word_uc  (char *buf, u64 sz, u64 *len, u64 *off);
 void get_next_word_std (char *buf, u64 sz, u64 *len, u64 *off);
 
-void get_next_word (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, FILE *fd, char **out_buf, u32 *out_len);
-
-void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len);
-
-u64 count_words (wl_data_t *wl_data, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, const combinator_ctx_t *combinator_ctx, FILE *fd, const char *dictfile, dictstat_ctx_t *dictstat_ctx);
-
-void wl_data_init (wl_data_t *wl_data, const user_options_t *user_options, const hashconfig_t *hashconfig);
-void wl_data_destroy (wl_data_t *wl_data);
+void get_next_word   (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *out_len);
+void load_segment    (hashcat_ctx_t *hashcat_ctx, FILE *fd);
+u64  count_words     (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile);
+void wl_data_init    (hashcat_ctx_t *hashcat_ctx);
+void wl_data_destroy (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _WORDLIST_H

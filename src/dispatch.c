@@ -140,7 +140,7 @@ static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
 
       u32 line_len = (u32) in_superchop (line_buf);
 
-      line_len = convert_from_hex (line_buf, line_len, user_options);
+      line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
       // post-process rule engine
 
@@ -362,9 +362,39 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       }
     }
 
-    wl_data_t *wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
+    hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) mymalloc (sizeof (hashcat_ctx_t));
 
-    wl_data_init (wl_data, user_options, hashconfig);
+    /*
+    hashcat_ctx_tmp->bitmap_ctx         = hashcat_ctx->bitmap_ctx;
+    hashcat_ctx_tmp->combinator_ctx     = hashcat_ctx->combinator_ctx;
+    hashcat_ctx_tmp->cpt_ctx            = hashcat_ctx->cpt_ctx;
+    hashcat_ctx_tmp->debugfile_ctx      = hashcat_ctx->debugfile_ctx;
+    hashcat_ctx_tmp->dictstat_ctx       = hashcat_ctx->dictstat_ctx;
+    hashcat_ctx_tmp->folder_config      = hashcat_ctx->folder_config;
+    hashcat_ctx_tmp->hashconfig         = hashcat_ctx->hashconfig;
+    hashcat_ctx_tmp->hashes             = hashcat_ctx->hashes;
+    hashcat_ctx_tmp->hwmon_ctx          = hashcat_ctx->hwmon_ctx;
+    hashcat_ctx_tmp->induct_ctx         = hashcat_ctx->induct_ctx;
+    hashcat_ctx_tmp->logfile_ctx        = hashcat_ctx->logfile_ctx;
+    hashcat_ctx_tmp->loopback_ctx       = hashcat_ctx->loopback_ctx;
+    hashcat_ctx_tmp->mask_ctx           = hashcat_ctx->mask_ctx;
+    hashcat_ctx_tmp->opencl_ctx         = hashcat_ctx->opencl_ctx;
+    hashcat_ctx_tmp->outcheck_ctx       = hashcat_ctx->outcheck_ctx;
+    hashcat_ctx_tmp->outfile_ctx        = hashcat_ctx->outfile_ctx;
+    hashcat_ctx_tmp->potfile_ctx        = hashcat_ctx->potfile_ctx;
+    hashcat_ctx_tmp->restore_ctx        = hashcat_ctx->restore_ctx;
+    hashcat_ctx_tmp->status_ctx         = hashcat_ctx->status_ctx;
+    hashcat_ctx_tmp->straight_ctx       = hashcat_ctx->straight_ctx;
+    hashcat_ctx_tmp->tuning_db          = hashcat_ctx->tuning_db;
+    hashcat_ctx_tmp->user_options_extra = hashcat_ctx->user_options_extra;
+    hashcat_ctx_tmp->user_options       = hashcat_ctx->user_options;
+    */
+
+    memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
+
+    hashcat_ctx_tmp->wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
+
+    wl_data_init (hashcat_ctx_tmp);
 
     u64 words_cur = 0;
 
@@ -389,13 +419,13 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         char *line_buf;
         u32   line_len;
 
-        for ( ; words_cur < words_off; words_cur++) get_next_word (wl_data, user_options, user_options_extra, fd, &line_buf, &line_len);
+        for ( ; words_cur < words_off; words_cur++) get_next_word (hashcat_ctx_tmp, fd, &line_buf, &line_len);
 
         for ( ; words_cur < words_fin; words_cur++)
         {
-          get_next_word (wl_data, user_options, user_options_extra, fd, &line_buf, &line_len);
+          get_next_word (hashcat_ctx_tmp, fd, &line_buf, &line_len);
 
-          line_len = convert_from_hex (line_buf, line_len, user_options);
+          line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
 
           // post-process rule engine
 
@@ -505,7 +535,11 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       fclose (device_param->combs_fp);
     }
 
-    wl_data_destroy (wl_data);
+    wl_data_destroy (hashcat_ctx_tmp);
+
+    myfree (hashcat_ctx_tmp->wl_data);
+
+    myfree (hashcat_ctx_tmp);
 
     fclose (fd);
   }
