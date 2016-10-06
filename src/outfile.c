@@ -256,30 +256,10 @@ void build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
   }
 }
 
-void outfile_init (outfile_ctx_t *outfile_ctx, const user_options_t *user_options)
+static void outfile_format_plain (hashcat_ctx_t *hashcat_ctx, const unsigned char *plain_ptr, const u32 plain_len)
 {
-  if (user_options->outfile == NULL)
-  {
-    outfile_ctx->fp       = stdout;
-    outfile_ctx->filename = NULL;
-  }
-  else
-  {
-    outfile_ctx->fp       = NULL;
-    outfile_ctx->filename = user_options->outfile;
-  }
+  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
 
-  outfile_ctx->outfile_format   = user_options->outfile_format;
-  outfile_ctx->outfile_autohex  = user_options->outfile_autohex;
-}
-
-void outfile_destroy (outfile_ctx_t *outfile_ctx)
-{
-  memset (outfile_ctx, 0, sizeof (outfile_ctx_t));
-}
-
-void outfile_format_plain (outfile_ctx_t *outfile_ctx, const unsigned char *plain_ptr, const u32 plain_len)
-{
   bool needs_hexify = false;
 
   if (outfile_ctx->outfile_autohex == true)
@@ -319,8 +299,37 @@ void outfile_format_plain (outfile_ctx_t *outfile_ctx, const unsigned char *plai
   }
 }
 
-void outfile_write_open (outfile_ctx_t *outfile_ctx)
+void outfile_init (hashcat_ctx_t *hashcat_ctx)
 {
+  outfile_ctx_t  *outfile_ctx  = hashcat_ctx->outfile_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->outfile == NULL)
+  {
+    outfile_ctx->fp       = stdout;
+    outfile_ctx->filename = NULL;
+  }
+  else
+  {
+    outfile_ctx->fp       = NULL;
+    outfile_ctx->filename = user_options->outfile;
+  }
+
+  outfile_ctx->outfile_format   = user_options->outfile_format;
+  outfile_ctx->outfile_autohex  = user_options->outfile_autohex;
+}
+
+void outfile_destroy (hashcat_ctx_t *hashcat_ctx)
+{
+  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
+
+  memset (outfile_ctx, 0, sizeof (outfile_ctx_t));
+}
+
+void outfile_write_open (hashcat_ctx_t *hashcat_ctx)
+{
+  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
+
   if (outfile_ctx->filename == NULL) return;
 
   outfile_ctx->fp = fopen (outfile_ctx->filename, "ab");
@@ -334,15 +343,20 @@ void outfile_write_open (outfile_ctx_t *outfile_ctx)
   }
 }
 
-void outfile_write_close (outfile_ctx_t *outfile_ctx)
+void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
 {
+  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
+
   if (outfile_ctx->fp == stdout) return;
 
   fclose (outfile_ctx->fp);
 }
 
-void outfile_write (outfile_ctx_t *outfile_ctx, const char *out_buf, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, const hashconfig_t *hashconfig)
+void outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len)
 {
+  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
+  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
+
   if (outfile_ctx->outfile_format & OUTFILE_FMT_HASH)
   {
     fprintf (outfile_ctx->fp, "%s", out_buf);
@@ -370,7 +384,7 @@ void outfile_write (outfile_ctx_t *outfile_ctx, const char *out_buf, const unsig
 
   if (outfile_ctx->outfile_format & OUTFILE_FMT_PLAIN)
   {
-    outfile_format_plain (outfile_ctx, plain_ptr, plain_len);
+    outfile_format_plain (hashcat_ctx, plain_ptr, plain_len);
 
     if (outfile_ctx->outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
     {
@@ -399,8 +413,13 @@ void outfile_write (outfile_ctx_t *outfile_ctx, const char *out_buf, const unsig
   fputs (EOL, outfile_ctx->fp);
 }
 
-int outfile_and_hashfile (outfile_ctx_t *outfile_ctx, const char *hashfile)
+int outfile_and_hashfile (hashcat_ctx_t *hashcat_ctx)
 {
+  outfile_ctx_t        *outfile_ctx        = hashcat_ctx->outfile_ctx;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  char *hashfile = user_options_extra->hc_hash;
+
   if (hashfile == NULL) return 0;
 
   char *outfile = outfile_ctx->filename;

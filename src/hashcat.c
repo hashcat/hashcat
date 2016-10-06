@@ -763,8 +763,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
   opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
   outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
-  outfile_ctx_t        *outfile_ctx         = hashcat_ctx->outfile_ctx;
-  potfile_ctx_t        *potfile_ctx         = hashcat_ctx->potfile_ctx;
   restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
   straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
@@ -799,13 +797,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->show == true || user_options->left == true)
   {
-    outfile_write_open (outfile_ctx);
+    outfile_write_open (hashcat_ctx);
 
-    potfile_read_open  (potfile_ctx);
-
-    potfile_read_parse (potfile_ctx, hashconfig);
-
-    potfile_read_close (potfile_ctx);
+    potfile_read_open  (hashcat_ctx);
+    potfile_read_parse (hashcat_ctx);
+    potfile_read_close (hashcat_ctx);
   }
 
   /**
@@ -832,9 +828,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->show == true || user_options->left == true)
   {
-    outfile_write_close (outfile_ctx);
+    outfile_write_close (hashcat_ctx);
 
-    potfile_hash_free (potfile_ctx, hashconfig);
+    potfile_hash_free (hashcat_ctx);
 
     return 0;
   }
@@ -849,7 +845,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->quiet == false) log_info_nn ("Comparing hashes with potfile entries...");
 
-    potfile_remove_cracks = potfile_remove_parse (potfile_ctx, hashconfig, hashes);
+    potfile_remove_cracks = potfile_remove_parse (hashcat_ctx);
   }
 
   /**
@@ -880,7 +876,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
     hashconfig_destroy (hashconfig);
 
-    potfile_destroy (potfile_ctx);
+    potfile_destroy (hashcat_ctx);
 
     return 0;
   }
@@ -1080,7 +1076,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * weak hash check is the first to write to potfile, so open it for writing from here
    */
 
-  const int rc_potfile_write = potfile_write_open (potfile_ctx);
+  const int rc_potfile_write = potfile_write_open (hashcat_ctx);
 
   if (rc_potfile_write == -1) return -1;
 
@@ -1208,7 +1204,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   opencl_session_destroy (hashcat_ctx);
 
-  potfile_write_close (potfile_ctx);
+  potfile_write_close (hashcat_ctx);
 
   bitmap_ctx_destroy (hashcat_ctx);
 
@@ -1249,8 +1245,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
   outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
-  outfile_ctx_t        *outfile_ctx         = hashcat_ctx->outfile_ctx;
-  potfile_ctx_t        *potfile_ctx         = hashcat_ctx->potfile_ctx;
   restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
   tuning_db_t          *tuning_db           = hashcat_ctx->tuning_db;
@@ -1333,13 +1327,13 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * outfile itself
    */
 
-  outfile_init (outfile_ctx, user_options);
+  outfile_init (hashcat_ctx);
 
   /**
    * Sanity check for hashfile vs outfile (should not point to the same physical file)
    */
 
-  const int rc_outfile_and_hashfile = outfile_and_hashfile (outfile_ctx, user_options_extra->hc_hash);
+  const int rc_outfile_and_hashfile = outfile_and_hashfile (hashcat_ctx);
 
   if (rc_outfile_and_hashfile == -1) return -1;
 
@@ -1349,7 +1343,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * plus it depends on hash_mode, so we continue using it in outer_loop
    */
 
-  potfile_init (potfile_ctx, user_options, folder_config);
+  potfile_init (hashcat_ctx);
 
   /**
    * dictstat init
@@ -1508,11 +1502,11 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   dictstat_destroy (dictstat_ctx);
 
-  potfile_destroy (potfile_ctx);
+  potfile_destroy (hashcat_ctx);
 
   induct_ctx_destroy (induct_ctx);
 
-  outfile_destroy (outfile_ctx);
+  outfile_destroy (hashcat_ctx);
 
   outcheck_ctx_destroy (outcheck_ctx);
 
