@@ -1273,9 +1273,9 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * process user input
    */
 
-  user_options_preprocess (user_options);
+  user_options_preprocess (hashcat_ctx);
 
-  user_options_extra_init (user_options, user_options_extra);
+  user_options_extra_init (hashcat_ctx);
 
   /**
    * prepare seeding for random number generator, required by logfile and rules generator
@@ -1508,8 +1508,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   folder_config_destroy (hashcat_ctx);
 
-  user_options_extra_destroy (user_options_extra);
-
   hwmon_ctx_destroy (hashcat_ctx);
 
   opencl_ctx_devices_destroy (hashcat_ctx);
@@ -1527,7 +1525,9 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   logfile_destroy (hashcat_ctx);
 
-  user_options_destroy (user_options);
+  user_options_extra_destroy (hashcat_ctx);
+
+  user_options_destroy (hashcat_ctx);
 
   int rc_final = -1;
 

@@ -427,9 +427,9 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
     rd->pid = GetCurrentProcessId ();
     #endif
 
-    user_options_init (user_options);
+    user_options_init (hashcat_ctx);
 
-    const int rc_options_getopt = user_options_getopt (user_options, rd->argc, rd->argv);
+    const int rc_options_getopt = user_options_getopt (hashcat_ctx, rd->argc, rd->argv);
 
     if (rc_options_getopt == -1) return -1;
   }

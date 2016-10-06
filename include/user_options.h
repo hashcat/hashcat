@@ -156,19 +156,19 @@ typedef enum user_options_map
 
 } user_options_map_t;
 
-void user_options_init (user_options_t *user_options);
+void user_options_init (hashcat_ctx_t *hashcat_ctx);
 
-void user_options_destroy (user_options_t *user_options);
+void user_options_destroy (hashcat_ctx_t *hashcat_ctx);
 
-int user_options_getopt (user_options_t *user_options, int argc, char **argv);
+int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv);
 
-int user_options_sanity (const user_options_t *user_options);
+int user_options_sanity (hashcat_ctx_t *hashcat_ctx);
 
-void user_options_preprocess (user_options_t *user_options);
+void user_options_preprocess (hashcat_ctx_t *hashcat_ctx);
 
-void user_options_extra_init (const user_options_t *user_options, user_options_extra_t *user_options_extra);
+void user_options_extra_init (hashcat_ctx_t *hashcat_ctx);
 
-void user_options_extra_destroy (user_options_extra_t *user_options_extra);
+void user_options_extra_destroy (hashcat_ctx_t *hashcat_ctx);
 
 void user_options_logger (hashcat_ctx_t *hashcat_ctx);
 

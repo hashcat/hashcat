@@ -108,8 +108,10 @@ static char DEF_MASK_CS_1[] = "?l?d?u";
 static char DEF_MASK_CS_2[] = "?l?d";
 static char DEF_MASK_CS_3[] = "?l?d*!$@_";
 
-void user_options_init (user_options_t *user_options)
+void user_options_init (hashcat_ctx_t *hashcat_ctx)
 {
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   user_options->attack_mode               = ATTACK_MODE;
   user_options->benchmark                 = BENCHMARK;
   user_options->bitmap_max                = BITMAP_MAX;
@@ -196,16 +198,20 @@ void user_options_init (user_options_t *user_options)
   user_options->hc_argv                   = NULL;
 }
 
-void user_options_destroy (user_options_t *user_options)
+void user_options_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   myfree (user_options->rp_files);
 
   //do not reset this, it might be used from main.c
   //memset (user_options, 0, sizeof (user_options_t));
 }
 
-int user_options_getopt (user_options_t *user_options, int argc, char **argv)
+int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 {
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   int c = -1;
 
   optind = 1;
@@ -336,8 +342,10 @@ int user_options_getopt (user_options_t *user_options, int argc, char **argv)
   return 0;
 }
 
-int user_options_sanity (const user_options_t *user_options)
+int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 {
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   if (user_options->hc_argc < 0)
   {
     log_error ("ERROR: hc_argc %d is invalid", user_options->hc_argc);
@@ -883,8 +891,10 @@ int user_options_sanity (const user_options_t *user_options)
   return 0;
 }
 
-void user_options_preprocess (user_options_t *user_options)
+void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 {
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   #if !defined (WITH_HWMON)
   user_options->powertune_enable = false;
   user_options->gpu_temp_disable = true;
@@ -1070,8 +1080,11 @@ void user_options_preprocess (user_options_t *user_options)
   }
 }
 
-void user_options_extra_init (const user_options_t *user_options, user_options_extra_t *user_options_extra)
+void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
 {
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
   // attack-kern
 
   user_options_extra->attack_kern = ATTACK_KERN_NONE;
@@ -1139,8 +1152,10 @@ void user_options_extra_init (const user_options_t *user_options, user_options_e
   }
 }
 
-void user_options_extra_destroy (user_options_extra_t *user_options_extra)
+void user_options_extra_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
   memset (user_options_extra, 0, sizeof (user_options_extra_t));
 }
 
