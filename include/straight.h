@@ -10,9 +10,7 @@
 
 #define INCR_DICTS 1000
 
-int  straight_ctx_init     (straight_ctx_t *straight_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, hashconfig_t *hashconfig);
-void straight_ctx_destroy  (straight_ctx_t *straight_ctx);
-
-void straight_append_dict  (straight_ctx_t *straight_ctx, const char *dict);
+int  straight_ctx_init    (hashcat_ctx_t *hashcat_ctx);
+void straight_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _STRAIGHT_H

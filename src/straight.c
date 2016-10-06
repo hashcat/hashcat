@@ -18,8 +18,27 @@
 #include "rp_cpu.h"
 #include "straight.h"
 
-int straight_ctx_init (straight_ctx_t *straight_ctx, const user_options_t *user_options, const user_options_extra_t *user_options_extra, hashconfig_t *hashconfig)
+static void straight_ctx_add_wl (straight_ctx_t *straight_ctx, const char *dict)
 {
+  if (straight_ctx->dicts_avail == straight_ctx->dicts_cnt)
+  {
+    straight_ctx->dicts = (char **) myrealloc (straight_ctx->dicts, straight_ctx->dicts_avail * sizeof (char *), INCR_DICTS * sizeof (char *));
+
+    straight_ctx->dicts_avail += INCR_DICTS;
+  }
+
+  straight_ctx->dicts[straight_ctx->dicts_cnt] = mystrdup (dict);
+
+  straight_ctx->dicts_cnt++;
+}
+
+int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
+{
+  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+
   straight_ctx->enabled = false;
 
   if (user_options->left        == true) return 0;
@@ -144,7 +163,7 @@ int straight_ctx_init (straight_ctx_t *straight_ctx, const user_options_t *user_
 
               if (S_ISREG (l1_stat.st_mode))
               {
-                straight_append_dict (straight_ctx, l1_filename);
+                straight_ctx_add_wl (straight_ctx, l1_filename);
               }
             }
           }
@@ -153,7 +172,7 @@ int straight_ctx_init (straight_ctx_t *straight_ctx, const user_options_t *user_
         }
         else
         {
-          straight_append_dict (straight_ctx, l0_filename);
+          straight_ctx_add_wl (straight_ctx, l0_filename);
         }
       }
 
@@ -213,7 +232,7 @@ int straight_ctx_init (straight_ctx_t *straight_ctx, const user_options_t *user_
 
             if (S_ISREG (l1_stat.st_mode))
             {
-              straight_append_dict (straight_ctx, l1_filename);
+              straight_ctx_add_wl (straight_ctx, l1_filename);
             }
           }
         }
@@ -222,7 +241,7 @@ int straight_ctx_init (straight_ctx_t *straight_ctx, const user_options_t *user_
       }
       else
       {
-        straight_append_dict (straight_ctx, l0_filename);
+        straight_ctx_add_wl (straight_ctx, l0_filename);
       }
     }
 
@@ -273,7 +292,7 @@ int straight_ctx_init (straight_ctx_t *straight_ctx, const user_options_t *user_
 
             if (S_ISREG (l1_stat.st_mode))
             {
-              straight_append_dict (straight_ctx, l1_filename);
+              straight_ctx_add_wl (straight_ctx, l1_filename);
             }
           }
         }
@@ -282,7 +301,7 @@ int straight_ctx_init (straight_ctx_t *straight_ctx, const user_options_t *user_
       }
       else
       {
-        straight_append_dict (straight_ctx, l0_filename);
+        straight_ctx_add_wl (straight_ctx, l0_filename);
       }
     }
 
@@ -297,8 +316,10 @@ int straight_ctx_init (straight_ctx_t *straight_ctx, const user_options_t *user_
   return 0;
 }
 
-void straight_ctx_destroy (straight_ctx_t *straight_ctx)
+void straight_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
   if (straight_ctx->enabled == false) return;
 
   for (u32 dict_pos = 0; dict_pos < straight_ctx->dicts_cnt; dict_pos++)
@@ -311,18 +332,4 @@ void straight_ctx_destroy (straight_ctx_t *straight_ctx)
   myfree (straight_ctx->kernel_rules_buf);
 
   memset (straight_ctx, 0, sizeof (straight_ctx_t));
-}
-
-void straight_append_dict (straight_ctx_t *straight_ctx, const char *dict)
-{
-  if (straight_ctx->dicts_avail == straight_ctx->dicts_cnt)
-  {
-    straight_ctx->dicts = (char **) myrealloc (straight_ctx->dicts, straight_ctx->dicts_avail * sizeof (char *), INCR_DICTS * sizeof (char *));
-
-    straight_ctx->dicts_avail += INCR_DICTS;
-  }
-
-  straight_ctx->dicts[straight_ctx->dicts_cnt] = mystrdup (dict);
-
-  straight_ctx->dicts_cnt++;
 }

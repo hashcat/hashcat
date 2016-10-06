@@ -925,7 +925,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * straight mode init
    */
 
-  const int rc_straight_init = straight_ctx_init (straight_ctx, user_options, user_options_extra, hashconfig);
+  const int rc_straight_init = straight_ctx_init (hashcat_ctx);
 
   if (rc_straight_init == -1) return -1;
 
@@ -1224,7 +1224,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   combinator_ctx_destroy (hashcat_ctx);
 
-  straight_ctx_destroy (straight_ctx);
+  straight_ctx_destroy (hashcat_ctx);
 
   hashes_destroy (hashes);
 
