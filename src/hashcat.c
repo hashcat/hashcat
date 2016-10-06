@@ -1260,7 +1260,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * folder
    */
 
-  folder_config_init (folder_config, install_folder, shared_folder);
+  folder_config_init (hashcat_ctx, install_folder, shared_folder);
 
   /**
    * restore
@@ -1507,7 +1507,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   outcheck_ctx_destroy (outcheck_ctx);
 
-  folder_config_destroy (folder_config);
+  folder_config_destroy (hashcat_ctx);
 
   user_options_extra_destroy (user_options_extra);
 

@@ -236,8 +236,10 @@ char **scan_directory (const char *path)
   return (files);
 }
 
-int folder_config_init (folder_config_t *folder_config, const char *install_folder, const char *shared_folder)
+int folder_config_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, const char *shared_folder)
 {
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+
   /**
    * There's some buggy OpenCL runtime that do not support -I.
    * A workaround is to chdir() to the OpenCL folder,
@@ -411,8 +413,10 @@ int folder_config_init (folder_config_t *folder_config, const char *install_fold
   return 0;
 }
 
-void folder_config_destroy (folder_config_t *folder_config)
+void folder_config_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+
   myfree (folder_config->cpath_real);
   myfree (folder_config->cwd);
   myfree (folder_config->install_dir);
