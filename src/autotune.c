@@ -11,8 +11,13 @@
 #include "terminal.h"
 #include "autotune.h"
 
-static double try_run (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param, hashconfig_t *hashconfig, const user_options_t *user_options, status_ctx_t *status_ctx, const u32 kernel_accel, const u32 kernel_loops)
+static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
 {
+  hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
+  opencl_ctx_t    *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  status_ctx_t    *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t  *user_options = hashcat_ctx->user_options;
+
   const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads * kernel_accel;
 
   device_param->kernel_params_buf32[28] = 0;
@@ -37,10 +42,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 {
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
-  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options       = hashcat_ctx->user_options;
 
   const double target_ms = opencl_ctx->target_ms;
 
@@ -61,10 +64,10 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   {
     if (hashconfig->hash_mode != 2000)
     {
-      try_run (opencl_ctx, device_param, hashconfig, user_options, status_ctx, kernel_accel, kernel_loops);
-      try_run (opencl_ctx, device_param, hashconfig, user_options, status_ctx, kernel_accel, kernel_loops);
-      try_run (opencl_ctx, device_param, hashconfig, user_options, status_ctx, kernel_accel, kernel_loops);
-      try_run (opencl_ctx, device_param, hashconfig, user_options, status_ctx, kernel_accel, kernel_loops);
+      try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+      try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+      try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+      try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
     }
 
     device_param->kernel_accel = kernel_accel;
@@ -132,11 +135,11 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   {
     for (kernel_loops = kernel_loops_max; kernel_loops > kernel_loops_min; kernel_loops >>= 1)
     {
-      double exec_ms = try_run (opencl_ctx, device_param, hashconfig, user_options, status_ctx, kernel_accel_min, kernel_loops);
+      double exec_ms = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops);
 
       for (int i = 0; i < VERIFIER_CNT; i++)
       {
-        double exec_ms_v = try_run (opencl_ctx, device_param, hashconfig, user_options, status_ctx, kernel_accel_min, kernel_loops);
+        double exec_ms_v = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops);
 
         exec_ms = MIN (exec_ms, exec_ms_v);
       }
@@ -158,11 +161,11 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       if (kernel_accel_try < kernel_accel_min) continue;
       if (kernel_accel_try > kernel_accel_max) break;
 
-      double exec_ms = try_run (opencl_ctx, device_param, hashconfig, user_options, status_ctx, kernel_accel_try, kernel_loops);
+      double exec_ms = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops);
 
       for (int i = 0; i < VERIFIER_CNT; i++)
       {
-        double exec_ms_v = try_run (opencl_ctx, device_param, hashconfig, user_options, status_ctx, kernel_accel_try, kernel_loops);
+        double exec_ms_v = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops);
 
         exec_ms = MIN (exec_ms, exec_ms_v);
       }
@@ -181,11 +184,11 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   //   due to the rebalance it's possible that the runtime reduces from 48ms to 47ms
   //   and this creates the possibility to double the workload -> 47 * 2 = 95ms, which is < 96ms
 
-  double exec_ms_pre_final = try_run (opencl_ctx, device_param, hashconfig, user_options, status_ctx, kernel_accel, kernel_loops);
+  double exec_ms_pre_final = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
 
   for (int i = 0; i < VERIFIER_CNT; i++)
   {
-    double exec_ms_pre_final_v = try_run (opencl_ctx, device_param, hashconfig, user_options, status_ctx, kernel_accel, kernel_loops);
+    double exec_ms_pre_final_v = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
 
     exec_ms_pre_final = MIN (exec_ms_pre_final, exec_ms_pre_final_v);
   }
@@ -211,11 +214,11 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       diff_new = diff;
 
-      double exec_ms = try_run (opencl_ctx, device_param, hashconfig, user_options, status_ctx, kernel_accel_try, kernel_loops_try);
+      double exec_ms = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try);
 
       for (int i = 0; i < VERIFIER_CNT; i++)
       {
-        double exec_ms_v = try_run (opencl_ctx, device_param, hashconfig, user_options, status_ctx, kernel_accel_try, kernel_loops_try);
+        double exec_ms_v = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try);
 
         exec_ms = MIN (exec_ms, exec_ms_v);
       }
