@@ -150,7 +150,6 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   hashes_t             *hashes             = hashcat_ctx->hashes;
-  hwmon_ctx_t          *hwmon_ctx          = hashcat_ctx->hwmon_ctx;
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
   restore_ctx_t        *restore_ctx        = hashcat_ctx->restore_ctx;
@@ -297,7 +296,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->skipped) continue;
 
-      int temp = hm_get_temperature_with_device_id (hwmon_ctx, opencl_ctx, device_id);
+      int temp = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
 
       fprintf (out, "%d\t", temp);
     }
@@ -319,7 +318,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   cpt_ctx_t            *cpt_ctx            = hashcat_ctx->cpt_ctx;
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t             *hashes             = hashcat_ctx->hashes;
-  hwmon_ctx_t          *hwmon_ctx          = hashcat_ctx->hwmon_ctx;
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
   restore_ctx_t        *restore_ctx        = hashcat_ctx->restore_ctx;
@@ -1105,13 +1103,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->skipped) continue;
 
-      const int num_temperature = hm_get_temperature_with_device_id (hwmon_ctx, opencl_ctx, device_id);
-      const int num_fanspeed    = hm_get_fanspeed_with_device_id    (hwmon_ctx, opencl_ctx, device_id);
-      const int num_utilization = hm_get_utilization_with_device_id (hwmon_ctx, opencl_ctx, device_id);
-      const int num_corespeed   = hm_get_corespeed_with_device_id   (hwmon_ctx, opencl_ctx, device_id);
-      const int num_memoryspeed = hm_get_memoryspeed_with_device_id (hwmon_ctx, opencl_ctx, device_id);
-      const int num_buslanes    = hm_get_buslanes_with_device_id    (hwmon_ctx, opencl_ctx, device_id);
-      const int num_throttle    = hm_get_throttle_with_device_id    (hwmon_ctx, opencl_ctx, device_id);
+      const int num_temperature = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
+      const int num_fanspeed    = hm_get_fanspeed_with_device_id    (hashcat_ctx, device_id);
+      const int num_utilization = hm_get_utilization_with_device_id (hashcat_ctx, device_id);
+      const int num_corespeed   = hm_get_corespeed_with_device_id   (hashcat_ctx, device_id);
+      const int num_memoryspeed = hm_get_memoryspeed_with_device_id (hashcat_ctx, device_id);
+      const int num_buslanes    = hm_get_buslanes_with_device_id    (hashcat_ctx, device_id);
+      const int num_throttle    = hm_get_throttle_with_device_id    (hashcat_ctx, device_id);
 
       char output_buf[256] = { 0 };
 

@@ -170,7 +170,7 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
 
         if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
-        const int temperature = hm_get_temperature_with_device_id (hwmon_ctx, opencl_ctx, device_id);
+        const int temperature = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
 
         if (temperature > (int) user_options->gpu_temp_abort)
         {
@@ -207,7 +207,7 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
 
             if (abs (fan_diff_required) >= temp_threshold)
             {
-              const int fan_speed_cur = hm_get_fanspeed_with_device_id (hwmon_ctx, opencl_ctx, device_id);
+              const int fan_speed_cur = hm_get_fanspeed_with_device_id (hashcat_ctx, device_id);
 
               int fan_speed_level = fan_speed_cur;
 
@@ -227,16 +227,16 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
                 {
                   if (device_param->device_vendor_id == VENDOR_ID_AMD)
                   {
-                    hm_set_fanspeed_with_device_id_adl (hwmon_ctx, device_id, fan_speed_new, 1);
+                    hm_set_fanspeed_with_device_id_adl (hashcat_ctx, device_id, fan_speed_new, 1);
                   }
                   else if (device_param->device_vendor_id == VENDOR_ID_NV)
                   {
                     #if defined (_WIN)
-                    hm_set_fanspeed_with_device_id_nvapi (hwmon_ctx, device_id, fan_speed_new, 1);
+                    hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx, device_id, fan_speed_new, 1);
                     #endif
 
                     #if defined (__linux__)
-                    hm_set_fanspeed_with_device_id_xnvctrl (hwmon_ctx, device_id, fan_speed_new);
+                    hm_set_fanspeed_with_device_id_xnvctrl (hashcat_ctx, device_id, fan_speed_new);
                     #endif
                   }
 

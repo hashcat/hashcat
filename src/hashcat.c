@@ -1250,7 +1250,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
   folder_config_t      *folder_config       = hashcat_ctx->folder_config;
-  hwmon_ctx_t          *hwmon_ctx           = hashcat_ctx->hwmon_ctx;
   induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
@@ -1417,7 +1416,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * HM devices: init
    */
 
-  const int rc_hwmon_init = hwmon_ctx_init (hwmon_ctx, user_options, opencl_ctx);
+  const int rc_hwmon_init = hwmon_ctx_init (hashcat_ctx);
 
   if (rc_hwmon_init == -1)
   {
@@ -1527,7 +1526,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   user_options_extra_destroy (user_options_extra);
 
-  hwmon_ctx_destroy (hwmon_ctx, user_options, opencl_ctx);
+  hwmon_ctx_destroy (hashcat_ctx);
 
   opencl_ctx_devices_destroy (opencl_ctx);
 
