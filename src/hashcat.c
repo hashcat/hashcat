@@ -110,6 +110,8 @@ void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   myfree (hashcat_ctx->user_options_extra);
   myfree (hashcat_ctx->user_options);
   myfree (hashcat_ctx->wl_data);
+
+  memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
 }
 
 // inner2_loop iterates through wordlists, then calls kernel execution
