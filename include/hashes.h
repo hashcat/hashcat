@@ -11,18 +11,18 @@ int sort_by_salt         (const void *v1, const void *v2);
 int sort_by_hash         (const void *v1, const void *v2, void *v3);
 int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3);
 
-void save_hash (const user_options_t *user_options, const hashconfig_t *hashconfig, const hashes_t *hashes);
+void save_hash (hashcat_ctx_t *hashcat_ctx);
 
 void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain);
 
 int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos);
 
-int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfile_ctx_t *potfile_ctx, outfile_ctx_t *outfile_ctx, user_options_t *user_options, char *hash_or_file);
-int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_options_t *user_options, status_ctx_t *status_ctx);
-int hashes_init_stage3 (hashes_t *hashes, hashconfig_t *hashconfig, user_options_t *user_options);
+int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx);
+int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx);
+int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx);
 
-void hashes_destroy (hashes_t *hashes);
+void hashes_destroy (hashcat_ctx_t *hashcat_ctx);
 
-void hashes_logger (const hashes_t *hashes, const logfile_ctx_t *logfile_ctx);
+void hashes_logger (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _HASH_MANAGEMENT_H

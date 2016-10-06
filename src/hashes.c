@@ -117,8 +117,12 @@ int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3)
   return sort_by_digest_p0p1 (d1, d2, v3);
 }
 
-void save_hash (const user_options_t *user_options, const hashconfig_t *hashconfig, const hashes_t *hashes)
+void save_hash (hashcat_ctx_t *hashcat_ctx)
 {
+  hashes_t        *hashes       = hashcat_ctx->hashes;
+  hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
+  user_options_t  *user_options = hashcat_ctx->user_options;
+
   char *hashfile = hashes->hashfile;
 
   char new_hashfile[256] = { 0 };
@@ -299,7 +303,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     if ((debug_plain_len > 0) || (debug_rule_len > 0))
     {
-      debugfile_write_append (debugfile_ctx, debug_rule_buf, debug_rule_len, debug_plain_ptr, debug_plain_len, plain_ptr, plain_len);
+      debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, debug_plain_ptr, debug_plain_len, plain_ptr, plain_len);
     }
   }
 }
@@ -430,8 +434,17 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   return 0;
 }
 
-int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfile_ctx_t *potfile_ctx, outfile_ctx_t *outfile_ctx, user_options_t *user_options, char *hash_or_file)
+int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
+  outfile_ctx_t        *outfile_ctx        = hashcat_ctx->outfile_ctx;
+  potfile_ctx_t        *potfile_ctx        = hashcat_ctx->potfile_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  char *hash_or_file = user_options_extra->hc_hash;
+
   /**
    * load hashes, part I: find input mode, count hashes
    */
@@ -1045,10 +1058,15 @@ int hashes_init_stage1 (hashes_t *hashes, const hashconfig_t *hashconfig, potfil
   return 0;
 }
 
-int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_options_t *user_options, status_ctx_t *status_ctx)
+int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  hashes_t       *hashes       = hashcat_ctx->hashes;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   hash_t *hashes_buf = hashes->hashes_buf;
-  u32    hashes_cnt = hashes->hashes_cnt;
+  u32     hashes_cnt = hashes->hashes_cnt;
 
   /**
    * Remove duplicates
@@ -1259,8 +1277,12 @@ int hashes_init_stage2 (hashes_t *hashes, const hashconfig_t *hashconfig, user_o
   return 0;
 }
 
-int hashes_init_stage3 (hashes_t *hashes, hashconfig_t *hashconfig, user_options_t *user_options)
+int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  hashes_t       *hashes       = hashcat_ctx->hashes;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   hashconfig_general_defaults (hashconfig, hashes, user_options);
 
   if (hashes->salts_cnt == 1)
@@ -1305,8 +1327,10 @@ int hashes_init_stage3 (hashes_t *hashes, hashconfig_t *hashconfig, user_options
   return 0;
 }
 
-void hashes_destroy (hashes_t *hashes)
+void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  hashes_t *hashes = hashcat_ctx->hashes;
+
   myfree (hashes->digests_buf);
   myfree (hashes->digests_shown);
   myfree (hashes->digests_shown_tmp);
@@ -1321,8 +1345,11 @@ void hashes_destroy (hashes_t *hashes)
   memset (hashes, 0, sizeof (hashes_t));
 }
 
-void hashes_logger (const hashes_t *hashes, const logfile_ctx_t *logfile_ctx)
+void hashes_logger (hashcat_ctx_t *hashcat_ctx)
 {
+  hashes_t      *hashes      = hashcat_ctx->hashes;
+  logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
+
   logfile_top_string (hashes->hashfile);
   logfile_top_uint   (hashes->hashlist_mode);
   logfile_top_uint   (hashes->hashlist_format);

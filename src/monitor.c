@@ -19,7 +19,6 @@
 
 static void monitor (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t             *hashes             = hashcat_ctx->hashes;
   hwmon_ctx_t          *hwmon_ctx          = hashcat_ctx->hwmon_ctx;
   opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
@@ -304,7 +303,7 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
         {
           hashes->digests_saved = hashes->digests_done;
 
-          save_hash (user_options, hashconfig, hashes);
+          save_hash (hashcat_ctx);
         }
 
         remove_left = user_options->remove_timer;
@@ -340,7 +339,7 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashes->digests_saved != hashes->digests_done)
     {
-      save_hash (user_options, hashconfig, hashes);
+      save_hash (hashcat_ctx);
     }
   }
 

@@ -763,7 +763,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   hashes_t             *hashes              = hashcat_ctx->hashes;
   hwmon_ctx_t          *hwmon_ctx           = hashcat_ctx->hwmon_ctx;
-  logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
   opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
   outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
@@ -818,7 +817,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * load hashes, stage 1
    */
 
-  const int rc_hashes_init_stage1 = hashes_init_stage1 (hashes, hashconfig, potfile_ctx, outfile_ctx, user_options, user_options_extra->hc_hash);
+  const int rc_hashes_init_stage1 = hashes_init_stage1 (hashcat_ctx);
 
   if (rc_hashes_init_stage1 == -1) return -1;
 
@@ -864,7 +863,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const u32 hashes_cnt_orig = hashes->hashes_cnt;
 
-  const int rc_hashes_init_stage2 = hashes_init_stage2 (hashes, hashconfig, user_options, status_ctx);
+  const int rc_hashes_init_stage2 = hashes_init_stage2 (hashcat_ctx);
 
   if (rc_hashes_init_stage2 == -1) return -1;
 
@@ -882,7 +881,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
       log_info ("");
     }
 
-    hashes_destroy (hashes);
+    hashes_destroy (hashcat_ctx);
 
     hashconfig_destroy (hashconfig);
 
@@ -895,11 +894,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * load hashes, stage 3, automatic Optimizers
    */
 
-  const int rc_hashes_init_stage3 = hashes_init_stage3 (hashes, hashconfig, user_options);
+  const int rc_hashes_init_stage3 = hashes_init_stage3 (hashcat_ctx);
 
   if (rc_hashes_init_stage3 == -1) return -1;
 
-  hashes_logger (hashes, logfile_ctx);
+  hashes_logger (hashcat_ctx);
 
   /**
    * bitmaps
@@ -1224,7 +1223,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   straight_ctx_destroy (hashcat_ctx);
 
-  hashes_destroy (hashes);
+  hashes_destroy (hashcat_ctx);
 
   hashconfig_destroy (hashconfig);
 
@@ -1249,7 +1248,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * main init
    */
 
-  debugfile_ctx_t      *debugfile_ctx       = hashcat_ctx->debugfile_ctx;
   dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
   folder_config_t      *folder_config       = hashcat_ctx->folder_config;
   hwmon_ctx_t          *hwmon_ctx           = hashcat_ctx->hwmon_ctx;
@@ -1378,7 +1376,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * debugfile init
    */
 
-  debugfile_init (debugfile_ctx, user_options);
+  debugfile_init (hashcat_ctx);
 
   /**
    * cpu affinity
@@ -1509,7 +1507,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   // free memory
 
-  debugfile_destroy (debugfile_ctx);
+  debugfile_destroy (hashcat_ctx);
 
   tuning_db_destroy (tuning_db);
 
