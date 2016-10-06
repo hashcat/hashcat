@@ -259,7 +259,7 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
 
       if (restore_left == 0)
       {
-        cycle_restore (restore_ctx, opencl_ctx);
+        cycle_restore (hashcat_ctx);
 
         restore_left = user_options->restore_timer;
       }
@@ -347,7 +347,7 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
 
   if (restore_check == true)
   {
-    cycle_restore (restore_ctx, opencl_ctx);
+    cycle_restore (hashcat_ctx);
   }
 
   myfree (fan_speed_chgd);

@@ -23,22 +23,22 @@
 #define RESTORE_VERSION_MIN 320
 #define RESTORE_VERSION_CUR 320
 
-u64 get_lowest_words_done (const restore_ctx_t *restore_ctx, const opencl_ctx_t *opencl_ctx);
+u64 get_lowest_words_done (hashcat_ctx_t *hashcat_ctx);
 
-void init_restore (restore_ctx_t *restore_ctx);
+void init_restore (hashcat_ctx_t *hashcat_ctx);
 
-void read_restore (restore_ctx_t *restore_ctx);
+void read_restore (hashcat_ctx_t *hashcat_ctx);
 
-void write_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx);
+void write_restore (hashcat_ctx_t *hashcat_ctx);
 
-void cycle_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx);
+void cycle_restore (hashcat_ctx_t *hashcat_ctx);
 
-void unlink_restore (restore_ctx_t *restore_ctx, status_ctx_t *status_ctx);
+void unlink_restore (hashcat_ctx_t *hashcat_ctx);
 
-void stop_at_checkpoint (restore_ctx_t *restore_ctx, status_ctx_t *status_ctx);
+void stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx);
 
-int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, const folder_config_t *folder_config, int argc, char **argv);
+int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv);
 
-void restore_ctx_destroy (restore_ctx_t *restore_ctx);
+void restore_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _RESTORE_H

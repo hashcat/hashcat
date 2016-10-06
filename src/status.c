@@ -152,7 +152,6 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hashes_t             *hashes             = hashcat_ctx->hashes;
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
-  restore_ctx_t        *restore_ctx        = hashcat_ctx->restore_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -224,7 +223,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
    * words_cur
    */
 
-  u64 words_cur = get_lowest_words_done (restore_ctx, opencl_ctx);
+  u64 words_cur = get_lowest_words_done (hashcat_ctx);
 
   fprintf (out, "CURKU\t%" PRIu64 "\t", words_cur);
 
@@ -320,7 +319,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   hashes_t             *hashes             = hashcat_ctx->hashes;
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
-  restore_ctx_t        *restore_ctx        = hashcat_ctx->restore_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -1033,7 +1031,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   // Restore point
 
-  u64 restore_point = get_lowest_words_done (restore_ctx, opencl_ctx);
+  u64 restore_point = get_lowest_words_done (hashcat_ctx);
 
   u64 restore_total = status_ctx->words_base;
 

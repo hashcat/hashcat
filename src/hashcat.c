@@ -1242,7 +1242,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
   outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
-  restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
   tuning_db_t          *tuning_db           = hashcat_ctx->tuning_db;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
@@ -1266,7 +1265,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * restore
    */
 
-  const int rc_restore_init = restore_ctx_init (restore_ctx, user_options, folder_config, argc, argv);
+  const int rc_restore_init = restore_ctx_init (hashcat_ctx, argc, argv);
 
   if (rc_restore_init == -1) return -1;
 
@@ -1483,7 +1482,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   // if exhausted or cracked, unlink the restore file
 
-  unlink_restore (restore_ctx, status_ctx);
+  unlink_restore (hashcat_ctx);
 
   // final update dictionary cache
 
@@ -1517,7 +1516,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   opencl_ctx_destroy (hashcat_ctx);
 
-  restore_ctx_destroy (restore_ctx);
+  restore_ctx_destroy (hashcat_ctx);
 
   time (&status_ctx->proc_stop);
 

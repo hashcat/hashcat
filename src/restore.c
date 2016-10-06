@@ -19,8 +19,11 @@ static void fsync (int fd)
 }
 #endif
 
-u64 get_lowest_words_done (const restore_ctx_t *restore_ctx, const opencl_ctx_t *opencl_ctx)
+u64 get_lowest_words_done (hashcat_ctx_t *hashcat_ctx)
 {
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+  opencl_ctx_t  *opencl_ctx  = hashcat_ctx->opencl_ctx;
+
   if (restore_ctx->enabled == false) return 0;
 
   restore_data_t *rd = restore_ctx->rd;
@@ -49,8 +52,10 @@ u64 get_lowest_words_done (const restore_ctx_t *restore_ctx, const opencl_ctx_t 
   return words_cur;
 }
 
-static void check_running_process (restore_ctx_t *restore_ctx)
+static void check_running_process (hashcat_ctx_t *hashcat_ctx)
 {
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
   char *eff_restore_file = restore_ctx->eff_restore_file;
 
   FILE *fp = fopen (eff_restore_file, "rb");
@@ -145,13 +150,15 @@ static void check_running_process (restore_ctx_t *restore_ctx)
   myfree (rd);
 }
 
-void init_restore (restore_ctx_t *restore_ctx)
+void init_restore (hashcat_ctx_t *hashcat_ctx)
 {
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
   restore_data_t *rd = (restore_data_t *) mymalloc (sizeof (restore_data_t));
 
   restore_ctx->rd = rd;
 
-  check_running_process (restore_ctx);
+  check_running_process (hashcat_ctx);
 
   rd->version = RESTORE_VERSION_CUR;
 
@@ -172,8 +179,10 @@ void init_restore (restore_ctx_t *restore_ctx)
   }
 }
 
-void read_restore (restore_ctx_t *restore_ctx)
+void read_restore (hashcat_ctx_t *hashcat_ctx)
 {
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
   if (restore_ctx->enabled == false) return;
 
   char *eff_restore_file = restore_ctx->eff_restore_file;
@@ -233,11 +242,13 @@ void read_restore (restore_ctx_t *restore_ctx)
   }
 }
 
-void write_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx)
+void write_restore (hashcat_ctx_t *hashcat_ctx)
 {
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
   if (restore_ctx->enabled == false) return;
 
-  const u64 words_cur = get_lowest_words_done (restore_ctx, opencl_ctx);
+  const u64 words_cur = get_lowest_words_done (hashcat_ctx);
 
   restore_data_t *rd = restore_ctx->rd;
 
@@ -277,14 +288,16 @@ void write_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx)
   fclose (fp);
 }
 
-void cycle_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx)
+void cycle_restore (hashcat_ctx_t *hashcat_ctx)
 {
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
   if (restore_ctx->enabled == false) return;
 
   const char *eff_restore_file = restore_ctx->eff_restore_file;
   const char *new_restore_file = restore_ctx->new_restore_file;
 
-  write_restore (restore_ctx, opencl_ctx);
+  write_restore (hashcat_ctx);
 
   struct stat st;
 
@@ -302,8 +315,11 @@ void cycle_restore (restore_ctx_t *restore_ctx, opencl_ctx_t *opencl_ctx)
   }
 }
 
-void unlink_restore (restore_ctx_t *restore_ctx, status_ctx_t *status_ctx)
+void unlink_restore (hashcat_ctx_t *hashcat_ctx)
 {
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+  status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
+
   if ((status_ctx->devices_status == STATUS_EXHAUSTED) && (status_ctx->run_thread_level1 == true)) // this is to check for [c]heckpoint
   {
     unlink (restore_ctx->eff_restore_file);
@@ -317,8 +333,11 @@ void unlink_restore (restore_ctx_t *restore_ctx, status_ctx_t *status_ctx)
   }
 }
 
-void stop_at_checkpoint (restore_ctx_t *restore_ctx, status_ctx_t *status_ctx)
+void stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
 {
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+  status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
+
   // this feature only makes sense if --restore-disable was not specified
 
   if (restore_ctx->enabled == false)
@@ -352,8 +371,12 @@ void stop_at_checkpoint (restore_ctx_t *restore_ctx, status_ctx_t *status_ctx)
   }
 }
 
-int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, const folder_config_t *folder_config, int argc, char **argv)
+int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 {
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  restore_ctx_t   *restore_ctx   = hashcat_ctx->restore_ctx;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
+
   restore_ctx->enabled = false;
 
   char *eff_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
@@ -368,7 +391,7 @@ int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, 
   restore_ctx->eff_restore_file = eff_restore_file;
   restore_ctx->new_restore_file = new_restore_file;
 
-  init_restore (restore_ctx);
+  init_restore (hashcat_ctx);
 
   if (argc ==    0) return 0;
   if (argv == NULL) return 0;
@@ -387,7 +410,7 @@ int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, 
 
   if (user_options->restore == true)
   {
-    read_restore (restore_ctx);
+    read_restore (hashcat_ctx);
 
     restore_data_t *rd = restore_ctx->rd;
 
@@ -414,8 +437,10 @@ int restore_ctx_init (restore_ctx_t *restore_ctx, user_options_t *user_options, 
   return 0;
 }
 
-void restore_ctx_destroy (restore_ctx_t *restore_ctx)
+void restore_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
   myfree (restore_ctx->eff_restore_file);
   myfree (restore_ctx->new_restore_file);
 
