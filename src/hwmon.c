@@ -1281,7 +1281,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             #endif
 
             #if defined (_WIN)
-            rc = hm_set_fanspeed_with_device_id_nvapi (hwmon_ctx, device_id, fanspeed, 1);
+            rc = hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx, device_id, fanspeed, 1);
             #endif
           }
 
@@ -1340,7 +1340,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
           #endif
 
           #if defined (_WIN)
-          rc = hm_set_fanspeed_with_device_id_nvapi (hwmon_ctx, device_id, 100, 0);
+          rc = hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx, device_id, 100, 0);
           #endif
         }
 
