@@ -118,18 +118,14 @@ void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
 static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 {
-  const combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
-  const hashes_t             *hashes              = hashcat_ctx->hashes;
-  const logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
-  const mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
-  const opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
-  const restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
-  const user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-
-        induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
-        status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
-        straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
-        user_options_t       *user_options        = hashcat_ctx->user_options;
+  hashes_t             *hashes              = hashcat_ctx->hashes;
+  induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
+  logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
+  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
+  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
 
   //status_ctx->run_main_level1   = true;
   //status_ctx->run_main_level2   = true;
@@ -169,130 +165,17 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   cpt_ctx_reset (hashcat_ctx);
 
-  // figure out wordlist based workload
+  /**
+   * Update attack-mode specific stuff based on mask
+   */
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    if (user_options_extra->wordlist_mode == WL_MODE_FILE)
-    {
-      if (induct_ctx->induction_dictionaries_cnt)
-      {
-        straight_ctx->dict = induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos];
-      }
-      else
-      {
-        straight_ctx->dict = straight_ctx->dicts[straight_ctx->dicts_pos];
-      }
+  mask_ctx_update_loop (hashcat_ctx);
 
-      logfile_sub_string (straight_ctx->dict);
+  /**
+   * Update attack-mode specific stuff based on wordlist
+   */
 
-      for (u32 i = 0; i < user_options->rp_files_cnt; i++)
-      {
-        logfile_sub_var_string ("rulefile", user_options->rp_files[i]);
-      }
-
-      FILE *fd2 = fopen (straight_ctx->dict, "rb");
-
-      if (fd2 == NULL)
-      {
-        log_error ("ERROR: %s: %s", straight_ctx->dict, strerror (errno));
-
-        return -1;
-      }
-
-      status_ctx->words_cnt = count_words (hashcat_ctx, fd2, straight_ctx->dict);
-
-      fclose (fd2);
-
-      if (status_ctx->words_cnt == 0)
-      {
-        logfile_sub_msg ("STOP");
-
-        return 0;
-      }
-    }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
-  {
-    logfile_sub_string (combinator_ctx->dict1);
-    logfile_sub_string (combinator_ctx->dict2);
-
-    if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
-    {
-      FILE *fd2 = fopen (combinator_ctx->dict1, "rb");
-
-      if (fd2 == NULL)
-      {
-        log_error ("ERROR: %s: %s", combinator_ctx->dict1, strerror (errno));
-
-        return -1;
-      }
-
-      status_ctx->words_cnt = count_words (hashcat_ctx, fd2, combinator_ctx->dict1);
-
-      fclose (fd2);
-    }
-    else if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-    {
-      FILE *fd2 = fopen (combinator_ctx->dict2, "rb");
-
-      if (fd2 == NULL)
-      {
-        log_error ("ERROR: %s: %s", combinator_ctx->dict2, strerror (errno));
-
-        return -1;
-      }
-
-      status_ctx->words_cnt = count_words (hashcat_ctx, fd2, combinator_ctx->dict2);
-
-      fclose (fd2);
-    }
-
-    if (status_ctx->words_cnt == 0)
-    {
-      logfile_sub_msg ("STOP");
-
-      return 0;
-    }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_BF)
-  {
-    logfile_sub_string (mask_ctx->mask);
-  }
-  else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
-  {
-    if (induct_ctx->induction_dictionaries_cnt)
-    {
-      straight_ctx->dict = induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos];
-    }
-    else
-    {
-      straight_ctx->dict = straight_ctx->dicts[straight_ctx->dicts_pos];
-    }
-
-    logfile_sub_string (straight_ctx->dict);
-    logfile_sub_string (mask_ctx->mask);
-
-    FILE *fd2 = fopen (straight_ctx->dict, "rb");
-
-    if (fd2 == NULL)
-    {
-      log_error ("ERROR: %s: %s", straight_ctx->dict, strerror (errno));
-
-      return -1;
-    }
-
-    status_ctx->words_cnt = count_words (hashcat_ctx, fd2, straight_ctx->dict);
-
-    fclose (fd2);
-
-    if (status_ctx->words_cnt == 0)
-    {
-      logfile_sub_msg ("STOP");
-
-      return 0;
-    }
-  }
+  straight_ctx_update_loop (hashcat_ctx);
 
   // words base
 
@@ -536,40 +419,15 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
 static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig    = hashcat_ctx->hashconfig;
-  mask_ctx_t     *mask_ctx      = hashcat_ctx->mask_ctx;
   restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
   status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
   straight_ctx_t *straight_ctx  = hashcat_ctx->straight_ctx;
-  user_options_t *user_options  = hashcat_ctx->user_options;
 
   //status_ctx->run_main_level1   = true;
   //status_ctx->run_main_level2   = true;
   status_ctx->run_main_level3   = true;
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
-
-  /**
-   * Update pw_min and pw_max according to next mask
-   */
-
-  u32 pw_min = hashconfig->pw_min;
-  u32 pw_max = hashconfig->pw_max;
-
-  if (user_options->benchmark == true)
-  {
-    pw_min = mp_get_length (mask_ctx->mask);
-    pw_max = pw_min;
-  }
-
-  hashconfig->pw_min = pw_min;
-  hashconfig->pw_max = pw_max;
-
-  /**
-   * Update mask in attack-mode specific stuff
-   */
-
-  mask_ctx_update_loop (hashcat_ctx);
 
   /**
    * loop through wordlists
@@ -1046,15 +904,17 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   myfree (inner_threads);
 
-  /**
-   * Clean up
-   */
+  // finalize potfile
 
-  status_progress_destroy (hashcat_ctx);
+  potfile_write_close (hashcat_ctx);
+
+  // finalize session
 
   opencl_session_destroy (hashcat_ctx);
 
-  potfile_write_close (hashcat_ctx);
+  // clean up
+
+  status_progress_destroy (hashcat_ctx);
 
   bitmap_ctx_destroy (hashcat_ctx);
 

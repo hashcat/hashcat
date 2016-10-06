@@ -1022,6 +1022,20 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     {
       mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
 
+      // special case for benchmark
+
+      u32 pw_min = hashconfig->pw_min;
+      u32 pw_max = hashconfig->pw_max;
+
+      if (user_options->benchmark == true)
+      {
+        pw_min = mp_get_length (mask_ctx->mask);
+        pw_max = pw_min;
+      }
+
+      hashconfig->pw_min = pw_min;
+      hashconfig->pw_max = pw_max;
+
       // check if mask is not too large or too small for pw_min/pw_max  (*2 if unicode)
 
       u32 mask_min = hashconfig->pw_min;

@@ -11,12 +11,14 @@
 #include "types.h"
 #include "memory.h"
 #include "logging.h"
+#include "logfile.h"
 #include "shared.h"
 #include "filehandling.h"
 #include "folder.h"
 #include "rp.h"
 #include "rp_cpu.h"
 #include "straight.h"
+#include "wordlist.h"
 
 static void straight_ctx_add_wl (straight_ctx_t *straight_ctx, const char *dict)
 {
@@ -30,6 +32,143 @@ static void straight_ctx_add_wl (straight_ctx_t *straight_ctx, const char *dict)
   straight_ctx->dicts[straight_ctx->dicts_cnt] = mystrdup (dict);
 
   straight_ctx->dicts_cnt++;
+}
+
+int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
+{
+  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  induct_ctx_t         *induct_ctx         = hashcat_ctx->induct_ctx;
+  logfile_ctx_t        *logfile_ctx        = hashcat_ctx->logfile_ctx;
+  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    if (user_options_extra->wordlist_mode == WL_MODE_FILE)
+    {
+      if (induct_ctx->induction_dictionaries_cnt)
+      {
+        straight_ctx->dict = induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos];
+      }
+      else
+      {
+        straight_ctx->dict = straight_ctx->dicts[straight_ctx->dicts_pos];
+      }
+
+      logfile_sub_string (straight_ctx->dict);
+
+      for (u32 i = 0; i < user_options->rp_files_cnt; i++)
+      {
+        logfile_sub_var_string ("rulefile", user_options->rp_files[i]);
+      }
+
+      FILE *fd2 = fopen (straight_ctx->dict, "rb");
+
+      if (fd2 == NULL)
+      {
+        log_error ("ERROR: %s: %s", straight_ctx->dict, strerror (errno));
+
+        return -1;
+      }
+
+      status_ctx->words_cnt = count_words (hashcat_ctx, fd2, straight_ctx->dict);
+
+      fclose (fd2);
+
+      if (status_ctx->words_cnt == 0)
+      {
+        logfile_sub_msg ("STOP");
+
+        return 0;
+      }
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+  {
+    logfile_sub_string (combinator_ctx->dict1);
+    logfile_sub_string (combinator_ctx->dict2);
+
+    if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
+    {
+      FILE *fd2 = fopen (combinator_ctx->dict1, "rb");
+
+      if (fd2 == NULL)
+      {
+        log_error ("ERROR: %s: %s", combinator_ctx->dict1, strerror (errno));
+
+        return -1;
+      }
+
+      status_ctx->words_cnt = count_words (hashcat_ctx, fd2, combinator_ctx->dict1);
+
+      fclose (fd2);
+    }
+    else if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+    {
+      FILE *fd2 = fopen (combinator_ctx->dict2, "rb");
+
+      if (fd2 == NULL)
+      {
+        log_error ("ERROR: %s: %s", combinator_ctx->dict2, strerror (errno));
+
+        return -1;
+      }
+
+      status_ctx->words_cnt = count_words (hashcat_ctx, fd2, combinator_ctx->dict2);
+
+      fclose (fd2);
+    }
+
+    if (status_ctx->words_cnt == 0)
+    {
+      logfile_sub_msg ("STOP");
+
+      return 0;
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    logfile_sub_string (mask_ctx->mask);
+  }
+  else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+  {
+    if (induct_ctx->induction_dictionaries_cnt)
+    {
+      straight_ctx->dict = induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos];
+    }
+    else
+    {
+      straight_ctx->dict = straight_ctx->dicts[straight_ctx->dicts_pos];
+    }
+
+    logfile_sub_string (straight_ctx->dict);
+    logfile_sub_string (mask_ctx->mask);
+
+    FILE *fd2 = fopen (straight_ctx->dict, "rb");
+
+    if (fd2 == NULL)
+    {
+      log_error ("ERROR: %s: %s", straight_ctx->dict, strerror (errno));
+
+      return -1;
+    }
+
+    status_ctx->words_cnt = count_words (hashcat_ctx, fd2, straight_ctx->dict);
+
+    fclose (fd2);
+
+    if (status_ctx->words_cnt == 0)
+    {
+      logfile_sub_msg ("STOP");
+
+      return 0;
+    }
+  }
+
+  return 0;
 }
 
 int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)

@@ -20100,7 +20100,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
   }
 
-
   return 0;
 }
 
