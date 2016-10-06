@@ -520,7 +520,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      hashlist_format = hlfmt_detect (fp, 100, hashconfig); // 100 = max numbers to "scan". could be hashes_avail, too
+      hashlist_format = hlfmt_detect (hashcat_ctx, fp, 100); // 100 = max numbers to "scan". could be hashes_avail, too
 
       if ((user_options->remove == 1) && (hashlist_format != HLFMT_HASHCAT))
       {
@@ -657,7 +657,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       char *hash_buf = NULL;
       int   hash_len = 0;
 
-      hlfmt_hash (hashlist_format, input_buf, input_len, &hash_buf, &hash_len, hashconfig, user_options);
+      hlfmt_hash (hashcat_ctx, hashlist_format, input_buf, input_len, &hash_buf, &hash_len);
 
       bool hash_fmt_error = 0;
 
@@ -901,7 +901,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         char *hash_buf = NULL;
         int   hash_len = 0;
 
-        hlfmt_hash (hashlist_format, line_buf, line_len, &hash_buf, &hash_len, hashconfig, user_options);
+        hlfmt_hash (hashcat_ctx, hashlist_format, line_buf, line_len, &hash_buf, &hash_len);
 
         bool hash_fmt_error = 0;
 
@@ -920,7 +920,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           char *user_buf = NULL;
           int   user_len = 0;
 
-          hlfmt_user (hashlist_format, line_buf, line_len, &user_buf, &user_len, hashconfig);
+          hlfmt_user (hashcat_ctx, hashlist_format, line_buf, line_len, &user_buf, &user_len);
 
           if (user_options->remove || user_options->show)
           {
