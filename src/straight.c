@@ -67,13 +67,13 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->rp_files_cnt)
     {
-      const int rc_kernel_load = kernel_rules_load (&straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt, user_options);
+      const int rc_kernel_load = kernel_rules_load (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt);
 
       if (rc_kernel_load == -1) return -1;
     }
     else if (user_options->rp_gen)
     {
-      const int rc_kernel_generate = kernel_rules_generate (&straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt, user_options);
+      const int rc_kernel_generate = kernel_rules_generate (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt);
 
       if (rc_kernel_generate == -1) return -1;
     }

@@ -714,8 +714,10 @@ bool kernel_rules_has_noop (const kernel_rule_t *kernel_rules_buf, const u32 ker
   return false;
 }
 
-int kernel_rules_load (kernel_rule_t **out_buf, u32 *out_cnt, const user_options_t *user_options)
+int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 *out_cnt)
 {
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
   /**
    * load rules
    */
@@ -872,8 +874,10 @@ int kernel_rules_load (kernel_rule_t **out_buf, u32 *out_cnt, const user_options
   return 0;
 }
 
-int kernel_rules_generate (kernel_rule_t **out_buf, u32 *out_cnt, const user_options_t *user_options)
+int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 *out_cnt)
 {
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
   u32            kernel_rules_cnt = 0;
   kernel_rule_t *kernel_rules_buf = mycalloc (user_options->rp_gen, sizeof (kernel_rule_t));
 

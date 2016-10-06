@@ -12,7 +12,7 @@
 
 #define INCR_RULES 10000
 
-#define RULES_MAX   32
+#define RULES_MAX 32
 #define MAX_KERNEL_RULES (RULES_MAX - 1)
 
 bool class_num   (const u8 c);
@@ -30,7 +30,7 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);
 
 bool kernel_rules_has_noop (const kernel_rule_t *kernel_rules_buf, const u32 kernel_rules_cnt);
 
-int kernel_rules_load (kernel_rule_t **out_buf, u32 *out_cnt, const user_options_t *user_options);
-int kernel_rules_generate (kernel_rule_t **out_buf, u32 *out_cnt, const user_options_t *user_options);
+int kernel_rules_load     (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 *out_cnt);
+int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 *out_cnt);
 
 #endif // _RP_H
