@@ -8,9 +8,7 @@
 
 #include <string.h>
 
-int sort_by_bitmap (const void *s1, const void *s2);
-
-void bitmap_ctx_init (bitmap_ctx_t *bitmap_ctx, const user_options_t *user_options, const hashconfig_t *hashconfig, const hashes_t *hashes);
-void bitmap_ctx_destroy (bitmap_ctx_t *bitmap_ctx);
+void bitmap_ctx_init    (hashcat_ctx_t *hashcat_ctx);
+void bitmap_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _BITMAP_H

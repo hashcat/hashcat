@@ -50,8 +50,13 @@ static u32 generate_bitmaps (const u32 digests_cnt, const u32 dgst_size, const u
   return collisions;
 }
 
-void bitmap_ctx_init (bitmap_ctx_t *bitmap_ctx, const user_options_t *user_options, const hashconfig_t *hashconfig, const hashes_t *hashes)
+void bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
+  bitmap_ctx_t   *bitmap_ctx   = hashcat_ctx->bitmap_ctx;
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  hashes_t       *hashes       = hashcat_ctx->hashes;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   bitmap_ctx->enabled = false;
 
   if (user_options->keyspace    == true) return;
@@ -131,8 +136,10 @@ void bitmap_ctx_init (bitmap_ctx_t *bitmap_ctx, const user_options_t *user_optio
   bitmap_ctx->bitmap_s2_d   = bitmap_s2_d;
 }
 
-void bitmap_ctx_destroy (bitmap_ctx_t *bitmap_ctx)
+void bitmap_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  bitmap_ctx_t *bitmap_ctx = hashcat_ctx->bitmap_ctx;
+
   if (bitmap_ctx->enabled == false) return;
 
   myfree (bitmap_ctx->bitmap_s1_a);
