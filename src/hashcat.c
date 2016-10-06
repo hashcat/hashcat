@@ -761,8 +761,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 {
   bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
   cpt_ctx_t            *cpt_ctx             = hashcat_ctx->cpt_ctx;
-  combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
-  dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
   folder_config_t      *folder_config       = hashcat_ctx->folder_config;
   hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   hashes_t             *hashes              = hashcat_ctx->hashes;
@@ -909,7 +907,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * bitmaps
    */
 
-  bitmap_ctx_init (bitmap_ctx, user_options, hashconfig, hashes);
+  bitmap_ctx_init (hashcat_ctx);
 
   /**
    * cracks-per-time allocate buffer
@@ -935,7 +933,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * straight mode init
    */
 
-  const int rc_combinator_init = combinator_ctx_init (combinator_ctx, user_options, user_options_extra, straight_ctx, dictstat_ctx, wl_data);
+  const int rc_combinator_init = combinator_ctx_init (hashcat_ctx);
 
   if (rc_combinator_init == -1) return -1;
 
@@ -1220,11 +1218,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   potfile_write_close (potfile_ctx);
 
-  bitmap_ctx_destroy (bitmap_ctx);
+  bitmap_ctx_destroy (hashcat_ctx);
 
   mask_ctx_destroy (mask_ctx);
 
-  combinator_ctx_destroy (combinator_ctx);
+  combinator_ctx_destroy (hashcat_ctx);
 
   straight_ctx_destroy (straight_ctx);
 

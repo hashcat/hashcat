@@ -10,8 +10,15 @@
 #include "combinator.h"
 #include "wordlist.h"
 
-int combinator_ctx_init (combinator_ctx_t *combinator_ctx, user_options_t *user_options, user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, dictstat_ctx_t *dictstat_ctx, wl_data_t *wl_data)
+int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
+  combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
+  dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
+  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+  wl_data_t            *wl_data             = hashcat_ctx->wl_data;
+
   combinator_ctx->enabled = false;
 
   if (user_options->left        == true) return 0;
@@ -173,8 +180,10 @@ int combinator_ctx_init (combinator_ctx_t *combinator_ctx, user_options_t *user_
   return 0;
 }
 
-void combinator_ctx_destroy (combinator_ctx_t *combinator_ctx)
+void combinator_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
+
   if (combinator_ctx->enabled == false) return;
 
   myfree (combinator_ctx->scratch_buf);

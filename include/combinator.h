@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-int combinator_ctx_init (combinator_ctx_t *combinator_ctx, user_options_t *user_options, user_options_extra_t *user_options_extra, const straight_ctx_t *straight_ctx, dictstat_ctx_t *dictstat_ctx, wl_data_t *wl_data);
-void combinator_ctx_destroy (combinator_ctx_t *combinator_ctx);
+int  combinator_ctx_init    (hashcat_ctx_t *hashcat_ctx);
+void combinator_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _COMBINATOR_H
