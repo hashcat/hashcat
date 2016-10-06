@@ -21,8 +21,13 @@ static int sort_by_mtime (const void *p1, const void *p2)
   return s2.st_mtime - s1.st_mtime;
 }
 
-int induct_ctx_init (induct_ctx_t *induct_ctx, const user_options_t *user_options, const folder_config_t *folder_config, const status_ctx_t *status_ctx)
+int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  induct_ctx_t    *induct_ctx    = hashcat_ctx->induct_ctx;
+  status_ctx_t    *status_ctx    = hashcat_ctx->status_ctx;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
+
   induct_ctx->enabled = false;
 
   if (user_options->benchmark   == true) return 0;
@@ -89,8 +94,10 @@ int induct_ctx_init (induct_ctx_t *induct_ctx, const user_options_t *user_option
   return 0;
 }
 
-void induct_ctx_scan (induct_ctx_t *induct_ctx)
+void induct_ctx_scan (hashcat_ctx_t *hashcat_ctx)
 {
+  induct_ctx_t *induct_ctx = hashcat_ctx->induct_ctx;
+
   if (induct_ctx->enabled == false) return;
 
   induct_ctx->induction_dictionaries = scan_directory (induct_ctx->root_directory);
@@ -100,8 +107,10 @@ void induct_ctx_scan (induct_ctx_t *induct_ctx)
   qsort (induct_ctx->induction_dictionaries, (size_t) induct_ctx->induction_dictionaries_cnt, sizeof (char *), sort_by_mtime);
 }
 
-void induct_ctx_cleanup (induct_ctx_t *induct_ctx)
+void induct_ctx_cleanup (hashcat_ctx_t *hashcat_ctx)
 {
+  induct_ctx_t *induct_ctx = hashcat_ctx->induct_ctx;
+
   if (induct_ctx->enabled == false) return;
 
   for (int file_pos = 0; file_pos < induct_ctx->induction_dictionaries_cnt; file_pos++)
@@ -115,8 +124,10 @@ void induct_ctx_cleanup (induct_ctx_t *induct_ctx)
   }
 }
 
-void induct_ctx_destroy (induct_ctx_t *induct_ctx)
+void induct_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  induct_ctx_t *induct_ctx = hashcat_ctx->induct_ctx;
+
   if (induct_ctx->enabled == false) return;
 
   if (rmdir (induct_ctx->root_directory) == -1)

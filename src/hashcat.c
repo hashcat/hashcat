@@ -541,7 +541,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (induct_ctx->induction_dictionaries_cnt == 0)
   {
-    induct_ctx_scan (induct_ctx);
+    induct_ctx_scan (hashcat_ctx);
 
     while (induct_ctx->induction_dictionaries_cnt)
     {
@@ -558,7 +558,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
       myfree (induct_ctx->induction_dictionaries);
 
-      induct_ctx_scan (induct_ctx);
+      induct_ctx_scan (hashcat_ctx);
     }
   }
 
@@ -1238,7 +1238,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   dictstat_ctx_t       *dictstat_ctx        = hashcat_ctx->dictstat_ctx;
   folder_config_t      *folder_config       = hashcat_ctx->folder_config;
-  induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   loopback_ctx_t       *loopback_ctx        = hashcat_ctx->loopback_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
@@ -1306,7 +1305,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * induction directory
    */
 
-  const int rc_induct_ctx_init = induct_ctx_init (induct_ctx, user_options, folder_config, status_ctx);
+  const int rc_induct_ctx_init = induct_ctx_init (hashcat_ctx);
 
   if (rc_induct_ctx_init == -1) return -1;
 
@@ -1499,7 +1498,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   potfile_destroy (hashcat_ctx);
 
-  induct_ctx_destroy (induct_ctx);
+  induct_ctx_destroy (hashcat_ctx);
 
   outfile_destroy (hashcat_ctx);
 
