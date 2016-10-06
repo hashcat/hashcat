@@ -137,7 +137,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_INIT;
 
-  logfile_generate_subid (logfile_ctx);
+  logfile_generate_subid (hashcat_ctx);
 
   logfile_sub_msg ("START");
 
@@ -1288,13 +1288,13 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * logfile init
    */
 
-  logfile_init (logfile_ctx, user_options, folder_config);
+  logfile_init (hashcat_ctx);
 
-  logfile_generate_topid (logfile_ctx);
+  logfile_generate_topid (hashcat_ctx);
 
   logfile_top_msg ("START");
 
-  user_options_logger (user_options, logfile_ctx);
+  user_options_logger (hashcat_ctx);
 
   /**
    * tuning db
@@ -1526,7 +1526,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   logfile_top_msg ("STOP");
 
-  logfile_destroy (logfile_ctx);
+  logfile_destroy (hashcat_ctx);
 
   user_options_destroy (user_options);
 

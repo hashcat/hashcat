@@ -1144,8 +1144,11 @@ void user_options_extra_destroy (user_options_extra_t *user_options_extra)
   memset (user_options_extra, 0, sizeof (user_options_extra_t));
 }
 
-void user_options_logger (const user_options_t *user_options, const logfile_ctx_t *logfile_ctx)
+void user_options_logger (hashcat_ctx_t *hashcat_ctx)
 {
+  user_options_t *user_options = hashcat_ctx->user_options;
+  logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
+
   logfile_top_uint   (user_options->benchmark);
   logfile_top_uint   (user_options->force);
   logfile_top_uint   (user_options->gpu_temp_disable);

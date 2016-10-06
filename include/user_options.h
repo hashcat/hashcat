@@ -170,6 +170,6 @@ void user_options_extra_init (const user_options_t *user_options, user_options_e
 
 void user_options_extra_destroy (user_options_extra_t *user_options_extra);
 
-void user_options_logger (const user_options_t *user_options, const logfile_ctx_t *logfile_ctx);
+void user_options_logger (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _USER_OPTIONS_H
