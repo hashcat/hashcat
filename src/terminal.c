@@ -15,8 +15,10 @@
 
 const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
 
-void welcome_screen (const user_options_t *user_options, const time_t proc_start, const char *version_tag)
+void welcome_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const char *version_tag)
 {
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   if (user_options->quiet       == true) return;
   if (user_options->keyspace    == true) return;
   if (user_options->stdout_flag == true) return;
@@ -47,8 +49,10 @@ void welcome_screen (const user_options_t *user_options, const time_t proc_start
   }
 }
 
-void goodbye_screen (const user_options_t *user_options, const time_t proc_start, const time_t proc_stop)
+void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const time_t proc_stop)
 {
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
   if (user_options->quiet       == true) return;
   if (user_options->keyspace    == true) return;
   if (user_options->stdout_flag == true) return;

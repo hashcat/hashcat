@@ -24,10 +24,6 @@ int main (int argc, char **argv)
 
   hashcat_ctx_init (hashcat_ctx);
 
-  // initialize the user options with some defaults (you can override them later)
-
-  user_options_init (hashcat_ctx);
-
   // initialize the session via getops for commandline use or
   // alternatively you can set the user_options directly
 
@@ -55,6 +51,10 @@ int main (int argc, char **argv)
     const int rc_console = setup_console ();
 
     if (rc_console == -1) return -1;
+
+    // initialize the user options with some defaults (you can override them later)
+
+    user_options_init (hashcat_ctx);
 
     // parse commandline parameters and check them
 
@@ -90,7 +90,7 @@ int main (int argc, char **argv)
 
     time (&proc_start);
 
-    welcome_screen (user_options, proc_start, VERSION_TAG);
+    welcome_screen (hashcat_ctx, proc_start, VERSION_TAG);
 
     // now run hashcat
 
@@ -102,7 +102,7 @@ int main (int argc, char **argv)
 
     time (&proc_stop);
 
-    goodbye_screen (user_options, proc_start, proc_stop);
+    goodbye_screen (hashcat_ctx, proc_start, proc_stop);
   }
   else
   {
@@ -112,6 +112,12 @@ int main (int argc, char **argv)
     char *mask = "?l?l?l?l?l?l?l";
 
     char *hc_argv[] = { hash, mask, NULL };
+
+    // initialize the user options with some defaults (you can override them later)
+
+    user_options_init (hashcat_ctx);
+
+    // your own stuff
 
     user_options_t *user_options = hashcat_ctx->user_options;
 
