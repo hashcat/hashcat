@@ -294,7 +294,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  // words_base
+  // words base
 
   status_ctx->words_base = status_ctx->words_cnt / user_options_extra_amplifier (hashcat_ctx);
 
@@ -311,6 +311,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
     return -1;
   }
+
+  // restore progress
 
   if (status_ctx->words_cur)
   {
@@ -534,16 +536,12 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
 static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 {
-  combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
-  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
-  hashes_t             *hashes              = hashcat_ctx->hashes;
-  logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
-  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
-  restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
-  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
-  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options        = hashcat_ctx->user_options;
+  hashconfig_t   *hashconfig    = hashcat_ctx->hashconfig;
+  mask_ctx_t     *mask_ctx      = hashcat_ctx->mask_ctx;
+  restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
+  status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
+  straight_ctx_t *straight_ctx  = hashcat_ctx->straight_ctx;
+  user_options_t *user_options  = hashcat_ctx->user_options;
 
   //status_ctx->run_main_level1   = true;
   //status_ctx->run_main_level2   = true;
@@ -571,117 +569,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
    * Update mask in attack-mode specific stuff
    */
 
-  if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-  {
-    if (user_options->attack_mode == ATTACK_MODE_COMBI)
-    {
-
-    }
-    else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
-    {
-      mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
-
-      const int rc_mask_file = mask_ctx_parse_maskfile (hashcat_ctx);
-
-      if (rc_mask_file == -1) return -1;
-
-      mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
-
-      u32 uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
-
-      mp_css_to_uniq_tbl (mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
-
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
-
-      combinator_ctx->combs_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
-
-      const int rc_update_mp = opencl_session_update_mp (hashcat_ctx);
-
-      if (rc_update_mp == -1) return -1;
-    }
-
-    const int rc_update_combinator = opencl_session_update_combinator (hashcat_ctx);
-
-    if (rc_update_combinator == -1) return -1;
-  }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-  {
-    mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
-
-    const int rc_mask_file = mask_ctx_parse_maskfile (hashcat_ctx);
-
-    if (rc_mask_file == -1) return -1;
-
-    if (user_options->attack_mode == ATTACK_MODE_BF) // always true
-    {
-      mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
-
-      // check if mask is not too large or too small for pw_min/pw_max  (*2 if unicode)
-
-      u32 mask_min = hashconfig->pw_min;
-      u32 mask_max = hashconfig->pw_max;
-
-      if ((mask_ctx->css_cnt < mask_min) || (mask_ctx->css_cnt > mask_max))
-      {
-        if (mask_ctx->css_cnt < mask_min)
-        {
-          log_info ("WARNING: Skipping mask '%s' because it is smaller than the minimum password length", mask_ctx->mask);
-        }
-
-        if (mask_ctx->css_cnt > mask_max)
-        {
-          log_info ("WARNING: Skipping mask '%s' because it is larger than the maximum password length", mask_ctx->mask);
-        }
-
-        // skip to next mask
-
-        logfile_sub_msg ("STOP");
-
-        return 0;
-      }
-
-      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
-      {
-        mask_min *= 2;
-        mask_max *= 2;
-      }
-
-      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
-      {
-        mp_css_unicode_expand (mask_ctx);
-      }
-
-      u32 css_cnt_orig = mask_ctx->css_cnt;
-
-      if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
-      {
-        if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
-        {
-          mp_css_append_salt (mask_ctx, &hashes->salts_buf[0]);
-        }
-      }
-
-      u32 uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
-
-      mp_css_to_uniq_tbl (mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
-
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
-
-      status_ctx->words_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
-
-      // copy + args
-
-      u32 css_cnt_lr[2];
-
-      mp_css_split_cnt (mask_ctx, hashconfig, css_cnt_orig, css_cnt_lr);
-
-      mask_ctx->bfs_cnt = sp_get_sum (0, css_cnt_lr[1], mask_ctx->root_css_buf);
-
-      const int rc_update_mp_rl = opencl_session_update_mp_rl (hashcat_ctx, css_cnt_lr[0], css_cnt_lr[1]);
-
-      if (rc_update_mp_rl == -1) return -1;
-    }
-  }
+  mask_ctx_update_loop (hashcat_ctx);
 
   /**
    * loop through wordlists

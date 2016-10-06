@@ -41,6 +41,7 @@ void  sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_tabl
 void  sp_stretch_markov (hcstat_table_t *in, hcstat_table_t *out);
 void  sp_stretch_root (hcstat_table_t *in, hcstat_table_t *out);
 
+int   mask_ctx_update_loop    (hashcat_ctx_t *hashcat_ctx);
 int   mask_ctx_init           (hashcat_ctx_t *hashcat_ctx);
 void  mask_ctx_destroy        (hashcat_ctx_t *hashcat_ctx);
 int   mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx);
