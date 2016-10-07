@@ -81,6 +81,31 @@ typedef struct stat64 hc_stat;
 
 // enums
 
+typedef enum event_identifier
+{
+  EVENT_WELCOME_SCREEN         = 0x00000011,
+  EVENT_GOODBYE_SCREEN         = 0x00000012,
+  EVENT_LOGFILE_TOP_INITIALIZE = 0x00000021,
+  EVENT_LOGFILE_TOP_FINALIZE   = 0x00000022,
+  EVENT_LOGFILE_SUB_INITIALIZE = 0x00000023,
+  EVENT_LOGFILE_SUB_FINALIZE   = 0x00000024,
+  EVENT_OUTERLOOP_STARTING     = 0x00000031,
+  EVENT_OUTERLOOP_FINISHED     = 0x00000032,
+  EVENT_INNERLOOP1_STARTING    = 0x00000041,
+  EVENT_INNERLOOP1_FINISHED    = 0x00000042,
+  EVENT_INNERLOOP2_STARTING    = 0x00000051,
+  EVENT_INNERLOOP2_FINISHED    = 0x00000052,
+  EVENT_AUTOTUNE_STARTING      = 0x00000053,
+  EVENT_AUTOTUNE_FINISHED      = 0x00000054,
+  EVENT_CRACKER_STARTING       = 0x00000055,
+  EVENT_CRACKER_FINISHED       = 0x00000056,
+  EVENT_CRACKER_FINAL_STATS    = 0x00000057,
+  EVENT_CRACKER_HASH_CRACKED   = 0x00000058,
+
+  // there will be much more event types soon
+
+} event_identifier_t;
+
 typedef enum amplifier_count
 {
   KERNEL_BFS              = 1024,
@@ -1350,6 +1375,15 @@ typedef struct status_ctx
 
 } status_ctx_t;
 
+typedef struct hashcat_user
+{
+  // use this for context specific data
+
+  int          outer_threads_cnt;
+  hc_thread_t *outer_threads;
+
+} hashcat_user_t;
+
 typedef struct hashcat_ctx
 {
   bitmap_ctx_t          *bitmap_ctx;
@@ -1358,6 +1392,7 @@ typedef struct hashcat_ctx
   debugfile_ctx_t       *debugfile_ctx;
   dictstat_ctx_t        *dictstat_ctx;
   folder_config_t       *folder_config;
+  hashcat_user_t        *hashcat_user;
   hashconfig_t          *hashconfig;
   hashes_t              *hashes;
   hwmon_ctx_t           *hwmon_ctx;
@@ -1376,6 +1411,8 @@ typedef struct hashcat_ctx
   user_options_extra_t  *user_options_extra;
   user_options_t        *user_options;
   wl_data_t             *wl_data;
+
+  int (*event) (struct hashcat_ctx *, const u32);
 
 } hashcat_ctx_t;
 

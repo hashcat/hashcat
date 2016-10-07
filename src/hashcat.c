@@ -46,7 +46,6 @@
 #include "rp.h"
 #include "status.h"
 #include "straight.h"
-#include "terminal.h"
 #include "tuningdb.h"
 #include "usage.h"
 #include "user_options.h"
@@ -56,14 +55,24 @@
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
-void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx)
+void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx, int (*event) (hashcat_ctx_t *, const u32))
 {
+  if (event == NULL)
+  {
+    fprintf (stderr, "Event callback function is mandatory\n");
+
+    exit (-1);
+  }
+
+  hashcat_ctx->event = event;
+
   hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          mymalloc (sizeof (bitmap_ctx_t));
   hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      mymalloc (sizeof (combinator_ctx_t));
   hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             mymalloc (sizeof (cpt_ctx_t));
   hashcat_ctx->debugfile_ctx      = (debugfile_ctx_t *)       mymalloc (sizeof (debugfile_ctx_t));
   hashcat_ctx->dictstat_ctx       = (dictstat_ctx_t *)        mymalloc (sizeof (dictstat_ctx_t));
   hashcat_ctx->folder_config      = (folder_config_t *)       mymalloc (sizeof (folder_config_t));
+  hashcat_ctx->hashcat_user       = (hashcat_user_t *)        mymalloc (sizeof (hashcat_user_t));
   hashcat_ctx->hashconfig         = (hashconfig_t *)          mymalloc (sizeof (hashconfig_t));
   hashcat_ctx->hashes             = (hashes_t *)              mymalloc (sizeof (hashes_t));
   hashcat_ctx->hwmon_ctx          = (hwmon_ctx_t *)           mymalloc (sizeof (hwmon_ctx_t));
@@ -135,9 +144,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_INIT;
 
-  logfile_generate_subid (hashcat_ctx);
-
-  logfile_sub_msg ("START");
+  EVENT_SEND (EVENT_LOGFILE_SUB_INITIALIZE);
 
   status_progress_reset (hashcat_ctx);
 
@@ -188,14 +195,14 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     return 0;
   }
 
+  // restore stuff
+
   if (status_ctx->words_cur > status_ctx->words_base)
   {
     log_error ("ERROR: Restore value greater keyspace");
 
     return -1;
   }
-
-  // restore progress
 
   if (status_ctx->words_cur)
   {
@@ -219,6 +226,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * create autotune threads
    */
 
+  EVENT_SEND (EVENT_AUTOTUNE_STARTING);
+
   thread_param_t *threads_param = (thread_param_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (thread_param_t));
 
   hc_thread_t *c_threads = (hc_thread_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
@@ -237,6 +246,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
 
+  EVENT_SEND (EVENT_AUTOTUNE_FINISHED);
+
   /**
    * autotune modified kernel_accel, which modifies opencl_ctx->kernel_power_all
    */
@@ -250,23 +261,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   if (user_options->loopback == true)
   {
     loopback_write_open (hashcat_ctx);
-  }
-
-  /**
-   * Tell user we're about to start
-   */
-
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-  {
-    if ((user_options->quiet == false) && (user_options->status == false) && (user_options->benchmark == false))
-    {
-      if (user_options->quiet == false) send_prompt ();
-    }
-  }
-  else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
-  {
-    if (user_options->quiet == false) log_info ("Starting attack in stdin mode...");
-    if (user_options->quiet == false) log_info ("");
   }
 
   /**
@@ -286,6 +280,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   /**
    * create cracker threads
    */
+
+  EVENT_SEND (EVENT_CRACKER_STARTING);
 
   status_ctx->devices_status = STATUS_RUNNING;
 
@@ -312,8 +308,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   myfree (threads_param);
 
-  // calculate final status
-
   if ((status_ctx->devices_status != STATUS_CRACKED)
    && (status_ctx->devices_status != STATUS_ABORTED)
    && (status_ctx->devices_status != STATUS_QUIT)
@@ -322,7 +316,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     status_ctx->devices_status = STATUS_EXHAUSTED;
   }
 
-  logfile_sub_var_uint ("status-after-work", status_ctx->devices_status);
+  EVENT_SEND (EVENT_CRACKER_FINISHED);
 
   // update some timer
 
@@ -337,7 +331,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   time (&status_ctx->prepare_start);
 
-  logfile_sub_msg ("STOP");
+  EVENT_SEND (EVENT_CRACKER_FINAL_STATS);
 
   // no more skip and restore from here
 
@@ -353,39 +347,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     loopback_write_close (hashcat_ctx);
   }
 
-  // print final status
-
-  if (user_options->benchmark == true)
-  {
-    status_benchmark (hashcat_ctx);
-
-    if (user_options->machine_readable == false)
-    {
-      log_info ("");
-    }
-  }
-  else
-  {
-    if (user_options->quiet == false)
-    {
-      clear_prompt ();
-
-      if (hashes->digests_saved != hashes->digests_done) log_info ("");
-
-      status_display (hashcat_ctx);
-
-      log_info ("");
-    }
-    else
-    {
-      if (user_options->status == true)
-      {
-        status_display (hashcat_ctx);
-
-        log_info ("");
-      }
-    }
-  }
+  EVENT_SEND (EVENT_LOGFILE_SUB_FINALIZE);
 
   // New induction folder check
 
@@ -908,7 +870,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   potfile_write_close (hashcat_ctx);
 
-  // finalize session
+  // finalize opencl session
 
   opencl_session_destroy (hashcat_ctx);
 
@@ -937,22 +899,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
 int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_folder, int argc, char **argv, const int comptime)
 {
-  /**
-   * To help users a bit
-   */
-
-  setup_environment_variables ();
-
-  setup_umask ();
-
-  /**
-   * main init
-   */
-
-  logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
-  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options        = hashcat_ctx->user_options;
+  logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   /**
    * status init
@@ -961,6 +910,8 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   const int rc_status_init = status_ctx_init (hashcat_ctx);
 
   if (rc_status_init == -1) return -1;
+
+  EVENT_SEND (EVENT_WELCOME_SCREEN);
 
   /**
    * folder
@@ -986,25 +937,23 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   user_options_extra_init (hashcat_ctx);
 
+  // from here all user configuration is pre-processed so we can start logging
+
+  EVENT_SEND (EVENT_LOGFILE_TOP_INITIALIZE);
+
+  /**
+   * To help users a bit
+   */
+
+  setup_environment_variables ();
+
+  setup_umask ();
+
   /**
    * prepare seeding for random number generator, required by logfile and rules generator
    */
 
   setup_seeding (user_options->rp_gen_seed_chgd, user_options->rp_gen_seed);
-
-  /**
-   * logfile init
-   */
-
-  const int rc_logfile_init = logfile_init (hashcat_ctx);
-
-  if (rc_logfile_init == -1) return -1;
-
-  logfile_generate_topid (hashcat_ctx);
-
-  logfile_top_msg ("START");
-
-  user_options_logger (hashcat_ctx);
 
   /**
    * tuning db
@@ -1105,6 +1054,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   const int rc_devices_init = opencl_ctx_devices_init (hashcat_ctx, comptime);
 
   if (rc_devices_init == -1) return -1;
+
   /**
    * HM devices: init
    */
@@ -1114,28 +1064,10 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   if (rc_hwmon_init == -1) return -1;
 
   /**
-   * keypress thread
-   */
-
-  int outer_threads_cnt = 0;
-
-  hc_thread_t *outer_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
-
-  status_ctx->shutdown_outer = false;
-
-  if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false)
-  {
-    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-    {
-      hc_thread_create (outer_threads[outer_threads_cnt], thread_keypress, hashcat_ctx);
-
-      outer_threads_cnt++;
-    }
-  }
-
-  /**
    * outer loop
    */
+
+  EVENT_SEND (EVENT_OUTERLOOP_STARTING);
 
   if (user_options->benchmark == true)
   {
@@ -1168,16 +1100,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
     if (rc == -1) return -1;
   }
 
-  // wait for outer threads
-
-  status_ctx->shutdown_outer = true;
-
-  for (int thread_idx = 0; thread_idx < outer_threads_cnt; thread_idx++)
-  {
-    hc_thread_wait (1, &outer_threads[thread_idx]);
-  }
-
-  myfree (outer_threads);
+  EVENT_SEND (EVENT_OUTERLOOP_FINISHED);
 
   if (user_options->benchmark == true)
   {
@@ -1225,9 +1148,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   logfile_top_uint (status_ctx->proc_start);
   logfile_top_uint (status_ctx->proc_stop);
 
-  logfile_top_msg ("STOP");
-
-  logfile_destroy (hashcat_ctx);
+  EVENT_SEND (EVENT_LOGFILE_TOP_FINALIZE);
 
   user_options_extra_destroy (hashcat_ctx);
 
@@ -1240,7 +1161,11 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   if (status_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
   if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
 
+  EVENT_SEND (EVENT_GOODBYE_SCREEN);
+
   status_ctx_destroy (hashcat_ctx);
+
+  // done
 
   return rc_final;
 }
