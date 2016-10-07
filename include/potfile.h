@@ -33,7 +33,7 @@ void potfile_show_request     (hashcat_ctx_t *hashcat_ctx, char *input_buf, int 
 void potfile_left_request     (hashcat_ctx_t *hashcat_ctx, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *, void *));
 void potfile_show_request_lm  (hashcat_ctx_t *hashcat_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *, void *));
 void potfile_left_request_lm  (hashcat_ctx_t *hashcat_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *, void *));
-int  potfile_remove_parse     (hashcat_ctx_t *hashcat_ctx);
+void potfile_remove_parse     (hashcat_ctx_t *hashcat_ctx);
 void potfile_destroy          (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _POTFILE_H

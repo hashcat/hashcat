@@ -188,12 +188,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->words_base = status_ctx->words_cnt / user_options_extra_amplifier (hashcat_ctx);
 
-  if (user_options->keyspace == true)
-  {
-    log_info ("%" PRIu64 "", status_ctx->words_base);
+  EVENT_SEND (EVENT_CALCULATED_WORDS_BASE);
 
-    return 0;
-  }
+  if (user_options->keyspace == true) return 0;
 
   // restore stuff
 
@@ -427,10 +424,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
 static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 {
-  bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
-  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   hashes_t             *hashes              = hashcat_ctx->hashes;
-  hwmon_ctx_t          *hwmon_ctx           = hashcat_ctx->hwmon_ctx;
   mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
   opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
   outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
@@ -506,23 +500,21 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
-   * Potfile removes
+   * potfile removes
    */
-
-  int potfile_remove_cracks = 0;
 
   if (user_options->potfile_disable == 0)
   {
-    if (user_options->quiet == false) log_info_nn ("Comparing hashes with potfile entries...");
+    EVENT_SEND (EVENT_POTFILE_REMOVE_PARSE);
 
-    potfile_remove_cracks = potfile_remove_parse (hashcat_ctx);
+    potfile_remove_parse (hashcat_ctx);
   }
 
   /**
    * load hashes, stage 2, remove duplicates, build base structure
    */
 
-  const u32 hashes_cnt_orig = hashes->hashes_cnt;
+  hashes->hashes_cnt_orig = hashes->hashes_cnt;
 
   const int rc_hashes_init_stage2 = hashes_init_stage2 (hashcat_ctx);
 
@@ -534,13 +526,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_CRACKED)
   {
-    if (user_options->quiet == false)
-    {
-      log_info ("INFO: All hashes found in potfile! You can use --show to display them.");
-      log_info ("");
-      log_info ("INFO: No more hashes left to crack, exiting...");
-      log_info ("");
-    }
+    EVENT_SEND (EVENT_POTFILE_ALL_CRACKED);
 
     hashes_destroy (hashcat_ctx);
 
@@ -640,107 +626,20 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   if (rc_status_init == -1) return -1;
 
   /**
-   * enable custom signal handler(s)
-   * currently disabled, because man page says:
-   *   The effects of signal() in a multithreaded process are unspecified.
+   * main screen
    */
 
-  /*
-  if (user_options->benchmark == false)
-  {
-    hc_signal (sigHandler_default);
-  }
-  else
-  {
-    hc_signal (sigHandler_benchmark);
-  }
-  */
+  EVENT_SEND (EVENT_OUTERLOOP_MAINSCREEN);
 
   /**
    * inform the user
    */
 
-  if (user_options->quiet == false)
-  {
-    log_info ("Hashes: %u digests; %u unique digests, %u unique salts", hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
-
-    log_info ("Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_shift1, bitmap_ctx->bitmap_shift2);
-
-    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-    {
-      log_info ("Rules: %u", straight_ctx->kernel_rules_cnt);
-    }
-
-    if (user_options->quiet == false) log_info ("");
-
-    if (hashconfig->opti_type)
-    {
-      log_info ("Applicable Optimizers:");
-
-      for (u32 i = 0; i < 32; i++)
-      {
-        const u32 opti_bit = 1u << i;
-
-        if (hashconfig->opti_type & opti_bit) log_info ("* %s", stroptitype (opti_bit));
-      }
-    }
-
-    if (user_options->quiet == false) log_info ("");
-
-    /**
-     * Watchdog and Temperature balance
-     */
-
-    if (hwmon_ctx->enabled == false && user_options->gpu_temp_disable == false)
-    {
-      log_info ("Watchdog: Hardware Monitoring Interface not found on your system");
-    }
-
-    if (hwmon_ctx->enabled == true && user_options->gpu_temp_abort > 0)
-    {
-      log_info ("Watchdog: Temperature abort trigger set to %uc", user_options->gpu_temp_abort);
-    }
-    else
-    {
-      log_info ("Watchdog: Temperature abort trigger disabled");
-    }
-
-    if (hwmon_ctx->enabled == true && user_options->gpu_temp_retain > 0)
-    {
-      log_info ("Watchdog: Temperature retain trigger set to %uc", user_options->gpu_temp_retain);
-    }
-    else
-    {
-      log_info ("Watchdog: Temperature retain trigger disabled");
-    }
-
-    if (user_options->quiet == false) log_info ("");
-  }
-
-  #if defined (DEBUG)
-  if (user_options->benchmark == true) log_info ("Hashmode: %d", hashconfig->hash_mode);
-  #endif
-
-  if (user_options->quiet == false) log_info_nn ("Initializing device kernels and memory...");
+  EVENT_SEND (EVENT_OPENCL_SESSION_PRE);
 
   opencl_session_begin (hashcat_ctx);
 
-  if (user_options->quiet == false) log_info_nn ("");
-
-  /**
-   * In benchmark-mode, inform user which algorithm is checked
-   */
-
-  if (user_options->benchmark == true)
-  {
-    if (user_options->machine_readable == false)
-    {
-      char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
-
-      log_info ("Hashtype: %s", hash_type);
-      log_info ("");
-    }
-  }
+  EVENT_SEND (EVENT_OPENCL_SESSION_POST);
 
   /**
    * weak hash check is the first to write to potfile, so open it for writing from here
@@ -767,7 +666,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
       break;
     }
 
-    if (user_options->quiet == false) log_info_nn ("Checking for weak hashes...");
+    EVENT_SEND (EVENT_OUTERLOOP_WEAK_HASH);
 
     for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
     {
@@ -807,24 +706,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * Tell user about cracked hashes by potfile
    */
 
-  if (user_options->quiet == false)
-  {
-    if (potfile_remove_cracks > 0)
-    {
-      if (potfile_remove_cracks == 1)
-      {
-        log_info ("INFO: Removed 1 hash found in potfile");
-        log_info ("");
-      }
-      else
-      {
-        log_info ("INFO: Removed %d hashes found in potfile", potfile_remove_cracks);
-        log_info ("");
-      }
-    }
-  }
+  EVENT_SEND (EVENT_POTFILE_NUM_CRACKED);
 
   // main call
+
+  EVENT_SEND (EVENT_INNERLOOP1_STARTING);
 
   if (mask_ctx->masks_cnt)
   {
@@ -865,6 +751,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   myfree (inner_threads);
+
+  EVENT_SEND (EVENT_INNERLOOP1_FINISHED);
 
   // finalize potfile
 

@@ -762,30 +762,25 @@ void potfile_left_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
   if (weak_hash_found == 1) myfree (pot_right_ptr);
 }
 
-int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
+void potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
   hashes_t      *hashes      = hashcat_ctx->hashes;
   potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
-  if (potfile_ctx->enabled == false) return 0;
+  if (potfile_ctx->enabled == false) return;
 
   hash_t *hashes_buf = hashes->hashes_buf;
-  u32    hashes_cnt = hashes->hashes_cnt;
+  u32     hashes_cnt = hashes->hashes_cnt;
 
   // no solution for these special hash types (for instane because they use hashfile in output etc)
 
-  if  (hashconfig->hash_mode == 5200)
-    return 0;
-
-  if ((hashconfig->hash_mode >= 6200) && (hashconfig->hash_mode <= 6299))
-    return 0;
-
-  if  (hashconfig->hash_mode == 9000)
-    return 0;
-
-  if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799))
-    return 0;
+  if  (hashconfig->hash_mode ==  5200)  return;
+  if ((hashconfig->hash_mode >=  6200)
+   && (hashconfig->hash_mode <=  6299)) return;
+  if  (hashconfig->hash_mode ==  9000)  return;
+  if ((hashconfig->hash_mode >= 13700)
+   && (hashconfig->hash_mode <= 13799)) return;
 
   hash_t hash_buf;
 
@@ -807,9 +802,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   const int rc = potfile_read_open (hashcat_ctx);
 
-  if (rc == -1) return 0;
-
-  int potfile_remove_cracks = 0;
+  if (rc == -1) return;
 
   char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
 
@@ -946,8 +939,6 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       if (found == NULL) continue;
 
-      if (!found->cracked) potfile_remove_cracks++;
-
       found->cracked = 1;
 
       if (found) break;
@@ -973,6 +964,4 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   }
 
   myfree (hash_buf.digest);
-
-  return potfile_remove_cracks;
 }
