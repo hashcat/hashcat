@@ -392,6 +392,8 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
    * loop through wordlists
    */
 
+  EVENT_SEND (EVENT_INNERLOOP2_STARTING);
+
   restore_data_t *rd = restore_ctx->rd;
 
   if (straight_ctx->dicts_cnt)
@@ -415,6 +417,8 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (rc_inner2_loop == -1) return -1;
   }
+
+  EVENT_SEND (EVENT_INNERLOOP2_FINISHED);
 
   return 0;
 }
@@ -551,7 +555,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * bitmaps
    */
 
+  EVENT_SEND (EVENT_BITMAP_INIT_PRE);
+
   bitmap_ctx_init (hashcat_ctx);
+
+  EVENT_SEND (EVENT_BITMAP_INIT_POST);
 
   /**
    * cracks-per-time allocate buffer
@@ -666,12 +674,14 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
       break;
     }
 
-    EVENT_SEND (EVENT_OUTERLOOP_WEAK_HASH);
+    EVENT_SEND (EVENT_WEAK_HASH_PRE);
 
     for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
     {
       weak_hash_check (hashcat_ctx, device_param, salt_pos);
     }
+
+    EVENT_SEND (EVENT_WEAK_HASH_POST);
   }
 
   /**

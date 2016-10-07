@@ -94,8 +94,6 @@ void bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   for (bitmap_bits = bitmap_min; bitmap_bits < bitmap_max; bitmap_bits++)
   {
-    if (user_options->quiet == false) log_info_nn ("Generating bitmap tables with %u bits...", bitmap_bits);
-
     bitmap_nums = 1u << bitmap_bits;
 
     bitmap_mask = bitmap_nums - 1;

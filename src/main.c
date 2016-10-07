@@ -413,12 +413,12 @@ static int event_opencl_session_post (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->quiet == true) return 0;
 
-  log_info_nn ("");
+  log_info_nn ("Initialized device kernels and memory...");
 
   return 0;
 }
 
-static int event_outerloop_weak_hash (hashcat_ctx_t *hashcat_ctx)
+static int event_weak_hash_pre (hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -428,6 +428,40 @@ static int event_outerloop_weak_hash (hashcat_ctx_t *hashcat_ctx)
 
   return 0;
 }
+
+static int event_weak_hash_post (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return 0;
+
+  log_info_nn ("Checked for weak hashes...");
+
+  return 0;
+}
+
+static int event_bitmap_init_pre (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return 0;
+
+  log_info_nn ("Generating bitmap tables...");
+
+  return 0;
+}
+
+static int event_bitmap_init_post (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return 0;
+
+  log_info_nn ("Generated bitmap tables...");
+
+  return 0;
+}
+
 
 int event (hashcat_ctx_t *hashcat_ctx, const u32 event)
 {
@@ -444,7 +478,6 @@ int event (hashcat_ctx_t *hashcat_ctx, const u32 event)
     case EVENT_OUTERLOOP_STARTING:     rc = event_outerloop_starting     (hashcat_ctx); break;
     case EVENT_OUTERLOOP_FINISHED:     rc = event_outerloop_finished     (hashcat_ctx); break;
     case EVENT_OUTERLOOP_MAINSCREEN:   rc = event_outerloop_mainscreen   (hashcat_ctx); break;
-    case EVENT_OUTERLOOP_WEAK_HASH:    rc = event_outerloop_weak_hash    (hashcat_ctx); break;
     case EVENT_CRACKER_STARTING:       rc = event_cracker_starting       (hashcat_ctx); break;
     case EVENT_CRACKER_FINISHED:       rc = event_cracker_finished       (hashcat_ctx); break;
     case EVENT_CRACKER_FINAL_STATS:    rc = event_cracker_final_stats    (hashcat_ctx); break;
@@ -455,6 +488,10 @@ int event (hashcat_ctx_t *hashcat_ctx, const u32 event)
     case EVENT_POTFILE_ALL_CRACKED:    rc = event_potfile_all_cracked    (hashcat_ctx); break;
     case EVENT_OPENCL_SESSION_PRE:     rc = event_opencl_session_pre     (hashcat_ctx); break;
     case EVENT_OPENCL_SESSION_POST:    rc = event_opencl_session_post    (hashcat_ctx); break;
+    case EVENT_BITMAP_INIT_PRE:        rc = event_bitmap_init_pre        (hashcat_ctx); break;
+    case EVENT_BITMAP_INIT_POST:       rc = event_bitmap_init_post       (hashcat_ctx); break;
+    case EVENT_WEAK_HASH_PRE:          rc = event_weak_hash_pre          (hashcat_ctx); break;
+    case EVENT_WEAK_HASH_POST:         rc = event_weak_hash_post         (hashcat_ctx); break;
   }
 
   return rc;
