@@ -462,6 +462,21 @@ static int event_bitmap_init_post (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+static int event_set_kernel_power_final (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return 0;
+
+  clear_prompt ();
+
+  log_info ("INFO: approaching final keyspace, workload adjusted");
+  log_info ("");
+
+  send_prompt ();
+
+  return 0;
+}
 
 int event (hashcat_ctx_t *hashcat_ctx, const u32 event)
 {
@@ -492,6 +507,8 @@ int event (hashcat_ctx_t *hashcat_ctx, const u32 event)
     case EVENT_BITMAP_INIT_POST:       rc = event_bitmap_init_post       (hashcat_ctx); break;
     case EVENT_WEAK_HASH_PRE:          rc = event_weak_hash_pre          (hashcat_ctx); break;
     case EVENT_WEAK_HASH_POST:         rc = event_weak_hash_post         (hashcat_ctx); break;
+    case EVENT_SET_KERNEL_POWER_FINAL: rc = event_set_kernel_power_final (hashcat_ctx); break;
+
   }
 
   return rc;

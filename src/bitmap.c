@@ -6,7 +6,6 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
 #include "bitmap.h"
 
 static u32 generate_bitmaps (const u32 digests_cnt, const u32 dgst_size, const u32 dgst_shifts, char *digests_buf_ptr, const u32 dgst_pos0, const u32 dgst_pos1, const u32 dgst_pos2, const u32 dgst_pos3, const u32 bitmap_mask, const u32 bitmap_size, u32 *bitmap_a, u32 *bitmap_b, u32 *bitmap_c, u32 *bitmap_d, const u64 collisions_max)

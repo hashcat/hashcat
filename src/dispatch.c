@@ -35,21 +35,15 @@
 #include "shared.h"
 #include "dispatch.h"
 
-static void set_kernel_power_final (opencl_ctx_t *opencl_ctx, const user_options_t *user_options, const u64 kernel_power_final)
+static int set_kernel_power_final (hashcat_ctx_t *hashcat_ctx, const u32 kernel_power_final)
 {
-  if (user_options->quiet == false)
-  {
-    clear_prompt ();
+  EVENT_SEND (EVENT_SET_KERNEL_POWER_FINAL);
 
-    //log_info ("");
-
-    log_info ("INFO: approaching final keyspace, workload adjusted");
-    log_info ("");
-
-    send_prompt ();
-  }
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
   opencl_ctx->kernel_power_final = kernel_power_final;
+
+  return 0;
 }
 
 static u32 get_power (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
@@ -72,8 +66,12 @@ static u32 get_power (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
   return device_param->kernel_power;
 }
 
-static u32 get_work (opencl_ctx_t *opencl_ctx, status_ctx_t *status_ctx, const user_options_t *user_options, hc_device_param_t *device_param, const u64 max)
+static u32 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 max)
 {
+  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   hc_thread_mutex_lock (status_ctx->mux_dispatcher);
 
   const u64 words_cur  = status_ctx->words_cur;
@@ -89,7 +87,7 @@ static u32 get_work (opencl_ctx_t *opencl_ctx, status_ctx_t *status_ctx, const u
   {
     if (opencl_ctx->kernel_power_final == 0)
     {
-      set_kernel_power_final (opencl_ctx, user_options, words_left);
+      set_kernel_power_final (hashcat_ctx, words_left);
     }
   }
 
@@ -255,7 +253,6 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   hashes_t             *hashes             = hashcat_ctx->hashes;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
   const u32 attack_mode = user_options->attack_mode;
@@ -265,7 +262,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   {
     while (status_ctx->run_thread_level1 == true)
     {
-      const u32 work = get_work (opencl_ctx, status_ctx, user_options, device_param, -1u);
+      const u32 work = get_work (hashcat_ctx, device_param, -1u);
 
       if (work == 0) break;
 
@@ -407,7 +404,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       while (max)
       {
-        const u32 work = get_work (opencl_ctx, status_ctx, user_options, device_param, max);
+        const u32 work = get_work (hashcat_ctx, device_param, max);
 
         if (work == 0) break;
 

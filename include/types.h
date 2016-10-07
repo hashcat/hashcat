@@ -112,6 +112,7 @@ typedef enum event_identifier
   EVENT_BITMAP_INIT_POST       = 0x00000082,
   EVENT_WEAK_HASH_PRE          = 0x00000091,
   EVENT_WEAK_HASH_POST         = 0x00000092,
+  EVENT_SET_KERNEL_POWER_FINAL = 0x000000a1,
 
   // there will be much more event types soon
 
