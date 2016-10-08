@@ -5,7 +5,7 @@
 
 #include "common.h"
 #include "types.h"
-#include "logging.h"
+#include "event.h"
 #include "opencl.h"
 #include "status.h"
 #include "terminal.h"
@@ -99,7 +99,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (CL_err != CL_SUCCESS)
     {
-      log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+      event_log_error (hashcat_ctx, "ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
 
       return -1;
     }
@@ -113,7 +113,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (CL_err != CL_SUCCESS)
       {
-        log_error ("ERROR: clEnqueueCopyBuffer(): %s\n", val2cstr_cl (CL_err));
+        event_log_error (hashcat_ctx, "ERROR: clEnqueueCopyBuffer(): %s\n", val2cstr_cl (CL_err));
 
         return -1;
       }
@@ -284,10 +284,13 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   {
     clear_prompt ();
 
-    log_info ("- Device #%u: autotuned kernel-accel to %u\n"
-              "- Device #%u: autotuned kernel-loops to %u\n",
-              device_param->device_id + 1, kernel_accel,
-              device_param->device_id + 1, kernel_loops);
+    printf
+    (
+      "- Device #%u: autotuned kernel-accel to %u\n"
+      "- Device #%u: autotuned kernel-loops to %u\n",
+      device_param->device_id + 1, kernel_accel,
+      device_param->device_id + 1, kernel_loops
+    );
 
     send_prompt ();
   }
@@ -311,7 +314,12 @@ void *thread_autotune (void *p)
 
   if (device_param->skipped) return NULL;
 
-  autotune (hashcat_ctx, device_param);
+  const int rc_autotune = autotune (hashcat_ctx, device_param);
+
+  if (rc_autotune == -1)
+  {
+    // we should do something here, tell hashcat main that autotune failed to abort
+  }
 
   return NULL;
 }
