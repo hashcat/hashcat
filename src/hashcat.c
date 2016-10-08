@@ -845,9 +845,23 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   user_options_extra_init (hashcat_ctx);
 
-  // from here all user configuration is pre-processed so we can start logging
+  // from here all user configuration is pre-processed so we can start logging if we want to
 
   EVENT (EVENT_LOGFILE_TOP_INITIALIZE);
+
+  /**
+   * cpu affinity
+   */
+
+  const int rc_affinity = set_cpu_affinity (hashcat_ctx);
+
+  if (rc_affinity == -1) return -1;
+
+  /**
+   * prepare seeding for random number generator, required by logfile and rules generator
+   */
+
+  setup_seeding (user_options->rp_gen_seed_chgd, user_options->rp_gen_seed);
 
   /**
    * To help users a bit
@@ -856,12 +870,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   setup_environment_variables ();
 
   setup_umask ();
-
-  /**
-   * prepare seeding for random number generator, required by logfile and rules generator
-   */
-
-  setup_seeding (user_options->rp_gen_seed_chgd, user_options->rp_gen_seed);
 
   /**
    * tuning db
@@ -912,6 +920,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   const int rc_potfile_init = potfile_init (hashcat_ctx);
 
   if (rc_potfile_init == -1) return -1;
+
   /**
    * dictstat init
    */
@@ -937,15 +946,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   const int rc_debugfile_init = debugfile_init (hashcat_ctx);
 
   if (rc_debugfile_init == -1) return -1;
-
-  /**
-   * cpu affinity
-   */
-
-  if (user_options->cpu_affinity)
-  {
-    set_cpu_affinity (user_options->cpu_affinity);
-  }
 
   /**
    * Init OpenCL library loader

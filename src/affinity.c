@@ -10,7 +10,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "affinity.h"
 
 #if defined (__APPLE__)
@@ -29,7 +29,7 @@ static int CPU_ISSET (int num, cpu_set_t *cs)
   return (cs->count & (1 << num));
 }
 
-static int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t *cpu_set)
+static int pthread_setaffinity_np (hashcat_ctx_t *hashcat_ctx, pthread_t thread, size_t cpu_size, cpu_set_t *cpu_set)
 {
   int core;
 
@@ -40,78 +40,86 @@ static int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t 
 
   thread_affinity_policy_data_t policy = { core };
 
-  const int rc = thread_policy_set (pthread_mach_thread_np (thread), THREAD_AFFINITY_POLICY, (thread_policy_t) &policy, 1);
-
-  if (rc != KERN_SUCCESS)
-  {
-    log_error ("ERROR: %s : %d", "thread_policy_set()", rc);
-
-    exit (-1);
-  }
-
-  return rc;
+  return thread_policy_set (pthread_mach_thread_np (thread), THREAD_AFFINITY_POLICY, (thread_policy_t) &policy, 1);
 }
 #endif
 
-void set_cpu_affinity (char *cpu_affinity)
+#if defined (__FreeBSD__)
+typedef cpuset_t cpu_set_t;
+#endif
+
+int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx)
 {
-  #if   defined(_WIN)
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->cpu_affinity == NULL) return 0;
+
+  #if defined (_WIN)
   DWORD_PTR aff_mask = 0;
-  #elif defined(__FreeBSD__)
-  cpuset_t cpuset;
-  CPU_ZERO (&cpuset);
-  #elif defined(_POSIX)
+  #else
   cpu_set_t cpuset;
   CPU_ZERO (&cpuset);
   #endif
 
-  if (cpu_affinity)
+  char *devices = mystrdup (user_options->cpu_affinity);
+
+  char *next = strtok (devices, ",");
+
+  do
   {
-    char *devices = mystrdup (cpu_affinity);
+    int cpu_id = atoi (next);
 
-    char *next = strtok (devices, ",");
-
-    do
+    if (cpu_id == 0)
     {
-      int cpu_id = atoi (next);
-
-      if (cpu_id == 0)
-      {
-        #if defined (_WIN)
-        aff_mask = 0;
-        #elif defined (_POSIX)
-        CPU_ZERO (&cpuset);
-        #endif
-
-        break;
-      }
-
-      if (cpu_id > 32)
-      {
-        log_error ("ERROR: Invalid cpu_id %u specified", cpu_id);
-
-        exit (-1);
-      }
-
       #if defined (_WIN)
-      aff_mask |= 1u << (cpu_id - 1);
-      #elif defined (_POSIX)
-      CPU_SET ((cpu_id - 1), &cpuset);
+      aff_mask = 0;
+      #else
+      CPU_ZERO (&cpuset);
       #endif
 
-    } while ((next = strtok (NULL, ",")) != NULL);
+      break;
+    }
 
-    myfree (devices);
+    if (cpu_id > 32)
+    {
+      event_log_error (hashcat_ctx, "ERROR: Invalid cpu_id %u specified", cpu_id);
+
+      return (-1);
+    }
+
+    #if defined (_WIN)
+    aff_mask |= 1u << (cpu_id - 1);
+    #else
+    CPU_SET ((cpu_id - 1), &cpuset);
+    #endif
+
+  } while ((next = strtok (NULL, ",")) != NULL);
+
+  myfree (devices);
+
+  #if defined (_WIN)
+
+  SetProcessAffinityMask (GetCurrentProcess (), aff_mask);
+
+  if (SetThreadAffinityMask (GetCurrentThread (), aff_mask) == 0)
+  {
+    event_log_error (hashcat_ctx, "ERROR: %s", "SetThreadAffinityMask()");
+
+    return -1;
   }
 
-  #if   defined( _WIN)
-  SetProcessAffinityMask (GetCurrentProcess (), aff_mask);
-  SetThreadAffinityMask (GetCurrentThread (), aff_mask);
-  #elif defined(__FreeBSD__)
+  #else
+
   pthread_t thread = pthread_self ();
-  pthread_setaffinity_np (thread, sizeof (cpuset_t), &cpuset);
-  #elif defined(_POSIX)
-  pthread_t thread = pthread_self ();
-  pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset);
+
+  if (pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset) == -1)
+  {
+    event_log_error (hashcat_ctx, "ERROR: %s", "pthread_setaffinity_np()");
+
+    return -1;
+  }
+
   #endif
+
+  return 0;
 }
