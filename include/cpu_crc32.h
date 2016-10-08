@@ -9,6 +9,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-void cpu_crc32 (const char *filename, u8 keytab[64]);
+int cpu_crc32 (hashcat_ctx_t *hashcat_ctx, const char *filename, u8 keytab[64]);
 
 #endif // _CPU_CRC32_H

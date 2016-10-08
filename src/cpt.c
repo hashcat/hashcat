@@ -6,7 +6,6 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
 #include "cpt.h"
 
 int cpt_ctx_init (hashcat_ctx_t *hashcat_ctx)

@@ -1283,7 +1283,9 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
   hashes_t       *hashes       = hashcat_ctx->hashes;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  hashconfig_general_defaults (hashcat_ctx);
+  const int rc_defaults = hashconfig_general_defaults (hashcat_ctx);
+
+  if (rc_defaults == -1) return -1;
 
   if (hashes->salts_cnt == 1)
     hashconfig->opti_type |= OPTI_TYPE_SINGLE_SALT;

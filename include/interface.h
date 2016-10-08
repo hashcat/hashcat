@@ -1513,7 +1513,7 @@ int     hashconfig_init                   (hashcat_ctx_t *hashcat_ctx);
 void    hashconfig_destroy                (hashcat_ctx_t *hashcat_ctx);
 u32     hashconfig_enforce_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
 u32     hashconfig_enforce_kernel_loops   (hashcat_ctx_t *hashcat_ctx);
-void    hashconfig_general_defaults       (hashcat_ctx_t *hashcat_ctx);
+int     hashconfig_general_defaults       (hashcat_ctx_t *hashcat_ctx);
 void    hashconfig_benchmark_defaults     (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt);
 char   *hashconfig_benchmark_mask         (hashcat_ctx_t *hashcat_ctx);
 

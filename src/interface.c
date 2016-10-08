@@ -20190,7 +20190,7 @@ u32 hashconfig_enforce_kernel_loops (hashcat_ctx_t *hashcat_ctx)
   return kernel_loops_fixed;
 }
 
-void hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
+int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   hashes_t       *hashes       = hashcat_ctx->hashes;
@@ -20257,12 +20257,16 @@ void hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 
     do
     {
-      cpu_crc32 (keyfile, (u8 *) keyfile_buf);
+      const int rc_crc32 = cpu_crc32 (hashcat_ctx, keyfile, (u8 *) keyfile_buf);
+
+      if (rc_crc32 == -1) return -1;
 
     } while ((keyfile = strtok (NULL, ",")) != NULL);
 
     free (keyfiles);
   }
+
+  return 0;
 }
 
 void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt)
