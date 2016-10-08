@@ -12,8 +12,6 @@
 #include <time.h>
 #include <fcntl.h>
 
-#define EVENT_SEND(id) { const int rc_event = hashcat_ctx->event (hashcat_ctx, (id)); if (rc_event == -1) return -1; }
-
 bool is_power_of_2 (const u32 v);
 
 u32 get_random_num (const u32 min, const u32 max);

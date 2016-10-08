@@ -9,7 +9,6 @@
 #include "filehandling.h"
 #include "interface.h"
 #include "timer.h"
-#include "logging.h"
 #include "ext_OpenCL.h"
 #include "ext_ADL.h"
 #include "ext_nvapi.h"
@@ -33,11 +32,12 @@
 #include "wordlist.h"
 #include "status.h"
 #include "shared.h"
+#include "event.h"
 #include "dispatch.h"
 
 static int set_kernel_power_final (hashcat_ctx_t *hashcat_ctx, const u32 kernel_power_final)
 {
-  EVENT_SEND (EVENT_SET_KERNEL_POWER_FINAL);
+  EVENT (EVENT_SET_KERNEL_POWER_FINAL);
 
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
@@ -314,7 +314,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     if (fd == NULL)
     {
-      log_error ("ERROR: %s: %s", dictfile, strerror (errno));
+      event_log_error (hashcat_ctx, "ERROR: %s: %s", dictfile, strerror (errno));
 
       return;
     }
@@ -331,7 +331,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (combs_fp == NULL)
         {
-          log_error ("ERROR: %s: %s", combinator_ctx->dict2, strerror (errno));
+          event_log_error (hashcat_ctx, "ERROR: %s: %s", combinator_ctx->dict2, strerror (errno));
 
           fclose (fd);
 
@@ -348,7 +348,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (combs_fp == NULL)
         {
-          log_error ("ERROR: %s: %s", dictfilec, strerror (errno));
+          event_log_error (hashcat_ctx, "ERROR: %s: %s", dictfilec, strerror (errno));
 
           fclose (fd);
 

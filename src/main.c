@@ -19,13 +19,73 @@
 
 #include "memory.h"
 #include "terminal.h"
-#include "logging.h"
 #include "logfile.h"
 #include "thread.h"
 #include "status.h"
 #include "interface.h"
+#include "event.h"
 
-static int event_welcome_screen (hashcat_ctx_t *hashcat_ctx)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+static void main_log (hashcat_ctx_t *hashcat_ctx, const char *buf, const size_t len, FILE *fp)
+{
+  if (len == 0) return;
+
+  // handle last_len
+
+  event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+  if (event_ctx->last_len)
+  {
+    fputc ('\r', fp);
+
+    for (int i = 0; i < event_ctx->last_len; i++)
+    {
+      fputc (' ', fp);
+    }
+
+    fputc ('\r', fp);
+  }
+
+  if (buf[len - 1] == '\n')
+  {
+    event_ctx->last_len = 0;
+  }
+  else
+  {
+    event_ctx->last_len = len;
+  }
+
+  // finally, print
+
+  fwrite (buf, len, 1, fp);
+
+  fflush (fp);
+}
+
+static int main_log_info (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+{
+  main_log (hashcat_ctx, buf, len, stdout);
+
+  return 0;
+}
+
+static int main_log_warning (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+{
+  main_log (hashcat_ctx, buf, len, stdout);
+
+  return 0;
+}
+
+static int main_log_error (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+{
+  main_log (hashcat_ctx, buf, len, stderr);
+
+  return 0;
+}
+
+static int main_welcome_screen (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   // sets dos window size (windows only)
 
@@ -40,7 +100,7 @@ static int event_welcome_screen (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int event_goodbye_screen (hashcat_ctx_t *hashcat_ctx)
+static int main_goodbye_screen (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   // Inform user we're done
 
@@ -51,7 +111,7 @@ static int event_goodbye_screen (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int event_logfile_top_initialize (hashcat_ctx_t *hashcat_ctx)
+static int main_logfile_top_initialize (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
 
@@ -72,7 +132,7 @@ static int event_logfile_top_initialize (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int event_logfile_top_finalize (hashcat_ctx_t *hashcat_ctx)
+static int main_logfile_top_finalize (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
 
@@ -83,7 +143,7 @@ static int event_logfile_top_finalize (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int event_logfile_sub_initialize (hashcat_ctx_t *hashcat_ctx)
+static int main_logfile_sub_initialize (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
 
@@ -94,7 +154,7 @@ static int event_logfile_sub_initialize (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int event_logfile_sub_finalize (hashcat_ctx_t *hashcat_ctx)
+static int main_logfile_sub_finalize (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
 
@@ -103,7 +163,7 @@ static int event_logfile_sub_finalize (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int event_outerloop_starting (hashcat_ctx_t *hashcat_ctx)
+static int main_outerloop_starting (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -136,7 +196,7 @@ static int event_outerloop_starting (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int event_outerloop_finished (hashcat_ctx_t *hashcat_ctx)
+static int main_outerloop_finished (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   hashcat_user_t *hashcat_user = hashcat_ctx->hashcat_user;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
@@ -157,7 +217,7 @@ static int event_outerloop_finished (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int event_cracker_starting (hashcat_ctx_t *hashcat_ctx)
+static int main_cracker_starting (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -175,14 +235,14 @@ static int event_cracker_starting (hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
   {
-    log_info ("Starting attack in stdin mode...");
-    log_info ("");
+    event_log_info (hashcat_ctx, "Starting attack in stdin mode...");
+    event_log_info (hashcat_ctx, "");
   }
 
   return 0;
 }
 
-static int event_cracker_finished (hashcat_ctx_t *hashcat_ctx)
+static int main_cracker_finished (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
   const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
@@ -192,7 +252,7 @@ static int event_cracker_finished (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int event_cracker_final_stats (hashcat_ctx_t *hashcat_ctx)
+static int main_cracker_final_stats (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -205,7 +265,7 @@ static int event_cracker_final_stats (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->machine_readable == false)
     {
-      log_info ("");
+      event_log_info (hashcat_ctx, "");
     }
   }
   else
@@ -214,11 +274,11 @@ static int event_cracker_final_stats (hashcat_ctx_t *hashcat_ctx)
     {
       clear_prompt ();
 
-      if (hashes->digests_saved != hashes->digests_done) log_info ("");
+      if (hashes->digests_saved != hashes->digests_done) event_log_info (hashcat_ctx, "");
 
       status_display (hashcat_ctx);
 
-      log_info ("");
+      event_log_info (hashcat_ctx, "");
     }
     else
     {
@@ -226,7 +286,7 @@ static int event_cracker_final_stats (hashcat_ctx_t *hashcat_ctx)
       {
         status_display (hashcat_ctx);
 
-        log_info ("");
+        event_log_info (hashcat_ctx, "");
       }
     }
   }
@@ -234,7 +294,7 @@ static int event_cracker_final_stats (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int event_cracker_hash_cracked (hashcat_ctx_t *hashcat_ctx)
+static int main_cracker_hash_cracked (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -245,31 +305,31 @@ static int event_cracker_hash_cracked (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int event_calculated_words_base (hashcat_ctx_t *hashcat_ctx)
+static int main_calculated_words_base (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->keyspace == true)
   {
-    log_info ("%" PRIu64 "", status_ctx->words_base);
+    event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_base);
   }
 
   return 0;
 }
 
-static int event_potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
+static int main_potfile_remove_parse (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->quiet == true) return 0;
 
-  log_info_nn ("Comparing hashes with potfile entries...");
+  event_log_info (hashcat_ctx, "Comparing hashes with potfile entries...");
 
   return 0;
 }
 
-static int event_potfile_num_cracked (hashcat_ctx_t *hashcat_ctx)
+static int main_potfile_num_cracked (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
   const hashes_t       *hashes       = hashcat_ctx->hashes;
@@ -282,34 +342,34 @@ static int event_potfile_num_cracked (hashcat_ctx_t *hashcat_ctx)
   {
     if (potfile_remove_cracks == 1)
     {
-      log_info ("INFO: Removed 1 hash found in potfile");
-      log_info ("");
+      event_log_info (hashcat_ctx, "INFO: Removed 1 hash found in potfile");
+      event_log_info (hashcat_ctx, "");
     }
     else
     {
-      log_info ("INFO: Removed %d hashes found in potfile", potfile_remove_cracks);
-      log_info ("");
+      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found in potfile", potfile_remove_cracks);
+      event_log_info (hashcat_ctx, "");
     }
   }
 
   return 0;
 }
 
-static int event_potfile_all_cracked (hashcat_ctx_t *hashcat_ctx)
+static int main_potfile_all_cracked (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->quiet == true) return 0;
 
-  log_info ("INFO: All hashes found in potfile! You can use --show to display them.");
-  log_info ("");
-  log_info ("INFO: No more hashes left to crack, exiting...");
-  log_info ("");
+  event_log_info (hashcat_ctx, "INFO: All hashes found in potfile! You can use --show to display them.");
+  event_log_info (hashcat_ctx, "");
+  event_log_info (hashcat_ctx, "INFO: No more hashes left to crack, exiting...");
+  event_log_info (hashcat_ctx, "");
 
   return 0;
 }
 
-static int event_outerloop_mainscreen (hashcat_ctx_t *hashcat_ctx)
+static int main_outerloop_mainscreen (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const bitmap_ctx_t   *bitmap_ctx   = hashcat_ctx->bitmap_ctx;
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -328,37 +388,36 @@ static int event_outerloop_mainscreen (hashcat_ctx_t *hashcat_ctx)
     {
       char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
 
-      log_info ("Hashtype: %s", hash_type);
-      log_info ("");
+      event_log_info (hashcat_ctx, "Hashtype: %s", hash_type);
+      event_log_info (hashcat_ctx, "");
     }
   }
 
   if (user_options->quiet == true) return 0;
 
-  log_info ("Hashes: %u digests; %u unique digests, %u unique salts", hashes->hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
-
-  log_info ("Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_shift1, bitmap_ctx->bitmap_shift2);
+  event_log_info (hashcat_ctx, "Hashes: %u digests; %u unique digests, %u unique salts", hashes->hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
+  event_log_info (hashcat_ctx, "Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_shift1, bitmap_ctx->bitmap_shift2);
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
-    log_info ("Rules: %u", straight_ctx->kernel_rules_cnt);
+    event_log_info (hashcat_ctx, "Rules: %u", straight_ctx->kernel_rules_cnt);
   }
 
-  if (user_options->quiet == false) log_info ("");
+  if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
 
   if (hashconfig->opti_type)
   {
-    log_info ("Applicable Optimizers:");
+    event_log_info (hashcat_ctx, "Applicable Optimizers:");
 
     for (u32 i = 0; i < 32; i++)
     {
       const u32 opti_bit = 1u << i;
 
-      if (hashconfig->opti_type & opti_bit) log_info ("* %s", stroptitype (opti_bit));
+      if (hashconfig->opti_type & opti_bit) event_log_info (hashcat_ctx, "* %s", stroptitype (opti_bit));
     }
   }
 
-  log_info ("");
+  event_log_info (hashcat_ctx, "");
 
   /**
    * Watchdog and Temperature balance
@@ -366,103 +425,103 @@ static int event_outerloop_mainscreen (hashcat_ctx_t *hashcat_ctx)
 
   if (hwmon_ctx->enabled == false && user_options->gpu_temp_disable == false)
   {
-    log_info ("Watchdog: Hardware Monitoring Interface not found on your system");
+    event_log_info (hashcat_ctx, "Watchdog: Hardware Monitoring Interface not found on your system");
   }
 
   if (hwmon_ctx->enabled == true && user_options->gpu_temp_abort > 0)
   {
-    log_info ("Watchdog: Temperature abort trigger set to %uc", user_options->gpu_temp_abort);
+    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_options->gpu_temp_abort);
   }
   else
   {
-    log_info ("Watchdog: Temperature abort trigger disabled");
+    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled");
   }
 
   if (hwmon_ctx->enabled == true && user_options->gpu_temp_retain > 0)
   {
-    log_info ("Watchdog: Temperature retain trigger set to %uc", user_options->gpu_temp_retain);
+    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger set to %uc", user_options->gpu_temp_retain);
   }
   else
   {
-    log_info ("Watchdog: Temperature retain trigger disabled");
+    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger disabled");
   }
 
-  log_info ("");
+  event_log_info (hashcat_ctx, "");
 
   #if defined (DEBUG)
-  if (user_options->benchmark == true) log_info ("Hashmode: %d", hashconfig->hash_mode);
+  if (user_options->benchmark == true) event_log_info (hashcat_ctx, "Hashmode: %d", hashconfig->hash_mode);
   #endif
 
   return 0;
 }
 
-static int event_opencl_session_pre (hashcat_ctx_t *hashcat_ctx)
+static int main_opencl_session_pre (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->quiet == true) return 0;
 
-  log_info_nn ("Initializing device kernels and memory...");
+  event_log_info_nn (hashcat_ctx, "Initializing device kernels and memory...");
 
   return 0;
 }
 
-static int event_opencl_session_post (hashcat_ctx_t *hashcat_ctx)
+static int main_opencl_session_post (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->quiet == true) return 0;
 
-  log_info_nn ("Initialized device kernels and memory...");
+  event_log_info_nn (hashcat_ctx, "Initialized device kernels and memory...");
 
   return 0;
 }
 
-static int event_weak_hash_pre (hashcat_ctx_t *hashcat_ctx)
+static int main_weak_hash_pre (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->quiet == true) return 0;
 
-  log_info_nn ("Checking for weak hashes...");
+  event_log_info_nn (hashcat_ctx, "Checking for weak hashes...");
 
   return 0;
 }
 
-static int event_weak_hash_post (hashcat_ctx_t *hashcat_ctx)
+static int main_weak_hash_post (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->quiet == true) return 0;
 
-  log_info_nn ("Checked for weak hashes...");
+  event_log_info_nn (hashcat_ctx, "Checked for weak hashes...");
 
   return 0;
 }
 
-static int event_bitmap_init_pre (hashcat_ctx_t *hashcat_ctx)
+static int main_bitmap_init_pre (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->quiet == true) return 0;
 
-  log_info_nn ("Generating bitmap tables...");
+  event_log_info_nn (hashcat_ctx, "Generating bitmap tables...");
 
   return 0;
 }
 
-static int event_bitmap_init_post (hashcat_ctx_t *hashcat_ctx)
+static int main_bitmap_init_post (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->quiet == true) return 0;
 
-  log_info_nn ("Generated bitmap tables...");
+  event_log_info_nn (hashcat_ctx, "Generated bitmap tables...");
 
   return 0;
 }
 
-static int event_set_kernel_power_final (hashcat_ctx_t *hashcat_ctx)
+static int main_set_kernel_power_final (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -470,45 +529,47 @@ static int event_set_kernel_power_final (hashcat_ctx_t *hashcat_ctx)
 
   clear_prompt ();
 
-  log_info ("INFO: approaching final keyspace, workload adjusted");
-  log_info ("");
+  event_log_info (hashcat_ctx, "INFO: approaching final keyspace, workload adjusted");
+  event_log_info (hashcat_ctx, "");
 
   send_prompt ();
 
   return 0;
 }
 
-int event (hashcat_ctx_t *hashcat_ctx, const u32 event)
+int event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   int rc = 0;
 
-  switch (event)
+  switch (id)
   {
-    case EVENT_WELCOME_SCREEN:         rc = event_welcome_screen         (hashcat_ctx); break;
-    case EVENT_GOODBYE_SCREEN:         rc = event_goodbye_screen         (hashcat_ctx); break;
-    case EVENT_LOGFILE_TOP_INITIALIZE: rc = event_logfile_top_initialize (hashcat_ctx); break;
-    case EVENT_LOGFILE_TOP_FINALIZE:   rc = event_logfile_top_finalize   (hashcat_ctx); break;
-    case EVENT_LOGFILE_SUB_INITIALIZE: rc = event_logfile_sub_initialize (hashcat_ctx); break;
-    case EVENT_LOGFILE_SUB_FINALIZE:   rc = event_logfile_sub_finalize   (hashcat_ctx); break;
-    case EVENT_OUTERLOOP_STARTING:     rc = event_outerloop_starting     (hashcat_ctx); break;
-    case EVENT_OUTERLOOP_FINISHED:     rc = event_outerloop_finished     (hashcat_ctx); break;
-    case EVENT_OUTERLOOP_MAINSCREEN:   rc = event_outerloop_mainscreen   (hashcat_ctx); break;
-    case EVENT_CRACKER_STARTING:       rc = event_cracker_starting       (hashcat_ctx); break;
-    case EVENT_CRACKER_FINISHED:       rc = event_cracker_finished       (hashcat_ctx); break;
-    case EVENT_CRACKER_FINAL_STATS:    rc = event_cracker_final_stats    (hashcat_ctx); break;
-    case EVENT_CRACKER_HASH_CRACKED:   rc = event_cracker_hash_cracked   (hashcat_ctx); break;
-    case EVENT_CALCULATED_WORDS_BASE:  rc = event_calculated_words_base  (hashcat_ctx); break;
-    case EVENT_POTFILE_REMOVE_PARSE:   rc = event_potfile_remove_parse   (hashcat_ctx); break;
-    case EVENT_POTFILE_NUM_CRACKED:    rc = event_potfile_num_cracked    (hashcat_ctx); break;
-    case EVENT_POTFILE_ALL_CRACKED:    rc = event_potfile_all_cracked    (hashcat_ctx); break;
-    case EVENT_OPENCL_SESSION_PRE:     rc = event_opencl_session_pre     (hashcat_ctx); break;
-    case EVENT_OPENCL_SESSION_POST:    rc = event_opencl_session_post    (hashcat_ctx); break;
-    case EVENT_BITMAP_INIT_PRE:        rc = event_bitmap_init_pre        (hashcat_ctx); break;
-    case EVENT_BITMAP_INIT_POST:       rc = event_bitmap_init_post       (hashcat_ctx); break;
-    case EVENT_WEAK_HASH_PRE:          rc = event_weak_hash_pre          (hashcat_ctx); break;
-    case EVENT_WEAK_HASH_POST:         rc = event_weak_hash_post         (hashcat_ctx); break;
-    case EVENT_SET_KERNEL_POWER_FINAL: rc = event_set_kernel_power_final (hashcat_ctx); break;
-
+    case EVENT_LOG_INFO:               rc = main_log_info               (hashcat_ctx, buf, len); break;
+    case EVENT_LOG_WARNING:            rc = main_log_warning            (hashcat_ctx, buf, len); break;
+    case EVENT_LOG_ERROR:              rc = main_log_error              (hashcat_ctx, buf, len); break;
+    case EVENT_WELCOME_SCREEN:         rc = main_welcome_screen         (hashcat_ctx, buf, len); break;
+    case EVENT_GOODBYE_SCREEN:         rc = main_goodbye_screen         (hashcat_ctx, buf, len); break;
+    case EVENT_LOGFILE_TOP_INITIALIZE: rc = main_logfile_top_initialize (hashcat_ctx, buf, len); break;
+    case EVENT_LOGFILE_TOP_FINALIZE:   rc = main_logfile_top_finalize   (hashcat_ctx, buf, len); break;
+    case EVENT_LOGFILE_SUB_INITIALIZE: rc = main_logfile_sub_initialize (hashcat_ctx, buf, len); break;
+    case EVENT_LOGFILE_SUB_FINALIZE:   rc = main_logfile_sub_finalize   (hashcat_ctx, buf, len); break;
+    case EVENT_OUTERLOOP_STARTING:     rc = main_outerloop_starting     (hashcat_ctx, buf, len); break;
+    case EVENT_OUTERLOOP_FINISHED:     rc = main_outerloop_finished     (hashcat_ctx, buf, len); break;
+    case EVENT_OUTERLOOP_MAINSCREEN:   rc = main_outerloop_mainscreen   (hashcat_ctx, buf, len); break;
+    case EVENT_CRACKER_STARTING:       rc = main_cracker_starting       (hashcat_ctx, buf, len); break;
+    case EVENT_CRACKER_FINISHED:       rc = main_cracker_finished       (hashcat_ctx, buf, len); break;
+    case EVENT_CRACKER_FINAL_STATS:    rc = main_cracker_final_stats    (hashcat_ctx, buf, len); break;
+    case EVENT_CRACKER_HASH_CRACKED:   rc = main_cracker_hash_cracked   (hashcat_ctx, buf, len); break;
+    case EVENT_CALCULATED_WORDS_BASE:  rc = main_calculated_words_base  (hashcat_ctx, buf, len); break;
+    case EVENT_POTFILE_REMOVE_PARSE:   rc = main_potfile_remove_parse   (hashcat_ctx, buf, len); break;
+    case EVENT_POTFILE_NUM_CRACKED:    rc = main_potfile_num_cracked    (hashcat_ctx, buf, len); break;
+    case EVENT_POTFILE_ALL_CRACKED:    rc = main_potfile_all_cracked    (hashcat_ctx, buf, len); break;
+    case EVENT_OPENCL_SESSION_PRE:     rc = main_opencl_session_pre     (hashcat_ctx, buf, len); break;
+    case EVENT_OPENCL_SESSION_POST:    rc = main_opencl_session_post    (hashcat_ctx, buf, len); break;
+    case EVENT_BITMAP_INIT_PRE:        rc = main_bitmap_init_pre        (hashcat_ctx, buf, len); break;
+    case EVENT_BITMAP_INIT_POST:       rc = main_bitmap_init_post       (hashcat_ctx, buf, len); break;
+    case EVENT_WEAK_HASH_PRE:          rc = main_weak_hash_pre          (hashcat_ctx, buf, len); break;
+    case EVENT_WEAK_HASH_POST:         rc = main_weak_hash_post         (hashcat_ctx, buf, len); break;
+    case EVENT_SET_KERNEL_POWER_FINAL: rc = main_set_kernel_power_final (hashcat_ctx, buf, len); break;
   }
 
   return rc;
@@ -516,13 +577,11 @@ int event (hashcat_ctx_t *hashcat_ctx, const u32 event)
 
 #else
 
-int event (hashcat_ctx_t *hashcat_ctx, const u32 event)
+int event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
-  if (hashcat_ctx == NULL) hashcat_ctx = NULL;
-
   int rc = 0;
 
-  switch (event)
+  switch (id)
   {
   }
 
@@ -530,6 +589,8 @@ int event (hashcat_ctx_t *hashcat_ctx, const u32 event)
 }
 
 #endif
+
+#pragma GCC diagnostic pop
 
 int main (int argc, char **argv)
 {

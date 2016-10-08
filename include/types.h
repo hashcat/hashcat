@@ -83,6 +83,9 @@ typedef struct stat64 hc_stat;
 
 typedef enum event_identifier
 {
+  EVENT_LOG_INFO               = 0x00000001,
+  EVENT_LOG_WARNING            = 0x00000002,
+  EVENT_LOG_ERROR              = 0x00000003,
   EVENT_WELCOME_SCREEN         = 0x00000011,
   EVENT_GOODBYE_SCREEN         = 0x00000012,
   EVENT_LOGFILE_TOP_INITIALIZE = 0x00000021,
@@ -1397,6 +1400,14 @@ typedef struct hashcat_user
 
 } hashcat_user_t;
 
+typedef struct event_ctx
+{
+  int last_len;
+
+  hc_thread_mutex_t mux_event;
+
+} event_ctx_t;
+
 typedef struct hashcat_ctx
 {
   bitmap_ctx_t          *bitmap_ctx;
@@ -1404,6 +1415,7 @@ typedef struct hashcat_ctx
   cpt_ctx_t             *cpt_ctx;
   debugfile_ctx_t       *debugfile_ctx;
   dictstat_ctx_t        *dictstat_ctx;
+  event_ctx_t           *event_ctx;
   folder_config_t       *folder_config;
   hashcat_user_t        *hashcat_user;
   hashconfig_t          *hashconfig;
@@ -1425,7 +1437,7 @@ typedef struct hashcat_ctx
   user_options_t        *user_options;
   wl_data_t             *wl_data;
 
-  int (*event) (struct hashcat_ctx *, const u32);
+  int (*event) (const u32, struct hashcat_ctx *, const void *, const size_t);
 
 } hashcat_ctx_t;
 

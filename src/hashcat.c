@@ -14,7 +14,6 @@
 #include "types.h"
 #include "folder.h"
 #include "locking.h"
-#include "logging.h"
 #include "memory.h"
 #include "shared.h"
 #include "thread.h"
@@ -30,6 +29,7 @@
 #include "debugfile.h"
 #include "dictstat.h"
 #include "dispatch.h"
+#include "event.h"
 #include "hashes.h"
 #include "hwmon.h"
 #include "induct.h"
@@ -55,7 +55,7 @@
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
-void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx, int (*event) (hashcat_ctx_t *, const u32))
+void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx, int (*event) (const u32, struct hashcat_ctx *, const void *, const size_t))
 {
   if (event == NULL)
   {
@@ -71,6 +71,7 @@ void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx, int (*event) (hashcat_ctx_t *
   hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             mymalloc (sizeof (cpt_ctx_t));
   hashcat_ctx->debugfile_ctx      = (debugfile_ctx_t *)       mymalloc (sizeof (debugfile_ctx_t));
   hashcat_ctx->dictstat_ctx       = (dictstat_ctx_t *)        mymalloc (sizeof (dictstat_ctx_t));
+  hashcat_ctx->event_ctx          = (event_ctx_t *)           mymalloc (sizeof (event_ctx_t));
   hashcat_ctx->folder_config      = (folder_config_t *)       mymalloc (sizeof (folder_config_t));
   hashcat_ctx->hashcat_user       = (hashcat_user_t *)        mymalloc (sizeof (hashcat_user_t));
   hashcat_ctx->hashconfig         = (hashconfig_t *)          mymalloc (sizeof (hashconfig_t));
@@ -100,6 +101,7 @@ void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   myfree (hashcat_ctx->cpt_ctx);
   myfree (hashcat_ctx->debugfile_ctx);
   myfree (hashcat_ctx->dictstat_ctx);
+  myfree (hashcat_ctx->event_ctx);
   myfree (hashcat_ctx->folder_config);
   myfree (hashcat_ctx->hashconfig);
   myfree (hashcat_ctx->hashes);
@@ -144,7 +146,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_INIT;
 
-  EVENT_SEND (EVENT_LOGFILE_SUB_INITIALIZE);
+  EVENT (EVENT_LOGFILE_SUB_INITIALIZE);
 
   status_progress_reset (hashcat_ctx);
 
@@ -188,7 +190,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->words_base = status_ctx->words_cnt / user_options_extra_amplifier (hashcat_ctx);
 
-  EVENT_SEND (EVENT_CALCULATED_WORDS_BASE);
+  EVENT (EVENT_CALCULATED_WORDS_BASE);
 
   if (user_options->keyspace == true) return 0;
 
@@ -196,7 +198,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->words_cur > status_ctx->words_base)
   {
-    log_error ("ERROR: Restore value greater keyspace");
+    event_log_error (hashcat_ctx, "ERROR: Restore value greater keyspace");
 
     return -1;
   }
@@ -223,7 +225,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * create autotune threads
    */
 
-  EVENT_SEND (EVENT_AUTOTUNE_STARTING);
+  EVENT (EVENT_AUTOTUNE_STARTING);
 
   thread_param_t *threads_param = (thread_param_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (thread_param_t));
 
@@ -243,7 +245,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
 
-  EVENT_SEND (EVENT_AUTOTUNE_FINISHED);
+  EVENT (EVENT_AUTOTUNE_FINISHED);
 
   /**
    * autotune modified kernel_accel, which modifies opencl_ctx->kernel_power_all
@@ -278,7 +280,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * create cracker threads
    */
 
-  EVENT_SEND (EVENT_CRACKER_STARTING);
+  EVENT (EVENT_CRACKER_STARTING);
 
   status_ctx->devices_status = STATUS_RUNNING;
 
@@ -313,7 +315,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     status_ctx->devices_status = STATUS_EXHAUSTED;
   }
 
-  EVENT_SEND (EVENT_CRACKER_FINISHED);
+  EVENT (EVENT_CRACKER_FINISHED);
 
   // update some timer
 
@@ -328,7 +330,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   time (&status_ctx->prepare_start);
 
-  EVENT_SEND (EVENT_CRACKER_FINAL_STATS);
+  EVENT (EVENT_CRACKER_FINAL_STATS);
 
   // no more skip and restore from here
 
@@ -344,7 +346,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     loopback_write_close (hashcat_ctx);
   }
 
-  EVENT_SEND (EVENT_LOGFILE_SUB_FINALIZE);
+  EVENT (EVENT_LOGFILE_SUB_FINALIZE);
 
   // New induction folder check
 
@@ -392,7 +394,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
    * loop through wordlists
    */
 
-  EVENT_SEND (EVENT_INNERLOOP2_STARTING);
+  EVENT (EVENT_INNERLOOP2_STARTING);
 
   restore_data_t *rd = restore_ctx->rd;
 
@@ -418,7 +420,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
     if (rc_inner2_loop == -1) return -1;
   }
 
-  EVENT_SEND (EVENT_INNERLOOP2_FINISHED);
+  EVENT (EVENT_INNERLOOP2_FINISHED);
 
   return 0;
 }
@@ -484,7 +486,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashes->hashes_cnt == 0)
     {
-      log_error ("ERROR: No hashes loaded");
+      event_log_error (hashcat_ctx, "ERROR: No hashes loaded");
 
       return -1;
     }
@@ -509,7 +511,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->potfile_disable == 0)
   {
-    EVENT_SEND (EVENT_POTFILE_REMOVE_PARSE);
+    EVENT (EVENT_POTFILE_REMOVE_PARSE);
 
     potfile_remove_parse (hashcat_ctx);
   }
@@ -530,7 +532,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_CRACKED)
   {
-    EVENT_SEND (EVENT_POTFILE_ALL_CRACKED);
+    EVENT (EVENT_POTFILE_ALL_CRACKED);
 
     hashes_destroy (hashcat_ctx);
 
@@ -555,11 +557,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * bitmaps
    */
 
-  EVENT_SEND (EVENT_BITMAP_INIT_PRE);
+  EVENT (EVENT_BITMAP_INIT_PRE);
 
   bitmap_ctx_init (hashcat_ctx);
 
-  EVENT_SEND (EVENT_BITMAP_INIT_POST);
+  EVENT (EVENT_BITMAP_INIT_POST);
 
   /**
    * cracks-per-time allocate buffer
@@ -605,7 +607,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
     {
-      log_error ("ERROR: --skip/--limit are not supported with --increment or mask files");
+      event_log_error (hashcat_ctx, "ERROR: --skip/--limit are not supported with --increment or mask files");
 
       return -1;
     }
@@ -619,7 +621,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
     {
-      log_error ("ERROR: --keyspace is not supported with --increment or mask files");
+      event_log_error (hashcat_ctx, "ERROR: --keyspace is not supported with --increment or mask files");
 
       return -1;
     }
@@ -637,17 +639,17 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * main screen
    */
 
-  EVENT_SEND (EVENT_OUTERLOOP_MAINSCREEN);
+  EVENT (EVENT_OUTERLOOP_MAINSCREEN);
 
   /**
    * inform the user
    */
 
-  EVENT_SEND (EVENT_OPENCL_SESSION_PRE);
+  EVENT (EVENT_OPENCL_SESSION_PRE);
 
   opencl_session_begin (hashcat_ctx);
 
-  EVENT_SEND (EVENT_OPENCL_SESSION_POST);
+  EVENT (EVENT_OPENCL_SESSION_POST);
 
   /**
    * weak hash check is the first to write to potfile, so open it for writing from here
@@ -674,14 +676,14 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
       break;
     }
 
-    EVENT_SEND (EVENT_WEAK_HASH_PRE);
+    EVENT (EVENT_WEAK_HASH_PRE);
 
     for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
     {
       weak_hash_check (hashcat_ctx, device_param, salt_pos);
     }
 
-    EVENT_SEND (EVENT_WEAK_HASH_POST);
+    EVENT (EVENT_WEAK_HASH_POST);
   }
 
   /**
@@ -716,11 +718,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * Tell user about cracked hashes by potfile
    */
 
-  EVENT_SEND (EVENT_POTFILE_NUM_CRACKED);
+  EVENT (EVENT_POTFILE_NUM_CRACKED);
 
   // main call
 
-  EVENT_SEND (EVENT_INNERLOOP1_STARTING);
+  EVENT (EVENT_INNERLOOP1_STARTING);
 
   if (mask_ctx->masks_cnt)
   {
@@ -762,7 +764,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   myfree (inner_threads);
 
-  EVENT_SEND (EVENT_INNERLOOP1_FINISHED);
+  EVENT (EVENT_INNERLOOP1_FINISHED);
 
   // finalize potfile
 
@@ -802,6 +804,14 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   user_options_t *user_options = hashcat_ctx->user_options;
 
   /**
+   * event init (needed for logging so should be first)
+   */
+
+  const int rc_event_init = event_ctx_init (hashcat_ctx);
+
+  if (rc_event_init == -1) return -1;
+
+  /**
    * status init
    */
 
@@ -809,7 +819,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   if (rc_status_init == -1) return -1;
 
-  EVENT_SEND (EVENT_WELCOME_SCREEN);
+  EVENT (EVENT_WELCOME_SCREEN);
 
   /**
    * folder
@@ -837,7 +847,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   // from here all user configuration is pre-processed so we can start logging
 
-  EVENT_SEND (EVENT_LOGFILE_TOP_INITIALIZE);
+  EVENT (EVENT_LOGFILE_TOP_INITIALIZE);
 
   /**
    * To help users a bit
@@ -965,7 +975,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
    * outer loop
    */
 
-  EVENT_SEND (EVENT_OUTERLOOP_STARTING);
+  EVENT (EVENT_OUTERLOOP_STARTING);
 
   if (user_options->benchmark == true)
   {
@@ -998,7 +1008,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
     if (rc == -1) return -1;
   }
 
-  EVENT_SEND (EVENT_OUTERLOOP_FINISHED);
+  EVENT (EVENT_OUTERLOOP_FINISHED);
 
   if (user_options->benchmark == true)
   {
@@ -1046,7 +1056,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   logfile_top_uint (status_ctx->proc_start);
   logfile_top_uint (status_ctx->proc_stop);
 
-  EVENT_SEND (EVENT_LOGFILE_TOP_FINALIZE);
+  EVENT (EVENT_LOGFILE_TOP_FINALIZE);
 
   user_options_extra_destroy (hashcat_ctx);
 
@@ -1059,7 +1069,9 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   if (status_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
   if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
 
-  EVENT_SEND (EVENT_GOODBYE_SCREEN);
+  EVENT (EVENT_GOODBYE_SCREEN);
+
+  event_ctx_destroy (hashcat_ctx);
 
   status_ctx_destroy (hashcat_ctx);
 
