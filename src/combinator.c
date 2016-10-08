@@ -5,8 +5,8 @@
 
 #include "common.h"
 #include "types.h"
+#include "event.h"
 #include "memory.h"
-#include "logging.h"
 #include "combinator.h"
 #include "wordlist.h"
 
@@ -52,14 +52,14 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if ((fp1 = fopen (dictfile1, "rb")) == NULL)
     {
-      log_error ("ERROR: %s: %s", dictfile1, strerror (errno));
+      event_log_error (hashcat_ctx, "ERROR: %s: %s", dictfile1, strerror (errno));
 
       return -1;
     }
 
     if (stat (dictfile1, &tmp_stat) == -1)
     {
-      log_error ("ERROR: %s: %s", dictfile1, strerror (errno));
+      event_log_error (hashcat_ctx, "ERROR: %s: %s", dictfile1, strerror (errno));
 
       fclose (fp1);
 
@@ -68,7 +68,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (S_ISDIR (tmp_stat.st_mode))
     {
-      log_error ("ERROR: %s must be a regular file", dictfile1, strerror (errno));
+      event_log_error (hashcat_ctx, "ERROR: %s must be a regular file", dictfile1, strerror (errno));
 
       fclose (fp1);
 
@@ -77,7 +77,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if ((fp2 = fopen (dictfile2, "rb")) == NULL)
     {
-      log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
+      event_log_error (hashcat_ctx, "ERROR: %s: %s", dictfile2, strerror (errno));
 
       fclose (fp1);
 
@@ -86,7 +86,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (stat (dictfile2, &tmp_stat) == -1)
     {
-      log_error ("ERROR: %s: %s", dictfile2, strerror (errno));
+      event_log_error (hashcat_ctx, "ERROR: %s: %s", dictfile2, strerror (errno));
 
       fclose (fp1);
       fclose (fp2);
@@ -96,7 +96,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (S_ISDIR (tmp_stat.st_mode))
     {
-      log_error ("ERROR: %s must be a regular file", dictfile2, strerror (errno));
+      event_log_error (hashcat_ctx, "ERROR: %s must be a regular file", dictfile2, strerror (errno));
 
       fclose (fp1);
       fclose (fp2);
@@ -110,7 +110,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (words1_cnt == 0)
     {
-      log_error ("ERROR: %s: empty file", dictfile1);
+      event_log_error (hashcat_ctx, "ERROR: %s: empty file", dictfile1);
 
       fclose (fp1);
       fclose (fp2);
@@ -124,7 +124,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (words2_cnt == 0)
     {
-      log_error ("ERROR: %s: empty file", dictfile2);
+      event_log_error (hashcat_ctx, "ERROR: %s: empty file", dictfile2);
 
       fclose (fp1);
       fclose (fp2);
