@@ -37,12 +37,6 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
-
 // timer
 
 #if defined (_WIN)
@@ -418,6 +412,7 @@ typedef enum parser_rc
   PARSER_TC_FILE_SIZE        = -15,
   PARSER_VC_FILE_SIZE        = -16,
   PARSER_SIP_AUTH_DIRECTIVE  = -17,
+  PARSER_HASH_FILE           = -18,
   PARSER_UNKNOWN_ERROR       = -255
 
 } parser_rc_t;
@@ -612,6 +607,8 @@ typedef struct wordr
   u32  word_buf[1];
 
 } wordr_t;
+
+#include "ext_OpenCL.h"
 
 typedef struct hc_device_param
 {
@@ -819,14 +816,50 @@ typedef struct opencl_ctx
 
   double              target_ms;
 
-  int                 need_adl;
-  int                 need_nvml;
-  int                 need_nvapi;
-  int                 need_xnvctrl;
+  bool                need_adl;
+  bool                need_nvml;
+  bool                need_nvapi;
+  bool                need_xnvctrl;
 
   int                 force_jit_compilation;
 
 } opencl_ctx_t;
+
+#include "ext_ADL.h"
+#include "ext_nvapi.h"
+#include "ext_nvml.h"
+#include "ext_xnvctrl.h"
+
+typedef struct hm_attrs
+{
+  HM_ADAPTER_ADL     adl;
+  HM_ADAPTER_NVML    nvml;
+  HM_ADAPTER_NVAPI   nvapi;
+  HM_ADAPTER_XNVCTRL xnvctrl;
+
+  int od_version;
+
+  bool fan_get_supported;
+  bool fan_set_supported;
+
+} hm_attrs_t;
+
+typedef struct hwmon_ctx
+{
+  bool  enabled;
+
+  void *hm_adl;
+  void *hm_nvml;
+  void *hm_nvapi;
+  void *hm_xnvctrl;
+
+  hm_attrs_t *hm_device;
+
+  ADLOD6MemClockState *od_clock_mem_status;
+  int                 *od_power_control_status;
+  unsigned int        *nvml_power_limit;
+
+} hwmon_ctx_t;
 
 #if defined (__APPLE__)
 typedef struct cpu_set
@@ -887,20 +920,6 @@ typedef struct dictstat_ctx
   #endif
 
 } dictstat_ctx_t;
-
-typedef struct hm_attrs
-{
-  HM_ADAPTER_ADL     adl;
-  HM_ADAPTER_NVML    nvml;
-  HM_ADAPTER_NVAPI   nvapi;
-  HM_ADAPTER_XNVCTRL xnvctrl;
-
-  int od_version;
-
-  bool fan_get_supported;
-  bool fan_set_supported;
-
-} hm_attrs_t;
 
 typedef struct loopback_ctx
 {
@@ -1300,23 +1319,6 @@ typedef struct mask_ctx
   mf_t  *mfs;
 
 } mask_ctx_t;
-
-typedef struct hwmon_ctx
-{
-  bool  enabled;
-
-  void *hm_adl;
-  void *hm_nvml;
-  void *hm_nvapi;
-  void *hm_xnvctrl;
-
-  hm_attrs_t *hm_device;
-
-  ADLOD6MemClockState *od_clock_mem_status;
-  int                 *od_power_control_status;
-  unsigned int        *nvml_power_limit;
-
-} hwmon_ctx_t;
 
 typedef struct cpt_ctx
 {

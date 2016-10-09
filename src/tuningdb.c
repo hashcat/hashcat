@@ -7,7 +7,7 @@
 #include "types.h"
 #include "interface.h"
 #include "timer.h"
-#include "logging.h"
+#include "event.h"
 #include "memory.h"
 #include "filehandling.h"
 #include "ext_OpenCL.h"
@@ -75,7 +75,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    log_error ("%s: %s", tuning_db_file, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", tuning_db_file, strerror (errno));
 
     return -1;
   }
@@ -150,7 +150,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
           (token_ptr[1][0] != '3') &&
           (token_ptr[1][0] != '*'))
       {
-        log_info ("WARNING: Tuning-db: Invalid attack_mode '%c' in Line '%u'", token_ptr[1][0], line_num);
+        event_log_warning (hashcat_ctx, "Tuning-db: Invalid attack_mode '%c' in Line '%u'", token_ptr[1][0], line_num);
 
         continue;
       }
@@ -161,7 +161,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
           (token_ptr[3][0] != '8') &&
           (token_ptr[3][0] != 'N'))
       {
-        log_info ("WARNING: Tuning-db: Invalid vector_width '%c' in Line '%u'", token_ptr[3][0], line_num);
+        event_log_warning (hashcat_ctx, "Tuning-db: Invalid vector_width '%c' in Line '%u'", token_ptr[3][0], line_num);
 
         continue;
       }
@@ -184,7 +184,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
         if ((kernel_accel < 1) || (kernel_accel > 1024))
         {
-          log_info ("WARNING: Tuning-db: Invalid kernel_accel '%d' in Line '%u'", kernel_accel, line_num);
+          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_accel '%d' in Line '%u'", kernel_accel, line_num);
 
           continue;
         }
@@ -200,7 +200,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
         if ((kernel_loops < 1) || (kernel_loops > 1024))
         {
-          log_info ("WARNING: Tuning-db: Invalid kernel_loops '%d' in Line '%u'", kernel_loops, line_num);
+          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%u'", kernel_loops, line_num);
 
           continue;
         }
@@ -223,7 +223,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      log_info ("WARNING: Tuning-db: Invalid number of token in Line '%u'", line_num);
+      event_log_warning (hashcat_ctx, "Tuning-db: Invalid number of token in Line '%u'", line_num);
 
       continue;
     }

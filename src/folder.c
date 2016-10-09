@@ -10,12 +10,12 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "shared.h"
 #include "folder.h"
 
 #if defined (__APPLE__)
-#include "logging.h"
+#include "event.h"
 #endif
 
 int sort_by_stringptr (const void *p1, const void *p2)
@@ -26,7 +26,7 @@ int sort_by_stringptr (const void *p1, const void *p2)
   return strcmp (*s1, *s2);
 }
 
-char *get_exec_path ()
+static char *get_exec_path ()
 {
   size_t exec_path_len = 1024;
 
@@ -48,12 +48,7 @@ char *get_exec_path ()
 
   u32 size = (u32) exec_path_len;
 
-  if (_NSGetExecutablePath (exec_path, &size) != 0)
-  {
-    log_error("! executable path buffer too small\n");
-
-    exit (-1);
-  }
+  if (_NSGetExecutablePath (exec_path, &size) != 0) return NULL;
 
   const size_t len = strlen (exec_path);
 
@@ -170,7 +165,7 @@ char **scan_directory (const char *path)
 
       if (readdir_r (d, &e, &de) != 0)
       {
-        log_error ("ERROR: readdir_r() failed");
+        event_log_error (hashcat_ctx, "ERROR: readdir_r() failed");
 
         break;
       }
@@ -251,7 +246,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, 
 
   if (getcwd (cwd, HCBUFSIZ_TINY - 1) == NULL)
   {
-    log_error ("ERROR: getcwd(): %s", strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: getcwd(): %s", strerror (errno));
 
     return -1;
   }
@@ -262,6 +257,13 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, 
 
   char *exec_path = get_exec_path ();
 
+  if (exec_path == NULL)
+  {
+    event_log_error (hashcat_ctx, "ERROR: get_exec_path() failed");
+
+    return -1;
+  }
+
   #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
 
   if (install_folder == NULL) install_folder = "/"; // makes library use easier
@@ -271,14 +273,14 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, 
 
   if (resolved_install_folder == NULL)
   {
-    log_error ("ERROR: %s: %s", resolved_install_folder, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", resolved_install_folder, strerror (errno));
 
     return -1;
   }
 
   if (resolved_exec_path == NULL)
   {
-    log_error ("ERROR: %s: %s", resolved_exec_path, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", resolved_exec_path, strerror (errno));
 
     return -1;
   }
@@ -342,7 +344,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, 
 
   if (GetFullPathName (cpath, HCBUFSIZ_TINY - 1, cpath_real, NULL) == 0)
   {
-    log_error ("ERROR: %s: %s", cpath, "GetFullPathName()");
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", cpath, "GetFullPathName()");
 
     return -1;
   }
@@ -355,7 +357,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, 
 
   if (realpath (cpath, cpath_real) == NULL)
   {
-    log_error ("ERROR: %s: %s", cpath, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", cpath, strerror (errno));
 
     return -1;
   }

@@ -29,7 +29,6 @@
 
 int sort_by_stringptr (const void *p1, const void *p2);
 
-char *get_exec_path   (void);
 char *get_install_dir (const char *progname);
 char *get_profile_dir (const char *homedir);
 char *get_session_dir (const char *profile_dir);

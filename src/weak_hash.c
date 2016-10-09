@@ -5,7 +5,7 @@
 
 #include "common.h"
 #include "types.h"
-#include "logging.h"
+#include "event.h"
 #include "opencl.h"
 #include "hashes.h"
 #include "weak_hash.h"

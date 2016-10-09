@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "logging.h"
 #include "usage.h"
 
 static const char *USAGE_MINI[] =
@@ -411,10 +410,10 @@ static const char *USAGE_BIG[] =
 
 void usage_mini_print (const char *progname)
 {
-  for (int i = 0; USAGE_MINI[i] != NULL; i++) log_info (USAGE_MINI[i], progname);
+  for (int i = 0; USAGE_MINI[i] != NULL; i++) printf (USAGE_MINI[i], progname);
 }
 
 void usage_big_print (const char *progname)
 {
-  for (int i = 0; USAGE_BIG[i] != NULL; i++) log_info (USAGE_BIG[i], progname);
+  for (int i = 0; USAGE_BIG[i] != NULL; i++) printf (USAGE_BIG[i], progname);
 }

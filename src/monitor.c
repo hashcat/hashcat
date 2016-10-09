@@ -5,7 +5,7 @@
 
 #include "common.h"
 #include "types.h"
-#include "logging.h"
+#include "event.h"
 #include "memory.h"
 #include "hwmon.h"
 #include "timer.h"
@@ -17,7 +17,7 @@
 #include "shared.h"
 #include "monitor.h"
 
-static void monitor (hashcat_ctx_t *hashcat_ctx)
+static int monitor (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t             *hashes             = hashcat_ctx->hashes;
   hwmon_ctx_t          *hwmon_ctx          = hashcat_ctx->hwmon_ctx;
@@ -64,7 +64,7 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
 
   if ((runtime_check == false) && (remove_check == false) && (status_check == false) && (restore_check == false) && (hwmon_check == false))
   {
-    return;
+    return 0;
   }
 
   // these variables are mainly used for fan control
@@ -115,11 +115,11 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
             perfPolicies_info.version   = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1, 1);
             perfPolicies_status.version = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1, 1);
 
-            hm_NvAPI_GPU_GetPerfPoliciesInfo (hwmon_ctx->hm_nvapi, hwmon_ctx->hm_device[device_id].nvapi, &perfPolicies_info);
+            hm_NvAPI_GPU_GetPerfPoliciesInfo (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, &perfPolicies_info);
 
             perfPolicies_status.info_value = perfPolicies_info.info_value;
 
-            hm_NvAPI_GPU_GetPerfPoliciesStatus (hwmon_ctx->hm_nvapi, hwmon_ctx->hm_device[device_id].nvapi, &perfPolicies_status);
+            hm_NvAPI_GPU_GetPerfPoliciesStatus (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, &perfPolicies_status);
 
             if (perfPolicies_status.throttle & 2)
             {
@@ -127,11 +127,11 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
               {
                 if (user_options->quiet == false) clear_prompt ();
 
-                log_info ("WARNING: Drivers temperature threshold hit on GPU #%d, expect performance to drop...", device_id + 1);
+                event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%d, expect performance to drop...", device_id + 1);
 
                 if (slowdown_warnings == 2)
                 {
-                  log_info ("");
+                  event_log_info (hashcat_ctx, "");
                 }
 
                 if (user_options->quiet == false) send_prompt ();
@@ -174,9 +174,9 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
 
         if (temperature > (int) user_options->gpu_temp_abort)
         {
-          log_error ("ERROR: Temperature limit on GPU %d reached, aborting...", device_id + 1);
+          event_log_error (hashcat_ctx, "ERROR: Temperature limit on GPU %d reached, aborting...", device_id + 1);
 
-          myabort (status_ctx);
+          myabort (hashcat_ctx);
 
           break;
         }
@@ -259,7 +259,9 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
 
       if (restore_left == 0)
       {
-        cycle_restore (hashcat_ctx);
+        const int rc = cycle_restore (hashcat_ctx);
+
+        if (rc == -1) return -1;
 
         restore_left = user_options->restore_timer;
       }
@@ -286,10 +288,10 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
       {
         if (user_options->benchmark == false)
         {
-          if (user_options->quiet == false) log_info ("\nNOTE: Runtime limit reached, aborting...\n");
+          if (user_options->quiet == false) event_log_info (hashcat_ctx, "\nNOTE: Runtime limit reached, aborting...\n");
         }
 
-        myabort (status_ctx);
+        myabort (hashcat_ctx);
       }
     }
 
@@ -303,7 +305,9 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
         {
           hashes->digests_saved = hashes->digests_done;
 
-          save_hash (hashcat_ctx);
+          const int rc = save_hash (hashcat_ctx);
+
+          if (rc == -1) return -1;
         }
 
         remove_left = user_options->remove_timer;
@@ -320,11 +324,11 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
 
         if (user_options->quiet == false) clear_prompt ();
 
-        if (user_options->quiet == false) log_info ("");
+        if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
 
         status_display (hashcat_ctx);
 
-        if (user_options->quiet == false) log_info ("");
+        if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
 
         hc_thread_mutex_unlock (status_ctx->mux_display);
 
@@ -339,7 +343,9 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashes->digests_saved != hashes->digests_done)
     {
-      save_hash (hashcat_ctx);
+      const int rc = save_hash (hashcat_ctx);
+
+      if (rc == -1) return -1;
     }
   }
 
@@ -347,20 +353,24 @@ static void monitor (hashcat_ctx_t *hashcat_ctx)
 
   if (restore_check == true)
   {
-    cycle_restore (hashcat_ctx);
+    const int rc = cycle_restore (hashcat_ctx);
+
+    if (rc == -1) return -1;
   }
 
   myfree (fan_speed_chgd);
 
   myfree (temp_diff_old);
   myfree (temp_diff_sum);
+
+  return 0;
 }
 
 void *thread_monitor (void *p)
 {
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
 
-  monitor (hashcat_ctx);
+  monitor (hashcat_ctx); // we should give back some useful returncode
 
   return NULL;
 }

@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "user_options.h"
 #include "restore.h"
 
@@ -52,7 +52,7 @@ u64 get_lowest_words_done (hashcat_ctx_t *hashcat_ctx)
   return words_cur;
 }
 
-static void check_running_process (hashcat_ctx_t *hashcat_ctx)
+static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
 
@@ -60,7 +60,7 @@ static void check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   FILE *fp = fopen (eff_restore_file, "rb");
 
-  if (fp == NULL) return;
+  if (fp == NULL) return 0;
 
   restore_data_t *rd = (restore_data_t *) mymalloc (sizeof (restore_data_t));
 
@@ -68,9 +68,9 @@ static void check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   if (nread != 1)
   {
-    log_error ("ERROR: Cannot read %s", eff_restore_file);
+    event_log_error (hashcat_ctx, "ERROR: Cannot read %s", eff_restore_file);
 
-    exit (-1);
+    return -1;
   }
 
   fclose (fp);
@@ -104,9 +104,9 @@ static void check_running_process (hashcat_ctx_t *hashcat_ctx)
 
       if (strcmp (argv0_r, pidbin_r) == 0)
       {
-        log_error ("ERROR: Already an instance %s running on pid %d", pidbin, rd->pid);
+        event_log_error (hashcat_ctx, "ERROR: Already an instance %s running on pid %d", pidbin, rd->pid);
 
-        exit (-1);
+        return -1;
       }
     }
 
@@ -127,9 +127,9 @@ static void check_running_process (hashcat_ctx_t *hashcat_ctx)
     {
       if (strcmp (pidbin, pidbin2) == 0)
       {
-        log_error ("ERROR: Already an instance %s running on pid %d", pidbin2, rd->pid);
+        event_log_error (hashcat_ctx, "ERROR: Already an instance %s running on pid %d", pidbin2, rd->pid);
 
-        exit (-1);
+        return -1;
       }
     }
 
@@ -142,15 +142,17 @@ static void check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   if (rd->version < RESTORE_VERSION_MIN)
   {
-    log_error ("ERROR: Cannot use outdated %s. Please remove it.", eff_restore_file);
+    event_log_error (hashcat_ctx, "ERROR: Cannot use outdated %s. Please remove it.", eff_restore_file);
 
-    exit (-1);
+    return -1;
   }
 
   myfree (rd);
+
+  return 0;
 }
 
-void init_restore (hashcat_ctx_t *hashcat_ctx)
+static int init_restore (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
 
@@ -158,7 +160,9 @@ void init_restore (hashcat_ctx_t *hashcat_ctx)
 
   restore_ctx->rd = rd;
 
-  check_running_process (hashcat_ctx);
+  const int rc = check_running_process (hashcat_ctx);
+
+  if (rc == -1) return -1;
 
   rd->version = RESTORE_VERSION_CUR;
 
@@ -173,17 +177,19 @@ void init_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (getcwd (rd->cwd, 255) == NULL)
   {
-    log_error ("ERROR: getcwd(): %s", strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: getcwd(): %s", strerror (errno));
 
-    exit (-1);
+    return -1;
   }
+
+  return 0;
 }
 
-void read_restore (hashcat_ctx_t *hashcat_ctx)
+static int read_restore (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
 
-  if (restore_ctx->enabled == false) return;
+  if (restore_ctx->enabled == false) return 0;
 
   char *eff_restore_file = restore_ctx->eff_restore_file;
 
@@ -191,18 +197,18 @@ void read_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    log_error ("ERROR: Restore file '%s': %s", eff_restore_file, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: Restore file '%s': %s", eff_restore_file, strerror (errno));
 
-    exit (-1);
+    return -1;
   }
 
   restore_data_t *rd = restore_ctx->rd;
 
   if (fread (rd, sizeof (restore_data_t), 1, fp) != 1)
   {
-    log_error ("ERROR: Can't read %s", eff_restore_file);
+    event_log_error (hashcat_ctx, "ERROR: Can't read %s", eff_restore_file);
 
-    exit (-1);
+    return -1;
   }
 
   rd->argv = (char **) mycalloc (rd->argc, sizeof (char *));
@@ -213,9 +219,9 @@ void read_restore (hashcat_ctx_t *hashcat_ctx)
   {
     if (fgets (buf, HCBUFSIZ_LARGE - 1, fp) == NULL)
     {
-      log_error ("ERROR: Can't read %s", eff_restore_file);
+      event_log_error (hashcat_ctx, "ERROR: Can't read %s", eff_restore_file);
 
-      exit (-1);
+      return -1;
     }
 
     size_t len = strlen (buf);
@@ -229,24 +235,26 @@ void read_restore (hashcat_ctx_t *hashcat_ctx)
 
   fclose (fp);
 
-  log_info ("INFO: Changing current working directory to the path found within the .restore file: '%s'", rd->cwd);
+  event_log_info (hashcat_ctx, "INFO: Changing current working directory to the path found within the .restore file: '%s'", rd->cwd);
 
   if (chdir (rd->cwd))
   {
-    log_error ("ERROR: The directory '%s' does not exist. It is needed to restore (--restore) the session.\n"
+    event_log_error (hashcat_ctx, "ERROR: The directory '%s' does not exist. It is needed to restore (--restore) the session.\n"
                "       You could either create this directory (or link it) or update the .restore file using e.g. the analyze_hc_restore.pl tool:\n"
                "       https://github.com/philsmd/analyze_hc_restore\n"
                "       The directory must be relative to (or contain) all files/folders mentioned within the command line.", rd->cwd);
 
-    exit (-1);
+    return -1;
   }
+
+  return 0;
 }
 
-void write_restore (hashcat_ctx_t *hashcat_ctx)
+static int write_restore (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
 
-  if (restore_ctx->enabled == false) return;
+  if (restore_ctx->enabled == false) return 0;
 
   const u64 words_cur = get_lowest_words_done (hashcat_ctx);
 
@@ -260,16 +268,16 @@ void write_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    log_error ("ERROR: %s: %s", new_restore_file, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", new_restore_file, strerror (errno));
 
-    exit (-1);
+    return -1;
   }
 
   if (setvbuf (fp, NULL, _IONBF, 0))
   {
-    log_error ("ERROR: setvbuf file '%s': %s", new_restore_file, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: setvbuf file '%s': %s", new_restore_file, strerror (errno));
 
-    exit (-1);
+    return -1;
   }
 
   fwrite (rd, sizeof (restore_data_t), 1, fp);
@@ -286,18 +294,22 @@ void write_restore (hashcat_ctx_t *hashcat_ctx)
   fsync (fileno (fp));
 
   fclose (fp);
+
+  return 0;
 }
 
-void cycle_restore (hashcat_ctx_t *hashcat_ctx)
+int cycle_restore (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
 
-  if (restore_ctx->enabled == false) return;
+  if (restore_ctx->enabled == false) return 0;
 
   const char *eff_restore_file = restore_ctx->eff_restore_file;
   const char *new_restore_file = restore_ctx->new_restore_file;
 
-  write_restore (hashcat_ctx);
+  const int rc_write_restore = write_restore (hashcat_ctx);
+
+  if (rc_write_restore == -1) return -1;
 
   struct stat st;
 
@@ -305,14 +317,16 @@ void cycle_restore (hashcat_ctx_t *hashcat_ctx)
   {
     if (unlink (eff_restore_file))
     {
-      log_info ("WARN: Unlink file '%s': %s", eff_restore_file, strerror (errno));
+      event_log_warning (hashcat_ctx, "Unlink file '%s': %s", eff_restore_file, strerror (errno));
     }
   }
 
   if (rename (new_restore_file, eff_restore_file))
   {
-    log_info ("WARN: Rename file '%s' to '%s': %s", new_restore_file, eff_restore_file, strerror (errno));
+    event_log_warning (hashcat_ctx, "Rename file '%s' to '%s': %s", new_restore_file, eff_restore_file, strerror (errno));
   }
+
+  return 0;
 }
 
 void unlink_restore (hashcat_ctx_t *hashcat_ctx)
@@ -342,7 +356,7 @@ void stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
 
   if (restore_ctx->enabled == false)
   {
-    log_info ("WARNING: This feature is disabled when --restore-disable is specified");
+    event_log_warning (hashcat_ctx, "This feature is disabled when --restore-disable is specified");
 
     return;
   }
@@ -357,7 +371,7 @@ void stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
     status_ctx->run_thread_level1 = false;
     status_ctx->run_thread_level2 = true;
 
-    log_info ("Checkpoint enabled: Will quit at next Restore Point update");
+    event_log_info (hashcat_ctx, "Checkpoint enabled: Will quit at next Restore Point update");
   }
   else
   {
@@ -367,7 +381,7 @@ void stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
     status_ctx->run_thread_level1 = true;
     status_ctx->run_thread_level2 = true;
 
-    log_info ("Checkpoint disabled: Restore Point updates will no longer be monitored");
+    event_log_info (hashcat_ctx, "Checkpoint disabled: Restore Point updates will no longer be monitored");
   }
 }
 
@@ -391,7 +405,9 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   restore_ctx->eff_restore_file = eff_restore_file;
   restore_ctx->new_restore_file = new_restore_file;
 
-  init_restore (hashcat_ctx);
+  const int rc_init_restore = init_restore (hashcat_ctx);
+
+  if (rc_init_restore == -1) return -1;
 
   if (argc ==    0) return 0;
   if (argv == NULL) return 0;
@@ -410,13 +426,15 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   if (user_options->restore == true)
   {
-    read_restore (hashcat_ctx);
+    const int rc_read_restore = read_restore (hashcat_ctx);
+
+    if (rc_read_restore == -1) return -1;
 
     restore_data_t *rd = restore_ctx->rd;
 
     if (rd->version < RESTORE_VERSION_MIN)
     {
-      log_error ("ERROR: Incompatible restore-file version");
+      event_log_error (hashcat_ctx, "ERROR: Incompatible restore-file version");
 
       return -1;
     }

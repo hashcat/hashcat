@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "timer.h"
 #include "shared.h"
 #include "thread.h"
@@ -116,8 +116,10 @@ void hc_signal (void (callback) (int))
 #endif
 */
 
-void mycracked (status_ctx_t *status_ctx)
+void mycracked (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   //if (status_ctx->devices_status != STATUS_RUNNING) return;
 
   status_ctx->devices_status = STATUS_CRACKED;
@@ -129,8 +131,10 @@ void mycracked (status_ctx_t *status_ctx)
   status_ctx->run_thread_level2 = false;
 }
 
-void myabort (status_ctx_t *status_ctx)
+void myabort (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   //those checks create problems in benchmark mode, it's simply too short of a timeframe where it's running as STATUS_RUNNING
   //if (status_ctx->devices_status != STATUS_RUNNING) return;
 
@@ -143,8 +147,10 @@ void myabort (status_ctx_t *status_ctx)
   status_ctx->run_thread_level2 = false;
 }
 
-void myquit (status_ctx_t *status_ctx)
+void myquit (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   //if (status_ctx->devices_status != STATUS_RUNNING) return;
 
   status_ctx->devices_status = STATUS_QUIT;
@@ -156,8 +162,10 @@ void myquit (status_ctx_t *status_ctx)
   status_ctx->run_thread_level2 = false;
 }
 
-void bypass (status_ctx_t *status_ctx)
+void bypass (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   //if (status_ctx->devices_status != STATUS_RUNNING) return;
 
   status_ctx->devices_status = STATUS_BYPASS;
@@ -167,23 +175,23 @@ void bypass (status_ctx_t *status_ctx)
   status_ctx->run_main_level3   = true;
   status_ctx->run_thread_level1 = false;
   status_ctx->run_thread_level2 = false;
-
-  log_info ("Next dictionary / mask in queue selected, bypassing current one");
 }
 
-void SuspendThreads (status_ctx_t *status_ctx)
+void SuspendThreads (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   if (status_ctx->devices_status != STATUS_RUNNING) return;
 
   hc_timer_set (&status_ctx->timer_paused);
 
   status_ctx->devices_status = STATUS_PAUSED;
-
-  log_info ("Paused");
 }
 
-void ResumeThreads (status_ctx_t *status_ctx)
+void ResumeThreads (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   if (status_ctx->devices_status != STATUS_PAUSED) return;
 
   double ms_paused = hc_timer_get (status_ctx->timer_paused);
@@ -191,6 +199,4 @@ void ResumeThreads (status_ctx_t *status_ctx)
   status_ctx->ms_paused += ms_paused;
 
   status_ctx->devices_status = STATUS_RUNNING;
-
-  log_info ("Resumed");
 }

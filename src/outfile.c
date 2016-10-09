@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "interface.h"
 #include "hashes.h"
 #include "mpsp.h"
@@ -342,7 +342,7 @@ int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile_ctx->fp == NULL)
   {
-    log_error ("ERROR: %s: %s", outfile_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", outfile_ctx->filename, strerror (errno));
 
     return -1;
   }
@@ -492,7 +492,7 @@ int outfile_and_hashfile (hashcat_ctx_t *hashcat_ctx)
 
     if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (hc_stat)) == 0)
     {
-      log_error ("ERROR: Hashfile and Outfile are not allowed to point to the same file");
+      event_log_error (hashcat_ctx, "ERROR: Hashfile and Outfile are not allowed to point to the same file");
 
       return -1;
     }

@@ -4,12 +4,13 @@
  */
 
 #include "common.h"
-#include "logging.h"
+#include "types.h"
+#include "event.h"
 #include "locking.h"
 
 #if defined (F_SETLKW)
 
-void lock_file (FILE *fp)
+int lock_file (FILE *fp)
 {
   struct flock lock;
 
@@ -17,15 +18,9 @@ void lock_file (FILE *fp)
 
   lock.l_type = F_WRLCK;
 
-  while (fcntl (fileno (fp), F_SETLKW, &lock))
-  {
-    if (errno != EINTR)
-    {
-      log_error ("ERROR: Failed acquiring write lock: %s", strerror (errno));
+  if (fcntl (fileno (fp), F_SETLKW, &lock)) return -1;
 
-      exit (-1);
-    }
-  }
+  return 0;
 }
 
 void unlock_file (FILE *fp)

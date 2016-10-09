@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "logging.h"
 #include "memory.h"
 
 void *mycalloc (size_t nmemb, size_t size)
@@ -13,7 +12,7 @@ void *mycalloc (size_t nmemb, size_t size)
 
   if (p == NULL)
   {
-    log_error ("ERROR: %s", MSG_ENOMEM);
+    fprintf (stderr, "ERROR: %s", MSG_ENOMEM);
 
     exit (-1);
   }
@@ -27,7 +26,7 @@ void *mymalloc (size_t size)
 
   if (p == NULL)
   {
-    log_error ("ERROR: %s", MSG_ENOMEM);
+    fprintf (stderr, "ERROR: %s", MSG_ENOMEM);
 
     exit (-1);
   }
@@ -50,7 +49,7 @@ void *myrealloc (void *ptr, size_t oldsz, size_t add)
 
   if (p == NULL)
   {
-    log_error ("ERROR: %s", MSG_ENOMEM);
+    fprintf (stderr, "ERROR: %s", MSG_ENOMEM);
 
     exit (-1);
   }

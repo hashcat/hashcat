@@ -72,19 +72,4 @@ typedef struct hm_xnvctrl_lib
 
 typedef hm_xnvctrl_lib_t XNVCTRL_PTR;
 
-int  xnvctrl_init         (XNVCTRL_PTR *xnvctrl);
-void xnvctrl_close        (XNVCTRL_PTR *xnvctrl);
-
-int  hm_XNVCTRL_XOpenDisplay  (XNVCTRL_PTR *xnvctrl);
-void hm_XNVCTRL_XCloseDisplay (XNVCTRL_PTR *xnvctrl);
-
-int get_core_threshold    (XNVCTRL_PTR *xnvctrl, int gpu, int *val);
-
-int get_fan_control       (XNVCTRL_PTR *xnvctrl, int gpu, int *val);
-int set_fan_control       (XNVCTRL_PTR *xnvctrl, int gpu, int  val);
-
-int get_fan_speed_current (XNVCTRL_PTR *xnvctrl, int gpu, int *val);
-int get_fan_speed_target  (XNVCTRL_PTR *xnvctrl, int gpu, int *val);
-int set_fan_speed_target  (XNVCTRL_PTR *xnvctrl, int gpu, int  val);
-
 #endif // _EXT_XNVCTRL_H

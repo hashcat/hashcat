@@ -10,7 +10,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "logfile.h"
 #include "convert.h"
 #include "filehandling.h"
@@ -130,15 +130,15 @@ void mp_css_unicode_expand (mask_ctx_t *mask_ctx)
   mask_ctx->css_cnt = css_cnt_unicode;
 }
 
-void mp_css_to_uniq_tbl (u32 css_cnt, cs_t *css, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
+int mp_css_to_uniq_tbl (hashcat_ctx_t *hashcat_ctx, u32 css_cnt, cs_t *css, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
 {
   /* generates a lookup table where key is the char itself for fastest possible lookup performance */
 
   if (css_cnt > SP_PW_MAX)
   {
-    log_error ("ERROR: Mask length is too long");
+    event_log_error (hashcat_ctx, "ERROR: Mask length is too long");
 
-    exit (-1);
+    return -1;
   }
 
   for (u32 css_pos = 0; css_pos < css_cnt; css_pos++)
@@ -155,10 +155,14 @@ void mp_css_to_uniq_tbl (u32 css_cnt, cs_t *css, u32 uniq_tbls[SP_PW_MAX][CHARSI
       uniq_tbl[c] = 1;
     }
   }
+
+  return 0;
 }
 
-static void mp_add_cs_buf (u32 *in_buf, size_t in_len, cs_t *css, u32 css_cnt, const hashconfig_t *hashconfig)
+static void mp_add_cs_buf (hashcat_ctx_t *hashcat_ctx, u32 *in_buf, size_t in_len, cs_t *css, u32 css_cnt)
 {
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
   cs_t *cs = &css[css_cnt];
 
   size_t css_uniq_sz = CHARSIZ * sizeof (u32);
@@ -192,8 +196,10 @@ static void mp_add_cs_buf (u32 *in_buf, size_t in_len, cs_t *css, u32 css_cnt, c
   myfree (css_uniq);
 }
 
-static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, u32 mp_usr_offset, int interpret, const hashconfig_t *hashconfig, const user_options_t *user_options)
+static int mp_expand (hashcat_ctx_t *hashcat_ctx, char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, u32 mp_usr_offset, int interpret)
 {
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
   size_t in_pos;
 
   for (in_pos = 0; in_pos < in_len; in_pos++)
@@ -210,34 +216,34 @@ static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, 
 
       switch (p1)
       {
-        case 'l': mp_add_cs_buf (mp_sys[0].cs_buf, mp_sys[0].cs_len, mp_usr, mp_usr_offset, hashconfig);
+        case 'l': mp_add_cs_buf (hashcat_ctx, mp_sys[0].cs_buf, mp_sys[0].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case 'u': mp_add_cs_buf (mp_sys[1].cs_buf, mp_sys[1].cs_len, mp_usr, mp_usr_offset, hashconfig);
+        case 'u': mp_add_cs_buf (hashcat_ctx, mp_sys[1].cs_buf, mp_sys[1].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case 'd': mp_add_cs_buf (mp_sys[2].cs_buf, mp_sys[2].cs_len, mp_usr, mp_usr_offset, hashconfig);
+        case 'd': mp_add_cs_buf (hashcat_ctx, mp_sys[2].cs_buf, mp_sys[2].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case 's': mp_add_cs_buf (mp_sys[3].cs_buf, mp_sys[3].cs_len, mp_usr, mp_usr_offset, hashconfig);
+        case 's': mp_add_cs_buf (hashcat_ctx, mp_sys[3].cs_buf, mp_sys[3].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case 'a': mp_add_cs_buf (mp_sys[4].cs_buf, mp_sys[4].cs_len, mp_usr, mp_usr_offset, hashconfig);
+        case 'a': mp_add_cs_buf (hashcat_ctx, mp_sys[4].cs_buf, mp_sys[4].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case 'b': mp_add_cs_buf (mp_sys[5].cs_buf, mp_sys[5].cs_len, mp_usr, mp_usr_offset, hashconfig);
+        case 'b': mp_add_cs_buf (hashcat_ctx, mp_sys[5].cs_buf, mp_sys[5].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case '1': if (mp_usr[0].cs_len == 0) { log_error ("ERROR: Custom-charset 1 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[0].cs_buf, mp_usr[0].cs_len, mp_usr, mp_usr_offset, hashconfig);
+        case '1': if (mp_usr[0].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 1 is undefined"); return -1; }
+                  mp_add_cs_buf (hashcat_ctx, mp_usr[0].cs_buf, mp_usr[0].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case '2': if (mp_usr[1].cs_len == 0) { log_error ("ERROR: Custom-charset 2 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[1].cs_buf, mp_usr[1].cs_len, mp_usr, mp_usr_offset, hashconfig);
+        case '2': if (mp_usr[1].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 2 is undefined"); return -1; }
+                  mp_add_cs_buf (hashcat_ctx, mp_usr[1].cs_buf, mp_usr[1].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case '3': if (mp_usr[2].cs_len == 0) { log_error ("ERROR: Custom-charset 3 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[2].cs_buf, mp_usr[2].cs_len, mp_usr, mp_usr_offset, hashconfig);
+        case '3': if (mp_usr[2].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 3 is undefined"); return -1; }
+                  mp_add_cs_buf (hashcat_ctx, mp_usr[2].cs_buf, mp_usr[2].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case '4': if (mp_usr[3].cs_len == 0) { log_error ("ERROR: Custom-charset 4 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[3].cs_buf, mp_usr[3].cs_len, mp_usr, mp_usr_offset, hashconfig);
+        case '4': if (mp_usr[3].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 4 is undefined"); return -1; }
+                  mp_add_cs_buf (hashcat_ctx, mp_usr[3].cs_buf, mp_usr[3].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case '?': mp_add_cs_buf (&p0, 1, mp_usr, mp_usr_offset, hashconfig);
+        case '?': mp_add_cs_buf (hashcat_ctx, &p0, 1, mp_usr, mp_usr_offset);
                   break;
-        default:  log_error ("Syntax error: %s", in_buf);
-                  exit (-1);
+        default:  event_log_error (hashcat_ctx, "Syntax error: %s", in_buf);
+                  return -1;
       }
     }
     else
@@ -248,18 +254,18 @@ static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, 
 
         if (in_pos == in_len)
         {
-          log_error ("ERROR: The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", in_buf);
+          event_log_error (hashcat_ctx, "ERROR: The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", in_buf);
 
-          exit (-1);
+          return -1;
         }
 
         u32 p1 = in_buf[in_pos] & 0xff;
 
         if ((is_valid_hex_char ((u8) p0) == false) || (is_valid_hex_char ((u8) p1) == false))
         {
-          log_error ("ERROR: Invalid hex character detected in mask %s", in_buf);
+          event_log_error (hashcat_ctx, "ERROR: Invalid hex character detected in mask %s", in_buf);
 
-          exit (-1);
+          return -1;
         }
 
         u32 chr = 0;
@@ -267,32 +273,24 @@ static void mp_expand (char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, 
         chr  = (u32) hex_convert ((u8) p1) << 0;
         chr |= (u32) hex_convert ((u8) p0) << 4;
 
-        mp_add_cs_buf (&chr, 1, mp_usr, mp_usr_offset, hashconfig);
+        mp_add_cs_buf (hashcat_ctx, &chr, 1, mp_usr, mp_usr_offset);
       }
       else
       {
         u32 chr = p0;
 
-        mp_add_cs_buf (&chr, 1, mp_usr, mp_usr_offset, hashconfig);
+        mp_add_cs_buf (hashcat_ctx, &chr, 1, mp_usr, mp_usr_offset);
       }
     }
   }
+
+  return 0;
 }
 
-u64 mp_get_sum (u32 css_cnt, cs_t *css)
+static cs_t *mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u32 *css_cnt)
 {
-  u64 sum = 1;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
-  for (u32 css_pos = 0; css_pos < css_cnt; css_pos++)
-  {
-    sum *= css[css_pos].cs_len;
-  }
-
-  return (sum);
-}
-
-cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u32 *css_cnt, const hashconfig_t *hashconfig, const user_options_t *user_options)
-{
   cs_t *css = (cs_t *) mycalloc (256, sizeof (cs_t));
 
   u32 mask_pos;
@@ -314,34 +312,34 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
 
       switch (p1)
       {
-        case 'l': mp_add_cs_buf (mp_sys[0].cs_buf, mp_sys[0].cs_len, css, css_pos, hashconfig);
+        case 'l': mp_add_cs_buf (hashcat_ctx, mp_sys[0].cs_buf, mp_sys[0].cs_len, css, css_pos);
                   break;
-        case 'u': mp_add_cs_buf (mp_sys[1].cs_buf, mp_sys[1].cs_len, css, css_pos, hashconfig);
+        case 'u': mp_add_cs_buf (hashcat_ctx, mp_sys[1].cs_buf, mp_sys[1].cs_len, css, css_pos);
                   break;
-        case 'd': mp_add_cs_buf (mp_sys[2].cs_buf, mp_sys[2].cs_len, css, css_pos, hashconfig);
+        case 'd': mp_add_cs_buf (hashcat_ctx, mp_sys[2].cs_buf, mp_sys[2].cs_len, css, css_pos);
                   break;
-        case 's': mp_add_cs_buf (mp_sys[3].cs_buf, mp_sys[3].cs_len, css, css_pos, hashconfig);
+        case 's': mp_add_cs_buf (hashcat_ctx, mp_sys[3].cs_buf, mp_sys[3].cs_len, css, css_pos);
                   break;
-        case 'a': mp_add_cs_buf (mp_sys[4].cs_buf, mp_sys[4].cs_len, css, css_pos, hashconfig);
+        case 'a': mp_add_cs_buf (hashcat_ctx, mp_sys[4].cs_buf, mp_sys[4].cs_len, css, css_pos);
                   break;
-        case 'b': mp_add_cs_buf (mp_sys[5].cs_buf, mp_sys[5].cs_len, css, css_pos, hashconfig);
+        case 'b': mp_add_cs_buf (hashcat_ctx, mp_sys[5].cs_buf, mp_sys[5].cs_len, css, css_pos);
                   break;
-        case '1': if (mp_usr[0].cs_len == 0) { log_error ("ERROR: Custom-charset 1 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[0].cs_buf, mp_usr[0].cs_len, css, css_pos, hashconfig);
+        case '1': if (mp_usr[0].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 1 is undefined\n"); return NULL; }
+                  mp_add_cs_buf (hashcat_ctx, mp_usr[0].cs_buf, mp_usr[0].cs_len, css, css_pos);
                   break;
-        case '2': if (mp_usr[1].cs_len == 0) { log_error ("ERROR: Custom-charset 2 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[1].cs_buf, mp_usr[1].cs_len, css, css_pos, hashconfig);
+        case '2': if (mp_usr[1].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 2 is undefined\n"); return NULL; }
+                  mp_add_cs_buf (hashcat_ctx, mp_usr[1].cs_buf, mp_usr[1].cs_len, css, css_pos);
                   break;
-        case '3': if (mp_usr[2].cs_len == 0) { log_error ("ERROR: Custom-charset 3 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[2].cs_buf, mp_usr[2].cs_len, css, css_pos, hashconfig);
+        case '3': if (mp_usr[2].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 3 is undefined\n"); return NULL; }
+                  mp_add_cs_buf (hashcat_ctx, mp_usr[2].cs_buf, mp_usr[2].cs_len, css, css_pos);
                   break;
-        case '4': if (mp_usr[3].cs_len == 0) { log_error ("ERROR: Custom-charset 4 is undefined\n"); exit (-1); }
-                  mp_add_cs_buf (mp_usr[3].cs_buf, mp_usr[3].cs_len, css, css_pos, hashconfig);
+        case '4': if (mp_usr[3].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 4 is undefined\n"); return NULL; }
+                  mp_add_cs_buf (hashcat_ctx, mp_usr[3].cs_buf, mp_usr[3].cs_len, css, css_pos);
                   break;
-        case '?': mp_add_cs_buf (&chr, 1, css, css_pos, hashconfig);
+        case '?': mp_add_cs_buf (hashcat_ctx, &chr, 1, css, css_pos);
                   break;
-        default:  log_error ("ERROR: Syntax error: %s", mask_buf);
-                  exit (-1);
+        default:  event_log_error (hashcat_ctx, "ERROR: Syntax error: %s", mask_buf);
+                  return NULL;
       }
     }
     else
@@ -354,9 +352,9 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
 
         if (mask_pos == mask_len)
         {
-          log_error ("ERROR: The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", mask_buf);
+          event_log_error (hashcat_ctx, "ERROR: The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", mask_buf);
 
-          exit (-1);
+          return NULL;
         }
 
         char p1 = mask_buf[mask_pos];
@@ -365,9 +363,9 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
 
         if ((is_valid_hex_char ((u8) p0) == false) || (is_valid_hex_char ((u8) p1) == false))
         {
-          log_error ("ERROR: Invalid hex character detected in mask %s", mask_buf);
+          event_log_error (hashcat_ctx, "ERROR: Invalid hex character detected in mask %s", mask_buf);
 
-          exit (-1);
+          return NULL;
         }
 
         u32 chr = 0;
@@ -375,27 +373,101 @@ cs_t *mp_gen_css (char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, u
         chr |= (u32) hex_convert ((u8) p1) << 0;
         chr |= (u32) hex_convert ((u8) p0) << 4;
 
-        mp_add_cs_buf (&chr, 1, css, css_pos, hashconfig);
+        mp_add_cs_buf (hashcat_ctx, &chr, 1, css, css_pos);
       }
       else
       {
         u32 chr = (u32) p0;
 
-        mp_add_cs_buf (&chr, 1, css, css_pos, hashconfig);
+        mp_add_cs_buf (hashcat_ctx, &chr, 1, css, css_pos);
       }
     }
   }
 
   if (css_pos == 0)
   {
-    log_error ("ERROR: Invalid mask length (0)");
+    event_log_error (hashcat_ctx, "ERROR: Invalid mask length (0)");
 
-    exit (-1);
+    return NULL;
   }
 
   *css_cnt = css_pos;
 
   return (css);
+}
+
+static char *mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, const size_t mask_len, const u32 len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  char *new_mask_buf = (char *) mymalloc (256);
+
+  u32 mask_pos;
+
+  u32 css_pos;
+
+  for (mask_pos = 0, css_pos = 0; mask_pos < mask_len; mask_pos++, css_pos++)
+  {
+    if (css_pos == len) break;
+
+    char p0 = mask_buf[mask_pos];
+
+    new_mask_buf[mask_pos] = p0;
+
+    if (p0 == '?')
+    {
+      mask_pos++;
+
+      if (mask_pos == mask_len) break;
+
+      new_mask_buf[mask_pos] = mask_buf[mask_pos];
+    }
+    else
+    {
+      if (user_options->hex_charset == true)
+      {
+        mask_pos++;
+
+        if (mask_pos == mask_len)
+        {
+          event_log_error (hashcat_ctx, "ERROR: The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", mask_buf);
+
+          return NULL;
+        }
+
+        char p1 = mask_buf[mask_pos];
+
+        // if they are not valid hex character, show an error:
+
+        if ((is_valid_hex_char ((u8) p0) == false) || (is_valid_hex_char ((u8) p1) == false))
+        {
+          event_log_error (hashcat_ctx, "ERROR: Invalid hex character detected in mask: %s", mask_buf);
+
+          return NULL;
+        }
+
+        new_mask_buf[mask_pos] = p1;
+      }
+    }
+  }
+
+  if (css_pos == len) return (new_mask_buf);
+
+  myfree (new_mask_buf);
+
+  return (NULL);
+}
+
+u64 mp_get_sum (u32 css_cnt, cs_t *css)
+{
+  u64 sum = 1;
+
+  for (u32 css_pos = 0; css_pos < css_cnt; css_pos++)
+  {
+    sum *= css[css_pos].cs_len;
+  }
+
+  return (sum);
 }
 
 void mp_exec (u64 val, char *buf, cs_t *css, int css_cnt)
@@ -469,13 +541,15 @@ void mp_setup_sys (cs_t *mp_sys)
                                                   mp_sys[5].cs_len = pos; }
 }
 
-void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, u32 index, const hashconfig_t *hashconfig, const user_options_t *user_options)
+int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, char *buf, u32 index)
 {
   FILE *fp = fopen (buf, "rb");
 
   if (fp == NULL || feof (fp)) // feof() in case if file is empty
   {
-    mp_expand (buf, strlen (buf), mp_sys, mp_usr, index, 1, hashconfig, user_options);
+    const int rc = mp_expand (hashcat_ctx, buf, strlen (buf), mp_sys, mp_usr, index, 1);
+
+    if (rc == -1) return -1;
   }
   else
   {
@@ -489,15 +563,21 @@ void mp_setup_usr (cs_t *mp_sys, cs_t *mp_usr, char *buf, u32 index, const hashc
 
     if (len == 0)
     {
-      log_info ("WARNING: Charset file corrupted");
+      event_log_warning (hashcat_ctx, "Charset file corrupted");
 
-      mp_expand (buf, strlen (buf), mp_sys, mp_usr, index, 1, hashconfig, user_options);
+      const int rc = mp_expand (hashcat_ctx, buf, strlen (buf), mp_sys, mp_usr, index, 1);
+
+      if (rc == -1) return -1;
     }
     else
     {
-      mp_expand (mp_file, (size_t) len, mp_sys, mp_usr, index, 0, hashconfig, user_options);
+      const int rc = mp_expand (hashcat_ctx, mp_file, (size_t) len, mp_sys, mp_usr, index, 0);
+
+      if (rc == -1) return -1;
     }
   }
+
+  return 0;
 }
 
 void mp_reset_usr (cs_t *mp_usr, u32 index)
@@ -507,113 +587,21 @@ void mp_reset_usr (cs_t *mp_usr, u32 index)
   memset (mp_usr[index].cs_buf, 0, sizeof (mp_usr[index].cs_buf));
 }
 
-static char *mp_get_truncated_mask (const char *mask_buf, const size_t mask_len, const u32 len, const user_options_t *user_options)
+static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 {
-  char *new_mask_buf = (char *) mymalloc (256);
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  mask_ctx_t      *mask_ctx      = hashcat_ctx->mask_ctx;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
 
-  u32 mask_pos;
+  char *shared_dir = folder_config->shared_dir;
 
-  u32 css_pos;
+  char *hcstat     = user_options->markov_hcstat;
+  u32 disable      = user_options->markov_disable;
+  u32 classic      = user_options->markov_classic;
 
-  for (mask_pos = 0, css_pos = 0; mask_pos < mask_len; mask_pos++, css_pos++)
-  {
-    if (css_pos == len) break;
+  hcstat_table_t *root_table_buf   = mask_ctx->root_table_buf;
+  hcstat_table_t *markov_table_buf = mask_ctx->markov_table_buf;
 
-    char p0 = mask_buf[mask_pos];
-
-    new_mask_buf[mask_pos] = p0;
-
-    if (p0 == '?')
-    {
-      mask_pos++;
-
-      if (mask_pos == mask_len) break;
-
-      new_mask_buf[mask_pos] = mask_buf[mask_pos];
-    }
-    else
-    {
-      if (user_options->hex_charset == true)
-      {
-        mask_pos++;
-
-        if (mask_pos == mask_len)
-        {
-          log_error ("ERROR: The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", mask_buf);
-
-          exit (-1);
-        }
-
-        char p1 = mask_buf[mask_pos];
-
-        // if they are not valid hex character, show an error:
-
-        if ((is_valid_hex_char ((u8) p0) == false) || (is_valid_hex_char ((u8) p1) == false))
-        {
-          log_error ("ERROR: Invalid hex character detected in mask: %s", mask_buf);
-
-          exit (-1);
-        }
-
-        new_mask_buf[mask_pos] = p1;
-      }
-    }
-  }
-
-  if (css_pos == len) return (new_mask_buf);
-
-  myfree (new_mask_buf);
-
-  return (NULL);
-}
-
-u64 sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf)
-{
-  u64 sum = 1;
-
-  u32 i;
-
-  for (i = start; i < stop; i++)
-  {
-    sum *= root_css_buf[i].cs_len;
-  }
-
-  return (sum);
-}
-
-void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop)
-{
-  u64 v = ctx;
-
-  cs_t *cs = &root_css_buf[start];
-
-  u32 i;
-
-  for (i = start; i < stop; i++)
-  {
-    const u64 m = v % cs->cs_len;
-    const u64 d = v / cs->cs_len;
-
-    v = d;
-
-    const u32 k = cs->cs_buf[m];
-
-    pw_buf[i - start] = (char) k;
-
-    cs = &markov_css_buf[(i * CHARSIZ) + k];
-  }
-}
-
-int sp_comp_val (const void *p1, const void *p2)
-{
-  hcstat_table_t *b1 = (hcstat_table_t *) p1;
-  hcstat_table_t *b2 = (hcstat_table_t *) p2;
-
-  return b2->val - b1->val;
-}
-
-void sp_setup_tbl (const char *shared_dir, char *hcstat, u32 disable, u32 classic, hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf)
-{
   u32 i;
   u32 j;
   u32 k;
@@ -668,27 +656,27 @@ void sp_setup_tbl (const char *shared_dir, char *hcstat, u32 disable, u32 classi
 
   if (fd == NULL)
   {
-    log_error ("%s: %s", hcstat, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", hcstat, strerror (errno));
 
-    exit (-1);
+    return -1;
   }
 
   if (fread (root_stats_buf, sizeof (u64), SP_ROOT_CNT, fd) != SP_ROOT_CNT)
   {
-    log_error ("%s: Could not load data", hcstat);
+    event_log_error (hashcat_ctx, "%s: Could not load data", hcstat);
 
     fclose (fd);
 
-    exit (-1);
+    return -1;
   }
 
   if (fread (markov_stats_buf, sizeof (u64), SP_MARKOV_CNT, fd) != SP_MARKOV_CNT)
   {
-    log_error ("%s: Could not load data", hcstat);
+    event_log_error (hashcat_ctx, "%s: Could not load data", hcstat);
 
     fclose (fd);
 
-    exit (-1);
+    return -1;
   }
 
   fclose (fd);
@@ -813,6 +801,53 @@ void sp_setup_tbl (const char *shared_dir, char *hcstat, u32 disable, u32 classi
       qsort (markov_table_buf_by_key[i][j], CHARSIZ, sizeof (hcstat_table_t), sp_comp_val);
     }
   }
+
+  return 0;
+}
+
+u64 sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf)
+{
+  u64 sum = 1;
+
+  u32 i;
+
+  for (i = start; i < stop; i++)
+  {
+    sum *= root_css_buf[i].cs_len;
+  }
+
+  return (sum);
+}
+
+void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop)
+{
+  u64 v = ctx;
+
+  cs_t *cs = &root_css_buf[start];
+
+  u32 i;
+
+  for (i = start; i < stop; i++)
+  {
+    const u64 m = v % cs->cs_len;
+    const u64 d = v / cs->cs_len;
+
+    v = d;
+
+    const u32 k = cs->cs_buf[m];
+
+    pw_buf[i - start] = (char) k;
+
+    cs = &markov_css_buf[(i * CHARSIZ) + k];
+  }
+}
+
+int sp_comp_val (const void *p1, const void *p2)
+{
+  hcstat_table_t *b1 = (hcstat_table_t *) p1;
+  hcstat_table_t *b2 = (hcstat_table_t *) p2;
+
+  return b2->val - b1->val;
 }
 
 void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
@@ -947,13 +982,16 @@ static void mask_append_final (mask_ctx_t *mask_ctx, const char *mask)
   mask_ctx->masks_cnt++;
 }
 
-static void mask_append (mask_ctx_t *mask_ctx, const user_options_t *user_options, const char *mask)
+static void mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask)
 {
+  mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
   if (user_options->increment == true)
   {
-    for (u32 mask_len = user_options->increment_min; mask_len <= user_options->increment_max; mask_len++)
+    for (u32 increment_len = user_options->increment_min; increment_len <= user_options->increment_max; increment_len++)
     {
-      char *mask_truncated = mp_get_truncated_mask (mask, strlen (mask), mask_len, user_options);
+      char *mask_truncated = mp_get_truncated_mask (hashcat_ctx, mask, strlen (mask), increment_len);
 
       if (mask_truncated == NULL) break;
 
@@ -991,11 +1029,13 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (rc_mask_file == -1) return -1;
 
-      mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
+      mask_ctx->css_buf = mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt);
+
+      if (mask_ctx->css_buf == NULL) return -1;
 
       u32 uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
 
-      mp_css_to_uniq_tbl (mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
+      mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
       sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
 
@@ -1020,7 +1060,9 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->attack_mode == ATTACK_MODE_BF) // always true
     {
-      mask_ctx->css_buf = mp_gen_css (mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt, hashconfig, user_options);
+      mask_ctx->css_buf = mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, &mask_ctx->css_cnt);
+
+      if (mask_ctx->css_buf == NULL) return -1;
 
       // special case for benchmark
 
@@ -1045,12 +1087,12 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       {
         if (mask_ctx->css_cnt < mask_min)
         {
-          log_info ("WARNING: Skipping mask '%s' because it is smaller than the minimum password length", mask_ctx->mask);
+          event_log_warning (hashcat_ctx, "Skipping mask '%s' because it is smaller than the minimum password length", mask_ctx->mask);
         }
 
         if (mask_ctx->css_cnt > mask_max)
         {
-          log_info ("WARNING: Skipping mask '%s' because it is larger than the maximum password length", mask_ctx->mask);
+          event_log_warning (hashcat_ctx, "Skipping mask '%s' because it is larger than the maximum password length", mask_ctx->mask);
         }
 
         // skip to next mask
@@ -1083,7 +1125,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       u32 uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
 
-      mp_css_to_uniq_tbl (mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
+      mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
       sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
 
@@ -1108,8 +1150,6 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
 int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
-  folder_config_t      *folder_config       = hashcat_ctx->folder_config;
-  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
@@ -1130,7 +1170,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   mask_ctx->root_table_buf   = (hcstat_table_t *) mycalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
   mask_ctx->markov_table_buf = (hcstat_table_t *) mycalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
 
-  sp_setup_tbl (folder_config->shared_dir, user_options->markov_hcstat, user_options->markov_disable, user_options->markov_classic, mask_ctx->root_table_buf, mask_ctx->markov_table_buf);
+  sp_setup_tbl (hashcat_ctx);
 
   mask_ctx->root_css_buf   = (cs_t *) mycalloc (SP_PW_MAX,           sizeof (cs_t));
   mask_ctx->markov_css_buf = (cs_t *) mycalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
@@ -1148,10 +1188,10 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   mp_setup_sys (mask_ctx->mp_sys);
 
-  if (user_options->custom_charset_1) mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
-  if (user_options->custom_charset_2) mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
-  if (user_options->custom_charset_3) mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
-  if (user_options->custom_charset_4) mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
+  if (user_options->custom_charset_1) mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0);
+  if (user_options->custom_charset_2) mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1);
+  if (user_options->custom_charset_3) mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2);
+  if (user_options->custom_charset_4) mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3);
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {
@@ -1165,7 +1205,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (stat (arg, &file_stat) == -1)
         {
-          mask_append (mask_ctx, user_options, arg);
+          mask_append (hashcat_ctx, arg);
         }
         else
         {
@@ -1177,7 +1217,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (stat (arg, &file_stat) == -1)
             {
-              log_error ("ERROR: %s: %s", arg, strerror (errno));
+              event_log_error (hashcat_ctx, "ERROR: %s: %s", arg, strerror (errno));
 
               return -1;
             }
@@ -1188,7 +1228,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (mask_fp == NULL)
               {
-                log_error ("ERROR: %s: %s", arg, strerror (errno));
+                event_log_error (hashcat_ctx, "ERROR: %s: %s", arg, strerror (errno));
 
                 return -1;
               }
@@ -1203,7 +1243,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
                 if (line_buf[0] == '#') continue;
 
-                mask_append (mask_ctx, user_options, line_buf);
+                mask_append (hashcat_ctx, line_buf);
               }
 
               myfree (line_buf);
@@ -1212,7 +1252,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              log_error ("ERROR: %s: unsupported file-type", arg);
+              event_log_error (hashcat_ctx, "ERROR: %s: unsupported file-type", arg);
 
               return -1;
             }
@@ -1223,14 +1263,14 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         const char *mask = DEF_MASK;
 
-        mask_append (mask_ctx, user_options, mask);
+        mask_append (hashcat_ctx, mask);
       }
     }
     else
     {
       const char *mask = hashconfig_benchmark_mask (hashcat_ctx);
 
-      mask_append (mask_ctx, user_options, mask);
+      mask_append (hashcat_ctx, mask);
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
@@ -1245,7 +1285,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (stat (arg, &file_stat) == -1)
     {
-      mask_append (mask_ctx, user_options, arg);
+      mask_append (hashcat_ctx, arg);
     }
     else
     {
@@ -1257,7 +1297,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (mask_fp == NULL)
         {
-          log_error ("ERROR: %s: %s", arg, strerror (errno));
+          event_log_error (hashcat_ctx, "ERROR: %s: %s", arg, strerror (errno));
 
           return -1;
         }
@@ -1272,7 +1312,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           if (line_buf[0] == '#') continue;
 
-          mask_append (mask_ctx, user_options, line_buf);
+          mask_append (hashcat_ctx, line_buf);
         }
 
         myfree (line_buf);
@@ -1281,7 +1321,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        log_error ("ERROR: %s: unsupported file-type", arg);
+        event_log_error (hashcat_ctx, "ERROR: %s: unsupported file-type", arg);
 
         return -1;
       }
@@ -1299,7 +1339,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (stat (arg, &file_stat) == -1)
     {
-      mask_append (mask_ctx, user_options, arg);
+      mask_append (hashcat_ctx, arg);
     }
     else
     {
@@ -1311,7 +1351,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (mask_fp == NULL)
         {
-          log_error ("ERROR: %s: %s", arg, strerror (errno));
+          event_log_error (hashcat_ctx, "ERROR: %s: %s", arg, strerror (errno));
 
           return -1;
         }
@@ -1326,7 +1366,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           if (line_buf[0] == '#') continue;
 
-          mask_append (mask_ctx, user_options, line_buf);
+          mask_append (hashcat_ctx, line_buf);
         }
 
         myfree (line_buf);
@@ -1335,7 +1375,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        log_error ("ERROR: %s: unsupported file-type", arg);
+        event_log_error (hashcat_ctx, "ERROR: %s: unsupported file-type", arg);
 
         return -1;
       }
@@ -1344,7 +1384,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (mask_ctx->masks_cnt == 0)
   {
-    log_error ("ERROR: Invalid mask");
+    event_log_error (hashcat_ctx, "ERROR: Invalid mask");
 
     return -1;
   }
@@ -1382,7 +1422,6 @@ void mask_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
 int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -1432,7 +1471,7 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
 
         if (mf_cnt >= MAX_MFS)
         {
-          log_error ("ERROR: Invalid line '%s' in maskfile", mask_buf);
+          event_log_error (hashcat_ctx, "ERROR: Invalid line '%s' in maskfile", mask_buf);
 
           return -1;
         }
@@ -1457,25 +1496,25 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
       case 0:
         user_options->custom_charset_1 = mfs[0].mf_buf;
         mp_reset_usr (mask_ctx->mp_usr, 0);
-        mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0, hashconfig, user_options);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0);
         break;
 
       case 1:
         user_options->custom_charset_2 = mfs[1].mf_buf;
         mp_reset_usr (mask_ctx->mp_usr, 1);
-        mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1, hashconfig, user_options);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1);
         break;
 
       case 2:
         user_options->custom_charset_3 = mfs[2].mf_buf;
         mp_reset_usr (mask_ctx->mp_usr, 2);
-        mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2, hashconfig, user_options);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2);
         break;
 
       case 3:
         user_options->custom_charset_4 = mfs[3].mf_buf;
         mp_reset_usr (mask_ctx->mp_usr, 3);
-        mp_setup_usr (mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3, hashconfig, user_options);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3);
         break;
     }
   }

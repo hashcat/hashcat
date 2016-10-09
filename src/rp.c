@@ -10,7 +10,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "shared.h"
 #include "filehandling.h"
 #include "rp.h"
@@ -756,7 +756,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
     if ((fp = fopen (rp_file, "rb")) == NULL)
     {
-      log_error ("ERROR: %s: %s", rp_file, strerror (errno));
+      event_log_error (hashcat_ctx, "ERROR: %s: %s", rp_file, strerror (errno));
 
       return -1;
     }
@@ -785,14 +785,14 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
       if (result == -1)
       {
-        log_info ("WARNING: Skipping invalid or unsupported rule in file %s on line %u: %s", rp_file, rule_line, rule_buf);
+        event_log_warning (hashcat_ctx, "Skipping invalid or unsupported rule in file %s on line %u: %s", rp_file, rule_line, rule_buf);
 
         continue;
       }
 
       if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1)
       {
-        log_info ("WARNING: Cannot convert rule for use on OpenCL device in file %s on line %u: %s", rp_file, rule_line, rule_buf);
+        event_log_warning (hashcat_ctx, "Cannot convert rule for use on OpenCL device in file %s on line %u: %s", rp_file, rule_line, rule_buf);
 
         memset (&kernel_rules_buf[kernel_rules_cnt], 0, sizeof (kernel_rule_t)); // needs to be cleared otherwise we could have some remaining data
 
@@ -846,7 +846,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       {
         if (out_pos == RULES_MAX - 1)
         {
-          // log_info ("WARNING: Truncating chaining of rule %d and rule %d as maximum number of function calls per rule exceeded", i, in_off);
+          // event_log_warning (hashcat_ctx, "Truncating chaining of rule %d and rule %d as maximum number of function calls per rule exceeded", i, in_off);
 
           break;
         }
@@ -860,7 +860,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
   if (kernel_rules_cnt == 0)
   {
-    log_error ("ERROR: No valid rules left");
+    event_log_error (hashcat_ctx, "ERROR: No valid rules left");
 
     return -1;
   }

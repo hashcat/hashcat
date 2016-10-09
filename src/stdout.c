@@ -5,7 +5,7 @@
 
 #include "common.h"
 #include "types.h"
-#include "logging.h"
+#include "event.h"
 #include "locking.h"
 #include "rp_kernel_on_cpu.h"
 #include "mpsp.h"
@@ -35,7 +35,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
   }
 }
 
-void process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 pws_cnt)
+int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 pws_cnt)
 {
   combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
   hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
@@ -56,11 +56,13 @@ void process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   {
     if ((out.fp = fopen (filename, "ab")) != NULL)
     {
-      lock_file (out.fp);
+      const int rc = lock_file (out.fp);
+
+      if (rc == -1) return -1;
     }
     else
     {
-      log_error ("ERROR: %s: %s", filename, strerror (errno));
+      event_log_error (hashcat_ctx, "ERROR: %s: %s", filename, strerror (errno));
 
       out.fp = stdout;
     }
@@ -240,4 +242,6 @@ void process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     fclose (out.fp);
   }
+
+  return 0;
 }

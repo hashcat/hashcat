@@ -89,7 +89,7 @@ static int main_welcome_screen (hashcat_ctx_t *hashcat_ctx, const void *buf, con
 {
   // sets dos window size (windows only)
 
-  setup_console ();
+  setup_console (hashcat_ctx);
 
   // Inform user things getting started
 
@@ -324,7 +324,7 @@ static int main_potfile_remove_parse (hashcat_ctx_t *hashcat_ctx, const void *bu
 
   if (user_options->quiet == true) return 0;
 
-  event_log_info (hashcat_ctx, "Comparing hashes with potfile entries...");
+  event_log_info_nn (hashcat_ctx, "Comparing hashes with potfile entries...");
 
   return 0;
 }

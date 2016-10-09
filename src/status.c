@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "convert.h"
 #include "restore.h"
 #include "thread.h"
@@ -159,14 +159,14 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
-    log_error ("ERROR: status view is not available during initialization phase");
+    event_log_error (hashcat_ctx, "ERROR: status view is not available during initialization phase");
 
     return;
   }
 
   if (status_ctx->devices_status == STATUS_AUTOTUNE)
   {
-    log_error ("ERROR: status view is not available during autotune phase");
+    event_log_error (hashcat_ctx, "ERROR: status view is not available during autotune phase");
 
     return;
   }
@@ -326,14 +326,14 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
-    log_error ("ERROR: status view is not available during initialization phase");
+    event_log_error (hashcat_ctx, "ERROR: status view is not available during initialization phase");
 
     return;
   }
 
   if (status_ctx->devices_status == STATUS_AUTOTUNE)
   {
-    log_error ("ERROR: status view is not available during autotune phase");
+    event_log_error (hashcat_ctx, "ERROR: status view is not available during autotune phase");
 
     return;
   }
@@ -352,7 +352,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   u32 tmp_len = 0;
 
-  log_info ("Session.Name...: %s", user_options->session);
+  event_log_info (hashcat_ctx, "Session.Name...: %s", user_options->session);
 
   char *status_type = strstatus (status_ctx->devices_status);
 
@@ -360,7 +360,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   char *hash_type = strhashtype (hash_mode); // not a bug
 
-  log_info ("Status.........: %s", status_type);
+  event_log_info (hashcat_ctx, "Status.........: %s", status_type);
 
   /**
    * show rules
@@ -377,18 +377,18 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s)", user_options->rp_files[i]);
 
-    log_info ("Rules.Type.....: %s", tmp_buf);
+    event_log_info (hashcat_ctx, "Rules.Type.....: %s", tmp_buf);
 
     tmp_len = 0;
   }
 
   if (user_options->rp_gen)
   {
-    log_info ("Rules.Type.....: Generated (%u)", user_options->rp_gen);
+    event_log_info (hashcat_ctx, "Rules.Type.....: Generated (%u)", user_options->rp_gen);
 
     if (user_options->rp_gen_seed)
     {
-      log_info ("Rules.Seed.....: %u", user_options->rp_gen_seed);
+      event_log_info (hashcat_ctx, "Rules.Seed.....: %u", user_options->rp_gen_seed);
     }
   }
 
@@ -405,17 +405,17 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options_extra->wordlist_mode == WL_MODE_FILE)
     {
-      log_info ("Input.Mode.....: File (%s)", straight_ctx->dict);
+      event_log_info (hashcat_ctx, "Input.Mode.....: File (%s)", straight_ctx->dict);
     }
     else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
     {
-      log_info ("Input.Mode.....: Pipe");
+      event_log_info (hashcat_ctx, "Input.Mode.....: Pipe");
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
-    log_info ("Input.Left.....: File (%s)", combinator_ctx->dict1);
-    log_info ("Input.Right....: File (%s)", combinator_ctx->dict2);
+    event_log_info (hashcat_ctx, "Input.Left.....: File (%s)", combinator_ctx->dict1);
+    event_log_info (hashcat_ctx, "Input.Right....: File (%s)", combinator_ctx->dict2);
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
@@ -451,7 +451,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " (%.02f%%)", mask_percentage * 100);
       }
 
-      log_info ("Input.Mode.....: %s", tmp_buf);
+      event_log_info (hashcat_ctx, "Input.Mode.....: %s", tmp_buf);
 
       if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
       {
@@ -460,7 +460,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
         if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-        log_info ("Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+        event_log_info (hashcat_ctx, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
       }
     }
 
@@ -468,8 +468,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
-    log_info ("Input.Left.....: File (%s)", straight_ctx->dict);
-    log_info ("Input.Right....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
+    event_log_info (hashcat_ctx, "Input.Left.....: File (%s)", straight_ctx->dict);
+    event_log_info (hashcat_ctx, "Input.Right....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
 
     if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
     {
@@ -478,13 +478,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
       if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-      log_info ("Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+      event_log_info (hashcat_ctx, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    log_info ("Input.Left.....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
-    log_info ("Input.Right....: File (%s)", straight_ctx->dict);
+    event_log_info (hashcat_ctx, "Input.Left.....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
+    event_log_info (hashcat_ctx, "Input.Right....: File (%s)", straight_ctx->dict);
 
     if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
     {
@@ -493,7 +493,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
       if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-      log_info ("Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+      event_log_info (hashcat_ctx, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
     }
   }
 
@@ -503,7 +503,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     {
       wpa_t *wpa = (wpa_t *) hashes->esalts_buf;
 
-      log_info ("Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
+      event_log_info (hashcat_ctx, "Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
                 (char *) hashes->salts_buf[0].salt_buf,
                 wpa->orig_mac1[0],
                 wpa->orig_mac1[1],
@@ -520,19 +520,19 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else if (hashconfig->hash_mode == 5200)
     {
-      log_info ("Hash.Target....: File (%s)", hashes->hashfile);
+      event_log_info (hashcat_ctx, "Hash.Target....: File (%s)", hashes->hashfile);
     }
     else if (hashconfig->hash_mode == 9000)
     {
-      log_info ("Hash.Target....: File (%s)", hashes->hashfile);
+      event_log_info (hashcat_ctx, "Hash.Target....: File (%s)", hashes->hashfile);
     }
     else if ((hashconfig->hash_mode >= 6200) && (hashconfig->hash_mode <= 6299))
     {
-      log_info ("Hash.Target....: File (%s)", hashes->hashfile);
+      event_log_info (hashcat_ctx, "Hash.Target....: File (%s)", hashes->hashfile);
     }
     else if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799))
     {
-      log_info ("Hash.Target....: File (%s)", hashes->hashfile);
+      event_log_info (hashcat_ctx, "Hash.Target....: File (%s)", hashes->hashfile);
     }
     else
     {
@@ -549,7 +549,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         out_buf[44] = 0;
       }
 
-      log_info ("Hash.Target....: %s", out_buf);
+      event_log_info (hashcat_ctx, "Hash.Target....: %s", out_buf);
     }
   }
   else
@@ -562,15 +562,15 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       ascii_digest (out_buf1, 0, 0, hashconfig, hashes);
       ascii_digest (out_buf2, 0, 1, hashconfig, hashes);
 
-      log_info ("Hash.Target....: %s, %s", out_buf1, out_buf2);
+      event_log_info (hashcat_ctx, "Hash.Target....: %s, %s", out_buf1, out_buf2);
     }
     else
     {
-      log_info ("Hash.Target....: File (%s)", hashes->hashfile);
+      event_log_info (hashcat_ctx, "Hash.Target....: File (%s)", hashes->hashfile);
     }
   }
 
-  log_info ("Hash.Type......: %s", hash_type);
+  event_log_info (hashcat_ctx, "Hash.Type......: %s", hash_type);
 
   /**
    * speed new
@@ -693,12 +693,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (start[start_len - 1] == '\n') start[start_len - 1] = 0;
       if (start[start_len - 2] == '\r') start[start_len - 2] = 0;
 
-      log_info ("Time.Started...: %s (%s)", start, display_run);
+      event_log_info (hashcat_ctx, "Time.Started...: %s (%s)", start, display_run);
     }
   }
   else
   {
-    log_info ("Time.Started...: 0 secs");
+    event_log_info (hashcat_ctx, "Time.Started...: 0 secs");
   }
 
   /**
@@ -786,7 +786,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       }
       else if ((u64) sec_etc > SEC10YEARS)
       {
-        log_info ("Time.Estimated.: > 10 Years");
+        event_log_info (hashcat_ctx, "Time.Estimated.: > 10 Years");
       }
       else
       {
@@ -849,16 +849,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
               format_timer_display (&tm_runtime, display_runtime, sizeof (display_runtime));
 
-              log_info ("Time.Estimated.: %s (%s), but limited (%s)", etc, display_etc, display_runtime);
+              event_log_info (hashcat_ctx, "Time.Estimated.: %s (%s), but limited (%s)", etc, display_etc, display_runtime);
             }
             else
             {
-              log_info ("Time.Estimated.: %s (%s), but limit exceeded", etc, display_etc);
+              event_log_info (hashcat_ctx, "Time.Estimated.: %s (%s), but limit exceeded", etc, display_etc);
             }
           }
           else
           {
-            log_info ("Time.Estimated.: %s (%s)", etc, display_etc);
+            event_log_info (hashcat_ctx, "Time.Estimated.: %s (%s)", etc, display_etc);
           }
         }
       }
@@ -877,11 +877,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       {
         if (user_options_extra->attack_kern == ATTACK_KERN_BF)
         {
-          log_info ("Candidates.#%d..: [Generating]", device_id + 1);
+          event_log_info (hashcat_ctx, "Candidates.#%d..: [Generating]", device_id + 1);
         }
         else
         {
-          log_info ("Candidates.#%d..: [Copying]", device_id + 1);
+          event_log_info (hashcat_ctx, "Candidates.#%d..: [Copying]", device_id + 1);
         }
 
         continue;
@@ -919,11 +919,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         plain_ptr1[plain_len1 * 2] = 0;
         plain_ptr2[plain_len2 * 2] = 0;
 
-        log_info ("Candidates.#%d..: $HEX[%s] -> $HEX[%s]", device_id + 1, plain_ptr1, plain_ptr2);
+        event_log_info (hashcat_ctx, "Candidates.#%d..: $HEX[%s] -> $HEX[%s]", device_id + 1, plain_ptr1, plain_ptr2);
       }
       else
       {
-        log_info ("Candidates.#%d..: %s -> %s", device_id + 1, plain_ptr1, plain_ptr2);
+        event_log_info (hashcat_ctx, "Candidates.#%d..: %s -> %s", device_id + 1, plain_ptr1, plain_ptr2);
       }
     }
   }
@@ -940,7 +940,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     format_speed_display ((double) hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
-    log_info ("Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+    event_log_info (hashcat_ctx, "Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
   }
 
   char display_all_cur[16] = { 0 };
@@ -949,12 +949,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   format_speed_display ((double) hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
-  if (opencl_ctx->devices_active > 1) log_info ("Speed.Dev.#*...: %9sH/s", display_all_cur);
+  if (opencl_ctx->devices_active > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*...: %9sH/s", display_all_cur);
 
   const double digests_percent = (double) hashes->digests_done / hashes->digests_cnt;
   const double salts_percent   = (double) hashes->salts_done   / hashes->salts_cnt;
 
-  log_info ("Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", hashes->digests_done, hashes->digests_cnt, digests_percent * 100, hashes->salts_done, hashes->salts_cnt, salts_percent * 100);
+  event_log_info (hashcat_ctx, "Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", hashes->digests_done, hashes->digests_cnt, digests_percent * 100, hashes->salts_done, hashes->salts_cnt, salts_percent * 100);
 
   // crack-per-time
 
@@ -995,7 +995,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     if ((cpt_ctx->cpt_start + 86400) < now)
     {
-      log_info ("Recovered/Time.: CUR:%" PRIu64 ",%" PRIu64 ",%" PRIu64 " AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%" PRIu64 ",%" PRIu64 ",%" PRIu64 " AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_cur_hour,
         cpt_cur_day,
@@ -1005,7 +1005,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else if ((cpt_ctx->cpt_start + 3600) < now)
     {
-      log_info ("Recovered/Time.: CUR:%" PRIu64 ",%" PRIu64 ",N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%" PRIu64 ",%" PRIu64 ",N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_cur_hour,
         cpt_avg_min,
@@ -1014,7 +1014,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else if ((cpt_ctx->cpt_start + 60) < now)
     {
-      log_info ("Recovered/Time.: CUR:%" PRIu64 ",N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%" PRIu64 ",N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_avg_min,
         cpt_avg_hour,
@@ -1022,7 +1022,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      log_info ("Recovered/Time.: CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_avg_min,
         cpt_avg_hour,
         cpt_avg_day);
@@ -1051,14 +1051,14 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         percent_rejected = (double) (all_rejected) / (double) progress_cur;
       }
 
-      log_info ("Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", progress_cur_relative_skip, progress_end_relative_skip, percent_finished * 100);
-      log_info ("Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", all_rejected,               progress_cur_relative_skip, percent_rejected * 100);
+      event_log_info (hashcat_ctx, "Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", progress_cur_relative_skip, progress_end_relative_skip, percent_finished * 100);
+      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", all_rejected,               progress_cur_relative_skip, percent_rejected * 100);
 
       if (user_options->restore_disable == false)
       {
         if (percent_finished != 1)
         {
-          log_info ("Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", restore_point, restore_total, percent_restore * 100);
+          event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", restore_point, restore_total, percent_restore * 100);
         }
       }
     }
@@ -1067,24 +1067,24 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
-      log_info ("Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
-      log_info ("Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
+      event_log_info (hashcat_ctx, "Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
+      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
 
       if (user_options->restore_disable == false)
       {
-        log_info ("Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
+        event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
       }
     }
     else
     {
-      log_info ("Progress.......: %" PRIu64 "", progress_cur_relative_skip);
-      log_info ("Rejected.......: %" PRIu64 "", all_rejected);
+      event_log_info (hashcat_ctx, "Progress.......: %" PRIu64 "", progress_cur_relative_skip);
+      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "", all_rejected);
 
       // --restore not allowed if stdin is used -- really? why?
 
       //if (user_options->restore_disable == false)
       //{
-      //  log_info ("Restore.Point..: %" PRIu64 "", restore_point);
+      //  event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64 "", restore_point);
       //}
     }
   }
@@ -1169,7 +1169,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         output_len = strlen (output_buf);
       }
 
-      log_info ("HWMon.Dev.#%d...:%s", device_id + 1, output_buf);
+      event_log_info (hashcat_ctx, "HWMon.Dev.#%d...:%s", device_id + 1, output_buf);
     }
 
     hc_thread_mutex_unlock (status_ctx->mux_hwmon);
@@ -1184,14 +1184,14 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
-    log_error ("ERROR: status view is not available during initialization phase");
+    event_log_error (hashcat_ctx, "ERROR: status view is not available during initialization phase");
 
     return;
   }
 
   if (status_ctx->devices_status == STATUS_AUTOTUNE)
   {
-    log_error ("ERROR: status view is not available during autotune phase");
+    event_log_error (hashcat_ctx, "ERROR: status view is not available during autotune phase");
 
     return;
   }
@@ -1231,7 +1231,7 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-    log_info ("%u:%u:%" PRIu64 "", device_id + 1, hashconfig->hash_mode, (hashes_dev_ms[device_id] * 1000));
+    event_log_info (hashcat_ctx, "%u:%u:%" PRIu64 "", device_id + 1, hashconfig->hash_mode, (hashes_dev_ms[device_id] * 1000));
   }
 }
 
@@ -1243,14 +1243,14 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
-    log_error ("ERROR: status view is not available during initialization phase");
+    event_log_error (hashcat_ctx, "ERROR: status view is not available during initialization phase");
 
     return;
   }
 
   if (status_ctx->devices_status == STATUS_AUTOTUNE)
   {
-    log_error ("ERROR: status view is not available during autotune phase");
+    event_log_error (hashcat_ctx, "ERROR: status view is not available during autotune phase");
 
     return;
   }
@@ -1328,11 +1328,11 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
     if (opencl_ctx->devices_active >= 10)
     {
-      log_info ("Speed.Dev.#%d: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+      event_log_info (hashcat_ctx, "Speed.Dev.#%d: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
     }
     else
     {
-      log_info ("Speed.Dev.#%d.: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+      event_log_info (hashcat_ctx, "Speed.Dev.#%d.: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
     }
   }
 
@@ -1342,7 +1342,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   format_speed_display ((double) hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
-  if (opencl_ctx->devices_active > 1) log_info ("Speed.Dev.#*.: %9sH/s", display_all_cur);
+  if (opencl_ctx->devices_active > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*.: %9sH/s", display_all_cur);
 }
 
 int status_progress_init (hashcat_ctx_t *hashcat_ctx)

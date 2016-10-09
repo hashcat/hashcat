@@ -7,7 +7,7 @@
 #include "types.h"
 #include "convert.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "interface.h"
 #include "filehandling.h"
 #include "outfile.h"
@@ -351,7 +351,7 @@ void potfile_read_parse (hashcat_ctx_t *hashcat_ctx)
 
     if (parser_status < PARSER_GLOBAL_ZERO)
     {
-      // log_info ("WARNING: Potfile '%s' in line %u (%s): %s", potfile, line_num, line_buf, strparser (parser_status));
+      // event_log_warning (hashcat_ctx, "Potfile '%s' in line %u (%s): %s", potfile, line_num, line_buf, strparser (parser_status));
 
       continue;
     }
@@ -391,7 +391,7 @@ int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (potfile_ctx->fp == NULL)
   {
-    log_error ("ERROR: %s: %s", potfile_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", potfile_ctx->filename, strerror (errno));
 
     return -1;
   }
@@ -503,7 +503,7 @@ void potfile_show_request (hashcat_ctx_t *hashcat_ctx, char *input_buf, int inpu
 
   if (pot_ptr)
   {
-    log_info_nn ("");
+    event_log_info_nn (hashcat_ctx, "");
 
     input_buf[input_len] = 0;
 
@@ -544,7 +544,7 @@ void potfile_left_request (hashcat_ctx_t *hashcat_ctx, char *input_buf, int inpu
 
   if (pot_ptr == NULL)
   {
-    log_info_nn ("");
+    event_log_info_nn (hashcat_ctx, "");
 
     input_buf[input_len] = 0;
 
@@ -605,7 +605,7 @@ void potfile_show_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
 
   // at least one half was found:
 
-  log_info_nn ("");
+  event_log_info_nn (hashcat_ctx, "");
 
   input_buf[input_len] = 0;
 
@@ -725,7 +725,7 @@ void potfile_left_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
 
   // ... at least one part was not cracked
 
-  log_info_nn ("");
+  event_log_info_nn (hashcat_ctx, "");
 
   input_buf[input_len] = 0;
 

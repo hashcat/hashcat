@@ -12,7 +12,7 @@
 #include "bitops.h"
 #include "memory.h"
 #include "convert.h"
-#include "logging.h"
+#include "event.h"
 #include "inc_hash_constants.h"
 #include "cpu_aes.h"
 #include "cpu_crc32.h"
@@ -59,7 +59,8 @@ static const char PA_013[] = "Invalid psafe2 filesize";
 static const char PA_014[] = "Invalid psafe3 filesize";
 static const char PA_015[] = "Invalid truecrypt filesize";
 static const char PA_016[] = "Invalid veracrypt filesize";
-//static const char PA_017[] = "Invalid SIP directive, only MD5 is supported";
+static const char PA_017[] = "Invalid SIP directive, only MD5 is supported";
+static const char PA_018[] = "Hash-file exception";
 static const char PA_255[] = "Unknown error";
 
 static const char HT_00000[] = "MD5";
@@ -2638,12 +2639,7 @@ int wpa_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hash
 
   u32 salt_len = strlen (in.essid);
 
-  if (salt_len > 36)
-  {
-    log_info ("WARNING: The ESSID length is too long, the hccap file may be invalid or corrupted");
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (salt_len > 36) return (PARSER_SALT_LENGTH);
 
   memcpy (salt->salt_buf, in.essid, salt_len);
 
@@ -2691,11 +2687,12 @@ int wpa_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hash
 
   if (wpa->keyver > 255)
   {
-    log_info ("ATTENTION!");
-    log_info ("  The WPA/WPA2 key version in your .hccap file is invalid!");
-    log_info ("  This could be due to a recent aircrack-ng bug.");
-    log_info ("  The key version was automatically reset to a reasonable value.");
-    log_info ("");
+    // not sure yet how to transport this message
+    //event_log_warning (hashcat_ctx, "ATTENTION!");
+    //event_log_warning (hashcat_ctx, "  The WPA/WPA2 key version in your .hccap file is invalid!");
+    //event_log_warning (hashcat_ctx, "  This could be due to a recent aircrack-ng bug.");
+    //event_log_warning (hashcat_ctx, "  The key version was automatically reset to a reasonable value.");
+    //event_log_warning (hashcat_ctx, "");
 
     wpa->keyver &= 0xff;
   }
@@ -2746,21 +2743,11 @@ int psafe2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
 
   salt_t *salt = hash_buf->salt;
 
-  if (input_len == 0)
-  {
-    log_error ("Password Safe v2 container not specified");
-
-    exit (-1);
-  }
+  if (input_len == 0) return (PARSER_HASH_LENGTH);
 
   FILE *fp = fopen (input_buf, "rb");
 
-  if (fp == NULL)
-  {
-    log_error ("%s: %s", input_buf, strerror (errno));
-
-    exit (-1);
-  }
+  if (fp == NULL) return (PARSER_HASH_FILE);
 
   psafe2_hdr buf;
 
@@ -2793,21 +2780,11 @@ int psafe3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
 
   salt_t *salt = hash_buf->salt;
 
-  if (input_len == 0)
-  {
-    log_error (".psafe3 not specified");
-
-    exit (-1);
-  }
+  if (input_len == 0) return (PARSER_HASH_LENGTH);
 
   FILE *fp = fopen (input_buf, "rb");
 
-  if (fp == NULL)
-  {
-    log_error ("%s: %s", input_buf, strerror (errno));
-
-    exit (-1);
-  }
+  if (fp == NULL) return (PARSER_HASH_FILE);
 
   psafe3_t in;
 
@@ -5122,21 +5099,11 @@ int truecrypt_parse_hash_1k (char *input_buf, u32 input_len, hash_t *hash_buf, c
 
   tc_t *tc = (tc_t *) hash_buf->esalt;
 
-  if (input_len == 0)
-  {
-    log_error ("TrueCrypt container not specified");
-
-    exit (-1);
-  }
+  if (input_len == 0) return (PARSER_HASH_LENGTH);
 
   FILE *fp = fopen (input_buf, "rb");
 
-  if (fp == NULL)
-  {
-    log_error ("%s: %s", input_buf, strerror (errno));
-
-    exit (-1);
-  }
+  if (fp == NULL) return (PARSER_HASH_FILE);
 
   char buf[512] = { 0 };
 
@@ -5171,21 +5138,11 @@ int truecrypt_parse_hash_2k (char *input_buf, u32 input_len, hash_t *hash_buf, c
 
   tc_t *tc = (tc_t *) hash_buf->esalt;
 
-  if (input_len == 0)
-  {
-    log_error ("TrueCrypt container not specified");
-
-    exit (-1);
-  }
+  if (input_len == 0) return (PARSER_HASH_LENGTH);
 
   FILE *fp = fopen (input_buf, "rb");
 
-  if (fp == NULL)
-  {
-    log_error ("%s: %s", input_buf, strerror (errno));
-
-    exit (-1);
-  }
+  if (fp == NULL) return (PARSER_HASH_FILE);
 
   char buf[512] = { 0 };
 
@@ -5220,21 +5177,11 @@ int veracrypt_parse_hash_200000 (char *input_buf, u32 input_len, hash_t *hash_bu
 
   tc_t *tc = (tc_t *) hash_buf->esalt;
 
-  if (input_len == 0)
-  {
-    log_error ("VeraCrypt container not specified");
-
-    exit (-1);
-  }
+  if (input_len == 0) return (PARSER_HASH_LENGTH);
 
   FILE *fp = fopen (input_buf, "rb");
 
-  if (fp == NULL)
-  {
-    log_error ("%s: %s", input_buf, strerror (errno));
-
-    exit (-1);
-  }
+  if (fp == NULL) return (PARSER_HASH_FILE);
 
   char buf[512] = { 0 };
 
@@ -5269,21 +5216,11 @@ int veracrypt_parse_hash_500000 (char *input_buf, u32 input_len, hash_t *hash_bu
 
   tc_t *tc = (tc_t *) hash_buf->esalt;
 
-  if (input_len == 0)
-  {
-    log_error ("VeraCrypt container not specified");
-
-    exit (-1);
-  }
+  if (input_len == 0) return (PARSER_HASH_LENGTH);
 
   FILE *fp = fopen (input_buf, "rb");
 
-  if (fp == NULL)
-  {
-    log_error ("%s: %s", input_buf, strerror (errno));
-
-    exit (-1);
-  }
+  if (fp == NULL) return (PARSER_HASH_FILE);
 
   char buf[512] = { 0 };
 
@@ -5318,21 +5255,11 @@ int veracrypt_parse_hash_327661 (char *input_buf, u32 input_len, hash_t *hash_bu
 
   tc_t *tc = (tc_t *) hash_buf->esalt;
 
-  if (input_len == 0)
-  {
-    log_error ("VeraCrypt container not specified");
-
-    exit (-1);
-  }
+  if (input_len == 0) return (PARSER_HASH_LENGTH);
 
   FILE *fp = fopen (input_buf, "rb");
 
-  if (fp == NULL)
-  {
-    log_error ("%s: %s", input_buf, strerror (errno));
-
-    exit (-1);
-  }
+  if (fp == NULL) return (PARSER_HASH_FILE);
 
   char buf[512] = { 0 };
 
@@ -5367,21 +5294,11 @@ int veracrypt_parse_hash_655331 (char *input_buf, u32 input_len, hash_t *hash_bu
 
   tc_t *tc = (tc_t *) hash_buf->esalt;
 
-  if (input_len == 0)
-  {
-    log_error ("VeraCrypt container not specified");
-
-    exit (-1);
-  }
+  if (input_len == 0) return (PARSER_HASH_LENGTH);
 
   FILE *fp = fopen (input_buf, "rb");
 
-  if (fp == NULL)
-  {
-    log_error ("%s: %s", input_buf, strerror (errno));
-
-    exit (-1);
-  }
+  if (fp == NULL) return (PARSER_HASH_FILE);
 
   char buf[512] = { 0 };
 
@@ -10810,8 +10727,6 @@ int sip_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
 
   if (memcmp (directive_pos, "MD5", 3))
   {
-    log_info ("ERROR: Only the MD5 directive is currently supported\n");
-
     myfree (temp_input_buf);
 
     return (PARSER_SIP_AUTH_DIRECTIVE);
@@ -13103,7 +13018,9 @@ char *strparser (const u32 parser_status)
     case PARSER_PSAFE2_FILE_SIZE:     return ((char *) PA_013);
     case PARSER_PSAFE3_FILE_SIZE:     return ((char *) PA_014);
     case PARSER_TC_FILE_SIZE:         return ((char *) PA_015);
-    case PARSER_SIP_AUTH_DIRECTIVE:   return ((char *) PA_016);
+    case PARSER_VC_FILE_SIZE:         return ((char *) PA_016);
+    case PARSER_SIP_AUTH_DIRECTIVE:   return ((char *) PA_017);
+    case PARSER_HASH_FILE:            return ((char *) PA_018);
   }
 
   return ((char *) PA_255);
@@ -19814,7 +19731,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
-    default:     log_error ("ERROR: Unknown hash-type '%u' selected", hashconfig->hash_mode);
+    default:     event_log_error (hashcat_ctx, "ERROR: Unknown hash-type '%u' selected", hashconfig->hash_mode);
                  return -1;
   }
 
@@ -19826,7 +19743,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      log_error ("ERROR: Parameter hex-salt not valid for hash-type %u", hashconfig->hash_mode);
+      event_log_error (hashcat_ctx, "ERROR: Parameter hex-salt not valid for hash-type %u", hashconfig->hash_mode);
 
       return -1;
     }

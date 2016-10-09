@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "folder.h"
 #include "induct.h"
 
@@ -64,14 +64,14 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (rename (root_directory, root_directory_mv) != 0)
         {
-          log_error ("ERROR: Rename directory %s to %s: %s", root_directory, root_directory_mv, strerror (errno));
+          event_log_error (hashcat_ctx, "ERROR: Rename directory %s to %s: %s", root_directory, root_directory_mv, strerror (errno));
 
           return -1;
         }
       }
       else
       {
-        log_error ("ERROR: %s: %s", root_directory, strerror (errno));
+        event_log_error (hashcat_ctx, "ERROR: %s: %s", root_directory, strerror (errno));
 
         return -1;
       }
@@ -79,7 +79,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (hc_mkdir (root_directory, 0700) == -1)
     {
-      log_error ("ERROR: %s: %s", root_directory, strerror (errno));
+      event_log_error (hashcat_ctx, "ERROR: %s: %s", root_directory, strerror (errno));
 
       return -1;
     }
@@ -142,7 +142,7 @@ void induct_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      log_error ("ERROR: %s: %s", induct_ctx->root_directory, strerror (errno));
+      event_log_error (hashcat_ctx, "ERROR: %s: %s", induct_ctx->root_directory, strerror (errno));
 
       //return -1;
     }

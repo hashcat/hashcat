@@ -1023,7 +1023,18 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   dictstat_write (hashcat_ctx);
 
+  // final logfile entry
+
+  time (&status_ctx->proc_stop);
+
+  logfile_top_uint (status_ctx->proc_start);
+  logfile_top_uint (status_ctx->proc_stop);
+
+  EVENT (EVENT_LOGFILE_TOP_FINALIZE);
+
   // free memory
+
+  EVENT (EVENT_GOODBYE_SCREEN);
 
   debugfile_destroy (hashcat_ctx);
 
@@ -1051,13 +1062,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   restore_ctx_destroy (hashcat_ctx);
 
-  time (&status_ctx->proc_stop);
-
-  logfile_top_uint (status_ctx->proc_start);
-  logfile_top_uint (status_ctx->proc_stop);
-
-  EVENT (EVENT_LOGFILE_TOP_FINALIZE);
-
   user_options_extra_destroy (hashcat_ctx);
 
   user_options_destroy (hashcat_ctx);
@@ -1068,8 +1072,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   if (status_ctx->devices_status == STATUS_QUIT)      rc_final = 2;
   if (status_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
   if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
-
-  EVENT (EVENT_GOODBYE_SCREEN);
 
   event_ctx_destroy (hashcat_ctx);
 

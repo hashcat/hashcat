@@ -11,7 +11,7 @@ int sort_by_salt         (const void *v1, const void *v2);
 int sort_by_hash         (const void *v1, const void *v2, void *v3);
 int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3);
 
-void save_hash (hashcat_ctx_t *hashcat_ctx);
+int save_hash (hashcat_ctx_t *hashcat_ctx);
 
 void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain);
 

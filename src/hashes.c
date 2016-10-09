@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "hashes.h"
 
 #include "debugfile.h"
@@ -117,7 +117,7 @@ int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3)
   return sort_by_digest_p0p1 (d1, d2, v3);
 }
 
-void save_hash (hashcat_ctx_t *hashcat_ctx)
+int save_hash (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t        *hashes       = hashcat_ctx->hashes;
   hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
@@ -139,9 +139,9 @@ void save_hash (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    log_error ("ERROR: %s: %s", new_hashfile, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", new_hashfile, strerror (errno));
 
-    exit (-1);
+    return -1;
   }
 
   for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
@@ -198,21 +198,23 @@ void save_hash (hashcat_ctx_t *hashcat_ctx)
 
   if (rename (hashfile, old_hashfile) != 0)
   {
-    log_error ("ERROR: Rename file '%s' to '%s': %s", hashfile, old_hashfile, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: Rename file '%s' to '%s': %s", hashfile, old_hashfile, strerror (errno));
 
-    exit (-1);
+    return -1;
   }
 
   unlink (hashfile);
 
   if (rename (new_hashfile, hashfile) != 0)
   {
-    log_error ("ERROR: Rename file '%s' to '%s': %s", new_hashfile, hashfile, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: Rename file '%s' to '%s': %s", new_hashfile, hashfile, strerror (errno));
 
-    exit (-1);
+    return -1;
   }
 
   unlink (old_hashfile);
+
+  return 0;
 }
 
 void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain)
@@ -309,11 +311,10 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
 int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos)
 {
-  cpt_ctx_t             *cpt_ctx            = hashcat_ctx->cpt_ctx;
-  hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
-  hashes_t              *hashes             = hashcat_ctx->hashes;
-  opencl_ctx_t          *opencl_ctx         = hashcat_ctx->opencl_ctx;
-  status_ctx_t          *status_ctx         = hashcat_ctx->status_ctx;
+  cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  hashes_t     *hashes     = hashcat_ctx->hashes;
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
   salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
@@ -321,11 +322,11 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
   cl_int CL_err;
 
-  CL_err = hc_clEnqueueReadBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
+  CL_err = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
 
   if (CL_err != CL_SUCCESS)
   {
-    log_error ("ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -334,15 +335,15 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   {
     // display hack (for weak hashes etc, it could be that there is still something to clear on the current line)
 
-    log_info_nn ("");
+    event_log_info_nn (hashcat_ctx, "");
 
     plain_t *cracked = (plain_t *) mycalloc (num_cracked, sizeof (plain_t));
 
-    CL_err = hc_clEnqueueReadBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
+    CL_err = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
 
     if (CL_err != CL_SUCCESS)
     {
-      log_error ("ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
+      event_log_error (hashcat_ctx, "ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
 
       return -1;
     }
@@ -375,7 +376,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         }
       }
 
-      if (hashes->salts_done == hashes->salts_cnt) mycracked (status_ctx);
+      if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
 
       check_hash (hashcat_ctx, device_param, &cracked[i]);
     }
@@ -408,11 +409,11 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       memset (hashes->digests_shown_tmp, 0, salt_buf->digests_cnt * sizeof (u32));
 
-      CL_err = hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
+      CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_digests_shown, CL_TRUE, salt_buf->digests_offset * sizeof (u32), salt_buf->digests_cnt * sizeof (u32), &hashes->digests_shown_tmp[salt_buf->digests_offset], 0, NULL, NULL);
 
       if (CL_err != CL_SUCCESS)
       {
-        log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+        event_log_error (hashcat_ctx, "ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
 
         return -1;
       }
@@ -420,11 +421,11 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     num_cracked = 0;
 
-    CL_err = hc_clEnqueueWriteBuffer (opencl_ctx->ocl, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
+    CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
 
     if (CL_err != CL_SUCCESS)
     {
-      log_error ("ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+      event_log_error (hashcat_ctx, "ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
 
       return -1;
     }
@@ -478,7 +479,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (stat (hashes->hashfile, &st) == -1)
         {
-          log_error ("ERROR: %s: %s", hashes->hashfile, strerror (errno));
+          event_log_error (hashcat_ctx, "ERROR: %s: %s", hashes->hashfile, strerror (errno));
 
           return -1;
         }
@@ -500,12 +501,12 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if ((fp = fopen (hashfile, "rb")) == NULL)
       {
-        log_error ("ERROR: %s: %s", hashfile, strerror (errno));
+        event_log_error (hashcat_ctx, "ERROR: %s: %s", hashfile, strerror (errno));
 
         return -1;
       }
 
-      if (user_options->quiet == false) log_info_nn ("Counting lines in %s", hashfile);
+      if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Counting lines in %s", hashfile);
 
       hashes_avail = count_lines (fp);
 
@@ -513,7 +514,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if (hashes_avail == 0)
       {
-        log_error ("ERROR: hashfile is empty or corrupt");
+        event_log_error (hashcat_ctx, "ERROR: hashfile is empty or corrupt");
 
         fclose (fp);
 
@@ -524,7 +525,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if ((user_options->remove == 1) && (hashlist_format != HLFMT_HASHCAT))
       {
-        log_error ("ERROR: remove not supported in native hashfile-format mode");
+        event_log_error (hashcat_ctx, "ERROR: remove not supported in native hashfile-format mode");
 
         fclose (fp);
 
@@ -666,7 +667,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if (hash_fmt_error)
       {
-        log_info ("WARNING: Failed to parse hashes using the '%s' format", strhlfmt (hashlist_format));
+        event_log_warning (hashcat_ctx, "Failed to parse hashes using the '%s' format", strhlfmt (hashlist_format));
       }
       else
       {
@@ -688,7 +689,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           if (hash_len == 0)
           {
-            log_error ("ERROR: hccap file not specified");
+            event_log_error (hashcat_ctx, "ERROR: hccap file not specified");
 
             return -1;
           }
@@ -701,14 +702,14 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           if (fp == NULL)
           {
-            log_error ("ERROR: %s: %s", hash_buf, strerror (errno));
+            event_log_error (hashcat_ctx, "ERROR: %s: %s", hash_buf, strerror (errno));
 
             return -1;
           }
 
           if (hashes_avail < 1)
           {
-            log_error ("ERROR: hccap file is empty or corrupt");
+            event_log_error (hashcat_ctx, "ERROR: hccap file is empty or corrupt");
 
             fclose (fp);
 
@@ -734,7 +735,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status != PARSER_OK)
             {
-              log_info ("WARNING: Hash '%s': %s", hash_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash '%s': %s", hash_buf, strparser (parser_status));
 
               continue;
             }
@@ -806,7 +807,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              log_info ("WARNING: Hash '%s': %s", input_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
 
             parser_status = hashconfig->parse_func (hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
@@ -821,7 +822,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              log_info ("WARNING: Hash '%s': %s", input_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
 
             // show / left
@@ -848,7 +849,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              log_info ("WARNING: Hash '%s': %s", input_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
           }
         }
@@ -868,7 +869,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           }
           else
           {
-            log_info ("WARNING: Hash '%s': %s", input_buf, strparser (parser_status));
+            event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
           }
         }
       }
@@ -881,7 +882,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if ((fp = fopen (hashfile, "rb")) == NULL)
       {
-        log_error ("ERROR: %s: %s", hashfile, strerror (errno));
+        event_log_error (hashcat_ctx, "ERROR: %s: %s", hashfile, strerror (errno));
 
         return -1;
       }
@@ -910,7 +911,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (hash_fmt_error)
         {
-          log_info ("WARNING: failed to parse hashes using the '%s' format", strhlfmt (hashlist_format));
+          event_log_warning (hashcat_ctx, "failed to parse hashes using the '%s' format", strhlfmt (hashlist_format));
 
           continue;
         }
@@ -963,7 +964,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              log_info ("WARNING: Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, line_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, line_buf, strparser (parser_status));
 
               continue;
             }
@@ -976,14 +977,14 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              log_info ("WARNING: Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, line_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, line_buf, strparser (parser_status));
 
               continue;
             }
 
             hash_t *lm_hash_right = &hashes_buf[hashes_cnt];
 
-            if (user_options->quiet == false) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
+            if (user_options->quiet == false) if ((hashes_cnt % 0x20000) == 0) event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
 
             hashes_cnt++;
 
@@ -998,12 +999,12 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              log_info ("WARNING: Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, line_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, line_buf, strparser (parser_status));
 
               continue;
             }
 
-            if (user_options->quiet == false) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
+            if (user_options->quiet == false) if ((hashes_cnt % 0x20000) == 0) event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
 
             if (user_options->show == true) potfile_show_request (hashcat_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
             if (user_options->left == true) potfile_left_request (hashcat_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
@@ -1017,12 +1018,12 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           if (parser_status < PARSER_GLOBAL_ZERO)
           {
-            log_info ("WARNING: Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, line_buf, strparser (parser_status));
+            event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, line_buf, strparser (parser_status));
 
             continue;
           }
 
-          if (user_options->quiet == false) if ((hashes_cnt % 0x20000) == 0) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
+          if (user_options->quiet == false) if ((hashes_cnt % 0x20000) == 0) event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
 
           if (user_options->show == true) potfile_show_request (hashcat_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
           if (user_options->left == true) potfile_left_request (hashcat_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
@@ -1035,7 +1036,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       fclose (fp);
 
-      if (user_options->quiet == false) log_info_nn ("Parsed Hashes: %u/%u (%0.2f%%)", hashes_avail, hashes_avail, 100.00);
+      if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_avail, hashes_avail, 100.00);
     }
   }
 
@@ -1043,7 +1044,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   if (hashes_cnt)
   {
-    if (user_options->quiet == false) log_info_nn ("Sorting Hashes...");
+    if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Sorting Hashes...");
 
     if (hashconfig->is_salted)
     {
@@ -1062,7 +1063,6 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   hashes_t       *hashes       = hashcat_ctx->hashes;
-  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
   hash_t *hashes_buf = hashes->hashes_buf;
@@ -1072,7 +1072,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
    * Remove duplicates
    */
 
-  if (user_options->quiet == false) log_info_nn ("Removing duplicate hashes...");
+  if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Removing duplicate hashes...");
 
   hashes_cnt = 1;
 
@@ -1122,7 +1122,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
     salts_buf_new = (salt_t *) mycalloc (1, sizeof (salt_t));
   }
 
-  if (user_options->quiet == false) log_info_nn ("Structuring salts for cracking task...");
+  if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Structuring salts for cracking task...");
 
   u32 digests_cnt  = hashes_cnt;
   u32 digests_done = 0;
@@ -1248,7 +1248,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
       salts_done++;
     }
 
-    if (salts_done == salts_cnt) mycracked (status_ctx);
+    if (salts_done == salts_cnt) mycracked (hashcat_ctx);
   }
 
   myfree (hashes->digests_buf);

@@ -10,7 +10,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "logfile.h"
 
 static int logfile_generate_id ()
@@ -90,7 +90,7 @@ int logfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    log_error ("ERROR: %s: %s", logfile_ctx->logfile, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", logfile_ctx->logfile, strerror (errno));
 
     return -1;
   }

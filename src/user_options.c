@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "logfile.h"
 #include "interface.h"
 #include "shared.h"
@@ -320,7 +320,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
       default:
       {
-        log_error ("ERROR: Invalid argument specified");
+        event_log_error (hashcat_ctx, "ERROR: Invalid argument specified");
 
         return -1;
       }
@@ -329,7 +329,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   if (optopt != 0)
   {
-    log_error ("ERROR: Invalid argument specified");
+    event_log_error (hashcat_ctx, "ERROR: Invalid argument specified");
 
     return -1;
   }
@@ -348,14 +348,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->hc_argc < 0)
   {
-    log_error ("ERROR: hc_argc %d is invalid", user_options->hc_argc);
+    event_log_error (hashcat_ctx, "ERROR: hc_argc %d is invalid", user_options->hc_argc);
 
     return -1;
   }
 
   if (user_options->hc_argv == NULL)
   {
-    log_error ("ERROR: hc_argv is NULL");
+    event_log_error (hashcat_ctx, "ERROR: hc_argv is NULL");
 
     return -1;
   }
@@ -367,21 +367,21 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
    && (user_options->attack_mode != ATTACK_MODE_HYBRID2)
    && (user_options->attack_mode != ATTACK_MODE_NONE))
   {
-    log_error ("ERROR: Invalid attack-mode specified");
+    event_log_error (hashcat_ctx, "ERROR: Invalid attack-mode specified");
 
     return -1;
   }
 
   if (user_options->runtime_chgd == true && user_options->runtime == 0)
   {
-    log_error ("ERROR: Invalid runtime specified");
+    event_log_error (hashcat_ctx, "ERROR: Invalid runtime specified");
 
     return -1;
   }
 
   if (user_options->hash_mode > 14100)
   {
-    log_error ("ERROR: Invalid hash-type specified");
+    event_log_error (hashcat_ctx, "ERROR: Invalid hash-type specified");
 
     return -1;
   }
@@ -393,7 +393,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      || ((user_options->hash_mode >= 6200)  && (user_options->hash_mode <= 6299))
      || ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799)))
     {
-      log_error ("ERROR: Mixing support for user names and hashes of type %s is not supported", strhashtype (user_options->hash_mode));
+      event_log_error (hashcat_ctx, "ERROR: Mixing support for user names and hashes of type %s is not supported", strhashtype (user_options->hash_mode));
 
       return -1;
     }
@@ -401,7 +401,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->outfile_format > 16)
   {
-    log_error ("ERROR: Invalid outfile-format specified");
+    event_log_error (hashcat_ctx, "ERROR: Invalid outfile-format specified");
 
     return -1;
   }
@@ -410,7 +410,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->outfile_format_chgd == true)
     {
-      log_error ("ERROR: Mixing outfile-format > 1 with left parameter is not allowed");
+      event_log_error (hashcat_ctx, "ERROR: Mixing outfile-format > 1 with left parameter is not allowed");
 
       return -1;
     }
@@ -420,7 +420,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->outfile_format_chgd == true)
     {
-      log_error ("ERROR: Mixing outfile-format > 7 with show parameter is not allowed");
+      event_log_error (hashcat_ctx, "ERROR: Mixing outfile-format > 7 with show parameter is not allowed");
 
       return -1;
     }
@@ -428,49 +428,49 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->increment_min < INCREMENT_MIN)
   {
-    log_error ("ERROR: Invalid increment-min specified");
+    event_log_error (hashcat_ctx, "ERROR: Invalid increment-min specified");
 
     return -1;
   }
 
   if (user_options->increment_max > INCREMENT_MAX)
   {
-    log_error ("ERROR: Invalid increment-max specified");
+    event_log_error (hashcat_ctx, "ERROR: Invalid increment-max specified");
 
     return -1;
   }
 
   if (user_options->increment_min > user_options->increment_max)
   {
-    log_error ("ERROR: Invalid increment-min specified");
+    event_log_error (hashcat_ctx, "ERROR: Invalid increment-min specified");
 
     return -1;
   }
 
   if ((user_options->increment == true) && (user_options->attack_mode == ATTACK_MODE_STRAIGHT))
   {
-    log_error ("ERROR: Increment is not allowed in attack-mode 0");
+    event_log_error (hashcat_ctx, "ERROR: Increment is not allowed in attack-mode 0");
 
     return -1;
   }
 
   if ((user_options->increment == false) && (user_options->increment_min_chgd == true))
   {
-    log_error ("ERROR: Increment-min is only supported combined with increment switch");
+    event_log_error (hashcat_ctx, "ERROR: Increment-min is only supported combined with increment switch");
 
     return -1;
   }
 
   if ((user_options->increment == false) && (user_options->increment_max_chgd == true))
   {
-    log_error ("ERROR: Increment-max is only supported combined with increment switch");
+    event_log_error (hashcat_ctx, "ERROR: Increment-max is only supported combined with increment switch");
 
     return -1;
   }
 
   if (user_options->rp_files_cnt > 0 && user_options->rp_gen == true)
   {
-    log_error ("ERROR: Use of both rules-file and rules-generate is not supported");
+    event_log_error (hashcat_ctx, "ERROR: Use of both rules-file and rules-generate is not supported");
 
     return -1;
   }
@@ -479,7 +479,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
     {
-      log_error ("ERROR: Use of rules-file or rules-generate only allowed in attack-mode 0");
+      event_log_error (hashcat_ctx, "ERROR: Use of rules-file or rules-generate only allowed in attack-mode 0");
 
       return -1;
     }
@@ -487,14 +487,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->bitmap_min > user_options->bitmap_max)
   {
-    log_error ("ERROR: Invalid bitmap-min specified");
+    event_log_error (hashcat_ctx, "ERROR: Invalid bitmap-min specified");
 
     return -1;
   }
 
   if (user_options->rp_gen_func_min > user_options->rp_gen_func_max)
   {
-    log_error ("ERROR: Invalid rp-gen-func-min specified");
+    event_log_error (hashcat_ctx, "ERROR: Invalid rp-gen-func-min specified");
 
     return -1;
   }
@@ -503,24 +503,24 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->force == false)
     {
-      log_info ("The manual use of the -n option (or --kernel-accel) is outdated");
-      log_info ("Please consider using the -w option instead");
-      log_info ("You can use --force to override this but do not post error reports if you do so");
-      log_info ("");
+      event_log_info (hashcat_ctx, "The manual use of the -n option (or --kernel-accel) is outdated");
+      event_log_info (hashcat_ctx, "Please consider using the -w option instead");
+      event_log_info (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
+      event_log_info (hashcat_ctx, "");
 
       return -1;
     }
 
     if (user_options->kernel_accel < 1)
     {
-      log_error ("ERROR: Invalid kernel-accel specified");
+      event_log_error (hashcat_ctx, "ERROR: Invalid kernel-accel specified");
 
       return -1;
     }
 
     if (user_options->kernel_accel > 1024)
     {
-      log_error ("ERROR: Invalid kernel-accel specified");
+      event_log_error (hashcat_ctx, "ERROR: Invalid kernel-accel specified");
 
       return -1;
     }
@@ -530,24 +530,24 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->force == false)
     {
-      log_info ("The manual use of the -u option (or --kernel-loops) is outdated");
-      log_info ("Please consider using the -w option instead");
-      log_info ("You can use --force to override this but do not post error reports if you do so");
-      log_info ("");
+      event_log_info (hashcat_ctx, "The manual use of the -u option (or --kernel-loops) is outdated");
+      event_log_info (hashcat_ctx, "Please consider using the -w option instead");
+      event_log_info (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
+      event_log_info (hashcat_ctx, "");
 
       return -1;
     }
 
     if (user_options->kernel_loops < 1)
     {
-      log_error ("ERROR: Invalid kernel-loops specified");
+      event_log_error (hashcat_ctx, "ERROR: Invalid kernel-loops specified");
 
       return -1;
     }
 
     if (user_options->kernel_loops > 1024)
     {
-      log_error ("ERROR: Invalid kernel-loops specified");
+      event_log_error (hashcat_ctx, "ERROR: Invalid kernel-loops specified");
 
       return -1;
     }
@@ -555,7 +555,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->workload_profile < 1) || (user_options->workload_profile > 4))
   {
-    log_error ("ERROR: workload-profile %i not available", user_options->workload_profile);
+    event_log_error (hashcat_ctx, "ERROR: workload-profile %i not available", user_options->workload_profile);
 
     return -1;
   }
@@ -564,7 +564,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (is_power_of_2 (user_options->opencl_vector_width) == false || user_options->opencl_vector_width > 16)
     {
-      log_error ("ERROR: opencl-vector-width %i not allowed", user_options->opencl_vector_width);
+      event_log_error (hashcat_ctx, "ERROR: opencl-vector-width %i not allowed", user_options->opencl_vector_width);
 
       return -1;
     }
@@ -574,14 +574,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->remove == true)
     {
-      log_error ("ERROR: Mixing remove parameter not allowed with show parameter or left parameter");
+      event_log_error (hashcat_ctx, "ERROR: Mixing remove parameter not allowed with show parameter or left parameter");
 
       return -1;
     }
 
     if (user_options->potfile_disable == true)
     {
-      log_error ("ERROR: Mixing potfile-disable parameter not allowed with show parameter or left parameter");
+      event_log_error (hashcat_ctx, "ERROR: Mixing potfile-disable parameter not allowed with show parameter or left parameter");
 
       return -1;
     }
@@ -591,7 +591,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->outfile_autohex == false)
     {
-      log_error ("ERROR: Mixing outfile-autohex-disable parameter not allowed with show parameter");
+      event_log_error (hashcat_ctx, "ERROR: Mixing outfile-autohex-disable parameter not allowed with show parameter");
 
       return -1;
     }
@@ -601,13 +601,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->show == true)
     {
-      log_error ("ERROR: Combining show parameter with keyspace parameter is not allowed");
+      event_log_error (hashcat_ctx, "ERROR: Combining show parameter with keyspace parameter is not allowed");
 
       return -1;
     }
     else if (user_options->left == true)
     {
-      log_error ("ERROR: Combining left parameter with keyspace parameter is not allowed");
+      event_log_error (hashcat_ctx, "ERROR: Combining left parameter with keyspace parameter is not allowed");
 
       return -1;
     }
@@ -617,14 +617,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->remove == false)
     {
-      log_error ("ERROR: Parameter remove-timer require parameter remove enabled");
+      event_log_error (hashcat_ctx, "ERROR: Parameter remove-timer require parameter remove enabled");
 
       return -1;
     }
 
     if (user_options->remove_timer < 1)
     {
-      log_error ("ERROR: Parameter remove-timer must have a value greater than or equal to 1");
+      event_log_error (hashcat_ctx, "ERROR: Parameter remove-timer must have a value greater than or equal to 1");
 
       return -1;
     }
@@ -636,14 +636,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
       {
-        log_error ("ERROR: Parameter loopback not allowed without rules-file or rules-generate");
+        event_log_error (hashcat_ctx, "ERROR: Parameter loopback not allowed without rules-file or rules-generate");
 
         return -1;
       }
     }
     else
     {
-      log_error ("ERROR: Parameter loopback allowed in attack-mode 0 only");
+      event_log_error (hashcat_ctx, "ERROR: Parameter loopback allowed in attack-mode 0 only");
 
       return -1;
     }
@@ -654,14 +654,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
     {
-      log_error ("ERROR: Parameter debug-mode option is only available with attack-mode 0");
+      event_log_error (hashcat_ctx, "ERROR: Parameter debug-mode option is only available with attack-mode 0");
 
       return -1;
     }
 
     if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
     {
-      log_error ("ERROR: Parameter debug-mode not allowed without rules-file or rules-generate");
+      event_log_error (hashcat_ctx, "ERROR: Parameter debug-mode not allowed without rules-file or rules-generate");
 
       return -1;
     }
@@ -669,7 +669,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->debug_mode > 4)
   {
-    log_error ("ERROR: Invalid debug-mode specified");
+    event_log_error (hashcat_ctx, "ERROR: Invalid debug-mode specified");
 
     return -1;
   }
@@ -678,7 +678,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->debug_mode < 1)
     {
-      log_error ("ERROR: Parameter debug-file requires parameter debug-mode to be set");
+      event_log_error (hashcat_ctx, "ERROR: Parameter debug-file requires parameter debug-mode to be set");
 
       return -1;
     }
@@ -688,7 +688,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->attack_mode == ATTACK_MODE_BF)
     {
-      log_error ("ERROR: Parameter induction-dir not allowed with brute-force attacks");
+      event_log_error (hashcat_ctx, "ERROR: Parameter induction-dir not allowed with brute-force attacks");
 
       return -1;
     }
@@ -698,7 +698,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if ((user_options->weak_hash_threshold != WEAK_HASH_THRESHOLD) && (user_options->weak_hash_threshold != 0))
     {
-      log_error ("ERROR: setting --weak-hash-threshold allowed only in straight-attack mode");
+      event_log_error (hashcat_ctx, "ERROR: setting --weak-hash-threshold allowed only in straight-attack mode");
 
       return -1;
     }
@@ -706,7 +706,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->nvidia_spin_damp > 100)
   {
-    log_error ("ERROR: setting --nvidia-spin-damp must be between 0 and 100 (inclusive)");
+    event_log_error (hashcat_ctx, "ERROR: setting --nvidia-spin-damp must be between 0 and 100 (inclusive)");
 
     return -1;
   }
@@ -715,7 +715,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->gpu_temp_abort < user_options->gpu_temp_retain)
     {
-      log_error ("ERROR: Invalid values for gpu-temp-abort. Parameter gpu-temp-abort is less than gpu-temp-retain.");
+      event_log_error (hashcat_ctx, "ERROR: Invalid values for gpu-temp-abort. Parameter gpu-temp-abort is less than gpu-temp-retain.");
 
       return -1;
     }
@@ -727,7 +727,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       if (user_options->attack_mode != ATTACK_MODE_BF)
       {
-        log_error ("ERROR: Only attack-mode 3 allowed in benchmark mode");
+        event_log_error (hashcat_ctx, "ERROR: Only attack-mode 3 allowed in benchmark mode");
 
         return -1;
       }

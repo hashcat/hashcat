@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "convert.h"
 #include "dictstat.h"
 #include "thread.h"
@@ -322,8 +322,8 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
         keyspace *= combinator_ctx->combs_cnt;
       }
 
-      if (user_options->quiet == false) log_info ("Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cached_cnt, keyspace);
-      if (user_options->quiet == false) log_info ("");
+      if (user_options->quiet == false) event_log_info (hashcat_ctx, "Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cached_cnt, keyspace);
+      if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
 
       //hc_signal (sigHandler_default);
 
@@ -399,13 +399,13 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
 
     double percent = (double) comp / (double) d.stat.st_size;
 
-    if (user_options->quiet == false) log_info_nn ("Generating dictionary stats for %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, percent * 100, cnt2, cnt);
+    if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Generating dictionary stats for %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, percent * 100, cnt2, cnt);
 
     time (&prev);
   }
 
-  if (user_options->quiet == false) log_info ("Generated dictionary stats for %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, cnt2, cnt);
-  if (user_options->quiet == false) log_info ("");
+  if (user_options->quiet == false) event_log_info (hashcat_ctx, "Generated dictionary stats for %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, cnt2, cnt);
+  if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
 
   dictstat_append (hashcat_ctx, &d);
 

@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "shared.h"
 #include "loopback.h"
 
@@ -105,7 +105,7 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (loopback_ctx->fp == NULL)
   {
-    log_error ("ERROR: %s: %s", loopback_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", loopback_ctx->filename, strerror (errno));
 
     return -1;
   }
