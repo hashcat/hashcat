@@ -146,7 +146,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_INIT;
 
-  EVENT (EVENT_LOGFILE_SUB_INITIALIZE);
+  logfile_generate_subid (hashcat_ctx);
+
+  logfile_sub_msg ("START");
 
   status_progress_reset (hashcat_ctx);
 
@@ -315,8 +317,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     status_ctx->devices_status = STATUS_EXHAUSTED;
   }
 
-  EVENT (EVENT_CRACKER_FINISHED);
-
   // update some timer
 
   time_t runtime_stop;
@@ -330,7 +330,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   time (&status_ctx->prepare_start);
 
-  EVENT (EVENT_CRACKER_FINAL_STATS);
+  EVENT (EVENT_CRACKER_FINISHED);
 
   // no more skip and restore from here
 
@@ -339,14 +339,18 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     rd->words_cur = 0;
   }
 
+  // mark sub logfile
+
+  logfile_sub_var_uint ("status-after-work", status_ctx->devices_status);
+
+  logfile_sub_msg ("STOP");
+
   // stop loopback recording
 
   if (user_options->loopback == true)
   {
     loopback_write_close (hashcat_ctx);
   }
-
-  EVENT (EVENT_LOGFILE_SUB_FINALIZE);
 
   // New induction folder check
 
@@ -847,9 +851,21 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   user_options_extra_init (hashcat_ctx);
 
-  // from here all user configuration is pre-processed so we can start logging if we want to
+  /**
+   * logfile
+   */
 
-  EVENT (EVENT_LOGFILE_TOP_INITIALIZE);
+  const int rc_logfile_init = logfile_init (hashcat_ctx);
+
+  if (rc_logfile_init == -1) return -1;
+
+  logfile_generate_topid (hashcat_ctx);
+
+  logfile_top_msg ("START");
+
+  // add all user options to logfile in case we want to debug some user session
+
+  user_options_logger (hashcat_ctx);
 
   /**
    * cpu affinity
@@ -1032,11 +1048,13 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   logfile_top_uint (status_ctx->proc_start);
   logfile_top_uint (status_ctx->proc_stop);
 
-  EVENT (EVENT_LOGFILE_TOP_FINALIZE);
+  logfile_top_msg ("STOP");
 
   // free memory
 
   EVENT (EVENT_GOODBYE_SCREEN);
+
+  logfile_destroy (hashcat_ctx);
 
   debugfile_destroy (hashcat_ctx);
 

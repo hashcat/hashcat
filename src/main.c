@@ -19,7 +19,6 @@
 
 #include "memory.h"
 #include "terminal.h"
-#include "logfile.h"
 #include "thread.h"
 #include "status.h"
 #include "interface.h"
@@ -108,58 +107,6 @@ static int main_goodbye_screen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_U
   return 0;
 }
 
-static int main_logfile_top_initialize (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
-{
-  const logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
-
-  // logfile init
-
-  const int rc_logfile_init = logfile_init (hashcat_ctx);
-
-  if (rc_logfile_init == -1) return -1;
-
-  logfile_generate_topid (hashcat_ctx);
-
-  logfile_top_msg ("START");
-
-  // add all user options to logfile in case we want to debug some user session
-
-  user_options_logger (hashcat_ctx);
-
-  return 0;
-}
-
-static int main_logfile_top_finalize (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
-{
-  const logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
-
-  logfile_top_msg ("STOP");
-
-  logfile_destroy (hashcat_ctx);
-
-  return 0;
-}
-
-static int main_logfile_sub_initialize (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
-{
-  const logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
-
-  logfile_generate_subid (hashcat_ctx);
-
-  logfile_sub_msg ("START");
-
-  return 0;
-}
-
-static int main_logfile_sub_finalize (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
-{
-  const logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
-
-  logfile_sub_msg ("STOP");
-
-  return 0;
-}
-
 static int main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
@@ -240,16 +187,6 @@ static int main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE
 }
 
 static int main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
-{
-  const logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
-  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
-
-  logfile_sub_var_uint ("status-after-work", status_ctx->devices_status);
-
-  return 0;
-}
-
-static int main_cracker_final_stats (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -554,16 +491,11 @@ int event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size
     case EVENT_LOG_ERROR:                 rc = main_log_error                 (hashcat_ctx, buf, len); break;
     case EVENT_WELCOME_SCREEN:            rc = main_welcome_screen            (hashcat_ctx, buf, len); break;
     case EVENT_GOODBYE_SCREEN:            rc = main_goodbye_screen            (hashcat_ctx, buf, len); break;
-    case EVENT_LOGFILE_TOP_INITIALIZE:    rc = main_logfile_top_initialize    (hashcat_ctx, buf, len); break;
-    case EVENT_LOGFILE_TOP_FINALIZE:      rc = main_logfile_top_finalize      (hashcat_ctx, buf, len); break;
-    case EVENT_LOGFILE_SUB_INITIALIZE:    rc = main_logfile_sub_initialize    (hashcat_ctx, buf, len); break;
-    case EVENT_LOGFILE_SUB_FINALIZE:      rc = main_logfile_sub_finalize      (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_STARTING:        rc = main_outerloop_starting        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_FINISHED:        rc = main_outerloop_finished        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_MAINSCREEN:      rc = main_outerloop_mainscreen      (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_STARTING:          rc = main_cracker_starting          (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_FINISHED:          rc = main_cracker_finished          (hashcat_ctx, buf, len); break;
-    case EVENT_CRACKER_FINAL_STATS:       rc = main_cracker_final_stats       (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_HASH_CRACKED:      rc = main_cracker_hash_cracked      (hashcat_ctx, buf, len); break;
     case EVENT_CALCULATED_WORDS_BASE:     rc = main_calculated_words_base     (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_REMOVE_PARSE_PRE:  rc = main_potfile_remove_parse_pre  (hashcat_ctx, buf, len); break;
