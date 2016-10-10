@@ -46,7 +46,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->induction_dir == NULL)
   {
-    char *root_directory = (char *) mymalloc (HCBUFSIZ_TINY);
+    char *root_directory = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
 
     snprintf (root_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", folder_config->session_dir, user_options->session, INDUCT_DIR);
 
@@ -58,7 +58,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else if (errno == ENOTEMPTY)
       {
-        char *root_directory_mv = (char *) mymalloc (HCBUFSIZ_TINY);
+        char *root_directory_mv = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
 
         snprintf (root_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) status_ctx->proc_start);
 
@@ -88,7 +88,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    induct_ctx->root_directory = mystrdup (user_options->induction_dir);
+    induct_ctx->root_directory = hcstrdup (hashcat_ctx, user_options->induction_dir);
   }
 
   return 0;
@@ -100,7 +100,7 @@ void induct_ctx_scan (hashcat_ctx_t *hashcat_ctx)
 
   if (induct_ctx->enabled == false) return;
 
-  induct_ctx->induction_dictionaries = scan_directory (induct_ctx->root_directory);
+  induct_ctx->induction_dictionaries = scan_directory (hashcat_ctx, induct_ctx->root_directory);
 
   induct_ctx->induction_dictionaries_cnt = count_dictionaries (induct_ctx->induction_dictionaries);
 
@@ -148,7 +148,7 @@ void induct_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  myfree (induct_ctx->root_directory);
+  hcfree (induct_ctx->root_directory);
 
   memset (induct_ctx, 0, sizeof (induct_ctx_t));
 }

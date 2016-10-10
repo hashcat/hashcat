@@ -538,7 +538,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     {
       char out_buf[HCBUFSIZ_LARGE] = { 0 };
 
-      ascii_digest (out_buf, 0, 0, hashconfig, hashes);
+      ascii_digest (hashcat_ctx, out_buf, 0, 0);
 
       // limit length
       if (strlen (out_buf) > 40)
@@ -559,8 +559,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       char out_buf1[32] = { 0 };
       char out_buf2[32] = { 0 };
 
-      ascii_digest (out_buf1, 0, 0, hashconfig, hashes);
-      ascii_digest (out_buf2, 0, 1, hashconfig, hashes);
+      ascii_digest (hashcat_ctx, out_buf1, 0, 0);
+      ascii_digest (hashcat_ctx, out_buf2, 0, 1);
 
       event_log_info (hashcat_ctx, "Hash.Target....: %s, %s", out_buf1, out_buf2);
     }
@@ -1155,7 +1155,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         output_len = strlen (output_buf);
       }
 
-      if (num_throttle == 1)
+      if (num_throttle >= 0)
       {
         snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " *Throttled*");
 
@@ -1350,9 +1350,9 @@ int status_progress_init (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
   hashes_t     *hashes     = hashcat_ctx->hashes;
 
-  status_ctx->words_progress_done     = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-  status_ctx->words_progress_rejected = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
-  status_ctx->words_progress_restored = (u64 *) mycalloc (hashes->salts_cnt, sizeof (u64));
+  status_ctx->words_progress_done     = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64));
+  status_ctx->words_progress_rejected = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64));
+  status_ctx->words_progress_restored = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64));
 
   return 0;
 }
@@ -1361,9 +1361,9 @@ void status_progress_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  myfree (status_ctx->words_progress_done);
-  myfree (status_ctx->words_progress_rejected);
-  myfree (status_ctx->words_progress_restored);
+  hcfree (status_ctx->words_progress_done);
+  hcfree (status_ctx->words_progress_rejected);
+  hcfree (status_ctx->words_progress_restored);
 
   status_ctx->words_progress_done     = NULL;
   status_ctx->words_progress_rejected = NULL;

@@ -12,7 +12,7 @@
 
 // nvml functions
 
-int nvml_init (hashcat_ctx_t *hashcat_ctx)
+static int nvml_init (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -29,7 +29,7 @@ int nvml_init (hashcat_ctx_t *hashcat_ctx)
 
     DWORD Type = REG_SZ;
 
-    char *Buffer = (char *) mymalloc (BufferSize + 1);
+    char *Buffer = (char *) hcmalloc (hashcat_ctx, BufferSize + 1);
 
     HKEY hKey = 0;
 
@@ -61,7 +61,7 @@ int nvml_init (hashcat_ctx_t *hashcat_ctx)
 
     nvml->lib = hc_dlopen (Buffer);
 
-    myfree (Buffer);
+    hcfree (Buffer);
   }
 
   #elif defined (_POSIX)
@@ -100,7 +100,7 @@ int nvml_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void nvml_close (hashcat_ctx_t *hashcat_ctx)
+static void nvml_close (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -111,7 +111,7 @@ void nvml_close (hashcat_ctx_t *hashcat_ctx)
     if (nvml->lib)
       hc_dlclose (nvml->lib);
 
-    myfree (nvml);
+    hcfree (nvml);
   }
 }
 
@@ -120,7 +120,7 @@ static const char *hm_NVML_nvmlErrorString (NVML_PTR *nvml, const nvmlReturn_t n
   return nvml->nvmlErrorString (nvml_rc);
 }
 
-int hm_NVML_nvmlInit (hashcat_ctx_t *hashcat_ctx)
+static int hm_NVML_nvmlInit (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -140,7 +140,7 @@ int hm_NVML_nvmlInit (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-int hm_NVML_nvmlShutdown (hashcat_ctx_t *hashcat_ctx)
+static int hm_NVML_nvmlShutdown (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -160,7 +160,7 @@ int hm_NVML_nvmlShutdown (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-int hm_NVML_nvmlDeviceGetHandleByIndex (hashcat_ctx_t *hashcat_ctx, unsigned int index, nvmlDevice_t *device)
+static int hm_NVML_nvmlDeviceGetHandleByIndex (hashcat_ctx_t *hashcat_ctx, unsigned int index, nvmlDevice_t *device)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -180,7 +180,8 @@ int hm_NVML_nvmlDeviceGetHandleByIndex (hashcat_ctx_t *hashcat_ctx, unsigned int
   return 0;
 }
 
-int hm_NVML_nvmlDeviceGetName (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, char *name, unsigned int length)
+/*
+static int hm_NVML_nvmlDeviceGetName (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, char *name, unsigned int length)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -199,8 +200,9 @@ int hm_NVML_nvmlDeviceGetName (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, 
 
   return 0;
 }
+*/
 
-int hm_NVML_nvmlDeviceGetTemperature (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlTemperatureSensors_t sensorType, unsigned int *temp)
+static int hm_NVML_nvmlDeviceGetTemperature (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlTemperatureSensors_t sensorType, unsigned int *temp)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -220,7 +222,7 @@ int hm_NVML_nvmlDeviceGetTemperature (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t d
   return 0;
 }
 
-int hm_NVML_nvmlDeviceGetFanSpeed (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int *speed)
+static int hm_NVML_nvmlDeviceGetFanSpeed (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int *speed)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -240,7 +242,8 @@ int hm_NVML_nvmlDeviceGetFanSpeed (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t devi
   return 0;
 }
 
-int hm_NVML_nvmlDeviceGetPowerUsage (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int *power)
+/*
+static int hm_NVML_nvmlDeviceGetPowerUsage (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int *power)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -259,8 +262,9 @@ int hm_NVML_nvmlDeviceGetPowerUsage (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t de
 
   return 0;
 }
+*/
 
-int hm_NVML_nvmlDeviceGetUtilizationRates (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlUtilization_t *utilization)
+static int hm_NVML_nvmlDeviceGetUtilizationRates (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlUtilization_t *utilization)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -280,7 +284,7 @@ int hm_NVML_nvmlDeviceGetUtilizationRates (hashcat_ctx_t *hashcat_ctx, nvmlDevic
   return 0;
 }
 
-int hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlClockType_t type, unsigned int *clock)
+static int hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlClockType_t type, unsigned int *clock)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -300,7 +304,7 @@ int hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t dev
   return 0;
 }
 
-int hm_NVML_nvmlDeviceGetTemperatureThreshold (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlTemperatureThresholds_t thresholdType, unsigned int *temp)
+static int hm_NVML_nvmlDeviceGetTemperatureThreshold (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlTemperatureThresholds_t thresholdType, unsigned int *temp)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -320,7 +324,8 @@ int hm_NVML_nvmlDeviceGetTemperatureThreshold (hashcat_ctx_t *hashcat_ctx, nvmlD
   return 0;
 }
 
-int hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkGen)
+/*
+static int hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkGen)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -339,8 +344,9 @@ int hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (hashcat_ctx_t *hashcat_ctx, nvm
 
   return 0;
 }
+*/
 
-int hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkWidth)
+static int hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkWidth)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -360,7 +366,8 @@ int hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (hashcat_ctx_t *hashcat_ctx, nvmlDevi
   return 0;
 }
 
-int hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned long long *clocksThrottleReasons)
+/*
+static int hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned long long *clocksThrottleReasons)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -379,8 +386,10 @@ int hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (hashcat_ctx_t *hashcat_ct
 
   return 0;
 }
+*/
 
-int hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned long long *supportedClocksThrottleReasons)
+/*
+static int hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned long long *supportedClocksThrottleReasons)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -399,8 +408,10 @@ int hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (hashcat_ctx_t *hashcat_
 
   return 0;
 }
+*/
 
-int hm_NVML_nvmlDeviceSetComputeMode (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlComputeMode_t mode)
+/*
+static int hm_NVML_nvmlDeviceSetComputeMode (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlComputeMode_t mode)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -419,8 +430,10 @@ int hm_NVML_nvmlDeviceSetComputeMode (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t d
 
   return 0;
 }
+*/
 
-int hm_NVML_nvmlDeviceSetGpuOperationMode (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlGpuOperationMode_t mode)
+/*
+static int hm_NVML_nvmlDeviceSetGpuOperationMode (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlGpuOperationMode_t mode)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -439,8 +452,9 @@ int hm_NVML_nvmlDeviceSetGpuOperationMode (hashcat_ctx_t *hashcat_ctx, nvmlDevic
 
   return 0;
 }
+*/
 
-int hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int *minLimit, unsigned int *maxLimit)
+static int hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int *minLimit, unsigned int *maxLimit)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -460,7 +474,7 @@ int hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (hashcat_ctx_t *hashcat
   return 0;
 }
 
-int hm_NVML_nvmlDeviceSetPowerManagementLimit (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int limit)
+static int hm_NVML_nvmlDeviceSetPowerManagementLimit (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int limit)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -480,7 +494,7 @@ int hm_NVML_nvmlDeviceSetPowerManagementLimit (hashcat_ctx_t *hashcat_ctx, nvmlD
   return 0;
 }
 
-int hm_NVML_nvmlDeviceGetPowerManagementLimit (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int *limit)
+static int hm_NVML_nvmlDeviceGetPowerManagementLimit (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, unsigned int *limit)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -502,7 +516,7 @@ int hm_NVML_nvmlDeviceGetPowerManagementLimit (hashcat_ctx_t *hashcat_ctx, nvmlD
 
 // nvapi functions
 
-int nvapi_init (hashcat_ctx_t *hashcat_ctx)
+static int nvapi_init (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -541,7 +555,7 @@ int nvapi_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void nvapi_close (hashcat_ctx_t *hashcat_ctx)
+static void nvapi_close (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -552,7 +566,7 @@ void nvapi_close (hashcat_ctx_t *hashcat_ctx)
     if (nvapi->lib)
       hc_dlclose (nvapi->lib);
 
-    myfree (nvapi);
+    hcfree (nvapi);
   }
 }
 
@@ -561,7 +575,7 @@ static void hm_NvAPI_GetErrorMessage (NVAPI_PTR *nvapi, const NvAPI_Status NvAPI
   nvapi->NvAPI_GetErrorMessage (NvAPI_rc, string);
 }
 
-int hm_NvAPI_Initialize (hashcat_ctx_t *hashcat_ctx)
+static int hm_NvAPI_Initialize (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -585,7 +599,7 @@ int hm_NvAPI_Initialize (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-int hm_NvAPI_Unload (hashcat_ctx_t *hashcat_ctx)
+static int hm_NvAPI_Unload (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -607,7 +621,7 @@ int hm_NvAPI_Unload (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-int hm_NvAPI_EnumPhysicalGPUs (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount)
+static int hm_NvAPI_EnumPhysicalGPUs (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -629,7 +643,7 @@ int hm_NvAPI_EnumPhysicalGPUs (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle n
   return 0;
 }
 
-int hm_NvAPI_GPU_GetPerfPoliciesInfo (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info)
+static int hm_NvAPI_GPU_GetPerfPoliciesInfo (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -651,7 +665,7 @@ int hm_NvAPI_GPU_GetPerfPoliciesInfo (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuH
   return 0;
 }
 
-int hm_NvAPI_GPU_GetPerfPoliciesStatus (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status)
+static int hm_NvAPI_GPU_GetPerfPoliciesStatus (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -673,7 +687,7 @@ int hm_NvAPI_GPU_GetPerfPoliciesStatus (hashcat_ctx_t *hashcat_ctx, NvPhysicalGp
   return 0;
 }
 
-int hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels)
+static int hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -695,7 +709,7 @@ int hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandl
   return 0;
 }
 
-int hm_NvAPI_GPU_RestoreCoolerSettings (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex)
+static int hm_NvAPI_GPU_RestoreCoolerSettings (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -732,7 +746,7 @@ void __GSHandlerCheck ()
 
 // xnvctrl functions
 
-int xnvctrl_init (hashcat_ctx_t *hashcat_ctx)
+static int xnvctrl_init (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -780,7 +794,7 @@ int xnvctrl_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void xnvctrl_close (hashcat_ctx_t *hashcat_ctx)
+static void xnvctrl_close (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -802,11 +816,11 @@ void xnvctrl_close (hashcat_ctx_t *hashcat_ctx)
 
     #endif
 
-    myfree (xnvctrl);
+    hcfree (xnvctrl);
   }
 }
 
-int hm_XNVCTRL_XOpenDisplay (hashcat_ctx_t *hashcat_ctx)
+static int hm_XNVCTRL_XOpenDisplay (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -828,7 +842,7 @@ int hm_XNVCTRL_XOpenDisplay (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void hm_XNVCTRL_XCloseDisplay (hashcat_ctx_t *hashcat_ctx)
+static void hm_XNVCTRL_XCloseDisplay (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -841,7 +855,7 @@ void hm_XNVCTRL_XCloseDisplay (hashcat_ctx_t *hashcat_ctx)
   xnvctrl->XCloseDisplay (xnvctrl->dpy);
 }
 
-int get_fan_control (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
+static int hm_XNVCTRL_get_fan_control (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -863,7 +877,7 @@ int get_fan_control (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
   return 0;
 }
 
-int set_fan_control (hashcat_ctx_t *hashcat_ctx, const int gpu, int val)
+static int hm_XNVCTRL_set_fan_control (hashcat_ctx_t *hashcat_ctx, const int gpu, int val)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -875,13 +889,13 @@ int set_fan_control (hashcat_ctx_t *hashcat_ctx, const int gpu, int val)
 
   int cur;
 
-  int rc = get_fan_control (hashcat_ctx, gpu, &cur);
+  int rc = hm_XNVCTRL_get_fan_control (hashcat_ctx, gpu, &cur);
 
   if (rc == -1) return -1;
 
   xnvctrl->XNVCTRLSetTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_GPU, gpu, 0, NV_CTRL_GPU_COOLER_MANUAL_CONTROL, val);
 
-  rc = get_fan_control (hashcat_ctx, gpu, &cur);
+  rc = hm_XNVCTRL_get_fan_control (hashcat_ctx, gpu, &cur);
 
   if (rc == -1) return -1;
 
@@ -890,7 +904,8 @@ int set_fan_control (hashcat_ctx_t *hashcat_ctx, const int gpu, int val)
   return 0;
 }
 
-int get_core_threshold (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
+/*
+static int hm_XNVCTRL_get_core_threshold (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -911,8 +926,9 @@ int get_core_threshold (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
 
   return 0;
 }
+*/
 
-int get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
+static int hm_XNVCTRL_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -934,7 +950,7 @@ int get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
   return 0;
 }
 
-int get_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
+static int hm_XNVCTRL_get_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -956,7 +972,7 @@ int get_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
   return 0;
 }
 
-int set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int gpu, int val)
+static int hm_XNVCTRL_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int gpu, int val)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -968,13 +984,13 @@ int set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int gpu, int val)
 
   int cur;
 
-  int rc = get_fan_speed_target (hashcat_ctx, gpu, &cur);
+  int rc = hm_XNVCTRL_get_fan_speed_target (hashcat_ctx, gpu, &cur);
 
   if (rc == -1) return -1;
 
   xnvctrl->XNVCTRLSetTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_COOLER, gpu, 0, NV_CTRL_THERMAL_COOLER_LEVEL, val);
 
-  rc = get_fan_speed_target (hashcat_ctx, gpu, &cur);
+  rc = hm_XNVCTRL_get_fan_speed_target (hashcat_ctx, gpu, &cur);
 
   if (rc == -1) return -1;
 
@@ -985,7 +1001,7 @@ int set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int gpu, int val)
 
 // ADL functions
 
-int adl_init (hashcat_ctx_t *hashcat_ctx)
+static int adl_init (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1050,7 +1066,7 @@ int adl_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void adl_close (hashcat_ctx_t *hashcat_ctx)
+static void adl_close (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1061,11 +1077,11 @@ void adl_close (hashcat_ctx_t *hashcat_ctx)
     if (adl->lib)
       hc_dlclose (adl->lib);
 
-    myfree (adl);
+    hcfree (adl);
   }
 }
 
-int hm_ADL_Main_Control_Destroy (hashcat_ctx_t *hashcat_ctx)
+static int hm_ADL_Main_Control_Destroy (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1083,7 +1099,7 @@ int hm_ADL_Main_Control_Destroy (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-int hm_ADL_Main_Control_Create (hashcat_ctx_t *hashcat_ctx, ADL_MAIN_MALLOC_CALLBACK callback, int iEnumConnectedAdapters)
+static int hm_ADL_Main_Control_Create (hashcat_ctx_t *hashcat_ctx, ADL_MAIN_MALLOC_CALLBACK callback, int iEnumConnectedAdapters)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1101,7 +1117,7 @@ int hm_ADL_Main_Control_Create (hashcat_ctx_t *hashcat_ctx, ADL_MAIN_MALLOC_CALL
   return 0;
 }
 
-int hm_ADL_Adapter_NumberOfAdapters_Get (hashcat_ctx_t *hashcat_ctx, int *lpNumAdapters)
+static int hm_ADL_Adapter_NumberOfAdapters_Get (hashcat_ctx_t *hashcat_ctx, int *lpNumAdapters)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1119,7 +1135,7 @@ int hm_ADL_Adapter_NumberOfAdapters_Get (hashcat_ctx_t *hashcat_ctx, int *lpNumA
   return 0;
 }
 
-int hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx_t *hashcat_ctx, LPAdapterInfo lpInfo, int iInputSize)
+static int hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx_t *hashcat_ctx, LPAdapterInfo lpInfo, int iInputSize)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1137,7 +1153,8 @@ int hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx_t *hashcat_ctx, LPAdapterInfo lp
   return 0;
 }
 
-int hm_ADL_Display_DisplayInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *iNumDisplays, ADLDisplayInfo **lppInfo, int iForceDetect)
+/*
+static int hm_ADL_Display_DisplayInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *iNumDisplays, ADLDisplayInfo **lppInfo, int iForceDetect)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1154,8 +1171,10 @@ int hm_ADL_Display_DisplayInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterInde
 
   return 0;
 }
+*/
 
-int hm_ADL_Adapter_ID_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *lpAdapterID)
+/*
+static int hm_ADL_Adapter_ID_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *lpAdapterID)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1172,8 +1191,10 @@ int hm_ADL_Adapter_ID_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *l
 
   return ADL_rc;
 }
+*/
 
-int hm_ADL_Adapter_VideoBiosInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLBiosInfo *lpBiosInfo)
+/*
+static int hm_ADL_Adapter_VideoBiosInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLBiosInfo *lpBiosInfo)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1190,8 +1211,10 @@ int hm_ADL_Adapter_VideoBiosInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIn
 
   return ADL_rc;
 }
+*/
 
-int hm_ADL_Overdrive_ThermalDevices_Enum (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLThermalControllerInfo *lpThermalControllerInfo)
+/*
+static int hm_ADL_Overdrive_ThermalDevices_Enum (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLThermalControllerInfo *lpThermalControllerInfo)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1208,8 +1231,9 @@ int hm_ADL_Overdrive_ThermalDevices_Enum (hashcat_ctx_t *hashcat_ctx, int iAdapt
 
   return 0;
 }
+*/
 
-int hm_ADL_Overdrive5_Temperature_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLTemperature *lpTemperature)
+static int hm_ADL_Overdrive5_Temperature_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLTemperature *lpTemperature)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1227,7 +1251,7 @@ int hm_ADL_Overdrive5_Temperature_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterI
   return 0;
 }
 
-int hm_ADL_Overdrive6_Temperature_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *iTemperature)
+static int hm_ADL_Overdrive6_Temperature_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *iTemperature)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1245,7 +1269,7 @@ int hm_ADL_Overdrive6_Temperature_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterI
   return 0;
 }
 
-int hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLPMActivity *lpActivity)
+static int hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLPMActivity *lpActivity)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1263,7 +1287,7 @@ int hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx_t *hashcat_ctx, int iAdapt
   return 0;
 }
 
-int hm_ADL_Overdrive5_FanSpeedInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedInfo *lpFanSpeedInfo)
+static int hm_ADL_Overdrive5_FanSpeedInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedInfo *lpFanSpeedInfo)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1281,7 +1305,7 @@ int hm_ADL_Overdrive5_FanSpeedInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapter
   return ADL_rc;
 }
 
-int hm_ADL_Overdrive5_FanSpeed_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
+static int hm_ADL_Overdrive5_FanSpeed_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1299,7 +1323,7 @@ int hm_ADL_Overdrive5_FanSpeed_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterInde
   return 0;
 }
 
-int hm_ADL_Overdrive6_FanSpeed_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6FanSpeedInfo *lpFanSpeedInfo)
+static int hm_ADL_Overdrive6_FanSpeed_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6FanSpeedInfo *lpFanSpeedInfo)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1317,7 +1341,7 @@ int hm_ADL_Overdrive6_FanSpeed_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterInde
   return 0;
 }
 
-int hm_ADL_Overdrive5_FanSpeed_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
+static int hm_ADL_Overdrive5_FanSpeed_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1335,7 +1359,7 @@ int hm_ADL_Overdrive5_FanSpeed_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterInde
   return 0;
 }
 
-int hm_ADL_Overdrive6_FanSpeed_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6FanSpeedValue *lpFanSpeedValue)
+static int hm_ADL_Overdrive6_FanSpeed_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6FanSpeedValue *lpFanSpeedValue)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1353,7 +1377,7 @@ int hm_ADL_Overdrive6_FanSpeed_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterInde
   return 0;
 }
 
-int hm_ADL_Overdrive5_FanSpeedToDefault_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex)
+static int hm_ADL_Overdrive5_FanSpeedToDefault_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1371,7 +1395,8 @@ int hm_ADL_Overdrive5_FanSpeedToDefault_Set (hashcat_ctx_t *hashcat_ctx, int iAd
   return 0;
 }
 
-int hm_ADL_Overdrive_ODParameters_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLODParameters *lpOdParameters)
+/*
+static int hm_ADL_Overdrive_ODParameters_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLODParameters *lpOdParameters)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1388,8 +1413,10 @@ int hm_ADL_Overdrive_ODParameters_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterI
 
   return 0;
 }
+*/
 
-int hm_ADL_Overdrive_ODPerformanceLevels_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iDefault, ADLODPerformanceLevels *lpOdPerformanceLevels)
+/*
+static int hm_ADL_Overdrive_ODPerformanceLevels_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iDefault, ADLODPerformanceLevels *lpOdPerformanceLevels)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1406,8 +1433,10 @@ int hm_ADL_Overdrive_ODPerformanceLevels_Get (hashcat_ctx_t *hashcat_ctx, int iA
 
   return 0;
 }
+*/
 
-int hm_ADL_Overdrive_ODPerformanceLevels_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLODPerformanceLevels *lpOdPerformanceLevels)
+/*
+static int hm_ADL_Overdrive_ODPerformanceLevels_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLODPerformanceLevels *lpOdPerformanceLevels)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1424,8 +1453,9 @@ int hm_ADL_Overdrive_ODPerformanceLevels_Set (hashcat_ctx_t *hashcat_ctx, int iA
 
   return 0;
 }
+*/
 
-int hm_ADL_Overdrive_PowerControlInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6PowerControlInfo *powertune)
+static int hm_ADL_Overdrive_PowerControlInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6PowerControlInfo *powertune)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1443,7 +1473,7 @@ int hm_ADL_Overdrive_PowerControlInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdap
   return 0;
 }
 
-int hm_ADL_Overdrive_PowerControl_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *iCurrentValue)
+static int hm_ADL_Overdrive_PowerControl_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *iCurrentValue)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1463,7 +1493,7 @@ int hm_ADL_Overdrive_PowerControl_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterI
   return 0;
 }
 
-int hm_ADL_Overdrive_PowerControl_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int level)
+static int hm_ADL_Overdrive_PowerControl_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int level)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1505,7 +1535,8 @@ int hm_ADL_Overdrive_PowerControl_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterI
   return 0;
 }
 
-int hm_ADL_Adapter_Active_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *lpStatus)
+/*
+static int hm_ADL_Adapter_Active_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *lpStatus)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1522,9 +1553,10 @@ int hm_ADL_Adapter_Active_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, in
 
   return 0;
 }
+*/
 
 /*
-int hm_ADL_DisplayEnable_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *lpDisplayIndexList, int iDisplayListSize, int bPersistOnly)
+static int hm_ADL_DisplayEnable_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *lpDisplayIndexList, int iDisplayListSize, int bPersistOnly)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1543,7 +1575,7 @@ int hm_ADL_DisplayEnable_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int
 }
 */
 
-int hm_ADL_Overdrive_Caps (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *od_supported, int *od_enabled, int *od_version)
+static int hm_ADL_Overdrive_Caps (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *od_supported, int *od_enabled, int *od_version)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1561,7 +1593,7 @@ int hm_ADL_Overdrive_Caps (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *o
   return 0;
 }
 
-int hm_ADL_Overdrive6_PowerControl_Caps (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *lpSupported)
+static int hm_ADL_Overdrive6_PowerControl_Caps (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *lpSupported)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1579,7 +1611,7 @@ int hm_ADL_Overdrive6_PowerControl_Caps (hashcat_ctx_t *hashcat_ctx, int iAdapte
   return 0;
 }
 
-int hm_ADL_Overdrive_Capabilities_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6Capabilities *caps)
+static int hm_ADL_Overdrive_Capabilities_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6Capabilities *caps)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1597,7 +1629,7 @@ int hm_ADL_Overdrive_Capabilities_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterI
   return 0;
 }
 
-int hm_ADL_Overdrive_StateInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int type, ADLOD6MemClockState *state)
+static int hm_ADL_Overdrive_StateInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int type, ADLOD6MemClockState *state)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1662,7 +1694,8 @@ int hm_ADL_Overdrive_StateInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterInde
   return 0;
 }
 
-int hm_ADL_Overdrive_CurrentStatus_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6CurrentStatus *status)
+/*
+static int hm_ADL_Overdrive_CurrentStatus_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6CurrentStatus *status)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1679,8 +1712,9 @@ int hm_ADL_Overdrive_CurrentStatus_Get (hashcat_ctx_t *hashcat_ctx, int iAdapter
 
   return 0;
 }
+*/
 
-int hm_ADL_Overdrive_State_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int type, ADLOD6StateInfo *state)
+static int hm_ADL_Overdrive_State_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int type, ADLOD6StateInfo *state)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1734,7 +1768,7 @@ int hm_ADL_Overdrive_State_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, i
   return 0;
 }
 
-int hm_ADL_Overdrive6_TargetTemperatureData_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *cur_temp, int *default_temp)
+static int hm_ADL_Overdrive6_TargetTemperatureData_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *cur_temp, int *default_temp)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1752,7 +1786,8 @@ int hm_ADL_Overdrive6_TargetTemperatureData_Get (hashcat_ctx_t *hashcat_ctx, int
   return 0;
 }
 
-int hm_ADL_Overdrive6_TargetTemperatureRangeInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6ParameterRange *lpTargetTemperatureInfo)
+/*
+static int hm_ADL_Overdrive6_TargetTemperatureRangeInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6ParameterRange *lpTargetTemperatureInfo)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1769,8 +1804,9 @@ int hm_ADL_Overdrive6_TargetTemperatureRangeInfo_Get (hashcat_ctx_t *hashcat_ctx
 
   return 0;
 }
+*/
 
-int hm_ADL_Overdrive6_FanSpeed_Reset (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex)
+static int hm_ADL_Overdrive6_FanSpeed_Reset (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -1810,7 +1846,7 @@ static LPAdapterInfo hm_get_adapter_info_adl (hashcat_ctx_t *hashcat_ctx, int iN
 {
   size_t AdapterInfoSize = iNumberAdapters * sizeof (AdapterInfo);
 
-  LPAdapterInfo lpAdapterInfo = (LPAdapterInfo) mymalloc (AdapterInfoSize);
+  LPAdapterInfo lpAdapterInfo = (LPAdapterInfo) hcmalloc (hashcat_ctx, AdapterInfoSize);
 
   if (hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx, lpAdapterInfo, AdapterInfoSize) == -1) return NULL;
 
@@ -1907,7 +1943,7 @@ static void hm_sort_adl_adapters_by_busid_devid (u32 *valid_adl_device_list, int
   }
 }
 
-static u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adapters, LPAdapterInfo lpAdapterInfo)
+static u32 *hm_get_list_valid_adl_adapters (hashcat_ctx_t *hashcat_ctx, int iNumberAdapters, int *num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
   *num_adl_adapters = 0;
 
@@ -1946,14 +1982,14 @@ static u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_ad
 
     // add it to the list
 
-    adl_adapters = (u32 *) myrealloc (adl_adapters, (*num_adl_adapters) * sizeof (int), sizeof (int));
+    adl_adapters = (u32 *) hcrealloc (hashcat_ctx, adl_adapters, (*num_adl_adapters) * sizeof (int), sizeof (int));
 
     adl_adapters[*num_adl_adapters] = i;
 
     // rest is just bookkeeping
 
-    bus_numbers    = (int*) myrealloc (bus_numbers,    (*num_adl_adapters) * sizeof (int), sizeof (int));
-    device_numbers = (int*) myrealloc (device_numbers, (*num_adl_adapters) * sizeof (int), sizeof (int));
+    bus_numbers    = (int*) hcrealloc (hashcat_ctx, bus_numbers,    (*num_adl_adapters) * sizeof (int), sizeof (int));
+    device_numbers = (int*) hcrealloc (hashcat_ctx, device_numbers, (*num_adl_adapters) * sizeof (int), sizeof (int));
 
     bus_numbers[*num_adl_adapters]    = info.iBusNumber;
     device_numbers[*num_adl_adapters] = info.iDeviceNumber;
@@ -1961,8 +1997,8 @@ static u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_ad
     (*num_adl_adapters)++;
   }
 
-  myfree (bus_numbers);
-  myfree (device_numbers);
+  hcfree (bus_numbers);
+  hcfree (device_numbers);
 
   // sort the list by increasing bus id, device id number
 
@@ -2479,6 +2515,7 @@ int hm_get_throttle_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
+    /* this is triggered by mask generator, too. therefore useless
     unsigned long long clocksThrottleReasons = 0;
     unsigned long long supportedThrottleReasons = 0;
 
@@ -2496,6 +2533,27 @@ int hm_get_throttle_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
     }
 
     return (clocksThrottleReasons != nvmlClocksThrottleReasonNone);
+    */
+
+    if (hwmon_ctx->hm_nvapi)
+    {
+      NV_GPU_PERF_POLICIES_INFO_PARAMS_V1   perfPolicies_info;
+      NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 perfPolicies_status;
+
+      memset (&perfPolicies_info,   0, sizeof (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1));
+      memset (&perfPolicies_status, 0, sizeof (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1));
+
+      perfPolicies_info.version   = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1, 1);
+      perfPolicies_status.version = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1, 1);
+
+      hm_NvAPI_GPU_GetPerfPoliciesInfo (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, &perfPolicies_info);
+
+      perfPolicies_status.info_value = perfPolicies_info.info_value;
+
+      hm_NvAPI_GPU_GetPerfPoliciesStatus (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, &perfPolicies_status);
+
+      return perfPolicies_status.throttle & 2;
+    }
   }
 
   return -1;
@@ -2610,7 +2668,26 @@ int hm_set_fanspeed_with_device_id_xnvctrl (hashcat_ctx_t *hashcat_ctx, const u3
   {
     if (hwmon_ctx->hm_xnvctrl)
     {
-      if (set_fan_speed_target (hashcat_ctx, hwmon_ctx->hm_device[device_id].xnvctrl, fanspeed) == -1) return -1;
+      if (hm_XNVCTRL_set_fan_speed_target (hashcat_ctx, hwmon_ctx->hm_device[device_id].xnvctrl, fanspeed) == -1) return -1;
+
+      return 0;
+    }
+  }
+
+  return -1;
+}
+
+int hm_set_fanctrl_with_device_id_xnvctrl (hashcat_ctx_t *hashcat_ctx, const u32 device_id, const int val)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  if (hwmon_ctx->enabled == false) return -1;
+
+  if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
+  {
+    if (hwmon_ctx->hm_xnvctrl)
+    {
+      if (hm_XNVCTRL_set_fan_control (hashcat_ctx, hwmon_ctx->hm_device[device_id].xnvctrl, val) == -1) return -1;
 
       return 0;
     }
@@ -2636,21 +2713,21 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->version           == true) return 0;
   if (user_options->gpu_temp_disable  == true) return 0;
 
-  hwmon_ctx->hm_device = (hm_attrs_t *) mycalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hwmon_ctx->hm_device = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t));
 
   /**
    * Initialize shared libraries
    */
 
-  ADL_PTR     *adl     = (ADL_PTR *)     mymalloc (sizeof (ADL_PTR));
-  NVAPI_PTR   *nvapi   = (NVAPI_PTR *)   mymalloc (sizeof (NVAPI_PTR));
-  NVML_PTR    *nvml    = (NVML_PTR *)    mymalloc (sizeof (NVML_PTR));
-  XNVCTRL_PTR *xnvctrl = (XNVCTRL_PTR *) mymalloc (sizeof (XNVCTRL_PTR));
+  ADL_PTR     *adl     = (ADL_PTR *)     hcmalloc (hashcat_ctx, sizeof (ADL_PTR));
+  NVAPI_PTR   *nvapi   = (NVAPI_PTR *)   hcmalloc (hashcat_ctx, sizeof (NVAPI_PTR));
+  NVML_PTR    *nvml    = (NVML_PTR *)    hcmalloc (hashcat_ctx, sizeof (NVML_PTR));
+  XNVCTRL_PTR *xnvctrl = (XNVCTRL_PTR *) hcmalloc (hashcat_ctx, sizeof (XNVCTRL_PTR));
 
-  hm_attrs_t *hm_adapters_adl      = (hm_attrs_t *) mycalloc (DEVICES_MAX, sizeof (hm_attrs_t));
-  hm_attrs_t *hm_adapters_nvapi    = (hm_attrs_t *) mycalloc (DEVICES_MAX, sizeof (hm_attrs_t));
-  hm_attrs_t *hm_adapters_nvml     = (hm_attrs_t *) mycalloc (DEVICES_MAX, sizeof (hm_attrs_t));
-  hm_attrs_t *hm_adapters_xnvctrl  = (hm_attrs_t *) mycalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_adl      = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_nvapi    = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_nvml     = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_xnvctrl  = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t));
 
   if (opencl_ctx->need_nvml == true)
   {
@@ -2658,7 +2735,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (nvml_init (hashcat_ctx) == -1)
     {
-      myfree (hwmon_ctx->hm_nvml);
+      hcfree (hwmon_ctx->hm_nvml);
 
       hwmon_ctx->hm_nvml = NULL;
     }
@@ -2670,7 +2747,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (nvapi_init (hashcat_ctx) == -1)
     {
-      myfree (hwmon_ctx->hm_nvapi);
+      hcfree (hwmon_ctx->hm_nvapi);
 
       hwmon_ctx->hm_nvapi = NULL;
     }
@@ -2682,7 +2759,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (xnvctrl_init (hashcat_ctx) == -1)
     {
-      myfree (hwmon_ctx->hm_xnvctrl);
+      hcfree (hwmon_ctx->hm_xnvctrl);
 
       hwmon_ctx->hm_xnvctrl = NULL;
     }
@@ -2694,7 +2771,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (adl_init (hashcat_ctx) == -1)
     {
-      myfree (hwmon_ctx->hm_adl);
+      hcfree (hwmon_ctx->hm_adl);
 
       hwmon_ctx->hm_adl = NULL;
     }
@@ -2704,7 +2781,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hm_NVML_nvmlInit (hashcat_ctx) == 0)
     {
-      HM_ADAPTER_NVML *nvmlGPUHandle = (HM_ADAPTER_NVML *) mycalloc (DEVICES_MAX, sizeof (HM_ADAPTER_NVML));
+      HM_ADAPTER_NVML *nvmlGPUHandle = (HM_ADAPTER_NVML *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (HM_ADAPTER_NVML));
 
       int tmp_in = hm_get_adapter_index_nvml (hashcat_ctx, nvmlGPUHandle);
 
@@ -2726,7 +2803,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         //hm_NVML_nvmlDeviceSetGpuOperationMode (hashcat_ctx, hm_adapters_nvml[i].nvml, NVML_GOM_ALL_ON);
       }
 
-      myfree (nvmlGPUHandle);
+      hcfree (nvmlGPUHandle);
     }
   }
 
@@ -2734,7 +2811,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hm_NvAPI_Initialize (hashcat_ctx) == 0)
     {
-      HM_ADAPTER_NVAPI *nvGPUHandle = (HM_ADAPTER_NVAPI *) mycalloc (DEVICES_MAX, sizeof (HM_ADAPTER_NVAPI));
+      HM_ADAPTER_NVAPI *nvGPUHandle = (HM_ADAPTER_NVAPI *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (HM_ADAPTER_NVAPI));
 
       int tmp_in = hm_get_adapter_index_nvapi (hashcat_ctx, nvGPUHandle);
 
@@ -2745,7 +2822,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         hm_adapters_nvapi[tmp_out++].nvapi = nvGPUHandle[i];
       }
 
-      myfree (nvGPUHandle);
+      hcfree (nvGPUHandle);
     }
   }
 
@@ -2763,7 +2840,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         int speed = 0;
 
-        if (get_fan_speed_current (hashcat_ctx, device_id, &speed) == 0) hm_adapters_xnvctrl[device_id].fan_get_supported = true;
+        if (hm_XNVCTRL_get_fan_speed_current (hashcat_ctx, device_id, &speed) == 0) hm_adapters_xnvctrl[device_id].fan_get_supported = true;
       }
     }
   }
@@ -2788,7 +2865,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       int num_adl_adapters = 0;
 
-      u32 *valid_adl_device_list = hm_get_list_valid_adl_adapters (hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
+      u32 *valid_adl_device_list = hm_get_list_valid_adl_adapters (hashcat_ctx, hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
 
       if (num_adl_adapters > 0)
       {
@@ -2799,9 +2876,9 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         hm_check_fanspeed_control (hashcat_ctx, hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
       }
 
-      myfree (valid_adl_device_list);
+      hcfree (valid_adl_device_list);
 
-      myfree (lpAdapterInfo);
+      hcfree (lpAdapterInfo);
     }
   }
 
@@ -2820,11 +2897,11 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * save buffer required for later restores
    */
 
-  hwmon_ctx->od_clock_mem_status = (ADLOD6MemClockState *) mycalloc (opencl_ctx->devices_cnt, sizeof (ADLOD6MemClockState));
+  hwmon_ctx->od_clock_mem_status = (ADLOD6MemClockState *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (ADLOD6MemClockState));
 
-  hwmon_ctx->od_power_control_status = (int *) mycalloc (opencl_ctx->devices_cnt, sizeof (int));
+  hwmon_ctx->od_power_control_status = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int));
 
-  hwmon_ctx->nvml_power_limit = (unsigned int *) mycalloc (opencl_ctx->devices_cnt, sizeof (unsigned int));
+  hwmon_ctx->nvml_power_limit = (unsigned int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (unsigned int));
 
   /**
    * HM devices: copy
@@ -2863,10 +2940,10 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  myfree (hm_adapters_adl);
-  myfree (hm_adapters_nvapi);
-  myfree (hm_adapters_nvml);
-  myfree (hm_adapters_xnvctrl);
+  hcfree (hm_adapters_adl);
+  hcfree (hm_adapters_nvapi);
+  hcfree (hm_adapters_nvml);
+  hcfree (hm_adapters_xnvctrl);
 
   /**
    * powertune on user request
@@ -2975,7 +3052,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             event_log_error (hashcat_ctx, "The custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
           }
 
-          ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
+          ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) hccalloc (hashcat_ctx, 1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
 
           performance_state->iNumberOfPerformanceLevels = 2;
 
@@ -2991,7 +3068,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             return -1;
           }
 
-          myfree (performance_state);
+          hcfree (performance_state);
         }
 
         // set powertune value only
@@ -3086,13 +3163,15 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           }
           else if (device_param->device_vendor_id == VENDOR_ID_NV)
           {
-            #if defined (__linux__)
-            rc = set_fan_control (hashcat_ctx, hwmon_ctx->hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
-            #endif
+            if (hwmon_ctx->hm_xnvctrl)
+            {
+              rc = hm_set_fanctrl_with_device_id_xnvctrl (hashcat_ctx, device_id, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
+            }
 
-            #if defined (_WIN)
-            rc = hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx, device_id, fanspeed, 1);
-            #endif
+            if (hwmon_ctx->hm_nvapi)
+            {
+              rc = hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx, device_id, fanspeed, 1);
+            }
           }
 
           if (rc == 0)
@@ -3101,7 +3180,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           }
           else
           {
-            event_log_error (hashcat_ctx, "Failed to set initial fan speed for device #%u", device_id + 1);
+            //event_log_error (hashcat_ctx, "Failed to set initial fan speed for device #%u", device_id + 1);
 
             hwmon_ctx->hm_device[device_id].fan_set_supported = false;
           }
@@ -3145,13 +3224,15 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
         }
         else if (device_param->device_vendor_id == VENDOR_ID_NV)
         {
-          #if defined (__linux__)
-          rc = set_fan_control (hashcat_ctx, hwmon_ctx->hm_device[device_id].xnvctrl, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE);
-          #endif
+          if (hwmon_ctx->hm_xnvctrl)
+          {
+            rc = hm_set_fanctrl_with_device_id_xnvctrl (hashcat_ctx, device_id, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_FALSE);
+          }
 
-          #if defined (_WIN)
-          rc = hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx, device_id, 100, 0);
-          #endif
+          if (hwmon_ctx->hm_nvapi)
+          {
+            rc = hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx, device_id, 100, 0);
+          }
         }
 
         if (rc == -1) event_log_error (hashcat_ctx, "Failed to restore default fan speed and policy for device #%", device_id + 1);
@@ -3195,7 +3276,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
           // clocks
 
-          ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) mycalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
+          ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) hccalloc (hashcat_ctx, 1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
 
           performance_state->iNumberOfPerformanceLevels = 2;
 
@@ -3211,7 +3292,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
             continue;
           }
 
-          myfree (performance_state);
+          hcfree (performance_state);
         }
       }
     }
@@ -3259,11 +3340,11 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   // free memory
 
-  myfree (hwmon_ctx->nvml_power_limit);
-  myfree (hwmon_ctx->od_power_control_status);
-  myfree (hwmon_ctx->od_clock_mem_status);
+  hcfree (hwmon_ctx->nvml_power_limit);
+  hcfree (hwmon_ctx->od_power_control_status);
+  hcfree (hwmon_ctx->od_clock_mem_status);
 
-  myfree (hwmon_ctx->hm_device);
+  hcfree (hwmon_ctx->hm_device);
 
   memset (hwmon_ctx, 0, sizeof (hwmon_ctx_t));
 }

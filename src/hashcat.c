@@ -66,61 +66,61 @@ void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx, int (*event) (const u32, stru
 
   hashcat_ctx->event = event;
 
-  hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          mymalloc (sizeof (bitmap_ctx_t));
-  hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      mymalloc (sizeof (combinator_ctx_t));
-  hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             mymalloc (sizeof (cpt_ctx_t));
-  hashcat_ctx->debugfile_ctx      = (debugfile_ctx_t *)       mymalloc (sizeof (debugfile_ctx_t));
-  hashcat_ctx->dictstat_ctx       = (dictstat_ctx_t *)        mymalloc (sizeof (dictstat_ctx_t));
-  hashcat_ctx->event_ctx          = (event_ctx_t *)           mymalloc (sizeof (event_ctx_t));
-  hashcat_ctx->folder_config      = (folder_config_t *)       mymalloc (sizeof (folder_config_t));
-  hashcat_ctx->hashcat_user       = (hashcat_user_t *)        mymalloc (sizeof (hashcat_user_t));
-  hashcat_ctx->hashconfig         = (hashconfig_t *)          mymalloc (sizeof (hashconfig_t));
-  hashcat_ctx->hashes             = (hashes_t *)              mymalloc (sizeof (hashes_t));
-  hashcat_ctx->hwmon_ctx          = (hwmon_ctx_t *)           mymalloc (sizeof (hwmon_ctx_t));
-  hashcat_ctx->induct_ctx         = (induct_ctx_t *)          mymalloc (sizeof (induct_ctx_t));
-  hashcat_ctx->logfile_ctx        = (logfile_ctx_t *)         mymalloc (sizeof (logfile_ctx_t));
-  hashcat_ctx->loopback_ctx       = (loopback_ctx_t *)        mymalloc (sizeof (loopback_ctx_t));
-  hashcat_ctx->mask_ctx           = (mask_ctx_t *)            mymalloc (sizeof (mask_ctx_t));
-  hashcat_ctx->opencl_ctx         = (opencl_ctx_t *)          mymalloc (sizeof (opencl_ctx_t));
-  hashcat_ctx->outcheck_ctx       = (outcheck_ctx_t *)        mymalloc (sizeof (outcheck_ctx_t));
-  hashcat_ctx->outfile_ctx        = (outfile_ctx_t *)         mymalloc (sizeof (outfile_ctx_t));
-  hashcat_ctx->potfile_ctx        = (potfile_ctx_t *)         mymalloc (sizeof (potfile_ctx_t));
-  hashcat_ctx->restore_ctx        = (restore_ctx_t *)         mymalloc (sizeof (restore_ctx_t));
-  hashcat_ctx->status_ctx         = (status_ctx_t *)          mymalloc (sizeof (status_ctx_t));
-  hashcat_ctx->straight_ctx       = (straight_ctx_t *)        mymalloc (sizeof (straight_ctx_t));
-  hashcat_ctx->tuning_db          = (tuning_db_t *)           mymalloc (sizeof (tuning_db_t));
-  hashcat_ctx->user_options_extra = (user_options_extra_t *)  mymalloc (sizeof (user_options_extra_t));
-  hashcat_ctx->user_options       = (user_options_t *)        mymalloc (sizeof (user_options_t));
-  hashcat_ctx->wl_data            = (wl_data_t *)             mymalloc (sizeof (wl_data_t));
+  hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          hcmalloc (hashcat_ctx, sizeof (bitmap_ctx_t));
+  hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      hcmalloc (hashcat_ctx, sizeof (combinator_ctx_t));
+  hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             hcmalloc (hashcat_ctx, sizeof (cpt_ctx_t));
+  hashcat_ctx->debugfile_ctx      = (debugfile_ctx_t *)       hcmalloc (hashcat_ctx, sizeof (debugfile_ctx_t));
+  hashcat_ctx->dictstat_ctx       = (dictstat_ctx_t *)        hcmalloc (hashcat_ctx, sizeof (dictstat_ctx_t));
+  hashcat_ctx->event_ctx          = (event_ctx_t *)           hcmalloc (hashcat_ctx, sizeof (event_ctx_t));
+  hashcat_ctx->folder_config      = (folder_config_t *)       hcmalloc (hashcat_ctx, sizeof (folder_config_t));
+  hashcat_ctx->hashcat_user       = (hashcat_user_t *)        hcmalloc (hashcat_ctx, sizeof (hashcat_user_t));
+  hashcat_ctx->hashconfig         = (hashconfig_t *)          hcmalloc (hashcat_ctx, sizeof (hashconfig_t));
+  hashcat_ctx->hashes             = (hashes_t *)              hcmalloc (hashcat_ctx, sizeof (hashes_t));
+  hashcat_ctx->hwmon_ctx          = (hwmon_ctx_t *)           hcmalloc (hashcat_ctx, sizeof (hwmon_ctx_t));
+  hashcat_ctx->induct_ctx         = (induct_ctx_t *)          hcmalloc (hashcat_ctx, sizeof (induct_ctx_t));
+  hashcat_ctx->logfile_ctx        = (logfile_ctx_t *)         hcmalloc (hashcat_ctx, sizeof (logfile_ctx_t));
+  hashcat_ctx->loopback_ctx       = (loopback_ctx_t *)        hcmalloc (hashcat_ctx, sizeof (loopback_ctx_t));
+  hashcat_ctx->mask_ctx           = (mask_ctx_t *)            hcmalloc (hashcat_ctx, sizeof (mask_ctx_t));
+  hashcat_ctx->opencl_ctx         = (opencl_ctx_t *)          hcmalloc (hashcat_ctx, sizeof (opencl_ctx_t));
+  hashcat_ctx->outcheck_ctx       = (outcheck_ctx_t *)        hcmalloc (hashcat_ctx, sizeof (outcheck_ctx_t));
+  hashcat_ctx->outfile_ctx        = (outfile_ctx_t *)         hcmalloc (hashcat_ctx, sizeof (outfile_ctx_t));
+  hashcat_ctx->potfile_ctx        = (potfile_ctx_t *)         hcmalloc (hashcat_ctx, sizeof (potfile_ctx_t));
+  hashcat_ctx->restore_ctx        = (restore_ctx_t *)         hcmalloc (hashcat_ctx, sizeof (restore_ctx_t));
+  hashcat_ctx->status_ctx         = (status_ctx_t *)          hcmalloc (hashcat_ctx, sizeof (status_ctx_t));
+  hashcat_ctx->straight_ctx       = (straight_ctx_t *)        hcmalloc (hashcat_ctx, sizeof (straight_ctx_t));
+  hashcat_ctx->tuning_db          = (tuning_db_t *)           hcmalloc (hashcat_ctx, sizeof (tuning_db_t));
+  hashcat_ctx->user_options_extra = (user_options_extra_t *)  hcmalloc (hashcat_ctx, sizeof (user_options_extra_t));
+  hashcat_ctx->user_options       = (user_options_t *)        hcmalloc (hashcat_ctx, sizeof (user_options_t));
+  hashcat_ctx->wl_data            = (wl_data_t *)             hcmalloc (hashcat_ctx, sizeof (wl_data_t));
 }
 
 void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
-  myfree (hashcat_ctx->bitmap_ctx);
-  myfree (hashcat_ctx->combinator_ctx);
-  myfree (hashcat_ctx->cpt_ctx);
-  myfree (hashcat_ctx->debugfile_ctx);
-  myfree (hashcat_ctx->dictstat_ctx);
-  myfree (hashcat_ctx->event_ctx);
-  myfree (hashcat_ctx->folder_config);
-  myfree (hashcat_ctx->hashconfig);
-  myfree (hashcat_ctx->hashes);
-  myfree (hashcat_ctx->hwmon_ctx);
-  myfree (hashcat_ctx->induct_ctx);
-  myfree (hashcat_ctx->logfile_ctx);
-  myfree (hashcat_ctx->loopback_ctx);
-  myfree (hashcat_ctx->mask_ctx);
-  myfree (hashcat_ctx->opencl_ctx);
-  myfree (hashcat_ctx->outcheck_ctx);
-  myfree (hashcat_ctx->outfile_ctx);
-  myfree (hashcat_ctx->potfile_ctx);
-  myfree (hashcat_ctx->restore_ctx);
-  myfree (hashcat_ctx->status_ctx);
-  myfree (hashcat_ctx->straight_ctx);
-  myfree (hashcat_ctx->tuning_db);
-  myfree (hashcat_ctx->user_options_extra);
-  myfree (hashcat_ctx->user_options);
-  myfree (hashcat_ctx->wl_data);
+  hcfree (hashcat_ctx->bitmap_ctx);
+  hcfree (hashcat_ctx->combinator_ctx);
+  hcfree (hashcat_ctx->cpt_ctx);
+  hcfree (hashcat_ctx->debugfile_ctx);
+  hcfree (hashcat_ctx->dictstat_ctx);
+  hcfree (hashcat_ctx->event_ctx);
+  hcfree (hashcat_ctx->folder_config);
+  hcfree (hashcat_ctx->hashconfig);
+  hcfree (hashcat_ctx->hashes);
+  hcfree (hashcat_ctx->hwmon_ctx);
+  hcfree (hashcat_ctx->induct_ctx);
+  hcfree (hashcat_ctx->logfile_ctx);
+  hcfree (hashcat_ctx->loopback_ctx);
+  hcfree (hashcat_ctx->mask_ctx);
+  hcfree (hashcat_ctx->opencl_ctx);
+  hcfree (hashcat_ctx->outcheck_ctx);
+  hcfree (hashcat_ctx->outfile_ctx);
+  hcfree (hashcat_ctx->potfile_ctx);
+  hcfree (hashcat_ctx->restore_ctx);
+  hcfree (hashcat_ctx->status_ctx);
+  hcfree (hashcat_ctx->straight_ctx);
+  hcfree (hashcat_ctx->tuning_db);
+  hcfree (hashcat_ctx->user_options_extra);
+  hcfree (hashcat_ctx->user_options);
+  hcfree (hashcat_ctx->wl_data);
 
   memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
 }
@@ -227,9 +227,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_AUTOTUNE_STARTING);
 
-  thread_param_t *threads_param = (thread_param_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (thread_param_t));
+  thread_param_t *threads_param = (thread_param_t *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (thread_param_t));
 
-  hc_thread_t *c_threads = (hc_thread_t *) mycalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
+  hc_thread_t *c_threads = (hc_thread_t *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (hc_thread_t));
 
   status_ctx->devices_status = STATUS_AUTOTUNE;
 
@@ -303,9 +303,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
 
-  myfree (c_threads);
+  hcfree (c_threads);
 
-  myfree (threads_param);
+  hcfree (threads_param);
 
   if ((status_ctx->devices_status != STATUS_CRACKED)
    && (status_ctx->devices_status != STATUS_ABORTED)
@@ -367,7 +367,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
         unlink (induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos]);
       }
 
-      myfree (induct_ctx->induction_dictionaries);
+      hcfree (induct_ctx->induction_dictionaries);
 
       induct_ctx_scan (hashcat_ctx);
     }
@@ -692,7 +692,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   int inner_threads_cnt = 0;
 
-  hc_thread_t *inner_threads = (hc_thread_t *) mycalloc (10, sizeof (hc_thread_t));
+  hc_thread_t *inner_threads = (hc_thread_t *) hccalloc (hashcat_ctx, 10, sizeof (hc_thread_t));
 
   status_ctx->shutdown_inner = false;
 
@@ -762,7 +762,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
     hc_thread_wait (1, &inner_threads[thread_idx]);
   }
 
-  myfree (inner_threads);
+  hcfree (inner_threads);
 
   EVENT (EVENT_INNERLOOP1_FINISHED);
 

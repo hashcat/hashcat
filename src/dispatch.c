@@ -113,7 +113,7 @@ static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
-  char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
 
   const u32 attack_kern = user_options_extra->attack_kern;
 
@@ -223,7 +223,7 @@ static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
   device_param->kernel_accel = 0;
   device_param->kernel_loops = 0;
 
-  myfree (buf);
+  hcfree (buf);
 }
 
 void *thread_calc_stdin (void *p)
@@ -359,7 +359,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       }
     }
 
-    hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) mymalloc (sizeof (hashcat_ctx_t));
+    hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (hashcat_ctx, sizeof (hashcat_ctx_t));
 
     /*
     hashcat_ctx_tmp->bitmap_ctx         = hashcat_ctx->bitmap_ctx;
@@ -389,7 +389,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
 
-    hashcat_ctx_tmp->wl_data = (wl_data_t *) mymalloc (sizeof (wl_data_t));
+    hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (hashcat_ctx, sizeof (wl_data_t));
 
     wl_data_init (hashcat_ctx_tmp);
 
@@ -534,9 +534,9 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     wl_data_destroy (hashcat_ctx_tmp);
 
-    myfree (hashcat_ctx_tmp->wl_data);
+    hcfree (hashcat_ctx_tmp->wl_data);
 
-    myfree (hashcat_ctx_tmp);
+    hcfree (hashcat_ctx_tmp);
 
     fclose (fd);
   }

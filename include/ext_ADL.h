@@ -7,6 +7,11 @@
 #define _EXT_ADL_H
 
 #include <string.h>
+#include <stdlib.h>
+
+#if defined (_WIN)
+#include <windows.h>
+#endif // _WIN
 
 /**
  * Declarations from adl_sdk.h and subheaders

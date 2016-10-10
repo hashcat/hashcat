@@ -29,13 +29,9 @@
 
 int sort_by_stringptr (const void *p1, const void *p2);
 
-char *get_install_dir (const char *progname);
-char *get_profile_dir (const char *homedir);
-char *get_session_dir (const char *profile_dir);
-
 int count_dictionaries (char **dictionary_files);
 
-char **scan_directory (const char *path);
+char **scan_directory (hashcat_ctx_t *hashcat_ctx, const char *path);
 
 int  folder_config_init    (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder);
 void folder_config_destroy (hashcat_ctx_t *hashcat_ctx);

@@ -4,15 +4,17 @@
  */
 
 #include "common.h"
+#include "types.h"
+#include "event.h"
 #include "memory.h"
 
-void *mycalloc (size_t nmemb, size_t size)
+void *hccalloc (hashcat_ctx_t *hashcat_ctx, const size_t nmemb, const size_t sz)
 {
-  void *p = calloc (nmemb, size);
+  void *p = calloc (nmemb, sz);
 
   if (p == NULL)
   {
-    fprintf (stderr, "ERROR: %s", MSG_ENOMEM);
+    event_log_error (hashcat_ctx, "ERROR: %s", MSG_ENOMEM);
 
     exit (-1);
   }
@@ -20,52 +22,54 @@ void *mycalloc (size_t nmemb, size_t size)
   return (p);
 }
 
-void *mymalloc (size_t size)
+void *hcmalloc (hashcat_ctx_t *hashcat_ctx, const size_t sz)
 {
-  void *p = malloc (size);
+  void *p = malloc (sz);
 
   if (p == NULL)
   {
-    fprintf (stderr, "ERROR: %s", MSG_ENOMEM);
+    event_log_error (hashcat_ctx, "ERROR: %s", MSG_ENOMEM);
 
     exit (-1);
   }
 
-  memset (p, 0, size);
+  memset (p, 0, sz);
 
   return (p);
 }
 
-void myfree (void *ptr)
+void *hcrealloc (hashcat_ctx_t *hashcat_ctx, void *ptr, const size_t oldsz, const size_t addsz)
+{
+  void *p = realloc (ptr, oldsz + addsz);
+
+  if (p == NULL)
+  {
+    event_log_error (hashcat_ctx, "ERROR: %s", MSG_ENOMEM);
+
+    exit (-1);
+  }
+
+  memset ((char *) p + oldsz, 0, addsz);
+
+  return (p);
+}
+
+char *hcstrdup (hashcat_ctx_t *hashcat_ctx, const char *s)
+{
+  const size_t len = strlen (s);
+
+  char *b = (char *) hcmalloc (hashcat_ctx, len + 1);
+
+  strncpy (b, s, len);
+
+  b[len] = 0;
+
+  return (b);
+}
+
+void hcfree (void *ptr)
 {
   if (ptr == NULL) return;
 
   free (ptr);
-}
-
-void *myrealloc (void *ptr, size_t oldsz, size_t add)
-{
-  void *p = realloc (ptr, oldsz + add);
-
-  if (p == NULL)
-  {
-    fprintf (stderr, "ERROR: %s", MSG_ENOMEM);
-
-    exit (-1);
-  }
-
-  memset ((char *) p + oldsz, 0, add);
-
-  return (p);
-}
-
-char *mystrdup (const char *s)
-{
-  const size_t len = strlen (s);
-
-  char *b = (char *) mymalloc (len + 1);
-
-  memcpy (b, s, len);
-
-  return (b);
 }

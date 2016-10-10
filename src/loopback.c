@@ -70,7 +70,7 @@ int loopback_init (hashcat_ctx_t *hashcat_ctx)
 
   loopback_ctx->enabled  = true;
   loopback_ctx->fp       = NULL;
-  loopback_ctx->filename = (char *) mymalloc (HCBUFSIZ_TINY);
+  loopback_ctx->filename = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
 
   return 0;
 }

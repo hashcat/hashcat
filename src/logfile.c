@@ -77,12 +77,12 @@ int logfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->logfile_disable == true) return 0;
 
-  logfile_ctx->logfile = (char *) mymalloc (HCBUFSIZ_TINY);
+  logfile_ctx->logfile = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
 
   snprintf (logfile_ctx->logfile, HCBUFSIZ_TINY - 1, "%s/%s.log", folder_config->session_dir, user_options->session);
 
-  logfile_ctx->subid = (char *) mymalloc (HCBUFSIZ_TINY);
-  logfile_ctx->topid = (char *) mymalloc (HCBUFSIZ_TINY);
+  logfile_ctx->subid = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  logfile_ctx->topid = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
 
   logfile_ctx->enabled = true;
 
@@ -106,9 +106,9 @@ void logfile_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (logfile_ctx->enabled == false) return;
 
-  myfree (logfile_ctx->logfile);
-  myfree (logfile_ctx->topid);
-  myfree (logfile_ctx->subid);
+  hcfree (logfile_ctx->logfile);
+  hcfree (logfile_ctx->topid);
+  hcfree (logfile_ctx->subid);
 
   memset (logfile_ctx, 0, sizeof (logfile_ctx_t));
 }

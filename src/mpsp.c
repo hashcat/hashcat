@@ -22,8 +22,35 @@ static const char DEF_MASK[] = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
 
 #define MAX_MFS 5 // 4*charset, 1*mask
 
-void mp_css_split_cnt (const mask_ctx_t *mask_ctx, const hashconfig_t *hashconfig, const u32 css_cnt_orig, u32 css_cnt_lr[2])
+static int sp_comp_val (const void *p1, const void *p2)
 {
+  hcstat_table_t *b1 = (hcstat_table_t *) p1;
+  hcstat_table_t *b2 = (hcstat_table_t *) p2;
+
+  return b2->val - b1->val;
+}
+
+static u32 mp_get_length (char *mask)
+{
+  u32 len = 0;
+
+  u32 mask_len = strlen (mask);
+
+  for (u32 i = 0; i < mask_len; i++)
+  {
+    if (mask[i] == '?') i++;
+
+    len++;
+  }
+
+  return len;
+}
+
+static void mp_css_split_cnt (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig, u32 css_cnt_lr[2])
+{
+  const mask_ctx_t   *mask_ctx   = hashcat_ctx->mask_ctx;
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
   u32 css_cnt_l = mask_ctx->css_cnt;
   u32 css_cnt_r;
 
@@ -87,14 +114,16 @@ void mp_css_split_cnt (const mask_ctx_t *mask_ctx, const hashconfig_t *hashconfi
   css_cnt_lr[1] = css_cnt_r;
 }
 
-void mp_css_append_salt (mask_ctx_t *mask_ctx, salt_t *salt_buf)
+static void mp_css_append_salt (hashcat_ctx_t *hashcat_ctx, salt_t *salt_buf)
 {
+  mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
   u32  salt_len     = (u32)  salt_buf->salt_len;
   u8  *salt_buf_ptr = (u8 *) salt_buf->salt_buf;
 
   u32 css_cnt_salt = mask_ctx->css_cnt + salt_len;
 
-  cs_t *css_buf_salt = (cs_t *) mycalloc (css_cnt_salt, sizeof (cs_t));
+  cs_t *css_buf_salt = (cs_t *) hccalloc (hashcat_ctx, css_cnt_salt, sizeof (cs_t));
 
   memcpy (css_buf_salt, mask_ctx->css_buf, mask_ctx->css_cnt * sizeof (cs_t));
 
@@ -104,17 +133,19 @@ void mp_css_append_salt (mask_ctx_t *mask_ctx, salt_t *salt_buf)
     css_buf_salt[j].cs_len    = 1;
   }
 
-  myfree (mask_ctx->css_buf);
+  hcfree (mask_ctx->css_buf);
 
   mask_ctx->css_buf = css_buf_salt;
   mask_ctx->css_cnt = css_cnt_salt;
 }
 
-void mp_css_unicode_expand (mask_ctx_t *mask_ctx)
+static void mp_css_unicode_expand (hashcat_ctx_t *hashcat_ctx)
 {
+  mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
   u32 css_cnt_unicode = mask_ctx->css_cnt * 2;
 
-  cs_t *css_buf_unicode = (cs_t *) mycalloc (css_cnt_unicode, sizeof (cs_t));
+  cs_t *css_buf_unicode = (cs_t *) hccalloc (hashcat_ctx, css_cnt_unicode, sizeof (cs_t));
 
   for (u32 i = 0, j = 0; i < mask_ctx->css_cnt; i += 1, j += 2)
   {
@@ -124,13 +155,13 @@ void mp_css_unicode_expand (mask_ctx_t *mask_ctx)
     css_buf_unicode[j + 1].cs_len    = 1;
   }
 
-  myfree (mask_ctx->css_buf);
+  hcfree (mask_ctx->css_buf);
 
   mask_ctx->css_buf = css_buf_unicode;
   mask_ctx->css_cnt = css_cnt_unicode;
 }
 
-int mp_css_to_uniq_tbl (hashcat_ctx_t *hashcat_ctx, u32 css_cnt, cs_t *css, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
+static int mp_css_to_uniq_tbl (hashcat_ctx_t *hashcat_ctx, u32 css_cnt, cs_t *css, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
 {
   /* generates a lookup table where key is the char itself for fastest possible lookup performance */
 
@@ -167,7 +198,7 @@ static void mp_add_cs_buf (hashcat_ctx_t *hashcat_ctx, u32 *in_buf, size_t in_le
 
   size_t css_uniq_sz = CHARSIZ * sizeof (u32);
 
-  u32 *css_uniq = (u32 *) mymalloc (css_uniq_sz);
+  u32 *css_uniq = (u32 *) hcmalloc (hashcat_ctx, css_uniq_sz);
 
   size_t i;
 
@@ -193,7 +224,7 @@ static void mp_add_cs_buf (hashcat_ctx_t *hashcat_ctx, u32 *in_buf, size_t in_le
     cs->cs_len++;
   }
 
-  myfree (css_uniq);
+  hcfree (css_uniq);
 }
 
 static int mp_expand (hashcat_ctx_t *hashcat_ctx, char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, u32 mp_usr_offset, int interpret)
@@ -291,7 +322,7 @@ static cs_t *mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  cs_t *css = (cs_t *) mycalloc (256, sizeof (cs_t));
+  cs_t *css = (cs_t *) hccalloc (hashcat_ctx, 256, sizeof (cs_t));
 
   u32 mask_pos;
   u32 css_pos;
@@ -400,7 +431,7 @@ static char *mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  char *new_mask_buf = (char *) mymalloc (256);
+  char *new_mask_buf = (char *) hcmalloc (hashcat_ctx, 256);
 
   u32 mask_pos;
 
@@ -453,66 +484,12 @@ static char *mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask
 
   if (css_pos == len) return (new_mask_buf);
 
-  myfree (new_mask_buf);
+  hcfree (new_mask_buf);
 
   return (NULL);
 }
 
-u64 mp_get_sum (u32 css_cnt, cs_t *css)
-{
-  u64 sum = 1;
-
-  for (u32 css_pos = 0; css_pos < css_cnt; css_pos++)
-  {
-    sum *= css[css_pos].cs_len;
-  }
-
-  return (sum);
-}
-
-void mp_exec (u64 val, char *buf, cs_t *css, int css_cnt)
-{
-  for (int i = 0; i < css_cnt; i++)
-  {
-    u32 len  = css[i].cs_len;
-    u64 next = val / len;
-    u32 pos  = val % len;
-    buf[i] = (char) (css[i].cs_buf[pos] & 0xff);
-    val = next;
-  }
-}
-
-u32 mp_get_length (char *mask)
-{
-  u32 len = 0;
-
-  u32 mask_len = strlen (mask);
-
-  for (u32 i = 0; i < mask_len; i++)
-  {
-    if (mask[i] == '?') i++;
-
-    len++;
-  }
-
-  return len;
-}
-
-void mp_cut_at (char *mask, u32 max)
-{
-  u32 i;
-  u32 j;
-  u32 mask_len = strlen (mask);
-
-  for (i = 0, j = 0; i < mask_len && j < max; i++, j++)
-  {
-    if (mask[i] == '?') i++;
-  }
-
-  mask[i] = 0;
-}
-
-void mp_setup_sys (cs_t *mp_sys)
+static void mp_setup_sys (cs_t *mp_sys)
 {
   u32 pos;
   u32 chr;
@@ -541,7 +518,7 @@ void mp_setup_sys (cs_t *mp_sys)
                                                   mp_sys[5].cs_len = pos; }
 }
 
-int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, char *buf, u32 index)
+static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, char *buf, u32 index)
 {
   FILE *fp = fopen (buf, "rb");
 
@@ -580,7 +557,7 @@ int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, char *
   return 0;
 }
 
-void mp_reset_usr (cs_t *mp_usr, u32 index)
+static void mp_reset_usr (cs_t *mp_usr, u32 index)
 {
   mp_usr[index].cs_len = 0;
 
@@ -610,7 +587,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
    * Initialize hcstats
    */
 
-  u64 *root_stats_buf = (u64 *) mycalloc (SP_ROOT_CNT, sizeof (u64));
+  u64 *root_stats_buf = (u64 *) hccalloc (hashcat_ctx, SP_ROOT_CNT, sizeof (u64));
 
   u64 *root_stats_ptr = root_stats_buf;
 
@@ -623,7 +600,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     root_stats_ptr += CHARSIZ;
   }
 
-  u64 *markov_stats_buf = (u64 *) mycalloc (SP_MARKOV_CNT, sizeof (u64));
+  u64 *markov_stats_buf = (u64 *) hccalloc (hashcat_ctx, SP_MARKOV_CNT, sizeof (u64));
 
   u64 *markov_stats_ptr = markov_stats_buf;
 
@@ -782,8 +759,8 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     markov_table_buf[i].val = markov_stats_buf[i];
   }
 
-  myfree (root_stats_buf);
-  myfree (markov_stats_buf);
+  hcfree (root_stats_buf);
+  hcfree (markov_stats_buf);
 
   /**
    * Finally sort them
@@ -805,7 +782,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-u64 sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf)
+static u64 sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf)
 {
   u64 sum = 1;
 
@@ -819,38 +796,7 @@ u64 sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf)
   return (sum);
 }
 
-void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop)
-{
-  u64 v = ctx;
-
-  cs_t *cs = &root_css_buf[start];
-
-  u32 i;
-
-  for (i = start; i < stop; i++)
-  {
-    const u64 m = v % cs->cs_len;
-    const u64 d = v / cs->cs_len;
-
-    v = d;
-
-    const u32 k = cs->cs_buf[m];
-
-    pw_buf[i - start] = (char) k;
-
-    cs = &markov_css_buf[(i * CHARSIZ) + k];
-  }
-}
-
-int sp_comp_val (const void *p1, const void *p2)
-{
-  hcstat_table_t *b1 = (hcstat_table_t *) p1;
-  hcstat_table_t *b2 = (hcstat_table_t *) p2;
-
-  return b2->val - b1->val;
-}
-
-void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
+static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
 {
   memset (root_css_buf,   0, SP_PW_MAX *           sizeof (cs_t));
   memset (markov_css_buf, 0, SP_PW_MAX * CHARSIZ * sizeof (cs_t));
@@ -917,74 +863,47 @@ void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table
   */
 }
 
-void sp_stretch_root (hcstat_table_t *in, hcstat_table_t *out)
+void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop)
 {
-  for (u32 i = 0; i < SP_PW_MAX; i += 2)
+  u64 v = ctx;
+
+  cs_t *cs = &root_css_buf[start];
+
+  u32 i;
+
+  for (i = start; i < stop; i++)
   {
-    memcpy (out, in, CHARSIZ * sizeof (hcstat_table_t));
+    const u64 m = v % cs->cs_len;
+    const u64 d = v / cs->cs_len;
 
-    out += CHARSIZ;
-    in  += CHARSIZ;
+    v = d;
 
-    out->key = 0;
-    out->val = 1;
+    const u32 k = cs->cs_buf[m];
 
-    out++;
+    pw_buf[i - start] = (char) k;
 
-    for (u32 j = 1; j < CHARSIZ; j++)
-    {
-      out->key = j;
-      out->val = 0;
-
-      out++;
-    }
+    cs = &markov_css_buf[(i * CHARSIZ) + k];
   }
 }
 
-void sp_stretch_markov (hcstat_table_t *in, hcstat_table_t *out)
+static void mask_append_final (hashcat_ctx_t *hashcat_ctx, const char *mask)
 {
-  for (u32 i = 0; i < SP_PW_MAX; i += 2)
-  {
-    memcpy (out, in, CHARSIZ * CHARSIZ * sizeof (hcstat_table_t));
+  mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-    out += CHARSIZ * CHARSIZ;
-    in  += CHARSIZ * CHARSIZ;
-
-    for (u32 j = 0; j < CHARSIZ; j++)
-    {
-      out->key = 0;
-      out->val = 1;
-
-      out++;
-
-      for (u32 k = 1; k < CHARSIZ; k++)
-      {
-        out->key = k;
-        out->val = 0;
-
-        out++;
-      }
-    }
-  }
-}
-
-static void mask_append_final (mask_ctx_t *mask_ctx, const char *mask)
-{
   if (mask_ctx->masks_avail == mask_ctx->masks_cnt)
   {
-    mask_ctx->masks = (char **) myrealloc (mask_ctx->masks, mask_ctx->masks_avail * sizeof (char *), INCR_MASKS * sizeof (char *));
+    mask_ctx->masks = (char **) hcrealloc (hashcat_ctx, mask_ctx->masks, mask_ctx->masks_avail * sizeof (char *), INCR_MASKS * sizeof (char *));
 
     mask_ctx->masks_avail += INCR_MASKS;
   }
 
-  mask_ctx->masks[mask_ctx->masks_cnt] = mystrdup (mask);
+  mask_ctx->masks[mask_ctx->masks_cnt] = hcstrdup (hashcat_ctx, mask);
 
   mask_ctx->masks_cnt++;
 }
 
 static void mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask)
 {
-  mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->increment == true)
@@ -995,12 +914,12 @@ static void mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask)
 
       if (mask_truncated == NULL) break;
 
-      mask_append_final (mask_ctx, mask_truncated);
+      mask_append_final (hashcat_ctx, mask_truncated);
     }
   }
   else
   {
-    mask_append_final (mask_ctx, mask);
+    mask_append_final (hashcat_ctx, mask);
   }
 }
 
@@ -1110,7 +1029,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
       {
-        mp_css_unicode_expand (mask_ctx);
+        mp_css_unicode_expand (hashcat_ctx);
       }
 
       u32 css_cnt_orig = mask_ctx->css_cnt;
@@ -1119,7 +1038,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       {
         if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
         {
-          mp_css_append_salt (mask_ctx, &hashes->salts_buf[0]);
+          mp_css_append_salt (hashcat_ctx, &hashes->salts_buf[0]);
         }
       }
 
@@ -1135,7 +1054,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       u32 css_cnt_lr[2];
 
-      mp_css_split_cnt (mask_ctx, hashconfig, css_cnt_orig, css_cnt_lr);
+      mp_css_split_cnt (hashcat_ctx, css_cnt_orig, css_cnt_lr);
 
       mask_ctx->bfs_cnt = sp_get_sum (0, css_cnt_lr[1], mask_ctx->root_css_buf);
 
@@ -1167,13 +1086,13 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   mask_ctx->enabled = true;
 
-  mask_ctx->root_table_buf   = (hcstat_table_t *) mycalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
-  mask_ctx->markov_table_buf = (hcstat_table_t *) mycalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
+  mask_ctx->root_table_buf   = (hcstat_table_t *) hccalloc (hashcat_ctx, SP_ROOT_CNT,   sizeof (hcstat_table_t));
+  mask_ctx->markov_table_buf = (hcstat_table_t *) hccalloc (hashcat_ctx, SP_MARKOV_CNT, sizeof (hcstat_table_t));
 
   sp_setup_tbl (hashcat_ctx);
 
-  mask_ctx->root_css_buf   = (cs_t *) mycalloc (SP_PW_MAX,           sizeof (cs_t));
-  mask_ctx->markov_css_buf = (cs_t *) mycalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
+  mask_ctx->root_css_buf   = (cs_t *) hccalloc (hashcat_ctx, SP_PW_MAX,           sizeof (cs_t));
+  mask_ctx->markov_css_buf = (cs_t *) hccalloc (hashcat_ctx, SP_PW_MAX * CHARSIZ, sizeof (cs_t));
 
   mask_ctx->css_cnt = 0;
   mask_ctx->css_buf = NULL;
@@ -1184,7 +1103,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   mask_ctx->masks_pos = 0;
   mask_ctx->masks_cnt = 0;
 
-  mask_ctx->mfs = (mf_t *) mycalloc (MAX_MFS, sizeof (mf_t));
+  mask_ctx->mfs = (mf_t *) hccalloc (hashcat_ctx, MAX_MFS, sizeof (mf_t));
 
   mp_setup_sys (mask_ctx->mp_sys);
 
@@ -1233,7 +1152,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
                 return -1;
               }
 
-              char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+              char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
 
               while (!feof (mask_fp))
               {
@@ -1246,7 +1165,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
                 mask_append (hashcat_ctx, line_buf);
               }
 
-              myfree (line_buf);
+              hcfree (line_buf);
 
               fclose (mask_fp);
             }
@@ -1302,7 +1221,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
-        char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+        char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
 
         while (!feof (mask_fp))
         {
@@ -1315,7 +1234,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
           mask_append (hashcat_ctx, line_buf);
         }
 
-        myfree (line_buf);
+        hcfree (line_buf);
 
         fclose (mask_fp);
       }
@@ -1356,7 +1275,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
-        char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+        char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
 
         while (!feof (mask_fp))
         {
@@ -1369,7 +1288,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
           mask_append (hashcat_ctx, line_buf);
         }
 
-        myfree (line_buf);
+        hcfree (line_buf);
 
         fclose (mask_fp);
       }
@@ -1400,22 +1319,22 @@ void mask_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (mask_ctx->enabled == false) return;
 
-  myfree (mask_ctx->css_buf);
+  hcfree (mask_ctx->css_buf);
 
-  myfree (mask_ctx->root_css_buf);
-  myfree (mask_ctx->markov_css_buf);
+  hcfree (mask_ctx->root_css_buf);
+  hcfree (mask_ctx->markov_css_buf);
 
-  myfree (mask_ctx->root_table_buf);
-  myfree (mask_ctx->markov_table_buf);
+  hcfree (mask_ctx->root_table_buf);
+  hcfree (mask_ctx->markov_table_buf);
 
   for (u32 mask_pos = 0; mask_pos < mask_ctx->masks_cnt; mask_pos++)
   {
-    myfree (mask_ctx->masks[mask_pos]);
+    hcfree (mask_ctx->masks[mask_pos]);
   }
 
-  myfree (mask_ctx->masks);
+  hcfree (mask_ctx->masks);
 
-  myfree (mask_ctx->mfs);
+  hcfree (mask_ctx->mfs);
 
   memset (mask_ctx, 0, sizeof (mask_ctx_t));
 }

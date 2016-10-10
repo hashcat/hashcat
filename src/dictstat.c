@@ -42,8 +42,8 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->attack_mode == ATTACK_MODE_BF) return 0;
 
   dictstat_ctx->enabled  = true;
-  dictstat_ctx->filename = (char *)       mymalloc (HCBUFSIZ_TINY);
-  dictstat_ctx->base     = (dictstat_t *) mycalloc (MAX_DICTSTAT, sizeof (dictstat_t));
+  dictstat_ctx->filename = (char *)       hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  dictstat_ctx->base     = (dictstat_t *) hccalloc (hashcat_ctx, MAX_DICTSTAT, sizeof (dictstat_t));
   dictstat_ctx->cnt      = 0;
 
   snprintf (dictstat_ctx->filename, HCBUFSIZ_TINY - 1, "%s/hashcat.dictstat", folder_config->profile_dir);
@@ -68,8 +68,8 @@ void dictstat_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (dictstat_ctx->enabled == false) return;
 
-  myfree (dictstat_ctx->filename);
-  myfree (dictstat_ctx->base);
+  hcfree (dictstat_ctx->filename);
+  hcfree (dictstat_ctx->base);
 
   memset (dictstat_ctx, 0, sizeof (dictstat_ctx_t));
 }

@@ -104,7 +104,7 @@ static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char
 
   if (opencl_platforms)
   {
-    char *platforms = mystrdup (opencl_platforms);
+    char *platforms = hcstrdup (hashcat_ctx, opencl_platforms);
 
     char *next = strtok (platforms, ",");
 
@@ -123,7 +123,7 @@ static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
-    myfree (platforms);
+    hcfree (platforms);
   }
   else
   {
@@ -141,7 +141,7 @@ static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_
 
   if (opencl_devices)
   {
-    char *devices = mystrdup (opencl_devices);
+    char *devices = hcstrdup (hashcat_ctx, opencl_devices);
 
     char *next = strtok (devices, ",");
 
@@ -160,7 +160,7 @@ static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
-    myfree (devices);
+    hcfree (devices);
   }
   else
   {
@@ -178,7 +178,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
 
   if (opencl_device_types)
   {
-    char *device_types = mystrdup (opencl_device_types);
+    char *device_types = hcstrdup (hashcat_ctx, opencl_device_types);
 
     char *next = strtok (device_types, ",");
 
@@ -197,7 +197,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
 
     } while ((next = strtok (NULL, ",")) != NULL);
 
-    myfree (device_types);
+    hcfree (device_types);
   }
   else
   {
@@ -224,7 +224,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
 
     stat (kernel_file, &st);
 
-    char *buf = (char *) mymalloc (st.st_size + 1);
+    char *buf = (char *) hcmalloc (hashcat_ctx, st.st_size + 1);
 
     size_t num_read = fread (buf, sizeof (char), st.st_size, fp);
 
@@ -1888,7 +1888,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->usage       == true) return 0;
   if (user_options->version     == true) return 0;
 
-  hc_device_param_t *devices_param = (hc_device_param_t *) mycalloc (DEVICES_MAX, sizeof (hc_device_param_t));
+  hc_device_param_t *devices_param = (hc_device_param_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hc_device_param_t));
 
   opencl_ctx->devices_param = devices_param;
 
@@ -1896,7 +1896,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * Load and map OpenCL library calls
    */
 
-  OCL_PTR *ocl = (OCL_PTR *) mymalloc (sizeof (OCL_PTR));
+  OCL_PTR *ocl = (OCL_PTR *) hcmalloc (hashcat_ctx, sizeof (OCL_PTR));
 
   opencl_ctx->ocl = ocl;
 
@@ -1943,9 +1943,9 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
    */
 
   cl_uint         platforms_cnt         = 0;
-  cl_platform_id *platforms             = (cl_platform_id *) mycalloc (CL_PLATFORMS_MAX, sizeof (cl_platform_id));
+  cl_platform_id *platforms             = (cl_platform_id *) hccalloc (hashcat_ctx, CL_PLATFORMS_MAX, sizeof (cl_platform_id));
   cl_uint         platform_devices_cnt  = 0;
-  cl_device_id   *platform_devices      = (cl_device_id *) mycalloc (DEVICES_MAX, sizeof (cl_device_id));
+  cl_device_id   *platform_devices      = (cl_device_id *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (cl_device_id));
 
   cl_int CL_err = hc_clGetPlatformIDs (hashcat_ctx, CL_PLATFORMS_MAX, platforms, &platforms_cnt);
 
@@ -2048,11 +2048,11 @@ void opencl_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   ocl_close (hashcat_ctx);
 
-  myfree (opencl_ctx->devices_param);
+  hcfree (opencl_ctx->devices_param);
 
-  myfree (opencl_ctx->platforms);
+  hcfree (opencl_ctx->platforms);
 
-  myfree (opencl_ctx->platform_devices);
+  hcfree (opencl_ctx->platform_devices);
 
   memset (opencl_ctx, 0, sizeof (opencl_ctx_t));
 }
@@ -2240,7 +2240,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_err == -1) return -1;
 
-      char *device_name = (char *) mymalloc (param_value_size);
+      char *device_name = (char *) hcmalloc (hashcat_ctx, param_value_size);
 
       CL_err = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_NAME, param_value_size, device_name, NULL);
 
@@ -2254,7 +2254,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_err == -1) return -1;
 
-      char *device_vendor = (char *) mymalloc (param_value_size);
+      char *device_vendor = (char *) hcmalloc (hashcat_ctx, param_value_size);
 
       CL_err = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VENDOR, param_value_size, device_vendor, NULL);
 
@@ -2309,7 +2309,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_err == -1) return -1;
 
-      char *device_version = (char *) mymalloc (param_value_size);
+      char *device_version = (char *) hcmalloc (hashcat_ctx, param_value_size);
 
       CL_err = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VERSION, param_value_size, device_version, NULL);
 
@@ -2323,7 +2323,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_err == -1) return -1;
 
-      char *device_opencl_version = (char *) mymalloc (param_value_size);
+      char *device_opencl_version = (char *) hcmalloc (hashcat_ctx, param_value_size);
 
       CL_err = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_OPENCL_C_VERSION, param_value_size, device_opencl_version, NULL);
 
@@ -2450,7 +2450,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_err == -1) return -1;
 
-      char *device_extensions = mymalloc (device_extensions_size + 1);
+      char *device_extensions = hcmalloc (hashcat_ctx, device_extensions_size + 1);
 
       CL_err = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_EXTENSIONS, device_extensions_size, device_extensions, NULL);
 
@@ -2470,7 +2470,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         device_param->skipped = 1;
       }
 
-      myfree (device_extensions);
+      hcfree (device_extensions);
 
       // device_local_mem_size
 
@@ -2518,7 +2518,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_err == -1) return -1;
 
-      char *driver_version = (char *) mymalloc (param_value_size);
+      char *driver_version = (char *) hcmalloc (hashcat_ctx, param_value_size);
 
       CL_err = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DRIVER_VERSION, param_value_size, driver_version, NULL);
 
@@ -2528,7 +2528,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // device_name_chksum
 
-      char *device_name_chksum = (char *) mymalloc (HCBUFSIZ_TINY);
+      char *device_name_chksum = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
 
       #if defined (__x86_64__)
       snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime);
@@ -2641,7 +2641,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_opencl_version);
       }
 
-      myfree (device_opencl_version);
+      hcfree (device_opencl_version);
 
       if ((user_options->benchmark == true || user_options->quiet == false))
       {
@@ -2818,10 +2818,10 @@ void opencl_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-    myfree (device_param->device_name);
-    myfree (device_param->device_name_chksum);
-    myfree (device_param->device_version);
-    myfree (device_param->driver_version);
+    hcfree (device_param->device_name);
+    hcfree (device_param->device_name_chksum);
+    hcfree (device_param->device_version);
+    hcfree (device_param->driver_version);
   }
 
   opencl_ctx->devices_cnt    = 0;
@@ -3494,9 +3494,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
        * kernel compile or load
        */
 
-      size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
+      size_t *kernel_lengths = (size_t *) hcmalloc (hashcat_ctx, sizeof (size_t));
 
-      char **kernel_sources = (char **) mymalloc (sizeof (char *));
+      char **kernel_sources = (char **) hcmalloc (hashcat_ctx, sizeof (char *));
 
       if (opencl_ctx->force_jit_compilation == -1)
       {
@@ -3528,7 +3528,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (CL_err != CL_SUCCESS)
           #endif
           {
-            char *build_log = (char *) mymalloc (build_log_size + 1);
+            char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1);
 
             CL_err = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
@@ -3536,7 +3536,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             puts (build_log);
 
-            myfree (build_log);
+            hcfree (build_log);
           }
 
           if (CL_err != CL_SUCCESS)
@@ -3554,7 +3554,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_err == -1) return -1;
 
-          char *binary = (char *) mymalloc (binary_size);
+          char *binary = (char *) hcmalloc (hashcat_ctx, binary_size);
 
           CL_err = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
@@ -3564,7 +3564,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (rc_write == -1) return -1;
 
-          myfree (binary);
+          hcfree (binary);
         }
         else
         {
@@ -3630,7 +3630,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (CL_err != CL_SUCCESS)
         #endif
         {
-          char *build_log = (char *) mymalloc (build_log_size + 1);
+          char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1);
 
           CL_err = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
@@ -3638,7 +3638,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           puts (build_log);
 
-          myfree (build_log);
+          hcfree (build_log);
         }
 
         if (CL_err != CL_SUCCESS)
@@ -3649,9 +3649,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      myfree (kernel_lengths);
-      myfree (kernel_sources[0]);
-      myfree (kernel_sources);
+      hcfree (kernel_lengths);
+      hcfree (kernel_sources[0]);
+      hcfree (kernel_sources);
     }
 
     /**
@@ -3698,9 +3698,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
        * kernel compile or load
        */
 
-      size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
+      size_t *kernel_lengths = (size_t *) hcmalloc (hashcat_ctx, sizeof (size_t));
 
-      char **kernel_sources = (char **) mymalloc (sizeof (char *));
+      char **kernel_sources = (char **) hcmalloc (hashcat_ctx, sizeof (char *));
 
       if (cached == 0)
       {
@@ -3731,7 +3731,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (CL_err != CL_SUCCESS)
         #endif
         {
-          char *build_log = (char *) mymalloc (build_log_size + 1);
+          char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1);
 
           CL_err = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
@@ -3739,7 +3739,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           puts (build_log);
 
-          myfree (build_log);
+          hcfree (build_log);
         }
 
         if (CL_err != CL_SUCCESS)
@@ -3757,7 +3757,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_err == -1) return -1;
 
-        char *binary = (char *) mymalloc (binary_size);
+        char *binary = (char *) hcmalloc (hashcat_ctx, binary_size);
 
         CL_err = hc_clGetProgramInfo (hashcat_ctx, device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
@@ -3765,7 +3765,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
 
-        myfree (binary);
+        hcfree (binary);
       }
       else
       {
@@ -3786,9 +3786,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (CL_err == -1) return -1;
       }
 
-      myfree (kernel_lengths);
-      myfree (kernel_sources[0]);
-      myfree (kernel_sources);
+      hcfree (kernel_lengths);
+      hcfree (kernel_sources[0]);
+      hcfree (kernel_sources);
     }
 
     /**
@@ -3839,9 +3839,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
        * kernel compile or load
        */
 
-      size_t *kernel_lengths = (size_t *) mymalloc (sizeof (size_t));
+      size_t *kernel_lengths = (size_t *) hcmalloc (hashcat_ctx, sizeof (size_t));
 
-      char **kernel_sources = (char **) mymalloc (sizeof (char *));
+      char **kernel_sources = (char **) hcmalloc (hashcat_ctx, sizeof (char *));
 
       if (cached == 0)
       {
@@ -3872,7 +3872,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (CL_err != CL_SUCCESS)
         #endif
         {
-          char *build_log = (char *) mymalloc (build_log_size + 1);
+          char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1);
 
           CL_err = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
@@ -3880,7 +3880,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           puts (build_log);
 
-          myfree (build_log);
+          hcfree (build_log);
         }
 
         if (CL_err != CL_SUCCESS)
@@ -3898,7 +3898,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_err == -1) return -1;
 
-        char *binary = (char *) mymalloc (binary_size);
+        char *binary = (char *) hcmalloc (hashcat_ctx, binary_size);
 
         CL_err = hc_clGetProgramInfo (hashcat_ctx, device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
@@ -3906,7 +3906,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
 
-        myfree (binary);
+        hcfree (binary);
       }
       else
       {
@@ -3927,9 +3927,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (CL_err == -1) return -1;
       }
 
-      myfree (kernel_lengths);
-      myfree (kernel_sources[0]);
-      myfree (kernel_sources);
+      hcfree (kernel_lengths);
+      hcfree (kernel_sources[0]);
+      hcfree (kernel_sources);
     }
 
     // return back to the folder we came from initially (workaround)
@@ -4043,15 +4043,15 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * main host data
      */
 
-    pw_t *pws_buf = (pw_t *) mymalloc (size_pws);
+    pw_t *pws_buf = (pw_t *) hcmalloc (hashcat_ctx, size_pws);
 
     device_param->pws_buf = pws_buf;
 
-    comb_t *combs_buf = (comb_t *) mycalloc (KERNEL_COMBS, sizeof (comb_t));
+    comb_t *combs_buf = (comb_t *) hccalloc (hashcat_ctx, KERNEL_COMBS, sizeof (comb_t));
 
     device_param->combs_buf = combs_buf;
 
-    void *hooks_buf = mymalloc (size_hooks);
+    void *hooks_buf = hcmalloc (hashcat_ctx, size_hooks);
 
     device_param->hooks_buf = hooks_buf;
 
@@ -4529,9 +4529,9 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
     cl_int CL_err = CL_SUCCESS;
 
-    myfree (device_param->pws_buf);
-    myfree (device_param->combs_buf);
-    myfree (device_param->hooks_buf);
+    hcfree (device_param->pws_buf);
+    hcfree (device_param->combs_buf);
+    hcfree (device_param->hooks_buf);
 
     if (device_param->d_pws_buf)          CL_err |= hc_clReleaseMemObject (hashcat_ctx, device_param->d_pws_buf);
     if (device_param->d_pws_amp_buf)      CL_err |= hc_clReleaseMemObject (hashcat_ctx, device_param->d_pws_amp_buf);

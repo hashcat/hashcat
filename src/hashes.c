@@ -173,7 +173,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
         out_buf[0] = 0;
 
-        ascii_digest (out_buf, salt_pos, digest_pos, hashconfig, hashes);
+        ascii_digest (hashcat_ctx, out_buf, salt_pos, digest_pos);
 
         fputs (out_buf, fp);
 
@@ -183,7 +183,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
       {
         hccap_t hccap;
 
-        to_hccap_t (&hccap, salt_pos, digest_pos, hashconfig, hashes);
+        to_hccap_t (hashcat_ctx, &hccap, salt_pos, digest_pos);
 
         fwrite (&hccap, sizeof (hccap_t), 1, fp);
       }
@@ -220,8 +220,6 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain)
 {
   debugfile_ctx_t       *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
-  hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
-  hashes_t              *hashes             = hashcat_ctx->hashes;
   loopback_ctx_t        *loopback_ctx       = hashcat_ctx->loopback_ctx;
   outfile_ctx_t         *outfile_ctx        = hashcat_ctx->outfile_ctx;
   status_ctx_t          *status_ctx         = hashcat_ctx->status_ctx;
@@ -235,7 +233,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   char out_buf[HCBUFSIZ_LARGE] = { 0 };
 
-  ascii_digest (out_buf, salt_pos, digest_pos, hashconfig, hashes);
+  ascii_digest (hashcat_ctx, out_buf, salt_pos, digest_pos);
 
   // plain
 
@@ -337,7 +335,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     event_log_info_nn (hashcat_ctx, "");
 
-    plain_t *cracked = (plain_t *) mycalloc (num_cracked, sizeof (plain_t));
+    plain_t *cracked = (plain_t *) hccalloc (hashcat_ctx, num_cracked, sizeof (plain_t));
 
     CL_err = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
 
@@ -383,7 +381,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     hc_thread_mutex_unlock (status_ctx->mux_display);
 
-    myfree (cracked);
+    hcfree (cracked);
 
     if (cpt_cracked > 0)
     {
@@ -508,7 +506,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Counting lines in %s", hashfile);
 
-      hashes_avail = count_lines (fp);
+      hashes_avail = count_lines (hashcat_ctx, fp);
 
       rewind (fp);
 
@@ -556,9 +554,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   salt_t *salts_buf   = NULL;
   void   *esalts_buf  = NULL;
 
-  hashes_buf = (hash_t *) mycalloc (hashes_avail, sizeof (hash_t));
+  hashes_buf = (hash_t *) hccalloc (hashcat_ctx, hashes_avail, sizeof (hash_t));
 
-  digests_buf = (void *) mycalloc (hashes_avail, hashconfig->dgst_size);
+  digests_buf = (void *) hccalloc (hashcat_ctx, hashes_avail, hashconfig->dgst_size);
 
   if ((user_options->username && (user_options->remove || user_options->show)) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
   {
@@ -566,34 +564,34 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
     for (hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
     {
-      hashinfo_t *hash_info = (hashinfo_t *) mymalloc (sizeof (hashinfo_t));
+      hashinfo_t *hash_info = (hashinfo_t *) hcmalloc (hashcat_ctx, sizeof (hashinfo_t));
 
       hashes_buf[hash_pos].hash_info = hash_info;
 
       if (user_options->username && (user_options->remove || user_options->show || user_options->left))
       {
-        hash_info->user = (user_t*) mymalloc (sizeof (user_t));
+        hash_info->user = (user_t*) hcmalloc (hashcat_ctx, sizeof (user_t));
       }
 
       if (user_options->benchmark)
       {
-        hash_info->orighash = (char *) mymalloc (256);
+        hash_info->orighash = (char *) hcmalloc (hashcat_ctx, 256);
       }
     }
   }
 
   if (hashconfig->is_salted)
   {
-    salts_buf = (salt_t *) mycalloc (hashes_avail, sizeof (salt_t));
+    salts_buf = (salt_t *) hccalloc (hashcat_ctx, hashes_avail, sizeof (salt_t));
 
     if (hashconfig->esalt_size)
     {
-      esalts_buf = (void *) mycalloc (hashes_avail, hashconfig->esalt_size);
+      esalts_buf = (void *) hccalloc (hashcat_ctx, hashes_avail, hashconfig->esalt_size);
     }
   }
   else
   {
-    salts_buf = (salt_t *) mycalloc (1, sizeof (salt_t));
+    salts_buf = (salt_t *) hccalloc (hashcat_ctx, 1, sizeof (salt_t));
   }
 
   for (u32 hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
@@ -675,7 +673,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           hashinfo_t *hash_info_tmp = hashes_buf[hashes_cnt].hash_info;
 
-          hash_info_tmp->orighash = mystrdup (hash_buf);
+          hash_info_tmp->orighash = hcstrdup (hashcat_ctx, hash_buf);
         }
 
         if (hashconfig->is_salted)
@@ -718,7 +716,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           u32 hccap_size = sizeof (hccap_t);
 
-          char *in = (char *) mymalloc (hccap_size);
+          char *in = (char *) hcmalloc (hashcat_ctx, hccap_size);
 
           while (!feof (fp))
           {
@@ -789,7 +787,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           fclose (fp);
 
-          myfree (in);
+          hcfree (in);
         }
         else if (hashconfig->hash_mode == 3000)
         {
@@ -889,7 +887,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       u32 line_num = 0;
 
-      char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+      char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
 
       while (!feof (fp))
       {
@@ -927,17 +925,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           {
             user_t **user = &hashes_buf[hashes_cnt].hash_info->user;
 
-            *user = (user_t *) mymalloc (sizeof (user_t));
+            *user = (user_t *) hcmalloc (hashcat_ctx, sizeof (user_t));
 
             user_t *user_ptr = *user;
 
             if (user_buf != NULL)
             {
-              user_ptr->user_name = mystrdup (user_buf);
+              user_ptr->user_name = hcstrdup (hashcat_ctx, user_buf);
             }
             else
             {
-              user_ptr->user_name = mystrdup ("");
+              user_ptr->user_name = hcstrdup (hashcat_ctx, "");
             }
 
             user_ptr->user_len = user_len;
@@ -948,7 +946,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           hashinfo_t *hash_info_tmp = hashes_buf[hashes_cnt].hash_info;
 
-          hash_info_tmp->orighash = mystrdup (hash_buf);
+          hash_info_tmp->orighash = hcstrdup (hashcat_ctx, hash_buf);
         }
 
         if (hashconfig->is_salted)
@@ -1032,7 +1030,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      myfree (line_buf);
+      hcfree (line_buf);
 
       fclose (fp);
 
@@ -1104,22 +1102,22 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
    * Now generate all the buffers required for later
    */
 
-  void   *digests_buf_new = (void *) mycalloc (hashes_cnt, hashconfig->dgst_size);
+  void   *digests_buf_new = (void *) hccalloc (hashcat_ctx, hashes_cnt, hashconfig->dgst_size);
   salt_t *salts_buf_new   = NULL;
   void   *esalts_buf_new  = NULL;
 
   if (hashconfig->is_salted)
   {
-    salts_buf_new = (salt_t *) mycalloc (hashes_cnt, sizeof (salt_t));
+    salts_buf_new = (salt_t *) hccalloc (hashcat_ctx, hashes_cnt, sizeof (salt_t));
 
     if (hashconfig->esalt_size)
     {
-      esalts_buf_new = (void *) mycalloc (hashes_cnt, hashconfig->esalt_size);
+      esalts_buf_new = (void *) hccalloc (hashcat_ctx, hashes_cnt, hashconfig->esalt_size);
     }
   }
   else
   {
-    salts_buf_new = (salt_t *) mycalloc (1, sizeof (salt_t));
+    salts_buf_new = (salt_t *) hccalloc (hashcat_ctx, 1, sizeof (salt_t));
   }
 
   if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Structuring salts for cracking task...");
@@ -1127,8 +1125,8 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
   u32 digests_cnt  = hashes_cnt;
   u32 digests_done = 0;
 
-  u32 *digests_shown     = (u32 *) mycalloc (digests_cnt, sizeof (u32));
-  u32 *digests_shown_tmp = (u32 *) mycalloc (digests_cnt, sizeof (u32));
+  u32 *digests_shown     = (u32 *) hccalloc (hashcat_ctx, digests_cnt, sizeof (u32));
+  u32 *digests_shown_tmp = (u32 *) hccalloc (hashcat_ctx, digests_cnt, sizeof (u32));
 
   u32 salts_cnt   = 0;
   u32 salts_done  = 0;
@@ -1137,7 +1135,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->username && (user_options->remove || user_options->show)) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
   {
-    hash_info = (hashinfo_t **) mycalloc (hashes_cnt, sizeof (hashinfo_t *));
+    hash_info = (hashinfo_t **) hccalloc (hashcat_ctx, hashes_cnt, sizeof (hashinfo_t *));
 
     if (user_options->username && (user_options->remove || user_options->show))
     {
@@ -1145,14 +1143,14 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
       for (user_pos = 0; user_pos < hashes_cnt; user_pos++)
       {
-        hash_info[user_pos] = (hashinfo_t *) mycalloc (hashes_cnt, sizeof (hashinfo_t));
+        hash_info[user_pos] = (hashinfo_t *) hccalloc (hashcat_ctx, hashes_cnt, sizeof (hashinfo_t));
 
-        hash_info[user_pos]->user = (user_t *) mymalloc (sizeof (user_t));
+        hash_info[user_pos]->user = (user_t *) hcmalloc (hashcat_ctx, sizeof (user_t));
       }
     }
   }
 
-  u32 *salts_shown = (u32 *) mycalloc (digests_cnt, sizeof (u32));
+  u32 *salts_shown = (u32 *) hccalloc (hashcat_ctx, digests_cnt, sizeof (u32));
 
   salt_t *salt_buf;
 
@@ -1251,10 +1249,10 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
     if (salts_done == salts_cnt) mycracked (hashcat_ctx);
   }
 
-  myfree (hashes->digests_buf);
-  myfree (hashes->salts_buf);
-  myfree (hashes->esalts_buf);
-  myfree (hashes->hashes_buf);
+  hcfree (hashes->digests_buf);
+  hcfree (hashes->salts_buf);
+  hcfree (hashes->esalts_buf);
+  hcfree (hashes->hashes_buf);
 
   hashes->digests_cnt        = digests_cnt;
   hashes->digests_done       = digests_done;
@@ -1333,16 +1331,16 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t *hashes = hashcat_ctx->hashes;
 
-  myfree (hashes->digests_buf);
-  myfree (hashes->digests_shown);
-  myfree (hashes->digests_shown_tmp);
+  hcfree (hashes->digests_buf);
+  hcfree (hashes->digests_shown);
+  hcfree (hashes->digests_shown_tmp);
 
-  myfree (hashes->salts_buf);
-  myfree (hashes->salts_shown);
+  hcfree (hashes->salts_buf);
+  hcfree (hashes->salts_shown);
 
-  myfree (hashes->esalts_buf);
+  hcfree (hashes->esalts_buf);
 
-  myfree (hashes->hash_info);
+  hcfree (hashes->hash_info);
 
   memset (hashes, 0, sizeof (hashes_t));
 }

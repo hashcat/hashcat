@@ -69,12 +69,12 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   // these variables are mainly used for fan control
 
-  int *fan_speed_chgd = (int *) mycalloc (opencl_ctx->devices_cnt, sizeof (int));
+  int *fan_speed_chgd = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int));
 
   // temperature controller "loopback" values
 
-  int *temp_diff_old = (int *) mycalloc (opencl_ctx->devices_cnt, sizeof (int));
-  int *temp_diff_sum = (int *) mycalloc (opencl_ctx->devices_cnt, sizeof (int));
+  int *temp_diff_old = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int));
+  int *temp_diff_sum = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int));
 
   time_t last_temp_check_time;
 
@@ -102,48 +102,31 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->skipped) continue;
 
-        if (device_param->device_vendor_id == VENDOR_ID_NV)
+        const int rc_throttle = hm_get_throttle_with_device_id (hashcat_ctx, device_id);
+
+        if (rc_throttle == -1) continue;
+
+        if (rc_throttle > 0)
         {
-          if (hwmon_ctx->hm_nvapi)
+          if (slowdown_warnings < 3)
           {
-            NV_GPU_PERF_POLICIES_INFO_PARAMS_V1   perfPolicies_info;
-            NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 perfPolicies_status;
+            if (user_options->quiet == false) clear_prompt ();
 
-            memset (&perfPolicies_info,   0, sizeof (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1));
-            memset (&perfPolicies_status, 0, sizeof (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1));
+            event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%d, expect performance to drop...", device_id + 1);
 
-            perfPolicies_info.version   = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1, 1);
-            perfPolicies_status.version = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1, 1);
-
-            hm_NvAPI_GPU_GetPerfPoliciesInfo (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, &perfPolicies_info);
-
-            perfPolicies_status.info_value = perfPolicies_info.info_value;
-
-            hm_NvAPI_GPU_GetPerfPoliciesStatus (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, &perfPolicies_status);
-
-            if (perfPolicies_status.throttle & 2)
+            if (slowdown_warnings == 2)
             {
-              if (slowdown_warnings < 3)
-              {
-                if (user_options->quiet == false) clear_prompt ();
-
-                event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%d, expect performance to drop...", device_id + 1);
-
-                if (slowdown_warnings == 2)
-                {
-                  event_log_info (hashcat_ctx, "");
-                }
-
-                if (user_options->quiet == false) send_prompt ();
-
-                slowdown_warnings++;
-              }
+              event_log_info (hashcat_ctx, "");
             }
-            else
-            {
-              slowdown_warnings = 0;
-            }
+
+            if (user_options->quiet == false) send_prompt ();
+
+            slowdown_warnings++;
           }
+        }
+        else
+        {
+          slowdown_warnings = 0;
         }
       }
 
@@ -358,10 +341,10 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     if (rc == -1) return -1;
   }
 
-  myfree (fan_speed_chgd);
+  hcfree (fan_speed_chgd);
 
-  myfree (temp_diff_old);
-  myfree (temp_diff_sum);
+  hcfree (temp_diff_old);
+  hcfree (temp_diff_sum);
 
   return 0;
 }

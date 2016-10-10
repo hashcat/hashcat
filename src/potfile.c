@@ -206,14 +206,14 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->potfile_path == NULL)
   {
-    potfile_ctx->filename = (char *) mymalloc (HCBUFSIZ_TINY);
+    potfile_ctx->filename = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
     potfile_ctx->fp       = NULL;
 
     snprintf (potfile_ctx->filename, HCBUFSIZ_TINY - 1, "%s/hashcat.potfile", folder_config->profile_dir);
   }
   else
   {
-    potfile_ctx->filename = mystrdup (user_options->potfile_path);
+    potfile_ctx->filename = hcstrdup (hashcat_ctx, user_options->potfile_path);
     potfile_ctx->fp       = NULL;
   }
 
@@ -267,13 +267,13 @@ void potfile_read_parse (hashcat_ctx_t *hashcat_ctx)
 
   if (potfile_ctx->fp == NULL) return;
 
-  potfile_ctx->pot_avail = count_lines (potfile_ctx->fp);
+  potfile_ctx->pot_avail = count_lines (hashcat_ctx, potfile_ctx->fp);
 
-  potfile_ctx->pot = (pot_t *) mycalloc (potfile_ctx->pot_avail, sizeof (pot_t));
+  potfile_ctx->pot = (pot_t *) hccalloc (hashcat_ctx, potfile_ctx->pot_avail, sizeof (pot_t));
 
   rewind (potfile_ctx->fp);
 
-  char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+  char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
 
   for (u32 line_num = 0; line_num < potfile_ctx->pot_avail; line_num++)
   {
@@ -363,7 +363,7 @@ void potfile_read_parse (hashcat_ctx_t *hashcat_ctx)
     potfile_ctx->pot_cnt++;
   }
 
-  myfree (line_buf);
+  hcfree (line_buf);
 
   hc_qsort_r (potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
 }
@@ -440,16 +440,16 @@ void potfile_hash_alloc (hashcat_ctx_t *hashcat_ctx, const u32 num)
 
     hash_t *tmp_hash = &tmp_pot->hash;
 
-    tmp_hash->digest = mymalloc (hashconfig->dgst_size);
+    tmp_hash->digest = hcmalloc (hashcat_ctx, hashconfig->dgst_size);
 
     if (hashconfig->is_salted)
     {
-      tmp_hash->salt = (salt_t *) mymalloc (sizeof (salt_t));
+      tmp_hash->salt = (salt_t *) hcmalloc (hashcat_ctx, sizeof (salt_t));
     }
 
     if (hashconfig->esalt_size)
     {
-      tmp_hash->esalt = mymalloc (hashconfig->esalt_size);
+      tmp_hash->esalt = hcmalloc (hashcat_ctx, hashconfig->esalt_size);
     }
 
     potfile_ctx->pot_hashes_avail++;
@@ -469,20 +469,20 @@ void potfile_hash_free (hashcat_ctx_t *hashcat_ctx)
 
     hash_t *hashes_buf = &pot_ptr->hash;
 
-    myfree (hashes_buf->digest);
+    hcfree (hashes_buf->digest);
 
     if (hashconfig->is_salted)
     {
-      myfree (hashes_buf->salt);
+      hcfree (hashes_buf->salt);
     }
 
     if (hashconfig->esalt_size)
     {
-      myfree (hashes_buf->esalt);
+      hcfree (hashes_buf->esalt);
     }
   }
 
-  myfree (potfile_ctx->pot);
+  hcfree (potfile_ctx->pot);
 }
 
 void potfile_show_request (hashcat_ctx_t *hashcat_ctx, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *, void *))
@@ -585,7 +585,7 @@ void potfile_show_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
     {
       weak_hash_found = 1;
 
-      pot_right_ptr = (pot_t *) mycalloc (1, sizeof (pot_t));
+      pot_right_ptr = (pot_t *) hccalloc (hashcat_ctx, 1, sizeof (pot_t));
 
       // in theory this is not needed, but we are paranoia:
 
@@ -596,7 +596,7 @@ void potfile_show_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
 
   if ((pot_left_ptr == NULL) && (pot_right_ptr == NULL))
   {
-    if (weak_hash_found == 1) myfree (pot_right_ptr); // this shouldn't happen at all: if weak_hash_found == 1, than pot_right_ptr is not NULL for sure
+    if (weak_hash_found == 1) hcfree (pot_right_ptr); // this shouldn't happen at all: if weak_hash_found == 1, than pot_right_ptr is not NULL for sure
 
     return;
   }
@@ -635,7 +635,7 @@ void potfile_show_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
   {
     left_part_masked = 1;
 
-    pot_left_ptr = (pot_t *) mycalloc (1, sizeof (pot_t));
+    pot_left_ptr = (pot_t *) hccalloc (hashcat_ctx, 1, sizeof (pot_t));
 
     memset (pot_left_ptr->plain_buf, 0, sizeof (pot_left_ptr->plain_buf));
 
@@ -647,7 +647,7 @@ void potfile_show_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
   {
     right_part_masked = 1;
 
-    pot_right_ptr = (pot_t *) mycalloc (1, sizeof (pot_t));
+    pot_right_ptr = (pot_t *) hccalloc (hashcat_ctx, 1, sizeof (pot_t));
 
     memset (pot_right_ptr->plain_buf, 0, sizeof (pot_right_ptr->plain_buf));
 
@@ -669,10 +669,10 @@ void potfile_show_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
 
   outfile_write (hashcat_ctx, input_buf, (unsigned char *) pot_ptr.plain_buf, pot_ptr.plain_len, 0, username, user_len);
 
-  if (weak_hash_found == 1) myfree (pot_right_ptr);
+  if (weak_hash_found == 1) hcfree (pot_right_ptr);
 
-  if (left_part_masked  == 1) myfree (pot_left_ptr);
-  if (right_part_masked == 1) myfree (pot_right_ptr);
+  if (left_part_masked  == 1) hcfree (pot_left_ptr);
+  if (right_part_masked == 1) hcfree (pot_right_ptr);
 }
 
 void potfile_left_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int input_len, hash_t *hash_left, hash_t *hash_right, int (*sort_by_pot) (const void *, const void *, void *))
@@ -710,13 +710,13 @@ void potfile_left_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
 
       // we just need that pot_right_ptr is not a NULL pointer
 
-      pot_right_ptr = (pot_t *) mycalloc (1, sizeof (pot_t));
+      pot_right_ptr = (pot_t *) hccalloc (hashcat_ctx, 1, sizeof (pot_t));
     }
   }
 
   if ((pot_left_ptr != NULL) && (pot_right_ptr != NULL))
   {
-    if (weak_hash_found == 1) myfree (pot_right_ptr);
+    if (weak_hash_found == 1) hcfree (pot_right_ptr);
 
     return;
   }
@@ -731,7 +731,7 @@ void potfile_left_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
 
   u32 user_len = (u32)input_len - 32u;
 
-  char *hash_output = (char *) mymalloc (33);
+  char *hash_output = (char *) hcmalloc (hashcat_ctx, 33);
 
   memcpy (hash_output, input_buf, input_len);
 
@@ -755,9 +755,9 @@ void potfile_left_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
 
   outfile_write (hashcat_ctx, hash_output, NULL, 0, 0, NULL, 0);
 
-  myfree (hash_output);
+  hcfree (hash_output);
 
-  if (weak_hash_found == 1) myfree (pot_right_ptr);
+  if (weak_hash_found == 1) hcfree (pot_right_ptr);
 }
 
 void potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
@@ -782,7 +782,7 @@ void potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   hash_t hash_buf;
 
-  hash_buf.digest    = mymalloc (hashconfig->dgst_size);
+  hash_buf.digest    = hcmalloc (hashcat_ctx, hashconfig->dgst_size);
   hash_buf.salt      = NULL;
   hash_buf.esalt     = NULL;
   hash_buf.hash_info = NULL;
@@ -790,25 +790,25 @@ void potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->is_salted)
   {
-    hash_buf.salt = (salt_t *) mymalloc (sizeof (salt_t));
+    hash_buf.salt = (salt_t *) hcmalloc (hashcat_ctx, sizeof (salt_t));
   }
 
   if (hashconfig->esalt_size)
   {
-    hash_buf.esalt = mymalloc (hashconfig->esalt_size);
+    hash_buf.esalt = hcmalloc (hashcat_ctx, hashconfig->esalt_size);
   }
 
   const int rc = potfile_read_open (hashcat_ctx);
 
   if (rc == -1) return;
 
-  char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+  char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
 
   // to be safe work with a copy (because of line_len loop, i etc)
   // moved up here because it's easier to handle continue case
   // it's just 64kb
 
-  char *line_buf_cpy = (char *) mymalloc (HCBUFSIZ_LARGE);
+  char *line_buf_cpy = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
 
   while (!feof (potfile_ctx->fp))
   {
@@ -945,21 +945,21 @@ void potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  myfree (line_buf_cpy);
+  hcfree (line_buf_cpy);
 
-  myfree (line_buf);
+  hcfree (line_buf);
 
   potfile_read_close (hashcat_ctx);
 
   if (hashconfig->esalt_size)
   {
-    myfree (hash_buf.esalt);
+    hcfree (hash_buf.esalt);
   }
 
   if (hashconfig->is_salted)
   {
-    myfree (hash_buf.salt);
+    hcfree (hash_buf.salt);
   }
 
-  myfree (hash_buf.digest);
+  hcfree (hash_buf.digest);
 }

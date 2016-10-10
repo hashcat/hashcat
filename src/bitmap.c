@@ -77,14 +77,14 @@ void bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
   const u32 bitmap_min = user_options->bitmap_min;
   const u32 bitmap_max = user_options->bitmap_max;
 
-  u32 *bitmap_s1_a = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s1_b = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s1_c = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s1_d = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s2_a = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s2_b = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s2_c = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s2_d = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s1_a = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s1_b = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s1_c = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s1_d = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s2_a = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s2_b = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s2_c = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s2_d = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32));
 
   u32 bitmap_bits;
   u32 bitmap_nums;
@@ -139,14 +139,14 @@ void bitmap_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (bitmap_ctx->enabled == false) return;
 
-  myfree (bitmap_ctx->bitmap_s1_a);
-  myfree (bitmap_ctx->bitmap_s1_b);
-  myfree (bitmap_ctx->bitmap_s1_c);
-  myfree (bitmap_ctx->bitmap_s1_d);
-  myfree (bitmap_ctx->bitmap_s2_a);
-  myfree (bitmap_ctx->bitmap_s2_b);
-  myfree (bitmap_ctx->bitmap_s2_c);
-  myfree (bitmap_ctx->bitmap_s2_d);
+  hcfree (bitmap_ctx->bitmap_s1_a);
+  hcfree (bitmap_ctx->bitmap_s1_b);
+  hcfree (bitmap_ctx->bitmap_s1_c);
+  hcfree (bitmap_ctx->bitmap_s1_d);
+  hcfree (bitmap_ctx->bitmap_s2_a);
+  hcfree (bitmap_ctx->bitmap_s2_b);
+  hcfree (bitmap_ctx->bitmap_s2_c);
+  hcfree (bitmap_ctx->bitmap_s2_d);
 
   memset (bitmap_ctx, 0, sizeof (bitmap_ctx_t));
 }

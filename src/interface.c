@@ -5575,7 +5575,7 @@ int agilekey_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
    * handle cipher encoding
    */
 
-  u32 *tmp = (u32 *) mymalloc (32);
+  u32 tmp[32];
 
   char *cipherbuf_ptr = (char *) tmp;
 
@@ -5600,8 +5600,6 @@ int agilekey_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   salt->salt_buf[ 9] = byte_swap_32 (tmp[5]);
   salt->salt_buf[10] = byte_swap_32 (tmp[6]);
   salt->salt_buf[11] = byte_swap_32 (tmp[7]);
-
-  myfree (tmp);
 
   for (u32 i = 0, j = 0; i < 1040; i += 1, j += 2)
   {
@@ -10416,318 +10414,182 @@ int sip_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   sip_t *sip = (sip_t *) hash_buf->esalt;
 
   // work with a temporary copy of input_buf (s.t. we can manipulate it directly)
-
-  char *temp_input_buf = (char *) mymalloc (input_len + 1);
-
-  memcpy (temp_input_buf, input_buf, input_len);
+  // why? should be fine to use original buffer
+  //char *temp_input_buf = (char *) hcmalloc (hashcat_ctx, input_len + 1);
+  //memcpy (temp_input_buf, input_buf, input_len);
 
   // URI_server:
 
-  char *URI_server_pos = temp_input_buf + 6;
+  char *URI_server_pos = input_buf + 6;
 
   char *URI_client_pos = strchr (URI_server_pos, '*');
 
-  if (URI_client_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (URI_client_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   URI_client_pos[0] = 0;
   URI_client_pos++;
 
   u32 URI_server_len = strlen (URI_server_pos);
 
-  if (URI_server_len > 512)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (URI_server_len > 512) return (PARSER_SALT_LENGTH);
 
   // URI_client:
 
   char *user_pos = strchr (URI_client_pos, '*');
 
-  if (user_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (user_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   user_pos[0] = 0;
   user_pos++;
 
   u32 URI_client_len = strlen (URI_client_pos);
 
-  if (URI_client_len > 512)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (URI_client_len > 512) return (PARSER_SALT_LENGTH);
 
   // user:
 
   char *realm_pos = strchr (user_pos, '*');
 
-  if (realm_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (realm_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   realm_pos[0] = 0;
   realm_pos++;
 
   u32 user_len = strlen (user_pos);
 
-  if (user_len > 116)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (user_len > 116) return (PARSER_SALT_LENGTH);
 
   // realm:
 
   char *method_pos = strchr (realm_pos, '*');
 
-  if (method_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (method_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   method_pos[0] = 0;
   method_pos++;
 
   u32 realm_len = strlen (realm_pos);
 
-  if (realm_len > 116)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (realm_len > 116) return (PARSER_SALT_LENGTH);
 
   // method:
 
   char *URI_prefix_pos = strchr (method_pos, '*');
 
-  if (URI_prefix_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (URI_prefix_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   URI_prefix_pos[0] = 0;
   URI_prefix_pos++;
 
   u32 method_len = strlen (method_pos);
 
-  if (method_len > 246)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (method_len > 246) return (PARSER_SALT_LENGTH);
 
   // URI_prefix:
 
   char *URI_resource_pos = strchr (URI_prefix_pos, '*');
 
-  if (URI_resource_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (URI_resource_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   URI_resource_pos[0] = 0;
   URI_resource_pos++;
 
   u32 URI_prefix_len = strlen (URI_prefix_pos);
 
-  if (URI_prefix_len > 245)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (URI_prefix_len > 245) return (PARSER_SALT_LENGTH);
 
   // URI_resource:
 
   char *URI_suffix_pos = strchr (URI_resource_pos, '*');
 
-  if (URI_suffix_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (URI_suffix_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   URI_suffix_pos[0] = 0;
   URI_suffix_pos++;
 
   u32 URI_resource_len = strlen (URI_resource_pos);
 
-  if (URI_resource_len < 1 || URI_resource_len > 246)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (URI_resource_len < 1 || URI_resource_len > 246) return (PARSER_SALT_LENGTH);
 
   // URI_suffix:
 
   char *nonce_pos = strchr (URI_suffix_pos, '*');
 
-  if (nonce_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (nonce_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   nonce_pos[0] = 0;
   nonce_pos++;
 
   u32 URI_suffix_len = strlen (URI_suffix_pos);
 
-  if (URI_suffix_len > 245)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (URI_suffix_len > 245) return (PARSER_SALT_LENGTH);
 
   // nonce:
 
   char *nonce_client_pos = strchr (nonce_pos, '*');
 
-  if (nonce_client_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (nonce_client_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   nonce_client_pos[0] = 0;
   nonce_client_pos++;
 
   u32 nonce_len = strlen (nonce_pos);
 
-  if (nonce_len < 1 || nonce_len > 50)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (nonce_len < 1 || nonce_len > 50) return (PARSER_SALT_LENGTH);
 
   // nonce_client:
 
   char *nonce_count_pos = strchr (nonce_client_pos, '*');
 
-  if (nonce_count_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (nonce_count_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   nonce_count_pos[0] = 0;
   nonce_count_pos++;
 
   u32 nonce_client_len = strlen (nonce_client_pos);
 
-  if (nonce_client_len > 50)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (nonce_client_len > 50) return (PARSER_SALT_LENGTH);
 
   // nonce_count:
 
   char *qop_pos = strchr (nonce_count_pos, '*');
 
-  if (qop_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (qop_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   qop_pos[0] = 0;
   qop_pos++;
 
   u32 nonce_count_len = strlen (nonce_count_pos);
 
-  if (nonce_count_len > 50)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (nonce_count_len > 50) return (PARSER_SALT_LENGTH);
 
   // qop:
 
   char *directive_pos = strchr (qop_pos, '*');
 
-  if (directive_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (directive_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   directive_pos[0] = 0;
   directive_pos++;
 
   u32 qop_len = strlen (qop_pos);
 
-  if (qop_len > 50)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (qop_len > 50) return (PARSER_SALT_LENGTH);
 
   // directive
 
   char *digest_pos = strchr (directive_pos, '*');
 
-  if (digest_pos == NULL)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SEPARATOR_UNMATCHED);
-  }
+  if (digest_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   digest_pos[0] = 0;
   digest_pos++;
 
   u32 directive_len = strlen (directive_pos);
 
-  if (directive_len != 3)
-  {
-    myfree (temp_input_buf);
+  if (directive_len != 3) return (PARSER_SALT_LENGTH);
 
-    return (PARSER_SALT_LENGTH);
-  }
-
-  if (memcmp (directive_pos, "MD5", 3))
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SIP_AUTH_DIRECTIVE);
-  }
+  if (memcmp (directive_pos, "MD5", 3)) return (PARSER_SIP_AUTH_DIRECTIVE);
 
   /*
    * first (pre-)compute: HA2 = md5 ($method . ":" . $uri)
@@ -10799,12 +10661,7 @@ int sip_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   {
     esalt_len = 1 + nonce_len + 1 + nonce_count_len + 1 + nonce_client_len + 1 + qop_len + 1 + 32;
 
-    if (esalt_len > max_esalt_len)
-    {
-      myfree (temp_input_buf);
-
-      return (PARSER_SALT_LENGTH);
-    }
+    if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
 
     snprintf (esalt_buf_ptr, max_esalt_len, ":%s:%s:%s:%s:%08x%08x%08x%08x",
       nonce_pos,
@@ -10820,12 +10677,7 @@ int sip_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   {
     esalt_len = 1 + nonce_len + 1 + 32;
 
-    if (esalt_len > max_esalt_len)
-    {
-      myfree (temp_input_buf);
-
-      return (PARSER_SALT_LENGTH);
-    }
+    if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
 
     snprintf (esalt_buf_ptr, max_esalt_len, ":%s:%08x%08x%08x%08x",
       nonce_pos,
@@ -10851,12 +10703,7 @@ int sip_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 max_salt_len = 119;
 
-  if (salt_len > max_salt_len)
-  {
-    myfree (temp_input_buf);
-
-    return (PARSER_SALT_LENGTH);
-  }
+  if (salt_len > max_salt_len) return (PARSER_SALT_LENGTH);
 
   snprintf (sip_salt_ptr, max_salt_len + 1, "%s:%s:", user_pos, realm_pos);
 
@@ -10894,8 +10741,6 @@ int sip_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[1] = byte_swap_32 (digest[1]);
   digest[2] = byte_swap_32 (digest[2]);
   digest[3] = byte_swap_32 (digest[3]);
-
-  myfree (temp_input_buf);
 
   return (PARSER_OK);
 }
@@ -13023,8 +12868,11 @@ char *strparser (const u32 parser_status)
   return ((char *) PA_255);
 }
 
-void to_hccap_t (hccap_t *hccap, const u32 salt_pos, const u32 digest_pos, MAYBE_UNUSED const hashconfig_t *hashconfig, const hashes_t *hashes)
+void to_hccap_t (hashcat_ctx_t *hashcat_ctx, hccap_t *hccap, const u32 salt_pos, const u32 digest_pos)
 {
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  const hashes_t     *hashes     = hashcat_ctx->hashes;
+
   const void   *digests_buf = hashes->digests_buf;
   const salt_t *salts_buf   = hashes->salts_buf;
   const void   *esalts_buf  = hashes->esalts_buf;
@@ -13086,8 +12934,11 @@ void to_hccap_t (hccap_t *hccap, const u32 salt_pos, const u32 digest_pos, MAYBE
   }
 }
 
-void ascii_digest (char *out_buf, const u32 salt_pos, const u32 digest_pos, MAYBE_UNUSED const hashconfig_t *hashconfig, const hashes_t *hashes)
+void ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos, const u32 digest_pos)
 {
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  const hashes_t     *hashes     = hashcat_ctx->hashes;
+
   void        *digests_buf = hashes->digests_buf;
   salt_t      *salts_buf   = hashes->salts_buf;
   void        *esalts_buf  = hashes->esalts_buf;
@@ -15188,9 +15039,9 @@ void ascii_digest (char *out_buf, const u32 salt_pos, const u32 digest_pos, MAYB
     const u32 ckey_len       = bitcoin_wallet->ckey_len;
     const u32 public_key_len = bitcoin_wallet->public_key_len;
 
-    char *cry_master_buf = (char *) mymalloc ((cry_master_len * 2) + 1);
-    char *ckey_buf       = (char *) mymalloc ((ckey_len * 2)       + 1);
-    char *public_key_buf = (char *) mymalloc ((public_key_len * 2) + 1);
+    char *cry_master_buf = (char *) hcmalloc (hashcat_ctx, (cry_master_len * 2) + 1);
+    char *ckey_buf       = (char *) hcmalloc (hashcat_ctx, (ckey_len * 2)       + 1);
+    char *public_key_buf = (char *) hcmalloc (hashcat_ctx, (public_key_len * 2) + 1);
 
     for (u32 i = 0, j = 0; i < cry_master_len; i += 1, j += 2)
     {
@@ -15226,9 +15077,9 @@ void ascii_digest (char *out_buf, const u32 salt_pos, const u32 digest_pos, MAYB
       public_key_buf
     );
 
-    myfree (cry_master_buf);
-    myfree (ckey_buf);
-    myfree (public_key_buf);
+    hcfree (cry_master_buf);
+    hcfree (ckey_buf);
+    hcfree (public_key_buf);
   }
   else if (hash_mode == 11400)
   {
@@ -15247,7 +15098,7 @@ void ascii_digest (char *out_buf, const u32 salt_pos, const u32 digest_pos, MAYB
 
     const u32 data_len = seven_zip->data_len;
 
-    char *data_buf = (char *) mymalloc ((data_len * 2) + 1);
+    char *data_buf = (char *) hcmalloc (hashcat_ctx, (data_len * 2) + 1);
 
     for (u32 i = 0, j = 0; i < data_len; i += 1, j += 2)
     {
@@ -15272,7 +15123,7 @@ void ascii_digest (char *out_buf, const u32 salt_pos, const u32 digest_pos, MAYB
       seven_zip->unpack_size,
       data_buf);
 
-    myfree (data_buf);
+    hcfree (data_buf);
   }
   else if (hash_mode == 11700)
   {
@@ -20163,7 +20014,7 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 
     u32 *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
 
-    char *keyfiles = mystrdup (tcvc_keyfiles);
+    char *keyfiles = hcstrdup (hashcat_ctx, tcvc_keyfiles);
 
     char *keyfile = strtok (keyfiles, ",");
 

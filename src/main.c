@@ -174,7 +174,7 @@ static int main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   hashcat_user->outer_threads_cnt = 0;
 
-  hashcat_user->outer_threads = (hc_thread_t *) mycalloc (2, sizeof (hc_thread_t));
+  hashcat_user->outer_threads = (hc_thread_t *) hccalloc (hashcat_ctx, 2, sizeof (hc_thread_t));
 
   status_ctx->shutdown_outer = false;
 
@@ -207,7 +207,7 @@ static int main_outerloop_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
     hc_thread_wait (1, &hashcat_user->outer_threads[thread_idx]);
   }
 
-  myfree (hashcat_user->outer_threads);
+  hcfree (hashcat_user->outer_threads);
 
   hashcat_user->outer_threads_cnt = 0;
 

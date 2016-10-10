@@ -30,7 +30,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   combinator_ctx->enabled = true;
 
-  combinator_ctx->scratch_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+  combinator_ctx->scratch_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
@@ -183,7 +183,7 @@ void combinator_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (combinator_ctx->enabled == false) return;
 
-  myfree (combinator_ctx->scratch_buf);
+  hcfree (combinator_ctx->scratch_buf);
 
   memset (combinator_ctx, 0, sizeof (combinator_ctx_t));
 }

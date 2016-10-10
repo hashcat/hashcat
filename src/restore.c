@@ -62,7 +62,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL) return 0;
 
-  restore_data_t *rd = (restore_data_t *) mymalloc (sizeof (restore_data_t));
+  restore_data_t *rd = (restore_data_t *) hcmalloc (hashcat_ctx, sizeof (restore_data_t));
 
   const size_t nread = fread (rd, sizeof (restore_data_t), 1, fp);
 
@@ -77,7 +77,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   if (rd->pid)
   {
-    char *pidbin = (char *) mymalloc (HCBUFSIZ_LARGE);
+    char *pidbin = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
 
     int pidbin_len = -1;
 
@@ -113,7 +113,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
     #elif defined (_WIN)
     HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, rd->pid);
 
-    char *pidbin2 = (char *) mymalloc (HCBUFSIZ_LARGE);
+    char *pidbin2 = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
 
     int pidbin2_len = -1;
 
@@ -133,11 +133,11 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    myfree (pidbin2);
+    hcfree (pidbin2);
 
     #endif
 
-    myfree (pidbin);
+    hcfree (pidbin);
   }
 
   if (rd->version < RESTORE_VERSION_MIN)
@@ -147,7 +147,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  myfree (rd);
+  hcfree (rd);
 
   return 0;
 }
@@ -156,7 +156,7 @@ static int init_restore (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
 
-  restore_data_t *rd = (restore_data_t *) mymalloc (sizeof (restore_data_t));
+  restore_data_t *rd = (restore_data_t *) hcmalloc (hashcat_ctx, sizeof (restore_data_t));
 
   restore_ctx->rd = rd;
 
@@ -211,9 +211,9 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  rd->argv = (char **) mycalloc (rd->argc, sizeof (char *));
+  rd->argv = (char **) hccalloc (hashcat_ctx, rd->argc, sizeof (char *));
 
-  char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
 
   for (u32 i = 0; i < rd->argc; i++)
   {
@@ -228,10 +228,10 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
     if (len) buf[len - 1] = 0;
 
-    rd->argv[i] = mystrdup (buf);
+    rd->argv[i] = hcstrdup (hashcat_ctx, buf);
   }
 
-  myfree (buf);
+  hcfree (buf);
 
   fclose (fp);
 
@@ -393,8 +393,8 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   restore_ctx->enabled = false;
 
-  char *eff_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
-  char *new_restore_file = (char *) mymalloc (HCBUFSIZ_TINY);
+  char *eff_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *new_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
 
   snprintf (eff_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore",     folder_config->session_dir, user_options->session);
   snprintf (new_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore.new", folder_config->session_dir, user_options->session);
@@ -459,10 +459,10 @@ void restore_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
 
-  myfree (restore_ctx->eff_restore_file);
-  myfree (restore_ctx->new_restore_file);
+  hcfree (restore_ctx->eff_restore_file);
+  hcfree (restore_ctx->new_restore_file);
 
-  myfree (restore_ctx->rd);
+  hcfree (restore_ctx->rd);
 
   if (restore_ctx->enabled == false) return;
 

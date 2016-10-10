@@ -192,7 +192,7 @@ void user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
-  user_options->rp_files                  = (char **) mycalloc (256, sizeof (char *));
+  user_options->rp_files                  = (char **) hccalloc (hashcat_ctx, 256, sizeof (char *));
   user_options->hc_bin                    = PROGNAME;
   user_options->hc_argc                   = 0;
   user_options->hc_argv                   = NULL;
@@ -202,7 +202,7 @@ void user_options_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  myfree (user_options->rp_files);
+  hcfree (user_options->rp_files);
 
   //do not reset this, it might be used from main.c
   //memset (user_options, 0, sizeof (user_options_t));
@@ -966,7 +966,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->quiet               = true;
     user_options->opencl_platforms    = NULL;
     user_options->opencl_devices      = NULL;
-    user_options->opencl_device_types = mystrdup ("1,2,3");
+    user_options->opencl_device_types = hcstrdup (hashcat_ctx, "1,2,3");
   }
 
   if (user_options->left == true)
