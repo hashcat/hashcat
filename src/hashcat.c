@@ -511,9 +511,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->potfile_disable == 0)
   {
-    EVENT (EVENT_POTFILE_REMOVE_PARSE);
+    EVENT (EVENT_POTFILE_REMOVE_PARSE_PRE);
 
     potfile_remove_parse (hashcat_ctx);
+
+    EVENT (EVENT_POTFILE_REMOVE_PARSE_POST);
   }
 
   /**

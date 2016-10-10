@@ -315,13 +315,24 @@ static int main_calculated_words_base (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   return 0;
 }
 
-static int main_potfile_remove_parse (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+static int main_potfile_remove_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->quiet == true) return 0;
 
   event_log_info_nn (hashcat_ctx, "Comparing hashes with potfile entries...");
+
+  return 0;
+}
+
+static int main_potfile_remove_parse_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return 0;
+
+  event_log_info_nn (hashcat_ctx, "Compared hashes with potfile entries...");
 
   return 0;
 }
@@ -538,33 +549,34 @@ int event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size
 
   switch (id)
   {
-    case EVENT_LOG_INFO:               rc = main_log_info               (hashcat_ctx, buf, len); break;
-    case EVENT_LOG_WARNING:            rc = main_log_warning            (hashcat_ctx, buf, len); break;
-    case EVENT_LOG_ERROR:              rc = main_log_error              (hashcat_ctx, buf, len); break;
-    case EVENT_WELCOME_SCREEN:         rc = main_welcome_screen         (hashcat_ctx, buf, len); break;
-    case EVENT_GOODBYE_SCREEN:         rc = main_goodbye_screen         (hashcat_ctx, buf, len); break;
-    case EVENT_LOGFILE_TOP_INITIALIZE: rc = main_logfile_top_initialize (hashcat_ctx, buf, len); break;
-    case EVENT_LOGFILE_TOP_FINALIZE:   rc = main_logfile_top_finalize   (hashcat_ctx, buf, len); break;
-    case EVENT_LOGFILE_SUB_INITIALIZE: rc = main_logfile_sub_initialize (hashcat_ctx, buf, len); break;
-    case EVENT_LOGFILE_SUB_FINALIZE:   rc = main_logfile_sub_finalize   (hashcat_ctx, buf, len); break;
-    case EVENT_OUTERLOOP_STARTING:     rc = main_outerloop_starting     (hashcat_ctx, buf, len); break;
-    case EVENT_OUTERLOOP_FINISHED:     rc = main_outerloop_finished     (hashcat_ctx, buf, len); break;
-    case EVENT_OUTERLOOP_MAINSCREEN:   rc = main_outerloop_mainscreen   (hashcat_ctx, buf, len); break;
-    case EVENT_CRACKER_STARTING:       rc = main_cracker_starting       (hashcat_ctx, buf, len); break;
-    case EVENT_CRACKER_FINISHED:       rc = main_cracker_finished       (hashcat_ctx, buf, len); break;
-    case EVENT_CRACKER_FINAL_STATS:    rc = main_cracker_final_stats    (hashcat_ctx, buf, len); break;
-    case EVENT_CRACKER_HASH_CRACKED:   rc = main_cracker_hash_cracked   (hashcat_ctx, buf, len); break;
-    case EVENT_CALCULATED_WORDS_BASE:  rc = main_calculated_words_base  (hashcat_ctx, buf, len); break;
-    case EVENT_POTFILE_REMOVE_PARSE:   rc = main_potfile_remove_parse   (hashcat_ctx, buf, len); break;
-    case EVENT_POTFILE_NUM_CRACKED:    rc = main_potfile_num_cracked    (hashcat_ctx, buf, len); break;
-    case EVENT_POTFILE_ALL_CRACKED:    rc = main_potfile_all_cracked    (hashcat_ctx, buf, len); break;
-    case EVENT_OPENCL_SESSION_PRE:     rc = main_opencl_session_pre     (hashcat_ctx, buf, len); break;
-    case EVENT_OPENCL_SESSION_POST:    rc = main_opencl_session_post    (hashcat_ctx, buf, len); break;
-    case EVENT_BITMAP_INIT_PRE:        rc = main_bitmap_init_pre        (hashcat_ctx, buf, len); break;
-    case EVENT_BITMAP_INIT_POST:       rc = main_bitmap_init_post       (hashcat_ctx, buf, len); break;
-    case EVENT_WEAK_HASH_PRE:          rc = main_weak_hash_pre          (hashcat_ctx, buf, len); break;
-    case EVENT_WEAK_HASH_POST:         rc = main_weak_hash_post         (hashcat_ctx, buf, len); break;
-    case EVENT_SET_KERNEL_POWER_FINAL: rc = main_set_kernel_power_final (hashcat_ctx, buf, len); break;
+    case EVENT_LOG_INFO:                  rc = main_log_info                  (hashcat_ctx, buf, len); break;
+    case EVENT_LOG_WARNING:               rc = main_log_warning               (hashcat_ctx, buf, len); break;
+    case EVENT_LOG_ERROR:                 rc = main_log_error                 (hashcat_ctx, buf, len); break;
+    case EVENT_WELCOME_SCREEN:            rc = main_welcome_screen            (hashcat_ctx, buf, len); break;
+    case EVENT_GOODBYE_SCREEN:            rc = main_goodbye_screen            (hashcat_ctx, buf, len); break;
+    case EVENT_LOGFILE_TOP_INITIALIZE:    rc = main_logfile_top_initialize    (hashcat_ctx, buf, len); break;
+    case EVENT_LOGFILE_TOP_FINALIZE:      rc = main_logfile_top_finalize      (hashcat_ctx, buf, len); break;
+    case EVENT_LOGFILE_SUB_INITIALIZE:    rc = main_logfile_sub_initialize    (hashcat_ctx, buf, len); break;
+    case EVENT_LOGFILE_SUB_FINALIZE:      rc = main_logfile_sub_finalize      (hashcat_ctx, buf, len); break;
+    case EVENT_OUTERLOOP_STARTING:        rc = main_outerloop_starting        (hashcat_ctx, buf, len); break;
+    case EVENT_OUTERLOOP_FINISHED:        rc = main_outerloop_finished        (hashcat_ctx, buf, len); break;
+    case EVENT_OUTERLOOP_MAINSCREEN:      rc = main_outerloop_mainscreen      (hashcat_ctx, buf, len); break;
+    case EVENT_CRACKER_STARTING:          rc = main_cracker_starting          (hashcat_ctx, buf, len); break;
+    case EVENT_CRACKER_FINISHED:          rc = main_cracker_finished          (hashcat_ctx, buf, len); break;
+    case EVENT_CRACKER_FINAL_STATS:       rc = main_cracker_final_stats       (hashcat_ctx, buf, len); break;
+    case EVENT_CRACKER_HASH_CRACKED:      rc = main_cracker_hash_cracked      (hashcat_ctx, buf, len); break;
+    case EVENT_CALCULATED_WORDS_BASE:     rc = main_calculated_words_base     (hashcat_ctx, buf, len); break;
+    case EVENT_POTFILE_REMOVE_PARSE_PRE:  rc = main_potfile_remove_parse_pre  (hashcat_ctx, buf, len); break;
+    case EVENT_POTFILE_REMOVE_PARSE_POST: rc = main_potfile_remove_parse_post (hashcat_ctx, buf, len); break;
+    case EVENT_POTFILE_NUM_CRACKED:       rc = main_potfile_num_cracked       (hashcat_ctx, buf, len); break;
+    case EVENT_POTFILE_ALL_CRACKED:       rc = main_potfile_all_cracked       (hashcat_ctx, buf, len); break;
+    case EVENT_OPENCL_SESSION_PRE:        rc = main_opencl_session_pre        (hashcat_ctx, buf, len); break;
+    case EVENT_OPENCL_SESSION_POST:       rc = main_opencl_session_post       (hashcat_ctx, buf, len); break;
+    case EVENT_BITMAP_INIT_PRE:           rc = main_bitmap_init_pre           (hashcat_ctx, buf, len); break;
+    case EVENT_BITMAP_INIT_POST:          rc = main_bitmap_init_post          (hashcat_ctx, buf, len); break;
+    case EVENT_WEAK_HASH_PRE:             rc = main_weak_hash_pre             (hashcat_ctx, buf, len); break;
+    case EVENT_WEAK_HASH_POST:            rc = main_weak_hash_post            (hashcat_ctx, buf, len); break;
+    case EVENT_SET_KERNEL_POWER_FINAL:    rc = main_set_kernel_power_final    (hashcat_ctx, buf, len); break;
   }
 
   return rc;
