@@ -29,7 +29,7 @@ static int CPU_ISSET (int num, cpu_set_t *cs)
   return (cs->count & (1 << num));
 }
 
-static int pthread_setaffinity_np (hashcat_ctx_t *hashcat_ctx, pthread_t thread, size_t cpu_size, cpu_set_t *cpu_set)
+static int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t *cpu_set)
 {
   int core;
 

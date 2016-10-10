@@ -163,12 +163,7 @@ char **scan_directory (const char *path)
 
       struct dirent *de = NULL;
 
-      if (readdir_r (d, &e, &de) != 0)
-      {
-        event_log_error (hashcat_ctx, "ERROR: readdir_r() failed");
-
-        break;
-      }
+      if (readdir_r (d, &e, &de) != 0) break;
 
       if (de == NULL) break;
 
