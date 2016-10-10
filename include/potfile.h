@@ -12,8 +12,8 @@
 
 #define INCR_POT 1000
 
-int sort_by_pot               (const void *v1, const void *v2, void *v3);
-int sort_by_salt_buf          (const void *v1, const void *v2, void *v3);
+int sort_by_pot               (const void *v1, const void *v2, MAYBE_UNUSED void *v3);
+int sort_by_salt_buf          (const void *v1, const void *v2, MAYBE_UNUSED void *v3);
 int sort_by_hash_t_salt       (const void *v1, const void *v2);
 int sort_by_hash_t_salt_hccap (const void *v1, const void *v2);
 

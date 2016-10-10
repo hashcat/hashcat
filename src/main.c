@@ -25,9 +25,6 @@
 #include "interface.h"
 #include "event.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
 static void main_log (hashcat_ctx_t *hashcat_ctx, const char *buf, const size_t len, FILE *fp)
 {
   if (len == 0) return;
@@ -64,28 +61,28 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, const char *buf, const size_t 
   fflush (fp);
 }
 
-static int main_log_info (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_log_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   main_log (hashcat_ctx, buf, len, stdout);
 
   return 0;
 }
 
-static int main_log_warning (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_log_warning (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   main_log (hashcat_ctx, buf, len, stdout);
 
   return 0;
 }
 
-static int main_log_error (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_log_error (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   main_log (hashcat_ctx, buf, len, stderr);
 
   return 0;
 }
 
-static int main_welcome_screen (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_welcome_screen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   // sets dos window size (windows only)
 
@@ -100,7 +97,7 @@ static int main_welcome_screen (hashcat_ctx_t *hashcat_ctx, const void *buf, con
   return 0;
 }
 
-static int main_goodbye_screen (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_goodbye_screen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   // Inform user we're done
 
@@ -111,7 +108,7 @@ static int main_goodbye_screen (hashcat_ctx_t *hashcat_ctx, const void *buf, con
   return 0;
 }
 
-static int main_logfile_top_initialize (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_logfile_top_initialize (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
 
@@ -132,7 +129,7 @@ static int main_logfile_top_initialize (hashcat_ctx_t *hashcat_ctx, const void *
   return 0;
 }
 
-static int main_logfile_top_finalize (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_logfile_top_finalize (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
 
@@ -143,7 +140,7 @@ static int main_logfile_top_finalize (hashcat_ctx_t *hashcat_ctx, const void *bu
   return 0;
 }
 
-static int main_logfile_sub_initialize (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_logfile_sub_initialize (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
 
@@ -154,7 +151,7 @@ static int main_logfile_sub_initialize (hashcat_ctx_t *hashcat_ctx, const void *
   return 0;
 }
 
-static int main_logfile_sub_finalize (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_logfile_sub_finalize (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
 
@@ -163,7 +160,7 @@ static int main_logfile_sub_finalize (hashcat_ctx_t *hashcat_ctx, const void *bu
   return 0;
 }
 
-static int main_outerloop_starting (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -196,7 +193,7 @@ static int main_outerloop_starting (hashcat_ctx_t *hashcat_ctx, const void *buf,
   return 0;
 }
 
-static int main_outerloop_finished (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_outerloop_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   hashcat_user_t *hashcat_user = hashcat_ctx->hashcat_user;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
@@ -217,7 +214,7 @@ static int main_outerloop_finished (hashcat_ctx_t *hashcat_ctx, const void *buf,
   return 0;
 }
 
-static int main_cracker_starting (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -242,7 +239,7 @@ static int main_cracker_starting (hashcat_ctx_t *hashcat_ctx, const void *buf, c
   return 0;
 }
 
-static int main_cracker_finished (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
   const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
@@ -252,7 +249,7 @@ static int main_cracker_finished (hashcat_ctx_t *hashcat_ctx, const void *buf, c
   return 0;
 }
 
-static int main_cracker_final_stats (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_cracker_final_stats (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -294,7 +291,7 @@ static int main_cracker_final_stats (hashcat_ctx_t *hashcat_ctx, const void *buf
   return 0;
 }
 
-static int main_cracker_hash_cracked (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -305,7 +302,7 @@ static int main_cracker_hash_cracked (hashcat_ctx_t *hashcat_ctx, const void *bu
   return 0;
 }
 
-static int main_calculated_words_base (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_calculated_words_base (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -318,7 +315,7 @@ static int main_calculated_words_base (hashcat_ctx_t *hashcat_ctx, const void *b
   return 0;
 }
 
-static int main_potfile_remove_parse (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_potfile_remove_parse (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -329,7 +326,7 @@ static int main_potfile_remove_parse (hashcat_ctx_t *hashcat_ctx, const void *bu
   return 0;
 }
 
-static int main_potfile_num_cracked (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
   const hashes_t       *hashes       = hashcat_ctx->hashes;
@@ -355,7 +352,7 @@ static int main_potfile_num_cracked (hashcat_ctx_t *hashcat_ctx, const void *buf
   return 0;
 }
 
-static int main_potfile_all_cracked (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_potfile_all_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -369,7 +366,7 @@ static int main_potfile_all_cracked (hashcat_ctx_t *hashcat_ctx, const void *buf
   return 0;
 }
 
-static int main_outerloop_mainscreen (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const bitmap_ctx_t   *bitmap_ctx   = hashcat_ctx->bitmap_ctx;
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -455,7 +452,7 @@ static int main_outerloop_mainscreen (hashcat_ctx_t *hashcat_ctx, const void *bu
   return 0;
 }
 
-static int main_opencl_session_pre (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_opencl_session_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -466,7 +463,7 @@ static int main_opencl_session_pre (hashcat_ctx_t *hashcat_ctx, const void *buf,
   return 0;
 }
 
-static int main_opencl_session_post (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_opencl_session_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -477,7 +474,7 @@ static int main_opencl_session_post (hashcat_ctx_t *hashcat_ctx, const void *buf
   return 0;
 }
 
-static int main_weak_hash_pre (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_weak_hash_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -488,7 +485,7 @@ static int main_weak_hash_pre (hashcat_ctx_t *hashcat_ctx, const void *buf, cons
   return 0;
 }
 
-static int main_weak_hash_post (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_weak_hash_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -499,7 +496,7 @@ static int main_weak_hash_post (hashcat_ctx_t *hashcat_ctx, const void *buf, con
   return 0;
 }
 
-static int main_bitmap_init_pre (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_bitmap_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -510,7 +507,7 @@ static int main_bitmap_init_pre (hashcat_ctx_t *hashcat_ctx, const void *buf, co
   return 0;
 }
 
-static int main_bitmap_init_post (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_bitmap_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -521,7 +518,7 @@ static int main_bitmap_init_post (hashcat_ctx_t *hashcat_ctx, const void *buf, c
   return 0;
 }
 
-static int main_set_kernel_power_final (hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static int main_set_kernel_power_final (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -589,8 +586,6 @@ int event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size
 }
 
 #endif
-
-#pragma GCC diagnostic pop
 
 int main (int argc, char **argv)
 {

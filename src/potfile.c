@@ -26,7 +26,7 @@ int sort_by_hash         (const void *v1, const void *v2, void *v3);
 int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3);
 // get rid of this later
 
-int sort_by_pot (const void *v1, const void *v2, void *v3)
+int sort_by_pot (const void *v1, const void *v2, MAYBE_UNUSED void *v3)
 {
   const pot_t *p1 = (const pot_t *) v1;
   const pot_t *p2 = (const pot_t *) v2;
@@ -37,10 +37,8 @@ int sort_by_pot (const void *v1, const void *v2, void *v3)
   return sort_by_hash (h1, h2, v3);
 }
 
-int sort_by_salt_buf (const void *v1, const void *v2, void *v3)
+int sort_by_salt_buf (const void *v1, const void *v2, MAYBE_UNUSED void *v3)
 {
-  if (v3 == NULL) v3 = NULL; // make compiler happy
-
   const pot_t *p1 = (const pot_t *) v1;
   const pot_t *p2 = (const pot_t *) v2;
 
@@ -54,7 +52,7 @@ int sort_by_salt_buf (const void *v1, const void *v2, void *v3)
 
   while (n--)
   {
-    if (s1->salt_buf[n] > s2->salt_buf[n]) return ( 1);
+    if (s1->salt_buf[n] > s2->salt_buf[n]) return  1;
     if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
   }
 

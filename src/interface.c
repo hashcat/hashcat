@@ -2000,7 +2000,7 @@ static void drupal7_encode (u8 digest[64], u8 buf[43])
  * parser
  */
 
-static u32 parse_and_store_salt (char *out, char *in, u32 salt_len, const hashconfig_t *hashconfig)
+static u32 parse_and_store_salt (char *out, char *in, u32 salt_len, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u8 tmp[256] = { 0 };
 
@@ -2115,10 +2115,7 @@ static u32 parse_and_store_salt (char *out, char *in, u32 salt_len, const hashco
   return (salt_len);
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
-int bcrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int bcrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_3200) || (input_len > DISPLAY_LEN_MAX_3200)) return (PARSER_GLOBAL_LENGTH);
 
@@ -2177,7 +2174,7 @@ int bcrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int cisco4_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int cisco4_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_5700) || (input_len > DISPLAY_LEN_MAX_5700)) return (PARSER_GLOBAL_LENGTH);
 
@@ -2210,7 +2207,7 @@ int cisco4_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int lm_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int lm_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_3000) || (input_len > DISPLAY_LEN_MAX_3000)) return (PARSER_GLOBAL_LENGTH);
 
@@ -2234,7 +2231,7 @@ int lm_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashc
   return (PARSER_OK);
 }
 
-int arubaos_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int arubaos_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_125) || (input_len > DISPLAY_LEN_MAX_125)) return (PARSER_GLOBAL_LENGTH);
 
@@ -2271,7 +2268,7 @@ int arubaos_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int osx1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int osx1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_122) || (input_len > DISPLAY_LEN_MAX_122)) return (PARSER_GLOBAL_LENGTH);
 
@@ -2306,7 +2303,7 @@ int osx1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int osx512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int osx512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_1722) || (input_len > DISPLAY_LEN_MAX_1722)) return (PARSER_GLOBAL_LENGTH);
 
@@ -2347,7 +2344,7 @@ int osx512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int osc_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int osc_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -2394,7 +2391,7 @@ int osc_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hash
   return (PARSER_OK);
 }
 
-int netscreen_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int netscreen_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -2510,7 +2507,7 @@ int netscreen_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int smf_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int smf_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -2554,7 +2551,7 @@ int smf_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hash
   return (PARSER_OK);
 }
 
-int dcc2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int dcc2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -2612,7 +2609,7 @@ int dcc2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int wpa_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int wpa_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -2737,7 +2734,7 @@ int wpa_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hash
   return (PARSER_OK);
 }
 
-int psafe2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int psafe2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -2774,7 +2771,7 @@ int psafe2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int psafe3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int psafe3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -2830,7 +2827,7 @@ int psafe3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int phpass_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int phpass_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_400) || (input_len > DISPLAY_LEN_MAX_400)) return (PARSER_GLOBAL_LENGTH);
 
@@ -2865,7 +2862,7 @@ int phpass_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int md5crypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int md5crypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (input_len < DISPLAY_LEN_MIN_500) return (PARSER_GLOBAL_LENGTH);
 
@@ -2926,7 +2923,7 @@ int md5crypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int md5apr1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int md5apr1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (memcmp (SIGNATURE_MD5APR1, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
 
@@ -2981,7 +2978,7 @@ int md5apr1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int episerver_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int episerver_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_141) || (input_len > DISPLAY_LEN_MAX_141)) return (PARSER_GLOBAL_LENGTH);
 
@@ -3030,7 +3027,7 @@ int episerver_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int descrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int descrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_1500) || (input_len > DISPLAY_LEN_MAX_1500)) return (PARSER_GLOBAL_LENGTH);
 
@@ -3067,7 +3064,7 @@ int descrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int md4_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int md4_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_900) || (input_len > DISPLAY_LEN_MAX_900)) return (PARSER_GLOBAL_LENGTH);
 
@@ -3091,7 +3088,7 @@ int md4_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hash
   return (PARSER_OK);
 }
 
-int md4s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int md4s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -3138,7 +3135,7 @@ int md4s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int md5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int md5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_0) || (input_len > DISPLAY_LEN_MAX_0)) return (PARSER_GLOBAL_LENGTH);
 
@@ -3162,7 +3159,7 @@ int md5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hash
   return (PARSER_OK);
 }
 
-int md5half_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int md5half_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_5100) || (input_len > DISPLAY_LEN_MAX_5100)) return (PARSER_GLOBAL_LENGTH);
 
@@ -3179,7 +3176,7 @@ int md5half_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int md5s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int md5s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -3226,7 +3223,7 @@ int md5s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int md5pix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int md5pix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_2400) || (input_len > DISPLAY_LEN_MAX_2400)) return (PARSER_GLOBAL_LENGTH);
 
@@ -3262,7 +3259,7 @@ int md5pix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int md5asa_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int md5asa_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -3342,7 +3339,7 @@ static void transform_netntlmv1_key (const u8 *nthash, u8 *key)
   key[7] |= 0x01;
 }
 
-int netntlmv1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int netntlmv1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_5500) || (input_len > DISPLAY_LEN_MAX_5500)) return (PARSER_GLOBAL_LENGTH);
 
@@ -3578,7 +3575,7 @@ int netntlmv1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int netntlmv2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int netntlmv2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_5600) || (input_len > DISPLAY_LEN_MAX_5600)) return (PARSER_GLOBAL_LENGTH);
 
@@ -3756,7 +3753,7 @@ int netntlmv2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int joomla_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int joomla_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -3803,7 +3800,7 @@ int joomla_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int postgresql_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int postgresql_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -3850,7 +3847,7 @@ int postgresql_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int md5md5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int md5md5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_2600) || (input_len > DISPLAY_LEN_MAX_2600)) return (PARSER_GLOBAL_LENGTH);
 
@@ -3890,7 +3887,7 @@ int md5md5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int vb3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int vb3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -3937,7 +3934,7 @@ int vb3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hash
   return (PARSER_OK);
 }
 
-int vb30_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int vb30_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -3979,7 +3976,7 @@ int vb30_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int dcc_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int dcc_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -4026,7 +4023,7 @@ int dcc_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hash
   return (PARSER_OK);
 }
 
-int ipb2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int ipb2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -4094,7 +4091,7 @@ int ipb2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int sha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_100) || (input_len > DISPLAY_LEN_MAX_100)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4115,7 +4112,7 @@ int sha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int sha1axcrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha1axcrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_13300) || (input_len > DISPLAY_LEN_MAX_13300)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4134,7 +4131,7 @@ int sha1axcrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, co
   return (PARSER_OK);
 }
 
-int sha1s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha1s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -4178,7 +4175,7 @@ int sha1s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const ha
   return (PARSER_OK);
 }
 
-int pstoken_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int pstoken_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_13500) || (input_len > DISPLAY_LEN_MAX_13500)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4264,7 +4261,7 @@ int pstoken_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int sha1b64_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha1b64_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_101) || (input_len > DISPLAY_LEN_MAX_101)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4293,7 +4290,7 @@ int sha1b64_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int sha1b64s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha1b64s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_111) || (input_len > DISPLAY_LEN_MAX_111)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4341,7 +4338,7 @@ int sha1b64s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int mssql2000_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int mssql2000_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_131) || (input_len > DISPLAY_LEN_MAX_131)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4380,7 +4377,7 @@ int mssql2000_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int mssql2005_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int mssql2005_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_132) || (input_len > DISPLAY_LEN_MAX_132)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4419,7 +4416,7 @@ int mssql2005_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int mssql2012_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int mssql2012_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_1731) || (input_len > DISPLAY_LEN_MAX_1731)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4464,7 +4461,7 @@ int mssql2012_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int oracleh_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int oracleh_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -4504,7 +4501,7 @@ int oracleh_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int oracles_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int oracles_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_112) || (input_len > DISPLAY_LEN_MAX_112)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4541,7 +4538,7 @@ int oracles_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int oraclet_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int oraclet_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_12300) || (input_len > DISPLAY_LEN_MAX_12300)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4581,7 +4578,7 @@ int oraclet_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int sha256_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha256_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_1400) || (input_len > DISPLAY_LEN_MAX_1400)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4608,7 +4605,7 @@ int sha256_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int sha256s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha256s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -4658,7 +4655,7 @@ int sha256s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int sha384_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha384_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_10800) || (input_len > DISPLAY_LEN_MAX_10800)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4685,7 +4682,7 @@ int sha384_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int sha512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_1700) || (input_len > DISPLAY_LEN_MAX_1700)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4712,7 +4709,7 @@ int sha512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int sha512s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha512s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -4762,7 +4759,7 @@ int sha512s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int sha512crypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha512crypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (memcmp (SIGNATURE_SHA512CRYPT, input_buf, 3)) return (PARSER_SIGNATURE_UNMATCHED);
 
@@ -4817,7 +4814,7 @@ int sha512crypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, co
   return (PARSER_OK);
 }
 
-int keccak_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int keccak_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_5000) || (input_len > DISPLAY_LEN_MAX_5000)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4841,7 +4838,7 @@ int keccak_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int ikepsk_md5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int ikepsk_md5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_5300) || (input_len > DISPLAY_LEN_MAX_5300)) return (PARSER_GLOBAL_LENGTH);
 
@@ -4928,7 +4925,7 @@ int ikepsk_md5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int ikepsk_sha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int ikepsk_sha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_5400) || (input_len > DISPLAY_LEN_MAX_5400)) return (PARSER_GLOBAL_LENGTH);
 
@@ -5011,7 +5008,7 @@ int ikepsk_sha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, co
   return (PARSER_OK);
 }
 
-int ripemd160_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int ripemd160_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_6000) || (input_len > DISPLAY_LEN_MAX_6000)) return (PARSER_GLOBAL_LENGTH);
 
@@ -5032,7 +5029,7 @@ int ripemd160_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int whirlpool_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int whirlpool_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_6100) || (input_len > DISPLAY_LEN_MAX_6100)) return (PARSER_GLOBAL_LENGTH);
 
@@ -5058,7 +5055,7 @@ int whirlpool_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int androidpin_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int androidpin_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_5800) || (input_len > DISPLAY_LEN_MAX_5800)) return (PARSER_GLOBAL_LENGTH);
 
@@ -5091,7 +5088,7 @@ int androidpin_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int truecrypt_parse_hash_1k (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int truecrypt_parse_hash_1k (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -5130,7 +5127,7 @@ int truecrypt_parse_hash_1k (char *input_buf, u32 input_len, hash_t *hash_buf, c
   return (PARSER_OK);
 }
 
-int truecrypt_parse_hash_2k (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int truecrypt_parse_hash_2k (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -5169,7 +5166,7 @@ int truecrypt_parse_hash_2k (char *input_buf, u32 input_len, hash_t *hash_buf, c
   return (PARSER_OK);
 }
 
-int veracrypt_parse_hash_200000 (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int veracrypt_parse_hash_200000 (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -5208,7 +5205,7 @@ int veracrypt_parse_hash_200000 (char *input_buf, u32 input_len, hash_t *hash_bu
   return (PARSER_OK);
 }
 
-int veracrypt_parse_hash_500000 (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int veracrypt_parse_hash_500000 (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -5247,7 +5244,7 @@ int veracrypt_parse_hash_500000 (char *input_buf, u32 input_len, hash_t *hash_bu
   return (PARSER_OK);
 }
 
-int veracrypt_parse_hash_327661 (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int veracrypt_parse_hash_327661 (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -5286,7 +5283,7 @@ int veracrypt_parse_hash_327661 (char *input_buf, u32 input_len, hash_t *hash_bu
   return (PARSER_OK);
 }
 
-int veracrypt_parse_hash_655331 (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int veracrypt_parse_hash_655331 (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -5325,7 +5322,7 @@ int veracrypt_parse_hash_655331 (char *input_buf, u32 input_len, hash_t *hash_bu
   return (PARSER_OK);
 }
 
-int md5aix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int md5aix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_6300) || (input_len > DISPLAY_LEN_MAX_6300)) return (PARSER_GLOBAL_LENGTH);
 
@@ -5358,7 +5355,7 @@ int md5aix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int sha1aix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha1aix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_6700) || (input_len > DISPLAY_LEN_MAX_6700)) return (PARSER_GLOBAL_LENGTH);
 
@@ -5407,7 +5404,7 @@ int sha1aix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int sha256aix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha256aix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_6400) || (input_len > DISPLAY_LEN_MAX_6400)) return (PARSER_GLOBAL_LENGTH);
 
@@ -5459,7 +5456,7 @@ int sha256aix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int sha512aix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha512aix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_6500) || (input_len > DISPLAY_LEN_MAX_6500)) return (PARSER_GLOBAL_LENGTH);
 
@@ -5511,7 +5508,7 @@ int sha512aix_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int agilekey_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int agilekey_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_6600) || (input_len > DISPLAY_LEN_MAX_6600)) return (PARSER_GLOBAL_LENGTH);
 
@@ -5627,7 +5624,7 @@ int agilekey_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int lastpass_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int lastpass_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_6800) || (input_len > DISPLAY_LEN_MAX_6800)) return (PARSER_GLOBAL_LENGTH);
 
@@ -5677,7 +5674,7 @@ int lastpass_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int gost_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int gost_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_6900) || (input_len > DISPLAY_LEN_MAX_6900)) return (PARSER_GLOBAL_LENGTH);
 
@@ -5704,7 +5701,7 @@ int gost_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int sha256crypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha256crypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (memcmp (SIGNATURE_SHA256CRYPT, input_buf, 3)) return (PARSER_SIGNATURE_UNMATCHED);
 
@@ -5759,7 +5756,7 @@ int sha256crypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, co
   return (PARSER_OK);
 }
 
-int sha512osx_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha512osx_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u32 max_len = DISPLAY_LEN_MAX_7100 + (2 * 128);
 
@@ -5831,7 +5828,7 @@ int sha512osx_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int episerver4_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int episerver4_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_1441) || (input_len > DISPLAY_LEN_MAX_1441)) return (PARSER_GLOBAL_LENGTH);
 
@@ -5886,7 +5883,7 @@ int episerver4_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int sha512grub_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha512grub_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u32 max_len = DISPLAY_LEN_MAX_7200 + (8 * 128);
 
@@ -5950,7 +5947,7 @@ int sha512grub_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int sha512b64s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sha512b64s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_1711) || (input_len > DISPLAY_LEN_MAX_1711)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6004,7 +6001,7 @@ int sha512b64s_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int hmacmd5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int hmacmd5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -6046,7 +6043,7 @@ int hmacmd5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int hmacsha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int hmacsha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -6084,7 +6081,7 @@ int hmacsha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int hmacsha256_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int hmacsha256_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -6125,7 +6122,7 @@ int hmacsha256_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int hmacsha512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int hmacsha512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
@@ -6166,7 +6163,7 @@ int hmacsha512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int krb5pa_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int krb5pa_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_7500) || (input_len > DISPLAY_LEN_MAX_7500)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6272,7 +6269,7 @@ int krb5pa_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int sapb_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sapb_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_7700) || (input_len > DISPLAY_LEN_MAX_7700)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6342,7 +6339,7 @@ int sapb_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int sapg_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sapg_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_7800) || (input_len > DISPLAY_LEN_MAX_7800)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6414,7 +6411,7 @@ int sapg_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int drupal7_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int drupal7_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_7900) || (input_len > DISPLAY_LEN_MAX_7900)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6466,7 +6463,7 @@ int drupal7_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int sybasease_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sybasease_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_8000) || (input_len > DISPLAY_LEN_MAX_8000)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6502,7 +6499,7 @@ int sybasease_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int mysql323_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int mysql323_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_200) || (input_len > DISPLAY_LEN_MAX_200)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6516,7 +6513,7 @@ int mysql323_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int rakp_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int rakp_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_7300) || (input_len > DISPLAY_LEN_MAX_7300)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6585,7 +6582,7 @@ int rakp_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int netscaler_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int netscaler_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_8100) || (input_len > DISPLAY_LEN_MAX_8100)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6621,7 +6618,7 @@ int netscaler_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int chap_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int chap_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_4800) || (input_len > DISPLAY_LEN_MAX_4800)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6671,7 +6668,7 @@ int chap_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int cloudkey_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int cloudkey_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_8200) || (input_len > DISPLAY_LEN_MAX_8200)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6781,7 +6778,7 @@ int cloudkey_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int nsec3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int nsec3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_8300) || (input_len > DISPLAY_LEN_MAX_8300)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6895,7 +6892,7 @@ int nsec3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const ha
   return (PARSER_OK);
 }
 
-int wbb3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int wbb3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_8400) || (input_len > DISPLAY_LEN_MAX_8400)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6926,7 +6923,7 @@ int wbb3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int opencart_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int opencart_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_13900) || (input_len > DISPLAY_LEN_MAX_13900)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6957,7 +6954,7 @@ int opencart_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int racf_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int racf_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   const u8 ascii_to_ebcdic[] =
   {
@@ -7044,7 +7041,7 @@ int racf_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int des_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int des_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_14000) || (input_len > DISPLAY_LEN_MAX_14000)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7099,7 +7096,7 @@ int des_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hash
   return (PARSER_OK);
 }
 
-int lotus5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int lotus5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_8600) || (input_len > DISPLAY_LEN_MAX_8600)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7118,7 +7115,7 @@ int lotus5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int lotus6_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int lotus6_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_8700) || (input_len > DISPLAY_LEN_MAX_8700)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7147,7 +7144,7 @@ int lotus6_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int lotus8_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int lotus8_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_9100) || (input_len > DISPLAY_LEN_MAX_9100)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7203,7 +7200,7 @@ int lotus8_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int hmailserver_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int hmailserver_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_1421) || (input_len > DISPLAY_LEN_MAX_1421)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7244,7 +7241,7 @@ int hmailserver_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, co
   return (PARSER_OK);
 }
 
-int phps_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int phps_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_2612) || (input_len > DISPLAY_LEN_MAX_2612)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7290,7 +7287,7 @@ int phps_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int mediawiki_b_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int mediawiki_b_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_3711) || (input_len > DISPLAY_LEN_MAX_3711)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7338,7 +7335,7 @@ int mediawiki_b_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, co
   return (PARSER_OK);
 }
 
-int peoplesoft_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int peoplesoft_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_133) || (input_len > DISPLAY_LEN_MAX_133)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7371,7 +7368,7 @@ int peoplesoft_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int skype_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int skype_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_23) || (input_len > DISPLAY_LEN_MAX_23)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7419,7 +7416,7 @@ int skype_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const ha
   return (PARSER_OK);
 }
 
-int androidfde_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int androidfde_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_8800) || (input_len > DISPLAY_LEN_MAX_8800)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7511,7 +7508,7 @@ int androidfde_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int scrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int scrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_8900) || (input_len > DISPLAY_LEN_MAX_8900)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7601,7 +7598,7 @@ int scrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int juniper_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int juniper_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_501) || (input_len > DISPLAY_LEN_MAX_501)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7638,7 +7635,7 @@ int juniper_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int cisco8_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int cisco8_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_9200) || (input_len > DISPLAY_LEN_MAX_9200)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7709,7 +7706,7 @@ int cisco8_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int cisco9_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int cisco9_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_9300) || (input_len > DISPLAY_LEN_MAX_9300)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7764,7 +7761,7 @@ int cisco9_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int office2007_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int office2007_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_9400) || (input_len > DISPLAY_LEN_MAX_9400)) return (PARSER_GLOBAL_LENGTH);
 
@@ -7903,7 +7900,7 @@ int office2007_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int office2010_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int office2010_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_9500) || (input_len > DISPLAY_LEN_MAX_9500)) return (PARSER_GLOBAL_LENGTH);
 
@@ -8043,7 +8040,7 @@ int office2010_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int office2013_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int office2013_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_9600) || (input_len > DISPLAY_LEN_MAX_9600)) return (PARSER_GLOBAL_LENGTH);
 
@@ -8183,7 +8180,7 @@ int office2013_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int oldoffice01_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int oldoffice01_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_9700) || (input_len > DISPLAY_LEN_MAX_9700)) return (PARSER_GLOBAL_LENGTH);
 
@@ -8306,12 +8303,12 @@ int oldoffice01_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, co
   return (PARSER_OK);
 }
 
-int oldoffice01cm1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int oldoffice01cm1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   return oldoffice01_parse_hash (input_buf, input_len, hash_buf, hashconfig);
 }
 
-int oldoffice01cm2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int oldoffice01cm2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_9720) || (input_len > DISPLAY_LEN_MAX_9720)) return (PARSER_GLOBAL_LENGTH);
 
@@ -8461,7 +8458,7 @@ int oldoffice01cm2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf,
   return (PARSER_OK);
 }
 
-int oldoffice34_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int oldoffice34_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_9800) || (input_len > DISPLAY_LEN_MAX_9800)) return (PARSER_GLOBAL_LENGTH);
 
@@ -8581,14 +8578,14 @@ int oldoffice34_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, co
   return (PARSER_OK);
 }
 
-int oldoffice34cm1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int oldoffice34cm1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if (memcmp (SIGNATURE_OLDOFFICE3, input_buf, 12)) return (PARSER_SIGNATURE_UNMATCHED);
 
   return oldoffice34_parse_hash (input_buf, input_len, hash_buf, hashconfig);
 }
 
-int oldoffice34cm2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int oldoffice34cm2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_9820) || (input_len > DISPLAY_LEN_MAX_9820)) return (PARSER_GLOBAL_LENGTH);
 
@@ -8735,7 +8732,7 @@ int oldoffice34cm2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf,
   return (PARSER_OK);
 }
 
-int radmin2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int radmin2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_9900) || (input_len > DISPLAY_LEN_MAX_9900)) return (PARSER_GLOBAL_LENGTH);
 
@@ -8754,7 +8751,7 @@ int radmin2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int djangosha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int djangosha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_124) || (input_len > DISPLAY_LEN_MAX_124)) return (PARSER_GLOBAL_LENGTH);
 
@@ -8811,7 +8808,7 @@ int djangosha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int djangopbkdf2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int djangopbkdf2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_10000) || (input_len > DISPLAY_LEN_MAX_10000)) return (PARSER_GLOBAL_LENGTH);
 
@@ -8890,7 +8887,7 @@ int djangopbkdf2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, c
   return (PARSER_OK);
 }
 
-int siphash_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int siphash_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_10100) || (input_len > DISPLAY_LEN_MAX_10100)) return (PARSER_GLOBAL_LENGTH);
 
@@ -8934,7 +8931,7 @@ int siphash_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int crammd5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int crammd5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_10200) || (input_len > DISPLAY_LEN_MAX_10200)) return (PARSER_GLOBAL_LENGTH);
 
@@ -9008,7 +9005,7 @@ int crammd5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int saph_sha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int saph_sha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_10300) || (input_len > DISPLAY_LEN_MAX_10300)) return (PARSER_GLOBAL_LENGTH);
 
@@ -9077,7 +9074,7 @@ int saph_sha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int redmine_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int redmine_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_7600) || (input_len > DISPLAY_LEN_MAX_7600)) return (PARSER_GLOBAL_LENGTH);
 
@@ -9108,7 +9105,7 @@ int redmine_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int pdf11_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int pdf11_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_10400) || (input_len > DISPLAY_LEN_MAX_10400)) return (PARSER_GLOBAL_LENGTH);
 
@@ -9312,12 +9309,12 @@ int pdf11_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const ha
   return (PARSER_OK);
 }
 
-int pdf11cm1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int pdf11cm1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   return pdf11_parse_hash (input_buf, input_len, hash_buf, hashconfig);
 }
 
-int pdf11cm2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int pdf11cm2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_10420) || (input_len > DISPLAY_LEN_MAX_10420)) return (PARSER_GLOBAL_LENGTH);
 
@@ -9552,7 +9549,7 @@ int pdf11cm2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int pdf14_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int pdf14_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_10500) || (input_len > DISPLAY_LEN_MAX_10500)) return (PARSER_GLOBAL_LENGTH);
 
@@ -9817,7 +9814,7 @@ int pdf14_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const ha
   return (PARSER_OK);
 }
 
-int pdf17l3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int pdf17l3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   int ret = pdf17l8_parse_hash (input_buf, input_len, hash_buf, hashconfig);
 
@@ -9844,7 +9841,7 @@ int pdf17l3_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int pdf17l8_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int pdf17l8_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_10600) || (input_len > DISPLAY_LEN_MAX_10600)) return (PARSER_GLOBAL_LENGTH);
 
@@ -10015,7 +10012,7 @@ int pdf17l8_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int pbkdf2_sha256_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int pbkdf2_sha256_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_10900) || (input_len > DISPLAY_LEN_MAX_10900)) return (PARSER_GLOBAL_LENGTH);
 
@@ -10102,7 +10099,7 @@ int pbkdf2_sha256_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, 
   return (PARSER_OK);
 }
 
-int prestashop_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int prestashop_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_11000) || (input_len > DISPLAY_LEN_MAX_11000)) return (PARSER_GLOBAL_LENGTH);
 
@@ -10137,7 +10134,7 @@ int prestashop_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int postgresql_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int postgresql_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_11100) || (input_len > DISPLAY_LEN_MAX_11100)) return (PARSER_GLOBAL_LENGTH);
 
@@ -10210,7 +10207,7 @@ int postgresql_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf
   return (PARSER_OK);
 }
 
-int mysql_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int mysql_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_11200) || (input_len > DISPLAY_LEN_MAX_11200)) return (PARSER_GLOBAL_LENGTH);
 
@@ -10259,7 +10256,7 @@ int mysql_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int bitcoin_wallet_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int bitcoin_wallet_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_11300) || (input_len > DISPLAY_LEN_MAX_11300)) return (PARSER_GLOBAL_LENGTH);
 
@@ -10406,7 +10403,7 @@ int bitcoin_wallet_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf,
   return (PARSER_OK);
 }
 
-int sip_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int sip_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_11400) || (input_len > DISPLAY_LEN_MAX_11400)) return (PARSER_GLOBAL_LENGTH);
 
@@ -10903,7 +10900,7 @@ int sip_auth_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int crc32_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int crc32_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_11500) || (input_len > DISPLAY_LEN_MAX_11500)) return (PARSER_GLOBAL_LENGTH);
 
@@ -10939,7 +10936,7 @@ int crc32_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const ha
   return (PARSER_OK);
 }
 
-int seven_zip_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int seven_zip_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_11600) || (input_len > DISPLAY_LEN_MAX_11600)) return (PARSER_GLOBAL_LENGTH);
 
@@ -11105,7 +11102,7 @@ int seven_zip_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int gost2012sbog_256_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int gost2012sbog_256_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_11700) || (input_len > DISPLAY_LEN_MAX_11700)) return (PARSER_GLOBAL_LENGTH);
 
@@ -11132,7 +11129,7 @@ int gost2012sbog_256_parse_hash (char *input_buf, u32 input_len, hash_t *hash_bu
   return (PARSER_OK);
 }
 
-int gost2012sbog_512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int gost2012sbog_512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_11800) || (input_len > DISPLAY_LEN_MAX_11800)) return (PARSER_GLOBAL_LENGTH);
 
@@ -11175,7 +11172,7 @@ int gost2012sbog_512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_bu
   return (PARSER_OK);
 }
 
-int pbkdf2_md5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int pbkdf2_md5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_11900) || (input_len > DISPLAY_LEN_MAX_11900)) return (PARSER_GLOBAL_LENGTH);
 
@@ -11257,7 +11254,7 @@ int pbkdf2_md5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, con
   return (PARSER_OK);
 }
 
-int pbkdf2_sha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int pbkdf2_sha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_12000) || (input_len > DISPLAY_LEN_MAX_12000)) return (PARSER_GLOBAL_LENGTH);
 
@@ -11344,7 +11341,7 @@ int pbkdf2_sha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, co
   return (PARSER_OK);
 }
 
-int pbkdf2_sha512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int pbkdf2_sha512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_12100) || (input_len > DISPLAY_LEN_MAX_12100)) return (PARSER_GLOBAL_LENGTH);
 
@@ -11435,7 +11432,7 @@ int pbkdf2_sha512_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, 
   return (PARSER_OK);
 }
 
-int ecryptfs_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int ecryptfs_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_12200) || (input_len > DISPLAY_LEN_MAX_12200)) return (PARSER_GLOBAL_LENGTH);
 
@@ -11495,7 +11492,7 @@ int ecryptfs_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int bsdicrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int bsdicrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_12400) || (input_len > DISPLAY_LEN_MAX_12400)) return (PARSER_GLOBAL_LENGTH);
 
@@ -11543,7 +11540,7 @@ int bsdicrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, cons
   return (PARSER_OK);
 }
 
-int rar3hp_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int rar3hp_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_12500) || (input_len > DISPLAY_LEN_MAX_12500)) return (PARSER_GLOBAL_LENGTH);
 
@@ -11612,7 +11609,7 @@ int rar3hp_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const h
   return (PARSER_OK);
 }
 
-int rar5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int rar5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_13000) || (input_len > DISPLAY_LEN_MAX_13000)) return (PARSER_GLOBAL_LENGTH);
 
@@ -11724,7 +11721,7 @@ int rar5_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int krb5tgs_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int krb5tgs_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_13100) || (input_len > DISPLAY_LEN_MAX_13100)) return (PARSER_GLOBAL_LENGTH);
 
@@ -11823,7 +11820,7 @@ int krb5tgs_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int axcrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int axcrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_13200) || (input_len > DISPLAY_LEN_MAX_13200)) return (PARSER_GLOBAL_LENGTH);
 
@@ -11898,7 +11895,7 @@ int axcrypt_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int keepass_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int keepass_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_13400) || (input_len > DISPLAY_LEN_MAX_13400)) return (PARSER_GLOBAL_LENGTH);
 
@@ -12200,7 +12197,7 @@ int keepass_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int cf10_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int cf10_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_12600) || (input_len > DISPLAY_LEN_MAX_12600)) return (PARSER_GLOBAL_LENGTH);
 
@@ -12279,7 +12276,7 @@ int cf10_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int mywallet_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int mywallet_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_12700) || (input_len > DISPLAY_LEN_MAX_12700)) return (PARSER_GLOBAL_LENGTH);
 
@@ -12350,7 +12347,7 @@ int mywallet_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const
   return (PARSER_OK);
 }
 
-int ms_drsr_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int ms_drsr_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_12800) || (input_len > DISPLAY_LEN_MAX_12800)) return (PARSER_GLOBAL_LENGTH);
 
@@ -12424,7 +12421,7 @@ int ms_drsr_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const 
   return (PARSER_OK);
 }
 
-int androidfde_samsung_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int androidfde_samsung_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_12900) || (input_len > DISPLAY_LEN_MAX_12900)) return (PARSER_GLOBAL_LENGTH);
 
@@ -12479,7 +12476,7 @@ int androidfde_samsung_parse_hash (char *input_buf, u32 input_len, hash_t *hash_
   return (PARSER_OK);
 }
 
-int zip2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int zip2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_13600) || (input_len > DISPLAY_LEN_MAX_13600)) return (PARSER_GLOBAL_LENGTH);
 
@@ -12707,7 +12704,7 @@ int zip2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const has
   return (PARSER_OK);
 }
 
-int win8phone_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, const hashconfig_t *hashconfig)
+int win8phone_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_13800) || (input_len > DISPLAY_LEN_MAX_13800)) return (PARSER_GLOBAL_LENGTH);
 
@@ -13026,7 +13023,7 @@ char *strparser (const u32 parser_status)
   return ((char *) PA_255);
 }
 
-void to_hccap_t (hccap_t *hccap, const u32 salt_pos, const u32 digest_pos, const hashconfig_t *hashconfig, const hashes_t *hashes)
+void to_hccap_t (hccap_t *hccap, const u32 salt_pos, const u32 digest_pos, MAYBE_UNUSED const hashconfig_t *hashconfig, const hashes_t *hashes)
 {
   const void   *digests_buf = hashes->digests_buf;
   const salt_t *salts_buf   = hashes->salts_buf;
@@ -13089,7 +13086,7 @@ void to_hccap_t (hccap_t *hccap, const u32 salt_pos, const u32 digest_pos, const
   }
 }
 
-void ascii_digest (char *out_buf, const u32 salt_pos, const u32 digest_pos, const hashconfig_t *hashconfig, const hashes_t *hashes)
+void ascii_digest (char *out_buf, const u32 salt_pos, const u32 digest_pos, MAYBE_UNUSED const hashconfig_t *hashconfig, const hashes_t *hashes)
 {
   void        *digests_buf = hashes->digests_buf;
   salt_t      *salts_buf   = hashes->salts_buf;
@@ -16072,8 +16069,6 @@ void ascii_digest (char *out_buf, const u32 salt_pos, const u32 digest_pos, cons
     out_buf[pos + 1 + salt.salt_len] = 0;
   }
 }
-
-#pragma GCC diagnostic pop
 
 int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 {

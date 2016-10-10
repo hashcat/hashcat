@@ -231,7 +231,7 @@ char **scan_directory (const char *path)
   return (files);
 }
 
-int folder_config_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, const char *shared_folder)
+int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
 
@@ -314,9 +314,6 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, 
   myfree (resolved_exec_path);
 
   #else
-
-  if (install_folder == NULL) install_folder = NULL; // make compiler happy
-  if (shared_folder  == NULL) shared_folder  = NULL; // make compiler happy
 
   char *install_dir = get_install_dir (exec_path);
   char *profile_dir = install_dir;
@@ -426,10 +423,9 @@ void folder_config_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (folder_config, 0, sizeof (folder_config_t));
 }
 
-int hc_mkdir (const char *name, int mode)
+int hc_mkdir (const char *name, MAYBE_UNUSED const int mode)
 {
   #if defined (_WIN)
-  if (mode == 0) mode = 0; // makes compiler happy
   return _mkdir (name);
   #else
   return mkdir (name, mode);

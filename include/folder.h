@@ -37,7 +37,7 @@ int count_dictionaries (char **dictionary_files);
 
 char **scan_directory (const char *path);
 
-int  folder_config_init    (hashcat_ctx_t *hashcat_ctx, const char *install_folder, const char *shared_folder);
+int  folder_config_init    (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder);
 void folder_config_destroy (hashcat_ctx_t *hashcat_ctx);
 
-int hc_mkdir (const char *name, int mode);
+int hc_mkdir (const char *name, MAYBE_UNUSED const int mode);

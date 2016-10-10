@@ -63,7 +63,7 @@ void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const 
   event_log_info_nn (hashcat_ctx, "Stopped: %s", ctime (&proc_stop));
 }
 
-int setup_console (hashcat_ctx_t *hashcat_ctx)
+int setup_console (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
   #if defined (_WIN)
   SetConsoleWindowSize (132);

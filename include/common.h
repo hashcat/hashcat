@@ -87,4 +87,6 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 #define EOL "\n"
 #endif
 
+#define MAYBE_UNUSED __attribute__((unused))
+
 #endif // _COMMON_H

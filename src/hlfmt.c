@@ -22,7 +22,7 @@ static const char HLFMT_TEXT_NSLDAPS[]  = "nsldaps";
 
 // hlfmt hashcat
 
-static void hlfmt_hash_hashcat (hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_hashcat (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -54,7 +54,7 @@ static void hlfmt_hash_hashcat (hashcat_ctx_t *hashcat_ctx, char *line_buf, int 
   }
 }
 
-static void hlfmt_user_hashcat (hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_hashcat (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
@@ -86,10 +86,8 @@ static void hlfmt_user_hashcat (hashcat_ctx_t *hashcat_ctx, char *line_buf, int 
 
 // hlfmt pwdump
 
-static int hlfmt_detect_pwdump (hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len)
+static int hlfmt_detect_pwdump (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len)
 {
-  if (hashcat_ctx == NULL) hashcat_ctx = NULL; // makes GCC happy
-
   int sep_cnt = 0;
 
   int sep2_len = 0;
@@ -113,7 +111,7 @@ static int hlfmt_detect_pwdump (hashcat_ctx_t *hashcat_ctx, char *line_buf, int 
   return 0;
 }
 
-static void hlfmt_hash_pwdump (hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_pwdump (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
@@ -155,10 +153,8 @@ static void hlfmt_hash_pwdump (hashcat_ctx_t *hashcat_ctx, char *line_buf, int l
   *hashbuf_len = len;
 }
 
-static void hlfmt_user_pwdump (hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_pwdump (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
-  if (hashcat_ctx == NULL) hashcat_ctx = NULL; // makes GCC happy
-
   char *pos = NULL;
   int   len = 0;
 
@@ -187,10 +183,8 @@ static void hlfmt_user_pwdump (hashcat_ctx_t *hashcat_ctx, char *line_buf, int l
 
 // hlfmt passwd
 
-static int hlfmt_detect_passwd (hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len)
+static int hlfmt_detect_passwd (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len)
 {
-  if (hashcat_ctx == NULL) hashcat_ctx = NULL; // makes GCC happy
-
   int sep_cnt = 0;
 
   char sep5_first = 0;
@@ -214,10 +208,8 @@ static int hlfmt_detect_passwd (hashcat_ctx_t *hashcat_ctx, char *line_buf, int 
   return 0;
 }
 
-static void hlfmt_hash_passwd (hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_passwd (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
-  if (hashcat_ctx == NULL) hashcat_ctx = NULL; // makes GCC happy
-
   char *pos = NULL;
   int   len = 0;
 
@@ -244,10 +236,8 @@ static void hlfmt_hash_passwd (hashcat_ctx_t *hashcat_ctx, char *line_buf, int l
   *hashbuf_len = len;
 }
 
-static void hlfmt_user_passwd (hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_passwd (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
-  if (hashcat_ctx == NULL) hashcat_ctx = NULL; // makes GCC happy
-
   char *pos = NULL;
   int   len = 0;
 
@@ -276,10 +266,8 @@ static void hlfmt_user_passwd (hashcat_ctx_t *hashcat_ctx, char *line_buf, int l
 
 // hlfmt shadow
 
-static int hlfmt_detect_shadow (hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len)
+static int hlfmt_detect_shadow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len)
 {
-  if (hashcat_ctx == NULL) hashcat_ctx = NULL; // makes GCC happy
-
   int sep_cnt = 0;
 
   for (int i = 0; i < line_len; i++)
@@ -292,12 +280,12 @@ static int hlfmt_detect_shadow (hashcat_ctx_t *hashcat_ctx, char *line_buf, int 
   return 0;
 }
 
-static void hlfmt_hash_shadow (hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
+static void hlfmt_hash_shadow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)
 {
   hlfmt_hash_passwd (hashcat_ctx, line_buf, line_len, hashbuf_pos, hashbuf_len);
 }
 
-static void hlfmt_user_shadow (hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
+static void hlfmt_user_shadow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len)
 {
   hlfmt_user_passwd (hashcat_ctx, line_buf, line_len, userbuf_pos, userbuf_len);
 }
