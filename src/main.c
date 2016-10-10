@@ -360,8 +360,6 @@ static int main_potfile_all_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   event_log_info (hashcat_ctx, "INFO: All hashes found in potfile! You can use --show to display them.");
   event_log_info (hashcat_ctx, "");
-  event_log_info (hashcat_ctx, "INFO: No more hashes left to crack, exiting...");
-  event_log_info (hashcat_ctx, "");
 
   return 0;
 }
