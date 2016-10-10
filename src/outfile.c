@@ -7,6 +7,7 @@
 #include "types.h"
 #include "memory.h"
 #include "event.h"
+#include "convert.h"
 #include "interface.h"
 #include "hashes.h"
 #include "mpsp.h"
@@ -256,49 +257,6 @@ void build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
   }
 }
 
-static void outfile_format_plain (hashcat_ctx_t *hashcat_ctx, const unsigned char *plain_ptr, const u32 plain_len)
-{
-  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
-
-  bool needs_hexify = false;
-
-  if (outfile_ctx->outfile_autohex == true)
-  {
-    for (u32 i = 0; i < plain_len; i++)
-    {
-      if (plain_ptr[i] < 0x20)
-      {
-        needs_hexify = true;
-
-        break;
-      }
-
-      if (plain_ptr[i] > 0x7f)
-      {
-        needs_hexify = true;
-
-        break;
-      }
-    }
-  }
-
-  if (needs_hexify == true)
-  {
-    fprintf (outfile_ctx->fp, "$HEX[");
-
-    for (u32 i = 0; i < plain_len; i++)
-    {
-      fprintf (outfile_ctx->fp, "%02x", plain_ptr[i]);
-    }
-
-    fprintf (outfile_ctx->fp, "]");
-  }
-  else
-  {
-    fwrite (plain_ptr, plain_len, 1, outfile_ctx->fp);
-  }
-}
-
 int outfile_init (hashcat_ctx_t *hashcat_ctx)
 {
   outfile_ctx_t  *outfile_ctx  = hashcat_ctx->outfile_ctx;
@@ -364,38 +322,69 @@ void outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsig
   hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
   outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
 
+  char tmp_buf[HCBUFSIZ_LARGE];
+  int  tmp_len = 0;
+
   if (outfile_ctx->outfile_format & OUTFILE_FMT_HASH)
   {
-    fprintf (outfile_ctx->fp, "%s", out_buf);
+    const size_t out_len = strlen (out_buf);
+
+    memcpy (tmp_buf + tmp_len, out_buf, out_len);
+
+    tmp_len += out_len;
 
     if (outfile_ctx->outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
     {
-      fputc (hashconfig->separator, outfile_ctx->fp);
+      tmp_buf[tmp_len] = hashconfig->separator;
+
+      tmp_len += 1;
     }
   }
   else if (user_len)
   {
     if (username != NULL)
     {
-      for (u32 i = 0; i < user_len; i++)
-      {
-        fprintf (outfile_ctx->fp, "%c", username[i]);
-      }
+      memcpy (tmp_buf + tmp_len, username, user_len);
+
+      tmp_len += user_len;
 
       if (outfile_ctx->outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
-        fputc (hashconfig->separator, outfile_ctx->fp);
+        tmp_buf[tmp_len] = hashconfig->separator;
+
+        tmp_len += 1;
       }
     }
   }
 
   if (outfile_ctx->outfile_format & OUTFILE_FMT_PLAIN)
   {
-    outfile_format_plain (hashcat_ctx, plain_ptr, plain_len);
+    if (need_hexify (plain_ptr, plain_len) == true)
+    {
+      tmp_buf[tmp_len++] = '$';
+      tmp_buf[tmp_len++] = 'H';
+      tmp_buf[tmp_len++] = 'E';
+      tmp_buf[tmp_len++] = 'X';
+      tmp_buf[tmp_len++] = '[';
+
+      exec_hexify ((const u8 *) plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
+
+      tmp_len += plain_len * 2;
+
+      tmp_buf[tmp_len++] = ']';
+    }
+    else
+    {
+      memcpy (tmp_buf + tmp_len, plain_ptr, plain_len);
+
+      tmp_len += plain_len;
+    }
 
     if (outfile_ctx->outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
     {
-      fputc (hashconfig->separator, outfile_ctx->fp);
+      tmp_buf[tmp_len] = hashconfig->separator;
+
+      tmp_len += 1;
     }
   }
 
@@ -403,21 +392,27 @@ void outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsig
   {
     for (u32 i = 0; i < plain_len; i++)
     {
-      fprintf (outfile_ctx->fp, "%02x", plain_ptr[i]);
+      exec_hexify ((const u8 *) plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
+
+      tmp_len += 2;
     }
 
     if (outfile_ctx->outfile_format & (OUTFILE_FMT_CRACKPOS))
     {
-      fputc (hashconfig->separator, outfile_ctx->fp);
+      tmp_buf[tmp_len] = hashconfig->separator;
+
+      tmp_len += 1;
     }
   }
 
   if (outfile_ctx->outfile_format & OUTFILE_FMT_CRACKPOS)
   {
-    fprintf (outfile_ctx->fp, "%" PRIu64, crackpos);
+    sprintf (tmp_buf + tmp_len, "%" PRIu64, crackpos);
   }
 
-  fputs (EOL, outfile_ctx->fp);
+  tmp_buf[tmp_len] = 0;
+
+  fprintf (outfile_ctx->fp, "%s" EOL, tmp_buf);
 }
 
 int outfile_and_hashfile (hashcat_ctx_t *hashcat_ctx)
