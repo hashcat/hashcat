@@ -125,7 +125,7 @@ static int main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   status_ctx->shutdown_outer = false;
 
-  if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false)
+  if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false && user_options->opencl_info == false)
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
