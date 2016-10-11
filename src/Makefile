@@ -156,8 +156,13 @@ CFLAGS_CROSS_WIN         += -DWITH_HWMON
 CFLAGS_CROSS_32          := -m32
 CFLAGS_CROSS_64          := -m64
 
-LFLAGS_CROSS_LINUX       := -lpthread -ldl
-LFLAGS_CROSS_WIN         := -lpsapi
+LFLAGS_CROSS_LINUX       :=
+LFLAGS_CROSS_LINUX       += $(LDFLAGS)
+LFLAGS_CROSS_LINUX       += -lpthread -ldl
+
+LFLAGS_CROSS_WIN         :=
+LFLAGS_CROSS_WIN         += $(LDFLAGS)
+LFLAGS_CROSS_WIN         += -lpsapi
 
 ##
 ## Objects
