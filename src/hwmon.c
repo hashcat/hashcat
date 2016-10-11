@@ -79,6 +79,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC(nvml, nvmlErrorString, NVML_ERROR_STRING, NVML, 0)
   HC_LOAD_FUNC(nvml, nvmlInit, NVML_INIT, NVML, 0)
   HC_LOAD_FUNC(nvml, nvmlShutdown, NVML_SHUTDOWN, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetCount, NVML_DEVICE_GET_COUNT, NVML, 0)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetName, NVML_DEVICE_GET_NAME, NVML, 0)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetHandleByIndex, NVML_DEVICE_GET_HANDLE_BY_INDEX, NVML, 0)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetTemperature, NVML_DEVICE_GET_TEMPERATURE, NVML, 0)
@@ -153,6 +154,26 @@ static int hm_NVML_nvmlShutdown (hashcat_ctx_t *hashcat_ctx)
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
     event_log_error (hashcat_ctx, "nvmlShutdown(): %s", string);
+
+    return -1;
+  }
+
+  return 0;
+}
+
+static int hm_NVML_nvmlDeviceGetCount (hashcat_ctx_t *hashcat_ctx, unsigned int *deviceCount)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  NVML_PTR *nvml = hwmon_ctx->hm_nvml;
+
+  const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetCount (deviceCount);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+    event_log_error (hashcat_ctx, "nvmlDeviceGetCount(): %s", string);
 
     return -1;
   }
@@ -1869,27 +1890,27 @@ static int hm_get_adapter_index_nvapi (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NV
 
 static int hm_get_adapter_index_nvml (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NVML *nvmlGPUHandle)
 {
-  int pGpuCount = 0;
+  unsigned int deviceCount = 0;
 
-  for (u32 i = 0; i < DEVICES_MAX; i++)
-  {
-    if (hm_NVML_nvmlDeviceGetHandleByIndex (hashcat_ctx, i, &nvmlGPUHandle[i]) == -1) break;
+  hm_NVML_nvmlDeviceGetCount (hashcat_ctx, &deviceCount);
 
-    // can be used to determine if the device by index matches the cuda device by index
-    // char name[100]; memset (name, 0, sizeof (name));
-    // hm_NVML_nvmlDeviceGetName (hashcat_ctx, nvGPUHandle[i], name, sizeof (name) - 1);
-
-    pGpuCount++;
-  }
-
-  if (pGpuCount == 0)
+  if (deviceCount == 0)
   {
     event_log_error (hashcat_ctx, "No NVML adapters found");
 
     return 0;
   }
 
-  return (pGpuCount);
+  for (u32 i = 0; i < deviceCount; i++)
+  {
+    if (hm_NVML_nvmlDeviceGetHandleByIndex (hashcat_ctx, i, &nvmlGPUHandle[i]) == -1) break;
+
+    // can be used to determine if the device by index matches the cuda device by index
+    // char name[100]; memset (name, 0, sizeof (name));
+    // hm_NVML_nvmlDeviceGetName (hashcat_ctx, nvGPUHandle[i], name, sizeof (name) - 1);
+  }
+
+  return (deviceCount);
 }
 
 static void hm_sort_adl_adapters_by_busid_devid (u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
