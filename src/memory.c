@@ -14,7 +14,7 @@ void *hccalloc (hashcat_ctx_t *hashcat_ctx, const size_t nmemb, const size_t sz)
 
   if (p == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s", MSG_ENOMEM);
+    event_log_error (hashcat_ctx, "%s", MSG_ENOMEM);
 
     exit (-1);
   }
@@ -28,7 +28,7 @@ void *hcmalloc (hashcat_ctx_t *hashcat_ctx, const size_t sz)
 
   if (p == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s", MSG_ENOMEM);
+    event_log_error (hashcat_ctx, "%s", MSG_ENOMEM);
 
     exit (-1);
   }
@@ -44,7 +44,7 @@ void *hcrealloc (hashcat_ctx_t *hashcat_ctx, void *ptr, const size_t oldsz, cons
 
   if (p == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s", MSG_ENOMEM);
+    event_log_error (hashcat_ctx, "%s", MSG_ENOMEM);
 
     exit (-1);
   }

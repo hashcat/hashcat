@@ -250,7 +250,7 @@ int potfile_read_open (hashcat_ctx_t *hashcat_ctx)
 
   if (potfile_ctx->fp == NULL)
   {
-    //log_error ("ERROR: %s: %s", potfile_ctx->filename, strerror (errno));
+    //log_error ("%s: %s", potfile_ctx->filename, strerror (errno));
 
     return -1;
   }
@@ -389,7 +389,7 @@ int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (potfile_ctx->fp == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", potfile_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
 
     return -1;
   }

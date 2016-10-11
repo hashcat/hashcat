@@ -159,14 +159,14 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
-    event_log_error (hashcat_ctx, "ERROR: status view is not available during initialization phase");
+    event_log_error (hashcat_ctx, "status view is not available during initialization phase");
 
     return;
   }
 
   if (status_ctx->devices_status == STATUS_AUTOTUNE)
   {
-    event_log_error (hashcat_ctx, "ERROR: status view is not available during autotune phase");
+    event_log_error (hashcat_ctx, "status view is not available during autotune phase");
 
     return;
   }
@@ -326,14 +326,14 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
-    event_log_error (hashcat_ctx, "ERROR: status view is not available during initialization phase");
+    event_log_error (hashcat_ctx, "status view is not available during initialization phase");
 
     return;
   }
 
   if (status_ctx->devices_status == STATUS_AUTOTUNE)
   {
-    event_log_error (hashcat_ctx, "ERROR: status view is not available during autotune phase");
+    event_log_error (hashcat_ctx, "status view is not available during autotune phase");
 
     return;
   }
@@ -1184,14 +1184,14 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
-    event_log_error (hashcat_ctx, "ERROR: status view is not available during initialization phase");
+    event_log_error (hashcat_ctx, "status view is not available during initialization phase");
 
     return;
   }
 
   if (status_ctx->devices_status == STATUS_AUTOTUNE)
   {
-    event_log_error (hashcat_ctx, "ERROR: status view is not available during autotune phase");
+    event_log_error (hashcat_ctx, "status view is not available during autotune phase");
 
     return;
   }
@@ -1243,14 +1243,14 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
-    event_log_error (hashcat_ctx, "ERROR: status view is not available during initialization phase");
+    event_log_error (hashcat_ctx, "status view is not available during initialization phase");
 
     return;
   }
 
   if (status_ctx->devices_status == STATUS_AUTOTUNE)
   {
-    event_log_error (hashcat_ctx, "ERROR: status view is not available during autotune phase");
+    event_log_error (hashcat_ctx, "status view is not available during autotune phase");
 
     return;
   }

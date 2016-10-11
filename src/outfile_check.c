@@ -356,7 +356,7 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (is_dir == 0)
     {
-      event_log_error (hashcat_ctx, "ERROR: Directory specified in outfile-check '%s' is not a valid directory", outcheck_ctx->root_directory);
+      event_log_error (hashcat_ctx, "Directory specified in outfile-check '%s' is not a valid directory", outcheck_ctx->root_directory);
 
       return -1;
     }
@@ -365,7 +365,7 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_mkdir (outcheck_ctx->root_directory, 0700) == -1)
     {
-      event_log_error (hashcat_ctx, "ERROR: %s: %s", outcheck_ctx->root_directory, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", outcheck_ctx->root_directory, strerror (errno));
 
       return -1;
     }
@@ -394,7 +394,7 @@ void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      event_log_error (hashcat_ctx, "ERROR: %s: %s", outcheck_ctx->root_directory, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", outcheck_ctx->root_directory, strerror (errno));
 
       //return -1;
     }

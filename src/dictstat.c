@@ -52,7 +52,7 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", dictstat_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
 
     return -1;
   }
@@ -101,7 +101,7 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 
     if (dictstat_ctx->cnt == MAX_DICTSTAT)
     {
-      event_log_error (hashcat_ctx, "ERROR: There are too many entries in the %s database. You have to remove/rename it.", dictstat_ctx->filename);
+      event_log_error (hashcat_ctx, "There are too many entries in the %s database. You have to remove/rename it.", dictstat_ctx->filename);
 
       break;
     }
@@ -120,7 +120,7 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", dictstat_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
 
     return -1;
   }
@@ -153,7 +153,7 @@ void dictstat_append (hashcat_ctx_t *hashcat_ctx, dictstat_t *d)
 
   if (dictstat_ctx->cnt == MAX_DICTSTAT)
   {
-    event_log_error (hashcat_ctx, "ERROR: There are too many entries in the %s database. You have to remove/rename it.", dictstat_ctx->filename);
+    event_log_error (hashcat_ctx, "There are too many entries in the %s database. You have to remove/rename it.", dictstat_ctx->filename);
 
     return;
   }

@@ -200,7 +200,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->words_cur > status_ctx->words_base)
   {
-    event_log_error (hashcat_ctx, "ERROR: Restore value greater keyspace");
+    event_log_error (hashcat_ctx, "Restore value greater keyspace");
 
     return -1;
   }
@@ -490,7 +490,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashes->hashes_cnt == 0)
     {
-      event_log_error (hashcat_ctx, "ERROR: No hashes loaded");
+      event_log_error (hashcat_ctx, "No hashes loaded");
 
       return -1;
     }
@@ -613,7 +613,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
     {
-      event_log_error (hashcat_ctx, "ERROR: --skip/--limit are not supported with --increment or mask files");
+      event_log_error (hashcat_ctx, "--skip/--limit are not supported with --increment or mask files");
 
       return -1;
     }
@@ -627,7 +627,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
     {
-      event_log_error (hashcat_ctx, "ERROR: --keyspace is not supported with --increment or mask files");
+      event_log_error (hashcat_ctx, "--keyspace is not supported with --increment or mask files");
 
       return -1;
     }

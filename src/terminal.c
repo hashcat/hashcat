@@ -70,21 +70,21 @@ int setup_console (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   if (_setmode (_fileno (stdin), _O_BINARY) == -1)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", "stdin", strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", "stdin", strerror (errno));
 
     return -1;
   }
 
   if (_setmode (_fileno (stdout), _O_BINARY) == -1)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", "stdout", strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", "stdout", strerror (errno));
 
     return -1;
   }
 
   if (_setmode (_fileno (stderr), _O_BINARY) == -1)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", "stderr", strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", "stderr", strerror (errno));
 
     return -1;
   }

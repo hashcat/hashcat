@@ -71,7 +71,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (fd2 == NULL)
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: %s", straight_ctx->dict, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
 
         return -1;
       }
@@ -99,7 +99,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (fd2 == NULL)
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: %s", combinator_ctx->dict1, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict1, strerror (errno));
 
         return -1;
       }
@@ -114,7 +114,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (fd2 == NULL)
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: %s", combinator_ctx->dict2, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
 
         return -1;
       }
@@ -153,7 +153,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (fd2 == NULL)
     {
-      event_log_error (hashcat_ctx, "ERROR: %s: %s", straight_ctx->dict, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
 
       return -1;
     }
@@ -274,7 +274,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (stat (l0_filename, &l0_stat) == -1)
         {
-          event_log_error (hashcat_ctx, "ERROR: %s: %s", l0_filename, strerror (errno));
+          event_log_error (hashcat_ctx, "%s: %s", l0_filename, strerror (errno));
 
           return -1;
         }
@@ -297,7 +297,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (stat (l1_filename, &l1_stat) == -1)
               {
-                event_log_error (hashcat_ctx, "ERROR: %s: %s", l1_filename, strerror (errno));
+                event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
                 return -1;
               }
@@ -319,7 +319,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (straight_ctx->dicts_cnt == 0)
       {
-        event_log_error (hashcat_ctx, "ERROR: No usable dictionary file found.");
+        event_log_error (hashcat_ctx, "No usable dictionary file found.");
 
         return -1;
       }
@@ -343,7 +343,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (stat (l0_filename, &l0_stat) == -1)
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: %s", l0_filename, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", l0_filename, strerror (errno));
 
         return -1;
       }
@@ -366,7 +366,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (stat (l1_filename, &l1_stat) == -1)
             {
-              event_log_error (hashcat_ctx, "ERROR: %s: %s", l1_filename, strerror (errno));
+              event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
               return -1;
             }
@@ -388,7 +388,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (straight_ctx->dicts_cnt == 0)
     {
-      event_log_error (hashcat_ctx, "ERROR: No usable dictionary file found.");
+      event_log_error (hashcat_ctx, "No usable dictionary file found.");
 
       return -1;
     }
@@ -403,7 +403,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (stat (l0_filename, &l0_stat) == -1)
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: %s", l0_filename, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", l0_filename, strerror (errno));
 
         return -1;
       }
@@ -426,7 +426,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (stat (l1_filename, &l1_stat) == -1)
             {
-              event_log_error (hashcat_ctx, "ERROR: %s: %s", l1_filename, strerror (errno));
+              event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
               return -1;
             }
@@ -448,7 +448,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (straight_ctx->dicts_cnt == 0)
     {
-      event_log_error (hashcat_ctx, "ERROR: No usable dictionary file found.");
+      event_log_error (hashcat_ctx, "No usable dictionary file found.");
 
       return -1;
     }

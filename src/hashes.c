@@ -139,7 +139,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", new_hashfile, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
 
     return -1;
   }
@@ -198,7 +198,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   if (rename (hashfile, old_hashfile) != 0)
   {
-    event_log_error (hashcat_ctx, "ERROR: Rename file '%s' to '%s': %s", hashfile, old_hashfile, strerror (errno));
+    event_log_error (hashcat_ctx, "Rename file '%s' to '%s': %s", hashfile, old_hashfile, strerror (errno));
 
     return -1;
   }
@@ -207,7 +207,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   if (rename (new_hashfile, hashfile) != 0)
   {
-    event_log_error (hashcat_ctx, "ERROR: Rename file '%s' to '%s': %s", new_hashfile, hashfile, strerror (errno));
+    event_log_error (hashcat_ctx, "Rename file '%s' to '%s': %s", new_hashfile, hashfile, strerror (errno));
 
     return -1;
   }
@@ -324,7 +324,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clEnqueueReadBuffer(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -341,7 +341,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     if (CL_err != CL_SUCCESS)
     {
-      event_log_error (hashcat_ctx, "ERROR: clEnqueueReadBuffer(): %s\n", val2cstr_cl (CL_err));
+      event_log_error (hashcat_ctx, "clEnqueueReadBuffer(): %s", val2cstr_cl (CL_err));
 
       return -1;
     }
@@ -411,7 +411,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       if (CL_err != CL_SUCCESS)
       {
-        event_log_error (hashcat_ctx, "ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+        event_log_error (hashcat_ctx, "clEnqueueWriteBuffer(): %s", val2cstr_cl (CL_err));
 
         return -1;
       }
@@ -423,7 +423,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     if (CL_err != CL_SUCCESS)
     {
-      event_log_error (hashcat_ctx, "ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+      event_log_error (hashcat_ctx, "clEnqueueWriteBuffer(): %s", val2cstr_cl (CL_err));
 
       return -1;
     }
@@ -477,7 +477,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (stat (hashes->hashfile, &st) == -1)
         {
-          event_log_error (hashcat_ctx, "ERROR: %s: %s", hashes->hashfile, strerror (errno));
+          event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
 
           return -1;
         }
@@ -499,7 +499,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if ((fp = fopen (hashfile, "rb")) == NULL)
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: %s", hashfile, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", hashfile, strerror (errno));
 
         return -1;
       }
@@ -512,7 +512,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if (hashes_avail == 0)
       {
-        event_log_error (hashcat_ctx, "ERROR: hashfile is empty or corrupt");
+        event_log_error (hashcat_ctx, "hashfile is empty or corrupt");
 
         fclose (fp);
 
@@ -523,7 +523,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if ((user_options->remove == 1) && (hashlist_format != HLFMT_HASHCAT))
       {
-        event_log_error (hashcat_ctx, "ERROR: remove not supported in native hashfile-format mode");
+        event_log_error (hashcat_ctx, "remove not supported in native hashfile-format mode");
 
         fclose (fp);
 
@@ -687,7 +687,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           if (hash_len == 0)
           {
-            event_log_error (hashcat_ctx, "ERROR: hccap file not specified");
+            event_log_error (hashcat_ctx, "hccap file not specified");
 
             return -1;
           }
@@ -700,14 +700,14 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           if (fp == NULL)
           {
-            event_log_error (hashcat_ctx, "ERROR: %s: %s", hash_buf, strerror (errno));
+            event_log_error (hashcat_ctx, "%s: %s", hash_buf, strerror (errno));
 
             return -1;
           }
 
           if (hashes_avail < 1)
           {
-            event_log_error (hashcat_ctx, "ERROR: hccap file is empty or corrupt");
+            event_log_error (hashcat_ctx, "hccap file is empty or corrupt");
 
             fclose (fp);
 
@@ -880,7 +880,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if ((fp = fopen (hashfile, "rb")) == NULL)
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: %s", hashfile, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", hashfile, strerror (errno));
 
         return -1;
       }

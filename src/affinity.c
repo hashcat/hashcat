@@ -82,7 +82,7 @@ int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx)
 
     if (cpu_id > 32)
     {
-      event_log_error (hashcat_ctx, "ERROR: Invalid cpu_id %u specified", cpu_id);
+      event_log_error (hashcat_ctx, "Invalid cpu_id %u specified", cpu_id);
 
       return (-1);
     }
@@ -103,7 +103,7 @@ int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx)
 
   if (SetThreadAffinityMask (GetCurrentThread (), aff_mask) == 0)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s", "SetThreadAffinityMask()");
+    event_log_error (hashcat_ctx, "%s", "SetThreadAffinityMask()");
 
     return -1;
   }
@@ -114,7 +114,7 @@ int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx)
 
   if (pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset) == -1)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s", "pthread_setaffinity_np()");
+    event_log_error (hashcat_ctx, "%s", "pthread_setaffinity_np()");
 
     return -1;
   }

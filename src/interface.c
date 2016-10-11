@@ -19577,7 +19577,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
-    default:     event_log_error (hashcat_ctx, "ERROR: Unknown hash-type '%u' selected", hashconfig->hash_mode);
+    default:     event_log_error (hashcat_ctx, "Unknown hash-type '%u' selected", hashconfig->hash_mode);
                  return -1;
   }
 
@@ -19589,7 +19589,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      event_log_error (hashcat_ctx, "ERROR: Parameter hex-salt not valid for hash-type %u", hashconfig->hash_mode);
+      event_log_error (hashcat_ctx, "Parameter hex-salt not valid for hash-type %u", hashconfig->hash_mode);
 
       return -1;
     }

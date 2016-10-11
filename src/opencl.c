@@ -114,7 +114,7 @@ static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char
 
       if (platform < 1 || platform > 32)
       {
-        event_log_error (hashcat_ctx, "ERROR: Invalid OpenCL platform %u specified", platform);
+        event_log_error (hashcat_ctx, "Invalid OpenCL platform %u specified", platform);
 
         return -1;
       }
@@ -151,7 +151,7 @@ static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_
 
       if (device_id < 1 || device_id > 32)
       {
-        event_log_error (hashcat_ctx, "ERROR: Invalid device_id %u specified", device_id);
+        event_log_error (hashcat_ctx, "Invalid device_id %u specified", device_id);
 
         return -1;
       }
@@ -188,7 +188,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
 
       if (device_type < 1 || device_type > 3)
       {
-        event_log_error (hashcat_ctx, "ERROR: Invalid device_type %u specified", device_type);
+        event_log_error (hashcat_ctx, "Invalid device_type %u specified", device_type);
 
         return -1;
       }
@@ -230,7 +230,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
 
     if (num_read != (size_t) st.st_size)
     {
-      event_log_error (hashcat_ctx, "ERROR: %s: %s", kernel_file, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
       return -1;
     }
@@ -248,7 +248,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
   }
   else
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", kernel_file, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
     return -1;
   }
@@ -264,7 +264,7 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
 
     if (fp == NULL)
     {
-      event_log_error (hashcat_ctx, "ERROR: %s: %s", kernel_file, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
       return -1;
     }
@@ -382,7 +382,7 @@ int hc_clEnqueueNDRangeKernel (hashcat_ctx_t *hashcat_ctx, cl_command_queue comm
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clEnqueueNDRangeKernel(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clEnqueueNDRangeKernel(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -400,7 +400,7 @@ int hc_clGetEventInfo (hashcat_ctx_t *hashcat_ctx, cl_event event, cl_event_info
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clGetEventInfo(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clGetEventInfo(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -418,7 +418,7 @@ int hc_clFlush (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue)
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clFlush(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clFlush(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -436,7 +436,7 @@ int hc_clFinish (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue)
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clFinish(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clFinish(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -454,7 +454,7 @@ int hc_clSetKernelArg (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, cl_uint arg
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clSetKernelArg(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clSetKernelArg(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -472,7 +472,7 @@ int hc_clEnqueueWriteBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue comman
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clEnqueueWriteBuffer(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clEnqueueWriteBuffer(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -490,7 +490,7 @@ int hc_clEnqueueCopyBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clEnqueueCopyBuffer(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clEnqueueCopyBuffer(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -508,7 +508,7 @@ int hc_clEnqueueReadBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clEnqueueReadBuffer(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clEnqueueReadBuffer(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -526,7 +526,7 @@ int hc_clGetPlatformIDs (hashcat_ctx_t *hashcat_ctx, cl_uint num_entries, cl_pla
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clGetPlatformIDs(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clGetPlatformIDs(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -544,7 +544,7 @@ int hc_clGetPlatformInfo (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform, c
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clGetPlatformInfo(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clGetPlatformInfo(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -562,7 +562,7 @@ int hc_clGetDeviceIDs (hashcat_ctx_t *hashcat_ctx, cl_platform_id platform, cl_d
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clGetDeviceIDs(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clGetDeviceIDs(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -580,7 +580,7 @@ int hc_clGetDeviceInfo (hashcat_ctx_t *hashcat_ctx, cl_device_id device, cl_devi
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clGetDeviceInfo(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clGetDeviceInfo(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -600,7 +600,7 @@ int hc_clCreateContext (hashcat_ctx_t *hashcat_ctx, cl_context_properties *prope
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clCreateContext(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clCreateContext(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -620,7 +620,7 @@ int hc_clCreateCommandQueue (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clCreateCommandQueue(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clCreateCommandQueue(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -640,7 +640,7 @@ int hc_clCreateBuffer (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_mem_fl
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clCreateBuffer(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clCreateBuffer(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -660,7 +660,7 @@ int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clCreateProgramWithSource(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clCreateProgramWithSource(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -680,7 +680,7 @@ int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clCreateProgramWithBinary(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clCreateProgramWithBinary(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -698,7 +698,7 @@ int hc_clBuildProgram (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_uint n
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clBuildProgram(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clBuildProgram(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -718,7 +718,7 @@ int hc_clCreateKernel (hashcat_ctx_t *hashcat_ctx, cl_program program, const cha
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clCreateKernel(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clCreateKernel(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -736,7 +736,7 @@ int hc_clReleaseMemObject (hashcat_ctx_t *hashcat_ctx, cl_mem mem)
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clReleaseMemObject(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clReleaseMemObject(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -754,7 +754,7 @@ int hc_clReleaseKernel (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel)
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clReleaseKernel(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clReleaseKernel(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -772,7 +772,7 @@ int hc_clReleaseProgram (hashcat_ctx_t *hashcat_ctx, cl_program program)
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clReleaseProgram(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clReleaseProgram(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -790,7 +790,7 @@ int hc_clReleaseCommandQueue (hashcat_ctx_t *hashcat_ctx, cl_command_queue comma
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clReleaseCommandQueue(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clReleaseCommandQueue(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -808,7 +808,7 @@ int hc_clReleaseContext (hashcat_ctx_t *hashcat_ctx, cl_context context)
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clReleaseContext(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clReleaseContext(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -828,7 +828,7 @@ int hc_clEnqueueMapBuffer (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clEnqueueMapBuffer(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clEnqueueMapBuffer(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -846,7 +846,7 @@ int hc_clEnqueueUnmapMemObject (hashcat_ctx_t *hashcat_ctx, cl_command_queue com
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clEnqueueUnmapMemObject(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clEnqueueUnmapMemObject(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -864,7 +864,7 @@ int hc_clGetKernelWorkGroupInfo (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, c
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clGetKernelWorkGroupInfo(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clGetKernelWorkGroupInfo(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -882,7 +882,7 @@ int hc_clGetProgramBuildInfo (hashcat_ctx_t *hashcat_ctx, cl_program program, cl
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clGetProgramBuildInfo(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clGetProgramBuildInfo(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -900,7 +900,7 @@ int hc_clGetProgramInfo (hashcat_ctx_t *hashcat_ctx, cl_program program, cl_prog
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clGetProgramInfo(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clGetProgramInfo(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -918,7 +918,7 @@ int hc_clWaitForEvents (hashcat_ctx_t *hashcat_ctx, cl_uint num_events, const cl
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clWaitForEvents(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clWaitForEvents(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -936,7 +936,7 @@ int hc_clGetEventProfilingInfo (hashcat_ctx_t *hashcat_ctx, cl_event event, cl_p
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clGetEventProfilingInfo(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clGetEventProfilingInfo(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -954,7 +954,7 @@ int hc_clReleaseEvent (hashcat_ctx_t *hashcat_ctx, cl_event event)
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "ERROR: clReleaseEvent(): %s", val2cstr_cl (CL_err));
+    event_log_error (hashcat_ctx, "clReleaseEvent(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }
@@ -1970,7 +1970,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (opencl_platforms_filter > platform_cnt_mask)
     {
-      event_log_error (hashcat_ctx, "ERROR: The platform selected by the --opencl-platforms parameter is larger than the number of available platforms (%d)", platforms_cnt);
+      event_log_error (hashcat_ctx, "The platform selected by the --opencl-platforms parameter is larger than the number of available platforms (%d)", platforms_cnt);
 
       return -1;
     }
@@ -2148,7 +2148,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     if (CL_err != CL_SUCCESS)
     {
-      //event_log_error (hashcat_ctx, "ERROR: clGetDeviceIDs(): %s", val2cstr_cl (CL_err));
+      //event_log_error (hashcat_ctx, "clGetDeviceIDs(): %s", val2cstr_cl (CL_err));
 
       //return -1;
 
@@ -2774,7 +2774,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   if (devices_active == 0)
   {
-    event_log_error (hashcat_ctx, "ERROR: No devices found/left");
+    event_log_error (hashcat_ctx, "No devices found/left");
 
     return -1;
   }
@@ -2787,7 +2787,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     if (opencl_ctx->devices_filter > devices_cnt_mask)
     {
-      event_log_error (hashcat_ctx, "ERROR: The device specified by the --opencl-devices parameter is larger than the number of available devices (%d)", devices_cnt);
+      event_log_error (hashcat_ctx, "The device specified by the --opencl-devices parameter is larger than the number of available devices (%d)", devices_cnt);
 
       return -1;
     }
@@ -3156,7 +3156,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
          || (hashes->salts_buf[i].scrypt_r != scrypt_r)
          || (hashes->salts_buf[i].scrypt_p != scrypt_p))
         {
-          event_log_error (hashcat_ctx, "ERROR: Mixed scrypt settings not supported");
+          event_log_error (hashcat_ctx, "Mixed scrypt settings not supported");
 
           return -1;
         }
@@ -3217,14 +3217,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if ((size_scrypt / 4) > device_param->device_maxmem_alloc)
         {
-          event_log_info (hashcat_ctx, "WARNING: Not enough single-block device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+          event_log_info (hashcat_ctx, "Not enough single-block device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
 
           continue;
         }
 
         if (size_scrypt > device_param->device_global_mem)
         {
-          event_log_info (hashcat_ctx, "WARNING: Not enough total device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+          event_log_info (hashcat_ctx, "Not enough total device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
 
           continue;
         }
@@ -3239,7 +3239,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (tmto == tmto_stop)
       {
-        event_log_error (hashcat_ctx, "ERROR: Can't allocate enough device memory");
+        event_log_error (hashcat_ctx, "Can't allocate enough device memory");
 
         return -1;
       }
@@ -3372,7 +3372,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (chdir (folder_config->cpath_real) == -1)
     {
-      event_log_error (hashcat_ctx, "ERROR: %s: %s", folder_config->cpath_real, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", folder_config->cpath_real, strerror (errno));
 
       return -1;
     }
@@ -3416,7 +3416,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (fd == NULL)
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: fopen(): %s", files_names[i], strerror (errno));
+        event_log_error (hashcat_ctx, "%s: fopen(): %s", files_names[i], strerror (errno));
 
         return -1;
       }
@@ -3427,7 +3427,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (n != 1)
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: fread(): %s", files_names[i], strerror (errno));
+        event_log_error (hashcat_ctx, "%s: fread(): %s", files_names[i], strerror (errno));
 
         return -1;
       }
@@ -3468,7 +3468,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (stat (source_file, &sst) == -1)
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: %s", source_file, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
 
         return -1;
       }
@@ -3672,7 +3672,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (stat (source_file, &sst) == -1)
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: %s", source_file, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
 
         return -1;
       }
@@ -3813,7 +3813,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (stat (source_file, &sst) == -1)
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: %s", source_file, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
 
         return -1;
       }
@@ -3936,7 +3936,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (chdir (folder_config->cwd) == -1)
     {
-      event_log_error (hashcat_ctx, "ERROR: %s: %s", folder_config->cwd, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", folder_config->cwd, strerror (errno));
 
       return -1;
     }

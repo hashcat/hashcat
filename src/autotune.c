@@ -99,7 +99,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (CL_err != CL_SUCCESS)
     {
-      event_log_error (hashcat_ctx, "ERROR: clEnqueueWriteBuffer(): %s\n", val2cstr_cl (CL_err));
+      event_log_error (hashcat_ctx, "clEnqueueWriteBuffer(): %s", val2cstr_cl (CL_err));
 
       return -1;
     }
@@ -113,7 +113,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (CL_err != CL_SUCCESS)
       {
-        event_log_error (hashcat_ctx, "ERROR: clEnqueueCopyBuffer(): %s\n", val2cstr_cl (CL_err));
+        event_log_error (hashcat_ctx, "clEnqueueCopyBuffer(): %s", val2cstr_cl (CL_err));
 
         return -1;
       }

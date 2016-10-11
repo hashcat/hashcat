@@ -241,7 +241,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if (getcwd (cwd, HCBUFSIZ_TINY - 1) == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: getcwd(): %s", strerror (errno));
+    event_log_error (hashcat_ctx, "getcwd(): %s", strerror (errno));
 
     return -1;
   }
@@ -254,7 +254,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if (exec_path == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: get_exec_path() failed");
+    event_log_error (hashcat_ctx, "get_exec_path() failed");
 
     return -1;
   }
@@ -268,14 +268,14 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if (resolved_install_folder == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", resolved_install_folder, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", resolved_install_folder, strerror (errno));
 
     return -1;
   }
 
   if (resolved_exec_path == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", resolved_exec_path, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", resolved_exec_path, strerror (errno));
 
     return -1;
   }
@@ -336,7 +336,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if (GetFullPathName (cpath, HCBUFSIZ_TINY - 1, cpath_real, NULL) == 0)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", cpath, "GetFullPathName()");
+    event_log_error (hashcat_ctx, "%s: %s", cpath, "GetFullPathName()");
 
     return -1;
   }
@@ -349,7 +349,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if (realpath (cpath, cpath_real) == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", cpath, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", cpath, strerror (errno));
 
     return -1;
   }

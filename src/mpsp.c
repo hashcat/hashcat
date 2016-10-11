@@ -167,7 +167,7 @@ static int mp_css_to_uniq_tbl (hashcat_ctx_t *hashcat_ctx, u32 css_cnt, cs_t *cs
 
   if (css_cnt > SP_PW_MAX)
   {
-    event_log_error (hashcat_ctx, "ERROR: Mask length is too long");
+    event_log_error (hashcat_ctx, "Mask length is too long");
 
     return -1;
   }
@@ -259,16 +259,16 @@ static int mp_expand (hashcat_ctx_t *hashcat_ctx, char *in_buf, size_t in_len, c
                   break;
         case 'b': mp_add_cs_buf (hashcat_ctx, mp_sys[5].cs_buf, mp_sys[5].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case '1': if (mp_usr[0].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 1 is undefined"); return -1; }
+        case '1': if (mp_usr[0].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 1 is undefined"); return -1; }
                   mp_add_cs_buf (hashcat_ctx, mp_usr[0].cs_buf, mp_usr[0].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case '2': if (mp_usr[1].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 2 is undefined"); return -1; }
+        case '2': if (mp_usr[1].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 2 is undefined"); return -1; }
                   mp_add_cs_buf (hashcat_ctx, mp_usr[1].cs_buf, mp_usr[1].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case '3': if (mp_usr[2].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 3 is undefined"); return -1; }
+        case '3': if (mp_usr[2].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 3 is undefined"); return -1; }
                   mp_add_cs_buf (hashcat_ctx, mp_usr[2].cs_buf, mp_usr[2].cs_len, mp_usr, mp_usr_offset);
                   break;
-        case '4': if (mp_usr[3].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 4 is undefined"); return -1; }
+        case '4': if (mp_usr[3].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 4 is undefined"); return -1; }
                   mp_add_cs_buf (hashcat_ctx, mp_usr[3].cs_buf, mp_usr[3].cs_len, mp_usr, mp_usr_offset);
                   break;
         case '?': mp_add_cs_buf (hashcat_ctx, &p0, 1, mp_usr, mp_usr_offset);
@@ -285,7 +285,7 @@ static int mp_expand (hashcat_ctx_t *hashcat_ctx, char *in_buf, size_t in_len, c
 
         if (in_pos == in_len)
         {
-          event_log_error (hashcat_ctx, "ERROR: The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", in_buf);
+          event_log_error (hashcat_ctx, "The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", in_buf);
 
           return -1;
         }
@@ -294,7 +294,7 @@ static int mp_expand (hashcat_ctx_t *hashcat_ctx, char *in_buf, size_t in_len, c
 
         if ((is_valid_hex_char ((u8) p0) == false) || (is_valid_hex_char ((u8) p1) == false))
         {
-          event_log_error (hashcat_ctx, "ERROR: Invalid hex character detected in mask %s", in_buf);
+          event_log_error (hashcat_ctx, "Invalid hex character detected in mask %s", in_buf);
 
           return -1;
         }
@@ -355,21 +355,21 @@ static cs_t *mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask
                   break;
         case 'b': mp_add_cs_buf (hashcat_ctx, mp_sys[5].cs_buf, mp_sys[5].cs_len, css, css_pos);
                   break;
-        case '1': if (mp_usr[0].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 1 is undefined\n"); return NULL; }
+        case '1': if (mp_usr[0].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 1 is undefined"); return NULL; }
                   mp_add_cs_buf (hashcat_ctx, mp_usr[0].cs_buf, mp_usr[0].cs_len, css, css_pos);
                   break;
-        case '2': if (mp_usr[1].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 2 is undefined\n"); return NULL; }
+        case '2': if (mp_usr[1].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 2 is undefined"); return NULL; }
                   mp_add_cs_buf (hashcat_ctx, mp_usr[1].cs_buf, mp_usr[1].cs_len, css, css_pos);
                   break;
-        case '3': if (mp_usr[2].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 3 is undefined\n"); return NULL; }
+        case '3': if (mp_usr[2].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 3 is undefined"); return NULL; }
                   mp_add_cs_buf (hashcat_ctx, mp_usr[2].cs_buf, mp_usr[2].cs_len, css, css_pos);
                   break;
-        case '4': if (mp_usr[3].cs_len == 0) { event_log_error (hashcat_ctx, "ERROR: Custom-charset 4 is undefined\n"); return NULL; }
+        case '4': if (mp_usr[3].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 4 is undefined"); return NULL; }
                   mp_add_cs_buf (hashcat_ctx, mp_usr[3].cs_buf, mp_usr[3].cs_len, css, css_pos);
                   break;
         case '?': mp_add_cs_buf (hashcat_ctx, &chr, 1, css, css_pos);
                   break;
-        default:  event_log_error (hashcat_ctx, "ERROR: Syntax error: %s", mask_buf);
+        default:  event_log_error (hashcat_ctx, "Syntax error: %s", mask_buf);
                   return NULL;
       }
     }
@@ -383,7 +383,7 @@ static cs_t *mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask
 
         if (mask_pos == mask_len)
         {
-          event_log_error (hashcat_ctx, "ERROR: The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", mask_buf);
+          event_log_error (hashcat_ctx, "The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", mask_buf);
 
           return NULL;
         }
@@ -394,7 +394,7 @@ static cs_t *mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask
 
         if ((is_valid_hex_char ((u8) p0) == false) || (is_valid_hex_char ((u8) p1) == false))
         {
-          event_log_error (hashcat_ctx, "ERROR: Invalid hex character detected in mask %s", mask_buf);
+          event_log_error (hashcat_ctx, "Invalid hex character detected in mask %s", mask_buf);
 
           return NULL;
         }
@@ -417,7 +417,7 @@ static cs_t *mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask
 
   if (css_pos == 0)
   {
-    event_log_error (hashcat_ctx, "ERROR: Invalid mask length (0)");
+    event_log_error (hashcat_ctx, "Invalid mask length (0)");
 
     return NULL;
   }
@@ -461,7 +461,7 @@ static char *mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask
 
         if (mask_pos == mask_len)
         {
-          event_log_error (hashcat_ctx, "ERROR: The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", mask_buf);
+          event_log_error (hashcat_ctx, "The hex-charset option always expects couples of exactly 2 hexadecimal chars, failed mask: %s", mask_buf);
 
           return NULL;
         }
@@ -472,7 +472,7 @@ static char *mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask
 
         if ((is_valid_hex_char ((u8) p0) == false) || (is_valid_hex_char ((u8) p1) == false))
         {
-          event_log_error (hashcat_ctx, "ERROR: Invalid hex character detected in mask: %s", mask_buf);
+          event_log_error (hashcat_ctx, "Invalid hex character detected in mask: %s", mask_buf);
 
           return NULL;
         }
@@ -1136,7 +1136,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (stat (arg, &file_stat) == -1)
             {
-              event_log_error (hashcat_ctx, "ERROR: %s: %s", arg, strerror (errno));
+              event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
 
               return -1;
             }
@@ -1147,7 +1147,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (mask_fp == NULL)
               {
-                event_log_error (hashcat_ctx, "ERROR: %s: %s", arg, strerror (errno));
+                event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
 
                 return -1;
               }
@@ -1171,7 +1171,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              event_log_error (hashcat_ctx, "ERROR: %s: unsupported file-type", arg);
+              event_log_error (hashcat_ctx, "%s: unsupported file-type", arg);
 
               return -1;
             }
@@ -1216,7 +1216,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (mask_fp == NULL)
         {
-          event_log_error (hashcat_ctx, "ERROR: %s: %s", arg, strerror (errno));
+          event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
 
           return -1;
         }
@@ -1240,7 +1240,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: unsupported file-type", arg);
+        event_log_error (hashcat_ctx, "%s: unsupported file-type", arg);
 
         return -1;
       }
@@ -1270,7 +1270,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (mask_fp == NULL)
         {
-          event_log_error (hashcat_ctx, "ERROR: %s: %s", arg, strerror (errno));
+          event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
 
           return -1;
         }
@@ -1294,7 +1294,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        event_log_error (hashcat_ctx, "ERROR: %s: unsupported file-type", arg);
+        event_log_error (hashcat_ctx, "%s: unsupported file-type", arg);
 
         return -1;
       }
@@ -1303,7 +1303,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (mask_ctx->masks_cnt == 0)
   {
-    event_log_error (hashcat_ctx, "ERROR: Invalid mask");
+    event_log_error (hashcat_ctx, "Invalid mask");
 
     return -1;
   }
@@ -1390,7 +1390,7 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
 
         if (mf_cnt >= MAX_MFS)
         {
-          event_log_error (hashcat_ctx, "ERROR: Invalid line '%s' in maskfile", mask_buf);
+          event_log_error (hashcat_ctx, "Invalid line '%s' in maskfile", mask_buf);
 
           return -1;
         }

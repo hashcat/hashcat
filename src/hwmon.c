@@ -42,7 +42,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
       else
       {
         //if (user_options->quiet == false)
-        //  event_log_error (hashcat_ctx, "NVML library load failed, proceed without NVML HWMon enabled.");
+        //  event_log_error (hashcat_ctx, "NVML library load failed, proceed without NVML HWMon enabled");
 
         return -1;
       }
@@ -52,7 +52,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
     else
     {
       //if (user_options->quiet == false)
-      //  event_log_error (hashcat_ctx, "NVML library load failed, proceed without NVML HWMon enabled.");
+      //  event_log_error (hashcat_ctx, "NVML library load failed, proceed without NVML HWMon enabled");
 
       return -1;
     }
@@ -71,7 +71,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
   if (!nvml->lib)
   {
     //if (user_options->quiet == false)
-    //  event_log_error (hashcat_ctx, "NVML library load failed, proceed without NVML HWMon enabled.");
+    //  event_log_error (hashcat_ctx, "NVML library load failed, proceed without NVML HWMon enabled");
 
     return -1;
   }
@@ -132,7 +132,7 @@ static int hm_NVML_nvmlInit (hashcat_ctx_t *hashcat_ctx)
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlInit()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlInit(): %s", string);
 
     return -1;
   }
@@ -152,7 +152,7 @@ static int hm_NVML_nvmlShutdown (hashcat_ctx_t *hashcat_ctx)
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlShutdown()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlShutdown(): %s", string);
 
     return -1;
   }
@@ -172,7 +172,7 @@ static int hm_NVML_nvmlDeviceGetHandleByIndex (hashcat_ctx_t *hashcat_ctx, unsig
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetHandleByIndex()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetHandleByIndex(): %s", string);
 
     return -1;
   }
@@ -193,7 +193,7 @@ static int hm_NVML_nvmlDeviceGetName (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t d
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetName()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetName(): %s", string);
 
     return -1;
   }
@@ -214,7 +214,7 @@ static int hm_NVML_nvmlDeviceGetTemperature (hashcat_ctx_t *hashcat_ctx, nvmlDev
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetTemperature()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetTemperature(): %s", string);
 
     return -1;
   }
@@ -234,7 +234,7 @@ static int hm_NVML_nvmlDeviceGetFanSpeed (hashcat_ctx_t *hashcat_ctx, nvmlDevice
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetFanSpeed()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetFanSpeed(): %s", string);
 
     return -1;
   }
@@ -255,7 +255,7 @@ static int hm_NVML_nvmlDeviceGetPowerUsage (hashcat_ctx_t *hashcat_ctx, nvmlDevi
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetPowerUsage()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetPowerUsage(): %s", string);
 
     return -1;
   }
@@ -276,7 +276,7 @@ static int hm_NVML_nvmlDeviceGetUtilizationRates (hashcat_ctx_t *hashcat_ctx, nv
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetUtilizationRates()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetUtilizationRates(): %s", string);
 
     return -1;
   }
@@ -296,7 +296,7 @@ static int hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx_t *hashcat_ctx, nvmlDevic
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetClockInfo()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetClockInfo(): %s", string);
 
     return -1;
   }
@@ -316,7 +316,7 @@ static int hm_NVML_nvmlDeviceGetTemperatureThreshold (hashcat_ctx_t *hashcat_ctx
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetTemperatureThreshold()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetTemperatureThreshold(): %s", string);
 
     return -1;
   }
@@ -337,7 +337,7 @@ static int hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (hashcat_ctx_t *hashcat_c
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetCurrPcieLinkGeneration()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetCurrPcieLinkGeneration(): %s", string);
 
     return -1;
   }
@@ -358,7 +358,7 @@ static int hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (hashcat_ctx_t *hashcat_ctx, n
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetCurrPcieLinkWidth()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetCurrPcieLinkWidth(): %s", string);
 
     return -1;
   }
@@ -379,7 +379,7 @@ static int hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (hashcat_ctx_t *has
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetCurrentClocksThrottleReasons()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetCurrentClocksThrottleReasons(): %s", string);
 
     return -1;
   }
@@ -401,7 +401,7 @@ static int hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (hashcat_ctx_t *h
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetSupportedClocksThrottleReasons()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetSupportedClocksThrottleReasons(): %s", string);
 
     return -1;
   }
@@ -423,7 +423,7 @@ static int hm_NVML_nvmlDeviceSetComputeMode (hashcat_ctx_t *hashcat_ctx, nvmlDev
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceSetComputeMode()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceSetComputeMode(): %s", string);
 
     return -1;
   }
@@ -445,7 +445,7 @@ static int hm_NVML_nvmlDeviceSetGpuOperationMode (hashcat_ctx_t *hashcat_ctx, nv
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceSetGpuOperationMode()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceSetGpuOperationMode(): %s", string);
 
     return -1;
   }
@@ -466,7 +466,7 @@ static int hm_NVML_nvmlDeviceGetPowerManagementLimitConstraints (hashcat_ctx_t *
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetPowerManagementLimitConstraints()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetPowerManagementLimitConstraints(): %s", string);
 
     return -1;
   }
@@ -486,7 +486,7 @@ static int hm_NVML_nvmlDeviceSetPowerManagementLimit (hashcat_ctx_t *hashcat_ctx
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceSetPowerManagementLimit()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceSetPowerManagementLimit(): %s", string);
 
     return -1;
   }
@@ -506,7 +506,7 @@ static int hm_NVML_nvmlDeviceGetPowerManagementLimit (hashcat_ctx_t *hashcat_ctx
   {
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "nvmlDeviceGetPowerManagementLimit()", nvml_rc, string);
+    event_log_error (hashcat_ctx, "nvmlDeviceGetPowerManagementLimit(): %s", string);
 
     return -1;
   }
@@ -537,7 +537,7 @@ static int nvapi_init (hashcat_ctx_t *hashcat_ctx)
   if (!nvapi->lib)
   {
     //if (user_options->quiet == false)
-    //  event_log_error (hashcat_ctx, "load NVAPI library failed, proceed without NVAPI HWMon enabled.");
+    //  event_log_error (hashcat_ctx, "load NVAPI library failed, proceed without NVAPI HWMon enabled");
 
     return -1;
   }
@@ -591,7 +591,7 @@ static int hm_NvAPI_Initialize (hashcat_ctx_t *hashcat_ctx)
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "NvAPI_Initialize()", NvAPI_rc, string);
+    event_log_error (hashcat_ctx, "NvAPI_Initialize(): %s", string);
 
     return -1;
   }
@@ -613,7 +613,7 @@ static int hm_NvAPI_Unload (hashcat_ctx_t *hashcat_ctx)
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "NvAPI_Unload()", NvAPI_rc, string);
+    event_log_error (hashcat_ctx, "NvAPI_Unload(): %s", string);
 
     return -1;
   }
@@ -635,7 +635,7 @@ static int hm_NvAPI_EnumPhysicalGPUs (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuH
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "NvAPI_EnumPhysicalGPUs()", NvAPI_rc, string);
+    event_log_error (hashcat_ctx, "NvAPI_EnumPhysicalGPUs(): %s", string);
 
     return -1;
   }
@@ -657,7 +657,7 @@ static int hm_NvAPI_GPU_GetPerfPoliciesInfo (hashcat_ctx_t *hashcat_ctx, NvPhysi
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "NvAPI_GPU_GetPerfPoliciesInfo()", NvAPI_rc, string);
+    event_log_error (hashcat_ctx, "NvAPI_GPU_GetPerfPoliciesInfo(): %s", string);
 
     return -1;
   }
@@ -679,7 +679,7 @@ static int hm_NvAPI_GPU_GetPerfPoliciesStatus (hashcat_ctx_t *hashcat_ctx, NvPhy
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "NvAPI_GPU_GetPerfPoliciesStatus()", NvAPI_rc, string);
+    event_log_error (hashcat_ctx, "NvAPI_GPU_GetPerfPoliciesStatus(): %s", string);
 
     return -1;
   }
@@ -701,7 +701,7 @@ static int hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx_t *hashcat_ctx, NvPhysicalG
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "NvAPI_GPU_SetCoolerLevels()", NvAPI_rc, string);
+    event_log_error (hashcat_ctx, "NvAPI_GPU_SetCoolerLevels(): %s", string);
 
     return -1;
   }
@@ -723,7 +723,7 @@ static int hm_NvAPI_GPU_RestoreCoolerSettings (hashcat_ctx_t *hashcat_ctx, NvPhy
 
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
-    event_log_error (hashcat_ctx, "%s %d %s\n", "NvAPI_GPU_RestoreCoolerSettings()", NvAPI_rc, string);
+    event_log_error (hashcat_ctx, "NvAPI_GPU_RestoreCoolerSettings(): %s", string);
 
     return -1;
   }
@@ -765,9 +765,8 @@ static int xnvctrl_init (hashcat_ctx_t *hashcat_ctx)
 
   if (xnvctrl->lib_x11 == NULL)
   {
-    //if (user_options->quiet == false) event_log_error (hashcat_ctx, "Failed loading the X11 library: %s", dlerror());
-    //if (user_options->quiet == false) event_log_info (hashcat_ctx, "         Please install libx11-dev package.");
-    //if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
+    //event_log_error (hashcat_ctx, "Failed loading the X11 library: %s", dlerror());
+    //event_log_error (hashcat_ctx, "Please install libx11-dev package");
 
     return -1;
   }
@@ -776,9 +775,8 @@ static int xnvctrl_init (hashcat_ctx_t *hashcat_ctx)
 
   if (xnvctrl->lib_xnvctrl == NULL)
   {
-    //if (user_options->quiet == false) event_log_error (hashcat_ctx, "Failed loading the XNVCTRL library: %s", dlerror());
-    //if (user_options->quiet == false) event_log_info (hashcat_ctx, "         Please install libxnvctrl-dev package.");
-    //if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
+    //event_log_error (hashcat_ctx, "Failed loading the XNVCTRL library: %s", dlerror());
+    //event_log_error (hashcat_ctx, "Please install libxnvctrl-dev package");
 
     return -1;
   }
@@ -832,7 +830,7 @@ static int hm_XNVCTRL_XOpenDisplay (hashcat_ctx_t *hashcat_ctx)
 
   if (dpy == NULL)
   {
-    event_log_error (hashcat_ctx, "%s\n", "XOpenDisplay() failed");
+    event_log_error (hashcat_ctx, "XOpenDisplay() failed");
 
     return -1;
   }
@@ -869,7 +867,7 @@ static int hm_XNVCTRL_get_fan_control (hashcat_ctx_t *hashcat_ctx, const int gpu
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "%s\n", "XNVCTRLQueryTargetAttribute(NV_CTRL_GPU_COOLER_MANUAL_CONTROL) failed");
+    event_log_error (hashcat_ctx, "XNVCTRLQueryTargetAttribute(NV_CTRL_GPU_COOLER_MANUAL_CONTROL) failed");
 
     return -1;
   }
@@ -919,7 +917,7 @@ static int hm_XNVCTRL_get_core_threshold (hashcat_ctx_t *hashcat_ctx, const int 
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "%s\n", "XNVCTRLQueryTargetAttribute(NV_CTRL_GPU_CORE_THRESHOLD) failed");
+    event_log_error (hashcat_ctx, "XNVCTRLQueryTargetAttribute(NV_CTRL_GPU_CORE_THRESHOLD) failed");
 
     return -1;
   }
@@ -942,7 +940,7 @@ static int hm_XNVCTRL_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const i
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "%s\n", "XNVCTRLQueryTargetAttribute(NV_CTRL_THERMAL_COOLER_CURRENT_LEVEL) failed");
+    event_log_error (hashcat_ctx, "XNVCTRLQueryTargetAttribute(NV_CTRL_THERMAL_COOLER_CURRENT_LEVEL) failed");
 
     return -1;
   }
@@ -964,7 +962,7 @@ static int hm_XNVCTRL_get_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const in
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "%s\n", "XNVCTRLQueryTargetAttribute(NV_CTRL_THERMAL_COOLER_LEVEL) failed");
+    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetAttribute(NV_CTRL_THERMAL_COOLER_LEVEL) failed");
 
     return -1;
   }
@@ -1023,7 +1021,7 @@ static int adl_init (hashcat_ctx_t *hashcat_ctx)
   if (!adl->lib)
   {
     //if (user_options->quiet == false)
-    //  event_log_error (hashcat_ctx, "load ADL library failed, proceed without ADL HWMon enabled.");
+    //  event_log_error (hashcat_ctx, "load ADL library failed, proceed without ADL HWMon enabled");
 
     return -1;
   }
@@ -1091,7 +1089,7 @@ static int hm_ADL_Main_Control_Destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Main_Control_Destroy()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Main_Control_Destroy(): %d", ADL_rc);
 
     return -1;
   }
@@ -1109,7 +1107,7 @@ static int hm_ADL_Main_Control_Create (hashcat_ctx_t *hashcat_ctx, ADL_MAIN_MALL
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Main_Control_Create()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Main_Control_Create(): %d", ADL_rc);
 
     return -1;
   }
@@ -1127,7 +1125,7 @@ static int hm_ADL_Adapter_NumberOfAdapters_Get (hashcat_ctx_t *hashcat_ctx, int 
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Adapter_NumberOfAdapters_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Adapter_NumberOfAdapters_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1145,7 +1143,7 @@ static int hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx_t *hashcat_ctx, LPAdapter
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Adapter_AdapterInfo_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Adapter_AdapterInfo_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1164,7 +1162,7 @@ static int hm_ADL_Display_DisplayInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdap
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Display_DisplayInfo_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Display_DisplayInfo_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1184,7 +1182,7 @@ static int hm_ADL_Adapter_ID_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex,
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Adapter_ID_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Adapter_ID_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1204,7 +1202,7 @@ static int hm_ADL_Adapter_VideoBiosInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAd
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Adapter_VideoBiosInfo_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Adapter_VideoBiosInfo_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1224,7 +1222,7 @@ static int hm_ADL_Overdrive_ThermalDevices_Enum (hashcat_ctx_t *hashcat_ctx, int
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive5_ThermalDevices_Enum()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive5_ThermalDevices_Enum(): %d", ADL_rc);
 
     return -1;
   }
@@ -1243,7 +1241,7 @@ static int hm_ADL_Overdrive5_Temperature_Get (hashcat_ctx_t *hashcat_ctx, int iA
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive5_Temperature_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive5_Temperature_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1261,7 +1259,7 @@ static int hm_ADL_Overdrive6_Temperature_Get (hashcat_ctx_t *hashcat_ctx, int iA
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_Temperature_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_Temperature_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1279,7 +1277,7 @@ static int hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx_t *hashcat_ctx, int
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive5_CurrentActivity_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive5_CurrentActivity_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1297,7 +1295,7 @@ static int hm_ADL_Overdrive5_FanSpeedInfo_Get (hashcat_ctx_t *hashcat_ctx, int i
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive5_FanSpeedInfo_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive5_FanSpeedInfo_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1315,7 +1313,7 @@ static int hm_ADL_Overdrive5_FanSpeed_Get (hashcat_ctx_t *hashcat_ctx, int iAdap
 
   if ((ADL_rc != ADL_OK) && (ADL_rc != ADL_ERR_NOT_SUPPORTED)) // exception allowed only here
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive5_FanSpeed_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive5_FanSpeed_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1333,7 +1331,7 @@ static int hm_ADL_Overdrive6_FanSpeed_Get (hashcat_ctx_t *hashcat_ctx, int iAdap
 
   if ((ADL_rc != ADL_OK) && (ADL_rc != ADL_ERR_NOT_SUPPORTED)) // exception allowed only here
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_FanSpeed_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_FanSpeed_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1351,7 +1349,7 @@ static int hm_ADL_Overdrive5_FanSpeed_Set (hashcat_ctx_t *hashcat_ctx, int iAdap
 
   if ((ADL_rc != ADL_OK) && (ADL_rc != ADL_ERR_NOT_SUPPORTED)) // exception allowed only here
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive5_FanSpeed_Set()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive5_FanSpeed_Set(): %d", ADL_rc);
 
     return -1;
   }
@@ -1369,7 +1367,7 @@ static int hm_ADL_Overdrive6_FanSpeed_Set (hashcat_ctx_t *hashcat_ctx, int iAdap
 
   if ((ADL_rc != ADL_OK) && (ADL_rc != ADL_ERR_NOT_SUPPORTED)) // exception allowed only here
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_FanSpeed_Set()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_FanSpeed_Set(): %d", ADL_rc);
 
     return -1;
   }
@@ -1387,7 +1385,7 @@ static int hm_ADL_Overdrive5_FanSpeedToDefault_Set (hashcat_ctx_t *hashcat_ctx, 
 
   if ((ADL_rc != ADL_OK) && (ADL_rc != ADL_ERR_NOT_SUPPORTED)) // exception allowed only here
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive5_FanSpeedToDefault_Set()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive5_FanSpeedToDefault_Set(): %d", ADL_rc);
 
     return -1;
   }
@@ -1406,7 +1404,7 @@ static int hm_ADL_Overdrive_ODParameters_Get (hashcat_ctx_t *hashcat_ctx, int iA
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive5_ODParameters_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive5_ODParameters_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1426,7 +1424,7 @@ static int hm_ADL_Overdrive_ODPerformanceLevels_Get (hashcat_ctx_t *hashcat_ctx,
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive5_ODPerformanceLevels_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive5_ODPerformanceLevels_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1446,7 +1444,7 @@ static int hm_ADL_Overdrive_ODPerformanceLevels_Set (hashcat_ctx_t *hashcat_ctx,
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive5_ODPerformanceLevels_Set()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive5_ODPerformanceLevels_Set(): %d", ADL_rc);
 
     return -1;
   }
@@ -1465,7 +1463,7 @@ static int hm_ADL_Overdrive_PowerControlInfo_Get (hashcat_ctx_t *hashcat_ctx, in
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_PowerControlInfo_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_PowerControlInfo_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1485,7 +1483,7 @@ static int hm_ADL_Overdrive_PowerControl_Get (hashcat_ctx_t *hashcat_ctx, int iA
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_PowerControl_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_PowerControl_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1527,7 +1525,7 @@ static int hm_ADL_Overdrive_PowerControl_Set (hashcat_ctx_t *hashcat_ctx, int iA
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_PowerControl_Set()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_PowerControl_Set(): %d", ADL_rc);
 
     return -1;
   }
@@ -1546,7 +1544,7 @@ static int hm_ADL_Adapter_Active_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIn
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Adapter_Active_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Adapter_Active_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1566,7 +1564,7 @@ static int hm_ADL_DisplayEnable_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterInd
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_DisplayEnable_Set()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_DisplayEnable_Set(): %d", ADL_rc);
 
     return -1;
   }
@@ -1585,7 +1583,7 @@ static int hm_ADL_Overdrive_Caps (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex,
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive_Caps()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive_Caps(): %d", ADL_rc);
 
     return -1;
   }
@@ -1603,7 +1601,7 @@ static int hm_ADL_Overdrive6_PowerControl_Caps (hashcat_ctx_t *hashcat_ctx, int 
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_PowerControl_Caps()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_PowerControl_Caps(): %d", ADL_rc);
 
     return -1;
   }
@@ -1621,7 +1619,7 @@ static int hm_ADL_Overdrive_Capabilities_Get (hashcat_ctx_t *hashcat_ctx, int iA
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_Capabilities_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_Capabilities_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1686,7 +1684,7 @@ static int hm_ADL_Overdrive_StateInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdap
   }
   else
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_StateInfo_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_StateInfo_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1705,7 +1703,7 @@ static int hm_ADL_Overdrive_CurrentStatus_Get (hashcat_ctx_t *hashcat_ctx, int i
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_CurrentStatus_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_CurrentStatus_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1760,7 +1758,7 @@ static int hm_ADL_Overdrive_State_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterI
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_State_Set()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_State_Set(): %d", ADL_rc);
 
     return -1;
   }
@@ -1778,7 +1776,7 @@ static int hm_ADL_Overdrive6_TargetTemperatureData_Get (hashcat_ctx_t *hashcat_c
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_TargetTemperatureData_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_TargetTemperatureData_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1797,7 +1795,7 @@ static int hm_ADL_Overdrive6_TargetTemperatureRangeInfo_Get (hashcat_ctx_t *hash
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_TargetTemperatureRangeInfo_Get()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_TargetTemperatureRangeInfo_Get(): %d", ADL_rc);
 
     return -1;
   }
@@ -1816,7 +1814,7 @@ static int hm_ADL_Overdrive6_FanSpeed_Reset (hashcat_ctx_t *hashcat_ctx, int iAd
 
   if (ADL_rc != ADL_OK)
   {
-    event_log_error (hashcat_ctx, "%s: %d\n", "ADL_Overdrive6_FanSpeed_Reset()", ADL_rc);
+    event_log_error (hashcat_ctx, "ADL_Overdrive6_FanSpeed_Reset(): %d", ADL_rc);
 
     return -1;
   }
@@ -1834,7 +1832,7 @@ static int get_adapters_num_adl (hashcat_ctx_t *hashcat_ctx, int *iNumberAdapter
 
   if (iNumberAdapters == 0)
   {
-    event_log_error (hashcat_ctx, "No ADL adapters found.");
+    event_log_error (hashcat_ctx, "No ADL adapters found");
 
     return -1;
   }
@@ -2975,7 +2973,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if ((ADL_rc = hm_ADL_Overdrive6_PowerControl_Caps (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, &powertune_supported)) == -1)
         {
-          event_log_error (hashcat_ctx, "ERROR: Failed to get ADL PowerControl Capabilities");
+          event_log_error (hashcat_ctx, "Failed to get ADL PowerControl Capabilities");
 
           return -1;
         }
@@ -2995,14 +2993,14 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           if (ADL_rc == -1)
           {
-            event_log_error (hashcat_ctx, "ERROR: Failed to get current ADL PowerControl settings");
+            event_log_error (hashcat_ctx, "Failed to get current ADL PowerControl settings");
 
             return -1;
           }
 
           if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, powertune.iMaxValue)) == -1)
           {
-            event_log_error (hashcat_ctx, "ERROR: Failed to set new ADL PowerControl values");
+            event_log_error (hashcat_ctx, "Failed to set new ADL PowerControl values");
 
             return -1;
           }
@@ -3015,7 +3013,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           if ((ADL_rc = hm_ADL_Overdrive_StateInfo_Get (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE, &hwmon_ctx->od_clock_mem_status[device_id])) == -1)
           {
-            event_log_error (hashcat_ctx, "ERROR: Failed to get ADL memory and engine clock frequency");
+            event_log_error (hashcat_ctx, "Failed to get ADL memory and engine clock frequency");
 
             return -1;
           }
@@ -3026,7 +3024,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           if ((ADL_rc = hm_ADL_Overdrive_Capabilities_Get (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, &caps)) == -1)
           {
-            event_log_error (hashcat_ctx, "ERROR: Failed to get ADL device capabilities");
+            event_log_error (hashcat_ctx, "Failed to get ADL device capabilities");
 
             return -1;
           }
@@ -3063,7 +3061,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           if ((ADL_rc = hm_ADL_Overdrive_State_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) == -1)
           {
-            event_log_info (hashcat_ctx, "ERROR: Failed to set ADL performance state");
+            event_log_info (hashcat_ctx, "Failed to set ADL performance state");
 
             return -1;
           }
@@ -3080,14 +3078,14 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           if ((ADL_rc = hm_ADL_Overdrive_PowerControlInfo_Get (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, &powertune)) == -1)
           {
-            event_log_error (hashcat_ctx, "ERROR: Failed to get current ADL PowerControl settings");
+            event_log_error (hashcat_ctx, "Failed to get current ADL PowerControl settings");
 
             return -1;
           }
 
           if ((ADL_rc = hm_ADL_Overdrive_PowerControl_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, powertune.iMaxValue)) == -1)
           {
-            event_log_error (hashcat_ctx, "ERROR: Failed to set new ADL PowerControl values");
+            event_log_error (hashcat_ctx, "Failed to set new ADL PowerControl values");
 
             return -1;
           }
@@ -3258,7 +3256,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
         if ((hm_ADL_Overdrive6_PowerControl_Caps (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, &powertune_supported)) == -1)
         {
-          event_log_error (hashcat_ctx, "ERROR: Failed to get ADL PowerControl Capabilities");
+          event_log_error (hashcat_ctx, "Failed to get ADL PowerControl Capabilities");
 
           continue;
         }
@@ -3269,7 +3267,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
           if ((hm_ADL_Overdrive_PowerControl_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, hwmon_ctx->od_power_control_status[device_id])) == -1)
           {
-            event_log_info (hashcat_ctx, "ERROR: Failed to restore the ADL PowerControl values");
+            event_log_info (hashcat_ctx, "Failed to restore the ADL PowerControl values");
 
             continue;
           }
@@ -3287,7 +3285,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
           if ((hm_ADL_Overdrive_State_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) == -1)
           {
-            event_log_info (hashcat_ctx, "ERROR: Failed to restore ADL performance state");
+            event_log_info (hashcat_ctx, "Failed to restore ADL performance state");
 
             continue;
           }

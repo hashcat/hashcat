@@ -157,7 +157,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         if (temperature > (int) user_options->gpu_temp_abort)
         {
-          event_log_error (hashcat_ctx, "ERROR: Temperature limit on GPU %d reached, aborting...", device_id + 1);
+          event_log_error (hashcat_ctx, "Temperature limit on GPU %d reached, aborting...", device_id + 1);
 
           myabort (hashcat_ctx);
 
@@ -271,7 +271,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       {
         if (user_options->benchmark == false)
         {
-          if (user_options->quiet == false) event_log_info (hashcat_ctx, "\nNOTE: Runtime limit reached, aborting...\n");
+          if (user_options->quiet == false) event_log_info (hashcat_ctx, "NOTE: Runtime limit reached, aborting...");
         }
 
         myabort (hashcat_ctx);

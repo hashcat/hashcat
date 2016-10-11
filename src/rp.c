@@ -756,7 +756,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
     if ((fp = fopen (rp_file, "rb")) == NULL)
     {
-      event_log_error (hashcat_ctx, "ERROR: %s: %s", rp_file, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
 
       return -1;
     }
@@ -860,7 +860,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
   if (kernel_rules_cnt == 0)
   {
-    event_log_error (hashcat_ctx, "ERROR: No valid rules left");
+    event_log_error (hashcat_ctx, "No valid rules left");
 
     return -1;
   }

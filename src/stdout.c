@@ -62,7 +62,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
     }
     else
     {
-      event_log_error (hashcat_ctx, "ERROR: %s: %s", filename, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
 
       out.fp = stdout;
     }

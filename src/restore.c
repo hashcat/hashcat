@@ -68,7 +68,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   if (nread != 1)
   {
-    event_log_error (hashcat_ctx, "ERROR: Cannot read %s", eff_restore_file);
+    event_log_error (hashcat_ctx, "Cannot read %s", eff_restore_file);
 
     return -1;
   }
@@ -104,7 +104,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
       if (strcmp (argv0_r, pidbin_r) == 0)
       {
-        event_log_error (hashcat_ctx, "ERROR: Already an instance %s running on pid %d", pidbin, rd->pid);
+        event_log_error (hashcat_ctx, "Already an instance %s running on pid %d", pidbin, rd->pid);
 
         return -1;
       }
@@ -127,7 +127,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
     {
       if (strcmp (pidbin, pidbin2) == 0)
       {
-        event_log_error (hashcat_ctx, "ERROR: Already an instance %s running on pid %d", pidbin2, rd->pid);
+        event_log_error (hashcat_ctx, "Already an instance %s running on pid %d", pidbin2, rd->pid);
 
         return -1;
       }
@@ -142,7 +142,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   if (rd->version < RESTORE_VERSION_MIN)
   {
-    event_log_error (hashcat_ctx, "ERROR: Cannot use outdated %s. Please remove it.", eff_restore_file);
+    event_log_error (hashcat_ctx, "Cannot use outdated %s. Please remove it.", eff_restore_file);
 
     return -1;
   }
@@ -177,7 +177,7 @@ static int init_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (getcwd (rd->cwd, 255) == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: getcwd(): %s", strerror (errno));
+    event_log_error (hashcat_ctx, "getcwd(): %s", strerror (errno));
 
     return -1;
   }
@@ -197,7 +197,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: Restore file '%s': %s", eff_restore_file, strerror (errno));
+    event_log_error (hashcat_ctx, "Restore file '%s': %s", eff_restore_file, strerror (errno));
 
     return -1;
   }
@@ -206,7 +206,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (fread (rd, sizeof (restore_data_t), 1, fp) != 1)
   {
-    event_log_error (hashcat_ctx, "ERROR: Can't read %s", eff_restore_file);
+    event_log_error (hashcat_ctx, "Can't read %s", eff_restore_file);
 
     return -1;
   }
@@ -219,7 +219,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
   {
     if (fgets (buf, HCBUFSIZ_LARGE - 1, fp) == NULL)
     {
-      event_log_error (hashcat_ctx, "ERROR: Can't read %s", eff_restore_file);
+      event_log_error (hashcat_ctx, "Can't read %s", eff_restore_file);
 
       return -1;
     }
@@ -239,10 +239,11 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (chdir (rd->cwd))
   {
-    event_log_error (hashcat_ctx, "ERROR: The directory '%s' does not exist. It is needed to restore (--restore) the session.\n"
-               "       You could either create this directory (or link it) or update the .restore file using e.g. the analyze_hc_restore.pl tool:\n"
-               "       https://github.com/philsmd/analyze_hc_restore\n"
-               "       The directory must be relative to (or contain) all files/folders mentioned within the command line.", rd->cwd);
+    event_log_error (hashcat_ctx,
+      "The directory '%s' does not exist. It is needed to restore (--restore) the session.\n"
+      "You could either create this directory or update the .restore file using e.g. the analyze_hc_restore.pl tool:\n"
+      "https://github.com/philsmd/analyze_hc_restore\n"
+      "The directory must contain all files and folders mentioned within the command line.", rd->cwd);
 
     return -1;
   }
@@ -268,14 +269,14 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", new_restore_file, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", new_restore_file, strerror (errno));
 
     return -1;
   }
 
   if (setvbuf (fp, NULL, _IONBF, 0))
   {
-    event_log_error (hashcat_ctx, "ERROR: setvbuf file '%s': %s", new_restore_file, strerror (errno));
+    event_log_error (hashcat_ctx, "setvbuf file '%s': %s", new_restore_file, strerror (errno));
 
     return -1;
   }
@@ -434,7 +435,7 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
     if (rd->version < RESTORE_VERSION_MIN)
     {
-      event_log_error (hashcat_ctx, "ERROR: Incompatible restore-file version");
+      event_log_error (hashcat_ctx, "Incompatible restore-file version");
 
       return -1;
     }
