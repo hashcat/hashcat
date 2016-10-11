@@ -319,8 +319,8 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
 
 void outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len)
 {
-  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
-  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
+  const hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
+  const outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
 
   char tmp_buf[HCBUFSIZ_LARGE];
   int  tmp_len = 0;
