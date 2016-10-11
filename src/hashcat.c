@@ -726,7 +726,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_POTFILE_NUM_CRACKED);
 
-  // main call, also not we have some threads to care about, so don't return with -1 anywhere from here
+  // main call
 
   EVENT (EVENT_INNERLOOP1_STARTING);
 
@@ -747,7 +747,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
       const int rc_inner1_loop = inner1_loop (hashcat_ctx);
 
-      if (rc_inner1_loop == -1) myabort (hashcat_ctx);
+      if (rc_inner1_loop == -1) return -1;
 
       if (status_ctx->run_main_level2 == false) break;
     }
@@ -756,7 +756,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     const int rc_inner1_loop = inner1_loop (hashcat_ctx);
 
-    if (rc_inner1_loop == -1) myabort (hashcat_ctx);
+    if (rc_inner1_loop == -1) return -1;
   }
 
   // wait for inner threads

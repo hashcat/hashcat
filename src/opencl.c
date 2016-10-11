@@ -1861,14 +1861,16 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       if (status_ctx->run_thread_level2 == false) break;
     }
 
-    device_param->innerloop_pos  = 0;
-    device_param->innerloop_left = 0;
+    //status screen makes use of this, can't reset here
+    //device_param->innerloop_pos  = 0;
+    //device_param->innerloop_left = 0;
 
     if (status_ctx->run_thread_level2 == false) break;
   }
 
-  device_param->outerloop_pos  = 0;
-  device_param->outerloop_left = 0;
+  //status screen makes use of this, can't reset here
+  //device_param->outerloop_pos  = 0;
+  //device_param->outerloop_left = 0;
 
   device_param->speed_pos = speed_pos;
 
