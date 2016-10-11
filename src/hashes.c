@@ -1052,6 +1052,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     {
       hc_qsort_r (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
     }
+
+    if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Sorted Hashes...");
   }
 
   return 0;

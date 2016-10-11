@@ -1003,7 +1003,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
     {
       const int rc = outer_loop (hashcat_ctx);
 
-      if (rc == -1) return -1;
+      if (rc == -1) myabort (hashcat_ctx);
     }
     else
     {
@@ -1013,7 +1013,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
         const int rc = outer_loop (hashcat_ctx);
 
-        if (rc == -1) return -1;
+        if (rc == -1) myabort (hashcat_ctx);
 
         if (status_ctx->run_main_level1 == false) break;
       }
@@ -1023,7 +1023,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   {
     const int rc = outer_loop (hashcat_ctx);
 
-    if (rc == -1) return -1;
+    if (rc == -1) myabort (hashcat_ctx);
   }
 
   EVENT (EVENT_OUTERLOOP_FINISHED);
