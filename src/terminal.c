@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "types.h"
+#include "event.h"
 #include "thread.h"
 #include "timer.h"
 #include "status.h"
@@ -28,23 +29,23 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const 
   {
     if (user_options->machine_readable == false)
     {
-      fprintf (stdout, "%s (%s) starting in benchmark-mode..." EOL, PROGNAME, version_tag);
-      fprintf (stdout, EOL);
+      event_log_info (hashcat_ctx, "%s (%s) starting in benchmark-mode...", PROGNAME, version_tag);
+      event_log_info (hashcat_ctx, "");
     }
     else
     {
-      fprintf (stdout, "# %s (%s) %s" EOL, PROGNAME, version_tag, ctime (&proc_start));
+      event_log_info (hashcat_ctx, "# %s (%s) %s", PROGNAME, version_tag, ctime (&proc_start));
     }
   }
   else if (user_options->restore == true)
   {
-    fprintf (stdout, "%s (%s) starting in restore-mode..." EOL, PROGNAME, version_tag);
-    fprintf (stdout, EOL);
+    event_log_info (hashcat_ctx, "%s (%s) starting in restore-mode...", PROGNAME, version_tag);
+    event_log_info (hashcat_ctx, "");
   }
   else
   {
-    fprintf (stdout, "%s (%s) starting..." EOL, PROGNAME, version_tag);
-    fprintf (stdout, EOL);
+    event_log_info (hashcat_ctx, "%s (%s) starting...", PROGNAME, version_tag);
+    event_log_info (hashcat_ctx, "");
   }
 }
 
@@ -58,8 +59,8 @@ void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const 
   if (user_options->show        == true) return;
   if (user_options->left        == true) return;
 
-  fprintf (stdout, "Started: %s", ctime (&proc_start));
-  fprintf (stdout, "Stopped: %s", ctime (&proc_stop));
+  event_log_info_nn (hashcat_ctx, "Started: %s", ctime (&proc_start));
+  event_log_info_nn (hashcat_ctx, "Stopped: %s", ctime (&proc_stop));
 }
 
 int setup_console (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
@@ -69,21 +70,21 @@ int setup_console (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   if (_setmode (_fileno (stdin), _O_BINARY) == -1)
   {
-    fprintf (stderr, "_setmode(): %s", strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", "stdin", strerror (errno));
 
     return -1;
   }
 
   if (_setmode (_fileno (stdout), _O_BINARY) == -1)
   {
-    fprintf (stderr, "_setmode(): %s", strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", "stdout", strerror (errno));
 
     return -1;
   }
 
   if (_setmode (_fileno (stderr), _O_BINARY) == -1)
   {
-    fprintf (stderr, "_setmode(): %s", strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", "stderr", strerror (errno));
 
     return -1;
   }
@@ -140,7 +141,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
     hc_thread_mutex_lock (status_ctx->mux_display);
 
-    fprintf (stdout, EOL);
+    event_log_info (hashcat_ctx, "");
 
     switch (ch)
     {
@@ -148,11 +149,11 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
       case '\r':
       case '\n':
 
-        fprintf (stdout, EOL);
+        event_log_info (hashcat_ctx, "");
 
         status_display (hashcat_ctx);
 
-        fprintf (stdout, EOL);
+        event_log_info (hashcat_ctx, "");
 
         if (quiet == false) send_prompt ();
 
@@ -160,13 +161,13 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'b':
 
-        fprintf (stdout, EOL);
+        event_log_info (hashcat_ctx, "");
 
         bypass (hashcat_ctx);
 
-        fprintf (stdout, "Next dictionary / mask in queue selected, bypassing current one" EOL);
+        event_log_info (hashcat_ctx, "Next dictionary / mask in queue selected, bypassing current one");
 
-        fprintf (stdout, EOL);
+        event_log_info (hashcat_ctx, "");
 
         if (quiet == false) send_prompt ();
 
@@ -174,16 +175,16 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'p':
 
-        fprintf (stdout, EOL);
+        event_log_info (hashcat_ctx, "");
 
         SuspendThreads (hashcat_ctx);
 
         if (status_ctx->devices_status == STATUS_PAUSED)
         {
-          fprintf (stdout, "Paused" EOL);
+          event_log_info (hashcat_ctx, "Paused");
         }
 
-        fprintf (stdout, EOL);
+        event_log_info (hashcat_ctx, "");
 
         if (quiet == false) send_prompt ();
 
@@ -191,16 +192,16 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'r':
 
-        fprintf (stdout, EOL);
+        event_log_info (hashcat_ctx, "");
 
         ResumeThreads (hashcat_ctx);
 
         if (status_ctx->devices_status == STATUS_RUNNING)
         {
-          fprintf (stdout, "Resumed" EOL);
+          event_log_info (hashcat_ctx, "Resumed");
         }
 
-        fprintf (stdout, EOL);
+        event_log_info (hashcat_ctx, "");
 
         if (quiet == false) send_prompt ();
 
@@ -208,11 +209,11 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'c':
 
-        fprintf (stdout, EOL);
+        event_log_info (hashcat_ctx, "");
 
         stop_at_checkpoint (hashcat_ctx);
 
-        fprintf (stdout, EOL);
+        event_log_info (hashcat_ctx, "");
 
         if (quiet == false) send_prompt ();
 
@@ -220,7 +221,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'q':
 
-        fprintf (stdout, EOL);
+        event_log_info (hashcat_ctx, "");
 
         myabort (hashcat_ctx);
 
