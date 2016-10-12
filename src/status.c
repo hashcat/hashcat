@@ -6,7 +6,6 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "event.h"
 #include "convert.h"
 #include "restore.h"
 #include "thread.h"
@@ -159,27 +158,25 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
-    event_log_error (hashcat_ctx, "status view is not available during initialization phase");
+    fprintf (stdout, "Status view is not available during initialization phase" EOL);
 
     return;
   }
 
   if (status_ctx->devices_status == STATUS_AUTOTUNE)
   {
-    event_log_error (hashcat_ctx, "status view is not available during autotune phase");
+    fprintf (stdout, "Status view is not available during autotune phase" EOL);
 
     return;
   }
 
-  FILE *out = stdout;
-
-  fprintf (out, "STATUS\t%u\t", status_ctx->devices_status);
+  fprintf (stdout, "STATUS\t%u\t", status_ctx->devices_status);
 
   /**
    * speed new
    */
 
-  fprintf (out, "SPEED\t");
+  fprintf (stdout, "SPEED\t");
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -199,14 +196,14 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     speed_cnt  /= SPEED_CACHE;
     speed_ms   /= SPEED_CACHE;
 
-    fprintf (out, "%" PRIu64 "\t%f\t", speed_cnt, speed_ms);
+    fprintf (stdout, "%" PRIu64 "\t%f\t", speed_cnt, speed_ms);
   }
 
   /**
    * exec time
    */
 
-  fprintf (out, "EXEC_RUNTIME\t");
+  fprintf (stdout, "EXEC_RUNTIME\t");
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -216,7 +213,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
     double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
 
-    fprintf (out, "%f\t", exec_ms_avg);
+    fprintf (stdout, "%f\t", exec_ms_avg);
   }
 
   /**
@@ -225,7 +222,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   u64 words_cur = get_lowest_words_done (hashcat_ctx);
 
-  fprintf (out, "CURKU\t%" PRIu64 "\t", words_cur);
+  fprintf (stdout, "CURKU\t%" PRIu64 "\t", words_cur);
 
   /**
    * counter
@@ -270,14 +267,14 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
   u64 progress_cur_relative_skip = progress_cur - progress_skip;
   u64 progress_end_relative_skip = progress_end - progress_skip;
 
-  fprintf (out, "PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", progress_cur_relative_skip, progress_end_relative_skip);
+  fprintf (stdout, "PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", progress_cur_relative_skip, progress_end_relative_skip);
 
   /**
    * cracks
    */
 
-  fprintf (out, "RECHASH\t%u\t%u\t", hashes->digests_done, hashes->digests_cnt);
-  fprintf (out, "RECSALT\t%u\t%u\t", hashes->salts_done,   hashes->salts_cnt);
+  fprintf (stdout, "RECHASH\t%u\t%u\t", hashes->digests_done, hashes->digests_cnt);
+  fprintf (stdout, "RECSALT\t%u\t%u\t", hashes->salts_done,   hashes->salts_cnt);
 
   /**
    * temperature
@@ -285,7 +282,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->gpu_temp_disable == false)
   {
-    fprintf (out, "TEMP\t");
+    fprintf (stdout, "TEMP\t");
 
     hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
@@ -297,7 +294,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
       int temp = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
 
-      fprintf (out, "%d\t", temp);
+      fprintf (stdout, "%d\t", temp);
     }
 
     hc_thread_mutex_unlock (status_ctx->mux_hwmon);
@@ -307,8 +304,9 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
    * flush
    */
 
-  fputs (EOL, out);
-  fflush (out);
+  fputs (EOL, stdout);
+
+  fflush (stdout);
 }
 
 void status_display (hashcat_ctx_t *hashcat_ctx)
@@ -326,14 +324,14 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
-    event_log_error (hashcat_ctx, "status view is not available during initialization phase");
+    fprintf (stdout, "Status view is not available during initialization phase" EOL);
 
     return;
   }
 
   if (status_ctx->devices_status == STATUS_AUTOTUNE)
   {
-    event_log_error (hashcat_ctx, "status view is not available during autotune phase");
+    fprintf (stdout, "Status view is not available during autotune phase" EOL);
 
     return;
   }
@@ -352,7 +350,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   u32 tmp_len = 0;
 
-  event_log_info (hashcat_ctx, "Session.Name...: %s", user_options->session);
+  fprintf (stdout, "Session.Name...: %s", user_options->session);
 
   char *status_type = strstatus (status_ctx->devices_status);
 
@@ -360,7 +358,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   char *hash_type = strhashtype (hash_mode); // not a bug
 
-  event_log_info (hashcat_ctx, "Status.........: %s", status_type);
+  fprintf (stdout, "Status.........: %s", status_type);
 
   /**
    * show rules
@@ -377,18 +375,18 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s)", user_options->rp_files[i]);
 
-    event_log_info (hashcat_ctx, "Rules.Type.....: %s", tmp_buf);
+    fprintf (stdout, "Rules.Type.....: %s", tmp_buf);
 
     tmp_len = 0;
   }
 
   if (user_options->rp_gen)
   {
-    event_log_info (hashcat_ctx, "Rules.Type.....: Generated (%u)", user_options->rp_gen);
+    fprintf (stdout, "Rules.Type.....: Generated (%u)", user_options->rp_gen);
 
     if (user_options->rp_gen_seed)
     {
-      event_log_info (hashcat_ctx, "Rules.Seed.....: %u", user_options->rp_gen_seed);
+      fprintf (stdout, "Rules.Seed.....: %u", user_options->rp_gen_seed);
     }
   }
 
@@ -405,17 +403,17 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options_extra->wordlist_mode == WL_MODE_FILE)
     {
-      event_log_info (hashcat_ctx, "Input.Mode.....: File (%s)", straight_ctx->dict);
+      fprintf (stdout, "Input.Mode.....: File (%s)", straight_ctx->dict);
     }
     else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
     {
-      event_log_info (hashcat_ctx, "Input.Mode.....: Pipe");
+      fprintf (stdout, "Input.Mode.....: Pipe");
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
-    event_log_info (hashcat_ctx, "Input.Left.....: File (%s)", combinator_ctx->dict1);
-    event_log_info (hashcat_ctx, "Input.Right....: File (%s)", combinator_ctx->dict2);
+    fprintf (stdout, "Input.Left.....: File (%s)", combinator_ctx->dict1);
+    fprintf (stdout, "Input.Right....: File (%s)", combinator_ctx->dict2);
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
@@ -451,7 +449,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " (%.02f%%)", mask_percentage * 100);
       }
 
-      event_log_info (hashcat_ctx, "Input.Mode.....: %s", tmp_buf);
+      fprintf (stdout, "Input.Mode.....: %s", tmp_buf);
 
       if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
       {
@@ -460,7 +458,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
         if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-        event_log_info (hashcat_ctx, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+        fprintf (stdout, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
       }
     }
 
@@ -468,8 +466,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
-    event_log_info (hashcat_ctx, "Input.Left.....: File (%s)", straight_ctx->dict);
-    event_log_info (hashcat_ctx, "Input.Right....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
+    fprintf (stdout, "Input.Left.....: File (%s)", straight_ctx->dict);
+    fprintf (stdout, "Input.Right....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
 
     if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
     {
@@ -478,13 +476,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
       if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-      event_log_info (hashcat_ctx, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+      fprintf (stdout, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    event_log_info (hashcat_ctx, "Input.Left.....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
-    event_log_info (hashcat_ctx, "Input.Right....: File (%s)", straight_ctx->dict);
+    fprintf (stdout, "Input.Left.....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
+    fprintf (stdout, "Input.Right....: File (%s)", straight_ctx->dict);
 
     if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
     {
@@ -493,7 +491,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
       if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-      event_log_info (hashcat_ctx, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+      fprintf (stdout, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
     }
   }
 
@@ -503,7 +501,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     {
       wpa_t *wpa = (wpa_t *) hashes->esalts_buf;
 
-      event_log_info (hashcat_ctx, "Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
+      fprintf (stdout, "Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
                 (char *) hashes->salts_buf[0].salt_buf,
                 wpa->orig_mac1[0],
                 wpa->orig_mac1[1],
@@ -520,19 +518,19 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else if (hashconfig->hash_mode == 5200)
     {
-      event_log_info (hashcat_ctx, "Hash.Target....: File (%s)", hashes->hashfile);
+      fprintf (stdout, "Hash.Target....: File (%s)", hashes->hashfile);
     }
     else if (hashconfig->hash_mode == 9000)
     {
-      event_log_info (hashcat_ctx, "Hash.Target....: File (%s)", hashes->hashfile);
+      fprintf (stdout, "Hash.Target....: File (%s)", hashes->hashfile);
     }
     else if ((hashconfig->hash_mode >= 6200) && (hashconfig->hash_mode <= 6299))
     {
-      event_log_info (hashcat_ctx, "Hash.Target....: File (%s)", hashes->hashfile);
+      fprintf (stdout, "Hash.Target....: File (%s)", hashes->hashfile);
     }
     else if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799))
     {
-      event_log_info (hashcat_ctx, "Hash.Target....: File (%s)", hashes->hashfile);
+      fprintf (stdout, "Hash.Target....: File (%s)", hashes->hashfile);
     }
     else
     {
@@ -549,7 +547,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         out_buf[44] = 0;
       }
 
-      event_log_info (hashcat_ctx, "Hash.Target....: %s", out_buf);
+      fprintf (stdout, "Hash.Target....: %s", out_buf);
     }
   }
   else
@@ -562,15 +560,15 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       ascii_digest (hashcat_ctx, out_buf1, 0, 0);
       ascii_digest (hashcat_ctx, out_buf2, 0, 1);
 
-      event_log_info (hashcat_ctx, "Hash.Target....: %s, %s", out_buf1, out_buf2);
+      fprintf (stdout, "Hash.Target....: %s, %s", out_buf1, out_buf2);
     }
     else
     {
-      event_log_info (hashcat_ctx, "Hash.Target....: File (%s)", hashes->hashfile);
+      fprintf (stdout, "Hash.Target....: File (%s)", hashes->hashfile);
     }
   }
 
-  event_log_info (hashcat_ctx, "Hash.Type......: %s", hash_type);
+  fprintf (stdout, "Hash.Type......: %s", hash_type);
 
   /**
    * speed new
@@ -693,12 +691,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (start[start_len - 1] == '\n') start[start_len - 1] = 0;
       if (start[start_len - 2] == '\r') start[start_len - 2] = 0;
 
-      event_log_info (hashcat_ctx, "Time.Started...: %s (%s)", start, display_run);
+      fprintf (stdout, "Time.Started...: %s (%s)", start, display_run);
     }
   }
   else
   {
-    event_log_info (hashcat_ctx, "Time.Started...: 0 secs");
+    fprintf (stdout, "Time.Started...: 0 secs");
   }
 
   /**
@@ -786,7 +784,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       }
       else if ((u64) sec_etc > SEC10YEARS)
       {
-        event_log_info (hashcat_ctx, "Time.Estimated.: > 10 Years");
+        fprintf (stdout, "Time.Estimated.: > 10 Years");
       }
       else
       {
@@ -849,16 +847,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
               format_timer_display (&tm_runtime, display_runtime, sizeof (display_runtime));
 
-              event_log_info (hashcat_ctx, "Time.Estimated.: %s (%s), but limited (%s)", etc, display_etc, display_runtime);
+              fprintf (stdout, "Time.Estimated.: %s (%s), but limited (%s)", etc, display_etc, display_runtime);
             }
             else
             {
-              event_log_info (hashcat_ctx, "Time.Estimated.: %s (%s), but limit exceeded", etc, display_etc);
+              fprintf (stdout, "Time.Estimated.: %s (%s), but limit exceeded", etc, display_etc);
             }
           }
           else
           {
-            event_log_info (hashcat_ctx, "Time.Estimated.: %s (%s)", etc, display_etc);
+            fprintf (stdout, "Time.Estimated.: %s (%s)", etc, display_etc);
           }
         }
       }
@@ -877,7 +875,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     format_speed_display ((double) hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
-    event_log_info (hashcat_ctx, "Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+    fprintf (stdout, "Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
   }
 
   char display_all_cur[16] = { 0 };
@@ -886,12 +884,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   format_speed_display ((double) hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
-  if (opencl_ctx->devices_active > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*...: %9sH/s", display_all_cur);
+  if (opencl_ctx->devices_active > 1) fprintf (stdout, "Speed.Dev.#*...: %9sH/s", display_all_cur);
 
   const double digests_percent = (double) hashes->digests_done / hashes->digests_cnt;
   const double salts_percent   = (double) hashes->salts_done   / hashes->salts_cnt;
 
-  event_log_info (hashcat_ctx, "Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", hashes->digests_done, hashes->digests_cnt, digests_percent * 100, hashes->salts_done, hashes->salts_cnt, salts_percent * 100);
+  fprintf (stdout, "Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", hashes->digests_done, hashes->digests_cnt, digests_percent * 100, hashes->salts_done, hashes->salts_cnt, salts_percent * 100);
 
   // crack-per-time
 
@@ -932,7 +930,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     if ((cpt_ctx->cpt_start + 86400) < now)
     {
-      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%" PRIu64 ",%" PRIu64 ",%" PRIu64 " AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      fprintf (stdout, "Recovered/Time.: CUR:%u,%u,%u AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_cur_hour,
         cpt_cur_day,
@@ -942,7 +940,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else if ((cpt_ctx->cpt_start + 3600) < now)
     {
-      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%" PRIu64 ",%" PRIu64 ",N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      fprintf (stdout, "Recovered/Time.: CUR:%u,%u,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_cur_hour,
         cpt_avg_min,
@@ -951,7 +949,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else if ((cpt_ctx->cpt_start + 60) < now)
     {
-      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%" PRIu64 ",N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      fprintf (stdout, "Recovered/Time.: CUR:%u,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_avg_min,
         cpt_avg_hour,
@@ -959,7 +957,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      fprintf (stdout, "Recovered/Time.: CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_avg_min,
         cpt_avg_hour,
         cpt_avg_day);
@@ -988,14 +986,14 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         percent_rejected = (double) (all_rejected) / (double) progress_cur;
       }
 
-      event_log_info (hashcat_ctx, "Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", progress_cur_relative_skip, progress_end_relative_skip, percent_finished * 100);
-      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", all_rejected,               progress_cur_relative_skip, percent_rejected * 100);
+      fprintf (stdout, "Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", progress_cur_relative_skip, progress_end_relative_skip, percent_finished * 100);
+      fprintf (stdout, "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", all_rejected,               progress_cur_relative_skip, percent_rejected * 100);
 
       if (user_options->restore_disable == false)
       {
         if (percent_finished != 1)
         {
-          event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", restore_point, restore_total, percent_restore * 100);
+          fprintf (stdout, "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", restore_point, restore_total, percent_restore * 100);
         }
       }
     }
@@ -1004,24 +1002,24 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
-      event_log_info (hashcat_ctx, "Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
-      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
+      fprintf (stdout, "Progress.......: 0/0 (100%%)");
+      fprintf (stdout, "Rejected.......: 0/0 (100%%)");
 
       if (user_options->restore_disable == false)
       {
-        event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
+        fprintf (stdout, "Restore.Point..: 0/0 (100%%)");
       }
     }
     else
     {
-      event_log_info (hashcat_ctx, "Progress.......: %" PRIu64 "", progress_cur_relative_skip);
-      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "", all_rejected);
+      fprintf (stdout, "Progress.......: %" PRIu64 "", progress_cur_relative_skip);
+      fprintf (stdout, "Rejected.......: %" PRIu64 "", all_rejected);
 
       // --restore not allowed if stdin is used -- really? why?
 
       //if (user_options->restore_disable == false)
       //{
-      //  event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64 "", restore_point);
+      //  fprintf (stdout, "Restore.Point..: %" PRIu64 "", restore_point);
       //}
     }
   }
@@ -1038,11 +1036,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     {
       if (user_options_extra->attack_kern == ATTACK_KERN_BF)
       {
-        event_log_info (hashcat_ctx, "Candidates.#%d..: [Generating]", device_id + 1);
+        fprintf (stdout, "Candidates.#%d..: [Generating]", device_id + 1);
       }
       else
       {
-        event_log_info (hashcat_ctx, "Candidates.#%d..: [Copying]", device_id + 1);
+        fprintf (stdout, "Candidates.#%d..: [Copying]", device_id + 1);
       }
 
       continue;
@@ -1080,11 +1078,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       plain_ptr1[plain_len1 * 2] = 0;
       plain_ptr2[plain_len2 * 2] = 0;
 
-      event_log_info (hashcat_ctx, "Candidates.#%d..: $HEX[%s] -> $HEX[%s]", device_id + 1, plain_ptr1, plain_ptr2);
+      fprintf (stdout, "Candidates.#%d..: $HEX[%s] -> $HEX[%s]", device_id + 1, plain_ptr1, plain_ptr2);
     }
     else
     {
-      event_log_info (hashcat_ctx, "Candidates.#%d..: %s -> %s", device_id + 1, plain_ptr1, plain_ptr2);
+      fprintf (stdout, "Candidates.#%d..: %s -> %s", device_id + 1, plain_ptr1, plain_ptr2);
     }
   }
 
@@ -1166,7 +1164,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         output_len = strlen (output_buf);
       }
 
-      event_log_info (hashcat_ctx, "HWMon.Dev.#%d...:%s", device_id + 1, output_buf);
+      fprintf (stdout, "HWMon.Dev.#%d...:%s", device_id + 1, output_buf);
     }
 
     hc_thread_mutex_unlock (status_ctx->mux_hwmon);
@@ -1181,14 +1179,14 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
-    event_log_error (hashcat_ctx, "status view is not available during initialization phase");
+    fprintf (stdout, "Status view is not available during initialization phase" EOL);
 
     return;
   }
 
   if (status_ctx->devices_status == STATUS_AUTOTUNE)
   {
-    event_log_error (hashcat_ctx, "status view is not available during autotune phase");
+    fprintf (stdout, "Status view is not available during autotune phase" EOL);
 
     return;
   }
@@ -1228,7 +1226,7 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-    event_log_info (hashcat_ctx, "%u:%u:%" PRIu64 "", device_id + 1, hashconfig->hash_mode, (hashes_dev_ms[device_id] * 1000));
+    fprintf (stdout, "%u:%u:%" PRIu64 "", device_id + 1, hashconfig->hash_mode, (hashes_dev_ms[device_id] * 1000));
   }
 }
 
@@ -1240,14 +1238,14 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
-    event_log_error (hashcat_ctx, "status view is not available during initialization phase");
+    fprintf (stdout, "Status view is not available during initialization phase" EOL);
 
     return;
   }
 
   if (status_ctx->devices_status == STATUS_AUTOTUNE)
   {
-    event_log_error (hashcat_ctx, "status view is not available during autotune phase");
+    fprintf (stdout, "Status view is not available during autotune phase" EOL);
 
     return;
   }
@@ -1325,11 +1323,11 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
     if (opencl_ctx->devices_active >= 10)
     {
-      event_log_info (hashcat_ctx, "Speed.Dev.#%d: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+      fprintf (stdout, "Speed.Dev.#%d: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
     }
     else
     {
-      event_log_info (hashcat_ctx, "Speed.Dev.#%d.: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+      fprintf (stdout, "Speed.Dev.#%d.: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
     }
   }
 
@@ -1339,7 +1337,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   format_speed_display ((double) hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
-  if (opencl_ctx->devices_active > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*.: %9sH/s", display_all_cur);
+  if (opencl_ctx->devices_active > 1) fprintf (stdout, "Speed.Dev.#*.: %9sH/s", display_all_cur);
 }
 
 int status_progress_init (hashcat_ctx_t *hashcat_ctx)
