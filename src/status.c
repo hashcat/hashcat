@@ -932,7 +932,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     if ((cpt_ctx->cpt_start + 86400) < now)
     {
-      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%" PRIu64 ",%" PRIu64 ",%" PRIu64 " AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%u,%u,%u AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_cur_hour,
         cpt_cur_day,
@@ -942,7 +942,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else if ((cpt_ctx->cpt_start + 3600) < now)
     {
-      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%" PRIu64 ",%" PRIu64 ",N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%u,%u,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_cur_hour,
         cpt_avg_min,
@@ -951,7 +951,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else if ((cpt_ctx->cpt_start + 60) < now)
     {
-      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%" PRIu64 ",N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%u,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_avg_min,
         cpt_avg_hour,

@@ -144,48 +144,6 @@ void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size
   return (NULL);
 }
 
-static void potfile_format_plain (hashcat_ctx_t *hashcat_ctx, const unsigned char *plain_ptr, const u32 plain_len)
-{
-  potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
-
-  if (potfile_ctx->enabled == false) return;
-
-  bool needs_hexify = false;
-
-  for (u32 i = 0; i < plain_len; i++)
-  {
-    if (plain_ptr[i] < 0x20)
-    {
-      needs_hexify = true;
-
-      break;
-    }
-
-    if (plain_ptr[i] > 0x7f)
-    {
-      needs_hexify = true;
-
-      break;
-    }
-  }
-
-  if (needs_hexify == true)
-  {
-    fprintf (potfile_ctx->fp, "$HEX[");
-
-    for (u32 i = 0; i < plain_len; i++)
-    {
-      fprintf (potfile_ctx->fp, "%02x", plain_ptr[i]);
-    }
-
-    fprintf (potfile_ctx->fp, "]");
-  }
-  else
-  {
-    fwrite (plain_ptr, plain_len, 1, potfile_ctx->fp);
-  }
-}
-
 int potfile_init (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
@@ -412,15 +370,52 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
   if (potfile_ctx->enabled == false) return;
 
-  FILE *fp = potfile_ctx->fp;
+  char tmp_buf[HCBUFSIZ_LARGE];
 
-  fprintf (fp, "%s:", out_buf);
+  int tmp_len = 0;
 
-  potfile_format_plain (hashcat_ctx, plain_ptr, plain_len);
+  if (1)
+  {
+    const size_t out_len = strlen (out_buf);
 
-  fputc ('\n', fp);
+    memcpy (tmp_buf + tmp_len, out_buf, out_len);
 
-  fflush (fp);
+    tmp_len += out_len;
+
+    tmp_buf[tmp_len] = ':';
+
+    tmp_len += 1;
+  }
+
+  if (1)
+  {
+    if (need_hexify (plain_ptr, plain_len) == true)
+    {
+      tmp_buf[tmp_len++] = '$';
+      tmp_buf[tmp_len++] = 'H';
+      tmp_buf[tmp_len++] = 'E';
+      tmp_buf[tmp_len++] = 'X';
+      tmp_buf[tmp_len++] = '[';
+
+      exec_hexify ((const u8 *) plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
+
+      tmp_len += plain_len * 2;
+
+      tmp_buf[tmp_len++] = ']';
+    }
+    else
+    {
+      memcpy (tmp_buf + tmp_len, plain_ptr, plain_len);
+
+      tmp_len += plain_len;
+    }
+  }
+
+  tmp_buf[tmp_len] = 0;
+
+  fprintf (potfile_ctx->fp, "%s\n", tmp_buf);
+
+  fflush (potfile_ctx->fp);
 }
 
 void potfile_hash_alloc (hashcat_ctx_t *hashcat_ctx, const u32 num)
