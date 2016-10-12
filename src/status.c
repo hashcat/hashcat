@@ -350,7 +350,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   u32 tmp_len = 0;
 
-  fprintf (stdout, "Session.Name...: %s" EOL, user_options->session);
+  fprintf (stdout, "Session.Name...: %s", user_options->session);
 
   char *status_type = strstatus (status_ctx->devices_status);
 
@@ -358,7 +358,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   char *hash_type = strhashtype (hash_mode); // not a bug
 
-  fprintf (stdout, "Status.........: %s" EOL, status_type);
+  fprintf (stdout, "Status.........: %s", status_type);
 
   /**
    * show rules
@@ -375,18 +375,18 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, "File (%s)", user_options->rp_files[i]);
 
-    fprintf (stdout, "Rules.Type.....: %s" EOL, tmp_buf);
+    fprintf (stdout, "Rules.Type.....: %s", tmp_buf);
 
     tmp_len = 0;
   }
 
   if (user_options->rp_gen)
   {
-    fprintf (stdout, "Rules.Type.....: Generated (%u)" EOL, user_options->rp_gen);
+    fprintf (stdout, "Rules.Type.....: Generated (%u)", user_options->rp_gen);
 
     if (user_options->rp_gen_seed)
     {
-      fprintf (stdout, "Rules.Seed.....: %u" EOL, user_options->rp_gen_seed);
+      fprintf (stdout, "Rules.Seed.....: %u", user_options->rp_gen_seed);
     }
   }
 
@@ -403,17 +403,17 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options_extra->wordlist_mode == WL_MODE_FILE)
     {
-      fprintf (stdout, "Input.Mode.....: File (%s)" EOL, straight_ctx->dict);
+      fprintf (stdout, "Input.Mode.....: File (%s)", straight_ctx->dict);
     }
     else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
     {
-      fprintf (stdout, "Input.Mode.....: Pipe" EOL);
+      fprintf (stdout, "Input.Mode.....: Pipe");
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
-    fprintf (stdout, "Input.Left.....: File (%s)" EOL, combinator_ctx->dict1);
-    fprintf (stdout, "Input.Right....: File (%s)" EOL, combinator_ctx->dict2);
+    fprintf (stdout, "Input.Left.....: File (%s)", combinator_ctx->dict1);
+    fprintf (stdout, "Input.Right....: File (%s)", combinator_ctx->dict2);
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
@@ -449,7 +449,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " (%.02f%%)", mask_percentage * 100);
       }
 
-      fprintf (stdout, "Input.Mode.....: %s" EOL, tmp_buf);
+      fprintf (stdout, "Input.Mode.....: %s", tmp_buf);
 
       if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
       {
@@ -458,7 +458,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
         if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-        fprintf (stdout, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s" EOL, custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+        fprintf (stdout, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
       }
     }
 
@@ -466,8 +466,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
-    fprintf (stdout, "Input.Left.....: File (%s)" EOL, straight_ctx->dict);
-    fprintf (stdout, "Input.Right....: Mask (%s) [%i]" EOL, mask_ctx->mask, mask_ctx->css_cnt);
+    fprintf (stdout, "Input.Left.....: File (%s)", straight_ctx->dict);
+    fprintf (stdout, "Input.Right....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
 
     if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
     {
@@ -476,13 +476,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
       if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-      fprintf (stdout, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s" EOL, custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+      fprintf (stdout, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    fprintf (stdout, "Input.Left.....: Mask (%s) [%i]" EOL, mask_ctx->mask, mask_ctx->css_cnt);
-    fprintf (stdout, "Input.Right....: File (%s)" EOL, straight_ctx->dict);
+    fprintf (stdout, "Input.Left.....: Mask (%s) [%i]", mask_ctx->mask, mask_ctx->css_cnt);
+    fprintf (stdout, "Input.Right....: File (%s)", straight_ctx->dict);
 
     if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
     {
@@ -491,7 +491,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
       if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-      fprintf (stdout, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s" EOL, custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+      fprintf (stdout, "Custom.Charset.: -1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
     }
   }
 
@@ -501,7 +501,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     {
       wpa_t *wpa = (wpa_t *) hashes->esalts_buf;
 
-      fprintf (stdout, "Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)" EOL,
+      fprintf (stdout, "Hash.Target....: %s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
                 (char *) hashes->salts_buf[0].salt_buf,
                 wpa->orig_mac1[0],
                 wpa->orig_mac1[1],
@@ -518,19 +518,19 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else if (hashconfig->hash_mode == 5200)
     {
-      fprintf (stdout, "Hash.Target....: File (%s)" EOL, hashes->hashfile);
+      fprintf (stdout, "Hash.Target....: File (%s)", hashes->hashfile);
     }
     else if (hashconfig->hash_mode == 9000)
     {
-      fprintf (stdout, "Hash.Target....: File (%s)" EOL, hashes->hashfile);
+      fprintf (stdout, "Hash.Target....: File (%s)", hashes->hashfile);
     }
     else if ((hashconfig->hash_mode >= 6200) && (hashconfig->hash_mode <= 6299))
     {
-      fprintf (stdout, "Hash.Target....: File (%s)" EOL, hashes->hashfile);
+      fprintf (stdout, "Hash.Target....: File (%s)", hashes->hashfile);
     }
     else if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799))
     {
-      fprintf (stdout, "Hash.Target....: File (%s)" EOL, hashes->hashfile);
+      fprintf (stdout, "Hash.Target....: File (%s)", hashes->hashfile);
     }
     else
     {
@@ -547,7 +547,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         out_buf[44] = 0;
       }
 
-      fprintf (stdout, "Hash.Target....: %s" EOL, out_buf);
+      fprintf (stdout, "Hash.Target....: %s", out_buf);
     }
   }
   else
@@ -560,15 +560,15 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       ascii_digest (hashcat_ctx, out_buf1, 0, 0);
       ascii_digest (hashcat_ctx, out_buf2, 0, 1);
 
-      fprintf (stdout, "Hash.Target....: %s, %s" EOL, out_buf1, out_buf2);
+      fprintf (stdout, "Hash.Target....: %s, %s", out_buf1, out_buf2);
     }
     else
     {
-      fprintf (stdout, "Hash.Target....: File (%s)" EOL, hashes->hashfile);
+      fprintf (stdout, "Hash.Target....: File (%s)", hashes->hashfile);
     }
   }
 
-  fprintf (stdout, "Hash.Type......: %s" EOL, hash_type);
+  fprintf (stdout, "Hash.Type......: %s", hash_type);
 
   /**
    * speed new
@@ -691,12 +691,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (start[start_len - 1] == '\n') start[start_len - 1] = 0;
       if (start[start_len - 2] == '\r') start[start_len - 2] = 0;
 
-      fprintf (stdout, "Time.Started...: %s (%s)" EOL, start, display_run);
+      fprintf (stdout, "Time.Started...: %s (%s)", start, display_run);
     }
   }
   else
   {
-    fprintf (stdout, "Time.Started...: 0 secs" EOL);
+    fprintf (stdout, "Time.Started...: 0 secs");
   }
 
   /**
@@ -784,7 +784,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       }
       else if ((u64) sec_etc > SEC10YEARS)
       {
-        fprintf (stdout, "Time.Estimated.: > 10 Years" EOL);
+        fprintf (stdout, "Time.Estimated.: > 10 Years");
       }
       else
       {
@@ -847,16 +847,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
               format_timer_display (&tm_runtime, display_runtime, sizeof (display_runtime));
 
-              fprintf (stdout, "Time.Estimated.: %s (%s), but limited (%s)" EOL, etc, display_etc, display_runtime);
+              fprintf (stdout, "Time.Estimated.: %s (%s), but limited (%s)", etc, display_etc, display_runtime);
             }
             else
             {
-              fprintf (stdout, "Time.Estimated.: %s (%s), but limit exceeded" EOL, etc, display_etc);
+              fprintf (stdout, "Time.Estimated.: %s (%s), but limit exceeded", etc, display_etc);
             }
           }
           else
           {
-            fprintf (stdout, "Time.Estimated.: %s (%s)" EOL, etc, display_etc);
+            fprintf (stdout, "Time.Estimated.: %s (%s)", etc, display_etc);
           }
         }
       }
@@ -875,7 +875,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     format_speed_display ((double) hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
-    fprintf (stdout, "Speed.Dev.#%d...: %9sH/s (%0.2fms)" EOL, device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+    fprintf (stdout, "Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
   }
 
   char display_all_cur[16] = { 0 };
@@ -884,12 +884,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   format_speed_display ((double) hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
-  if (opencl_ctx->devices_active > 1) fprintf (stdout, "Speed.Dev.#*...: %9sH/s" EOL, display_all_cur);
+  if (opencl_ctx->devices_active > 1) fprintf (stdout, "Speed.Dev.#*...: %9sH/s", display_all_cur);
 
   const double digests_percent = (double) hashes->digests_done / hashes->digests_cnt;
   const double salts_percent   = (double) hashes->salts_done   / hashes->salts_cnt;
 
-  fprintf (stdout, "Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts" EOL, hashes->digests_done, hashes->digests_cnt, digests_percent * 100, hashes->salts_done, hashes->salts_cnt, salts_percent * 100);
+  fprintf (stdout, "Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", hashes->digests_done, hashes->digests_cnt, digests_percent * 100, hashes->salts_done, hashes->salts_cnt, salts_percent * 100);
 
   // crack-per-time
 
@@ -930,7 +930,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     if ((cpt_ctx->cpt_start + 86400) < now)
     {
-      fprintf (stdout, "Recovered/Time.: CUR:%u,%u,%u AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)" EOL,
+      fprintf (stdout, "Recovered/Time.: CUR:%u,%u,%u AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_cur_hour,
         cpt_cur_day,
@@ -940,7 +940,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else if ((cpt_ctx->cpt_start + 3600) < now)
     {
-      fprintf (stdout, "Recovered/Time.: CUR:%u,%u,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)" EOL,
+      fprintf (stdout, "Recovered/Time.: CUR:%u,%u,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_cur_hour,
         cpt_avg_min,
@@ -949,7 +949,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else if ((cpt_ctx->cpt_start + 60) < now)
     {
-      fprintf (stdout, "Recovered/Time.: CUR:%u,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)" EOL,
+      fprintf (stdout, "Recovered/Time.: CUR:%u,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_cur_min,
         cpt_avg_min,
         cpt_avg_hour,
@@ -957,7 +957,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      fprintf (stdout, "Recovered/Time.: CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)" EOL,
+      fprintf (stdout, "Recovered/Time.: CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
         cpt_avg_min,
         cpt_avg_hour,
         cpt_avg_day);
@@ -986,14 +986,14 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         percent_rejected = (double) (all_rejected) / (double) progress_cur;
       }
 
-      fprintf (stdout, "Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)" EOL, progress_cur_relative_skip, progress_end_relative_skip, percent_finished * 100);
-      fprintf (stdout, "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)" EOL, all_rejected,               progress_cur_relative_skip, percent_rejected * 100);
+      fprintf (stdout, "Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", progress_cur_relative_skip, progress_end_relative_skip, percent_finished * 100);
+      fprintf (stdout, "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", all_rejected,               progress_cur_relative_skip, percent_rejected * 100);
 
       if (user_options->restore_disable == false)
       {
         if (percent_finished != 1)
         {
-          fprintf (stdout, "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)" EOL, restore_point, restore_total, percent_restore * 100);
+          fprintf (stdout, "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", restore_point, restore_total, percent_restore * 100);
         }
       }
     }
@@ -1002,24 +1002,24 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
-      fprintf (stdout, "Progress.......: 0/0 (100%%)" EOL);
-      fprintf (stdout, "Rejected.......: 0/0 (100%%)" EOL);
+      fprintf (stdout, "Progress.......: 0/0 (100%%)");
+      fprintf (stdout, "Rejected.......: 0/0 (100%%)");
 
       if (user_options->restore_disable == false)
       {
-        fprintf (stdout, "Restore.Point..: 0/0 (100%%)" EOL);
+        fprintf (stdout, "Restore.Point..: 0/0 (100%%)");
       }
     }
     else
     {
-      fprintf (stdout, "Progress.......: %" PRIu64 "" EOL, progress_cur_relative_skip);
-      fprintf (stdout, "Rejected.......: %" PRIu64 "" EOL, all_rejected);
+      fprintf (stdout, "Progress.......: %" PRIu64 "", progress_cur_relative_skip);
+      fprintf (stdout, "Rejected.......: %" PRIu64 "", all_rejected);
 
       // --restore not allowed if stdin is used -- really? why?
 
       //if (user_options->restore_disable == false)
       //{
-      //  fprintf (stdout, "Restore.Point..: %" PRIu64 "" EOL, restore_point);
+      //  fprintf (stdout, "Restore.Point..: %" PRIu64 "", restore_point);
       //}
     }
   }
@@ -1036,11 +1036,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     {
       if (user_options_extra->attack_kern == ATTACK_KERN_BF)
       {
-        fprintf (stdout, "Candidates.#%d..: [Generating]" EOL, device_id + 1);
+        fprintf (stdout, "Candidates.#%d..: [Generating]", device_id + 1);
       }
       else
       {
-        fprintf (stdout, "Candidates.#%d..: [Copying]" EOL, device_id + 1);
+        fprintf (stdout, "Candidates.#%d..: [Copying]", device_id + 1);
       }
 
       continue;
@@ -1078,11 +1078,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       plain_ptr1[plain_len1 * 2] = 0;
       plain_ptr2[plain_len2 * 2] = 0;
 
-      fprintf (stdout, "Candidates.#%d..: $HEX[%s] -> $HEX[%s]" EOL, device_id + 1, plain_ptr1, plain_ptr2);
+      fprintf (stdout, "Candidates.#%d..: $HEX[%s] -> $HEX[%s]", device_id + 1, plain_ptr1, plain_ptr2);
     }
     else
     {
-      fprintf (stdout, "Candidates.#%d..: %s -> %s" EOL, device_id + 1, plain_ptr1, plain_ptr2);
+      fprintf (stdout, "Candidates.#%d..: %s -> %s", device_id + 1, plain_ptr1, plain_ptr2);
     }
   }
 
@@ -1164,7 +1164,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         output_len = strlen (output_buf);
       }
 
-      fprintf (stdout, "HWMon.Dev.#%d...:%s" EOL, device_id + 1, output_buf);
+      fprintf (stdout, "HWMon.Dev.#%d...:%s", device_id + 1, output_buf);
     }
 
     hc_thread_mutex_unlock (status_ctx->mux_hwmon);
@@ -1226,7 +1226,7 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-    fprintf (stdout, "%u:%u:%" PRIu64 "" EOL, device_id + 1, hashconfig->hash_mode, (hashes_dev_ms[device_id] * 1000));
+    fprintf (stdout, "%u:%u:%" PRIu64 "", device_id + 1, hashconfig->hash_mode, (hashes_dev_ms[device_id] * 1000));
   }
 }
 
@@ -1323,11 +1323,11 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
     if (opencl_ctx->devices_active >= 10)
     {
-      fprintf (stdout, "Speed.Dev.#%d: %9sH/s (%0.2fms)" EOL, device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+      fprintf (stdout, "Speed.Dev.#%d: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
     }
     else
     {
-      fprintf (stdout, "Speed.Dev.#%d.: %9sH/s (%0.2fms)" EOL, device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+      fprintf (stdout, "Speed.Dev.#%d.: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
     }
   }
 
@@ -1337,7 +1337,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   format_speed_display ((double) hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
 
-  if (opencl_ctx->devices_active > 1) fprintf (stdout, "Speed.Dev.#*.: %9sH/s" EOL, display_all_cur);
+  if (opencl_ctx->devices_active > 1) fprintf (stdout, "Speed.Dev.#*.: %9sH/s", display_all_cur);
 }
 
 int status_progress_init (hashcat_ctx_t *hashcat_ctx)
