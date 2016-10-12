@@ -173,8 +173,8 @@ static void main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   }
   else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
   {
-    event_log_info (hashcat_ctx, "Starting attack in stdin mode...");
-    event_log_info (hashcat_ctx, "");
+    fprintf (stdout, "Starting attack in stdin mode..." EOL);
+    fprintf (stdout, EOL);
   }
 }
 
@@ -191,7 +191,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
     if (user_options->machine_readable == false)
     {
-      event_log_info (hashcat_ctx, "");
+      fprintf (stdout, EOL);
     }
   }
   else
@@ -200,11 +200,11 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
     {
       clear_prompt ();
 
-      if (hashes->digests_saved != hashes->digests_done) event_log_info (hashcat_ctx, "");
+      if (hashes->digests_saved != hashes->digests_done) fprintf (stdout, EOL);
 
       status_display (hashcat_ctx);
 
-      event_log_info (hashcat_ctx, "");
+      fprintf (stdout, EOL);
     }
     else
     {
@@ -212,7 +212,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
       {
         status_display (hashcat_ctx);
 
-        event_log_info (hashcat_ctx, "");
+        fprintf (stdout, EOL);
       }
     }
   }
@@ -235,7 +235,7 @@ static void main_calculated_words_base (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
 
   if (user_options->keyspace == false) return;
 
-  event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_base);
+  fprintf (stdout, "%" PRIu64 "" EOL, status_ctx->words_base);
 }
 
 static void main_potfile_remove_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -244,7 +244,7 @@ static void main_potfile_remove_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Comparing hashes with potfile entries...");
+  fprintf (stdout, "Comparing hashes with potfile entries...");
 }
 
 static void main_potfile_remove_parse_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -253,7 +253,7 @@ static void main_potfile_remove_parse_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Compared hashes with potfile entries...");
+  fprintf (stdout, "Compared hashes with potfile entries...");
 }
 
 static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -269,13 +269,13 @@ static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
   {
     if (potfile_remove_cracks == 1)
     {
-      event_log_info (hashcat_ctx, "INFO: Removed 1 hash found in potfile");
-      event_log_info (hashcat_ctx, "");
+      fprintf (stdout, "INFO: Removed 1 hash found in potfile" EOL);
+      fprintf (stdout, EOL);
     }
     else
     {
-      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found in potfile", potfile_remove_cracks);
-      event_log_info (hashcat_ctx, "");
+      fprintf (stdout, "INFO: Removed %d hashes found in potfile" EOL, potfile_remove_cracks);
+      fprintf (stdout, EOL);
     }
   }
 }
@@ -286,8 +286,8 @@ static void main_potfile_all_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   if (user_options->quiet == true) return;
 
-  event_log_info (hashcat_ctx, "INFO: All hashes found in potfile! You can use --show to display them.");
-  event_log_info (hashcat_ctx, "");
+  fprintf (stdout, "INFO: All hashes found in potfile! You can use --show to display them." EOL);
+  fprintf (stdout, EOL);
 }
 
 static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -309,36 +309,36 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     {
       char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
 
-      event_log_info (hashcat_ctx, "Hashtype: %s", hash_type);
-      event_log_info (hashcat_ctx, "");
+      fprintf (stdout, "Hashtype: %s" EOL, hash_type);
+      fprintf (stdout, EOL);
     }
   }
 
   if (user_options->quiet == true) return;
 
-  event_log_info (hashcat_ctx, "Hashes: %u digests; %u unique digests, %u unique salts", hashes->hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
-  event_log_info (hashcat_ctx, "Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_shift1, bitmap_ctx->bitmap_shift2);
+  fprintf (stdout, "Hashes: %u digests; %u unique digests, %u unique salts" EOL, hashes->hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
+  fprintf (stdout, "Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates" EOL, bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_shift1, bitmap_ctx->bitmap_shift2);
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
-    event_log_info (hashcat_ctx, "Rules: %u", straight_ctx->kernel_rules_cnt);
+    fprintf (stdout, "Rules: %u" EOL, straight_ctx->kernel_rules_cnt);
   }
 
   if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
 
   if (hashconfig->opti_type)
   {
-    event_log_info (hashcat_ctx, "Applicable Optimizers:");
+    fprintf (stdout, "Applicable Optimizers:" EOL);
 
     for (u32 i = 0; i < 32; i++)
     {
       const u32 opti_bit = 1u << i;
 
-      if (hashconfig->opti_type & opti_bit) event_log_info (hashcat_ctx, "* %s", stroptitype (opti_bit));
+      if (hashconfig->opti_type & opti_bit) fprintf (stdout, "* %s" EOL, stroptitype (opti_bit));
     }
   }
 
-  event_log_info (hashcat_ctx, "");
+  fprintf (stdout, EOL);
 
   /**
    * Watchdog and Temperature balance
@@ -346,31 +346,31 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (hwmon_ctx->enabled == false && user_options->gpu_temp_disable == false)
   {
-    event_log_info (hashcat_ctx, "Watchdog: Hardware Monitoring Interface not found on your system");
+    fprintf (stdout, "Watchdog: Hardware Monitoring Interface not found on your system" EOL);
   }
 
   if (hwmon_ctx->enabled == true && user_options->gpu_temp_abort > 0)
   {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_options->gpu_temp_abort);
+    fprintf (stdout, "Watchdog: Temperature abort trigger set to %uc" EOL, user_options->gpu_temp_abort);
   }
   else
   {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled");
+    fprintf (stdout, "Watchdog: Temperature abort trigger disabled" EOL);
   }
 
   if (hwmon_ctx->enabled == true && user_options->gpu_temp_retain > 0)
   {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger set to %uc", user_options->gpu_temp_retain);
+    fprintf (stdout, "Watchdog: Temperature retain trigger set to %uc" EOL, user_options->gpu_temp_retain);
   }
   else
   {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger disabled");
+    fprintf (stdout, "Watchdog: Temperature retain trigger disabled" EOL);
   }
 
-  event_log_info (hashcat_ctx, "");
+  fprintf (stdout, EOL);
 
   #if defined (DEBUG)
-  if (user_options->benchmark == true) event_log_info (hashcat_ctx, "Hashmode: %d", hashconfig->hash_mode);
+  if (user_options->benchmark == true) fprintf (stdout, "Hashmode: %d" EOL, hashconfig->hash_mode);
   #endif
 }
 
@@ -380,7 +380,7 @@ static void main_opencl_session_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Initializing device kernels and memory...");
+  fprintf (stdout, "Initializing device kernels and memory: ");
 }
 
 static void main_opencl_session_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -389,7 +389,7 @@ static void main_opencl_session_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Initialized device kernels and memory...");
+  fprintf (stdout, "Done" EOL);
 }
 
 static void main_weak_hash_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -398,7 +398,7 @@ static void main_weak_hash_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_U
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Checking for weak hashes...");
+  fprintf (stdout, "Checking for weak hashes: ");
 }
 
 static void main_weak_hash_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -407,7 +407,7 @@ static void main_weak_hash_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Checked for weak hashes...");
+  fprintf (stdout, "Done" EOL);
 }
 
 static void main_bitmap_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -416,7 +416,7 @@ static void main_bitmap_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Generating bitmap tables...");
+  fprintf (stdout, "Generating bitmap tables: ");
 }
 
 static void main_bitmap_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -425,7 +425,7 @@ static void main_bitmap_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   if (user_options->quiet == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Generated bitmap tables...");
+  fprintf (stdout, "Done" EOL);
 }
 
 static void main_set_kernel_power_final (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -436,8 +436,8 @@ static void main_set_kernel_power_final (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 
   clear_prompt ();
 
-  event_log_info (hashcat_ctx, "INFO: approaching final keyspace, workload adjusted");
-  event_log_info (hashcat_ctx, "");
+  fprintf (stdout, "INFO: approaching final keyspace, workload adjusted" EOL);
+  fprintf (stdout, EOL);
 
   send_prompt ();
 }
