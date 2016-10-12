@@ -3082,7 +3082,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           if ((ADL_rc = hm_ADL_Overdrive_State_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) == -1)
           {
-            event_log_info (hashcat_ctx, "Failed to set ADL performance state");
+            event_log_error (hashcat_ctx, "Failed to set ADL performance state");
 
             return -1;
           }
@@ -3277,7 +3277,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
         if ((hm_ADL_Overdrive6_PowerControl_Caps (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, &powertune_supported)) == -1)
         {
-          event_log_error (hashcat_ctx, "Failed to get ADL PowerControl Capabilities");
+          //event_log_error (hashcat_ctx, "Failed to get ADL PowerControl Capabilities");
 
           continue;
         }
@@ -3288,7 +3288,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
           if ((hm_ADL_Overdrive_PowerControl_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, hwmon_ctx->od_power_control_status[device_id])) == -1)
           {
-            event_log_info (hashcat_ctx, "Failed to restore the ADL PowerControl values");
+            //event_log_error (hashcat_ctx, "Failed to restore the ADL PowerControl values");
 
             continue;
           }
@@ -3306,7 +3306,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
           if ((hm_ADL_Overdrive_State_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) == -1)
           {
-            event_log_info (hashcat_ctx, "Failed to restore ADL performance state");
+            //event_log_info (hashcat_ctx, "Failed to restore ADL performance state");
 
             continue;
           }

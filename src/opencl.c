@@ -303,20 +303,21 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
 
   if (ocl->lib == NULL)
   {
-    event_log_info (hashcat_ctx, "");
-    event_log_info (hashcat_ctx, "ATTENTION! Can't find OpenCL ICD loader library");
-    event_log_info (hashcat_ctx, "");
-    #if defined (__linux__)
-    event_log_info (hashcat_ctx, "You're probably missing the \"ocl-icd-libopencl1\" package (Debian/Ubuntu)");
-    event_log_info (hashcat_ctx, "  sudo apt-get install ocl-icd-libopencl1");
-    event_log_info (hashcat_ctx, "");
-    #elif defined (_WIN)
-    event_log_info (hashcat_ctx, "You're probably missing the OpenCL runtime installation");
-    event_log_info (hashcat_ctx, "  AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)");
-    event_log_info (hashcat_ctx, "  Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)");
-    event_log_info (hashcat_ctx, "  NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)");
-    event_log_info (hashcat_ctx, "");
-    #endif
+    event_log_warning (hashcat_ctx,
+      "Can't find OpenCL ICD loader library" EOL
+      ""                                     EOL
+      #if defined (__linux__)
+      "You're probably missing the \"ocl-icd-libopencl1\" package (Debian/Ubuntu)" EOL
+      "Run: sudo apt-get install ocl-icd-libopencl1"                               EOL
+      ""                                                                           EOL
+      #elif defined (_WIN)
+      "You're probably missing the OpenCL runtime installation"                              EOL
+      "* AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)"           EOL
+      "* Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)" EOL
+      "* NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)"   EOL
+      ""                                                                                     EOL
+      #endif
+    );
 
     return -1;
   }
@@ -1902,7 +1903,9 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   opencl_ctx->ocl = ocl;
 
-  ocl_init (hashcat_ctx);
+  const int rc_ocl_init = ocl_init (hashcat_ctx);
+
+  if (rc_ocl_init == -1) return -1;
 
   /**
    * OpenCL platform selection
