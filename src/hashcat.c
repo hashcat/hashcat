@@ -55,7 +55,7 @@
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
-void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx, int (*event) (const u32, struct hashcat_ctx *, const void *, const size_t))
+void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t))
 {
   if (event == NULL)
   {

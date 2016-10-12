@@ -523,7 +523,11 @@ void potfile_show_request (hashcat_ctx_t *hashcat_ctx, char *input_buf, int inpu
 
     // do output the line
 
-    outfile_write (hashcat_ctx, input_buf, (const unsigned char *) pot_ptr->plain_buf, pot_ptr->plain_len, 0, username, user_len);
+    char tmp_buf[HCBUFSIZ_LARGE];
+
+    const int tmp_len = outfile_write (hashcat_ctx, input_buf, (const unsigned char *) pot_ptr->plain_buf, pot_ptr->plain_len, 0, username, user_len, tmp_buf);
+
+    EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
   }
 }
 
@@ -546,7 +550,11 @@ void potfile_left_request (hashcat_ctx_t *hashcat_ctx, char *input_buf, int inpu
 
     input_buf[input_len] = 0;
 
-    outfile_write (hashcat_ctx, input_buf, NULL, 0, 0, NULL, 0);
+    char tmp_buf[HCBUFSIZ_LARGE];
+
+    const int tmp_len = outfile_write (hashcat_ctx, input_buf, NULL, 0, 0, NULL, 0, tmp_buf);
+
+    EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
   }
 }
 
@@ -667,7 +675,11 @@ void potfile_show_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
 
   // do output the line
 
-  outfile_write (hashcat_ctx, input_buf, (unsigned char *) pot_ptr.plain_buf, pot_ptr.plain_len, 0, username, user_len);
+  char tmp_buf[HCBUFSIZ_LARGE];
+
+  const int tmp_len = outfile_write (hashcat_ctx, input_buf, (unsigned char *) pot_ptr.plain_buf, pot_ptr.plain_len, 0, username, user_len, tmp_buf);
+
+  EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
 
   if (weak_hash_found == 1) hcfree (pot_right_ptr);
 
@@ -753,7 +765,11 @@ void potfile_left_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int i
     hash_output[user_len + 16] = 0;
   }
 
-  outfile_write (hashcat_ctx, hash_output, NULL, 0, 0, NULL, 0);
+  char tmp_buf[HCBUFSIZ_LARGE];
+
+  const int tmp_len = outfile_write (hashcat_ctx, hash_output, NULL, 0, 0, NULL, 0, tmp_buf);
+
+  EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
 
   hcfree (hash_output);
 

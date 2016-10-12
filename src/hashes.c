@@ -272,9 +272,13 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   if (outfile_ctx->filename == NULL) if (user_options->quiet == false) clear_prompt ();
 
-  outfile_write (hashcat_ctx, out_buf, plain_ptr, plain_len, crackpos, NULL, 0);
+  char tmp_buf[HCBUFSIZ_LARGE];
+
+  const int tmp_len = outfile_write (hashcat_ctx, out_buf, plain_ptr, plain_len, crackpos, NULL, 0, tmp_buf);
 
   outfile_write_close (hashcat_ctx);
+
+  EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {

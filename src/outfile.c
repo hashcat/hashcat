@@ -262,17 +262,8 @@ int outfile_init (hashcat_ctx_t *hashcat_ctx)
   outfile_ctx_t  *outfile_ctx  = hashcat_ctx->outfile_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->outfile == NULL)
-  {
-    outfile_ctx->fp       = stdout;
-    outfile_ctx->filename = NULL;
-  }
-  else
-  {
-    outfile_ctx->fp       = NULL;
-    outfile_ctx->filename = user_options->outfile;
-  }
-
+  outfile_ctx->fp               = NULL;
+  outfile_ctx->filename         = user_options->outfile;
   outfile_ctx->outfile_format   = user_options->outfile_format;
   outfile_ctx->outfile_autohex  = user_options->outfile_autohex;
 
@@ -312,18 +303,17 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
 {
   outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
 
-  if (outfile_ctx->fp == stdout) return;
+  if (outfile_ctx->fp == NULL) return;
 
   fclose (outfile_ctx->fp);
 }
 
-void outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len)
+int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, char tmp_buf[HCBUFSIZ_LARGE])
 {
   const hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
   const outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
 
-  char tmp_buf[HCBUFSIZ_LARGE];
-  int  tmp_len = 0;
+  int tmp_len = 0;
 
   if (outfile_ctx->outfile_format & OUTFILE_FMT_HASH)
   {
@@ -412,7 +402,12 @@ void outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsig
 
   tmp_buf[tmp_len] = 0;
 
-  fprintf (outfile_ctx->fp, "%s" EOL, tmp_buf);
+  if (outfile_ctx->fp)
+  {
+    fprintf (outfile_ctx->fp, "%s" EOL, tmp_buf);
+  }
+
+  return tmp_len;
 }
 
 int outfile_and_hashfile (hashcat_ctx_t *hashcat_ctx)

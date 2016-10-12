@@ -9,10 +9,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-int event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len);
+void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len);
 
-#define EVENT(id)              { const int rc_event = event_call ((id), hashcat_ctx, NULL,  0);     if (rc_event == -1) return -1; }
-#define EVENT_DATA(id,buf,len) { const int rc_event = event_call ((id), hashcat_ctx, (buf), (len)); if (rc_event == -1) return -1; }
+#define EVENT(id)              event_call ((id), hashcat_ctx, NULL,  0)
+#define EVENT_DATA(id,buf,len) event_call ((id), hashcat_ctx, (buf), (len))
 
 size_t event_log_info_nn    (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...);
 size_t event_log_warning_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...);

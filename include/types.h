@@ -1435,7 +1435,7 @@ typedef struct hashcat_ctx
   user_options_t        *user_options;
   wl_data_t             *wl_data;
 
-  int (*event) (const u32, struct hashcat_ctx *, const void *, const size_t);
+  void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t);
 
 } hashcat_ctx_t;
 

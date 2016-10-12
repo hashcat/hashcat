@@ -8,7 +8,7 @@
 #include "thread.h"
 #include "event.h"
 
-int event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   bool need_mux = true;
 
@@ -26,7 +26,7 @@ int event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const
     hc_thread_mutex_lock (event_ctx->mux_event);
   }
 
-  const int rc = hashcat_ctx->event (id, hashcat_ctx, buf, len);
+  hashcat_ctx->event (id, hashcat_ctx, buf, len);
 
   if (need_mux == true)
   {
@@ -34,8 +34,6 @@ int event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const
 
     hc_thread_mutex_unlock (event_ctx->mux_event);
   }
-
-  return rc;
 }
 
 static int event_log (const char *fmt, va_list ap, char *s, const size_t sz)
