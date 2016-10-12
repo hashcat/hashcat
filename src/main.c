@@ -489,7 +489,9 @@ int main (int argc, char **argv)
 
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t));
 
-  hashcat_ctx_init (hashcat_ctx, event);
+  const int rc_hashcat_init = hashcat_ctx_init (hashcat_ctx, event);
+
+  if (rc_hashcat_init == -1) return -1;
 
   // initialize the session via getops for commandline use or
   // alternatively you can set the user_options directly

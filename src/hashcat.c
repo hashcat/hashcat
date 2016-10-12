@@ -55,13 +55,13 @@
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_CNT;
 extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
-void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t))
+int hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t))
 {
   if (event == NULL)
   {
     fprintf (stderr, "Event callback function is mandatory\n");
 
-    exit (-1);
+    return -1;
   }
 
   hashcat_ctx->event = event;
@@ -92,6 +92,8 @@ void hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, str
   hashcat_ctx->user_options_extra = (user_options_extra_t *)  hcmalloc (hashcat_ctx, sizeof (user_options_extra_t));
   hashcat_ctx->user_options       = (user_options_t *)        hcmalloc (hashcat_ctx, sizeof (user_options_t));
   hashcat_ctx->wl_data            = (wl_data_t *)             hcmalloc (hashcat_ctx, sizeof (wl_data_t));
+
+  return 0;
 }
 
 void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
