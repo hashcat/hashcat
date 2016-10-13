@@ -4,12 +4,11 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <assert.h>
 
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "event.h"
 #include "user_options.h"
 #include "hashcat.h"
 
@@ -35,7 +34,9 @@ int main ()
 {
   // hashcat main context
 
-  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t)); VERIFY_PTR (hashcat_ctx);
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t));
+
+  assert (hashcat_ctx);
 
   const int rc_hashcat_init = hashcat_ctx_init (hashcat_ctx, event);
 
@@ -73,6 +74,12 @@ int main ()
   if (rc_hashcat == 0)
   {
     puts ("YAY, all hashes cracked!!");
+  }
+  else if (rc_hashcat == -1)
+  {
+    event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+    fprintf (stderr, "%s\n", event_ctx->msg_buf);
   }
 
   hashcat_ctx_destroy (hashcat_ctx);

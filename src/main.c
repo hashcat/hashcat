@@ -19,19 +19,23 @@
 #include "interface.h"
 #include "event.h"
 
-static void main_log (hashcat_ctx_t *hashcat_ctx, const char *buf, const size_t len, FILE *fp)
+static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp)
 {
-  if (len == 0) return;
+  event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+  const char *msg_buf     = event_ctx->msg_buf;
+  const int   msg_len     = event_ctx->msg_len;
+  const bool  msg_newline = event_ctx->msg_newline;
 
   // handle last_len
 
-  event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+  const int prev_len = event_ctx->prev_len;
 
-  if (event_ctx->last_len)
+  if (prev_len)
   {
     fputc ('\r', fp);
 
-    for (int i = 0; i < event_ctx->last_len; i++)
+    for (int i = 0; i < prev_len; i++)
     {
       fputc (' ', fp);
     }
@@ -39,25 +43,30 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, const char *buf, const size_t 
     fputc ('\r', fp);
   }
 
-  if (buf[len - 1] == '\n')
+  if (msg_newline == true)
   {
-    event_ctx->last_len = 0;
+    event_ctx->prev_len = 0;
   }
   else
   {
-    event_ctx->last_len = len;
+    event_ctx->prev_len = msg_len;
   }
 
   // finally, print
 
-  fwrite (buf, len, 1, fp);
+  fwrite (msg_buf, msg_len, 1, fp);
+
+  if (msg_newline == true)
+  {
+    fwrite (EOL, sizeof (EOL), 1, fp);
+  }
 
   fflush (fp);
 }
 
 static void main_log_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  main_log (hashcat_ctx, buf, len, stdout);
+  main_log (hashcat_ctx, stdout);
 }
 
 static void main_log_warning (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -66,7 +75,7 @@ static void main_log_warning (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNU
 
   fwrite (PREFIX_WARNING, sizeof (PREFIX_WARNING), 1, stdout);
 
-  main_log (hashcat_ctx, buf, len, stdout);
+  main_log (hashcat_ctx, stdout);
 }
 
 static void main_log_error (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -75,7 +84,7 @@ static void main_log_error (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
 
   fwrite (PREFIX_ERROR, sizeof (PREFIX_ERROR), 1, stderr);
 
-  main_log (hashcat_ctx, buf, len, stderr);
+  main_log (hashcat_ctx, stderr);
 }
 
 static void main_welcome_screen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)

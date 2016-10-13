@@ -1400,7 +1400,11 @@ typedef struct hashcat_user
 
 typedef struct event_ctx
 {
-  int last_len;
+  char msg_buf[HCBUFSIZ_TINY];
+  int  msg_len;
+  bool msg_newline;
+
+  int  prev_len;
 
   hc_thread_mutex_t mux_event;
 
