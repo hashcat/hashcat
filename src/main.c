@@ -58,7 +58,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp)
 
   if (msg_newline == true)
   {
-    fwrite (EOL, sizeof (EOL), 1, fp);
+    fwrite (EOL, strlen (EOL), 1, fp);
   }
 
   fflush (fp);
