@@ -43,19 +43,6 @@ int main ()
 
   if (rc_hashcat_init == -1) return -1;
 
-  // install and shared folder need to be set to recognize "make install" use
-
-  char *install_folder = NULL;
-  char *shared_folder  = NULL;
-
-  #if defined (INSTALL_FOLDER)
-  install_folder = INSTALL_FOLDER;
-  #endif
-
-  #if defined (SHARED_FOLDER)
-  shared_folder = SHARED_FOLDER;
-  #endif
-
   // this is a bit ugly, but it's the example you're looking for
 
   char *hash = "8743b52063cd84097a65d1633f5c74f5";
@@ -83,7 +70,7 @@ int main ()
 
   // now run hashcat
 
-  const int rc_hashcat = hashcat (hashcat_ctx, install_folder, shared_folder, 0, NULL, 0);
+  const int rc_hashcat = hashcat (hashcat_ctx, NULL, NULL, 0, NULL, 0);
 
   if (rc_hashcat == 0)
   {
