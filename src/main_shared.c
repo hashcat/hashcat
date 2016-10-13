@@ -85,9 +85,14 @@ int main ()
 
   const int rc_hashcat = hashcat (hashcat_ctx, install_folder, shared_folder, 0, NULL, 0);
 
+  if (rc_hashcat == 0)
+  {
+    puts ("YAY, all hashes cracked!!");
+  }
+
   hashcat_ctx_destroy (hashcat_ctx);
 
   free (hashcat_ctx);
 
-  return rc_hashcat;
+  return 0;
 }
