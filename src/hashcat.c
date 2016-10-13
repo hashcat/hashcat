@@ -1005,15 +1005,17 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   EVENT (EVENT_OUTERLOOP_STARTING);
 
+  int rc_final = -1;
+
   if (user_options->benchmark == true)
   {
     user_options->quiet = true;
 
     if (user_options->hash_mode_chgd == true)
     {
-      const int rc = outer_loop (hashcat_ctx);
+      rc_final = outer_loop (hashcat_ctx);
 
-      if (rc == -1) myabort (hashcat_ctx);
+      if (rc_final == -1) myabort (hashcat_ctx);
     }
     else
     {
@@ -1021,9 +1023,9 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
       {
         user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
 
-        const int rc = outer_loop (hashcat_ctx);
+        rc_final = outer_loop (hashcat_ctx);
 
-        if (rc == -1) myabort (hashcat_ctx);
+        if (rc_final == -1) myabort (hashcat_ctx);
 
         if (status_ctx->run_main_level1 == false) break;
       }
@@ -1031,9 +1033,9 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   }
   else
   {
-    const int rc = outer_loop (hashcat_ctx);
+    rc_final = outer_loop (hashcat_ctx);
 
-    if (rc == -1) myabort (hashcat_ctx);
+    if (rc_final == -1) myabort (hashcat_ctx);
   }
 
   EVENT (EVENT_OUTERLOOP_FINISHED);
@@ -1096,12 +1098,13 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   user_options_destroy (hashcat_ctx);
 
-  int rc_final = -1;
-
-  if (status_ctx->devices_status == STATUS_ABORTED)   rc_final = 2;
-  if (status_ctx->devices_status == STATUS_QUIT)      rc_final = 2;
-  if (status_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
-  if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
+  if (rc_final == 0)
+  {
+    if (status_ctx->devices_status == STATUS_ABORTED)   rc_final = 2;
+    if (status_ctx->devices_status == STATUS_QUIT)      rc_final = 2;
+    if (status_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
+    if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
+  }
 
   event_ctx_destroy (hashcat_ctx);
 
