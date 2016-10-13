@@ -11,13 +11,8 @@
 #include "types.h"
 #include "user_options.h"
 #include "usage.h"
-#include "hashcat.h"
-
-#define RUN_AS_COMMANDLINE
-
-#if defined (RUN_AS_COMMANDLINE)
-
 #include "memory.h"
+#include "hashcat.h"
 #include "terminal.h"
 #include "thread.h"
 #include "status.h"
@@ -472,17 +467,6 @@ void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const siz
   }
 }
 
-#else
-
-void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
-{
-  switch (id)
-  {
-  }
-}
-
-#endif
-
 int main (int argc, char **argv)
 {
   // hashcat main context
@@ -492,11 +476,6 @@ int main (int argc, char **argv)
   const int rc_hashcat_init = hashcat_ctx_init (hashcat_ctx, event);
 
   if (rc_hashcat_init == -1) return -1;
-
-  // initialize the session via getops for commandline use or
-  // alternatively you can set the user_options directly
-
-  #if defined (RUN_AS_COMMANDLINE)
 
   // install and shared folder need to be set to recognize "make install" use
 
@@ -548,39 +527,6 @@ int main (int argc, char **argv)
   // now run hashcat
 
   const int rc_hashcat = hashcat (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME);
-
-  #else
-
-  // this is a bit ugly, but it's the example you're looking for
-
-  char *hash = "8743b52063cd84097a65d1633f5c74f5";
-  char *mask = "?l?l?l?l?l?l?l";
-
-  char *hc_argv[] = { hash, mask, NULL };
-
-  // initialize the user options with some defaults (you can override them later)
-
-  const int rc_options_init = user_options_init (hashcat_ctx);
-
-  if (rc_options_init == -1) return -1;
-
-  // your own stuff
-
-  user_options_t *user_options = hashcat_ctx->user_options;
-
-  user_options->hc_argv           = hc_argv;
-  user_options->hc_argc           = 2;
-  user_options->quiet             = true;
-  user_options->potfile_disable   = true;
-  user_options->attack_mode       = ATTACK_MODE_BF; // this is -a 3
-  user_options->hash_mode         = 0;              // MD5
-  user_options->workload_profile  = 3;
-
-  // now run hashcat
-
-  const int rc_hashcat = hashcat (hashcat_ctx, NULL, NULL, 0, NULL, 0);
-
-  #endif
 
   // finished with hashcat, clean up
 

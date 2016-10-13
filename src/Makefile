@@ -91,7 +91,9 @@ VERSION_TAG              := $(shell test -d .git && git describe --tags --dirty=
 ## Compiler flags
 ##
 
-CFLAGS                   += -pipe -W -Wall -std=c99 -Iinclude/ -IOpenCL/ -I$(OPENCL_HEADERS_KHRONOS)/
+INCLUDE_PATHS            := -Iinclude/ -IOpenCL/ -I$(OPENCL_HEADERS_KHRONOS)/
+
+CFLAGS                   += -pipe -W -Wall -std=c99
 
 ifndef DEBUG
 CFLAGS                   += -O2
@@ -105,11 +107,10 @@ endif
 ##
 ## Linker flags
 ##
+
 ifndef DEBUG
 LDFLAGS += -s
 endif
-
-
 
 ##
 ## Native compilation target
@@ -128,8 +129,8 @@ endif # darwin
 ifeq ($(UNAME),Linux)
 CFLAGS_NATIVE            :=
 CFLAGS_NATIVE            += $(CFLAGS)
-LFLAGS_NATIVE            := -lpthread -ldl
 CFLAGS_NATIVE            += -DWITH_HWMON
+LFLAGS_NATIVE            := -lpthread -ldl
 LFLAGS_NATIVE            += $(LDFLAGS)
 endif # linux
 
@@ -140,6 +141,14 @@ LFLAGS_NATIVE            := -lpthread
 LFLAGS_NATIVE            += $(LDFLAGS)
 endif # freebsd
 
+CFLAGS_NATIVE_SHARED     :=
+CFLAGS_NATIVE_SHARED     += $(CFLAGS)
+CFLAGS_NATIVE_SHARED     += -DWITH_HWMON -fpic
+LFLAGS_NATIVE_SHARED     := -L. -lhashcat 
+LFLAGS_NATIVE_SHARED     += -Wl,-rpath=.
+LFLAGS_NATIVE_SHARED     += -lpthread -ldl
+LFLAGS_NATIVE_SHARED     += $(LDFLAGS)
+
 ##
 ## Cross compilation target
 ##
@@ -148,7 +157,6 @@ CFLAGS_CROSS_LINUX       :=
 CFLAGS_CROSS_LINUX       += $(CFLAGS)
 CFLAGS_CROSS_LINUX       += -DWITH_HWMON
 
-#CFLAGS_CROSS_WIN         := -D_WIN -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
 CFLAGS_CROSS_WIN         :=
 CFLAGS_CROSS_WIN         += $(filter-out -fsanitize=address,$(CFLAGS))
 CFLAGS_CROSS_WIN         += -DWITH_HWMON
@@ -171,6 +179,7 @@ LFLAGS_CROSS_WIN         += -lpsapi
 OBJS_ALL                 := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_xnvctrl filehandling folder hashcat hashes hlfmt hwmon induct interface locking logfile loopback memory monitor mpsp opencl outfile_check outfile potfile restore rp rp_cpu rp_kernel_on_cpu shared status stdout straight terminal thread timer tuningdb usage user_options weak_hash wordlist
 
 NATIVE_OBJS              := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.o)
+NATIVE_SHARED_OBJS       := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
 
 LINUX_32_OBJS            := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.32.o)
 LINUX_64_OBJS            := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.64.o)
@@ -195,7 +204,7 @@ native: hashcat
 binaries: linux32 linux64 win32 win64
 
 clean:
-	$(RM) -f obj/*.o *.bin *.exe *.restore *.out *.pot *.log hashcat core
+	$(RM) -f obj/*.o *.bin *.exe *.restore *.out *.pot *.log hashcat hashcat_shared libhashcat.so core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
 	$(RM) -rf *.dSYM
@@ -259,36 +268,49 @@ uninstall:
 ## native compiled hashcat
 ##
 
-obj/%.NATIVE.o:   src/%.c
-	$(CC) $(CFLAGS_NATIVE) -c -o $@ $<
+obj/%.NATIVE.o: src/%.c
+	$(CC) -c $(CFLAGS_NATIVE) $(INCLUDE_PATHS) -o $@ $^
 
-$(BINARY_NATIVE):       src/main.c $(NATIVE_OBJS)
-	$(CC) $(CFLAGS_NATIVE)    -o $(BINARY_NATIVE) $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+$(BINARY_NATIVE): $(NATIVE_OBJS) src/main.c
+	$(CC)    $(CFLAGS_NATIVE) $(INCLUDE_PATHS) -o $@ $^ -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" $(LFLAGS_NATIVE)
+
+##
+## native compiled hashcat (shared)
+##
+
+obj/%.NATIVE.SHARED.o: src/%.c
+	$(CC) -c $(CFLAGS_NATIVE_SHARED) $(INCLUDE_PATHS) -o $@ $^
+
+lib$(BINARY_NATIVE).so: $(NATIVE_SHARED_OBJS)
+	$(CC) -o $@ $^ -shared
+
+$(BINARY_NATIVE)_shared: lib$(BINARY_NATIVE).so src/main_shared.c
+	$(CC)    $(CFLAGS_NATIVE_SHARED) $(INCLUDE_PATHS) -o $@ $^ -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" $(LFLAGS_NATIVE_SHARED)
 
 ##
 ## cross compiled hashcat for binary release version
 ##
 
 obj/%.LINUX.32.o: src/%.c
-	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32) -c -o $@ $<
+	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32) $(INCLUDE_PATHS) -c -o $@ $<
 
 obj/%.LINUX.64.o: src/%.c
-	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64) -c -o $@ $<
+	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64) $(INCLUDE_PATHS) -c -o $@ $<
 
 obj/%.WIN.32.o:   src/%.c
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32) -c -o $@ $<
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32) $(INCLUDE_PATHS) -c -o $@ $<
 
 obj/%.WIN.64.o:   src/%.c
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) -c -o $@ $<
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) $(INCLUDE_PATHS) -c -o $@ $<
 
 hashcat32.bin: src/main.c $(LINUX_32_OBJS)
-	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_32) $(INCLUDE_PATHS)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 hashcat64.bin: src/main.c $(LINUX_64_OBJS)
-	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX) $(CFLAGS_CROSS_64) $(INCLUDE_PATHS)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 hashcat32.exe: src/main.c $(WIN_32_OBJS)
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_32) $(INCLUDE_PATHS)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
 hashcat64.exe: src/main.c $(WIN_64_OBJS)
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN)   $(CFLAGS_CROSS_64) $(INCLUDE_PATHS)    -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
