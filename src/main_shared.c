@@ -5,15 +5,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
 
 #include "common.h"
 #include "types.h"
-#include "user_options.h"
-#include "usage.h"
 #include "memory.h"
-#include "hashcat.h"
 #include "event.h"
+#include "user_options.h"
+#include "hashcat.h"
 
 static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
