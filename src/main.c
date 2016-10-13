@@ -33,10 +33,22 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp)
 
   if (prev_len)
   {
+    #if defined (_WIN)
+
+    fputc ('\r', fp);
+
     for (int i = 0; i < prev_len; i++)
     {
-      fputc ('\b', fp);
+      fputc (' ', fp);
     }
+
+    fputc ('\r', fp);
+
+    #else
+
+    printf ("\033[2K\r");
+
+    #endif
   }
 
   if (msg_newline == true)
