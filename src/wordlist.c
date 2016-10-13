@@ -58,7 +58,7 @@ u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line
   return (line_len);
 }
 
-void load_segment (hashcat_ctx_t *hashcat_ctx, FILE *fd)
+int load_segment (hashcat_ctx_t *hashcat_ctx, FILE *fd)
 {
   wl_data_t *wl_data = hashcat_ctx->wl_data;
 
@@ -70,15 +70,15 @@ void load_segment (hashcat_ctx_t *hashcat_ctx, FILE *fd)
 
   wl_data->buf[wl_data->cnt] = 0;
 
-  if (wl_data->cnt == 0) return;
+  if (wl_data->cnt == 0) return 0;
 
-  if (wl_data->buf[wl_data->cnt - 1] == '\n') return;
+  if (wl_data->buf[wl_data->cnt - 1] == '\n') return 0;
 
   while (!feof (fd))
   {
     if (wl_data->cnt == wl_data->avail)
     {
-      wl_data->buf = (char *) hcrealloc (hashcat_ctx, wl_data->buf, wl_data->avail, wl_data->incr);
+      wl_data->buf = (char *) hcrealloc (hashcat_ctx, wl_data->buf, wl_data->avail, wl_data->incr); VERIFY_PTR (wl_data->buf);
 
       wl_data->avail += wl_data->incr;
     }
@@ -103,7 +103,7 @@ void load_segment (hashcat_ctx_t *hashcat_ctx, FILE *fd)
     wl_data->buf[wl_data->cnt - 1] = '\n';
   }
 
-  return;
+  return 0;
 }
 
 void get_next_word_lm (char *buf, u64 sz, u64 *len, u64 *off)
@@ -414,7 +414,7 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
   return (cnt);
 }
 
-void wl_data_init (hashcat_ctx_t *hashcat_ctx)
+int wl_data_init (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   user_options_t *user_options = hashcat_ctx->user_options;
@@ -422,16 +422,16 @@ void wl_data_init (hashcat_ctx_t *hashcat_ctx)
 
   wl_data->enabled = false;
 
-  if (user_options->benchmark   == true) return;
-  if (user_options->keyspace    == true) return;
-  if (user_options->left        == true) return;
-  if (user_options->opencl_info == true) return;
-  if (user_options->usage       == true) return;
-  if (user_options->version     == true) return;
+  if (user_options->benchmark   == true) return 0;
+  if (user_options->keyspace    == true) return 0;
+  if (user_options->left        == true) return 0;
+  if (user_options->opencl_info == true) return 0;
+  if (user_options->usage       == true) return 0;
+  if (user_options->version     == true) return 0;
 
   wl_data->enabled = true;
 
-  wl_data->buf   = (char *) hcmalloc (hashcat_ctx, user_options->segment_size);
+  wl_data->buf   = (char *) hcmalloc (hashcat_ctx, user_options->segment_size); VERIFY_PTR (wl_data->buf);
   wl_data->avail = user_options->segment_size;
   wl_data->incr  = user_options->segment_size;
   wl_data->cnt   = 0;
@@ -452,6 +452,8 @@ void wl_data_init (hashcat_ctx_t *hashcat_ctx)
   {
     wl_data->func = get_next_word_lm;
   }
+
+  return 0;
 }
 
 void wl_data_destroy (hashcat_ctx_t *hashcat_ctx)

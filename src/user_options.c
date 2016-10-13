@@ -108,7 +108,7 @@ static char DEF_MASK_CS_1[] = "?l?d?u";
 static char DEF_MASK_CS_2[] = "?l?d";
 static char DEF_MASK_CS_3[] = "?l?d*!$@_";
 
-void user_options_init (hashcat_ctx_t *hashcat_ctx)
+int user_options_init (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -192,10 +192,12 @@ void user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
-  user_options->rp_files                  = (char **) hccalloc (hashcat_ctx, 256, sizeof (char *));
+  user_options->rp_files                  = (char **) hccalloc (hashcat_ctx, 256, sizeof (char *)); VERIFY_PTR (user_options->rp_files);
   user_options->hc_bin                    = PROGNAME;
   user_options->hc_argc                   = 0;
   user_options->hc_argv                   = NULL;
+
+  return 0;
 }
 
 void user_options_destroy (hashcat_ctx_t *hashcat_ctx)

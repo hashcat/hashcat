@@ -12934,7 +12934,7 @@ void to_hccap_t (hashcat_ctx_t *hashcat_ctx, hccap_t *hccap, const u32 salt_pos,
   }
 }
 
-void ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos, const u32 digest_pos)
+int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos, const u32 digest_pos)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
   const hashes_t     *hashes     = hashcat_ctx->hashes;
@@ -15039,9 +15039,9 @@ void ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos
     const u32 ckey_len       = bitcoin_wallet->ckey_len;
     const u32 public_key_len = bitcoin_wallet->public_key_len;
 
-    char *cry_master_buf = (char *) hcmalloc (hashcat_ctx, (cry_master_len * 2) + 1);
-    char *ckey_buf       = (char *) hcmalloc (hashcat_ctx, (ckey_len * 2)       + 1);
-    char *public_key_buf = (char *) hcmalloc (hashcat_ctx, (public_key_len * 2) + 1);
+    char *cry_master_buf = (char *) hcmalloc (hashcat_ctx, (cry_master_len * 2) + 1); VERIFY_PTR (cry_master_buf);
+    char *ckey_buf       = (char *) hcmalloc (hashcat_ctx, (ckey_len * 2)       + 1); VERIFY_PTR (ckey_buf);
+    char *public_key_buf = (char *) hcmalloc (hashcat_ctx, (public_key_len * 2) + 1); VERIFY_PTR (public_key_buf);
 
     for (u32 i = 0, j = 0; i < cry_master_len; i += 1, j += 2)
     {
@@ -15098,7 +15098,7 @@ void ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos
 
     const u32 data_len = seven_zip->data_len;
 
-    char *data_buf = (char *) hcmalloc (hashcat_ctx, (data_len * 2) + 1);
+    char *data_buf = (char *) hcmalloc (hashcat_ctx, (data_len * 2) + 1); VERIFY_PTR (data_buf);
 
     for (u32 i = 0, j = 0; i < data_len; i += 1, j += 2)
     {
@@ -15919,6 +15919,8 @@ void ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos
 
     out_buf[pos + 1 + salt.salt_len] = 0;
   }
+
+  return 0;
 }
 
 int hashconfig_init (hashcat_ctx_t *hashcat_ctx)

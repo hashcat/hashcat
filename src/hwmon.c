@@ -29,7 +29,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
 
     DWORD Type = REG_SZ;
 
-    char *Buffer = (char *) hcmalloc (hashcat_ctx, BufferSize + 1);
+    char *Buffer = (char *) hcmalloc (hashcat_ctx, BufferSize + 1); VERIFY_PTR (Buffer);
 
     HKEY hKey = 0;
 
@@ -1861,15 +1861,9 @@ static int get_adapters_num_adl (hashcat_ctx_t *hashcat_ctx, int *iNumberAdapter
   return 0;
 }
 
-static LPAdapterInfo hm_get_adapter_info_adl (hashcat_ctx_t *hashcat_ctx, int iNumberAdapters)
+static int hm_get_adapter_info_adl (hashcat_ctx_t *hashcat_ctx, LPAdapterInfo lpAdapterInfo, const size_t AdapterInfoSize)
 {
-  size_t AdapterInfoSize = iNumberAdapters * sizeof (AdapterInfo);
-
-  LPAdapterInfo lpAdapterInfo = (LPAdapterInfo) hcmalloc (hashcat_ctx, AdapterInfoSize);
-
-  if (hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx, lpAdapterInfo, AdapterInfoSize) == -1) return NULL;
-
-  return lpAdapterInfo;
+  return hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx, lpAdapterInfo, AdapterInfoSize);
 }
 
 static int hm_get_adapter_index_nvapi (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NVAPI *nvapiGPUHandle)
@@ -2001,14 +1995,14 @@ static u32 *hm_get_list_valid_adl_adapters (hashcat_ctx_t *hashcat_ctx, int iNum
 
     // add it to the list
 
-    adl_adapters = (u32 *) hcrealloc (hashcat_ctx, adl_adapters, (*num_adl_adapters) * sizeof (int), sizeof (int));
+    adl_adapters = (u32 *) hcrealloc (hashcat_ctx, adl_adapters, (*num_adl_adapters) * sizeof (int), sizeof (int)); // need check
 
     adl_adapters[*num_adl_adapters] = i;
 
     // rest is just bookkeeping
 
-    bus_numbers    = (int*) hcrealloc (hashcat_ctx, bus_numbers,    (*num_adl_adapters) * sizeof (int), sizeof (int));
-    device_numbers = (int*) hcrealloc (hashcat_ctx, device_numbers, (*num_adl_adapters) * sizeof (int), sizeof (int));
+    bus_numbers    = (int*) hcrealloc (hashcat_ctx, bus_numbers,    (*num_adl_adapters) * sizeof (int), sizeof (int)); // need check
+    device_numbers = (int*) hcrealloc (hashcat_ctx, device_numbers, (*num_adl_adapters) * sizeof (int), sizeof (int)); // need check
 
     bus_numbers[*num_adl_adapters]    = info.iBusNumber;
     device_numbers[*num_adl_adapters] = info.iDeviceNumber;
@@ -2732,7 +2726,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->version           == true) return 0;
   if (user_options->gpu_temp_disable  == true) return 0;
 
-  hwmon_ctx->hm_device = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t));
+  hwmon_ctx->hm_device = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hwmon_ctx->hm_device);
 
   /**
    * Initialize shared libraries
@@ -2743,10 +2737,10 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   NVML_PTR    *nvml    = (NVML_PTR *)    hcmalloc (hashcat_ctx, sizeof (NVML_PTR));
   XNVCTRL_PTR *xnvctrl = (XNVCTRL_PTR *) hcmalloc (hashcat_ctx, sizeof (XNVCTRL_PTR));
 
-  hm_attrs_t *hm_adapters_adl      = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t));
-  hm_attrs_t *hm_adapters_nvapi    = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t));
-  hm_attrs_t *hm_adapters_nvml     = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t));
-  hm_attrs_t *hm_adapters_xnvctrl  = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_adl      = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_adl);
+  hm_attrs_t *hm_adapters_nvapi    = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_nvapi);
+  hm_attrs_t *hm_adapters_nvml     = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_nvml);
+  hm_attrs_t *hm_adapters_xnvctrl  = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_xnvctrl);
 
   if (opencl_ctx->need_nvml == true)
   {
@@ -2800,7 +2794,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hm_NVML_nvmlInit (hashcat_ctx) == 0)
     {
-      HM_ADAPTER_NVML *nvmlGPUHandle = (HM_ADAPTER_NVML *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (HM_ADAPTER_NVML));
+      HM_ADAPTER_NVML *nvmlGPUHandle = (HM_ADAPTER_NVML *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (HM_ADAPTER_NVML)); VERIFY_PTR (nvmlGPUHandle);
 
       int tmp_in = hm_get_adapter_index_nvml (hashcat_ctx, nvmlGPUHandle);
 
@@ -2830,7 +2824,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hm_NvAPI_Initialize (hashcat_ctx) == 0)
     {
-      HM_ADAPTER_NVAPI *nvGPUHandle = (HM_ADAPTER_NVAPI *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (HM_ADAPTER_NVAPI));
+      HM_ADAPTER_NVAPI *nvGPUHandle = (HM_ADAPTER_NVAPI *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (HM_ADAPTER_NVAPI)); VERIFY_PTR (nvGPUHandle);
 
       int tmp_in = hm_get_adapter_index_nvapi (hashcat_ctx, nvGPUHandle);
 
@@ -2876,9 +2870,11 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       // adapter info
 
-      LPAdapterInfo lpAdapterInfo = hm_get_adapter_info_adl (hashcat_ctx, hm_adapters_num);
+      LPAdapterInfo lpAdapterInfo = (LPAdapterInfo) hccalloc (hashcat_ctx, hm_adapters_num, sizeof (AdapterInfo)); VERIFY_PTR (lpAdapterInfo);
 
-      if (lpAdapterInfo == NULL) return -1;
+      const int rc_adapter_info_adl = hm_get_adapter_info_adl (hashcat_ctx, lpAdapterInfo, hm_adapters_num * sizeof (AdapterInfo));
+
+      if (rc_adapter_info_adl == -1) return -1;
 
       // get a list (of ids of) valid/usable adapters
 
@@ -2916,11 +2912,11 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * save buffer required for later restores
    */
 
-  hwmon_ctx->od_clock_mem_status = (ADLOD6MemClockState *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (ADLOD6MemClockState));
+  hwmon_ctx->od_clock_mem_status = (ADLOD6MemClockState *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (ADLOD6MemClockState)); VERIFY_PTR (hwmon_ctx->od_clock_mem_status);
 
-  hwmon_ctx->od_power_control_status = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int));
+  hwmon_ctx->od_power_control_status = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int)); VERIFY_PTR (hwmon_ctx->od_power_control_status);
 
-  hwmon_ctx->nvml_power_limit = (unsigned int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (unsigned int));
+  hwmon_ctx->nvml_power_limit = (unsigned int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (unsigned int)); VERIFY_PTR (hwmon_ctx->nvml_power_limit);
 
   /**
    * HM devices: copy
@@ -3071,7 +3067,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             event_log_error (hashcat_ctx, "The custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
           }
 
-          ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) hccalloc (hashcat_ctx, 1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
+          ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) hccalloc (hashcat_ctx, 1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel)); VERIFY_PTR (performance_state);
 
           performance_state->iNumberOfPerformanceLevels = 2;
 

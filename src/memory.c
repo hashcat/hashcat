@@ -16,7 +16,7 @@ void *hccalloc (hashcat_ctx_t *hashcat_ctx, const size_t nmemb, const size_t sz)
   {
     event_log_error (hashcat_ctx, "%s", MSG_ENOMEM);
 
-    exit (-1);
+    return (NULL);
   }
 
   return (p);
@@ -30,7 +30,7 @@ void *hcmalloc (hashcat_ctx_t *hashcat_ctx, const size_t sz)
   {
     event_log_error (hashcat_ctx, "%s", MSG_ENOMEM);
 
-    exit (-1);
+    return (NULL);
   }
 
   memset (p, 0, sz);
@@ -46,7 +46,7 @@ void *hcrealloc (hashcat_ctx_t *hashcat_ctx, void *ptr, const size_t oldsz, cons
   {
     event_log_error (hashcat_ctx, "%s", MSG_ENOMEM);
 
-    exit (-1);
+    return (NULL);
   }
 
   memset ((char *) p + oldsz, 0, addsz);
@@ -60,7 +60,9 @@ char *hcstrdup (hashcat_ctx_t *hashcat_ctx, const char *s)
 
   char *b = (char *) hcmalloc (hashcat_ctx, len + 1);
 
-  strncpy (b, s, len);
+  if (b == NULL) return (NULL);
+
+  memcpy (b, s, len);
 
   b[len] = 0;
 

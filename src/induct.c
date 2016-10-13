@@ -46,7 +46,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->induction_dir == NULL)
   {
-    char *root_directory = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+    char *root_directory = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (root_directory);
 
     snprintf (root_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", folder_config->session_dir, user_options->session, INDUCT_DIR);
 
@@ -58,7 +58,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else if (errno == ENOTEMPTY)
       {
-        char *root_directory_mv = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+        char *root_directory_mv = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (root_directory_mv);
 
         snprintf (root_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) status_ctx->proc_start);
 

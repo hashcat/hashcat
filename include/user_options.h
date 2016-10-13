@@ -156,7 +156,7 @@ typedef enum user_options_map
 
 } user_options_map_t;
 
-void user_options_init (hashcat_ctx_t *hashcat_ctx);
+int user_options_init (hashcat_ctx_t *hashcat_ctx);
 
 void user_options_destroy (hashcat_ctx_t *hashcat_ctx);
 

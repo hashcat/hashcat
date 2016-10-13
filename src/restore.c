@@ -62,7 +62,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL) return 0;
 
-  restore_data_t *rd = (restore_data_t *) hcmalloc (hashcat_ctx, sizeof (restore_data_t));
+  restore_data_t *rd = (restore_data_t *) hcmalloc (hashcat_ctx, sizeof (restore_data_t)); VERIFY_PTR (rd);
 
   const size_t nread = fread (rd, sizeof (restore_data_t), 1, fp);
 
@@ -77,7 +77,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   if (rd->pid)
   {
-    char *pidbin = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
+    char *pidbin = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (pidbin);
 
     int pidbin_len = -1;
 
@@ -113,7 +113,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
     #elif defined (_WIN)
     HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, rd->pid);
 
-    char *pidbin2 = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
+    char *pidbin2 = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (pidbin2);
 
     int pidbin2_len = -1;
 
@@ -156,7 +156,7 @@ static int init_restore (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
 
-  restore_data_t *rd = (restore_data_t *) hcmalloc (hashcat_ctx, sizeof (restore_data_t));
+  restore_data_t *rd = (restore_data_t *) hcmalloc (hashcat_ctx, sizeof (restore_data_t)); VERIFY_PTR (rd);
 
   restore_ctx->rd = rd;
 
@@ -211,9 +211,9 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  rd->argv = (char **) hccalloc (hashcat_ctx, rd->argc, sizeof (char *));
+  rd->argv = (char **) hccalloc (hashcat_ctx, rd->argc, sizeof (char *)); VERIFY_PTR (rd->argv);
 
-  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
+  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (buf);
 
   for (u32 i = 0; i < rd->argc; i++)
   {
@@ -395,8 +395,8 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   restore_ctx->enabled = false;
 
-  char *eff_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
-  char *new_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *eff_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (eff_restore_file);
+  char *new_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (new_restore_file);
 
   snprintf (eff_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore",     folder_config->session_dir, user_options->session);
   snprintf (new_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore.new", folder_config->session_dir, user_options->session);

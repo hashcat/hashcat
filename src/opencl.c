@@ -224,7 +224,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
 
     stat (kernel_file, &st);
 
-    char *buf = (char *) hcmalloc (hashcat_ctx, st.st_size + 1);
+    char *buf = (char *) hcmalloc (hashcat_ctx, st.st_size + 1); VERIFY_PTR (buf);
 
     size_t num_read = fread (buf, sizeof (char), st.st_size, fp);
 
@@ -1891,7 +1891,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->usage       == true) return 0;
   if (user_options->version     == true) return 0;
 
-  hc_device_param_t *devices_param = (hc_device_param_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hc_device_param_t));
+  hc_device_param_t *devices_param = (hc_device_param_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hc_device_param_t)); VERIFY_PTR (devices_param);
 
   opencl_ctx->devices_param = devices_param;
 
@@ -1899,7 +1899,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * Load and map OpenCL library calls
    */
 
-  OCL_PTR *ocl = (OCL_PTR *) hcmalloc (hashcat_ctx, sizeof (OCL_PTR));
+  OCL_PTR *ocl = (OCL_PTR *) hcmalloc (hashcat_ctx, sizeof (OCL_PTR)); VERIFY_PTR (ocl);
 
   opencl_ctx->ocl = ocl;
 
@@ -1948,9 +1948,9 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
    */
 
   cl_uint         platforms_cnt         = 0;
-  cl_platform_id *platforms             = (cl_platform_id *) hccalloc (hashcat_ctx, CL_PLATFORMS_MAX, sizeof (cl_platform_id));
+  cl_platform_id *platforms             = (cl_platform_id *) hccalloc (hashcat_ctx, CL_PLATFORMS_MAX, sizeof (cl_platform_id)); VERIFY_PTR (platforms);
   cl_uint         platform_devices_cnt  = 0;
-  cl_device_id   *platform_devices      = (cl_device_id *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (cl_device_id));
+  cl_device_id   *platform_devices      = (cl_device_id *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (cl_device_id)); VERIFY_PTR (platform_devices);
 
   cl_int CL_err = hc_clGetPlatformIDs (hashcat_ctx, CL_PLATFORMS_MAX, platforms, &platforms_cnt);
 
@@ -2245,7 +2245,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_err == -1) return -1;
 
-      char *device_name = (char *) hcmalloc (hashcat_ctx, param_value_size);
+      char *device_name = (char *) hcmalloc (hashcat_ctx, param_value_size); VERIFY_PTR (device_name);
 
       CL_err = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_NAME, param_value_size, device_name, NULL);
 
@@ -2259,7 +2259,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_err == -1) return -1;
 
-      char *device_vendor = (char *) hcmalloc (hashcat_ctx, param_value_size);
+      char *device_vendor = (char *) hcmalloc (hashcat_ctx, param_value_size); VERIFY_PTR (device_vendor);
 
       CL_err = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VENDOR, param_value_size, device_vendor, NULL);
 
@@ -2314,7 +2314,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_err == -1) return -1;
 
-      char *device_version = (char *) hcmalloc (hashcat_ctx, param_value_size);
+      char *device_version = (char *) hcmalloc (hashcat_ctx, param_value_size); VERIFY_PTR (device_version);
 
       CL_err = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VERSION, param_value_size, device_version, NULL);
 
@@ -2328,7 +2328,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_err == -1) return -1;
 
-      char *device_opencl_version = (char *) hcmalloc (hashcat_ctx, param_value_size);
+      char *device_opencl_version = (char *) hcmalloc (hashcat_ctx, param_value_size); VERIFY_PTR (device_opencl_version);
 
       CL_err = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_OPENCL_C_VERSION, param_value_size, device_opencl_version, NULL);
 
@@ -2455,7 +2455,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_err == -1) return -1;
 
-      char *device_extensions = hcmalloc (hashcat_ctx, device_extensions_size + 1);
+      char *device_extensions = hcmalloc (hashcat_ctx, device_extensions_size + 1); VERIFY_PTR (device_extensions);
 
       CL_err = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_EXTENSIONS, device_extensions_size, device_extensions, NULL);
 
@@ -2523,7 +2523,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (CL_err == -1) return -1;
 
-      char *driver_version = (char *) hcmalloc (hashcat_ctx, param_value_size);
+      char *driver_version = (char *) hcmalloc (hashcat_ctx, param_value_size); VERIFY_PTR (driver_version);
 
       CL_err = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DRIVER_VERSION, param_value_size, driver_version, NULL);
 
@@ -2533,7 +2533,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // device_name_chksum
 
-      char *device_name_chksum = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+      char *device_name_chksum = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (device_name_chksum);
 
       #if defined (__x86_64__)
       snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime);
@@ -3499,9 +3499,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
        * kernel compile or load
        */
 
-      size_t *kernel_lengths = (size_t *) hcmalloc (hashcat_ctx, sizeof (size_t));
+      size_t *kernel_lengths = (size_t *) hcmalloc (hashcat_ctx, sizeof (size_t)); VERIFY_PTR (kernel_lengths);
 
-      char **kernel_sources = (char **) hcmalloc (hashcat_ctx, sizeof (char *));
+      char **kernel_sources = (char **) hcmalloc (hashcat_ctx, sizeof (char *)); VERIFY_PTR (kernel_sources);
 
       if (opencl_ctx->force_jit_compilation == -1)
       {
@@ -3533,7 +3533,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (CL_err != CL_SUCCESS)
           #endif
           {
-            char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1);
+            char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1); VERIFY_PTR (build_log);
 
             CL_err = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
@@ -3559,7 +3559,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_err == -1) return -1;
 
-          char *binary = (char *) hcmalloc (hashcat_ctx, binary_size);
+          char *binary = (char *) hcmalloc (hashcat_ctx, binary_size); VERIFY_PTR (binary);
 
           CL_err = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
@@ -3635,7 +3635,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (CL_err != CL_SUCCESS)
         #endif
         {
-          char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1);
+          char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1); VERIFY_PTR (build_log);
 
           CL_err = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
@@ -3703,9 +3703,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
        * kernel compile or load
        */
 
-      size_t *kernel_lengths = (size_t *) hcmalloc (hashcat_ctx, sizeof (size_t));
+      size_t *kernel_lengths = (size_t *) hcmalloc (hashcat_ctx, sizeof (size_t)); VERIFY_PTR (kernel_lengths);
 
-      char **kernel_sources = (char **) hcmalloc (hashcat_ctx, sizeof (char *));
+      char **kernel_sources = (char **) hcmalloc (hashcat_ctx, sizeof (char *)); VERIFY_PTR (kernel_sources);
 
       if (cached == 0)
       {
@@ -3736,7 +3736,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (CL_err != CL_SUCCESS)
         #endif
         {
-          char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1);
+          char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1); VERIFY_PTR (build_log);
 
           CL_err = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
@@ -3762,7 +3762,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_err == -1) return -1;
 
-        char *binary = (char *) hcmalloc (hashcat_ctx, binary_size);
+        char *binary = (char *) hcmalloc (hashcat_ctx, binary_size); VERIFY_PTR (binary);
 
         CL_err = hc_clGetProgramInfo (hashcat_ctx, device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
@@ -3844,9 +3844,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
        * kernel compile or load
        */
 
-      size_t *kernel_lengths = (size_t *) hcmalloc (hashcat_ctx, sizeof (size_t));
+      size_t *kernel_lengths = (size_t *) hcmalloc (hashcat_ctx, sizeof (size_t)); VERIFY_PTR (kernel_lengths);
 
-      char **kernel_sources = (char **) hcmalloc (hashcat_ctx, sizeof (char *));
+      char **kernel_sources = (char **) hcmalloc (hashcat_ctx, sizeof (char *)); VERIFY_PTR (kernel_sources);
 
       if (cached == 0)
       {
@@ -3877,7 +3877,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (CL_err != CL_SUCCESS)
         #endif
         {
-          char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1);
+          char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1); VERIFY_PTR (build_log);
 
           CL_err = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
@@ -3903,7 +3903,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_err == -1) return -1;
 
-        char *binary = (char *) hcmalloc (hashcat_ctx, binary_size);
+        char *binary = (char *) hcmalloc (hashcat_ctx, binary_size); VERIFY_PTR (binary);
 
         CL_err = hc_clGetProgramInfo (hashcat_ctx, device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
 
@@ -4048,15 +4048,15 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * main host data
      */
 
-    pw_t *pws_buf = (pw_t *) hcmalloc (hashcat_ctx, size_pws);
+    pw_t *pws_buf = (pw_t *) hcmalloc (hashcat_ctx, size_pws); VERIFY_PTR (pws_buf);
 
     device_param->pws_buf = pws_buf;
 
-    comb_t *combs_buf = (comb_t *) hccalloc (hashcat_ctx, KERNEL_COMBS, sizeof (comb_t));
+    comb_t *combs_buf = (comb_t *) hccalloc (hashcat_ctx, KERNEL_COMBS, sizeof (comb_t)); VERIFY_PTR (combs_buf);
 
     device_param->combs_buf = combs_buf;
 
-    void *hooks_buf = hcmalloc (hashcat_ctx, size_hooks);
+    void *hooks_buf = hcmalloc (hashcat_ctx, size_hooks); VERIFY_PTR (hooks_buf);
 
     device_param->hooks_buf = hooks_buf;
 

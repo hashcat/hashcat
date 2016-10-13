@@ -16,7 +16,7 @@
 #include "shared.h"
 #include "thread.h"
 
-static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
+static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 {
   // some hash-dependent constants
 
@@ -38,10 +38,10 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
   // buffers
   hash_t hash_buf = { 0, 0, 0, 0, 0 };
 
-  hash_buf.digest = hcmalloc (hashcat_ctx, dgst_size);
+  hash_buf.digest = hcmalloc (hashcat_ctx, dgst_size); VERIFY_PTR (hash_buf.digest);
 
-  if (is_salted)  hash_buf.salt =  (salt_t *) hcmalloc (hashcat_ctx, sizeof (salt_t));
-  if (esalt_size) hash_buf.esalt = (void   *) hcmalloc (hashcat_ctx, esalt_size);
+  if (is_salted)  hash_buf.salt =  (salt_t *) hcmalloc (hashcat_ctx, sizeof (salt_t));  VERIFY_PTR (hash_buf.salt);
+  if (esalt_size) hash_buf.esalt = (void   *) hcmalloc (hashcat_ctx, esalt_size);       VERIFY_PTR (hash_buf.esalt);
 
   u32 digest_buf[64] = { 0 };
 
@@ -83,7 +83,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
             if (out_cnt_new > 0)
             {
-              out_info_new = (outfile_data_t *) hccalloc (hashcat_ctx, out_cnt_new, sizeof (outfile_data_t));
+              out_info_new = (outfile_data_t *) hccalloc (hashcat_ctx, out_cnt_new, sizeof (outfile_data_t)); VERIFY_PTR (out_info_new);
 
               for (int i = 0; i < out_cnt_new; i++)
               {
@@ -146,7 +146,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
               fseek (fp, out_info[j].seek, SEEK_SET);
 
-              char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
+              char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (line_buf);
 
               while (!feof (fp))
               {
@@ -307,13 +307,17 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
   hcfree (out_info);
 
   hcfree (out_files);
+
+  return 0;
 }
 
 void *thread_outfile_remove (void *p)
 {
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
 
-  outfile_remove (hashcat_ctx);
+  const int rc = outfile_remove (hashcat_ctx);
+
+  if (rc == -1) return NULL;
 
   return NULL;
 }
@@ -339,7 +343,7 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->outfile_check_dir == NULL)
   {
-    outcheck_ctx->root_directory = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+    outcheck_ctx->root_directory = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (outcheck_ctx->root_directory);
 
     snprintf (outcheck_ctx->root_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", folder_config->session_dir, user_options->session, OUTFILES_DIR);
   }

@@ -26,29 +26,25 @@ int sort_by_stringptr (const void *p1, const void *p2)
   return strcmp (*s1, *s2);
 }
 
-static char *get_exec_path (hashcat_ctx_t *hashcat_ctx)
+static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 {
-  size_t exec_path_len = 1024;
-
-  char *exec_path = (char *) hcmalloc (hashcat_ctx, exec_path_len);
-
   #if defined (__linux__)
 
   char tmp[32] = { 0 };
 
   snprintf (tmp, sizeof (tmp) - 1, "/proc/%d/exe", getpid ());
 
-  const int len = readlink (tmp, exec_path, exec_path_len - 1);
+  const int len = readlink (tmp, exec_path, exec_path_sz - 1);
 
   #elif defined (_WIN)
 
-  const int len = GetModuleFileName (NULL, exec_path, exec_path_len - 1);
+  const int len = GetModuleFileName (NULL, exec_path, exec_path_sz - 1);
 
   #elif defined (__APPLE__)
 
-  u32 size = (u32) exec_path_len;
+  u32 size = (u32) exec_path_sz;
 
-  if (_NSGetExecutablePath (exec_path, &size) != 0) return NULL;
+  if (_NSGetExecutablePath (exec_path, &size) != 0) return -1;
 
   const size_t len = strlen (exec_path);
 
@@ -63,11 +59,11 @@ static char *get_exec_path (hashcat_ctx_t *hashcat_ctx)
 
   char tmp[32] = { 0 };
 
-  size_t size = exec_path_len;
+  size_t size = exec_path_sz;
 
   sysctl (mib, 4, exec_path, &size, NULL, 0);
 
-  const int len = readlink (tmp, exec_path, exec_path_len - 1);
+  const int len = readlink (tmp, exec_path, exec_path_sz - 1);
 
   #else
   #error Your Operating System is not supported or detected
@@ -75,13 +71,14 @@ static char *get_exec_path (hashcat_ctx_t *hashcat_ctx)
 
   exec_path[len] = 0;
 
-  return exec_path;
+  return 0;
 }
 
-char *get_install_dir (hashcat_ctx_t *hashcat_ctx, const char *progname)
+static void get_install_dir (char *install_dir, const char *exec_path)
 {
-  char *install_dir = hcstrdup (hashcat_ctx, progname);
-  char *last_slash  = NULL;
+  strncpy (install_dir, exec_path, HCBUFSIZ_TINY - 1);
+
+  char *last_slash = NULL;
 
   if ((last_slash = strrchr (install_dir, '/')) != NULL)
   {
@@ -96,26 +93,16 @@ char *get_install_dir (hashcat_ctx_t *hashcat_ctx, const char *progname)
     install_dir[0] = '.';
     install_dir[1] = 0;
   }
-
-  return (install_dir);
 }
 
-char *get_profile_dir (hashcat_ctx_t *hashcat_ctx, const char *homedir)
+static void get_profile_dir (char *profile_dir, const char *home_dir)
 {
-  char *profile_dir = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY + 1);
-
-  snprintf (profile_dir, HCBUFSIZ_TINY - 1, "%s/%s", homedir, DOT_HASHCAT);
-
-  return profile_dir;
+  snprintf (profile_dir, HCBUFSIZ_TINY - 1, "%s/%s", home_dir, DOT_HASHCAT);
 }
 
-char *get_session_dir (hashcat_ctx_t *hashcat_ctx, const char *profile_dir)
+static void get_session_dir (char *session_dir, const char *profile_dir)
 {
-  char *session_dir = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
-
   snprintf (session_dir, HCBUFSIZ_TINY - 1, "%s/%s", profile_dir, SESSIONS_FOLDER);
-
-  return session_dir;
 }
 
 int count_dictionaries (char **dictionary_files)
@@ -147,7 +134,7 @@ char **scan_directory (hashcat_ctx_t *hashcat_ctx, const char *path)
 
   char **files = NULL;
 
-  int num_files = 0;
+  size_t num_files = 0;
 
   DIR *d = NULL;
 
@@ -178,13 +165,9 @@ char **scan_directory (hashcat_ctx_t *hashcat_ctx, const char *path)
 
       if ((strcmp (de->d_name, ".") == 0) || (strcmp (de->d_name, "..") == 0)) continue;
 
-      size_t path_size = strlen (tmp_path) + 1 + strlen (de->d_name);
+      char *path_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
 
-      char *path_file = (char *) hcmalloc (hashcat_ctx, path_size + 1);
-
-      snprintf (path_file, path_size + 1, "%s/%s", tmp_path, de->d_name);
-
-      path_file[path_size] = 0;
+      snprintf (path_file, HCBUFSIZ_TINY - 1, "%s/%s", tmp_path, de->d_name);
 
       DIR *d_test;
 
@@ -196,11 +179,11 @@ char **scan_directory (hashcat_ctx_t *hashcat_ctx, const char *path)
       }
       else
       {
-        files = (char **) hcrealloc (hashcat_ctx, files, (size_t) num_files * sizeof (char *), sizeof (char *));
+        files = (char **) hcrealloc (hashcat_ctx, files, (num_files + 1) * sizeof (char *), sizeof (char *));
+
+        files[num_files] = path_file;
 
         num_files++;
-
-        files[num_files - 1] = path_file;
       }
     }
 
@@ -208,18 +191,18 @@ char **scan_directory (hashcat_ctx_t *hashcat_ctx, const char *path)
   }
   else if (errno == ENOTDIR)
   {
-    files = (char **) hcrealloc (hashcat_ctx, files, (size_t) num_files * sizeof (char *), sizeof (char *));
+    files = (char **) hcrealloc (hashcat_ctx, files, (num_files + 1) * sizeof (char *), sizeof (char *));
+
+    files[num_files] = hcstrdup (hashcat_ctx, path);
 
     num_files++;
-
-    files[num_files - 1] = hcstrdup (hashcat_ctx, path);
   }
 
-  files = (char **) hcrealloc (hashcat_ctx, files, (size_t) num_files * sizeof (char *), sizeof (char *));
+  files = (char **) hcrealloc (hashcat_ctx, files, (num_files + 1) * sizeof (char *), sizeof (char *));
+
+  files[num_files] = NULL;
 
   num_files++;
-
-  files[num_files - 1] = NULL;
 
   hcfree (tmp_path);
 
@@ -237,7 +220,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
    * then chdir() back to where we came from so we need to save it first
    */
 
-  char *cwd = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *cwd = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (cwd);
 
   if (getcwd (cwd, HCBUFSIZ_TINY - 1) == NULL)
   {
@@ -250,9 +233,13 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
    * folders, as discussed on https://github.com/hashcat/hashcat/issues/20
    */
 
-  char *exec_path = get_exec_path (hashcat_ctx);
+  const size_t exec_path_sz = 1024;
 
-  if (exec_path == NULL)
+  char *exec_path = (char *) hcmalloc (hashcat_ctx, exec_path_sz); VERIFY_PTR (exec_path);
+
+  const int rc = get_exec_path (exec_path, exec_path_sz);
+
+  if (rc == -1)
   {
     event_log_error (hashcat_ctx, "get_exec_path() failed");
 
@@ -280,7 +267,10 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     return -1;
   }
 
-  char *install_dir = get_install_dir (hashcat_ctx, resolved_exec_path);
+  char *install_dir = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (install_dir);
+
+  get_install_dir (install_dir, resolved_exec_path);
+
   char *profile_dir = NULL;
   char *session_dir = NULL;
   char *shared_dir  = NULL;
@@ -289,11 +279,15 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   {
     struct passwd *pw = getpwuid (getuid ());
 
-    const char *homedir = pw->pw_dir;
+    const char *home_dir = pw->pw_dir;
 
-    profile_dir = get_profile_dir (hashcat_ctx, homedir);
-    session_dir = get_session_dir (hashcat_ctx, profile_dir);
-    shared_dir  = hcstrdup (hashcat_ctx, shared_folder);
+    profile_dir = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (profile_dir);
+    session_dir = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (session_dir);
+
+    get_profile_dir (profile_dir, home_dir);
+    get_session_dir (session_dir, profile_dir);
+
+    shared_dir = hcstrdup (hashcat_ctx, shared_folder);
 
     hc_mkdir (profile_dir, 0700);
     hc_mkdir (session_dir, 0700);
@@ -310,7 +304,10 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   #else
 
-  char *install_dir = get_install_dir (hashcat_ctx, exec_path);
+  char *install_dir = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (install_dir);
+
+  get_install_dir (install_dir, exec_path);
+
   char *profile_dir = install_dir;
   char *session_dir = install_dir;
   char *shared_dir  = install_dir;
@@ -326,13 +323,13 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
    * The best workaround found so far is to modify the TMP variable (only inside hashcat process) before the runtime is load
    */
 
-  char *cpath = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *cpath = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (cpath);
 
   #if defined (_WIN)
 
   snprintf (cpath, HCBUFSIZ_TINY - 1, "%s\\OpenCL\\", shared_dir);
 
-  char *cpath_real = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *cpath_real = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (cpath_real);
 
   if (GetFullPathName (cpath, HCBUFSIZ_TINY - 1, cpath_real, NULL) == 0)
   {
@@ -345,7 +342,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   snprintf (cpath, HCBUFSIZ_TINY - 1, "%s/OpenCL/", shared_dir);
 
-  char *cpath_real = (char *) hcmalloc (hashcat_ctx, PATH_MAX);
+  char *cpath_real = (char *) hcmalloc (hashcat_ctx, PATH_MAX); VERIFY_PTR (cpath_real);
 
   if (realpath (cpath, cpath_real) == NULL)
   {
@@ -385,7 +382,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
    * kernel cache, we need to make sure folder exist
    */
 
-  char *kernels_folder = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *kernels_folder = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (kernels_folder);
 
   snprintf (kernels_folder, HCBUFSIZ_TINY - 1, "%s/kernels", profile_dir);
 

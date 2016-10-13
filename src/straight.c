@@ -20,20 +20,22 @@
 #include "straight.h"
 #include "wordlist.h"
 
-static void straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
+static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
 {
   straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
   if (straight_ctx->dicts_avail == straight_ctx->dicts_cnt)
   {
-    straight_ctx->dicts = (char **) hcrealloc (hashcat_ctx, straight_ctx->dicts, straight_ctx->dicts_avail * sizeof (char *), INCR_DICTS * sizeof (char *));
+    straight_ctx->dicts = (char **) hcrealloc (hashcat_ctx, straight_ctx->dicts, straight_ctx->dicts_avail * sizeof (char *), INCR_DICTS * sizeof (char *)); VERIFY_PTR (straight_ctx->dicts);
 
     straight_ctx->dicts_avail += INCR_DICTS;
   }
 
-  straight_ctx->dicts[straight_ctx->dicts_cnt] = hcstrdup (hashcat_ctx, dict);
+  straight_ctx->dicts[straight_ctx->dicts_cnt] = hcstrdup (hashcat_ctx, dict); VERIFY_PTR (straight_ctx->dicts[straight_ctx->dicts_cnt]);
 
   straight_ctx->dicts_cnt++;
+
+  return 0;
 }
 
 int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
@@ -198,7 +200,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
   {
-    straight_ctx->kernel_rules_buf = (kernel_rule_t *) hcmalloc (hashcat_ctx, sizeof (kernel_rule_t));
+    straight_ctx->kernel_rules_buf = (kernel_rule_t *) hcmalloc (hashcat_ctx, sizeof (kernel_rule_t)); VERIFY_PTR (straight_ctx->kernel_rules_buf);
 
     straight_ctx->kernel_rules_buf[0].cmds[0] = RULE_OP_MANGLE_NOOP;
 
@@ -304,7 +306,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (S_ISREG (l1_stat.st_mode))
               {
-                straight_ctx_add_wl (hashcat_ctx, l1_filename);
+                const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
+
+                if (rc == -1) return -1;
               }
             }
           }
@@ -313,7 +317,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          straight_ctx_add_wl (hashcat_ctx, l0_filename);
+          const int rc = straight_ctx_add_wl (hashcat_ctx, l0_filename);
+
+          if (rc == -1) return -1;
         }
       }
 
@@ -373,7 +379,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (S_ISREG (l1_stat.st_mode))
             {
-              straight_ctx_add_wl (hashcat_ctx, l1_filename);
+              const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
+
+              if (rc == -1) return -1;
             }
           }
         }
@@ -382,7 +390,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        straight_ctx_add_wl (hashcat_ctx, l0_filename);
+        const int rc = straight_ctx_add_wl (hashcat_ctx, l0_filename);
+
+        if (rc == -1) return -1;
       }
     }
 
@@ -433,7 +443,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (S_ISREG (l1_stat.st_mode))
             {
-              straight_ctx_add_wl (hashcat_ctx, l1_filename);
+              const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
+
+              if (rc == -1) return -1;
             }
           }
         }
@@ -442,7 +454,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        straight_ctx_add_wl (hashcat_ctx, l0_filename);
+        const int rc = straight_ctx_add_wl (hashcat_ctx, l0_filename);
+
+        if (rc == -1) return -1;
       }
     }
 

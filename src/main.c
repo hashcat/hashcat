@@ -119,7 +119,7 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   hashcat_user->outer_threads_cnt = 0;
 
-  hashcat_user->outer_threads = (hc_thread_t *) hccalloc (hashcat_ctx, 2, sizeof (hc_thread_t));
+  hashcat_user->outer_threads = (hc_thread_t *) hccalloc (hashcat_ctx, 2, sizeof (hc_thread_t)); if (hashcat_user->outer_threads == NULL) return;
 
   status_ctx->shutdown_outer = false;
 
@@ -487,7 +487,7 @@ int main (int argc, char **argv)
 {
   // hashcat main context
 
-  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t));
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t)); VERIFY_PTR (hashcat_ctx);
 
   const int rc_hashcat_init = hashcat_ctx_init (hashcat_ctx, event);
 
@@ -513,7 +513,9 @@ int main (int argc, char **argv)
 
   // initialize the user options with some defaults (you can override them later)
 
-  user_options_init (hashcat_ctx);
+  const int rc_options_init = user_options_init (hashcat_ctx);
+
+  if (rc_options_init == -1) return -1;
 
   // parse commandline parameters and check them
 
@@ -558,7 +560,9 @@ int main (int argc, char **argv)
 
   // initialize the user options with some defaults (you can override them later)
 
-  user_options_init (hashcat_ctx);
+  const int rc_options_init = user_options_init (hashcat_ctx);
+
+  if (rc_options_init == -1) return -1;
 
   // your own stuff
 

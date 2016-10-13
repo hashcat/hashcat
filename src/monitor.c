@@ -69,12 +69,12 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   // these variables are mainly used for fan control
 
-  int *fan_speed_chgd = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int));
+  int *fan_speed_chgd = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int)); VERIFY_PTR (fan_speed_chgd);
 
   // temperature controller "loopback" values
 
-  int *temp_diff_old = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int));
-  int *temp_diff_sum = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int));
+  int *temp_diff_old = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int)); VERIFY_PTR (temp_diff_old);
+  int *temp_diff_sum = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int)); VERIFY_PTR (temp_diff_sum);
 
   time_t last_temp_check_time;
 

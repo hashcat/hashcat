@@ -104,7 +104,7 @@ static u32 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   return work;
 }
 
-static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
+static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -113,7 +113,7 @@ static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
-  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
+  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (buf);
 
   const u32 attack_kern = user_options_extra->attack_kern;
 
@@ -224,6 +224,8 @@ static void calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
   device_param->kernel_loops = 0;
 
   hcfree (buf);
+
+  return 0;
 }
 
 void *thread_calc_stdin (void *p)
@@ -240,12 +242,12 @@ void *thread_calc_stdin (void *p)
 
   if (device_param->skipped) return NULL;
 
-  calc_stdin (hashcat_ctx, device_param);
+  calc_stdin (hashcat_ctx, device_param); // we should check the RC here
 
   return NULL;
 }
 
-static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
+static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -316,7 +318,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     {
       event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
 
-      return;
+      return -1;
     }
 
     if (attack_mode == ATTACK_MODE_COMBI)
@@ -335,7 +337,7 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           fclose (fd);
 
-          return;
+          return -1;
         }
 
         device_param->combs_fp = combs_fp;
@@ -352,14 +354,14 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           fclose (fd);
 
-          return;
+          return -1;
         }
 
         device_param->combs_fp = combs_fp;
       }
     }
 
-    hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (hashcat_ctx, sizeof (hashcat_ctx_t));
+    hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (hashcat_ctx, sizeof (hashcat_ctx_t)); VERIFY_PTR (hashcat_ctx_tmp);
 
     /*
     hashcat_ctx_tmp->bitmap_ctx         = hashcat_ctx->bitmap_ctx;
@@ -389,9 +391,11 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
 
-    hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (hashcat_ctx, sizeof (wl_data_t));
+    hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (hashcat_ctx, sizeof (wl_data_t)); VERIFY_PTR (hashcat_ctx_tmp->wl_data);
 
-    wl_data_init (hashcat_ctx_tmp);
+    const int rc_wl_data_init = wl_data_init (hashcat_ctx_tmp);
+
+    if (rc_wl_data_init == -1) return -1;
 
     u64 words_cur = 0;
 
@@ -543,6 +547,8 @@ static void calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   device_param->kernel_accel = 0;
   device_param->kernel_loops = 0;
+
+  return 0;
 }
 
 void *thread_calc (void *p)
@@ -559,7 +565,7 @@ void *thread_calc (void *p)
 
   if (device_param->skipped) return NULL;
 
-  calc (hashcat_ctx, device_param);
+  calc (hashcat_ctx, device_param); // we should check the RC here
 
   return NULL;
 }

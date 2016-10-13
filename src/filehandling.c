@@ -12,7 +12,7 @@ u64 count_lines (hashcat_ctx_t *hashcat_ctx, FILE *fd)
 {
   u64 cnt = 0;
 
-  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE + 1);
+  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE + 1); VERIFY_PTR (buf);
 
   char prev = '\n';
 

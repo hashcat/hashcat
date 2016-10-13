@@ -728,12 +728,12 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
   if (user_options->rp_files_cnt)
   {
-    all_kernel_rules_cnt = (u32 *) hccalloc (hashcat_ctx, user_options->rp_files_cnt, sizeof (u32));
+    all_kernel_rules_cnt = (u32 *) hccalloc (hashcat_ctx, user_options->rp_files_cnt, sizeof (u32)); VERIFY_PTR (all_kernel_rules_cnt);
 
-    all_kernel_rules_buf = (kernel_rule_t **) hccalloc (hashcat_ctx, user_options->rp_files_cnt, sizeof (kernel_rule_t *));
+    all_kernel_rules_buf = (kernel_rule_t **) hccalloc (hashcat_ctx, user_options->rp_files_cnt, sizeof (kernel_rule_t *)); VERIFY_PTR (all_kernel_rules_buf);
   }
 
-  char *rule_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
+  char *rule_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (rule_buf);
 
   int rule_len = 0;
 
@@ -773,7 +773,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
       if (kernel_rules_avail == kernel_rules_cnt)
       {
-        kernel_rules_buf = (kernel_rule_t *) hcrealloc (hashcat_ctx, kernel_rules_buf, kernel_rules_avail * sizeof (kernel_rule_t), INCR_RULES * sizeof (kernel_rule_t));
+        kernel_rules_buf = (kernel_rule_t *) hcrealloc (hashcat_ctx, kernel_rules_buf, kernel_rules_avail * sizeof (kernel_rule_t), INCR_RULES * sizeof (kernel_rule_t)); VERIFY_PTR (kernel_rules_buf);
 
         kernel_rules_avail += INCR_RULES;
       }
@@ -816,7 +816,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
   u32 kernel_rules_cnt = 1;
 
-  u32 *repeats = (u32 *) hccalloc (hashcat_ctx, user_options->rp_files_cnt + 1, sizeof (u32));
+  u32 *repeats = (u32 *) hccalloc (hashcat_ctx, user_options->rp_files_cnt + 1, sizeof (u32)); VERIFY_PTR (repeats);
 
   repeats[0] = kernel_rules_cnt;
 
@@ -827,7 +827,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     repeats[i + 1] = kernel_rules_cnt;
   }
 
-  kernel_rule_t *kernel_rules_buf = (kernel_rule_t *) hccalloc (hashcat_ctx, kernel_rules_cnt, sizeof (kernel_rule_t));
+  kernel_rule_t *kernel_rules_buf = (kernel_rule_t *) hccalloc (hashcat_ctx, kernel_rules_cnt, sizeof (kernel_rule_t)); VERIFY_PTR (kernel_rules_buf);
 
   for (u32 i = 0; i < kernel_rules_cnt; i++)
   {
@@ -879,9 +879,9 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   u32            kernel_rules_cnt = 0;
-  kernel_rule_t *kernel_rules_buf = hccalloc (hashcat_ctx, user_options->rp_gen, sizeof (kernel_rule_t));
+  kernel_rule_t *kernel_rules_buf = hccalloc (hashcat_ctx, user_options->rp_gen, sizeof (kernel_rule_t)); VERIFY_PTR (kernel_rules_buf);
 
-  char *rule_buf = (char *) hcmalloc (hashcat_ctx, RP_RULE_BUFSIZ);
+  char *rule_buf = (char *) hcmalloc (hashcat_ctx, RP_RULE_BUFSIZ); VERIFY_PTR (rule_buf);
 
   for (kernel_rules_cnt = 0; kernel_rules_cnt < user_options->rp_gen; kernel_rules_cnt++)
   {

@@ -1347,9 +1347,9 @@ int status_progress_init (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
   hashes_t     *hashes     = hashcat_ctx->hashes;
 
-  status_ctx->words_progress_done     = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64));
-  status_ctx->words_progress_rejected = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64));
-  status_ctx->words_progress_restored = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64));
+  status_ctx->words_progress_done     = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64)); VERIFY_PTR (status_ctx->words_progress_done);
+  status_ctx->words_progress_rejected = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64)); VERIFY_PTR (status_ctx->words_progress_rejected);
+  status_ctx->words_progress_restored = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64)); VERIFY_PTR (status_ctx->words_progress_restored);
 
   return 0;
 }

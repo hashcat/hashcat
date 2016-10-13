@@ -342,11 +342,11 @@ u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, FILE *fp, u32 max_check)
   if (hashconfig->hash_mode == 5300) return HLFMT_HASHCAT;
   if (hashconfig->hash_mode == 5400) return HLFMT_HASHCAT;
 
-  u32 *formats_cnt = (u32 *) hccalloc (hashcat_ctx, HLFMTS_CNT, sizeof (u32));
+  u32 *formats_cnt = (u32 *) hccalloc (hashcat_ctx, HLFMTS_CNT, sizeof (u32)); VERIFY_PTR (formats_cnt);
 
   u32 num_check = 0;
 
-  char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
+  char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (line_buf);
 
   while (!feof (fp))
   {

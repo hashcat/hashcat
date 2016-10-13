@@ -67,7 +67,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   tuning_db->enabled = true;
 
-  char *tuning_db_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *tuning_db_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (tuning_db_file);
 
   snprintf (tuning_db_file, HCBUFSIZ_TINY - 1, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
 
@@ -86,17 +86,17 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   // a bit over-allocated
 
-  tuning_db->alias_buf = (tuning_db_alias_t *) hccalloc (hashcat_ctx, num_lines + 1, sizeof (tuning_db_alias_t));
+  tuning_db->alias_buf = (tuning_db_alias_t *) hccalloc (hashcat_ctx, num_lines + 1, sizeof (tuning_db_alias_t)); VERIFY_PTR (tuning_db->alias_buf);
   tuning_db->alias_cnt = 0;
 
-  tuning_db->entry_buf = (tuning_db_entry_t *) hccalloc (hashcat_ctx, num_lines + 1, sizeof (tuning_db_entry_t));
+  tuning_db->entry_buf = (tuning_db_entry_t *) hccalloc (hashcat_ctx, num_lines + 1, sizeof (tuning_db_entry_t)); VERIFY_PTR (tuning_db->entry_buf);
   tuning_db->entry_cnt = 0;
 
   rewind (fp);
 
   int line_num = 0;
 
-  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
+  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (buf);
 
   while (!feof (fp))
   {
