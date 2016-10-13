@@ -33,14 +33,10 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp)
 
   if (prev_len)
   {
-    fputc ('\r', fp);
-
     for (int i = 0; i < prev_len; i++)
     {
-      fputc (' ', fp);
+      fputc ('\b', fp);
     }
-
-    fputc ('\r', fp);
   }
 
   if (msg_newline == true)
@@ -229,7 +225,7 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   if (outfile_ctx->fp != NULL) return; // cracked hash was not written to an outfile
 
   fwrite (buf, len,          1, stdout);
-  fwrite (EOL, sizeof (EOL), 1, stdout);
+  fwrite (EOL, strlen (EOL), 1, stdout);
 }
 
 static void main_calculated_words_base (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)

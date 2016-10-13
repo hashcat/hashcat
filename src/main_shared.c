@@ -19,7 +19,7 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   if (outfile_ctx->fp != NULL) return; // cracked hash was not written to an outfile
 
   fwrite (buf, len,          1, stdout);
-  fwrite (EOL, sizeof (EOL), 1, stdout);
+  fwrite (EOL, strlen (EOL), 1, stdout);
 }
 
 void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
