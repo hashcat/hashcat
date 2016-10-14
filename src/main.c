@@ -180,7 +180,9 @@ static void main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   {
     if ((user_options->quiet == false) && (user_options->status == false) && (user_options->benchmark == false))
     {
-       send_prompt ();
+      event_log_info_nn (hashcat_ctx, "");
+
+      send_prompt ();
     }
   }
   else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)

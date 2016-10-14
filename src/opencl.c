@@ -3507,7 +3507,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         if (cached == 0)
         {
-          if (user_options->quiet == false) event_log_info (hashcat_ctx, "- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+          if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
 
           const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
 
@@ -3709,8 +3709,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (cached == 0)
       {
-        if (user_options->quiet == false) event_log_info (hashcat_ctx, "- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
-        if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
+        if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
 
@@ -3850,8 +3849,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (cached == 0)
       {
-        if (user_options->quiet == false) event_log_info (hashcat_ctx, "- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
-        if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
+        if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
 
