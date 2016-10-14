@@ -48,7 +48,7 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
 
   snprintf (dictstat_ctx->filename, HCBUFSIZ_TINY - 1, "%s/hashcat.dictstat", folder_config->profile_dir);
 
-  FILE *fp = fopen (dictstat_ctx->filename, "wb");
+  FILE *fp = fopen (dictstat_ctx->filename, "ab");
 
   if (fp == NULL)
   {

@@ -86,7 +86,7 @@ int logfile_init (hashcat_ctx_t *hashcat_ctx)
 
   logfile_ctx->enabled = true;
 
-  FILE *fp = fopen (logfile_ctx->logfile, "wb");
+  FILE *fp = fopen (logfile_ctx->logfile, "ab");
 
   if (fp == NULL)
   {
