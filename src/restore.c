@@ -367,6 +367,7 @@ void stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
 
   if ((status_ctx->run_thread_level1 == true) && (status_ctx->run_thread_level2 == true))
   {
+    status_ctx->run_main_level1   = false;
     status_ctx->run_main_level2   = false;
     status_ctx->run_main_level3   = false;
     status_ctx->run_thread_level1 = false;
@@ -376,6 +377,7 @@ void stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
+    status_ctx->run_main_level1   = true;
     status_ctx->run_main_level2   = true;
     status_ctx->run_main_level3   = true;
     status_ctx->run_thread_level1 = true;

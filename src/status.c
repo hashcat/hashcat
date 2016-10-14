@@ -444,9 +444,9 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       if (mask_ctx->masks_cnt > 1)
       {
-        const int mask_pos_done = ((status_ctx->devices_status == STATUS_EXHAUSTED) && (status_ctx->run_main_level2 == true)) ? 1 : 0;
+        const int maks_pos_done = ((status_ctx->devices_status == STATUS_EXHAUSTED) && (status_ctx->run_main_level1 == true)) ? 1 : 0;
 
-        double mask_percentage = (double) (mask_ctx->masks_pos + mask_pos_done) / (double) mask_ctx->masks_cnt;
+        double mask_percentage = (double) (mask_ctx->masks_pos + maks_pos_done) / (double) mask_ctx->masks_cnt;
 
         tmp_len += snprintf (tmp_buf + tmp_len, sizeof (tmp_buf) - tmp_len, " (%.02f%%)", mask_percentage * 100);
       }
@@ -1026,7 +1026,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (status_ctx->run_main_level2 == false) return;
+  if (status_ctx->run_main_level1 == false) return;
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -1383,6 +1383,7 @@ int status_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_INIT;
 
+  status_ctx->run_main_level1   = true;
   status_ctx->run_main_level2   = true;
   status_ctx->run_main_level3   = true;
   status_ctx->run_thread_level1 = true;

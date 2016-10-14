@@ -32,30 +32,30 @@ void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const siz
 
 int main ()
 {
-  // hashcat context
+  // hashcat main context
 
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t));
 
   assert (hashcat_ctx);
 
-  const int rc_hashcat_alloc = hashcat_ctx_alloc (hashcat_ctx);
+  const int rc_hashcat_init = hashcat_ctx_init (hashcat_ctx, event);
 
-  if (rc_hashcat_alloc == -1) return -1;
+  if (rc_hashcat_init == -1) return -1;
 
-  // initialize the user options with some defaults (you can override them later) ...
-
-  const int rc_options_init = user_options_init (hashcat_ctx);
-
-  if (rc_options_init == -1) return -1;
-
-  // hashcat session
+  // this is a bit ugly, but it's the example you're looking for
 
   char *hash = "8743b52063cd84097a65d1633f5c74f5";
   char *mask = "?l?l?l?l?l?l?l";
 
   char *hc_argv[] = { hash, mask, NULL };
 
-  // ... and add your own stuff
+  // initialize the user options with some defaults (you can override them later)
+
+  const int rc_options_init = user_options_init (hashcat_ctx);
+
+  if (rc_options_init == -1) return -1;
+
+  // your own stuff
 
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -67,35 +67,20 @@ int main ()
   user_options->hash_mode         = 0;              // MD5
   user_options->workload_profile  = 3;
 
-  // initialize hashcat and check for errors
+  // now run hashcat
 
-  const int rc_hashcat_init = hashcat_ctx_init (hashcat_ctx, event, NULL, NULL, 0, NULL, 0);
+  const int rc_hashcat = hashcat (hashcat_ctx, NULL, NULL, 0, NULL, 0);
 
-  if (rc_hashcat_init == -1)
-  {
-    const char *error = hashcat_ctx_last_error (hashcat_ctx);
-
-    fprintf (stderr, "%s\n", error);
-
-    return -1;
-  }
-
-  // now run hashcat and check for errors
-
-  const int rc_session = hashcat_ctx_run_session (hashcat_ctx);
-
-  if (rc_session == 0)
+  if (rc_hashcat == 0)
   {
     puts ("YAY, all hashes cracked!!");
   }
-  else if (rc_session == -1)
+  else if (rc_hashcat == -1)
   {
-    const char *error = hashcat_ctx_last_error (hashcat_ctx);
+    event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
-    fprintf (stderr, "%s\n", error);
+    fprintf (stderr, "%s\n", event_ctx->msg_buf);
   }
-
-  // clean up
 
   hashcat_ctx_destroy (hashcat_ctx);
 
